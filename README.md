@@ -1,5 +1,7 @@
 # LeoCard
 
+[![CI and Release](https://github.com/LeoDreamer2004/LeoCard/actions/workflows/ci.yml/badge.svg)](https://github.com/LeoDreamer2004/LeoCard/actions/workflows/ci.yml)
+
 使用 Rust、Bevy 开发的局域网棋牌游戏。目前包含七鬼五二三、德州扑克和升级（拖拉机）。
 **本项目完全由 AI 辅助开发，不保证代码质量和可维护性。**
 
@@ -15,6 +17,16 @@ cargo run -p leocard-client
 
 ```bash
 cargo build -p leocard-client --release
+```
+
+GitHub Actions 会在每次推送和拉取请求中分别使用 Ubuntu 22.04 与 Windows Server
+2022 编译、测试单文件版本。推送与 `leocard-client` 版本一致的 `v*` 标签后，还会
+自动创建 GitHub Release，并上传 Linux、Windows 二进制及各自的 SHA-256 文件。
+例如当前客户端版本为 `0.1.0` 时：
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
 内嵌文件列表由 `crates/client/runtime-assets.txt` 管理

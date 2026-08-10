@@ -1,6 +1,6 @@
 [package]
 name = "leocard-client"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 license.workspace = true
 rust-version = "1.95"
@@ -33,5 +33,8 @@ getrandom.workspace = true
 image.workspace = true
 postcard.workspace = true
 rfd.workspace = true
+reqwest.workspace = true
+semver.workspace = true
 serde.workspace = true
+sha2.workspace = true
 tokio.workspace = true

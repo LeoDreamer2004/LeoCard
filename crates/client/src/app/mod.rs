@@ -1241,6 +1241,9 @@ enum UiAction {
     ClearAvatar,
     ToggleProfile,
     ToggleSettings,
+    StartUpdate,
+    HideUpdateDialog,
+    RestartToUpdate,
     ChooseTableFelt,
     UseDefaultTableFelt,
     SelectSeat(SeatId),
@@ -1394,6 +1397,7 @@ struct VisualAssets<'w> {
     shengji_presentation: Res<'w, ShengjiPresentationState>,
     start_game_transition: Res<'w, StartGameSeatTransition>,
     texas_chips: Res<'w, TexasChipTableState>,
+    updater: Res<'w, UpdateManager>,
 }
 
 #[derive(SystemParam)]
@@ -1420,6 +1424,7 @@ mod seat_transition;
 mod shengji;
 mod texas_holdem;
 mod turn_border;
+mod update;
 mod widgets;
 
 use animation::*;
@@ -1438,6 +1443,7 @@ use seat_transition::*;
 use shengji::*;
 use texas_holdem::*;
 use turn_border::*;
+use update::*;
 use widgets::*;
 
 #[cfg(test)]
@@ -1491,6 +1497,7 @@ pub(crate) fn run() {
         .insert_resource(ChatPanelState::default())
         .insert_resource(DeveloperHandInput::default())
         .insert_resource(TexasChipTableState::default())
+        .insert_resource(UpdateManager::default())
         .add_plugins(
             DefaultPlugins
                 .set(LogPlugin {
@@ -1621,7 +1628,9 @@ pub(crate) fn run() {
                         scroll_quick_voice_menu,
                         (
                             sync_avatar_images,
+                            poll_update_events,
                             render_ui,
+                            sync_update_dialog,
                             sync_shengji_bidding_countdown,
                             (
                                 animate_shengji_failed_throw_cards,

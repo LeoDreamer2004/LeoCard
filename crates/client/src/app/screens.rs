@@ -201,7 +201,7 @@ pub(super) fn render_ui(
         );
     }
     if ui.settings_open {
-        render_settings_modal(&mut commands, root, &form, &visuals.ui);
+        render_settings_modal(&mut commands, root, &form, &visuals.updater, &visuals.ui);
     }
     if ui.profile_open {
         render_profile_modal(
@@ -215,6 +215,9 @@ pub(super) fn render_ui(
     }
     if ui.host_game_picker_open && client.is_none() {
         render_host_game_picker(&mut commands, root, &visuals.ui);
+    }
+    if visuals.updater.dialog_open {
+        render_update_dialog(&mut commands, root, &visuals.updater, &visuals.ui);
     }
     if visuals.play_error.active
         && let Some(message) = visuals.play_error.message.as_deref()
@@ -550,10 +553,11 @@ fn add_profile_stat(
     add_text(commands, card, value, 21.0, ACCENT, assets);
 }
 
-fn render_settings_modal(
+pub(super) fn render_settings_modal(
     commands: &mut Commands,
     root: Entity,
     form: &ConnectionForm,
+    updater: &UpdateManager,
     assets: &UiAssets,
 ) {
     let overlay = spawn_node(
@@ -653,6 +657,59 @@ fn render_settings_modal(
     ] {
         add_table_appearance_slider(commands, modal, setting, form, assets);
     }
+    let update_row = spawn_node(
+        commands,
+        modal,
+        Node {
+            width: percent(100),
+            min_height: px(68),
+            padding: UiRect::axes(px(12), px(10)),
+            border: UiRect::all(px(1)),
+            border_radius: BorderRadius::all(px(7)),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::SpaceBetween,
+            flex_wrap: FlexWrap::Wrap,
+            column_gap: px(12),
+            row_gap: px(8),
+            ..default()
+        },
+        Some(HEADER_BG.with_alpha(0.78)),
+    );
+    commands.entity(update_row).insert(BorderColor::all(BORDER));
+    let version_text = spawn_node(
+        commands,
+        update_row,
+        Node {
+            min_width: px(180),
+            flex_grow: 1.0,
+            flex_direction: FlexDirection::Column,
+            row_gap: px(3),
+            ..default()
+        },
+        None,
+    );
+    add_text(commands, version_text, "软件更新", 16.0, TEXT, assets);
+    add_text(
+        commands,
+        version_text,
+        format!(
+            "当前版本 v{} · 来源 GitHub Release",
+            env!("CARGO_PKG_VERSION")
+        ),
+        12.0,
+        MUTED,
+        assets,
+    );
+    add_green_update_button(
+        commands,
+        update_row,
+        settings_update_label(&updater.state),
+        match updater.state {
+            UpdateState::Ready { .. } => UiAction::RestartToUpdate,
+            _ => UiAction::StartUpdate,
+        },
+        assets,
+    );
     let actions = spawn_node(
         commands,
         modal,

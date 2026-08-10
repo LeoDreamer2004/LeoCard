@@ -4,7 +4,11 @@
 )]
 
 mod app;
+mod updater;
 
 fn main() {
+    if updater::run_if_requested() {
+        return;
+    }
     app::run();
 }

@@ -37,6 +37,70 @@ fn host_game_picker_lists_every_playable_game() {
 }
 
 #[test]
+fn settings_exposes_the_green_update_action() {
+    fn setup(mut commands: Commands, assets: Res<UiAssets>) {
+        let root = commands.spawn(Node::default()).id();
+        render_settings_modal(
+            &mut commands,
+            root,
+            &ConnectionForm::default(),
+            &UpdateManager::default(),
+            &assets,
+        );
+    }
+
+    let mut app = App::new();
+    app.init_resource::<UiAssets>();
+    app.add_systems(Startup, setup);
+    app.update();
+
+    let mut buttons = app
+        .world_mut()
+        .query_filtered::<(&UiAction, &ButtonTint), With<Button>>();
+    let (_, tint) = buttons
+        .iter(app.world())
+        .find(|(action, _)| matches!(action, UiAction::StartUpdate))
+        .expect("游戏设置应包含自动更新按钮");
+    assert_eq!(tint.normal, READY);
+}
+
+#[test]
+fn completed_update_dialog_offers_restart_and_later_actions() {
+    fn setup(mut commands: Commands, assets: Res<UiAssets>) {
+        let root = commands.spawn(Node::default()).id();
+        let mut updater = UpdateManager::default();
+        updater.state = UpdateState::Ready {
+            version: semver::Version::new(1, 2, 3),
+            staged: PathBuf::from("leocard.update"),
+        };
+        updater.dialog_open = true;
+        render_update_dialog(&mut commands, root, &updater, &assets);
+    }
+
+    let mut app = App::new();
+    app.init_resource::<UiAssets>();
+    app.add_systems(Startup, setup);
+    app.update();
+
+    let actions = app
+        .world_mut()
+        .query::<&UiAction>()
+        .iter(app.world())
+        .cloned()
+        .collect::<Vec<_>>();
+    assert!(
+        actions
+            .iter()
+            .any(|action| matches!(action, UiAction::RestartToUpdate))
+    );
+    assert!(
+        actions
+            .iter()
+            .any(|action| matches!(action, UiAction::HideUpdateDialog))
+    );
+}
+
+#[test]
 fn local_profile_applies_each_finished_match_once() {
     let identity = PlayerIdentity::from_secret_bytes([7; 32]);
     let profile_id = identity.profile_id();

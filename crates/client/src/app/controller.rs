@@ -31,6 +31,8 @@ pub(super) fn handle_buttons(
     mut interaction_cooldown: ResMut<PlayerInteractionCooldown>,
     mut chat: ResMut<ChatPanelState>,
     mut developer_hand: ResMut<DeveloperHandInput>,
+    mut updater: ResMut<UpdateManager>,
+    mut app_exit: MessageWriter<AppExit>,
     no_response_hints: Query<Entity, With<NoLegalResponseHint>>,
     mut commands: Commands,
 ) {
@@ -182,6 +184,29 @@ pub(super) fn handle_buttons(
                 if ui.settings_open {
                     ui.profile_open = false;
                     ui.host_game_picker_open = false;
+                }
+            }
+            UiAction::StartUpdate => {
+                updater.begin_or_show();
+            }
+            UiAction::HideUpdateDialog => {
+                updater.dialog_open = false;
+            }
+            UiAction::RestartToUpdate => {
+                let staged = match &updater.state {
+                    UpdateState::Ready { staged, .. } => Some(staged.clone()),
+                    _ => None,
+                };
+                if let Some(staged) = staged {
+                    match crate::updater::launch_installer(&staged) {
+                        Ok(()) => {
+                            app_exit.write(AppExit::Success);
+                        }
+                        Err(error) => {
+                            updater.state = UpdateState::Failed(error);
+                            updater.dialog_open = true;
+                        }
+                    }
                 }
             }
             UiAction::ChooseTableFelt => {

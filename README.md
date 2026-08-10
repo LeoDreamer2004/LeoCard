@@ -19,16 +19,6 @@ cargo run -p leocard-client
 cargo build -p leocard-client --release
 ```
 
-GitHub Actions 会在每次推送和拉取请求中分别使用 Ubuntu 22.04 与 Windows Server
-2022 编译、测试单文件版本。推送与 `leocard-client` 版本一致的 `v*` 标签后，还会
-自动创建 GitHub Release，并上传 Linux、Windows 二进制及各自的 SHA-256 文件。
-例如当前客户端版本为 `0.1.0` 时：
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
 内嵌文件列表由 `crates/client/runtime-assets.txt` 管理
 
 ## 许可证

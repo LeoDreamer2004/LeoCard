@@ -1,0 +1,49 @@
+# Rust build output and compiler leftovers
+/target/
+**/*.rs.bk
+
+# Locally copied or packaged application binaries
+/leocard
+/leocard.exe
+/*.AppImage
+/dist/
+/artifacts/
+
+# Temporary design and planning documents
+/docs/
+
+# Local runtime output and player data
+/log.txt
+*.log
+client.prefs
+profile.dat
+core
+core.*
+
+# Auto-update staging and release signing secrets
+/updates/staging/
+/secrets/
+/.env
+/.env.*
+!/.env.example
+**/release-signing*.key
+/*.pem
+/*.p12
+/*.pfx
+
+# Editor and operating-system metadata
+/.agents/
+/.codex/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Keep Cargo.lock committed: LeoCard is an application, not only a library.
+!Cargo.lock
+
+# My personal scripts
+*.sh

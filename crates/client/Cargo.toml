@@ -1,0 +1,37 @@
+[package]
+name = "leocard-client"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version = "1.95"
+description = "Bevy client and transport-neutral client state for LeoCard"
+
+[[bin]]
+name = "leocard"
+path = "src/main.rs"
+
+[features]
+default = []
+developer = ["leocard-qigui523/developer", "leocard-host/developer"]
+# Debug builds keep loading the workspace `assets` directory by default. This
+# feature enables the single-binary asset source explicitly; release builds
+# enable the same behavior automatically from build.rs.
+embedded-assets = []
+
+[dependencies]
+bevy.workspace = true
+bevy_clipboard.workspace = true
+ed25519-dalek.workspace = true
+leocard-qigui523 = { path = "../games/qigui523" }
+leocard-shengji = { path = "../games/shengji" }
+leocard-texas-holdem = { path = "../games/texas-holdem" }
+leocard-host = { path = "../host" }
+leocard-protocol = { path = "../protocol" }
+leocard-tcp = { path = "../tcp" }
+fastrand.workspace = true
+getrandom.workspace = true
+image.workspace = true
+postcard.workspace = true
+rfd.workspace = true
+serde.workspace = true
+tokio.workspace = true

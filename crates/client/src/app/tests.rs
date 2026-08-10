@@ -1,0 +1,2040 @@
+//! Client application regression tests.
+
+use super::*;
+
+#[test]
+fn host_game_picker_validates_identity_and_port_before_opening() {
+    let mut form = ConnectionForm::default();
+    form.player_name = "房主".to_owned();
+    form.host_port = "52300".to_owned();
+    assert_eq!(validated_host_form(&form), Ok(("房主".to_owned(), 52300)));
+
+    form.host_port = "0".to_owned();
+    assert!(validated_host_form(&form).is_err());
+    form.host_port = "52300".to_owned();
+    form.player_name.clear();
+    assert!(validated_host_form(&form).is_err());
+}
+
+#[test]
+fn host_game_picker_lists_every_playable_game() {
+    assert_eq!(HOST_GAME_CHOICES.len(), 3);
+    assert!(
+        HOST_GAME_CHOICES
+            .iter()
+            .any(|choice| choice.2 == GameKind::QiGui523)
+    );
+    assert!(
+        HOST_GAME_CHOICES
+            .iter()
+            .any(|choice| choice.2 == GameKind::TexasHoldem)
+    );
+    assert!(
+        HOST_GAME_CHOICES
+            .iter()
+            .any(|choice| choice.2 == GameKind::Shengji)
+    );
+}
+
+#[test]
+fn local_profile_applies_each_finished_match_once() {
+    let identity = PlayerIdentity::from_secret_bytes([7; 32]);
+    let profile_id = identity.profile_id();
+    let mut profile = LocalPlayerProfile {
+        identity,
+        rating: PlayerRatingProfile {
+            reference_points: 10,
+            completed_games: 4,
+            applied_matches: HashSet::new(),
+            last_change: None,
+        },
+    };
+    let match_id = MatchId([3; 16]);
+    let changes = [leocard_protocol::PlayerReferenceChange {
+        player: PlayerId(0),
+        profile_id,
+        delta: 3,
+    }];
+
+    assert!(profile.apply_finished_match(match_id, &changes));
+    assert!(!profile.apply_finished_match(match_id, &changes));
+    assert_eq!(profile.rating.reference_points, 13);
+    assert_eq!(profile.rating.completed_games, 5);
+    assert_eq!(profile.rating.last_change, Some((match_id, 3)));
+}
+
+#[test]
+fn reference_levels_use_the_declared_boundaries() {
+    assert_eq!(reference_level(1_001), "下界合金");
+    assert_eq!(reference_level(1_000), "钻石");
+    assert_eq!(reference_level(500), "钻石");
+    assert_eq!(reference_level(499), "金");
+    assert_eq!(reference_level(200), "金");
+    assert_eq!(reference_level(199), "红石");
+    assert_eq!(reference_level(100), "红石");
+    assert_eq!(reference_level(99), "铁");
+    assert_eq!(reference_level(50), "铁");
+    assert_eq!(reference_level(49), "铜");
+    assert_eq!(reference_level(10), "铜");
+    assert_eq!(reference_level(9), "圆石");
+    assert_eq!(reference_level(0), "圆石");
+    assert_eq!(reference_level(-1), "木头");
+    assert_eq!(reference_level(-10), "木头");
+    assert_eq!(reference_level(-11), "泥土");
+    assert_eq!(reference_level(-50), "泥土");
+    assert_eq!(reference_level(-51), "堆肥桶");
+    assert_eq!(reference_points_label(500), "等级:钻石  分数:500");
+}
+
+#[test]
+fn not_players_turn_rejection_does_not_create_a_popup() {
+    assert_eq!(
+        rejection_label(&RejectReason::GameViolation(GameViolation::QiGui523(
+            RuleViolation::NotPlayersTurn,
+        ))),
+        None
+    );
+    assert!(
+        rejection_label(&RejectReason::GameViolation(GameViolation::QiGui523(
+            RuleViolation::InvalidPattern,
+        )))
+        .is_some()
+    );
+}
+
+#[test]
+fn drag_selection_range_works_in_both_directions() {
+    let mut drag = CardDragSelection {
+        active: true,
+        anchor: 5,
+        current: 2,
+        select: true,
+    };
+    assert!(!drag.contains(1));
+    assert!(drag.contains(2));
+    assert!(drag.contains(4));
+    assert!(drag.contains(5));
+    assert!(!drag.contains(6));
+
+    drag.active = false;
+    assert!(!drag.contains(4));
+}
+
+#[test]
+fn ui_scale_fits_design_size_and_respects_manual_zoom() {
+    assert_eq!(calculate_ui_scale(1280.0, 720.0, 1.0), 1.0);
+    assert_eq!(calculate_ui_scale(640.0, 400.0, 1.0), 0.5);
+    assert_eq!(calculate_ui_scale(2560.0, 1440.0, 1.0), 2.0);
+    assert_eq!(calculate_ui_scale(1280.0, 720.0, 1.5), 1.5);
+    assert_eq!(calculate_ui_scale(1280.0, 720.0, 10.0), 1.5);
+}
+
+#[test]
+fn table_brightness_is_normalized_and_mapped_to_the_slider() {
+    assert_eq!(normalize_table_brightness(0.0), 1.0);
+    assert_eq!(normalize_table_brightness(f32::NAN), 1.0);
+    assert_eq!(table_brightness_fraction(MIN_TABLE_BRIGHTNESS), 0.0);
+    assert_eq!(table_brightness_fraction(MAX_TABLE_BRIGHTNESS), 1.0);
+    assert_eq!(slider_fraction_from_relative_x(-0.5), 0.0);
+    assert_eq!(slider_fraction_from_relative_x(0.0), 0.5);
+    assert_eq!(slider_fraction_from_relative_x(0.5), 1.0);
+    assert_eq!(slider_fraction_from_relative_x(-2.0), 0.0);
+    assert_eq!(slider_fraction_from_relative_x(2.0), 1.0);
+}
+
+#[test]
+fn table_material_parameters_clamp_invalid_visual_settings() {
+    let params = table_material_params(f32::NAN, 5.0, true);
+    assert_eq!(params.x, DEFAULT_TABLE_VIGNETTE);
+    assert_eq!(params.y, 1.0);
+    assert_eq!(params.z, 1.0);
+    assert_eq!(params.w, 0.0);
+}
+
+#[cfg(feature = "developer")]
+#[test]
+fn developer_hand_parser_accepts_compact_cards_and_assigns_physical_copies() {
+    let cards = parse_developer_hand("s4 H5,c6;dK ST").unwrap();
+    assert_eq!(
+        cards,
+        vec![
+            Card::suited(0, Suit::Spade, Rank::Four),
+            Card::suited(0, Suit::Heart, Rank::Five),
+            Card::suited(0, Suit::Club, Rank::Six),
+            Card::suited(0, Suit::Diamond, Rank::King),
+            Card::suited(0, Suit::Spade, Rank::Ten),
+        ]
+    );
+
+    let copies = parse_developer_hand("S4S4S4").unwrap();
+    assert_eq!(copies[0].deck(), 0);
+    assert_eq!(copies[1].deck(), 1);
+    assert_eq!(copies[2].deck(), 2);
+    assert!(parse_developer_hand("S10").is_err());
+}
+
+#[cfg(feature = "developer")]
+#[test]
+fn developer_hand_parser_supports_red_and_black_jokers() {
+    assert_eq!(
+        parse_developer_hand("RJBJ").unwrap(),
+        vec![
+            Card::suited(0, Suit::Spade, Rank::Joker),
+            Card::suited(0, Suit::Club, Rank::Joker),
+        ]
+    );
+    assert!(parse_developer_hand("S0C0").is_err());
+    assert_eq!(
+        parse_developer_hand("SJCJ").unwrap(),
+        vec![
+            Card::suited(0, Suit::Spade, Rank::Jack),
+            Card::suited(0, Suit::Club, Rank::Jack),
+        ]
+    );
+    assert!(parse_developer_hand("SJOKER").is_err());
+    let small_jokers = parse_developer_hand("BJBJ").unwrap();
+    assert_eq!(small_jokers[0], Card::suited(0, Suit::Club, Rank::Joker));
+    assert_eq!(small_jokers[1], Card::suited(1, Suit::Club, Rank::Joker));
+}
+
+#[cfg(feature = "developer")]
+#[test]
+fn developer_hand_parser_randomizes_suits_in_rank_only_mode() {
+    let cards = parse_developer_hand("70523").unwrap();
+    assert_eq!(
+        cards.iter().copied().map(Card::rank).collect::<Vec<_>>(),
+        vec![Rank::Seven, Rank::Joker, Rank::Five, Rank::Two, Rank::Three,]
+    );
+    assert!(matches!(cards[1].suit(), Suit::Spade | Suit::Club));
+    assert_eq!(cards.iter().copied().collect::<HashSet<_>>().len(), 5);
+    let repeated = parse_developer_hand("77777000").unwrap();
+    assert_eq!(repeated.len(), 8);
+    assert_eq!(
+        repeated.iter().copied().collect::<HashSet<_>>().len(),
+        repeated.len()
+    );
+}
+
+#[test]
+fn every_card_maps_to_an_existing_asset() {
+    assert_eq!(
+        card_asset_path(Rank::Ace, Suit::Spade),
+        "vendor/kenney/boardgame/PNG/Cards/cardSpadesA.png"
+    );
+    assert_eq!(
+        card_asset_path(Rank::Ten, Suit::Diamond),
+        "vendor/kenney/boardgame/PNG/Cards/cardDiamonds10.png"
+    );
+    assert_eq!(
+        card_asset_path(Rank::Joker, Suit::Club),
+        "vendor/kenney/boardgame/PNG/Cards/cardJoker.png"
+    );
+    assert_eq!(
+        card_asset_path(Rank::Joker, Suit::Spade),
+        "vendor/kenney/boardgame/PNG/Cards/cardJokerBig.png"
+    );
+
+    let asset_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets");
+    for card in build_deck(1) {
+        let path = asset_root.join(card_asset_path(card.rank(), card.suit()));
+        assert!(path.is_file(), "missing card asset: {}", path.display());
+    }
+    assert!(asset_root.join(TABLE_FELT_ASSET).is_file());
+    assert!(asset_root.join(UI_FONT_ASSET).is_file());
+    assert!(asset_root.join("fonts/OFL-ChillRoundGothic.txt").is_file());
+    assert!(asset_root.join("icons/list-menu.png").is_file());
+    assert!(
+        asset_root
+            .join("ui/effects/sequence_airplane.png")
+            .is_file()
+    );
+    assert!(
+        asset_root
+            .join("ui/effects/sequence_airplane.svg")
+            .is_file()
+    );
+    assert!(asset_root.join("ui/effects/shengji_target.png").is_file());
+    assert!(asset_root.join("ui/effects/shengji_dart.png").is_file());
+}
+
+#[test]
+fn every_runtime_ui_and_card_sound_decodes_with_enabled_bevy_formats() {
+    use bevy::audio::Decodable;
+
+    let asset_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets");
+    let mut sounds = vec![
+        "vendor/kenney/ui/Sounds/click-a.ogg".to_owned(),
+        "vendor/kenney/ui/Sounds/click-b.ogg".to_owned(),
+        "vendor/kenney/interface-sounds/Audio/error_007.ogg".to_owned(),
+    ];
+    for (prefix, count) in [
+        ("card-slide", 8),
+        ("card-place", 4),
+        ("card-shove", 4),
+        ("card-fan", 2),
+        ("chip-lay", 3),
+        ("chips-collide", 4),
+        ("chips-handle", 6),
+        ("chips-stack", 6),
+    ] {
+        sounds.extend(
+            (1..=count)
+                .map(|index| format!("vendor/kenney/casino-audio/Audio/{prefix}-{index}.ogg")),
+        );
+    }
+    sounds.extend(["tap-a.ogg", "tap-b.ogg"].map(|name| format!("vendor/kenney/ui/Sounds/{name}")));
+    sounds.extend(
+        [
+            "bong_001.ogg",
+            "drop_004.ogg",
+            "switch_003.ogg",
+            "switch_004.ogg",
+            "pluck_001.ogg",
+            "pluck_002.ogg",
+            "confirmation_001.ogg",
+            "confirmation_002.ogg",
+            "confirmation_003.ogg",
+            "confirmation_004.ogg",
+            "scratch_004.ogg",
+        ]
+        .map(|name| format!("vendor/kenney/interface-sounds/Audio/{name}")),
+    );
+    sounds.push("vendor/noname/audio/effect/flappybird_start.ogg".to_owned());
+    sounds.push("vendor/noname/audio/effect/flappybird_score.ogg".to_owned());
+    sounds.push("vendor/noname/audio/effect/flappybird_die.ogg".to_owned());
+    sounds.push("audio/shengji/power-off.ogg".to_owned());
+    sounds.push("audio/shengji/power-on.ogg".to_owned());
+    sounds.extend(
+        (0..QUICK_VOICE_COUNT).map(|index| format!("vendor/noname/voice/male/{index}.mp3")),
+    );
+    sounds.push("vendor/noname/damage_fire2.mp3".to_owned());
+
+    for relative in sounds {
+        let path = asset_root.join(&relative);
+        let source = AudioSource {
+            bytes: std::fs::read(&path).unwrap().into(),
+        };
+        let mut decoder = source.decoder();
+        assert!(
+            decoder.next().is_some(),
+            "audio contains no decodable samples: {}",
+            path.display()
+        );
+    }
+}
+
+#[test]
+fn chat_input_obeys_the_protocol_character_limit() {
+    let mut input = "你好".to_owned();
+    append_chat_input(&mut input, &"界".repeat(MAX_CHAT_MESSAGE_CHARS));
+    assert_eq!(input.chars().count(), MAX_CHAT_MESSAGE_CHARS);
+    assert_eq!(QUICK_VOICES.len(), usize::from(QUICK_VOICE_COUNT));
+}
+
+#[test]
+fn shengji_bidding_countdown_rounds_up_to_whole_seconds() {
+    assert_eq!(shengji_bidding_countdown_label(5_000), "5秒");
+    assert_eq!(shengji_bidding_countdown_label(4_001), "5秒");
+    assert_eq!(shengji_bidding_countdown_label(4_000), "4秒");
+    assert_eq!(shengji_bidding_countdown_label(1), "1秒");
+    assert_eq!(shengji_bidding_countdown_label(0), "0秒");
+}
+
+#[test]
+fn avatar_is_cropped_and_encoded_as_bounded_64px_png() {
+    let source = image::DynamicImage::ImageRgba8(image::ImageBuffer::from_pixel(
+        80,
+        40,
+        image::Rgba([210, 80, 30, 255]),
+    ));
+    let mut encoded = Cursor::new(Vec::new());
+    source
+        .write_to(&mut encoded, image::ImageFormat::Png)
+        .unwrap();
+
+    let normalized = normalize_avatar_bytes(&encoded.into_inner()).unwrap();
+    let decoded =
+        image::load_from_memory_with_format(&normalized, image::ImageFormat::Png).unwrap();
+
+    assert_eq!(decoded.width(), AVATAR_DIMENSION);
+    assert_eq!(decoded.height(), AVATAR_DIMENSION);
+    assert!(valid_normalized_avatar(&normalized));
+    assert!(normalized.len() <= MAX_AVATAR_BYTES);
+}
+
+#[test]
+fn jpeg_avatar_is_accepted_and_normalized_to_png() {
+    let source = image::DynamicImage::ImageRgb8(image::ImageBuffer::from_pixel(
+        48,
+        80,
+        image::Rgb([35, 140, 210]),
+    ));
+    let mut encoded = Cursor::new(Vec::new());
+    source
+        .write_to(&mut encoded, image::ImageFormat::Jpeg)
+        .unwrap();
+
+    let normalized = normalize_avatar_bytes(&encoded.into_inner()).unwrap();
+    let decoded =
+        image::load_from_memory_with_format(&normalized, image::ImageFormat::Png).unwrap();
+
+    assert!(normalized.starts_with(b"\x89PNG\r\n\x1a\n"));
+    assert_eq!(decoded.width(), AVATAR_DIMENSION);
+    assert_eq!(decoded.height(), AVATAR_DIMENSION);
+    assert!(valid_normalized_avatar(&normalized));
+    assert!(normalized.len() <= MAX_AVATAR_BYTES);
+}
+
+#[test]
+fn jpeg_table_felt_is_decoded_without_converting_the_saved_path() {
+    let source = image::DynamicImage::ImageRgb8(image::ImageBuffer::from_pixel(
+        96,
+        54,
+        image::Rgb([18, 72, 48]),
+    ));
+    let mut encoded = Cursor::new(Vec::new());
+    source
+        .write_to(&mut encoded, image::ImageFormat::Jpeg)
+        .unwrap();
+
+    let decoded = decode_table_felt_image(&encoded.into_inner()).unwrap();
+    assert_eq!(decoded.width(), 96);
+    assert_eq!(decoded.height(), 54);
+}
+
+#[test]
+fn preferences_round_trip_including_avatar() {
+    let saved = SavedPreferences {
+        global: GlobalPreferences {
+            player_name: "测试玩家".to_owned(),
+            avatar_png: Some(vec![1, 2, 3]),
+            host_port: "52301".to_owned(),
+            join_address: "192.168.1.2:52302".to_owned(),
+            table_felt_path: Some(PathBuf::from("/tmp/table-felt.png")),
+            table_brightness: 0.75,
+            table_vignette: 0.42,
+        },
+        games: GamePreferences {
+            qigui523: QiGui523Preferences {
+                host_rules: RuleSet {
+                    deck_count: 3,
+                    hand_size: 12,
+                    time_control: TimeControl::ThirtyPlusSixty,
+                    advanced_play_types: true,
+                    ..normalize_host_rules(RuleSet::default())
+                },
+            },
+            texas_holdem: TexasHoldemPreferences {
+                host_rules: TexasHoldemRuleSet {
+                    starting_chips: 40,
+                    short_deck: true,
+                    ..normalize_texas_holdem_rules(TexasHoldemRuleSet::default())
+                },
+            },
+            shengji: ShengjiPreferences {
+                host_rules: ShengjiRuleSet {
+                    deck_count: 4,
+                    bottom_copy: true,
+                    five_trump_crossing: true,
+                    constant_trump: true,
+                    ..ShengjiRuleSet::default()
+                },
+            },
+        },
+    };
+    let encoded = postcard::to_allocvec(&saved).unwrap();
+    let decoded: SavedPreferences = postcard::from_bytes(&encoded).unwrap();
+    assert_eq!(decoded.global.player_name, saved.global.player_name);
+    assert_eq!(decoded.global.avatar_png, saved.global.avatar_png);
+    assert_eq!(decoded.global.host_port, saved.global.host_port);
+    assert_eq!(decoded.global.join_address, saved.global.join_address);
+    assert_eq!(
+        decoded.games.texas_holdem.host_rules,
+        saved.games.texas_holdem.host_rules
+    );
+    assert_eq!(decoded.global.table_felt_path, saved.global.table_felt_path);
+    assert_eq!(
+        decoded.global.table_brightness,
+        saved.global.table_brightness
+    );
+    assert_eq!(decoded.global.table_vignette, saved.global.table_vignette);
+    assert_eq!(
+        decoded.games.qigui523.host_rules,
+        saved.games.qigui523.host_rules
+    );
+    assert_eq!(
+        decoded.games.shengji.host_rules,
+        saved.games.shengji.host_rules
+    );
+}
+
+#[test]
+fn legacy_preferences_gain_default_shengji_rules_without_losing_existing_values() {
+    let legacy = LegacySavedPreferences {
+        global: GlobalPreferences {
+            player_name: "旧版玩家".to_owned(),
+            avatar_png: None,
+            host_port: "52301".to_owned(),
+            join_address: "127.0.0.1:52301".to_owned(),
+            table_felt_path: None,
+            table_brightness: 0.8,
+            table_vignette: 0.3,
+        },
+        games: LegacyGamePreferences {
+            qigui523: QiGui523Preferences {
+                host_rules: RuleSet {
+                    deck_count: 3,
+                    ..normalize_host_rules(RuleSet::default())
+                },
+            },
+            texas_holdem: TexasHoldemPreferences {
+                host_rules: TexasHoldemRuleSet {
+                    short_deck: true,
+                    ..normalize_texas_holdem_rules(TexasHoldemRuleSet::default())
+                },
+            },
+        },
+    };
+    let encoded = postcard::to_allocvec(&legacy).unwrap();
+    let decoded = decode_preferences(&encoded).unwrap();
+
+    assert_eq!(decoded.global.player_name, "旧版玩家");
+    assert_eq!(decoded.games.qigui523.host_rules.deck_count, 3);
+    assert!(decoded.games.texas_holdem.host_rules.short_deck);
+    assert_eq!(decoded.games.shengji.host_rules, ShengjiRuleSet::default());
+}
+
+#[test]
+fn remembered_host_rules_keep_valid_preferences_and_fixed_room_capacity() {
+    let preferred = RuleSet {
+        deck_count: 4,
+        player_count: 2,
+        hand_size: 15,
+        time_control: TimeControl::Unlimited,
+        advanced_play_types: true,
+        ..RuleSet::default()
+    };
+    let normalized = normalize_host_rules(preferred);
+
+    assert_eq!(normalized.player_count, TABLE_SEAT_COUNT);
+    assert_eq!(normalized.deck_count, 4);
+    assert_eq!(normalized.hand_size, 15);
+    assert_eq!(normalized.time_control, TimeControl::Unlimited);
+    assert!(normalized.advanced_play_types);
+    assert!(normalized.validate().is_ok());
+}
+
+#[test]
+fn saved_player_name_is_limited_by_unicode_characters() {
+    let name = truncate_chars("一二三四五六七八", MAX_PLAYER_NAME_CHARS);
+    assert_eq!(name, "一二三四五六七");
+    assert_eq!(name.chars().count(), MAX_PLAYER_NAME_CHARS);
+}
+
+#[test]
+fn ime_committed_chinese_is_accepted_by_the_player_name_filter() {
+    let mut name = String::new();
+    append_filtered_input(
+        &mut name,
+        InputField::PlayerName,
+        "七鬼五二三玩家甲",
+        MAX_PLAYER_NAME_CHARS,
+    );
+
+    assert_eq!(name, "七鬼五二三玩家");
+    assert_eq!(name.chars().count(), MAX_PLAYER_NAME_CHARS);
+}
+
+#[test]
+fn pasted_server_address_filters_whitespace_and_replaces_the_default_value() {
+    let mut address = String::new();
+    append_filtered_input(
+        &mut address,
+        InputField::JoinAddress,
+        " 192.168.1.20:52300\n",
+        64,
+    );
+
+    assert_eq!(address, "192.168.1.20:52300");
+
+    let mut hostname = String::new();
+    append_filtered_input(
+        &mut hostname,
+        InputField::JoinAddress,
+        "frp-off.com:52436",
+        64,
+    );
+    assert_eq!(hostname, "frp-off.com:52436");
+}
+
+#[test]
+fn cards_are_displayed_from_high_to_low() {
+    let mut cards = vec![
+        Card::suited(0, Suit::Diamond, Rank::Four),
+        Card::suited(0, Suit::Heart, Rank::Seven),
+        Card::suited(0, Suit::Spade, Rank::Seven),
+        Card::suited(0, Suit::Spade, Rank::Five),
+    ];
+    sort_cards_high_to_low(&mut cards);
+
+    assert_eq!(cards[0], Card::suited(0, Suit::Spade, Rank::Seven));
+    assert_eq!(cards[1], Card::suited(0, Suit::Heart, Rank::Seven));
+    assert_eq!(cards[2], Card::suited(0, Suit::Spade, Rank::Five));
+    assert_eq!(cards[3], Card::suited(0, Suit::Diamond, Rank::Four));
+}
+
+#[test]
+fn greedy_hint_cycles_and_passes_when_no_response_exists() {
+    let rules = RuleSet::default();
+    let current_card = Card::suited(0, Suit::Diamond, Rank::Eight);
+    let current = classify(&[current_card], &rules).unwrap();
+    let hand = [
+        Card::suited(0, Suit::Diamond, Rank::Nine),
+        Card::suited(0, Suit::Diamond, Rank::Ten),
+    ];
+    let mut strategy = GreedyStrategy::new();
+
+    assert_eq!(
+        next_greedy_hint(&mut strategy, &hand, &current, &[current_card], &rules,),
+        HintDecision::Select(vec![hand[0]])
+    );
+    assert_eq!(
+        next_greedy_hint(&mut strategy, &hand, &current, &[current_card], &rules,),
+        HintDecision::Select(vec![hand[1]])
+    );
+    assert_eq!(
+        next_greedy_hint(&mut strategy, &hand, &current, &[current_card], &rules,),
+        HintDecision::Select(vec![hand[0]])
+    );
+
+    let no_response = [Card::suited(0, Suit::Diamond, Rank::Six)];
+    assert_eq!(
+        next_greedy_hint(
+            &mut strategy,
+            &no_response,
+            &current,
+            &[current_card],
+            &rules,
+        ),
+        HintDecision::Pass
+    );
+}
+
+#[test]
+fn turn_timer_switches_from_base_to_reserve_wording() {
+    assert_eq!(
+        turn_timer_label(Some(TurnTimerView {
+            player: PlayerId(0),
+            base_seconds: 5,
+            reserve_seconds: 30,
+        })),
+        "5"
+    );
+    assert_eq!(
+        turn_timer_label(Some(TurnTimerView {
+            player: PlayerId(0),
+            base_seconds: 0,
+            reserve_seconds: 27,
+        })),
+        "烧条中... 27"
+    );
+}
+
+#[test]
+fn auto_playing_current_player_does_not_show_a_turn_clock() {
+    let player = PlayerId(0);
+    let mut game = leocard_protocol::QiGui523Snapshot {
+        match_id: MatchId([1; 16]),
+        host_port: 52300,
+        you: player,
+        host: player,
+        players: vec![PlayerPublicState {
+            id: player,
+            profile_id: leocard_protocol::ProfileId([1; 32]),
+            name: "玩家".to_owned(),
+            avatar: None,
+            seat: SeatId(0),
+            hand_len: 1,
+            score: 0,
+            ready: false,
+            connected: true,
+            auto_play: false,
+            reference_points: 0,
+            completed_games: 0,
+        }],
+        your_hand: Vec::new(),
+        draw_pile_len: 0,
+        starting_card: leocard_protocol::StartingCardView {
+            player,
+            card: Card::suited(0, Suit::Diamond, Rank::Four),
+        },
+        trick: Some(leocard_protocol::TrickView {
+            leader: player,
+            current_player: player,
+            winning_player: None,
+            winning_play: None,
+            records: Vec::new(),
+            table_points: 0,
+        }),
+        turn_timer: Some(TurnTimerView {
+            player,
+            base_seconds: 5,
+            reserve_seconds: 30,
+        }),
+        phase: GamePhaseView::Playing,
+    };
+
+    assert!(turn_clock_visible(&game, player));
+    game.players[0].auto_play = true;
+    assert!(!turn_clock_visible(&game, player));
+}
+
+#[test]
+fn auto_play_overlay_is_a_full_width_cancel_button_above_the_hand_ui() {
+    fn setup(mut commands: Commands, assets: Res<UiAssets>) {
+        let parent = commands
+            .spawn(Node {
+                position_type: PositionType::Relative,
+                ..default()
+            })
+            .id();
+        add_auto_play_overlay(&mut commands, parent, &assets);
+    }
+
+    let mut app = App::new();
+    app.init_resource::<UiAssets>();
+    app.add_systems(Startup, setup);
+    app.update();
+
+    let mut query = app
+        .world_mut()
+        .query_filtered::<(&Node, &UiAction, &GlobalZIndex), With<AutoPlayOverlay>>();
+    let (node, action, z_index) = query.single(app.world()).unwrap();
+    assert!(matches!(action, UiAction::ToggleAutoPlay));
+    assert_eq!(node.left, px(0));
+    assert_eq!(node.right, px(0));
+    assert_eq!(node.height, px(190));
+    assert_eq!(*z_index, GlobalZIndex(1900));
+}
+
+#[test]
+fn shengji_private_bottom_button_occupies_its_own_chat_side_slot() {
+    fn setup(mut commands: Commands, assets: Res<UiAssets>) {
+        let parent = commands
+            .spawn(Node {
+                position_type: PositionType::Relative,
+                ..default()
+            })
+            .id();
+        add_chat_panel(
+            &mut commands,
+            parent,
+            &ChatPanelState::default(),
+            &assets,
+            Some(false),
+            Some(false),
+            Some(true),
+        );
+    }
+
+    let mut app = App::new();
+    app.init_resource::<UiAssets>();
+    app.add_systems(Startup, setup);
+    app.update();
+
+    let mut query = app.world_mut().query::<(&Node, &UiAction)>();
+    let (node, _) = query
+        .iter(app.world())
+        .find(|(_, action)| matches!(action, UiAction::ToggleShengjiBuried))
+        .expect("埋底者可以看到私有底牌按钮");
+    assert_eq!(node.left, px(-32));
+    assert_eq!(node.top, px(274));
+    assert_eq!(node.width, px(32));
+}
+
+fn shengji_ui_snapshot(
+    hand: Vec<ShengjiCard>,
+    declaration: Option<leocard_protocol::ShengjiDeclarationView>,
+) -> ShengjiSnapshot {
+    ShengjiSnapshot {
+        match_id: MatchId([7; 16]),
+        hand_number: 1,
+        host_port: 52300,
+        you: PlayerId(0),
+        host: PlayerId(0),
+        rules: ShengjiRuleSet::default(),
+        players: (0..4)
+            .map(|id| ShengjiPlayerState {
+                id: PlayerId(id),
+                profile_id: leocard_protocol::ProfileId([id; 32]),
+                name: format!("玩家{id}"),
+                avatar: None,
+                seat: SeatId(id),
+                hand_len: if id == 0 { hand.len() as u8 } else { 0 },
+                ready: false,
+                connected: true,
+                auto_play: false,
+                reference_points: 0,
+                completed_games: 0,
+            })
+            .collect(),
+        your_hand: hand,
+        your_exposed_cards: declaration
+            .as_ref()
+            .filter(|declaration| declaration.player == PlayerId(0))
+            .map_or_else(Vec::new, |declaration| declaration.cards.clone()),
+        levels: [ShengjiRank::Ten, ShengjiRank::Ten],
+        bidding_level: ShengjiRank::Ten,
+        dealer: None,
+        trump: None,
+        declaration,
+        current_player: None,
+        trick: None,
+        throw_failure: None,
+        collecting_score: 0,
+        buried_count: 0,
+        your_buried: Vec::new(),
+        phase: ShengjiPhaseView::Dealing {
+            cards_remaining: 80,
+        },
+    }
+}
+
+#[test]
+fn shengji_bidding_buttons_choose_single_protection_pairs_and_no_trump() {
+    let diamond = [
+        ShengjiCard::suited(0, ShengjiSuit::Diamond, ShengjiRank::Ten),
+        ShengjiCard::suited(1, ShengjiSuit::Diamond, ShengjiRank::Ten),
+    ];
+    let heart = [
+        ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten),
+        ShengjiCard::suited(1, ShengjiSuit::Heart, ShengjiRank::Ten),
+    ];
+    let big = [ShengjiCard::big_joker(0), ShengjiCard::big_joker(1)];
+    let hand = [diamond.as_slice(), heart.as_slice(), big.as_slice()].concat();
+    let mut game = shengji_ui_snapshot(hand, None);
+
+    assert_eq!(
+        shengji_declaration_candidate(&game, Some(ShengjiSuit::Diamond)),
+        Some(vec![diamond[0]])
+    );
+    game.declaration = Some(leocard_protocol::ShengjiDeclarationView {
+        player: game.you,
+        trump: ShengjiBidTrump::Suit(ShengjiSuit::Diamond),
+        kind: leocard_shengji::BidKind::Initial,
+        protected: false,
+        cards: vec![diamond[0]],
+    });
+    assert_eq!(
+        shengji_declaration_candidate(&game, Some(ShengjiSuit::Diamond)),
+        Some(vec![diamond[1]])
+    );
+    game.declaration.as_mut().unwrap().player = PlayerId(1);
+    assert_eq!(
+        shengji_declaration_candidate(&game, Some(ShengjiSuit::Heart)),
+        Some(heart.to_vec())
+    );
+    assert_eq!(
+        shengji_declaration_candidate(&game, None),
+        Some(big.to_vec())
+    );
+}
+
+#[test]
+fn next_hand_bidding_uses_the_authoritative_level_before_dealer_is_public() {
+    let three = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Three);
+    let two = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Two);
+    let mut game = shengji_ui_snapshot(vec![two, three], None);
+    // 模拟上一局换庄：0 队仍打 2，下一庄所在的 1 队已经打 3。发牌阶段
+    // dealer 尚未公开，旧客户端会错误回退到 levels[0]，从而只查找手里的 2。
+    game.levels = [ShengjiRank::Two, ShengjiRank::Three];
+    game.bidding_level = ShengjiRank::Three;
+
+    assert_eq!(shengji_current_level(&game), ShengjiRank::Three);
+    assert_eq!(
+        shengji_declaration_candidate(&game, Some(ShengjiSuit::Heart)),
+        Some(vec![three])
+    );
+
+    game.declaration = Some(leocard_protocol::ShengjiDeclarationView {
+        player: game.you,
+        trump: ShengjiBidTrump::Suit(ShengjiSuit::Heart),
+        kind: leocard_shengji::BidKind::Initial,
+        protected: false,
+        cards: vec![three],
+    });
+    assert_eq!(
+        shengji_display_trump(&game).map(|trump| trump.level),
+        Some(ShengjiRank::Three)
+    );
+}
+
+#[test]
+fn joker_bidding_buttons_require_the_matching_joker_and_hide_initial_no_trump() {
+    let heart = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten);
+    let big = ShengjiCard::big_joker(0);
+    let small = ShengjiCard::small_joker(0);
+    let mut game = shengji_ui_snapshot(vec![heart, big, small], None);
+    game.rules.bid_with_joker = true;
+
+    assert_eq!(
+        shengji_declaration_candidate(&game, Some(ShengjiSuit::Heart)),
+        Some(vec![heart, big])
+    );
+    assert_eq!(
+        shengji_declaration_candidate(&game, Some(ShengjiSuit::Spade)),
+        None
+    );
+    assert_eq!(shengji_declaration_candidate(&game, None), None);
+}
+
+#[test]
+fn joker_bidding_button_reuses_the_current_joker_for_protection_and_no_trump() {
+    let heart = [
+        ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten),
+        ShengjiCard::suited(1, ShengjiSuit::Heart, ShengjiRank::Ten),
+    ];
+    let big = [ShengjiCard::big_joker(0), ShengjiCard::big_joker(1)];
+    let mut game = shengji_ui_snapshot(
+        [heart.as_slice(), big.as_slice()].concat(),
+        Some(leocard_protocol::ShengjiDeclarationView {
+            player: PlayerId(0),
+            trump: ShengjiBidTrump::Suit(ShengjiSuit::Heart),
+            kind: leocard_shengji::BidKind::Initial,
+            protected: false,
+            cards: vec![heart[0], big[0]],
+        }),
+    );
+    game.rules.bid_with_joker = true;
+    game.your_exposed_cards = vec![heart[0], big[0]];
+
+    // 同花色加亮时当前展示的大王继续使用，只需提交新增的级牌。
+    assert_eq!(
+        shengji_declaration_candidate(&game, Some(ShengjiSuit::Heart)),
+        Some(vec![heart[1]])
+    );
+    // 反无主时，已经展示的大王可以与手里的另一张大王组成一对。
+    assert_eq!(
+        shengji_declaration_candidate(&game, None),
+        Some(big.to_vec())
+    );
+}
+
+#[test]
+fn three_deck_joker_bidding_strength_ignores_the_companion_joker_count() {
+    let heart = [
+        ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten),
+        ShengjiCard::suited(1, ShengjiSuit::Heart, ShengjiRank::Ten),
+    ];
+    let own_big = ShengjiCard::big_joker(0);
+    let mut game = shengji_ui_snapshot(
+        [heart.as_slice(), &[own_big]].concat(),
+        Some(leocard_protocol::ShengjiDeclarationView {
+            player: PlayerId(1),
+            trump: ShengjiBidTrump::Suit(ShengjiSuit::Diamond),
+            kind: leocard_shengji::BidKind::Initial,
+            protected: false,
+            cards: vec![
+                ShengjiCard::suited(2, ShengjiSuit::Diamond, ShengjiRank::Ten),
+                ShengjiCard::big_joker(2),
+            ],
+        }),
+    );
+    game.rules.deck_count = 3;
+    game.rules.bid_with_joker = true;
+
+    // 当前声明虽展示两张牌，强度仍只是一张级牌；反主应使用两张级牌加王。
+    assert_eq!(
+        shengji_declaration_candidate(&game, Some(ShengjiSuit::Heart)),
+        Some(vec![heart[0], heart[1], own_big])
+    );
+}
+
+#[test]
+fn three_deck_bidding_buttons_skip_single_counters_and_choose_the_lowest_stronger_level() {
+    let diamond = [
+        ShengjiCard::suited(0, ShengjiSuit::Diamond, ShengjiRank::Ten),
+        ShengjiCard::suited(1, ShengjiSuit::Diamond, ShengjiRank::Ten),
+        ShengjiCard::suited(2, ShengjiSuit::Diamond, ShengjiRank::Ten),
+    ];
+    let heart = [
+        ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten),
+        ShengjiCard::suited(1, ShengjiSuit::Heart, ShengjiRank::Ten),
+        ShengjiCard::suited(2, ShengjiSuit::Heart, ShengjiRank::Ten),
+    ];
+    let small = [
+        ShengjiCard::small_joker(0),
+        ShengjiCard::small_joker(1),
+        ShengjiCard::small_joker(2),
+    ];
+    let mut game = shengji_ui_snapshot(
+        [diamond.as_slice(), heart.as_slice(), small.as_slice()].concat(),
+        None,
+    );
+    game.rules.deck_count = 3;
+    assert_eq!(
+        shengji_declaration_candidate(&game, Some(ShengjiSuit::Heart)),
+        Some(vec![heart[0]])
+    );
+
+    game.declaration = Some(leocard_protocol::ShengjiDeclarationView {
+        player: PlayerId(1),
+        trump: ShengjiBidTrump::Suit(ShengjiSuit::Diamond),
+        kind: leocard_shengji::BidKind::Initial,
+        protected: false,
+        cards: vec![diamond[0]],
+    });
+    assert_eq!(
+        shengji_declaration_candidate(&game, Some(ShengjiSuit::Heart)),
+        Some(heart[..2].to_vec())
+    );
+    assert_eq!(
+        shengji_declaration_candidate(&game, None),
+        Some(small[..2].to_vec())
+    );
+
+    game.declaration = Some(leocard_protocol::ShengjiDeclarationView {
+        player: PlayerId(1),
+        trump: ShengjiBidTrump::NoTrumpSmallJoker,
+        kind: leocard_shengji::BidKind::Counter,
+        protected: false,
+        cards: small[..2].to_vec(),
+    });
+    assert_eq!(
+        shengji_declaration_candidate(&game, Some(ShengjiSuit::Heart)),
+        Some(heart.to_vec())
+    );
+}
+
+#[test]
+fn four_deck_bidding_button_reaches_quad_level() {
+    let hearts = (0..4)
+        .map(|deck| ShengjiCard::suited(deck, ShengjiSuit::Heart, ShengjiRank::Ten))
+        .collect::<Vec<_>>();
+    let mut game = shengji_ui_snapshot(
+        hearts.clone(),
+        Some(leocard_protocol::ShengjiDeclarationView {
+            player: PlayerId(1),
+            trump: ShengjiBidTrump::NoTrumpBigJoker,
+            kind: leocard_shengji::BidKind::Counter,
+            protected: false,
+            cards: (0..3).map(ShengjiCard::big_joker).collect(),
+        }),
+    );
+    game.rules.deck_count = 4;
+    assert_eq!(
+        shengji_declaration_candidate(&game, Some(ShengjiSuit::Heart)),
+        Some(hearts)
+    );
+}
+
+#[test]
+fn four_deck_hand_reveal_keeps_all_fifty_two_cards_inside_design_width() {
+    let reveal = shengji_hand_card_reveal(52);
+    let width = reveal * 51.0 + CardSize::Hand.dimensions().0;
+    assert!(reveal < HAND_CARD_REVEAL);
+    assert!(width <= DESIGN_WIDTH - 96.0 + f32::EPSILON);
+}
+
+#[test]
+fn shengji_turn_sync_preselects_the_only_required_pair() {
+    let trump = ShengjiTrump::new(ShengjiRank::Ten, Some(ShengjiSuit::Heart)).unwrap();
+    let pair = |rank| {
+        [
+            ShengjiCard::suited(0, ShengjiSuit::Spade, rank),
+            ShengjiCard::suited(1, ShengjiSuit::Spade, rank),
+        ]
+    };
+    let threes = pair(ShengjiRank::Three);
+    let hand = [
+        threes.as_slice(),
+        &[
+            ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Six),
+            ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Seven),
+            ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Nine),
+        ],
+    ]
+    .concat();
+    let lead_cards = [
+        pair(ShengjiRank::Jack).as_slice(),
+        pair(ShengjiRank::Queen).as_slice(),
+    ]
+    .concat();
+    let leocard_shengji::TrickPlay::Accepted(lead) =
+        leocard_shengji::classify_lead(&lead_cards, trump, &ShengjiRuleSet::default(), &[])
+            .unwrap()
+    else {
+        unreachable!("a single tractor is not a throw")
+    };
+    let mut game = shengji_ui_snapshot(hand, None);
+    game.phase = ShengjiPhaseView::Playing;
+    game.trump = Some(trump);
+    game.current_player = Some(game.you);
+    game.trick = Some(leocard_protocol::ShengjiTrickView {
+        leader: PlayerId(1),
+        current_player: game.you,
+        winning_player: PlayerId(1),
+        plays: vec![leocard_protocol::ShengjiPublicPlay {
+            player: PlayerId(1),
+            play: lead,
+            throw_penalty: 0,
+        }],
+        table_points: 0,
+    });
+    let mut ui = UiState::default();
+
+    select_forced_shengji_follow_cards(&game, &mut ui);
+
+    assert_eq!(ui.selected_shengji, threes.into_iter().collect());
+
+    let first = next_shengji_hint(&game, &ui.selected_shengji).unwrap();
+    ui.selected_shengji = first.iter().copied().collect();
+    let second = next_shengji_hint(&game, &ui.selected_shengji).unwrap();
+    ui.selected_shengji = second.iter().copied().collect();
+    let third = next_shengji_hint(&game, &ui.selected_shengji).unwrap();
+    ui.selected_shengji = third.iter().copied().collect();
+    let wrapped = next_shengji_hint(&game, &ui.selected_shengji).unwrap();
+
+    assert_ne!(first, second);
+    assert_ne!(second, third);
+    assert_eq!(wrapped, first);
+}
+
+#[test]
+fn shengji_hand_sort_keeps_all_trumps_before_side_suits() {
+    let trump = ShengjiTrump::new(ShengjiRank::Ten, Some(ShengjiSuit::Heart)).unwrap();
+    let big = ShengjiCard::big_joker(0);
+    let main_level = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten);
+    let off_level = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ten);
+    let side_ace = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ace);
+    let mut cards = vec![side_ace, off_level, main_level, big];
+
+    sort_shengji_cards(&mut cards, Some(trump));
+
+    assert_eq!(cards, vec![big, main_level, off_level, side_ace]);
+}
+
+#[test]
+fn shengji_hand_sort_places_unbid_level_cards_immediately_after_jokers() {
+    let big = ShengjiCard::big_joker(0);
+    let small = ShengjiCard::small_joker(0);
+    let spade = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ten);
+    let heart = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten);
+    let club = ShengjiCard::suited(0, ShengjiSuit::Club, ShengjiRank::Ten);
+    let diamond = ShengjiCard::suited(0, ShengjiSuit::Diamond, ShengjiRank::Ten);
+    let side_ace = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ace);
+    let game = shengji_ui_snapshot(Vec::new(), None);
+    let mut cards = vec![side_ace, diamond, small, club, big, heart, spade];
+
+    assert_eq!(shengji_display_trump(&game), None);
+    sort_shengji_cards(&mut cards, shengji_hand_sort_trump(&game));
+
+    assert_eq!(
+        cards,
+        vec![big, small, spade, heart, club, diamond, side_ace]
+    );
+}
+
+#[test]
+fn shengji_constant_trump_sort_places_main_and_off_twos_below_level_cards() {
+    let trump = ShengjiTrump::new(ShengjiRank::Ten, Some(ShengjiSuit::Heart))
+        .unwrap()
+        .with_constant_trump(true);
+    let main_level = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten);
+    let off_level = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ten);
+    let main_two = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Two);
+    let off_two = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Two);
+    let trump_ace = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ace);
+    let mut cards = vec![off_two, trump_ace, main_level, main_two, off_level];
+
+    sort_shengji_cards(&mut cards, Some(trump));
+
+    assert_eq!(
+        cards,
+        vec![main_level, off_level, main_two, off_two, trump_ace]
+    );
+    assert_eq!(shengji_trump_star_count(main_two, Some(trump)), 1);
+    assert_eq!(shengji_trump_star_count(off_two, Some(trump)), 1);
+}
+
+#[test]
+fn shengji_hand_sort_groups_off_suit_level_pairs_in_spade_heart_club_diamond_order() {
+    let trump = ShengjiTrump::new(ShengjiRank::Ten, None).unwrap();
+    let spades = [
+        ShengjiCard::suited(1, ShengjiSuit::Spade, ShengjiRank::Ten),
+        ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ten),
+    ];
+    let hearts = [
+        ShengjiCard::suited(1, ShengjiSuit::Heart, ShengjiRank::Ten),
+        ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten),
+    ];
+    let clubs = [
+        ShengjiCard::suited(1, ShengjiSuit::Club, ShengjiRank::Ten),
+        ShengjiCard::suited(0, ShengjiSuit::Club, ShengjiRank::Ten),
+    ];
+    let diamonds = [
+        ShengjiCard::suited(1, ShengjiSuit::Diamond, ShengjiRank::Ten),
+        ShengjiCard::suited(0, ShengjiSuit::Diamond, ShengjiRank::Ten),
+    ];
+    let mut cards = vec![
+        diamonds[0],
+        spades[1],
+        hearts[0],
+        clubs[1],
+        spades[0],
+        diamonds[1],
+        clubs[0],
+        hearts[1],
+    ];
+
+    sort_shengji_cards(&mut cards, Some(trump));
+
+    assert_eq!(
+        cards,
+        [spades, hearts, clubs, diamonds]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn shengji_trump_stars_distinguish_main_level_and_other_trumps() {
+    let suited = ShengjiTrump::new(ShengjiRank::Ten, Some(ShengjiSuit::Heart)).unwrap();
+    let main_level = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten);
+    let off_level = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ten);
+    let suit_card = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Nine);
+    let side_card = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ace);
+    let joker = ShengjiCard::big_joker(0);
+
+    assert_eq!(shengji_trump_star_count(main_level, Some(suited)), 2);
+    assert_eq!(shengji_trump_star_count(joker, Some(suited)), 2);
+    assert_eq!(shengji_trump_star_count(off_level, Some(suited)), 1);
+    assert_eq!(shengji_trump_star_count(suit_card, Some(suited)), 1);
+    assert_eq!(shengji_trump_star_count(side_card, Some(suited)), 0);
+
+    let no_trump = ShengjiTrump::new(ShengjiRank::Ten, None).unwrap();
+    assert_eq!(shengji_trump_star_count(off_level, Some(no_trump)), 1);
+}
+
+#[test]
+fn timer_only_snapshots_are_eligible_for_in_place_ui_updates() {
+    let mut before = leocard_protocol::QiGui523Snapshot {
+        match_id: MatchId([1; 16]),
+        host_port: 52300,
+        you: PlayerId(0),
+        host: PlayerId(0),
+        players: Vec::new(),
+        your_hand: Vec::new(),
+        draw_pile_len: 0,
+        starting_card: leocard_protocol::StartingCardView {
+            player: PlayerId(0),
+            card: Card::suited(0, Suit::Diamond, Rank::Four),
+        },
+        trick: None,
+        turn_timer: Some(TurnTimerView {
+            player: PlayerId(0),
+            base_seconds: 5,
+            reserve_seconds: 30,
+        }),
+        phase: GamePhaseView::Playing,
+    };
+    let mut after = before.clone();
+    after.turn_timer.as_mut().unwrap().base_seconds = 4;
+
+    assert!(only_turn_timer_changed(Some(&before), Some(&after)));
+
+    before.draw_pile_len = 1;
+    assert!(!only_turn_timer_changed(Some(&before), Some(&after)));
+}
+
+#[test]
+fn shengji_remote_deals_and_hidden_grace_ticks_skip_full_ui_rebuilds() {
+    let own_card = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ace);
+    let mut before = shengji_ui_snapshot(vec![own_card], None);
+    before.players[0].hand_len = 1;
+    let mut remote_deal = before.clone();
+    remote_deal.phase = ShengjiPhaseView::Dealing {
+        cards_remaining: 79,
+    };
+    remote_deal.players[1].hand_len = 2;
+    assert!(only_shengji_transient_progress_changed(
+        Some(&before),
+        Some(&remote_deal)
+    ));
+
+    let mut own_deal = remote_deal.clone();
+    own_deal.your_hand.push(ShengjiCard::suited(
+        0,
+        ShengjiSuit::Heart,
+        ShengjiRank::King,
+    ));
+    own_deal.players[0].hand_len = 2;
+    assert!(!only_shengji_transient_progress_changed(
+        Some(&remote_deal),
+        Some(&own_deal)
+    ));
+
+    let mut grace_before = remote_deal;
+    grace_before.phase = ShengjiPhaseView::BiddingGrace {
+        milliseconds_remaining: 5_000,
+        power_outage: false,
+        confirmed_count: 0,
+        you_confirmed: false,
+    };
+    let mut grace_after = grace_before.clone();
+    grace_after.phase = ShengjiPhaseView::BiddingGrace {
+        milliseconds_remaining: 4_900,
+        power_outage: false,
+        confirmed_count: 0,
+        you_confirmed: false,
+    };
+    assert!(only_shengji_transient_progress_changed(
+        Some(&grace_before),
+        Some(&grace_after)
+    ));
+
+    grace_after.phase = ShengjiPhaseView::BiddingGrace {
+        milliseconds_remaining: 4_900,
+        power_outage: false,
+        confirmed_count: 1,
+        you_confirmed: true,
+    };
+    assert!(!only_shengji_transient_progress_changed(
+        Some(&grace_before),
+        Some(&grace_after)
+    ));
+
+    grace_after.phase = ShengjiPhaseView::BiddingGrace {
+        milliseconds_remaining: 4_900,
+        power_outage: false,
+        confirmed_count: 0,
+        you_confirmed: false,
+    };
+
+    grace_after.declaration = Some(leocard_protocol::ShengjiDeclarationView {
+        player: PlayerId(1),
+        trump: ShengjiBidTrump::Suit(ShengjiSuit::Heart),
+        kind: leocard_shengji::BidKind::Initial,
+        protected: false,
+        cards: vec![ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten)],
+    });
+    assert!(!only_shengji_transient_progress_changed(
+        Some(&grace_before),
+        Some(&grace_after)
+    ));
+
+    let mut copy_before = grace_before.clone();
+    copy_before.phase = ShengjiPhaseView::BottomCopying {
+        player: PlayerId(1),
+        milliseconds_remaining: 10_000,
+    };
+    let mut copy_after = copy_before.clone();
+    copy_after.phase = ShengjiPhaseView::BottomCopying {
+        player: PlayerId(1),
+        milliseconds_remaining: 9_900,
+    };
+    assert!(only_shengji_transient_progress_changed(
+        Some(&copy_before),
+        Some(&copy_after)
+    ));
+}
+
+#[test]
+fn rebuilt_selected_card_keeps_its_cached_lift() {
+    let pose = hand_card_pose(2, 5, 0.0, 1.0, 0.0, false);
+
+    assert_eq!(pose.translation.y, px(-HAND_CARD_SELECTED_LIFT));
+}
+
+#[test]
+fn summary_score_animation_honors_delay_and_reaches_the_target() {
+    assert_eq!(animated_summary_score(0.0, 85, 0.08), 0);
+    assert_eq!(animated_summary_score(0.07, 85, 0.08), 0);
+    assert!(animated_summary_score(0.50, 85, 0.08) < 85);
+    assert_eq!(animated_summary_score(0.80, 85, 0.08), 85);
+}
+
+#[test]
+fn summary_scores_are_ranked_from_high_to_low() {
+    let scores = [
+        PlayerScore {
+            player: PlayerId(2),
+            score: 20,
+        },
+        PlayerScore {
+            player: PlayerId(1),
+            score: 80,
+        },
+        PlayerScore {
+            player: PlayerId(0),
+            score: 80,
+        },
+    ];
+
+    let ranked = sorted_summary_scores(&scores);
+
+    assert_eq!(
+        ranked
+            .iter()
+            .map(|score| (score.player, score.score))
+            .collect::<Vec<_>>(),
+        vec![(PlayerId(0), 80), (PlayerId(1), 80), (PlayerId(2), 20)]
+    );
+}
+
+#[test]
+fn summary_modal_fades_in_while_floating_downward() {
+    let start = summary_modal_visual(0.0);
+    let middle = summary_modal_visual(SUMMARY_MODAL_ENTRY_DURATION / 2.0);
+    let end = summary_modal_visual(SUMMARY_MODAL_ENTRY_DURATION);
+
+    assert_eq!(start.opacity, 0.0);
+    assert!(start.offset_y < middle.offset_y);
+    assert!(middle.offset_y < end.offset_y);
+    assert!(middle.opacity > start.opacity);
+    assert_eq!(
+        end,
+        SummaryModalVisual {
+            offset_y: 0.0,
+            opacity: 1.0,
+        }
+    );
+}
+
+#[test]
+fn shengji_settlement_names_every_score_band() {
+    assert_eq!(shengji_settlement_outcome_for_score(0, 3, 2), "闲家大光");
+    assert_eq!(shengji_settlement_outcome_for_score(39, 2, 2), "闲家小光");
+    assert_eq!(shengji_settlement_outcome_for_score(40, 1, 2), "闲家脱贫");
+    assert_eq!(shengji_settlement_outcome_for_score(80, 0, 2), "闲家上台");
+    assert_eq!(shengji_settlement_outcome_for_score(120, 1, 2), "闲家升1级");
+    assert_eq!(shengji_settlement_outcome_for_score(160, 2, 2), "闲家升2级");
+    assert_eq!(shengji_settlement_outcome_for_score(59, 2, 3), "闲家小光");
+    assert_eq!(shengji_settlement_outcome_for_score(60, 1, 3), "闲家脱贫");
+    assert_eq!(shengji_settlement_outcome_for_score(120, 0, 3), "闲家上台");
+    assert_eq!(shengji_settlement_outcome_for_score(180, 1, 3), "闲家升1级");
+    assert_eq!(shengji_settlement_outcome_for_score(79, 2, 4), "闲家小光");
+    assert_eq!(shengji_settlement_outcome_for_score(80, 1, 4), "闲家脱贫");
+    assert_eq!(shengji_settlement_outcome_for_score(160, 0, 4), "闲家上台");
+    assert_eq!(shengji_settlement_outcome_for_score(240, 1, 4), "闲家升1级");
+}
+
+#[test]
+fn play_effect_easing_starts_and_finishes_at_exact_endpoints() {
+    assert_eq!(ease_out_cubic(0.0), 0.0);
+    assert_eq!(ease_out_cubic(1.0), 1.0);
+    assert!(ease_out_cubic(0.5) > 0.5);
+}
+
+#[test]
+fn airplane_path_starts_level_then_banks_up_and_right() {
+    let start = sequence_airplane_pose(0.0);
+    let middle = sequence_airplane_pose(0.5);
+    let end = sequence_airplane_pose(1.0);
+
+    assert!(start.rotation.abs() < 0.001);
+    assert!(middle.rotation < start.rotation);
+    assert!(end.rotation < middle.rotation);
+    assert!(start.position.x < middle.position.x);
+    assert!(middle.position.x < end.position.x);
+    assert!(start.position.y > middle.position.y);
+    assert!(middle.position.y > end.position.y);
+}
+
+#[test]
+fn thrown_interactions_accelerate_toward_the_target() {
+    assert_eq!(accelerated_interaction_progress(0.0), 0.0);
+    assert_eq!(accelerated_interaction_progress(0.5), 0.25);
+    assert_eq!(accelerated_interaction_progress(1.0), 1.0);
+    let first_half_distance = accelerated_interaction_progress(0.5);
+    let second_half_distance = accelerated_interaction_progress(1.0) - first_half_distance;
+    assert!(second_half_distance > first_half_distance);
+    assert!(HEAVY_INTERACTION_TRAVEL_DURATION > 0.40);
+    assert_eq!(SHOE_ROTATIONS, 2.0);
+}
+
+#[test]
+fn score_cards_spiral_accelerate_and_tidally_deform_into_the_target() {
+    let source = Vec2::new(640.0, 360.0);
+    let target = Vec2::new(120.0, 620.0);
+    let start = vortex_card_pose(source, target, 0.0, 1.0);
+    let middle = vortex_card_pose(source, target, 0.5, 1.0);
+    let late = vortex_card_pose(source, target, 0.9, 1.0);
+    let end = vortex_card_pose(source, target, 1.0, 1.0);
+
+    assert_eq!(start.position, source);
+    assert!((end.position - target).length() < 0.001);
+    let first_half = source.distance(target) - middle.position.distance(target);
+    let second_half = middle.position.distance(target) - end.position.distance(target);
+    assert!(second_half > first_half);
+    assert!(late.scale.x < late.scale.y * 0.25);
+    assert!(end.scale.length() < 0.001);
+    assert!(late.rotation.is_finite());
+}
+
+#[test]
+fn captured_score_roll_waits_for_absorption_and_reaches_the_new_score() {
+    let capture = ScoreCaptureEffect {
+        player: PlayerId(1),
+        cards: Vec::new(),
+        source_players: Vec::new(),
+        score_before: 15,
+        score_after: 40,
+    };
+
+    assert_eq!(rolling_captured_score(&capture, SCORE_ROLL_DELAY), 15);
+    assert_eq!(
+        rolling_captured_score(&capture, SCORE_ROLL_DELAY + SCORE_ROLL_DURATION),
+        40
+    );
+    let finished = CardSize::FinishedHand.dimensions();
+    let score = CardSize::Score.dimensions();
+    assert!((finished.0 / score.0 - 1.2).abs() < 0.001);
+    assert!((finished.1 / score.1 - 1.2).abs() < 0.001);
+}
+
+#[test]
+fn card_play_kinds_select_place_or_shove_audio() {
+    assert_eq!(
+        card_play_sound_kind(&PlayKind::Single),
+        CardPlaySoundKind::Place
+    );
+    assert_eq!(
+        card_play_sound_kind(&PlayKind::Pair),
+        CardPlaySoundKind::Place
+    );
+    assert_eq!(
+        card_play_sound_kind(&PlayKind::TripleWithSingle),
+        CardPlaySoundKind::Place
+    );
+    assert_eq!(
+        card_play_sound_kind(&PlayKind::TripleWithPair),
+        CardPlaySoundKind::Place
+    );
+    assert_eq!(
+        card_play_sound_kind(&PlayKind::Straight { card_count: 4 }),
+        CardPlaySoundKind::Shove
+    );
+    assert_eq!(
+        card_play_sound_kind(&PlayKind::ConsecutivePairs { pair_count: 2 }),
+        CardPlaySoundKind::Shove
+    );
+    assert_eq!(
+        card_play_sound_kind(&PlayKind::Airplane { triple_count: 2 }),
+        CardPlaySoundKind::Shove
+    );
+}
+
+#[test]
+fn sequence_play_effects_use_distinct_non_accent_colors() {
+    let straight = sequence_effect_style(&PlayKind::Straight { card_count: 4 }).unwrap();
+    let pairs = sequence_effect_style(&PlayKind::ConsecutivePairs { pair_count: 2 }).unwrap();
+    let airplane = sequence_effect_style(&PlayKind::Airplane { triple_count: 2 }).unwrap();
+
+    assert_eq!(straight.0, "顺子");
+    assert_eq!(pairs.0, "连对");
+    assert_eq!(airplane.0, "飞机");
+    assert_eq!(straight.2, SequenceEffectMotif::Wind);
+    assert_eq!(pairs.2, SequenceEffectMotif::Flower);
+    assert_eq!(airplane.2, SequenceEffectMotif::Airplane);
+    assert_ne!(straight.1, pairs.1);
+    assert_ne!(straight.1, airplane.1);
+    assert_ne!(pairs.1, airplane.1);
+    assert!(
+        [straight.1, pairs.1, airplane.1]
+            .into_iter()
+            .all(|color| color != ACCENT)
+    );
+}
+
+#[test]
+fn interaction_sounds_play_at_half_volume() {
+    assert_eq!(
+        interaction_playback_settings().volume.to_linear(),
+        INTERACTION_SOUND_VOLUME
+    );
+    assert_eq!(INTERACTION_SOUND_VOLUME, 0.5);
+}
+
+#[test]
+fn wine_and_shoe_use_the_correct_ten_item_volley() {
+    assert_eq!(
+        interaction_volley_kind(PlayerInteractionKind::Wine),
+        Some(PlayerInteractionKind::Flower)
+    );
+    assert_eq!(
+        interaction_volley_kind(PlayerInteractionKind::Shoe),
+        Some(PlayerInteractionKind::Egg)
+    );
+    assert_eq!(interaction_volley_kind(PlayerInteractionKind::Flower), None);
+    assert_eq!(interaction_volley_kind(PlayerInteractionKind::Egg), None);
+    assert_eq!(
+        (0..10).map(interaction_volley_lane).collect::<Vec<_>>(),
+        vec![-18.0, 18.0, -9.0, 9.0, 0.0, -13.5, 13.5, -4.5, 4.5, 0.0]
+    );
+    assert_eq!(
+        interaction_volley_interval(PlayerInteractionKind::Egg),
+        0.09
+    );
+    let egg_launches = (0..10)
+        .map(|index| index as f32 * interaction_volley_interval(PlayerInteractionKind::Egg))
+        .collect::<Vec<_>>();
+    assert!(
+        egg_launches
+            .windows(2)
+            .all(|pair| ((pair[1] - pair[0]) - 0.09).abs() < 0.000_01)
+    );
+}
+
+#[test]
+fn shoe_uses_distinct_launch_and_impact_sounds() {
+    assert_eq!(
+        interaction_launch_sound_variant(PlayerInteractionKind::Shoe),
+        Some(0)
+    );
+    assert_eq!(
+        interaction_impact_sound_variant(PlayerInteractionKind::Shoe, 0),
+        1
+    );
+    assert_eq!(
+        interaction_impact_sound_variant(PlayerInteractionKind::Shoe, 1),
+        1
+    );
+    assert_eq!(
+        interaction_launch_sound_variant(PlayerInteractionKind::Egg),
+        None
+    );
+    assert_eq!(
+        interaction_impact_sound_variant(PlayerInteractionKind::Egg, 0),
+        0
+    );
+}
+
+#[test]
+fn play_effect_system_queries_initialize_without_conflicts() {
+    let mut app = App::new();
+    app.insert_resource(Time::<()>::default());
+    app.insert_resource(PlayEffectState::default());
+    app.insert_resource(UiAssets::default());
+    app.add_systems(
+        Update,
+        (
+            advance_play_effect,
+            animate_sequence_play_effect,
+            animate_bomb_play_effect,
+            animate_heaven_bomb_play_effect,
+        )
+            .chain(),
+    );
+
+    app.update();
+}
+
+#[test]
+fn shengji_hand_interaction_systems_initialize_without_conflicts() {
+    let mut app = App::new();
+    app.insert_resource(Time::<()>::default());
+    app.insert_resource(UiState::default());
+    app.insert_resource(ButtonInput::<MouseButton>::default());
+    app.insert_resource(ShengjiCardDragSelection::default());
+    app.add_systems(
+        Update,
+        (
+            handle_shengji_card_drag_selection,
+            animate_shengji_hand_card_slots,
+            sync_shengji_card_drag_preview,
+            animate_shengji_hand_cards,
+        )
+            .chain(),
+    );
+
+    app.update();
+}
+
+#[test]
+fn shengji_card_release_refreshes_the_contextual_play_button() {
+    let card = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ace);
+    let mut mouse = ButtonInput::<MouseButton>::default();
+    mouse.press(MouseButton::Left);
+    mouse.clear();
+    mouse.release(MouseButton::Left);
+
+    let mut app = App::new();
+    app.insert_resource(mouse);
+    app.insert_resource(UiState::default());
+    app.insert_resource(ShengjiCardDragSelection {
+        active: true,
+        anchor: 0,
+        current: 0,
+        select: true,
+    });
+    app.world_mut().spawn((
+        Interaction::None,
+        RelativeCursorPosition::default(),
+        ShengjiHandCardSlot {
+            card,
+            index: 0,
+            hand_len: 1,
+            is_last: true,
+            hover_amount: 0.0,
+        },
+    ));
+    app.add_systems(Update, handle_shengji_card_drag_selection);
+
+    app.update();
+
+    let ui = app.world().resource::<UiState>();
+    assert!(ui.selected_shengji.contains(&card));
+    assert!(ui.dirty);
+}
+
+#[test]
+fn player_interaction_system_queries_initialize_without_conflicts() {
+    let mut app = App::new();
+    app.insert_resource(Time::<()>::default());
+    app.insert_resource(UiAssets::default());
+    app.insert_resource(UiState::default());
+    app.insert_resource(ChatPanelState::default());
+    app.insert_resource(ConnectionForm::default());
+    app.insert_resource(PlayerInteractionCooldown::default());
+    app.insert_resource(ScoreCaptureEffectState::default());
+    app.insert_resource(ButtonInput::<MouseButton>::default());
+    app.add_systems(
+        Update,
+        (
+            tick_player_interaction_cooldown,
+            close_interaction_menu_on_outside_click,
+            sync_opponent_badge_popups,
+            sync_interaction_cooldown_masks,
+            sync_chat_messages,
+            sync_player_interactions,
+            sync_score_capture_effect,
+            animate_player_interactions,
+            animate_score_capture_effects,
+            animate_chat_bubbles,
+        )
+            .chain(),
+    );
+
+    app.update();
+}
+
+#[test]
+fn chat_bubbles_choose_the_inside_of_each_table_edge() {
+    let layer = Vec2::new(1280.0, 720.0);
+    let width = 200.0;
+    let left = chat_bubble_position(Vec2::new(80.0, 360.0), layer, width);
+    let right = chat_bubble_position(Vec2::new(1200.0, 360.0), layer, width);
+    let top = chat_bubble_position(Vec2::new(640.0, 30.0), layer, width);
+
+    assert!(left.x > 80.0);
+    assert!(right.x + width < 1200.0);
+    assert_eq!(top.x, 540.0);
+    assert!(top.y >= 8.0);
+}
+
+#[test]
+fn persistent_interaction_layer_is_not_owned_by_the_rebuilt_ui_root() {
+    let mut app = App::new();
+    app.add_systems(Startup, setup_camera);
+    app.update();
+
+    let layer = app
+        .world_mut()
+        .query_filtered::<Entity, With<PlayerInteractionLayer>>()
+        .single(app.world())
+        .unwrap();
+    assert!(app.world().get::<ChildOf>(layer).is_none());
+}
+
+#[test]
+fn shengji_settlement_animation_systems_initialize_without_conflicts() {
+    let mut app = App::new();
+    app.insert_resource(Time::<()>::default());
+    app.insert_resource(UiAssets::default());
+    app.insert_resource(ShengjiSettlementAnimation::default());
+    app.add_systems(
+        Update,
+        (
+            animate_shengji_settlement_visuals,
+            spawn_shengji_settlement_absorption,
+            animate_shengji_score_absorbs,
+        )
+            .chain(),
+    );
+    app.update();
+}
+
+#[test]
+fn button_feedback_system_queries_initialize_without_conflicts() {
+    let mut app = App::new();
+    app.insert_resource(Time::<()>::default());
+    app.insert_resource(UiAssets::default());
+    app.add_systems(
+        Update,
+        (
+            update_button_tints,
+            play_button_click_sounds,
+            animate_button_presses,
+        )
+            .chain(),
+    );
+    app.update();
+}
+
+#[test]
+fn idle_button_animation_stops_writing_its_transform() {
+    let mut app = App::new();
+    app.insert_resource(Time::<()>::default());
+    app.add_systems(Update, animate_button_presses);
+    let button = app
+        .world_mut()
+        .spawn((Button, Interaction::None, UiTransform::IDENTITY))
+        .id();
+
+    app.update();
+    app.world_mut().clear_trackers();
+    app.update();
+
+    assert!(
+        !app.world()
+            .entity(button)
+            .get_ref::<UiTransform>()
+            .unwrap()
+            .is_changed()
+    );
+}
+
+#[test]
+fn settled_chat_panel_stops_writing_its_transform() {
+    let mut app = App::new();
+    app.insert_resource(Time::<()>::default());
+    app.insert_resource(UiAssets::default());
+    app.insert_resource(ChatPanelState::default());
+    app.add_systems(Update, animate_chat_panel);
+    let panel = app
+        .world_mut()
+        .spawn((ChatPanel, UiTransform::IDENTITY))
+        .id();
+
+    app.update();
+    app.world_mut().clear_trackers();
+    app.update();
+
+    assert!(
+        !app.world()
+            .entity(panel)
+            .get_ref::<UiTransform>()
+            .unwrap()
+            .is_changed()
+    );
+}
+
+#[test]
+fn interaction_cooldown_mask_reveals_itself_as_a_radial_sector() {
+    let transparent = interaction_cooldown_mask_image(20, 20, 0.0);
+    let half = interaction_cooldown_mask_image(20, 20, 0.5);
+    let full = interaction_cooldown_mask_image(20, 20, 1.0);
+    let covered = |image: &Image| {
+        image
+            .data
+            .as_deref()
+            .unwrap()
+            .chunks_exact(4)
+            .filter(|pixel| pixel[3] != 0)
+            .count()
+    };
+
+    assert_eq!(covered(&transparent), 0);
+    assert_eq!(covered(&full), 400);
+    assert!((190..=210).contains(&covered(&half)));
+}
+
+#[test]
+fn every_player_interaction_has_an_independent_cooldown() {
+    let mut cooldown = PlayerInteractionCooldown::default();
+    cooldown.start(PlayerInteractionKind::Shoe, 5.0);
+
+    assert!(cooldown.is_active(PlayerInteractionKind::Shoe));
+    assert!(!cooldown.is_active(PlayerInteractionKind::Flower));
+    assert!(!cooldown.is_active(PlayerInteractionKind::Egg));
+    assert!(!cooldown.is_active(PlayerInteractionKind::Wine));
+
+    cooldown.start(PlayerInteractionKind::Egg, 0.5);
+    cooldown.tick(0.5);
+    assert!(!cooldown.is_active(PlayerInteractionKind::Egg));
+    assert!(cooldown.is_active(PlayerInteractionKind::Shoe));
+    assert!((cooldown.fraction(PlayerInteractionKind::Shoe) - 0.9).abs() < f32::EPSILON);
+}
+
+#[test]
+fn summary_animation_system_queries_initialize_without_conflicts() {
+    let mut app = App::new();
+    app.insert_resource(GameSummaryAnimation::default());
+    app.add_systems(Update, animate_game_summary_visuals);
+
+    app.update();
+}
+
+#[test]
+fn time_control_options_follow_the_configured_order() {
+    assert_eq!(previous_time_control(TimeControl::FivePlusTen), None);
+    assert_eq!(
+        next_time_control(TimeControl::FivePlusTen),
+        Some(TimeControl::FivePlusThirty)
+    );
+    assert_eq!(
+        next_time_control(TimeControl::FivePlusThirty),
+        Some(TimeControl::FifteenPlusThirty)
+    );
+    assert_eq!(
+        next_time_control(TimeControl::FifteenPlusThirty),
+        Some(TimeControl::ThirtyPlusSixty)
+    );
+    assert_eq!(
+        next_time_control(TimeControl::ThirtyPlusSixty),
+        Some(TimeControl::Unlimited)
+    );
+    assert_eq!(
+        previous_time_control(TimeControl::Unlimited),
+        Some(TimeControl::ThirtyPlusSixty)
+    );
+    assert_eq!(next_time_control(TimeControl::Unlimited), None);
+}
+
+#[test]
+fn play_error_toast_enters_upward_and_fades_out() {
+    let mut toast = PlayErrorToast {
+        active: true,
+        entering: true,
+        ..default()
+    };
+    let start = play_error_toast_visual(&toast);
+    toast.elapsed = PLAY_ERROR_TOAST_ENTRY_DURATION;
+    let entered = play_error_toast_visual(&toast);
+    toast.elapsed = PLAY_ERROR_TOAST_DURATION;
+    let finished = play_error_toast_visual(&toast);
+
+    assert_eq!(start.opacity, 0.0);
+    assert!(start.y > entered.y);
+    assert!(entered.opacity > 0.99);
+    assert_eq!(finished.opacity, 0.0);
+}
+
+#[test]
+fn failed_throw_cards_reveal_split_rebound_and_return_to_the_player() {
+    let direction = Vec2::new(0.0, 92.0);
+    let stacked =
+        shengji_failed_throw_card_visual(ShengjiThrowFailureStage::Showing, 0, 5, 0.0, direction);
+    let revealed =
+        shengji_failed_throw_card_visual(ShengjiThrowFailureStage::Showing, 0, 5, 0.24, direction);
+    let split =
+        shengji_failed_throw_card_visual(ShengjiThrowFailureStage::Showing, 0, 5, 0.54, direction);
+    let rebounded =
+        shengji_failed_throw_card_visual(ShengjiThrowFailureStage::Showing, 0, 5, 0.82, direction);
+    let returned = shengji_failed_throw_card_visual(
+        ShengjiThrowFailureStage::Returning,
+        0,
+        5,
+        0.42,
+        direction,
+    );
+
+    assert!(stacked.translation.x.abs() > revealed.translation.x.abs());
+    assert!(split.translation.length() > revealed.translation.length());
+    assert!(rebounded.translation.length() < split.translation.length());
+    assert!(returned.translation.y > 80.0);
+    assert!(!returned.visible);
+}
+
+#[test]
+fn retriggered_play_error_toast_shakes_with_decay() {
+    let mut toast = PlayErrorToast {
+        active: true,
+        shake_elapsed: Some(0.04),
+        ..default()
+    };
+    let shaking = play_error_toast_visual(&toast);
+    toast.shake_elapsed = Some(PLAY_ERROR_TOAST_SHAKE_DURATION);
+    let settled = play_error_toast_visual(&toast);
+
+    assert!(shaking.x.abs() > 1.0);
+    assert_eq!(settled.x, 0.0);
+}
+
+#[test]
+fn start_game_seats_smoothly_move_to_their_final_rectangles() {
+    let start = start_game_seat_transition_visual(0.0);
+    let moving = start_game_seat_transition_visual(START_GAME_SEAT_MOVE_DURATION * 0.5);
+    let finished = start_game_seat_transition_visual(START_GAME_SEAT_MOVE_DURATION);
+
+    assert_eq!(start.movement, 0.0);
+    assert!(moving.movement > 0.0 && moving.movement < 1.0);
+    assert!((moving.movement - 0.5).abs() < 0.00001);
+    assert_eq!(finished.movement, 1.0);
+}
+
+#[test]
+fn start_game_seat_transition_system_queries_initialize_without_conflicts() {
+    let mut app = App::new();
+    app.insert_resource(Time::<()>::default());
+    app.insert_resource(StartGameSeatTransition::default());
+    app.add_systems(Update, animate_start_game_seat_transition);
+
+    app.update();
+}
+
+#[test]
+fn turn_border_trace_eases_in_and_out_around_the_whole_perimeter() {
+    let perimeter = 100.0;
+    let start = turn_border_visible_interval(0.0, perimeter);
+    let early = turn_border_visible_interval(0.095, perimeter);
+    let halfway_grown = turn_border_visible_interval(0.475, perimeter);
+    let full = turn_border_visible_interval(1.0, perimeter);
+    let halfway_shrunk = turn_border_visible_interval(1.565, perimeter);
+    let gap = turn_border_visible_interval(2.1, perimeter);
+
+    assert_eq!(start, (0.0, 0.0));
+    assert!(early.1 > 0.0 && early.1 < 10.0);
+    assert!((halfway_grown.1 - 50.0).abs() < 0.001);
+    assert_eq!(full, (0.0, perimeter));
+    assert!((halfway_shrunk.0 - 50.0).abs() < 0.001);
+    assert_eq!(halfway_shrunk.1, perimeter);
+    assert_eq!(gap, (perimeter, perimeter));
+}
+
+#[test]
+fn turn_border_animation_system_queries_initialize_without_conflicts() {
+    let mut app = App::new();
+    app.insert_resource(Time::<()>::default());
+    app.insert_resource(Assets::<TurnBorderMaterial>::default());
+    app.insert_resource(TurnBorderAnimationState::default());
+    app.add_systems(Update, animate_turn_border_traces);
+
+    app.update();
+}
+
+#[test]
+fn shengji_presentation_system_queries_initialize_without_conflicts() {
+    let mut app = App::new();
+    app.insert_resource(ShengjiPresentationState::default());
+    app.add_systems(
+        Update,
+        (
+            animate_shengji_presentation,
+            animate_shengji_bottom_flip_markers,
+            animate_shengji_power_outage_markers,
+        ),
+    );
+
+    app.update();
+}
+
+#[test]
+fn held_raise_adjustment_stops_exactly_at_both_boundaries() {
+    assert_eq!(texas_raise_repeat_value(6, -1, 4, 5, 20), 5);
+    assert_eq!(texas_raise_repeat_value(19, 1, 4, 5, 20), 20);
+    assert_eq!(texas_raise_repeat_value(12, -1, 3, 5, 20), 9);
+    assert_eq!(texas_raise_repeat_value(12, 1, 3, 5, 20), 15);
+}

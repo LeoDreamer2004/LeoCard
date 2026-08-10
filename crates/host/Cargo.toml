@@ -1,0 +1,21 @@
+[package]
+name = "leocard-host"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Authoritative in-memory room/session host for LeoCard"
+
+[features]
+default = []
+developer = ["leocard-qigui523/developer"]
+
+[dependencies]
+ed25519-dalek.workspace = true
+fastrand.workspace = true
+image.workspace = true
+leocard-qigui523 = { path = "../games/qigui523" }
+leocard-shengji = { path = "../games/shengji" }
+leocard-texas-holdem = { path = "../games/texas-holdem" }
+leocard-texas-holdem-adapter = { path = "../games/texas-holdem-adapter" }
+leocard-protocol = { path = "../protocol" }

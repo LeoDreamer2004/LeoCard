@@ -47,6 +47,7 @@ mod tests {
             "vendor/kenney/interface-sounds/Audio/error_007.ogg",
             "vendor/noname/voice/male/22.mp3",
             "ui/panel_window.png",
+            "icons/github-mark.png",
         ] {
             assert!(
                 directory.get_asset(Path::new(path)).is_some(),

@@ -2834,6 +2834,10 @@ mod tests {
             })
         ));
         assert_eq!(
+            game_snapshot(&declaration, connections[0]).dealer,
+            Some(PlayerId(0))
+        );
+        assert_eq!(
             game_snapshot(&declaration, connections[0]).your_exposed_cards,
             vec![target]
         );
@@ -2855,6 +2859,66 @@ mod tests {
         assert_eq!(guest.your_hand.len(), 25);
         assert_eq!(dealer.buried_count, 0);
         assert!(matches!(dealer.phase, ShengjiPhaseView::Burying));
+    }
+
+    #[test]
+    fn first_hand_dealer_badge_follows_initial_bid_and_counter_immediately() {
+        let diamond = Card::suited(0, Suit::Diamond, Rank::Two);
+        let spades = [
+            Card::suited(0, Suit::Spade, Rank::Two),
+            Card::suited(1, Suit::Spade, Rank::Two),
+        ];
+        let mut deck = build_deck();
+        for (target_index, card) in [(0, diamond), (1, spades[0]), (5, spades[1])] {
+            let source_index = deck
+                .iter()
+                .position(|candidate| *candidate == card)
+                .unwrap();
+            deck.swap(target_index, source_index);
+        }
+        let (mut session, connections) = started_session_with_deck(RuleSet::default(), deck);
+        session.advance_time(DEAL_INTERVAL * 6);
+
+        let initial = session.handle(
+            connections[0],
+            message(
+                0,
+                5,
+                ClientCommand::Game(GameCommand::Shengji(ShengjiCommand::Declare {
+                    cards: vec![diamond],
+                })),
+            ),
+        );
+        assert_eq!(
+            game_snapshot(&initial, connections[0]).dealer,
+            Some(PlayerId(0))
+        );
+
+        let counter = session.handle(
+            connections[1],
+            message(
+                1,
+                6,
+                ClientCommand::Game(GameCommand::Shengji(ShengjiCommand::Declare {
+                    cards: spades.to_vec(),
+                })),
+            ),
+        );
+        assert_eq!(
+            game_snapshot(&counter, connections[0]).dealer,
+            Some(PlayerId(1))
+        );
+    }
+
+    #[test]
+    fn later_hand_snapshot_exposes_the_fixed_dealer_while_dealing() {
+        let (mut session, _, _) = started_session();
+        session.next_dealer = Some(CorePlayerId(2));
+        session.start_hand(true).unwrap();
+
+        let snapshot = session.game_snapshot(PlayerId(0));
+        assert!(matches!(snapshot.phase, ShengjiPhaseView::Dealing { .. }));
+        assert_eq!(snapshot.dealer, Some(PlayerId(2)));
     }
 
     #[test]

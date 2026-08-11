@@ -13,6 +13,22 @@ pub(super) fn start_game_seat_transition_visual(elapsed: f32) -> StartGameSeatTr
     }
 }
 
+pub(super) fn attach_start_game_seat_transition(
+    commands: &mut Commands,
+    panel: Entity,
+    player: PlayerId,
+    active: bool,
+) {
+    commands.entity(panel).insert((
+        GameSeatTransitionTarget(player),
+        GameSeatTransitionPose::default(),
+        UiTransform::IDENTITY,
+    ));
+    if active {
+        commands.entity(panel).insert(Visibility::Hidden);
+    }
+}
+
 fn smootherstep(value: f32) -> f32 {
     value * value * value * (value * (value * 6.0 - 15.0) + 10.0)
 }

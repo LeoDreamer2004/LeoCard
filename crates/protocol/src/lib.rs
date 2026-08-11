@@ -455,7 +455,8 @@ pub struct ShengjiSnapshot {
     /// 级牌不可复用。用于重连后继续生成正确的亮主候选。
     pub your_exposed_cards: Vec<ShengjiCard>,
     pub levels: [ShengjiRank; 2],
-    /// 本局抢亮所使用的级牌。发牌阶段庄家尚未公开，客户端不得从队伍等级猜测。
+    /// 本局抢亮所使用的级牌。首局无人亮主前庄家尚未公开；首局亮主后随当前
+    /// 最高声明实时转移，后续小局则从发牌开始公开上一局已经确定的庄家。
     pub bidding_level: ShengjiRank,
     pub dealer: Option<PlayerId>,
     pub trump: Option<ShengjiTrump>,

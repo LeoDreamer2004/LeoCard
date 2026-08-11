@@ -46,6 +46,14 @@
 运行时版本由原 SVG 栅格化为透明 128×128 PNG，并由游戏按主题动态着色；完整来源、
 作者、下载日期和修改说明见同目录的 `SOURCE.md`。
 
+## GitHub Mark
+
+- 文件：`assets/icons/github-mark.svg`、`github-mark.png`
+- 来源：GitHub Primer Octicons 的 `mark-github`
+- 项目：<https://github.com/primer/octicons>
+- 许可证：MIT；GitHub 名称与标志仍受其商标规范约束
+- 用途：仅作为自动更新窗口中指向 LeoCard GitHub 仓库的链接按钮
+
 ## 寒蝉圆黑体（SIL Open Font License 1.1）
 
 - 文件：`assets/fonts/ChillRoundGothic-Medium.ttf`

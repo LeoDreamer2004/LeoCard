@@ -53,6 +53,7 @@ pub(super) fn handle_buttons(
                 | UiAction::FocusChatInput
                 | UiAction::ToggleQuickVoiceMenu
                 | UiAction::SendQuickVoice(_)
+                | UiAction::OpenGitHubRepository
                 | UiAction::Pass
         );
         #[cfg(feature = "developer")]
@@ -189,6 +190,11 @@ pub(super) fn handle_buttons(
             UiAction::StartUpdate => {
                 updater.begin_or_show();
             }
+            UiAction::OpenGitHubRepository => {
+                if let Err(error) = open_github_repository() {
+                    warn!("{error}");
+                }
+            }
             UiAction::HideUpdateDialog => {
                 updater.dialog_open = false;
             }
@@ -221,7 +227,7 @@ pub(super) fn handle_buttons(
                 }
             }
             UiAction::UseDefaultTableFelt => {
-                form.table_felt_path = None;
+                restore_default_table_appearance(&mut form);
                 local.table_appearance.error = save_preferences(&form).err();
             }
             UiAction::SelectSeat(seat) => {
@@ -571,6 +577,11 @@ pub(super) fn handle_buttons(
     }
 }
 
+pub(super) fn restore_default_table_appearance(form: &mut ConnectionForm) {
+    form.table_felt_path = None;
+    form.table_brightness = 1.0;
+}
+
 pub(super) fn tick_player_interaction_cooldown(
     time: Res<Time>,
     mut cooldown: ResMut<PlayerInteractionCooldown>,
@@ -893,13 +904,49 @@ pub(super) fn poll_network(
     if !client.0.poll() {
         return;
     }
-    if previous_lobby.is_some()
-        && let Some(game) = client.0.model().qigui523_game()
-    {
-        lobby_seat_snapshots
-            .retain(|seat| game.players.iter().any(|player| player.id == seat.player));
-        seat_transition.begin(game.match_id, lobby_seat_snapshots);
-    } else if client.0.model().lobby().is_some() || client.0.model().qigui523_game().is_none() {
+    let started_game = client
+        .0
+        .model()
+        .qigui523_game()
+        .map(|game| {
+            (
+                game.match_id,
+                game.players
+                    .iter()
+                    .map(|player| player.id)
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .or_else(|| {
+            client.0.model().texas_holdem_game().map(|game| {
+                (
+                    game.match_id,
+                    game.players
+                        .iter()
+                        .map(|player| player.id)
+                        .collect::<Vec<_>>(),
+                )
+            })
+        })
+        .or_else(|| {
+            client.0.model().shengji_game().map(|game| {
+                (
+                    game.match_id,
+                    game.players
+                        .iter()
+                        .map(|player| player.id)
+                        .collect::<Vec<_>>(),
+                )
+            })
+        });
+    if previous_lobby.is_some() {
+        if let Some((match_id, players)) = started_game.as_ref() {
+            lobby_seat_snapshots.retain(|seat| players.contains(&seat.player));
+            seat_transition.begin(*match_id, lobby_seat_snapshots);
+        } else {
+            seat_transition.clear();
+        }
+    } else if client.0.model().lobby().is_some() || started_game.is_none() {
         seat_transition.clear();
     }
     if client

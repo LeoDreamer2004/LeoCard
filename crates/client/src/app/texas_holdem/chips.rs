@@ -10,23 +10,10 @@ const CHIP_SIZE: f32 = 30.0;
 const CHIP_MOVE_DURATION: f32 = 0.42;
 const PLAYER_CHIP_ZONE_WIDTH: f32 = 160.0;
 const PLAYER_CHIP_ZONE_HEIGHT: f32 = 82.0;
-const TEXAS_CHIP_ZONE_SHADER: &str = "shaders/texas_chip_zone.wgsl";
+const TEXAS_CHIP_ZONE_FILTER: Color = Color::srgba(0.005, 0.018, 0.014, 0.26);
 
-#[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
-pub(in crate::app) struct TexasChipZoneMaterial {
-    /// Column 0: appearance; column 1: table placement; column 2: mapping mode.
-    #[uniform(0)]
-    params: Mat4,
-    #[texture(1)]
-    #[sampler(2)]
-    texture: Handle<Image>,
-}
-
-impl UiMaterial for TexasChipZoneMaterial {
-    fn fragment_shader() -> ShaderRef {
-        TEXAS_CHIP_ZONE_SHADER.into()
-    }
-}
+#[derive(Component)]
+pub(in crate::app) struct TexasChipZonePanel;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum ChipZone {
@@ -764,7 +751,7 @@ pub(in crate::app) fn texas_pot_chip_zone() -> ChipZoneLayout {
         left: 460.0,
         // Keep pot chips below the board cards, but reclaim the space that used
         // to be reserved for the "底池" title.
-        top: 296.0,
+        top: 284.0,
         width: 360.0,
         height: 108.0,
     }
@@ -792,7 +779,7 @@ fn texas_center_zone_panel() -> ChipZoneLayout {
         left: 439.0,
         top: 194.0,
         width: 402.0,
-        height: 210.0,
+        height: 198.0,
     }
 }
 
@@ -899,10 +886,6 @@ pub(in crate::app) fn add_texas_chip_areas(
     game: &TexasHoldemSnapshot,
     state: &TexasChipTableState,
     assets: &UiAssets,
-    materials: &mut Assets<TexasChipZoneMaterial>,
-    felt: &Handle<Image>,
-    tiled: bool,
-    brightness: f32,
 ) {
     let own_seat = game
         .players
@@ -916,7 +899,7 @@ pub(in crate::app) fn add_texas_chip_areas(
             .iter()
             .find(|player| player.seat == physical_seat);
         let layout = texas_player_chip_zone(relative);
-        let zone = add_chip_zone_panel(commands, table, layout, materials, felt, tiled, brightness);
+        let zone = add_chip_zone_panel(commands, table, layout);
         if let Some(player) = player {
             if let Some(label) = state.actions.get(&player.id) {
                 add_chip_zone_title(commands, zone, label, assets);
@@ -937,17 +920,9 @@ pub(in crate::app) fn add_texas_chip_areas(
         }
     }
 
-    // One continuous felt panel frames the complete centre: draw pile, five
+    // One continuous dark filter frames the complete centre: draw pile, five
     // community cards, and the chips below them. There is no separate pot title.
-    add_chip_zone_panel(
-        commands,
-        table,
-        texas_center_zone_panel(),
-        materials,
-        felt,
-        tiled,
-        brightness,
-    );
+    add_chip_zone_panel(commands, table, texas_center_zone_panel());
     add_pot_divisions(commands, table, state);
     add_pot_hover_regions(commands, table, state);
 
@@ -1126,17 +1101,7 @@ fn pot_eligibility_breath(elapsed: f32) -> f32 {
     wave * wave * (3.0 - 2.0 * wave)
 }
 
-fn add_chip_zone_panel(
-    commands: &mut Commands,
-    table: Entity,
-    layout: ChipZoneLayout,
-    materials: &mut Assets<TexasChipZoneMaterial>,
-    felt: &Handle<Image>,
-    tiled: bool,
-    brightness: f32,
-) -> Entity {
-    let material =
-        create_texas_chip_zone_material(materials, felt.clone(), layout, tiled, brightness);
+fn add_chip_zone_panel(commands: &mut Commands, table: Entity, layout: ChipZoneLayout) -> Entity {
     let zone = spawn_node(
         commands,
         table,
@@ -1147,39 +1112,31 @@ fn add_chip_zone_panel(
             width: px(layout.width),
             height: px(layout.height),
             padding: UiRect::new(px(9), px(42), px(6), px(6)),
+            border: UiRect::all(px(1)),
             border_radius: BorderRadius::all(px(11)),
             overflow: Overflow::clip(),
             ..default()
         },
-        None,
+        Some(TEXAS_CHIP_ZONE_FILTER),
     );
     commands.entity(zone).insert((
-        MaterialNode(material),
+        TexasChipZonePanel,
+        BackgroundGradient::from(LinearGradient::to_bottom_right(vec![
+            ColorStop::auto(Color::srgba(0.10, 0.16, 0.13, 0.12)),
+            ColorStop::auto(Color::srgba(0.04, 0.08, 0.06, 0.08)),
+            ColorStop::auto(Color::BLACK.with_alpha(0.18)),
+        ])),
+        BorderGradient::from(LinearGradient::to_bottom_right(vec![
+            ColorStop::auto(Color::srgba(0.24, 0.34, 0.29, 0.20)),
+            ColorStop::auto(Color::srgba(0.10, 0.16, 0.13, 0.14)),
+            ColorStop::auto(Color::BLACK.with_alpha(0.24)),
+        ])),
+        BoxShadow::new(Color::BLACK.with_alpha(0.28), px(0), px(3), px(0), px(8)),
         // 区域框属于桌面底层；实际筹码在独立的高层中移动。
         ZIndex(-10),
         FocusPolicy::Pass,
     ));
     zone
-}
-
-fn create_texas_chip_zone_material(
-    materials: &mut Assets<TexasChipZoneMaterial>,
-    felt: Handle<Image>,
-    layout: ChipZoneLayout,
-    tiled: bool,
-    brightness: f32,
-) -> Handle<TexasChipZoneMaterial> {
-    let appearance = Vec4::new(brightness * 0.58, brightness * 1.12, 3.0, 11.0);
-    let placement = Vec4::new(layout.left, layout.top, DESIGN_WIDTH, DESIGN_HEIGHT - 64.0);
-    materials.add(TexasChipZoneMaterial {
-        params: Mat4::from_cols(
-            appearance,
-            placement,
-            Vec4::new(if tiled { 1.0 } else { 0.0 }, 0.0, 0.0, 0.0),
-            Vec4::ZERO,
-        ),
-        texture: felt,
-    })
 }
 
 fn add_chip_zone_title(
@@ -1561,6 +1518,53 @@ mod tests {
         assert!(pot_eligibility_breath(0.0).abs() < 0.000_001);
         assert!((pot_eligibility_breath(0.85) - 1.0).abs() < 0.000_001);
         assert!(pot_eligibility_breath(1.7).abs() < 0.000_001);
+    }
+
+    #[test]
+    fn chip_zone_panel_uses_procedural_glass_layers_without_a_felt_image() {
+        fn setup(mut commands: Commands) {
+            let table = commands.spawn(Node::default()).id();
+            add_chip_zone_panel(
+                &mut commands,
+                table,
+                ChipZoneLayout {
+                    left: 10.0,
+                    top: 20.0,
+                    width: 160.0,
+                    height: 82.0,
+                },
+            );
+        }
+
+        let mut app = App::new();
+        app.add_systems(Startup, setup);
+        app.update();
+
+        let (node, background, background_gradient, border_gradient, shadow, image) = app
+            .world_mut()
+            .query_filtered::<(
+                &Node,
+                &BackgroundColor,
+                &BackgroundGradient,
+                &BorderGradient,
+                &BoxShadow,
+                Option<&ImageNode>,
+            ), With<TexasChipZonePanel>>()
+            .single(app.world())
+            .unwrap();
+        assert_eq!(node.border, UiRect::all(px(1)));
+        assert_eq!(background.0, TEXAS_CHIP_ZONE_FILTER);
+        assert_eq!(background_gradient.0.len(), 1);
+        assert_eq!(border_gradient.0.len(), 1);
+        assert_eq!(shadow.0.len(), 1);
+        assert!(image.is_none());
+    }
+
+    #[test]
+    fn centre_panel_keeps_a_gap_above_the_own_chip_zone() {
+        let centre = texas_center_zone_panel();
+        let own = texas_player_chip_zone(0);
+        assert_eq!(own.top - (centre.top + centre.height), 12.0);
     }
 
     #[test]

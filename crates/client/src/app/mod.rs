@@ -72,7 +72,7 @@ const SCORE_ROLL_DELAY: f32 = 0.42;
 const SCORE_ROLL_DURATION: f32 = 0.72;
 const UI_FONT_ASSET: &str = "fonts/ChillRoundGothic-Medium.ttf";
 const TABLE_FELT_ASSET: &str = "vendor/opengameart/green-textile/table_felt_dark_green.png";
-const MIN_TABLE_BRIGHTNESS: f32 = 0.4;
+const MIN_TABLE_BRIGHTNESS: f32 = 0.1;
 const MAX_TABLE_BRIGHTNESS: f32 = 1.25;
 const MIN_TABLE_VIGNETTE: f32 = 0.0;
 const MAX_TABLE_VIGNETTE: f32 = 0.75;
@@ -676,6 +676,7 @@ struct UiAssets {
     quick_voice_icon: Handle<Image>,
     robot_icon: Handle<Image>,
     host_crown: Handle<Image>,
+    github_mark: Handle<Image>,
 }
 
 #[derive(Resource, Default)]
@@ -1242,6 +1243,7 @@ enum UiAction {
     ToggleProfile,
     ToggleSettings,
     StartUpdate,
+    OpenGitHubRepository,
     HideUpdateDialog,
     RestartToUpdate,
     ChooseTableFelt,
@@ -1528,7 +1530,6 @@ pub(crate) fn run() {
         )
         .add_plugins(UiMaterialPlugin::<TableBackgroundMaterial>::default())
         .add_plugins(UiMaterialPlugin::<TurnBorderMaterial>::default())
-        .add_plugins(UiMaterialPlugin::<TexasChipZoneMaterial>::default())
         .add_systems(Startup, (setup_camera, load_ui_assets))
         .add_systems(
             Update,

@@ -326,7 +326,9 @@ impl GameState {
                 .collect(),
             bidding: BidState::new_with_rules(level, rules.deck_count, rules.bid_with_joker),
             trump: None,
-            dealer: None,
+            // 后续小局的庄家已由上一局结算确定，发牌开始就应公开；首局则
+            // 等第一位玩家亮主后再随当前最高声明实时转移。
+            dealer: fixed_dealer,
             kitty: Vec::new(),
             buried: Vec::new(),
             bottom_burier: None,
@@ -470,6 +472,9 @@ impl GameState {
         }
         let hand = self.player(player)?.hand.clone();
         self.bidding.declare(player, cards, &hand)?;
+        if self.fixed_dealer.is_none() {
+            self.dealer = self.bidding.current().map(|declaration| declaration.player);
+        }
         Ok(ActionOutcome::DeclarationChanged)
     }
 
@@ -1334,8 +1339,11 @@ mod tests {
         for _ in 0..6 {
             game.deal_next().unwrap();
         }
+        assert_eq!(game.dealer(), None);
         game.declare(PlayerId(0), &diamond[..1]).unwrap();
+        assert_eq!(game.dealer(), Some(PlayerId(0)));
         game.declare(PlayerId(1), &spade).unwrap();
+        assert_eq!(game.dealer(), Some(PlayerId(1)));
         assert_eq!(
             game.bidding().current().unwrap().trump,
             BidTrump::Suit(Suit::Spade)
@@ -1352,11 +1360,13 @@ mod tests {
             later_deck,
         )
         .unwrap();
+        assert_eq!(later.dealer(), Some(PlayerId(0)));
         for _ in 0..6 {
             later.deal_next().unwrap();
         }
         later.declare(PlayerId(0), &diamond[..1]).unwrap();
         later.declare(PlayerId(1), &spade).unwrap();
+        assert_eq!(later.dealer(), Some(PlayerId(0)));
         later.deal_all().unwrap();
         later.close_bidding_and_take_kitty().unwrap();
         assert_eq!(later.dealer(), Some(PlayerId(0)));

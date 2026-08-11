@@ -6,8 +6,10 @@ use semver::Version;
 use sha2::{Digest, Sha256};
 use std::ffi::OsString;
 use std::io::{Read, Write};
+use std::process::Command;
 use std::time::{Duration, Instant};
 
+pub(super) const GITHUB_REPOSITORY_URL: &str = "https://github.com/LeoDreamer2004/LeoCard";
 const LATEST_RELEASE_URL: &str =
     "https://api.github.com/repos/LeoDreamer2004/LeoCard/releases/latest";
 const DOWNLOAD_BUFFER_SIZE: usize = 64 * 1024;
@@ -339,13 +341,82 @@ pub(super) fn render_update_dialog(
             add_action_button(
                 commands,
                 actions,
-                "关闭并在后台下载",
+                "后台下载",
                 UiAction::HideUpdateDialog,
                 ButtonKind::Secondary,
                 assets,
             );
         }
     }
+}
+
+#[derive(Component)]
+pub(super) struct GitHubRepositoryButton;
+
+pub(super) fn add_github_repository_button(
+    commands: &mut Commands,
+    parent: Entity,
+    assets: &UiAssets,
+) -> Entity {
+    let normal = Color::srgb(0.31, 0.40, 0.48);
+    let button = commands
+        .spawn((
+            Button,
+            UiAction::OpenGitHubRepository,
+            GitHubRepositoryButton,
+            ButtonTint {
+                normal,
+                hovered: Color::srgb(0.45, 0.57, 0.67),
+                pressed: Color::srgb(0.22, 0.30, 0.37),
+            },
+            Node {
+                width: px(48),
+                height: px(48),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            ImageNode::new(assets.secondary_button.clone())
+                .with_mode(NodeImageMode::Stretch)
+                .with_color(normal),
+            Name::new("打开 GitHub 仓库"),
+        ))
+        .id();
+    commands.entity(parent).add_child(button);
+    let mark = commands
+        .spawn((
+            Node {
+                width: px(28),
+                height: px(28),
+                ..default()
+            },
+            ImageNode::new(assets.github_mark.clone()),
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(button).add_child(mark);
+    button
+}
+
+pub(super) fn open_github_repository() -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    let result = Command::new("explorer.exe")
+        .arg(GITHUB_REPOSITORY_URL)
+        .spawn();
+    #[cfg(target_os = "macos")]
+    let result = Command::new("open").arg(GITHUB_REPOSITORY_URL).spawn();
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let result = Command::new("xdg-open").arg(GITHUB_REPOSITORY_URL).spawn();
+    #[cfg(not(any(target_os = "windows", target_os = "macos", unix)))]
+    return Err("当前系统不支持自动打开网页".to_owned());
+
+    let mut child = result.map_err(|error| format!("无法打开 GitHub 仓库：{error}"))?;
+    thread::spawn(move || match child.wait() {
+        Ok(status) if !status.success() => warn!("系统浏览器未能打开 GitHub 仓库：{status}"),
+        Err(error) => warn!("等待系统浏览器时出错：{error}"),
+        Ok(_) => {}
+    });
+    Ok(())
 }
 
 pub(super) fn add_green_update_button(

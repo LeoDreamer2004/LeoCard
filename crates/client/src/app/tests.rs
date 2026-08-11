@@ -18,26 +18,18 @@ fn host_game_picker_validates_identity_and_port_before_opening() {
 
 #[test]
 fn host_game_picker_lists_every_playable_game() {
-    assert_eq!(HOST_GAME_CHOICES.len(), 3);
-    assert!(
-        HOST_GAME_CHOICES
-            .iter()
-            .any(|choice| choice.2 == GameKind::QiGui523)
-    );
-    assert!(
-        HOST_GAME_CHOICES
-            .iter()
-            .any(|choice| choice.2 == GameKind::TexasHoldem)
-    );
-    assert!(
-        HOST_GAME_CHOICES
-            .iter()
-            .any(|choice| choice.2 == GameKind::Shengji)
+    assert_eq!(
+        HOST_GAME_CHOICES,
+        [
+            ("七鬼五二三", "放空大脑, 有牌就出", GameKind::QiGui523),
+            ("德州扑克", "窝要验牌!", GameKind::TexasHoldem),
+            ("升级", "神对手 or 猪队友", GameKind::Shengji),
+        ]
     );
 }
 
 #[test]
-fn settings_exposes_the_green_update_action() {
+fn settings_update_box_exposes_update_and_github_actions() {
     fn setup(mut commands: Commands, assets: Res<UiAssets>) {
         let root = commands.spawn(Node::default()).id();
         render_settings_modal(
@@ -62,6 +54,17 @@ fn settings_exposes_the_green_update_action() {
         .find(|(action, _)| matches!(action, UiAction::StartUpdate))
         .expect("游戏设置应包含自动更新按钮");
     assert_eq!(tint.normal, READY);
+    let github_buttons = app
+        .world_mut()
+        .query_filtered::<&UiAction, (With<Button>, With<GitHubRepositoryButton>)>()
+        .iter(app.world())
+        .filter(|action| matches!(action, UiAction::OpenGitHubRepository))
+        .count();
+    assert_eq!(github_buttons, 1);
+    assert_eq!(
+        GITHUB_REPOSITORY_URL,
+        "https://github.com/LeoDreamer2004/LeoCard"
+    );
 }
 
 #[test]
@@ -98,6 +101,17 @@ fn completed_update_dialog_offers_restart_and_later_actions() {
             .iter()
             .any(|action| matches!(action, UiAction::HideUpdateDialog))
     );
+    assert!(
+        actions
+            .iter()
+            .all(|action| !matches!(action, UiAction::OpenGitHubRepository))
+    );
+    let github_buttons = app
+        .world_mut()
+        .query_filtered::<&UiAction, (With<Button>, With<GitHubRepositoryButton>)>()
+        .iter(app.world())
+        .count();
+    assert_eq!(github_buttons, 0);
 }
 
 #[test]
@@ -195,6 +209,7 @@ fn ui_scale_fits_design_size_and_respects_manual_zoom() {
 
 #[test]
 fn table_brightness_is_normalized_and_mapped_to_the_slider() {
+    assert_eq!(MIN_TABLE_BRIGHTNESS, 0.1);
     assert_eq!(normalize_table_brightness(0.0), 1.0);
     assert_eq!(normalize_table_brightness(f32::NAN), 1.0);
     assert_eq!(table_brightness_fraction(MIN_TABLE_BRIGHTNESS), 0.0);
@@ -207,12 +222,40 @@ fn table_brightness_is_normalized_and_mapped_to_the_slider() {
 }
 
 #[test]
+fn restoring_the_default_felt_also_restores_full_brightness() {
+    let mut form = ConnectionForm::default();
+    form.table_felt_path = Some(PathBuf::from("custom-table.png"));
+    form.table_brightness = MIN_TABLE_BRIGHTNESS;
+
+    restore_default_table_appearance(&mut form);
+
+    assert_eq!(form.table_felt_path, None);
+    assert_eq!(form.table_brightness, 1.0);
+}
+
+#[test]
+fn texas_pot_chip_zone_is_shifted_slightly_upward() {
+    assert_eq!(texas_pot_chip_zone().top, 284.0);
+}
+
+#[test]
 fn table_material_parameters_clamp_invalid_visual_settings() {
     let params = table_material_params(f32::NAN, 5.0, true);
     assert_eq!(params.x, DEFAULT_TABLE_VIGNETTE);
     assert_eq!(params.y, 1.0);
     assert_eq!(params.z, 1.0);
     assert_eq!(params.w, 0.0);
+
+    let custom = table_material_params(1.0, DEFAULT_TABLE_VIGNETTE, false);
+    assert_eq!(custom.z, 0.0);
+}
+
+#[test]
+fn table_background_shader_tiles_builtin_felt_and_cover_crops_custom_images() {
+    let shader = include_str!("../../../../assets/shaders/table_background.wgsl");
+    assert!(shader.contains("let cover_scale = max("));
+    assert!(shader.contains("let crop_origin ="));
+    assert!(shader.contains("return fract("));
 }
 
 #[cfg(feature = "developer")]
@@ -307,6 +350,7 @@ fn every_card_maps_to_an_existing_asset() {
     assert!(asset_root.join(UI_FONT_ASSET).is_file());
     assert!(asset_root.join("fonts/OFL-ChillRoundGothic.txt").is_file());
     assert!(asset_root.join("icons/list-menu.png").is_file());
+    assert!(asset_root.join("icons/github-mark.png").is_file());
     assert!(
         asset_root
             .join("ui/effects/sequence_airplane.png")
@@ -816,6 +860,36 @@ fn shengji_private_bottom_button_occupies_its_own_chat_side_slot() {
     assert_eq!(node.width, px(32));
 }
 
+#[test]
+fn available_previous_trick_button_keeps_a_neutral_border() {
+    fn setup(mut commands: Commands, assets: Res<UiAssets>) {
+        let parent = commands.spawn(Node::default()).id();
+        add_chat_panel(
+            &mut commands,
+            parent,
+            &ChatPanelState::default(),
+            &assets,
+            None,
+            Some(true),
+            None,
+        );
+    }
+
+    let mut app = App::new();
+    app.init_resource::<UiAssets>();
+    app.add_systems(Startup, setup);
+    app.update();
+
+    let mut query = app
+        .world_mut()
+        .query_filtered::<(&UiAction, &BorderColor), With<Button>>();
+    let (_, border) = query
+        .iter(app.world())
+        .find(|(action, _)| matches!(action, UiAction::ShowShengjiPreviousTrick))
+        .expect("上轮按钮在首轮牌结束后应可点击");
+    assert_eq!(*border, BorderColor::all(BORDER));
+}
+
 fn shengji_ui_snapshot(
     hand: Vec<ShengjiCard>,
     declaration: Option<leocard_protocol::ShengjiDeclarationView>,
@@ -905,14 +979,15 @@ fn shengji_bidding_buttons_choose_single_protection_pairs_and_no_trump() {
 }
 
 #[test]
-fn next_hand_bidding_uses_the_authoritative_level_before_dealer_is_public() {
+fn next_hand_bidding_uses_the_authoritative_level_with_the_public_dealer() {
     let three = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Three);
     let two = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Two);
     let mut game = shengji_ui_snapshot(vec![two, three], None);
     // 模拟上一局换庄：0 队仍打 2，下一庄所在的 1 队已经打 3。发牌阶段
-    // dealer 尚未公开，旧客户端会错误回退到 levels[0]，从而只查找手里的 2。
+    // 已直接公开下一庄，抢亮仍以服务端明确给出的 bidding_level 为准。
     game.levels = [ShengjiRank::Two, ShengjiRank::Three];
     game.bidding_level = ShengjiRank::Three;
+    game.dealer = Some(PlayerId(1));
 
     assert_eq!(shengji_current_level(&game), ShengjiRank::Three);
     assert_eq!(
@@ -930,6 +1005,31 @@ fn next_hand_bidding_uses_the_authoritative_level_before_dealer_is_public() {
     assert_eq!(
         shengji_display_trump(&game).map(|trump| trump.level),
         Some(ShengjiRank::Three)
+    );
+}
+
+#[test]
+fn previous_trick_button_appears_only_after_playing_starts() {
+    assert_eq!(
+        shengji_previous_trick_button_state(
+            &ShengjiPhaseView::Dealing {
+                cards_remaining: 80,
+            },
+            false,
+        ),
+        None
+    );
+    assert_eq!(
+        shengji_previous_trick_button_state(&ShengjiPhaseView::Burying, false),
+        None
+    );
+    assert_eq!(
+        shengji_previous_trick_button_state(&ShengjiPhaseView::Playing, false),
+        Some(false)
+    );
+    assert_eq!(
+        shengji_previous_trick_button_state(&ShengjiPhaseView::Playing, true),
+        Some(true)
     );
 }
 
@@ -2037,6 +2137,42 @@ fn start_game_seats_smoothly_move_to_their_final_rectangles() {
     assert!(moving.movement > 0.0 && moving.movement < 1.0);
     assert!((moving.movement - 0.5).abs() < 0.00001);
     assert_eq!(finished.movement, 1.0);
+}
+
+#[test]
+fn start_game_transition_can_be_attached_to_any_game_player_panel() {
+    fn setup(mut commands: Commands) {
+        let active = commands.spawn(Node::default()).id();
+        attach_start_game_seat_transition(&mut commands, active, PlayerId(1), true);
+        let settled = commands.spawn(Node::default()).id();
+        attach_start_game_seat_transition(&mut commands, settled, PlayerId(2), false);
+    }
+
+    let mut app = App::new();
+    app.add_systems(Startup, setup);
+    app.update();
+
+    let mut targets = app.world_mut().query::<(
+        &GameSeatTransitionTarget,
+        &GameSeatTransitionPose,
+        &UiTransform,
+        &Visibility,
+    )>();
+    let panels = targets
+        .iter(app.world())
+        .map(|(target, pose, transform, visibility)| {
+            (target.0, (pose.initialized, *transform, *visibility))
+        })
+        .collect::<HashMap<_, _>>();
+    assert_eq!(panels.len(), 2);
+    assert_eq!(
+        panels[&PlayerId(1)],
+        (false, UiTransform::IDENTITY, Visibility::Hidden)
+    );
+    assert_eq!(
+        panels[&PlayerId(2)],
+        (false, UiTransform::IDENTITY, Visibility::Inherited)
+    );
 }
 
 #[test]

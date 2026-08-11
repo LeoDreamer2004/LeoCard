@@ -71,9 +71,8 @@ pub(in crate::app) fn render_table(
         .as_ref()
         .unwrap_or(&assets.table_felt)
         .clone();
-    let tiled = appearance.custom_felt.is_none();
     let material = table_materials.add(TableBackgroundMaterial {
-        params: table_material_params(*brightness, *vignette, tiled),
+        params: table_material_params(*brightness, *vignette, appearance.custom_felt.is_none()),
         texture: felt,
     });
     commands
@@ -376,15 +375,10 @@ pub(in crate::app) fn render_table(
         },
         Some(HEADER_BG.with_alpha(0.92)),
     );
-    commands.entity(self_summary).insert((
-        BorderColor::all(BORDER),
-        GameSeatTransitionTarget(game.you),
-        GameSeatTransitionPose::default(),
-        UiTransform::IDENTITY,
-    ));
-    if start_transition_active {
-        commands.entity(self_summary).insert(Visibility::Hidden);
-    }
+    commands
+        .entity(self_summary)
+        .insert(BorderColor::all(BORDER));
+    attach_start_game_seat_transition(commands, self_summary, game.you, start_transition_active);
     decorate_player_panel(commands, self_summary, assets, 0.72);
     if current == Some(game.you) {
         add_turn_border_trace(
@@ -731,16 +725,15 @@ fn add_opponent_slot(
     }
     match player {
         Some(player) => {
-            commands.entity(badge).insert((
-                Button,
-                UiAction::ToggleInteractionMenu(player.id),
-                GameSeatTransitionTarget(player.id),
-                GameSeatTransitionPose::default(),
-                UiTransform::IDENTITY,
-            ));
-            if visuals.start_transition_active {
-                commands.entity(badge).insert(Visibility::Hidden);
-            }
+            commands
+                .entity(badge)
+                .insert((Button, UiAction::ToggleInteractionMenu(player.id)));
+            attach_start_game_seat_transition(
+                commands,
+                badge,
+                player.id,
+                visuals.start_transition_active,
+            );
             let handle = player.avatar.and_then(|id| visuals.avatars.remote.get(&id));
             let avatar = add_avatar(commands, badge, &player.name, handle, 32.0, visuals.ui);
             commands

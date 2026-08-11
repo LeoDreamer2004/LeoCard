@@ -10,7 +10,7 @@ pub(in crate::app) struct TexasTableVisuals<'a> {
     pub(in crate::app) vignette: f32,
     pub(in crate::app) table_materials: &'a mut Assets<TableBackgroundMaterial>,
     pub(in crate::app) turn_border_materials: &'a mut Assets<TurnBorderMaterial>,
-    pub(in crate::app) chip_zone_materials: &'a mut Assets<TexasChipZoneMaterial>,
+    pub(in crate::app) start_game_transition: &'a StartGameSeatTransition,
     pub(in crate::app) chip_state: &'a TexasChipTableState,
     pub(in crate::app) game_summary: &'a GameSummaryAnimation,
 }
@@ -68,7 +68,7 @@ pub(in crate::app) fn render_texas_holdem_table(
         vignette,
         table_materials,
         turn_border_materials,
-        chip_zone_materials,
+        start_game_transition,
         chip_state,
         game_summary,
     } = visuals;
@@ -93,11 +93,11 @@ pub(in crate::app) fn render_texas_holdem_table(
         table_material_params(brightness, vignette, appearance.custom_felt.is_none());
     let material = table_materials.add(TableBackgroundMaterial {
         params: background_params,
-        texture: felt.clone(),
+        texture: felt,
     });
     commands
         .entity(content)
-        .insert((MaterialNode(material.clone()), TableBackground));
+        .insert((MaterialNode(material), TableBackground));
 
     let table = spawn_node(
         commands,
@@ -113,11 +113,12 @@ pub(in crate::app) fn render_texas_holdem_table(
         },
         None,
     );
-    commands.entity(table).insert((
-        UiTransform::from_translation(Val2::px(-DESIGN_WIDTH * 0.5, 0.0)),
-        // 中央设计画布重新铺同一背景，使筹码区可按牌桌坐标准确取样。
-        MaterialNode(material),
-    ));
+    commands
+        .entity(table)
+        .insert(UiTransform::from_translation(Val2::px(
+            -DESIGN_WIDTH * 0.5,
+            0.0,
+        )));
     if let NetworkState::Reconnecting(message) = client.0.state() {
         add_reconnecting_overlay(commands, table, message, assets);
     }
@@ -127,6 +128,7 @@ pub(in crate::app) fn render_texas_holdem_table(
         .iter()
         .find(|player| player.id == game.you)
         .expect("德州快照必须包含接收方");
+    let start_transition_active = start_game_transition.is_active_for(game.match_id);
     for relative in 1..TABLE_SEAT_COUNT {
         let physical = SeatId((own.seat.0 + relative) % TABLE_SEAT_COUNT);
         if let Some(player) = game.players.iter().find(|player| player.seat == physical) {
@@ -141,6 +143,7 @@ pub(in crate::app) fn render_texas_holdem_table(
                 avatars,
                 turn_border_materials,
                 chip_state,
+                start_transition_active,
             );
         }
     }
@@ -154,17 +157,7 @@ pub(in crate::app) fn render_texas_holdem_table(
     };
     let initial_deal =
         new_hand.then(|| spawn_texas_initial_deal(commands, table, game, own.seat, assets));
-    add_texas_chip_areas(
-        commands,
-        table,
-        game,
-        chip_state,
-        assets,
-        chip_zone_materials,
-        &felt,
-        appearance.custom_felt.is_none(),
-        background_params.y,
-    );
+    add_texas_chip_areas(commands, table, game, chip_state, assets);
     add_community_area(
         commands,
         table,
@@ -184,6 +177,7 @@ pub(in crate::app) fn render_texas_holdem_table(
         avatars,
         turn_border_materials,
         chip_state,
+        start_transition_active,
     );
     add_texas_showdown_reveal(commands, table, game, own.seat, assets, game_summary);
     add_texas_hand_result(commands, table, game, assets, avatars, game_summary);
@@ -533,6 +527,7 @@ fn add_texas_opponent(
     avatars: &AvatarImages,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     chip_state: &TexasChipTableState,
+    start_transition_active: bool,
 ) {
     let (left, right, top, bottom, side) = match relative {
         // 两侧座位按牌桌高度定位，既向中部收拢，也能随窗口高度稳定缩放。
@@ -582,6 +577,7 @@ fn add_texas_opponent(
         player: player.id,
         base_border,
     });
+    attach_start_game_seat_transition(commands, panel, player.id, start_transition_active);
     decorate_player_panel(commands, panel, assets, 1.0);
     if !player.folded && game.current_player == Some(player.id) {
         add_turn_border_trace(
@@ -888,6 +884,7 @@ fn add_texas_own_area(
     avatars: &AvatarImages,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     chip_state: &TexasChipTableState,
+    start_transition_active: bool,
 ) {
     let own_panel = spawn_node(
         commands,
@@ -923,6 +920,7 @@ fn add_texas_own_area(
             base_border,
         },
     ));
+    attach_start_game_seat_transition(commands, own_panel, own.id, start_transition_active);
     decorate_player_panel(commands, own_panel, assets, 0.72);
     if !own.folded && game.current_player == Some(own.id) {
         add_turn_border_trace(

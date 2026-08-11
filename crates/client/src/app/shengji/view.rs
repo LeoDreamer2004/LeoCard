@@ -44,6 +44,7 @@ pub(in crate::app) struct ShengjiTableVisuals<'a> {
     pub(in crate::app) vignette: f32,
     pub(in crate::app) table_materials: &'a mut Assets<TableBackgroundMaterial>,
     pub(in crate::app) turn_border_materials: &'a mut Assets<TurnBorderMaterial>,
+    pub(in crate::app) start_game_transition: &'a StartGameSeatTransition,
     pub(in crate::app) score_capture: &'a ShengjiScoreCaptureEffectState,
     pub(in crate::app) settlement: &'a ShengjiSettlementAnimation,
     pub(in crate::app) presentation: &'a ShengjiPresentationState,
@@ -124,6 +125,7 @@ pub(in crate::app) fn render_shengji_table(
         .iter()
         .find(|player| player.id == game.you)
         .expect("双升快照包含接收者");
+    let start_transition_active = visuals.start_game_transition.is_active_for(game.match_id);
     let previous_trick = visuals.presentation.revealed_previous_trick();
     for relative in 1..SHENGJI_PLAYER_COUNT {
         let seat = SeatId((own.seat.0 + relative) % SHENGJI_PLAYER_COUNT);
@@ -139,6 +141,7 @@ pub(in crate::app) fn render_shengji_table(
                 ui.interaction_menu_open,
                 visuals.turn_border_materials,
                 previous_trick,
+                start_transition_active,
             );
         }
     }
@@ -191,6 +194,7 @@ pub(in crate::app) fn render_shengji_table(
             visuals.assets,
             visuals.avatars,
             visuals.turn_border_materials,
+            start_transition_active,
         );
     }
     let local_auto_play = matches!(
@@ -208,7 +212,7 @@ pub(in crate::app) fn render_shengji_table(
         chat,
         visuals.assets,
         local_auto_play,
-        Some(visuals.presentation.has_previous_trick()),
+        shengji_previous_trick_button_state(&game.phase, visuals.presentation.has_previous_trick()),
         (!game.your_buried.is_empty() && !finished).then_some(true),
     );
     if local_auto_play == Some(true) {
@@ -227,6 +231,13 @@ pub(in crate::app) fn render_shengji_table(
             visuals.settlement,
         );
     }
+}
+
+pub(in crate::app) fn shengji_previous_trick_button_state(
+    phase: &ShengjiPhaseView,
+    has_previous_trick: bool,
+) -> Option<bool> {
+    matches!(phase, ShengjiPhaseView::Playing).then_some(has_previous_trick)
 }
 
 fn add_shengji_private_buried(
@@ -433,6 +444,7 @@ fn add_shengji_opponent(
     interaction_menu_open: Option<PlayerId>,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     previous_trick: Option<&[ShengjiPublicPlay]>,
+    start_transition_active: bool,
 ) {
     // 机器人图标会从人物框向牌桌内侧伸出 38px；左右出牌区额外留白，
     // 保证牌、机器人标记和人物框各自拥有清晰的视觉边界。
@@ -503,6 +515,7 @@ fn add_shengji_opponent(
         avatars,
         interaction_menu_open,
         turn_border_materials,
+        start_transition_active,
     );
     if !matches!(side, SeatSide::Right) {
         add_shengji_play_area(
@@ -527,6 +540,7 @@ fn add_shengji_player_panel(
     avatars: &AvatarImages,
     interaction_menu_open: Option<PlayerId>,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
+    start_transition_active: bool,
 ) {
     let current = game.current_player == Some(player.id);
     let panel = spawn_node(
@@ -554,6 +568,7 @@ fn add_shengji_player_panel(
         Button,
         UiAction::ToggleInteractionMenu(player.id),
     ));
+    attach_start_game_seat_transition(commands, panel, player.id, start_transition_active);
     decorate_player_panel(commands, panel, assets, 1.0);
     if current {
         add_turn_border_trace(
@@ -2045,6 +2060,7 @@ fn add_shengji_self_panel(
     assets: &UiAssets,
     avatars: &AvatarImages,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
+    start_transition_active: bool,
 ) {
     let panel = spawn_node(
         commands,
@@ -2067,6 +2083,7 @@ fn add_shengji_self_panel(
         Some(HEADER_BG.with_alpha(0.94)),
     );
     commands.entity(panel).insert(BorderColor::all(BORDER));
+    attach_start_game_seat_transition(commands, panel, player.id, start_transition_active);
     decorate_player_panel(commands, panel, assets, 1.0);
     if game.current_player == Some(player.id) {
         add_turn_border_trace(

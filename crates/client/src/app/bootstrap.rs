@@ -381,6 +381,7 @@ pub(super) fn load_ui_assets(
         quick_voice_icon: asset_server.load("icons/list-menu.png"),
         robot_icon: asset_server.load("icons/robot-2-fill.png"),
         host_crown: asset_server.load("icons/host-crown.png"),
+        github_mark: asset_server.load("icons/github-mark.png"),
     });
 }
 

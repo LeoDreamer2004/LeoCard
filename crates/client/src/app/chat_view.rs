@@ -142,11 +142,8 @@ pub(super) fn add_chat_panel(
     }
 
     if let Some(available) = previous_trick_available {
-        let normal = if available {
-            Color::srgb(0.13, 0.39, 0.29)
-        } else {
-            Color::srgb(0.09, 0.16, 0.14)
-        };
+        // 可回看时只启用交互，不用黄色边框打断牌桌视觉。
+        let normal = Color::srgb(0.13, 0.39, 0.29);
         let previous_button = commands
             .spawn((
                 Node {
@@ -166,7 +163,7 @@ pub(super) fn add_chat_panel(
                     border_radius: BorderRadius::all(px(7)),
                     ..default()
                 },
-                BorderColor::all(if available { ACCENT } else { BORDER }),
+                BorderColor::all(BORDER),
                 ImageNode::new(assets.secondary_button.clone())
                     .with_mode(NodeImageMode::Stretch)
                     .with_color(normal),
@@ -184,14 +181,7 @@ pub(super) fn add_chat_panel(
             ));
         }
         commands.entity(panel).add_child(previous_button);
-        let label = add_text(
-            commands,
-            previous_button,
-            "上轮",
-            10.0,
-            if available { ACCENT } else { MUTED },
-            assets,
-        );
+        let label = add_text(commands, previous_button, "上轮", 10.0, MUTED, assets);
         commands.entity(label).insert(FocusPolicy::Pass);
     }
 

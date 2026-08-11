@@ -12,7 +12,6 @@ pub(super) fn render_ui(
     developer_hand: Res<DeveloperHandInput>,
     mut table_materials: ResMut<Assets<TableBackgroundMaterial>>,
     mut turn_border_materials: ResMut<Assets<TurnBorderMaterial>>,
-    mut texas_chip_zone_materials: ResMut<Assets<TexasChipZoneMaterial>>,
     mut ui: ResMut<UiState>,
     old_roots: Query<Entity, With<UiRoot>>,
 ) {
@@ -154,7 +153,7 @@ pub(super) fn render_ui(
                     vignette: form.table_vignette,
                     table_materials: &mut table_materials,
                     turn_border_materials: &mut turn_border_materials,
-                    chip_zone_materials: &mut texas_chip_zone_materials,
+                    start_game_transition: &visuals.start_game_transition,
                     chip_state: &visuals.texas_chips,
                     game_summary: &visuals.game_summary,
                 },
@@ -175,6 +174,7 @@ pub(super) fn render_ui(
                     vignette: form.table_vignette,
                     table_materials: &mut table_materials,
                     turn_border_materials: &mut turn_border_materials,
+                    start_game_transition: &visuals.start_game_transition,
                     score_capture: &visuals.shengji_score_capture,
                     settlement: &visuals.shengji_settlement,
                     presentation: &visuals.shengji_presentation,
@@ -593,14 +593,6 @@ pub(super) fn render_settings_modal(
         assets,
     );
     add_section_title(commands, modal, "游戏设置", assets);
-    add_text(
-        commands,
-        modal,
-        "这些设置只影响当前客户端，不会发送给房主或其他玩家。",
-        13.0,
-        MUTED,
-        assets,
-    );
     add_text(commands, modal, "自定义桌布背景", 16.0, TEXT, assets);
     let path_box = spawn_node(
         commands,
@@ -692,17 +684,26 @@ pub(super) fn render_settings_modal(
     add_text(
         commands,
         version_text,
-        format!(
-            "当前版本 v{} · 来源 GitHub Release",
-            env!("CARGO_PKG_VERSION")
-        ),
+        format!("当前版本 v{}", env!("CARGO_PKG_VERSION")),
         12.0,
         MUTED,
         assets,
     );
-    add_green_update_button(
+    let update_actions = spawn_node(
         commands,
         update_row,
+        Node {
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            column_gap: px(10),
+            ..default()
+        },
+        None,
+    );
+    add_github_repository_button(commands, update_actions, assets);
+    add_green_update_button(
+        commands,
+        update_actions,
         settings_update_label(&updater.state),
         match updater.state {
             UpdateState::Ready { .. } => UiAction::RestartToUpdate,
@@ -844,21 +845,9 @@ fn add_table_appearance_slider(
 }
 
 pub(super) const HOST_GAME_CHOICES: [(&str, &str, GameKind); 3] = [
-    (
-        "七鬼五二三",
-        "2–6 人 · 多副牌 · 回合制压牌与收分",
-        GameKind::QiGui523,
-    ),
-    (
-        "德州扑克",
-        "公共牌、下注轮与边池结算",
-        GameKind::TexasHoldem,
-    ),
-    (
-        "升级（双升）",
-        "固定 4 人 · 两至四副牌 · 亮主、拖拉机、泰坦尼克、炸弹与宇宙飞船",
-        GameKind::Shengji,
-    ),
+    ("七鬼五二三", "放空大脑, 有牌就出", GameKind::QiGui523),
+    ("德州扑克", "窝要验牌!", GameKind::TexasHoldem),
+    ("升级", "神对手 or 猪队友", GameKind::Shengji),
 ];
 
 fn render_host_game_picker(commands: &mut Commands, root: Entity, assets: &UiAssets) {

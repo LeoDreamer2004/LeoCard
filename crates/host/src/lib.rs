@@ -11,11 +11,13 @@ use std::time::Duration;
 mod room;
 mod shengji;
 mod texas_holdem;
+mod uno;
 
 use room::Participant;
 pub use room::RoomSession;
 pub use shengji::ShengjiSession;
 pub use texas_holdem::TexasHoldemSession;
+pub use uno::UnoSession;
 
 use ed25519_dalek::{Signature, VerifyingKey};
 use leocard_protocol::{
@@ -46,6 +48,7 @@ pub enum HostError {
     InvalidRules(RuleError),
     InvalidTexasRules(leocard_texas_holdem::RuleError),
     InvalidShengjiGame(leocard_shengji::GameError),
+    InvalidUnoGame(leocard_uno::GameError),
     TexasAdapter(leocard_texas_holdem_adapter::AdapterError),
     InvalidDeckSize { expected: usize, actual: usize },
     InvalidDeckContents,
@@ -57,6 +60,7 @@ impl fmt::Display for HostError {
             Self::InvalidRules(error) => error.fmt(f),
             Self::InvalidTexasRules(error) => error.fmt(f),
             Self::InvalidShengjiGame(error) => error.fmt(f),
+            Self::InvalidUnoGame(error) => error.fmt(f),
             Self::TexasAdapter(error) => error.fmt(f),
             Self::InvalidDeckSize { expected, actual } => {
                 write!(f, "牌堆张数错误：应为 {expected}，实际为 {actual}")
@@ -89,6 +93,12 @@ impl From<leocard_texas_holdem_adapter::AdapterError> for HostError {
 impl From<leocard_shengji::GameError> for HostError {
     fn from(value: leocard_shengji::GameError) -> Self {
         Self::InvalidShengjiGame(value)
+    }
+}
+
+impl From<leocard_uno::GameError> for HostError {
+    fn from(value: leocard_uno::GameError) -> Self {
+        Self::InvalidUnoGame(value)
     }
 }
 
@@ -373,6 +383,14 @@ impl QiGui523Session {
                 RejectReason::WrongGame {
                     expected: GameKind::QiGui523,
                     received: GameKind::Shengji,
+                },
+            ),
+            ClientCommand::Game(GameCommand::Uno(_)) => self.reject(
+                connection,
+                message.request_id,
+                RejectReason::WrongGame {
+                    expected: GameKind::QiGui523,
+                    received: GameKind::Uno,
                 },
             ),
             ClientCommand::StartGame => self.start_game(connection, message.request_id),
@@ -1392,9 +1410,8 @@ impl QiGui523Session {
         let deltas = reference_point_deltas(&scores)
             .expect("a running game always contains between two and six players");
         let mut changes = Vec::with_capacity(self.players.len());
+        self.room.prepare_rematch();
         for (player, delta) in self.players.iter_mut().zip(deltas) {
-            player.auto_play = player.is_bot;
-            player.ready = player.is_bot;
             player.reference_points = player.reference_points.saturating_add(i32::from(delta));
             player.completed_games = player.completed_games.saturating_add(1);
             changes.push(PlayerReferenceChange {
@@ -1569,6 +1586,11 @@ pub enum GameSetup {
         rules: leocard_shengji::RuleSet,
         shuffled_deck: Vec<leocard_shengji::Card>,
     },
+    Uno {
+        host_port: u16,
+        rules: leocard_uno::RuleSet,
+        shuffled_deck: Vec<leocard_uno::Card>,
+    },
 }
 
 impl GameSetup {
@@ -1577,6 +1599,7 @@ impl GameSetup {
             Self::QiGui523 { .. } => GameKind::QiGui523,
             Self::TexasHoldem { .. } => GameKind::TexasHoldem,
             Self::Shengji { .. } => GameKind::Shengji,
+            Self::Uno { .. } => GameKind::Uno,
         }
     }
 }
@@ -1589,6 +1612,7 @@ pub enum HostSession {
     QiGui523(QiGui523Session),
     TexasHoldem(TexasHoldemSession),
     Shengji(ShengjiSession),
+    Uno(UnoSession),
 }
 
 impl HostSession {
@@ -1612,6 +1636,12 @@ impl HostSession {
                 shuffled_deck,
             } => ShengjiSession::new_with_host_port(room_id, host_port, rules, shuffled_deck)
                 .map(Self::Shengji),
+            GameSetup::Uno {
+                host_port,
+                rules,
+                shuffled_deck,
+            } => UnoSession::new_with_host_port(room_id, host_port, rules, shuffled_deck)
+                .map(Self::Uno),
         }
     }
 
@@ -1663,32 +1693,56 @@ impl HostSession {
         )
     }
 
+    pub fn uno(
+        room_id: RoomId,
+        host_port: u16,
+        rules: leocard_uno::RuleSet,
+        shuffled_deck: Vec<leocard_uno::Card>,
+    ) -> Result<Self, HostError> {
+        Self::new(
+            room_id,
+            GameSetup::Uno {
+                host_port,
+                rules,
+                shuffled_deck,
+            },
+        )
+    }
+
     pub const fn game_kind(&self) -> GameKind {
         match self {
             Self::QiGui523(_) => GameKind::QiGui523,
             Self::TexasHoldem(_) => GameKind::TexasHoldem,
             Self::Shengji(_) => GameKind::Shengji,
+            Self::Uno(_) => GameKind::Uno,
         }
     }
 
     pub const fn qigui523_backend(&self) -> Option<&QiGui523Session> {
         match self {
             Self::QiGui523(session) => Some(session),
-            Self::TexasHoldem(_) | Self::Shengji(_) => None,
+            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
         }
     }
 
     pub const fn texas_holdem_backend(&self) -> Option<&TexasHoldemSession> {
         match self {
             Self::TexasHoldem(session) => Some(session),
-            Self::QiGui523(_) | Self::Shengji(_) => None,
+            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) => None,
         }
     }
 
     pub const fn shengji_backend(&self) -> Option<&ShengjiSession> {
         match self {
             Self::Shengji(session) => Some(session),
-            Self::QiGui523(_) | Self::TexasHoldem(_) => None,
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) => None,
+        }
+    }
+
+    pub const fn uno_backend(&self) -> Option<&UnoSession> {
+        match self {
+            Self::Uno(session) => Some(session),
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) => None,
         }
     }
 
@@ -1697,6 +1751,7 @@ impl HostSession {
             Self::QiGui523(session) => session.room_id(),
             Self::TexasHoldem(session) => session.room_id(),
             Self::Shengji(session) => session.room_id(),
+            Self::Uno(session) => session.room_id(),
         }
     }
 
@@ -1705,6 +1760,7 @@ impl HostSession {
             Self::QiGui523(session) => session.revision(),
             Self::TexasHoldem(session) => session.revision(),
             Self::Shengji(session) => session.revision(),
+            Self::Uno(session) => session.revision(),
         }
     }
 
@@ -1713,6 +1769,7 @@ impl HostSession {
             Self::QiGui523(session) => session.is_closed(),
             Self::TexasHoldem(session) => session.is_closed(),
             Self::Shengji(session) => session.is_closed(),
+            Self::Uno(session) => session.is_closed(),
         }
     }
 
@@ -1721,6 +1778,7 @@ impl HostSession {
             Self::QiGui523(session) => session.heartbeat(),
             Self::TexasHoldem(session) => session.heartbeat(),
             Self::Shengji(session) => session.heartbeat(),
+            Self::Uno(session) => session.heartbeat(),
         }
     }
 
@@ -1729,6 +1787,7 @@ impl HostSession {
             Self::QiGui523(session) => session.advance_time(elapsed),
             Self::TexasHoldem(session) => session.advance_time(elapsed),
             Self::Shengji(session) => session.advance_time(elapsed),
+            Self::Uno(session) => session.advance_time(elapsed),
         }
     }
 
@@ -1737,6 +1796,7 @@ impl HostSession {
             Self::QiGui523(session) => session.handle(connection, message),
             Self::TexasHoldem(session) => session.handle(connection, message),
             Self::Shengji(session) => session.handle(connection, message),
+            Self::Uno(session) => session.handle(connection, message),
         }
     }
 
@@ -1745,6 +1805,7 @@ impl HostSession {
             Self::QiGui523(session) => session.disconnect(connection),
             Self::TexasHoldem(session) => session.disconnect(connection),
             Self::Shengji(session) => session.disconnect(connection),
+            Self::Uno(session) => session.disconnect(connection),
         }
     }
 }

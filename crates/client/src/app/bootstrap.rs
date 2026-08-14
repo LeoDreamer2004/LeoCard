@@ -148,17 +148,76 @@ pub(super) fn load_preferences() -> Option<SavedPreferences> {
 }
 
 pub(super) fn decode_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
-    postcard::from_bytes(bytes).ok().or_else(|| {
-        let legacy: LegacySavedPreferences = postcard::from_bytes(bytes).ok()?;
-        Some(SavedPreferences {
-            global: legacy.global,
-            games: GamePreferences {
-                qigui523: legacy.games.qigui523,
-                texas_holdem: legacy.games.texas_holdem,
-                shengji: ShengjiPreferences::default(),
-            },
+    postcard::from_bytes(bytes)
+        .ok()
+        .or_else(|| {
+            let previous: PreJumpInSavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: previous.global,
+                games: GamePreferences {
+                    qigui523: previous.games.qigui523,
+                    texas_holdem: previous.games.texas_holdem,
+                    shengji: previous.games.shengji,
+                    uno: UnoPreferences {
+                        host_rules: previous.games.uno.host_rules.into(),
+                    },
+                },
+            })
         })
-    })
+        .or_else(|| {
+            let previous: PreviousUnoSavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: previous.global,
+                games: GamePreferences {
+                    qigui523: previous.games.qigui523,
+                    texas_holdem: previous.games.texas_holdem,
+                    shengji: previous.games.shengji,
+                    uno: UnoPreferences {
+                        host_rules: previous.games.uno.host_rules.into(),
+                    },
+                },
+            })
+        })
+        .or_else(|| {
+            let previous: PreUnoSavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: previous.global,
+                games: GamePreferences {
+                    qigui523: previous.games.qigui523,
+                    texas_holdem: previous.games.texas_holdem,
+                    shengji: previous.games.shengji,
+                    uno: UnoPreferences::default(),
+                },
+            })
+        })
+        .or_else(|| {
+            let previous: PreviousSavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: previous.global,
+                games: GamePreferences {
+                    qigui523: previous.games.qigui523,
+                    texas_holdem: TexasHoldemPreferences {
+                        host_rules: previous.games.texas_holdem.host_rules.into(),
+                    },
+                    shengji: previous.games.shengji,
+                    uno: UnoPreferences::default(),
+                },
+            })
+        })
+        .or_else(|| {
+            let legacy: LegacySavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: legacy.global,
+                games: GamePreferences {
+                    qigui523: legacy.games.qigui523,
+                    texas_holdem: TexasHoldemPreferences {
+                        host_rules: legacy.games.texas_holdem.host_rules.into(),
+                    },
+                    shengji: ShengjiPreferences::default(),
+                    uno: UnoPreferences::default(),
+                },
+            })
+        })
 }
 
 pub(super) fn save_preferences(form: &ConnectionForm) -> Result<(), String> {
@@ -185,6 +244,9 @@ pub(super) fn save_preferences(form: &ConnectionForm) -> Result<(), String> {
             },
             shengji: ShengjiPreferences {
                 host_rules: form.shengji_rules,
+            },
+            uno: UnoPreferences {
+                host_rules: form.uno_rules,
             },
         },
     };
@@ -268,6 +330,12 @@ pub(super) fn load_ui_assets(
             asset_server.load::<Image>(card_asset_path(card.rank(), card.suit()))
         });
     }
+    let mut uno_cards = HashMap::new();
+    for card in build_uno_deck() {
+        uno_cards
+            .entry((card.color(), card.face()))
+            .or_insert_with(|| asset_server.load::<Image>(uno_card_asset_path(card)));
+    }
     let mut interaction_images = HashMap::new();
     let mut interaction_sounds = HashMap::new();
     for (kind, name) in [
@@ -322,6 +390,8 @@ pub(super) fn load_ui_assets(
         font: asset_server.load(UI_FONT_ASSET),
         cards,
         card_back: asset_server.load("vendor/kenney/boardgame/PNG/Cards/cardBack_blue4.png"),
+        uno_cards,
+        uno_card_back: asset_server.load("cards/uno/card_back.png"),
         table_felt: asset_server.load(TABLE_FELT_ASSET),
         primary_button: asset_server
             .load("vendor/kenney/ui/PNG/Green/Default/button_rectangle_depth_gradient.png"),
@@ -383,6 +453,33 @@ pub(super) fn load_ui_assets(
         host_crown: asset_server.load("icons/host-crown.png"),
         github_mark: asset_server.load("icons/github-mark.png"),
     });
+}
+
+fn uno_card_asset_path(card: UnoCard) -> String {
+    let file = match card.color() {
+        None => match card.face() {
+            UnoFace::Wild => "wild".to_owned(),
+            UnoFace::WildDrawFour => "wild_draw_four".to_owned(),
+            _ => unreachable!("无颜色的 UNO 牌必须是万能牌"),
+        },
+        Some(color) => {
+            let color = match color {
+                UnoColor::Red => "red",
+                UnoColor::Yellow => "yellow",
+                UnoColor::Green => "green",
+                UnoColor::Blue => "blue",
+            };
+            let face = match card.face() {
+                UnoFace::Number(value) => value.to_string(),
+                UnoFace::DrawTwo => "draw_two".to_owned(),
+                UnoFace::Reverse => "reverse".to_owned(),
+                UnoFace::Skip => "skip".to_owned(),
+                UnoFace::Wild | UnoFace::WildDrawFour => unreachable!("万能牌没有颜色"),
+            };
+            format!("{color}_{face}")
+        }
+    };
+    format!("cards/uno/{file}.png")
 }
 
 pub(super) fn interaction_cooldown_mask_image(width: u32, height: u32, fraction: f32) -> Image {

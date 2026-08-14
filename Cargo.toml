@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/client", "crates/games/qigui523", "crates/games/shengji", "crates/games/texas-holdem", "crates/games/texas-holdem-adapter", "crates/host", "crates/protocol", "crates/tcp"]
+members = ["crates/client", "crates/games/qigui523", "crates/games/shengji", "crates/games/texas-holdem", "crates/games/texas-holdem-adapter", "crates/games/uno", "crates/host", "crates/protocol", "crates/tcp"]
 resolver = "3"
 
 [workspace.package]

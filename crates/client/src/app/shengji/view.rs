@@ -2430,7 +2430,15 @@ fn add_shengji_settlement_modal(
             Visibility::Hidden,
         ));
         let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
-        add_avatar(commands, row, &player.name, avatar, 28.0, assets);
+        add_ready_avatar(
+            commands,
+            row,
+            &player.name,
+            avatar,
+            28.0,
+            player.ready,
+            assets,
+        );
         let name = spawn_node(
             commands,
             row,
@@ -2489,14 +2497,23 @@ fn add_shengji_settlement_modal(
         },
         Visibility::Hidden,
     ));
-    add_action_button(
-        commands,
-        actions,
-        "准备下一局",
-        UiAction::PlayAgain,
-        ButtonKind::Primary,
-        assets,
-    );
+    let ready = game
+        .players
+        .iter()
+        .find(|player| player.id == game.you)
+        .is_some_and(|player| player.ready);
+    if ready {
+        add_disabled_action_button(commands, actions, "已准备", assets);
+    } else {
+        add_action_button(
+            commands,
+            actions,
+            "准备下一局",
+            UiAction::PlayAgain,
+            ButtonKind::Primary,
+            assets,
+        );
+    }
     if game.you == game.host {
         add_action_button(
             commands,

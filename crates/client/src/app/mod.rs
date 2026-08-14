@@ -33,7 +33,8 @@ use leocard_protocol::{
     ShengjiFiveTrumpCrossingStage, ShengjiPhaseView, ShengjiPlayerState, ShengjiPublicPlay,
     ShengjiSnapshot, ShengjiThrowFailureStage, ShengjiViolation, TABLE_SEAT_COUNT,
     TexasHoldemCommand, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemPlayerState,
-    TexasHoldemSnapshot, TexasHoldemViolation, TurnTimerView,
+    TexasHoldemSnapshot, TexasHoldemViolation, TurnTimerView, UnoCommand, UnoEvent, UnoPhaseView,
+    UnoPlayerState, UnoSnapshot, UnoViolation,
 };
 use leocard_qigui523::{
     Card, ClassifiedPlay, GreedyRequest, GreedyStrategy, PlayKind, Rank, RuleSet, SameCardPolicy,
@@ -51,6 +52,10 @@ use leocard_texas_holdem::{
     Action as TexasHoldemAction, BlindKind as TexasBlindKind, Card as TexasHoldemCard,
     HandCategory as TexasHandCategory, Rank as TexasRank, RuleSet as TexasHoldemRuleSet,
     Street as TexasStreet, Suit as TexasSuit,
+};
+use leocard_uno::{
+    Card as UnoCard, Color as UnoColor, Direction as UnoDirection, Face as UnoFace,
+    PendingDrawKind as UnoPendingDrawKind, RuleSet as UnoRuleSet, build_deck as build_uno_deck,
 };
 use serde::{Deserialize, Serialize};
 
@@ -84,6 +89,9 @@ const PLAY_ERROR_TOAST_FADE_DURATION: f32 = 0.42;
 const PLAY_ERROR_TOAST_SHAKE_DURATION: f32 = 0.42;
 const SUMMARY_MODAL_ENTRY_DURATION: f32 = 0.55;
 const SUMMARY_HAND_REVEAL_DURATION: f32 = 1.5;
+/// UNO 最后一张牌的飞行动画结束后，完整公开牌桌两秒再进入结算。
+const UNO_PLAY_CARD_DURATION: f32 = 0.58;
+const UNO_FINISH_REVEAL_DURATION: f32 = UNO_PLAY_CARD_DURATION + 2.0;
 const TEXAS_SHOWDOWN_REVEAL_DURATION: f32 = 2.6;
 const TEXAS_UNCONTESTED_REVEAL_DURATION: f32 = 0.8;
 const SUMMARY_ROW_START_DELAY: f32 = 0.38;
@@ -108,6 +116,8 @@ const INTERACTION_COOLDOWN_MASK_FRAMES: usize = 48;
 const HEAVY_INTERACTION_TRAVEL_DURATION: f32 = 0.68;
 const SHOE_ROTATIONS: f32 = 2.0;
 const CHAT_PANEL_WIDTH: f32 = 350.0;
+/// 多移出两个逻辑像素，避免缩放和抗锯齿让收起抽屉的边框漏在屏幕右侧。
+const CHAT_PANEL_HIDDEN_OFFSET: f32 = CHAT_PANEL_WIDTH + 2.0;
 const CHAT_HISTORY_LIMIT: usize = 60;
 const START_GAME_SEAT_MOVE_DURATION: f32 = 0.72;
 
@@ -180,6 +190,7 @@ struct ConnectionForm {
     host_rules: RuleSet,
     texas_holdem_rules: TexasHoldemRuleSet,
     shengji_rules: ShengjiRuleSet,
+    uno_rules: UnoRuleSet,
     active: InputField,
     error: Option<String>,
 }
@@ -245,6 +256,7 @@ impl Default for ConnectionForm {
             host_rules: normalize_host_rules(saved.games.qigui523.host_rules),
             texas_holdem_rules: normalize_texas_holdem_rules(saved.games.texas_holdem.host_rules),
             shengji_rules: normalize_shengji_rules(saved.games.shengji.host_rules),
+            uno_rules: normalize_uno_rules(saved.games.uno.host_rules),
             active: InputField::PlayerName,
             error: None,
         }
@@ -274,6 +286,7 @@ struct GamePreferences {
     qigui523: QiGui523Preferences,
     texas_holdem: TexasHoldemPreferences,
     shengji: ShengjiPreferences,
+    uno: UnoPreferences,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -286,9 +299,146 @@ struct TexasHoldemPreferences {
     host_rules: TexasHoldemRuleSet,
 }
 
+/// “只比较最大牌型”加入前的德州规则磁盘格式。
+#[derive(Deserialize, Serialize)]
+struct PreviousTexasHoldemRuleSet {
+    player_count: u8,
+    starting_chips: u16,
+    short_deck: bool,
+}
+
+impl From<PreviousTexasHoldemRuleSet> for TexasHoldemRuleSet {
+    fn from(value: PreviousTexasHoldemRuleSet) -> Self {
+        Self {
+            player_count: value.player_count,
+            starting_chips: value.starting_chips,
+            short_deck: value.short_deck,
+            ignore_kickers: false,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreviousTexasHoldemPreferences {
+    host_rules: PreviousTexasHoldemRuleSet,
+}
+
 #[derive(Default, Deserialize, Serialize)]
 struct ShengjiPreferences {
     host_rules: ShengjiRuleSet,
+}
+
+#[derive(Default, Deserialize, Serialize)]
+struct UnoPreferences {
+    host_rules: UnoRuleSet,
+}
+
+/// “抢出”加入前的 UNO 规则磁盘格式。
+#[derive(Deserialize, Serialize)]
+struct PreJumpInUnoRuleSet {
+    stack_draw_four_on_draw_two: bool,
+    uno_callout: bool,
+    skip_draw_penalty: bool,
+    stack_skip: bool,
+}
+
+impl From<PreJumpInUnoRuleSet> for UnoRuleSet {
+    fn from(value: PreJumpInUnoRuleSet) -> Self {
+        Self {
+            stack_draw_four_on_draw_two: value.stack_draw_four_on_draw_two,
+            uno_callout: value.uno_callout,
+            skip_draw_penalty: value.skip_draw_penalty,
+            stack_skip: value.stack_skip,
+            jump_in: false,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreJumpInUnoPreferences {
+    host_rules: PreJumpInUnoRuleSet,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreJumpInSavedPreferences {
+    global: GlobalPreferences,
+    games: PreJumpInGamePreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreJumpInGamePreferences {
+    qigui523: QiGui523Preferences,
+    texas_holdem: TexasHoldemPreferences,
+    shengji: ShengjiPreferences,
+    uno: PreJumpInUnoPreferences,
+}
+
+/// 移除可配置人数并加入禁手规则前的 UNO 规则磁盘格式。
+#[derive(Deserialize, Serialize)]
+struct PreviousUnoRuleSet {
+    player_count: u8,
+    stack_draw_four_on_draw_two: bool,
+    uno_callout: bool,
+}
+
+impl From<PreviousUnoRuleSet> for UnoRuleSet {
+    fn from(value: PreviousUnoRuleSet) -> Self {
+        let _ = value.player_count;
+        Self {
+            stack_draw_four_on_draw_two: value.stack_draw_four_on_draw_two,
+            uno_callout: value.uno_callout,
+            skip_draw_penalty: false,
+            stack_skip: false,
+            jump_in: false,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreviousUnoPreferences {
+    host_rules: PreviousUnoRuleSet,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreviousUnoSavedPreferences {
+    global: GlobalPreferences,
+    games: PreviousUnoGamePreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreviousUnoGamePreferences {
+    qigui523: QiGui523Preferences,
+    texas_holdem: TexasHoldemPreferences,
+    shengji: ShengjiPreferences,
+    uno: PreviousUnoPreferences,
+}
+
+/// UNO 偏好加入前的磁盘格式。
+#[derive(Deserialize, Serialize)]
+struct PreUnoSavedPreferences {
+    global: GlobalPreferences,
+    games: PreUnoGamePreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreUnoGamePreferences {
+    qigui523: QiGui523Preferences,
+    texas_holdem: TexasHoldemPreferences,
+    shengji: ShengjiPreferences,
+}
+
+/// “只比较最大牌型”加入前、但已经包含升级设置的磁盘格式。
+#[derive(Deserialize, Serialize)]
+struct PreviousSavedPreferences {
+    global: GlobalPreferences,
+    games: PreviousGamePreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreviousGamePreferences {
+    qigui523: QiGui523Preferences,
+    texas_holdem: PreviousTexasHoldemPreferences,
+    shengji: ShengjiPreferences,
 }
 
 /// `shengji` 偏好加入前的磁盘格式，仅用于无损迁移旧版 `client.prefs`。
@@ -301,7 +451,7 @@ struct LegacySavedPreferences {
 #[derive(Deserialize, Serialize)]
 struct LegacyGamePreferences {
     qigui523: QiGui523Preferences,
-    texas_holdem: TexasHoldemPreferences,
+    texas_holdem: PreviousTexasHoldemPreferences,
 }
 
 impl Default for SavedPreferences {
@@ -325,6 +475,9 @@ impl Default for SavedPreferences {
                 },
                 shengji: ShengjiPreferences {
                     host_rules: normalize_shengji_rules(ShengjiRuleSet::default()),
+                },
+                uno: UnoPreferences {
+                    host_rules: normalize_uno_rules(UnoRuleSet::default()),
                 },
             },
         }
@@ -359,6 +512,14 @@ fn normalize_texas_holdem_rules(rules: TexasHoldemRuleSet) -> TexasHoldemRuleSet
 }
 
 fn normalize_shengji_rules(rules: ShengjiRuleSet) -> ShengjiRuleSet {
+    rules.validate().unwrap_or_default()
+}
+
+fn normalize_uno_rules(rules: UnoRuleSet) -> UnoRuleSet {
+    let rules = UnoRuleSet {
+        jump_in: rules.jump_in && rules.stack_skip,
+        ..rules
+    };
     rules.validate().unwrap_or_default()
 }
 
@@ -401,6 +562,8 @@ struct UiState {
     observed_hand: Vec<Card>,
     shengji_card_animations: HashMap<ShengjiCard, CardAnimationState>,
     observed_shengji_hand: Vec<ShengjiCard>,
+    selected_uno: Option<UnoCard>,
+    uno_card_animations: HashMap<UnoCard, CardAnimationState>,
     greedy_hint: GreedyStrategy,
     interaction_menu_open: Option<PlayerId>,
     settings_open: bool,
@@ -413,6 +576,7 @@ struct UiState {
     shengji_observed_match: Option<MatchId>,
     shengji_observed_hand_number: u32,
     shengji_buried_open: bool,
+    uno_color_choice: Option<UnoCard>,
     dirty: bool,
 }
 
@@ -643,6 +807,8 @@ struct UiAssets {
     font: Handle<Font>,
     cards: HashMap<(Rank, Suit), Handle<Image>>,
     card_back: Handle<Image>,
+    uno_cards: HashMap<(Option<UnoColor>, UnoFace), Handle<Image>>,
+    uno_card_back: Handle<Image>,
     table_felt: Handle<Image>,
     primary_button: Handle<Image>,
     secondary_button: Handle<Image>,
@@ -1253,6 +1419,20 @@ enum UiAction {
     UpdateRules(RuleSet),
     UpdateTexasRules(TexasHoldemRuleSet),
     UpdateShengjiRules(ShengjiRuleSet),
+    UpdateUnoRules(UnoRuleSet),
+    ToggleUnoCard(UnoCard),
+    SubmitUnoCard,
+    CloseUnoColorChoice,
+    UnoChooseInitialColor(UnoColor),
+    UnoPlayCard(UnoCard, Option<UnoColor>),
+    UnoJumpIn(UnoCard),
+    UnoDrawCard,
+    UnoPassAfterDraw,
+    UnoAcceptDrawPenalty,
+    UnoChallengeDrawFour,
+    UnoResolveSkip,
+    UnoCall,
+    UnoReport(PlayerId),
     SetTexasRaiseTo(u32),
     TexasAct(TexasHoldemAction),
     ShengjiDeclare(Vec<ShengjiCard>),
@@ -1335,6 +1515,84 @@ struct ShengjiHandCardVisual {
     deal_elapsed: f32,
     dealing: bool,
     hand_len: usize,
+}
+
+#[derive(Component)]
+struct UnoHandCardVisual {
+    button: Entity,
+    card: UnoCard,
+    selected: bool,
+    hover_amount: f32,
+    selected_amount: f32,
+}
+
+#[derive(Resource, Default)]
+struct UnoPresentationState {
+    events: VecDeque<UnoEvent>,
+}
+
+#[derive(Component)]
+struct UnoDrawPileAnchor;
+
+#[derive(Component)]
+struct UnoDiscardPileAnchor;
+
+#[derive(Component)]
+struct UnoDiscardCard(UnoCard);
+
+#[derive(Component)]
+struct UnoFlyingCard {
+    elapsed: f32,
+    delay: f32,
+    start: Vec2,
+    staging: Vec2,
+    control: Vec2,
+    target: Vec2,
+    duration: f32,
+    draw_animation: bool,
+    played_card: Option<UnoCard>,
+    start_angle: f32,
+    end_angle: f32,
+}
+
+#[derive(Component)]
+struct UnoPaletteEffect {
+    elapsed: f32,
+}
+
+#[derive(Component)]
+struct UnoPaletteSelectedSector {
+    elapsed: f32,
+}
+
+#[derive(Component)]
+struct UnoPaletteColorRing {
+    elapsed: f32,
+    delay: f32,
+    color: Color,
+    start_scale: f32,
+    end_scale: f32,
+    max_alpha: f32,
+}
+
+#[derive(Component)]
+struct UnoPaletteParticle {
+    elapsed: f32,
+    delay: f32,
+    origin: Vec2,
+    direction: Vec2,
+    size: Vec2,
+    color: Color,
+    rotation: f32,
+}
+
+#[derive(Component)]
+struct UnoReverseArrow {
+    elapsed: f32,
+    delay: f32,
+    color: Color,
+    max_alpha: f32,
+    shadow_alpha: f32,
 }
 
 #[derive(Component)]
@@ -1426,6 +1684,7 @@ mod seat_transition;
 mod shengji;
 mod texas_holdem;
 mod turn_border;
+mod uno;
 mod update;
 mod widgets;
 
@@ -1445,6 +1704,7 @@ use seat_transition::*;
 use shengji::*;
 use texas_holdem::*;
 use turn_border::*;
+use uno::*;
 use update::*;
 use widgets::*;
 
@@ -1486,6 +1746,7 @@ pub(crate) fn run() {
         .insert_resource(ShengjiScoreCaptureEffectState::default())
         .insert_resource(ShengjiSettlementAnimation::default())
         .insert_resource(ShengjiPresentationState::default())
+        .insert_resource(UnoPresentationState::default())
         .insert_resource(StartGameSeatTransition::default())
         .insert_resource(TurnBorderAnimationState::default())
         .insert_resource(PlayerInteractionCooldown::default())
@@ -1530,6 +1791,7 @@ pub(crate) fn run() {
         )
         .add_plugins(UiMaterialPlugin::<TableBackgroundMaterial>::default())
         .add_plugins(UiMaterialPlugin::<TurnBorderMaterial>::default())
+        .add_plugins(UiMaterialPlugin::<UnoPaletteMaterial>::default())
         .add_systems(Startup, (setup_camera, load_ui_assets))
         .add_systems(
             Update,
@@ -1557,7 +1819,7 @@ pub(crate) fn run() {
                     .chain(),
                 (
                     (
-                        animate_hand_cards,
+                        (animate_hand_cards, animate_uno_hand_cards).chain(),
                         animate_turn_clocks,
                         tick_player_interaction_cooldown,
                         (sync_card_drag_preview, sync_shengji_card_drag_preview).chain(),
@@ -1571,6 +1833,7 @@ pub(crate) fn run() {
                         animate_no_legal_response_hint,
                         (
                             poll_network,
+                            sync_uno_presentation,
                             sync_shengji_presentation,
                             update_shengji_settlement_animation,
                         )
@@ -1631,6 +1894,17 @@ pub(crate) fn run() {
                             sync_avatar_images,
                             poll_update_events,
                             render_ui,
+                            spawn_uno_presentation_effects,
+                            (
+                                // 飞牌结束时先应用 despawn，再在同一帧显示权威弃牌；
+                                // 顺序反过来会让两者同时缺席一个渲染帧，产生落地闪烁。
+                                (animate_uno_flying_cards, sync_uno_discard_reveal).chain(),
+                                animate_uno_palette_effects,
+                                animate_uno_palette_selected_sectors,
+                                animate_uno_palette_color_rings,
+                                animate_uno_palette_particles,
+                                animate_uno_reverse_effects,
+                            ),
                             sync_update_dialog,
                             sync_shengji_bidding_countdown,
                             (

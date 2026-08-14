@@ -21,3 +21,4 @@ ed25519-dalek.workspace = true
 leocard-qigui523 = { path = "../games/qigui523" }
 leocard-shengji = { path = "../games/shengji" }
 leocard-texas-holdem = { path = "../games/texas-holdem" }
+leocard-uno = { path = "../games/uno" }

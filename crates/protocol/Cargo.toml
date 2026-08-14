@@ -11,4 +11,5 @@ postcard.workspace = true
 leocard-qigui523 = { path = "../games/qigui523", features = ["serde"] }
 leocard-shengji = { path = "../games/shengji", features = ["serde"] }
 leocard-texas-holdem = { path = "../games/texas-holdem", features = ["serde"] }
+leocard-uno = { path = "../games/uno", features = ["serde"] }
 serde.workspace = true

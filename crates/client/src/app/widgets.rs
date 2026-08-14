@@ -459,6 +459,70 @@ pub(super) fn add_texas_rule_config_row(
     add_rule_help(commands, controls, spec.help, assets);
 }
 
+pub(super) struct UnoRuleConfigRow<'a> {
+    pub(super) label: &'a str,
+    pub(super) value: String,
+    pub(super) help: &'a str,
+    pub(super) editable: bool,
+    pub(super) previous: Option<UnoRuleSet>,
+    pub(super) next: Option<UnoRuleSet>,
+}
+
+pub(super) fn add_uno_rule_config_row(
+    commands: &mut Commands,
+    parent: Entity,
+    spec: UnoRuleConfigRow,
+    assets: &UiAssets,
+) {
+    let row = spawn_node(
+        commands,
+        parent,
+        Node {
+            width: percent(100),
+            min_height: px(38),
+            position_type: PositionType::Relative,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::SpaceBetween,
+            column_gap: px(8),
+            ..default()
+        },
+        None,
+    );
+    add_text(commands, row, spec.label, 14.0, MUTED, assets);
+    let controls = spawn_node(
+        commands,
+        row,
+        Node {
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::FlexEnd,
+            column_gap: px(5),
+            ..default()
+        },
+        None,
+    );
+    if spec.editable {
+        add_uno_rule_step_button(commands, controls, "‹", spec.previous, assets);
+    }
+    let value_box = spawn_node(
+        commands,
+        controls,
+        Node {
+            min_width: px(78),
+            min_height: px(28),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        None,
+    );
+    add_text(commands, value_box, spec.value, 14.0, TEXT, assets);
+    if spec.editable {
+        add_uno_rule_step_button(commands, controls, "›", spec.next, assets);
+    }
+    add_rule_help(commands, controls, spec.help, assets);
+}
+
 pub(super) struct ShengjiRuleConfigRow<'a> {
     pub(super) label: &'a str,
     pub(super) value: String,
@@ -596,6 +660,58 @@ fn add_texas_rule_step_button(
             .spawn((
                 Button,
                 UiAction::UpdateTexasRules(rules),
+                ButtonTint {
+                    normal,
+                    hovered: Color::srgb(0.64, 0.76, 0.88),
+                    pressed: Color::srgb(0.30, 0.44, 0.58),
+                },
+                node,
+                ImageNode::new(assets.secondary_button.clone())
+                    .with_mode(NodeImageMode::Stretch)
+                    .with_color(normal),
+            ))
+            .id()
+    } else {
+        commands
+            .spawn((node, BackgroundColor(HEADER_BG.with_alpha(0.55))))
+            .id()
+    };
+    commands.entity(parent).add_child(entity);
+    add_text(
+        commands,
+        entity,
+        label,
+        18.0,
+        if rules.is_some() {
+            TEXT
+        } else {
+            MUTED.with_alpha(0.35)
+        },
+        assets,
+    );
+}
+
+fn add_uno_rule_step_button(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    rules: Option<UnoRuleSet>,
+    assets: &UiAssets,
+) {
+    let normal = Color::srgb(0.46, 0.60, 0.74);
+    let node = Node {
+        width: px(28),
+        height: px(28),
+        align_items: AlignItems::Center,
+        justify_content: JustifyContent::Center,
+        border_radius: BorderRadius::all(px(5)),
+        ..default()
+    };
+    let entity = if let Some(rules) = rules {
+        commands
+            .spawn((
+                Button,
+                UiAction::UpdateUnoRules(rules),
                 ButtonTint {
                     normal,
                     hovered: Color::srgb(0.64, 0.76, 0.88),
@@ -839,6 +955,70 @@ pub(super) fn add_avatar(
     entity
 }
 
+/// 结算窗口中的下一局准备状态。保持德州扑克原有的绿色头像环和右下角对钩，
+/// 让所有游戏都能在玩家点击“再来一局”后直接看到彼此的准备进度。
+pub(super) fn add_ready_avatar(
+    commands: &mut Commands,
+    parent: Entity,
+    name: &str,
+    image: Option<&Handle<Image>>,
+    avatar_size: f32,
+    ready: bool,
+    assets: &UiAssets,
+) -> Entity {
+    let frame_size = avatar_size + 6.0;
+    let frame = spawn_node(
+        commands,
+        parent,
+        Node {
+            width: px(frame_size),
+            height: px(frame_size),
+            min_width: px(frame_size),
+            position_type: PositionType::Relative,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            border: UiRect::all(px(2)),
+            border_radius: BorderRadius::all(percent(50)),
+            ..default()
+        },
+        None,
+    );
+    commands.entity(frame).insert(BorderColor::all(if ready {
+        READY
+    } else {
+        MUTED.with_alpha(0.42)
+    }));
+    add_avatar(commands, frame, name, image, avatar_size, assets);
+    if ready {
+        let check_size = (avatar_size * 0.47).max(13.0);
+        let check = spawn_node(
+            commands,
+            frame,
+            Node {
+                position_type: PositionType::Absolute,
+                right: px(-3),
+                bottom: px(-2),
+                width: px(check_size),
+                height: px(check_size),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                border_radius: BorderRadius::all(percent(50)),
+                ..default()
+            },
+            Some(READY),
+        );
+        add_text(
+            commands,
+            check,
+            "✓",
+            check_size * 2.0 / 3.0,
+            Color::WHITE,
+            assets,
+        );
+    }
+    frame
+}
+
 pub(super) fn add_host_crown(commands: &mut Commands, avatar: Entity, assets: &UiAssets) -> Entity {
     let crown = commands
         .spawn((
@@ -1042,6 +1222,33 @@ pub(super) fn rejection_label(reason: &RejectReason) -> Option<String> {
             ShengjiViolation::WrongCardCount { .. } => "跟牌张数必须与首家相同",
             ShengjiViolation::MustFollowCategory => "手中有该门牌时必须先跟该门",
             ShengjiViolation::MustFollowStructure => "必须优先跟泰坦尼克、拖拉机、三同张或对子结构",
+        },
+        RejectReason::GameViolation(GameViolation::Uno(violation)) => match violation {
+            UnoViolation::InvalidPlayer => "玩家身份无效",
+            UnoViolation::NotPlayersTurn => "还没有轮到你行动",
+            UnoViolation::GameAlreadyFinished => "游戏已经结束",
+            UnoViolation::InitialColorChoiceRequired => "请先为起始万能牌选择颜色",
+            UnoViolation::InitialColorAlreadyChosen => "当前不需要选择起始颜色",
+            UnoViolation::CardNotInHand => "这张牌不在你的手中",
+            UnoViolation::CardDoesNotMatch => "这张牌与当前颜色、数字或符号不匹配",
+            UnoViolation::ColorRequired => "万能牌必须选择后续颜色",
+            UnoViolation::UnexpectedColor => "普通牌不能指定后续颜色",
+            UnoViolation::MustPlayDrawnCard => "摸牌后只能打出刚摸到的牌",
+            UnoViolation::MustResolveDrawPenalty => "请先叠加、质疑或接受累计罚牌",
+            UnoViolation::NoDrawPenalty => "当前没有待结算的罚牌",
+            UnoViolation::CannotStack => "这张牌不能叠加到当前罚牌上",
+            UnoViolation::CannotChallenge => "当前没有可质疑的万能摸四",
+            UnoViolation::MustDrawBeforePassing => "必须先摸牌，才能结束回合",
+            UnoViolation::MustResolveSkip => "请先叠加禁手或接受累计禁手",
+            UnoViolation::NoSkipToResolve => "当前没有待结算的禁手",
+            UnoViolation::UnoCalloutDisabled => "本房间没有启用 UNO 宣告与检举",
+            UnoViolation::CannotCallUno => "你当前不能宣告 UNO",
+            UnoViolation::MustPlayAfterUno => "喊出 UNO 后，本回合必须出牌至只剩一张",
+            UnoViolation::CannotReportSelf => "不能检举自己",
+            UnoViolation::PlayerNotReportable => "该玩家当前不可被检举",
+            UnoViolation::CannotPlayTogether => "这些牌当前不能一次打出",
+            UnoViolation::CannotJumpIn => "抢出窗口已经关闭",
+            UnoViolation::DrawPileExhausted => "摸牌堆已经耗尽",
         },
         RejectReason::WrongGame { .. } => "该命令不属于当前房间游戏",
         _ => "请求被房主拒绝",

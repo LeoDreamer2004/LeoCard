@@ -3148,6 +3148,7 @@ dependencies = [
  "leocard-shengji",
  "leocard-tcp",
  "leocard-texas-holdem",
+ "leocard-uno",
  "postcard",
  "reqwest",
  "rfd",
@@ -3169,6 +3170,7 @@ dependencies = [
  "leocard-shengji",
  "leocard-texas-holdem",
  "leocard-texas-holdem-adapter",
+ "leocard-uno",
 ]
 
 [[package]]
@@ -3178,6 +3180,7 @@ dependencies = [
  "leocard-qigui523",
  "leocard-shengji",
  "leocard-texas-holdem",
+ "leocard-uno",
  "postcard",
  "serde",
 ]
@@ -3206,6 +3209,7 @@ dependencies = [
  "leocard-qigui523",
  "leocard-shengji",
  "leocard-texas-holdem",
+ "leocard-uno",
  "serde",
  "tokio",
 ]
@@ -3223,6 +3227,13 @@ version = "0.1.0"
 dependencies = [
  "leocard-protocol",
  "leocard-texas-holdem",
+]
+
+[[package]]
+name = "leocard-uno"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

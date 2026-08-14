@@ -6,6 +6,10 @@ pub struct RuleSet {
     pub player_count: u8,
     pub starting_chips: u16,
     pub short_deck: bool,
+    /// 只比较构成牌型的点数，忽略对子、两对、三条和四条之外的踢脚牌。
+    /// 高牌与同花只比较最大的一张牌。
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub ignore_kickers: bool,
 }
 
 impl RuleSet {
@@ -32,6 +36,7 @@ impl Default for RuleSet {
             player_count: 4,
             starting_chips: 20,
             short_deck: false,
+            ignore_kickers: false,
         }
     }
 }
@@ -61,6 +66,7 @@ mod tests {
 
     #[test]
     fn validates_player_and_starting_chip_options() {
+        assert!(!RuleSet::default().ignore_kickers);
         assert_eq!(RuleSet::default().starting_chips, 20);
         for starting_chips in RuleSet::STARTING_CHIP_OPTIONS {
             assert!(

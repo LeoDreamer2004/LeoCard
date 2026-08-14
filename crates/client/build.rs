@@ -48,6 +48,9 @@ fn main() {
         validate_manifest_entry(entry, index + 1);
         let source = asset_root.join(entry);
         if entry.ends_with('/') {
+            // 还要监听目录本身，否则向已列出的目录新增资源时，Cargo 不会重跑
+            // build script，release 内嵌包会继续沿用缺少新文件的旧生成结果。
+            println!("cargo:rerun-if-changed={}", source.display());
             collect_directory(&asset_root, &source, &mut assets);
         } else {
             collect_file(&asset_root, &source, &mut assets);

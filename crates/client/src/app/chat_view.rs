@@ -38,7 +38,7 @@ pub(super) fn add_chat_panel(
         ChatPanel,
         BorderColor::all(ACCENT.with_alpha(0.55)),
         UiTransform {
-            translation: Val2::px(CHAT_PANEL_WIDTH * chat.slide, 0.0),
+            translation: Val2::px(CHAT_PANEL_HIDDEN_OFFSET * chat.slide, 0.0),
             ..UiTransform::IDENTITY
         },
         GlobalZIndex(1800),

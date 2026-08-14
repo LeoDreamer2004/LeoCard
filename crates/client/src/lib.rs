@@ -17,12 +17,13 @@ use leocard_protocol::{
     QiGui523Command, QiGui523Event, QiGui523Snapshot as GameSnapshot, ReconnectToken, RejectReason,
     RequestId, Revision, RoomId, SeatId, ServerEvent, ServerMessage, ShengjiEvent,
     ShengjiPhaseView, ShengjiSnapshot, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemSnapshot,
-    TrickView, join_identity_payload,
+    TrickView, UnoEvent, UnoPhaseView, UnoSnapshot, join_identity_payload,
 };
 use leocard_qigui523::{Card, RuleSet, build_deck};
 use leocard_shengji::{RuleSet as ShengjiRuleSet, build_deck_for as build_shengji_deck_for};
 use leocard_tcp::{TcpClient, TcpServerHandle};
 use leocard_texas_holdem::{RuleSet as TexasHoldemRuleSet, build_deck as build_texas_holdem_deck};
+use leocard_uno::{RuleSet as UnoRuleSet, build_deck as build_uno_deck};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 /// 当前协议中一个监听端口只承载一个房间，因此客户端无需在地址之外再输入房间号。
@@ -275,6 +276,36 @@ impl TcpGameClient {
         )
     }
 
+    pub fn host_uno_with_profile(
+        name: &str,
+        port: u16,
+        rules: UnoRuleSet,
+        avatar_png: Option<Vec<u8>>,
+        identity: PlayerIdentity,
+        reference_points: i32,
+        completed_games: u32,
+    ) -> Result<Self, NetworkStartError> {
+        if port == 0 {
+            return Err(NetworkStartError::InvalidPort);
+        }
+        let mut deck = build_uno_deck();
+        fastrand::shuffle(&mut deck);
+        let session = HostSession::uno(NETWORK_ROOM_ID, port, rules, deck)
+            .map_err(|error| NetworkStartError::Worker(io::Error::other(error)))?;
+        Self::spawn(
+            name,
+            avatar_png,
+            identity,
+            reference_points,
+            completed_games,
+            NetworkLaunch::Host {
+                port,
+                session: Box::new(session),
+            },
+            format!("正在开放 0.0.0.0:{port}"),
+        )
+    }
+
     /// 连接一个形如 `192.168.1.20:52300` 的局域网地址。
     pub fn join(name: &str, address: &str) -> Result<Self, NetworkStartError> {
         Self::join_with_avatar(name, address, None)
@@ -405,6 +436,10 @@ impl TcpGameClient {
 
     pub fn take_shengji_events(&mut self) -> Vec<ShengjiEvent> {
         self.model.take_shengji_events()
+    }
+
+    pub fn take_uno_events(&mut self) -> Vec<UnoEvent> {
+        self.model.take_uno_events()
     }
 
     /// 把后台线程已经收到的消息应用到模型；返回是否有可见状态变化。
@@ -663,6 +698,7 @@ pub struct ClientModel {
     pending_chat_messages: VecDeque<ChatMessage>,
     pending_texas_holdem_events: VecDeque<TexasHoldemEvent>,
     pending_shengji_events: VecDeque<ShengjiEvent>,
+    pending_uno_events: VecDeque<UnoEvent>,
     last_finished_match: Option<(MatchId, Vec<PlayerReferenceChange>)>,
 }
 
@@ -700,6 +736,7 @@ impl ClientModel {
             pending_chat_messages: VecDeque::new(),
             pending_texas_holdem_events: VecDeque::new(),
             pending_shengji_events: VecDeque::new(),
+            pending_uno_events: VecDeque::new(),
             last_finished_match: None,
         }
     }
@@ -744,6 +781,7 @@ impl ClientModel {
                 self.pending_chat_messages.clear();
                 self.pending_texas_holdem_events.clear();
                 self.pending_shengji_events.clear();
+                self.pending_uno_events.clear();
                 self.rules = Some(snapshot.rules.clone());
                 self.lobby = Some(snapshot);
                 self.game = None;
@@ -837,6 +875,24 @@ impl ClientModel {
                 self.lobby = None;
                 self.last_rejection = None;
             }
+            ServerEvent::GameSnapshot(AnyGameSnapshot::Uno(snapshot)) => {
+                self.host_port = Some(snapshot.host_port);
+                if self.active_match_id != Some(snapshot.match_id) {
+                    self.pending_uno_events.clear();
+                }
+                if let UnoPhaseView::Finished {
+                    reference_changes, ..
+                } = &snapshot.phase
+                {
+                    self.last_finished_match = Some((snapshot.match_id, reference_changes.clone()));
+                }
+                self.active_match_id = Some(snapshot.match_id);
+                self.you = Some(snapshot.you);
+                self.rules = Some(GameRules::Uno(snapshot.rules));
+                self.game = Some(AnyGameSnapshot::Uno(snapshot));
+                self.lobby = None;
+                self.last_rejection = None;
+            }
             ServerEvent::GameEvent(GameEvent::QiGui523(QiGui523Event::PlayEffect {
                 player,
                 play,
@@ -905,6 +961,13 @@ impl ClientModel {
                 }
                 self.pending_shengji_events.push_back(event);
             }
+            ServerEvent::GameEvent(GameEvent::Uno(event)) => {
+                if let Some(notice) = uno_event_notice(self.uno_game(), &event) {
+                    self.notice_serial = self.notice_serial.saturating_add(1);
+                    self.last_notice = Some(notice);
+                }
+                self.pending_uno_events.push_back(event);
+            }
             ServerEvent::PlayerInteraction(interaction) => {
                 self.pending_player_interactions.push_back(interaction);
             }
@@ -966,6 +1029,10 @@ impl ClientModel {
         self.game.as_ref().and_then(AnyGameSnapshot::shengji)
     }
 
+    pub fn uno_game(&self) -> Option<&UnoSnapshot> {
+        self.game.as_ref().and_then(AnyGameSnapshot::uno)
+    }
+
     pub fn game_rules(&self) -> Option<&GameRules> {
         self.rules.as_ref()
     }
@@ -980,6 +1047,10 @@ impl ClientModel {
 
     pub fn shengji_rules(&self) -> Option<&ShengjiRuleSet> {
         self.rules.as_ref().and_then(GameRules::shengji)
+    }
+
+    pub fn uno_rules(&self) -> Option<&UnoRuleSet> {
+        self.rules.as_ref().and_then(GameRules::uno)
     }
 
     pub fn avatars(&self) -> &HashMap<AvatarId, Vec<u8>> {
@@ -1055,6 +1126,10 @@ impl ClientModel {
 
     pub fn take_shengji_events(&mut self) -> Vec<ShengjiEvent> {
         self.pending_shengji_events.drain(..).collect()
+    }
+
+    pub fn take_uno_events(&mut self) -> Vec<UnoEvent> {
+        self.pending_uno_events.drain(..).collect()
     }
 
     pub fn last_finished_match(&self) -> Option<(MatchId, &[PlayerReferenceChange])> {
@@ -1193,6 +1268,46 @@ impl ClientModel {
             score_before,
             score_after,
         });
+    }
+}
+
+fn uno_event_notice(snapshot: Option<&UnoSnapshot>, event: &UnoEvent) -> Option<String> {
+    let player_name = |player: leocard_protocol::PlayerId| {
+        snapshot
+            .and_then(|snapshot| snapshot.players.iter().find(|item| item.id == player))
+            .map(|player| player.name.clone())
+            .unwrap_or_else(|| format!("玩家 {}", player.0 + 1))
+    };
+    match event {
+        UnoEvent::ChallengeResolved {
+            challenger,
+            offender,
+            result,
+            penalized,
+            count,
+        } => Some(match result {
+            leocard_uno::ChallengeResult::Successful => format!(
+                "{} 质疑成功，{} 摸 {count} 张",
+                player_name(*challenger),
+                player_name(*offender)
+            ),
+            leocard_uno::ChallengeResult::Failed => format!(
+                "{} 质疑失败，{} 摸 {count} 张",
+                player_name(*challenger),
+                player_name(*penalized)
+            ),
+        }),
+        UnoEvent::UnoCalled { player } => Some(format!("{}：UNO!", player_name(*player))),
+        UnoEvent::UnoReported { reporter, target } => Some(format!(
+            "{} 检举了 {}，罚摸 2 张",
+            player_name(*reporter),
+            player_name(*target)
+        )),
+        UnoEvent::SkipResolved { .. } => None,
+        UnoEvent::ColorChosen { .. }
+        | UnoEvent::CardPlayed { .. }
+        | UnoEvent::CardsDrawn { .. }
+        | UnoEvent::GameFinished { .. } => None,
     }
 }
 
@@ -1953,6 +2068,35 @@ mod tests {
         }));
         assert!(model.left_room());
         assert!(!model.room_closed());
+    }
+
+    #[test]
+    fn uno_challenge_and_report_events_create_readable_notices() {
+        let challenge = UnoEvent::ChallengeResolved {
+            challenger: PlayerId(1),
+            offender: PlayerId(0),
+            result: leocard_uno::ChallengeResult::Successful,
+            penalized: PlayerId(0),
+            count: 8,
+        };
+        assert_eq!(
+            uno_event_notice(None, &challenge).as_deref(),
+            Some("玩家 2 质疑成功，玩家 1 摸 8 张")
+        );
+        let report = UnoEvent::UnoReported {
+            reporter: PlayerId(0),
+            target: PlayerId(1),
+        };
+        assert_eq!(
+            uno_event_notice(None, &report).as_deref(),
+            Some("玩家 1 检举了 玩家 2，罚摸 2 张")
+        );
+        let skip = UnoEvent::SkipResolved {
+            player: PlayerId(1),
+            remaining: 2,
+            drew_card: true,
+        };
+        assert_eq!(uno_event_notice(None, &skip), None);
     }
 
     #[test]

@@ -629,6 +629,14 @@ impl RoomSession {
         }
     }
 
+    /// 进入终局准备阶段：真人等待主动确认，机器人立即准备下一局并继续托管。
+    pub(crate) fn prepare_rematch(&mut self) {
+        for player in &mut self.players {
+            player.ready = player.is_bot;
+            player.auto_play = player.is_bot;
+        }
+    }
+
     #[cfg(feature = "developer")]
     pub(crate) fn remove_developer_bots(&mut self) {
         for player in self.players.iter_mut().filter(|player| player.is_bot) {

@@ -817,11 +817,14 @@ impl GameState {
             let best = eligible
                 .iter()
                 .filter_map(|player| evaluated[player.0])
-                .max()
+                .max_by(|left, right| left.cmp_with_rules(right, &self.rules))
                 .expect("each pot has an eligible contender");
             let mut winners = eligible
                 .into_iter()
-                .filter(|player| evaluated[player.0] == Some(best))
+                .filter(|player| {
+                    evaluated[player.0]
+                        .is_some_and(|hand| hand.cmp_with_rules(&best, &self.rules).is_eq())
+                })
                 .collect::<Vec<_>>();
             winners.sort_by_key(|winner| {
                 let distance = self.clockwise_distance(self.dealer, *winner);
@@ -1067,6 +1070,51 @@ mod tests {
         assert_eq!(result.awards[1].amount, 10);
         assert_eq!(result.awards[1].winners, vec![PlayerId(1)]);
         assert_eq!(result.final_stacks, vec![15, 10, 10]);
+    }
+
+    #[test]
+    fn ignore_kickers_splits_a_showdown_between_equal_made_hands() {
+        use Suit::{Club, Diamond, Heart, Spade};
+        // 三位玩家分别组成 AAQQK、AAQQJ、AAQQT；开启规则后踢脚牌不参与比较。
+        let prefix = [
+            c(Rank::King, Spade),
+            c(Rank::Jack, Spade),
+            c(Rank::Ten, Spade),
+            c(Rank::Three, Heart),
+            c(Rank::Four, Heart),
+            c(Rank::Five, Heart),
+            c(Rank::Ace, Club),
+            c(Rank::Ace, Diamond),
+            c(Rank::Queen, Club),
+            c(Rank::Queen, Diamond),
+            c(Rank::Two, Spade),
+        ];
+        let mut state = GameState::new_with_stacks(
+            RuleSet {
+                player_count: 3,
+                ignore_kickers: true,
+                ..RuleSet::default()
+            },
+            PlayerId(0),
+            vec![5, 5, 5],
+            ordered_deck(&prefix, false),
+        )
+        .unwrap();
+        post_blinds(&mut state);
+        state.act(PlayerId(0), Action::AllIn).unwrap();
+        state.act(PlayerId(1), Action::AllIn).unwrap();
+        let result = match state.act(PlayerId(2), Action::Call).unwrap() {
+            ActionOutcome::HandComplete(result) => result,
+            other => panic!("expected showdown, got {other:?}"),
+        };
+
+        assert_eq!(result.awards.len(), 1);
+        assert_eq!(result.awards[0].amount, 15);
+        assert_eq!(
+            result.awards[0].winners,
+            vec![PlayerId(1), PlayerId(2), PlayerId(0)]
+        );
+        assert_eq!(result.final_stacks, vec![5, 5, 5]);
     }
 
     #[test]

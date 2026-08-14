@@ -54,6 +54,20 @@
 - 许可证：MIT；GitHub 名称与标志仍受其商标规范约束
 - 用途：仅作为自动更新窗口中指向 LeoCard GitHub 仓库的链接按钮
 
+## VerzatileDev 4 Colour Cards（CC0 1.0）
+
+- 原始包：`assets/vendor/verzatiledev/4-colour-cards/4ColourCardsByVerzatileDev.zip`
+- 运行时牌面：`assets/cards/uno/`
+- 作者：VerzatileDev
+- 来源：<https://verzatiledev.itch.io/4colour>
+- 许可声明：<https://verzatiledev.itch.io/4colour/devlog/1447489/now-cc0-license>
+- 下载日期：2026-08-14
+- 原始包 SHA-256：`ee20da4f717ef44be9ee6f9c48561f169aebb672222d39aea2c254603be5d337`
+
+运行时目录包含 64 张 256×400 PNG：四种颜色的 0 至 9、摸二、反转、跳过，
+万能牌和万能摸四牌及其选色状态，另有空白万能牌和牌背。重复的实体牌复用纹理。
+完整加工说明见原始包同目录的 `SOURCE.md`。
+
 ## 寒蝉圆黑体（SIL Open Font License 1.1）
 
 - 文件：`assets/fonts/ChillRoundGothic-Medium.ttf`

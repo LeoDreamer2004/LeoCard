@@ -1922,50 +1922,16 @@ fn add_texas_summary_avatar(
     avatars: &AvatarImages,
     assets: &UiAssets,
 ) {
-    let ring = spawn_node(
+    let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
+    add_ready_avatar(
         commands,
         parent,
-        Node {
-            width: px(38),
-            height: px(38),
-            min_width: px(38),
-            position_type: PositionType::Relative,
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            border: UiRect::all(px(2)),
-            border_radius: BorderRadius::all(percent(50)),
-            ..default()
-        },
-        None,
+        &player.name,
+        avatar,
+        32.0,
+        player.ready,
+        assets,
     );
-    commands
-        .entity(ring)
-        .insert(BorderColor::all(if player.ready {
-            READY
-        } else {
-            MUTED.with_alpha(0.42)
-        }));
-    let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
-    add_avatar(commands, ring, &player.name, avatar, 32.0, assets);
-    if player.ready {
-        let check = spawn_node(
-            commands,
-            ring,
-            Node {
-                position_type: PositionType::Absolute,
-                right: px(-3),
-                bottom: px(-2),
-                width: px(15),
-                height: px(15),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                border_radius: BorderRadius::all(percent(50)),
-                ..default()
-            },
-            Some(READY),
-        );
-        add_text(commands, check, "✓", 10.0, Color::WHITE, assets);
-    }
 }
 
 fn add_texas_card(

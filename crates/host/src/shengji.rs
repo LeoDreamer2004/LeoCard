@@ -1880,10 +1880,7 @@ impl ShengjiSession {
                 self.teams.levels = result.levels;
                 self.next_dealer = Some(result.next_dealer);
                 self.apply_finished_reference_points(result);
-                for participant in &mut self.room.players {
-                    participant.ready = participant.is_bot;
-                    participant.auto_play = participant.is_bot;
-                }
+                self.room.prepare_rematch();
             }
             _ => {}
         }

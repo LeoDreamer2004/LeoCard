@@ -112,6 +112,16 @@ pub(super) fn handle_buttons(
                         profile.completed_games(),
                     )
                     .map_err(|error| error.to_string()),
+                    GameKind::Uno => TcpGameClient::host_uno_with_profile(
+                        &name,
+                        port,
+                        normalize_uno_rules(form.uno_rules),
+                        form.avatar_png.clone(),
+                        profile.identity.clone(),
+                        profile.reference_points(),
+                        profile.completed_games(),
+                    )
+                    .map_err(|error| error.to_string()),
                 });
                 match result {
                     Ok(network) => {
@@ -268,6 +278,134 @@ pub(super) fn handle_buttons(
                 if let Some(client) = client.as_deref_mut() {
                     client.0.send(ClientCommand::Game(GameCommand::Shengji(
                         ShengjiCommand::UpdateRules { rules: *rules },
+                    )));
+                }
+            }
+            UiAction::UpdateUnoRules(rules) => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Uno(
+                        UnoCommand::UpdateRules { rules: *rules },
+                    )));
+                }
+            }
+            UiAction::ToggleUnoCard(card) => {
+                let already_selected = ui.selected_uno.is_some_and(|selected| {
+                    client
+                        .as_deref()
+                        .and_then(|client| client.0.model().uno_game())
+                        .map_or(selected == *card, |game| {
+                            uno_cards_for_selection(game, selected).contains(card)
+                        })
+                });
+                ui.selected_uno = (!already_selected).then_some(*card);
+            }
+            UiAction::SubmitUnoCard => {
+                if let Some(card) = ui.selected_uno {
+                    if card.face().is_wild() {
+                        ui.uno_color_choice = Some(card);
+                    } else if let Some(client) = client.as_deref_mut() {
+                        let cards = client
+                            .0
+                            .model()
+                            .uno_game()
+                            .map(|game| uno_cards_for_selection(game, card))
+                            .unwrap_or_else(|| vec![card]);
+                        let command = if cards.len() == 1 {
+                            UnoCommand::PlayCard {
+                                card,
+                                chosen_color: None,
+                            }
+                        } else {
+                            UnoCommand::PlayCards {
+                                cards,
+                                chosen_color: None,
+                            }
+                        };
+                        client
+                            .0
+                            .send(ClientCommand::Game(GameCommand::Uno(command)));
+                        ui.selected_uno = None;
+                    }
+                }
+            }
+            UiAction::CloseUnoColorChoice => {
+                ui.uno_color_choice = None;
+            }
+            UiAction::UnoChooseInitialColor(color) => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Uno(
+                        UnoCommand::ChooseInitialColor { color: *color },
+                    )));
+                }
+            }
+            UiAction::UnoPlayCard(card, chosen_color) => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Uno(
+                        UnoCommand::PlayCard {
+                            card: *card,
+                            chosen_color: *chosen_color,
+                        },
+                    )));
+                }
+                ui.uno_color_choice = None;
+                ui.selected_uno = None;
+            }
+            UiAction::UnoJumpIn(card) => {
+                if let Some(client) = client.as_deref_mut() {
+                    client
+                        .0
+                        .send(ClientCommand::Game(GameCommand::Uno(UnoCommand::JumpIn {
+                            card: *card,
+                        })));
+                }
+                ui.selected_uno = None;
+            }
+            UiAction::UnoDrawCard => {
+                if let Some(client) = client.as_deref_mut() {
+                    client
+                        .0
+                        .send(ClientCommand::Game(GameCommand::Uno(UnoCommand::DrawCard)));
+                }
+            }
+            UiAction::UnoPassAfterDraw => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Uno(
+                        UnoCommand::PassAfterDraw,
+                    )));
+                }
+            }
+            UiAction::UnoAcceptDrawPenalty => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Uno(
+                        UnoCommand::AcceptDrawPenalty,
+                    )));
+                }
+            }
+            UiAction::UnoChallengeDrawFour => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Uno(
+                        UnoCommand::ChallengeDrawFour,
+                    )));
+                }
+            }
+            UiAction::UnoResolveSkip => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Uno(
+                        UnoCommand::ResolveSkip,
+                    )));
+                }
+            }
+            UiAction::UnoCall => {
+                if let Some(client) = client.as_deref_mut() {
+                    client
+                        .0
+                        .send(ClientCommand::Game(GameCommand::Uno(UnoCommand::CallUno)));
+                }
+            }
+            UiAction::UnoReport(target) => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Uno(
+                        UnoCommand::ReportUno { target: *target },
                     )));
                 }
             }
@@ -467,6 +605,15 @@ pub(super) fn handle_buttons(
                             .is_some_and(|player| player.auto_play);
                         client.0.send(ClientCommand::Game(GameCommand::Shengji(
                             ShengjiCommand::SetAutoPlay { enabled: !enabled },
+                        )));
+                    } else if let Some(game) = client.0.model().uno_game() {
+                        let enabled = game
+                            .players
+                            .iter()
+                            .find(|player| player.id == game.you)
+                            .is_some_and(|player| player.auto_play);
+                        client.0.send(ClientCommand::Game(GameCommand::Uno(
+                            UnoCommand::SetAutoPlay { enabled: !enabled },
                         )));
                     }
                 }
@@ -894,6 +1041,16 @@ pub(super) fn poll_network(
             .model()
             .texas_holdem_game()
             .is_some_and(|game| game.you == game.host)
+        || client
+            .0
+            .model()
+            .shengji_game()
+            .is_some_and(|game| game.you == game.host)
+        || client
+            .0
+            .model()
+            .uno_game()
+            .is_some_and(|game| game.you == game.host)
         || client.0.model().lobby().is_some_and(|lobby| {
             client
                 .0
@@ -930,6 +1087,17 @@ pub(super) fn poll_network(
         })
         .or_else(|| {
             client.0.model().shengji_game().map(|game| {
+                (
+                    game.match_id,
+                    game.players
+                        .iter()
+                        .map(|player| player.id)
+                        .collect::<Vec<_>>(),
+                )
+            })
+        })
+        .or_else(|| {
+            client.0.model().uno_game().map(|game| {
                 (
                     game.match_id,
                     game.players
@@ -999,6 +1167,21 @@ pub(super) fn poll_network(
         && form.shengji_rules != rules
     {
         form.shengji_rules = rules;
+        if let Err(error) = save_preferences(&form) {
+            form.error = Some(error);
+        }
+    }
+    let accepted_uno_rules = client.0.model().lobby().and_then(|lobby| {
+        let you = client.0.model().you()?;
+        (lobby.host == Some(you))
+            .then(|| lobby.uno_rules().copied())
+            .flatten()
+            .map(normalize_uno_rules)
+    });
+    if let Some(rules) = accepted_uno_rules
+        && form.uno_rules != rules
+    {
+        form.uno_rules = rules;
         if let Err(error) = save_preferences(&form) {
             form.error = Some(error);
         }
@@ -1346,6 +1529,29 @@ pub(super) fn update_summary_animation(
                     .find(|change| change.player == game.you)
                     .is_none_or(|change| change.delta >= 0),
                 SUMMARY_HAND_REVEAL_DURATION,
+            ));
+        }
+        if let Some(game) = client.0.model().uno_game()
+            && let UnoPhaseView::Finished {
+                results,
+                reference_changes,
+                ..
+            } = &game.phase
+        {
+            let mut results = results.clone();
+            results.sort_by_key(|result| result.placement);
+            return Some((
+                game.match_id,
+                None,
+                results
+                    .into_iter()
+                    .map(|result| (result.player, u32::from(result.hand_score)))
+                    .collect::<Vec<_>>(),
+                reference_changes
+                    .iter()
+                    .find(|change| change.player == game.you)
+                    .is_none_or(|change| change.delta >= 0),
+                UNO_FINISH_REVEAL_DURATION,
             ));
         }
         let game = client.0.model().texas_holdem_game()?;

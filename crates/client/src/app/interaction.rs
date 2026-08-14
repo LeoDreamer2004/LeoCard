@@ -1549,7 +1549,7 @@ pub(super) fn animate_chat_panel(
         if chat.slide != target {
             chat.slide = target;
             for mut transform in &mut panels {
-                transform.translation = Val2::px(CHAT_PANEL_WIDTH * target, 0.0);
+                transform.translation = Val2::px(CHAT_PANEL_HIDDEN_OFFSET * target, 0.0);
             }
         }
         return;
@@ -1560,7 +1560,7 @@ pub(super) fn animate_chat_panel(
         chat.slide = target;
     }
     for mut transform in &mut panels {
-        transform.translation = Val2::px(CHAT_PANEL_WIDTH * chat.slide, 0.0);
+        transform.translation = Val2::px(CHAT_PANEL_HIDDEN_OFFSET * chat.slide, 0.0);
     }
     let expected = if chat.open {
         &assets.chat_close_icon

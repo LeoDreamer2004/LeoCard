@@ -119,7 +119,15 @@ pub(in crate::app) fn add_game_summary_modal(
             },
         ));
         let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
-        add_avatar(commands, row, &player.name, avatar, 28.0, assets);
+        add_ready_avatar(
+            commands,
+            row,
+            &player.name,
+            avatar,
+            28.0,
+            player.ready,
+            assets,
+        );
         let name = spawn_node(
             commands,
             row,

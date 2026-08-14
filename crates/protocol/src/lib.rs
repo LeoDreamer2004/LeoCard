@@ -16,9 +16,13 @@ use leocard_texas_holdem::{
     EvaluatedHand, HandCategory as TexasHoldemHandCategory, RuleSet as TexasHoldemRuleSet,
     Street as TexasHoldemStreet,
 };
+use leocard_uno::{
+    Card as UnoCard, ChallengeResult as UnoChallengeResult, Color as UnoColor,
+    Direction as UnoDirection, PendingDrawKind as UnoPendingDrawKind, RuleSet as UnoRuleSet,
+};
 use serde::{Deserialize, Serialize};
 
-pub const PROTOCOL_VERSION: u16 = 20;
+pub const PROTOCOL_VERSION: u16 = 22;
 pub const MAX_FRAME_PAYLOAD: usize = 1024 * 1024;
 pub const MAX_PLAYER_NAME_CHARS: usize = 7;
 pub const AVATAR_DIMENSION: u32 = 64;
@@ -34,6 +38,7 @@ pub enum GameKind {
     QiGui523,
     TexasHoldem,
     Shengji,
+    Uno,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -41,6 +46,7 @@ pub enum GameRules {
     QiGui523(RuleSet),
     TexasHoldem(TexasHoldemRuleSet),
     Shengji(ShengjiRuleSet),
+    Uno(UnoRuleSet),
 }
 
 impl GameRules {
@@ -49,27 +55,35 @@ impl GameRules {
             Self::QiGui523(_) => GameKind::QiGui523,
             Self::TexasHoldem(_) => GameKind::TexasHoldem,
             Self::Shengji(_) => GameKind::Shengji,
+            Self::Uno(_) => GameKind::Uno,
         }
     }
 
     pub const fn qigui523(&self) -> Option<&RuleSet> {
         match self {
             Self::QiGui523(rules) => Some(rules),
-            Self::TexasHoldem(_) | Self::Shengji(_) => None,
+            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
         }
     }
 
     pub const fn texas_holdem(&self) -> Option<&TexasHoldemRuleSet> {
         match self {
             Self::TexasHoldem(rules) => Some(rules),
-            Self::QiGui523(_) | Self::Shengji(_) => None,
+            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) => None,
         }
     }
 
     pub const fn shengji(&self) -> Option<&ShengjiRuleSet> {
         match self {
             Self::Shengji(rules) => Some(rules),
-            Self::QiGui523(_) | Self::TexasHoldem(_) => None,
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) => None,
+        }
+    }
+
+    pub const fn uno(&self) -> Option<&UnoRuleSet> {
+        match self {
+            Self::Uno(rules) => Some(rules),
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) => None,
         }
     }
 }
@@ -92,12 +106,19 @@ impl From<ShengjiRuleSet> for GameRules {
     }
 }
 
+impl From<UnoRuleSet> for GameRules {
+    fn from(value: UnoRuleSet) -> Self {
+        Self::Uno(value)
+    }
+}
+
 /// 具体游戏的操作。通用房间命令保留在 [`ClientCommand`] 中。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GameCommand {
     QiGui523(QiGui523Command),
     TexasHoldem(TexasHoldemCommand),
     Shengji(ShengjiCommand),
+    Uno(UnoCommand),
 }
 
 impl GameCommand {
@@ -106,8 +127,42 @@ impl GameCommand {
             Self::QiGui523(_) => GameKind::QiGui523,
             Self::TexasHoldem(_) => GameKind::TexasHoldem,
             Self::Shengji(_) => GameKind::Shengji,
+            Self::Uno(_) => GameKind::Uno,
         }
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum UnoCommand {
+    SetAutoPlay {
+        enabled: bool,
+    },
+    UpdateRules {
+        rules: UnoRuleSet,
+    },
+    ChooseInitialColor {
+        color: UnoColor,
+    },
+    PlayCard {
+        card: UnoCard,
+        chosen_color: Option<UnoColor>,
+    },
+    PlayCards {
+        cards: Vec<UnoCard>,
+        chosen_color: Option<UnoColor>,
+    },
+    JumpIn {
+        card: UnoCard,
+    },
+    DrawCard,
+    PassAfterDraw,
+    AcceptDrawPenalty,
+    ChallengeDrawFour,
+    ResolveSkip,
+    CallUno,
+    ReportUno {
+        target: PlayerId,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -310,6 +365,8 @@ pub struct ServerMessage {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+// 快照是高频协议主体；保持内联可避免为单个大游戏改变既有线协议形状。
+#[allow(clippy::large_enum_variant)]
 pub enum ServerEvent {
     Heartbeat,
     Joined { you: PlayerId },
@@ -347,6 +404,10 @@ impl LobbySnapshot {
     pub const fn shengji_rules(&self) -> Option<&ShengjiRuleSet> {
         self.rules.shengji()
     }
+
+    pub const fn uno_rules(&self) -> Option<&UnoRuleSet> {
+        self.rules.uno()
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -367,6 +428,7 @@ pub enum GameSnapshot {
     QiGui523(QiGui523Snapshot),
     TexasHoldem(TexasHoldemSnapshot),
     Shengji(ShengjiSnapshot),
+    Uno(UnoSnapshot),
 }
 
 impl GameSnapshot {
@@ -375,50 +437,136 @@ impl GameSnapshot {
             Self::QiGui523(_) => GameKind::QiGui523,
             Self::TexasHoldem(_) => GameKind::TexasHoldem,
             Self::Shengji(_) => GameKind::Shengji,
+            Self::Uno(_) => GameKind::Uno,
         }
     }
 
     pub const fn qigui523(&self) -> Option<&QiGui523Snapshot> {
         match self {
             Self::QiGui523(snapshot) => Some(snapshot),
-            Self::TexasHoldem(_) | Self::Shengji(_) => None,
+            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
         }
     }
 
     pub fn into_qigui523(self) -> Option<QiGui523Snapshot> {
         match self {
             Self::QiGui523(snapshot) => Some(snapshot),
-            Self::TexasHoldem(_) | Self::Shengji(_) => None,
+            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
         }
     }
 
     pub const fn texas_holdem(&self) -> Option<&TexasHoldemSnapshot> {
         match self {
             Self::TexasHoldem(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::Shengji(_) => None,
+            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) => None,
         }
     }
 
     pub fn into_texas_holdem(self) -> Option<TexasHoldemSnapshot> {
         match self {
             Self::TexasHoldem(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::Shengji(_) => None,
+            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) => None,
         }
     }
 
     pub const fn shengji(&self) -> Option<&ShengjiSnapshot> {
         match self {
             Self::Shengji(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::TexasHoldem(_) => None,
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) => None,
         }
     }
 
     pub fn into_shengji(self) -> Option<ShengjiSnapshot> {
         match self {
             Self::Shengji(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::TexasHoldem(_) => None,
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) => None,
         }
     }
+
+    pub const fn uno(&self) -> Option<&UnoSnapshot> {
+        match self {
+            Self::Uno(snapshot) => Some(snapshot),
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) => None,
+        }
+    }
+
+    pub fn into_uno(self) -> Option<UnoSnapshot> {
+        match self {
+            Self::Uno(snapshot) => Some(snapshot),
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) => None,
+        }
+    }
+}
+
+/// 面向单个 UNO 客户端的私有快照。进行中只公开接收者的手牌；终局公开所有
+/// 剩余手牌，以便核对排名分数。
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct UnoSnapshot {
+    pub match_id: MatchId,
+    pub host_port: u16,
+    pub you: PlayerId,
+    pub host: PlayerId,
+    pub rules: UnoRuleSet,
+    pub players: Vec<UnoPlayerState>,
+    pub your_hand: Vec<UnoCard>,
+    pub draw_pile_len: u16,
+    pub discard_top: UnoCard,
+    /// 从旧到新排列的弃牌堆末尾，用于客户端绘制有轻微错位的牌堆。
+    pub discard_pile: Vec<UnoCard>,
+    pub current_color: Option<UnoColor>,
+    pub current_player: Option<PlayerId>,
+    pub direction: UnoDirection,
+    pub pending_draw: u16,
+    pub pending_kind: Option<UnoPendingDrawKind>,
+    pub challenge_offender: Option<PlayerId>,
+    pub pending_skip: u16,
+    /// 只有接收者本人摸到可出的牌并仍在本回合时才为 `Some`。
+    pub your_drawn_card: Option<UnoCard>,
+    /// 抢出窗口内，只有实际持有匹配牌的非下家会收到这张私有候选牌。
+    pub your_jump_in_card: Option<UnoCard>,
+    pub uno_exposed: Vec<PlayerId>,
+    pub uno_declared: Vec<PlayerId>,
+    pub phase: UnoPhaseView,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct UnoPlayerState {
+    pub id: PlayerId,
+    pub profile_id: ProfileId,
+    pub name: String,
+    pub avatar: Option<AvatarId>,
+    pub seat: SeatId,
+    pub hand_len: u8,
+    pub ready: bool,
+    pub connected: bool,
+    pub auto_play: bool,
+    pub reference_points: i32,
+    pub completed_games: u32,
+    pub skipped_turns: u16,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum UnoPhaseView {
+    Playing,
+    Finished {
+        winner: PlayerId,
+        results: Vec<UnoPlayerResult>,
+        remaining_hands: Vec<UnoRevealedHand>,
+        reference_changes: Vec<PlayerReferenceChange>,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct UnoPlayerResult {
+    pub player: PlayerId,
+    pub hand_score: u16,
+    pub placement: u8,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct UnoRevealedHand {
+    pub player: PlayerId,
+    pub cards: Vec<UnoCard>,
 }
 
 /// 面向单个七鬼五二三客户端生成的状态。对局中只含 `your_hand`；终局后才会在
@@ -707,6 +855,7 @@ pub enum GameEvent {
     QiGui523(QiGui523Event),
     TexasHoldem(TexasHoldemEvent),
     Shengji(ShengjiEvent),
+    Uno(UnoEvent),
 }
 
 impl GameEvent {
@@ -715,8 +864,49 @@ impl GameEvent {
             Self::QiGui523(_) => GameKind::QiGui523,
             Self::TexasHoldem(_) => GameKind::TexasHoldem,
             Self::Shengji(_) => GameKind::Shengji,
+            Self::Uno(_) => GameKind::Uno,
         }
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum UnoEvent {
+    ColorChosen {
+        player: PlayerId,
+        color: UnoColor,
+    },
+    CardPlayed {
+        player: PlayerId,
+        card: UnoCard,
+        chosen_color: Option<UnoColor>,
+    },
+    CardsDrawn {
+        player: PlayerId,
+        count: u16,
+        penalty: bool,
+    },
+    ChallengeResolved {
+        challenger: PlayerId,
+        offender: PlayerId,
+        result: UnoChallengeResult,
+        penalized: PlayerId,
+        count: u16,
+    },
+    UnoCalled {
+        player: PlayerId,
+    },
+    UnoReported {
+        reporter: PlayerId,
+        target: PlayerId,
+    },
+    SkipResolved {
+        player: PlayerId,
+        remaining: u16,
+        drew_card: bool,
+    },
+    GameFinished {
+        winner: PlayerId,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -942,6 +1132,7 @@ pub enum GameViolation {
     QiGui523(RuleViolation),
     TexasHoldem(TexasHoldemViolation),
     Shengji(ShengjiViolation),
+    Uno(UnoViolation),
 }
 
 impl From<RuleViolation> for GameViolation {
@@ -960,6 +1151,41 @@ impl From<ShengjiViolation> for GameViolation {
     fn from(value: ShengjiViolation) -> Self {
         Self::Shengji(value)
     }
+}
+
+impl From<UnoViolation> for GameViolation {
+    fn from(value: UnoViolation) -> Self {
+        Self::Uno(value)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum UnoViolation {
+    InvalidPlayer,
+    NotPlayersTurn,
+    GameAlreadyFinished,
+    InitialColorChoiceRequired,
+    InitialColorAlreadyChosen,
+    CardNotInHand,
+    CardDoesNotMatch,
+    ColorRequired,
+    UnexpectedColor,
+    MustPlayDrawnCard,
+    MustResolveDrawPenalty,
+    NoDrawPenalty,
+    CannotStack,
+    CannotChallenge,
+    MustDrawBeforePassing,
+    MustResolveSkip,
+    NoSkipToResolve,
+    UnoCalloutDisabled,
+    CannotCallUno,
+    MustPlayAfterUno,
+    CannotReportSelf,
+    PlayerNotReportable,
+    CannotPlayTogether,
+    CannotJumpIn,
+    DrawPileExhausted,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1212,6 +1438,7 @@ mod tests {
             player_count: 6,
             starting_chips: 40,
             short_deck: true,
+            ignore_kickers: true,
         };
         for command in [
             GameCommand::TexasHoldem(TexasHoldemCommand::SetAutoPlay { enabled: true }),
@@ -1264,6 +1491,27 @@ mod tests {
             let message = ClientMessage::new(
                 RoomId(42),
                 RequestId(9),
+                ClientCommand::Game(command.clone()),
+            );
+            let decoded: ClientMessage = decode_frame(&encode_frame(&message).unwrap()).unwrap();
+            assert_eq!(decoded.command, ClientCommand::Game(command));
+        }
+    }
+
+    #[test]
+    fn uno_pair_and_jump_in_commands_round_trip_through_the_common_protocol() {
+        let first = UnoCard::number(UnoColor::Red, 7, 0);
+        let second = UnoCard::number(UnoColor::Red, 7, 1);
+        for command in [
+            GameCommand::Uno(UnoCommand::PlayCards {
+                cards: vec![first, second],
+                chosen_color: None,
+            }),
+            GameCommand::Uno(UnoCommand::JumpIn { card: second }),
+        ] {
+            let message = ClientMessage::new(
+                RoomId(42),
+                RequestId(10),
                 ClientCommand::Game(command.clone()),
             );
             let decoded: ClientMessage = decode_frame(&encode_frame(&message).unwrap()).unwrap();

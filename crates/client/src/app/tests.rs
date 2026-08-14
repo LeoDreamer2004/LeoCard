@@ -24,6 +24,7 @@ fn host_game_picker_lists_every_playable_game() {
             ("七鬼五二三", "放空大脑, 有牌就出", GameKind::QiGui523),
             ("德州扑克", "窝要验牌!", GameKind::TexasHoldem),
             ("升级", "神对手 or 猪队友", GameKind::Shengji),
+            ("UNO", "最后一张，记得喊 UNO!", GameKind::Uno),
         ]
     );
 }
@@ -536,6 +537,7 @@ fn preferences_round_trip_including_avatar() {
                 host_rules: TexasHoldemRuleSet {
                     starting_chips: 40,
                     short_deck: true,
+                    ignore_kickers: true,
                     ..normalize_texas_holdem_rules(TexasHoldemRuleSet::default())
                 },
             },
@@ -546,6 +548,15 @@ fn preferences_round_trip_including_avatar() {
                     five_trump_crossing: true,
                     constant_trump: true,
                     ..ShengjiRuleSet::default()
+                },
+            },
+            uno: UnoPreferences {
+                host_rules: UnoRuleSet {
+                    stack_draw_four_on_draw_two: true,
+                    uno_callout: false,
+                    skip_draw_penalty: true,
+                    stack_skip: true,
+                    jump_in: true,
                 },
             },
         },
@@ -574,6 +585,153 @@ fn preferences_round_trip_including_avatar() {
         decoded.games.shengji.host_rules,
         saved.games.shengji.host_rules
     );
+    assert_eq!(decoded.games.uno.host_rules, saved.games.uno.host_rules);
+}
+
+#[test]
+fn pre_uno_preferences_gain_default_uno_rules() {
+    let previous = PreUnoSavedPreferences {
+        global: GlobalPreferences {
+            player_name: "UNO 前版本玩家".to_owned(),
+            avatar_png: None,
+            host_port: "52301".to_owned(),
+            join_address: "127.0.0.1:52301".to_owned(),
+            table_felt_path: None,
+            table_brightness: 0.8,
+            table_vignette: 0.3,
+        },
+        games: PreUnoGamePreferences {
+            qigui523: QiGui523Preferences {
+                host_rules: normalize_host_rules(RuleSet::default()),
+            },
+            texas_holdem: TexasHoldemPreferences {
+                host_rules: normalize_texas_holdem_rules(TexasHoldemRuleSet::default()),
+            },
+            shengji: ShengjiPreferences::default(),
+        },
+    };
+    let encoded = postcard::to_allocvec(&previous).unwrap();
+    let decoded = decode_preferences(&encoded).unwrap();
+    assert_eq!(decoded.global.player_name, "UNO 前版本玩家");
+    assert_eq!(decoded.games.uno.host_rules, UnoRuleSet::default());
+}
+
+#[test]
+fn pre_jump_in_preferences_preserve_uno_rules_and_disable_jump_in() {
+    let previous = PreJumpInSavedPreferences {
+        global: GlobalPreferences {
+            player_name: "抢出前版本玩家".to_owned(),
+            avatar_png: None,
+            host_port: "52301".to_owned(),
+            join_address: "127.0.0.1:52301".to_owned(),
+            table_felt_path: None,
+            table_brightness: 0.8,
+            table_vignette: 0.3,
+        },
+        games: PreJumpInGamePreferences {
+            qigui523: QiGui523Preferences {
+                host_rules: normalize_host_rules(RuleSet::default()),
+            },
+            texas_holdem: TexasHoldemPreferences {
+                host_rules: normalize_texas_holdem_rules(TexasHoldemRuleSet::default()),
+            },
+            shengji: ShengjiPreferences::default(),
+            uno: PreJumpInUnoPreferences {
+                host_rules: PreJumpInUnoRuleSet {
+                    stack_draw_four_on_draw_two: true,
+                    uno_callout: false,
+                    skip_draw_penalty: true,
+                    stack_skip: true,
+                },
+            },
+        },
+    };
+    let decoded = decode_preferences(&postcard::to_allocvec(&previous).unwrap()).unwrap();
+    assert_eq!(decoded.global.player_name, "抢出前版本玩家");
+    assert!(decoded.games.uno.host_rules.stack_draw_four_on_draw_two);
+    assert!(!decoded.games.uno.host_rules.uno_callout);
+    assert!(decoded.games.uno.host_rules.skip_draw_penalty);
+    assert!(decoded.games.uno.host_rules.stack_skip);
+    assert!(!decoded.games.uno.host_rules.jump_in);
+}
+
+#[test]
+fn previous_uno_preferences_drop_configured_count_and_disable_skip_rules() {
+    let previous = PreviousUnoSavedPreferences {
+        global: GlobalPreferences {
+            player_name: "旧 UNO 玩家".to_owned(),
+            avatar_png: None,
+            host_port: "52301".to_owned(),
+            join_address: "127.0.0.1:52301".to_owned(),
+            table_felt_path: None,
+            table_brightness: 0.8,
+            table_vignette: 0.3,
+        },
+        games: PreviousUnoGamePreferences {
+            qigui523: QiGui523Preferences {
+                host_rules: normalize_host_rules(RuleSet::default()),
+            },
+            texas_holdem: TexasHoldemPreferences {
+                host_rules: normalize_texas_holdem_rules(TexasHoldemRuleSet::default()),
+            },
+            shengji: ShengjiPreferences::default(),
+            uno: PreviousUnoPreferences {
+                host_rules: PreviousUnoRuleSet {
+                    player_count: 4,
+                    stack_draw_four_on_draw_two: true,
+                    uno_callout: true,
+                },
+            },
+        },
+    };
+    let decoded = decode_preferences(&postcard::to_allocvec(&previous).unwrap()).unwrap();
+    assert!(decoded.games.uno.host_rules.stack_draw_four_on_draw_two);
+    assert!(decoded.games.uno.host_rules.uno_callout);
+    assert!(!decoded.games.uno.host_rules.skip_draw_penalty);
+    assert!(!decoded.games.uno.host_rules.stack_skip);
+}
+
+#[test]
+fn previous_preferences_gain_disabled_kicker_rule_without_losing_games() {
+    let previous = PreviousSavedPreferences {
+        global: GlobalPreferences {
+            player_name: "旧德州玩家".to_owned(),
+            avatar_png: None,
+            host_port: "52301".to_owned(),
+            join_address: "127.0.0.1:52301".to_owned(),
+            table_felt_path: None,
+            table_brightness: 0.8,
+            table_vignette: 0.3,
+        },
+        games: PreviousGamePreferences {
+            qigui523: QiGui523Preferences {
+                host_rules: normalize_host_rules(RuleSet::default()),
+            },
+            texas_holdem: PreviousTexasHoldemPreferences {
+                host_rules: PreviousTexasHoldemRuleSet {
+                    player_count: 6,
+                    starting_chips: 40,
+                    short_deck: true,
+                },
+            },
+            shengji: ShengjiPreferences {
+                host_rules: ShengjiRuleSet {
+                    deck_count: 4,
+                    bottom_copy: true,
+                    ..ShengjiRuleSet::default()
+                },
+            },
+        },
+    };
+    let encoded = postcard::to_allocvec(&previous).unwrap();
+    let decoded = decode_preferences(&encoded).unwrap();
+
+    assert_eq!(decoded.global.player_name, "旧德州玩家");
+    assert_eq!(decoded.games.texas_holdem.host_rules.starting_chips, 40);
+    assert!(decoded.games.texas_holdem.host_rules.short_deck);
+    assert!(!decoded.games.texas_holdem.host_rules.ignore_kickers);
+    assert_eq!(decoded.games.shengji.host_rules.deck_count, 4);
+    assert!(decoded.games.shengji.host_rules.bottom_copy);
 }
 
 #[test]
@@ -595,10 +753,11 @@ fn legacy_preferences_gain_default_shengji_rules_without_losing_existing_values(
                     ..normalize_host_rules(RuleSet::default())
                 },
             },
-            texas_holdem: TexasHoldemPreferences {
-                host_rules: TexasHoldemRuleSet {
+            texas_holdem: PreviousTexasHoldemPreferences {
+                host_rules: PreviousTexasHoldemRuleSet {
+                    player_count: TexasHoldemRuleSet::MAX_PLAYERS,
+                    starting_chips: TexasHoldemRuleSet::default().starting_chips,
                     short_deck: true,
-                    ..normalize_texas_holdem_rules(TexasHoldemRuleSet::default())
                 },
             },
         },
@@ -609,6 +768,7 @@ fn legacy_preferences_gain_default_shengji_rules_without_losing_existing_values(
     assert_eq!(decoded.global.player_name, "旧版玩家");
     assert_eq!(decoded.games.qigui523.host_rules.deck_count, 3);
     assert!(decoded.games.texas_holdem.host_rules.short_deck);
+    assert!(!decoded.games.texas_holdem.host_rules.ignore_kickers);
     assert_eq!(decoded.games.shengji.host_rules, ShengjiRuleSet::default());
 }
 
@@ -2229,6 +2389,216 @@ fn shengji_presentation_system_queries_initialize_without_conflicts() {
     );
 
     app.update();
+}
+
+#[test]
+fn uno_interaction_and_presentation_systems_initialize_without_conflicts() {
+    let mut app = App::new();
+    app.insert_resource(Time::<()>::default());
+    app.insert_resource(UiState::default());
+    app.insert_resource(UiAssets::default());
+    app.insert_resource(UnoPresentationState::default());
+    app.insert_resource(Assets::<UnoPaletteMaterial>::default());
+    app.add_systems(
+        Update,
+        (
+            animate_uno_hand_cards,
+            spawn_uno_presentation_effects,
+            animate_uno_flying_cards,
+            sync_uno_discard_reveal,
+            animate_uno_palette_effects,
+            animate_uno_palette_selected_sectors,
+            animate_uno_palette_color_rings,
+            animate_uno_palette_particles,
+            animate_uno_reverse_effects,
+        )
+            .chain(),
+    );
+
+    app.update();
+}
+
+#[test]
+fn uno_presentation_waits_until_rebuilt_anchors_are_laid_out() {
+    let node = ComputedNode::default();
+    let transform = UiGlobalTransform::default();
+    assert!(uno_anchor_in_layer(&node, &transform, &node, &transform).is_none());
+}
+
+#[test]
+fn played_uno_card_settles_at_the_discard_cards_exact_scale() {
+    assert_eq!(uno_flying_card_scale(false, 1.0), 1.0);
+    assert!(uno_flying_card_scale(false, 0.5) < 1.0);
+}
+
+#[test]
+fn jump_in_selection_groups_an_identical_pair_until_uno_is_declared() {
+    let first = UnoCard::number(UnoColor::Red, 7, 0);
+    let second = UnoCard::number(UnoColor::Red, 7, 1);
+    let mut game = UnoSnapshot {
+        match_id: MatchId([9; 16]),
+        host_port: 52300,
+        you: PlayerId(0),
+        host: PlayerId(0),
+        rules: UnoRuleSet {
+            stack_skip: true,
+            jump_in: true,
+            ..UnoRuleSet::default()
+        },
+        players: vec![UnoPlayerState {
+            id: PlayerId(0),
+            profile_id: leocard_protocol::ProfileId([0; 32]),
+            name: "玩家".to_owned(),
+            avatar: None,
+            seat: SeatId(0),
+            hand_len: 3,
+            ready: false,
+            connected: true,
+            auto_play: false,
+            reference_points: 0,
+            completed_games: 0,
+            skipped_turns: 0,
+        }],
+        your_hand: vec![first, second, UnoCard::number(UnoColor::Blue, 3, 0)],
+        draw_pile_len: 80,
+        discard_top: UnoCard::number(UnoColor::Red, 4, 0),
+        discard_pile: vec![UnoCard::number(UnoColor::Red, 4, 0)],
+        current_color: Some(UnoColor::Red),
+        current_player: Some(PlayerId(0)),
+        direction: UnoDirection::Clockwise,
+        pending_draw: 0,
+        pending_kind: None,
+        challenge_offender: None,
+        pending_skip: 0,
+        your_drawn_card: None,
+        your_jump_in_card: None,
+        uno_exposed: Vec::new(),
+        uno_declared: Vec::new(),
+        phase: UnoPhaseView::Playing,
+    };
+
+    assert_eq!(uno_cards_for_selection(&game, first), vec![first, second]);
+    game.uno_declared.push(game.you);
+    assert_eq!(uno_cards_for_selection(&game, first), vec![first]);
+}
+
+#[test]
+fn noninteractive_jump_in_card_uses_the_normal_selected_lift() {
+    let card = UnoCard::number(UnoColor::Red, 7, 1);
+    let mut app = App::new();
+    let mut time = Time::<()>::default();
+    time.advance_by(std::time::Duration::from_millis(100));
+    app.insert_resource(time);
+    app.insert_resource(UiState {
+        selected_uno: Some(card),
+        ..UiState::default()
+    });
+    app.add_systems(Update, animate_uno_hand_cards);
+    let noninteractive_slot = app.world_mut().spawn_empty().id();
+    let face = app
+        .world_mut()
+        .spawn((
+            UnoHandCardVisual {
+                button: noninteractive_slot,
+                card,
+                selected: true,
+                hover_amount: 0.0,
+                selected_amount: 0.0,
+            },
+            UiTransform::IDENTITY,
+            Outline::default(),
+            BoxShadow::new(Color::BLACK, px(0), px(0), px(0), px(0)),
+            BorderColor::all(Color::NONE),
+        ))
+        .id();
+
+    app.update();
+
+    let visual = app.world().get::<UnoHandCardVisual>(face).unwrap();
+    let transform = app.world().get::<UiTransform>(face).unwrap();
+    assert!(visual.selected_amount > 0.0);
+    assert!(matches!(transform.translation.y, Val::Px(y) if y < 0.0));
+}
+
+#[test]
+fn authoritative_uno_discard_waits_for_its_flying_card_to_land() {
+    let card = UnoCard::number(UnoColor::Red, 7, 0);
+    let other = UnoCard::number(UnoColor::Blue, 7, 0);
+    let mut presentation = UnoPresentationState::default();
+    presentation.events.push_back(UnoEvent::CardPlayed {
+        player: PlayerId(0),
+        card,
+        chosen_color: None,
+    });
+
+    assert!(uno_discard_should_be_hidden(
+        card,
+        &presentation,
+        std::iter::empty()
+    ));
+    assert!(!uno_discard_should_be_hidden(
+        other,
+        &presentation,
+        std::iter::empty()
+    ));
+
+    presentation.events.clear();
+    assert!(uno_discard_should_be_hidden(
+        card,
+        &presentation,
+        [Some(card)].into_iter()
+    ));
+    assert!(!uno_discard_should_be_hidden(
+        card,
+        &presentation,
+        std::iter::empty()
+    ));
+}
+
+#[test]
+fn retained_uno_discard_cards_keep_their_pose_when_the_six_card_window_slides() {
+    let cards = [
+        UnoCard::number(UnoColor::Red, 1, 0),
+        UnoCard::number(UnoColor::Yellow, 2, 0),
+        UnoCard::number(UnoColor::Green, 3, 0),
+        UnoCard::number(UnoColor::Blue, 4, 0),
+        UnoCard::action(UnoColor::Red, UnoFace::Reverse, 0),
+        UnoCard::action(UnoColor::Blue, UnoFace::Skip, 1),
+        UnoCard::wild(UnoFace::Wild, 0),
+    ];
+    let before = cards[..6]
+        .iter()
+        .copied()
+        .map(|card| (card, uno_discard_pose(card)))
+        .collect::<HashMap<_, _>>();
+    let after = cards[1..]
+        .iter()
+        .copied()
+        .map(|card| (card, uno_discard_pose(card)))
+        .collect::<HashMap<_, _>>();
+
+    for card in &cards[1..6] {
+        assert_eq!(before.get(card), after.get(card));
+    }
+}
+
+#[test]
+fn selected_uno_palette_sector_starts_at_base_size_then_grows() {
+    assert_eq!(uno_palette_selected_scale(0.0), 1.0);
+    assert_eq!(uno_palette_selected_scale(0.18), 1.0);
+    assert!(uno_palette_selected_scale(0.70) >= 1.31);
+    assert!(uno_palette_selected_scale(1.0) > 1.2);
+}
+
+#[test]
+fn uno_reverse_effect_places_self_at_the_bottom_center_action_area() {
+    let anchor = uno_reverse_own_anchor(Vec2::new(DESIGN_WIDTH, DESIGN_HEIGHT));
+    assert_eq!(anchor, Vec2::new(640.0, 541.0));
+}
+
+#[test]
+fn closed_chat_drawer_moves_its_border_fully_offscreen() {
+    assert!(CHAT_PANEL_HIDDEN_OFFSET > CHAT_PANEL_WIDTH);
 }
 
 #[test]

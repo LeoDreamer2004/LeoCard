@@ -40,6 +40,37 @@ impl EvaluatedHand {
     pub const fn cards(self) -> [Card; 5] {
         self.cards
     }
+
+    /// 按房间规则比较两副已评估的牌。
+    ///
+    /// 标准规则使用完整的德州排序键；忽略踢脚牌时，只保留构成牌型的点数。
+    pub fn cmp_with_rules(&self, other: &Self, rules: &RuleSet) -> Ordering {
+        if !rules.ignore_kickers {
+            return self.cmp(other);
+        }
+        (
+            category_strength(self.category, rules.short_deck),
+            core_hand_ranks(self.category, self.kickers),
+        )
+            .cmp(&(
+                category_strength(other.category, rules.short_deck),
+                core_hand_ranks(other.category, other.kickers),
+            ))
+    }
+}
+
+const fn core_hand_ranks(category: HandCategory, kickers: [u8; 5]) -> [u8; 5] {
+    match category {
+        HandCategory::TwoPair | HandCategory::FullHouse => [kickers[0], kickers[1], 0, 0, 0],
+        HandCategory::HighCard
+        | HandCategory::OnePair
+        | HandCategory::Straight
+        | HandCategory::ThreeOfAKind
+        | HandCategory::Flush
+        | HandCategory::FourOfAKind
+        | HandCategory::StraightFlush
+        | HandCategory::RoyalFlush => [kickers[0], 0, 0, 0, 0],
+    }
 }
 
 impl PartialEq for EvaluatedHand {
@@ -675,5 +706,83 @@ mod tests {
         )
         .unwrap();
         assert_eq!(left, right);
+    }
+
+    #[test]
+    fn ignore_kickers_compares_only_the_made_hand_and_largest_high_card() {
+        let standard = rules(false);
+        let ignore_kickers = RuleSet {
+            ignore_kickers: true,
+            ..standard
+        };
+        let ace_queen_with_king = evaluate_best(
+            &[
+                c(Rank::Ace, Spade),
+                c(Rank::Ace, Heart),
+                c(Rank::Queen, Club),
+                c(Rank::Queen, Diamond),
+                c(Rank::King, Spade),
+            ],
+            &standard,
+        )
+        .unwrap();
+        let ace_queen_with_jack = evaluate_best(
+            &[
+                c(Rank::Ace, Club),
+                c(Rank::Ace, Diamond),
+                c(Rank::Queen, Spade),
+                c(Rank::Queen, Heart),
+                c(Rank::Jack, Club),
+            ],
+            &standard,
+        )
+        .unwrap();
+        assert!(ace_queen_with_king > ace_queen_with_jack);
+        assert_eq!(
+            ace_queen_with_king.cmp_with_rules(&ace_queen_with_jack, &ignore_kickers),
+            Ordering::Equal
+        );
+
+        let ace_high = evaluate_best(
+            &[
+                c(Rank::Ace, Spade),
+                c(Rank::Eight, Heart),
+                c(Rank::Seven, Club),
+                c(Rank::Five, Diamond),
+                c(Rank::Three, Spade),
+            ],
+            &standard,
+        )
+        .unwrap();
+        let same_ace_high = evaluate_best(
+            &[
+                c(Rank::Ace, Club),
+                c(Rank::King, Diamond),
+                c(Rank::Queen, Spade),
+                c(Rank::Nine, Heart),
+                c(Rank::Two, Club),
+            ],
+            &standard,
+        )
+        .unwrap();
+        let king_high = evaluate_best(
+            &[
+                c(Rank::King, Spade),
+                c(Rank::Queen, Heart),
+                c(Rank::Jack, Club),
+                c(Rank::Nine, Diamond),
+                c(Rank::Seven, Spade),
+            ],
+            &standard,
+        )
+        .unwrap();
+        assert_eq!(
+            ace_high.cmp_with_rules(&same_ace_high, &ignore_kickers),
+            Ordering::Equal
+        );
+        assert_eq!(
+            ace_high.cmp_with_rules(&king_high, &ignore_kickers),
+            Ordering::Greater
+        );
     }
 }

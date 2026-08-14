@@ -288,12 +288,13 @@ mod tests {
     use ed25519_dalek::{Signer, SigningKey};
     use leocard_protocol::{
         ClientCommand, GameSnapshot, PlayerId, ProfileId, QiGui523Snapshot, ReconnectToken,
-        RequestId, RoomId, SeatId, ServerEvent, ShengjiSnapshot, TexasHoldemSnapshot,
+        RequestId, RoomId, SeatId, ServerEvent, ShengjiSnapshot, TexasHoldemSnapshot, UnoSnapshot,
         join_identity_payload,
     };
     use leocard_qigui523::{RuleSet, build_deck};
     use leocard_shengji::{RuleSet as ShengjiRuleSet, build_deck as build_shengji_deck};
     use leocard_texas_holdem::{RuleSet as TexasHoldemRuleSet, build_deck as build_texas_deck};
+    use leocard_uno::{RuleSet as UnoRuleSet, build_deck as build_uno_deck};
     use tokio::time::{Duration, timeout};
 
     async fn receive_joined(client: &mut TcpClient) -> PlayerId {
@@ -364,6 +365,20 @@ mod tests {
         })
         .await
         .expect("slow deal should reach every Shengji player")
+    }
+
+    async fn receive_uno_game(client: &mut TcpClient) -> UnoSnapshot {
+        timeout(Duration::from_secs(2), async {
+            loop {
+                if let ServerEvent::GameSnapshot(GameSnapshot::Uno(snapshot)) =
+                    client.receive().await.unwrap().event
+                {
+                    return snapshot;
+                }
+            }
+        })
+        .await
+        .expect("server should send an UNO snapshot")
     }
 
     #[tokio::test]
@@ -634,6 +649,91 @@ mod tests {
             // 验证收到的是该玩家第一轮的私有手牌，而不把全桌时钟钉死在某一拍。
             assert!((expected.0 + 1..=expected.0 + 4).contains(&dealt));
         }
+
+        server.shutdown().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn uno_room_uses_the_shared_tcp_transport_and_private_hands() {
+        let room = RoomId(1080);
+        let rules = UnoRuleSet::default();
+        let session = HostSession::uno(room, 52303, rules, build_uno_deck()).unwrap();
+        let server = TcpServerHandle::bind("127.0.0.1:0", session).await.unwrap();
+        let address = server.local_addr();
+        let mut clients = Vec::new();
+        let mut player_ids = Vec::new();
+
+        for index in 0..2_u64 {
+            let mut client = TcpClient::connect(address).await.unwrap();
+            let name = format!("U{index}");
+            let token = ReconnectToken(index + 300);
+            let mut secret = [0; 32];
+            secret[..8].copy_from_slice(&(index + 300).to_be_bytes());
+            secret[8] = 4;
+            let key = SigningKey::from_bytes(&secret);
+            let signature = key
+                .sign(&join_identity_payload(room, token, &name, 0, 0))
+                .to_bytes()
+                .to_vec();
+            client
+                .send(&ClientMessage::new(
+                    room,
+                    RequestId(1),
+                    ClientCommand::Join {
+                        name,
+                        reconnect_token: token,
+                        profile_id: ProfileId(key.verifying_key().to_bytes()),
+                        reference_points: 0,
+                        completed_games: 0,
+                        identity_signature: signature,
+                    },
+                ))
+                .await
+                .unwrap();
+            let player = receive_joined(&mut client).await;
+            client
+                .send(&ClientMessage::new(
+                    room,
+                    RequestId(2),
+                    ClientCommand::SelectSeat {
+                        seat: SeatId(index as u8),
+                    },
+                ))
+                .await
+                .unwrap();
+            client
+                .send(&ClientMessage::new(
+                    room,
+                    RequestId(3),
+                    ClientCommand::SetReady { ready: true },
+                ))
+                .await
+                .unwrap();
+            receive_ready(&mut client, player).await;
+            clients.push(client);
+            player_ids.push(player);
+        }
+
+        let host = player_ids.iter().position(|id| *id == PlayerId(0)).unwrap();
+        clients[host]
+            .send(&ClientMessage::new(
+                room,
+                RequestId(4),
+                ClientCommand::StartGame,
+            ))
+            .await
+            .unwrap();
+
+        let mut hands = Vec::new();
+        for (expected, client) in player_ids.into_iter().zip(&mut clients) {
+            let snapshot = receive_uno_game(client).await;
+            assert_eq!(snapshot.you, expected);
+            assert_eq!(snapshot.your_hand.len(), 7);
+            assert_eq!(snapshot.players.len(), 2);
+            assert!(snapshot.players.iter().all(|player| player.hand_len == 7));
+            hands.push(snapshot.your_hand);
+        }
+        assert!(hands.windows(2).any(|pair| pair[0] != pair[1]));
 
         server.shutdown().await.unwrap();
     }

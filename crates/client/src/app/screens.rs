@@ -66,6 +66,42 @@ pub(super) fn render_ui(
         {
             ui.interaction_menu_open = None;
         }
+    } else if let Some(game) = client
+        .as_deref()
+        .and_then(|client| client.0.model().uno_game())
+    {
+        ui.selected.clear();
+        ui.card_animations.clear();
+        ui.observed_hand.clear();
+        ui.selected_shengji.clear();
+        ui.shengji_card_animations.clear();
+        ui.observed_shengji_hand.clear();
+        ui.greedy_hint.reset();
+        if ui
+            .selected_uno
+            .is_some_and(|card| !game.your_hand.contains(&card))
+        {
+            ui.selected_uno = None;
+        }
+        if let Some(card) = game.your_jump_in_card {
+            ui.selected_uno = Some(card);
+        } else if game.current_player != Some(game.you) {
+            ui.selected_uno = None;
+        }
+        ui.uno_card_animations
+            .retain(|card, _| game.your_hand.contains(card));
+        if ui
+            .uno_color_choice
+            .is_some_and(|card| !game.your_hand.contains(&card))
+        {
+            ui.uno_color_choice = None;
+        }
+        if ui
+            .interaction_menu_open
+            .is_some_and(|open| !game.players.iter().any(|player| player.id == open))
+        {
+            ui.interaction_menu_open = None;
+        }
     } else {
         ui.selected.clear();
         ui.card_animations.clear();
@@ -81,6 +117,9 @@ pub(super) fn render_ui(
         ui.shengji_observed_match = None;
         ui.shengji_observed_hand_number = 0;
         ui.shengji_buried_open = false;
+        ui.uno_color_choice = None;
+        ui.selected_uno = None;
+        ui.uno_card_animations.clear();
     }
 
     let root = commands
@@ -178,6 +217,25 @@ pub(super) fn render_ui(
                     score_capture: &visuals.shengji_score_capture,
                     settlement: &visuals.shengji_settlement,
                     presentation: &visuals.shengji_presentation,
+                },
+            );
+        } else if let Some(game) = client.0.model().uno_game() {
+            render_uno_table(
+                &mut commands,
+                root,
+                client,
+                game,
+                &ui,
+                &chat,
+                UnoTableVisuals {
+                    assets: &visuals.ui,
+                    avatars: &visuals.avatars,
+                    appearance: &visuals.table,
+                    brightness: form.table_brightness,
+                    vignette: form.table_vignette,
+                    table_materials: &mut table_materials,
+                    turn_border_materials: &mut turn_border_materials,
+                    game_summary: &visuals.game_summary,
                 },
             );
         } else {
@@ -844,10 +902,11 @@ fn add_table_appearance_slider(
     ));
 }
 
-pub(super) const HOST_GAME_CHOICES: [(&str, &str, GameKind); 3] = [
+pub(super) const HOST_GAME_CHOICES: [(&str, &str, GameKind); 4] = [
     ("七鬼五二三", "放空大脑, 有牌就出", GameKind::QiGui523),
     ("德州扑克", "窝要验牌!", GameKind::TexasHoldem),
     ("升级", "神对手 or 猪队友", GameKind::Shengji),
+    ("UNO", "最后一张，记得喊 UNO!", GameKind::Uno),
 ];
 
 fn render_host_game_picker(commands: &mut Commands, root: Entity, assets: &UiAssets) {
@@ -874,7 +933,7 @@ fn render_host_game_picker(commands: &mut Commands, root: Entity, assets: &UiAss
         commands,
         overlay,
         Node {
-            width: px(820),
+            width: px(1050),
             max_width: percent(92),
             flex_direction: FlexDirection::Column,
             row_gap: px(18),
@@ -1259,6 +1318,10 @@ fn render_lobby(
     assets: &UiAssets,
     avatars: &AvatarImages,
 ) {
+    if lobby.game == GameKind::Uno {
+        render_uno_lobby(commands, root, client, lobby, assets, avatars);
+        return;
+    }
     if lobby.game == GameKind::TexasHoldem {
         render_texas_holdem_lobby(commands, root, client, lobby, assets, avatars);
         return;
@@ -1574,6 +1637,262 @@ fn render_lobby(
         } else {
             add_disabled_action_button(commands, actions, "等待玩家中", assets);
         }
+    }
+}
+
+fn render_uno_lobby(
+    commands: &mut Commands,
+    root: Entity,
+    client: &ClientResource,
+    lobby: &leocard_protocol::LobbySnapshot,
+    assets: &UiAssets,
+    avatars: &AvatarImages,
+) {
+    let rules_value = *lobby.uno_rules().expect("UNO 大厅应携带对应规则");
+    let connected_count = connected_lobby_player_count(lobby);
+    let content = spawn_node(
+        commands,
+        root,
+        Node {
+            width: percent(100),
+            max_width: px(1180),
+            flex_grow: 1.0,
+            align_self: AlignSelf::Center,
+            padding: UiRect::all(px(22)),
+            flex_direction: FlexDirection::Row,
+            flex_wrap: FlexWrap::Wrap,
+            row_gap: px(18),
+            column_gap: px(18),
+            align_items: AlignItems::Stretch,
+            ..default()
+        },
+        None,
+    );
+    let rules_panel = add_panel(
+        commands,
+        content,
+        Node {
+            min_width: px(300),
+            flex_basis: px(330),
+            flex_grow: 1.0,
+            flex_direction: FlexDirection::Column,
+            row_gap: px(14),
+            ..default()
+        },
+        PANEL,
+        PanelSkin::Section,
+        assets,
+    );
+    let can_configure = client.0.model().you() == lobby.host;
+    add_section_title(commands, rules_panel, "UNO 配置", assets);
+    add_text(
+        commands,
+        rules_panel,
+        format!("当前人数 {connected_count}/{}", UnoRuleSet::MAX_PLAYERS),
+        13.0,
+        MUTED,
+        assets,
+    );
+    let stack_toggled = UnoRuleSet {
+        stack_draw_four_on_draw_two: !rules_value.stack_draw_four_on_draw_two,
+        ..rules_value
+    };
+    add_uno_rule_config_row(
+        commands,
+        rules_panel,
+        UnoRuleConfigRow {
+            label: "+4 叠在 +2",
+            value: if rules_value.stack_draw_four_on_draw_two {
+                "允许"
+            } else {
+                "不允许"
+            }
+            .to_owned(),
+            help: "+2 始终可叠 +2，+4 始终可叠 +4；此项只控制 +4 能否叠在 +2 上。+2 不能叠在 +4 上。",
+            editable: can_configure,
+            previous: can_configure.then_some(stack_toggled),
+            next: can_configure.then_some(stack_toggled),
+        },
+        assets,
+    );
+    let skip_draw_toggled = UnoRuleSet {
+        skip_draw_penalty: !rules_value.skip_draw_penalty,
+        ..rules_value
+    };
+    add_uno_rule_config_row(
+        commands,
+        rules_panel,
+        UnoRuleConfigRow {
+            label: "禁手摸牌",
+            value: if rules_value.skip_draw_penalty {
+                "开启"
+            } else {
+                "关闭"
+            }
+            .to_owned(),
+            help: "玩家每实际跳过一轮时，额外摸一张牌。",
+            editable: can_configure,
+            previous: can_configure.then_some(skip_draw_toggled),
+            next: can_configure.then_some(skip_draw_toggled),
+        },
+        assets,
+    );
+    let stack_skip_toggled = UnoRuleSet {
+        stack_skip: !rules_value.stack_skip,
+        jump_in: rules_value.jump_in && !rules_value.stack_skip,
+        ..rules_value
+    };
+    add_uno_rule_config_row(
+        commands,
+        rules_panel,
+        UnoRuleConfigRow {
+            label: "允许禁手堆叠",
+            value: if rules_value.stack_skip {
+                "允许"
+            } else {
+                "不允许"
+            }
+            .to_owned(),
+            help: "被禁玩家可打出禁手，将累计禁手传给下一位；接受后需连续跳过累计轮数。",
+            editable: can_configure,
+            previous: can_configure.then_some(stack_skip_toggled),
+            next: can_configure.then_some(stack_skip_toggled),
+        },
+        assets,
+    );
+    let jump_in_toggled = UnoRuleSet {
+        jump_in: !rules_value.jump_in,
+        ..rules_value
+    };
+    let can_toggle_jump_in = can_configure && rules_value.stack_skip;
+    add_uno_rule_config_row(
+        commands,
+        rules_panel,
+        UnoRuleConfigRow {
+            label: "抢出",
+            value: if rules_value.jump_in {
+                "开启"
+            } else if rules_value.stack_skip {
+                "关闭"
+            } else {
+                "需先允许禁手堆叠"
+            }
+            .to_owned(),
+            help: "彩色牌落桌后，非下家若持有颜色和牌面完全相同的另一张牌，可在下家执行动作前抢出。相同双牌可一次打出。",
+            editable: can_toggle_jump_in,
+            previous: can_toggle_jump_in.then_some(jump_in_toggled),
+            next: can_toggle_jump_in.then_some(jump_in_toggled),
+        },
+        assets,
+    );
+    let callout_toggled = UnoRuleSet {
+        uno_callout: !rules_value.uno_callout,
+        ..rules_value
+    };
+    add_uno_rule_config_row(
+        commands,
+        rules_panel,
+        UnoRuleConfigRow {
+            label: "UNO 宣告与检举",
+            value: if rules_value.uno_callout {
+                "开启"
+            } else {
+                "关闭"
+            }
+            .to_owned(),
+            help: "手里恰好两张且轮到自己时可先喊 UNO，随后本回合必须出到一张；未喊直接出到一张者在下次成功出牌前可被检举并罚摸 2 张。",
+            editable: can_configure,
+            previous: can_configure.then_some(callout_toggled),
+            next: can_configure.then_some(callout_toggled),
+        },
+        assets,
+    );
+
+    let players = add_panel(
+        commands,
+        content,
+        Node {
+            min_width: px(380),
+            flex_basis: px(560),
+            flex_grow: 2.0,
+            flex_direction: FlexDirection::Column,
+            row_gap: px(10),
+            ..default()
+        },
+        PANEL_ALT,
+        PanelSkin::Section,
+        assets,
+    );
+    add_section_title(
+        commands,
+        players,
+        format!("玩家席位  {connected_count}/{}", UnoRuleSet::MAX_PLAYERS),
+        assets,
+    );
+    render_seat_selector(commands, players, client, lobby, assets, avatars);
+    let actions = spawn_node(
+        commands,
+        players,
+        Node {
+            width: percent(100),
+            min_height: px(48),
+            flex_shrink: 0.0,
+            flex_direction: FlexDirection::Row,
+            column_gap: px(12),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::FlexEnd,
+            ..default()
+        },
+        None,
+    );
+    commands
+        .entity(actions)
+        .insert((GlobalZIndex(800), FocusPolicy::Pass));
+    let you = client.0.model().you();
+    let ready = you
+        .and_then(|you| lobby.players.iter().find(|player| player.id == you))
+        .is_some_and(|player| player.ready);
+    let is_host = you == lobby.host;
+    add_action_button(
+        commands,
+        actions,
+        "退出房间",
+        UiAction::LeaveRoom,
+        ButtonKind::Pass,
+        assets,
+    );
+    if is_host {
+        let can_start = connected_count >= usize::from(UnoRuleSet::MIN_PLAYERS)
+            && lobby
+                .players
+                .iter()
+                .filter(|player| player.connected)
+                .all(|player| player.seat.is_some() && player.ready);
+        if can_start {
+            add_action_button(
+                commands,
+                actions,
+                "开始游戏",
+                UiAction::StartGame,
+                ButtonKind::Primary,
+                assets,
+            );
+        } else {
+            add_disabled_action_button(commands, actions, "等待玩家中", assets);
+        }
+    } else {
+        add_action_button(
+            commands,
+            actions,
+            if ready { "取消准备" } else { "准备" },
+            UiAction::ToggleReady,
+            if ready {
+                ButtonKind::Secondary
+            } else {
+                ButtonKind::Primary
+            },
+            assets,
+        );
     }
 }
 
@@ -2060,6 +2379,27 @@ fn render_texas_holdem_lobby(
         },
         assets,
     );
+    let ignore_kickers_toggled = TexasHoldemRuleSet {
+        ignore_kickers: !rules_value.ignore_kickers,
+        ..rules_value
+    };
+    add_texas_rule_config_row(
+        commands,
+        rules_panel,
+        TexasRuleConfigRow {
+            label: "只比较最大牌型",
+            value: if rules_value.ignore_kickers {
+                "开启".to_owned()
+            } else {
+                "关闭".to_owned()
+            },
+            help: "开启后忽略踢脚牌；高牌和同花只比较最大的一张牌。",
+            editable: can_configure,
+            previous: can_configure.then_some(ignore_kickers_toggled),
+            next: can_configure.then_some(ignore_kickers_toggled),
+        },
+        assets,
+    );
 
     let players = add_panel(
         commands,
@@ -2249,7 +2589,11 @@ fn render_seat_selector(
             } else {
                 "标准牌".to_owned()
             },
-            "盲注 1 / 2".to_owned(),
+            if rules.ignore_kickers {
+                "只比较最大牌型".to_owned()
+            } else {
+                "标准比牌".to_owned()
+            },
         ],
         leocard_protocol::GameRules::Shengji(rules) => vec![
             format!("{}副牌", rules.deck_count),
@@ -2264,16 +2608,37 @@ fn render_seat_selector(
                 "不过江".to_owned()
             },
         ],
+        leocard_protocol::GameRules::Uno(rules) => vec![
+            if rules.stack_draw_four_on_draw_two {
+                "+4 可叠 +2".to_owned()
+            } else {
+                "+4 不叠 +2".to_owned()
+            },
+            if rules.jump_in {
+                "允许抢出".to_owned()
+            } else if rules.stack_skip {
+                "禁手可叠".to_owned()
+            } else {
+                "禁手不叠".to_owned()
+            },
+            if rules.uno_callout {
+                "UNO 检举".to_owned()
+            } else {
+                "不检举".to_owned()
+            },
+        ],
     };
     for label in rule_labels {
         add_lobby_rule_chip(commands, rule_chips, label, assets);
     }
 
     let you = client.0.model().you();
-    let seat_count = if lobby.game == GameKind::Shengji {
-        ShengjiRuleSet::PLAYER_COUNT as u8
-    } else {
-        TABLE_SEAT_COUNT
+    let seat_count = match &lobby.rules {
+        leocard_protocol::GameRules::Shengji(_) => ShengjiRuleSet::PLAYER_COUNT as u8,
+        leocard_protocol::GameRules::Uno(_) => UnoRuleSet::MAX_PLAYERS,
+        leocard_protocol::GameRules::QiGui523(_) | leocard_protocol::GameRules::TexasHoldem(_) => {
+            TABLE_SEAT_COUNT
+        }
     };
     for seat_index in 0..seat_count {
         let seat = SeatId(seat_index);

@@ -274,6 +274,14 @@ impl TexasHoldemSession {
                     received: GameKind::Shengji,
                 },
             ),
+            ClientCommand::Game(GameCommand::Uno(_)) => self.room.reject(
+                connection,
+                request_id,
+                RejectReason::WrongGame {
+                    expected: GameKind::TexasHoldem,
+                    received: GameKind::Uno,
+                },
+            ),
             ClientCommand::StartGame => self.start_game(connection, request_id),
             ClientCommand::ReturnToLobby => self.return_to_lobby(connection, request_id),
             ClientCommand::PlayAgain => self.play_again(connection, request_id),
@@ -674,10 +682,7 @@ impl TexasHoldemSession {
         {
             return;
         }
-        for participant in &mut self.room.players {
-            participant.ready = participant.is_bot;
-            participant.auto_play = participant.is_bot;
-        }
+        self.room.prepare_rematch();
         self.auto_play_delay = None;
         if self.tournament_complete() {
             self.apply_finished_reference_points();
@@ -1548,11 +1553,12 @@ mod tests {
     }
 
     #[test]
-    fn short_deck_rules_are_visible_in_the_shared_lobby_snapshot() {
+    fn texas_rules_are_visible_in_the_shared_lobby_snapshot() {
         let mut session = TexasHoldemSession::new(
             ROOM,
             RuleSet {
                 short_deck: true,
+                ignore_kickers: true,
                 ..RuleSet::default()
             },
             build_deck(true),
@@ -1568,6 +1574,7 @@ mod tests {
             .unwrap();
         assert_eq!(lobby.game, GameKind::TexasHoldem);
         assert!(lobby.texas_holdem_rules().unwrap().short_deck);
+        assert!(lobby.texas_holdem_rules().unwrap().ignore_kickers);
         assert_eq!(lobby.host_port, 52300);
         assert!(session.game().is_none());
     }

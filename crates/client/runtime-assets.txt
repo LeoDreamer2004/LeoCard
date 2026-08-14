@@ -3,6 +3,7 @@
 # Keep source packs, previews and unused vendor files out of the release binary.
 
 audio/
+cards/uno/
 fonts/
 icons/
 shaders/

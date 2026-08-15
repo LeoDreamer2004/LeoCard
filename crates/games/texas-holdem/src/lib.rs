@@ -14,5 +14,7 @@ pub use game::{
     Action, ActionOutcome, BlindKind, GameError, GameState, HandResult, Phase, PlayerId,
     PlayerState, PotAward, Street,
 };
-pub use hand::{EvaluatedHand, HandCategory, HandError, evaluate_best};
+pub use hand::{
+    EvaluatedHand, HandCategory, HandError, evaluate_best, evaluate_omaha, evaluate_player_hand,
+};
 pub use rules::{RuleError, RuleSet};

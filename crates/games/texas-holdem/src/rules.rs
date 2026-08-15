@@ -10,6 +10,9 @@ pub struct RuleSet {
     /// 高牌与同花只比较最大的一张牌。
     #[cfg_attr(feature = "serde", serde(default))]
     pub ignore_kickers: bool,
+    /// 奥马哈高牌：每人四张底牌，成牌时必须恰好使用两张底牌和三张公共牌。
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub omaha: bool,
 }
 
 impl RuleSet {
@@ -18,6 +21,10 @@ impl RuleSet {
     pub const STARTING_CHIP_OPTIONS: [u16; 6] = [5, 10, 20, 30, 40, 50];
     pub const SMALL_BLIND: u32 = 1;
     pub const BIG_BLIND: u32 = 2;
+
+    pub const fn hole_card_count(self) -> usize {
+        if self.omaha { 4 } else { 2 }
+    }
 
     pub fn validate(self) -> Result<Self, RuleError> {
         if !(Self::MIN_PLAYERS..=Self::MAX_PLAYERS).contains(&self.player_count) {
@@ -37,6 +44,7 @@ impl Default for RuleSet {
             starting_chips: 20,
             short_deck: false,
             ignore_kickers: false,
+            omaha: false,
         }
     }
 }
@@ -67,6 +75,16 @@ mod tests {
     #[test]
     fn validates_player_and_starting_chip_options() {
         assert!(!RuleSet::default().ignore_kickers);
+        assert!(!RuleSet::default().omaha);
+        assert_eq!(RuleSet::default().hole_card_count(), 2);
+        assert_eq!(
+            RuleSet {
+                omaha: true,
+                ..RuleSet::default()
+            }
+            .hole_card_count(),
+            4
+        );
         assert_eq!(RuleSet::default().starting_chips, 20);
         for starting_chips in RuleSet::STARTING_CHIP_OPTIONS {
             assert!(

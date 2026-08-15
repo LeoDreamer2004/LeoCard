@@ -538,6 +538,7 @@ fn preferences_round_trip_including_avatar() {
                     starting_chips: 40,
                     short_deck: true,
                     ignore_kickers: true,
+                    omaha: true,
                     ..normalize_texas_holdem_rules(TexasHoldemRuleSet::default())
                 },
             },
@@ -589,6 +590,44 @@ fn preferences_round_trip_including_avatar() {
 }
 
 #[test]
+fn pre_omaha_preferences_keep_texas_rules_and_disable_omaha() {
+    let previous = PreOmahaSavedPreferences {
+        global: GlobalPreferences {
+            player_name: "奥马哈前版本玩家".to_owned(),
+            avatar_png: None,
+            host_port: "52301".to_owned(),
+            join_address: "127.0.0.1:52301".to_owned(),
+            table_felt_path: None,
+            table_brightness: 0.8,
+            table_vignette: 0.3,
+        },
+        games: PreOmahaGamePreferences {
+            qigui523: QiGui523Preferences {
+                host_rules: normalize_host_rules(RuleSet::default()),
+            },
+            texas_holdem: PreOmahaTexasHoldemPreferences {
+                host_rules: PreOmahaTexasHoldemRuleSet {
+                    player_count: TexasHoldemRuleSet::MAX_PLAYERS,
+                    starting_chips: 40,
+                    short_deck: true,
+                    ignore_kickers: true,
+                },
+            },
+            shengji: ShengjiPreferences::default(),
+            uno: UnoPreferences::default(),
+        },
+    };
+
+    let decoded = decode_preferences(&postcard::to_allocvec(&previous).unwrap()).unwrap();
+    let rules = decoded.games.texas_holdem.host_rules;
+    assert_eq!(decoded.global.player_name, "奥马哈前版本玩家");
+    assert_eq!(rules.starting_chips, 40);
+    assert!(rules.short_deck);
+    assert!(rules.ignore_kickers);
+    assert!(!rules.omaha);
+}
+
+#[test]
 fn pre_uno_preferences_gain_default_uno_rules() {
     let previous = PreUnoSavedPreferences {
         global: GlobalPreferences {
@@ -604,8 +643,13 @@ fn pre_uno_preferences_gain_default_uno_rules() {
             qigui523: QiGui523Preferences {
                 host_rules: normalize_host_rules(RuleSet::default()),
             },
-            texas_holdem: TexasHoldemPreferences {
-                host_rules: normalize_texas_holdem_rules(TexasHoldemRuleSet::default()),
+            texas_holdem: PreOmahaTexasHoldemPreferences {
+                host_rules: PreOmahaTexasHoldemRuleSet {
+                    player_count: TexasHoldemRuleSet::MAX_PLAYERS,
+                    starting_chips: TexasHoldemRuleSet::default().starting_chips,
+                    short_deck: false,
+                    ignore_kickers: false,
+                },
             },
             shengji: ShengjiPreferences::default(),
         },
@@ -632,8 +676,13 @@ fn pre_jump_in_preferences_preserve_uno_rules_and_disable_jump_in() {
             qigui523: QiGui523Preferences {
                 host_rules: normalize_host_rules(RuleSet::default()),
             },
-            texas_holdem: TexasHoldemPreferences {
-                host_rules: normalize_texas_holdem_rules(TexasHoldemRuleSet::default()),
+            texas_holdem: PreOmahaTexasHoldemPreferences {
+                host_rules: PreOmahaTexasHoldemRuleSet {
+                    player_count: TexasHoldemRuleSet::MAX_PLAYERS,
+                    starting_chips: TexasHoldemRuleSet::default().starting_chips,
+                    short_deck: false,
+                    ignore_kickers: false,
+                },
             },
             shengji: ShengjiPreferences::default(),
             uno: PreJumpInUnoPreferences {
@@ -671,8 +720,13 @@ fn previous_uno_preferences_drop_configured_count_and_disable_skip_rules() {
             qigui523: QiGui523Preferences {
                 host_rules: normalize_host_rules(RuleSet::default()),
             },
-            texas_holdem: TexasHoldemPreferences {
-                host_rules: normalize_texas_holdem_rules(TexasHoldemRuleSet::default()),
+            texas_holdem: PreOmahaTexasHoldemPreferences {
+                host_rules: PreOmahaTexasHoldemRuleSet {
+                    player_count: TexasHoldemRuleSet::MAX_PLAYERS,
+                    starting_chips: TexasHoldemRuleSet::default().starting_chips,
+                    short_deck: false,
+                    ignore_kickers: false,
+                },
             },
             shengji: ShengjiPreferences::default(),
             uno: PreviousUnoPreferences {
@@ -730,6 +784,7 @@ fn previous_preferences_gain_disabled_kicker_rule_without_losing_games() {
     assert_eq!(decoded.games.texas_holdem.host_rules.starting_chips, 40);
     assert!(decoded.games.texas_holdem.host_rules.short_deck);
     assert!(!decoded.games.texas_holdem.host_rules.ignore_kickers);
+    assert!(!decoded.games.texas_holdem.host_rules.omaha);
     assert_eq!(decoded.games.shengji.host_rules.deck_count, 4);
     assert!(decoded.games.shengji.host_rules.bottom_copy);
 }
@@ -769,6 +824,7 @@ fn legacy_preferences_gain_default_shengji_rules_without_losing_existing_values(
     assert_eq!(decoded.games.qigui523.host_rules.deck_count, 3);
     assert!(decoded.games.texas_holdem.host_rules.short_deck);
     assert!(!decoded.games.texas_holdem.host_rules.ignore_kickers);
+    assert!(!decoded.games.texas_holdem.host_rules.omaha);
     assert_eq!(decoded.games.shengji.host_rules, ShengjiRuleSet::default());
 }
 

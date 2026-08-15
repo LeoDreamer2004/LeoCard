@@ -151,12 +151,28 @@ pub(super) fn decode_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
     postcard::from_bytes(bytes)
         .ok()
         .or_else(|| {
+            let previous: PreOmahaSavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: previous.global,
+                games: GamePreferences {
+                    qigui523: previous.games.qigui523,
+                    texas_holdem: TexasHoldemPreferences {
+                        host_rules: previous.games.texas_holdem.host_rules.into(),
+                    },
+                    shengji: previous.games.shengji,
+                    uno: previous.games.uno,
+                },
+            })
+        })
+        .or_else(|| {
             let previous: PreJumpInSavedPreferences = postcard::from_bytes(bytes).ok()?;
             Some(SavedPreferences {
                 global: previous.global,
                 games: GamePreferences {
                     qigui523: previous.games.qigui523,
-                    texas_holdem: previous.games.texas_holdem,
+                    texas_holdem: TexasHoldemPreferences {
+                        host_rules: previous.games.texas_holdem.host_rules.into(),
+                    },
                     shengji: previous.games.shengji,
                     uno: UnoPreferences {
                         host_rules: previous.games.uno.host_rules.into(),
@@ -170,7 +186,9 @@ pub(super) fn decode_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
                 global: previous.global,
                 games: GamePreferences {
                     qigui523: previous.games.qigui523,
-                    texas_holdem: previous.games.texas_holdem,
+                    texas_holdem: TexasHoldemPreferences {
+                        host_rules: previous.games.texas_holdem.host_rules.into(),
+                    },
                     shengji: previous.games.shengji,
                     uno: UnoPreferences {
                         host_rules: previous.games.uno.host_rules.into(),
@@ -184,7 +202,9 @@ pub(super) fn decode_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
                 global: previous.global,
                 games: GamePreferences {
                     qigui523: previous.games.qigui523,
-                    texas_holdem: previous.games.texas_holdem,
+                    texas_holdem: TexasHoldemPreferences {
+                        host_rules: previous.games.texas_holdem.host_rules.into(),
+                    },
                     shengji: previous.games.shengji,
                     uno: UnoPreferences::default(),
                 },

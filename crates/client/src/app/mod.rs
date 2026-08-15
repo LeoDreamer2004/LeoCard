@@ -299,6 +299,46 @@ struct TexasHoldemPreferences {
     host_rules: TexasHoldemRuleSet,
 }
 
+/// “奥马哈”加入前的德州扑克规则磁盘格式。
+#[derive(Deserialize, Serialize)]
+struct PreOmahaTexasHoldemRuleSet {
+    player_count: u8,
+    starting_chips: u16,
+    short_deck: bool,
+    ignore_kickers: bool,
+}
+
+impl From<PreOmahaTexasHoldemRuleSet> for TexasHoldemRuleSet {
+    fn from(value: PreOmahaTexasHoldemRuleSet) -> Self {
+        Self {
+            player_count: value.player_count,
+            starting_chips: value.starting_chips,
+            short_deck: value.short_deck,
+            ignore_kickers: value.ignore_kickers,
+            omaha: false,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreOmahaTexasHoldemPreferences {
+    host_rules: PreOmahaTexasHoldemRuleSet,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreOmahaSavedPreferences {
+    global: GlobalPreferences,
+    games: PreOmahaGamePreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreOmahaGamePreferences {
+    qigui523: QiGui523Preferences,
+    texas_holdem: PreOmahaTexasHoldemPreferences,
+    shengji: ShengjiPreferences,
+    uno: UnoPreferences,
+}
+
 /// “只比较最大牌型”加入前的德州规则磁盘格式。
 #[derive(Deserialize, Serialize)]
 struct PreviousTexasHoldemRuleSet {
@@ -314,6 +354,7 @@ impl From<PreviousTexasHoldemRuleSet> for TexasHoldemRuleSet {
             starting_chips: value.starting_chips,
             short_deck: value.short_deck,
             ignore_kickers: false,
+            omaha: false,
         }
     }
 }
@@ -368,7 +409,7 @@ struct PreJumpInSavedPreferences {
 #[derive(Deserialize, Serialize)]
 struct PreJumpInGamePreferences {
     qigui523: QiGui523Preferences,
-    texas_holdem: TexasHoldemPreferences,
+    texas_holdem: PreOmahaTexasHoldemPreferences,
     shengji: ShengjiPreferences,
     uno: PreJumpInUnoPreferences,
 }
@@ -408,7 +449,7 @@ struct PreviousUnoSavedPreferences {
 #[derive(Deserialize, Serialize)]
 struct PreviousUnoGamePreferences {
     qigui523: QiGui523Preferences,
-    texas_holdem: TexasHoldemPreferences,
+    texas_holdem: PreOmahaTexasHoldemPreferences,
     shengji: ShengjiPreferences,
     uno: PreviousUnoPreferences,
 }
@@ -423,7 +464,7 @@ struct PreUnoSavedPreferences {
 #[derive(Deserialize, Serialize)]
 struct PreUnoGamePreferences {
     qigui523: QiGui523Preferences,
-    texas_holdem: TexasHoldemPreferences,
+    texas_holdem: PreOmahaTexasHoldemPreferences,
     shengji: ShengjiPreferences,
 }
 

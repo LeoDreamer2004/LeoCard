@@ -1,7 +1,7 @@
 use std::collections::{HashSet, VecDeque};
 use std::fmt;
 
-use crate::{Card, EvaluatedHand, HandError, RuleError, RuleSet, build_deck, evaluate_best};
+use crate::{Card, EvaluatedHand, HandError, RuleError, RuleSet, build_deck, evaluate_player_hand};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -281,7 +281,7 @@ impl GameState {
             .map(|(index, stack)| PlayerState {
                 id: PlayerId(index),
                 stack,
-                hole_cards: Vec::with_capacity(2),
+                hole_cards: Vec::with_capacity(rules.hole_card_count()),
                 folded: stack == 0,
                 all_in: stack == 0,
                 committed_street: 0,
@@ -674,7 +674,7 @@ impl GameState {
 
         let first_dealt = self.next_funded(dealer).expect("another funded player");
         let mut dealt_to = first_dealt;
-        for _ in 0..2 {
+        for _ in 0..self.rules.hole_card_count() {
             loop {
                 let card = self
                     .deck
@@ -783,9 +783,11 @@ impl GameState {
         let contenders = self.contenders();
         let mut evaluated = vec![None; self.players.len()];
         for player in &contenders {
-            let mut cards = self.players[player.0].hole_cards.clone();
-            cards.extend_from_slice(&self.community);
-            evaluated[player.0] = Some(evaluate_best(&cards, &self.rules)?);
+            evaluated[player.0] = Some(evaluate_player_hand(
+                &self.players[player.0].hole_cards,
+                &self.community,
+                &self.rules,
+            )?);
         }
 
         let mut levels = self
@@ -986,6 +988,28 @@ mod tests {
                 .iter()
                 .all(|player| player.hole_cards().len() == 2)
         );
+    }
+
+    #[test]
+    fn omaha_deals_four_private_cards_to_every_funded_player() {
+        let state = GameState::new_with_deck(
+            RuleSet {
+                player_count: 3,
+                omaha: true,
+                ..RuleSet::default()
+            },
+            PlayerId(0),
+            build_deck(false),
+        )
+        .unwrap();
+
+        assert!(
+            state
+                .players()
+                .iter()
+                .all(|player| player.hole_cards().len() == 4)
+        );
+        assert_eq!(state.draw_pile_len(), 52 - 3 * 4);
     }
 
     #[test]

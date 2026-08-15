@@ -915,7 +915,7 @@ pub(in crate::app) fn add_texas_chip_areas(
                     .iter()
                     .find(|hand| hand.player == player.id)
             {
-                add_revealed_hole_cards(commands, zone, hand.cards, assets);
+                add_revealed_hole_cards(commands, zone, &hand.cards, assets);
             }
         }
     }
@@ -1194,15 +1194,16 @@ fn add_fold_card_feedback(
 ) {
     let own = own_cards.is_some();
     let tooltip = own_cards.and_then(|cards| {
-        (cards.len() == 2).then(|| add_own_fold_tooltip(commands, table, cards, assets))
+        (!cards.is_empty()).then(|| add_own_fold_tooltip(commands, table, cards, assets))
     });
     let layout = texas_player_chip_zone(0);
-    for index in 0..2 {
+    let card_count = own_cards.map_or(2, <[TexasHoldemCard]>::len);
+    for index in 0..card_count {
         let face = own_cards
             .and_then(|cards| cards.get(index))
             .copied()
             .map(|card| texas_card_face(card, assets));
-        let visual = fold_card_visual(index, elapsed, own);
+        let visual = fold_card_visual(index, card_count, elapsed, own);
         let initial_image = if visual.face_visible {
             face.clone().unwrap_or_else(|| assets.card_back.clone())
         } else {
@@ -1227,6 +1228,7 @@ fn add_fold_card_feedback(
                 visual.transform,
                 TexasFoldCard {
                     index,
+                    total: card_count,
                     elapsed,
                     own,
                     face,
@@ -1255,20 +1257,25 @@ fn add_own_fold_tooltip(
     assets: &UiAssets,
 ) -> Entity {
     let layout = texas_player_chip_zone(0);
+    let card_gap = 5.0;
+    let card_width = 40.0;
+    let content_width =
+        cards.len() as f32 * card_width + cards.len().saturating_sub(1) as f32 * card_gap;
+    let tooltip_width = (content_width + 14.0).max(106.0);
     let tooltip = spawn_node(
         commands,
         table,
         Node {
             position_type: PositionType::Absolute,
-            left: px(layout.left + layout.width * 0.5 - 53.0),
+            left: px(layout.left + layout.width * 0.5 - tooltip_width / 2.0),
             top: px(layout.top - 79.0),
-            width: px(106),
+            width: px(tooltip_width),
             height: px(72),
             padding: UiRect::all(px(7)),
             flex_direction: FlexDirection::Row,
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
-            column_gap: px(5),
+            column_gap: px(card_gap),
             border: UiRect::all(px(1)),
             border_radius: BorderRadius::all(px(9)),
             ..default()
@@ -1303,9 +1310,15 @@ fn add_own_fold_tooltip(
 fn add_revealed_hole_cards(
     commands: &mut Commands,
     zone: Entity,
-    cards: [TexasHoldemCard; 2],
+    cards: &[TexasHoldemCard],
     assets: &UiAssets,
 ) {
+    let omaha = cards.len() > 2;
+    let (width, card_width, card_height, gap) = if omaha {
+        (92.0, 29.0, 40.0, -8.0)
+    } else {
+        (70.0, 37.0, 49.0, -7.0)
+    };
     let hand = spawn_node(
         commands,
         zone,
@@ -1313,25 +1326,25 @@ fn add_revealed_hole_cards(
             position_type: PositionType::Absolute,
             left: percent(50),
             bottom: px(4),
-            width: px(70),
+            width: px(width),
             height: px(50),
             flex_direction: FlexDirection::Row,
-            column_gap: px(-7),
+            column_gap: px(gap),
             ..default()
         },
         None,
     );
     commands.entity(hand).insert((
-        UiTransform::from_translation(Val2::px(-35.0, 0.0)),
+        UiTransform::from_translation(Val2::px(-width / 2.0, 0.0)),
         ZIndex(20),
     ));
-    for card in cards {
+    for card in cards.iter().copied() {
         let image = texas_card_face(card, assets);
         let entity = commands
             .spawn((
                 Node {
-                    width: px(37),
-                    height: px(49),
+                    width: px(card_width),
+                    height: px(card_height),
                     border_radius: BorderRadius::all(px(3)),
                     ..default()
                 },
@@ -1603,10 +1616,10 @@ mod tests {
             1.0
         );
 
-        let own_start = fold_card_visual(0, 0.0, true);
-        let own_flipped = fold_card_visual(0, 0.30, true);
-        let own_settled = fold_card_visual(0, 0.72, true);
-        let own_rebuilt = fold_card_visual(0, 8.0, true);
+        let own_start = fold_card_visual(0, 2, 0.0, true);
+        let own_flipped = fold_card_visual(0, 2, 0.30, true);
+        let own_settled = fold_card_visual(0, 2, 0.72, true);
+        let own_rebuilt = fold_card_visual(0, 2, 8.0, true);
         assert!(own_start.face_visible);
         assert!(!own_flipped.face_visible);
         assert!(own_start.transform.scale.y > own_settled.transform.scale.y);

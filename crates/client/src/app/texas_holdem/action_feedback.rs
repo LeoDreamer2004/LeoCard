@@ -18,6 +18,7 @@ pub(in crate::app) struct TexasActionFeedbackText {
 #[derive(Component)]
 pub(in crate::app) struct TexasFoldCard {
     pub(in crate::app) index: usize,
+    pub(in crate::app) total: usize,
     pub(in crate::app) elapsed: f32,
     pub(in crate::app) own: bool,
     pub(in crate::app) face: Option<Handle<Image>>,
@@ -107,15 +108,29 @@ pub(in crate::app) struct FoldCardVisual {
     pub(in crate::app) face_visible: bool,
 }
 
-pub(in crate::app) fn fold_card_visual(index: usize, elapsed: f32, own: bool) -> FoldCardVisual {
+pub(in crate::app) fn fold_card_visual(
+    index: usize,
+    total: usize,
+    elapsed: f32,
+    own: bool,
+) -> FoldCardVisual {
     let duration = if own { 0.72 } else { 0.58 };
     let progress = (elapsed / duration).clamp(0.0, 1.0);
     let eased = 1.0 - (1.0 - progress).powi(3);
-    let side = if index == 0 { -1.0 } else { 1.0 };
+    let centered_index = index as f32 - total.saturating_sub(1) as f32 / 2.0;
+    let side = if centered_index < 0.0 { -1.0 } else { 1.0 };
     let mut transform = UiTransform::IDENTITY;
     if own {
-        let start = Vec2::new(if index == 0 { -88.0 } else { 5.0 }, 110.0);
-        let end = Vec2::new(if index == 0 { -18.0 } else { -10.0 }, 6.0);
+        let (start_x, end_x) = if total > 2 {
+            (-138.0 + index as f32 * 66.0, -26.0 + index as f32 * 8.0)
+        } else {
+            (
+                if index == 0 { -88.0 } else { 5.0 },
+                if index == 0 { -18.0 } else { -10.0 },
+            )
+        };
+        let start = Vec2::new(start_x, 110.0);
+        let end = Vec2::new(end_x, 6.0);
         let position = start.lerp(end, eased);
         let base_scale = 2.42 + (0.76 - 2.42) * eased;
         let flip = (progress / 0.34).clamp(0.0, 1.0);
@@ -164,7 +179,7 @@ pub(in crate::app) fn animate_texas_action_feedback(
     }
     for (mut card, mut transform, mut image) in &mut visuals.p1() {
         card.elapsed += time.delta_secs();
-        let visual = fold_card_visual(card.index, card.elapsed, card.own);
+        let visual = fold_card_visual(card.index, card.total, card.elapsed, card.own);
         *transform = visual.transform;
         image.image = if visual.face_visible {
             card.face.as_ref().unwrap_or(&card.back).clone()

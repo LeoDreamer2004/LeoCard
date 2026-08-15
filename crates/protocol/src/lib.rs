@@ -22,7 +22,7 @@ use leocard_uno::{
 };
 use serde::{Deserialize, Serialize};
 
-pub const PROTOCOL_VERSION: u16 = 22;
+pub const PROTOCOL_VERSION: u16 = 23;
 pub const MAX_FRAME_PAYLOAD: usize = 1024 * 1024;
 pub const MAX_PLAYER_NAME_CHARS: usize = 7;
 pub const AVATAR_DIMENSION: u32 = 64;
@@ -819,10 +819,11 @@ pub struct TexasHoldemPlayerState {
     pub completed_games: u32,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TexasHoldemRevealedHand {
     pub player: PlayerId,
-    pub cards: [TexasHoldemCard; 2],
+    /// 标准德州为两张，奥马哈为四张。
+    pub cards: Vec<TexasHoldemCard>,
     /// 未发满五张公共牌便因其他玩家弃牌结束时，可能不足以组成五张牌型。
     pub best: Option<EvaluatedHand>,
 }
@@ -1439,6 +1440,7 @@ mod tests {
             starting_chips: 40,
             short_deck: true,
             ignore_kickers: true,
+            omaha: true,
         };
         for command in [
             GameCommand::TexasHoldem(TexasHoldemCommand::SetAutoPlay { enabled: true }),

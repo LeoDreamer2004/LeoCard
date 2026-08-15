@@ -14,7 +14,7 @@ use leocard_protocol::{
 };
 use leocard_texas_holdem::{
     Action, ActionOutcome, Card, GameError, GameState, Phase, PlayerId as CorePlayerId, RuleError,
-    RuleSet, evaluate_best,
+    RuleSet, evaluate_player_hand,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -313,19 +313,23 @@ impl TexasHoldemAdapter {
         self.game
             .players()
             .iter()
-            .filter(|player| !player.folded() && player.hole_cards().len() == 2)
+            .filter(|player| {
+                !player.folded() && player.hole_cards().len() == self.game.rules().hole_card_count()
+            })
             .map(|player| {
-                let cards: [Card; 2] = player
-                    .hole_cards()
-                    .try_into()
-                    .expect("each funded player was dealt two cards");
-                let mut seven = cards.to_vec();
-                seven.extend_from_slice(self.game.community());
+                let cards = player.hole_cards().to_vec();
                 TexasHoldemRevealedHand {
                     player: self.protocol_player(player.id()),
                     cards,
-                    best: (seven.len() >= 5)
-                        .then(|| evaluate_best(&seven, self.game.rules()).ok())
+                    best: (self.game.community().len() >= 3)
+                        .then(|| {
+                            evaluate_player_hand(
+                                player.hole_cards(),
+                                self.game.community(),
+                                self.game.rules(),
+                            )
+                            .ok()
+                        })
                         .flatten(),
                 }
             })
@@ -492,6 +496,50 @@ mod tests {
         assert!(host.revealed_hands.is_empty());
         assert!(left.revealed_hands.is_empty());
         assert_eq!(host.players, left.players);
+    }
+
+    #[test]
+    fn omaha_snapshots_deal_and_reveal_four_cards_with_an_evaluated_hand() {
+        let mut game = TexasHoldemAdapter::new(
+            MatchId([8; 16]),
+            52300,
+            HOST,
+            vec![player(RIGHT, 2), player(HOST, 0), player(LEFT, 1)],
+            RuleSet {
+                omaha: true,
+                ..RuleSet::default()
+            },
+            HOST,
+            build_deck(false),
+        )
+        .unwrap();
+        assert_eq!(game.snapshot(HOST).unwrap().your_hole_cards.len(), 4);
+
+        game.act(LEFT, Action::PostBlind).unwrap();
+        game.act(RIGHT, Action::PostBlind).unwrap();
+        game.act(HOST, Action::AllIn).unwrap();
+        game.act(LEFT, Action::AllIn).unwrap();
+        game.act(RIGHT, Action::Call).unwrap();
+
+        let snapshot = game.snapshot(HOST).unwrap();
+        assert_eq!(snapshot.community.len(), 5);
+        assert_eq!(snapshot.revealed_hands.len(), 3);
+        assert!(
+            snapshot
+                .revealed_hands
+                .iter()
+                .all(|hand| hand.cards.len() == 4 && hand.best.is_some())
+        );
+
+        let message = ServerMessage {
+            protocol_version: PROTOCOL_VERSION,
+            room_id: RoomId(523),
+            revision: Revision(9),
+            in_reply_to: None,
+            event: ServerEvent::GameSnapshot(GameSnapshot::TexasHoldem(snapshot)),
+        };
+        let decoded: ServerMessage = decode_frame(&encode_frame(&message).unwrap()).unwrap();
+        assert_eq!(decoded, message);
     }
 
     #[test]

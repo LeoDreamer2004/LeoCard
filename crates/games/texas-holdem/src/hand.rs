@@ -96,6 +96,7 @@ impl Ord for EvaluatedHand {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HandError {
     CardCount(usize),
+    OmahaCardCount { hole: usize, community: usize },
     DuplicateCard(Card),
     CardUnavailableInShortDeck(Card),
 }
@@ -104,6 +105,10 @@ impl fmt::Display for HandError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::CardCount(actual) => write!(f, "牌型判定需要 5..=7 张牌，实际为 {actual}"),
+            Self::OmahaCardCount { hole, community } => write!(
+                f,
+                "奥马哈牌型判定需要 4 张底牌和 3..=5 张公共牌，实际为 {hole}+{community}"
+            ),
             Self::DuplicateCard(card) => write!(f, "牌组中重复出现 {card}"),
             Self::CardUnavailableInShortDeck(card) => {
                 write!(f, "短牌德州不能包含 {card}")
@@ -148,6 +153,72 @@ pub fn evaluate_best(cards: &[Card], rules: &RuleSet) -> Result<EvaluatedHand, H
         }
     }
     Ok(best.expect("at least one five-card combination exists"))
+}
+
+/// 按当前房间玩法评估一名玩家的牌。标准德州可从全部底牌与公共牌中任选五张；
+/// 奥马哈必须恰好选择两张底牌和三张公共牌。
+pub fn evaluate_player_hand(
+    hole_cards: &[Card],
+    community: &[Card],
+    rules: &RuleSet,
+) -> Result<EvaluatedHand, HandError> {
+    if rules.omaha {
+        evaluate_omaha(hole_cards, community, rules)
+    } else {
+        let mut cards = Vec::with_capacity(hole_cards.len() + community.len());
+        cards.extend_from_slice(hole_cards);
+        cards.extend_from_slice(community);
+        evaluate_best(&cards, rules)
+    }
+}
+
+/// 评估奥马哈高牌，严格枚举 2 张底牌与 3 张公共牌的所有组合。
+pub fn evaluate_omaha(
+    hole_cards: &[Card],
+    community: &[Card],
+    rules: &RuleSet,
+) -> Result<EvaluatedHand, HandError> {
+    if hole_cards.len() != 4 || !(3..=5).contains(&community.len()) {
+        return Err(HandError::OmahaCardCount {
+            hole: hole_cards.len(),
+            community: community.len(),
+        });
+    }
+    let mut seen = HashSet::with_capacity(hole_cards.len() + community.len());
+    for card in hole_cards.iter().chain(community) {
+        if !seen.insert(*card) {
+            return Err(HandError::DuplicateCard(*card));
+        }
+        if rules.short_deck && card.rank().value() < Rank::Six.value() {
+            return Err(HandError::CardUnavailableInShortDeck(*card));
+        }
+    }
+
+    let mut best = None;
+    for first_hole in 0..hole_cards.len() - 1 {
+        for second_hole in first_hole + 1..hole_cards.len() {
+            for first_board in 0..community.len() - 2 {
+                for second_board in first_board + 1..community.len() - 1 {
+                    for third_board in second_board + 1..community.len() {
+                        let evaluated = evaluate_five(
+                            [
+                                hole_cards[first_hole],
+                                hole_cards[second_hole],
+                                community[first_board],
+                                community[second_board],
+                                community[third_board],
+                            ],
+                            rules.short_deck,
+                        );
+                        if best.is_none_or(|current| evaluated > current) {
+                            best = Some(evaluated);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(best.expect("four hole cards and at least three board cards form a combination"))
 }
 
 fn evaluate_five(cards: [Card; 5], short_deck: bool) -> EvaluatedHand {
@@ -784,5 +855,67 @@ mod tests {
             ace_high.cmp_with_rules(&king_high, &ignore_kickers),
             Ordering::Greater
         );
+    }
+
+    #[test]
+    fn omaha_uses_exactly_two_hole_cards_and_three_board_cards() {
+        let omaha = RuleSet {
+            omaha: true,
+            ..RuleSet::default()
+        };
+        let board = [
+            c(Rank::Ace, Heart),
+            c(Rank::King, Heart),
+            c(Rank::Queen, Heart),
+            c(Rank::Jack, Heart),
+            c(Rank::Ten, Heart),
+        ];
+        let hand = evaluate_player_hand(
+            &[
+                c(Rank::Ace, Spade),
+                c(Rank::Ace, Diamond),
+                c(Rank::Four, Club),
+                c(Rank::Five, Club),
+            ],
+            &board,
+            &omaha,
+        )
+        .unwrap();
+
+        assert_eq!(hand.category(), HandCategory::ThreeOfAKind);
+        assert_eq!(
+            hand.cards()
+                .iter()
+                .filter(|card| board.contains(card))
+                .count(),
+            3
+        );
+    }
+
+    #[test]
+    fn omaha_can_form_a_hand_from_two_hole_and_three_board_cards() {
+        let omaha = RuleSet {
+            omaha: true,
+            ..RuleSet::default()
+        };
+        let hand = evaluate_omaha(
+            &[
+                c(Rank::Ace, Heart),
+                c(Rank::King, Heart),
+                c(Rank::Four, Club),
+                c(Rank::Five, Club),
+            ],
+            &[
+                c(Rank::Queen, Heart),
+                c(Rank::Jack, Heart),
+                c(Rank::Ten, Heart),
+                c(Rank::Two, Spade),
+                c(Rank::Three, Diamond),
+            ],
+            &omaha,
+        )
+        .unwrap();
+
+        assert_eq!(hand.category(), HandCategory::RoyalFlush);
     }
 }

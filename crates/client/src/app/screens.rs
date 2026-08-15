@@ -2366,7 +2366,30 @@ fn render_texas_holdem_lobby(
         commands,
         rules_panel,
         TexasRuleConfigRow {
-            label: "短牌德州",
+            label: "奥马哈",
+            value: if rules_value.omaha {
+                "开启".to_owned()
+            } else {
+                "关闭".to_owned()
+            },
+            help: "开启后每人发四张底牌；最终牌型必须恰好使用两张底牌和三张公共牌。",
+            editable: can_configure,
+            previous: can_configure.then_some(TexasHoldemRuleSet {
+                omaha: !rules_value.omaha,
+                ..rules_value
+            }),
+            next: can_configure.then_some(TexasHoldemRuleSet {
+                omaha: !rules_value.omaha,
+                ..rules_value
+            }),
+        },
+        assets,
+    );
+    add_texas_rule_config_row(
+        commands,
+        rules_panel,
+        TexasRuleConfigRow {
+            label: "短牌模式",
             value: if rules_value.short_deck {
                 "开启".to_owned()
             } else {
@@ -2584,10 +2607,11 @@ fn render_seat_selector(
         ],
         leocard_protocol::GameRules::TexasHoldem(rules) => vec![
             format!("{}筹码", rules.starting_chips),
-            if rules.short_deck {
-                "短牌".to_owned()
-            } else {
-                "标准牌".to_owned()
+            match (rules.omaha, rules.short_deck) {
+                (true, true) => "短牌奥马哈".to_owned(),
+                (true, false) => "奥马哈".to_owned(),
+                (false, true) => "短牌德州".to_owned(),
+                (false, false) => "标准德州".to_owned(),
             },
             if rules.ignore_kickers {
                 "只比较最大牌型".to_owned()

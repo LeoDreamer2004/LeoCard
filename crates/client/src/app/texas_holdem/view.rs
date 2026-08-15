@@ -48,7 +48,7 @@ pub(in crate::app) struct TexasBoardCardFlip {
 
 struct TexasInitialDeal {
     duration: f32,
-    own_delays: [f32; 2],
+    own_delays: Vec<f32>,
 }
 
 pub(in crate::app) fn render_texas_holdem_table(
@@ -171,7 +171,7 @@ pub(in crate::app) fn render_texas_holdem_table(
         table,
         game,
         own,
-        initial_deal.as_ref().map(|deal| deal.own_delays),
+        initial_deal.as_ref().map(|deal| deal.own_delays.as_slice()),
         ui,
         assets,
         avatars,
@@ -452,9 +452,10 @@ fn spawn_texas_initial_deal(
         funded.rotate_left(1);
     }
     let mut dealt = 0usize;
-    let mut own_delays = [0.0; 2];
+    let card_count = game.your_hole_cards.len();
+    let mut own_delays = vec![0.0; card_count];
     let mut own_card = 0usize;
-    for _ in 0..2 {
+    for _ in 0..card_count {
         for player in &funded {
             if player.id == game.you {
                 if own_card < own_delays.len() {
@@ -878,7 +879,7 @@ fn add_texas_own_area(
     table: Entity,
     game: &TexasHoldemSnapshot,
     own: &TexasHoldemPlayerState,
-    deal_delays: Option<[f32; 2]>,
+    deal_delays: Option<&[f32]>,
     ui: &mut UiState,
     assets: &UiAssets,
     avatars: &AvatarImages,
@@ -959,6 +960,12 @@ fn add_texas_own_area(
 
     // 一手结束后，自己的底牌也和其他玩家一样改放到面前的筹码区。
     if !matches!(game.phase, TexasHoldemPhaseView::HandComplete { .. }) {
+        let omaha = game.your_hole_cards.len() == 4;
+        let (area_width, card_width, card_height, card_gap) = if omaha {
+            (276.0, 62.0, 84.0, 4.0)
+        } else {
+            (180.0, 84.0, 114.0, 9.0)
+        };
         let hole_cards = spawn_node(
             commands,
             table,
@@ -966,24 +973,36 @@ fn add_texas_own_area(
                 position_type: PositionType::Absolute,
                 left: percent(50),
                 bottom: px(8),
-                width: px(180),
-                height: px(114),
+                width: px(area_width),
+                height: px(card_height),
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::FlexEnd,
                 justify_content: JustifyContent::Center,
-                column_gap: px(9),
+                column_gap: px(card_gap),
                 ..default()
             },
             None,
         );
         commands
             .entity(hole_cards)
-            .insert(UiTransform::from_translation(Val2::px(-90.0, 0.0)));
+            .insert(UiTransform::from_translation(Val2::px(
+                -area_width / 2.0,
+                0.0,
+            )));
         if !own.folded {
             for (index, card) in game.your_hole_cards.iter().copied().enumerate() {
-                let delay = deal_delays.map(|delays| delays[index.min(delays.len() - 1)]);
+                let delay = deal_delays
+                    .and_then(|delays| delays.get(index).or_else(|| delays.last()))
+                    .copied();
                 let animation = delay.map(|delay| (delay, Vec2::new(-280.0, -245.0)));
-                add_texas_card(commands, hole_cards, card, (84.0, 114.0), animation, assets);
+                add_texas_card(
+                    commands,
+                    hole_cards,
+                    card,
+                    (card_width, card_height),
+                    animation,
+                    assets,
+                );
                 if let Some(delay) = delay {
                     commands.spawn(PendingDealSound {
                         remaining: delay,
@@ -1426,12 +1445,17 @@ fn add_texas_showdown_reveal(
 
     let relative = (winner.seat.0 + TABLE_SEAT_COUNT - own_seat.0) % TABLE_SEAT_COUNT;
     let winner_zone = texas_player_chip_zone(relative);
+    let hole_spacing = if revealed.cards.len() > 2 { 18.0 } else { 31.0 };
+    let first_hole_offset = -hole_spacing * (revealed.cards.len().saturating_sub(1) as f32) / 2.0;
     for (index, card) in best.cards().into_iter().enumerate() {
         let hole_index = revealed.cards.iter().position(|hole| *hole == card);
         let (source, delay, start_scale) = if let Some(hole_index) = hole_index {
             (
                 Vec2::new(
-                    winner_zone.left + winner_zone.width * 0.5 - 31.0 + hole_index as f32 * 31.0,
+                    winner_zone.left
+                        + winner_zone.width * 0.5
+                        + first_hole_offset
+                        + hole_index as f32 * hole_spacing,
                     winner_zone.top + 34.0,
                 ),
                 0.12 + hole_index as f32 * 0.10,

@@ -1559,6 +1559,7 @@ mod tests {
             RuleSet {
                 short_deck: true,
                 ignore_kickers: true,
+                omaha: true,
                 ..RuleSet::default()
             },
             build_deck(true),
@@ -1575,6 +1576,7 @@ mod tests {
         assert_eq!(lobby.game, GameKind::TexasHoldem);
         assert!(lobby.texas_holdem_rules().unwrap().short_deck);
         assert!(lobby.texas_holdem_rules().unwrap().ignore_kickers);
+        assert!(lobby.texas_holdem_rules().unwrap().omaha);
         assert_eq!(lobby.host_port, 52300);
         assert!(session.game().is_none());
     }

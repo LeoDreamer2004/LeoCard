@@ -28,13 +28,14 @@ use leocard_client::{
 use leocard_protocol::{
     AVATAR_DIMENSION, AvatarId, ChatContent, ClientCommand, GameCommand, GameKind, GamePhaseView,
     GameViolation, MAX_AVATAR_BYTES, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS, MatchId,
-    PlayerId, PlayerInteractionKind, PlayerPublicState, PlayerScore, PublicPlay, PublicPlayRecord,
-    QUICK_VOICE_COUNT, QiGui523Command, RejectReason, RuleViolation, SeatId, ShengjiCommand,
-    ShengjiFiveTrumpCrossingStage, ShengjiPhaseView, ShengjiPlayerState, ShengjiPublicPlay,
-    ShengjiSnapshot, ShengjiThrowFailureStage, ShengjiViolation, TABLE_SEAT_COUNT,
-    TexasHoldemCommand, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemPlayerState,
+    PlayerGameProfiles, PlayerId, PlayerInteractionKind, PlayerPublicState, PlayerScore,
+    PublicPlay, PublicPlayRecord, QUICK_VOICE_COUNT, QiGui523Command, QiGui523ProfileStats,
+    RejectReason, RuleViolation, SeatId, ShengjiCommand, ShengjiFiveTrumpCrossingStage,
+    ShengjiPhaseView, ShengjiPlayerState, ShengjiProfileStats, ShengjiPublicPlay, ShengjiSnapshot,
+    ShengjiThrowFailureStage, ShengjiViolation, TABLE_SEAT_COUNT, TexasHoldemCommand,
+    TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemProfileStats,
     TexasHoldemSnapshot, TexasHoldemViolation, TurnTimerView, UnoCommand, UnoEvent, UnoPhaseView,
-    UnoPlayerState, UnoSnapshot, UnoViolation,
+    UnoPlayerState, UnoProfileStats, UnoSnapshot, UnoViolation,
 };
 use leocard_qigui523::{
     Card, ClassifiedPlay, GreedyRequest, GreedyStrategy, PlayKind, Rank, RuleSet, SameCardPolicy,
@@ -54,8 +55,9 @@ use leocard_texas_holdem::{
     Street as TexasStreet, Suit as TexasSuit,
 };
 use leocard_uno::{
-    Card as UnoCard, Color as UnoColor, Direction as UnoDirection, Face as UnoFace,
-    PendingDrawKind as UnoPendingDrawKind, RuleSet as UnoRuleSet, build_deck as build_uno_deck,
+    Card as UnoCard, ChallengeResult as UnoChallengeResult, Color as UnoColor,
+    Direction as UnoDirection, Face as UnoFace, PendingDrawKind as UnoPendingDrawKind,
+    RuleSet as UnoRuleSet, build_deck as build_uno_deck,
 };
 use serde::{Deserialize, Serialize};
 
@@ -573,10 +575,71 @@ struct StoredPlayerProfile {
 #[derive(Deserialize, Serialize)]
 struct StoredGameProfiles {
     qigui523: StoredRatingProfile,
+    texas_holdem_stats: Option<TexasHoldemProfileStats>,
+    shengji_stats: Option<ShengjiProfileStats>,
+    uno_stats: Option<UnoProfileStats>,
 }
 
 #[derive(Deserialize, Serialize)]
 struct StoredRatingProfile {
+    reference_points: i32,
+    completed_games: u32,
+    applied_matches: Vec<MatchId>,
+    qigui523_stats: Option<QiGui523ProfileStats>,
+}
+
+/// 0.1.4 开发期内、UNO 档案加入前写出的明细档案。
+#[derive(Deserialize, Serialize)]
+struct PreUnoStoredPlayerProfile {
+    secret_key: [u8; 32],
+    games: PreUnoStoredGameProfiles,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreUnoStoredGameProfiles {
+    qigui523: StoredRatingProfile,
+    texas_holdem_stats: Option<TexasHoldemProfileStats>,
+    shengji_stats: Option<ShengjiProfileStats>,
+}
+
+/// 0.1.4 开发期内、升级档案加入前写出的明细档案。
+#[derive(Deserialize, Serialize)]
+struct PreShengjiStoredPlayerProfile {
+    secret_key: [u8; 32],
+    games: PreShengjiStoredGameProfiles,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreShengjiStoredGameProfiles {
+    qigui523: StoredRatingProfile,
+    texas_holdem_stats: Option<TexasHoldemProfileStats>,
+}
+
+/// 0.1.4 开发期内、德州扑克档案加入前写出的明细档案。
+#[derive(Deserialize, Serialize)]
+struct PreTexasStoredPlayerProfile {
+    secret_key: [u8; 32],
+    games: PreTexasStoredGameProfiles,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreTexasStoredGameProfiles {
+    qigui523: StoredRatingProfile,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreDetailedStoredPlayerProfile {
+    secret_key: [u8; 32],
+    games: PreDetailedStoredGameProfiles,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreDetailedStoredGameProfiles {
+    qigui523: PreDetailedStoredRatingProfile,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreDetailedStoredRatingProfile {
     reference_points: i32,
     completed_games: u32,
     applied_matches: Vec<MatchId>,
@@ -586,6 +649,7 @@ struct StoredRatingProfile {
 struct LocalPlayerProfile {
     identity: PlayerIdentity,
     rating: PlayerRatingProfile,
+    game_profiles: PlayerGameProfiles,
 }
 
 struct PlayerRatingProfile {
@@ -593,6 +657,24 @@ struct PlayerRatingProfile {
     completed_games: u32,
     applied_matches: HashSet<MatchId>,
     last_change: Option<(MatchId, i16)>,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+enum ProfileGameTab {
+    #[default]
+    QiGui523,
+    TexasHoldem,
+    Shengji,
+    Uno,
+}
+
+impl ProfileGameTab {
+    const ALL: [(Self, &'static str); 4] = [
+        (Self::QiGui523, "七鬼五二三"),
+        (Self::TexasHoldem, "德州扑克"),
+        (Self::Shengji, "升级"),
+        (Self::Uno, "UNO"),
+    ];
 }
 
 #[derive(Resource, Default)]
@@ -609,6 +691,8 @@ struct UiState {
     interaction_menu_open: Option<PlayerId>,
     settings_open: bool,
     profile_open: bool,
+    player_profile: Option<PlayerProfilePage>,
+    profile_game_tab: ProfileGameTab,
     host_game_picker_open: bool,
     texas_raise_to: u32,
     texas_observed_match: Option<MatchId>,
@@ -620,6 +704,30 @@ struct UiState {
     uno_color_choice: Option<UnoCard>,
     dirty: bool,
 }
+
+#[derive(Clone)]
+struct PlayerProfilePage {
+    name: String,
+    avatar: Option<Handle<Image>>,
+    reference_points: i32,
+    completed_games: u32,
+    game_profiles: PlayerGameProfiles,
+}
+
+#[derive(Component)]
+struct SelectedProfileGameTab;
+
+#[derive(Component)]
+struct ProfileGameContent;
+
+#[derive(Component)]
+struct ProfileGameTabButton;
+
+#[derive(Component)]
+struct ProfileGameColumn;
+
+#[derive(Component)]
+struct ProfileStat;
 
 #[derive(Resource, Default)]
 struct PlayErrorToast {
@@ -875,6 +983,7 @@ struct UiAssets {
     summary_die_sound: Handle<AudioSource>,
     quick_voice_sounds: Vec<Handle<AudioSource>>,
     texas_sounds: TexasSoundAssets,
+    uno_sounds: UnoSoundAssets,
     sequence_airplane: Handle<Image>,
     shengji_target: Handle<Image>,
     shengji_dart: Handle<Image>,
@@ -1448,6 +1557,8 @@ enum UiAction {
     ChooseAvatar,
     ClearAvatar,
     ToggleProfile,
+    OpenPlayerProfile(PlayerProfilePage),
+    SelectProfileGameTab(ProfileGameTab),
     ToggleSettings,
     StartUpdate,
     OpenGitHubRepository,
@@ -1566,6 +1677,9 @@ struct UnoHandCardVisual {
     hover_amount: f32,
     selected_amount: f32,
 }
+
+#[derive(Component)]
+struct UnoHandCardButton;
 
 #[derive(Resource, Default)]
 struct UnoPresentationState {
@@ -1726,6 +1840,7 @@ mod shengji;
 mod texas_holdem;
 mod turn_border;
 mod uno;
+mod uno_audio;
 mod update;
 mod widgets;
 
@@ -1746,6 +1861,7 @@ use shengji::*;
 use texas_holdem::*;
 use turn_border::*;
 use uno::*;
+use uno_audio::*;
 use update::*;
 use widgets::*;
 
@@ -1767,6 +1883,7 @@ pub(crate) fn run() {
                     applied_matches: HashSet::new(),
                     last_change: None,
                 },
+                game_profiles: PlayerGameProfiles::default(),
             }
         }
     };
@@ -1788,6 +1905,7 @@ pub(crate) fn run() {
         .insert_resource(ShengjiSettlementAnimation::default())
         .insert_resource(ShengjiPresentationState::default())
         .insert_resource(UnoPresentationState::default())
+        .insert_resource(UnoAudioState::default())
         .insert_resource(StartGameSeatTransition::default())
         .insert_resource(TurnBorderAnimationState::default())
         .insert_resource(PlayerInteractionCooldown::default())
@@ -1847,6 +1965,7 @@ pub(crate) fn run() {
                     sync_table_appearance,
                     update_button_tints,
                     play_button_click_sounds,
+                    play_uno_card_selection_sounds,
                     animate_button_presses,
                     animate_lobby_seat_hover,
                     handle_lobby_bot_seat_right_click,
@@ -1936,6 +2055,7 @@ pub(crate) fn run() {
                             poll_update_events,
                             render_ui,
                             spawn_uno_presentation_effects,
+                            play_uno_audio_cues,
                             (
                                 // 飞牌结束时先应用 despawn，再在同一帧显示权威弃牌；
                                 // 顺序反过来会让两者同时缺席一个渲染帧，产生落地闪烁。

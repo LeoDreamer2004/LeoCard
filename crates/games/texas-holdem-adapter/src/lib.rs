@@ -235,6 +235,7 @@ impl TexasHoldemAdapter {
                 ready: false,
                 reference_points: participant.reference_points,
                 completed_games: participant.completed_games,
+                game_profiles: Default::default(),
             })
             .collect();
         let phase = match self.game.phase() {

@@ -311,6 +311,7 @@ fn add_uno_player_panel(
         avatar_handle,
         player.reference_points,
         player.completed_games,
+        &player.game_profiles,
         assets,
     );
     commands
@@ -767,6 +768,7 @@ fn add_uno_own_area(
         if playable {
             entity.insert((
                 Button,
+                UnoHandCardButton,
                 UiAction::ToggleUnoCard(card),
                 ButtonTint {
                     normal: Color::WHITE,
@@ -873,16 +875,7 @@ fn add_uno_actions(
     if game.uno_declared.contains(&game.you) && selected.is_none() {
         return;
     }
-    if game.pending_skip > 0 || own_skips > 0 {
-        add_action_button(
-            commands,
-            actions,
-            &format!("接受禁手 ×{}", game.pending_skip + own_skips),
-            UiAction::UnoResolveSkip,
-            ButtonKind::Pass,
-            assets,
-        );
-    } else if let Some(card) = selected {
+    if let Some(card) = selected {
         let card_count = uno_cards_for_selection(game, card).len();
         add_action_button(
             commands,
@@ -917,6 +910,15 @@ fn add_uno_actions(
                 assets,
             );
         }
+    } else if game.pending_skip > 0 || own_skips > 0 {
+        add_action_button(
+            commands,
+            actions,
+            &format!("接受禁手 ×{}", game.pending_skip + own_skips),
+            UiAction::UnoResolveSkip,
+            ButtonKind::Pass,
+            assets,
+        );
     } else if game.your_drawn_card.is_some() {
         add_action_button(
             commands,
@@ -1512,6 +1514,14 @@ fn uno_ui_color(color: UnoColor) -> Color {
     }
 }
 
+pub(in crate::app) fn uno_should_show_reverse_effect(
+    card: UnoCard,
+    play_index: u8,
+    play_count: u8,
+) -> bool {
+    card.face() == UnoFace::Reverse && play_index == 0 && play_count % 2 == 1
+}
+
 /// UNO 手牌沿用其他游戏的柔和抬升、渐变描边与阴影，不用突兀的离散跳变。
 pub(in crate::app) fn animate_uno_hand_cards(
     time: Res<Time>,
@@ -1596,6 +1606,7 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
     assets: Res<UiAssets>,
     mut palette_materials: ResMut<Assets<UnoPaletteMaterial>>,
     mut presentation: ResMut<UnoPresentationState>,
+    mut audio: ResMut<UnoAudioState>,
     layers: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<PlayerInteractionLayer>>,
     players: Query<(&PlayerAvatarAnchor, &ComputedNode, &UiGlobalTransform)>,
     draws: Query<(&ComputedNode, &UiGlobalTransform), With<UnoDrawPileAnchor>>,
@@ -1641,11 +1652,14 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
     }
 
     while let Some(event) = presentation.events.pop_front() {
+        audio.queue_event(&event, game.you);
         match event {
             UnoEvent::CardPlayed {
                 player,
                 card,
                 chosen_color,
+                play_index,
+                play_count,
             } => {
                 let source =
                     uno_player_anchor_in_layer(player, layer_node, layer_transform, &players)
@@ -1668,7 +1682,7 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                     card.copy() as usize,
                     card_pose.2,
                 );
-                if card.face() == UnoFace::Reverse {
+                if uno_should_show_reverse_effect(card, play_index, play_count) {
                     spawn_uno_reverse_effect(
                         &mut commands,
                         layer,
@@ -1681,7 +1695,9 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                             .expect("UNO 反转牌始终带有颜色"),
                     );
                 }
-                if let Some(color) = chosen_color {
+                if play_index == 0
+                    && let Some(color) = chosen_color
+                {
                     spawn_uno_palette_effect(
                         &mut commands,
                         layer,
@@ -1699,6 +1715,7 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                     uno_player_anchor_in_layer(player, layer_node, layer_transform, &players)
                         .unwrap_or(discard_position),
                     count,
+                    0.0,
                     &assets,
                 );
             }
@@ -1712,6 +1729,7 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                     uno_player_anchor_in_layer(penalized, layer_node, layer_transform, &players)
                         .unwrap_or(discard_position),
                     count,
+                    0.18,
                     &assets,
                 );
             }
@@ -1727,6 +1745,7 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                     uno_player_anchor_in_layer(player, layer_node, layer_transform, &players)
                         .unwrap_or(discard_position),
                     1,
+                    0.02,
                     &assets,
                 );
             }
@@ -1840,6 +1859,7 @@ fn spawn_uno_draw_cards(
     source: Vec2,
     target: Vec2,
     count: u16,
+    base_delay: f32,
     assets: &UiAssets,
 ) {
     for index in 0..usize::from(count.min(16)) {
@@ -1850,7 +1870,7 @@ fn spawn_uno_draw_cards(
             None,
             source,
             target,
-            index as f32 * 0.045,
+            base_delay + index as f32 * 0.045,
             true,
             index,
             0.0,

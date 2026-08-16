@@ -23,15 +23,17 @@ use ed25519_dalek::{Signature, VerifyingKey};
 use leocard_protocol::{
     AVATAR_DIMENSION, ChatContent, ClientCommand, ClientMessage, GameCommand, GameEvent, GameKind,
     GamePhaseView, GameRules, GameSnapshot, GameViolation, LobbySnapshot, MAX_AVATAR_BYTES,
-    MAX_PLAYER_NAME_CHARS, MatchId, PlayerId, PlayerInteraction, PlayerInteractionKind,
-    PlayerPublicState, PlayerReferenceChange, PlayerScore, ProfileId, PublicPlay, PublicPlayRecord,
-    QiGui523Command, QiGui523Event, QiGui523Snapshot, ReconnectToken, RejectReason, RequestId,
-    RevealedHand, Revision, RoomId, RuleViolation, SeatId, ServerEvent, ServerMessage,
-    StartingCardView, TABLE_SEAT_COUNT, TrickView, TurnTimerView, join_identity_payload,
+    MAX_PLAYER_NAME_CHARS, MatchId, PlayerGameProfiles, PlayerId, PlayerInteraction,
+    PlayerInteractionKind, PlayerPublicState, PlayerReferenceChange, PlayerScore, ProfileId,
+    PublicPlay, PublicPlayRecord, QiGui523Command, QiGui523Event, QiGui523ProfileStats,
+    QiGui523Snapshot, ReconnectToken, RejectReason, RequestId, RevealedHand, Revision, RoomId,
+    RuleViolation, SeatId, ServerEvent, ServerMessage, StartingCardView, TABLE_SEAT_COUNT,
+    TrickView, TurnTimerView, join_identity_payload,
 };
 use leocard_qigui523::{
-    Card, GameError, GameState, GreedyRequest, GreedyStrategy, Phase, PlayError, PlayRecord,
-    PlayerId as CorePlayerId, RuleError, RuleSet, build_deck, classify, reference_point_deltas,
+    Card, GameError, GameState, GreedyRequest, GreedyStrategy, Phase, PlayError, PlayKind,
+    PlayRecord, PlayerId as CorePlayerId, RuleError, RuleSet, build_deck, classify,
+    reference_point_deltas,
 };
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -126,6 +128,7 @@ pub struct QiGui523Session {
     game: Option<GameState>,
     match_id: Option<MatchId>,
     finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
+    match_profile_stats: Vec<QiGui523ProfileStats>,
     turn_timer: Option<TurnTimerState>,
     auto_play_delay: Option<AutoPlayDelayState>,
 }
@@ -169,6 +172,7 @@ impl QiGui523Session {
             game: None,
             match_id: None,
             finished_reference_changes: None,
+            match_profile_stats: Vec::new(),
             turn_timer: None,
             auto_play_delay: None,
         })
@@ -325,6 +329,7 @@ impl QiGui523Session {
                 profile_id,
                 reference_points,
                 completed_games,
+                game_profiles,
                 identity_signature,
             } => self.join(
                 connection,
@@ -334,6 +339,7 @@ impl QiGui523Session {
                 profile_id,
                 reference_points,
                 completed_games,
+                game_profiles,
                 identity_signature,
             ),
             ClientCommand::SetAvatar { png } => {
@@ -519,6 +525,7 @@ impl QiGui523Session {
         profile_id: ProfileId,
         reference_points: i32,
         completed_games: u32,
+        game_profiles: PlayerGameProfiles,
         identity_signature: Vec<u8>,
     ) -> Vec<Delivery> {
         if self.player_id(connection).is_some() {
@@ -544,6 +551,7 @@ impl QiGui523Session {
             profile_id,
             reference_points,
             completed_games,
+            &game_profiles,
             &identity_signature,
         ) {
             return self.reject(connection, request_id, RejectReason::InvalidIdentityProof);
@@ -604,6 +612,7 @@ impl QiGui523Session {
             left: false,
             reference_points,
             completed_games,
+            game_profiles,
         };
         if let Some(index) = vacant {
             self.players[index] = participant;
@@ -898,6 +907,7 @@ impl QiGui523Session {
         self.game = Some(game);
         self.match_id = Some(new_match_id());
         self.finished_reference_changes = None;
+        self.match_profile_stats = vec![QiGui523ProfileStats::default(); self.players.len()];
         self.auto_play_delay = None;
         self.reset_auto_play_delay_for_current_turn();
         self.initialize_turn_timer();
@@ -930,6 +940,7 @@ impl QiGui523Session {
         self.game = None;
         self.match_id = None;
         self.finished_reference_changes = None;
+        self.match_profile_stats.clear();
         self.turn_timer = None;
         self.auto_play_delay = None;
         #[cfg(feature = "developer")]
@@ -1042,7 +1053,6 @@ impl QiGui523Session {
         self.remove_departed_players();
         for player in &mut self.players {
             player.ready = false;
-            player.auto_play = player.is_bot;
         }
 
         let mut deck = build_deck(self.rules.deck_count);
@@ -1071,6 +1081,7 @@ impl QiGui523Session {
         self.game = Some(game);
         self.match_id = Some(new_match_id());
         self.finished_reference_changes = None;
+        self.match_profile_stats = vec![QiGui523ProfileStats::default(); self.players.len()];
         self.reset_auto_play_delay_for_current_turn();
         self.initialize_turn_timer();
         self.bump_revision();
@@ -1410,10 +1421,33 @@ impl QiGui523Session {
         let deltas = reference_point_deltas(&scores)
             .expect("a running game always contains between two and six players");
         let mut changes = Vec::with_capacity(self.players.len());
+        let match_profile_stats = self.match_profile_stats.clone();
         self.room.prepare_rematch();
-        for (player, delta) in self.players.iter_mut().zip(deltas) {
+        for (index, ((player, delta), score)) in self
+            .players
+            .iter_mut()
+            .zip(deltas)
+            .zip(scores.iter().copied())
+            .enumerate()
+        {
             player.reference_points = player.reference_points.saturating_add(i32::from(delta));
             player.completed_games = player.completed_games.saturating_add(1);
+            let placement = 1 + scores.iter().filter(|other| **other > score).count();
+            let aggregate = player
+                .game_profiles
+                .qigui523
+                .get_or_insert_with(QiGui523ProfileStats::default);
+            aggregate.completed_games = aggregate.completed_games.saturating_add(1);
+            aggregate.total_score = aggregate.total_score.saturating_add(u64::from(score));
+            aggregate.total_reference_delta = aggregate
+                .total_reference_delta
+                .saturating_add(i64::from(delta));
+            if let Some(count) = aggregate.placement_counts.get_mut(placement - 1) {
+                *count = count.saturating_add(1);
+            }
+            if let Some(current) = match_profile_stats.get(index) {
+                merge_qigui523_play_stats(aggregate, current);
+            }
             changes.push(PlayerReferenceChange {
                 player: player.id,
                 profile_id: player.profile_id,
@@ -1428,6 +1462,11 @@ impl QiGui523Session {
         origin: Option<(ConnectionId, RequestId)>,
         effect: Option<(PlayerId, PublicPlay)>,
     ) -> Vec<Delivery> {
+        if let Some((player, play)) = effect.as_ref()
+            && let Some(stats) = self.match_profile_stats.get_mut(usize::from(player.0))
+        {
+            record_qigui523_play(stats, &play.kind);
+        }
         let mut deliveries = effect
             .map(|effect| self.broadcast_play_effect(effect))
             .unwrap_or_default();
@@ -1480,6 +1519,7 @@ impl QiGui523Session {
                 auto_play: participant.auto_play,
                 reference_points: participant.reference_points,
                 completed_games: participant.completed_games,
+                game_profiles: participant.game_profiles.clone(),
             })
             .collect();
         let starting = game.starting_card();
@@ -1817,6 +1857,7 @@ fn valid_identity_proof(
     profile_id: ProfileId,
     reference_points: i32,
     completed_games: u32,
+    game_profiles: &PlayerGameProfiles,
     signature: &[u8],
 ) -> bool {
     let Ok(verifying_key) = VerifyingKey::from_bytes(&profile_id.0) else {
@@ -1833,6 +1874,7 @@ fn valid_identity_proof(
                 name,
                 reference_points,
                 completed_games,
+                game_profiles,
             ),
             &signature,
         )
@@ -1868,6 +1910,59 @@ fn validate_deck(deck_count: u8, deck: &[Card]) -> Result<(), HostError> {
         return Err(HostError::InvalidDeckContents);
     }
     Ok(())
+}
+
+fn record_qigui523_play(stats: &mut QiGui523ProfileStats, kind: &PlayKind) {
+    match kind {
+        PlayKind::Straight { card_count } => {
+            stats.straight_plays = stats.straight_plays.saturating_add(1);
+            stats.longest_straight = stats
+                .longest_straight
+                .max(u16::try_from(*card_count).unwrap_or(u16::MAX));
+        }
+        PlayKind::ConsecutivePairs { pair_count } => {
+            stats.consecutive_pair_plays = stats.consecutive_pair_plays.saturating_add(1);
+            stats.longest_consecutive_pairs = stats
+                .longest_consecutive_pairs
+                .max(u16::try_from(*pair_count).unwrap_or(u16::MAX));
+        }
+        PlayKind::Airplane { triple_count } => {
+            stats.airplane_plays = stats.airplane_plays.saturating_add(1);
+            stats.longest_airplane = stats
+                .longest_airplane
+                .max(u16::try_from(*triple_count).unwrap_or(u16::MAX));
+        }
+        PlayKind::Bomb(_) => stats.bomb_plays = stats.bomb_plays.saturating_add(1),
+        PlayKind::HeavenBomb => {
+            stats.heaven_bomb_plays = stats.heaven_bomb_plays.saturating_add(1);
+        }
+        PlayKind::Single
+        | PlayKind::Pair
+        | PlayKind::Triple
+        | PlayKind::TripleWithSingle
+        | PlayKind::TripleWithPair => {}
+    }
+}
+
+fn merge_qigui523_play_stats(aggregate: &mut QiGui523ProfileStats, current: &QiGui523ProfileStats) {
+    aggregate.straight_plays = aggregate
+        .straight_plays
+        .saturating_add(current.straight_plays);
+    aggregate.consecutive_pair_plays = aggregate
+        .consecutive_pair_plays
+        .saturating_add(current.consecutive_pair_plays);
+    aggregate.airplane_plays = aggregate
+        .airplane_plays
+        .saturating_add(current.airplane_plays);
+    aggregate.bomb_plays = aggregate.bomb_plays.saturating_add(current.bomb_plays);
+    aggregate.heaven_bomb_plays = aggregate
+        .heaven_bomb_plays
+        .saturating_add(current.heaven_bomb_plays);
+    aggregate.longest_straight = aggregate.longest_straight.max(current.longest_straight);
+    aggregate.longest_consecutive_pairs = aggregate
+        .longest_consecutive_pairs
+        .max(current.longest_consecutive_pairs);
+    aggregate.longest_airplane = aggregate.longest_airplane.max(current.longest_airplane);
 }
 
 fn to_core_player(player: PlayerId) -> CorePlayerId {
@@ -1950,13 +2045,15 @@ mod tests {
         secret[..8].copy_from_slice(&token.0.to_be_bytes());
         secret[8] = 1;
         let key = SigningKey::from_bytes(&secret);
-        let payload = join_identity_payload(ROOM, token, name, 0, 0);
+        let game_profiles = PlayerGameProfiles::default();
+        let payload = join_identity_payload(ROOM, token, name, 0, 0, &game_profiles);
         ClientCommand::Join {
             name: name.to_owned(),
             reconnect_token: token,
             profile_id: ProfileId(key.verifying_key().to_bytes()),
             reference_points: 0,
             completed_games: 0,
+            game_profiles,
             identity_signature: key.sign(&payload).to_bytes().to_vec(),
         }
     }
@@ -2343,6 +2440,20 @@ mod tests {
                 .iter()
                 .all(|player| player.completed_games == 1)
         );
+        for ((player, score), delta) in session
+            .players
+            .iter()
+            .zip(scores.iter().copied())
+            .zip(expected.iter().copied())
+        {
+            let stats = player.game_profiles.qigui523.as_ref().unwrap();
+            assert_eq!(stats.completed_games, 1);
+            assert_eq!(stats.total_score, u64::from(score));
+            assert_eq!(stats.total_reference_delta, i64::from(delta));
+            let placement = 1 + scores.iter().filter(|other| **other > score).count();
+            assert_eq!(stats.placement_counts.iter().sum::<u32>(), 1);
+            assert_eq!(stats.placement_counts[placement - 1], 1);
+        }
         assert!(deliveries.iter().all(|delivery| {
             qigui523_snapshot(&delivery.message.event).is_some_and(|snapshot| {
                 matches!(
@@ -2378,6 +2489,40 @@ mod tests {
                 .iter()
                 .all(|player| player.completed_games == 1)
         );
+        assert!(session.players.iter().all(|player| {
+            player
+                .game_profiles
+                .qigui523
+                .as_ref()
+                .is_some_and(|stats| stats.completed_games == 1)
+        }));
+    }
+
+    #[test]
+    fn qigui523_profile_play_statistics_count_types_and_keep_longest_lengths() {
+        let mut stats = QiGui523ProfileStats::default();
+        for kind in [
+            PlayKind::Straight { card_count: 5 },
+            PlayKind::Straight { card_count: 8 },
+            PlayKind::ConsecutivePairs { pair_count: 3 },
+            PlayKind::Airplane { triple_count: 2 },
+            PlayKind::Bomb(leocard_qigui523::BombKind::OfAKind {
+                card_count: 4,
+                rank: leocard_qigui523::Rank::Ace,
+            }),
+            PlayKind::HeavenBomb,
+        ] {
+            record_qigui523_play(&mut stats, &kind);
+        }
+
+        assert_eq!(stats.straight_plays, 2);
+        assert_eq!(stats.consecutive_pair_plays, 1);
+        assert_eq!(stats.airplane_plays, 1);
+        assert_eq!(stats.bomb_plays, 1);
+        assert_eq!(stats.heaven_bomb_plays, 1);
+        assert_eq!(stats.longest_straight, 8);
+        assert_eq!(stats.longest_consecutive_pairs, 3);
+        assert_eq!(stats.longest_airplane, 2);
     }
 
     #[test]
@@ -3202,6 +3347,49 @@ mod tests {
                     && snapshot.players.iter().all(|player| !player.ready)
             })
         }));
+    }
+
+    #[test]
+    fn player_still_in_auto_play_is_ready_and_remains_in_auto_play_next_game() {
+        let mut session = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();
+        join_three(&mut session);
+        ready_and_start(&mut session);
+        session
+            .players
+            .iter_mut()
+            .find(|player| player.connection == SECOND)
+            .unwrap()
+            .auto_play = true;
+
+        finish_game(&mut session);
+        session.broadcast_game_after_update(None);
+
+        let auto_player = session
+            .players
+            .iter()
+            .find(|player| player.connection == SECOND)
+            .unwrap();
+        assert!(auto_player.ready);
+        assert!(auto_player.auto_play);
+        assert!(
+            session
+                .players
+                .iter()
+                .filter(|player| player.connection != SECOND)
+                .all(|player| !player.ready)
+        );
+
+        send_next(&mut session, HOST, ClientCommand::PlayAgain);
+        send_next(&mut session, THIRD, ClientCommand::PlayAgain);
+
+        assert!(matches!(session.game().unwrap().phase(), Phase::Playing));
+        let auto_player = session
+            .players
+            .iter()
+            .find(|player| player.connection == SECOND)
+            .unwrap();
+        assert!(!auto_player.ready);
+        assert!(auto_player.auto_play);
     }
 
     #[test]

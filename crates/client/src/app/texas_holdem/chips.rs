@@ -884,6 +884,7 @@ pub(in crate::app) fn add_texas_chip_areas(
     commands: &mut Commands,
     table: Entity,
     game: &TexasHoldemSnapshot,
+    hole_card_count: usize,
     state: &TexasChipTableState,
     assets: &UiAssets,
 ) {
@@ -906,7 +907,15 @@ pub(in crate::app) fn add_texas_chip_areas(
                 if label.kind == ActionFeedbackKind::Fold {
                     let own_cards =
                         (player.id == game.you).then_some(game.your_hole_cards.as_slice());
-                    add_fold_card_feedback(commands, table, zone, label.elapsed, own_cards, assets);
+                    add_fold_card_feedback(
+                        commands,
+                        table,
+                        zone,
+                        label.elapsed,
+                        own_cards,
+                        hole_card_count,
+                        assets,
+                    );
                 }
             }
             if matches!(game.phase, TexasHoldemPhaseView::HandComplete { .. })
@@ -1190,6 +1199,7 @@ fn add_fold_card_feedback(
     zone: Entity,
     elapsed: f32,
     own_cards: Option<&[TexasHoldemCard]>,
+    hidden_card_count: usize,
     assets: &UiAssets,
 ) {
     let own = own_cards.is_some();
@@ -1197,7 +1207,7 @@ fn add_fold_card_feedback(
         (!cards.is_empty()).then(|| add_own_fold_tooltip(commands, table, cards, assets))
     });
     let layout = texas_player_chip_zone(0);
-    let card_count = own_cards.map_or(2, <[TexasHoldemCard]>::len);
+    let card_count = own_cards.map_or(hidden_card_count, <[TexasHoldemCard]>::len);
     for index in 0..card_count {
         let face = own_cards
             .and_then(|cards| cards.get(index))
@@ -1425,6 +1435,7 @@ mod tests {
                     ready: false,
                     reference_points: 0,
                     completed_games: 0,
+                    game_profiles: PlayerGameProfiles::default(),
                 },
             )
             .collect::<Vec<_>>();
@@ -1628,5 +1639,39 @@ mod tests {
             own_settled.transform.translation,
             own_rebuilt.transform.translation
         );
+    }
+
+    #[test]
+    fn omaha_opponent_fold_renders_four_hidden_cards() {
+        fn setup(mut commands: Commands, assets: Res<UiAssets>) {
+            let table = commands.spawn(Node::default()).id();
+            let zone = commands.spawn(Node::default()).id();
+            commands.entity(table).add_child(zone);
+            add_fold_card_feedback(&mut commands, table, zone, 0.0, None, 4, &assets);
+        }
+
+        let mut app = App::new();
+        app.init_resource::<UiAssets>();
+        app.add_systems(Startup, setup);
+        app.update();
+
+        let cards = app
+            .world_mut()
+            .query::<&TexasFoldCard>()
+            .iter(app.world())
+            .map(|card| (card.index, card.total, card.own))
+            .collect::<Vec<_>>();
+        assert_eq!(cards.len(), 4);
+        assert!(cards.iter().all(|(_, total, own)| *total == 4 && !own));
+
+        let positions = (0..4)
+            .map(|index| {
+                fold_card_visual(index, 4, 0.58, false)
+                    .transform
+                    .translation
+                    .x
+            })
+            .collect::<Vec<_>>();
+        assert!(positions.windows(2).all(|pair| pair[0] != pair[1]));
     }
 }

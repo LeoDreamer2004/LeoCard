@@ -651,6 +651,7 @@ fn add_shengji_player_panel(
         avatar,
         player.reference_points,
         player.completed_games,
+        &player.game_profiles,
         assets,
     );
     commands
@@ -1521,20 +1522,8 @@ fn add_shengji_actions(
                 assets,
             );
         }
-        ShengjiPhaseView::BottomCopying { player, .. } => {
-            let name = game
-                .players
-                .iter()
-                .find(|candidate| candidate.id == *player)
-                .map_or("其他玩家", |candidate| candidate.name.as_str());
-            add_text(
-                commands,
-                actions,
-                &format!("等待 {name} 决定是否抄底…"),
-                15.0,
-                MUTED,
-                assets,
-            );
+        ShengjiPhaseView::BottomCopying { .. } => {
+            add_text(commands, actions, "等待抄底…", 15.0, MUTED, assets);
         }
         ShengjiPhaseView::BottomCopyBurying { player } if *player == game.you => {
             let count = ui.selected_shengji.len();
@@ -1557,20 +1546,8 @@ fn add_shengji_actions(
                 );
             }
         }
-        ShengjiPhaseView::BottomCopyBurying { player } => {
-            let name = game
-                .players
-                .iter()
-                .find(|candidate| candidate.id == *player)
-                .map_or("抄底玩家", |candidate| candidate.name.as_str());
-            add_text(
-                commands,
-                actions,
-                &format!("等待 {name} 重新埋底…"),
-                15.0,
-                MUTED,
-                assets,
-            );
+        ShengjiPhaseView::BottomCopyBurying { .. } => {
+            add_text(commands, actions, "等待抄底…", 15.0, MUTED, assets);
         }
         ShengjiPhaseView::FiveTrumpCrossing {
             stage: ShengjiFiveTrumpCrossingStage::Deciding,

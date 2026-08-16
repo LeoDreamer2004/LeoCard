@@ -402,8 +402,16 @@ mod tests {
             secret[..8].copy_from_slice(&index.to_be_bytes());
             secret[8] = 1;
             let key = SigningKey::from_bytes(&secret);
+            let game_profiles = leocard_protocol::PlayerGameProfiles::default();
             let signature = key
-                .sign(&join_identity_payload(room, token, &name, 0, 0))
+                .sign(&join_identity_payload(
+                    room,
+                    token,
+                    &name,
+                    0,
+                    0,
+                    &game_profiles,
+                ))
                 .to_bytes()
                 .to_vec();
             client
@@ -416,6 +424,7 @@ mod tests {
                         profile_id: ProfileId(key.verifying_key().to_bytes()),
                         reference_points: 0,
                         completed_games: 0,
+                        game_profiles,
                         identity_signature: signature,
                     },
                 ))
@@ -487,8 +496,16 @@ mod tests {
             secret[..8].copy_from_slice(&(index + 100).to_be_bytes());
             secret[8] = 2;
             let key = SigningKey::from_bytes(&secret);
+            let game_profiles = leocard_protocol::PlayerGameProfiles::default();
             let signature = key
-                .sign(&join_identity_payload(room, token, &name, 0, 0))
+                .sign(&join_identity_payload(
+                    room,
+                    token,
+                    &name,
+                    0,
+                    0,
+                    &game_profiles,
+                ))
                 .to_bytes()
                 .to_vec();
             client
@@ -501,6 +518,7 @@ mod tests {
                         profile_id: ProfileId(key.verifying_key().to_bytes()),
                         reference_points: 0,
                         completed_games: 0,
+                        game_profiles,
                         identity_signature: signature,
                     },
                 ))
@@ -574,8 +592,16 @@ mod tests {
             secret[..8].copy_from_slice(&(index + 200).to_be_bytes());
             secret[8] = 3;
             let key = SigningKey::from_bytes(&secret);
+            let game_profiles = leocard_protocol::PlayerGameProfiles::default();
             let signature = key
-                .sign(&join_identity_payload(room, token, &name, 0, 0))
+                .sign(&join_identity_payload(
+                    room,
+                    token,
+                    &name,
+                    0,
+                    0,
+                    &game_profiles,
+                ))
                 .to_bytes()
                 .to_vec();
             client
@@ -588,6 +614,7 @@ mod tests {
                         profile_id: ProfileId(key.verifying_key().to_bytes()),
                         reference_points: 0,
                         completed_games: 0,
+                        game_profiles,
                         identity_signature: signature,
                     },
                 ))
@@ -671,8 +698,16 @@ mod tests {
             secret[..8].copy_from_slice(&(index + 300).to_be_bytes());
             secret[8] = 4;
             let key = SigningKey::from_bytes(&secret);
+            let game_profiles = leocard_protocol::PlayerGameProfiles::default();
             let signature = key
-                .sign(&join_identity_payload(room, token, &name, 0, 0))
+                .sign(&join_identity_payload(
+                    room,
+                    token,
+                    &name,
+                    0,
+                    0,
+                    &game_profiles,
+                ))
                 .to_bytes()
                 .to_vec();
             client
@@ -685,6 +720,7 @@ mod tests {
                         profile_id: ProfileId(key.verifying_key().to_bytes()),
                         reference_points: 0,
                         completed_games: 0,
+                        game_profiles,
                         identity_signature: signature,
                     },
                 ))

@@ -22,7 +22,7 @@ use leocard_uno::{
 };
 use serde::{Deserialize, Serialize};
 
-pub const PROTOCOL_VERSION: u16 = 23;
+pub const PROTOCOL_VERSION: u16 = 24;
 pub const MAX_FRAME_PAYLOAD: usize = 1024 * 1024;
 pub const MAX_PLAYER_NAME_CHARS: usize = 7;
 pub const AVATAR_DIMENSION: u32 = 64;
@@ -230,6 +230,100 @@ pub struct ProfileId(pub [u8; 32]);
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct MatchId(pub [u8; 16]);
 
+/// 可随玩家身份公开的各游戏长期档案。`None` 表示旧版本没有采集过该游戏的
+/// 明细，展示层必须与真实的零次记录区分开来。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct PlayerGameProfiles {
+    pub qigui523: Option<QiGui523ProfileStats>,
+    pub texas_holdem: Option<TexasHoldemProfileStats>,
+    pub shengji: Option<ShengjiProfileStats>,
+    pub uno: Option<UnoProfileStats>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct QiGui523ProfileStats {
+    pub completed_games: u32,
+    pub total_score: u64,
+    pub total_reference_delta: i64,
+    pub placement_counts: [u32; 6],
+    pub straight_plays: u32,
+    pub consecutive_pair_plays: u32,
+    pub airplane_plays: u32,
+    pub bomb_plays: u32,
+    pub heaven_bomb_plays: u32,
+    pub longest_straight: u16,
+    pub longest_consecutive_pairs: u16,
+    pub longest_airplane: u16,
+}
+
+/// 普通德州扑克与奥马哈共用的长期档案。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct TexasHoldemProfileStats {
+    pub completed_games: u32,
+    pub total_reference_delta: i64,
+    pub total_final_chips: u64,
+    pub placement_counts: [u32; 6],
+    /// 跟注、加注和全下实际投入的筹码总和；不含盲注。
+    pub wagered_chips: u64,
+    pub wager_actions: u32,
+    /// 不含盲注的弃牌、过牌、跟注、加注及全下动作总数。
+    pub voluntary_actions: u32,
+    pub check_actions: u32,
+    pub raise_actions: u32,
+    pub all_in_actions: u32,
+    pub hands_played: u32,
+    pub hands_folded: u32,
+    /// 顺序依次为高牌、一对、两对、三条、顺子、同花、葫芦、四条、
+    /// 同花顺及皇家同花顺。
+    pub hand_category_counts: [u32; 10],
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ShengjiProfileStats {
+    pub completed_games: u32,
+    pub total_reference_delta: i64,
+    pub dealer_team_games: u32,
+    pub dealer_team_score: u64,
+    pub collecting_team_games: u32,
+    pub collecting_team_score: u64,
+    pub dealer_games: u32,
+    pub declaration_games: u32,
+    pub counter_games: u32,
+    pub defended_kitty_games: u32,
+    pub captured_kitty_games: u32,
+    pub buried_games: u32,
+    pub buried_points: u64,
+    pub plays: u32,
+    pub winning_plays: u32,
+    pub crossing_games: u32,
+    /// 拖拉机、泰坦尼克、炸弹、太空堡垒、甩牌。
+    pub play_category_counts: [u32; 5],
+    pub longest_tractor: u16,
+    pub longest_titanic: u16,
+    pub longest_space_fortress: u16,
+    pub longest_throw: u16,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct UnoProfileStats {
+    pub completed_games: u32,
+    pub total_reference_delta: i64,
+    pub total_remaining_score: u64,
+    pub placement_counts: [u32; 6],
+    pub max_hand_cards: u16,
+    pub max_penalty_cards: u16,
+    pub max_skipped_turns: u16,
+    pub uno_calls: u32,
+    pub uno_penalties: u32,
+    pub challenges: u32,
+    pub successful_challenges: u32,
+    pub challenges_received: u32,
+    /// 别的玩家成功质疑自己的次数。
+    pub successful_challenges_received: u32,
+    pub jump_in_attempts: u32,
+    pub successful_jump_ins: u32,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct SeatId(pub u8);
 
@@ -300,10 +394,14 @@ pub fn join_identity_payload(
     name: &str,
     reference_points: i32,
     completed_games: u32,
+    game_profiles: &PlayerGameProfiles,
 ) -> Vec<u8> {
-    const DOMAIN: &[u8] = b"leocard/join-identity/v1";
+    const DOMAIN: &[u8] = b"leocard/join-identity/v2";
     let name = name.as_bytes();
-    let mut payload = Vec::with_capacity(DOMAIN.len() + 8 + 8 + 4 + 4 + 4 + name.len());
+    let profiles = postcard::to_allocvec(game_profiles)
+        .expect("player game profiles always have a canonical postcard encoding");
+    let mut payload =
+        Vec::with_capacity(DOMAIN.len() + 8 + 8 + 4 + 4 + 4 + name.len() + 4 + profiles.len());
     payload.extend_from_slice(DOMAIN);
     payload.extend_from_slice(&room_id.0.to_be_bytes());
     payload.extend_from_slice(&reconnect_token.0.to_be_bytes());
@@ -311,6 +409,8 @@ pub fn join_identity_payload(
     payload.extend_from_slice(&completed_games.to_be_bytes());
     payload.extend_from_slice(&(name.len() as u32).to_be_bytes());
     payload.extend_from_slice(name);
+    payload.extend_from_slice(&(profiles.len() as u32).to_be_bytes());
+    payload.extend_from_slice(&profiles);
     payload
 }
 
@@ -322,6 +422,7 @@ pub enum ClientCommand {
         profile_id: ProfileId,
         reference_points: i32,
         completed_games: u32,
+        game_profiles: PlayerGameProfiles,
         identity_signature: Vec<u8>,
     },
     SetAvatar {
@@ -421,6 +522,7 @@ pub struct LobbyPlayer {
     pub connected: bool,
     pub reference_points: i32,
     pub completed_games: u32,
+    pub game_profiles: PlayerGameProfiles,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -542,6 +644,7 @@ pub struct UnoPlayerState {
     pub auto_play: bool,
     pub reference_points: i32,
     pub completed_games: u32,
+    pub game_profiles: PlayerGameProfiles,
     pub skipped_turns: u16,
 }
 
@@ -636,6 +739,7 @@ pub struct ShengjiPlayerState {
     pub auto_play: bool,
     pub reference_points: i32,
     pub completed_games: u32,
+    pub game_profiles: PlayerGameProfiles,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -710,8 +814,6 @@ pub enum ShengjiPhaseView {
         decided: Vec<PlayerId>,
         crossing: Vec<PlayerId>,
         returned: Vec<PlayerId>,
-        /// 决定阶段的剩余时间；无时限的返还阶段固定为 0。
-        milliseconds_remaining: u16,
     },
     Playing,
     Finished {
@@ -817,6 +919,7 @@ pub struct TexasHoldemPlayerState {
     pub ready: bool,
     pub reference_points: i32,
     pub completed_games: u32,
+    pub game_profiles: PlayerGameProfiles,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -880,6 +983,10 @@ pub enum UnoEvent {
         player: PlayerId,
         card: UnoCard,
         chosen_color: Option<UnoColor>,
+        /// 同一次原子出牌中的零基下标；一次打出对子时依次为 0、1。
+        play_index: u8,
+        /// 同一次原子出牌包含的牌数；客户端据此只播放一次组合音效。
+        play_count: u8,
     },
     CardsDrawn {
         player: PlayerId,
@@ -1011,6 +1118,7 @@ pub struct PlayerPublicState {
     pub auto_play: bool,
     pub reference_points: i32,
     pub completed_games: u32,
+    pub game_profiles: PlayerGameProfiles,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1350,6 +1458,36 @@ mod tests {
                 profile_id: ProfileId([7; 32]),
                 reference_points: 12,
                 completed_games: 8,
+                game_profiles: PlayerGameProfiles {
+                    qigui523: Some(QiGui523ProfileStats {
+                        completed_games: 2,
+                        total_score: 180,
+                        total_reference_delta: 4,
+                        straight_plays: 3,
+                        longest_straight: 7,
+                        ..QiGui523ProfileStats::default()
+                    }),
+                    texas_holdem: Some(TexasHoldemProfileStats {
+                        completed_games: 3,
+                        total_reference_delta: -1,
+                        total_final_chips: 240,
+                        ..TexasHoldemProfileStats::default()
+                    }),
+                    shengji: Some(ShengjiProfileStats {
+                        completed_games: 4,
+                        total_reference_delta: 2,
+                        declaration_games: 1,
+                        longest_tractor: 3,
+                        ..ShengjiProfileStats::default()
+                    }),
+                    uno: Some(UnoProfileStats {
+                        completed_games: 5,
+                        total_reference_delta: 7,
+                        max_hand_cards: 14,
+                        uno_calls: 3,
+                        ..UnoProfileStats::default()
+                    }),
+                },
                 identity_signature: vec![9; 64],
             },
         );
@@ -1519,6 +1657,22 @@ mod tests {
             let decoded: ClientMessage = decode_frame(&encode_frame(&message).unwrap()).unwrap();
             assert_eq!(decoded.command, ClientCommand::Game(command));
         }
+
+        let message = ServerMessage {
+            protocol_version: PROTOCOL_VERSION,
+            room_id: RoomId(42),
+            revision: Revision(11),
+            in_reply_to: None,
+            event: ServerEvent::GameEvent(GameEvent::Uno(UnoEvent::CardPlayed {
+                player: PlayerId(1),
+                card: second,
+                chosen_color: None,
+                play_index: 1,
+                play_count: 2,
+            })),
+        };
+        let decoded: ServerMessage = decode_frame(&encode_frame(&message).unwrap()).unwrap();
+        assert_eq!(decoded, message);
     }
 
     #[test]
@@ -1538,6 +1692,7 @@ mod tests {
                 auto_play: false,
                 reference_points: 0,
                 completed_games: 0,
+                game_profiles: PlayerGameProfiles::default(),
             })
             .collect();
         let snapshot = GameSnapshot::Shengji(ShengjiSnapshot {

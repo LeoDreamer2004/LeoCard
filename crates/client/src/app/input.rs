@@ -93,7 +93,15 @@ pub(super) fn update_button_tints(
 }
 
 pub(super) fn play_button_click_sounds(
-    buttons: Query<&Interaction, (Changed<Interaction>, With<Button>, Without<HandCardSlot>)>,
+    buttons: Query<
+        &Interaction,
+        (
+            Changed<Interaction>,
+            With<Button>,
+            Without<HandCardSlot>,
+            Without<UnoHandCardButton>,
+        ),
+    >,
     assets: Res<UiAssets>,
     mut commands: Commands,
 ) {

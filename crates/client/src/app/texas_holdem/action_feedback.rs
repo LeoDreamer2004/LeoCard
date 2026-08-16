@@ -143,8 +143,12 @@ pub(in crate::app) fn fold_card_visual(
             face_visible: flip < 0.5,
         }
     } else {
-        transform.translation = Val2::px(side * (48.0 * (1.0 - eased) + 4.0) - 14.0, 6.0 * eased);
-        transform.rotation = Rot2::radians(side * 0.16 * (1.0 - eased));
+        let start_spacing = if total > 2 { 34.0 } else { 104.0 };
+        let rotation_spacing = if total > 2 { 0.10 } else { 0.32 };
+        let start_x = -14.0 + centered_index * start_spacing;
+        let end_x = -14.0 + centered_index * 8.0;
+        transform.translation = Val2::px(start_x + (end_x - start_x) * eased, 6.0 * eased);
+        transform.rotation = Rot2::radians(centered_index * rotation_spacing * (1.0 - eased));
         transform.scale = Vec2::splat(1.0 - eased * 0.24);
         FoldCardVisual {
             transform,

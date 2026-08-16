@@ -262,13 +262,34 @@ pub(super) fn render_ui(
         render_settings_modal(&mut commands, root, &form, &visuals.updater, &visuals.ui);
     }
     if ui.profile_open {
+        let (name, avatar, reference_points, completed_games, game_profiles) =
+            if let Some(player_profile) = ui.player_profile.as_ref() {
+                (
+                    player_profile.name.as_str(),
+                    player_profile.avatar.as_ref(),
+                    player_profile.reference_points,
+                    player_profile.completed_games,
+                    &player_profile.game_profiles,
+                )
+            } else {
+                (
+                    form.player_name.as_str(),
+                    visuals.avatars.local.as_ref(),
+                    profile.reference_points(),
+                    profile.completed_games(),
+                    profile.game_profiles(),
+                )
+            };
         render_profile_modal(
             &mut commands,
             root,
-            &form,
-            &profile,
+            name,
+            avatar,
+            reference_points,
+            completed_games,
+            game_profiles,
+            ui.profile_game_tab,
             &visuals.ui,
-            &visuals.avatars,
         );
     }
     if ui.host_game_picker_open && client.is_none() {
@@ -409,13 +430,16 @@ fn add_profile_avatar_button(
     }
 }
 
-fn render_profile_modal(
+pub(in crate::app) fn render_profile_modal(
     commands: &mut Commands,
     root: Entity,
-    form: &ConnectionForm,
-    profile: &LocalPlayerProfile,
+    player_name: &str,
+    avatar: Option<&Handle<Image>>,
+    reference_points: i32,
+    completed_games: u32,
+    game_profiles: &PlayerGameProfiles,
+    selected_game: ProfileGameTab,
     assets: &UiAssets,
-    avatars: &AvatarImages,
 ) {
     let overlay = spawn_node(
         commands,
@@ -440,11 +464,11 @@ fn render_profile_modal(
         commands,
         overlay,
         Node {
-            width: px(680),
-            max_width: percent(92),
-            min_height: px(410),
+            width: px(820),
+            max_width: percent(90),
+            min_height: px(520),
             flex_direction: FlexDirection::Column,
-            row_gap: px(18),
+            row_gap: px(14),
             ..default()
         },
         PANEL,
@@ -458,11 +482,11 @@ fn render_profile_modal(
         modal,
         Node {
             width: percent(100),
-            min_height: px(174),
-            padding: UiRect::all(px(18)),
+            min_height: px(138),
+            padding: UiRect::all(px(16)),
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Center,
-            column_gap: px(24),
+            column_gap: px(12),
             border: UiRect::all(px(1)),
             border_radius: BorderRadius::all(px(8)),
             ..default()
@@ -475,8 +499,8 @@ fn render_profile_modal(
         commands,
         identity,
         Node {
-            width: px(132),
-            min_width: px(132),
+            width: px(96),
+            min_width: px(96),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -485,15 +509,8 @@ fn render_profile_modal(
         },
         None,
     );
-    add_avatar(
-        commands,
-        avatar_area,
-        &form.player_name,
-        avatars.local.as_ref(),
-        108.0,
-        assets,
-    );
-    add_text(commands, avatar_area, "个人头像", 12.0, MUTED, assets);
+    add_avatar(commands, avatar_area, player_name, avatar, 82.0, assets);
+    add_text(commands, avatar_area, "玩家头像", 12.0, MUTED, assets);
 
     let identity_text = spawn_node(
         commands,
@@ -509,31 +526,24 @@ fn render_profile_modal(
         None,
     );
     add_text(commands, identity_text, "玩家名称", 13.0, MUTED, assets);
+    add_text(commands, identity_text, player_name, 25.0, TEXT, assets);
     add_text(
         commands,
         identity_text,
-        &form.player_name,
-        28.0,
-        TEXT,
-        assets,
-    );
-    add_text(
-        commands,
-        identity_text,
-        format!("当前等级：{}", reference_level(profile.reference_points())),
+        format!("当前等级：{}", reference_level(reference_points)),
         15.0,
         ACCENT,
         assets,
     );
 
-    add_text(commands, modal, "档案概览", 16.0, TEXT, assets);
     let stats = spawn_node(
         commands,
-        modal,
+        identity,
         Node {
-            width: percent(100),
+            width: px(300),
+            min_width: px(300),
             flex_direction: FlexDirection::Row,
-            column_gap: px(12),
+            column_gap: px(8),
             ..default()
         },
         None,
@@ -542,30 +552,99 @@ fn render_profile_modal(
         commands,
         stats,
         "分数",
-        profile.reference_points().to_string(),
+        reference_points.to_string(),
         assets,
     );
     add_profile_stat(
         commands,
         stats,
         "完成对局",
-        profile.completed_games().to_string(),
+        completed_games.to_string(),
         assets,
     );
     add_profile_stat(
         commands,
         stats,
         "等级",
-        reference_level(profile.reference_points()),
+        reference_level(reference_points),
         assets,
     );
+
+    add_text(commands, modal, "游戏档案", 16.0, TEXT, assets);
+    let tabs = spawn_node(
+        commands,
+        modal,
+        Node {
+            width: percent(100),
+            height: px(42),
+            flex_direction: FlexDirection::Row,
+            column_gap: px(6),
+            ..default()
+        },
+        None,
+    );
+    for (game, label) in ProfileGameTab::ALL {
+        add_profile_game_tab(commands, tabs, game, label, game == selected_game, assets);
+    }
+
+    let content = spawn_node(
+        commands,
+        modal,
+        Node {
+            width: percent(100),
+            min_height: px(166),
+            flex_grow: 1.0,
+            padding: UiRect::all(px(14)),
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::FlexStart,
+            column_gap: px(12),
+            border: UiRect::all(px(1)),
+            border_radius: BorderRadius::all(px(8)),
+            ..default()
+        },
+        Some(HEADER_BG.with_alpha(0.54)),
+    );
+    commands
+        .entity(content)
+        .insert((ProfileGameContent, BorderColor::all(BORDER)));
+    let rows = match selected_game {
+        ProfileGameTab::QiGui523 => qigui523_profile_rows(game_profiles.qigui523.as_ref()),
+        ProfileGameTab::TexasHoldem => {
+            texas_holdem_profile_rows(game_profiles.texas_holdem.as_ref())
+        }
+        ProfileGameTab::Shengji => shengji_profile_rows(game_profiles.shengji.as_ref()),
+        ProfileGameTab::Uno => uno_profile_rows(game_profiles.uno.as_ref()),
+    };
+    let rows_per_column = rows.len().div_ceil(4).max(1);
+    for column_index in 0..4 {
+        let column = spawn_node(
+            commands,
+            content,
+            Node {
+                min_width: px(0),
+                flex_basis: px(0),
+                flex_grow: 1.0,
+                flex_direction: FlexDirection::Column,
+                row_gap: px(5),
+                ..default()
+            },
+            None,
+        );
+        commands.entity(column).insert(ProfileGameColumn);
+        for (label, value) in rows
+            .iter()
+            .skip(column_index * rows_per_column)
+            .take(rows_per_column)
+        {
+            add_profile_game_row(commands, column, label, value, assets);
+        }
+    }
 
     let actions = spawn_node(
         commands,
         modal,
         Node {
             width: percent(100),
-            flex_grow: 1.0,
             align_items: AlignItems::FlexEnd,
             justify_content: JustifyContent::FlexEnd,
             ..default()
@@ -582,6 +661,433 @@ fn render_profile_modal(
     );
 }
 
+pub(in crate::app) fn qigui523_profile_rows(
+    stats: Option<&QiGui523ProfileStats>,
+) -> Vec<(&'static str, String)> {
+    const LABELS: [&str; 18] = [
+        "对局数",
+        "分数增减",
+        "场得分",
+        "平均顺位",
+        "一位率",
+        "二位率",
+        "三位率",
+        "四位率",
+        "五位率",
+        "六位率",
+        "顺子次数",
+        "连对次数",
+        "飞机次数",
+        "炸弹次数",
+        "天炸次数",
+        "顺子最长长度",
+        "连对最长长度",
+        "飞机最长长度",
+    ];
+    let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
+        return LABELS
+            .into_iter()
+            .map(|label| (label, "--".to_owned()))
+            .collect();
+    };
+    let games = f64::from(stats.completed_games);
+    let average_reference_delta = stats.total_reference_delta as f64 / games;
+    let average_score = stats.total_score as f64 / games;
+    let placement_total = stats
+        .placement_counts
+        .iter()
+        .enumerate()
+        .map(|(index, count)| (index + 1) as u64 * u64::from(*count))
+        .sum::<u64>();
+    let average_placement = placement_total as f64 / games;
+    let mut rows = vec![
+        ("对局数", stats.completed_games.to_string()),
+        ("分数增减", format!("{average_reference_delta:+.1}")),
+        ("场得分", format!("{average_score:.1}")),
+        ("平均顺位", format!("{average_placement:.2}")),
+    ];
+    for (label, count) in LABELS[4..10].iter().copied().zip(stats.placement_counts) {
+        rows.push((label, format!("{:.1}%", f64::from(count) * 100.0 / games)));
+    }
+    rows.extend([
+        ("顺子次数", stats.straight_plays.to_string()),
+        ("连对次数", stats.consecutive_pair_plays.to_string()),
+        ("飞机次数", stats.airplane_plays.to_string()),
+        ("炸弹次数", stats.bomb_plays.to_string()),
+        ("天炸次数", stats.heaven_bomb_plays.to_string()),
+        ("顺子最长长度", stats.longest_straight.to_string()),
+        ("连对最长长度", stats.longest_consecutive_pairs.to_string()),
+        ("飞机最长长度", stats.longest_airplane.to_string()),
+    ]);
+    rows
+}
+
+pub(in crate::app) fn texas_holdem_profile_rows(
+    stats: Option<&TexasHoldemProfileStats>,
+) -> Vec<(&'static str, String)> {
+    const LABELS: [&str; 25] = [
+        "对局数",
+        "分数增减",
+        "场筹码",
+        "平均顺位",
+        "一位率",
+        "二位率",
+        "三位率",
+        "四位率",
+        "五位率",
+        "六位率",
+        "平均加注",
+        "过牌率",
+        "加注率",
+        "全下率",
+        "局弃牌率",
+        "高牌次数",
+        "一对次数",
+        "两对次数",
+        "三条次数",
+        "顺子次数",
+        "同花次数",
+        "葫芦次数",
+        "四条次数",
+        "同花顺次数",
+        "皇家同花顺次数",
+    ];
+    let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
+        return LABELS
+            .into_iter()
+            .map(|label| (label, "--".to_owned()))
+            .collect();
+    };
+    let games = f64::from(stats.completed_games);
+    let placement_total = stats
+        .placement_counts
+        .iter()
+        .enumerate()
+        .map(|(index, count)| (index + 1) as u64 * u64::from(*count))
+        .sum::<u64>();
+    let mut rows = vec![
+        ("对局数", stats.completed_games.to_string()),
+        (
+            "分数增减",
+            format!("{:+.1}", stats.total_reference_delta as f64 / games),
+        ),
+        (
+            "场筹码",
+            format!("{:.1}", stats.total_final_chips as f64 / games),
+        ),
+        ("平均顺位", format!("{:.2}", placement_total as f64 / games)),
+    ];
+    for (label, count) in LABELS[4..10].iter().copied().zip(stats.placement_counts) {
+        rows.push((label, format!("{:.1}%", f64::from(count) * 100.0 / games)));
+    }
+    rows.extend([
+        (
+            "平均加注",
+            average_or_placeholder(stats.wagered_chips, stats.wager_actions),
+        ),
+        (
+            "过牌率",
+            rate_or_placeholder(stats.check_actions, stats.voluntary_actions),
+        ),
+        (
+            "加注率",
+            rate_or_placeholder(stats.raise_actions, stats.voluntary_actions),
+        ),
+        (
+            "全下率",
+            rate_or_placeholder(stats.all_in_actions, stats.voluntary_actions),
+        ),
+        (
+            "局弃牌率",
+            rate_or_placeholder(stats.hands_folded, stats.hands_played),
+        ),
+    ]);
+    rows.extend(
+        LABELS[15..]
+            .iter()
+            .copied()
+            .zip(stats.hand_category_counts)
+            .map(|(label, count)| (label, count.to_string())),
+    );
+    rows
+}
+
+fn average_or_placeholder(total: u64, count: u32) -> String {
+    if count == 0 {
+        "--".to_owned()
+    } else {
+        format!("{:.1}", total as f64 / f64::from(count))
+    }
+}
+
+fn rate_or_placeholder(count: u32, total: u32) -> String {
+    if total == 0 {
+        "--".to_owned()
+    } else {
+        format!("{:.1}%", f64::from(count) * 100.0 / f64::from(total))
+    }
+}
+
+pub(in crate::app) fn shengji_profile_rows(
+    stats: Option<&ShengjiProfileStats>,
+) -> Vec<(&'static str, String)> {
+    const LABELS: [&str; 21] = [
+        "对局数",
+        "分数增减",
+        "庄场得分",
+        "闲场得分",
+        "坐庄率",
+        "亮主率",
+        "反主率",
+        "保底率",
+        "扣底率",
+        "底牌平均分",
+        "牌权率",
+        "过江率",
+        "拖拉机次数",
+        "泰坦尼克次数",
+        "炸弹次数",
+        "太空堡垒次数",
+        "甩牌次数",
+        "最长拖拉机长度",
+        "最长泰坦尼克长度",
+        "最长太空堡垒长度",
+        "最长甩牌长度",
+    ];
+    let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
+        return LABELS
+            .into_iter()
+            .map(|label| (label, "--".to_owned()))
+            .collect();
+    };
+    let games = f64::from(stats.completed_games);
+    let mut rows = vec![
+        ("对局数", stats.completed_games.to_string()),
+        (
+            "分数增减",
+            format!("{:+.1}", stats.total_reference_delta as f64 / games),
+        ),
+        (
+            "庄场得分",
+            average_or_placeholder(stats.dealer_team_score, stats.dealer_team_games),
+        ),
+        (
+            "闲场得分",
+            average_or_placeholder(stats.collecting_team_score, stats.collecting_team_games),
+        ),
+        (
+            "坐庄率",
+            rate_or_placeholder(stats.dealer_games, stats.completed_games),
+        ),
+        (
+            "亮主率",
+            rate_or_placeholder(stats.declaration_games, stats.completed_games),
+        ),
+        (
+            "反主率",
+            rate_or_placeholder(stats.counter_games, stats.completed_games),
+        ),
+        (
+            "保底率",
+            rate_or_placeholder(stats.defended_kitty_games, stats.dealer_team_games),
+        ),
+        (
+            "扣底率",
+            rate_or_placeholder(stats.captured_kitty_games, stats.collecting_team_games),
+        ),
+        (
+            "底牌平均分",
+            average_or_placeholder(stats.buried_points, stats.buried_games),
+        ),
+        (
+            "牌权率",
+            rate_or_placeholder(stats.winning_plays, stats.plays),
+        ),
+        (
+            "过江率",
+            rate_or_placeholder(stats.crossing_games, stats.completed_games),
+        ),
+    ];
+    rows.extend(
+        LABELS[12..17]
+            .iter()
+            .copied()
+            .zip(stats.play_category_counts)
+            .map(|(label, count)| (label, count.to_string())),
+    );
+    rows.extend([
+        ("最长拖拉机长度", stats.longest_tractor.to_string()),
+        ("最长泰坦尼克长度", stats.longest_titanic.to_string()),
+        ("最长太空堡垒长度", stats.longest_space_fortress.to_string()),
+        ("最长甩牌长度", stats.longest_throw.to_string()),
+    ]);
+    rows
+}
+
+pub(in crate::app) fn uno_profile_rows(
+    stats: Option<&UnoProfileStats>,
+) -> Vec<(&'static str, String)> {
+    const LABELS: [&str; 21] = [
+        "对局数",
+        "分数增减",
+        "场剩余分数",
+        "平均顺位",
+        "一位率",
+        "二位率",
+        "三位率",
+        "四位率",
+        "五位率",
+        "六位率",
+        "最多牌数",
+        "最多被罚牌数",
+        "最多被禁轮数",
+        "UNO次数",
+        "被罚UNO次数",
+        "质疑次数",
+        "质疑成功率",
+        "被质疑次数",
+        "被质疑成功率",
+        "抢出次数",
+        "抢出成功率",
+    ];
+    let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
+        return LABELS
+            .into_iter()
+            .map(|label| (label, "--".to_owned()))
+            .collect();
+    };
+    let games = f64::from(stats.completed_games);
+    let placement_total = stats
+        .placement_counts
+        .iter()
+        .enumerate()
+        .map(|(index, count)| (index + 1) as u64 * u64::from(*count))
+        .sum::<u64>();
+    let mut rows = vec![
+        ("对局数", stats.completed_games.to_string()),
+        (
+            "分数增减",
+            format!("{:+.1}", stats.total_reference_delta as f64 / games),
+        ),
+        (
+            "场剩余分数",
+            format!("{:.1}", stats.total_remaining_score as f64 / games),
+        ),
+        ("平均顺位", format!("{:.2}", placement_total as f64 / games)),
+    ];
+    for (label, count) in LABELS[4..10].iter().copied().zip(stats.placement_counts) {
+        rows.push((label, format!("{:.1}%", f64::from(count) * 100.0 / games)));
+    }
+    rows.extend([
+        ("最多牌数", stats.max_hand_cards.to_string()),
+        ("最多被罚牌数", stats.max_penalty_cards.to_string()),
+        ("最多被禁轮数", stats.max_skipped_turns.to_string()),
+        ("UNO次数", stats.uno_calls.to_string()),
+        ("被罚UNO次数", stats.uno_penalties.to_string()),
+        ("质疑次数", stats.challenges.to_string()),
+        (
+            "质疑成功率",
+            rate_or_placeholder(stats.successful_challenges, stats.challenges),
+        ),
+        ("被质疑次数", stats.challenges_received.to_string()),
+        (
+            "被质疑成功率",
+            rate_or_placeholder(
+                stats.successful_challenges_received,
+                stats.challenges_received,
+            ),
+        ),
+        ("抢出次数", stats.jump_in_attempts.to_string()),
+        (
+            "抢出成功率",
+            rate_or_placeholder(stats.successful_jump_ins, stats.jump_in_attempts),
+        ),
+    ]);
+    rows
+}
+
+fn add_profile_game_row(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    value: &str,
+    assets: &UiAssets,
+) {
+    let row = spawn_node(
+        commands,
+        parent,
+        Node {
+            width: percent(100),
+            min_height: px(22),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::SpaceBetween,
+            column_gap: px(8),
+            ..default()
+        },
+        None,
+    );
+    add_text(commands, row, label, 12.5, MUTED, assets);
+    add_text(commands, row, value, 13.0, TEXT, assets);
+}
+
+fn add_profile_game_tab(
+    commands: &mut Commands,
+    parent: Entity,
+    game: ProfileGameTab,
+    label: &str,
+    selected: bool,
+    assets: &UiAssets,
+) {
+    let normal = if selected {
+        Color::srgb(0.36, 0.48, 0.32)
+    } else {
+        Color::srgb(0.22, 0.32, 0.29)
+    };
+    let button = commands
+        .spawn((
+            Button,
+            UiAction::SelectProfileGameTab(game),
+            ButtonTint {
+                normal,
+                hovered: if selected {
+                    Color::srgb(0.43, 0.55, 0.36)
+                } else {
+                    Color::srgb(0.30, 0.42, 0.36)
+                },
+                pressed: Color::srgb(0.18, 0.28, 0.24),
+            },
+            Node {
+                min_width: px(0),
+                height: percent(100),
+                flex_basis: px(0),
+                flex_grow: 1.0,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                border: UiRect::bottom(px(if selected { 3 } else { 1 })),
+                border_radius: BorderRadius::top(px(7)),
+                ..default()
+            },
+            ImageNode::new(assets.secondary_button.clone())
+                .with_mode(NodeImageMode::Stretch)
+                .with_color(normal),
+            BorderColor::all(if selected { ACCENT } else { BORDER }),
+            ProfileGameTabButton,
+        ))
+        .id();
+    if selected {
+        commands.entity(button).insert(SelectedProfileGameTab);
+    }
+    commands.entity(parent).add_child(button);
+    add_text(
+        commands,
+        button,
+        label,
+        14.0,
+        if selected { Color::WHITE } else { MUTED },
+        assets,
+    );
+}
+
 fn add_profile_stat(
     commands: &mut Commands,
     parent: Entity,
@@ -594,19 +1100,20 @@ fn add_profile_stat(
         parent,
         Node {
             min_width: px(0),
-            min_height: px(82),
+            min_height: px(76),
+            flex_basis: px(0),
             flex_grow: 1.0,
-            padding: UiRect::axes(px(14), px(10)),
+            padding: UiRect::axes(px(4), px(10)),
             flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             row_gap: px(5),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(7)),
+            border: UiRect::ZERO,
             ..default()
         },
-        Some(HEADER_BG.with_alpha(0.72)),
+        None,
     );
-    commands.entity(card).insert(BorderColor::all(BORDER));
+    commands.entity(card).insert(ProfileStat);
     add_text(commands, card, label, 12.0, MUTED, assets);
     add_text(commands, card, value, 21.0, ACCENT, assets);
 }

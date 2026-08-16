@@ -813,6 +813,7 @@ fn add_opponent_slot(
                 handle,
                 player.reference_points,
                 player.completed_games,
+                &player.game_profiles,
                 visuals.ui,
             );
             commands
@@ -1008,6 +1009,7 @@ pub(in crate::app) fn add_interaction_menu(
     avatar: Option<&Handle<Image>>,
     reference_points: i32,
     completed_games: u32,
+    game_profiles: &PlayerGameProfiles,
     assets: &UiAssets,
 ) -> Entity {
     let mut node = Node {
@@ -1071,6 +1073,44 @@ pub(in crate::app) fn add_interaction_menu(
         ),
         9.5,
         MUTED,
+        assets,
+    );
+    let normal = Color::srgb(0.34, 0.50, 0.62);
+    let profile_button = commands
+        .spawn((
+            Button,
+            UiAction::OpenPlayerProfile(PlayerProfilePage {
+                name: player_name.to_owned(),
+                avatar: avatar.cloned(),
+                reference_points,
+                completed_games,
+                game_profiles: game_profiles.clone(),
+            }),
+            ButtonTint {
+                normal,
+                hovered: Color::srgb(0.50, 0.66, 0.78),
+                pressed: Color::srgb(0.24, 0.38, 0.50),
+            },
+            Node {
+                width: px(66),
+                min_width: px(66),
+                height: px(28),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            ImageNode::new(assets.secondary_button.clone())
+                .with_mode(NodeImageMode::Stretch)
+                .with_color(normal),
+        ))
+        .id();
+    commands.entity(profile).add_child(profile_button);
+    add_text(
+        commands,
+        profile_button,
+        "完整资料",
+        11.0,
+        Color::WHITE,
         assets,
     );
     let actions = spawn_node(

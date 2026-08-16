@@ -5,12 +5,12 @@ use leocard_protocol::{
     ClientCommand, ClientMessage, GameCommand, GameEvent, GameKind, GameRules, GameSnapshot,
     GameViolation, LobbySnapshot, PlayerId, PlayerInteraction, PlayerInteractionKind,
     PlayerReferenceChange, RejectReason, RequestId, Revision, RoomId, ServerEvent, UnoCommand,
-    UnoEvent, UnoPhaseView, UnoPlayerResult, UnoPlayerState, UnoRevealedHand, UnoSnapshot,
-    UnoViolation,
+    UnoEvent, UnoPhaseView, UnoPlayerResult, UnoPlayerState, UnoProfileStats, UnoRevealedHand,
+    UnoSnapshot, UnoViolation,
 };
 use leocard_uno::{
-    ActionOutcome, Card, Color, GameError, GameState, Phase, PlayerId as CorePlayerId, RuleSet,
-    build_deck,
+    ActionOutcome, Card, ChallengeResult, Color, GameError, GameState, Phase,
+    PlayerId as CorePlayerId, RuleSet, build_deck,
 };
 
 use crate::{
@@ -25,6 +25,7 @@ pub struct UnoSession {
     shuffled_deck: Option<Vec<Card>>,
     game: Option<GameState>,
     match_id: Option<leocard_protocol::MatchId>,
+    match_profile_stats: Vec<UnoProfileStats>,
     finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
     auto_play_delay: Option<AutoPlayDelayState>,
 }
@@ -52,6 +53,7 @@ impl UnoSession {
             shuffled_deck: Some(shuffled_deck),
             game: None,
             match_id: None,
+            match_profile_stats: Vec::new(),
             finished_reference_changes: None,
             auto_play_delay: None,
         })
@@ -181,6 +183,7 @@ impl UnoSession {
                 profile_id,
                 reference_points,
                 completed_games,
+                game_profiles,
                 identity_signature,
             } => match self.room.join(
                 connection,
@@ -190,6 +193,7 @@ impl UnoSession {
                 profile_id,
                 reference_points,
                 completed_games,
+                game_profiles,
                 identity_signature,
                 self.game.is_some(),
                 RuleSet::MAX_PLAYERS,
@@ -273,7 +277,7 @@ impl UnoSession {
             }
             UnoCommand::UpdateRules { rules } => self.update_rules(connection, request_id, rules),
             UnoCommand::ChooseInitialColor { color } => {
-                self.perform_action(connection, request_id, Vec::new(), |game, player| {
+                self.perform_action(connection, request_id, Vec::new(), false, |game, player| {
                     game.choose_initial_color(player, color)
                 })
             }
@@ -281,6 +285,7 @@ impl UnoSession {
                 connection,
                 request_id,
                 vec![(card, chosen_color)],
+                false,
                 |game, player| game.play_card(player, card, chosen_color),
             ),
             UnoCommand::PlayCards {
@@ -292,48 +297,73 @@ impl UnoSession {
                     .copied()
                     .map(|card| (card, chosen_color))
                     .collect();
-                self.perform_action(connection, request_id, played, move |game, player| {
-                    game.play_cards(player, &cards, chosen_color)
-                })
+                let jump_in_attempt = cards.len() == 2;
+                self.perform_action(
+                    connection,
+                    request_id,
+                    played,
+                    jump_in_attempt,
+                    move |game, player| game.play_cards(player, &cards, chosen_color),
+                )
             }
             UnoCommand::JumpIn { card } => self.perform_action(
                 connection,
                 request_id,
                 vec![(card, None)],
+                true,
                 |game, player| game.jump_in(player, card),
             ),
-            UnoCommand::DrawCard => {
-                self.perform_action(connection, request_id, Vec::new(), GameState::draw_card)
-            }
+            UnoCommand::DrawCard => self.perform_action(
+                connection,
+                request_id,
+                Vec::new(),
+                false,
+                GameState::draw_card,
+            ),
             UnoCommand::PassAfterDraw => self.perform_action(
                 connection,
                 request_id,
                 Vec::new(),
+                false,
                 GameState::pass_after_draw,
             ),
             UnoCommand::AcceptDrawPenalty => self.perform_action(
                 connection,
                 request_id,
                 Vec::new(),
+                false,
                 GameState::accept_draw_penalty,
             ),
             UnoCommand::ChallengeDrawFour => self.perform_action(
                 connection,
                 request_id,
                 Vec::new(),
+                false,
                 GameState::challenge_draw_four,
             ),
-            UnoCommand::ResolveSkip => {
-                self.perform_action(connection, request_id, Vec::new(), GameState::resolve_skip)
-            }
-            UnoCommand::CallUno => {
-                self.perform_action(connection, request_id, Vec::new(), GameState::call_uno)
-            }
+            UnoCommand::ResolveSkip => self.perform_action(
+                connection,
+                request_id,
+                Vec::new(),
+                false,
+                GameState::resolve_skip,
+            ),
+            UnoCommand::CallUno => self.perform_action(
+                connection,
+                request_id,
+                Vec::new(),
+                false,
+                GameState::call_uno,
+            ),
             UnoCommand::ReportUno { target } => {
                 let core_target = to_core_player(target);
-                self.perform_action(connection, request_id, Vec::new(), move |game, reporter| {
-                    game.report_uno(reporter, core_target)
-                })
+                self.perform_action(
+                    connection,
+                    request_id,
+                    Vec::new(),
+                    false,
+                    move |game, reporter| game.report_uno(reporter, core_target),
+                )
             }
         }
     }
@@ -486,6 +516,8 @@ impl UnoSession {
             Ok(game) => {
                 self.game = Some(game);
                 self.match_id = Some(new_match_id());
+                self.match_profile_stats = vec![UnoProfileStats::default(); active];
+                self.record_state_peaks();
                 self.finished_reference_changes = None;
                 self.reset_auto_play_delay();
                 self.room.bump_revision();
@@ -527,6 +559,7 @@ impl UnoSession {
         }
         self.game = None;
         self.match_id = None;
+        self.match_profile_stats.clear();
         self.finished_reference_changes = None;
         self.auto_play_delay = None;
         #[cfg(feature = "developer")]
@@ -576,13 +609,14 @@ impl UnoSession {
         self.room.remove_departed_players();
         for player in &mut self.room.players {
             player.ready = false;
-            player.auto_play = player.is_bot;
         }
         let player_count = self.room.players.len() as u8;
         let game = GameState::new_with_deck(self.rules, player_count, shuffled_uno_deck())
             .expect("a freshly built UNO deck is valid");
         self.game = Some(game);
         self.match_id = Some(new_match_id());
+        self.match_profile_stats = vec![UnoProfileStats::default(); usize::from(player_count)];
+        self.record_state_peaks();
         self.finished_reference_changes = None;
         self.reset_auto_play_delay();
         self.room.bump_revision();
@@ -594,6 +628,7 @@ impl UnoSession {
         connection: ConnectionId,
         request_id: RequestId,
         played: Vec<(Card, Option<Color>)>,
+        jump_in_attempt: bool,
         action: F,
     ) -> Vec<Delivery>
     where
@@ -609,9 +644,21 @@ impl UnoSession {
                 .room
                 .reject(connection, request_id, RejectReason::GameNotStarted);
         };
+        if jump_in_attempt
+            && let Some(stats) = self.match_profile_stats.get_mut(usize::from(player.0))
+        {
+            stats.jump_in_attempts = stats.jump_in_attempts.saturating_add(1);
+        }
         match action(game, to_core_player(player)) {
             Ok(outcome) => {
+                if jump_in_attempt
+                    && let Some(stats) = self.match_profile_stats.get_mut(usize::from(player.0))
+                {
+                    stats.successful_jump_ins = stats.successful_jump_ins.saturating_add(1);
+                }
                 let mut events = events_for_outcome(&outcome, &played);
+                self.record_profile_outcome(&outcome);
+                self.record_state_peaks();
                 self.apply_finished_reference_points();
                 self.reset_auto_play_delay();
                 self.room.bump_revision();
@@ -623,18 +670,95 @@ impl UnoSession {
         }
     }
 
+    fn record_profile_outcome(&mut self, outcome: &ActionOutcome) {
+        match outcome {
+            ActionOutcome::PenaltyDrawn { player, cards, .. }
+            | ActionOutcome::SkipResolved { player, cards, .. } => {
+                self.record_penalty_peak(*player, cards.len());
+            }
+            ActionOutcome::ChallengeResolved {
+                challenger,
+                offender,
+                result,
+                penalized,
+                cards,
+                ..
+            } => {
+                if let Some(stats) = self.match_profile_stats.get_mut(challenger.0) {
+                    stats.challenges = stats.challenges.saturating_add(1);
+                    if *result == ChallengeResult::Successful {
+                        stats.successful_challenges = stats.successful_challenges.saturating_add(1);
+                    }
+                }
+                if let Some(stats) = self.match_profile_stats.get_mut(offender.0) {
+                    stats.challenges_received = stats.challenges_received.saturating_add(1);
+                    if *result == ChallengeResult::Successful {
+                        stats.successful_challenges_received =
+                            stats.successful_challenges_received.saturating_add(1);
+                    }
+                }
+                self.record_penalty_peak(*penalized, cards.len());
+            }
+            ActionOutcome::UnoCalled { player } => {
+                if let Some(stats) = self.match_profile_stats.get_mut(player.0) {
+                    stats.uno_calls = stats.uno_calls.saturating_add(1);
+                }
+            }
+            ActionOutcome::UnoReported { target, cards, .. } => {
+                if let Some(stats) = self.match_profile_stats.get_mut(target.0) {
+                    stats.uno_penalties = stats.uno_penalties.saturating_add(1);
+                }
+                self.record_penalty_peak(*target, cards.len());
+            }
+            ActionOutcome::ColorChosen { .. }
+            | ActionOutcome::Played { .. }
+            | ActionOutcome::DrewCard { .. }
+            | ActionOutcome::PassedAfterDraw { .. }
+            | ActionOutcome::GameFinished(_) => {}
+        }
+    }
+
+    fn record_penalty_peak(&mut self, player: CorePlayerId, card_count: usize) {
+        let card_count = u16::try_from(card_count).unwrap_or(u16::MAX);
+        if let Some(stats) = self.match_profile_stats.get_mut(player.0) {
+            stats.max_penalty_cards = stats.max_penalty_cards.max(card_count);
+        }
+    }
+
+    fn record_state_peaks(&mut self) {
+        let Some(game) = self.game.as_ref() else {
+            return;
+        };
+        let turn = game.turn();
+        let peaks = game
+            .players()
+            .iter()
+            .map(|player| {
+                let hand_cards = u16::try_from(player.hand().len()).unwrap_or(u16::MAX);
+                let stored_skips = game.skipped_turns(player.id()).unwrap_or_default();
+                let pending_skips = turn
+                    .filter(|turn| turn.current_player == player.id())
+                    .map_or(0, |turn| turn.pending_skip);
+                (hand_cards, stored_skips.saturating_add(pending_skips))
+            })
+            .collect::<Vec<_>>();
+        for (stats, (hand_cards, skipped_turns)) in self.match_profile_stats.iter_mut().zip(peaks) {
+            stats.max_hand_cards = stats.max_hand_cards.max(hand_cards);
+            stats.max_skipped_turns = stats.max_skipped_turns.max(skipped_turns);
+        }
+    }
+
     fn apply_finished_reference_points(&mut self) {
         if self.finished_reference_changes.is_some() {
             return;
         }
-        let Some(game) = self.game.as_ref() else {
-            return;
-        };
-        let Phase::Finished(result) = game.phase() else {
-            return;
+        let result = match self.game.as_ref().map(GameState::phase) {
+            Some(Phase::Finished(result)) => result.clone(),
+            _ => return,
         };
         self.room.prepare_rematch();
         let mut changes = Vec::with_capacity(result.reference_deltas.len());
+        let match_profile_stats = self.match_profile_stats.clone();
         for (index, delta) in result.reference_deltas.iter().copied().enumerate() {
             let participant = self
                 .room
@@ -646,6 +770,29 @@ impl UnoSession {
                 .reference_points
                 .saturating_add(i32::from(delta));
             participant.completed_games = participant.completed_games.saturating_add(1);
+            let aggregate = participant
+                .game_profiles
+                .uno
+                .get_or_insert_with(UnoProfileStats::default);
+            aggregate.completed_games = aggregate.completed_games.saturating_add(1);
+            aggregate.total_reference_delta = aggregate
+                .total_reference_delta
+                .saturating_add(i64::from(delta));
+            if let Some(score) = result.hand_scores.get(index) {
+                aggregate.total_remaining_score = aggregate
+                    .total_remaining_score
+                    .saturating_add(u64::from(*score));
+            }
+            if let Some(placement) = result.placements.get(index).copied()
+                && let Some(count) = aggregate
+                    .placement_counts
+                    .get_mut(usize::from(placement.saturating_sub(1)))
+            {
+                *count = count.saturating_add(1);
+            }
+            if let Some(current) = match_profile_stats.get(index) {
+                merge_uno_profile_stats(aggregate, current);
+            }
             changes.push(PlayerReferenceChange {
                 player: participant.id,
                 profile_id: participant.profile_id,
@@ -805,14 +952,28 @@ impl UnoSession {
         let game = self.game.as_mut()?;
         let turn = game.turn()?;
         let player = turn.current_player;
-        let mut events = game
-            .call_uno(player)
-            .ok()
-            .map(|outcome| events_for_outcome(&outcome, &[]))
+        let uno_outcome = game.call_uno(player).ok();
+        let mut events = uno_outcome
+            .as_ref()
+            .map(|outcome| events_for_outcome(outcome, &[]))
             .unwrap_or_default();
         let mut played = Vec::new();
         let outcome = if turn.current_color.is_none() {
             game.choose_initial_color(player, preferred_color(game, player))
+        } else if turn.pending_draw > 0 {
+            if let Some(card) = game
+                .player(player)?
+                .hand()
+                .iter()
+                .copied()
+                .find(|card| game.can_play(player, *card))
+            {
+                let color = card.face().is_wild().then(|| preferred_color(game, player));
+                played.push((card, color));
+                game.play_card(player, card, color)
+            } else {
+                game.accept_draw_penalty(player)
+            }
         } else if turn.pending_skip > 0 || turn.skipped_turns_remaining > 0 {
             if turn.skipped_turns_remaining == 0
                 && let Some(card) = game
@@ -831,20 +992,6 @@ impl UnoSession {
             let color = card.face().is_wild().then(|| preferred_color(game, player));
             played.push((card, color));
             game.play_card(player, card, color)
-        } else if turn.pending_draw > 0 {
-            if let Some(card) = game
-                .player(player)?
-                .hand()
-                .iter()
-                .copied()
-                .find(|card| game.can_play(player, *card))
-            {
-                let color = card.face().is_wild().then(|| preferred_color(game, player));
-                played.push((card, color));
-                game.play_card(player, card, color)
-            } else {
-                game.accept_draw_penalty(player)
-            }
         } else if let Some(card) = game
             .player(player)?
             .hand()
@@ -860,6 +1007,11 @@ impl UnoSession {
         }
         .ok()?;
         events.extend(events_for_outcome(&outcome, &played));
+        if let Some(uno_outcome) = uno_outcome.as_ref() {
+            self.record_profile_outcome(uno_outcome);
+        }
+        self.record_profile_outcome(&outcome);
+        self.record_state_peaks();
         Some(events)
     }
 
@@ -935,6 +1087,7 @@ impl UnoSession {
                     auto_play: participant.auto_play,
                     reference_points: participant.reference_points,
                     completed_games: participant.completed_games,
+                    game_profiles: participant.game_profiles.clone(),
                     skipped_turns: game
                         .skipped_turns(to_core_player(participant.id))
                         .unwrap_or(0),
@@ -1033,16 +1186,21 @@ fn events_for_outcome(outcome: &ActionOutcome, played: &[(Card, Option<Color>)])
     let mut events = played
         .iter()
         .copied()
-        .map(|(card, chosen_color)| match outcome {
+        .enumerate()
+        .map(|(index, (card, chosen_color))| match outcome {
             ActionOutcome::Played { player, .. } => UnoEvent::CardPlayed {
                 player: from_core_player(*player),
                 card,
                 chosen_color,
+                play_index: index as u8,
+                play_count: played.len() as u8,
             },
             ActionOutcome::GameFinished(result) => UnoEvent::CardPlayed {
                 player: from_core_player(result.winner),
                 card,
                 chosen_color,
+                play_index: index as u8,
+                play_count: played.len() as u8,
             },
             _ => unreachable!("only play actions carry played-card metadata"),
         })
@@ -1156,6 +1314,32 @@ fn from_core_player(player: CorePlayerId) -> PlayerId {
     PlayerId(u8::try_from(player.0).expect("UNO supports at most six players"))
 }
 
+fn merge_uno_profile_stats(aggregate: &mut UnoProfileStats, current: &UnoProfileStats) {
+    aggregate.max_hand_cards = aggregate.max_hand_cards.max(current.max_hand_cards);
+    aggregate.max_penalty_cards = aggregate.max_penalty_cards.max(current.max_penalty_cards);
+    aggregate.max_skipped_turns = aggregate.max_skipped_turns.max(current.max_skipped_turns);
+    aggregate.uno_calls = aggregate.uno_calls.saturating_add(current.uno_calls);
+    aggregate.uno_penalties = aggregate
+        .uno_penalties
+        .saturating_add(current.uno_penalties);
+    aggregate.challenges = aggregate.challenges.saturating_add(current.challenges);
+    aggregate.successful_challenges = aggregate
+        .successful_challenges
+        .saturating_add(current.successful_challenges);
+    aggregate.challenges_received = aggregate
+        .challenges_received
+        .saturating_add(current.challenges_received);
+    aggregate.successful_challenges_received = aggregate
+        .successful_challenges_received
+        .saturating_add(current.successful_challenges_received);
+    aggregate.jump_in_attempts = aggregate
+        .jump_in_attempts
+        .saturating_add(current.jump_in_attempts);
+    aggregate.successful_jump_ins = aggregate
+        .successful_jump_ins
+        .saturating_add(current.successful_jump_ins);
+}
+
 fn map_game_error(error: &GameError) -> UnoViolation {
     match error {
         GameError::InvalidPlayer(_) => UnoViolation::InvalidPlayer,
@@ -1209,13 +1393,15 @@ mod tests {
         secret[8] = 7;
         let key = SigningKey::from_bytes(&secret);
         let reconnect_token = ReconnectToken(token);
-        let payload = join_identity_payload(ROOM, reconnect_token, name, 0, 0);
+        let game_profiles = leocard_protocol::PlayerGameProfiles::default();
+        let payload = join_identity_payload(ROOM, reconnect_token, name, 0, 0, &game_profiles);
         ClientCommand::Join {
             name: name.to_owned(),
             reconnect_token,
             profile_id: ProfileId(key.verifying_key().to_bytes()),
             reference_points: 0,
             completed_games: 0,
+            game_profiles,
             identity_signature: key.sign(&payload).to_bytes().to_vec(),
         }
     }
@@ -1242,6 +1428,43 @@ mod tests {
                 .all(|snapshot| snapshot.your_hand.len() == 7)
         );
         assert!(snapshots.iter().all(|snapshot| snapshot.players.len() == 2));
+    }
+
+    #[test]
+    fn rematch_keeps_auto_play_after_clearing_ready_state() {
+        let mut session = UnoSession::new(ROOM, RuleSet::default(), build_deck()).unwrap();
+        session.handle(HOST, message(1, join_command("甲", 1)));
+        let second = ConnectionId(2);
+        session.handle(second, message(1, join_command("乙", 2)));
+        session.handle(second, message(2, ClientCommand::SetReady { ready: true }));
+        session.handle(HOST, message(2, ClientCommand::StartGame));
+        let participant = session
+            .room
+            .players
+            .iter_mut()
+            .find(|player| player.connection == second)
+            .unwrap();
+        participant.auto_play = true;
+
+        session.room.prepare_rematch();
+        let participant = session
+            .room
+            .players
+            .iter()
+            .find(|player| player.connection == second)
+            .unwrap();
+        assert!(participant.ready);
+        assert!(participant.auto_play);
+
+        session.start_next_game(None);
+        let participant = session
+            .room
+            .players
+            .iter()
+            .find(|player| player.connection == second)
+            .unwrap();
+        assert!(!participant.ready);
+        assert!(participant.auto_play);
     }
 
     #[test]
@@ -1372,6 +1595,8 @@ mod tests {
         assert_eq!(snapshot.discard_top, matching);
         assert_eq!(snapshot.current_player, Some(PlayerId(0)));
         assert_eq!(snapshot.your_hand.len(), 6);
+        assert_eq!(session.match_profile_stats[2].jump_in_attempts, 1);
+        assert_eq!(session.match_profile_stats[2].successful_jump_ins, 1);
     }
 
     #[test]
@@ -1412,6 +1637,109 @@ mod tests {
                     }
                 )
         }));
+        assert_eq!(session.match_profile_stats[2].jump_in_attempts, 1);
+        assert_eq!(session.match_profile_stats[2].successful_jump_ins, 0);
+    }
+
+    #[test]
+    fn profile_events_record_uno_penalties_and_challenge_results() {
+        let mut session = UnoSession::new(ROOM, RuleSet::default(), build_deck()).unwrap();
+        session.match_profile_stats = vec![UnoProfileStats::default(); 3];
+        session.record_profile_outcome(&ActionOutcome::UnoCalled {
+            player: CorePlayerId(0),
+        });
+        session.record_profile_outcome(&ActionOutcome::UnoReported {
+            reporter: CorePlayerId(1),
+            target: CorePlayerId(0),
+            cards: vec![
+                Card::number(Color::Blue, 1, 0),
+                Card::number(Color::Blue, 2, 0),
+            ],
+        });
+        session.record_profile_outcome(&ActionOutcome::ChallengeResolved {
+            challenger: CorePlayerId(1),
+            offender: CorePlayerId(2),
+            result: ChallengeResult::Successful,
+            penalized: CorePlayerId(2),
+            cards: vec![Card::number(Color::Green, 3, 0); 4],
+            next_player: CorePlayerId(1),
+        });
+        session.record_profile_outcome(&ActionOutcome::ChallengeResolved {
+            challenger: CorePlayerId(0),
+            offender: CorePlayerId(2),
+            result: ChallengeResult::Failed,
+            penalized: CorePlayerId(0),
+            cards: vec![Card::number(Color::Yellow, 4, 0); 6],
+            next_player: CorePlayerId(1),
+        });
+
+        assert_eq!(session.match_profile_stats[0].uno_calls, 1);
+        assert_eq!(session.match_profile_stats[0].uno_penalties, 1);
+        assert_eq!(session.match_profile_stats[0].challenges, 1);
+        assert_eq!(session.match_profile_stats[0].successful_challenges, 0);
+        assert_eq!(session.match_profile_stats[0].max_penalty_cards, 6);
+        assert_eq!(session.match_profile_stats[1].challenges, 1);
+        assert_eq!(session.match_profile_stats[1].successful_challenges, 1);
+        assert_eq!(session.match_profile_stats[2].challenges_received, 2);
+        assert_eq!(
+            session.match_profile_stats[2].successful_challenges_received,
+            1
+        );
+        assert_eq!(session.match_profile_stats[2].max_penalty_cards, 4);
+    }
+
+    #[test]
+    fn finished_game_merges_uno_profile_statistics_once() {
+        let mut session = UnoSession::new(ROOM, RuleSet::default(), build_deck()).unwrap();
+        session.handle(HOST, message(1, join_command("甲", 1)));
+        let second = ConnectionId(2);
+        session.handle(second, message(1, join_command("乙", 2)));
+        session.handle(second, message(2, ClientCommand::SetReady { ready: true }));
+        session.handle(HOST, message(2, ClientCommand::StartGame));
+        assert_eq!(session.match_profile_stats[0].max_hand_cards, 7);
+        session.match_profile_stats[0].max_hand_cards = 40;
+        session.match_profile_stats[0].max_penalty_cards = 12;
+        session.match_profile_stats[0].challenges = 3;
+        session.match_profile_stats[0].successful_challenges = 2;
+
+        for _ in 0..5_000 {
+            if session
+                .game
+                .as_ref()
+                .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
+            {
+                break;
+            }
+            session
+                .play_automatic_action()
+                .expect("an automatic UNO action should remain available");
+        }
+        let result = match session.game.as_ref().unwrap().phase() {
+            Phase::Finished(result) => result.clone(),
+            Phase::Playing => panic!("automatic play did not finish the game"),
+        };
+
+        session.apply_finished_reference_points();
+        session.apply_finished_reference_points();
+
+        for (index, participant) in session.room.players.iter().enumerate() {
+            let stats = participant.game_profiles.uno.as_ref().unwrap();
+            assert_eq!(stats.completed_games, 1);
+            assert_eq!(
+                stats.total_reference_delta,
+                i64::from(result.reference_deltas[index])
+            );
+            assert_eq!(
+                stats.total_remaining_score,
+                u64::from(result.hand_scores[index])
+            );
+            assert_eq!(stats.placement_counts.iter().sum::<u32>(), 1);
+        }
+        let first = session.room.players[0].game_profiles.uno.as_ref().unwrap();
+        assert_eq!(first.max_hand_cards, 40);
+        assert!(first.max_penalty_cards >= 12);
+        assert_eq!(first.challenges, 3);
+        assert_eq!(first.successful_challenges, 2);
     }
 
     #[test]
@@ -1433,11 +1761,15 @@ mod tests {
                     player: PlayerId(0),
                     card: first,
                     chosen_color: None,
+                    play_index: 0,
+                    play_count: 2,
                 },
                 UnoEvent::CardPlayed {
                     player: PlayerId(0),
                     card: second,
                     chosen_color: None,
+                    play_index: 1,
+                    play_count: 2,
                 },
             ]
         );

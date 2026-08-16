@@ -69,6 +69,7 @@ pub(super) fn handle_buttons(
                 Ok(_) => {
                     ui.host_game_picker_open = true;
                     ui.profile_open = false;
+                    ui.player_profile = None;
                     ui.settings_open = false;
                     form.error = None;
                 }
@@ -89,6 +90,7 @@ pub(super) fn handle_buttons(
                             profile.identity.clone(),
                             profile.reference_points(),
                             profile.completed_games(),
+                            profile.game_profiles().clone(),
                         )
                         .map_err(|error| error.to_string())
                     }
@@ -100,6 +102,7 @@ pub(super) fn handle_buttons(
                         profile.identity.clone(),
                         profile.reference_points(),
                         profile.completed_games(),
+                        profile.game_profiles().clone(),
                     )
                     .map_err(|error| error.to_string()),
                     GameKind::Shengji => TcpGameClient::host_shengji_with_profile(
@@ -110,6 +113,7 @@ pub(super) fn handle_buttons(
                         profile.identity.clone(),
                         profile.reference_points(),
                         profile.completed_games(),
+                        profile.game_profiles().clone(),
                     )
                     .map_err(|error| error.to_string()),
                     GameKind::Uno => TcpGameClient::host_uno_with_profile(
@@ -120,6 +124,7 @@ pub(super) fn handle_buttons(
                         profile.identity.clone(),
                         profile.reference_points(),
                         profile.completed_games(),
+                        profile.game_profiles().clone(),
                     )
                     .map_err(|error| error.to_string()),
                 });
@@ -151,6 +156,7 @@ pub(super) fn handle_buttons(
                         profile.identity.clone(),
                         profile.reference_points(),
                         profile.completed_games(),
+                        profile.game_profiles().clone(),
                     )
                     .map_err(|error| error.to_string())
                 };
@@ -185,15 +191,27 @@ pub(super) fn handle_buttons(
             }
             UiAction::ToggleProfile => {
                 ui.profile_open = !ui.profile_open;
+                ui.player_profile = None;
                 if ui.profile_open {
                     ui.settings_open = false;
                     ui.host_game_picker_open = false;
                 }
             }
+            UiAction::OpenPlayerProfile(player_profile) => {
+                ui.profile_open = true;
+                ui.player_profile = Some(player_profile.clone());
+                ui.interaction_menu_open = None;
+                ui.settings_open = false;
+                ui.host_game_picker_open = false;
+            }
+            UiAction::SelectProfileGameTab(tab) => {
+                ui.profile_game_tab = *tab;
+            }
             UiAction::ToggleSettings => {
                 ui.settings_open = !ui.settings_open;
                 if ui.settings_open {
                     ui.profile_open = false;
+                    ui.player_profile = None;
                     ui.host_game_picker_open = false;
                 }
             }
@@ -1117,13 +1135,49 @@ pub(super) fn poll_network(
     } else if client.0.model().lobby().is_some() || started_game.is_none() {
         seat_transition.clear();
     }
-    if client
+    let mut profile_changed = client
         .0
         .model()
         .last_finished_match()
-        .is_some_and(|(match_id, changes)| profile.apply_finished_match(match_id, changes))
-        && let Err(error) = profile.save()
-    {
+        .is_some_and(|(match_id, changes)| profile.apply_finished_match(match_id, changes));
+    let authoritative_qigui523_profile = client.0.model().qigui523_game().and_then(|game| {
+        game.players
+            .iter()
+            .find(|player| player.id == game.you)
+            .and_then(|player| player.game_profiles.qigui523.as_ref())
+    });
+    if let Some(stats) = authoritative_qigui523_profile {
+        profile_changed |= profile.sync_qigui523_profile(stats);
+    }
+    let authoritative_texas_holdem_profile =
+        client.0.model().texas_holdem_game().and_then(|game| {
+            game.players
+                .iter()
+                .find(|player| player.id == game.you)
+                .and_then(|player| player.game_profiles.texas_holdem.as_ref())
+        });
+    if let Some(stats) = authoritative_texas_holdem_profile {
+        profile_changed |= profile.sync_texas_holdem_profile(stats);
+    }
+    let authoritative_shengji_profile = client.0.model().shengji_game().and_then(|game| {
+        game.players
+            .iter()
+            .find(|player| player.id == game.you)
+            .and_then(|player| player.game_profiles.shengji.as_ref())
+    });
+    if let Some(stats) = authoritative_shengji_profile {
+        profile_changed |= profile.sync_shengji_profile(stats);
+    }
+    let authoritative_uno_profile = client.0.model().uno_game().and_then(|game| {
+        game.players
+            .iter()
+            .find(|player| player.id == game.you)
+            .and_then(|player| player.game_profiles.uno.as_ref())
+    });
+    if let Some(stats) = authoritative_uno_profile {
+        profile_changed |= profile.sync_uno_profile(stats);
+    }
+    if profile_changed && let Err(error) = profile.save() {
         form.error = Some(error);
     }
     let accepted_host_rules = client.0.model().lobby().and_then(|lobby| {
@@ -1295,28 +1349,6 @@ pub(super) fn only_shengji_transient_progress_changed(
                 unreachable!();
             };
             let ShengjiPhaseView::BottomCopying {
-                milliseconds_remaining: latest,
-                ..
-            } = &after.phase
-            else {
-                unreachable!();
-            };
-            *milliseconds_remaining = *latest;
-            normalized == *after
-        }
-        (
-            ShengjiPhaseView::FiveTrumpCrossing { .. },
-            ShengjiPhaseView::FiveTrumpCrossing { .. },
-        ) => {
-            let mut normalized = before.clone();
-            let ShengjiPhaseView::FiveTrumpCrossing {
-                milliseconds_remaining,
-                ..
-            } = &mut normalized.phase
-            else {
-                unreachable!();
-            };
-            let ShengjiPhaseView::FiveTrumpCrossing {
                 milliseconds_remaining: latest,
                 ..
             } = &after.phase

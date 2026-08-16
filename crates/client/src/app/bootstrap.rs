@@ -53,8 +53,7 @@ impl LocalPlayerProfile {
         let path = player_profile_path().ok_or_else(|| "无法确定玩家档案目录".to_owned())?;
         if path.is_file() {
             let bytes = fs::read(&path).map_err(|error| format!("无法读取玩家档案：{error}"))?;
-            let stored: StoredPlayerProfile =
-                postcard::from_bytes(&bytes).map_err(|error| format!("玩家档案已损坏：{error}"))?;
+            let stored = decode_player_profile(&bytes)?;
             return Ok(Self {
                 identity: PlayerIdentity::from_secret_bytes(stored.secret_key),
                 rating: PlayerRatingProfile {
@@ -62,6 +61,12 @@ impl LocalPlayerProfile {
                     completed_games: stored.games.qigui523.completed_games,
                     applied_matches: stored.games.qigui523.applied_matches.into_iter().collect(),
                     last_change: None,
+                },
+                game_profiles: PlayerGameProfiles {
+                    qigui523: stored.games.qigui523.qigui523_stats,
+                    texas_holdem: stored.games.texas_holdem_stats,
+                    shengji: stored.games.shengji_stats,
+                    uno: stored.games.uno_stats,
                 },
             });
         }
@@ -76,6 +81,7 @@ impl LocalPlayerProfile {
                 applied_matches: HashSet::new(),
                 last_change: None,
             },
+            game_profiles: PlayerGameProfiles::default(),
         };
         profile.save()?;
         Ok(profile)
@@ -93,7 +99,11 @@ impl LocalPlayerProfile {
                     reference_points: self.rating.reference_points,
                     completed_games: self.rating.completed_games,
                     applied_matches: self.rating.applied_matches.iter().copied().collect(),
+                    qigui523_stats: self.game_profiles.qigui523.clone(),
                 },
+                texas_holdem_stats: self.game_profiles.texas_holdem.clone(),
+                shengji_stats: self.game_profiles.shengji.clone(),
+                uno_stats: self.game_profiles.uno.clone(),
             },
         };
         let bytes =
@@ -139,6 +149,99 @@ impl LocalPlayerProfile {
 
     pub(super) fn completed_games(&self) -> u32 {
         self.rating.completed_games
+    }
+
+    pub(super) const fn game_profiles(&self) -> &PlayerGameProfiles {
+        &self.game_profiles
+    }
+
+    pub(super) fn sync_qigui523_profile(&mut self, stats: &QiGui523ProfileStats) -> bool {
+        if self.game_profiles.qigui523.as_ref() == Some(stats) {
+            return false;
+        }
+        self.game_profiles.qigui523 = Some(stats.clone());
+        true
+    }
+
+    pub(super) fn sync_texas_holdem_profile(&mut self, stats: &TexasHoldemProfileStats) -> bool {
+        if self.game_profiles.texas_holdem.as_ref() == Some(stats) {
+            return false;
+        }
+        self.game_profiles.texas_holdem = Some(stats.clone());
+        true
+    }
+
+    pub(super) fn sync_shengji_profile(&mut self, stats: &ShengjiProfileStats) -> bool {
+        if self.game_profiles.shengji.as_ref() == Some(stats) {
+            return false;
+        }
+        self.game_profiles.shengji = Some(stats.clone());
+        true
+    }
+
+    pub(super) fn sync_uno_profile(&mut self, stats: &UnoProfileStats) -> bool {
+        if self.game_profiles.uno.as_ref() == Some(stats) {
+            return false;
+        }
+        self.game_profiles.uno = Some(stats.clone());
+        true
+    }
+}
+
+pub(in crate::app) fn decode_player_profile(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
+    match postcard::from_bytes(bytes) {
+        Ok(stored) => Ok(stored),
+        Err(current_error) => {
+            if let Ok(previous) = postcard::from_bytes::<PreUnoStoredPlayerProfile>(bytes) {
+                return Ok(StoredPlayerProfile {
+                    secret_key: previous.secret_key,
+                    games: StoredGameProfiles {
+                        qigui523: previous.games.qigui523,
+                        texas_holdem_stats: previous.games.texas_holdem_stats,
+                        shengji_stats: previous.games.shengji_stats,
+                        uno_stats: None,
+                    },
+                });
+            }
+            if let Ok(previous) = postcard::from_bytes::<PreShengjiStoredPlayerProfile>(bytes) {
+                return Ok(StoredPlayerProfile {
+                    secret_key: previous.secret_key,
+                    games: StoredGameProfiles {
+                        qigui523: previous.games.qigui523,
+                        texas_holdem_stats: previous.games.texas_holdem_stats,
+                        shengji_stats: None,
+                        uno_stats: None,
+                    },
+                });
+            }
+            if let Ok(previous) = postcard::from_bytes::<PreTexasStoredPlayerProfile>(bytes) {
+                return Ok(StoredPlayerProfile {
+                    secret_key: previous.secret_key,
+                    games: StoredGameProfiles {
+                        qigui523: previous.games.qigui523,
+                        texas_holdem_stats: None,
+                        shengji_stats: None,
+                        uno_stats: None,
+                    },
+                });
+            }
+            let previous: PreDetailedStoredPlayerProfile = postcard::from_bytes(bytes)
+                .map_err(|_| format!("玩家档案已损坏：{current_error}"))?;
+            Ok(StoredPlayerProfile {
+                secret_key: previous.secret_key,
+                games: StoredGameProfiles {
+                    qigui523: StoredRatingProfile {
+                        reference_points: previous.games.qigui523.reference_points,
+                        completed_games: previous.games.qigui523.completed_games,
+                        applied_matches: previous.games.qigui523.applied_matches,
+                        qigui523_stats: None,
+                    },
+                    texas_holdem_stats: None,
+                    shengji_stats: None,
+                    uno_stats: None,
+                },
+            })
+        }
     }
 }
 
@@ -463,6 +566,7 @@ pub(super) fn load_ui_assets(
         summary_die_sound: asset_server.load("vendor/noname/audio/effect/flappybird_die.ogg"),
         quick_voice_sounds,
         texas_sounds: TexasSoundAssets::load(&asset_server),
+        uno_sounds: UnoSoundAssets::load(&asset_server),
         sequence_airplane: asset_server.load("ui/effects/sequence_airplane.png"),
         shengji_target: asset_server.load("ui/effects/shengji_target.png"),
         shengji_dart: asset_server.load("ui/effects/shengji_dart.png"),

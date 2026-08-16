@@ -642,16 +642,22 @@ impl GameState {
 
     pub fn accept_draw_penalty(&mut self, player: PlayerId) -> Result<ActionOutcome, GameError> {
         self.ensure_turn(player)?;
-        self.ensure_skip_resolved(player)?;
         self.ensure_uno_followup_resolved(player)?;
         if self.pending_draw == 0 {
             return Err(GameError::NoDrawPenalty);
         }
+        let must_resolve_skip = self.pending_skip > 0 || self.skip_turns[player.0] > 0;
         let count = self.pending_draw;
         let cards = self.draw_cards_for(player, count)?;
         self.jump_in_open = false;
         self.clear_pending_draw();
-        let next_player = self.next_player(player);
+        // 罚牌始终属于功能牌出牌者的直接下家。若该玩家同时仍被禁手，先由其
+        // 收下罚牌并留在当前回合，随后再单独消耗禁手，不能把罚牌传给下下家。
+        let next_player = if must_resolve_skip {
+            player
+        } else {
+            self.next_player(player)
+        };
         self.current_player = next_player;
         Ok(ActionOutcome::PenaltyDrawn {
             player,
@@ -662,15 +668,19 @@ impl GameState {
 
     pub fn challenge_draw_four(&mut self, player: PlayerId) -> Result<ActionOutcome, GameError> {
         self.ensure_turn(player)?;
-        self.ensure_skip_resolved(player)?;
         self.ensure_uno_followup_resolved(player)?;
         let challenge = self.challenge.ok_or(GameError::CannotChallenge)?;
+        let must_resolve_skip = self.pending_skip > 0 || self.skip_turns[player.0] > 0;
         let (result, penalized, count, next_player) = if challenge.was_legal {
             (
                 ChallengeResult::Failed,
                 player,
                 self.pending_draw + 2,
-                self.next_player(player),
+                if must_resolve_skip {
+                    player
+                } else {
+                    self.next_player(player)
+                },
             )
         } else {
             (
@@ -766,6 +776,9 @@ impl GameState {
     pub fn resolve_skip(&mut self, player: PlayerId) -> Result<ActionOutcome, GameError> {
         self.ensure_turn(player)?;
         self.ensure_uno_followup_resolved(player)?;
+        if self.pending_draw > 0 {
+            return Err(GameError::MustResolveDrawPenalty);
+        }
         let pending = self.pending_skip;
         let existing = self.skip_turns[player.0];
         if pending == 0 && existing == 0 {
@@ -1397,6 +1410,48 @@ mod tests {
         assert_eq!(game.turn().unwrap().current_player, PlayerId(1));
         assert_eq!(game.skipped_turns(PlayerId(1)), Some(1));
         assert_eq!(game.draw_card(PlayerId(1)), Err(GameError::MustResolveSkip));
+        game.resolve_skip(PlayerId(1)).unwrap();
+        assert_eq!(game.turn().unwrap().current_player, PlayerId(2));
+        assert_eq!(game.skipped_turns(PlayerId(1)), Some(0));
+    }
+
+    #[test]
+    fn draw_two_is_paid_by_the_skipped_direct_next_player_before_skip_resolves() {
+        let draw_two = card(Color::Red, Face::DrawTwo, 0);
+        let start = card(Color::Red, Face::Number(5), 0);
+        let mut deck = build_deck();
+        for (position, required) in [(0, draw_two), (42, start)] {
+            let current = deck
+                .iter()
+                .position(|candidate| *candidate == required)
+                .unwrap();
+            deck.swap(position, current);
+        }
+        let mut game = GameState::new_with_deck(RuleSet::default(), 6, deck).unwrap();
+        game.skip_turns[1] = 1;
+        let before = game.player(PlayerId(1)).unwrap().hand().len();
+
+        game.play_card(PlayerId(0), draw_two, None).unwrap();
+        assert_eq!(game.turn().unwrap().current_player, PlayerId(1));
+        assert_eq!(
+            game.resolve_skip(PlayerId(1)),
+            Err(GameError::MustResolveDrawPenalty)
+        );
+
+        let outcome = game.accept_draw_penalty(PlayerId(1)).unwrap();
+        assert!(matches!(
+            outcome,
+            ActionOutcome::PenaltyDrawn {
+                player: PlayerId(1),
+                ref cards,
+                next_player: PlayerId(1),
+            } if cards.len() == 2
+        ));
+        assert_eq!(game.player(PlayerId(1)).unwrap().hand().len(), before + 2);
+        assert_eq!(game.turn().unwrap().current_player, PlayerId(1));
+        assert_eq!(game.turn().unwrap().pending_draw, 0);
+        assert_eq!(game.skipped_turns(PlayerId(1)), Some(1));
+
         game.resolve_skip(PlayerId(1)).unwrap();
         assert_eq!(game.turn().unwrap().current_player, PlayerId(2));
         assert_eq!(game.skipped_turns(PlayerId(1)), Some(0));

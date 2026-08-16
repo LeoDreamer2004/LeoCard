@@ -7,15 +7,16 @@ use leocard_protocol::{
     PlayerReferenceChange, RejectReason, RequestId, Revision, RoomId, ServerEvent,
     ShengjiBottomFlipMatchView, ShengjiBottomFlipRevealView, ShengjiCommand,
     ShengjiDeclarationView, ShengjiEvent, ShengjiFiveTrumpCrossingStage, ShengjiHandResultView,
-    ShengjiPhaseView, ShengjiPlayerState, ShengjiPublicPlay, ShengjiSnapshot,
+    ShengjiPhaseView, ShengjiPlayerState, ShengjiProfileStats, ShengjiPublicPlay, ShengjiSnapshot,
     ShengjiThrowFailureStage, ShengjiThrowFailureView, ShengjiTrickView, ShengjiViolation,
 };
 #[cfg(test)]
 use leocard_shengji::build_deck;
 use leocard_shengji::{
-    ActionOutcome, BidError, BottomFlipReveal, Card, ClassifiedPlay, FiveTrumpCrossingStage,
-    FollowError, GameError, GameState, GreedyBot, GreedyBotRequest, HandResult, Phase, PlayError,
-    PlayerId as CorePlayerId, RuleSet, TeamProgress, TrickRecord, build_deck_for,
+    ActionOutcome, BidError, BidKind, BottomFlipReveal, Card, ClassifiedPlay, Component,
+    FiveTrumpCrossingStage, FollowError, GameError, GameState, GreedyBot, GreedyBotRequest,
+    HandResult, Phase, PlayError, PlayerId as CorePlayerId, RuleSet, TeamProgress, TrickRecord,
+    build_deck_for,
 };
 
 use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
@@ -30,7 +31,6 @@ const BOTTOM_FLIP_START_DELAY: Duration = Duration::from_millis(500);
 // 会在演出完成前覆盖当前结果。
 const BOTTOM_FLIP_HOLD_DURATION: Duration = Duration::from_millis(2800);
 const BOTTOM_COPY_DECISION_TIMEOUT: Duration = Duration::from_secs(10);
-const FIVE_TRUMP_CROSSING_TIMEOUT: Duration = Duration::from_secs(15);
 const AUTOMATIC_ACTION_DELAY: Duration = Duration::from_secs(1);
 const REDEAL_DELAY: Duration = Duration::from_millis(650);
 const TRICK_HOLD_DURATION: Duration = Duration::from_millis(1200);
@@ -64,12 +64,12 @@ pub struct ShengjiSession {
     bottom_flip_reveal: Option<BottomFlipReveal>,
     bottom_flip_remaining: Option<Duration>,
     bottom_copy_remaining: Option<Duration>,
-    five_trump_crossing_remaining: Option<Duration>,
     automatic_action: Option<(CorePlayerId, Duration)>,
     redeal_remaining: Option<Duration>,
     throw_penalties: [u16; RuleSet::PLAYER_COUNT],
     held_throw_failure: Option<HeldThrowFailure>,
     held_trick: Option<(TrickRecord, Duration)>,
+    hand_profile_stats: Vec<ShengjiProfileStats>,
     finished_settlement_id: Option<MatchId>,
     finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
 }
@@ -111,12 +111,12 @@ impl ShengjiSession {
             bottom_flip_reveal: None,
             bottom_flip_remaining: None,
             bottom_copy_remaining: None,
-            five_trump_crossing_remaining: None,
             automatic_action: None,
             redeal_remaining: None,
             throw_penalties: [0; RuleSet::PLAYER_COUNT],
             held_throw_failure: None,
             held_trick: None,
+            hand_profile_stats: Vec::new(),
             finished_settlement_id: None,
             finished_reference_changes: None,
         })
@@ -176,10 +176,12 @@ impl ShengjiSession {
             Some(Phase::BiddingGrace) => self.advance_bidding(elapsed),
             Some(Phase::BottomFlipping) => self.advance_bottom_flip(elapsed),
             Some(Phase::BottomCopying) => self.advance_bottom_copy(elapsed),
-            Some(Phase::FiveTrumpCrossing) => self.advance_five_trump_crossing(elapsed),
-            Some(Phase::Burying | Phase::BottomCopyBurying | Phase::Playing) => {
-                self.advance_automatic_action(elapsed)
-            }
+            Some(
+                Phase::Burying
+                | Phase::BottomCopyBurying
+                | Phase::FiveTrumpCrossing
+                | Phase::Playing,
+            ) => self.advance_automatic_action(elapsed),
             Some(Phase::Finished(_) | Phase::RedealRequired) | None => Vec::new(),
         }
     }
@@ -251,6 +253,7 @@ impl ShengjiSession {
                             .declare(player, &cards)
                             .is_ok()
                     {
+                        self.record_current_declaration();
                         events.push(ShengjiEvent::DeclarationChanged {
                             declaration: self.declaration_view().unwrap(),
                         });
@@ -477,80 +480,13 @@ impl ShengjiSession {
         else {
             return Vec::new();
         };
+        self.record_profile_outcome(&outcome);
         self.after_game_outcome(&outcome);
         self.reset_automatic_action();
         self.room.bump_revision();
         let mut deliveries = self.broadcast_events(self.events_for_outcome(&outcome));
         deliveries.extend(self.broadcast_game(None));
         deliveries
-    }
-
-    fn advance_five_trump_crossing(&mut self, elapsed: Duration) -> Vec<Delivery> {
-        let Some(stage) = self
-            .game
-            .as_ref()
-            .and_then(GameState::five_trump_crossing)
-            .map(leocard_shengji::FiveTrumpCrossingState::stage)
-        else {
-            self.five_trump_crossing_remaining = None;
-            return Vec::new();
-        };
-        if stage == FiveTrumpCrossingStage::Returning {
-            // 返还阶段由真人自行斟酌，不设截止时间；机器人、托管和掉线玩家仍由
-            // 自动行动计时器处理，避免无真人参与的牌局永久停住。
-            self.five_trump_crossing_remaining = None;
-            return self.advance_automatic_action(elapsed);
-        }
-
-        let remaining = self
-            .five_trump_crossing_remaining
-            .get_or_insert(FIVE_TRUMP_CROSSING_TIMEOUT);
-        if elapsed < *remaining {
-            *remaining -= elapsed;
-            let deliveries = self.advance_automatic_action(elapsed);
-            if !deliveries.is_empty() {
-                return deliveries;
-            }
-            self.room.bump_revision();
-            return self.broadcast_game(None);
-        }
-
-        let Some((stage, pending)) = self.game.as_ref().and_then(|game| {
-            let crossing = game.five_trump_crossing()?;
-            Some((crossing.stage(), crossing.pending_players()))
-        }) else {
-            self.five_trump_crossing_remaining = None;
-            return Vec::new();
-        };
-        self.five_trump_crossing_remaining = None;
-        for player in pending {
-            let outcome = match stage {
-                FiveTrumpCrossingStage::Deciding => self
-                    .game
-                    .as_mut()
-                    .and_then(|game| game.choose_five_trump_crossing(player, None).ok()),
-                FiveTrumpCrossingStage::Returning => {
-                    let cards = self.automatic_crossing_return_cards(player);
-                    cards.and_then(|cards| {
-                        self.game
-                            .as_mut()
-                            .and_then(|game| game.return_five_trump_crossing(player, &cards).ok())
-                    })
-                }
-            };
-            if let Some(outcome) = outcome {
-                self.after_game_outcome(&outcome);
-            }
-        }
-        self.five_trump_crossing_remaining = self
-            .game
-            .as_ref()
-            .and_then(GameState::five_trump_crossing)
-            .is_some_and(|crossing| crossing.stage() == FiveTrumpCrossingStage::Deciding)
-            .then_some(FIVE_TRUMP_CROSSING_TIMEOUT);
-        self.reset_automatic_action();
-        self.room.bump_revision();
-        self.broadcast_game(None)
     }
 
     fn advance_redeal(&mut self, elapsed: Duration) -> Vec<Delivery> {
@@ -586,6 +522,7 @@ impl ShengjiSession {
         let Some(outcome) = self.play_automatic_action(player) else {
             return Vec::new();
         };
+        self.record_profile_outcome(&outcome);
         self.after_game_outcome(&outcome);
         let events = self.events_for_outcome(&outcome);
         self.reset_automatic_action();
@@ -646,6 +583,7 @@ impl ShengjiSession {
                 profile_id,
                 reference_points,
                 completed_games,
+                game_profiles,
                 identity_signature,
             } => {
                 let joined = self.room.join(
@@ -656,6 +594,7 @@ impl ShengjiSession {
                     profile_id,
                     reference_points,
                     completed_games,
+                    game_profiles,
                     identity_signature,
                     self.game.is_some(),
                     PLAYER_COUNT,
@@ -850,6 +789,7 @@ impl ShengjiSession {
         self.hand_number = 0;
         self.teams = TeamProgress::for_rules(&self.rules);
         self.next_dealer = None;
+        self.hand_profile_stats = vec![ShengjiProfileStats::default(); RuleSet::PLAYER_COUNT];
         if self.start_hand(true).is_err() {
             #[cfg(feature = "developer")]
             self.room.remove_developer_bots();
@@ -888,12 +828,12 @@ impl ShengjiSession {
         self.bottom_flip_reveal = None;
         self.bottom_flip_remaining = None;
         self.bottom_copy_remaining = None;
-        self.five_trump_crossing_remaining = None;
         self.automatic_action = None;
         self.redeal_remaining = None;
         self.throw_penalties = [0; RuleSet::PLAYER_COUNT];
         self.held_throw_failure = None;
         self.held_trick = None;
+        self.hand_profile_stats.fill(ShengjiProfileStats::default());
         self.finished_settlement_id = None;
         self.finished_reference_changes = None;
         Ok(())
@@ -947,6 +887,7 @@ impl ShengjiSession {
         };
         match game.declare(to_core_player(player), &cards) {
             Ok(_) => {
+                self.record_current_declaration();
                 self.reset_bid_pass_confirmations();
                 self.room.bump_revision();
                 let event = ShengjiEvent::DeclarationChanged {
@@ -1089,6 +1030,7 @@ impl ShengjiSession {
             Ok(outcome) => outcome,
             Err(error) => return self.reject_game_error(connection, request_id, error),
         };
+        self.record_profile_outcome(&outcome);
         self.after_game_outcome(&outcome);
         let events = self.events_for_outcome(&outcome);
         self.reset_automatic_action();
@@ -1126,16 +1068,17 @@ impl ShengjiSession {
         }
         self.game = None;
         self.match_id = None;
+        self.hand_profile_stats.clear();
         self.automatic_action = None;
         self.bottom_flip_reveal = None;
         self.bottom_flip_remaining = None;
         self.bottom_copy_remaining = None;
-        self.five_trump_crossing_remaining = None;
         #[cfg(feature = "developer")]
         self.room.remove_developer_bots();
         let host = self.room.host_connection;
         for player in &mut self.room.players {
             player.ready = host == Some(player.connection);
+            player.auto_play = player.is_bot;
             if !player.connected {
                 player.seat = None;
                 player.left = true;
@@ -1389,6 +1332,7 @@ impl ShengjiSession {
                     auto_play: player.auto_play,
                     reference_points: player.reference_points,
                     completed_games: player.completed_games,
+                    game_profiles: player.game_profiles.clone(),
                 })
                 .collect(),
             your_hand,
@@ -1526,15 +1470,6 @@ impl ShengjiSession {
                     decided,
                     crossing: crossing_players,
                     returned,
-                    milliseconds_remaining: if crossing.stage() == FiveTrumpCrossingStage::Deciding
-                    {
-                        self.five_trump_crossing_remaining
-                            .unwrap_or(FIVE_TRUMP_CROSSING_TIMEOUT)
-                            .as_millis()
-                            .min(u128::from(u16::MAX)) as u16
-                    } else {
-                        0
-                    },
                 }
             }
             Phase::Playing => ShengjiPhaseView::Playing,
@@ -1628,6 +1563,7 @@ impl ShengjiSession {
             if let Some(cards) = cards
                 && self.game.as_mut()?.declare(player, &cards).is_ok()
             {
+                self.record_current_declaration();
                 return Some(ShengjiEvent::DeclarationChanged {
                     declaration: self.declaration_view()?,
                 });
@@ -1716,12 +1652,112 @@ impl ShengjiSession {
         Some(outcome)
     }
 
-    fn automatic_crossing_return_cards(&self, player: CorePlayerId) -> Option<Vec<Card>> {
-        let game = self.game.as_ref()?;
-        let trump = game.trump()?;
-        let mut hand = game.players().get(usize::from(player.0))?.hand.clone();
-        hand.sort_by_key(|card| card_sort_key(*card, trump));
-        (hand.len() >= 5).then(|| hand[..5].to_vec())
+    fn record_current_declaration(&mut self) {
+        let Some((player, kind)) = self
+            .game
+            .as_ref()
+            .and_then(|game| game.bidding().current())
+            .map(|declaration| (declaration.player, declaration.kind))
+        else {
+            return;
+        };
+        let Some(stats) = self.hand_profile_stats.get_mut(usize::from(player.0)) else {
+            return;
+        };
+        match kind {
+            BidKind::Initial => stats.declaration_games = 1,
+            BidKind::Counter | BidKind::SelfCounter => stats.counter_games = 1,
+            BidKind::Protect => {}
+        }
+    }
+
+    fn record_profile_outcome(&mut self, outcome: &ActionOutcome) {
+        match outcome {
+            ActionOutcome::BottomCopyDecision {
+                player,
+                copied: true,
+                ..
+            } => {
+                if let Some(stats) = self.hand_profile_stats.get_mut(usize::from(player.0)) {
+                    stats.counter_games = 1;
+                }
+            }
+            ActionOutcome::FiveTrumpCrossingDecision {
+                player,
+                crossing: true,
+                ..
+            } => {
+                if let Some(stats) = self.hand_profile_stats.get_mut(usize::from(player.0)) {
+                    stats.crossing_games = 1;
+                }
+            }
+            ActionOutcome::Played { player, .. } | ActionOutcome::ThrowFailed { player, .. } => {
+                let play =
+                    self.game
+                        .as_ref()
+                        .and_then(GameState::current_trick)
+                        .and_then(|trick| {
+                            trick.plays.last().map(|(_, play)| {
+                                (play.clone(), trick.leader == *player, trick.winner)
+                            })
+                        });
+                if let Some((play, is_lead, winner)) = play {
+                    self.record_profile_play(*player, &play, is_lead, winner == *player);
+                }
+            }
+            ActionOutcome::TrickComplete(trick) => {
+                if let Some((player, play)) = trick.plays.last() {
+                    self.record_profile_play(
+                        *player,
+                        play,
+                        trick.leader == *player,
+                        trick.winner == *player,
+                    );
+                }
+            }
+            ActionOutcome::HandComplete(_) => {
+                let play = self
+                    .game
+                    .as_ref()
+                    .and_then(|game| game.history().last())
+                    .and_then(|trick| {
+                        trick.plays.last().map(|(player, play)| {
+                            (*player, play.clone(), trick.leader, trick.winner)
+                        })
+                    });
+                if let Some((player, play, leader, winner)) = play {
+                    self.record_profile_play(player, &play, leader == player, winner == player);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn record_profile_play(
+        &mut self,
+        player: CorePlayerId,
+        play: &ClassifiedPlay,
+        is_lead: bool,
+        is_winning: bool,
+    ) {
+        let Some(stats) = self.hand_profile_stats.get_mut(usize::from(player.0)) else {
+            return;
+        };
+        stats.plays = stats.plays.saturating_add(1);
+        if is_winning {
+            stats.winning_plays = stats.winning_plays.saturating_add(1);
+        }
+        if is_lead && play.is_throw() {
+            stats.play_category_counts[4] = stats.play_category_counts[4].saturating_add(1);
+            stats.longest_throw = stats
+                .longest_throw
+                .max(play.cards.len().min(usize::from(u16::MAX)) as u16);
+            for component in &play.components {
+                record_shengji_component(stats, component);
+            }
+        } else {
+            record_shengji_component(stats, play.strongest_component());
+        }
     }
 
     fn events_for_outcome(&self, outcome: &ActionOutcome) -> Vec<ShengjiEvent> {
@@ -1813,11 +1849,6 @@ impl ShengjiSession {
                     .as_ref()
                     .is_some_and(|game| matches!(game.phase(), Phase::BottomCopying))
                     .then_some(BOTTOM_COPY_DECISION_TIMEOUT);
-                self.five_trump_crossing_remaining = self
-                    .game
-                    .as_ref()
-                    .is_some_and(|game| matches!(game.phase(), Phase::FiveTrumpCrossing))
-                    .then_some(FIVE_TRUMP_CROSSING_TIMEOUT);
             }
             ActionOutcome::BottomCopyDecision { copied, .. } => {
                 self.bottom_copy_remaining = (!*copied
@@ -1833,23 +1864,6 @@ impl ShengjiSession {
                     .as_ref()
                     .is_some_and(|game| matches!(game.phase(), Phase::BottomCopying))
                     .then_some(BOTTOM_COPY_DECISION_TIMEOUT);
-                self.five_trump_crossing_remaining = self
-                    .game
-                    .as_ref()
-                    .is_some_and(|game| matches!(game.phase(), Phase::FiveTrumpCrossing))
-                    .then_some(FIVE_TRUMP_CROSSING_TIMEOUT);
-            }
-            ActionOutcome::FiveTrumpCrossingDecision {
-                decisions_complete: true,
-                ..
-            } => {
-                self.five_trump_crossing_remaining = None;
-            }
-            ActionOutcome::FiveTrumpCrossingReturn {
-                crossing_complete: true,
-                ..
-            } => {
-                self.five_trump_crossing_remaining = None;
             }
             ActionOutcome::ThrowFailed {
                 player,
@@ -1891,6 +1905,8 @@ impl ShengjiSession {
             return;
         }
         let magnitude = finished_reference_point_magnitude(result);
+        let hand_profile_stats = self.hand_profile_stats.clone();
+        let bottom_burier = self.game.as_ref().and_then(GameState::bottom_burier);
         let mut changes = Vec::with_capacity(RuleSet::PLAYER_COUNT);
         for participant in &mut self.room.players {
             if usize::from(participant.id.0) >= RuleSet::PLAYER_COUNT {
@@ -1906,6 +1922,45 @@ impl ShengjiSession {
                 .reference_points
                 .saturating_add(i32::from(delta));
             participant.completed_games = participant.completed_games.saturating_add(1);
+            let aggregate = participant
+                .game_profiles
+                .shengji
+                .get_or_insert_with(ShengjiProfileStats::default);
+            aggregate.completed_games = aggregate.completed_games.saturating_add(1);
+            aggregate.total_reference_delta = aggregate
+                .total_reference_delta
+                .saturating_add(i64::from(delta));
+            if team == result.dealer_team {
+                aggregate.dealer_team_games = aggregate.dealer_team_games.saturating_add(1);
+                aggregate.dealer_team_score = aggregate
+                    .dealer_team_score
+                    .saturating_add(u64::from(result.collecting_score));
+                if result.kitty_multiplier == 0 {
+                    aggregate.defended_kitty_games =
+                        aggregate.defended_kitty_games.saturating_add(1);
+                }
+            } else {
+                aggregate.collecting_team_games = aggregate.collecting_team_games.saturating_add(1);
+                aggregate.collecting_team_score = aggregate
+                    .collecting_team_score
+                    .saturating_add(u64::from(result.collecting_score));
+                if result.kitty_multiplier > 0 {
+                    aggregate.captured_kitty_games =
+                        aggregate.captured_kitty_games.saturating_add(1);
+                }
+            }
+            if to_core_player(participant.id) == result.dealer {
+                aggregate.dealer_games = aggregate.dealer_games.saturating_add(1);
+            }
+            if bottom_burier == Some(to_core_player(participant.id)) {
+                aggregate.buried_games = aggregate.buried_games.saturating_add(1);
+                aggregate.buried_points = aggregate
+                    .buried_points
+                    .saturating_add(u64::from(result.kitty_points));
+            }
+            if let Some(current) = hand_profile_stats.get(usize::from(participant.id.0)) {
+                merge_shengji_profile_stats(aggregate, current);
+            }
             changes.push(PlayerReferenceChange {
                 player: participant.id,
                 profile_id: participant.profile_id,
@@ -1971,6 +2026,55 @@ impl ShengjiSession {
             })
             .collect()
     }
+}
+
+fn record_shengji_component(stats: &mut ShengjiProfileStats, component: &Component) {
+    let index = match component {
+        Component::Single { .. } | Component::Pair { .. } | Component::Triple { .. } => return,
+        Component::Tractor { pair_count, .. } => {
+            stats.longest_tractor = stats.longest_tractor.max(u16::from(*pair_count));
+            0
+        }
+        Component::Titanic { triple_count, .. } => {
+            stats.longest_titanic = stats.longest_titanic.max(u16::from(*triple_count));
+            1
+        }
+        Component::Quad { .. } => 2,
+        Component::Spaceship { quad_count, .. } => {
+            stats.longest_space_fortress = stats.longest_space_fortress.max(u16::from(*quad_count));
+            3
+        }
+    };
+    stats.play_category_counts[index] = stats.play_category_counts[index].saturating_add(1);
+}
+
+fn merge_shengji_profile_stats(aggregate: &mut ShengjiProfileStats, current: &ShengjiProfileStats) {
+    aggregate.declaration_games = aggregate
+        .declaration_games
+        .saturating_add(current.declaration_games);
+    aggregate.counter_games = aggregate
+        .counter_games
+        .saturating_add(current.counter_games);
+    aggregate.plays = aggregate.plays.saturating_add(current.plays);
+    aggregate.winning_plays = aggregate
+        .winning_plays
+        .saturating_add(current.winning_plays);
+    aggregate.crossing_games = aggregate
+        .crossing_games
+        .saturating_add(current.crossing_games);
+    for (aggregate, current) in aggregate
+        .play_category_counts
+        .iter_mut()
+        .zip(current.play_category_counts)
+    {
+        *aggregate = aggregate.saturating_add(current);
+    }
+    aggregate.longest_tractor = aggregate.longest_tractor.max(current.longest_tractor);
+    aggregate.longest_titanic = aggregate.longest_titanic.max(current.longest_titanic);
+    aggregate.longest_space_fortress = aggregate
+        .longest_space_fortress
+        .max(current.longest_space_fortress);
+    aggregate.longest_throw = aggregate.longest_throw.max(current.longest_throw);
 }
 
 fn completed_trick_events(trick: &TrickRecord, collecting_score: u32) -> Vec<ShengjiEvent> {
@@ -2133,7 +2237,7 @@ mod tests {
         ClientCommand, GameCommand, ProfileId, ReconnectToken, SeatId, ServerEvent,
         join_identity_payload,
     };
-    use leocard_shengji::{Rank, Suit, build_deck_for};
+    use leocard_shengji::{Category, Rank, Suit, build_deck_for};
 
     use super::*;
 
@@ -2150,8 +2254,16 @@ mod tests {
         let mut secret = [0; 32];
         secret[0] = index + 1;
         let key = SigningKey::from_bytes(&secret);
+        let game_profiles = leocard_protocol::PlayerGameProfiles::default();
         let signature = key
-            .sign(&join_identity_payload(ROOM, token, &name, 0, 0))
+            .sign(&join_identity_payload(
+                ROOM,
+                token,
+                &name,
+                0,
+                0,
+                &game_profiles,
+            ))
             .to_bytes()
             .to_vec();
         ClientCommand::Join {
@@ -2160,6 +2272,7 @@ mod tests {
             profile_id: ProfileId(key.verifying_key().to_bytes()),
             reference_points: 0,
             completed_games: 0,
+            game_profiles,
             identity_signature: signature,
         }
     }
@@ -2412,11 +2525,15 @@ mod tests {
             panic!("有主且庄家只剩五张主牌时应进入五主过江阶段");
         };
         assert!(eligible.contains(&PlayerId(0)));
-        let mut timed_out = session.clone();
-        let timeout_deliveries = timed_out.advance_time(FIVE_TRUMP_CROSSING_TIMEOUT);
+        let mut waiting_for_decision = session.clone();
+        assert!(
+            waiting_for_decision
+                .advance_time(Duration::from_secs(90))
+                .is_empty()
+        );
         assert!(matches!(
-            game_snapshot(&timeout_deliveries, connections[0]).phase,
-            ShengjiPhaseView::Playing
+            waiting_for_decision.game().unwrap().phase(),
+            Phase::FiveTrumpCrossing
         ));
 
         let hand = session.game().unwrap().players()[0].hand.clone();
@@ -2469,7 +2586,6 @@ mod tests {
             partner.phase,
             ShengjiPhaseView::FiveTrumpCrossing {
                 stage: ShengjiFiveTrumpCrossingStage::Returning,
-                milliseconds_remaining: 0,
                 ..
             }
         ));
@@ -2484,7 +2600,6 @@ mod tests {
             waiting_for_return.game().unwrap().phase(),
             Phase::FiveTrumpCrossing
         ));
-        assert_eq!(waiting_for_return.five_trump_crossing_remaining, None);
 
         let deliveries = session.handle(
             connections[2],
@@ -3153,6 +3268,10 @@ mod tests {
     #[test]
     fn hand_rating_is_applied_once_and_updates_every_player() {
         let (mut session, _, _) = started_session();
+        session.hand_profile_stats[0].declaration_games = 1;
+        session.hand_profile_stats[0].counter_games = 1;
+        session.hand_profile_stats[0].plays = 4;
+        session.hand_profile_stats[0].winning_plays = 2;
         let result = result_for_reference_points(false, 1, 120);
         session.apply_finished_reference_points(&result);
         let settlement_id = session.finished_settlement_id;
@@ -3164,6 +3283,19 @@ mod tests {
             let expected = if participant.id.0 % 2 == 1 { 4 } else { -4 };
             assert_eq!(participant.reference_points, expected);
             assert_eq!(participant.completed_games, 1);
+            let stats = participant.game_profiles.shengji.as_ref().unwrap();
+            assert_eq!(stats.completed_games, 1);
+            assert_eq!(stats.total_reference_delta, i64::from(expected));
+            if participant.id.0 % 2 == 0 {
+                assert_eq!(stats.dealer_team_games, 1);
+                assert_eq!(stats.dealer_team_score, 120);
+                assert_eq!(stats.defended_kitty_games, 1);
+            } else {
+                assert_eq!(stats.collecting_team_games, 1);
+                assert_eq!(stats.collecting_team_score, 120);
+                assert_eq!(stats.captured_kitty_games, 0);
+            }
+            assert_eq!(stats.dealer_games, u32::from(participant.id == PlayerId(0)));
             assert_eq!(
                 changes
                     .iter()
@@ -3173,6 +3305,15 @@ mod tests {
                 expected as i16
             );
         }
+        let dealer_stats = session.room.players[0]
+            .game_profiles
+            .shengji
+            .as_ref()
+            .unwrap();
+        assert_eq!(dealer_stats.declaration_games, 1);
+        assert_eq!(dealer_stats.counter_games, 1);
+        assert_eq!(dealer_stats.plays, 4);
+        assert_eq!(dealer_stats.winning_plays, 2);
 
         session.apply_finished_reference_points(&result);
         assert_eq!(session.finished_settlement_id, settlement_id);
@@ -3183,6 +3324,56 @@ mod tests {
                 .iter()
                 .all(|participant| participant.completed_games == 1)
         );
+    }
+
+    #[test]
+    fn throw_profile_lengths_include_every_internal_sequence() {
+        let (mut session, _, card) = started_session();
+        let play = ClassifiedPlay {
+            cards: vec![card; 26],
+            category: Category::Suit(Suit::Diamond),
+            components: vec![
+                Component::Single { card, strength: 2 },
+                Component::Pair {
+                    cards: [card; 2],
+                    strength: 3,
+                },
+                Component::Triple {
+                    cards: [card; 3],
+                    strength: 4,
+                },
+                Component::Tractor {
+                    cards: vec![card; 6],
+                    pair_count: 3,
+                    top_strength: 8,
+                },
+                Component::Titanic {
+                    cards: vec![card; 6],
+                    triple_count: 2,
+                    top_strength: 9,
+                },
+                Component::Spaceship {
+                    cards: vec![card; 8],
+                    quad_count: 2,
+                    top_strength: 10,
+                },
+            ],
+        };
+
+        session.record_profile_play(CorePlayerId(0), &play, true, true);
+
+        let stats = &session.hand_profile_stats[0];
+        assert_eq!(stats.plays, 1);
+        assert_eq!(stats.winning_plays, 1);
+        assert_eq!(stats.play_category_counts[0], 1);
+        assert_eq!(stats.play_category_counts[1], 1);
+        assert_eq!(stats.play_category_counts[3], 1);
+        assert_eq!(stats.play_category_counts[4], 1);
+        assert_eq!(stats.play_category_counts.iter().sum::<u32>(), 4);
+        assert_eq!(stats.longest_tractor, 3);
+        assert_eq!(stats.longest_titanic, 2);
+        assert_eq!(stats.longest_space_fortress, 2);
+        assert_eq!(stats.longest_throw, 26);
     }
 
     #[cfg(feature = "developer")]

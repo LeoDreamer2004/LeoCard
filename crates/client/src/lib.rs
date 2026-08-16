@@ -12,12 +12,12 @@ use ed25519_dalek::{Signer, SigningKey};
 use leocard_host::{ConnectionId, HostError, HostSession};
 use leocard_protocol::{
     AvatarId, ChatMessage, ClientCommand, ClientMessage, GameCommand, GameEvent, GamePhaseView,
-    GameRules, GameSnapshot as AnyGameSnapshot, LobbySnapshot, MatchId, PROTOCOL_VERSION, PlayerId,
-    PlayerInteraction, PlayerReferenceChange, ProfileId, PublicPlay, PublicPlayRecord,
-    QiGui523Command, QiGui523Event, QiGui523Snapshot as GameSnapshot, ReconnectToken, RejectReason,
-    RequestId, Revision, RoomId, SeatId, ServerEvent, ServerMessage, ShengjiEvent,
-    ShengjiPhaseView, ShengjiSnapshot, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemSnapshot,
-    TrickView, UnoEvent, UnoPhaseView, UnoSnapshot, join_identity_payload,
+    GameRules, GameSnapshot as AnyGameSnapshot, LobbySnapshot, MatchId, PROTOCOL_VERSION,
+    PlayerGameProfiles, PlayerId, PlayerInteraction, PlayerReferenceChange, ProfileId, PublicPlay,
+    PublicPlayRecord, QiGui523Command, QiGui523Event, QiGui523Snapshot as GameSnapshot,
+    ReconnectToken, RejectReason, RequestId, Revision, RoomId, SeatId, ServerEvent, ServerMessage,
+    ShengjiEvent, ShengjiPhaseView, ShengjiSnapshot, TexasHoldemEvent, TexasHoldemPhaseView,
+    TexasHoldemSnapshot, TrickView, UnoEvent, UnoPhaseView, UnoSnapshot, join_identity_payload,
 };
 use leocard_qigui523::{Card, RuleSet, build_deck};
 use leocard_shengji::{RuleSet as ShengjiRuleSet, build_deck_for as build_shengji_deck_for};
@@ -67,6 +67,7 @@ impl PlayerIdentity {
         reconnect_token: ReconnectToken,
         reference_points: i32,
         completed_games: u32,
+        game_profiles: PlayerGameProfiles,
     ) -> ClientCommand {
         let payload = join_identity_payload(
             room_id,
@@ -74,6 +75,7 @@ impl PlayerIdentity {
             name,
             reference_points,
             completed_games,
+            &game_profiles,
         );
         ClientCommand::Join {
             name: name.to_owned(),
@@ -81,6 +83,7 @@ impl PlayerIdentity {
             profile_id: self.profile_id(),
             reference_points,
             completed_games,
+            game_profiles,
             identity_signature: self.signing_key.sign(&payload).to_bytes().to_vec(),
         }
     }
@@ -174,7 +177,16 @@ impl TcpGameClient {
         avatar_png: Option<Vec<u8>>,
     ) -> Result<Self, NetworkStartError> {
         let identity = PlayerIdentity::generate().map_err(NetworkStartError::Worker)?;
-        Self::host_with_profile(name, port, rules, avatar_png, identity, 0, 0)
+        Self::host_with_profile(
+            name,
+            port,
+            rules,
+            avatar_png,
+            identity,
+            0,
+            0,
+            PlayerGameProfiles::default(),
+        )
     }
 
     pub fn host_with_profile(
@@ -185,6 +197,7 @@ impl TcpGameClient {
         identity: PlayerIdentity,
         reference_points: i32,
         completed_games: u32,
+        game_profiles: PlayerGameProfiles,
     ) -> Result<Self, NetworkStartError> {
         if port == 0 {
             return Err(NetworkStartError::InvalidPort);
@@ -199,6 +212,7 @@ impl TcpGameClient {
             identity,
             reference_points,
             completed_games,
+            game_profiles,
             NetworkLaunch::Host {
                 port,
                 session: Box::new(session),
@@ -213,7 +227,16 @@ impl TcpGameClient {
         rules: TexasHoldemRuleSet,
     ) -> Result<Self, NetworkStartError> {
         let identity = PlayerIdentity::generate().map_err(NetworkStartError::Worker)?;
-        Self::host_texas_holdem_with_profile(name, port, rules, None, identity, 0, 0)
+        Self::host_texas_holdem_with_profile(
+            name,
+            port,
+            rules,
+            None,
+            identity,
+            0,
+            0,
+            PlayerGameProfiles::default(),
+        )
     }
 
     pub fn host_texas_holdem_with_profile(
@@ -224,6 +247,7 @@ impl TcpGameClient {
         identity: PlayerIdentity,
         reference_points: i32,
         completed_games: u32,
+        game_profiles: PlayerGameProfiles,
     ) -> Result<Self, NetworkStartError> {
         if port == 0 {
             return Err(NetworkStartError::InvalidPort);
@@ -238,6 +262,7 @@ impl TcpGameClient {
             identity,
             reference_points,
             completed_games,
+            game_profiles,
             NetworkLaunch::Host {
                 port,
                 session: Box::new(session),
@@ -254,6 +279,7 @@ impl TcpGameClient {
         identity: PlayerIdentity,
         reference_points: i32,
         completed_games: u32,
+        game_profiles: PlayerGameProfiles,
     ) -> Result<Self, NetworkStartError> {
         if port == 0 {
             return Err(NetworkStartError::InvalidPort);
@@ -268,6 +294,7 @@ impl TcpGameClient {
             identity,
             reference_points,
             completed_games,
+            game_profiles,
             NetworkLaunch::Host {
                 port,
                 session: Box::new(session),
@@ -284,6 +311,7 @@ impl TcpGameClient {
         identity: PlayerIdentity,
         reference_points: i32,
         completed_games: u32,
+        game_profiles: PlayerGameProfiles,
     ) -> Result<Self, NetworkStartError> {
         if port == 0 {
             return Err(NetworkStartError::InvalidPort);
@@ -298,6 +326,7 @@ impl TcpGameClient {
             identity,
             reference_points,
             completed_games,
+            game_profiles,
             NetworkLaunch::Host {
                 port,
                 session: Box::new(session),
@@ -317,7 +346,15 @@ impl TcpGameClient {
         avatar_png: Option<Vec<u8>>,
     ) -> Result<Self, NetworkStartError> {
         let identity = PlayerIdentity::generate().map_err(NetworkStartError::Worker)?;
-        Self::join_with_profile(name, address, avatar_png, identity, 0, 0)
+        Self::join_with_profile(
+            name,
+            address,
+            avatar_png,
+            identity,
+            0,
+            0,
+            PlayerGameProfiles::default(),
+        )
     }
 
     pub fn join_with_profile(
@@ -327,6 +364,7 @@ impl TcpGameClient {
         identity: PlayerIdentity,
         reference_points: i32,
         completed_games: u32,
+        game_profiles: PlayerGameProfiles,
     ) -> Result<Self, NetworkStartError> {
         let address = normalize_server_address(address)?;
         let connecting = format!("正在连接 {address}");
@@ -336,6 +374,7 @@ impl TcpGameClient {
             identity,
             reference_points,
             completed_games,
+            game_profiles,
             NetworkLaunch::Join { address },
             connecting,
         )
@@ -347,6 +386,7 @@ impl TcpGameClient {
         identity: PlayerIdentity,
         reference_points: i32,
         completed_games: u32,
+        game_profiles: PlayerGameProfiles,
         launch: NetworkLaunch,
         connecting: String,
     ) -> Result<Self, NetworkStartError> {
@@ -367,6 +407,7 @@ impl TcpGameClient {
             reconnect_token,
             reference_points,
             completed_games,
+            game_profiles,
         ));
         let avatar = avatar_png.map(|png| model.command(ClientCommand::SetAvatar { png }));
         let reconnect_join = join.clone();
@@ -1470,7 +1511,14 @@ fn test_join_command(name: &str, token: ReconnectToken) -> ClientCommand {
     let mut secret = [0; 32];
     secret[..8].copy_from_slice(&token.0.to_be_bytes());
     secret[8] = 1;
-    PlayerIdentity::from_secret_bytes(secret).join_command(NETWORK_ROOM_ID, name, token, 0, 0)
+    PlayerIdentity::from_secret_bytes(secret).join_command(
+        NETWORK_ROOM_ID,
+        name,
+        token,
+        0,
+        0,
+        PlayerGameProfiles::default(),
+    )
 }
 
 pub fn selected_cards_in_hand(selected: &[Card], snapshot: &GameSnapshot) -> Vec<Card> {
@@ -1701,6 +1749,7 @@ mod tests {
                     auto_play: false,
                     reference_points: 0,
                     completed_games: 0,
+                    game_profiles: PlayerGameProfiles::default(),
                 })
                 .collect(),
             your_hand: Vec::new(),

@@ -6,10 +6,12 @@ use leocard_protocol::{
     GameViolation, LobbySnapshot, PlayerId, PlayerInteraction, PlayerInteractionKind,
     PlayerReferenceChange, RejectReason, RequestId, Revision, RoomId, ServerEvent,
     TABLE_SEAT_COUNT, TexasHoldemCommand, TexasHoldemEvent, TexasHoldemPhaseView,
-    TexasHoldemSnapshot,
+    TexasHoldemProfileStats, TexasHoldemSnapshot,
 };
 use leocard_qigui523::reference_point_deltas;
-use leocard_texas_holdem::{Action, Card, PassiveBot, Phase, RuleSet, build_deck};
+use leocard_texas_holdem::{
+    Action, Card, HandCategory, PassiveBot, Phase, RuleSet, build_deck, evaluate_player_hand,
+};
 use leocard_texas_holdem_adapter::{AdapterError, TablePlayer, TexasHoldemAdapter};
 
 use crate::{
@@ -24,6 +26,7 @@ pub struct TexasHoldemSession {
     rules: RuleSet,
     shuffled_deck: Option<Vec<Card>>,
     game: Option<TexasHoldemAdapter>,
+    match_profile_stats: Vec<TexasHoldemProfileStats>,
     finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
     auto_play_delay: Option<AutoPlayDelayState>,
 }
@@ -54,6 +57,7 @@ impl TexasHoldemSession {
             rules,
             shuffled_deck: Some(shuffled_deck),
             game: None,
+            match_profile_stats: Vec::new(),
             finished_reference_changes: None,
             auto_play_delay: None,
         })
@@ -164,6 +168,7 @@ impl TexasHoldemSession {
             .as_ref()
             .is_some_and(|game| matches!(game.game().phase(), Phase::Complete(_)));
         let events = self.fold_disconnected_players();
+        self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
         self.reset_auto_play_delay_for_current_turn();
         self.room.bump_revision();
@@ -188,6 +193,7 @@ impl TexasHoldemSession {
                 profile_id,
                 reference_points,
                 completed_games,
+                game_profiles,
                 identity_signature,
             } => {
                 let joined = self.room.join(
@@ -198,6 +204,7 @@ impl TexasHoldemSession {
                     profile_id,
                     reference_points,
                     completed_games,
+                    game_profiles,
                     identity_signature,
                     self.game.is_some(),
                     TABLE_SEAT_COUNT,
@@ -518,6 +525,9 @@ impl TexasHoldemSession {
             first_dealer,
             deck,
         )?);
+        self.match_profile_stats =
+            vec![TexasHoldemProfileStats::default(); self.room.players.len()];
+        self.record_hand_started();
         self.finished_reference_changes = None;
         self.auto_play_delay = None;
         self.reset_auto_play_delay_for_current_turn();
@@ -562,6 +572,7 @@ impl TexasHoldemSession {
             }
         };
         events.extend(self.fold_disconnected_players());
+        self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
         self.reset_auto_play_delay_for_current_turn();
         self.room.bump_revision();
@@ -591,12 +602,14 @@ impl TexasHoldemSession {
                 .reject(connection, request_id, RejectReason::GameNotFinished);
         }
         self.game = None;
+        self.match_profile_stats.clear();
         self.auto_play_delay = None;
         #[cfg(feature = "developer")]
         self.room.remove_developer_bots();
         let host = self.room.host_connection;
         for player in &mut self.room.players {
             player.ready = host == Some(player.connection);
+            player.auto_play = player.is_bot;
             if !player.connected {
                 player.seat = None;
             }
@@ -653,6 +666,9 @@ impl TexasHoldemSession {
                 );
             }
             let events = self.fold_disconnected_players();
+            self.record_hand_started();
+            self.record_profile_events(&events);
+            self.finish_hand_if_needed(false);
             self.reset_auto_play_delay_for_current_turn();
             self.room.bump_revision();
             let mut deliveries = self.broadcast_events(events);
@@ -682,6 +698,7 @@ impl TexasHoldemSession {
         {
             return;
         }
+        self.record_completed_hand();
         self.room.prepare_rematch();
         self.auto_play_delay = None;
         if self.tournament_complete() {
@@ -709,7 +726,9 @@ impl TexasHoldemSession {
         let deltas = reference_point_deltas(&scores)
             .expect("a Texas Hold'em table always contains between three and six players");
         let mut changes = Vec::with_capacity(standings.len());
-        for ((player_id, _), delta) in standings.into_iter().zip(deltas) {
+        let match_profile_stats = self.match_profile_stats.clone();
+        for ((player_id, final_chips), delta) in standings.into_iter().zip(deltas) {
+            let current_profile_stats = match_profile_stats.get(usize::from(player_id.0));
             let participant = self
                 .room
                 .players
@@ -720,6 +739,24 @@ impl TexasHoldemSession {
                 .reference_points
                 .saturating_add(i32::from(delta));
             participant.completed_games = participant.completed_games.saturating_add(1);
+            let placement = 1 + scores.iter().filter(|other| **other > final_chips).count();
+            let aggregate = participant
+                .game_profiles
+                .texas_holdem
+                .get_or_insert_with(TexasHoldemProfileStats::default);
+            aggregate.completed_games = aggregate.completed_games.saturating_add(1);
+            aggregate.total_reference_delta = aggregate
+                .total_reference_delta
+                .saturating_add(i64::from(delta));
+            aggregate.total_final_chips = aggregate
+                .total_final_chips
+                .saturating_add(u64::from(final_chips));
+            if let Some(count) = aggregate.placement_counts.get_mut(placement - 1) {
+                *count = count.saturating_add(1);
+            }
+            if let Some(current) = current_profile_stats {
+                merge_texas_holdem_profile_stats(aggregate, current);
+            }
             changes.push(PlayerReferenceChange {
                 player: player_id,
                 profile_id: participant.profile_id,
@@ -758,6 +795,7 @@ impl TexasHoldemSession {
             .as_ref()
             .is_some_and(|game| matches!(game.game().phase(), Phase::Complete(_)));
         let events = self.fold_disconnected_players();
+        self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
         self.reset_auto_play_delay_for_current_turn();
         self.room.bump_revision();
@@ -907,9 +945,95 @@ impl TexasHoldemSession {
             .is_some_and(|game| matches!(game.game().phase(), Phase::Complete(_)));
         let mut events = self.game.as_mut()?.act(player, action).ok()?;
         events.extend(self.fold_disconnected_players());
+        self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
         self.reset_auto_play_delay_for_current_turn();
         Some(events)
+    }
+
+    fn record_profile_events(&mut self, events: &[TexasHoldemEvent]) {
+        for event in events {
+            let TexasHoldemEvent::ActionApplied {
+                player,
+                action,
+                amount,
+            } = event
+            else {
+                continue;
+            };
+            let Some(stats) = self.match_profile_stats.get_mut(usize::from(player.0)) else {
+                continue;
+            };
+            match action {
+                Action::PostBlind => continue,
+                Action::Fold => {
+                    stats.voluntary_actions = stats.voluntary_actions.saturating_add(1);
+                    stats.hands_folded = stats.hands_folded.saturating_add(1);
+                }
+                Action::Check => {
+                    stats.voluntary_actions = stats.voluntary_actions.saturating_add(1);
+                    stats.check_actions = stats.check_actions.saturating_add(1);
+                }
+                Action::Call => {
+                    stats.voluntary_actions = stats.voluntary_actions.saturating_add(1);
+                    record_wager(stats, *amount);
+                }
+                Action::RaiseTo(_) => {
+                    stats.voluntary_actions = stats.voluntary_actions.saturating_add(1);
+                    stats.raise_actions = stats.raise_actions.saturating_add(1);
+                    record_wager(stats, *amount);
+                }
+                Action::AllIn => {
+                    stats.voluntary_actions = stats.voluntary_actions.saturating_add(1);
+                    stats.all_in_actions = stats.all_in_actions.saturating_add(1);
+                    record_wager(stats, *amount);
+                }
+            }
+        }
+    }
+
+    fn record_hand_started(&mut self) {
+        let Some(game) = self.game.as_ref() else {
+            return;
+        };
+        for (participant, state) in game.players().iter().zip(game.game().players()) {
+            if !state.hole_cards().is_empty()
+                && let Some(stats) = self
+                    .match_profile_stats
+                    .get_mut(usize::from(participant.id.0))
+            {
+                stats.hands_played = stats.hands_played.saturating_add(1);
+            }
+        }
+    }
+
+    fn record_completed_hand(&mut self) {
+        let Some(game) = self.game.as_ref() else {
+            return;
+        };
+        let Phase::Complete(result) = game.game().phase() else {
+            return;
+        };
+        if !result.showdown {
+            return;
+        }
+        let categories = game
+            .players()
+            .iter()
+            .zip(game.game().players())
+            .filter(|(_, state)| !state.folded())
+            .filter_map(|(participant, state)| {
+                evaluate_player_hand(state.hole_cards(), game.game().community(), game.rules())
+                    .ok()
+                    .map(|hand| (participant.id, hand.category()))
+            })
+            .collect::<Vec<_>>();
+        for (player, category) in categories {
+            if let Some(stats) = self.match_profile_stats.get_mut(usize::from(player.0)) {
+                let count = &mut stats.hand_category_counts[hand_category_index(category)];
+                *count = count.saturating_add(1);
+            }
+        }
     }
 
     fn fold_disconnected_players(&mut self) -> Vec<TexasHoldemEvent> {
@@ -997,6 +1121,7 @@ impl TexasHoldemSession {
                 state.ready = participant.ready;
                 state.reference_points = participant.reference_points;
                 state.completed_games = participant.completed_games;
+                state.game_profiles.clone_from(&participant.game_profiles);
             }
         }
         if let TexasHoldemPhaseView::HandComplete {
@@ -1028,6 +1153,62 @@ impl TexasHoldemSession {
                     })
             })
             .collect()
+    }
+}
+
+fn record_wager(stats: &mut TexasHoldemProfileStats, amount: u32) {
+    if amount == 0 {
+        return;
+    }
+    stats.wagered_chips = stats.wagered_chips.saturating_add(u64::from(amount));
+    stats.wager_actions = stats.wager_actions.saturating_add(1);
+}
+
+const fn hand_category_index(category: HandCategory) -> usize {
+    match category {
+        HandCategory::HighCard => 0,
+        HandCategory::OnePair => 1,
+        HandCategory::TwoPair => 2,
+        HandCategory::ThreeOfAKind => 3,
+        HandCategory::Straight => 4,
+        HandCategory::Flush => 5,
+        HandCategory::FullHouse => 6,
+        HandCategory::FourOfAKind => 7,
+        HandCategory::StraightFlush => 8,
+        HandCategory::RoyalFlush => 9,
+    }
+}
+
+fn merge_texas_holdem_profile_stats(
+    aggregate: &mut TexasHoldemProfileStats,
+    current: &TexasHoldemProfileStats,
+) {
+    aggregate.wagered_chips = aggregate
+        .wagered_chips
+        .saturating_add(current.wagered_chips);
+    aggregate.wager_actions = aggregate
+        .wager_actions
+        .saturating_add(current.wager_actions);
+    aggregate.voluntary_actions = aggregate
+        .voluntary_actions
+        .saturating_add(current.voluntary_actions);
+    aggregate.check_actions = aggregate
+        .check_actions
+        .saturating_add(current.check_actions);
+    aggregate.raise_actions = aggregate
+        .raise_actions
+        .saturating_add(current.raise_actions);
+    aggregate.all_in_actions = aggregate
+        .all_in_actions
+        .saturating_add(current.all_in_actions);
+    aggregate.hands_played = aggregate.hands_played.saturating_add(current.hands_played);
+    aggregate.hands_folded = aggregate.hands_folded.saturating_add(current.hands_folded);
+    for (aggregate, current) in aggregate
+        .hand_category_counts
+        .iter_mut()
+        .zip(current.hand_category_counts)
+    {
+        *aggregate = aggregate.saturating_add(current);
     }
 }
 
@@ -1076,13 +1257,15 @@ mod tests {
         let key = SigningKey::from_bytes(&secret);
         let reconnect_token = ReconnectToken(token);
         let profile_id = ProfileId(key.verifying_key().to_bytes());
-        let payload = join_identity_payload(ROOM, reconnect_token, name, 0, 0);
+        let game_profiles = leocard_protocol::PlayerGameProfiles::default();
+        let payload = join_identity_payload(ROOM, reconnect_token, name, 0, 0, &game_profiles);
         ClientCommand::Join {
             name: name.to_owned(),
             reconnect_token,
             profile_id,
             reference_points: 0,
             completed_games: 0,
+            game_profiles,
             identity_signature: key.sign(&payload).to_bytes().to_vec(),
         }
     }
@@ -1502,6 +1685,27 @@ mod tests {
         );
         assert_eq!(reference_changes.len(), 3);
         assert!(snapshot.players.iter().any(|player| player.stack == 0));
+        for player in &snapshot.players {
+            let stats = player.game_profiles.texas_holdem.as_ref().unwrap();
+            let delta = reference_changes
+                .iter()
+                .find(|change| change.player == player.id)
+                .unwrap()
+                .delta;
+            let placement = 1 + snapshot
+                .players
+                .iter()
+                .filter(|other| other.stack > player.stack)
+                .count();
+            assert_eq!(stats.completed_games, 1);
+            assert_eq!(stats.total_reference_delta, i64::from(delta));
+            assert_eq!(stats.total_final_chips, u64::from(player.stack));
+            assert_eq!(stats.placement_counts[placement - 1], 1);
+            assert_eq!(stats.hands_played, 1);
+            assert_eq!(stats.all_in_actions, 1);
+            assert_eq!(stats.wager_actions, 1);
+            assert_eq!(stats.hand_category_counts.iter().sum::<u32>(), 1);
+        }
         let points_after = session
             .room
             .players
@@ -1518,6 +1722,43 @@ mod tests {
                 .collect::<Vec<_>>(),
             points_after
         );
+    }
+
+    #[test]
+    fn texas_profile_action_statistics_ignore_blinds_and_zero_value_actions() {
+        let mut session =
+            TexasHoldemSession::new(ROOM, RuleSet::default(), build_deck(false)).unwrap();
+        session.match_profile_stats = vec![TexasHoldemProfileStats::default(); 2];
+        session.record_profile_events(&[
+            TexasHoldemEvent::ActionApplied {
+                player: PlayerId(0),
+                action: Action::PostBlind,
+                amount: 2,
+            },
+            TexasHoldemEvent::ActionApplied {
+                player: PlayerId(0),
+                action: Action::Check,
+                amount: 0,
+            },
+            TexasHoldemEvent::ActionApplied {
+                player: PlayerId(0),
+                action: Action::RaiseTo(12),
+                amount: 10,
+            },
+            TexasHoldemEvent::ActionApplied {
+                player: PlayerId(0),
+                action: Action::Fold,
+                amount: 0,
+            },
+        ]);
+
+        let stats = &session.match_profile_stats[0];
+        assert_eq!(stats.voluntary_actions, 3);
+        assert_eq!(stats.check_actions, 1);
+        assert_eq!(stats.raise_actions, 1);
+        assert_eq!(stats.hands_folded, 1);
+        assert_eq!(stats.wager_actions, 1);
+        assert_eq!(stats.wagered_chips, 10);
     }
 
     #[test]

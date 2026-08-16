@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use leocard_protocol::{
     AvatarId, ChatContent, ChatMessage, ClientMessage, GameKind, GameRules, LobbyPlayer,
-    LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS, PROTOCOL_VERSION, PlayerId,
-    ProfileId, QUICK_VOICE_COUNT, ReconnectToken, RejectReason, RequestId, Revision, RoomId,
-    SeatId, ServerEvent, ServerMessage, TABLE_SEAT_COUNT,
+    LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS, PROTOCOL_VERSION,
+    PlayerGameProfiles, PlayerId, ProfileId, QUICK_VOICE_COUNT, ReconnectToken, RejectReason,
+    RequestId, Revision, RoomId, SeatId, ServerEvent, ServerMessage, TABLE_SEAT_COUNT,
 };
 
 use crate::{ConnectionId, Delivery};
@@ -28,6 +28,7 @@ pub(crate) struct Participant {
     pub(crate) left: bool,
     pub(crate) reference_points: i32,
     pub(crate) completed_games: u32,
+    pub(crate) game_profiles: PlayerGameProfiles,
 }
 
 /// 不理解具体棋牌游戏规则的房间状态。
@@ -127,6 +128,7 @@ impl RoomSession {
         profile_id: ProfileId,
         reference_points: i32,
         completed_games: u32,
+        game_profiles: PlayerGameProfiles,
         identity_signature: Vec<u8>,
         game_started: bool,
         capacity: u8,
@@ -150,6 +152,7 @@ impl RoomSession {
             profile_id,
             reference_points,
             completed_games,
+            &game_profiles,
             &identity_signature,
         ) {
             return Err(RejectReason::InvalidIdentityProof);
@@ -208,6 +211,7 @@ impl RoomSession {
             left: false,
             reference_points,
             completed_games,
+            game_profiles,
         };
         if let Some(index) = vacant {
             self.players[index] = participant;
@@ -438,6 +442,7 @@ impl RoomSession {
                 left: false,
                 reference_points: 0,
                 completed_games: 0,
+                game_profiles: PlayerGameProfiles::default(),
             };
             if let Some(index) = vacant {
                 self.players[index] = participant;
@@ -578,6 +583,7 @@ impl RoomSession {
                     connected: player.connected || player.is_bot,
                     reference_points: player.reference_points,
                     completed_games: player.completed_games,
+                    game_profiles: player.game_profiles.clone(),
                 })
                 .collect(),
         }
@@ -629,11 +635,10 @@ impl RoomSession {
         }
     }
 
-    /// 进入终局准备阶段：真人等待主动确认，机器人立即准备下一局并继续托管。
+    /// 进入终局准备阶段：仍在托管的玩家与机器人立即准备下一局，并保留托管状态。
     pub(crate) fn prepare_rematch(&mut self) {
         for player in &mut self.players {
-            player.ready = player.is_bot;
-            player.auto_play = player.is_bot;
+            player.ready = player.is_bot || player.auto_play;
         }
     }
 

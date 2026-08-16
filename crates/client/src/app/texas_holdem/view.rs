@@ -157,7 +157,17 @@ pub(in crate::app) fn render_texas_holdem_table(
     };
     let initial_deal =
         new_hand.then(|| spawn_texas_initial_deal(commands, table, game, own.seat, assets));
-    add_texas_chip_areas(commands, table, game, chip_state, assets);
+    let hole_card_count = client.0.model().texas_holdem_rules().map_or_else(
+        || {
+            if game.your_hole_cards.len() == 4 {
+                4
+            } else {
+                2
+            }
+        },
+        |rules| if rules.omaha { 4 } else { 2 },
+    );
+    add_texas_chip_areas(commands, table, game, hole_card_count, chip_state, assets);
     add_community_area(
         commands,
         table,
@@ -641,6 +651,7 @@ fn add_texas_opponent(
         avatar_handle,
         player.reference_points,
         player.completed_games,
+        &player.game_profiles,
         assets,
     );
     commands

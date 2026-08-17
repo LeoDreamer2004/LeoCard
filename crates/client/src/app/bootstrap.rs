@@ -67,6 +67,7 @@ impl LocalPlayerProfile {
                     texas_holdem: stored.games.texas_holdem_stats,
                     shengji: stored.games.shengji_stats,
                     uno: stored.games.uno_stats,
+                    interactions: stored.games.interaction_stats,
                 },
             });
         }
@@ -104,6 +105,7 @@ impl LocalPlayerProfile {
                 texas_holdem_stats: self.game_profiles.texas_holdem.clone(),
                 shengji_stats: self.game_profiles.shengji.clone(),
                 uno_stats: self.game_profiles.uno.clone(),
+                interaction_stats: self.game_profiles.interactions.clone(),
             },
         };
         let bytes =
@@ -186,12 +188,32 @@ impl LocalPlayerProfile {
         self.game_profiles.uno = Some(stats.clone());
         true
     }
+
+    pub(super) fn sync_interaction_profile(&mut self, stats: &PlayerInteractionStats) -> bool {
+        if self.game_profiles.interactions.as_ref() == Some(stats) {
+            return false;
+        }
+        self.game_profiles.interactions = Some(stats.clone());
+        true
+    }
 }
 
 pub(in crate::app) fn decode_player_profile(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
     match postcard::from_bytes(bytes) {
         Ok(stored) => Ok(stored),
         Err(current_error) => {
+            if let Ok(previous) = postcard::from_bytes::<PreInteractionStoredPlayerProfile>(bytes) {
+                return Ok(StoredPlayerProfile {
+                    secret_key: previous.secret_key,
+                    games: StoredGameProfiles {
+                        qigui523: previous.games.qigui523,
+                        texas_holdem_stats: previous.games.texas_holdem_stats,
+                        shengji_stats: previous.games.shengji_stats,
+                        uno_stats: previous.games.uno_stats,
+                        interaction_stats: None,
+                    },
+                });
+            }
             if let Ok(previous) = postcard::from_bytes::<PreUnoStoredPlayerProfile>(bytes) {
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
@@ -200,6 +222,7 @@ pub(in crate::app) fn decode_player_profile(bytes: &[u8]) -> Result<StoredPlayer
                         texas_holdem_stats: previous.games.texas_holdem_stats,
                         shengji_stats: previous.games.shengji_stats,
                         uno_stats: None,
+                        interaction_stats: None,
                     },
                 });
             }
@@ -211,6 +234,7 @@ pub(in crate::app) fn decode_player_profile(bytes: &[u8]) -> Result<StoredPlayer
                         texas_holdem_stats: previous.games.texas_holdem_stats,
                         shengji_stats: None,
                         uno_stats: None,
+                        interaction_stats: None,
                     },
                 });
             }
@@ -222,6 +246,7 @@ pub(in crate::app) fn decode_player_profile(bytes: &[u8]) -> Result<StoredPlayer
                         texas_holdem_stats: None,
                         shengji_stats: None,
                         uno_stats: None,
+                        interaction_stats: None,
                     },
                 });
             }
@@ -239,6 +264,7 @@ pub(in crate::app) fn decode_player_profile(bytes: &[u8]) -> Result<StoredPlayer
                     texas_holdem_stats: None,
                     shengji_stats: None,
                     uno_stats: None,
+                    interaction_stats: None,
                 },
             })
         }
@@ -565,6 +591,11 @@ pub(super) fn load_ui_assets(
         summary_score_sound: asset_server.load("vendor/noname/audio/effect/flappybird_score.ogg"),
         summary_die_sound: asset_server.load("vendor/noname/audio/effect/flappybird_die.ogg"),
         quick_voice_sounds,
+        chat_emojis: CHAT_EMOJI_ASSET_PATHS
+            .iter()
+            .map(|path| asset_server.load(*path))
+            .collect(),
+        chat_emoji_icon: asset_server.load("icons/chat-emoji-white.png"),
         texas_sounds: TexasSoundAssets::load(&asset_server),
         uno_sounds: UnoSoundAssets::load(&asset_server),
         sequence_airplane: asset_server.load("ui/effects/sequence_airplane.png"),

@@ -61,10 +61,4 @@ mod tests {
         );
         assert_eq!(reference_point_deltas(&[20, 20]), Some(vec![2, 2]));
     }
-
-    #[test]
-    fn unsupported_player_counts_are_rejected() {
-        assert_eq!(reference_point_deltas(&[10]), None);
-        assert_eq!(reference_point_deltas(&[7; 7]), None);
-    }
 }

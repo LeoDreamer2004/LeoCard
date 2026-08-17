@@ -1373,8 +1373,8 @@ pub(super) fn sync_chat_messages(
                     .map(|player| player.name.clone())
             })
             .unwrap_or_else(|| "玩家".to_owned());
-        let text = match message.content {
-            ChatContent::Text(text) => text,
+        let (text, emoji) = match message.content {
+            ChatContent::Text(text) => (text, None),
             ChatContent::QuickVoice(index) => {
                 let Some(text) = QUICK_VOICES.get(usize::from(index)) else {
                     continue;
@@ -1382,8 +1382,9 @@ pub(super) fn sync_chat_messages(
                 if let Some(sound) = assets.quick_voice_sounds.get(usize::from(index)) {
                     commands.spawn((AudioPlayer::new(sound.clone()), PlaybackSettings::DESPAWN));
                 }
-                (*text).to_owned()
+                ((*text).to_owned(), None)
             }
+            ChatContent::Emoji(emoji) => ("发送了表情".to_owned(), Some(emoji)),
         };
         chat.history.push_back(ChatHistoryEntry {
             player_name,
@@ -1409,15 +1410,27 @@ pub(super) fn sync_chat_messages(
         if let Some(previous) = spawned.remove(&source) {
             commands.entity(previous).despawn();
         }
-        let entity = spawn_chat_bubble(
-            &mut commands,
-            layer,
-            layer_node.size() * layer_node.inverse_scale_factor(),
-            anchor,
-            source,
-            &text,
-            &assets,
-        );
+        let entity = if let Some(emoji) = emoji {
+            spawn_emoji_bubble(
+                &mut commands,
+                layer,
+                layer_node.size() * layer_node.inverse_scale_factor(),
+                anchor,
+                source,
+                emoji,
+                &assets,
+            )
+        } else {
+            spawn_chat_bubble(
+                &mut commands,
+                layer,
+                layer_node.size() * layer_node.inverse_scale_factor(),
+                anchor,
+                source,
+                &text,
+                &assets,
+            )
+        };
         spawned.insert(source, entity);
     }
 }
@@ -1481,10 +1494,68 @@ fn spawn_chat_bubble(
     commands.entity(text).insert(ChatBubbleText);
     commands.entity(bubble).insert(ActiveChatBubble {
         player,
-        text,
+        text: Some(text),
+        emoji_image: None,
+        emoji: false,
         width,
         elapsed: 0.0,
         duration: 2.8 + (character_count as f32 * 0.055).min(2.2),
+    });
+    bubble
+}
+
+fn spawn_emoji_bubble(
+    commands: &mut Commands,
+    layer: Entity,
+    layer_size: Vec2,
+    anchor: Vec2,
+    player: PlayerId,
+    emoji: ChatEmoji,
+    assets: &UiAssets,
+) -> Entity {
+    let width = 78.0;
+    let position = chat_bubble_position(anchor, layer_size, width);
+    let bubble = commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(position.x),
+                top: px(position.y),
+                width: px(width),
+                height: px(width),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            UiTransform::IDENTITY,
+            BackgroundColor(Color::NONE),
+            BorderColor::all(Color::NONE),
+            GlobalZIndex(1600),
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(layer).add_child(bubble);
+    let image = assets.chat_emoji(emoji);
+    let icon = commands
+        .spawn((
+            Node {
+                width: px(72),
+                height: px(72),
+                ..default()
+            },
+            ImageNode::new(image),
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(bubble).add_child(icon);
+    commands.entity(bubble).insert(ActiveChatBubble {
+        player,
+        text: None,
+        emoji_image: Some(icon),
+        emoji: true,
+        width,
+        elapsed: 0.0,
+        duration: 3.4,
     });
     bubble
 }
@@ -1503,6 +1574,7 @@ pub(super) fn animate_chat_bubbles(
         &mut BorderColor,
     )>,
     mut texts: Query<&mut TextColor, With<ChatBubbleText>>,
+    mut emoji_images: Query<&mut ImageNode>,
 ) {
     let Ok((layer_node, layer_transform)) = layers.single() else {
         return;
@@ -1528,11 +1600,30 @@ pub(super) fn animate_chat_bubbles(
         let fade = ((bubble.duration - bubble.elapsed) / 0.48).clamp(0.0, 1.0);
         let alpha = enter * fade;
         transform.translation = Val2::px(0.0, 9.0 * (1.0 - enter) - bubble.elapsed * 1.4);
-        transform.scale = Vec2::splat(0.88 + enter * 0.12);
-        background.0 = PANEL.with_alpha(0.96 * alpha);
-        border.set_all(ACCENT.with_alpha(0.78 * alpha));
-        if let Ok(mut color) = texts.get_mut(bubble.text) {
+        transform.scale = Vec2::splat(if bubble.emoji {
+            0.84 + enter * 0.16
+        } else {
+            0.88 + enter * 0.12
+        });
+        background.0 = if bubble.emoji {
+            Color::NONE
+        } else {
+            PANEL.with_alpha(0.96 * alpha)
+        };
+        border.set_all(if bubble.emoji {
+            Color::NONE
+        } else {
+            ACCENT.with_alpha(0.78 * alpha)
+        });
+        if let Some(text) = bubble.text
+            && let Ok(mut color) = texts.get_mut(text)
+        {
             color.0 = TEXT.with_alpha(alpha);
+        }
+        if let Some(image) = bubble.emoji_image
+            && let Ok(mut image) = emoji_images.get_mut(image)
+        {
+            image.color = Color::WHITE.with_alpha(alpha);
         }
     }
 }
@@ -1549,7 +1640,14 @@ pub(super) fn animate_chat_panel(
         if chat.slide != target {
             chat.slide = target;
             for mut transform in &mut panels {
-                transform.translation = Val2::px(CHAT_PANEL_HIDDEN_OFFSET * target, 0.0);
+                transform.translation = chat_panel_translation(target);
+            }
+        } else {
+            let expected = chat_panel_translation(target);
+            for mut transform in &mut panels {
+                if transform.translation != expected {
+                    transform.translation = expected;
+                }
             }
         }
         return;
@@ -1560,7 +1658,7 @@ pub(super) fn animate_chat_panel(
         chat.slide = target;
     }
     for mut transform in &mut panels {
-        transform.translation = Val2::px(CHAT_PANEL_HIDDEN_OFFSET * chat.slide, 0.0);
+        transform.translation = chat_panel_translation(chat.slide);
     }
     let expected = if chat.open {
         &assets.chat_close_icon
@@ -1572,6 +1670,10 @@ pub(super) fn animate_chat_panel(
             icon.image = expected.clone();
         }
     }
+}
+
+pub(super) fn chat_panel_translation(slide: f32) -> Val2 {
+    Val2::px(CHAT_PANEL_HIDDEN_OFFSET * slide, 0.0)
 }
 
 pub(super) fn animate_auto_play_robot_indicators(
@@ -1602,7 +1704,8 @@ pub(super) fn sync_chat_panel_text(
     chat: Res<ChatPanelState>,
     mut history_texts: Query<&mut Text, (With<ChatHistoryText>, Without<ChatInputText>)>,
     mut input_texts: Query<(&mut Text, &mut TextColor), With<ChatInputText>>,
-    mut quick_menus: Query<&mut Visibility, With<QuickVoiceMenu>>,
+    mut quick_menus: Query<&mut Visibility, (With<QuickVoiceMenu>, Without<EmojiMenu>)>,
+    mut emoji_menus: Query<&mut Visibility, (With<EmojiMenu>, Without<QuickVoiceMenu>)>,
 ) {
     if !chat.is_changed() {
         return;
@@ -1646,6 +1749,16 @@ pub(super) fn sync_chat_panel_text(
             *visibility = expected;
         }
     }
+    for mut visibility in &mut emoji_menus {
+        let expected = if chat.open && chat.emoji_open {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        };
+        if *visibility != expected {
+            *visibility = expected;
+        }
+    }
 }
 
 pub(super) fn chat_input_display(input: &str) -> String {
@@ -1661,12 +1774,16 @@ pub(super) fn chat_input_display(input: &str) -> String {
     format!("…{tail}")
 }
 
-pub(super) fn scroll_quick_voice_menu(
+pub(super) fn scroll_chat_menus(
     mut wheels: MessageReader<MouseWheel>,
     mut chat: ResMut<ChatPanelState>,
-    mut scrolls: Query<
+    mut quick_voice_scrolls: Query<
         (&RelativeCursorPosition, &mut ScrollPosition, &ComputedNode),
-        With<QuickVoiceScroll>,
+        (With<QuickVoiceScroll>, Without<EmojiScroll>),
+    >,
+    mut emoji_scrolls: Query<
+        (&RelativeCursorPosition, &mut ScrollPosition, &ComputedNode),
+        (With<EmojiScroll>, Without<QuickVoiceScroll>),
     >,
 ) {
     let delta = wheels
@@ -1676,18 +1793,32 @@ pub(super) fn scroll_quick_voice_menu(
             MouseScrollUnit::Pixel => wheel.y,
         })
         .sum::<f32>();
-    if delta == 0.0 || !chat.open || !chat.quick_voice_open {
+    if delta == 0.0 || !chat.open {
         return;
     }
-    for (cursor, mut position, node) in &mut scrolls {
-        if !cursor.cursor_over() {
-            continue;
+    if chat.quick_voice_open {
+        for (cursor, mut position, node) in &mut quick_voice_scrolls {
+            if !cursor.cursor_over() {
+                continue;
+            }
+            let maximum =
+                ((node.content_size().y - node.size().y) * node.inverse_scale_factor()).max(0.0);
+            let next = (position.y - delta).clamp(0.0, maximum);
+            position.y = next;
+            chat.quick_voice_scroll_y = next;
         }
-        let maximum =
-            ((node.content_size().y - node.size().y) * node.inverse_scale_factor()).max(0.0);
-        let next = (position.y - delta).clamp(0.0, maximum);
-        position.y = next;
-        chat.quick_voice_scroll_y = next;
+    }
+    if chat.emoji_open {
+        for (cursor, mut position, node) in &mut emoji_scrolls {
+            if !cursor.cursor_over() {
+                continue;
+            }
+            let maximum =
+                ((node.content_size().y - node.size().y) * node.inverse_scale_factor()).max(0.0);
+            let next = (position.y - delta).clamp(0.0, maximum);
+            position.y = next;
+            chat.emoji_scroll_y = next;
+        }
     }
 }
 

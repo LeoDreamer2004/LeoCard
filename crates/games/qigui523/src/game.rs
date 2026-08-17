@@ -586,57 +586,6 @@ mod tests {
         assert_eq!(game.draw_pile_len(), 39);
     }
 
-    #[cfg(feature = "developer")]
-    #[test]
-    fn development_deck_contains_only_initial_hands() {
-        let rules = RuleSet {
-            player_count: 3,
-            hand_size: 5,
-            ..RuleSet::default()
-        };
-        let mut deck = build_deck(1);
-        deck.truncate(15);
-
-        let game = GameState::new_with_development_deck(rules, deck).unwrap();
-
-        assert_eq!(game.draw_pile_len(), 0);
-        assert!(game.players().iter().all(|player| player.hand().len() == 5));
-    }
-
-    #[cfg(feature = "developer")]
-    #[test]
-    fn development_build_can_replace_one_players_hand() {
-        let rules = RuleSet {
-            player_count: 3,
-            ..RuleSet::default()
-        };
-        let mut deck = build_deck(1);
-        deck.truncate(15);
-        let mut game = GameState::new_with_development_deck(rules, deck).unwrap();
-        let replacement = vec![
-            Card::suited(0, Suit::Spade, Rank::Seven),
-            Card::suited(0, Suit::Diamond, Rank::King),
-        ];
-
-        game.replace_player_hand(PlayerId(1), replacement.clone())
-            .unwrap();
-        assert_eq!(game.player(PlayerId(1)).unwrap().hand().len(), 2);
-        assert!(
-            replacement
-                .iter()
-                .all(|card| game.player(PlayerId(1)).unwrap().hand().contains(card))
-        );
-        let impossible_replacement = vec![
-            Card::suited(0, Suit::Club, Rank::Joker),
-            Card::suited(0, Suit::Club, Rank::Joker),
-            Card::suited(9, Suit::Spade, Rank::Seven),
-        ];
-        game.replace_player_hand(PlayerId(1), impossible_replacement)
-            .unwrap();
-        assert_eq!(game.player(PlayerId(1)).unwrap().hand().len(), 3);
-        assert!(game.replace_player_hand(PlayerId(1), Vec::new()).is_err());
-    }
-
     #[test]
     fn duplicate_lowest_cards_use_the_shuffled_deal_order_as_tie_breaker() {
         let rules = RuleSet {

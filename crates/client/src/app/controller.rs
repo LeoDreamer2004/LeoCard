@@ -593,6 +593,7 @@ pub(super) fn handle_buttons(
                 if !chat.open {
                     chat.focused = false;
                     chat.quick_voice_open = false;
+                    chat.emoji_open = false;
                 }
             }
             UiAction::ToggleAutoPlay => {
@@ -641,11 +642,19 @@ pub(super) fn handle_buttons(
                 chat.open = true;
                 chat.focused = true;
                 chat.quick_voice_open = false;
+                chat.emoji_open = false;
             }
             UiAction::ToggleQuickVoiceMenu => {
                 chat.open = true;
                 chat.focused = false;
                 chat.quick_voice_open = !chat.quick_voice_open;
+                chat.emoji_open = false;
+            }
+            UiAction::ToggleEmojiMenu => {
+                chat.open = true;
+                chat.focused = false;
+                chat.emoji_open = !chat.emoji_open;
+                chat.quick_voice_open = false;
             }
             UiAction::SendQuickVoice(index) => {
                 if let Some(client) = client.as_deref_mut() {
@@ -654,6 +663,14 @@ pub(super) fn handle_buttons(
                     });
                 }
                 chat.quick_voice_open = false;
+            }
+            UiAction::SendEmoji(emoji) => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Chat {
+                        content: ChatContent::Emoji(*emoji),
+                    });
+                }
+                chat.emoji_open = false;
             }
             UiAction::Hint => {
                 let Some(client) = client.as_deref_mut() else {
@@ -852,28 +869,26 @@ pub(super) fn sync_opponent_badge_popups(
 }
 
 pub(super) fn next_greedy_hint(
-    strategy: &mut GreedyStrategy,
+    strategy: &mut QiGui523Bot,
     hand: &[Card],
     current_play: &ClassifiedPlay,
     played_cards: &[Card],
     rules: &RuleSet,
 ) -> HintDecision {
-    let request = GreedyRequest {
+    let request = QiGui523BotRequest {
         hand,
         current_play,
         played_cards,
         rules,
     };
-    if let Some(play) = strategy.next_response(request) {
+    if let Some(play) = strategy.choose(request) {
         return HintDecision::Select(play.cards().to_vec());
     }
 
     strategy.reset();
-    strategy
-        .next_response(request)
-        .map_or(HintDecision::Pass, |play| {
-            HintDecision::Select(play.cards().to_vec())
-        })
+    strategy.choose(request).map_or(HintDecision::Pass, |play| {
+        HintDecision::Select(play.cards().to_vec())
+    })
 }
 
 pub(super) fn next_shengji_hint(
@@ -946,7 +961,7 @@ pub(super) fn game_has_legal_response(
         })
         .copied()
         .collect::<Vec<_>>();
-    has_legal_response(GreedyRequest {
+    has_legal_response(QiGui523BotRequest {
         hand: &game.your_hand,
         current_play: &current_play,
         played_cards: &played_cards,
@@ -1176,6 +1191,43 @@ pub(super) fn poll_network(
     });
     if let Some(stats) = authoritative_uno_profile {
         profile_changed |= profile.sync_uno_profile(stats);
+    }
+    let authoritative_interaction_profile = client
+        .0
+        .model()
+        .qigui523_game()
+        .and_then(|game| {
+            game.players
+                .iter()
+                .find(|player| player.id == game.you)
+                .and_then(|player| player.game_profiles.interactions.as_ref())
+        })
+        .or_else(|| {
+            client.0.model().texas_holdem_game().and_then(|game| {
+                game.players
+                    .iter()
+                    .find(|player| player.id == game.you)
+                    .and_then(|player| player.game_profiles.interactions.as_ref())
+            })
+        })
+        .or_else(|| {
+            client.0.model().shengji_game().and_then(|game| {
+                game.players
+                    .iter()
+                    .find(|player| player.id == game.you)
+                    .and_then(|player| player.game_profiles.interactions.as_ref())
+            })
+        })
+        .or_else(|| {
+            client.0.model().uno_game().and_then(|game| {
+                game.players
+                    .iter()
+                    .find(|player| player.id == game.you)
+                    .and_then(|player| player.game_profiles.interactions.as_ref())
+            })
+        });
+    if let Some(stats) = authoritative_interaction_profile {
+        profile_changed |= profile.sync_interaction_profile(stats);
     }
     if profile_changed && let Err(error) = profile.save() {
         form.error = Some(error);

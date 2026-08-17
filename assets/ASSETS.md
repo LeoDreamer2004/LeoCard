@@ -1,117 +1,120 @@
-# 素材清单
+# 运行时素材使用与许可声明
 
-所有第三方原始素材均放在 `assets/vendor` 下，运行时挑选、重命名或二次加工后的
-文件应放在 `assets/cards`、`assets/ui` 和 `assets/audio`，不要直接修改原始副本。
+本文声明 LeoCard 当前发布物实际使用的图像、音频、字体和着色器素材及其许可来源。
+发布构建会按 `crates/client/runtime-assets.txt` 选取运行时文件，并默认内嵌到可执行文件；
+未被该清单选中的原始压缩包、预览图和备用素材不属于运行时发布内容。所有第三方原始
+文件保存在 `assets/vendor/`，项目加工后的运行时副本位于 `assets/cards/`、`assets/ui/`、
+`assets/audio/`、`assets/icons/` 与 `assets/fonts/`。
 
-## Kenney（CC0 1.0）
+除另有说明外，项目自有的运行时素材随 LeoCard 的 GPL-3.0 许可证提供。用户在游戏中
+自行选择的桌布仅在本地读取，不随 LeoCard 发布物分发，相关使用权由用户自行确认。
 
-下载日期：2026-07-31。每个素材包都保留了压缩包自带的 `License.txt` 或
-`license.txt`。
+## CC0 素材
 
-| 素材包 | 版本 | 本地目录 | 官方来源 | 下载包 SHA-256 |
-| --- | --- | --- | --- | --- |
-| Playing Cards Pack | 1.0 | `assets/vendor/kenney/playing-cards` | <https://kenney.nl/assets/playing-cards-pack> | `b93b0313818e9c8f6acc24b008efdec1d8a6360b13afe953beed23881588be3c` |
-| Boardgame Pack | 2 | `assets/vendor/kenney/boardgame` | <https://kenney.nl/assets/boardgame-pack> | `3b6a7dd5af658d1ffa0071429d5dde10ff63121e88bd06d4904e721e60b2c398` |
-| UI Pack | 2.0 | `assets/vendor/kenney/ui` | <https://kenney.nl/assets/ui-pack> | `a8a14a234911eb648c062622915c93e79e94e97cb7f9f375a70f6617f1174318` |
-| Interface Sounds | 1.0 | `assets/vendor/kenney/interface-sounds` | <https://kenney.nl/assets/interface-sounds> | `f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232` |
-| Casino Audio | 1.1 | `assets/vendor/kenney/casino-audio` | <https://kenney.nl/assets/casino-audio> | `f36250766ac5bc378c13708ddf12a23a8e54a3251f8d482c7536e51b5dbafa18` |
+下列素材以 CC0 1.0 或等同公共领域声明提供，可随程序使用、修改和再分发，无署名
+义务；本项目仍保留来源以便追溯。
 
-这些素材使用 Creative Commons Zero 1.0，可以用于个人和商业项目且不强制署名。
-项目仍可在致谢页面标注 Kenney，以便玩家找到原作者。
+| 来源 | 运行时用途 | 本地位置 | 许可证与来源 |
+| --- | --- | --- | --- |
+| Kenney Boardgame Pack 2 | 普通牌面、牌背与德州扑克筹码 | `vendor/kenney/boardgame/` | CC0 1.0；<https://kenney.nl/assets/boardgame-pack> |
+| Kenney UI Pack 2.0 | 按钮底图、方向箭头与部分操作音效 | `vendor/kenney/ui/` | CC0 1.0；<https://kenney.nl/assets/ui-pack> |
+| Kenney Interface Sounds 1.0 | 通用界面提示和德州、UNO、升级操作音效 | `vendor/kenney/interface-sounds/` | CC0 1.0；<https://kenney.nl/assets/interface-sounds> |
+| Kenney Casino Audio 1.1 | 发牌、出牌、推牌、筹码和结算音效 | `vendor/kenney/casino-audio/` | CC0 1.0；<https://kenney.nl/assets/casino-audio> |
+| VerzatileDev 4 Colour Cards | UNO 牌面、选色状态和 UNO 牌背 | `cards/uno/` | CC0 1.0；<https://verzatiledev.itch.io/4colour>，许可声明见 <https://verzatiledev.itch.io/4colour/devlog/1447489/now-cc0-license> |
+| n4 / OpenGameArt | 内置深绿色桌布纹理 | `vendor/opengameart/green-textile/table_felt_dark_green.png` | CC0；<https://opengameart.org/content/seamless-pattern-pack-greentextilepng> |
+| BigSoundBank / Joseph SARDIN | 升级游戏的断电、通电音效 | `audio/shengji/power-off.ogg`、`power-on.ogg` | CC0 / public-domain equivalent；<https://bigsoundbank.com/electric-switch-s0026.html> |
 
-## BigSoundBank 电气开关（CC0）
+`table_felt_dark_green.png` 是 OpenGameArt 原纹理的项目内衍生版本，降低了亮度和饱和度；
+其来源与加工说明见同目录的 `SOURCE.md`。`power-off.ogg` 与 `power-on.ogg` 由
+Electric switch #0026 的瞬态片段裁剪并做响度规范化而成；原始文件校验值与加工记录见
+`vendor/bigsoundbank/electric-switch/SOURCE.md`。
 
-- 文件：`assets/vendor/bigsoundbank/electric-switch/electric-switch-0026.ogg`
-- 名称：Electric switch #0026
-- 作者：Joseph SARDIN
-- 来源：<https://bigsoundbank.com/electric-switch-s0026.html>
-- 下载日期：2026-08-10
-- 原始文件 SHA-256：`c97384d1cdcc5834220d54daed0659dd04b8e19068ca12281137e39646ed2253`
-- 许可证：Creative Commons Zero / public domain equivalent
-- 加工说明：截取开关断开与吸合瞬态，响度规范化后生成
-  `assets/audio/shengji/power-off.ogg` 和 `power-on.ogg`。
+UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同纹理。原始包、作者、下载
+日期和 SHA-256 记录在 `vendor/verzatiledev/4-colour-cards/SOURCE.md`。
 
-来源页明确允许编辑并随个人或商业项目重新分发，且不强制署名；项目仍保留作者与
-来源信息以便追溯。
+## 需保留署名或许可证的素材
 
-## Game-icons 射箭图标（CC BY 3.0）
+### Microsoft Fluent Emoji（MIT）
 
-- `Archery target`：Lorc
-- `Dart`：Delapouite
+- 运行时文件：`ui/fluent-emoji/` 下的 30 张 3D PNG
+- 来源：<https://github.com/microsoft/fluentui-emoji>
+- 许可证：MIT
+
+这些 3D PNG 用于聊天表情；客户端通过上浮和淡出动画呈现动态气泡。
+
+### 寒蝉圆黑体（SIL Open Font License 1.1）
+
+- 运行时文件：`fonts/ChillRoundGothic-Medium.ttf`
+- 许可证副本：`fonts/OFL-ChillRoundGothic.txt`
+- 来源：<https://github.com/Warren2060/ChillRoundGothic>
+- 字体文件 SHA-256：`7aaf168681f168b9f550734d9e25058ffe73213db07d7a50152d5446dd9e7094`
+
+程序使用该字体显示中文界面。任何再分发均应同时提供 OFL 许可证；修改字体时还应遵守
+OFL 关于保留名称与再分发的条件。
+
+### Game-icons 射箭图标（CC BY 3.0）
+
+- 作者：Lorc（`Archery target`）、Delapouite（`Dart`）
+- 运行时文件：`ui/effects/shengji_target.png`、`shengji_dart.png`
+- 原始文件与完整署名：`vendor/game-icons/archery/SOURCE.md`
 - 来源：<https://game-icons.net/>
 - 许可证：<https://creativecommons.org/licenses/by/3.0/>
-- 原始文件：`assets/vendor/game-icons/archery/`
-- 运行时文件：`assets/ui/effects/shengji_target.png`、`shengji_dart.png`
 
-运行时版本由原 SVG 栅格化为透明 128×128 PNG，并由游戏按主题动态着色；完整来源、
-作者、下载日期和修改说明见同目录的 `SOURCE.md`。
+两张运行时 PNG 由原 SVG 栅格化后按游戏主题着色，用于升级的目标与飞镖效果。再分发时
+须保留上述作者、来源和 CC BY 3.0 署名信息。
 
-## GitHub Mark
+### GitHub Mark（MIT；受商标规范约束）
 
-- 文件：`assets/icons/github-mark.svg`、`github-mark.png`
-- 来源：GitHub Primer Octicons 的 `mark-github`
-- 项目：<https://github.com/primer/octicons>
-- 许可证：MIT；GitHub 名称与标志仍受其商标规范约束
-- 用途：仅作为自动更新窗口中指向 LeoCard GitHub 仓库的链接按钮
+- 运行时文件：`icons/github-mark.svg`、`icons/github-mark.png`
+- 来源：GitHub Primer Octicons 的 `mark-github`，<https://github.com/primer/octicons>
+- 许可证：MIT
+- 用途：游戏设置中打开 LeoCard GitHub 仓库的按钮
 
-## VerzatileDev 4 Colour Cards（CC0 1.0）
+GitHub 名称与标志同时受 GitHub 商标规范约束；本项目仅将其用于指向对应仓库的识别性
+链接。
 
-- 原始包：`assets/vendor/verzatiledev/4-colour-cards/4ColourCardsByVerzatileDev.zip`
-- 运行时牌面：`assets/cards/uno/`
-- 作者：VerzatileDev
-- 来源：<https://verzatiledev.itch.io/4colour>
-- 许可声明：<https://verzatiledev.itch.io/4colour/devlog/1447489/now-cc0-license>
-- 下载日期：2026-08-14
-- 原始包 SHA-256：`ee20da4f717ef44be9ee6f9c48561f169aebb672222d39aea2c254603be5d337`
+### 无名杀互动与快捷语音（GPL-3.0）
 
-运行时目录包含 64 张 256×400 PNG：四种颜色的 0 至 9、摸二、反转、跳过，
-万能牌和万能摸四牌及其选色状态，另有空白万能牌和牌背。重复的实体牌复用纹理。
-完整加工说明见原始包同目录的 `SOURCE.md`。
-
-## 寒蝉圆黑体（SIL Open Font License 1.1）
-
-- 文件：`assets/fonts/ChillRoundGothic-Medium.ttf`
-- 来源：<https://github.com/Warren2060/ChillRoundGothic>
-- SHA-256：`7aaf168681f168b9f550734d9e25058ffe73213db07d7a50152d5446dd9e7094`
-- 许可证：`assets/fonts/OFL-ChillRoundGothic.txt`
-
-游戏统一使用 Medium 字重的简体中文 TTF。发布游戏时必须连同 OFL 许可证一起分发；
-若修改字体文件，还需遵守 OFL 中关于字体名称和再分发的要求。
-
-## 建议的首批运行时选材
-
-- 手牌：`boardgame/PNG/Cards` 中的 140×190 经典牌面；多副牌复用纹理。
-- 牌背：`boardgame/PNG/Cards/cardBack_blue2.png`。
-- 出牌和发牌声：`casino-audio/Audio/card-place-*.ogg`、`card-slide-*.ogg`。
-- 按钮声：`interface-sounds/Audio/click_*.ogg`、`confirmation_*.ogg`、`error_*.ogg`。
-- 按钮和面板：从 `ui/PNG` 下按颜色挑选一套，避免混用多个主题。
-
-同一张物理牌的 `deck` 编号只存在于游戏状态中；使用多副牌时可复用相同牌面纹理，
-无需复制四份图片。
-
-## 无名杀玩家互动素材（GPL-3.0）
-
-- 目录：`assets/vendor/noname/interactions`
 - 来源：<https://github.com/libnoname/noname>
-- 原目录：`apps/core/image/emotion/throw_emotion`、`apps/core/audio/effect`
-- 内容：鲜花、鸡蛋、酒杯、拖鞋的飞行/命中图片，以及每种互动的两段音效
+- 运行时目录：`vendor/noname/interactions/`、`vendor/noname/audio/effect/`、
+  `vendor/noname/voice/male/`、`vendor/noname/damage_fire2.mp3`
+- 上游目录：`apps/core/image/emotion/throw_emotion`、`apps/core/audio/effect`、
+  `apps/core/audio/voice/male`
+- 许可证：GPL-3.0
 
-当前仅用于用户所述的私人构建。该素材不是 CC0；若今后分发包含这些素材的构建，需先
-单独确认 GPL-3.0 的源代码提供、许可证保留等合规要求，或替换成许可更宽松的自制素材。
+互动素材提供鲜花、鸡蛋、酒杯、拖鞋的飞行/命中图片与音效，用于桌内互动和资料页的
+鲜花、鸡蛋累计展示；酒杯按 10 朵鲜花、拖鞋按 10 个鸡蛋计入目标玩家资料。快捷语音
+为编号 0 至 22 的男性语音。`interactions/NOTICE.md` 与 `voice/NOTICE.md` 保留了更具体
+的素材范围和来源说明。
 
-## 无名杀男性快捷语音（GPL-3.0）
+这些文件随 GPL-3.0 项目分发。分发包含它们的二进制或素材包时，必须同时满足项目及
+上游 GPL-3.0 的许可证保留和对应源代码提供义务。
 
-- 目录：`assets/vendor/noname/voice/male`
-- 来源：<https://github.com/libnoname/noname>
-- 原目录：`apps/core/audio/voice/male`
-- 内容：编号 0 至 22 的 23 条男性快捷语音
-- 说明：`assets/vendor/noname/voice/NOTICE.md`
+## 项目内素材
 
-这些语音与玩家互动素材采用相同的私人使用前提；若今后分发，需要重新处理 GPL-3.0
-合规或更换为可独立分发的语音素材。
+以下文件由项目维护，用于界面与效果：
 
-## 未纳入的备选素材
+- `ui/panel_*.png`、`ui/player_panel_*.png`：窗口、分区和玩家框底图。
+- `shaders/table_background.wgsl`、`shaders/turn_border.wgsl`、`shaders/uno_palette.wgsl`：
+  桌布、回合边框与 UNO 调色盘着色器。
+- `ui/effects/sequence_airplane.svg` 与其 PNG：七鬼五二三顺子效果；该图为项目原创，
+  说明见 `ui/effects/README.md`。
+- `icons/host-crown.*`、`icons/list-menu.*`、`icons/robot-2-fill.*`：房主、快捷语音和
+  机器人界面图标；SVG 为可编辑源文件，PNG 为运行时副本。
 
-没有下载先前提到的 OpenGameArt “Playing Cards (Vector & PNG)”。其页面虽然标记为
-CC0，但页面评论对人头牌、黑桃 A 图案的原始出处提出了疑问。现有 Kenney 牌组已经
-覆盖完整需求，因此暂不把这个存在来源争议的备选包放进可发布素材中。
+上述项目内文件按 LeoCard 的 GPL-3.0 许可证提供。
+
+## 可追溯性记录
+
+Kenney 原始包均保留各自随包的 `License.txt` 或 `license.txt`。已记录的下载包
+SHA-256 如下：
+
+| 素材包 | SHA-256 |
+| --- | --- |
+| Kenney Boardgame Pack 2 | `3b6a7dd5af658d1ffa0071429d5dde10ff63121e88bd06d4904e721e60b2c398` |
+| Kenney UI Pack 2.0 | `a8a14a234911eb648c062622915c93e79e94e97cb7f9f375a70f6617f1174318` |
+| Kenney Interface Sounds 1.0 | `f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232` |
+| Kenney Casino Audio 1.1 | `f36250766ac5bc378c13708ddf12a23a8e54a3251f8d482c7536e51b5dbafa18` |
+| VerzatileDev 4 Colour Cards | `ee20da4f717ef44be9ee6f9c48561f169aebb672222d39aea2c254603be5d337` |
+
+本声明对应仓库中当前的运行时清单与随附来源记录。

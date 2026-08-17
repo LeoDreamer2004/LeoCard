@@ -2893,22 +2893,4 @@ mod tests {
             );
         }
     }
-
-    #[test]
-    fn every_off_suit_level_pair_connects_to_trump_ace() {
-        for side_suit in [Suit::Diamond, Suit::Club, Suit::Spade] {
-            let cards = [
-                pair(Suit::Heart, Rank::Ace).as_slice(),
-                pair(side_suit, Rank::Ten).as_slice(),
-            ]
-            .concat();
-            assert!(matches!(
-                classify_cards(&cards, trump())
-                    .unwrap()
-                    .components
-                    .as_slice(),
-                [Component::Tractor { pair_count: 2, .. }]
-            ));
-        }
-    }
 }

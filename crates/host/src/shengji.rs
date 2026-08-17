@@ -1188,7 +1188,7 @@ impl ShengjiSession {
     }
 
     fn interact(
-        &self,
+        &mut self,
         connection: ConnectionId,
         request_id: RequestId,
         target: PlayerId,
@@ -1225,7 +1225,10 @@ impl ShengjiSession {
             kind,
             seed: fastrand::u32(..),
         };
-        self.room
+        self.room.record_received_interaction(target, kind);
+        self.room.bump_revision();
+        let mut deliveries = self
+            .room
             .players
             .iter()
             .filter(|player| player.connected && !player.left)
@@ -1236,7 +1239,9 @@ impl ShengjiSession {
                     ServerEvent::PlayerInteraction(interaction),
                 )
             })
-            .collect()
+            .collect::<Vec<_>>();
+        deliveries.extend(self.broadcast_game(None));
+        deliveries
     }
 
     fn snapshot(&self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {

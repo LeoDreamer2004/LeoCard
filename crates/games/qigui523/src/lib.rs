@@ -4,19 +4,19 @@
 //! 产生随机数，因此相同的牌序与玩家操作一定会得到相同结果，便于联网同步、回放
 //! 和测试。
 
+mod bot;
 mod card;
 mod game;
-mod greedy;
 mod play;
 mod rating;
 mod rules;
 
+pub use bot::{QiGui523Bot, QiGui523BotRequest, has_legal_response};
 pub use card::{Card, Rank, Suit, build_deck};
 pub use game::{
     ActionOutcome, GameError, GameResult, GameState, Phase, PlayRecord, PlayerId, PlayerState,
     StartingCard, TrickState,
 };
-pub use greedy::{GreedyRequest, GreedyStrategy, has_legal_response};
 pub use play::{
     BombKind, ClassifiedPlay, PlayComparison, PlayError, PlayKind, can_beat, classify,
     compare_plays,

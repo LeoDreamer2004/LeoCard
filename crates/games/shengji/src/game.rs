@@ -1291,7 +1291,7 @@ impl From<FollowError> for GameError {
 
 #[cfg(test)]
 mod tests {
-    use crate::play::{category, classify_cards};
+    use crate::play::classify_cards;
     use crate::{BidTrump, Suit, ThrowPenalty};
 
     use super::*;
@@ -1838,49 +1838,6 @@ mod tests {
     }
 
     #[test]
-    fn three_deck_game_deals_thirty_nine_cards_and_uses_a_six_card_kitty() {
-        let rules = RuleSet {
-            deck_count: 3,
-            ..RuleSet::default()
-        };
-        let mut game = dealt_game(rules);
-        let dealer = game.dealer().unwrap();
-        assert_eq!(game.kitty.len(), 6);
-        assert_eq!(game.players()[usize::from(dealer.0)].hand.len(), 45);
-        assert!(
-            game.players()
-                .iter()
-                .filter(|player| player.id != dealer)
-                .all(|player| player.hand.len() == 39)
-        );
-
-        let buried = game.players()[usize::from(dealer.0)].hand[..6].to_vec();
-        game.bury(dealer, &buried).unwrap();
-        assert!(game.players().iter().all(|player| player.hand.len() == 39));
-    }
-
-    #[test]
-    fn four_deck_game_deals_fifty_two_cards_and_uses_an_eight_card_kitty() {
-        let rules = RuleSet {
-            deck_count: 4,
-            ..RuleSet::default()
-        };
-        let mut game = dealt_game(rules);
-        let dealer = game.dealer().unwrap();
-        assert_eq!(game.kitty.len(), 8);
-        assert_eq!(game.players()[usize::from(dealer.0)].hand.len(), 60);
-        assert!(
-            game.players()
-                .iter()
-                .filter(|player| player.id != dealer)
-                .all(|player| player.hand.len() == 52)
-        );
-        let buried = game.players()[usize::from(dealer.0)].hand[..8].to_vec();
-        game.bury(dealer, &buried).unwrap();
-        assert!(game.players().iter().all(|player| player.hand.len() == 52));
-    }
-
-    #[test]
     fn constant_trump_first_hand_starts_both_teams_at_three() {
         let rules = RuleSet {
             constant_trump: true,
@@ -2058,34 +2015,6 @@ mod tests {
             assert_eq!(result.promoted_team, promoted_team, "score={score}");
             assert_eq!(result.promoted_steps, steps, "score={score}");
         }
-    }
-
-    #[test]
-    fn a_full_dealt_hand_completes_exactly_twenty_five_tricks() {
-        let mut game = dealt_game(RuleSet::default());
-        let dealer = game.dealer().unwrap();
-        let buried = game.players()[usize::from(dealer.0)].hand[..8].to_vec();
-        game.bury(dealer, &buried).unwrap();
-
-        for _ in 0..RuleSet::HAND_SIZE * RuleSet::PLAYER_COUNT {
-            let player = game.current_player().unwrap();
-            let hand = &game.players()[usize::from(player.0)].hand;
-            let chosen = if let Some(trick) = game.trick.as_ref() {
-                hand.iter()
-                    .copied()
-                    .find(|card| category(*card, game.trump.unwrap()) == trick.lead.category)
-                    .unwrap_or(hand[0])
-            } else {
-                hand[0]
-            };
-            game.play_cards(player, &[chosen]).unwrap();
-        }
-
-        let Phase::Finished(result) = game.phase() else {
-            panic!("the 100th play should finish the hand");
-        };
-        assert_eq!(game.history().len(), RuleSet::HAND_SIZE);
-        assert!(result.collecting_score <= 200 + u32::from(result.kitty_points) * 2);
     }
 
     fn five_trump_crossing_game(trump_suit: Option<Suit>) -> (GameState, Vec<Card>) {

@@ -17,6 +17,5 @@ image.workspace = true
 leocard-qigui523 = { path = "../games/qigui523" }
 leocard-shengji = { path = "../games/shengji" }
 leocard-texas-holdem = { path = "../games/texas-holdem" }
-leocard-texas-holdem-adapter = { path = "../games/texas-holdem-adapter" }
 leocard-uno = { path = "../games/uno" }
 leocard-protocol = { path = "../protocol" }

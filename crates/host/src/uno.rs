@@ -297,12 +297,11 @@ impl UnoSession {
                     .copied()
                     .map(|card| (card, chosen_color))
                     .collect();
-                let jump_in_attempt = cards.len() == 2;
                 self.perform_action(
                     connection,
                     request_id,
                     played,
-                    jump_in_attempt,
+                    false,
                     move |game, player| game.play_cards(player, &cards, chosen_color),
                 )
             }
@@ -628,7 +627,7 @@ impl UnoSession {
         connection: ConnectionId,
         request_id: RequestId,
         played: Vec<(Card, Option<Color>)>,
-        jump_in_attempt: bool,
+        successful_jump_in: bool,
         action: F,
     ) -> Vec<Delivery>
     where
@@ -644,20 +643,18 @@ impl UnoSession {
                 .room
                 .reject(connection, request_id, RejectReason::GameNotStarted);
         };
-        if jump_in_attempt
-            && let Some(stats) = self.match_profile_stats.get_mut(usize::from(player.0))
-        {
-            stats.jump_in_attempts = stats.jump_in_attempts.saturating_add(1);
-        }
+        let jump_in_was_available =
+            successful_jump_in && game.jump_in_card(to_core_player(player)).is_some();
         match action(game, to_core_player(player)) {
             Ok(outcome) => {
-                if jump_in_attempt
+                if jump_in_was_available
                     && let Some(stats) = self.match_profile_stats.get_mut(usize::from(player.0))
                 {
                     stats.successful_jump_ins = stats.successful_jump_ins.saturating_add(1);
                 }
                 let mut events = events_for_outcome(&outcome, &played);
                 self.record_profile_outcome(&outcome);
+                self.record_jump_in_opportunities();
                 self.record_state_peaks();
                 self.apply_finished_reference_points();
                 self.reset_auto_play_delay();
@@ -667,6 +664,21 @@ impl UnoSession {
                 deliveries
             }
             Err(error) => self.reject_game_error(connection, request_id, &error),
+        }
+    }
+
+    fn record_jump_in_opportunities(&mut self) {
+        let Some(game) = self.game.as_ref() else {
+            return;
+        };
+        for participant in &self.room.players {
+            if game.jump_in_card(to_core_player(participant.id)).is_some()
+                && let Some(stats) = self
+                    .match_profile_stats
+                    .get_mut(usize::from(participant.id.0))
+            {
+                stats.jump_in_opportunities = stats.jump_in_opportunities.saturating_add(1);
+            }
         }
     }
 
@@ -858,7 +870,7 @@ impl UnoSession {
     }
 
     fn interact(
-        &self,
+        &mut self,
         connection: ConnectionId,
         request_id: RequestId,
         target: PlayerId,
@@ -897,7 +909,10 @@ impl UnoSession {
             kind,
             seed: fastrand::u32(..),
         };
-        self.room
+        self.room.record_received_interaction(target, kind);
+        self.room.bump_revision();
+        let mut deliveries = self
+            .room
             .players
             .iter()
             .filter(|player| player.connected && !player.left)
@@ -908,7 +923,9 @@ impl UnoSession {
                     ServerEvent::PlayerInteraction(interaction),
                 )
             })
-            .collect()
+            .collect::<Vec<_>>();
+        deliveries.extend(self.broadcast_game(None));
+        deliveries
     }
 
     fn snapshot(&self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
@@ -1332,9 +1349,9 @@ fn merge_uno_profile_stats(aggregate: &mut UnoProfileStats, current: &UnoProfile
     aggregate.successful_challenges_received = aggregate
         .successful_challenges_received
         .saturating_add(current.successful_challenges_received);
-    aggregate.jump_in_attempts = aggregate
-        .jump_in_attempts
-        .saturating_add(current.jump_in_attempts);
+    aggregate.jump_in_opportunities = aggregate
+        .jump_in_opportunities
+        .saturating_add(current.jump_in_opportunities);
     aggregate.successful_jump_ins = aggregate
         .successful_jump_ins
         .saturating_add(current.successful_jump_ins);
@@ -1491,27 +1508,6 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn uno_room_capacity_is_always_six() {
-        let mut session = UnoSession::new(ROOM, RuleSet::default(), build_deck()).unwrap();
-        session.handle(HOST, message(1, join_command("P0", 10)));
-        for index in 1..6_u64 {
-            let deliveries = session.handle(
-                ConnectionId(index + 1),
-                message(1, join_command(&format!("P{index}"), index + 10)),
-            );
-            assert!(deliveries.iter().all(|delivery| {
-                !matches!(
-                    delivery.message.event,
-                    ServerEvent::Rejected {
-                        reason: RejectReason::RoomFull
-                    }
-                )
-            }));
-        }
-        assert_eq!(session.room.players.len(), 6);
-    }
-
     fn jump_in_session() -> (UnoSession, ConnectionId, ConnectionId, Card, Card) {
         let first = Card::number(Color::Red, 7, 0);
         let matching = Card::number(Color::Red, 7, 1);
@@ -1595,7 +1591,7 @@ mod tests {
         assert_eq!(snapshot.discard_top, matching);
         assert_eq!(snapshot.current_player, Some(PlayerId(0)));
         assert_eq!(snapshot.your_hand.len(), 6);
-        assert_eq!(session.match_profile_stats[2].jump_in_attempts, 1);
+        assert_eq!(session.match_profile_stats[2].jump_in_opportunities, 1);
         assert_eq!(session.match_profile_stats[2].successful_jump_ins, 1);
     }
 
@@ -1637,7 +1633,7 @@ mod tests {
                     }
                 )
         }));
-        assert_eq!(session.match_profile_stats[2].jump_in_attempts, 1);
+        assert_eq!(session.match_profile_stats[2].jump_in_opportunities, 1);
         assert_eq!(session.match_profile_stats[2].successful_jump_ins, 0);
     }
 

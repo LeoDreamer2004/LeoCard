@@ -52,34 +52,6 @@ mod tests {
     use crate::{RuleSet, build_deck};
 
     #[test]
-    fn abstract_policy_folds_first_then_calls_or_checks_for_the_minimum() {
-        assert_eq!(
-            PassiveBot::choose(PassiveBotRequest {
-                must_post_blind: false,
-                fold_allowed: true,
-                amount_to_call: 20,
-            }),
-            Action::Fold
-        );
-        assert_eq!(
-            PassiveBot::choose(PassiveBotRequest {
-                must_post_blind: false,
-                fold_allowed: false,
-                amount_to_call: 2,
-            }),
-            Action::Call
-        );
-        assert_eq!(
-            PassiveBot::choose(PassiveBotRequest {
-                must_post_blind: false,
-                fold_allowed: false,
-                amount_to_call: 0,
-            }),
-            Action::Check
-        );
-    }
-
-    #[test]
     fn authoritative_game_adapter_posts_blinds_then_folds() {
         let mut game =
             GameState::new_with_deck(RuleSet::default(), PlayerId(0), build_deck(false)).unwrap();

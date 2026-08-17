@@ -304,9 +304,9 @@ pub(super) fn add_chat_panel(
                 pressed: Color::srgb(0.06, 0.14, 0.12),
             },
             Node {
-                width: px(CHAT_PANEL_WIDTH - 58.0),
-                min_width: px(CHAT_PANEL_WIDTH - 58.0),
-                max_width: px(CHAT_PANEL_WIDTH - 58.0),
+                width: px(CHAT_PANEL_WIDTH - 100.0),
+                min_width: px(CHAT_PANEL_WIDTH - 100.0),
+                max_width: px(CHAT_PANEL_WIDTH - 100.0),
                 height: percent(100),
                 min_height: percent(100),
                 max_height: percent(100),
@@ -340,6 +340,44 @@ pub(super) fn add_chat_panel(
         assets,
     );
     commands.entity(input_label).insert(ChatInputText);
+
+    let emoji_button = commands
+        .spawn((
+            Button,
+            UiAction::ToggleEmojiMenu,
+            ButtonTint {
+                normal: Color::srgb(0.20, 0.45, 0.35),
+                hovered: Color::srgb(0.28, 0.60, 0.45),
+                pressed: Color::srgb(0.13, 0.33, 0.26),
+            },
+            Node {
+                width: px(42),
+                min_width: px(42),
+                max_width: px(42),
+                height: percent(100),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                border_radius: BorderRadius::all(px(7)),
+                ..default()
+            },
+            ImageNode::new(assets.secondary_button.clone())
+                .with_mode(NodeImageMode::Stretch)
+                .with_color(Color::srgb(0.20, 0.45, 0.35)),
+        ))
+        .id();
+    commands.entity(input_row).add_child(emoji_button);
+    let emoji_icon = commands
+        .spawn((
+            Node {
+                width: px(24),
+                height: px(24),
+                ..default()
+            },
+            ImageNode::new(assets.chat_emoji_icon.clone()).with_color(Color::WHITE),
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(emoji_button).add_child(emoji_icon);
 
     let voice_button = commands
         .spawn((
@@ -467,6 +505,102 @@ pub(super) fn add_chat_panel(
             .id();
         commands.entity(voice_scroll).add_child(button);
         add_text(commands, button, *voice, 11.0, TEXT, assets);
+    }
+
+    let emoji_menu = spawn_node(
+        commands,
+        panel,
+        Node {
+            position_type: PositionType::Absolute,
+            right: px(8),
+            bottom: px(50),
+            width: px(285),
+            min_width: px(285),
+            max_width: px(285),
+            height: px(178),
+            min_height: px(178),
+            max_height: px(178),
+            padding: UiRect::all(px(3)),
+            border: UiRect::all(px(1)),
+            border_radius: BorderRadius::all(px(8)),
+            ..default()
+        },
+        Some(HEADER_BG.with_alpha(0.99)),
+    );
+    commands.entity(emoji_menu).insert((
+        EmojiMenu,
+        BorderColor::all(ACCENT.with_alpha(0.72)),
+        if chat.open && chat.emoji_open {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        },
+        GlobalZIndex(1810),
+    ));
+    let emoji_scroll = spawn_node(
+        commands,
+        emoji_menu,
+        Node {
+            width: percent(100),
+            min_width: percent(100),
+            max_width: percent(100),
+            height: percent(100),
+            min_height: percent(100),
+            max_height: percent(100),
+            flex_wrap: FlexWrap::Wrap,
+            align_content: AlignContent::FlexStart,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::SpaceEvenly,
+            row_gap: px(2),
+            overflow: Overflow::scroll_y(),
+            ..default()
+        },
+        None,
+    );
+    commands.entity(emoji_scroll).insert((
+        EmojiScroll,
+        RelativeCursorPosition::default(),
+        ScrollPosition(Vec2::new(0.0, chat.emoji_scroll_y)),
+    ));
+    for emoji in ChatEmoji::ALL {
+        let image = assets.chat_emoji(emoji);
+        let button = commands
+            .spawn((
+                Button,
+                UiAction::SendEmoji(emoji),
+                ButtonTint {
+                    normal: Color::srgb(0.11, 0.26, 0.20),
+                    hovered: Color::srgb(0.18, 0.43, 0.32),
+                    pressed: Color::srgb(0.07, 0.19, 0.15),
+                },
+                Node {
+                    width: px(42),
+                    min_width: px(42),
+                    max_width: px(42),
+                    height: px(42),
+                    min_height: px(42),
+                    max_height: px(42),
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    border_radius: BorderRadius::all(px(7)),
+                    ..default()
+                },
+                BackgroundColor(Color::NONE),
+            ))
+            .id();
+        commands.entity(emoji_scroll).add_child(button);
+        let icon = commands
+            .spawn((
+                Node {
+                    width: px(38),
+                    height: px(38),
+                    ..default()
+                },
+                ImageNode::new(image),
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(button).add_child(icon);
     }
 }
 

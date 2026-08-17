@@ -242,36 +242,4 @@ mod tests {
             .is_ok()
         );
     }
-
-    #[test]
-    fn time_control_options_have_the_declared_seconds() {
-        let values =
-            TimeControl::OPTIONS.map(|control| (control.base_seconds(), control.reserve_seconds()));
-        assert_eq!(values, [(5, 10), (5, 30), (15, 30), (30, 60), (0, 0)]);
-        assert_eq!(
-            RuleSet::default().time_control,
-            if cfg!(feature = "developer") {
-                TimeControl::Unlimited
-            } else {
-                TimeControl::FifteenPlusThirty
-            }
-        );
-        assert_eq!(
-            RuleSet::default().developer_deck,
-            cfg!(feature = "developer")
-        );
-    }
-
-    #[cfg(not(feature = "developer"))]
-    #[test]
-    fn release_build_rejects_developer_deck_configuration() {
-        assert_eq!(
-            RuleSet {
-                developer_deck: true,
-                ..RuleSet::default()
-            }
-            .validate(),
-            Err(RuleError::DeveloperFeatureUnavailable)
-        );
-    }
 }

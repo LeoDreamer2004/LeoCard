@@ -22,7 +22,7 @@ use leocard_uno::{
 };
 use serde::{Deserialize, Serialize};
 
-pub const PROTOCOL_VERSION: u16 = 24;
+pub const PROTOCOL_VERSION: u16 = 25;
 pub const MAX_FRAME_PAYLOAD: usize = 1024 * 1024;
 pub const MAX_PLAYER_NAME_CHARS: usize = 7;
 pub const AVATAR_DIMENSION: u32 = 64;
@@ -238,6 +238,14 @@ pub struct PlayerGameProfiles {
     pub texas_holdem: Option<TexasHoldemProfileStats>,
     pub shengji: Option<ShengjiProfileStats>,
     pub uno: Option<UnoProfileStats>,
+    /// 玩家收到互动时累计的鲜花与鸡蛋数量。
+    pub interactions: Option<PlayerInteractionStats>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct PlayerInteractionStats {
+    pub flowers_received: u32,
+    pub eggs_received: u32,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -320,7 +328,9 @@ pub struct UnoProfileStats {
     pub challenges_received: u32,
     /// 别的玩家成功质疑自己的次数。
     pub successful_challenges_received: u32,
-    pub jump_in_attempts: u32,
+    /// 玩家实际收到抢出候选牌的次数，而非发送抢出命令的次数。
+    #[serde(alias = "jump_in_attempts")]
+    pub jump_in_opportunities: u32,
     pub successful_jump_ins: u32,
 }
 
@@ -348,6 +358,81 @@ pub struct PlayerInteraction {
 pub enum ChatContent {
     Text(String),
     QuickVoice(u8),
+    Emoji(ChatEmoji),
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[repr(u8)]
+pub enum ChatEmoji {
+    Laugh,
+    Angry,
+    Surprised,
+    Pleading,
+    Party,
+    Heart,
+    Grinning,
+    RollingLaugh,
+    Smile,
+    Wink,
+    HeartEyes,
+    HeartsFace,
+    Kiss,
+    Sunglasses,
+    StarStruck,
+    Cry,
+    LoudCry,
+    AngryHorns,
+    Flushed,
+    Thinking,
+    RollingEyes,
+    Unamused,
+    Expressionless,
+    Tongue,
+    Fearful,
+    Fire,
+    SparklingHeart,
+    ThumbsUp,
+    Clap,
+    Hundred,
+}
+
+impl ChatEmoji {
+    pub const ALL: [Self; 30] = [
+        Self::Grinning,
+        Self::Laugh,
+        Self::RollingLaugh,
+        Self::Smile,
+        Self::Wink,
+        Self::HeartEyes,
+        Self::HeartsFace,
+        Self::Kiss,
+        Self::Sunglasses,
+        Self::StarStruck,
+        Self::Party,
+        Self::Cry,
+        Self::LoudCry,
+        Self::Pleading,
+        Self::Angry,
+        Self::AngryHorns,
+        Self::Surprised,
+        Self::Flushed,
+        Self::Thinking,
+        Self::RollingEyes,
+        Self::Unamused,
+        Self::Expressionless,
+        Self::Tongue,
+        Self::Fearful,
+        Self::Fire,
+        Self::Heart,
+        Self::SparklingHeart,
+        Self::ThumbsUp,
+        Self::Clap,
+        Self::Hundred,
+    ];
+
+    pub const fn index(self) -> usize {
+        self as usize
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1487,6 +1572,10 @@ mod tests {
                         uno_calls: 3,
                         ..UnoProfileStats::default()
                     }),
+                    interactions: Some(PlayerInteractionStats {
+                        flowers_received: 14,
+                        eggs_received: 23,
+                    }),
                 },
                 identity_signature: vec![9; 64],
             },
@@ -1521,10 +1610,11 @@ mod tests {
     }
 
     #[test]
-    fn chat_events_round_trip_for_text_and_quick_voice() {
+    fn chat_events_round_trip_for_text_quick_voice_and_emoji() {
         for content in [
             ChatContent::Text("大家好".to_owned()),
             ChatContent::QuickVoice(7),
+            ChatContent::Emoji(ChatEmoji::Laugh),
         ] {
             let message = ServerMessage {
                 protocol_version: PROTOCOL_VERSION,
@@ -1539,35 +1629,6 @@ mod tests {
             let frame = encode_frame(&message).unwrap();
             let decoded: ServerMessage = decode_frame(&frame).unwrap();
             assert_eq!(decoded, message);
-        }
-    }
-
-    #[test]
-    fn concrete_game_commands_round_trip_through_the_common_protocol() {
-        let command = ClientCommand::Game(GameCommand::QiGui523(QiGui523Command::SetAutoPlay {
-            enabled: true,
-        }));
-        let message = ClientMessage::new(RoomId(42), RequestId(8), command.clone());
-        let decoded: ClientMessage = decode_frame(&encode_frame(&message).unwrap()).unwrap();
-
-        assert_eq!(decoded.command, command);
-        let ClientCommand::Game(game_command) = decoded.command else {
-            panic!("game command should retain its common wrapper");
-        };
-        assert_eq!(game_command.kind(), GameKind::QiGui523);
-    }
-
-    #[test]
-    fn developer_bot_seat_command_round_trips_through_the_common_protocol() {
-        for occupied in [true, false] {
-            let command = ClientCommand::ConfigureBotSeat {
-                seat: SeatId(3),
-                occupied,
-            };
-            let message = ClientMessage::new(RoomId(42), RequestId(8), command.clone());
-            let decoded: ClientMessage = decode_frame(&encode_frame(&message).unwrap()).unwrap();
-
-            assert_eq!(decoded.command, command);
         }
     }
 

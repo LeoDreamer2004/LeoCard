@@ -26,19 +26,20 @@ use leocard_client::{
     selected_cards_in_hand,
 };
 use leocard_protocol::{
-    AVATAR_DIMENSION, AvatarId, ChatContent, ClientCommand, GameCommand, GameKind, GamePhaseView,
-    GameViolation, MAX_AVATAR_BYTES, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS, MatchId,
-    PlayerGameProfiles, PlayerId, PlayerInteractionKind, PlayerPublicState, PlayerScore,
-    PublicPlay, PublicPlayRecord, QUICK_VOICE_COUNT, QiGui523Command, QiGui523ProfileStats,
-    RejectReason, RuleViolation, SeatId, ShengjiCommand, ShengjiFiveTrumpCrossingStage,
-    ShengjiPhaseView, ShengjiPlayerState, ShengjiProfileStats, ShengjiPublicPlay, ShengjiSnapshot,
-    ShengjiThrowFailureStage, ShengjiViolation, TABLE_SEAT_COUNT, TexasHoldemCommand,
-    TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemProfileStats,
-    TexasHoldemSnapshot, TexasHoldemViolation, TurnTimerView, UnoCommand, UnoEvent, UnoPhaseView,
-    UnoPlayerState, UnoProfileStats, UnoSnapshot, UnoViolation,
+    AVATAR_DIMENSION, AvatarId, ChatContent, ChatEmoji, ClientCommand, GameCommand, GameKind,
+    GamePhaseView, GameViolation, MAX_AVATAR_BYTES, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS,
+    MatchId, PlayerGameProfiles, PlayerId, PlayerInteractionKind, PlayerInteractionStats,
+    PlayerPublicState, PlayerScore, PublicPlay, PublicPlayRecord, QUICK_VOICE_COUNT,
+    QiGui523Command, QiGui523ProfileStats, RejectReason, RuleViolation, SeatId, ShengjiCommand,
+    ShengjiFiveTrumpCrossingStage, ShengjiPhaseView, ShengjiPlayerState, ShengjiProfileStats,
+    ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureStage, ShengjiViolation,
+    TABLE_SEAT_COUNT, TexasHoldemCommand, TexasHoldemEvent, TexasHoldemPhaseView,
+    TexasHoldemPlayerState, TexasHoldemProfileStats, TexasHoldemSnapshot, TexasHoldemViolation,
+    TurnTimerView, UnoCommand, UnoEvent, UnoPhaseView, UnoPlayerState, UnoProfileStats,
+    UnoSnapshot, UnoViolation,
 };
 use leocard_qigui523::{
-    Card, ClassifiedPlay, GreedyRequest, GreedyStrategy, PlayKind, Rank, RuleSet, SameCardPolicy,
+    Card, ClassifiedPlay, PlayKind, QiGui523Bot, QiGui523BotRequest, Rank, RuleSet, SameCardPolicy,
     Suit, SuitComparison, TimeControl, build_deck, classify, has_legal_response,
 };
 use leocard_shengji::{
@@ -118,7 +119,7 @@ const INTERACTION_COOLDOWN_MASK_FRAMES: usize = 48;
 const HEAVY_INTERACTION_TRAVEL_DURATION: f32 = 0.68;
 const SHOE_ROTATIONS: f32 = 2.0;
 const CHAT_PANEL_WIDTH: f32 = 350.0;
-/// 多移出两个逻辑像素，避免缩放和抗锯齿让收起抽屉的边框漏在屏幕右侧。
+/// 将面板本体移出右侧，同时保留其左侧的 32px 折叠箭头。
 const CHAT_PANEL_HIDDEN_OFFSET: f32 = CHAT_PANEL_WIDTH + 2.0;
 const CHAT_HISTORY_LIMIT: usize = 60;
 const START_GAME_SEAT_MOVE_DURATION: f32 = 0.72;
@@ -578,6 +579,7 @@ struct StoredGameProfiles {
     texas_holdem_stats: Option<TexasHoldemProfileStats>,
     shengji_stats: Option<ShengjiProfileStats>,
     uno_stats: Option<UnoProfileStats>,
+    interaction_stats: Option<PlayerInteractionStats>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -588,7 +590,20 @@ struct StoredRatingProfile {
     qigui523_stats: Option<QiGui523ProfileStats>,
 }
 
-/// 0.1.4 开发期内、UNO 档案加入前写出的明细档案。
+#[derive(Deserialize, Serialize)]
+struct PreInteractionStoredPlayerProfile {
+    secret_key: [u8; 32],
+    games: PreInteractionStoredGameProfiles,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreInteractionStoredGameProfiles {
+    qigui523: StoredRatingProfile,
+    texas_holdem_stats: Option<TexasHoldemProfileStats>,
+    shengji_stats: Option<ShengjiProfileStats>,
+    uno_stats: Option<UnoProfileStats>,
+}
+
 #[derive(Deserialize, Serialize)]
 struct PreUnoStoredPlayerProfile {
     secret_key: [u8; 32],
@@ -602,7 +617,6 @@ struct PreUnoStoredGameProfiles {
     shengji_stats: Option<ShengjiProfileStats>,
 }
 
-/// 0.1.4 开发期内、升级档案加入前写出的明细档案。
 #[derive(Deserialize, Serialize)]
 struct PreShengjiStoredPlayerProfile {
     secret_key: [u8; 32],
@@ -615,7 +629,6 @@ struct PreShengjiStoredGameProfiles {
     texas_holdem_stats: Option<TexasHoldemProfileStats>,
 }
 
-/// 0.1.4 开发期内、德州扑克档案加入前写出的明细档案。
 #[derive(Deserialize, Serialize)]
 struct PreTexasStoredPlayerProfile {
     secret_key: [u8; 32],
@@ -687,7 +700,7 @@ struct UiState {
     observed_shengji_hand: Vec<ShengjiCard>,
     selected_uno: Option<UnoCard>,
     uno_card_animations: HashMap<UnoCard, CardAnimationState>,
-    greedy_hint: GreedyStrategy,
+    greedy_hint: QiGui523Bot,
     interaction_menu_open: Option<PlayerId>,
     settings_open: bool,
     profile_open: bool,
@@ -905,8 +918,10 @@ struct ChatPanelState {
     slide: f32,
     focused: bool,
     quick_voice_open: bool,
+    emoji_open: bool,
     /// 快捷语音列表的持久滚动位置；UI 根节点重建后据此恢复。
     quick_voice_scroll_y: f32,
+    emoji_scroll_y: f32,
     input: String,
     history: VecDeque<ChatHistoryEntry>,
 }
@@ -918,7 +933,9 @@ impl Default for ChatPanelState {
             slide: 1.0,
             focused: false,
             quick_voice_open: false,
+            emoji_open: false,
             quick_voice_scroll_y: 0.0,
+            emoji_scroll_y: 0.0,
             input: String::new(),
             history: VecDeque::new(),
         }
@@ -982,6 +999,8 @@ struct UiAssets {
     summary_score_sound: Handle<AudioSource>,
     summary_die_sound: Handle<AudioSource>,
     quick_voice_sounds: Vec<Handle<AudioSource>>,
+    chat_emojis: Vec<Handle<Image>>,
+    chat_emoji_icon: Handle<Image>,
     texas_sounds: TexasSoundAssets,
     uno_sounds: UnoSoundAssets,
     sequence_airplane: Handle<Image>,
@@ -993,6 +1012,48 @@ struct UiAssets {
     robot_icon: Handle<Image>,
     host_crown: Handle<Image>,
     github_mark: Handle<Image>,
+}
+
+const CHAT_EMOJI_ASSET_PATHS: [&str; 30] = [
+    "ui/fluent-emoji/laugh.png",
+    "ui/fluent-emoji/angry.png",
+    "ui/fluent-emoji/surprised.png",
+    "ui/fluent-emoji/pleading.png",
+    "ui/fluent-emoji/party.png",
+    "ui/fluent-emoji/heart.png",
+    "ui/fluent-emoji/grinning.png",
+    "ui/fluent-emoji/rolling-laugh.png",
+    "ui/fluent-emoji/smile.png",
+    "ui/fluent-emoji/wink.png",
+    "ui/fluent-emoji/heart-eyes.png",
+    "ui/fluent-emoji/hearts-face.png",
+    "ui/fluent-emoji/kiss.png",
+    "ui/fluent-emoji/sunglasses.png",
+    "ui/fluent-emoji/star-struck.png",
+    "ui/fluent-emoji/cry.png",
+    "ui/fluent-emoji/loud-cry.png",
+    "ui/fluent-emoji/angry-horns.png",
+    "ui/fluent-emoji/flushed.png",
+    "ui/fluent-emoji/thinking.png",
+    "ui/fluent-emoji/rolling-eyes.png",
+    "ui/fluent-emoji/unamused.png",
+    "ui/fluent-emoji/expressionless.png",
+    "ui/fluent-emoji/tongue.png",
+    "ui/fluent-emoji/fearful.png",
+    "ui/fluent-emoji/fire.png",
+    "ui/fluent-emoji/sparkling-heart.png",
+    "ui/fluent-emoji/thumbs-up.png",
+    "ui/fluent-emoji/clap.png",
+    "ui/fluent-emoji/hundred.png",
+];
+
+impl UiAssets {
+    fn chat_emoji(&self, emoji: ChatEmoji) -> Handle<Image> {
+        self.chat_emojis
+            .get(emoji.index())
+            .cloned()
+            .unwrap_or_default()
+    }
 }
 
 #[derive(Resource, Default)]
@@ -1155,6 +1216,12 @@ struct ChatHistoryText;
 
 #[derive(Component)]
 struct ChatInputText;
+
+#[derive(Component)]
+struct EmojiMenu;
+
+#[derive(Component)]
+struct EmojiScroll;
 
 #[derive(Component)]
 struct DeveloperHandInputText;
@@ -1420,7 +1487,9 @@ enum AutoPlayAntennaLightPart {
 #[derive(Component)]
 struct ActiveChatBubble {
     player: PlayerId,
-    text: Entity,
+    text: Option<Entity>,
+    emoji_image: Option<Entity>,
+    emoji: bool,
     width: f32,
     elapsed: f32,
     duration: f32,
@@ -1612,7 +1681,9 @@ enum UiAction {
     ToggleAutoPlay,
     FocusChatInput,
     ToggleQuickVoiceMenu,
+    ToggleEmojiMenu,
     SendQuickVoice(u8),
+    SendEmoji(ChatEmoji),
     Hint,
     ToggleCard,
     Play,
@@ -1833,6 +1904,7 @@ mod embedded_assets;
 mod input;
 mod interaction;
 mod overlays;
+mod profile_stats;
 mod qigui523;
 mod screens;
 mod seat_transition;
@@ -1854,6 +1926,7 @@ use embedded_assets::*;
 use input::*;
 use interaction::*;
 use overlays::*;
+use profile_stats::*;
 use qigui523::*;
 use screens::*;
 use seat_transition::*;
@@ -2049,7 +2122,7 @@ pub(crate) fn run() {
                         animate_chat_panel,
                         animate_auto_play_robot_indicators,
                         sync_chat_panel_text,
-                        scroll_quick_voice_menu,
+                        scroll_chat_menus,
                         (
                             sync_avatar_images,
                             poll_update_events,

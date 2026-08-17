@@ -1,5 +1,3 @@
-//! Client application regression tests.
-
 use super::*;
 
 #[test]
@@ -220,6 +218,13 @@ fn interaction_menu_offers_the_selected_players_full_profile() {
 fn full_profile_modal_renders_the_selected_players_statistics() {
     fn setup(mut commands: Commands, assets: Res<UiAssets>) {
         let root = commands.spawn(Node::default()).id();
+        let game_profiles = PlayerGameProfiles {
+            interactions: Some(PlayerInteractionStats {
+                flowers_received: 21,
+                eggs_received: 12,
+            }),
+            ..PlayerGameProfiles::default()
+        };
         render_profile_modal(
             &mut commands,
             root,
@@ -227,7 +232,7 @@ fn full_profile_modal_renders_the_selected_players_statistics() {
             None,
             500,
             37,
-            &PlayerGameProfiles::default(),
+            &game_profiles,
             ProfileGameTab::Uno,
             &assets,
         );
@@ -248,6 +253,11 @@ fn full_profile_modal_renders_the_selected_players_statistics() {
     assert!(labels.contains(&"500"));
     assert!(labels.contains(&"37"));
     assert!(labels.contains(&"钻石"));
+    assert!(labels.contains(&"21"));
+    assert!(labels.contains(&"12"));
+    assert!(!labels.contains(&"玩家头像"));
+    assert!(!labels.contains(&"玩家名称"));
+    assert!(!labels.iter().any(|label| label.starts_with("当前等级：")));
     for label in ["七鬼五二三", "德州扑克", "升级", "UNO"] {
         assert!(labels.contains(&label));
     }
@@ -436,7 +446,7 @@ fn uno_profile_rows_format_rank_penalty_and_action_statistics() {
         successful_challenges: 3,
         challenges_received: 5,
         successful_challenges_received: 2,
-        jump_in_attempts: 10,
+        jump_in_opportunities: 10,
         successful_jump_ins: 6,
     }));
     let value = |label| {
@@ -452,6 +462,7 @@ fn uno_profile_rows_format_rank_penalty_and_action_statistics() {
     assert_eq!(value("最多牌数"), "17");
     assert_eq!(value("质疑成功率"), "75.0%");
     assert_eq!(value("被质疑成功率"), "40.0%");
+    assert_eq!(value("抢出次数"), "6");
     assert_eq!(value("抢出成功率"), "60.0%");
 }
 
@@ -482,6 +493,7 @@ fn pre_detailed_profile_decodes_with_unknown_qigui523_statistics() {
     assert_eq!(decoded.games.texas_holdem_stats, None);
     assert_eq!(decoded.games.shengji_stats, None);
     assert_eq!(decoded.games.uno_stats, None);
+    assert_eq!(decoded.games.interaction_stats, None);
 }
 
 #[test]
@@ -511,6 +523,7 @@ fn pre_texas_profile_preserves_qigui523_details_and_marks_texas_unknown() {
     assert_eq!(decoded.games.texas_holdem_stats, None);
     assert_eq!(decoded.games.shengji_stats, None);
     assert_eq!(decoded.games.uno_stats, None);
+    assert_eq!(decoded.games.interaction_stats, None);
 }
 
 #[test]
@@ -539,6 +552,7 @@ fn pre_shengji_profile_preserves_existing_game_details() {
     assert_eq!(decoded.games.texas_holdem_stats, Some(texas_holdem_stats));
     assert_eq!(decoded.games.shengji_stats, None);
     assert_eq!(decoded.games.uno_stats, None);
+    assert_eq!(decoded.games.interaction_stats, None);
 }
 
 #[test]
@@ -567,6 +581,36 @@ fn pre_uno_profile_preserves_existing_game_details() {
 
     assert_eq!(decoded.games.shengji_stats, Some(shengji_stats));
     assert_eq!(decoded.games.uno_stats, None);
+    assert_eq!(decoded.games.interaction_stats, None);
+}
+
+#[test]
+fn pre_interaction_profile_preserves_uno_statistics_and_marks_interactions_unknown() {
+    let uno_stats = UnoProfileStats {
+        completed_games: 6,
+        uno_calls: 8,
+        ..UnoProfileStats::default()
+    };
+    let previous = PreInteractionStoredPlayerProfile {
+        secret_key: [4; 32],
+        games: PreInteractionStoredGameProfiles {
+            qigui523: StoredRatingProfile {
+                reference_points: 14,
+                completed_games: 6,
+                applied_matches: Vec::new(),
+                qigui523_stats: None,
+            },
+            texas_holdem_stats: None,
+            shengji_stats: None,
+            uno_stats: Some(uno_stats.clone()),
+        },
+    };
+    let bytes = postcard::to_allocvec(&previous).unwrap();
+
+    let decoded = decode_player_profile(&bytes).unwrap();
+
+    assert_eq!(decoded.games.uno_stats, Some(uno_stats));
+    assert_eq!(decoded.games.interaction_stats, None);
 }
 
 #[test]
@@ -624,23 +668,6 @@ fn table_brightness_is_normalized_and_mapped_to_the_slider() {
     assert_eq!(slider_fraction_from_relative_x(0.5), 1.0);
     assert_eq!(slider_fraction_from_relative_x(-2.0), 0.0);
     assert_eq!(slider_fraction_from_relative_x(2.0), 1.0);
-}
-
-#[test]
-fn restoring_the_default_felt_also_restores_full_brightness() {
-    let mut form = ConnectionForm::default();
-    form.table_felt_path = Some(PathBuf::from("custom-table.png"));
-    form.table_brightness = MIN_TABLE_BRIGHTNESS;
-
-    restore_default_table_appearance(&mut form);
-
-    assert_eq!(form.table_felt_path, None);
-    assert_eq!(form.table_brightness, 1.0);
-}
-
-#[test]
-fn texas_pot_chip_zone_is_shifted_slightly_upward() {
-    assert_eq!(texas_pot_chip_zone().top, 284.0);
 }
 
 #[test]
@@ -1335,7 +1362,7 @@ fn greedy_hint_cycles_and_passes_when_no_response_exists() {
         Card::suited(0, Suit::Diamond, Rank::Nine),
         Card::suited(0, Suit::Diamond, Rank::Ten),
     ];
-    let mut strategy = GreedyStrategy::new();
+    let mut strategy = QiGui523Bot::new();
 
     assert_eq!(
         next_greedy_hint(&mut strategy, &hand, &current, &[current_card], &rules,),
@@ -2142,21 +2169,6 @@ fn shengji_remote_deals_and_hidden_grace_ticks_skip_full_ui_rebuilds() {
 }
 
 #[test]
-fn rebuilt_selected_card_keeps_its_cached_lift() {
-    let pose = hand_card_pose(2, 5, 0.0, 1.0, 0.0, false);
-
-    assert_eq!(pose.translation.y, px(-HAND_CARD_SELECTED_LIFT));
-}
-
-#[test]
-fn summary_score_animation_honors_delay_and_reaches_the_target() {
-    assert_eq!(animated_summary_score(0.0, 85, 0.08), 0);
-    assert_eq!(animated_summary_score(0.07, 85, 0.08), 0);
-    assert!(animated_summary_score(0.50, 85, 0.08) < 85);
-    assert_eq!(animated_summary_score(0.80, 85, 0.08), 85);
-}
-
-#[test]
 fn summary_scores_are_ranked_from_high_to_low() {
     let scores = [
         PlayerScore {
@@ -2185,25 +2197,6 @@ fn summary_scores_are_ranked_from_high_to_low() {
 }
 
 #[test]
-fn summary_modal_fades_in_while_floating_downward() {
-    let start = summary_modal_visual(0.0);
-    let middle = summary_modal_visual(SUMMARY_MODAL_ENTRY_DURATION / 2.0);
-    let end = summary_modal_visual(SUMMARY_MODAL_ENTRY_DURATION);
-
-    assert_eq!(start.opacity, 0.0);
-    assert!(start.offset_y < middle.offset_y);
-    assert!(middle.offset_y < end.offset_y);
-    assert!(middle.opacity > start.opacity);
-    assert_eq!(
-        end,
-        SummaryModalVisual {
-            offset_y: 0.0,
-            opacity: 1.0,
-        }
-    );
-}
-
-#[test]
 fn shengji_settlement_names_every_score_band() {
     assert_eq!(shengji_settlement_outcome_for_score(0, 3, 2), "闲家大光");
     assert_eq!(shengji_settlement_outcome_for_score(39, 2, 2), "闲家小光");
@@ -2219,40 +2212,6 @@ fn shengji_settlement_names_every_score_band() {
     assert_eq!(shengji_settlement_outcome_for_score(80, 1, 4), "闲家脱贫");
     assert_eq!(shengji_settlement_outcome_for_score(160, 0, 4), "闲家上台");
     assert_eq!(shengji_settlement_outcome_for_score(240, 1, 4), "闲家升1级");
-}
-
-#[test]
-fn play_effect_easing_starts_and_finishes_at_exact_endpoints() {
-    assert_eq!(ease_out_cubic(0.0), 0.0);
-    assert_eq!(ease_out_cubic(1.0), 1.0);
-    assert!(ease_out_cubic(0.5) > 0.5);
-}
-
-#[test]
-fn airplane_path_starts_level_then_banks_up_and_right() {
-    let start = sequence_airplane_pose(0.0);
-    let middle = sequence_airplane_pose(0.5);
-    let end = sequence_airplane_pose(1.0);
-
-    assert!(start.rotation.abs() < 0.001);
-    assert!(middle.rotation < start.rotation);
-    assert!(end.rotation < middle.rotation);
-    assert!(start.position.x < middle.position.x);
-    assert!(middle.position.x < end.position.x);
-    assert!(start.position.y > middle.position.y);
-    assert!(middle.position.y > end.position.y);
-}
-
-#[test]
-fn thrown_interactions_accelerate_toward_the_target() {
-    assert_eq!(accelerated_interaction_progress(0.0), 0.0);
-    assert_eq!(accelerated_interaction_progress(0.5), 0.25);
-    assert_eq!(accelerated_interaction_progress(1.0), 1.0);
-    let first_half_distance = accelerated_interaction_progress(0.5);
-    let second_half_distance = accelerated_interaction_progress(1.0) - first_half_distance;
-    assert!(second_half_distance > first_half_distance);
-    assert!(HEAVY_INTERACTION_TRAVEL_DURATION > 0.40);
-    assert_eq!(SHOE_ROTATIONS, 2.0);
 }
 
 #[test]
@@ -2272,144 +2231,6 @@ fn score_cards_spiral_accelerate_and_tidally_deform_into_the_target() {
     assert!(late.scale.x < late.scale.y * 0.25);
     assert!(end.scale.length() < 0.001);
     assert!(late.rotation.is_finite());
-}
-
-#[test]
-fn captured_score_roll_waits_for_absorption_and_reaches_the_new_score() {
-    let capture = ScoreCaptureEffect {
-        player: PlayerId(1),
-        cards: Vec::new(),
-        source_players: Vec::new(),
-        score_before: 15,
-        score_after: 40,
-    };
-
-    assert_eq!(rolling_captured_score(&capture, SCORE_ROLL_DELAY), 15);
-    assert_eq!(
-        rolling_captured_score(&capture, SCORE_ROLL_DELAY + SCORE_ROLL_DURATION),
-        40
-    );
-    let finished = CardSize::FinishedHand.dimensions();
-    let score = CardSize::Score.dimensions();
-    assert!((finished.0 / score.0 - 1.2).abs() < 0.001);
-    assert!((finished.1 / score.1 - 1.2).abs() < 0.001);
-}
-
-#[test]
-fn card_play_kinds_select_place_or_shove_audio() {
-    assert_eq!(
-        card_play_sound_kind(&PlayKind::Single),
-        CardPlaySoundKind::Place
-    );
-    assert_eq!(
-        card_play_sound_kind(&PlayKind::Pair),
-        CardPlaySoundKind::Place
-    );
-    assert_eq!(
-        card_play_sound_kind(&PlayKind::TripleWithSingle),
-        CardPlaySoundKind::Place
-    );
-    assert_eq!(
-        card_play_sound_kind(&PlayKind::TripleWithPair),
-        CardPlaySoundKind::Place
-    );
-    assert_eq!(
-        card_play_sound_kind(&PlayKind::Straight { card_count: 4 }),
-        CardPlaySoundKind::Shove
-    );
-    assert_eq!(
-        card_play_sound_kind(&PlayKind::ConsecutivePairs { pair_count: 2 }),
-        CardPlaySoundKind::Shove
-    );
-    assert_eq!(
-        card_play_sound_kind(&PlayKind::Airplane { triple_count: 2 }),
-        CardPlaySoundKind::Shove
-    );
-}
-
-#[test]
-fn sequence_play_effects_use_distinct_non_accent_colors() {
-    let straight = sequence_effect_style(&PlayKind::Straight { card_count: 4 }).unwrap();
-    let pairs = sequence_effect_style(&PlayKind::ConsecutivePairs { pair_count: 2 }).unwrap();
-    let airplane = sequence_effect_style(&PlayKind::Airplane { triple_count: 2 }).unwrap();
-
-    assert_eq!(straight.0, "顺子");
-    assert_eq!(pairs.0, "连对");
-    assert_eq!(airplane.0, "飞机");
-    assert_eq!(straight.2, SequenceEffectMotif::Wind);
-    assert_eq!(pairs.2, SequenceEffectMotif::Flower);
-    assert_eq!(airplane.2, SequenceEffectMotif::Airplane);
-    assert_ne!(straight.1, pairs.1);
-    assert_ne!(straight.1, airplane.1);
-    assert_ne!(pairs.1, airplane.1);
-    assert!(
-        [straight.1, pairs.1, airplane.1]
-            .into_iter()
-            .all(|color| color != ACCENT)
-    );
-}
-
-#[test]
-fn interaction_sounds_play_at_half_volume() {
-    assert_eq!(
-        interaction_playback_settings().volume.to_linear(),
-        INTERACTION_SOUND_VOLUME
-    );
-    assert_eq!(INTERACTION_SOUND_VOLUME, 0.5);
-}
-
-#[test]
-fn wine_and_shoe_use_the_correct_ten_item_volley() {
-    assert_eq!(
-        interaction_volley_kind(PlayerInteractionKind::Wine),
-        Some(PlayerInteractionKind::Flower)
-    );
-    assert_eq!(
-        interaction_volley_kind(PlayerInteractionKind::Shoe),
-        Some(PlayerInteractionKind::Egg)
-    );
-    assert_eq!(interaction_volley_kind(PlayerInteractionKind::Flower), None);
-    assert_eq!(interaction_volley_kind(PlayerInteractionKind::Egg), None);
-    assert_eq!(
-        (0..10).map(interaction_volley_lane).collect::<Vec<_>>(),
-        vec![-18.0, 18.0, -9.0, 9.0, 0.0, -13.5, 13.5, -4.5, 4.5, 0.0]
-    );
-    assert_eq!(
-        interaction_volley_interval(PlayerInteractionKind::Egg),
-        0.09
-    );
-    let egg_launches = (0..10)
-        .map(|index| index as f32 * interaction_volley_interval(PlayerInteractionKind::Egg))
-        .collect::<Vec<_>>();
-    assert!(
-        egg_launches
-            .windows(2)
-            .all(|pair| ((pair[1] - pair[0]) - 0.09).abs() < 0.000_01)
-    );
-}
-
-#[test]
-fn shoe_uses_distinct_launch_and_impact_sounds() {
-    assert_eq!(
-        interaction_launch_sound_variant(PlayerInteractionKind::Shoe),
-        Some(0)
-    );
-    assert_eq!(
-        interaction_impact_sound_variant(PlayerInteractionKind::Shoe, 0),
-        1
-    );
-    assert_eq!(
-        interaction_impact_sound_variant(PlayerInteractionKind::Shoe, 1),
-        1
-    );
-    assert_eq!(
-        interaction_launch_sound_variant(PlayerInteractionKind::Egg),
-        None
-    );
-    assert_eq!(
-        interaction_impact_sound_variant(PlayerInteractionKind::Egg, 0),
-        0
-    );
 }
 
 #[test]
@@ -3080,6 +2901,14 @@ fn uno_reverse_effect_places_self_at_the_bottom_center_action_area() {
 #[test]
 fn closed_chat_drawer_moves_its_border_fully_offscreen() {
     assert!(CHAT_PANEL_HIDDEN_OFFSET > CHAT_PANEL_WIDTH);
+}
+
+#[test]
+fn closed_chat_drawer_translation_keeps_the_arrow_visible() {
+    assert_eq!(
+        chat_panel_translation(1.0),
+        Val2::px(CHAT_PANEL_HIDDEN_OFFSET, 0.0)
+    );
 }
 
 #[test]

@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use leocard_protocol::{
     AvatarId, ChatContent, ChatMessage, ClientMessage, GameKind, GameRules, LobbyPlayer,
     LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS, PROTOCOL_VERSION,
-    PlayerGameProfiles, PlayerId, ProfileId, QUICK_VOICE_COUNT, ReconnectToken, RejectReason,
-    RequestId, Revision, RoomId, SeatId, ServerEvent, ServerMessage, TABLE_SEAT_COUNT,
+    PlayerGameProfiles, PlayerId, PlayerInteractionKind, PlayerInteractionStats, ProfileId,
+    QUICK_VOICE_COUNT, ReconnectToken, RejectReason, RequestId, Revision, RoomId, SeatId,
+    ServerEvent, ServerMessage, TABLE_SEAT_COUNT,
 };
 
 use crate::{ConnectionId, Delivery};
@@ -78,6 +79,38 @@ impl RoomSession {
             .iter()
             .find(|player| player.connection == connection && !player.left)
             .map(|player| player.id)
+    }
+
+    pub(crate) fn record_received_interaction(
+        &mut self,
+        target: PlayerId,
+        kind: PlayerInteractionKind,
+    ) {
+        let Some(participant) = self
+            .players
+            .iter_mut()
+            .find(|participant| participant.id == target && !participant.left)
+        else {
+            return;
+        };
+        let stats = participant
+            .game_profiles
+            .interactions
+            .get_or_insert_with(PlayerInteractionStats::default);
+        match kind {
+            PlayerInteractionKind::Flower => {
+                stats.flowers_received = stats.flowers_received.saturating_add(1);
+            }
+            PlayerInteractionKind::Wine => {
+                stats.flowers_received = stats.flowers_received.saturating_add(10);
+            }
+            PlayerInteractionKind::Egg => {
+                stats.eggs_received = stats.eggs_received.saturating_add(1);
+            }
+            PlayerInteractionKind::Shoe => {
+                stats.eggs_received = stats.eggs_received.saturating_add(10);
+            }
+        }
     }
 
     pub(crate) fn begin_request(
@@ -477,6 +510,7 @@ impl RoomSession {
                 ChatContent::QuickVoice(index)
             }
             ChatContent::QuickVoice(_) => return Err(RejectReason::InvalidChatMessage),
+            ChatContent::Emoji(emoji) => ChatContent::Emoji(emoji),
         };
         let chat = ChatMessage { source, content };
         Ok(self

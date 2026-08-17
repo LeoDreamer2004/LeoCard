@@ -1,6 +1,8 @@
 use std::time::Duration;
 
-use leocard_protocol::{ClientMessage, GameKind, Revision, RoomId};
+use leocard_protocol::{
+    ClientMessage, GameKind, PROTOCOL_VERSION, Revision, RoomId, ServerEvent, ServerMessage,
+};
 use leocard_qigui523::{Card, RuleSet};
 
 use crate::{
@@ -202,6 +204,15 @@ impl HostSession {
         }
     }
 
+    pub fn is_current_connection(&self, connection: ConnectionId) -> bool {
+        match self {
+            Self::QiGui523(session) => session.is_current_connection(connection),
+            Self::TexasHoldem(session) => session.is_current_connection(connection),
+            Self::Shengji(session) => session.is_current_connection(connection),
+            Self::Uno(session) => session.is_current_connection(connection),
+        }
+    }
+
     pub fn is_closed(&self) -> bool {
         match self {
             Self::QiGui523(session) => session.is_closed(),
@@ -230,6 +241,18 @@ impl HostSession {
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
+        if matches!(&message.command, leocard_protocol::ClientCommand::Ping) {
+            return vec![Delivery {
+                recipient: connection,
+                message: ServerMessage {
+                    protocol_version: PROTOCOL_VERSION,
+                    room_id: self.room_id(),
+                    revision: self.revision(),
+                    in_reply_to: None,
+                    event: ServerEvent::Heartbeat,
+                },
+            }];
+        }
         match self {
             Self::QiGui523(session) => session.handle(connection, message),
             Self::TexasHoldem(session) => session.handle(connection, message),

@@ -1331,9 +1331,9 @@ fn add_texas_sized_button(
         ),
         ButtonKind::Warning => (
             assets.warning_button.clone(),
-            Color::WHITE,
-            Color::srgb(1.0, 0.94, 0.74),
-            Color::srgb(0.90, 0.78, 0.58),
+            Color::srgb(0.88, 0.68, 0.24),
+            Color::srgb(0.98, 0.82, 0.48),
+            Color::srgb(0.72, 0.54, 0.18),
         ),
         ButtonKind::Pass => (
             assets.danger_button.clone(),

@@ -22,7 +22,7 @@ use leocard_uno::{
 };
 use serde::{Deserialize, Serialize};
 
-pub const PROTOCOL_VERSION: u16 = 25;
+pub const PROTOCOL_VERSION: u16 = 26;
 pub const MAX_FRAME_PAYLOAD: usize = 1024 * 1024;
 pub const MAX_PLAYER_NAME_CHARS: usize = 7;
 pub const AVATAR_DIMENSION: u32 = 64;
@@ -537,6 +537,8 @@ pub enum ClientCommand {
     Chat {
         content: ChatContent,
     },
+    /// 传输层存活探测，不参与房间请求序号和游戏状态。
+    Ping,
     RequestSnapshot,
 }
 

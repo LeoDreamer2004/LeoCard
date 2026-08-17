@@ -101,6 +101,10 @@ impl QiGui523Session {
         self.closed
     }
 
+    pub fn is_current_connection(&self, connection: ConnectionId) -> bool {
+        self.player_id(connection).is_some()
+    }
+
     /// 生成不改变权威修订号的轻量心跳，只发给当前在线玩家。
     pub fn heartbeat(&self) -> Vec<Delivery> {
         self.players
@@ -312,6 +316,7 @@ impl QiGui523Session {
             }
             ClientCommand::Chat { content } => self.chat(connection, message.request_id, content),
             ClientCommand::RequestSnapshot => self.snapshot(connection, message.request_id),
+            ClientCommand::Ping => unreachable!("transport pings are handled by HostSession"),
         }
     }
 
@@ -572,7 +577,14 @@ impl QiGui523Session {
         if self.host_connection == Some(previous_connection) {
             self.host_connection = Some(connection);
         }
-        self.last_requests.remove(&previous_connection);
+        let previous_last_request = self.last_requests.remove(&previous_connection);
+        if let Some(last_request) = self.last_requests.get_mut(&connection) {
+            if let Some(previous_last_request) = previous_last_request {
+                *last_request = (*last_request).max(previous_last_request);
+            }
+        } else if let Some(previous_last_request) = previous_last_request {
+            self.last_requests.insert(connection, previous_last_request);
+        }
         self.bump_revision();
 
         let mut deliveries = vec![self.delivery(

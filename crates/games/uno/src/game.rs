@@ -467,11 +467,26 @@ impl GameState {
         }
 
         let previous_color = self.current_color.expect("checked above");
-        let draw_four_was_legal = card.face() != Face::WildDrawFour
-            || !self.players[player.0]
-                .hand
-                .iter()
-                .any(|other| *other != card && other.color() == Some(previous_color));
+        let draw_four_was_legal = if card.face() != Face::WildDrawFour {
+            true
+        } else {
+            match self.pending_kind {
+                // A +4 stacked on a +2 can only be answered by the matching
+                // +2 under the configured stacking rule. Other cards of the
+                // same color are not playable while the draw penalty is open.
+                Some(PendingDrawKind::DrawTwo) => {
+                    !self.players[player.0].hand.iter().any(|other| {
+                        *other != card
+                            && other.face() == Face::DrawTwo
+                            && other.color() == Some(previous_color)
+                    })
+                }
+                _ => !self.players[player.0]
+                    .hand
+                    .iter()
+                    .any(|other| *other != card && other.color() == Some(previous_color)),
+            }
+        };
         let was_exposed = self.uno_exposed[player.0];
         let declared_uno = self.uno_declared[player.0];
         self.uno_exposed[player.0] = false;
@@ -1090,6 +1105,65 @@ mod tests {
         game.play_card(PlayerId(2), p2_draw_four, Some(Color::Blue))
             .unwrap();
         assert_eq!(game.turn().unwrap().pending_draw, 8);
+    }
+
+    #[test]
+    fn draw_four_after_draw_two_only_considers_matching_draw_two_for_challenge() {
+        let draw_two = card(Color::Red, Face::DrawTwo, 0);
+        let draw_four = Card::wild(Face::WildDrawFour, 0);
+        let same_color_number = card(Color::Red, Face::Number(7), 0);
+        let same_color_draw_two = card(Color::Red, Face::DrawTwo, 1);
+        let start = card(Color::Red, Face::Number(5), 0);
+
+        for alternative in [same_color_number, same_color_draw_two] {
+            let mut deck = build_deck();
+            for (position, required) in
+                [(0, draw_two), (1, draw_four), (7, alternative), (42, start)]
+            {
+                let current = deck
+                    .iter()
+                    .position(|candidate| *candidate == required)
+                    .unwrap();
+                deck.swap(position, current);
+            }
+            if alternative == same_color_number {
+                for position in [1, 13, 19, 25, 31, 37] {
+                    if deck[position].face() == Face::DrawTwo
+                        && deck[position].color() == Some(Color::Red)
+                    {
+                        let replacement = (43..deck.len())
+                            .find(|index| {
+                                deck[*index].face() != Face::DrawTwo
+                                    || deck[*index].color() != Some(Color::Red)
+                            })
+                            .unwrap();
+                        deck.swap(position, replacement);
+                    }
+                }
+            }
+
+            let mut game = GameState::new_with_deck(
+                RuleSet {
+                    stack_draw_four_on_draw_two: true,
+                    ..RuleSet::default()
+                },
+                6,
+                deck,
+            )
+            .unwrap();
+            game.play_card(PlayerId(0), draw_two, None).unwrap();
+            game.play_card(PlayerId(1), draw_four, Some(Color::Blue))
+                .unwrap();
+            let outcome = game.challenge_draw_four(PlayerId(2)).unwrap();
+            let expected = if alternative == same_color_number {
+                ChallengeResult::Failed
+            } else {
+                ChallengeResult::Successful
+            };
+            assert!(
+                matches!(outcome, ActionOutcome::ChallengeResolved { result, .. } if result == expected)
+            );
+        }
     }
 
     #[test]

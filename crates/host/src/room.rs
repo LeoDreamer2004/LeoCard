@@ -275,7 +275,14 @@ impl RoomSession {
         if self.host_connection == Some(previous_connection) {
             self.host_connection = Some(connection);
         }
-        self.last_requests.remove(&previous_connection);
+        let previous_last_request = self.last_requests.remove(&previous_connection);
+        if let Some(last_request) = self.last_requests.get_mut(&connection) {
+            if let Some(previous_last_request) = previous_last_request {
+                *last_request = (*last_request).max(previous_last_request);
+            }
+        } else if let Some(previous_last_request) = previous_last_request {
+            self.last_requests.insert(connection, previous_last_request);
+        }
         self.bump_revision();
         self.join_deliveries(connection, request_id, player)
     }

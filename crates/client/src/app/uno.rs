@@ -897,7 +897,7 @@ fn add_uno_actions(
             actions,
             &format!("接受 +{}", game.pending_draw),
             UiAction::UnoAcceptDrawPenalty,
-            ButtonKind::Pass,
+            ButtonKind::Warning,
             assets,
         );
         if game.challenge_offender.is_some() {
@@ -906,7 +906,7 @@ fn add_uno_actions(
                 actions,
                 "质疑 +4",
                 UiAction::UnoChallengeDrawFour,
-                ButtonKind::Warning,
+                ButtonKind::Pass,
                 assets,
             );
         }

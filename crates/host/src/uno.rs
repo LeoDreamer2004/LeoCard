@@ -79,6 +79,10 @@ impl UnoSession {
         self.room.closed
     }
 
+    pub fn is_current_connection(&self, connection: ConnectionId) -> bool {
+        self.room.player_id(connection).is_some()
+    }
+
     pub fn heartbeat(&self) -> Vec<Delivery> {
         self.room
             .players
@@ -262,6 +266,7 @@ impl UnoSession {
                 .chat(connection, request_id, content, self.game.is_some())
                 .unwrap_or_else(|reason| self.room.reject(connection, request_id, reason)),
             ClientCommand::RequestSnapshot => self.snapshot(connection, request_id),
+            ClientCommand::Ping => unreachable!("transport pings are handled by HostSession"),
         }
     }
 

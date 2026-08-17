@@ -3,8 +3,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::net::{IpAddr, SocketAddr};
-use std::sync::Mutex;
-use std::sync::mpsc::{self, Receiver};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -24,14 +23,19 @@ use leocard_shengji::{RuleSet as ShengjiRuleSet, build_deck_for as build_shengji
 use leocard_tcp::{TcpClient, TcpServerHandle};
 use leocard_texas_holdem::{RuleSet as TexasHoldemRuleSet, build_deck as build_texas_holdem_deck};
 use leocard_uno::{RuleSet as UnoRuleSet, build_deck as build_uno_deck};
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
+use tokio::sync::mpsc::{Receiver, Sender};
 
 /// 当前协议中一个监听端口只承载一个房间，因此客户端无需在地址之外再输入房间号。
 pub const NETWORK_ROOM_ID: RoomId = RoomId(523);
-const RECONNECT_ATTEMPTS: u8 = 3;
-const RECONNECT_DELAY: Duration = Duration::from_secs(5);
+const RECONNECT_ATTEMPTS: u8 = 6;
+const COMMAND_QUEUE: usize = 64;
 const RECONNECT_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const CONNECTION_HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(12);
+const PING_INTERVAL: Duration = Duration::from_secs(3);
+const EVENT_QUEUE: usize = 512;
+
+type CommandSender = Sender<ClientMessage>;
+type CommandReceiver = Receiver<ClientMessage>;
 
 #[derive(Clone)]
 pub struct PlayerIdentity {
@@ -137,6 +141,23 @@ enum NetworkEvent {
     Failed(String),
 }
 
+type EventQueue = Arc<Mutex<VecDeque<NetworkEvent>>>;
+
+fn push_event(events: &EventQueue, event: NetworkEvent) {
+    let mut queue = events.lock().expect("network event queue mutex poisoned");
+    if queue.len() >= EVENT_QUEUE {
+        if let Some(index) = queue
+            .iter()
+            .position(|queued| matches!(queued, NetworkEvent::Message(_)))
+        {
+            queue.remove(index);
+        } else {
+            queue.pop_front();
+        }
+    }
+    queue.push_back(event);
+}
+
 fn normalize_server_address(address: &str) -> Result<String, NetworkStartError> {
     let address = address.trim();
     let invalid = || NetworkStartError::InvalidAddress(address.to_owned());
@@ -158,8 +179,8 @@ fn normalize_server_address(address: &str) -> Result<String, NetworkStartError> 
 /// Bevy 主线程使用的非阻塞 TCP 客户端。所有套接字 I/O 都在独立 Tokio 线程中运行。
 pub struct TcpGameClient {
     model: ClientModel,
-    commands: UnboundedSender<ClientMessage>,
-    events: Mutex<Receiver<NetworkEvent>>,
+    commands: CommandSender,
+    events: EventQueue,
     state: NetworkState,
     _worker: thread::JoinHandle<()>,
 }
@@ -390,8 +411,8 @@ impl TcpGameClient {
         launch: NetworkLaunch,
         connecting: String,
     ) -> Result<Self, NetworkStartError> {
-        let (command_tx, command_rx) = unbounded_channel();
-        let (event_tx, event_rx) = mpsc::channel();
+        let (command_tx, command_rx) = tokio::sync::mpsc::channel(COMMAND_QUEUE);
+        let events = Arc::new(Mutex::new(VecDeque::with_capacity(EVENT_QUEUE)));
         let mut model = ClientModel::new(NETWORK_ROOM_ID);
         let reconnect_token = ReconnectToken(loop {
             let token = getrandom::u64().map_err(|error| {
@@ -411,6 +432,7 @@ impl TcpGameClient {
         ));
         let avatar = avatar_png.map(|png| model.command(ClientCommand::SetAvatar { png }));
         let reconnect_join = join.clone();
+        let worker_events = Arc::clone(&events);
         let worker = thread::Builder::new()
             .name("leocard-network".to_owned())
             .spawn(move || {
@@ -420,15 +442,20 @@ impl TcpGameClient {
                 {
                     Ok(runtime) => runtime,
                     Err(error) => {
-                        let _ = event_tx
-                            .send(NetworkEvent::Failed(format!("无法启动网络运行时：{error}")));
+                        push_event(
+                            &worker_events,
+                            NetworkEvent::Failed(format!("无法启动网络运行时：{error}")),
+                        );
                         return;
                     }
                 };
-                if let Err(error) =
-                    runtime.block_on(run_network(launch, command_rx, &event_tx, reconnect_join))
-                {
-                    let _ = event_tx.send(NetworkEvent::Failed(error));
+                if let Err(error) = runtime.block_on(run_network(
+                    launch,
+                    command_rx,
+                    &worker_events,
+                    reconnect_join,
+                )) {
+                    push_event(&worker_events, NetworkEvent::Failed(error));
                 }
             })
             .map_err(NetworkStartError::Worker)?;
@@ -436,13 +463,13 @@ impl TcpGameClient {
         let client = Self {
             model,
             commands: command_tx,
-            events: Mutex::new(event_rx),
+            events,
             state: NetworkState::Connecting(connecting),
             _worker: worker,
         };
-        let _ = client.commands.send(join);
+        let _ = client.commands.try_send(join);
         if let Some(avatar) = avatar {
-            let _ = client.commands.send(avatar);
+            let _ = client.commands.try_send(avatar);
         }
         Ok(client)
     }
@@ -460,7 +487,7 @@ impl TcpGameClient {
             return false;
         }
         let message = self.model.command(command);
-        self.commands.send(message).is_ok()
+        self.commands.try_send(message).is_ok()
     }
 
     pub fn take_player_interactions(&mut self) -> Vec<PlayerInteraction> {
@@ -486,8 +513,14 @@ impl TcpGameClient {
     /// 把后台线程已经收到的消息应用到模型；返回是否有可见状态变化。
     pub fn poll(&mut self) -> bool {
         let mut changed = false;
-        let events = self.events.get_mut().expect("network event mutex poisoned");
-        while let Ok(event) = events.try_recv() {
+        let pending = {
+            let mut events = self
+                .events
+                .lock()
+                .expect("network event queue mutex poisoned");
+            events.drain(..).collect::<Vec<_>>()
+        };
+        for event in pending {
             match event {
                 NetworkEvent::Connected(address) => {
                     let state = NetworkState::Connected(address);
@@ -521,8 +554,8 @@ impl TcpGameClient {
 
 async fn run_network(
     launch: NetworkLaunch,
-    mut commands: UnboundedReceiver<ClientMessage>,
-    events: &mpsc::Sender<NetworkEvent>,
+    mut commands: CommandReceiver,
+    events: &EventQueue,
     reconnect_join: ClientMessage,
 ) -> Result<(), String> {
     match launch {
@@ -560,8 +593,8 @@ async fn run_network(
 async fn run_joined_network(
     mut client: TcpClient,
     address: String,
-    commands: &mut UnboundedReceiver<ClientMessage>,
-    events: &mpsc::Sender<NetworkEvent>,
+    commands: &mut CommandReceiver,
+    events: &EventQueue,
     reconnect_join: &ClientMessage,
 ) -> Result<(), String> {
     loop {
@@ -570,15 +603,18 @@ async fn run_joined_network(
                 Ok(()) => return Ok(()),
                 Err(error) => error,
             };
+        drain_pending_commands(commands);
 
         let mut last_error = disconnected;
         let mut reconnected = None;
         for attempt in 1..=RECONNECT_ATTEMPTS {
-            let status = format!("连接已断开；5 秒后进行第 {attempt}/{RECONNECT_ATTEMPTS} 次重连");
-            if events.send(NetworkEvent::Reconnecting(status)).is_err() {
-                return Ok(());
-            }
-            tokio::time::sleep(RECONNECT_DELAY).await;
+            let delay = reconnect_delay(attempt);
+            let status = format!(
+                "连接已断开；{} 秒后进行第 {attempt}/{RECONNECT_ATTEMPTS} 次重连",
+                delay.as_secs()
+            );
+            push_event(events, NetworkEvent::Reconnecting(status));
+            tokio::time::sleep(delay).await;
 
             match tokio::time::timeout(
                 RECONNECT_CONNECT_TIMEOUT,
@@ -611,6 +647,7 @@ async fn run_joined_network(
                 "已连续重连 {RECONNECT_ATTEMPTS} 次，仍无法连接房主：{last_error}"
             ));
         };
+        drain_pending_commands(commands);
         client = replacement;
     }
 }
@@ -618,7 +655,7 @@ async fn run_joined_network(
 async fn complete_reconnect_handshake(
     mut client: TcpClient,
     reconnect_join: &ClientMessage,
-    events: &mpsc::Sender<NetworkEvent>,
+    events: &EventQueue,
 ) -> Result<TcpClient, String> {
     client
         .send(reconnect_join)
@@ -630,9 +667,7 @@ async fn complete_reconnect_handshake(
         .map_err(|error| error.to_string())?;
     match &message.event {
         ServerEvent::Joined { .. } => {
-            events
-                .send(NetworkEvent::Message(Box::new(message)))
-                .map_err(|_| "客户端界面已经关闭".to_owned())?;
+            push_event(events, NetworkEvent::Message(Box::new(message)));
             Ok(client)
         }
         ServerEvent::Rejected { reason } => Err(format!("房主拒绝恢复身份：{reason:?}")),
@@ -642,16 +677,16 @@ async fn complete_reconnect_handshake(
 
 async fn run_connected(
     client: TcpClient,
-    commands: &mut UnboundedReceiver<ClientMessage>,
-    events: &mpsc::Sender<NetworkEvent>,
+    commands: &mut CommandReceiver,
+    events: &EventQueue,
     connected_label: String,
 ) -> Result<(), String> {
     let (mut reader, mut writer) = client.into_split();
-    events
-        .send(NetworkEvent::Connected(connected_label))
-        .map_err(|_| "客户端界面已经关闭".to_owned())?;
+    push_event(events, NetworkEvent::Connected(connected_label));
     let heartbeat_timeout = tokio::time::sleep(CONNECTION_HEARTBEAT_TIMEOUT);
     tokio::pin!(heartbeat_timeout);
+    let mut ping_interval = tokio::time::interval(PING_INTERVAL);
+    ping_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
     loop {
         tokio::select! {
@@ -670,12 +705,7 @@ async fn run_connected(
                     &message.event,
                     ServerEvent::RoomClosed | ServerEvent::LeftRoom
                 );
-                if events
-                    .send(NetworkEvent::Message(Box::new(message)))
-                    .is_err()
-                {
-                    return Ok(());
-                }
+                push_event(events, NetworkEvent::Message(Box::new(message)));
                 if connection_finished {
                     return Ok(());
                 }
@@ -685,7 +715,31 @@ async fn run_connected(
                 writer.send(&command).await
                     .map_err(|error| format!("发送游戏指令失败：{error}"))?;
             }
+            _ = ping_interval.tick() => {
+                let ping = ClientMessage::new(
+                    NETWORK_ROOM_ID,
+                    RequestId(0),
+                    ClientCommand::Ping,
+                );
+                writer.send(&ping).await
+                    .map_err(|error| format!("发送连接心跳失败：{error}"))?;
+            }
         }
+    }
+}
+
+fn drain_pending_commands(commands: &mut CommandReceiver) {
+    while commands.try_recv().is_ok() {}
+}
+
+fn reconnect_delay(attempt: u8) -> Duration {
+    match attempt {
+        1 => Duration::ZERO,
+        2 => Duration::from_secs(1),
+        3 => Duration::from_secs(2),
+        4 => Duration::from_secs(4),
+        5 => Duration::from_secs(8),
+        _ => Duration::from_secs(15),
     }
 }
 

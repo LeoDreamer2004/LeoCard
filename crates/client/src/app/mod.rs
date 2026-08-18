@@ -9,7 +9,7 @@ use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread;
 
 use bevy::asset::{AssetPlugin, RenderAssetUsages};
-use bevy::audio::Volume;
+use bevy::audio::{GlobalVolume, Volume};
 use bevy::ecs::system::SystemParam;
 use bevy::input::ButtonState;
 use bevy::input::keyboard::{Key, KeyboardInput};
@@ -85,6 +85,7 @@ const MAX_TABLE_BRIGHTNESS: f32 = 1.25;
 const MIN_TABLE_VIGNETTE: f32 = 0.0;
 const MAX_TABLE_VIGNETTE: f32 = 0.75;
 const DEFAULT_TABLE_VIGNETTE: f32 = 0.38;
+const DEFAULT_AUDIO_VOLUME: f32 = 0.8;
 const TABLE_BACKGROUND_SHADER: &str = "shaders/table_background.wgsl";
 const PLAY_ERROR_TOAST_DURATION: f32 = 2.4;
 const PLAY_ERROR_TOAST_ENTRY_DURATION: f32 = 0.28;
@@ -190,6 +191,7 @@ struct ConnectionForm {
     table_felt_path: Option<PathBuf>,
     table_brightness: f32,
     table_vignette: f32,
+    audio_volume: f32,
     host_rules: RuleSet,
     texas_holdem_rules: TexasHoldemRuleSet,
     shengji_rules: ShengjiRuleSet,
@@ -256,6 +258,12 @@ impl Default for ConnectionForm {
                 MAX_TABLE_VIGNETTE,
                 DEFAULT_TABLE_VIGNETTE,
             ),
+            audio_volume: normalize_range(
+                saved.global.audio_volume,
+                0.0,
+                1.0,
+                DEFAULT_AUDIO_VOLUME,
+            ),
             host_rules: normalize_host_rules(saved.games.qigui523.host_rules),
             texas_holdem_rules: normalize_texas_holdem_rules(saved.games.texas_holdem.host_rules),
             shengji_rules: normalize_shengji_rules(saved.games.shengji.host_rules),
@@ -282,6 +290,12 @@ struct GlobalPreferences {
     table_felt_path: Option<PathBuf>,
     table_brightness: f32,
     table_vignette: f32,
+    #[serde(default = "default_audio_volume")]
+    audio_volume: f32,
+}
+
+fn default_audio_volume() -> f32 {
+    DEFAULT_AUDIO_VOLUME
 }
 
 #[derive(Deserialize, Serialize)]
@@ -509,6 +523,7 @@ impl Default for SavedPreferences {
                 table_felt_path: None,
                 table_brightness: 1.0,
                 table_vignette: DEFAULT_TABLE_VIGNETTE,
+                audio_volume: DEFAULT_AUDIO_VOLUME,
             },
             games: GamePreferences {
                 qigui523: QiGui523Preferences {
@@ -698,7 +713,7 @@ struct UiState {
     observed_hand: Vec<Card>,
     shengji_card_animations: HashMap<ShengjiCard, CardAnimationState>,
     observed_shengji_hand: Vec<ShengjiCard>,
-    selected_uno: Option<UnoCard>,
+    selected_uno: HashSet<UnoCard>,
     uno_card_animations: HashMap<UnoCard, CardAnimationState>,
     greedy_hint: QiGui523Bot,
     interaction_menu_open: Option<PlayerId>,
@@ -715,6 +730,7 @@ struct UiState {
     shengji_observed_hand_number: u32,
     shengji_buried_open: bool,
     uno_color_choice: Option<UnoCard>,
+    leaving_room: bool,
     dirty: bool,
 }
 
@@ -1188,6 +1204,7 @@ struct TableAppearanceSlider(TableAppearanceSetting);
 enum TableAppearanceSetting {
     Brightness,
     Vignette,
+    Volume,
 }
 
 #[derive(Component)]
@@ -1960,10 +1977,12 @@ pub(crate) fn run() {
             }
         }
     };
+    let audio_volume = form.audio_volume;
     let mut app = App::new();
     configure_runtime_asset_source(&mut app);
     app.insert_resource(ClearColor(TABLE_BG))
         .insert_resource(form)
+        .insert_resource(GlobalVolume::new(Volume::Linear(audio_volume)))
         .insert_resource(profile)
         .insert_resource(AvatarImages::default())
         .insert_resource(AvatarPicker::default())

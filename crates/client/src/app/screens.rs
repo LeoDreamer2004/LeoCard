@@ -77,16 +77,12 @@ pub(super) fn render_ui(
         ui.shengji_card_animations.clear();
         ui.observed_shengji_hand.clear();
         ui.greedy_hint.reset();
-        if ui
-            .selected_uno
-            .is_some_and(|card| !game.your_hand.contains(&card))
-        {
-            ui.selected_uno = None;
-        }
+        ui.selected_uno.retain(|card| game.your_hand.contains(card));
         if let Some(card) = game.your_jump_in_card {
-            ui.selected_uno = Some(card);
+            ui.selected_uno.clear();
+            ui.selected_uno.insert(card);
         } else if game.current_player != Some(game.you) {
-            ui.selected_uno = None;
+            ui.selected_uno.clear();
         }
         ui.uno_card_animations
             .retain(|card, _| game.your_hand.contains(card));
@@ -118,7 +114,7 @@ pub(super) fn render_ui(
         ui.shengji_observed_hand_number = 0;
         ui.shengji_buried_open = false;
         ui.uno_color_choice = None;
-        ui.selected_uno = None;
+        ui.selected_uno.clear();
         ui.uno_card_animations.clear();
     }
 
@@ -917,6 +913,7 @@ pub(super) fn render_settings_modal(
     for setting in [
         TableAppearanceSetting::Brightness,
         TableAppearanceSetting::Vignette,
+        TableAppearanceSetting::Volume,
     ] {
         add_table_appearance_slider(commands, modal, setting, form, assets);
     }
@@ -989,6 +986,7 @@ pub(super) fn render_settings_modal(
             width: percent(100),
             flex_direction: FlexDirection::Row,
             flex_wrap: FlexWrap::Wrap,
+            justify_content: JustifyContent::FlexEnd,
             column_gap: px(10),
             row_gap: px(8),
             ..default()
@@ -1290,10 +1288,36 @@ fn render_connection(
         None,
     );
 
-    add_section_title(commands, content, "局域网联机", assets);
-    add_input(
+    let profile_row = spawn_node(
         commands,
         content,
+        Node {
+            width: percent(100),
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            column_gap: px(28),
+            ..default()
+        },
+        None,
+    );
+    let name_field = spawn_node(
+        commands,
+        profile_row,
+        Node {
+            width: px(260),
+            max_width: px(260),
+            min_width: px(220),
+            flex_grow: 0.0,
+            flex_shrink: 1.0,
+            flex_direction: FlexDirection::Column,
+            row_gap: px(6),
+            ..default()
+        },
+        None,
+    );
+    add_input(
+        commands,
+        name_field,
         "玩家名称",
         &form.player_name,
         InputField::PlayerName,
@@ -1302,13 +1326,15 @@ fn render_connection(
     );
     let avatar_row = spawn_node(
         commands,
-        content,
+        profile_row,
         Node {
-            width: percent(100),
+            width: px(365),
+            min_width: px(300),
+            flex_shrink: 0.0,
             min_height: px(58),
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Center,
-            column_gap: px(12),
+            column_gap: px(6),
             ..default()
         },
         None,
@@ -1343,24 +1369,20 @@ fn render_connection(
         commands,
         avatar_row,
         Node {
+            min_width: px(0),
+            flex_grow: 0.0,
+            flex_shrink: 1.0,
             flex_direction: FlexDirection::Column,
             row_gap: px(2),
             ..default()
         },
         None,
     );
+    add_text(commands, avatar_help, "个人头像", 14.0, TEXT, assets);
     add_text(
         commands,
         avatar_help,
-        "点击头像选择 PNG、JPG 或 JPEG 图片",
-        14.0,
-        TEXT,
-        assets,
-    );
-    add_text(
-        commands,
-        avatar_help,
-        "也可拖入图片；本地裁剪为 64×64，仅入房时上传一次。",
+        "点击头像更换图片",
         12.0,
         MUTED,
         assets,
@@ -1409,7 +1431,7 @@ fn render_connection(
     add_text(
         commands,
         host,
-        "本机将监听所有局域网网卡；房间容纳 2–6 人。",
+        "本机将监听所有局域网网卡",
         13.0,
         MUTED,
         assets,

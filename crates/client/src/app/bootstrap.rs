@@ -383,6 +383,7 @@ pub(super) fn save_preferences(form: &ConnectionForm) -> Result<(), String> {
             table_felt_path: form.table_felt_path.clone(),
             table_brightness: form.table_brightness,
             table_vignette: form.table_vignette,
+            audio_volume: form.audio_volume,
         },
         games: GamePreferences {
             qigui523: QiGui523Preferences {

@@ -211,6 +211,7 @@ async fn run_server(
     let mut turn_timer = tokio::time::interval(TURN_TIMER_INTERVAL);
     turn_timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut last_timer_tick = tokio::time::Instant::now();
+    let mut flush_writers = false;
 
     loop {
         tokio::select! {
@@ -293,6 +294,7 @@ async fn run_server(
                     deliveries,
                 );
                 if session.is_closed() {
+                    flush_writers = true;
                     break;
                 }
             }
@@ -321,6 +323,7 @@ async fn run_server(
                     deliveries,
                 );
                 if session.is_closed() {
+                    flush_writers = true;
                     break;
                 }
             }
@@ -353,9 +356,17 @@ async fn run_server(
             }
         }
     }
-    for (reader, writer) in tasks.into_values() {
-        reader.abort();
-        writer.abort();
+    if flush_writers {
+        writers.clear();
+        for (reader, writer) in tasks.into_values() {
+            reader.abort();
+            let _ = writer.await;
+        }
+    } else {
+        for (reader, writer) in tasks.into_values() {
+            reader.abort();
+            writer.abort();
+        }
     }
     Ok(())
 }

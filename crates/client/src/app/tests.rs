@@ -968,6 +968,7 @@ fn preferences_round_trip_including_avatar() {
             table_felt_path: Some(PathBuf::from("/tmp/table-felt.png")),
             table_brightness: 0.75,
             table_vignette: 0.42,
+            audio_volume: 0.63,
         },
         games: GamePreferences {
             qigui523: QiGui523Preferences {
@@ -1024,6 +1025,7 @@ fn preferences_round_trip_including_avatar() {
         saved.global.table_brightness
     );
     assert_eq!(decoded.global.table_vignette, saved.global.table_vignette);
+    assert_eq!(decoded.global.audio_volume, saved.global.audio_volume);
     assert_eq!(
         decoded.games.qigui523.host_rules,
         saved.games.qigui523.host_rules
@@ -1046,6 +1048,7 @@ fn pre_omaha_preferences_keep_texas_rules_and_disable_omaha() {
             table_felt_path: None,
             table_brightness: 0.8,
             table_vignette: 0.3,
+            audio_volume: 0.8,
         },
         games: PreOmahaGamePreferences {
             qigui523: QiGui523Preferences {
@@ -1084,6 +1087,7 @@ fn pre_uno_preferences_gain_default_uno_rules() {
             table_felt_path: None,
             table_brightness: 0.8,
             table_vignette: 0.3,
+            audio_volume: 0.8,
         },
         games: PreUnoGamePreferences {
             qigui523: QiGui523Preferences {
@@ -1117,6 +1121,7 @@ fn pre_jump_in_preferences_preserve_uno_rules_and_disable_jump_in() {
             table_felt_path: None,
             table_brightness: 0.8,
             table_vignette: 0.3,
+            audio_volume: 0.8,
         },
         games: PreJumpInGamePreferences {
             qigui523: QiGui523Preferences {
@@ -1161,6 +1166,7 @@ fn previous_uno_preferences_drop_configured_count_and_disable_skip_rules() {
             table_felt_path: None,
             table_brightness: 0.8,
             table_vignette: 0.3,
+            audio_volume: 0.8,
         },
         games: PreviousUnoGamePreferences {
             qigui523: QiGui523Preferences {
@@ -1202,6 +1208,7 @@ fn previous_preferences_gain_disabled_kicker_rule_without_losing_games() {
             table_felt_path: None,
             table_brightness: 0.8,
             table_vignette: 0.3,
+            audio_volume: 0.8,
         },
         games: PreviousGamePreferences {
             qigui523: QiGui523Preferences {
@@ -1246,6 +1253,7 @@ fn legacy_preferences_gain_default_shengji_rules_without_losing_existing_values(
             table_felt_path: None,
             table_brightness: 0.8,
             table_vignette: 0.3,
+            audio_volume: 0.8,
         },
         games: LegacyGamePreferences {
             qigui523: QiGui523Preferences {
@@ -2731,7 +2739,7 @@ fn played_uno_card_settles_at_the_discard_cards_exact_scale() {
 }
 
 #[test]
-fn jump_in_selection_groups_an_identical_pair_until_uno_is_declared() {
+fn jump_in_selection_allows_single_card_or_identical_pair() {
     let first = UnoCard::number(UnoColor::Red, 7, 0);
     let second = UnoCard::number(UnoColor::Red, 7, 1);
     let mut game = UnoSnapshot {
@@ -2777,9 +2785,19 @@ fn jump_in_selection_groups_an_identical_pair_until_uno_is_declared() {
         phase: UnoPhaseView::Playing,
     };
 
-    assert_eq!(uno_cards_for_selection(&game, first), vec![first, second]);
+    let other = UnoCard::number(UnoColor::Blue, 3, 0);
+    let mut selected = HashSet::new();
+    toggle_uno_selection(Some(&game), &mut selected, first);
+    assert_eq!(selected, HashSet::from([first]));
+    toggle_uno_selection(Some(&game), &mut selected, second);
+    assert_eq!(selected, HashSet::from([first, second]));
+    toggle_uno_selection(Some(&game), &mut selected, first);
+    assert_eq!(selected, HashSet::from([second]));
+    toggle_uno_selection(Some(&game), &mut selected, other);
+    assert_eq!(selected, HashSet::from([other]));
+
     game.uno_declared.push(game.you);
-    assert_eq!(uno_cards_for_selection(&game, first), vec![first]);
+    assert_eq!(uno_pair_for_selection(&game, first), None);
 }
 
 #[test]
@@ -2790,7 +2808,7 @@ fn noninteractive_jump_in_card_uses_the_normal_selected_lift() {
     time.advance_by(std::time::Duration::from_millis(100));
     app.insert_resource(time);
     app.insert_resource(UiState {
-        selected_uno: Some(card),
+        selected_uno: HashSet::from([card]),
         ..UiState::default()
     });
     app.add_systems(Update, animate_uno_hand_cards);

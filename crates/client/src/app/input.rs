@@ -388,6 +388,7 @@ pub(super) fn table_appearance_fraction(
         TableAppearanceSetting::Vignette => ((form.table_vignette - MIN_TABLE_VIGNETTE)
             / (MAX_TABLE_VIGNETTE - MIN_TABLE_VIGNETTE))
             .clamp(0.0, 1.0),
+        TableAppearanceSetting::Volume => form.audio_volume,
     }
 }
 
@@ -402,6 +403,7 @@ pub(super) fn table_appearance_label(
         TableAppearanceSetting::Vignette => {
             format!("四周视角阴影  {:.0}%", form.table_vignette * 100.0)
         }
+        TableAppearanceSetting::Volume => format!("音量  {:.0}%", form.audio_volume * 100.0),
     }
 }
 
@@ -419,6 +421,9 @@ fn set_table_appearance_from_fraction(
             form.table_vignette =
                 MIN_TABLE_VIGNETTE + fraction * (MAX_TABLE_VIGNETTE - MIN_TABLE_VIGNETTE);
         }
+        TableAppearanceSetting::Volume => {
+            form.audio_volume = fraction;
+        }
     }
 }
 
@@ -433,6 +438,7 @@ pub(super) fn handle_table_appearance_sliders(
     mut labels: Query<(&TableAppearanceLabel, &mut Text)>,
     backgrounds: Query<&MaterialNode<TableBackgroundMaterial>, With<TableBackground>>,
     mut materials: ResMut<Assets<TableBackgroundMaterial>>,
+    mut global_volume: ResMut<GlobalVolume>,
     mut form: ResMut<ConnectionForm>,
     mut dragging: Local<Option<TableAppearanceSetting>>,
 ) {
@@ -473,6 +479,7 @@ pub(super) fn handle_table_appearance_sliders(
                     material.params.y = form.table_brightness;
                 }
             }
+            global_volume.volume = Volume::Linear(form.audio_volume);
         }
     }
 

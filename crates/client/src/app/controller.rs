@@ -137,6 +137,7 @@ pub(super) fn handle_buttons(
                         local.avatar_images.remote.clear();
                         commands.insert_resource(ClientResource(network));
                         ui.host_game_picker_open = false;
+                        ui.leaving_room = false;
                         form.error = None;
                     }
                     Err(error) => form.error = Some(error),
@@ -169,6 +170,7 @@ pub(super) fn handle_buttons(
                         local.avatar_images.remote.clear();
                         commands.insert_resource(ClientResource(network));
                         ui.host_game_picker_open = false;
+                        ui.leaving_room = false;
                         form.error = None;
                     }
                     Err(error) => form.error = Some(error),
@@ -307,43 +309,37 @@ pub(super) fn handle_buttons(
                 }
             }
             UiAction::ToggleUnoCard(card) => {
-                let already_selected = ui.selected_uno.is_some_and(|selected| {
-                    client
-                        .as_deref()
-                        .and_then(|client| client.0.model().uno_game())
-                        .map_or(selected == *card, |game| {
-                            uno_cards_for_selection(game, selected).contains(card)
-                        })
-                });
-                ui.selected_uno = (!already_selected).then_some(*card);
+                let game = client
+                    .as_deref()
+                    .and_then(|client| client.0.model().uno_game());
+                toggle_uno_selection(game, &mut ui.selected_uno, *card);
             }
             UiAction::SubmitUnoCard => {
-                if let Some(card) = ui.selected_uno {
+                if ui.selected_uno.len() == 1 {
+                    let card = *ui.selected_uno.iter().next().unwrap();
                     if card.face().is_wild() {
                         ui.uno_color_choice = Some(card);
                     } else if let Some(client) = client.as_deref_mut() {
-                        let cards = client
-                            .0
-                            .model()
-                            .uno_game()
-                            .map(|game| uno_cards_for_selection(game, card))
-                            .unwrap_or_else(|| vec![card]);
-                        let command = if cards.len() == 1 {
-                            UnoCommand::PlayCard {
-                                card,
-                                chosen_color: None,
-                            }
-                        } else {
-                            UnoCommand::PlayCards {
-                                cards,
-                                chosen_color: None,
-                            }
+                        let command = UnoCommand::PlayCard {
+                            card,
+                            chosen_color: None,
                         };
                         client
                             .0
                             .send(ClientCommand::Game(GameCommand::Uno(command)));
-                        ui.selected_uno = None;
+                        ui.selected_uno.clear();
                     }
+                } else if ui.selected_uno.len() == 2
+                    && let Some(client) = client.as_deref_mut()
+                {
+                    let cards = ui.selected_uno.iter().copied().collect();
+                    client.0.send(ClientCommand::Game(GameCommand::Uno(
+                        UnoCommand::PlayCards {
+                            cards,
+                            chosen_color: None,
+                        },
+                    )));
+                    ui.selected_uno.clear();
                 }
             }
             UiAction::CloseUnoColorChoice => {
@@ -366,7 +362,7 @@ pub(super) fn handle_buttons(
                     )));
                 }
                 ui.uno_color_choice = None;
-                ui.selected_uno = None;
+                ui.selected_uno.clear();
             }
             UiAction::UnoJumpIn(card) => {
                 if let Some(client) = client.as_deref_mut() {
@@ -376,7 +372,7 @@ pub(super) fn handle_buttons(
                             card: *card,
                         })));
                 }
-                ui.selected_uno = None;
+                ui.selected_uno.clear();
             }
             UiAction::UnoDrawCard => {
                 if let Some(client) = client.as_deref_mut() {
@@ -547,7 +543,7 @@ pub(super) fn handle_buttons(
             }
             UiAction::LeaveRoom => {
                 if let Some(client) = client.as_deref_mut() {
-                    client.0.send(ClientCommand::LeaveRoom);
+                    ui.leaving_room = client.0.send(ClientCommand::LeaveRoom);
                 }
             }
             #[cfg(feature = "developer")]
@@ -1323,15 +1319,20 @@ pub(super) fn poll_network(
         }
     }
     if client.0.model().room_closed() {
-        if !was_host {
+        if was_host || ui.leaving_room {
+            form.error = None;
+        } else {
             form.error = Some("房主结束了游戏".to_owned());
         }
+        ui.leaving_room = false;
         commands.remove_resource::<ClientResource>();
     } else if client.0.model().left_room() {
         form.error = None;
+        ui.leaving_room = false;
         commands.remove_resource::<ClientResource>();
     } else if let NetworkState::Failed(error) = client.0.state() {
-        form.error = Some(error.clone());
+        form.error = (!ui.leaving_room).then(|| error.clone());
+        ui.leaving_room = false;
         commands.remove_resource::<ClientResource>();
     }
     if previous_state == *client.0.state() {

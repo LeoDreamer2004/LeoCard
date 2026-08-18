@@ -193,7 +193,7 @@ pub(in crate::app) fn render_uno_table(
     }
 
     let auto_play = own.auto_play;
-    add_chat_panel(commands, table, chat, assets, Some(auto_play), None, None);
+    add_chat_panel(commands, content, chat, assets, Some(auto_play), None, None);
     if auto_play && matches!(game.phase, UnoPhaseView::Playing) {
         add_auto_play_overlay(commands, table, assets);
     }
@@ -742,10 +742,7 @@ fn add_uno_own_area(
         let playing = matches!(game.phase, UnoPhaseView::Playing);
         let playable = uno_card_is_playable(game, card);
         let jump_selected = game.your_jump_in_card == Some(card);
-        let selected = playing
-            && ui
-                .selected_uno
-                .is_some_and(|selected| uno_cards_for_selection(game, selected).contains(&card));
+        let selected = playing && ui.selected_uno.contains(&card);
         let animation = if playing {
             ui.uno_card_animations
                 .get(&card)
@@ -869,14 +866,26 @@ fn add_uno_actions(
         .iter()
         .find(|player| player.id == game.you)
         .map_or(0, |player| player.skipped_turns);
-    let selected = ui
+    let selected = match ui
         .selected_uno
-        .filter(|card| uno_card_is_playable(game, *card));
+        .iter()
+        .copied()
+        .collect::<Vec<_>>()
+        .as_slice()
+    {
+        [card] if uno_card_is_playable(game, *card) => Some((*card, 1)),
+        [first, second]
+            if uno_card_is_playable(game, *first)
+                && uno_pair_for_selection(game, *first) == Some(*second) =>
+        {
+            Some((*first, 2))
+        }
+        _ => None,
+    };
     if game.uno_declared.contains(&game.you) && selected.is_none() {
         return;
     }
-    if let Some(card) = selected {
-        let card_count = uno_cards_for_selection(game, card).len();
+    if let Some((card, card_count)) = selected {
         add_action_button(
             commands,
             actions,
@@ -1487,22 +1496,35 @@ fn uno_card_is_playable(game: &UnoSnapshot, card: UnoCard) -> bool {
         || card.face() == game.discard_top.face()
 }
 
-/// 抢出开启时，选择一张彩色牌会把手里另一张完全相同的物理牌并入本次出牌。
-/// 喊过 UNO 后必须只出到一张，因此不会再自动组成双牌。
-pub(in crate::app) fn uno_cards_for_selection(
+pub(in crate::app) fn uno_pair_for_selection(
     game: &UnoSnapshot,
     selected: UnoCard,
-) -> Vec<UnoCard> {
-    let mut cards = vec![selected];
+) -> Option<UnoCard> {
     if !game.rules.jump_in || game.uno_declared.contains(&game.you) || selected.color().is_none() {
-        return cards;
+        return None;
     }
-    if let Some(twin) = game.your_hand.iter().copied().find(|card| {
+    game.your_hand.iter().copied().find(|card| {
         *card != selected && card.color() == selected.color() && card.face() == selected.face()
-    }) {
-        cards.push(twin);
+    })
+}
+
+pub(in crate::app) fn toggle_uno_selection(
+    game: Option<&UnoSnapshot>,
+    selected: &mut HashSet<UnoCard>,
+    card: UnoCard,
+) {
+    if selected.remove(&card) {
+        return;
     }
-    cards
+    if selected.len() == 1 {
+        let first = *selected.iter().next().unwrap();
+        if game.is_some_and(|game| uno_pair_for_selection(game, first) == Some(card)) {
+            selected.insert(card);
+            return;
+        }
+    }
+    selected.clear();
+    selected.insert(card);
 }
 
 fn uno_ui_color(color: UnoColor) -> Color {
@@ -1525,7 +1547,6 @@ pub(in crate::app) fn uno_should_show_reverse_effect(
 /// UNO 手牌沿用其他游戏的柔和抬升、渐变描边与阴影，不用突兀的离散跳变。
 pub(in crate::app) fn animate_uno_hand_cards(
     time: Res<Time>,
-    client: Option<Res<ClientResource>>,
     mut ui: ResMut<UiState>,
     buttons: Query<&Interaction, With<Button>>,
     mut cards: Query<(
@@ -1539,14 +1560,7 @@ pub(in crate::app) fn animate_uno_hand_cards(
     let response = 1.0 - (-14.0 * time.delta_secs()).exp();
     let pulse = 0.76 + 0.24 * (time.elapsed_secs() * 6.5).sin();
     for (mut visual, mut transform, mut outline, mut shadow, mut border) in &mut cards {
-        let selected = ui.selected_uno.is_some_and(|selected| {
-            client
-                .as_deref()
-                .and_then(|client| client.0.model().uno_game())
-                .map_or(selected == visual.card, |game| {
-                    uno_cards_for_selection(game, selected).contains(&visual.card)
-                })
-        });
+        let selected = ui.selected_uno.contains(&visual.card);
         let hovered = buttons.get(visual.button).is_ok_and(|interaction| {
             matches!(*interaction, Interaction::Hovered | Interaction::Pressed)
         });

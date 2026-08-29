@@ -120,7 +120,7 @@ pub(in crate::app) fn render_texas_holdem_table(
             0.0,
         )));
     if let NetworkState::Reconnecting(message) = client.0.state() {
-        add_reconnecting_overlay(commands, table, message, assets);
+        add_reconnecting_overlay(commands, content, message, assets);
     }
 
     let own = game

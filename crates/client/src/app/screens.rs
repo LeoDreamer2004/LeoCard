@@ -22,6 +22,13 @@ pub(super) fn render_ui(
     for entity in &old_roots {
         commands.entity(entity).despawn();
     }
+    let in_uno_lobby = client
+        .as_deref()
+        .and_then(|client| client.0.model().lobby())
+        .is_some_and(|lobby| lobby.game == GameKind::Uno);
+    if !in_uno_lobby {
+        ui.uno_expansion_settings_open = false;
+    }
 
     if let Some(game) = client
         .as_deref()
@@ -86,6 +93,22 @@ pub(super) fn render_ui(
         }
         ui.uno_card_animations
             .retain(|card, _| game.your_hand.contains(card));
+        let selecting_swap_targets = matches!(
+            game.pending_swap,
+            Some(UnoPendingSwapView::SwapOneTarget { player })
+                | Some(UnoPendingSwapView::ForceTrade { player })
+                | Some(UnoPendingSwapView::SevenSwap { player }) if player == game.you
+        );
+        if !selecting_swap_targets {
+            ui.uno_swap_targets.clear();
+        } else {
+            ui.interaction_menu_open = None;
+            ui.uno_swap_targets.retain(|target| {
+                game.players
+                    .iter()
+                    .any(|player| player.id == *target && !player.eliminated)
+            });
+        }
         if ui
             .uno_color_choice
             .is_some_and(|card| !game.your_hand.contains(&card))
@@ -113,6 +136,7 @@ pub(super) fn render_ui(
         ui.shengji_observed_match = None;
         ui.shengji_observed_hand_number = 0;
         ui.shengji_buried_open = false;
+        ui.uno_swap_targets.clear();
         ui.uno_color_choice = None;
         ui.selected_uno.clear();
         ui.uno_card_animations.clear();
@@ -145,6 +169,7 @@ pub(super) fn render_ui(
                 root,
                 client,
                 lobby,
+                &ui,
                 &visuals.ui,
                 &visuals.avatars,
             );
@@ -1550,11 +1575,12 @@ fn render_lobby(
     root: Entity,
     client: &ClientResource,
     lobby: &leocard_protocol::LobbySnapshot,
+    ui: &UiState,
     assets: &UiAssets,
     avatars: &AvatarImages,
 ) {
     if lobby.game == GameKind::Uno {
-        render_uno_lobby(commands, root, client, lobby, assets, avatars);
+        render_uno_lobby(commands, root, client, lobby, ui, assets, avatars);
         return;
     }
     if lobby.game == GameKind::TexasHoldem {
@@ -1880,6 +1906,7 @@ fn render_uno_lobby(
     root: Entity,
     client: &ClientResource,
     lobby: &leocard_protocol::LobbySnapshot,
+    ui: &UiState,
     assets: &UiAssets,
     avatars: &AvatarImages,
 ) {
@@ -1919,7 +1946,63 @@ fn render_uno_lobby(
         assets,
     );
     let can_configure = client.0.model().you() == lobby.host;
-    add_section_title(commands, rules_panel, "UNO 配置", assets);
+    let title_row = spawn_node(
+        commands,
+        rules_panel,
+        Node {
+            width: percent(100),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::SpaceBetween,
+            column_gap: px(12),
+            ..default()
+        },
+        None,
+    );
+    add_section_title(
+        commands,
+        title_row,
+        if rules_value.is_no_mercy() {
+            "No Mercy 配置"
+        } else if rules_value.is_flip() {
+            "UNO FLIP 配置"
+        } else {
+            "UNO 配置"
+        },
+        assets,
+    );
+    let switched = UnoRuleSet {
+        mode: match rules_value.mode {
+            leocard_uno::Mode::Classic => leocard_uno::Mode::NoMercy,
+            leocard_uno::Mode::NoMercy => leocard_uno::Mode::Flip,
+            leocard_uno::Mode::Flip => leocard_uno::Mode::Classic,
+        },
+        ..rules_value
+    };
+    if can_configure {
+        add_action_button(
+            commands,
+            title_row,
+            match rules_value.mode {
+                leocard_uno::Mode::Classic => "切换至 No Mercy",
+                leocard_uno::Mode::NoMercy => "切换至 UNO FLIP",
+                leocard_uno::Mode::Flip => "切换至 UNO",
+            },
+            UiAction::UpdateUnoRules(switched),
+            ButtonKind::Warning,
+            assets,
+        );
+    } else {
+        add_disabled_action_button(
+            commands,
+            title_row,
+            match rules_value.mode {
+                leocard_uno::Mode::Classic => "UNO 模式",
+                leocard_uno::Mode::NoMercy => "No Mercy 模式",
+                leocard_uno::Mode::Flip => "UNO FLIP 模式",
+            },
+            assets,
+        );
+    }
     add_text(
         commands,
         rules_panel,
@@ -1928,120 +2011,282 @@ fn render_uno_lobby(
         MUTED,
         assets,
     );
-    let stack_toggled = UnoRuleSet {
-        stack_draw_four_on_draw_two: !rules_value.stack_draw_four_on_draw_two,
-        ..rules_value
-    };
-    add_uno_rule_config_row(
+    if rules_value.is_classic() {
+        let stack_toggled = UnoRuleSet {
+            action_stacking: !rules_value.action_stacking,
+            ..rules_value
+        };
+        add_uno_rule_config_row(
+            commands,
+            rules_panel,
+            UnoRuleConfigRow {
+                label: "功能牌堆叠",
+                value: if rules_value.action_stacking {
+                    "开启"
+                } else {
+                    "关闭"
+                }
+                .to_owned(),
+                help: "允许禁手、+2、万能 +4 及兼容的扩展功能牌继续累计；+4 可压在 +2 上，+2 不能反压 +4。",
+                editable: can_configure,
+                previous: can_configure.then_some(stack_toggled),
+                next: can_configure.then_some(stack_toggled),
+            },
+            assets,
+        );
+    } else if rules_value.is_no_mercy() {
+        for (label, enabled, help, toggled) in [
+            (
+                "摸到能出",
+                rules_value.no_mercy.draw_until_playable,
+                "无牌可出时持续摸牌，直到摸到一张可出的牌，并必须处理该牌。",
+                UnoRuleSet {
+                    no_mercy: leocard_uno::NoMercyRuleSet {
+                        draw_until_playable: !rules_value.no_mercy.draw_until_playable,
+                        ..rules_value.no_mercy
+                    },
+                    ..rules_value
+                },
+            ),
+            (
+                "慈悲淘汰",
+                rules_value.no_mercy.mercy_elimination,
+                "手牌达到 25 张时立即淘汰；只剩一名未淘汰玩家时结束。",
+                UnoRuleSet {
+                    no_mercy: leocard_uno::NoMercyRuleSet {
+                        mercy_elimination: !rules_value.no_mercy.mercy_elimination,
+                        ..rules_value.no_mercy
+                    },
+                    ..rules_value
+                },
+            ),
+            (
+                "0 传递手牌",
+                rules_value.no_mercy.zero_pass,
+                "打出 0 时，所有未淘汰玩家按当前方向传递整手牌。",
+                UnoRuleSet {
+                    no_mercy: leocard_uno::NoMercyRuleSet {
+                        zero_pass: !rules_value.no_mercy.zero_pass,
+                        ..rules_value.no_mercy
+                    },
+                    ..rules_value
+                },
+            ),
+            (
+                "7 交换手牌",
+                rules_value.no_mercy.seven_swap,
+                "打出 7 后选择一名未淘汰玩家并与其交换整手牌。",
+                UnoRuleSet {
+                    no_mercy: leocard_uno::NoMercyRuleSet {
+                        seven_swap: !rules_value.no_mercy.seven_swap,
+                        ..rules_value.no_mercy
+                    },
+                    ..rules_value
+                },
+            ),
+            (
+                "UNO 宣告与检举",
+                rules_value.no_mercy.uno_callout,
+                "手里恰好两张且轮到自己时可先喊 UNO，随后本回合必须出到一张；未喊直接出到一张者在下次成功出牌前可被检举并罚摸 2 张。",
+                UnoRuleSet {
+                    no_mercy: leocard_uno::NoMercyRuleSet {
+                        uno_callout: !rules_value.no_mercy.uno_callout,
+                        ..rules_value.no_mercy
+                    },
+                    ..rules_value
+                },
+            ),
+        ] {
+            add_uno_rule_config_row(
+                commands,
+                rules_panel,
+                UnoRuleConfigRow {
+                    label,
+                    value: if enabled { "开启" } else { "关闭" }.to_owned(),
+                    help,
+                    editable: can_configure,
+                    previous: can_configure.then_some(toggled),
+                    next: can_configure.then_some(toggled),
+                },
+                assets,
+            );
+        }
+    }
+    if rules_value.is_classic() {
+        let skip_draw_toggled = UnoRuleSet {
+            skip_draw_penalty: !rules_value.skip_draw_penalty,
+            ..rules_value
+        };
+        add_uno_rule_config_row(
+            commands,
+            rules_panel,
+            UnoRuleConfigRow {
+                label: "禁手摸牌",
+                value: if rules_value.skip_draw_penalty {
+                    "开启"
+                } else {
+                    "关闭"
+                }
+                .to_owned(),
+                help: "玩家每实际跳过一轮时，额外摸一张牌。",
+                editable: can_configure,
+                previous: can_configure.then_some(skip_draw_toggled),
+                next: can_configure.then_some(skip_draw_toggled),
+            },
+            assets,
+        );
+        let jump_in_toggled = UnoRuleSet {
+            jump_in: !rules_value.jump_in,
+            ..rules_value
+        };
+        add_uno_rule_config_row(
+            commands,
+            rules_panel,
+            UnoRuleConfigRow {
+                label: "抢出",
+                value: if rules_value.jump_in {
+                    "开启"
+                } else {
+                    "关闭"
+                }
+                .to_owned(),
+                help: "彩色牌落桌后，非下家若持有颜色和牌面完全相同的另一张牌，可在下家执行动作前抢出。关闭功能牌堆叠时只可抢数字牌。相同双牌可一次打出。",
+                editable: can_configure,
+                previous: can_configure.then_some(jump_in_toggled),
+                next: can_configure.then_some(jump_in_toggled),
+            },
+            assets,
+        );
+        let callout_toggled = UnoRuleSet {
+            uno_callout: !rules_value.uno_callout,
+            ..rules_value
+        };
+        add_uno_rule_config_row(
+            commands,
+            rules_panel,
+            UnoRuleConfigRow {
+                label: "UNO 宣告与检举",
+                value: if rules_value.uno_callout {
+                    "开启"
+                } else {
+                    "关闭"
+                }
+                .to_owned(),
+                help: "手里恰好两张且轮到自己时可先喊 UNO，随后本回合必须出到一张；未喊直接出到一张者在下次成功出牌前可被检举并罚摸 2 张。",
+                editable: can_configure,
+                previous: can_configure.then_some(callout_toggled),
+                next: can_configure.then_some(callout_toggled),
+            },
+            assets,
+        );
+    } else if rules_value.is_flip() {
+        for (label, enabled, help, toggled) in [
+            (
+                "随机正反配对",
+                rules_value.flip.random_pairing,
+                "关闭时使用固定的正反面组合；开启后每局重新随机配对全部 112 张牌的两面。",
+                UnoRuleSet {
+                    flip: leocard_uno::FlipRuleSet {
+                        random_pairing: !rules_value.flip.random_pairing,
+                        ..rules_value.flip
+                    },
+                    ..rules_value
+                },
+            ),
+            (
+                "功能牌堆叠",
+                rules_value.flip.action_stacking,
+                "允许亮暗两面的禁手与罚牌继续累计；各罚牌链仍按对应牌型规则结算。",
+                UnoRuleSet {
+                    flip: leocard_uno::FlipRuleSet {
+                        action_stacking: !rules_value.flip.action_stacking,
+                        ..rules_value.flip
+                    },
+                    ..rules_value
+                },
+            ),
+            (
+                "禁手摸牌",
+                rules_value.flip.skip_draw_penalty,
+                "玩家每实际跳过一轮时，额外摸一张牌。",
+                UnoRuleSet {
+                    flip: leocard_uno::FlipRuleSet {
+                        skip_draw_penalty: !rules_value.flip.skip_draw_penalty,
+                        ..rules_value.flip
+                    },
+                    ..rules_value
+                },
+            ),
+            (
+                "UNO 宣告与检举",
+                rules_value.flip.uno_callout,
+                "手里恰好两张且轮到自己时可先喊 UNO；未喊直接出到一张者在下次成功出牌前可被检举并罚摸 2 张。",
+                UnoRuleSet {
+                    flip: leocard_uno::FlipRuleSet {
+                        uno_callout: !rules_value.flip.uno_callout,
+                        ..rules_value.flip
+                    },
+                    ..rules_value
+                },
+            ),
+        ] {
+            add_uno_rule_config_row(
+                commands,
+                rules_panel,
+                UnoRuleConfigRow {
+                    label,
+                    value: if enabled { "开启" } else { "关闭" }.to_owned(),
+                    help,
+                    editable: can_configure,
+                    previous: can_configure.then_some(toggled),
+                    next: can_configure.then_some(toggled),
+                },
+                assets,
+            );
+        }
+        let toggled = UnoRuleSet {
+            flip: leocard_uno::FlipRuleSet {
+                jump_in: !rules_value.flip.jump_in,
+                ..rules_value.flip
+            },
+            ..rules_value
+        };
+        add_uno_rule_config_row(
+            commands,
+            rules_panel,
+            UnoRuleConfigRow {
+                label: "抢出",
+                value: if rules_value.flip.jump_in {
+                    "开启"
+                } else {
+                    "关闭"
+                }
+                .to_owned(),
+                help: "只比较当前牌面；关闭功能牌堆叠时只可抢数字牌，相同双牌可一次打出。",
+                editable: can_configure,
+                previous: can_configure.then_some(toggled),
+                next: can_configure.then_some(toggled),
+            },
+            assets,
+        );
+    }
+    let expansion_button = add_action_button(
         commands,
         rules_panel,
-        UnoRuleConfigRow {
-            label: "+4 叠在 +2",
-            value: if rules_value.stack_draw_four_on_draw_two {
-                "允许"
-            } else {
-                "不允许"
-            }
-            .to_owned(),
-            help: "+2 始终可叠 +2，+4 始终可叠 +4；此项只控制 +4 能否叠在 +2 上。+2 不能叠在 +4 上。",
-            editable: can_configure,
-            previous: can_configure.then_some(stack_toggled),
-            next: can_configure.then_some(stack_toggled),
-        },
+        "扩展包设置",
+        UiAction::ToggleUnoExpansionSettings,
+        ButtonKind::Secondary,
         assets,
     );
-    let skip_draw_toggled = UnoRuleSet {
-        skip_draw_penalty: !rules_value.skip_draw_penalty,
-        ..rules_value
-    };
-    add_uno_rule_config_row(
-        commands,
-        rules_panel,
-        UnoRuleConfigRow {
-            label: "禁手摸牌",
-            value: if rules_value.skip_draw_penalty {
-                "开启"
-            } else {
-                "关闭"
-            }
-            .to_owned(),
-            help: "玩家每实际跳过一轮时，额外摸一张牌。",
-            editable: can_configure,
-            previous: can_configure.then_some(skip_draw_toggled),
-            next: can_configure.then_some(skip_draw_toggled),
-        },
-        assets,
-    );
-    let stack_skip_toggled = UnoRuleSet {
-        stack_skip: !rules_value.stack_skip,
-        jump_in: rules_value.jump_in && !rules_value.stack_skip,
-        ..rules_value
-    };
-    add_uno_rule_config_row(
-        commands,
-        rules_panel,
-        UnoRuleConfigRow {
-            label: "允许禁手堆叠",
-            value: if rules_value.stack_skip {
-                "允许"
-            } else {
-                "不允许"
-            }
-            .to_owned(),
-            help: "被禁玩家可打出禁手，将累计禁手传给下一位；接受后需连续跳过累计轮数。",
-            editable: can_configure,
-            previous: can_configure.then_some(stack_skip_toggled),
-            next: can_configure.then_some(stack_skip_toggled),
-        },
-        assets,
-    );
-    let jump_in_toggled = UnoRuleSet {
-        jump_in: !rules_value.jump_in,
-        ..rules_value
-    };
-    let can_toggle_jump_in = can_configure && rules_value.stack_skip;
-    add_uno_rule_config_row(
-        commands,
-        rules_panel,
-        UnoRuleConfigRow {
-            label: "抢出",
-            value: if rules_value.jump_in {
-                "开启"
-            } else if rules_value.stack_skip {
-                "关闭"
-            } else {
-                "需先允许禁手堆叠"
-            }
-            .to_owned(),
-            help: "彩色牌落桌后，非下家若持有颜色和牌面完全相同的另一张牌，可在下家执行动作前抢出。相同双牌可一次打出。",
-            editable: can_toggle_jump_in,
-            previous: can_toggle_jump_in.then_some(jump_in_toggled),
-            next: can_toggle_jump_in.then_some(jump_in_toggled),
-        },
-        assets,
-    );
-    let callout_toggled = UnoRuleSet {
-        uno_callout: !rules_value.uno_callout,
-        ..rules_value
-    };
-    add_uno_rule_config_row(
-        commands,
-        rules_panel,
-        UnoRuleConfigRow {
-            label: "UNO 宣告与检举",
-            value: if rules_value.uno_callout {
-                "开启"
-            } else {
-                "关闭"
-            }
-            .to_owned(),
-            help: "手里恰好两张且轮到自己时可先喊 UNO，随后本回合必须出到一张；未喊直接出到一张者在下次成功出牌前可被检举并罚摸 2 张。",
-            editable: can_configure,
-            previous: can_configure.then_some(callout_toggled),
-            next: can_configure.then_some(callout_toggled),
-        },
-        assets,
-    );
+    commands.entity(expansion_button).insert(Node {
+        width: percent(100),
+        min_width: px(0),
+        height: px(56),
+        padding: UiRect::axes(px(18), px(8)),
+        align_items: AlignItems::Center,
+        justify_content: JustifyContent::Center,
+        ..default()
+    });
 
     let players = add_panel(
         commands,
@@ -2129,6 +2374,244 @@ fn render_uno_lobby(
             assets,
         );
     }
+    if ui.uno_expansion_settings_open {
+        render_uno_expansion_settings(commands, root, rules_value, can_configure, assets);
+    }
+}
+
+pub(in crate::app) fn render_uno_expansion_settings(
+    commands: &mut Commands,
+    root: Entity,
+    rules: UnoRuleSet,
+    can_configure: bool,
+    assets: &UiAssets,
+) {
+    let overlay = spawn_node(
+        commands,
+        root,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(0),
+            right: px(0),
+            top: px(0),
+            bottom: px(0),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        Some(Color::BLACK.with_alpha(0.62)),
+    );
+    commands
+        .entity(overlay)
+        .insert((GlobalZIndex(2100), FocusPolicy::Block));
+    let modal = add_panel(
+        commands,
+        overlay,
+        Node {
+            width: px(620),
+            max_width: percent(92),
+            flex_direction: FlexDirection::Column,
+            row_gap: px(14),
+            ..default()
+        },
+        PANEL,
+        PanelSkin::Window,
+        assets,
+    );
+    add_section_title(commands, modal, "扩展包设置", assets);
+    add_text(
+        commands,
+        modal,
+        if rules.is_no_mercy() {
+            "No Mercy 使用独立的扩展包设置。"
+        } else if rules.is_flip() {
+            "UNO FLIP 使用独立的扩展包设置。"
+        } else {
+            "选择要加入本房间牌堆的可选扩展包。"
+        },
+        13.0,
+        MUTED,
+        assets,
+    );
+    if rules.is_classic() {
+        add_uno_expansion_row(
+            commands,
+            modal,
+            "Swap Pack",
+            "以交换手牌为特色，你的手牌随时可能变成别人的",
+            rules.swap_pack,
+            UnoRuleSet {
+                swap_pack: !rules.swap_pack,
+                ..rules
+            },
+            can_configure,
+            assets,
+        );
+        add_uno_expansion_row(
+            commands,
+            modal,
+            "Reverse Pack",
+            "以改变方向为特色，小心罚牌反弹——你可能会被自己罚到！",
+            rules.reverse_pack,
+            UnoRuleSet {
+                reverse_pack: !rules.reverse_pack,
+                ..rules
+            },
+            can_configure,
+            assets,
+        );
+        add_uno_expansion_row(
+            commands,
+            modal,
+            "Stack Pack",
+            "以累计罚牌为特色，加入堆叠 +1、+2、万能 +3 与随机堆叠牌",
+            rules.stack_pack,
+            UnoRuleSet {
+                stack_pack: !rules.stack_pack,
+                ..rules
+            },
+            can_configure,
+            assets,
+        );
+    } else {
+        add_text(
+            commands,
+            modal,
+            if rules.is_flip() {
+                "当前尚未加入 UNO FLIP 扩展包。"
+            } else {
+                "当前尚未加入 No Mercy 扩展包。"
+            },
+            15.0,
+            TEXT,
+            assets,
+        );
+    }
+    let actions = spawn_node(
+        commands,
+        modal,
+        Node {
+            width: percent(100),
+            justify_content: JustifyContent::FlexEnd,
+            ..default()
+        },
+        None,
+    );
+    add_action_button(
+        commands,
+        actions,
+        "关闭",
+        UiAction::ToggleUnoExpansionSettings,
+        ButtonKind::Secondary,
+        assets,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn add_uno_expansion_row(
+    commands: &mut Commands,
+    parent: Entity,
+    name: &str,
+    description: &str,
+    enabled: bool,
+    toggled_rules: UnoRuleSet,
+    editable: bool,
+    assets: &UiAssets,
+) {
+    let row = spawn_node(
+        commands,
+        parent,
+        Node {
+            width: percent(100),
+            min_height: px(86),
+            padding: UiRect::all(px(13)),
+            align_items: AlignItems::Center,
+            column_gap: px(14),
+            border: UiRect::all(px(1)),
+            border_radius: BorderRadius::all(px(8)),
+            ..default()
+        },
+        Some(PANEL_ALT.with_alpha(0.86)),
+    );
+    commands.entity(row).insert(BorderColor::all(BORDER));
+    let name_slot = spawn_node(
+        commands,
+        row,
+        Node {
+            width: px(112),
+            flex_shrink: 0.0,
+            ..default()
+        },
+        None,
+    );
+    add_text(commands, name_slot, name, 16.0, TEXT, assets);
+    add_uno_expansion_status(commands, row, enabled, toggled_rules, editable, assets);
+    let description_slot = spawn_node(
+        commands,
+        row,
+        Node {
+            min_width: px(0),
+            flex_grow: 1.0,
+            ..default()
+        },
+        None,
+    );
+    add_text(commands, description_slot, description, 13.0, MUTED, assets);
+}
+
+fn add_uno_expansion_status(
+    commands: &mut Commands,
+    parent: Entity,
+    enabled: bool,
+    toggled_rules: UnoRuleSet,
+    editable: bool,
+    assets: &UiAssets,
+) {
+    let mut status = commands.spawn((
+        UnoExpansionStatus,
+        Node {
+            width: px(38),
+            height: px(38),
+            flex_shrink: 0.0,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        BackgroundColor(Color::NONE),
+    ));
+    if editable {
+        status.insert((
+            Button,
+            UiAction::UpdateUnoRules(toggled_rules),
+            UnoExpansionStatusFrame,
+            BorderColor::all(if enabled {
+                READY.with_alpha(0.82)
+            } else {
+                DANGER.with_alpha(0.82)
+            }),
+            BackgroundColor(HEADER_BG.with_alpha(0.92)),
+            Node {
+                width: px(38),
+                height: px(38),
+                flex_shrink: 0.0,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                border: UiRect::all(px(2)),
+                border_radius: BorderRadius::all(px(6)),
+                ..default()
+            },
+        ));
+    }
+    let status = status.id();
+    commands.entity(parent).add_child(status);
+    add_text(
+        commands,
+        status,
+        if enabled { "✓" } else { "×" },
+        24.0,
+        if enabled { READY } else { DANGER },
+        assets,
+    );
 }
 
 fn render_shengji_lobby(
@@ -2867,18 +3350,38 @@ fn render_seat_selector(
                 "不过江".to_owned()
             },
         ],
-        leocard_protocol::GameRules::Uno(rules) => vec![
-            if rules.stack_draw_four_on_draw_two {
-                "+4 可叠 +2".to_owned()
+        leocard_protocol::GameRules::Uno(rules) if rules.is_no_mercy() => vec![
+            "No Mercy".to_owned(),
+            "+2 至 +10 递增堆叠".to_owned(),
+            if rules.no_mercy.mercy_elimination {
+                "25 张淘汰".to_owned()
             } else {
-                "+4 不叠 +2".to_owned()
+                "不启用慈悲淘汰".to_owned()
+            },
+        ],
+        leocard_protocol::GameRules::Uno(rules) if rules.is_flip() => vec![
+            "UNO FLIP".to_owned(),
+            if rules.flip.random_pairing {
+                "随机双面配对".to_owned()
+            } else {
+                "固定双面配对".to_owned()
+            },
+            if rules.flip.action_stacking {
+                "功能牌可堆叠".to_owned()
+            } else {
+                "功能牌不堆叠".to_owned()
+            },
+        ],
+        leocard_protocol::GameRules::Uno(rules) => vec![
+            if rules.action_stacking {
+                "功能牌可堆叠".to_owned()
+            } else {
+                "功能牌不堆叠".to_owned()
             },
             if rules.jump_in {
                 "允许抢出".to_owned()
-            } else if rules.stack_skip {
-                "禁手可叠".to_owned()
             } else {
-                "禁手不叠".to_owned()
+                "不抢出".to_owned()
             },
             if rules.uno_callout {
                 "UNO 检举".to_owned()

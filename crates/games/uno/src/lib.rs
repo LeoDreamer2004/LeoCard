@@ -8,10 +8,14 @@ mod game;
 mod rating;
 mod rules;
 
-pub use card::{Card, Color, Face, build_deck};
+pub use card::{
+    Card, CardSide, Color, Face, FlipSide, build_deck, build_deck_for_rules, build_flip_dark_sides,
+    build_flip_deck, build_flip_light_sides, build_no_mercy_deck, build_reverse_pack,
+    build_stack_pack, build_swap_pack, pair_flip_deck,
+};
 pub use game::{
     ActionOutcome, ChallengeResult, Direction, GameError, GameResult, GameState, PendingDrawKind,
-    Phase, PlayerId, PlayerState, TurnState,
+    PendingSwap, Phase, PlayedEffect, PlayerId, PlayerState, TurnState,
 };
 pub use rating::reference_point_deltas;
-pub use rules::{RuleError, RuleSet};
+pub use rules::{FlipRuleSet, Mode, NoMercyRuleSet, RuleError, RuleSet};

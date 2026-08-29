@@ -15,41 +15,38 @@ pub fn reference_point_deltas(winner: PlayerId, hand_scores: &[u16]) -> Option<V
     if !(2..=6).contains(&hand_scores.len()) || winner.0 >= hand_scores.len() {
         return None;
     }
-    let tiers = TIERS[hand_scores.len() - 2];
-    let mut deltas = vec![0; hand_scores.len()];
-    deltas[winner.0] = tiers[0];
-
-    let mut ranked = hand_scores
-        .iter()
-        .copied()
-        .enumerate()
-        .filter(|(index, _)| *index != winner.0)
-        .collect::<Vec<_>>();
-    ranked.sort_by(|left, right| left.1.cmp(&right.1).then_with(|| left.0.cmp(&right.0)));
-
-    let mut rank = 0;
-    while rank < ranked.len() {
-        let tied_score = ranked[rank].1;
-        let mut end = rank + 1;
-        while end < ranked.len() && ranked[end].1 == tied_score {
-            end += 1;
-        }
-        for &(original_index, _) in &ranked[rank..end] {
-            deltas[original_index] = tiers[rank + 1];
-        }
-        rank = end;
-    }
-    Some(deltas)
+    let placements = placements(winner, hand_scores);
+    reference_point_deltas_for_placements(&placements)
 }
 
 pub(crate) fn placements(winner: PlayerId, hand_scores: &[u16]) -> Vec<u8> {
+    placements_with_eliminations(winner, hand_scores, &[])
+        .expect("winner and score list were validated")
+}
+
+pub(crate) fn placements_with_eliminations(
+    winner: PlayerId,
+    hand_scores: &[u16],
+    elimination_order: &[PlayerId],
+) -> Option<Vec<u8>> {
+    let player_count = hand_scores.len();
+    if !(2..=6).contains(&player_count) || winner.0 >= player_count {
+        return None;
+    }
+    let mut eliminated = vec![false; player_count];
+    for &player in elimination_order {
+        if player.0 >= player_count || player == winner || eliminated[player.0] {
+            return None;
+        }
+        eliminated[player.0] = true;
+    }
     let mut placements = vec![0; hand_scores.len()];
     placements[winner.0] = 1;
     let mut ranked = hand_scores
         .iter()
         .copied()
         .enumerate()
-        .filter(|(index, _)| *index != winner.0)
+        .filter(|(index, _)| *index != winner.0 && !eliminated[*index])
         .collect::<Vec<_>>();
     ranked.sort_by(|left, right| left.1.cmp(&right.1).then_with(|| left.0.cmp(&right.0)));
     let mut rank = 0;
@@ -64,7 +61,27 @@ pub(crate) fn placements(winner: PlayerId, hand_scores: &[u16]) -> Vec<u8> {
         }
         rank = end;
     }
+    for (index, player) in elimination_order.iter().copied().enumerate() {
+        placements[player.0] = u8::try_from(player_count - index).ok()?;
+    }
+    Some(placements)
+}
+
+pub(crate) fn reference_point_deltas_for_placements(placements: &[u8]) -> Option<Vec<i16>> {
+    if !(2..=6).contains(&placements.len()) {
+        return None;
+    }
+    let tiers = TIERS[placements.len() - 2];
     placements
+        .iter()
+        .copied()
+        .map(|placement| {
+            placement
+                .checked_sub(1)
+                .and_then(|index| tiers.get(usize::from(index)))
+                .copied()
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -102,5 +119,20 @@ mod tests {
             Some(vec![3, 0, 0, -2])
         );
         assert_eq!(placements(PlayerId(0), &[0, 10, 10, 30]), vec![1, 2, 2, 4]);
+    }
+
+    #[test]
+    fn eliminated_players_take_bottom_places_in_elimination_order() {
+        let placements = placements_with_eliminations(
+            PlayerId(0),
+            &[0, 99, 5, 88, 20, 10],
+            &[PlayerId(1), PlayerId(3)],
+        )
+        .unwrap();
+        assert_eq!(placements, vec![1, 6, 2, 5, 4, 3]);
+        assert_eq!(
+            reference_point_deltas_for_placements(&placements),
+            Some(vec![5, -3, 1, -2, -1, 0])
+        );
     }
 }

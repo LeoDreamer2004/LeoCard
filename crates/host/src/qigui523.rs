@@ -726,10 +726,7 @@ impl QiGui523Session {
 
         if self.rules != rules {
             self.rules = rules;
-            let host_connection = self.host_connection;
-            for player in &mut self.players {
-                player.ready = host_connection == Some(player.connection);
-            }
+            self.room.reset_ready_after_rules_change();
             let mut deck = build_deck(rules.deck_count);
             fastrand::shuffle(&mut deck);
             self.shuffled_deck = Some(deck);

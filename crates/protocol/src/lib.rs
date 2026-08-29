@@ -18,11 +18,12 @@ use leocard_texas_holdem::{
 };
 use leocard_uno::{
     Card as UnoCard, ChallengeResult as UnoChallengeResult, Color as UnoColor,
-    Direction as UnoDirection, PendingDrawKind as UnoPendingDrawKind, RuleSet as UnoRuleSet,
+    Direction as UnoDirection, FlipSide as UnoFlipSide, PendingDrawKind as UnoPendingDrawKind,
+    RuleSet as UnoRuleSet,
 };
 use serde::{Deserialize, Serialize};
 
-pub const PROTOCOL_VERSION: u16 = 26;
+pub const PROTOCOL_VERSION: u16 = 31;
 pub const MAX_FRAME_PAYLOAD: usize = 1024 * 1024;
 pub const MAX_PLAYER_NAME_CHARS: usize = 7;
 pub const AVATAR_DIMENSION: u32 = 64;
@@ -153,6 +154,19 @@ pub enum UnoCommand {
     },
     JumpIn {
         card: UnoCard,
+    },
+    ChooseSwapOneTarget {
+        target: PlayerId,
+    },
+    ChooseSevenSwapTarget {
+        target: PlayerId,
+    },
+    GiveSwapOneCard {
+        card: UnoCard,
+    },
+    ForceTradeHands {
+        first: PlayerId,
+        second: PlayerId,
     },
     DrawCard,
     PassAfterDraw,
@@ -699,16 +713,20 @@ pub struct UnoSnapshot {
     pub players: Vec<UnoPlayerState>,
     pub your_hand: Vec<UnoCard>,
     pub draw_pile_len: u16,
+    /// FLIP 模式下摸牌堆顶朝下的一面；其他模式为空。
+    pub draw_pile_inactive_top: Option<UnoCard>,
     pub discard_top: UnoCard,
     /// 从旧到新排列的弃牌堆末尾，用于客户端绘制有轻微错位的牌堆。
     pub discard_pile: Vec<UnoCard>,
     pub current_color: Option<UnoColor>,
+    pub flip_side: Option<UnoFlipSide>,
     pub current_player: Option<PlayerId>,
     pub direction: UnoDirection,
     pub pending_draw: u16,
     pub pending_kind: Option<UnoPendingDrawKind>,
     pub challenge_offender: Option<PlayerId>,
     pub pending_skip: u16,
+    pub pending_swap: Option<UnoPendingSwapView>,
     /// 只有接收者本人摸到可出的牌并仍在本回合时才为 `Some`。
     pub your_drawn_card: Option<UnoCard>,
     /// 抢出窗口内，只有实际持有匹配牌的非下家会收到这张私有候选牌。
@@ -716,6 +734,16 @@ pub struct UnoSnapshot {
     pub uno_exposed: Vec<PlayerId>,
     pub uno_declared: Vec<PlayerId>,
     pub phase: UnoPhaseView,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum UnoPendingSwapView {
+    SwapOneTarget { player: PlayerId },
+    SwapOneGive { player: PlayerId, target: PlayerId },
+    ForceTrade { player: PlayerId },
+    ChooseColor { player: PlayerId },
+    SevenSwap { player: PlayerId },
+    ColorRoulette { player: PlayerId },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -726,6 +754,8 @@ pub struct UnoPlayerState {
     pub avatar: Option<AvatarId>,
     pub seat: SeatId,
     pub hand_len: u8,
+    /// FLIP 模式公开的手牌背面，按当前手牌顺序紧密排列。
+    pub inactive_hand: Vec<UnoCard>,
     pub ready: bool,
     pub connected: bool,
     pub auto_play: bool,
@@ -733,6 +763,7 @@ pub struct UnoPlayerState {
     pub completed_games: u32,
     pub game_profiles: PlayerGameProfiles,
     pub skipped_turns: u16,
+    pub eliminated: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1099,6 +1130,49 @@ pub enum UnoEvent {
         remaining: u16,
         drew_card: bool,
     },
+    HandRefreshed {
+        player: PlayerId,
+        count: u16,
+    },
+    SwapOneCardTaken {
+        player: PlayerId,
+        target: PlayerId,
+    },
+    SwapOneCompleted {
+        player: PlayerId,
+        target: PlayerId,
+    },
+    HandsTraded {
+        player: PlayerId,
+        first: PlayerId,
+        second: PlayerId,
+    },
+    HandsPassed {
+        player: PlayerId,
+        direction: UnoDirection,
+    },
+    DrawPenaltyReflected {
+        player: PlayerId,
+        target: PlayerId,
+        count: u16,
+    },
+    StackNumberRevealed {
+        player: PlayerId,
+        cards: Vec<UnoCard>,
+        value: u8,
+    },
+    CardsDiscarded {
+        player: PlayerId,
+        cards: Vec<UnoCard>,
+    },
+    Flipped {
+        side: UnoFlipSide,
+    },
+    ColorRouletteResolved {
+        player: PlayerId,
+        color: UnoColor,
+        count: u16,
+    },
     GameFinished {
         winner: PlayerId,
     },
@@ -1381,6 +1455,9 @@ pub enum UnoViolation {
     PlayerNotReportable,
     CannotPlayTogether,
     CannotJumpIn,
+    MustResolveSwapEffect,
+    NoSwapEffect,
+    InvalidSwapTargets,
     DrawPileExhausted,
 }
 
@@ -1702,7 +1779,7 @@ mod tests {
     }
 
     #[test]
-    fn uno_pair_and_jump_in_commands_round_trip_through_the_common_protocol() {
+    fn uno_extension_commands_and_events_round_trip_through_the_common_protocol() {
         let first = UnoCard::number(UnoColor::Red, 7, 0);
         let second = UnoCard::number(UnoColor::Red, 7, 1);
         for command in [
@@ -1711,6 +1788,17 @@ mod tests {
                 chosen_color: None,
             }),
             GameCommand::Uno(UnoCommand::JumpIn { card: second }),
+            GameCommand::Uno(UnoCommand::ChooseSwapOneTarget {
+                target: PlayerId(2),
+            }),
+            GameCommand::Uno(UnoCommand::ChooseSevenSwapTarget {
+                target: PlayerId(2),
+            }),
+            GameCommand::Uno(UnoCommand::GiveSwapOneCard { card: first }),
+            GameCommand::Uno(UnoCommand::ForceTradeHands {
+                first: PlayerId(0),
+                second: PlayerId(2),
+            }),
         ] {
             let message = ClientMessage::new(
                 RoomId(42),
@@ -1736,6 +1824,51 @@ mod tests {
         };
         let decoded: ServerMessage = decode_frame(&encode_frame(&message).unwrap()).unwrap();
         assert_eq!(decoded, message);
+
+        let roulette = ServerMessage {
+            protocol_version: PROTOCOL_VERSION,
+            room_id: RoomId(42),
+            revision: Revision(12),
+            in_reply_to: None,
+            event: ServerEvent::GameEvent(GameEvent::Uno(UnoEvent::ColorRouletteResolved {
+                player: PlayerId(1),
+                color: UnoColor::Blue,
+                count: 6,
+            })),
+        };
+        let decoded: ServerMessage = decode_frame(&encode_frame(&roulette).unwrap()).unwrap();
+        assert_eq!(decoded, roulette);
+
+        let reflected = ServerMessage {
+            protocol_version: PROTOCOL_VERSION,
+            room_id: RoomId(42),
+            revision: Revision(12),
+            in_reply_to: None,
+            event: ServerEvent::GameEvent(GameEvent::Uno(UnoEvent::DrawPenaltyReflected {
+                player: PlayerId(2),
+                target: PlayerId(1),
+                count: 8,
+            })),
+        };
+        let decoded: ServerMessage = decode_frame(&encode_frame(&reflected).unwrap()).unwrap();
+        assert_eq!(decoded, reflected);
+
+        let revealed = ServerMessage {
+            protocol_version: PROTOCOL_VERSION,
+            room_id: RoomId(42),
+            revision: Revision(13),
+            in_reply_to: None,
+            event: ServerEvent::GameEvent(GameEvent::Uno(UnoEvent::StackNumberRevealed {
+                player: PlayerId(2),
+                cards: vec![
+                    UnoCard::action(UnoColor::Blue, leocard_uno::Face::Skip, 0),
+                    UnoCard::number(UnoColor::Yellow, 6, 0),
+                ],
+                value: 6,
+            })),
+        };
+        let decoded: ServerMessage = decode_frame(&encode_frame(&revealed).unwrap()).unwrap();
+        assert_eq!(decoded, revealed);
     }
 
     #[test]

@@ -723,10 +723,7 @@ impl ShengjiSession {
         };
         if self.rules != rules {
             self.rules = rules;
-            let host = self.room.host_connection;
-            for player in &mut self.room.players {
-                player.ready = player.is_bot || host == Some(player.connection);
-            }
+            self.room.reset_ready_after_rules_change();
             self.shuffled_deck = Some(shuffled_deck(self.rules));
             self.room.bump_revision();
         }

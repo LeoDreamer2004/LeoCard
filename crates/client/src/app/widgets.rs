@@ -53,6 +53,17 @@ pub(super) fn add_action_button(
     kind: ButtonKind,
     assets: &UiAssets,
 ) -> Entity {
+    add_action_button_with_label(commands, parent, label, action, kind, assets).0
+}
+
+pub(super) fn add_action_button_with_label(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    action: UiAction,
+    kind: ButtonKind,
+    assets: &UiAssets,
+) -> (Entity, Entity) {
     let (image, normal, hovered, pressed) = match kind {
         ButtonKind::Primary => (
             assets.primary_button.clone(),
@@ -102,7 +113,8 @@ pub(super) fn add_action_button(
         ))
         .id();
     commands.entity(parent).add_child(entity);
-    add_text(commands, entity, label, 16.0, Color::WHITE, assets)
+    let label = add_text(commands, entity, label, 16.0, Color::WHITE, assets);
+    (entity, label)
 }
 
 /// 托管时覆盖整条手牌与操作区。蒙版本身是唯一可点击目标，因此其后的牌、
@@ -1249,6 +1261,9 @@ pub(super) fn rejection_label(reason: &RejectReason) -> Option<String> {
             UnoViolation::CannotPlayTogether => "这些牌当前不能一次打出",
             UnoViolation::CannotJumpIn => "抢出窗口已经关闭",
             UnoViolation::DrawPileExhausted => "摸牌堆已经耗尽",
+            UnoViolation::MustResolveSwapEffect => "请先完成当前换牌效果",
+            UnoViolation::NoSwapEffect => "当前没有待处理的换牌效果",
+            UnoViolation::InvalidSwapTargets => "请选择符合要求且互不重复的玩家",
         },
         RejectReason::WrongGame { .. } => "该命令不属于当前房间游戏",
         _ => "请求被房主拒绝",

@@ -193,19 +193,75 @@ pub(in crate::app) fn uno_event_sound_plan(
                     ));
                 }
                 UnoFace::Reverse => {}
-                UnoFace::Skip => cues.push(UnoAudioCue::new(
+                UnoFace::ReverseDrawTwo | UnoFace::WildReverseDrawFour => {
+                    cues.push(UnoAudioCue::new(
+                        UnoSoundKind::Reverse,
+                        0.06,
+                        0.48,
+                        seed + 2,
+                    ));
+                    cues.push(UnoAudioCue::new(
+                        UnoSoundKind::Penalty,
+                        0.10,
+                        0.43,
+                        seed + 3,
+                    ));
+                }
+                UnoFace::ReverseSkip => {
+                    cues.push(UnoAudioCue::new(
+                        UnoSoundKind::Reverse,
+                        0.06,
+                        0.48,
+                        seed + 2,
+                    ));
+                    cues.push(UnoAudioCue::new(
+                        UnoSoundKind::Skip,
+                        UNO_PLAY_CARD_DURATION * 0.72,
+                        0.50,
+                        seed + 3,
+                    ));
+                }
+                UnoFace::WildPowerReverse | UnoFace::WildNoU => {
+                    cues.push(UnoAudioCue::new(
+                        UnoSoundKind::Reverse,
+                        0.06,
+                        0.48,
+                        seed + 2,
+                    ));
+                }
+                UnoFace::Skip | UnoFace::SkipEveryone => cues.push(UnoAudioCue::new(
                     UnoSoundKind::Skip,
                     UNO_PLAY_CARD_DURATION * 0.72,
                     0.50,
                     seed + 2,
                 )),
-                UnoFace::DrawTwo | UnoFace::WildDrawFour => cues.push(UnoAudioCue::new(
+                UnoFace::DrawTwo
+                | UnoFace::DrawOne
+                | UnoFace::DrawFour
+                | UnoFace::DrawFive
+                | UnoFace::WildDrawTwo
+                | UnoFace::WildDrawFour
+                | UnoFace::WildDrawColor
+                | UnoFace::WildDrawSix
+                | UnoFace::WildDrawTen
+                | UnoFace::StackOne
+                | UnoFace::StackTwo
+                | UnoFace::WildStackThree
+                | UnoFace::WildStackNumber => cues.push(UnoAudioCue::new(
                     UnoSoundKind::Penalty,
                     0.10,
                     0.43,
                     seed + 2,
                 )),
-                UnoFace::Number(_) | UnoFace::Wild => {}
+                UnoFace::Flip => {}
+                UnoFace::Number(_)
+                | UnoFace::Wild
+                | UnoFace::SwapOne
+                | UnoFace::RefreshHand
+                | UnoFace::WildForceTrade
+                | UnoFace::WildPassHands
+                | UnoFace::DiscardAll
+                | UnoFace::WildColorRoulette => {}
             }
             if let Some(color) = chosen_color {
                 append_palette_cues(&mut cues, *color, seed + 4);
@@ -220,7 +276,30 @@ pub(in crate::app) fn uno_event_sound_plan(
             if *penalty {
                 cues.push(UnoAudioCue::new(UnoSoundKind::Penalty, 0.0, 0.48, seed));
             }
-            append_draw_cues(&mut cues, *count, 0.0, *penalty, seed + 1);
+            append_draw_cues_with_interval(
+                &mut cues,
+                *count,
+                0.0,
+                *penalty,
+                if !penalty && *count > 1 { 0.18 } else { 0.045 },
+                seed + 1,
+            );
+            cues
+        }
+        UnoEvent::DrawPenaltyReflected { count, .. } => {
+            let mut cues = vec![UnoAudioCue::new(
+                UnoSoundKind::Penalty,
+                UNO_PLAY_CARD_DURATION * 0.72,
+                0.56,
+                seed,
+            )];
+            append_draw_cues(
+                &mut cues,
+                *count,
+                UNO_PLAY_CARD_DURATION * 0.72,
+                true,
+                seed + 1,
+            );
             cues
         }
         UnoEvent::ChallengeResolved { result, count, .. } => {
@@ -267,10 +346,62 @@ pub(in crate::app) fn uno_event_sound_plan(
             append_palette_cues(&mut cues, *color, seed);
             cues
         }
+        UnoEvent::HandRefreshed { count, .. } => {
+            let delay = UNO_PLAY_CARD_DURATION * 0.72;
+            let mut cues = vec![UnoAudioCue::new(UnoSoundKind::CardThrow, delay, 0.34, seed)];
+            append_draw_cues(&mut cues, (*count).min(6), delay + 0.34, false, seed + 1);
+            cues
+        }
+        UnoEvent::SwapOneCardTaken { .. } | UnoEvent::SwapOneCompleted { .. } => vec![
+            UnoAudioCue::new(UnoSoundKind::CardThrow, 0.0, 0.30, seed),
+            UnoAudioCue::new(UnoSoundKind::CardLand, 0.70, 0.36, seed + 1),
+        ],
+        UnoEvent::HandsTraded { .. } => vec![
+            UnoAudioCue::new(UnoSoundKind::CardThrow, 0.0, 0.38, seed),
+            UnoAudioCue::new(UnoSoundKind::CardLand, 0.72, 0.42, seed + 1),
+        ],
+        UnoEvent::HandsPassed { .. } => {
+            let delay = UNO_PLAY_CARD_DURATION * 0.72;
+            vec![
+                UnoAudioCue::new(UnoSoundKind::CardThrow, delay, 0.38, seed),
+                UnoAudioCue::new(UnoSoundKind::CardLand, delay + 0.72, 0.42, seed + 1),
+            ]
+        }
+        UnoEvent::StackNumberRevealed { cards, .. } => {
+            let delay = UNO_PLAY_CARD_DURATION + 0.08;
+            let mut cues = Vec::new();
+            append_draw_cues(&mut cues, cards.len() as u16, delay, false, seed);
+            cues.push(UnoAudioCue::new(
+                UnoSoundKind::CardLand,
+                delay + cards.len().saturating_sub(1) as f32 * 0.12 + 0.62,
+                0.42,
+                seed + 7,
+            ));
+            cues
+        }
+        UnoEvent::CardsDiscarded { cards, .. } => vec![
+            UnoAudioCue::new(UnoSoundKind::CardThrow, 0.20, 0.40, seed),
+            UnoAudioCue::new(
+                UnoSoundKind::CardLand,
+                0.48 + cards.len().min(8) as f32 * 0.045,
+                0.44,
+                seed + 1,
+            ),
+        ],
+        UnoEvent::ColorRouletteResolved { color, count, .. } => {
+            let mut cues = Vec::new();
+            append_palette_cues(&mut cues, *color, seed);
+            append_draw_cues_with_interval(&mut cues, *count, 0.22, true, 0.18, seed + 5);
+            cues
+        }
         UnoEvent::SkipResolved {
             drew_card: false, ..
         }
         | UnoEvent::GameFinished { .. } => Vec::new(),
+        UnoEvent::Flipped { .. } => vec![
+            UnoAudioCue::new(UnoSoundKind::Reverse, 0.02, 0.56, seed).with_speed(0.78),
+            UnoAudioCue::new(UnoSoundKind::PaletteOpen, 0.34, 0.40, seed + 1).with_speed(0.86),
+        ],
     }
 }
 
@@ -279,6 +410,17 @@ fn append_draw_cues(
     count: u16,
     base_delay: f32,
     penalty: bool,
+    seed: u64,
+) {
+    append_draw_cues_with_interval(cues, count, base_delay, penalty, 0.045, seed);
+}
+
+fn append_draw_cues_with_interval(
+    cues: &mut Vec<UnoAudioCue>,
+    count: u16,
+    base_delay: f32,
+    penalty: bool,
+    interval: f32,
     seed: u64,
 ) {
     let visible = usize::from(count.min(16));
@@ -294,7 +436,7 @@ fn append_draw_cues(
         };
         cues.push(UnoAudioCue::new(
             UnoSoundKind::CardDraw,
-            base_delay + visual_index as f32 * 0.045,
+            base_delay + visual_index as f32 * interval,
             if penalty { 0.27 } else { 0.34 },
             seed + index as u64,
         ));
@@ -307,6 +449,10 @@ fn append_palette_cues(cues: &mut Vec<UnoAudioCue>, color: UnoColor, seed: u64) 
         UnoColor::Yellow => 1,
         UnoColor::Green => 2,
         UnoColor::Blue => 3,
+        UnoColor::Pink => 4,
+        UnoColor::Teal => 5,
+        UnoColor::Orange => 6,
+        UnoColor::Purple => 7,
     };
     cues.push(
         UnoAudioCue::new(UnoSoundKind::PaletteOpen, 0.02, 0.37, seed + color_index)
@@ -314,7 +460,7 @@ fn append_palette_cues(cues: &mut Vec<UnoAudioCue>, color: UnoColor, seed: u64) 
     );
     cues.push(
         UnoAudioCue::new(UnoSoundKind::PaletteSelect, 0.40, 0.52, seed + color_index)
-            .with_speed(0.90 + color_index as f32 * 0.09),
+            .with_speed(0.90 + (color_index % 4) as f32 * 0.09),
     );
 }
 
@@ -525,6 +671,55 @@ mod tests {
         assert_eq!(
             report.iter().map(|cue| cue.kind).collect::<Vec<_>>(),
             [UnoSoundKind::Report, UnoSoundKind::Penalty]
+        );
+
+        let stack = uno_event_sound_plan(
+            &UnoEvent::CardPlayed {
+                player: PlayerId(1),
+                card: UnoCard::wild(UnoFace::WildStackNumber, 0),
+                chosen_color: Some(UnoColor::Green),
+                play_index: 0,
+                play_count: 1,
+            },
+            PlayerId(0),
+            6,
+        );
+        assert_eq!(
+            stack
+                .iter()
+                .filter(|cue| cue.kind == UnoSoundKind::Penalty)
+                .count(),
+            1
+        );
+        assert!(
+            stack
+                .iter()
+                .any(|cue| cue.kind == UnoSoundKind::PaletteSelect)
+        );
+
+        let revealed = uno_event_sound_plan(
+            &UnoEvent::StackNumberRevealed {
+                player: PlayerId(1),
+                cards: vec![
+                    UnoCard::action(UnoColor::Blue, UnoFace::Skip, 0),
+                    UnoCard::number(UnoColor::Red, 8, 0),
+                ],
+                value: 8,
+            },
+            PlayerId(0),
+            7,
+        );
+        assert_eq!(
+            revealed
+                .iter()
+                .filter(|cue| cue.kind == UnoSoundKind::CardDraw)
+                .count(),
+            2
+        );
+        assert!(
+            revealed
+                .iter()
+                .any(|cue| cue.kind == UnoSoundKind::CardLand)
         );
     }
 

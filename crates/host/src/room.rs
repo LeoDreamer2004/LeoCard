@@ -683,6 +683,13 @@ impl RoomSession {
         }
     }
 
+    pub(crate) fn reset_ready_after_rules_change(&mut self) {
+        let host = self.host_connection;
+        for player in &mut self.players {
+            player.ready = player.is_bot || host == Some(player.connection);
+        }
+    }
+
     #[cfg(feature = "developer")]
     pub(crate) fn remove_developer_bots(&mut self) {
         for player in self.players.iter_mut().filter(|player| player.is_bot) {

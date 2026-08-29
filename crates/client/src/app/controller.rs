@@ -308,6 +308,9 @@ pub(super) fn handle_buttons(
                     )));
                 }
             }
+            UiAction::ToggleUnoExpansionSettings => {
+                ui.uno_expansion_settings_open = !ui.uno_expansion_settings_open;
+            }
             UiAction::ToggleUnoCard(card) => {
                 let game = client
                     .as_deref()
@@ -315,9 +318,40 @@ pub(super) fn handle_buttons(
                 toggle_uno_selection(game, &mut ui.selected_uno, *card);
             }
             UiAction::SubmitUnoCard => {
-                if ui.selected_uno.len() == 1 {
+                let pending_give = client
+                    .as_deref()
+                    .and_then(|client| client.0.model().uno_game())
+                    .is_some_and(|game| {
+                        matches!(
+                            game.pending_swap,
+                            Some(UnoPendingSwapView::SwapOneGive { player, .. })
+                                if player == game.you
+                        )
+                    });
+                if pending_give && ui.selected_uno.len() == 1 {
                     let card = *ui.selected_uno.iter().next().unwrap();
-                    if card.face().is_wild() {
+                    if let Some(client) = client.as_deref_mut() {
+                        client.0.send(ClientCommand::Game(GameCommand::Uno(
+                            UnoCommand::GiveSwapOneCard { card },
+                        )));
+                    }
+                    ui.selected_uno.clear();
+                } else if ui.selected_uno.len() == 1 {
+                    let card = *ui.selected_uno.iter().next().unwrap();
+                    if matches!(
+                        card.face(),
+                        UnoFace::Wild
+                            | UnoFace::WildDrawTwo
+                            | UnoFace::WildDrawFour
+                            | UnoFace::WildDrawColor
+                            | UnoFace::WildPowerReverse
+                            | UnoFace::WildNoU
+                            | UnoFace::WildStackThree
+                            | UnoFace::WildStackNumber
+                            | UnoFace::WildReverseDrawFour
+                            | UnoFace::WildDrawSix
+                            | UnoFace::WildDrawTen
+                    ) {
                         ui.uno_color_choice = Some(card);
                     } else if let Some(client) = client.as_deref_mut() {
                         let command = UnoCommand::PlayCard {
@@ -373,6 +407,62 @@ pub(super) fn handle_buttons(
                         })));
                 }
                 ui.selected_uno.clear();
+            }
+            UiAction::ToggleUnoSwapTarget(target) => {
+                let Some(game) = client
+                    .as_deref()
+                    .and_then(|client| client.0.model().uno_game())
+                else {
+                    continue;
+                };
+                toggle_uno_swap_target_selection(
+                    game.pending_swap,
+                    game.you,
+                    *target,
+                    &mut ui.uno_swap_targets,
+                );
+                ui.interaction_menu_open = None;
+            }
+            UiAction::ConfirmUnoSwapTargets => {
+                let Some(game) = client
+                    .as_deref()
+                    .and_then(|client| client.0.model().uno_game())
+                else {
+                    continue;
+                };
+                let command = match game.pending_swap {
+                    Some(UnoPendingSwapView::SwapOneTarget { player })
+                        if player == game.you && ui.uno_swap_targets.len() == 1 =>
+                    {
+                        Some(UnoCommand::ChooseSwapOneTarget {
+                            target: ui.uno_swap_targets[0],
+                        })
+                    }
+                    Some(UnoPendingSwapView::ForceTrade { player })
+                        if player == game.you && ui.uno_swap_targets.len() == 2 =>
+                    {
+                        Some(UnoCommand::ForceTradeHands {
+                            first: ui.uno_swap_targets[0],
+                            second: ui.uno_swap_targets[1],
+                        })
+                    }
+                    Some(UnoPendingSwapView::SevenSwap { player })
+                        if player == game.you && ui.uno_swap_targets.len() == 1 =>
+                    {
+                        Some(UnoCommand::ChooseSevenSwapTarget {
+                            target: ui.uno_swap_targets[0],
+                        })
+                    }
+                    _ => None,
+                };
+                if let Some(command) = command
+                    && let Some(client) = client.as_deref_mut()
+                {
+                    client
+                        .0
+                        .send(ClientCommand::Game(GameCommand::Uno(command)));
+                    ui.uno_swap_targets.clear();
+                }
             }
             UiAction::UnoDrawCard => {
                 if let Some(client) = client.as_deref_mut() {
@@ -527,6 +617,7 @@ pub(super) fn handle_buttons(
                 ui.selected_shengji.clear();
             }
             UiAction::StartGame => {
+                ui.uno_expansion_settings_open = false;
                 if let Some(client) = client.as_deref_mut() {
                     client.0.send(ClientCommand::StartGame);
                 }
@@ -542,6 +633,7 @@ pub(super) fn handle_buttons(
                 }
             }
             UiAction::LeaveRoom => {
+                ui.uno_expansion_settings_open = false;
                 if let Some(client) = client.as_deref_mut() {
                     ui.leaving_room = client.0.send(ClientCommand::LeaveRoom);
                 }
@@ -752,6 +844,43 @@ pub(super) fn handle_buttons(
         if redraw {
             ui.dirty = true;
         }
+    }
+}
+
+pub(super) fn toggle_uno_swap_target_selection(
+    pending: Option<UnoPendingSwapView>,
+    you: PlayerId,
+    target: PlayerId,
+    selected: &mut Vec<PlayerId>,
+) {
+    match pending {
+        Some(UnoPendingSwapView::SwapOneTarget { player }) if player == you && target != you => {
+            if selected.as_slice() == [target] {
+                selected.clear();
+            } else {
+                selected.clear();
+                selected.push(target);
+            }
+        }
+        Some(UnoPendingSwapView::SevenSwap { player }) if player == you && target != you => {
+            if selected.as_slice() == [target] {
+                selected.clear();
+            } else {
+                selected.clear();
+                selected.push(target);
+            }
+        }
+        Some(UnoPendingSwapView::ForceTrade { player }) if player == you => {
+            if let Some(index) = selected
+                .iter()
+                .position(|selected_target| *selected_target == target)
+            {
+                selected.remove(index);
+            } else if selected.len() < 2 {
+                selected.push(target);
+            }
+        }
+        _ => {}
     }
 }
 

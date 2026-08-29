@@ -35,8 +35,8 @@ use leocard_protocol::{
     ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureStage, ShengjiViolation,
     TABLE_SEAT_COUNT, TexasHoldemCommand, TexasHoldemEvent, TexasHoldemPhaseView,
     TexasHoldemPlayerState, TexasHoldemProfileStats, TexasHoldemSnapshot, TexasHoldemViolation,
-    TurnTimerView, UnoCommand, UnoEvent, UnoPhaseView, UnoPlayerState, UnoProfileStats,
-    UnoSnapshot, UnoViolation,
+    TurnTimerView, UnoCommand, UnoEvent, UnoPendingSwapView, UnoPhaseView, UnoPlayerState,
+    UnoProfileStats, UnoSnapshot, UnoViolation,
 };
 use leocard_qigui523::{
     Card, ClassifiedPlay, PlayKind, QiGui523Bot, QiGui523BotRequest, Rank, RuleSet, SameCardPolicy,
@@ -58,7 +58,7 @@ use leocard_texas_holdem::{
 use leocard_uno::{
     Card as UnoCard, ChallengeResult as UnoChallengeResult, Color as UnoColor,
     Direction as UnoDirection, Face as UnoFace, PendingDrawKind as UnoPendingDrawKind,
-    RuleSet as UnoRuleSet, build_deck as build_uno_deck,
+    RuleSet as UnoRuleSet, build_deck_for_rules as build_uno_deck_for_rules,
 };
 use serde::{Deserialize, Serialize};
 
@@ -391,6 +391,234 @@ struct UnoPreferences {
     host_rules: UnoRuleSet,
 }
 
+#[derive(Deserialize, Serialize)]
+struct PreFlipUnoRuleSet {
+    mode: leocard_uno::Mode,
+    stack_draw_four_on_draw_two: bool,
+    uno_callout: bool,
+    skip_draw_penalty: bool,
+    stack_skip: bool,
+    jump_in: bool,
+    swap_pack: bool,
+    reverse_pack: bool,
+    stack_pack: bool,
+    no_mercy: leocard_uno::NoMercyRuleSet,
+}
+
+impl From<PreFlipUnoRuleSet> for UnoRuleSet {
+    fn from(value: PreFlipUnoRuleSet) -> Self {
+        Self {
+            mode: value.mode,
+            action_stacking: value.stack_draw_four_on_draw_two || value.stack_skip,
+            uno_callout: value.uno_callout,
+            skip_draw_penalty: value.skip_draw_penalty,
+            jump_in: value.jump_in,
+            swap_pack: value.swap_pack,
+            reverse_pack: value.reverse_pack,
+            stack_pack: value.stack_pack,
+            no_mercy: value.no_mercy,
+            flip: leocard_uno::FlipRuleSet::default(),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreFlipUnoPreferences {
+    host_rules: PreFlipUnoRuleSet,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreFlipSavedPreferences {
+    global: GlobalPreferences,
+    games: PreFlipGamePreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreFlipGamePreferences {
+    qigui523: QiGui523Preferences,
+    texas_holdem: TexasHoldemPreferences,
+    shengji: ShengjiPreferences,
+    uno: PreFlipUnoPreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreNoMercyUnoRuleSet {
+    stack_draw_four_on_draw_two: bool,
+    uno_callout: bool,
+    skip_draw_penalty: bool,
+    stack_skip: bool,
+    jump_in: bool,
+    swap_pack: bool,
+    reverse_pack: bool,
+    stack_pack: bool,
+}
+
+impl From<PreNoMercyUnoRuleSet> for UnoRuleSet {
+    fn from(value: PreNoMercyUnoRuleSet) -> Self {
+        Self {
+            action_stacking: value.stack_draw_four_on_draw_two || value.stack_skip,
+            uno_callout: value.uno_callout,
+            skip_draw_penalty: value.skip_draw_penalty,
+            jump_in: value.jump_in,
+            swap_pack: value.swap_pack,
+            reverse_pack: value.reverse_pack,
+            stack_pack: value.stack_pack,
+            ..Self::default()
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreNoMercyUnoPreferences {
+    host_rules: PreNoMercyUnoRuleSet,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreNoMercySavedPreferences {
+    global: GlobalPreferences,
+    games: PreNoMercyGamePreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreNoMercyGamePreferences {
+    qigui523: QiGui523Preferences,
+    texas_holdem: TexasHoldemPreferences,
+    shengji: ShengjiPreferences,
+    uno: PreNoMercyUnoPreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreStackPackUnoRuleSet {
+    stack_draw_four_on_draw_two: bool,
+    uno_callout: bool,
+    skip_draw_penalty: bool,
+    stack_skip: bool,
+    jump_in: bool,
+    swap_pack: bool,
+    reverse_pack: bool,
+}
+
+impl From<PreStackPackUnoRuleSet> for UnoRuleSet {
+    fn from(value: PreStackPackUnoRuleSet) -> Self {
+        Self {
+            action_stacking: value.stack_draw_four_on_draw_two || value.stack_skip,
+            uno_callout: value.uno_callout,
+            skip_draw_penalty: value.skip_draw_penalty,
+            jump_in: value.jump_in,
+            swap_pack: value.swap_pack,
+            reverse_pack: value.reverse_pack,
+            stack_pack: false,
+            ..Self::default()
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreStackPackUnoPreferences {
+    host_rules: PreStackPackUnoRuleSet,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreStackPackSavedPreferences {
+    global: GlobalPreferences,
+    games: PreStackPackGamePreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreStackPackGamePreferences {
+    qigui523: QiGui523Preferences,
+    texas_holdem: TexasHoldemPreferences,
+    shengji: ShengjiPreferences,
+    uno: PreStackPackUnoPreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreReversePackUnoRuleSet {
+    stack_draw_four_on_draw_two: bool,
+    uno_callout: bool,
+    skip_draw_penalty: bool,
+    stack_skip: bool,
+    jump_in: bool,
+    swap_pack: bool,
+}
+
+impl From<PreReversePackUnoRuleSet> for UnoRuleSet {
+    fn from(value: PreReversePackUnoRuleSet) -> Self {
+        Self {
+            action_stacking: value.stack_draw_four_on_draw_two || value.stack_skip,
+            uno_callout: value.uno_callout,
+            skip_draw_penalty: value.skip_draw_penalty,
+            jump_in: value.jump_in,
+            swap_pack: value.swap_pack,
+            reverse_pack: false,
+            stack_pack: false,
+            ..Self::default()
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreReversePackUnoPreferences {
+    host_rules: PreReversePackUnoRuleSet,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreReversePackSavedPreferences {
+    global: GlobalPreferences,
+    games: PreReversePackGamePreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreReversePackGamePreferences {
+    qigui523: QiGui523Preferences,
+    texas_holdem: TexasHoldemPreferences,
+    shengji: ShengjiPreferences,
+    uno: PreReversePackUnoPreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreSwapPackUnoRuleSet {
+    stack_draw_four_on_draw_two: bool,
+    uno_callout: bool,
+    skip_draw_penalty: bool,
+    stack_skip: bool,
+    jump_in: bool,
+}
+
+impl From<PreSwapPackUnoRuleSet> for UnoRuleSet {
+    fn from(value: PreSwapPackUnoRuleSet) -> Self {
+        Self {
+            action_stacking: value.stack_draw_four_on_draw_two || value.stack_skip,
+            uno_callout: value.uno_callout,
+            skip_draw_penalty: value.skip_draw_penalty,
+            jump_in: value.jump_in,
+            swap_pack: false,
+            reverse_pack: false,
+            stack_pack: false,
+            ..Self::default()
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreSwapPackUnoPreferences {
+    host_rules: PreSwapPackUnoRuleSet,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreSwapPackSavedPreferences {
+    global: GlobalPreferences,
+    games: PreSwapPackGamePreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreSwapPackGamePreferences {
+    qigui523: QiGui523Preferences,
+    texas_holdem: TexasHoldemPreferences,
+    shengji: ShengjiPreferences,
+    uno: PreSwapPackUnoPreferences,
+}
+
 /// “抢出”加入前的 UNO 规则磁盘格式。
 #[derive(Deserialize, Serialize)]
 struct PreJumpInUnoRuleSet {
@@ -403,11 +631,14 @@ struct PreJumpInUnoRuleSet {
 impl From<PreJumpInUnoRuleSet> for UnoRuleSet {
     fn from(value: PreJumpInUnoRuleSet) -> Self {
         Self {
-            stack_draw_four_on_draw_two: value.stack_draw_four_on_draw_two,
+            action_stacking: value.stack_draw_four_on_draw_two || value.stack_skip,
             uno_callout: value.uno_callout,
             skip_draw_penalty: value.skip_draw_penalty,
-            stack_skip: value.stack_skip,
             jump_in: false,
+            swap_pack: false,
+            reverse_pack: false,
+            stack_pack: false,
+            ..Self::default()
         }
     }
 }
@@ -443,11 +674,14 @@ impl From<PreviousUnoRuleSet> for UnoRuleSet {
     fn from(value: PreviousUnoRuleSet) -> Self {
         let _ = value.player_count;
         Self {
-            stack_draw_four_on_draw_two: value.stack_draw_four_on_draw_two,
+            action_stacking: value.stack_draw_four_on_draw_two,
             uno_callout: value.uno_callout,
             skip_draw_penalty: false,
-            stack_skip: false,
             jump_in: false,
+            swap_pack: false,
+            reverse_pack: false,
+            stack_pack: false,
+            ..Self::default()
         }
     }
 }
@@ -575,10 +809,6 @@ fn normalize_shengji_rules(rules: ShengjiRuleSet) -> ShengjiRuleSet {
 }
 
 fn normalize_uno_rules(rules: UnoRuleSet) -> UnoRuleSet {
-    let rules = UnoRuleSet {
-        jump_in: rules.jump_in && rules.stack_skip,
-        ..rules
-    };
     rules.validate().unwrap_or_default()
 }
 
@@ -714,9 +944,11 @@ struct UiState {
     shengji_card_animations: HashMap<ShengjiCard, CardAnimationState>,
     observed_shengji_hand: Vec<ShengjiCard>,
     selected_uno: HashSet<UnoCard>,
+    uno_swap_targets: Vec<PlayerId>,
     uno_card_animations: HashMap<UnoCard, CardAnimationState>,
     greedy_hint: QiGui523Bot,
     interaction_menu_open: Option<PlayerId>,
+    uno_expansion_settings_open: bool,
     settings_open: bool,
     profile_open: bool,
     player_profile: Option<PlayerProfilePage>,
@@ -1487,6 +1719,17 @@ struct OpponentBadge {
 struct PlayerAvatarAnchor(PlayerId);
 
 #[derive(Component)]
+struct UnoSwapTargetPanel {
+    selected: bool,
+}
+
+#[derive(Component)]
+struct UnoExpansionStatus;
+
+#[derive(Component)]
+struct UnoExpansionStatusFrame;
+
+#[derive(Component)]
 struct AutoPlayRobotIndicator;
 
 #[derive(Clone, Copy, Component)]
@@ -1658,12 +1901,15 @@ enum UiAction {
     UpdateTexasRules(TexasHoldemRuleSet),
     UpdateShengjiRules(ShengjiRuleSet),
     UpdateUnoRules(UnoRuleSet),
+    ToggleUnoExpansionSettings,
     ToggleUnoCard(UnoCard),
     SubmitUnoCard,
     CloseUnoColorChoice,
     UnoChooseInitialColor(UnoColor),
     UnoPlayCard(UnoCard, Option<UnoColor>),
     UnoJumpIn(UnoCard),
+    ToggleUnoSwapTarget(PlayerId),
+    ConfirmUnoSwapTargets,
     UnoDrawCard,
     UnoPassAfterDraw,
     UnoAcceptDrawPenalty,
@@ -1769,6 +2015,18 @@ struct UnoHandCardVisual {
 #[derive(Component)]
 struct UnoHandCardButton;
 
+#[derive(Component)]
+struct UnoExtensionCardHelp {
+    title: &'static str,
+    description: &'static str,
+}
+
+#[derive(Component)]
+struct UnoExtensionCardHelpOverlay {
+    title: Entity,
+    description: Entity,
+}
+
 #[derive(Resource, Default)]
 struct UnoPresentationState {
     events: VecDeque<UnoEvent>,
@@ -1796,6 +2054,20 @@ struct UnoFlyingCard {
     played_card: Option<UnoCard>,
     start_angle: f32,
     end_angle: f32,
+}
+
+#[derive(Component)]
+struct UnoFlipOverlay {
+    elapsed: f32,
+}
+
+#[derive(Component)]
+struct UnoFlipCard {
+    elapsed: f32,
+    delay: f32,
+    old_face: Handle<Image>,
+    new_face: Handle<Image>,
+    swapped: bool,
 }
 
 #[derive(Component)]
@@ -2062,6 +2334,7 @@ pub(crate) fn run() {
                     animate_lobby_seat_hover,
                     handle_lobby_bot_seat_right_click,
                     update_rule_help_tooltips,
+                    sync_uno_extension_card_help,
                     handle_table_appearance_sliders,
                     handle_card_drag_selection,
                     animate_hand_card_slots,
@@ -2072,7 +2345,7 @@ pub(crate) fn run() {
                 (
                     (
                         (animate_hand_cards, animate_uno_hand_cards).chain(),
-                        animate_turn_clocks,
+                        (animate_uno_swap_target_panels, animate_turn_clocks),
                         tick_player_interaction_cooldown,
                         (sync_card_drag_preview, sync_shengji_card_drag_preview).chain(),
                         handle_texas_raise_button_hold,
@@ -2157,6 +2430,7 @@ pub(crate) fn run() {
                                 animate_uno_palette_color_rings,
                                 animate_uno_palette_particles,
                                 animate_uno_reverse_effects,
+                                animate_uno_flip_effects,
                             ),
                             sync_update_dialog,
                             sync_shengji_bidding_countdown,

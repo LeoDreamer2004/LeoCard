@@ -280,6 +280,76 @@ pub(super) fn decode_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
     postcard::from_bytes(bytes)
         .ok()
         .or_else(|| {
+            let previous: PreFlipSavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: previous.global,
+                games: GamePreferences {
+                    qigui523: previous.games.qigui523,
+                    texas_holdem: previous.games.texas_holdem,
+                    shengji: previous.games.shengji,
+                    uno: UnoPreferences {
+                        host_rules: previous.games.uno.host_rules.into(),
+                    },
+                },
+            })
+        })
+        .or_else(|| {
+            let previous: PreNoMercySavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: previous.global,
+                games: GamePreferences {
+                    qigui523: previous.games.qigui523,
+                    texas_holdem: previous.games.texas_holdem,
+                    shengji: previous.games.shengji,
+                    uno: UnoPreferences {
+                        host_rules: previous.games.uno.host_rules.into(),
+                    },
+                },
+            })
+        })
+        .or_else(|| {
+            let previous: PreStackPackSavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: previous.global,
+                games: GamePreferences {
+                    qigui523: previous.games.qigui523,
+                    texas_holdem: previous.games.texas_holdem,
+                    shengji: previous.games.shengji,
+                    uno: UnoPreferences {
+                        host_rules: previous.games.uno.host_rules.into(),
+                    },
+                },
+            })
+        })
+        .or_else(|| {
+            let previous: PreReversePackSavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: previous.global,
+                games: GamePreferences {
+                    qigui523: previous.games.qigui523,
+                    texas_holdem: previous.games.texas_holdem,
+                    shengji: previous.games.shengji,
+                    uno: UnoPreferences {
+                        host_rules: previous.games.uno.host_rules.into(),
+                    },
+                },
+            })
+        })
+        .or_else(|| {
+            let previous: PreSwapPackSavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: previous.global,
+                games: GamePreferences {
+                    qigui523: previous.games.qigui523,
+                    texas_holdem: previous.games.texas_holdem,
+                    shengji: previous.games.shengji,
+                    uno: UnoPreferences {
+                        host_rules: previous.games.uno.host_rules.into(),
+                    },
+                },
+            })
+        })
+        .or_else(|| {
             let previous: PreOmahaSavedPreferences = postcard::from_bytes(bytes).ok()?;
             Some(SavedPreferences {
                 global: previous.global,
@@ -481,10 +551,34 @@ pub(super) fn load_ui_assets(
         });
     }
     let mut uno_cards = HashMap::new();
-    for card in build_uno_deck() {
+    for card in build_uno_deck_for_rules(UnoRuleSet {
+        swap_pack: true,
+        reverse_pack: true,
+        stack_pack: true,
+        ..UnoRuleSet::default()
+    }) {
         uno_cards
             .entry((card.color(), card.face()))
             .or_insert_with(|| asset_server.load::<Image>(uno_card_asset_path(card)));
+    }
+    for card in build_uno_deck_for_rules(UnoRuleSet {
+        mode: leocard_uno::Mode::NoMercy,
+        ..UnoRuleSet::default()
+    }) {
+        uno_cards
+            .entry((card.color(), card.face()))
+            .or_insert_with(|| asset_server.load::<Image>(uno_card_asset_path(card)));
+    }
+    for card in build_uno_deck_for_rules(UnoRuleSet {
+        mode: leocard_uno::Mode::Flip,
+        ..UnoRuleSet::default()
+    }) {
+        for face in [Some(card), card.opposite_public_face()] {
+            let Some(face) = face else { continue };
+            uno_cards
+                .entry((face.color(), face.face()))
+                .or_insert_with(|| asset_server.load::<Image>(uno_card_asset_path(face)));
+        }
     }
     let mut interaction_images = HashMap::new();
     let mut interaction_sounds = HashMap::new();
@@ -611,11 +705,41 @@ pub(super) fn load_ui_assets(
     });
 }
 
-fn uno_card_asset_path(card: UnoCard) -> String {
-    let file = match card.color() {
+pub(super) fn uno_card_asset_path(card: UnoCard) -> String {
+    match card.color() {
         None => match card.face() {
-            UnoFace::Wild => "wild".to_owned(),
-            UnoFace::WildDrawFour => "wild_draw_four".to_owned(),
+            UnoFace::Wild => "cards/uno/wild.png".to_owned(),
+            UnoFace::WildDrawTwo => {
+                "cards/uno-extension/uno-flip/light/wild_draw_two.png".to_owned()
+            }
+            UnoFace::WildDrawColor => {
+                "cards/uno-extension/uno-flip/dark/wild_draw_color.png".to_owned()
+            }
+            UnoFace::WildDrawFour => "cards/uno/wild_draw_four.png".to_owned(),
+            UnoFace::WildForceTrade => {
+                "cards/uno-extension/swap-pack/wild_force_trade.png".to_owned()
+            }
+            UnoFace::WildPassHands => {
+                "cards/uno-extension/swap-pack/wild_pass_hands.png".to_owned()
+            }
+            UnoFace::WildPowerReverse => {
+                "cards/uno-extension/reverse-pack/wild_power_reverse.png".to_owned()
+            }
+            UnoFace::WildNoU => "cards/uno-extension/reverse-pack/wild_no_u.png".to_owned(),
+            UnoFace::WildStackThree => {
+                "cards/uno-extension/stack-pack/wild_stack_three.png".to_owned()
+            }
+            UnoFace::WildStackNumber => {
+                "cards/uno-extension/stack-pack/wild_stack_number.png".to_owned()
+            }
+            UnoFace::WildReverseDrawFour => {
+                "cards/uno-extension/no-mercy/wild_reverse_draw_four.png".to_owned()
+            }
+            UnoFace::WildDrawSix => "cards/uno-extension/no-mercy/wild_draw_six.png".to_owned(),
+            UnoFace::WildDrawTen => "cards/uno-extension/no-mercy/wild_draw_ten.png".to_owned(),
+            UnoFace::WildColorRoulette => {
+                "cards/uno-extension/no-mercy/wild_color_roulette.png".to_owned()
+            }
             _ => unreachable!("无颜色的 UNO 牌必须是万能牌"),
         },
         Some(color) => {
@@ -624,18 +748,79 @@ fn uno_card_asset_path(card: UnoCard) -> String {
                 UnoColor::Yellow => "yellow",
                 UnoColor::Green => "green",
                 UnoColor::Blue => "blue",
+                UnoColor::Pink => "pink",
+                UnoColor::Teal => "teal",
+                UnoColor::Orange => "orange",
+                UnoColor::Purple => "purple",
             };
             let face = match card.face() {
                 UnoFace::Number(value) => value.to_string(),
+                UnoFace::DrawOne => "draw_one".to_owned(),
                 UnoFace::DrawTwo => "draw_two".to_owned(),
+                UnoFace::DrawFive => "draw_five".to_owned(),
                 UnoFace::Reverse => "reverse".to_owned(),
                 UnoFace::Skip => "skip".to_owned(),
-                UnoFace::Wild | UnoFace::WildDrawFour => unreachable!("万能牌没有颜色"),
+                UnoFace::Flip => "flip".to_owned(),
+                UnoFace::DrawFour => {
+                    return format!("cards/uno-extension/no-mercy/{color}_draw_four.png");
+                }
+                UnoFace::SkipEveryone => {
+                    if matches!(
+                        card.color(),
+                        Some(UnoColor::Pink | UnoColor::Teal | UnoColor::Orange | UnoColor::Purple)
+                    ) {
+                        "skip_everyone".to_owned()
+                    } else {
+                        return format!("cards/uno-extension/no-mercy/{color}_skip_everyone.png");
+                    }
+                }
+                UnoFace::DiscardAll => {
+                    return format!("cards/uno-extension/no-mercy/{color}_discard_all.png");
+                }
+                UnoFace::SwapOne => {
+                    return format!("cards/uno-extension/swap-pack/{color}_swap_one.png");
+                }
+                UnoFace::RefreshHand => {
+                    return format!("cards/uno-extension/swap-pack/{color}_refresh_hand.png");
+                }
+                UnoFace::ReverseDrawTwo => {
+                    return format!(
+                        "cards/uno-extension/reverse-pack/{color}_reverse_draw_two.png"
+                    );
+                }
+                UnoFace::ReverseSkip => {
+                    return format!("cards/uno-extension/reverse-pack/{color}_reverse_skip.png");
+                }
+                UnoFace::StackOne => {
+                    return format!("cards/uno-extension/stack-pack/{color}_stack_one.png");
+                }
+                UnoFace::StackTwo => {
+                    return format!("cards/uno-extension/stack-pack/{color}_stack_two.png");
+                }
+                UnoFace::Wild
+                | UnoFace::WildDrawTwo
+                | UnoFace::WildDrawFour
+                | UnoFace::WildDrawColor
+                | UnoFace::WildForceTrade
+                | UnoFace::WildPassHands
+                | UnoFace::WildPowerReverse
+                | UnoFace::WildNoU
+                | UnoFace::WildStackThree
+                | UnoFace::WildStackNumber
+                | UnoFace::WildReverseDrawFour
+                | UnoFace::WildDrawSix
+                | UnoFace::WildDrawTen
+                | UnoFace::WildColorRoulette => unreachable!("万能牌没有颜色"),
             };
-            format!("{color}_{face}")
+            if color == "pink" || color == "teal" || color == "orange" || color == "purple" {
+                format!("cards/uno-extension/uno-flip/dark/{color}_{face}.png")
+            } else if matches!(card.face(), UnoFace::DrawOne | UnoFace::Flip) {
+                format!("cards/uno-extension/uno-flip/light/{color}_{face}.png")
+            } else {
+                format!("cards/uno/{color}_{face}.png")
+            }
         }
-    };
-    format!("cards/uno/{file}.png")
+    }
 }
 
 pub(super) fn interaction_cooldown_mask_image(width: u32, height: u32, fraction: f32) -> Image {

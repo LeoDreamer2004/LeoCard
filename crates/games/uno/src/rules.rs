@@ -1,18 +1,88 @@
 use std::fmt;
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum Mode {
+    #[default]
+    Classic,
+    NoMercy,
+    Flip,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct NoMercyRuleSet {
+    pub draw_until_playable: bool,
+    pub mercy_elimination: bool,
+    pub zero_pass: bool,
+    pub seven_swap: bool,
+    pub uno_callout: bool,
+}
+
+impl Default for NoMercyRuleSet {
+    fn default() -> Self {
+        Self {
+            draw_until_playable: true,
+            mercy_elimination: true,
+            zero_pass: true,
+            seven_swap: true,
+            uno_callout: true,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct FlipRuleSet {
+    pub random_pairing: bool,
+    pub action_stacking: bool,
+    pub uno_callout: bool,
+    pub skip_draw_penalty: bool,
+    pub jump_in: bool,
+}
+
+impl Default for FlipRuleSet {
+    fn default() -> Self {
+        Self {
+            random_pairing: false,
+            action_stacking: false,
+            uno_callout: true,
+            skip_draw_penalty: false,
+            jump_in: false,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct RuleSet {
-    /// 是否允许把万能摸四叠在摸二上；默认关闭。
-    pub stack_draw_four_on_draw_two: bool,
-    /// 是否启用 UNO 宣告、检举和漏喊罚两张。
+    pub mode: Mode,
+    pub action_stacking: bool,
     pub uno_callout: bool,
-    /// 被禁手的玩家每实际跳过一轮时是否额外摸一张。
     pub skip_draw_penalty: bool,
-    /// 被禁手的玩家是否可以用另一张禁手牌把累计禁手转给下一位。
-    pub stack_skip: bool,
-    /// 是否允许非下家用完全相同的非万能牌抢出；依赖禁手叠加。
     pub jump_in: bool,
+    pub swap_pack: bool,
+    pub reverse_pack: bool,
+    pub stack_pack: bool,
+    pub no_mercy: NoMercyRuleSet,
+    pub flip: FlipRuleSet,
+}
+
+impl Default for RuleSet {
+    fn default() -> Self {
+        Self {
+            mode: Mode::Classic,
+            action_stacking: false,
+            uno_callout: true,
+            skip_draw_penalty: false,
+            jump_in: false,
+            swap_pack: false,
+            reverse_pack: false,
+            stack_pack: false,
+            no_mercy: NoMercyRuleSet::default(),
+            flip: FlipRuleSet::default(),
+        }
+    }
 }
 
 impl RuleSet {
@@ -20,12 +90,28 @@ impl RuleSet {
     pub const MIN_PLAYERS: u8 = 2;
     pub const MAX_PLAYERS: u8 = 6;
 
-    pub fn validate(self) -> Result<Self, RuleError> {
-        if self.jump_in && !self.stack_skip {
-            Err(RuleError)
-        } else {
-            Ok(self)
+    pub const fn is_classic(self) -> bool {
+        matches!(self.mode, Mode::Classic)
+    }
+
+    pub const fn is_no_mercy(self) -> bool {
+        matches!(self.mode, Mode::NoMercy)
+    }
+
+    pub const fn is_flip(self) -> bool {
+        matches!(self.mode, Mode::Flip)
+    }
+
+    pub const fn uno_callout(self) -> bool {
+        match self.mode {
+            Mode::Classic => self.uno_callout,
+            Mode::NoMercy => self.no_mercy.uno_callout,
+            Mode::Flip => self.flip.uno_callout,
         }
+    }
+
+    pub const fn validate(self) -> Result<Self, RuleError> {
+        Ok(self)
     }
 
     pub fn validate_player_count(player_count: u8) -> Result<usize, RuleError> {
@@ -33,18 +119,6 @@ impl RuleSet {
             .contains(&player_count)
             .then_some(usize::from(player_count))
             .ok_or(RuleError)
-    }
-}
-
-impl Default for RuleSet {
-    fn default() -> Self {
-        Self {
-            stack_draw_four_on_draw_two: false,
-            uno_callout: true,
-            skip_draw_penalty: false,
-            stack_skip: false,
-            jump_in: false,
-        }
     }
 }
 
@@ -64,24 +138,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn jump_in_is_disabled_by_default_and_requires_skip_stacking() {
-        assert!(!RuleSet::default().jump_in);
-        assert!(
-            RuleSet {
-                jump_in: true,
-                ..RuleSet::default()
-            }
-            .validate()
-            .is_err()
-        );
-        assert!(
-            RuleSet {
-                stack_skip: true,
-                jump_in: true,
-                ..RuleSet::default()
-            }
-            .validate()
-            .is_ok()
-        );
+    fn jump_in_is_independent_from_action_stacking() {
+        let rules = RuleSet {
+            jump_in: true,
+            action_stacking: false,
+            ..RuleSet::default()
+        };
+        assert_eq!(rules.validate(), Ok(rules));
+    }
+
+    #[test]
+    fn modes_keep_independent_default_rule_sets() {
+        let rules = RuleSet::default();
+        assert_eq!(rules.mode, Mode::Classic);
+        assert!(rules.uno_callout);
+        assert!(rules.no_mercy.draw_until_playable);
+        assert!(rules.no_mercy.mercy_elimination);
+        assert!(rules.flip.uno_callout);
+        assert!(!rules.flip.random_pairing);
     }
 }

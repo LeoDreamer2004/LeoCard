@@ -46,6 +46,8 @@ mod tests {
             "shaders/uno_palette.wgsl",
             "cards/uno/card_back.png",
             "cards/uno/wild.png",
+            "cards/uno-extension/uno-flip/dark/purple_flip.png",
+            "cards/uno-extension/uno-flip/light/wild_draw_two.png",
             "vendor/kenney/boardgame/PNG/Cards/cardSpadesA.png",
             "vendor/kenney/interface-sounds/Audio/error_007.ogg",
             "vendor/noname/voice/male/22.mp3",

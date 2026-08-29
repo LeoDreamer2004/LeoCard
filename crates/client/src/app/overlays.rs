@@ -55,13 +55,13 @@ pub(super) fn add_play_error_popup(
 
 pub(super) fn add_reconnecting_overlay(
     commands: &mut Commands,
-    table: Entity,
+    parent: Entity,
     status: &str,
     assets: &UiAssets,
 ) {
     let overlay = spawn_node(
         commands,
-        table,
+        parent,
         Node {
             position_type: PositionType::Absolute,
             left: px(0),

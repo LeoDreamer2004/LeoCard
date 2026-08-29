@@ -243,7 +243,7 @@ pub(in crate::app) fn render_table(
                     .qigui523_rules()
                     .is_some_and(|rules| game_has_legal_response(game, rules));
             if can_follow {
-                let selection_label = add_action_button(
+                let (_, selection_label) = add_action_button_with_label(
                     commands,
                     actions,
                     &format!("出牌 ({})", ui.selected.len()),

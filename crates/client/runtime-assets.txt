@@ -4,6 +4,7 @@
 
 audio/
 cards/uno/
+cards/uno-extension/
 fonts/
 icons/
 shaders/

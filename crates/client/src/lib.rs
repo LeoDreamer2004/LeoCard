@@ -22,7 +22,7 @@ use leocard_qigui523::{Card, RuleSet, build_deck};
 use leocard_shengji::{RuleSet as ShengjiRuleSet, build_deck_for as build_shengji_deck_for};
 use leocard_tcp::{TcpClient, TcpServerHandle};
 use leocard_texas_holdem::{RuleSet as TexasHoldemRuleSet, build_deck as build_texas_holdem_deck};
-use leocard_uno::{RuleSet as UnoRuleSet, build_deck as build_uno_deck};
+use leocard_uno::{RuleSet as UnoRuleSet, build_deck_for_rules as build_uno_deck_for_rules};
 use tokio::sync::mpsc::{Receiver, Sender};
 
 /// 当前协议中一个监听端口只承载一个房间，因此客户端无需在地址之外再输入房间号。
@@ -337,7 +337,7 @@ impl TcpGameClient {
         if port == 0 {
             return Err(NetworkStartError::InvalidPort);
         }
-        let mut deck = build_uno_deck();
+        let mut deck = build_uno_deck_for_rules(rules);
         fastrand::shuffle(&mut deck);
         let session = HostSession::uno(NETWORK_ROOM_ID, port, rules, deck)
             .map_err(|error| NetworkStartError::Worker(io::Error::other(error)))?;
@@ -1398,10 +1398,31 @@ fn uno_event_notice(snapshot: Option<&UnoSnapshot>, event: &UnoEvent) -> Option<
             player_name(*reporter),
             player_name(*target)
         )),
+        UnoEvent::DrawPenaltyReflected {
+            player,
+            target,
+            count,
+        } => Some(format!(
+            "{} 将累计罚牌反弹给 {}，摸 {count} 张",
+            player_name(*player),
+            player_name(*target)
+        )),
+        UnoEvent::StackNumberRevealed { player, value, .. } => Some(format!(
+            "{} 的随机堆叠翻出数字 {value}",
+            player_name(*player)
+        )),
         UnoEvent::SkipResolved { .. } => None,
         UnoEvent::ColorChosen { .. }
         | UnoEvent::CardPlayed { .. }
         | UnoEvent::CardsDrawn { .. }
+        | UnoEvent::HandRefreshed { .. }
+        | UnoEvent::SwapOneCardTaken { .. }
+        | UnoEvent::SwapOneCompleted { .. }
+        | UnoEvent::HandsTraded { .. }
+        | UnoEvent::HandsPassed { .. }
+        | UnoEvent::CardsDiscarded { .. }
+        | UnoEvent::Flipped { .. }
+        | UnoEvent::ColorRouletteResolved { .. }
         | UnoEvent::GameFinished { .. } => None,
     }
 }

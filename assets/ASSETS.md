@@ -101,6 +101,20 @@ GitHub 名称与标志同时受 GitHub 商标规范约束；本项目仅将其�
   说明见 `ui/effects/README.md`。
 - `icons/host-crown.*`、`icons/list-menu.*`、`icons/robot-2-fill.*`：房主、快捷语音和
   机器人界面图标；SVG 为可编辑源文件，PNG 为运行时副本。
+- `cards/uno-extension/uno-flip/`：UNO FLIP 亮暗双面牌纹理。
+- `cards/uno-extension-source/uno-flip/dark-bases/`：以默认 UNO 牌框为母版制作的暗面底图；暗面
+  外框使用纯黑描边并沿用原牌框透明圆角。
+- `cards/uno-extension-source/uno-flip/flip-glyph.png`：项目绘制的翻牌透明纹理，亮暗两面共享同一
+  几何结构并分别着色，不复用转向牌图案。
+- `cards/uno-extension-source/uno-flip/skip-everyone-glyph.png`：项目绘制的全员禁手双禁止透明纹理。
+- `cards/uno-extension-source/uno-flip/plus-one-glyph.png`、`plus-two-glyph.png`、
+  `plus-five-glyph.png`：整串绘制的摸牌
+  角标透明纹理，合成时不再分别拼接加号和数字。
+- `cards/uno-extension-source/uno-flip/dark-glyphs/wild-draw-color.png`：暗面指定颜色摸牌的透明
+  合成层。
+
+亮面摸一和 Wild 摸二、暗面摸五均直接以默认牌框及对应摸牌牌型的比例合成，不保留
+容易产生色边的中间抠图。
 
 上述项目内文件按 LeoCard 的 GPL-3.0 许可证提供。
 

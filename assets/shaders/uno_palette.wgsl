@@ -14,9 +14,21 @@ const PI: f32 = 3.141592653589793;
 const HALF_PI: f32 = 1.5707963267948966;
 const TAU: f32 = 6.283185307179586;
 
-fn sector_color(index: f32) -> vec3<f32> {
+fn sector_color(index: f32, dark: bool) -> vec3<f32> {
     // The render target expects linear RGB. These are the linearized forms of
     // the saturated UNO palette used by the rest of the UI.
+    if dark {
+        if index < 0.5 {
+            return vec3<f32>(0.815, 0.047, 0.296);
+        }
+        if index < 1.5 {
+            return vec3<f32>(0.005, 0.342, 0.342);
+        }
+        if index < 2.5 {
+            return vec3<f32>(0.914, 0.157, 0.010);
+        }
+        return vec3<f32>(0.198, 0.051, 0.539);
+    }
     if index < 0.5 {
         return vec3<f32>(0.815, 0.030, 0.024);
     }
@@ -48,7 +60,8 @@ fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
     let edge = min(radial_edge, angular_edge);
     let antialias = max(fwidth(edge) * 1.15, 0.0015);
     let sector_shape = smoothstep(-antialias, antialias, edge);
-    let is_selected = 1.0 - step(0.5, abs(sector - material.params.x));
+    let selected_sector = material.params.x % 4.0;
+    let is_selected = 1.0 - step(0.5, abs(sector - selected_sector));
     var sector_visibility = 1.0 - is_selected;
     if material.params.y > 0.5 {
         sector_visibility = is_selected;
@@ -59,7 +72,7 @@ fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
     let directional_light = dot(direction, normalize(vec2<f32>(-0.55, -0.84))) * 0.07;
     let dark_rim = 1.0 - smoothstep(0.0, 0.025, edge);
     let bevel_glint = smoothstep(0.012, 0.032, edge) * (1.0 - smoothstep(0.032, 0.065, edge));
-    var color = sector_color(sector) * (0.96 + directional_light - radial * 0.10);
+    var color = sector_color(sector, material.params.x >= 4.0) * (0.96 + directional_light - radial * 0.10);
     color = mix(color, color * 0.55, dark_rim);
     color += vec3<f32>(0.018) * bevel_glint;
     let sector_alpha = sector_shape * sector_visibility * material.params.z;

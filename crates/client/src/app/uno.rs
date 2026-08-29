@@ -32,6 +32,10 @@ impl UnoPaletteMaterial {
             UnoColor::Yellow => 1.0,
             UnoColor::Green => 2.0,
             UnoColor::Blue => 3.0,
+            UnoColor::Pink => 4.0,
+            UnoColor::Teal => 5.0,
+            UnoColor::Orange => 6.0,
+            UnoColor::Purple => 7.0,
         };
         Self {
             params: Vec4::new(selected, if selected_sector { 1.0 } else { 0.0 }, 0.0, 0.0),
@@ -99,6 +103,20 @@ pub(in crate::app) fn render_uno_table(
     commands
         .entity(content)
         .insert((MaterialNode(material), TableBackground));
+    if game.flip_side == Some(leocard_uno::FlipSide::Dark) {
+        let tint = spawn_node(
+            commands,
+            content,
+            Node {
+                position_type: PositionType::Absolute,
+                width: percent(100),
+                height: percent(100),
+                ..default()
+            },
+            Some(Color::srgba(0.12, 0.07, 0.30, 0.24)),
+        );
+        commands.entity(tint).insert(FocusPolicy::Pass);
+    }
 
     let table = spawn_node(
         commands,
@@ -122,7 +140,7 @@ pub(in crate::app) fn render_uno_table(
         )));
 
     if let NetworkState::Reconnecting(message) = client.0.state() {
-        add_reconnecting_overlay(commands, table, message, assets);
+        add_reconnecting_overlay(commands, content, message, assets);
     }
 
     let own = game
@@ -146,7 +164,7 @@ pub(in crate::app) fn render_uno_table(
             game,
             player,
             opponent_position(index, opponent_count),
-            ui.interaction_menu_open,
+            ui,
             avatars,
             assets,
             turn_border_materials,
@@ -165,12 +183,23 @@ pub(in crate::app) fn render_uno_table(
     );
     add_uno_actions(commands, table, game, ui, assets);
     add_uno_callout_actions(commands, table, game, assets);
+    add_uno_swap_selection_prompt(commands, table, game, ui, assets);
 
-    if game.current_color.is_none() && matches!(game.phase, UnoPhaseView::Playing) {
-        add_initial_color_choice(commands, table, game, assets);
+    let needs_color_choice = game.current_color.is_none()
+        && matches!(game.phase, UnoPhaseView::Playing)
+        && (game.pending_swap.is_none()
+            || matches!(
+                game.pending_swap,
+                Some(
+                    UnoPendingSwapView::ChooseColor { .. }
+                        | UnoPendingSwapView::ColorRoulette { .. }
+                )
+            ));
+    if needs_color_choice {
+        add_initial_color_choice(commands, content, game, assets);
     }
     if let Some(card) = ui.uno_color_choice {
-        add_play_color_choice(commands, table, card, assets);
+        add_play_color_choice(commands, content, game.flip_side, card, assets);
     }
     if let UnoPhaseView::Finished {
         winner,
@@ -194,9 +223,44 @@ pub(in crate::app) fn render_uno_table(
 
     let auto_play = own.auto_play;
     add_chat_panel(commands, content, chat, assets, Some(auto_play), None, None);
-    if auto_play && matches!(game.phase, UnoPhaseView::Playing) {
-        add_auto_play_overlay(commands, table, assets);
+    if own.eliminated && matches!(game.phase, UnoPhaseView::Playing) {
+        add_uno_eliminated_own_overlay(commands, content, assets);
+    } else if auto_play && matches!(game.phase, UnoPhaseView::Playing) {
+        add_auto_play_overlay(commands, content, assets);
     }
+}
+
+fn add_uno_eliminated_own_overlay(commands: &mut Commands, parent: Entity, assets: &UiAssets) {
+    let overlay = spawn_node(
+        commands,
+        parent,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(0),
+            right: px(0),
+            bottom: px(0),
+            height: px(190),
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            row_gap: px(5),
+            ..default()
+        },
+        Some(Color::BLACK.with_alpha(0.82)),
+    );
+    commands
+        .entity(overlay)
+        .insert((GlobalZIndex(1900), FocusPolicy::Block));
+    let title = add_text(commands, overlay, "您已被淘汰", 27.0, DANGER, assets);
+    commands.entity(title).insert((
+        FocusPolicy::Pass,
+        TextShadow {
+            offset: Vec2::new(1.2, 1.5),
+            color: Color::BLACK.with_alpha(0.92),
+        },
+    ));
+    let detail = add_text(commands, overlay, "等待本局结束", 14.0, MUTED, assets);
+    commands.entity(detail).insert(FocusPolicy::Pass);
 }
 
 fn opponent_position(index: usize, count: usize) -> (f32, f32) {
@@ -223,11 +287,24 @@ fn add_uno_player_panel(
     game: &UnoSnapshot,
     player: &UnoPlayerState,
     (left, top): (f32, f32),
-    interaction_menu_open: Option<PlayerId>,
+    ui: &UiState,
     avatars: &AvatarImages,
     assets: &UiAssets,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
 ) {
+    let selecting = match game.pending_swap {
+        Some(UnoPendingSwapView::SwapOneTarget { player: actor }) => {
+            actor == game.you && player.id != game.you && !player.eliminated
+        }
+        Some(UnoPendingSwapView::ForceTrade { player: actor }) => {
+            actor == game.you && !player.eliminated
+        }
+        Some(UnoPendingSwapView::SevenSwap { player: actor }) => {
+            actor == game.you && player.id != game.you && !player.eliminated
+        }
+        _ => false,
+    };
+    let selected = selecting && ui.uno_swap_targets.contains(&player.id);
     let panel = add_panel(
         commands,
         table,
@@ -243,14 +320,35 @@ fn add_uno_player_panel(
             column_gap: px(8),
             ..default()
         },
-        PANEL.with_alpha(if player.connected { 0.92 } else { 0.58 }),
+        if selected {
+            Color::BLACK.with_alpha(0.76)
+        } else if player.eliminated {
+            Color::BLACK.with_alpha(0.78)
+        } else if selecting {
+            ACCENT.mix(&PANEL, 0.48).with_alpha(0.97)
+        } else {
+            PANEL.with_alpha(if player.connected { 0.92 } else { 0.58 })
+        },
         PanelSkin::Section,
         assets,
     );
-    commands
-        .entity(panel)
-        .insert((Button, UiAction::ToggleInteractionMenu(player.id)));
-    if game.current_player == Some(player.id) && matches!(game.phase, UnoPhaseView::Playing) {
+    if selecting {
+        commands.entity(panel).insert((
+            Button,
+            UiAction::ToggleUnoSwapTarget(player.id),
+            UnoSwapTargetPanel { selected },
+            Outline::new(px(2.0), px(1.0), ACCENT.with_alpha(0.92)),
+            BoxShadow::new(ACCENT.with_alpha(0.32), px(0), px(0), px(2), px(9)),
+        ));
+    } else {
+        commands
+            .entity(panel)
+            .insert((Button, UiAction::ToggleInteractionMenu(player.id)));
+    }
+    if !player.eliminated
+        && game.current_player == Some(player.id)
+        && matches!(game.phase, UnoPhaseView::Playing)
+    {
         add_turn_border_trace(
             commands,
             panel,
@@ -283,9 +381,13 @@ fn add_uno_player_panel(
         commands,
         copy,
         format!(
-            "{} 张牌{}",
+            "{}{}",
             player.hand_len,
-            if player.auto_play { " · 托管" } else { "" }
+            if player.auto_play {
+                " 张牌 · 托管"
+            } else {
+                " 张牌"
+            }
         ),
         12.0,
         if game.uno_exposed.contains(&player.id) {
@@ -314,23 +416,240 @@ fn add_uno_player_panel(
         &player.game_profiles,
         assets,
     );
-    commands
-        .entity(menu)
-        .insert(if interaction_menu_open == Some(player.id) {
+    commands.entity(menu).insert(
+        if !selecting && ui.interaction_menu_open == Some(player.id) {
             Visibility::Visible
         } else {
             Visibility::Hidden
-        });
+        },
+    );
     commands.entity(panel).insert(OpponentBadge {
         player: player.id,
         score_popup: None,
         interaction_menu: menu,
     });
-    add_uno_skip_overlay(commands, panel, uno_skip_count(game, player), assets);
+    if !player.inactive_hand.is_empty() {
+        let row = spawn_node(
+            commands,
+            panel,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(8),
+                top: px(86),
+                height: px(54),
+                align_items: AlignItems::FlexStart,
+                overflow: Overflow::visible(),
+                ..default()
+            },
+            None,
+        );
+        let reveal = (156.0 / player.inactive_hand.len().max(1) as f32).clamp(8.0, 20.0);
+        for (index, card) in player.inactive_hand.iter().copied().enumerate() {
+            let slot = spawn_node(
+                commands,
+                row,
+                Node {
+                    width: px(if index + 1 == player.inactive_hand.len() {
+                        34.0
+                    } else {
+                        reveal
+                    }),
+                    height: px(52),
+                    flex_shrink: 0.0,
+                    overflow: Overflow::visible(),
+                    ..default()
+                },
+                None,
+            );
+            let face = commands
+                .spawn((
+                    Node {
+                        width: px(34),
+                        height: px(52),
+                        ..default()
+                    },
+                    ImageNode::new(uno_card_handle(assets, card)),
+                    BoxShadow::new(Color::BLACK.with_alpha(0.35), px(1), px(2), px(0), px(3)),
+                    FocusPolicy::Pass,
+                ))
+                .id();
+            commands.entity(slot).add_child(face);
+        }
+    }
+    if selected {
+        add_uno_swap_selected_label(commands, panel, assets);
+    }
+    if !player.eliminated {
+        add_uno_skip_overlay(commands, panel, uno_skip_count(game, player), assets);
+    }
     if let Some(cards) = uno_finished_hand(game, player.id)
         && !cards.is_empty()
     {
         add_uno_finished_hand(commands, panel, cards, assets);
+    }
+    if player.eliminated {
+        add_uno_eliminated_player_overlay(commands, panel, assets);
+    }
+}
+
+fn add_uno_eliminated_player_overlay(commands: &mut Commands, panel: Entity, assets: &UiAssets) {
+    let overlay = spawn_node(
+        commands,
+        panel,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(0),
+            right: px(0),
+            top: px(0),
+            bottom: px(0),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            border: UiRect::all(px(1)),
+            border_radius: BorderRadius::all(px(10)),
+            ..default()
+        },
+        Some(Color::BLACK.with_alpha(0.58)),
+    );
+    commands.entity(overlay).insert((
+        BorderColor::all(MUTED.with_alpha(0.42)),
+        ZIndex(18),
+        FocusPolicy::Pass,
+    ));
+    let badge = spawn_node(
+        commands,
+        overlay,
+        Node {
+            padding: UiRect::axes(px(12), px(5)),
+            border: UiRect::all(px(1)),
+            border_radius: BorderRadius::all(px(12)),
+            ..default()
+        },
+        Some(Color::BLACK.with_alpha(0.72)),
+    );
+    commands.entity(badge).insert((
+        BorderColor::all(TEXT.with_alpha(0.34)),
+        BoxShadow::new(Color::BLACK.with_alpha(0.42), px(1), px(3), px(0), px(5)),
+        FocusPolicy::Pass,
+    ));
+    let label = add_text(
+        commands,
+        badge,
+        "已淘汰",
+        14.0,
+        TEXT.with_alpha(0.86),
+        assets,
+    );
+    commands.entity(label).insert(FocusPolicy::Pass);
+}
+
+fn add_uno_swap_selected_label(commands: &mut Commands, panel: Entity, assets: &UiAssets) {
+    let badge = spawn_node(
+        commands,
+        panel,
+        Node {
+            position_type: PositionType::Absolute,
+            right: px(7),
+            top: px(7),
+            padding: UiRect::axes(px(7), px(3)),
+            border_radius: BorderRadius::all(px(8)),
+            ..default()
+        },
+        Some(ACCENT.with_alpha(0.84)),
+    );
+    commands
+        .entity(badge)
+        .insert((GlobalZIndex(8), FocusPolicy::Pass));
+    add_text(commands, badge, "已选中", 11.0, Color::BLACK, assets);
+}
+
+fn add_uno_swap_selection_prompt(
+    commands: &mut Commands,
+    table: Entity,
+    game: &UnoSnapshot,
+    ui: &UiState,
+    assets: &UiAssets,
+) {
+    let Some(pending) = game.pending_swap else {
+        return;
+    };
+    let (actor, title, required) = match pending {
+        UnoPendingSwapView::SwapOneTarget { player } => (player, "选择一名玩家交换一张牌", Some(1)),
+        UnoPendingSwapView::SwapOneGive { player, target } => {
+            let target_name = game
+                .players
+                .iter()
+                .find(|candidate| candidate.id == target)
+                .map(|candidate| candidate.name.as_str())
+                .unwrap_or("目标玩家");
+            let title = if player == game.you {
+                format!("已从 {target_name} 随机取得一张牌，请选择一张交还")
+            } else {
+                format!("等待玩家向 {target_name} 交还一张牌")
+            };
+            add_uno_swap_prompt_panel(commands, table, &title, None, false, assets);
+            return;
+        }
+        UnoPendingSwapView::ForceTrade { player } => (player, "选择两名玩家交换整手牌", Some(2)),
+        UnoPendingSwapView::SevenSwap { player } => (player, "选择一名玩家交换整手牌", Some(1)),
+        UnoPendingSwapView::ChooseColor { .. } | UnoPendingSwapView::ColorRoulette { .. } => return,
+    };
+    let own_turn = actor == game.you;
+    let actor_name = game
+        .players
+        .iter()
+        .find(|candidate| candidate.id == actor)
+        .map(|candidate| candidate.name.as_str())
+        .unwrap_or("玩家");
+    let title = if own_turn {
+        title.to_owned()
+    } else {
+        format!("等待 {actor_name} 选择换牌目标")
+    };
+    let ready = required.is_some_and(|count| ui.uno_swap_targets.len() == count);
+    add_uno_swap_prompt_panel(commands, table, &title, required, own_turn && ready, assets);
+}
+
+fn add_uno_swap_prompt_panel(
+    commands: &mut Commands,
+    table: Entity,
+    title: &str,
+    required: Option<usize>,
+    ready: bool,
+    assets: &UiAssets,
+) {
+    let panel = add_panel(
+        commands,
+        table,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(475),
+            top: px(118),
+            width: px(330),
+            padding: UiRect::axes(px(14), px(10)),
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
+            row_gap: px(8),
+            ..default()
+        },
+        PANEL.with_alpha(0.96),
+        PanelSkin::Popup,
+        assets,
+    );
+    commands.entity(panel).insert(GlobalZIndex(45));
+    add_text(commands, panel, title, 14.0, TEXT, assets);
+    if required.is_some() {
+        if ready {
+            add_action_button(
+                commands,
+                panel,
+                "确定选择",
+                UiAction::ConfirmUnoSwapTargets,
+                ButtonKind::Primary,
+                assets,
+            );
+        } else {
+            add_disabled_action_button(commands, panel, "确定选择", assets);
+        }
     }
 }
 
@@ -543,7 +862,11 @@ fn add_uno_center(commands: &mut Commands, table: Entity, game: &UnoSnapshot, as
                 position_type: PositionType::Relative,
                 ..default()
             },
-            ImageNode::new(assets.uno_card_back.clone()),
+            ImageNode::new(
+                game.draw_pile_inactive_top
+                    .map(|card| uno_card_handle(assets, card))
+                    .unwrap_or_else(|| assets.uno_card_back.clone()),
+            ),
             BoxShadow::new(Color::BLACK.with_alpha(0.45), px(3), px(5), px(0), px(7)),
         ))
         .id();
@@ -639,11 +962,15 @@ fn add_uno_center(commands: &mut Commands, table: Entity, game: &UnoSnapshot, as
         game.current_color.map_or(ACCENT, uno_ui_color),
         assets,
     );
-    if game.pending_draw > 0 {
+    if game.pending_kind.is_some() {
         add_text(
             commands,
             status,
-            format!("累计罚牌 +{}", game.pending_draw),
+            if game.pending_kind == Some(UnoPendingDrawKind::FlipWildDrawColor) {
+                format!("指定颜色摸牌 ×{}", game.pending_draw)
+            } else {
+                format!("累计罚牌 +{}", game.pending_draw)
+            },
             17.0,
             DANGER,
             assets,
@@ -689,6 +1016,27 @@ fn add_uno_own_area(
         PanelSkin::Section,
         assets,
     );
+    let selecting_self = matches!(
+        game.pending_swap,
+        Some(UnoPendingSwapView::ForceTrade { player }) if player == game.you
+    );
+    let self_selected = selecting_self && ui.uno_swap_targets.contains(&game.you);
+    if selecting_self {
+        commands.entity(info).insert((
+            Button,
+            UiAction::ToggleUnoSwapTarget(game.you),
+            UnoSwapTargetPanel {
+                selected: self_selected,
+            },
+            BackgroundColor(if self_selected {
+                Color::BLACK.with_alpha(0.76)
+            } else {
+                ACCENT.mix(&PANEL, 0.48).with_alpha(0.97)
+            }),
+            Outline::new(px(2.0), px(1.0), ACCENT.with_alpha(0.92)),
+            BoxShadow::new(ACCENT.with_alpha(0.32), px(0), px(0), px(2), px(9)),
+        ));
+    }
     commands.entity(info).insert(PlayerAvatarAnchor(game.you));
     if game.current_player == Some(game.you) && matches!(game.phase, UnoPhaseView::Playing) {
         add_turn_border_trace(
@@ -706,6 +1054,9 @@ fn add_uno_own_area(
         TEXT,
         assets,
     );
+    if self_selected {
+        add_uno_swap_selected_label(commands, info, assets);
+    }
     add_uno_skip_overlay(commands, info, uno_skip_count(game, own), assets);
     add_text(
         commands,
@@ -727,7 +1078,7 @@ fn add_uno_own_area(
             height: px(146),
             align_items: AlignItems::FlexEnd,
             justify_content: JustifyContent::Center,
-            overflow: Overflow::clip_x(),
+            overflow: Overflow::visible(),
             ..default()
         },
         None,
@@ -741,6 +1092,11 @@ fn add_uno_own_area(
     for (index, card) in game.your_hand.iter().copied().enumerate() {
         let playing = matches!(game.phase, UnoPhaseView::Playing);
         let playable = uno_card_is_playable(game, card);
+        let selectable_for_swap = matches!(
+            game.pending_swap,
+            Some(UnoPendingSwapView::SwapOneGive { player, .. }) if player == game.you
+        );
+        let interactive = playable || selectable_for_swap;
         let jump_selected = game.your_jump_in_card == Some(card);
         let selected = playing && ui.selected_uno.contains(&card);
         let animation = if playing {
@@ -762,7 +1118,8 @@ fn add_uno_own_area(
             },
             BackgroundColor(Color::NONE),
         ));
-        if playable {
+        let extension_help = uno_extension_card_help(card.face());
+        if interactive {
             entity.insert((
                 Button,
                 UnoHandCardButton,
@@ -773,6 +1130,8 @@ fn add_uno_own_area(
                     pressed: Color::srgb(0.78, 0.84, 0.72),
                 },
             ));
+        } else if extension_help.is_some() {
+            entity.insert(Button);
         }
         let slot = entity.id();
         commands.entity(hand).add_child(slot);
@@ -797,7 +1156,7 @@ fn add_uno_own_area(
                     -(animation.face_hover_amount * 10.0 + animation.selected_amount * 22.0),
                 )),
                 ImageNode::new(uno_card_handle(assets, card)).with_color(
-                    if playable || jump_selected || !playing {
+                    if interactive || jump_selected || !playing {
                         Color::WHITE
                     } else {
                         Color::srgba(0.58, 0.58, 0.58, 0.86)
@@ -814,7 +1173,181 @@ fn add_uno_own_area(
             ))
             .id();
         commands.entity(slot).add_child(face);
+        if let Some((title, description)) = extension_help {
+            commands
+                .entity(slot)
+                .insert(UnoExtensionCardHelp { title, description });
+        }
     }
+}
+
+pub(in crate::app) const fn uno_extension_card_help(
+    face: UnoFace,
+) -> Option<(&'static str, &'static str)> {
+    match face {
+        UnoFace::SwapOne => Some((
+            "交换一张",
+            "随机取得一名玩家的一张牌，再从当前手牌中选择一张交还。",
+        )),
+        UnoFace::RefreshHand => {
+            Some(("刷新手牌", "将剩余手牌放到弃牌堆底部，再摸取相同数量的牌。"))
+        }
+        UnoFace::WildForceTrade => {
+            Some(("指定换手", "选择两名玩家交换全部手牌，完成后选择后续颜色。"))
+        }
+        UnoFace::WildPassHands => Some((
+            "顺序传手",
+            "所有玩家按当前方向传递全部手牌，完成后选择后续颜色。",
+        )),
+        UnoFace::ReverseDrawTwo => Some((
+            "反转摸二",
+            "立即改变方向，并让新方向的下一名玩家累计摸两张牌。",
+        )),
+        UnoFace::ReverseSkip => Some((
+            "反转禁手",
+            "立即改变方向，并让新方向的下一名玩家被禁手一轮。",
+        )),
+        UnoFace::WildPowerReverse => Some((
+            "强力反转",
+            "改变方向并选择后续颜色，然后由你立即再行动一次。",
+        )),
+        UnoFace::WildNoU => Some((
+            "罚牌反弹",
+            "受到摸牌惩罚时将累计罚牌退给上一名罚牌者；平时作为万能反转牌使用。",
+        )),
+        UnoFace::StackOne => Some((
+            "堆叠 +1",
+            "按当前颜色打出，使下家累计摸一张；罚牌链中也必须匹配当前颜色。",
+        )),
+        UnoFace::StackTwo => Some((
+            "堆叠 +2",
+            "按当前颜色打出，使下家累计摸两张；罚牌链中也必须匹配当前颜色。",
+        )),
+        UnoFace::WildStackThree => {
+            Some(("万能堆叠 +3", "可随时打出并选择颜色，使下家累计摸三张。"))
+        }
+        UnoFace::WildStackNumber => Some((
+            "万能随机堆叠",
+            "选择颜色后从摸牌堆翻牌，直到出现数字牌，并将该数字加入累计罚牌。",
+        )),
+        UnoFace::DrawFour => Some(("摸四", "使下一名玩家累计摸四张；可压在 +2 或 +4 上。")),
+        UnoFace::DrawFive => Some((
+            "摸五",
+            "使下一名玩家累计摸五张；启用功能牌堆叠时可继续累计。",
+        )),
+        UnoFace::SkipEveryone => Some(("跳过所有人", "跳过所有其他玩家，由你立即再行动一次。")),
+        UnoFace::Flip => Some((
+            "翻面",
+            "翻转摸牌堆、弃牌堆和所有玩家手牌，并改用另一面的牌面继续游戏。",
+        )),
+        UnoFace::WildDrawColor => Some((
+            "指定颜色摸牌",
+            "选择一种颜色；下一名玩家持续摸牌，直到摸到该颜色。",
+        )),
+        UnoFace::DiscardAll => Some(("全部弃牌", "同时弃掉手中所有与此牌同色的牌。")),
+        UnoFace::WildReverseDrawFour => Some((
+            "反转摸四",
+            "改变方向，选择颜色，并让新方向的下一名玩家累计摸四张。",
+        )),
+        UnoFace::WildDrawSix => Some(("万能摸六", "选择颜色，使下一名玩家累计摸六张。")),
+        UnoFace::WildDrawTen => Some(("万能摸十", "选择颜色，使下一名玩家累计摸十张。")),
+        UnoFace::WildColorRoulette => Some((
+            "颜色轮盘",
+            "下一名玩家选择颜色，持续翻牌并收下所有牌，直到出现该颜色。",
+        )),
+        UnoFace::Number(_)
+        | UnoFace::DrawOne
+        | UnoFace::DrawTwo
+        | UnoFace::Reverse
+        | UnoFace::Skip
+        | UnoFace::Wild
+        | UnoFace::WildDrawTwo
+        | UnoFace::WildDrawFour => None,
+    }
+}
+
+fn spawn_uno_extension_card_tooltip(
+    commands: &mut Commands,
+    layer: Entity,
+    assets: &UiAssets,
+) -> Entity {
+    let tooltip = spawn_node(
+        commands,
+        layer,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(0),
+            top: px(0),
+            width: px(198),
+            padding: UiRect::axes(px(11), px(9)),
+            flex_direction: FlexDirection::Column,
+            row_gap: px(4),
+            border: UiRect::all(px(1)),
+            border_radius: BorderRadius::all(px(8)),
+            ..default()
+        },
+        Some(PANEL.with_alpha(0.78)),
+    );
+    commands.entity(tooltip).insert((
+        Visibility::Hidden,
+        BorderColor::all(ACCENT.with_alpha(0.24)),
+        BoxShadow::new(Color::BLACK.with_alpha(0.30), px(2), px(4), px(0), px(8)),
+        GlobalZIndex(1900),
+        FocusPolicy::Pass,
+    ));
+    let title = add_text(commands, tooltip, "", 13.0, TEXT.with_alpha(0.90), assets);
+    let description = add_text(commands, tooltip, "", 11.5, MUTED.with_alpha(0.88), assets);
+    commands
+        .entity(tooltip)
+        .insert(UnoExtensionCardHelpOverlay { title, description });
+    tooltip
+}
+
+pub(in crate::app) fn sync_uno_extension_card_help(
+    mut commands: Commands,
+    assets: Res<UiAssets>,
+    cards: Query<(
+        &Interaction,
+        &UnoExtensionCardHelp,
+        &ComputedNode,
+        &UiGlobalTransform,
+    )>,
+    layers: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<PlayerInteractionLayer>>,
+    mut overlays: Query<(&UnoExtensionCardHelpOverlay, &mut Node, &mut Visibility)>,
+    mut texts: Query<&mut Text>,
+) {
+    let Ok((layer, layer_node, layer_transform)) = layers.single() else {
+        return;
+    };
+    let Ok((overlay, mut node, mut visibility)) = overlays.single_mut() else {
+        spawn_uno_extension_card_tooltip(&mut commands, layer, &assets);
+        return;
+    };
+    let Some((_, help, card_node, card_transform)) = cards.iter().find(|(interaction, ..)| {
+        matches!(interaction, Interaction::Hovered | Interaction::Pressed)
+    }) else {
+        *visibility = Visibility::Hidden;
+        return;
+    };
+    let Some(center) = uno_anchor_in_layer(card_node, card_transform, layer_node, layer_transform)
+    else {
+        *visibility = Visibility::Hidden;
+        return;
+    };
+    let size = card_node.size() * card_node.inverse_scale_factor();
+    node.left = px(center.x - size.x * 0.5 + 84.0);
+    node.top = px(center.y - size.y * 0.5 + 12.0);
+    if let Ok(mut title) = texts.get_mut(overlay.title)
+        && title.0 != help.title
+    {
+        title.0 = help.title.to_owned();
+    }
+    if let Ok(mut description) = texts.get_mut(overlay.description)
+        && description.0 != help.description
+    {
+        description.0 = help.description.to_owned();
+    }
+    *visibility = Visibility::Visible;
 }
 
 fn add_uno_actions(
@@ -824,7 +1357,45 @@ fn add_uno_actions(
     ui: &UiState,
     assets: &UiAssets,
 ) {
-    if !matches!(game.phase, UnoPhaseView::Playing) {
+    if !matches!(game.phase, UnoPhaseView::Playing)
+        || game
+            .players
+            .iter()
+            .find(|player| player.id == game.you)
+            .is_some_and(|player| player.eliminated)
+    {
+        return;
+    }
+    if let Some(pending) = game.pending_swap {
+        if matches!(pending, UnoPendingSwapView::SwapOneGive { player, .. } if player == game.you) {
+            let actions = spawn_node(
+                commands,
+                table,
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(390),
+                    bottom: px(UNO_ACTION_AREA_BOTTOM),
+                    width: px(500),
+                    height: px(UNO_ACTION_AREA_HEIGHT),
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                },
+                None,
+            );
+            if ui.selected_uno.len() == 1 {
+                add_action_button(
+                    commands,
+                    actions,
+                    "交出选中的牌",
+                    UiAction::SubmitUnoCard,
+                    ButtonKind::Primary,
+                    assets,
+                );
+            } else {
+                add_disabled_action_button(commands, actions, "请选择一张要交出的牌", assets);
+            }
+        }
         return;
     }
     let jump_in = game.your_jump_in_card;
@@ -889,7 +1460,20 @@ fn add_uno_actions(
         add_action_button(
             commands,
             actions,
-            if card.face().is_wild() {
+            if matches!(
+                card.face(),
+                UnoFace::Wild
+                    | UnoFace::WildDrawTwo
+                    | UnoFace::WildDrawFour
+                    | UnoFace::WildDrawColor
+                    | UnoFace::WildPowerReverse
+                    | UnoFace::WildNoU
+                    | UnoFace::WildStackThree
+                    | UnoFace::WildStackNumber
+                    | UnoFace::WildReverseDrawFour
+                    | UnoFace::WildDrawSix
+                    | UnoFace::WildDrawTen
+            ) {
                 "出牌并选色"
             } else if card_count == 2 {
                 "一次打出 ×2"
@@ -900,11 +1484,15 @@ fn add_uno_actions(
             ButtonKind::Primary,
             assets,
         );
-    } else if game.pending_draw > 0 {
+    } else if game.pending_kind.is_some() {
         add_action_button(
             commands,
             actions,
-            &format!("接受 +{}", game.pending_draw),
+            &if game.pending_kind == Some(UnoPendingDrawKind::FlipWildDrawColor) {
+                "接受指定颜色摸牌".to_owned()
+            } else {
+                format!("接受 +{}", game.pending_draw)
+            },
             UiAction::UnoAcceptDrawPenalty,
             ButtonKind::Warning,
             assets,
@@ -913,7 +1501,13 @@ fn add_uno_actions(
             add_action_button(
                 commands,
                 actions,
-                "质疑 +4",
+                if game.pending_kind == Some(UnoPendingDrawKind::FlipWildDrawColor) {
+                    "质疑指定颜色摸牌"
+                } else if game.pending_kind == Some(UnoPendingDrawKind::FlipWildDrawTwo) {
+                    "质疑万能 +2"
+                } else {
+                    "质疑 +4"
+                },
                 UiAction::UnoChallengeDrawFour,
                 ButtonKind::Pass,
                 assets,
@@ -929,19 +1523,23 @@ fn add_uno_actions(
             assets,
         );
     } else if game.your_drawn_card.is_some() {
-        add_action_button(
-            commands,
-            actions,
-            "结束回合",
-            UiAction::UnoPassAfterDraw,
-            ButtonKind::Secondary,
-            assets,
-        );
+        if !game.rules.is_no_mercy() || !game.rules.no_mercy.draw_until_playable {
+            add_action_button(
+                commands,
+                actions,
+                "结束回合",
+                UiAction::UnoPassAfterDraw,
+                ButtonKind::Secondary,
+                assets,
+            );
+        } else {
+            add_disabled_action_button(commands, actions, "必须打出摸到的牌", assets);
+        }
     } else {
         add_action_button(
             commands,
             actions,
-            "摸一张",
+            "摸牌",
             UiAction::UnoDrawCard,
             ButtonKind::Secondary,
             assets,
@@ -955,6 +1553,15 @@ fn add_uno_callout_actions(
     game: &UnoSnapshot,
     assets: &UiAssets,
 ) {
+    if game.pending_swap.is_some()
+        || game
+            .players
+            .iter()
+            .find(|player| player.id == game.you)
+            .is_some_and(|player| player.eliminated)
+    {
+        return;
+    }
     let targets = game
         .uno_exposed
         .iter()
@@ -968,7 +1575,7 @@ fn add_uno_callout_actions(
         .map_or(0, |player| player.skipped_turns);
     let can_declare_before_play = game.current_player == Some(game.you)
         && game.your_hand.len() == 2
-        && game.pending_draw == 0
+        && game.pending_kind.is_none()
         && game.pending_skip == 0
         && own_skips == 0
         && game
@@ -977,7 +1584,7 @@ fn add_uno_callout_actions(
             .copied()
             .any(|card| uno_card_is_playable(game, card));
     let can_recover_after_play = game.your_hand.len() == 1 && game.uno_exposed.contains(&game.you);
-    let can_call = game.rules.uno_callout
+    let can_call = game.rules.uno_callout()
         && matches!(game.phase, UnoPhaseView::Playing)
         && !game.uno_declared.contains(&game.you)
         && (can_declare_before_play || can_recover_after_play);
@@ -1062,49 +1669,80 @@ fn add_subtle_uno_button(
 
 fn add_initial_color_choice(
     commands: &mut Commands,
-    table: Entity,
+    parent: Entity,
     game: &UnoSnapshot,
     assets: &UiAssets,
 ) {
-    let name = game
-        .current_player
+    let choosing_player = match game.pending_swap {
+        Some(
+            UnoPendingSwapView::ChooseColor { player }
+            | UnoPendingSwapView::ColorRoulette { player },
+        ) => Some(player),
+        _ => game.current_player,
+    };
+    let name = choosing_player
         .and_then(|id| game.players.iter().find(|player| player.id == id))
         .map(|player| player.name.as_str())
         .unwrap_or("玩家");
-    let own_turn = game.current_player == Some(game.you);
+    let own_turn = choosing_player == Some(game.you);
+    let after_swap = matches!(
+        game.pending_swap,
+        Some(UnoPendingSwapView::ChooseColor { .. })
+    );
+    let color_roulette = matches!(
+        game.pending_swap,
+        Some(UnoPendingSwapView::ColorRoulette { .. })
+    );
     add_color_choice_overlay(
         commands,
-        table,
-        if own_turn {
+        parent,
+        if own_turn && color_roulette {
+            "选择一种颜色并摸牌，直到翻出该颜色".to_owned()
+        } else if own_turn && after_swap {
+            "换牌完成，请选择后续颜色".to_owned()
+        } else if own_turn {
             "起始牌是万能牌，请选择颜色".to_owned()
+        } else if color_roulette {
+            format!("等待 {name} 选择颜色轮盘目标色")
+        } else if after_swap {
+            format!("等待 {name} 选择后续颜色")
         } else {
             format!("等待 {name} 选择起始颜色")
         },
         own_turn.then_some(None),
+        game.flip_side,
         assets,
     );
 }
 
-fn add_play_color_choice(commands: &mut Commands, table: Entity, card: UnoCard, assets: &UiAssets) {
+fn add_play_color_choice(
+    commands: &mut Commands,
+    parent: Entity,
+    flip_side: Option<leocard_uno::FlipSide>,
+    card: UnoCard,
+    assets: &UiAssets,
+) {
     add_color_choice_overlay(
         commands,
-        table,
+        parent,
         "选择后续颜色".to_owned(),
         Some(Some(card)),
+        flip_side,
         assets,
     );
 }
 
 fn add_color_choice_overlay(
     commands: &mut Commands,
-    table: Entity,
+    parent: Entity,
     title: String,
     choice: Option<Option<UnoCard>>,
+    flip_side: Option<leocard_uno::FlipSide>,
     assets: &UiAssets,
 ) {
     let overlay = spawn_node(
         commands,
-        table,
+        parent,
         Node {
             position_type: PositionType::Absolute,
             left: px(0),
@@ -1137,7 +1775,7 @@ fn add_color_choice_overlay(
     );
     add_section_title(commands, panel, title, assets);
     if let Some(card) = choice {
-        let colors = spawn_node(
+        let color_row = spawn_node(
             commands,
             panel,
             Node {
@@ -1147,7 +1785,11 @@ fn add_color_choice_overlay(
             },
             None,
         );
-        for color in UnoColor::ALL {
+        let colors = match flip_side {
+            Some(leocard_uno::FlipSide::Dark) => UnoColor::DARK,
+            Some(leocard_uno::FlipSide::Light) | None => UnoColor::LIGHT,
+        };
+        for color in colors {
             let button = commands
                 .spawn((
                     Button,
@@ -1172,7 +1814,7 @@ fn add_color_choice_overlay(
                     BorderColor::all(Color::WHITE.with_alpha(0.78)),
                 ))
                 .id();
-            commands.entity(colors).add_child(button);
+            commands.entity(color_row).add_child(button);
             add_text(
                 commands,
                 button,
@@ -1350,29 +1992,46 @@ fn add_uno_summary(
         add_animated_summary_text(
             commands,
             row,
-            "手牌",
+            if player.eliminated {
+                "状态"
+            } else {
+                "手牌"
+            },
             13.0,
             MUTED,
             delay,
             animation.elapsed,
             assets,
         );
-        let displayed =
-            animated_summary_score(animation.elapsed, u32::from(result.hand_score), delay);
-        let score_text = add_animated_summary_text(
-            commands,
-            row,
-            format!("{displayed} 分"),
-            19.0,
-            ACCENT,
-            delay,
-            animation.elapsed,
-            assets,
-        );
-        commands.entity(score_text).insert(AnimatedSummaryScore {
-            target: u32::from(result.hand_score),
-            delay,
-        });
+        if player.eliminated {
+            add_animated_summary_text(
+                commands,
+                row,
+                "已淘汰",
+                17.0,
+                DANGER,
+                delay,
+                animation.elapsed,
+                assets,
+            );
+        } else {
+            let displayed =
+                animated_summary_score(animation.elapsed, u32::from(result.hand_score), delay);
+            let score_text = add_animated_summary_text(
+                commands,
+                row,
+                format!("{displayed} 分"),
+                19.0,
+                ACCENT,
+                delay,
+                animation.elapsed,
+                assets,
+            );
+            commands.entity(score_text).insert(AnimatedSummaryScore {
+                target: u32::from(result.hand_score),
+                delay,
+            });
+        }
         let delta = reference_changes
             .iter()
             .find(|change| change.player == result.player)
@@ -1457,11 +2116,12 @@ fn uno_card_handle(assets: &UiAssets, card: UnoCard) -> Handle<Image> {
         .uno_cards
         .get(&(card.color(), card.face()))
         .cloned()
-        .expect("所有经典 UNO 牌面都应预加载")
+        .expect("所有 UNO 牌面都应预加载")
 }
 
 fn uno_card_is_playable(game: &UnoSnapshot, card: UnoCard) -> bool {
     if game.current_player != Some(game.you)
+        || game.pending_swap.is_some()
         || game.current_color.is_none()
         || !matches!(game.phase, UnoPhaseView::Playing)
         || game
@@ -1479,28 +2139,89 @@ fn uno_card_is_playable(game: &UnoSnapshot, card: UnoCard) -> bool {
         return false;
     }
     if game.pending_skip > 0 {
-        return game.rules.stack_skip && card.face() == UnoFace::Skip;
+        return if game.rules.is_flip() {
+            game.rules.flip.action_stacking
+                && card.face() == game.discard_top.face()
+                && matches!(card.face(), UnoFace::Skip | UnoFace::SkipEveryone)
+        } else {
+            game.rules.action_stacking
+                && matches!(card.face(), UnoFace::Skip | UnoFace::ReverseSkip)
+        };
     }
-    if game.pending_draw > 0 {
-        return match (game.pending_kind, card.face()) {
-            (Some(UnoPendingDrawKind::DrawTwo), UnoFace::DrawTwo)
-            | (Some(UnoPendingDrawKind::WildDrawFour), UnoFace::WildDrawFour) => true,
-            (Some(UnoPendingDrawKind::DrawTwo), UnoFace::WildDrawFour) => {
-                game.rules.stack_draw_four_on_draw_two
+    if game.pending_kind.is_some() {
+        if game.rules.is_no_mercy() {
+            return match game.pending_kind {
+                Some(UnoPendingDrawKind::NoMercy(minimum)) => card
+                    .face()
+                    .draw_value()
+                    .is_some_and(|value| value >= minimum),
+                _ => false,
+            };
+        }
+        if game.rules.is_flip() {
+            if !game.rules.flip.action_stacking {
+                return false;
             }
+            return matches!(
+                (game.pending_kind, card.face()),
+                (
+                    Some(UnoPendingDrawKind::FlipDrawOne),
+                    UnoFace::DrawOne | UnoFace::WildDrawTwo
+                ) | (
+                    Some(UnoPendingDrawKind::FlipWildDrawTwo),
+                    UnoFace::WildDrawTwo
+                ) | (Some(UnoPendingDrawKind::FlipDrawFive), UnoFace::DrawFive)
+                    | (
+                        Some(UnoPendingDrawKind::FlipWildDrawColor),
+                        UnoFace::WildDrawColor
+                    )
+            );
+        }
+        if !game.rules.action_stacking {
+            return false;
+        }
+        return match (game.pending_kind, card.face()) {
+            (Some(UnoPendingDrawKind::DrawTwo), UnoFace::DrawTwo | UnoFace::ReverseDrawTwo)
+            | (Some(UnoPendingDrawKind::WildDrawFour), UnoFace::WildDrawFour) => true,
+            (_, UnoFace::WildNoU) => true,
+            (_, UnoFace::StackOne | UnoFace::StackTwo) => card.color() == game.current_color,
+            (_, UnoFace::WildStackThree | UnoFace::WildStackNumber) => true,
+            (Some(UnoPendingDrawKind::DrawTwo), UnoFace::WildDrawFour) => true,
             _ => false,
         };
     }
     card.face().is_wild()
         || card.color() == game.current_color
-        || card.face() == game.discard_top.face()
+        || uno_faces_match(card.face(), game.discard_top.face())
+}
+
+fn uno_faces_match(left: UnoFace, right: UnoFace) -> bool {
+    if left == right {
+        return !matches!(left, UnoFace::StackOne | UnoFace::StackTwo);
+    }
+    matches!(
+        (left, right),
+        (UnoFace::ReverseDrawTwo, UnoFace::Reverse | UnoFace::DrawTwo)
+            | (UnoFace::Reverse | UnoFace::DrawTwo, UnoFace::ReverseDrawTwo)
+            | (UnoFace::ReverseSkip, UnoFace::Reverse | UnoFace::Skip)
+            | (UnoFace::Reverse | UnoFace::Skip, UnoFace::ReverseSkip)
+    )
 }
 
 pub(in crate::app) fn uno_pair_for_selection(
     game: &UnoSnapshot,
     selected: UnoCard,
 ) -> Option<UnoCard> {
-    if !game.rules.jump_in || game.uno_declared.contains(&game.you) || selected.color().is_none() {
+    let jump_in = if game.rules.is_flip() {
+        game.rules.flip.jump_in
+    } else {
+        game.rules.is_classic() && game.rules.jump_in
+    };
+    if !jump_in
+        || game.uno_declared.contains(&game.you)
+        || selected.color().is_none()
+        || selected.face().is_extension()
+    {
         return None;
     }
     game.your_hand.iter().copied().find(|card| {
@@ -1533,6 +2254,10 @@ fn uno_ui_color(color: UnoColor) -> Color {
         UnoColor::Yellow => Color::srgb(0.96, 0.72, 0.08),
         UnoColor::Green => Color::srgb(0.10, 0.67, 0.28),
         UnoColor::Blue => Color::srgb(0.08, 0.42, 0.86),
+        UnoColor::Pink => Color::srgb(0.91, 0.24, 0.58),
+        UnoColor::Teal => Color::srgb(0.06, 0.62, 0.62),
+        UnoColor::Orange => Color::srgb(0.96, 0.43, 0.10),
+        UnoColor::Purple => Color::srgb(0.48, 0.25, 0.76),
     }
 }
 
@@ -1541,7 +2266,16 @@ pub(in crate::app) fn uno_should_show_reverse_effect(
     play_index: u8,
     play_count: u8,
 ) -> bool {
-    card.face() == UnoFace::Reverse && play_index == 0 && play_count % 2 == 1
+    play_index == 0
+        && match card.face() {
+            UnoFace::Reverse => play_count % 2 == 1,
+            UnoFace::ReverseDrawTwo
+            | UnoFace::ReverseSkip
+            | UnoFace::WildPowerReverse
+            | UnoFace::WildNoU
+            | UnoFace::WildReverseDrawFour => true,
+            _ => false,
+        }
 }
 
 /// UNO 手牌沿用其他游戏的柔和抬升、渐变描边与阴影，不用突兀的离散跳变。
@@ -1596,6 +2330,42 @@ pub(in crate::app) fn animate_uno_hand_cards(
                 ..default()
             },
         );
+    }
+}
+
+pub(in crate::app) fn animate_uno_swap_target_panels(
+    time: Res<Time>,
+    mut panels: Query<(
+        &UnoSwapTargetPanel,
+        &mut BackgroundColor,
+        &mut Outline,
+        &mut BoxShadow,
+    )>,
+) {
+    let pulse = 0.5 + 0.5 * (time.elapsed_secs() * 4.8).sin();
+    for (target, mut background, mut outline, mut shadow) in &mut panels {
+        if target.selected {
+            background.0 = Color::BLACK.with_alpha(0.78);
+            outline.width = px(2.4);
+            outline.color = ACCENT.with_alpha(0.96);
+        } else {
+            background.0 = ACCENT.mix(&PANEL, 0.42 + pulse * 0.12).with_alpha(0.97);
+            outline.width = px(2.0 + pulse * 0.8);
+            outline.color = ACCENT.with_alpha(0.68 + pulse * 0.28);
+        }
+        if let Some(style) = shadow.0.first_mut() {
+            style.color = ACCENT.with_alpha(if target.selected {
+                0.42
+            } else {
+                0.24 + pulse * 0.22
+            });
+            style.blur_radius = px(if target.selected {
+                11.0
+            } else {
+                8.0 + pulse * 6.0
+            });
+            style.spread_radius = px(1.0 + pulse * 1.5);
+        }
     }
 }
 
@@ -1705,8 +2475,9 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                         game,
                         &players,
                         card.color()
+                            .or(chosen_color)
                             .map(uno_ui_color)
-                            .expect("UNO 反转牌始终带有颜色"),
+                            .expect("反转牌应带有牌色或已选择的后续颜色"),
                     );
                 }
                 if play_index == 0
@@ -1721,8 +2492,13 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                     );
                 }
             }
-            UnoEvent::CardsDrawn { player, count, .. } => {
-                spawn_uno_draw_cards(
+            UnoEvent::CardsDrawn {
+                player,
+                count,
+                penalty,
+            } => {
+                let interval = if !penalty && count > 1 { 0.18 } else { 0.045 };
+                spawn_uno_draw_cards_with_interval(
                     &mut commands,
                     layer,
                     draw_position,
@@ -1730,6 +2506,85 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                         .unwrap_or(discard_position),
                     count,
                     0.0,
+                    interval,
+                    &assets,
+                );
+            }
+            UnoEvent::StackNumberRevealed { cards, .. } => {
+                for (index, card) in cards.into_iter().enumerate() {
+                    let card_pose = uno_discard_pose(card);
+                    let target = discard_position
+                        + Vec2::new(
+                            card_pose.0 - discard_top_pose.0,
+                            card_pose.1 - discard_top_pose.1,
+                        );
+                    spawn_uno_flying_card(
+                        &mut commands,
+                        layer,
+                        uno_card_handle(&assets, card),
+                        Some(card),
+                        draw_position,
+                        target,
+                        UNO_PLAY_CARD_DURATION + 0.08 + index as f32 * 0.12,
+                        true,
+                        index,
+                        card_pose.2,
+                    );
+                }
+            }
+            UnoEvent::CardsDiscarded { player, cards } => {
+                let source =
+                    uno_player_anchor_in_layer(player, layer_node, layer_transform, &players)
+                        .unwrap_or(discard_position);
+                for (index, card) in cards.into_iter().take(8).enumerate() {
+                    let pose = uno_discard_pose(card);
+                    spawn_uno_flying_card(
+                        &mut commands,
+                        layer,
+                        uno_card_handle(&assets, card),
+                        Some(card),
+                        source,
+                        discard_position + Vec2::new(pose.0, pose.1),
+                        UNO_PLAY_CARD_DURATION * 0.35 + index as f32 * 0.045,
+                        false,
+                        index,
+                        pose.2,
+                    );
+                }
+            }
+            UnoEvent::ColorRouletteResolved {
+                player,
+                color,
+                count,
+            } => {
+                spawn_uno_palette_effect(
+                    &mut commands,
+                    layer,
+                    discard_position,
+                    color,
+                    &mut palette_materials,
+                );
+                spawn_uno_draw_cards_with_interval(
+                    &mut commands,
+                    layer,
+                    draw_position,
+                    uno_player_anchor_in_layer(player, layer_node, layer_transform, &players)
+                        .unwrap_or(discard_position),
+                    count,
+                    0.22,
+                    0.18,
+                    &assets,
+                );
+            }
+            UnoEvent::DrawPenaltyReflected { target, count, .. } => {
+                spawn_uno_draw_cards(
+                    &mut commands,
+                    layer,
+                    draw_position,
+                    uno_player_anchor_in_layer(target, layer_node, layer_transform, &players)
+                        .unwrap_or(discard_position),
+                    count,
+                    UNO_PLAY_CARD_DURATION * 0.72,
                     &assets,
                 );
             }
@@ -1772,6 +2627,130 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                     &mut palette_materials,
                 );
             }
+            UnoEvent::HandRefreshed { player, count } => {
+                let player_position =
+                    uno_player_anchor_in_layer(player, layer_node, layer_transform, &players)
+                        .unwrap_or(discard_position);
+                let visible = count.min(6);
+                spawn_uno_transfer_cards(
+                    &mut commands,
+                    layer,
+                    player_position,
+                    discard_position,
+                    visible,
+                    UNO_PLAY_CARD_DURATION * 0.72,
+                    &assets,
+                );
+                spawn_uno_draw_cards(
+                    &mut commands,
+                    layer,
+                    draw_position,
+                    player_position,
+                    visible,
+                    UNO_PLAY_CARD_DURATION * 0.72 + 0.34,
+                    &assets,
+                );
+            }
+            UnoEvent::SwapOneCardTaken { player, target } => {
+                let source =
+                    uno_player_anchor_in_layer(target, layer_node, layer_transform, &players)
+                        .unwrap_or(discard_position);
+                let target =
+                    uno_player_anchor_in_layer(player, layer_node, layer_transform, &players)
+                        .unwrap_or(discard_position);
+                spawn_uno_transfer_cards(&mut commands, layer, source, target, 1, 0.0, &assets);
+            }
+            UnoEvent::SwapOneCompleted { player, target } => {
+                let source =
+                    uno_player_anchor_in_layer(player, layer_node, layer_transform, &players)
+                        .unwrap_or(discard_position);
+                let target =
+                    uno_player_anchor_in_layer(target, layer_node, layer_transform, &players)
+                        .unwrap_or(discard_position);
+                spawn_uno_transfer_cards(&mut commands, layer, source, target, 1, 0.0, &assets);
+            }
+            UnoEvent::HandsTraded { first, second, .. } => {
+                let first_position =
+                    uno_player_anchor_in_layer(first, layer_node, layer_transform, &players)
+                        .unwrap_or(discard_position);
+                let second_position =
+                    uno_player_anchor_in_layer(second, layer_node, layer_transform, &players)
+                        .unwrap_or(discard_position);
+                spawn_uno_transfer_cards(
+                    &mut commands,
+                    layer,
+                    first_position,
+                    second_position,
+                    3,
+                    0.0,
+                    &assets,
+                );
+                spawn_uno_transfer_cards(
+                    &mut commands,
+                    layer,
+                    second_position,
+                    first_position,
+                    3,
+                    0.08,
+                    &assets,
+                );
+            }
+            UnoEvent::HandsPassed { direction, .. } => {
+                let mut ring = game
+                    .players
+                    .iter()
+                    .filter(|player| !player.eliminated)
+                    .collect::<Vec<_>>();
+                ring.sort_by_key(|player| player.seat.0);
+                let count = ring.len();
+                if count < 2 {
+                    continue;
+                }
+                for (index, player) in ring.iter().enumerate() {
+                    let target_index = match direction {
+                        UnoDirection::Clockwise => (index + 1) % count,
+                        UnoDirection::CounterClockwise => (index + count - 1) % count,
+                    };
+                    let source = uno_player_anchor_in_layer(
+                        player.id,
+                        layer_node,
+                        layer_transform,
+                        &players,
+                    )
+                    .unwrap_or(discard_position);
+                    let target = uno_player_anchor_in_layer(
+                        ring[target_index].id,
+                        layer_node,
+                        layer_transform,
+                        &players,
+                    )
+                    .unwrap_or(discard_position);
+                    spawn_uno_transfer_cards(
+                        &mut commands,
+                        layer,
+                        source,
+                        target,
+                        2,
+                        UNO_PLAY_CARD_DURATION * 0.72 + index as f32 * 0.035,
+                        &assets,
+                    );
+                }
+            }
+            UnoEvent::Flipped { side } => {
+                spawn_uno_flip_effect(
+                    &mut commands,
+                    layer,
+                    layer_node.size() * layer_node.inverse_scale_factor(),
+                    game,
+                    side,
+                    draw_position,
+                    discard_position,
+                    layer_node,
+                    layer_transform,
+                    &players,
+                    &assets,
+                );
+            }
             UnoEvent::UnoCalled { .. }
             | UnoEvent::UnoReported { .. }
             | UnoEvent::SkipResolved {
@@ -1779,6 +2758,145 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
             }
             | UnoEvent::GameFinished { .. } => {}
         }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn spawn_uno_flip_effect(
+    commands: &mut Commands,
+    layer: Entity,
+    layer_size: Vec2,
+    game: &UnoSnapshot,
+    side: leocard_uno::FlipSide,
+    draw_position: Vec2,
+    discard_position: Vec2,
+    layer_node: &ComputedNode,
+    layer_transform: &UiGlobalTransform,
+    players: &Query<(&PlayerAvatarAnchor, &ComputedNode, &UiGlobalTransform)>,
+    assets: &UiAssets,
+) {
+    let overlay = commands
+        .spawn((
+            UnoFlipOverlay { elapsed: 0.0 },
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                top: px(0),
+                width: px(layer_size.x),
+                height: px(layer_size.y),
+                ..default()
+            },
+            BackgroundColor(match side {
+                leocard_uno::FlipSide::Light => Color::srgba(1.0, 0.91, 0.53, 0.0),
+                leocard_uno::FlipSide::Dark => Color::srgba(0.20, 0.08, 0.48, 0.0),
+            }),
+            GlobalZIndex(1490),
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(layer).add_child(overlay);
+
+    let title = spawn_node(
+        commands,
+        overlay,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(layer_size.x * 0.5 - 150.0),
+            top: px(layer_size.y * 0.5 - 38.0),
+            width: px(300),
+            height: px(76),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            border_radius: BorderRadius::all(px(38)),
+            ..default()
+        },
+        Some(Color::BLACK.with_alpha(0.68)),
+    );
+    commands.entity(title).insert((
+        Outline::new(px(2.0), px(1.0), Color::WHITE.with_alpha(0.52)),
+        BoxShadow::new(Color::BLACK.with_alpha(0.58), px(2), px(5), px(0), px(10)),
+        GlobalZIndex(1492),
+        FocusPolicy::Pass,
+    ));
+    add_text(
+        commands,
+        title,
+        match side {
+            leocard_uno::FlipSide::Light => "翻至亮面",
+            leocard_uno::FlipSide::Dark => "翻至暗面",
+        },
+        27.0,
+        Color::WHITE,
+        assets,
+    );
+
+    let mut cards = Vec::new();
+    for player in &game.players {
+        let Some(position) =
+            uno_player_anchor_in_layer(player.id, layer_node, layer_transform, players)
+        else {
+            continue;
+        };
+        if player.id == game.you {
+            for (index, card) in game.your_hand.iter().copied().take(5).enumerate() {
+                cards.push((
+                    position + Vec2::new((index as f32 - 2.0) * 18.0, 18.0),
+                    card.opposite_public_face()
+                        .map(|old| uno_card_handle(assets, old))
+                        .unwrap_or_else(|| assets.uno_card_back.clone()),
+                    uno_card_handle(assets, card.public_face()),
+                    index as f32 * 0.035,
+                ));
+            }
+        } else if let Some(old) = player.inactive_hand.first().copied() {
+            cards.push((
+                position + Vec2::new(0.0, 24.0),
+                uno_card_handle(assets, old),
+                assets.uno_card_back.clone(),
+                player.seat.0 as f32 * 0.035,
+            ));
+        }
+    }
+    if let Some(old) = game.draw_pile_inactive_top {
+        cards.push((
+            draw_position,
+            uno_card_handle(assets, old),
+            uno_card_handle(assets, old),
+            0.08,
+        ));
+    }
+    cards.push((
+        discard_position,
+        assets.uno_card_back.clone(),
+        uno_card_handle(assets, game.discard_top),
+        0.12,
+    ));
+
+    for (position, old_face, new_face, delay) in cards {
+        let card = commands
+            .spawn((
+                UnoFlipCard {
+                    elapsed: 0.0,
+                    delay,
+                    old_face: old_face.clone(),
+                    new_face,
+                    swapped: false,
+                },
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(position.x - 34.0),
+                    top: px(position.y - 53.0),
+                    width: px(68),
+                    height: px(106),
+                    ..default()
+                },
+                ImageNode::new(old_face),
+                UiTransform::default(),
+                BoxShadow::new(Color::BLACK.with_alpha(0.54), px(3), px(6), px(0), px(8)),
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(overlay).add_child(card);
     }
 }
 
@@ -1876,7 +2994,48 @@ fn spawn_uno_draw_cards(
     base_delay: f32,
     assets: &UiAssets,
 ) {
+    spawn_uno_draw_cards_with_interval(
+        commands, layer, source, target, count, base_delay, 0.045, assets,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn spawn_uno_draw_cards_with_interval(
+    commands: &mut Commands,
+    layer: Entity,
+    source: Vec2,
+    target: Vec2,
+    count: u16,
+    base_delay: f32,
+    interval: f32,
+    assets: &UiAssets,
+) {
     for index in 0..usize::from(count.min(16)) {
+        spawn_uno_flying_card(
+            commands,
+            layer,
+            assets.uno_card_back.clone(),
+            None,
+            source,
+            target,
+            base_delay + index as f32 * interval,
+            true,
+            index,
+            0.0,
+        );
+    }
+}
+
+fn spawn_uno_transfer_cards(
+    commands: &mut Commands,
+    layer: Entity,
+    source: Vec2,
+    target: Vec2,
+    count: u16,
+    base_delay: f32,
+    assets: &UiAssets,
+) {
+    for index in 0..usize::from(count.min(6)) {
         spawn_uno_flying_card(
             commands,
             layer,
@@ -1946,7 +3105,11 @@ pub(in crate::app) fn uno_discard_pose(card: UnoCard) -> (f32, f32, f32) {
         Some(UnoColor::Yellow) => 1,
         Some(UnoColor::Green) => 2,
         Some(UnoColor::Blue) => 3,
-        None => 4,
+        Some(UnoColor::Pink) => 4,
+        Some(UnoColor::Teal) => 5,
+        Some(UnoColor::Orange) => 6,
+        Some(UnoColor::Purple) => 7,
+        None => 8,
     };
     let face = match card.face() {
         UnoFace::Number(value) => usize::from(value),
@@ -1955,6 +3118,30 @@ pub(in crate::app) fn uno_discard_pose(card: UnoCard) -> (f32, f32, f32) {
         UnoFace::Skip => 12,
         UnoFace::Wild => 13,
         UnoFace::WildDrawFour => 14,
+        UnoFace::SwapOne => 15,
+        UnoFace::RefreshHand => 16,
+        UnoFace::WildForceTrade => 17,
+        UnoFace::WildPassHands => 18,
+        UnoFace::ReverseDrawTwo => 19,
+        UnoFace::ReverseSkip => 20,
+        UnoFace::WildPowerReverse => 21,
+        UnoFace::WildNoU => 22,
+        UnoFace::StackOne => 23,
+        UnoFace::StackTwo => 24,
+        UnoFace::WildStackThree => 25,
+        UnoFace::WildStackNumber => 26,
+        UnoFace::DrawFour => 27,
+        UnoFace::SkipEveryone => 28,
+        UnoFace::DiscardAll => 29,
+        UnoFace::WildReverseDrawFour => 30,
+        UnoFace::WildDrawSix => 31,
+        UnoFace::WildDrawTen => 32,
+        UnoFace::WildColorRoulette => 33,
+        UnoFace::DrawOne => 34,
+        UnoFace::DrawFive => 35,
+        UnoFace::Flip => 36,
+        UnoFace::WildDrawTwo => 37,
+        UnoFace::WildDrawColor => 38,
     };
     let key = color * 47 + face * 19 + usize::from(card.copy()) * 31;
     UNO_DISCARD_OFFSETS[(key ^ (key >> 3)) % UNO_DISCARD_OFFSETS.len()]
@@ -2047,6 +3234,10 @@ fn spawn_uno_palette_effect(
         UnoColor::Yellow => std::f32::consts::FRAC_PI_4 * 3.0,
         UnoColor::Green => std::f32::consts::FRAC_PI_4 * 5.0,
         UnoColor::Blue => std::f32::consts::FRAC_PI_4 * 7.0,
+        UnoColor::Pink => std::f32::consts::FRAC_PI_4,
+        UnoColor::Teal => std::f32::consts::FRAC_PI_4 * 3.0,
+        UnoColor::Orange => std::f32::consts::FRAC_PI_4 * 5.0,
+        UnoColor::Purple => std::f32::consts::FRAC_PI_4 * 7.0,
     };
     for index in 0..10 {
         let spread = (index as f32 - 4.5) * 0.18;
@@ -2098,6 +3289,7 @@ fn spawn_uno_reverse_effect(
     let mut ring = game
         .players
         .iter()
+        .filter(|player| !player.eliminated)
         .filter_map(|player| {
             let position = if player.id == game.you {
                 own_effect_anchor
@@ -2335,6 +3527,44 @@ pub(in crate::app) fn animate_uno_flying_cards(
         if progress >= 1.0 {
             commands.entity(entity).despawn();
         }
+    }
+}
+
+pub(in crate::app) fn animate_uno_flip_effects(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut overlays: Query<(Entity, &mut UnoFlipOverlay, &mut BackgroundColor)>,
+    mut cards: Query<(&mut UnoFlipCard, &mut UiTransform, &mut ImageNode)>,
+) {
+    let delta = time.delta_secs();
+    for (entity, mut effect, mut background) in &mut overlays {
+        effect.elapsed += delta;
+        let progress = (effect.elapsed / 1.55).clamp(0.0, 1.0);
+        let alpha = (std::f32::consts::PI * progress).sin().powf(1.35) * 0.34;
+        background.0.set_alpha(alpha);
+        if progress >= 1.0 {
+            commands.entity(entity).despawn();
+        }
+    }
+    for (mut card, mut transform, mut image) in &mut cards {
+        card.elapsed += delta;
+        let progress = ((card.elapsed - card.delay) / 1.05).clamp(0.0, 1.0);
+        if progress <= 0.0 {
+            transform.scale = Vec2::splat(0.86);
+            continue;
+        }
+        if progress >= 0.5 && !card.swapped {
+            image.image = card.new_face.clone();
+            card.swapped = true;
+        } else if progress < 0.5 && card.swapped {
+            image.image = card.old_face.clone();
+            card.swapped = false;
+        }
+        let edge = (std::f32::consts::PI * progress).cos().abs().max(0.035);
+        let lift = (std::f32::consts::PI * progress).sin();
+        transform.scale = Vec2::new(edge * (0.86 + lift * 0.20), 0.86 + lift * 0.15);
+        transform.rotation = Rot2::degrees((progress - 0.5) * 9.0);
+        transform.translation = Val2::px(0.0, -lift * 18.0);
     }
 }
 

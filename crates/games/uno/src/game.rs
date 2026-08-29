@@ -237,6 +237,7 @@ pub enum GameError {
     },
     InvalidDeckContents,
     InvalidPlayer(PlayerId),
+    PlayerEliminated(PlayerId),
     NotPlayersTurn {
         expected: PlayerId,
         actual: PlayerId,
@@ -278,6 +279,7 @@ impl fmt::Display for GameError {
             }
             Self::InvalidDeckContents => f.write_str("牌堆有缺牌、重复牌或非法牌"),
             Self::InvalidPlayer(player) => write!(f, "玩家 {:?} 不存在", player),
+            Self::PlayerEliminated(player) => write!(f, "玩家 {:?} 已被淘汰", player),
             Self::NotPlayersTurn { expected, actual } => {
                 write!(f, "尚未轮到 {:?}；当前应由 {:?} 操作", actual, expected)
             }
@@ -495,8 +497,8 @@ impl GameState {
         self.flip_side
     }
 
-    pub fn draw_pile_top(&self) -> Option<Card> {
-        self.draw_pile.front().copied()
+    pub fn draw_pile(&self) -> impl Iterator<Item = Card> + '_ {
+        self.draw_pile.iter().copied()
     }
 
     pub fn skipped_turns(&self, player: PlayerId) -> Option<u16> {
@@ -964,18 +966,14 @@ impl GameState {
                 self.pending_swap = Some(PendingSwapState::SevenSwap { player });
                 player
             }
-            Face::Number(_) | Face::Wild => self.next_player(player),
+            Face::Number(_) | Face::Wild | Face::DarkWild => self.next_player(player),
         };
         let no_mercy_hand_effect = self.rules.is_no_mercy()
             && (matches!(card.face(), Face::Number(0)) && self.rules.no_mercy.zero_pass
                 || matches!(card.face(), Face::Number(7)) && self.rules.no_mercy.seven_swap);
         if !matches!(
             card.face(),
-            Face::SwapOne
-                | Face::RefreshHand
-                | Face::WildForceTrade
-                | Face::WildPassHands
-                | Face::WildColorRoulette
+            Face::SwapOne | Face::RefreshHand | Face::WildForceTrade | Face::WildPassHands
         ) && !no_mercy_hand_effect
         {
             self.update_uno_after_play(player, declared_uno);
@@ -1388,29 +1386,17 @@ impl GameState {
     pub fn call_uno(&mut self, player: PlayerId) -> Result<ActionOutcome, GameError> {
         self.ensure_playing()?;
         self.ensure_player(player)?;
-        self.ensure_swap_resolved()?;
+        if self.players[player.0].eliminated {
+            return Err(GameError::PlayerEliminated(player));
+        }
         if !self.rules.uno_callout() {
             return Err(GameError::UnoCalloutDisabled);
         }
         if self.uno_declared[player.0] {
             return Err(GameError::CannotCallUno(player));
         }
-
-        // 正常宣告发生在自己的回合、手里还有两张牌且可以立刻打出一张时。
-        let can_declare_before_play = player == self.current_player
-            && self.players[player.0].hand.len() == 2
-            && !self.pending_draw_active()
-            && self.pending_skip == 0
-            && self.skip_turns[player.0] == 0
-            && self.players[player.0]
-                .hand
-                .iter()
-                .copied()
-                .any(|card| self.can_play(player, card));
-        // 若倒数第二张牌已经落桌，漏喊窗口仍持续到被检举或该玩家下次出牌；
-        // 这段时间允许本人补喊，即使当前已经轮到其他玩家。
-        let can_recover_after_play =
-            self.players[player.0].hand.len() == 1 && self.uno_exposed[player.0];
+        let can_recover_after_play = self.can_recover_uno(player);
+        let can_declare_before_play = self.can_declare_uno(player);
         if !can_declare_before_play && !can_recover_after_play {
             return Err(GameError::CannotCallUno(player));
         }
@@ -1426,6 +1412,35 @@ impl GameState {
         Ok(ActionOutcome::UnoCalled { player })
     }
 
+    pub fn can_call_uno(&self, player: PlayerId) -> bool {
+        matches!(self.phase, Phase::Playing)
+            && self.rules.uno_callout()
+            && self
+                .players
+                .get(player.0)
+                .is_some_and(|state| !state.eliminated)
+            && !self.uno_declared.get(player.0).copied().unwrap_or(false)
+            && (self.can_declare_uno(player) || self.can_recover_uno(player))
+    }
+
+    fn can_declare_uno(&self, player: PlayerId) -> bool {
+        player == self.current_player
+            && self.pending_swap.is_none()
+            && self.players[player.0].hand.len() == 2
+            && !self.pending_draw_active()
+            && self.pending_skip == 0
+            && self.skip_turns[player.0] == 0
+            && self.players[player.0]
+                .hand
+                .iter()
+                .copied()
+                .any(|card| self.can_play(player, card))
+    }
+
+    fn can_recover_uno(&self, player: PlayerId) -> bool {
+        self.players[player.0].hand.len() == 1 && self.uno_exposed[player.0]
+    }
+
     pub fn report_uno(
         &mut self,
         reporter: PlayerId,
@@ -1434,7 +1449,9 @@ impl GameState {
         self.ensure_playing()?;
         self.ensure_player(reporter)?;
         self.ensure_player(target)?;
-        self.ensure_swap_resolved()?;
+        if self.players[reporter.0].eliminated {
+            return Err(GameError::PlayerEliminated(reporter));
+        }
         if !self.rules.uno_callout() {
             return Err(GameError::UnoCalloutDisabled);
         }
@@ -1563,6 +1580,7 @@ impl GameState {
                 self.current_player = self.next_player(player);
             }
             Face::Wild
+            | Face::DarkWild
             | Face::WildForceTrade
             | Face::WildPassHands
             | Face::WildPowerReverse
@@ -2149,6 +2167,7 @@ mod tests {
             | Face::StackOne
             | Face::StackTwo => Card::action(color, face, copy),
             Face::Wild
+            | Face::DarkWild
             | Face::WildDrawTwo
             | Face::WildDrawFour
             | Face::WildDrawColor
@@ -2197,6 +2216,57 @@ mod tests {
                 })
         );
         assert!(game.top_card().color().is_none_or(Color::is_dark));
+    }
+
+    #[test]
+    fn dark_side_keeps_uno_calls_and_reports_enabled() {
+        fn dark_card(color: Color, face: Face, copy: u8) -> Card {
+            Card::paired(
+                CardSide::colored(Color::Red, Face::Number(1)),
+                CardSide::colored(color, face),
+                copy,
+            )
+            .flipped()
+        }
+
+        let playable = dark_card(Color::Pink, Face::Number(3), 0);
+        let remaining = dark_card(Color::Teal, Face::Number(4), 0);
+        let top = dark_card(Color::Pink, Face::Number(8), 0);
+
+        let mut declared = GameState::new_with_deck(flip_rules(), 2, build_flip_deck()).unwrap();
+        declared.flip_side = Some(FlipSide::Dark);
+        declared.players[0].hand = vec![playable, remaining];
+        declared.discard_pile = vec![top];
+        declared.current_color = Some(Color::Pink);
+        declared.current_player = PlayerId(0);
+        assert!(matches!(
+            declared.call_uno(PlayerId(0)),
+            Ok(ActionOutcome::UnoCalled {
+                player: PlayerId(0)
+            })
+        ));
+        declared.play_card(PlayerId(0), playable, None).unwrap();
+        assert!(declared.uno_exposed_players().next().is_none());
+
+        let mut exposed = GameState::new_with_deck(flip_rules(), 2, build_flip_deck()).unwrap();
+        exposed.flip_side = Some(FlipSide::Dark);
+        exposed.players[0].hand = vec![playable, remaining];
+        exposed.discard_pile = vec![top];
+        exposed.current_color = Some(Color::Pink);
+        exposed.current_player = PlayerId(0);
+        exposed.play_card(PlayerId(0), playable, None).unwrap();
+        assert_eq!(
+            exposed.uno_exposed_players().collect::<Vec<_>>(),
+            vec![PlayerId(0)]
+        );
+        assert!(matches!(
+            exposed.report_uno(PlayerId(1), PlayerId(0)),
+            Ok(ActionOutcome::UnoReported {
+                reporter: PlayerId(1),
+                target: PlayerId(0),
+                ref cards,
+            }) if cards.len() == 2
+        ));
     }
 
     #[test]
@@ -2528,7 +2598,9 @@ mod tests {
                 game.players[0].hand[0] = card;
                 card
             });
+        assert!(game.can_call_uno(PlayerId(0)));
         game.call_uno(PlayerId(0)).unwrap();
+        assert!(!game.can_call_uno(PlayerId(0)));
         assert_eq!(
             game.uno_declared_players().collect::<Vec<_>>(),
             vec![PlayerId(0)]
@@ -2573,6 +2645,72 @@ mod tests {
             Err(GameError::PlayerNotReportable(PlayerId(1)))
         );
         assert_eq!(game.player(PlayerId(1)).unwrap().hand().len(), before);
+    }
+
+    #[test]
+    fn color_roulette_keeps_the_uno_reaction_window_open() {
+        fn prepared_game() -> GameState {
+            let mut game = no_mercy_game(3);
+            game.players[0].hand = vec![
+                Card::wild(Face::WildColorRoulette, 0),
+                card(Color::Blue, Face::Number(3), 0),
+            ];
+            game.discard_pile = vec![card(Color::Red, Face::Number(5), 0)];
+            game.current_color = Some(Color::Red);
+            game.current_player = PlayerId(0);
+            game
+        }
+
+        let mut recover = prepared_game();
+        recover
+            .play_card(PlayerId(0), Card::wild(Face::WildColorRoulette, 0), None)
+            .unwrap();
+        assert_eq!(
+            recover.uno_exposed_players().collect::<Vec<_>>(),
+            vec![PlayerId(0)]
+        );
+        assert!(recover.can_call_uno(PlayerId(0)));
+        assert!(matches!(
+            recover.call_uno(PlayerId(0)),
+            Ok(ActionOutcome::UnoCalled {
+                player: PlayerId(0)
+            })
+        ));
+
+        let mut report = prepared_game();
+        report
+            .play_card(PlayerId(0), Card::wild(Face::WildColorRoulette, 0), None)
+            .unwrap();
+        assert!(matches!(
+            report.report_uno(PlayerId(2), PlayerId(0)),
+            Ok(ActionOutcome::UnoReported {
+                reporter: PlayerId(2),
+                target: PlayerId(0),
+                ref cards,
+            }) if cards.len() == 2
+        ));
+        assert_eq!(
+            report.pending_swap(),
+            Some(PendingSwap::ColorRoulette {
+                player: PlayerId(1)
+            })
+        );
+    }
+
+    #[test]
+    fn eliminated_players_cannot_call_or_report_uno() {
+        let mut game = no_mercy_game(3);
+        game.players[2].eliminated = true;
+        game.uno_exposed[1] = true;
+
+        assert_eq!(
+            game.call_uno(PlayerId(2)),
+            Err(GameError::PlayerEliminated(PlayerId(2)))
+        );
+        assert_eq!(
+            game.report_uno(PlayerId(2), PlayerId(1)),
+            Err(GameError::PlayerEliminated(PlayerId(2)))
+        );
     }
 
     #[test]

@@ -81,10 +81,24 @@ pub(super) fn sync_ime_enabled(
 }
 
 pub(super) fn update_button_tints(
-    mut buttons: Query<(&Interaction, &ButtonTint, &mut ImageNode), Changed<Interaction>>,
+    mut image_buttons: Query<
+        (&Interaction, &ButtonTint, &mut ImageNode),
+        (Changed<Interaction>, Without<BackgroundButtonTint>),
+    >,
+    mut background_buttons: Query<
+        (&Interaction, &ButtonTint, &mut BackgroundColor),
+        (Changed<Interaction>, With<BackgroundButtonTint>),
+    >,
 ) {
-    for (interaction, tint, mut image) in &mut buttons {
+    for (interaction, tint, mut image) in &mut image_buttons {
         image.color = match interaction {
+            Interaction::None => tint.normal,
+            Interaction::Hovered => tint.hovered,
+            Interaction::Pressed => tint.pressed,
+        };
+    }
+    for (interaction, tint, mut background) in &mut background_buttons {
+        background.0 = match interaction {
             Interaction::None => tint.normal,
             Interaction::Hovered => tint.hovered,
             Interaction::Pressed => tint.pressed,

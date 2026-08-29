@@ -174,6 +174,115 @@ fn uno_expansion_settings_only_frames_the_hosts_status_control() {
 }
 
 #[test]
+fn uno_mode_switch_uses_a_translucent_three_option_dropdown() {
+    fn setup(mut commands: Commands, assets: Res<UiAssets>) {
+        let root = commands
+            .spawn(Node {
+                width: px(1280),
+                height: px(720),
+                ..default()
+            })
+            .id();
+        let parent = commands.spawn(Node::default()).id();
+        commands.entity(root).add_child(parent);
+        render_uno_mode_dropdown(
+            &mut commands,
+            root,
+            parent,
+            UnoRuleSet {
+                action_stacking: true,
+                swap_pack: true,
+                ..default()
+            },
+            true,
+            true,
+            &assets,
+        );
+    }
+
+    let mut app = App::new();
+    app.init_resource::<UiAssets>();
+    app.add_systems(Startup, setup);
+    app.update();
+
+    let backgrounds = app
+        .world_mut()
+        .query_filtered::<&BackgroundColor, With<UnoModeDropdownPanel>>()
+        .iter(app.world())
+        .collect::<Vec<_>>();
+    assert_eq!(backgrounds.len(), 1);
+    assert!(backgrounds[0].0.to_srgba().alpha < 1.0);
+
+    let mode_buttons = app
+        .world_mut()
+        .query_filtered::<(Option<&ImageNode>, Option<&BackgroundColor>, &UiAction), With<Button>>()
+        .iter(app.world())
+        .filter(|(_, _, action)| {
+            matches!(
+                action,
+                UiAction::ToggleUnoModeMenu | UiAction::UpdateUnoRules(_)
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(mode_buttons.len(), 4);
+    assert!(
+        mode_buttons
+            .iter()
+            .all(|(image, background, _)| image.is_none() && background.is_some())
+    );
+
+    let rules = app
+        .world_mut()
+        .query_filtered::<&UiAction, With<Button>>()
+        .iter(app.world())
+        .filter_map(|action| match action {
+            UiAction::UpdateUnoRules(rules) => Some(*rules),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(rules.len(), 3);
+    assert_eq!(
+        rules.iter().map(|rules| rules.mode).collect::<Vec<_>>(),
+        vec![
+            leocard_uno::Mode::Classic,
+            leocard_uno::Mode::NoMercy,
+            leocard_uno::Mode::Flip,
+        ]
+    );
+    assert!(
+        rules
+            .iter()
+            .all(|rules| rules.action_stacking && rules.swap_pack)
+    );
+}
+
+#[test]
+fn image_less_card_buttons_keep_their_transparent_background() {
+    let mut app = App::new();
+    app.add_systems(Update, update_button_tints);
+    let card = app
+        .world_mut()
+        .spawn((
+            Button,
+            Interaction::Hovered,
+            BackgroundColor(Color::NONE),
+            ButtonTint {
+                normal: Color::WHITE,
+                hovered: Color::srgb(1.0, 0.92, 0.66),
+                pressed: Color::srgb(0.78, 0.84, 0.72),
+            },
+        ))
+        .id();
+
+    app.update();
+
+    assert_eq!(
+        app.world().get::<BackgroundColor>(card).unwrap().0,
+        Color::NONE
+    );
+}
+
+#[test]
 fn uno_expansion_settings_entry_centers_its_label_in_the_full_width_button() {
     fn setup(mut commands: Commands, assets: Res<UiAssets>) {
         let root = commands.spawn(Node::default()).id();
@@ -1236,331 +1345,6 @@ fn pre_omaha_preferences_keep_texas_rules_and_disable_omaha() {
     assert!(rules.short_deck);
     assert!(rules.ignore_kickers);
     assert!(!rules.omaha);
-}
-
-#[test]
-fn pre_uno_preferences_gain_default_uno_rules() {
-    let previous = PreUnoSavedPreferences {
-        global: GlobalPreferences {
-            player_name: "UNO 前版本玩家".to_owned(),
-            avatar_png: None,
-            host_port: "52301".to_owned(),
-            join_address: "127.0.0.1:52301".to_owned(),
-            table_felt_path: None,
-            table_brightness: 0.8,
-            table_vignette: 0.3,
-            audio_volume: 0.8,
-        },
-        games: PreUnoGamePreferences {
-            qigui523: QiGui523Preferences {
-                host_rules: normalize_host_rules(RuleSet::default()),
-            },
-            texas_holdem: PreOmahaTexasHoldemPreferences {
-                host_rules: PreOmahaTexasHoldemRuleSet {
-                    player_count: TexasHoldemRuleSet::MAX_PLAYERS,
-                    starting_chips: TexasHoldemRuleSet::default().starting_chips,
-                    short_deck: false,
-                    ignore_kickers: false,
-                },
-            },
-            shengji: ShengjiPreferences::default(),
-        },
-    };
-    let encoded = postcard::to_allocvec(&previous).unwrap();
-    let decoded = decode_preferences(&encoded).unwrap();
-    assert_eq!(decoded.global.player_name, "UNO 前版本玩家");
-    assert_eq!(decoded.games.uno.host_rules, UnoRuleSet::default());
-}
-
-#[test]
-fn pre_jump_in_preferences_preserve_uno_rules_and_disable_jump_in() {
-    let previous = PreJumpInSavedPreferences {
-        global: GlobalPreferences {
-            player_name: "抢出前版本玩家".to_owned(),
-            avatar_png: None,
-            host_port: "52301".to_owned(),
-            join_address: "127.0.0.1:52301".to_owned(),
-            table_felt_path: None,
-            table_brightness: 0.8,
-            table_vignette: 0.3,
-            audio_volume: 0.8,
-        },
-        games: PreJumpInGamePreferences {
-            qigui523: QiGui523Preferences {
-                host_rules: normalize_host_rules(RuleSet::default()),
-            },
-            texas_holdem: PreOmahaTexasHoldemPreferences {
-                host_rules: PreOmahaTexasHoldemRuleSet {
-                    player_count: TexasHoldemRuleSet::MAX_PLAYERS,
-                    starting_chips: TexasHoldemRuleSet::default().starting_chips,
-                    short_deck: false,
-                    ignore_kickers: false,
-                },
-            },
-            shengji: ShengjiPreferences::default(),
-            uno: PreJumpInUnoPreferences {
-                host_rules: PreJumpInUnoRuleSet {
-                    stack_draw_four_on_draw_two: true,
-                    uno_callout: false,
-                    skip_draw_penalty: true,
-                    stack_skip: true,
-                },
-            },
-        },
-    };
-    let decoded = decode_preferences(&postcard::to_allocvec(&previous).unwrap()).unwrap();
-    assert_eq!(decoded.global.player_name, "抢出前版本玩家");
-    assert!(decoded.games.uno.host_rules.action_stacking);
-    assert!(!decoded.games.uno.host_rules.uno_callout);
-    assert!(decoded.games.uno.host_rules.skip_draw_penalty);
-    assert!(!decoded.games.uno.host_rules.jump_in);
-}
-
-#[test]
-fn pre_swap_pack_preferences_preserve_uno_rules_and_disable_the_pack() {
-    let previous = PreSwapPackSavedPreferences {
-        global: GlobalPreferences {
-            player_name: "扩展包前版本玩家".to_owned(),
-            avatar_png: None,
-            host_port: "52301".to_owned(),
-            join_address: "127.0.0.1:52301".to_owned(),
-            table_felt_path: None,
-            table_brightness: 0.8,
-            table_vignette: 0.3,
-            audio_volume: 0.8,
-        },
-        games: PreSwapPackGamePreferences {
-            qigui523: QiGui523Preferences {
-                host_rules: normalize_host_rules(RuleSet::default()),
-            },
-            texas_holdem: TexasHoldemPreferences {
-                host_rules: normalize_texas_holdem_rules(TexasHoldemRuleSet::default()),
-            },
-            shengji: ShengjiPreferences::default(),
-            uno: PreSwapPackUnoPreferences {
-                host_rules: PreSwapPackUnoRuleSet {
-                    stack_draw_four_on_draw_two: true,
-                    uno_callout: false,
-                    skip_draw_penalty: true,
-                    stack_skip: true,
-                    jump_in: true,
-                },
-            },
-        },
-    };
-
-    let decoded = decode_preferences(&postcard::to_allocvec(&previous).unwrap()).unwrap();
-    let rules = decoded.games.uno.host_rules;
-    assert_eq!(decoded.global.player_name, "扩展包前版本玩家");
-    assert!(rules.action_stacking);
-    assert!(!rules.uno_callout);
-    assert!(rules.skip_draw_penalty);
-    assert!(rules.jump_in);
-    assert!(!rules.swap_pack);
-    assert!(!rules.reverse_pack);
-    assert!(!rules.stack_pack);
-}
-
-#[test]
-fn pre_reverse_pack_preferences_preserve_swap_pack_and_disable_reverse_pack() {
-    let previous = PreReversePackSavedPreferences {
-        global: GlobalPreferences {
-            player_name: "反转扩展前版本玩家".to_owned(),
-            avatar_png: None,
-            host_port: "52301".to_owned(),
-            join_address: "127.0.0.1:52301".to_owned(),
-            table_felt_path: None,
-            table_brightness: 0.8,
-            table_vignette: 0.3,
-            audio_volume: 0.8,
-        },
-        games: PreReversePackGamePreferences {
-            qigui523: QiGui523Preferences {
-                host_rules: normalize_host_rules(RuleSet::default()),
-            },
-            texas_holdem: TexasHoldemPreferences {
-                host_rules: normalize_texas_holdem_rules(TexasHoldemRuleSet::default()),
-            },
-            shengji: ShengjiPreferences::default(),
-            uno: PreReversePackUnoPreferences {
-                host_rules: PreReversePackUnoRuleSet {
-                    stack_draw_four_on_draw_two: true,
-                    uno_callout: false,
-                    skip_draw_penalty: true,
-                    stack_skip: true,
-                    jump_in: true,
-                    swap_pack: true,
-                },
-            },
-        },
-    };
-
-    let decoded = decode_preferences(&postcard::to_allocvec(&previous).unwrap()).unwrap();
-    let rules = decoded.games.uno.host_rules;
-    assert_eq!(decoded.global.player_name, "反转扩展前版本玩家");
-    assert!(rules.action_stacking);
-    assert!(!rules.uno_callout);
-    assert!(rules.skip_draw_penalty);
-    assert!(rules.jump_in);
-    assert!(rules.swap_pack);
-    assert!(!rules.reverse_pack);
-    assert!(!rules.stack_pack);
-}
-
-#[test]
-fn pre_no_mercy_rules_migrate_to_classic_without_losing_expansions() {
-    let rules: UnoRuleSet = PreNoMercyUnoRuleSet {
-        stack_draw_four_on_draw_two: true,
-        uno_callout: false,
-        skip_draw_penalty: true,
-        stack_skip: true,
-        jump_in: true,
-        swap_pack: true,
-        reverse_pack: true,
-        stack_pack: true,
-    }
-    .into();
-    assert!(rules.is_classic());
-    assert!(rules.action_stacking);
-    assert!(!rules.uno_callout);
-    assert!(rules.skip_draw_penalty);
-    assert!(rules.jump_in);
-    assert!(rules.swap_pack && rules.reverse_pack && rules.stack_pack);
-    assert_eq!(rules.no_mercy, leocard_uno::NoMercyRuleSet::default());
-}
-
-#[test]
-fn pre_flip_preferences_gain_independent_default_flip_rules() {
-    let previous = PreFlipSavedPreferences {
-        global: GlobalPreferences {
-            player_name: "FLIP 前版本玩家".to_owned(),
-            avatar_png: None,
-            host_port: "52301".to_owned(),
-            join_address: "127.0.0.1:52301".to_owned(),
-            table_felt_path: None,
-            table_brightness: 0.8,
-            table_vignette: 0.3,
-            audio_volume: 0.8,
-        },
-        games: PreFlipGamePreferences {
-            qigui523: QiGui523Preferences {
-                host_rules: normalize_host_rules(RuleSet::default()),
-            },
-            texas_holdem: TexasHoldemPreferences {
-                host_rules: TexasHoldemRuleSet::default(),
-            },
-            shengji: ShengjiPreferences::default(),
-            uno: PreFlipUnoPreferences {
-                host_rules: PreFlipUnoRuleSet {
-                    mode: leocard_uno::Mode::NoMercy,
-                    stack_draw_four_on_draw_two: true,
-                    uno_callout: false,
-                    skip_draw_penalty: true,
-                    stack_skip: true,
-                    jump_in: true,
-                    swap_pack: true,
-                    reverse_pack: true,
-                    stack_pack: true,
-                    no_mercy: leocard_uno::NoMercyRuleSet::default(),
-                },
-            },
-        },
-    };
-    let decoded = decode_preferences(&postcard::to_allocvec(&previous).unwrap()).unwrap();
-    assert!(decoded.games.uno.host_rules.is_no_mercy());
-    assert_eq!(
-        decoded.games.uno.host_rules.flip,
-        leocard_uno::FlipRuleSet::default()
-    );
-    assert!(decoded.games.uno.host_rules.swap_pack);
-}
-
-#[test]
-fn pre_stack_pack_preferences_preserve_existing_packs_and_disable_stack_pack() {
-    let previous = PreStackPackSavedPreferences {
-        global: GlobalPreferences {
-            player_name: "堆叠扩展前版本玩家".to_owned(),
-            avatar_png: None,
-            host_port: "52301".to_owned(),
-            join_address: "127.0.0.1:52301".to_owned(),
-            table_felt_path: None,
-            table_brightness: 0.8,
-            table_vignette: 0.3,
-            audio_volume: 0.8,
-        },
-        games: PreStackPackGamePreferences {
-            qigui523: QiGui523Preferences {
-                host_rules: normalize_host_rules(RuleSet::default()),
-            },
-            texas_holdem: TexasHoldemPreferences {
-                host_rules: normalize_texas_holdem_rules(TexasHoldemRuleSet::default()),
-            },
-            shengji: ShengjiPreferences::default(),
-            uno: PreStackPackUnoPreferences {
-                host_rules: PreStackPackUnoRuleSet {
-                    stack_draw_four_on_draw_two: true,
-                    uno_callout: false,
-                    skip_draw_penalty: true,
-                    stack_skip: true,
-                    jump_in: true,
-                    swap_pack: true,
-                    reverse_pack: true,
-                },
-            },
-        },
-    };
-
-    let decoded = decode_preferences(&postcard::to_allocvec(&previous).unwrap()).unwrap();
-    let rules = decoded.games.uno.host_rules;
-    assert_eq!(decoded.global.player_name, "堆叠扩展前版本玩家");
-    assert!(rules.action_stacking);
-    assert!(!rules.uno_callout);
-    assert!(rules.skip_draw_penalty);
-    assert!(rules.jump_in);
-    assert!(rules.swap_pack);
-    assert!(rules.reverse_pack);
-    assert!(!rules.stack_pack);
-}
-
-#[test]
-fn previous_uno_preferences_drop_configured_count_and_merge_stacking_rules() {
-    let previous = PreviousUnoSavedPreferences {
-        global: GlobalPreferences {
-            player_name: "旧 UNO 玩家".to_owned(),
-            avatar_png: None,
-            host_port: "52301".to_owned(),
-            join_address: "127.0.0.1:52301".to_owned(),
-            table_felt_path: None,
-            table_brightness: 0.8,
-            table_vignette: 0.3,
-            audio_volume: 0.8,
-        },
-        games: PreviousUnoGamePreferences {
-            qigui523: QiGui523Preferences {
-                host_rules: normalize_host_rules(RuleSet::default()),
-            },
-            texas_holdem: PreOmahaTexasHoldemPreferences {
-                host_rules: PreOmahaTexasHoldemRuleSet {
-                    player_count: TexasHoldemRuleSet::MAX_PLAYERS,
-                    starting_chips: TexasHoldemRuleSet::default().starting_chips,
-                    short_deck: false,
-                    ignore_kickers: false,
-                },
-            },
-            shengji: ShengjiPreferences::default(),
-            uno: PreviousUnoPreferences {
-                host_rules: PreviousUnoRuleSet {
-                    player_count: 4,
-                    stack_draw_four_on_draw_two: true,
-                    uno_callout: true,
-                },
-            },
-        },
-    };
-    let decoded = decode_preferences(&postcard::to_allocvec(&previous).unwrap()).unwrap();
-    assert!(decoded.games.uno.host_rules.action_stacking);
-    assert!(decoded.games.uno.host_rules.uno_callout);
-    assert!(!decoded.games.uno.host_rules.skip_draw_penalty);
 }
 
 #[test]
@@ -3137,7 +2921,7 @@ fn jump_in_selection_allows_single_card_or_identical_pair() {
         }],
         your_hand: vec![first, second, UnoCard::number(UnoColor::Blue, 3, 0)],
         draw_pile_len: 80,
-        draw_pile_inactive_top: None,
+        draw_pile_inactive_cards: Vec::new(),
         discard_top: UnoCard::number(UnoColor::Red, 4, 0),
         discard_pile: vec![UnoCard::number(UnoColor::Red, 4, 0)],
         current_color: Some(UnoColor::Red),
@@ -3153,6 +2937,7 @@ fn jump_in_selection_allows_single_card_or_identical_pair() {
         your_jump_in_card: None,
         uno_exposed: Vec::new(),
         uno_declared: Vec::new(),
+        can_call_uno: false,
         phase: UnoPhaseView::Playing,
     };
 

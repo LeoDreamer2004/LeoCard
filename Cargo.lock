@@ -3160,7 +3160,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-host"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3174,7 +3174,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-protocol"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "leocard-qigui523",
  "leocard-shengji",
@@ -3186,21 +3186,21 @@ dependencies = [
 
 [[package]]
 name = "leocard-qigui523"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "leocard-shengji"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "leocard-tcp"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ed25519-dalek",
  "leocard-host",
@@ -3215,14 +3215,14 @@ dependencies = [
 
 [[package]]
 name = "leocard-texas-holdem"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "leocard-uno"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
 ]

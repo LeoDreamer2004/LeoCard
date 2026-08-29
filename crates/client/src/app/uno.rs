@@ -463,12 +463,17 @@ fn add_uno_player_panel(
             );
             let face = commands
                 .spawn((
+                    UnoFlipTarget::Opponent {
+                        player: player.id,
+                        index,
+                    },
                     Node {
                         width: px(34),
                         height: px(52),
                         ..default()
                     },
                     ImageNode::new(uno_card_handle(assets, card)),
+                    UiTransform::IDENTITY,
                     BoxShadow::new(Color::BLACK.with_alpha(0.35), px(1), px(2), px(0), px(3)),
                     FocusPolicy::Pass,
                 ))
@@ -853,24 +858,46 @@ fn add_uno_center(commands: &mut Commands, table: Entity, game: &UnoSnapshot, as
         },
         None,
     );
-    let draw = commands
-        .spawn((
-            UnoDrawPileAnchor,
+    let draw = spawn_node(
+        commands,
+        center,
+        Node {
+            width: px(96),
+            height: px(140),
+            position_type: PositionType::Relative,
+            ..default()
+        },
+        None,
+    );
+    let visible_draw_cards = usize::from(game.draw_pile_len.min(6));
+    for index_from_top in (0..visible_draw_cards).rev() {
+        let image = game
+            .draw_pile_inactive_cards
+            .get(index_from_top)
+            .copied()
+            .map(|card| uno_card_handle(assets, card))
+            .unwrap_or_else(|| assets.uno_card_back.clone());
+        let mut card = commands.spawn((
+            UnoFlipTarget::DrawPile(index_from_top),
             Node {
+                position_type: PositionType::Absolute,
+                left: px(7.0 - index_from_top as f32 * 1.2),
+                top: px(6.0 - index_from_top as f32),
                 width: px(82),
                 height: px(128),
-                position_type: PositionType::Relative,
                 ..default()
             },
-            ImageNode::new(
-                game.draw_pile_inactive_top
-                    .map(|card| uno_card_handle(assets, card))
-                    .unwrap_or_else(|| assets.uno_card_back.clone()),
-            ),
+            ImageNode::new(image),
+            UiTransform::IDENTITY,
             BoxShadow::new(Color::BLACK.with_alpha(0.45), px(3), px(5), px(0), px(7)),
-        ))
-        .id();
-    commands.entity(center).add_child(draw);
+            FocusPolicy::Pass,
+        ));
+        if index_from_top == 0 {
+            card.insert(UnoDrawPileAnchor);
+        }
+        let card = card.id();
+        commands.entity(draw).add_child(card);
+    }
     let draw_count = spawn_node(
         commands,
         draw,
@@ -912,6 +939,7 @@ fn add_uno_center(commands: &mut Commands, table: Entity, game: &UnoSnapshot, as
         let (x, y, angle) = uno_discard_pose(card);
         let mut card_entity = commands.spawn((
             UnoDiscardCard(card),
+            UnoFlipTarget::DiscardPile(game.discard_pile.len() - 1 - index),
             Node {
                 position_type: PositionType::Absolute,
                 left: px(7.0 + x),
@@ -1137,6 +1165,7 @@ fn add_uno_own_area(
         commands.entity(hand).add_child(slot);
         let face = commands
             .spawn((
+                UnoFlipTarget::Own(index),
                 UnoHandCardVisual {
                     button: slot,
                     card,
@@ -1261,6 +1290,7 @@ pub(in crate::app) const fn uno_extension_card_help(
         | UnoFace::Reverse
         | UnoFace::Skip
         | UnoFace::Wild
+        | UnoFace::DarkWild
         | UnoFace::WildDrawTwo
         | UnoFace::WildDrawFour => None,
     }
@@ -1463,6 +1493,7 @@ fn add_uno_actions(
             if matches!(
                 card.face(),
                 UnoFace::Wild
+                    | UnoFace::DarkWild
                     | UnoFace::WildDrawTwo
                     | UnoFace::WildDrawFour
                     | UnoFace::WildDrawColor
@@ -1553,41 +1584,24 @@ fn add_uno_callout_actions(
     game: &UnoSnapshot,
     assets: &UiAssets,
 ) {
-    if game.pending_swap.is_some()
-        || game
-            .players
-            .iter()
-            .find(|player| player.id == game.you)
-            .is_some_and(|player| player.eliminated)
-    {
-        return;
-    }
-    let targets = game
-        .uno_exposed
-        .iter()
-        .copied()
-        .filter(|target| *target != game.you)
-        .collect::<Vec<_>>();
-    let own_skips = game
+    let eliminated = game
         .players
         .iter()
         .find(|player| player.id == game.you)
-        .map_or(0, |player| player.skipped_turns);
-    let can_declare_before_play = game.current_player == Some(game.you)
-        && game.your_hand.len() == 2
-        && game.pending_kind.is_none()
-        && game.pending_skip == 0
-        && own_skips == 0
-        && game
-            .your_hand
+        .is_some_and(|player| player.eliminated);
+    let targets = if eliminated
+        || !game.rules.uno_callout()
+        || !matches!(game.phase, UnoPhaseView::Playing)
+    {
+        Vec::new()
+    } else {
+        game.uno_exposed
             .iter()
             .copied()
-            .any(|card| uno_card_is_playable(game, card));
-    let can_recover_after_play = game.your_hand.len() == 1 && game.uno_exposed.contains(&game.you);
-    let can_call = game.rules.uno_callout()
-        && matches!(game.phase, UnoPhaseView::Playing)
-        && !game.uno_declared.contains(&game.you)
-        && (can_declare_before_play || can_recover_after_play);
+            .filter(|target| *target != game.you)
+            .collect::<Vec<_>>()
+    };
+    let can_call = game.can_call_uno;
     let callouts = spawn_node(
         commands,
         table,
@@ -2283,13 +2297,16 @@ pub(in crate::app) fn animate_uno_hand_cards(
     time: Res<Time>,
     mut ui: ResMut<UiState>,
     buttons: Query<&Interaction, With<Button>>,
-    mut cards: Query<(
-        &mut UnoHandCardVisual,
-        &mut UiTransform,
-        &mut Outline,
-        &mut BoxShadow,
-        &mut BorderColor,
-    )>,
+    mut cards: Query<
+        (
+            &mut UnoHandCardVisual,
+            &mut UiTransform,
+            &mut Outline,
+            &mut BoxShadow,
+            &mut BorderColor,
+        ),
+        Without<UnoFlipCard>,
+    >,
 ) {
     let response = 1.0 - (-14.0 * time.delta_secs()).exp();
     let pulse = 0.76 + 0.24 * (time.elapsed_secs() * 6.5).sin();
@@ -2395,14 +2412,21 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
     players: Query<(&PlayerAvatarAnchor, &ComputedNode, &UiGlobalTransform)>,
     draws: Query<(&ComputedNode, &UiGlobalTransform), With<UnoDrawPileAnchor>>,
     discards: Query<(&ComputedNode, &UiGlobalTransform), With<UnoDiscardPileAnchor>>,
+    flip_targets: Query<(Entity, &UnoFlipTarget, &ImageNode, &UiTransform)>,
 ) {
     let Some(game) = client
         .as_deref()
         .and_then(|client| client.0.model().uno_game())
     else {
         presentation.events.clear();
+        presentation.last_snapshot = None;
         return;
     };
+    let previous_game = presentation
+        .last_snapshot
+        .as_ref()
+        .filter(|previous| previous.match_id == game.match_id)
+        .cloned();
     let Ok((layer, layer_node, layer_transform)) = layers.single() else {
         return;
     };
@@ -2496,6 +2520,7 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                 player,
                 count,
                 penalty,
+                card_backs,
             } => {
                 let interval = if !penalty && count > 1 { 0.18 } else { 0.045 };
                 spawn_uno_draw_cards_with_interval(
@@ -2505,6 +2530,7 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                     uno_player_anchor_in_layer(player, layer_node, layer_transform, &players)
                         .unwrap_or(discard_position),
                     count,
+                    &card_backs,
                     0.0,
                     interval,
                     &assets,
@@ -2556,6 +2582,7 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                 player,
                 color,
                 count,
+                card_backs,
             } => {
                 spawn_uno_palette_effect(
                     &mut commands,
@@ -2571,33 +2598,44 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                     uno_player_anchor_in_layer(player, layer_node, layer_transform, &players)
                         .unwrap_or(discard_position),
                     count,
+                    &card_backs,
                     0.22,
                     0.18,
                     &assets,
                 );
             }
-            UnoEvent::DrawPenaltyReflected { target, count, .. } => {
-                spawn_uno_draw_cards(
+            UnoEvent::DrawPenaltyReflected {
+                target,
+                count,
+                card_backs,
+                ..
+            } => {
+                spawn_uno_draw_cards_with_backs(
                     &mut commands,
                     layer,
                     draw_position,
                     uno_player_anchor_in_layer(target, layer_node, layer_transform, &players)
                         .unwrap_or(discard_position),
                     count,
+                    &card_backs,
                     UNO_PLAY_CARD_DURATION * 0.72,
                     &assets,
                 );
             }
             UnoEvent::ChallengeResolved {
-                penalized, count, ..
+                penalized,
+                count,
+                card_backs,
+                ..
             } => {
-                spawn_uno_draw_cards(
+                spawn_uno_draw_cards_with_backs(
                     &mut commands,
                     layer,
                     draw_position,
                     uno_player_anchor_in_layer(penalized, layer_node, layer_transform, &players)
                         .unwrap_or(discard_position),
                     count,
+                    &card_backs,
                     0.18,
                     &assets,
                 );
@@ -2605,16 +2643,33 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
             UnoEvent::SkipResolved {
                 player,
                 drew_card: true,
+                card_back,
                 ..
             } => {
-                spawn_uno_draw_cards(
+                spawn_uno_draw_cards_with_backs(
                     &mut commands,
                     layer,
                     draw_position,
                     uno_player_anchor_in_layer(player, layer_node, layer_transform, &players)
                         .unwrap_or(discard_position),
                     1,
+                    card_back.as_slice(),
                     0.02,
+                    &assets,
+                );
+            }
+            UnoEvent::UnoReported {
+                target, card_backs, ..
+            } => {
+                spawn_uno_draw_cards_with_backs(
+                    &mut commands,
+                    layer,
+                    draw_position,
+                    uno_player_anchor_in_layer(target, layer_node, layer_transform, &players)
+                        .unwrap_or(discard_position),
+                    2,
+                    &card_backs,
+                    0.12,
                     &assets,
                 );
             }
@@ -2741,24 +2796,20 @@ pub(in crate::app) fn spawn_uno_presentation_effects(
                     &mut commands,
                     layer,
                     layer_node.size() * layer_node.inverse_scale_factor(),
-                    game,
+                    previous_game.as_ref(),
                     side,
-                    draw_position,
-                    discard_position,
-                    layer_node,
-                    layer_transform,
-                    &players,
+                    &flip_targets,
                     &assets,
                 );
             }
             UnoEvent::UnoCalled { .. }
-            | UnoEvent::UnoReported { .. }
             | UnoEvent::SkipResolved {
                 drew_card: false, ..
             }
             | UnoEvent::GameFinished { .. } => {}
         }
     }
+    presentation.last_snapshot = Some(game.clone());
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -2766,13 +2817,9 @@ fn spawn_uno_flip_effect(
     commands: &mut Commands,
     layer: Entity,
     layer_size: Vec2,
-    game: &UnoSnapshot,
+    previous_game: Option<&UnoSnapshot>,
     side: leocard_uno::FlipSide,
-    draw_position: Vec2,
-    discard_position: Vec2,
-    layer_node: &ComputedNode,
-    layer_transform: &UiGlobalTransform,
-    players: &Query<(&PlayerAvatarAnchor, &ComputedNode, &UiGlobalTransform)>,
+    targets: &Query<(Entity, &UnoFlipTarget, &ImageNode, &UiTransform)>,
     assets: &UiAssets,
 ) {
     let overlay = commands
@@ -2830,73 +2877,61 @@ fn spawn_uno_flip_effect(
         assets,
     );
 
-    let mut cards = Vec::new();
-    for player in &game.players {
-        let Some(position) =
-            uno_player_anchor_in_layer(player.id, layer_node, layer_transform, players)
-        else {
+    let Some(previous) = previous_game else {
+        return;
+    };
+    for (entity, target, image, transform) in targets {
+        let (old_card, delay, pile) = match *target {
+            UnoFlipTarget::Own(index) => (
+                previous.your_hand.get(index).copied(),
+                UNO_PLAY_CARD_DURATION + index as f32 * 0.018,
+                false,
+            ),
+            UnoFlipTarget::Opponent { player, index } => (
+                previous
+                    .players
+                    .iter()
+                    .find(|candidate| candidate.id == player)
+                    .and_then(|candidate| candidate.inactive_hand.get(index))
+                    .copied(),
+                UNO_PLAY_CARD_DURATION + player.0 as f32 * 0.025 + index as f32 * 0.018,
+                false,
+            ),
+            UnoFlipTarget::DrawPile(index) => {
+                let old_index = previous
+                    .draw_pile_inactive_cards
+                    .len()
+                    .saturating_sub(1 + index);
+                (
+                    previous.draw_pile_inactive_cards.get(old_index).copied(),
+                    UNO_PLAY_CARD_DURATION + 0.10,
+                    true,
+                )
+            }
+            UnoFlipTarget::DiscardPile(index) => (
+                previous.discard_pile.get(index).copied(),
+                UNO_PLAY_CARD_DURATION + 0.10,
+                true,
+            ),
+        };
+        let Some(old_card) = old_card else {
             continue;
         };
-        if player.id == game.you {
-            for (index, card) in game.your_hand.iter().copied().take(5).enumerate() {
-                cards.push((
-                    position + Vec2::new((index as f32 - 2.0) * 18.0, 18.0),
-                    card.opposite_public_face()
-                        .map(|old| uno_card_handle(assets, old))
-                        .unwrap_or_else(|| assets.uno_card_back.clone()),
-                    uno_card_handle(assets, card.public_face()),
-                    index as f32 * 0.035,
-                ));
-            }
-        } else if let Some(old) = player.inactive_hand.first().copied() {
-            cards.push((
-                position + Vec2::new(0.0, 24.0),
-                uno_card_handle(assets, old),
-                assets.uno_card_back.clone(),
-                player.seat.0 as f32 * 0.035,
-            ));
-        }
-    }
-    if let Some(old) = game.draw_pile_inactive_top {
-        cards.push((
-            draw_position,
-            uno_card_handle(assets, old),
-            uno_card_handle(assets, old),
-            0.08,
+        let old_face = uno_card_handle(assets, old_card);
+        let mut old_image = image.clone();
+        let new_face = std::mem::replace(&mut old_image.image, old_face.clone());
+        commands.entity(entity).insert((
+            UnoFlipCard {
+                elapsed: 0.0,
+                delay,
+                old_face,
+                new_face,
+                swapped: false,
+                base_transform: *transform,
+                pile,
+            },
+            old_image,
         ));
-    }
-    cards.push((
-        discard_position,
-        assets.uno_card_back.clone(),
-        uno_card_handle(assets, game.discard_top),
-        0.12,
-    ));
-
-    for (position, old_face, new_face, delay) in cards {
-        let card = commands
-            .spawn((
-                UnoFlipCard {
-                    elapsed: 0.0,
-                    delay,
-                    old_face: old_face.clone(),
-                    new_face,
-                    swapped: false,
-                },
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(position.x - 34.0),
-                    top: px(position.y - 53.0),
-                    width: px(68),
-                    height: px(106),
-                    ..default()
-                },
-                ImageNode::new(old_face),
-                UiTransform::default(),
-                BoxShadow::new(Color::BLACK.with_alpha(0.54), px(3), px(6), px(0), px(8)),
-                FocusPolicy::Pass,
-            ))
-            .id();
-        commands.entity(overlay).add_child(card);
     }
 }
 
@@ -2995,7 +3030,31 @@ fn spawn_uno_draw_cards(
     assets: &UiAssets,
 ) {
     spawn_uno_draw_cards_with_interval(
-        commands, layer, source, target, count, base_delay, 0.045, assets,
+        commands,
+        layer,
+        source,
+        target,
+        count,
+        &[],
+        base_delay,
+        0.045,
+        assets,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn spawn_uno_draw_cards_with_backs(
+    commands: &mut Commands,
+    layer: Entity,
+    source: Vec2,
+    target: Vec2,
+    count: u16,
+    card_backs: &[UnoCard],
+    base_delay: f32,
+    assets: &UiAssets,
+) {
+    spawn_uno_draw_cards_with_interval(
+        commands, layer, source, target, count, card_backs, base_delay, 0.045, assets,
     );
 }
 
@@ -3006,15 +3065,21 @@ fn spawn_uno_draw_cards_with_interval(
     source: Vec2,
     target: Vec2,
     count: u16,
+    card_backs: &[UnoCard],
     base_delay: f32,
     interval: f32,
     assets: &UiAssets,
 ) {
     for index in 0..usize::from(count.min(16)) {
+        let image = card_backs
+            .get(index)
+            .copied()
+            .map(|card| uno_card_handle(assets, card))
+            .unwrap_or_else(|| assets.uno_card_back.clone());
         spawn_uno_flying_card(
             commands,
             layer,
-            assets.uno_card_back.clone(),
+            image,
             None,
             source,
             target,
@@ -3117,6 +3182,7 @@ pub(in crate::app) fn uno_discard_pose(card: UnoCard) -> (f32, f32, f32) {
         UnoFace::Reverse => 11,
         UnoFace::Skip => 12,
         UnoFace::Wild => 13,
+        UnoFace::DarkWild => 39,
         UnoFace::WildDrawFour => 14,
         UnoFace::SwapOne => 15,
         UnoFace::RefreshHand => 16,
@@ -3534,23 +3600,23 @@ pub(in crate::app) fn animate_uno_flip_effects(
     mut commands: Commands,
     time: Res<Time>,
     mut overlays: Query<(Entity, &mut UnoFlipOverlay, &mut BackgroundColor)>,
-    mut cards: Query<(&mut UnoFlipCard, &mut UiTransform, &mut ImageNode)>,
+    mut cards: Query<(Entity, &mut UnoFlipCard, &mut UiTransform, &mut ImageNode)>,
 ) {
     let delta = time.delta_secs();
     for (entity, mut effect, mut background) in &mut overlays {
         effect.elapsed += delta;
-        let progress = (effect.elapsed / 1.55).clamp(0.0, 1.0);
+        let progress = (effect.elapsed / 2.0).clamp(0.0, 1.0);
         let alpha = (std::f32::consts::PI * progress).sin().powf(1.35) * 0.34;
         background.0.set_alpha(alpha);
         if progress >= 1.0 {
             commands.entity(entity).despawn();
         }
     }
-    for (mut card, mut transform, mut image) in &mut cards {
+    for (entity, mut card, mut transform, mut image) in &mut cards {
         card.elapsed += delta;
-        let progress = ((card.elapsed - card.delay) / 1.05).clamp(0.0, 1.0);
+        let progress = ((card.elapsed - card.delay) / 1.18).clamp(0.0, 1.0);
+        *transform = card.base_transform;
         if progress <= 0.0 {
-            transform.scale = Vec2::splat(0.86);
             continue;
         }
         if progress >= 0.5 && !card.swapped {
@@ -3560,11 +3626,26 @@ pub(in crate::app) fn animate_uno_flip_effects(
             image.image = card.old_face.clone();
             card.swapped = false;
         }
-        let edge = (std::f32::consts::PI * progress).cos().abs().max(0.035);
+        let edge = (std::f32::consts::PI * progress).cos().abs().max(0.028);
         let lift = (std::f32::consts::PI * progress).sin();
-        transform.scale = Vec2::new(edge * (0.86 + lift * 0.20), 0.86 + lift * 0.15);
-        transform.rotation = Rot2::degrees((progress - 0.5) * 9.0);
-        transform.translation = Val2::px(0.0, -lift * 18.0);
+        let scale_y = if card.pile {
+            1.0 + lift * 0.09
+        } else {
+            1.0 + lift * 0.13
+        };
+        transform.scale = card.base_transform.scale * Vec2::new(edge, scale_y);
+        transform.rotation = card.base_transform.rotation
+            * Rot2::degrees((progress - 0.5) * if card.pile { 3.0 } else { 8.0 });
+        transform.translation = card
+            .base_transform
+            .translation
+            .try_add(Val2::px(0.0, -lift * if card.pile { 28.0 } else { 14.0 }))
+            .unwrap_or(card.base_transform.translation);
+        if progress >= 1.0 {
+            image.image = card.new_face.clone();
+            *transform = card.base_transform;
+            commands.entity(entity).remove::<UnoFlipCard>();
+        }
     }
 }
 

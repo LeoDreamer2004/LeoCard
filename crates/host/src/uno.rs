@@ -306,7 +306,11 @@ impl UnoSession {
         request_id: RequestId,
         command: UnoCommand,
     ) -> Vec<Delivery> {
-        if self.pending_draw_reveal.is_some() && !matches!(command, UnoCommand::SetAutoPlay { .. })
+        if self.pending_draw_reveal.is_some()
+            && !matches!(
+                command,
+                UnoCommand::SetAutoPlay { .. } | UnoCommand::CallUno | UnoCommand::ReportUno { .. }
+            )
         {
             return self.room.reject(
                 connection,
@@ -329,31 +333,40 @@ impl UnoSession {
                 request_id,
                 vec![(card, chosen_color)],
                 false,
-                |game, player| game.play_card(player, card, chosen_color),
+                |game, player| {
+                    let card = resolve_public_hand_card(game, player, card)?;
+                    game.play_card(player, card, chosen_color)
+                },
             ),
             UnoCommand::PlayCards {
                 cards,
                 chosen_color,
-            } => {
-                let played = cards
+            } => self.perform_action(
+                connection,
+                request_id,
+                cards
                     .iter()
                     .copied()
                     .map(|card| (card, chosen_color))
-                    .collect();
-                self.perform_action(
-                    connection,
-                    request_id,
-                    played,
-                    false,
-                    move |game, player| game.play_cards(player, &cards, chosen_color),
-                )
-            }
+                    .collect(),
+                false,
+                move |game, player| {
+                    let cards = cards
+                        .into_iter()
+                        .map(|card| resolve_public_hand_card(game, player, card))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    game.play_cards(player, &cards, chosen_color)
+                },
+            ),
             UnoCommand::JumpIn { card } => self.perform_action(
                 connection,
                 request_id,
                 vec![(card, None)],
                 true,
-                |game, player| game.jump_in(player, card),
+                |game, player| {
+                    let card = resolve_public_hand_card(game, player, card)?;
+                    game.jump_in(player, card)
+                },
             ),
             UnoCommand::ChooseSwapOneTarget { target } => {
                 let core_target = to_core_player(target);
@@ -386,6 +399,7 @@ impl UnoSession {
             }
             UnoCommand::GiveSwapOneCard { card } => {
                 self.perform_action(connection, request_id, Vec::new(), false, |game, player| {
+                    let card = resolve_public_hand_card(game, player, card)?;
                     game.give_swap_one_card(player, card)
                 })
             }
@@ -754,7 +768,9 @@ impl UnoSession {
                 let mut events = events_for_outcome(&outcome, &played);
                 append_finished_event(&mut events, game);
                 self.record_profile_outcome(&outcome);
-                self.record_jump_in_opportunities();
+                if !played.is_empty() {
+                    self.record_jump_in_opportunities();
+                }
                 self.record_state_peaks();
                 self.apply_finished_reference_points();
                 self.reset_auto_play_delay();
@@ -766,7 +782,9 @@ impl UnoSession {
                         .expect("a successful UNO action keeps an active game"),
                 );
                 let mut deliveries = self.broadcast_events(std::mem::take(&mut events));
-                self.pending_draw_reveal = draw_reveal;
+                if draw_reveal.is_some() || self.pending_draw_reveal.is_none() {
+                    self.pending_draw_reveal = draw_reveal;
+                }
                 deliveries.extend(self.broadcast_game(Some((connection, request_id))));
                 deliveries
             }
@@ -1318,7 +1336,11 @@ impl UnoSession {
                     .iter()
                     .map(|player| UnoRevealedHand {
                         player: from_core_player(player.id()),
-                        cards: player.hand().to_vec(),
+                        cards: player
+                            .hand()
+                            .iter()
+                            .map(|card| card.public_face())
+                            .collect(),
                     })
                     .collect(),
                 reference_changes: self
@@ -1341,11 +1363,15 @@ impl UnoSession {
                 .player(to_core_player(recipient))
                 .expect("recipient belongs to game")
                 .hand()
-                .to_vec(),
+                .iter()
+                .map(|card| card.public_face())
+                .collect(),
             draw_pile_len: game.draw_pile_len() as u16,
-            draw_pile_inactive_top: game
-                .draw_pile_top()
-                .and_then(|card| card.opposite_public_face()),
+            draw_pile_inactive_cards: game
+                .draw_pile()
+                .take(6)
+                .filter_map(Card::opposite_public_face)
+                .collect(),
             discard_top: game.top_card().public_face(),
             discard_pile: game
                 .discard_pile()
@@ -1390,15 +1416,28 @@ impl UnoSession {
             }),
             your_drawn_card: turn
                 .filter(|turn| from_core_player(turn.current_player) == recipient)
-                .and_then(|turn| turn.drawn_card),
-            your_jump_in_card: game.jump_in_card(to_core_player(recipient)),
+                .and_then(|turn| turn.drawn_card)
+                .map(Card::public_face),
+            your_jump_in_card: game
+                .jump_in_card(to_core_player(recipient))
+                .map(Card::public_face),
             uno_exposed: game.uno_exposed_players().map(from_core_player).collect(),
             uno_declared: game.uno_declared_players().map(from_core_player).collect(),
+            can_call_uno: game.can_call_uno(to_core_player(recipient)),
             phase,
         };
         if let Some(reveal) = self.pending_draw_reveal.as_ref() {
             let hidden_cards = &reveal.cards[reveal.revealed..];
             let hidden_count = u8::try_from(hidden_cards.len()).unwrap_or(u8::MAX);
+            let pending_backs = hidden_cards
+                .iter()
+                .filter_map(|card| card.opposite_public_face())
+                .chain(snapshot.draw_pile_inactive_cards.iter().copied())
+                .take(6)
+                .collect::<Vec<_>>();
+            if !pending_backs.is_empty() {
+                snapshot.draw_pile_inactive_cards = pending_backs;
+            }
             if let Some(player) = snapshot
                 .players
                 .iter_mut()
@@ -1425,16 +1464,21 @@ impl UnoSession {
             snapshot.current_player = None;
             snapshot.your_jump_in_card = None;
             if recipient == reveal.player {
-                snapshot
-                    .your_hand
-                    .retain(|card| !hidden_cards.contains(card));
-                if snapshot
-                    .your_drawn_card
-                    .is_some_and(|card| hidden_cards.contains(&card))
-                {
+                snapshot.your_hand.retain(|card| {
+                    !hidden_cards
+                        .iter()
+                        .any(|hidden| hidden.public_face() == *card)
+                });
+                if snapshot.your_drawn_card.is_some_and(|card| {
+                    hidden_cards
+                        .iter()
+                        .any(|hidden| hidden.public_face() == card)
+                }) {
                     snapshot.your_drawn_card = None;
                 }
             }
+            snapshot.can_call_uno =
+                snapshot.your_hand.len() == 1 && snapshot.uno_exposed.contains(&snapshot.you);
         }
         snapshot
     }
@@ -1478,12 +1522,14 @@ fn events_for_outcome(outcome: &ActionOutcome, played: &[(Card, Option<Color>)])
             player: from_core_player(*player),
             count: cards.len() as u16,
             penalty: false,
+            card_backs: public_card_backs(cards),
         }),
         ActionOutcome::PenaltyDrawn { player, cards, .. } => {
             events.push(UnoEvent::CardsDrawn {
                 player: from_core_player(*player),
                 count: cards.len() as u16,
                 penalty: true,
+                card_backs: public_card_backs(cards),
             });
         }
         ActionOutcome::ChallengeResolved {
@@ -1499,15 +1545,19 @@ fn events_for_outcome(outcome: &ActionOutcome, played: &[(Card, Option<Color>)])
             result: *result,
             penalized: from_core_player(*penalized),
             count: cards.len() as u16,
+            card_backs: public_card_backs(cards),
         }),
         ActionOutcome::UnoCalled { player } => events.push(UnoEvent::UnoCalled {
             player: from_core_player(*player),
         }),
         ActionOutcome::UnoReported {
-            reporter, target, ..
+            reporter,
+            target,
+            cards,
         } => events.push(UnoEvent::UnoReported {
             reporter: from_core_player(*reporter),
             target: from_core_player(*target),
+            card_backs: public_card_backs(cards),
         }),
         ActionOutcome::SkipResolved {
             player,
@@ -1518,6 +1568,7 @@ fn events_for_outcome(outcome: &ActionOutcome, played: &[(Card, Option<Color>)])
             player: from_core_player(*player),
             remaining: *remaining,
             drew_card: !cards.is_empty(),
+            card_back: cards.first().and_then(|card| card.opposite_public_face()),
         }),
         ActionOutcome::SwapOneCardTaken { player, target } => {
             events.push(UnoEvent::SwapOneCardTaken {
@@ -1561,6 +1612,7 @@ fn events_for_outcome(outcome: &ActionOutcome, played: &[(Card, Option<Color>)])
                     player: from_core_player(*player),
                     target: from_core_player(*target),
                     count: cards.len() as u16,
+                    card_backs: public_card_backs(cards),
                 });
             }
             Some(PlayedEffect::StackNumberRevealed { cards, value }) => {
@@ -1590,10 +1642,18 @@ fn events_for_outcome(outcome: &ActionOutcome, played: &[(Card, Option<Color>)])
             player: from_core_player(*player),
             color: *color,
             count: cards.len() as u16,
+            card_backs: public_card_backs(cards),
         }),
         ActionOutcome::PassedAfterDraw { .. } => {}
     }
     events
+}
+
+fn public_card_backs(cards: &[Card]) -> Vec<Card> {
+    cards
+        .iter()
+        .filter_map(|card| card.opposite_public_face())
+        .collect()
 }
 
 fn append_finished_event(events: &mut Vec<UnoEvent>, game: &GameState) {
@@ -1659,6 +1719,7 @@ fn automatic_chosen_color(game: &GameState, player: CorePlayerId, card: Card) ->
     matches!(
         card.face(),
         leocard_uno::Face::Wild
+            | leocard_uno::Face::DarkWild
             | leocard_uno::Face::WildDrawFour
             | leocard_uno::Face::WildDrawTwo
             | leocard_uno::Face::WildDrawColor
@@ -1738,6 +1799,22 @@ fn from_core_player(player: CorePlayerId) -> PlayerId {
     PlayerId(u8::try_from(player.0).expect("UNO supports at most six players"))
 }
 
+fn resolve_public_hand_card(
+    game: &GameState,
+    player: CorePlayerId,
+    public: Card,
+) -> Result<Card, GameError> {
+    game.player(player)
+        .and_then(|state| {
+            state
+                .hand()
+                .iter()
+                .copied()
+                .find(|card| card.public_face() == public.public_face())
+        })
+        .ok_or(GameError::CardNotInHand(public))
+}
+
 fn merge_uno_profile_stats(aggregate: &mut UnoProfileStats, current: &UnoProfileStats) {
     aggregate.max_hand_cards = aggregate.max_hand_cards.max(current.max_hand_cards);
     aggregate.max_penalty_cards = aggregate.max_penalty_cards.max(current.max_penalty_cards);
@@ -1767,6 +1844,7 @@ fn merge_uno_profile_stats(aggregate: &mut UnoProfileStats, current: &UnoProfile
 fn map_game_error(error: &GameError) -> UnoViolation {
     match error {
         GameError::InvalidPlayer(_) => UnoViolation::InvalidPlayer,
+        GameError::PlayerEliminated(_) => UnoViolation::PlayerEliminated,
         GameError::NotPlayersTurn { .. } => UnoViolation::NotPlayersTurn,
         GameError::GameAlreadyFinished => UnoViolation::GameAlreadyFinished,
         GameError::InitialColorChoiceRequired => UnoViolation::InitialColorChoiceRequired,
@@ -1883,11 +1961,18 @@ mod tests {
             assert!(own.inactive_hand.is_empty());
             assert!(
                 snapshot
+                    .your_hand
+                    .iter()
+                    .all(|card| card.opposite().is_none())
+            );
+            assert!(
+                snapshot
                     .players
                     .iter()
                     .filter(|player| player.id != snapshot.you)
                     .all(|player| player.inactive_hand.len() == player.hand_len as usize)
             );
+            assert_eq!(snapshot.draw_pile_inactive_cards.len(), 6);
         }
     }
 
@@ -1920,14 +2005,9 @@ mod tests {
         let second = ConnectionId(2);
         session.handle(HOST, message(1, join_command("甲", 1)));
         session.handle(second, message(1, join_command("乙", 2)));
-        session.handle(
-            HOST,
-            message(2, ClientCommand::SelectSeat { seat: SeatId(0) }),
-        );
-        session.handle(
-            second,
-            message(2, ClientCommand::SelectSeat { seat: SeatId(1) }),
-        );
+        for (index, player) in session.room.players.iter_mut().enumerate() {
+            player.seat = Some(SeatId(index as u8));
+        }
         session.handle(second, message(3, ClientCommand::SetReady { ready: true }));
         session.handle(HOST, message(3, ClientCommand::StartGame));
 
@@ -1985,6 +2065,194 @@ mod tests {
         assert!(second.your_hand.contains(&playable));
         assert_eq!(second.current_player, Some(PlayerId(0)));
         assert_eq!(second.your_drawn_card, Some(playable));
+    }
+
+    #[test]
+    fn flip_draw_events_expose_the_matching_card_backs_in_order() {
+        let cards = build_deck_for_rules(RuleSet {
+            mode: leocard_uno::Mode::Flip,
+            ..RuleSet::default()
+        })
+        .into_iter()
+        .take(3)
+        .collect::<Vec<_>>();
+        let expected = cards
+            .iter()
+            .filter_map(|card| card.opposite_public_face())
+            .collect::<Vec<_>>();
+
+        let outcome = ActionOutcome::ColorRouletteResolved {
+            player: CorePlayerId(0),
+            color: Color::Pink,
+            cards: cards.clone(),
+            next_player: CorePlayerId(1),
+        };
+        let events = events_for_outcome(&outcome, &[]);
+        assert_eq!(
+            events,
+            vec![UnoEvent::ColorRouletteResolved {
+                player: PlayerId(0),
+                color: Color::Pink,
+                count: 3,
+                card_backs: expected,
+            }]
+        );
+
+        let game = GameState::new_with_deck(
+            RuleSet {
+                mode: leocard_uno::Mode::Flip,
+                ..RuleSet::default()
+            },
+            2,
+            build_deck_for_rules(RuleSet {
+                mode: leocard_uno::Mode::Flip,
+                ..RuleSet::default()
+            }),
+        )
+        .unwrap();
+        let reveal = pending_draw_reveal_for_outcome(&outcome, &game).unwrap();
+        assert_eq!(reveal.cards, cards);
+        assert_eq!(reveal.revealed, 0);
+        assert_eq!(reveal.remaining, COLOR_ROULETTE_REVEAL_START_DELAY);
+    }
+
+    #[test]
+    fn flip_color_draw_reveals_cards_and_draw_pile_backs_one_at_a_time() {
+        let rules = RuleSet {
+            mode: leocard_uno::Mode::Flip,
+            ..RuleSet::default()
+        };
+        let mut session = UnoSession::new(ROOM, rules, build_deck_for_rules(rules)).unwrap();
+        let second = ConnectionId(2);
+        session.handle(HOST, message(1, join_command("甲", 1)));
+        session.handle(second, message(1, join_command("乙", 2)));
+        session.handle(second, message(2, ClientCommand::SetReady { ready: true }));
+        session.handle(HOST, message(2, ClientCommand::StartGame));
+
+        let cards = session
+            .game
+            .as_ref()
+            .unwrap()
+            .player(CorePlayerId(0))
+            .unwrap()
+            .hand()
+            .iter()
+            .copied()
+            .take(2)
+            .collect::<Vec<_>>();
+        session.pending_draw_reveal = Some(PendingDrawReveal {
+            player: PlayerId(0),
+            cards: cards.clone(),
+            revealed: 0,
+            remaining: COLOR_ROULETTE_REVEAL_START_DELAY,
+        });
+
+        let initial = session.game_snapshot(PlayerId(1));
+        assert_eq!(
+            initial.draw_pile_inactive_cards.first().copied(),
+            cards[0].opposite_public_face()
+        );
+        assert_eq!(
+            initial.players[0].hand_len,
+            session
+                .game
+                .as_ref()
+                .unwrap()
+                .player(CorePlayerId(0))
+                .unwrap()
+                .hand()
+                .len() as u8
+                - 2
+        );
+
+        session.advance_time(COLOR_ROULETTE_REVEAL_START_DELAY);
+        let after_first = session.game_snapshot(PlayerId(1));
+        assert_eq!(
+            after_first.draw_pile_inactive_cards.first().copied(),
+            cards[1].opposite_public_face()
+        );
+        assert_eq!(
+            after_first.players[0].hand_len,
+            initial.players[0].hand_len + 1
+        );
+
+        session.advance_time(DRAW_REVEAL_INTERVAL);
+        assert!(session.pending_draw_reveal.is_none());
+    }
+
+    #[test]
+    fn uno_call_and_report_remain_reactive_during_incremental_draws() {
+        let rules = RuleSet {
+            mode: leocard_uno::Mode::Flip,
+            ..RuleSet::default()
+        };
+        let mut session = UnoSession::new(ROOM, rules, build_deck_for_rules(rules)).unwrap();
+        let second = ConnectionId(2);
+        session.handle(HOST, message(1, join_command("甲", 1)));
+        session.handle(second, message(1, join_command("乙", 2)));
+        session.handle(second, message(2, ClientCommand::SetReady { ready: true }));
+        session.handle(HOST, message(2, ClientCommand::StartGame));
+
+        let cards = session
+            .game
+            .as_ref()
+            .unwrap()
+            .player(CorePlayerId(0))
+            .unwrap()
+            .hand()[..2]
+            .to_vec();
+        session.pending_draw_reveal = Some(PendingDrawReveal {
+            player: PlayerId(0),
+            cards,
+            revealed: 0,
+            remaining: COLOR_ROULETTE_REVEAL_START_DELAY,
+        });
+
+        let call = session.handle(
+            HOST,
+            message(
+                3,
+                ClientCommand::Game(GameCommand::Uno(UnoCommand::CallUno)),
+            ),
+        );
+        assert!(call.iter().any(|delivery| {
+            matches!(
+                delivery.message.event,
+                ServerEvent::Rejected {
+                    reason: RejectReason::GameViolation(GameViolation::Uno(
+                        UnoViolation::CannotCallUno
+                    ))
+                }
+            )
+        }));
+        assert!(session.pending_draw_reveal.is_some());
+
+        let reporter = session.room.player_id(second).unwrap();
+        let target = session
+            .room
+            .players
+            .iter()
+            .find(|player| player.id != reporter)
+            .unwrap()
+            .id;
+        let report = session.handle(
+            second,
+            message(
+                3,
+                ClientCommand::Game(GameCommand::Uno(UnoCommand::ReportUno { target })),
+            ),
+        );
+        assert!(report.iter().any(|delivery| {
+            matches!(
+                delivery.message.event,
+                ServerEvent::Rejected {
+                    reason: RejectReason::GameViolation(GameViolation::Uno(
+                        UnoViolation::PlayerNotReportable
+                    ))
+                }
+            )
+        }));
+        assert!(session.pending_draw_reveal.is_some());
     }
 
     #[test]
@@ -2219,6 +2487,43 @@ mod tests {
         }));
         assert_eq!(session.match_profile_stats[2].jump_in_opportunities, 1);
         assert_eq!(session.match_profile_stats[2].successful_jump_ins, 0);
+    }
+
+    #[test]
+    fn non_play_actions_do_not_count_the_same_jump_in_window_twice() {
+        let (mut session, _, third, first, _) = jump_in_session();
+        session.handle(
+            HOST,
+            message(
+                3,
+                ClientCommand::Game(GameCommand::Uno(UnoCommand::PlayCard {
+                    card: first,
+                    chosen_color: None,
+                })),
+            ),
+        );
+        assert_eq!(session.match_profile_stats[2].jump_in_opportunities, 1);
+
+        session.perform_action(third, RequestId(4), Vec::new(), false, |_, player| {
+            Ok(ActionOutcome::UnoCalled { player })
+        });
+
+        assert_eq!(session.match_profile_stats[2].jump_in_opportunities, 1);
+    }
+
+    #[test]
+    fn public_flip_card_command_resolves_to_the_private_physical_card() {
+        let rules = RuleSet {
+            mode: leocard_uno::Mode::Flip,
+            ..RuleSet::default()
+        };
+        let game = GameState::new_with_deck(rules, 2, build_deck_for_rules(rules)).unwrap();
+        let actual = game.player(CorePlayerId(0)).unwrap().hand()[0];
+
+        assert_eq!(
+            resolve_public_hand_card(&game, CorePlayerId(0), actual.public_face()),
+            Ok(actual)
+        );
     }
 
     #[test]

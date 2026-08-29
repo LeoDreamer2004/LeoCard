@@ -280,76 +280,6 @@ pub(super) fn decode_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
     postcard::from_bytes(bytes)
         .ok()
         .or_else(|| {
-            let previous: PreFlipSavedPreferences = postcard::from_bytes(bytes).ok()?;
-            Some(SavedPreferences {
-                global: previous.global,
-                games: GamePreferences {
-                    qigui523: previous.games.qigui523,
-                    texas_holdem: previous.games.texas_holdem,
-                    shengji: previous.games.shengji,
-                    uno: UnoPreferences {
-                        host_rules: previous.games.uno.host_rules.into(),
-                    },
-                },
-            })
-        })
-        .or_else(|| {
-            let previous: PreNoMercySavedPreferences = postcard::from_bytes(bytes).ok()?;
-            Some(SavedPreferences {
-                global: previous.global,
-                games: GamePreferences {
-                    qigui523: previous.games.qigui523,
-                    texas_holdem: previous.games.texas_holdem,
-                    shengji: previous.games.shengji,
-                    uno: UnoPreferences {
-                        host_rules: previous.games.uno.host_rules.into(),
-                    },
-                },
-            })
-        })
-        .or_else(|| {
-            let previous: PreStackPackSavedPreferences = postcard::from_bytes(bytes).ok()?;
-            Some(SavedPreferences {
-                global: previous.global,
-                games: GamePreferences {
-                    qigui523: previous.games.qigui523,
-                    texas_holdem: previous.games.texas_holdem,
-                    shengji: previous.games.shengji,
-                    uno: UnoPreferences {
-                        host_rules: previous.games.uno.host_rules.into(),
-                    },
-                },
-            })
-        })
-        .or_else(|| {
-            let previous: PreReversePackSavedPreferences = postcard::from_bytes(bytes).ok()?;
-            Some(SavedPreferences {
-                global: previous.global,
-                games: GamePreferences {
-                    qigui523: previous.games.qigui523,
-                    texas_holdem: previous.games.texas_holdem,
-                    shengji: previous.games.shengji,
-                    uno: UnoPreferences {
-                        host_rules: previous.games.uno.host_rules.into(),
-                    },
-                },
-            })
-        })
-        .or_else(|| {
-            let previous: PreSwapPackSavedPreferences = postcard::from_bytes(bytes).ok()?;
-            Some(SavedPreferences {
-                global: previous.global,
-                games: GamePreferences {
-                    qigui523: previous.games.qigui523,
-                    texas_holdem: previous.games.texas_holdem,
-                    shengji: previous.games.shengji,
-                    uno: UnoPreferences {
-                        host_rules: previous.games.uno.host_rules.into(),
-                    },
-                },
-            })
-        })
-        .or_else(|| {
             let previous: PreOmahaSavedPreferences = postcard::from_bytes(bytes).ok()?;
             Some(SavedPreferences {
                 global: previous.global,
@@ -360,52 +290,6 @@ pub(super) fn decode_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
                     },
                     shengji: previous.games.shengji,
                     uno: previous.games.uno,
-                },
-            })
-        })
-        .or_else(|| {
-            let previous: PreJumpInSavedPreferences = postcard::from_bytes(bytes).ok()?;
-            Some(SavedPreferences {
-                global: previous.global,
-                games: GamePreferences {
-                    qigui523: previous.games.qigui523,
-                    texas_holdem: TexasHoldemPreferences {
-                        host_rules: previous.games.texas_holdem.host_rules.into(),
-                    },
-                    shengji: previous.games.shengji,
-                    uno: UnoPreferences {
-                        host_rules: previous.games.uno.host_rules.into(),
-                    },
-                },
-            })
-        })
-        .or_else(|| {
-            let previous: PreviousUnoSavedPreferences = postcard::from_bytes(bytes).ok()?;
-            Some(SavedPreferences {
-                global: previous.global,
-                games: GamePreferences {
-                    qigui523: previous.games.qigui523,
-                    texas_holdem: TexasHoldemPreferences {
-                        host_rules: previous.games.texas_holdem.host_rules.into(),
-                    },
-                    shengji: previous.games.shengji,
-                    uno: UnoPreferences {
-                        host_rules: previous.games.uno.host_rules.into(),
-                    },
-                },
-            })
-        })
-        .or_else(|| {
-            let previous: PreUnoSavedPreferences = postcard::from_bytes(bytes).ok()?;
-            Some(SavedPreferences {
-                global: previous.global,
-                games: GamePreferences {
-                    qigui523: previous.games.qigui523,
-                    texas_holdem: TexasHoldemPreferences {
-                        host_rules: previous.games.texas_holdem.host_rules.into(),
-                    },
-                    shengji: previous.games.shengji,
-                    uno: UnoPreferences::default(),
                 },
             })
         })
@@ -709,6 +593,7 @@ pub(super) fn uno_card_asset_path(card: UnoCard) -> String {
     match card.color() {
         None => match card.face() {
             UnoFace::Wild => "cards/uno/wild.png".to_owned(),
+            UnoFace::DarkWild => "cards/uno-extension/uno-flip/dark/wild.png".to_owned(),
             UnoFace::WildDrawTwo => {
                 "cards/uno-extension/uno-flip/light/wild_draw_two.png".to_owned()
             }
@@ -798,6 +683,7 @@ pub(super) fn uno_card_asset_path(card: UnoCard) -> String {
                     return format!("cards/uno-extension/stack-pack/{color}_stack_two.png");
                 }
                 UnoFace::Wild
+                | UnoFace::DarkWild
                 | UnoFace::WildDrawTwo
                 | UnoFace::WildDrawFour
                 | UnoFace::WildDrawColor

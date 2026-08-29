@@ -22,6 +22,6 @@ cargo build -p leocard-client --release
 
 ## 许可证
 
-LeoCard 的原创代码以 [GPL v3.0](LICENSE)发布。分发修改版时须按
+LeoCard 的原创代码以 [GPL v3.0](LICENSE) 发布。分发修改版时须按
 GPL-3.0 提供相应源代码和许可证声明。第三方字体、图片、音频等素材继续使用各自的
 许可证，具体来源、署名和再分发要求见 [ASSETS.md](./assets/ASSETS.md)。

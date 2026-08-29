@@ -391,334 +391,6 @@ struct UnoPreferences {
     host_rules: UnoRuleSet,
 }
 
-#[derive(Deserialize, Serialize)]
-struct PreFlipUnoRuleSet {
-    mode: leocard_uno::Mode,
-    stack_draw_four_on_draw_two: bool,
-    uno_callout: bool,
-    skip_draw_penalty: bool,
-    stack_skip: bool,
-    jump_in: bool,
-    swap_pack: bool,
-    reverse_pack: bool,
-    stack_pack: bool,
-    no_mercy: leocard_uno::NoMercyRuleSet,
-}
-
-impl From<PreFlipUnoRuleSet> for UnoRuleSet {
-    fn from(value: PreFlipUnoRuleSet) -> Self {
-        Self {
-            mode: value.mode,
-            action_stacking: value.stack_draw_four_on_draw_two || value.stack_skip,
-            uno_callout: value.uno_callout,
-            skip_draw_penalty: value.skip_draw_penalty,
-            jump_in: value.jump_in,
-            swap_pack: value.swap_pack,
-            reverse_pack: value.reverse_pack,
-            stack_pack: value.stack_pack,
-            no_mercy: value.no_mercy,
-            flip: leocard_uno::FlipRuleSet::default(),
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreFlipUnoPreferences {
-    host_rules: PreFlipUnoRuleSet,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreFlipSavedPreferences {
-    global: GlobalPreferences,
-    games: PreFlipGamePreferences,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreFlipGamePreferences {
-    qigui523: QiGui523Preferences,
-    texas_holdem: TexasHoldemPreferences,
-    shengji: ShengjiPreferences,
-    uno: PreFlipUnoPreferences,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreNoMercyUnoRuleSet {
-    stack_draw_four_on_draw_two: bool,
-    uno_callout: bool,
-    skip_draw_penalty: bool,
-    stack_skip: bool,
-    jump_in: bool,
-    swap_pack: bool,
-    reverse_pack: bool,
-    stack_pack: bool,
-}
-
-impl From<PreNoMercyUnoRuleSet> for UnoRuleSet {
-    fn from(value: PreNoMercyUnoRuleSet) -> Self {
-        Self {
-            action_stacking: value.stack_draw_four_on_draw_two || value.stack_skip,
-            uno_callout: value.uno_callout,
-            skip_draw_penalty: value.skip_draw_penalty,
-            jump_in: value.jump_in,
-            swap_pack: value.swap_pack,
-            reverse_pack: value.reverse_pack,
-            stack_pack: value.stack_pack,
-            ..Self::default()
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreNoMercyUnoPreferences {
-    host_rules: PreNoMercyUnoRuleSet,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreNoMercySavedPreferences {
-    global: GlobalPreferences,
-    games: PreNoMercyGamePreferences,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreNoMercyGamePreferences {
-    qigui523: QiGui523Preferences,
-    texas_holdem: TexasHoldemPreferences,
-    shengji: ShengjiPreferences,
-    uno: PreNoMercyUnoPreferences,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreStackPackUnoRuleSet {
-    stack_draw_four_on_draw_two: bool,
-    uno_callout: bool,
-    skip_draw_penalty: bool,
-    stack_skip: bool,
-    jump_in: bool,
-    swap_pack: bool,
-    reverse_pack: bool,
-}
-
-impl From<PreStackPackUnoRuleSet> for UnoRuleSet {
-    fn from(value: PreStackPackUnoRuleSet) -> Self {
-        Self {
-            action_stacking: value.stack_draw_four_on_draw_two || value.stack_skip,
-            uno_callout: value.uno_callout,
-            skip_draw_penalty: value.skip_draw_penalty,
-            jump_in: value.jump_in,
-            swap_pack: value.swap_pack,
-            reverse_pack: value.reverse_pack,
-            stack_pack: false,
-            ..Self::default()
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreStackPackUnoPreferences {
-    host_rules: PreStackPackUnoRuleSet,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreStackPackSavedPreferences {
-    global: GlobalPreferences,
-    games: PreStackPackGamePreferences,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreStackPackGamePreferences {
-    qigui523: QiGui523Preferences,
-    texas_holdem: TexasHoldemPreferences,
-    shengji: ShengjiPreferences,
-    uno: PreStackPackUnoPreferences,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreReversePackUnoRuleSet {
-    stack_draw_four_on_draw_two: bool,
-    uno_callout: bool,
-    skip_draw_penalty: bool,
-    stack_skip: bool,
-    jump_in: bool,
-    swap_pack: bool,
-}
-
-impl From<PreReversePackUnoRuleSet> for UnoRuleSet {
-    fn from(value: PreReversePackUnoRuleSet) -> Self {
-        Self {
-            action_stacking: value.stack_draw_four_on_draw_two || value.stack_skip,
-            uno_callout: value.uno_callout,
-            skip_draw_penalty: value.skip_draw_penalty,
-            jump_in: value.jump_in,
-            swap_pack: value.swap_pack,
-            reverse_pack: false,
-            stack_pack: false,
-            ..Self::default()
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreReversePackUnoPreferences {
-    host_rules: PreReversePackUnoRuleSet,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreReversePackSavedPreferences {
-    global: GlobalPreferences,
-    games: PreReversePackGamePreferences,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreReversePackGamePreferences {
-    qigui523: QiGui523Preferences,
-    texas_holdem: TexasHoldemPreferences,
-    shengji: ShengjiPreferences,
-    uno: PreReversePackUnoPreferences,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreSwapPackUnoRuleSet {
-    stack_draw_four_on_draw_two: bool,
-    uno_callout: bool,
-    skip_draw_penalty: bool,
-    stack_skip: bool,
-    jump_in: bool,
-}
-
-impl From<PreSwapPackUnoRuleSet> for UnoRuleSet {
-    fn from(value: PreSwapPackUnoRuleSet) -> Self {
-        Self {
-            action_stacking: value.stack_draw_four_on_draw_two || value.stack_skip,
-            uno_callout: value.uno_callout,
-            skip_draw_penalty: value.skip_draw_penalty,
-            jump_in: value.jump_in,
-            swap_pack: false,
-            reverse_pack: false,
-            stack_pack: false,
-            ..Self::default()
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreSwapPackUnoPreferences {
-    host_rules: PreSwapPackUnoRuleSet,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreSwapPackSavedPreferences {
-    global: GlobalPreferences,
-    games: PreSwapPackGamePreferences,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreSwapPackGamePreferences {
-    qigui523: QiGui523Preferences,
-    texas_holdem: TexasHoldemPreferences,
-    shengji: ShengjiPreferences,
-    uno: PreSwapPackUnoPreferences,
-}
-
-/// “抢出”加入前的 UNO 规则磁盘格式。
-#[derive(Deserialize, Serialize)]
-struct PreJumpInUnoRuleSet {
-    stack_draw_four_on_draw_two: bool,
-    uno_callout: bool,
-    skip_draw_penalty: bool,
-    stack_skip: bool,
-}
-
-impl From<PreJumpInUnoRuleSet> for UnoRuleSet {
-    fn from(value: PreJumpInUnoRuleSet) -> Self {
-        Self {
-            action_stacking: value.stack_draw_four_on_draw_two || value.stack_skip,
-            uno_callout: value.uno_callout,
-            skip_draw_penalty: value.skip_draw_penalty,
-            jump_in: false,
-            swap_pack: false,
-            reverse_pack: false,
-            stack_pack: false,
-            ..Self::default()
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreJumpInUnoPreferences {
-    host_rules: PreJumpInUnoRuleSet,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreJumpInSavedPreferences {
-    global: GlobalPreferences,
-    games: PreJumpInGamePreferences,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreJumpInGamePreferences {
-    qigui523: QiGui523Preferences,
-    texas_holdem: PreOmahaTexasHoldemPreferences,
-    shengji: ShengjiPreferences,
-    uno: PreJumpInUnoPreferences,
-}
-
-/// 移除可配置人数并加入禁手规则前的 UNO 规则磁盘格式。
-#[derive(Deserialize, Serialize)]
-struct PreviousUnoRuleSet {
-    player_count: u8,
-    stack_draw_four_on_draw_two: bool,
-    uno_callout: bool,
-}
-
-impl From<PreviousUnoRuleSet> for UnoRuleSet {
-    fn from(value: PreviousUnoRuleSet) -> Self {
-        let _ = value.player_count;
-        Self {
-            action_stacking: value.stack_draw_four_on_draw_two,
-            uno_callout: value.uno_callout,
-            skip_draw_penalty: false,
-            jump_in: false,
-            swap_pack: false,
-            reverse_pack: false,
-            stack_pack: false,
-            ..Self::default()
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreviousUnoPreferences {
-    host_rules: PreviousUnoRuleSet,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreviousUnoSavedPreferences {
-    global: GlobalPreferences,
-    games: PreviousUnoGamePreferences,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreviousUnoGamePreferences {
-    qigui523: QiGui523Preferences,
-    texas_holdem: PreOmahaTexasHoldemPreferences,
-    shengji: ShengjiPreferences,
-    uno: PreviousUnoPreferences,
-}
-
-/// UNO 偏好加入前的磁盘格式。
-#[derive(Deserialize, Serialize)]
-struct PreUnoSavedPreferences {
-    global: GlobalPreferences,
-    games: PreUnoGamePreferences,
-}
-
-#[derive(Deserialize, Serialize)]
-struct PreUnoGamePreferences {
-    qigui523: QiGui523Preferences,
-    texas_holdem: PreOmahaTexasHoldemPreferences,
-    shengji: ShengjiPreferences,
-}
-
 /// “只比较最大牌型”加入前、但已经包含升级设置的磁盘格式。
 #[derive(Deserialize, Serialize)]
 struct PreviousSavedPreferences {
@@ -948,6 +620,7 @@ struct UiState {
     uno_card_animations: HashMap<UnoCard, CardAnimationState>,
     greedy_hint: QiGui523Bot,
     interaction_menu_open: Option<PlayerId>,
+    uno_mode_menu_open: bool,
     uno_expansion_settings_open: bool,
     settings_open: bool,
     profile_open: bool,
@@ -1901,6 +1574,8 @@ enum UiAction {
     UpdateTexasRules(TexasHoldemRuleSet),
     UpdateShengjiRules(ShengjiRuleSet),
     UpdateUnoRules(UnoRuleSet),
+    ToggleUnoModeMenu,
+    CloseUnoModeMenu,
     ToggleUnoExpansionSettings,
     ToggleUnoCard(UnoCard),
     SubmitUnoCard,
@@ -1959,6 +1634,9 @@ struct ButtonTint {
     hovered: Color,
     pressed: Color,
 }
+
+#[derive(Component)]
+struct BackgroundButtonTint;
 
 #[derive(Component)]
 struct HandCardVisual {
@@ -2030,6 +1708,7 @@ struct UnoExtensionCardHelpOverlay {
 #[derive(Resource, Default)]
 struct UnoPresentationState {
     events: VecDeque<UnoEvent>,
+    last_snapshot: Option<UnoSnapshot>,
 }
 
 #[derive(Component)]
@@ -2040,6 +1719,14 @@ struct UnoDiscardPileAnchor;
 
 #[derive(Component)]
 struct UnoDiscardCard(UnoCard);
+
+#[derive(Component, Clone, Copy)]
+enum UnoFlipTarget {
+    Own(usize),
+    Opponent { player: PlayerId, index: usize },
+    DrawPile(usize),
+    DiscardPile(usize),
+}
 
 #[derive(Component)]
 struct UnoFlyingCard {
@@ -2068,6 +1755,8 @@ struct UnoFlipCard {
     old_face: Handle<Image>,
     new_face: Handle<Image>,
     swapped: bool,
+    base_transform: UiTransform,
+    pile: bool,
 }
 
 #[derive(Component)]
@@ -2138,6 +1827,9 @@ enum PanelSkin {
 
 #[derive(Component)]
 struct GameSummaryPanelTexture;
+
+#[derive(Component)]
+struct UnoModeDropdownPanel;
 
 #[derive(Component)]
 struct ShengjiSettlementPanelTexture;

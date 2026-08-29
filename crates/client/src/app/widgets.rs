@@ -1237,6 +1237,7 @@ pub(super) fn rejection_label(reason: &RejectReason) -> Option<String> {
         },
         RejectReason::GameViolation(GameViolation::Uno(violation)) => match violation {
             UnoViolation::InvalidPlayer => "玩家身份无效",
+            UnoViolation::PlayerEliminated => "你已经被淘汰，不能继续操作",
             UnoViolation::NotPlayersTurn => "还没有轮到你行动",
             UnoViolation::GameAlreadyFinished => "游戏已经结束",
             UnoViolation::InitialColorChoiceRequired => "请先为起始万能牌选择颜色",

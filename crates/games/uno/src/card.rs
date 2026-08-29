@@ -86,6 +86,7 @@ pub enum Face {
     WildDrawSix,
     WildDrawTen,
     WildColorRoulette,
+    DarkWild,
 }
 
 impl Face {
@@ -107,6 +108,7 @@ impl Face {
             | Self::StackOne
             | Self::StackTwo => 20,
             Self::Wild
+            | Self::DarkWild
             | Self::WildDrawFour
             | Self::WildForceTrade
             | Self::WildPassHands
@@ -128,7 +130,7 @@ impl Face {
             Self::Number(value) => value as u16,
             Self::DrawOne | Self::DrawFive | Self::Reverse | Self::Skip | Self::Flip => 20,
             Self::SkipEveryone => 30,
-            Self::Wild => 40,
+            Self::Wild | Self::DarkWild => 40,
             Self::WildDrawTwo | Self::WildDrawColor => 50,
             _ => self.score(),
         }
@@ -138,6 +140,7 @@ impl Face {
         matches!(
             self,
             Self::Wild
+                | Self::DarkWild
                 | Self::WildDrawTwo
                 | Self::WildDrawFour
                 | Self::WildDrawColor
@@ -226,6 +229,7 @@ impl fmt::Display for Face {
             Self::StackOne => f.write_str("堆叠+1"),
             Self::StackTwo => f.write_str("堆叠+2"),
             Self::Wild => f.write_str("万能"),
+            Self::DarkWild => f.write_str("暗面万能"),
             Self::WildDrawTwo => f.write_str("万能+2"),
             Self::WildDrawFour => f.write_str("万能+4"),
             Self::WildDrawColor => f.write_str("指定颜色摸牌"),
@@ -344,6 +348,7 @@ impl Card {
         assert!(matches!(
             face,
             Face::Wild
+                | Face::DarkWild
                 | Face::WildDrawTwo
                 | Face::WildDrawFour
                 | Face::WildDrawColor
@@ -583,7 +588,7 @@ pub fn build_flip_light_sides() -> Vec<CardSide> {
 pub fn build_flip_dark_sides() -> Vec<CardSide> {
     let mut sides = build_flip_colored_sides(Color::DARK, Face::DrawFive, Face::SkipEveryone);
     for _ in 0..4 {
-        sides.push(CardSide::wild(Face::Wild));
+        sides.push(CardSide::wild(Face::DarkWild));
         sides.push(CardSide::wild(Face::WildDrawColor));
     }
     sides

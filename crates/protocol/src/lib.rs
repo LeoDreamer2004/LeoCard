@@ -713,8 +713,8 @@ pub struct UnoSnapshot {
     pub players: Vec<UnoPlayerState>,
     pub your_hand: Vec<UnoCard>,
     pub draw_pile_len: u16,
-    /// FLIP 模式下摸牌堆顶朝下的一面；其他模式为空。
-    pub draw_pile_inactive_top: Option<UnoCard>,
+    /// FLIP 模式下摸牌堆顶部至多六张牌朝下的一面；其他模式为空。
+    pub draw_pile_inactive_cards: Vec<UnoCard>,
     pub discard_top: UnoCard,
     /// 从旧到新排列的弃牌堆末尾，用于客户端绘制有轻微错位的牌堆。
     pub discard_pile: Vec<UnoCard>,
@@ -733,6 +733,7 @@ pub struct UnoSnapshot {
     pub your_jump_in_card: Option<UnoCard>,
     pub uno_exposed: Vec<PlayerId>,
     pub uno_declared: Vec<PlayerId>,
+    pub can_call_uno: bool,
     pub phase: UnoPhaseView,
 }
 
@@ -1110,6 +1111,7 @@ pub enum UnoEvent {
         player: PlayerId,
         count: u16,
         penalty: bool,
+        card_backs: Vec<UnoCard>,
     },
     ChallengeResolved {
         challenger: PlayerId,
@@ -1117,6 +1119,7 @@ pub enum UnoEvent {
         result: UnoChallengeResult,
         penalized: PlayerId,
         count: u16,
+        card_backs: Vec<UnoCard>,
     },
     UnoCalled {
         player: PlayerId,
@@ -1124,11 +1127,13 @@ pub enum UnoEvent {
     UnoReported {
         reporter: PlayerId,
         target: PlayerId,
+        card_backs: Vec<UnoCard>,
     },
     SkipResolved {
         player: PlayerId,
         remaining: u16,
         drew_card: bool,
+        card_back: Option<UnoCard>,
     },
     HandRefreshed {
         player: PlayerId,
@@ -1155,6 +1160,7 @@ pub enum UnoEvent {
         player: PlayerId,
         target: PlayerId,
         count: u16,
+        card_backs: Vec<UnoCard>,
     },
     StackNumberRevealed {
         player: PlayerId,
@@ -1172,6 +1178,7 @@ pub enum UnoEvent {
         player: PlayerId,
         color: UnoColor,
         count: u16,
+        card_backs: Vec<UnoCard>,
     },
     GameFinished {
         winner: PlayerId,
@@ -1432,6 +1439,7 @@ impl From<UnoViolation> for GameViolation {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum UnoViolation {
     InvalidPlayer,
+    PlayerEliminated,
     NotPlayersTurn,
     GameAlreadyFinished,
     InitialColorChoiceRequired,
@@ -1834,6 +1842,7 @@ mod tests {
                 player: PlayerId(1),
                 color: UnoColor::Blue,
                 count: 6,
+                card_backs: Vec::new(),
             })),
         };
         let decoded: ServerMessage = decode_frame(&encode_frame(&roulette).unwrap()).unwrap();
@@ -1848,6 +1857,7 @@ mod tests {
                 player: PlayerId(2),
                 target: PlayerId(1),
                 count: 8,
+                card_backs: Vec::new(),
             })),
         };
         let decoded: ServerMessage = decode_frame(&encode_frame(&reflected).unwrap()).unwrap();

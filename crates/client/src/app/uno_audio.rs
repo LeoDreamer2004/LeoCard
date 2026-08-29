@@ -256,6 +256,7 @@ pub(in crate::app) fn uno_event_sound_plan(
                 UnoFace::Flip => {}
                 UnoFace::Number(_)
                 | UnoFace::Wild
+                | UnoFace::DarkWild
                 | UnoFace::SwapOne
                 | UnoFace::RefreshHand
                 | UnoFace::WildForceTrade
@@ -567,6 +568,7 @@ mod tests {
             player: PlayerId(1),
             count: 16,
             penalty: true,
+            card_backs: Vec::new(),
         };
         let cues = uno_event_sound_plan(&event, PlayerId(0), 10);
         assert_eq!(
@@ -652,6 +654,7 @@ mod tests {
                 result: UnoChallengeResult::Successful,
                 penalized: PlayerId(1),
                 count: 4,
+                card_backs: Vec::new(),
             },
             PlayerId(0),
             4,
@@ -664,6 +667,7 @@ mod tests {
             &UnoEvent::UnoReported {
                 reporter: PlayerId(0),
                 target: PlayerId(1),
+                card_backs: Vec::new(),
             },
             PlayerId(0),
             5,

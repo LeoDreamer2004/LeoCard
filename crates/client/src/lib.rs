@@ -1380,6 +1380,7 @@ fn uno_event_notice(snapshot: Option<&UnoSnapshot>, event: &UnoEvent) -> Option<
             result,
             penalized,
             count,
+            ..
         } => Some(match result {
             leocard_uno::ChallengeResult::Successful => format!(
                 "{} 质疑成功，{} 摸 {count} 张",
@@ -1393,7 +1394,9 @@ fn uno_event_notice(snapshot: Option<&UnoSnapshot>, event: &UnoEvent) -> Option<
             ),
         }),
         UnoEvent::UnoCalled { player } => Some(format!("{}：UNO!", player_name(*player))),
-        UnoEvent::UnoReported { reporter, target } => Some(format!(
+        UnoEvent::UnoReported {
+            reporter, target, ..
+        } => Some(format!(
             "{} 检举了 {}，罚摸 2 张",
             player_name(*reporter),
             player_name(*target)
@@ -1402,6 +1405,7 @@ fn uno_event_notice(snapshot: Option<&UnoSnapshot>, event: &UnoEvent) -> Option<
             player,
             target,
             count,
+            ..
         } => Some(format!(
             "{} 将累计罚牌反弹给 {}，摸 {count} 张",
             player_name(*player),
@@ -2202,6 +2206,7 @@ mod tests {
             result: leocard_uno::ChallengeResult::Successful,
             penalized: PlayerId(0),
             count: 8,
+            card_backs: Vec::new(),
         };
         assert_eq!(
             uno_event_notice(None, &challenge).as_deref(),
@@ -2210,6 +2215,7 @@ mod tests {
         let report = UnoEvent::UnoReported {
             reporter: PlayerId(0),
             target: PlayerId(1),
+            card_backs: Vec::new(),
         };
         assert_eq!(
             uno_event_notice(None, &report).as_deref(),
@@ -2219,6 +2225,7 @@ mod tests {
             player: PlayerId(1),
             remaining: 2,
             drew_card: true,
+            card_back: None,
         };
         assert_eq!(uno_event_notice(None, &skip), None);
     }

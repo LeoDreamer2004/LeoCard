@@ -302,11 +302,18 @@ pub(super) fn handle_buttons(
                 }
             }
             UiAction::UpdateUnoRules(rules) => {
+                ui.uno_mode_menu_open = false;
                 if let Some(client) = client.as_deref_mut() {
                     client.0.send(ClientCommand::Game(GameCommand::Uno(
                         UnoCommand::UpdateRules { rules: *rules },
                     )));
                 }
+            }
+            UiAction::ToggleUnoModeMenu => {
+                ui.uno_mode_menu_open = !ui.uno_mode_menu_open;
+            }
+            UiAction::CloseUnoModeMenu => {
+                ui.uno_mode_menu_open = false;
             }
             UiAction::ToggleUnoExpansionSettings => {
                 ui.uno_expansion_settings_open = !ui.uno_expansion_settings_open;
@@ -341,6 +348,7 @@ pub(super) fn handle_buttons(
                     if matches!(
                         card.face(),
                         UnoFace::Wild
+                            | UnoFace::DarkWild
                             | UnoFace::WildDrawTwo
                             | UnoFace::WildDrawFour
                             | UnoFace::WildDrawColor

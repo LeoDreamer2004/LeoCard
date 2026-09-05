@@ -25,18 +25,24 @@ use leocard_client::{
     NetworkState, PlayerIdentity, ScoreCaptureEffect, ShengjiScoreCaptureEffect, TcpGameClient,
     selected_cards_in_hand,
 };
+use leocard_mahjong::{
+    Claim as MahjongClaim, ClaimOption as MahjongClaimOption, Dragon as MahjongDragon,
+    Flower as MahjongFlower, KongKind as MahjongKongKind, MatchLength as MahjongMatchLength,
+    MeldKind as MahjongMeldKind, RuleSet as MahjongRuleSet, Suit as MahjongSuit,
+    Tile as MahjongTile, TileKind as MahjongTileKind, Wind as MahjongWind,
+};
 use leocard_protocol::{
     AVATAR_DIMENSION, AvatarId, ChatContent, ChatEmoji, ClientCommand, GameCommand, GameKind,
     GamePhaseView, GameViolation, MAX_AVATAR_BYTES, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS,
-    MatchId, PlayerGameProfiles, PlayerId, PlayerInteractionKind, PlayerInteractionStats,
-    PlayerPublicState, PlayerScore, PublicPlay, PublicPlayRecord, QUICK_VOICE_COUNT,
-    QiGui523Command, QiGui523ProfileStats, RejectReason, RuleViolation, SeatId, ShengjiCommand,
-    ShengjiFiveTrumpCrossingStage, ShengjiPhaseView, ShengjiPlayerState, ShengjiProfileStats,
-    ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureStage, ShengjiViolation,
-    TABLE_SEAT_COUNT, TexasHoldemCommand, TexasHoldemEvent, TexasHoldemPhaseView,
-    TexasHoldemPlayerState, TexasHoldemProfileStats, TexasHoldemSnapshot, TexasHoldemViolation,
-    TurnTimerView, UnoCommand, UnoEvent, UnoPendingSwapView, UnoPhaseView, UnoPlayerState,
-    UnoProfileStats, UnoSnapshot, UnoViolation,
+    MahjongCommand, MahjongEvent, MahjongPhaseView, MahjongSnapshot, MatchId, PlayerGameProfiles,
+    PlayerId, PlayerInteractionKind, PlayerInteractionStats, PlayerPublicState, PlayerScore,
+    PublicPlay, PublicPlayRecord, QUICK_VOICE_COUNT, QiGui523Command, QiGui523ProfileStats,
+    RejectReason, RuleViolation, SeatId, ShengjiCommand, ShengjiFiveTrumpCrossingStage,
+    ShengjiPhaseView, ShengjiPlayerState, ShengjiProfileStats, ShengjiPublicPlay, ShengjiSnapshot,
+    ShengjiThrowFailureStage, ShengjiViolation, TABLE_SEAT_COUNT, TexasHoldemCommand,
+    TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemProfileStats,
+    TexasHoldemSnapshot, TexasHoldemViolation, TurnTimerView, UnoCommand, UnoEvent,
+    UnoPendingSwapView, UnoPhaseView, UnoPlayerState, UnoProfileStats, UnoSnapshot, UnoViolation,
 };
 use leocard_qigui523::{
     Card, ClassifiedPlay, PlayKind, QiGui523Bot, QiGui523BotRequest, Rank, RuleSet, SameCardPolicy,
@@ -98,6 +104,8 @@ const UNO_PLAY_CARD_DURATION: f32 = 0.58;
 const UNO_FINISH_REVEAL_DURATION: f32 = UNO_PLAY_CARD_DURATION + 2.0;
 const TEXAS_SHOWDOWN_REVEAL_DURATION: f32 = 2.6;
 const TEXAS_UNCONTESTED_REVEAL_DURATION: f32 = 0.8;
+const MAHJONG_WIN_REVEAL_DURATION: f32 = 1.0;
+const MAHJONG_WIN_PUSH_DURATION: f32 = 0.42;
 const SUMMARY_ROW_START_DELAY: f32 = 0.38;
 const SUMMARY_ROW_INTERVAL: f32 = 0.18;
 const SUMMARY_ROW_ENTRY_DURATION: f32 = 0.32;
@@ -196,6 +204,7 @@ struct ConnectionForm {
     texas_holdem_rules: TexasHoldemRuleSet,
     shengji_rules: ShengjiRuleSet,
     uno_rules: UnoRuleSet,
+    mahjong_rules: MahjongRuleSet,
     active: InputField,
     error: Option<String>,
 }
@@ -268,6 +277,7 @@ impl Default for ConnectionForm {
             texas_holdem_rules: normalize_texas_holdem_rules(saved.games.texas_holdem.host_rules),
             shengji_rules: normalize_shengji_rules(saved.games.shengji.host_rules),
             uno_rules: normalize_uno_rules(saved.games.uno.host_rules),
+            mahjong_rules: normalize_mahjong_rules(saved.games.mahjong.host_rules),
             active: InputField::PlayerName,
             error: None,
         }
@@ -304,6 +314,7 @@ struct GamePreferences {
     texas_holdem: TexasHoldemPreferences,
     shengji: ShengjiPreferences,
     uno: UnoPreferences,
+    mahjong: MahjongPreferences,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -391,6 +402,25 @@ struct UnoPreferences {
     host_rules: UnoRuleSet,
 }
 
+#[derive(Default, Deserialize, Serialize)]
+struct MahjongPreferences {
+    host_rules: MahjongRuleSet,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreMahjongSavedPreferences {
+    global: GlobalPreferences,
+    games: PreMahjongGamePreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreMahjongGamePreferences {
+    qigui523: QiGui523Preferences,
+    texas_holdem: TexasHoldemPreferences,
+    shengji: ShengjiPreferences,
+    uno: UnoPreferences,
+}
+
 /// “只比较最大牌型”加入前、但已经包含升级设置的磁盘格式。
 #[derive(Deserialize, Serialize)]
 struct PreviousSavedPreferences {
@@ -444,6 +474,9 @@ impl Default for SavedPreferences {
                 uno: UnoPreferences {
                     host_rules: normalize_uno_rules(UnoRuleSet::default()),
                 },
+                mahjong: MahjongPreferences {
+                    host_rules: normalize_mahjong_rules(MahjongRuleSet::default()),
+                },
             },
         }
     }
@@ -481,6 +514,10 @@ fn normalize_shengji_rules(rules: ShengjiRuleSet) -> ShengjiRuleSet {
 }
 
 fn normalize_uno_rules(rules: UnoRuleSet) -> UnoRuleSet {
+    rules.validate().unwrap_or_default()
+}
+
+fn normalize_mahjong_rules(rules: MahjongRuleSet) -> MahjongRuleSet {
     rules.validate().unwrap_or_default()
 }
 
@@ -633,6 +670,11 @@ struct UiState {
     texas_observed_community_len: usize,
     shengji_observed_match: Option<MatchId>,
     shengji_observed_hand_number: u32,
+    mahjong_observed_match: Option<MatchId>,
+    mahjong_observed_sequence: u8,
+    mahjong_observed_hand: Vec<MahjongTile>,
+    mahjong_observed_counts: [u8; 4],
+    mahjong_observed_flowers: [u8; 4],
     shengji_buried_open: bool,
     uno_color_choice: Option<UnoCard>,
     leaving_room: bool,
@@ -680,7 +722,8 @@ struct PlayErrorToast {
 struct GameSummaryAnimation {
     match_id: Option<MatchId>,
     texas_hand_number: Option<u32>,
-    scores: Vec<(PlayerId, u32)>,
+    settlement_index: Option<u32>,
+    entry_count: usize,
     elapsed: f32,
     nonnegative_outcome: bool,
     outcome_sound_played: bool,
@@ -896,6 +939,10 @@ struct UiAssets {
     card_back: Handle<Image>,
     uno_cards: HashMap<(Option<UnoColor>, UnoFace), Handle<Image>>,
     uno_card_back: Handle<Image>,
+    mahjong_tiles: HashMap<MahjongTileKind, Handle<Image>>,
+    mahjong_tile_heights: HashMap<MahjongTileKind, Handle<Image>>,
+    mahjong_tile_back: Handle<Image>,
+    mahjong_turn_arrow: Handle<Image>,
     table_felt: Handle<Image>,
     primary_button: Handle<Image>,
     secondary_button: Handle<Image>,
@@ -1166,6 +1213,12 @@ struct PlayErrorPopupText;
 #[derive(Component)]
 struct AnimatedSummaryScore {
     target: u32,
+    delay: f32,
+}
+
+#[derive(Component)]
+struct AnimatedSignedSummaryScore {
+    target: i32,
     delay: f32,
 }
 
@@ -1574,6 +1627,12 @@ enum UiAction {
     UpdateTexasRules(TexasHoldemRuleSet),
     UpdateShengjiRules(ShengjiRuleSet),
     UpdateUnoRules(UnoRuleSet),
+    UpdateMahjongRules(MahjongRuleSet),
+    MahjongDiscard(MahjongTile),
+    MahjongRespond(MahjongClaim),
+    MahjongSelfDraw,
+    MahjongConcealedKong(MahjongTileKind),
+    MahjongAddedKong(MahjongTile),
     ToggleUnoModeMenu,
     CloseUnoModeMenu,
     ToggleUnoExpansionSettings,
@@ -1862,6 +1921,7 @@ struct VisualAssets<'w> {
     shengji_score_capture: Res<'w, ShengjiScoreCaptureEffectState>,
     shengji_settlement: Res<'w, ShengjiSettlementAnimation>,
     shengji_presentation: Res<'w, ShengjiPresentationState>,
+    mahjong_claim_presentation: Res<'w, MahjongClaimPresentationState>,
     start_game_transition: Res<'w, StartGameSeatTransition>,
     texas_chips: Res<'w, TexasChipTableState>,
     updater: Res<'w, UpdateManager>,
@@ -1884,6 +1944,7 @@ mod controller;
 mod embedded_assets;
 mod input;
 mod interaction;
+mod mahjong;
 mod overlays;
 mod profile_stats;
 mod qigui523;
@@ -1896,6 +1957,7 @@ mod uno;
 mod uno_audio;
 mod update;
 mod widgets;
+mod window_icon;
 
 use animation::*;
 use appearance::*;
@@ -1906,6 +1968,7 @@ use controller::*;
 use embedded_assets::*;
 use input::*;
 use interaction::*;
+use mahjong::*;
 use overlays::*;
 use profile_stats::*;
 use qigui523::*;
@@ -1918,6 +1981,7 @@ use uno::*;
 use uno_audio::*;
 use update::*;
 use widgets::*;
+use window_icon::*;
 
 #[cfg(test)]
 mod tests;
@@ -1960,6 +2024,7 @@ pub(crate) fn run() {
         .insert_resource(ShengjiScoreCaptureEffectState::default())
         .insert_resource(ShengjiSettlementAnimation::default())
         .insert_resource(ShengjiPresentationState::default())
+        .insert_resource(MahjongClaimPresentationState::default())
         .insert_resource(UnoPresentationState::default())
         .insert_resource(UnoAudioState::default())
         .insert_resource(StartGameSeatTransition::default())
@@ -2007,7 +2072,19 @@ pub(crate) fn run() {
         .add_plugins(UiMaterialPlugin::<TableBackgroundMaterial>::default())
         .add_plugins(UiMaterialPlugin::<TurnBorderMaterial>::default())
         .add_plugins(UiMaterialPlugin::<UnoPaletteMaterial>::default())
+        .add_plugins(UiMaterialPlugin::<MahjongTileMaterial>::default())
         .add_systems(Startup, (setup_camera, load_ui_assets))
+        .add_systems(Update, set_app_window_icon)
+        .add_systems(
+            Update,
+            (
+                animate_mahjong_deal_tiles,
+                sync_mahjong_hand_tile_materials,
+                animate_mahjong_turn_arrows,
+                animate_mahjong_winning_hands,
+            )
+                .chain(),
+        )
         .add_systems(
             Update,
             (
@@ -2052,6 +2129,8 @@ pub(crate) fn run() {
                             poll_network,
                             sync_uno_presentation,
                             sync_shengji_presentation,
+                            sync_mahjong_claim_presentation,
+                            advance_mahjong_claim_presentation,
                             update_shengji_settlement_animation,
                         )
                             .chain(),
@@ -2077,9 +2156,13 @@ pub(crate) fn run() {
                         animate_sequence_play_effect,
                         animate_bomb_play_effect,
                         animate_heaven_bomb_play_effect,
-                        update_summary_animation,
-                        animate_game_summary_visuals,
-                        animate_summary_scores,
+                        (
+                            update_summary_animation,
+                            animate_game_summary_visuals,
+                            animate_summary_scores,
+                            animate_signed_summary_scores,
+                        )
+                            .chain(),
                         (
                             queue_deal_animations,
                             queue_shengji_deal_animations,
@@ -2111,6 +2194,12 @@ pub(crate) fn run() {
                             sync_avatar_images,
                             poll_update_events,
                             render_ui,
+                            (
+                                animate_mahjong_claim_presentation,
+                                animate_mahjong_flower_presentations,
+                                animate_mahjong_win_effects,
+                            )
+                                .chain(),
                             spawn_uno_presentation_effects,
                             play_uno_audio_cues,
                             (

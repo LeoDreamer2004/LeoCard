@@ -599,6 +599,70 @@ pub(super) fn add_shengji_rule_config_row(
     add_rule_help(commands, controls, spec.help, assets);
 }
 
+pub(super) struct MahjongRuleConfigRow<'a> {
+    pub(super) label: &'a str,
+    pub(super) value: String,
+    pub(super) help: &'a str,
+    pub(super) editable: bool,
+    pub(super) previous: Option<MahjongRuleSet>,
+    pub(super) next: Option<MahjongRuleSet>,
+}
+
+pub(super) fn add_mahjong_rule_config_row(
+    commands: &mut Commands,
+    parent: Entity,
+    spec: MahjongRuleConfigRow,
+    assets: &UiAssets,
+) {
+    let row = spawn_node(
+        commands,
+        parent,
+        Node {
+            width: percent(100),
+            min_height: px(38),
+            position_type: PositionType::Relative,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::SpaceBetween,
+            column_gap: px(8),
+            ..default()
+        },
+        None,
+    );
+    add_text(commands, row, spec.label, 14.0, MUTED, assets);
+    let controls = spawn_node(
+        commands,
+        row,
+        Node {
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::FlexEnd,
+            column_gap: px(5),
+            ..default()
+        },
+        None,
+    );
+    if spec.editable {
+        add_mahjong_rule_step_button(commands, controls, "‹", spec.previous, assets);
+    }
+    let value_box = spawn_node(
+        commands,
+        controls,
+        Node {
+            min_width: px(92),
+            min_height: px(28),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        None,
+    );
+    add_text(commands, value_box, spec.value, 14.0, TEXT, assets);
+    if spec.editable {
+        add_mahjong_rule_step_button(commands, controls, "›", spec.next, assets);
+    }
+    add_rule_help(commands, controls, spec.help, assets);
+}
+
 fn add_shengji_rule_step_button(
     commands: &mut Commands,
     parent: Entity,
@@ -672,6 +736,58 @@ fn add_texas_rule_step_button(
             .spawn((
                 Button,
                 UiAction::UpdateTexasRules(rules),
+                ButtonTint {
+                    normal,
+                    hovered: Color::srgb(0.64, 0.76, 0.88),
+                    pressed: Color::srgb(0.30, 0.44, 0.58),
+                },
+                node,
+                ImageNode::new(assets.secondary_button.clone())
+                    .with_mode(NodeImageMode::Stretch)
+                    .with_color(normal),
+            ))
+            .id()
+    } else {
+        commands
+            .spawn((node, BackgroundColor(HEADER_BG.with_alpha(0.55))))
+            .id()
+    };
+    commands.entity(parent).add_child(entity);
+    add_text(
+        commands,
+        entity,
+        label,
+        18.0,
+        if rules.is_some() {
+            TEXT
+        } else {
+            MUTED.with_alpha(0.35)
+        },
+        assets,
+    );
+}
+
+fn add_mahjong_rule_step_button(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    rules: Option<MahjongRuleSet>,
+    assets: &UiAssets,
+) {
+    let normal = Color::srgb(0.46, 0.60, 0.74);
+    let node = Node {
+        width: px(28),
+        height: px(28),
+        align_items: AlignItems::Center,
+        justify_content: JustifyContent::Center,
+        border_radius: BorderRadius::all(px(5)),
+        ..default()
+    };
+    let entity = if let Some(rules) = rules {
+        commands
+            .spawn((
+                Button,
+                UiAction::UpdateMahjongRules(rules),
                 ButtonTint {
                     normal,
                     hovered: Color::srgb(0.64, 0.76, 0.88),
@@ -807,7 +923,12 @@ fn add_rule_step_button(
     );
 }
 
-fn add_rule_help(commands: &mut Commands, parent: Entity, help: &str, assets: &UiAssets) {
+pub(in crate::app) fn add_rule_help(
+    commands: &mut Commands,
+    parent: Entity,
+    help: &str,
+    assets: &UiAssets,
+) {
     let question = commands
         .spawn((
             Button,
@@ -1265,6 +1386,16 @@ pub(super) fn rejection_label(reason: &RejectReason) -> Option<String> {
             UnoViolation::MustResolveSwapEffect => "请先完成当前换牌效果",
             UnoViolation::NoSwapEffect => "当前没有待处理的换牌效果",
             UnoViolation::InvalidSwapTargets => "请选择符合要求且互不重复的玩家",
+        },
+        RejectReason::GameViolation(GameViolation::Mahjong(violation)) => match violation {
+            leocard_protocol::MahjongViolation::InvalidPlayer => "玩家身份无效",
+            leocard_protocol::MahjongViolation::NotPlayersTurn => "还没有轮到你出牌",
+            leocard_protocol::MahjongViolation::WrongPhase => "当前阶段不能执行这个操作",
+            leocard_protocol::MahjongViolation::TileNotInHand => "这张牌不在你的手中",
+            leocard_protocol::MahjongViolation::InvalidClaim => "当前不能这样吃、碰、杠或和",
+            leocard_protocol::MahjongViolation::AlreadyResponded => "你已经响应过这张牌",
+            leocard_protocol::MahjongViolation::CannotWin => "当前手牌不能和牌",
+            leocard_protocol::MahjongViolation::CannotKong => "当前不能开杠",
         },
         RejectReason::WrongGame { .. } => "该命令不属于当前房间游戏",
         _ => "请求被房主拒绝",

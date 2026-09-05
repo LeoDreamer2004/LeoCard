@@ -5,6 +5,11 @@
 
 use std::fmt;
 
+use leocard_mahjong::{
+    Claim as MahjongClaim, ClaimOption as MahjongClaimOption, DrawOrigin as MahjongDrawOrigin,
+    MeldKind as MahjongMeldKind, RuleSet as MahjongRuleSet, ScoreResult as MahjongScoreResult,
+    Tile as MahjongTile, TileKind as MahjongTileKind, Wind as MahjongWind,
+};
 use leocard_qigui523::{Card, PlayKind, RuleSet};
 use leocard_shengji::{
     BidKind as ShengjiBidKind, BidTrump as ShengjiBidTrump, Card as ShengjiCard,
@@ -23,7 +28,7 @@ use leocard_uno::{
 };
 use serde::{Deserialize, Serialize};
 
-pub const PROTOCOL_VERSION: u16 = 31;
+pub const PROTOCOL_VERSION: u16 = 34;
 pub const MAX_FRAME_PAYLOAD: usize = 1024 * 1024;
 pub const MAX_PLAYER_NAME_CHARS: usize = 7;
 pub const AVATAR_DIMENSION: u32 = 64;
@@ -40,6 +45,7 @@ pub enum GameKind {
     TexasHoldem,
     Shengji,
     Uno,
+    Mahjong,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -48,6 +54,7 @@ pub enum GameRules {
     TexasHoldem(TexasHoldemRuleSet),
     Shengji(ShengjiRuleSet),
     Uno(UnoRuleSet),
+    Mahjong(MahjongRuleSet),
 }
 
 impl GameRules {
@@ -57,34 +64,42 @@ impl GameRules {
             Self::TexasHoldem(_) => GameKind::TexasHoldem,
             Self::Shengji(_) => GameKind::Shengji,
             Self::Uno(_) => GameKind::Uno,
+            Self::Mahjong(_) => GameKind::Mahjong,
         }
     }
 
     pub const fn qigui523(&self) -> Option<&RuleSet> {
         match self {
             Self::QiGui523(rules) => Some(rules),
-            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
+            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
         }
     }
 
     pub const fn texas_holdem(&self) -> Option<&TexasHoldemRuleSet> {
         match self {
             Self::TexasHoldem(rules) => Some(rules),
-            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) => None,
+            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
         }
     }
 
     pub const fn shengji(&self) -> Option<&ShengjiRuleSet> {
         match self {
             Self::Shengji(rules) => Some(rules),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) => None,
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) | Self::Mahjong(_) => None,
         }
     }
 
     pub const fn uno(&self) -> Option<&UnoRuleSet> {
         match self {
             Self::Uno(rules) => Some(rules),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) => None,
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Mahjong(_) => None,
+        }
+    }
+
+    pub const fn mahjong(&self) -> Option<&MahjongRuleSet> {
+        match self {
+            Self::Mahjong(rules) => Some(rules),
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
         }
     }
 }
@@ -113,6 +128,12 @@ impl From<UnoRuleSet> for GameRules {
     }
 }
 
+impl From<MahjongRuleSet> for GameRules {
+    fn from(value: MahjongRuleSet) -> Self {
+        Self::Mahjong(value)
+    }
+}
+
 /// 具体游戏的操作。通用房间命令保留在 [`ClientCommand`] 中。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GameCommand {
@@ -120,6 +141,7 @@ pub enum GameCommand {
     TexasHoldem(TexasHoldemCommand),
     Shengji(ShengjiCommand),
     Uno(UnoCommand),
+    Mahjong(MahjongCommand),
 }
 
 impl GameCommand {
@@ -129,8 +151,19 @@ impl GameCommand {
             Self::TexasHoldem(_) => GameKind::TexasHoldem,
             Self::Shengji(_) => GameKind::Shengji,
             Self::Uno(_) => GameKind::Uno,
+            Self::Mahjong(_) => GameKind::Mahjong,
         }
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum MahjongCommand {
+    UpdateRules { rules: MahjongRuleSet },
+    Discard { tile: MahjongTile },
+    RespondToClaim { claim: MahjongClaim },
+    DeclareSelfDraw,
+    DeclareConcealedKong { tile: MahjongTileKind },
+    DeclareAddedKong { tile: MahjongTile },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -610,6 +643,10 @@ impl LobbySnapshot {
     pub const fn uno_rules(&self) -> Option<&UnoRuleSet> {
         self.rules.uno()
     }
+
+    pub const fn mahjong_rules(&self) -> Option<&MahjongRuleSet> {
+        self.rules.mahjong()
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -632,6 +669,7 @@ pub enum GameSnapshot {
     TexasHoldem(TexasHoldemSnapshot),
     Shengji(ShengjiSnapshot),
     Uno(UnoSnapshot),
+    Mahjong(MahjongSnapshot),
 }
 
 impl GameSnapshot {
@@ -641,64 +679,173 @@ impl GameSnapshot {
             Self::TexasHoldem(_) => GameKind::TexasHoldem,
             Self::Shengji(_) => GameKind::Shengji,
             Self::Uno(_) => GameKind::Uno,
+            Self::Mahjong(_) => GameKind::Mahjong,
         }
     }
 
     pub const fn qigui523(&self) -> Option<&QiGui523Snapshot> {
         match self {
             Self::QiGui523(snapshot) => Some(snapshot),
-            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
+            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
         }
     }
 
     pub fn into_qigui523(self) -> Option<QiGui523Snapshot> {
         match self {
             Self::QiGui523(snapshot) => Some(snapshot),
-            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
+            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
         }
     }
 
     pub const fn texas_holdem(&self) -> Option<&TexasHoldemSnapshot> {
         match self {
             Self::TexasHoldem(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) => None,
+            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
         }
     }
 
     pub fn into_texas_holdem(self) -> Option<TexasHoldemSnapshot> {
         match self {
             Self::TexasHoldem(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) => None,
+            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
         }
     }
 
     pub const fn shengji(&self) -> Option<&ShengjiSnapshot> {
         match self {
             Self::Shengji(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) => None,
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) | Self::Mahjong(_) => None,
         }
     }
 
     pub fn into_shengji(self) -> Option<ShengjiSnapshot> {
         match self {
             Self::Shengji(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) => None,
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) | Self::Mahjong(_) => None,
         }
     }
 
     pub const fn uno(&self) -> Option<&UnoSnapshot> {
         match self {
             Self::Uno(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) => None,
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Mahjong(_) => None,
         }
     }
 
     pub fn into_uno(self) -> Option<UnoSnapshot> {
         match self {
             Self::Uno(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) => None,
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Mahjong(_) => None,
         }
     }
+
+    pub const fn mahjong(&self) -> Option<&MahjongSnapshot> {
+        match self {
+            Self::Mahjong(snapshot) => Some(snapshot),
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
+        }
+    }
+
+    pub fn into_mahjong(self) -> Option<MahjongSnapshot> {
+        match self {
+            Self::Mahjong(snapshot) => Some(snapshot),
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct MahjongSnapshot {
+    pub match_id: MatchId,
+    pub host_port: u16,
+    pub you: PlayerId,
+    pub host: PlayerId,
+    pub rules: MahjongRuleSet,
+    pub players: Vec<MahjongPlayerState>,
+    pub your_hand: Vec<MahjongTile>,
+    pub your_drawn_tile: Option<MahjongTile>,
+    pub discards: Vec<MahjongDiscardView>,
+    pub dealer: PlayerId,
+    pub prevalent_wind: MahjongWind,
+    pub sequence_index: u8,
+    pub current_player: PlayerId,
+    pub wall_len: u16,
+    pub match_scores: [i32; 4],
+    pub pending_claim: Option<MahjongPendingClaimView>,
+    pub can_self_draw: bool,
+    pub concealed_kong_options: Vec<MahjongTileKind>,
+    pub added_kong_options: Vec<MahjongTile>,
+    pub phase: MahjongPhaseView,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct MahjongPlayerState {
+    pub id: PlayerId,
+    pub profile_id: ProfileId,
+    pub name: String,
+    pub avatar: Option<AvatarId>,
+    pub seat: SeatId,
+    pub seat_wind: MahjongWind,
+    pub concealed_count: u8,
+    pub revealed_hand: Option<Vec<MahjongTile>>,
+    pub melds: Vec<MahjongPublicMeldView>,
+    pub flowers: Vec<MahjongTile>,
+    pub dead_hand: bool,
+    pub ready: bool,
+    pub connected: bool,
+    pub reference_points: i32,
+    pub completed_games: u32,
+    pub game_profiles: PlayerGameProfiles,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct MahjongPendingClaimView {
+    pub source: PlayerId,
+    pub tile: MahjongTile,
+    pub robbing_kong: bool,
+    pub your_options: Vec<MahjongClaimOption>,
+    pub your_response: Option<MahjongClaim>,
+    pub waiting_for: Vec<PlayerId>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct MahjongDiscardView {
+    pub player: PlayerId,
+    pub tile: MahjongTile,
+    pub claimed_by: Option<PlayerId>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct MahjongPublicMeldView {
+    pub kind: MahjongMeldKind,
+    pub tile: Option<MahjongTileKind>,
+    pub claimed_from: Option<PlayerId>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct MahjongWinView {
+    pub player: PlayerId,
+    pub from: Option<PlayerId>,
+    pub score: MahjongScoreResult,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct MahjongHandResultView {
+    pub winners: Vec<MahjongWinView>,
+    pub exhaustive_draw: bool,
+    pub deltas: [i32; 4],
+    pub match_scores: [i32; 4],
+    pub match_complete: bool,
+    pub sequence_index: u8,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum MahjongPhaseView {
+    Dealing { batch: u8 },
+    ReplacingFlower { player: PlayerId },
+    Playing,
+    WaitingForClaims,
+    Finished { result: MahjongHandResultView },
 }
 
 /// 面向单个 UNO 客户端的私有快照。进行中只公开接收者的手牌；终局公开所有
@@ -1079,6 +1226,7 @@ pub enum GameEvent {
     TexasHoldem(TexasHoldemEvent),
     Shengji(ShengjiEvent),
     Uno(UnoEvent),
+    Mahjong(MahjongEvent),
 }
 
 impl GameEvent {
@@ -1088,8 +1236,42 @@ impl GameEvent {
             Self::TexasHoldem(_) => GameKind::TexasHoldem,
             Self::Shengji(_) => GameKind::Shengji,
             Self::Uno(_) => GameKind::Uno,
+            Self::Mahjong(_) => GameKind::Mahjong,
         }
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum MahjongEvent {
+    TileDiscarded {
+        player: PlayerId,
+        tile: MahjongTile,
+    },
+    TileDrawn {
+        player: PlayerId,
+        origin: MahjongDrawOrigin,
+    },
+    FlowerReplaced {
+        player: PlayerId,
+    },
+    ClaimResolved {
+        player: PlayerId,
+        source: PlayerId,
+        tile: MahjongTile,
+        claim: MahjongClaim,
+    },
+    KongDeclared {
+        player: PlayerId,
+        tile: MahjongTileKind,
+        added: bool,
+    },
+    FalseWin {
+        player: PlayerId,
+        deltas: [i32; 4],
+    },
+    HandFinished {
+        result: MahjongHandResultView,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1410,6 +1592,7 @@ pub enum GameViolation {
     TexasHoldem(TexasHoldemViolation),
     Shengji(ShengjiViolation),
     Uno(UnoViolation),
+    Mahjong(MahjongViolation),
 }
 
 impl From<RuleViolation> for GameViolation {
@@ -1434,6 +1617,24 @@ impl From<UnoViolation> for GameViolation {
     fn from(value: UnoViolation) -> Self {
         Self::Uno(value)
     }
+}
+
+impl From<MahjongViolation> for GameViolation {
+    fn from(value: MahjongViolation) -> Self {
+        Self::Mahjong(value)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum MahjongViolation {
+    InvalidPlayer,
+    NotPlayersTurn,
+    WrongPhase,
+    TileNotInHand,
+    InvalidClaim,
+    AlreadyResponded,
+    CannotWin,
+    CannotKong,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1783,6 +1984,61 @@ mod tests {
             );
             let decoded: ClientMessage = decode_frame(&encode_frame(&message).unwrap()).unwrap();
             assert_eq!(decoded.command, ClientCommand::Game(command));
+        }
+    }
+
+    #[test]
+    fn mahjong_commands_and_public_events_round_trip_through_the_common_protocol() {
+        let tile = MahjongTile::new(
+            MahjongTileKind::suited(leocard_mahjong::Suit::Characters, 5),
+            2,
+        );
+        for command in [
+            GameCommand::Mahjong(MahjongCommand::UpdateRules {
+                rules: MahjongRuleSet::default(),
+            }),
+            GameCommand::Mahjong(MahjongCommand::Discard { tile }),
+            GameCommand::Mahjong(MahjongCommand::RespondToClaim {
+                claim: MahjongClaim::Pung,
+            }),
+            GameCommand::Mahjong(MahjongCommand::DeclareSelfDraw),
+            GameCommand::Mahjong(MahjongCommand::DeclareConcealedKong { tile: tile.kind() }),
+            GameCommand::Mahjong(MahjongCommand::DeclareAddedKong { tile }),
+        ] {
+            let message = ClientMessage::new(
+                RoomId(42),
+                RequestId(14),
+                ClientCommand::Game(command.clone()),
+            );
+            let decoded: ClientMessage = decode_frame(&encode_frame(&message).unwrap()).unwrap();
+            assert_eq!(decoded.command, ClientCommand::Game(command));
+        }
+
+        for event in [
+            MahjongEvent::ClaimResolved {
+                player: PlayerId(3),
+                source: PlayerId(1),
+                tile,
+                claim: MahjongClaim::Pung,
+            },
+            MahjongEvent::KongDeclared {
+                player: PlayerId(2),
+                tile: tile.kind(),
+                added: true,
+            },
+            MahjongEvent::FlowerReplaced {
+                player: PlayerId(1),
+            },
+        ] {
+            let message = ServerMessage {
+                protocol_version: PROTOCOL_VERSION,
+                room_id: RoomId(42),
+                revision: Revision(15),
+                in_reply_to: None,
+                event: ServerEvent::GameEvent(GameEvent::Mahjong(event)),
+            };
+            let decoded: ServerMessage = decode_frame(&encode_frame(&message).unwrap()).unwrap();
+            assert_eq!(decoded, message);
         }
     }
 

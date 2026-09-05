@@ -6,8 +6,8 @@ use leocard_protocol::{
 use leocard_qigui523::{Card, RuleSet};
 
 use crate::{
-    ConnectionId, Delivery, HostError, QiGui523Session, ShengjiSession, TexasHoldemSession,
-    UnoSession,
+    ConnectionId, Delivery, HostError, MahjongSession, QiGui523Session, ShengjiSession,
+    TexasHoldemSession, UnoSession,
 };
 
 /// 创建统一房主会话所需的具体游戏后端配置。
@@ -33,6 +33,11 @@ pub enum GameSetup {
         rules: leocard_uno::RuleSet,
         shuffled_deck: Vec<leocard_uno::Card>,
     },
+    Mahjong {
+        host_port: u16,
+        rules: leocard_mahjong::RuleSet,
+        shuffled_deck: Vec<leocard_mahjong::Tile>,
+    },
 }
 
 impl GameSetup {
@@ -42,6 +47,7 @@ impl GameSetup {
             Self::TexasHoldem { .. } => GameKind::TexasHoldem,
             Self::Shengji { .. } => GameKind::Shengji,
             Self::Uno { .. } => GameKind::Uno,
+            Self::Mahjong { .. } => GameKind::Mahjong,
         }
     }
 }
@@ -53,6 +59,7 @@ pub enum HostSession {
     TexasHoldem(TexasHoldemSession),
     Shengji(ShengjiSession),
     Uno(UnoSession),
+    Mahjong(MahjongSession),
 }
 
 impl HostSession {
@@ -82,6 +89,12 @@ impl HostSession {
                 shuffled_deck,
             } => UnoSession::new_with_host_port(room_id, host_port, rules, shuffled_deck)
                 .map(Self::Uno),
+            GameSetup::Mahjong {
+                host_port,
+                rules,
+                shuffled_deck,
+            } => MahjongSession::new_with_host_port(room_id, host_port, rules, shuffled_deck)
+                .map(Self::Mahjong),
         }
     }
 
@@ -149,40 +162,64 @@ impl HostSession {
         )
     }
 
+    pub fn mahjong(
+        room_id: RoomId,
+        host_port: u16,
+        rules: leocard_mahjong::RuleSet,
+        shuffled_deck: Vec<leocard_mahjong::Tile>,
+    ) -> Result<Self, HostError> {
+        Self::new(
+            room_id,
+            GameSetup::Mahjong {
+                host_port,
+                rules,
+                shuffled_deck,
+            },
+        )
+    }
+
     pub const fn game_kind(&self) -> GameKind {
         match self {
             Self::QiGui523(_) => GameKind::QiGui523,
             Self::TexasHoldem(_) => GameKind::TexasHoldem,
             Self::Shengji(_) => GameKind::Shengji,
             Self::Uno(_) => GameKind::Uno,
+            Self::Mahjong(_) => GameKind::Mahjong,
         }
     }
 
     pub const fn qigui523_backend(&self) -> Option<&QiGui523Session> {
         match self {
             Self::QiGui523(session) => Some(session),
-            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
+            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
         }
     }
 
     pub const fn texas_holdem_backend(&self) -> Option<&TexasHoldemSession> {
         match self {
             Self::TexasHoldem(session) => Some(session),
-            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) => None,
+            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
         }
     }
 
     pub const fn shengji_backend(&self) -> Option<&ShengjiSession> {
         match self {
             Self::Shengji(session) => Some(session),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) => None,
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) | Self::Mahjong(_) => None,
         }
     }
 
     pub const fn uno_backend(&self) -> Option<&UnoSession> {
         match self {
             Self::Uno(session) => Some(session),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) => None,
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Mahjong(_) => None,
+        }
+    }
+
+    pub const fn mahjong_backend(&self) -> Option<&MahjongSession> {
+        match self {
+            Self::Mahjong(session) => Some(session),
+            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
         }
     }
 
@@ -192,6 +229,7 @@ impl HostSession {
             Self::TexasHoldem(session) => session.room_id(),
             Self::Shengji(session) => session.room_id(),
             Self::Uno(session) => session.room_id(),
+            Self::Mahjong(session) => session.room_id(),
         }
     }
 
@@ -201,6 +239,7 @@ impl HostSession {
             Self::TexasHoldem(session) => session.revision(),
             Self::Shengji(session) => session.revision(),
             Self::Uno(session) => session.revision(),
+            Self::Mahjong(session) => session.revision(),
         }
     }
 
@@ -210,6 +249,7 @@ impl HostSession {
             Self::TexasHoldem(session) => session.is_current_connection(connection),
             Self::Shengji(session) => session.is_current_connection(connection),
             Self::Uno(session) => session.is_current_connection(connection),
+            Self::Mahjong(session) => session.is_current_connection(connection),
         }
     }
 
@@ -219,6 +259,7 @@ impl HostSession {
             Self::TexasHoldem(session) => session.is_closed(),
             Self::Shengji(session) => session.is_closed(),
             Self::Uno(session) => session.is_closed(),
+            Self::Mahjong(session) => session.is_closed(),
         }
     }
 
@@ -228,6 +269,7 @@ impl HostSession {
             Self::TexasHoldem(session) => session.heartbeat(),
             Self::Shengji(session) => session.heartbeat(),
             Self::Uno(session) => session.heartbeat(),
+            Self::Mahjong(session) => session.heartbeat(),
         }
     }
 
@@ -237,6 +279,7 @@ impl HostSession {
             Self::TexasHoldem(session) => session.advance_time(elapsed),
             Self::Shengji(session) => session.advance_time(elapsed),
             Self::Uno(session) => session.advance_time(elapsed),
+            Self::Mahjong(session) => session.advance_time(elapsed),
         }
     }
 
@@ -258,6 +301,7 @@ impl HostSession {
             Self::TexasHoldem(session) => session.handle(connection, message),
             Self::Shengji(session) => session.handle(connection, message),
             Self::Uno(session) => session.handle(connection, message),
+            Self::Mahjong(session) => session.handle(connection, message),
         }
     }
 
@@ -267,6 +311,7 @@ impl HostSession {
             Self::TexasHoldem(session) => session.disconnect(connection),
             Self::Shengji(session) => session.disconnect(connection),
             Self::Uno(session) => session.disconnect(connection),
+            Self::Mahjong(session) => session.disconnect(connection),
         }
     }
 }

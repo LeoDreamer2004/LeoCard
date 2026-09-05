@@ -23,6 +23,7 @@ fn host_game_picker_lists_every_playable_game() {
             ("德州扑克", "窝要验牌!", GameKind::TexasHoldem),
             ("升级", "神对手 or 猪队友", GameKind::Shengji),
             ("UNO", "最后一张，记得喊 UNO!", GameKind::Uno),
+            ("麻将合集", "八番起和，方城之战", GameKind::Mahjong),
         ]
     );
 }
@@ -1035,6 +1036,23 @@ fn every_card_maps_to_an_existing_asset() {
         let path = asset_root.join(card_asset_path(card.rank(), card.suit()));
         assert!(path.is_file(), "missing card asset: {}", path.display());
     }
+    let mahjong_kinds = leocard_mahjong::build_deck()
+        .into_iter()
+        .map(|tile| tile.kind())
+        .collect::<HashSet<_>>();
+    assert_eq!(mahjong_kinds.len(), 42);
+    for kind in mahjong_kinds {
+        let path = asset_root.join(mahjong_tile_asset_path(kind));
+        let image = image::open(&path)
+            .unwrap_or_else(|error| panic!("{} 无法解码：{error}", path.display()));
+        assert_eq!((image.width(), image.height()), (600, 800));
+        let height_path = asset_root.join(mahjong_tile_height_asset_path(kind));
+        let height = image::open(&height_path)
+            .unwrap_or_else(|error| panic!("{} 无法解码：{error}", height_path.display()));
+        assert_eq!((height.width(), height.height()), (600, 800));
+    }
+    let mahjong_back = asset_root.join("cards/mahjong/hong-kong/back.png");
+    assert!(mahjong_back.is_file());
     for card in build_uno_deck_for_rules(UnoRuleSet {
         mode: leocard_uno::Mode::NoMercy,
         ..UnoRuleSet::default()
@@ -1278,6 +1296,14 @@ fn preferences_round_trip_including_avatar() {
                     ..UnoRuleSet::default()
                 },
             },
+            mahjong: MahjongPreferences {
+                host_rules: MahjongRuleSet {
+                    match_length: MahjongMatchLength::FullGame,
+                    minimum_eight_points: false,
+                    multiple_winners: true,
+                    false_win: false,
+                },
+            },
         },
     };
     let encoded = postcard::to_allocvec(&saved).unwrap();
@@ -1306,6 +1332,50 @@ fn preferences_round_trip_including_avatar() {
         saved.games.shengji.host_rules
     );
     assert_eq!(decoded.games.uno.host_rules, saved.games.uno.host_rules);
+    assert_eq!(
+        decoded.games.mahjong.host_rules,
+        saved.games.mahjong.host_rules
+    );
+}
+
+#[test]
+fn pre_mahjong_preferences_keep_existing_games_and_gain_mahjong_defaults() {
+    let previous = PreMahjongSavedPreferences {
+        global: GlobalPreferences {
+            player_name: "麻将前版本玩家".to_owned(),
+            avatar_png: None,
+            host_port: "52301".to_owned(),
+            join_address: "127.0.0.1:52301".to_owned(),
+            table_felt_path: None,
+            table_brightness: 0.8,
+            table_vignette: 0.3,
+            audio_volume: 0.7,
+        },
+        games: PreMahjongGamePreferences {
+            qigui523: QiGui523Preferences {
+                host_rules: RuleSet {
+                    deck_count: 3,
+                    ..normalize_host_rules(RuleSet::default())
+                },
+            },
+            texas_holdem: TexasHoldemPreferences {
+                host_rules: TexasHoldemRuleSet::default(),
+            },
+            shengji: ShengjiPreferences::default(),
+            uno: UnoPreferences {
+                host_rules: UnoRuleSet {
+                    jump_in: true,
+                    ..UnoRuleSet::default()
+                },
+            },
+        },
+    };
+
+    let decoded = decode_preferences(&postcard::to_allocvec(&previous).unwrap()).unwrap();
+    assert_eq!(decoded.global.player_name, "麻将前版本玩家");
+    assert_eq!(decoded.games.qigui523.host_rules.deck_count, 3);
+    assert!(decoded.games.uno.host_rules.jump_in);
+    assert_eq!(decoded.games.mahjong.host_rules, MahjongRuleSet::default());
 }
 
 #[test]
@@ -2827,6 +2897,24 @@ fn turn_border_animation_system_queries_initialize_without_conflicts() {
     app.insert_resource(Assets::<TurnBorderMaterial>::default());
     app.insert_resource(TurnBorderAnimationState::default());
     app.add_systems(Update, animate_turn_border_traces);
+
+    app.update();
+}
+
+#[test]
+fn mahjong_action_animation_system_queries_initialize_without_conflicts() {
+    let mut app = App::new();
+    app.insert_resource(MahjongClaimPresentationState::default());
+    app.insert_resource(Assets::<MahjongTileMaterial>::default());
+    app.insert_resource(GameSummaryAnimation::default());
+    app.add_systems(
+        Update,
+        (
+            animate_mahjong_claim_presentation,
+            animate_mahjong_flower_presentations,
+            animate_mahjong_win_effects,
+        ),
+    );
 
     app.update();
 }

@@ -6,6 +6,7 @@
 use std::fmt;
 use std::time::Duration;
 
+mod mahjong;
 mod qigui523;
 mod room;
 mod session;
@@ -13,6 +14,7 @@ mod shengji;
 mod texas_holdem;
 mod uno;
 
+pub use mahjong::MahjongSession;
 pub use qigui523::QiGui523Session;
 pub use room::RoomSession;
 pub use session::{GameSetup, HostSession};
@@ -42,6 +44,7 @@ pub enum HostError {
     InvalidTexasRules(leocard_texas_holdem::RuleError),
     InvalidShengjiGame(leocard_shengji::GameError),
     InvalidUnoGame(leocard_uno::GameError),
+    InvalidMahjongGame(leocard_mahjong::GameError),
     TexasAdapter(AdapterError),
     InvalidDeckSize { expected: usize, actual: usize },
     InvalidDeckContents,
@@ -54,6 +57,7 @@ impl fmt::Display for HostError {
             Self::InvalidTexasRules(error) => error.fmt(f),
             Self::InvalidShengjiGame(error) => error.fmt(f),
             Self::InvalidUnoGame(error) => error.fmt(f),
+            Self::InvalidMahjongGame(error) => error.fmt(f),
             Self::TexasAdapter(error) => error.fmt(f),
             Self::InvalidDeckSize { expected, actual } => {
                 write!(f, "牌堆张数错误：应为 {expected}，实际为 {actual}")
@@ -92,6 +96,12 @@ impl From<leocard_shengji::GameError> for HostError {
 impl From<leocard_uno::GameError> for HostError {
     fn from(value: leocard_uno::GameError) -> Self {
         Self::InvalidUnoGame(value)
+    }
+}
+
+impl From<leocard_mahjong::GameError> for HostError {
+    fn from(value: leocard_mahjong::GameError) -> Self {
+        Self::InvalidMahjongGame(value)
     }
 }
 

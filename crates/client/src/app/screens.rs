@@ -11,6 +11,7 @@ pub(super) fn render_ui(
     chat: Res<ChatPanelState>,
     developer_hand: Res<DeveloperHandInput>,
     mut table_materials: ResMut<Assets<TableBackgroundMaterial>>,
+    mut mahjong_tile_materials: ResMut<Assets<MahjongTileMaterial>>,
     mut turn_border_materials: ResMut<Assets<TurnBorderMaterial>>,
     mut ui: ResMut<UiState>,
     old_roots: Query<Entity, With<UiRoot>>,
@@ -116,6 +117,25 @@ pub(super) fn render_ui(
         {
             ui.uno_color_choice = None;
         }
+        if ui
+            .interaction_menu_open
+            .is_some_and(|open| !game.players.iter().any(|player| player.id == open))
+        {
+            ui.interaction_menu_open = None;
+        }
+    } else if let Some(game) = client
+        .as_deref()
+        .and_then(|client| client.0.model().mahjong_game())
+    {
+        ui.selected.clear();
+        ui.card_animations.clear();
+        ui.observed_hand.clear();
+        ui.selected_shengji.clear();
+        ui.shengji_card_animations.clear();
+        ui.observed_shengji_hand.clear();
+        ui.selected_uno.clear();
+        ui.uno_card_animations.clear();
+        ui.greedy_hint.reset();
         if ui
             .interaction_menu_open
             .is_some_and(|open| !game.players.iter().any(|player| player.id == open))
@@ -258,6 +278,28 @@ pub(super) fn render_ui(
                     table_materials: &mut table_materials,
                     turn_border_materials: &mut turn_border_materials,
                     game_summary: &visuals.game_summary,
+                },
+            );
+        } else if let Some(game) = client.0.model().mahjong_game() {
+            let interaction_menu_open = ui.interaction_menu_open;
+            render_mahjong_table(
+                &mut commands,
+                root,
+                client,
+                game,
+                &mut ui,
+                &chat,
+                interaction_menu_open,
+                MahjongTableVisuals {
+                    assets: &visuals.ui,
+                    avatars: &visuals.avatars,
+                    appearance: &visuals.table,
+                    brightness: form.table_brightness,
+                    vignette: form.table_vignette,
+                    table_materials: &mut table_materials,
+                    tile_materials: &mut mahjong_tile_materials,
+                    game_summary: &visuals.game_summary,
+                    claim_presentation: &visuals.mahjong_claim_presentation,
                 },
             );
         } else {
@@ -1139,11 +1181,12 @@ fn add_table_appearance_slider(
     ));
 }
 
-pub(super) const HOST_GAME_CHOICES: [(&str, &str, GameKind); 4] = [
+pub(super) const HOST_GAME_CHOICES: [(&str, &str, GameKind); 5] = [
     ("七鬼五二三", "放空大脑, 有牌就出", GameKind::QiGui523),
     ("德州扑克", "窝要验牌!", GameKind::TexasHoldem),
     ("升级", "神对手 or 猪队友", GameKind::Shengji),
     ("UNO", "最后一张，记得喊 UNO!", GameKind::Uno),
+    ("麻将合集", "八番起和，方城之战", GameKind::Mahjong),
 ];
 
 fn render_host_game_picker(commands: &mut Commands, root: Entity, assets: &UiAssets) {
@@ -1590,6 +1633,10 @@ fn render_lobby(
     }
     if lobby.game == GameKind::Shengji {
         render_shengji_lobby(commands, root, client, lobby, assets, avatars);
+        return;
+    }
+    if lobby.game == GameKind::Mahjong {
+        render_mahjong_lobby(commands, root, client, lobby, assets, avatars);
         return;
     }
     let game_rules = *lobby
@@ -3404,7 +3451,7 @@ fn render_texas_holdem_lobby(
     }
 }
 
-fn render_seat_selector(
+pub(in crate::app) fn render_seat_selector(
     commands: &mut Commands,
     parent: Entity,
     client: &ClientResource,
@@ -3562,6 +3609,24 @@ fn render_seat_selector(
                 "不检举".to_owned()
             },
         ],
+        leocard_protocol::GameRules::Mahjong(rules) => vec![
+            match rules.match_length {
+                leocard_mahjong::MatchLength::SingleHand => "单局结算".to_owned(),
+                leocard_mahjong::MatchLength::EastRound => "东风场".to_owned(),
+                leocard_mahjong::MatchLength::HalfGame => "半庄场".to_owned(),
+                leocard_mahjong::MatchLength::FullGame => "全庄场".to_owned(),
+            },
+            if rules.minimum_eight_points {
+                "8 番起和".to_owned()
+            } else {
+                "不限起和番数".to_owned()
+            },
+            if rules.multiple_winners {
+                "允许一炮多响".to_owned()
+            } else {
+                "截和".to_owned()
+            },
+        ],
     };
     for label in rule_labels {
         add_lobby_rule_chip(commands, rule_chips, label, assets);
@@ -3571,6 +3636,7 @@ fn render_seat_selector(
     let seat_count = match &lobby.rules {
         leocard_protocol::GameRules::Shengji(_) => ShengjiRuleSet::PLAYER_COUNT as u8,
         leocard_protocol::GameRules::Uno(_) => UnoRuleSet::MAX_PLAYERS,
+        leocard_protocol::GameRules::Mahjong(_) => leocard_mahjong::RuleSet::PLAYER_COUNT as u8,
         leocard_protocol::GameRules::QiGui523(_) | leocard_protocol::GameRules::TexasHoldem(_) => {
             TABLE_SEAT_COUNT
         }
@@ -3583,13 +3649,13 @@ fn render_seat_selector(
             .find(|player| player.seat == Some(seat));
         let is_you = occupant.is_some_and(|player| Some(player.id) == you);
         let is_host = occupant.is_some_and(|player| Some(player.id) == lobby.host);
-        let (left, top) = if lobby.game == GameKind::Shengji {
+        let (left, top) = if matches!(lobby.game, GameKind::Shengji | GameKind::Mahjong) {
             match seat_index {
                 0 => (239.0, 290.0),
                 1 => (0.0, 145.0),
                 2 => (239.0, 0.0),
                 3 => (478.0, 145.0),
-                _ => unreachable!("双升固定四个座位"),
+                _ => unreachable!("双升和麻将固定四个座位"),
             }
         } else {
             lobby_seat_position(seat_index)
@@ -3786,7 +3852,9 @@ fn render_seat_selector(
     }
 }
 
-fn connected_lobby_player_count(lobby: &leocard_protocol::LobbySnapshot) -> usize {
+pub(in crate::app) fn connected_lobby_player_count(
+    lobby: &leocard_protocol::LobbySnapshot,
+) -> usize {
     lobby
         .players
         .iter()

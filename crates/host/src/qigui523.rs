@@ -306,6 +306,14 @@ impl QiGui523Session {
                     received: GameKind::Uno,
                 },
             ),
+            ClientCommand::Game(GameCommand::Mahjong(_)) => self.reject(
+                connection,
+                message.request_id,
+                RejectReason::WrongGame {
+                    expected: GameKind::QiGui523,
+                    received: GameKind::Mahjong,
+                },
+            ),
             ClientCommand::StartGame => self.start_game(connection, message.request_id),
             ClientCommand::ReturnToLobby => self.return_to_lobby(connection, message.request_id),
             ClientCommand::PlayAgain => self.play_again(connection, message.request_id),

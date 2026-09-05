@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LeoCard 麻将牌材质光照 Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      background: #071713;
+      color: #f5f1df;
+      font-family: "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+    }
+    #stage {
+      position: relative;
+      width: 1280px;
+      height: 720px;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 50% 42%, rgba(49, 111, 86, .34), transparent 48%),
+        repeating-linear-gradient(18deg, rgba(255, 255, 255, .012) 0 1px, transparent 1px 4px),
+        linear-gradient(145deg, #123b31, #071b17 62%, #06120f);
+    }
+    #stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      box-shadow: inset 0 0 150px rgba(0, 0, 0, .68);
+    }
+    canvas { position: absolute; inset: 0; width: 1280px; height: 720px; }
+    header {
+      position: absolute;
+      z-index: 2;
+      top: 42px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      text-shadow: 0 3px 16px rgba(0, 0, 0, .75);
+    }
+    h1 { margin: 0; font-size: 30px; letter-spacing: .14em; font-weight: 650; }
+    header p { margin: 10px 0 0; color: rgba(226, 237, 224, .72); font-size: 14px; }
+    #labels {
+      position: absolute;
+      z-index: 2;
+      left: 188px;
+      right: 188px;
+      bottom: 112px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      text-align: center;
+      color: rgba(232, 239, 226, .78);
+      font-size: 14px;
+      letter-spacing: .08em;
+      text-shadow: 0 2px 8px #000;
+    }
+    #features {
+      position: absolute;
+      z-index: 2;
+      left: 50%;
+      bottom: 42px;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      white-space: nowrap;
+    }
+    #features span {
+      padding: 7px 13px;
+      border: 1px solid rgba(205, 225, 208, .16);
+      border-radius: 999px;
+      background: rgba(5, 18, 15, .48);
+      color: rgba(222, 234, 218, .68);
+      font-size: 12px;
+      box-shadow: inset 0 1px rgba(255, 255, 255, .035);
+    }
+    img { display: none; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="canvas" width="1280" height="720"></canvas>
+    <header>
+      <h1>麻将牌材质光照 Demo</h1>
+      <p>原始牌面纹理保持不变，立体感完全由实时片元着色器生成</p>
+    </header>
+    <div id="labels"><span>一萬</span><span>五筒</span><span>一索</span><span>中</span><span>白</span></div>
+    <div id="features">
+      <span>圆角树脂侧边</span><span>斜面法线高光</span><span>笔画宽度控制刻纹深度</span><span>柔和接触阴影</span>
+    </div>
+    <img id="man1" src="../../cards/mahjong/hong-kong/characters-1.png" alt="">
+    <img id="pin5" src="../../cards/mahjong/hong-kong/dots-5.png" alt="">
+    <img id="sou1" src="../../cards/mahjong/hong-kong/bamboo-1.png" alt="">
+    <img id="chun" src="../../cards/mahjong/hong-kong/dragon-red.png" alt="">
+    <img id="haku" src="../../cards/mahjong/hong-kong/dragon-white.png" alt="">
+    <img id="man1-height" src="height/characters-1-height.png" alt="">
+    <img id="pin5-height" src="height/dots-5-height.png" alt="">
+    <img id="sou1-height" src="height/bamboo-1-height.png" alt="">
+    <img id="chun-height" src="height/dragon-red-height.png" alt="">
+    <img id="haku-height" src="height/dragon-white-height.png" alt="">
+  </div>
+
+  <script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+    in vec2 a_position;
+    uniform vec2 u_center;
+    uniform vec2 u_size;
+    uniform float u_rotation;
+    out vec2 v_uv;
+
+    void main() {
+      float c = cos(u_rotation);
+      float s = sin(u_rotation);
+      mat2 rotation = mat2(c, s, -s, c);
+      vec2 clip = u_center + rotation * (a_position * u_size);
+      gl_Position = vec4(clip, 0.0, 1.0);
+      v_uv = a_position * 0.5 + 0.5;
+    }
+  </script>
+
+  <script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
+    precision highp float;
+    in vec2 v_uv;
+    uniform sampler2D u_glyph;
+    uniform sampler2D u_height;
+    uniform float u_variant;
+    out vec4 out_color;
+
+    float rounded_box(vec2 point, vec2 half_size, float radius) {
+      vec2 q = abs(point) - half_size + radius;
+      return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
+    }
+
+    float coverage(float distance_to_edge) {
+      float antialias = max(fwidth(distance_to_edge) * 1.35, 0.0015);
+      return 1.0 - smoothstep(-antialias, antialias, distance_to_edge);
+    }
+
+    float hash21(vec2 point) {
+      point = fract(point * vec2(123.34, 456.21));
+      point += dot(point, point + 45.32);
+      return fract(point.x * point.y);
+    }
+
+    void main() {
+      vec2 point = (v_uv - 0.5) * 1.2;
+      const vec2 half_size = vec2(0.42, 0.50);
+      const float radius = 0.065;
+
+      float face_distance = rounded_box(point, half_size, radius);
+      float side_distance = rounded_box(point - vec2(0.026, -0.050), half_size, radius);
+      float shadow_distance = rounded_box(point - vec2(0.060, -0.082), half_size, radius + 0.01);
+
+      float face = coverage(face_distance);
+      float side = coverage(side_distance);
+      float shadow = (1.0 - smoothstep(-0.018, 0.085, shadow_distance)) * 0.40;
+
+      vec3 color = vec3(0.004, 0.010, 0.008);
+      float alpha = shadow;
+
+      vec3 side_dark = vec3(0.035, 0.235, 0.196);
+      vec3 side_light = vec3(0.085, 0.415, 0.335);
+      float side_gradient = clamp(0.55 + point.y * 0.52 - point.x * 0.18, 0.0, 1.0);
+      vec3 side_color = mix(side_dark, side_light, side_gradient);
+      float exposed_side = side * (1.0 - face * 0.985);
+      color = mix(color, side_color, side);
+      color += exposed_side * 0.035;
+      alpha = max(alpha, side);
+
+      vec2 gradient = normalize(vec2(dFdx(face_distance), dFdy(face_distance)) + vec2(0.00001));
+      float bevel = 1.0 - smoothstep(0.005, 0.070, -face_distance);
+      vec2 glyph_uv = vec2(point.x / (half_size.x * 2.0) + 0.5,
+                           point.y / (half_size.y * 2.0) + 0.5);
+      vec4 glyph = texture(u_glyph, glyph_uv);
+      vec2 groove_step = 2.5 / vec2(textureSize(u_height, 0));
+      float engraving = texture(u_height, glyph_uv).r;
+      vec2 engraving_gradient = vec2(
+        texture(u_height, glyph_uv + vec2(groove_step.x, 0.0)).r
+          - texture(u_height, glyph_uv - vec2(groove_step.x, 0.0)).r,
+        texture(u_height, glyph_uv + vec2(0.0, groove_step.y)).r
+          - texture(u_height, glyph_uv - vec2(0.0, groove_step.y)).r
+      );
+      float groove_edge = clamp(length(engraving_gradient) * 3.0, 0.0, 1.0);
+      vec3 normal = normalize(vec3(
+        gradient * bevel * 0.82 + engraving_gradient * 2.6,
+        1.0
+      ));
+      vec3 light_direction = normalize(vec3(-0.52, 0.72, 1.25));
+      vec3 half_vector = normalize(light_direction + vec3(0.0, 0.0, 1.0));
+      float diffuse = 0.80 + 0.20 * max(dot(normal, light_direction), 0.0);
+      float specular = pow(max(dot(normal, half_vector), 0.0), 42.0) * (0.17 + bevel * 0.18);
+      float engraving_glint = pow(max(dot(normal, half_vector), 0.0), 30.0)
+                              * groove_edge * 0.48;
+
+      float edge_ao = mix(0.80, 1.0, smoothstep(0.004, 0.054, -face_distance));
+      float warm_gradient = clamp(0.54 + point.y * 0.15 - point.x * 0.05, 0.0, 1.0);
+      vec3 ivory = mix(vec3(0.835, 0.816, 0.755), vec3(0.982, 0.974, 0.925), warm_gradient);
+      float grain = (hash21(gl_FragCoord.xy + u_variant * 91.7) - 0.5) * 0.010;
+      float soft_sheen = exp(-pow((point.x + point.y * 0.38 + 0.18) / 0.17, 2.0)) * 0.022;
+      vec3 face_color = ivory * diffuse * edge_ao + specular + soft_sheen + grain;
+
+      face_color *= 1.0 - engraving * 0.09 - groove_edge * 0.03;
+      face_color = mix(face_color, glyph.rgb * (0.91 + diffuse * 0.09), glyph.a);
+      face_color += specular * (1.0 - glyph.a * 0.72);
+      face_color += engraving_glint * (1.0 - glyph.a * 0.35);
+
+      color = mix(color, face_color, face);
+      alpha = max(alpha, face);
+      out_color = vec4(color, alpha);
+    }
+  </script>
+
+  <script>
+    window.addEventListener("load", () => {
+      const canvas = document.getElementById("canvas");
+      const gl = canvas.getContext("webgl2", {
+        alpha: true,
+        antialias: true,
+        premultipliedAlpha: false,
+        preserveDrawingBuffer: true
+      });
+      if (!gl) {
+        document.querySelector("header p").textContent = "当前环境不支持 WebGL 2";
+        return;
+      }
+
+      const compile = (type, source) => {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          throw new Error(gl.getShaderInfoLog(shader));
+        }
+        return shader;
+      };
+
+      const program = gl.createProgram();
+      gl.attachShader(program, compile(gl.VERTEX_SHADER, document.getElementById("vertex-shader").textContent));
+      gl.attachShader(program, compile(gl.FRAGMENT_SHADER, document.getElementById("fragment-shader").textContent));
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        throw new Error(gl.getProgramInfoLog(program));
+      }
+
+      const positions = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
+      const positionBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+      gl.useProgram(program);
+      const positionLocation = gl.getAttribLocation(program, "a_position");
+      gl.enableVertexAttribArray(positionLocation);
+      gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+      const centerLocation = gl.getUniformLocation(program, "u_center");
+      const sizeLocation = gl.getUniformLocation(program, "u_size");
+      const rotationLocation = gl.getUniformLocation(program, "u_rotation");
+      const variantLocation = gl.getUniformLocation(program, "u_variant");
+      const glyphLocation = gl.getUniformLocation(program, "u_glyph");
+      const heightLocation = gl.getUniformLocation(program, "u_height");
+
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.uniform1i(glyphLocation, 0);
+      gl.uniform1i(heightLocation, 1);
+      gl.uniform2f(sizeLocation, 0.151, 0.272);
+
+      const createTexture = (id, mipmaps) => {
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, document.getElementById(id));
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, mipmaps ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        if (mipmaps) gl.generateMipmap(gl.TEXTURE_2D);
+        return texture;
+      };
+      const textures = ["man1", "pin5", "sou1", "chun", "haku"].map((id) => {
+        return {
+          glyph: createTexture(id, true),
+          height: createTexture(`${id}-height`, false)
+        };
+      });
+
+      const centers = [-0.60, -0.30, 0.0, 0.30, 0.60];
+      const rotations = [-0.105, -0.048, 0.016, 0.070, 0.120];
+      for (let index = 0; index < textures.length; index += 1) {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, textures[index].glyph);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, textures[index].height);
+        gl.uniform2f(centerLocation, centers[index], -0.015 + Math.abs(index - 2) * 0.010);
+        gl.uniform1f(rotationLocation, rotations[index]);
+        gl.uniform1f(variantLocation, index);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+
+      document.body.dataset.rendered = "true";
+    });
+  </script>
+</body>
+</html>

@@ -280,6 +280,19 @@ pub(super) fn decode_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
     postcard::from_bytes(bytes)
         .ok()
         .or_else(|| {
+            let previous: PreMahjongSavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: previous.global,
+                games: GamePreferences {
+                    qigui523: previous.games.qigui523,
+                    texas_holdem: previous.games.texas_holdem,
+                    shengji: previous.games.shengji,
+                    uno: previous.games.uno,
+                    mahjong: MahjongPreferences::default(),
+                },
+            })
+        })
+        .or_else(|| {
             let previous: PreOmahaSavedPreferences = postcard::from_bytes(bytes).ok()?;
             Some(SavedPreferences {
                 global: previous.global,
@@ -290,6 +303,7 @@ pub(super) fn decode_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
                     },
                     shengji: previous.games.shengji,
                     uno: previous.games.uno,
+                    mahjong: MahjongPreferences::default(),
                 },
             })
         })
@@ -304,6 +318,7 @@ pub(super) fn decode_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
                     },
                     shengji: previous.games.shengji,
                     uno: UnoPreferences::default(),
+                    mahjong: MahjongPreferences::default(),
                 },
             })
         })
@@ -318,6 +333,7 @@ pub(super) fn decode_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
                     },
                     shengji: ShengjiPreferences::default(),
                     uno: UnoPreferences::default(),
+                    mahjong: MahjongPreferences::default(),
                 },
             })
         })
@@ -351,6 +367,9 @@ pub(super) fn save_preferences(form: &ConnectionForm) -> Result<(), String> {
             },
             uno: UnoPreferences {
                 host_rules: form.uno_rules,
+            },
+            mahjong: MahjongPreferences {
+                host_rules: form.mahjong_rules,
             },
         },
     };
@@ -512,6 +531,25 @@ pub(super) fn load_ui_assets(
     let quick_voice_sounds = (0..QUICK_VOICE_COUNT)
         .map(|index| asset_server.load(format!("vendor/noname/voice/male/{index}.mp3")))
         .collect();
+    let mahjong_kinds = leocard_mahjong::build_deck()
+        .into_iter()
+        .map(|tile| tile.kind())
+        .collect::<HashSet<_>>();
+    let mahjong_tiles = mahjong_kinds
+        .iter()
+        .copied()
+        .into_iter()
+        .map(|kind| (kind, asset_server.load(mahjong_tile_asset_path(kind))))
+        .collect();
+    let mahjong_tile_heights = mahjong_kinds
+        .into_iter()
+        .map(|kind| {
+            (
+                kind,
+                asset_server.load(mahjong_tile_height_asset_path(kind)),
+            )
+        })
+        .collect();
 
     commands.insert_resource(ShengjiSoundAssets::load(&asset_server));
     commands.insert_resource(UiAssets {
@@ -520,6 +558,11 @@ pub(super) fn load_ui_assets(
         card_back: asset_server.load("vendor/kenney/boardgame/PNG/Cards/cardBack_blue4.png"),
         uno_cards,
         uno_card_back: asset_server.load("cards/uno/card_back.png"),
+        mahjong_tiles,
+        mahjong_tile_heights,
+        mahjong_tile_back: asset_server.load("cards/mahjong/hong-kong/back.png"),
+        mahjong_turn_arrow: asset_server
+            .load("vendor/kenney/ui/PNG/Yellow/Default/arrow_basic_e.png"),
         table_felt: asset_server.load(TABLE_FELT_ASSET),
         primary_button: asset_server
             .load("vendor/kenney/ui/PNG/Green/Default/button_rectangle_depth_gradient.png"),

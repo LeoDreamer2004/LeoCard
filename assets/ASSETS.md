@@ -2,9 +2,10 @@
 
 本文声明 LeoCard 当前发布物实际使用的图像、音频、字体和着色器素材及其许可来源。
 发布构建会按 `crates/client/runtime-assets.txt` 选取运行时文件，并默认内嵌到可执行文件；
-未被该清单选中的原始压缩包、预览图和备用素材不属于运行时发布内容。所有第三方原始
-文件保存在 `assets/vendor/`，项目加工后的运行时副本位于 `assets/cards/`、`assets/ui/`、
-`assets/audio/`、`assets/icons/` 与 `assets/fonts/`。
+未被该清单选中的原始压缩包、预览图和备用素材不属于运行时发布内容。需要保留的第三方
+原始文件位于 `assets/vendor/`；仅保留加工成品的例外由对应条目记录来源和许可。项目加工
+后的素材位于 `assets/cards/`、`assets/ui/`、`assets/audio/`、`assets/icons/` 与
+`assets/fonts/`。
 
 除另有说明外，项目自有的运行时素材随 LeoCard 的 GPL-3.0 许可证提供。用户在游戏中
 自行选择的桌布仅在本地读取，不随 LeoCard 发布物分发，相关使用权由用户自行确认。
@@ -52,6 +53,21 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 程序使用该字体显示中文界面。任何再分发均应同时提供 OFL 许可证；修改字体时还应遵守
 OFL 关于保留名称与再分发的条件。
 
+### I.Mahjong-HK 香港麻将牌字形（M+ 字体许可证）
+
+- 加工文件：`cards/mahjong/hong-kong/` 下的 43 张 600×800 透明 PNG
+- 运行时高度图：`cards/mahjong/hong-kong-height/` 下的 42 张 600×800 灰度 PNG
+- 来源：<https://github.com/SyaoranHinata/I.Mahjong> 的 `I.MahjongHK.otf`
+- 许可证：M+ 字体许可证，允许商业或非商业使用、复制、修改与再分发
+- 用途：香港样式的 34 张基础牌、8 张花牌和牌背
+
+项目从字体中栅格化牌面，移除字体自带的牌框，仅保留内部刻纹；万子采用黑色数字、红色
+“万”字，筒子采用蓝、红分色，索子采用绿、红分色（一索另含黑色鸟纹），风牌使用黑色，
+三元牌、花牌和牌背按牌义着色。原字体和下载仓库不随项目保留，来源与许可由本节记录；加工后的 PNG
+继续遵循 M+ 字体许可证。高度图
+由刻纹透明度及笔画内部距离计算生成，供 `shaders/mahjong_tile.wgsl` 实时绘制凹刻深度、
+象牙牌体、绿色侧边和表面反光，不包含新的第三方图形。
+
 ### Game-icons 射箭图标（CC BY 3.0）
 
 - 作者：Lorc（`Archery target`）、Delapouite（`Dart`）
@@ -94,6 +110,8 @@ GitHub 名称与标志同时受 GitHub 商标规范约束；本项目仅将其�
 
 以下文件由项目维护，用于界面与效果：
 
+- `icons/app-icon.png`：由用户提供并整理为透明方形画布的 LeoCard 应用图标；运行时
+  直接编译进客户端，Windows 发布物另使用由它生成的多尺寸 ICO 文件。
 - `ui/panel_*.png`、`ui/player_panel_*.png`：窗口、分区和玩家框底图。
 - `shaders/table_background.wgsl`、`shaders/turn_border.wgsl`、`shaders/uno_palette.wgsl`：
   桌布、回合边框与 UNO 调色盘着色器。
@@ -112,6 +130,8 @@ GitHub 名称与标志同时受 GitHub 商标规范约束；本项目仅将其�
   角标透明纹理，合成时不再分别拼接加号和数字。
 - `cards/uno-extension-source/uno-flip/dark-glyphs/wild-draw-color.png`：暗面指定颜色摸牌的透明
   合成层。
+- `mahjong/demo/height/`：由香港麻将牌纹理内部距离场生成的刻印高度图；粗笔画中心更深，
+  用于计算连续凹槽法线、内阴影与反射高光。
 
 亮面摸一和 Wild 摸二、暗面摸五均直接以默认牌框及对应摸牌牌型的比例合成，不保留
 容易产生色边的中间抠图。

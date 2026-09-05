@@ -141,6 +141,7 @@ pub(super) fn animate_button_presses(
             With<Button>,
             Without<HandCardSlot>,
             Without<ShengjiHandCardSlot>,
+            Without<MahjongHandTile>,
         ),
     >,
     mut buttons: Query<
@@ -149,6 +150,7 @@ pub(super) fn animate_button_presses(
             With<Button>,
             Without<HandCardSlot>,
             Without<ShengjiHandCardSlot>,
+            Without<MahjongHandTile>,
         ),
     >,
     mut active: Local<HashSet<Entity>>,

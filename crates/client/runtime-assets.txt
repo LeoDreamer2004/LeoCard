@@ -3,6 +3,7 @@
 # Keep source packs, previews and unused vendor files out of the release binary.
 
 audio/
+cards/mahjong/
 cards/uno/
 cards/uno-extension/
 fonts/
@@ -21,6 +22,7 @@ vendor/kenney/ui/PNG/Blue/Default/button_rectangle_depth_gradient.png
 vendor/kenney/ui/PNG/Green/Default/button_rectangle_depth_gradient.png
 vendor/kenney/ui/PNG/Grey/Default/button_rectangle_depth_gradient.png
 vendor/kenney/ui/PNG/Red/Default/button_rectangle_depth_gradient.png
+vendor/kenney/ui/PNG/Yellow/Default/arrow_basic_e.png
 vendor/kenney/ui/PNG/Yellow/Default/button_rectangle_depth_gradient.png
 
 vendor/noname/audio/effect/

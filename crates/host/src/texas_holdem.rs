@@ -295,6 +295,14 @@ impl TexasHoldemSession {
                     received: GameKind::Uno,
                 },
             ),
+            ClientCommand::Game(GameCommand::Mahjong(_)) => self.room.reject(
+                connection,
+                request_id,
+                RejectReason::WrongGame {
+                    expected: GameKind::TexasHoldem,
+                    received: GameKind::Mahjong,
+                },
+            ),
             ClientCommand::StartGame => self.start_game(connection, request_id),
             ClientCommand::ReturnToLobby => self.return_to_lobby(connection, request_id),
             ClientCommand::PlayAgain => self.play_again(connection, request_id),

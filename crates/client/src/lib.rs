@@ -9,14 +9,16 @@ use std::time::Duration;
 
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_host::{ConnectionId, HostError, HostSession};
+use leocard_mahjong::{RuleSet as MahjongRuleSet, build_deck as build_mahjong_deck};
 use leocard_protocol::{
     AvatarId, ChatMessage, ClientCommand, ClientMessage, GameCommand, GameEvent, GamePhaseView,
-    GameRules, GameSnapshot as AnyGameSnapshot, LobbySnapshot, MatchId, PROTOCOL_VERSION,
-    PlayerGameProfiles, PlayerId, PlayerInteraction, PlayerReferenceChange, ProfileId, PublicPlay,
-    PublicPlayRecord, QiGui523Command, QiGui523Event, QiGui523Snapshot as GameSnapshot,
-    ReconnectToken, RejectReason, RequestId, Revision, RoomId, SeatId, ServerEvent, ServerMessage,
-    ShengjiEvent, ShengjiPhaseView, ShengjiSnapshot, TexasHoldemEvent, TexasHoldemPhaseView,
-    TexasHoldemSnapshot, TrickView, UnoEvent, UnoPhaseView, UnoSnapshot, join_identity_payload,
+    GameRules, GameSnapshot as AnyGameSnapshot, LobbySnapshot, MahjongEvent, MahjongSnapshot,
+    MatchId, PROTOCOL_VERSION, PlayerGameProfiles, PlayerId, PlayerInteraction,
+    PlayerReferenceChange, ProfileId, PublicPlay, PublicPlayRecord, QiGui523Command, QiGui523Event,
+    QiGui523Snapshot as GameSnapshot, ReconnectToken, RejectReason, RequestId, Revision, RoomId,
+    SeatId, ServerEvent, ServerMessage, ShengjiEvent, ShengjiPhaseView, ShengjiSnapshot,
+    TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemSnapshot, TrickView, UnoEvent, UnoPhaseView,
+    UnoSnapshot, join_identity_payload,
 };
 use leocard_qigui523::{Card, RuleSet, build_deck};
 use leocard_shengji::{RuleSet as ShengjiRuleSet, build_deck_for as build_shengji_deck_for};
@@ -356,6 +358,38 @@ impl TcpGameClient {
         )
     }
 
+    pub fn host_mahjong_with_profile(
+        name: &str,
+        port: u16,
+        rules: MahjongRuleSet,
+        avatar_png: Option<Vec<u8>>,
+        identity: PlayerIdentity,
+        reference_points: i32,
+        completed_games: u32,
+        game_profiles: PlayerGameProfiles,
+    ) -> Result<Self, NetworkStartError> {
+        if port == 0 {
+            return Err(NetworkStartError::InvalidPort);
+        }
+        let mut deck = build_mahjong_deck();
+        fastrand::shuffle(&mut deck);
+        let session = HostSession::mahjong(NETWORK_ROOM_ID, port, rules, deck)
+            .map_err(|error| NetworkStartError::Worker(io::Error::other(error)))?;
+        Self::spawn(
+            name,
+            avatar_png,
+            identity,
+            reference_points,
+            completed_games,
+            game_profiles,
+            NetworkLaunch::Host {
+                port,
+                session: Box::new(session),
+            },
+            format!("正在开放 0.0.0.0:{port}"),
+        )
+    }
+
     /// 连接一个形如 `192.168.1.20:52300` 的局域网地址。
     pub fn join(name: &str, address: &str) -> Result<Self, NetworkStartError> {
         Self::join_with_avatar(name, address, None)
@@ -508,6 +542,10 @@ impl TcpGameClient {
 
     pub fn take_uno_events(&mut self) -> Vec<UnoEvent> {
         self.model.take_uno_events()
+    }
+
+    pub fn take_mahjong_events(&mut self) -> Vec<MahjongEvent> {
+        self.model.take_mahjong_events()
     }
 
     /// 把后台线程已经收到的消息应用到模型；返回是否有可见状态变化。
@@ -794,6 +832,7 @@ pub struct ClientModel {
     pending_texas_holdem_events: VecDeque<TexasHoldemEvent>,
     pending_shengji_events: VecDeque<ShengjiEvent>,
     pending_uno_events: VecDeque<UnoEvent>,
+    pending_mahjong_events: VecDeque<MahjongEvent>,
     last_finished_match: Option<(MatchId, Vec<PlayerReferenceChange>)>,
 }
 
@@ -832,6 +871,7 @@ impl ClientModel {
             pending_texas_holdem_events: VecDeque::new(),
             pending_shengji_events: VecDeque::new(),
             pending_uno_events: VecDeque::new(),
+            pending_mahjong_events: VecDeque::new(),
             last_finished_match: None,
         }
     }
@@ -877,6 +917,7 @@ impl ClientModel {
                 self.pending_texas_holdem_events.clear();
                 self.pending_shengji_events.clear();
                 self.pending_uno_events.clear();
+                self.pending_mahjong_events.clear();
                 self.rules = Some(snapshot.rules.clone());
                 self.lobby = Some(snapshot);
                 self.game = None;
@@ -988,6 +1029,18 @@ impl ClientModel {
                 self.lobby = None;
                 self.last_rejection = None;
             }
+            ServerEvent::GameSnapshot(AnyGameSnapshot::Mahjong(snapshot)) => {
+                if self.active_match_id != Some(snapshot.match_id) {
+                    self.pending_mahjong_events.clear();
+                }
+                self.host_port = Some(snapshot.host_port);
+                self.active_match_id = Some(snapshot.match_id);
+                self.you = Some(snapshot.you);
+                self.rules = Some(GameRules::Mahjong(snapshot.rules));
+                self.game = Some(AnyGameSnapshot::Mahjong(snapshot));
+                self.lobby = None;
+                self.last_rejection = None;
+            }
             ServerEvent::GameEvent(GameEvent::QiGui523(QiGui523Event::PlayEffect {
                 player,
                 play,
@@ -1063,6 +1116,9 @@ impl ClientModel {
                 }
                 self.pending_uno_events.push_back(event);
             }
+            ServerEvent::GameEvent(GameEvent::Mahjong(event)) => {
+                self.pending_mahjong_events.push_back(event);
+            }
             ServerEvent::PlayerInteraction(interaction) => {
                 self.pending_player_interactions.push_back(interaction);
             }
@@ -1128,6 +1184,10 @@ impl ClientModel {
         self.game.as_ref().and_then(AnyGameSnapshot::uno)
     }
 
+    pub fn mahjong_game(&self) -> Option<&MahjongSnapshot> {
+        self.game.as_ref().and_then(AnyGameSnapshot::mahjong)
+    }
+
     pub fn game_rules(&self) -> Option<&GameRules> {
         self.rules.as_ref()
     }
@@ -1146,6 +1206,10 @@ impl ClientModel {
 
     pub fn uno_rules(&self) -> Option<&UnoRuleSet> {
         self.rules.as_ref().and_then(GameRules::uno)
+    }
+
+    pub fn mahjong_rules(&self) -> Option<&MahjongRuleSet> {
+        self.rules.as_ref().and_then(GameRules::mahjong)
     }
 
     pub fn avatars(&self) -> &HashMap<AvatarId, Vec<u8>> {
@@ -1225,6 +1289,10 @@ impl ClientModel {
 
     pub fn take_uno_events(&mut self) -> Vec<UnoEvent> {
         self.pending_uno_events.drain(..).collect()
+    }
+
+    pub fn take_mahjong_events(&mut self) -> Vec<MahjongEvent> {
+        self.pending_mahjong_events.drain(..).collect()
     }
 
     pub fn last_finished_match(&self) -> Option<(MatchId, &[PlayerReferenceChange])> {

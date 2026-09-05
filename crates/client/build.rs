@@ -13,6 +13,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=CARGO_FEATURE_EMBEDDED_ASSETS");
 
     let manifest_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
+    embed_windows_resources(&manifest_dir);
     let runtime_manifest = manifest_dir.join("runtime-assets.txt");
     println!("cargo:rerun-if-changed={}", runtime_manifest.display());
 
@@ -82,6 +83,22 @@ fn main() {
     )
     .unwrap();
     fs::write(output, generated).unwrap();
+}
+
+fn embed_windows_resources(manifest_dir: &Path) {
+    if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
+        return;
+    }
+
+    let icon = manifest_dir.join("windows/icon.ico");
+    println!("cargo:rerun-if-changed={}", icon.display());
+    winresource::WindowsResource::new()
+        .set_icon(
+            icon.to_str()
+                .expect("Windows icon path must be valid Unicode"),
+        )
+        .compile()
+        .expect("failed to embed the application icon into the Windows executable");
 }
 
 fn validate_manifest_entry(entry: &str, line: usize) {

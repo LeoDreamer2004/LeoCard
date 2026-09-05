@@ -127,6 +127,17 @@ pub(super) fn handle_buttons(
                         profile.game_profiles().clone(),
                     )
                     .map_err(|error| error.to_string()),
+                    GameKind::Mahjong => TcpGameClient::host_mahjong_with_profile(
+                        &name,
+                        port,
+                        normalize_mahjong_rules(form.mahjong_rules),
+                        form.avatar_png.clone(),
+                        profile.identity.clone(),
+                        profile.reference_points(),
+                        profile.completed_games(),
+                        profile.game_profiles().clone(),
+                    )
+                    .map_err(|error| error.to_string()),
                 });
                 match result {
                     Ok(network) => {
@@ -306,6 +317,48 @@ pub(super) fn handle_buttons(
                 if let Some(client) = client.as_deref_mut() {
                     client.0.send(ClientCommand::Game(GameCommand::Uno(
                         UnoCommand::UpdateRules { rules: *rules },
+                    )));
+                }
+            }
+            UiAction::UpdateMahjongRules(rules) => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Mahjong(
+                        MahjongCommand::UpdateRules { rules: *rules },
+                    )));
+                }
+            }
+            UiAction::MahjongDiscard(tile) => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Mahjong(
+                        MahjongCommand::Discard { tile: *tile },
+                    )));
+                }
+            }
+            UiAction::MahjongRespond(claim) => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Mahjong(
+                        MahjongCommand::RespondToClaim { claim: *claim },
+                    )));
+                }
+            }
+            UiAction::MahjongSelfDraw => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Mahjong(
+                        MahjongCommand::DeclareSelfDraw,
+                    )));
+                }
+            }
+            UiAction::MahjongConcealedKong(tile) => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Mahjong(
+                        MahjongCommand::DeclareConcealedKong { tile: *tile },
+                    )));
+                }
+            }
+            UiAction::MahjongAddedKong(tile) => {
+                if let Some(client) = client.as_deref_mut() {
+                    client.0.send(ClientCommand::Game(GameCommand::Mahjong(
+                        MahjongCommand::DeclareAddedKong { tile: *tile },
                     )));
                 }
             }
@@ -1425,6 +1478,21 @@ pub(super) fn poll_network(
             form.error = Some(error);
         }
     }
+    let accepted_mahjong_rules = client.0.model().lobby().and_then(|lobby| {
+        let you = client.0.model().you()?;
+        (lobby.host == Some(you))
+            .then(|| lobby.mahjong_rules().copied())
+            .flatten()
+            .map(normalize_mahjong_rules)
+    });
+    if let Some(rules) = accepted_mahjong_rules
+        && form.mahjong_rules != rules
+    {
+        form.mahjong_rules = rules;
+        if let Err(error) = save_preferences(&form) {
+            form.error = Some(error);
+        }
+    }
     if let Some(game) = client.0.model().shengji_game() {
         let previous_stage = previous_shengji
             .as_ref()
@@ -1742,10 +1810,8 @@ pub(super) fn update_summary_animation(
             return Some((
                 *match_id,
                 None,
-                sorted_summary_scores(scores)
-                    .into_iter()
-                    .map(|score| (score.player, score.score))
-                    .collect::<Vec<_>>(),
+                None,
+                scores.len(),
                 reference_changes
                     .iter()
                     .find(|change| change.player == game.you)
@@ -1760,20 +1826,37 @@ pub(super) fn update_summary_animation(
                 ..
             } = &game.phase
         {
-            let mut results = results.clone();
-            results.sort_by_key(|result| result.placement);
             return Some((
                 game.match_id,
                 None,
-                results
-                    .into_iter()
-                    .map(|result| (result.player, u32::from(result.hand_score)))
-                    .collect::<Vec<_>>(),
+                None,
+                results.len(),
                 reference_changes
                     .iter()
                     .find(|change| change.player == game.you)
                     .is_none_or(|change| change.delta >= 0),
                 UNO_FINISH_REVEAL_DURATION,
+            ));
+        }
+        if let Some(game) = client.0.model().mahjong_game()
+            && let MahjongPhaseView::Finished { result } = &game.phase
+        {
+            let fan_entries = result
+                .winners
+                .iter()
+                .map(|winner| winner.score.fans.len() + 1)
+                .sum::<usize>();
+            return Some((
+                game.match_id,
+                None,
+                Some(u32::from(result.sequence_index)),
+                game.players.len() + fan_entries,
+                result.deltas[game.you.0 as usize] >= 0,
+                if result.winners.is_empty() {
+                    0.0
+                } else {
+                    MAHJONG_WIN_REVEAL_DURATION
+                },
             ));
         }
         let game = client.0.model().texas_holdem_game()?;
@@ -1806,7 +1889,8 @@ pub(super) fn update_summary_animation(
         Some((
             game.match_id,
             Some(game.hand_number),
-            rows,
+            None,
+            rows.len(),
             nonnegative,
             if *showdown {
                 TEXAS_SHOWDOWN_REVEAL_DURATION
@@ -1815,7 +1899,14 @@ pub(super) fn update_summary_animation(
             },
         ))
     });
-    let Some((match_id, texas_hand_number, scores, nonnegative_outcome, reveal_duration)) = summary
+    let Some((
+        match_id,
+        texas_hand_number,
+        settlement_index,
+        entry_count,
+        nonnegative_outcome,
+        reveal_duration,
+    )) = summary
     else {
         if animation.match_id.is_some() {
             *animation = GameSummaryAnimation::default();
@@ -1823,15 +1914,19 @@ pub(super) fn update_summary_animation(
         return;
     };
 
-    if animation.match_id != Some(match_id) || animation.texas_hand_number != texas_hand_number {
+    if animation.match_id != Some(match_id)
+        || animation.texas_hand_number != texas_hand_number
+        || animation.settlement_index != settlement_index
+    {
         animation.match_id = Some(match_id);
         animation.texas_hand_number = texas_hand_number;
-        animation.scores = scores;
+        animation.settlement_index = settlement_index;
+        animation.entry_count = entry_count;
         animation.elapsed = -reveal_duration;
         animation.nonnegative_outcome = nonnegative_outcome;
         animation.outcome_sound_played = false;
     } else {
-        let duration = summary_animation_duration(animation.scores.len());
+        let duration = summary_animation_duration(animation.entry_count);
         if animation.elapsed < duration {
             animation.elapsed = (animation.elapsed + time.delta_secs()).min(duration);
         }
@@ -1977,6 +2072,25 @@ pub(super) fn animate_summary_scores(
     for (score, mut text) in &mut scores {
         let displayed = animated_summary_score(animation.elapsed, score.target, score.delay);
         let expected = format!("{displayed} 分");
+        if text.0 != expected {
+            text.0 = expected;
+        }
+    }
+}
+
+pub(super) fn animate_signed_summary_scores(
+    animation: Res<GameSummaryAnimation>,
+    mut scores: Query<(&AnimatedSignedSummaryScore, &mut Text)>,
+) {
+    if !animation.is_changed() {
+        return;
+    }
+    for (score, mut text) in &mut scores {
+        let progress =
+            ((animation.elapsed - score.delay) / SUMMARY_SCORE_COUNT_DURATION).clamp(0.0, 1.0);
+        let eased = 1.0 - (1.0 - progress).powi(3);
+        let displayed = (score.target as f32 * eased).round() as i32;
+        let expected = format!("累计 {displayed:+}");
         if text.0 != expected {
             text.0 = expected;
         }

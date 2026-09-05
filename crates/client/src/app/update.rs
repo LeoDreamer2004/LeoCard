@@ -649,7 +649,14 @@ fn download_binary(
             format_bytes(downloaded)
         ));
     }
-    Ok(format!("{:x}", digest.finalize()))
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let digest = digest.finalize();
+    let mut checksum = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        checksum.push(char::from(HEX[usize::from(byte >> 4)]));
+        checksum.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+    Ok(checksum)
 }
 
 fn parse_sha256(contents: &str) -> Result<String, String> {

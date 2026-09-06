@@ -24,8 +24,7 @@ fn main() {
     if !enabled {
         fs::write(
             output,
-            "fn embedded_asset_dir() -> bevy::asset::io::memory::Dir { unreachable!() }\n\
-             const EMBEDDED_ASSET_COUNT: usize = 0;\n",
+            "fn embedded_asset_dir() -> bevy::asset::io::memory::Dir { unreachable!() }\n",
         )
         .unwrap();
         return;
@@ -76,12 +75,6 @@ fn main() {
         println!("cargo:rerun-if-changed={}", source.display());
     }
     generated.push_str("\tdir\n}\n");
-    writeln!(
-        generated,
-        "const EMBEDDED_ASSET_COUNT: usize = {};",
-        assets.len()
-    )
-    .unwrap();
     fs::write(output, generated).unwrap();
 }
 

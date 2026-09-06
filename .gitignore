@@ -17,8 +17,8 @@
 *.log
 client.prefs
 profile.dat
-core
-core.*
+/core
+/core.*
 
 # Auto-update staging and release signing secrets
 /updates/staging/

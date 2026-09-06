@@ -54,7 +54,7 @@ jobs:
           cargo --version
 
       - name: Cache Cargo test output
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -110,7 +110,7 @@ jobs:
           cargo --version
 
       - name: Cache Cargo dependencies and release output
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry

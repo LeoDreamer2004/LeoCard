@@ -1,7 +1,9 @@
 use std::cmp::Ordering;
 use std::collections::HashSet;
 
-use crate::{Card, ClassifiedPlay, PlayComparison, RuleSet, can_beat, classify, compare_plays};
+use crate::{
+    ClassifiedPlay, PlayComparison, QiGuiCard, QiGuiRuleSet, can_beat, classify, compare_plays,
+};
 
 /// 一次贪心跟牌请求所需的公开信息。
 ///
@@ -9,10 +11,10 @@ use crate::{Card, ClassifiedPlay, PlayComparison, RuleSet, can_beat, classify, c
 /// 也不会直接改变合法性；当公开历史发生变化时，它会让有状态策略开始一轮新的搜索。
 #[derive(Clone, Copy, Debug)]
 pub struct QiGui523BotRequest<'a> {
-    pub hand: &'a [Card],
+    pub hand: &'a [QiGuiCard],
     pub current_play: &'a ClassifiedPlay,
-    pub played_cards: &'a [Card],
-    pub rules: &'a RuleSet,
+    pub played_cards: &'a [QiGuiCard],
+    pub rules: &'a QiGuiRuleSet,
 }
 
 /// 可重复请求的贪心跟牌机器人。
@@ -75,10 +77,10 @@ struct GreedySearch {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct GreedyContextKey {
-    hand: Vec<Card>,
-    current_play: Vec<Card>,
-    played_cards: Vec<Card>,
-    rules: RuleSet,
+    hand: Vec<QiGuiCard>,
+    current_play: Vec<QiGuiCard>,
+    played_cards: Vec<QiGuiCard>,
+    rules: QiGuiRuleSet,
 }
 
 impl GreedyContextKey {
@@ -126,7 +128,11 @@ fn legal_responses(request: QiGui523BotRequest<'_>) -> Vec<ClassifiedPlay> {
     candidates
 }
 
-fn greedy_play_cmp(left: &ClassifiedPlay, right: &ClassifiedPlay, rules: &RuleSet) -> Ordering {
+fn greedy_play_cmp(
+    left: &ClassifiedPlay,
+    right: &ClassifiedPlay,
+    rules: &QiGuiRuleSet,
+) -> Ordering {
     match compare_plays(left, right, rules) {
         PlayComparison::Lower => Ordering::Less,
         PlayComparison::Greater => Ordering::Greater,
@@ -146,13 +152,13 @@ fn semantic_choice_key(play: &ClassifiedPlay) -> Vec<(u8, u8)> {
     key
 }
 
-fn sorted_physical_cards(cards: &[Card]) -> Vec<Card> {
+fn sorted_physical_cards(cards: &[QiGuiCard]) -> Vec<QiGuiCard> {
     let mut cards = cards.to_vec();
     cards.sort_by(card_physical_cmp);
     cards
 }
 
-fn physical_cards_cmp(left: &[Card], right: &[Card]) -> Ordering {
+fn physical_cards_cmp(left: &[QiGuiCard], right: &[QiGuiCard]) -> Ordering {
     left.len().cmp(&right.len()).then_with(|| {
         left.iter()
             .zip(right)
@@ -162,7 +168,7 @@ fn physical_cards_cmp(left: &[Card], right: &[Card]) -> Ordering {
     })
 }
 
-fn card_physical_cmp(left: &Card, right: &Card) -> Ordering {
+fn card_physical_cmp(left: &QiGuiCard, right: &QiGuiCard) -> Ordering {
     left.rank()
         .strength()
         .cmp(&right.rank().strength())
@@ -173,24 +179,24 @@ fn card_physical_cmp(left: &Card, right: &Card) -> Ordering {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Rank, SameCardPolicy, Suit};
+    use crate::{QiGuiRank, QiGuiSuit, SameCardPolicy};
 
-    fn card(deck: u8, suit: Suit, rank: Rank) -> Card {
-        Card::suited(deck, suit, rank)
+    fn card(deck: u8, suit: QiGuiSuit, rank: QiGuiRank) -> QiGuiCard {
+        QiGuiCard::suited(deck, suit, rank)
     }
 
-    fn single(card: Card, rules: &RuleSet) -> ClassifiedPlay {
+    fn single(card: QiGuiCard, rules: &QiGuiRuleSet) -> ClassifiedPlay {
         classify(&[card], rules).unwrap()
     }
 
     #[test]
     fn repeated_requests_walk_candidates_from_smallest_to_largest() {
-        let rules = RuleSet::default();
-        let current = single(card(0, Suit::Diamond, Rank::Eight), &rules);
+        let rules = QiGuiRuleSet::default();
+        let current = single(card(0, QiGuiSuit::Diamond, QiGuiRank::Eight), &rules);
         let hand = [
-            card(0, Suit::Diamond, Rank::Jack),
-            card(0, Suit::Diamond, Rank::Nine),
-            card(0, Suit::Diamond, Rank::Ten),
+            card(0, QiGuiSuit::Diamond, QiGuiRank::Jack),
+            card(0, QiGuiSuit::Diamond, QiGuiRank::Nine),
+            card(0, QiGuiSuit::Diamond, QiGuiRank::Ten),
         ];
         let history = current.cards().to_vec();
         let request = QiGui523BotRequest {
@@ -203,29 +209,29 @@ mod tests {
 
         assert_eq!(
             strategy.choose(request).unwrap().cards(),
-            &[card(0, Suit::Diamond, Rank::Nine)]
+            &[card(0, QiGuiSuit::Diamond, QiGuiRank::Nine)]
         );
         assert_eq!(
             strategy.choose(request).unwrap().cards(),
-            &[card(0, Suit::Diamond, Rank::Ten)]
+            &[card(0, QiGuiSuit::Diamond, QiGuiRank::Ten)]
         );
         assert_eq!(
             strategy.choose(request).unwrap().cards(),
-            &[card(0, Suit::Diamond, Rank::Jack)]
+            &[card(0, QiGuiSuit::Diamond, QiGuiRank::Jack)]
         );
         assert_eq!(strategy.choose(request), None);
     }
 
     #[test]
     fn ordinary_responses_are_used_before_bombs() {
-        let rules = RuleSet::default();
-        let current = single(card(0, Suit::Diamond, Rank::Eight), &rules);
+        let rules = QiGuiRuleSet::default();
+        let current = single(card(0, QiGuiSuit::Diamond, QiGuiRank::Eight), &rules);
         let hand = [
-            card(0, Suit::Diamond, Rank::Nine),
-            card(0, Suit::Diamond, Rank::Six),
-            card(0, Suit::Club, Rank::Six),
-            card(0, Suit::Heart, Rank::Six),
-            card(0, Suit::Spade, Rank::Six),
+            card(0, QiGuiSuit::Diamond, QiGuiRank::Nine),
+            card(0, QiGuiSuit::Diamond, QiGuiRank::Six),
+            card(0, QiGuiSuit::Club, QiGuiRank::Six),
+            card(0, QiGuiSuit::Heart, QiGuiRank::Six),
+            card(0, QiGuiSuit::Spade, QiGuiRank::Six),
         ];
         let mut strategy = QiGui523Bot::new();
         let request = QiGui523BotRequest {
@@ -236,30 +242,33 @@ mod tests {
         };
 
         let first = strategy.choose(request).unwrap();
-        assert_eq!(first.cards(), &[card(0, Suit::Diamond, Rank::Nine)]);
+        assert_eq!(
+            first.cards(),
+            &[card(0, QiGuiSuit::Diamond, QiGuiRank::Nine)]
+        );
         let second = strategy.choose(request).unwrap();
-        assert!(matches!(second.kind(), crate::PlayKind::Bomb(_)));
+        assert!(matches!(second.kind(), crate::QiGuiPlayKind::Bomb(_)));
     }
 
     #[test]
     fn greedy_search_finds_an_advanced_type_response() {
-        let rules = RuleSet {
+        let rules = QiGuiRuleSet {
             advanced_play_types: true,
-            ..RuleSet::default()
+            ..QiGuiRuleSet::default()
         };
         let current = classify(
             &[
-                card(0, Suit::Diamond, Rank::Eight),
-                card(0, Suit::Diamond, Rank::Nine),
-                card(0, Suit::Diamond, Rank::Ten),
+                card(0, QiGuiSuit::Diamond, QiGuiRank::Eight),
+                card(0, QiGuiSuit::Diamond, QiGuiRank::Nine),
+                card(0, QiGuiSuit::Diamond, QiGuiRank::Ten),
             ],
             &rules,
         )
         .unwrap();
         let hand = [
-            card(0, Suit::Diamond, Rank::Four),
-            card(0, Suit::Club, Rank::Four),
-            card(0, Suit::Heart, Rank::Four),
+            card(0, QiGuiSuit::Diamond, QiGuiRank::Four),
+            card(0, QiGuiSuit::Club, QiGuiRank::Four),
+            card(0, QiGuiSuit::Heart, QiGuiRank::Four),
         ];
         let request = QiGui523BotRequest {
             hand: &hand,
@@ -272,31 +281,31 @@ mod tests {
         assert!(has_legal_response(request));
         assert!(matches!(
             strategy.choose(request).unwrap().kind(),
-            crate::PlayKind::Triple
+            crate::QiGuiPlayKind::Triple
         ));
     }
 
     #[test]
     fn greedy_search_finds_a_higher_triple_with_single() {
-        let rules = RuleSet {
+        let rules = QiGuiRuleSet {
             advanced_play_types: true,
-            ..RuleSet::default()
+            ..QiGuiRuleSet::default()
         };
         let current = classify(
             &[
-                card(0, Suit::Diamond, Rank::Four),
-                card(0, Suit::Club, Rank::Four),
-                card(0, Suit::Heart, Rank::Four),
-                card(0, Suit::Diamond, Rank::Seven),
+                card(0, QiGuiSuit::Diamond, QiGuiRank::Four),
+                card(0, QiGuiSuit::Club, QiGuiRank::Four),
+                card(0, QiGuiSuit::Heart, QiGuiRank::Four),
+                card(0, QiGuiSuit::Diamond, QiGuiRank::Seven),
             ],
             &rules,
         )
         .unwrap();
         let hand = [
-            card(0, Suit::Diamond, Rank::Six),
-            card(0, Suit::Club, Rank::Six),
-            card(0, Suit::Heart, Rank::Six),
-            card(0, Suit::Diamond, Rank::Four),
+            card(0, QiGuiSuit::Diamond, QiGuiRank::Six),
+            card(0, QiGuiSuit::Club, QiGuiRank::Six),
+            card(0, QiGuiSuit::Heart, QiGuiRank::Six),
+            card(0, QiGuiSuit::Diamond, QiGuiRank::Four),
         ];
         let request = QiGui523BotRequest {
             hand: &hand,
@@ -309,20 +318,23 @@ mod tests {
         assert!(has_legal_response(request));
         assert!(matches!(
             strategy.choose(request).unwrap().kind(),
-            crate::PlayKind::TripleWithSingle
+            crate::QiGuiPlayKind::TripleWithSingle
         ));
     }
 
     #[test]
     fn changed_public_history_resets_the_saved_cursor() {
-        let rules = RuleSet::default();
-        let current = single(card(0, Suit::Diamond, Rank::Eight), &rules);
+        let rules = QiGuiRuleSet::default();
+        let current = single(card(0, QiGuiSuit::Diamond, QiGuiRank::Eight), &rules);
         let hand = [
-            card(0, Suit::Diamond, Rank::Nine),
-            card(0, Suit::Diamond, Rank::Ten),
+            card(0, QiGuiSuit::Diamond, QiGuiRank::Nine),
+            card(0, QiGuiSuit::Diamond, QiGuiRank::Ten),
         ];
         let initial_history = current.cards().to_vec();
-        let later_history = [current.cards()[0], card(0, Suit::Club, Rank::Four)];
+        let later_history = [
+            current.cards()[0],
+            card(0, QiGuiSuit::Club, QiGuiRank::Four),
+        ];
         let mut strategy = QiGui523Bot::new();
 
         let first_request = QiGui523BotRequest {
@@ -346,15 +358,15 @@ mod tests {
 
     #[test]
     fn equivalent_physical_copies_are_not_returned_twice() {
-        let rules = RuleSet {
+        let rules = QiGuiRuleSet {
             deck_count: 2,
-            ..RuleSet::default()
+            ..QiGuiRuleSet::default()
         };
-        let current = single(card(0, Suit::Diamond, Rank::Eight), &rules);
+        let current = single(card(0, QiGuiSuit::Diamond, QiGuiRank::Eight), &rules);
         let hand = [
-            card(0, Suit::Diamond, Rank::Nine),
-            card(1, Suit::Diamond, Rank::Nine),
-            card(0, Suit::Diamond, Rank::Ten),
+            card(0, QiGuiSuit::Diamond, QiGuiRank::Nine),
+            card(1, QiGuiSuit::Diamond, QiGuiRank::Nine),
+            card(0, QiGuiSuit::Diamond, QiGuiRank::Ten),
         ];
         let request = QiGui523BotRequest {
             hand: &hand,
@@ -366,28 +378,28 @@ mod tests {
 
         assert_eq!(
             strategy.choose(request).unwrap().cards()[0].rank(),
-            Rank::Nine
+            QiGuiRank::Nine
         );
         assert_eq!(
             strategy.choose(request).unwrap().cards()[0].rank(),
-            Rank::Ten
+            QiGuiRank::Ten
         );
         assert_eq!(strategy.choose(request), None);
     }
 
     #[test]
     fn equal_strength_following_obeys_room_rules() {
-        let current_card = card(0, Suit::Diamond, Rank::Nine);
+        let current_card = card(0, QiGuiSuit::Diamond, QiGuiRank::Nine);
         let hand = [
-            card(1, Suit::Diamond, Rank::Nine),
-            card(0, Suit::Club, Rank::Nine),
+            card(1, QiGuiSuit::Diamond, QiGuiRank::Nine),
+            card(0, QiGuiSuit::Club, QiGuiRank::Nine),
         ];
-        let strict = RuleSet {
+        let strict = QiGuiRuleSet {
             deck_count: 2,
             same_card_policy: SameCardPolicy::MustBeHigher,
-            ..RuleSet::default()
+            ..QiGuiRuleSet::default()
         };
-        let following = RuleSet {
+        let following = QiGuiRuleSet {
             same_card_policy: SameCardPolicy::CanFollow,
             ..strict
         };

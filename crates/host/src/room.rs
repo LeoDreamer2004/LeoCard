@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use leocard_protocol::{
-    AvatarId, ChatContent, ChatMessage, ClientMessage, GameKind, GameRules, LobbyPlayer,
-    LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS, PROTOCOL_VERSION,
+    AvatarId, ChatContent, ChatMessage, ClientMessage, GameKind, GameRules, JoinRequest,
+    LobbyPlayer, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS, PROTOCOL_VERSION,
     PlayerGameProfiles, PlayerId, PlayerInteractionKind, PlayerInteractionStats, ProfileId,
     QUICK_VOICE_COUNT, ReconnectToken, RejectReason, RequestId, Revision, RoomId, SeatId,
     ServerEvent, ServerMessage, TABLE_SEAT_COUNT,
@@ -12,24 +12,24 @@ use crate::{ConnectionId, Delivery};
 
 #[derive(Clone, Debug)]
 pub(crate) struct Participant {
-    pub(crate) id: PlayerId,
-    pub(crate) profile_id: ProfileId,
-    pub(crate) connection: ConnectionId,
-    pub(crate) name: String,
-    pub(crate) avatar: Option<AvatarId>,
-    pub(crate) avatar_png: Option<Vec<u8>>,
-    pub(crate) reconnect_token: ReconnectToken,
-    pub(crate) seat: Option<SeatId>,
-    pub(crate) ready: bool,
-    pub(crate) connected: bool,
+    pub id: PlayerId,
+    pub profile_id: ProfileId,
+    pub connection: ConnectionId,
+    pub name: String,
+    pub avatar: Option<AvatarId>,
+    pub avatar_png: Option<Vec<u8>>,
+    pub reconnect_token: ReconnectToken,
+    pub seat: Option<SeatId>,
+    pub ready: bool,
+    pub connected: bool,
     /// 两种已接入房主的游戏均使用此字段执行确定性托管策略。
-    pub(crate) auto_play: bool,
+    pub auto_play: bool,
     /// 仅开发者模式手动占座使用；机器人没有真实网络连接。
-    pub(crate) is_bot: bool,
-    pub(crate) left: bool,
-    pub(crate) reference_points: i32,
-    pub(crate) completed_games: u32,
-    pub(crate) game_profiles: PlayerGameProfiles,
+    pub is_bot: bool,
+    pub left: bool,
+    pub reference_points: i32,
+    pub completed_games: u32,
+    pub game_profiles: PlayerGameProfiles,
 }
 
 /// 不理解具体棋牌游戏规则的房间状态。
@@ -151,45 +151,39 @@ impl RoomSession {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn join(
         &mut self,
         connection: ConnectionId,
         request_id: RequestId,
-        name: String,
-        reconnect_token: ReconnectToken,
-        profile_id: ProfileId,
-        reference_points: i32,
-        completed_games: u32,
-        game_profiles: PlayerGameProfiles,
-        identity_signature: Vec<u8>,
+        request: JoinRequest,
         game_started: bool,
         capacity: u8,
     ) -> Result<Vec<Delivery>, RejectReason> {
         if self.player_id(connection).is_some() {
             return Err(RejectReason::AlreadyJoined);
         }
-        let name = name.trim();
-        if name.is_empty() {
+        let normalized_name = request.name.trim();
+        if normalized_name.is_empty() {
             return Err(RejectReason::NameEmpty);
         }
-        if name.chars().count() > MAX_PLAYER_NAME_CHARS {
+        if normalized_name.chars().count() > MAX_PLAYER_NAME_CHARS {
             return Err(RejectReason::NameTooLong {
                 max_chars: MAX_PLAYER_NAME_CHARS as u16,
             });
         }
-        if !crate::valid_identity_proof(
-            self.room_id,
-            reconnect_token,
+        if !crate::valid_identity_proof(self.room_id, &request) {
+            return Err(RejectReason::InvalidIdentityProof);
+        }
+        let JoinRequest {
             name,
+            reconnect_token,
             profile_id,
             reference_points,
             completed_games,
-            &game_profiles,
-            &identity_signature,
-        ) {
-            return Err(RejectReason::InvalidIdentityProof);
-        }
+            game_profiles,
+            identity_signature: _,
+        } = request;
+        let name = name.trim();
         if let Some(index) = self
             .players
             .iter()
@@ -595,7 +589,7 @@ impl RoomSession {
         Delivery {
             recipient,
             message: ServerMessage {
-                protocol_version: leocard_protocol::PROTOCOL_VERSION,
+                protocol_version: PROTOCOL_VERSION,
                 room_id: self.room_id,
                 revision: self.revision,
                 in_reply_to,

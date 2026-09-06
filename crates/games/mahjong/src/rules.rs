@@ -2,11 +2,11 @@ use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct PlayerId(pub usize);
+pub struct MahjongPlayerId(pub usize);
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum MatchLength {
+pub enum MahjongMatchLength {
     #[default]
     SingleHand,
     EastRound,
@@ -14,7 +14,7 @@ pub enum MatchLength {
     FullGame,
 }
 
-impl MatchLength {
+impl MahjongMatchLength {
     pub const fn hand_count(self) -> u8 {
         match self {
             Self::SingleHand => 1,
@@ -27,17 +27,17 @@ impl MatchLength {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct RuleSet {
-    pub match_length: MatchLength,
+pub struct MahjongRuleSet {
+    pub match_length: MahjongMatchLength,
     pub minimum_eight_points: bool,
     pub multiple_winners: bool,
     pub false_win: bool,
 }
 
-impl Default for RuleSet {
+impl Default for MahjongRuleSet {
     fn default() -> Self {
         Self {
-            match_length: MatchLength::SingleHand,
+            match_length: MahjongMatchLength::SingleHand,
             minimum_eight_points: true,
             multiple_winners: false,
             false_win: false,
@@ -45,7 +45,7 @@ impl Default for RuleSet {
     }
 }
 
-impl RuleSet {
+impl MahjongRuleSet {
     pub const PLAYER_COUNT: usize = 4;
 
     pub const fn validate(self) -> Result<Self, RuleError> {
@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn defaults_to_one_hand_with_standard_minimum() {
-        let rules = RuleSet::default();
+        let rules = MahjongRuleSet::default();
         assert_eq!(rules.match_length.hand_count(), 1);
         assert!(rules.minimum_eight_points);
         assert!(!rules.multiple_winners);
@@ -86,10 +86,10 @@ mod tests {
 
     #[test]
     fn false_win_requires_the_minimum() {
-        let rules = RuleSet {
+        let rules = MahjongRuleSet {
             minimum_eight_points: false,
             false_win: true,
-            ..RuleSet::default()
+            ..MahjongRuleSet::default()
         };
         assert_eq!(rules.validate(), Err(RuleError::FalseWinRequiresMinimum));
     }

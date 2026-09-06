@@ -110,8 +110,9 @@ GitHub 名称与标志同时受 GitHub 商标规范约束；本项目仅将其�
 
 以下文件由项目维护，用于界面与效果：
 
-- `icons/app-icon.png`：由用户提供并整理为透明方形画布的 LeoCard 应用图标；运行时
-  直接编译进客户端，Windows 发布物另使用由它生成的多尺寸 ICO 文件。
+- `icons/app-icon.png`：由用户提供并整理为透明方形画布的 LeoCard 应用图标，运行时
+  直接编译进客户端。
+- `icons/app-icon.ico`：由应用图标生成的多尺寸 Windows 可执行文件图标。
 - `ui/panel_*.png`、`ui/player_panel_*.png`：窗口、分区和玩家框底图。
 - `shaders/table_background.wgsl`、`shaders/turn_border.wgsl`、`shaders/uno_palette.wgsl`：
   桌布、回合边框与 UNO 调色盘着色器。

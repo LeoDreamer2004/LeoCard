@@ -2,13 +2,13 @@ use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Suit {
+pub enum MahjongSuit {
     Characters,
     Bamboo,
     Dots,
 }
 
-impl Suit {
+impl MahjongSuit {
     pub const ALL: [Self; 3] = [Self::Characters, Self::Bamboo, Self::Dots];
 
     pub const fn index(self) -> usize {
@@ -22,14 +22,14 @@ impl Suit {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Wind {
+pub enum MahjongWind {
     East,
     South,
     West,
     North,
 }
 
-impl Wind {
+impl MahjongWind {
     pub const ALL: [Self; 4] = [Self::East, Self::South, Self::West, Self::North];
 
     pub const fn index(self) -> usize {
@@ -53,13 +53,13 @@ impl Wind {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Dragon {
+pub enum MahjongDragon {
     Red,
     Green,
     White,
 }
 
-impl Dragon {
+impl MahjongDragon {
     pub const ALL: [Self; 3] = [Self::Red, Self::Green, Self::White];
 
     pub const fn index(self) -> usize {
@@ -73,7 +73,7 @@ impl Dragon {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Flower {
+pub enum MahjongFlower {
     Spring,
     Summer,
     Autumn,
@@ -84,7 +84,7 @@ pub enum Flower {
     Chrysanthemum,
 }
 
-impl Flower {
+impl MahjongFlower {
     pub const ALL: [Self; 8] = [
         Self::Spring,
         Self::Summer,
@@ -99,15 +99,15 @@ impl Flower {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum TileKind {
-    Suited { suit: Suit, rank: u8 },
-    Wind(Wind),
-    Dragon(Dragon),
-    Flower(Flower),
+pub enum MahjongTileKind {
+    Suited { suit: MahjongSuit, rank: u8 },
+    Wind(MahjongWind),
+    Dragon(MahjongDragon),
+    Flower(MahjongFlower),
 }
 
-impl TileKind {
-    pub const fn suited(suit: Suit, rank: u8) -> Self {
+impl MahjongTileKind {
+    pub const fn suited(suit: MahjongSuit, rank: u8) -> Self {
         assert!(rank >= 1 && rank <= 9, "mahjong rank must be in 1..=9");
         Self::Suited { suit, rank }
     }
@@ -139,20 +139,20 @@ impl TileKind {
 
     pub const fn from_index34(index: usize) -> Option<Self> {
         if index < 27 {
-            let suit = Suit::ALL[index / 9];
+            let suit = MahjongSuit::ALL[index / 9];
             return Some(Self::Suited {
                 suit,
                 rank: (index % 9 + 1) as u8,
             });
         }
         match index {
-            27 => Some(Self::Wind(Wind::East)),
-            28 => Some(Self::Wind(Wind::South)),
-            29 => Some(Self::Wind(Wind::West)),
-            30 => Some(Self::Wind(Wind::North)),
-            31 => Some(Self::Dragon(Dragon::Red)),
-            32 => Some(Self::Dragon(Dragon::Green)),
-            33 => Some(Self::Dragon(Dragon::White)),
+            27 => Some(Self::Wind(MahjongWind::East)),
+            28 => Some(Self::Wind(MahjongWind::South)),
+            29 => Some(Self::Wind(MahjongWind::West)),
+            30 => Some(Self::Wind(MahjongWind::North)),
+            31 => Some(Self::Dragon(MahjongDragon::Red)),
+            32 => Some(Self::Dragon(MahjongDragon::Green)),
+            33 => Some(Self::Dragon(MahjongDragon::White)),
             _ => None,
         }
     }
@@ -160,13 +160,13 @@ impl TileKind {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Tile {
-    kind: TileKind,
+pub struct MahjongTile {
+    kind: MahjongTileKind,
     copy: u8,
 }
 
-impl Tile {
-    pub const fn new(kind: TileKind, copy: u8) -> Self {
+impl MahjongTile {
+    pub const fn new(kind: MahjongTileKind, copy: u8) -> Self {
         assert!(
             (kind.is_flower() && copy == 0) || (!kind.is_flower() && copy < 4),
             "invalid physical mahjong tile copy"
@@ -174,7 +174,7 @@ impl Tile {
         Self { kind, copy }
     }
 
-    pub const fn kind(self) -> TileKind {
+    pub const fn kind(self) -> MahjongTileKind {
         self.kind
     }
 
@@ -183,63 +183,63 @@ impl Tile {
     }
 }
 
-pub fn build_deck() -> Vec<Tile> {
+pub fn build_deck() -> Vec<MahjongTile> {
     let mut deck = Vec::with_capacity(144);
-    for suit in Suit::ALL {
+    for suit in MahjongSuit::ALL {
         for rank in 1..=9 {
-            let kind = TileKind::suited(suit, rank);
+            let kind = MahjongTileKind::suited(suit, rank);
             for copy in 0..4 {
-                deck.push(Tile::new(kind, copy));
+                deck.push(MahjongTile::new(kind, copy));
             }
         }
     }
-    for wind in Wind::ALL {
+    for wind in MahjongWind::ALL {
         for copy in 0..4 {
-            deck.push(Tile::new(TileKind::Wind(wind), copy));
+            deck.push(MahjongTile::new(MahjongTileKind::Wind(wind), copy));
         }
     }
-    for dragon in Dragon::ALL {
+    for dragon in MahjongDragon::ALL {
         for copy in 0..4 {
-            deck.push(Tile::new(TileKind::Dragon(dragon), copy));
+            deck.push(MahjongTile::new(MahjongTileKind::Dragon(dragon), copy));
         }
     }
-    for flower in Flower::ALL {
-        deck.push(Tile::new(TileKind::Flower(flower), 0));
+    for flower in MahjongFlower::ALL {
+        deck.push(MahjongTile::new(MahjongTileKind::Flower(flower), 0));
     }
     deck
 }
 
-impl fmt::Display for TileKind {
+impl fmt::Display for MahjongTileKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Suited { suit, rank } => {
                 let suffix = match suit {
-                    Suit::Characters => "万",
-                    Suit::Bamboo => "条",
-                    Suit::Dots => "饼",
+                    MahjongSuit::Characters => "万",
+                    MahjongSuit::Bamboo => "条",
+                    MahjongSuit::Dots => "饼",
                 };
                 write!(f, "{rank}{suffix}")
             }
             Self::Wind(wind) => f.write_str(match wind {
-                Wind::East => "东",
-                Wind::South => "南",
-                Wind::West => "西",
-                Wind::North => "北",
+                MahjongWind::East => "东",
+                MahjongWind::South => "南",
+                MahjongWind::West => "西",
+                MahjongWind::North => "北",
             }),
             Self::Dragon(dragon) => f.write_str(match dragon {
-                Dragon::Red => "中",
-                Dragon::Green => "发",
-                Dragon::White => "白",
+                MahjongDragon::Red => "中",
+                MahjongDragon::Green => "发",
+                MahjongDragon::White => "白",
             }),
             Self::Flower(flower) => f.write_str(match flower {
-                Flower::Spring => "春",
-                Flower::Summer => "夏",
-                Flower::Autumn => "秋",
-                Flower::Winter => "冬",
-                Flower::Plum => "梅",
-                Flower::Orchid => "兰",
-                Flower::Bamboo => "竹",
-                Flower::Chrysanthemum => "菊",
+                MahjongFlower::Spring => "春",
+                MahjongFlower::Summer => "夏",
+                MahjongFlower::Autumn => "秋",
+                MahjongFlower::Winter => "冬",
+                MahjongFlower::Plum => "梅",
+                MahjongFlower::Orchid => "兰",
+                MahjongFlower::Bamboo => "竹",
+                MahjongFlower::Chrysanthemum => "菊",
             }),
         }
     }

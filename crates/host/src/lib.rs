@@ -24,8 +24,7 @@ pub use uno::UnoSession;
 
 use ed25519_dalek::{Signature, VerifyingKey};
 use leocard_protocol::{
-    AVATAR_DIMENSION, MAX_AVATAR_BYTES, MatchId, PlayerGameProfiles, PlayerId, ProfileId,
-    ReconnectToken, RoomId, ServerMessage, join_identity_payload,
+    AVATAR_DIMENSION, JoinRequest, MAX_AVATAR_BYTES, MatchId, PlayerId, RoomId, ServerMessage,
 };
 use leocard_qigui523::RuleError;
 
@@ -120,34 +119,15 @@ pub(crate) struct AutoPlayDelayState {
     remaining: Duration,
 }
 
-pub(crate) fn valid_identity_proof(
-    room_id: RoomId,
-    reconnect_token: ReconnectToken,
-    name: &str,
-    profile_id: ProfileId,
-    reference_points: i32,
-    completed_games: u32,
-    game_profiles: &PlayerGameProfiles,
-    signature: &[u8],
-) -> bool {
-    let Ok(verifying_key) = VerifyingKey::from_bytes(&profile_id.0) else {
+pub(crate) fn valid_identity_proof(room_id: RoomId, request: &JoinRequest) -> bool {
+    let Ok(verifying_key) = VerifyingKey::from_bytes(&request.profile_id.0) else {
         return false;
     };
-    let Ok(signature) = Signature::try_from(signature) else {
+    let Ok(signature) = Signature::try_from(request.identity_signature.as_slice()) else {
         return false;
     };
     verifying_key
-        .verify_strict(
-            &join_identity_payload(
-                room_id,
-                reconnect_token,
-                name,
-                reference_points,
-                completed_games,
-                game_profiles,
-            ),
-            &signature,
-        )
+        .verify_strict(&request.identity_payload(room_id), &signature)
         .is_ok()
 }
 

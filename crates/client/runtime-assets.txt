@@ -7,7 +7,11 @@ cards/mahjong/
 cards/uno/
 cards/uno-extension/
 fonts/
-icons/
+icons/chat-emoji-white.png
+icons/github-mark.png
+icons/host-crown.png
+icons/list-menu.png
+icons/robot-2-fill.png
 shaders/
 ui/
 

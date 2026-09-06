@@ -2,11 +2,11 @@ use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt;
 
-use crate::{Card, Rank, RuleSet};
+use crate::{TexasHoldemCard, TexasHoldemRank, TexasHoldemRuleSet};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum HandCategory {
+pub enum TexasHoldemHandCategory {
     HighCard,
     OnePair,
     TwoPair,
@@ -22,14 +22,14 @@ pub enum HandCategory {
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EvaluatedHand {
-    category: HandCategory,
+    category: TexasHoldemHandCategory,
     category_strength: u8,
     kickers: [u8; 5],
-    cards: [Card; 5],
+    cards: [TexasHoldemCard; 5],
 }
 
 impl EvaluatedHand {
-    pub const fn category(self) -> HandCategory {
+    pub const fn category(self) -> TexasHoldemHandCategory {
         self.category
     }
 
@@ -37,14 +37,14 @@ impl EvaluatedHand {
         self.kickers
     }
 
-    pub const fn cards(self) -> [Card; 5] {
+    pub const fn cards(self) -> [TexasHoldemCard; 5] {
         self.cards
     }
 
     /// 按房间规则比较两副已评估的牌。
     ///
     /// 标准规则使用完整的德州排序键；忽略踢脚牌时，只保留构成牌型的点数。
-    pub fn cmp_with_rules(&self, other: &Self, rules: &RuleSet) -> Ordering {
+    pub fn cmp_with_rules(&self, other: &Self, rules: &TexasHoldemRuleSet) -> Ordering {
         if !rules.ignore_kickers {
             return self.cmp(other);
         }
@@ -59,17 +59,19 @@ impl EvaluatedHand {
     }
 }
 
-const fn core_hand_ranks(category: HandCategory, kickers: [u8; 5]) -> [u8; 5] {
+const fn core_hand_ranks(category: TexasHoldemHandCategory, kickers: [u8; 5]) -> [u8; 5] {
     match category {
-        HandCategory::TwoPair | HandCategory::FullHouse => [kickers[0], kickers[1], 0, 0, 0],
-        HandCategory::HighCard
-        | HandCategory::OnePair
-        | HandCategory::Straight
-        | HandCategory::ThreeOfAKind
-        | HandCategory::Flush
-        | HandCategory::FourOfAKind
-        | HandCategory::StraightFlush
-        | HandCategory::RoyalFlush => [kickers[0], 0, 0, 0, 0],
+        TexasHoldemHandCategory::TwoPair | TexasHoldemHandCategory::FullHouse => {
+            [kickers[0], kickers[1], 0, 0, 0]
+        }
+        TexasHoldemHandCategory::HighCard
+        | TexasHoldemHandCategory::OnePair
+        | TexasHoldemHandCategory::Straight
+        | TexasHoldemHandCategory::ThreeOfAKind
+        | TexasHoldemHandCategory::Flush
+        | TexasHoldemHandCategory::FourOfAKind
+        | TexasHoldemHandCategory::StraightFlush
+        | TexasHoldemHandCategory::RoyalFlush => [kickers[0], 0, 0, 0, 0],
     }
 }
 
@@ -97,8 +99,8 @@ impl Ord for EvaluatedHand {
 pub enum HandError {
     CardCount(usize),
     OmahaCardCount { hole: usize, community: usize },
-    DuplicateCard(Card),
-    CardUnavailableInShortDeck(Card),
+    DuplicateCard(TexasHoldemCard),
+    CardUnavailableInShortDeck(TexasHoldemCard),
 }
 
 impl fmt::Display for HandError {
@@ -120,7 +122,10 @@ impl fmt::Display for HandError {
 impl std::error::Error for HandError {}
 
 /// 从 5..=7 张底牌与公共牌中选择最大的五张牌。
-pub fn evaluate_best(cards: &[Card], rules: &RuleSet) -> Result<EvaluatedHand, HandError> {
+pub fn evaluate_best(
+    cards: &[TexasHoldemCard],
+    rules: &TexasHoldemRuleSet,
+) -> Result<EvaluatedHand, HandError> {
     if !(5..=7).contains(&cards.len()) {
         return Err(HandError::CardCount(cards.len()));
     }
@@ -129,7 +134,7 @@ pub fn evaluate_best(cards: &[Card], rules: &RuleSet) -> Result<EvaluatedHand, H
         if !seen.insert(*card) {
             return Err(HandError::DuplicateCard(*card));
         }
-        if rules.short_deck && card.rank().value() < Rank::Six.value() {
+        if rules.short_deck && card.rank().value() < TexasHoldemRank::Six.value() {
             return Err(HandError::CardUnavailableInShortDeck(*card));
         }
     }
@@ -158,9 +163,9 @@ pub fn evaluate_best(cards: &[Card], rules: &RuleSet) -> Result<EvaluatedHand, H
 /// 按当前房间玩法评估一名玩家的牌。标准德州可从全部底牌与公共牌中任选五张；
 /// 奥马哈必须恰好选择两张底牌和三张公共牌。
 pub fn evaluate_player_hand(
-    hole_cards: &[Card],
-    community: &[Card],
-    rules: &RuleSet,
+    hole_cards: &[TexasHoldemCard],
+    community: &[TexasHoldemCard],
+    rules: &TexasHoldemRuleSet,
 ) -> Result<EvaluatedHand, HandError> {
     if rules.omaha {
         evaluate_omaha(hole_cards, community, rules)
@@ -174,9 +179,9 @@ pub fn evaluate_player_hand(
 
 /// 评估奥马哈高牌，严格枚举 2 张底牌与 3 张公共牌的所有组合。
 pub fn evaluate_omaha(
-    hole_cards: &[Card],
-    community: &[Card],
-    rules: &RuleSet,
+    hole_cards: &[TexasHoldemCard],
+    community: &[TexasHoldemCard],
+    rules: &TexasHoldemRuleSet,
 ) -> Result<EvaluatedHand, HandError> {
     if hole_cards.len() != 4 || !(3..=5).contains(&community.len()) {
         return Err(HandError::OmahaCardCount {
@@ -189,7 +194,7 @@ pub fn evaluate_omaha(
         if !seen.insert(*card) {
             return Err(HandError::DuplicateCard(*card));
         }
-        if rules.short_deck && card.rank().value() < Rank::Six.value() {
+        if rules.short_deck && card.rank().value() < TexasHoldemRank::Six.value() {
             return Err(HandError::CardUnavailableInShortDeck(*card));
         }
     }
@@ -221,7 +226,7 @@ pub fn evaluate_omaha(
     Ok(best.expect("four hole cards and at least three board cards form a combination"))
 }
 
-fn evaluate_five(cards: [Card; 5], short_deck: bool) -> EvaluatedHand {
+fn evaluate_five(cards: [TexasHoldemCard; 5], short_deck: bool) -> EvaluatedHand {
     let mut counts = [0_u8; 15];
     for card in cards {
         counts[usize::from(card.rank().value())] += 1;
@@ -241,24 +246,30 @@ fn evaluate_five(cards: [Card; 5], short_deck: bool) -> EvaluatedHand {
     groups.sort_unstable_by(|left, right| right.cmp(left));
 
     let (category, kickers) = if flush && straight == Some(14) && ranks == [14, 13, 12, 11, 10] {
-        (HandCategory::RoyalFlush, [14, 0, 0, 0, 0])
+        (TexasHoldemHandCategory::RoyalFlush, [14, 0, 0, 0, 0])
     } else if flush && straight.is_some() {
         (
-            HandCategory::StraightFlush,
+            TexasHoldemHandCategory::StraightFlush,
             [straight.expect("checked"), 0, 0, 0, 0],
         )
     } else if groups[0].0 == 4 {
         (
-            HandCategory::FourOfAKind,
+            TexasHoldemHandCategory::FourOfAKind,
             [groups[0].1, groups[1].1, 0, 0, 0],
         )
     } else if groups[0].0 == 3 && groups[1].0 == 2 {
-        (HandCategory::FullHouse, [groups[0].1, groups[1].1, 0, 0, 0])
+        (
+            TexasHoldemHandCategory::FullHouse,
+            [groups[0].1, groups[1].1, 0, 0, 0],
+        )
     } else if flush {
         ranks.resize(5, 0);
-        (HandCategory::Flush, ranks.try_into().expect("five ranks"))
+        (
+            TexasHoldemHandCategory::Flush,
+            ranks.try_into().expect("five ranks"),
+        )
     } else if let Some(high) = straight {
-        (HandCategory::Straight, [high, 0, 0, 0, 0])
+        (TexasHoldemHandCategory::Straight, [high, 0, 0, 0, 0])
     } else if groups[0].0 == 3 {
         let kickers = groups
             .iter()
@@ -266,14 +277,14 @@ fn evaluate_five(cards: [Card; 5], short_deck: bool) -> EvaluatedHand {
             .map(|group| group.1)
             .collect::<Vec<_>>();
         (
-            HandCategory::ThreeOfAKind,
+            TexasHoldemHandCategory::ThreeOfAKind,
             [groups[0].1, kickers[0], kickers[1], 0, 0],
         )
     } else if groups[0].0 == 2 && groups[1].0 == 2 {
         let high_pair = groups[0].1.max(groups[1].1);
         let low_pair = groups[0].1.min(groups[1].1);
         (
-            HandCategory::TwoPair,
+            TexasHoldemHandCategory::TwoPair,
             [high_pair, low_pair, groups[2].1, 0, 0],
         )
     } else if groups[0].0 == 2 {
@@ -283,13 +294,13 @@ fn evaluate_five(cards: [Card; 5], short_deck: bool) -> EvaluatedHand {
             .map(|group| group.1)
             .collect::<Vec<_>>();
         (
-            HandCategory::OnePair,
+            TexasHoldemHandCategory::OnePair,
             [groups[0].1, kickers[0], kickers[1], kickers[2], 0],
         )
     } else {
         ranks.resize(5, 0);
         (
-            HandCategory::HighCard,
+            TexasHoldemHandCategory::HighCard,
             ranks.try_into().expect("five ranks"),
         )
     };
@@ -309,20 +320,21 @@ fn evaluate_five(cards: [Card; 5], short_deck: bool) -> EvaluatedHand {
 /// descending, except that the ace is displayed last in A2345 and short-deck
 /// A6789 because it acts as the lowest card there.
 fn order_cards_for_display(
-    mut cards: [Card; 5],
-    category: HandCategory,
+    mut cards: [TexasHoldemCard; 5],
+    category: TexasHoldemHandCategory,
     straight_high: Option<u8>,
-) -> [Card; 5] {
+) -> [TexasHoldemCard; 5] {
     let mut counts = [0_u8; 15];
     for card in cards {
         counts[usize::from(card.rank().value())] += 1;
     }
     let low_ace_straight = matches!(
         category,
-        HandCategory::Straight | HandCategory::StraightFlush
-    ) && straight_high.is_some_and(|high| high < Rank::Ace.value());
-    let display_rank = |card: Card| {
-        if low_ace_straight && card.rank() == Rank::Ace {
+        TexasHoldemHandCategory::Straight | TexasHoldemHandCategory::StraightFlush
+    ) && straight_high
+        .is_some_and(|high| high < TexasHoldemRank::Ace.value());
+    let display_rank = |card: TexasHoldemCard| {
+        if low_ace_straight && card.rank() == TexasHoldemRank::Ace {
             1
         } else {
             card.rank().value()
@@ -356,566 +368,23 @@ fn straight_high(ranks_descending: &[u8], short_deck: bool) -> Option<u8> {
     None
 }
 
-const fn category_strength(category: HandCategory, short_deck: bool) -> u8 {
+const fn category_strength(category: TexasHoldemHandCategory, short_deck: bool) -> u8 {
     match (short_deck, category) {
-        (_, HandCategory::RoyalFlush) => 9,
-        (_, HandCategory::StraightFlush) => 8,
-        (_, HandCategory::FourOfAKind) => 7,
-        (false, HandCategory::FullHouse) | (true, HandCategory::Flush) => 6,
-        (false, HandCategory::Flush) | (true, HandCategory::FullHouse) => 5,
-        (false, HandCategory::Straight) | (true, HandCategory::ThreeOfAKind) => 4,
-        (false, HandCategory::ThreeOfAKind) | (true, HandCategory::Straight) => 3,
-        (_, HandCategory::TwoPair) => 2,
-        (_, HandCategory::OnePair) => 1,
-        (_, HandCategory::HighCard) => 0,
+        (_, TexasHoldemHandCategory::RoyalFlush) => 9,
+        (_, TexasHoldemHandCategory::StraightFlush) => 8,
+        (_, TexasHoldemHandCategory::FourOfAKind) => 7,
+        (false, TexasHoldemHandCategory::FullHouse) | (true, TexasHoldemHandCategory::Flush) => 6,
+        (false, TexasHoldemHandCategory::Flush) | (true, TexasHoldemHandCategory::FullHouse) => 5,
+        (false, TexasHoldemHandCategory::Straight)
+        | (true, TexasHoldemHandCategory::ThreeOfAKind) => 4,
+        (false, TexasHoldemHandCategory::ThreeOfAKind)
+        | (true, TexasHoldemHandCategory::Straight) => 3,
+        (_, TexasHoldemHandCategory::TwoPair) => 2,
+        (_, TexasHoldemHandCategory::OnePair) => 1,
+        (_, TexasHoldemHandCategory::HighCard) => 0,
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::Suit::{Club, Diamond, Heart, Spade};
-
-    fn c(rank: Rank, suit: crate::Suit) -> Card {
-        Card::new(suit, rank)
-    }
-
-    fn rules(short_deck: bool) -> RuleSet {
-        RuleSet {
-            short_deck,
-            ..RuleSet::default()
-        }
-    }
-
-    #[test]
-    fn standard_category_order_matches_holdem() {
-        let flush = evaluate_best(
-            &[
-                c(Rank::Ace, Heart),
-                c(Rank::Jack, Heart),
-                c(Rank::Nine, Heart),
-                c(Rank::Seven, Heart),
-                c(Rank::Three, Heart),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        let full_house = evaluate_best(
-            &[
-                c(Rank::King, Spade),
-                c(Rank::King, Heart),
-                c(Rank::King, Club),
-                c(Rank::Nine, Spade),
-                c(Rank::Nine, Diamond),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        let straight = evaluate_best(
-            &[
-                c(Rank::Nine, Spade),
-                c(Rank::Eight, Heart),
-                c(Rank::Seven, Club),
-                c(Rank::Six, Diamond),
-                c(Rank::Five, Heart),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        let trips = evaluate_best(
-            &[
-                c(Rank::Ace, Spade),
-                c(Rank::Ace, Heart),
-                c(Rank::Ace, Club),
-                c(Rank::King, Diamond),
-                c(Rank::Queen, Heart),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        assert!(full_house > flush);
-        assert!(flush > straight);
-        assert!(straight > trips);
-    }
-
-    #[test]
-    fn short_deck_moves_flush_and_trips_above_full_house_and_straight() {
-        let short = rules(true);
-        let flush = evaluate_best(
-            &[
-                c(Rank::Ace, Heart),
-                c(Rank::Jack, Heart),
-                c(Rank::Nine, Heart),
-                c(Rank::Seven, Heart),
-                c(Rank::Six, Heart),
-            ],
-            &short,
-        )
-        .unwrap();
-        let full_house = evaluate_best(
-            &[
-                c(Rank::King, Spade),
-                c(Rank::King, Heart),
-                c(Rank::King, Club),
-                c(Rank::Nine, Spade),
-                c(Rank::Nine, Diamond),
-            ],
-            &short,
-        )
-        .unwrap();
-        let trips = evaluate_best(
-            &[
-                c(Rank::Ace, Spade),
-                c(Rank::Ace, Heart),
-                c(Rank::Ace, Club),
-                c(Rank::King, Diamond),
-                c(Rank::Queen, Heart),
-            ],
-            &short,
-        )
-        .unwrap();
-        let straight = evaluate_best(
-            &[
-                c(Rank::Ten, Spade),
-                c(Rank::Nine, Heart),
-                c(Rank::Eight, Club),
-                c(Rank::Seven, Diamond),
-                c(Rank::Six, Heart),
-            ],
-            &short,
-        )
-        .unwrap();
-        assert!(flush > full_house);
-        assert!(trips > straight);
-    }
-
-    #[test]
-    fn royal_flush_is_distinct_and_seven_cards_choose_the_best_five() {
-        let hand = evaluate_best(
-            &[
-                c(Rank::Ace, Spade),
-                c(Rank::King, Spade),
-                c(Rank::Queen, Spade),
-                c(Rank::Jack, Spade),
-                c(Rank::Ten, Spade),
-                c(Rank::Two, Club),
-                c(Rank::Two, Diamond),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        assert_eq!(hand.category(), HandCategory::RoyalFlush);
-    }
-
-    #[test]
-    fn ace_can_be_low_in_each_deck_variant() {
-        let standard = evaluate_best(
-            &[
-                c(Rank::Ace, Spade),
-                c(Rank::Five, Heart),
-                c(Rank::Four, Club),
-                c(Rank::Three, Diamond),
-                c(Rank::Two, Heart),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        let short = evaluate_best(
-            &[
-                c(Rank::Ace, Spade),
-                c(Rank::Nine, Heart),
-                c(Rank::Eight, Club),
-                c(Rank::Seven, Diamond),
-                c(Rank::Six, Heart),
-            ],
-            &rules(true),
-        )
-        .unwrap();
-        assert_eq!(standard.kickers()[0], 5);
-        assert_eq!(short.kickers()[0], 9);
-
-        let standard_six_high = evaluate_best(
-            &[
-                c(Rank::Six, Spade),
-                c(Rank::Five, Diamond),
-                c(Rank::Four, Heart),
-                c(Rank::Three, Club),
-                c(Rank::Two, Spade),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        let short_ten_high = evaluate_best(
-            &[
-                c(Rank::Ten, Spade),
-                c(Rank::Nine, Diamond),
-                c(Rank::Eight, Heart),
-                c(Rank::Seven, Club),
-                c(Rank::Six, Spade),
-            ],
-            &rules(true),
-        )
-        .unwrap();
-        assert!(standard < standard_six_high, "A2345 必须是普通德州最小顺子");
-        assert!(short < short_ten_high, "A6789 必须是短牌德州最小顺子");
-    }
-
-    #[test]
-    fn selected_five_cards_have_poker_readable_display_order() {
-        let quads = evaluate_best(
-            &[
-                c(Rank::Ace, Diamond),
-                c(Rank::Nine, Club),
-                c(Rank::Nine, Spade),
-                c(Rank::Nine, Heart),
-                c(Rank::Nine, Diamond),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        assert_eq!(
-            quads.cards().map(Card::rank),
-            [Rank::Nine, Rank::Nine, Rank::Nine, Rank::Nine, Rank::Ace]
-        );
-
-        let full_house = evaluate_best(
-            &[
-                c(Rank::Ace, Spade),
-                c(Rank::Two, Club),
-                c(Rank::Ace, Heart),
-                c(Rank::Two, Spade),
-                c(Rank::Two, Diamond),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        assert_eq!(
-            full_house.cards().map(Card::rank),
-            [Rank::Two, Rank::Two, Rank::Two, Rank::Ace, Rank::Ace]
-        );
-
-        let pair = evaluate_best(
-            &[
-                c(Rank::Queen, Diamond),
-                c(Rank::Six, Spade),
-                c(Rank::Ace, Heart),
-                c(Rank::Six, Club),
-                c(Rank::King, Diamond),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        assert_eq!(
-            pair.cards().map(Card::rank),
-            [Rank::Six, Rank::Six, Rank::Ace, Rank::King, Rank::Queen]
-        );
-
-        let high_card = evaluate_best(
-            &[
-                c(Rank::Nine, Spade),
-                c(Rank::Queen, Club),
-                c(Rank::Ace, Diamond),
-                c(Rank::Jack, Heart),
-                c(Rank::King, Spade),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        assert_eq!(
-            high_card.cards().map(Card::rank),
-            [Rank::Ace, Rank::King, Rank::Queen, Rank::Jack, Rank::Nine]
-        );
-
-        let wheel = evaluate_best(
-            &[
-                c(Rank::Ace, Spade),
-                c(Rank::Three, Club),
-                c(Rank::Five, Heart),
-                c(Rank::Two, Diamond),
-                c(Rank::Four, Spade),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        assert_eq!(
-            wheel.cards().map(Card::rank),
-            [Rank::Five, Rank::Four, Rank::Three, Rank::Two, Rank::Ace]
-        );
-
-        let short_wheel = evaluate_best(
-            &[
-                c(Rank::Ace, Spade),
-                c(Rank::Seven, Club),
-                c(Rank::Nine, Heart),
-                c(Rank::Six, Diamond),
-                c(Rank::Eight, Spade),
-            ],
-            &rules(true),
-        )
-        .unwrap();
-        assert_eq!(
-            short_wheel.cards().map(Card::rank),
-            [Rank::Nine, Rank::Eight, Rank::Seven, Rank::Six, Rank::Ace]
-        );
-    }
-
-    #[test]
-    fn every_declared_standard_category_is_in_exact_order() {
-        let hands = [
-            [
-                c(Rank::Ace, Spade),
-                c(Rank::King, Spade),
-                c(Rank::Queen, Spade),
-                c(Rank::Jack, Spade),
-                c(Rank::Ten, Spade),
-            ],
-            [
-                c(Rank::Nine, Heart),
-                c(Rank::Eight, Heart),
-                c(Rank::Seven, Heart),
-                c(Rank::Six, Heart),
-                c(Rank::Five, Heart),
-            ],
-            [
-                c(Rank::Ace, Spade),
-                c(Rank::Ace, Heart),
-                c(Rank::Ace, Club),
-                c(Rank::Ace, Diamond),
-                c(Rank::King, Spade),
-            ],
-            [
-                c(Rank::King, Spade),
-                c(Rank::King, Heart),
-                c(Rank::King, Club),
-                c(Rank::Queen, Spade),
-                c(Rank::Queen, Heart),
-            ],
-            [
-                c(Rank::Ace, Club),
-                c(Rank::Jack, Club),
-                c(Rank::Nine, Club),
-                c(Rank::Seven, Club),
-                c(Rank::Three, Club),
-            ],
-            [
-                c(Rank::Ten, Spade),
-                c(Rank::Nine, Heart),
-                c(Rank::Eight, Club),
-                c(Rank::Seven, Diamond),
-                c(Rank::Six, Spade),
-            ],
-            [
-                c(Rank::Jack, Spade),
-                c(Rank::Jack, Heart),
-                c(Rank::Jack, Club),
-                c(Rank::Ace, Diamond),
-                c(Rank::King, Spade),
-            ],
-            [
-                c(Rank::Ace, Spade),
-                c(Rank::Ace, Heart),
-                c(Rank::King, Club),
-                c(Rank::King, Diamond),
-                c(Rank::Queen, Spade),
-            ],
-            [
-                c(Rank::Ace, Spade),
-                c(Rank::Ace, Heart),
-                c(Rank::King, Club),
-                c(Rank::Queen, Diamond),
-                c(Rank::Jack, Spade),
-            ],
-            [
-                c(Rank::Ace, Spade),
-                c(Rank::King, Heart),
-                c(Rank::Queen, Club),
-                c(Rank::Jack, Diamond),
-                c(Rank::Nine, Spade),
-            ],
-        ]
-        .map(|cards| evaluate_best(&cards, &rules(false)).unwrap());
-        assert!(hands.windows(2).all(|pair| pair[0] > pair[1]));
-        assert_eq!(
-            hands.map(EvaluatedHand::category),
-            [
-                HandCategory::RoyalFlush,
-                HandCategory::StraightFlush,
-                HandCategory::FourOfAKind,
-                HandCategory::FullHouse,
-                HandCategory::Flush,
-                HandCategory::Straight,
-                HandCategory::ThreeOfAKind,
-                HandCategory::TwoPair,
-                HandCategory::OnePair,
-                HandCategory::HighCard,
-            ]
-        );
-    }
-
-    #[test]
-    fn equal_rank_hands_split_regardless_of_suit() {
-        let left = evaluate_best(
-            &[
-                c(Rank::Ace, Spade),
-                c(Rank::Ace, Heart),
-                c(Rank::King, Club),
-                c(Rank::Queen, Diamond),
-                c(Rank::Jack, Spade),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        let right = evaluate_best(
-            &[
-                c(Rank::Ace, Club),
-                c(Rank::Ace, Diamond),
-                c(Rank::King, Heart),
-                c(Rank::Queen, Spade),
-                c(Rank::Jack, Club),
-            ],
-            &rules(false),
-        )
-        .unwrap();
-        assert_eq!(left, right);
-    }
-
-    #[test]
-    fn ignore_kickers_compares_only_the_made_hand_and_largest_high_card() {
-        let standard = rules(false);
-        let ignore_kickers = RuleSet {
-            ignore_kickers: true,
-            ..standard
-        };
-        let ace_queen_with_king = evaluate_best(
-            &[
-                c(Rank::Ace, Spade),
-                c(Rank::Ace, Heart),
-                c(Rank::Queen, Club),
-                c(Rank::Queen, Diamond),
-                c(Rank::King, Spade),
-            ],
-            &standard,
-        )
-        .unwrap();
-        let ace_queen_with_jack = evaluate_best(
-            &[
-                c(Rank::Ace, Club),
-                c(Rank::Ace, Diamond),
-                c(Rank::Queen, Spade),
-                c(Rank::Queen, Heart),
-                c(Rank::Jack, Club),
-            ],
-            &standard,
-        )
-        .unwrap();
-        assert!(ace_queen_with_king > ace_queen_with_jack);
-        assert_eq!(
-            ace_queen_with_king.cmp_with_rules(&ace_queen_with_jack, &ignore_kickers),
-            Ordering::Equal
-        );
-
-        let ace_high = evaluate_best(
-            &[
-                c(Rank::Ace, Spade),
-                c(Rank::Eight, Heart),
-                c(Rank::Seven, Club),
-                c(Rank::Five, Diamond),
-                c(Rank::Three, Spade),
-            ],
-            &standard,
-        )
-        .unwrap();
-        let same_ace_high = evaluate_best(
-            &[
-                c(Rank::Ace, Club),
-                c(Rank::King, Diamond),
-                c(Rank::Queen, Spade),
-                c(Rank::Nine, Heart),
-                c(Rank::Two, Club),
-            ],
-            &standard,
-        )
-        .unwrap();
-        let king_high = evaluate_best(
-            &[
-                c(Rank::King, Spade),
-                c(Rank::Queen, Heart),
-                c(Rank::Jack, Club),
-                c(Rank::Nine, Diamond),
-                c(Rank::Seven, Spade),
-            ],
-            &standard,
-        )
-        .unwrap();
-        assert_eq!(
-            ace_high.cmp_with_rules(&same_ace_high, &ignore_kickers),
-            Ordering::Equal
-        );
-        assert_eq!(
-            ace_high.cmp_with_rules(&king_high, &ignore_kickers),
-            Ordering::Greater
-        );
-    }
-
-    #[test]
-    fn omaha_uses_exactly_two_hole_cards_and_three_board_cards() {
-        let omaha = RuleSet {
-            omaha: true,
-            ..RuleSet::default()
-        };
-        let board = [
-            c(Rank::Ace, Heart),
-            c(Rank::King, Heart),
-            c(Rank::Queen, Heart),
-            c(Rank::Jack, Heart),
-            c(Rank::Ten, Heart),
-        ];
-        let hand = evaluate_player_hand(
-            &[
-                c(Rank::Ace, Spade),
-                c(Rank::Ace, Diamond),
-                c(Rank::Four, Club),
-                c(Rank::Five, Club),
-            ],
-            &board,
-            &omaha,
-        )
-        .unwrap();
-
-        assert_eq!(hand.category(), HandCategory::ThreeOfAKind);
-        assert_eq!(
-            hand.cards()
-                .iter()
-                .filter(|card| board.contains(card))
-                .count(),
-            3
-        );
-    }
-
-    #[test]
-    fn omaha_can_form_a_hand_from_two_hole_and_three_board_cards() {
-        let omaha = RuleSet {
-            omaha: true,
-            ..RuleSet::default()
-        };
-        let hand = evaluate_omaha(
-            &[
-                c(Rank::Ace, Heart),
-                c(Rank::King, Heart),
-                c(Rank::Four, Club),
-                c(Rank::Five, Club),
-            ],
-            &[
-                c(Rank::Queen, Heart),
-                c(Rank::Jack, Heart),
-                c(Rank::Ten, Heart),
-                c(Rank::Two, Spade),
-                c(Rank::Three, Diamond),
-            ],
-            &omaha,
-        )
-        .unwrap();
-
-        assert_eq!(hand.category(), HandCategory::RoyalFlush);
-    }
-}
+#[path = "hand_tests.rs"]
+mod tests;

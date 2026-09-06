@@ -9,12 +9,13 @@ mod hand;
 mod rules;
 
 pub use bot::{PassiveBot, PassiveBotRequest};
-pub use card::{Card, Rank, Suit, build_deck};
+pub use card::{TexasHoldemCard, TexasHoldemRank, TexasHoldemSuit, build_deck};
 pub use game::{
-    Action, ActionOutcome, BlindKind, GameError, GameState, HandResult, Phase, PlayerId,
-    PlayerState, PotAward, Street,
+    ActionOutcome, GameError, GameState, HandResult, Phase, PlayerState, PotAward,
+    TexasHoldemAction, TexasHoldemBlindKind, TexasHoldemPlayerId, TexasHoldemStreet,
 };
 pub use hand::{
-    EvaluatedHand, HandCategory, HandError, evaluate_best, evaluate_omaha, evaluate_player_hand,
+    EvaluatedHand, HandError, TexasHoldemHandCategory, evaluate_best, evaluate_omaha,
+    evaluate_player_hand,
 };
-pub use rules::{RuleError, RuleSet};
+pub use rules::{RuleError, TexasHoldemRuleSet};

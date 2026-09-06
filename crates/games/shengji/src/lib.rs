@@ -10,19 +10,19 @@ mod game;
 mod play;
 mod rules;
 
-pub use bidding::{BidError, BidKind, BidState, Declaration, bid_joker_for_suit};
-pub use bot::{GreedyBot, GreedyBotError, GreedyBotRequest};
-pub use card::{Card, Rank, Suit, build_deck, build_deck_for};
+pub use bidding::{BidError, BidState, Declaration, ShengjiBidKind, bid_joker_for_suit};
+pub use bot::{GreedyBotError, ShengjiGreedyBot, ShengjiGreedyBotRequest};
+pub use card::{ShengjiCard, ShengjiRank, ShengjiSuit, build_deck, build_deck_for};
 pub use game::{
     ActionOutcome, BottomCopyState, BottomFlipMatch, BottomFlipReveal, FiveTrumpCrossingStage,
     FiveTrumpCrossingState, GameError, GameState, HandResult, Phase, PlayerState, TeamProgress,
     TrickRecord,
 };
 pub use play::{
-    Category, ClassifiedPlay, Component, FollowError, PlayError, ThrowFailure, TrickPlay,
+    Category, Component, FollowError, PlayError, ShengjiClassifiedPlay, ThrowFailure, TrickPlay,
     classify_lead, compare_for_trick, follow_suggestions, forced_follow_cards, validate_follow,
 };
 pub use rules::{
-    BidTrump, PlayerId, RuleError, RuleSet, TeamId, ThrowPenalty, Trump, level_after,
-    level_steps_between,
+    RuleError, ShengjiBidTrump, ShengjiPlayerId, ShengjiRuleSet, ShengjiTeamId,
+    ShengjiThrowPenalty, ShengjiTrump, level_after, level_steps_between,
 };

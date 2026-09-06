@@ -55,7 +55,7 @@ impl Default for FlipRuleSet {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct RuleSet {
+pub struct UnoRuleSet {
     pub mode: Mode,
     pub action_stacking: bool,
     pub uno_callout: bool,
@@ -68,7 +68,7 @@ pub struct RuleSet {
     pub flip: FlipRuleSet,
 }
 
-impl Default for RuleSet {
+impl Default for UnoRuleSet {
     fn default() -> Self {
         Self {
             mode: Mode::Classic,
@@ -85,7 +85,7 @@ impl Default for RuleSet {
     }
 }
 
-impl RuleSet {
+impl UnoRuleSet {
     pub const HAND_SIZE: u8 = 7;
     pub const MIN_PLAYERS: u8 = 2;
     pub const MAX_PLAYERS: u8 = 6;
@@ -139,17 +139,17 @@ mod tests {
 
     #[test]
     fn jump_in_is_independent_from_action_stacking() {
-        let rules = RuleSet {
+        let rules = UnoRuleSet {
             jump_in: true,
             action_stacking: false,
-            ..RuleSet::default()
+            ..UnoRuleSet::default()
         };
         assert_eq!(rules.validate(), Ok(rules));
     }
 
     #[test]
     fn modes_keep_independent_default_rule_sets() {
-        let rules = RuleSet::default();
+        let rules = UnoRuleSet::default();
         assert_eq!(rules.mode, Mode::Classic);
         assert!(rules.uno_callout);
         assert!(rules.no_mercy.draw_until_playable);

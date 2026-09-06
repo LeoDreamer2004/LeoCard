@@ -12,14 +12,14 @@ mod rating;
 mod rules;
 
 pub use bot::{QiGui523Bot, QiGui523BotRequest, has_legal_response};
-pub use card::{Card, Rank, Suit, build_deck};
+pub use card::{QiGuiCard, QiGuiRank, QiGuiSuit, build_deck};
 pub use game::{
-    ActionOutcome, GameError, GameResult, GameState, Phase, PlayRecord, PlayerId, PlayerState,
+    ActionOutcome, GameError, GameResult, GameState, Phase, PlayRecord, PlayerState, QiGuiPlayerId,
     StartingCard, TrickState,
 };
 pub use play::{
-    BombKind, ClassifiedPlay, PlayComparison, PlayError, PlayKind, can_beat, classify,
+    BombKind, ClassifiedPlay, PlayComparison, PlayError, QiGuiPlayKind, can_beat, classify,
     compare_plays,
 };
 pub use rating::reference_point_deltas;
-pub use rules::{RuleError, RuleSet, SameCardPolicy, SuitComparison, TimeControl};
+pub use rules::{QiGuiRuleSet, RuleError, SameCardPolicy, SuitComparison, TimeControl};

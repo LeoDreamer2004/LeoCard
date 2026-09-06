@@ -3,7 +3,7 @@ use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Color {
+pub enum UnoColor {
     Red,
     Yellow,
     Green,
@@ -14,7 +14,7 @@ pub enum Color {
     Purple,
 }
 
-impl Color {
+impl UnoColor {
     pub const LIGHT: [Self; 4] = [Self::Red, Self::Yellow, Self::Green, Self::Blue];
     pub const DARK: [Self; 4] = [Self::Pink, Self::Teal, Self::Orange, Self::Purple];
     pub const ALL: [Self; 4] = Self::LIGHT;
@@ -38,7 +38,7 @@ impl Color {
     }
 }
 
-impl fmt::Display for Color {
+impl fmt::Display for UnoColor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Red => "红",
@@ -55,7 +55,7 @@ impl fmt::Display for Color {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Face {
+pub enum UnoFace {
     Number(u8),
     DrawOne,
     DrawTwo,
@@ -89,7 +89,7 @@ pub enum Face {
     DarkWild,
 }
 
-impl Face {
+impl UnoFace {
     pub const fn score(self) -> u16 {
         match self {
             Self::Number(value) => value as u16,
@@ -209,7 +209,7 @@ impl Face {
     }
 }
 
-impl fmt::Display for Face {
+impl fmt::Display for UnoFace {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Number(value) => value.fmt(f),
@@ -250,34 +250,34 @@ impl fmt::Display for Face {
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CardSide {
-    color: Option<Color>,
-    face: Face,
+    color: Option<UnoColor>,
+    face: UnoFace,
 }
 
 impl CardSide {
-    pub const fn colored(color: Color, face: Face) -> Self {
+    pub const fn colored(color: UnoColor, face: UnoFace) -> Self {
         Self {
             color: Some(color),
             face,
         }
     }
 
-    pub const fn wild(face: Face) -> Self {
+    pub const fn wild(face: UnoFace) -> Self {
         Self { color: None, face }
     }
 
-    pub const fn color(self) -> Option<Color> {
+    pub const fn color(self) -> Option<UnoColor> {
         self.color
     }
 
-    pub const fn face(self) -> Face {
+    pub const fn face(self) -> UnoFace {
         self.face
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum FlipSide {
+pub enum UnoFlipSide {
     Light,
     Dark,
 }
@@ -285,54 +285,54 @@ pub enum FlipSide {
 /// 一张物理牌。`copy` 区分同牌面的不同实体牌，从 0 开始。
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Card {
-    color: Option<Color>,
-    face: Face,
+pub struct UnoCard {
+    color: Option<UnoColor>,
+    face: UnoFace,
     copy: u8,
     opposite: Option<CardSide>,
 }
 
-impl Card {
-    pub const fn number(color: Color, value: u8, copy: u8) -> Self {
+impl UnoCard {
+    pub const fn number(color: UnoColor, value: u8, copy: u8) -> Self {
         assert!(value <= 9, "UNO number cards are 0..=9");
         assert!(copy < 2);
         Self {
             color: Some(color),
-            face: Face::Number(value),
+            face: UnoFace::Number(value),
             copy,
             opposite: None,
         }
     }
 
-    pub const fn action(color: Color, face: Face, copy: u8) -> Self {
+    pub const fn action(color: UnoColor, face: UnoFace, copy: u8) -> Self {
         assert!(matches!(
             face,
-            Face::DrawTwo
-                | Face::DrawOne
-                | Face::DrawFour
-                | Face::DrawFive
-                | Face::Reverse
-                | Face::Skip
-                | Face::SkipEveryone
-                | Face::Flip
-                | Face::DiscardAll
-                | Face::SwapOne
-                | Face::RefreshHand
-                | Face::ReverseDrawTwo
-                | Face::ReverseSkip
-                | Face::StackOne
-                | Face::StackTwo
+            UnoFace::DrawTwo
+                | UnoFace::DrawOne
+                | UnoFace::DrawFour
+                | UnoFace::DrawFive
+                | UnoFace::Reverse
+                | UnoFace::Skip
+                | UnoFace::SkipEveryone
+                | UnoFace::Flip
+                | UnoFace::DiscardAll
+                | UnoFace::SwapOne
+                | UnoFace::RefreshHand
+                | UnoFace::ReverseDrawTwo
+                | UnoFace::ReverseSkip
+                | UnoFace::StackOne
+                | UnoFace::StackTwo
         ));
         let copy_count = match face {
-            Face::SwapOne
-            | Face::RefreshHand
-            | Face::ReverseDrawTwo
-            | Face::ReverseSkip
-            | Face::StackOne
-            | Face::StackTwo => 1,
-            Face::DrawOne | Face::DrawFive | Face::Flip => 2,
-            Face::DrawFour | Face::SkipEveryone => 2,
-            Face::DrawTwo | Face::Reverse | Face::Skip | Face::DiscardAll => 3,
+            UnoFace::SwapOne
+            | UnoFace::RefreshHand
+            | UnoFace::ReverseDrawTwo
+            | UnoFace::ReverseSkip
+            | UnoFace::StackOne
+            | UnoFace::StackTwo => 1,
+            UnoFace::DrawOne | UnoFace::DrawFive | UnoFace::Flip => 2,
+            UnoFace::DrawFour | UnoFace::SkipEveryone => 2,
+            UnoFace::DrawTwo | UnoFace::Reverse | UnoFace::Skip | UnoFace::DiscardAll => 3,
             _ => 0,
         };
         assert!(copy < copy_count);
@@ -344,27 +344,27 @@ impl Card {
         }
     }
 
-    pub const fn wild(face: Face, copy: u8) -> Self {
+    pub const fn wild(face: UnoFace, copy: u8) -> Self {
         assert!(matches!(
             face,
-            Face::Wild
-                | Face::DarkWild
-                | Face::WildDrawTwo
-                | Face::WildDrawFour
-                | Face::WildDrawColor
-                | Face::WildForceTrade
-                | Face::WildPassHands
-                | Face::WildPowerReverse
-                | Face::WildNoU
-                | Face::WildStackThree
-                | Face::WildStackNumber
-                | Face::WildReverseDrawFour
-                | Face::WildDrawSix
-                | Face::WildDrawTen
-                | Face::WildColorRoulette
+            UnoFace::Wild
+                | UnoFace::DarkWild
+                | UnoFace::WildDrawTwo
+                | UnoFace::WildDrawFour
+                | UnoFace::WildDrawColor
+                | UnoFace::WildForceTrade
+                | UnoFace::WildPassHands
+                | UnoFace::WildPowerReverse
+                | UnoFace::WildNoU
+                | UnoFace::WildStackThree
+                | UnoFace::WildStackNumber
+                | UnoFace::WildReverseDrawFour
+                | UnoFace::WildDrawSix
+                | UnoFace::WildDrawTen
+                | UnoFace::WildColorRoulette
         ));
         let copy_count = match face {
-            Face::WildReverseDrawFour | Face::WildColorRoulette => 8,
+            UnoFace::WildReverseDrawFour | UnoFace::WildColorRoulette => 8,
             _ => 4,
         };
         assert!(copy < copy_count);
@@ -385,11 +385,11 @@ impl Card {
         }
     }
 
-    pub const fn color(self) -> Option<Color> {
+    pub const fn color(self) -> Option<UnoColor> {
         self.color
     }
 
-    pub const fn face(self) -> Face {
+    pub const fn face(self) -> UnoFace {
         self.face
     }
 
@@ -459,7 +459,7 @@ impl Card {
     }
 }
 
-impl fmt::Display for Card {
+impl fmt::Display for UnoCard {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.color {
             Some(color) => write!(f, "{color}{}", self.face),
@@ -469,106 +469,111 @@ impl fmt::Display for Card {
 }
 
 /// 生成经典 UNO 的 108 张牌。
-pub fn build_deck() -> Vec<Card> {
+pub fn build_deck() -> Vec<UnoCard> {
     let mut cards = Vec::with_capacity(108);
-    for color in Color::LIGHT {
-        cards.push(Card::number(color, 0, 0));
+    for color in UnoColor::LIGHT {
+        cards.push(UnoCard::number(color, 0, 0));
         for value in 1..=9 {
-            cards.push(Card::number(color, value, 0));
-            cards.push(Card::number(color, value, 1));
+            cards.push(UnoCard::number(color, value, 0));
+            cards.push(UnoCard::number(color, value, 1));
         }
-        for face in [Face::DrawTwo, Face::Reverse, Face::Skip] {
-            cards.push(Card::action(color, face, 0));
-            cards.push(Card::action(color, face, 1));
+        for face in [UnoFace::DrawTwo, UnoFace::Reverse, UnoFace::Skip] {
+            cards.push(UnoCard::action(color, face, 0));
+            cards.push(UnoCard::action(color, face, 1));
         }
     }
     for copy in 0..4 {
-        cards.push(Card::wild(Face::Wild, copy));
-        cards.push(Card::wild(Face::WildDrawFour, copy));
+        cards.push(UnoCard::wild(UnoFace::Wild, copy));
+        cards.push(UnoCard::wild(UnoFace::WildDrawFour, copy));
     }
     cards
 }
 
 /// 生成 Swap Pack 的 16 张扩展牌。
-pub fn build_swap_pack() -> Vec<Card> {
+pub fn build_swap_pack() -> Vec<UnoCard> {
     let mut cards = Vec::with_capacity(16);
-    for color in Color::LIGHT {
-        cards.push(Card::action(color, Face::SwapOne, 0));
-        cards.push(Card::action(color, Face::RefreshHand, 0));
+    for color in UnoColor::LIGHT {
+        cards.push(UnoCard::action(color, UnoFace::SwapOne, 0));
+        cards.push(UnoCard::action(color, UnoFace::RefreshHand, 0));
     }
     for copy in 0..4 {
-        cards.push(Card::wild(Face::WildForceTrade, copy));
-        cards.push(Card::wild(Face::WildPassHands, copy));
+        cards.push(UnoCard::wild(UnoFace::WildForceTrade, copy));
+        cards.push(UnoCard::wild(UnoFace::WildPassHands, copy));
     }
     cards
 }
 
 /// 生成 Reverse Pack 的 16 张扩展牌。
-pub fn build_reverse_pack() -> Vec<Card> {
+pub fn build_reverse_pack() -> Vec<UnoCard> {
     let mut cards = Vec::with_capacity(16);
-    for color in Color::LIGHT {
-        cards.push(Card::action(color, Face::ReverseDrawTwo, 0));
-        cards.push(Card::action(color, Face::ReverseSkip, 0));
+    for color in UnoColor::LIGHT {
+        cards.push(UnoCard::action(color, UnoFace::ReverseDrawTwo, 0));
+        cards.push(UnoCard::action(color, UnoFace::ReverseSkip, 0));
     }
     for copy in 0..4 {
-        cards.push(Card::wild(Face::WildPowerReverse, copy));
-        cards.push(Card::wild(Face::WildNoU, copy));
+        cards.push(UnoCard::wild(UnoFace::WildPowerReverse, copy));
+        cards.push(UnoCard::wild(UnoFace::WildNoU, copy));
     }
     cards
 }
 
 /// 生成 Stack Pack 的 16 张扩展牌。
-pub fn build_stack_pack() -> Vec<Card> {
+pub fn build_stack_pack() -> Vec<UnoCard> {
     let mut cards = Vec::with_capacity(16);
-    for color in Color::LIGHT {
-        cards.push(Card::action(color, Face::StackOne, 0));
-        cards.push(Card::action(color, Face::StackTwo, 0));
+    for color in UnoColor::LIGHT {
+        cards.push(UnoCard::action(color, UnoFace::StackOne, 0));
+        cards.push(UnoCard::action(color, UnoFace::StackTwo, 0));
     }
     for copy in 0..4 {
-        cards.push(Card::wild(Face::WildStackThree, copy));
-        cards.push(Card::wild(Face::WildStackNumber, copy));
+        cards.push(UnoCard::wild(UnoFace::WildStackThree, copy));
+        cards.push(UnoCard::wild(UnoFace::WildStackNumber, copy));
     }
     cards
 }
 
 /// 生成 UNO Show 'Em No Mercy 本体的 168 张牌。
-pub fn build_no_mercy_deck() -> Vec<Card> {
+pub fn build_no_mercy_deck() -> Vec<UnoCard> {
     let mut cards = Vec::with_capacity(168);
-    for color in Color::LIGHT {
+    for color in UnoColor::LIGHT {
         for value in 0..=9 {
-            cards.push(Card::number(color, value, 0));
-            cards.push(Card::number(color, value, 1));
+            cards.push(UnoCard::number(color, value, 0));
+            cards.push(UnoCard::number(color, value, 1));
         }
-        for face in [Face::DrawTwo, Face::Reverse, Face::Skip, Face::DiscardAll] {
+        for face in [
+            UnoFace::DrawTwo,
+            UnoFace::Reverse,
+            UnoFace::Skip,
+            UnoFace::DiscardAll,
+        ] {
             for copy in 0..3 {
-                cards.push(Card::action(color, face, copy));
+                cards.push(UnoCard::action(color, face, copy));
             }
         }
-        for face in [Face::DrawFour, Face::SkipEveryone] {
+        for face in [UnoFace::DrawFour, UnoFace::SkipEveryone] {
             for copy in 0..2 {
-                cards.push(Card::action(color, face, copy));
+                cards.push(UnoCard::action(color, face, copy));
             }
         }
     }
     for copy in 0..8 {
-        cards.push(Card::wild(Face::WildReverseDrawFour, copy));
-        cards.push(Card::wild(Face::WildColorRoulette, copy));
+        cards.push(UnoCard::wild(UnoFace::WildReverseDrawFour, copy));
+        cards.push(UnoCard::wild(UnoFace::WildColorRoulette, copy));
     }
     for copy in 0..4 {
-        cards.push(Card::wild(Face::WildDrawSix, copy));
-        cards.push(Card::wild(Face::WildDrawTen, copy));
+        cards.push(UnoCard::wild(UnoFace::WildDrawSix, copy));
+        cards.push(UnoCard::wild(UnoFace::WildDrawTen, copy));
     }
     cards
 }
 
-fn build_flip_colored_sides(colors: [Color; 4], draw: Face, skip: Face) -> Vec<CardSide> {
+fn build_flip_colored_sides(colors: [UnoColor; 4], draw: UnoFace, skip: UnoFace) -> Vec<CardSide> {
     let mut sides = Vec::with_capacity(104);
     for color in colors {
         for value in 1..=9 {
-            sides.push(CardSide::colored(color, Face::Number(value)));
-            sides.push(CardSide::colored(color, Face::Number(value)));
+            sides.push(CardSide::colored(color, UnoFace::Number(value)));
+            sides.push(CardSide::colored(color, UnoFace::Number(value)));
         }
-        for face in [draw, Face::Reverse, skip, Face::Flip] {
+        for face in [draw, UnoFace::Reverse, skip, UnoFace::Flip] {
             sides.push(CardSide::colored(color, face));
             sides.push(CardSide::colored(color, face));
         }
@@ -577,25 +582,26 @@ fn build_flip_colored_sides(colors: [Color; 4], draw: Face, skip: Face) -> Vec<C
 }
 
 pub fn build_flip_light_sides() -> Vec<CardSide> {
-    let mut sides = build_flip_colored_sides(Color::LIGHT, Face::DrawOne, Face::Skip);
+    let mut sides = build_flip_colored_sides(UnoColor::LIGHT, UnoFace::DrawOne, UnoFace::Skip);
     for _ in 0..4 {
-        sides.push(CardSide::wild(Face::Wild));
-        sides.push(CardSide::wild(Face::WildDrawTwo));
+        sides.push(CardSide::wild(UnoFace::Wild));
+        sides.push(CardSide::wild(UnoFace::WildDrawTwo));
     }
     sides
 }
 
 pub fn build_flip_dark_sides() -> Vec<CardSide> {
-    let mut sides = build_flip_colored_sides(Color::DARK, Face::DrawFive, Face::SkipEveryone);
+    let mut sides =
+        build_flip_colored_sides(UnoColor::DARK, UnoFace::DrawFive, UnoFace::SkipEveryone);
     for _ in 0..4 {
-        sides.push(CardSide::wild(Face::DarkWild));
-        sides.push(CardSide::wild(Face::WildDrawColor));
+        sides.push(CardSide::wild(UnoFace::DarkWild));
+        sides.push(CardSide::wild(UnoFace::WildDrawColor));
     }
     sides
 }
 
 /// 将完整的一组暗面按传入顺序与固定顺序的亮面一一配对。
-pub fn pair_flip_deck(dark_sides: Vec<CardSide>) -> Option<Vec<Card>> {
+pub fn pair_flip_deck(dark_sides: Vec<CardSide>) -> Option<Vec<UnoCard>> {
     let light_sides = build_flip_light_sides();
     if dark_sides.len() != light_sides.len() {
         return None;
@@ -605,7 +611,7 @@ pub fn pair_flip_deck(dark_sides: Vec<CardSide>) -> Option<Vec<Card>> {
             .into_iter()
             .enumerate()
             .zip(dark_sides)
-            .map(|((index, light), dark)| Card::paired(light, dark, index as u8))
+            .map(|((index, light), dark)| UnoCard::paired(light, dark, index as u8))
             .collect(),
     )
 }
@@ -619,7 +625,7 @@ const FIXED_FLIP_PAIRING: [usize; 112] = [
 ];
 
 /// 生成使用固定正反面组合的 112 张 UNO FLIP 牌。
-pub fn build_flip_deck() -> Vec<Card> {
+pub fn build_flip_deck() -> Vec<UnoCard> {
     let dark_sides = build_flip_dark_sides();
     pair_flip_deck(
         FIXED_FLIP_PAIRING
@@ -630,7 +636,7 @@ pub fn build_flip_deck() -> Vec<Card> {
     .expect("fixed UNO FLIP pairing must contain 112 dark sides")
 }
 
-pub fn build_deck_for_rules(rules: crate::RuleSet) -> Vec<Card> {
+pub fn build_deck_for_rules(rules: crate::UnoRuleSet) -> Vec<UnoCard> {
     if rules.is_no_mercy() {
         return build_no_mercy_deck();
     }
@@ -651,207 +657,5 @@ pub fn build_deck_for_rules(rules: crate::RuleSet) -> Vec<Card> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn classic_deck_has_108_unique_physical_cards() {
-        let deck = build_deck();
-        assert_eq!(deck.len(), 108);
-        assert_eq!(
-            deck.iter()
-                .copied()
-                .collect::<std::collections::HashSet<_>>()
-                .len(),
-            108
-        );
-        assert_eq!(
-            deck.iter().filter(|card| card.face == Face::Wild).count(),
-            4
-        );
-        assert_eq!(
-            deck.iter()
-                .filter(|card| card.face == Face::WildDrawFour)
-                .count(),
-            4
-        );
-    }
-
-    #[test]
-    fn swap_pack_adds_sixteen_unique_cards() {
-        let cards = build_swap_pack();
-        assert_eq!(cards.len(), 16);
-        assert_eq!(
-            cards
-                .iter()
-                .copied()
-                .collect::<std::collections::HashSet<_>>()
-                .len(),
-            16
-        );
-        assert_eq!(
-            build_deck_for_rules(crate::RuleSet {
-                swap_pack: true,
-                ..crate::RuleSet::default()
-            })
-            .len(),
-            124
-        );
-        assert!(cards.iter().all(|card| card.face().is_swap_pack()));
-        assert!(build_deck().iter().all(|card| !card.face().is_swap_pack()));
-    }
-
-    #[test]
-    fn reverse_pack_adds_sixteen_unique_cards() {
-        let cards = build_reverse_pack();
-        assert_eq!(cards.len(), 16);
-        assert_eq!(
-            cards
-                .iter()
-                .copied()
-                .collect::<std::collections::HashSet<_>>()
-                .len(),
-            16
-        );
-        assert_eq!(
-            build_deck_for_rules(crate::RuleSet {
-                reverse_pack: true,
-                ..crate::RuleSet::default()
-            })
-            .len(),
-            124
-        );
-        assert!(cards.iter().all(|card| card.face().is_reverse_pack()));
-        assert!(build_deck().iter().all(|card| !card.face().is_extension()));
-    }
-
-    #[test]
-    fn stack_pack_adds_sixteen_unique_cards() {
-        let cards = build_stack_pack();
-        assert_eq!(cards.len(), 16);
-        assert_eq!(
-            cards
-                .iter()
-                .copied()
-                .collect::<std::collections::HashSet<_>>()
-                .len(),
-            16
-        );
-        assert_eq!(
-            build_deck_for_rules(crate::RuleSet {
-                stack_pack: true,
-                ..crate::RuleSet::default()
-            })
-            .len(),
-            124
-        );
-        assert!(cards.iter().all(|card| card.face().is_stack_pack()));
-    }
-
-    #[test]
-    fn no_mercy_deck_has_the_official_168_card_distribution() {
-        let deck = build_no_mercy_deck();
-        assert_eq!(deck.len(), 168);
-        assert_eq!(
-            deck.iter()
-                .copied()
-                .collect::<std::collections::HashSet<_>>()
-                .len(),
-            168
-        );
-        for color in Color::LIGHT {
-            assert_eq!(
-                deck.iter()
-                    .filter(|card| card.color() == Some(color))
-                    .count(),
-                36
-            );
-            assert_eq!(
-                deck.iter()
-                    .filter(|card| card.color() == Some(color) && card.face() == Face::DrawTwo)
-                    .count(),
-                3
-            );
-            assert_eq!(
-                deck.iter()
-                    .filter(|card| card.color() == Some(color) && card.face() == Face::DrawFour)
-                    .count(),
-                2
-            );
-            assert_eq!(
-                deck.iter()
-                    .filter(|card| card.color() == Some(color) && card.face() == Face::SkipEveryone)
-                    .count(),
-                2
-            );
-            assert_eq!(
-                deck.iter()
-                    .filter(|card| card.color() == Some(color) && card.face() == Face::DiscardAll)
-                    .count(),
-                3
-            );
-        }
-        assert_eq!(
-            deck.iter()
-                .filter(|card| card.face() == Face::WildReverseDrawFour)
-                .count(),
-            8
-        );
-        assert_eq!(
-            deck.iter()
-                .filter(|card| card.face() == Face::WildDrawSix)
-                .count(),
-            4
-        );
-        assert_eq!(
-            deck.iter()
-                .filter(|card| card.face() == Face::WildDrawTen)
-                .count(),
-            4
-        );
-        assert_eq!(
-            deck.iter()
-                .filter(|card| card.face() == Face::WildColorRoulette)
-                .count(),
-            8
-        );
-        assert!(deck.iter().all(|card| !card.face().is_extension()));
-    }
-
-    #[test]
-    fn flip_deck_has_complete_unique_light_and_dark_sides() {
-        let deck = build_flip_deck();
-        assert_eq!(deck.len(), 112);
-        assert!(deck.iter().all(|card| card.is_double_sided()));
-        assert_eq!(
-            deck.iter()
-                .copied()
-                .collect::<std::collections::HashSet<_>>()
-                .len(),
-            112
-        );
-        assert!(
-            deck.iter()
-                .all(|card| card.color().is_none_or(Color::is_light))
-        );
-        assert!(deck.iter().all(|card| {
-            card.opposite()
-                .and_then(CardSide::color)
-                .is_none_or(Color::is_dark)
-        }));
-        assert_eq!(
-            deck.iter()
-                .filter(|card| card.face() == Face::WildDrawTwo)
-                .count(),
-            4
-        );
-        assert_eq!(
-            deck.iter()
-                .filter(|card| card
-                    .opposite()
-                    .is_some_and(|side| { side.face() == Face::WildDrawColor }))
-                .count(),
-            4
-        );
-    }
-}
+#[path = "card_tests.rs"]
+mod tests;

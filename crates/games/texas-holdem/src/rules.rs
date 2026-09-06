@@ -2,7 +2,7 @@ use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct RuleSet {
+pub struct TexasHoldemRuleSet {
     pub player_count: u8,
     pub starting_chips: u16,
     pub short_deck: bool,
@@ -15,7 +15,7 @@ pub struct RuleSet {
     pub omaha: bool,
 }
 
-impl RuleSet {
+impl TexasHoldemRuleSet {
     pub const MIN_PLAYERS: u8 = 3;
     pub const MAX_PLAYERS: u8 = 6;
     pub const STARTING_CHIP_OPTIONS: [u16; 6] = [5, 10, 20, 30, 40, 50];
@@ -37,7 +37,7 @@ impl RuleSet {
     }
 }
 
-impl Default for RuleSet {
+impl Default for TexasHoldemRuleSet {
     fn default() -> Self {
         Self {
             player_count: 4,
@@ -74,40 +74,40 @@ mod tests {
 
     #[test]
     fn validates_player_and_starting_chip_options() {
-        assert!(!RuleSet::default().ignore_kickers);
-        assert!(!RuleSet::default().omaha);
-        assert_eq!(RuleSet::default().hole_card_count(), 2);
+        assert!(!TexasHoldemRuleSet::default().ignore_kickers);
+        assert!(!TexasHoldemRuleSet::default().omaha);
+        assert_eq!(TexasHoldemRuleSet::default().hole_card_count(), 2);
         assert_eq!(
-            RuleSet {
+            TexasHoldemRuleSet {
                 omaha: true,
-                ..RuleSet::default()
+                ..TexasHoldemRuleSet::default()
             }
             .hole_card_count(),
             4
         );
-        assert_eq!(RuleSet::default().starting_chips, 20);
-        for starting_chips in RuleSet::STARTING_CHIP_OPTIONS {
+        assert_eq!(TexasHoldemRuleSet::default().starting_chips, 20);
+        for starting_chips in TexasHoldemRuleSet::STARTING_CHIP_OPTIONS {
             assert!(
-                RuleSet {
+                TexasHoldemRuleSet {
                     starting_chips,
-                    ..RuleSet::default()
+                    ..TexasHoldemRuleSet::default()
                 }
                 .validate()
                 .is_ok()
             );
         }
         assert_eq!(
-            RuleSet {
+            TexasHoldemRuleSet {
                 player_count: 2,
-                ..RuleSet::default()
+                ..TexasHoldemRuleSet::default()
             }
             .validate(),
             Err(RuleError::PlayerCount(2))
         );
         assert_eq!(
-            RuleSet {
+            TexasHoldemRuleSet {
                 starting_chips: 15,
-                ..RuleSet::default()
+                ..TexasHoldemRuleSet::default()
             }
             .validate(),
             Err(RuleError::StartingChips(15))

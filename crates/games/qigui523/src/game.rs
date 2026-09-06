@@ -1,24 +1,26 @@
 use std::collections::{HashSet, VecDeque};
 use std::fmt;
 
-use crate::{Card, ClassifiedPlay, PlayError, RuleError, RuleSet, build_deck, can_beat, classify};
+use crate::{
+    ClassifiedPlay, PlayError, QiGuiCard, QiGuiRuleSet, RuleError, build_deck, can_beat, classify,
+};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct PlayerId(pub usize);
+pub struct QiGuiPlayerId(pub usize);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PlayerState {
-    id: PlayerId,
-    hand: Vec<Card>,
+    id: QiGuiPlayerId,
+    hand: Vec<QiGuiCard>,
     score: u32,
 }
 
 impl PlayerState {
-    pub fn id(&self) -> PlayerId {
+    pub fn id(&self) -> QiGuiPlayerId {
         self.id
     }
 
-    pub fn hand(&self) -> &[Card] {
+    pub fn hand(&self) -> &[QiGuiCard] {
         &self.hand
     }
 
@@ -29,26 +31,26 @@ impl PlayerState {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct StartingCard {
-    pub player: PlayerId,
-    pub card: Card,
+    pub player: QiGuiPlayerId,
+    pub card: QiGuiCard,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PlayRecord {
     Played {
-        player: PlayerId,
+        player: QiGuiPlayerId,
         play: ClassifiedPlay,
     },
     Passed {
-        player: PlayerId,
+        player: QiGuiPlayerId,
     },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TrickState {
-    leader: PlayerId,
-    current_player: PlayerId,
-    winning_player: Option<PlayerId>,
+    leader: QiGuiPlayerId,
+    current_player: QiGuiPlayerId,
+    winning_player: Option<QiGuiPlayerId>,
     winning_play: Option<ClassifiedPlay>,
     records: Vec<PlayRecord>,
     table_points: u32,
@@ -56,7 +58,7 @@ pub struct TrickState {
 }
 
 impl TrickState {
-    fn new(leader: PlayerId) -> Self {
+    fn new(leader: QiGuiPlayerId) -> Self {
         Self {
             leader,
             current_player: leader,
@@ -68,15 +70,15 @@ impl TrickState {
         }
     }
 
-    pub fn leader(&self) -> PlayerId {
+    pub fn leader(&self) -> QiGuiPlayerId {
         self.leader
     }
 
-    pub fn current_player(&self) -> PlayerId {
+    pub fn current_player(&self) -> QiGuiPlayerId {
         self.current_player
     }
 
-    pub fn winning_player(&self) -> Option<PlayerId> {
+    pub fn winning_player(&self) -> Option<QiGuiPlayerId> {
         self.winning_player
     }
 
@@ -96,7 +98,7 @@ impl TrickState {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GameResult {
     /// 摸牌堆耗尽后，第一个出完手牌的玩家。
-    pub finisher: PlayerId,
+    pub finisher: QiGuiPlayerId,
     pub scores: Vec<u32>,
     pub captured_hand_points: u32,
 }
@@ -110,17 +112,17 @@ pub enum Phase {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ActionOutcome {
     Played {
-        player: PlayerId,
-        next_player: PlayerId,
+        player: QiGuiPlayerId,
+        next_player: QiGuiPlayerId,
     },
     Passed {
-        player: PlayerId,
-        next_player: PlayerId,
+        player: QiGuiPlayerId,
+        next_player: QiGuiPlayerId,
     },
     TrickCompleted {
-        winner: PlayerId,
+        winner: QiGuiPlayerId,
         points: u32,
-        next_player: PlayerId,
+        next_player: QiGuiPlayerId,
         cards_drawn: usize,
     },
     GameFinished(GameResult),
@@ -134,14 +136,14 @@ pub enum GameError {
         actual: usize,
     },
     InvalidDeckContents,
-    InvalidPlayer(PlayerId),
+    InvalidPlayer(QiGuiPlayerId),
     NotPlayersTurn {
-        expected: PlayerId,
-        actual: PlayerId,
+        expected: QiGuiPlayerId,
+        actual: QiGuiPlayerId,
     },
     GameAlreadyFinished,
     MustLeadWithCards,
-    CardNotInHand(Card),
+    CardNotInHand(QiGuiCard),
     InvalidPlay(PlayError),
     PlayDoesNotBeatCurrent,
 }
@@ -185,9 +187,9 @@ impl From<PlayError> for GameError {
 /// [`GameState::pass`] 完成。
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GameState {
-    rules: RuleSet,
+    rules: QiGuiRuleSet,
     players: Vec<PlayerState>,
-    draw_pile: VecDeque<Card>,
+    draw_pile: VecDeque<QiGuiCard>,
     starting_card: StartingCard,
     trick: Option<TrickState>,
     phase: Phase,
@@ -195,7 +197,7 @@ pub struct GameState {
 
 impl GameState {
     /// `deck` 的第 0 张是最先发出的牌。洗牌应由房主在调用前完成。
-    pub fn new_with_deck(rules: RuleSet, deck: Vec<Card>) -> Result<Self, GameError> {
+    pub fn new_with_deck(rules: QiGuiRuleSet, deck: Vec<QiGuiCard>) -> Result<Self, GameError> {
         let rules = rules.validate()?;
         validate_deck(rules.deck_count, &deck)?;
 
@@ -206,7 +208,10 @@ impl GameState {
     ///
     /// 该入口由 Cargo feature 在编译期移除，正常发行版本不能创建短牌堆。
     #[cfg(feature = "developer")]
-    pub fn new_with_development_deck(rules: RuleSet, deck: Vec<Card>) -> Result<Self, GameError> {
+    pub fn new_with_development_deck(
+        rules: QiGuiRuleSet,
+        deck: Vec<QiGuiCard>,
+    ) -> Result<Self, GameError> {
         let rules = rules.validate()?;
         let expected = usize::from(rules.player_count) * usize::from(rules.hand_size);
         if deck.len() != expected {
@@ -224,11 +229,11 @@ impl GameState {
         Ok(Self::deal_validated_deck(rules, deck))
     }
 
-    fn deal_validated_deck(rules: RuleSet, deck: Vec<Card>) -> Self {
+    fn deal_validated_deck(rules: QiGuiRuleSet, deck: Vec<QiGuiCard>) -> Self {
         let mut draw_pile = VecDeque::from(deck);
         let mut players: Vec<_> = (0..usize::from(rules.player_count))
             .map(|index| PlayerState {
-                id: PlayerId(index),
+                id: QiGuiPlayerId(index),
                 hand: Vec::with_capacity(usize::from(rules.hand_size)),
                 score: 0,
             })
@@ -241,7 +246,7 @@ impl GameState {
             for player in &mut players {
                 let card = draw_pile
                     .pop_front()
-                    .expect("RuleSet::validate ensured enough cards");
+                    .expect("QiGuiRuleSet::validate ensured enough cards");
                 player.hand.push(card);
                 deal_order.push((player.id, card));
             }
@@ -263,7 +268,7 @@ impl GameState {
         }
     }
 
-    pub fn rules(&self) -> &RuleSet {
+    pub fn rules(&self) -> &QiGuiRuleSet {
         &self.rules
     }
 
@@ -271,7 +276,7 @@ impl GameState {
         &self.players
     }
 
-    pub fn player(&self, id: PlayerId) -> Option<&PlayerState> {
+    pub fn player(&self, id: QiGuiPlayerId) -> Option<&PlayerState> {
         self.players.get(id.0)
     }
 
@@ -295,8 +300,8 @@ impl GameState {
     #[cfg(feature = "developer")]
     pub fn replace_player_hand(
         &mut self,
-        player: PlayerId,
-        cards: Vec<Card>,
+        player: QiGuiPlayerId,
+        cards: Vec<QiGuiCard>,
     ) -> Result<(), GameError> {
         if matches!(self.phase, Phase::Finished(_)) {
             return Err(GameError::GameAlreadyFinished);
@@ -308,14 +313,14 @@ impl GameState {
             return Err(GameError::InvalidDeckContents);
         }
         self.players[player.0].hand = cards;
-        self.players[player.0].hand.sort_by(Card::display_cmp);
+        self.players[player.0].hand.sort_by(QiGuiCard::display_cmp);
         Ok(())
     }
 
     pub fn play_cards(
         &mut self,
-        player: PlayerId,
-        cards: &[Card],
+        player: QiGuiPlayerId,
+        cards: &[QiGuiCard],
     ) -> Result<ActionOutcome, GameError> {
         self.ensure_turn(player)?;
         let play = classify(cards, &self.rules)?;
@@ -356,7 +361,7 @@ impl GameState {
         })
     }
 
-    pub fn pass(&mut self, player: PlayerId) -> Result<ActionOutcome, GameError> {
+    pub fn pass(&mut self, player: QiGuiPlayerId) -> Result<ActionOutcome, GameError> {
         self.ensure_turn(player)?;
         let trick = self.trick.as_mut().expect("playing games have a trick");
         if trick.winning_play.is_none() {
@@ -381,7 +386,7 @@ impl GameState {
         })
     }
 
-    fn ensure_turn(&self, player: PlayerId) -> Result<(), GameError> {
+    fn ensure_turn(&self, player: QiGuiPlayerId) -> Result<(), GameError> {
         if matches!(self.phase, Phase::Finished(_)) {
             return Err(GameError::GameAlreadyFinished);
         }
@@ -402,7 +407,11 @@ impl GameState {
         Ok(())
     }
 
-    fn ensure_cards_in_hand(&self, player: PlayerId, cards: &[Card]) -> Result<(), GameError> {
+    fn ensure_cards_in_hand(
+        &self,
+        player: QiGuiPlayerId,
+        cards: &[QiGuiCard],
+    ) -> Result<(), GameError> {
         for card in cards {
             if !self.players[player.0].hand.contains(card) {
                 return Err(GameError::CardNotInHand(*card));
@@ -411,8 +420,8 @@ impl GameState {
         Ok(())
     }
 
-    fn next_player(&self, player: PlayerId) -> PlayerId {
-        PlayerId((player.0 + self.players.len() - 1) % self.players.len())
+    fn next_player(&self, player: QiGuiPlayerId) -> QiGuiPlayerId {
+        QiGuiPlayerId((player.0 + self.players.len() - 1) % self.players.len())
     }
 
     fn complete_trick(&mut self) -> ActionOutcome {
@@ -441,7 +450,7 @@ impl GameState {
     }
 
     /// 从上轮赢家开始，顺时针每人一次摸一张，循环至补满或牌堆为空。
-    fn refill_hands_from(&mut self, winner: PlayerId) -> usize {
+    fn refill_hands_from(&mut self, winner: QiGuiPlayerId) -> usize {
         let mut cards_drawn = 0;
         loop {
             let mut drew_in_cycle = false;
@@ -469,13 +478,13 @@ impl GameState {
         cards_drawn
     }
 
-    fn first_empty_player_from(&self, from: PlayerId) -> Option<PlayerId> {
+    fn first_empty_player_from(&self, from: QiGuiPlayerId) -> Option<QiGuiPlayerId> {
         (0..self.players.len())
-            .map(|offset| PlayerId((from.0 + offset) % self.players.len()))
+            .map(|offset| QiGuiPlayerId((from.0 + offset) % self.players.len()))
             .find(|player| self.players[player.0].hand.is_empty())
     }
 
-    fn finish_game(&mut self, finisher: PlayerId, collect_table_points: bool) -> GameResult {
+    fn finish_game(&mut self, finisher: QiGuiPlayerId, collect_table_points: bool) -> GameResult {
         if collect_table_points {
             let table_points = self.trick.as_ref().map_or(0, |trick| trick.table_points);
             self.players[finisher.0].score += table_points;
@@ -500,7 +509,7 @@ impl GameState {
     }
 }
 
-fn validate_deck(deck_count: u8, deck: &[Card]) -> Result<(), GameError> {
+fn validate_deck(deck_count: u8, deck: &[QiGuiCard]) -> Result<(), GameError> {
     let expected_deck = build_deck(deck_count);
     if deck.len() != expected_deck.len() {
         return Err(GameError::InvalidDeckSize {
@@ -516,7 +525,7 @@ fn validate_deck(deck_count: u8, deck: &[Card]) -> Result<(), GameError> {
     Ok(())
 }
 
-fn find_starting_card(deal_order: &[(PlayerId, Card)]) -> StartingCard {
+fn find_starting_card(deal_order: &[(QiGuiPlayerId, QiGuiCard)]) -> StartingCard {
     let minimum_strength = deal_order
         .iter()
         .map(|(_, card)| card.semantic_strength())
@@ -530,7 +539,7 @@ fn find_starting_card(deal_order: &[(PlayerId, Card)]) -> StartingCard {
         .expect("minimum strength came from the deal order")
 }
 
-fn remove_cards(hand: &mut Vec<Card>, cards: &[Card]) {
+fn remove_cards(hand: &mut Vec<QiGuiCard>, cards: &[QiGuiCard]) {
     for card in cards {
         let index = hand
             .iter()
@@ -542,215 +551,10 @@ fn remove_cards(hand: &mut Vec<Card>, cards: &[Card]) {
 
 fn sort_hands(players: &mut [PlayerState]) {
     for player in players {
-        player.hand.sort_by(Card::display_cmp);
+        player.hand.sort_by(QiGuiCard::display_cmp);
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{Rank, Suit};
-
-    fn deck_with_prefix(prefix: &[Card], deck_count: u8) -> Vec<Card> {
-        let prefix_set: HashSet<_> = prefix.iter().copied().collect();
-        let mut deck = prefix.to_vec();
-        deck.extend(
-            build_deck(deck_count)
-                .into_iter()
-                .filter(|card| !prefix_set.contains(card)),
-        );
-        deck
-    }
-
-    #[test]
-    fn deals_clockwise_and_exposes_lowest_card_owner() {
-        let rules = RuleSet {
-            player_count: 3,
-            ..RuleSet::default()
-        };
-        let diamond_four = Card::suited(0, Suit::Diamond, Rank::Four);
-        let deck = deck_with_prefix(
-            &[
-                Card::suited(0, Suit::Spade, Rank::Ace),
-                diamond_four,
-                Card::suited(0, Suit::Heart, Rank::Six),
-            ],
-            1,
-        );
-        let game = GameState::new_with_deck(rules, deck).unwrap();
-
-        assert_eq!(game.starting_card().player, PlayerId(1));
-        assert_eq!(game.starting_card().card, diamond_four);
-        assert_eq!(game.trick().unwrap().current_player(), PlayerId(1));
-        assert!(game.players().iter().all(|player| player.hand().len() == 5));
-        assert_eq!(game.draw_pile_len(), 39);
-    }
-
-    #[test]
-    fn duplicate_lowest_cards_use_the_shuffled_deal_order_as_tie_breaker() {
-        let rules = RuleSet {
-            deck_count: 2,
-            player_count: 3,
-            ..RuleSet::default()
-        };
-        let first_diamond_four = Card::suited(1, Suit::Diamond, Rank::Four);
-        let later_diamond_four = Card::suited(0, Suit::Diamond, Rank::Four);
-        let deck = deck_with_prefix(
-            &[
-                Card::suited(0, Suit::Heart, Rank::Six),
-                Card::suited(0, Suit::Spade, Rank::Six),
-                first_diamond_four,
-                later_diamond_four,
-            ],
-            2,
-        );
-        let game = GameState::new_with_deck(rules, deck).unwrap();
-
-        // 玩家 2 先从洗好的牌序中拿到最小牌，所以不按较小座位号选择玩家 0。
-        assert_eq!(game.starting_card().player, PlayerId(2));
-        assert_eq!(game.starting_card().card, first_diamond_four);
-    }
-
-    #[test]
-    fn winner_collects_points_then_everyone_refills() {
-        let rules = RuleSet {
-            player_count: 3,
-            ..RuleSet::default()
-        };
-        let diamond_four = Card::suited(0, Suit::Diamond, Rank::Four);
-        let diamond_five = Card::suited(0, Suit::Diamond, Rank::Five);
-        let club_five = Card::suited(0, Suit::Club, Rank::Five);
-        let deck = deck_with_prefix(
-            &[
-                diamond_four,
-                club_five,
-                Card::suited(0, Suit::Heart, Rank::Six),
-                diamond_five,
-            ],
-            1,
-        );
-        let mut game = GameState::new_with_deck(rules, deck).unwrap();
-
-        game.play_cards(PlayerId(0), &[diamond_five]).unwrap();
-        game.pass(PlayerId(2)).unwrap();
-        game.play_cards(PlayerId(1), &[club_five]).unwrap();
-        game.pass(PlayerId(0)).unwrap();
-        let outcome = game.pass(PlayerId(2)).unwrap();
-
-        assert_eq!(
-            outcome,
-            ActionOutcome::TrickCompleted {
-                winner: PlayerId(1),
-                points: 10,
-                next_player: PlayerId(1),
-                cards_drawn: 2,
-            }
-        );
-        assert_eq!(game.player(PlayerId(1)).unwrap().score(), 10);
-        assert!(game.players().iter().all(|player| player.hand().len() == 5));
-    }
-
-    #[test]
-    fn bomb_can_change_the_required_card_count() {
-        let rules = RuleSet {
-            player_count: 3,
-            ..RuleSet::default()
-        };
-        let pair = [
-            Card::suited(0, Suit::Diamond, Rank::Four),
-            Card::suited(0, Suit::Club, Rank::Four),
-        ];
-        let bomb = [
-            Card::suited(0, Suit::Diamond, Rank::Six),
-            Card::suited(0, Suit::Club, Rank::Six),
-            Card::suited(0, Suit::Heart, Rank::Six),
-            Card::suited(0, Suit::Spade, Rank::Six),
-        ];
-        let mut prefix = vec![pair[0], bomb[0], Card::suited(0, Suit::Heart, Rank::Eight)];
-        prefix.extend([pair[1], bomb[1], Card::suited(0, Suit::Club, Rank::Eight)]);
-        prefix.extend([
-            Card::suited(0, Suit::Diamond, Rank::Nine),
-            bomb[2],
-            Card::suited(0, Suit::Heart, Rank::Nine),
-        ]);
-        prefix.extend([
-            Card::suited(0, Suit::Diamond, Rank::Ten),
-            bomb[3],
-            Card::suited(0, Suit::Heart, Rank::Ten),
-        ]);
-        let deck = deck_with_prefix(&prefix, 1);
-        let mut game = GameState::new_with_deck(rules, deck).unwrap();
-
-        game.play_cards(PlayerId(0), &pair).unwrap();
-        game.pass(PlayerId(2)).unwrap();
-        assert!(game.play_cards(PlayerId(1), &bomb).is_ok());
-    }
-
-    #[test]
-    fn emptying_a_hand_after_draw_pile_is_empty_collects_remaining_points() {
-        let rules = RuleSet {
-            player_count: 3,
-            ..RuleSet::default()
-        };
-        let deck = build_deck(1);
-        let mut game = GameState::new_with_deck(rules, deck).unwrap();
-        let finisher = game.starting_card.player;
-        let last_card = game.players[finisher.0].hand[0];
-
-        // 构造规则边界状态：牌堆已耗尽，当前玩家只剩一张牌并领出。
-        game.draw_pile.clear();
-        game.players[finisher.0].hand = vec![last_card];
-        game.trick = Some(TrickState::new(finisher));
-        let hand_points_before: u32 = game
-            .players
-            .iter()
-            .flat_map(|player| player.hand.iter())
-            .map(|card| u32::from(card.score()))
-            .sum();
-
-        let outcome = game.play_cards(finisher, &[last_card]).unwrap();
-        let ActionOutcome::GameFinished(result) = outcome else {
-            panic!("game should finish");
-        };
-        assert_eq!(result.finisher, finisher);
-        assert_eq!(
-            result.captured_hand_points,
-            hand_points_before - u32::from(last_card.score())
-        );
-    }
-
-    #[test]
-    fn a_complete_deterministic_game_conserves_all_points() {
-        let rules = RuleSet {
-            player_count: 3,
-            ..RuleSet::default()
-        };
-        let mut game = GameState::new_with_deck(rules, build_deck(1)).unwrap();
-
-        for _ in 0..1_000 {
-            if let Phase::Finished(result) = game.phase() {
-                assert_eq!(result.scores.iter().sum::<u32>(), 100);
-                return;
-            }
-
-            let trick = game.trick().unwrap();
-            let current_player = trick.current_player();
-            let current_play = trick.winning_play().cloned();
-            let hand = game.player(current_player).unwrap().hand().to_vec();
-            let playable = hand.into_iter().find(|card| {
-                let candidate = classify(&[*card], game.rules()).unwrap();
-                current_play
-                    .as_ref()
-                    .is_none_or(|current| can_beat(&candidate, current, game.rules()))
-            });
-
-            if let Some(card) = playable {
-                game.play_cards(current_player, &[card]).unwrap();
-            } else {
-                game.pass(current_player).unwrap();
-            }
-        }
-
-        panic!("deterministic game did not terminate");
-    }
-}
+#[path = "game_tests.rs"]
+mod tests;

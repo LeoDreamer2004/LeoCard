@@ -3,14 +3,14 @@ use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Suit {
+pub enum ShengjiSuit {
     Diamond,
     Club,
     Heart,
     Spade,
 }
 
-impl Suit {
+impl ShengjiSuit {
     pub const ALL: [Self; 4] = [Self::Diamond, Self::Club, Self::Heart, Self::Spade];
 
     pub const fn bid_strength(self) -> u8 {
@@ -25,7 +25,7 @@ impl Suit {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Rank {
+pub enum ShengjiRank {
     Two,
     Three,
     Four,
@@ -43,7 +43,7 @@ pub enum Rank {
     BigJoker,
 }
 
-impl Rank {
+impl ShengjiRank {
     pub const LEVELS: [Self; 13] = [
         Self::Two,
         Self::Three,
@@ -94,18 +94,18 @@ impl Rank {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Card {
+pub struct ShengjiCard {
     deck: u8,
-    suit: Option<Suit>,
-    rank: Rank,
+    suit: Option<ShengjiSuit>,
+    rank: ShengjiRank,
 }
 
-impl Card {
+impl ShengjiCard {
     /// 经典两副牌模式的兼容常量。
     pub const DECK_COUNT: u8 = 2;
     pub const MAX_DECK_COUNT: u8 = 4;
 
-    pub const fn suited(deck: u8, suit: Suit, rank: Rank) -> Self {
+    pub const fn suited(deck: u8, suit: ShengjiSuit, rank: ShengjiRank) -> Self {
         assert!(deck < Self::MAX_DECK_COUNT);
         assert!(rank.is_level_rank());
         Self {
@@ -120,7 +120,7 @@ impl Card {
         Self {
             deck,
             suit: None,
-            rank: Rank::SmallJoker,
+            rank: ShengjiRank::SmallJoker,
         }
     }
 
@@ -129,7 +129,7 @@ impl Card {
         Self {
             deck,
             suit: None,
-            rank: Rank::BigJoker,
+            rank: ShengjiRank::BigJoker,
         }
     }
 
@@ -137,11 +137,11 @@ impl Card {
         self.deck
     }
 
-    pub const fn suit(self) -> Option<Suit> {
+    pub const fn suit(self) -> Option<ShengjiSuit> {
         self.suit
     }
 
-    pub const fn rank(self) -> Rank {
+    pub const fn rank(self) -> ShengjiRank {
         self.rank
     }
 
@@ -158,32 +158,32 @@ impl Card {
     }
 }
 
-impl fmt::Display for Card {
+impl fmt::Display for ShengjiCard {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match (self.suit, self.rank) {
-            (None, Rank::SmallJoker) => f.write_str("小王"),
-            (None, Rank::BigJoker) => f.write_str("大王"),
+            (None, ShengjiRank::SmallJoker) => f.write_str("小王"),
+            (None, ShengjiRank::BigJoker) => f.write_str("大王"),
             (Some(suit), rank) => write!(f, "{suit:?}{rank:?}"),
             _ => f.write_str("非法牌"),
         }
     }
 }
 
-pub fn build_deck() -> Vec<Card> {
-    build_deck_for(Card::DECK_COUNT)
+pub fn build_deck() -> Vec<ShengjiCard> {
+    build_deck_for(ShengjiCard::DECK_COUNT)
 }
 
-pub fn build_deck_for(deck_count: u8) -> Vec<Card> {
-    assert!((2..=Card::MAX_DECK_COUNT).contains(&deck_count));
+pub fn build_deck_for(deck_count: u8) -> Vec<ShengjiCard> {
+    assert!((2..=ShengjiCard::MAX_DECK_COUNT).contains(&deck_count));
     let mut cards = Vec::with_capacity(usize::from(deck_count) * 54);
     for deck in 0..deck_count {
-        for suit in Suit::ALL {
-            for rank in Rank::LEVELS {
-                cards.push(Card::suited(deck, suit, rank));
+        for suit in ShengjiSuit::ALL {
+            for rank in ShengjiRank::LEVELS {
+                cards.push(ShengjiCard::suited(deck, suit, rank));
             }
         }
-        cards.push(Card::small_joker(deck));
-        cards.push(Card::big_joker(deck));
+        cards.push(ShengjiCard::small_joker(deck));
+        cards.push(ShengjiCard::big_joker(deck));
     }
     cards
 }

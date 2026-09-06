@@ -65,7 +65,7 @@ impl TimeControl {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct RuleSet {
+pub struct QiGuiRuleSet {
     pub deck_count: u8,
     pub player_count: u8,
     pub hand_size: u8,
@@ -78,7 +78,7 @@ pub struct RuleSet {
     pub developer_deck: bool,
 }
 
-impl RuleSet {
+impl QiGuiRuleSet {
     pub const MIN_DECK_COUNT: u8 = 1;
     pub const MAX_DECK_COUNT: u8 = 8;
     pub const MIN_HAND_SIZE: u8 = 5;
@@ -110,7 +110,7 @@ impl RuleSet {
     }
 }
 
-impl Default for RuleSet {
+impl Default for QiGuiRuleSet {
     fn default() -> Self {
         Self {
             deck_count: 1,
@@ -144,15 +144,15 @@ impl fmt::Display for RuleError {
             Self::DeckCount(value) => write!(
                 f,
                 "牌副数必须为 {}..={}，实际为 {value}",
-                RuleSet::MIN_DECK_COUNT,
-                RuleSet::MAX_DECK_COUNT
+                QiGuiRuleSet::MIN_DECK_COUNT,
+                QiGuiRuleSet::MAX_DECK_COUNT
             ),
             Self::PlayerCount(value) => write!(f, "玩家数必须为 2..=6，实际为 {value}"),
             Self::HandSize(value) => write!(
                 f,
                 "补牌张数必须为 {}..={}，实际为 {value}",
-                RuleSet::MIN_HAND_SIZE,
-                RuleSet::MAX_HAND_SIZE
+                QiGuiRuleSet::MIN_HAND_SIZE,
+                QiGuiRuleSet::MAX_HAND_SIZE
             ),
             Self::DeveloperFeatureUnavailable => f.write_str("当前构建没有启用开发者牌堆"),
             Self::NotEnoughCards {
@@ -175,68 +175,68 @@ mod tests {
     #[test]
     fn validates_all_configured_ranges_and_initial_capacity() {
         assert_eq!(
-            RuleSet {
+            QiGuiRuleSet {
                 deck_count: 0,
-                ..RuleSet::default()
+                ..QiGuiRuleSet::default()
             }
             .validate(),
             Err(RuleError::DeckCount(0))
         );
         assert_eq!(
-            RuleSet {
+            QiGuiRuleSet {
                 deck_count: 9,
-                ..RuleSet::default()
+                ..QiGuiRuleSet::default()
             }
             .validate(),
             Err(RuleError::DeckCount(9))
         );
         assert_eq!(
-            RuleSet {
+            QiGuiRuleSet {
                 player_count: 1,
-                ..RuleSet::default()
+                ..QiGuiRuleSet::default()
             }
             .validate(),
             Err(RuleError::PlayerCount(1))
         );
         assert_eq!(
-            RuleSet {
+            QiGuiRuleSet {
                 player_count: 7,
-                ..RuleSet::default()
+                ..QiGuiRuleSet::default()
             }
             .validate(),
             Err(RuleError::PlayerCount(7))
         );
         assert_eq!(
-            RuleSet {
+            QiGuiRuleSet {
                 hand_size: 4,
-                ..RuleSet::default()
+                ..QiGuiRuleSet::default()
             }
             .validate(),
             Err(RuleError::HandSize(4))
         );
         assert_eq!(
-            RuleSet {
+            QiGuiRuleSet {
                 hand_size: 16,
-                ..RuleSet::default()
+                ..QiGuiRuleSet::default()
             }
             .validate(),
             Err(RuleError::HandSize(16))
         );
         assert!(matches!(
-            RuleSet {
+            QiGuiRuleSet {
                 player_count: 6,
                 hand_size: 10,
-                ..RuleSet::default()
+                ..QiGuiRuleSet::default()
             }
             .validate(),
             Err(RuleError::NotEnoughCards { .. })
         ));
         assert!(
-            RuleSet {
-                deck_count: RuleSet::MAX_DECK_COUNT,
-                hand_size: RuleSet::MAX_HAND_SIZE,
+            QiGuiRuleSet {
+                deck_count: QiGuiRuleSet::MAX_DECK_COUNT,
+                hand_size: QiGuiRuleSet::MAX_HAND_SIZE,
                 player_count: 6,
-                ..RuleSet::default()
+                ..QiGuiRuleSet::default()
             }
             .validate()
             .is_ok()

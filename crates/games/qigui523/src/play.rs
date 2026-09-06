@@ -2,17 +2,17 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
-use crate::{Card, Rank, RuleSet, SameCardPolicy, SuitComparison};
+use crate::{QiGuiCard, QiGuiRank, QiGuiRuleSet, SameCardPolicy, SuitComparison};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum BombKind {
-    OfAKind { card_count: usize, rank: Rank },
+    OfAKind { card_count: usize, rank: QiGuiRank },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum PlayKind {
+pub enum QiGuiPlayKind {
     Single,
     Pair,
     Straight {
@@ -37,16 +37,16 @@ pub enum PlayKind {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClassifiedPlay {
-    cards: Vec<Card>,
-    kind: PlayKind,
+    cards: Vec<QiGuiCard>,
+    kind: QiGuiPlayKind,
 }
 
 impl ClassifiedPlay {
-    pub fn cards(&self) -> &[Card] {
+    pub fn cards(&self) -> &[QiGuiCard] {
         &self.cards
     }
 
-    pub fn kind(&self) -> &PlayKind {
+    pub fn kind(&self) -> &QiGuiPlayKind {
         &self.kind
     }
 
@@ -66,8 +66,8 @@ pub enum PlayComparison {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PlayError {
     Empty,
-    DuplicatePhysicalCard(Card),
-    CardOutsideConfiguredDeck(Card),
+    DuplicatePhysicalCard(QiGuiCard),
+    CardOutsideConfiguredDeck(QiGuiCard),
     InvalidPattern,
 }
 
@@ -84,7 +84,7 @@ impl fmt::Display for PlayError {
 
 impl std::error::Error for PlayError {}
 
-pub fn classify(cards: &[Card], rules: &RuleSet) -> Result<ClassifiedPlay, PlayError> {
+pub fn classify(cards: &[QiGuiCard], rules: &QiGuiRuleSet) -> Result<ClassifiedPlay, PlayError> {
     if cards.is_empty() {
         return Err(PlayError::Empty);
     }
@@ -92,57 +92,57 @@ pub fn classify(cards: &[Card], rules: &RuleSet) -> Result<ClassifiedPlay, PlayE
     validate_physical_cards(cards, rules)?;
 
     let mut sorted_cards = cards.to_vec();
-    sorted_cards.sort_by(Card::display_cmp);
+    sorted_cards.sort_by(QiGuiCard::display_cmp);
 
     let rank_counts = rank_counts(&sorted_cards);
     let card_count = sorted_cards.len();
 
     let kind = if is_heaven_bomb(&rank_counts, card_count) {
-        PlayKind::HeavenBomb
+        QiGuiPlayKind::HeavenBomb
     } else if rank_counts.len() == 1 && card_count >= 4 {
-        PlayKind::Bomb(BombKind::OfAKind {
+        QiGuiPlayKind::Bomb(BombKind::OfAKind {
             card_count,
             rank: sorted_cards[0].rank(),
         })
     } else if card_count == 1 {
-        PlayKind::Single
+        QiGuiPlayKind::Single
     } else if card_count == 2 && rank_counts.len() == 1 {
-        PlayKind::Pair
+        QiGuiPlayKind::Pair
     } else if card_count == 3 && rank_counts.len() == 1 {
-        PlayKind::Triple
+        QiGuiPlayKind::Triple
     } else if rules.advanced_play_types
         && card_count == 4
         && rank_counts.len() == 2
         && rank_counts.values().any(|count| *count == 3)
         && rank_counts.values().any(|count| *count == 1)
     {
-        PlayKind::TripleWithSingle
+        QiGuiPlayKind::TripleWithSingle
     } else if rules.advanced_play_types
         && card_count == 5
         && rank_counts.len() == 2
         && rank_counts.values().any(|count| *count == 3)
         && rank_counts.values().any(|count| *count == 2)
     {
-        PlayKind::TripleWithPair
+        QiGuiPlayKind::TripleWithPair
     } else if card_count >= 6
-        && card_count % 3 == 0
+        && card_count.is_multiple_of(3)
         && rank_counts.values().all(|count| *count == 3)
         && ranks_are_consecutive(rank_counts.keys().copied())
     {
-        PlayKind::Airplane {
+        QiGuiPlayKind::Airplane {
             triple_count: card_count / 3,
         }
     } else if card_count >= 3
         && rank_counts.values().all(|count| *count == 1)
         && ranks_are_consecutive(rank_counts.keys().copied())
     {
-        PlayKind::Straight { card_count }
+        QiGuiPlayKind::Straight { card_count }
     } else if card_count >= 4
-        && card_count % 2 == 0
+        && card_count.is_multiple_of(2)
         && rank_counts.values().all(|count| *count == 2)
         && ranks_are_consecutive(rank_counts.keys().copied())
     {
-        PlayKind::ConsecutivePairs {
+        QiGuiPlayKind::ConsecutivePairs {
             pair_count: card_count / 2,
         }
     } else {
@@ -155,7 +155,7 @@ pub fn classify(cards: &[Card], rules: &RuleSet) -> Result<ClassifiedPlay, PlayE
     })
 }
 
-fn validate_physical_cards(cards: &[Card], rules: &RuleSet) -> Result<(), PlayError> {
+fn validate_physical_cards(cards: &[QiGuiCard], rules: &QiGuiRuleSet) -> Result<(), PlayError> {
     let mut physical_cards = HashSet::with_capacity(cards.len());
     for &card in cards {
         #[cfg(not(feature = "developer"))]
@@ -174,10 +174,10 @@ fn validate_physical_cards(cards: &[Card], rules: &RuleSet) -> Result<(), PlayEr
 pub fn compare_plays(
     challenger: &ClassifiedPlay,
     current: &ClassifiedPlay,
-    rules: &RuleSet,
+    rules: &QiGuiRuleSet,
 ) -> PlayComparison {
     use BombKind::OfAKind;
-    use PlayKind::{Bomb, HeavenBomb};
+    use QiGuiPlayKind::{Bomb, HeavenBomb};
 
     if rules.advanced_play_types {
         let comparison = advanced_type_comparison(challenger.kind(), current.kind());
@@ -210,8 +210,8 @@ pub fn compare_plays(
                 semantic_comparison(challenger.cards(), current.cards(), rules.suit_comparison)
             }
         },
-        (PlayKind::TripleWithSingle, PlayKind::TripleWithSingle)
-        | (PlayKind::TripleWithPair, PlayKind::TripleWithPair) => {
+        (QiGuiPlayKind::TripleWithSingle, QiGuiPlayKind::TripleWithSingle)
+        | (QiGuiPlayKind::TripleWithPair, QiGuiPlayKind::TripleWithPair) => {
             compare_triple_components(challenger.cards(), current.cards(), rules.suit_comparison)
         }
         (challenger_kind, current_kind) if same_non_bomb_shape(challenger_kind, current_kind) => {
@@ -221,25 +221,33 @@ pub fn compare_plays(
     }
 }
 
-fn advanced_type_comparison(challenger: &PlayKind, current: &PlayKind) -> PlayComparison {
+fn advanced_type_comparison(challenger: &QiGuiPlayKind, current: &QiGuiPlayKind) -> PlayComparison {
     match (challenger, current) {
-        (PlayKind::Triple, PlayKind::Straight { card_count: 3 })
-        | (PlayKind::ConsecutivePairs { pair_count: 2 }, PlayKind::Straight { card_count: 4 })
-        | (PlayKind::Airplane { triple_count: 2 }, PlayKind::ConsecutivePairs { pair_count: 3 }) => {
-            PlayComparison::Greater
-        }
-        (PlayKind::Straight { card_count: 3 }, PlayKind::Triple)
-        | (PlayKind::Straight { card_count: 4 }, PlayKind::ConsecutivePairs { pair_count: 2 })
-        | (PlayKind::ConsecutivePairs { pair_count: 3 }, PlayKind::Airplane { triple_count: 2 }) => {
-            PlayComparison::Lower
-        }
+        (QiGuiPlayKind::Triple, QiGuiPlayKind::Straight { card_count: 3 })
+        | (
+            QiGuiPlayKind::ConsecutivePairs { pair_count: 2 },
+            QiGuiPlayKind::Straight { card_count: 4 },
+        )
+        | (
+            QiGuiPlayKind::Airplane { triple_count: 2 },
+            QiGuiPlayKind::ConsecutivePairs { pair_count: 3 },
+        ) => PlayComparison::Greater,
+        (QiGuiPlayKind::Straight { card_count: 3 }, QiGuiPlayKind::Triple)
+        | (
+            QiGuiPlayKind::Straight { card_count: 4 },
+            QiGuiPlayKind::ConsecutivePairs { pair_count: 2 },
+        )
+        | (
+            QiGuiPlayKind::ConsecutivePairs { pair_count: 3 },
+            QiGuiPlayKind::Airplane { triple_count: 2 },
+        ) => PlayComparison::Lower,
         _ => PlayComparison::Incompatible,
     }
 }
 
 fn compare_triple_components(
-    challenger: &[Card],
-    current: &[Card],
+    challenger: &[QiGuiCard],
+    current: &[QiGuiCard],
     suit_comparison: SuitComparison,
 ) -> PlayComparison {
     let challenger = triple_component(challenger);
@@ -247,7 +255,7 @@ fn compare_triple_components(
     semantic_comparison(&challenger, &current, suit_comparison)
 }
 
-fn triple_component(cards: &[Card]) -> Vec<Card> {
+fn triple_component(cards: &[QiGuiCard]) -> Vec<QiGuiCard> {
     let counts = rank_counts(cards);
     let triple_rank = counts
         .into_iter()
@@ -260,7 +268,11 @@ fn triple_component(cards: &[Card]) -> Vec<Card> {
         .collect()
 }
 
-pub fn can_beat(challenger: &ClassifiedPlay, current: &ClassifiedPlay, rules: &RuleSet) -> bool {
+pub fn can_beat(
+    challenger: &ClassifiedPlay,
+    current: &ClassifiedPlay,
+    rules: &QiGuiRuleSet,
+) -> bool {
     match compare_plays(challenger, current, rules) {
         PlayComparison::Greater => true,
         PlayComparison::Equivalent => rules.same_card_policy == SameCardPolicy::CanFollow,
@@ -268,7 +280,7 @@ pub fn can_beat(challenger: &ClassifiedPlay, current: &ClassifiedPlay, rules: &R
     }
 }
 
-fn rank_counts(cards: &[Card]) -> HashMap<Rank, usize> {
+fn rank_counts(cards: &[QiGuiCard]) -> HashMap<QiGuiRank, usize> {
     let mut result = HashMap::new();
     for card in cards {
         *result.entry(card.rank()).or_insert(0) += 1;
@@ -276,9 +288,14 @@ fn rank_counts(cards: &[Card]) -> HashMap<Rank, usize> {
     result
 }
 
-fn is_heaven_bomb(rank_counts: &HashMap<Rank, usize>, card_count: usize) -> bool {
-    const REQUIRED_RANKS: [Rank; 5] =
-        [Rank::Seven, Rank::Joker, Rank::Five, Rank::Two, Rank::Three];
+fn is_heaven_bomb(rank_counts: &HashMap<QiGuiRank, usize>, card_count: usize) -> bool {
+    const REQUIRED_RANKS: [QiGuiRank; 5] = [
+        QiGuiRank::Seven,
+        QiGuiRank::Joker,
+        QiGuiRank::Five,
+        QiGuiRank::Two,
+        QiGuiRank::Three,
+    ];
     card_count == REQUIRED_RANKS.len()
         && rank_counts.len() == REQUIRED_RANKS.len()
         && rank_counts.values().all(|count| *count == 1)
@@ -287,40 +304,40 @@ fn is_heaven_bomb(rank_counts: &HashMap<Rank, usize>, card_count: usize) -> bool
             .all(|rank| rank_counts.contains_key(&rank))
 }
 
-fn ranks_are_consecutive(ranks: impl IntoIterator<Item = Rank>) -> bool {
-    let mut strengths: Vec<_> = ranks.into_iter().map(Rank::strength).collect();
+fn ranks_are_consecutive(ranks: impl IntoIterator<Item = QiGuiRank>) -> bool {
+    let mut strengths: Vec<_> = ranks.into_iter().map(QiGuiRank::strength).collect();
     strengths.sort_unstable();
     strengths
         .windows(2)
         .all(|window| window[1] == window[0] + 1)
 }
 
-fn same_non_bomb_shape(left: &PlayKind, right: &PlayKind) -> bool {
+fn same_non_bomb_shape(left: &QiGuiPlayKind, right: &QiGuiPlayKind) -> bool {
     match (left, right) {
-        (PlayKind::Single, PlayKind::Single)
-        | (PlayKind::Pair, PlayKind::Pair)
-        | (PlayKind::Triple, PlayKind::Triple) => true,
+        (QiGuiPlayKind::Single, QiGuiPlayKind::Single)
+        | (QiGuiPlayKind::Pair, QiGuiPlayKind::Pair)
+        | (QiGuiPlayKind::Triple, QiGuiPlayKind::Triple) => true,
         (
-            PlayKind::Straight {
+            QiGuiPlayKind::Straight {
                 card_count: left_count,
             },
-            PlayKind::Straight {
+            QiGuiPlayKind::Straight {
                 card_count: right_count,
             },
         ) => left_count == right_count,
         (
-            PlayKind::ConsecutivePairs {
+            QiGuiPlayKind::ConsecutivePairs {
                 pair_count: left_count,
             },
-            PlayKind::ConsecutivePairs {
+            QiGuiPlayKind::ConsecutivePairs {
                 pair_count: right_count,
             },
         ) => left_count == right_count,
         (
-            PlayKind::Airplane {
+            QiGuiPlayKind::Airplane {
                 triple_count: left_count,
             },
-            PlayKind::Airplane {
+            QiGuiPlayKind::Airplane {
                 triple_count: right_count,
             },
         ) => left_count == right_count,
@@ -329,8 +346,8 @@ fn same_non_bomb_shape(left: &PlayKind, right: &PlayKind) -> bool {
 }
 
 fn semantic_comparison(
-    left: &[Card],
-    right: &[Card],
+    left: &[QiGuiCard],
+    right: &[QiGuiCard],
     suit_comparison: SuitComparison,
 ) -> PlayComparison {
     let mut left_ranks: Vec<_> = left.iter().map(|card| card.rank().strength()).collect();
@@ -370,694 +387,5 @@ fn semantic_comparison(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::Suit::{Club, Diamond, Heart, Spade};
-    use crate::SuitComparison;
-
-    fn card(rank: Rank) -> Card {
-        Card::suited(0, Diamond, rank)
-    }
-
-    #[test]
-    fn unusual_rank_order_drives_straights() {
-        let rules = RuleSet::default();
-        let four_six_eight_nine = [
-            card(Rank::Four),
-            card(Rank::Six),
-            card(Rank::Eight),
-            card(Rank::Nine),
-        ];
-        let queen_to_two = [
-            card(Rank::Queen),
-            card(Rank::King),
-            card(Rank::Ace),
-            card(Rank::Three),
-            card(Rank::Two),
-        ];
-        let ordinary_456 = [card(Rank::Four), card(Rank::Five), card(Rank::Six)];
-
-        assert!(matches!(
-            classify(&four_six_eight_nine, &rules).unwrap().kind(),
-            PlayKind::Straight { card_count: 4 }
-        ));
-        assert!(matches!(
-            classify(&queen_to_two, &rules).unwrap().kind(),
-            PlayKind::Straight { card_count: 5 }
-        ));
-        assert_eq!(
-            classify(&ordinary_456, &rules),
-            Err(PlayError::InvalidPattern)
-        );
-    }
-
-    #[test]
-    fn recognizes_consecutive_pairs() {
-        let rules = RuleSet {
-            deck_count: 2,
-            ..RuleSet::default()
-        };
-        let cards = [
-            Card::suited(0, Diamond, Rank::Queen),
-            Card::suited(0, Club, Rank::Queen),
-            Card::suited(0, Diamond, Rank::King),
-            Card::suited(0, Club, Rank::King),
-        ];
-        assert!(matches!(
-            classify(&cards, &rules).unwrap().kind(),
-            PlayKind::ConsecutivePairs { pair_count: 2 }
-        ));
-    }
-
-    #[test]
-    fn bomb_count_wins_before_rank_and_bombs_override_shapes() {
-        let rules = RuleSet {
-            deck_count: 2,
-            ..RuleSet::default()
-        };
-        let four_sevens = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Seven),
-                Card::suited(0, Club, Rank::Seven),
-                Card::suited(0, Heart, Rank::Seven),
-                Card::suited(0, Spade, Rank::Seven),
-            ],
-            &rules,
-        )
-        .unwrap();
-        let five_fours = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Four),
-                Card::suited(0, Club, Rank::Four),
-                Card::suited(0, Heart, Rank::Four),
-                Card::suited(0, Spade, Rank::Four),
-                Card::suited(1, Diamond, Rank::Four),
-            ],
-            &rules,
-        )
-        .unwrap();
-        let pair = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Seven),
-                Card::suited(0, Club, Rank::Seven),
-            ],
-            &rules,
-        )
-        .unwrap();
-        let long_straight = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Four),
-                Card::suited(0, Diamond, Rank::Six),
-                Card::suited(0, Diamond, Rank::Eight),
-                Card::suited(0, Diamond, Rank::Nine),
-                Card::suited(0, Diamond, Rank::Ten),
-                Card::suited(0, Diamond, Rank::Jack),
-            ],
-            &rules,
-        )
-        .unwrap();
-        let long_consecutive_pairs = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Four),
-                Card::suited(0, Club, Rank::Four),
-                Card::suited(0, Diamond, Rank::Six),
-                Card::suited(0, Club, Rank::Six),
-                Card::suited(0, Diamond, Rank::Eight),
-                Card::suited(0, Club, Rank::Eight),
-            ],
-            &rules,
-        )
-        .unwrap();
-
-        assert_eq!(
-            compare_plays(&five_fours, &four_sevens, &rules),
-            PlayComparison::Greater
-        );
-        assert_eq!(
-            compare_plays(&four_sevens, &pair, &rules),
-            PlayComparison::Greater
-        );
-        assert_eq!(
-            compare_plays(&four_sevens, &long_straight, &rules),
-            PlayComparison::Greater
-        );
-        assert_eq!(
-            compare_plays(&four_sevens, &long_consecutive_pairs, &rules),
-            PlayComparison::Greater
-        );
-    }
-
-    #[test]
-    fn jokers_share_a_rank_and_four_jokers_are_a_normal_bomb() {
-        let one_deck = RuleSet::default();
-        let joker_pair = classify(
-            &[
-                Card::suited(0, Club, Rank::Joker),
-                Card::suited(0, Spade, Rank::Joker),
-            ],
-            &one_deck,
-        )
-        .unwrap();
-        assert_eq!(joker_pair.kind(), &PlayKind::Pair);
-
-        let two_decks = RuleSet {
-            deck_count: 2,
-            ..RuleSet::default()
-        };
-        let four_jokers = classify(
-            &[
-                Card::suited(0, Club, Rank::Joker),
-                Card::suited(0, Spade, Rank::Joker),
-                Card::suited(1, Club, Rank::Joker),
-                Card::suited(1, Spade, Rank::Joker),
-            ],
-            &two_decks,
-        )
-        .unwrap();
-        let four_sevens = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Seven),
-                Card::suited(0, Club, Rank::Seven),
-                Card::suited(0, Heart, Rank::Seven),
-                Card::suited(0, Spade, Rank::Seven),
-            ],
-            &two_decks,
-        )
-        .unwrap();
-
-        assert!(matches!(
-            four_jokers.kind(),
-            PlayKind::Bomb(BombKind::OfAKind {
-                card_count: 4,
-                rank: Rank::Joker
-            })
-        ));
-        assert_eq!(
-            compare_plays(&four_jokers, &four_sevens, &two_decks),
-            PlayComparison::Lower
-        );
-    }
-
-    #[cfg(feature = "developer")]
-    #[test]
-    fn developer_classification_allows_copies_beyond_the_configured_deck_count() {
-        let one_deck = RuleSet::default();
-        let impossible_small_joker_pair = [
-            Card::suited(0, Club, Rank::Joker),
-            Card::suited(1, Club, Rank::Joker),
-        ];
-
-        assert_eq!(
-            classify(&impossible_small_joker_pair, &one_deck)
-                .unwrap()
-                .kind(),
-            &PlayKind::Pair
-        );
-    }
-
-    #[cfg(not(feature = "developer"))]
-    #[test]
-    fn normal_classification_rejects_copies_beyond_the_configured_deck_count() {
-        let one_deck = RuleSet::default();
-        let outside_deck = Card::suited(1, Club, Rank::Joker);
-
-        assert_eq!(
-            classify(&[outside_deck], &one_deck),
-            Err(PlayError::CardOutsideConfiguredDeck(outside_deck))
-        );
-    }
-
-    #[test]
-    fn either_joker_can_fill_the_same_straight_position() {
-        let rules = RuleSet::default();
-        for joker_suit in [Club, Spade] {
-            let straight = classify(
-                &[
-                    Card::suited(0, Diamond, Rank::Five),
-                    Card::suited(0, joker_suit, Rank::Joker),
-                    Card::suited(0, Diamond, Rank::Seven),
-                ],
-                &rules,
-            )
-            .unwrap();
-            assert_eq!(straight.kind(), &PlayKind::Straight { card_count: 3 });
-        }
-
-        assert_eq!(
-            classify(
-                &[
-                    Card::suited(0, Diamond, Rank::Five),
-                    Card::suited(0, Club, Rank::Joker),
-                    Card::suited(0, Spade, Rank::Joker),
-                    Card::suited(0, Diamond, Rank::Seven),
-                ],
-                &rules,
-            ),
-            Err(PlayError::InvalidPattern)
-        );
-    }
-
-    #[test]
-    fn exact_duplicate_strength_obeys_room_setting() {
-        let strict = RuleSet {
-            deck_count: 2,
-            ..RuleSet::default()
-        };
-        let following = RuleSet {
-            same_card_policy: SameCardPolicy::CanFollow,
-            ..strict
-        };
-        let first = classify(&[Card::suited(0, Spade, Rank::Ace)], &strict).unwrap();
-        let duplicate = classify(&[Card::suited(1, Spade, Rank::Ace)], &strict).unwrap();
-
-        assert_eq!(
-            compare_plays(&duplicate, &first, &strict),
-            PlayComparison::Equivalent
-        );
-        assert!(!can_beat(&duplicate, &first, &strict));
-        assert!(can_beat(&duplicate, &first, &following));
-    }
-
-    #[test]
-    fn non_bombs_require_the_same_shape_and_length() {
-        let rules = RuleSet::default();
-        let pair = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Four),
-                Card::suited(0, Club, Rank::Four),
-            ],
-            &rules,
-        )
-        .unwrap();
-        let triple = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Six),
-                Card::suited(0, Club, Rank::Six),
-                Card::suited(0, Heart, Rank::Six),
-            ],
-            &rules,
-        )
-        .unwrap();
-        let short_straight = classify(
-            &[card(Rank::Four), card(Rank::Six), card(Rank::Eight)],
-            &rules,
-        )
-        .unwrap();
-        let long_straight = classify(
-            &[
-                card(Rank::Six),
-                card(Rank::Eight),
-                card(Rank::Nine),
-                card(Rank::Ten),
-            ],
-            &rules,
-        )
-        .unwrap();
-
-        assert_eq!(
-            compare_plays(&triple, &pair, &rules),
-            PlayComparison::Incompatible
-        );
-        assert_eq!(
-            compare_plays(&long_straight, &short_straight, &rules),
-            PlayComparison::Incompatible
-        );
-    }
-
-    #[test]
-    fn advanced_play_types_obey_the_three_fixed_suppression_relations() {
-        let disabled = RuleSet::default();
-        let enabled = RuleSet {
-            advanced_play_types: true,
-            ..disabled
-        };
-        let straight_three = classify(
-            &[card(Rank::Eight), card(Rank::Nine), card(Rank::Ten)],
-            &enabled,
-        )
-        .unwrap();
-        let triple = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Four),
-                Card::suited(0, Club, Rank::Four),
-                Card::suited(0, Heart, Rank::Four),
-            ],
-            &enabled,
-        )
-        .unwrap();
-        let straight_four = classify(
-            &[
-                card(Rank::Eight),
-                card(Rank::Nine),
-                card(Rank::Ten),
-                card(Rank::Jack),
-            ],
-            &enabled,
-        )
-        .unwrap();
-        let two_pairs = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Four),
-                Card::suited(0, Club, Rank::Four),
-                Card::suited(0, Diamond, Rank::Six),
-                Card::suited(0, Club, Rank::Six),
-            ],
-            &enabled,
-        )
-        .unwrap();
-        let three_pairs = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Eight),
-                Card::suited(0, Club, Rank::Eight),
-                Card::suited(0, Diamond, Rank::Nine),
-                Card::suited(0, Club, Rank::Nine),
-                Card::suited(0, Diamond, Rank::Ten),
-                Card::suited(0, Club, Rank::Ten),
-            ],
-            &enabled,
-        )
-        .unwrap();
-        let two_plane = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Four),
-                Card::suited(0, Club, Rank::Four),
-                Card::suited(0, Heart, Rank::Four),
-                Card::suited(0, Diamond, Rank::Six),
-                Card::suited(0, Club, Rank::Six),
-                Card::suited(0, Heart, Rank::Six),
-            ],
-            &enabled,
-        )
-        .unwrap();
-
-        assert_eq!(
-            compare_plays(&triple, &straight_three, &disabled),
-            PlayComparison::Incompatible
-        );
-        for (stronger, weaker) in [
-            (&triple, &straight_three),
-            (&two_pairs, &straight_four),
-            (&two_plane, &three_pairs),
-        ] {
-            assert_eq!(
-                compare_plays(stronger, weaker, &enabled),
-                PlayComparison::Greater
-            );
-            assert_eq!(
-                compare_plays(weaker, stronger, &enabled),
-                PlayComparison::Lower
-            );
-            assert!(can_beat(stronger, weaker, &enabled));
-            assert!(!can_beat(weaker, stronger, &enabled));
-        }
-    }
-
-    #[test]
-    fn advanced_triple_carries_compare_only_the_triple_component() {
-        let disabled = RuleSet::default();
-        let enabled = RuleSet {
-            advanced_play_types: true,
-            ..disabled
-        };
-        let triple_four = [
-            Card::suited(0, Diamond, Rank::Four),
-            Card::suited(0, Club, Rank::Four),
-            Card::suited(0, Heart, Rank::Four),
-        ];
-        let low_kicker_cards = [
-            triple_four[0],
-            triple_four[1],
-            triple_four[2],
-            card(Rank::Six),
-        ];
-        let high_kicker_cards = [
-            triple_four[0],
-            triple_four[1],
-            triple_four[2],
-            card(Rank::Seven),
-        ];
-        assert_eq!(
-            classify(&low_kicker_cards, &disabled),
-            Err(PlayError::InvalidPattern)
-        );
-        let low_kicker = classify(&low_kicker_cards, &enabled).unwrap();
-        let high_kicker = classify(&high_kicker_cards, &enabled).unwrap();
-        assert_eq!(low_kicker.kind(), &PlayKind::TripleWithSingle);
-        assert_eq!(
-            compare_plays(&high_kicker, &low_kicker, &enabled),
-            PlayComparison::Equivalent
-        );
-        assert!(!can_beat(&high_kicker, &low_kicker, &enabled));
-        let following = RuleSet {
-            same_card_policy: SameCardPolicy::CanFollow,
-            ..enabled
-        };
-        assert!(can_beat(&high_kicker, &low_kicker, &following));
-
-        let lower_triple_with_pair = classify(
-            &[
-                triple_four[0],
-                triple_four[1],
-                triple_four[2],
-                Card::suited(0, Diamond, Rank::Seven),
-                Card::suited(0, Club, Rank::Seven),
-            ],
-            &enabled,
-        )
-        .unwrap();
-        let higher_triple_with_pair = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Six),
-                Card::suited(0, Club, Rank::Six),
-                Card::suited(0, Heart, Rank::Six),
-                Card::suited(0, Diamond, Rank::Four),
-                Card::suited(0, Club, Rank::Four),
-            ],
-            &enabled,
-        )
-        .unwrap();
-        assert_eq!(lower_triple_with_pair.kind(), &PlayKind::TripleWithPair);
-        assert_eq!(
-            compare_plays(&higher_triple_with_pair, &lower_triple_with_pair, &enabled),
-            PlayComparison::Greater
-        );
-
-        let straight = classify(
-            &[card(Rank::Eight), card(Rank::Nine), card(Rank::Ten)],
-            &enabled,
-        )
-        .unwrap();
-        assert_eq!(
-            compare_plays(&high_kicker, &straight, &enabled),
-            PlayComparison::Incompatible
-        );
-        assert!(!can_beat(&high_kicker, &straight, &enabled));
-    }
-
-    #[test]
-    fn suit_breaks_a_same_rank_tie() {
-        let rules = RuleSet::default();
-        let diamond = classify(&[Card::suited(0, Diamond, Rank::Four)], &rules).unwrap();
-        let spade = classify(&[Card::suited(0, Spade, Rank::Four)], &rules).unwrap();
-
-        assert_eq!(
-            compare_plays(&spade, &diamond, &rules),
-            PlayComparison::Greater
-        );
-    }
-
-    #[test]
-    fn all_three_suit_comparison_modes_are_distinct() {
-        let highest = RuleSet {
-            deck_count: 2,
-            suit_comparison: SuitComparison::HighestCard,
-            ..RuleSet::default()
-        };
-        let left = classify(
-            &[
-                Card::suited(0, Spade, Rank::Four),
-                Card::suited(0, Diamond, Rank::Four),
-            ],
-            &highest,
-        )
-        .unwrap();
-        let right = classify(
-            &[
-                Card::suited(1, Spade, Rank::Four),
-                Card::suited(0, Club, Rank::Four),
-            ],
-            &highest,
-        )
-        .unwrap();
-
-        assert_eq!(
-            compare_plays(&right, &left, &highest),
-            PlayComparison::Equivalent
-        );
-
-        let lexicographic = RuleSet {
-            suit_comparison: SuitComparison::Lexicographic,
-            ..highest
-        };
-        assert_eq!(
-            compare_plays(&right, &left, &lexicographic),
-            PlayComparison::Greater
-        );
-
-        let sum_points = RuleSet {
-            suit_comparison: SuitComparison::SumPoints,
-            ..highest
-        };
-        assert_eq!(
-            compare_plays(&right, &left, &sum_points),
-            PlayComparison::Greater
-        );
-
-        let spade_diamond = classify(
-            &[
-                Card::suited(0, Spade, Rank::Six),
-                Card::suited(0, Diamond, Rank::Six),
-            ],
-            &highest,
-        )
-        .unwrap();
-        let heart_club = classify(
-            &[
-                Card::suited(0, Heart, Rank::Six),
-                Card::suited(0, Club, Rank::Six),
-            ],
-            &highest,
-        )
-        .unwrap();
-        assert_eq!(
-            compare_plays(&spade_diamond, &heart_club, &lexicographic),
-            PlayComparison::Greater
-        );
-        assert_eq!(
-            compare_plays(&spade_diamond, &heart_club, &sum_points),
-            PlayComparison::Equivalent
-        );
-    }
-
-    #[test]
-    fn jokers_use_spade_and_club_suit_points() {
-        assert_eq!(Card::suited(0, Spade, Rank::Joker).suit_points(), 4);
-        assert_eq!(Card::suited(0, Club, Rank::Joker).suit_points(), 2);
-    }
-
-    #[test]
-    fn recognizes_airplanes_and_only_allows_matching_airplanes_to_follow() {
-        let rules = RuleSet::default();
-        let airplane = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Six),
-                Card::suited(0, Club, Rank::Six),
-                Card::suited(0, Heart, Rank::Six),
-                Card::suited(0, Diamond, Rank::Eight),
-                Card::suited(0, Club, Rank::Eight),
-                Card::suited(0, Heart, Rank::Eight),
-            ],
-            &rules,
-        )
-        .unwrap();
-        let higher_airplane = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Eight),
-                Card::suited(0, Club, Rank::Eight),
-                Card::suited(0, Heart, Rank::Eight),
-                Card::suited(0, Diamond, Rank::Nine),
-                Card::suited(0, Club, Rank::Nine),
-                Card::suited(0, Heart, Rank::Nine),
-            ],
-            &rules,
-        )
-        .unwrap();
-        let straight = classify(
-            &[
-                card(Rank::Four),
-                card(Rank::Six),
-                card(Rank::Eight),
-                card(Rank::Nine),
-                card(Rank::Ten),
-                card(Rank::Jack),
-            ],
-            &rules,
-        )
-        .unwrap();
-
-        assert_eq!(airplane.kind(), &PlayKind::Airplane { triple_count: 2 });
-        assert_eq!(
-            compare_plays(&higher_airplane, &airplane, &rules),
-            PlayComparison::Greater
-        );
-        assert_eq!(
-            compare_plays(&airplane, &straight, &rules),
-            PlayComparison::Incompatible
-        );
-    }
-
-    #[test]
-    fn heaven_bomb_beats_every_other_shape_and_obeys_same_play_tie_rules() {
-        let strict = RuleSet {
-            deck_count: 2,
-            ..RuleSet::default()
-        };
-        let heaven_cards = |deck, joker_suit| {
-            [
-                Card::suited(deck, Diamond, Rank::Three),
-                Card::suited(deck, Diamond, Rank::Two),
-                Card::suited(deck, Diamond, Rank::Five),
-                Card::suited(deck, joker_suit, Rank::Joker),
-                Card::suited(deck, Diamond, Rank::Seven),
-            ]
-        };
-        let heaven = classify(&heaven_cards(0, Club), &strict).unwrap();
-        let physical_copy = classify(&heaven_cards(1, Club), &strict).unwrap();
-        let ordinary_bomb = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Seven),
-                Card::suited(0, Club, Rank::Seven),
-                Card::suited(0, Heart, Rank::Seven),
-                Card::suited(0, Spade, Rank::Seven),
-            ],
-            &strict,
-        )
-        .unwrap();
-
-        assert_eq!(heaven.kind(), &PlayKind::HeavenBomb);
-        assert_eq!(
-            compare_plays(&heaven, &ordinary_bomb, &strict),
-            PlayComparison::Greater
-        );
-        assert_eq!(
-            compare_plays(&ordinary_bomb, &heaven, &strict),
-            PlayComparison::Lower
-        );
-        assert_eq!(
-            compare_plays(&physical_copy, &heaven, &strict),
-            PlayComparison::Equivalent
-        );
-        assert!(!can_beat(&physical_copy, &heaven, &strict));
-        let following = RuleSet {
-            same_card_policy: SameCardPolicy::CanFollow,
-            ..strict
-        };
-        assert!(can_beat(&physical_copy, &heaven, &following));
-
-        let stronger_suit = classify(
-            &[
-                Card::suited(0, Diamond, Rank::Three),
-                Card::suited(0, Diamond, Rank::Two),
-                Card::suited(0, Diamond, Rank::Five),
-                Card::suited(0, Spade, Rank::Joker),
-                Card::suited(0, Spade, Rank::Seven),
-            ],
-            &strict,
-        )
-        .unwrap();
-        assert_eq!(
-            compare_plays(&stronger_suit, &heaven, &strict),
-            PlayComparison::Greater
-        );
-    }
-}
+#[path = "play_tests.rs"]
+mod tests;

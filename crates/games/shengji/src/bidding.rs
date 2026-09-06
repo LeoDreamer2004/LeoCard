@@ -1,19 +1,21 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
-use crate::{BidTrump, Card, PlayerId, Rank, Suit, Trump};
+use crate::{
+    ShengjiBidTrump, ShengjiCard, ShengjiPlayerId, ShengjiRank, ShengjiSuit, ShengjiTrump,
+};
 
 /// 带王亮时，红色花色配大王，黑色花色配小王。
-pub const fn bid_joker_for_suit(suit: Suit) -> Rank {
+pub const fn bid_joker_for_suit(suit: ShengjiSuit) -> ShengjiRank {
     match suit {
-        Suit::Diamond | Suit::Heart => Rank::BigJoker,
-        Suit::Club | Suit::Spade => Rank::SmallJoker,
+        ShengjiSuit::Diamond | ShengjiSuit::Heart => ShengjiRank::BigJoker,
+        ShengjiSuit::Club | ShengjiSuit::Spade => ShengjiRank::SmallJoker,
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum BidKind {
+pub enum ShengjiBidKind {
     Initial,
     Protect,
     Counter,
@@ -23,34 +25,34 @@ pub enum BidKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Declaration {
-    pub player: PlayerId,
-    pub trump: BidTrump,
-    pub kind: BidKind,
+    pub player: ShengjiPlayerId,
+    pub trump: ShengjiBidTrump,
+    pub kind: ShengjiBidKind,
     pub protected: bool,
-    pub cards: Vec<Card>,
+    pub cards: Vec<ShengjiCard>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BidState {
-    level: Rank,
+    level: ShengjiRank,
     deck_count: u8,
     bid_with_joker: bool,
-    original_bidder: Option<PlayerId>,
+    original_bidder: Option<ShengjiPlayerId>,
     current: Option<Declaration>,
-    exposed: HashMap<Card, PlayerId>,
+    exposed: HashMap<ShengjiCard, ShengjiPlayerId>,
     closed: bool,
 }
 
 impl BidState {
-    pub fn new(level: Rank) -> Self {
+    pub fn new(level: ShengjiRank) -> Self {
         Self::new_with_decks(level, 2)
     }
 
-    pub fn new_with_decks(level: Rank, deck_count: u8) -> Self {
+    pub fn new_with_decks(level: ShengjiRank, deck_count: u8) -> Self {
         Self::new_with_rules(level, deck_count, false)
     }
 
-    pub fn new_with_rules(level: Rank, deck_count: u8, bid_with_joker: bool) -> Self {
+    pub fn new_with_rules(level: ShengjiRank, deck_count: u8, bid_with_joker: bool) -> Self {
         assert!(level.is_level_rank());
         assert!((2..=4).contains(&deck_count));
         Self {
@@ -64,11 +66,11 @@ impl BidState {
         }
     }
 
-    pub const fn level(&self) -> Rank {
+    pub const fn level(&self) -> ShengjiRank {
         self.level
     }
 
-    pub const fn original_bidder(&self) -> Option<PlayerId> {
+    pub const fn original_bidder(&self) -> Option<ShengjiPlayerId> {
         self.original_bidder
     }
 
@@ -82,21 +84,21 @@ impl BidState {
 
     /// 返回指定玩家已经公开过的物理牌。客户端用它避免再次提交不能复用的级牌；
     /// 带王亮规则下的王仍可由同一玩家再次提交。
-    pub fn exposed_cards(&self, player: PlayerId) -> Vec<Card> {
+    pub fn exposed_cards(&self, player: ShengjiPlayerId) -> Vec<ShengjiCard> {
         let mut cards = self
             .exposed
             .iter()
             .filter_map(|(card, owner)| (*owner == player).then_some(*card))
             .collect::<Vec<_>>();
-        cards.sort_by(Card::identity_cmp);
+        cards.sort_by(ShengjiCard::identity_cmp);
         cards
     }
 
     pub fn declare(
         &mut self,
-        player: PlayerId,
-        cards: &[Card],
-        hand: &[Card],
+        player: ShengjiPlayerId,
+        cards: &[ShengjiCard],
+        hand: &[ShengjiCard],
     ) -> Result<&Declaration, BidError> {
         if self.closed {
             return Err(BidError::Closed);
@@ -121,18 +123,18 @@ impl BidState {
         Ok(self.current.as_ref().unwrap())
     }
 
-    pub fn close(&mut self) -> Result<Trump, BidError> {
+    pub fn close(&mut self) -> Result<ShengjiTrump, BidError> {
         self.closed = true;
         let declaration = self.current.as_ref().ok_or(BidError::NoDeclaration)?;
-        Ok(Trump::new(self.level, declaration.trump.trump_suit()).unwrap())
+        Ok(ShengjiTrump::new(self.level, declaration.trump.trump_suit()).unwrap())
     }
 
     /// 亮主窗口关闭后，抄底仍按普通反主强度校验，但不重新开放公开亮主阶段。
     pub fn counter_after_close(
         &mut self,
-        player: PlayerId,
-        cards: &[Card],
-        hand: &[Card],
+        player: ShengjiPlayerId,
+        cards: &[ShengjiCard],
+        hand: &[ShengjiCard],
     ) -> Result<&Declaration, BidError> {
         if !self.closed {
             return Err(BidError::Closed);
@@ -150,7 +152,11 @@ impl BidState {
 
     /// 返回该玩家当前能够用于反主抄底的候选牌。每种主牌目标只需保留一个
     /// 最小可行候选，客户端可据此绘制与亮主阶段相同的五个按钮。
-    pub fn counter_options(&self, player: PlayerId, hand: &[Card]) -> Vec<Vec<Card>> {
+    pub fn counter_options(
+        &self,
+        player: ShengjiPlayerId,
+        hand: &[ShengjiCard],
+    ) -> Vec<Vec<ShengjiCard>> {
         if !self.closed
             || self
                 .current
@@ -160,7 +166,7 @@ impl BidState {
             return Vec::new();
         }
         let mut candidates = Vec::new();
-        for suit in Suit::ALL {
+        for suit in ShengjiSuit::ALL {
             let level_cards = hand
                 .iter()
                 .copied()
@@ -185,7 +191,7 @@ impl BidState {
                 }
             }
         }
-        for rank in [Rank::SmallJoker, Rank::BigJoker] {
+        for rank in [ShengjiRank::SmallJoker, ShengjiRank::BigJoker] {
             let jokers = hand
                 .iter()
                 .copied()
@@ -210,30 +216,30 @@ impl BidState {
 
     fn initial_declaration(
         &self,
-        player: PlayerId,
-        cards: &[Card],
+        player: ShengjiPlayerId,
+        cards: &[ShengjiCard],
     ) -> Result<Declaration, BidError> {
         let parsed = parse_bid(cards, self.level, self.deck_count, self.bid_with_joker)?;
-        if self.bid_with_joker && !matches!(parsed.trump, BidTrump::Suit(_)) {
+        if self.bid_with_joker && !matches!(parsed.trump, ShengjiBidTrump::Suit(_)) {
             return Err(BidError::NoTrumpCannotOpen);
         }
         Ok(Declaration {
             player,
             trump: parsed.trump,
-            kind: BidKind::Initial,
+            kind: ShengjiBidKind::Initial,
             // 保持两副牌原有的“直接亮一对即自保”语义。三、四副牌首次
             // 抢亮的同张数仍需参与无主 > 黑红梅方的同级比较。
             protected: self.deck_count == 2
                 && parsed.primary_count == 2
-                && matches!(parsed.trump, BidTrump::Suit(_)),
+                && matches!(parsed.trump, ShengjiBidTrump::Suit(_)),
             cards: cards.to_vec(),
         })
     }
 
     fn next_declaration(
         &self,
-        player: PlayerId,
-        cards: &[Card],
+        player: ShengjiPlayerId,
+        cards: &[ShengjiCard],
         current: &Declaration,
     ) -> Result<Declaration, BidError> {
         let candidate_cards =
@@ -259,12 +265,12 @@ impl BidState {
         let protects = current.player == player
             && parsed.trump == current.trump
             && parsed.primary_count > current_parsed.primary_count
-            && matches!(parsed.trump, BidTrump::Suit(_));
+            && matches!(parsed.trump, ShengjiBidTrump::Suit(_));
         if protects {
             return Ok(Declaration {
                 player,
                 trump: parsed.trump,
-                kind: BidKind::Protect,
+                kind: ShengjiBidKind::Protect,
                 protected: true,
                 cards: candidate_cards,
             });
@@ -276,7 +282,7 @@ impl BidState {
         // 自保后忽略花色强弱：同张数的其它花色不能反；无主可以反，更多
         // 级牌也可以反。后一种由张数优先的声明强度继续判定。
         if current.protected
-            && matches!(parsed.trump, BidTrump::Suit(_))
+            && matches!(parsed.trump, ShengjiBidTrump::Suit(_))
             && parsed.primary_count <= current_parsed.primary_count
         {
             return Err(BidError::ProtectedSuit);
@@ -296,9 +302,9 @@ impl BidState {
             player,
             trump: parsed.trump,
             kind: if Some(player) == self.original_bidder {
-                BidKind::SelfCounter
+                ShengjiBidKind::SelfCounter
             } else {
-                BidKind::Counter
+                ShengjiBidKind::Counter
             },
             protected: false,
             cards: candidate_cards,
@@ -308,14 +314,14 @@ impl BidState {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct ParsedBid {
-    trump: BidTrump,
+    trump: ShengjiBidTrump,
     /// 声明强度只看同花色级牌或同种王的数量，不计带王亮附加的那张王。
     primary_count: usize,
 }
 
 fn parse_bid(
-    cards: &[Card],
-    level: Rank,
+    cards: &[ShengjiCard],
+    level: ShengjiRank,
     deck_count: u8,
     bid_with_joker: bool,
 ) -> Result<ParsedBid, BidError> {
@@ -325,9 +331,15 @@ fn parse_bid(
 
     if cards[1..].iter().all(|card| card.same_face(cards[0])) {
         let trump = match (cards[0].rank(), cards[0].suit()) {
-            (rank, Some(suit)) if rank == level && !bid_with_joker => Some(BidTrump::Suit(suit)),
-            (Rank::SmallJoker, None) if cards.len() >= 2 => Some(BidTrump::NoTrumpSmallJoker),
-            (Rank::BigJoker, None) if cards.len() >= 2 => Some(BidTrump::NoTrumpBigJoker),
+            (rank, Some(suit)) if rank == level && !bid_with_joker => {
+                Some(ShengjiBidTrump::Suit(suit))
+            }
+            (ShengjiRank::SmallJoker, None) if cards.len() >= 2 => {
+                Some(ShengjiBidTrump::NoTrumpSmallJoker)
+            }
+            (ShengjiRank::BigJoker, None) if cards.len() >= 2 => {
+                Some(ShengjiBidTrump::NoTrumpBigJoker)
+            }
             _ => None,
         };
         if let Some(trump) = trump {
@@ -344,7 +356,7 @@ fn parse_bid(
     }
 
     if bid_with_joker {
-        for suit in Suit::ALL {
+        for suit in ShengjiSuit::ALL {
             let primary_count = cards
                 .iter()
                 .filter(|card| card.rank() == level && card.suit() == Some(suit))
@@ -357,7 +369,7 @@ fn parse_bid(
             if primary_count >= 1 && joker_count == 1 && primary_count + joker_count == cards.len()
             {
                 let parsed = ParsedBid {
-                    trump: BidTrump::Suit(suit),
+                    trump: ShengjiBidTrump::Suit(suit),
                     primary_count,
                 };
                 parsed
@@ -373,17 +385,17 @@ fn parse_bid(
 }
 
 fn declaration_extends_current(
-    player: PlayerId,
-    cards: &[Card],
+    player: ShengjiPlayerId,
+    cards: &[ShengjiCard],
     current: &Declaration,
-    level: Rank,
+    level: ShengjiRank,
     bid_with_joker: bool,
 ) -> bool {
     if current.player != player || cards.is_empty() {
         return false;
     }
     match current.trump {
-        BidTrump::Suit(suit) => {
+        ShengjiBidTrump::Suit(suit) => {
             let joker_rank = bid_joker_for_suit(suit);
             cards.iter().all(|card| {
                 (card.rank() == level && card.suit() == Some(suit))
@@ -395,16 +407,16 @@ fn declaration_extends_current(
                 .iter()
                 .any(|card| card.rank() == level && card.suit() == Some(suit))
         }
-        BidTrump::NoTrumpSmallJoker => cards
+        ShengjiBidTrump::NoTrumpSmallJoker => cards
             .iter()
-            .all(|card| card.rank() == Rank::SmallJoker && card.suit().is_none()),
-        BidTrump::NoTrumpBigJoker => cards
+            .all(|card| card.rank() == ShengjiRank::SmallJoker && card.suit().is_none()),
+        ShengjiBidTrump::NoTrumpBigJoker => cards
             .iter()
-            .all(|card| card.rank() == Rank::BigJoker && card.suit().is_none()),
+            .all(|card| card.rank() == ShengjiRank::BigJoker && card.suit().is_none()),
     }
 }
 
-fn merge_declaration_cards(current: &[Card], added: &[Card]) -> Vec<Card> {
+fn merge_declaration_cards(current: &[ShengjiCard], added: &[ShengjiCard]) -> Vec<ShengjiCard> {
     let mut combined = current.to_vec();
     for card in added {
         if !combined.contains(card) {
@@ -414,7 +426,7 @@ fn merge_declaration_cards(current: &[Card], added: &[Card]) -> Vec<Card> {
     combined
 }
 
-fn validate_owned(cards: &[Card], hand: &[Card]) -> Result<(), BidError> {
+fn validate_owned(cards: &[ShengjiCard], hand: &[ShengjiCard]) -> Result<(), BidError> {
     if cards.is_empty() {
         return Err(BidError::InvalidCards);
     }
@@ -426,16 +438,16 @@ fn validate_owned(cards: &[Card], hand: &[Card]) -> Result<(), BidError> {
 }
 
 fn validate_reexposure(
-    player: PlayerId,
-    cards: &[Card],
-    exposed: &HashMap<Card, PlayerId>,
+    player: ShengjiPlayerId,
+    cards: &[ShengjiCard],
+    exposed: &HashMap<ShengjiCard, ShengjiPlayerId>,
     bid_with_joker: bool,
 ) -> Result<(), BidError> {
     if cards.iter().any(|card| {
         exposed.get(card).is_some_and(|owner| {
             *owner != player
                 || !bid_with_joker
-                || !matches!(card.rank(), Rank::SmallJoker | Rank::BigJoker)
+                || !matches!(card.rank(), ShengjiRank::SmallJoker | ShengjiRank::BigJoker)
         })
     }) {
         return Err(BidError::InvalidCards);
@@ -445,7 +457,7 @@ fn validate_reexposure(
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BidError {
-    InvalidPlayer(PlayerId),
+    InvalidPlayer(ShengjiPlayerId),
     Closed,
     NoDeclaration,
     InvalidCards,
@@ -477,248 +489,5 @@ impl fmt::Display for BidError {
 impl std::error::Error for BidError {}
 
 #[cfg(test)]
-mod tests {
-    use crate::Suit;
-
-    use super::*;
-
-    fn pair(suit: crate::Suit, rank: Rank) -> [Card; 2] {
-        [Card::suited(0, suit, rank), Card::suited(1, suit, rank)]
-    }
-
-    #[test]
-    fn suit_counters_follow_diamond_club_heart_spade_order() {
-        let diamond = pair(Suit::Diamond, Rank::Ten);
-        let heart = pair(Suit::Heart, Rank::Ten);
-        let club = pair(Suit::Club, Rank::Ten);
-        let hand = [diamond, heart, club].concat();
-        let mut bidding = BidState::new(Rank::Ten);
-        bidding.declare(PlayerId(0), &diamond[..1], &hand).unwrap();
-        bidding.declare(PlayerId(1), &heart, &hand).unwrap();
-        assert_eq!(
-            bidding.declare(PlayerId(2), &club, &hand),
-            Err(BidError::NotStronger)
-        );
-    }
-
-    #[test]
-    fn self_protection_only_allows_no_trump_and_big_jokers_beat_small() {
-        let diamond = pair(Suit::Diamond, Rank::Ten);
-        let spade = pair(Suit::Spade, Rank::Ten);
-        let small = [Card::small_joker(0), Card::small_joker(1)];
-        let big = [Card::big_joker(0), Card::big_joker(1)];
-        let hand = [diamond.as_slice(), spade.as_slice(), &small, &big].concat();
-        let mut bidding = BidState::new(Rank::Ten);
-        bidding.declare(PlayerId(0), &diamond[..1], &hand).unwrap();
-        bidding.declare(PlayerId(0), &diamond[1..], &hand).unwrap();
-        assert_eq!(
-            bidding.declare(PlayerId(1), &spade, &hand),
-            Err(BidError::ProtectedSuit)
-        );
-        bidding.declare(PlayerId(1), &small, &hand).unwrap();
-        bidding.declare(PlayerId(2), &big, &hand).unwrap();
-        assert_eq!(bidding.current().unwrap().trump, BidTrump::NoTrumpBigJoker);
-    }
-
-    #[test]
-    fn original_bidder_can_self_counter_with_another_suit_pair() {
-        let diamond = pair(Suit::Diamond, Rank::Ten);
-        let heart = pair(Suit::Heart, Rank::Ten);
-        let spade = pair(Suit::Spade, Rank::Ten);
-        let hand = [diamond, heart, spade].concat();
-        let mut bidding = BidState::new(Rank::Ten);
-        bidding.declare(PlayerId(0), &diamond[..1], &hand).unwrap();
-        bidding.declare(PlayerId(1), &heart, &hand).unwrap();
-        let declaration = bidding.declare(PlayerId(0), &spade, &hand).unwrap();
-        assert_eq!(declaration.kind, BidKind::SelfCounter);
-    }
-
-    #[test]
-    fn three_deck_single_bids_cannot_counter_and_reinforcement_uses_more_copies() {
-        let diamond = [
-            Card::suited(0, Suit::Diamond, Rank::Ten),
-            Card::suited(1, Suit::Diamond, Rank::Ten),
-            Card::suited(2, Suit::Diamond, Rank::Ten),
-        ];
-        let heart_single = Card::suited(0, Suit::Heart, Rank::Ten);
-        let hand = [diamond.as_slice(), &[heart_single]].concat();
-        let mut bidding = BidState::new_with_decks(Rank::Ten, 3);
-
-        bidding.declare(PlayerId(0), &diamond[..1], &hand).unwrap();
-        assert_eq!(
-            bidding.declare(PlayerId(1), &[heart_single], &hand),
-            Err(BidError::CounterRequiresPair)
-        );
-        let pair = bidding.declare(PlayerId(0), &diamond[1..2], &hand).unwrap();
-        assert_eq!(pair.cards, diamond[..2]);
-        let triple = bidding.declare(PlayerId(0), &diamond[2..], &hand).unwrap();
-        assert_eq!(triple.cards, diamond);
-    }
-
-    #[test]
-    fn three_deck_bid_strength_uses_count_then_no_trump_and_suit_order() {
-        let diamond_pair = BidTrump::Suit(Suit::Diamond)
-            .three_deck_declaration_strength(2)
-            .unwrap();
-        let spade_pair = BidTrump::Suit(Suit::Spade)
-            .three_deck_declaration_strength(2)
-            .unwrap();
-        let small_pair = BidTrump::NoTrumpSmallJoker
-            .three_deck_declaration_strength(2)
-            .unwrap();
-        let big_pair = BidTrump::NoTrumpBigJoker
-            .three_deck_declaration_strength(2)
-            .unwrap();
-        let diamond_triple = BidTrump::Suit(Suit::Diamond)
-            .three_deck_declaration_strength(3)
-            .unwrap();
-        assert!(diamond_pair < spade_pair);
-        assert!(spade_pair < small_pair);
-        assert!(small_pair < big_pair);
-        assert!(big_pair < diamond_triple);
-    }
-
-    #[test]
-    fn four_deck_bidding_extends_to_quad_level_and_quad_jokers() {
-        let diamond = (0..4)
-            .map(|deck| Card::suited(deck, Suit::Diamond, Rank::Ten))
-            .collect::<Vec<_>>();
-        let spade = (0..4)
-            .map(|deck| Card::suited(deck, Suit::Spade, Rank::Ten))
-            .collect::<Vec<_>>();
-        let big = (0..4).map(Card::big_joker).collect::<Vec<_>>();
-        let hand = [diamond.as_slice(), spade.as_slice(), big.as_slice()].concat();
-        let mut bidding = BidState::new_with_decks(Rank::Ten, 4);
-
-        bidding.declare(PlayerId(0), &diamond[..1], &hand).unwrap();
-        assert_eq!(
-            bidding.declare(PlayerId(1), &spade[..1], &hand),
-            Err(BidError::CounterRequiresPair)
-        );
-        bidding.declare(PlayerId(0), &diamond[1..2], &hand).unwrap();
-        bidding.declare(PlayerId(0), &diamond[2..3], &hand).unwrap();
-        bidding.declare(PlayerId(0), &diamond[3..], &hand).unwrap();
-        let declaration = bidding.declare(PlayerId(2), &big, &hand).unwrap();
-        assert_eq!(declaration.trump, BidTrump::NoTrumpBigJoker);
-        assert_eq!(declaration.cards.len(), 4);
-    }
-
-    #[test]
-    fn four_deck_strength_orders_count_before_no_trump_and_suit() {
-        let big_triple = BidTrump::NoTrumpBigJoker
-            .declaration_strength(4, 3)
-            .unwrap();
-        let diamond_quad = BidTrump::Suit(Suit::Diamond)
-            .declaration_strength(4, 4)
-            .unwrap();
-        let spade_quad = BidTrump::Suit(Suit::Spade)
-            .declaration_strength(4, 4)
-            .unwrap();
-        let small_quad = BidTrump::NoTrumpSmallJoker
-            .declaration_strength(4, 4)
-            .unwrap();
-        let big_quad = BidTrump::NoTrumpBigJoker
-            .declaration_strength(4, 4)
-            .unwrap();
-        assert!(big_triple < diamond_quad);
-        assert!(diamond_quad < spade_quad);
-        assert!(spade_quad < small_quad);
-        assert!(small_quad < big_quad);
-    }
-
-    #[test]
-    fn joker_bidding_requires_the_matching_color_and_cannot_open_no_trump() {
-        let heart = Card::suited(0, Suit::Heart, Rank::Ten);
-        let small = Card::small_joker(0);
-        let big = [Card::big_joker(0), Card::big_joker(1)];
-        let hand = [heart, small, big[0], big[1]];
-        let mut bidding = BidState::new_with_rules(Rank::Ten, 2, true);
-
-        assert_eq!(
-            bidding.declare(PlayerId(0), &[heart], &hand),
-            Err(BidError::JokerRequired)
-        );
-        assert_eq!(
-            bidding.declare(PlayerId(0), &[heart, small], &hand),
-            Err(BidError::JokerRequired)
-        );
-        assert_eq!(
-            bidding.declare(PlayerId(0), &big, &hand),
-            Err(BidError::NoTrumpCannotOpen)
-        );
-        let declaration = bidding
-            .declare(PlayerId(0), &[heart, big[0]], &hand)
-            .unwrap();
-        assert_eq!(declaration.trump, BidTrump::Suit(Suit::Heart));
-    }
-
-    #[test]
-    fn joker_bidding_reuses_the_owners_exposed_joker_for_protection_and_no_trump() {
-        let heart = pair(Suit::Heart, Rank::Ten);
-        let big = [Card::big_joker(0), Card::big_joker(1)];
-        let hand = [heart.as_slice(), big.as_slice()].concat();
-        let mut bidding = BidState::new_with_rules(Rank::Ten, 2, true);
-
-        bidding
-            .declare(PlayerId(0), &[heart[0], big[0]], &hand)
-            .unwrap();
-        assert_eq!(
-            bidding.declare(PlayerId(1), &big, &hand),
-            Err(BidError::InvalidCards),
-            "其它玩家不能借用已经亮出的王"
-        );
-        let protected = bidding.declare(PlayerId(0), &[heart[1]], &hand).unwrap();
-        assert!(protected.protected);
-        assert_eq!(protected.kind, BidKind::Protect);
-        assert_eq!(protected.cards, vec![heart[0], big[0], heart[1]]);
-
-        let no_trump = bidding.declare(PlayerId(0), &big, &hand).unwrap();
-        assert_eq!(no_trump.trump, BidTrump::NoTrumpBigJoker);
-        assert_eq!(no_trump.cards, big);
-    }
-
-    #[test]
-    fn protected_joker_bid_ignores_suit_order_but_more_level_cards_can_counter() {
-        let diamond = (0..3)
-            .map(|deck| Card::suited(deck, Suit::Diamond, Rank::Ten))
-            .collect::<Vec<_>>();
-        let spade = (0..3)
-            .map(|deck| Card::suited(deck, Suit::Spade, Rank::Ten))
-            .collect::<Vec<_>>();
-        let big = [Card::big_joker(0), Card::big_joker(1)];
-        let small = [Card::small_joker(0), Card::small_joker(1)];
-        let hand = [
-            diamond.as_slice(),
-            spade.as_slice(),
-            big.as_slice(),
-            small.as_slice(),
-        ]
-        .concat();
-
-        let mut same_count = BidState::new_with_rules(Rank::Ten, 3, true);
-        same_count
-            .declare(PlayerId(0), &[diamond[0], big[0]], &hand)
-            .unwrap();
-        same_count
-            .declare(PlayerId(0), &[diamond[1]], &hand)
-            .unwrap();
-        assert_eq!(
-            same_count.declare(PlayerId(1), &[spade[0], spade[1], small[0]], &hand),
-            Err(BidError::ProtectedSuit)
-        );
-
-        let mut more_cards = BidState::new_with_rules(Rank::Ten, 3, true);
-        more_cards
-            .declare(PlayerId(0), &[spade[0], small[0]], &hand)
-            .unwrap();
-        more_cards.declare(PlayerId(0), &[spade[1]], &hand).unwrap();
-        let counter = more_cards
-            .declare(
-                PlayerId(1),
-                &[diamond[0], diamond[1], diamond[2], big[1]],
-                &hand,
-            )
-            .unwrap();
-        assert_eq!(counter.trump, BidTrump::Suit(Suit::Diamond));
-    }
-}
+#[path = "bidding_tests.rs"]
+mod tests;

@@ -1,9 +1,14 @@
 use std::time::Duration;
 
+use leocard_mahjong::{MahjongRuleSet, MahjongTile};
 use leocard_protocol::{
-    ClientMessage, GameKind, PROTOCOL_VERSION, Revision, RoomId, ServerEvent, ServerMessage,
+    ClientCommand, ClientMessage, GameKind, PROTOCOL_VERSION, Revision, RoomId, ServerEvent,
+    ServerMessage,
 };
-use leocard_qigui523::{Card, RuleSet};
+use leocard_qigui523::{QiGuiCard, QiGuiRuleSet};
+use leocard_shengji::{ShengjiCard, ShengjiRuleSet};
+use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemRuleSet};
+use leocard_uno::{UnoCard, UnoRuleSet};
 
 use crate::{
     ConnectionId, Delivery, HostError, MahjongSession, QiGui523Session, ShengjiSession,
@@ -15,28 +20,28 @@ use crate::{
 pub enum GameSetup {
     QiGui523 {
         host_port: u16,
-        rules: RuleSet,
-        shuffled_deck: Vec<Card>,
+        rules: QiGuiRuleSet,
+        shuffled_deck: Vec<QiGuiCard>,
     },
     TexasHoldem {
         host_port: u16,
-        rules: leocard_texas_holdem::RuleSet,
-        shuffled_deck: Vec<leocard_texas_holdem::Card>,
+        rules: TexasHoldemRuleSet,
+        shuffled_deck: Vec<TexasHoldemCard>,
     },
     Shengji {
         host_port: u16,
-        rules: leocard_shengji::RuleSet,
-        shuffled_deck: Vec<leocard_shengji::Card>,
+        rules: ShengjiRuleSet,
+        shuffled_deck: Vec<ShengjiCard>,
     },
     Uno {
         host_port: u16,
-        rules: leocard_uno::RuleSet,
-        shuffled_deck: Vec<leocard_uno::Card>,
+        rules: UnoRuleSet,
+        shuffled_deck: Vec<UnoCard>,
     },
     Mahjong {
         host_port: u16,
-        rules: leocard_mahjong::RuleSet,
-        shuffled_deck: Vec<leocard_mahjong::Tile>,
+        rules: MahjongRuleSet,
+        shuffled_deck: Vec<MahjongTile>,
     },
 }
 
@@ -55,11 +60,11 @@ impl GameSetup {
 /// TCP 层面对的统一游戏会话路由。
 #[derive(Clone, Debug)]
 pub enum HostSession {
-    QiGui523(QiGui523Session),
-    TexasHoldem(TexasHoldemSession),
-    Shengji(ShengjiSession),
-    Uno(UnoSession),
-    Mahjong(MahjongSession),
+    QiGui523(Box<QiGui523Session>),
+    TexasHoldem(Box<TexasHoldemSession>),
+    Shengji(Box<ShengjiSession>),
+    Uno(Box<UnoSession>),
+    Mahjong(Box<MahjongSession>),
 }
 
 impl HostSession {
@@ -70,30 +75,35 @@ impl HostSession {
                 rules,
                 shuffled_deck,
             } => QiGui523Session::new_with_host_port(room_id, host_port, rules, shuffled_deck)
+                .map(Box::new)
                 .map(Self::QiGui523),
             GameSetup::TexasHoldem {
                 host_port,
                 rules,
                 shuffled_deck,
             } => TexasHoldemSession::new_with_host_port(room_id, host_port, rules, shuffled_deck)
+                .map(Box::new)
                 .map(Self::TexasHoldem),
             GameSetup::Shengji {
                 host_port,
                 rules,
                 shuffled_deck,
             } => ShengjiSession::new_with_host_port(room_id, host_port, rules, shuffled_deck)
+                .map(Box::new)
                 .map(Self::Shengji),
             GameSetup::Uno {
                 host_port,
                 rules,
                 shuffled_deck,
             } => UnoSession::new_with_host_port(room_id, host_port, rules, shuffled_deck)
+                .map(Box::new)
                 .map(Self::Uno),
             GameSetup::Mahjong {
                 host_port,
                 rules,
                 shuffled_deck,
             } => MahjongSession::new_with_host_port(room_id, host_port, rules, shuffled_deck)
+                .map(Box::new)
                 .map(Self::Mahjong),
         }
     }
@@ -101,8 +111,8 @@ impl HostSession {
     pub fn qigui523(
         room_id: RoomId,
         host_port: u16,
-        rules: RuleSet,
-        shuffled_deck: Vec<Card>,
+        rules: QiGuiRuleSet,
+        shuffled_deck: Vec<QiGuiCard>,
     ) -> Result<Self, HostError> {
         Self::new(
             room_id,
@@ -117,8 +127,8 @@ impl HostSession {
     pub fn texas_holdem(
         room_id: RoomId,
         host_port: u16,
-        rules: leocard_texas_holdem::RuleSet,
-        shuffled_deck: Vec<leocard_texas_holdem::Card>,
+        rules: TexasHoldemRuleSet,
+        shuffled_deck: Vec<TexasHoldemCard>,
     ) -> Result<Self, HostError> {
         Self::new(
             room_id,
@@ -133,8 +143,8 @@ impl HostSession {
     pub fn shengji(
         room_id: RoomId,
         host_port: u16,
-        rules: leocard_shengji::RuleSet,
-        shuffled_deck: Vec<leocard_shengji::Card>,
+        rules: ShengjiRuleSet,
+        shuffled_deck: Vec<ShengjiCard>,
     ) -> Result<Self, HostError> {
         Self::new(
             room_id,
@@ -149,8 +159,8 @@ impl HostSession {
     pub fn uno(
         room_id: RoomId,
         host_port: u16,
-        rules: leocard_uno::RuleSet,
-        shuffled_deck: Vec<leocard_uno::Card>,
+        rules: UnoRuleSet,
+        shuffled_deck: Vec<UnoCard>,
     ) -> Result<Self, HostError> {
         Self::new(
             room_id,
@@ -165,8 +175,8 @@ impl HostSession {
     pub fn mahjong(
         room_id: RoomId,
         host_port: u16,
-        rules: leocard_mahjong::RuleSet,
-        shuffled_deck: Vec<leocard_mahjong::Tile>,
+        rules: MahjongRuleSet,
+        shuffled_deck: Vec<MahjongTile>,
     ) -> Result<Self, HostError> {
         Self::new(
             room_id,
@@ -284,7 +294,7 @@ impl HostSession {
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
-        if matches!(&message.command, leocard_protocol::ClientCommand::Ping) {
+        if matches!(&message.command, ClientCommand::Ping) {
             return vec![Delivery {
                 recipient: connection,
                 message: ServerMessage {

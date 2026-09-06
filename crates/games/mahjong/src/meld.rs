@@ -1,91 +1,91 @@
-use crate::{PlayerId, Suit, TileKind};
+use crate::{MahjongPlayerId, MahjongSuit, MahjongTileKind};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum KongKind {
+pub enum MahjongKongKind {
     Melded,
     Concealed,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum MeldKind {
+pub enum MahjongMeldKind {
     Chow,
     Pung,
-    Kong(KongKind),
+    Kong(MahjongKongKind),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Meld {
-    kind: MeldKind,
-    tile: TileKind,
-    claimed_from: Option<PlayerId>,
+    kind: MahjongMeldKind,
+    tile: MahjongTileKind,
+    claimed_from: Option<MahjongPlayerId>,
 }
 
 impl Meld {
-    pub const fn chow(suit: Suit, start: u8, claimed_from: PlayerId) -> Self {
+    pub const fn chow(suit: MahjongSuit, start: u8, claimed_from: MahjongPlayerId) -> Self {
         assert!(start >= 1 && start <= 7, "chow must start in 1..=7");
         Self {
-            kind: MeldKind::Chow,
-            tile: TileKind::suited(suit, start),
+            kind: MahjongMeldKind::Chow,
+            tile: MahjongTileKind::suited(suit, start),
             claimed_from: Some(claimed_from),
         }
     }
 
-    pub const fn pung(tile: TileKind, claimed_from: PlayerId) -> Self {
+    pub const fn pung(tile: MahjongTileKind, claimed_from: MahjongPlayerId) -> Self {
         assert!(!tile.is_flower(), "flower cannot form a pung");
         Self {
-            kind: MeldKind::Pung,
+            kind: MahjongMeldKind::Pung,
             tile,
             claimed_from: Some(claimed_from),
         }
     }
 
-    pub const fn melded_kong(tile: TileKind, claimed_from: PlayerId) -> Self {
+    pub const fn melded_kong(tile: MahjongTileKind, claimed_from: MahjongPlayerId) -> Self {
         assert!(!tile.is_flower(), "flower cannot form a kong");
         Self {
-            kind: MeldKind::Kong(KongKind::Melded),
+            kind: MahjongMeldKind::Kong(MahjongKongKind::Melded),
             tile,
             claimed_from: Some(claimed_from),
         }
     }
 
-    pub const fn concealed_kong(tile: TileKind) -> Self {
+    pub const fn concealed_kong(tile: MahjongTileKind) -> Self {
         assert!(!tile.is_flower(), "flower cannot form a kong");
         Self {
-            kind: MeldKind::Kong(KongKind::Concealed),
+            kind: MahjongMeldKind::Kong(MahjongKongKind::Concealed),
             tile,
             claimed_from: None,
         }
     }
 
-    pub const fn kind(self) -> MeldKind {
+    pub const fn kind(self) -> MahjongMeldKind {
         self.kind
     }
 
-    pub const fn tile(self) -> TileKind {
+    pub const fn tile(self) -> MahjongTileKind {
         self.tile
     }
 
-    pub const fn claimed_from(self) -> Option<PlayerId> {
+    pub const fn claimed_from(self) -> Option<MahjongPlayerId> {
         self.claimed_from
     }
 
     pub const fn is_open(self) -> bool {
-        !matches!(self.kind, MeldKind::Kong(KongKind::Concealed))
+        !matches!(self.kind, MahjongMeldKind::Kong(MahjongKongKind::Concealed))
     }
 
-    pub fn tile_kinds(self) -> Vec<TileKind> {
+    pub fn tile_kinds(self) -> Vec<MahjongTileKind> {
         match (self.kind, self.tile) {
-            (MeldKind::Chow, TileKind::Suited { suit, rank }) => vec![
-                TileKind::suited(suit, rank),
-                TileKind::suited(suit, rank + 1),
-                TileKind::suited(suit, rank + 2),
+            (MahjongMeldKind::Chow, MahjongTileKind::Suited { suit, rank }) => vec![
+                MahjongTileKind::suited(suit, rank),
+                MahjongTileKind::suited(suit, rank + 1),
+                MahjongTileKind::suited(suit, rank + 2),
             ],
-            (MeldKind::Pung, tile) => vec![tile; 3],
-            (MeldKind::Kong(_), tile) => vec![tile; 4],
-            (MeldKind::Chow, _) => unreachable!("Meld::chow always stores a suited tile"),
+            (MahjongMeldKind::Pung, tile) => vec![tile; 3],
+            (MahjongMeldKind::Kong(_), tile) => vec![tile; 4],
+            (MahjongMeldKind::Chow, _) => unreachable!("Meld::chow always stores a suited tile"),
         }
     }
 }

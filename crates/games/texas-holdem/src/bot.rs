@@ -1,4 +1,4 @@
-use crate::{Action, GameState, Phase, PlayerId};
+use crate::{GameState, Phase, TexasHoldemAction, TexasHoldemPlayerId};
 
 /// 保守德州扑克机器人作出一次决定所需的最小公开状态。
 ///
@@ -16,21 +16,24 @@ pub struct PassiveBotRequest {
 pub struct PassiveBot;
 
 impl PassiveBot {
-    pub const fn choose(request: PassiveBotRequest) -> Action {
+    pub const fn choose(request: PassiveBotRequest) -> TexasHoldemAction {
         if request.must_post_blind {
-            Action::PostBlind
+            TexasHoldemAction::PostBlind
         } else if request.fold_allowed {
-            Action::Fold
+            TexasHoldemAction::Fold
         } else if request.amount_to_call > 0 {
-            Action::Call
+            TexasHoldemAction::Call
         } else {
-            Action::Check
+            TexasHoldemAction::Check
         }
     }
 
     /// 从权威规则状态生成请求并作出决定。不是该玩家的行动回合或牌局已经结束时
     /// 返回 `None`，且绝不修改传入状态。
-    pub fn choose_for_game(game: &GameState, player: PlayerId) -> Option<Action> {
+    pub fn choose_for_game(
+        game: &GameState,
+        player: TexasHoldemPlayerId,
+    ) -> Option<TexasHoldemAction> {
         if game.current_player() != Some(player) || matches!(game.phase(), Phase::Complete(_)) {
             return None;
         }
@@ -49,28 +52,35 @@ impl PassiveBot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{RuleSet, build_deck};
+    use crate::{TexasHoldemRuleSet, build_deck};
 
     #[test]
     fn authoritative_game_adapter_posts_blinds_then_folds() {
-        let mut game =
-            GameState::new_with_deck(RuleSet::default(), PlayerId(0), build_deck(false)).unwrap();
+        let mut game = GameState::new_with_deck(
+            TexasHoldemRuleSet::default(),
+            TexasHoldemPlayerId(0),
+            build_deck(false),
+        )
+        .unwrap();
 
         let small = game.current_player().unwrap();
         let action = PassiveBot::choose_for_game(&game, small).unwrap();
-        assert_eq!(action, Action::PostBlind);
+        assert_eq!(action, TexasHoldemAction::PostBlind);
         game.act(small, action).unwrap();
 
         let big = game.current_player().unwrap();
         let action = PassiveBot::choose_for_game(&game, big).unwrap();
-        assert_eq!(action, Action::PostBlind);
+        assert_eq!(action, TexasHoldemAction::PostBlind);
         game.act(big, action).unwrap();
 
         let first = game.current_player().unwrap();
         assert_eq!(
             PassiveBot::choose_for_game(&game, first),
-            Some(Action::Fold)
+            Some(TexasHoldemAction::Fold)
         );
-        assert_eq!(PassiveBot::choose_for_game(&game, PlayerId(9)), None);
+        assert_eq!(
+            PassiveBot::choose_for_game(&game, TexasHoldemPlayerId(9)),
+            None
+        );
     }
 }

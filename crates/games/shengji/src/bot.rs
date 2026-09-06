@@ -3,24 +3,29 @@ use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 
 use crate::play::classify_cards;
-use crate::{Card, ClassifiedPlay, Component, FollowError, PlayError, Rank, Trump};
+use crate::{
+    Component, FollowError, PlayError, ShengjiCard, ShengjiClassifiedPlay, ShengjiRank,
+    ShengjiTrump,
+};
 
 /// 双升最小贪心机器人作出一次出牌决定所需的信息。
 ///
 /// `lead` 为 `None` 时机器人领出最小单张；否则严格履行跟门、对子和拖拉机义务。
 #[derive(Clone, Copy, Debug)]
-pub struct GreedyBotRequest<'a> {
-    pub hand: &'a [Card],
-    pub lead: Option<&'a ClassifiedPlay>,
-    pub trump: Trump,
+pub struct ShengjiGreedyBotRequest<'a> {
+    pub hand: &'a [ShengjiCard],
+    pub lead: Option<&'a ShengjiClassifiedPlay>,
+    pub trump: ShengjiTrump,
 }
 
 /// 确定性的最小贪心策略，不保存对局状态，也不读取其他玩家手牌。
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct GreedyBot;
+pub struct ShengjiGreedyBot;
 
-impl GreedyBot {
-    pub fn choose(request: GreedyBotRequest<'_>) -> Result<ClassifiedPlay, GreedyBotError> {
+impl ShengjiGreedyBot {
+    pub fn choose(
+        request: ShengjiGreedyBotRequest<'_>,
+    ) -> Result<ShengjiClassifiedPlay, GreedyBotError> {
         let Some(lead) = request.lead else {
             let card = request
                 .hand
@@ -64,11 +69,11 @@ impl GreedyBot {
 }
 
 fn choose_short_category_fill(
-    hand: &[Card],
-    same_category: &[Card],
+    hand: &[ShengjiCard],
+    same_category: &[ShengjiCard],
     required: usize,
-    trump: Trump,
-) -> Vec<Card> {
+    trump: ShengjiTrump,
+) -> Vec<ShengjiCard> {
     let mut selected = same_category.to_vec();
     let selected_set = selected.iter().copied().collect::<HashSet<_>>();
     let mut fillers = hand
@@ -83,21 +88,21 @@ fn choose_short_category_fill(
 }
 
 fn choose_structured_follow(
-    same_category: &[Card],
-    lead: &ClassifiedPlay,
-    trump: Trump,
-) -> Vec<Card> {
+    same_category: &[ShengjiCard],
+    lead: &ShengjiClassifiedPlay,
+    trump: ShengjiTrump,
+) -> Vec<ShengjiCard> {
     let required = lead.cards.len();
     let (tractor_demands, pair_slots) = structure_demands(lead);
     let all_pairs = pair_choices(same_category, trump);
     let mut obligation_pairs = all_pairs.clone();
     let mut required_runs = Vec::new();
     for maximum in tractor_demands {
-        if let Some(run) = highest_run_at_most(&obligation_pairs, maximum) {
-            if run.len() >= 2 {
-                required_runs.push(run.len());
-                remove_pair_indices(&mut obligation_pairs, &run);
-            }
+        if let Some(run) = highest_run_at_most(&obligation_pairs, maximum)
+            && run.len() >= 2
+        {
+            required_runs.push(run.len());
+            remove_pair_indices(&mut obligation_pairs, &run);
         }
     }
     let required_pair_count = pair_slots.min(all_pairs.len());
@@ -135,7 +140,7 @@ fn choose_structured_follow(
     selected
 }
 
-fn structure_demands(lead: &ClassifiedPlay) -> (Vec<usize>, usize) {
+fn structure_demands(lead: &ShengjiClassifiedPlay) -> (Vec<usize>, usize) {
     let mut tractors = Vec::new();
     let mut pair_slots = 0;
     for component in &lead.components {
@@ -167,12 +172,13 @@ fn structure_demands(lead: &ClassifiedPlay) -> (Vec<usize>, usize) {
 
 #[derive(Clone, Debug)]
 struct PairChoice {
-    cards: [Card; 2],
+    cards: [ShengjiCard; 2],
     strength: u8,
 }
 
-fn pair_choices(cards: &[Card], trump: Trump) -> Vec<PairChoice> {
-    let mut faces: BTreeMap<(Option<crate::Suit>, Rank), Vec<Card>> = BTreeMap::new();
+fn pair_choices(cards: &[ShengjiCard], trump: ShengjiTrump) -> Vec<PairChoice> {
+    let mut faces: BTreeMap<(Option<crate::ShengjiSuit>, ShengjiRank), Vec<ShengjiCard>> =
+        BTreeMap::new();
     for card in cards {
         faces
             .entry((card.suit(), card.rank()))
@@ -242,15 +248,15 @@ fn pair_cmp(left: &PairChoice, right: &PairChoice) -> Ordering {
     })
 }
 
-fn card_cmp(left: Card, right: Card, trump: Trump) -> Ordering {
+fn card_cmp(left: ShengjiCard, right: ShengjiCard, trump: ShengjiTrump) -> Ordering {
     card_key(left, trump).cmp(&card_key(right, trump))
 }
 
-fn card_key(card: Card, trump: Trump) -> (bool, u8, u8, u8) {
+fn card_key(card: ShengjiCard, trump: ShengjiTrump) -> (bool, u8, u8, u8) {
     (
         trump.is_trump(card),
         trump.strength(card),
-        card.suit().map_or(4, crate::Suit::bid_strength),
+        card.suit().map_or(4, crate::ShengjiSuit::bid_strength),
         card.deck(),
     )
 }
@@ -281,23 +287,23 @@ impl std::error::Error for GreedyBotError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Suit, classify_lead};
+    use crate::{ShengjiSuit, classify_lead};
 
-    fn card(deck: u8, suit: Suit, rank: Rank) -> Card {
-        Card::suited(deck, suit, rank)
+    fn card(deck: u8, suit: ShengjiSuit, rank: ShengjiRank) -> ShengjiCard {
+        ShengjiCard::suited(deck, suit, rank)
     }
 
-    fn pair(suit: Suit, rank: Rank) -> [Card; 2] {
+    fn pair(suit: ShengjiSuit, rank: ShengjiRank) -> [ShengjiCard; 2] {
         [card(0, suit, rank), card(1, suit, rank)]
     }
 
-    fn trump() -> Trump {
-        Trump::new(Rank::Ten, Some(Suit::Heart)).unwrap()
+    fn trump() -> ShengjiTrump {
+        ShengjiTrump::new(ShengjiRank::Ten, Some(ShengjiSuit::Heart)).unwrap()
     }
 
-    fn lead(cards: &[Card]) -> ClassifiedPlay {
+    fn lead(cards: &[ShengjiCard]) -> ShengjiClassifiedPlay {
         let crate::TrickPlay::Accepted(play) =
-            classify_lead(cards, trump(), &crate::RuleSet::default(), &[]).unwrap()
+            classify_lead(cards, trump(), &crate::ShengjiRuleSet::default(), &[]).unwrap()
         else {
             unreachable!("test leads do not throw")
         };
@@ -307,32 +313,35 @@ mod tests {
     #[test]
     fn lead_uses_the_smallest_non_trump_single() {
         let hand = [
-            card(0, Suit::Heart, Rank::Two),
-            card(0, Suit::Diamond, Rank::Three),
-            card(0, Suit::Club, Rank::Two),
+            card(0, ShengjiSuit::Heart, ShengjiRank::Two),
+            card(0, ShengjiSuit::Diamond, ShengjiRank::Three),
+            card(0, ShengjiSuit::Club, ShengjiRank::Two),
         ];
-        let play = GreedyBot::choose(GreedyBotRequest {
+        let play = ShengjiGreedyBot::choose(ShengjiGreedyBotRequest {
             hand: &hand,
             lead: None,
             trump: trump(),
         })
         .unwrap();
 
-        assert_eq!(play.cards, vec![card(0, Suit::Club, Rank::Two)]);
+        assert_eq!(
+            play.cards,
+            vec![card(0, ShengjiSuit::Club, ShengjiRank::Two)]
+        );
     }
 
     #[test]
     fn following_a_pair_uses_the_smallest_available_pair() {
-        let lead = lead(&pair(Suit::Spade, Rank::King));
-        let low_single = card(0, Suit::Spade, Rank::Two);
-        let low_pair = pair(Suit::Spade, Rank::Four);
+        let lead = lead(&pair(ShengjiSuit::Spade, ShengjiRank::King));
+        let low_single = card(0, ShengjiSuit::Spade, ShengjiRank::Two);
+        let low_pair = pair(ShengjiSuit::Spade, ShengjiRank::Four);
         let hand = [
             &[low_single],
             low_pair.as_slice(),
-            pair(Suit::Spade, Rank::Eight).as_slice(),
+            pair(ShengjiSuit::Spade, ShengjiRank::Eight).as_slice(),
         ]
         .concat();
-        let play = GreedyBot::choose(GreedyBotRequest {
+        let play = ShengjiGreedyBot::choose(ShengjiGreedyBotRequest {
             hand: &hand,
             lead: Some(&lead),
             trump: trump(),
@@ -346,23 +355,23 @@ mod tests {
     fn following_a_tractor_uses_the_smallest_available_tractor() {
         let lead = lead(
             &[
-                pair(Suit::Spade, Rank::King),
-                pair(Suit::Spade, Rank::Queen),
+                pair(ShengjiSuit::Spade, ShengjiRank::King),
+                pair(ShengjiSuit::Spade, ShengjiRank::Queen),
             ]
             .concat(),
         );
         let low = [
-            pair(Suit::Spade, Rank::Three),
-            pair(Suit::Spade, Rank::Four),
+            pair(ShengjiSuit::Spade, ShengjiRank::Three),
+            pair(ShengjiSuit::Spade, ShengjiRank::Four),
         ]
         .concat();
         let high = [
-            pair(Suit::Spade, Rank::Eight),
-            pair(Suit::Spade, Rank::Seven),
+            pair(ShengjiSuit::Spade, ShengjiRank::Eight),
+            pair(ShengjiSuit::Spade, ShengjiRank::Seven),
         ]
         .concat();
         let hand = [low.clone(), high].concat();
-        let play = GreedyBot::choose(GreedyBotRequest {
+        let play = ShengjiGreedyBot::choose(ShengjiGreedyBotRequest {
             hand: &hand,
             lead: Some(&lead),
             trump: trump(),
@@ -375,23 +384,23 @@ mod tests {
     #[test]
     fn void_discard_uses_smallest_off_suits_before_any_trump() {
         let lead = lead(&[
-            card(0, Suit::Spade, Rank::Five),
-            card(0, Suit::Spade, Rank::Six),
-            card(0, Suit::Spade, Rank::Seven),
+            card(0, ShengjiSuit::Spade, ShengjiRank::Five),
+            card(0, ShengjiSuit::Spade, ShengjiRank::Six),
+            card(0, ShengjiSuit::Spade, ShengjiRank::Seven),
         ]);
         let expected = [
-            card(0, Suit::Diamond, Rank::Two),
-            card(0, Suit::Club, Rank::Three),
-            card(0, Suit::Diamond, Rank::Four),
+            card(0, ShengjiSuit::Diamond, ShengjiRank::Two),
+            card(0, ShengjiSuit::Club, ShengjiRank::Three),
+            card(0, ShengjiSuit::Diamond, ShengjiRank::Four),
         ];
         let hand = [
             expected[2],
-            card(0, Suit::Heart, Rank::Two),
+            card(0, ShengjiSuit::Heart, ShengjiRank::Two),
             expected[1],
-            Card::small_joker(0),
+            ShengjiCard::small_joker(0),
             expected[0],
         ];
-        let play = GreedyBot::choose(GreedyBotRequest {
+        let play = ShengjiGreedyBot::choose(ShengjiGreedyBotRequest {
             hand: &hand,
             lead: Some(&lead),
             trump: trump(),
@@ -405,20 +414,20 @@ mod tests {
     #[test]
     fn void_hand_with_only_trumps_uses_the_smallest_trumps() {
         let lead = lead(&[
-            card(0, Suit::Spade, Rank::Five),
-            card(0, Suit::Spade, Rank::Six),
+            card(0, ShengjiSuit::Spade, ShengjiRank::Five),
+            card(0, ShengjiSuit::Spade, ShengjiRank::Six),
         ]);
         let expected = [
-            card(0, Suit::Heart, Rank::Two),
-            card(0, Suit::Heart, Rank::Three),
+            card(0, ShengjiSuit::Heart, ShengjiRank::Two),
+            card(0, ShengjiSuit::Heart, ShengjiRank::Three),
         ];
         let hand = [
-            Card::small_joker(0),
+            ShengjiCard::small_joker(0),
             expected[1],
-            card(0, Suit::Spade, Rank::Ten),
+            card(0, ShengjiSuit::Spade, ShengjiRank::Ten),
             expected[0],
         ];
-        let play = GreedyBot::choose(GreedyBotRequest {
+        let play = ShengjiGreedyBot::choose(ShengjiGreedyBotRequest {
             hand: &hand,
             lead: Some(&lead),
             trump: trump(),

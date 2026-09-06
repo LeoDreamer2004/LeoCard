@@ -90,7 +90,7 @@ fn embed_windows_resources(manifest_dir: &Path) {
         return;
     }
 
-    let icon = manifest_dir.join("windows/icon.ico");
+    let icon = manifest_dir.join("../../assets/icons/app-icon.ico");
     println!("cargo:rerun-if-changed={}", icon.display());
     winresource::WindowsResource::new()
         .set_icon(

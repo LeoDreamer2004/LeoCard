@@ -9,14 +9,17 @@ mod meld;
 mod rules;
 mod scoring;
 
-pub use card::{Dragon, Flower, Suit, Tile, TileKind, Wind, build_deck};
-pub use game::{
-    ActionOutcome, Claim, ClaimOption, Discard, DrawOrigin, GameError, GameState, HandResult,
-    PendingClaim, Phase, PlayerState, PublicMeld, PublicPlayerState, WinRecord,
+pub use card::{
+    MahjongDragon, MahjongFlower, MahjongSuit, MahjongTile, MahjongTileKind, MahjongWind,
+    build_deck,
 };
-pub use meld::{KongKind, Meld, MeldKind};
-pub use rules::{MatchLength, PlayerId, RuleError, RuleSet};
+pub use game::{
+    ActionOutcome, Discard, GameError, GameState, HandResult, MahjongClaim, MahjongClaimOption,
+    MahjongDrawOrigin, PendingClaim, Phase, PlayerState, PublicMeld, PublicPlayerState, WinRecord,
+};
+pub use meld::{MahjongKongKind, MahjongMeldKind, Meld};
+pub use rules::{MahjongMatchLength, MahjongPlayerId, MahjongRuleSet, RuleError};
 pub use scoring::{
-    Fan, FanValue, ScoreError, ScoreInput, ScoreResult, WinContext, WinSource, is_complete_hand,
-    score_hand,
+    Fan, FanValue, MahjongScoreResult, ScoreError, ScoreInput, WinContext, WinSource,
+    is_complete_hand, score_hand,
 };

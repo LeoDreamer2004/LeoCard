@@ -1,22 +1,22 @@
 use std::fmt;
 
-use crate::{Card, Rank, Suit};
+use crate::{ShengjiCard, ShengjiRank, ShengjiSuit};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct PlayerId(pub u8);
+pub struct ShengjiPlayerId(pub u8);
 
-impl PlayerId {
-    pub const fn team(self) -> TeamId {
-        TeamId(self.0 % 2)
+impl ShengjiPlayerId {
+    pub const fn team(self) -> ShengjiTeamId {
+        ShengjiTeamId(self.0 % 2)
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TeamId(pub u8);
+pub struct ShengjiTeamId(pub u8);
 
-impl TeamId {
+impl ShengjiTeamId {
     pub const fn other(self) -> Self {
         Self(1 - self.0)
     }
@@ -24,13 +24,13 @@ impl TeamId {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum ThrowPenalty {
+pub enum ShengjiThrowPenalty {
     None,
     FivePerCard,
     TenPerCard,
 }
 
-impl ThrowPenalty {
+impl ShengjiThrowPenalty {
     pub const fn points_per_card(self) -> u16 {
         match self {
             Self::None => 0,
@@ -42,11 +42,11 @@ impl ThrowPenalty {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct RuleSet {
+pub struct ShengjiRuleSet {
     /// 使用两至四副牌；三副加入泰坦尼克，四副再加入炸弹和宇宙飞船。
     pub deck_count: u8,
     pub allow_throw: bool,
-    pub throw_penalty: ThrowPenalty,
+    pub throw_penalty: ShengjiThrowPenalty,
     pub mandatory_five_ten_king_ace: bool,
     /// 开启后有花色亮主必须同时带同色王，且无主只能用于反主。
     #[cfg_attr(feature = "serde", serde(default))]
@@ -67,7 +67,7 @@ pub struct RuleSet {
     pub constant_trump: bool,
 }
 
-impl RuleSet {
+impl ShengjiRuleSet {
     pub const PLAYER_COUNT: usize = 4;
     /// 两副牌模式的兼容常量；规则计算应优先使用 [`Self::kitty_size`]。
     pub const KITTY_SIZE: usize = 8;
@@ -106,12 +106,12 @@ impl RuleSet {
     }
 }
 
-impl Default for RuleSet {
+impl Default for ShengjiRuleSet {
     fn default() -> Self {
         Self {
             deck_count: 2,
             allow_throw: true,
-            throw_penalty: ThrowPenalty::None,
+            throw_penalty: ShengjiThrowPenalty::None,
             mandatory_five_ten_king_ace: false,
             bid_with_joker: false,
             power_outage_dealer: false,
@@ -142,13 +142,13 @@ impl std::error::Error for RuleError {}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum BidTrump {
-    Suit(Suit),
+pub enum ShengjiBidTrump {
+    Suit(ShengjiSuit),
     NoTrumpSmallJoker,
     NoTrumpBigJoker,
 }
 
-impl BidTrump {
+impl ShengjiBidTrump {
     pub const fn strength(self) -> u8 {
         match self {
             Self::Suit(suit) => suit.bid_strength(),
@@ -157,7 +157,7 @@ impl BidTrump {
         }
     }
 
-    pub const fn trump_suit(self) -> Option<Suit> {
+    pub const fn trump_suit(self) -> Option<ShengjiSuit> {
         match self {
             Self::Suit(suit) => Some(suit),
             Self::NoTrumpSmallJoker | Self::NoTrumpBigJoker => None,
@@ -207,14 +207,14 @@ impl BidTrump {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Trump {
-    pub level: Rank,
-    pub suit: Option<Suit>,
+pub struct ShengjiTrump {
+    pub level: ShengjiRank,
+    pub suit: Option<ShengjiSuit>,
     pub constant_trump: bool,
 }
 
-impl Trump {
-    pub fn new(level: Rank, suit: Option<Suit>) -> Result<Self, RuleError> {
+impl ShengjiTrump {
+    pub fn new(level: ShengjiRank, suit: Option<ShengjiSuit>) -> Result<Self, RuleError> {
         assert!(level.is_level_rank(), "jokers cannot be a level");
         Ok(Self {
             level,
@@ -228,10 +228,10 @@ impl Trump {
         self
     }
 
-    pub fn is_trump(self, card: Card) -> bool {
-        matches!(card.rank(), Rank::SmallJoker | Rank::BigJoker)
+    pub fn is_trump(self, card: ShengjiCard) -> bool {
+        matches!(card.rank(), ShengjiRank::SmallJoker | ShengjiRank::BigJoker)
             || card.rank() == self.level
-            || (self.constant_trump && card.rank() == Rank::Two)
+            || (self.constant_trump && card.rank() == ShengjiRank::Two)
             || match (self.suit, card.suit()) {
                 (Some(trump), Some(card_suit)) => trump as u8 == card_suit as u8,
                 _ => false,
@@ -239,9 +239,9 @@ impl Trump {
     }
 
     /// 同门牌力。返回值同时是对子构成拖拉机时使用的相邻层级。
-    pub fn strength(self, card: Card) -> u8 {
-        let has_separate_constant = self.constant_trump && self.level != Rank::Two;
-        if card.rank() == Rank::BigJoker {
+    pub fn strength(self, card: ShengjiCard) -> u8 {
+        let has_separate_constant = self.constant_trump && self.level != ShengjiRank::Two;
+        if card.rank() == ShengjiRank::BigJoker {
             return match (self.suit.is_some(), has_separate_constant) {
                 (true, true) => 16,
                 (true, false) => 15,
@@ -249,7 +249,7 @@ impl Trump {
                 (false, false) => 2,
             };
         }
-        if card.rank() == Rank::SmallJoker {
+        if card.rank() == ShengjiRank::SmallJoker {
             return match (self.suit.is_some(), has_separate_constant) {
                 (true, true) => 15,
                 (true, false) => 14,
@@ -276,7 +276,7 @@ impl Trump {
                 None => u8::from(has_separate_constant),
             };
         }
-        if has_separate_constant && card.rank() == Rank::Two {
+        if has_separate_constant && card.rank() == ShengjiRank::Two {
             return match self.suit {
                 Some(suit) if card.suit() == Some(suit) => 12,
                 Some(_) => 11,
@@ -290,22 +290,27 @@ impl Trump {
     }
 }
 
-pub fn level_after(current: Rank, steps: u8, mandatory: bool) -> Rank {
+pub fn level_after(current: ShengjiRank, steps: u8, mandatory: bool) -> ShengjiRank {
     let start = current.level_index().expect("level rank") as usize;
-    let target = (start + usize::from(steps)).min(Rank::LEVELS.len() - 1);
+    let target = (start + usize::from(steps)).min(ShengjiRank::LEVELS.len() - 1);
     if !mandatory || steps == 0 {
-        return Rank::LEVELS[target];
+        return ShengjiRank::LEVELS[target];
     }
-    for protected in [Rank::Five, Rank::Ten, Rank::King, Rank::Ace] {
+    for protected in [
+        ShengjiRank::Five,
+        ShengjiRank::Ten,
+        ShengjiRank::King,
+        ShengjiRank::Ace,
+    ] {
         let index = protected.level_index().unwrap() as usize;
         if index > start && index < target {
             return protected;
         }
     }
-    Rank::LEVELS[target]
+    ShengjiRank::LEVELS[target]
 }
 
-pub fn level_steps_between(from: Rank, to: Rank) -> u8 {
+pub fn level_steps_between(from: ShengjiRank, to: ShengjiRank) -> u8 {
     to.level_index()
         .unwrap()
         .saturating_sub(from.level_index().unwrap())
@@ -317,38 +322,61 @@ mod tests {
 
     #[test]
     fn mandatory_levels_stop_skipped_promotions() {
-        assert_eq!(level_after(Rank::Four, 3, true), Rank::Five);
-        assert_eq!(level_after(Rank::Five, 3, true), Rank::Eight);
-        assert_eq!(level_after(Rank::Nine, 3, true), Rank::Ten);
-        assert_eq!(level_after(Rank::Queen, 2, true), Rank::King);
-        assert_eq!(level_after(Rank::Four, 3, false), Rank::Seven);
+        assert_eq!(level_after(ShengjiRank::Four, 3, true), ShengjiRank::Five);
+        assert_eq!(level_after(ShengjiRank::Five, 3, true), ShengjiRank::Eight);
+        assert_eq!(level_after(ShengjiRank::Nine, 3, true), ShengjiRank::Ten);
+        assert_eq!(level_after(ShengjiRank::Queen, 2, true), ShengjiRank::King);
+        assert_eq!(level_after(ShengjiRank::Four, 3, false), ShengjiRank::Seven);
     }
 
     #[test]
     fn trump_strength_skips_level_and_connects_special_pairs() {
-        let trump = Trump::new(Rank::Ten, Some(Suit::Heart)).unwrap();
-        assert_eq!(trump.strength(Card::suited(0, Suit::Heart, Rank::Jack)), 8);
-        assert_eq!(trump.strength(Card::suited(0, Suit::Heart, Rank::Nine)), 7);
-        assert_eq!(trump.strength(Card::suited(0, Suit::Heart, Rank::Ace)), 11);
-        assert_eq!(trump.strength(Card::suited(0, Suit::Spade, Rank::Ten)), 12);
-        assert_eq!(trump.strength(Card::suited(0, Suit::Heart, Rank::Ten)), 13);
-        assert_eq!(trump.strength(Card::small_joker(0)), 14);
-        assert_eq!(trump.strength(Card::big_joker(0)), 15);
+        let trump = ShengjiTrump::new(ShengjiRank::Ten, Some(ShengjiSuit::Heart)).unwrap();
+        assert_eq!(
+            trump.strength(ShengjiCard::suited(
+                0,
+                ShengjiSuit::Heart,
+                ShengjiRank::Jack
+            )),
+            8
+        );
+        assert_eq!(
+            trump.strength(ShengjiCard::suited(
+                0,
+                ShengjiSuit::Heart,
+                ShengjiRank::Nine
+            )),
+            7
+        );
+        assert_eq!(
+            trump.strength(ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ace)),
+            11
+        );
+        assert_eq!(
+            trump.strength(ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ten)),
+            12
+        );
+        assert_eq!(
+            trump.strength(ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten)),
+            13
+        );
+        assert_eq!(trump.strength(ShengjiCard::small_joker(0)), 14);
+        assert_eq!(trump.strength(ShengjiCard::big_joker(0)), 15);
     }
 
     #[test]
     fn constant_two_sits_between_level_cards_and_trump_ace() {
-        let trump = Trump::new(Rank::Ten, Some(Suit::Heart))
+        let trump = ShengjiTrump::new(ShengjiRank::Ten, Some(ShengjiSuit::Heart))
             .unwrap()
             .with_constant_trump(true);
         let ordered = [
-            Card::suited(0, Suit::Heart, Rank::Ace),
-            Card::suited(0, Suit::Spade, Rank::Two),
-            Card::suited(0, Suit::Heart, Rank::Two),
-            Card::suited(0, Suit::Spade, Rank::Ten),
-            Card::suited(0, Suit::Heart, Rank::Ten),
-            Card::small_joker(0),
-            Card::big_joker(0),
+            ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ace),
+            ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Two),
+            ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Two),
+            ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ten),
+            ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten),
+            ShengjiCard::small_joker(0),
+            ShengjiCard::big_joker(0),
         ];
         assert_eq!(
             ordered.map(|card| trump.strength(card)),
@@ -359,24 +387,24 @@ mod tests {
 
     #[test]
     fn deck_count_controls_hand_kitty_and_scoring_bands() {
-        let three = RuleSet {
+        let three = ShengjiRuleSet {
             deck_count: 3,
-            ..RuleSet::default()
+            ..ShengjiRuleSet::default()
         };
         assert_eq!((three.hand_size(), three.kitty_size()), (39, 6));
         assert_eq!((three.score_step(), three.takeover_score()), (60, 120));
 
-        let four = RuleSet {
+        let four = ShengjiRuleSet {
             deck_count: 4,
-            ..RuleSet::default()
+            ..ShengjiRuleSet::default()
         };
         assert!(four.validate().is_ok());
         assert_eq!((four.hand_size(), four.kitty_size()), (52, 8));
         assert_eq!((four.score_step(), four.takeover_score()), (80, 160));
         assert!(matches!(
-            RuleSet {
+            ShengjiRuleSet {
                 deck_count: 5,
-                ..RuleSet::default()
+                ..ShengjiRuleSet::default()
             }
             .validate(),
             Err(RuleError::InvalidDeckCount(5))

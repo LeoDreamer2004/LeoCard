@@ -1,6 +1,8 @@
 //! 玩家互动菜单、冷却与飞行道具的状态类型。
 
 use super::*;
+use leocard_client::ScoreCaptureEffect;
+use leocard_protocol::{PlayerId, PlayerInteractionKind};
 
 #[derive(Default)]
 pub struct SocialUiState {

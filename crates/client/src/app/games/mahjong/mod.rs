@@ -1,22 +1,5 @@
 //! 麻将客户端表现层。
 
-use bevy::prelude::*;
-use bevy::render::render_resource::AsBindGroup;
-use bevy::shader::ShaderRef;
-use bevy::ui::FocusPolicy;
-use leocard_mahjong::{
-    MahjongClaim, MahjongClaimOption, MahjongDragon, MahjongFlower, MahjongKongKind,
-    MahjongMatchLength, MahjongMeldKind, MahjongRuleSet, MahjongSuit, MahjongTile, MahjongTileKind,
-    MahjongWind,
-};
-use leocard_protocol::{
-    ClientCommand, GameCommand, MahjongCommand, MahjongEvent, MahjongPhaseView, MahjongSnapshot,
-    MatchId, PlayerId,
-};
-use std::collections::VecDeque;
-
-use super::*;
-
 pub mod actions;
 mod controls;
 mod hand;
@@ -30,6 +13,11 @@ mod status;
 mod tiles;
 mod view;
 
+use super::*;
+use bevy::prelude::*;
+use bevy::render::render_resource::AsBindGroup;
+use bevy::shader::ShaderRef;
+use bevy::ui::FocusPolicy;
 use controls::*;
 use hand::*;
 pub use lobby::*;
@@ -39,5 +27,6 @@ pub use presentation::*;
 use settlement::*;
 pub use state::*;
 use status::*;
+use std::collections::VecDeque;
 pub use tiles::*;
 pub use view::*;

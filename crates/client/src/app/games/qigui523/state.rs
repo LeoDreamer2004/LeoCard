@@ -1,7 +1,27 @@
 //! 七鬼五二三手牌动画与牌型演出状态。
 
 use super::*;
+use leocard_protocol::{PlayerId, PublicPlay, QiGui523Snapshot};
+use leocard_qigui523::{QiGui523Bot, QiGuiCard};
 use std::collections::{HashMap, HashSet};
+
+pub(super) struct SeatVisuals<'a> {
+    pub(super) game: &'a QiGui523Snapshot,
+    pub(super) client: &'a ClientResource,
+    pub(super) ui: &'a UiAssets,
+    pub(super) avatars: &'a AvatarImages,
+    pub(super) interaction_menu_open: Option<PlayerId>,
+    pub(super) play_effect: Option<&'a ActivePlayEffect>,
+    pub(super) last_play: Option<&'a (PlayerId, PublicPlay)>,
+    pub(super) score_capture: &'a ScoreCaptureEffectState,
+    pub(super) start_transition_active: bool,
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum ScoreCardsPopupPlacement {
+    Opponent(SeatSide),
+    Own,
+}
 
 #[derive(Default)]
 pub struct QiGui523UiState {

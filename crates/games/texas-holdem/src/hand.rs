@@ -1,8 +1,11 @@
+#[cfg(test)]
+#[path = "hand_tests.rs"]
+mod tests;
+
+use crate::{TexasHoldemCard, TexasHoldemRank, TexasHoldemRuleSet};
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt;
-
-use crate::{TexasHoldemCard, TexasHoldemRank, TexasHoldemRuleSet};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -384,7 +387,3 @@ const fn category_strength(category: TexasHoldemHandCategory, short_deck: bool) 
         (_, TexasHoldemHandCategory::HighCard) => 0,
     }
 }
-
-#[cfg(test)]
-#[path = "hand_tests.rs"]
-mod tests;

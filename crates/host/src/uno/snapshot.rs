@@ -1,4 +1,10 @@
 use super::*;
+use leocard_protocol::{
+    GameEvent, GameKind, GameRules, GameSnapshot, GameViolation, LobbySnapshot, PlayerId,
+    RejectReason, RequestId, ServerEvent, UnoEvent, UnoPendingSwapView, UnoPhaseView,
+    UnoPlayerResult, UnoPlayerState, UnoRevealedHand, UnoSnapshot,
+};
+use leocard_uno::{GameError, PendingSwap, Phase, UnoCard};
 
 impl UnoSession {
     pub(super) fn lobby_snapshot(&self) -> LobbySnapshot {

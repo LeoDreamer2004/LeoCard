@@ -1,6 +1,6 @@
 //! 双升高频快照的轻量差异判断。
 
-use super::*;
+use leocard_protocol::ShengjiPhaseView;
 use leocard_protocol::ShengjiSnapshot;
 
 pub fn only_shengji_transient_progress_changed(

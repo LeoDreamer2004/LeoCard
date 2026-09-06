@@ -1,6 +1,7 @@
 //! 甩牌失败、退牌与罚分演出。
 
 use super::*;
+use leocard_protocol::ShengjiThrowFailureStage;
 
 const SHENGJI_FAILED_THROW_RETURN_DURATION: f32 = 0.42;
 const SHENGJI_THROW_PENALTY_DELAY: f32 = 0.38;

@@ -1,4 +1,5 @@
 use super::*;
+
 fn jump_in_game() -> GameState {
     let mut game = GameState::new_with_deck(
         UnoRuleSet {

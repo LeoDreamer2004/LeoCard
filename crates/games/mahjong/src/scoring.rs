@@ -1,18 +1,19 @@
-use std::collections::BTreeMap;
-use std::fmt;
+#[path = "scoring_forms.rs"]
+mod forms;
+#[path = "scoring_patterns.rs"]
+mod patterns;
+#[cfg(test)]
+#[path = "scoring_tests.rs"]
+mod tests;
 
 use crate::{
     MahjongDragon, MahjongKongKind, MahjongMeldKind, MahjongPlayerId, MahjongSuit, MahjongTileKind,
     MahjongWind, Meld,
 };
-
-#[path = "scoring_forms.rs"]
-mod forms;
-#[path = "scoring_patterns.rs"]
-mod patterns;
-
 use forms::{unique_wait, validated_forms};
 use patterns::*;
+use std::collections::BTreeMap;
+use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -937,7 +938,3 @@ fn score_form(input: &ScoreInput, form: &Form, unique_wait: bool) -> MahjongScor
         flower_points,
     }
 }
-
-#[cfg(test)]
-#[path = "scoring_tests.rs"]
-mod tests;

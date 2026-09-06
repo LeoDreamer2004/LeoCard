@@ -1,12 +1,11 @@
+use crate::{
+    AvatarId, MatchId, PlayerGameProfiles, PlayerId, PlayerReferenceChange, ProfileId, SeatId,
+};
 use leocard_shengji::{
     ShengjiBidKind, ShengjiBidTrump, ShengjiCard, ShengjiClassifiedPlay, ShengjiRank,
     ShengjiRuleSet, ShengjiTeamId, ShengjiTrump,
 };
 use serde::{Deserialize, Serialize};
-
-use crate::{
-    AvatarId, MatchId, PlayerGameProfiles, PlayerId, PlayerReferenceChange, ProfileId, SeatId,
-};
 
 /// 面向单个升级客户端生成的私有快照。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

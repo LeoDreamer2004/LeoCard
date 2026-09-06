@@ -1,4 +1,12 @@
-use super::*;
+use super::{
+    AutomaticMahjongAction, MahjongSession, automatic_mahjong_action, from_core_player,
+    to_core_player,
+};
+use crate::{ConnectionId, Delivery};
+use leocard_mahjong::{ActionOutcome, MahjongPlayerId, Phase};
+use leocard_protocol::{
+    GameSnapshot, MahjongEvent, PlayerId, RejectReason, RequestId, ServerEvent,
+};
 
 impl MahjongSession {
     pub(super) fn snapshot(

@@ -1,4 +1,7 @@
 use super::*;
+use leocard_protocol::{
+    SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
+};
 
 pub(super) fn add_texas_showdown_reveal(
     commands: &mut Commands,

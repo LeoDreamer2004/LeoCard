@@ -1,4 +1,5 @@
 use super::*;
+use leocard_qigui523::QiGuiCard;
 
 #[derive(Clone, Copy)]
 pub enum CardSize {

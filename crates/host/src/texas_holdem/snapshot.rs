@@ -1,4 +1,8 @@
 use super::*;
+use leocard_protocol::{
+    GameEvent, GameKind, GameRules, GameSnapshot, LobbySnapshot, PlayerId, RequestId, ServerEvent,
+    TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemSnapshot,
+};
 
 impl TexasHoldemSession {
     pub(super) fn lobby_snapshot(&self) -> LobbySnapshot {

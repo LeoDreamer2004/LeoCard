@@ -2,6 +2,7 @@
 
 use super::*;
 use leocard_protocol::LobbySnapshot;
+use leocard_uno::UnoRuleSet;
 use leocard_uno::{FlipRuleSet, Mode, NoMercyRuleSet};
 
 pub fn render_uno_lobby(

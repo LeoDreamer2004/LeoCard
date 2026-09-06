@@ -1,9 +1,8 @@
-use std::cmp::Ordering;
-use std::collections::HashSet;
-
 use crate::{
     ClassifiedPlay, PlayComparison, QiGuiCard, QiGuiRuleSet, can_beat, classify, compare_plays,
 };
+use std::cmp::Ordering;
+use std::collections::HashSet;
 
 /// 一次贪心跟牌请求所需的公开信息。
 ///

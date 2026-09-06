@@ -3,6 +3,9 @@ use leocard_protocol::{
     GamePhaseView, PublicPlay, PublicPlayRecord, QiGui523Snapshot, RevealedHand, StartingCardView,
     TrickView,
 };
+use leocard_protocol::{
+    GameSnapshot, MatchId, PROTOCOL_VERSION, PlayerId, Revision, RoomId, ServerEvent, ServerMessage,
+};
 use leocard_qigui523::{QiGuiCard, QiGuiPlayKind, QiGuiRank, QiGuiSuit};
 
 pub(super) fn score_history_snapshot(

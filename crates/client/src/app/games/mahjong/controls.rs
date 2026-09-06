@@ -1,4 +1,6 @@
 use super::*;
+use leocard_mahjong::{MahjongClaim, MahjongClaimOption};
+use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 
 pub(super) fn render_action_bar(
     commands: &mut Commands,

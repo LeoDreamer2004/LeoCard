@@ -1,9 +1,12 @@
-use std::collections::{HashSet, VecDeque};
-use std::fmt;
+#[cfg(test)]
+#[path = "game_tests.rs"]
+mod tests;
 
 use crate::{
     ClassifiedPlay, PlayError, QiGuiCard, QiGuiRuleSet, RuleError, build_deck, can_beat, classify,
 };
+use std::collections::{HashSet, VecDeque};
+use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct QiGuiPlayerId(pub usize);
@@ -554,7 +557,3 @@ fn sort_hands(players: &mut [PlayerState]) {
         player.hand.sort_by(QiGuiCard::display_cmp);
     }
 }
-
-#[cfg(test)]
-#[path = "game_tests.rs"]
-mod tests;

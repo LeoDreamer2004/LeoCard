@@ -1,6 +1,5 @@
 use super::*;
 use leocard_client::PlayerIdentity;
-
 use leocard_protocol::{
     MatchId, PlayerGameProfiles, PlayerId, PlayerInteractionKind, PlayerInteractionStats,
     PlayerReferenceChange, QiGui523ProfileStats, ShengjiProfileStats, TexasHoldemProfileStats,

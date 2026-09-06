@@ -1,7 +1,6 @@
+use crate::{AvatarId, MatchId, PlayerGameProfiles, PlayerId, ProfileId, SeatId};
 use leocard_qigui523::{QiGuiCard, QiGuiPlayKind};
 use serde::{Deserialize, Serialize};
-
-use crate::{AvatarId, MatchId, PlayerGameProfiles, PlayerId, ProfileId, SeatId};
 
 /// 面向单个七鬼五二三客户端生成的状态。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

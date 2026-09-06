@@ -1,6 +1,7 @@
 //! 玩家互动投射物的运动、声音与命中反馈。
 
 use super::*;
+use leocard_protocol::PlayerInteractionKind;
 
 const SHOE_ROTATIONS: f32 = 2.0;
 const INTERACTION_SOUND_VOLUME: f32 = 0.5;

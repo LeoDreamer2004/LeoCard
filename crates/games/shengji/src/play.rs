@@ -1,24 +1,26 @@
-use std::cmp::Ordering;
-use std::collections::{BTreeMap, HashSet};
-use std::fmt;
-
-use crate::{ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTrump};
-
 #[path = "play_classification.rs"]
 mod classification;
 #[path = "play_follow.rs"]
 mod follow;
 #[path = "play_structure.rs"]
 mod structure;
+#[cfg(test)]
+#[path = "play_tests.rs"]
+mod tests;
 
-pub(crate) use classification::classify_cards;
+use crate::{ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTrump};
 use classification::*;
 pub use classification::{category, compare_for_trick, strength};
 use follow::special_follow_hierarchy;
 #[cfg(test)]
 use follow::{best_follow_tier, eight_card_tractor_hierarchy};
 pub use follow::{classify_lead, follow_suggestions, forced_follow_cards, validate_follow};
+use std::cmp::Ordering;
+use std::collections::{BTreeMap, HashSet};
+use std::fmt;
 use structure::*;
+
+pub(crate) use classification::classify_cards;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -240,7 +242,3 @@ impl fmt::Display for FollowError {
 }
 
 impl std::error::Error for FollowError {}
-
-#[cfg(test)]
-#[path = "play_tests.rs"]
-mod tests;

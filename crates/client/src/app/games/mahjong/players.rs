@@ -1,5 +1,6 @@
 use super::*;
 use leocard_protocol::MahjongPlayerState;
+use leocard_protocol::{MahjongSnapshot, PlayerId};
 
 pub(super) struct MahjongPlayerPanelVisuals<'a> {
     pub own_seat: u8,

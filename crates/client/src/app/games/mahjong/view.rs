@@ -1,6 +1,11 @@
 //! 麻将房间、牌桌、动作按钮和结算视图。
 
 use super::*;
+use leocard_mahjong::{
+    MahjongClaim, MahjongDragon, MahjongFlower, MahjongSuit, MahjongTile, MahjongTileKind,
+    MahjongWind,
+};
+use leocard_protocol::{MahjongEvent, MahjongPhaseView, MahjongSnapshot, MatchId, PlayerId};
 use leocard_protocol::{MahjongHandResultView, MahjongWinView};
 
 pub const MAHJONG_CLAIM_FLIGHT_DELAY: f32 = 0.18;

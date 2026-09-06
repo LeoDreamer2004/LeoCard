@@ -1,4 +1,5 @@
 use super::*;
+use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 
 pub(super) fn render_round_status(
     commands: &mut Commands,

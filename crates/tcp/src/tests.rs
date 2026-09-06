@@ -1,6 +1,5 @@
 use super::*;
 use ed25519_dalek::{Signer, SigningKey};
-
 use leocard_protocol::{
     ClientCommand, GameSnapshot, JoinRequest, PlayerGameProfiles, PlayerId, ProfileId,
     QiGui523Snapshot, ReconnectToken, RequestId, RoomId, SeatId, ServerEvent, ShengjiSnapshot,

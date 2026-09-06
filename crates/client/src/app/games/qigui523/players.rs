@@ -1,5 +1,7 @@
 use super::*;
 use leocard_protocol::QiGui523Snapshot;
+use leocard_protocol::{GameKind, GamePhaseView, PlayerId, PlayerPublicState};
+use leocard_qigui523::QiGuiCard;
 
 pub(super) fn add_opponent_slot(
     commands: &mut Commands,

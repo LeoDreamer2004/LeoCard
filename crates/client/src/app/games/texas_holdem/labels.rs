@@ -1,4 +1,6 @@
 use super::*;
+use leocard_protocol::{TexasHoldemPhaseView, TexasHoldemPlayerState};
+use leocard_texas_holdem::{TexasHoldemHandCategory, TexasHoldemStreet};
 
 pub(super) fn texas_player_status(player: &TexasHoldemPlayerState) -> String {
     if !player.connected {

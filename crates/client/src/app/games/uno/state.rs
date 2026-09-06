@@ -1,6 +1,8 @@
 //! UNO 牌桌交互、飞牌与规则特效的状态类型。
 
 use super::*;
+use leocard_protocol::{PlayerId, UnoEvent, UnoSnapshot};
+use leocard_uno::UnoCard;
 use std::collections::HashMap;
 
 #[derive(Default)]

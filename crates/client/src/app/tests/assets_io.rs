@@ -1,9 +1,9 @@
 use super::*;
+use bevy::audio::Decodable;
 use leocard_protocol::{
     AVATAR_DIMENSION, MAX_AVATAR_BYTES, MAX_CHAT_MESSAGE_CHARS, QUICK_VOICE_COUNT,
 };
 use leocard_qigui523::build_deck;
-
 use leocard_uno::{Mode, UnoRuleSet, build_deck_for_rules};
 use std::collections::HashSet;
 use std::io::Cursor;
@@ -64,8 +64,6 @@ fn every_card_maps_to_an_existing_asset() {
 
 #[test]
 fn every_runtime_ui_and_card_sound_decodes_with_enabled_bevy_formats() {
-    use bevy::audio::Decodable;
-
     let asset_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets");
     let mut sounds = vec![
         "vendor/kenney/ui/Sounds/click-a.ogg".to_owned(),

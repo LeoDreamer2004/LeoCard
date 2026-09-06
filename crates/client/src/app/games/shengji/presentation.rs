@@ -1,17 +1,21 @@
 //! 双升规则事件、牌型动画和音效的统一表现层。
 
-use super::*;
-use leocard_shengji::{ShengjiBidTrump, ShengjiRank};
-
 mod animation;
 mod content;
 mod overlay;
 mod routes;
 mod sync;
+#[cfg(test)]
+#[path = "presentation_tests.rs"]
+mod tests;
 
+use super::*;
 pub use animation::*;
 use content::*;
 use leocard_protocol::ShengjiBottomFlipMatchView;
+use leocard_protocol::{MatchId, PlayerId, ShengjiPublicPlay};
+use leocard_shengji::ShengjiCard;
+use leocard_shengji::{ShengjiBidTrump, ShengjiRank};
 pub use overlay::*;
 use routes::*;
 use std::collections::VecDeque;
@@ -361,7 +365,3 @@ struct ShengjiPresentationRoute {
     end: Vec2,
     packet_count: usize,
 }
-
-#[cfg(test)]
-#[path = "presentation_tests.rs"]
-mod tests;

@@ -1,6 +1,7 @@
 //! 聊天消息、表情气泡和抽屉动画。
 
 use super::*;
+use leocard_protocol::{ChatContent, ChatEmoji, PlayerId};
 
 const CHAT_HISTORY_LIMIT: usize = 60;
 

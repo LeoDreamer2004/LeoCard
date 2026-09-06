@@ -1,6 +1,7 @@
 //! 玩家档案弹窗、游戏标签和互动统计视图。
 
 use super::*;
+use leocard_protocol::{PlayerGameProfiles, PlayerInteractionKind, PlayerInteractionStats};
 
 pub fn add_profile_avatar_button(
     commands: &mut Commands,

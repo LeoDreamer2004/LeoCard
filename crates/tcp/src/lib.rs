@@ -1,16 +1,18 @@
 //! Tokio TCP 传输。业务判定仍全部由 `leocard-host` 完成。
 
-use std::collections::{HashMap, HashSet};
-use std::fmt;
-use std::io;
-use std::net::SocketAddr;
-use std::time::Duration;
+#[cfg(test)]
+mod tests;
 
 use leocard_host::{ConnectionId, Delivery, HostSession};
 use leocard_protocol::{
     ClientMessage, FrameError, MAX_FRAME_PAYLOAD, ServerEvent, ServerMessage, decode_frame,
     encode_frame,
 };
+use std::collections::{HashMap, HashSet};
+use std::fmt;
+use std::io;
+use std::net::SocketAddr;
+use std::time::Duration;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
@@ -468,6 +470,3 @@ fn retire_connection(
         writer.abort();
     }
 }
-
-#[cfg(test)]
-mod tests;

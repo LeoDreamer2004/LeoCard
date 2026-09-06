@@ -1,5 +1,14 @@
 use super::*;
+use leocard_protocol::{
+    GameEvent, GameViolation, PlayerReferenceChange, RejectReason, RequestId, ServerEvent,
+    ShengjiEvent, ShengjiHandResultView, ShengjiProfileStats, ShengjiPublicPlay,
+    ShengjiThrowFailureStage,
+};
 use leocard_shengji::ShengjiTeamId;
+use leocard_shengji::{
+    ActionOutcome, FiveTrumpCrossingStage, GameError, GameState, HandResult, Phase, ShengjiBidKind,
+    ShengjiClassifiedPlay, ShengjiPlayerId, ShengjiRuleSet,
+};
 
 impl ShengjiSession {
     pub(super) fn record_current_declaration(&mut self) {

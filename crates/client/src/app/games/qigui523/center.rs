@@ -1,4 +1,5 @@
 use super::*;
+use leocard_protocol::PublicPlayRecord;
 use leocard_protocol::QiGui523Snapshot;
 
 pub(super) fn add_draw_pile(

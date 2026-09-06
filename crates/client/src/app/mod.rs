@@ -4,6 +4,8 @@ mod games;
 mod presentation;
 mod runtime;
 mod shell;
+#[cfg(test)]
+mod tests;
 
 use games::{mahjong::*, qigui523::*, shengji::*, texas_holdem::*, uno::*};
 use presentation::*;
@@ -13,6 +15,3 @@ use shell::*;
 pub fn run() {
     launch();
 }
-
-#[cfg(test)]
-mod tests;

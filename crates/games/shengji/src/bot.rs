@@ -1,12 +1,11 @@
-use std::cmp::Ordering;
-use std::collections::{BTreeMap, HashSet};
-use std::fmt;
-
 use crate::play::classify_cards;
 use crate::{
     Component, FollowError, PlayError, ShengjiCard, ShengjiClassifiedPlay, ShengjiRank,
     ShengjiTrump,
 };
+use std::cmp::Ordering;
+use std::collections::{BTreeMap, HashSet};
+use std::fmt;
 
 /// 双升最小贪心机器人作出一次出牌决定所需的信息。
 ///

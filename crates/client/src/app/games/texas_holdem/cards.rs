@@ -1,4 +1,7 @@
 use super::*;
+use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemSnapshot};
+use leocard_qigui523::{QiGuiRank, QiGuiSuit};
+use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemRank, TexasHoldemSuit};
 
 #[derive(Component)]
 pub struct TexasDealCard {

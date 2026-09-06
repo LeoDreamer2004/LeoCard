@@ -1,6 +1,7 @@
 //! In-game chat drawer, quick voices, and developer hand editor.
 
 use super::*;
+use leocard_protocol::ChatEmoji;
 
 pub fn add_chat_panel(
     commands: &mut Commands,

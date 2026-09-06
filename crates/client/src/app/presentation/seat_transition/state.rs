@@ -1,6 +1,7 @@
 //! 大厅席位与开局移动演出的状态类型。
 
 use super::*;
+use leocard_protocol::{MatchId, PlayerId};
 
 #[derive(Clone)]
 pub struct LobbySeatTransitionSnapshot {

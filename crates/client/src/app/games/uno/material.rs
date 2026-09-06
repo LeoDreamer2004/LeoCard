@@ -1,4 +1,5 @@
 use super::*;
+use leocard_uno::UnoColor;
 
 const UNO_PALETTE_SHADER: &str = "shaders/uno_palette.wgsl";
 

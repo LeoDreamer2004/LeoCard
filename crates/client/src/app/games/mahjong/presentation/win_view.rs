@@ -1,5 +1,6 @@
 use super::*;
 use leocard_protocol::{MahjongHandResultView, MahjongWinView};
+use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 
 pub(super) fn mahjong_win_effect_color(
     tier: MahjongWinEffectTier,

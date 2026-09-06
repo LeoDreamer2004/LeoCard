@@ -1,4 +1,5 @@
 use super::*;
+use leocard_protocol::UnoSnapshot;
 use leocard_uno::UnoFlipSide;
 
 #[allow(clippy::too_many_arguments)]

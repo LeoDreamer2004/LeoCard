@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::app::smootherstep;
+use leocard_protocol::PlayerId;
 
 #[derive(Clone, Copy, Debug)]
 pub struct StartGameSeatTransitionVisual {

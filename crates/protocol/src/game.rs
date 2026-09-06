@@ -1,11 +1,10 @@
+use crate::PlayerId;
 use leocard_mahjong::{MahjongClaim, MahjongRuleSet, MahjongTile, MahjongTileKind};
 use leocard_qigui523::{QiGuiCard, QiGuiRuleSet};
 use leocard_shengji::{ShengjiCard, ShengjiRuleSet};
 use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemRuleSet};
 use leocard_uno::{UnoCard, UnoColor, UnoRuleSet};
 use serde::{Deserialize, Serialize};
-
-use crate::PlayerId;
 
 /// LeoCard 支持的游戏。房间、身份与聊天协议不依赖具体游戏；新增游戏时在这里
 /// 注册对应的规则、命令、快照和事件后端。

@@ -1,9 +1,7 @@
-use std::collections::VecDeque;
-
+use super::*;
 use leocard_protocol::{GameRules, GameSnapshot, PlayerId, UnoEvent, UnoPhaseView, UnoSnapshot};
 use leocard_uno::UnoChallengeResult;
-
-use super::*;
+use std::collections::VecDeque;
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct UnoClientState {

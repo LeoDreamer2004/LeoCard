@@ -1,6 +1,4 @@
-use std::fs;
-use std::path::PathBuf;
-
+use super::config_file;
 use leocard_mahjong::MahjongRuleSet;
 use leocard_protocol::TABLE_SEAT_COUNT;
 use leocard_qigui523::QiGuiRuleSet;
@@ -8,8 +6,8 @@ use leocard_shengji::ShengjiRuleSet;
 use leocard_texas_holdem::TexasHoldemRuleSet;
 use leocard_uno::UnoRuleSet;
 use serde::{Deserialize, Serialize};
-
-use super::config_file;
+use std::fs;
+use std::path::PathBuf;
 
 const DEFAULT_AUDIO_VOLUME: f32 = 0.8;
 const DEFAULT_TABLE_VIGNETTE: f32 = 0.38;

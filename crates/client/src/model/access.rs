@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-
+use super::*;
 use leocard_mahjong::MahjongRuleSet;
+use leocard_protocol::RoomId;
 use leocard_protocol::{
     AvatarId, ChatMessage, GameRules, GameSnapshot, LobbySnapshot, MahjongSnapshot, MatchId,
     PlayerId, PlayerInteraction, PlayerReferenceChange, QiGui523Snapshot, RejectReason, Revision,
@@ -10,8 +10,7 @@ use leocard_qigui523::QiGuiRuleSet;
 use leocard_shengji::ShengjiRuleSet;
 use leocard_texas_holdem::TexasHoldemRuleSet;
 use leocard_uno::UnoRuleSet;
-
-use super::*;
+use std::collections::HashMap;
 
 impl ClientModel {
     pub fn room_id(&self) -> RoomId {

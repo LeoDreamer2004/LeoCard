@@ -1,4 +1,9 @@
 use super::*;
+use leocard_protocol::{
+    AVATAR_DIMENSION, ClientCommand, PlayerId, ReconnectToken, RejectReason, ServerEvent,
+};
+use leocard_qigui523::{Phase, build_deck};
+
 #[test]
 fn player_still_in_auto_play_is_ready_and_remains_in_auto_play_next_game() {
     let mut session = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();

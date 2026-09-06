@@ -1,4 +1,5 @@
 use super::*;
+use leocard_protocol::ShengjiSnapshot;
 
 pub fn add_shengji_presentation_overlay(
     commands: &mut Commands,

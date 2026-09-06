@@ -1,6 +1,8 @@
 //! 德州扑克牌桌视图。房间、聊天、头像、桌布和按钮资源均复用公共客户端层。
 
 use super::*;
+use leocard_client::NetworkState;
+use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemSnapshot};
 
 pub struct TexasTableVisuals<'a> {
     pub assets: &'a UiAssets,

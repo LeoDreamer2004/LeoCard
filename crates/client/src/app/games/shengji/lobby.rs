@@ -2,6 +2,7 @@
 
 use super::*;
 use leocard_protocol::LobbySnapshot;
+use leocard_shengji::{ShengjiRuleSet, ShengjiThrowPenalty};
 
 pub fn render_shengji_lobby(
     commands: &mut Commands,

@@ -1,6 +1,7 @@
 //! 德州扑克下注输入与牌桌组件状态。
 
 use super::*;
+use leocard_protocol::{MatchId, PlayerId};
 
 #[derive(Default)]
 pub struct TexasHoldemUiState {

@@ -1,13 +1,11 @@
 use super::*;
 use bevy::ui::RelativeCursorPosition;
-
 use leocard_protocol::{
     GamePhaseView, MatchId, PlayerGameProfiles, PlayerId, PlayerScore, ProfileId, QiGui523Snapshot,
     SeatId, ShengjiDeclarationView, ShengjiPhaseView, ShengjiPlayerState, ShengjiPublicPlay,
     ShengjiSnapshot, ShengjiTrickView, StartingCardView, TurnTimerView,
 };
 use leocard_qigui523::{QiGuiCard, QiGuiRank, QiGuiSuit};
-
 use leocard_shengji::{
     ShengjiBidKind, ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
     ShengjiTrump, TrickPlay, classify_lead,

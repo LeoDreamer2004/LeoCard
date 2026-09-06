@@ -1,11 +1,10 @@
 //! 手牌悬停、拖选和预览输入。
 
+use super::*;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use std::collections::HashSet;
 use std::hash::Hash;
-
-use super::*;
 
 const HAND_CARD_SELECTED_LIFT: f32 = 24.0;
 const HAND_CARD_HOVER_WIDTH: f32 = 32.0;

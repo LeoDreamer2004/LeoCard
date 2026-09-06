@@ -1,4 +1,7 @@
 use super::*;
+use leocard_protocol::{
+    QiGui523ProfileStats, ShengjiProfileStats, TexasHoldemProfileStats, UnoProfileStats,
+};
 
 pub fn qigui523_profile_rows(stats: Option<&QiGui523ProfileStats>) -> Vec<(&'static str, String)> {
     const LABELS: [&str; 18] = [

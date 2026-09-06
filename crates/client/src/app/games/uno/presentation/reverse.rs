@@ -1,4 +1,6 @@
 use super::*;
+use leocard_protocol::UnoSnapshot;
+use leocard_uno::UnoDirection;
 
 pub(super) fn spawn_uno_reverse_effect(
     commands: &mut Commands,

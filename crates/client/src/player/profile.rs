@@ -1,7 +1,7 @@
 //! 本机玩家身份、长期统计与已结算对局记录。
 
+use super::{PlayerIdentity, config_file};
 use bevy::prelude::Resource;
-
 use leocard_protocol::{
     MatchId, PlayerGameProfiles, PlayerInteractionStats, PlayerReferenceChange,
     QiGui523ProfileStats, ShengjiProfileStats, TexasHoldemProfileStats, UnoProfileStats,
@@ -9,9 +9,9 @@ use leocard_protocol::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
-
-use super::{PlayerIdentity, config_file};
 
 fn player_profile_path() -> Option<PathBuf> {
     config_file("profile.dat")
@@ -167,7 +167,6 @@ impl LocalPlayerProfile {
         fs::write(&path, bytes).map_err(|error| format!("无法保存玩家档案：{error}"))?;
         #[cfg(unix)]
         {
-            use std::os::unix::fs::PermissionsExt;
             fs::set_permissions(&path, fs::Permissions::from_mode(0o600))
                 .map_err(|error| format!("无法保护玩家档案权限：{error}"))?;
         }

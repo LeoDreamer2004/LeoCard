@@ -190,9 +190,8 @@ pub fn build_deck_for(deck_count: u8) -> Vec<ShengjiCard> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use super::*;
+    use std::collections::HashSet;
 
     #[test]
     fn two_decks_have_108_unique_physical_cards_and_200_points() {

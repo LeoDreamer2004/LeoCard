@@ -1,8 +1,6 @@
-use std::fmt;
-
-use serde::{Deserialize, Serialize};
-
 use crate::MAX_FRAME_PAYLOAD;
+use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Debug)]
 pub enum FrameError {

@@ -1,12 +1,21 @@
+use super::*;
 use ed25519_dalek::{Signer, SigningKey};
-
+use leocard_protocol::{
+    ClientCommand, ClientMessage, GameCommand, GameKind, GameSnapshot, GameViolation, PlayerId,
+    RejectReason, RequestId, RoomId, ServerEvent, UnoCommand, UnoEvent, UnoProfileStats,
+    UnoSnapshot, UnoViolation,
+};
 use leocard_protocol::{
     JoinRequest, PlayerGameProfiles, ProfileId, ReconnectToken, SeatId, TexasHoldemCommand,
     join_identity_payload,
 };
+use leocard_uno::{
+    ActionOutcome, GameState, Phase, PlayedEffect, UnoCard, UnoChallengeResult, UnoColor,
+    UnoPlayerId, UnoRuleSet, build_deck_for_rules,
+};
 use leocard_uno::{FlipRuleSet, Mode, UnoFace};
-
-use super::*;
+#[cfg(test)]
+use leocard_uno::{build_deck, build_no_mercy_deck};
 
 const ROOM: RoomId = RoomId(108);
 const HOST: ConnectionId = ConnectionId(1);

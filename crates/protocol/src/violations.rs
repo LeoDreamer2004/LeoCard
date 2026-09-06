@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use crate::{GameKind, PlayerId, RequestId};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum RejectReason {

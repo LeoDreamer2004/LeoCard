@@ -1,5 +1,12 @@
 use super::*;
+use leocard_protocol::{
+    ChatContent, ClientCommand, GameCommand, GameEvent, GameViolation, PlayerId,
+    PlayerInteractionKind, QUICK_VOICE_COUNT, QiGui523Command, QiGui523Event, ReconnectToken,
+    RejectReason, RequestId, Revision, RoomId, RuleViolation, SeatId, ServerEvent,
+};
 use leocard_qigui523::QiGuiPlayKind;
+use leocard_qigui523::build_deck;
+
 #[test]
 fn each_game_snapshot_contains_only_its_recipient_hand() {
     let mut session = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();

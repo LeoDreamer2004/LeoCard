@@ -1,5 +1,10 @@
-use std::collections::{HashSet, VecDeque};
-use std::fmt;
+#[path = "game_crossing.rs"]
+mod crossing;
+#[path = "game_play.rs"]
+mod play;
+#[cfg(test)]
+#[path = "game_tests.rs"]
+mod tests;
 
 #[cfg(test)]
 use crate::build_deck;
@@ -9,11 +14,8 @@ use crate::{
     ShengjiPlayerId, ShengjiRank, ShengjiRuleSet, ShengjiTeamId, ShengjiTrump, TrickPlay,
     build_deck_for, classify_lead, level_after, validate_follow,
 };
-
-#[path = "game_crossing.rs"]
-mod crossing;
-#[path = "game_play.rs"]
-mod play;
+use std::collections::{HashSet, VecDeque};
+use std::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TeamProgress {
@@ -974,7 +976,3 @@ impl From<FollowError> for GameError {
         Self::Follow(value)
     }
 }
-
-#[cfg(test)]
-#[path = "game_tests.rs"]
-mod tests;

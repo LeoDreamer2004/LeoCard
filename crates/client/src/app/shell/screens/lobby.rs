@@ -2,7 +2,10 @@
 
 use super::*;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
+use leocard_protocol::{GameKind, SeatId, TABLE_SEAT_COUNT};
 use leocard_protocol::{GameRules, LobbySnapshot};
+use leocard_shengji::ShengjiRuleSet;
+use leocard_uno::UnoRuleSet;
 
 pub fn render_lobby(
     commands: &mut Commands,

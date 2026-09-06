@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "card_tests.rs"]
+mod tests;
+
 use std::cmp::Ordering;
 use std::fmt;
 
@@ -655,7 +659,3 @@ pub fn build_deck_for_rules(rules: crate::UnoRuleSet) -> Vec<UnoCard> {
     }
     cards
 }
-
-#[cfg(test)]
-#[path = "card_tests.rs"]
-mod tests;

@@ -1,10 +1,9 @@
 //! 卡牌、按钮、面板和文本等基础控件。
 
+use super::*;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_qigui523::QiGuiCard;
-
-use super::*;
 
 const SCORE_CARD_REVEAL: f32 = 12.0;
 const FINISHED_HAND_CARD_REVEAL: f32 = 14.4;

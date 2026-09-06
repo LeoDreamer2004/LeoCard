@@ -1,4 +1,6 @@
 use super::*;
+use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemSnapshot};
+use leocard_texas_holdem::TexasHoldemCard;
 
 pub fn add_texas_chip_areas(
     commands: &mut Commands,

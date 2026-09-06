@@ -2,6 +2,8 @@
 
 use super::*;
 use leocard_protocol::LobbySnapshot;
+use leocard_protocol::TABLE_SEAT_COUNT;
+use leocard_texas_holdem::TexasHoldemRuleSet;
 
 pub fn render_texas_holdem_lobby(
     commands: &mut Commands,

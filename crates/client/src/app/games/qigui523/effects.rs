@@ -2,6 +2,8 @@
 
 use super::*;
 use leocard_protocol::QiGui523Snapshot;
+use leocard_protocol::{PlayerId, TABLE_SEAT_COUNT};
+use leocard_qigui523::QiGuiPlayKind;
 
 pub fn add_play_effect_overlay(
     commands: &mut Commands,

@@ -1,5 +1,6 @@
 use super::*;
 use crate::{TexasHoldemRank, TexasHoldemSuit};
+use TexasHoldemSuit::{Club, Diamond, Heart, Spade};
 
 fn ordered_deck(prefix: &[TexasHoldemCard], short_deck: bool) -> Vec<TexasHoldemCard> {
     let prefix_set = prefix.iter().copied().collect::<HashSet<_>>();
@@ -154,7 +155,6 @@ fn four_betting_rounds_deal_exactly_five_community_cards() {
 
 #[test]
 fn all_in_side_pots_are_awarded_independently() {
-    use TexasHoldemSuit::{Club, Diamond, Heart, Spade};
     let prefix = [
         c(TexasHoldemRank::King, Spade),
         c(TexasHoldemRank::Queen, Spade),
@@ -202,7 +202,6 @@ fn all_in_side_pots_are_awarded_independently() {
 
 #[test]
 fn ignore_kickers_splits_a_showdown_between_equal_made_hands() {
-    use TexasHoldemSuit::{Club, Diamond, Heart, Spade};
     // 三位玩家分别组成 AAQQK、AAQQJ、AAQQT；开启规则后踢脚牌不参与比较。
     let prefix = [
         c(TexasHoldemRank::King, Spade),
@@ -258,7 +257,6 @@ fn ignore_kickers_splits_a_showdown_between_equal_made_hands() {
 
 #[test]
 fn several_distinct_all_ins_create_independently_eligible_side_pots() {
-    use TexasHoldemSuit::{Club, Diamond, Heart, Spade};
     // 每个较短筹码玩家都拿到比后续玩家更大的口袋对子，因此能够验证：
     // 他只参与不超过自己投入额的底池，不能赢走更深层的边池。
     let prefix = [

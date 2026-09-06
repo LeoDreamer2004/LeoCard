@@ -1,6 +1,7 @@
 //! 跨游戏结算演出的运行时状态与 UI 标记组件。
 
 use super::*;
+use leocard_protocol::MatchId;
 
 #[derive(Resource, Default)]
 pub struct GameSummaryAnimation {

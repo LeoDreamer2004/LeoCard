@@ -1,5 +1,6 @@
 //! 持久化玩家偏好与 Bevy 连接表单之间的适配。
 
+use super::*;
 pub use leocard_client::{
     GamePreferences, GlobalPreferences, MahjongPreferences, QiGui523Preferences, SavedPreferences,
     ShengjiPreferences, TexasHoldemPreferences, UnoPreferences, load_player_preferences,
@@ -12,8 +13,6 @@ use leocard_shengji::ShengjiRuleSet;
 use leocard_texas_holdem::TexasHoldemRuleSet;
 use leocard_uno::UnoRuleSet;
 use std::path::PathBuf;
-
-use super::*;
 
 const DEFAULT_AUDIO_VOLUME: f32 = 0.8;
 

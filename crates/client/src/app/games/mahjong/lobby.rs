@@ -1,4 +1,5 @@
 use super::*;
+use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
 use leocard_protocol::LobbySnapshot;
 
 pub fn render_mahjong_lobby(

@@ -1,6 +1,8 @@
 //! 玩家互动同步、锚点计算与通用得分收集。
 
 use super::*;
+use leocard_client::ScoreCaptureEffect;
+use leocard_protocol::{PlayerId, PlayerInteractionKind};
 
 const SCORE_CAPTURE_TRAVEL_DURATION: f32 = 0.42;
 const INTERACTION_TRAVEL_DURATION: f32 = 0.60;

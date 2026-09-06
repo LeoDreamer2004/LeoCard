@@ -1,8 +1,7 @@
 use super::*;
-use leocard_protocol::{GameViolation, RejectReason, RuleViolation};
-
 #[cfg(feature = "developer")]
 use leocard_mahjong::{MahjongSuit, MahjongTileKind, MahjongWind};
+use leocard_protocol::{GameViolation, RejectReason, RuleViolation};
 #[cfg(feature = "developer")]
 use leocard_qigui523::{QiGuiCard, QiGuiRank, QiGuiSuit};
 #[cfg(feature = "developer")]

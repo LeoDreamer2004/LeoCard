@@ -1,17 +1,15 @@
-use std::collections::{HashSet, VecDeque};
-use std::fmt;
-
-use crate::rating::{placements_with_eliminations, reference_point_deltas_for_placements};
-use crate::{RuleError, UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoRuleSet, build_deck_for_rules};
-
 mod mechanics;
 mod play;
 mod setup;
 mod swap;
-mod turn;
-
 #[cfg(test)]
 mod tests;
+mod turn;
+
+use crate::rating::{placements_with_eliminations, reference_point_deltas_for_placements};
+use crate::{RuleError, UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoRuleSet, build_deck_for_rules};
+use std::collections::{HashSet, VecDeque};
+use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
     AvatarId, ChatContent, ChatMessage, ClientMessage, GameKind, GameRules, JoinRequest,
     LobbyPlayer, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS, PROTOCOL_VERSION,
@@ -7,8 +6,7 @@ use leocard_protocol::{
     QUICK_VOICE_COUNT, ReconnectToken, RejectReason, RequestId, Revision, RoomId, SeatId,
     ServerEvent, ServerMessage, TABLE_SEAT_COUNT,
 };
-
-use crate::{ConnectionId, Delivery};
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 pub(crate) struct Participant {

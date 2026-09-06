@@ -1,4 +1,5 @@
 use super::*;
+
 fn swap_pack_game() -> GameState {
     let rules = UnoRuleSet {
         swap_pack: true,

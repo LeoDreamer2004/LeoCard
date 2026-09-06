@@ -1,13 +1,11 @@
 //! Bevy 场景基础节点与静态资源的统一加载。
 
+use super::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerInteractionKind, QUICK_VOICE_COUNT};
 use leocard_qigui523::build_deck;
-
 use leocard_uno::{Mode, UnoRuleSet, build_deck_for_rules};
 use std::collections::{HashMap, HashSet};
-
-use super::*;
 
 pub fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2d);

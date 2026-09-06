@@ -1,6 +1,9 @@
 //! 升级按钮动作、本地选牌状态与网络命令。
 
 use super::*;
+use leocard_protocol::{
+    ClientCommand, GameCommand, ShengjiCommand, ShengjiFiveTrumpCrossingStage, ShengjiPhaseView,
+};
 
 pub fn handle_shengji_button(
     action: &UiAction,

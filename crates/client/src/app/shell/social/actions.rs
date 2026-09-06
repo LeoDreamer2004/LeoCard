@@ -1,6 +1,10 @@
 //! 玩家互动菜单与跨游戏托管按钮动作。
 
 use super::*;
+use leocard_protocol::{
+    ClientCommand, GameCommand, PlayerInteractionKind, QiGui523Command, ShengjiCommand,
+    TexasHoldemCommand, UnoCommand,
+};
 
 pub fn handle_social_button(
     action: &UiAction,

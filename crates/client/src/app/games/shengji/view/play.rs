@@ -1,4 +1,8 @@
 use super::*;
+use leocard_protocol::{
+    PlayerId, ShengjiPhaseView, ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureStage,
+};
+use leocard_shengji::ShengjiCard;
 
 pub fn add_shengji_play_area(
     commands: &mut Commands,

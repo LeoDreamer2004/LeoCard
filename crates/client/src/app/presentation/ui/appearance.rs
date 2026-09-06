@@ -1,10 +1,9 @@
 //! GPU table-background treatment.
 
+use super::*;
 use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
-
-use super::*;
 
 pub const TABLE_BACKGROUND_SHADER: &str = "shaders/table_background.wgsl";
 

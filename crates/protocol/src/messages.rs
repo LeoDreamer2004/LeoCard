@@ -1,16 +1,15 @@
-use leocard_mahjong::MahjongRuleSet;
-use leocard_qigui523::QiGuiRuleSet;
-use leocard_shengji::ShengjiRuleSet;
-use leocard_texas_holdem::TexasHoldemRuleSet;
-use leocard_uno::UnoRuleSet;
-use serde::{Deserialize, Serialize};
-
 use crate::{
     AvatarId, ChatContent, ChatMessage, GameCommand, GameEvent, GameKind, GameRules,
     MahjongSnapshot, PROTOCOL_VERSION, PlayerGameProfiles, PlayerId, PlayerInteraction,
     PlayerInteractionKind, ProfileId, QiGui523Snapshot, ReconnectToken, RejectReason, RequestId,
     Revision, RoomId, SeatId, ShengjiSnapshot, TexasHoldemSnapshot, UnoSnapshot,
 };
+use leocard_mahjong::MahjongRuleSet;
+use leocard_qigui523::QiGuiRuleSet;
+use leocard_shengji::ShengjiRuleSet;
+use leocard_texas_holdem::TexasHoldemRuleSet;
+use leocard_uno::UnoRuleSet;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ClientMessage {

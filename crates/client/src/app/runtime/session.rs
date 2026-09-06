@@ -1,9 +1,8 @@
 //! 网络快照轮询与客户端状态同步。
 
+use super::*;
 use leocard_client::{NetworkState, TcpGameClient};
 use leocard_protocol::{ShengjiFiveTrumpCrossingStage, ShengjiPhaseView};
-
-use super::*;
 
 #[derive(Resource)]
 pub struct ClientResource(pub TcpGameClient);

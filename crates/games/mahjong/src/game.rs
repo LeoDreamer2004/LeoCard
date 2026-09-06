@@ -1,19 +1,21 @@
-use std::array;
-use std::collections::{HashSet, VecDeque};
-use std::fmt;
-
-use crate::{
-    MahjongMatchLength, MahjongMeldKind, MahjongPlayerId, MahjongRuleSet, MahjongScoreResult,
-    MahjongTile, MahjongTileKind, MahjongWind, Meld, RuleError, ScoreError, ScoreInput, WinContext,
-    WinSource, build_deck, is_complete_hand, score_hand,
-};
-
 #[path = "game_actions.rs"]
 mod actions;
 #[path = "game_lifecycle.rs"]
 mod lifecycle;
 #[path = "game_resolution.rs"]
 mod resolution;
+#[cfg(test)]
+#[path = "game_tests.rs"]
+mod tests;
+
+use crate::{
+    MahjongMatchLength, MahjongMeldKind, MahjongPlayerId, MahjongRuleSet, MahjongScoreResult,
+    MahjongTile, MahjongTileKind, MahjongWind, Meld, RuleError, ScoreError, ScoreInput, WinContext,
+    WinSource, build_deck, is_complete_hand, score_hand,
+};
+use std::array;
+use std::collections::{HashSet, VecDeque};
+use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -605,7 +607,3 @@ fn players_after(player: MahjongPlayerId) -> impl Iterator<Item = MahjongPlayerI
     (1..MahjongRuleSet::PLAYER_COUNT)
         .map(move |offset| MahjongPlayerId((player.0 + offset) % MahjongRuleSet::PLAYER_COUNT))
 }
-
-#[cfg(test)]
-#[path = "game_tests.rs"]
-mod tests;

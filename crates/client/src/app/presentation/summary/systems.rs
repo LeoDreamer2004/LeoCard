@@ -1,6 +1,9 @@
 //! 跨游戏结算界面的入场、计分与音效演出。
 
 use super::*;
+use leocard_protocol::{
+    GamePhaseView, MahjongPhaseView, PlayerScore, TexasHoldemPhaseView, UnoPhaseView,
+};
 
 pub fn update_summary_animation(
     mut commands: Commands,

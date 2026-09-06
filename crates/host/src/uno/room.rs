@@ -1,4 +1,9 @@
 use super::*;
+use leocard_protocol::{
+    GameSnapshot, PlayerId, PlayerInteraction, PlayerInteractionKind, RejectReason, RequestId,
+    ServerEvent,
+};
+use leocard_uno::{GameError, Phase};
 
 impl UnoSession {
     pub(super) fn leave_room(

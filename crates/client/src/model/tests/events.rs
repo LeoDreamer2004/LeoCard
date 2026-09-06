@@ -1,6 +1,12 @@
 use super::*;
 use crate::model::uno::uno_event_notice;
-use leocard_protocol::{ChatMessage, PlayerInteraction, PublicPlay, QiGui523Event, UnoEvent};
+use leocard_protocol::{
+    ChatContent, ChatMessage, PlayerInteraction, PlayerInteractionKind, PublicPlay, QiGui523Event,
+    UnoEvent,
+};
+use leocard_protocol::{
+    GameEvent, PROTOCOL_VERSION, PlayerId, Revision, RoomId, ServerEvent, ServerMessage,
+};
 use leocard_qigui523::{QiGuiCard, QiGuiPlayKind, QiGuiRank, QiGuiSuit};
 use leocard_uno::UnoChallengeResult;
 

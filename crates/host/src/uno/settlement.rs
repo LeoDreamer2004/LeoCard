@@ -1,4 +1,9 @@
 use super::*;
+use leocard_protocol::{PlayerId, PlayerReferenceChange, RejectReason, RequestId, UnoProfileStats};
+use leocard_uno::{
+    ActionOutcome, GameError, GameState, Phase, PlayedEffect, UnoCard, UnoChallengeResult,
+    UnoColor, UnoPlayerId,
+};
 
 impl UnoSession {
     pub(super) fn perform_action<F>(

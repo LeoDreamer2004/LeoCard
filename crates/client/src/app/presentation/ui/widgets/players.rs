@@ -1,10 +1,9 @@
 //! 玩家框、头像、准备标记和房主标记。
 
+use super::*;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerGameProfiles, PlayerId, PlayerInteractionKind};
-
-use super::*;
 
 pub fn decorate_player_panel(
     commands: &mut Commands,

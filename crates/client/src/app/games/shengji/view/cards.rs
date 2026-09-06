@@ -1,4 +1,7 @@
 use super::*;
+use leocard_protocol::{ShengjiSnapshot, ShengjiThrowFailureStage};
+use leocard_qigui523::{QiGuiRank, QiGuiSuit};
+use leocard_shengji::{ShengjiCard, ShengjiRank, ShengjiSuit, ShengjiTrump};
 
 #[derive(Clone, Copy)]
 pub enum ShengjiCardSize {

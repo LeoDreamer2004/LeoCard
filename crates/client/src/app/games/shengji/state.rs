@@ -1,6 +1,9 @@
 //! 双升手牌、计分、甩牌反馈与结算演出的状态类型。
 
 use super::*;
+use leocard_client::ShengjiScoreCaptureEffect;
+use leocard_protocol::{MatchId, ShengjiThrowFailureStage};
+use leocard_shengji::ShengjiCard;
 use std::collections::HashMap;
 
 #[derive(Default)]

@@ -1,9 +1,8 @@
 //! 大厅座位、规则提示和桌面外观输入。
 
 use super::*;
-
 #[cfg(feature = "developer")]
-use leocard_protocol::SeatId;
+use leocard_protocol::{ClientCommand, SeatId};
 
 pub fn animate_lobby_seat_hover(
     time: Res<Time>,

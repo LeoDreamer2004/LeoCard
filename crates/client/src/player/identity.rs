@@ -1,10 +1,9 @@
-use std::io;
-
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_protocol::{
     ClientCommand, JoinRequest, PlayerGameProfiles, ProfileId, ReconnectToken, RoomId,
     join_identity_payload,
 };
+use std::io;
 
 #[derive(Clone)]
 pub struct PlayerIdentity {

@@ -1,5 +1,6 @@
 //! 已加载 UI 资源、头像缓存与文件选择器状态。
 
+use super::*;
 use leocard_mahjong::MahjongTileKind;
 use leocard_protocol::{AvatarId, ChatEmoji, PlayerInteractionKind};
 use leocard_qigui523::{QiGuiRank, QiGuiSuit};
@@ -8,8 +9,6 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::mpsc::Receiver;
-
-use super::*;
 
 pub const UI_FONT_ASSET: &str = "fonts/ChillRoundGothic-Medium.ttf";
 pub const TABLE_FELT_ASSET: &str = "vendor/opengameart/green-textile/table_felt_dark_green.png";

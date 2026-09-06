@@ -1,10 +1,9 @@
+use crate::{AvatarId, MatchId, PlayerGameProfiles, PlayerId, ProfileId, SeatId};
 use leocard_mahjong::{
     MahjongClaim, MahjongClaimOption, MahjongMeldKind, MahjongRuleSet, MahjongScoreResult,
     MahjongTile, MahjongTileKind, MahjongWind,
 };
 use serde::{Deserialize, Serialize};
-
-use crate::{AvatarId, MatchId, PlayerGameProfiles, PlayerId, ProfileId, SeatId};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongSnapshot {

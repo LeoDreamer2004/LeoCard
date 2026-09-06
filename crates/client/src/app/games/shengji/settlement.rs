@@ -1,6 +1,8 @@
 //! 升级收分与终局结算演出。
 
 use super::*;
+use leocard_client::ShengjiScoreCaptureEffect;
+use leocard_protocol::ShengjiPhaseView;
 
 const SHENGJI_KITTY_CARD_INTERVAL: f32 = 0.075;
 const SHENGJI_KITTY_CARD_ENTRY_DURATION: f32 = 0.22;

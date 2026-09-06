@@ -1,12 +1,11 @@
 //! 用户图片规范化与运行时生成的遮罩纹理。
 
+use super::*;
 use bevy::asset::RenderAssetUsages;
 use leocard_protocol::{AVATAR_DIMENSION, MAX_AVATAR_BYTES};
 use std::fs;
 use std::io::Cursor;
 use std::path::Path;
-
-use super::*;
 
 pub fn normalize_avatar(path: &Path) -> Result<Vec<u8>, String> {
     let source = fs::read(path).map_err(|error| format!("无法读取头像文件：{error}"))?;

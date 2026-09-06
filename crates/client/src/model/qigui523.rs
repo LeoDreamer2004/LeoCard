@@ -1,12 +1,11 @@
-use std::collections::HashMap;
-
+use super::ClientModel;
+use super::types::Sequenced;
 use leocard_protocol::{
     GamePhaseView, GameSnapshot, PlayerId, PublicPlay, PublicPlayRecord, QiGui523Event,
     QiGui523Snapshot, TrickView,
 };
 use leocard_qigui523::QiGuiCard;
-
-use super::*;
+use std::collections::HashMap;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScoreCaptureEffect {

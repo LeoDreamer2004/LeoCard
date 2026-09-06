@@ -1,4 +1,5 @@
 use super::*;
+use leocard_qigui523::{SuitComparison, TimeControl};
 
 pub fn add_rule_help(commands: &mut Commands, parent: Entity, help: &str, assets: &UiAssets) {
     let question = commands

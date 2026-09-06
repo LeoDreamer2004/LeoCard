@@ -1,7 +1,9 @@
 //! 双升出牌提示的候选生成与轮换。
 
 use super::*;
+use leocard_protocol::ShengjiSnapshot;
 use leocard_shengji::follow_suggestions;
+use leocard_shengji::{ShengjiCard, ShengjiGreedyBot, ShengjiGreedyBotRequest, ShengjiSuit};
 
 pub fn next_shengji_hint(
     game: &ShengjiSnapshot,

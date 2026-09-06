@@ -5,7 +5,6 @@ mod profile;
 pub use identity::PlayerIdentity;
 pub use preferences::*;
 pub use profile::{LocalPlayerProfile, PlayerRatingProfile};
-
 use std::path::PathBuf;
 
 fn config_file(name: &str) -> Option<PathBuf> {

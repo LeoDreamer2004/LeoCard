@@ -1,7 +1,6 @@
+use super::*;
 use crate::play::classify_cards;
 use crate::{ShengjiBidTrump, ShengjiSuit, ShengjiThrowPenalty};
-
-use super::*;
 
 fn dealt_game(rules: ShengjiRuleSet) -> GameState {
     let mut deck = build_deck_for(rules.deck_count);

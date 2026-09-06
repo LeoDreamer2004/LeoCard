@@ -1,13 +1,12 @@
 //! Shader-driven rounded trace around the player whose turn is active.
 
+use crate::app::*;
 use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{GameKind, MatchId, PlayerId};
 use std::collections::{HashMap, HashSet};
-
-use crate::app::*;
 
 const TURN_BORDER_GROW_DURATION: f32 = 0.95;
 const TURN_BORDER_HOLD_DURATION: f32 = 0.14;

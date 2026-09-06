@@ -1,7 +1,12 @@
 //! 七鬼五二三的提示策略与无牌可压反馈。
 
 use super::*;
+use leocard_protocol::PublicPlayRecord;
 use leocard_protocol::QiGui523Snapshot;
+use leocard_qigui523::{
+    ClassifiedPlay, QiGui523Bot, QiGui523BotRequest, QiGuiCard, QiGuiRuleSet, classify,
+    has_legal_response,
+};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum HintDecision {

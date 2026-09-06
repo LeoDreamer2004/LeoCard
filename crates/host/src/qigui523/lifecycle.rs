@@ -1,4 +1,11 @@
-use super::*;
+use super::{QiGui523Session, validate_deck};
+use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession};
+use leocard_protocol::{
+    ClientCommand, ClientMessage, GameCommand, GameKind, QiGui523Command, RejectReason, Revision,
+    RoomId, ServerEvent,
+};
+use leocard_qigui523::{GameState, QiGuiCard, QiGuiRuleSet};
+use std::time::Duration;
 
 impl QiGui523Session {
     /// `shuffled_deck[0]` 是第一张发出的牌；房主应在创建会话前完成洗牌。

@@ -1,4 +1,5 @@
 use super::*;
+use leocard_protocol::{GameKind, PlayerId, TexasHoldemPlayerState, TexasHoldemSnapshot};
 
 pub(super) fn add_texas_opponent(
     commands: &mut Commands,

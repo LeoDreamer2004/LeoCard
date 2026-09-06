@@ -1,5 +1,15 @@
 use super::*;
+use leocard_protocol::PlayerId;
+#[cfg(feature = "developer")]
+use leocard_protocol::{ClientCommand, SeatId, ShengjiPhaseView};
 use leocard_shengji::ShengjiTeamId;
+#[cfg(feature = "developer")]
+use leocard_shengji::build_deck;
+use leocard_shengji::{Category, ShengjiRank, ShengjiSuit};
+use leocard_shengji::{Component, HandResult, ShengjiClassifiedPlay, ShengjiPlayerId};
+#[cfg(feature = "developer")]
+use leocard_shengji::{ShengjiCard, ShengjiRuleSet};
+
 fn result_for_reference_points(
     dealer_wins: bool,
     promoted_steps: u8,

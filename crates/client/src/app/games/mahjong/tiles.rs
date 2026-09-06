@@ -1,4 +1,5 @@
 use super::*;
+use leocard_mahjong::MahjongTileKind;
 
 const MAHJONG_DEAL_MOVE_DURATION: f32 = 0.28;
 

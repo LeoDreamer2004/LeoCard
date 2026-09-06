@@ -1,6 +1,8 @@
 use super::*;
 use leocard_protocol::ShengjiEvent;
+use leocard_protocol::{ShengjiPublicPlay, ShengjiThrowFailureStage};
 use leocard_shengji::{Category, ShengjiBidKind, compare_for_trick};
+use leocard_shengji::{ShengjiThrowPenalty, ShengjiTrump};
 
 pub fn sync_shengji_presentation(
     mut client: Option<ResMut<ClientResource>>,

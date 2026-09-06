@@ -4,6 +4,10 @@
 //! 也避免 UI 重建重复播放。多张罚牌只保留最多四个均匀分布的抽牌声。
 
 use super::*;
+use leocard_protocol::{PlayerId, UnoEvent};
+#[cfg(test)]
+use leocard_uno::UnoCard;
+use leocard_uno::{UnoChallengeResult, UnoColor, UnoFace};
 
 #[derive(Default)]
 pub struct UnoSoundAssets {

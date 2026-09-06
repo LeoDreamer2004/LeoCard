@@ -1,5 +1,10 @@
 use super::*;
+use leocard_protocol::{ClientCommand, GameCommand, QiGui523Command, ServerEvent};
 use leocard_qigui523::TimeControl;
+use leocard_qigui523::{
+    PlayRecord, QiGui523Bot, QiGui523BotRequest, QiGuiPlayerId, QiGuiRuleSet, build_deck, classify,
+};
+
 #[test]
 fn enabling_auto_play_waits_one_second_before_acting_on_own_turn() {
     let mut session = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();

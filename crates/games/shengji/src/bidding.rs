@@ -1,9 +1,12 @@
-use std::collections::{HashMap, HashSet};
-use std::fmt;
+#[cfg(test)]
+#[path = "bidding_tests.rs"]
+mod tests;
 
 use crate::{
     ShengjiBidTrump, ShengjiCard, ShengjiPlayerId, ShengjiRank, ShengjiSuit, ShengjiTrump,
 };
+use std::collections::{HashMap, HashSet};
+use std::fmt;
 
 /// 带王亮时，红色花色配大王，黑色花色配小王。
 pub const fn bid_joker_for_suit(suit: ShengjiSuit) -> ShengjiRank {
@@ -487,7 +490,3 @@ impl fmt::Display for BidError {
 }
 
 impl std::error::Error for BidError {}
-
-#[cfg(test)]
-#[path = "bidding_tests.rs"]
-mod tests;

@@ -1,14 +1,18 @@
 //! 内嵌资源源与操作系统窗口集成。
 
-use bevy::prelude::*;
-use bevy::window::WindowCreated;
-use winit::window::Icon;
-
-#[cfg(all(test, leocard_embedded_assets))]
-use std::path::Path;
-
 #[cfg(all(test, leocard_embedded_assets))]
 use crate::app::{TABLE_BACKGROUND_SHADER, TABLE_FELT_ASSET, UI_FONT_ASSET};
+#[cfg(leocard_embedded_assets)]
+use bevy::asset::AssetApp;
+#[cfg(leocard_embedded_assets)]
+use bevy::asset::io::memory::MemoryAssetReader;
+#[cfg(leocard_embedded_assets)]
+use bevy::asset::io::{AssetSourceBuilder, AssetSourceId};
+use bevy::prelude::*;
+use bevy::window::WindowCreated;
+#[cfg(all(test, leocard_embedded_assets))]
+use std::path::Path;
+use winit::window::Icon;
 
 #[cfg(leocard_embedded_assets)]
 include!(concat!(env!("OUT_DIR"), "/embedded_runtime_assets.rs"));
@@ -20,10 +24,6 @@ const APP_ICON_PNG: &[u8] = include_bytes!("../../../../../assets/icons/app-icon
 #[cfg(leocard_embedded_assets)]
 pub fn configure_runtime_asset_source(app: &mut App) {
     if std::env::var_os("BEVY_ASSET_ROOT").is_none() {
-        use bevy::asset::AssetApp;
-        use bevy::asset::io::memory::MemoryAssetReader;
-        use bevy::asset::io::{AssetSourceBuilder, AssetSourceId};
-
         let directory = embedded_asset_dir();
         app.register_asset_source(
             AssetSourceId::Default,

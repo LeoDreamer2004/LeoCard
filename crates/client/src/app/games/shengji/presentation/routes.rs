@@ -1,4 +1,5 @@
 use super::*;
+use leocard_protocol::{PlayerId, ShengjiSnapshot};
 
 pub(super) fn shengji_relative_seat(game: &ShengjiSnapshot, player: PlayerId) -> Option<u8> {
     const SEAT_COUNT: u8 = 4;

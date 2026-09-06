@@ -1,13 +1,12 @@
-use std::net::{IpAddr, SocketAddr};
-use std::time::Duration;
-
+use super::NETWORK_ROOM_ID;
+use super::state::{
+    CONNECTION_HEARTBEAT_TIMEOUT, CommandReceiver, EventQueue, NetworkEvent, NetworkLaunch,
+    PING_INTERVAL, RECONNECT_ATTEMPTS, RECONNECT_CONNECT_TIMEOUT, push_event,
+};
 use leocard_protocol::{ClientCommand, ClientMessage, RequestId, ServerEvent};
 use leocard_tcp::{TcpClient, TcpServerHandle};
-
-use super::{
-    CONNECTION_HEARTBEAT_TIMEOUT, CommandReceiver, EventQueue, NETWORK_ROOM_ID, NetworkEvent,
-    NetworkLaunch, PING_INTERVAL, RECONNECT_ATTEMPTS, RECONNECT_CONNECT_TIMEOUT, push_event,
-};
+use std::net::{IpAddr, SocketAddr};
+use std::time::Duration;
 
 pub(super) async fn run_network(
     launch: NetworkLaunch,

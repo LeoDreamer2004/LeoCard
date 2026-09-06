@@ -3,22 +3,20 @@
 //! 规则核心仍以整数结算；这里把整数映射为有独立身份的实体筹码。每枚筹码在
 //! 玩家余额区、玩家下注区和中央底池之间转移，UI 重建时也能从资源恢复位置。
 
-use super::*;
-
 mod geometry;
 mod ledger;
 mod systems;
-mod view;
-
-pub use geometry::*;
-pub use systems::*;
-pub use view::*;
-
 #[cfg(test)]
 mod tests;
+mod view;
 
+use super::*;
+pub use geometry::*;
 #[cfg(test)]
 use leocard_protocol::PlayerGameProfiles;
+use leocard_protocol::{MatchId, PlayerId, SeatId};
+pub use systems::*;
+pub use view::*;
 
 const DENOMINATIONS: [u16; 5] = [100, 25, 10, 5, 1];
 const CHIP_SIZE: f32 = 30.0;

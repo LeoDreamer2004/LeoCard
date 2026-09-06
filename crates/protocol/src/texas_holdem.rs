@@ -1,12 +1,11 @@
+use crate::{
+    AvatarId, MatchId, PlayerGameProfiles, PlayerId, PlayerReferenceChange, ProfileId, SeatId,
+};
 use leocard_texas_holdem::{
     EvaluatedHand, TexasHoldemBlindKind, TexasHoldemCard, TexasHoldemHandCategory,
     TexasHoldemStreet,
 };
 use serde::{Deserialize, Serialize};
-
-use crate::{
-    AvatarId, MatchId, PlayerGameProfiles, PlayerId, PlayerReferenceChange, ProfileId, SeatId,
-};
 
 /// 面向单个德州扑克客户端的私有快照。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

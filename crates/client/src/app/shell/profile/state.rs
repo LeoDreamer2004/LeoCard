@@ -1,4 +1,6 @@
 use super::*;
+pub use leocard_client::{LocalPlayerProfile, PlayerRatingProfile};
+use leocard_protocol::PlayerGameProfiles;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum ProfileGameTab {

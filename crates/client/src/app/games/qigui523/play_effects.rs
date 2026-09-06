@@ -1,6 +1,7 @@
 //! 七鬼五二三出牌表现与发牌音效调度。
 
 use super::*;
+use leocard_qigui523::QiGuiPlayKind;
 
 const STRAIGHT_EFFECT: Color = Color::srgb(0.25, 0.78, 0.96);
 const CONSECUTIVE_PAIRS_EFFECT: Color = Color::srgb(0.76, 0.46, 0.98);

@@ -1,4 +1,6 @@
 use super::*;
+use leocard_protocol::{PlayerId, UnoEvent};
+use leocard_uno::PendingSwap;
 
 impl UnoSession {
     pub(super) fn current_automatic_player(&self) -> Option<PlayerId> {

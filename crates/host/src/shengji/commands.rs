@@ -1,4 +1,12 @@
 use super::*;
+use leocard_protocol::{
+    GameViolation, PlayerId, PlayerInteraction, PlayerInteractionKind, RejectReason, RequestId,
+    ServerEvent, ShengjiEvent, ShengjiProfileStats, ShengjiViolation,
+};
+use leocard_shengji::{
+    ActionOutcome, GameError, GameState, Phase, ShengjiCard, ShengjiPlayerId, ShengjiRuleSet,
+    TeamProgress,
+};
 
 impl ShengjiSession {
     pub(super) fn update_rules(

@@ -1,5 +1,6 @@
 use super::*;
 use leocard_protocol::QiGui523Snapshot;
+use leocard_protocol::{GamePhaseView, PlayerId, TurnTimerView};
 
 pub fn turn_clock_visible(game: &QiGui523Snapshot, player: PlayerId) -> bool {
     matches!(&game.phase, GamePhaseView::Playing)

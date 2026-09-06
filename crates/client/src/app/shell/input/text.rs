@@ -1,9 +1,9 @@
 //! 文本输入、聊天输入与开发者手牌语法。
 
 use super::*;
-
 #[cfg(feature = "developer")]
 use leocard_mahjong::{MahjongDragon, MahjongSuit, MahjongTileKind, MahjongWind};
+use leocard_protocol::{ChatContent, ClientCommand, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS};
 #[cfg(feature = "developer")]
 use leocard_protocol::{GameCommand, MahjongCommand, QiGui523Command};
 #[cfg(feature = "developer")]

@@ -1,7 +1,10 @@
 //! 七鬼五二三牌桌、座位、手牌、出牌区、得分与计时布局。
 
 use super::*;
+use leocard_client::NetworkState;
 use leocard_protocol::QiGui523Snapshot;
+use leocard_protocol::{GameKind, GamePhaseView, SeatId, TABLE_SEAT_COUNT};
+use leocard_qigui523::QiGuiPlayKind;
 
 pub fn lobby_seat_position(seat: u8) -> (f32, f32) {
     match seat {

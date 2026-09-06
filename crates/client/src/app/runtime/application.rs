@@ -1,5 +1,6 @@
 //! Bevy 插件安装、资源初始化与系统调度。
 
+use super::*;
 use bevy::asset::AssetPlugin;
 use bevy::audio::{GlobalVolume, Volume};
 use bevy::log::{DEFAULT_FILTER, LogPlugin};
@@ -8,7 +9,6 @@ use leocard_client::PlayerIdentity;
 use leocard_protocol::PlayerGameProfiles;
 use std::collections::HashSet;
 
-use super::*;
 pub fn launch() {
     let mut form = ConnectionForm::default();
     let profile = match LocalPlayerProfile::load_or_create() {

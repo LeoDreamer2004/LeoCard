@@ -1,5 +1,6 @@
 use super::*;
 use leocard_protocol::MahjongHandResultView;
+use leocard_protocol::MahjongSnapshot;
 
 pub(super) fn render_mahjong_settlement(
     commands: &mut Commands,

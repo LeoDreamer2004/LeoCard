@@ -1,5 +1,10 @@
 use super::*;
+use leocard_client::NetworkState;
 use leocard_protocol::ShengjiBottomFlipRevealView;
+use leocard_protocol::{
+    GameKind, PlayerId, SeatId, ShengjiPhaseView, ShengjiPlayerState, ShengjiPublicPlay,
+    ShengjiSnapshot,
+};
 
 const SHENGJI_PLAYER_COUNT: u8 = 4;
 

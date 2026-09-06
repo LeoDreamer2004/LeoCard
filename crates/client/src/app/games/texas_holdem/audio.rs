@@ -4,6 +4,7 @@
 //! 被反复播放。密集筹码动作按“动作”聚合成少量错开的采样，不逐枚筹码发声。
 
 use super::*;
+use leocard_texas_holdem::TexasHoldemAction;
 
 #[derive(Default)]
 pub struct TexasSoundAssets {

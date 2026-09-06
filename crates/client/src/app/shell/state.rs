@@ -1,8 +1,7 @@
 //! 顶层 UI 状态，仅组合各功能域自行维护的局部状态。
 
-use bevy::prelude::*;
-
 use super::*;
+use bevy::prelude::*;
 
 #[derive(Resource, Default)]
 pub struct UiState {

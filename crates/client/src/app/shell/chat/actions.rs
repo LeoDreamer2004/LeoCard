@@ -1,6 +1,7 @@
 //! 聊天抽屉、快捷语音与表情按钮动作。
 
 use super::*;
+use leocard_protocol::{ChatContent, ClientCommand};
 
 pub fn handle_chat_button(
     action: &UiAction,

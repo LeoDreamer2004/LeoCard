@@ -1,6 +1,7 @@
 //! 七鬼五二三终局结算弹窗与逐行得分演出。
 
 use super::*;
+use leocard_protocol::GamePhaseView;
 use leocard_protocol::QiGui523Snapshot;
 
 pub fn add_game_summary_modal(

@@ -1,4 +1,7 @@
 use super::*;
+use leocard_mahjong::{
+    MahjongClaim, MahjongKongKind, MahjongMeldKind, MahjongTileKind, MahjongWind,
+};
 use leocard_protocol::MahjongPublicMeldView;
 
 #[derive(Clone, Copy)]

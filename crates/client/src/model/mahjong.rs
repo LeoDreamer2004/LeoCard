@@ -1,8 +1,6 @@
-use std::collections::VecDeque;
-
-use leocard_protocol::{GameRules, GameSnapshot, MahjongEvent, MahjongSnapshot};
-
 use super::*;
+use leocard_protocol::{GameRules, GameSnapshot, MahjongEvent, MahjongSnapshot};
+use std::collections::VecDeque;
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct MahjongClientState {

@@ -1,4 +1,5 @@
 use super::*;
+
 #[test]
 fn deals_seven_cards_and_applies_number_start() {
     let game = GameState::new_with_deck(UnoRuleSet::default(), 6, build_deck()).unwrap();

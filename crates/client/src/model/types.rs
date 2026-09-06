@@ -1,6 +1,5 @@
-use std::collections::VecDeque;
-
 use leocard_protocol::{ChatMessage, PlayerInteraction};
+use std::collections::VecDeque;
 
 #[derive(Clone, Debug)]
 pub(super) struct Sequenced<T> {

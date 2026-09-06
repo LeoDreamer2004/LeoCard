@@ -1,6 +1,8 @@
 //! 建房游戏选择与主连接页面。
 
 use super::*;
+use leocard_client::{NetworkState, TcpGameClient};
+use leocard_protocol::GameKind;
 
 const HOST_GAME_CHOICES: [(&str, &str, GameKind); 5] = [
     ("七鬼五二三", "放空大脑, 有牌就出", GameKind::QiGui523),

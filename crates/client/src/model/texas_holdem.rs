@@ -1,8 +1,6 @@
-use std::collections::VecDeque;
-
-use leocard_protocol::{GameSnapshot, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemSnapshot};
-
 use super::*;
+use leocard_protocol::{GameSnapshot, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemSnapshot};
+use std::collections::VecDeque;
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct TexasHoldemClientState {

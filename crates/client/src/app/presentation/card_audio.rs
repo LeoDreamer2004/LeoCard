@@ -1,8 +1,7 @@
 //! 跨游戏共用的发牌音效调度。
 
-use bevy::prelude::*;
-
 use crate::app::UiAssets;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct PendingDealSound {

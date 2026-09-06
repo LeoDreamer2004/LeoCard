@@ -1,10 +1,10 @@
-use super::*;
-use crate::card::{CardSide, build_deck, build_flip_deck, build_no_mercy_deck};
-
 mod extensions;
 mod flip;
 mod jump_in;
 mod turn;
+
+use super::*;
+use crate::card::{CardSide, build_deck, build_flip_deck, build_no_mercy_deck};
 
 fn no_mercy_game(player_count: u8) -> GameState {
     let rules = UnoRuleSet {

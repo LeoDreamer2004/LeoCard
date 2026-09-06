@@ -1,4 +1,6 @@
 use super::*;
+use leocard_mahjong::MahjongTile;
+use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 
 #[derive(Clone, Copy)]
 pub(super) struct MahjongWinningHandVisual {

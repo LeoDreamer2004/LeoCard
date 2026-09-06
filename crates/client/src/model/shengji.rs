@@ -1,9 +1,8 @@
-use std::collections::VecDeque;
-
+use super::ClientModel;
+use super::types::Sequenced;
 use leocard_protocol::{GameRules, GameSnapshot, ShengjiEvent, ShengjiPhaseView, ShengjiSnapshot};
 use leocard_shengji::ShengjiCard;
-
-use super::*;
+use std::collections::VecDeque;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ShengjiScoreCaptureEffect {

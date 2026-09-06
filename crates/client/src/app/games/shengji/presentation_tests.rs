@@ -1,6 +1,8 @@
 use super::*;
 use leocard_protocol::ShengjiEvent;
+use leocard_protocol::{PlayerId, ShengjiPublicPlay};
 use leocard_shengji::{Category, Component, ShengjiBidTrump, ShengjiClassifiedPlay, ShengjiRank};
+use leocard_shengji::{ShengjiCard, ShengjiSuit, ShengjiThrowPenalty, ShengjiTrump};
 
 #[test]
 fn routed_presentations_point_at_all_four_relative_seats() {
@@ -38,8 +40,6 @@ fn five_and_ten_point_throw_penalties_use_distinct_sound_weights() {
 
 #[test]
 fn every_shengji_structure_maps_to_the_declared_presentation_family() {
-    use leocard_shengji::{Category, Component, ShengjiClassifiedPlay};
-
     let copies = |rank, count: u8| {
         (0..count)
             .map(|deck| ShengjiCard::suited(deck, ShengjiSuit::Spade, rank))
@@ -218,8 +218,6 @@ fn routine_cards_and_following_mixed_shapes_do_not_show_type_labels() {
 
 #[test]
 fn only_a_structure_matching_winning_trump_play_triggers_the_target_effect() {
-    use leocard_shengji::{Category, Component, ShengjiClassifiedPlay};
-
     let trump = ShengjiTrump::new(ShengjiRank::Ten, Some(ShengjiSuit::Heart)).unwrap();
     let single = |player: u8, card: ShengjiCard, category| ShengjiPublicPlay {
         player: PlayerId(player),

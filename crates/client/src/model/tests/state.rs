@@ -1,7 +1,10 @@
 use super::qigui::score_history_snapshot;
 use super::*;
-
-use leocard_protocol::{GamePhaseView, RuleViolation};
+use leocard_protocol::{
+    AvatarId, GameRules, GameSnapshot, LobbySnapshot, MatchId, PROTOCOL_VERSION, PlayerId,
+    PlayerReferenceChange, RejectReason, Revision, RoomId, ServerEvent, ServerMessage,
+};
+use leocard_protocol::{GameKind, GamePhaseView, GameViolation, ProfileId, RuleViolation};
 use leocard_qigui523::QiGuiRuleSet;
 
 #[test]

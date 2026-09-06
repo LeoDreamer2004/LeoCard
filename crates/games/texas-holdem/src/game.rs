@@ -1,15 +1,17 @@
-use std::collections::{HashSet, VecDeque};
-use std::fmt;
+#[path = "game_actions.rs"]
+mod actions;
+#[path = "game_lifecycle.rs"]
+mod lifecycle;
+#[cfg(test)]
+#[path = "game_tests.rs"]
+mod tests;
 
 use crate::{
     EvaluatedHand, HandError, RuleError, TexasHoldemCard, TexasHoldemRuleSet, build_deck,
     evaluate_player_hand,
 };
-
-#[path = "game_actions.rs"]
-mod actions;
-#[path = "game_lifecycle.rs"]
-mod lifecycle;
+use std::collections::{HashSet, VecDeque};
+use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -418,7 +420,3 @@ fn validate_deck(short_deck: bool, deck: &[TexasHoldemCard]) -> Result<(), GameE
     }
     Ok(())
 }
-
-#[cfg(test)]
-#[path = "game_tests.rs"]
-mod tests;

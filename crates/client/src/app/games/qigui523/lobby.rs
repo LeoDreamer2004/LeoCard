@@ -2,6 +2,8 @@
 
 use super::*;
 use leocard_protocol::LobbySnapshot;
+use leocard_protocol::TABLE_SEAT_COUNT;
+use leocard_qigui523::{QiGuiRuleSet, SameCardPolicy};
 
 pub fn render_qigui523_lobby(
     commands: &mut Commands,

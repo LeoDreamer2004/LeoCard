@@ -1,8 +1,13 @@
+#[cfg(test)]
+#[path = "play_tests.rs"]
+mod tests;
+
+use crate::{QiGuiCard, QiGuiRank, QiGuiRuleSet, SameCardPolicy, SuitComparison};
+use BombKind::OfAKind;
+use QiGuiPlayKind::{Bomb, HeavenBomb};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-
-use crate::{QiGuiCard, QiGuiRank, QiGuiRuleSet, SameCardPolicy, SuitComparison};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -176,9 +181,6 @@ pub fn compare_plays(
     current: &ClassifiedPlay,
     rules: &QiGuiRuleSet,
 ) -> PlayComparison {
-    use BombKind::OfAKind;
-    use QiGuiPlayKind::{Bomb, HeavenBomb};
-
     if rules.advanced_play_types {
         let comparison = advanced_type_comparison(challenger.kind(), current.kind());
         if comparison != PlayComparison::Incompatible {
@@ -385,7 +387,3 @@ fn semantic_comparison(
         Ordering::Less => PlayComparison::Lower,
     }
 }
-
-#[cfg(test)]
-#[path = "play_tests.rs"]
-mod tests;

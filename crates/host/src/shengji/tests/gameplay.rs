@@ -1,4 +1,15 @@
 use super::*;
+use leocard_protocol::{ClientCommand, GameCommand, SeatId, ServerEvent};
+use leocard_protocol::{
+    GameEvent, GameViolation, PlayerId, RejectReason, ShengjiCommand, ShengjiDeclarationView,
+    ShengjiEvent, ShengjiPhaseView, ShengjiThrowFailureStage, ShengjiThrowFailureView,
+    ShengjiViolation,
+};
+#[cfg(test)]
+use leocard_shengji::build_deck;
+use leocard_shengji::{ActionOutcome, ShengjiCard, ShengjiPlayerId, ShengjiRuleSet, TrickRecord};
+use leocard_shengji::{ShengjiRank, ShengjiSuit};
+
 #[test]
 fn dealing_is_clocked_and_each_snapshot_keeps_other_hands_private() {
     let (mut session, connections, target) = started_session();

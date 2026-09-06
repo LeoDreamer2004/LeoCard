@@ -1,6 +1,8 @@
 //! 麻将客户端快照观察状态。
 
 use super::*;
+use leocard_mahjong::MahjongTile;
+use leocard_protocol::MatchId;
 
 #[derive(Default)]
 pub struct MahjongUiState {

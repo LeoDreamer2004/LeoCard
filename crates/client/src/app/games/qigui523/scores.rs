@@ -1,4 +1,6 @@
 use super::*;
+use leocard_protocol::PlayerPublicState;
+use leocard_qigui523::QiGuiCard;
 
 pub(super) fn add_score_cards_popup(
     commands: &mut Commands,

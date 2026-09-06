@@ -1,4 +1,6 @@
 use super::*;
+use leocard_mahjong::{MahjongClaim, MahjongTileKind};
+use leocard_protocol::{MahjongSnapshot, PlayerId};
 
 fn mahjong_claim_label(claim: MahjongClaim) -> &'static str {
     match claim {

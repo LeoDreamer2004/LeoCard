@@ -1,6 +1,7 @@
 //! 麻将按钮动作到网络命令的转换。
 
 use super::*;
+use leocard_protocol::{ClientCommand, GameCommand, MahjongCommand};
 
 pub fn handle_mahjong_button(
     action: &UiAction,

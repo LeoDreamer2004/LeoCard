@@ -1,5 +1,12 @@
 use super::*;
+use leocard_protocol::{
+    ClientCommand, ClientMessage, GameCommand, GameKind, RejectReason, RequestId, Revision, RoomId,
+    ServerEvent, ShengjiCommand, ShengjiEvent, ShengjiPublicPlay, ShengjiThrowFailureStage,
+};
 use leocard_shengji::BottomCopyState;
+use leocard_shengji::{
+    ActionOutcome, GameError, GameState, Phase, ShengjiCard, ShengjiRuleSet, TeamProgress,
+};
 
 impl ShengjiSession {
     pub fn new(

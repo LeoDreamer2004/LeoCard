@@ -1,4 +1,9 @@
 use super::*;
+use leocard_mahjong::MahjongRuleSet;
+use leocard_qigui523::QiGuiRuleSet;
+use leocard_shengji::ShengjiRuleSet;
+use leocard_texas_holdem::TexasHoldemRuleSet;
+use leocard_uno::UnoRuleSet;
 
 pub trait EditableRuleSet: Copy {
     const ROW_HEIGHT: f32;

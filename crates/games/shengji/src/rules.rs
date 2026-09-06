@@ -1,6 +1,5 @@
-use std::fmt;
-
 use crate::{ShengjiCard, ShengjiRank, ShengjiSuit};
+use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

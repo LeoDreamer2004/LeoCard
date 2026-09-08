@@ -2,8 +2,9 @@ use super::*;
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_protocol::{
     ClientCommand, GameCommand, GameSnapshot, JoinRequest, PROTOCOL_VERSION, PlayerGameProfiles,
-    ProfileId, ReconnectToken, RequestId, Revision, SeatId, ServerEvent, ServerMessage,
-    TexasHoldemCommand, TexasHoldemViolation, decode_frame, encode_frame, join_identity_payload,
+    ProfileId, ReconnectToken, RequestId, Revision, RoomViolation, SeatId, ServerEvent,
+    ServerMessage, TexasHoldemCommand, TexasHoldemViolation, decode_frame, encode_frame,
+    join_identity_payload,
 };
 use leocard_protocol::{
     ClientMessage, GameEvent, GameKind, GameViolation, MatchId, PlayerId, RejectReason, RoomId,
@@ -171,7 +172,7 @@ fn developer_host_right_click_commands_add_default_texas_bots() {
     assert!(rejected.iter().any(|delivery| matches!(
         delivery.message.event,
         ServerEvent::Rejected {
-            reason: RejectReason::NotEnoughPlayers { .. }
+            reason: RejectReason::Room(RoomViolation::NotEnoughPlayers { .. })
         }
     )));
     let empty_seats = (0..TABLE_SEAT_COUNT)
@@ -282,7 +283,7 @@ fn protocol_actions_use_the_adapter_and_rejections_leave_state_unchanged() {
     assert!(rejected.iter().any(|delivery| matches!(
         delivery.message.event,
         ServerEvent::Rejected {
-            reason: RejectReason::GameViolation(GameViolation::TexasHoldem(
+            reason: RejectReason::Game(GameViolation::TexasHoldem(
                 TexasHoldemViolation::CannotCheckWhileFacingBet { .. }
             ))
         }

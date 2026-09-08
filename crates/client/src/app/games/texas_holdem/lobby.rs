@@ -16,7 +16,7 @@ pub fn render_texas_holdem_lobby(
     let rules_value = *lobby
         .texas_holdem_rules()
         .expect("德州扑克大厅应携带对应规则");
-    let connected_count = connected_lobby_player_count(lobby);
+    let connected_count = LobbyMetrics::new(lobby).connected_player_count();
     let content = spawn_node(
         commands,
         root,
@@ -179,7 +179,7 @@ pub fn render_texas_holdem_lobby(
         format!("玩家席位  {connected_count}/{TABLE_SEAT_COUNT}"),
         assets,
     );
-    render_seat_selector(commands, players, client, lobby, assets, avatars);
+    LobbySeatSelector::new(client, lobby, assets, avatars).render(commands, players);
 
     let actions = spawn_node(
         commands,
@@ -208,7 +208,7 @@ pub fn render_texas_holdem_lobby(
         commands,
         actions,
         "退出房间",
-        UiAction::LeaveRoom,
+        UiAction::Lobby(LobbyUiAction::LeaveRoom),
         ButtonKind::Pass,
         assets,
     );
@@ -224,7 +224,7 @@ pub fn render_texas_holdem_lobby(
                 commands,
                 actions,
                 "开始游戏",
-                UiAction::StartGame,
+                UiAction::Lobby(LobbyUiAction::StartGame),
                 ButtonKind::Primary,
                 assets,
             );
@@ -236,7 +236,7 @@ pub fn render_texas_holdem_lobby(
             commands,
             actions,
             if ready { "取消准备" } else { "准备" },
-            UiAction::ToggleReady,
+            UiAction::Lobby(LobbyUiAction::ToggleReady),
             if ready {
                 ButtonKind::Secondary
             } else {

@@ -2,7 +2,8 @@ use super::*;
 use leocard_protocol::TexasHoldemViolation;
 use leocard_protocol::{
     GameViolation, PlayerId, PlayerInteraction, PlayerInteractionKind, PlayerReferenceChange,
-    RejectReason, RequestId, ServerEvent, TABLE_SEAT_COUNT, TexasHoldemProfileStats,
+    PlayerViolation, RejectReason, RequestId, RoomViolation, ServerEvent, TABLE_SEAT_COUNT,
+    TexasHoldemProfileStats,
 };
 use leocard_qigui523::reference_point_deltas;
 use leocard_texas_holdem::{Phase, TexasHoldemAction, TexasHoldemRuleSet, build_deck};
@@ -15,19 +16,25 @@ impl TexasHoldemSession {
         rules: TexasHoldemRuleSet,
     ) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.game.is_some() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameAlreadyStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameAlreadyStarted),
+            );
         }
         if self.room.host_connection != Some(connection) {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::OnlyHostCanConfigure);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::OnlyHostCanConfigure),
+            );
         }
         let Ok(rules) = (TexasHoldemRuleSet {
             player_count: TABLE_SEAT_COUNT,
@@ -37,7 +44,7 @@ impl TexasHoldemSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::InvalidRuleConfiguration,
+                RejectReason::Game(GameViolation::InvalidRuleConfiguration),
             );
         };
         if self.rules != rules {
@@ -58,20 +65,24 @@ impl TexasHoldemSession {
         enabled: bool,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_ref() else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         if !matches!(game.game().phase(), Phase::Betting(_)) {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::GameViolation(GameViolation::TexasHoldem(
+                RejectReason::Game(GameViolation::TexasHoldem(
                     TexasHoldemViolation::HandAlreadyComplete,
                 )),
             );
@@ -114,19 +125,25 @@ impl TexasHoldemSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.game.is_some() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameAlreadyStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameAlreadyStarted),
+            );
         }
         if self.room.host_connection != Some(connection) {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::OnlyHostCanStart);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::OnlyHostCanStart),
+            );
         }
         let active_player_count = self
             .room
@@ -138,10 +155,10 @@ impl TexasHoldemSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::NotEnoughPlayers {
+                RejectReason::Room(RoomViolation::NotEnoughPlayers {
                     minimum: TexasHoldemRuleSet::MIN_PLAYERS,
                     actual: active_player_count as u8,
-                },
+                }),
             );
         }
         if self
@@ -150,9 +167,11 @@ impl TexasHoldemSession {
             .iter()
             .any(|player| !player.left && player.seat.is_none())
         {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::MustSelectSeat);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::MustSelectSeat),
+            );
         }
         let not_ready = self
             .room
@@ -166,7 +185,7 @@ impl TexasHoldemSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::PlayersNotReady { players: not_ready },
+                RejectReason::Room(RoomViolation::PlayersNotReady { players: not_ready }),
             );
         }
         // Keep lobby PlayerIds stable. Compaction is safe only once every recipient is
@@ -183,7 +202,7 @@ impl TexasHoldemSession {
                 self.room.reject(
                     connection,
                     request_id,
-                    RejectReason::InvalidRuleConfiguration,
+                    RejectReason::Game(GameViolation::InvalidRuleConfiguration),
                 )
             }
         }
@@ -245,18 +264,22 @@ impl TexasHoldemSession {
         action: TexasHoldemAction,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let was_complete = self
             .game
             .as_ref()
             .is_some_and(|game| matches!(game.game().phase(), Phase::Complete(_)));
         let Some(game) = self.game.as_mut() else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         let mut events = match game.act(player, action) {
             Ok(events) => events,
@@ -264,14 +287,14 @@ impl TexasHoldemSession {
                 return self.room.reject(
                     connection,
                     request_id,
-                    RejectReason::GameViolation(GameViolation::TexasHoldem(violation)),
+                    RejectReason::Game(GameViolation::TexasHoldem(violation)),
                 );
             }
             Err(_) => {
                 return self.room.reject(
                     connection,
                     request_id,
-                    RejectReason::InvalidRuleConfiguration,
+                    RejectReason::Game(GameViolation::InvalidRuleConfiguration),
                 );
             }
         };
@@ -291,19 +314,25 @@ impl TexasHoldemSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         let Some(game) = self.game.as_ref() else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         if !matches!(game.game().phase(), Phase::Complete(_)) || !self.tournament_complete() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotFinished);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
         }
         self.game = None;
         self.match_profile_stats.clear();
@@ -331,19 +360,25 @@ impl TexasHoldemSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_ref() else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         if !matches!(game.game().phase(), Phase::Complete(_)) || self.tournament_complete() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotFinished);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
         }
         if let Some(participant) = self.room.players.iter_mut().find(|p| p.id == player) {
             participant.ready = true;
@@ -370,7 +405,7 @@ impl TexasHoldemSession {
                 return self.room.reject(
                     connection,
                     request_id,
-                    RejectReason::InvalidRuleConfiguration,
+                    RejectReason::Game(GameViolation::InvalidRuleConfiguration),
                 );
             }
             let events = self.fold_disconnected_players();
@@ -485,9 +520,11 @@ impl TexasHoldemSession {
             .iter()
             .position(|player| player.connection == connection && !player.left)
         else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         if self.room.host_connection == Some(connection) {
             return self.close_room(connection, request_id);
@@ -556,20 +593,24 @@ impl TexasHoldemSession {
         kind: PlayerInteractionKind,
     ) -> Vec<Delivery> {
         let Some(source) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_ref() else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         if !matches!(game.game().phase(), Phase::Betting(_)) {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::GameViolation(GameViolation::TexasHoldem(
+                RejectReason::Game(GameViolation::TexasHoldem(
                     TexasHoldemViolation::HandAlreadyComplete,
                 )),
             );
@@ -584,7 +625,7 @@ impl TexasHoldemSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::GameViolation(GameViolation::TexasHoldem(
+                RejectReason::Game(GameViolation::TexasHoldem(
                     TexasHoldemViolation::InvalidPlayer,
                 )),
             );

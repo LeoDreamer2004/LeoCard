@@ -13,23 +13,48 @@ pub trait EditableRuleSet: Copy {
 }
 
 macro_rules! editable_rule_set {
-    ($rules:ty, $action:path, $row_height:expr, $value_width:expr) => {
+    ($rules:ty, $action:expr, $row_height:expr, $value_width:expr) => {
         impl EditableRuleSet for $rules {
             const ROW_HEIGHT: f32 = $row_height;
             const VALUE_WIDTH: f32 = $value_width;
 
             fn update_action(self) -> UiAction {
-                $action(self)
+                ($action)(self)
             }
         }
     };
 }
 
-editable_rule_set!(QiGuiRuleSet, UiAction::UpdateRules, 34.0, 68.0);
-editable_rule_set!(TexasHoldemRuleSet, UiAction::UpdateTexasRules, 38.0, 78.0);
-editable_rule_set!(UnoRuleSet, UiAction::UpdateUnoRules, 38.0, 78.0);
-editable_rule_set!(ShengjiRuleSet, UiAction::UpdateShengjiRules, 38.0, 92.0);
-editable_rule_set!(MahjongRuleSet, UiAction::UpdateMahjongRules, 38.0, 92.0);
+editable_rule_set!(
+    QiGuiRuleSet,
+    |rules| UiAction::QiGui523(QiGui523UiAction::UpdateRules(rules)),
+    34.0,
+    68.0
+);
+editable_rule_set!(
+    TexasHoldemRuleSet,
+    |rules| UiAction::TexasHoldem(TexasHoldemUiAction::UpdateRules(rules)),
+    38.0,
+    78.0
+);
+editable_rule_set!(
+    UnoRuleSet,
+    |rules| UiAction::Uno(UnoUiAction::UpdateRules(rules)),
+    38.0,
+    78.0
+);
+editable_rule_set!(
+    ShengjiRuleSet,
+    |rules| UiAction::Shengji(ShengjiUiAction::UpdateRules(rules)),
+    38.0,
+    92.0
+);
+editable_rule_set!(
+    MahjongRuleSet,
+    |rules| UiAction::Mahjong(MahjongUiAction::UpdateRules(rules)),
+    38.0,
+    92.0
+);
 
 pub struct RuleConfigRow<'a, R> {
     pub label: &'a str,

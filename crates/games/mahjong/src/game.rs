@@ -247,6 +247,46 @@ pub enum ActionOutcome {
     HandFinished(HandResult),
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum MahjongHandReplacementError {
+    WrongTileCount {
+        expected: u16,
+        actual: u16,
+    },
+    FlowerNotAllowed {
+        tile: MahjongTileKind,
+    },
+    TileUnavailable {
+        tile: MahjongTileKind,
+        requested: u16,
+        available: u16,
+    },
+}
+
+impl fmt::Display for MahjongHandReplacementError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::WrongTileCount { expected, actual } => {
+                write!(f, "手牌张数不对：需要 {expected} 张，实际输入 {actual} 张")
+            }
+            Self::FlowerNotAllowed { tile } => {
+                write!(f, "开发者手牌不能包含花牌（{tile}）")
+            }
+            Self::TileUnavailable {
+                tile,
+                requested,
+                available,
+            } => write!(
+                f,
+                "{tile}存量不足：需要 {requested} 张，当前手牌和牌山中只有 {available} 张"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for MahjongHandReplacementError {}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GameError {
     InvalidRules(RuleError),
@@ -266,7 +306,7 @@ pub enum GameError {
     AlreadyResponded,
     CannotWin,
     CannotKong,
-    InvalidHandReplacement,
+    InvalidHandReplacement(MahjongHandReplacementError),
     Score(ScoreError),
 }
 
@@ -290,7 +330,7 @@ impl fmt::Display for GameError {
             Self::AlreadyResponded => f.write_str("已经提交过本次响应"),
             Self::CannotWin => f.write_str("当前手牌不能宣布和牌"),
             Self::CannotKong => f.write_str("当前不能开杠"),
-            Self::InvalidHandReplacement => f.write_str("替换手牌的张数或牌墙来源无效"),
+            Self::InvalidHandReplacement(error) => error.fmt(f),
             Self::Score(error) => error.fmt(f),
         }
     }
@@ -449,8 +489,39 @@ impl GameState {
             return Err(GameError::WrongPhase);
         }
         let old_hand = &self.players[player.0].hand;
-        if kinds.len() != old_hand.len() || kinds.iter().any(|kind| kind.is_flower()) {
-            return Err(GameError::InvalidHandReplacement);
+        if kinds.len() != old_hand.len() {
+            return Err(GameError::InvalidHandReplacement(
+                MahjongHandReplacementError::WrongTileCount {
+                    expected: old_hand.len() as u16,
+                    actual: kinds.len() as u16,
+                },
+            ));
+        }
+        if let Some(tile) = kinds.iter().copied().find(|kind| kind.is_flower()) {
+            return Err(GameError::InvalidHandReplacement(
+                MahjongHandReplacementError::FlowerNotAllowed { tile },
+            ));
+        }
+        let mut checked = HashSet::new();
+        for tile in kinds.iter().copied() {
+            if !checked.insert(tile) {
+                continue;
+            }
+            let requested = kinds.iter().filter(|kind| **kind == tile).count();
+            let available = old_hand
+                .iter()
+                .chain(self.wall.iter())
+                .filter(|candidate| candidate.kind() == tile)
+                .count();
+            if requested > available {
+                return Err(GameError::InvalidHandReplacement(
+                    MahjongHandReplacementError::TileUnavailable {
+                        tile,
+                        requested: requested as u16,
+                        available: available as u16,
+                    },
+                ));
+            }
         }
 
         let mut old_used = vec![false; old_hand.len()];
@@ -488,7 +559,18 @@ impl GameState {
                 .enumerate()
                 .find(|(index, tile)| !wall_used[*index] && tile.kind() == kind)
             else {
-                return Err(GameError::InvalidHandReplacement);
+                return Err(GameError::InvalidHandReplacement(
+                    MahjongHandReplacementError::TileUnavailable {
+                        tile: kind,
+                        requested: kinds.iter().filter(|candidate| **candidate == kind).count()
+                            as u16,
+                        available: old_hand
+                            .iter()
+                            .chain(self.wall.iter())
+                            .filter(|candidate| candidate.kind() == kind)
+                            .count() as u16,
+                    },
+                ));
             };
             wall_used[wall_index] = true;
             replacement[desired_index] = Some(wall_tile);
@@ -498,7 +580,7 @@ impl GameState {
         let new_hand = replacement
             .into_iter()
             .collect::<Option<Vec<_>>>()
-            .ok_or(GameError::InvalidHandReplacement)?;
+            .expect("validated replacement fills every hand position");
         for (wall_index, returned_tile) in swaps {
             self.wall[wall_index] = returned_tile;
         }

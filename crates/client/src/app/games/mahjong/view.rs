@@ -148,7 +148,7 @@ impl MahjongWinEffectTier {
         match self {
             Self::Normal => 0.90,
             Self::HighTotal => 2.45,
-            Self::MajorFan => 3.20,
+            Self::MajorFan => 4.80,
         }
     }
 }
@@ -220,7 +220,23 @@ pub enum MahjongWinStageKind {
     Backdrop,
     Hand,
     WinningTile,
-    FanText { delay: f32 },
+    FocusRay {
+        delay: f32,
+        direction: Vec2,
+        phase: f32,
+    },
+    MajorFrame,
+    MajorSweep {
+        delay: f32,
+    },
+    MajorSpark {
+        delay: f32,
+        drift: Vec2,
+        phase: f32,
+    },
+    ImpactFlash {
+        delay: f32,
+    },
 }
 
 #[derive(Component)]
@@ -230,6 +246,13 @@ pub struct MahjongWinStagePart {
     pub start: f32,
     pub duration: f32,
     pub kind: MahjongWinStageKind,
+}
+
+#[derive(Component)]
+pub struct MahjongWinFanGlyph {
+    pub reveal_duration: f32,
+    pub start: f32,
+    pub delay: f32,
 }
 
 #[derive(Component)]

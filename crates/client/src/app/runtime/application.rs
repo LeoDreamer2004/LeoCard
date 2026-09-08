@@ -95,6 +95,13 @@ pub fn launch() {
         .add_plugins(UiMaterialPlugin::<TurnBorderMaterial>::default())
         .add_plugins(UiMaterialPlugin::<UnoPaletteMaterial>::default())
         .add_plugins(UiMaterialPlugin::<MahjongTileMaterial>::default())
+        .add_plugins(UiActionPlugin)
+        .configure_sets(
+            Update,
+            UiActionSet
+                .after(handle_texas_raise_button_hold)
+                .before(close_interaction_menu_on_outside_click),
+        )
         .add_systems(Startup, (setup_camera, load_ui_assets))
         .add_systems(Update, set_app_window_icon)
         .add_systems(
@@ -140,7 +147,6 @@ pub fn launch() {
                         tick_player_interaction_cooldown,
                         (sync_card_drag_preview, sync_shengji_card_drag_preview).chain(),
                         handle_texas_raise_button_hold,
-                        handle_buttons,
                         close_interaction_menu_on_outside_click,
                         sync_opponent_badge_popups,
                         sync_interaction_cooldown_masks,
@@ -215,7 +221,7 @@ pub fn launch() {
                         (
                             sync_avatar_images,
                             poll_update_events,
-                            render_ui,
+                            rebuild_ui,
                             (
                                 animate_mahjong_claim_presentation,
                                 animate_mahjong_flower_presentations,

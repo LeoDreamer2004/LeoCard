@@ -1,10 +1,11 @@
 use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
-    AvatarId, ChatContent, ChatMessage, ClientMessage, GameKind, GameRules, JoinRequest,
-    LobbyPlayer, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS, PROTOCOL_VERSION,
-    PlayerGameProfiles, PlayerId, PlayerInteractionKind, PlayerInteractionStats, ProfileId,
-    QUICK_VOICE_COUNT, ReconnectToken, RejectReason, RequestId, Revision, RoomId, SeatId,
-    ServerEvent, ServerMessage, TABLE_SEAT_COUNT,
+    AvatarId, ChatContent, ChatMessage, ClientMessage, GameKind, GameRules, GameViolation,
+    JoinRequest, LobbyPlayer, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS,
+    PROTOCOL_VERSION, PlayerGameProfiles, PlayerId, PlayerInteractionKind, PlayerInteractionStats,
+    PlayerViolation, ProfileId, QUICK_VOICE_COUNT, ReconnectToken, RejectReason, RequestId,
+    RequestViolation, Revision, RoomId, RoomViolation, SeatId, ServerEvent, ServerMessage,
+    TABLE_SEAT_COUNT,
 };
 use std::collections::HashMap;
 
@@ -120,28 +121,32 @@ impl RoomSession {
             return Err(self.reject(
                 connection,
                 message.request_id,
-                RejectReason::ProtocolMismatch {
+                RejectReason::Request(RequestViolation::ProtocolMismatch {
                     expected: PROTOCOL_VERSION,
                     received: message.protocol_version,
-                },
+                }),
             ));
         }
         if message.room_id != self.room_id {
-            return Err(self.reject(connection, message.request_id, RejectReason::RoomMismatch));
+            return Err(self.reject(
+                connection,
+                message.request_id,
+                RejectReason::Request(RequestViolation::RoomMismatch),
+            ));
         }
         if let Some(last_seen) = self.last_requests.get(&connection).copied() {
             if message.request_id == last_seen {
                 return Err(self.reject(
                     connection,
                     message.request_id,
-                    RejectReason::DuplicateRequest { last_seen },
+                    RejectReason::Request(RequestViolation::DuplicateRequest { last_seen }),
                 ));
             }
             if message.request_id < last_seen {
                 return Err(self.reject(
                     connection,
                     message.request_id,
-                    RejectReason::StaleRequest { last_seen },
+                    RejectReason::Request(RequestViolation::StaleRequest { last_seen }),
                 ));
             }
         }
@@ -158,19 +163,19 @@ impl RoomSession {
         capacity: u8,
     ) -> Result<Vec<Delivery>, RejectReason> {
         if self.player_id(connection).is_some() {
-            return Err(RejectReason::AlreadyJoined);
+            return Err(RejectReason::Player(PlayerViolation::AlreadyJoined));
         }
         let normalized_name = request.name.trim();
         if normalized_name.is_empty() {
-            return Err(RejectReason::NameEmpty);
+            return Err(RejectReason::Player(PlayerViolation::NameEmpty));
         }
         if normalized_name.chars().count() > MAX_PLAYER_NAME_CHARS {
-            return Err(RejectReason::NameTooLong {
+            return Err(RejectReason::Player(PlayerViolation::NameTooLong {
                 max_chars: MAX_PLAYER_NAME_CHARS as u16,
-            });
+            }));
         }
         if !crate::valid_identity_proof(self.room_id, &request) {
-            return Err(RejectReason::InvalidIdentityProof);
+            return Err(RejectReason::Player(PlayerViolation::InvalidIdentityProof));
         }
         let JoinRequest {
             name,
@@ -188,7 +193,7 @@ impl RoomSession {
             .position(|player| player.reconnect_token == reconnect_token && !player.left)
         {
             if self.players[index].name != name || self.players[index].profile_id != profile_id {
-                return Err(RejectReason::AlreadyJoined);
+                return Err(RejectReason::Player(PlayerViolation::AlreadyJoined));
             }
             return Ok(self.reconnect(index, connection, request_id, game_started));
         }
@@ -197,13 +202,13 @@ impl RoomSession {
             .iter()
             .any(|player| player.profile_id == profile_id && !player.left)
         {
-            return Err(RejectReason::AlreadyJoined);
+            return Err(RejectReason::Player(PlayerViolation::AlreadyJoined));
         }
         if game_started {
-            return Err(RejectReason::GameAlreadyStarted);
+            return Err(RejectReason::Game(GameViolation::GameAlreadyStarted));
         }
         if self.players.iter().filter(|player| !player.left).count() >= usize::from(capacity) {
-            return Err(RejectReason::RoomFull);
+            return Err(RejectReason::Room(RoomViolation::RoomFull));
         }
 
         let vacant = self.players.iter().position(|player| player.left);
@@ -314,15 +319,17 @@ impl RoomSession {
         png: Vec<u8>,
         game_started: bool,
     ) -> Result<Vec<Delivery>, RejectReason> {
-        let player = self.player_id(connection).ok_or(RejectReason::NotJoined)?;
+        let player = self
+            .player_id(connection)
+            .ok_or(RejectReason::Player(PlayerViolation::NotJoined))?;
         if game_started {
-            return Err(RejectReason::GameAlreadyStarted);
+            return Err(RejectReason::Game(GameViolation::GameAlreadyStarted));
         }
         if self.players[usize::from(player.0)].avatar.is_some() {
-            return Err(RejectReason::AvatarAlreadySet);
+            return Err(RejectReason::Player(PlayerViolation::AvatarAlreadySet));
         }
         if !crate::valid_avatar_png(&png) {
-            return Err(RejectReason::InvalidAvatar);
+            return Err(RejectReason::Player(PlayerViolation::InvalidAvatar));
         }
         let avatar = AvatarId(self.next_avatar_id);
         self.next_avatar_id += 1;
@@ -353,17 +360,19 @@ impl RoomSession {
         seat: SeatId,
         game_started: bool,
     ) -> Result<(), RejectReason> {
-        let player = self.player_id(connection).ok_or(RejectReason::NotJoined)?;
+        let player = self
+            .player_id(connection)
+            .ok_or(RejectReason::Player(PlayerViolation::NotJoined))?;
         if game_started {
-            return Err(RejectReason::GameAlreadyStarted);
+            return Err(RejectReason::Game(GameViolation::GameAlreadyStarted));
         }
         if seat.0 >= self.seat_count {
-            return Err(RejectReason::InvalidSeat);
+            return Err(RejectReason::Room(RoomViolation::InvalidSeat));
         }
         if self.players.iter().any(|participant| {
             !participant.left && participant.id != player && participant.seat == Some(seat)
         }) {
-            return Err(RejectReason::SeatTaken);
+            return Err(RejectReason::Room(RoomViolation::SeatTaken));
         }
         let is_host = self.host_connection == Some(connection);
         let participant = &mut self.players[usize::from(player.0)];
@@ -381,9 +390,11 @@ impl RoomSession {
         ready: bool,
         game_started: bool,
     ) -> Result<(), RejectReason> {
-        let player = self.player_id(connection).ok_or(RejectReason::NotJoined)?;
+        let player = self
+            .player_id(connection)
+            .ok_or(RejectReason::Player(PlayerViolation::NotJoined))?;
         if game_started {
-            return Err(RejectReason::GameAlreadyStarted);
+            return Err(RejectReason::Game(GameViolation::GameAlreadyStarted));
         }
         let ready = if self.host_connection == Some(connection) {
             true
@@ -391,7 +402,7 @@ impl RoomSession {
             ready
         };
         if ready && self.players[usize::from(player.0)].seat.is_none() {
-            return Err(RejectReason::MustSelectSeat);
+            return Err(RejectReason::Room(RoomViolation::MustSelectSeat));
         }
         if self.players[usize::from(player.0)].ready != ready {
             self.players[usize::from(player.0)].ready = ready;
@@ -410,19 +421,22 @@ impl RoomSession {
         #[cfg(not(feature = "developer"))]
         {
             let _ = (connection, seat, occupied, game_started);
-            Err(RejectReason::DeveloperFeatureUnavailable)
+            Err(RejectReason::Game(
+                GameViolation::DeveloperFeatureUnavailable,
+            ))
         }
         #[cfg(feature = "developer")]
         {
-            self.player_id(connection).ok_or(RejectReason::NotJoined)?;
+            self.player_id(connection)
+                .ok_or(RejectReason::Player(PlayerViolation::NotJoined))?;
             if self.host_connection != Some(connection) {
-                return Err(RejectReason::OnlyHostCanConfigure);
+                return Err(RejectReason::Room(RoomViolation::OnlyHostCanConfigure));
             }
             if game_started {
-                return Err(RejectReason::GameAlreadyStarted);
+                return Err(RejectReason::Game(GameViolation::GameAlreadyStarted));
             }
             if seat.0 >= self.seat_count {
-                return Err(RejectReason::InvalidSeat);
+                return Err(RejectReason::Room(RoomViolation::InvalidSeat));
             }
             let occupant = self
                 .players
@@ -430,7 +444,7 @@ impl RoomSession {
                 .position(|player| !player.left && player.seat == Some(seat));
             if let Some(index) = occupant {
                 if !self.players[index].is_bot {
-                    return Err(RejectReason::SeatTaken);
+                    return Err(RejectReason::Room(RoomViolation::SeatTaken));
                 }
                 if occupied {
                     return Ok(());
@@ -493,22 +507,26 @@ impl RoomSession {
         content: ChatContent,
         game_started: bool,
     ) -> Result<Vec<Delivery>, RejectReason> {
-        let source = self.player_id(connection).ok_or(RejectReason::NotJoined)?;
+        let source = self
+            .player_id(connection)
+            .ok_or(RejectReason::Player(PlayerViolation::NotJoined))?;
         if !game_started {
-            return Err(RejectReason::GameNotStarted);
+            return Err(RejectReason::Game(GameViolation::GameNotStarted));
         }
         let content = match content {
             ChatContent::Text(text) => {
                 let text = text.trim();
                 if text.is_empty() || text.chars().count() > MAX_CHAT_MESSAGE_CHARS {
-                    return Err(RejectReason::InvalidChatMessage);
+                    return Err(RejectReason::Room(RoomViolation::InvalidChatMessage));
                 }
                 ChatContent::Text(text.to_owned())
             }
             ChatContent::QuickVoice(index) if index < QUICK_VOICE_COUNT => {
                 ChatContent::QuickVoice(index)
             }
-            ChatContent::QuickVoice(_) => return Err(RejectReason::InvalidChatMessage),
+            ChatContent::QuickVoice(_) => {
+                return Err(RejectReason::Room(RoomViolation::InvalidChatMessage));
+            }
             ChatContent::Emoji(emoji) => ChatContent::Emoji(emoji),
         };
         let chat = ChatMessage { source, content };
@@ -531,9 +549,10 @@ impl RoomSession {
         connection: ConnectionId,
         request_id: RequestId,
     ) -> Result<Vec<Delivery>, RejectReason> {
-        self.player_id(connection).ok_or(RejectReason::NotJoined)?;
+        self.player_id(connection)
+            .ok_or(RejectReason::Player(PlayerViolation::NotJoined))?;
         if self.host_connection != Some(connection) {
-            return Err(RejectReason::OnlyHostCanCloseRoom);
+            return Err(RejectReason::Room(RoomViolation::OnlyHostCanCloseRoom));
         }
         self.bump_revision();
         let deliveries = self

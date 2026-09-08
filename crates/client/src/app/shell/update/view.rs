@@ -1,8 +1,9 @@
 use super::download::format_bytes;
 use super::{UpdateEvent, UpdateManager, UpdateState};
 use crate::app::{
-    BORDER, ButtonKind, ButtonTint, HEADER_BG, MUTED, PANEL, PanelSkin, READY, TEXT, UiAction,
-    UiAssets, UiState, add_action_button, add_panel, add_section_title, add_text, spawn_node,
+    BORDER, ButtonKind, ButtonTint, HEADER_BG, MUTED, NavigationUiAction, PANEL, PanelSkin, READY,
+    TEXT, UiAction, UiAssets, UiState, add_action_button, add_panel, add_section_title, add_text,
+    spawn_node,
 };
 use bevy::log::warn;
 use bevy::prelude::*;
@@ -199,7 +200,7 @@ pub fn render_update_dialog(
                 commands,
                 actions,
                 "稍后重启",
-                UiAction::HideUpdateDialog,
+                UiAction::Navigation(NavigationUiAction::HideUpdateDialog),
                 ButtonKind::Secondary,
                 assets,
             );
@@ -207,19 +208,25 @@ pub fn render_update_dialog(
                 commands,
                 actions,
                 "重启游戏并更新",
-                UiAction::RestartToUpdate,
+                UiAction::Navigation(NavigationUiAction::RestartToUpdate),
                 assets,
             );
         }
         UpdateState::Failed(_) | UpdateState::UpToDate { .. } | UpdateState::Idle => {
             if matches!(updater.state, UpdateState::Failed(_)) {
-                add_green_update_button(commands, actions, "重试", UiAction::StartUpdate, assets);
+                add_green_update_button(
+                    commands,
+                    actions,
+                    "重试",
+                    UiAction::Navigation(NavigationUiAction::StartUpdate),
+                    assets,
+                );
             }
             add_action_button(
                 commands,
                 actions,
                 "关闭",
-                UiAction::HideUpdateDialog,
+                UiAction::Navigation(NavigationUiAction::HideUpdateDialog),
                 ButtonKind::Secondary,
                 assets,
             );
@@ -229,7 +236,7 @@ pub fn render_update_dialog(
                 commands,
                 actions,
                 "后台下载",
-                UiAction::HideUpdateDialog,
+                UiAction::Navigation(NavigationUiAction::HideUpdateDialog),
                 ButtonKind::Secondary,
                 assets,
             );
@@ -249,7 +256,7 @@ pub fn add_github_repository_button(
     let button = commands
         .spawn((
             Button,
-            UiAction::OpenGitHubRepository,
+            UiAction::Navigation(NavigationUiAction::OpenGitHubRepository),
             GitHubRepositoryButton,
             ButtonTint {
                 normal,

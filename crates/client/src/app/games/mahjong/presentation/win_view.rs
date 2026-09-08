@@ -2,6 +2,9 @@ use super::*;
 use leocard_protocol::{MahjongHandResultView, MahjongWinView};
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 
+const MAJOR_FAN_GLYPH_DELAY: f32 = 1.02;
+const MAJOR_FAN_GLYPH_INTERVAL: f32 = 0.30;
+
 pub(super) fn mahjong_win_effect_color(
     tier: MahjongWinEffectTier,
     secondary: bool,
@@ -52,18 +55,14 @@ pub fn mahjong_major_fan_impact_times(result: &MahjongHandResultView) -> Vec<f32
         if mahjong_win_effect_tier(winner) != MahjongWinEffectTier::MajorFan {
             continue;
         }
-        let Some(max_points) = winner.score.fans.iter().map(|fan| fan.fan.points()).max() else {
+        let Some(major_fan) = winner.score.fans.iter().max_by_key(|fan| fan.fan.points()) else {
             continue;
         };
         let start = mahjong_win_stage_start(result, winner_index);
-        for fan_index in 0..winner
-            .score
-            .fans
-            .iter()
-            .filter(|fan| fan.fan.points() == max_points)
-            .count()
-        {
-            impacts.push(start + 1.02 + fan_index as f32 * 0.34);
+        for glyph_index in 0..major_fan.fan.name().chars().count() {
+            impacts.push(
+                start + MAJOR_FAN_GLYPH_DELAY + glyph_index as f32 * MAJOR_FAN_GLYPH_INTERVAL,
+            );
         }
     }
     impacts
@@ -334,6 +333,184 @@ fn add_mahjong_win_stage_component(
     ));
 }
 
+fn add_mahjong_high_focus_rays(
+    commands: &mut Commands,
+    table: Entity,
+    reveal_duration: f32,
+    start: f32,
+    duration: f32,
+) {
+    const RAY_COUNT: usize = 30;
+    let center = Vec2::new(DESIGN_WIDTH * 0.5, 340.0);
+    for index in 0..RAY_COUNT {
+        let phase = index as f32 / RAY_COUNT as f32;
+        let angle = phase * std::f32::consts::TAU;
+        let radial = Vec2::new(angle.cos() * 470.0, angle.sin() * 238.0);
+        let direction = radial.normalize_or_zero();
+        let length = 72.0 + (index % 5) as f32 * 13.0;
+        let thickness = if index % 4 == 0 { 4.0 } else { 2.0 };
+        let ray = spawn_node(
+            commands,
+            table,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(center.x + radial.x - length * 0.5),
+                top: px(center.y + radial.y - thickness * 0.5),
+                width: px(length),
+                height: px(thickness),
+                border_radius: BorderRadius::all(percent(50)),
+                ..default()
+            },
+            Some(Color::NONE),
+        );
+        add_mahjong_win_stage_component(
+            commands,
+            ray,
+            MahjongWinEffectTier::HighTotal,
+            reveal_duration,
+            start,
+            duration,
+            MahjongWinStageKind::FocusRay {
+                delay: 0.12 + (index % 6) as f32 * 0.025,
+                direction,
+                phase,
+            },
+            100,
+        );
+    }
+}
+
+fn add_mahjong_major_stage_decorations(
+    commands: &mut Commands,
+    table: Entity,
+    reveal_duration: f32,
+    start: f32,
+    duration: f32,
+    glyph_count: usize,
+) {
+    let frame = spawn_node(
+        commands,
+        table,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(18),
+            right: px(18),
+            top: px(16),
+            bottom: px(16),
+            border: UiRect::all(px(2)),
+            border_radius: BorderRadius::all(px(14)),
+            ..default()
+        },
+        None,
+    );
+    commands.entity(frame).insert(BorderColor::all(Color::NONE));
+    add_mahjong_win_stage_component(
+        commands,
+        frame,
+        MahjongWinEffectTier::MajorFan,
+        reveal_duration,
+        start + 0.72,
+        duration - 0.72,
+        MahjongWinStageKind::MajorFrame,
+        108,
+    );
+
+    for (index, top) in [238.0, 442.0].into_iter().enumerate() {
+        let sweep = spawn_node(
+            commands,
+            table,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(180),
+                top: px(top),
+                width: px(DESIGN_WIDTH - 360.0),
+                height: px(if index == 0 { 2.0 } else { 3.0 }),
+                border_radius: BorderRadius::all(percent(50)),
+                ..default()
+            },
+            Some(Color::NONE),
+        );
+        add_mahjong_win_stage_component(
+            commands,
+            sweep,
+            MahjongWinEffectTier::MajorFan,
+            reveal_duration,
+            start,
+            duration,
+            MahjongWinStageKind::MajorSweep {
+                delay: 0.74 + index as f32 * 0.08,
+            },
+            107,
+        );
+    }
+
+    const SPARK_COUNT: usize = 24;
+    let center = Vec2::new(DESIGN_WIDTH * 0.5, 340.0);
+    for index in 0..SPARK_COUNT {
+        let phase = index as f32 / SPARK_COUNT as f32;
+        let angle = phase * std::f32::consts::TAU + 0.17;
+        let radius = 128.0 + (index % 6) as f32 * 39.0;
+        let offset = Vec2::new(angle.cos() * radius, angle.sin() * radius * 0.52);
+        let size = 3.0 + (index % 3) as f32 * 1.5;
+        let spark = spawn_node(
+            commands,
+            table,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(center.x + offset.x - size * 0.5),
+                top: px(center.y + offset.y - size * 0.5),
+                width: px(size),
+                height: px(size),
+                border_radius: BorderRadius::all(px(1)),
+                ..default()
+            },
+            Some(Color::NONE),
+        );
+        add_mahjong_win_stage_component(
+            commands,
+            spark,
+            MahjongWinEffectTier::MajorFan,
+            reveal_duration,
+            start,
+            duration,
+            MahjongWinStageKind::MajorSpark {
+                delay: 0.76 + (index % 8) as f32 * 0.07,
+                drift: Vec2::new(angle.cos() * 38.0, angle.sin() * 24.0 - 14.0),
+                phase,
+            },
+            106,
+        );
+    }
+
+    for glyph_index in 0..glyph_count {
+        let flash = spawn_node(
+            commands,
+            table,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                right: px(0),
+                top: px(0),
+                bottom: px(0),
+                ..default()
+            },
+            Some(Color::NONE),
+        );
+        add_mahjong_win_stage_component(
+            commands,
+            flash,
+            MahjongWinEffectTier::MajorFan,
+            reveal_duration,
+            start,
+            duration,
+            MahjongWinStageKind::ImpactFlash {
+                delay: MAJOR_FAN_GLYPH_DELAY + glyph_index as f32 * MAJOR_FAN_GLYPH_INTERVAL,
+            },
+            110,
+        );
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn render_mahjong_win_stage(
     commands: &mut Commands,
@@ -376,6 +553,9 @@ fn render_mahjong_win_stage(
             MahjongWinStageKind::Backdrop,
             90,
         );
+    }
+    if tier == MahjongWinEffectTier::HighTotal {
+        add_mahjong_high_focus_rays(commands, table, reveal_duration, start, duration);
     }
 
     let emphasized_tile_anchor = match tier {
@@ -454,26 +634,31 @@ fn render_mahjong_win_stage(
         );
     }
     if tier == MahjongWinEffectTier::MajorFan {
-        let Some(max_points) = winner.score.fans.iter().map(|fan| fan.fan.points()).max() else {
+        let Some(major_fan) = winner.score.fans.iter().max_by_key(|fan| fan.fan.points()) else {
             return;
         };
-        let major_fans = winner
-            .score
-            .fans
-            .iter()
-            .filter(|fan| fan.fan.points() == max_points)
-            .collect::<Vec<_>>();
-        let total_height = major_fans.len().saturating_sub(1) as f32 * 86.0;
-        for (fan_index, fan) in major_fans.into_iter().enumerate() {
+        let glyphs = major_fan.fan.name().chars().collect::<Vec<_>>();
+        add_mahjong_major_stage_decorations(
+            commands,
+            table,
+            reveal_duration,
+            start,
+            duration,
+            glyphs.len(),
+        );
+        let glyph_width = 122.0;
+        let total_width = glyphs.len() as f32 * glyph_width;
+        let first_left = (DESIGN_WIDTH - total_width) * 0.5;
+        for (glyph_index, glyph) in glyphs.into_iter().enumerate() {
             let holder = spawn_node(
                 commands,
                 table,
                 Node {
                     position_type: PositionType::Absolute,
-                    left: px(290),
-                    top: px(265.0 + fan_index as f32 * 86.0 - total_height * 0.5),
-                    width: px(700),
-                    height: px(110),
+                    left: px(first_left + glyph_index as f32 * glyph_width),
+                    top: px(265),
+                    width: px(glyph_width),
+                    height: px(136),
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
                     ..default()
@@ -483,8 +668,8 @@ fn render_mahjong_win_stage(
             let text = add_text(
                 commands,
                 holder,
-                format!("{}  {}番", fan.fan.name(), fan.points),
-                64.0,
+                glyph.to_string(),
+                92.0,
                 mahjong_win_effect_color(tier, false, 1.0),
                 assets,
             );
@@ -492,18 +677,19 @@ fn render_mahjong_win_stage(
                 offset: Vec2::new(4.0, 7.0),
                 color: Color::BLACK.with_alpha(0.88),
             });
-            add_mahjong_win_stage_component(
-                commands,
-                holder,
-                tier,
-                reveal_duration,
-                start,
-                duration,
-                MahjongWinStageKind::FanText {
-                    delay: 1.02 + fan_index as f32 * 0.34,
+            commands
+                .entity(holder)
+                .insert((ZIndex(112), FocusPolicy::Pass));
+            commands.entity(text).insert((
+                MahjongWinFanGlyph {
+                    reveal_duration,
+                    start,
+                    delay: MAJOR_FAN_GLYPH_DELAY + glyph_index as f32 * MAJOR_FAN_GLYPH_INTERVAL,
                 },
-                112,
-            );
+                UiTransform::IDENTITY,
+                Visibility::Hidden,
+                FocusPolicy::Pass,
+            ));
         }
     }
 }
@@ -549,15 +735,26 @@ fn render_mahjong_center_win_hand(
             overflow: Overflow::visible(),
             ..default()
         },
-        Some(if major {
-            Color::NONE
-        } else {
-            Color::BLACK.with_alpha(0.86)
-        }),
+        Some(Color::NONE),
+    );
+    let content = spawn_node(
+        commands,
+        panel,
+        Node {
+            width: percent(100),
+            height: percent(100),
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            row_gap: px(12),
+            overflow: Overflow::visible(),
+            ..default()
+        },
+        None,
     );
     add_text(
         commands,
-        panel,
+        content,
         format!("{} 的和牌", player.name),
         18.0,
         mahjong_win_effect_color(tier, false, 1.0),
@@ -565,7 +762,7 @@ fn render_mahjong_center_win_hand(
     );
     let row = spawn_node(
         commands,
-        panel,
+        content,
         Node {
             height: px(76),
             align_items: AlignItems::FlexEnd,
@@ -622,14 +819,26 @@ fn render_mahjong_center_win_hand(
         assets,
         materials,
     );
+    if !major {
+        add_mahjong_win_stage_component(
+            commands,
+            panel,
+            tier,
+            reveal_duration,
+            start,
+            duration,
+            MahjongWinStageKind::Backdrop,
+            101,
+        );
+    }
     add_mahjong_win_stage_component(
         commands,
-        panel,
+        if major { content } else { row },
         tier,
         reveal_duration,
         start,
         duration,
         MahjongWinStageKind::Hand,
-        101,
+        102,
     );
 }

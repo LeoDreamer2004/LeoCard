@@ -1,6 +1,7 @@
 use super::*;
 use leocard_protocol::{
-    AVATAR_DIMENSION, ClientCommand, PlayerId, ReconnectToken, RejectReason, ServerEvent,
+    AVATAR_DIMENSION, ClientCommand, PlayerId, PlayerViolation, ReconnectToken, RejectReason,
+    RoomViolation, ServerEvent,
 };
 use leocard_qigui523::{Phase, build_deck};
 
@@ -197,7 +198,10 @@ fn seventh_connection_is_rejected_from_the_six_player_room() {
         ConnectionId(200),
         message(1, join_command("P6", ReconnectToken(200))),
     );
-    assert_eq!(rejection(&seventh), Some(&RejectReason::RoomFull));
+    assert_eq!(
+        rejection(&seventh),
+        Some(&RejectReason::Room(RoomViolation::RoomFull))
+    );
 }
 
 #[test]
@@ -241,7 +245,10 @@ fn normalized_avatar_is_sent_once_to_each_current_or_late_joiner() {
         HOST,
         message(3, ClientCommand::SetAvatar { png: png.clone() }),
     );
-    assert_eq!(rejection(&duplicate), Some(&RejectReason::AvatarAlreadySet));
+    assert_eq!(
+        rejection(&duplicate),
+        Some(&RejectReason::Player(PlayerViolation::AvatarAlreadySet))
+    );
     let invalid = session.handle(
         SECOND,
         message(
@@ -251,5 +258,8 @@ fn normalized_avatar_is_sent_once_to_each_current_or_late_joiner() {
             },
         ),
     );
-    assert_eq!(rejection(&invalid), Some(&RejectReason::InvalidAvatar));
+    assert_eq!(
+        rejection(&invalid),
+        Some(&RejectReason::Player(PlayerViolation::InvalidAvatar))
+    );
 }

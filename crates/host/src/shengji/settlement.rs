@@ -365,7 +365,7 @@ impl ShengjiSession {
         self.room.reject(
             connection,
             request_id,
-            RejectReason::GameViolation(GameViolation::Shengji(game_violation(error))),
+            RejectReason::Game(GameViolation::Shengji(game_violation(error))),
         )
     }
 

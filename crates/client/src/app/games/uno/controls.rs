@@ -40,7 +40,7 @@ pub(super) fn add_uno_actions(
                     commands,
                     actions,
                     "交出选中的牌",
-                    UiAction::SubmitUnoCard,
+                    UiAction::Uno(UnoUiAction::SubmitCard),
                     ButtonKind::Primary,
                     assets,
                 );
@@ -75,7 +75,7 @@ pub(super) fn add_uno_actions(
             commands,
             actions,
             "抢出",
-            UiAction::UnoJumpIn(card),
+            UiAction::Uno(UnoUiAction::JumpIn(card)),
             ButtonKind::Primary,
             assets,
         );
@@ -134,7 +134,7 @@ pub(super) fn add_uno_actions(
             } else {
                 "出牌"
             },
-            UiAction::SubmitUnoCard,
+            UiAction::Uno(UnoUiAction::SubmitCard),
             ButtonKind::Primary,
             assets,
         );
@@ -147,7 +147,7 @@ pub(super) fn add_uno_actions(
             } else {
                 format!("接受 +{}", game.pending_draw)
             },
-            UiAction::UnoAcceptDrawPenalty,
+            UiAction::Uno(UnoUiAction::AcceptDrawPenalty),
             ButtonKind::Warning,
             assets,
         );
@@ -162,7 +162,7 @@ pub(super) fn add_uno_actions(
                 } else {
                     "质疑 +4"
                 },
-                UiAction::UnoChallengeDrawFour,
+                UiAction::Uno(UnoUiAction::ChallengeDrawFour),
                 ButtonKind::Pass,
                 assets,
             );
@@ -172,7 +172,7 @@ pub(super) fn add_uno_actions(
             commands,
             actions,
             &format!("接受禁手 ×{}", game.pending_skip + own_skips),
-            UiAction::UnoResolveSkip,
+            UiAction::Uno(UnoUiAction::ResolveSkip),
             ButtonKind::Pass,
             assets,
         );
@@ -182,7 +182,7 @@ pub(super) fn add_uno_actions(
                 commands,
                 actions,
                 "结束回合",
-                UiAction::UnoPassAfterDraw,
+                UiAction::Uno(UnoUiAction::PassAfterDraw),
                 ButtonKind::Secondary,
                 assets,
             );
@@ -194,7 +194,7 @@ pub(super) fn add_uno_actions(
             commands,
             actions,
             "摸牌",
-            UiAction::UnoDrawCard,
+            UiAction::Uno(UnoUiAction::DrawCard),
             ButtonKind::Secondary,
             assets,
         );
@@ -251,7 +251,7 @@ pub(super) fn add_uno_callout_actions(
             commands,
             callouts,
             &format!("检举 {name}"),
-            Some(UiAction::UnoReport(target)),
+            Some(UiAction::Uno(UnoUiAction::Report(target))),
             DANGER,
             assets,
         );
@@ -260,7 +260,7 @@ pub(super) fn add_uno_callout_actions(
         commands,
         callouts,
         "UNO!",
-        can_call.then_some(UiAction::UnoCall),
+        can_call.then_some(UiAction::Uno(UnoUiAction::Call)),
         READY,
         assets,
     );
@@ -430,9 +430,10 @@ fn add_color_choice_overlay(
             let button = commands
                 .spawn((
                     Button,
-                    card.map_or(UiAction::UnoChooseInitialColor(color), |card| {
-                        UiAction::UnoPlayCard(card, Some(color))
-                    }),
+                    card.map_or(
+                        UiAction::Uno(UnoUiAction::ChooseInitialColor(color)),
+                        |card| UiAction::Uno(UnoUiAction::PlayCard(card, Some(color))),
+                    ),
                     ButtonTint {
                         normal: uno_ui_color(color),
                         hovered: uno_ui_color(color).mix(&Color::WHITE, 0.22),
@@ -466,7 +467,7 @@ fn add_color_choice_overlay(
                 commands,
                 panel,
                 "取消",
-                UiAction::CloseUnoColorChoice,
+                UiAction::Uno(UnoUiAction::CloseColorChoice),
                 ButtonKind::Secondary,
                 assets,
             );

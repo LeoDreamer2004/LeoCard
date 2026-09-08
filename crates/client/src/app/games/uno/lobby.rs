@@ -15,7 +15,7 @@ pub fn render_uno_lobby(
     avatars: &AvatarImages,
 ) {
     let rules_value = *lobby.uno_rules().expect("UNO 大厅应携带对应规则");
-    let connected_count = connected_lobby_player_count(lobby);
+    let connected_count = LobbyMetrics::new(lobby).connected_player_count();
     let content = spawn_node(
         commands,
         root,
@@ -354,7 +354,7 @@ pub fn render_uno_lobby(
         commands,
         rules_panel,
         "扩展包设置",
-        UiAction::ToggleUnoExpansionSettings,
+        UiAction::Uno(UnoUiAction::ToggleExpansionSettings),
         ButtonKind::Secondary,
         assets,
     );
@@ -389,7 +389,7 @@ pub fn render_uno_lobby(
         format!("玩家席位  {connected_count}/{}", UnoRuleSet::MAX_PLAYERS),
         assets,
     );
-    render_seat_selector(commands, players, client, lobby, assets, avatars);
+    LobbySeatSelector::new(client, lobby, assets, avatars).render(commands, players);
     let actions = spawn_node(
         commands,
         players,
@@ -417,7 +417,7 @@ pub fn render_uno_lobby(
         commands,
         actions,
         "退出房间",
-        UiAction::LeaveRoom,
+        UiAction::Lobby(LobbyUiAction::LeaveRoom),
         ButtonKind::Pass,
         assets,
     );
@@ -433,7 +433,7 @@ pub fn render_uno_lobby(
                 commands,
                 actions,
                 "开始游戏",
-                UiAction::StartGame,
+                UiAction::Lobby(LobbyUiAction::StartGame),
                 ButtonKind::Primary,
                 assets,
             );
@@ -445,7 +445,7 @@ pub fn render_uno_lobby(
             commands,
             actions,
             if ready { "取消准备" } else { "准备" },
-            UiAction::ToggleReady,
+            UiAction::Lobby(LobbyUiAction::ToggleReady),
             if ready {
                 ButtonKind::Secondary
             } else {
@@ -479,7 +479,7 @@ pub fn render_uno_mode_dropdown(
         let dismiss = commands
             .spawn((
                 Button,
-                UiAction::CloseUnoModeMenu,
+                UiAction::Uno(UnoUiAction::CloseModeMenu),
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(0),
@@ -537,7 +537,7 @@ pub fn render_uno_mode_dropdown(
         trigger.insert((
             Button,
             BackgroundButtonTint,
-            UiAction::ToggleUnoModeMenu,
+            UiAction::Uno(UnoUiAction::ToggleModeMenu),
             ButtonTint {
                 normal: Color::srgba(0.04, 0.48, 0.50, 0.48),
                 hovered: Color::srgba(0.06, 0.68, 0.70, 0.64),
@@ -613,7 +613,7 @@ pub fn render_uno_mode_dropdown(
             .spawn((
                 Button,
                 BackgroundButtonTint,
-                UiAction::UpdateUnoRules(UnoRuleSet { mode, ..rules }),
+                UiAction::Uno(UnoUiAction::UpdateRules(UnoRuleSet { mode, ..rules })),
                 ButtonTint {
                     normal: if selected {
                         Color::srgba(0.05, 0.62, 0.62, 0.38)
@@ -777,7 +777,7 @@ pub fn render_uno_expansion_settings(
         commands,
         actions,
         "关闭",
-        UiAction::ToggleUnoExpansionSettings,
+        UiAction::Uno(UnoUiAction::ToggleExpansionSettings),
         ButtonKind::Secondary,
         assets,
     );
@@ -858,7 +858,7 @@ fn add_uno_expansion_status(
     if editable {
         status.insert((
             Button,
-            UiAction::UpdateUnoRules(toggled_rules),
+            UiAction::Uno(UnoUiAction::UpdateRules(toggled_rules)),
             UnoExpansionStatusFrame,
             BorderColor::all(if enabled {
                 READY.with_alpha(0.82)

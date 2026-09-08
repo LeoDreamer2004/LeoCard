@@ -310,7 +310,7 @@ pub(super) fn render_mahjong_settlement(
         commands,
         actions,
         "退出游戏",
-        UiAction::LeaveRoom,
+        UiAction::Lobby(LobbyUiAction::LeaveRoom),
         ButtonKind::Pass,
         assets,
     );
@@ -319,7 +319,7 @@ pub(super) fn render_mahjong_settlement(
             commands,
             actions,
             "返回房间",
-            UiAction::ReturnToLobby,
+            UiAction::Lobby(LobbyUiAction::ReturnToLobby),
             ButtonKind::Warning,
             assets,
         );
@@ -336,7 +336,7 @@ pub(super) fn render_mahjong_settlement(
             commands,
             actions,
             "再来一局",
-            UiAction::PlayAgain,
+            UiAction::Lobby(LobbyUiAction::PlayAgain),
             ButtonKind::Primary,
             assets,
         );

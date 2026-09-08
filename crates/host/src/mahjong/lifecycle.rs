@@ -2,8 +2,8 @@ use super::{MAHJONG_DEAL_INTERVAL, MahjongSession, events_for_outcome, validate_
 use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession};
 use leocard_mahjong::{GameError, GameState, MahjongRuleSet, MahjongTile, Phase};
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameCommand, GameKind, MahjongEvent, PlayerId, RejectReason,
-    Revision, RoomId, ServerEvent,
+    ClientCommand, ClientMessage, GameCommand, GameKind, GameViolation, MahjongEvent, PlayerId,
+    RejectReason, Revision, RoomId, ServerEvent,
 };
 use std::time::Duration;
 
@@ -253,10 +253,10 @@ impl MahjongSession {
             ClientCommand::Game(command) => self.room.reject(
                 connection,
                 request_id,
-                RejectReason::WrongGame {
+                RejectReason::Game(GameViolation::WrongGame {
                     expected: GameKind::Mahjong,
                     received: command.kind(),
-                },
+                }),
             ),
             ClientCommand::StartGame => self.start_game(connection, request_id),
             ClientCommand::ReturnToLobby => self.return_to_lobby(connection, request_id),

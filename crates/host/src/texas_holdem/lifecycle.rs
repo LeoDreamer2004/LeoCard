@@ -1,7 +1,7 @@
 use super::*;
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameCommand, GameKind, RejectReason, Revision, RoomId,
-    ServerEvent, TABLE_SEAT_COUNT, TexasHoldemCommand,
+    ClientCommand, ClientMessage, GameCommand, GameKind, GameViolation, RejectReason, Revision,
+    RoomId, ServerEvent, TABLE_SEAT_COUNT, TexasHoldemCommand,
 };
 use leocard_texas_holdem::{Phase, TexasHoldemCard, TexasHoldemRuleSet};
 
@@ -232,34 +232,34 @@ impl TexasHoldemSession {
             ClientCommand::Game(GameCommand::QiGui523(_)) => self.room.reject(
                 connection,
                 request_id,
-                RejectReason::WrongGame {
+                RejectReason::Game(GameViolation::WrongGame {
                     expected: GameKind::TexasHoldem,
                     received: GameKind::QiGui523,
-                },
+                }),
             ),
             ClientCommand::Game(GameCommand::Shengji(_)) => self.room.reject(
                 connection,
                 request_id,
-                RejectReason::WrongGame {
+                RejectReason::Game(GameViolation::WrongGame {
                     expected: GameKind::TexasHoldem,
                     received: GameKind::Shengji,
-                },
+                }),
             ),
             ClientCommand::Game(GameCommand::Uno(_)) => self.room.reject(
                 connection,
                 request_id,
-                RejectReason::WrongGame {
+                RejectReason::Game(GameViolation::WrongGame {
                     expected: GameKind::TexasHoldem,
                     received: GameKind::Uno,
-                },
+                }),
             ),
             ClientCommand::Game(GameCommand::Mahjong(_)) => self.room.reject(
                 connection,
                 request_id,
-                RejectReason::WrongGame {
+                RejectReason::Game(GameViolation::WrongGame {
                     expected: GameKind::TexasHoldem,
                     received: GameKind::Mahjong,
-                },
+                }),
             ),
             ClientCommand::StartGame => self.start_game(connection, request_id),
             ClientCommand::ReturnToLobby => self.return_to_lobby(connection, request_id),

@@ -234,9 +234,11 @@ fn add_shengji_private_buried(
         },
         Some(Color::BLACK.with_alpha(0.48)),
     );
-    commands
-        .entity(backdrop)
-        .insert((Button, UiAction::ToggleShengjiBuried, GlobalZIndex(1750)));
+    commands.entity(backdrop).insert((
+        Button,
+        UiAction::Shengji(ShengjiUiAction::ToggleBuried),
+        GlobalZIndex(1750),
+    ));
 
     let panel = spawn_node(
         commands,
@@ -539,7 +541,7 @@ fn add_shengji_player_panel(
     commands.entity(panel).insert((
         BorderColor::all(BORDER),
         Button,
-        UiAction::ToggleInteractionMenu(player.id),
+        UiAction::Social(SocialUiAction::ToggleInteractionMenu(player.id)),
     ));
     attach_start_game_seat_transition(commands, panel, player.id, start_transition_active);
     decorate_player_panel(commands, panel, assets, 1.0);

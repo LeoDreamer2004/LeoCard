@@ -4,6 +4,10 @@ use leocard_protocol::{
 };
 use leocard_uno::UnoCard;
 
+const UNO_OPPONENT_HAND_WIDTH: f32 = 172.0;
+const UNO_OPPONENT_CARD_WIDTH: f32 = 44.0;
+const UNO_OPPONENT_CARD_HEIGHT: f32 = 68.0;
+
 pub(super) fn add_uno_eliminated_own_overlay(
     commands: &mut Commands,
     parent: Entity,
@@ -113,15 +117,16 @@ pub(super) fn add_uno_player_panel(
     if selecting {
         commands.entity(panel).insert((
             Button,
-            UiAction::ToggleUnoSwapTarget(player.id),
+            UiAction::Uno(UnoUiAction::ToggleSwapTarget(player.id)),
             UnoSwapTargetPanel { selected },
             Outline::new(px(2.0), px(1.0), ACCENT.with_alpha(0.92)),
             BoxShadow::new(ACCENT.with_alpha(0.32), px(0), px(0), px(2), px(9)),
         ));
     } else {
-        commands
-            .entity(panel)
-            .insert((Button, UiAction::ToggleInteractionMenu(player.id)));
+        commands.entity(panel).insert((
+            Button,
+            UiAction::Social(SocialUiAction::ToggleInteractionMenu(player.id)),
+        ));
     }
     if !player.eliminated
         && game.current_player == Some(player.id)
@@ -208,33 +213,36 @@ pub(super) fn add_uno_player_panel(
         score_popup: None,
         interaction_menu: menu,
     });
-    if !player.inactive_hand.is_empty() {
+    let finished_hand = uno_finished_hand(game, player.id);
+    if finished_hand.is_none() && !player.inactive_hand.is_empty() {
         let row = spawn_node(
             commands,
             panel,
             Node {
                 position_type: PositionType::Absolute,
-                left: px(8),
+                left: px(4),
                 top: px(86),
-                height: px(54),
+                width: px(UNO_OPPONENT_HAND_WIDTH),
+                height: px(UNO_OPPONENT_CARD_HEIGHT + 6.0),
                 align_items: AlignItems::FlexStart,
+                justify_content: JustifyContent::Center,
                 overflow: Overflow::visible(),
                 ..default()
             },
             None,
         );
-        let reveal = (156.0 / player.inactive_hand.len().max(1) as f32).clamp(8.0, 20.0);
+        let reveal = uno_opponent_hand_reveal(player.inactive_hand.len());
         for (index, card) in player.inactive_hand.iter().copied().enumerate() {
             let slot = spawn_node(
                 commands,
                 row,
                 Node {
                     width: px(if index + 1 == player.inactive_hand.len() {
-                        34.0
+                        UNO_OPPONENT_CARD_WIDTH
                     } else {
                         reveal
                     }),
-                    height: px(52),
+                    height: px(UNO_OPPONENT_CARD_HEIGHT),
                     flex_shrink: 0.0,
                     overflow: Overflow::visible(),
                     ..default()
@@ -248,8 +256,8 @@ pub(super) fn add_uno_player_panel(
                         index,
                     },
                     Node {
-                        width: px(34),
-                        height: px(52),
+                        width: px(UNO_OPPONENT_CARD_WIDTH),
+                        height: px(UNO_OPPONENT_CARD_HEIGHT),
                         ..default()
                     },
                     ImageNode::new(uno_card_handle(assets, card)),
@@ -267,7 +275,7 @@ pub(super) fn add_uno_player_panel(
     if !player.eliminated {
         add_uno_skip_overlay(commands, panel, uno_skip_count(game, player), assets);
     }
-    if let Some(cards) = uno_finished_hand(game, player.id)
+    if let Some(cards) = finished_hand
         && !cards.is_empty()
     {
         add_uno_finished_hand(commands, panel, cards, assets);
@@ -432,7 +440,7 @@ fn add_uno_swap_prompt_panel(
                 commands,
                 panel,
                 "确定选择",
-                UiAction::ConfirmUnoSwapTargets,
+                UiAction::Uno(UnoUiAction::ConfirmSwapTargets),
                 ButtonKind::Primary,
                 assets,
             );
@@ -463,14 +471,7 @@ fn add_uno_finished_hand(
     cards: &[UnoCard],
     assets: &UiAssets,
 ) {
-    const WIDTH: f32 = 172.0;
-    const CARD_WIDTH: f32 = 44.0;
-    const CARD_HEIGHT: f32 = 68.0;
-    let reveal = if cards.len() <= 1 {
-        CARD_WIDTH
-    } else {
-        ((WIDTH - CARD_WIDTH) / cards.len().saturating_sub(1) as f32).clamp(2.5, 22.0)
-    };
+    let reveal = uno_opponent_hand_reveal(cards.len());
     let hand = spawn_node(
         commands,
         panel,
@@ -478,8 +479,8 @@ fn add_uno_finished_hand(
             position_type: PositionType::Absolute,
             left: px(4),
             top: px(86),
-            width: px(WIDTH),
-            height: px(CARD_HEIGHT + 6.0),
+            width: px(UNO_OPPONENT_HAND_WIDTH),
+            height: px(UNO_OPPONENT_CARD_HEIGHT + 6.0),
             flex_direction: FlexDirection::Row,
             flex_wrap: FlexWrap::NoWrap,
             align_items: AlignItems::FlexStart,
@@ -497,11 +498,11 @@ fn add_uno_finished_hand(
             hand,
             Node {
                 width: px(if index + 1 == cards.len() {
-                    CARD_WIDTH
+                    UNO_OPPONENT_CARD_WIDTH
                 } else {
                     reveal
                 }),
-                height: px(CARD_HEIGHT),
+                height: px(UNO_OPPONENT_CARD_HEIGHT),
                 flex_shrink: 0.0,
                 overflow: Overflow::visible(),
                 ..default()
@@ -511,8 +512,8 @@ fn add_uno_finished_hand(
         let face = commands
             .spawn((
                 Node {
-                    width: px(CARD_WIDTH),
-                    height: px(CARD_HEIGHT),
+                    width: px(UNO_OPPONENT_CARD_WIDTH),
+                    height: px(UNO_OPPONENT_CARD_HEIGHT),
                     border_radius: BorderRadius::all(px(4)),
                     ..default()
                 },
@@ -522,6 +523,15 @@ fn add_uno_finished_hand(
             ))
             .id();
         commands.entity(slot).add_child(face);
+    }
+}
+
+fn uno_opponent_hand_reveal(card_count: usize) -> f32 {
+    if card_count <= 1 {
+        UNO_OPPONENT_CARD_WIDTH
+    } else {
+        ((UNO_OPPONENT_HAND_WIDTH - UNO_OPPONENT_CARD_WIDTH) / card_count.saturating_sub(1) as f32)
+            .clamp(2.5, 22.0)
     }
 }
 

@@ -1,27 +1,37 @@
 //! 麻将按钮动作到网络命令的转换。
 
 use super::*;
+use bevy::ecs::system::SystemParam;
 use leocard_protocol::{ClientCommand, GameCommand, MahjongCommand};
 
-pub fn handle_mahjong_button(
-    action: &UiAction,
-    client: &mut Option<ResMut<ClientResource>>,
-) -> bool {
-    let command = match action {
-        UiAction::UpdateMahjongRules(rules) => MahjongCommand::UpdateRules { rules: *rules },
-        UiAction::MahjongDiscard(tile) => MahjongCommand::Discard { tile: *tile },
-        UiAction::MahjongRespond(claim) => MahjongCommand::RespondToClaim { claim: *claim },
-        UiAction::MahjongSelfDraw => MahjongCommand::DeclareSelfDraw,
-        UiAction::MahjongConcealedKong(tile) => {
-            MahjongCommand::DeclareConcealedKong { tile: *tile }
+#[derive(SystemParam)]
+pub struct MahjongActionContext<'w> {
+    client: Option<ResMut<'w, ClientResource>>,
+}
+
+pub fn dispatch_mahjong_actions(
+    mut actions: MessageReader<PressedUiAction>,
+    mut context: MahjongActionContext,
+) {
+    dispatch_domain_actions::<MahjongUiAction, _>(&mut actions, &mut context);
+}
+
+impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
+    fn handle(&self, context: &mut MahjongActionContext<'_>) {
+        let command = match self {
+            MahjongUiAction::UpdateRules(rules) => MahjongCommand::UpdateRules { rules: *rules },
+            MahjongUiAction::Discard(tile) => MahjongCommand::Discard { tile: *tile },
+            MahjongUiAction::Respond(claim) => MahjongCommand::RespondToClaim { claim: *claim },
+            MahjongUiAction::SelfDraw => MahjongCommand::DeclareSelfDraw,
+            MahjongUiAction::ConcealedKong(tile) => {
+                MahjongCommand::DeclareConcealedKong { tile: *tile }
+            }
+            MahjongUiAction::AddedKong(tile) => MahjongCommand::DeclareAddedKong { tile: *tile },
+        };
+        if let Some(client) = context.client.as_deref_mut() {
+            client
+                .0
+                .send(ClientCommand::Game(GameCommand::Mahjong(command)));
         }
-        UiAction::MahjongAddedKong(tile) => MahjongCommand::DeclareAddedKong { tile: *tile },
-        _ => return false,
-    };
-    if let Some(client) = client.as_deref_mut() {
-        client
-            .0
-            .send(ClientCommand::Game(GameCommand::Mahjong(command)));
     }
-    true
 }

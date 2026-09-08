@@ -1,5 +1,5 @@
 use super::*;
-use leocard_protocol::{ClientCommand, GameCommand, SeatId, ServerEvent};
+use leocard_protocol::{ClientCommand, GameCommand, RoomViolation, SeatId, ServerEvent};
 use leocard_protocol::{
     GameEvent, GameViolation, PlayerId, RejectReason, ShengjiCommand, ShengjiDeclarationView,
     ShengjiEvent, ShengjiPhaseView, ShengjiThrowFailureStage, ShengjiThrowFailureView,
@@ -279,7 +279,7 @@ fn fifth_and_sixth_seats_are_invalid_in_a_shengji_room() {
     assert!(deliveries.iter().any(|delivery| matches!(
         delivery.message.event,
         ServerEvent::Rejected {
-            reason: RejectReason::InvalidSeat
+            reason: RejectReason::Room(RoomViolation::InvalidSeat)
         }
     )));
 }
@@ -410,9 +410,7 @@ fn failed_throw_is_shown_then_returned_before_the_forced_play_is_revealed() {
     assert!(blocked.iter().any(|delivery| matches!(
         delivery.message.event,
         ServerEvent::Rejected {
-            reason: RejectReason::GameViolation(GameViolation::Shengji(
-                ShengjiViolation::WrongPhase
-            ))
+            reason: RejectReason::Game(GameViolation::Shengji(ShengjiViolation::WrongPhase))
         }
     )));
 

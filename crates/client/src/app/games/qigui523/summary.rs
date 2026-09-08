@@ -212,7 +212,7 @@ pub fn add_game_summary_modal(
         commands,
         actions,
         "退出游戏",
-        UiAction::LeaveRoom,
+        UiAction::Lobby(LobbyUiAction::LeaveRoom),
         ButtonKind::Pass,
         assets,
     );
@@ -221,7 +221,7 @@ pub fn add_game_summary_modal(
             commands,
             actions,
             "返回房间",
-            UiAction::ReturnToLobby,
+            UiAction::Lobby(LobbyUiAction::ReturnToLobby),
             ButtonKind::Warning,
             assets,
         );
@@ -238,7 +238,7 @@ pub fn add_game_summary_modal(
             commands,
             actions,
             "再来一局",
-            UiAction::PlayAgain,
+            UiAction::Lobby(LobbyUiAction::PlayAgain),
             ButtonKind::Primary,
             assets,
         );

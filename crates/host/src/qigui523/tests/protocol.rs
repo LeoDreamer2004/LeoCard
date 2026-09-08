@@ -2,7 +2,8 @@ use super::*;
 use leocard_protocol::{
     ChatContent, ClientCommand, GameCommand, GameEvent, GameViolation, PlayerId,
     PlayerInteractionKind, QUICK_VOICE_COUNT, QiGui523Command, QiGui523Event, ReconnectToken,
-    RejectReason, RequestId, Revision, RoomId, RuleViolation, SeatId, ServerEvent,
+    RejectReason, RequestId, RequestViolation, Revision, RoomId, RoomViolation, RuleViolation,
+    SeatId, ServerEvent,
 };
 use leocard_qigui523::QiGuiPlayKind;
 use leocard_qigui523::build_deck;
@@ -64,9 +65,9 @@ fn duplicate_action_request_never_executes_twice() {
     );
     assert_eq!(
         rejection(&duplicate),
-        Some(&RejectReason::DuplicateRequest {
+        Some(&RejectReason::Request(RequestViolation::DuplicateRequest {
             last_seen: RequestId(10)
-        })
+        }))
     );
 }
 
@@ -210,7 +211,10 @@ fn chat_is_validated_and_broadcast_to_every_connected_player() {
             },
         ),
     );
-    assert_eq!(rejection(&invalid), Some(&RejectReason::InvalidChatMessage));
+    assert_eq!(
+        rejection(&invalid),
+        Some(&RejectReason::Room(RoomViolation::InvalidChatMessage))
+    );
 }
 
 #[test]
@@ -232,7 +236,7 @@ fn a_player_cannot_send_an_interaction_to_themselves() {
 
     assert_eq!(
         rejection(&deliveries),
-        Some(&RejectReason::GameViolation(GameViolation::QiGui523(
+        Some(&RejectReason::Game(GameViolation::QiGui523(
             RuleViolation::InvalidPlayer,
         )))
     );
@@ -261,7 +265,7 @@ fn rejected_rule_action_does_not_mutate_authoritative_state() {
     assert_eq!(session.revision(), revision);
     assert_eq!(
         rejection(&deliveries),
-        Some(&RejectReason::GameViolation(GameViolation::QiGui523(
+        Some(&RejectReason::Game(GameViolation::QiGui523(
             RuleViolation::NotPlayersTurn,
         )))
     );
@@ -280,9 +284,14 @@ fn protocol_and_room_mismatch_never_touch_room_state() {
 
     assert!(matches!(
         rejection(&protocol_reply),
-        Some(RejectReason::ProtocolMismatch { .. })
+        Some(RejectReason::Request(
+            RequestViolation::ProtocolMismatch { .. }
+        ))
     ));
-    assert_eq!(rejection(&room_reply), Some(&RejectReason::RoomMismatch));
+    assert_eq!(
+        rejection(&room_reply),
+        Some(&RejectReason::Request(RequestViolation::RoomMismatch))
+    );
     assert!(session.players.is_empty());
     assert_eq!(session.revision(), Revision(0));
 }

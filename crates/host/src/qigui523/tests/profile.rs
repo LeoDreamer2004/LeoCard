@@ -1,7 +1,8 @@
 use super::*;
 use leocard_protocol::{
-    ClientCommand, GameCommand, GamePhaseView, MAX_PLAYER_NAME_CHARS, PlayerId, QiGui523Command,
-    QiGui523ProfileStats, ReconnectToken, RejectReason, ServerEvent,
+    ClientCommand, GameCommand, GamePhaseView, MAX_PLAYER_NAME_CHARS, PlayerId, PlayerViolation,
+    QiGui523Command, QiGui523ProfileStats, ReconnectToken, RejectReason, RoomViolation,
+    ServerEvent,
 };
 use leocard_qigui523::{BombKind, QiGuiRank, TimeControl};
 use leocard_qigui523::{
@@ -24,9 +25,9 @@ fn player_name_limit_counts_unicode_characters() {
     );
     assert_eq!(
         rejection(&deliveries),
-        Some(&RejectReason::NameTooLong {
+        Some(&RejectReason::Player(PlayerViolation::NameTooLong {
             max_chars: MAX_PLAYER_NAME_CHARS as u16,
-        })
+        }))
     );
 }
 
@@ -43,7 +44,7 @@ fn invalid_player_identity_signature_is_rejected() {
 
     assert_eq!(
         rejection(&deliveries),
-        Some(&RejectReason::InvalidIdentityProof)
+        Some(&RejectReason::Player(PlayerViolation::InvalidIdentityProof))
     );
     assert!(session.players.is_empty());
 }
@@ -180,7 +181,7 @@ fn only_host_can_close_room_and_every_connected_player_is_notified() {
     let denied = session.handle(SECOND, message(3, ClientCommand::CloseRoom));
     assert_eq!(
         rejection(&denied),
-        Some(&RejectReason::OnlyHostCanCloseRoom)
+        Some(&RejectReason::Room(RoomViolation::OnlyHostCanCloseRoom))
     );
     assert!(!session.is_closed());
 

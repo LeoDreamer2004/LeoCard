@@ -1,42 +1,54 @@
 //! 将协议拒绝原因转换为客户端提示文本。
 
 use leocard_protocol::{
-    GameViolation, MahjongViolation, RejectReason, RuleViolation, ShengjiViolation,
-    TexasHoldemViolation, UnoViolation,
+    GameViolation, MahjongViolation, PlayerViolation, RejectReason, RoomViolation, RuleViolation,
+    ShengjiViolation, TexasHoldemViolation, UnoViolation,
 };
 
 pub fn rejection_label(reason: &RejectReason) -> Option<String> {
     if matches!(
         reason,
-        RejectReason::GameViolation(GameViolation::QiGui523(RuleViolation::NotPlayersTurn,))
+        RejectReason::Game(GameViolation::QiGui523(RuleViolation::NotPlayersTurn,))
     ) {
         return None;
     }
-    if let RejectReason::NameTooLong { max_chars } = reason {
+    if let RejectReason::Player(PlayerViolation::NameTooLong { max_chars }) = reason {
         return Some(format!("提示：玩家名称不能超过 {max_chars} 个字符"));
     }
+    if let RejectReason::Game(GameViolation::Mahjong(MahjongViolation::InvalidDeveloperHand(
+        reason,
+    ))) = reason
+    {
+        return Some(format!("提示：{reason}"));
+    }
     let detail = match reason {
-        RejectReason::NameEmpty => "玩家名称不能为空",
-        RejectReason::InvalidIdentityProof => "玩家身份签名无效，请重新生成或恢复玩家档案",
-        RejectReason::InvalidAvatar => "头像数据无效",
-        RejectReason::AvatarAlreadySet => "本次连接已经上传过头像",
-        RejectReason::InvalidSeat => "座位编号无效",
-        RejectReason::SeatTaken => "这个座位已经有人了",
-        RejectReason::MustSelectSeat => "必须先选择座位",
-        RejectReason::OnlyHostCanConfigure => "只有房主可以修改游戏配置",
-        RejectReason::OnlyHostCanStart => "只有房主可以开始游戏",
-        RejectReason::OnlyHostCanReturnToLobby => "只有房主可以返回大厅",
-        RejectReason::OnlyHostCanCloseRoom => "只有房主可以关闭房间",
-        RejectReason::NotEnoughPlayers { .. } => "至少需要两名玩家才能开始",
-        RejectReason::WaitingForPlayers { .. } => "人数尚未到齐",
-        RejectReason::PlayersNotReady { .. } => "仍有玩家没有准备",
-        RejectReason::InvalidRuleConfiguration => "这组配置无法满足最多六名玩家的初始发牌",
-        RejectReason::DeveloperFeatureUnavailable => "房主程序没有启用开发者功能",
-        RejectReason::InvalidDeveloperHand => "开发者手牌无效",
-        RejectReason::InvalidChatMessage => "聊天消息为空、过长或快捷语音无效",
-        RejectReason::GameAlreadyStarted => "游戏已经开始",
-        RejectReason::GameNotFinished => "游戏尚未结束",
-        RejectReason::GameViolation(GameViolation::QiGui523(violation)) => match violation {
+        RejectReason::Player(PlayerViolation::NameEmpty) => "玩家名称不能为空",
+        RejectReason::Player(PlayerViolation::InvalidIdentityProof) => {
+            "玩家身份签名无效，请重新生成或恢复玩家档案"
+        }
+        RejectReason::Player(PlayerViolation::InvalidAvatar) => "头像数据无效",
+        RejectReason::Player(PlayerViolation::AvatarAlreadySet) => "本次连接已经上传过头像",
+        RejectReason::Room(RoomViolation::InvalidSeat) => "座位编号无效",
+        RejectReason::Room(RoomViolation::SeatTaken) => "这个座位已经有人了",
+        RejectReason::Room(RoomViolation::MustSelectSeat) => "必须先选择座位",
+        RejectReason::Room(RoomViolation::OnlyHostCanConfigure) => "只有房主可以修改游戏配置",
+        RejectReason::Room(RoomViolation::OnlyHostCanStart) => "只有房主可以开始游戏",
+        RejectReason::Room(RoomViolation::OnlyHostCanReturnToLobby) => "只有房主可以返回大厅",
+        RejectReason::Room(RoomViolation::OnlyHostCanCloseRoom) => "只有房主可以关闭房间",
+        RejectReason::Room(RoomViolation::NotEnoughPlayers { .. }) => "至少需要两名玩家才能开始",
+        RejectReason::Room(RoomViolation::WaitingForPlayers { .. }) => "人数尚未到齐",
+        RejectReason::Room(RoomViolation::PlayersNotReady { .. }) => "仍有玩家没有准备",
+        RejectReason::Game(GameViolation::InvalidRuleConfiguration) => {
+            "这组配置无法满足最多六名玩家的初始发牌"
+        }
+        RejectReason::Game(GameViolation::DeveloperFeatureUnavailable) => {
+            "房主程序没有启用开发者功能"
+        }
+        RejectReason::Game(GameViolation::InvalidDeveloperHand) => "开发者手牌无效",
+        RejectReason::Room(RoomViolation::InvalidChatMessage) => "聊天消息为空、过长或快捷语音无效",
+        RejectReason::Game(GameViolation::GameAlreadyStarted) => "游戏已经开始",
+        RejectReason::Game(GameViolation::GameNotFinished) => "游戏尚未结束",
+        RejectReason::Game(GameViolation::QiGui523(violation)) => match violation {
             RuleViolation::NotPlayersTurn => unreachable!("filtered above"),
             RuleViolation::MustLeadWithCards => "领出时必须出牌",
             RuleViolation::CardNotInHand => "选择的牌不在手中",
@@ -45,7 +57,7 @@ pub fn rejection_label(reason: &RejectReason) -> Option<String> {
             RuleViolation::GameAlreadyFinished => "游戏已经结束",
             RuleViolation::InvalidPlayer => "玩家身份无效",
         },
-        RejectReason::GameViolation(GameViolation::TexasHoldem(violation)) => match violation {
+        RejectReason::Game(GameViolation::TexasHoldem(violation)) => match violation {
             TexasHoldemViolation::InvalidPlayer => "玩家身份无效",
             TexasHoldemViolation::NotPlayersTurn => "还没有轮到你行动",
             TexasHoldemViolation::HandAlreadyComplete => "这一手已经结束",
@@ -59,7 +71,7 @@ pub fn rejection_label(reason: &RejectReason) -> Option<String> {
             TexasHoldemViolation::RaiseExceedsStack { .. } => "加注额度超过了你的可用筹码",
             TexasHoldemViolation::RaiseNotReopened => "本轮下注尚未重新开放加注",
         },
-        RejectReason::GameViolation(GameViolation::Shengji(violation)) => match violation {
+        RejectReason::Game(GameViolation::Shengji(violation)) => match violation {
             ShengjiViolation::InvalidPlayer => "玩家身份无效",
             ShengjiViolation::WrongPhase => "当前阶段不能执行这个操作",
             ShengjiViolation::InvalidDeclaration => "这些牌不能用于亮主或反主",
@@ -91,7 +103,7 @@ pub fn rejection_label(reason: &RejectReason) -> Option<String> {
             ShengjiViolation::MustFollowCategory => "手中有该门牌时必须先跟该门",
             ShengjiViolation::MustFollowStructure => "必须优先跟泰坦尼克、拖拉机、三同张或对子结构",
         },
-        RejectReason::GameViolation(GameViolation::Uno(violation)) => match violation {
+        RejectReason::Game(GameViolation::Uno(violation)) => match violation {
             UnoViolation::InvalidPlayer => "玩家身份无效",
             UnoViolation::PlayerEliminated => "你已经被淘汰，不能继续操作",
             UnoViolation::NotPlayersTurn => "还没有轮到你行动",
@@ -122,7 +134,7 @@ pub fn rejection_label(reason: &RejectReason) -> Option<String> {
             UnoViolation::NoSwapEffect => "当前没有待处理的换牌效果",
             UnoViolation::InvalidSwapTargets => "请选择符合要求且互不重复的玩家",
         },
-        RejectReason::GameViolation(GameViolation::Mahjong(violation)) => match violation {
+        RejectReason::Game(GameViolation::Mahjong(violation)) => match violation {
             MahjongViolation::InvalidPlayer => "玩家身份无效",
             MahjongViolation::NotPlayersTurn => "还没有轮到你出牌",
             MahjongViolation::WrongPhase => "当前阶段不能执行这个操作",
@@ -131,8 +143,9 @@ pub fn rejection_label(reason: &RejectReason) -> Option<String> {
             MahjongViolation::AlreadyResponded => "你已经响应过这张牌",
             MahjongViolation::CannotWin => "当前手牌不能和牌",
             MahjongViolation::CannotKong => "当前不能开杠",
+            MahjongViolation::InvalidDeveloperHand(_) => unreachable!("formatted above"),
         },
-        RejectReason::WrongGame { .. } => "该命令不属于当前房间游戏",
+        RejectReason::Game(GameViolation::WrongGame { .. }) => "该命令不属于当前房间游戏",
         _ => "请求被房主拒绝",
     };
     Some(format!("提示：{detail}"))

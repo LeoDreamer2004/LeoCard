@@ -1,80 +1,92 @@
 //! UNO 按钮动作、本地选择状态与网络命令。
 
 use super::*;
+use bevy::ecs::system::SystemParam;
 use leocard_protocol::{ClientCommand, GameCommand, UnoCommand, UnoPendingSwapView};
 use leocard_uno::UnoFace;
 
-pub fn handle_uno_button(
-    action: &UiAction,
-    client: &mut Option<ResMut<ClientResource>>,
-    ui: &mut UiState,
-) -> bool {
-    match action {
-        UiAction::UpdateUnoRules(rules) => {
-            ui.uno.mode_menu_open = false;
-            send_uno(client, UnoCommand::UpdateRules { rules: *rules });
+#[derive(SystemParam)]
+pub struct UnoActionContext<'w> {
+    client: Option<ResMut<'w, ClientResource>>,
+    ui: ResMut<'w, UiState>,
+}
+
+pub fn dispatch_uno_actions(
+    mut actions: MessageReader<PressedUiAction>,
+    mut context: UnoActionContext,
+) {
+    dispatch_domain_actions::<UnoUiAction, _>(&mut actions, &mut context);
+}
+
+impl UiActionHandler<UnoActionContext<'_>> for UnoUiAction {
+    fn handle(&self, context: &mut UnoActionContext<'_>) {
+        let client = &mut context.client;
+        let ui = &mut context.ui;
+        match self {
+            UnoUiAction::UpdateRules(rules) => {
+                ui.uno.mode_menu_open = false;
+                send_uno(client, UnoCommand::UpdateRules { rules: *rules });
+            }
+            UnoUiAction::ToggleModeMenu => {
+                ui.uno.mode_menu_open = !ui.uno.mode_menu_open;
+            }
+            UnoUiAction::CloseModeMenu => ui.uno.mode_menu_open = false,
+            UnoUiAction::ToggleExpansionSettings => {
+                ui.uno.expansion_settings_open = !ui.uno.expansion_settings_open;
+            }
+            UnoUiAction::ToggleCard(card) => {
+                let game = client
+                    .as_deref()
+                    .and_then(|client| client.0.model().uno_game());
+                toggle_uno_selection(game, &mut ui.uno.selected, *card);
+            }
+            UnoUiAction::SubmitCard => submit_selected_cards(client, ui),
+            UnoUiAction::CloseColorChoice => ui.uno.color_choice = None,
+            UnoUiAction::ChooseInitialColor(color) => {
+                send_uno(client, UnoCommand::ChooseInitialColor { color: *color });
+            }
+            UnoUiAction::PlayCard(card, chosen_color) => {
+                send_uno(
+                    client,
+                    UnoCommand::PlayCard {
+                        card: *card,
+                        chosen_color: *chosen_color,
+                    },
+                );
+                ui.uno.color_choice = None;
+                ui.uno.selected.clear();
+            }
+            UnoUiAction::JumpIn(card) => {
+                send_uno(client, UnoCommand::JumpIn { card: *card });
+                ui.uno.selected.clear();
+            }
+            UnoUiAction::ToggleSwapTarget(target) => {
+                let Some(game) = client
+                    .as_deref()
+                    .and_then(|client| client.0.model().uno_game())
+                else {
+                    return;
+                };
+                toggle_uno_swap_target_selection(
+                    game.pending_swap,
+                    game.you,
+                    *target,
+                    &mut ui.uno.swap_targets,
+                );
+                ui.social.interaction_menu_open = None;
+            }
+            UnoUiAction::ConfirmSwapTargets => confirm_swap_targets(client, ui),
+            UnoUiAction::DrawCard => send_uno(client, UnoCommand::DrawCard),
+            UnoUiAction::PassAfterDraw => send_uno(client, UnoCommand::PassAfterDraw),
+            UnoUiAction::AcceptDrawPenalty => send_uno(client, UnoCommand::AcceptDrawPenalty),
+            UnoUiAction::ChallengeDrawFour => send_uno(client, UnoCommand::ChallengeDrawFour),
+            UnoUiAction::ResolveSkip => send_uno(client, UnoCommand::ResolveSkip),
+            UnoUiAction::Call => send_uno(client, UnoCommand::CallUno),
+            UnoUiAction::Report(target) => {
+                send_uno(client, UnoCommand::ReportUno { target: *target });
+            }
         }
-        UiAction::ToggleUnoModeMenu => {
-            ui.uno.mode_menu_open = !ui.uno.mode_menu_open;
-        }
-        UiAction::CloseUnoModeMenu => ui.uno.mode_menu_open = false,
-        UiAction::ToggleUnoExpansionSettings => {
-            ui.uno.expansion_settings_open = !ui.uno.expansion_settings_open;
-        }
-        UiAction::ToggleUnoCard(card) => {
-            let game = client
-                .as_deref()
-                .and_then(|client| client.0.model().uno_game());
-            toggle_uno_selection(game, &mut ui.uno.selected, *card);
-        }
-        UiAction::SubmitUnoCard => submit_selected_cards(client, ui),
-        UiAction::CloseUnoColorChoice => ui.uno.color_choice = None,
-        UiAction::UnoChooseInitialColor(color) => {
-            send_uno(client, UnoCommand::ChooseInitialColor { color: *color });
-        }
-        UiAction::UnoPlayCard(card, chosen_color) => {
-            send_uno(
-                client,
-                UnoCommand::PlayCard {
-                    card: *card,
-                    chosen_color: *chosen_color,
-                },
-            );
-            ui.uno.color_choice = None;
-            ui.uno.selected.clear();
-        }
-        UiAction::UnoJumpIn(card) => {
-            send_uno(client, UnoCommand::JumpIn { card: *card });
-            ui.uno.selected.clear();
-        }
-        UiAction::ToggleUnoSwapTarget(target) => {
-            let Some(game) = client
-                .as_deref()
-                .and_then(|client| client.0.model().uno_game())
-            else {
-                return true;
-            };
-            toggle_uno_swap_target_selection(
-                game.pending_swap,
-                game.you,
-                *target,
-                &mut ui.uno.swap_targets,
-            );
-            ui.social.interaction_menu_open = None;
-        }
-        UiAction::ConfirmUnoSwapTargets => confirm_swap_targets(client, ui),
-        UiAction::UnoDrawCard => send_uno(client, UnoCommand::DrawCard),
-        UiAction::UnoPassAfterDraw => send_uno(client, UnoCommand::PassAfterDraw),
-        UiAction::UnoAcceptDrawPenalty => send_uno(client, UnoCommand::AcceptDrawPenalty),
-        UiAction::UnoChallengeDrawFour => send_uno(client, UnoCommand::ChallengeDrawFour),
-        UiAction::UnoResolveSkip => send_uno(client, UnoCommand::ResolveSkip),
-        UiAction::UnoCall => send_uno(client, UnoCommand::CallUno),
-        UiAction::UnoReport(target) => {
-            send_uno(client, UnoCommand::ReportUno { target: *target });
-        }
-        _ => return false,
     }
-    true
 }
 
 fn send_uno(client: &mut Option<ResMut<ClientResource>>, command: UnoCommand) {

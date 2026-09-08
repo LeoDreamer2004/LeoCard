@@ -327,9 +327,7 @@ fn five_trump_crossing_commands_transfer_privately_and_only_once() {
     assert!(rejected.iter().any(|delivery| matches!(
         delivery.message.event,
         ServerEvent::Rejected {
-            reason: RejectReason::GameViolation(GameViolation::Shengji(
-                ShengjiViolation::WrongPhase
-            ))
+            reason: RejectReason::Game(GameViolation::Shengji(ShengjiViolation::WrongPhase))
         }
     )));
 }

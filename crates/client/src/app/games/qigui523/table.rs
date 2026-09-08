@@ -251,7 +251,7 @@ pub fn render_table(
                     commands,
                     actions,
                     &format!("出牌 ({})", ui.qigui523.selected.len()),
-                    UiAction::Play,
+                    UiAction::QiGui523(QiGui523UiAction::Play),
                     ButtonKind::Primary,
                     assets,
                 );
@@ -262,7 +262,7 @@ pub fn render_table(
                     commands,
                     actions,
                     "不要",
-                    UiAction::Pass,
+                    UiAction::QiGui523(QiGui523UiAction::Pass),
                     ButtonKind::Pass,
                     assets,
                 );
@@ -270,7 +270,7 @@ pub fn render_table(
                     commands,
                     actions,
                     "提示",
-                    UiAction::Hint,
+                    UiAction::QiGui523(QiGui523UiAction::Hint),
                     ButtonKind::Secondary,
                     assets,
                 );
@@ -301,7 +301,7 @@ pub fn render_table(
                     commands,
                     actions,
                     "不要",
-                    UiAction::Pass,
+                    UiAction::QiGui523(QiGui523UiAction::Pass),
                     ButtonKind::Pass,
                     assets,
                 );

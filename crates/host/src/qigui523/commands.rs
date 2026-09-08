@@ -5,8 +5,8 @@ use crate::{
 };
 use leocard_protocol::{
     ChatContent, GameViolation, JoinRequest, MAX_PLAYER_NAME_CHARS, PlayerId, PlayerInteraction,
-    PlayerInteractionKind, PublicPlay, QiGui523ProfileStats, RejectReason, RequestId,
-    RuleViolation, SeatId, ServerEvent, TABLE_SEAT_COUNT,
+    PlayerInteractionKind, PlayerViolation, PublicPlay, QiGui523ProfileStats, RejectReason,
+    RequestId, RoomViolation, RuleViolation, SeatId, ServerEvent, TABLE_SEAT_COUNT,
 };
 use leocard_qigui523::{GameState, Phase, QiGuiCard, QiGuiRuleSet, build_deck, classify};
 
@@ -30,17 +30,29 @@ impl QiGui523Session {
         cards: Vec<QiGuiCard>,
     ) -> Vec<Delivery> {
         let Some(player) = self.player_id(connection) else {
-            return self.reject(connection, request_id, RejectReason::NotJoined);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_mut() else {
-            return self.reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         if cards.is_empty()
             || game
                 .replace_player_hand(to_core_player(player), cards)
                 .is_err()
         {
-            return self.reject(connection, request_id, RejectReason::InvalidDeveloperHand);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::InvalidDeveloperHand),
+            );
         }
         self.bump_revision();
         self.broadcast_game(Some((connection, request_id)))
@@ -56,7 +68,7 @@ impl QiGui523Session {
         self.reject(
             connection,
             request_id,
-            RejectReason::DeveloperFeatureUnavailable,
+            RejectReason::Game(GameViolation::DeveloperFeatureUnavailable),
         )
     }
 
@@ -68,18 +80,24 @@ impl QiGui523Session {
         kind: PlayerInteractionKind,
     ) -> Vec<Delivery> {
         let Some(source) = self.player_id(connection) else {
-            return self.reject(connection, request_id, RejectReason::NotJoined);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_ref() else {
-            return self.reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         if !matches!(game.phase(), Phase::Playing) {
             return self.reject(
                 connection,
                 request_id,
-                RejectReason::GameViolation(GameViolation::QiGui523(
-                    RuleViolation::GameAlreadyFinished,
-                )),
+                RejectReason::Game(GameViolation::QiGui523(RuleViolation::GameAlreadyFinished)),
             );
         }
         if source == target
@@ -91,7 +109,7 @@ impl QiGui523Session {
             return self.reject(
                 connection,
                 request_id,
-                RejectReason::GameViolation(GameViolation::QiGui523(RuleViolation::InvalidPlayer)),
+                RejectReason::Game(GameViolation::QiGui523(RuleViolation::InvalidPlayer)),
             );
         }
 
@@ -126,23 +144,35 @@ impl QiGui523Session {
         request: JoinRequest,
     ) -> Vec<Delivery> {
         if self.player_id(connection).is_some() {
-            return self.reject(connection, request_id, RejectReason::AlreadyJoined);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::AlreadyJoined),
+            );
         }
         let normalized_name = request.name.trim();
         if normalized_name.is_empty() {
-            return self.reject(connection, request_id, RejectReason::NameEmpty);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NameEmpty),
+            );
         }
         if normalized_name.chars().count() > MAX_PLAYER_NAME_CHARS {
             return self.reject(
                 connection,
                 request_id,
-                RejectReason::NameTooLong {
+                RejectReason::Player(PlayerViolation::NameTooLong {
                     max_chars: MAX_PLAYER_NAME_CHARS as u16,
-                },
+                }),
             );
         }
         if !valid_identity_proof(self.room_id, &request) {
-            return self.reject(connection, request_id, RejectReason::InvalidIdentityProof);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::InvalidIdentityProof),
+            );
         }
         let JoinRequest {
             name,
@@ -160,7 +190,11 @@ impl QiGui523Session {
             .position(|player| player.reconnect_token == reconnect_token && !player.left)
         {
             if self.players[index].name != name || self.players[index].profile_id != profile_id {
-                return self.reject(connection, request_id, RejectReason::AlreadyJoined);
+                return self.reject(
+                    connection,
+                    request_id,
+                    RejectReason::Player(PlayerViolation::AlreadyJoined),
+                );
             }
             return self.reconnect(index, connection, request_id);
         }
@@ -169,15 +203,27 @@ impl QiGui523Session {
             .iter()
             .any(|player| player.profile_id == profile_id && !player.left)
         {
-            return self.reject(connection, request_id, RejectReason::AlreadyJoined);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::AlreadyJoined),
+            );
         }
         if self.game.is_some() {
-            return self.reject(connection, request_id, RejectReason::GameAlreadyStarted);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameAlreadyStarted),
+            );
         }
         if self.players.iter().filter(|player| !player.left).count()
             >= usize::from(self.rules.player_count)
         {
-            return self.reject(connection, request_id, RejectReason::RoomFull);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::RoomFull),
+            );
         }
 
         let vacant = self.players.iter().position(|player| player.left);
@@ -346,18 +392,24 @@ impl QiGui523Session {
         enabled: bool,
     ) -> Vec<Delivery> {
         let Some(player) = self.player_id(connection) else {
-            return self.reject(connection, request_id, RejectReason::NotJoined);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_ref() else {
-            return self.reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         if !matches!(game.phase(), Phase::Playing) {
             return self.reject(
                 connection,
                 request_id,
-                RejectReason::GameViolation(GameViolation::QiGui523(
-                    RuleViolation::GameAlreadyFinished,
-                )),
+                RejectReason::Game(GameViolation::QiGui523(RuleViolation::GameAlreadyFinished)),
             );
         }
 
@@ -389,13 +441,25 @@ impl QiGui523Session {
         rules: QiGuiRuleSet,
     ) -> Vec<Delivery> {
         if self.player_id(connection).is_none() {
-            return self.reject(connection, request_id, RejectReason::NotJoined);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.game.is_some() {
-            return self.reject(connection, request_id, RejectReason::GameAlreadyStarted);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameAlreadyStarted),
+            );
         }
         if self.host_connection != Some(connection) {
-            return self.reject(connection, request_id, RejectReason::OnlyHostCanConfigure);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::OnlyHostCanConfigure),
+            );
         }
         let rules = QiGuiRuleSet {
             player_count: TABLE_SEAT_COUNT,
@@ -405,7 +469,7 @@ impl QiGui523Session {
             return self.reject(
                 connection,
                 request_id,
-                RejectReason::InvalidRuleConfiguration,
+                RejectReason::Game(GameViolation::InvalidRuleConfiguration),
             );
         };
 
@@ -426,23 +490,35 @@ impl QiGui523Session {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         if self.player_id(connection).is_none() {
-            return self.reject(connection, request_id, RejectReason::NotJoined);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.game.is_some() {
-            return self.reject(connection, request_id, RejectReason::GameAlreadyStarted);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameAlreadyStarted),
+            );
         }
         if self.host_connection != Some(connection) {
-            return self.reject(connection, request_id, RejectReason::OnlyHostCanStart);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::OnlyHostCanStart),
+            );
         }
         let active_player_count = self.players.iter().filter(|player| !player.left).count();
         if active_player_count < 2 {
             return self.reject(
                 connection,
                 request_id,
-                RejectReason::NotEnoughPlayers {
+                RejectReason::Room(RoomViolation::NotEnoughPlayers {
                     minimum: 2,
                     actual: active_player_count as u8,
-                },
+                }),
             );
         }
         let not_seated: Vec<_> = self
@@ -453,7 +529,11 @@ impl QiGui523Session {
             .map(|player| player.id)
             .collect();
         if !not_seated.is_empty() {
-            return self.reject(connection, request_id, RejectReason::MustSelectSeat);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::MustSelectSeat),
+            );
         }
         let not_ready: Vec<_> = self
             .players
@@ -466,7 +546,7 @@ impl QiGui523Session {
             return self.reject(
                 connection,
                 request_id,
-                RejectReason::PlayersNotReady { players: not_ready },
+                RejectReason::Room(RoomViolation::PlayersNotReady { players: not_ready }),
             );
         }
 
@@ -527,20 +607,32 @@ impl QiGui523Session {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         if self.player_id(connection).is_none() {
-            return self.reject(connection, request_id, RejectReason::NotJoined);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.host_connection != Some(connection) {
             return self.reject(
                 connection,
                 request_id,
-                RejectReason::OnlyHostCanReturnToLobby,
+                RejectReason::Room(RoomViolation::OnlyHostCanReturnToLobby),
             );
         }
         let Some(game) = self.game.as_ref() else {
-            return self.reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         if !matches!(game.phase(), Phase::Finished(_)) {
-            return self.reject(connection, request_id, RejectReason::GameNotFinished);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
         }
 
         self.game = None;
@@ -572,13 +664,25 @@ impl QiGui523Session {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         let Some(player) = self.player_id(connection) else {
-            return self.reject(connection, request_id, RejectReason::NotJoined);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_ref() else {
-            return self.reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         if !matches!(game.phase(), Phase::Finished(_)) {
-            return self.reject(connection, request_id, RejectReason::GameNotFinished);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
         }
 
         let participant = &mut self.players[usize::from(player.0)];
@@ -605,7 +709,11 @@ impl QiGui523Session {
             .iter()
             .position(|player| player.connection == connection && !player.left)
         else {
-            return self.reject(connection, request_id, RejectReason::NotJoined);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         if self.host_connection == Some(connection) {
             return self.close_room(connection, request_id);
@@ -719,10 +827,18 @@ impl QiGui523Session {
         cards: &[QiGuiCard],
     ) -> Vec<Delivery> {
         let Some(player) = self.player_id(connection) else {
-            return self.reject(connection, request_id, RejectReason::NotJoined);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_mut() else {
-            return self.reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
 
         match game.play_cards(to_core_player(player), cards) {
@@ -743,7 +859,7 @@ impl QiGui523Session {
             Err(error) => self.reject(
                 connection,
                 request_id,
-                RejectReason::GameViolation(GameViolation::QiGui523(map_game_error(&error))),
+                RejectReason::Game(GameViolation::QiGui523(map_game_error(&error))),
             ),
         }
     }
@@ -754,10 +870,18 @@ impl QiGui523Session {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         let Some(player) = self.player_id(connection) else {
-            return self.reject(connection, request_id, RejectReason::NotJoined);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_mut() else {
-            return self.reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
 
         match game.pass(to_core_player(player)) {
@@ -769,7 +893,7 @@ impl QiGui523Session {
             Err(error) => self.reject(
                 connection,
                 request_id,
-                RejectReason::GameViolation(GameViolation::QiGui523(map_game_error(&error))),
+                RejectReason::Game(GameViolation::QiGui523(map_game_error(&error))),
             ),
         }
     }

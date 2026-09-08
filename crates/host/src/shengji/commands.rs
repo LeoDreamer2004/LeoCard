@@ -1,7 +1,8 @@
 use super::*;
 use leocard_protocol::{
-    GameViolation, PlayerId, PlayerInteraction, PlayerInteractionKind, RejectReason, RequestId,
-    ServerEvent, ShengjiEvent, ShengjiProfileStats, ShengjiViolation,
+    GameViolation, PlayerId, PlayerInteraction, PlayerInteractionKind, PlayerViolation,
+    RejectReason, RequestId, RoomViolation, ServerEvent, ShengjiEvent, ShengjiProfileStats,
+    ShengjiViolation,
 };
 use leocard_shengji::{
     ActionOutcome, GameError, GameState, Phase, ShengjiCard, ShengjiPlayerId, ShengjiRuleSet,
@@ -16,25 +17,31 @@ impl ShengjiSession {
         rules: ShengjiRuleSet,
     ) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.game.is_some() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameAlreadyStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameAlreadyStarted),
+            );
         }
         if self.room.host_connection != Some(connection) {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::OnlyHostCanConfigure);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::OnlyHostCanConfigure),
+            );
         }
         let Ok(rules) = rules.validate() else {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::InvalidRuleConfiguration,
+                RejectReason::Game(GameViolation::InvalidRuleConfiguration),
             );
         };
         if self.rules != rules {
@@ -52,19 +59,25 @@ impl ShengjiSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.game.is_some() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameAlreadyStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameAlreadyStarted),
+            );
         }
         if self.room.host_connection != Some(connection) {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::OnlyHostCanStart);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::OnlyHostCanStart),
+            );
         }
         let active = self.room.players.iter().filter(|player| !player.left);
         let active_count = active.clone().count();
@@ -72,16 +85,18 @@ impl ShengjiSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::NotEnoughPlayers {
+                RejectReason::Room(RoomViolation::NotEnoughPlayers {
                     minimum: PLAYER_COUNT,
                     actual: active_count as u8,
-                },
+                }),
             );
         }
         if active.clone().any(|player| player.seat.is_none()) {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::MustSelectSeat);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::MustSelectSeat),
+            );
         }
         let not_ready = active
             .filter(|player| !player.ready)
@@ -91,7 +106,7 @@ impl ShengjiSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::PlayersNotReady { players: not_ready },
+                RejectReason::Room(RoomViolation::PlayersNotReady { players: not_ready }),
             );
         }
         self.room.remove_departed_players();
@@ -119,7 +134,7 @@ impl ShengjiSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::InvalidRuleConfiguration,
+                RejectReason::Game(GameViolation::InvalidRuleConfiguration),
             );
         }
         self.room.bump_revision();
@@ -171,14 +186,18 @@ impl ShengjiSession {
         enabled: bool,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         if self.game.is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         }
         let participant = self
             .room
@@ -201,14 +220,18 @@ impl ShengjiSession {
         cards: Vec<ShengjiCard>,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_mut() else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         match game.declare(to_core_player(player), &cards) {
             Ok(_) => {
@@ -232,9 +255,11 @@ impl ShengjiSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         if !self
             .game
@@ -343,18 +368,22 @@ impl ShengjiSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::GameViolation(GameViolation::Shengji(ShengjiViolation::WrongPhase)),
+                RejectReason::Game(GameViolation::Shengji(ShengjiViolation::WrongPhase)),
             );
         }
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_mut() else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         let outcome = match action(game, to_core_player(player)) {
             Ok(outcome) => outcome,
@@ -376,15 +405,17 @@ impl ShengjiSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.room.host_connection != Some(connection) {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::OnlyHostCanReturnToLobby,
+                RejectReason::Room(RoomViolation::OnlyHostCanReturnToLobby),
             );
         }
         if !self
@@ -392,9 +423,11 @@ impl ShengjiSession {
             .as_ref()
             .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
         {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotFinished);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
         }
         self.game = None;
         self.match_id = None;
@@ -425,18 +458,22 @@ impl ShengjiSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         if !self
             .game
             .as_ref()
             .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
         {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotFinished);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
         }
         if let Some(participant) = self.room.players.iter_mut().find(|item| item.id == player) {
             participant.ready = true;
@@ -458,7 +495,7 @@ impl ShengjiSession {
                 return self.room.reject(
                     connection,
                     request_id,
-                    RejectReason::InvalidRuleConfiguration,
+                    RejectReason::Game(GameViolation::InvalidRuleConfiguration),
                 );
             }
             self.room.bump_revision();
@@ -477,9 +514,11 @@ impl ShengjiSession {
             .iter()
             .position(|player| player.connection == connection && !player.left)
         else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         if self.room.host_connection == Some(connection) {
             return self.close_room(connection, request_id);
@@ -537,14 +576,18 @@ impl ShengjiSession {
         kind: PlayerInteractionKind,
     ) -> Vec<Delivery> {
         let Some(source) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         if self.game.is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         }
         if source == target
             || !self
@@ -556,9 +599,7 @@ impl ShengjiSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::GameViolation(GameViolation::Shengji(
-                    ShengjiViolation::InvalidPlayer,
-                )),
+                RejectReason::Game(GameViolation::Shengji(ShengjiViolation::InvalidPlayer)),
             );
         }
         let interaction = PlayerInteraction {

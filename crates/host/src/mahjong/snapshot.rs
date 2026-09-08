@@ -233,12 +233,8 @@ impl MahjongSession {
             GameError::AlreadyResponded => MahjongViolation::AlreadyResponded,
             GameError::CannotWin => MahjongViolation::CannotWin,
             GameError::CannotKong => MahjongViolation::CannotKong,
-            GameError::InvalidHandReplacement => {
-                return self.room.reject(
-                    connection,
-                    request_id,
-                    RejectReason::InvalidDeveloperHand,
-                );
+            GameError::InvalidHandReplacement(reason) => {
+                MahjongViolation::InvalidDeveloperHand(*reason)
             }
             GameError::InvalidRules(_)
             | GameError::InvalidDeckSize { .. }
@@ -247,14 +243,14 @@ impl MahjongSession {
                 return self.room.reject(
                     connection,
                     request_id,
-                    RejectReason::InvalidRuleConfiguration,
+                    RejectReason::Game(GameViolation::InvalidRuleConfiguration),
                 );
             }
         };
         self.room.reject(
             connection,
             request_id,
-            RejectReason::GameViolation(GameViolation::Mahjong(violation)),
+            RejectReason::Game(GameViolation::Mahjong(violation)),
         )
     }
 }

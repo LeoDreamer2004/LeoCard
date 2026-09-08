@@ -1,5 +1,8 @@
 use super::*;
-use leocard_protocol::{PlayerId, PlayerReferenceChange, RejectReason, RequestId, UnoProfileStats};
+use leocard_protocol::{
+    GameViolation, PlayerId, PlayerReferenceChange, PlayerViolation, RejectReason, RequestId,
+    UnoProfileStats,
+};
 use leocard_uno::{
     ActionOutcome, GameError, GameState, Phase, PlayedEffect, UnoCard, UnoChallengeResult,
     UnoColor, UnoPlayerId,
@@ -18,14 +21,18 @@ impl UnoSession {
         F: FnOnce(&mut GameState, UnoPlayerId) -> Result<ActionOutcome, GameError>,
     {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_mut() else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         let jump_in_was_available =
             successful_jump_in && game.jump_in_card(to_core_player(player)).is_some();

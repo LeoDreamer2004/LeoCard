@@ -395,15 +395,15 @@ fn uno_expansion_settings_only_frames_the_hosts_status_control() {
     assert_eq!(host.len(), 3);
     assert!(host.iter().any(|(_, _, action)| matches!(
         action,
-        Some(UiAction::UpdateUnoRules(rules)) if !rules.swap_pack && rules.reverse_pack
+        Some(UiAction::Uno(UnoUiAction::UpdateRules(rules))) if !rules.swap_pack && rules.reverse_pack
     )));
     assert!(host.iter().any(|(_, _, action)| matches!(
         action,
-        Some(UiAction::UpdateUnoRules(rules)) if rules.swap_pack && !rules.reverse_pack
+        Some(UiAction::Uno(UnoUiAction::UpdateRules(rules))) if rules.swap_pack && !rules.reverse_pack
     )));
     assert!(host.iter().any(|(_, _, action)| matches!(
         action,
-        Some(UiAction::UpdateUnoRules(rules)) if rules.swap_pack && rules.reverse_pack && !rules.stack_pack
+        Some(UiAction::Uno(UnoUiAction::UpdateRules(rules))) if rules.swap_pack && rules.reverse_pack && !rules.stack_pack
     )));
     let guests = statuses
         .iter()
@@ -487,7 +487,8 @@ fn uno_mode_switch_uses_a_translucent_three_option_dropdown() {
         .filter(|(_, _, action)| {
             matches!(
                 action,
-                UiAction::ToggleUnoModeMenu | UiAction::UpdateUnoRules(_)
+                UiAction::Uno(UnoUiAction::ToggleModeMenu)
+                    | UiAction::Uno(UnoUiAction::UpdateRules(_))
             )
         })
         .collect::<Vec<_>>();
@@ -503,7 +504,7 @@ fn uno_mode_switch_uses_a_translucent_three_option_dropdown() {
         .query_filtered::<&UiAction, With<Button>>()
         .iter(app.world())
         .filter_map(|action| match action {
-            UiAction::UpdateUnoRules(rules) => Some(*rules),
+            UiAction::Uno(UnoUiAction::UpdateRules(rules)) => Some(*rules),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -553,7 +554,7 @@ fn uno_expansion_settings_entry_centers_its_label_in_the_full_width_button() {
             &mut commands,
             root,
             "扩展包设置",
-            UiAction::ToggleUnoExpansionSettings,
+            UiAction::Uno(UnoUiAction::ToggleExpansionSettings),
             ButtonKind::Secondary,
             &assets,
         );
@@ -578,7 +579,7 @@ fn uno_expansion_settings_entry_centers_its_label_in_the_full_width_button() {
         .query_filtered::<(&Node, &UiAction), With<Button>>();
     let (node, _) = buttons
         .iter(app.world())
-        .find(|(_, action)| matches!(action, UiAction::ToggleUnoExpansionSettings))
+        .find(|(_, action)| matches!(action, UiAction::Uno(UnoUiAction::ToggleExpansionSettings)))
         .expect("扩展包设置入口应是可点击按钮");
     assert_eq!(node.width, percent(100));
     assert_eq!(node.height, px(56));

@@ -76,7 +76,7 @@ pub(super) fn add_card_button(
     let button = commands
         .spawn((
             Button,
-            UiAction::ToggleCard,
+            UiAction::QiGui523(QiGui523UiAction::ToggleCard),
             HandCardSlot {
                 card,
                 index,

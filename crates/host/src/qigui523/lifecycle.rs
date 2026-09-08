@@ -1,8 +1,8 @@
 use super::{QiGui523Session, validate_deck};
 use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession};
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameCommand, GameKind, QiGui523Command, RejectReason, Revision,
-    RoomId, ServerEvent,
+    ClientCommand, ClientMessage, GameCommand, GameKind, GameViolation, QiGui523Command,
+    RejectReason, Revision, RoomId, ServerEvent,
 };
 use leocard_qigui523::{GameState, QiGuiCard, QiGuiRuleSet};
 use std::time::Duration;
@@ -224,34 +224,34 @@ impl QiGui523Session {
             ClientCommand::Game(GameCommand::TexasHoldem(_)) => self.reject(
                 connection,
                 message.request_id,
-                RejectReason::WrongGame {
+                RejectReason::Game(GameViolation::WrongGame {
                     expected: GameKind::QiGui523,
                     received: GameKind::TexasHoldem,
-                },
+                }),
             ),
             ClientCommand::Game(GameCommand::Shengji(_)) => self.reject(
                 connection,
                 message.request_id,
-                RejectReason::WrongGame {
+                RejectReason::Game(GameViolation::WrongGame {
                     expected: GameKind::QiGui523,
                     received: GameKind::Shengji,
-                },
+                }),
             ),
             ClientCommand::Game(GameCommand::Uno(_)) => self.reject(
                 connection,
                 message.request_id,
-                RejectReason::WrongGame {
+                RejectReason::Game(GameViolation::WrongGame {
                     expected: GameKind::QiGui523,
                     received: GameKind::Uno,
-                },
+                }),
             ),
             ClientCommand::Game(GameCommand::Mahjong(_)) => self.reject(
                 connection,
                 message.request_id,
-                RejectReason::WrongGame {
+                RejectReason::Game(GameViolation::WrongGame {
                     expected: GameKind::QiGui523,
                     received: GameKind::Mahjong,
-                },
+                }),
             ),
             ClientCommand::StartGame => self.start_game(connection, message.request_id),
             ClientCommand::ReturnToLobby => self.return_to_lobby(connection, message.request_id),

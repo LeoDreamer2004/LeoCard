@@ -130,7 +130,7 @@ pub fn add_auto_play_overlay(commands: &mut Commands, parent: Entity, assets: &U
     let overlay = commands
         .spawn((
             Button,
-            UiAction::ToggleAutoPlay,
+            UiAction::Social(SocialUiAction::ToggleAutoPlay),
             Node {
                 position_type: PositionType::Absolute,
                 left: px(0),
@@ -189,7 +189,7 @@ pub fn add_disabled_action_button(
     entity
 }
 
-pub fn add_header_button(
+pub fn add_compact_button(
     commands: &mut Commands,
     parent: Entity,
     label: &str,
@@ -215,39 +215,6 @@ pub fn add_header_button(
                 ..default()
             },
             ImageNode::new(assets.controls.secondary_button.clone())
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(normal),
-        ))
-        .id();
-    commands.entity(parent).add_child(entity);
-    add_text(commands, entity, label, 14.0, Color::WHITE, assets);
-}
-
-pub fn add_header_exit_button(
-    commands: &mut Commands,
-    parent: Entity,
-    label: &str,
-    assets: &UiAssets,
-) {
-    let normal = Color::WHITE;
-    let entity = commands
-        .spawn((
-            Button,
-            UiAction::LeaveRoom,
-            ButtonTint {
-                normal,
-                hovered: Color::srgb(1.0, 0.88, 0.84),
-                pressed: Color::srgb(0.74, 0.66, 0.64),
-            },
-            Node {
-                min_width: px(108),
-                height: px(36),
-                padding: UiRect::axes(px(14), px(5)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            ImageNode::new(assets.controls.danger_button.clone())
                 .with_mode(NodeImageMode::Stretch)
                 .with_color(normal),
         ))

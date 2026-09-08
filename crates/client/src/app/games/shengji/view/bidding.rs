@@ -128,7 +128,7 @@ fn add_shengji_bid_pass_button(
     if !confirmed {
         entity.insert((
             Button,
-            UiAction::ConfirmShengjiBidPass,
+            UiAction::Shengji(ShengjiUiAction::ConfirmBidPass),
             ButtonTint {
                 normal,
                 hovered: Color::srgb(0.23, 0.58, 0.39),
@@ -186,9 +186,9 @@ pub fn add_shengji_bid_button(
         commands.entity(entity).insert((
             Button,
             if bottom_copy {
-                UiAction::ShengjiBottomCopy(cards)
+                UiAction::Shengji(ShengjiUiAction::BottomCopy(cards))
             } else {
-                UiAction::ShengjiDeclare(cards)
+                UiAction::Shengji(ShengjiUiAction::Declare(cards))
             },
             ButtonTint {
                 normal: Color::srgb(0.20, 0.62, 0.38),

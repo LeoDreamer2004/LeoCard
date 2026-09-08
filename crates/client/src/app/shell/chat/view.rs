@@ -47,7 +47,7 @@ pub fn add_chat_panel(
     let toggle = commands
         .spawn((
             Button,
-            UiAction::ToggleChatPanel,
+            UiAction::Chat(ChatUiAction::TogglePanel),
             ButtonTint {
                 normal: Color::WHITE,
                 hovered: Color::srgb(1.0, 0.90, 0.56),
@@ -84,7 +84,7 @@ pub fn add_chat_panel(
         let auto_button = commands
             .spawn((
                 Button,
-                UiAction::ToggleAutoPlay,
+                UiAction::Social(SocialUiAction::ToggleAutoPlay),
                 ButtonTint {
                     normal: if enabled {
                         Color::srgb(0.18, 0.68, 0.38)
@@ -173,7 +173,7 @@ pub fn add_chat_panel(
         if available {
             commands.entity(previous_button).insert((
                 Button,
-                UiAction::ShowShengjiPreviousTrick,
+                UiAction::Shengji(ShengjiUiAction::ShowPreviousTrick),
                 ButtonTint {
                     normal,
                     hovered: Color::srgb(0.22, 0.56, 0.39),
@@ -220,7 +220,7 @@ pub fn add_chat_panel(
         if available {
             commands.entity(buried_button).insert((
                 Button,
-                UiAction::ToggleShengjiBuried,
+                UiAction::Shengji(ShengjiUiAction::ToggleBuried),
                 ButtonTint {
                     normal,
                     hovered: Color::srgb(0.22, 0.56, 0.39),
@@ -298,7 +298,7 @@ pub fn add_chat_panel(
     let input_button = commands
         .spawn((
             Button,
-            UiAction::FocusChatInput,
+            UiAction::Chat(ChatUiAction::FocusInput),
             ButtonTint {
                 normal: Color::srgb(0.08, 0.18, 0.15),
                 hovered: Color::srgb(0.11, 0.26, 0.20),
@@ -345,7 +345,7 @@ pub fn add_chat_panel(
     let emoji_button = commands
         .spawn((
             Button,
-            UiAction::ToggleEmojiMenu,
+            UiAction::Chat(ChatUiAction::ToggleEmojiMenu),
             ButtonTint {
                 normal: Color::srgb(0.20, 0.45, 0.35),
                 hovered: Color::srgb(0.28, 0.60, 0.45),
@@ -383,7 +383,7 @@ pub fn add_chat_panel(
     let voice_button = commands
         .spawn((
             Button,
-            UiAction::ToggleQuickVoiceMenu,
+            UiAction::Chat(ChatUiAction::ToggleQuickVoiceMenu),
             ButtonTint {
                 normal: Color::srgb(0.20, 0.45, 0.35),
                 hovered: Color::srgb(0.28, 0.60, 0.45),
@@ -479,7 +479,7 @@ pub fn add_chat_panel(
         let button = commands
             .spawn((
                 Button,
-                UiAction::SendQuickVoice(index as u8),
+                UiAction::Chat(ChatUiAction::SendQuickVoice(index as u8)),
                 ButtonTint {
                     normal: Color::srgb(0.10, 0.26, 0.20),
                     hovered: Color::srgb(0.18, 0.43, 0.32),
@@ -568,7 +568,7 @@ pub fn add_chat_panel(
         let button = commands
             .spawn((
                 Button,
-                UiAction::SendEmoji(emoji),
+                UiAction::Chat(ChatUiAction::SendEmoji(emoji)),
                 ButtonTint {
                     normal: Color::srgb(0.11, 0.26, 0.20),
                     hovered: Color::srgb(0.18, 0.43, 0.32),
@@ -617,7 +617,7 @@ pub fn add_developer_hand_input(
     let field = commands
         .spawn((
             Button,
-            UiAction::FocusDeveloperHand,
+            UiAction::Chat(ChatUiAction::FocusDeveloperHand),
             Node {
                 position_type: PositionType::Absolute,
                 left: px(position.x),

@@ -100,7 +100,7 @@ fn interaction_menu_offers_the_selected_players_full_profile() {
         .query::<&UiAction>()
         .iter(app.world())
         .filter_map(|action| match action {
-            UiAction::OpenPlayerProfile(profile) => Some(profile),
+            UiAction::Navigation(NavigationUiAction::OpenPlayerProfile(profile)) => Some(profile),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -122,9 +122,7 @@ fn full_profile_modal_renders_the_selected_players_statistics() {
             }),
             ..PlayerGameProfiles::default()
         };
-        render_profile_modal(
-            &mut commands,
-            root,
+        ProfileModal::new(
             "远端玩家",
             None,
             500,
@@ -132,7 +130,8 @@ fn full_profile_modal_renders_the_selected_players_statistics() {
             &game_profiles,
             ProfileGameTab::Uno,
             &assets,
-        );
+        )
+        .render(&mut commands, root);
     }
 
     let mut app = App::new();
@@ -163,7 +162,12 @@ fn full_profile_modal_renders_the_selected_players_statistics() {
         .world_mut()
         .query::<&UiAction>()
         .iter(app.world())
-        .filter(|action| matches!(action, UiAction::SelectProfileGameTab(_)))
+        .filter(|action| {
+            matches!(
+                action,
+                UiAction::Navigation(NavigationUiAction::SelectProfileGameTab(_))
+            )
+        })
         .count();
     assert_eq!(tab_actions, 4);
     let mut selected_tab = app
@@ -171,7 +175,9 @@ fn full_profile_modal_renders_the_selected_players_statistics() {
         .query_filtered::<&UiAction, With<SelectedProfileGameTab>>();
     assert!(matches!(
         selected_tab.single(app.world()).unwrap(),
-        UiAction::SelectProfileGameTab(ProfileGameTab::Uno)
+        UiAction::Navigation(NavigationUiAction::SelectProfileGameTab(
+            ProfileGameTab::Uno
+        ))
     ));
     let mut game_tabs = app
         .world_mut()

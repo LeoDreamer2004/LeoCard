@@ -1,7 +1,7 @@
 use super::*;
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameCommand, GameKind, RejectReason, Revision, RoomId,
-    ServerEvent,
+    ClientCommand, ClientMessage, GameCommand, GameKind, GameViolation, RejectReason, Revision,
+    RoomId, ServerEvent,
 };
 use leocard_uno::{GameError, GameState, UnoCard, UnoRuleSet};
 
@@ -223,10 +223,10 @@ impl UnoSession {
             ClientCommand::Game(command) => self.room.reject(
                 connection,
                 request_id,
-                RejectReason::WrongGame {
+                RejectReason::Game(GameViolation::WrongGame {
                     expected: GameKind::Uno,
                     received: command.kind(),
-                },
+                }),
             ),
             ClientCommand::StartGame => self.start_game(connection, request_id),
             ClientCommand::ReturnToLobby => self.return_to_lobby(connection, request_id),

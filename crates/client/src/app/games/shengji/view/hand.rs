@@ -95,7 +95,7 @@ fn add_shengji_hand_card(
                 is_last,
                 hover_amount: animation.slot_hover_amount,
             },
-            UiAction::ToggleShengjiCard,
+            UiAction::Shengji(ShengjiUiAction::ToggleCard),
             RelativeCursorPosition::default(),
             Node {
                 width: px(if is_last {

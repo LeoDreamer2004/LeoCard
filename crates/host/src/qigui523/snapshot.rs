@@ -2,9 +2,9 @@ use super::{QiGui523Session, from_core_player, merge_qigui523_play_stats, record
 use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
     GameEvent, GameKind, GamePhaseView, GameRules, GameSnapshot, LobbySnapshot, PlayerId,
-    PlayerPublicState, PlayerReferenceChange, PlayerScore, PublicPlay, PublicPlayRecord,
-    QiGui523Event, QiGui523ProfileStats, QiGui523Snapshot, RejectReason, RequestId, RevealedHand,
-    ServerEvent, StartingCardView, TrickView,
+    PlayerPublicState, PlayerReferenceChange, PlayerScore, PlayerViolation, PublicPlay,
+    PublicPlayRecord, QiGui523Event, QiGui523ProfileStats, QiGui523Snapshot, RejectReason,
+    RequestId, RevealedHand, ServerEvent, StartingCardView, TrickView,
 };
 use leocard_qigui523::{Phase, PlayRecord, reference_point_deltas};
 
@@ -15,7 +15,11 @@ impl QiGui523Session {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         let Some(player) = self.player_id(connection) else {
-            return self.reject(connection, request_id, RejectReason::NotJoined);
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let event = if self.game.is_some() {
             ServerEvent::GameSnapshot(GameSnapshot::QiGui523(self.game_snapshot(player)))

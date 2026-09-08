@@ -1,7 +1,7 @@
 use super::*;
 use leocard_protocol::{
-    ClientCommand, GameCommand, GamePhaseView, PlayerId, QiGui523Command, ReconnectToken,
-    RejectReason, SeatId, ServerEvent,
+    ClientCommand, GameCommand, GamePhaseView, GameViolation, PlayerId, QiGui523Command,
+    ReconnectToken, RejectReason, RoomViolation, SeatId, ServerEvent,
 };
 #[cfg(feature = "developer")]
 use leocard_protocol::{GameSnapshot, ProfileId};
@@ -14,12 +14,15 @@ fn only_ready_seated_room_host_can_start() {
     join_three(&mut session);
 
     let non_host = session.handle(SECOND, message(3, ClientCommand::StartGame));
-    assert_eq!(rejection(&non_host), Some(&RejectReason::OnlyHostCanStart));
+    assert_eq!(
+        rejection(&non_host),
+        Some(&RejectReason::Room(RoomViolation::OnlyHostCanStart))
+    );
 
     let not_ready = session.handle(HOST, message(3, ClientCommand::StartGame));
     assert!(matches!(
         rejection(&not_ready),
-        Some(RejectReason::PlayersNotReady { .. })
+        Some(RejectReason::Room(RoomViolation::PlayersNotReady { .. }))
     ));
 
     for connection in [HOST, SECOND, THIRD] {
@@ -67,7 +70,7 @@ fn only_host_can_update_rules_and_changes_reset_ready_state() {
     );
     assert_eq!(
         rejection(&non_host),
-        Some(&RejectReason::OnlyHostCanConfigure)
+        Some(&RejectReason::Room(RoomViolation::OnlyHostCanConfigure))
     );
     let invalid = session.handle(
         HOST,
@@ -83,7 +86,7 @@ fn only_host_can_update_rules_and_changes_reset_ready_state() {
     );
     assert_eq!(
         rejection(&invalid),
-        Some(&RejectReason::InvalidRuleConfiguration)
+        Some(&RejectReason::Game(GameViolation::InvalidRuleConfiguration))
     );
 
     let deliveries = session.handle(
@@ -177,7 +180,10 @@ fn joining_assigns_unique_seats_and_the_host_is_always_ready() {
         SECOND,
         message(2, ClientCommand::SelectSeat { seat: host_seat }),
     );
-    assert_eq!(rejection(&occupied), Some(&RejectReason::SeatTaken));
+    assert_eq!(
+        rejection(&occupied),
+        Some(&RejectReason::Room(RoomViolation::SeatTaken))
+    );
     session.handle(SECOND, message(3, ClientCommand::SetReady { ready: true }));
     let deliveries = session.handle(HOST, message(4, ClientCommand::StartGame));
 
@@ -215,7 +221,7 @@ fn developer_bot_seat_changes_keep_the_host_identity_stable() {
     let rejected = session.handle(HOST, message(3, ClientCommand::StartGame));
     assert!(matches!(
         rejection(&rejected),
-        Some(RejectReason::NotEnoughPlayers { .. })
+        Some(RejectReason::Room(RoomViolation::NotEnoughPlayers { .. }))
     ));
     let first_bot_seat = SeatId(0);
     let second_bot_seat = SeatId(1);
@@ -331,14 +337,14 @@ fn finished_game_returns_to_lobby_with_seats_preserved_and_ready_reset() {
     let during_game = session.handle(HOST, message(5, ClientCommand::ReturnToLobby));
     assert_eq!(
         rejection(&during_game),
-        Some(&RejectReason::GameNotFinished)
+        Some(&RejectReason::Game(GameViolation::GameNotFinished))
     );
 
     finish_game(&mut session);
     let non_host = session.handle(SECOND, message(5, ClientCommand::ReturnToLobby));
     assert_eq!(
         rejection(&non_host),
-        Some(&RejectReason::OnlyHostCanReturnToLobby)
+        Some(&RejectReason::Room(RoomViolation::OnlyHostCanReturnToLobby))
     );
     let seats_before: HashMap<_, _> = session
         .players

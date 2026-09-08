@@ -117,6 +117,8 @@ fn normal_build_rejects_developer_hand_commands() {
     );
     assert_eq!(
         rejection(&rejected),
-        Some(&RejectReason::DeveloperFeatureUnavailable)
+        Some(&RejectReason::Game(
+            GameViolation::DeveloperFeatureUnavailable
+        ))
     );
 }

@@ -1,32 +1,44 @@
 //! 七鬼五二三规则、提示与出牌按钮动作。
 
 use super::*;
+use bevy::ecs::system::SystemParam;
 use leocard_protocol::{ClientCommand, GameCommand, PublicPlayRecord, QiGui523Command};
 use leocard_qigui523::classify;
 
-pub fn handle_qigui523_button(
-    action: &UiAction,
-    client: &mut Option<ResMut<ClientResource>>,
-    ui: &mut UiState,
-    no_response_hints: &Query<Entity, With<NoLegalResponseHint>>,
-    commands: &mut Commands,
-) -> bool {
-    match action {
-        UiAction::UpdateRules(rules) => {
-            send_qigui523(client, QiGui523Command::UpdateRules { rules: *rules });
-        }
-        UiAction::Hint => select_hint(client, ui),
-        UiAction::ToggleCard => {}
-        UiAction::Play => play_selected(client, ui),
-        UiAction::Pass => {
-            send_qigui523(client, QiGui523Command::Pass);
-            for hint in no_response_hints {
-                commands.entity(hint).despawn();
+#[derive(SystemParam)]
+pub struct QiGui523ActionContext<'w, 's> {
+    client: Option<ResMut<'w, ClientResource>>,
+    ui: ResMut<'w, UiState>,
+    no_response_hints: Query<'w, 's, Entity, With<NoLegalResponseHint>>,
+    commands: Commands<'w, 's>,
+}
+
+pub fn dispatch_qigui523_actions(
+    mut actions: MessageReader<PressedUiAction>,
+    mut context: QiGui523ActionContext,
+) {
+    dispatch_domain_actions::<QiGui523UiAction, _>(&mut actions, &mut context);
+}
+
+impl UiActionHandler<QiGui523ActionContext<'_, '_>> for QiGui523UiAction {
+    fn handle(&self, context: &mut QiGui523ActionContext<'_, '_>) {
+        let client = &mut context.client;
+        let ui = &mut context.ui;
+        match self {
+            QiGui523UiAction::UpdateRules(rules) => {
+                send_qigui523(client, QiGui523Command::UpdateRules { rules: *rules });
+            }
+            QiGui523UiAction::Hint => select_hint(client, ui),
+            QiGui523UiAction::ToggleCard => {}
+            QiGui523UiAction::Play => play_selected(client, ui),
+            QiGui523UiAction::Pass => {
+                send_qigui523(client, QiGui523Command::Pass);
+                for hint in &context.no_response_hints {
+                    context.commands.entity(hint).despawn();
+                }
             }
         }
-        _ => return false,
     }
-    true
 }
 
 fn send_qigui523(client: &mut Option<ResMut<ClientResource>>, command: QiGui523Command) {

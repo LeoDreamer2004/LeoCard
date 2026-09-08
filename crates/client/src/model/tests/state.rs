@@ -79,9 +79,7 @@ fn repeated_identical_rejections_each_advance_the_local_serial() {
         revision: Revision(1),
         in_reply_to: None,
         event: ServerEvent::Rejected {
-            reason: RejectReason::GameViolation(GameViolation::QiGui523(
-                RuleViolation::InvalidPattern,
-            )),
+            reason: RejectReason::Game(GameViolation::QiGui523(RuleViolation::InvalidPattern)),
         },
     };
 

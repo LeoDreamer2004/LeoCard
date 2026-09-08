@@ -1,7 +1,8 @@
 use super::*;
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameCommand, GameKind, RejectReason, RequestId, Revision, RoomId,
-    ServerEvent, ShengjiCommand, ShengjiEvent, ShengjiPublicPlay, ShengjiThrowFailureStage,
+    ClientCommand, ClientMessage, GameCommand, GameKind, GameViolation, RejectReason, RequestId,
+    Revision, RoomId, ServerEvent, ShengjiCommand, ShengjiEvent, ShengjiPublicPlay,
+    ShengjiThrowFailureStage,
 };
 use leocard_shengji::BottomCopyState;
 use leocard_shengji::{
@@ -594,10 +595,10 @@ impl ShengjiSession {
             ClientCommand::Game(command) => self.room.reject(
                 connection,
                 request_id,
-                RejectReason::WrongGame {
+                RejectReason::Game(GameViolation::WrongGame {
                     expected: GameKind::Shengji,
                     received: command.kind(),
-                },
+                }),
             ),
             ClientCommand::StartGame => self.start_game(connection, request_id),
             ClientCommand::ReturnToLobby => self.return_to_lobby(connection, request_id),

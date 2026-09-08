@@ -5,7 +5,7 @@ use super::{
 use crate::{ConnectionId, Delivery};
 use leocard_mahjong::{ActionOutcome, MahjongPlayerId, Phase};
 use leocard_protocol::{
-    GameSnapshot, MahjongEvent, PlayerId, RejectReason, RequestId, ServerEvent,
+    GameSnapshot, MahjongEvent, PlayerId, PlayerViolation, RejectReason, RequestId, ServerEvent,
 };
 
 impl MahjongSession {
@@ -15,9 +15,11 @@ impl MahjongSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let event = if self.game.is_some() {
             ServerEvent::GameSnapshot(GameSnapshot::Mahjong(self.game_snapshot(player)))

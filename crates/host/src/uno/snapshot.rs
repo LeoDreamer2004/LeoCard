@@ -279,7 +279,7 @@ impl UnoSession {
         self.room.reject(
             connection,
             request_id,
-            RejectReason::GameViolation(GameViolation::Uno(map_game_error(error))),
+            RejectReason::Game(GameViolation::Uno(map_game_error(error))),
         )
     }
 }

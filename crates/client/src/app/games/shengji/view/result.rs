@@ -374,7 +374,7 @@ fn add_shengji_settlement_modal(
             commands,
             actions,
             "准备下一局",
-            UiAction::PlayAgain,
+            UiAction::Lobby(LobbyUiAction::PlayAgain),
             ButtonKind::Primary,
             assets,
         );
@@ -384,7 +384,7 @@ fn add_shengji_settlement_modal(
             commands,
             actions,
             "结束并返回大厅",
-            UiAction::ReturnToLobby,
+            UiAction::Lobby(LobbyUiAction::ReturnToLobby),
             ButtonKind::Secondary,
             assets,
         );

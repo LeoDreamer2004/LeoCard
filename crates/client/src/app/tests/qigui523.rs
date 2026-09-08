@@ -161,7 +161,10 @@ fn auto_play_overlay_is_a_full_width_cancel_button_above_the_hand_ui() {
         .world_mut()
         .query_filtered::<(&Node, &UiAction, &GlobalZIndex), With<AutoPlayOverlay>>();
     let (node, action, z_index) = query.single(app.world()).unwrap();
-    assert!(matches!(action, UiAction::ToggleAutoPlay));
+    assert!(matches!(
+        action,
+        UiAction::Social(SocialUiAction::ToggleAutoPlay)
+    ));
     assert_eq!(node.left, px(0));
     assert_eq!(node.right, px(0));
     assert_eq!(node.height, px(190));

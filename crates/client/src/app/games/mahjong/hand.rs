@@ -129,7 +129,7 @@ pub(super) fn render_own_hand(
                 commands,
                 hand,
                 tile.kind(),
-                can_discard.then_some(UiAction::MahjongDiscard(tile)),
+                can_discard.then_some(UiAction::Mahjong(MahjongUiAction::Discard(tile))),
                 index,
                 (dealing && !observed_hand.contains(&tile))
                     .then(|| mahjong_deal_spec(0, index, game.your_hand.len(), 50.0)),
@@ -156,7 +156,7 @@ pub(super) fn render_own_hand(
             commands,
             hand,
             tile.kind(),
-            can_discard.then_some(UiAction::MahjongDiscard(tile)),
+            can_discard.then_some(UiAction::Mahjong(MahjongUiAction::Discard(tile))),
             game.your_hand.len(),
             (dealing && !observed_hand.contains(&tile)).then(|| {
                 mahjong_deal_spec(

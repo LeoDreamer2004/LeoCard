@@ -32,7 +32,7 @@ pub(super) fn render_mahjong_player_panel(
     let panel = commands
         .spawn((
             Button,
-            UiAction::ToggleInteractionMenu(player.id),
+            UiAction::Social(SocialUiAction::ToggleInteractionMenu(player.id)),
             Node {
                 position_type: PositionType::Absolute,
                 left: px(left),

@@ -47,7 +47,7 @@ pub(super) fn render_action_bar(
                 commands,
                 bar,
                 &label,
-                UiAction::MahjongRespond(claim),
+                UiAction::Mahjong(MahjongUiAction::Respond(claim)),
                 if matches!(claim, MahjongClaim::Win) {
                     ButtonKind::Warning
                 } else {
@@ -60,7 +60,7 @@ pub(super) fn render_action_bar(
             commands,
             bar,
             "过",
-            UiAction::MahjongRespond(MahjongClaim::Pass),
+            UiAction::Mahjong(MahjongUiAction::Respond(MahjongClaim::Pass)),
             ButtonKind::Pass,
             assets,
         );
@@ -74,7 +74,7 @@ pub(super) fn render_action_bar(
             commands,
             bar,
             "自摸",
-            UiAction::MahjongSelfDraw,
+            UiAction::Mahjong(MahjongUiAction::SelfDraw),
             ButtonKind::Warning,
             assets,
         );
@@ -84,7 +84,7 @@ pub(super) fn render_action_bar(
             commands,
             bar,
             &format!("暗杠 {}", kind),
-            UiAction::MahjongConcealedKong(*kind),
+            UiAction::Mahjong(MahjongUiAction::ConcealedKong(*kind)),
             ButtonKind::Secondary,
             assets,
         );
@@ -94,7 +94,7 @@ pub(super) fn render_action_bar(
             commands,
             bar,
             &format!("加杠 {}", tile.kind()),
-            UiAction::MahjongAddedKong(*tile),
+            UiAction::Mahjong(MahjongUiAction::AddedKong(*tile)),
             ButtonKind::Secondary,
             assets,
         );

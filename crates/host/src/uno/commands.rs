@@ -1,7 +1,7 @@
 use super::*;
 use leocard_protocol::{
-    GameViolation, PlayerId, RejectReason, RequestId, UnoCommand, UnoEvent, UnoProfileStats,
-    UnoViolation,
+    GameViolation, PlayerId, PlayerViolation, RejectReason, RequestId, RoomViolation, UnoCommand,
+    UnoEvent, UnoProfileStats, UnoViolation,
 };
 use leocard_uno::UnoFlipSide;
 use leocard_uno::{GameError, GameState, Phase, UnoRuleSet, build_deck_for_rules};
@@ -22,7 +22,7 @@ impl UnoSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::GameViolation(GameViolation::Uno(UnoViolation::NotPlayersTurn)),
+                RejectReason::Game(GameViolation::Uno(UnoViolation::NotPlayersTurn)),
             );
         }
         match command {
@@ -183,25 +183,31 @@ impl UnoSession {
         rules: UnoRuleSet,
     ) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.game.is_some() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameAlreadyStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameAlreadyStarted),
+            );
         }
         if self.room.host_connection != Some(connection) {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::OnlyHostCanConfigure);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::OnlyHostCanConfigure),
+            );
         }
         let Ok(rules) = rules.validate() else {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::InvalidRuleConfiguration,
+                RejectReason::Game(GameViolation::InvalidRuleConfiguration),
             );
         };
         if self.rules != rules {
@@ -222,14 +228,18 @@ impl UnoSession {
         enabled: bool,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_ref() else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         if matches!(game.phase(), Phase::Finished(_)) {
             return self.reject_game_error(connection, request_id, &GameError::GameAlreadyFinished);
@@ -254,19 +264,25 @@ impl UnoSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.game.is_some() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameAlreadyStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameAlreadyStarted),
+            );
         }
         if self.room.host_connection != Some(connection) {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::OnlyHostCanStart);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::OnlyHostCanStart),
+            );
         }
         let active = self
             .room
@@ -278,10 +294,10 @@ impl UnoSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::NotEnoughPlayers {
+                RejectReason::Room(RoomViolation::NotEnoughPlayers {
                     minimum: UnoRuleSet::MIN_PLAYERS,
                     actual: active as u8,
-                },
+                }),
             );
         }
         if self
@@ -290,9 +306,11 @@ impl UnoSession {
             .iter()
             .any(|player| !player.left && player.seat.is_none())
         {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::MustSelectSeat);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::MustSelectSeat),
+            );
         }
         let not_ready = self
             .room
@@ -305,7 +323,7 @@ impl UnoSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::PlayersNotReady { players: not_ready },
+                RejectReason::Room(RoomViolation::PlayersNotReady { players: not_ready }),
             );
         }
         self.room.remove_departed_players();
@@ -346,7 +364,7 @@ impl UnoSession {
             Err(_) => self.room.reject(
                 connection,
                 request_id,
-                RejectReason::InvalidRuleConfiguration,
+                RejectReason::Game(GameViolation::InvalidRuleConfiguration),
             ),
         }
     }
@@ -357,15 +375,17 @@ impl UnoSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.room.host_connection != Some(connection) {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::OnlyHostCanReturnToLobby,
+                RejectReason::Room(RoomViolation::OnlyHostCanReturnToLobby),
             );
         }
         if !self
@@ -373,9 +393,11 @@ impl UnoSession {
             .as_ref()
             .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
         {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotFinished);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
         }
         self.game = None;
         self.pending_draw_reveal = None;
@@ -404,18 +426,22 @@ impl UnoSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         if !self
             .game
             .as_ref()
             .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
         {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotFinished);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
         }
         if let Some(participant) = self.room.players.iter_mut().find(|item| item.id == player) {
             participant.ready = true;

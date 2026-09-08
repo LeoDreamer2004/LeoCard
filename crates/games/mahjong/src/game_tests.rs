@@ -109,7 +109,12 @@ fn invalid_developer_hand_replacement_is_atomic() {
         .collect::<Vec<_>>();
     assert_eq!(
         game.replace_player_hand_from_wall(player, &too_short),
-        Err(GameError::InvalidHandReplacement)
+        Err(GameError::InvalidHandReplacement(
+            MahjongHandReplacementError::WrongTileCount {
+                expected: 13,
+                actual: 12,
+            }
+        ))
     );
     assert_eq!(game, before);
 
@@ -117,7 +122,13 @@ fn invalid_developer_hand_replacement_is_atomic() {
         vec![MahjongTileKind::Wind(MahjongWind::East); game.players[player.0].hand.len()];
     assert_eq!(
         game.replace_player_hand_from_wall(player, &unavailable),
-        Err(GameError::InvalidHandReplacement)
+        Err(GameError::InvalidHandReplacement(
+            MahjongHandReplacementError::TileUnavailable {
+                tile: MahjongTileKind::Wind(MahjongWind::East),
+                requested: 13,
+                available: 4,
+            }
+        ))
     );
     assert_eq!(game, before);
 }

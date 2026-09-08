@@ -25,21 +25,18 @@ fn completed_update_dialog_offers_restart_and_later_actions() {
         .iter(app.world())
         .cloned()
         .collect::<Vec<_>>();
-    assert!(
-        actions
-            .iter()
-            .any(|action| matches!(action, UiAction::RestartToUpdate))
-    );
-    assert!(
-        actions
-            .iter()
-            .any(|action| matches!(action, UiAction::HideUpdateDialog))
-    );
-    assert!(
-        actions
-            .iter()
-            .all(|action| !matches!(action, UiAction::OpenGitHubRepository))
-    );
+    assert!(actions.iter().any(|action| matches!(
+        action,
+        UiAction::Navigation(NavigationUiAction::RestartToUpdate)
+    )));
+    assert!(actions.iter().any(|action| matches!(
+        action,
+        UiAction::Navigation(NavigationUiAction::HideUpdateDialog)
+    )));
+    assert!(actions.iter().all(|action| !matches!(
+        action,
+        UiAction::Navigation(NavigationUiAction::OpenGitHubRepository)
+    )));
     let github_buttons = app
         .world_mut()
         .query_filtered::<&UiAction, (With<Button>, With<GitHubRepositoryButton>)>()

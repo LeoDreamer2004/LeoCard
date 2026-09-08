@@ -1,49 +1,62 @@
 //! 玩家互动菜单与跨游戏托管按钮动作。
 
 use super::*;
+use bevy::ecs::system::SystemParam;
 use leocard_protocol::{
     ClientCommand, GameCommand, PlayerInteractionKind, QiGui523Command, ShengjiCommand,
     TexasHoldemCommand, UnoCommand,
 };
 
-pub fn handle_social_button(
-    action: &UiAction,
-    client: &mut Option<ResMut<ClientResource>>,
-    ui: &mut UiState,
-    cooldown: &mut PlayerInteractionCooldown,
-) -> bool {
-    match action {
-        UiAction::ToggleInteractionMenu(player) => {
-            ui.social.interaction_menu_open =
-                (ui.social.interaction_menu_open != Some(*player)).then_some(*player);
-        }
-        UiAction::SendInteraction { target, kind } => {
-            if cooldown.is_active(*kind) {
-                return true;
+#[derive(SystemParam)]
+pub struct SocialActionContext<'w> {
+    client: Option<ResMut<'w, ClientResource>>,
+    ui: ResMut<'w, UiState>,
+    cooldown: ResMut<'w, PlayerInteractionCooldown>,
+}
+
+pub fn dispatch_social_actions(
+    mut actions: MessageReader<PressedUiAction>,
+    mut context: SocialActionContext,
+) {
+    dispatch_domain_actions::<SocialUiAction, _>(&mut actions, &mut context);
+}
+
+impl UiActionHandler<SocialActionContext<'_>> for SocialUiAction {
+    fn handle(&self, context: &mut SocialActionContext<'_>) {
+        let client = &mut context.client;
+        let ui = &mut *context.ui;
+        let cooldown = &mut *context.cooldown;
+        match self {
+            SocialUiAction::ToggleInteractionMenu(player) => {
+                ui.social.interaction_menu_open =
+                    (ui.social.interaction_menu_open != Some(*player)).then_some(*player);
             }
-            if let Some(client) = client.as_deref_mut()
-                && client.0.send(ClientCommand::Interact {
-                    target: *target,
-                    kind: *kind,
-                })
-            {
-                let duration = match kind {
-                    PlayerInteractionKind::Flower | PlayerInteractionKind::Egg => 0.5,
-                    PlayerInteractionKind::Wine | PlayerInteractionKind::Shoe => 5.0,
-                };
-                cooldown.start(*kind, duration);
-                if matches!(
-                    kind,
-                    PlayerInteractionKind::Wine | PlayerInteractionKind::Shoe
-                ) {
-                    ui.social.interaction_menu_open = None;
+            SocialUiAction::SendInteraction { target, kind } => {
+                if cooldown.is_active(*kind) {
+                    return;
+                }
+                if let Some(client) = client.as_deref_mut()
+                    && client.0.send(ClientCommand::Interact {
+                        target: *target,
+                        kind: *kind,
+                    })
+                {
+                    let duration = match kind {
+                        PlayerInteractionKind::Flower | PlayerInteractionKind::Egg => 0.5,
+                        PlayerInteractionKind::Wine | PlayerInteractionKind::Shoe => 5.0,
+                    };
+                    cooldown.start(*kind, duration);
+                    if matches!(
+                        kind,
+                        PlayerInteractionKind::Wine | PlayerInteractionKind::Shoe
+                    ) {
+                        ui.social.interaction_menu_open = None;
+                    }
                 }
             }
+            SocialUiAction::ToggleAutoPlay => toggle_auto_play(client),
         }
-        UiAction::ToggleAutoPlay => toggle_auto_play(client),
-        _ => return false,
     }
-    true
 }
 
 fn toggle_auto_play(client: &mut Option<ResMut<ClientResource>>) {

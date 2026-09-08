@@ -1,29 +1,37 @@
 use crate::{GameKind, PlayerId, RequestId};
+use leocard_mahjong::MahjongHandReplacementError;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum RejectReason {
-    ProtocolMismatch {
-        expected: u16,
-        received: u16,
-    },
+    Request(RequestViolation),
+    Player(PlayerViolation),
+    Room(RoomViolation),
+    Game(GameViolation),
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum RequestViolation {
+    ProtocolMismatch { expected: u16, received: u16 },
     RoomMismatch,
-    DuplicateRequest {
-        last_seen: RequestId,
-    },
-    StaleRequest {
-        last_seen: RequestId,
-    },
+    DuplicateRequest { last_seen: RequestId },
+    StaleRequest { last_seen: RequestId },
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum PlayerViolation {
     AlreadyJoined,
     NotJoined,
     NameEmpty,
-    NameTooLong {
-        max_chars: u16,
-    },
+    NameTooLong { max_chars: u16 },
     InvalidIdentityProof,
-    RoomFull,
     InvalidAvatar,
     AvatarAlreadySet,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum RoomViolation {
+    RoomFull,
     InvalidSeat,
     SeatTaken,
     MustSelectSeat,
@@ -31,21 +39,17 @@ pub enum RejectReason {
     OnlyHostCanStart,
     OnlyHostCanReturnToLobby,
     OnlyHostCanCloseRoom,
-    NotEnoughPlayers {
-        minimum: u8,
-        actual: u8,
-    },
-    WaitingForPlayers {
-        expected: u8,
-        actual: u8,
-    },
-    PlayersNotReady {
-        players: Vec<PlayerId>,
-    },
+    NotEnoughPlayers { minimum: u8, actual: u8 },
+    WaitingForPlayers { expected: u8, actual: u8 },
+    PlayersNotReady { players: Vec<PlayerId> },
+    InvalidChatMessage,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum GameViolation {
     InvalidRuleConfiguration,
     DeveloperFeatureUnavailable,
     InvalidDeveloperHand,
-    InvalidChatMessage,
     WrongGame {
         expected: GameKind,
         received: GameKind,
@@ -53,11 +57,6 @@ pub enum RejectReason {
     GameNotStarted,
     GameNotFinished,
     GameAlreadyStarted,
-    GameViolation(GameViolation),
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum GameViolation {
     QiGui523(RuleViolation),
     TexasHoldem(TexasHoldemViolation),
     Shengji(ShengjiViolation),
@@ -105,6 +104,7 @@ pub enum MahjongViolation {
     AlreadyResponded,
     CannotWin,
     CannotKong,
+    InvalidDeveloperHand(MahjongHandReplacementError),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]

@@ -37,7 +37,7 @@ pub fn add_shengji_actions(
                     commands,
                     actions,
                     "埋下底牌",
-                    UiAction::SubmitShengjiCards,
+                    UiAction::Shengji(ShengjiUiAction::SubmitCards),
                     ButtonKind::Primary,
                     assets,
                 );
@@ -68,7 +68,7 @@ pub fn add_shengji_actions(
                 commands,
                 actions,
                 "不抄底",
-                UiAction::DeclineBottomCopy,
+                UiAction::Shengji(ShengjiUiAction::DeclineBottomCopy),
                 ButtonKind::Secondary,
                 assets,
             );
@@ -84,7 +84,7 @@ pub fn add_shengji_actions(
                     commands,
                     actions,
                     "重新埋底",
-                    UiAction::SubmitShengjiCards,
+                    UiAction::Shengji(ShengjiUiAction::SubmitCards),
                     ButtonKind::Primary,
                     assets,
                 );
@@ -124,7 +124,7 @@ pub fn add_shengji_actions(
                         commands,
                         actions,
                         "五主过江",
-                        UiAction::SubmitShengjiCards,
+                        UiAction::Shengji(ShengjiUiAction::SubmitCards),
                         ButtonKind::Primary,
                         assets,
                     );
@@ -140,7 +140,7 @@ pub fn add_shengji_actions(
                     commands,
                     actions,
                     "不过江",
-                    UiAction::DeclineFiveTrumpCrossing,
+                    UiAction::Shengji(ShengjiUiAction::DeclineFiveTrumpCrossing),
                     ButtonKind::Secondary,
                     assets,
                 );
@@ -183,7 +183,7 @@ pub fn add_shengji_actions(
                         commands,
                         actions,
                         "归还五张",
-                        UiAction::SubmitShengjiCards,
+                        UiAction::Shengji(ShengjiUiAction::SubmitCards),
                         ButtonKind::Primary,
                         assets,
                     );
@@ -225,7 +225,7 @@ pub fn add_shengji_actions(
                     commands,
                     actions,
                     "出牌",
-                    UiAction::SubmitShengjiCards,
+                    UiAction::Shengji(ShengjiUiAction::SubmitCards),
                     ButtonKind::Primary,
                     assets,
                 );
@@ -234,7 +234,7 @@ pub fn add_shengji_actions(
                 commands,
                 actions,
                 "提示",
-                UiAction::ShengjiHint,
+                UiAction::Shengji(ShengjiUiAction::Hint),
                 ButtonKind::Secondary,
                 assets,
             );

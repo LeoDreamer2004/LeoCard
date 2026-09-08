@@ -7,7 +7,7 @@ use leocard_mahjong::{
 };
 use leocard_protocol::{
     GameViolation, MahjongCommand, MahjongEvent, MahjongViolation, PlayerId, PlayerInteraction,
-    PlayerInteractionKind, RejectReason, RequestId, ServerEvent,
+    PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, RoomViolation, ServerEvent,
 };
 use std::time::Duration;
 
@@ -63,22 +63,21 @@ impl MahjongSession {
         tiles: Vec<MahjongTileKind>,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_mut() else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
-        if game
-            .replace_player_hand_from_wall(to_core_player(player), &tiles)
-            .is_err()
-        {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::InvalidDeveloperHand);
+        if let Err(error) = game.replace_player_hand_from_wall(to_core_player(player), &tiles) {
+            return self.reject_game_error(connection, request_id, &error);
         }
         self.room.bump_revision();
         self.broadcast_game(Some((connection, request_id)))
@@ -94,7 +93,7 @@ impl MahjongSession {
         self.room.reject(
             connection,
             request_id,
-            RejectReason::DeveloperFeatureUnavailable,
+            RejectReason::Game(GameViolation::DeveloperFeatureUnavailable),
         )
     }
 
@@ -105,25 +104,31 @@ impl MahjongSession {
         rules: MahjongRuleSet,
     ) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.game.is_some() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameAlreadyStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameAlreadyStarted),
+            );
         }
         if self.room.host_connection != Some(connection) {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::OnlyHostCanConfigure);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::OnlyHostCanConfigure),
+            );
         }
         let Ok(rules) = rules.validate() else {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::InvalidRuleConfiguration,
+                RejectReason::Game(GameViolation::InvalidRuleConfiguration),
             );
         };
         if self.rules != rules {
@@ -141,19 +146,25 @@ impl MahjongSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.game.is_some() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameAlreadyStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameAlreadyStarted),
+            );
         }
         if self.room.host_connection != Some(connection) {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::OnlyHostCanStart);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::OnlyHostCanStart),
+            );
         }
         let active = self
             .room
@@ -165,10 +176,10 @@ impl MahjongSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::WaitingForPlayers {
+                RejectReason::Room(RoomViolation::WaitingForPlayers {
                     expected: MahjongRuleSet::PLAYER_COUNT as u8,
                     actual: active as u8,
-                },
+                }),
             );
         }
         if self
@@ -177,9 +188,11 @@ impl MahjongSession {
             .iter()
             .any(|player| !player.left && player.seat.is_none())
         {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::MustSelectSeat);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::MustSelectSeat),
+            );
         }
         let not_ready = self
             .room
@@ -192,7 +205,7 @@ impl MahjongSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::PlayersNotReady { players: not_ready },
+                RejectReason::Room(RoomViolation::PlayersNotReady { players: not_ready }),
             );
         }
         self.room.remove_departed_players();
@@ -225,15 +238,17 @@ impl MahjongSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
         if self.room.host_connection != Some(connection) {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::OnlyHostCanReturnToLobby,
+                RejectReason::Room(RoomViolation::OnlyHostCanReturnToLobby),
             );
         }
         if !self
@@ -241,9 +256,11 @@ impl MahjongSession {
             .as_ref()
             .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
         {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotFinished);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
         }
         self.game = None;
         self.match_id = None;
@@ -268,19 +285,25 @@ impl MahjongSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_ref() else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         if !matches!(game.phase(), Phase::Finished(_)) {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotFinished);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
         }
         if let Some(participant) = self.room.players.iter_mut().find(|item| item.id == player) {
             participant.ready = true;
@@ -324,14 +347,18 @@ impl MahjongSession {
         F: FnOnce(&mut GameState, MahjongPlayerId) -> Result<ActionOutcome, GameError>,
     {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let Some(game) = self.game.as_mut() else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         };
         let dead_before = game
             .players()
@@ -385,9 +412,11 @@ impl MahjongSession {
             .iter()
             .position(|player| player.connection == connection && !player.left)
         else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         if self.room.host_connection == Some(connection) {
             return self.close_room(connection, request_id);
@@ -444,14 +473,18 @@ impl MahjongSession {
         kind: PlayerInteractionKind,
     ) -> Vec<Delivery> {
         let Some(source) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         if self.game.is_none() {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         }
         if source == target
             || !self
@@ -463,9 +496,7 @@ impl MahjongSession {
             return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::GameViolation(GameViolation::Mahjong(
-                    MahjongViolation::InvalidPlayer,
-                )),
+                RejectReason::Game(GameViolation::Mahjong(MahjongViolation::InvalidPlayer)),
             );
         }
         let interaction = PlayerInteraction {

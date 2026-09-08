@@ -38,7 +38,7 @@ pub(super) fn add_uno_own_area(
     if selecting_self {
         commands.entity(info).insert((
             Button,
-            UiAction::ToggleUnoSwapTarget(game.you),
+            UiAction::Uno(UnoUiAction::ToggleSwapTarget(game.you)),
             UnoSwapTargetPanel {
                 selected: self_selected,
             },
@@ -138,7 +138,7 @@ pub(super) fn add_uno_own_area(
             entity.insert((
                 Button,
                 UnoHandCardButton,
-                UiAction::ToggleUnoCard(card),
+                UiAction::Uno(UnoUiAction::ToggleCard(card)),
                 ButtonTint {
                     normal: Color::WHITE,
                     hovered: Color::srgb(1.0, 0.92, 0.66),

@@ -1,9 +1,9 @@
 use super::*;
 use leocard_protocol::{
-    GameKind, GameRules, GameSnapshot, LobbySnapshot, PlayerId, RejectReason, RequestId,
-    ServerEvent, ShengjiDeclarationView, ShengjiFiveTrumpCrossingStage, ShengjiPhaseView,
-    ShengjiPlayerState, ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureView,
-    ShengjiTrickView,
+    GameKind, GameRules, GameSnapshot, LobbySnapshot, PlayerId, PlayerViolation, RejectReason,
+    RequestId, ServerEvent, ShengjiDeclarationView, ShengjiFiveTrumpCrossingStage,
+    ShengjiPhaseView, ShengjiPlayerState, ShengjiPublicPlay, ShengjiSnapshot,
+    ShengjiThrowFailureView, ShengjiTrickView,
 };
 use leocard_shengji::BottomCopyState;
 use leocard_shengji::{FiveTrumpCrossingStage, GameState, Phase, ShengjiPlayerId, ShengjiRuleSet};
@@ -15,9 +15,11 @@ impl ShengjiSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let event = if self.game.is_some() {
             ServerEvent::GameSnapshot(GameSnapshot::Shengji(self.game_snapshot(player)))

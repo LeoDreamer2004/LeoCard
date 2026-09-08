@@ -129,9 +129,10 @@ pub(super) fn add_opponent_slot(
     }
     match player {
         Some(player) => {
-            commands
-                .entity(badge)
-                .insert((Button, UiAction::ToggleInteractionMenu(player.id)));
+            commands.entity(badge).insert((
+                Button,
+                UiAction::Social(SocialUiAction::ToggleInteractionMenu(player.id)),
+            ));
             attach_start_game_seat_transition(
                 commands,
                 badge,

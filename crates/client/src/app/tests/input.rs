@@ -10,13 +10,13 @@ use std::collections::HashSet;
 #[test]
 fn not_players_turn_rejection_does_not_create_a_popup() {
     assert_eq!(
-        rejection_label(&RejectReason::GameViolation(GameViolation::QiGui523(
+        rejection_label(&RejectReason::Game(GameViolation::QiGui523(
             RuleViolation::NotPlayersTurn,
         ))),
         None
     );
     assert!(
-        rejection_label(&RejectReason::GameViolation(GameViolation::QiGui523(
+        rejection_label(&RejectReason::Game(GameViolation::QiGui523(
             RuleViolation::InvalidPattern,
         )))
         .is_some()

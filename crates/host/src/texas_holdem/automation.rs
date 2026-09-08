@@ -1,6 +1,6 @@
 use super::*;
 use leocard_protocol::{
-    GameSnapshot, PlayerId, RejectReason, RequestId, ServerEvent, TexasHoldemEvent,
+    GameSnapshot, PlayerId, PlayerViolation, RejectReason, RequestId, ServerEvent, TexasHoldemEvent,
 };
 use leocard_texas_holdem::{PassiveBot, Phase, TexasHoldemAction, evaluate_player_hand};
 
@@ -11,9 +11,11 @@ impl TexasHoldemSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let event = if self.game.is_some() {
             ServerEvent::GameSnapshot(GameSnapshot::TexasHoldem(self.game_snapshot(player)))

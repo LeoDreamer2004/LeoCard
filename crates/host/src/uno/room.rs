@@ -1,7 +1,7 @@
 use super::*;
 use leocard_protocol::{
-    GameSnapshot, PlayerId, PlayerInteraction, PlayerInteractionKind, RejectReason, RequestId,
-    ServerEvent,
+    GameSnapshot, GameViolation, PlayerId, PlayerInteraction, PlayerInteractionKind,
+    PlayerViolation, RejectReason, RequestId, ServerEvent,
 };
 use leocard_uno::{GameError, Phase};
 
@@ -17,9 +17,11 @@ impl UnoSession {
             .iter()
             .position(|player| player.connection == connection && !player.left)
         else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         if self.room.host_connection == Some(connection) {
             return self.close_room(connection, request_id);
@@ -77,18 +79,22 @@ impl UnoSession {
         kind: PlayerInteractionKind,
     ) -> Vec<Delivery> {
         let Some(source) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         if !self
             .game
             .as_ref()
             .is_some_and(|game| matches!(game.phase(), Phase::Playing))
         {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::GameNotStarted);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
         }
         if source == target
             || !self
@@ -134,9 +140,11 @@ impl UnoSession {
         request_id: RequestId,
     ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
-            return self
-                .room
-                .reject(connection, request_id, RejectReason::NotJoined);
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         };
         let event = if self.game.is_some() {
             ServerEvent::GameSnapshot(GameSnapshot::Uno(self.game_snapshot(player)))

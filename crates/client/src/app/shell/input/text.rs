@@ -2,7 +2,9 @@
 
 use super::*;
 #[cfg(feature = "developer")]
-use leocard_mahjong::{MahjongDragon, MahjongSuit, MahjongTileKind, MahjongWind};
+use leocard_mahjong::{
+    MahjongDragon, MahjongHandReplacementError, MahjongSuit, MahjongTileKind, MahjongWind,
+};
 use leocard_protocol::{ChatContent, ClientCommand, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS};
 #[cfg(feature = "developer")]
 use leocard_protocol::{GameCommand, MahjongCommand, QiGui523Command};
@@ -182,11 +184,18 @@ pub fn handle_text_input(
                     let Some(client) = client.as_deref_mut() else {
                         continue;
                     };
-                    let command = if client.0.model().mahjong_game().is_some() {
-                        parse_developer_mahjong_hand(input).map(|tiles| {
-                            ClientCommand::Game(GameCommand::Mahjong(
+                    let command = if let Some(game) = client.0.model().mahjong_game() {
+                        parse_developer_mahjong_hand(input).and_then(|tiles| {
+                            if tiles.len() != game.your_hand.len() {
+                                return Err(MahjongHandReplacementError::WrongTileCount {
+                                    expected: game.your_hand.len() as u16,
+                                    actual: tiles.len() as u16,
+                                }
+                                .to_string());
+                            }
+                            Ok(ClientCommand::Game(GameCommand::Mahjong(
                                 MahjongCommand::SetDeveloperHand { tiles },
-                            ))
+                            )))
                         })
                     } else {
                         parse_developer_hand(input).map(|cards| {

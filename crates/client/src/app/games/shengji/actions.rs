@@ -1,55 +1,67 @@
 //! 升级按钮动作、本地选牌状态与网络命令。
 
 use super::*;
+use bevy::ecs::system::SystemParam;
 use leocard_protocol::{
     ClientCommand, GameCommand, ShengjiCommand, ShengjiFiveTrumpCrossingStage, ShengjiPhaseView,
 };
 
-pub fn handle_shengji_button(
-    action: &UiAction,
-    client: &mut Option<ResMut<ClientResource>>,
-    ui: &mut UiState,
-    presentation: &mut ShengjiPresentationState,
-) -> bool {
-    match action {
-        UiAction::UpdateShengjiRules(rules) => {
-            send_shengji(client, ShengjiCommand::UpdateRules { rules: *rules });
-        }
-        UiAction::ShengjiDeclare(cards) => send_shengji(
-            client,
-            ShengjiCommand::Declare {
-                cards: cards.clone(),
-            },
-        ),
-        UiAction::ConfirmShengjiBidPass => {
-            send_shengji(client, ShengjiCommand::ConfirmBidPass);
-        }
-        UiAction::ShengjiBottomCopy(cards) => send_shengji(
-            client,
-            ShengjiCommand::ChooseBottomCopy {
-                cards: Some(cards.clone()),
-            },
-        ),
-        UiAction::DeclineBottomCopy => {
-            send_shengji(client, ShengjiCommand::ChooseBottomCopy { cards: None });
-        }
-        UiAction::ToggleShengjiCard => {}
-        UiAction::ShengjiHint => select_hint(client, ui),
-        UiAction::ShowShengjiPreviousTrick => presentation.reveal_previous_trick(),
-        UiAction::ToggleShengjiBuried => {
-            ui.shengji.buried_open = !ui.shengji.buried_open;
-        }
-        UiAction::SubmitShengjiCards => submit_selected_cards(client, ui),
-        UiAction::DeclineFiveTrumpCrossing => {
-            send_shengji(
+#[derive(SystemParam)]
+pub struct ShengjiActionContext<'w> {
+    client: Option<ResMut<'w, ClientResource>>,
+    ui: ResMut<'w, UiState>,
+    presentation: ResMut<'w, ShengjiPresentationState>,
+}
+
+pub fn dispatch_shengji_actions(
+    mut actions: MessageReader<PressedUiAction>,
+    mut context: ShengjiActionContext,
+) {
+    dispatch_domain_actions::<ShengjiUiAction, _>(&mut actions, &mut context);
+}
+
+impl UiActionHandler<ShengjiActionContext<'_>> for ShengjiUiAction {
+    fn handle(&self, context: &mut ShengjiActionContext<'_>) {
+        let client = &mut context.client;
+        let ui = &mut context.ui;
+        match self {
+            ShengjiUiAction::UpdateRules(rules) => {
+                send_shengji(client, ShengjiCommand::UpdateRules { rules: *rules });
+            }
+            ShengjiUiAction::Declare(cards) => send_shengji(
                 client,
-                ShengjiCommand::ChooseFiveTrumpCrossing { cards: None },
-            );
-            ui.shengji.selected.clear();
+                ShengjiCommand::Declare {
+                    cards: cards.clone(),
+                },
+            ),
+            ShengjiUiAction::ConfirmBidPass => {
+                send_shengji(client, ShengjiCommand::ConfirmBidPass);
+            }
+            ShengjiUiAction::BottomCopy(cards) => send_shengji(
+                client,
+                ShengjiCommand::ChooseBottomCopy {
+                    cards: Some(cards.clone()),
+                },
+            ),
+            ShengjiUiAction::DeclineBottomCopy => {
+                send_shengji(client, ShengjiCommand::ChooseBottomCopy { cards: None });
+            }
+            ShengjiUiAction::ToggleCard => {}
+            ShengjiUiAction::Hint => select_hint(client, ui),
+            ShengjiUiAction::ShowPreviousTrick => context.presentation.reveal_previous_trick(),
+            ShengjiUiAction::ToggleBuried => {
+                ui.shengji.buried_open = !ui.shengji.buried_open;
+            }
+            ShengjiUiAction::SubmitCards => submit_selected_cards(client, ui),
+            ShengjiUiAction::DeclineFiveTrumpCrossing => {
+                send_shengji(
+                    client,
+                    ShengjiCommand::ChooseFiveTrumpCrossing { cards: None },
+                );
+                ui.shengji.selected.clear();
+            }
         }
-        _ => return false,
     }
-    true
 }
 
 fn send_shengji(client: &mut Option<ResMut<ClientResource>>, command: ShengjiCommand) {

@@ -354,9 +354,7 @@ fn uno_call_and_report_remain_reactive_during_incremental_draws() {
         matches!(
             delivery.message.event,
             ServerEvent::Rejected {
-                reason: RejectReason::GameViolation(GameViolation::Uno(
-                    UnoViolation::CannotCallUno
-                ))
+                reason: RejectReason::Game(GameViolation::Uno(UnoViolation::CannotCallUno))
             }
         )
     }));
@@ -381,9 +379,7 @@ fn uno_call_and_report_remain_reactive_during_incremental_draws() {
         matches!(
             delivery.message.event,
             ServerEvent::Rejected {
-                reason: RejectReason::GameViolation(GameViolation::Uno(
-                    UnoViolation::PlayerNotReportable
-                ))
+                reason: RejectReason::Game(GameViolation::Uno(UnoViolation::PlayerNotReportable))
             }
         )
     }));
@@ -487,10 +483,10 @@ fn wrong_game_command_is_rejected_with_uno_as_expected_kind() {
     assert!(matches!(
         deliveries[0].message.event,
         ServerEvent::Rejected {
-            reason: RejectReason::WrongGame {
+            reason: RejectReason::Game(GameViolation::WrongGame {
                 expected: GameKind::Uno,
                 received: GameKind::TexasHoldem,
-            }
+            })
         }
     ));
 }
@@ -614,9 +610,7 @@ fn any_successful_next_player_action_closes_server_jump_in_window() {
             && matches!(
                 delivery.message.event,
                 ServerEvent::Rejected {
-                    reason: RejectReason::GameViolation(GameViolation::Uno(
-                        UnoViolation::CannotJumpIn
-                    ))
+                    reason: RejectReason::Game(GameViolation::Uno(UnoViolation::CannotJumpIn))
                 }
             )
     }));

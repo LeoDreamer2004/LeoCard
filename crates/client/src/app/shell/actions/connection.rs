@@ -1,67 +1,87 @@
 //! 建房、加入房间与连接身份设置。
 
 use super::*;
+use bevy::ecs::system::SystemParam;
 use leocard_client::{LocalPlayerConnection, TcpGameClient};
 use leocard_protocol::{GameKind, MAX_PLAYER_NAME_CHARS};
 
-pub fn handle_connection_button(
-    action: &UiAction,
-    form: &mut ConnectionForm,
-    profile: &LocalPlayerProfile,
-    ui: &mut UiState,
-    chat: &mut ChatPanelState,
-    developer_hand: &mut DeveloperHandInput,
-    local: &mut LocalUiResources<'_>,
-    commands: &mut Commands,
-) -> bool {
-    match action {
-        UiAction::FocusInput(field) => {
-            chat.focused = false;
-            developer_hand.focused = false;
-            form.active = *field;
-            form.error = None;
-        }
-        UiAction::OpenHostGamePicker => match validated_host_form(form) {
-            Ok(_) => {
-                ui.navigation.host_game_picker_open = true;
-                ui.navigation.profile_open = false;
-                ui.navigation.player_profile = None;
-                ui.navigation.settings_open = false;
+#[derive(SystemParam)]
+pub struct ConnectionActionContext<'w, 's> {
+    form: ResMut<'w, ConnectionForm>,
+    profile: Res<'w, LocalPlayerProfile>,
+    ui: ResMut<'w, UiState>,
+    chat: ResMut<'w, ChatPanelState>,
+    developer_hand: ResMut<'w, DeveloperHandInput>,
+    local: LocalUiResources<'w>,
+    commands: Commands<'w, 's>,
+}
+
+pub fn dispatch_connection_actions(
+    mut actions: MessageReader<PressedUiAction>,
+    mut context: ConnectionActionContext,
+) {
+    dispatch_domain_actions::<ConnectionUiAction, _>(&mut actions, &mut context);
+}
+
+impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
+    fn handle(&self, context: &mut ConnectionActionContext<'_, '_>) {
+        let form = &mut *context.form;
+        let ui = &mut *context.ui;
+        let chat = &mut *context.chat;
+        let developer_hand = &mut *context.developer_hand;
+        let local = &mut context.local;
+        match self {
+            ConnectionUiAction::FocusInput(field) => {
+                chat.focused = false;
+                developer_hand.focused = false;
+                form.active = *field;
                 form.error = None;
             }
-            Err(error) => form.error = Some(error),
-        },
-        UiAction::CloseHostGamePicker => ui.navigation.host_game_picker_open = false,
-        UiAction::CreateRoom(game_kind) => create_room(
-            *game_kind,
-            form,
-            profile,
-            ui,
-            chat,
-            &mut local.avatar_images,
-            commands,
-        ),
-        UiAction::JoinRoom => {
-            join_room(form, profile, ui, chat, &mut local.avatar_images, commands)
-        }
-        UiAction::ChooseAvatar => {
-            if local.avatar_picker.pending.is_none() {
-                match start_avatar_picker() {
-                    Ok(receiver) => {
-                        local.avatar_picker.pending = Some(receiver);
-                        form.error = None;
+            ConnectionUiAction::OpenHostGamePicker => match validated_host_form(form) {
+                Ok(_) => {
+                    ui.navigation.host_game_picker_open = true;
+                    ui.navigation.profile_open = false;
+                    ui.navigation.player_profile = None;
+                    ui.navigation.settings_open = false;
+                    form.error = None;
+                }
+                Err(error) => form.error = Some(error),
+            },
+            ConnectionUiAction::CloseHostGamePicker => ui.navigation.host_game_picker_open = false,
+            ConnectionUiAction::CreateRoom(game_kind) => create_room(
+                *game_kind,
+                form,
+                &context.profile,
+                ui,
+                chat,
+                &mut local.avatar_images,
+                &mut context.commands,
+            ),
+            ConnectionUiAction::JoinRoom => join_room(
+                form,
+                &context.profile,
+                ui,
+                chat,
+                &mut local.avatar_images,
+                &mut context.commands,
+            ),
+            ConnectionUiAction::ChooseAvatar => {
+                if local.avatar_picker.pending.is_none() {
+                    match start_avatar_picker() {
+                        Ok(receiver) => {
+                            local.avatar_picker.pending = Some(receiver);
+                            form.error = None;
+                        }
+                        Err(error) => form.error = Some(error),
                     }
-                    Err(error) => form.error = Some(error),
                 }
             }
+            ConnectionUiAction::ClearAvatar => {
+                form.avatar_png = None;
+                form.error = save_preferences(form).err();
+            }
         }
-        UiAction::ClearAvatar => {
-            form.avatar_png = None;
-            form.error = save_preferences(form).err();
-        }
-        _ => return false,
     }
-    true
 }
 
 fn validated_host_form(form: &ConnectionForm) -> Result<(String, u16), String> {

@@ -484,7 +484,7 @@ fn shengji_private_bottom_button_occupies_its_own_chat_side_slot() {
     let mut query = app.world_mut().query::<(&Node, &UiAction)>();
     let (node, _) = query
         .iter(app.world())
-        .find(|(_, action)| matches!(action, UiAction::ToggleShengjiBuried))
+        .find(|(_, action)| matches!(action, UiAction::Shengji(ShengjiUiAction::ToggleBuried)))
         .expect("埋底者可以看到私有底牌按钮");
     assert_eq!(node.left, px(-32));
     assert_eq!(node.top, px(274));
@@ -516,7 +516,12 @@ fn available_previous_trick_button_keeps_a_neutral_border() {
         .query_filtered::<(&UiAction, &BorderColor), With<Button>>();
     let (_, border) = query
         .iter(app.world())
-        .find(|(action, _)| matches!(action, UiAction::ShowShengjiPreviousTrick))
+        .find(|(action, _)| {
+            matches!(
+                action,
+                UiAction::Shengji(ShengjiUiAction::ShowPreviousTrick)
+            )
+        })
         .expect("上轮按钮在首轮牌结束后应可点击");
     assert_eq!(*border, BorderColor::all(BORDER));
 }

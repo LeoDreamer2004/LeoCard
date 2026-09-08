@@ -376,13 +376,15 @@ pub fn add_interaction_menu(
     let profile_button = commands
         .spawn((
             Button,
-            UiAction::OpenPlayerProfile(Box::new(PlayerProfilePage {
-                name: player_name.to_owned(),
-                avatar: avatar.cloned(),
-                reference_points,
-                completed_games,
-                game_profiles: game_profiles.clone(),
-            })),
+            UiAction::Navigation(NavigationUiAction::OpenPlayerProfile(Box::new(
+                PlayerProfilePage {
+                    name: player_name.to_owned(),
+                    avatar: avatar.cloned(),
+                    reference_points,
+                    completed_games,
+                    game_profiles: game_profiles.clone(),
+                },
+            ))),
             ButtonTint {
                 normal,
                 hovered: Color::srgb(0.50, 0.66, 0.78),
@@ -433,7 +435,7 @@ pub fn add_interaction_menu(
         let button = commands
             .spawn((
                 Button,
-                UiAction::SendInteraction { target, kind },
+                UiAction::Social(SocialUiAction::SendInteraction { target, kind }),
                 ButtonTint {
                     normal,
                     hovered: Color::srgb(0.27, 0.58, 0.46),

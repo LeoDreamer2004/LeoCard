@@ -548,7 +548,7 @@ pub(super) fn add_texas_hand_result(
             commands,
             controls,
             "返回大厅",
-            UiAction::ReturnToLobby,
+            UiAction::Lobby(LobbyUiAction::ReturnToLobby),
             ButtonKind::Primary,
             assets,
         );
@@ -565,7 +565,7 @@ pub(super) fn add_texas_hand_result(
                 commands,
                 controls,
                 "准备下一手",
-                UiAction::PlayAgain,
+                UiAction::Lobby(LobbyUiAction::PlayAgain),
                 ButtonKind::Primary,
                 assets,
             );

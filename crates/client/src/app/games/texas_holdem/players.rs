@@ -50,7 +50,7 @@ pub(super) fn add_texas_opponent(
     let panel = commands
         .spawn((
             Button,
-            UiAction::ToggleInteractionMenu(player.id),
+            UiAction::Social(SocialUiAction::ToggleInteractionMenu(player.id)),
             node,
             BackgroundColor(HEADER_BG.with_alpha(if player.folded { 0.62 } else { 0.94 })),
             BorderColor::all(base_border),

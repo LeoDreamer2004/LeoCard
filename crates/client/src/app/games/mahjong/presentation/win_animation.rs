@@ -4,7 +4,11 @@ pub fn animate_mahjong_win_effects(
     animation: Res<GameSummaryAnimation>,
     mut effects: Query<
         (&MahjongWinEffect, &mut UiTransform, &mut Visibility),
-        (Without<MahjongWinDecoration>, Without<MahjongWinStagePart>),
+        (
+            Without<MahjongWinDecoration>,
+            Without<MahjongWinStagePart>,
+            Without<MahjongWinFanGlyph>,
+        ),
     >,
     mut decorations: Query<
         (
@@ -14,11 +18,30 @@ pub fn animate_mahjong_win_effects(
             &mut BackgroundColor,
             &mut BorderColor,
         ),
-        (Without<MahjongWinEffect>, Without<MahjongWinStagePart>),
+        (
+            Without<MahjongWinEffect>,
+            Without<MahjongWinStagePart>,
+            Without<MahjongWinFanGlyph>,
+        ),
     >,
     mut texts: Query<
         (&MahjongWinEffectText, &mut TextColor, &mut TextShadow),
-        Without<MahjongWinStagePart>,
+        (Without<MahjongWinStagePart>, Without<MahjongWinFanGlyph>),
+    >,
+    mut glyphs: Query<
+        (
+            &MahjongWinFanGlyph,
+            &mut UiTransform,
+            &mut Visibility,
+            &mut TextColor,
+            &mut TextShadow,
+        ),
+        (
+            Without<MahjongWinEffect>,
+            Without<MahjongWinDecoration>,
+            Without<MahjongWinEffectText>,
+            Without<MahjongWinStagePart>,
+        ),
     >,
     mut stages: Query<
         (
@@ -26,11 +49,13 @@ pub fn animate_mahjong_win_effects(
             &mut UiTransform,
             &mut Visibility,
             Option<&mut BackgroundColor>,
+            Option<&mut BorderColor>,
         ),
         (
             Without<MahjongWinEffect>,
             Without<MahjongWinDecoration>,
             Without<MahjongWinEffectText>,
+            Without<MahjongWinFanGlyph>,
         ),
     >,
 ) {
@@ -55,6 +80,31 @@ pub fn animate_mahjong_win_effects(
         };
         color.0 = mahjong_win_effect_color(effect.tier, false, alpha);
         shadow.color = Color::BLACK.with_alpha(0.76 * alpha);
+    }
+    for (glyph, mut transform, mut visibility, mut color, mut shadow) in &mut glyphs {
+        const LIFETIME: f32 = 1.24;
+        let local = animation.elapsed + glyph.reveal_duration - glyph.start - glyph.delay;
+        if !(0.0..LIFETIME).contains(&local) {
+            *visibility = Visibility::Hidden;
+            color.0 = Color::NONE;
+            shadow.color = Color::NONE;
+            continue;
+        }
+        let impact = ease_out_cubic((local / 0.18).clamp(0.0, 1.0));
+        let vibration = ((local - 0.12) / 0.42).clamp(0.0, 1.0);
+        let strength = (1.0 - vibration).powi(2);
+        let fade_out = ((LIFETIME - local) / 0.28).clamp(0.0, 1.0);
+        transform.translation = Val2::px(
+            (local * 93.0).sin() * 11.0 * strength,
+            -190.0 * (1.0 - impact) + (local * 127.0).sin() * 6.0 * strength,
+        );
+        transform.rotation = Rot2::radians((local * 71.0).sin() * 0.075 * strength);
+        transform.scale = Vec2::splat(
+            1.0 + 3.4 * (1.0 - impact) + (vibration * std::f32::consts::PI).sin() * 0.12,
+        );
+        color.0 = mahjong_win_effect_color(MahjongWinEffectTier::MajorFan, false, fade_out);
+        shadow.color = Color::BLACK.with_alpha(0.88 * fade_out);
+        *visibility = Visibility::Visible;
     }
     for (decoration, mut transform, mut visibility, mut background, mut border) in &mut decorations
     {
@@ -138,7 +188,7 @@ pub fn animate_mahjong_win_effects(
             Visibility::Hidden
         };
     }
-    for (stage, mut transform, mut visibility, background) in &mut stages {
+    for (stage, mut transform, mut visibility, background, border) in &mut stages {
         let elapsed = animation.elapsed + stage.reveal_duration - stage.start;
         if !(0.0..stage.duration).contains(&elapsed) {
             *visibility = Visibility::Hidden;
@@ -161,21 +211,17 @@ pub fn animate_mahjong_win_effects(
                     background.0 = if stage.tier == MahjongWinEffectTier::MajorFan {
                         Color::BLACK.with_alpha(fade_in * fade_out * strength)
                     } else {
-                        Color::srgb(0.01, 0.12, 0.09).with_alpha(fade_in * fade_out * strength)
+                        Color::BLACK.with_alpha(fade_in * fade_out * 0.86)
                     };
                 }
             }
             MahjongWinStageKind::Hand => {
                 let progress = ease_out_cubic((elapsed / 0.78).clamp(0.0, 1.0));
-                transform.translation = Val2::px(0.0, 18.0 * (1.0 - progress));
-                transform.scale = Vec2::new(0.02 + progress * 0.98, 0.96 + progress * 0.04);
+                transform.translation = Val2::px(0.0, -12.0 * (1.0 - progress));
+                transform.scale = Vec2::new(1.0, 0.08 + progress * 0.92);
                 transform.rotation = Rot2::IDENTITY;
                 if let Some(mut background) = background {
-                    background.0 = if stage.tier == MahjongWinEffectTier::MajorFan {
-                        Color::NONE
-                    } else {
-                        Color::BLACK.with_alpha(0.86 * fade_out)
-                    };
+                    background.0 = Color::NONE;
                 }
             }
             MahjongWinStageKind::WinningTile => {
@@ -188,7 +234,7 @@ pub fn animate_mahjong_win_effects(
                     transform.rotation = Rot2::radians(
                         ((elapsed * 61.0).sin() * 0.20 + (elapsed * 29.0).sin() * 0.08) * decay,
                     );
-                    transform.scale = Vec2::splat(1.72 + (elapsed * 44.0).sin().abs() * 0.10);
+                    transform.scale = Vec2::ONE;
                 } else {
                     let progress = ease_out_cubic((elapsed / 0.30).clamp(0.0, 1.0));
                     let impact = if stage.tier == MahjongWinEffectTier::HighTotal {
@@ -201,23 +247,100 @@ pub fn animate_mahjong_win_effects(
                     transform.scale = Vec2::splat(1.0 + (1.0 - progress) * impact);
                 }
             }
-            MahjongWinStageKind::FanText { delay } => {
-                if elapsed < delay {
+            MahjongWinStageKind::FocusRay {
+                delay,
+                direction,
+                phase,
+            } => {
+                let local = elapsed - delay;
+                if local < 0.0 {
                     *visibility = Visibility::Hidden;
                     continue;
                 }
+                let intro = ease_out_cubic((local / 0.24).clamp(0.0, 1.0));
+                let cycle = (local * 0.72 + phase).fract();
+                let envelope = (cycle * std::f32::consts::PI).sin().max(0.0).powf(0.65);
+                let travel = 72.0 - cycle * 112.0;
+                transform.translation = Val2::px(direction.x * travel, direction.y * travel);
+                transform.rotation = Rot2::radians(direction.y.atan2(direction.x));
+                transform.scale = Vec2::new(0.42 + envelope * 0.86, 0.76 + envelope * 0.24);
+                if let Some(mut background) = background {
+                    background.0 = mahjong_win_effect_color(
+                        MahjongWinEffectTier::HighTotal,
+                        phase > 0.48,
+                        intro * fade_out * envelope * 0.78,
+                    );
+                }
+            }
+            MahjongWinStageKind::MajorFrame => {
+                let progress = ease_out_cubic((elapsed / 0.48).clamp(0.0, 1.0));
+                let pulse = 0.76 + (elapsed * 3.4).sin() * 0.14;
+                transform.translation = Val2::ZERO;
+                transform.rotation = Rot2::IDENTITY;
+                transform.scale = Vec2::splat(1.018 - progress * 0.018);
+                if let Some(mut border) = border {
+                    *border = BorderColor::all(mahjong_win_effect_color(
+                        MahjongWinEffectTier::MajorFan,
+                        true,
+                        progress * fade_out * pulse,
+                    ));
+                }
+            }
+            MahjongWinStageKind::MajorSweep { delay } => {
                 let local = elapsed - delay;
-                let impact = ease_out_cubic((local / 0.18).clamp(0.0, 1.0));
-                let vibration = ((local - 0.12) / 0.42).clamp(0.0, 1.0);
-                let strength = (1.0 - vibration).powi(2);
-                transform.translation = Val2::px(
-                    (local * 93.0).sin() * 11.0 * strength,
-                    -190.0 * (1.0 - impact) + (local * 127.0).sin() * 6.0 * strength,
-                );
-                transform.rotation = Rot2::radians((local * 71.0).sin() * 0.075 * strength);
-                transform.scale = Vec2::splat(
-                    1.0 + 3.4 * (1.0 - impact) + (vibration * std::f32::consts::PI).sin() * 0.12,
-                );
+                if local < 0.0 {
+                    *visibility = Visibility::Hidden;
+                    continue;
+                }
+                let progress = ease_out_cubic((local / 0.56).clamp(0.0, 1.0));
+                let shimmer = 0.64 + (local * 4.2).sin().abs() * 0.24;
+                transform.translation = Val2::ZERO;
+                transform.rotation = Rot2::IDENTITY;
+                transform.scale = Vec2::new(0.02 + progress * 0.98, 1.0);
+                if let Some(mut background) = background {
+                    background.0 = mahjong_win_effect_color(
+                        MahjongWinEffectTier::MajorFan,
+                        true,
+                        progress * fade_out * shimmer,
+                    );
+                }
+            }
+            MahjongWinStageKind::MajorSpark {
+                delay,
+                drift,
+                phase,
+            } => {
+                let local = elapsed - delay;
+                if local < 0.0 {
+                    *visibility = Visibility::Hidden;
+                    continue;
+                }
+                let cycle = (local * 0.43 + phase).fract();
+                let glow = (cycle * std::f32::consts::PI).sin().max(0.0);
+                transform.translation = Val2::px(drift.x * cycle, drift.y * cycle);
+                transform.rotation = Rot2::radians(local * 1.8 + phase * 5.0);
+                transform.scale = Vec2::splat(0.55 + glow * 0.85);
+                if let Some(mut background) = background {
+                    background.0 = mahjong_win_effect_color(
+                        MahjongWinEffectTier::MajorFan,
+                        phase > 0.5,
+                        glow * fade_out * 0.74,
+                    );
+                }
+            }
+            MahjongWinStageKind::ImpactFlash { delay } => {
+                let local = elapsed - delay;
+                if !(0.0..0.26).contains(&local) {
+                    *visibility = Visibility::Hidden;
+                    continue;
+                }
+                let strength = (local / 0.26 * std::f32::consts::PI).sin().max(0.0);
+                transform.translation = Val2::ZERO;
+                transform.rotation = Rot2::IDENTITY;
+                transform.scale = Vec2::ONE;
+                if let Some(mut background) = background {
+                    background.0 = Color::srgba(1.0, 0.72, 0.16, strength * 0.13);
+                }
             }
         }
     }
@@ -261,6 +384,12 @@ pub fn apply_mahjong_winning_hand_visual(
     progress: f32,
 ) {
     let progress = ease_out_cubic(progress);
+    if relative == 0 {
+        transform.translation = Val2::px(0.0, 8.0 * (1.0 - progress));
+        transform.rotation = Rot2::radians(base_rotation);
+        transform.scale = Vec2::splat(0.97 + progress * 0.03);
+        return;
+    }
     let distance = 12.0 * (1.0 - progress);
     let offset = match relative {
         0 => Vec2::new(0.0, distance),
@@ -280,7 +409,7 @@ pub fn animate_mahjong_winning_hands(
     for (hand, mut transform, mut visibility) in &mut hands {
         let progress =
             mahjong_winning_hand_progress(animation.elapsed, hand.reveal_duration, hand.start);
-        *visibility = if progress > 0.0 {
+        *visibility = if hand.relative == 0 || progress > 0.0 {
             Visibility::Visible
         } else {
             Visibility::Hidden

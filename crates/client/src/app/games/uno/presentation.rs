@@ -119,7 +119,7 @@ pub fn spawn_uno_presentation_effects(
     let Ok((discard_node, discard_transform)) = discards.single() else {
         return;
     };
-    // `render_ui` 会在收到权威快照时重建牌桌；同一帧中新节点尚未经过
+    // `rebuild_ui` 会在收到权威快照时重建牌桌；同一帧中新节点尚未经过
     // Bevy 的布局阶段，ComputedNode/UiGlobalTransform 仍指向左上角。等到下一帧
     // 所有锚点拥有真实尺寸后再消费事件，否则整组动画会被画在 (0, 0)。
     let Some(scene) = UnoPresentationScene::resolve(

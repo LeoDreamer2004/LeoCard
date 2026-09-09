@@ -1,11 +1,18 @@
 //! 玩家框、头像、准备标记和房主标记。
 
-use super::*;
+use super::super::{ACCENT, BORDER, ButtonTint, HEADER_BG, MUTED, PANEL_ALT, READY, TEXT};
+use super::{add_text, spawn_node};
+use crate::app::runtime::UiAssets;
+use crate::app::shell::{
+    AutoPlayAntennaLight, AutoPlayAntennaLightPart, AutoPlayRobotIndicator,
+    InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction, PlayerProfilePage, SeatSide,
+    SocialUiAction, UiAction, reference_level,
+};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerGameProfiles, PlayerId, PlayerInteractionKind};
 
-pub fn decorate_player_panel(
+pub(crate) fn decorate_player_panel(
     commands: &mut Commands,
     panel: Entity,
     assets: &UiAssets,
@@ -38,7 +45,7 @@ pub fn decorate_player_panel(
 }
 
 /// 人物框靠牌桌内侧的大号数值区域。七鬼五二三用于本局得分，德州用于剩余筹码。
-pub fn add_player_panel_primary_value(
+pub(crate) fn add_player_panel_primary_value(
     commands: &mut Commands,
     badge: Entity,
     side: SeatSide,
@@ -68,7 +75,7 @@ pub fn add_player_panel_primary_value(
     text
 }
 
-pub fn add_avatar(
+pub(crate) fn add_avatar(
     commands: &mut Commands,
     parent: Entity,
     name: &str,
@@ -103,7 +110,7 @@ pub fn add_avatar(
 
 /// 结算窗口中的下一局准备状态。保持德州扑克原有的绿色头像环和右下角对钩，
 /// 让所有游戏都能在玩家点击“再来一局”后直接看到彼此的准备进度。
-pub fn add_ready_avatar(
+pub(crate) fn add_ready_avatar(
     commands: &mut Commands,
     parent: Entity,
     name: &str,
@@ -165,7 +172,7 @@ pub fn add_ready_avatar(
     frame
 }
 
-pub fn add_host_crown(commands: &mut Commands, avatar: Entity, assets: &UiAssets) -> Entity {
+pub(crate) fn add_host_crown(commands: &mut Commands, avatar: Entity, assets: &UiAssets) -> Entity {
     let crown = commands
         .spawn((
             Node {
@@ -186,7 +193,7 @@ pub fn add_host_crown(commands: &mut Commands, avatar: Entity, assets: &UiAssets
     crown
 }
 
-pub fn avatar_color(name: &str) -> Color {
+pub(crate) fn avatar_color(name: &str) -> Color {
     const COLORS: [Color; 6] = [
         Color::srgb(0.20, 0.48, 0.76),
         Color::srgb(0.65, 0.29, 0.68),
@@ -201,7 +208,7 @@ pub fn avatar_color(name: &str) -> Color {
     COLORS[hash % COLORS.len()]
 }
 
-pub fn add_auto_play_robot_indicator(
+pub(crate) fn add_auto_play_robot_indicator(
     commands: &mut Commands,
     badge: Entity,
     player: PlayerId,
@@ -286,7 +293,7 @@ fn add_auto_play_antenna_lights(commands: &mut Commands, indicator: Entity, play
     }
 }
 
-pub struct PlayerMenuProfile<'a> {
+pub(crate) struct PlayerMenuProfile<'a> {
     pub name: &'a str,
     pub avatar: Option<&'a Handle<Image>>,
     pub reference_points: i32,
@@ -294,7 +301,7 @@ pub struct PlayerMenuProfile<'a> {
     pub game_profiles: &'a PlayerGameProfiles,
 }
 
-pub fn add_interaction_menu(
+pub(crate) fn add_interaction_menu(
     commands: &mut Commands,
     parent: Entity,
     target: PlayerId,
@@ -515,7 +522,7 @@ pub fn add_interaction_menu(
     menu
 }
 
-pub fn position_opponent_popup(node: &mut Node, side: SeatSide) {
+pub(crate) fn position_opponent_popup(node: &mut Node, side: SeatSide) {
     match side {
         SeatSide::Left => {
             node.left = px(0);

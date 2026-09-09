@@ -1,7 +1,12 @@
-use super::*;
+use super::{
+    UnoSession, append_finished_event, events_for_outcome, merge_uno_profile_stats,
+    pending_draw_reveal_for_outcome, to_core_player,
+};
+use crate::lifecycle::HostedGameLifecycle;
+use crate::player::settle_completed_match_profiles_once;
+use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
-    GameViolation, PlayerId, PlayerReferenceChange, PlayerViolation, RejectReason, RequestId,
-    UnoProfileStats,
+    GameViolation, PlayerId, PlayerViolation, RejectReason, RequestId, UnoProfileStats,
 };
 use leocard_uno::{
     ActionOutcome, GameError, GameState, Phase, PlayedEffect, UnoCard, UnoChallengeResult,
@@ -171,9 +176,6 @@ impl UnoSession {
     }
 
     pub(super) fn apply_finished_reference_points(&mut self) {
-        if self.finished_reference_changes.is_some() {
-            return;
-        }
         let result = match self.game.as_ref().map(GameState::phase) {
             Some(Phase::Finished(result)) => result.clone(),
             _ => return,
@@ -186,51 +188,49 @@ impl UnoSession {
             .iter()
             .map(|player| player.eliminated())
             .collect::<Vec<_>>();
-        self.room.prepare_rematch();
-        let mut changes = Vec::with_capacity(result.reference_deltas.len());
         let match_profile_stats = self.match_profile_stats.clone();
-        for (index, delta) in result.reference_deltas.iter().copied().enumerate() {
-            let participant = self
-                .room
-                .players
-                .iter_mut()
-                .find(|player| player.id == PlayerId(index as u8))
-                .expect("a core UNO player belongs to the room");
-            participant.reference_points = participant
-                .reference_points
-                .saturating_add(i32::from(delta));
-            participant.completed_games = participant.completed_games.saturating_add(1);
-            let aggregate = participant
-                .game_profiles
-                .uno
-                .get_or_insert_with(UnoProfileStats::default);
-            aggregate.completed_games = aggregate.completed_games.saturating_add(1);
-            aggregate.total_reference_delta = aggregate
-                .total_reference_delta
-                .saturating_add(i64::from(delta));
-            if !eliminated[index]
-                && let Some(score) = result.hand_scores.get(index)
-            {
-                aggregate.total_remaining_score = aggregate
-                    .total_remaining_score
-                    .saturating_add(u64::from(*score));
-            }
-            if let Some(placement) = result.placements.get(index).copied()
-                && let Some(count) = aggregate
-                    .placement_counts
-                    .get_mut(usize::from(placement.saturating_sub(1)))
-            {
-                *count = count.saturating_add(1);
-            }
-            if let Some(current) = match_profile_stats.get(index) {
-                merge_uno_profile_stats(aggregate, current);
-            }
-            changes.push(PlayerReferenceChange {
-                player: participant.id,
-                profile_id: participant.profile_id,
-                delta,
-            });
+        let settlements = result
+            .reference_deltas
+            .iter()
+            .copied()
+            .enumerate()
+            .map(|(index, delta)| (PlayerId(index as u8), delta))
+            .collect::<Vec<_>>();
+        let applied = settle_completed_match_profiles_once(
+            &mut self.finished_reference_changes,
+            &mut self.room,
+            settlements,
+            |participant, delta| {
+                let index = usize::from(participant.id.0);
+                let aggregate = participant
+                    .game_profiles
+                    .uno
+                    .get_or_insert_with(UnoProfileStats::default);
+                aggregate.completed_games = aggregate.completed_games.saturating_add(1);
+                aggregate.total_reference_delta = aggregate
+                    .total_reference_delta
+                    .saturating_add(i64::from(delta));
+                if !eliminated[index]
+                    && let Some(score) = result.hand_scores.get(index)
+                {
+                    aggregate.total_remaining_score = aggregate
+                        .total_remaining_score
+                        .saturating_add(u64::from(*score));
+                }
+                if let Some(placement) = result.placements.get(index).copied()
+                    && let Some(count) = aggregate
+                        .placement_counts
+                        .get_mut(usize::from(placement.saturating_sub(1)))
+                {
+                    *count = count.saturating_add(1);
+                }
+                if let Some(current) = match_profile_stats.get(index) {
+                    merge_uno_profile_stats(aggregate, current);
+                }
+            },
+        );
+        if applied {
+            self.room.prepare_rematch();
         }
-        self.finished_reference_changes = Some(changes);
     }
 }

@@ -1,4 +1,4 @@
-use super::*;
+use super::prelude::*;
 
 fn jump_in_game() -> GameState {
     let mut game = GameState::new_with_deck(

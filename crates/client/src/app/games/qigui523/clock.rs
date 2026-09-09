@@ -1,8 +1,11 @@
-use super::*;
+use super::{TurnClock, TurnClockHand, TurnClockLabel};
+use crate::app::presentation::{ACCENT, HEADER_BG, TEXT, add_text, spawn_node};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
 use leocard_protocol::QiGui523Snapshot;
 use leocard_protocol::{GamePhaseView, PlayerId, TurnTimerView};
 
-pub fn turn_clock_visible(game: &QiGui523Snapshot, player: PlayerId) -> bool {
+pub(crate) fn turn_clock_visible(game: &QiGui523Snapshot, player: PlayerId) -> bool {
     matches!(&game.phase, GamePhaseView::Playing)
         && game
             .trick
@@ -96,7 +99,7 @@ pub(super) fn add_turn_clock(
     commands.entity(label).insert(TurnClockLabel);
 }
 
-pub fn turn_timer_label(timer: Option<TurnTimerView>) -> String {
+pub(crate) fn turn_timer_label(timer: Option<TurnTimerView>) -> String {
     match timer {
         Some(timer) if timer.base_seconds > 0 => timer.base_seconds.to_string(),
         Some(timer) => format!("烧条中... {}", timer.reserve_seconds),

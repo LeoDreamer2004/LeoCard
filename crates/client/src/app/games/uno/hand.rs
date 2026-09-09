@@ -1,4 +1,17 @@
-use super::*;
+use super::{
+    UnoAssets, UnoExtensionCardHelp, UnoExtensionCardHelpOverlay, UnoFlipTarget, UnoHandCardButton,
+    UnoHandCardVisual, UnoSwapTargetPanel, UnoUiAction, UnoUiState, add_uno_skip_overlay,
+    add_uno_swap_selected_label, uno_anchor_in_layer, uno_card_handle, uno_card_is_playable,
+    uno_skip_count,
+};
+use crate::app::presentation::{
+    ACCENT, ButtonTint, CardAnimationState, MUTED, PANEL, PanelSkin, TEXT, TurnBorderAnimationKey,
+    TurnBorderMaterial, add_panel, add_text, add_turn_border_trace, spawn_node,
+};
+use crate::app::runtime::UiAssets;
+use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer, UiAction};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{GameKind, UnoPendingSwapView, UnoPhaseView, UnoPlayerState, UnoSnapshot};
 use leocard_uno::UnoFace;
 
@@ -7,8 +20,9 @@ pub(super) fn add_uno_own_area(
     table: Entity,
     game: &UnoSnapshot,
     own: &UnoPlayerState,
-    ui: &UiState,
+    ui: &UnoUiState,
     assets: &UiAssets,
+    game_assets: &UnoAssets,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
 ) {
     let info = add_panel(
@@ -34,7 +48,7 @@ pub(super) fn add_uno_own_area(
         game.pending_swap,
         Some(UnoPendingSwapView::ForceTrade { player }) if player == game.you
     );
-    let self_selected = selecting_self && ui.uno.swap_targets.contains(&game.you);
+    let self_selected = selecting_self && ui.swap_targets.contains(&game.you);
     if selecting_self {
         commands.entity(info).insert((
             Button,
@@ -112,13 +126,9 @@ pub(super) fn add_uno_own_area(
         );
         let interactive = playable || selectable_for_swap;
         let jump_selected = game.your_jump_in_card == Some(card);
-        let selected = playing && ui.uno.selected.contains(&card);
+        let selected = playing && ui.selected.contains(&card);
         let animation = if playing {
-            ui.uno
-                .card_animations
-                .get(&card)
-                .copied()
-                .unwrap_or_default()
+            ui.card_animations.get(&card).copied().unwrap_or_default()
         } else {
             CardAnimationState::default()
         };
@@ -171,7 +181,7 @@ pub(super) fn add_uno_own_area(
                     0.0,
                     -(animation.face_hover_amount * 10.0 + animation.selected_amount * 22.0),
                 )),
-                ImageNode::new(uno_card_handle(assets, card)).with_color(
+                ImageNode::new(uno_card_handle(game_assets, card)).with_color(
                     if interactive || jump_selected || !playing {
                         Color::WHITE
                     } else {
@@ -197,7 +207,7 @@ pub(super) fn add_uno_own_area(
     }
 }
 
-pub const fn uno_extension_card_help(face: UnoFace) -> Option<(&'static str, &'static str)> {
+pub(crate) const fn uno_extension_card_help(face: UnoFace) -> Option<(&'static str, &'static str)> {
     match face {
         UnoFace::SwapOne => Some((
             "交换一张",
@@ -318,7 +328,7 @@ fn spawn_uno_extension_card_tooltip(
     tooltip
 }
 
-pub fn sync_uno_extension_card_help(
+pub(super) fn sync_uno_extension_card_help(
     mut commands: Commands,
     assets: Res<UiAssets>,
     cards: Query<(

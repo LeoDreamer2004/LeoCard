@@ -1,7 +1,8 @@
-use super::*;
+use super::{ShengjiPresentationKind, ShengjiPresentationRoute};
+use bevy::prelude::*;
 use leocard_protocol::{PlayerId, ShengjiSnapshot};
 
-pub(super) fn shengji_relative_seat(game: &ShengjiSnapshot, player: PlayerId) -> Option<u8> {
+fn shengji_relative_seat(game: &ShengjiSnapshot, player: PlayerId) -> Option<u8> {
     const SEAT_COUNT: u8 = 4;
     let own_seat = game
         .players
@@ -29,16 +30,13 @@ pub(super) fn shengji_seat_route_anchor(relative_seat: u8) -> Vec2 {
     }
 }
 
-pub(super) fn shengji_player_route_anchor(
-    game: &ShengjiSnapshot,
-    player: PlayerId,
-) -> Option<Vec2> {
+fn shengji_player_route_anchor(game: &ShengjiSnapshot, player: PlayerId) -> Option<Vec2> {
     shengji_relative_seat(game, player).map(shengji_seat_route_anchor)
 }
 
 /// 扣底的“查找同牌”动画要指向玩家本人，而不是平时的出牌区。
 /// 这组锚点因此落在四个玩家框的头像附近。
-pub(super) fn shengji_seat_player_anchor(relative_seat: u8) -> Vec2 {
+fn shengji_seat_player_anchor(relative_seat: u8) -> Vec2 {
     match relative_seat {
         0 => Vec2::new(92.0, 91.0),
         1 => Vec2::new(4.5, 52.0),

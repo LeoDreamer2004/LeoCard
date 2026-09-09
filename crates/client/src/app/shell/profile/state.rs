@@ -1,9 +1,8 @@
-use super::*;
-pub use leocard_client::{LocalPlayerProfile, PlayerRatingProfile};
+use bevy::prelude::*;
 use leocard_protocol::PlayerGameProfiles;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum ProfileGameTab {
+pub(crate) enum ProfileGameTab {
     #[default]
     QiGui523,
     TexasHoldem,
@@ -12,7 +11,7 @@ pub enum ProfileGameTab {
 }
 
 impl ProfileGameTab {
-    pub const ALL: [(Self, &'static str); 4] = [
+    pub(crate) const ALL: [(Self, &'static str); 4] = [
         (Self::QiGui523, "七鬼五二三"),
         (Self::TexasHoldem, "德州扑克"),
         (Self::Shengji, "升级"),
@@ -21,7 +20,7 @@ impl ProfileGameTab {
 }
 
 #[derive(Clone)]
-pub struct PlayerProfilePage {
+pub(crate) struct PlayerProfilePage {
     pub name: String,
     pub avatar: Option<Handle<Image>>,
     pub reference_points: i32,
@@ -30,16 +29,16 @@ pub struct PlayerProfilePage {
 }
 
 #[derive(Component)]
-pub struct SelectedProfileGameTab;
+pub(crate) struct SelectedProfileGameTab;
 
 #[derive(Component)]
-pub struct ProfileGameContent;
+pub(crate) struct ProfileGameContent;
 
 #[derive(Component)]
-pub struct ProfileGameTabButton;
+pub(crate) struct ProfileGameTabButton;
 
 #[derive(Component)]
-pub struct ProfileGameColumn;
+pub(crate) struct ProfileGameColumn;
 
 #[derive(Component)]
-pub struct ProfileStat;
+pub(crate) struct ProfileStat;

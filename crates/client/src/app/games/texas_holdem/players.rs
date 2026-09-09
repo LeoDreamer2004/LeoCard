@@ -1,4 +1,17 @@
-use super::*;
+use super::{
+    TexasChipTableState, TexasHoldemAssets, TexasPlayerPanel, texas_player_border_color,
+    texas_player_status,
+};
+use crate::app::presentation::{
+    ACCENT, HEADER_BG, MUTED, PlayerMenuProfile, TEXT, TURN_BORDER_THICKNESS,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_robot_indicator, add_avatar,
+    add_interaction_menu, add_player_panel_primary_value, add_text, add_turn_border_trace,
+    attach_start_game_seat_transition, decorate_player_panel, position_opponent_popup, spawn_node,
+};
+use crate::app::runtime::{AvatarImages, UiAssets};
+use crate::app::shell::{OpponentBadge, PlayerAvatarAnchor, SeatSide, SocialUiAction, UiAction};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{GameKind, PlayerId, TexasHoldemPlayerState, TexasHoldemSnapshot};
 
 pub(super) fn add_texas_opponent(
@@ -9,6 +22,7 @@ pub(super) fn add_texas_opponent(
     game: &TexasHoldemSnapshot,
     interaction_menu_open: Option<PlayerId>,
     assets: &UiAssets,
+    game_assets: &TexasHoldemAssets,
     avatars: &AvatarImages,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     chip_state: &TexasChipTableState,
@@ -113,6 +127,7 @@ pub(super) fn add_texas_opponent(
         player.stack,
         Some(side),
         assets,
+        game_assets,
         &chip_state.stack_counts(player.id),
     );
     commands.entity(popup).insert(Visibility::Hidden);
@@ -206,6 +221,7 @@ pub(super) fn add_texas_chip_popup(
     stack: u32,
     opponent_side: Option<SeatSide>,
     assets: &UiAssets,
+    game_assets: &TexasHoldemAssets,
     stack_counts: &[(u16, usize)],
 ) -> Entity {
     let mut node = Node {
@@ -295,7 +311,7 @@ pub(super) fn add_texas_chip_popup(
         None,
     );
     for &(denomination, count) in stack_counts {
-        add_horizontal_chip_group(commands, chips, denomination, count, assets);
+        add_horizontal_chip_group(commands, chips, denomination, count, assets, game_assets);
     }
     popup
 }
@@ -307,6 +323,7 @@ fn add_horizontal_chip_group(
     denomination: u16,
     count: usize,
     assets: &UiAssets,
+    game_assets: &TexasHoldemAssets,
 ) {
     const CHIP_SIZE: f32 = 34.0;
     const CHIP_REVEAL: f32 = 11.0;
@@ -323,7 +340,7 @@ fn add_horizontal_chip_group(
         },
         None,
     );
-    let Some(image) = assets.games.poker_chips.get(&denomination) else {
+    let Some(image) = game_assets.poker_chips.get(&denomination) else {
         return;
     };
     for index in 0..count {

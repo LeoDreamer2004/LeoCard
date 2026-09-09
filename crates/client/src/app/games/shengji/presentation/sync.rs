@@ -1,10 +1,17 @@
-use super::*;
+use super::{
+    ActiveShengjiPresentation, ObservedShengjiThrowFailure, SHENGJI_TRICK_PLAY_COUNT,
+    ShengjiAudioCue, ShengjiPresentationKind, ShengjiPresentationState, ShengjiSoundKind,
+    classify_play_presentation, queue_play_audio, should_show_play_presentation,
+};
+use crate::app::runtime::ClientResource;
+use crate::app::shell::UiState;
+use bevy::prelude::*;
 use leocard_protocol::ShengjiEvent;
 use leocard_protocol::{ShengjiPublicPlay, ShengjiThrowFailureStage};
 use leocard_shengji::{Category, ShengjiBidKind, compare_for_trick};
 use leocard_shengji::{ShengjiThrowPenalty, ShengjiTrump};
 
-pub fn sync_shengji_presentation(
+pub(crate) fn sync_shengji_presentation(
     mut client: Option<ResMut<ClientResource>>,
     mut state: ResMut<ShengjiPresentationState>,
     mut ui: ResMut<UiState>,
@@ -13,7 +20,7 @@ pub fn sync_shengji_presentation(
         if state.active.take().is_some() {
             ui.dirty = true;
         }
-        state.observed_match = None;
+        state.observed_round.clear();
         state.queued.clear();
         state.audio_cues.clear();
         state.bottom_burier = None;
@@ -38,23 +45,23 @@ pub fn sync_shengji_presentation(
         if state.active.take().is_some() {
             ui.dirty = true;
         }
-        state.observed_match = None;
+        state.observed_round.clear();
         state.queued.clear();
         state.audio_cues.clear();
         state.bottom_burier = None;
         state.observed_throw_failure = None;
         state.observed_dealer = None;
         state.clear_trick_history();
-        client.0.take_shengji_events();
+        client.0.model_mut().take_shengji_events();
         return;
     };
-    let match_changed = state.observed_match != Some(match_id);
-    if match_changed || state.observed_hand != hand_number {
+    let match_changed = state.observed_round.key != Some(match_id);
+    if match_changed || state.observed_round.state != hand_number {
         if match_changed {
             state.observed_dealer = None;
         }
-        state.observed_match = Some(match_id);
-        state.observed_hand = hand_number;
+        state.observed_round.observe(match_id);
+        state.observed_round.state = hand_number;
         state.bottom_copy_count = 0;
         state.bottom_burier = None;
         state.observed_throw_failure = None;
@@ -83,7 +90,7 @@ pub fn sync_shengji_presentation(
         state.observed_throw_failure = observed_throw_failure;
     }
 
-    let events = client.0.take_shengji_events();
+    let events = client.0.model_mut().take_shengji_events();
     if events.is_empty() {
         state.observed_dealer = current_dealer;
         return;
@@ -313,16 +320,16 @@ impl ShengjiPresentationState {
             .then_some(winner.category == Category::Trump)
     }
 
-    pub fn has_previous_trick(&self) -> bool {
+    pub(crate) fn has_previous_trick(&self) -> bool {
         self.previous_trick_plays.len() == SHENGJI_TRICK_PLAY_COUNT
     }
 
-    pub fn revealed_previous_trick(&self) -> Option<&[ShengjiPublicPlay]> {
+    pub(crate) fn revealed_previous_trick(&self) -> Option<&[ShengjiPublicPlay]> {
         (self.previous_trick_reveal_remaining > 0.0 && self.has_previous_trick())
             .then_some(self.previous_trick_plays.as_slice())
     }
 
-    pub fn reveal_previous_trick(&mut self) {
+    pub(crate) fn reveal_previous_trick(&mut self) {
         if self.has_previous_trick() {
             self.previous_trick_reveal_remaining = 2.0;
         }

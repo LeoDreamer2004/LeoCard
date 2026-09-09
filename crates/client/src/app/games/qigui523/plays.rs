@@ -1,4 +1,16 @@
-use super::*;
+use super::clock::add_turn_clock;
+use super::{
+    ActivePlayEffect, QiGui523Assets, SequenceEffectCard, add_sequence_play_decoration,
+    sequence_effect_style, sort_cards_high_to_low, turn_clock_visible,
+};
+use crate::app::presentation::CardSize;
+use crate::app::presentation::{
+    MUTED, READY, TABLE_CARD_REVEAL, add_card_image, add_text, spawn_node,
+};
+use crate::app::runtime::UiAssets;
+use crate::app::shell::SeatSide;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{GamePhaseView, PlayerPublicState, PublicPlay, PublicPlayRecord};
 use leocard_protocol::{PlayerId, QiGui523Snapshot};
 
@@ -11,6 +23,7 @@ pub(super) fn add_round_play_for_optional_player(
     play_effect: Option<&ActivePlayEffect>,
     last_play: Option<&(PlayerId, PublicPlay)>,
     assets: &UiAssets,
+    game_assets: &QiGui523Assets,
 ) {
     let justify_content = match side {
         SeatSide::Left => JustifyContent::FlexStart,
@@ -27,6 +40,7 @@ pub(super) fn add_round_play_for_optional_player(
             play_effect,
             last_play,
             assets,
+            game_assets,
         );
     }
 }
@@ -64,6 +78,7 @@ pub(super) fn add_round_play(
     play_effect: Option<&ActivePlayEffect>,
     last_play: Option<&(PlayerId, PublicPlay)>,
     assets: &UiAssets,
+    game_assets: &QiGui523Assets,
 ) {
     if matches!(&game.phase, GamePhaseView::Finished { .. })
         && game
@@ -169,6 +184,7 @@ pub(super) fn add_round_play(
             color,
             motif,
             assets,
+            game_assets,
         );
     }
 }

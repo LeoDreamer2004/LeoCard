@@ -1,4 +1,14 @@
-use super::*;
+use super::tiles::{add_mahjong_hand_tile, mahjong_deal_spec};
+use super::{
+    ActiveMahjongClaimPresentation, MAHJONG_OWN_HAND_LEFT, MAHJONG_OWN_MELD_WIDTH, MahjongAssets,
+    MahjongClaimHandShift, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
+    MahjongUiAction, MahjongWinningHand, add_mahjong_tile_material,
+    apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x, mahjong_winning_hand_progress,
+};
+use crate::app::presentation::{GameSummaryAnimation, spawn_node};
+use crate::app::shell::UiAction;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_mahjong::MahjongTile;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 
@@ -14,7 +24,7 @@ pub(super) struct MahjongOwnHandVisuals<'a> {
     pub winning_hand: Option<MahjongWinningHandVisual>,
     pub animation: &'a GameSummaryAnimation,
     pub active_claim: Option<&'a ActiveMahjongClaimPresentation>,
-    pub assets: &'a UiAssets,
+    pub assets: &'a MahjongAssets,
     pub materials: &'a mut Assets<MahjongTileMaterial>,
 }
 

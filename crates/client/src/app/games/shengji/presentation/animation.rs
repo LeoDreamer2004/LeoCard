@@ -1,6 +1,17 @@
-use super::*;
+use super::{
+    ShengjiBottomFlipPanelElement, ShengjiBottomFlipVisual, ShengjiBottomFlipVisualKind,
+    ShengjiDealerBadge, ShengjiLevelIndicator, ShengjiPowerOutageVisual,
+    ShengjiPowerOutageVisualKind, ShengjiPresentationDivider, ShengjiPresentationKind,
+    ShengjiPresentationPacket, ShengjiPresentationRoot, ShengjiPresentationState,
+    ShengjiPresentationText, ShengjiPresentationVeil, ShengjiSoundAssets, ShengjiTrumpKillVisual,
+    ShengjiTrumpKillVisualKind, presentation_color,
+};
+use crate::app::presentation::{ACCENT, HEADER_BG, ease_out_cubic};
+use crate::app::shell::{PlayerAvatarAnchor, UiState};
+use bevy::audio::Volume;
+use bevy::prelude::*;
 
-pub fn advance_shengji_presentation(
+pub(crate) fn advance_shengji_presentation(
     time: Res<Time>,
     mut state: ResMut<ShengjiPresentationState>,
     mut ui: ResMut<UiState>,
@@ -23,7 +34,7 @@ pub fn advance_shengji_presentation(
     }
 }
 
-pub fn play_shengji_audio_cues(
+pub(crate) fn play_shengji_audio_cues(
     time: Res<Time>,
     assets: Res<ShengjiSoundAssets>,
     mut state: ResMut<ShengjiPresentationState>,
@@ -55,7 +66,7 @@ pub fn play_shengji_audio_cues(
     }
 }
 
-pub fn animate_shengji_presentation(
+pub(crate) fn animate_shengji_presentation(
     state: Res<ShengjiPresentationState>,
     mut roots: Query<
         (&ShengjiPresentationRoot, &mut UiTransform, &mut Visibility),
@@ -418,7 +429,7 @@ pub fn animate_shengji_presentation(
     }
 }
 
-pub fn animate_shengji_bottom_flip_markers(
+pub(crate) fn animate_shengji_bottom_flip_markers(
     state: Res<ShengjiPresentationState>,
     mut panel_elements: Query<
         (
@@ -520,7 +531,7 @@ pub fn animate_shengji_bottom_flip_markers(
     }
 }
 
-pub fn animate_shengji_power_outage_markers(
+pub(crate) fn animate_shengji_power_outage_markers(
     state: Res<ShengjiPresentationState>,
     mut badges: Query<
         (&mut UiTransform, &mut BackgroundColor, &mut Visibility),

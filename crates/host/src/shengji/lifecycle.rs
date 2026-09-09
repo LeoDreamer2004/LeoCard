@@ -1,13 +1,23 @@
-use super::*;
+use super::{
+    AUTOMATIC_ACTION_DELAY, BIDDING_GRACE, BOTTOM_COPY_DECISION_TIMEOUT, BOTTOM_FLIP_HOLD_DURATION,
+    BOTTOM_FLIP_START_DELAY, DEAL_INTERVAL, HandFlowState, HandStatistics, HeldGamePresentation,
+    PLAYER_COUNT, POWER_OUTAGE_BIDDING_GRACE, REDEAL_DELAY, ShengjiSession,
+    THROW_FAILURE_RETURN_DURATION, bottom_flip_reveal_view, from_core_player, shuffled_deck,
+    validate_deck,
+};
+use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
+use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameCommand, GameKind, GameViolation, RejectReason, RequestId,
-    Revision, RoomId, ServerEvent, ShengjiCommand, ShengjiEvent, ShengjiPublicPlay,
-    ShengjiThrowFailureStage,
+    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
+    PlayerInteraction, PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, Revision,
+    RoomId, RoomViolation, ServerEvent, ShengjiCommand, ShengjiEvent, ShengjiProfileStats,
+    ShengjiPublicPlay, ShengjiThrowFailureStage, ShengjiViolation,
 };
 use leocard_shengji::BottomCopyState;
 use leocard_shengji::{
     ActionOutcome, GameError, GameState, Phase, ShengjiCard, ShengjiRuleSet, TeamProgress,
 };
+use std::time::Duration;
 
 impl ShengjiSession {
     pub fn new(
@@ -71,15 +81,7 @@ impl ShengjiSession {
     }
 
     pub fn heartbeat(&self) -> Vec<Delivery> {
-        self.room
-            .players
-            .iter()
-            .filter(|player| player.connected && !player.left)
-            .map(|player| {
-                self.room
-                    .delivery(player.connection, None, ServerEvent::Heartbeat)
-            })
-            .collect()
+        self.room.heartbeat()
     }
 
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
@@ -486,16 +488,7 @@ impl ShengjiSession {
             self.room.players[index].connected = false;
             self.room.bump_revision();
             self.room.closed = true;
-            return self
-                .room
-                .players
-                .iter()
-                .filter(|player| player.connected && !player.left)
-                .map(|player| {
-                    self.room
-                        .delivery(player.connection, None, ServerEvent::RoomClosed)
-                })
-                .collect();
+            return self.room.broadcast_event(None, ServerEvent::RoomClosed);
         }
         self.room.players[index].connected = false;
         if self.game.is_none() {
@@ -514,106 +507,331 @@ impl ShengjiSession {
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
-        if let Err(deliveries) = self.room.begin_request(connection, &message) {
-            return deliveries;
-        }
-        let request_id = message.request_id;
-        match message.command {
-            ClientCommand::Join(request) => {
-                let joined = self.room.join(
-                    connection,
-                    request_id,
-                    *request,
-                    self.game.is_some(),
-                    PLAYER_COUNT,
-                );
-                match joined {
-                    Ok(mut deliveries) => {
-                        deliveries.extend(if self.game.is_some() {
-                            self.broadcast_game(Some((connection, request_id)))
-                        } else {
-                            self.broadcast_lobby(Some((connection, request_id)))
-                        });
-                        deliveries
-                    }
-                    Err(reason) => self.room.reject(connection, request_id, reason),
-                }
+        dispatch_client_command(self, connection, message)
+    }
+}
+
+impl HostedGameLifecycle for ShengjiSession {
+    const KIND: GameKind = GameKind::Shengji;
+
+    fn room(&self) -> &RoomSession {
+        &self.room
+    }
+    fn room_mut(&mut self) -> &mut RoomSession {
+        &mut self.room
+    }
+    fn game_started(&self) -> bool {
+        self.game.is_some()
+    }
+    fn capacity(&self) -> u8 {
+        PLAYER_COUNT
+    }
+    fn game_rules(&self) -> GameRules {
+        self.rules.into()
+    }
+    fn game_snapshot(&self, recipient: leocard_protocol::PlayerId) -> GameSnapshot {
+        ShengjiSession::game_snapshot(self, recipient).into()
+    }
+    fn handle_game_command(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        command: GameCommand,
+    ) -> Result<Vec<Delivery>, GameKind> {
+        let GameCommand::Shengji(command) = command else {
+            return Err(command.kind());
+        };
+        Ok(match command {
+            ShengjiCommand::SetAutoPlay { enabled } => {
+                self.set_auto_play(connection, request_id, enabled)
             }
-            ClientCommand::SetAvatar { png } => {
-                match self.room.set_avatar(connection, png, self.game.is_some()) {
-                    Ok(mut deliveries) => {
-                        deliveries.extend(self.broadcast_lobby(Some((connection, request_id))));
-                        deliveries
-                    }
-                    Err(reason) => self.room.reject(connection, request_id, reason),
-                }
+            ShengjiCommand::UpdateRules { rules } => {
+                self.update_rules(connection, request_id, rules)
             }
-            ClientCommand::SelectSeat { seat } => {
-                match self.room.select_seat(connection, seat, self.game.is_some()) {
-                    Ok(()) => self.broadcast_lobby(Some((connection, request_id))),
-                    Err(reason) => self.room.reject(connection, request_id, reason),
-                }
+            ShengjiCommand::Declare { cards } => self.declare(connection, request_id, cards),
+            ShengjiCommand::ConfirmBidPass => self.confirm_bid_pass(connection, request_id),
+            ShengjiCommand::Bury { cards } => self.bury(connection, request_id, cards),
+            ShengjiCommand::ChooseBottomCopy { cards } => {
+                self.choose_bottom_copy(connection, request_id, cards)
             }
-            ClientCommand::ConfigureBotSeat { seat, occupied } => {
-                match self
-                    .room
-                    .configure_bot_seat(connection, seat, occupied, self.game.is_some())
-                {
-                    Ok(()) => self.broadcast_lobby(Some((connection, request_id))),
-                    Err(reason) => self.room.reject(connection, request_id, reason),
-                }
+            ShengjiCommand::ChooseFiveTrumpCrossing { cards } => {
+                self.choose_five_trump_crossing(connection, request_id, cards)
             }
-            ClientCommand::SetReady { ready } => {
-                match self.room.set_ready(connection, ready, self.game.is_some()) {
-                    Ok(()) => self.broadcast_lobby(Some((connection, request_id))),
-                    Err(reason) => self.room.reject(connection, request_id, reason),
-                }
+            ShengjiCommand::ReturnFiveTrumpCrossing { cards } => {
+                self.return_five_trump_crossing(connection, request_id, cards)
             }
-            ClientCommand::Game(GameCommand::Shengji(command)) => match command {
-                ShengjiCommand::SetAutoPlay { enabled } => {
-                    self.set_auto_play(connection, request_id, enabled)
-                }
-                ShengjiCommand::UpdateRules { rules } => {
-                    self.update_rules(connection, request_id, rules)
-                }
-                ShengjiCommand::Declare { cards } => self.declare(connection, request_id, cards),
-                ShengjiCommand::ConfirmBidPass => self.confirm_bid_pass(connection, request_id),
-                ShengjiCommand::Bury { cards } => self.bury(connection, request_id, cards),
-                ShengjiCommand::ChooseBottomCopy { cards } => {
-                    self.choose_bottom_copy(connection, request_id, cards)
-                }
-                ShengjiCommand::ChooseFiveTrumpCrossing { cards } => {
-                    self.choose_five_trump_crossing(connection, request_id, cards)
-                }
-                ShengjiCommand::ReturnFiveTrumpCrossing { cards } => {
-                    self.return_five_trump_crossing(connection, request_id, cards)
-                }
-                ShengjiCommand::PlayCards { cards } => {
-                    self.play_cards(connection, request_id, cards)
-                }
-            },
-            ClientCommand::Game(command) => self.room.reject(
+            ShengjiCommand::PlayCards { cards } => self.play_cards(connection, request_id, cards),
+        })
+    }
+    fn start_game(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
+        if self.room.player_id(connection).is_none() {
+            return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::Game(GameViolation::WrongGame {
-                    expected: GameKind::Shengji,
-                    received: command.kind(),
-                }),
-            ),
-            ClientCommand::StartGame => self.start_game(connection, request_id),
-            ClientCommand::ReturnToLobby => self.return_to_lobby(connection, request_id),
-            ClientCommand::PlayAgain => self.play_again(connection, request_id),
-            ClientCommand::LeaveRoom => self.leave_room(connection, request_id),
-            ClientCommand::CloseRoom => self.close_room(connection, request_id),
-            ClientCommand::Interact { target, kind } => {
-                self.interact(connection, request_id, target, kind)
-            }
-            ClientCommand::Chat { content } => self
-                .room
-                .chat(connection, request_id, content, self.game.is_some())
-                .unwrap_or_else(|reason| self.room.reject(connection, request_id, reason)),
-            ClientCommand::RequestSnapshot => self.snapshot(connection, request_id),
-            ClientCommand::Ping => unreachable!("transport pings are handled by HostSession"),
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
+        if self.game.is_some() {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameAlreadyStarted),
+            );
+        }
+        if self.room.host_connection != Some(connection) {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::OnlyHostCanStart),
+            );
+        }
+        let active = self.room.players.iter().filter(|player| !player.left);
+        let active_count = active.clone().count();
+        if active_count < ShengjiRuleSet::PLAYER_COUNT {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::NotEnoughPlayers {
+                    minimum: PLAYER_COUNT,
+                    actual: active_count as u8,
+                }),
+            );
+        }
+        if active.clone().any(|player| player.seat.is_none()) {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::MustSelectSeat),
+            );
+        }
+        let not_ready = active
+            .filter(|player| !player.ready)
+            .map(|player| player.id)
+            .collect::<Vec<_>>();
+        if !not_ready.is_empty() {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::PlayersNotReady { players: not_ready }),
+            );
+        }
+        self.room.remove_departed_players();
+        // 核心规则以 0/2、1/3 表示两队，因此开局前必须像座位环一样重排
+        // PlayerId。否则玩家按任意顺序选座时，出牌顺序、庄闲归属和结算积分
+        // 都可能按加入顺序而不是实际座位计算。
+        self.room.players.sort_by_key(|player| {
+            player
+                .seat
+                .expect("all Shengji players selected a seat before starting")
+                .0
+        });
+        for (index, player) in self.room.players.iter_mut().enumerate() {
+            player.id = PlayerId(index as u8);
+        }
+        self.match_id = Some(new_match_id());
+        self.hand_number = 0;
+        self.teams = TeamProgress::for_rules(&self.rules);
+        self.next_dealer = None;
+        self.statistics.profiles =
+            vec![ShengjiProfileStats::default(); ShengjiRuleSet::PLAYER_COUNT];
+        if self.start_hand(true).is_err() {
+            #[cfg(feature = "developer")]
+            self.room.remove_developer_bots();
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::InvalidRuleConfiguration),
+            );
+        }
+        self.room.bump_revision();
+        self.broadcast_game(Some((connection, request_id)))
+    }
+    fn return_to_lobby(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+    ) -> Vec<Delivery> {
+        if self.room.player_id(connection).is_none() {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
+        }
+        if self.room.host_connection != Some(connection) {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::OnlyHostCanReturnToLobby),
+            );
+        }
+        if !self
+            .game
+            .as_ref()
+            .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
+        {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
+        }
+        self.game = None;
+        self.match_id = None;
+        self.statistics.profiles.clear();
+        self.flow.automatic_action = None;
+        self.flow.bottom_flip_reveal = None;
+        self.flow.bottom_flip_remaining = None;
+        self.flow.bottom_copy_remaining = None;
+        #[cfg(feature = "developer")]
+        self.room.remove_developer_bots();
+        let host = self.room.host_connection;
+        for player in &mut self.room.players {
+            player.ready = host == Some(player.connection);
+            player.auto_play = player.is_bot;
+            if !player.connected {
+                player.seat = None;
+                player.left = true;
+            }
+        }
+        self.shuffled_deck = Some(shuffled_deck(self.rules));
+        self.room.bump_revision();
+        self.broadcast_lobby(Some((connection, request_id)))
+    }
+    fn play_again(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
+        let Some(player) = self.room.player_id(connection) else {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
+        };
+        if !self
+            .game
+            .as_ref()
+            .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
+        {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
+        }
+        if let Some(participant) = self.room.players.iter_mut().find(|item| item.id == player) {
+            participant.ready = true;
+        }
+        self.room.bump_revision();
+        let active = self
+            .room
+            .players
+            .iter()
+            .filter(|player| !player.left && (player.connected || player.is_bot));
+        if active.clone().count() == ShengjiRuleSet::PLAYER_COUNT
+            && active.clone().all(|player| player.ready)
+        {
+            for player in &mut self.room.players {
+                player.ready = false;
+            }
+            self.shuffled_deck = Some(shuffled_deck(self.rules));
+            if self.start_hand(true).is_err() {
+                return self.room.reject(
+                    connection,
+                    request_id,
+                    RejectReason::Game(GameViolation::InvalidRuleConfiguration),
+                );
+            }
+            self.room.bump_revision();
+        }
+        self.broadcast_game(Some((connection, request_id)))
+    }
+    fn leave_room(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
+        let Some(index) = self
+            .room
+            .players
+            .iter()
+            .position(|player| player.connection == connection && !player.left)
+        else {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
+        };
+        if self.room.host_connection == Some(connection) {
+            return self.close_room(connection, request_id);
+        }
+        let name = self.room.players[index].name.clone();
+        self.room.players[index].ready = false;
+        self.room.players[index].connected = false;
+        self.room.players[index].left = true;
+        if self.game.is_none() {
+            self.room.players[index].seat = None;
+        }
+        self.reset_automatic_action();
+        self.room.bump_revision();
+        let mut deliveries =
+            vec![
+                self.room
+                    .delivery(connection, Some(request_id), ServerEvent::LeftRoom),
+            ];
+        deliveries.extend(
+            self.room
+                .broadcast_event(None, ServerEvent::PlayerLeft { name }),
+        );
+        deliveries.extend(if self.game.is_some() {
+            self.broadcast_game(None)
+        } else {
+            self.broadcast_lobby(None)
+        });
+        deliveries
+    }
+    fn interact(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        target: PlayerId,
+        kind: PlayerInteractionKind,
+    ) -> Vec<Delivery> {
+        let Some(source) = self.room.player_id(connection) else {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
+        };
+        if self.game.is_none() {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
+        }
+        if source == target
+            || !self
+                .room
+                .players
+                .iter()
+                .any(|player| player.id == target && !player.left)
+        {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::Shengji(ShengjiViolation::InvalidPlayer)),
+            );
+        }
+        let interaction = PlayerInteraction {
+            source,
+            target,
+            kind,
+            seed: fastrand::u32(..),
+        };
+        self.room.record_received_interaction(target, kind);
+        self.room.bump_revision();
+        let mut deliveries = self.room.broadcast_event(
+            Some((connection, request_id)),
+            ServerEvent::PlayerInteraction(interaction),
+        );
+        deliveries.extend(self.broadcast_game(None));
+        deliveries
     }
 }

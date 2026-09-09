@@ -2,69 +2,15 @@ use super::{MahjongSession, from_core_player, hand_result_view, to_core_player};
 use crate::{ConnectionId, Delivery};
 use leocard_mahjong::{GameError, MahjongMeldKind, Phase};
 use leocard_protocol::{
-    GameEvent, GameKind, GameRules, GameSnapshot, GameViolation, LobbySnapshot, MahjongDiscardView,
-    MahjongEvent, MahjongPendingClaimView, MahjongPhaseView, MahjongPlayerState,
-    MahjongPublicMeldView, MahjongSnapshot, MahjongViolation, PlayerId, RejectReason, RequestId,
-    ServerEvent,
+    GameViolation, MahjongDiscardView, MahjongEvent, MahjongPendingClaimView, MahjongPhaseView,
+    MahjongPlayerState, MahjongPublicMeldView, MahjongSnapshot, MahjongViolation, PlayerId,
+    RejectReason, RequestId,
 };
 use std::collections::HashSet;
 
 impl MahjongSession {
-    pub(super) fn lobby_snapshot(&self) -> LobbySnapshot {
-        self.room
-            .lobby_snapshot(GameKind::Mahjong, GameRules::Mahjong(self.rules))
-    }
-
-    pub(super) fn broadcast_lobby(
-        &self,
-        origin: Option<(ConnectionId, RequestId)>,
-    ) -> Vec<Delivery> {
-        self.room
-            .broadcast_lobby(GameKind::Mahjong, GameRules::Mahjong(self.rules), origin)
-    }
-
-    pub(super) fn broadcast_game(
-        &self,
-        origin: Option<(ConnectionId, RequestId)>,
-    ) -> Vec<Delivery> {
-        assert!(
-            self.game.is_some(),
-            "game broadcast requires a Mahjong game"
-        );
-        self.room
-            .players
-            .iter()
-            .filter(|player| player.connected && !player.left)
-            .map(|player| {
-                let reply = origin
-                    .filter(|(connection, _)| *connection == player.connection)
-                    .map(|(_, request)| request);
-                self.room.delivery(
-                    player.connection,
-                    reply,
-                    ServerEvent::GameSnapshot(GameSnapshot::Mahjong(self.game_snapshot(player.id))),
-                )
-            })
-            .collect()
-    }
-
     pub(super) fn broadcast_events(&self, events: Vec<MahjongEvent>) -> Vec<Delivery> {
-        events
-            .into_iter()
-            .flat_map(|event| {
-                self.room
-                    .players
-                    .iter()
-                    .filter(|player| player.connected && !player.left)
-                    .map(move |player| {
-                        self.room.delivery(
-                            player.connection,
-                            None,
-                            ServerEvent::GameEvent(GameEvent::Mahjong(event.clone())),
-                        )
-                    })
-            })
-            .collect()
+        self.room.broadcast_game_events(events)
     }
 
     pub(super) fn game_snapshot(&self, recipient: PlayerId) -> MahjongSnapshot {
@@ -79,20 +25,21 @@ impl MahjongSession {
             .iter()
             .filter(|player| !player.left)
             .map(|participant| {
-                let core_id = to_core_player(participant.id);
-                let public = game
+                let metadata = participant.public_metadata();
+                let core_id = to_core_player(metadata.id);
+                let game_player = game
                     .public_player(core_recipient, core_id)
                     .expect("room and Mahjong players stay aligned");
                 MahjongPlayerState {
-                    id: participant.id,
-                    profile_id: participant.profile_id,
-                    name: participant.name.clone(),
-                    avatar: participant.avatar,
-                    seat: participant.seat.expect("started players retain seats"),
+                    id: metadata.id,
+                    profile_id: metadata.profile_id,
+                    name: metadata.name,
+                    avatar: metadata.avatar,
+                    seat: metadata.seat.expect("started players retain seats"),
                     seat_wind: game.seat_wind(core_id).expect("started player has a wind"),
-                    concealed_count: public.concealed_count as u8,
-                    revealed_hand: public.revealed_hand,
-                    melds: public
+                    concealed_count: game_player.concealed_count as u8,
+                    revealed_hand: game_player.revealed_hand,
+                    melds: game_player
                         .melds
                         .into_iter()
                         .map(|meld| MahjongPublicMeldView {
@@ -101,13 +48,13 @@ impl MahjongSession {
                             claimed_from: meld.claimed_from.map(from_core_player),
                         })
                         .collect(),
-                    flowers: public.flowers,
-                    dead_hand: public.dead_hand,
-                    ready: participant.ready,
-                    connected: participant.connected || participant.is_bot,
-                    reference_points: participant.reference_points,
-                    completed_games: participant.completed_games,
-                    game_profiles: participant.game_profiles.clone(),
+                    flowers: game_player.flowers,
+                    dead_hand: game_player.dead_hand,
+                    ready: metadata.ready,
+                    connected: metadata.connected,
+                    reference_points: metadata.reference_points,
+                    completed_games: metadata.completed_games,
+                    game_profiles: metadata.game_profiles,
                 }
             })
             .collect();

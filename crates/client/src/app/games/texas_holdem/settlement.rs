@@ -1,7 +1,59 @@
-use super::*;
+use super::{
+    TEXAS_SHOWDOWN_REVEAL_DURATION, TexasShowdownBackdrop, TexasShowdownBestCard,
+    TexasShowdownRevealRoot, TexasShowdownTitle, TexasShowdownTitleText, TexasShowdownUnderline,
+    add_texas_card, texas_card_face, texas_category_label, texas_player_chip_zone,
+};
+use crate::app::presentation::add_animated_summary_text;
+use crate::app::presentation::{
+    ACCENT, ButtonKind, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider,
+    GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, READY,
+    SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
+    TEXAS_UNCONTESTED_REVEAL_DURATION, TEXT, add_action_button, add_avatar,
+    add_disabled_action_button, add_ready_avatar, add_text, decorate_panel_skin, spawn_node,
+    summary_modal_visual, summary_row_progress,
+};
+use crate::app::runtime::{AvatarImages, UiAssets};
+use crate::app::shell::{LobbyUiAction, UiAction};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{
     SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
 };
+
+pub(crate) fn texas_holdem_summary_descriptor(
+    game: &TexasHoldemSnapshot,
+) -> Option<SummaryDescriptor> {
+    let TexasHoldemPhaseView::HandComplete {
+        showdown,
+        tournament_complete,
+        reference_changes,
+        ..
+    } = &game.phase
+    else {
+        return None;
+    };
+    let own = game.players.iter().find(|player| player.id == game.you)?;
+    let nonnegative_outcome = if *tournament_complete {
+        reference_changes
+            .iter()
+            .find(|change| change.player == game.you)
+            .is_none_or(|change| change.delta >= 0)
+    } else {
+        own.stack >= own.hand_start_stack
+    };
+    Some(SummaryDescriptor {
+        match_id: game.match_id,
+        texas_hand_number: Some(game.hand_number),
+        settlement_index: None,
+        entry_count: game.players.len() * usize::from(*tournament_complete) + game.players.len(),
+        nonnegative_outcome,
+        reveal_duration: if *showdown {
+            TEXAS_SHOWDOWN_REVEAL_DURATION
+        } else {
+            TEXAS_UNCONTESTED_REVEAL_DURATION
+        },
+    })
+}
 
 pub(super) fn add_texas_showdown_reveal(
     commands: &mut Commands,

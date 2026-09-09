@@ -1,4 +1,8 @@
-use super::*;
+use super::sort_cards_high_to_low;
+use crate::app::presentation::CardSize;
+use crate::app::presentation::{HEADER_BG, MUTED, TEXT, add_card_image, add_text, spawn_node};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
 use leocard_protocol::PublicPlayRecord;
 use leocard_protocol::QiGui523Snapshot;
 
@@ -60,7 +64,7 @@ pub(super) fn add_draw_pile(
                         border_radius: BorderRadius::all(px(5)),
                         ..default()
                     },
-                    ImageNode::new(assets.games.card_back.clone()),
+                    ImageNode::new(assets.playing_cards.card_back.clone()),
                     BorderColor::all(TEXT.with_alpha(0.55)),
                     BoxShadow::new(Color::BLACK.with_alpha(0.28), px(1), px(2), px(0), px(3)),
                     ZIndex(layer as i32),

@@ -1,10 +1,13 @@
+mod effects;
 mod mechanics;
 mod play;
+mod resolution;
 mod setup;
 mod swap;
 #[cfg(test)]
 mod tests;
 mod turn;
+mod validation;
 
 use crate::rating::{placements_with_eliminations, reference_point_deltas_for_placements};
 use crate::{RuleError, UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoRuleSet, build_deck_for_rules};

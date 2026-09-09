@@ -1,17 +1,19 @@
-use super::*;
+use crate::app::presentation::{PendingDealSound, TEXT, add_text, ease_out_cubic, spawn_node};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
 use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemSnapshot};
 use leocard_qigui523::{QiGuiRank, QiGuiSuit};
 use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemRank, TexasHoldemSuit};
 
 #[derive(Component)]
-pub struct TexasDealCard {
+pub(crate) struct TexasDealCard {
     elapsed: f32,
     delay: f32,
     offset: Vec2,
 }
 
 #[derive(Component)]
-pub struct TexasFlyingCardBack {
+pub(crate) struct TexasFlyingCardBack {
     elapsed: f32,
     delay: f32,
     source: Vec2,
@@ -19,7 +21,7 @@ pub struct TexasFlyingCardBack {
 }
 
 #[derive(Component)]
-pub struct TexasBoardCardBack {
+pub(crate) struct TexasBoardCardBack {
     elapsed: f32,
     delay: f32,
     start_offset: Vec2,
@@ -27,7 +29,7 @@ pub struct TexasBoardCardBack {
 }
 
 #[derive(Component)]
-pub struct TexasBoardCardFlip {
+pub(crate) struct TexasBoardCardFlip {
     elapsed: f32,
     delay: f32,
     face: Handle<Image>,
@@ -69,7 +71,7 @@ pub(super) fn add_texas_draw_pile(
                     border_radius: BorderRadius::all(px(4)),
                     ..default()
                 },
-                ImageNode::new(assets.games.card_back.clone()),
+                ImageNode::new(assets.playing_cards.card_back.clone()),
                 BorderColor::all(TEXT.with_alpha(0.52)),
                 ZIndex(layer),
             ))
@@ -113,7 +115,7 @@ pub(super) fn add_texas_board_back(
                 border_radius: BorderRadius::all(px(5)),
                 ..default()
             },
-            ImageNode::new(assets.games.card_back.clone()).with_color(if animated {
+            ImageNode::new(assets.playing_cards.card_back.clone()).with_color(if animated {
                 Color::WHITE.with_alpha(0.0)
             } else {
                 Color::WHITE
@@ -158,7 +160,7 @@ pub(super) fn add_texas_board_face(
                 ..default()
             },
             ImageNode::new(if flip_delay.is_some() {
-                assets.games.card_back.clone()
+                assets.playing_cards.card_back.clone()
             } else {
                 face.clone()
             }),
@@ -228,7 +230,7 @@ pub(super) fn spawn_texas_initial_deal(
                         border_radius: BorderRadius::all(px(3)),
                         ..default()
                     },
-                    ImageNode::new(assets.games.card_back.clone())
+                    ImageNode::new(assets.playing_cards.card_back.clone())
                         .with_color(Color::WHITE.with_alpha(0.0)),
                     UiTransform::IDENTITY,
                     ZIndex(900 + dealt as i32),
@@ -254,7 +256,7 @@ pub(super) fn spawn_texas_initial_deal(
     }
 }
 
-pub(super) fn texas_seat_card_target(relative: u8) -> Vec2 {
+fn texas_seat_card_target(relative: u8) -> Vec2 {
     match relative {
         0 => Vec2::new(620.0, 570.0),
         1 => Vec2::new(180.0, 400.0),
@@ -302,16 +304,16 @@ pub(super) fn add_texas_card(
     entity
 }
 
-pub fn texas_card_face(card: TexasHoldemCard, assets: &UiAssets) -> Handle<Image> {
+pub(super) fn texas_card_face(card: TexasHoldemCard, assets: &UiAssets) -> Handle<Image> {
     assets
-        .games
+        .playing_cards
         .cards
         .get(&(qigui_rank(card.rank()), qigui_suit(card.suit())))
         .expect("德州普通牌面应当已随公共牌组加载")
         .clone()
 }
 
-pub fn animate_texas_deal_cards(
+pub(super) fn animate_texas_deal_cards(
     time: Res<Time>,
     mut cards: Query<(&mut TexasDealCard, &mut UiTransform, &mut ImageNode)>,
 ) {
@@ -328,7 +330,7 @@ pub fn animate_texas_deal_cards(
     }
 }
 
-pub fn animate_texas_flying_card_backs(
+pub(super) fn animate_texas_flying_card_backs(
     mut commands: Commands,
     time: Res<Time>,
     mut cards: Query<(
@@ -359,7 +361,7 @@ pub fn animate_texas_flying_card_backs(
     }
 }
 
-pub fn animate_texas_board_card_backs(
+pub(super) fn animate_texas_board_card_backs(
     time: Res<Time>,
     mut cards: Query<(&mut TexasBoardCardBack, &mut UiTransform, &mut ImageNode)>,
 ) {
@@ -383,7 +385,7 @@ pub fn animate_texas_board_card_backs(
     }
 }
 
-pub fn animate_texas_board_card_flips(
+pub(super) fn animate_texas_board_card_flips(
     time: Res<Time>,
     mut cards: Query<(&mut TexasBoardCardFlip, &mut UiTransform, &mut ImageNode)>,
 ) {

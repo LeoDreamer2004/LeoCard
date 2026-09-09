@@ -1,15 +1,23 @@
 //! 网络快照轮询与客户端状态同步。
 
-use super::*;
-use leocard_client::{NetworkState, TcpGameClient};
-use leocard_protocol::{ShengjiFiveTrumpCrossingStage, ShengjiPhaseView};
+use super::{HostRulePreferences, PageErrorState, save_host_rule_preferences};
+use crate::app::games::qigui523::only_turn_timer_changed;
+use crate::app::games::shengji::only_shengji_transient_progress_changed;
+use crate::app::presentation::{
+    LobbySeatTransitionSnapshot, LobbySeatTransitionSource, StartGameSeatTransition,
+};
+use crate::app::shell::UiState;
+use bevy::prelude::*;
+use leocard_client::{ClientModel, LocalPlayerProfile, NetworkState, TcpGameClient};
+use leocard_protocol::LobbySnapshot;
 
 #[derive(Resource)]
-pub struct ClientResource(pub TcpGameClient);
+pub(crate) struct ClientResource(pub TcpGameClient);
 
-pub fn poll_network(
+pub(super) fn poll_network(
     mut client: Option<ResMut<ClientResource>>,
-    mut form: ResMut<ConnectionForm>,
+    mut host_rules: ResMut<HostRulePreferences>,
+    mut page_error: ResMut<PageErrorState>,
     mut profile: ResMut<LocalPlayerProfile>,
     mut ui: ResMut<UiState>,
     mut seat_transition: ResMut<StartGameSeatTransition>,
@@ -27,313 +35,20 @@ pub fn poll_network(
     let previous_game = client.0.model().qigui523_game().cloned();
     let previous_shengji = client.0.model().shengji_game().cloned();
     let previous_lobby = client.0.model().lobby().cloned();
-    let mut lobby_seat_snapshots = previous_lobby
-        .as_ref()
-        .map(|lobby| {
-            lobby_seats
-                .iter()
-                .filter_map(|(source, node, transform)| {
-                    let player = lobby.players.iter().find(|player| player.id == source.0)?;
-                    let size = node.size() * node.inverse_scale_factor();
-                    (size.min_element() > 1.0).then(|| LobbySeatTransitionSnapshot {
-                        player: player.id,
-                        center_global: transform.to_scale_angle_translation().2,
-                        size,
-                    })
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-    let was_host = client
-        .0
-        .model()
-        .qigui523_game()
-        .is_some_and(|game| game.you == game.host)
-        || client
-            .0
-            .model()
-            .texas_holdem_game()
-            .is_some_and(|game| game.you == game.host)
-        || client
-            .0
-            .model()
-            .shengji_game()
-            .is_some_and(|game| game.you == game.host)
-        || client
-            .0
-            .model()
-            .uno_game()
-            .is_some_and(|game| game.you == game.host)
-        || client.0.model().lobby().is_some_and(|lobby| {
-            client
-                .0
-                .model()
-                .you()
-                .is_some_and(|you| lobby.host == Some(you))
-        });
+    let lobby_seat_snapshots = collect_lobby_seats(previous_lobby.as_ref(), &lobby_seats);
+    let was_host = local_player_is_host(client.0.model());
     if !client.0.poll() {
         return;
     }
-    let started_game = client
-        .0
-        .model()
-        .qigui523_game()
-        .map(|game| {
-            (
-                game.match_id,
-                game.players
-                    .iter()
-                    .map(|player| player.id)
-                    .collect::<Vec<_>>(),
-            )
-        })
-        .or_else(|| {
-            client.0.model().texas_holdem_game().map(|game| {
-                (
-                    game.match_id,
-                    game.players
-                        .iter()
-                        .map(|player| player.id)
-                        .collect::<Vec<_>>(),
-                )
-            })
-        })
-        .or_else(|| {
-            client.0.model().shengji_game().map(|game| {
-                (
-                    game.match_id,
-                    game.players
-                        .iter()
-                        .map(|player| player.id)
-                        .collect::<Vec<_>>(),
-                )
-            })
-        })
-        .or_else(|| {
-            client.0.model().uno_game().map(|game| {
-                (
-                    game.match_id,
-                    game.players
-                        .iter()
-                        .map(|player| player.id)
-                        .collect::<Vec<_>>(),
-                )
-            })
-        });
-    if previous_lobby.is_some() {
-        if let Some((match_id, players)) = started_game.as_ref() {
-            lobby_seat_snapshots.retain(|seat| players.contains(&seat.player));
-            seat_transition.begin(*match_id, lobby_seat_snapshots);
-        } else {
-            seat_transition.clear();
-        }
-    } else if client.0.model().lobby().is_some() || started_game.is_none() {
-        seat_transition.clear();
-    }
-    let mut profile_changed = client
-        .0
-        .model()
-        .last_finished_match()
-        .is_some_and(|(match_id, changes)| profile.apply_finished_match(match_id, changes));
-    let authoritative_qigui523_profile = client.0.model().qigui523_game().and_then(|game| {
-        game.players
-            .iter()
-            .find(|player| player.id == game.you)
-            .and_then(|player| player.game_profiles.qigui523.as_ref())
-    });
-    if let Some(stats) = authoritative_qigui523_profile {
-        profile_changed |= profile.sync_qigui523_profile(stats);
-    }
-    let authoritative_texas_holdem_profile =
-        client.0.model().texas_holdem_game().and_then(|game| {
-            game.players
-                .iter()
-                .find(|player| player.id == game.you)
-                .and_then(|player| player.game_profiles.texas_holdem.as_ref())
-        });
-    if let Some(stats) = authoritative_texas_holdem_profile {
-        profile_changed |= profile.sync_texas_holdem_profile(stats);
-    }
-    let authoritative_shengji_profile = client.0.model().shengji_game().and_then(|game| {
-        game.players
-            .iter()
-            .find(|player| player.id == game.you)
-            .and_then(|player| player.game_profiles.shengji.as_ref())
-    });
-    if let Some(stats) = authoritative_shengji_profile {
-        profile_changed |= profile.sync_shengji_profile(stats);
-    }
-    let authoritative_uno_profile = client.0.model().uno_game().and_then(|game| {
-        game.players
-            .iter()
-            .find(|player| player.id == game.you)
-            .and_then(|player| player.game_profiles.uno.as_ref())
-    });
-    if let Some(stats) = authoritative_uno_profile {
-        profile_changed |= profile.sync_uno_profile(stats);
-    }
-    let authoritative_interaction_profile = client
-        .0
-        .model()
-        .qigui523_game()
-        .and_then(|game| {
-            game.players
-                .iter()
-                .find(|player| player.id == game.you)
-                .and_then(|player| player.game_profiles.interactions.as_ref())
-        })
-        .or_else(|| {
-            client.0.model().texas_holdem_game().and_then(|game| {
-                game.players
-                    .iter()
-                    .find(|player| player.id == game.you)
-                    .and_then(|player| player.game_profiles.interactions.as_ref())
-            })
-        })
-        .or_else(|| {
-            client.0.model().shengji_game().and_then(|game| {
-                game.players
-                    .iter()
-                    .find(|player| player.id == game.you)
-                    .and_then(|player| player.game_profiles.interactions.as_ref())
-            })
-        })
-        .or_else(|| {
-            client.0.model().uno_game().and_then(|game| {
-                game.players
-                    .iter()
-                    .find(|player| player.id == game.you)
-                    .and_then(|player| player.game_profiles.interactions.as_ref())
-            })
-        });
-    if let Some(stats) = authoritative_interaction_profile {
-        profile_changed |= profile.sync_interaction_profile(stats);
-    }
-    if profile_changed && let Err(error) = profile.save() {
-        form.error = Some(error);
-    }
-    let accepted_host_rules = client.0.model().lobby().and_then(|lobby| {
-        let you = client.0.model().you()?;
-        (lobby.host == Some(you))
-            .then(|| lobby.qigui523_rules().copied())
-            .flatten()
-            .map(normalize_host_rules)
-    });
-    if let Some(rules) = accepted_host_rules
-        && form.host_rules != rules
-    {
-        form.host_rules = rules;
-        if let Err(error) = save_preferences(&form) {
-            form.error = Some(error);
-        }
-    }
-    let accepted_texas_rules = client.0.model().lobby().and_then(|lobby| {
-        let you = client.0.model().you()?;
-        (lobby.host == Some(you))
-            .then(|| lobby.texas_holdem_rules().copied())
-            .flatten()
-            .map(normalize_texas_holdem_rules)
-    });
-    if let Some(rules) = accepted_texas_rules
-        && form.texas_holdem_rules != rules
-    {
-        form.texas_holdem_rules = rules;
-        if let Err(error) = save_preferences(&form) {
-            form.error = Some(error);
-        }
-    }
-    let accepted_shengji_rules = client.0.model().lobby().and_then(|lobby| {
-        let you = client.0.model().you()?;
-        (lobby.host == Some(you))
-            .then(|| lobby.shengji_rules().copied())
-            .flatten()
-            .map(normalize_shengji_rules)
-    });
-    if let Some(rules) = accepted_shengji_rules
-        && form.shengji_rules != rules
-    {
-        form.shengji_rules = rules;
-        if let Err(error) = save_preferences(&form) {
-            form.error = Some(error);
-        }
-    }
-    let accepted_uno_rules = client.0.model().lobby().and_then(|lobby| {
-        let you = client.0.model().you()?;
-        (lobby.host == Some(you))
-            .then(|| lobby.uno_rules().copied())
-            .flatten()
-            .map(normalize_uno_rules)
-    });
-    if let Some(rules) = accepted_uno_rules
-        && form.uno_rules != rules
-    {
-        form.uno_rules = rules;
-        if let Err(error) = save_preferences(&form) {
-            form.error = Some(error);
-        }
-    }
-    let accepted_mahjong_rules = client.0.model().lobby().and_then(|lobby| {
-        let you = client.0.model().you()?;
-        (lobby.host == Some(you))
-            .then(|| lobby.mahjong_rules().copied())
-            .flatten()
-            .map(normalize_mahjong_rules)
-    });
-    if let Some(rules) = accepted_mahjong_rules
-        && form.mahjong_rules != rules
-    {
-        form.mahjong_rules = rules;
-        if let Err(error) = save_preferences(&form) {
-            form.error = Some(error);
-        }
-    }
-    if let Some(game) = client.0.model().shengji_game() {
-        let previous_stage = previous_shengji
-            .as_ref()
-            .and_then(|snapshot| match &snapshot.phase {
-                ShengjiPhaseView::FiveTrumpCrossing { stage, .. } => Some(*stage),
-                _ => None,
-            });
-        if let ShengjiPhaseView::FiveTrumpCrossing {
-            stage,
-            eligible,
-            decided,
-            ..
-        } = &game.phase
-            && previous_stage != Some(*stage)
-        {
-            ui.shengji.selected.clear();
-            if *stage == ShengjiFiveTrumpCrossingStage::Deciding
-                && eligible.contains(&game.you)
-                && !decided.contains(&game.you)
-                && let Some(trump) = game.trump
-            {
-                ui.shengji.selected.extend(
-                    game.your_hand
-                        .iter()
-                        .copied()
-                        .filter(|card| trump.is_trump(*card)),
-                );
-            }
-        }
-    }
-    if client.0.model().room_closed() {
-        if was_host || ui.leaving_room {
-            form.error = None;
-        } else {
-            form.error = Some("房主结束了游戏".to_owned());
-        }
-        ui.leaving_room = false;
-        commands.remove_resource::<ClientResource>();
-    } else if client.0.model().left_room() {
-        form.error = None;
-        ui.leaving_room = false;
-        commands.remove_resource::<ClientResource>();
-    } else if let NetworkState::Failed(error) = client.0.state() {
-        form.error = (!ui.leaving_room).then(|| error.clone());
-        ui.leaving_room = false;
-        commands.remove_resource::<ClientResource>();
-    }
+    sync_start_game_transition(
+        client.0.model(),
+        previous_lobby.is_some(),
+        lobby_seat_snapshots,
+        &mut seat_transition,
+    );
+    sync_local_profile(client.0.model(), &mut profile, &mut page_error);
+    sync_host_rule_preferences(client.0.model(), &mut host_rules, &mut page_error);
+    handle_connection_end(&client.0, was_host, &mut page_error, &mut ui, &mut commands);
     if previous_state == *client.0.state()
         && (only_turn_timer_changed(previous_game.as_ref(), client.0.model().qigui523_game())
             || only_shengji_transient_progress_changed(
@@ -344,4 +59,110 @@ pub fn poll_network(
         return;
     }
     ui.dirty = true;
+}
+
+fn collect_lobby_seats(
+    lobby: Option<&LobbySnapshot>,
+    seats: &Query<(
+        &LobbySeatTransitionSource,
+        &ComputedNode,
+        &UiGlobalTransform,
+    )>,
+) -> Vec<LobbySeatTransitionSnapshot> {
+    let Some(lobby) = lobby else {
+        return Vec::new();
+    };
+    seats
+        .iter()
+        .filter_map(|(source, node, transform)| {
+            let player = lobby.players.iter().find(|player| player.id == source.0)?;
+            let size = node.size() * node.inverse_scale_factor();
+            (size.min_element() > 1.0).then(|| LobbySeatTransitionSnapshot {
+                player: player.id,
+                center_global: transform.to_scale_angle_translation().2,
+                size,
+            })
+        })
+        .collect()
+}
+
+fn local_player_is_host(model: &ClientModel) -> bool {
+    model.active_game_meta().is_some_and(|game| game.is_host())
+        || model
+            .lobby()
+            .zip(model.you())
+            .is_some_and(|(lobby, you)| lobby.host == Some(you))
+}
+
+fn sync_start_game_transition(
+    model: &ClientModel,
+    had_lobby: bool,
+    mut seats: Vec<LobbySeatTransitionSnapshot>,
+    transition: &mut StartGameSeatTransition,
+) {
+    let active_game = model.active_game_meta();
+    if had_lobby {
+        if let Some(game) = active_game {
+            seats.retain(|seat| game.players.contains(&seat.player));
+            transition.begin(game.match_id, seats);
+        } else {
+            transition.clear();
+        }
+    } else if model.lobby().is_some() || active_game.is_none() {
+        transition.clear();
+    }
+}
+
+fn sync_local_profile(
+    model: &ClientModel,
+    profile: &mut LocalPlayerProfile,
+    page_error: &mut PageErrorState,
+) {
+    let mut changed = model
+        .last_finished_match()
+        .is_some_and(|(match_id, changes)| profile.apply_finished_match(match_id, changes));
+    if let Some(profiles) = model.local_game_profiles() {
+        changed |= profile.sync_game_profiles(profiles);
+    }
+    if changed && let Err(error) = profile.save() {
+        page_error.error = Some(error);
+    }
+}
+
+fn sync_host_rule_preferences(
+    model: &ClientModel,
+    host_rules: &mut HostRulePreferences,
+    page_error: &mut PageErrorState,
+) {
+    let accepted_rules = model
+        .lobby()
+        .zip(model.you())
+        .filter(|(lobby, you)| lobby.host == Some(*you))
+        .map(|(lobby, _)| &lobby.rules);
+    if accepted_rules.is_some_and(|rules| host_rules.accept_game_rules(rules))
+        && let Err(error) = save_host_rule_preferences(host_rules)
+    {
+        page_error.error = Some(error);
+    }
+}
+
+fn handle_connection_end(
+    client: &TcpGameClient,
+    was_host: bool,
+    page_error: &mut PageErrorState,
+    ui: &mut UiState,
+    commands: &mut Commands,
+) {
+    let error = if client.model().room_closed() {
+        (!was_host && !ui.leaving_room).then(|| "房主结束了游戏".to_owned())
+    } else if client.model().left_room() {
+        None
+    } else if let NetworkState::Failed(error) = client.state() {
+        (!ui.leaving_room).then(|| error.clone())
+    } else {
+        return;
+    };
+    page_error.error = error;
+    ui.leaving_room = false;
+    commands.remove_resource::<ClientResource>();
 }

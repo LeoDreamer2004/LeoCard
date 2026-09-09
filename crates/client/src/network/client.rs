@@ -5,16 +5,10 @@ use super::state::{
 };
 use super::worker::run_network;
 use crate::ClientModel;
-use leocard_host::HostSession;
-use leocard_mahjong::MahjongRuleSet;
+use leocard_host::{GameSetup, HostSession};
 use leocard_protocol::{
-    ChatMessage, ClientCommand, MahjongEvent, PlayerInteraction, ReconnectToken, ServerEvent,
-    ShengjiEvent, TexasHoldemEvent, UnoEvent,
+    ChatMessage, ClientCommand, GameRules, PlayerInteraction, ReconnectToken, ServerEvent,
 };
-use leocard_qigui523::{QiGuiRuleSet, build_deck};
-use leocard_shengji::{ShengjiRuleSet, build_deck_for};
-use leocard_texas_holdem::TexasHoldemRuleSet;
-use leocard_uno::{UnoRuleSet, build_deck_for_rules};
 use std::collections::VecDeque;
 use std::io;
 use std::sync::{Arc, Mutex};
@@ -31,134 +25,15 @@ pub struct TcpGameClient {
 
 impl TcpGameClient {
     /// 在所有网卡上监听指定端口，并让房主通过回环 TCP 加入自己的房间。
-    pub fn host(name: &str, port: u16, rules: QiGuiRuleSet) -> Result<Self, NetworkStartError> {
-        Self::host_with_avatar(name, port, rules, None)
-    }
-
-    pub fn host_with_avatar(
-        name: &str,
-        port: u16,
-        rules: QiGuiRuleSet,
-        avatar_png: Option<Vec<u8>>,
-    ) -> Result<Self, NetworkStartError> {
-        Self::host_with_profile(
-            port,
-            rules,
-            LocalPlayerConnection::temporary(name, avatar_png)?,
-        )
-    }
-
     pub fn host_with_profile(
         port: u16,
-        rules: QiGuiRuleSet,
+        rules: GameRules,
         player: LocalPlayerConnection,
     ) -> Result<Self, NetworkStartError> {
         if port == 0 {
             return Err(NetworkStartError::InvalidPort);
         }
-        let mut deck = build_deck(rules.deck_count);
-        fastrand::shuffle(&mut deck);
-        let session = HostSession::qigui523(NETWORK_ROOM_ID, port, rules, deck)
-            .map_err(|error| NetworkStartError::Worker(io::Error::other(error)))?;
-        Self::spawn(
-            player,
-            NetworkLaunch::Host {
-                port,
-                session: Box::new(session),
-            },
-            format!("正在开放 0.0.0.0:{port}"),
-        )
-    }
-
-    pub fn host_texas_holdem(
-        name: &str,
-        port: u16,
-        rules: TexasHoldemRuleSet,
-    ) -> Result<Self, NetworkStartError> {
-        Self::host_texas_holdem_with_profile(
-            port,
-            rules,
-            LocalPlayerConnection::temporary(name, None)?,
-        )
-    }
-
-    pub fn host_texas_holdem_with_profile(
-        port: u16,
-        rules: TexasHoldemRuleSet,
-        player: LocalPlayerConnection,
-    ) -> Result<Self, NetworkStartError> {
-        if port == 0 {
-            return Err(NetworkStartError::InvalidPort);
-        }
-        let mut deck = leocard_texas_holdem::build_deck(rules.short_deck);
-        fastrand::shuffle(&mut deck);
-        let session = HostSession::texas_holdem(NETWORK_ROOM_ID, port, rules, deck)
-            .map_err(|error| NetworkStartError::Worker(io::Error::other(error)))?;
-        Self::spawn(
-            player,
-            NetworkLaunch::Host {
-                port,
-                session: Box::new(session),
-            },
-            format!("正在开放 0.0.0.0:{port}"),
-        )
-    }
-
-    pub fn host_shengji_with_profile(
-        port: u16,
-        rules: ShengjiRuleSet,
-        player: LocalPlayerConnection,
-    ) -> Result<Self, NetworkStartError> {
-        if port == 0 {
-            return Err(NetworkStartError::InvalidPort);
-        }
-        let mut deck = build_deck_for(rules.deck_count);
-        fastrand::shuffle(&mut deck);
-        let session = HostSession::shengji(NETWORK_ROOM_ID, port, rules, deck)
-            .map_err(|error| NetworkStartError::Worker(io::Error::other(error)))?;
-        Self::spawn(
-            player,
-            NetworkLaunch::Host {
-                port,
-                session: Box::new(session),
-            },
-            format!("正在开放 0.0.0.0:{port}"),
-        )
-    }
-
-    pub fn host_uno_with_profile(
-        port: u16,
-        rules: UnoRuleSet,
-        player: LocalPlayerConnection,
-    ) -> Result<Self, NetworkStartError> {
-        if port == 0 {
-            return Err(NetworkStartError::InvalidPort);
-        }
-        let mut deck = build_deck_for_rules(rules);
-        fastrand::shuffle(&mut deck);
-        let session = HostSession::uno(NETWORK_ROOM_ID, port, rules, deck)
-            .map_err(|error| NetworkStartError::Worker(io::Error::other(error)))?;
-        Self::spawn(
-            player,
-            NetworkLaunch::Host {
-                port,
-                session: Box::new(session),
-            },
-            format!("正在开放 0.0.0.0:{port}"),
-        )
-    }
-
-    pub fn host_mahjong_with_profile(
-        port: u16,
-        rules: MahjongRuleSet,
-        player: LocalPlayerConnection,
-    ) -> Result<Self, NetworkStartError> {
-        if port == 0 {
-            return Err(NetworkStartError::InvalidPort);
-        }
-        let mut deck = leocard_mahjong::build_deck();
-        fastrand::shuffle(&mut deck);
-        let session = HostSession::mahjong(NETWORK_ROOM_ID, port, rules, deck)
+        let session = HostSession::new(NETWORK_ROOM_ID, GameSetup::shuffled(port, rules))
             .map_err(|error| NetworkStartError::Worker(io::Error::other(error)))?;
         Self::spawn(
             player,
@@ -266,6 +141,10 @@ impl TcpGameClient {
         &self.model
     }
 
+    pub fn model_mut(&mut self) -> &mut ClientModel {
+        &mut self.model
+    }
+
     pub fn state(&self) -> &NetworkState {
         &self.state
     }
@@ -284,22 +163,6 @@ impl TcpGameClient {
 
     pub fn take_chat_messages(&mut self) -> Vec<ChatMessage> {
         self.model.take_chat_messages()
-    }
-
-    pub fn take_texas_holdem_events(&mut self) -> Vec<TexasHoldemEvent> {
-        self.model.take_texas_holdem_events()
-    }
-
-    pub fn take_shengji_events(&mut self) -> Vec<ShengjiEvent> {
-        self.model.take_shengji_events()
-    }
-
-    pub fn take_uno_events(&mut self) -> Vec<UnoEvent> {
-        self.model.take_uno_events()
-    }
-
-    pub fn take_mahjong_events(&mut self) -> Vec<MahjongEvent> {
-        self.model.take_mahjong_events()
     }
 
     /// 把后台线程已经收到的消息应用到模型；返回是否有可见状态变化。

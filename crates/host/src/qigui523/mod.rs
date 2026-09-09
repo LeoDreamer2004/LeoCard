@@ -7,5 +7,5 @@ mod support;
 #[cfg(test)]
 mod tests;
 
-pub use state::QiGui523Session;
+pub use state::*;
 use support::*;

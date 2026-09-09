@@ -1,15 +1,18 @@
 //! 德州扑克摊牌到结算弹窗之间的最佳五张牌演出。
 
-use super::*;
+use crate::app::presentation::{GameSummaryAnimation, ease_out_cubic};
+use bevy::prelude::*;
+
+pub(super) const TEXAS_SHOWDOWN_REVEAL_DURATION: f32 = 2.6;
 
 #[derive(Component)]
-pub struct TexasShowdownRevealRoot;
+pub(super) struct TexasShowdownRevealRoot;
 
 #[derive(Component)]
-pub struct TexasShowdownBackdrop;
+pub(super) struct TexasShowdownBackdrop;
 
 #[derive(Component)]
-pub struct TexasShowdownBestCard {
+pub(super) struct TexasShowdownBestCard {
     pub source: Vec2,
     pub target: Vec2,
     pub delay: f32,
@@ -17,15 +20,15 @@ pub struct TexasShowdownBestCard {
 }
 
 #[derive(Component)]
-pub struct TexasShowdownTitle;
+pub(super) struct TexasShowdownTitle;
 
 #[derive(Component)]
-pub struct TexasShowdownTitleText;
+pub(super) struct TexasShowdownTitleText;
 
 #[derive(Component)]
-pub struct TexasShowdownUnderline;
+pub(super) struct TexasShowdownUnderline;
 
-pub fn animate_texas_showdown_reveal(
+pub(super) fn animate_texas_showdown_reveal(
     animation: Res<GameSummaryAnimation>,
     mut roots: Query<&mut Visibility, With<TexasShowdownRevealRoot>>,
     mut visuals: ParamSet<(

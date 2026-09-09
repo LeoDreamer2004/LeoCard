@@ -1,4 +1,9 @@
-use super::*;
+use super::{
+    UNO_ACTION_AREA_BOTTOM, UNO_ACTION_AREA_HEIGHT, UnoReverseArrow, uno_player_anchor_in_layer,
+};
+use crate::app::shell::PlayerAvatarAnchor;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::UnoSnapshot;
 use leocard_uno::UnoDirection;
 

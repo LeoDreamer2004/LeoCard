@@ -1,68 +1,16 @@
-use super::*;
+use super::{
+    BIDDING_GRACE, BOTTOM_COPY_DECISION_TIMEOUT, ShengjiSession, bottom_flip_reveal_view,
+    from_core_player, pre_kitty_collecting_score, to_core_player,
+};
 use leocard_protocol::{
-    GameKind, GameRules, GameSnapshot, LobbySnapshot, PlayerId, PlayerViolation, RejectReason,
-    RequestId, ServerEvent, ShengjiDeclarationView, ShengjiFiveTrumpCrossingStage,
-    ShengjiPhaseView, ShengjiPlayerState, ShengjiPublicPlay, ShengjiSnapshot,
-    ShengjiThrowFailureView, ShengjiTrickView,
+    PlayerId, ShengjiDeclarationView, ShengjiFiveTrumpCrossingStage, ShengjiPhaseView,
+    ShengjiPlayerState, ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureView,
+    ShengjiTrickView,
 };
 use leocard_shengji::BottomCopyState;
 use leocard_shengji::{FiveTrumpCrossingStage, GameState, Phase, ShengjiPlayerId, ShengjiRuleSet};
 
 impl ShengjiSession {
-    pub(super) fn snapshot(
-        &self,
-        connection: ConnectionId,
-        request_id: RequestId,
-    ) -> Vec<Delivery> {
-        let Some(player) = self.room.player_id(connection) else {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Player(PlayerViolation::NotJoined),
-            );
-        };
-        let event = if self.game.is_some() {
-            ServerEvent::GameSnapshot(GameSnapshot::Shengji(self.game_snapshot(player)))
-        } else {
-            ServerEvent::LobbySnapshot(self.lobby_snapshot())
-        };
-        vec![self.room.delivery(connection, Some(request_id), event)]
-    }
-
-    fn lobby_snapshot(&self) -> LobbySnapshot {
-        self.room
-            .lobby_snapshot(GameKind::Shengji, GameRules::Shengji(self.rules))
-    }
-
-    pub(super) fn broadcast_lobby(
-        &self,
-        origin: Option<(ConnectionId, RequestId)>,
-    ) -> Vec<Delivery> {
-        self.room
-            .broadcast_lobby(GameKind::Shengji, GameRules::Shengji(self.rules), origin)
-    }
-
-    pub(super) fn broadcast_game(
-        &self,
-        origin: Option<(ConnectionId, RequestId)>,
-    ) -> Vec<Delivery> {
-        self.room
-            .players
-            .iter()
-            .filter(|player| player.connected && !player.left)
-            .map(|player| {
-                let reply = origin
-                    .filter(|(connection, _)| *connection == player.connection)
-                    .map(|(_, request)| request);
-                self.room.delivery(
-                    player.connection,
-                    reply,
-                    ServerEvent::GameSnapshot(GameSnapshot::Shengji(self.game_snapshot(player.id))),
-                )
-            })
-            .collect()
-    }
-
     pub(super) fn game_snapshot(&self, recipient: PlayerId) -> ShengjiSnapshot {
         let game = self.game.as_ref().expect("game snapshot requires a game");
         let core_recipient = to_core_player(recipient);
@@ -102,22 +50,25 @@ impl ShengjiSession {
                 .filter(|player| {
                     !player.left || game.players().get(usize::from(player.id.0)).is_some()
                 })
-                .map(|player| ShengjiPlayerState {
-                    id: player.id,
-                    profile_id: player.profile_id,
-                    name: player.name.clone(),
-                    avatar: player.avatar,
-                    seat: player.seat.expect("started player has a seat"),
-                    hand_len: game
-                        .players()
-                        .get(usize::from(player.id.0))
-                        .map_or(0, |state| state.hand.len() as u8),
-                    ready: player.ready,
-                    connected: (player.connected || player.is_bot) && !player.left,
-                    auto_play: player.auto_play,
-                    reference_points: player.reference_points,
-                    completed_games: player.completed_games,
-                    game_profiles: player.game_profiles.clone(),
+                .map(|player| {
+                    let public = player.public_metadata();
+                    ShengjiPlayerState {
+                        id: public.id,
+                        profile_id: public.profile_id,
+                        name: public.name,
+                        avatar: public.avatar,
+                        seat: public.seat.expect("started player has a seat"),
+                        hand_len: game
+                            .players()
+                            .get(usize::from(public.id.0))
+                            .map_or(0, |state| state.hand.len() as u8),
+                        ready: public.ready,
+                        connected: public.connected,
+                        auto_play: public.auto_play,
+                        reference_points: public.reference_points,
+                        completed_games: public.completed_games,
+                        game_profiles: public.game_profiles,
+                    }
                 })
                 .collect(),
             your_hand,

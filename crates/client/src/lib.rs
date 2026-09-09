@@ -4,7 +4,9 @@ mod model;
 mod network;
 mod player;
 
-pub use model::{ClientModel, ScoreCaptureEffect, ShengjiScoreCaptureEffect};
+pub use model::{
+    ActiveGameMeta, ClientModel, ClientPhaseRef, ScoreCaptureEffect, ShengjiScoreCaptureEffect,
+};
 pub use network::{
     LocalPlayerConnection, NETWORK_ROOM_ID, NetworkStartError, NetworkState, TcpGameClient,
 };

@@ -3,7 +3,7 @@
 use leocard_qigui523::{QiGuiRank, QiGuiSuit};
 use leocard_uno::{UnoCard, UnoColor, UnoFace};
 
-pub fn asset_file_path() -> String {
+pub(crate) fn asset_file_path() -> String {
     if std::env::var_os("BEVY_ASSET_ROOT").is_some() {
         return "assets".to_owned();
     }
@@ -20,7 +20,7 @@ pub fn asset_file_path() -> String {
         "assets".to_owned()
     }
 }
-pub fn uno_card_asset_path(card: UnoCard) -> String {
+pub(crate) fn uno_card_asset_path(card: UnoCard) -> String {
     match card.color() {
         None => match card.face() {
             UnoFace::Wild => "cards/uno/wild.png".to_owned(),
@@ -140,7 +140,7 @@ pub fn uno_card_asset_path(card: UnoCard) -> String {
     }
 }
 
-pub fn card_asset_path(rank: QiGuiRank, suit: QiGuiSuit) -> String {
+pub(crate) fn card_asset_path(rank: QiGuiRank, suit: QiGuiSuit) -> String {
     let base = "vendor/kenney/boardgame/PNG/Cards";
     if rank == QiGuiRank::Joker {
         return if suit == QiGuiSuit::Spade {

@@ -1,12 +1,24 @@
-use super::*;
+use super::{
+    ShengjiAssets, ShengjiBottomFlipVisual, ShengjiBottomFlipVisualKind, ShengjiPowerOutageVisual,
+    ShengjiPowerOutageVisualKind, ShengjiPresentationDivider, ShengjiPresentationKind,
+    ShengjiPresentationPacket, ShengjiPresentationRoot, ShengjiPresentationState,
+    ShengjiPresentationText, ShengjiPresentationVeil, ShengjiTrumpKillVisual,
+    ShengjiTrumpKillVisualKind, presentation_color, presentation_text, rank_label,
+    shengji_player_panel_anchor, shengji_power_outage_anchors, shengji_presentation_routes,
+};
+use crate::app::presentation::{ACCENT, TEXT, add_text, spawn_node};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::ShengjiSnapshot;
 
-pub fn add_shengji_presentation_overlay(
+pub(crate) fn add_shengji_presentation_overlay(
     commands: &mut Commands,
     table: Entity,
     game: &ShengjiSnapshot,
     state: &ShengjiPresentationState,
     assets: &UiAssets,
+    game_assets: &ShengjiAssets,
 ) {
     let Some(active) = state.active.as_ref() else {
         return;
@@ -312,7 +324,7 @@ pub fn add_shengji_presentation_overlay(
             ShengjiTrumpKillVisual {
                 kind: ShengjiTrumpKillVisualKind::Target,
             },
-            ImageNode::new(assets.games.shengji_target.clone()).with_color(Color::NONE),
+            ImageNode::new(game_assets.target.clone()).with_color(Color::NONE),
             UiTransform::IDENTITY,
             Visibility::Hidden,
             FocusPolicy::Pass,
@@ -335,7 +347,7 @@ pub fn add_shengji_presentation_overlay(
             ShengjiTrumpKillVisual {
                 kind: ShengjiTrumpKillVisualKind::Dart,
             },
-            ImageNode::new(assets.games.shengji_dart.clone()).with_color(Color::NONE),
+            ImageNode::new(game_assets.dart.clone()).with_color(Color::NONE),
             UiTransform {
                 rotation: Rot2::radians((-45.0_f32).to_radians()),
                 ..default()
@@ -394,7 +406,8 @@ pub fn add_shengji_presentation_overlay(
                     start: route.start,
                     end: route.end,
                 },
-                ImageNode::new(assets.games.card_back.clone()).with_mode(NodeImageMode::Stretch),
+                ImageNode::new(assets.playing_cards.card_back.clone())
+                    .with_mode(NodeImageMode::Stretch),
                 UiTransform::from_translation(Val2::px(-17.0, -24.0)),
                 FocusPolicy::Pass,
             ));

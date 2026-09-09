@@ -1,4 +1,4 @@
-use super::*;
+use super::prelude::*;
 
 #[test]
 fn deals_seven_cards_and_applies_number_start() {

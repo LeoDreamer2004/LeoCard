@@ -1,8 +1,8 @@
 use super::ClientModel;
 use super::types::Sequenced;
 use leocard_protocol::{
-    GamePhaseView, GameSnapshot, PlayerId, PublicPlay, PublicPlayRecord, QiGui523Event,
-    QiGui523Snapshot, TrickView,
+    GamePhaseView, PlayerId, PublicPlay, PublicPlayRecord, QiGui523Event, QiGui523Snapshot,
+    TrickView,
 };
 use leocard_qigui523::QiGuiCard;
 use std::collections::HashMap;
@@ -52,17 +52,15 @@ impl ClientModel {
         self.games.qigui523.score_capture.serial
     }
 
-    pub(super) fn reset_qigui523_tracking(&mut self) {
+    fn reset_qigui523_tracking(&mut self) {
         self.games.qigui523.captured_score_cards.clear();
         self.games.qigui523.observed_trick = None;
         self.games.qigui523.score_capture.clear();
     }
 
     pub(super) fn apply_qigui523_snapshot(&mut self, snapshot: QiGui523Snapshot) {
-        self.host_port = Some(snapshot.host_port);
-        if self.active_match_id != Some(snapshot.match_id) {
+        if self.prepare_game_snapshot(snapshot.match_id, snapshot.host_port, snapshot.you) {
             self.reset_qigui523_tracking();
-            self.active_match_id = Some(snapshot.match_id);
             self.pending.player_interactions.clear();
         }
         if let GamePhaseView::Finished {
@@ -74,10 +72,7 @@ impl ClientModel {
             self.last_finished_match = Some((*match_id, reference_changes.clone()));
         }
         self.observe_score_cards(&snapshot);
-        self.you = Some(snapshot.you);
-        self.game = Some(GameSnapshot::QiGui523(snapshot));
-        self.lobby = None;
-        self.rejection.value = None;
+        self.store_game_snapshot(snapshot);
     }
 
     pub(super) fn apply_qigui523_event(&mut self, event: QiGui523Event) {

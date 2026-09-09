@@ -1,4 +1,4 @@
-use super::*;
+use super::prelude::*;
 use leocard_protocol::MAX_PLAYER_NAME_CHARS;
 
 #[test]

@@ -435,7 +435,7 @@ fn lobby_game_kind_and_rules_remain_consistent() {
     };
 
     assert_eq!(lobby.game, lobby.rules.kind());
-    assert_eq!(lobby.qigui523_rules(), Some(&rules));
+    assert_eq!(lobby.rules.qigui523(), Some(&rules));
 
     let texas_rules = TexasHoldemRuleSet::default();
     let texas_lobby = LobbySnapshot {
@@ -446,7 +446,7 @@ fn lobby_game_kind_and_rules_remain_consistent() {
         players: Vec::new(),
     };
     assert_eq!(texas_lobby.game, texas_lobby.rules.kind());
-    assert_eq!(texas_lobby.texas_holdem_rules(), Some(&texas_rules));
+    assert_eq!(texas_lobby.rules.texas_holdem(), Some(&texas_rules));
 
     let shengji_rules = ShengjiRuleSet::default();
     let shengji_lobby = LobbySnapshot {
@@ -457,7 +457,7 @@ fn lobby_game_kind_and_rules_remain_consistent() {
         players: Vec::new(),
     };
     assert_eq!(shengji_lobby.game, shengji_lobby.rules.kind());
-    assert_eq!(shengji_lobby.shengji_rules(), Some(&shengji_rules));
+    assert_eq!(shengji_lobby.rules.shengji(), Some(&shengji_rules));
 }
 
 #[test]

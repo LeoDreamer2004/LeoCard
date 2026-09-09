@@ -1,21 +1,20 @@
-use super::*;
-use leocard_protocol::{GameRules, GameSnapshot, PlayerId, UnoEvent, UnoPhaseView, UnoSnapshot};
+use super::ClientModel;
+use super::types::GameEventInbox;
+use leocard_protocol::{GameRules, PlayerId, UnoEvent, UnoPhaseView, UnoSnapshot};
 use leocard_uno::UnoChallengeResult;
-use std::collections::VecDeque;
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct UnoClientState {
-    events: VecDeque<UnoEvent>,
+    events: GameEventInbox<UnoEvent>,
 }
 
 impl ClientModel {
     pub fn take_uno_events(&mut self) -> Vec<UnoEvent> {
-        self.games.uno.events.drain(..).collect()
+        self.games.uno.events.take()
     }
 
     pub(super) fn apply_uno_snapshot(&mut self, snapshot: UnoSnapshot) {
-        self.host_port = Some(snapshot.host_port);
-        if self.active_match_id != Some(snapshot.match_id) {
+        if self.prepare_game_snapshot(snapshot.match_id, snapshot.host_port, snapshot.you) {
             self.games.uno.events.clear();
         }
         if let UnoPhaseView::Finished {
@@ -24,19 +23,15 @@ impl ClientModel {
         {
             self.last_finished_match = Some((snapshot.match_id, reference_changes.clone()));
         }
-        self.active_match_id = Some(snapshot.match_id);
-        self.you = Some(snapshot.you);
         self.rules = Some(GameRules::Uno(snapshot.rules));
-        self.game = Some(GameSnapshot::Uno(snapshot));
-        self.lobby = None;
-        self.rejection.value = None;
+        self.store_game_snapshot(snapshot);
     }
 
     pub(super) fn apply_uno_event(&mut self, event: UnoEvent) {
         if let Some(notice) = uno_event_notice(self.uno_game(), &event) {
             self.notice.publish(notice);
         }
-        self.games.uno.events.push_back(event);
+        self.games.uno.events.push(event);
     }
 }
 

@@ -1,6 +1,7 @@
 //! UNO 客户端表现层。
 
-pub mod actions;
+pub(crate) mod actions;
+mod assets;
 mod audio;
 mod cards;
 mod controls;
@@ -9,31 +10,25 @@ mod interaction;
 mod lobby;
 mod material;
 mod players;
+mod plugin;
 mod presentation;
-mod settlement;
+pub(super) mod settlement;
 mod state;
 mod view;
+pub(super) mod violation;
 
-use super::*;
-pub use audio::*;
-use bevy::audio::Volume;
-use bevy::prelude::*;
-use bevy::render::render_resource::AsBindGroup;
-use bevy::shader::ShaderRef;
-use bevy::ui::FocusPolicy;
-pub use cards::*;
+pub(crate) use actions::*;
+pub(crate) use assets::*;
+pub(crate) use audio::*;
+pub(crate) use cards::*;
 use controls::*;
-pub use hand::*;
-pub use interaction::*;
-pub use lobby::*;
-pub use material::*;
+pub(crate) use hand::*;
+pub(crate) use interaction::*;
+pub(crate) use lobby::*;
+pub(crate) use material::*;
 use players::*;
-pub use presentation::*;
+pub(crate) use plugin::*;
+pub(crate) use presentation::*;
 use settlement::*;
-pub use state::*;
-use std::collections::{HashMap, HashSet, VecDeque};
-pub use view::*;
-
-/// UNO 最后一张牌的飞行动画结束后，完整公开牌桌两秒再进入结算。
-pub const UNO_PLAY_CARD_DURATION: f32 = 0.58;
-pub const UNO_FINISH_REVEAL_DURATION: f32 = UNO_PLAY_CARD_DURATION + 2.0;
+pub(crate) use state::*;
+pub(crate) use view::*;

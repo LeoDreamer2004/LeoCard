@@ -1,36 +1,20 @@
 //! 按钮动作采集、领域系统注册与公共分发机制。
 
-use super::*;
-use crate::app::games::{mahjong, qigui523, shengji, texas_holdem, uno};
-use crate::app::shell::{chat, social};
+use super::super::UiState;
+use super::{ButtonInteractions, PressedUiAction, UiActionHandler};
+use crate::app::runtime::ClientResource;
+use bevy::prelude::*;
+use leocard_protocol::{ClientCommand, GameCommand};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, SystemSet)]
-pub struct UiActionSet;
+pub(crate) struct UiActionSet;
 
-pub struct UiActionPlugin;
+pub(crate) struct UiActionPlugin;
 
 impl Plugin for UiActionPlugin {
     fn build(&self, app: &mut App) {
-        app.add_message::<PressedUiAction>().add_systems(
-            Update,
-            (
-                collect_pressed_ui_actions,
-                (
-                    mahjong::actions::dispatch_mahjong_actions,
-                    texas_holdem::actions::dispatch_texas_holdem_actions,
-                    uno::actions::dispatch_uno_actions,
-                    shengji::actions::dispatch_shengji_actions,
-                    qigui523::actions::dispatch_qigui523_actions,
-                    social::actions::dispatch_social_actions,
-                    chat::actions::dispatch_chat_actions,
-                    connection::dispatch_connection_actions,
-                    navigation::dispatch_navigation_actions,
-                    lobby::dispatch_lobby_actions,
-                ),
-            )
-                .chain()
-                .in_set(UiActionSet),
-        );
+        app.add_message::<PressedUiAction>()
+            .add_systems(Update, collect_pressed_ui_actions.in_set(UiActionSet));
     }
 }
 
@@ -50,7 +34,7 @@ fn collect_pressed_ui_actions(
     }
 }
 
-pub fn dispatch_domain_actions<Action, Context>(
+pub(crate) fn dispatch_domain_actions<Action, Context>(
     actions: &mut MessageReader<PressedUiAction>,
     context: &mut Context,
 ) where
@@ -60,5 +44,18 @@ pub fn dispatch_domain_actions<Action, Context>(
         if let Some(action) = Action::extract(&action.0) {
             action.handle(context);
         }
+    }
+}
+
+pub(crate) fn game_command(command: impl Into<GameCommand>) -> ClientCommand {
+    ClientCommand::Game(command.into())
+}
+
+pub(crate) fn send_game_command(
+    client: &mut Option<ResMut<ClientResource>>,
+    command: impl Into<GameCommand>,
+) {
+    if let Some(client) = client.as_deref_mut() {
+        client.0.send(game_command(command));
     }
 }

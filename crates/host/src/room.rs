@@ -1,7 +1,7 @@
 use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
-    AvatarId, ChatContent, ChatMessage, ClientMessage, GameKind, GameRules, GameViolation,
-    JoinRequest, LobbyPlayer, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS,
+    AvatarId, ChatContent, ChatMessage, ClientMessage, GameEvent, GameKind, GameRules,
+    GameViolation, JoinRequest, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS,
     PROTOCOL_VERSION, PlayerGameProfiles, PlayerId, PlayerInteractionKind, PlayerInteractionStats,
     PlayerViolation, ProfileId, QUICK_VOICE_COUNT, ReconnectToken, RejectReason, RequestId,
     RequestViolation, Revision, RoomId, RoomViolation, SeatId, ServerEvent, ServerMessage,
@@ -10,7 +10,7 @@ use leocard_protocol::{
 use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
-pub(crate) struct Participant {
+pub(super) struct Participant {
     pub id: PlayerId,
     pub profile_id: ProfileId,
     pub connection: ConnectionId,
@@ -37,23 +37,33 @@ pub(crate) struct Participant {
 /// 这里保存一份。具体游戏仍决定何时允许加入、何时广播大厅或私有牌局快照。
 #[derive(Clone, Debug)]
 pub struct RoomSession {
-    pub(crate) room_id: RoomId,
-    pub(crate) host_port: u16,
-    pub(crate) players: Vec<Participant>,
-    pub(crate) host_connection: Option<ConnectionId>,
-    pub(crate) last_requests: HashMap<ConnectionId, RequestId>,
-    pub(crate) closed: bool,
-    pub(crate) revision: Revision,
-    pub(crate) next_avatar_id: u64,
-    pub(crate) seat_count: u8,
+    pub(super) room_id: RoomId,
+    pub(super) host_port: u16,
+    pub(super) players: Vec<Participant>,
+    pub(super) host_connection: Option<ConnectionId>,
+    pub(super) last_requests: HashMap<ConnectionId, RequestId>,
+    pub(super) closed: bool,
+    pub(super) revision: Revision,
+    pub(super) next_avatar_id: u64,
+    pub(super) seat_count: u8,
 }
 
 impl RoomSession {
-    pub(crate) fn new(room_id: RoomId, host_port: u16, capacity: usize) -> Self {
+    fn active_participants(&self) -> impl Iterator<Item = &Participant> {
+        self.players
+            .iter()
+            .filter(|player| player.connected && !player.left)
+    }
+
+    pub(super) fn heartbeat(&self) -> Vec<Delivery> {
+        self.broadcast_event(None, ServerEvent::Heartbeat)
+    }
+
+    pub(super) fn new(room_id: RoomId, host_port: u16, capacity: usize) -> Self {
         Self::new_with_seat_count(room_id, host_port, capacity, TABLE_SEAT_COUNT)
     }
 
-    pub(crate) fn new_with_seat_count(
+    pub(super) fn new_with_seat_count(
         room_id: RoomId,
         host_port: u16,
         capacity: usize,
@@ -73,14 +83,14 @@ impl RoomSession {
         }
     }
 
-    pub(crate) fn player_id(&self, connection: ConnectionId) -> Option<PlayerId> {
+    pub(super) fn player_id(&self, connection: ConnectionId) -> Option<PlayerId> {
         self.players
             .iter()
             .find(|player| player.connection == connection && !player.left)
             .map(|player| player.id)
     }
 
-    pub(crate) fn record_received_interaction(
+    pub(super) fn record_received_interaction(
         &mut self,
         target: PlayerId,
         kind: PlayerInteractionKind,
@@ -112,7 +122,7 @@ impl RoomSession {
         }
     }
 
-    pub(crate) fn begin_request(
+    pub(super) fn begin_request(
         &mut self,
         connection: ConnectionId,
         message: &ClientMessage,
@@ -154,7 +164,7 @@ impl RoomSession {
         Ok(())
     }
 
-    pub(crate) fn join(
+    pub(super) fn join(
         &mut self,
         connection: ConnectionId,
         request_id: RequestId,
@@ -313,7 +323,7 @@ impl RoomSession {
         deliveries
     }
 
-    pub(crate) fn set_avatar(
+    pub(super) fn set_avatar(
         &mut self,
         connection: ConnectionId,
         png: Vec<u8>,
@@ -337,24 +347,10 @@ impl RoomSession {
         participant.avatar = Some(avatar);
         participant.avatar_png = Some(png.clone());
         self.bump_revision();
-        Ok(self
-            .players
-            .iter()
-            .filter(|participant| participant.connected && !participant.left)
-            .map(|participant| {
-                self.delivery(
-                    participant.connection,
-                    None,
-                    ServerEvent::AvatarData {
-                        id: avatar,
-                        png: png.clone(),
-                    },
-                )
-            })
-            .collect())
+        Ok(self.broadcast_event(None, ServerEvent::AvatarData { id: avatar, png }))
     }
 
-    pub(crate) fn select_seat(
+    pub(super) fn select_seat(
         &mut self,
         connection: ConnectionId,
         seat: SeatId,
@@ -384,7 +380,7 @@ impl RoomSession {
         Ok(())
     }
 
-    pub(crate) fn set_ready(
+    pub(super) fn set_ready(
         &mut self,
         connection: ConnectionId,
         ready: bool,
@@ -411,7 +407,7 @@ impl RoomSession {
         Ok(())
     }
 
-    pub(crate) fn configure_bot_seat(
+    pub(super) fn configure_bot_seat(
         &mut self,
         connection: ConnectionId,
         seat: SeatId,
@@ -500,7 +496,7 @@ impl RoomSession {
         }
     }
 
-    pub(crate) fn chat(
+    pub(super) fn chat(
         &self,
         connection: ConnectionId,
         request_id: RequestId,
@@ -530,21 +526,13 @@ impl RoomSession {
             ChatContent::Emoji(emoji) => ChatContent::Emoji(emoji),
         };
         let chat = ChatMessage { source, content };
-        Ok(self
-            .players
-            .iter()
-            .filter(|player| player.connected && !player.left)
-            .map(|player| {
-                self.delivery(
-                    player.connection,
-                    (player.connection == connection).then_some(request_id),
-                    ServerEvent::ChatMessage(chat.clone()),
-                )
-            })
-            .collect())
+        Ok(self.broadcast_event(
+            Some((connection, request_id)),
+            ServerEvent::ChatMessage(chat),
+        ))
     }
 
-    pub(crate) fn close_room(
+    pub(super) fn close_room(
         &mut self,
         connection: ConnectionId,
         request_id: RequestId,
@@ -555,23 +543,13 @@ impl RoomSession {
             return Err(RejectReason::Room(RoomViolation::OnlyHostCanCloseRoom));
         }
         self.bump_revision();
-        let deliveries = self
-            .players
-            .iter()
-            .filter(|player| player.connected && !player.left)
-            .map(|player| {
-                self.delivery(
-                    player.connection,
-                    (player.connection == connection).then_some(request_id),
-                    ServerEvent::RoomClosed,
-                )
-            })
-            .collect();
+        let deliveries =
+            self.broadcast_event(Some((connection, request_id)), ServerEvent::RoomClosed);
         self.closed = true;
         Ok(deliveries)
     }
 
-    pub(crate) fn host_player_id(&self) -> Option<PlayerId> {
+    pub(super) fn host_player_id(&self) -> Option<PlayerId> {
         self.host_connection.and_then(|connection| {
             self.players
                 .iter()
@@ -580,11 +558,11 @@ impl RoomSession {
         })
     }
 
-    pub(crate) fn bump_revision(&mut self) {
+    pub(super) fn bump_revision(&mut self) {
         self.revision.0 += 1;
     }
 
-    pub(crate) fn reject(
+    pub(super) fn reject(
         &self,
         recipient: ConnectionId,
         request_id: RequestId,
@@ -597,7 +575,7 @@ impl RoomSession {
         )]
     }
 
-    pub(crate) fn delivery(
+    pub(super) fn delivery(
         &self,
         recipient: ConnectionId,
         in_reply_to: Option<RequestId>,
@@ -615,7 +593,7 @@ impl RoomSession {
         }
     }
 
-    pub(crate) fn lobby_snapshot(&self, game: GameKind, rules: GameRules) -> LobbySnapshot {
+    pub(super) fn lobby_snapshot(&self, game: GameKind, rules: GameRules) -> LobbySnapshot {
         LobbySnapshot {
             game,
             rules,
@@ -625,46 +603,58 @@ impl RoomSession {
                 .players
                 .iter()
                 .filter(|player| !player.left)
-                .map(|player| LobbyPlayer {
-                    id: player.id,
-                    profile_id: player.profile_id,
-                    name: player.name.clone(),
-                    avatar: player.avatar,
-                    seat: player.seat,
-                    ready: player.ready,
-                    connected: player.connected || player.is_bot,
-                    reference_points: player.reference_points,
-                    completed_games: player.completed_games,
-                    game_profiles: player.game_profiles.clone(),
-                })
+                .map(|player| player.public_metadata().into())
                 .collect(),
         }
     }
 
-    pub(crate) fn broadcast_lobby(
+    pub(super) fn broadcast_lobby(
         &self,
         game: GameKind,
         rules: GameRules,
         origin: Option<(ConnectionId, RequestId)>,
     ) -> Vec<Delivery> {
         let snapshot = self.lobby_snapshot(game, rules);
-        self.players
-            .iter()
-            .filter(|player| player.connected && !player.left)
+        self.broadcast_event(origin, ServerEvent::LobbySnapshot(snapshot))
+    }
+
+    pub(super) fn broadcast_event(
+        &self,
+        origin: Option<(ConnectionId, RequestId)>,
+        event: ServerEvent,
+    ) -> Vec<Delivery> {
+        self.broadcast_private(origin, |_| event.clone())
+    }
+
+    pub(super) fn broadcast_private(
+        &self,
+        origin: Option<(ConnectionId, RequestId)>,
+        mut event: impl FnMut(&Participant) -> ServerEvent,
+    ) -> Vec<Delivery> {
+        self.active_participants()
             .map(|player| {
                 let reply = origin
                     .filter(|(connection, _)| *connection == player.connection)
                     .map(|(_, request)| request);
-                self.delivery(
-                    player.connection,
-                    reply,
-                    ServerEvent::LobbySnapshot(snapshot.clone()),
-                )
+                self.delivery(player.connection, reply, event(player))
             })
             .collect()
     }
 
-    pub(crate) fn random_available_seat(&self) -> Option<SeatId> {
+    pub(super) fn broadcast_game_events<E>(
+        &self,
+        events: impl IntoIterator<Item = E>,
+    ) -> Vec<Delivery>
+    where
+        E: Into<GameEvent>,
+    {
+        events
+            .into_iter()
+            .flat_map(|event| self.broadcast_event(None, ServerEvent::GameEvent(event.into())))
+            .collect()
+    }
+
+    fn random_available_seat(&self) -> Option<SeatId> {
         let mut available = (0..self.seat_count)
             .map(SeatId)
             .filter(|seat| {
@@ -678,7 +668,7 @@ impl RoomSession {
         available.pop()
     }
 
-    pub(crate) fn remove_departed_players(&mut self) {
+    pub(super) fn remove_departed_players(&mut self) {
         self.players.retain(|player| !player.left);
         self.players
             .sort_by_key(|player| player.seat.map_or(u8::MAX, |seat| seat.0));
@@ -688,13 +678,13 @@ impl RoomSession {
     }
 
     /// 进入终局准备阶段：仍在托管的玩家与机器人立即准备下一局，并保留托管状态。
-    pub(crate) fn prepare_rematch(&mut self) {
+    pub(super) fn prepare_rematch(&mut self) {
         for player in &mut self.players {
             player.ready = player.is_bot || player.auto_play;
         }
     }
 
-    pub(crate) fn reset_ready_after_rules_change(&mut self) {
+    pub(super) fn reset_ready_after_rules_change(&mut self) {
         let host = self.host_connection;
         for player in &mut self.players {
             player.ready = player.is_bot || host == Some(player.connection);
@@ -702,7 +692,7 @@ impl RoomSession {
     }
 
     #[cfg(feature = "developer")]
-    pub(crate) fn remove_developer_bots(&mut self) {
+    pub(super) fn remove_developer_bots(&mut self) {
         for player in self.players.iter_mut().filter(|player| player.is_bot) {
             player.seat = None;
             player.ready = false;

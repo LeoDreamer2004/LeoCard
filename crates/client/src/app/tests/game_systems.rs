@@ -1,4 +1,4 @@
-use super::*;
+use super::prelude::*;
 
 #[test]
 fn mahjong_action_animation_system_queries_initialize_without_conflicts() {

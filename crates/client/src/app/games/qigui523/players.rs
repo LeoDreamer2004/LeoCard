@@ -1,4 +1,19 @@
-use super::*;
+use super::state::{ScoreCardsPopupPlacement, SeatVisuals};
+use super::{add_round_play_for_optional_player, add_score_cards_popup, sort_cards_high_to_low};
+use crate::app::presentation::CardSize;
+use crate::app::presentation::{
+    ACCENT, BORDER, HEADER_BG, MUTED, PANEL_ALT, PlayerMenuProfile, TEXT, TurnBorderAnimationKey,
+    TurnBorderMaterial, add_auto_play_robot_indicator, add_avatar, add_card_image,
+    add_interaction_menu, add_player_panel_primary_value, add_text, add_turn_border_trace,
+    attach_start_game_seat_transition, decorate_player_panel, spawn_node,
+};
+use crate::app::runtime::UiAssets;
+use crate::app::shell::{
+    FinishedHandScoreSource, OpponentBadge, PlayerAvatarAnchor, PlayerGameScoreText, SeatSide,
+    SocialUiAction, UiAction, displayed_captured_score, reference_points_label,
+};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::QiGui523Snapshot;
 use leocard_protocol::{GameKind, GamePhaseView, PlayerId, PlayerPublicState};
 use leocard_qigui523::QiGuiCard;
@@ -83,6 +98,7 @@ pub(super) fn add_opponent_slot(
             visuals.play_effect,
             visuals.last_play,
             visuals.ui,
+            visuals.assets,
         );
     }
     let badge = spawn_node(
@@ -174,7 +190,7 @@ pub(super) fn add_opponent_slot(
                 details,
                 reference_points_label(player.reference_points),
                 11.0,
-                ACCENT,
+                MUTED,
                 visuals.ui,
             );
             add_text(
@@ -250,6 +266,7 @@ pub(super) fn add_opponent_slot(
             visuals.play_effect,
             visuals.last_play,
             visuals.ui,
+            visuals.assets,
         );
     }
 }

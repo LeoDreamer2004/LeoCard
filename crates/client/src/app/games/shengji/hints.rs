@@ -1,11 +1,11 @@
 //! 双升出牌提示的候选生成与轮换。
 
-use super::*;
 use leocard_protocol::ShengjiSnapshot;
 use leocard_shengji::follow_suggestions;
 use leocard_shengji::{ShengjiCard, ShengjiGreedyBot, ShengjiGreedyBotRequest, ShengjiSuit};
+use std::collections::HashSet;
 
-pub fn next_shengji_hint(
+pub(crate) fn next_shengji_hint(
     game: &ShengjiSnapshot,
     selected: &HashSet<ShengjiCard>,
 ) -> Option<Vec<ShengjiCard>> {

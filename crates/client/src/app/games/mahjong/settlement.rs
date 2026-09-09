@@ -1,6 +1,41 @@
-use super::*;
-use leocard_protocol::MahjongHandResultView;
-use leocard_protocol::MahjongSnapshot;
+use super::mahjong_win_reveal_duration;
+use crate::app::presentation::add_animated_summary_text;
+use crate::app::presentation::{
+    ACCENT, AnimatedSignedSummaryScore, ButtonKind, DANGER, GameSummaryActions,
+    GameSummaryAnimation, GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, MUTED,
+    PANEL_ALT, PanelSkin, READY, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL,
+    SUMMARY_ROW_START_DELAY, SummaryDescriptor, TEXT, add_action_button,
+    add_disabled_action_button, add_ready_avatar, decorate_panel_skin, spawn_node,
+    summary_modal_visual, summary_row_progress,
+};
+use crate::app::runtime::{AvatarImages, UiAssets};
+use crate::app::shell::{LobbyUiAction, UiAction};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
+use leocard_protocol::{MahjongHandResultView, MahjongPhaseView, MahjongSnapshot};
+
+pub(crate) fn mahjong_summary_descriptor(game: &MahjongSnapshot) -> Option<SummaryDescriptor> {
+    let MahjongPhaseView::Finished { result } = &game.phase else {
+        return None;
+    };
+    let fan_entries = result
+        .winners
+        .iter()
+        .map(|winner| winner.score.fans.len() + 1)
+        .sum::<usize>();
+    Some(SummaryDescriptor {
+        match_id: game.match_id,
+        texas_hand_number: None,
+        settlement_index: Some(u32::from(result.sequence_index)),
+        entry_count: game.players.len() + fan_entries,
+        nonnegative_outcome: result.deltas[game.you.0 as usize] >= 0,
+        reveal_duration: if result.winners.is_empty() {
+            0.0
+        } else {
+            mahjong_win_reveal_duration(result)
+        },
+    })
+}
 
 pub(super) fn render_mahjong_settlement(
     commands: &mut Commands,

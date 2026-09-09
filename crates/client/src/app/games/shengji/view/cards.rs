@@ -1,10 +1,15 @@
-use super::*;
+use super::super::ShengjiFailedThrowCard;
+use crate::app::presentation::CardSize;
+use crate::app::presentation::{HAND_CARD_REVEAL, add_text, spawn_node};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{ShengjiSnapshot, ShengjiThrowFailureStage};
 use leocard_qigui523::{QiGuiRank, QiGuiSuit};
 use leocard_shengji::{ShengjiCard, ShengjiRank, ShengjiSuit, ShengjiTrump};
 
 #[derive(Clone, Copy)]
-pub enum ShengjiCardSize {
+pub(super) enum ShengjiCardSize {
     Hand,
     Seat,
     Score,
@@ -16,7 +21,7 @@ struct ShengjiFailedThrowCardSpec {
     direction: Vec2,
 }
 
-pub fn add_shengji_card_row(
+pub(super) fn add_shengji_card_row(
     commands: &mut Commands,
     parent: Entity,
     cards: &[ShengjiCard],
@@ -27,7 +32,7 @@ pub fn add_shengji_card_row(
     add_shengji_card_row_internal(commands, parent, cards, size, trump, None, assets)
 }
 
-pub fn add_shengji_failed_throw_card_row(
+pub(super) fn add_shengji_failed_throw_card_row(
     commands: &mut Commands,
     parent: Entity,
     cards: &[ShengjiCard],
@@ -116,7 +121,7 @@ fn add_shengji_card_row_internal(
     row
 }
 
-pub fn add_shengji_trump_stars(
+pub(super) fn add_shengji_trump_stars(
     commands: &mut Commands,
     card_entity: Entity,
     card: ShengjiCard,
@@ -157,7 +162,7 @@ pub fn add_shengji_trump_stars(
     ));
 }
 
-pub fn shengji_trump_star_count(card: ShengjiCard, trump: Option<ShengjiTrump>) -> u8 {
+pub(crate) fn shengji_trump_star_count(card: ShengjiCard, trump: Option<ShengjiTrump>) -> u8 {
     let Some(trump) = trump else {
         return 0;
     };
@@ -173,7 +178,7 @@ pub fn shengji_trump_star_count(card: ShengjiCard, trump: Option<ShengjiTrump>) 
     }
 }
 
-pub fn sort_shengji_cards(cards: &mut [ShengjiCard], trump: Option<ShengjiTrump>) {
+pub(crate) fn sort_shengji_cards(cards: &mut [ShengjiCard], trump: Option<ShengjiTrump>) {
     cards.sort_by(|left, right| {
         shengji_display_key(*right, trump)
             .cmp(&shengji_display_key(*left, trump))
@@ -204,7 +209,7 @@ fn shengji_display_key(card: ShengjiCard, trump: Option<ShengjiTrump>) -> (u8, u
     (u8::from(is_trump), category, strength, suit_order)
 }
 
-pub fn shengji_card_face(card: ShengjiCard, assets: &UiAssets) -> Handle<Image> {
+pub(crate) fn shengji_card_face(card: ShengjiCard, assets: &UiAssets) -> Handle<Image> {
     let rank = match card.rank() {
         ShengjiRank::Two => QiGuiRank::Two,
         ShengjiRank::Three => QiGuiRank::Three,
@@ -231,7 +236,7 @@ pub fn shengji_card_face(card: ShengjiCard, assets: &UiAssets) -> Handle<Image> 
         _ => unreachable!("合法双升牌的花色与点数组合"),
     };
     assets
-        .games
+        .playing_cards
         .cards
         .get(&(rank, suit))
         .expect("双升牌面已经加载")
@@ -258,11 +263,11 @@ fn shengji_rank_order(rank: ShengjiRank) -> u8 {
     }
 }
 
-pub fn shengji_current_level(game: &ShengjiSnapshot) -> ShengjiRank {
+pub(crate) fn shengji_current_level(game: &ShengjiSnapshot) -> ShengjiRank {
     game.trump.map_or(game.bidding_level, |trump| trump.level)
 }
 
-pub fn shengji_display_trump(game: &ShengjiSnapshot) -> Option<ShengjiTrump> {
+pub(crate) fn shengji_display_trump(game: &ShengjiSnapshot) -> Option<ShengjiTrump> {
     game.trump.or_else(|| {
         game.declaration.as_ref().map(|declaration| {
             ShengjiTrump::new(shengji_current_level(game), declaration.trump.trump_suit())
@@ -275,7 +280,7 @@ pub fn shengji_display_trump(game: &ShengjiSnapshot) -> Option<ShengjiTrump> {
 /// 手牌排序在尚无人亮主时也使用一个仅用于排序的临时无主规则，使本局
 /// 级牌紧跟在大小王右侧。渲染星标仍使用 `shengji_display_trump`，不会把
 /// 尚未正式确定的主牌状态提前公开。
-pub fn shengji_hand_sort_trump(game: &ShengjiSnapshot) -> Option<ShengjiTrump> {
+pub(crate) fn shengji_hand_sort_trump(game: &ShengjiSnapshot) -> Option<ShengjiTrump> {
     shengji_display_trump(game).or_else(|| {
         ShengjiTrump::new(game.bidding_level, None)
             .map(|trump| trump.with_constant_trump(game.rules.constant_trump))
@@ -283,7 +288,7 @@ pub fn shengji_hand_sort_trump(game: &ShengjiSnapshot) -> Option<ShengjiTrump> {
     })
 }
 
-pub fn shengji_level_label(rank: ShengjiRank) -> String {
+pub(super) fn shengji_level_label(rank: ShengjiRank) -> String {
     format!("打 {}", shengji_rank_label(rank))
 }
 

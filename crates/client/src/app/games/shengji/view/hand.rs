@@ -1,15 +1,33 @@
-use super::*;
+use super::super::{
+    ShengjiDealerBadge, ShengjiHandCardSelectionOverlay, ShengjiHandCardSlot,
+    ShengjiHandCardVisual, ShengjiLevelIndicator, ShengjiUiAction, ShengjiUiState,
+};
+use super::{
+    ShengjiCardSize, add_shengji_trump_stars, shengji_card_face, shengji_display_trump,
+    shengji_hand_sort_trump, shengji_level_label, sort_shengji_cards,
+};
+use crate::app::presentation::CardSize;
+use crate::app::presentation::{
+    ACCENT, BORDER, CardAnimationState, HEADER_BG, PendingDealSound, TEXT, TurnBorderAnimationKey,
+    TurnBorderMaterial, add_avatar, add_text, add_turn_border_trace,
+    attach_start_game_seat_transition, decorate_player_panel, hand_card_pose,
+    shengji_hand_card_reveal, spawn_node,
+};
+use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
+use crate::app::shell::{CardDragSelection, PlayerAvatarAnchor, UiAction};
+use bevy::prelude::*;
+use bevy::ui::{FocusPolicy, RelativeCursorPosition};
 use leocard_protocol::{GameKind, ShengjiPhaseView, ShengjiPlayerState, ShengjiSnapshot};
 use leocard_shengji::{ShengjiCard, ShengjiTrump};
 
 /// 每位玩家相邻两张可见手牌的发牌间隔；对应全桌约 100ms 发一张牌。
 const SHENGJI_LOCAL_DEAL_INTERVAL: f32 = 0.40;
 
-pub fn add_shengji_hand(
+pub(super) fn add_shengji_hand(
     commands: &mut Commands,
     hand_area: Entity,
     game: &ShengjiSnapshot,
-    ui: &UiState,
+    ui: &ShengjiUiState,
     assets: &UiAssets,
 ) {
     let hand = spawn_node(
@@ -49,12 +67,8 @@ pub fn add_shengji_hand(
             index,
             hand_len,
             index == last,
-            ui.shengji.selected.contains(&card),
-            ui.shengji
-                .card_animations
-                .get(&card)
-                .copied()
-                .unwrap_or_default(),
+            ui.selected.contains(&card),
+            ui.card_animations.get(&card).copied().unwrap_or_default(),
             display_trump,
             assets,
         );
@@ -174,9 +188,9 @@ fn add_shengji_hand_card(
     commands.entity(face).add_child(overlay);
 }
 
-pub fn queue_shengji_deal_animations(
+pub(crate) fn queue_shengji_deal_animations(
     client: Option<Res<ClientResource>>,
-    mut ui: ResMut<UiState>,
+    mut ui: ResMut<ShengjiUiState>,
     assets: Res<UiAssets>,
     mut commands: Commands,
 ) {
@@ -184,24 +198,19 @@ pub fn queue_shengji_deal_animations(
         .as_deref()
         .and_then(|client| client.0.model().shengji_game())
     else {
-        ui.shengji.observed_hand.clear();
-        ui.shengji.card_animations.clear();
+        ui.observed_hand.clear();
+        ui.card_animations.clear();
         return;
     };
-    if ui.shengji.observed_match != Some(game.match_id)
-        || ui.shengji.observed_hand_number != game.hand_number
-    {
-        ui.shengji.observed_match = Some(game.match_id);
-        ui.shengji.observed_hand_number = game.hand_number;
-        ui.shengji.selected.clear();
-        ui.shengji.observed_hand.clear();
-        ui.shengji.card_animations.clear();
+    if ui.observed_hand.observe((game.match_id, game.hand_number)) {
+        ui.selected.clear();
+        ui.card_animations.clear();
     }
     let new_cards = game
         .your_hand
         .iter()
         .copied()
-        .filter(|card| !ui.shengji.observed_hand.contains(card))
+        .filter(|card| !ui.observed_hand.state.contains(card))
         .collect::<Vec<_>>();
     let animate_deal = matches!(game.phase, ShengjiPhaseView::Dealing { .. });
     for (index, card) in new_cards.into_iter().enumerate() {
@@ -210,7 +219,7 @@ pub fn queue_shengji_deal_animations(
         } else {
             0.0
         };
-        ui.shengji.card_animations.insert(
+        ui.card_animations.insert(
             card,
             CardAnimationState {
                 deal_elapsed: if animate_deal { -delay } else { 0.24 },
@@ -225,16 +234,15 @@ pub fn queue_shengji_deal_animations(
             });
         }
     }
-    ui.shengji.observed_hand.clone_from(&game.your_hand);
-    ui.shengji
-        .card_animations
+    ui.observed_hand.state.clone_from(&game.your_hand);
+    ui.card_animations
         .retain(|card, _| game.your_hand.contains(card));
 }
 
-pub fn animate_shengji_hand_cards(
+pub(crate) fn animate_shengji_hand_cards(
     time: Res<Time>,
     drag: Res<CardDragSelection>,
-    mut ui: ResMut<UiState>,
+    mut ui: ResMut<ShengjiUiState>,
     buttons: Query<&Interaction, With<Button>>,
     mut cards: Query<(
         &mut ShengjiHandCardVisual,
@@ -251,7 +259,7 @@ pub fn animate_shengji_hand_cards(
         let Ok(interaction) = buttons.get(visual.button) else {
             continue;
         };
-        let selected = ui.shengji.selected.contains(&visual.card);
+        let selected = ui.selected.contains(&visual.card);
         let hovered = if drag.active {
             visual.index == drag.current
         } else {
@@ -280,15 +288,12 @@ pub fn animate_shengji_hand_cards(
             selected_amount: visual.selected_amount,
             deal_elapsed: visual.deal_elapsed,
             dealing: visual.dealing,
-            ..ui.shengji
-                .card_animations
+            ..ui.card_animations
                 .get(&visual.card)
                 .copied()
                 .unwrap_or_default()
         };
-        ui.shengji
-            .card_animations
-            .insert(visual.card, next_animation);
+        ui.card_animations.insert(visual.card, next_animation);
         let glow = (visual.hover_amount * pulse + visual.selected_amount * 0.72).clamp(0.0, 1.0);
         let pose = hand_card_pose(
             visual.index,
@@ -312,7 +317,7 @@ pub fn animate_shengji_hand_cards(
     }
 }
 
-pub fn add_shengji_self_panel(
+pub(super) fn add_shengji_self_panel(
     commands: &mut Commands,
     hand_area: Entity,
     player: &ShengjiPlayerState,

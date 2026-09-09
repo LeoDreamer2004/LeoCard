@@ -1,15 +1,23 @@
-use super::*;
+use super::super::{ShengjiUiAction, ShengjiUiState};
+use super::{add_shengji_bid_button, shengji_declaration_candidate};
+use crate::app::presentation::{
+    ACCENT, ButtonKind, DANGER, MUTED, TEXT, add_action_button, add_disabled_action_button,
+    add_text, spawn_node,
+};
+use crate::app::runtime::UiAssets;
+use crate::app::shell::UiAction;
+use bevy::prelude::*;
 use leocard_protocol::{
     PlayerId, ShengjiFiveTrumpCrossingStage, ShengjiPhaseView, ShengjiSnapshot,
 };
 use leocard_shengji::ShengjiSuit;
 use leocard_shengji::forced_follow_cards;
 
-pub fn add_shengji_actions(
+pub(super) fn add_shengji_actions(
     commands: &mut Commands,
     hand_area: Entity,
     game: &ShengjiSnapshot,
-    ui: &UiState,
+    ui: &ShengjiUiState,
     assets: &UiAssets,
 ) {
     let actions = spawn_node(
@@ -30,7 +38,7 @@ pub fn add_shengji_actions(
     );
     match &game.phase {
         ShengjiPhaseView::Burying if game.dealer == Some(game.you) => {
-            let count = ui.shengji.selected.len();
+            let count = ui.selected.len();
             let kitty_size = game.rules.kitty_size();
             if count == kitty_size {
                 add_action_button(
@@ -77,7 +85,7 @@ pub fn add_shengji_actions(
             add_text(commands, actions, "等待抄底…", 15.0, MUTED, assets);
         }
         ShengjiPhaseView::BottomCopyBurying { player } if *player == game.you => {
-            let count = ui.shengji.selected.len();
+            let count = ui.selected.len();
             let kitty_size = game.rules.kitty_size();
             if count == kitty_size {
                 add_action_button(
@@ -110,7 +118,7 @@ pub fn add_shengji_actions(
                 let selected = game
                     .your_hand
                     .iter()
-                    .filter(|card| ui.shengji.selected.contains(card))
+                    .filter(|card| ui.selected.contains(card))
                     .copied()
                     .collect::<Vec<_>>();
                 let includes_all_trumps = game.trump.is_some_and(|trump| {
@@ -176,7 +184,7 @@ pub fn add_shengji_actions(
                 let selected_count = game
                     .your_hand
                     .iter()
-                    .filter(|card| ui.shengji.selected.contains(card))
+                    .filter(|card| ui.selected.contains(card))
                     .count();
                 if selected_count == 5 {
                     add_action_button(
@@ -215,8 +223,8 @@ pub fn add_shengji_actions(
                 .and_then(|trick| trick.plays.first())
                 .map(|play| play.play.cards.len());
             let selection_ready = required.map_or_else(
-                || !ui.shengji.selected.is_empty(),
-                |required| ui.shengji.selected.len() == required,
+                || !ui.selected.is_empty(),
+                |required| ui.selected.len() == required,
             );
             if !selection_ready {
                 add_disabled_action_button(commands, actions, "出牌", assets);
@@ -258,7 +266,7 @@ pub fn add_shengji_actions(
     }
 }
 
-pub fn select_forced_shengji_follow_cards(game: &ShengjiSnapshot, ui: &mut UiState) {
+pub(crate) fn select_forced_shengji_follow_cards(game: &ShengjiSnapshot, ui: &mut ShengjiUiState) {
     if !matches!(game.phase, ShengjiPhaseView::Playing) || game.current_player != Some(game.you) {
         return;
     }
@@ -273,7 +281,6 @@ pub fn select_forced_shengji_follow_cards(game: &ShengjiSnapshot, ui: &mut UiSta
     else {
         return;
     };
-    ui.shengji
-        .selected
+    ui.selected
         .extend(forced_follow_cards(&game.your_hand, lead, trump));
 }

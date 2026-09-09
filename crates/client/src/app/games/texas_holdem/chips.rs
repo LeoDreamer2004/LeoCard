@@ -10,13 +10,21 @@ mod systems;
 mod tests;
 mod view;
 
-use super::*;
-pub use geometry::*;
+use super::{
+    TexasActionFeedback, TexasActionFeedbackText, TexasAudioCue, TexasFoldCard, TexasHoldemAssets,
+    TexasOwnFoldCardHover, TexasOwnFoldTooltip, TexasPlayerPanel, TexasPotDivider, TexasPotHover,
+    action_feedback_text_color, action_feedback_transform, fold_card_visual,
+    queue_texas_turn_sound, texas_action_sound_plan, texas_card_face, texas_hand_finish_sound_plan,
+    texas_side_pot_sound_plan, texas_street_sound_plan,
+};
+use bevy::prelude::*;
+pub(crate) use geometry::*;
 #[cfg(test)]
 use leocard_protocol::PlayerGameProfiles;
 use leocard_protocol::{MatchId, PlayerId, SeatId};
-pub use systems::*;
-pub use view::*;
+use std::collections::HashMap;
+pub(crate) use systems::*;
+pub(crate) use view::*;
 
 const DENOMINATIONS: [u16; 5] = [100, 25, 10, 5, 1];
 const CHIP_SIZE: f32 = 30.0;
@@ -26,7 +34,7 @@ const PLAYER_CHIP_ZONE_HEIGHT: f32 = 82.0;
 const TEXAS_CHIP_ZONE_FILTER: Color = Color::srgba(0.005, 0.018, 0.014, 0.26);
 
 #[derive(Component)]
-pub struct TexasChipZonePanel;
+struct TexasChipZonePanel;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum ChipZone {
@@ -58,7 +66,7 @@ struct TableChip {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct ActionLabel {
+pub(crate) struct ActionLabel {
     text: &'static str,
     font_size: f32,
     color: Color,
@@ -68,7 +76,7 @@ pub struct ActionLabel {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ActionFeedbackKind {
+pub(crate) enum ActionFeedbackKind {
     Blind,
     Fold,
     Check,
@@ -91,7 +99,7 @@ struct PotDivisionTransition {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct ChipZoneLayout {
+pub(crate) struct ChipZoneLayout {
     pub left: f32,
     pub top: f32,
     pub width: f32,
@@ -105,7 +113,7 @@ impl ChipZoneLayout {
 }
 
 #[derive(Resource, Default)]
-pub struct TexasChipTableState {
+pub(crate) struct TexasChipTableState {
     match_id: Option<MatchId>,
     hand_number: u32,
     you: Option<PlayerId>,
@@ -121,4 +129,4 @@ pub struct TexasChipTableState {
 }
 
 #[derive(Component)]
-pub struct TexasChipSprite(u64);
+pub(crate) struct TexasChipSprite(u64);

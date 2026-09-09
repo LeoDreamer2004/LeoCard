@@ -5,10 +5,7 @@ mod state;
 mod stats;
 mod view;
 
-use super::*;
-use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
-pub use rating::*;
-pub use state::*;
-pub use stats::*;
-pub use view::*;
+pub(crate) use rating::*;
+pub(crate) use state::*;
+pub(crate) use stats::*;
+pub(crate) use view::*;

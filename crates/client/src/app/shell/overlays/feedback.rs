@@ -1,15 +1,19 @@
 //! 错误提示的状态同步、重触发与入退场动画。
 
-use super::*;
+use super::super::UiState;
+use super::{PlayErrorPopup, PlayErrorPopupText, PlayErrorToast, rejection_label};
+use crate::app::presentation::{DANGER, HEADER_BG};
+use crate::app::runtime::{ClientResource, PageErrorState, TableAppearance, UiAssets};
+use bevy::prelude::*;
 
-pub const PLAY_ERROR_TOAST_DURATION: f32 = 2.4;
-pub const PLAY_ERROR_TOAST_ENTRY_DURATION: f32 = 0.28;
+pub(crate) const PLAY_ERROR_TOAST_DURATION: f32 = 2.4;
+pub(crate) const PLAY_ERROR_TOAST_ENTRY_DURATION: f32 = 0.28;
 const PLAY_ERROR_TOAST_FADE_DURATION: f32 = 0.42;
-pub const PLAY_ERROR_TOAST_SHAKE_DURATION: f32 = 0.42;
+pub(crate) const PLAY_ERROR_TOAST_SHAKE_DURATION: f32 = 0.42;
 
-pub fn sync_play_error_toast(
+pub(crate) fn sync_play_error_toast(
     client: Option<Res<ClientResource>>,
-    form: Res<ConnectionForm>,
+    page_error: Res<PageErrorState>,
     appearance: Res<TableAppearance>,
     mut toast: ResMut<PlayErrorToast>,
     mut ui: ResMut<UiState>,
@@ -30,9 +34,9 @@ pub fn sync_play_error_toast(
             play_error_sound = false;
         }
     }
-    if toast.observed_form_error != form.error {
-        toast.observed_form_error.clone_from(&form.error);
-        if let Some(error) = &form.error {
+    if toast.observed_form_error != page_error.error {
+        toast.observed_form_error.clone_from(&page_error.error);
+        if let Some(error) = &page_error.error {
             next_message = Some(error.clone());
             play_error_sound = true;
         }
@@ -65,13 +69,13 @@ pub fn sync_play_error_toast(
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct PlayErrorToastVisual {
+pub(crate) struct PlayErrorToastVisual {
     pub x: f32,
     pub y: f32,
     pub opacity: f32,
 }
 
-pub fn play_error_toast_visual(toast: &PlayErrorToast) -> PlayErrorToastVisual {
+pub(crate) fn play_error_toast_visual(toast: &PlayErrorToast) -> PlayErrorToastVisual {
     let entry = if toast.entering {
         (toast.elapsed / PLAY_ERROR_TOAST_ENTRY_DURATION).clamp(0.0, 1.0)
     } else {
@@ -92,7 +96,7 @@ pub fn play_error_toast_visual(toast: &PlayErrorToast) -> PlayErrorToastVisual {
     }
 }
 
-pub fn animate_play_error_popup(
+pub(crate) fn animate_play_error_popup(
     time: Res<Time>,
     mut toast: ResMut<PlayErrorToast>,
     mut popups: Query<

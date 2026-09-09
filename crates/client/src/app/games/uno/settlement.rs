@@ -1,6 +1,41 @@
-use super::*;
-use leocard_protocol::{PlayerId, UnoSnapshot};
-use leocard_protocol::{PlayerReferenceChange, UnoPlayerResult};
+use super::UNO_FINISH_REVEAL_DURATION;
+use crate::app::presentation::add_animated_summary_text;
+use crate::app::presentation::{
+    ACCENT, AnimatedSummaryScore, ButtonKind, DANGER, GameSummaryActions, GameSummaryAnimation,
+    GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, READY,
+    SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
+    TEXT, add_action_button, add_disabled_action_button, add_ready_avatar, animated_summary_score,
+    decorate_panel_skin, spawn_node, summary_modal_visual, summary_row_progress,
+};
+use crate::app::runtime::{AvatarImages, UiAssets};
+use crate::app::shell::{LobbyUiAction, UiAction};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
+use leocard_protocol::{
+    PlayerId, PlayerReferenceChange, UnoPhaseView, UnoPlayerResult, UnoSnapshot,
+};
+
+pub(crate) fn uno_summary_descriptor(game: &UnoSnapshot) -> Option<SummaryDescriptor> {
+    let UnoPhaseView::Finished {
+        results,
+        reference_changes,
+        ..
+    } = &game.phase
+    else {
+        return None;
+    };
+    Some(SummaryDescriptor {
+        match_id: game.match_id,
+        texas_hand_number: None,
+        settlement_index: None,
+        entry_count: results.len(),
+        nonnegative_outcome: reference_changes
+            .iter()
+            .find(|change| change.player == game.you)
+            .is_none_or(|change| change.delta >= 0),
+        reveal_duration: UNO_FINISH_REVEAL_DURATION,
+    })
+}
 
 pub(super) fn add_uno_summary(
     commands: &mut Commands,

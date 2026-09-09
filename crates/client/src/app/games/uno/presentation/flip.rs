@@ -1,4 +1,10 @@
-use super::*;
+use super::{
+    UNO_PLAY_CARD_DURATION, UnoAssets, UnoFlipCard, UnoFlipOverlay, UnoFlipTarget, uno_card_handle,
+};
+use crate::app::presentation::{add_text, spawn_node};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::UnoSnapshot;
 use leocard_uno::UnoFlipSide;
 
@@ -10,7 +16,8 @@ pub(super) fn spawn_uno_flip_effect(
     previous_game: Option<&UnoSnapshot>,
     side: UnoFlipSide,
     targets: &Query<(Entity, &UnoFlipTarget, &ImageNode, &UiTransform)>,
-    assets: &UiAssets,
+    ui_assets: &UiAssets,
+    game_assets: &UnoAssets,
 ) {
     let overlay = commands
         .spawn((
@@ -64,7 +71,7 @@ pub(super) fn spawn_uno_flip_effect(
         },
         27.0,
         Color::WHITE,
-        assets,
+        ui_assets,
     );
 
     let Some(previous) = previous_game else {
@@ -107,7 +114,7 @@ pub(super) fn spawn_uno_flip_effect(
         let Some(old_card) = old_card else {
             continue;
         };
-        let old_face = uno_card_handle(assets, old_card);
+        let old_face = uno_card_handle(game_assets, old_card);
         let mut old_image = image.clone();
         let new_face = std::mem::replace(&mut old_image.image, old_face.clone());
         commands.entity(entity).insert((

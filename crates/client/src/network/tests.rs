@@ -1,5 +1,5 @@
 use super::state::normalize_server_address;
-use super::{NETWORK_ROOM_ID, NetworkState, TcpGameClient};
+use super::{LocalPlayerConnection, NETWORK_ROOM_ID, NetworkState, TcpGameClient};
 use crate::ClientModel;
 use leocard_protocol::{ClientCommand, PlayerId, SeatId};
 use leocard_qigui523::QiGuiRuleSet;
@@ -59,7 +59,12 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
         player_count: 3,
         ..QiGuiRuleSet::default()
     };
-    let mut host = TcpGameClient::host("房主", port, rules).unwrap();
+    let mut host = TcpGameClient::host_with_profile(
+        port,
+        rules.into(),
+        LocalPlayerConnection::temporary("房主", None).unwrap(),
+    )
+    .unwrap();
     wait_for(&mut host, |model| model.lobby().is_some());
 
     let address = format!("127.0.0.1:{port}");
@@ -107,7 +112,12 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
 #[test]
 fn host_close_room_event_stops_guests_without_reconnecting() {
     let port = unused_local_port();
-    let mut host = TcpGameClient::host("房主", port, QiGuiRuleSet::default()).unwrap();
+    let mut host = TcpGameClient::host_with_profile(
+        port,
+        QiGuiRuleSet::default().into(),
+        LocalPlayerConnection::temporary("房主", None).unwrap(),
+    )
+    .unwrap();
     wait_for(&mut host, |model| model.lobby().is_some());
 
     let mut guest = TcpGameClient::join("访客", &format!("127.0.0.1:{port}")).unwrap();

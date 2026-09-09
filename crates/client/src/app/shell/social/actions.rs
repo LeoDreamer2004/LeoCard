@@ -1,20 +1,23 @@
 //! 玩家互动菜单与跨游戏托管按钮动作。
 
-use super::*;
-use bevy::ecs::system::SystemParam;
-use leocard_protocol::{
-    ClientCommand, GameCommand, PlayerInteractionKind, QiGui523Command, ShengjiCommand,
-    TexasHoldemCommand, UnoCommand,
+use super::super::{
+    PressedUiAction, SocialUiAction, UiActionHandler, UiState, dispatch_domain_actions,
+    game_command,
 };
+use super::PlayerInteractionCooldown;
+use crate::app::runtime::ClientResource;
+use bevy::ecs::system::SystemParam;
+use bevy::prelude::*;
+use leocard_protocol::{ClientCommand, PlayerInteractionKind};
 
 #[derive(SystemParam)]
-pub struct SocialActionContext<'w> {
+pub(crate) struct SocialActionContext<'w> {
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, UiState>,
     cooldown: ResMut<'w, PlayerInteractionCooldown>,
 }
 
-pub fn dispatch_social_actions(
+pub(crate) fn dispatch_social_actions(
     mut actions: MessageReader<PressedUiAction>,
     mut context: SocialActionContext,
 ) {
@@ -63,36 +66,8 @@ fn toggle_auto_play(client: &mut Option<ResMut<ClientResource>>) {
     let Some(client) = client.as_deref_mut() else {
         return;
     };
-    let command = if let Some(game) = client.0.model().qigui523_game() {
-        let enabled = game
-            .players
-            .iter()
-            .find(|player| player.id == game.you)
-            .is_some_and(|player| player.auto_play);
-        GameCommand::QiGui523(QiGui523Command::SetAutoPlay { enabled: !enabled })
-    } else if let Some(game) = client.0.model().texas_holdem_game() {
-        let enabled = game
-            .players
-            .iter()
-            .find(|player| player.id == game.you)
-            .is_some_and(|player| player.auto_play);
-        GameCommand::TexasHoldem(TexasHoldemCommand::SetAutoPlay { enabled: !enabled })
-    } else if let Some(game) = client.0.model().shengji_game() {
-        let enabled = game
-            .players
-            .iter()
-            .find(|player| player.id == game.you)
-            .is_some_and(|player| player.auto_play);
-        GameCommand::Shengji(ShengjiCommand::SetAutoPlay { enabled: !enabled })
-    } else if let Some(game) = client.0.model().uno_game() {
-        let enabled = game
-            .players
-            .iter()
-            .find(|player| player.id == game.you)
-            .is_some_and(|player| player.auto_play);
-        GameCommand::Uno(UnoCommand::SetAutoPlay { enabled: !enabled })
-    } else {
+    let Some(command) = client.0.model().toggle_auto_play_command() else {
         return;
     };
-    client.0.send(ClientCommand::Game(command));
+    client.0.send(game_command(command));
 }

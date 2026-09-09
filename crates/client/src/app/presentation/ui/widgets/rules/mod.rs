@@ -3,7 +3,5 @@
 mod config;
 mod labels;
 
-use super::*;
-use bevy::prelude::*;
-pub use config::*;
-pub use labels::*;
+pub(crate) use config::*;
+pub(crate) use labels::*;

@@ -1,9 +1,81 @@
-use super::*;
 use leocard_protocol::{
     QiGui523ProfileStats, ShengjiProfileStats, TexasHoldemProfileStats, UnoProfileStats,
 };
 
-pub fn qigui523_profile_rows(stats: Option<&QiGui523ProfileStats>) -> Vec<(&'static str, String)> {
+type ProfileRow = (&'static str, String);
+
+struct ProfileRowsBuilder {
+    rows: Vec<ProfileRow>,
+}
+
+impl ProfileRowsBuilder {
+    fn unavailable(labels: &[&'static str]) -> Vec<ProfileRow> {
+        labels
+            .iter()
+            .map(|label| (*label, "--".to_owned()))
+            .collect()
+    }
+
+    fn ranked(
+        completed_games: u32,
+        total_reference_delta: i64,
+        average_label: &'static str,
+        average_total: f64,
+        placement_counts: &[u32; 6],
+        placement_labels: &[&'static str],
+    ) -> Self {
+        let games = f64::from(completed_games);
+        let placement_total = placement_counts
+            .iter()
+            .enumerate()
+            .map(|(index, count)| (index + 1) as u64 * u64::from(*count))
+            .sum::<u64>();
+        let mut rows = vec![
+            ("对局数", completed_games.to_string()),
+            (
+                "分数增减",
+                format!("{:+.1}", total_reference_delta as f64 / games),
+            ),
+            (average_label, format!("{:.1}", average_total / games)),
+            ("平均顺位", format!("{:.2}", placement_total as f64 / games)),
+        ];
+        rows.extend(
+            placement_labels
+                .iter()
+                .copied()
+                .zip(placement_counts)
+                .map(|(label, count)| {
+                    (label, format!("{:.1}%", f64::from(*count) * 100.0 / games))
+                }),
+        );
+        Self { rows }
+    }
+
+    fn plain(completed_games: u32, total_reference_delta: i64) -> Self {
+        let games = f64::from(completed_games);
+        Self {
+            rows: vec![
+                ("对局数", completed_games.to_string()),
+                (
+                    "分数增减",
+                    format!("{:+.1}", total_reference_delta as f64 / games),
+                ),
+            ],
+        }
+    }
+
+    fn extend(&mut self, rows: impl IntoIterator<Item = ProfileRow>) {
+        self.rows.extend(rows);
+    }
+
+    fn finish(self) -> Vec<ProfileRow> {
+        self.rows
+    }
+}
+
+pub(crate) fn qigui523_profile_rows(
+    stats: Option<&QiGui523ProfileStats>,
+) -> Vec<(&'static str, String)> {
     const LABELS: [&str; 18] = [
         "对局数",
         "分数增减",
@@ -25,30 +97,16 @@ pub fn qigui523_profile_rows(stats: Option<&QiGui523ProfileStats>) -> Vec<(&'sta
         "飞机最长长度",
     ];
     let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
-        return LABELS
-            .into_iter()
-            .map(|label| (label, "--".to_owned()))
-            .collect();
+        return ProfileRowsBuilder::unavailable(&LABELS);
     };
-    let games = f64::from(stats.completed_games);
-    let average_reference_delta = stats.total_reference_delta as f64 / games;
-    let average_score = stats.total_score as f64 / games;
-    let placement_total = stats
-        .placement_counts
-        .iter()
-        .enumerate()
-        .map(|(index, count)| (index + 1) as u64 * u64::from(*count))
-        .sum::<u64>();
-    let average_placement = placement_total as f64 / games;
-    let mut rows = vec![
-        ("对局数", stats.completed_games.to_string()),
-        ("分数增减", format!("{average_reference_delta:+.1}")),
-        ("场得分", format!("{average_score:.1}")),
-        ("平均顺位", format!("{average_placement:.2}")),
-    ];
-    for (label, count) in LABELS[4..10].iter().copied().zip(stats.placement_counts) {
-        rows.push((label, format!("{:.1}%", f64::from(count) * 100.0 / games)));
-    }
+    let mut rows = ProfileRowsBuilder::ranked(
+        stats.completed_games,
+        stats.total_reference_delta,
+        "场得分",
+        stats.total_score as f64,
+        &stats.placement_counts,
+        &LABELS[4..10],
+    );
     rows.extend([
         ("顺子次数", stats.straight_plays.to_string()),
         ("连对次数", stats.consecutive_pair_plays.to_string()),
@@ -59,9 +117,9 @@ pub fn qigui523_profile_rows(stats: Option<&QiGui523ProfileStats>) -> Vec<(&'sta
         ("连对最长长度", stats.longest_consecutive_pairs.to_string()),
         ("飞机最长长度", stats.longest_airplane.to_string()),
     ]);
-    rows
+    rows.finish()
 }
-pub fn texas_holdem_profile_rows(
+pub(crate) fn texas_holdem_profile_rows(
     stats: Option<&TexasHoldemProfileStats>,
 ) -> Vec<(&'static str, String)> {
     const LABELS: [&str; 25] = [
@@ -92,33 +150,16 @@ pub fn texas_holdem_profile_rows(
         "皇家同花顺次数",
     ];
     let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
-        return LABELS
-            .into_iter()
-            .map(|label| (label, "--".to_owned()))
-            .collect();
+        return ProfileRowsBuilder::unavailable(&LABELS);
     };
-    let games = f64::from(stats.completed_games);
-    let placement_total = stats
-        .placement_counts
-        .iter()
-        .enumerate()
-        .map(|(index, count)| (index + 1) as u64 * u64::from(*count))
-        .sum::<u64>();
-    let mut rows = vec![
-        ("对局数", stats.completed_games.to_string()),
-        (
-            "分数增减",
-            format!("{:+.1}", stats.total_reference_delta as f64 / games),
-        ),
-        (
-            "场筹码",
-            format!("{:.1}", stats.total_final_chips as f64 / games),
-        ),
-        ("平均顺位", format!("{:.2}", placement_total as f64 / games)),
-    ];
-    for (label, count) in LABELS[4..10].iter().copied().zip(stats.placement_counts) {
-        rows.push((label, format!("{:.1}%", f64::from(count) * 100.0 / games)));
-    }
+    let mut rows = ProfileRowsBuilder::ranked(
+        stats.completed_games,
+        stats.total_reference_delta,
+        "场筹码",
+        stats.total_final_chips as f64,
+        &stats.placement_counts,
+        &LABELS[4..10],
+    );
     rows.extend([
         (
             "平均加注",
@@ -148,7 +189,7 @@ pub fn texas_holdem_profile_rows(
             .zip(stats.hand_category_counts)
             .map(|(label, count)| (label, count.to_string())),
     );
-    rows
+    rows.finish()
 }
 
 fn average_or_placeholder(total: u64, count: u32) -> String {
@@ -170,7 +211,9 @@ fn rate_or_placeholder(count: u32, total: u32) -> String {
     }
 }
 
-pub fn shengji_profile_rows(stats: Option<&ShengjiProfileStats>) -> Vec<(&'static str, String)> {
+pub(crate) fn shengji_profile_rows(
+    stats: Option<&ShengjiProfileStats>,
+) -> Vec<(&'static str, String)> {
     const LABELS: [&str; 21] = [
         "对局数",
         "分数增减",
@@ -195,18 +238,10 @@ pub fn shengji_profile_rows(stats: Option<&ShengjiProfileStats>) -> Vec<(&'stati
         "最长甩牌长度",
     ];
     let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
-        return LABELS
-            .into_iter()
-            .map(|label| (label, "--".to_owned()))
-            .collect();
+        return ProfileRowsBuilder::unavailable(&LABELS);
     };
-    let games = f64::from(stats.completed_games);
-    let mut rows = vec![
-        ("对局数", stats.completed_games.to_string()),
-        (
-            "分数增减",
-            format!("{:+.1}", stats.total_reference_delta as f64 / games),
-        ),
+    let mut rows = ProfileRowsBuilder::plain(stats.completed_games, stats.total_reference_delta);
+    rows.extend([
         (
             "庄场得分",
             average_or_placeholder(stats.dealer_team_score, stats.dealer_team_games),
@@ -247,7 +282,7 @@ pub fn shengji_profile_rows(stats: Option<&ShengjiProfileStats>) -> Vec<(&'stati
             "过江率",
             rate_or_placeholder(stats.crossing_games, stats.completed_games),
         ),
-    ];
+    ]);
     rows.extend(
         LABELS[12..17]
             .iter()
@@ -261,10 +296,10 @@ pub fn shengji_profile_rows(stats: Option<&ShengjiProfileStats>) -> Vec<(&'stati
         ("最长太空堡垒长度", stats.longest_space_fortress.to_string()),
         ("最长甩牌长度", stats.longest_throw.to_string()),
     ]);
-    rows
+    rows.finish()
 }
 
-pub fn uno_profile_rows(stats: Option<&UnoProfileStats>) -> Vec<(&'static str, String)> {
+pub(crate) fn uno_profile_rows(stats: Option<&UnoProfileStats>) -> Vec<(&'static str, String)> {
     const LABELS: [&str; 21] = [
         "对局数",
         "分数增减",
@@ -289,33 +324,16 @@ pub fn uno_profile_rows(stats: Option<&UnoProfileStats>) -> Vec<(&'static str, S
         "抢出成功率",
     ];
     let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
-        return LABELS
-            .into_iter()
-            .map(|label| (label, "--".to_owned()))
-            .collect();
+        return ProfileRowsBuilder::unavailable(&LABELS);
     };
-    let games = f64::from(stats.completed_games);
-    let placement_total = stats
-        .placement_counts
-        .iter()
-        .enumerate()
-        .map(|(index, count)| (index + 1) as u64 * u64::from(*count))
-        .sum::<u64>();
-    let mut rows = vec![
-        ("对局数", stats.completed_games.to_string()),
-        (
-            "分数增减",
-            format!("{:+.1}", stats.total_reference_delta as f64 / games),
-        ),
-        (
-            "场剩余分数",
-            format!("{:.1}", stats.total_remaining_score as f64 / games),
-        ),
-        ("平均顺位", format!("{:.2}", placement_total as f64 / games)),
-    ];
-    for (label, count) in LABELS[4..10].iter().copied().zip(stats.placement_counts) {
-        rows.push((label, format!("{:.1}%", f64::from(count) * 100.0 / games)));
-    }
+    let mut rows = ProfileRowsBuilder::ranked(
+        stats.completed_games,
+        stats.total_reference_delta,
+        "场剩余分数",
+        stats.total_remaining_score as f64,
+        &stats.placement_counts,
+        &LABELS[4..10],
+    );
     rows.extend([
         ("最多牌数", stats.max_hand_cards.to_string()),
         ("最多被罚牌数", stats.max_penalty_cards.to_string()),
@@ -341,5 +359,5 @@ pub fn uno_profile_rows(stats: Option<&UnoProfileStats>) -> Vec<(&'static str, S
             rate_or_placeholder(stats.successful_jump_ins, stats.jump_in_opportunities),
         ),
     ]);
-    rows
+    rows.finish()
 }

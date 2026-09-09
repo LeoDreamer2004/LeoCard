@@ -1,4 +1,19 @@
-use super::*;
+use super::super::{
+    SHENGJI_SETTLEMENT_MODAL_DELAY, SHENGJI_SETTLEMENT_ROW_INTERVAL, ShengjiKittyMultiplier,
+    ShengjiKittyRevealCard, ShengjiKittyScoreAnchor, ShengjiKittyScoreText,
+    ShengjiSettlementActions, ShengjiSettlementAnimation, ShengjiSettlementModal,
+    ShengjiSettlementOutcomeText, ShengjiSettlementPanelTexture, ShengjiSettlementRow,
+    ShengjiSettlementTotalAnchor, ShengjiSettlementTotalText, ShengjiTimedReveal,
+};
+use super::{ShengjiCardSize, add_shengji_trump_stars, shengji_card_face, shengji_display_trump};
+use crate::app::presentation::{
+    ACCENT, ButtonKind, DANGER, HEADER_BG, MUTED, PanelSkin, READY, TEXT, add_action_button,
+    add_disabled_action_button, add_ready_avatar, add_text, decorate_panel_skin, spawn_node,
+};
+use crate::app::runtime::{AvatarImages, UiAssets};
+use crate::app::shell::{LobbyUiAction, UiAction};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::ShengjiHandResultView;
 use leocard_protocol::ShengjiSnapshot;
 use leocard_shengji::ShengjiCard;
@@ -6,7 +21,7 @@ use leocard_shengji::ShengjiCard;
 const SHENGJI_KITTY_SCORE_DELAY: f32 = 0.72;
 const SHENGJI_TOTAL_LABEL_DELAY: f32 = 1.92;
 
-pub fn add_shengji_result(
+pub(super) fn add_shengji_result(
     commands: &mut Commands,
     table: Entity,
     game: &ShengjiSnapshot,
@@ -396,7 +411,7 @@ fn shengji_settlement_outcome(result: &ShengjiHandResultView, deck_count: u8) ->
     shengji_settlement_outcome_for_score(result.collecting_score, result.promoted_steps, deck_count)
 }
 
-pub fn shengji_settlement_outcome_for_score(
+pub(crate) fn shengji_settlement_outcome_for_score(
     collecting_score: u32,
     promoted_steps: u8,
     deck_count: u8,

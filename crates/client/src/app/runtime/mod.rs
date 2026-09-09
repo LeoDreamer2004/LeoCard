@@ -2,14 +2,14 @@
 
 mod application;
 mod platform;
+mod plugin;
 mod preferences;
 mod resources;
 mod session;
 
-use super::*;
-pub use application::*;
-use bevy::prelude::*;
-pub use platform::*;
-pub use preferences::*;
-pub use resources::*;
-pub use session::*;
+pub(crate) use application::*;
+use platform::*;
+pub(super) use plugin::*;
+pub(crate) use preferences::*;
+pub(crate) use resources::*;
+pub(crate) use session::*;

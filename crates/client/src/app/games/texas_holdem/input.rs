@@ -1,12 +1,15 @@
 //! 德州下注按钮的持续按压输入。
 
-use super::*;
+use super::{TexasHoldemUiState, TexasRaiseAdjustButton, TexasRaiseHoldState};
+use crate::app::shell::UiState;
+use bevy::prelude::*;
 
-pub fn handle_texas_raise_button_hold(
+pub(crate) fn handle_texas_raise_button_hold(
     time: Res<Time>,
     mouse: Res<ButtonInput<MouseButton>>,
     changed: Query<(&Interaction, &TexasRaiseAdjustButton), (Changed<Interaction>, With<Button>)>,
     mut hold: ResMut<TexasRaiseHoldState>,
+    mut game_ui: ResMut<TexasHoldemUiState>,
     mut ui: ResMut<UiState>,
 ) {
     if mouse.just_pressed(MouseButton::Left) {
@@ -35,7 +38,7 @@ pub fn handle_texas_raise_button_hold(
 
     hold.elapsed += time.delta_secs();
     while hold.elapsed >= hold.next_repeat {
-        let current = ui.texas_holdem.raise_to;
+        let current = game_ui.raise_to;
         let next = texas_raise_repeat_value(
             current,
             hold.direction,
@@ -47,13 +50,13 @@ pub fn handle_texas_raise_button_hold(
             hold.direction = 0;
             break;
         }
-        ui.texas_holdem.raise_to = next;
+        game_ui.raise_to = next;
         ui.dirty = true;
         hold.next_repeat += if hold.elapsed >= 1.35 { 0.065 } else { 0.11 };
     }
 }
 
-pub fn texas_raise_repeat_value(
+pub(crate) fn texas_raise_repeat_value(
     current: u32,
     direction: i8,
     step: u32,

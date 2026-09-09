@@ -1,6 +1,6 @@
-use super::*;
+use super::{ChipZoneLayout, PLAYER_CHIP_ZONE_HEIGHT, PLAYER_CHIP_ZONE_WIDTH};
 
-pub fn texas_player_chip_zone(relative: u8) -> ChipZoneLayout {
+pub(crate) fn texas_player_chip_zone(relative: u8) -> ChipZoneLayout {
     let (center_x, top) = match relative {
         0 => {
             // 自己的下注区位于底牌正上方，操作按钮紧接在其下方。
@@ -21,7 +21,7 @@ pub fn texas_player_chip_zone(relative: u8) -> ChipZoneLayout {
     }
 }
 
-pub fn texas_pot_chip_zone() -> ChipZoneLayout {
+pub(super) fn texas_pot_chip_zone() -> ChipZoneLayout {
     ChipZoneLayout {
         left: 460.0,
         // Keep pot chips below the board cards, but reclaim the space that used
@@ -32,7 +32,7 @@ pub fn texas_pot_chip_zone() -> ChipZoneLayout {
     }
 }
 
-pub fn texas_pot_partition_zone(index: usize, count: usize) -> ChipZoneLayout {
+pub(super) fn texas_pot_partition_zone(index: usize, count: usize) -> ChipZoneLayout {
     let whole = texas_pot_chip_zone();
     let count = count.max(1);
     let gap = if count > 1 { 8.0 } else { 0.0 };
@@ -47,7 +47,7 @@ pub fn texas_pot_partition_zone(index: usize, count: usize) -> ChipZoneLayout {
 
 /// The visual centre zone contains both the board cards and the physical pot.
 /// Chip scattering still uses `texas_pot_chip_zone`, so chips cannot cover cards.
-pub fn texas_center_zone_panel() -> ChipZoneLayout {
+pub(super) fn texas_center_zone_panel() -> ChipZoneLayout {
     ChipZoneLayout {
         // The visible card row occupies roughly x=452..828. Keep the centre
         // frame close to that content and well clear of both side chip zones.
@@ -58,7 +58,7 @@ pub fn texas_center_zone_panel() -> ChipZoneLayout {
     }
 }
 
-pub fn random_unit(id: u64, salt: u64) -> f32 {
+pub(super) fn random_unit(id: u64, salt: u64) -> f32 {
     let mut value = id
         .wrapping_mul(0x9E37_79B9_7F4A_7C15)
         .wrapping_add(salt.wrapping_mul(0xBF58_476D_1CE4_E5B9));
@@ -70,6 +70,6 @@ pub fn random_unit(id: u64, salt: u64) -> f32 {
     (value as u32) as f32 / u32::MAX as f32
 }
 
-pub fn random_signed(id: u64, salt: u64) -> f32 {
+pub(super) fn random_signed(id: u64, salt: u64) -> f32 {
     random_unit(id, salt) * 2.0 - 1.0
 }

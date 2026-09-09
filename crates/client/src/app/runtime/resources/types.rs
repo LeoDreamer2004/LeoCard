@@ -1,22 +1,21 @@
 //! 已加载 UI 资源、头像缓存与文件选择器状态。
 
-use super::*;
-use leocard_mahjong::MahjongTileKind;
+use bevy::prelude::*;
 use leocard_protocol::{AvatarId, ChatEmoji, PlayerInteractionKind};
 use leocard_qigui523::{QiGuiRank, QiGuiSuit};
-use leocard_uno::{UnoColor, UnoFace};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::mpsc::Receiver;
 
-pub const UI_FONT_ASSET: &str = "fonts/ChillRoundGothic-Medium.ttf";
-pub const TABLE_FELT_ASSET: &str = "vendor/opengameart/green-textile/table_felt_dark_green.png";
+pub(crate) const UI_FONT_ASSET: &str = "fonts/ChillRoundGothic-Medium.ttf";
+pub(crate) const TABLE_FELT_ASSET: &str =
+    "vendor/opengameart/green-textile/table_felt_dark_green.png";
 
 #[derive(Resource, Default)]
-pub struct UiAssets {
+pub(crate) struct UiAssets {
     pub font: Handle<Font>,
-    pub games: GameVisualAssets,
+    pub playing_cards: PlayingCardAssets,
     pub controls: ControlAssets,
     pub social: SocialAssets,
     pub audio: CommonAudioAssets,
@@ -24,25 +23,13 @@ pub struct UiAssets {
 }
 
 #[derive(Default)]
-pub struct GameVisualAssets {
+pub(crate) struct PlayingCardAssets {
     pub cards: HashMap<(QiGuiRank, QiGuiSuit), Handle<Image>>,
     pub card_back: Handle<Image>,
-    pub uno_cards: HashMap<(Option<UnoColor>, UnoFace), Handle<Image>>,
-    pub uno_card_back: Handle<Image>,
-    pub mahjong_tiles: HashMap<MahjongTileKind, Handle<Image>>,
-    pub mahjong_tile_heights: HashMap<MahjongTileKind, Handle<Image>>,
-    pub mahjong_tile_back: Handle<Image>,
-    pub mahjong_turn_arrow: Handle<Image>,
-    pub poker_chips: HashMap<u16, Handle<Image>>,
-    pub texas_sounds: TexasSoundAssets,
-    pub uno_sounds: UnoSoundAssets,
-    pub sequence_airplane: Handle<Image>,
-    pub shengji_target: Handle<Image>,
-    pub shengji_dart: Handle<Image>,
 }
 
 #[derive(Default)]
-pub struct ControlAssets {
+pub(crate) struct ControlAssets {
     pub primary_button: Handle<Image>,
     pub secondary_button: Handle<Image>,
     pub warning_button: Handle<Image>,
@@ -59,7 +46,7 @@ pub struct ControlAssets {
 }
 
 #[derive(Default)]
-pub struct SocialAssets {
+pub(crate) struct SocialAssets {
     pub interaction_images: HashMap<(PlayerInteractionKind, bool), Handle<Image>>,
     pub interaction_cooldown_masks: Vec<Handle<Image>>,
     pub chat_emojis: Vec<Handle<Image>>,
@@ -70,7 +57,7 @@ pub struct SocialAssets {
 }
 
 #[derive(Default)]
-pub struct CommonAudioAssets {
+pub(crate) struct CommonAudioAssets {
     pub interaction_sounds: HashMap<(PlayerInteractionKind, u8), Handle<AudioSource>>,
     pub deal_sounds: Vec<Handle<AudioSource>>,
     pub place_sounds: Vec<Handle<AudioSource>>,
@@ -83,7 +70,7 @@ pub struct CommonAudioAssets {
     pub quick_voice_sounds: Vec<Handle<AudioSource>>,
 }
 
-pub const CHAT_EMOJI_ASSET_PATHS: [&str; 30] = [
+pub(super) const CHAT_EMOJI_ASSET_PATHS: [&str; 30] = [
     "ui/fluent-emoji/laugh.png",
     "ui/fluent-emoji/angry.png",
     "ui/fluent-emoji/surprised.png",
@@ -117,7 +104,7 @@ pub const CHAT_EMOJI_ASSET_PATHS: [&str; 30] = [
 ];
 
 impl UiAssets {
-    pub fn chat_emoji(&self, emoji: ChatEmoji) -> Handle<Image> {
+    pub(crate) fn chat_emoji(&self, emoji: ChatEmoji) -> Handle<Image> {
         self.social
             .chat_emojis
             .get(emoji.index())
@@ -127,30 +114,30 @@ impl UiAssets {
 }
 
 #[derive(Resource, Default)]
-pub struct AvatarImages {
+pub(crate) struct AvatarImages {
     pub remote: HashMap<AvatarId, Handle<Image>>,
     pub local_png: Option<Vec<u8>>,
     pub local: Option<Handle<Image>>,
 }
 
 #[derive(Resource, Default)]
-pub struct AvatarPicker {
+pub(crate) struct AvatarPicker {
     pub pending: Option<AvatarPickerReceiver>,
 }
 
 #[derive(Resource, Default)]
-pub struct TableFeltPicker {
+pub(crate) struct TableFeltPicker {
     pub pending: Option<TableFeltPickerReceiver>,
 }
 
 #[derive(Resource, Default)]
-pub struct TableAppearance {
+pub(crate) struct TableAppearance {
     pub loaded_path: Option<PathBuf>,
     pub custom_felt: Option<Handle<Image>>,
     pub error: Option<String>,
 }
 
-pub type AvatarPickerResult = Result<Option<PathBuf>, String>;
-pub type AvatarPickerReceiver = Mutex<Receiver<AvatarPickerResult>>;
-pub type TableFeltPickerResult = Result<Option<PathBuf>, String>;
-pub type TableFeltPickerReceiver = Mutex<Receiver<TableFeltPickerResult>>;
+type AvatarPickerResult = Result<Option<PathBuf>, String>;
+pub(crate) type AvatarPickerReceiver = Mutex<Receiver<AvatarPickerResult>>;
+type TableFeltPickerResult = Result<Option<PathBuf>, String>;
+pub(crate) type TableFeltPickerReceiver = Mutex<Receiver<TableFeltPickerResult>>;

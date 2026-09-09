@@ -1,12 +1,15 @@
 //! UNO 牌桌交互、飞牌与规则特效的状态类型。
 
-use super::*;
-use leocard_protocol::{PlayerId, UnoEvent, UnoSnapshot};
+use crate::app::presentation::CardAnimationState;
+use crate::app::shell::SocialUiState;
+use bevy::prelude::*;
+use leocard_protocol::{PlayerId, UnoEvent, UnoPendingSwapView, UnoSnapshot};
 use leocard_uno::UnoCard;
 use std::collections::HashMap;
+use std::collections::{HashSet, VecDeque};
 
-#[derive(Default)]
-pub struct UnoUiState {
+#[derive(Resource, Default)]
+pub(crate) struct UnoUiState {
     pub selected: HashSet<UnoCard>,
     pub swap_targets: Vec<PlayerId>,
     pub card_animations: HashMap<UnoCard, CardAnimationState>,
@@ -15,19 +18,64 @@ pub struct UnoUiState {
     pub color_choice: Option<UnoCard>,
 }
 
+impl UnoUiState {
+    pub(crate) fn reconcile(&mut self, game: &UnoSnapshot, social: &mut SocialUiState) {
+        self.selected.retain(|card| game.your_hand.contains(card));
+        if let Some(card) = game.your_jump_in_card {
+            self.selected.clear();
+            self.selected.insert(card);
+        } else if game.current_player != Some(game.you) {
+            self.selected.clear();
+        }
+        self.card_animations
+            .retain(|card, _| game.your_hand.contains(card));
+        let selecting_targets = matches!(
+            game.pending_swap,
+            Some(UnoPendingSwapView::SwapOneTarget { player })
+                | Some(UnoPendingSwapView::ForceTrade { player })
+                | Some(UnoPendingSwapView::SevenSwap { player }) if player == game.you
+        );
+        if selecting_targets {
+            social.interaction_menu_open = None;
+            self.swap_targets.retain(|target| {
+                game.players
+                    .iter()
+                    .any(|player| player.id == *target && !player.eliminated)
+            });
+        } else {
+            self.swap_targets.clear();
+        }
+        if self
+            .color_choice
+            .is_some_and(|card| !game.your_hand.contains(&card))
+        {
+            self.color_choice = None;
+        }
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.selected.clear();
+        self.card_animations.clear();
+        self.swap_targets.clear();
+        self.color_choice = None;
+        self.mode_menu_open = false;
+        self.expansion_settings_open = false;
+    }
+}
+
 #[derive(Component)]
-pub struct UnoSwapTargetPanel {
+pub(super) struct UnoSwapTargetPanel {
     pub selected: bool,
 }
 
 #[derive(Component)]
-pub struct UnoExpansionStatus;
+pub(crate) struct UnoExpansionStatus;
 
 #[derive(Component)]
-pub struct UnoExpansionStatusFrame;
+pub(crate) struct UnoExpansionStatusFrame;
 
 #[derive(Component)]
-pub struct UnoHandCardVisual {
+pub(crate) struct UnoHandCardVisual {
     pub button: Entity,
     pub card: UnoCard,
     pub selected: bool,
@@ -36,37 +84,37 @@ pub struct UnoHandCardVisual {
 }
 
 #[derive(Component)]
-pub struct UnoHandCardButton;
+pub(crate) struct UnoHandCardButton;
 
 #[derive(Component)]
-pub struct UnoExtensionCardHelp {
+pub(super) struct UnoExtensionCardHelp {
     pub title: &'static str,
     pub description: &'static str,
 }
 
 #[derive(Component)]
-pub struct UnoExtensionCardHelpOverlay {
+pub(super) struct UnoExtensionCardHelpOverlay {
     pub title: Entity,
     pub description: Entity,
 }
 
 #[derive(Resource, Default)]
-pub struct UnoPresentationState {
+pub(crate) struct UnoPresentationState {
     pub events: VecDeque<UnoEvent>,
     pub last_snapshot: Option<UnoSnapshot>,
 }
 
 #[derive(Component)]
-pub struct UnoDrawPileAnchor;
+pub(crate) struct UnoDrawPileAnchor;
 
 #[derive(Component)]
-pub struct UnoDiscardPileAnchor;
+pub(crate) struct UnoDiscardPileAnchor;
 
 #[derive(Component)]
-pub struct UnoDiscardCard(pub UnoCard);
+pub(crate) struct UnoDiscardCard(pub UnoCard);
 
 #[derive(Component, Clone, Copy)]
-pub enum UnoFlipTarget {
+pub(crate) enum UnoFlipTarget {
     Own(usize),
     Opponent { player: PlayerId, index: usize },
     DrawPile(usize),
@@ -74,7 +122,7 @@ pub enum UnoFlipTarget {
 }
 
 #[derive(Component)]
-pub struct UnoFlyingCard {
+pub(crate) struct UnoFlyingCard {
     pub elapsed: f32,
     pub delay: f32,
     pub start: Vec2,
@@ -89,12 +137,12 @@ pub struct UnoFlyingCard {
 }
 
 #[derive(Component)]
-pub struct UnoFlipOverlay {
+pub(crate) struct UnoFlipOverlay {
     pub elapsed: f32,
 }
 
 #[derive(Component)]
-pub struct UnoFlipCard {
+pub(crate) struct UnoFlipCard {
     pub elapsed: f32,
     pub delay: f32,
     pub old_face: Handle<Image>,
@@ -105,17 +153,17 @@ pub struct UnoFlipCard {
 }
 
 #[derive(Component)]
-pub struct UnoPaletteEffect {
+pub(crate) struct UnoPaletteEffect {
     pub elapsed: f32,
 }
 
 #[derive(Component)]
-pub struct UnoPaletteSelectedSector {
+pub(crate) struct UnoPaletteSelectedSector {
     pub elapsed: f32,
 }
 
 #[derive(Component)]
-pub struct UnoPaletteColorRing {
+pub(crate) struct UnoPaletteColorRing {
     pub elapsed: f32,
     pub delay: f32,
     pub color: Color,
@@ -125,7 +173,7 @@ pub struct UnoPaletteColorRing {
 }
 
 #[derive(Component)]
-pub struct UnoPaletteParticle {
+pub(crate) struct UnoPaletteParticle {
     pub elapsed: f32,
     pub delay: f32,
     pub origin: Vec2,
@@ -136,7 +184,7 @@ pub struct UnoPaletteParticle {
 }
 
 #[derive(Component)]
-pub struct UnoReverseArrow {
+pub(crate) struct UnoReverseArrow {
     pub elapsed: f32,
     pub delay: f32,
     pub color: Color,
@@ -145,4 +193,4 @@ pub struct UnoReverseArrow {
 }
 
 #[derive(Component)]
-pub struct UnoModeDropdownPanel;
+pub(crate) struct UnoModeDropdownPanel;

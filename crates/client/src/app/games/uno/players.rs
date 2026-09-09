@@ -1,4 +1,18 @@
-use super::*;
+use super::{
+    UnoAssets, UnoFlipTarget, UnoSwapTargetPanel, UnoUiAction, UnoUiState, uno_card_handle,
+};
+use crate::app::presentation::{
+    ACCENT, ButtonKind, DANGER, DESIGN_WIDTH, MUTED, PANEL, PanelSkin, PlayerMenuProfile, TEXT,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_action_button, add_avatar,
+    add_disabled_action_button, add_host_crown, add_interaction_menu, add_panel, add_text,
+    add_turn_border_trace, spawn_node,
+};
+use crate::app::runtime::{AvatarImages, UiAssets};
+use crate::app::shell::{
+    OpponentBadge, PlayerAvatarAnchor, SeatSide, SocialUiAction, SocialUiState, UiAction,
+};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{
     GameKind, PlayerId, UnoPendingSwapView, UnoPhaseView, UnoPlayerState, UnoSnapshot,
 };
@@ -69,9 +83,11 @@ pub(super) fn add_uno_player_panel(
     game: &UnoSnapshot,
     player: &UnoPlayerState,
     (left, top): (f32, f32),
-    ui: &UiState,
+    ui: &UnoUiState,
+    social: &SocialUiState,
     avatars: &AvatarImages,
     assets: &UiAssets,
+    game_assets: &UnoAssets,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
 ) {
     let selecting = match game.pending_swap {
@@ -86,7 +102,7 @@ pub(super) fn add_uno_player_panel(
         }
         _ => false,
     };
-    let selected = selecting && ui.uno.swap_targets.contains(&player.id);
+    let selected = selecting && ui.swap_targets.contains(&player.id);
     let panel = add_panel(
         commands,
         table,
@@ -202,7 +218,7 @@ pub(super) fn add_uno_player_panel(
         assets,
     );
     commands.entity(menu).insert(
-        if !selecting && ui.social.interaction_menu_open == Some(player.id) {
+        if !selecting && social.interaction_menu_open == Some(player.id) {
             Visibility::Visible
         } else {
             Visibility::Hidden
@@ -260,7 +276,7 @@ pub(super) fn add_uno_player_panel(
                         height: px(UNO_OPPONENT_CARD_HEIGHT),
                         ..default()
                     },
-                    ImageNode::new(uno_card_handle(assets, card)),
+                    ImageNode::new(uno_card_handle(game_assets, card)),
                     UiTransform::IDENTITY,
                     BoxShadow::new(Color::BLACK.with_alpha(0.35), px(1), px(2), px(0), px(3)),
                     FocusPolicy::Pass,
@@ -278,7 +294,7 @@ pub(super) fn add_uno_player_panel(
     if let Some(cards) = finished_hand
         && !cards.is_empty()
     {
-        add_uno_finished_hand(commands, panel, cards, assets);
+        add_uno_finished_hand(commands, panel, cards, game_assets);
     }
     if player.eliminated {
         add_uno_eliminated_player_overlay(commands, panel, assets);
@@ -363,7 +379,7 @@ pub(super) fn add_uno_swap_selection_prompt(
     commands: &mut Commands,
     table: Entity,
     game: &UnoSnapshot,
-    ui: &UiState,
+    ui: &UnoUiState,
     assets: &UiAssets,
 ) {
     let Some(pending) = game.pending_swap else {
@@ -402,7 +418,7 @@ pub(super) fn add_uno_swap_selection_prompt(
     } else {
         format!("等待 {actor_name} 选择换牌目标")
     };
-    let ready = required.is_some_and(|count| ui.uno.swap_targets.len() == count);
+    let ready = required.is_some_and(|count| ui.swap_targets.len() == count);
     add_uno_swap_prompt_panel(commands, table, &title, required, own_turn && ready, assets);
 }
 
@@ -469,7 +485,7 @@ fn add_uno_finished_hand(
     commands: &mut Commands,
     panel: Entity,
     cards: &[UnoCard],
-    assets: &UiAssets,
+    assets: &UnoAssets,
 ) {
     let reveal = uno_opponent_hand_reveal(cards.len());
     let hand = spawn_node(

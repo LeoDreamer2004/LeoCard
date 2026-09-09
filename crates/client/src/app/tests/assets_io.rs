@@ -1,4 +1,4 @@
-use super::*;
+use super::prelude::*;
 use bevy::audio::Decodable;
 use leocard_protocol::{
     AVATAR_DIMENSION, MAX_AVATAR_BYTES, MAX_CHAT_MESSAGE_CHARS, QUICK_VOICE_COUNT,

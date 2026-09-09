@@ -37,9 +37,9 @@ pub fn configure_runtime_asset_source(app: &mut App) {
 }
 
 #[cfg(not(leocard_embedded_assets))]
-pub fn configure_runtime_asset_source(_app: &mut App) {}
+pub(super) fn configure_runtime_asset_source(_app: &mut App) {}
 
-pub fn set_app_window_icon(mut created_windows: MessageReader<WindowCreated>) {
+pub(super) fn set_app_window_icon(mut created_windows: MessageReader<WindowCreated>) {
     for event in created_windows.read() {
         let icon = decode_app_icon();
         bevy::winit::WINIT_WINDOWS.with_borrow(|windows| {

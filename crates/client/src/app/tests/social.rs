@@ -1,4 +1,4 @@
-use super::*;
+use super::prelude::*;
 use leocard_protocol::PlayerInteractionKind;
 
 #[test]
@@ -8,7 +8,7 @@ fn player_interaction_system_queries_initialize_without_conflicts() {
     app.insert_resource(UiAssets::default());
     app.insert_resource(UiState::default());
     app.insert_resource(ChatPanelState::default());
-    app.insert_resource(ConnectionForm::default());
+    app.insert_resource(ConnectionDraft::default());
     app.insert_resource(PlayerInteractionCooldown::default());
     app.insert_resource(ScoreCaptureEffectState::default());
     app.insert_resource(ButtonInput::<MouseButton>::default());

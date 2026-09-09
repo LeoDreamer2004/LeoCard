@@ -1,25 +1,38 @@
 //! 七鬼五二三牌桌、座位、手牌、出牌区、得分与计时布局。
 
-use super::*;
+use super::cards::{HandCardSpec, add_card_button};
+use super::state::{ScoreCardsPopupPlacement, SeatVisuals};
+use super::{
+    NoLegalResponseHint, PlayEffectState, PlaySelectionCount, QiGui523Assets, QiGui523UiAction,
+    QiGui523UiState, add_draw_pile, add_game_summary_modal, add_opponent_slot,
+    add_play_effect_overlay, add_round_play, add_score_cards_popup, add_table_score_cards,
+    game_has_legal_response, sort_cards_high_to_low, spawn_round_play_container,
+};
+use crate::app::presentation::CardSize;
+use crate::app::presentation::{
+    ACCENT, BORDER, ButtonKind, GameSummaryAnimation, HEADER_BG, MUTED, StartGameSeatTransition,
+    TEXT, TableBackground, TableBackgroundMaterial, TurnBorderAnimationKey, TurnBorderMaterial,
+    add_action_button, add_action_button_with_label, add_auto_play_overlay, add_avatar, add_text,
+    add_turn_border_trace, attach_start_game_seat_transition, decorate_player_panel, spawn_node,
+    table_material_params,
+};
+use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
+#[cfg(feature = "developer")]
+use crate::app::shell::add_developer_hand_input;
+use crate::app::shell::{
+    ChatPanelState, DeveloperHandInput, FinishedHandScoreSource, PlayerAvatarAnchor,
+    ScoreCaptureEffectState, SocialUiState, UiAction, add_chat_panel, add_reconnecting_overlay,
+    reference_points_label,
+};
+use bevy::prelude::*;
 use leocard_client::NetworkState;
 use leocard_protocol::QiGui523Snapshot;
 use leocard_protocol::{GameKind, GamePhaseView, SeatId, TABLE_SEAT_COUNT};
 use leocard_qigui523::QiGuiPlayKind;
 
-pub fn lobby_seat_position(seat: u8) -> (f32, f32) {
-    match seat {
-        0 => (150.0, 290.0),
-        1 => (0.0, 145.0),
-        2 => (150.0, 0.0),
-        3 => (328.0, 0.0),
-        4 => (478.0, 145.0),
-        5 => (328.0, 290.0),
-        _ => unreachable!("there are exactly six table seats"),
-    }
-}
-
-pub struct TableVisualContext<'a> {
+pub(crate) struct TableVisualContext<'a> {
     pub assets: &'a UiAssets,
+    pub game_assets: &'a QiGui523Assets,
     pub avatars: &'a AvatarImages,
     pub appearance: &'a TableAppearance,
     pub brightness: f32,
@@ -32,12 +45,13 @@ pub struct TableVisualContext<'a> {
     pub turn_border_materials: &'a mut Assets<TurnBorderMaterial>,
 }
 
-pub fn render_table(
+pub(crate) fn render_table(
     commands: &mut Commands,
     root: Entity,
     client: &ClientResource,
     game: &QiGui523Snapshot,
-    ui: &UiState,
+    ui: &QiGui523UiState,
+    social: &SocialUiState,
     chat: &ChatPanelState,
     developer_hand: &DeveloperHandInput,
     visuals: &mut TableVisualContext,
@@ -46,6 +60,7 @@ pub fn render_table(
     let _ = developer_hand;
     let TableVisualContext {
         assets,
+        game_assets,
         avatars,
         appearance,
         brightness,
@@ -111,8 +126,9 @@ pub fn render_table(
         game,
         client,
         ui: assets,
+        assets: game_assets,
         avatars,
-        interaction_menu_open: ui.social.interaction_menu_open,
+        interaction_menu_open: social.interaction_menu_open,
         play_effect: play_effect.active.as_ref(),
         last_play: client.0.model().last_play_effect(),
         score_capture,
@@ -201,6 +217,7 @@ pub fn render_table(
         play_effect.active.as_ref(),
         client.0.model().last_play_effect(),
         assets,
+        game_assets,
     );
 
     let hand_area = spawn_node(
@@ -250,7 +267,7 @@ pub fn render_table(
                 let (_, selection_label) = add_action_button_with_label(
                     commands,
                     actions,
-                    &format!("出牌 ({})", ui.qigui523.selected.len()),
+                    &format!("出牌 ({})", ui.selected.len()),
                     UiAction::QiGui523(QiGui523UiAction::Play),
                     ButtonKind::Primary,
                     assets,
@@ -339,18 +356,13 @@ pub fn render_table(
     sort_cards_high_to_low(&mut displayed_hand);
     let last_card = displayed_hand.len().saturating_sub(1);
     for (index, card) in displayed_hand.iter().enumerate() {
-        let animation = ui
-            .qigui523
-            .card_animations
-            .get(card)
-            .copied()
-            .unwrap_or_default();
+        let animation = ui.card_animations.get(card).copied().unwrap_or_default();
         add_card_button(
             commands,
             hand,
             HandCardSpec {
                 card: *card,
-                selected: ui.qigui523.selected.contains(card),
+                selected: ui.selected.contains(card),
                 animation,
                 index,
                 hand_len: displayed_hand.len(),
@@ -438,7 +450,7 @@ pub fn render_table(
     }
     let local_auto_play = matches!(game.phase, GamePhaseView::Playing)
         .then(|| self_state.is_some_and(|player| player.auto_play));
-    add_chat_panel(commands, content, chat, assets, local_auto_play, None, None);
+    add_chat_panel(commands, content, chat, assets, local_auto_play, &[]);
     if local_auto_play == Some(true) {
         add_auto_play_overlay(commands, content, assets);
     }

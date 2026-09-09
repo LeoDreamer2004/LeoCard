@@ -1,16 +1,28 @@
 //! 全局设置窗口与牌桌外观控制。
-
-use super::*;
+use super::super::{
+    NavigationUiAction, UiAction, UpdateManager, UpdateState, add_github_repository_button,
+    add_green_update_button, settings_update_label, table_appearance_fraction,
+    table_appearance_label,
+};
+use crate::app::presentation::{
+    BORDER, ButtonKind, HEADER_BG, MUTED, PANEL, PanelSkin, TEXT, TableAppearanceIndicator,
+    TableAppearanceIndicatorPart, TableAppearanceLabel, TableAppearanceSetting,
+    TableAppearanceSlider, add_action_button, add_compact_button, add_panel, add_section_title,
+    add_text, spawn_node,
+};
+use crate::app::runtime::{AppearancePreferences, UiAssets};
+use bevy::prelude::*;
+use bevy::ui::{FocusPolicy, RelativeCursorPosition};
 
 pub(super) struct SettingsModal<'a> {
-    form: &'a ConnectionForm,
+    form: &'a AppearancePreferences,
     updater: &'a UpdateManager,
     assets: &'a UiAssets,
 }
 
 impl<'a> SettingsModal<'a> {
     pub(super) fn new(
-        form: &'a ConnectionForm,
+        form: &'a AppearancePreferences,
         updater: &'a UpdateManager,
         assets: &'a UiAssets,
     ) -> Self {
@@ -65,12 +77,12 @@ impl<'a> SettingsModal<'a> {
 }
 
 struct TableAppearanceSettings<'a> {
-    form: &'a ConnectionForm,
+    form: &'a AppearancePreferences,
     assets: &'a UiAssets,
 }
 
 impl<'a> TableAppearanceSettings<'a> {
-    fn new(form: &'a ConnectionForm, assets: &'a UiAssets) -> Self {
+    fn new(form: &'a AppearancePreferences, assets: &'a UiAssets) -> Self {
         Self { form, assets }
     }
 
@@ -314,12 +326,12 @@ impl<'a> SoftwareUpdateSettings<'a> {
 }
 
 struct SettingsActions<'a> {
-    form: &'a ConnectionForm,
+    form: &'a AppearancePreferences,
     assets: &'a UiAssets,
 }
 
 impl<'a> SettingsActions<'a> {
-    fn new(form: &'a ConnectionForm, assets: &'a UiAssets) -> Self {
+    fn new(form: &'a AppearancePreferences, assets: &'a UiAssets) -> Self {
         Self { form, assets }
     }
 

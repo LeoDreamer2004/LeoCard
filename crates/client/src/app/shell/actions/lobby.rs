@@ -1,16 +1,21 @@
 //! 席位、准备、开局与离开房间动作。
 
-use super::*;
+use super::super::UiState;
+use super::{LobbyUiAction, PressedUiAction, UiActionHandler, dispatch_domain_actions};
+use crate::app::games::uno::UnoUiState;
+use crate::app::runtime::ClientResource;
 use bevy::ecs::system::SystemParam;
+use bevy::prelude::*;
 use leocard_protocol::ClientCommand;
 
 #[derive(SystemParam)]
-pub struct LobbyActionContext<'w> {
+pub(crate) struct LobbyActionContext<'w> {
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, UiState>,
+    uno_ui: ResMut<'w, UnoUiState>,
 }
 
-pub fn dispatch_lobby_actions(
+pub(crate) fn dispatch_lobby_actions(
     mut actions: MessageReader<PressedUiAction>,
     mut context: LobbyActionContext,
 ) {
@@ -29,13 +34,13 @@ impl UiActionHandler<LobbyActionContext<'_>> for LobbyUiAction {
             }
             LobbyUiAction::ToggleReady => toggle_ready(client),
             LobbyUiAction::StartGame => {
-                ui.uno.expansion_settings_open = false;
+                context.uno_ui.expansion_settings_open = false;
                 send(client, ClientCommand::StartGame);
             }
             LobbyUiAction::ReturnToLobby => send(client, ClientCommand::ReturnToLobby),
             LobbyUiAction::PlayAgain => send(client, ClientCommand::PlayAgain),
             LobbyUiAction::LeaveRoom => {
-                ui.uno.expansion_settings_open = false;
+                context.uno_ui.expansion_settings_open = false;
                 if let Some(client) = client.as_deref_mut() {
                     ui.leaving_room = client.0.send(ClientCommand::LeaveRoom);
                 }

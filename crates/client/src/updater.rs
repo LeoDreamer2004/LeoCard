@@ -13,7 +13,7 @@ const REPLACE_ATTEMPTS: usize = 120;
 const REPLACE_RETRY_DELAY: Duration = Duration::from_millis(250);
 
 /// 若当前进程由游戏作为更新辅助进程启动，则完成替换并阻止 Bevy 启动。
-pub(crate) fn run_if_requested() -> bool {
+pub(super) fn run_if_requested() -> bool {
     let mut arguments = std::env::args_os().skip(1);
     if arguments.next().as_deref() != Some(APPLY_UPDATE_ARGUMENT.as_ref()) {
         return false;
@@ -36,7 +36,7 @@ pub(crate) fn run_if_requested() -> bool {
 }
 
 /// 复制一个不受当前可执行文件锁影响的辅助进程，然后由调用方退出游戏。
-pub(crate) fn launch_installer(staged: &Path) -> Result<(), String> {
+pub(super) fn launch_installer(staged: &Path) -> Result<(), String> {
     let target = std::env::current_exe().map_err(|error| format!("无法定位当前程序：{error}"))?;
     if !staged.is_file() {
         return Err("已下载的更新文件不存在，请重新下载".to_owned());

@@ -1,32 +1,32 @@
 //! 麻将客户端表现层。
 
-pub mod actions;
+pub(crate) mod actions;
+mod assets;
 mod controls;
 mod hand;
 mod lobby;
 mod material;
 mod players;
+mod plugin;
 mod presentation;
-mod settlement;
+pub(super) mod settlement;
 mod state;
 mod status;
 mod tiles;
 mod view;
+pub(super) mod violation;
 
-use super::*;
-use bevy::prelude::*;
-use bevy::render::render_resource::AsBindGroup;
-use bevy::shader::ShaderRef;
-use bevy::ui::FocusPolicy;
+pub(crate) use actions::*;
+pub(crate) use assets::*;
 use controls::*;
 use hand::*;
-pub use lobby::*;
-pub use material::*;
+pub(crate) use lobby::*;
+pub(crate) use material::*;
 use players::*;
-pub use presentation::*;
+pub(crate) use plugin::*;
+pub(crate) use presentation::*;
 use settlement::*;
-pub use state::*;
+pub(crate) use state::*;
 use status::*;
-use std::collections::VecDeque;
-pub use tiles::*;
-pub use view::*;
+use tiles::*;
+pub(crate) use view::*;

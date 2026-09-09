@@ -1,8 +1,14 @@
-use super::*;
+use super::{
+    BOTTOM_COPY_DECISION_TIMEOUT, HeldThrowFailure, ShengjiSession, THROW_FAILURE_SHOW_DURATION,
+    TRICK_HOLD_DURATION, completed_trick_events, finished_reference_point_magnitude,
+    from_core_player, game_violation, merge_shengji_profile_stats, pre_kitty_collecting_score,
+    record_shengji_component, to_core_player,
+};
+use crate::player::settle_completed_match_profiles_once;
+use crate::{ConnectionId, Delivery, new_match_id};
 use leocard_protocol::{
-    GameEvent, GameViolation, PlayerReferenceChange, RejectReason, RequestId, ServerEvent,
-    ShengjiEvent, ShengjiHandResultView, ShengjiProfileStats, ShengjiPublicPlay,
-    ShengjiThrowFailureStage,
+    GameViolation, RejectReason, RequestId, ShengjiEvent, ShengjiHandResultView,
+    ShengjiProfileStats, ShengjiPublicPlay, ShengjiThrowFailureStage,
 };
 use leocard_shengji::ShengjiTeamId;
 use leocard_shengji::{
@@ -260,74 +266,75 @@ impl ShengjiSession {
     }
 
     pub(super) fn apply_finished_reference_points(&mut self, result: &HandResult) {
-        if self.statistics.finished_reference_changes.is_some() {
-            return;
-        }
         let magnitude = finished_reference_point_magnitude(result);
         let hand_profile_stats = self.statistics.profiles.clone();
         let bottom_burier = self.game.as_ref().and_then(GameState::bottom_burier);
-        let mut changes = Vec::with_capacity(ShengjiRuleSet::PLAYER_COUNT);
-        for participant in &mut self.room.players {
-            if usize::from(participant.id.0) >= ShengjiRuleSet::PLAYER_COUNT {
-                continue;
-            }
-            let team = ShengjiTeamId(participant.id.0 % 2);
-            let delta = if team == result.promoted_team {
-                magnitude
-            } else {
-                -magnitude
-            };
-            participant.reference_points = participant
-                .reference_points
-                .saturating_add(i32::from(delta));
-            participant.completed_games = participant.completed_games.saturating_add(1);
-            let aggregate = participant
-                .game_profiles
-                .shengji
-                .get_or_insert_with(ShengjiProfileStats::default);
-            aggregate.completed_games = aggregate.completed_games.saturating_add(1);
-            aggregate.total_reference_delta = aggregate
-                .total_reference_delta
-                .saturating_add(i64::from(delta));
-            if team == result.dealer_team {
-                aggregate.dealer_team_games = aggregate.dealer_team_games.saturating_add(1);
-                aggregate.dealer_team_score = aggregate
-                    .dealer_team_score
-                    .saturating_add(u64::from(result.collecting_score));
-                if result.kitty_multiplier == 0 {
-                    aggregate.defended_kitty_games =
-                        aggregate.defended_kitty_games.saturating_add(1);
+        let settlements = self
+            .room
+            .players
+            .iter()
+            .filter(|participant| usize::from(participant.id.0) < ShengjiRuleSet::PLAYER_COUNT)
+            .map(|participant| {
+                let team = ShengjiTeamId(participant.id.0 % 2);
+                let delta = if team == result.promoted_team {
+                    magnitude
+                } else {
+                    -magnitude
+                };
+                (participant.id, delta)
+            })
+            .collect::<Vec<_>>();
+        let applied = settle_completed_match_profiles_once(
+            &mut self.statistics.finished_reference_changes,
+            &mut self.room,
+            settlements,
+            |participant, delta| {
+                let team = ShengjiTeamId(participant.id.0 % 2);
+                let aggregate = participant
+                    .game_profiles
+                    .shengji
+                    .get_or_insert_with(ShengjiProfileStats::default);
+                aggregate.completed_games = aggregate.completed_games.saturating_add(1);
+                aggregate.total_reference_delta = aggregate
+                    .total_reference_delta
+                    .saturating_add(i64::from(delta));
+                if team == result.dealer_team {
+                    aggregate.dealer_team_games = aggregate.dealer_team_games.saturating_add(1);
+                    aggregate.dealer_team_score = aggregate
+                        .dealer_team_score
+                        .saturating_add(u64::from(result.collecting_score));
+                    if result.kitty_multiplier == 0 {
+                        aggregate.defended_kitty_games =
+                            aggregate.defended_kitty_games.saturating_add(1);
+                    }
+                } else {
+                    aggregate.collecting_team_games =
+                        aggregate.collecting_team_games.saturating_add(1);
+                    aggregate.collecting_team_score = aggregate
+                        .collecting_team_score
+                        .saturating_add(u64::from(result.collecting_score));
+                    if result.kitty_multiplier > 0 {
+                        aggregate.captured_kitty_games =
+                            aggregate.captured_kitty_games.saturating_add(1);
+                    }
                 }
-            } else {
-                aggregate.collecting_team_games = aggregate.collecting_team_games.saturating_add(1);
-                aggregate.collecting_team_score = aggregate
-                    .collecting_team_score
-                    .saturating_add(u64::from(result.collecting_score));
-                if result.kitty_multiplier > 0 {
-                    aggregate.captured_kitty_games =
-                        aggregate.captured_kitty_games.saturating_add(1);
+                if to_core_player(participant.id) == result.dealer {
+                    aggregate.dealer_games = aggregate.dealer_games.saturating_add(1);
                 }
-            }
-            if to_core_player(participant.id) == result.dealer {
-                aggregate.dealer_games = aggregate.dealer_games.saturating_add(1);
-            }
-            if bottom_burier == Some(to_core_player(participant.id)) {
-                aggregate.buried_games = aggregate.buried_games.saturating_add(1);
-                aggregate.buried_points = aggregate
-                    .buried_points
-                    .saturating_add(u64::from(result.kitty_points));
-            }
-            if let Some(current) = hand_profile_stats.get(usize::from(participant.id.0)) {
-                merge_shengji_profile_stats(aggregate, current);
-            }
-            changes.push(PlayerReferenceChange {
-                player: participant.id,
-                profile_id: participant.profile_id,
-                delta,
-            });
+                if bottom_burier == Some(to_core_player(participant.id)) {
+                    aggregate.buried_games = aggregate.buried_games.saturating_add(1);
+                    aggregate.buried_points = aggregate
+                        .buried_points
+                        .saturating_add(u64::from(result.kitty_points));
+                }
+                if let Some(current) = hand_profile_stats.get(usize::from(participant.id.0)) {
+                    merge_shengji_profile_stats(aggregate, current);
+                }
+            },
+        );
+        if applied {
+            self.statistics.finished_settlement_id = Some(new_match_id());
         }
-        self.statistics.finished_settlement_id = Some(new_match_id());
-        self.statistics.finished_reference_changes = Some(changes);
     }
 
     pub(super) fn hand_result_view(&self, result: &HandResult) -> ShengjiHandResultView {
@@ -370,21 +377,6 @@ impl ShengjiSession {
     }
 
     pub(super) fn broadcast_events(&self, events: Vec<ShengjiEvent>) -> Vec<Delivery> {
-        events
-            .into_iter()
-            .flat_map(|event| {
-                self.room
-                    .players
-                    .iter()
-                    .filter(|player| player.connected && !player.left)
-                    .map(move |player| {
-                        self.room.delivery(
-                            player.connection,
-                            None,
-                            ServerEvent::GameEvent(GameEvent::Shengji(event.clone())),
-                        )
-                    })
-            })
-            .collect()
+        self.room.broadcast_game_events(events)
     }
 }

@@ -1,8 +1,14 @@
 //! 错误提示与断线覆盖层的视图构建。
 
-use super::*;
+use super::{PlayErrorPopup, PlayErrorPopupText, PlayErrorToast, play_error_toast_visual};
+use crate::app::presentation::{
+    ACCENT, DANGER, HEADER_BG, MUTED, PanelSkin, TEXT, add_panel, add_text, spawn_node,
+};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 
-pub fn add_play_error_popup(
+pub(crate) fn add_play_error_popup(
     commands: &mut Commands,
     parent: Entity,
     message: &str,
@@ -53,7 +59,7 @@ pub fn add_play_error_popup(
     commands.entity(text).insert(PlayErrorPopupText);
 }
 
-pub fn add_reconnecting_overlay(
+pub(crate) fn add_reconnecting_overlay(
     commands: &mut Commands,
     parent: Entity,
     status: &str,

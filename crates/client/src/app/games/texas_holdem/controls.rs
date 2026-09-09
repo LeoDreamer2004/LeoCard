@@ -1,4 +1,17 @@
-use super::*;
+use super::{
+    TexasChipTableState, TexasHoldemAssets, TexasHoldemUiAction, TexasHoldemUiState,
+    TexasPlayerPanel, TexasRaiseAdjustButton, add_role_tokens, add_texas_card,
+    add_texas_chip_popup, texas_player_border_color, texas_player_status,
+};
+use crate::app::presentation::{
+    ButtonKind, ButtonTint, HEADER_BG, MUTED, PendingDealSound, TEXT, TURN_BORDER_THICKNESS,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_avatar, add_text, add_turn_border_trace,
+    attach_start_game_seat_transition, decorate_player_panel, spawn_node,
+};
+use crate::app::runtime::{AvatarImages, UiAssets};
+use crate::app::shell::{PlayerAvatarAnchor, UiAction};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{
     GameKind, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
 };
@@ -10,8 +23,9 @@ pub(super) fn add_texas_own_area(
     game: &TexasHoldemSnapshot,
     own: &TexasHoldemPlayerState,
     deal_delays: Option<&[f32]>,
-    ui: &mut UiState,
+    ui: &mut TexasHoldemUiState,
     assets: &UiAssets,
+    game_assets: &TexasHoldemAssets,
     avatars: &AvatarImages,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     chip_state: &TexasChipTableState,
@@ -85,6 +99,7 @@ pub(super) fn add_texas_own_area(
         own.stack,
         None,
         assets,
+        game_assets,
         &chip_state.stack_counts(own.id),
     );
 
@@ -174,7 +189,7 @@ fn add_texas_actions(
     table: Entity,
     game: &TexasHoldemSnapshot,
     own: &TexasHoldemPlayerState,
-    ui: &mut UiState,
+    ui: &mut TexasHoldemUiState,
     assets: &UiAssets,
 ) {
     let actions = spawn_node(
@@ -248,8 +263,8 @@ fn add_texas_actions(
     }
     let maximum_target = own.committed_street.saturating_add(own.stack);
     let minimum_target = game.minimum_raise_to.min(maximum_target);
-    if ui.texas_holdem.raise_to < minimum_target || ui.texas_holdem.raise_to > maximum_target {
-        ui.texas_holdem.raise_to = minimum_target;
+    if ui.raise_to < minimum_target || ui.raise_to > maximum_target {
+        ui.raise_to = minimum_target;
     }
     let row = spawn_node(
         commands,
@@ -296,22 +311,14 @@ fn add_texas_actions(
             .minimum_raise_to
             .saturating_sub(game.current_bet)
             .max(1);
-        let lower = ui
-            .texas_holdem
-            .raise_to
-            .saturating_sub(step)
-            .max(minimum_target);
-        let higher = ui
-            .texas_holdem
-            .raise_to
-            .saturating_add(step)
-            .min(maximum_target);
+        let lower = ui.raise_to.saturating_sub(step).max(minimum_target);
+        let higher = ui.raise_to.saturating_add(step).min(maximum_target);
         add_raise_adjust_button(
             commands,
             row,
             "−",
             lower,
-            lower < ui.texas_holdem.raise_to,
+            lower < ui.raise_to,
             TexasRaiseAdjustButton {
                 direction: -1,
                 step,
@@ -323,8 +330,8 @@ fn add_texas_actions(
         add_texas_action_button(
             commands,
             row,
-            &format!("加注到 {}", ui.texas_holdem.raise_to),
-            TexasHoldemAction::RaiseTo(ui.texas_holdem.raise_to),
+            &format!("加注到 {}", ui.raise_to),
+            TexasHoldemAction::RaiseTo(ui.raise_to),
             ButtonKind::Primary,
             assets,
         );
@@ -333,7 +340,7 @@ fn add_texas_actions(
             row,
             "+",
             higher,
-            higher > ui.texas_holdem.raise_to,
+            higher > ui.raise_to,
             TexasRaiseAdjustButton {
                 direction: 1,
                 step,

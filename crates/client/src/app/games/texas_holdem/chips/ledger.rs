@@ -1,10 +1,18 @@
-use super::*;
+use super::{
+    ActionFeedbackKind, ActionLabel, CHIP_MOVE_DURATION, CHIP_SIZE, ChipMotion, ChipZone,
+    ChipZoneLayout, DENOMINATIONS, PotDivisionTransition, TableChip, TexasChipTableState,
+    VisualPot, queue_texas_turn_sound, random_signed, random_unit, texas_action_sound_plan,
+    texas_hand_finish_sound_plan, texas_player_chip_zone, texas_pot_chip_zone,
+    texas_pot_partition_zone, texas_side_pot_sound_plan, texas_street_sound_plan,
+};
+use crate::app::presentation::{ACCENT, DANGER, READY, TEXT};
+use bevy::prelude::*;
 use leocard_protocol::{
     PlayerId, TABLE_SEAT_COUNT, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemSnapshot,
 };
 use leocard_texas_holdem::TexasHoldemAction;
 
-pub fn initial_chip_denominations(total: u32) -> Vec<u16> {
+pub(super) fn initial_chip_denominations(total: u32) -> Vec<u16> {
     let counts = match total {
         5 => Some((0, 0, 5)),
         10 => Some((0, 1, 5)),
@@ -23,7 +31,7 @@ pub fn initial_chip_denominations(total: u32) -> Vec<u16> {
     canonical_chip_denominations(total)
 }
 
-pub fn visual_pots(game: &TexasHoldemSnapshot) -> Vec<VisualPot> {
+pub(super) fn visual_pots(game: &TexasHoldemSnapshot) -> Vec<VisualPot> {
     let maximum = game
         .players
         .iter()
@@ -88,7 +96,7 @@ fn canonical_chip_denominations(mut total: u32) -> Vec<u16> {
     result
 }
 
-pub fn change_for(denomination: u16) -> Vec<u16> {
+pub(super) fn change_for(denomination: u16) -> Vec<u16> {
     match denomination {
         100 => vec![25; 4],
         25 => vec![10, 10, 5],
@@ -99,11 +107,11 @@ pub fn change_for(denomination: u16) -> Vec<u16> {
 }
 
 impl TexasChipTableState {
-    pub fn reset(&mut self) {
+    pub(crate) fn reset(&mut self) {
         *self = Self::default();
     }
 
-    pub fn observe(&mut self, game: &TexasHoldemSnapshot, events: Vec<TexasHoldemEvent>) {
+    pub(crate) fn observe(&mut self, game: &TexasHoldemSnapshot, events: Vec<TexasHoldemEvent>) {
         let new_hand = self.match_id != Some(game.match_id)
             || self.hand_number != game.hand_number
             || self.you != Some(game.you);
@@ -186,7 +194,7 @@ impl TexasChipTableState {
         self.current_player = game.current_player;
     }
 
-    pub fn initialize(&mut self, game: &TexasHoldemSnapshot) {
+    pub(super) fn initialize(&mut self, game: &TexasHoldemSnapshot) {
         self.reset();
         self.match_id = Some(game.match_id);
         self.hand_number = game.hand_number;
@@ -554,7 +562,7 @@ impl TexasChipTableState {
         });
     }
 
-    pub fn relative_seat(&self, player: PlayerId) -> u8 {
+    pub(crate) fn relative_seat(&self, player: PlayerId) -> u8 {
         let Some(you) = self.you.and_then(|you| self.seats.get(&you)).copied() else {
             return 0;
         };
@@ -602,7 +610,7 @@ impl TexasChipTableState {
         )
     }
 
-    pub fn stack_counts(&self, player: PlayerId) -> Vec<(u16, usize)> {
+    pub(crate) fn stack_counts(&self, player: PlayerId) -> Vec<(u16, usize)> {
         DENOMINATIONS
             .into_iter()
             .filter_map(|denomination| {

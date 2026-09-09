@@ -1,8 +1,7 @@
 use super::ClientModel;
-use super::types::Sequenced;
-use leocard_protocol::{GameRules, GameSnapshot, ShengjiEvent, ShengjiPhaseView, ShengjiSnapshot};
+use super::types::{GameEventInbox, Sequenced};
+use leocard_protocol::{GameRules, ShengjiEvent, ShengjiPhaseView, ShengjiSnapshot};
 use leocard_shengji::ShengjiCard;
-use std::collections::VecDeque;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ShengjiScoreCaptureEffect {
@@ -17,7 +16,7 @@ pub(super) struct ShengjiClientState {
     pending_trick_score_cards: Vec<ShengjiCard>,
     finished_event_pending_snapshot: bool,
     score_capture: Sequenced<ShengjiScoreCaptureEffect>,
-    events: VecDeque<ShengjiEvent>,
+    events: GameEventInbox<ShengjiEvent>,
 }
 
 impl ClientModel {
@@ -34,10 +33,10 @@ impl ClientModel {
     }
 
     pub fn take_shengji_events(&mut self) -> Vec<ShengjiEvent> {
-        self.games.shengji.events.drain(..).collect()
+        self.games.shengji.events.take()
     }
 
-    pub(super) fn reset_shengji_tracking(&mut self) {
+    fn reset_shengji_tracking(&mut self) {
         self.games.shengji.collected_score_cards.clear();
         self.games.shengji.pending_trick_score_cards.clear();
         self.games.shengji.finished_event_pending_snapshot = false;
@@ -45,8 +44,7 @@ impl ClientModel {
     }
 
     pub(super) fn apply_shengji_snapshot(&mut self, snapshot: ShengjiSnapshot) {
-        self.host_port = Some(snapshot.host_port);
-        if self.active_match_id != Some(snapshot.match_id) {
+        if self.prepare_game_snapshot(snapshot.match_id, snapshot.host_port, snapshot.you) {
             self.games.shengji.events.clear();
             self.reset_shengji_tracking();
         } else {
@@ -74,12 +72,8 @@ impl ClientModel {
             self.last_finished_match =
                 Some((result.settlement_id, result.reference_changes.clone()));
         }
-        self.active_match_id = Some(snapshot.match_id);
-        self.you = Some(snapshot.you);
         self.rules = Some(GameRules::Shengji(snapshot.rules));
-        self.game = Some(GameSnapshot::Shengji(snapshot));
-        self.lobby = None;
-        self.rejection.value = None;
+        self.store_game_snapshot(snapshot);
     }
 
     pub(super) fn apply_shengji_event(&mut self, event: ShengjiEvent) {
@@ -136,10 +130,10 @@ impl ClientModel {
             }
             _ => {}
         }
-        self.games.shengji.events.push_back(event);
+        self.games.shengji.events.push(event);
     }
 }
-pub(super) fn completed_shengji_trick_score_cards(
+fn completed_shengji_trick_score_cards(
     previous: &ShengjiSnapshot,
     next: &ShengjiSnapshot,
 ) -> Vec<ShengjiCard> {

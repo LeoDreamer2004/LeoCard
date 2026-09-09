@@ -1,10 +1,18 @@
 //! 顶栏及其连接状态、设置和个人资料入口。
 
-use super::*;
+use super::super::{LobbyUiAction, NavigationUiAction, UiAction};
+use crate::app::presentation::{
+    ACCENT, BORDER, ButtonTint, HEADER_BG, MUTED, add_compact_button, add_text, avatar_color,
+    spawn_node,
+};
+use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
+use leocard_client::ClientPhaseRef;
 
 pub(super) struct Header<'a> {
     client: Option<&'a ClientResource>,
-    form: &'a ConnectionForm,
+    form: &'a ConnectionDraft,
     assets: &'a UiAssets,
     avatars: &'a AvatarImages,
 }
@@ -12,7 +20,7 @@ pub(super) struct Header<'a> {
 impl<'a> Header<'a> {
     pub(super) fn new(
         client: Option<&'a ClientResource>,
-        form: &'a ConnectionForm,
+        form: &'a ConnectionDraft,
         assets: &'a UiAssets,
         avatars: &'a AvatarImages,
     ) -> Self {
@@ -91,7 +99,7 @@ impl<'a> Header<'a> {
         );
         if self
             .client
-            .is_some_and(|client| client.0.model().game_snapshot().is_some())
+            .is_some_and(|client| matches!(client.0.model().phase(), ClientPhaseRef::Playing(_)))
         {
             self.add_exit_button(commands, right);
         }

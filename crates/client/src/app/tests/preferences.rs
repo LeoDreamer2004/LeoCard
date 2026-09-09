@@ -1,4 +1,5 @@
-use super::*;
+use super::prelude::*;
+use leocard_client::GlobalPreferences;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
 use leocard_protocol::TABLE_SEAT_COUNT;
 use leocard_qigui523::{QiGuiRuleSet, TimeControl};
@@ -27,7 +28,7 @@ fn preferences_round_trip_including_avatar() {
                     hand_size: 12,
                     time_control: TimeControl::ThirtyPlusSixty,
                     advanced_play_types: true,
-                    ..normalize_host_rules(QiGuiRuleSet::default())
+                    ..normalize_rules(QiGuiRuleSet::default())
                 },
             },
             texas_holdem: TexasHoldemPreferences {
@@ -36,7 +37,7 @@ fn preferences_round_trip_including_avatar() {
                     short_deck: true,
                     ignore_kickers: true,
                     omaha: true,
-                    ..normalize_texas_holdem_rules(TexasHoldemRuleSet::default())
+                    ..normalize_rules(TexasHoldemRuleSet::default())
                 },
             },
             shengji: ShengjiPreferences {
@@ -112,7 +113,7 @@ fn remembered_host_rules_keep_valid_preferences_and_fixed_room_capacity() {
         advanced_play_types: true,
         ..QiGuiRuleSet::default()
     };
-    let normalized = normalize_host_rules(preferred);
+    let normalized = normalize_rules(preferred);
 
     assert_eq!(normalized.player_count, TABLE_SEAT_COUNT);
     assert_eq!(normalized.deck_count, 4);

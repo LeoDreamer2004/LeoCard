@@ -1,18 +1,27 @@
 //! 个人资料、设置、更新与桌面外观动作。
 
-use super::*;
+use super::super::{
+    UiState, UpdateManager, UpdateState, open_github_repository, start_table_felt_picker,
+};
+use super::{
+    AppearanceUiResources, NavigationUiAction, PressedUiAction, UiActionHandler,
+    dispatch_domain_actions,
+};
+use crate::app::runtime::{AppearancePreferences, save_appearance_preferences};
 use bevy::ecs::system::SystemParam;
+use bevy::log::warn;
+use bevy::prelude::*;
 
 #[derive(SystemParam)]
-pub struct NavigationActionContext<'w> {
-    form: ResMut<'w, ConnectionForm>,
+pub(crate) struct NavigationActionContext<'w> {
+    appearance: ResMut<'w, AppearancePreferences>,
     ui: ResMut<'w, UiState>,
-    local: LocalUiResources<'w>,
+    local: AppearanceUiResources<'w>,
     updater: ResMut<'w, UpdateManager>,
     app_exit: MessageWriter<'w, AppExit>,
 }
 
-pub fn dispatch_navigation_actions(
+pub(crate) fn dispatch_navigation_actions(
     mut actions: MessageReader<PressedUiAction>,
     mut context: NavigationActionContext,
 ) {
@@ -21,7 +30,7 @@ pub fn dispatch_navigation_actions(
 
 impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
     fn handle(&self, context: &mut NavigationActionContext<'_>) {
-        let form = &mut *context.form;
+        let appearance = &mut *context.appearance;
         let ui = &mut *context.ui;
         let local = &mut context.local;
         let updater = &mut *context.updater;
@@ -72,9 +81,9 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
                 }
             }
             NavigationUiAction::UseDefaultTableFelt => {
-                form.table_felt_path = None;
-                form.table_brightness = 1.0;
-                local.table_appearance.error = save_preferences(form).err();
+                appearance.table_felt_path = None;
+                appearance.table_brightness = 1.0;
+                local.table_appearance.error = save_appearance_preferences(appearance).err();
             }
         }
     }

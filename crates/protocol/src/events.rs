@@ -17,6 +17,22 @@ pub enum GameEvent {
     Mahjong(MahjongEvent),
 }
 
+macro_rules! impl_game_event_from {
+    ($event:ty, $variant:ident) => {
+        impl From<$event> for GameEvent {
+            fn from(value: $event) -> Self {
+                Self::$variant(value)
+            }
+        }
+    };
+}
+
+impl_game_event_from!(QiGui523Event, QiGui523);
+impl_game_event_from!(TexasHoldemEvent, TexasHoldem);
+impl_game_event_from!(ShengjiEvent, Shengji);
+impl_game_event_from!(UnoEvent, Uno);
+impl_game_event_from!(MahjongEvent, Mahjong);
+
 impl GameEvent {
     pub const fn kind(&self) -> GameKind {
         match self {

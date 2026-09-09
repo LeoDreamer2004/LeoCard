@@ -1,17 +1,38 @@
 //! 升级收分与终局结算演出。
 
-use super::*;
+use super::state::{ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation};
+use super::view::shengji_card_face;
+use super::{
+    ActiveShengjiScoreAbsorb, ActiveShengjiScoreCapture, ShengjiCollectingScoreText,
+    ShengjiKittyMultiplier, ShengjiKittyRevealCard, ShengjiKittyScoreAnchor, ShengjiKittyScoreText,
+    ShengjiScoreTrayAnchor, ShengjiSettlementActions, ShengjiSettlementModal,
+    ShengjiSettlementPanelTexture, ShengjiSettlementRow, ShengjiSettlementTotalAnchor,
+    ShengjiSettlementTotalText, ShengjiTimedReveal,
+};
+use crate::app::presentation::{
+    ACCENT, PANEL_ALT, READY, SCORE_ROLL_DELAY, SCORE_ROLL_DURATION, SUMMARY_MODAL_ENTRY_DURATION,
+    SUMMARY_ROW_ENTRY_DURATION, TABLE_SCORE_CARD_REVEAL, add_text, ease_out_cubic, spawn_node,
+};
+use crate::app::runtime::{ClientResource, UiAssets};
+use crate::app::shell::{
+    ActiveScoreCaptureCard, ActiveScoreGainText, ActiveScoreVortex, PlayerInteractionLayer,
+    vortex_card_pose,
+};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_client::ShengjiScoreCaptureEffect;
 use leocard_protocol::ShengjiPhaseView;
 
 const SHENGJI_KITTY_CARD_INTERVAL: f32 = 0.075;
+pub(super) const SHENGJI_SETTLEMENT_MODAL_DELAY: f32 = 3.38;
+pub(super) const SHENGJI_SETTLEMENT_ROW_INTERVAL: f32 = 0.18;
 const SHENGJI_KITTY_CARD_ENTRY_DURATION: f32 = 0.22;
 const SHENGJI_KITTY_MULTIPLIER_DELAY: f32 = 1.12;
 const SHENGJI_KITTY_MULTIPLIER_DURATION: f32 = 0.62;
 const SHENGJI_TOTAL_ABSORB_DELAY: f32 = 2.24;
 const SHENGJI_TOTAL_ABSORB_DURATION: f32 = 0.78;
 
-pub fn sync_shengji_score_capture_effect(
+pub(super) fn sync_shengji_score_capture_effect(
     mut commands: Commands,
     client: Option<Res<ClientResource>>,
     assets: Res<UiAssets>,
@@ -168,7 +189,7 @@ fn spawn_shengji_score_capture(
         .insert(ActiveScoreGainText { elapsed: 0.0, text });
 }
 
-pub fn animate_shengji_score_capture_score(
+pub(super) fn animate_shengji_score_capture_score(
     time: Res<Time>,
     mut state: ResMut<ShengjiScoreCaptureEffectState>,
     mut texts: Query<&mut Text, With<ShengjiCollectingScoreText>>,
@@ -194,7 +215,7 @@ fn rolling_shengji_captured_score(capture: &ShengjiScoreCaptureEffect, elapsed: 
         .round() as u32
 }
 
-pub fn displayed_shengji_captured_score(
+pub(super) fn displayed_shengji_captured_score(
     state: &ShengjiScoreCaptureEffectState,
     fallback: u32,
 ) -> u32 {
@@ -203,7 +224,7 @@ pub fn displayed_shengji_captured_score(
     })
 }
 
-pub fn update_shengji_settlement_animation(
+pub(super) fn update_shengji_settlement_animation(
     mut commands: Commands,
     time: Res<Time>,
     client: Option<Res<ClientResource>>,
@@ -257,7 +278,7 @@ pub fn update_shengji_settlement_animation(
     }
 }
 
-pub fn animate_shengji_settlement_visuals(
+pub(crate) fn animate_shengji_settlement_visuals(
     animation: Res<ShengjiSettlementAnimation>,
     mut visuals: ParamSet<(
         Query<(
@@ -401,7 +422,7 @@ pub fn animate_shengji_settlement_visuals(
     }
 }
 
-pub fn spawn_shengji_settlement_absorption(
+pub(crate) fn spawn_shengji_settlement_absorption(
     mut commands: Commands,
     assets: Res<UiAssets>,
     client: Option<Res<ClientResource>>,
@@ -533,7 +554,7 @@ fn spawn_shengji_score_absorb(
     ));
 }
 
-pub fn animate_shengji_score_absorbs(
+pub(crate) fn animate_shengji_score_absorbs(
     mut commands: Commands,
     time: Res<Time>,
     mut effects: Query<(

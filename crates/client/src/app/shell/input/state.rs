@@ -1,9 +1,8 @@
 //! 通用文本输入与手牌拖选的运行时状态。
-
-use super::*;
+use bevy::prelude::*;
 
 #[derive(Resource)]
-pub struct UiZoom {
+pub(crate) struct UiZoom {
     pub manual: f32,
 }
 
@@ -14,20 +13,20 @@ impl Default for UiZoom {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum InputField {
+pub(crate) enum InputField {
     PlayerName,
     HostPort,
     JoinAddress,
 }
 
 #[derive(Resource, Default)]
-pub struct DeveloperHandInput {
+pub(crate) struct DeveloperHandInput {
     pub value: String,
     pub focused: bool,
 }
 
 #[derive(Resource, Default)]
-pub struct CardDragSelection {
+pub(crate) struct CardDragSelection {
     pub active: bool,
     pub anchor: usize,
     pub current: usize,
@@ -35,21 +34,21 @@ pub struct CardDragSelection {
 }
 
 impl CardDragSelection {
-    pub fn contains(&self, index: usize) -> bool {
+    pub(crate) fn contains(&self, index: usize) -> bool {
         self.active
             && (self.anchor.min(self.current)..=self.anchor.max(self.current)).contains(&index)
     }
 }
 
 #[derive(Component)]
-pub struct HandCardSelectionOverlay {
+pub(crate) struct HandCardSelectionOverlay {
     pub index: usize,
 }
 
 #[derive(Component)]
-pub struct DeveloperHandInputText {
+pub(crate) struct DeveloperHandInputText {
     pub placeholder: &'static str,
 }
 
 #[derive(Component)]
-pub struct DeveloperHandInputField;
+pub(crate) struct DeveloperHandInputField;

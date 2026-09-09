@@ -4,18 +4,18 @@ use crate::app::UiAssets;
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct PendingDealSound {
+pub(crate) struct PendingDealSound {
     pub remaining: f32,
     pub variant: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CardPlaySoundKind {
+pub(crate) enum CardPlaySoundKind {
     Place,
     Shove,
 }
 
-pub fn play_pending_deal_sounds(
+pub(crate) fn play_pending_deal_sounds(
     time: Res<Time>,
     assets: Res<UiAssets>,
     mut commands: Commands,

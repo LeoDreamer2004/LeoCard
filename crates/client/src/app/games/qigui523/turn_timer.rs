@@ -1,18 +1,20 @@
 //! 七鬼五二三行动时钟的快照同步与文本刷新。
 
-use super::*;
+use super::turn_timer_label;
+use crate::app::runtime::ClientResource;
+use bevy::prelude::*;
 use leocard_protocol::QiGui523Snapshot;
 
 #[derive(Component)]
-pub struct TurnClock;
+pub(crate) struct TurnClock;
 
 #[derive(Component)]
-pub struct TurnClockHand;
+pub(crate) struct TurnClockHand;
 
 #[derive(Component)]
-pub struct TurnClockLabel;
+pub(super) struct TurnClockLabel;
 
-pub fn only_turn_timer_changed(
+pub(crate) fn only_turn_timer_changed(
     before: Option<&QiGui523Snapshot>,
     after: Option<&QiGui523Snapshot>,
 ) -> bool {
@@ -27,7 +29,7 @@ pub fn only_turn_timer_changed(
     normalized == *after
 }
 
-pub fn sync_turn_timer_label(
+pub(super) fn sync_turn_timer_label(
     client: Option<Res<ClientResource>>,
     mut labels: Query<&mut Text, With<TurnClockLabel>>,
 ) {

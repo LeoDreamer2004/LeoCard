@@ -1,9 +1,60 @@
 //! 双升高频快照的轻量差异判断。
 
-use leocard_protocol::ShengjiPhaseView;
-use leocard_protocol::ShengjiSnapshot;
+use super::state::ShengjiUiState;
+use crate::app::runtime::ClientResource;
+use bevy::prelude::*;
+use leocard_protocol::{MatchId, ShengjiFiveTrumpCrossingStage, ShengjiPhaseView, ShengjiSnapshot};
 
-pub fn only_shengji_transient_progress_changed(
+#[derive(Resource, Default)]
+pub(super) struct ShengjiSelectionSync {
+    observed_stage: Option<(MatchId, ShengjiFiveTrumpCrossingStage)>,
+}
+
+pub(super) fn sync_shengji_phase_selection(
+    client: Option<Res<ClientResource>>,
+    mut ui: ResMut<ShengjiUiState>,
+    mut sync: ResMut<ShengjiSelectionSync>,
+) {
+    let game = client
+        .as_deref()
+        .and_then(|client| client.0.model().shengji_game());
+    let current_stage = game.and_then(|game| match &game.phase {
+        ShengjiPhaseView::FiveTrumpCrossing { stage, .. } => Some((game.match_id, *stage)),
+        _ => None,
+    });
+    if current_stage == sync.observed_stage {
+        return;
+    }
+    sync.observed_stage = current_stage;
+    ui.selected.clear();
+
+    let Some(game) = game else {
+        return;
+    };
+    let ShengjiPhaseView::FiveTrumpCrossing {
+        stage: ShengjiFiveTrumpCrossingStage::Deciding,
+        eligible,
+        decided,
+        ..
+    } = &game.phase
+    else {
+        return;
+    };
+    if !eligible.contains(&game.you) || decided.contains(&game.you) {
+        return;
+    }
+    let Some(trump) = game.trump else {
+        return;
+    };
+    ui.selected.extend(
+        game.your_hand
+            .iter()
+            .copied()
+            .filter(|card| trump.is_trump(*card)),
+    );
+}
+
+pub(crate) fn only_shengji_transient_progress_changed(
     before: Option<&ShengjiSnapshot>,
     after: Option<&ShengjiSnapshot>,
 ) -> bool {

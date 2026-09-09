@@ -210,33 +210,13 @@ impl LocalPlayerProfile {
         &self.game_profiles
     }
 
-    pub fn sync_qigui523_profile(&mut self, stats: &QiGui523ProfileStats) -> bool {
-        replace_if_changed(&mut self.game_profiles.qigui523, stats)
+    pub fn sync_game_profiles(&mut self, profiles: &PlayerGameProfiles) -> bool {
+        if &self.game_profiles == profiles {
+            return false;
+        }
+        self.game_profiles.clone_from(profiles);
+        true
     }
-
-    pub fn sync_texas_holdem_profile(&mut self, stats: &TexasHoldemProfileStats) -> bool {
-        replace_if_changed(&mut self.game_profiles.texas_holdem, stats)
-    }
-
-    pub fn sync_shengji_profile(&mut self, stats: &ShengjiProfileStats) -> bool {
-        replace_if_changed(&mut self.game_profiles.shengji, stats)
-    }
-
-    pub fn sync_uno_profile(&mut self, stats: &UnoProfileStats) -> bool {
-        replace_if_changed(&mut self.game_profiles.uno, stats)
-    }
-
-    pub fn sync_interaction_profile(&mut self, stats: &PlayerInteractionStats) -> bool {
-        replace_if_changed(&mut self.game_profiles.interactions, stats)
-    }
-}
-
-fn replace_if_changed<T: Clone + PartialEq>(slot: &mut Option<T>, value: &T) -> bool {
-    if slot.as_ref() == Some(value) {
-        return false;
-    }
-    *slot = Some(value.clone());
-    true
 }
 
 fn decode_player_profile(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {

@@ -1,6 +1,7 @@
 use super::download::parse_sha256;
 use super::view::update_display;
 use super::*;
+use semver::Version;
 
 #[test]
 fn parses_standard_sha256sum_output() {

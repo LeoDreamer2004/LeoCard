@@ -70,6 +70,25 @@ impl ClientModel {
         ClientMessage::new(self.room_id, request_id, command)
     }
 
+    pub(super) fn prepare_game_snapshot(
+        &mut self,
+        match_id: MatchId,
+        host_port: u16,
+        you: PlayerId,
+    ) -> bool {
+        let new_match = self.active_match_id != Some(match_id);
+        self.host_port = Some(host_port);
+        self.active_match_id = Some(match_id);
+        self.you = Some(you);
+        self.lobby = None;
+        self.rejection.value = None;
+        new_match
+    }
+
+    pub(super) fn store_game_snapshot(&mut self, snapshot: impl Into<GameSnapshot>) {
+        self.game = Some(snapshot.into());
+    }
+
     /// 返回消息是否被接受。错误房间、错误版本和旧修订号均被忽略。
     pub fn apply(&mut self, message: ServerMessage) -> bool {
         if message.protocol_version != PROTOCOL_VERSION
@@ -129,10 +148,10 @@ impl ClientModel {
                 self.apply_mahjong_event(event);
             }
             ServerEvent::PlayerInteraction(interaction) => {
-                self.pending.player_interactions.push_back(interaction);
+                self.pending.player_interactions.push(interaction);
             }
             ServerEvent::ChatMessage(message) => {
-                self.pending.chat_messages.push_back(message);
+                self.pending.chat_messages.push(message);
             }
             ServerEvent::PlayerLeft { name } => {
                 self.notice.publish(format!("{name}退出了游戏"));

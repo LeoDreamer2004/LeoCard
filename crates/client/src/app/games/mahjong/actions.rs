@@ -1,15 +1,40 @@
 //! 麻将按钮动作到网络命令的转换。
 
-use super::*;
+use crate::app::runtime::ClientResource;
+use crate::app::shell::{
+    DomainUiAction, PressedUiAction, UiAction, UiActionHandler, dispatch_domain_actions,
+    send_game_command,
+};
 use bevy::ecs::system::SystemParam;
-use leocard_protocol::{ClientCommand, GameCommand, MahjongCommand};
+use bevy::prelude::*;
+use leocard_mahjong::{MahjongClaim, MahjongRuleSet, MahjongTile, MahjongTileKind};
+use leocard_protocol::MahjongCommand;
+
+#[derive(Clone)]
+pub(crate) enum MahjongUiAction {
+    UpdateRules(MahjongRuleSet),
+    Discard(MahjongTile),
+    Respond(MahjongClaim),
+    SelfDraw,
+    ConcealedKong(MahjongTileKind),
+    AddedKong(MahjongTile),
+}
+
+impl DomainUiAction for MahjongUiAction {
+    fn extract(action: &UiAction) -> Option<&Self> {
+        let UiAction::Mahjong(action) = action else {
+            return None;
+        };
+        Some(action)
+    }
+}
 
 #[derive(SystemParam)]
-pub struct MahjongActionContext<'w> {
+pub(crate) struct MahjongActionContext<'w> {
     client: Option<ResMut<'w, ClientResource>>,
 }
 
-pub fn dispatch_mahjong_actions(
+pub(super) fn dispatch_mahjong_actions(
     mut actions: MessageReader<PressedUiAction>,
     mut context: MahjongActionContext,
 ) {
@@ -28,10 +53,6 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
             }
             MahjongUiAction::AddedKong(tile) => MahjongCommand::DeclareAddedKong { tile: *tile },
         };
-        if let Some(client) = context.client.as_deref_mut() {
-            client
-                .0
-                .send(ClientCommand::Game(GameCommand::Mahjong(command)));
-        }
+        send_game_command(&mut context.client, command);
     }
 }

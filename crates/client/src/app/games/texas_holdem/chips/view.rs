@@ -1,14 +1,26 @@
-use super::*;
+use super::{
+    ActionFeedbackKind, ActionLabel, CHIP_SIZE, ChipZone, ChipZoneLayout, TEXAS_CHIP_ZONE_FILTER,
+    TableChip, TexasActionFeedback, TexasActionFeedbackText, TexasChipSprite, TexasChipTableState,
+    TexasChipZonePanel, TexasFoldCard, TexasHoldemAssets, TexasOwnFoldCardHover,
+    TexasOwnFoldTooltip, TexasPlayerPanel, TexasPotDivider, TexasPotHover,
+    action_feedback_text_color, action_feedback_transform, fold_card_visual, texas_card_face,
+    texas_center_zone_panel, texas_player_chip_zone, texas_pot_chip_zone, texas_pot_partition_zone,
+};
+use crate::app::presentation::{HEADER_BG, MUTED, TEXT, add_text, spawn_node};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
+use bevy::ui::{FocusPolicy, RelativeCursorPosition};
 use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemSnapshot};
 use leocard_texas_holdem::TexasHoldemCard;
 
-pub fn add_texas_chip_areas(
+pub(crate) fn add_texas_chip_areas(
     commands: &mut Commands,
     table: Entity,
     game: &TexasHoldemSnapshot,
     hole_card_count: usize,
     state: &TexasChipTableState,
     assets: &UiAssets,
+    game_assets: &TexasHoldemAssets,
 ) {
     let own_seat = game
         .players
@@ -79,7 +91,7 @@ pub fn add_texas_chip_areas(
             ChipZone::Bet(_) | ChipZone::Pot(_) | ChipZone::Retired
         ) || chip.motion.is_some()
     }) {
-        add_chip_sprite(commands, layer, chip, assets);
+        add_chip_sprite(commands, layer, chip, assets, game_assets);
     }
 }
 
@@ -172,7 +184,7 @@ fn add_pot_hover_regions(commands: &mut Commands, table: Entity, state: &TexasCh
     }
 }
 
-pub fn pot_divider_visual(old_layout: bool, elapsed: f32) -> (f32, f32) {
+pub(super) fn pot_divider_visual(old_layout: bool, elapsed: f32) -> (f32, f32) {
     if old_layout {
         (1.0 - (elapsed / 0.16).clamp(0.0, 1.0), 1.0)
     } else {
@@ -182,7 +194,7 @@ pub fn pot_divider_visual(old_layout: bool, elapsed: f32) -> (f32, f32) {
     }
 }
 
-pub fn animate_texas_pot_dividers(
+pub(crate) fn animate_texas_pot_dividers(
     time: Res<Time>,
     mut dividers: Query<(&mut TexasPotDivider, &mut UiTransform, &mut BackgroundColor)>,
 ) {
@@ -194,7 +206,7 @@ pub fn animate_texas_pot_dividers(
     }
 }
 
-pub fn highlight_texas_pot_eligible_players(
+pub(crate) fn highlight_texas_pot_eligible_players(
     time: Res<Time>,
     hovers: Query<(&RelativeCursorPosition, &TexasPotHover)>,
     mut panels: Query<(&TexasPlayerPanel, &mut BorderColor, &mut BoxShadow)>,
@@ -226,13 +238,13 @@ pub fn highlight_texas_pot_eligible_players(
     }
 }
 
-pub fn pot_eligibility_breath(elapsed: f32) -> f32 {
+pub(super) fn pot_eligibility_breath(elapsed: f32) -> f32 {
     let phase = elapsed.rem_euclid(1.7) / 1.7;
     let wave = 0.5 - 0.5 * (phase * std::f32::consts::TAU).cos();
     wave * wave * (3.0 - 2.0 * wave)
 }
 
-pub fn add_chip_zone_panel(
+pub(super) fn add_chip_zone_panel(
     commands: &mut Commands,
     table: Entity,
     layout: ChipZoneLayout,
@@ -319,7 +331,7 @@ fn add_chip_zone_title(
     });
 }
 
-pub fn add_fold_card_feedback(
+pub(super) fn add_fold_card_feedback(
     commands: &mut Commands,
     table: Entity,
     zone: Entity,
@@ -342,9 +354,9 @@ pub fn add_fold_card_feedback(
         let visual = fold_card_visual(index, card_count, elapsed, own);
         let initial_image = if visual.face_visible {
             face.clone()
-                .unwrap_or_else(|| assets.games.card_back.clone())
+                .unwrap_or_else(|| assets.playing_cards.card_back.clone())
         } else {
-            assets.games.card_back.clone()
+            assets.playing_cards.card_back.clone()
         };
         let card = commands
             .spawn((
@@ -369,7 +381,7 @@ pub fn add_fold_card_feedback(
                     elapsed,
                     own,
                     face,
-                    back: assets.games.card_back.clone(),
+                    back: assets.playing_cards.card_back.clone(),
                 },
                 ZIndex(if own { 44 } else { 24 } + index as i32),
                 FocusPolicy::Pass,
@@ -493,8 +505,14 @@ fn add_revealed_hole_cards(
     }
 }
 
-fn add_chip_sprite(commands: &mut Commands, layer: Entity, chip: &TableChip, assets: &UiAssets) {
-    let Some(image) = assets.games.poker_chips.get(&chip.denomination) else {
+fn add_chip_sprite(
+    commands: &mut Commands,
+    layer: Entity,
+    chip: &TableChip,
+    assets: &UiAssets,
+    game_assets: &TexasHoldemAssets,
+) {
+    let Some(image) = game_assets.poker_chips.get(&chip.denomination) else {
         return;
     };
     let entity = commands

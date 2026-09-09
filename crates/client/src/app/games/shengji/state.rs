@@ -1,29 +1,42 @@
 //! 双升手牌、计分、甩牌反馈与结算演出的状态类型。
 
-use super::*;
+use crate::app::presentation::{CardAnimationState, Observed};
+use bevy::prelude::*;
 use leocard_client::ShengjiScoreCaptureEffect;
-use leocard_protocol::{MatchId, ShengjiThrowFailureStage};
+use leocard_protocol::{MatchId, ShengjiSnapshot, ShengjiThrowFailureStage};
 use leocard_shengji::ShengjiCard;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
-#[derive(Default)]
-pub struct ShengjiUiState {
+#[derive(Resource, Default)]
+pub(crate) struct ShengjiUiState {
     pub selected: HashSet<ShengjiCard>,
     pub card_animations: HashMap<ShengjiCard, CardAnimationState>,
-    pub observed_hand: Vec<ShengjiCard>,
-    pub observed_match: Option<MatchId>,
-    pub observed_hand_number: u32,
+    pub observed_hand: Observed<(MatchId, u32), Vec<ShengjiCard>>,
     pub buried_open: bool,
 }
 
+impl ShengjiUiState {
+    pub(crate) fn reconcile(&mut self, game: &ShengjiSnapshot) {
+        self.selected.retain(|card| game.your_hand.contains(card));
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.selected.clear();
+        self.card_animations.clear();
+        self.observed_hand.clear();
+        self.buried_open = false;
+    }
+}
+
 #[derive(Resource, Default)]
-pub struct ShengjiScoreCaptureEffectState {
+pub(crate) struct ShengjiScoreCaptureEffectState {
     pub seen_serial: u64,
     pub active: Option<ActiveShengjiScoreCapture>,
 }
 
 #[derive(Resource, Default)]
-pub struct ShengjiSettlementAnimation {
+pub(crate) struct ShengjiSettlementAnimation {
     pub settlement_id: Option<MatchId>,
     pub elapsed: f32,
     pub absorption_spawned: bool,
@@ -31,60 +44,60 @@ pub struct ShengjiSettlementAnimation {
 }
 
 #[derive(Clone)]
-pub struct ActiveShengjiScoreCapture {
+pub(crate) struct ActiveShengjiScoreCapture {
     pub capture: ShengjiScoreCaptureEffect,
     pub elapsed: f32,
 }
 
 #[derive(Component)]
-pub struct ShengjiScoreTrayAnchor;
+pub(crate) struct ShengjiScoreTrayAnchor;
 
 #[derive(Component)]
-pub struct ShengjiCollectingScoreText;
+pub(super) struct ShengjiCollectingScoreText;
 
 #[derive(Component)]
-pub struct ShengjiKittyRevealCard {
+pub(crate) struct ShengjiKittyRevealCard {
     pub index: usize,
 }
 
 #[derive(Component)]
-pub struct ShengjiKittyScoreAnchor;
+pub(crate) struct ShengjiKittyScoreAnchor;
 
 #[derive(Component)]
-pub struct ShengjiKittyScoreText {
+pub(crate) struct ShengjiKittyScoreText {
     pub base: u32,
     pub awarded: u32,
 }
 
 #[derive(Component)]
-pub struct ShengjiKittyMultiplier;
+pub(crate) struct ShengjiKittyMultiplier;
 
 #[derive(Component)]
-pub struct ShengjiSettlementTotalAnchor;
+pub(crate) struct ShengjiSettlementTotalAnchor;
 
 #[derive(Component)]
-pub struct ShengjiSettlementTotalText {
+pub(crate) struct ShengjiSettlementTotalText {
     pub target: u32,
 }
 
 #[derive(Component)]
-pub struct ShengjiSettlementModal;
+pub(crate) struct ShengjiSettlementModal;
 
 #[derive(Component)]
-pub struct ShengjiSettlementRow {
+pub(crate) struct ShengjiSettlementRow {
     pub delay: f32,
 }
 
 #[derive(Component)]
-pub struct ShengjiSettlementActions {
+pub(crate) struct ShengjiSettlementActions {
     pub delay: f32,
 }
 
 #[derive(Component)]
-pub struct ShengjiSettlementOutcomeText;
+pub(super) struct ShengjiSettlementOutcomeText;
 
 #[derive(Component)]
-pub struct ShengjiFailedThrowCard {
+pub(super) struct ShengjiFailedThrowCard {
     pub index: usize,
     pub count: usize,
     pub stage: ShengjiThrowFailureStage,
@@ -93,38 +106,38 @@ pub struct ShengjiFailedThrowCard {
 }
 
 #[derive(Component)]
-pub struct ShengjiFailedThrowLabel {
+pub(super) struct ShengjiFailedThrowLabel {
     pub returning: bool,
     pub elapsed: f32,
 }
 
 #[derive(Component)]
-pub struct ShengjiThrowPenaltyFloat {
+pub(super) struct ShengjiThrowPenaltyFloat {
     pub source: Vec2,
     pub target: Vec2,
     pub elapsed: f32,
 }
 
 #[derive(Component)]
-pub struct ShengjiThrowPenaltyScorePulse {
+pub(super) struct ShengjiThrowPenaltyScorePulse {
     pub elapsed: f32,
 }
 
 #[derive(Component)]
-pub struct ShengjiDealerBadge;
+pub(crate) struct ShengjiDealerBadge;
 
 #[derive(Component)]
-pub struct ShengjiLevelIndicator {
+pub(crate) struct ShengjiLevelIndicator {
     pub base_color: Color,
 }
 
 #[derive(Component)]
-pub struct ShengjiTimedReveal {
+pub(crate) struct ShengjiTimedReveal {
     pub delay: f32,
 }
 
 #[derive(Component)]
-pub struct ActiveShengjiScoreAbsorb {
+pub(crate) struct ActiveShengjiScoreAbsorb {
     pub source: Vec2,
     pub target: Vec2,
     pub elapsed: f32,
@@ -133,7 +146,7 @@ pub struct ActiveShengjiScoreAbsorb {
 }
 
 #[derive(Component)]
-pub struct ShengjiHandCardSlot {
+pub(crate) struct ShengjiHandCardSlot {
     pub card: ShengjiCard,
     pub index: usize,
     pub hand_len: usize,
@@ -142,7 +155,7 @@ pub struct ShengjiHandCardSlot {
 }
 
 #[derive(Component)]
-pub struct ShengjiHandCardVisual {
+pub(crate) struct ShengjiHandCardVisual {
     pub button: Entity,
     pub card: ShengjiCard,
     pub index: usize,
@@ -155,9 +168,9 @@ pub struct ShengjiHandCardVisual {
 }
 
 #[derive(Component)]
-pub struct ShengjiHandCardSelectionOverlay {
+pub(crate) struct ShengjiHandCardSelectionOverlay {
     pub index: usize,
 }
 
 #[derive(Component)]
-pub struct ShengjiSettlementPanelTexture;
+pub(crate) struct ShengjiSettlementPanelTexture;

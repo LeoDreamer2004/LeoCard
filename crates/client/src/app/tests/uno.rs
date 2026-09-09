@@ -1,4 +1,4 @@
-use super::*;
+use super::prelude::*;
 use leocard_protocol::{
     MatchId, PlayerGameProfiles, PlayerId, ProfileId, SeatId, UnoEvent, UnoPendingSwapView,
     UnoPhaseView, UnoPlayerState, UnoSnapshot,
@@ -12,7 +12,9 @@ fn uno_interaction_and_presentation_systems_initialize_without_conflicts() {
     let mut app = App::new();
     app.insert_resource(Time::<()>::default());
     app.insert_resource(UiState::default());
+    app.insert_resource(UnoUiState::default());
     app.insert_resource(UiAssets::default());
+    app.insert_resource(UnoAssets::default());
     app.insert_resource(UnoPresentationState::default());
     app.insert_resource(UnoAudioState::default());
     app.insert_resource(Assets::<UnoPaletteMaterial>::default());
@@ -232,8 +234,8 @@ fn noninteractive_jump_in_card_uses_the_normal_selected_lift() {
     let mut time = Time::<()>::default();
     time.advance_by(std::time::Duration::from_millis(100));
     app.insert_resource(time);
-    let mut ui = UiState::default();
-    ui.uno.selected.insert(card);
+    let mut ui = UnoUiState::default();
+    ui.selected.insert(card);
     app.insert_resource(ui);
     app.add_systems(Update, animate_uno_hand_cards);
     let noninteractive_slot = app.world_mut().spawn_empty().id();

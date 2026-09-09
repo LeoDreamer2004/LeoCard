@@ -1,11 +1,19 @@
-use super::*;
+use super::claim::mahjong_claim_held_tile_visual;
+use super::{
+    ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MAHJONG_REMOTE_MELD_WIDTH,
+    MahjongAssets, MahjongClaimHeldTile, MahjongDealSpec, MahjongDealTile, MahjongTileMaterial,
+    mahjong_local_light, mahjong_local_shadow,
+};
+use crate::app::presentation::spawn_node;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_mahjong::{
     MahjongClaim, MahjongKongKind, MahjongMeldKind, MahjongTileKind, MahjongWind,
 };
 use leocard_protocol::MahjongPublicMeldView;
 
 #[derive(Clone, Copy)]
-pub enum MahjongTileSize {
+pub(crate) enum MahjongTileSize {
     River,
     Mini,
     OwnMeld,
@@ -13,7 +21,7 @@ pub enum MahjongTileSize {
     HiddenOpposite,
 }
 
-pub struct MahjongTileVisual {
+pub(crate) struct MahjongTileVisual {
     pub kind: Option<MahjongTileKind>,
     pub size: MahjongTileSize,
     pub index: usize,
@@ -23,13 +31,13 @@ pub struct MahjongTileVisual {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn render_mahjong_staged_meld(
+pub(crate) fn render_mahjong_staged_meld(
     commands: &mut Commands,
     parent: Entity,
     claim: &ActiveMahjongClaimPresentation,
     index: &mut usize,
     relative: u8,
-    assets: &UiAssets,
+    assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
     let Some(claimed_tile) = claim.tile else {
@@ -124,13 +132,13 @@ pub fn render_mahjong_staged_meld(
     }
 }
 
-pub fn render_mahjong_meld(
+pub(crate) fn render_mahjong_meld(
     commands: &mut Commands,
     parent: Entity,
     meld: &MahjongPublicMeldView,
     index: &mut usize,
     relative: u8,
-    assets: &UiAssets,
+    assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
     let (base, stacked) = match (meld.kind, meld.tile) {
@@ -233,11 +241,11 @@ pub fn render_mahjong_meld(
     }
 }
 
-pub fn add_mahjong_tile_material(
+pub(crate) fn add_mahjong_tile_material(
     commands: &mut Commands,
     parent: Entity,
     visual: MahjongTileVisual,
-    assets: &UiAssets,
+    game_assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) -> Entity {
     let MahjongTileVisual {
@@ -257,22 +265,20 @@ pub fn add_mahjong_tile_material(
     };
     let back = kind.is_none();
     let glyph = kind.map_or_else(
-        || assets.games.mahjong_tile_back.clone(),
+        || game_assets.tile_back.clone(),
         |kind| {
-            assets
-                .games
-                .mahjong_tiles
+            game_assets
+                .tiles
                 .get(&kind)
                 .cloned()
                 .expect("所有麻将牌面都应预加载")
         },
     );
     let height_texture = kind.map_or_else(
-        || assets.games.mahjong_tile_back.clone(),
+        || game_assets.tile_back.clone(),
         |kind| {
-            assets
-                .games
-                .mahjong_tile_heights
+            game_assets
+                .tile_heights
                 .get(&kind)
                 .cloned()
                 .expect("所有麻将凹刻高度图都应预加载")
@@ -359,7 +365,7 @@ pub fn add_mahjong_tile_material(
     entity
 }
 
-pub fn wind_label(wind: MahjongWind) -> &'static str {
+pub(crate) fn wind_label(wind: MahjongWind) -> &'static str {
     match wind {
         MahjongWind::East => "东",
         MahjongWind::South => "南",

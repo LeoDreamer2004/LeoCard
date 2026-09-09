@@ -1,4 +1,28 @@
-use super::*;
+use super::super::{
+    ShengjiAssets, ShengjiBottomFlipPanelElement, ShengjiDealerBadge, ShengjiLevelIndicator,
+    ShengjiPresentationState, ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation,
+    ShengjiUiAction, ShengjiUiState, add_shengji_presentation_overlay,
+};
+use super::{
+    ShengjiCardSize, add_shengji_actions, add_shengji_bidding_panel, add_shengji_card_row,
+    add_shengji_collecting_tray, add_shengji_hand, add_shengji_own_play, add_shengji_play_area,
+    add_shengji_result, add_shengji_self_panel, add_shengji_throw_penalty_effect,
+    select_forced_shengji_follow_cards, shengji_display_trump, shengji_level_label,
+};
+use crate::app::presentation::{
+    ACCENT, BORDER, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, StartGameSeatTransition, TEXT,
+    TableBackground, TableBackgroundMaterial, TurnBorderAnimationKey, TurnBorderMaterial,
+    add_auto_play_overlay, add_auto_play_robot_indicator, add_avatar, add_interaction_menu,
+    add_text, add_turn_border_trace, attach_start_game_seat_transition, decorate_panel_skin,
+    decorate_player_panel, spawn_node, table_material_params,
+};
+use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
+use crate::app::shell::{
+    ChatAuxiliaryAction, ChatPanelState, OpponentBadge, PlayerAvatarAnchor, SeatSide,
+    SocialUiAction, SocialUiState, UiAction, add_chat_panel, add_reconnecting_overlay,
+};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_client::NetworkState;
 use leocard_protocol::ShengjiBottomFlipRevealView;
 use leocard_protocol::{
@@ -8,8 +32,9 @@ use leocard_protocol::{
 
 const SHENGJI_PLAYER_COUNT: u8 = 4;
 
-pub struct ShengjiTableVisuals<'a> {
+pub(crate) struct ShengjiTableVisuals<'a> {
     pub assets: &'a UiAssets,
+    pub game_assets: &'a ShengjiAssets,
     pub avatars: &'a AvatarImages,
     pub appearance: &'a TableAppearance,
     pub brightness: f32,
@@ -22,29 +47,24 @@ pub struct ShengjiTableVisuals<'a> {
     pub presentation: &'a ShengjiPresentationState,
 }
 
-pub fn render_shengji_table(
+pub(crate) fn render_shengji_table(
     commands: &mut Commands,
     root: Entity,
     client: &ClientResource,
     game: &ShengjiSnapshot,
-    ui: &mut UiState,
+    ui: &mut ShengjiUiState,
+    social: &SocialUiState,
     chat: &ChatPanelState,
     visuals: ShengjiTableVisuals,
 ) {
-    if ui.shengji.observed_match != Some(game.match_id)
-        || ui.shengji.observed_hand_number != game.hand_number
-    {
-        ui.shengji.observed_match = Some(game.match_id);
-        ui.shengji.observed_hand_number = game.hand_number;
-        ui.shengji.selected.clear();
-        ui.shengji.buried_open = false;
+    if ui.observed_hand.observe((game.match_id, game.hand_number)) {
+        ui.selected.clear();
+        ui.buried_open = false;
     }
     if game.your_buried.is_empty() {
-        ui.shengji.buried_open = false;
+        ui.buried_open = false;
     }
-    ui.shengji
-        .selected
-        .retain(|card| game.your_hand.contains(card));
+    ui.selected.retain(|card| game.your_hand.contains(card));
     select_forced_shengji_follow_cards(game, ui);
     let content = spawn_node(
         commands,
@@ -111,7 +131,7 @@ pub fn render_shengji_table(
                 game,
                 visuals.assets,
                 visuals.avatars,
-                ui.social.interaction_menu_open,
+                social.interaction_menu_open,
                 visuals.turn_border_materials,
                 previous_trick,
                 start_transition_active,
@@ -135,10 +155,17 @@ pub fn render_shengji_table(
     if let ShengjiPhaseView::BottomFlipping { reveal } = &game.phase {
         add_shengji_bottom_flip(commands, table, game, reveal.as_ref(), visuals.assets);
     }
-    add_shengji_presentation_overlay(commands, table, game, visuals.presentation, visuals.assets);
+    add_shengji_presentation_overlay(
+        commands,
+        table,
+        game,
+        visuals.presentation,
+        visuals.assets,
+        visuals.game_assets,
+    );
 
     let finished = matches!(game.phase, ShengjiPhaseView::Finished { .. });
-    if ui.shengji.buried_open && !finished {
+    if ui.buried_open && !finished {
         add_shengji_private_buried(commands, table, game, visuals.assets);
     }
     if !finished {
@@ -179,14 +206,30 @@ pub fn render_shengji_table(
             | ShengjiPhaseView::Playing
     )
     .then_some(own.auto_play);
+    let previous_trick =
+        shengji_previous_trick_button_state(&game.phase, visuals.presentation.has_previous_trick());
+    let buried_cards = !game.your_buried.is_empty() && !finished;
+    let auxiliary_actions = [
+        ChatAuxiliaryAction {
+            label: "上轮",
+            action: previous_trick
+                .filter(|available| *available)
+                .map(|_| UiAction::Shengji(ShengjiUiAction::ShowPreviousTrick)),
+            highlighted: false,
+        },
+        ChatAuxiliaryAction {
+            label: "底牌",
+            action: buried_cards.then_some(UiAction::Shengji(ShengjiUiAction::ToggleBuried)),
+            highlighted: true,
+        },
+    ];
     add_chat_panel(
         commands,
         content,
         chat,
         visuals.assets,
         local_auto_play,
-        shengji_previous_trick_button_state(&game.phase, visuals.presentation.has_previous_trick()),
-        (!game.your_buried.is_empty() && !finished).then_some(true),
+        &auxiliary_actions,
     );
     if local_auto_play == Some(true) {
         add_auto_play_overlay(commands, content, visuals.assets);
@@ -206,7 +249,7 @@ pub fn render_shengji_table(
     }
 }
 
-pub fn shengji_previous_trick_button_state(
+pub(crate) fn shengji_previous_trick_button_state(
     phase: &ShengjiPhaseView,
     has_previous_trick: bool,
 ) -> Option<bool> {

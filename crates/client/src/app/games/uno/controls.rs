@@ -1,4 +1,15 @@
-use super::*;
+use super::{
+    UNO_ACTION_AREA_BOTTOM, UNO_ACTION_AREA_HEIGHT, UnoUiAction, UnoUiState, uno_card_is_playable,
+    uno_pair_for_selection, uno_ui_color,
+};
+use crate::app::presentation::{
+    ButtonKind, ButtonTint, DANGER, MUTED, PANEL, PanelSkin, READY, TEXT, add_action_button,
+    add_disabled_action_button, add_panel, add_section_title, add_text, spawn_node,
+};
+use crate::app::runtime::UiAssets;
+use crate::app::shell::UiAction;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
 use leocard_uno::{UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoPendingDrawKind};
 
@@ -6,7 +17,7 @@ pub(super) fn add_uno_actions(
     commands: &mut Commands,
     table: Entity,
     game: &UnoSnapshot,
-    ui: &UiState,
+    ui: &UnoUiState,
     assets: &UiAssets,
 ) {
     if !matches!(game.phase, UnoPhaseView::Playing)
@@ -35,7 +46,7 @@ pub(super) fn add_uno_actions(
                 },
                 None,
             );
-            if ui.uno.selected.len() == 1 {
+            if ui.selected.len() == 1 {
                 add_action_button(
                     commands,
                     actions,
@@ -89,14 +100,7 @@ pub(super) fn add_uno_actions(
         .iter()
         .find(|player| player.id == game.you)
         .map_or(0, |player| player.skipped_turns);
-    let selected = match ui
-        .uno
-        .selected
-        .iter()
-        .copied()
-        .collect::<Vec<_>>()
-        .as_slice()
-    {
+    let selected = match ui.selected.iter().copied().collect::<Vec<_>>().as_slice() {
         [card] if uno_card_is_playable(game, *card) => Some((*card, 1)),
         [first, second]
             if uno_card_is_playable(game, *first)

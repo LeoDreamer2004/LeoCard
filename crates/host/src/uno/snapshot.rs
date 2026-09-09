@@ -1,64 +1,14 @@
-use super::*;
+use super::{UnoSession, from_core_player, map_game_error, to_core_player};
+use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
-    GameEvent, GameKind, GameRules, GameSnapshot, GameViolation, LobbySnapshot, PlayerId,
-    RejectReason, RequestId, ServerEvent, UnoEvent, UnoPendingSwapView, UnoPhaseView,
+    GameViolation, PlayerId, RejectReason, RequestId, UnoEvent, UnoPendingSwapView, UnoPhaseView,
     UnoPlayerResult, UnoPlayerState, UnoRevealedHand, UnoSnapshot,
 };
 use leocard_uno::{GameError, PendingSwap, Phase, UnoCard};
 
 impl UnoSession {
-    pub(super) fn lobby_snapshot(&self) -> LobbySnapshot {
-        self.room
-            .lobby_snapshot(GameKind::Uno, GameRules::Uno(self.rules))
-    }
-
-    pub(super) fn broadcast_lobby(
-        &self,
-        origin: Option<(ConnectionId, RequestId)>,
-    ) -> Vec<Delivery> {
-        self.room
-            .broadcast_lobby(GameKind::Uno, GameRules::Uno(self.rules), origin)
-    }
-
-    pub(super) fn broadcast_game(
-        &self,
-        origin: Option<(ConnectionId, RequestId)>,
-    ) -> Vec<Delivery> {
-        assert!(self.game.is_some(), "game broadcast requires an UNO game");
-        self.room
-            .players
-            .iter()
-            .filter(|player| player.connected && !player.left)
-            .map(|player| {
-                let reply = origin
-                    .filter(|(connection, _)| *connection == player.connection)
-                    .map(|(_, request)| request);
-                self.room.delivery(
-                    player.connection,
-                    reply,
-                    ServerEvent::GameSnapshot(GameSnapshot::Uno(self.game_snapshot(player.id))),
-                )
-            })
-            .collect()
-    }
-
     pub(super) fn broadcast_events(&self, events: Vec<UnoEvent>) -> Vec<Delivery> {
-        events
-            .into_iter()
-            .flat_map(|event| {
-                self.room
-                    .players
-                    .iter()
-                    .filter(|player| player.connected && !player.left)
-                    .map(move |player| {
-                        self.room.delivery(
-                            player.connection,
-                            None,
-                            ServerEvent::GameEvent(GameEvent::Uno(event.clone())),
-                        )
-                    })
-            })
-            .collect()
+        self.room.broadcast_game_events(events)
     }
 
     pub(super) fn game_snapshot(&self, recipient: PlayerId) -> UnoSnapshot {
@@ -70,10 +20,11 @@ impl UnoSession {
             .iter()
             .filter(|player| !player.left)
             .map(|participant| {
+                let public = participant.public_metadata();
                 let state = game
-                    .player(to_core_player(participant.id))
+                    .player(to_core_player(public.id))
                     .expect("room and UNO core players stay aligned");
-                let mut inactive_hand = if self.rules.is_flip() && participant.id != recipient {
+                let mut inactive_hand = if self.rules.is_flip() && public.id != recipient {
                     state
                         .hand()
                         .iter()
@@ -84,22 +35,20 @@ impl UnoSession {
                 };
                 inactive_hand.sort_unstable_by_key(|card| (card.color(), card.face(), card.copy()));
                 UnoPlayerState {
-                    id: participant.id,
-                    profile_id: participant.profile_id,
-                    name: participant.name.clone(),
-                    avatar: participant.avatar,
-                    seat: participant.seat.expect("started players retain seats"),
+                    id: public.id,
+                    profile_id: public.profile_id,
+                    name: public.name,
+                    avatar: public.avatar,
+                    seat: public.seat.expect("started players retain seats"),
                     hand_len: state.hand().len() as u8,
                     inactive_hand,
-                    ready: participant.ready,
-                    connected: (participant.connected || participant.is_bot) && !participant.left,
-                    auto_play: participant.auto_play,
-                    reference_points: participant.reference_points,
-                    completed_games: participant.completed_games,
-                    game_profiles: participant.game_profiles.clone(),
-                    skipped_turns: game
-                        .skipped_turns(to_core_player(participant.id))
-                        .unwrap_or(0),
+                    ready: public.ready,
+                    connected: public.connected,
+                    auto_play: public.auto_play,
+                    reference_points: public.reference_points,
+                    completed_games: public.completed_games,
+                    game_profiles: public.game_profiles,
+                    skipped_turns: game.skipped_turns(to_core_player(public.id)).unwrap_or(0),
                     eliminated: state.eliminated(),
                 }
             })

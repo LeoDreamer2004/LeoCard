@@ -3,6 +3,9 @@ use super::view::{
     add_chip_zone_panel, add_fold_card_feedback, pot_divider_visual, pot_eligibility_breath,
 };
 use super::*;
+use crate::app::games::texas_holdem::{TexasSoundKind, action_feedback_visual};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::{App, Startup, With};
 use leocard_protocol::ProfileId;
 use leocard_protocol::{
     MatchId, PlayerId, SeatId, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemPlayerState,

@@ -1,13 +1,17 @@
 //! Bevy 场景基础节点与静态资源的统一加载。
 
-use super::*;
+use super::{
+    CHAT_EMOJI_ASSET_PATHS, CommonAudioAssets, ControlAssets, PlayingCardAssets, SocialAssets,
+    TABLE_FELT_ASSET, UI_FONT_ASSET, UiAssets, card_asset_path, interaction_cooldown_mask_image,
+};
+use crate::app::shell::{INTERACTION_COOLDOWN_MASK_FRAMES, PlayerInteractionLayer};
+use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerInteractionKind, QUICK_VOICE_COUNT};
 use leocard_qigui523::build_deck;
-use leocard_uno::{Mode, UnoRuleSet, build_deck_for_rules};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-pub fn setup_camera(mut commands: Commands) {
+pub(crate) fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2d);
     commands.spawn((
         PlayerInteractionLayer,
@@ -24,7 +28,7 @@ pub fn setup_camera(mut commands: Commands) {
     ));
 }
 
-pub fn load_ui_assets(
+pub(crate) fn load_ui_assets(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut images: ResMut<Assets<Image>>,
@@ -34,36 +38,6 @@ pub fn load_ui_assets(
         cards.entry((card.rank(), card.suit())).or_insert_with(|| {
             asset_server.load::<Image>(card_asset_path(card.rank(), card.suit()))
         });
-    }
-    let mut uno_cards = HashMap::new();
-    for card in build_deck_for_rules(UnoRuleSet {
-        swap_pack: true,
-        reverse_pack: true,
-        stack_pack: true,
-        ..UnoRuleSet::default()
-    }) {
-        uno_cards
-            .entry((card.color(), card.face()))
-            .or_insert_with(|| asset_server.load::<Image>(uno_card_asset_path(card)));
-    }
-    for card in build_deck_for_rules(UnoRuleSet {
-        mode: Mode::NoMercy,
-        ..UnoRuleSet::default()
-    }) {
-        uno_cards
-            .entry((card.color(), card.face()))
-            .or_insert_with(|| asset_server.load::<Image>(uno_card_asset_path(card)));
-    }
-    for card in build_deck_for_rules(UnoRuleSet {
-        mode: Mode::Flip,
-        ..UnoRuleSet::default()
-    }) {
-        for face in [Some(card), card.opposite_public_face()] {
-            let Some(face) = face else { continue };
-            uno_cards
-                .entry((face.color(), face.face()))
-                .or_insert_with(|| asset_server.load::<Image>(uno_card_asset_path(face)));
-        }
     }
     let mut interaction_images = HashMap::new();
     let mut interaction_sounds = HashMap::new();
@@ -113,65 +87,11 @@ pub fn load_ui_assets(
     let quick_voice_sounds = (0..QUICK_VOICE_COUNT)
         .map(|index| asset_server.load(format!("vendor/noname/voice/male/{index}.mp3")))
         .collect();
-    let mahjong_kinds = leocard_mahjong::build_deck()
-        .into_iter()
-        .map(|tile| tile.kind())
-        .collect::<HashSet<_>>();
-    let mahjong_tiles = mahjong_kinds
-        .iter()
-        .copied()
-        .map(|kind| (kind, asset_server.load(mahjong_tile_asset_path(kind))))
-        .collect();
-    let mahjong_tile_heights = mahjong_kinds
-        .into_iter()
-        .map(|kind| {
-            (
-                kind,
-                asset_server.load(mahjong_tile_height_asset_path(kind)),
-            )
-        })
-        .collect();
-
-    commands.insert_resource(ShengjiSoundAssets::load(&asset_server));
     commands.insert_resource(UiAssets {
         font: asset_server.load(UI_FONT_ASSET),
-        games: GameVisualAssets {
+        playing_cards: PlayingCardAssets {
             cards,
             card_back: asset_server.load("vendor/kenney/boardgame/PNG/Cards/cardBack_blue4.png"),
-            uno_cards,
-            uno_card_back: asset_server.load("cards/uno/card_back.png"),
-            mahjong_tiles,
-            mahjong_tile_heights,
-            mahjong_tile_back: asset_server.load("cards/mahjong/hong-kong/back.png"),
-            mahjong_turn_arrow: asset_server
-                .load("vendor/kenney/ui/PNG/Yellow/Default/arrow_basic_e.png"),
-            poker_chips: HashMap::from([
-                (
-                    1,
-                    asset_server.load("vendor/kenney/boardgame/PNG/Chips/chipWhiteBlue.png"),
-                ),
-                (
-                    5,
-                    asset_server.load("vendor/kenney/boardgame/PNG/Chips/chipRedWhite.png"),
-                ),
-                (
-                    10,
-                    asset_server.load("vendor/kenney/boardgame/PNG/Chips/chipBlueWhite.png"),
-                ),
-                (
-                    25,
-                    asset_server.load("vendor/kenney/boardgame/PNG/Chips/chipGreenWhite.png"),
-                ),
-                (
-                    100,
-                    asset_server.load("vendor/kenney/boardgame/PNG/Chips/chipBlackWhite.png"),
-                ),
-            ]),
-            texas_sounds: TexasSoundAssets::load(&asset_server),
-            uno_sounds: UnoSoundAssets::load(&asset_server),
-            sequence_airplane: asset_server.load("ui/effects/sequence_airplane.png"),
-            shengji_target: asset_server.load("ui/effects/shengji_target.png"),
-            shengji_dart: asset_server.load("ui/effects/shengji_dart.png"),
         },
         controls: ControlAssets {
             primary_button: asset_server

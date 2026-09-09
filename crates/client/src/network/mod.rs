@@ -4,5 +4,5 @@ mod state;
 mod tests;
 mod worker;
 
-pub use client::TcpGameClient;
-pub use state::{LocalPlayerConnection, NETWORK_ROOM_ID, NetworkStartError, NetworkState};
+pub use client::*;
+pub use state::*;

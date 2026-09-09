@@ -1,4 +1,6 @@
-use super::*;
+use super::{
+    COLOR_ROULETTE_REVEAL_START_DELAY, DRAW_REVEAL_START_DELAY, PendingDrawReveal, from_core_player,
+};
 use leocard_protocol::UnoEvent;
 use leocard_uno::{ActionOutcome, GameState, Phase, PlayedEffect, UnoCard, UnoColor};
 
@@ -157,7 +159,7 @@ pub(super) fn events_for_outcome(
     events
 }
 
-pub(super) fn public_card_backs(cards: &[UnoCard]) -> Vec<UnoCard> {
+fn public_card_backs(cards: &[UnoCard]) -> Vec<UnoCard> {
     cards
         .iter()
         .filter_map(|card| card.opposite_public_face())

@@ -7,6 +7,5 @@ mod support;
 #[cfg(test)]
 mod tests;
 
-use state::MAHJONG_DEAL_INTERVAL;
-pub use state::MahjongSession;
+pub use state::*;
 use support::*;

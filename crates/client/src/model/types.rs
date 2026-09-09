@@ -2,6 +2,29 @@ use leocard_protocol::{ChatMessage, PlayerInteraction};
 use std::collections::VecDeque;
 
 #[derive(Clone, Debug)]
+pub(super) struct GameEventInbox<E>(VecDeque<E>);
+
+impl<E> Default for GameEventInbox<E> {
+    fn default() -> Self {
+        Self(VecDeque::new())
+    }
+}
+
+impl<E> GameEventInbox<E> {
+    pub(super) fn push(&mut self, event: E) {
+        self.0.push_back(event);
+    }
+
+    pub(super) fn take(&mut self) -> Vec<E> {
+        self.0.drain(..).collect()
+    }
+
+    pub(super) fn clear(&mut self) {
+        self.0.clear();
+    }
+}
+
+#[derive(Clone, Debug)]
 pub(super) struct Sequenced<T> {
     pub(super) value: Option<T>,
     pub(super) serial: u64,
@@ -30,8 +53,8 @@ impl<T> Sequenced<T> {
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct PendingEvents {
-    pub(super) player_interactions: VecDeque<PlayerInteraction>,
-    pub(super) chat_messages: VecDeque<ChatMessage>,
+    pub(super) player_interactions: GameEventInbox<PlayerInteraction>,
+    pub(super) chat_messages: GameEventInbox<ChatMessage>,
 }
 
 impl PendingEvents {

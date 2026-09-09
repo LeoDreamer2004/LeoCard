@@ -1,11 +1,26 @@
 //! 德州扑克牌桌视图。房间、聊天、头像、桌布和按钮资源均复用公共客户端层。
 
-use super::*;
+use super::{
+    TexasChipTableState, TexasHoldemAssets, TexasHoldemUiState, add_texas_board_back,
+    add_texas_board_face, add_texas_chip_areas, add_texas_draw_pile, add_texas_hand_result,
+    add_texas_opponent, add_texas_own_area, add_texas_showdown_reveal, spawn_texas_initial_deal,
+    street_label,
+};
+use crate::app::presentation::{
+    DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT, TableBackground,
+    TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay, add_text, spawn_node,
+    table_material_params,
+};
+use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
+use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_client::NetworkState;
 use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemSnapshot};
 
-pub struct TexasTableVisuals<'a> {
+pub(crate) struct TexasTableVisuals<'a> {
     pub assets: &'a UiAssets,
+    pub game_assets: &'a TexasHoldemAssets,
     pub avatars: &'a AvatarImages,
     pub appearance: &'a TableAppearance,
     pub brightness: f32,
@@ -17,17 +32,19 @@ pub struct TexasTableVisuals<'a> {
     pub game_summary: &'a GameSummaryAnimation,
 }
 
-pub fn render_texas_holdem_table(
+pub(crate) fn render_texas_holdem_table(
     commands: &mut Commands,
     root: Entity,
     client: &ClientResource,
     game: &TexasHoldemSnapshot,
-    ui: &mut UiState,
+    ui: &mut TexasHoldemUiState,
+    social: &SocialUiState,
     chat: &ChatPanelState,
     visuals: TexasTableVisuals<'_>,
 ) {
     let TexasTableVisuals {
         assets,
+        game_assets,
         avatars,
         appearance,
         brightness,
@@ -104,8 +121,9 @@ pub fn render_texas_holdem_table(
                 player,
                 relative,
                 game,
-                ui.social.interaction_menu_open,
+                social.interaction_menu_open,
                 assets,
+                game_assets,
                 avatars,
                 turn_border_materials,
                 chip_state,
@@ -114,14 +132,11 @@ pub fn render_texas_holdem_table(
         }
     }
 
-    let new_hand = ui.texas_holdem.observed_match != Some(game.match_id)
-        || ui.texas_holdem.observed_hand_number != game.hand_number;
+    let new_hand = ui.observed_table.observe((game.match_id, game.hand_number));
     let new_community_from = if new_hand {
         0
     } else {
-        ui.texas_holdem
-            .observed_community_len
-            .min(game.community.len())
+        ui.observed_table.state.min(game.community.len())
     };
     let initial_deal =
         new_hand.then(|| spawn_texas_initial_deal(commands, table, game, own.seat, assets));
@@ -135,7 +150,15 @@ pub fn render_texas_holdem_table(
         },
         |rules| if rules.omaha { 4 } else { 2 },
     );
-    add_texas_chip_areas(commands, table, game, hole_card_count, chip_state, assets);
+    add_texas_chip_areas(
+        commands,
+        table,
+        game,
+        hole_card_count,
+        chip_state,
+        assets,
+        game_assets,
+    );
     add_community_area(
         commands,
         table,
@@ -152,6 +175,7 @@ pub fn render_texas_holdem_table(
         initial_deal.as_ref().map(|deal| deal.own_delays.as_slice()),
         ui,
         assets,
+        game_assets,
         avatars,
         turn_border_materials,
         chip_state,
@@ -162,14 +186,12 @@ pub fn render_texas_holdem_table(
 
     let local_auto_play =
         matches!(game.phase, TexasHoldemPhaseView::Betting { .. }).then_some(own.auto_play);
-    add_chat_panel(commands, content, chat, assets, local_auto_play, None, None);
+    add_chat_panel(commands, content, chat, assets, local_auto_play, &[]);
     if local_auto_play == Some(true) {
         add_auto_play_overlay(commands, content, assets);
     }
 
-    ui.texas_holdem.observed_match = Some(game.match_id);
-    ui.texas_holdem.observed_hand_number = game.hand_number;
-    ui.texas_holdem.observed_community_len = game.community.len();
+    ui.observed_table.state = game.community.len();
 }
 
 fn add_community_area(

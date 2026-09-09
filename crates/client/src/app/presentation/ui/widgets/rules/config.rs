@@ -1,62 +1,18 @@
-use super::*;
-use leocard_mahjong::MahjongRuleSet;
-use leocard_qigui523::QiGuiRuleSet;
-use leocard_shengji::ShengjiRuleSet;
-use leocard_texas_holdem::TexasHoldemRuleSet;
-use leocard_uno::UnoRuleSet;
+use super::super::{add_text, spawn_node};
+use super::add_rule_help;
+use crate::app::presentation::{ButtonTint, HEADER_BG, MUTED, TEXT};
+use crate::app::runtime::UiAssets;
+use crate::app::shell::UiAction;
+use bevy::prelude::*;
 
-pub trait EditableRuleSet: Copy {
+pub(crate) trait EditableRuleSet: Copy {
     const ROW_HEIGHT: f32;
     const VALUE_WIDTH: f32;
 
     fn update_action(self) -> UiAction;
 }
 
-macro_rules! editable_rule_set {
-    ($rules:ty, $action:expr, $row_height:expr, $value_width:expr) => {
-        impl EditableRuleSet for $rules {
-            const ROW_HEIGHT: f32 = $row_height;
-            const VALUE_WIDTH: f32 = $value_width;
-
-            fn update_action(self) -> UiAction {
-                ($action)(self)
-            }
-        }
-    };
-}
-
-editable_rule_set!(
-    QiGuiRuleSet,
-    |rules| UiAction::QiGui523(QiGui523UiAction::UpdateRules(rules)),
-    34.0,
-    68.0
-);
-editable_rule_set!(
-    TexasHoldemRuleSet,
-    |rules| UiAction::TexasHoldem(TexasHoldemUiAction::UpdateRules(rules)),
-    38.0,
-    78.0
-);
-editable_rule_set!(
-    UnoRuleSet,
-    |rules| UiAction::Uno(UnoUiAction::UpdateRules(rules)),
-    38.0,
-    78.0
-);
-editable_rule_set!(
-    ShengjiRuleSet,
-    |rules| UiAction::Shengji(ShengjiUiAction::UpdateRules(rules)),
-    38.0,
-    92.0
-);
-editable_rule_set!(
-    MahjongRuleSet,
-    |rules| UiAction::Mahjong(MahjongUiAction::UpdateRules(rules)),
-    38.0,
-    92.0
-);
-
-pub struct RuleConfigRow<'a, R> {
+pub(crate) struct RuleConfigRow<'a, R> {
     pub label: &'a str,
     pub value: String,
     pub help: &'a str,
@@ -65,12 +21,7 @@ pub struct RuleConfigRow<'a, R> {
     pub next: Option<R>,
 }
 
-pub type TexasRuleConfigRow<'a> = RuleConfigRow<'a, TexasHoldemRuleSet>;
-pub type UnoRuleConfigRow<'a> = RuleConfigRow<'a, UnoRuleSet>;
-pub type ShengjiRuleConfigRow<'a> = RuleConfigRow<'a, ShengjiRuleSet>;
-pub type MahjongRuleConfigRow<'a> = RuleConfigRow<'a, MahjongRuleSet>;
-
-pub fn add_rule_config_row<R: EditableRuleSet>(
+pub(crate) fn add_rule_config_row<R: EditableRuleSet>(
     commands: &mut Commands,
     parent: Entity,
     spec: RuleConfigRow<'_, R>,

@@ -1,11 +1,22 @@
 //! 七鬼五二三顺子、连对、飞机、炸弹与天炸场景表现。
 
-use super::*;
+use super::{
+    ActivePlayEffect, BombEffectBody, BombExplosionFlash, BombExplosionParticle, BombExplosionRing,
+    BombFuseSpark, HeavenBombBackdrop, HeavenBombFlash, HeavenBombParticle, HeavenBombRay,
+    HeavenBombShockRing, HeavenBombTitle, HeavenBombTitleText, PlayEffectRoot, QiGui523Assets,
+    SequenceAirplane, SequenceAirplaneTrail, SequenceEffectLabel, SequenceEffectLabelPart,
+    SequenceEffectMotif, SequenceFlowerPart, SequenceGuideSegment, SequenceWindStreak,
+};
+use crate::app::presentation::CardSize;
+use crate::app::presentation::{TABLE_CARD_REVEAL, add_text, spawn_node};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::QiGui523Snapshot;
 use leocard_protocol::{PlayerId, TABLE_SEAT_COUNT};
 use leocard_qigui523::QiGuiPlayKind;
 
-pub fn add_play_effect_overlay(
+pub(super) fn add_play_effect_overlay(
     commands: &mut Commands,
     table: Entity,
     full_screen_parent: Entity,
@@ -50,7 +61,7 @@ pub fn add_play_effect_overlay(
     }
 }
 
-pub fn add_sequence_play_decoration(
+pub(super) fn add_sequence_play_decoration(
     commands: &mut Commands,
     play_area: Entity,
     card_count: usize,
@@ -58,6 +69,7 @@ pub fn add_sequence_play_decoration(
     color: Color,
     motif: SequenceEffectMotif,
     assets: &UiAssets,
+    game_assets: &QiGui523Assets,
 ) {
     let (width, _) = CardSize::Seat.dimensions();
     let cards_width = width + TABLE_CARD_REVEAL * card_count.saturating_sub(1) as f32;
@@ -195,7 +207,7 @@ pub fn add_sequence_play_decoration(
         SequenceEffectMotif::Wind => add_sequence_wind(commands, play_area, cards_width, color),
         SequenceEffectMotif::Flower => add_sequence_flower(commands, play_area, cards_width, color),
         SequenceEffectMotif::Airplane => {
-            add_sequence_airplane(commands, play_area, cards_width, color, assets)
+            add_sequence_airplane(commands, play_area, cards_width, color, game_assets)
         }
     }
 }
@@ -305,12 +317,12 @@ fn add_sequence_airplane(
     parent: Entity,
     cards_width: f32,
     color: Color,
-    assets: &UiAssets,
+    game_assets: &QiGui523Assets,
 ) {
     let airplane = commands
         .spawn((
             SequenceAirplane,
-            ImageNode::new(assets.games.sequence_airplane.clone()).with_color(Color::NONE),
+            ImageNode::new(game_assets.sequence_airplane.clone()).with_color(Color::NONE),
             Node {
                 width: px(62.0),
                 height: px(42.0),

@@ -1,10 +1,43 @@
 //! 七鬼五二三终局结算弹窗与逐行得分演出。
 
-use super::*;
-use leocard_protocol::GamePhaseView;
-use leocard_protocol::QiGui523Snapshot;
+use crate::app::presentation::{
+    ACCENT, AnimatedSummaryScore, ButtonKind, DANGER, GameSummaryActions, GameSummaryAnimation,
+    GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, PANEL_ALT, PanelSkin, READY,
+    SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_HAND_REVEAL_DURATION, SUMMARY_ROW_INTERVAL,
+    SUMMARY_ROW_START_DELAY, SummaryDescriptor, TEXT, add_action_button, add_animated_summary_text,
+    add_disabled_action_button, add_ready_avatar, animated_summary_score, decorate_panel_skin,
+    sorted_summary_scores, spawn_node, summary_modal_visual, summary_row_progress,
+};
+use crate::app::runtime::{AvatarImages, UiAssets};
+use crate::app::shell::{LobbyUiAction, UiAction};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
+use leocard_protocol::{GamePhaseView, QiGui523Snapshot};
 
-pub fn add_game_summary_modal(
+pub(crate) fn qigui523_summary_descriptor(game: &QiGui523Snapshot) -> Option<SummaryDescriptor> {
+    let GamePhaseView::Finished {
+        match_id,
+        scores,
+        reference_changes,
+        ..
+    } = &game.phase
+    else {
+        return None;
+    };
+    Some(SummaryDescriptor {
+        match_id: *match_id,
+        texas_hand_number: None,
+        settlement_index: None,
+        entry_count: scores.len(),
+        nonnegative_outcome: reference_changes
+            .iter()
+            .find(|change| change.player == game.you)
+            .is_none_or(|change| change.delta >= 0),
+        reveal_duration: SUMMARY_HAND_REVEAL_DURATION,
+    })
+}
+
+pub(super) fn add_game_summary_modal(
     commands: &mut Commands,
     table: Entity,
     game: &QiGui523Snapshot,
@@ -243,33 +276,4 @@ pub fn add_game_summary_modal(
             assets,
         );
     }
-}
-
-pub fn add_animated_summary_text(
-    commands: &mut Commands,
-    parent: Entity,
-    text: impl Into<String>,
-    size: f32,
-    color: Color,
-    delay: f32,
-    elapsed: f32,
-    assets: &UiAssets,
-) -> Entity {
-    let opacity = if delay == 0.0 {
-        summary_modal_visual(elapsed).opacity
-    } else {
-        summary_row_progress(elapsed, delay)
-    };
-    let entity = add_text(
-        commands,
-        parent,
-        text,
-        size,
-        color.with_alpha(opacity),
-        assets,
-    );
-    commands
-        .entity(entity)
-        .insert(AnimatedSummaryText { color, delay });
-    entity
 }

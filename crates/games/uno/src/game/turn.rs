@@ -1,4 +1,4 @@
-use super::*;
+use super::{ActionOutcome, GameError, GameState, Phase, UnoCard, UnoChallengeResult, UnoPlayerId};
 
 impl GameState {
     /// 非下家在窗口关闭前抢出与桌面牌颜色、牌面完全一致的另一张物理牌。

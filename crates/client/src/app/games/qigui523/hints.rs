@@ -1,6 +1,7 @@
 //! 七鬼五二三的提示策略与无牌可压反馈。
 
-use super::*;
+use super::QiGui523UiState;
+use bevy::prelude::*;
 use leocard_protocol::PublicPlayRecord;
 use leocard_protocol::QiGui523Snapshot;
 use leocard_qigui523::{
@@ -9,18 +10,18 @@ use leocard_qigui523::{
 };
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum HintDecision {
+pub(crate) enum HintDecision {
     Select(Vec<QiGuiCard>),
     Pass,
 }
 
 #[derive(Component)]
-pub struct PlaySelectionCount;
+pub(crate) struct PlaySelectionCount;
 
 #[derive(Component)]
-pub struct NoLegalResponseHint;
+pub(crate) struct NoLegalResponseHint;
 
-pub fn next_greedy_hint(
+pub(crate) fn next_greedy_hint(
     strategy: &mut QiGui523Bot,
     hand: &[QiGuiCard],
     current_play: &ClassifiedPlay,
@@ -43,7 +44,7 @@ pub fn next_greedy_hint(
     })
 }
 
-pub fn game_has_legal_response(game: &QiGui523Snapshot, rules: &QiGuiRuleSet) -> bool {
+pub(super) fn game_has_legal_response(game: &QiGui523Snapshot, rules: &QiGuiRuleSet) -> bool {
     let Some(trick) = game.trick.as_ref() else {
         return false;
     };
@@ -70,11 +71,11 @@ pub fn game_has_legal_response(game: &QiGui523Snapshot, rules: &QiGuiRuleSet) ->
     })
 }
 
-pub fn sync_selection_label(
-    ui: Res<UiState>,
+pub(crate) fn sync_selection_label(
+    ui: Res<QiGui523UiState>,
     mut labels: Query<&mut Text, With<PlaySelectionCount>>,
 ) {
-    let expected = format!("出牌 ({})", ui.qigui523.selected.len());
+    let expected = format!("出牌 ({})", ui.selected.len());
     for mut label in &mut labels {
         if label.0 != expected {
             label.0.clone_from(&expected);
@@ -82,7 +83,7 @@ pub fn sync_selection_label(
     }
 }
 
-pub fn animate_no_legal_response_hint(
+pub(crate) fn animate_no_legal_response_hint(
     time: Res<Time>,
     mut hints: Query<&mut UiTransform, With<NoLegalResponseHint>>,
 ) {

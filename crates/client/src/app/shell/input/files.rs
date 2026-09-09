@@ -1,11 +1,23 @@
 //! 头像与桌面背景文件选择。
+use super::super::UiState;
+use crate::app::runtime::{
+    AppearancePreferences, AvatarImages, AvatarPicker, AvatarPickerReceiver, ClientResource,
+    PageErrorState, TableAppearance, TableFeltPicker, TableFeltPickerReceiver,
+    image_handle_from_png, normalize_avatar, save_appearance_preferences,
+};
+use bevy::asset::RenderAssetUsages;
+use bevy::prelude::*;
+use bevy::window::FileDragAndDrop;
+use std::path::PathBuf;
+use std::sync::mpsc::TryRecvError;
+use std::sync::{Mutex, mpsc};
+use std::{fs, thread};
 
-use super::*;
-
-pub fn handle_avatar_drop(
+pub(crate) fn handle_avatar_drop(
     mut dropped_files: MessageReader<FileDragAndDrop>,
     client: Option<Res<ClientResource>>,
-    mut form: ResMut<ConnectionForm>,
+    mut appearance: ResMut<AppearancePreferences>,
+    mut page_error: ResMut<PageErrorState>,
     mut ui: ResMut<UiState>,
 ) {
     for event in dropped_files.read() {
@@ -17,16 +29,16 @@ pub fn handle_avatar_drop(
         }
         match normalize_avatar(path_buf) {
             Ok(png) => {
-                form.avatar_png = Some(png);
-                form.error = save_preferences(&form).err();
+                appearance.avatar_png = Some(png);
+                page_error.error = save_appearance_preferences(&appearance).err();
             }
-            Err(error) => form.error = Some(error),
+            Err(error) => page_error.error = Some(error),
         }
         ui.dirty = true;
     }
 }
 
-pub fn start_avatar_picker() -> Result<AvatarPickerReceiver, String> {
+pub(crate) fn start_avatar_picker() -> Result<AvatarPickerReceiver, String> {
     let (sender, receiver) = mpsc::channel();
     thread::Builder::new()
         .name("leocard-avatar-picker".to_owned())
@@ -37,9 +49,10 @@ pub fn start_avatar_picker() -> Result<AvatarPickerReceiver, String> {
     Ok(Mutex::new(receiver))
 }
 
-pub fn poll_avatar_picker(
+pub(crate) fn poll_avatar_picker(
     mut picker: ResMut<AvatarPicker>,
-    mut form: ResMut<ConnectionForm>,
+    mut appearance: ResMut<AppearancePreferences>,
+    mut page_error: ResMut<PageErrorState>,
     mut ui: ResMut<UiState>,
 ) {
     let Some(receiver) = picker.pending.as_ref() else {
@@ -58,13 +71,13 @@ pub fn poll_avatar_picker(
     match result {
         Ok(Some(path)) => match normalize_avatar(&path) {
             Ok(png) => {
-                form.avatar_png = Some(png);
-                form.error = save_preferences(&form).err();
+                appearance.avatar_png = Some(png);
+                page_error.error = save_appearance_preferences(&appearance).err();
             }
-            Err(error) => form.error = Some(error),
+            Err(error) => page_error.error = Some(error),
         },
         Ok(None) => {}
-        Err(error) => form.error = Some(error),
+        Err(error) => page_error.error = Some(error),
     }
     ui.dirty = true;
 }
@@ -76,7 +89,7 @@ fn open_avatar_dialog() -> Result<Option<PathBuf>, String> {
         .pick_file())
 }
 
-pub fn start_table_felt_picker() -> Result<TableFeltPickerReceiver, String> {
+pub(crate) fn start_table_felt_picker() -> Result<TableFeltPickerReceiver, String> {
     let (sender, receiver) = mpsc::channel();
     thread::Builder::new()
         .name("leocard-table-felt-picker".to_owned())
@@ -94,14 +107,14 @@ fn open_table_felt_dialog() -> Result<Option<PathBuf>, String> {
         .pick_file())
 }
 
-pub fn decode_table_felt_image(bytes: &[u8]) -> Result<image::DynamicImage, String> {
+pub(crate) fn decode_table_felt_image(bytes: &[u8]) -> Result<image::DynamicImage, String> {
     image::load_from_memory(bytes)
         .map_err(|error| format!("桌布必须是有效的 PNG、JPG 或 JPEG 图片：{error}"))
 }
 
-pub fn poll_table_felt_picker(
+pub(crate) fn poll_table_felt_picker(
     mut picker: ResMut<TableFeltPicker>,
-    mut form: ResMut<ConnectionForm>,
+    mut preferences: ResMut<AppearancePreferences>,
     mut appearance: ResMut<TableAppearance>,
     mut ui: ResMut<UiState>,
 ) {
@@ -120,8 +133,8 @@ pub fn poll_table_felt_picker(
     picker.pending = None;
     match result {
         Ok(Some(path)) => {
-            form.table_felt_path = Some(path);
-            appearance.error = save_preferences(&form).err();
+            preferences.table_felt_path = Some(path);
+            appearance.error = save_appearance_preferences(&preferences).err();
         }
         Ok(None) => {}
         Err(error) => appearance.error = Some(error),
@@ -129,19 +142,21 @@ pub fn poll_table_felt_picker(
     ui.dirty = true;
 }
 
-pub fn sync_table_appearance(
-    form: Res<ConnectionForm>,
+pub(crate) fn sync_table_appearance(
+    preferences: Res<AppearancePreferences>,
     mut appearance: ResMut<TableAppearance>,
     mut images: ResMut<Assets<Image>>,
     mut ui: ResMut<UiState>,
 ) {
-    if appearance.loaded_path == form.table_felt_path {
+    if appearance.loaded_path == preferences.table_felt_path {
         return;
     }
-    appearance.loaded_path.clone_from(&form.table_felt_path);
+    appearance
+        .loaded_path
+        .clone_from(&preferences.table_felt_path);
     appearance.custom_felt = None;
     appearance.error = None;
-    if let Some(path) = &form.table_felt_path {
+    if let Some(path) = &preferences.table_felt_path {
         let result = fs::read(path)
             .map_err(|error| format!("无法读取桌布图片：{error}"))
             .and_then(|bytes| decode_table_felt_image(&bytes));
@@ -159,19 +174,19 @@ pub fn sync_table_appearance(
     ui.dirty = true;
 }
 
-pub fn sync_avatar_images(
+pub(crate) fn sync_avatar_images(
     client: Option<Res<ClientResource>>,
-    form: Res<ConnectionForm>,
+    preferences: Res<AppearancePreferences>,
     mut avatar_images: ResMut<AvatarImages>,
     mut images: ResMut<Assets<Image>>,
     mut ui: ResMut<UiState>,
 ) {
-    if avatar_images.local_png != form.avatar_png {
-        avatar_images.local = form
+    if avatar_images.local_png != preferences.avatar_png {
+        avatar_images.local = preferences
             .avatar_png
             .as_deref()
             .and_then(|png| image_handle_from_png(png, &mut images));
-        avatar_images.local_png = form.avatar_png.clone();
+        avatar_images.local_png = preferences.avatar_png.clone();
         ui.dirty = true;
     }
     let Some(client) = client.as_deref() else {

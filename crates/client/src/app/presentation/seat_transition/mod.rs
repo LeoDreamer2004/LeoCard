@@ -3,8 +3,5 @@
 mod state;
 mod systems;
 
-use bevy::prelude::*;
-pub use state::*;
-pub use systems::*;
-
-pub const START_GAME_SEAT_MOVE_DURATION: f32 = 0.72;
+pub(crate) use state::*;
+pub(crate) use systems::*;

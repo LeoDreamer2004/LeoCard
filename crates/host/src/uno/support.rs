@@ -1,9 +1,10 @@
-use super::*;
+use crate::HostError;
 use leocard_protocol::{PlayerId, UnoProfileStats, UnoViolation};
 use leocard_uno::{
     GameError, GameState, UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoPlayerId, UnoRuleSet,
     build_deck_for_rules, build_flip_dark_sides, pair_flip_deck,
 };
+use std::collections::HashSet;
 
 pub(super) fn preferred_color(game: &GameState, player: UnoPlayerId) -> UnoColor {
     let colors = match game.flip_side() {

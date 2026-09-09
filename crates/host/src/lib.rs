@@ -3,7 +3,9 @@
 //! Tokio TCP 层只负责把连接映射为 [`ConnectionId`]、解码消息、调用
 //! [`HostSession::handle`]，再把 [`Delivery`] 写回指定连接。
 
+mod lifecycle;
 mod mahjong;
+mod player;
 mod qigui523;
 mod room;
 mod session;
@@ -103,21 +105,21 @@ impl From<leocard_mahjong::GameError> for HostError {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct TurnTimerState {
+struct TurnTimerState {
     player: PlayerId,
     base_remaining: Duration,
     reserve_remaining: Vec<Duration>,
 }
 
-pub(crate) const AUTO_PLAY_DELAY: Duration = Duration::from_secs(1);
+const AUTO_PLAY_DELAY: Duration = Duration::from_secs(1);
 
 #[derive(Clone, Debug)]
-pub(crate) struct AutoPlayDelayState {
+struct AutoPlayDelayState {
     player: PlayerId,
     remaining: Duration,
 }
 
-pub(crate) fn valid_identity_proof(room_id: RoomId, request: &JoinRequest) -> bool {
+fn valid_identity_proof(room_id: RoomId, request: &JoinRequest) -> bool {
     let Ok(verifying_key) = VerifyingKey::from_bytes(&request.profile_id.0) else {
         return false;
     };
@@ -129,14 +131,14 @@ pub(crate) fn valid_identity_proof(room_id: RoomId, request: &JoinRequest) -> bo
         .is_ok()
 }
 
-pub(crate) fn new_match_id() -> MatchId {
+fn new_match_id() -> MatchId {
     let mut bytes = [0; 16];
     bytes[..8].copy_from_slice(&fastrand::u64(..).to_be_bytes());
     bytes[8..].copy_from_slice(&fastrand::u64(..).to_be_bytes());
     MatchId(bytes)
 }
 
-pub(crate) fn valid_avatar_png(png: &[u8]) -> bool {
+fn valid_avatar_png(png: &[u8]) -> bool {
     if png.is_empty() || png.len() > MAX_AVATAR_BYTES {
         return false;
     }

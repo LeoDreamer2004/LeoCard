@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    GameError, GameResult, GameState, Phase, PlayerState, UnoCard, UnoColor, UnoDirection, UnoFace,
+    UnoFlipSide, UnoPendingDrawKind, UnoPlayerId, faces_match, placements_with_eliminations,
+    reference_point_deltas_for_placements,
+};
 
 impl GameState {
     pub(super) fn apply_starting_card(&mut self) -> Result<(), GameError> {

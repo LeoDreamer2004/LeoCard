@@ -1,143 +1,74 @@
 //! 跨游戏结算界面的入场、计分与音效演出。
 
-use super::*;
-use leocard_protocol::{
-    GamePhaseView, MahjongPhaseView, PlayerScore, TexasHoldemPhaseView, UnoPhaseView,
+use super::{
+    AnimatedSignedSummaryScore, AnimatedSummaryScore, AnimatedSummaryText, GameSummaryActions,
+    GameSummaryAnimation, GameSummaryDivider, GameSummaryModal, GameSummaryPanelTexture,
+    GameSummaryRow, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_MODAL_ENTRY_DURATION,
+    SUMMARY_ROW_ENTRY_DURATION, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY,
+    SUMMARY_SCORE_COUNT_DURATION,
 };
+use crate::app::games::game_summary_descriptor;
+use crate::app::{ClientResource, PANEL_ALT, UiAssets, ease_out_cubic};
+use bevy::prelude::*;
+use leocard_protocol::PlayerScore;
 
-pub fn update_summary_animation(
+pub(crate) fn add_animated_summary_text(
+    commands: &mut Commands,
+    parent: Entity,
+    text: impl Into<String>,
+    size: f32,
+    color: Color,
+    delay: f32,
+    elapsed: f32,
+    assets: &UiAssets,
+) -> Entity {
+    let opacity = if delay == 0.0 {
+        summary_modal_visual(elapsed).opacity
+    } else {
+        summary_row_progress(elapsed, delay)
+    };
+    let entity = crate::app::add_text(
+        commands,
+        parent,
+        text,
+        size,
+        color.with_alpha(opacity),
+        assets,
+    );
+    commands
+        .entity(entity)
+        .insert(AnimatedSummaryText { color, delay });
+    entity
+}
+
+pub(crate) fn update_summary_animation(
     mut commands: Commands,
     time: Res<Time>,
     client: Option<Res<ClientResource>>,
     assets: Res<UiAssets>,
     mut animation: ResMut<GameSummaryAnimation>,
 ) {
-    let summary = client.as_deref().and_then(|client| {
-        if let Some(game) = client.0.model().qigui523_game()
-            && let GamePhaseView::Finished {
-                match_id,
-                scores,
-                reference_changes,
-                ..
-            } = &game.phase
-        {
-            return Some((
-                *match_id,
-                None,
-                None,
-                scores.len(),
-                reference_changes
-                    .iter()
-                    .find(|change| change.player == game.you)
-                    .is_none_or(|change| change.delta >= 0),
-                SUMMARY_HAND_REVEAL_DURATION,
-            ));
-        }
-        if let Some(game) = client.0.model().uno_game()
-            && let UnoPhaseView::Finished {
-                results,
-                reference_changes,
-                ..
-            } = &game.phase
-        {
-            return Some((
-                game.match_id,
-                None,
-                None,
-                results.len(),
-                reference_changes
-                    .iter()
-                    .find(|change| change.player == game.you)
-                    .is_none_or(|change| change.delta >= 0),
-                UNO_FINISH_REVEAL_DURATION,
-            ));
-        }
-        if let Some(game) = client.0.model().mahjong_game()
-            && let MahjongPhaseView::Finished { result } = &game.phase
-        {
-            let fan_entries = result
-                .winners
-                .iter()
-                .map(|winner| winner.score.fans.len() + 1)
-                .sum::<usize>();
-            return Some((
-                game.match_id,
-                None,
-                Some(u32::from(result.sequence_index)),
-                game.players.len() + fan_entries,
-                result.deltas[game.you.0 as usize] >= 0,
-                if result.winners.is_empty() {
-                    0.0
-                } else {
-                    mahjong_win_reveal_duration(result)
-                },
-            ));
-        }
-        let game = client.0.model().texas_holdem_game()?;
-        let TexasHoldemPhaseView::HandComplete {
-            showdown,
-            tournament_complete,
-            reference_changes,
-            ..
-        } = &game.phase
-        else {
-            return None;
-        };
-        let own = game.players.iter().find(|player| player.id == game.you)?;
-        let nonnegative = if *tournament_complete {
-            reference_changes
-                .iter()
-                .find(|change| change.player == game.you)
-                .is_none_or(|change| change.delta >= 0)
-        } else {
-            own.stack >= own.hand_start_stack
-        };
-        let mut rows = game
-            .players
-            .iter()
-            .map(|player| (player.id, player.stack))
-            .collect::<Vec<_>>();
-        if *tournament_complete {
-            rows.extend(game.players.iter().map(|player| (player.id, player.stack)));
-        }
-        Some((
-            game.match_id,
-            Some(game.hand_number),
-            None,
-            rows.len(),
-            nonnegative,
-            if *showdown {
-                TEXAS_SHOWDOWN_REVEAL_DURATION
-            } else {
-                TEXAS_UNCONTESTED_REVEAL_DURATION
-            },
-        ))
-    });
-    let Some((
-        match_id,
-        texas_hand_number,
-        settlement_index,
-        entry_count,
-        nonnegative_outcome,
-        reveal_duration,
-    )) = summary
-    else {
+    let summary = client
+        .as_deref()
+        .and_then(|client| client.0.model().game_snapshot())
+        .and_then(game_summary_descriptor);
+    let Some(summary) = summary else {
         if animation.match_id.is_some() {
             *animation = GameSummaryAnimation::default();
         }
         return;
     };
 
-    if animation.match_id != Some(match_id)
-        || animation.texas_hand_number != texas_hand_number
-        || animation.settlement_index != settlement_index
+    if animation.match_id != Some(summary.match_id)
+        || animation.texas_hand_number != summary.texas_hand_number
+        || animation.settlement_index != summary.settlement_index
     {
-        animation.match_id = Some(match_id);
-        animation.texas_hand_number = texas_hand_number;
-        animation.settlement_index = settlement_index;
-        animation.entry_count = entry_count;
-        animation.elapsed = -reveal_duration;
-        animation.nonnegative_outcome = nonnegative_outcome;
+        animation.match_id = Some(summary.match_id);
+        animation.texas_hand_number = summary.texas_hand_number;
+        animation.settlement_index = summary.settlement_index;
+        animation.entry_count = summary.entry_count;
+        animation.elapsed = -summary.reveal_duration;
+        animation.nonnegative_outcome = summary.nonnegative_outcome;
         animation.outcome_sound_played = false;
     } else {
         let duration = summary_animation_duration(animation.entry_count);
@@ -167,7 +98,7 @@ fn summary_animation_duration(player_count: usize) -> f32 {
     SUMMARY_MODAL_ENTRY_DURATION.max(last_row).max(actions)
 }
 
-pub fn sorted_summary_scores(scores: &[PlayerScore]) -> Vec<PlayerScore> {
+pub(crate) fn sorted_summary_scores(scores: &[PlayerScore]) -> Vec<PlayerScore> {
     let mut ranked = scores.to_vec();
     ranked.sort_by(|left, right| {
         right
@@ -179,12 +110,12 @@ pub fn sorted_summary_scores(scores: &[PlayerScore]) -> Vec<PlayerScore> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct SummaryModalVisual {
+pub(crate) struct SummaryModalVisual {
     pub offset_y: f32,
     pub opacity: f32,
 }
 
-pub fn summary_modal_visual(elapsed: f32) -> SummaryModalVisual {
+pub(crate) fn summary_modal_visual(elapsed: f32) -> SummaryModalVisual {
     let progress = ease_out_cubic((elapsed / SUMMARY_MODAL_ENTRY_DURATION).clamp(0.0, 1.0));
     SummaryModalVisual {
         offset_y: -52.0 * (1.0 - progress),
@@ -192,11 +123,11 @@ pub fn summary_modal_visual(elapsed: f32) -> SummaryModalVisual {
     }
 }
 
-pub fn summary_row_progress(elapsed: f32, delay: f32) -> f32 {
+pub(crate) fn summary_row_progress(elapsed: f32, delay: f32) -> f32 {
     ease_out_cubic(((elapsed - delay) / SUMMARY_ROW_ENTRY_DURATION).clamp(0.0, 1.0))
 }
 
-pub fn animate_game_summary_visuals(
+pub(crate) fn animate_game_summary_visuals(
     animation: Res<GameSummaryAnimation>,
     mut panels: ParamSet<(
         Query<(&mut UiTransform, &mut Visibility), With<GameSummaryModal>>,
@@ -270,13 +201,13 @@ pub fn animate_game_summary_visuals(
     }
 }
 
-pub fn animated_summary_score(elapsed: f32, target: u32, delay: f32) -> u32 {
+pub(crate) fn animated_summary_score(elapsed: f32, target: u32, delay: f32) -> u32 {
     let progress = ((elapsed - delay) / SUMMARY_SCORE_COUNT_DURATION).clamp(0.0, 1.0);
     let eased = 1.0 - (1.0 - progress).powi(3);
     (target as f32 * eased).round() as u32
 }
 
-pub fn animate_summary_scores(
+pub(crate) fn animate_summary_scores(
     animation: Res<GameSummaryAnimation>,
     mut scores: Query<(&AnimatedSummaryScore, &mut Text)>,
 ) {
@@ -292,7 +223,7 @@ pub fn animate_summary_scores(
     }
 }
 
-pub fn animate_signed_summary_scores(
+pub(crate) fn animate_signed_summary_scores(
     animation: Res<GameSummaryAnimation>,
     mut scores: Query<(&AnimatedSignedSummaryScore, &mut Text)>,
 ) {

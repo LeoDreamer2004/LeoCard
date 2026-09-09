@@ -1,16 +1,14 @@
-use super::*;
+use super::{HandCardSlot, HandCardVisual, QiGui523UiAction};
+use crate::app::presentation::{
+    ACCENT, BORDER, CardAnimationState, CardSize, HAND_CARD_REVEAL, hand_card_pose,
+};
+use crate::app::runtime::UiAssets;
+use crate::app::shell::{HandCardSelectionOverlay, UiAction};
+use bevy::prelude::*;
+use bevy::ui::{FocusPolicy, RelativeCursorPosition};
 use leocard_qigui523::QiGuiCard;
 
-#[derive(Clone, Copy)]
-pub enum CardSize {
-    Hand,
-    Seat,
-    Score,
-    TableScore,
-    FinishedHand,
-}
-
-pub fn sort_cards_high_to_low(cards: &mut [QiGuiCard]) {
+pub(crate) fn sort_cards_high_to_low(cards: &mut [QiGuiCard]) {
     cards.sort_by(|left, right| {
         right
             .rank()
@@ -19,18 +17,6 @@ pub fn sort_cards_high_to_low(cards: &mut [QiGuiCard]) {
             .then_with(|| right.suit().strength().cmp(&left.suit().strength()))
             .then_with(|| right.deck().cmp(&left.deck()))
     });
-}
-
-impl CardSize {
-    pub fn dimensions(self) -> (f32, f32) {
-        match self {
-            Self::Hand => (76.0, 103.0),
-            Self::Seat => (72.0, 98.0),
-            Self::Score => (36.0, 49.0),
-            Self::TableScore => (28.0, 38.0),
-            Self::FinishedHand => (43.2, 58.8),
-        }
-    }
 }
 
 pub(super) struct HandCardSpec {
@@ -58,7 +44,7 @@ pub(super) fn add_card_button(
     } = spec;
     let (width, height) = CardSize::Hand.dimensions();
     let image = assets
-        .games
+        .playing_cards
         .cards
         .get(&(card.rank(), card.suit()))
         .expect("all valid card faces are preloaded")

@@ -1,18 +1,18 @@
 //! 用户图片规范化与运行时生成的遮罩纹理。
 
-use super::*;
 use bevy::asset::RenderAssetUsages;
+use bevy::prelude::*;
 use leocard_protocol::{AVATAR_DIMENSION, MAX_AVATAR_BYTES};
 use std::fs;
 use std::io::Cursor;
 use std::path::Path;
 
-pub fn normalize_avatar(path: &Path) -> Result<Vec<u8>, String> {
+pub(crate) fn normalize_avatar(path: &Path) -> Result<Vec<u8>, String> {
     let source = fs::read(path).map_err(|error| format!("无法读取头像文件：{error}"))?;
     normalize_avatar_bytes(&source)
 }
 
-pub fn normalize_avatar_bytes(source: &[u8]) -> Result<Vec<u8>, String> {
+pub(crate) fn normalize_avatar_bytes(source: &[u8]) -> Result<Vec<u8>, String> {
     // Input may be PNG or JPEG, but local persistence and the wire format remain
     // one bounded square PNG representation.
     let image = image::load_from_memory(source)
@@ -36,14 +36,17 @@ pub fn normalize_avatar_bytes(source: &[u8]) -> Result<Vec<u8>, String> {
     Ok(png)
 }
 
-pub fn valid_normalized_avatar(png: &[u8]) -> bool {
+pub(crate) fn valid_normalized_avatar(png: &[u8]) -> bool {
     png.len() <= MAX_AVATAR_BYTES
         && image::load_from_memory_with_format(png, image::ImageFormat::Png).is_ok_and(|image| {
             image.width() == AVATAR_DIMENSION && image.height() == AVATAR_DIMENSION
         })
 }
 
-pub fn image_handle_from_png(png: &[u8], images: &mut Assets<Image>) -> Option<Handle<Image>> {
+pub(crate) fn image_handle_from_png(
+    png: &[u8],
+    images: &mut Assets<Image>,
+) -> Option<Handle<Image>> {
     let dynamic = image::load_from_memory_with_format(png, image::ImageFormat::Png).ok()?;
     Some(images.add(Image::from_dynamic(
         dynamic,
@@ -52,7 +55,7 @@ pub fn image_handle_from_png(png: &[u8], images: &mut Assets<Image>) -> Option<H
     )))
 }
 
-pub fn interaction_cooldown_mask_image(width: u32, height: u32, fraction: f32) -> Image {
+pub(crate) fn interaction_cooldown_mask_image(width: u32, height: u32, fraction: f32) -> Image {
     let mut pixels = image::RgbaImage::new(width, height);
     let center = Vec2::new(width as f32 * 0.5, height as f32 * 0.5);
     let sweep = fraction.clamp(0.0, 1.0) * std::f32::consts::TAU;

@@ -1,6 +1,12 @@
 //! 卡牌、按钮、面板和文本等基础控件。
 
-use super::*;
+use super::super::{
+    ACCENT, AutoPlayOverlay, ButtonKind, ButtonTint, PanelSkin, TABLE_CARD_REVEAL,
+    TABLE_SCORE_CARD_REVEAL, TEXT,
+};
+use crate::app::presentation::CardSize;
+use crate::app::runtime::UiAssets;
+use crate::app::shell::{SocialUiAction, UiAction};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_qigui523::QiGuiCard;
@@ -8,7 +14,7 @@ use leocard_qigui523::QiGuiCard;
 const SCORE_CARD_REVEAL: f32 = 12.0;
 const FINISHED_HAND_CARD_REVEAL: f32 = 14.4;
 
-pub fn add_card_image(
+pub(crate) fn add_card_image(
     commands: &mut Commands,
     parent: Entity,
     card: QiGuiCard,
@@ -26,7 +32,7 @@ pub fn add_card_image(
         CardSize::Hand | CardSize::Seat => TABLE_CARD_REVEAL,
     };
     let image = assets
-        .games
+        .playing_cards
         .cards
         .get(&(card.rank(), card.suit()))
         .expect("all valid card faces are preloaded")
@@ -52,7 +58,7 @@ pub fn add_card_image(
     entity
 }
 
-pub fn add_action_button(
+pub(crate) fn add_action_button(
     commands: &mut Commands,
     parent: Entity,
     label: &str,
@@ -63,7 +69,7 @@ pub fn add_action_button(
     add_action_button_with_label(commands, parent, label, action, kind, assets).0
 }
 
-pub fn add_action_button_with_label(
+pub(crate) fn add_action_button_with_label(
     commands: &mut Commands,
     parent: Entity,
     label: &str,
@@ -126,7 +132,7 @@ pub fn add_action_button_with_label(
 
 /// 托管时覆盖整条手牌与操作区。蒙版本身是唯一可点击目标，因此其后的牌、
 /// 操作按钮和聊天抽屉在这个区域内都不会收到指针事件。
-pub fn add_auto_play_overlay(commands: &mut Commands, parent: Entity, assets: &UiAssets) {
+pub(crate) fn add_auto_play_overlay(commands: &mut Commands, parent: Entity, assets: &UiAssets) {
     let overlay = commands
         .spawn((
             Button,
@@ -162,7 +168,7 @@ pub fn add_auto_play_overlay(commands: &mut Commands, parent: Entity, assets: &U
     commands.entity(detail).insert(FocusPolicy::Pass);
 }
 
-pub fn add_disabled_action_button(
+pub(crate) fn add_disabled_action_button(
     commands: &mut Commands,
     parent: Entity,
     label: &str,
@@ -189,7 +195,7 @@ pub fn add_disabled_action_button(
     entity
 }
 
-pub fn add_compact_button(
+pub(crate) fn add_compact_button(
     commands: &mut Commands,
     parent: Entity,
     label: &str,
@@ -223,7 +229,7 @@ pub fn add_compact_button(
     add_text(commands, entity, label, 14.0, Color::WHITE, assets);
 }
 
-pub fn add_panel(
+pub(crate) fn add_panel(
     commands: &mut Commands,
     parent: Entity,
     mut node: Node,
@@ -245,7 +251,7 @@ pub fn add_panel(
 
 /// 给任意布局节点叠加独立的九宫格面板皮肤。玩家框仍使用专用贴图；这里仅
 /// 服务于主窗口、内容分区和小型提示框，避免随尺寸拉伸边角与描边。
-pub fn decorate_panel_skin(
+pub(crate) fn decorate_panel_skin(
     commands: &mut Commands,
     panel: Entity,
     skin: PanelSkin,
@@ -285,7 +291,7 @@ pub fn decorate_panel_skin(
     texture
 }
 
-pub fn spawn_node(
+pub(crate) fn spawn_node(
     commands: &mut Commands,
     parent: Entity,
     node: Node,
@@ -300,7 +306,7 @@ pub fn spawn_node(
     entity
 }
 
-pub fn add_section_title(
+pub(crate) fn add_section_title(
     commands: &mut Commands,
     parent: Entity,
     text: impl Into<String>,
@@ -309,7 +315,7 @@ pub fn add_section_title(
     add_text(commands, parent, text, 21.0, ACCENT, assets);
 }
 
-pub fn add_text(
+pub(crate) fn add_text(
     commands: &mut Commands,
     parent: Entity,
     text: impl Into<String>,

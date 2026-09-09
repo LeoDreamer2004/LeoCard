@@ -12,15 +12,15 @@ use std::process::Command;
 use std::thread;
 
 #[derive(Component)]
-pub struct UpdateProgressFill;
+pub(crate) struct UpdateProgressFill;
 
 #[derive(Component)]
-pub struct UpdateStatusText;
+pub(crate) struct UpdateStatusText;
 
 #[derive(Component)]
-pub struct UpdateDetailText;
+pub(crate) struct UpdateDetailText;
 
-pub fn poll_update_events(mut updater: ResMut<UpdateManager>, mut ui: ResMut<UiState>) {
+pub(crate) fn poll_update_events(mut updater: ResMut<UpdateManager>, mut ui: ResMut<UiState>) {
     let (events, disconnected) = updater.take_events();
     let mut terminal = false;
     for event in events {
@@ -80,7 +80,7 @@ pub fn poll_update_events(mut updater: ResMut<UpdateManager>, mut ui: ResMut<UiS
     }
 }
 
-pub fn sync_update_dialog(
+pub(crate) fn sync_update_dialog(
     updater: Res<UpdateManager>,
     mut fills: Query<&mut Node, With<UpdateProgressFill>>,
     mut statuses: Query<&mut Text, (With<UpdateStatusText>, Without<UpdateDetailText>)>,
@@ -101,7 +101,7 @@ pub fn sync_update_dialog(
     }
 }
 
-pub fn render_update_dialog(
+pub(crate) fn render_update_dialog(
     commands: &mut Commands,
     root: Entity,
     updater: &UpdateManager,
@@ -245,9 +245,9 @@ pub fn render_update_dialog(
 }
 
 #[derive(Component)]
-pub struct GitHubRepositoryButton;
+pub(crate) struct GitHubRepositoryButton;
 
-pub fn add_github_repository_button(
+pub(crate) fn add_github_repository_button(
     commands: &mut Commands,
     parent: Entity,
     assets: &UiAssets,
@@ -292,7 +292,7 @@ pub fn add_github_repository_button(
     button
 }
 
-pub fn open_github_repository() -> Result<(), String> {
+pub(crate) fn open_github_repository() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     let result = Command::new("explorer.exe")
         .arg(GITHUB_REPOSITORY_URL)
@@ -313,7 +313,7 @@ pub fn open_github_repository() -> Result<(), String> {
     Ok(())
 }
 
-pub fn add_green_update_button(
+pub(crate) fn add_green_update_button(
     commands: &mut Commands,
     parent: Entity,
     label: &str,
@@ -348,7 +348,7 @@ pub fn add_green_update_button(
     entity
 }
 
-pub fn settings_update_label(state: &UpdateState) -> &'static str {
+pub(crate) fn settings_update_label(state: &UpdateState) -> &'static str {
     match state {
         UpdateState::Idle | UpdateState::UpToDate { .. } | UpdateState::Failed(_) => "检查并更新",
         UpdateState::Checking | UpdateState::Downloading { .. } => "查看更新进度",

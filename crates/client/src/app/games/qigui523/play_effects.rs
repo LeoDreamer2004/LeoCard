@@ -1,13 +1,25 @@
 //! 七鬼五二三出牌表现与发牌音效调度。
 
-use super::*;
+use super::{
+    ActivePlayEffect, BombEffectBody, BombExplosionFlash, BombExplosionParticle, BombExplosionRing,
+    BombFuseSpark, HeavenBombBackdrop, HeavenBombFlash, HeavenBombParticle, HeavenBombRay,
+    HeavenBombShockRing, HeavenBombTitle, HeavenBombTitleText, PlayEffectRoot, PlayEffectState,
+    QiGui523UiState, SequenceAirplane, SequenceAirplaneTrail, SequenceEffectCard,
+    SequenceEffectLabel, SequenceEffectLabelPart, SequenceEffectMotif, SequenceFlowerPart,
+    SequenceGuideSegment, SequenceWindStreak, sort_cards_high_to_low,
+};
+use crate::app::presentation::{ACCENT, CardPlaySoundKind, PendingDealSound, ease_out_cubic};
+use crate::app::runtime::{ClientResource, UiAssets};
+use crate::app::shell::UiState;
+use bevy::audio::Volume;
+use bevy::prelude::*;
 use leocard_qigui523::QiGuiPlayKind;
 
 const STRAIGHT_EFFECT: Color = Color::srgb(0.25, 0.78, 0.96);
 const CONSECUTIVE_PAIRS_EFFECT: Color = Color::srgb(0.76, 0.46, 0.98);
 const AIRPLANE_EFFECT: Color = Color::srgb(0.98, 0.36, 0.50);
 
-pub fn sync_play_effect(
+pub(super) fn sync_play_effect(
     client: Option<Res<ClientResource>>,
     mut effect: ResMut<PlayEffectState>,
     mut ui: ResMut<UiState>,
@@ -71,7 +83,7 @@ fn card_play_sound_kind(kind: &QiGuiPlayKind) -> CardPlaySoundKind {
     }
 }
 
-pub fn advance_play_effect(
+pub(crate) fn advance_play_effect(
     time: Res<Time>,
     mut effect: ResMut<PlayEffectState>,
     mut roots: Query<&mut Visibility, With<PlayEffectRoot>>,
@@ -109,7 +121,7 @@ pub fn advance_play_effect(
     }
 }
 
-pub fn sequence_effect_style(
+pub(super) fn sequence_effect_style(
     kind: &QiGuiPlayKind,
 ) -> Option<(&'static str, Color, SequenceEffectMotif)> {
     match kind {
@@ -128,7 +140,7 @@ pub fn sequence_effect_style(
     }
 }
 
-pub fn animate_sequence_play_effect(
+pub(crate) fn animate_sequence_play_effect(
     effect: Res<PlayEffectState>,
     mut visuals: ParamSet<(
         Query<(&SequenceEffectCard, &mut UiTransform, &mut ImageNode)>,
@@ -304,7 +316,7 @@ fn sequence_airplane_pose(progress: f32) -> SequenceAirplanePose {
     }
 }
 
-pub fn animate_bomb_play_effect(
+pub(crate) fn animate_bomb_play_effect(
     mut effect: ResMut<PlayEffectState>,
     assets: Res<UiAssets>,
     mut commands: Commands,
@@ -395,7 +407,7 @@ pub fn animate_bomb_play_effect(
     }
 }
 
-pub fn animate_heaven_bomb_play_effect(
+pub(crate) fn animate_heaven_bomb_play_effect(
     effect: Res<PlayEffectState>,
     mut visuals: ParamSet<(
         Query<&mut BackgroundColor, With<HeavenBombBackdrop>>,
@@ -497,31 +509,32 @@ pub fn animate_heaven_bomb_play_effect(
     }
 }
 
-pub fn queue_deal_animations(
+pub(super) fn queue_deal_animations(
     client: Option<Res<ClientResource>>,
-    mut ui: ResMut<UiState>,
+    mut ui: ResMut<QiGui523UiState>,
     assets: Res<UiAssets>,
     mut commands: Commands,
 ) {
-    let Some(mut hand) = client
+    let Some((match_id, mut hand)) = client
         .as_deref()
         .and_then(|client| client.0.model().qigui523_game())
-        .map(|game| game.your_hand.clone())
+        .map(|game| (game.match_id, game.your_hand.clone()))
     else {
-        if !ui.qigui523.observed_hand.is_empty() {
-            ui.qigui523.observed_hand.clear();
+        if !ui.observed_hand.state.is_empty() {
+            ui.observed_hand.clear();
         }
         return;
     };
+    ui.observed_hand.observe(match_id);
     sort_cards_high_to_low(&mut hand);
 
     let new_cards = hand
         .iter()
         .copied()
-        .filter(|card| !ui.qigui523.observed_hand.contains(card))
+        .filter(|card| !ui.observed_hand.state.contains(card))
         .collect::<Vec<_>>();
     for (index, card) in new_cards.into_iter().enumerate() {
-        let animation = ui.qigui523.card_animations.entry(card).or_default();
+        let animation = ui.card_animations.entry(card).or_default();
         animation.deal_elapsed = -(index as f32 * 0.045);
         animation.dealing = true;
         if !assets.audio.deal_sounds.is_empty() {
@@ -531,7 +544,7 @@ pub fn queue_deal_animations(
             });
         }
     }
-    if ui.qigui523.observed_hand != hand {
-        ui.qigui523.observed_hand = hand;
+    if ui.observed_hand.state != hand {
+        ui.observed_hand.state = hand;
     }
 }

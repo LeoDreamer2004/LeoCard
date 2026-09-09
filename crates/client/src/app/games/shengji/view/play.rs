@@ -1,10 +1,22 @@
-use super::*;
+use super::super::{
+    ShengjiCollectingScoreText, ShengjiFailedThrowLabel, ShengjiScoreCaptureEffectState,
+    ShengjiScoreTrayAnchor, ShengjiThrowPenaltyFloat, ShengjiThrowPenaltyScorePulse,
+    displayed_shengji_captured_score,
+};
+use super::{
+    ShengjiCardSize, add_shengji_card_row, add_shengji_failed_throw_card_row, shengji_display_trump,
+};
+use crate::app::presentation::{ACCENT, DANGER, MUTED, add_text, spawn_node};
+use crate::app::runtime::UiAssets;
+use crate::app::shell::SeatSide;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{
     PlayerId, ShengjiPhaseView, ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureStage,
 };
 use leocard_shengji::ShengjiCard;
 
-pub fn add_shengji_play_area(
+pub(super) fn add_shengji_play_area(
     commands: &mut Commands,
     parent: Entity,
     game: &ShengjiSnapshot,
@@ -121,7 +133,7 @@ pub fn add_shengji_play_area(
     }
 }
 
-pub fn add_shengji_own_play(
+pub(super) fn add_shengji_own_play(
     commands: &mut Commands,
     table: Entity,
     game: &ShengjiSnapshot,
@@ -154,7 +166,7 @@ pub fn add_shengji_own_play(
     );
 }
 
-pub fn add_shengji_collecting_tray(
+pub(super) fn add_shengji_collecting_tray(
     commands: &mut Commands,
     table: Entity,
     game: &ShengjiSnapshot,
@@ -233,7 +245,7 @@ pub fn add_shengji_collecting_tray(
     }
 }
 
-pub fn add_shengji_throw_penalty_effect(
+pub(super) fn add_shengji_throw_penalty_effect(
     commands: &mut Commands,
     table: Entity,
     game: &ShengjiSnapshot,

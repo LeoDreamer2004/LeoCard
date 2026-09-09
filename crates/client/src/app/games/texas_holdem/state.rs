@@ -1,18 +1,25 @@
 //! 德州扑克下注输入与牌桌组件状态。
 
-use super::*;
-use leocard_protocol::{MatchId, PlayerId};
+use crate::app::presentation::Observed;
+use bevy::prelude::*;
+use leocard_protocol::{MatchId, PlayerId, TexasHoldemSnapshot};
 
-#[derive(Default)]
-pub struct TexasHoldemUiState {
+#[derive(Resource, Default)]
+pub(crate) struct TexasHoldemUiState {
     pub raise_to: u32,
-    pub observed_match: Option<MatchId>,
-    pub observed_hand_number: u32,
-    pub observed_community_len: usize,
+    pub observed_table: Observed<(MatchId, u32), usize>,
+}
+
+impl TexasHoldemUiState {
+    pub(crate) fn reconcile(&mut self, _game: &TexasHoldemSnapshot) {}
+
+    pub(crate) fn clear(&mut self) {
+        self.observed_table.clear();
+    }
 }
 
 #[derive(Resource, Default)]
-pub struct TexasRaiseHoldState {
+pub(crate) struct TexasRaiseHoldState {
     pub direction: i8,
     pub step: u32,
     pub minimum: u32,
@@ -22,7 +29,7 @@ pub struct TexasRaiseHoldState {
 }
 
 #[derive(Component, Clone, Copy)]
-pub struct TexasRaiseAdjustButton {
+pub(crate) struct TexasRaiseAdjustButton {
     pub direction: i8,
     pub step: u32,
     pub minimum: u32,
@@ -30,18 +37,18 @@ pub struct TexasRaiseAdjustButton {
 }
 
 #[derive(Component)]
-pub struct TexasPotDivider {
+pub(crate) struct TexasPotDivider {
     pub old_layout: bool,
     pub elapsed: f32,
 }
 
 #[derive(Component)]
-pub struct TexasPotHover {
+pub(crate) struct TexasPotHover {
     pub eligible: Vec<PlayerId>,
 }
 
 #[derive(Component, Clone, Copy)]
-pub struct TexasPlayerPanel {
+pub(crate) struct TexasPlayerPanel {
     pub player: PlayerId,
     pub base_border: Color,
 }

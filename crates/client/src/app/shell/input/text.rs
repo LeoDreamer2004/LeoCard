@@ -1,19 +1,33 @@
 //! 文本输入、聊天输入与开发者手牌语法。
 
-use super::*;
+use super::{DeveloperHandInputField, DeveloperHandInputText};
+#[cfg(feature = "developer")]
+use crate::app::game_command;
+use crate::app::{
+    ACCENT, BORDER, ChatPanelState, ClientResource, ConnectionDraft, DeveloperHandInput,
+    InputField, MUTED, PageErrorState, TEXT, TurnClock, TurnClockHand, UiState,
+};
+use bevy::input::ButtonState;
+use bevy::input::keyboard::{Key, KeyboardInput};
+use bevy::prelude::*;
+use bevy::window::Ime;
+use bevy_clipboard::Clipboard;
 #[cfg(feature = "developer")]
 use leocard_mahjong::{
     MahjongDragon, MahjongHandReplacementError, MahjongSuit, MahjongTileKind, MahjongWind,
 };
 use leocard_protocol::{ChatContent, ClientCommand, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS};
 #[cfg(feature = "developer")]
-use leocard_protocol::{GameCommand, MahjongCommand, QiGui523Command};
+use leocard_protocol::{MahjongCommand, QiGui523Command};
 #[cfg(feature = "developer")]
 use leocard_qigui523::{QiGuiCard, QiGuiRank, QiGuiSuit};
 #[cfg(feature = "developer")]
 use std::collections::HashMap;
 
-pub fn developer_hand_input_label(input: &DeveloperHandInput, placeholder: &'static str) -> String {
+pub(crate) fn developer_hand_input_label(
+    input: &DeveloperHandInput,
+    placeholder: &'static str,
+) -> String {
     if input.value.is_empty() {
         if input.focused {
             "│".to_owned()
@@ -25,7 +39,7 @@ pub fn developer_hand_input_label(input: &DeveloperHandInput, placeholder: &'sta
     }
 }
 
-pub fn sync_developer_hand_input_text(
+pub(crate) fn sync_developer_hand_input_text(
     input: Res<DeveloperHandInput>,
     mut labels: Query<(&DeveloperHandInputText, &mut Text, &mut TextColor)>,
     mut fields: Query<(&mut Node, &mut BorderColor), With<DeveloperHandInputField>>,
@@ -49,7 +63,7 @@ pub fn sync_developer_hand_input_text(
     }
 }
 
-pub fn animate_turn_clocks(
+pub(crate) fn animate_turn_clocks(
     time: Res<Time>,
     mut clocks: Query<(&mut UiTransform, &mut BorderColor), With<TurnClock>>,
     mut hands: Query<&mut UiTransform, (With<TurnClockHand>, Without<TurnClock>)>,
@@ -66,12 +80,13 @@ pub fn animate_turn_clocks(
     }
 }
 
-pub fn handle_text_input(
+pub(crate) fn handle_text_input(
     mut keyboard_inputs: MessageReader<KeyboardInput>,
     mut ime_inputs: MessageReader<Ime>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mut clipboard: ResMut<Clipboard>,
-    mut form: ResMut<ConnectionForm>,
+    mut form: ResMut<ConnectionDraft>,
+    mut page_error: ResMut<PageErrorState>,
     mut chat: ResMut<ChatPanelState>,
     mut developer_hand: ResMut<DeveloperHandInput>,
     mut client: Option<ResMut<ClientResource>>,
@@ -90,7 +105,7 @@ pub fn handle_text_input(
                 value,
                 MAX_PLAYER_NAME_CHARS,
             );
-            form.error = None;
+            page_error.error = None;
             ui.dirty = true;
         }
     }
@@ -114,17 +129,17 @@ pub fn handle_text_input(
                     let mut address = String::new();
                     append_filtered_input(&mut address, InputField::JoinAddress, &text, 64);
                     if address.is_empty() {
-                        form.error = Some("剪贴板中没有可用的服务器地址".to_owned());
+                        page_error.error = Some("剪贴板中没有可用的服务器地址".to_owned());
                     } else {
                         form.join_address = address;
-                        form.error = None;
+                        page_error.error = None;
                     }
                 }
                 Some(Err(error)) => {
-                    form.error = Some(format!("无法读取剪贴板：{error}"));
+                    page_error.error = Some(format!("无法读取剪贴板：{error}"));
                 }
                 None => {
-                    form.error = Some("剪贴板内容尚未准备好".to_owned());
+                    page_error.error = Some("剪贴板内容尚未准备好".to_owned());
                 }
             }
             ui.dirty = true;
@@ -139,7 +154,7 @@ pub fn handle_text_input(
             Key::Backspace => {
                 if developer_hand.focused {
                     developer_hand.value.pop();
-                    form.error = None;
+                    page_error.error = None;
                     continue;
                 }
                 if chat.focused {
@@ -147,7 +162,7 @@ pub fn handle_text_input(
                     continue;
                 }
                 active_input_mut(&mut form).pop();
-                form.error = None;
+                page_error.error = None;
                 ui.dirty = true;
             }
             Key::Tab => {
@@ -176,7 +191,7 @@ pub fn handle_text_input(
                 developer_hand.focused = false;
                 let input = developer_hand.value.trim();
                 if input.is_empty() {
-                    form.error = None;
+                    page_error.error = None;
                     continue;
                 }
                 #[cfg(feature = "developer")]
@@ -193,27 +208,23 @@ pub fn handle_text_input(
                                 }
                                 .to_string());
                             }
-                            Ok(ClientCommand::Game(GameCommand::Mahjong(
-                                MahjongCommand::SetDeveloperHand { tiles },
-                            )))
+                            Ok(game_command(MahjongCommand::SetDeveloperHand { tiles }))
                         })
                     } else {
-                        parse_developer_hand(input).map(|cards| {
-                            ClientCommand::Game(GameCommand::QiGui523(
-                                QiGui523Command::SetDeveloperHand { cards },
-                            ))
-                        })
+                        parse_developer_hand(input)
+                            .map(|cards| game_command(QiGui523Command::SetDeveloperHand { cards }))
                     };
                     match command {
                         Ok(command) => {
                             if client.0.send(command) {
-                                form.error = None;
+                                page_error.error = None;
                                 developer_hand.value.clear();
                             } else {
-                                form.error = Some("当前未连接，无法编辑开发者手牌".to_owned());
+                                page_error.error =
+                                    Some("当前未连接，无法编辑开发者手牌".to_owned());
                             }
                         }
-                        Err(error) => form.error = Some(error),
+                        Err(error) => page_error.error = Some(error),
                     }
                 }
             }
@@ -234,7 +245,7 @@ pub fn handle_text_input(
                 }
                 if developer_hand.focused {
                     append_developer_hand_input(&mut developer_hand.value, text);
-                    form.error = None;
+                    page_error.error = None;
                     continue;
                 }
                 let active = form.active;
@@ -245,14 +256,14 @@ pub fn handle_text_input(
                     InputField::JoinAddress => 64,
                 };
                 append_filtered_input(value, active, text, maximum);
-                form.error = None;
+                page_error.error = None;
                 ui.dirty = true;
             }
         }
     }
 }
 
-pub fn append_chat_input(value: &mut String, text: &str) {
+pub(crate) fn append_chat_input(value: &mut String, text: &str) {
     for character in text.chars().filter(|character| !character.is_control()) {
         if value.chars().count() >= MAX_CHAT_MESSAGE_CHARS {
             break;
@@ -419,7 +430,12 @@ pub fn parse_developer_mahjong_hand(input: &str) -> Result<Vec<MahjongTileKind>,
     Ok(tiles)
 }
 
-pub fn append_filtered_input(value: &mut String, field: InputField, text: &str, maximum: usize) {
+pub(crate) fn append_filtered_input(
+    value: &mut String,
+    field: InputField,
+    text: &str,
+    maximum: usize,
+) {
     for character in text.chars().filter(|character| !character.is_control()) {
         let allowed = match field {
             InputField::PlayerName => true,
@@ -435,7 +451,7 @@ pub fn append_filtered_input(value: &mut String, field: InputField, text: &str, 
     }
 }
 
-fn active_input_mut(form: &mut ConnectionForm) -> &mut String {
+fn active_input_mut(form: &mut ConnectionDraft) -> &mut String {
     match form.active {
         InputField::PlayerName => &mut form.player_name,
         InputField::HostPort => &mut form.host_port,

@@ -4,13 +4,13 @@ use crate::{
 };
 use leocard_mahjong::{MahjongRuleSet, MahjongTile};
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameKind, PROTOCOL_VERSION, Revision, RoomId, ServerEvent,
-    ServerMessage,
+    ClientCommand, ClientMessage, GameKind, GameRules, PROTOCOL_VERSION, Revision, RoomId,
+    ServerEvent, ServerMessage,
 };
-use leocard_qigui523::{QiGuiCard, QiGuiRuleSet};
-use leocard_shengji::{ShengjiCard, ShengjiRuleSet};
+use leocard_qigui523::{QiGuiCard, QiGuiRuleSet, build_deck};
+use leocard_shengji::{ShengjiCard, ShengjiRuleSet, build_deck_for};
 use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemRuleSet};
-use leocard_uno::{UnoCard, UnoRuleSet};
+use leocard_uno::{UnoCard, UnoRuleSet, build_deck_for_rules};
 use std::time::Duration;
 
 /// 创建统一房主会话所需的具体游戏后端配置。
@@ -44,6 +44,56 @@ pub enum GameSetup {
 }
 
 impl GameSetup {
+    pub fn shuffled(host_port: u16, rules: GameRules) -> Self {
+        match rules {
+            GameRules::QiGui523(rules) => {
+                let mut shuffled_deck = build_deck(rules.deck_count);
+                fastrand::shuffle(&mut shuffled_deck);
+                Self::QiGui523 {
+                    host_port,
+                    rules,
+                    shuffled_deck,
+                }
+            }
+            GameRules::TexasHoldem(rules) => {
+                let mut shuffled_deck = leocard_texas_holdem::build_deck(rules.short_deck);
+                fastrand::shuffle(&mut shuffled_deck);
+                Self::TexasHoldem {
+                    host_port,
+                    rules,
+                    shuffled_deck,
+                }
+            }
+            GameRules::Shengji(rules) => {
+                let mut shuffled_deck = build_deck_for(rules.deck_count);
+                fastrand::shuffle(&mut shuffled_deck);
+                Self::Shengji {
+                    host_port,
+                    rules,
+                    shuffled_deck,
+                }
+            }
+            GameRules::Uno(rules) => {
+                let mut shuffled_deck = build_deck_for_rules(rules);
+                fastrand::shuffle(&mut shuffled_deck);
+                Self::Uno {
+                    host_port,
+                    rules,
+                    shuffled_deck,
+                }
+            }
+            GameRules::Mahjong(rules) => {
+                let mut shuffled_deck = leocard_mahjong::build_deck();
+                fastrand::shuffle(&mut shuffled_deck);
+                Self::Mahjong {
+                    host_port,
+                    rules,
+                    shuffled_deck,
+                }
+            }
+        }
+    }
+
     pub const fn kind(&self) -> GameKind {
         match self {
             Self::QiGui523 { .. } => GameKind::QiGui523,
@@ -64,6 +114,70 @@ pub enum HostSession {
     Uno(Box<UnoSession>),
     Mahjong(Box<MahjongSession>),
 }
+
+trait HostBackend {
+    fn game_kind(&self) -> GameKind;
+    fn room_id(&self) -> RoomId;
+    fn revision(&self) -> Revision;
+    fn is_current_connection(&self, connection: ConnectionId) -> bool;
+    fn is_closed(&self) -> bool;
+    fn heartbeat(&self) -> Vec<Delivery>;
+    fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery>;
+    fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery>;
+    fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery>;
+}
+
+macro_rules! impl_host_backend {
+    ($session:ty, $kind:ident) => {
+        impl HostBackend for $session {
+            fn game_kind(&self) -> GameKind {
+                GameKind::$kind
+            }
+
+            fn room_id(&self) -> RoomId {
+                <$session>::room_id(self)
+            }
+
+            fn revision(&self) -> Revision {
+                <$session>::revision(self)
+            }
+
+            fn is_current_connection(&self, connection: ConnectionId) -> bool {
+                <$session>::is_current_connection(self, connection)
+            }
+
+            fn is_closed(&self) -> bool {
+                <$session>::is_closed(self)
+            }
+
+            fn heartbeat(&self) -> Vec<Delivery> {
+                <$session>::heartbeat(self)
+            }
+
+            fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+                <$session>::advance_time(self, elapsed)
+            }
+
+            fn handle(
+                &mut self,
+                connection: ConnectionId,
+                message: ClientMessage,
+            ) -> Vec<Delivery> {
+                <$session>::handle(self, connection, message)
+            }
+
+            fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
+                <$session>::disconnect(self, connection)
+            }
+        }
+    };
+}
+
+impl_host_backend!(QiGui523Session, QiGui523);
+impl_host_backend!(TexasHoldemSession, TexasHoldem);
+impl_host_backend!(ShengjiSession, Shengji);
+impl_host_backend!(UnoSession, Uno);
+impl_host_backend!(MahjongSession, Mahjong);
 
 impl HostSession {
     pub fn new(room_id: RoomId, setup: GameSetup) -> Result<Self, HostError> {
@@ -106,189 +220,52 @@ impl HostSession {
         }
     }
 
-    pub fn qigui523(
-        room_id: RoomId,
-        host_port: u16,
-        rules: QiGuiRuleSet,
-        shuffled_deck: Vec<QiGuiCard>,
-    ) -> Result<Self, HostError> {
-        Self::new(
-            room_id,
-            GameSetup::QiGui523 {
-                host_port,
-                rules,
-                shuffled_deck,
-            },
-        )
-    }
-
-    pub fn texas_holdem(
-        room_id: RoomId,
-        host_port: u16,
-        rules: TexasHoldemRuleSet,
-        shuffled_deck: Vec<TexasHoldemCard>,
-    ) -> Result<Self, HostError> {
-        Self::new(
-            room_id,
-            GameSetup::TexasHoldem {
-                host_port,
-                rules,
-                shuffled_deck,
-            },
-        )
-    }
-
-    pub fn shengji(
-        room_id: RoomId,
-        host_port: u16,
-        rules: ShengjiRuleSet,
-        shuffled_deck: Vec<ShengjiCard>,
-    ) -> Result<Self, HostError> {
-        Self::new(
-            room_id,
-            GameSetup::Shengji {
-                host_port,
-                rules,
-                shuffled_deck,
-            },
-        )
-    }
-
-    pub fn uno(
-        room_id: RoomId,
-        host_port: u16,
-        rules: UnoRuleSet,
-        shuffled_deck: Vec<UnoCard>,
-    ) -> Result<Self, HostError> {
-        Self::new(
-            room_id,
-            GameSetup::Uno {
-                host_port,
-                rules,
-                shuffled_deck,
-            },
-        )
-    }
-
-    pub fn mahjong(
-        room_id: RoomId,
-        host_port: u16,
-        rules: MahjongRuleSet,
-        shuffled_deck: Vec<MahjongTile>,
-    ) -> Result<Self, HostError> {
-        Self::new(
-            room_id,
-            GameSetup::Mahjong {
-                host_port,
-                rules,
-                shuffled_deck,
-            },
-        )
-    }
-
-    pub const fn game_kind(&self) -> GameKind {
+    fn backend(&self) -> &dyn HostBackend {
         match self {
-            Self::QiGui523(_) => GameKind::QiGui523,
-            Self::TexasHoldem(_) => GameKind::TexasHoldem,
-            Self::Shengji(_) => GameKind::Shengji,
-            Self::Uno(_) => GameKind::Uno,
-            Self::Mahjong(_) => GameKind::Mahjong,
+            Self::QiGui523(session) => session.as_ref(),
+            Self::TexasHoldem(session) => session.as_ref(),
+            Self::Shengji(session) => session.as_ref(),
+            Self::Uno(session) => session.as_ref(),
+            Self::Mahjong(session) => session.as_ref(),
         }
     }
 
-    pub const fn qigui523_backend(&self) -> Option<&QiGui523Session> {
+    fn backend_mut(&mut self) -> &mut dyn HostBackend {
         match self {
-            Self::QiGui523(session) => Some(session),
-            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
+            Self::QiGui523(session) => session.as_mut(),
+            Self::TexasHoldem(session) => session.as_mut(),
+            Self::Shengji(session) => session.as_mut(),
+            Self::Uno(session) => session.as_mut(),
+            Self::Mahjong(session) => session.as_mut(),
         }
     }
 
-    pub const fn texas_holdem_backend(&self) -> Option<&TexasHoldemSession> {
-        match self {
-            Self::TexasHoldem(session) => Some(session),
-            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub const fn shengji_backend(&self) -> Option<&ShengjiSession> {
-        match self {
-            Self::Shengji(session) => Some(session),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub const fn uno_backend(&self) -> Option<&UnoSession> {
-        match self {
-            Self::Uno(session) => Some(session),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub const fn mahjong_backend(&self) -> Option<&MahjongSession> {
-        match self {
-            Self::Mahjong(session) => Some(session),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
-        }
+    pub fn game_kind(&self) -> GameKind {
+        self.backend().game_kind()
     }
 
     pub fn room_id(&self) -> RoomId {
-        match self {
-            Self::QiGui523(session) => session.room_id(),
-            Self::TexasHoldem(session) => session.room_id(),
-            Self::Shengji(session) => session.room_id(),
-            Self::Uno(session) => session.room_id(),
-            Self::Mahjong(session) => session.room_id(),
-        }
+        self.backend().room_id()
     }
 
     pub fn revision(&self) -> Revision {
-        match self {
-            Self::QiGui523(session) => session.revision(),
-            Self::TexasHoldem(session) => session.revision(),
-            Self::Shengji(session) => session.revision(),
-            Self::Uno(session) => session.revision(),
-            Self::Mahjong(session) => session.revision(),
-        }
+        self.backend().revision()
     }
 
     pub fn is_current_connection(&self, connection: ConnectionId) -> bool {
-        match self {
-            Self::QiGui523(session) => session.is_current_connection(connection),
-            Self::TexasHoldem(session) => session.is_current_connection(connection),
-            Self::Shengji(session) => session.is_current_connection(connection),
-            Self::Uno(session) => session.is_current_connection(connection),
-            Self::Mahjong(session) => session.is_current_connection(connection),
-        }
+        self.backend().is_current_connection(connection)
     }
 
     pub fn is_closed(&self) -> bool {
-        match self {
-            Self::QiGui523(session) => session.is_closed(),
-            Self::TexasHoldem(session) => session.is_closed(),
-            Self::Shengji(session) => session.is_closed(),
-            Self::Uno(session) => session.is_closed(),
-            Self::Mahjong(session) => session.is_closed(),
-        }
+        self.backend().is_closed()
     }
 
     pub fn heartbeat(&self) -> Vec<Delivery> {
-        match self {
-            Self::QiGui523(session) => session.heartbeat(),
-            Self::TexasHoldem(session) => session.heartbeat(),
-            Self::Shengji(session) => session.heartbeat(),
-            Self::Uno(session) => session.heartbeat(),
-            Self::Mahjong(session) => session.heartbeat(),
-        }
+        self.backend().heartbeat()
     }
 
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
-        match self {
-            Self::QiGui523(session) => session.advance_time(elapsed),
-            Self::TexasHoldem(session) => session.advance_time(elapsed),
-            Self::Shengji(session) => session.advance_time(elapsed),
-            Self::Uno(session) => session.advance_time(elapsed),
-            Self::Mahjong(session) => session.advance_time(elapsed),
-        }
+        self.backend_mut().advance_time(elapsed)
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
@@ -304,22 +281,10 @@ impl HostSession {
                 },
             }];
         }
-        match self {
-            Self::QiGui523(session) => session.handle(connection, message),
-            Self::TexasHoldem(session) => session.handle(connection, message),
-            Self::Shengji(session) => session.handle(connection, message),
-            Self::Uno(session) => session.handle(connection, message),
-            Self::Mahjong(session) => session.handle(connection, message),
-        }
+        self.backend_mut().handle(connection, message)
     }
 
     pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
-        match self {
-            Self::QiGui523(session) => session.disconnect(connection),
-            Self::TexasHoldem(session) => session.disconnect(connection),
-            Self::Shengji(session) => session.disconnect(connection),
-            Self::Uno(session) => session.disconnect(connection),
-            Self::Mahjong(session) => session.disconnect(connection),
-        }
+        self.backend_mut().disconnect(connection)
     }
 }

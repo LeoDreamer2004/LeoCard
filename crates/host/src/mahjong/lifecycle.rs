@@ -1,9 +1,16 @@
-use super::{MAHJONG_DEAL_INTERVAL, MahjongSession, events_for_outcome, validate_deck};
-use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession};
-use leocard_mahjong::{GameError, GameState, MahjongRuleSet, MahjongTile, Phase};
+use super::{
+    MAHJONG_DEAL_INTERVAL, MahjongSession, events_for_outcome, shuffled_deck, validate_deck,
+};
+use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
+use crate::{
+    AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession,
+    new_match_id,
+};
+use leocard_mahjong::{GameError, GameState, MahjongPlayerId, MahjongRuleSet, MahjongTile, Phase};
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameCommand, GameKind, GameViolation, MahjongEvent, PlayerId,
-    RejectReason, Revision, RoomId, ServerEvent,
+    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, MahjongEvent,
+    MahjongViolation, PlayerId, PlayerInteraction, PlayerInteractionKind, PlayerViolation,
+    RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
 };
 use std::time::Duration;
 
@@ -65,15 +72,7 @@ impl MahjongSession {
     }
 
     pub fn heartbeat(&self) -> Vec<Delivery> {
-        self.room
-            .players
-            .iter()
-            .filter(|player| player.connected && !player.left)
-            .map(|player| {
-                self.room
-                    .delivery(player.connection, None, ServerEvent::Heartbeat)
-            })
-            .collect()
+        self.room.heartbeat()
     }
 
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
@@ -172,16 +171,7 @@ impl MahjongSession {
         if self.room.host_connection == Some(connection) {
             self.room.bump_revision();
             self.room.closed = true;
-            return self
-                .room
-                .players
-                .iter()
-                .filter(|player| player.connected && !player.left)
-                .map(|player| {
-                    self.room
-                        .delivery(player.connection, None, ServerEvent::RoomClosed)
-                })
-                .collect();
+            return self.room.broadcast_event(None, ServerEvent::RoomClosed);
         }
         if self.game.is_none() {
             self.room.players[index].seat = None;
@@ -197,81 +187,307 @@ impl MahjongSession {
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
-        if let Err(deliveries) = self.room.begin_request(connection, &message) {
-            return deliveries;
+        dispatch_client_command(self, connection, message)
+    }
+}
+
+impl HostedGameLifecycle for MahjongSession {
+    const KIND: GameKind = GameKind::Mahjong;
+
+    fn room(&self) -> &RoomSession {
+        &self.room
+    }
+
+    fn room_mut(&mut self) -> &mut RoomSession {
+        &mut self.room
+    }
+
+    fn game_started(&self) -> bool {
+        self.game.is_some()
+    }
+
+    fn capacity(&self) -> u8 {
+        MahjongRuleSet::PLAYER_COUNT as u8
+    }
+
+    fn game_rules(&self) -> GameRules {
+        self.rules.into()
+    }
+
+    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
+        MahjongSession::game_snapshot(self, recipient).into()
+    }
+
+    fn handle_game_command(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        command: GameCommand,
+    ) -> Result<Vec<Delivery>, GameKind> {
+        let GameCommand::Mahjong(command) = command else {
+            return Err(command.kind());
+        };
+        Ok(MahjongSession::handle_game_command(
+            self, connection, request_id, command,
+        ))
+    }
+
+    fn start_game(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
+        if self.room.player_id(connection).is_none() {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
         }
-        let request_id = message.request_id;
-        match message.command {
-            ClientCommand::Join(request) => match self.room.join(
+        if self.game.is_some() {
+            return self.room.reject(
                 connection,
                 request_id,
-                *request,
-                self.game.is_some(),
-                MahjongRuleSet::PLAYER_COUNT as u8,
-            ) {
-                Ok(mut deliveries) => {
-                    deliveries.extend(if self.game.is_some() {
-                        self.broadcast_game(Some((connection, request_id)))
-                    } else {
-                        self.broadcast_lobby(Some((connection, request_id)))
-                    });
-                    deliveries
-                }
-                Err(reason) => self.room.reject(connection, request_id, reason),
-            },
-            ClientCommand::SetAvatar { png } => {
-                match self.room.set_avatar(connection, png, self.game.is_some()) {
-                    Ok(mut deliveries) => {
-                        deliveries.extend(self.broadcast_lobby(Some((connection, request_id))));
-                        deliveries
-                    }
-                    Err(reason) => self.room.reject(connection, request_id, reason),
-                }
-            }
-            ClientCommand::SelectSeat { seat } => {
-                match self.room.select_seat(connection, seat, self.game.is_some()) {
-                    Ok(()) => self.broadcast_lobby(Some((connection, request_id))),
-                    Err(reason) => self.room.reject(connection, request_id, reason),
-                }
-            }
-            ClientCommand::ConfigureBotSeat { seat, occupied } => match self
-                .room
-                .configure_bot_seat(connection, seat, occupied, self.game.is_some())
-            {
-                Ok(()) => self.broadcast_lobby(Some((connection, request_id))),
-                Err(reason) => self.room.reject(connection, request_id, reason),
-            },
-            ClientCommand::SetReady { ready } => {
-                match self.room.set_ready(connection, ready, self.game.is_some()) {
-                    Ok(()) => self.broadcast_lobby(Some((connection, request_id))),
-                    Err(reason) => self.room.reject(connection, request_id, reason),
-                }
-            }
-            ClientCommand::Game(GameCommand::Mahjong(command)) => {
-                self.handle_game_command(connection, request_id, command)
-            }
-            ClientCommand::Game(command) => self.room.reject(
+                RejectReason::Game(GameViolation::GameAlreadyStarted),
+            );
+        }
+        if self.room.host_connection != Some(connection) {
+            return self.room.reject(
                 connection,
                 request_id,
-                RejectReason::Game(GameViolation::WrongGame {
-                    expected: GameKind::Mahjong,
-                    received: command.kind(),
+                RejectReason::Room(RoomViolation::OnlyHostCanStart),
+            );
+        }
+        let active = self
+            .room
+            .players
+            .iter()
+            .filter(|player| !player.left)
+            .count();
+        if active != MahjongRuleSet::PLAYER_COUNT {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::WaitingForPlayers {
+                    expected: MahjongRuleSet::PLAYER_COUNT as u8,
+                    actual: active as u8,
                 }),
-            ),
-            ClientCommand::StartGame => self.start_game(connection, request_id),
-            ClientCommand::ReturnToLobby => self.return_to_lobby(connection, request_id),
-            ClientCommand::PlayAgain => self.play_again(connection, request_id),
-            ClientCommand::LeaveRoom => self.leave_room(connection, request_id),
-            ClientCommand::CloseRoom => self.close_room(connection, request_id),
-            ClientCommand::Interact { target, kind } => {
-                self.interact(connection, request_id, target, kind)
-            }
-            ClientCommand::Chat { content } => self
-                .room
-                .chat(connection, request_id, content, self.game.is_some())
-                .unwrap_or_else(|reason| self.room.reject(connection, request_id, reason)),
-            ClientCommand::RequestSnapshot => self.snapshot(connection, request_id),
-            ClientCommand::Ping => unreachable!("transport pings are handled by HostSession"),
+            );
         }
+        if self
+            .room
+            .players
+            .iter()
+            .any(|player| !player.left && player.seat.is_none())
+        {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::MustSelectSeat),
+            );
+        }
+        let not_ready = self
+            .room
+            .players
+            .iter()
+            .filter(|player| !player.left && !player.ready)
+            .map(|player| player.id)
+            .collect::<Vec<_>>();
+        if !not_ready.is_empty() {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::PlayersNotReady { players: not_ready }),
+            );
+        }
+        self.room.remove_departed_players();
+        self.room.players.sort_by_key(|player| {
+            player
+                .seat
+                .expect("start validation required every player to select a seat")
+                .0
+        });
+        for (index, player) in self.room.players.iter_mut().enumerate() {
+            player.id = PlayerId(index as u8);
+            player.ready = false;
+        }
+        let deck = self.shuffled_deck.take().unwrap_or_else(shuffled_deck);
+        match GameState::new_with_deck(self.rules, deck, MahjongPlayerId(0)) {
+            Ok(game) => {
+                self.game = Some(game);
+                self.match_id = Some(new_match_id());
+                self.deal_delay = Duration::ZERO;
+                self.room.bump_revision();
+                self.broadcast_game(Some((connection, request_id)))
+            }
+            Err(error) => self.reject_game_error(connection, request_id, &error),
+        }
+    }
+
+    fn return_to_lobby(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+    ) -> Vec<Delivery> {
+        if self.room.player_id(connection).is_none() {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
+        }
+        if self.room.host_connection != Some(connection) {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::OnlyHostCanReturnToLobby),
+            );
+        }
+        if !self
+            .game
+            .as_ref()
+            .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
+        {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
+        }
+        self.game = None;
+        self.match_id = None;
+        #[cfg(feature = "developer")]
+        self.room.remove_developer_bots();
+        let host = self.room.host_connection;
+        for player in &mut self.room.players {
+            player.ready = player.is_bot || host == Some(player.connection);
+            player.auto_play = player.is_bot;
+            if !player.connected {
+                player.seat = None;
+            }
+        }
+        self.shuffled_deck = Some(shuffled_deck());
+        self.room.bump_revision();
+        self.broadcast_lobby(Some((connection, request_id)))
+    }
+
+    fn play_again(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
+        let Some(player) = self.room.player_id(connection) else {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
+        };
+        let Some(game) = self.game.as_ref() else {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
+        };
+        if !matches!(game.phase(), Phase::Finished(_)) {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotFinished),
+            );
+        }
+        if let Some(participant) = self.room.players.iter_mut().find(|item| item.id == player) {
+            participant.ready = true;
+        }
+        self.room.bump_revision();
+        let mut active = self.room.players.iter().filter(|player| !player.left);
+        if active.clone().count() == MahjongRuleSet::PLAYER_COUNT
+            && active.all(|player| player.ready)
+        {
+            return self.start_next_hand(Some((connection, request_id)));
+        }
+        self.broadcast_game(Some((connection, request_id)))
+    }
+    fn leave_room(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
+        let Some(index) = self
+            .room
+            .players
+            .iter()
+            .position(|player| player.connection == connection && !player.left)
+        else {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
+        };
+        if self.room.host_connection == Some(connection) {
+            return self.close_room(connection, request_id);
+        }
+        let name = self.room.players[index].name.clone();
+        self.room.players[index].ready = false;
+        self.room.players[index].connected = false;
+        self.room.players[index].left = true;
+        if self.game.is_none() {
+            self.room.players[index].seat = None;
+        }
+        self.room.bump_revision();
+        let mut deliveries =
+            vec![
+                self.room
+                    .delivery(connection, Some(request_id), ServerEvent::LeftRoom),
+            ];
+        deliveries.extend(
+            self.room
+                .broadcast_event(None, ServerEvent::PlayerLeft { name }),
+        );
+        deliveries.extend(if self.game.is_some() {
+            self.broadcast_game(None)
+        } else {
+            self.broadcast_lobby(None)
+        });
+        deliveries
+    }
+    fn interact(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        target: PlayerId,
+        kind: PlayerInteractionKind,
+    ) -> Vec<Delivery> {
+        let Some(source) = self.room.player_id(connection) else {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
+        };
+        if self.game.is_none() {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
+        }
+        if source == target
+            || !self
+                .room
+                .players
+                .iter()
+                .any(|player| player.id == target && !player.left)
+        {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::Mahjong(MahjongViolation::InvalidPlayer)),
+            );
+        }
+        let interaction = PlayerInteraction {
+            source,
+            target,
+            kind,
+            seed: fastrand::u32(..),
+        };
+        self.room.record_received_interaction(target, kind);
+        self.room.bump_revision();
+        let mut deliveries = self.room.broadcast_event(
+            Some((connection, request_id)),
+            ServerEvent::PlayerInteraction(interaction),
+        );
+        deliveries.extend(self.broadcast_game(None));
+        deliveries
     }
 }

@@ -26,6 +26,19 @@ pub enum GameRules {
     Mahjong(MahjongRuleSet),
 }
 
+macro_rules! game_rule_projections {
+    ($($method:ident => $variant:ident($rules:ty)),+ $(,)?) => {
+        $(
+            pub const fn $method(&self) -> Option<&$rules> {
+                match self {
+                    Self::$variant(rules) => Some(rules),
+                    _ => None,
+                }
+            }
+        )+
+    };
+}
+
 impl GameRules {
     pub const fn kind(&self) -> GameKind {
         match self {
@@ -37,39 +50,12 @@ impl GameRules {
         }
     }
 
-    pub const fn qigui523(&self) -> Option<&QiGuiRuleSet> {
-        match self {
-            Self::QiGui523(rules) => Some(rules),
-            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub const fn texas_holdem(&self) -> Option<&TexasHoldemRuleSet> {
-        match self {
-            Self::TexasHoldem(rules) => Some(rules),
-            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub const fn shengji(&self) -> Option<&ShengjiRuleSet> {
-        match self {
-            Self::Shengji(rules) => Some(rules),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub const fn uno(&self) -> Option<&UnoRuleSet> {
-        match self {
-            Self::Uno(rules) => Some(rules),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub const fn mahjong(&self) -> Option<&MahjongRuleSet> {
-        match self {
-            Self::Mahjong(rules) => Some(rules),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
-        }
+    game_rule_projections! {
+        qigui523 => QiGui523(QiGuiRuleSet),
+        texas_holdem => TexasHoldem(TexasHoldemRuleSet),
+        shengji => Shengji(ShengjiRuleSet),
+        uno => Uno(UnoRuleSet),
+        mahjong => Mahjong(MahjongRuleSet),
     }
 }
 
@@ -112,6 +98,22 @@ pub enum GameCommand {
     Uno(UnoCommand),
     Mahjong(MahjongCommand),
 }
+
+macro_rules! impl_game_command_from {
+    ($command:ty, $variant:ident) => {
+        impl From<$command> for GameCommand {
+            fn from(value: $command) -> Self {
+                Self::$variant(value)
+            }
+        }
+    };
+}
+
+impl_game_command_from!(QiGui523Command, QiGui523);
+impl_game_command_from!(TexasHoldemCommand, TexasHoldem);
+impl_game_command_from!(ShengjiCommand, Shengji);
+impl_game_command_from!(UnoCommand, Uno);
+impl_game_command_from!(MahjongCommand, Mahjong);
 
 impl GameCommand {
     pub const fn kind(&self) -> GameKind {

@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    ActionOutcome, GameError, GameState, PendingSwap, PendingSwapState, Phase, PlayerState,
+    TurnState, UnoCard, UnoColor, UnoDirection, UnoFace, UnoFlipSide, UnoPlayerId, UnoRuleSet,
+    VecDeque, validate_deck,
+};
 
 impl GameState {
     /// `deck[0]` 是第一张发出的牌。

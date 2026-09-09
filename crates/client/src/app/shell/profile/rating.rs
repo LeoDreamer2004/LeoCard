@@ -1,6 +1,6 @@
 //! 玩家公共等级与参考分显示。
 
-pub fn reference_level(points: i32) -> &'static str {
+pub(crate) fn reference_level(points: i32) -> &'static str {
     if points > 1_000 {
         "下界合金"
     } else if points >= 500 {
@@ -24,6 +24,6 @@ pub fn reference_level(points: i32) -> &'static str {
     }
 }
 
-pub fn reference_points_label(points: i32) -> String {
+pub(crate) fn reference_points_label(points: i32) -> String {
     format!("等级:{}  分数:{}", reference_level(points), points)
 }

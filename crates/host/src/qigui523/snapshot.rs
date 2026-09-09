@@ -1,64 +1,15 @@
 use super::{QiGui523Session, from_core_player, merge_qigui523_play_stats, record_qigui523_play};
+use crate::lifecycle::HostedGameLifecycle;
+use crate::player::settle_completed_match_profiles_once;
 use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
-    GameEvent, GameKind, GamePhaseView, GameRules, GameSnapshot, LobbySnapshot, PlayerId,
-    PlayerPublicState, PlayerReferenceChange, PlayerScore, PlayerViolation, PublicPlay,
-    PublicPlayRecord, QiGui523Event, QiGui523ProfileStats, QiGui523Snapshot, RejectReason,
-    RequestId, RevealedHand, ServerEvent, StartingCardView, TrickView,
+    GamePhaseView, PlayerId, PlayerPublicState, PlayerScore, PublicPlay, PublicPlayRecord,
+    QiGui523Event, QiGui523ProfileStats, QiGui523Snapshot, RequestId, RevealedHand, ServerEvent,
+    StartingCardView, TrickView,
 };
 use leocard_qigui523::{Phase, PlayRecord, reference_point_deltas};
 
 impl QiGui523Session {
-    pub(super) fn snapshot(
-        &self,
-        connection: ConnectionId,
-        request_id: RequestId,
-    ) -> Vec<Delivery> {
-        let Some(player) = self.player_id(connection) else {
-            return self.reject(
-                connection,
-                request_id,
-                RejectReason::Player(PlayerViolation::NotJoined),
-            );
-        };
-        let event = if self.game.is_some() {
-            ServerEvent::GameSnapshot(GameSnapshot::QiGui523(self.game_snapshot(player)))
-        } else {
-            ServerEvent::LobbySnapshot(self.lobby_snapshot())
-        };
-        vec![self.delivery(connection, Some(request_id), event)]
-    }
-
-    pub(super) fn broadcast_lobby(
-        &self,
-        origin: Option<(ConnectionId, RequestId)>,
-    ) -> Vec<Delivery> {
-        self.room
-            .broadcast_lobby(GameKind::QiGui523, GameRules::QiGui523(self.rules), origin)
-    }
-
-    pub(super) fn broadcast_game(
-        &self,
-        origin: Option<(ConnectionId, RequestId)>,
-    ) -> Vec<Delivery> {
-        self.players
-            .iter()
-            .filter(|player| player.connected)
-            .map(|player| {
-                let reply = origin
-                    .filter(|(connection, _)| *connection == player.connection)
-                    .map(|(_, request)| request);
-                self.delivery(
-                    player.connection,
-                    reply,
-                    ServerEvent::GameSnapshot(GameSnapshot::QiGui523(
-                        self.game_snapshot(player.id),
-                    )),
-                )
-            })
-            .collect()
-    }
-
     pub(super) fn broadcast_game_after_update(
         &mut self,
         origin: Option<(ConnectionId, RequestId)>,
@@ -93,27 +44,14 @@ impl QiGui523Session {
             .is_some_and(|host| departed.iter().any(|(connection, _)| *connection == host))
         {
             self.closed = true;
-            return self
-                .players
-                .iter()
-                .filter(|player| player.connected && !player.left)
-                .map(|player| self.delivery(player.connection, None, ServerEvent::RoomClosed))
-                .collect();
+            return self.room.broadcast_event(None, ServerEvent::RoomClosed);
         }
 
         let mut deliveries = Vec::new();
         for (_, name) in departed {
             deliveries.extend(
-                self.players
-                    .iter()
-                    .filter(|player| player.connected && !player.left)
-                    .map(|player| {
-                        self.delivery(
-                            player.connection,
-                            None,
-                            ServerEvent::PlayerLeft { name: name.clone() },
-                        )
-                    }),
+                self.room
+                    .broadcast_event(None, ServerEvent::PlayerLeft { name }),
             );
         }
         deliveries.extend(self.broadcast_game(origin));
@@ -121,9 +59,6 @@ impl QiGui523Session {
     }
 
     pub(super) fn apply_finished_reference_points(&mut self) {
-        if self.finished_reference_changes.is_some() {
-            return;
-        }
         let Some(scores) = self.game.as_ref().and_then(|game| match game.phase() {
             Phase::Finished(result) => Some(result.scores.clone()),
             Phase::Playing => None,
@@ -132,41 +67,41 @@ impl QiGui523Session {
         };
         let deltas = reference_point_deltas(&scores)
             .expect("a running game always contains between two and six players");
-        let mut changes = Vec::with_capacity(self.players.len());
-        let match_profile_stats = self.match_profile_stats.clone();
-        self.room.prepare_rematch();
-        for (index, ((player, delta), score)) in self
+        let settlements = self
             .players
-            .iter_mut()
+            .iter()
             .zip(deltas)
-            .zip(scores.iter().copied())
-            .enumerate()
-        {
-            player.reference_points = player.reference_points.saturating_add(i32::from(delta));
-            player.completed_games = player.completed_games.saturating_add(1);
-            let placement = 1 + scores.iter().filter(|other| **other > score).count();
-            let aggregate = player
-                .game_profiles
-                .qigui523
-                .get_or_insert_with(QiGui523ProfileStats::default);
-            aggregate.completed_games = aggregate.completed_games.saturating_add(1);
-            aggregate.total_score = aggregate.total_score.saturating_add(u64::from(score));
-            aggregate.total_reference_delta = aggregate
-                .total_reference_delta
-                .saturating_add(i64::from(delta));
-            if let Some(count) = aggregate.placement_counts.get_mut(placement - 1) {
-                *count = count.saturating_add(1);
-            }
-            if let Some(current) = match_profile_stats.get(index) {
-                merge_qigui523_play_stats(aggregate, current);
-            }
-            changes.push(PlayerReferenceChange {
-                player: player.id,
-                profile_id: player.profile_id,
-                delta,
-            });
+            .map(|(player, delta)| (player.id, delta))
+            .collect::<Vec<_>>();
+        let match_profile_stats = self.match_profile_stats.clone();
+        let applied = settle_completed_match_profiles_once(
+            &mut self.finished_reference_changes,
+            &mut self.room,
+            settlements,
+            |player, delta| {
+                let index = usize::from(player.id.0);
+                let score = scores[index];
+                let placement = 1 + scores.iter().filter(|other| **other > score).count();
+                let aggregate = player
+                    .game_profiles
+                    .qigui523
+                    .get_or_insert_with(QiGui523ProfileStats::default);
+                aggregate.completed_games = aggregate.completed_games.saturating_add(1);
+                aggregate.total_score = aggregate.total_score.saturating_add(u64::from(score));
+                aggregate.total_reference_delta = aggregate
+                    .total_reference_delta
+                    .saturating_add(i64::from(delta));
+                if let Some(count) = aggregate.placement_counts.get_mut(placement - 1) {
+                    *count = count.saturating_add(1);
+                }
+                if let Some(current) = match_profile_stats.get(index) {
+                    merge_qigui523_play_stats(aggregate, current);
+                }
+            },
+        );
+        if applied {
+            self.room.prepare_rematch();
         }
-        self.finished_reference_changes = Some(changes);
     }
 
     pub(super) fn broadcast_game_after_action(
@@ -188,25 +123,8 @@ impl QiGui523Session {
 
     pub(super) fn broadcast_play_effect(&self, effect: (PlayerId, PublicPlay)) -> Vec<Delivery> {
         let (player, play) = effect;
-        self.players
-            .iter()
-            .filter(|participant| participant.connected && !participant.left)
-            .map(|participant| {
-                self.delivery(
-                    participant.connection,
-                    None,
-                    ServerEvent::GameEvent(GameEvent::QiGui523(QiGui523Event::PlayEffect {
-                        player,
-                        play: play.clone(),
-                    })),
-                )
-            })
-            .collect()
-    }
-
-    pub(super) fn lobby_snapshot(&self) -> LobbySnapshot {
         self.room
-            .lobby_snapshot(GameKind::QiGui523, GameRules::QiGui523(self.rules))
+            .broadcast_game_events([QiGui523Event::PlayEffect { player, play }])
     }
 
     pub(super) fn game_snapshot(&self, recipient: PlayerId) -> QiGui523Snapshot {
@@ -216,22 +134,25 @@ impl QiGui523Session {
             .players()
             .iter()
             .zip(&self.players)
-            .map(|(state, participant)| PlayerPublicState {
-                id: participant.id,
-                profile_id: participant.profile_id,
-                name: participant.name.clone(),
-                avatar: participant.avatar,
-                seat: participant
-                    .seat
-                    .expect("all game participants have selected seats"),
-                hand_len: state.hand().len() as u16,
-                score: state.score(),
-                ready: participant.ready,
-                connected: participant.connected || participant.is_bot,
-                auto_play: participant.auto_play,
-                reference_points: participant.reference_points,
-                completed_games: participant.completed_games,
-                game_profiles: participant.game_profiles.clone(),
+            .map(|(state, participant)| {
+                let public = participant.public_metadata();
+                PlayerPublicState {
+                    id: public.id,
+                    profile_id: public.profile_id,
+                    name: public.name,
+                    avatar: public.avatar,
+                    seat: public
+                        .seat
+                        .expect("all game participants have selected seats"),
+                    hand_len: state.hand().len() as u16,
+                    score: state.score(),
+                    ready: public.ready,
+                    connected: public.connected,
+                    auto_play: public.auto_play,
+                    reference_points: public.reference_points,
+                    completed_games: public.completed_games,
+                    game_profiles: public.game_profiles,
+                }
             })
             .collect();
         let starting = game.starting_card();

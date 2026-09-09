@@ -1,17 +1,22 @@
-use super::*;
+use super::super::ShengjiUiAction;
+use super::shengji_current_level;
+use crate::app::presentation::{ACCENT, ButtonTint, DANGER, MUTED, TEXT, add_text, spawn_node};
+use crate::app::runtime::{ClientResource, UiAssets};
+use crate::app::shell::UiAction;
+use bevy::prelude::*;
 use leocard_protocol::ShengjiDeclarationView;
 use leocard_protocol::{ShengjiPhaseView, ShengjiSnapshot};
 use leocard_shengji::bid_joker_for_suit;
 use leocard_shengji::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiSuit};
 
 #[derive(Component)]
-pub struct ShengjiBiddingCountdown;
+pub(crate) struct ShengjiBiddingCountdown;
 
-pub fn shengji_bidding_countdown_label(milliseconds: u16) -> String {
+pub(crate) fn shengji_bidding_countdown_label(milliseconds: u16) -> String {
     format!("{}秒", milliseconds.div_ceil(1000))
 }
 
-pub fn sync_shengji_bidding_countdown(
+pub(crate) fn sync_shengji_bidding_countdown(
     client: Option<Res<ClientResource>>,
     mut labels: Query<&mut Text, With<ShengjiBiddingCountdown>>,
 ) {
@@ -36,7 +41,7 @@ pub fn sync_shengji_bidding_countdown(
     }
 }
 
-pub fn add_shengji_bidding_panel(
+pub(super) fn add_shengji_bidding_panel(
     commands: &mut Commands,
     hand_area: Entity,
     game: &ShengjiSnapshot,
@@ -148,7 +153,7 @@ fn add_shengji_bid_pass_button(
     );
 }
 
-pub fn add_shengji_bid_button(
+pub(super) fn add_shengji_bid_button(
     commands: &mut Commands,
     parent: Entity,
     label: &str,
@@ -211,7 +216,7 @@ pub fn add_shengji_bid_button(
     );
 }
 
-pub fn shengji_declaration_candidate(
+pub(crate) fn shengji_declaration_candidate(
     game: &ShengjiSnapshot,
     suit: Option<ShengjiSuit>,
 ) -> Option<Vec<ShengjiCard>> {

@@ -1,9 +1,14 @@
 //! 聊天抽屉、历史记录与气泡实体的状态类型。
 
-use super::*;
+use bevy::prelude::*;
 use leocard_protocol::{PlayerId, QUICK_VOICE_COUNT};
+use std::collections::VecDeque;
 
-pub const QUICK_VOICES: [&str; QUICK_VOICE_COUNT as usize] = [
+pub(super) const CHAT_PANEL_WIDTH: f32 = 350.0;
+/// 将面板本体移出右侧，同时保留其左侧的 32px 折叠箭头。
+pub(super) const CHAT_PANEL_HIDDEN_OFFSET: f32 = CHAT_PANEL_WIDTH + 2.0;
+
+pub(crate) const QUICK_VOICES: [&str; QUICK_VOICE_COUNT as usize] = [
     "我从未见过如此厚颜无耻之人！",
     "这波不亏",
     "请收下我的膝盖",
@@ -30,13 +35,13 @@ pub const QUICK_VOICES: [&str; QUICK_VOICE_COUNT as usize] = [
 ];
 
 #[derive(Clone, Debug)]
-pub struct ChatHistoryEntry {
+pub(crate) struct ChatHistoryEntry {
     pub player_name: String,
     pub message: String,
 }
 
 #[derive(Resource)]
-pub struct ChatPanelState {
+pub(crate) struct ChatPanelState {
     pub open: bool,
     pub slide: f32,
     pub focused: bool,
@@ -65,31 +70,31 @@ impl Default for ChatPanelState {
 }
 
 #[derive(Component)]
-pub struct ChatPanel;
+pub(crate) struct ChatPanel;
 
 #[derive(Component)]
-pub struct ChatToggleIcon;
+pub(crate) struct ChatToggleIcon;
 
 #[derive(Component)]
-pub struct ChatHistoryText;
+pub(crate) struct ChatHistoryText;
 
 #[derive(Component)]
-pub struct ChatInputText;
+pub(crate) struct ChatInputText;
 
 #[derive(Component)]
-pub struct EmojiMenu;
+pub(crate) struct EmojiMenu;
 
 #[derive(Component)]
-pub struct EmojiScroll;
+pub(crate) struct EmojiScroll;
 
 #[derive(Component)]
-pub struct QuickVoiceMenu;
+pub(crate) struct QuickVoiceMenu;
 
 #[derive(Component)]
-pub struct QuickVoiceScroll;
+pub(crate) struct QuickVoiceScroll;
 
 #[derive(Component)]
-pub struct ActiveChatBubble {
+pub(crate) struct ActiveChatBubble {
     pub player: PlayerId,
     pub text: Option<Entity>,
     pub emoji_image: Option<Entity>,
@@ -100,4 +105,4 @@ pub struct ActiveChatBubble {
 }
 
 #[derive(Component)]
-pub struct ChatBubbleText;
+pub(crate) struct ChatBubbleText;

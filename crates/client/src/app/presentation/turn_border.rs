@@ -1,6 +1,7 @@
 //! Shader-driven rounded trace around the player whose turn is active.
 
-use crate::app::*;
+use super::smootherstep;
+use crate::app::ACCENT;
 use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
@@ -13,11 +14,11 @@ const TURN_BORDER_HOLD_DURATION: f32 = 0.14;
 const TURN_BORDER_SHRINK_DURATION: f32 = 0.95;
 const TURN_BORDER_GAP_DURATION: f32 = 0.18;
 const TURN_BORDER_RADIUS: f32 = 8.0;
-pub const TURN_BORDER_THICKNESS: f32 = 2.6;
+pub(crate) const TURN_BORDER_THICKNESS: f32 = 2.6;
 const TURN_BORDER_OUTSET: f32 = TURN_BORDER_THICKNESS * 0.5 + 0.75;
 
 #[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
-pub struct TurnBorderMaterial {
+pub(crate) struct TurnBorderMaterial {
     /// x: normalized tail, y: normalized head, z: corner radius, w: line thickness.
     #[uniform(0)]
     params: Vec4,
@@ -33,7 +34,7 @@ impl UiMaterial for TurnBorderMaterial {
 }
 
 #[derive(Component)]
-pub struct TurnBorderTrace {
+pub(crate) struct TurnBorderTrace {
     key: TurnBorderAnimationKey,
     material: Handle<TurnBorderMaterial>,
 }
@@ -42,14 +43,14 @@ pub struct TurnBorderTrace {
 /// 使用“游戏 + 对局 + 当前玩家”作为稳定键，可在同一回合的 UI 重建后继续播放；
 /// 真正换人或换局时则自然从头开始。
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct TurnBorderAnimationKey {
+pub(crate) struct TurnBorderAnimationKey {
     game: GameKind,
     match_id: MatchId,
     player: PlayerId,
 }
 
 impl TurnBorderAnimationKey {
-    pub fn new(game: GameKind, match_id: MatchId, player: PlayerId) -> Self {
+    pub(crate) fn new(game: GameKind, match_id: MatchId, player: PlayerId) -> Self {
         Self {
             game,
             match_id,
@@ -59,11 +60,11 @@ impl TurnBorderAnimationKey {
 }
 
 #[derive(Default, Resource)]
-pub struct TurnBorderAnimationState {
+pub(crate) struct TurnBorderAnimationState {
     elapsed: HashMap<TurnBorderAnimationKey, f32>,
 }
 
-pub fn add_turn_border_trace(
+pub(crate) fn add_turn_border_trace(
     commands: &mut Commands,
     panel: Entity,
     materials: &mut Assets<TurnBorderMaterial>,
@@ -100,7 +101,7 @@ pub fn add_turn_border_trace(
     commands.entity(panel).add_child(trace);
 }
 
-pub fn turn_border_visible_interval(elapsed: f32, perimeter: f32) -> (f32, f32) {
+pub(crate) fn turn_border_visible_interval(elapsed: f32, perimeter: f32) -> (f32, f32) {
     let cycle = TURN_BORDER_GROW_DURATION
         + TURN_BORDER_HOLD_DURATION
         + TURN_BORDER_SHRINK_DURATION
@@ -124,7 +125,7 @@ pub fn turn_border_visible_interval(elapsed: f32, perimeter: f32) -> (f32, f32) 
     }
 }
 
-pub fn animate_turn_border_traces(
+pub(crate) fn animate_turn_border_traces(
     time: Res<Time>,
     mut materials: ResMut<Assets<TurnBorderMaterial>>,
     mut animation: ResMut<TurnBorderAnimationState>,

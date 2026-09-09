@@ -1,9 +1,21 @@
 //! 玩家档案弹窗、游戏标签和互动统计视图。
 
-use super::*;
+use super::super::{NavigationUiAction, UiAction};
+use super::{
+    ProfileGameColumn, ProfileGameContent, ProfileGameTab, ProfileGameTabButton, ProfileStat,
+    SelectedProfileGameTab, qigui523_profile_rows, reference_level, shengji_profile_rows,
+    texas_holdem_profile_rows, uno_profile_rows,
+};
+use crate::app::presentation::{
+    ACCENT, BORDER, ButtonKind, ButtonTint, HEADER_BG, MUTED, PANEL, PanelSkin, TEXT,
+    add_action_button, add_avatar, add_panel, add_section_title, add_text, spawn_node,
+};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerGameProfiles, PlayerInteractionKind, PlayerInteractionStats};
 
-pub struct ProfileModal<'a> {
+pub(crate) struct ProfileModal<'a> {
     player_name: &'a str,
     avatar: Option<&'a Handle<Image>>,
     reference_points: i32,
@@ -14,7 +26,7 @@ pub struct ProfileModal<'a> {
 }
 
 impl<'a> ProfileModal<'a> {
-    pub fn new(
+    pub(crate) fn new(
         player_name: &'a str,
         avatar: Option<&'a Handle<Image>>,
         reference_points: i32,
@@ -34,7 +46,7 @@ impl<'a> ProfileModal<'a> {
         }
     }
 
-    pub fn render(self, commands: &mut Commands, root: Entity) {
+    pub(crate) fn render(self, commands: &mut Commands, root: Entity) {
         let Self {
             player_name,
             avatar,

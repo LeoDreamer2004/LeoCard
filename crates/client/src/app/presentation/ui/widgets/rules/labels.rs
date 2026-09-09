@@ -1,7 +1,15 @@
-use super::*;
+use super::super::{add_text, spawn_node};
+use crate::app::presentation::{ACCENT, HEADER_BG, MUTED, RuleHelp, TEXT};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
 use leocard_qigui523::{SuitComparison, TimeControl};
 
-pub fn add_rule_help(commands: &mut Commands, parent: Entity, help: &str, assets: &UiAssets) {
+pub(super) fn add_rule_help(
+    commands: &mut Commands,
+    parent: Entity,
+    help: &str,
+    assets: &UiAssets,
+) {
     let question = commands
         .spawn((
             Button,
@@ -46,7 +54,7 @@ pub fn add_rule_help(commands: &mut Commands, parent: Entity, help: &str, assets
     commands.entity(question).insert(RuleHelp { tooltip });
 }
 
-pub fn suit_comparison_label(comparison: SuitComparison) -> &'static str {
+pub(crate) fn suit_comparison_label(comparison: SuitComparison) -> &'static str {
     match comparison {
         SuitComparison::HighestCard => "极大法",
         SuitComparison::Lexicographic => "逐项法",
@@ -54,7 +62,7 @@ pub fn suit_comparison_label(comparison: SuitComparison) -> &'static str {
     }
 }
 
-pub fn time_control_label(control: TimeControl) -> &'static str {
+pub(crate) fn time_control_label(control: TimeControl) -> &'static str {
     match control {
         TimeControl::Unlimited => "不限时",
         TimeControl::FivePlusTen => "5 + 10",
@@ -64,7 +72,7 @@ pub fn time_control_label(control: TimeControl) -> &'static str {
     }
 }
 
-pub fn previous_time_control(control: TimeControl) -> Option<TimeControl> {
+pub(crate) fn previous_time_control(control: TimeControl) -> Option<TimeControl> {
     match control {
         TimeControl::FivePlusTen => None,
         TimeControl::FivePlusThirty => Some(TimeControl::FivePlusTen),
@@ -74,7 +82,7 @@ pub fn previous_time_control(control: TimeControl) -> Option<TimeControl> {
     }
 }
 
-pub fn next_time_control(control: TimeControl) -> Option<TimeControl> {
+pub(crate) fn next_time_control(control: TimeControl) -> Option<TimeControl> {
     match control {
         TimeControl::FivePlusTen => Some(TimeControl::FivePlusThirty),
         TimeControl::FivePlusThirty => Some(TimeControl::FifteenPlusThirty),
@@ -84,7 +92,7 @@ pub fn next_time_control(control: TimeControl) -> Option<TimeControl> {
     }
 }
 
-pub fn previous_suit_comparison(comparison: SuitComparison) -> SuitComparison {
+pub(crate) fn previous_suit_comparison(comparison: SuitComparison) -> SuitComparison {
     match comparison {
         SuitComparison::HighestCard => SuitComparison::SumPoints,
         SuitComparison::Lexicographic => SuitComparison::HighestCard,
@@ -92,7 +100,7 @@ pub fn previous_suit_comparison(comparison: SuitComparison) -> SuitComparison {
     }
 }
 
-pub fn next_suit_comparison(comparison: SuitComparison) -> SuitComparison {
+pub(crate) fn next_suit_comparison(comparison: SuitComparison) -> SuitComparison {
     match comparison {
         SuitComparison::HighestCard => SuitComparison::Lexicographic,
         SuitComparison::Lexicographic => SuitComparison::SumPoints,

@@ -119,7 +119,7 @@ fn only_host_can_update_rules_and_changes_reset_ready_state() {
         matches!(
             &delivery.message.event,
             ServerEvent::LobbySnapshot(snapshot)
-                if snapshot.qigui523_rules() == Some(&configured)
+                if snapshot.rules.qigui523() == Some(&configured)
                     && snapshot.players.iter().all(|player| {
                         player.ready == (Some(player.id) == snapshot.host)
                     })

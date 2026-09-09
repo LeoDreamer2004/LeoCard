@@ -1,30 +1,9 @@
-use super::*;
-use leocard_protocol::{
-    GameSnapshot, PlayerId, PlayerViolation, RejectReason, RequestId, ServerEvent, TexasHoldemEvent,
-};
+use super::{TexasHoldemAdapter, TexasHoldemSession, hand_category_index, record_wager};
+use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState};
+use leocard_protocol::{PlayerId, TexasHoldemEvent};
 use leocard_texas_holdem::{PassiveBot, Phase, TexasHoldemAction, evaluate_player_hand};
 
 impl TexasHoldemSession {
-    pub(super) fn snapshot(
-        &self,
-        connection: ConnectionId,
-        request_id: RequestId,
-    ) -> Vec<Delivery> {
-        let Some(player) = self.room.player_id(connection) else {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Player(PlayerViolation::NotJoined),
-            );
-        };
-        let event = if self.game.is_some() {
-            ServerEvent::GameSnapshot(GameSnapshot::TexasHoldem(self.game_snapshot(player)))
-        } else {
-            ServerEvent::LobbySnapshot(self.lobby_snapshot())
-        };
-        vec![self.room.delivery(connection, Some(request_id), event)]
-    }
-
     pub(super) fn current_auto_play_player(&self) -> Option<PlayerId> {
         let current = self
             .game

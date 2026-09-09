@@ -4,6 +4,7 @@ mod assets_io;
 mod game_systems;
 mod input;
 mod preferences;
+mod prelude;
 mod profile;
 mod qigui523;
 mod shengji;
@@ -13,6 +14,3 @@ mod text_input;
 mod ui_systems;
 mod uno;
 mod update;
-
-use super::*;
-use bevy::prelude::*;

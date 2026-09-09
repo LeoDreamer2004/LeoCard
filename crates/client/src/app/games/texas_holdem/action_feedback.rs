@@ -1,22 +1,25 @@
 //! 德州扑克下注动作的短促视觉反馈，与筹码账本和牌桌构建解耦。
 
-use super::*;
+use super::{ActionFeedbackKind, TexasChipTableState, TexasPlayerPanel};
+use bevy::prelude::*;
+use bevy::ui::RelativeCursorPosition;
+use std::collections::HashSet;
 
 #[derive(Component)]
-pub struct TexasActionFeedback {
+pub(super) struct TexasActionFeedback {
     pub kind: ActionFeedbackKind,
     pub elapsed: f32,
 }
 
 #[derive(Component)]
-pub struct TexasActionFeedbackText {
+pub(super) struct TexasActionFeedbackText {
     pub color: Color,
     pub kind: ActionFeedbackKind,
     pub elapsed: f32,
 }
 
 #[derive(Component)]
-pub struct TexasFoldCard {
+pub(super) struct TexasFoldCard {
     pub index: usize,
     pub total: usize,
     pub elapsed: f32,
@@ -26,21 +29,24 @@ pub struct TexasFoldCard {
 }
 
 #[derive(Component)]
-pub struct TexasOwnFoldCardHover {
+pub(super) struct TexasOwnFoldCardHover {
     pub tooltip: Entity,
 }
 
 #[derive(Component)]
-pub struct TexasOwnFoldTooltip;
+pub(super) struct TexasOwnFoldTooltip;
 
 #[derive(Clone, Copy, Debug)]
-pub struct ActionFeedbackVisual {
+pub(crate) struct ActionFeedbackVisual {
     pub translation: Vec2,
     pub scale: f32,
     pub alpha: f32,
 }
 
-pub fn action_feedback_visual(kind: ActionFeedbackKind, elapsed: f32) -> ActionFeedbackVisual {
+pub(super) fn action_feedback_visual(
+    kind: ActionFeedbackKind,
+    elapsed: f32,
+) -> ActionFeedbackVisual {
     let entry = (elapsed / 0.18).clamp(0.0, 1.0);
     let mut visual = ActionFeedbackVisual {
         translation: Vec2::ZERO,
@@ -70,7 +76,7 @@ pub fn action_feedback_visual(kind: ActionFeedbackKind, elapsed: f32) -> ActionF
     visual
 }
 
-pub fn action_feedback_transform(kind: ActionFeedbackKind, elapsed: f32) -> UiTransform {
+pub(super) fn action_feedback_transform(kind: ActionFeedbackKind, elapsed: f32) -> UiTransform {
     let visual = action_feedback_visual(kind, elapsed);
     let mut transform = UiTransform::IDENTITY;
     transform.translation = Val2::px(visual.translation.x, visual.translation.y);
@@ -78,7 +84,11 @@ pub fn action_feedback_transform(kind: ActionFeedbackKind, elapsed: f32) -> UiTr
     transform
 }
 
-pub fn action_feedback_text_color(kind: ActionFeedbackKind, base: Color, elapsed: f32) -> Color {
+pub(super) fn action_feedback_text_color(
+    kind: ActionFeedbackKind,
+    base: Color,
+    elapsed: f32,
+) -> Color {
     let alpha = action_feedback_visual(kind, elapsed).alpha;
     if kind != ActionFeedbackKind::Check {
         return base.with_alpha(alpha);
@@ -93,12 +103,17 @@ pub fn action_feedback_text_color(kind: ActionFeedbackKind, base: Color, elapsed
     Color::srgba(rgb.x, rgb.y, rgb.z, alpha)
 }
 
-pub struct FoldCardVisual {
+pub(crate) struct FoldCardVisual {
     pub transform: UiTransform,
     pub face_visible: bool,
 }
 
-pub fn fold_card_visual(index: usize, total: usize, elapsed: f32, own: bool) -> FoldCardVisual {
+pub(super) fn fold_card_visual(
+    index: usize,
+    total: usize,
+    elapsed: f32,
+    own: bool,
+) -> FoldCardVisual {
     let duration = if own { 0.72 } else { 0.58 };
     let progress = (elapsed / duration).clamp(0.0, 1.0);
     let eased = 1.0 - (1.0 - progress).powi(3);
@@ -142,7 +157,7 @@ pub fn fold_card_visual(index: usize, total: usize, elapsed: f32, own: bool) -> 
     }
 }
 
-pub fn animate_texas_action_feedback(
+pub(super) fn animate_texas_action_feedback(
     time: Res<Time>,
     state: Res<TexasChipTableState>,
     mut visuals: ParamSet<(
@@ -191,7 +206,7 @@ pub fn animate_texas_action_feedback(
     }
 }
 
-pub fn sync_texas_own_fold_tooltip(
+pub(super) fn sync_texas_own_fold_tooltip(
     hovers: Query<(&RelativeCursorPosition, &TexasOwnFoldCardHover)>,
     mut tooltips: Query<(Entity, &mut Visibility), With<TexasOwnFoldTooltip>>,
 ) {

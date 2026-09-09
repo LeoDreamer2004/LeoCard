@@ -1,6 +1,13 @@
-use super::*;
+use super::{
+    UNO_FLYING_CARD_HEIGHT, UNO_FLYING_CARD_WIDTH, UNO_PALETTE_EFFECT_DURATION,
+    UNO_REVERSE_EFFECT_DURATION, UnoFlipCard, UnoFlipOverlay, UnoFlyingCard, UnoPaletteColorRing,
+    UnoPaletteEffect, UnoPaletteMaterial, UnoPaletteParticle, UnoPaletteSelectedSector,
+    UnoReverseArrow, quadratic_bezier,
+};
+use crate::app::presentation::ease_out_cubic;
+use bevy::prelude::*;
 
-pub fn animate_uno_flying_cards(
+pub(crate) fn animate_uno_flying_cards(
     time: Res<Time>,
     mut commands: Commands,
     mut cards: Query<(
@@ -56,7 +63,7 @@ pub fn animate_uno_flying_cards(
     }
 }
 
-pub fn animate_uno_flip_effects(
+pub(crate) fn animate_uno_flip_effects(
     mut commands: Commands,
     time: Res<Time>,
     mut overlays: Query<(Entity, &mut UnoFlipOverlay, &mut BackgroundColor)>,
@@ -109,7 +116,7 @@ pub fn animate_uno_flip_effects(
     }
 }
 
-pub fn uno_flying_card_scale(draw_animation: bool, progress: f32) -> f32 {
+pub(crate) fn uno_flying_card_scale(draw_animation: bool, progress: f32) -> f32 {
     let progress = progress.clamp(0.0, 1.0);
     if !draw_animation && progress >= 1.0 {
         return 1.0;
@@ -122,7 +129,7 @@ pub fn uno_flying_card_scale(draw_animation: bool, progress: f32) -> f32 {
     }
 }
 
-pub fn animate_uno_palette_effects(
+pub(crate) fn animate_uno_palette_effects(
     time: Res<Time>,
     mut commands: Commands,
     mut materials: ResMut<Assets<UnoPaletteMaterial>>,
@@ -155,7 +162,7 @@ pub fn animate_uno_palette_effects(
     }
 }
 
-pub fn animate_uno_palette_selected_sectors(
+pub(crate) fn animate_uno_palette_selected_sectors(
     time: Res<Time>,
     mut materials: ResMut<Assets<UnoPaletteMaterial>>,
     mut sectors: Query<(
@@ -176,7 +183,7 @@ pub fn animate_uno_palette_selected_sectors(
     }
 }
 
-pub fn animate_uno_palette_color_rings(
+pub(crate) fn animate_uno_palette_color_rings(
     time: Res<Time>,
     mut rings: Query<(&mut UnoPaletteColorRing, &mut BorderColor, &mut UiTransform)>,
 ) {
@@ -192,7 +199,7 @@ pub fn animate_uno_palette_color_rings(
     }
 }
 
-pub fn animate_uno_palette_particles(
+pub(crate) fn animate_uno_palette_particles(
     time: Res<Time>,
     mut particles: Query<(
         &mut UnoPaletteParticle,
@@ -215,7 +222,7 @@ pub fn animate_uno_palette_particles(
     }
 }
 
-pub fn uno_palette_selected_scale(progress: f32) -> f32 {
+pub(crate) fn uno_palette_selected_scale(progress: f32) -> f32 {
     let progress = progress.clamp(0.0, 1.0);
     if progress <= 0.18 {
         1.0
@@ -226,7 +233,7 @@ pub fn uno_palette_selected_scale(progress: f32) -> f32 {
     }
 }
 
-pub fn animate_uno_reverse_effects(
+pub(crate) fn animate_uno_reverse_effects(
     time: Res<Time>,
     mut commands: Commands,
     mut arrows: Query<(

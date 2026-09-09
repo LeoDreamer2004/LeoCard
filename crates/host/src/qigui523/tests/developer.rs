@@ -1,9 +1,9 @@
 use super::*;
-#[cfg(not(feature = "developer"))]
-use leocard_protocol::RejectReason;
 #[cfg(feature = "developer")]
 use leocard_protocol::ServerEvent;
 use leocard_protocol::{ClientCommand, GameCommand, QiGui523Command};
+#[cfg(not(feature = "developer"))]
+use leocard_protocol::{GameViolation, RejectReason};
 #[cfg(feature = "developer")]
 use leocard_qigui523::Phase;
 use leocard_qigui523::{QiGuiCard, QiGuiRank, QiGuiSuit, build_deck};

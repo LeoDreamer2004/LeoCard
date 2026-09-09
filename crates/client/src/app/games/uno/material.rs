@@ -1,17 +1,19 @@
-use super::*;
+use bevy::prelude::*;
+use bevy::render::render_resource::AsBindGroup;
+use bevy::shader::ShaderRef;
 use leocard_uno::UnoColor;
 
 const UNO_PALETTE_SHADER: &str = "shaders/uno_palette.wgsl";
 
 /// GPU 直接绘制调色轮。params: x=选中色编号，y=0 底盘/1 独立扇区，z=透明度。
 #[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
-pub struct UnoPaletteMaterial {
+pub(crate) struct UnoPaletteMaterial {
     #[uniform(0)]
     pub params: Vec4,
 }
 
 impl UnoPaletteMaterial {
-    pub fn new(selected: UnoColor, selected_sector: bool) -> Self {
+    pub(crate) fn new(selected: UnoColor, selected_sector: bool) -> Self {
         let selected = match selected {
             UnoColor::Red => 0.0,
             UnoColor::Yellow => 1.0,

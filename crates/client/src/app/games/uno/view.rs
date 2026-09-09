@@ -1,11 +1,26 @@
 //! UNO 牌桌视图。
 
-use super::*;
+use super::{
+    UnoAssets, UnoDiscardCard, UnoDiscardPileAnchor, UnoDrawPileAnchor, UnoFlipTarget, UnoUiState,
+    add_initial_color_choice, add_play_color_choice, add_uno_actions, add_uno_callout_actions,
+    add_uno_eliminated_own_overlay, add_uno_own_area, add_uno_player_panel, add_uno_summary,
+    add_uno_swap_selection_prompt, opponent_position, uno_card_handle, uno_discard_pose,
+    uno_ui_color,
+};
+use crate::app::presentation::{
+    ACCENT, DANGER, DESIGN_WIDTH, GameSummaryAnimation, HEADER_BG, TEXT, TableBackground,
+    TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay, add_text, spawn_node,
+    table_material_params,
+};
+use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
+use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_client::NetworkState;
 use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
 use leocard_uno::{UnoFlipSide, UnoPendingDrawKind, UnoRuleSet};
 
-pub const UNO_DISCARD_OFFSETS: [(f32, f32, f32); 6] = [
+pub(super) const UNO_DISCARD_OFFSETS: [(f32, f32, f32); 6] = [
     (-5.0, 4.0, -5.0),
     (4.0, 2.0, 4.0),
     (-2.0, -2.0, -2.5),
@@ -13,14 +28,15 @@ pub const UNO_DISCARD_OFFSETS: [(f32, f32, f32); 6] = [
     (-1.0, 0.0, -1.5),
     (1.0, -1.0, 2.0),
 ];
-pub const UNO_FLYING_CARD_WIDTH: f32 = 82.0;
-pub const UNO_FLYING_CARD_HEIGHT: f32 = 128.0;
-pub const UNO_PALETTE_EFFECT_DURATION: f32 = 2.2;
-pub const UNO_REVERSE_EFFECT_DURATION: f32 = 1.65;
-pub const UNO_ACTION_AREA_BOTTOM: f32 = 153.0;
-pub const UNO_ACTION_AREA_HEIGHT: f32 = 52.0;
-pub struct UnoTableVisuals<'a> {
+pub(super) const UNO_FLYING_CARD_WIDTH: f32 = 82.0;
+pub(super) const UNO_FLYING_CARD_HEIGHT: f32 = 128.0;
+pub(super) const UNO_PALETTE_EFFECT_DURATION: f32 = 2.2;
+pub(super) const UNO_REVERSE_EFFECT_DURATION: f32 = 1.65;
+pub(super) const UNO_ACTION_AREA_BOTTOM: f32 = 153.0;
+pub(super) const UNO_ACTION_AREA_HEIGHT: f32 = 52.0;
+pub(crate) struct UnoTableVisuals<'a> {
     pub assets: &'a UiAssets,
+    pub game_assets: &'a UnoAssets,
     pub avatars: &'a AvatarImages,
     pub appearance: &'a TableAppearance,
     pub brightness: f32,
@@ -30,17 +46,19 @@ pub struct UnoTableVisuals<'a> {
     pub game_summary: &'a GameSummaryAnimation,
 }
 
-pub fn render_uno_table(
+pub(crate) fn render_uno_table(
     commands: &mut Commands,
     root: Entity,
     client: &ClientResource,
     game: &UnoSnapshot,
-    ui: &UiState,
+    ui: &UnoUiState,
+    social: &SocialUiState,
     chat: &ChatPanelState,
     visuals: UnoTableVisuals<'_>,
 ) {
     let UnoTableVisuals {
         assets,
+        game_assets,
         avatars,
         appearance,
         brightness,
@@ -135,13 +153,15 @@ pub fn render_uno_table(
             player,
             opponent_position(index, opponent_count),
             ui,
+            social,
             avatars,
             assets,
+            game_assets,
             turn_border_materials,
         );
     }
 
-    add_uno_center(commands, table, game, assets);
+    add_uno_center(commands, table, game, assets, game_assets);
     add_uno_own_area(
         commands,
         table,
@@ -149,6 +169,7 @@ pub fn render_uno_table(
         own,
         ui,
         assets,
+        game_assets,
         turn_border_materials,
     );
     add_uno_actions(commands, table, game, ui, assets);
@@ -168,7 +189,7 @@ pub fn render_uno_table(
     if needs_color_choice {
         add_initial_color_choice(commands, content, game, assets);
     }
-    if let Some(card) = ui.uno.color_choice {
+    if let Some(card) = ui.color_choice {
         add_play_color_choice(commands, content, game.flip_side, card, assets);
     }
     if let UnoPhaseView::Finished {
@@ -192,7 +213,7 @@ pub fn render_uno_table(
     }
 
     let auto_play = own.auto_play;
-    add_chat_panel(commands, content, chat, assets, Some(auto_play), None, None);
+    add_chat_panel(commands, content, chat, assets, Some(auto_play), &[]);
     if own.eliminated && matches!(game.phase, UnoPhaseView::Playing) {
         add_uno_eliminated_own_overlay(commands, content, assets);
     } else if auto_play && matches!(game.phase, UnoPhaseView::Playing) {
@@ -200,7 +221,13 @@ pub fn render_uno_table(
     }
 }
 
-fn add_uno_center(commands: &mut Commands, table: Entity, game: &UnoSnapshot, assets: &UiAssets) {
+fn add_uno_center(
+    commands: &mut Commands,
+    table: Entity,
+    game: &UnoSnapshot,
+    assets: &UiAssets,
+    game_assets: &UnoAssets,
+) {
     let center = spawn_node(
         commands,
         table,
@@ -234,8 +261,8 @@ fn add_uno_center(commands: &mut Commands, table: Entity, game: &UnoSnapshot, as
             .draw_pile_inactive_cards
             .get(index_from_top)
             .copied()
-            .map(|card| uno_card_handle(assets, card))
-            .unwrap_or_else(|| assets.games.uno_card_back.clone());
+            .map(|card| uno_card_handle(game_assets, card))
+            .unwrap_or_else(|| game_assets.card_back.clone());
         let mut card = commands.spawn((
             UnoFlipTarget::DrawPile(index_from_top),
             Node {
@@ -307,7 +334,7 @@ fn add_uno_center(commands: &mut Commands, table: Entity, game: &UnoSnapshot, as
                 height: px(128),
                 ..default()
             },
-            ImageNode::new(uno_card_handle(assets, card)),
+            ImageNode::new(uno_card_handle(game_assets, card)),
             UiTransform::from_rotation(Rot2::degrees(angle)),
             BoxShadow::new(Color::BLACK.with_alpha(0.38), px(2), px(4), px(0), px(5)),
         ));

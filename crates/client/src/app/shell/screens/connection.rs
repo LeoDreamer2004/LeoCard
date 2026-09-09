@@ -1,16 +1,17 @@
 //! 建房游戏选择与主连接页面。
 
-use super::*;
+use super::super::{ConnectionUiAction, InputField, UiAction};
+use crate::app::games::SUPPORTED_GAMES;
+use crate::app::presentation::{
+    ACCENT, BORDER, ButtonKind, DANGER, HEADER_BG, MUTED, PANEL, PANEL_ALT, PanelSkin, TEXT,
+    add_action_button, add_avatar, add_disabled_action_button, add_panel, add_section_title,
+    add_text, spawn_node,
+};
+use crate::app::runtime::{AppearancePreferences, AvatarImages, ConnectionDraft, UiAssets};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_client::{NetworkState, TcpGameClient};
 use leocard_protocol::GameKind;
-
-const HOST_GAME_CHOICES: [(&str, &str, GameKind); 5] = [
-    ("七鬼五二三", "放空大脑, 有牌就出", GameKind::QiGui523),
-    ("德州扑克", "窝要验牌!", GameKind::TexasHoldem),
-    ("升级", "神对手 or 猪队友", GameKind::Shengji),
-    ("UNO", "最后一张，记得喊 UNO!", GameKind::Uno),
-    ("麻将合集", "八番起和，方城之战", GameKind::Mahjong),
-];
 
 pub(super) struct HostGamePicker<'a> {
     assets: &'a UiAssets,
@@ -78,8 +79,14 @@ impl<'a> HostGamePicker<'a> {
             },
             None,
         );
-        for (title, description, game) in HOST_GAME_CHOICES {
-            self.add_game_choice(commands, choices, title, description, Some(game));
+        for game in SUPPORTED_GAMES {
+            self.add_game_choice(
+                commands,
+                choices,
+                game.title,
+                game.description,
+                Some(game.kind),
+            );
         }
 
         let actions = spawn_node(
@@ -168,7 +175,8 @@ impl<'a> HostGamePicker<'a> {
 }
 
 pub(super) struct ConnectionScreen<'a> {
-    form: &'a ConnectionForm,
+    connection: &'a ConnectionDraft,
+    appearance: &'a AppearancePreferences,
     network: Option<&'a TcpGameClient>,
     assets: &'a UiAssets,
     avatars: &'a AvatarImages,
@@ -176,13 +184,15 @@ pub(super) struct ConnectionScreen<'a> {
 
 impl<'a> ConnectionScreen<'a> {
     pub(super) fn new(
-        form: &'a ConnectionForm,
+        connection: &'a ConnectionDraft,
+        appearance: &'a AppearancePreferences,
         network: Option<&'a TcpGameClient>,
         assets: &'a UiAssets,
         avatars: &'a AvatarImages,
     ) -> Self {
         Self {
-            form,
+            connection,
+            appearance,
             network,
             assets,
             avatars,
@@ -191,7 +201,8 @@ impl<'a> ConnectionScreen<'a> {
 
     pub(super) fn render(self, commands: &mut Commands, root: Entity) {
         let Self {
-            form,
+            connection,
+            appearance,
             network,
             assets,
             avatars,
@@ -213,22 +224,29 @@ impl<'a> ConnectionScreen<'a> {
             None,
         );
 
-        ConnectionIdentity::new(form, assets, avatars).render(commands, content);
-        ConnectionChoices::new(form, assets).render(commands, content);
+        ConnectionIdentity::new(connection, appearance, assets, avatars).render(commands, content);
+        ConnectionChoices::new(connection, assets).render(commands, content);
         ConnectionStatus::new(network, assets).render(commands, content);
     }
 }
 
 struct ConnectionIdentity<'a> {
-    form: &'a ConnectionForm,
+    connection: &'a ConnectionDraft,
+    appearance: &'a AppearancePreferences,
     assets: &'a UiAssets,
     avatars: &'a AvatarImages,
 }
 
 impl<'a> ConnectionIdentity<'a> {
-    fn new(form: &'a ConnectionForm, assets: &'a UiAssets, avatars: &'a AvatarImages) -> Self {
+    fn new(
+        connection: &'a ConnectionDraft,
+        appearance: &'a AppearancePreferences,
+        assets: &'a UiAssets,
+        avatars: &'a AvatarImages,
+    ) -> Self {
         Self {
-            form,
+            connection,
+            appearance,
             assets,
             avatars,
         }
@@ -236,7 +254,8 @@ impl<'a> ConnectionIdentity<'a> {
 
     fn render(self, commands: &mut Commands, parent: Entity) {
         let Self {
-            form,
+            connection,
+            appearance,
             assets,
             avatars,
         } = self;
@@ -270,9 +289,9 @@ impl<'a> ConnectionIdentity<'a> {
         );
         ConnectionInput::new(
             "玩家名称",
-            &form.player_name,
+            &connection.player_name,
             InputField::PlayerName,
-            form.active == InputField::PlayerName,
+            connection.active == InputField::PlayerName,
             assets,
         )
         .render(commands, name_field);
@@ -312,7 +331,7 @@ impl<'a> ConnectionIdentity<'a> {
         add_avatar(
             commands,
             avatar_button,
-            &form.player_name,
+            &connection.player_name,
             avatars.local.as_ref(),
             48.0,
             assets,
@@ -339,7 +358,7 @@ impl<'a> ConnectionIdentity<'a> {
             MUTED,
             assets,
         );
-        if form.avatar_png.is_some() {
+        if appearance.avatar_png.is_some() {
             add_action_button(
                 commands,
                 avatar_row,
@@ -353,12 +372,12 @@ impl<'a> ConnectionIdentity<'a> {
 }
 
 struct ConnectionChoices<'a> {
-    form: &'a ConnectionForm,
+    form: &'a ConnectionDraft,
     assets: &'a UiAssets,
 }
 
 impl<'a> ConnectionChoices<'a> {
-    fn new(form: &'a ConnectionForm, assets: &'a UiAssets) -> Self {
+    fn new(form: &'a ConnectionDraft, assets: &'a UiAssets) -> Self {
         Self { form, assets }
     }
 
@@ -395,7 +414,7 @@ struct ConnectionChoicePanel<'a> {
 }
 
 impl<'a> ConnectionChoicePanel<'a> {
-    fn host(form: &'a ConnectionForm, assets: &'a UiAssets) -> Self {
+    fn host(form: &'a ConnectionDraft, assets: &'a UiAssets) -> Self {
         Self {
             title: "开设房间",
             description: "本机将监听所有局域网网卡",
@@ -414,7 +433,7 @@ impl<'a> ConnectionChoicePanel<'a> {
         }
     }
 
-    fn join(form: &'a ConnectionForm, assets: &'a UiAssets) -> Self {
+    fn join(form: &'a ConnectionDraft, assets: &'a UiAssets) -> Self {
         Self {
             title: "加入房间",
             description: "输入房主的局域网地址，例如 192.168.1.20:52300。",

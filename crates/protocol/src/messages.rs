@@ -4,11 +4,6 @@ use crate::{
     PlayerInteractionKind, ProfileId, QiGui523Snapshot, ReconnectToken, RejectReason, RequestId,
     Revision, RoomId, SeatId, ShengjiSnapshot, TexasHoldemSnapshot, UnoSnapshot,
 };
-use leocard_mahjong::MahjongRuleSet;
-use leocard_qigui523::QiGuiRuleSet;
-use leocard_shengji::ShengjiRuleSet;
-use leocard_texas_holdem::TexasHoldemRuleSet;
-use leocard_uno::UnoRuleSet;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -160,28 +155,6 @@ pub struct LobbySnapshot {
     pub players: Vec<LobbyPlayer>,
 }
 
-impl LobbySnapshot {
-    pub const fn qigui523_rules(&self) -> Option<&QiGuiRuleSet> {
-        self.rules.qigui523()
-    }
-
-    pub const fn texas_holdem_rules(&self) -> Option<&TexasHoldemRuleSet> {
-        self.rules.texas_holdem()
-    }
-
-    pub const fn shengji_rules(&self) -> Option<&ShengjiRuleSet> {
-        self.rules.shengji()
-    }
-
-    pub const fn uno_rules(&self) -> Option<&UnoRuleSet> {
-        self.rules.uno()
-    }
-
-    pub const fn mahjong_rules(&self) -> Option<&MahjongRuleSet> {
-        self.rules.mahjong()
-    }
-}
-
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct LobbyPlayer {
     pub id: PlayerId,
@@ -205,6 +178,42 @@ pub enum GameSnapshot {
     Mahjong(MahjongSnapshot),
 }
 
+macro_rules! game_snapshot_projections {
+    ($($borrowed:ident, $owned:ident => $variant:ident($snapshot:ty)),+ $(,)?) => {
+        $(
+            pub const fn $borrowed(&self) -> Option<&$snapshot> {
+                match self {
+                    Self::$variant(snapshot) => Some(snapshot),
+                    _ => None,
+                }
+            }
+
+            pub fn $owned(self) -> Option<$snapshot> {
+                match self {
+                    Self::$variant(snapshot) => Some(snapshot),
+                    _ => None,
+                }
+            }
+        )+
+    };
+}
+
+macro_rules! impl_game_snapshot_from {
+    ($snapshot:ty, $variant:ident) => {
+        impl From<$snapshot> for GameSnapshot {
+            fn from(value: $snapshot) -> Self {
+                Self::$variant(value)
+            }
+        }
+    };
+}
+
+impl_game_snapshot_from!(QiGui523Snapshot, QiGui523);
+impl_game_snapshot_from!(TexasHoldemSnapshot, TexasHoldem);
+impl_game_snapshot_from!(ShengjiSnapshot, Shengji);
+impl_game_snapshot_from!(UnoSnapshot, Uno);
+impl_game_snapshot_from!(MahjongSnapshot, Mahjong);
+
 impl GameSnapshot {
     pub const fn kind(&self) -> GameKind {
         match self {
@@ -216,73 +225,11 @@ impl GameSnapshot {
         }
     }
 
-    pub const fn qigui523(&self) -> Option<&QiGui523Snapshot> {
-        match self {
-            Self::QiGui523(snapshot) => Some(snapshot),
-            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub fn into_qigui523(self) -> Option<QiGui523Snapshot> {
-        match self {
-            Self::QiGui523(snapshot) => Some(snapshot),
-            Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub const fn texas_holdem(&self) -> Option<&TexasHoldemSnapshot> {
-        match self {
-            Self::TexasHoldem(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub fn into_texas_holdem(self) -> Option<TexasHoldemSnapshot> {
-        match self {
-            Self::TexasHoldem(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::Shengji(_) | Self::Uno(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub const fn shengji(&self) -> Option<&ShengjiSnapshot> {
-        match self {
-            Self::Shengji(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub fn into_shengji(self) -> Option<ShengjiSnapshot> {
-        match self {
-            Self::Shengji(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Uno(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub const fn uno(&self) -> Option<&UnoSnapshot> {
-        match self {
-            Self::Uno(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub fn into_uno(self) -> Option<UnoSnapshot> {
-        match self {
-            Self::Uno(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Mahjong(_) => None,
-        }
-    }
-
-    pub const fn mahjong(&self) -> Option<&MahjongSnapshot> {
-        match self {
-            Self::Mahjong(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
-        }
-    }
-
-    pub fn into_mahjong(self) -> Option<MahjongSnapshot> {
-        match self {
-            Self::Mahjong(snapshot) => Some(snapshot),
-            Self::QiGui523(_) | Self::TexasHoldem(_) | Self::Shengji(_) | Self::Uno(_) => None,
-        }
+    game_snapshot_projections! {
+        qigui523, into_qigui523 => QiGui523(QiGui523Snapshot),
+        texas_holdem, into_texas_holdem => TexasHoldem(TexasHoldemSnapshot),
+        shengji, into_shengji => Shengji(ShengjiSnapshot),
+        uno, into_uno => Uno(UnoSnapshot),
+        mahjong, into_mahjong => Mahjong(MahjongSnapshot),
     }
 }

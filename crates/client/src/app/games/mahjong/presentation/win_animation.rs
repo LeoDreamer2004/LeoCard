@@ -1,6 +1,15 @@
-use super::*;
+use super::win_view::{
+    mahjong_win_effect_color, mahjong_win_effect_elapsed, mahjong_win_effect_visual,
+};
+use super::{
+    MAHJONG_WIN_PUSH_DURATION, MahjongWinDecoration, MahjongWinDecorationKind, MahjongWinEffect,
+    MahjongWinEffectText, MahjongWinEffectTier, MahjongWinFanGlyph, MahjongWinScreenShake,
+    MahjongWinStageKind, MahjongWinStagePart, MahjongWinningHand,
+};
+use crate::app::presentation::{DESIGN_WIDTH, GameSummaryAnimation, ease_out_cubic};
+use bevy::prelude::*;
 
-pub fn animate_mahjong_win_effects(
+pub(crate) fn animate_mahjong_win_effects(
     animation: Res<GameSummaryAnimation>,
     mut effects: Query<
         (&MahjongWinEffect, &mut UiTransform, &mut Visibility),
@@ -346,7 +355,7 @@ pub fn animate_mahjong_win_effects(
     }
 }
 
-pub fn animate_mahjong_win_screen_shake(
+pub(crate) fn animate_mahjong_win_screen_shake(
     animation: Res<GameSummaryAnimation>,
     mut tables: Query<(&MahjongWinScreenShake, &mut UiTransform)>,
 ) {
@@ -369,7 +378,7 @@ pub fn animate_mahjong_win_screen_shake(
     }
 }
 
-pub fn mahjong_winning_hand_progress(
+pub(crate) fn mahjong_winning_hand_progress(
     summary_elapsed: f32,
     reveal_duration: f32,
     start: f32,
@@ -377,7 +386,7 @@ pub fn mahjong_winning_hand_progress(
     ((summary_elapsed + reveal_duration - start) / MAHJONG_WIN_PUSH_DURATION).clamp(0.0, 1.0)
 }
 
-pub fn apply_mahjong_winning_hand_visual(
+pub(crate) fn apply_mahjong_winning_hand_visual(
     transform: &mut UiTransform,
     relative: u8,
     base_rotation: f32,
@@ -402,7 +411,7 @@ pub fn apply_mahjong_winning_hand_visual(
     transform.scale = Vec2::new(0.96 + progress * 0.04, 0.02 + progress * 0.98);
 }
 
-pub fn animate_mahjong_winning_hands(
+pub(crate) fn animate_mahjong_winning_hands(
     animation: Res<GameSummaryAnimation>,
     mut hands: Query<(&MahjongWinningHand, &mut UiTransform, &mut Visibility)>,
 ) {

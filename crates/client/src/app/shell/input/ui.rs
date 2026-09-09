@@ -1,13 +1,21 @@
 //! Local input, scaling, card selection, and OS-backed image picking.
 
-use super::*;
+use super::super::{ChatPanelState, UiState};
+use super::{DeveloperHandInput, InputField, UiZoom};
+use crate::app::games::{HandCardSlot, MahjongHandTile, ShengjiHandCardSlot, UnoHandCardButton};
+use crate::app::presentation::{BackgroundButtonTint, ButtonTint, DESIGN_HEIGHT, DESIGN_WIDTH};
+use crate::app::runtime::{ClientResource, ConnectionDraft, UiAssets};
+use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
+use leocard_client::ClientPhaseRef;
+use std::collections::HashSet;
 
 const MIN_AUTO_SCALE: f32 = 0.5;
 const MAX_AUTO_SCALE: f32 = 2.5;
 const MIN_MANUAL_ZOOM: f32 = 0.7;
 const MAX_MANUAL_ZOOM: f32 = 1.5;
 
-pub fn update_ui_scale(
+pub(crate) fn update_ui_scale(
     windows: Query<&Window, With<PrimaryWindow>>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mut zoom: ResMut<UiZoom>,
@@ -41,7 +49,7 @@ pub fn update_ui_scale(
     }
 }
 
-pub fn calculate_ui_scale(width: f32, height: f32, manual_zoom: f32) -> f32 {
+pub(crate) fn calculate_ui_scale(width: f32, height: f32, manual_zoom: f32) -> f32 {
     let automatic = (width / DESIGN_WIDTH)
         .min(height / DESIGN_HEIGHT)
         .clamp(MIN_AUTO_SCALE, MAX_AUTO_SCALE);
@@ -52,9 +60,9 @@ pub fn calculate_ui_scale(width: f32, height: f32, manual_zoom: f32) -> f32 {
 /// method while IME support is enabled on the window. Keep it active for the
 /// player-name field and chat, but disable it for numeric/address/developer
 /// inputs so those fields continue to receive exact key presses.
-pub fn sync_ime_enabled(
+pub(crate) fn sync_ime_enabled(
     client: Option<Res<ClientResource>>,
-    form: Res<ConnectionForm>,
+    form: Res<ConnectionDraft>,
     chat: Res<ChatPanelState>,
     developer_hand: Res<DeveloperHandInput>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
@@ -63,10 +71,10 @@ pub fn sync_ime_enabled(
         return;
     };
     let connection_visible = client.as_deref().is_none_or(|client| {
-        client.0.model().lobby().is_none()
-            && client.0.model().qigui523_game().is_none()
-            && client.0.model().texas_holdem_game().is_none()
-            && client.0.model().shengji_game().is_none()
+        matches!(
+            client.0.model().phase(),
+            ClientPhaseRef::Idle | ClientPhaseRef::Closed
+        )
     });
     let enabled = !developer_hand.focused
         && (chat.focused || (connection_visible && form.active == InputField::PlayerName));
@@ -85,7 +93,7 @@ pub fn sync_ime_enabled(
     }
 }
 
-pub fn update_button_tints(
+pub(crate) fn update_button_tints(
     mut image_buttons: Query<
         (&Interaction, &ButtonTint, &mut ImageNode),
         (Changed<Interaction>, Without<BackgroundButtonTint>),
@@ -111,7 +119,7 @@ pub fn update_button_tints(
     }
 }
 
-pub fn play_button_click_sounds(
+pub(crate) fn play_button_click_sounds(
     buttons: Query<
         &Interaction,
         (
@@ -138,7 +146,7 @@ pub fn play_button_click_sounds(
     }
 }
 
-pub fn animate_button_presses(
+pub(crate) fn animate_button_presses(
     time: Res<Time>,
     changed: Query<
         (Entity, &Interaction),

@@ -3,56 +3,56 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct UiRoot;
+pub(crate) struct UiRoot;
 
 #[derive(Component)]
-pub struct AutoPlayOverlay;
+pub(crate) struct AutoPlayOverlay;
 
 #[derive(Component)]
-pub struct RuleHelp {
+pub(crate) struct RuleHelp {
     pub tooltip: Entity,
 }
 
 #[derive(Component)]
-pub struct TableBackground;
+pub(crate) struct TableBackground;
 
 #[derive(Component)]
-pub struct TableAppearanceSlider(pub TableAppearanceSetting);
+pub(crate) struct TableAppearanceSlider(pub TableAppearanceSetting);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum TableAppearanceSetting {
+pub(crate) enum TableAppearanceSetting {
     Brightness,
     Vignette,
     Volume,
 }
 
 #[derive(Component)]
-pub struct TableAppearanceIndicator {
+pub(crate) struct TableAppearanceIndicator {
     pub setting: TableAppearanceSetting,
     pub part: TableAppearanceIndicatorPart,
 }
 
 #[derive(Clone, Copy)]
-pub enum TableAppearanceIndicatorPart {
+pub(crate) enum TableAppearanceIndicatorPart {
     Fill,
     Knob,
 }
 
 #[derive(Component)]
-pub struct TableAppearanceLabel(pub TableAppearanceSetting);
+pub(crate) struct TableAppearanceLabel(pub TableAppearanceSetting);
 
 #[derive(Component)]
-pub struct ButtonTint {
+pub(crate) struct ButtonTint {
     pub normal: Color,
     pub hovered: Color,
     pub pressed: Color,
 }
 
 #[derive(Component)]
-pub struct BackgroundButtonTint;
+pub(crate) struct BackgroundButtonTint;
 
 #[derive(Clone, Copy)]
-pub enum ButtonKind {
+pub(crate) enum ButtonKind {
     Primary,
     Secondary,
     Warning,
@@ -60,7 +60,7 @@ pub enum ButtonKind {
 }
 
 #[derive(Clone, Copy)]
-pub enum PanelSkin {
+pub(crate) enum PanelSkin {
     Window,
     Section,
     Popup,

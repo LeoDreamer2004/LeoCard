@@ -9,6 +9,7 @@ mod texas_holdem;
 mod types;
 mod uno;
 
-pub use core::ClientModel;
-pub use qigui523::ScoreCaptureEffect;
-pub use shengji::ShengjiScoreCaptureEffect;
+pub use access::*;
+pub use core::*;
+pub use qigui523::*;
+pub use shengji::*;

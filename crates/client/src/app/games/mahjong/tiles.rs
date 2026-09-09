@@ -1,4 +1,11 @@
-use super::*;
+use super::{
+    MahjongAssets, MahjongDealSpec, MahjongDealTile, MahjongHandTile, MahjongTileMaterial,
+    MahjongTurnArrow, mahjong_local_light,
+};
+use crate::app::presentation::{PendingDealSound, ease_out_cubic};
+use crate::app::runtime::UiAssets;
+use crate::app::shell::UiAction;
+use bevy::prelude::*;
 use leocard_mahjong::MahjongTileKind;
 
 const MAHJONG_DEAL_MOVE_DURATION: f32 = 0.28;
@@ -43,18 +50,16 @@ pub(super) fn add_mahjong_hand_tile(
     action: Option<UiAction>,
     index: usize,
     deal: Option<MahjongDealSpec>,
-    assets: &UiAssets,
+    game_assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) -> Entity {
-    let glyph = assets
-        .games
-        .mahjong_tiles
+    let glyph = game_assets
+        .tiles
         .get(&kind)
         .cloned()
         .expect("所有麻将牌面都应预加载");
-    let height = assets
-        .games
-        .mahjong_tile_heights
+    let height = game_assets
+        .tile_heights
         .get(&kind)
         .cloned()
         .expect("所有麻将凹刻高度图都应预加载");
@@ -103,7 +108,7 @@ pub(super) fn add_mahjong_hand_tile(
     entity
 }
 
-pub fn sync_mahjong_hand_tile_materials(
+pub(super) fn sync_mahjong_hand_tile_materials(
     time: Res<Time>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
     mut tiles: Query<
@@ -154,7 +159,7 @@ pub fn sync_mahjong_hand_tile_materials(
     }
 }
 
-pub fn animate_mahjong_deal_tiles(
+pub(super) fn animate_mahjong_deal_tiles(
     mut commands: Commands,
     time: Res<Time>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
@@ -188,7 +193,7 @@ pub fn animate_mahjong_deal_tiles(
     }
 }
 
-pub fn animate_mahjong_turn_arrows(
+pub(super) fn animate_mahjong_turn_arrows(
     time: Res<Time>,
     mut arrows: Query<(&MahjongTurnArrow, &mut ImageNode)>,
 ) {

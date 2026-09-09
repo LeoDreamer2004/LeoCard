@@ -1,6 +1,11 @@
 //! 甩牌失败、退牌与罚分演出。
 
-use super::*;
+use super::{
+    ShengjiFailedThrowCard, ShengjiFailedThrowLabel, ShengjiThrowPenaltyFloat,
+    ShengjiThrowPenaltyScorePulse,
+};
+use crate::app::presentation::{DANGER, ease_out_cubic};
+use bevy::prelude::*;
 use leocard_protocol::ShengjiThrowFailureStage;
 
 const SHENGJI_FAILED_THROW_RETURN_DURATION: f32 = 0.42;
@@ -8,14 +13,14 @@ const SHENGJI_THROW_PENALTY_DELAY: f32 = 0.38;
 const SHENGJI_THROW_PENALTY_DURATION: f32 = 0.58;
 
 #[derive(Clone, Copy, Debug)]
-pub struct ShengjiFailedThrowCardVisual {
+pub(crate) struct ShengjiFailedThrowCardVisual {
     pub translation: Vec2,
     pub scale: f32,
     pub rotation_radians: f32,
     pub visible: bool,
 }
 
-pub fn shengji_failed_throw_card_visual(
+pub(crate) fn shengji_failed_throw_card_visual(
     stage: ShengjiThrowFailureStage,
     index: usize,
     count: usize,
@@ -59,7 +64,7 @@ pub fn shengji_failed_throw_card_visual(
     }
 }
 
-pub fn animate_shengji_failed_throw_cards(
+pub(super) fn animate_shengji_failed_throw_cards(
     time: Res<Time>,
     mut cards: Query<(
         &mut ShengjiFailedThrowCard,
@@ -87,7 +92,7 @@ pub fn animate_shengji_failed_throw_cards(
     }
 }
 
-pub fn animate_shengji_failed_throw_labels(
+pub(super) fn animate_shengji_failed_throw_labels(
     time: Res<Time>,
     mut labels: Query<(
         &mut ShengjiFailedThrowLabel,
@@ -119,7 +124,7 @@ pub fn animate_shengji_failed_throw_labels(
     }
 }
 
-pub fn animate_shengji_throw_penalty_floats(
+pub(super) fn animate_shengji_throw_penalty_floats(
     time: Res<Time>,
     mut penalties: Query<(
         &mut ShengjiThrowPenaltyFloat,
@@ -151,7 +156,7 @@ pub fn animate_shengji_throw_penalty_floats(
     }
 }
 
-pub fn animate_shengji_throw_penalty_score_pulses(
+pub(super) fn animate_shengji_throw_penalty_score_pulses(
     time: Res<Time>,
     mut scores: Query<(&mut ShengjiThrowPenaltyScorePulse, &mut UiTransform)>,
 ) {

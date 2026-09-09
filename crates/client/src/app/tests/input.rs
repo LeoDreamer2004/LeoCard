@@ -1,4 +1,4 @@
-use super::*;
+use super::prelude::*;
 #[cfg(feature = "developer")]
 use leocard_mahjong::{MahjongSuit, MahjongTileKind, MahjongWind};
 use leocard_protocol::{GameViolation, RejectReason, RuleViolation};

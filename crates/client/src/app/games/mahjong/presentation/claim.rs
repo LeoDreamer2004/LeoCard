@@ -1,4 +1,15 @@
-use super::*;
+use super::{
+    MAHJONG_CLAIM_FLIGHT_DELAY, MAHJONG_CLAIM_FLIGHT_DURATION, MAHJONG_CLAIM_HAND_SHIFT_DURATION,
+    MAHJONG_CLAIM_PRESENTATION_DURATION, MAHJONG_FLOWER_PRESENTATION_DURATION,
+    MAHJONG_OWN_HAND_LEFT, MAHJONG_REMOTE_MELD_WIDTH, MahjongAssets, MahjongClaimFlight,
+    MahjongClaimHandShift, MahjongClaimHeldTile, MahjongClaimLabel, MahjongClaimPresentationState,
+    MahjongFlowerLabel, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
+    add_mahjong_tile_material, mahjong_claim_landing_time,
+};
+use crate::app::presentation::{ACCENT, TEXT, add_text, ease_out_cubic, spawn_node};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_mahjong::{MahjongClaim, MahjongTileKind};
 use leocard_protocol::{MahjongSnapshot, PlayerId};
 
@@ -114,7 +125,7 @@ fn mahjong_flower_label_visual(elapsed: f32) -> (f32, f32, f32) {
     (scale, fade_in * fade_out, 6.0 * (1.0 - focus))
 }
 
-pub fn mahjong_claim_hand_shift_x(elapsed: f32, distance: f32) -> f32 {
+pub(crate) fn mahjong_claim_hand_shift_x(elapsed: f32, distance: f32) -> f32 {
     let progress = ease_out_cubic((elapsed / MAHJONG_CLAIM_HAND_SHIFT_DURATION).clamp(0.0, 1.0));
     -distance * (1.0 - progress)
 }
@@ -125,13 +136,14 @@ pub(super) fn mahjong_claim_held_tile_visual(elapsed: f32) -> (f32, f32) {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn render_mahjong_claim_presentation(
+pub(crate) fn render_mahjong_claim_presentation(
     commands: &mut Commands,
     table: Entity,
     game: &MahjongSnapshot,
     own_seat: u8,
     presentation: &MahjongClaimPresentationState,
     assets: &UiAssets,
+    game_assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
     let geometry = MahjongSeatGeometry::new(own_seat);
@@ -192,7 +204,7 @@ pub fn render_mahjong_claim_presentation(
                 deal: None,
                 relative: target_relative,
             },
-            assets,
+            game_assets,
             materials,
         );
         commands.entity(tile).insert((
@@ -266,7 +278,7 @@ pub fn render_mahjong_claim_presentation(
     ));
 }
 
-pub fn render_mahjong_flower_presentations(
+pub(crate) fn render_mahjong_flower_presentations(
     commands: &mut Commands,
     table: Entity,
     game: &MahjongSnapshot,
@@ -328,7 +340,7 @@ pub fn render_mahjong_flower_presentations(
     }
 }
 
-pub fn animate_mahjong_flower_presentations(
+pub(crate) fn animate_mahjong_flower_presentations(
     presentation: Res<MahjongClaimPresentationState>,
     mut labels: Query<(&MahjongFlowerLabel, &mut UiTransform, &mut Visibility)>,
     mut texts: Query<(&mut TextColor, &mut TextShadow)>,
@@ -357,7 +369,7 @@ pub fn animate_mahjong_flower_presentations(
     }
 }
 
-pub fn animate_mahjong_claim_presentation(
+pub(crate) fn animate_mahjong_claim_presentation(
     presentation: Res<MahjongClaimPresentationState>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
     mut flights: Query<

@@ -1,26 +1,31 @@
-use super::super::*;
+use super::super::{InputField, PlayerProfilePage, ProfileGameTab};
+use crate::app::games::mahjong::actions::MahjongUiAction;
+use crate::app::games::qigui523::actions::QiGui523UiAction;
+use crate::app::games::shengji::actions::ShengjiUiAction;
+use crate::app::games::texas_holdem::actions::TexasHoldemUiAction;
+use crate::app::games::uno::actions::UnoUiAction;
+use crate::app::runtime::{AvatarImages, AvatarPicker, TableAppearance, TableFeltPicker};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_mahjong::{MahjongClaim, MahjongRuleSet, MahjongTile, MahjongTileKind};
 use leocard_protocol::{ChatEmoji, GameKind, PlayerId, PlayerInteractionKind, SeatId};
-use leocard_qigui523::QiGuiRuleSet;
-use leocard_shengji::{ShengjiCard, ShengjiRuleSet};
-use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemRuleSet};
-use leocard_uno::{UnoCard, UnoColor, UnoRuleSet};
 
 pub(super) type ButtonInteractions<'w, 's> =
     Query<'w, 's, (&'static Interaction, &'static UiAction), (Changed<Interaction>, With<Button>)>;
 
 #[derive(SystemParam)]
-pub struct LocalUiResources<'w> {
+pub(super) struct AvatarUiResources<'w> {
     pub(super) avatar_images: ResMut<'w, AvatarImages>,
     pub(super) avatar_picker: ResMut<'w, AvatarPicker>,
+}
+
+#[derive(SystemParam)]
+pub(super) struct AppearanceUiResources<'w> {
     pub(super) table_felt_picker: ResMut<'w, TableFeltPicker>,
     pub(super) table_appearance: ResMut<'w, TableAppearance>,
 }
 
 #[derive(Clone, Component)]
-pub enum UiAction {
+pub(crate) enum UiAction {
     Mahjong(MahjongUiAction),
     TexasHoldem(TexasHoldemUiAction),
     Uno(UnoUiAction),
@@ -34,71 +39,7 @@ pub enum UiAction {
 }
 
 #[derive(Clone)]
-pub enum MahjongUiAction {
-    UpdateRules(MahjongRuleSet),
-    Discard(MahjongTile),
-    Respond(MahjongClaim),
-    SelfDraw,
-    ConcealedKong(MahjongTileKind),
-    AddedKong(MahjongTile),
-}
-
-#[derive(Clone)]
-pub enum TexasHoldemUiAction {
-    UpdateRules(TexasHoldemRuleSet),
-    SetRaiseTo(u32),
-    Act(TexasHoldemAction),
-}
-
-#[derive(Clone)]
-pub enum UnoUiAction {
-    UpdateRules(UnoRuleSet),
-    ToggleModeMenu,
-    CloseModeMenu,
-    ToggleExpansionSettings,
-    ToggleCard(UnoCard),
-    SubmitCard,
-    CloseColorChoice,
-    ChooseInitialColor(UnoColor),
-    PlayCard(UnoCard, Option<UnoColor>),
-    JumpIn(UnoCard),
-    ToggleSwapTarget(PlayerId),
-    ConfirmSwapTargets,
-    DrawCard,
-    PassAfterDraw,
-    AcceptDrawPenalty,
-    ChallengeDrawFour,
-    ResolveSkip,
-    Call,
-    Report(PlayerId),
-}
-
-#[derive(Clone)]
-pub enum ShengjiUiAction {
-    UpdateRules(ShengjiRuleSet),
-    Declare(Vec<ShengjiCard>),
-    ConfirmBidPass,
-    BottomCopy(Vec<ShengjiCard>),
-    DeclineBottomCopy,
-    ToggleCard,
-    Hint,
-    ShowPreviousTrick,
-    ToggleBuried,
-    SubmitCards,
-    DeclineFiveTrumpCrossing,
-}
-
-#[derive(Clone)]
-pub enum QiGui523UiAction {
-    UpdateRules(QiGuiRuleSet),
-    Hint,
-    ToggleCard,
-    Play,
-    Pass,
-}
-
-#[derive(Clone)]
-pub enum SocialUiAction {
+pub(crate) enum SocialUiAction {
     ToggleInteractionMenu(PlayerId),
     ToggleAutoPlay,
     SendInteraction {
@@ -108,7 +49,7 @@ pub enum SocialUiAction {
 }
 
 #[derive(Clone)]
-pub enum ChatUiAction {
+pub(crate) enum ChatUiAction {
     #[cfg(feature = "developer")]
     FocusDeveloperHand,
     TogglePanel,
@@ -120,7 +61,7 @@ pub enum ChatUiAction {
 }
 
 #[derive(Clone)]
-pub enum ConnectionUiAction {
+pub(crate) enum ConnectionUiAction {
     FocusInput(InputField),
     OpenHostGamePicker,
     CloseHostGamePicker,
@@ -131,7 +72,7 @@ pub enum ConnectionUiAction {
 }
 
 #[derive(Clone)]
-pub enum NavigationUiAction {
+pub(crate) enum NavigationUiAction {
     ToggleProfile,
     OpenPlayerProfile(Box<PlayerProfilePage>),
     SelectProfileGameTab(ProfileGameTab),
@@ -145,7 +86,7 @@ pub enum NavigationUiAction {
 }
 
 #[derive(Clone)]
-pub enum LobbyUiAction {
+pub(crate) enum LobbyUiAction {
     SelectSeat(SeatId),
     ToggleReady,
     StartGame,
@@ -155,13 +96,17 @@ pub enum LobbyUiAction {
 }
 
 #[derive(Clone, Message)]
-pub struct PressedUiAction(pub UiAction);
+pub(crate) struct PressedUiAction(pub UiAction);
 
-pub trait DomainUiAction: Sized {
+pub(crate) trait DomainUiAction: Sized {
     fn extract(action: &UiAction) -> Option<&Self>;
+
+    fn rebuilds_ui(&self) -> bool {
+        true
+    }
 }
 
-pub trait UiActionHandler<Context>: DomainUiAction {
+pub(crate) trait UiActionHandler<Context>: DomainUiAction {
     fn handle(&self, context: &mut Context);
 }
 
@@ -178,11 +123,6 @@ macro_rules! impl_domain_action {
     };
 }
 
-impl_domain_action!(MahjongUiAction, Mahjong);
-impl_domain_action!(TexasHoldemUiAction, TexasHoldem);
-impl_domain_action!(UnoUiAction, Uno);
-impl_domain_action!(ShengjiUiAction, Shengji);
-impl_domain_action!(QiGui523UiAction, QiGui523);
 impl_domain_action!(SocialUiAction, Social);
 impl_domain_action!(ChatUiAction, Chat);
 impl_domain_action!(ConnectionUiAction, Connection);
@@ -192,29 +132,17 @@ impl_domain_action!(LobbyUiAction, Lobby);
 impl UiAction {
     pub(super) fn rebuilds_ui(&self) -> bool {
         match self {
+            Self::Mahjong(action) => action.rebuilds_ui(),
+            Self::TexasHoldem(action) => action.rebuilds_ui(),
+            Self::Uno(action) => action.rebuilds_ui(),
             Self::Shengji(action) => action.rebuilds_ui(),
             Self::QiGui523(action) => action.rebuilds_ui(),
             Self::Social(_) => false,
             Self::Chat(action) => action.rebuilds_ui(),
             Self::Navigation(action) => action.rebuilds_ui(),
-            Self::Mahjong(_)
-            | Self::TexasHoldem(_)
-            | Self::Uno(_)
-            | Self::Connection(_)
-            | Self::Lobby(_) => true,
+            Self::Connection(action) => action.rebuilds_ui(),
+            Self::Lobby(action) => action.rebuilds_ui(),
         }
-    }
-}
-
-impl ShengjiUiAction {
-    fn rebuilds_ui(&self) -> bool {
-        !matches!(self, Self::ToggleCard)
-    }
-}
-
-impl QiGui523UiAction {
-    fn rebuilds_ui(&self) -> bool {
-        !matches!(self, Self::ToggleCard | Self::Pass)
     }
 }
 

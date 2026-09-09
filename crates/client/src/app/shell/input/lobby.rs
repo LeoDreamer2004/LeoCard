@@ -1,10 +1,23 @@
 //! 大厅座位、规则提示和桌面外观输入。
 
-use super::*;
+use crate::app::presentation::{
+    ACCENT, LobbyEmptySeatLabel, LobbyEmptySeatRing, LobbySeatHover, LobbySeatVisual,
+    MAX_TABLE_BRIGHTNESS, MAX_TABLE_VIGNETTE, MIN_TABLE_BRIGHTNESS, MIN_TABLE_VIGNETTE, MUTED,
+    PANEL_ALT, RuleHelp, TableAppearanceIndicator, TableAppearanceIndicatorPart,
+    TableAppearanceLabel, TableAppearanceSetting, TableAppearanceSlider, TableBackground,
+    TableBackgroundMaterial,
+};
+use crate::app::runtime::{
+    AppearancePreferences, ClientResource, normalize_table_brightness, save_appearance_preferences,
+};
+use bevy::audio::Volume;
+use bevy::log::warn;
+use bevy::prelude::*;
+use bevy::ui::RelativeCursorPosition;
 #[cfg(feature = "developer")]
 use leocard_protocol::{ClientCommand, SeatId};
 
-pub fn animate_lobby_seat_hover(
+pub(crate) fn animate_lobby_seat_hover(
     time: Res<Time>,
     mut seats: Query<(&Interaction, &mut LobbySeatHover)>,
     mut visuals: Query<(&LobbySeatVisual, &mut UiTransform)>,
@@ -70,7 +83,7 @@ pub fn animate_lobby_seat_hover(
     }
 }
 
-pub fn handle_lobby_bot_seat_right_click(
+pub(crate) fn handle_lobby_bot_seat_right_click(
     mouse: Res<ButtonInput<MouseButton>>,
     seats: Query<(&Interaction, &LobbySeatHover)>,
     mut client: Option<ResMut<ClientResource>>,
@@ -116,7 +129,7 @@ pub fn handle_lobby_bot_seat_right_click(
     }
 }
 
-pub fn update_rule_help_tooltips(
+pub(crate) fn update_rule_help_tooltips(
     helps: Query<(&Interaction, &RuleHelp), Changed<Interaction>>,
     mut tooltips: Query<&mut Visibility>,
 ) {
@@ -131,18 +144,21 @@ pub fn update_rule_help_tooltips(
     }
 }
 
-pub fn table_brightness_fraction(brightness: f32) -> f32 {
+pub(crate) fn table_brightness_fraction(brightness: f32) -> f32 {
     ((normalize_table_brightness(brightness) - MIN_TABLE_BRIGHTNESS)
         / (MAX_TABLE_BRIGHTNESS - MIN_TABLE_BRIGHTNESS))
         .clamp(0.0, 1.0)
 }
 
-pub fn slider_fraction_from_relative_x(relative_x: f32) -> f32 {
+pub(crate) fn slider_fraction_from_relative_x(relative_x: f32) -> f32 {
     // Bevy 的 RelativeCursorPosition 以节点中心为 0，左右边缘分别为 -0.5 和 0.5。
     (relative_x + 0.5).clamp(0.0, 1.0)
 }
 
-pub fn table_appearance_fraction(setting: TableAppearanceSetting, form: &ConnectionForm) -> f32 {
+pub(crate) fn table_appearance_fraction(
+    setting: TableAppearanceSetting,
+    form: &AppearancePreferences,
+) -> f32 {
     match setting {
         TableAppearanceSetting::Brightness => table_brightness_fraction(form.table_brightness),
         TableAppearanceSetting::Vignette => ((form.table_vignette - MIN_TABLE_VIGNETTE)
@@ -152,7 +168,10 @@ pub fn table_appearance_fraction(setting: TableAppearanceSetting, form: &Connect
     }
 }
 
-pub fn table_appearance_label(setting: TableAppearanceSetting, form: &ConnectionForm) -> String {
+pub(crate) fn table_appearance_label(
+    setting: TableAppearanceSetting,
+    form: &AppearancePreferences,
+) -> String {
     match setting {
         TableAppearanceSetting::Brightness => {
             format!("亮度  {:.0}%", form.table_brightness * 100.0)
@@ -167,7 +186,7 @@ pub fn table_appearance_label(setting: TableAppearanceSetting, form: &Connection
 fn set_table_appearance_from_fraction(
     setting: TableAppearanceSetting,
     fraction: f32,
-    form: &mut ConnectionForm,
+    form: &mut AppearancePreferences,
 ) {
     match setting {
         TableAppearanceSetting::Brightness => {
@@ -184,7 +203,7 @@ fn set_table_appearance_from_fraction(
     }
 }
 
-pub fn handle_table_appearance_sliders(
+pub(crate) fn handle_table_appearance_sliders(
     mouse: Res<ButtonInput<MouseButton>>,
     sliders: Query<(
         &Interaction,
@@ -196,7 +215,7 @@ pub fn handle_table_appearance_sliders(
     backgrounds: Query<&MaterialNode<TableBackgroundMaterial>, With<TableBackground>>,
     mut materials: ResMut<Assets<TableBackgroundMaterial>>,
     mut global_volume: ResMut<GlobalVolume>,
-    mut form: ResMut<ConnectionForm>,
+    mut form: ResMut<AppearancePreferences>,
     mut dragging: Local<Option<TableAppearanceSetting>>,
 ) {
     if mouse.just_pressed(MouseButton::Left) {
@@ -242,7 +261,7 @@ pub fn handle_table_appearance_sliders(
 
     if dragging.is_some() && mouse.just_released(MouseButton::Left) {
         *dragging = None;
-        if let Err(error) = save_preferences(&form) {
+        if let Err(error) = save_appearance_preferences(&form) {
             warn!("{error}");
         }
     }

@@ -1,11 +1,13 @@
-use super::*;
+use super::{UnoAssets, UnoFlipCard, UnoHandCardVisual, UnoSwapTargetPanel, UnoUiState};
+use crate::app::presentation::{ACCENT, CardAnimationState, PANEL};
+use bevy::prelude::*;
 use leocard_protocol::{UnoPhaseView, UnoSnapshot};
 use leocard_uno::{UnoCard, UnoColor, UnoFace, UnoPendingDrawKind};
+use std::collections::HashSet;
 
-pub fn uno_card_handle(assets: &UiAssets, card: UnoCard) -> Handle<Image> {
+pub(super) fn uno_card_handle(assets: &UnoAssets, card: UnoCard) -> Handle<Image> {
     assets
-        .games
-        .uno_cards
+        .cards
         .get(&(card.color(), card.face()))
         .cloned()
         .expect("所有 UNO 牌面都应预加载")
@@ -100,7 +102,7 @@ fn uno_faces_match(left: UnoFace, right: UnoFace) -> bool {
     )
 }
 
-pub fn uno_pair_for_selection(game: &UnoSnapshot, selected: UnoCard) -> Option<UnoCard> {
+pub(crate) fn uno_pair_for_selection(game: &UnoSnapshot, selected: UnoCard) -> Option<UnoCard> {
     let jump_in = if game.rules.is_flip() {
         game.rules.flip.jump_in
     } else {
@@ -118,7 +120,7 @@ pub fn uno_pair_for_selection(game: &UnoSnapshot, selected: UnoCard) -> Option<U
     })
 }
 
-pub fn toggle_uno_selection(
+pub(crate) fn toggle_uno_selection(
     game: Option<&UnoSnapshot>,
     selected: &mut HashSet<UnoCard>,
     card: UnoCard,
@@ -137,7 +139,7 @@ pub fn toggle_uno_selection(
     selected.insert(card);
 }
 
-pub fn uno_ui_color(color: UnoColor) -> Color {
+pub(super) fn uno_ui_color(color: UnoColor) -> Color {
     match color {
         UnoColor::Red => Color::srgb(0.91, 0.18, 0.16),
         UnoColor::Yellow => Color::srgb(0.96, 0.72, 0.08),
@@ -150,7 +152,11 @@ pub fn uno_ui_color(color: UnoColor) -> Color {
     }
 }
 
-pub fn uno_should_show_reverse_effect(card: UnoCard, play_index: u8, play_count: u8) -> bool {
+pub(super) fn uno_should_show_reverse_effect(
+    card: UnoCard,
+    play_index: u8,
+    play_count: u8,
+) -> bool {
     play_index == 0
         && match card.face() {
             UnoFace::Reverse => play_count % 2 == 1,
@@ -164,9 +170,9 @@ pub fn uno_should_show_reverse_effect(card: UnoCard, play_index: u8, play_count:
 }
 
 /// UNO 手牌沿用其他游戏的柔和抬升、渐变描边与阴影，不用突兀的离散跳变。
-pub fn animate_uno_hand_cards(
+pub(crate) fn animate_uno_hand_cards(
     time: Res<Time>,
-    mut ui: ResMut<UiState>,
+    mut ui: ResMut<UnoUiState>,
     buttons: Query<&Interaction, With<Button>>,
     mut cards: Query<
         (
@@ -182,7 +188,7 @@ pub fn animate_uno_hand_cards(
     let response = 1.0 - (-14.0 * time.delta_secs()).exp();
     let pulse = 0.76 + 0.24 * (time.elapsed_secs() * 6.5).sin();
     for (mut visual, mut transform, mut outline, mut shadow, mut border) in &mut cards {
-        let selected = ui.uno.selected.contains(&visual.card);
+        let selected = ui.selected.contains(&visual.card);
         let hovered = buttons.get(visual.button).is_ok_and(|interaction| {
             matches!(*interaction, Interaction::Hovered | Interaction::Pressed)
         });
@@ -210,7 +216,7 @@ pub fn animate_uno_hand_cards(
             style.spread_radius = px(glow * 1.6);
             style.blur_radius = px(5.0 + glow * 8.0);
         }
-        ui.uno.card_animations.insert(
+        ui.card_animations.insert(
             visual.card,
             CardAnimationState {
                 face_hover_amount: visual.hover_amount,
@@ -221,7 +227,7 @@ pub fn animate_uno_hand_cards(
     }
 }
 
-pub fn animate_uno_swap_target_panels(
+pub(super) fn animate_uno_swap_target_panels(
     time: Res<Time>,
     mut panels: Query<(
         &UnoSwapTargetPanel,

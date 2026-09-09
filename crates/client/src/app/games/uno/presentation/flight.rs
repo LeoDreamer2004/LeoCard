@@ -1,8 +1,15 @@
-use super::*;
+use super::{
+    UNO_DISCARD_OFFSETS, UNO_FLYING_CARD_HEIGHT, UNO_FLYING_CARD_WIDTH, UNO_PLAY_CARD_DURATION,
+    UnoAssets, UnoDiscardCard, UnoFlyingCard, UnoPresentationState, uno_card_handle,
+};
+use crate::app::runtime::ClientResource;
+use crate::app::shell::PlayerAvatarAnchor;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerId, UnoEvent};
 use leocard_uno::{UnoCard, UnoColor, UnoFace};
 
-pub fn uno_anchor_in_layer(
+pub(crate) fn uno_anchor_in_layer(
     node: &ComputedNode,
     transform: &UiGlobalTransform,
     layer_node: &ComputedNode,
@@ -94,7 +101,7 @@ pub(super) fn spawn_uno_draw_cards(
     target: Vec2,
     count: u16,
     base_delay: f32,
-    assets: &UiAssets,
+    assets: &UnoAssets,
 ) {
     spawn_uno_draw_cards_with_interval(
         commands,
@@ -118,7 +125,7 @@ pub(super) fn spawn_uno_draw_cards_with_backs(
     count: u16,
     card_backs: &[UnoCard],
     base_delay: f32,
-    assets: &UiAssets,
+    assets: &UnoAssets,
 ) {
     spawn_uno_draw_cards_with_interval(
         commands, layer, source, target, count, card_backs, base_delay, 0.045, assets,
@@ -135,14 +142,14 @@ pub(super) fn spawn_uno_draw_cards_with_interval(
     card_backs: &[UnoCard],
     base_delay: f32,
     interval: f32,
-    assets: &UiAssets,
+    assets: &UnoAssets,
 ) {
     for index in 0..usize::from(count.min(16)) {
         let image = card_backs
             .get(index)
             .copied()
             .map(|card| uno_card_handle(assets, card))
-            .unwrap_or_else(|| assets.games.uno_card_back.clone());
+            .unwrap_or_else(|| assets.card_back.clone());
         spawn_uno_flying_card(
             commands,
             layer,
@@ -165,13 +172,13 @@ pub(super) fn spawn_uno_transfer_cards(
     target: Vec2,
     count: u16,
     base_delay: f32,
-    assets: &UiAssets,
+    assets: &UnoAssets,
 ) {
     for index in 0..usize::from(count.min(6)) {
         spawn_uno_flying_card(
             commands,
             layer,
-            assets.games.uno_card_back.clone(),
+            assets.card_back.clone(),
             None,
             source,
             target,
@@ -185,7 +192,7 @@ pub(super) fn spawn_uno_transfer_cards(
 
 /// 权威快照会在出牌动画结束前把新牌放进弃牌堆。动画等待布局或正在飞行时，
 /// 暂时隐藏对应实体牌；双牌会同时隐藏，落地后再一起恢复。
-pub fn sync_uno_discard_reveal(
+pub(crate) fn sync_uno_discard_reveal(
     client: Option<Res<ClientResource>>,
     presentation: Res<UnoPresentationState>,
     flights: Query<&UnoFlyingCard>,
@@ -217,7 +224,7 @@ pub fn sync_uno_discard_reveal(
     }
 }
 
-pub fn uno_discard_should_be_hidden(
+pub(crate) fn uno_discard_should_be_hidden(
     top: UnoCard,
     presentation: &UnoPresentationState,
     mut active_cards: impl Iterator<Item = Option<UnoCard>>,
@@ -231,7 +238,7 @@ pub fn uno_discard_should_be_hidden(
 
 /// 弃牌堆只同步末尾六张牌；第七张加入时窗口会整体向前滑动，因此不能用数组
 /// 下标决定姿态。物理牌标识在整局内稳定，用它分配偏移可让仍在堆中的旧牌原地不动。
-pub fn uno_discard_pose(card: UnoCard) -> (f32, f32, f32) {
+pub(crate) fn uno_discard_pose(card: UnoCard) -> (f32, f32, f32) {
     let color = match card.color() {
         Some(UnoColor::Red) => 0usize,
         Some(UnoColor::Yellow) => 1,

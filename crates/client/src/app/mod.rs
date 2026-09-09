@@ -7,11 +7,11 @@ mod shell;
 #[cfg(test)]
 mod tests;
 
-use games::{mahjong::*, qigui523::*, shengji::*, texas_holdem::*, uno::*};
+use games::*;
 use presentation::*;
 use runtime::*;
 use shell::*;
 
-pub fn run() {
+pub(super) fn run() {
     launch();
 }

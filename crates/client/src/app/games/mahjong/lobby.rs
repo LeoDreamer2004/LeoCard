@@ -1,8 +1,25 @@
-use super::*;
+use super::MahjongUiAction;
+use crate::app::presentation::{
+    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_section_title, add_text,
+};
+use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
+use crate::app::shell::{LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction};
+use bevy::prelude::*;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
 use leocard_protocol::LobbySnapshot;
 
-pub fn render_mahjong_lobby(
+type MahjongRuleConfigRow<'a> = RuleConfigRow<'a, MahjongRuleSet>;
+
+impl EditableRuleSet for MahjongRuleSet {
+    const ROW_HEIGHT: f32 = 38.0;
+    const VALUE_WIDTH: f32 = 92.0;
+
+    fn update_action(self) -> UiAction {
+        UiAction::Mahjong(MahjongUiAction::UpdateRules(self))
+    }
+}
+
+pub(crate) fn render_mahjong_lobby(
     commands: &mut Commands,
     root: Entity,
     client: &ClientResource,
@@ -10,39 +27,26 @@ pub fn render_mahjong_lobby(
     assets: &UiAssets,
     avatars: &AvatarImages,
 ) {
-    let rules = *lobby.mahjong_rules().expect("麻将大厅应携带对应规则");
-    let connected = LobbyMetrics::new(lobby).connected_player_count();
-    let content = spawn_node(
+    let rules = *lobby.rules.mahjong().expect("麻将大厅应携带对应规则");
+    let page = LobbyPage::spawn(
         commands,
         root,
-        Node {
-            width: percent(100),
-            max_width: px(1180),
-            flex_grow: 1.0,
-            align_self: AlignSelf::Center,
-            padding: UiRect::all(px(22)),
-            flex_direction: FlexDirection::Row,
-            column_gap: px(18),
-            align_items: AlignItems::Stretch,
-            ..default()
-        },
-        None,
-    );
-    let rules_panel = add_panel(
-        commands,
-        content,
-        Node {
-            min_width: px(340),
-            flex_basis: px(390),
-            flex_grow: 1.0,
-            flex_direction: FlexDirection::Column,
-            row_gap: px(15),
-            ..default()
-        },
-        PANEL,
-        PanelSkin::Section,
+        client,
+        lobby,
         assets,
+        LobbyPageStyle {
+            rules_min_width: 340.0,
+            rules_basis: 390.0,
+            rules_gap: 15.0,
+            players_min_width: 500.0,
+            players_basis: 650.0,
+            players_gap: 11.0,
+            wrap: false,
+        },
     );
+    let rules_panel = page.rules;
+    let connected = page.connected_count;
+    let can_configure = page.can_configure;
     add_section_title(commands, rules_panel, "国标麻将配置", assets);
     add_text(
         commands,
@@ -52,7 +56,6 @@ pub fn render_mahjong_lobby(
         MUTED,
         assets,
     );
-    let can_configure = client.0.model().you() == lobby.host;
     let lengths = [
         MahjongMatchLength::SingleHand,
         MahjongMatchLength::EastRound,
@@ -158,86 +161,14 @@ pub fn render_mahjong_lobby(
         assets,
     );
 
-    let players_panel = add_panel(
+    let can_start = connected == 4
+        && lobby
+            .players
+            .iter()
+            .filter(|player| player.connected)
+            .all(|player| player.seat.is_some() && player.ready);
+    page.render_players(
         commands,
-        content,
-        Node {
-            min_width: px(500),
-            flex_basis: px(650),
-            flex_grow: 2.0,
-            flex_direction: FlexDirection::Column,
-            row_gap: px(11),
-            ..default()
-        },
-        PANEL_ALT,
-        PanelSkin::Section,
-        assets,
+        LobbyPlayerSection::new(client, lobby, assets, avatars, 4, can_start, "等待四名玩家"),
     );
-    add_section_title(
-        commands,
-        players_panel,
-        format!("玩家席位  {connected}/4"),
-        assets,
-    );
-    LobbySeatSelector::new(client, lobby, assets, avatars).render(commands, players_panel);
-    let actions = spawn_node(
-        commands,
-        players_panel,
-        Node {
-            width: percent(100),
-            min_height: px(48),
-            flex_direction: FlexDirection::Row,
-            column_gap: px(12),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::FlexEnd,
-            ..default()
-        },
-        None,
-    );
-    let you = client.0.model().you();
-    let ready = you
-        .and_then(|you| lobby.players.iter().find(|player| player.id == you))
-        .is_some_and(|player| player.ready);
-    let is_host = you == lobby.host;
-    add_action_button(
-        commands,
-        actions,
-        "退出房间",
-        UiAction::Lobby(LobbyUiAction::LeaveRoom),
-        ButtonKind::Pass,
-        assets,
-    );
-    if is_host {
-        let can_start = connected == 4
-            && lobby
-                .players
-                .iter()
-                .filter(|player| player.connected)
-                .all(|player| player.seat.is_some() && player.ready);
-        if can_start {
-            add_action_button(
-                commands,
-                actions,
-                "开始游戏",
-                UiAction::Lobby(LobbyUiAction::StartGame),
-                ButtonKind::Primary,
-                assets,
-            );
-        } else {
-            add_disabled_action_button(commands, actions, "等待四名玩家", assets);
-        }
-    } else {
-        add_action_button(
-            commands,
-            actions,
-            if ready { "取消准备" } else { "准备" },
-            UiAction::Lobby(LobbyUiAction::ToggleReady),
-            if ready {
-                ButtonKind::Secondary
-            } else {
-                ButtonKind::Primary
-            },
-            assets,
-        );
-    }
 }

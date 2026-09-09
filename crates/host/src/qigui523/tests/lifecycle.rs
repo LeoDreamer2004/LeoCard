@@ -1,4 +1,5 @@
 use super::*;
+use crate::lifecycle::HostedGameLifecycle;
 use leocard_protocol::{
     AVATAR_DIMENSION, ClientCommand, PlayerId, PlayerViolation, ReconnectToken, RejectReason,
     RoomViolation, ServerEvent,

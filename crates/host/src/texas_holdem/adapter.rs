@@ -1,4 +1,3 @@
-use super::*;
 use leocard_protocol::{
     AvatarId, MatchId, PlayerId, ProfileId, SeatId, TexasHoldemBlindView, TexasHoldemEvent,
     TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemPotAward, TexasHoldemRevealedHand,
@@ -8,6 +7,8 @@ use leocard_texas_holdem::{
     ActionOutcome, GameError, GameState, Phase, RuleError, TexasHoldemAction, TexasHoldemCard,
     TexasHoldemPlayerId, TexasHoldemRuleSet, evaluate_player_hand,
 };
+use std::collections::HashSet;
+use std::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TablePlayer {

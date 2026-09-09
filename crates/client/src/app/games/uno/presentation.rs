@@ -6,14 +6,29 @@ mod flip;
 mod palette;
 mod reverse;
 
-use super::*;
-pub use animation::*;
-pub use flight::*;
+use super::{
+    UNO_ACTION_AREA_BOTTOM, UNO_ACTION_AREA_HEIGHT, UNO_DISCARD_OFFSETS, UNO_FLYING_CARD_HEIGHT,
+    UNO_FLYING_CARD_WIDTH, UNO_PALETTE_EFFECT_DURATION, UNO_REVERSE_EFFECT_DURATION, UnoAssets,
+    UnoAudioState, UnoDiscardCard, UnoDiscardPileAnchor, UnoDrawPileAnchor, UnoFlipCard,
+    UnoFlipOverlay, UnoFlipTarget, UnoFlyingCard, UnoPaletteColorRing, UnoPaletteEffect,
+    UnoPaletteMaterial, UnoPaletteParticle, UnoPaletteSelectedSector, UnoPresentationState,
+    UnoReverseArrow, uno_card_handle, uno_should_show_reverse_effect, uno_ui_color,
+};
+use crate::app::runtime::{ClientResource, UiAssets};
+use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer};
+pub(crate) use animation::*;
+use bevy::prelude::*;
+pub(crate) use flight::*;
 use flip::*;
 use leocard_protocol::{PlayerId, UnoEvent, UnoSnapshot};
 use leocard_uno::{UnoCard, UnoDirection};
 use palette::*;
 use reverse::*;
+use std::collections::HashMap;
+
+/// UNO 最后一张牌的飞行动画结束后，完整公开牌桌两秒再进入结算。
+pub(super) const UNO_PLAY_CARD_DURATION: f32 = 0.58;
+pub(super) const UNO_FINISH_REVEAL_DURATION: f32 = UNO_PLAY_CARD_DURATION + 2.0;
 
 struct UnoPresentationScene {
     layer: Entity,
@@ -68,7 +83,7 @@ impl UnoPresentationScene {
     }
 }
 
-pub fn sync_uno_presentation(
+pub(super) fn sync_uno_presentation(
     mut client: Option<ResMut<ClientResource>>,
     mut presentation: ResMut<UnoPresentationState>,
 ) {
@@ -76,15 +91,18 @@ pub fn sync_uno_presentation(
         presentation.events.clear();
         return;
     };
-    presentation.events.extend(client.0.take_uno_events());
+    presentation
+        .events
+        .extend(client.0.model_mut().take_uno_events());
     if client.0.model().uno_game().is_none() {
         presentation.events.clear();
     }
 }
-pub fn spawn_uno_presentation_effects(
+pub(crate) fn spawn_uno_presentation_effects(
     mut commands: Commands,
     client: Option<Res<ClientResource>>,
-    assets: Res<UiAssets>,
+    ui_assets: Res<UiAssets>,
+    game_assets: Res<UnoAssets>,
     mut palette_materials: ResMut<Assets<UnoPaletteMaterial>>,
     mut presentation: ResMut<UnoPresentationState>,
     mut audio: ResMut<UnoAudioState>,
@@ -150,7 +168,7 @@ pub fn spawn_uno_presentation_effects(
                 spawn_uno_flying_card(
                     &mut commands,
                     scene.layer,
-                    uno_card_handle(&assets, card),
+                    uno_card_handle(&game_assets, card),
                     Some(card),
                     source,
                     card_target,
@@ -201,7 +219,7 @@ pub fn spawn_uno_presentation_effects(
                     &card_backs,
                     0.0,
                     interval,
-                    &assets,
+                    &game_assets,
                 );
             }
             UnoEvent::StackNumberRevealed { cards, .. } => {
@@ -211,7 +229,7 @@ pub fn spawn_uno_presentation_effects(
                     spawn_uno_flying_card(
                         &mut commands,
                         scene.layer,
-                        uno_card_handle(&assets, card),
+                        uno_card_handle(&game_assets, card),
                         Some(card),
                         scene.draw,
                         target,
@@ -229,7 +247,7 @@ pub fn spawn_uno_presentation_effects(
                     spawn_uno_flying_card(
                         &mut commands,
                         scene.layer,
-                        uno_card_handle(&assets, card),
+                        uno_card_handle(&game_assets, card),
                         Some(card),
                         source,
                         scene.discard + Vec2::new(pose.0, pose.1),
@@ -262,7 +280,7 @@ pub fn spawn_uno_presentation_effects(
                     &card_backs,
                     0.22,
                     0.18,
-                    &assets,
+                    &game_assets,
                 );
             }
             UnoEvent::DrawPenaltyReflected {
@@ -279,7 +297,7 @@ pub fn spawn_uno_presentation_effects(
                     count,
                     &card_backs,
                     UNO_PLAY_CARD_DURATION * 0.72,
-                    &assets,
+                    &game_assets,
                 );
             }
             UnoEvent::ChallengeResolved {
@@ -296,7 +314,7 @@ pub fn spawn_uno_presentation_effects(
                     count,
                     &card_backs,
                     0.18,
-                    &assets,
+                    &game_assets,
                 );
             }
             UnoEvent::SkipResolved {
@@ -313,7 +331,7 @@ pub fn spawn_uno_presentation_effects(
                     1,
                     card_back.as_slice(),
                     0.02,
-                    &assets,
+                    &game_assets,
                 );
             }
             UnoEvent::UnoReported {
@@ -327,7 +345,7 @@ pub fn spawn_uno_presentation_effects(
                     2,
                     &card_backs,
                     0.12,
-                    &assets,
+                    &game_assets,
                 );
             }
             UnoEvent::ColorChosen { color, .. } => {
@@ -349,7 +367,7 @@ pub fn spawn_uno_presentation_effects(
                     scene.discard,
                     visible,
                     UNO_PLAY_CARD_DURATION * 0.72,
-                    &assets,
+                    &game_assets,
                 );
                 spawn_uno_draw_cards(
                     &mut commands,
@@ -358,7 +376,7 @@ pub fn spawn_uno_presentation_effects(
                     player_position,
                     visible,
                     UNO_PLAY_CARD_DURATION * 0.72 + 0.34,
-                    &assets,
+                    &game_assets,
                 );
             }
             UnoEvent::SwapOneCardTaken { player, target } => {
@@ -371,7 +389,7 @@ pub fn spawn_uno_presentation_effects(
                     target,
                     1,
                     0.0,
-                    &assets,
+                    &game_assets,
                 );
             }
             UnoEvent::SwapOneCompleted { player, target } => {
@@ -384,7 +402,7 @@ pub fn spawn_uno_presentation_effects(
                     target,
                     1,
                     0.0,
-                    &assets,
+                    &game_assets,
                 );
             }
             UnoEvent::HandsTraded { first, second, .. } => {
@@ -397,7 +415,7 @@ pub fn spawn_uno_presentation_effects(
                     second_position,
                     3,
                     0.0,
-                    &assets,
+                    &game_assets,
                 );
                 spawn_uno_transfer_cards(
                     &mut commands,
@@ -406,7 +424,7 @@ pub fn spawn_uno_presentation_effects(
                     first_position,
                     3,
                     0.08,
-                    &assets,
+                    &game_assets,
                 );
             }
             UnoEvent::HandsPassed { direction, .. } => {
@@ -434,7 +452,7 @@ pub fn spawn_uno_presentation_effects(
                         target,
                         2,
                         UNO_PLAY_CARD_DURATION * 0.72 + index as f32 * 0.035,
-                        &assets,
+                        &game_assets,
                     );
                 }
             }
@@ -446,7 +464,8 @@ pub fn spawn_uno_presentation_effects(
                     previous_game.as_ref(),
                     side,
                     &flip_targets,
-                    &assets,
+                    &ui_assets,
+                    &game_assets,
                 );
             }
             UnoEvent::UnoCalled { .. }

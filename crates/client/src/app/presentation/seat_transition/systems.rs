@@ -1,21 +1,25 @@
 //! Move the real in-game player panels out of their former lobby rectangles.
 
-use super::*;
-use crate::app::smootherstep;
+use super::{
+    GameSeatTransitionPose, GameSeatTransitionTarget, LobbySeatTransitionSnapshot,
+    START_GAME_SEAT_MOVE_DURATION, StartGameSeatTransition,
+};
+use crate::app::presentation::smootherstep;
+use bevy::prelude::*;
 use leocard_protocol::PlayerId;
 
 #[derive(Clone, Copy, Debug)]
-pub struct StartGameSeatTransitionVisual {
+pub(crate) struct StartGameSeatTransitionVisual {
     pub movement: f32,
 }
 
-pub fn start_game_seat_transition_visual(elapsed: f32) -> StartGameSeatTransitionVisual {
+pub(crate) fn start_game_seat_transition_visual(elapsed: f32) -> StartGameSeatTransitionVisual {
     StartGameSeatTransitionVisual {
         movement: smootherstep((elapsed / START_GAME_SEAT_MOVE_DURATION).clamp(0.0, 1.0)),
     }
 }
 
-pub fn attach_start_game_seat_transition(
+pub(crate) fn attach_start_game_seat_transition(
     commands: &mut Commands,
     panel: Entity,
     player: PlayerId,
@@ -61,7 +65,7 @@ fn interpolated_transform(pose: GameSeatTransitionPose, movement: f32) -> UiTran
     }
 }
 
-pub fn animate_start_game_seat_transition(
+pub(crate) fn animate_start_game_seat_transition(
     time: Res<Time>,
     mut transition: ResMut<StartGameSeatTransition>,
     mut targets: Query<(

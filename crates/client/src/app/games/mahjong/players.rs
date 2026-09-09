@@ -1,4 +1,20 @@
-use super::*;
+use super::tiles::mahjong_deal_spec;
+use super::{
+    ActiveMahjongClaimPresentation, MAHJONG_OWN_HAND_LEFT, MAHJONG_REMOTE_MELD_WIDTH,
+    MahjongAssets, MahjongClaimHandShift, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
+    MahjongWinningHand, MahjongWinningHandVisual, add_mahjong_tile_material,
+    apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x, mahjong_claim_landing_time,
+    mahjong_local_light, mahjong_local_shadow, mahjong_winning_hand_progress, render_mahjong_meld,
+    render_mahjong_staged_meld, wind_label,
+};
+use crate::app::presentation::{
+    BORDER, DANGER, GameSummaryAnimation, MUTED, PANEL, PlayerMenuProfile, TEXT, add_avatar,
+    add_interaction_menu, add_text, spawn_node,
+};
+use crate::app::runtime::{AvatarImages, UiAssets};
+use crate::app::shell::{OpponentBadge, PlayerAvatarAnchor, SeatSide, SocialUiAction, UiAction};
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::MahjongPlayerState;
 use leocard_protocol::{MahjongSnapshot, PlayerId};
 
@@ -142,7 +158,7 @@ pub(super) fn render_mahjong_wall(
     commands: &mut Commands,
     table: Entity,
     wall_len: u16,
-    assets: &UiAssets,
+    assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
     let stack_count = usize::from(wall_len).div_ceil(2).min(72);
@@ -205,14 +221,14 @@ fn add_mahjong_wall_stack(
     stack: Entity,
     layers: u8,
     orientation: u8,
-    assets: &UiAssets,
+    assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
     let material = materials.add(MahjongTileMaterial {
         params: Vec4::new(0.0, 1.0, 1.0, if layers == 2 { 2.0 } else { 3.0 }),
         lighting: mahjong_local_light(orientation),
-        glyph: assets.games.mahjong_tile_back.clone(),
-        height: assets.games.mahjong_tile_back.clone(),
+        glyph: assets.tile_back.clone(),
+        height: assets.tile_back.clone(),
     });
     let shadow = mahjong_local_shadow(orientation);
     let tile = commands
@@ -251,7 +267,7 @@ pub(super) struct MahjongPlayerTileVisuals<'a> {
     pub separate_last_concealed: bool,
     pub animation: &'a GameSummaryAnimation,
     pub active_claim: Option<&'a ActiveMahjongClaimPresentation>,
-    pub assets: &'a UiAssets,
+    pub game_assets: &'a MahjongAssets,
     pub materials: &'a mut Assets<MahjongTileMaterial>,
 }
 
@@ -270,7 +286,7 @@ pub(super) fn render_mahjong_player_tiles(
         separate_last_concealed,
         animation,
         active_claim,
-        assets,
+        game_assets,
         materials,
     } = visuals;
     let (winning_hand_start, win_reveal_duration) = winning_hand
@@ -356,7 +372,7 @@ pub(super) fn render_mahjong_player_tiles(
             meld,
             &mut meld_index,
             relative,
-            assets,
+            game_assets,
             materials,
         );
     }
@@ -367,7 +383,7 @@ pub(super) fn render_mahjong_player_tiles(
             claim,
             &mut meld_index,
             relative,
-            assets,
+            game_assets,
             materials,
         );
     }
@@ -442,7 +458,7 @@ pub(super) fn render_mahjong_player_tiles(
                             .then(|| mahjong_deal_spec(relative, index, concealed_count, 24.0)),
                         relative,
                     },
-                    assets,
+                    game_assets,
                     materials,
                 );
             }
@@ -463,7 +479,7 @@ pub(super) fn render_mahjong_player_tiles(
                             .then(|| mahjong_deal_spec(relative, index, concealed_count, 24.0)),
                         relative,
                     },
-                    assets,
+                    game_assets,
                     materials,
                 );
             }
@@ -491,7 +507,7 @@ pub(super) fn render_mahjong_player_tiles(
                         deal: None,
                         relative,
                     },
-                    assets,
+                    game_assets,
                     materials,
                 );
             }
@@ -504,7 +520,7 @@ pub(super) fn render_discard_rivers(
     table: Entity,
     game: &MahjongSnapshot,
     own_seat: u8,
-    assets: &UiAssets,
+    assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
     let last_discard = game

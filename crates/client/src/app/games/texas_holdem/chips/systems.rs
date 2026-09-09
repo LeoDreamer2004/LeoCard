@@ -1,6 +1,8 @@
-use super::*;
+use super::{ChipZone, TexasChipSprite, TexasChipTableState};
+use crate::app::runtime::ClientResource;
+use bevy::prelude::*;
 
-pub fn sync_texas_chip_state(
+pub(crate) fn sync_texas_chip_state(
     mut client: Option<ResMut<ClientResource>>,
     mut state: ResMut<TexasChipTableState>,
 ) {
@@ -8,7 +10,7 @@ pub fn sync_texas_chip_state(
         state.reset();
         return;
     };
-    let events = client.0.take_texas_holdem_events();
+    let events = client.0.model_mut().take_texas_holdem_events();
     let snapshot = client.0.model().texas_holdem_game().cloned();
     let Some(snapshot) = snapshot else {
         if state.match_id.is_some() {
@@ -19,7 +21,7 @@ pub fn sync_texas_chip_state(
     state.observe(&snapshot, events);
 }
 
-pub fn animate_texas_chip_sprites(
+pub(crate) fn animate_texas_chip_sprites(
     time: Res<Time>,
     mut state: ResMut<TexasChipTableState>,
     mut sprites: Query<(

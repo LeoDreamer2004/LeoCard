@@ -1,4 +1,4 @@
-use super::*;
+use crate::HostError;
 use leocard_protocol::{
     PlayerId, ShengjiBottomFlipMatchView, ShengjiBottomFlipRevealView, ShengjiEvent,
     ShengjiProfileStats, ShengjiPublicPlay, ShengjiViolation,
@@ -8,6 +8,7 @@ use leocard_shengji::{
     ShengjiCard, ShengjiPlayerId, ShengjiRuleSet, ShengjiSuit, ShengjiTrump, TrickRecord,
     build_deck_for,
 };
+use std::collections::HashSet;
 
 pub(super) fn record_shengji_component(stats: &mut ShengjiProfileStats, component: &Component) {
     let index = match component {
@@ -167,7 +168,7 @@ pub(super) fn game_violation(error: GameError) -> ShengjiViolation {
     }
 }
 
-pub(super) fn play_violation(error: PlayError) -> ShengjiViolation {
+fn play_violation(error: PlayError) -> ShengjiViolation {
     match error {
         PlayError::Empty => ShengjiViolation::MustLeadWithCards,
         PlayError::DuplicatePhysicalCard | PlayError::CardsNotOwned => {

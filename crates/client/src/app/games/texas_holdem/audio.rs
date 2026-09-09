@@ -3,11 +3,13 @@
 //! 音效只由服务器事件入队，与可重复重建的 UI 实体解耦，避免一次动作因界面刷新
 //! 被反复播放。密集筹码动作按“动作”聚合成少量错开的采样，不逐枚筹码发声。
 
-use super::*;
+use super::{TexasChipTableState, TexasHoldemAssets};
+use bevy::audio::Volume;
+use bevy::prelude::*;
 use leocard_texas_holdem::TexasHoldemAction;
 
 #[derive(Default)]
-pub struct TexasSoundAssets {
+pub(crate) struct TexasSoundAssets {
     chip_lay: Vec<Handle<AudioSource>>,
     chip_handle: Vec<Handle<AudioSource>>,
     chip_collide: Vec<Handle<AudioSource>>,
@@ -23,7 +25,7 @@ pub struct TexasSoundAssets {
 }
 
 impl TexasSoundAssets {
-    pub fn load(asset_server: &AssetServer) -> Self {
+    pub(crate) fn load(asset_server: &AssetServer) -> Self {
         let casino = "vendor/kenney/casino-audio/Audio";
         let interface = "vendor/kenney/interface-sounds/Audio";
         Self {
@@ -80,7 +82,7 @@ fn numbered_sounds(
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum TexasSoundKind {
+pub(crate) enum TexasSoundKind {
     ChipLay,
     ChipHandle,
     ChipCollide,
@@ -96,7 +98,7 @@ pub enum TexasSoundKind {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct TexasAudioCue {
+pub(crate) struct TexasAudioCue {
     pub kind: TexasSoundKind,
     pub remaining: f32,
     pub volume: f32,
@@ -114,7 +116,7 @@ impl TexasAudioCue {
     }
 }
 
-pub fn texas_action_sound_plan(
+pub(super) fn texas_action_sound_plan(
     action: TexasHoldemAction,
     amount: u32,
     seed: u64,
@@ -154,7 +156,7 @@ pub fn texas_action_sound_plan(
     }
 }
 
-pub fn texas_street_sound_plan(card_count: usize, seed: u64) -> Vec<TexasAudioCue> {
+pub(super) fn texas_street_sound_plan(card_count: usize, seed: u64) -> Vec<TexasAudioCue> {
     let mut cues = vec![
         TexasAudioCue::new(TexasSoundKind::ChipHandle, 0.02, 0.34, seed),
         TexasAudioCue::new(TexasSoundKind::ChipCollide, 0.38, 0.46, seed + 1),
@@ -170,7 +172,7 @@ pub fn texas_street_sound_plan(card_count: usize, seed: u64) -> Vec<TexasAudioCu
     cues
 }
 
-pub fn texas_hand_finish_sound_plan(showdown: bool, seed: u64) -> Vec<TexasAudioCue> {
+pub(super) fn texas_hand_finish_sound_plan(showdown: bool, seed: u64) -> Vec<TexasAudioCue> {
     let mut cues = vec![
         TexasAudioCue::new(TexasSoundKind::ChipHandle, 0.02, 0.34, seed),
         TexasAudioCue::new(TexasSoundKind::ChipStack, 0.62, 0.54, seed + 1),
@@ -200,7 +202,7 @@ pub fn texas_hand_finish_sound_plan(showdown: bool, seed: u64) -> Vec<TexasAudio
     cues
 }
 
-pub fn texas_side_pot_sound_plan(seed: u64) -> Vec<TexasAudioCue> {
+pub(super) fn texas_side_pot_sound_plan(seed: u64) -> Vec<TexasAudioCue> {
     vec![
         TexasAudioCue::new(TexasSoundKind::PotDivide, 0.18, 0.30, seed),
         TexasAudioCue::new(TexasSoundKind::ChipHandle, 0.25, 0.32, seed + 1),
@@ -208,13 +210,13 @@ pub fn texas_side_pot_sound_plan(seed: u64) -> Vec<TexasAudioCue> {
     ]
 }
 
-pub fn queue_texas_turn_sound(cues: &mut Vec<TexasAudioCue>, seed: u64) {
+pub(super) fn queue_texas_turn_sound(cues: &mut Vec<TexasAudioCue>, seed: u64) {
     cues.push(TexasAudioCue::new(TexasSoundKind::Turn, 0.04, 0.28, seed));
 }
 
-pub fn play_texas_audio_cues(
+pub(super) fn play_texas_audio_cues(
     time: Res<Time>,
-    assets: Res<UiAssets>,
+    assets: Res<TexasHoldemAssets>,
     mut state: ResMut<TexasChipTableState>,
     mut commands: Commands,
 ) {
@@ -231,7 +233,7 @@ pub fn play_texas_audio_cues(
     state.audio_cues = waiting;
 
     for cue in ready {
-        let variants = assets.games.texas_sounds.variants(cue.kind);
+        let variants = assets.sounds.variants(cue.kind);
         if variants.is_empty() {
             continue;
         }

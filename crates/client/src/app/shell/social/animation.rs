@@ -1,6 +1,11 @@
 //! 玩家互动投射物的运动、声音与命中反馈。
 
-use super::*;
+use super::{ActivePlayerInteraction, interaction_rotates};
+use crate::app::presentation::ease_out_cubic;
+use crate::app::runtime::UiAssets;
+use bevy::audio::Volume;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::PlayerInteractionKind;
 
 const SHOE_ROTATIONS: f32 = 2.0;
@@ -29,7 +34,7 @@ fn interaction_playback_settings() -> PlaybackSettings {
     }
 }
 
-pub fn animate_player_interactions(
+pub(crate) fn animate_player_interactions(
     time: Res<Time>,
     assets: Res<UiAssets>,
     mut commands: Commands,

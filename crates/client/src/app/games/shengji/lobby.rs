@@ -1,10 +1,27 @@
 //! 升级房间规则与玩家席位界面。
 
-use super::*;
+use super::ShengjiUiAction;
+use crate::app::presentation::{
+    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_section_title, add_text,
+};
+use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
+use crate::app::shell::{LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction};
+use bevy::prelude::*;
 use leocard_protocol::LobbySnapshot;
 use leocard_shengji::{ShengjiRuleSet, ShengjiThrowPenalty};
 
-pub fn render_shengji_lobby(
+type ShengjiRuleConfigRow<'a> = RuleConfigRow<'a, ShengjiRuleSet>;
+
+impl EditableRuleSet for ShengjiRuleSet {
+    const ROW_HEIGHT: f32 = 38.0;
+    const VALUE_WIDTH: f32 = 92.0;
+
+    fn update_action(self) -> UiAction {
+        UiAction::Shengji(ShengjiUiAction::UpdateRules(self))
+    }
+}
+
+pub(crate) fn render_shengji_lobby(
     commands: &mut Commands,
     root: Entity,
     client: &ClientResource,
@@ -12,42 +29,18 @@ pub fn render_shengji_lobby(
     assets: &UiAssets,
     avatars: &AvatarImages,
 ) {
-    let rules_value = *lobby.shengji_rules().expect("双升大厅应携带对应规则");
-    let connected_count = LobbyMetrics::new(lobby).connected_player_count();
-    let content = spawn_node(
+    let rules_value = *lobby.rules.shengji().expect("双升大厅应携带对应规则");
+    let page = LobbyPage::spawn(
         commands,
         root,
-        Node {
-            width: percent(100),
-            max_width: px(1180),
-            flex_grow: 1.0,
-            align_self: AlignSelf::Center,
-            padding: UiRect::all(px(22)),
-            flex_direction: FlexDirection::Row,
-            flex_wrap: FlexWrap::Wrap,
-            row_gap: px(18),
-            column_gap: px(18),
-            align_items: AlignItems::Stretch,
-            ..default()
-        },
-        None,
-    );
-    let rules_panel = add_panel(
-        commands,
-        content,
-        Node {
-            min_width: px(300),
-            flex_basis: px(330),
-            flex_grow: 1.0,
-            flex_direction: FlexDirection::Column,
-            row_gap: px(14),
-            ..default()
-        },
-        PANEL,
-        PanelSkin::Section,
+        client,
+        lobby,
         assets,
+        LobbyPageStyle::default(),
     );
-    let can_configure = client.0.model().you() == lobby.host;
+    let rules_panel = page.rules;
+    let connected_count = page.connected_count;
+    let can_configure = page.can_configure;
     add_section_title(commands, rules_panel, "双升配置", assets);
     add_text(
         commands,
@@ -290,91 +283,22 @@ pub fn render_shengji_lobby(
         assets,
     );
 
-    let players = add_panel(
+    let can_start = connected_count == ShengjiRuleSet::PLAYER_COUNT
+        && lobby
+            .players
+            .iter()
+            .filter(|player| player.connected)
+            .all(|player| player.seat.is_some() && player.ready);
+    page.render_players(
         commands,
-        content,
-        Node {
-            min_width: px(380),
-            flex_basis: px(560),
-            flex_grow: 2.0,
-            flex_direction: FlexDirection::Column,
-            row_gap: px(10),
-            ..default()
-        },
-        PANEL_ALT,
-        PanelSkin::Section,
-        assets,
-    );
-    add_section_title(
-        commands,
-        players,
-        format!("玩家席位  {connected_count}/4"),
-        assets,
-    );
-    LobbySeatSelector::new(client, lobby, assets, avatars).render(commands, players);
-
-    let actions = spawn_node(
-        commands,
-        players,
-        Node {
-            width: percent(100),
-            min_height: px(48),
-            flex_shrink: 0.0,
-            flex_direction: FlexDirection::Row,
-            column_gap: px(12),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::FlexEnd,
-            ..default()
-        },
-        None,
-    );
-    commands
-        .entity(actions)
-        .insert((GlobalZIndex(800), FocusPolicy::Pass));
-    let you = client.0.model().you();
-    let ready = you
-        .and_then(|you| lobby.players.iter().find(|player| player.id == you))
-        .is_some_and(|player| player.ready);
-    let is_host = you == lobby.host;
-    add_action_button(
-        commands,
-        actions,
-        "退出房间",
-        UiAction::Lobby(LobbyUiAction::LeaveRoom),
-        ButtonKind::Pass,
-        assets,
-    );
-    if is_host {
-        let can_start = connected_count == ShengjiRuleSet::PLAYER_COUNT
-            && lobby
-                .players
-                .iter()
-                .filter(|player| player.connected)
-                .all(|player| player.seat.is_some() && player.ready);
-        if can_start {
-            add_action_button(
-                commands,
-                actions,
-                "开始游戏",
-                UiAction::Lobby(LobbyUiAction::StartGame),
-                ButtonKind::Primary,
-                assets,
-            );
-        } else {
-            add_disabled_action_button(commands, actions, "等待四名玩家", assets);
-        }
-    } else {
-        add_action_button(
-            commands,
-            actions,
-            if ready { "取消准备" } else { "准备" },
-            UiAction::Lobby(LobbyUiAction::ToggleReady),
-            if ready {
-                ButtonKind::Secondary
-            } else {
-                ButtonKind::Primary
-            },
+        LobbyPlayerSection::new(
+            client,
+            lobby,
             assets,
-        );
-    }
+            avatars,
+            ShengjiRuleSet::PLAYER_COUNT as u8,
+            can_start,
+            "等待四名玩家",
+        ),
+    );
 }

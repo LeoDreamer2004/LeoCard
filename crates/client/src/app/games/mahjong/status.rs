@@ -1,4 +1,8 @@
-use super::*;
+use super::{MahjongAssets, MahjongTurnArrow, wind_label};
+use crate::app::presentation::{MUTED, PanelSkin, TEXT, add_panel, add_text};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 
 pub(super) fn render_round_status(
@@ -7,6 +11,7 @@ pub(super) fn render_round_status(
     game: &MahjongSnapshot,
     own_seat: u8,
     assets: &UiAssets,
+    game_assets: &MahjongAssets,
 ) {
     let status = add_panel(
         commands,
@@ -61,11 +66,21 @@ pub(super) fn render_round_status(
             .find(|player| player.id == game.current_player)
             .map(|player| player.seat.0)
             .unwrap_or(own_seat);
-        render_turn_arrows(commands, table, (current_seat + 4 - own_seat) % 4, assets);
+        render_turn_arrows(
+            commands,
+            table,
+            (current_seat + 4 - own_seat) % 4,
+            game_assets,
+        );
     }
 }
 
-fn render_turn_arrows(commands: &mut Commands, table: Entity, relative: u8, assets: &UiAssets) {
+fn render_turn_arrows(
+    commands: &mut Commands,
+    table: Entity,
+    relative: u8,
+    assets: &MahjongAssets,
+) {
     let (origin, direction, rotation) = match relative {
         0 => (
             Vec2::new(630.0, 382.0),
@@ -96,8 +111,7 @@ fn render_turn_arrows(commands: &mut Commands, table: Entity, relative: u8, asse
                     height: px(20),
                     ..default()
                 },
-                ImageNode::new(assets.games.mahjong_turn_arrow.clone())
-                    .with_color(Color::WHITE.with_alpha(0.0)),
+                ImageNode::new(assets.turn_arrow.clone()).with_color(Color::WHITE.with_alpha(0.0)),
                 UiTransform::from_rotation(Rot2::radians(rotation)),
                 MahjongTurnArrow { slot: slot as f32 },
                 ZIndex(24),

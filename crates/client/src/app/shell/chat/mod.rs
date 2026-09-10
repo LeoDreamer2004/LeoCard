@@ -1,10 +1,11 @@
 //! 聊天界面、消息同步与气泡演出。
 
-pub(crate) mod actions;
-mod presentation;
+mod actions;
+mod plugin;
 mod state;
-mod view;
+mod ui;
 
-pub(crate) use presentation::*;
+pub(crate) use actions::*;
+pub(super) use plugin::*;
 pub(crate) use state::*;
-pub(crate) use view::*;
+pub(crate) use ui::*;

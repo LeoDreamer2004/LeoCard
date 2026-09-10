@@ -1,5 +1,4 @@
 mod adapter;
-mod lobby;
 mod settlement;
 
 use super::*;
@@ -13,8 +12,8 @@ use leocard_protocol::{
     TexasHoldemCommand, TexasHoldemViolation, decode_frame, encode_frame, join_identity_payload,
 };
 use leocard_protocol::{
-    ClientMessage, GameEvent, GameKind, GameViolation, MatchId, PlayerId, RejectReason, RoomId,
-    TABLE_SEAT_COUNT, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemProfileStats,
+    ClientMessage, MatchId, PlayerId, RoomId, TexasHoldemEvent, TexasHoldemPhaseView,
+    TexasHoldemProfileStats,
 };
 use leocard_texas_holdem::TexasHoldemCard;
 use leocard_texas_holdem::{
@@ -22,7 +21,6 @@ use leocard_texas_holdem::{
     TexasHoldemStreet, TexasHoldemSuit, build_deck,
 };
 use std::collections::HashMap;
-use std::time::Duration;
 
 const ROOM: RoomId = RoomId(9527);
 const HOST_CONNECTION: ConnectionId = ConnectionId(10);
@@ -54,9 +52,9 @@ fn join_command(name: &str, token: u64) -> ClientCommand {
 }
 
 fn session_waiting_for_blinds() -> TexasHoldemSession {
-    let mut session = TexasHoldemSession::new_with_host_port(
+    let mut session = TexasHoldemSession::new(
         ROOM,
-        52301,
+        52300,
         TexasHoldemRuleSet::default(),
         build_deck(false),
     )

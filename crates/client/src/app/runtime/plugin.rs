@@ -4,10 +4,6 @@ use super::{
     set_app_window_icon, setup_camera,
 };
 use crate::app::presentation::{DESIGN_HEIGHT, DESIGN_WIDTH, TABLE_BG};
-use crate::app::shell::{
-    UpdateManager, handle_avatar_drop, handle_table_appearance_sliders, poll_avatar_picker,
-    poll_table_felt_picker, sync_table_appearance, update_ui_scale,
-};
 use bevy::asset::AssetPlugin;
 use bevy::audio::{GlobalVolume, Volume};
 use bevy::log::{DEFAULT_FILTER, LogPlugin};
@@ -60,7 +56,6 @@ impl Plugin for RuntimePlugin {
             .insert_resource(AvatarPicker::default())
             .insert_resource(TableFeltPicker::default())
             .insert_resource(TableAppearance::default())
-            .insert_resource(UpdateManager::default())
             .add_plugins(
                 DefaultPlugins
                     .set(LogPlugin {
@@ -99,19 +94,6 @@ impl Plugin for RuntimePlugin {
             )
             .add_systems(Startup, (setup_camera, load_ui_assets))
             .add_systems(Update, set_app_window_icon)
-            .add_systems(
-                Update,
-                (
-                    update_ui_scale,
-                    handle_avatar_drop,
-                    poll_avatar_picker,
-                    poll_table_felt_picker,
-                    handle_table_appearance_sliders,
-                )
-                    .chain()
-                    .in_set(ClientUpdateSet::Input),
-            )
-            .add_systems(Update, poll_network.in_set(ClientUpdateSet::Network))
-            .add_systems(Update, sync_table_appearance.in_set(ClientUpdateSet::Sync));
+            .add_systems(Update, poll_network.in_set(ClientUpdateSet::Network));
     }
 }

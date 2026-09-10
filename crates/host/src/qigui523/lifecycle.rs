@@ -14,16 +14,7 @@ use leocard_qigui523::{GameState, Phase, QiGuiCard, QiGuiRuleSet, build_deck};
 use std::time::Duration;
 
 impl QiGui523Session {
-    /// `shuffled_deck[0]` 是第一张发出的牌；房主应在创建会话前完成洗牌。
     pub fn new(
-        room_id: RoomId,
-        rules: QiGuiRuleSet,
-        shuffled_deck: Vec<QiGuiCard>,
-    ) -> Result<Self, HostError> {
-        Self::new_with_host_port(room_id, 52300, rules, shuffled_deck)
-    }
-
-    pub fn new_with_host_port(
         room_id: RoomId,
         host_port: u16,
         rules: QiGuiRuleSet,

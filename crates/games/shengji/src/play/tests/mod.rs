@@ -1,5 +1,4 @@
 mod following;
-mod scoring;
 mod structures;
 
 use super::*;

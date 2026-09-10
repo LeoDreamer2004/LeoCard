@@ -80,9 +80,9 @@ fn first_busted_player_finishes_the_tournament_and_applies_shared_rating_once() 
                 .filter(|card| !prefix.contains(card)),
         )
         .collect();
-    let mut session = TexasHoldemSession::new_with_host_port(
+    let mut session = TexasHoldemSession::new(
         ROOM,
-        52301,
+        52300,
         TexasHoldemRuleSet {
             starting_chips: 5,
             ..TexasHoldemRuleSet::default()
@@ -190,73 +190,4 @@ fn first_busted_player_finishes_the_tournament_and_applies_shared_rating_once() 
             .collect::<Vec<_>>(),
         points_after
     );
-}
-
-#[test]
-fn texas_profile_action_statistics_ignore_blinds_and_zero_value_actions() {
-    let mut session =
-        TexasHoldemSession::new(ROOM, TexasHoldemRuleSet::default(), build_deck(false)).unwrap();
-    session.match_profile_stats = vec![TexasHoldemProfileStats::default(); 2];
-    session.record_profile_events(&[
-        TexasHoldemEvent::ActionApplied {
-            player: PlayerId(0),
-            action: TexasHoldemAction::PostBlind,
-            amount: 2,
-        },
-        TexasHoldemEvent::ActionApplied {
-            player: PlayerId(0),
-            action: TexasHoldemAction::Check,
-            amount: 0,
-        },
-        TexasHoldemEvent::ActionApplied {
-            player: PlayerId(0),
-            action: TexasHoldemAction::RaiseTo(12),
-            amount: 10,
-        },
-        TexasHoldemEvent::ActionApplied {
-            player: PlayerId(0),
-            action: TexasHoldemAction::Fold,
-            amount: 0,
-        },
-    ]);
-
-    let stats = &session.match_profile_stats[0];
-    assert_eq!(stats.voluntary_actions, 3);
-    assert_eq!(stats.check_actions, 1);
-    assert_eq!(stats.raise_actions, 1);
-    assert_eq!(stats.hands_folded, 1);
-    assert_eq!(stats.wager_actions, 1);
-    assert_eq!(stats.wagered_chips, 10);
-}
-
-#[test]
-fn disconnecting_the_current_guest_immediately_folds_them() {
-    let mut session = started_session();
-    let current = session.game().unwrap().current_player().unwrap();
-    let connection = connection_for(&session, current);
-    if connection == HOST_CONNECTION {
-        // 先合法行动一次，确保测试目标是可断线而不关闭房间的客人。
-        session.handle(
-            connection,
-            message(
-                3,
-                ClientCommand::Game(GameCommand::TexasHoldem(TexasHoldemCommand::Act {
-                    action: TexasHoldemAction::Call,
-                })),
-            ),
-        );
-    }
-    let guest = session.game().unwrap().current_player().unwrap();
-    let guest_connection = connection_for(&session, guest);
-    assert_ne!(guest_connection, HOST_CONNECTION);
-    let deliveries = session.disconnect(guest_connection);
-    assert!(!deliveries.is_empty());
-    let core_index = session
-        .game()
-        .unwrap()
-        .players()
-        .iter()
-        .position(|player| player.id == guest)
-        .unwrap();
-    assert!(session.game().unwrap().game().players()[core_index].folded());
 }

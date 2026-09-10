@@ -6,6 +6,7 @@ use super::{
     ShengjiCardSize, add_shengji_trump_stars, shengji_card_face, shengji_display_trump,
     shengji_hand_sort_trump, shengji_level_label, sort_shengji_cards,
 };
+use crate::app::presentation::CardDragSelection;
 use crate::app::presentation::CardSize;
 use crate::app::presentation::{
     ACCENT, BORDER, CardAnimationState, HEADER_BG, PendingDealSound, TEXT, TurnBorderAnimationKey,
@@ -14,7 +15,7 @@ use crate::app::presentation::{
     shengji_hand_card_reveal, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{CardDragSelection, PlayerAvatarAnchor, UiAction};
+use crate::app::shell::{PlayerAvatarAnchor, UiAction};
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, RelativeCursorPosition};
 use leocard_protocol::{GameKind, ShengjiPhaseView, ShengjiPlayerState, ShengjiSnapshot};

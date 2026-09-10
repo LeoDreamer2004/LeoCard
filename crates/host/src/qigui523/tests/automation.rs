@@ -7,7 +7,7 @@ use leocard_qigui523::{
 
 #[test]
 fn enabling_auto_play_waits_one_second_before_acting_on_own_turn() {
-    let mut session = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();
+    let mut session = QiGui523Session::new(ROOM, 52300, rules(), build_deck(1)).unwrap();
     join_three(&mut session);
     ready_and_start(&mut session);
 
@@ -108,7 +108,7 @@ fn enabling_auto_play_waits_one_second_before_acting_on_own_turn() {
 
 #[test]
 fn auto_play_also_waits_one_second_when_its_turn_arrives_later() {
-    let mut session = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();
+    let mut session = QiGui523Session::new(ROOM, 52300, rules(), build_deck(1)).unwrap();
     join_three(&mut session);
     ready_and_start(&mut session);
 
@@ -159,6 +159,7 @@ fn timeout_follow_uses_the_smallest_greedy_response() {
     };
     let mut session = QiGui523Session::new(
         ROOM,
+        52300,
         configured_rules,
         build_deck(configured_rules.deck_count),
     )
@@ -226,6 +227,7 @@ fn disconnected_current_player_is_replaced_immediately_without_spending_time() {
     };
     let mut session = QiGui523Session::new(
         ROOM,
+        52300,
         configured_rules,
         build_deck(configured_rules.deck_count),
     )

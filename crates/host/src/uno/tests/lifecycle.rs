@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn rematch_keeps_auto_play_after_clearing_ready_state() {
-    let mut session = UnoSession::new(ROOM, UnoRuleSet::default(), build_deck()).unwrap();
+    let mut session = UnoSession::new(ROOM, 52300, UnoRuleSet::default(), build_deck()).unwrap();
     session.handle(HOST, message(1, join_command("甲", 1)));
     let second = ConnectionId(2);
     session.handle(second, message(1, join_command("乙", 2)));
@@ -40,7 +40,7 @@ fn rematch_keeps_auto_play_after_clearing_ready_state() {
 #[cfg(feature = "developer")]
 #[test]
 fn changing_rules_keeps_developer_bots_ready() {
-    let mut session = UnoSession::new(ROOM, UnoRuleSet::default(), build_deck()).unwrap();
+    let mut session = UnoSession::new(ROOM, 52300, UnoRuleSet::default(), build_deck()).unwrap();
     session.handle(HOST, message(1, join_command("甲", 1)));
     session.handle(
         HOST,
@@ -83,7 +83,7 @@ fn changing_rules_keeps_developer_bots_ready() {
 
 #[test]
 fn wrong_game_command_is_rejected_with_uno_as_expected_kind() {
-    let mut session = UnoSession::new(ROOM, UnoRuleSet::default(), build_deck()).unwrap();
+    let mut session = UnoSession::new(ROOM, 52300, UnoRuleSet::default(), build_deck()).unwrap();
     session.handle(HOST, message(1, join_command("甲", 1)));
     let deliveries = session.handle(
         HOST,

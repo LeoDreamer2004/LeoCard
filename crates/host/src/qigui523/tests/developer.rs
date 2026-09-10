@@ -11,7 +11,7 @@ use leocard_qigui523::{QiGuiCard, QiGuiRank, QiGuiSuit, build_deck};
 #[cfg(feature = "developer")]
 #[test]
 fn player_can_replace_only_their_own_hand() {
-    let mut session = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();
+    let mut session = QiGui523Session::new(ROOM, 52300, rules(), build_deck(1)).unwrap();
     join_three(&mut session);
     ready_and_start(&mut session);
     let player = session.player_id(SECOND).unwrap();
@@ -64,7 +64,7 @@ fn player_can_replace_only_their_own_hand() {
 #[cfg(feature = "developer")]
 #[test]
 fn player_can_play_a_semantic_pair_from_impossible_physical_copies() {
-    let mut session = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();
+    let mut session = QiGui523Session::new(ROOM, 52300, rules(), build_deck(1)).unwrap();
     join_three(&mut session);
     ready_and_start(&mut session);
 
@@ -104,7 +104,7 @@ fn player_can_play_a_semantic_pair_from_impossible_physical_copies() {
 #[cfg(not(feature = "developer"))]
 #[test]
 fn normal_build_rejects_developer_hand_commands() {
-    let mut session = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();
+    let mut session = QiGui523Session::new(ROOM, 52300, rules(), build_deck(1)).unwrap();
     join_three(&mut session);
     ready_and_start(&mut session);
 

@@ -186,35 +186,35 @@ impl HostSession {
                 host_port,
                 rules,
                 shuffled_deck,
-            } => QiGui523Session::new_with_host_port(room_id, host_port, rules, shuffled_deck)
+            } => QiGui523Session::new(room_id, host_port, rules, shuffled_deck)
                 .map(Box::new)
                 .map(Self::QiGui523),
             GameSetup::TexasHoldem {
                 host_port,
                 rules,
                 shuffled_deck,
-            } => TexasHoldemSession::new_with_host_port(room_id, host_port, rules, shuffled_deck)
+            } => TexasHoldemSession::new(room_id, host_port, rules, shuffled_deck)
                 .map(Box::new)
                 .map(Self::TexasHoldem),
             GameSetup::Shengji {
                 host_port,
                 rules,
                 shuffled_deck,
-            } => ShengjiSession::new_with_host_port(room_id, host_port, rules, shuffled_deck)
+            } => ShengjiSession::new(room_id, host_port, rules, shuffled_deck)
                 .map(Box::new)
                 .map(Self::Shengji),
             GameSetup::Uno {
                 host_port,
                 rules,
                 shuffled_deck,
-            } => UnoSession::new_with_host_port(room_id, host_port, rules, shuffled_deck)
+            } => UnoSession::new(room_id, host_port, rules, shuffled_deck)
                 .map(Box::new)
                 .map(Self::Uno),
             GameSetup::Mahjong {
                 host_port,
                 rules,
                 shuffled_deck,
-            } => MahjongSession::new_with_host_port(room_id, host_port, rules, shuffled_deck)
+            } => MahjongSession::new(room_id, host_port, rules, shuffled_deck)
                 .map(Box::new)
                 .map(Self::Mahjong),
         }

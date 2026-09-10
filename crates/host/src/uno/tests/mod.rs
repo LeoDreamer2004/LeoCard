@@ -1,4 +1,3 @@
-mod events;
 mod jump_in;
 mod lifecycle;
 mod profile;
@@ -9,21 +8,20 @@ use crate::{ConnectionId, Delivery};
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameCommand, GameKind, GameSnapshot, GameViolation, PlayerId,
-    RejectReason, RequestId, RoomId, ServerEvent, UnoCommand, UnoEvent, UnoProfileStats,
-    UnoSnapshot, UnoViolation,
+    RejectReason, RequestId, RoomId, ServerEvent, UnoCommand, UnoProfileStats, UnoSnapshot,
+    UnoViolation,
 };
 use leocard_protocol::{
     JoinRequest, PlayerGameProfiles, ProfileId, ReconnectToken, SeatId, TexasHoldemCommand,
     join_identity_payload,
 };
+use leocard_uno::Mode;
 use leocard_uno::{
-    ActionOutcome, GameState, Phase, PlayedEffect, UnoCard, UnoChallengeResult, UnoColor,
-    UnoPlayerId, UnoRuleSet, build_deck_for_rules,
+    ActionOutcome, GameState, Phase, UnoCard, UnoChallengeResult, UnoColor, UnoPlayerId,
+    UnoRuleSet, build_deck_for_rules,
 };
-use leocard_uno::{FlipRuleSet, Mode, UnoFace};
 #[cfg(test)]
 use leocard_uno::{build_deck, build_no_mercy_deck};
-use std::collections::HashSet;
 use std::time::Duration;
 
 const ROOM: RoomId = RoomId(108);

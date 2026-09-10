@@ -18,6 +18,7 @@ impl Plugin for TexasHoldemPlugin {
             .insert_resource(TexasChipTableState::default())
             .init_resource::<TexasHoldemUiState>()
             .add_systems(Startup, assets::load_texas_holdem_assets)
+            .configure_sets(Update, UiActionSet.after(handle_texas_raise_button_hold))
             .add_systems(
                 Update,
                 actions::dispatch_texas_holdem_actions.in_set(UiActionSet),

@@ -11,14 +11,14 @@ use leocard_qigui523::{
 
 #[test]
 fn player_name_limit_counts_unicode_characters() {
-    let mut accepted = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();
+    let mut accepted = QiGui523Session::new(ROOM, 52300, rules(), build_deck(1)).unwrap();
     let deliveries = accepted.handle(
         HOST,
         message(1, join_command("一二三四五六七", ReconnectToken(HOST.0))),
     );
     assert_eq!(rejection(&deliveries), None);
 
-    let mut rejected = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();
+    let mut rejected = QiGui523Session::new(ROOM, 52300, rules(), build_deck(1)).unwrap();
     let deliveries = rejected.handle(
         HOST,
         message(1, join_command("一二三四五六七八", ReconnectToken(HOST.0))),
@@ -33,7 +33,7 @@ fn player_name_limit_counts_unicode_characters() {
 
 #[test]
 fn invalid_player_identity_signature_is_rejected() {
-    let mut session = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();
+    let mut session = QiGui523Session::new(ROOM, 52300, rules(), build_deck(1)).unwrap();
     let mut command = join_command("玩家", ReconnectToken(HOST.0));
     let ClientCommand::Join(request) = &mut command else {
         unreachable!()
@@ -51,7 +51,7 @@ fn invalid_player_identity_signature_is_rejected() {
 
 #[test]
 fn finished_match_applies_reference_points_exactly_once() {
-    let mut session = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();
+    let mut session = QiGui523Session::new(ROOM, 52300, rules(), build_deck(1)).unwrap();
     join_three(&mut session);
     ready_and_start(&mut session);
     finish_game(&mut session);
@@ -175,7 +175,7 @@ fn qigui523_profile_play_statistics_count_types_and_keep_longest_lengths() {
 
 #[test]
 fn only_host_can_close_room_and_every_connected_player_is_notified() {
-    let mut session = QiGui523Session::new(ROOM, rules(), build_deck(1)).unwrap();
+    let mut session = QiGui523Session::new(ROOM, 52300, rules(), build_deck(1)).unwrap();
     join_three(&mut session);
 
     let denied = session.handle(SECOND, message(3, ClientCommand::CloseRoom));
@@ -203,6 +203,7 @@ fn unlimited_time_control_never_creates_or_advances_a_turn_timer() {
     };
     let mut session = QiGui523Session::new(
         ROOM,
+        52300,
         configured_rules,
         build_deck(configured_rules.deck_count),
     )
@@ -227,6 +228,7 @@ fn turn_timer_spends_base_before_persistent_player_reserve() {
     };
     let mut session = QiGui523Session::new(
         ROOM,
+        52300,
         configured_rules,
         build_deck(configured_rules.deck_count),
     )
@@ -275,6 +277,7 @@ fn timeout_lead_plays_exactly_the_smallest_single_card() {
     };
     let mut session = QiGui523Session::new(
         ROOM,
+        52300,
         configured_rules,
         build_deck(configured_rules.deck_count),
     )

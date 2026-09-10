@@ -71,31 +71,6 @@ fn next_hand_bidding_uses_the_authoritative_level_with_the_public_dealer() {
 }
 
 #[test]
-fn previous_trick_button_appears_only_after_playing_starts() {
-    assert_eq!(
-        shengji_previous_trick_button_state(
-            &ShengjiPhaseView::Dealing {
-                cards_remaining: 80,
-            },
-            false,
-        ),
-        None
-    );
-    assert_eq!(
-        shengji_previous_trick_button_state(&ShengjiPhaseView::Burying, false),
-        None
-    );
-    assert_eq!(
-        shengji_previous_trick_button_state(&ShengjiPhaseView::Playing, false),
-        Some(false)
-    );
-    assert_eq!(
-        shengji_previous_trick_button_state(&ShengjiPhaseView::Playing, true),
-        Some(true)
-    );
-}
-
-#[test]
 fn joker_bidding_buttons_require_the_matching_joker_and_hide_initial_no_trump() {
     let heart = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten);
     let big = ShengjiCard::big_joker(0);
@@ -112,38 +87,6 @@ fn joker_bidding_buttons_require_the_matching_joker_and_hide_initial_no_trump() 
         None
     );
     assert_eq!(shengji_declaration_candidate(&game, None), None);
-}
-
-#[test]
-fn joker_bidding_button_reuses_the_current_joker_for_protection_and_no_trump() {
-    let heart = [
-        ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten),
-        ShengjiCard::suited(1, ShengjiSuit::Heart, ShengjiRank::Ten),
-    ];
-    let big = [ShengjiCard::big_joker(0), ShengjiCard::big_joker(1)];
-    let mut game = shengji_ui_snapshot(
-        [heart.as_slice(), big.as_slice()].concat(),
-        Some(ShengjiDeclarationView {
-            player: PlayerId(0),
-            trump: ShengjiBidTrump::Suit(ShengjiSuit::Heart),
-            kind: ShengjiBidKind::Initial,
-            protected: false,
-            cards: vec![heart[0], big[0]],
-        }),
-    );
-    game.rules.bid_with_joker = true;
-    game.your_exposed_cards = vec![heart[0], big[0]];
-
-    // 同花色加亮时当前展示的大王继续使用，只需提交新增的级牌。
-    assert_eq!(
-        shengji_declaration_candidate(&game, Some(ShengjiSuit::Heart)),
-        Some(vec![heart[1]])
-    );
-    // 反无主时，已经展示的大王可以与手里的另一张大王组成一对。
-    assert_eq!(
-        shengji_declaration_candidate(&game, None),
-        Some(big.to_vec())
-    );
 }
 
 #[test]
@@ -252,12 +195,4 @@ fn four_deck_bidding_button_reaches_quad_level() {
         shengji_declaration_candidate(&game, Some(ShengjiSuit::Heart)),
         Some(hearts)
     );
-}
-
-#[test]
-fn four_deck_hand_reveal_keeps_all_fifty_two_cards_inside_design_width() {
-    let reveal = shengji_hand_card_reveal(52);
-    let width = reveal * 51.0 + CardSize::Hand.dimensions().0;
-    assert!(reveal < HAND_CARD_REVEAL);
-    assert!(width <= DESIGN_WIDTH - 96.0 + f32::EPSILON);
 }

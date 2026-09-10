@@ -1,3 +1,4 @@
+mod bidding;
 mod bottom;
 mod crossing;
 mod settlement;

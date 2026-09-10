@@ -1,14 +1,37 @@
 //! 玩家互动菜单与跨游戏托管按钮动作。
 
 use super::super::{
-    PressedUiAction, SocialUiAction, UiActionHandler, UiState, dispatch_domain_actions,
+    DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState, dispatch_domain_actions,
     game_command,
 };
 use super::PlayerInteractionCooldown;
 use crate::app::runtime::ClientResource;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_protocol::{ClientCommand, PlayerInteractionKind};
+use leocard_protocol::{ClientCommand, PlayerId, PlayerInteractionKind};
+
+#[derive(Clone)]
+pub(crate) enum SocialUiAction {
+    ToggleInteractionMenu(PlayerId),
+    ToggleAutoPlay,
+    SendInteraction {
+        target: PlayerId,
+        kind: PlayerInteractionKind,
+    },
+}
+
+impl DomainUiAction for SocialUiAction {
+    fn extract(action: &UiAction) -> Option<&Self> {
+        let UiAction::Social(action) = action else {
+            return None;
+        };
+        Some(action)
+    }
+
+    fn rebuilds_ui(&self) -> bool {
+        false
+    }
+}
 
 #[derive(SystemParam)]
 pub(crate) struct SocialActionContext<'w> {

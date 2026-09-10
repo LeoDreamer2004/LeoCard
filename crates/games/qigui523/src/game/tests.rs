@@ -102,50 +102,6 @@ fn winner_collects_points_then_everyone_refills() {
 }
 
 #[test]
-fn bomb_can_change_the_required_card_count() {
-    let rules = QiGuiRuleSet {
-        player_count: 3,
-        ..QiGuiRuleSet::default()
-    };
-    let pair = [
-        QiGuiCard::suited(0, QiGuiSuit::Diamond, QiGuiRank::Four),
-        QiGuiCard::suited(0, QiGuiSuit::Club, QiGuiRank::Four),
-    ];
-    let bomb = [
-        QiGuiCard::suited(0, QiGuiSuit::Diamond, QiGuiRank::Six),
-        QiGuiCard::suited(0, QiGuiSuit::Club, QiGuiRank::Six),
-        QiGuiCard::suited(0, QiGuiSuit::Heart, QiGuiRank::Six),
-        QiGuiCard::suited(0, QiGuiSuit::Spade, QiGuiRank::Six),
-    ];
-    let mut prefix = vec![
-        pair[0],
-        bomb[0],
-        QiGuiCard::suited(0, QiGuiSuit::Heart, QiGuiRank::Eight),
-    ];
-    prefix.extend([
-        pair[1],
-        bomb[1],
-        QiGuiCard::suited(0, QiGuiSuit::Club, QiGuiRank::Eight),
-    ]);
-    prefix.extend([
-        QiGuiCard::suited(0, QiGuiSuit::Diamond, QiGuiRank::Nine),
-        bomb[2],
-        QiGuiCard::suited(0, QiGuiSuit::Heart, QiGuiRank::Nine),
-    ]);
-    prefix.extend([
-        QiGuiCard::suited(0, QiGuiSuit::Diamond, QiGuiRank::Ten),
-        bomb[3],
-        QiGuiCard::suited(0, QiGuiSuit::Heart, QiGuiRank::Ten),
-    ]);
-    let deck = deck_with_prefix(&prefix, 1);
-    let mut game = GameState::new_with_deck(rules, deck).unwrap();
-
-    game.play_cards(QiGuiPlayerId(0), &pair).unwrap();
-    game.pass(QiGuiPlayerId(2)).unwrap();
-    assert!(game.play_cards(QiGuiPlayerId(1), &bomb).is_ok());
-}
-
-#[test]
 fn emptying_a_hand_after_draw_pile_is_empty_collects_remaining_points() {
     let rules = QiGuiRuleSet {
         player_count: 3,

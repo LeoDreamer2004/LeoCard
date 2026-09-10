@@ -1,6 +1,8 @@
 //! 玩家互动投射物的运动、声音与命中反馈。
 
-use super::{ActivePlayerInteraction, interaction_rotates};
+use super::{
+    ActivePlayerInteraction, AutoPlayAntennaLight, AutoPlayAntennaLightPart, interaction_rotates,
+};
 use crate::app::presentation::ease_out_cubic;
 use crate::app::runtime::UiAssets;
 use bevy::audio::Volume;
@@ -126,6 +128,30 @@ pub(crate) fn animate_player_interactions(
         }
         if effect.elapsed >= impact_at + effect.impact_duration {
             commands.entity(entity).despawn();
+        }
+    }
+}
+
+pub(crate) fn animate_auto_play_robot_indicators(
+    time: Res<Time>,
+    mut lights: Query<(
+        &AutoPlayAntennaLight,
+        &mut UiTransform,
+        &mut BackgroundColor,
+    )>,
+) {
+    for (light, mut transform, mut background) in &mut lights {
+        let phase = time.elapsed_secs() * 3.0 + f32::from(light.player.0) * 0.61;
+        let pulse = (phase.sin() + 1.0) * 0.5;
+        match light.part {
+            AutoPlayAntennaLightPart::Glow => {
+                transform.scale = Vec2::splat(0.72 + pulse * 0.58);
+                background.0 = Color::srgba(0.32, 1.0, 0.58, 0.08 + pulse * 0.54);
+            }
+            AutoPlayAntennaLightPart::Ray => {
+                transform.scale = Vec2::new(1.0, 0.68 + pulse * 0.42);
+                background.0 = Color::srgba(0.46, 1.0, 0.68, 0.04 + pulse * 0.82);
+            }
         }
     }
 }

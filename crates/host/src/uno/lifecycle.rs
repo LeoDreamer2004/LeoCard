@@ -15,14 +15,6 @@ use std::time::Duration;
 impl UnoSession {
     pub fn new(
         room_id: RoomId,
-        rules: UnoRuleSet,
-        shuffled_deck: Vec<UnoCard>,
-    ) -> Result<Self, HostError> {
-        Self::new_with_host_port(room_id, 52300, rules, shuffled_deck)
-    }
-
-    pub fn new_with_host_port(
-        room_id: RoomId,
         host_port: u16,
         rules: UnoRuleSet,
         shuffled_deck: Vec<UnoCard>,

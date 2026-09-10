@@ -106,3 +106,20 @@ pub(crate) fn turn_timer_label(timer: Option<TurnTimerView>) -> String {
         None => String::new(),
     }
 }
+
+pub(crate) fn animate_turn_clocks(
+    time: Res<Time>,
+    mut clocks: Query<(&mut UiTransform, &mut BorderColor), With<TurnClock>>,
+    mut hands: Query<&mut UiTransform, (With<TurnClockHand>, Without<TurnClock>)>,
+) {
+    let elapsed = time.elapsed_secs();
+    let ring = (elapsed * 8.0).sin();
+    for (mut transform, mut border) in &mut clocks {
+        transform.scale = Vec2::splat(1.04 + ring.abs() * 0.05);
+        transform.rotation = Rot2::radians(ring * 0.055);
+        border.set_all(ACCENT.with_alpha(0.72 + ring.abs() * 0.28));
+    }
+    for mut transform in &mut hands {
+        transform.rotation = Rot2::radians(elapsed * 2.8);
+    }
+}

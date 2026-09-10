@@ -14,6 +14,7 @@ fn jump_in_session() -> (UnoSession, ConnectionId, ConnectionId, UnoCard, UnoCar
     }
     let mut session = UnoSession::new(
         ROOM,
+        52300,
         UnoRuleSet {
             action_stacking: true,
             jump_in: true,

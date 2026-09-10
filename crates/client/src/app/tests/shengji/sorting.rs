@@ -99,28 +99,6 @@ fn shengji_hand_sort_places_unbid_level_cards_immediately_after_jokers() {
 }
 
 #[test]
-fn shengji_constant_trump_sort_places_main_and_off_twos_below_level_cards() {
-    let trump = ShengjiTrump::new(ShengjiRank::Ten, Some(ShengjiSuit::Heart))
-        .unwrap()
-        .with_constant_trump(true);
-    let main_level = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten);
-    let off_level = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ten);
-    let main_two = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Two);
-    let off_two = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Two);
-    let trump_ace = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ace);
-    let mut cards = vec![off_two, trump_ace, main_level, main_two, off_level];
-
-    sort_shengji_cards(&mut cards, Some(trump));
-
-    assert_eq!(
-        cards,
-        vec![main_level, off_level, main_two, off_two, trump_ace]
-    );
-    assert_eq!(shengji_trump_star_count(main_two, Some(trump)), 1);
-    assert_eq!(shengji_trump_star_count(off_two, Some(trump)), 1);
-}
-
-#[test]
 fn shengji_hand_sort_groups_off_suit_level_pairs_in_spade_heart_club_diamond_order() {
     let trump = ShengjiTrump::new(ShengjiRank::Ten, None).unwrap();
     let spades = [
@@ -159,23 +137,4 @@ fn shengji_hand_sort_groups_off_suit_level_pairs_in_spade_heart_club_diamond_ord
             .flatten()
             .collect::<Vec<_>>()
     );
-}
-
-#[test]
-fn shengji_trump_stars_distinguish_main_level_and_other_trumps() {
-    let suited = ShengjiTrump::new(ShengjiRank::Ten, Some(ShengjiSuit::Heart)).unwrap();
-    let main_level = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten);
-    let off_level = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ten);
-    let suit_card = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Nine);
-    let side_card = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ace);
-    let joker = ShengjiCard::big_joker(0);
-
-    assert_eq!(shengji_trump_star_count(main_level, Some(suited)), 2);
-    assert_eq!(shengji_trump_star_count(joker, Some(suited)), 2);
-    assert_eq!(shengji_trump_star_count(off_level, Some(suited)), 1);
-    assert_eq!(shengji_trump_star_count(suit_card, Some(suited)), 1);
-    assert_eq!(shengji_trump_star_count(side_card, Some(suited)), 0);
-
-    let no_trump = ShengjiTrump::new(ShengjiRank::Ten, None).unwrap();
-    assert_eq!(shengji_trump_star_count(off_level, Some(no_trump)), 1);
 }

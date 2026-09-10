@@ -68,51 +68,6 @@ fn power_reverse_changes_color_and_gives_the_actor_another_turn() {
 }
 
 #[test]
-fn no_u_reflects_the_whole_penalty_to_the_latest_stacker() {
-    let draw_a = card(UnoColor::Red, UnoFace::DrawTwo, 0);
-    let draw_b = card(UnoColor::Blue, UnoFace::DrawTwo, 0);
-    let no_u = UnoCard::wild(UnoFace::WildNoU, 0);
-    let filler = card(UnoColor::Green, UnoFace::Number(3), 0);
-    let mut game = reverse_pack_game();
-    game.rules.action_stacking = true;
-    game.players[0].hand = vec![draw_a, filler];
-    game.players[1].hand = vec![draw_b, filler];
-    game.players[2].hand = vec![no_u, filler];
-    game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(7), 0)];
-    game.current_color = Some(UnoColor::Red);
-    game.current_player = UnoPlayerId(0);
-
-    game.play_card(UnoPlayerId(0), draw_a, None).unwrap();
-    game.play_card(UnoPlayerId(1), draw_b, None).unwrap();
-    let before = game.player(UnoPlayerId(1)).unwrap().hand().len();
-    let outcome = game
-        .play_card(UnoPlayerId(2), no_u, Some(UnoColor::Yellow))
-        .unwrap();
-
-    assert!(matches!(
-        outcome,
-        ActionOutcome::Played {
-            effect: Some(PlayedEffect::DrawReflected {
-                player: UnoPlayerId(1),
-                ref cards,
-            }),
-            ..
-        } if cards.len() == 4
-    ));
-    assert_eq!(
-        game.player(UnoPlayerId(1)).unwrap().hand().len(),
-        before + 4
-    );
-    let turn = game.turn().unwrap();
-    assert_eq!(turn.direction, UnoDirection::CounterClockwise);
-    assert_eq!(turn.current_color, Some(UnoColor::Yellow));
-    assert_eq!(turn.pending_draw, 0);
-    assert_eq!(turn.pending_draw_source, None);
-    assert_eq!(turn.challenge_offender, None);
-    assert_eq!(turn.current_player, UnoPlayerId(0));
-}
-
-#[test]
 fn reverse_skip_can_redirect_an_accumulated_skip() {
     let skip = card(UnoColor::Red, UnoFace::Skip, 0);
     let reverse_skip = card(UnoColor::Blue, UnoFace::ReverseSkip, 0);

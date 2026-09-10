@@ -94,8 +94,13 @@ fn finish_server_deal(session: &mut MahjongSession) {
 
 #[test]
 fn four_clients_receive_private_views_and_continue_at_the_table() {
-    let mut session = MahjongSession::new(ROOM, MahjongRuleSet::default(), dealer_winning_deck())
-        .expect("test wall is valid");
+    let mut session = MahjongSession::new(
+        ROOM,
+        52300,
+        MahjongRuleSet::default(),
+        dealer_winning_deck(),
+    )
+    .expect("test wall is valid");
     let connections = [
         ConnectionId(10),
         ConnectionId(20),
@@ -208,7 +213,7 @@ fn four_clients_receive_private_views_and_continue_at_the_table() {
 
 #[test]
 fn robot_waits_then_takes_an_automatic_action() {
-    let mut session = MahjongSession::new(ROOM, MahjongRuleSet::default(), build_deck())
+    let mut session = MahjongSession::new(ROOM, 52300, MahjongRuleSet::default(), build_deck())
         .expect("standard wall is valid");
     let connections = [
         ConnectionId(110),

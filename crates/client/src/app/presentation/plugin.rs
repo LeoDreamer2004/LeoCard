@@ -1,11 +1,10 @@
 use super::{
-    GameSummaryAnimation, StartGameSeatTransition, TableBackgroundMaterial,
+    CardDragSelection, GameSummaryAnimation, StartGameSeatTransition, TableBackgroundMaterial,
     TurnBorderAnimationState, TurnBorderMaterial, animate_game_summary_visuals,
     animate_signed_summary_scores, animate_start_game_seat_transition, animate_summary_scores,
     animate_turn_border_traces, update_summary_animation,
 };
 use crate::app::runtime::ClientUpdateSet;
-use crate::app::shell::CardDragSelection;
 use bevy::prelude::*;
 use bevy::ui_render::UiMaterialPlugin;
 

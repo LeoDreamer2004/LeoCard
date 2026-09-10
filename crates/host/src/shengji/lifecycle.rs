@@ -22,14 +22,6 @@ use std::time::Duration;
 impl ShengjiSession {
     pub fn new(
         room_id: RoomId,
-        rules: ShengjiRuleSet,
-        shuffled_deck: Vec<ShengjiCard>,
-    ) -> Result<Self, HostError> {
-        Self::new_with_host_port(room_id, 52300, rules, shuffled_deck)
-    }
-
-    pub fn new_with_host_port(
-        room_id: RoomId,
         host_port: u16,
         rules: ShengjiRuleSet,
         shuffled_deck: Vec<ShengjiCard>,

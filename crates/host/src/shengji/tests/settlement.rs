@@ -182,7 +182,7 @@ fn developer_bots_bid_bury_and_play_with_the_greedy_policy() {
     let mut deck = build_deck();
     let target_index = deck.iter().position(|card| *card == target).unwrap();
     deck.swap(1, target_index);
-    let mut session = ShengjiSession::new(ROOM, ShengjiRuleSet::default(), deck).unwrap();
+    let mut session = ShengjiSession::new(ROOM, 52300, ShengjiRuleSet::default(), deck).unwrap();
     let host = ConnectionId(10);
     session.handle(host, message(0, 1, join_command(0)));
     session.handle(

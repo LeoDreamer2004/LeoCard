@@ -1,4 +1,4 @@
-mod bidding_flow;
+mod bidding;
 mod bottom;
 mod crossing;
 mod dealing;
@@ -10,7 +10,8 @@ mod support;
 mod tests;
 
 #[cfg(test)]
-use bidding_flow::*;
+use bidding::*;
+pub use bidding::*;
 pub use error::*;
 pub use state::*;
 use support::*;

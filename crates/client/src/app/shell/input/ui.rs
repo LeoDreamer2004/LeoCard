@@ -1,10 +1,11 @@
 //! Local input, scaling, card selection, and OS-backed image picking.
 
 use super::super::{ChatPanelState, UiState};
-use super::{DeveloperHandInput, InputField, UiZoom};
+use super::{InputField, UiZoom};
 use crate::app::games::{HandCardSlot, MahjongHandTile, ShengjiHandCardSlot, UnoHandCardButton};
 use crate::app::presentation::{BackgroundButtonTint, ButtonTint, DESIGN_HEIGHT, DESIGN_WIDTH};
 use crate::app::runtime::{ClientResource, ConnectionDraft, UiAssets};
+use crate::app::shell::DeveloperHandInput;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use leocard_client::ClientPhaseRef;

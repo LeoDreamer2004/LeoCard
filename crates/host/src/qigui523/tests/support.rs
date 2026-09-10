@@ -9,7 +9,6 @@ use leocard_protocol::{
     SeatId, ServerEvent, join_identity_payload,
 };
 use leocard_qigui523::{Phase, QiGuiRuleSet, can_beat, classify};
-pub(super) use std::collections::HashMap;
 use std::io::Cursor;
 pub(super) use std::time::Duration;
 

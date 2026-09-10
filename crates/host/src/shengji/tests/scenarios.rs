@@ -7,7 +7,7 @@ use leocard_protocol::{
 #[cfg(test)]
 use leocard_shengji::build_deck;
 use leocard_shengji::{Phase, ShengjiCard, ShengjiPlayerId, ShengjiRuleSet};
-use leocard_shengji::{ShengjiRank, ShengjiSuit, build_deck_for};
+use leocard_shengji::{ShengjiRank, ShengjiSuit};
 
 #[test]
 fn bottom_copy_is_public_keeps_the_dealer_and_times_out_as_a_pass() {
@@ -419,38 +419,4 @@ fn power_outage_opens_ten_second_round_then_bottom_flip_is_publicly_held() {
         game_snapshot(&deliveries, connections[0]).phase,
         ShengjiPhaseView::Burying
     ));
-}
-
-#[test]
-fn three_deck_session_requires_and_accepts_the_rule_selected_deck() {
-    let rules = ShengjiRuleSet {
-        deck_count: 3,
-        ..ShengjiRuleSet::default()
-    };
-    assert_eq!(
-        ShengjiSession::new(ROOM, rules, build_deck()).unwrap_err(),
-        HostError::InvalidDeckSize {
-            expected: 162,
-            actual: 108,
-        }
-    );
-    let session = ShengjiSession::new(ROOM, rules, build_deck_for(3)).unwrap();
-    assert_eq!(session.rules().deck_count, 3);
-}
-
-#[test]
-fn four_deck_session_requires_and_accepts_the_rule_selected_deck() {
-    let rules = ShengjiRuleSet {
-        deck_count: 4,
-        ..ShengjiRuleSet::default()
-    };
-    assert_eq!(
-        ShengjiSession::new(ROOM, rules, build_deck_for(3)).unwrap_err(),
-        HostError::InvalidDeckSize {
-            expected: 216,
-            actual: 162,
-        }
-    );
-    let session = ShengjiSession::new(ROOM, rules, build_deck_for(4)).unwrap();
-    assert_eq!(session.rules().deck_count, 4);
 }

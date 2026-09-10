@@ -70,7 +70,7 @@ pub(super) fn started_session_with_deck(
     rules: ShengjiRuleSet,
     deck: Vec<ShengjiCard>,
 ) -> (ShengjiSession, [ConnectionId; 4]) {
-    let mut session = ShengjiSession::new(ROOM, rules, deck).unwrap();
+    let mut session = ShengjiSession::new(ROOM, 52300, rules, deck).unwrap();
     let connections = [
         ConnectionId(10),
         ConnectionId(20),

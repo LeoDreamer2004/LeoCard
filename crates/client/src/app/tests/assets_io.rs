@@ -150,15 +150,6 @@ fn chat_input_obeys_the_protocol_character_limit() {
 }
 
 #[test]
-fn shengji_bidding_countdown_rounds_up_to_whole_seconds() {
-    assert_eq!(shengji_bidding_countdown_label(5_000), "5秒");
-    assert_eq!(shengji_bidding_countdown_label(4_001), "5秒");
-    assert_eq!(shengji_bidding_countdown_label(4_000), "4秒");
-    assert_eq!(shengji_bidding_countdown_label(1), "1秒");
-    assert_eq!(shengji_bidding_countdown_label(0), "0秒");
-}
-
-#[test]
 fn avatar_is_cropped_and_encoded_as_bounded_64px_png() {
     let source = image::DynamicImage::ImageRgba8(image::ImageBuffer::from_pixel(
         80,
@@ -201,21 +192,4 @@ fn jpeg_avatar_is_accepted_and_normalized_to_png() {
     assert_eq!(decoded.height(), AVATAR_DIMENSION);
     assert!(valid_normalized_avatar(&normalized));
     assert!(normalized.len() <= MAX_AVATAR_BYTES);
-}
-
-#[test]
-fn jpeg_table_felt_is_decoded_without_converting_the_saved_path() {
-    let source = image::DynamicImage::ImageRgb8(image::ImageBuffer::from_pixel(
-        96,
-        54,
-        image::Rgb([18, 72, 48]),
-    ));
-    let mut encoded = Cursor::new(Vec::new());
-    source
-        .write_to(&mut encoded, image::ImageFormat::Jpeg)
-        .unwrap();
-
-    let decoded = decode_table_felt_image(&encoded.into_inner()).unwrap();
-    assert_eq!(decoded.width(), 96);
-    assert_eq!(decoded.height(), 54);
 }

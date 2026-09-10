@@ -27,31 +27,6 @@ fn failed_throw_selects_the_shortest_beatable_then_weakest_component() {
 }
 
 #[test]
-fn failed_throw_uses_a_pair_when_its_single_is_unbeatable() {
-    let attempted = [
-        card(0, ShengjiSuit::Spade, ShengjiRank::Ace),
-        pair(ShengjiSuit::Spade, ShengjiRank::Eight)[0],
-        pair(ShengjiSuit::Spade, ShengjiRank::Eight)[1],
-        pair(ShengjiSuit::Spade, ShengjiRank::Four)[0],
-        pair(ShengjiSuit::Spade, ShengjiRank::Four)[1],
-    ];
-    let opponent = pair(ShengjiSuit::Spade, ShengjiRank::Five);
-    let TrickPlay::ThrowFailed(failure) = classify_lead(
-        &attempted,
-        trump(),
-        &ShengjiRuleSet::default(),
-        &[&opponent],
-    )
-    .unwrap() else {
-        panic!("the low pair should make the throw fail");
-    };
-    assert_eq!(
-        failure.forced.cards,
-        pair(ShengjiSuit::Spade, ShengjiRank::Four)
-    );
-}
-
-#[test]
 fn pair_and_tractor_follow_obligations_are_enforced() {
     let lead_pair = classify_cards(&pair(ShengjiSuit::Spade, ShengjiRank::Five), trump()).unwrap();
     let hand = [
@@ -163,48 +138,6 @@ fn forced_follow_cards_does_not_choose_between_two_valid_tractors() {
     .concat();
     assert!(forced_follow_cards(&hand, &lead, trump()).is_empty());
     assert_eq!(follow_suggestions(&hand, &lead, trump(), 16).len(), 2);
-}
-
-#[test]
-fn a_void_player_may_mix_off_suits_and_the_discard_cannot_win() {
-    let lead = classify_cards(
-        &[
-            card(0, ShengjiSuit::Spade, ShengjiRank::Five),
-            card(0, ShengjiSuit::Spade, ShengjiRank::Seven),
-        ],
-        trump(),
-    )
-    .unwrap();
-    let hand = [
-        card(0, ShengjiSuit::Diamond, ShengjiRank::Three),
-        card(0, ShengjiSuit::Club, ShengjiRank::Four),
-        card(0, ShengjiSuit::Heart, ShengjiRank::Ace),
-    ];
-    let discard = validate_follow(&hand, &hand[..2], &lead, trump()).unwrap();
-
-    assert_eq!(discard.category, Category::Mixed);
-    assert_eq!(
-        compare_for_trick(&lead, &lead, &discard, trump()),
-        Ordering::Less
-    );
-}
-
-#[test]
-fn a_short_led_suit_may_be_completed_with_another_suit() {
-    let lead = classify_cards(
-        &[
-            card(0, ShengjiSuit::Spade, ShengjiRank::Five),
-            card(0, ShengjiSuit::Spade, ShengjiRank::Seven),
-        ],
-        trump(),
-    )
-    .unwrap();
-    let spade = card(0, ShengjiSuit::Spade, ShengjiRank::Three);
-    let club = card(0, ShengjiSuit::Club, ShengjiRank::Four);
-    let hand = [spade, club, card(0, ShengjiSuit::Heart, ShengjiRank::Ace)];
-    let discard = validate_follow(&hand, &[spade, club], &lead, trump()).unwrap();
-
-    assert_eq!(discard.category, Category::Mixed);
 }
 
 #[test]

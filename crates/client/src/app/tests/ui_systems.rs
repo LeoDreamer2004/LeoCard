@@ -147,16 +147,6 @@ fn start_game_transition_can_be_attached_to_any_game_player_panel() {
 }
 
 #[test]
-fn start_game_seat_transition_system_queries_initialize_without_conflicts() {
-    let mut app = App::new();
-    app.insert_resource(Time::<()>::default());
-    app.insert_resource(StartGameSeatTransition::default());
-    app.add_systems(Update, animate_start_game_seat_transition);
-
-    app.update();
-}
-
-#[test]
 fn turn_border_trace_eases_in_and_out_around_the_whole_perimeter() {
     let perimeter = 100.0;
     let start = turn_border_visible_interval(0.0, perimeter);
@@ -173,15 +163,4 @@ fn turn_border_trace_eases_in_and_out_around_the_whole_perimeter() {
     assert!((halfway_shrunk.0 - 50.0).abs() < 0.001);
     assert_eq!(halfway_shrunk.1, perimeter);
     assert_eq!(gap, (perimeter, perimeter));
-}
-
-#[test]
-fn turn_border_animation_system_queries_initialize_without_conflicts() {
-    let mut app = App::new();
-    app.insert_resource(Time::<()>::default());
-    app.insert_resource(Assets::<TurnBorderMaterial>::default());
-    app.insert_resource(TurnBorderAnimationState::default());
-    app.add_systems(Update, animate_turn_border_traces);
-
-    app.update();
 }

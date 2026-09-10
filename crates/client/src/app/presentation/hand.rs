@@ -1,13 +1,32 @@
 //! 手牌悬停、拖选和预览输入。
 
 use super::{DESIGN_WIDTH, HAND_CARD_REVEAL};
-use crate::app::shell::CardDragSelection;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use std::collections::HashSet;
 use std::hash::Hash;
 
 const HAND_CARD_SELECTED_LIFT: f32 = 24.0;
+
+#[derive(Resource, Default)]
+pub(crate) struct CardDragSelection {
+    pub active: bool,
+    pub anchor: usize,
+    pub current: usize,
+    pub select: bool,
+}
+
+impl CardDragSelection {
+    pub(crate) fn contains(&self, index: usize) -> bool {
+        self.active
+            && (self.anchor.min(self.current)..=self.anchor.max(self.current)).contains(&index)
+    }
+}
+
+#[derive(Component)]
+pub(crate) struct HandCardSelectionOverlay {
+    pub index: usize,
+}
 
 #[derive(Clone, Copy)]
 pub(crate) enum CardSize {

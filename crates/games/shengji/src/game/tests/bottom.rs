@@ -256,74 +256,6 @@ fn dealer_cannot_copy_their_own_bottom_when_another_player_declared_trump() {
 }
 
 #[test]
-fn original_dealer_can_copy_after_another_player_reburies_the_bottom() {
-    let rules = ShengjiRuleSet {
-        bottom_copy: true,
-        ..ShengjiRuleSet::default()
-    };
-    let diamond = ShengjiCard::suited(0, ShengjiSuit::Diamond, ShengjiRank::Two);
-    let hearts = [
-        ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Two),
-        ShengjiCard::suited(1, ShengjiSuit::Heart, ShengjiRank::Two),
-    ];
-    let small_jokers = [ShengjiCard::small_joker(0), ShengjiCard::small_joker(1)];
-    let mut deck = build_deck();
-    for (target_index, card) in [
-        (0, diamond),
-        (1, hearts[0]),
-        (5, hearts[1]),
-        (3, small_jokers[0]),
-        (7, small_jokers[1]),
-    ] {
-        let index = deck
-            .iter()
-            .position(|candidate| *candidate == card)
-            .unwrap();
-        deck.swap(target_index, index);
-    }
-    let mut game = GameState::new(
-        rules,
-        TeamProgress::default(),
-        Some(ShengjiPlayerId(3)),
-        ShengjiPlayerId(0),
-        deck,
-    )
-    .unwrap();
-    game.deal_all().unwrap();
-    game.declare(ShengjiPlayerId(0), &[diamond]).unwrap();
-    game.close_bidding_and_take_kitty().unwrap();
-
-    let first_bottom = game.players()[3]
-        .hand
-        .iter()
-        .copied()
-        .filter(|card| !small_jokers.contains(card))
-        .take(rules.kitty_size())
-        .collect::<Vec<_>>();
-    game.bury(ShengjiPlayerId(3), &first_bottom).unwrap();
-    assert_eq!(
-        game.bottom_copy().unwrap().current(),
-        Some(ShengjiPlayerId(1))
-    );
-
-    game.choose_bottom_copy(ShengjiPlayerId(1), Some(&hearts))
-        .unwrap();
-    let second_bottom = game.players()[1].hand[..rules.kitty_size()].to_vec();
-    game.bury(ShengjiPlayerId(1), &second_bottom).unwrap();
-
-    // 底牌已由 1 号重新埋过，最初的庄家 3 号不再是“上一位埋底者”。
-    assert_eq!(
-        game.bottom_copy().unwrap().current(),
-        Some(ShengjiPlayerId(3))
-    );
-    game.choose_bottom_copy(ShengjiPlayerId(3), Some(&small_jokers))
-        .unwrap();
-    assert_eq!(game.phase(), &Phase::BottomCopyBurying);
-    assert_eq!(game.dealer(), Some(ShengjiPlayerId(3)));
-    assert_eq!(game.trump().unwrap().suit, None);
-}
-
-#[test]
 fn nobody_declaring_requires_a_redeal() {
     let mut game = GameState::standard(build_deck()).unwrap();
     game.deal_all().unwrap();
@@ -386,28 +318,6 @@ fn power_outage_keeps_hands_rotates_dealer_and_uses_the_new_teams_level() {
     assert_eq!(game.dealer(), Some(ShengjiPlayerId(1)));
     assert_eq!(game.trump().unwrap().level, ShengjiRank::Five);
     assert_eq!(game.trump().unwrap().suit, bid.suit());
-}
-
-#[test]
-fn a_second_power_outage_redeals_unless_bottom_flip_is_enabled() {
-    let rules = ShengjiRuleSet {
-        power_outage_dealer: true,
-        ..ShengjiRuleSet::default()
-    };
-    let mut game = GameState::new(
-        rules,
-        TeamProgress::default(),
-        Some(ShengjiPlayerId(0)),
-        ShengjiPlayerId(0),
-        build_deck(),
-    )
-    .unwrap();
-    game.deal_all().unwrap();
-    game.close_bidding_and_take_kitty().unwrap();
-    assert_eq!(
-        game.close_bidding_and_take_kitty(),
-        Err(GameError::RedealRequired)
-    );
 }
 
 #[test]

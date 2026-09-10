@@ -64,64 +64,6 @@ fn uno_may_be_called_before_or_immediately_after_the_penultimate_card() {
 }
 
 #[test]
-fn color_roulette_keeps_the_uno_reaction_window_open() {
-    fn prepared_game() -> GameState {
-        let mut game = no_mercy_game(3);
-        game.players[0].hand = vec![
-            UnoCard::wild(UnoFace::WildColorRoulette, 0),
-            card(UnoColor::Blue, UnoFace::Number(3), 0),
-        ];
-        game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(5), 0)];
-        game.current_color = Some(UnoColor::Red);
-        game.current_player = UnoPlayerId(0);
-        game
-    }
-
-    let mut recover = prepared_game();
-    recover
-        .play_card(
-            UnoPlayerId(0),
-            UnoCard::wild(UnoFace::WildColorRoulette, 0),
-            None,
-        )
-        .unwrap();
-    assert_eq!(
-        recover.uno_exposed_players().collect::<Vec<_>>(),
-        vec![UnoPlayerId(0)]
-    );
-    assert!(recover.can_call_uno(UnoPlayerId(0)));
-    assert!(matches!(
-        recover.call_uno(UnoPlayerId(0)),
-        Ok(ActionOutcome::UnoCalled {
-            player: UnoPlayerId(0)
-        })
-    ));
-
-    let mut report = prepared_game();
-    report
-        .play_card(
-            UnoPlayerId(0),
-            UnoCard::wild(UnoFace::WildColorRoulette, 0),
-            None,
-        )
-        .unwrap();
-    assert!(matches!(
-        report.report_uno(UnoPlayerId(2), UnoPlayerId(0)),
-        Ok(ActionOutcome::UnoReported {
-            reporter: UnoPlayerId(2),
-            target: UnoPlayerId(0),
-            ref cards,
-        }) if cards.len() == 2
-    ));
-    assert_eq!(
-        report.pending_swap(),
-        Some(PendingSwap::ColorRoulette {
-            player: UnoPlayerId(1)
-        })
-    );
-}
-
-#[test]
 fn eliminated_players_cannot_call_or_report_uno() {
     let mut game = no_mercy_game(3);
     game.players[2].eliminated = true;

@@ -12,14 +12,6 @@ use std::time::Duration;
 impl TexasHoldemSession {
     pub fn new(
         room_id: RoomId,
-        rules: TexasHoldemRuleSet,
-        shuffled_deck: Vec<TexasHoldemCard>,
-    ) -> Result<Self, HostError> {
-        Self::new_with_host_port(room_id, 52300, rules, shuffled_deck)
-    }
-
-    pub fn new_with_host_port(
-        room_id: RoomId,
         host_port: u16,
         rules: TexasHoldemRuleSet,
         shuffled_deck: Vec<TexasHoldemCard>,

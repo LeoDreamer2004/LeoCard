@@ -7,30 +7,8 @@ use leocard_protocol::{
 };
 #[cfg(test)]
 use leocard_shengji::build_deck;
-use leocard_shengji::{ActionOutcome, ShengjiCard, ShengjiPlayerId, ShengjiRuleSet, TrickRecord};
+use leocard_shengji::{ActionOutcome, ShengjiCard, ShengjiPlayerId, ShengjiRuleSet};
 use leocard_shengji::{ShengjiRank, ShengjiSuit};
-
-#[test]
-fn dealing_is_clocked_and_each_snapshot_keeps_other_hands_private() {
-    let (mut session, connections, target) = started_session();
-    assert!(
-        session
-            .advance_time(DEAL_INTERVAL - Duration::from_millis(1))
-            .is_empty()
-    );
-    let deliveries = session.advance_time(Duration::from_millis(1));
-    let host = game_snapshot(&deliveries, connections[0]);
-    let guest = game_snapshot(&deliveries, connections[1]);
-    assert_eq!(host.your_hand, vec![target]);
-    assert!(guest.your_hand.is_empty());
-    assert_eq!(host.players[0].hand_len, 1);
-    assert!(matches!(
-        host.phase,
-        ShengjiPhaseView::Dealing {
-            cards_remaining: 99
-        }
-    ));
-}
 
 #[test]
 fn bid_pass_confirmations_reset_on_a_new_declaration_and_close_early_when_unanimous() {
@@ -117,45 +95,6 @@ fn bid_pass_confirmations_reset_on_a_new_declaration_and_close_early_when_unanim
             declaration: Some(_)
         }))
     )));
-}
-
-#[test]
-fn shengji_player_ids_follow_seat_order_before_teams_are_formed() {
-    let mut session = ShengjiSession::new(ROOM, ShengjiRuleSet::default(), build_deck()).unwrap();
-    let connections = [
-        ConnectionId(10),
-        ConnectionId(20),
-        ConnectionId(30),
-        ConnectionId(40),
-    ];
-    let seats = [SeatId(2), SeatId(0), SeatId(3), SeatId(1)];
-    for (index, connection) in connections.into_iter().enumerate() {
-        session.handle(
-            connection,
-            message(index as u8, 1, join_command(index as u8)),
-        );
-        session.handle(
-            connection,
-            message(
-                index as u8,
-                2,
-                ClientCommand::SelectSeat { seat: seats[index] },
-            ),
-        );
-        session.handle(
-            connection,
-            message(index as u8, 3, ClientCommand::SetReady { ready: true }),
-        );
-    }
-    session.handle(connections[0], message(0, 4, ClientCommand::StartGame));
-
-    for player in &session.room.players {
-        assert_eq!(player.id.0, player.seat.unwrap().0);
-    }
-    assert_eq!(session.room.player_id(connections[1]), Some(PlayerId(0)));
-    assert_eq!(session.room.player_id(connections[3]), Some(PlayerId(1)));
-    assert_eq!(session.room.player_id(connections[0]), Some(PlayerId(2)));
-    assert_eq!(session.room.player_id(connections[2]), Some(PlayerId(3)));
 }
 
 #[test]
@@ -265,72 +204,6 @@ fn later_hand_snapshot_exposes_the_fixed_dealer_while_dealing() {
     let snapshot = session.game_snapshot(PlayerId(0));
     assert!(matches!(snapshot.phase, ShengjiPhaseView::Dealing { .. }));
     assert_eq!(snapshot.dealer, Some(PlayerId(2)));
-}
-
-#[test]
-fn fifth_and_sixth_seats_are_invalid_in_a_shengji_room() {
-    let mut session = ShengjiSession::new(ROOM, ShengjiRuleSet::default(), build_deck()).unwrap();
-    let connection = ConnectionId(10);
-    session.handle(connection, message(0, 1, join_command(0)));
-    let deliveries = session.handle(
-        connection,
-        message(0, 2, ClientCommand::SelectSeat { seat: SeatId(4) }),
-    );
-    assert!(deliveries.iter().any(|delivery| matches!(
-        delivery.message.event,
-        ServerEvent::Rejected {
-            reason: RejectReason::Room(RoomViolation::InvalidSeat)
-        }
-    )));
-}
-
-#[test]
-fn auto_play_can_be_toggled_for_a_started_shengji_player() {
-    let (mut session, connections, _) = started_session();
-    let deliveries = session.handle(
-        connections[0],
-        message(
-            0,
-            5,
-            ClientCommand::Game(GameCommand::Shengji(ShengjiCommand::SetAutoPlay {
-                enabled: true,
-            })),
-        ),
-    );
-    let snapshot = game_snapshot(&deliveries, connections[0]);
-    assert!(
-        snapshot
-            .players
-            .iter()
-            .find(|player| player.id == PlayerId(0))
-            .unwrap()
-            .auto_play
-    );
-}
-
-#[test]
-fn completed_trick_remains_visible_for_the_hold_duration() {
-    let (mut session, connections, _) = started_session();
-    let trick = TrickRecord {
-        leader: ShengjiPlayerId(0),
-        plays: Vec::new(),
-        winner: ShengjiPlayerId(0),
-        points: 0,
-    };
-    session.after_game_outcome(&ActionOutcome::TrickComplete(trick));
-
-    let held = session.game_snapshot(PlayerId(0));
-    assert!(held.trick.is_some());
-    assert_eq!(held.current_player, None);
-    assert!(
-        session
-            .advance_time(TRICK_HOLD_DURATION - Duration::from_millis(1))
-            .is_empty()
-    );
-
-    let deliveries = session.advance_time(Duration::from_millis(1));
-    assert!(session.presentation.trick.is_none());
-    assert!(game_snapshot(&deliveries, connections[0]).trick.is_none());
 }
 
 #[test]

@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn profile_events_record_uno_penalties_and_challenge_results() {
-    let mut session = UnoSession::new(ROOM, UnoRuleSet::default(), build_deck()).unwrap();
+    let mut session = UnoSession::new(ROOM, 52300, UnoRuleSet::default(), build_deck()).unwrap();
     session.match_profile_stats = vec![UnoProfileStats::default(); 3];
     session.record_profile_outcome(&ActionOutcome::UnoCalled {
         player: UnoPlayerId(0),
@@ -49,7 +49,7 @@ fn profile_events_record_uno_penalties_and_challenge_results() {
 
 #[test]
 fn finished_game_merges_uno_profile_statistics_once() {
-    let mut session = UnoSession::new(ROOM, UnoRuleSet::default(), build_deck()).unwrap();
+    let mut session = UnoSession::new(ROOM, 52300, UnoRuleSet::default(), build_deck()).unwrap();
     session.handle(HOST, message(1, join_command("甲", 1)));
     let second = ConnectionId(2);
     session.handle(second, message(1, join_command("乙", 2)));

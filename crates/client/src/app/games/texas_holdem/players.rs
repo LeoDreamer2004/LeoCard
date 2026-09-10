@@ -14,6 +14,10 @@ use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{GameKind, PlayerId, TexasHoldemPlayerState, TexasHoldemSnapshot};
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the opponent builder keeps seat state and visual resources explicit"
+)]
 pub(super) fn add_texas_opponent(
     commands: &mut Commands,
     table: Entity,
@@ -214,6 +218,10 @@ pub(super) fn add_role_tokens(
 }
 
 /// 德州筹码面板沿用七鬼五二三分牌面板的外观，并显示账本中真实存在的筹码。
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the chip popup builder keeps player and stack presentation inputs explicit"
+)]
 pub(super) fn add_texas_chip_popup(
     commands: &mut Commands,
     parent: Entity,

@@ -14,6 +14,10 @@ use leocard_qigui523::QiGuiCard;
 const SCORE_CARD_REVEAL: f32 = 12.0;
 const FINISHED_HAND_CARD_REVEAL: f32 = 14.4;
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the card-image primitive keeps card identity, geometry, and assets explicit"
+)]
 pub(crate) fn add_card_image(
     commands: &mut Commands,
     parent: Entity,

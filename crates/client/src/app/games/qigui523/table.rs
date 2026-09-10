@@ -45,6 +45,10 @@ pub(crate) struct TableVisualContext<'a> {
     pub turn_border_materials: &'a mut Assets<TurnBorderMaterial>,
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the game-screen adapter passes common screen state plus grouped visuals"
+)]
 pub(crate) fn render_table(
     commands: &mut Commands,
     root: Entity,

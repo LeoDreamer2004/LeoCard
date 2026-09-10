@@ -17,6 +17,10 @@ use leocard_protocol::{
 };
 use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemBlindKind};
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the own-area builder combines game controls with explicit visual resources"
+)]
 pub(super) fn add_texas_own_area(
     commands: &mut Commands,
     table: Entity,

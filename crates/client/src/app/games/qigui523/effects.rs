@@ -61,6 +61,10 @@ pub(super) fn add_play_effect_overlay(
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the effect builder keeps geometry and asset inputs explicit"
+)]
 pub(super) fn add_sequence_play_decoration(
     commands: &mut Commands,
     play_area: Entity,

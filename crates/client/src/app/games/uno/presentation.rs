@@ -98,6 +98,10 @@ pub(super) fn sync_uno_presentation(
         presentation.events.clear();
     }
 }
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Bevy injects independent effect resources and target queries"
+)]
 pub(crate) fn spawn_uno_presentation_effects(
     mut commands: Commands,
     client: Option<Res<ClientResource>>,

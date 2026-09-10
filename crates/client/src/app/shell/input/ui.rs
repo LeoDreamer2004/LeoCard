@@ -94,6 +94,10 @@ pub(crate) fn sync_ime_enabled(
     }
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "separate filtered Bevy queries update image and background buttons"
+)]
 pub(crate) fn update_button_tints(
     mut image_buttons: Query<
         (&Interaction, &ButtonTint, &mut ImageNode),
@@ -120,6 +124,10 @@ pub(crate) fn update_button_tints(
     }
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "the Bevy query precisely filters newly pressed ordinary buttons"
+)]
 pub(crate) fn play_button_click_sounds(
     buttons: Query<
         &Interaction,
@@ -147,6 +155,10 @@ pub(crate) fn play_button_click_sounds(
     }
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "disjoint filtered Bevy queries separate changed and animated buttons"
+)]
 pub(crate) fn animate_button_presses(
     time: Res<Time>,
     changed: Query<

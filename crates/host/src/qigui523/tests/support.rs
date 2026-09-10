@@ -9,7 +9,6 @@ use leocard_protocol::{
     SeatId, ServerEvent, join_identity_payload,
 };
 use leocard_qigui523::{Phase, QiGuiRuleSet, can_beat, classify};
-use std::io::Cursor;
 pub(super) use std::time::Duration;
 
 pub(super) const ROOM: RoomId = RoomId(523);
@@ -121,19 +120,6 @@ pub(super) fn rejection(deliveries: &[Delivery]) -> Option<&RejectReason> {
             ServerEvent::Rejected { reason } => Some(reason),
             _ => None,
         })
-}
-
-pub(super) fn avatar_png(width: u32, height: u32) -> Vec<u8> {
-    let image = image::DynamicImage::ImageRgba8(image::ImageBuffer::from_pixel(
-        width,
-        height,
-        image::Rgba([30, 120, 200, 255]),
-    ));
-    let mut output = Cursor::new(Vec::new());
-    image
-        .write_to(&mut output, image::ImageFormat::Png)
-        .unwrap();
-    output.into_inner()
 }
 
 pub(super) fn finish_game(session: &mut QiGui523Session) {

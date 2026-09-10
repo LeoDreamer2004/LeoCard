@@ -204,6 +204,10 @@ fn menu_visibility(open: bool) -> Visibility {
     }
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "separate filtered Bevy queries prevent the two menus from overlapping"
+)]
 pub(crate) fn scroll_chat_menus(
     mut wheels: MessageReader<MouseWheel>,
     mut chat: ResMut<ChatPanelState>,

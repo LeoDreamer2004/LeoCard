@@ -69,6 +69,10 @@ fn set_table_appearance_from_fraction(
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Bevy injects independent pointer state and appearance resources"
+)]
 pub(crate) fn handle_table_appearance_sliders(
     mouse: Res<ButtonInput<MouseButton>>,
     sliders: Query<(

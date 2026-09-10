@@ -43,6 +43,10 @@ pub(super) fn queue_mahjong_deal_sound(commands: &mut Commands, assets: &UiAsset
     });
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the tile builder keeps its material and animation inputs explicit"
+)]
 pub(super) fn add_mahjong_hand_tile(
     commands: &mut Commands,
     parent: Entity,
@@ -108,6 +112,10 @@ pub(super) fn add_mahjong_hand_tile(
     entity
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "the Bevy query expresses the exact hand-tile material inputs"
+)]
 pub(super) fn sync_mahjong_hand_tile_materials(
     time: Res<Time>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,

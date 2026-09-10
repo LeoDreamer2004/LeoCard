@@ -9,8 +9,6 @@ pub use classification::compare_for_trick;
 pub(crate) use classification::{category, strength};
 use classification::{classify_mixed_discard, component_can_be_beaten};
 use follow::special_follow_hierarchy;
-#[cfg(test)]
-use follow::{best_follow_tier, eight_card_tractor_hierarchy};
 pub use follow::{classify_lead, follow_suggestions, forced_follow_cards, validate_follow};
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashSet};

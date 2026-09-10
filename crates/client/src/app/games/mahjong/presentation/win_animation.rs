@@ -9,6 +9,10 @@ use super::{
 use crate::app::presentation::{DESIGN_WIDTH, GameSummaryAnimation, ease_out_cubic};
 use bevy::prelude::*;
 
+#[expect(
+    clippy::type_complexity,
+    reason = "disjoint Bevy queries encode mutually exclusive animation layers"
+)]
 pub(crate) fn animate_mahjong_win_effects(
     animation: Res<GameSummaryAnimation>,
     mut effects: Query<

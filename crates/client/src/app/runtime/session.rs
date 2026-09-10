@@ -14,6 +14,10 @@ use leocard_protocol::LobbySnapshot;
 #[derive(Resource)]
 pub(crate) struct ClientResource(pub TcpGameClient);
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Bevy injects independent network synchronization resources"
+)]
 pub(super) fn poll_network(
     mut client: Option<ResMut<ClientResource>>,
     mut host_rules: ResMut<HostRulePreferences>,

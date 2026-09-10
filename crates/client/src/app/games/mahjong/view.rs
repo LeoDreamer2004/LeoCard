@@ -443,6 +443,10 @@ pub(crate) fn mahjong_tile_height_asset_path(kind: MahjongTileKind) -> String {
     mahjong_tile_asset_path(kind).replace("/hong-kong/", "/hong-kong-height/")
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the game-screen adapter passes common screen state plus grouped visuals"
+)]
 pub(crate) fn render_mahjong_table(
     commands: &mut Commands,
     root: Entity,

@@ -65,68 +65,44 @@ pub(crate) fn dispatch_connection_actions(
 
 impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
     fn handle(&self, context: &mut ConnectionActionContext<'_, '_>) {
-        let connection = &mut *context.connection;
-        let appearance = &mut *context.appearance;
-        let host_rules = &*context.host_rules;
-        let page_error = &mut *context.page_error;
-        let ui = &mut *context.ui;
-        let chat = &mut *context.chat;
-        let developer_hand = &mut *context.developer_hand;
-        let local = &mut context.local;
         match self {
             ConnectionUiAction::FocusInput(field) => {
-                chat.focused = false;
-                developer_hand.focused = false;
-                connection.active = *field;
-                page_error.error = None;
+                context.chat.focused = false;
+                context.developer_hand.focused = false;
+                context.connection.active = *field;
+                context.page_error.error = None;
             }
-            ConnectionUiAction::OpenHostGamePicker => match validated_host_form(connection) {
-                Ok(_) => {
-                    ui.navigation.host_game_picker_open = true;
-                    ui.navigation.profile_open = false;
-                    ui.navigation.player_profile = None;
-                    ui.navigation.settings_open = false;
-                    page_error.error = None;
+            ConnectionUiAction::OpenHostGamePicker => {
+                match validated_host_form(&context.connection) {
+                    Ok(_) => {
+                        context.ui.navigation.host_game_picker_open = true;
+                        context.ui.navigation.profile_open = false;
+                        context.ui.navigation.player_profile = None;
+                        context.ui.navigation.settings_open = false;
+                        context.page_error.error = None;
+                    }
+                    Err(error) => context.page_error.error = Some(error),
                 }
-                Err(error) => page_error.error = Some(error),
-            },
-            ConnectionUiAction::CloseHostGamePicker => ui.navigation.host_game_picker_open = false,
-            ConnectionUiAction::CreateRoom(game_kind) => create_room(
-                *game_kind,
-                connection,
-                appearance,
-                host_rules,
-                page_error,
-                &context.profile,
-                ui,
-                chat,
-                &mut local.avatar_images,
-                &mut context.commands,
-            ),
-            ConnectionUiAction::JoinRoom => join_room(
-                connection,
-                appearance,
-                page_error,
-                &context.profile,
-                ui,
-                chat,
-                &mut local.avatar_images,
-                &mut context.commands,
-            ),
+            }
+            ConnectionUiAction::CloseHostGamePicker => {
+                context.ui.navigation.host_game_picker_open = false;
+            }
+            ConnectionUiAction::CreateRoom(game_kind) => create_room(*game_kind, context),
+            ConnectionUiAction::JoinRoom => join_room(context),
             ConnectionUiAction::ChooseAvatar => {
-                if local.avatar_picker.pending.is_none() {
+                if context.local.avatar_picker.pending.is_none() {
                     match start_avatar_picker() {
                         Ok(receiver) => {
-                            local.avatar_picker.pending = Some(receiver);
-                            page_error.error = None;
+                            context.local.avatar_picker.pending = Some(receiver);
+                            context.page_error.error = None;
                         }
-                        Err(error) => page_error.error = Some(error),
+                        Err(error) => context.page_error.error = Some(error),
                     }
                 }
             }
             ConnectionUiAction::ClearAvatar => {
-                appearance.avatar_png = None;
-                page_error.error = save_appearance_preferences(appearance).err();
+                context.appearance.avatar_png = None;
+                context.page_error.error = save_appearance_preferences(&context.appearance).err();
             }
         }
     }
@@ -150,49 +126,51 @@ fn validated_host_form(form: &ConnectionDraft) -> Result<(String, u16), String> 
     Ok((name, port))
 }
 
-fn create_room(
-    game_kind: GameKind,
-    connection: &mut ConnectionDraft,
-    appearance: &AppearancePreferences,
-    host_rules: &HostRulePreferences,
-    page_error: &mut PageErrorState,
-    profile: &LocalPlayerProfile,
-    ui: &mut UiState,
-    chat: &mut ChatPanelState,
-    avatars: &mut AvatarImages,
-    commands: &mut Commands,
-) {
-    let result = validated_host_form(connection).and_then(|(name, port)| {
-        let player =
-            LocalPlayerConnection::from_profile(&name, appearance.avatar_png.clone(), profile);
-        TcpGameClient::host_with_profile(port, host_rules.game_rules(game_kind), player)
+fn create_room(game_kind: GameKind, context: &mut ConnectionActionContext<'_, '_>) {
+    let result = validated_host_form(&context.connection).and_then(|(name, port)| {
+        let player = LocalPlayerConnection::from_profile(
+            &name,
+            context.appearance.avatar_png.clone(),
+            &context.profile,
+        );
+        TcpGameClient::host_with_profile(port, context.host_rules.game_rules(game_kind), player)
             .map_err(|error| error.to_string())
     });
-    finish_connection(result, connection, page_error, ui, chat, avatars, commands);
+    finish_connection(
+        result,
+        &context.connection,
+        &mut context.page_error,
+        &mut context.ui,
+        &mut context.chat,
+        &mut context.local.avatar_images,
+        &mut context.commands,
+    );
 }
 
-fn join_room(
-    connection: &mut ConnectionDraft,
-    appearance: &AppearancePreferences,
-    page_error: &mut PageErrorState,
-    profile: &LocalPlayerProfile,
-    ui: &mut UiState,
-    chat: &mut ChatPanelState,
-    avatars: &mut AvatarImages,
-    commands: &mut Commands,
-) {
-    let name = connection.player_name.trim().to_owned();
+fn join_room(context: &mut ConnectionActionContext<'_, '_>) {
+    let name = context.connection.player_name.trim().to_owned();
     let result = if name.is_empty() {
         Err("玩家名称不能为空".to_owned())
     } else if name.chars().count() > MAX_PLAYER_NAME_CHARS {
         Err(format!("玩家名称不能超过 {MAX_PLAYER_NAME_CHARS} 个字符"))
     } else {
-        let player =
-            LocalPlayerConnection::from_profile(&name, appearance.avatar_png.clone(), profile);
-        TcpGameClient::join_with_profile(&connection.join_address, player)
+        let player = LocalPlayerConnection::from_profile(
+            &name,
+            context.appearance.avatar_png.clone(),
+            &context.profile,
+        );
+        TcpGameClient::join_with_profile(&context.connection.join_address, player)
             .map_err(|error| error.to_string())
     };
-    finish_connection(result, connection, page_error, ui, chat, avatars, commands);
+    finish_connection(
+        result,
+        &context.connection,
+        &mut context.page_error,
+        &mut context.ui,
+        &mut context.chat,
+        &mut context.local.avatar_images,
+        &mut context.commands,
+    );
 }
 
 fn finish_connection(

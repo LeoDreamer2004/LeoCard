@@ -37,6 +37,10 @@ pub(crate) fn uno_summary_descriptor(game: &UnoSnapshot) -> Option<SummaryDescri
     })
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the summary renderer combines game state with explicit animation resources"
+)]
 pub(super) fn add_uno_summary(
     commands: &mut Commands,
     table: Entity,

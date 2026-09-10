@@ -140,6 +140,10 @@ pub(super) fn sequence_effect_style(
     }
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "the ParamSet keeps overlapping Bevy animation queries disjoint"
+)]
 pub(crate) fn animate_sequence_play_effect(
     effect: Res<PlayEffectState>,
     mut visuals: ParamSet<(
@@ -316,6 +320,10 @@ fn sequence_airplane_pose(progress: f32) -> SequenceAirplanePose {
     }
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "the ParamSet keeps overlapping Bevy animation queries disjoint"
+)]
 pub(crate) fn animate_bomb_play_effect(
     mut effect: ResMut<PlayEffectState>,
     assets: Res<UiAssets>,
@@ -407,6 +415,10 @@ pub(crate) fn animate_bomb_play_effect(
     }
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "the ParamSet keeps overlapping Bevy animation queries disjoint"
+)]
 pub(crate) fn animate_heaven_bomb_play_effect(
     effect: Res<PlayEffectState>,
     mut visuals: ParamSet<(

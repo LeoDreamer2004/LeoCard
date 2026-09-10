@@ -21,6 +21,10 @@ use leocard_shengji::ShengjiCard;
 const SHENGJI_KITTY_SCORE_DELAY: f32 = 0.72;
 const SHENGJI_TOTAL_LABEL_DELAY: f32 = 1.92;
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the settlement renderer combines game state with explicit animation resources"
+)]
 pub(super) fn add_shengji_result(
     commands: &mut Commands,
     table: Entity,

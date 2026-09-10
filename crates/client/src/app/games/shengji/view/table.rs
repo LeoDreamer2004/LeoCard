@@ -47,6 +47,10 @@ pub(crate) struct ShengjiTableVisuals<'a> {
     pub presentation: &'a ShengjiPresentationState,
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the game-screen adapter passes common screen state plus grouped visuals"
+)]
 pub(crate) fn render_shengji_table(
     commands: &mut Commands,
     root: Entity,
@@ -451,6 +455,10 @@ fn add_shengji_bottom_flip(
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the opponent builder keeps seat state and visual resources explicit"
+)]
 fn add_shengji_opponent(
     commands: &mut Commands,
     table: Entity,
@@ -548,6 +556,10 @@ fn add_shengji_opponent(
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the player-panel builder keeps identity, score, and animation inputs explicit"
+)]
 fn add_shengji_player_panel(
     commands: &mut Commands,
     parent: Entity,

@@ -229,12 +229,8 @@ fn collect_relation_fans(values: &mut FanValues, context: &ScoreContext<'_>) {
         mixed_double = mixed_double.min(1);
     }
     if context.mixed_triple {
-        if pure_double > 0 {
-            pure_double = 1;
-            mixed_double = 0;
-        } else {
-            mixed_double = mixed_double.min(1);
-        }
+        pure_double = pure_double.min(1);
+        mixed_double = 0;
     }
     if context.three_suited_terminal {
         mixed_double = 0;

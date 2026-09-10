@@ -369,6 +369,10 @@ pub(crate) fn animate_mahjong_flower_presentations(
     }
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "disjoint Bevy queries encode mutually exclusive presentation components"
+)]
 pub(crate) fn animate_mahjong_claim_presentation(
     presentation: Res<MahjongClaimPresentationState>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,

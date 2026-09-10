@@ -76,6 +76,10 @@ pub(super) fn add_shengji_hand(
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the hand-card builder keeps selection, layout, and asset inputs explicit"
+)]
 fn add_shengji_hand_card(
     commands: &mut Commands,
     parent: Entity,
@@ -318,6 +322,10 @@ pub(crate) fn animate_shengji_hand_cards(
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the self-panel builder combines player state with explicit visual resources"
+)]
 pub(super) fn add_shengji_self_panel(
     commands: &mut Commands,
     hand_area: Entity,

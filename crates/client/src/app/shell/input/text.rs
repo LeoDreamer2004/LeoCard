@@ -1,11 +1,12 @@
 //! 文本输入、聊天输入与开发者手牌语法。
 
+#[cfg(feature = "developer")]
+use crate::app::submit_developer_hand;
 use crate::app::{
     ChatPanelState, ClientResource, ConnectionDraft, DeveloperHandInput, InputField,
     PageErrorState, UiState, append_developer_hand_input,
 };
-#[cfg(feature = "developer")]
-use crate::app::submit_developer_hand;
+use bevy::ecs::system::SystemParam;
 use bevy::input::ButtonState;
 use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::prelude::*;
@@ -13,18 +14,33 @@ use bevy::window::Ime;
 use bevy_clipboard::Clipboard;
 use leocard_protocol::{ChatContent, ClientCommand, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS};
 
-pub(crate) fn handle_text_input(
-    mut keyboard_inputs: MessageReader<KeyboardInput>,
-    mut ime_inputs: MessageReader<Ime>,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut clipboard: ResMut<Clipboard>,
-    mut form: ResMut<ConnectionDraft>,
-    mut page_error: ResMut<PageErrorState>,
-    mut chat: ResMut<ChatPanelState>,
-    mut developer_hand: ResMut<DeveloperHandInput>,
-    mut client: Option<ResMut<ClientResource>>,
-    mut ui: ResMut<UiState>,
-) {
+#[derive(SystemParam)]
+pub(crate) struct TextInputContext<'w, 's> {
+    keyboard_inputs: MessageReader<'w, 's, KeyboardInput>,
+    ime_inputs: MessageReader<'w, 's, Ime>,
+    keyboard: Res<'w, ButtonInput<KeyCode>>,
+    clipboard: ResMut<'w, Clipboard>,
+    form: ResMut<'w, ConnectionDraft>,
+    page_error: ResMut<'w, PageErrorState>,
+    chat: ResMut<'w, ChatPanelState>,
+    developer_hand: ResMut<'w, DeveloperHandInput>,
+    client: Option<ResMut<'w, ClientResource>>,
+    ui: ResMut<'w, UiState>,
+}
+
+pub(crate) fn handle_text_input(context: TextInputContext) {
+    let TextInputContext {
+        mut keyboard_inputs,
+        mut ime_inputs,
+        keyboard,
+        mut clipboard,
+        mut form,
+        mut page_error,
+        mut chat,
+        mut developer_hand,
+        mut client,
+        mut ui,
+    } = context;
     for input in ime_inputs.read() {
         let Ime::Commit { value, .. } = input else {
             continue;
@@ -123,11 +139,7 @@ pub(crate) fn handle_text_input(
             Key::Enter if developer_hand.focused => {
                 developer_hand.focused = false;
                 #[cfg(feature = "developer")]
-                submit_developer_hand(
-                    &mut developer_hand,
-                    &mut page_error,
-                    client.as_deref_mut(),
-                );
+                submit_developer_hand(&mut developer_hand, &mut page_error, client.as_deref_mut());
             }
             Key::Escape if chat.focused => {
                 chat.focused = false;

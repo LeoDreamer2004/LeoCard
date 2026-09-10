@@ -157,6 +157,10 @@ pub(super) fn fold_card_visual(
     }
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "the ParamSet keeps overlapping Bevy feedback queries disjoint"
+)]
 pub(super) fn animate_texas_action_feedback(
     time: Res<Time>,
     state: Res<TexasChipTableState>,

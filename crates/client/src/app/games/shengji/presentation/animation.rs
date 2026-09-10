@@ -66,6 +66,11 @@ pub(crate) fn play_shengji_audio_cues(
     }
 }
 
+#[expect(
+    clippy::type_complexity,
+    clippy::too_many_arguments,
+    reason = "independent Bevy queries model the presentation's mutually exclusive layers"
+)]
 pub(crate) fn animate_shengji_presentation(
     state: Res<ShengjiPresentationState>,
     mut roots: Query<

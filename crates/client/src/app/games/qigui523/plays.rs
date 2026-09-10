@@ -14,6 +14,10 @@ use bevy::ui::FocusPolicy;
 use leocard_protocol::{GamePhaseView, PlayerPublicState, PublicPlay, PublicPlayRecord};
 use leocard_protocol::{PlayerId, QiGui523Snapshot};
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the play renderer keeps seat geometry and assets explicit"
+)]
 pub(super) fn add_round_play_for_optional_player(
     commands: &mut Commands,
     parent: Entity,
@@ -70,6 +74,10 @@ pub(super) fn spawn_round_play_container(
     )
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the play renderer keeps seat geometry and assets explicit"
+)]
 pub(super) fn add_round_play(
     commands: &mut Commands,
     parent: Entity,

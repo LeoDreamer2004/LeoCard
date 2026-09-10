@@ -32,6 +32,10 @@ pub(crate) struct TexasTableVisuals<'a> {
     pub game_summary: &'a GameSummaryAnimation,
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the game-screen adapter passes common screen state plus grouped visuals"
+)]
 pub(crate) fn render_texas_holdem_table(
     commands: &mut Commands,
     root: Entity,

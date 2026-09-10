@@ -4,6 +4,10 @@ use super::{TexasHoldemUiState, TexasRaiseAdjustButton, TexasRaiseHoldState};
 use crate::app::shell::UiState;
 use bevy::prelude::*;
 
+#[expect(
+    clippy::type_complexity,
+    reason = "the Bevy query explicitly restricts input to changed raise buttons"
+)]
 pub(crate) fn handle_texas_raise_button_hold(
     time: Res<Time>,
     mouse: Res<ButtonInput<MouseButton>>,

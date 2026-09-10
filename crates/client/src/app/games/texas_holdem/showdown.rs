@@ -28,6 +28,10 @@ pub(super) struct TexasShowdownTitleText;
 #[derive(Component)]
 pub(super) struct TexasShowdownUnderline;
 
+#[expect(
+    clippy::type_complexity,
+    reason = "the ParamSet keeps overlapping Bevy showdown queries disjoint"
+)]
 pub(super) fn animate_texas_showdown_reveal(
     animation: Res<GameSummaryAnimation>,
     mut roots: Query<&mut Visibility, With<TexasShowdownRevealRoot>>,

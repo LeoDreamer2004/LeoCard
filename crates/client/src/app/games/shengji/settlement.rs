@@ -278,6 +278,10 @@ pub(super) fn update_shengji_settlement_animation(
     }
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "the ParamSet keeps overlapping Bevy settlement queries disjoint"
+)]
 pub(crate) fn animate_shengji_settlement_visuals(
     animation: Res<ShengjiSettlementAnimation>,
     mut visuals: ParamSet<(
@@ -422,6 +426,10 @@ pub(crate) fn animate_shengji_settlement_visuals(
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Bevy injects independent settlement resources and anchor queries"
+)]
 pub(crate) fn spawn_shengji_settlement_absorption(
     mut commands: Commands,
     assets: Res<UiAssets>,
@@ -516,6 +524,10 @@ pub(crate) fn spawn_shengji_settlement_absorption(
     animation.absorption_spawned = true;
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the short-lived effect builder keeps geometry and presentation inputs explicit"
+)]
 fn spawn_shengji_score_absorb(
     commands: &mut Commands,
     layer: Entity,

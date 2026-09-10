@@ -15,6 +15,10 @@ use bevy::ui::FocusPolicy;
 use leocard_protocol::{GameKind, UnoPendingSwapView, UnoPhaseView, UnoPlayerState, UnoSnapshot};
 use leocard_uno::UnoFace;
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the hand builder combines game state with explicit visual resources"
+)]
 pub(super) fn add_uno_own_area(
     commands: &mut Commands,
     table: Entity,

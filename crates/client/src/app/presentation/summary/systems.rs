@@ -12,6 +12,10 @@ use crate::app::{ClientResource, PANEL_ALT, UiAssets, ease_out_cubic};
 use bevy::prelude::*;
 use leocard_protocol::PlayerScore;
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the text builder keeps animation timing and typography inputs explicit"
+)]
 pub(crate) fn add_animated_summary_text(
     commands: &mut Commands,
     parent: Entity,
@@ -127,6 +131,10 @@ pub(crate) fn summary_row_progress(elapsed: f32, delay: f32) -> f32 {
     ease_out_cubic(((elapsed - delay) / SUMMARY_ROW_ENTRY_DURATION).clamp(0.0, 1.0))
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "the ParamSet keeps overlapping Bevy summary queries disjoint"
+)]
 pub(crate) fn animate_game_summary_visuals(
     animation: Res<GameSummaryAnimation>,
     mut panels: ParamSet<(

@@ -1,5 +1,5 @@
 use super::*;
-use leocard_protocol::{ClientCommand, GameCommand, RoomViolation, SeatId, ServerEvent};
+use leocard_protocol::{ClientCommand, GameCommand, ServerEvent};
 use leocard_protocol::{
     GameEvent, GameViolation, PlayerId, RejectReason, ShengjiCommand, ShengjiDeclarationView,
     ShengjiEvent, ShengjiPhaseView, ShengjiThrowFailureStage, ShengjiThrowFailureView,

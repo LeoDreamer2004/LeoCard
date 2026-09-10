@@ -271,6 +271,10 @@ pub(crate) struct ScoreCaptureVisuals<'w, 's> {
         ),
         Without<ActiveScoreCaptureCard>,
     >,
+    #[expect(
+        clippy::type_complexity,
+        reason = "the filter keeps gain labels disjoint from the other score effect layers"
+    )]
     gains: Query<
         'w,
         's,

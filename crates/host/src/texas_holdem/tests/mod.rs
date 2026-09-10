@@ -4,8 +4,6 @@ mod settlement;
 use super::*;
 use crate::ConnectionId;
 use ed25519_dalek::{Signer, SigningKey};
-#[cfg(feature = "developer")]
-use leocard_protocol::RoomViolation;
 use leocard_protocol::{
     ClientCommand, GameCommand, GameSnapshot, JoinRequest, PROTOCOL_VERSION, PlayerGameProfiles,
     ProfileId, ReconnectToken, RequestId, Revision, SeatId, ServerEvent, ServerMessage,
@@ -13,7 +11,6 @@ use leocard_protocol::{
 };
 use leocard_protocol::{
     ClientMessage, MatchId, PlayerId, RoomId, TexasHoldemEvent, TexasHoldemPhaseView,
-    TexasHoldemProfileStats,
 };
 use leocard_texas_holdem::TexasHoldemCard;
 use leocard_texas_holdem::{

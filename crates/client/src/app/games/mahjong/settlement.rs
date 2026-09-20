@@ -1,4 +1,7 @@
-use super::mahjong_win_reveal_duration;
+use super::{
+    MahjongAssets, MahjongTileMaterial, MahjongTileSize, MahjongWinTileSizes,
+    mahjong_win_reveal_duration, render_mahjong_win_tile_row,
+};
 use crate::app::presentation::add_animated_summary_text;
 use crate::app::presentation::{
     ACCENT, AnimatedSignedSummaryScore, ButtonKind, DANGER, GameSummaryActions,
@@ -37,16 +40,29 @@ pub(crate) fn mahjong_summary_descriptor(game: &MahjongSnapshot) -> Option<Summa
     })
 }
 
+pub(super) struct MahjongSettlementVisuals<'a> {
+    pub assets: &'a UiAssets,
+    pub avatars: &'a AvatarImages,
+    pub animation: &'a GameSummaryAnimation,
+    pub game_assets: &'a MahjongAssets,
+    pub materials: &'a mut Assets<MahjongTileMaterial>,
+}
+
 pub(super) fn render_mahjong_settlement(
     commands: &mut Commands,
     table: Entity,
     game: &MahjongSnapshot,
     result: &MahjongHandResultView,
-    assets: &UiAssets,
-    avatars: &AvatarImages,
-    animation: &GameSummaryAnimation,
+    visuals: MahjongSettlementVisuals<'_>,
 ) {
     const FAN_INTERVAL: f32 = 0.14;
+    let MahjongSettlementVisuals {
+        assets,
+        avatars,
+        animation,
+        game_assets,
+        materials,
+    } = visuals;
 
     let modal_visual = summary_modal_visual(animation.elapsed);
     let modal = spawn_node(
@@ -133,6 +149,50 @@ pub(super) fn render_mahjong_settlement(
             assets,
         );
         next_delay += FAN_INTERVAL;
+        let hand_delay = next_delay;
+        let hand_progress = summary_row_progress(animation.elapsed, hand_delay);
+        let hand = spawn_node(
+            commands,
+            modal,
+            Node {
+                width: percent(100),
+                min_height: px(49),
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                overflow: Overflow::visible(),
+                ..default()
+            },
+            None,
+        );
+        commands.entity(hand).insert((
+            GameSummaryRow { delay: hand_delay },
+            UiTransform::from_translation(Val2::px(0.0, 12.0 * (1.0 - hand_progress))),
+            if hand_progress > 0.0 {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            },
+        ));
+        if let Some(player) = game
+            .players
+            .iter()
+            .find(|player| player.id == winner.player)
+        {
+            render_mahjong_win_tile_row(
+                commands,
+                hand,
+                player,
+                winner,
+                MahjongWinTileSizes {
+                    meld: MahjongTileSize::GuideHand,
+                    hand: MahjongTileSize::GuideHand,
+                },
+                game_assets,
+                materials,
+            );
+        }
+        next_delay += 0.28;
         let fans = spawn_node(
             commands,
             modal,

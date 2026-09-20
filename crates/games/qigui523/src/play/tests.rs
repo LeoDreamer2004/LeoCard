@@ -347,7 +347,6 @@ fn all_three_suit_comparison_modes_are_distinct() {
     );
 }
 
-
 #[test]
 fn recognizes_airplanes_and_only_allows_matching_airplanes_to_follow() {
     let rules = QiGuiRuleSet::default();

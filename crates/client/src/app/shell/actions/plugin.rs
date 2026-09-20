@@ -14,7 +14,7 @@ pub(crate) struct UiActionPlugin;
 impl Plugin for UiActionPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<PressedUiAction>()
-            .add_systems(Update, collect_pressed_ui_actions.in_set(UiActionSet));
+            .add_systems(Update, collect_pressed_ui_actions.before(UiActionSet));
     }
 }
 

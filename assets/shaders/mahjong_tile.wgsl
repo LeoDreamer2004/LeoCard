@@ -64,17 +64,20 @@ fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
     let side_stand_mode = 1.0 - step(0.45, abs(material.params.w + 2.0));
     let opposite_stand_mode = 1.0 - step(0.45, abs(material.params.w + 3.0));
     let own_meld_mode = 1.0 - step(0.45, abs(material.params.w + 4.0));
+    let concealed_meld_mode = 1.0 - step(0.45, abs(material.params.w + 5.0));
     var face_center = vec2<f32>(-0.025, -0.045);
     face_center = mix(face_center, vec2<f32>(-0.025, 0.045), own_hand_mode);
     face_center = mix(face_center, vec2<f32>(-0.010, -0.025), side_stand_mode);
     face_center = mix(face_center, vec2<f32>(-0.025, -0.055), opposite_stand_mode);
     face_center = mix(face_center, vec2<f32>(-0.025, -0.090), own_meld_mode);
+    face_center = mix(face_center, vec2<f32>(-0.025, -0.115), concealed_meld_mode);
     face_center = mix(face_center, vec2<f32>(-0.040, -0.110), wall_mode);
     face_center += vec2<f32>(0.030, 0.140) * lower_wall;
     var face_half_size = vec2<f32>(0.430, 0.405);
     face_half_size = mix(face_half_size, vec2<f32>(0.435, 0.185), side_stand_mode);
     face_half_size = mix(face_half_size, vec2<f32>(0.430, 0.355), opposite_stand_mode);
     face_half_size = mix(face_half_size, vec2<f32>(0.430, 0.330), own_meld_mode);
+    face_half_size = mix(face_half_size, vec2<f32>(0.430, 0.295), concealed_meld_mode);
     face_half_size = mix(face_half_size, vec2<f32>(0.395, 0.280), wall_mode);
     let regular_extrusion = vec2<f32>(0.055, 0.090);
     let own_hand_extrusion = vec2<f32>(0.055, -0.090);
@@ -86,11 +89,13 @@ fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
     extrusion = mix(extrusion, side_stand_extrusion, side_stand_mode);
     extrusion = mix(extrusion, opposite_stand_extrusion, opposite_stand_mode);
     extrusion = mix(extrusion, own_meld_extrusion, own_meld_mode);
+    extrusion = mix(extrusion, vec2<f32>(0.055, 0.180), concealed_meld_mode);
     extrusion = mix(extrusion, wall_extrusion, wall_mode);
     var face_radius = mix(0.075, 0.085, own_hand_mode);
     face_radius = mix(face_radius, 0.090, side_stand_mode);
     face_radius = mix(face_radius, 0.085, opposite_stand_mode);
     face_radius = mix(face_radius, 0.085, own_meld_mode);
+    face_radius = mix(face_radius, 0.085, concealed_meld_mode);
     face_radius = mix(face_radius, 0.070, wall_mode);
     let face_point = point - face_center;
     let face_distance = rounded_box(face_point, face_half_size, face_radius);
@@ -135,7 +140,7 @@ fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
     );
     let upward_surface = max(
         max(max(own_hand_mode, side_stand_mode), opposite_stand_mode),
-        own_meld_mode,
+        max(own_meld_mode, concealed_meld_mode),
     );
     let depth_color = mix(porcelain_front, porcelain_top, upward_surface);
     var color = mix(depth_color, porcelain_right, lateral_weight);

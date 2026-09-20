@@ -129,6 +129,7 @@ impl GameCommand {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongCommand {
+    SetAutoPlay { enabled: bool },
     UpdateRules { rules: MahjongRuleSet },
     SetDeveloperHand { tiles: Vec<MahjongTileKind> },
     Discard { tile: MahjongTile },

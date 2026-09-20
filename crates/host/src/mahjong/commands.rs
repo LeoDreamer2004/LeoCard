@@ -2,7 +2,7 @@ use super::{
     MAHJONG_DEAL_INTERVAL, MahjongSession, events_for_outcome, shuffled_deck, to_core_player,
 };
 use crate::lifecycle::HostedGameLifecycle;
-use crate::{ConnectionId, Delivery, new_match_id};
+use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, new_match_id};
 use leocard_mahjong::{
     ActionOutcome, GameError, GameState, MahjongPlayerId, MahjongRuleSet, MahjongTileKind, Phase,
 };
@@ -20,6 +20,9 @@ impl MahjongSession {
         command: MahjongCommand,
     ) -> Vec<Delivery> {
         match command {
+            MahjongCommand::SetAutoPlay { enabled } => {
+                self.set_auto_play(connection, request_id, enabled)
+            }
             MahjongCommand::UpdateRules { rules } => {
                 self.update_rules(connection, request_id, rules)
             }
@@ -54,6 +57,54 @@ impl MahjongSession {
                 })
             }
         }
+    }
+
+    fn set_auto_play(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        enabled: bool,
+    ) -> Vec<Delivery> {
+        let Some(player) = self.room.player_id(connection) else {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
+        };
+        let Some(game) = self.game.as_ref() else {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
+        };
+        if matches!(game.phase(), Phase::Finished(_)) {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::Mahjong(
+                    leocard_protocol::MahjongViolation::WrongPhase,
+                )),
+            );
+        }
+        let participant = self
+            .room
+            .players
+            .iter_mut()
+            .find(|participant| participant.id == player)
+            .expect("joined player belongs to the room");
+        if participant.auto_play != enabled {
+            participant.auto_play = enabled;
+            self.room.bump_revision();
+            self.auto_play_delay =
+                self.current_automatic_player()
+                    .map(|player| AutoPlayDelayState {
+                        player,
+                        remaining: AUTO_PLAY_DELAY,
+                    });
+        }
+        self.broadcast_game(Some((connection, request_id)))
     }
 
     #[cfg(feature = "developer")]

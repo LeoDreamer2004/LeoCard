@@ -21,7 +21,7 @@ pub(super) struct Participant {
     pub seat: Option<SeatId>,
     pub ready: bool,
     pub connected: bool,
-    /// 两种已接入房主的游戏均使用此字段执行确定性托管策略。
+    /// 房主使用此字段执行游戏对应的托管策略。
     pub auto_play: bool,
     /// 仅开发者模式手动占座使用；机器人没有真实网络连接。
     pub is_bot: bool,

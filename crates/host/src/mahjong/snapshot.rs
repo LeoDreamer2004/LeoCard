@@ -50,6 +50,7 @@ impl MahjongSession {
                         .collect(),
                     flowers: game_player.flowers,
                     dead_hand: game_player.dead_hand,
+                    auto_play: metadata.auto_play,
                     ready: metadata.ready,
                     connected: metadata.connected,
                     reference_points: metadata.reference_points,

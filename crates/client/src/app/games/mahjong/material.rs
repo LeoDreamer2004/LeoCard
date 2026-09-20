@@ -2,7 +2,7 @@ const MAHJONG_TILE_SHADER: &str = "shaders/mahjong_tile.wgsl";
 
 #[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
 pub(crate) struct MahjongTileMaterial {
-    /// x: 交互；y: 正背面；z: 可见度；w: -4 自家副露、-3 对家、-2 侧家、-1 自家、2 双层墙、3 下层牌。
+    /// x: 交互；y: 正背面；z: 可见度；w: -5 暗杠、-4 副露、-3 对家、-2 侧家、-1 自家、2 双层墙、3 下层牌。
     #[uniform(0)]
     pub params: Vec4,
     /// 屏幕左上方光源转换到牌的局部坐标后的方向。

@@ -3,7 +3,8 @@ use super::{
     ActiveMahjongClaimPresentation, MAHJONG_OWN_HAND_LEFT, MAHJONG_OWN_MELD_WIDTH, MahjongAssets,
     MahjongClaimHandShift, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
     MahjongUiAction, MahjongWinningHand, add_mahjong_tile_material,
-    apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x, mahjong_winning_hand_progress,
+    apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x, mahjong_win_tile_cues,
+    mahjong_winning_hand_progress, mark_mahjong_win_tile,
 };
 use crate::app::presentation::{GameSummaryAnimation, spawn_node};
 use crate::app::shell::UiAction;
@@ -119,23 +120,37 @@ pub(super) fn render_own_hand(
         if separated_index == Some(index) {
             continue;
         }
+        let result = match &game.phase {
+            MahjongPhaseView::Finished { result } => Some(result),
+            _ => None,
+        };
+        let cues = result.map(|result| {
+            mahjong_win_tile_cues(result, |winner| {
+                winner.winning_tile == tile
+                    && (winner.from == Some(game.you)
+                        || (winner.from.is_none() && winner.player == game.you))
+            })
+        });
         if winning_hand {
-            add_mahjong_tile_material(
+            let entity = add_mahjong_tile_material(
                 commands,
                 hand,
                 MahjongTileVisual {
                     kind: Some(tile.kind()),
                     size: MahjongTileSize::OwnMeld,
                     index,
-                    highlighted: false,
+                    highlighted: cues.as_ref().is_some_and(|cues| !cues.is_empty()),
                     deal: None,
                     relative: 0,
                 },
                 assets,
                 materials,
             );
+            if let (Some(result), Some(cues)) = (result, cues) {
+                mark_mahjong_win_tile(commands, entity, result, cues);
+            }
         } else {
-            add_mahjong_hand_tile(
+            let entity = add_mahjong_hand_tile(
                 commands,
                 hand,
                 tile.kind(),
@@ -146,6 +161,9 @@ pub(super) fn render_own_hand(
                 assets,
                 materials,
             );
+            if let (Some(result), Some(cues)) = (result, cues) {
+                mark_mahjong_win_tile(commands, entity, result, cues);
+            }
         }
     }
     if let Some(index) = separated_index {

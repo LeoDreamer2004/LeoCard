@@ -247,3 +247,63 @@ fn robot_waits_then_takes_an_automatic_action() {
     let dealer = game.player(MahjongPlayerId(0)).unwrap();
     assert!(!game.discards().is_empty() || !dealer.melds().is_empty());
 }
+
+#[test]
+fn player_can_toggle_mahjong_auto_play_and_cancel_a_pending_action() {
+    let mut session = MahjongSession::new(ROOM, 52300, MahjongRuleSet::default(), build_deck())
+        .expect("standard wall is valid");
+    let connections = [
+        ConnectionId(210),
+        ConnectionId(220),
+        ConnectionId(230),
+        ConnectionId(240),
+    ];
+    for (index, connection) in connections.into_iter().enumerate() {
+        session.handle(
+            connection,
+            message(
+                index as u64 + 1,
+                join_command(&format!("玩家{index}"), index as u64 + 30),
+            ),
+        );
+    }
+    for (index, player) in session.room.players.iter_mut().enumerate() {
+        player.seat = Some(SeatId(index as u8));
+        player.ready = true;
+    }
+    session.handle(connections[0], message(10, ClientCommand::StartGame));
+    finish_server_deal(&mut session);
+
+    let set_auto_play = |enabled| {
+        ClientCommand::Game(GameCommand::Mahjong(MahjongCommand::SetAutoPlay {
+            enabled,
+        }))
+    };
+    let enabled = session.handle(connections[0], message(11, set_auto_play(true)));
+    assert!(enabled.iter().any(|delivery| {
+        matches!(
+            &delivery.message.event,
+            ServerEvent::GameSnapshot(GameSnapshot::Mahjong(snapshot))
+                if delivery.recipient == connections[1]
+                    && snapshot.players[0].auto_play
+        )
+    }));
+    assert!(session.advance_time(Duration::from_millis(999)).is_empty());
+
+    let disabled = session.handle(connections[0], message(12, set_auto_play(false)));
+    assert!(disabled.iter().any(|delivery| {
+        matches!(
+            &delivery.message.event,
+            ServerEvent::GameSnapshot(GameSnapshot::Mahjong(snapshot))
+                if delivery.recipient == connections[1]
+                    && !snapshot.players[0].auto_play
+        )
+    }));
+    assert!(session.advance_time(Duration::from_secs(1)).is_empty());
+    assert!(session.game().unwrap().discards().is_empty());
+
+    session.handle(connections[0], message(13, set_auto_play(true)));
+    let before_action = session.revision();
+    assert!(!session.advance_time(Duration::from_secs(1)).is_empty());
+    assert_ne!(session.revision(), before_action);
+}

@@ -8,6 +8,108 @@ use super::{
 };
 use crate::app::presentation::{DESIGN_WIDTH, GameSummaryAnimation, ease_out_cubic};
 use bevy::prelude::*;
+use leocard_protocol::{MahjongHandResultView, MahjongWinView};
+
+pub(crate) const MAHJONG_HIGH_SHOWCASE_DELAY: f32 = 0.76;
+
+#[derive(Clone, Copy)]
+pub(crate) struct MahjongWinTileCue {
+    tier: MahjongWinEffectTier,
+    start: f32,
+    duration: f32,
+}
+
+#[derive(Component)]
+pub(crate) struct MahjongWinTileShake {
+    reveal_duration: f32,
+    cues: Vec<MahjongWinTileCue>,
+}
+
+pub(crate) fn mahjong_win_tile_cues(
+    result: &MahjongHandResultView,
+    matches: impl Fn(&MahjongWinView) -> bool,
+) -> Vec<MahjongWinTileCue> {
+    result
+        .winners
+        .iter()
+        .enumerate()
+        .filter(|(_, winner)| matches(winner))
+        .map(|(index, winner)| {
+            let tier = super::mahjong_win_effect_tier(winner);
+            MahjongWinTileCue {
+                tier,
+                start: super::mahjong_win_stage_start(result, index),
+                duration: match tier {
+                    MahjongWinEffectTier::Normal => 0.90,
+                    MahjongWinEffectTier::HighTotal => 0.68,
+                    MahjongWinEffectTier::MajorFan => 0.84,
+                },
+            }
+        })
+        .collect()
+}
+
+pub(crate) fn mark_mahjong_win_tile(
+    commands: &mut Commands,
+    entity: Entity,
+    result: &MahjongHandResultView,
+    cues: Vec<MahjongWinTileCue>,
+) {
+    if cues.is_empty() {
+        return;
+    }
+    commands.entity(entity).insert((
+        MahjongWinTileShake {
+            reveal_duration: super::mahjong_win_reveal_duration(result),
+            cues,
+        },
+        BorderColor::all(Color::NONE),
+        GlobalZIndex(0),
+    ));
+}
+
+pub(crate) fn animate_mahjong_win_tile_shakes(
+    animation: Res<GameSummaryAnimation>,
+    mut tiles: Query<(
+        &MahjongWinTileShake,
+        &mut UiTransform,
+        &mut BorderColor,
+        &mut GlobalZIndex,
+    )>,
+) {
+    for (shake, mut transform, mut border, mut z_index) in &mut tiles {
+        let time = animation.elapsed + shake.reveal_duration;
+        let active = shake.cues.iter().find_map(|cue| {
+            (cue.start..cue.start + cue.duration)
+                .contains(&time)
+                .then_some((*cue, time - cue.start))
+        });
+        if let Some((cue, local)) = active {
+            let (rotation, scale, envelope) = mahjong_win_tile_pose(cue, local);
+            transform.translation = Val2::ZERO;
+            transform.rotation = Rot2::radians(rotation);
+            transform.scale = Vec2::splat(scale);
+            *border = BorderColor::all(mahjong_win_effect_color(cue.tier, false, envelope));
+            *z_index = GlobalZIndex(1010);
+        } else {
+            *transform = UiTransform::IDENTITY;
+            *border = BorderColor::all(Color::NONE);
+            *z_index = GlobalZIndex(0);
+        }
+    }
+}
+
+fn mahjong_win_tile_pose(cue: MahjongWinTileCue, local: f32) -> (f32, f32, f32) {
+    let envelope = (local / 0.08).clamp(0.0, 1.0) * ((cue.duration - local) / 0.16).clamp(0.0, 1.0);
+    let amplitude = match cue.tier {
+        MahjongWinEffectTier::Normal => 0.045,
+        MahjongWinEffectTier::HighTotal => 0.085,
+        MahjongWinEffectTier::MajorFan => 0.16,
+    };
+    let rotation = ((local * 42.0).sin() + (local * 71.0).sin() * 0.28) * amplitude * envelope;
+    let scale = 1.0 + (local * 27.0).sin().abs() * 0.025 * envelope;
+    (rotation, scale, envelope)
+}
 
 #[expect(
     clippy::type_complexity,
@@ -228,6 +330,9 @@ pub(crate) fn animate_mahjong_win_effects(
                     };
                 }
             }
+            MahjongWinStageKind::Reveal => {
+                *transform = UiTransform::IDENTITY;
+            }
             MahjongWinStageKind::Hand => {
                 let progress = ease_out_cubic((elapsed / 0.78).clamp(0.0, 1.0));
                 transform.translation = Val2::px(0.0, -12.0 * (1.0 - progress));
@@ -235,29 +340,6 @@ pub(crate) fn animate_mahjong_win_effects(
                 transform.rotation = Rot2::IDENTITY;
                 if let Some(mut background) = background {
                     background.0 = Color::NONE;
-                }
-            }
-            MahjongWinStageKind::WinningTile => {
-                if stage.tier == MahjongWinEffectTier::MajorFan {
-                    let decay = (1.0 - (elapsed / stage.duration).clamp(0.0, 1.0)).powi(2);
-                    transform.translation = Val2::px(
-                        (elapsed * 91.0).sin() * 15.0 * decay,
-                        (elapsed * 137.0).sin() * 8.0 * decay,
-                    );
-                    transform.rotation = Rot2::radians(
-                        ((elapsed * 61.0).sin() * 0.20 + (elapsed * 29.0).sin() * 0.08) * decay,
-                    );
-                    transform.scale = Vec2::ONE;
-                } else {
-                    let progress = ease_out_cubic((elapsed / 0.30).clamp(0.0, 1.0));
-                    let impact = if stage.tier == MahjongWinEffectTier::HighTotal {
-                        0.82
-                    } else {
-                        0.52
-                    };
-                    transform.translation = Val2::px(0.0, -16.0 * progress);
-                    transform.rotation = Rot2::radians((elapsed * 18.0).sin() * 0.035);
-                    transform.scale = Vec2::splat(1.0 + (1.0 - progress) * impact);
                 }
             }
             MahjongWinStageKind::FocusRay {

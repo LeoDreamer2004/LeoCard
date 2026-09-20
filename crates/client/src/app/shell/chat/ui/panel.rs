@@ -22,7 +22,7 @@ pub(crate) fn add_chat_panel(
     assets: &UiAssets,
     auto_play: Option<bool>,
     auxiliary_actions: &[ChatAuxiliaryAction],
-) {
+) -> Entity {
     let panel = spawn_chat_panel(commands, parent, chat);
     add_chat_toggle(commands, panel, chat, assets);
     if let Some(enabled) = auto_play {
@@ -33,6 +33,7 @@ pub(crate) fn add_chat_panel(
     add_chat_input_row(commands, panel, chat, assets);
     add_quick_voice_menu(commands, panel, chat, assets);
     add_emoji_menu(commands, panel, chat, assets);
+    panel
 }
 
 pub(super) fn spawn_chat_panel(

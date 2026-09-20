@@ -4,19 +4,21 @@ use super::{
     MahjongAssets, MahjongClaimHandShift, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
     MahjongWinningHand, MahjongWinningHandVisual, add_mahjong_tile_material,
     apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x, mahjong_claim_landing_time,
-    mahjong_local_light, mahjong_local_shadow, mahjong_winning_hand_progress, render_mahjong_meld,
+    mahjong_local_light, mahjong_local_shadow, mahjong_win_tile_cues,
+    mahjong_winning_hand_progress, mark_mahjong_win_tile, render_mahjong_meld,
     render_mahjong_staged_meld, wind_label,
 };
 use crate::app::presentation::{
-    BORDER, DANGER, GameSummaryAnimation, MUTED, PANEL, PlayerMenuProfile, TEXT, add_avatar,
-    add_interaction_menu, add_text, spawn_node,
+    BORDER, DANGER, GameSummaryAnimation, MUTED, PANEL, PlayerMenuProfile, TEXT,
+    add_auto_play_robot_indicator, add_avatar, add_interaction_menu, add_text, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{OpponentBadge, PlayerAvatarAnchor, SeatSide, SocialUiAction, UiAction};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
-use leocard_protocol::MahjongPlayerState;
-use leocard_protocol::{MahjongSnapshot, PlayerId};
+use leocard_protocol::{
+    MahjongHandResultView, MahjongPhaseView, MahjongPlayerState, MahjongSnapshot, PlayerId,
+};
 
 pub(super) struct MahjongPlayerPanelVisuals<'a> {
     pub own_seat: u8,
@@ -86,6 +88,14 @@ pub(super) fn render_mahjong_player_panel(
     commands
         .entity(avatar_entity)
         .insert(PlayerAvatarAnchor(player.id));
+    if player.auto_play {
+        let side = match relative {
+            1 => SeatSide::Right,
+            2 => SeatSide::Top,
+            _ => SeatSide::Left,
+        };
+        add_auto_play_robot_indicator(commands, panel, player.id, side, assets);
+    }
     let info = spawn_node(
         commands,
         head,
@@ -267,6 +277,7 @@ pub(super) struct MahjongPlayerTileVisuals<'a> {
     pub separate_last_concealed: bool,
     pub animation: &'a GameSummaryAnimation,
     pub active_claim: Option<&'a ActiveMahjongClaimPresentation>,
+    pub result: Option<&'a MahjongHandResultView>,
     pub game_assets: &'a MahjongAssets,
     pub materials: &'a mut Assets<MahjongTileMaterial>,
 }
@@ -286,6 +297,7 @@ pub(super) fn render_mahjong_player_tiles(
         separate_last_concealed,
         animation,
         active_claim,
+        result,
         game_assets,
         materials,
     } = visuals;
@@ -440,7 +452,14 @@ pub(super) fn render_mahjong_player_tiles(
         };
         if let Some(revealed) = &player.revealed_hand {
             for (index, tile) in revealed.iter().enumerate() {
-                add_mahjong_tile_material(
+                let cues = result.map(|result| {
+                    mahjong_win_tile_cues(result, |winner| {
+                        winner.winning_tile == *tile
+                            && (winner.from == Some(player.id)
+                                || (winner.from.is_none() && winner.player == player.id))
+                    })
+                });
+                let entity = add_mahjong_tile_material(
                     commands,
                     concealed,
                     MahjongTileVisual {
@@ -451,7 +470,7 @@ pub(super) fn render_mahjong_player_tiles(
                             hidden_size
                         },
                         index,
-                        highlighted: false,
+                        highlighted: cues.as_ref().is_some_and(|cues| !cues.is_empty()),
                         deal: (dealing
                             && (index >= usize::from(observed_count)
                                 || (flower_replaced && index + 1 == concealed_count)))
@@ -461,6 +480,9 @@ pub(super) fn render_mahjong_player_tiles(
                     game_assets,
                     materials,
                 );
+                if let (Some(result), Some(cues)) = (result, cues) {
+                    mark_mahjong_win_tile(commands, entity, result, cues);
+                }
             }
         } else {
             let joined_count = concealed_count.saturating_sub(usize::from(separate_last_concealed));
@@ -523,6 +545,10 @@ pub(super) fn render_discard_rivers(
     assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
+    let result = match &game.phase {
+        MahjongPhaseView::Finished { result } => Some(result),
+        _ => None,
+    };
     let last_discard = game
         .discards
         .iter()
@@ -563,20 +589,29 @@ pub(super) fn render_discard_rivers(
             .enumerate()
             .filter(|(_, discard)| discard.player == player.id && discard.claimed_by.is_none())
         {
-            add_mahjong_tile_material(
+            let cues = result.map(|result| {
+                mahjong_win_tile_cues(result, |winner| {
+                    winner.from == Some(player.id) && winner.winning_tile == discard.tile
+                })
+            });
+            let entity = add_mahjong_tile_material(
                 commands,
                 river,
                 MahjongTileVisual {
                     kind: Some(discard.tile.kind()),
                     size: MahjongTileSize::River,
                     index,
-                    highlighted: last_discard == Some(index),
+                    highlighted: last_discard == Some(index)
+                        || cues.as_ref().is_some_and(|cues| !cues.is_empty()),
                     deal: None,
                     relative,
                 },
                 assets,
                 materials,
             );
+            if let (Some(result), Some(cues)) = (result, cues) {
+                mark_mahjong_win_tile(commands, entity, result, cues);
+            }
         }
     }
 }

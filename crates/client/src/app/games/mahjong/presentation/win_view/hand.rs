@@ -1,6 +1,6 @@
 use super::super::{
-    MahjongAssets, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongWinEffectTier,
-    MahjongWinStageKind, add_mahjong_tile_material,
+    MahjongAssets, MahjongTileMaterial, MahjongTileSize, MahjongWinEffectTier, MahjongWinStageKind,
+    MahjongWinTileSizes, render_mahjong_win_tile_row,
 };
 use super::{WinStagePartSpec, add_win_stage_component, mahjong_win_effect_color};
 use crate::app::presentation::{add_text, spawn_node};
@@ -44,9 +44,9 @@ pub(super) fn render_center_win_hand(context: CenterWinHandContext<'_, '_, '_>) 
     else {
         return;
     };
-    let Some(revealed) = &player.revealed_hand else {
+    if player.revealed_hand.is_none() {
         return;
-    };
+    }
     let major = tier == MahjongWinEffectTier::MajorFan;
     let panel = spawn_node(
         commands,
@@ -67,6 +67,9 @@ pub(super) fn render_center_win_hand(context: CenterWinHandContext<'_, '_, '_>) 
         },
         Some(Color::NONE),
     );
+    commands
+        .entity(panel)
+        .insert((GlobalZIndex(1050), FocusPolicy::Pass));
     let content = spawn_node(
         commands,
         panel,
@@ -103,76 +106,40 @@ pub(super) fn render_center_win_hand(context: CenterWinHandContext<'_, '_, '_>) 
         },
         None,
     );
-    let mut removed_winning_tile = false;
-    for (index, tile) in revealed.iter().enumerate() {
-        if !removed_winning_tile && *tile == winner.winning_tile {
-            removed_winning_tile = true;
-            continue;
-        }
-        add_mahjong_tile_material(
-            commands,
-            row,
-            MahjongTileVisual {
-                kind: Some(tile.kind()),
-                size: MahjongTileSize::OwnMeld,
-                index,
-                highlighted: false,
-                deal: None,
-                relative: 0,
-            },
-            game_assets,
-            materials,
-        );
-    }
-    let gap = spawn_node(
+    let animated_hand = render_mahjong_win_tile_row(
         commands,
         row,
-        Node {
-            width: px(18),
-            min_width: px(18),
-            ..default()
-        },
-        None,
-    );
-    commands.entity(gap).insert(FocusPolicy::Pass);
-    add_mahjong_tile_material(
-        commands,
-        row,
-        MahjongTileVisual {
-            kind: Some(winner.winning_tile.kind()),
-            size: MahjongTileSize::OwnMeld,
-            index: revealed.len(),
-            highlighted: true,
-            deal: None,
-            relative: 0,
+        player,
+        winner,
+        MahjongWinTileSizes {
+            meld: MahjongTileSize::WinUpright,
+            hand: MahjongTileSize::OwnMeld,
         },
         game_assets,
         materials,
     );
-    if !major {
-        add_win_stage_component(
-            commands,
-            panel,
-            WinStagePartSpec {
-                tier,
-                reveal_duration,
-                start,
-                duration,
-                kind: MahjongWinStageKind::Backdrop,
-                z_index: 101,
-            },
-        );
-    }
     add_win_stage_component(
         commands,
-        if major { content } else { row },
+        content,
+        WinStagePartSpec {
+            tier,
+            reveal_duration,
+            start,
+            duration,
+            kind: MahjongWinStageKind::Reveal,
+            z_index: 102,
+        },
+    );
+    add_win_stage_component(
+        commands,
+        animated_hand,
         WinStagePartSpec {
             tier,
             reveal_duration,
             start,
             duration,
             kind: MahjongWinStageKind::Hand,
-            z_index: 102,
+            z_index: 103,
         },
     );
 }

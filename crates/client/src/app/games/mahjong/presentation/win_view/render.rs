@@ -43,7 +43,6 @@ pub(crate) fn render_mahjong_win_effects(
             commands,
             table,
             game,
-            own_seat,
             result,
             winner_index,
             reveal_duration,

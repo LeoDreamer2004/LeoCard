@@ -1,8 +1,6 @@
-use super::super::claim::MahjongSeatGeometry;
 use super::super::{
-    MahjongAssets, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongWinEffectTier,
-    MahjongWinStageKind, MahjongWinStagePart, add_mahjong_tile_material, mahjong_win_effect_tier,
-    mahjong_win_stage_start,
+    MAHJONG_HIGH_SHOWCASE_DELAY, MahjongAssets, MahjongTileMaterial, MahjongWinEffectTier,
+    MahjongWinStageKind, MahjongWinStagePart, mahjong_win_effect_tier, mahjong_win_stage_start,
 };
 use super::{
     CenterWinHandContext, add_high_focus_rays, add_major_stage_decorations, render_center_win_hand,
@@ -11,13 +9,12 @@ use crate::app::presentation::spawn_node;
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
-use leocard_protocol::{MahjongHandResultView, MahjongSnapshot, MahjongWinView};
+use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
 
 pub(super) struct WinStageContext<'a, 'w, 's> {
     pub commands: &'a mut Commands<'w, 's>,
     pub table: Entity,
     pub game: &'a MahjongSnapshot,
-    pub own_seat: u8,
     pub result: &'a MahjongHandResultView,
     pub winner_index: usize,
     pub reveal_duration: f32,
@@ -60,7 +57,6 @@ pub(super) fn render_win_stage(context: WinStageContext<'_, '_, '_>) {
         commands,
         table,
         game,
-        own_seat,
         result,
         winner_index,
         reveal_duration,
@@ -77,20 +73,12 @@ pub(super) fn render_win_stage(context: WinStageContext<'_, '_, '_>) {
         add_major_backdrop(commands, table, tier, reveal_duration, start, duration);
     }
     if tier == MahjongWinEffectTier::HighTotal {
-        add_high_focus_rays(commands, table, reveal_duration, start, duration);
-    }
-    if let Some(anchor) = emphasized_tile_anchor(game, own_seat, winner, tier) {
-        add_emphasized_tile(
+        add_high_focus_rays(
             commands,
             table,
-            anchor,
-            winner,
-            tier,
             reveal_duration,
-            start,
-            duration,
-            game_assets,
-            materials,
+            start + MAHJONG_HIGH_SHOWCASE_DELAY,
+            duration - MAHJONG_HIGH_SHOWCASE_DELAY,
         );
     }
     if matches!(
@@ -100,7 +88,7 @@ pub(super) fn render_win_stage(context: WinStageContext<'_, '_, '_>) {
         let hand_delay = if tier == MahjongWinEffectTier::MajorFan {
             0.78
         } else {
-            0.10
+            MAHJONG_HIGH_SHOWCASE_DELAY
         };
         render_center_win_hand(CenterWinHandContext {
             commands,
@@ -161,92 +149,6 @@ fn add_major_backdrop(
             duration: (start + duration - backdrop_start).max(0.01),
             kind: MahjongWinStageKind::Backdrop,
             z_index: 90,
-        },
-    );
-}
-
-fn emphasized_tile_anchor(
-    game: &MahjongSnapshot,
-    own_seat: u8,
-    winner: &MahjongWinView,
-    tier: MahjongWinEffectTier,
-) -> Option<Vec2> {
-    if tier == MahjongWinEffectTier::HighTotal {
-        return None;
-    }
-    let geometry = MahjongSeatGeometry::new(own_seat);
-    if let Some(source) = winner.from {
-        return geometry
-            .relative_player(game, source)
-            .map(MahjongSeatGeometry::river_anchor);
-    }
-    geometry
-        .relative_player(game, winner.player)
-        .map(|relative| match relative {
-            0 => Vec2::new(1005.0, 642.0),
-            1 => Vec2::new(1080.0, 450.0),
-            2 => Vec2::new(445.0, 92.0),
-            _ => Vec2::new(200.0, 220.0),
-        })
-}
-
-#[allow(clippy::too_many_arguments)]
-fn add_emphasized_tile(
-    commands: &mut Commands,
-    table: Entity,
-    anchor: Vec2,
-    winner: &MahjongWinView,
-    tier: MahjongWinEffectTier,
-    reveal_duration: f32,
-    start: f32,
-    duration: f32,
-    game_assets: &MahjongAssets,
-    materials: &mut Assets<MahjongTileMaterial>,
-) {
-    let holder = spawn_node(
-        commands,
-        table,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(anchor.x - 50.0),
-            top: px(anchor.y - 70.0),
-            width: px(100),
-            height: px(140),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            overflow: Overflow::visible(),
-            ..default()
-        },
-        None,
-    );
-    add_mahjong_tile_material(
-        commands,
-        holder,
-        MahjongTileVisual {
-            kind: Some(winner.winning_tile.kind()),
-            size: MahjongTileSize::OwnMeld,
-            index: 0,
-            highlighted: true,
-            deal: None,
-            relative: 0,
-        },
-        game_assets,
-        materials,
-    );
-    add_win_stage_component(
-        commands,
-        holder,
-        WinStagePartSpec {
-            tier,
-            reveal_duration,
-            start,
-            duration: duration.min(if tier == MahjongWinEffectTier::MajorFan {
-                0.84
-            } else {
-                duration
-            }),
-            kind: MahjongWinStageKind::WinningTile,
-            z_index: 104,
         },
     );
 }

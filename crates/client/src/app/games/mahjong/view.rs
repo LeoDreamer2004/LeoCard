@@ -2,8 +2,9 @@
 
 use super::tiles::queue_mahjong_deal_sound;
 use super::{
-    MahjongAssets, MahjongOwnHandVisuals, MahjongPlayerPanelVisuals, MahjongPlayerTileVisuals,
-    MahjongTileMaterial, MahjongUiState, MahjongWinVisuals, MahjongWinningHandVisual,
+    MAHJONG_WIN_PUSH_DURATION, MahjongAssets, MahjongOwnHandVisuals, MahjongPlayerPanelVisuals,
+    MahjongPlayerTileVisuals, MahjongSettlementVisuals, MahjongTileMaterial, MahjongUiState,
+    MahjongWinVisuals, MahjongWinningHandVisual, add_fan_guide_button,
     mahjong_major_fan_impact_times, render_action_bar, render_discard_rivers,
     render_mahjong_claim_presentation, render_mahjong_flower_presentations,
     render_mahjong_player_panel, render_mahjong_player_tiles, render_mahjong_settlement,
@@ -11,7 +12,7 @@ use super::{
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, Observed, TableBackground, TableBackgroundMaterial,
-    spawn_node, table_material_params,
+    add_auto_play_overlay, spawn_node, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 #[cfg(feature = "developer")]
@@ -193,14 +194,7 @@ pub(super) fn mahjong_win_stage_start(result: &MahjongHandResultView, winner_ind
 }
 
 fn mahjong_win_hand_start(result: &MahjongHandResultView, winner_index: usize) -> f32 {
-    mahjong_win_stage_start(result, winner_index)
-        + if mahjong_win_effect_tier(&result.winners[winner_index])
-            == MahjongWinEffectTier::MajorFan
-        {
-            0.78
-        } else {
-            0.10
-        }
+    mahjong_win_stage_start(result, winner_index) - MAHJONG_WIN_PUSH_DURATION
 }
 
 #[derive(Component)]
@@ -236,8 +230,8 @@ pub(crate) struct MahjongWinDecoration {
 #[derive(Clone, Copy)]
 pub(crate) enum MahjongWinStageKind {
     Backdrop,
+    Reveal,
     Hand,
-    WinningTile,
     FocusRay {
         delay: f32,
         direction: Vec2,
@@ -593,6 +587,7 @@ pub(crate) fn render_mahjong_table(
                 separate_last_concealed,
                 animation: game_summary,
                 active_claim,
+                result: finished_result,
                 game_assets,
                 materials: tile_materials,
             },
@@ -705,9 +700,38 @@ pub(crate) fn render_mahjong_table(
             materials: tile_materials,
         },
     );
-    add_chat_panel(commands, content, chat, assets, None, &[]);
+    let local_auto_play = matches!(
+        game.phase,
+        MahjongPhaseView::Dealing { .. }
+            | MahjongPhaseView::ReplacingFlower { .. }
+            | MahjongPhaseView::Playing
+            | MahjongPhaseView::WaitingForClaims
+    )
+    .then(|| {
+        game.players
+            .iter()
+            .find(|player| player.id == game.you)
+            .is_some_and(|player| player.auto_play)
+    });
+    let chat_panel = add_chat_panel(commands, content, chat, assets, local_auto_play, &[]);
+    add_fan_guide_button(commands, chat_panel, assets);
+    if local_auto_play == Some(true) {
+        add_auto_play_overlay(commands, content, assets);
+    }
     if let MahjongPhaseView::Finished { result } = &game.phase {
-        render_mahjong_settlement(commands, table, game, result, assets, avatars, game_summary);
+        render_mahjong_settlement(
+            commands,
+            table,
+            game,
+            result,
+            MahjongSettlementVisuals {
+                assets,
+                avatars,
+                animation: game_summary,
+                game_assets,
+                materials: tile_materials,
+            },
+        );
     }
     ui.observed_table.state.hand.clone_from(&game.your_hand);
     for player in &game.players {

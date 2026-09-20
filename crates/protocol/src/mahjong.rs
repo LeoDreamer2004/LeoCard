@@ -42,6 +42,7 @@ pub struct MahjongPlayerState {
     pub melds: Vec<MahjongPublicMeldView>,
     pub flowers: Vec<MahjongTile>,
     pub dead_hand: bool,
+    pub auto_play: bool,
     pub ready: bool,
     pub connected: bool,
     pub reference_points: i32,

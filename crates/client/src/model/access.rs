@@ -3,7 +3,7 @@ use leocard_mahjong::MahjongRuleSet;
 use leocard_protocol::RoomId;
 use leocard_protocol::{
     AvatarId, ChatMessage, GameCommand, GameKind, GameRules, GameSnapshot, LobbySnapshot,
-    MahjongSnapshot, MatchId, PlayerGameProfiles, PlayerId, PlayerInteraction,
+    MahjongCommand, MahjongSnapshot, MatchId, PlayerGameProfiles, PlayerId, PlayerInteraction,
     PlayerReferenceChange, QiGui523Command, QiGui523Snapshot, RejectReason, Revision,
     ShengjiCommand, ShengjiSnapshot, TexasHoldemCommand, TexasHoldemSnapshot, UnoCommand,
     UnoSnapshot,
@@ -183,7 +183,9 @@ impl ClientModel {
             GameSnapshot::Uno(game) => {
                 toggle!(game, |enabled| UnoCommand::SetAutoPlay { enabled })
             }
-            GameSnapshot::Mahjong(_) => None,
+            GameSnapshot::Mahjong(game) => {
+                toggle!(game, |enabled| MahjongCommand::SetAutoPlay { enabled })
+            }
         }
     }
 

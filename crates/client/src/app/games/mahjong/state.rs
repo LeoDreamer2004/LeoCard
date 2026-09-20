@@ -8,6 +8,8 @@ use leocard_protocol::MatchId;
 #[derive(Resource, Default)]
 pub(crate) struct MahjongUiState {
     pub observed_table: Observed<(MatchId, u8), MahjongTableObservation>,
+    pub fan_guide_open: bool,
+    pub fan_guide_tier: u16,
 }
 
 #[derive(Default)]

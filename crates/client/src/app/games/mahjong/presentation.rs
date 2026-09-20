@@ -22,4 +22,4 @@ pub(crate) use tiles::*;
 pub(crate) use win_animation::*;
 pub(crate) use win_view::*;
 
-const MAHJONG_WIN_PUSH_DURATION: f32 = 0.42;
+pub(crate) const MAHJONG_WIN_PUSH_DURATION: f32 = 0.42;

@@ -54,12 +54,16 @@ impl UnoUiState {
     }
 
     pub(crate) fn clear(&mut self) {
+        self.clear_table();
+        self.mode_menu_open = false;
+        self.expansion_settings_open = false;
+    }
+
+    pub(crate) fn clear_table(&mut self) {
         self.selected.clear();
         self.card_animations.clear();
         self.swap_targets.clear();
         self.color_choice = None;
-        self.mode_menu_open = false;
-        self.expansion_settings_open = false;
     }
 }
 

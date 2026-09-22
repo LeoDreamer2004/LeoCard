@@ -104,7 +104,7 @@ impl GameScreenResources<'_> {
                 });
             }
             ClientPhaseRef::Idle | ClientPhaseRef::Lobby(_) | ClientPhaseRef::Closed => {
-                self.clear_all();
+                self.clear_tables();
                 shell.social.interaction_menu_open = None;
             }
         }
@@ -128,11 +128,11 @@ impl GameScreenResources<'_> {
         }
     }
 
-    fn clear_all(&mut self) {
+    fn clear_tables(&mut self) {
         self.qigui523_ui.clear();
         self.texas_holdem_ui.clear();
         self.shengji_ui.clear();
-        self.uno_ui.clear();
+        self.uno_ui.clear_table();
         self.mahjong_ui.clear();
     }
 

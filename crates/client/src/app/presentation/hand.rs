@@ -88,6 +88,12 @@ pub(crate) fn update_drag_selection<C>(
 where
     C: Copy + Eq + Hash,
 {
+    let mut cards = cards.peekable();
+    // 非当前游戏的选牌系统没有手牌，不能消耗当前游戏的拖选状态。
+    if cards.peek().is_none() {
+        return false;
+    }
+
     if mouse.just_pressed(MouseButton::Left)
         && let Some((index, card)) = pressed
     {

@@ -60,48 +60,64 @@ async fn run_joined_network(
                 Err(error) => error,
             };
         drain_pending_commands(commands);
+        let reconnect = async {
+            let mut last_error = disconnected;
+            let mut reconnected = None;
+            for attempt in 1..=RECONNECT_ATTEMPTS {
+                let delay = reconnect_delay(attempt);
+                let status = format!(
+                    "连接已断开；{} 秒后进行第 {attempt}/{RECONNECT_ATTEMPTS} 次重连",
+                    delay.as_secs()
+                );
+                push_event(events, NetworkEvent::Reconnecting(status));
+                tokio::time::sleep(delay).await;
 
-        let mut last_error = disconnected;
-        let mut reconnected = None;
-        for attempt in 1..=RECONNECT_ATTEMPTS {
-            let delay = reconnect_delay(attempt);
-            let status = format!(
-                "连接已断开；{} 秒后进行第 {attempt}/{RECONNECT_ATTEMPTS} 次重连",
-                delay.as_secs()
-            );
-            push_event(events, NetworkEvent::Reconnecting(status));
-            tokio::time::sleep(delay).await;
-
-            match tokio::time::timeout(
-                RECONNECT_CONNECT_TIMEOUT,
-                TcpClient::connect(address.as_str()),
-            )
-            .await
-            {
-                Ok(Ok(replacement)) => {
-                    match complete_reconnect_handshake(replacement, reconnect_join, events).await {
-                        Ok(replacement) => {
-                            reconnected = Some(replacement);
-                            break;
-                        }
-                        Err(error) => {
-                            last_error = format!("第 {attempt} 次重连握手失败：{error}");
+                match tokio::time::timeout(
+                    RECONNECT_CONNECT_TIMEOUT,
+                    TcpClient::connect(address.as_str()),
+                )
+                .await
+                {
+                    Ok(Ok(replacement)) => {
+                        match complete_reconnect_handshake(replacement, reconnect_join, events)
+                            .await
+                        {
+                            Ok(replacement) => {
+                                reconnected = Some(replacement);
+                                break;
+                            }
+                            Err(error) => {
+                                last_error = format!("第 {attempt} 次重连握手失败：{error}");
+                            }
                         }
                     }
-                }
-                Ok(Err(error)) => {
-                    last_error = format!("第 {attempt} 次重连失败：{error}");
-                }
-                Err(_) => {
-                    last_error = format!("第 {attempt} 次重连超时");
+                    Ok(Err(error)) => {
+                        last_error = format!("第 {attempt} 次重连失败：{error}");
+                    }
+                    Err(_) => {
+                        last_error = format!("第 {attempt} 次重连超时");
+                    }
                 }
             }
-        }
 
-        let Some(replacement) = reconnected else {
-            return Err(format!(
-                "已连续重连 {RECONNECT_ATTEMPTS} 次，仍无法连接房主：{last_error}"
-            ));
+            let Some(replacement) = reconnected else {
+                return Err(format!(
+                    "已连续重连 {RECONNECT_ATTEMPTS} 次，仍无法连接房主：{last_error}"
+                ));
+            };
+            Ok(replacement)
+        };
+        tokio::pin!(reconnect);
+        let replacement = loop {
+            tokio::select! {
+                biased;
+                command = commands.recv() => {
+                    if command.is_none() {
+                        return Ok(());
+                    }
+                }
+                result = &mut reconnect => break result?,
+            }
         };
         drain_pending_commands(commands);
         client = replacement;

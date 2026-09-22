@@ -4,7 +4,7 @@ use super::super::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState, dispatch_domain_actions,
 };
 use crate::app::games::uno::UnoUiState;
-use crate::app::runtime::ClientResource;
+use crate::app::runtime::{ClientResource, PageErrorState};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_protocol::{ClientCommand, SeatId};
@@ -29,10 +29,12 @@ impl DomainUiAction for LobbyUiAction {
 }
 
 #[derive(SystemParam)]
-pub(crate) struct LobbyActionContext<'w> {
+pub(crate) struct LobbyActionContext<'w, 's> {
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, UiState>,
     uno_ui: ResMut<'w, UnoUiState>,
+    page_error: ResMut<'w, PageErrorState>,
+    commands: Commands<'w, 's>,
 }
 
 pub(crate) fn dispatch_lobby_actions(
@@ -42,8 +44,8 @@ pub(crate) fn dispatch_lobby_actions(
     dispatch_domain_actions::<LobbyUiAction, _>(&mut actions, &mut context);
 }
 
-impl UiActionHandler<LobbyActionContext<'_>> for LobbyUiAction {
-    fn handle(&self, context: &mut LobbyActionContext<'_>) {
+impl UiActionHandler<LobbyActionContext<'_, '_>> for LobbyUiAction {
+    fn handle(&self, context: &mut LobbyActionContext<'_, '_>) {
         let client = &mut context.client;
         let ui = &mut context.ui;
         match self {
@@ -63,6 +65,10 @@ impl UiActionHandler<LobbyActionContext<'_>> for LobbyUiAction {
                 context.uno_ui.expansion_settings_open = false;
                 if let Some(client) = client.as_deref_mut() {
                     ui.leaving_room = client.0.send(ClientCommand::LeaveRoom);
+                    if !ui.leaving_room {
+                        context.page_error.error = None;
+                        context.commands.remove_resource::<ClientResource>();
+                    }
                 }
             }
         }

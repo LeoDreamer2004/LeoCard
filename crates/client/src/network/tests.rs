@@ -1,8 +1,10 @@
-use super::state::normalize_server_address;
+use super::state::{NetworkLaunch, normalize_server_address};
+use super::worker::run_network;
 use super::{LocalPlayerConnection, NETWORK_ROOM_ID, NetworkState, TcpGameClient};
 use crate::ClientModel;
-use leocard_protocol::{ClientCommand, PlayerId, SeatId};
+use leocard_protocol::{ClientCommand, ClientMessage, PlayerId, RequestId, SeatId};
 use leocard_qigui523::QiGuiRuleSet;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 #[test]
@@ -32,6 +34,35 @@ fn join_address_rejects_missing_or_invalid_ports() {
         assert!(normalize_server_address(address).is_err(), "{address}");
     }
 }
+
+#[tokio::test]
+async fn leaving_during_reconnect_cancels_a_stalled_handshake() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap().to_string();
+    let (commands, receiver) = tokio::sync::mpsc::channel(8);
+    let worker = tokio::spawn(async move {
+        run_network(
+            NetworkLaunch::Join { address },
+            receiver,
+            &Arc::new(Mutex::new(Default::default())),
+            ClientMessage::new(NETWORK_ROOM_ID, RequestId(1), ClientCommand::Ping),
+        )
+        .await
+    });
+    let (initial, _) = listener.accept().await.unwrap();
+    drop(initial);
+    let (_stalled, _) = tokio::time::timeout(Duration::from_secs(3), listener.accept())
+        .await
+        .unwrap()
+        .unwrap();
+    drop(commands);
+    tokio::time::timeout(Duration::from_secs(1), worker)
+        .await
+        .expect("leaving must cancel the pending reconnect handshake")
+        .unwrap()
+        .unwrap();
+}
+
 fn unused_local_port() -> u16 {
     std::net::TcpListener::bind(("127.0.0.1", 0))
         .unwrap()

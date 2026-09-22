@@ -70,6 +70,20 @@ pub(super) fn render_center_win_hand(context: CenterWinHandContext<'_, '_, '_>) 
     commands
         .entity(panel)
         .insert((GlobalZIndex(1050), FocusPolicy::Pass));
+    if tier == MahjongWinEffectTier::HighTotal {
+        add_win_stage_component(
+            commands,
+            panel,
+            WinStagePartSpec {
+                tier,
+                reveal_duration,
+                start,
+                duration,
+                kind: MahjongWinStageKind::Backdrop,
+                z_index: 101,
+            },
+        );
+    }
     let content = spawn_node(
         commands,
         panel,

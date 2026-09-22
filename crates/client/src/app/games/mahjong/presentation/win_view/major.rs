@@ -239,7 +239,7 @@ fn add_glyphs(
         });
         commands
             .entity(holder)
-            .insert((ZIndex(112), FocusPolicy::Pass));
+            .insert((GlobalZIndex(1100), FocusPolicy::Pass));
         commands.entity(text).insert((
             MahjongWinFanGlyph {
                 reveal_duration,

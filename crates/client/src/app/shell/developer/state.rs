@@ -4,6 +4,7 @@ use bevy::prelude::*;
 pub(crate) struct DeveloperHandInput {
     pub value: String,
     pub focused: bool,
+    pub selected_all: bool,
 }
 
 #[derive(Component)]

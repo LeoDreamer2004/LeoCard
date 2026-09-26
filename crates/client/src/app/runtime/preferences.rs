@@ -27,6 +27,7 @@ pub(crate) struct ConnectionDraft {
     pub host_port: String,
     pub join_address: String,
     pub active: InputField,
+    pub selected_all: bool,
 }
 
 #[derive(Resource)]
@@ -108,6 +109,7 @@ impl PreferenceResources {
                     saved.global.join_address
                 },
                 active: InputField::PlayerName,
+                selected_all: false,
             },
             appearance: AppearancePreferences {
                 avatar_png: saved

@@ -3,8 +3,9 @@ use super::{
     advance_mahjong_claim_presentation, animate_mahjong_claim_presentation,
     animate_mahjong_deal_tiles, animate_mahjong_flower_presentations, animate_mahjong_turn_arrows,
     animate_mahjong_win_effects, animate_mahjong_win_screen_shake, animate_mahjong_win_tile_shakes,
-    animate_mahjong_winning_hands, assets, scroll_mahjong_fan_guide,
-    sync_mahjong_claim_presentation, sync_mahjong_fan_guide, sync_mahjong_hand_tile_materials,
+    animate_mahjong_winning_hands, apply_automatic_mahjong_action, assets,
+    scroll_mahjong_fan_guide, sync_mahjong_claim_presentation, sync_mahjong_fan_guide,
+    sync_mahjong_hand_tile_materials,
 };
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::UiActionSet;
@@ -30,7 +31,11 @@ impl Plugin for MahjongPlugin {
             )
             .add_systems(
                 Update,
-                (sync_mahjong_hand_tile_materials,).in_set(ClientUpdateSet::Sync),
+                (
+                    sync_mahjong_hand_tile_materials,
+                    apply_automatic_mahjong_action.after(actions::dispatch_mahjong_actions),
+                )
+                    .in_set(ClientUpdateSet::Sync),
             )
             .add_systems(
                 Update,

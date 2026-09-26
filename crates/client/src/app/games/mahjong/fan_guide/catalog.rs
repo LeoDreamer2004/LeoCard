@@ -300,7 +300,7 @@ pub(super) const ENTRIES: &[FanGuideEntry] = &[
     ),
     entry!(
         TwoMeldedKongs,
-        "一副和牌中有两组明杠。",
+        "一副和牌中有两组明杠。明杠与暗杠各一组算 6 番。",
         "!1111m !2222p 345s 678s 99m"
     ),
     entry!(

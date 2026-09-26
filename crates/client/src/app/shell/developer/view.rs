@@ -44,7 +44,12 @@ pub(crate) fn add_developer_hand_input(
         if input.value.is_empty() { MUTED } else { TEXT },
         assets,
     );
-    commands
-        .entity(text)
-        .insert(DeveloperHandInputText { placeholder });
+    commands.entity(text).insert((
+        DeveloperHandInputText { placeholder },
+        TextBackgroundColor(if input.selected_all {
+            Color::srgb(0.20, 0.42, 0.72)
+        } else {
+            Color::NONE
+        }),
+    ));
 }

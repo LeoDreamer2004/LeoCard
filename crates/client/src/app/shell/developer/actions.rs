@@ -47,8 +47,11 @@ impl UiActionHandler<DeveloperActionContext<'_>> for DeveloperUiAction {
         match self {
             Self::FocusHandInput => {
                 context.chat.focused = false;
+                context.chat.selected_all = false;
                 context.developer_hand.focused = true;
+                context.developer_hand.selected_all = false;
                 context.connection.active = crate::app::shell::InputField::PlayerName;
+                context.connection.selected_all = false;
                 context.page_error.error = None;
             }
         }

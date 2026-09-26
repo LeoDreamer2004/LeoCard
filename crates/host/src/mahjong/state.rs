@@ -1,6 +1,6 @@
 use crate::{AutoPlayDelayState, RoomSession};
 use leocard_mahjong::{GameState, MahjongRuleSet, MahjongTile};
-use leocard_protocol::MatchId;
+use leocard_protocol::{MahjongProfileStats, MatchId, PlayerReferenceChange};
 use std::time::Duration;
 
 pub(super) const MAHJONG_DEAL_INTERVAL: Duration = Duration::from_millis(320);
@@ -14,4 +14,6 @@ pub struct MahjongSession {
     pub(super) match_id: Option<MatchId>,
     pub(super) auto_play_delay: Option<AutoPlayDelayState>,
     pub(super) deal_delay: Duration,
+    pub(super) match_profile_stats: [MahjongProfileStats; 4],
+    pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
 }

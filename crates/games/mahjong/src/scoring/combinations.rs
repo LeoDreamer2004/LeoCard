@@ -192,7 +192,7 @@ fn collect_terminal_and_suit_fans(values: &mut FanValues, context: &ScoreContext
             .iter()
             .filter(|tile| match tile {
                 MahjongTileKind::Suited { rank: 1 | 9, .. } => true,
-                MahjongTileKind::Wind(wind) => {
+                MahjongTileKind::Wind(wind) if context.wind_pungs < 3 => {
                     *wind != context.input.context.prevalent_wind
                         && *wind != context.input.context.seat_wind
                 }
@@ -217,7 +217,11 @@ fn collect_terminal_and_suit_fans(values: &mut FanValues, context: &ScoreContext
 }
 
 fn collect_relation_fans(values: &mut FanValues, context: &ScoreContext<'_>) {
-    if context.quadruple_chow || context.pure_terminal_chows {
+    if context.quadruple_chow
+        || context.pure_terminal_chows
+        || context.four_shifted_chows
+        || context.three_suited_terminal
+    {
         return;
     }
     let mut pure_double = max_matching(&context.chows, |left, right| left == right);
@@ -235,25 +239,40 @@ fn collect_relation_fans(values: &mut FanValues, context: &ScoreContext<'_>) {
     if context.three_suited_terminal {
         mixed_double = 0;
     }
-    values.add(Fan::PureDoubleChow, pure_double);
-    values.add(Fan::MixedDoubleChow, mixed_double);
-    if !context.pure_straight && !context.four_shifted_chows {
-        values.add(
-            Fan::ShortStraight,
-            max_matching(&context.chows, |left, right| {
-                left.0 == right.0 && left.1.abs_diff(right.1) == 3
-            }),
-        );
-    }
-    if !context.pure_straight && !context.four_shifted_chows && !context.three_suited_terminal {
-        values.add(
-            Fan::TwoTerminalChows,
-            max_matching(&context.chows, |left, right| {
-                left.0 == right.0
-                    && [left.1, right.1].contains(&1)
-                    && [left.1, right.1].contains(&7)
-            }),
-        );
+    let short_straight = if context.pure_straight {
+        0
+    } else {
+        max_matching(&context.chows, |left, right| {
+            left.0 == right.0 && left.1.abs_diff(right.1) == 3
+        })
+    };
+    let terminal_chows = if context.pure_straight {
+        0
+    } else {
+        max_matching(&context.chows, |left, right| {
+            left.0 == right.0 && [left.1, right.1].contains(&1) && [left.1, right.1].contains(&7)
+        })
+    };
+    let three_chow_fan = context.pure_triple
+        || context.pure_straight
+        || context.pure_shifted_chows
+        || context.mixed_straight
+        || context.mixed_triple
+        || has_mixed_shifted_chows(&context.chows);
+    let mut remaining = if three_chow_fan {
+        1
+    } else {
+        context.chows.len().saturating_sub(1) as u8
+    };
+    for (fan, count) in [
+        (Fan::PureDoubleChow, pure_double),
+        (Fan::MixedDoubleChow, mixed_double),
+        (Fan::ShortStraight, short_straight),
+        (Fan::TwoTerminalChows, terminal_chows),
+    ] {
+        let awarded = count.min(remaining);
+        values.add(fan, awarded);
+        remaining -= awarded;
     }
 }
 

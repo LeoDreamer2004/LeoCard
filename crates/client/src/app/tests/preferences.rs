@@ -67,6 +67,7 @@ fn preferences_round_trip_including_avatar() {
                     minimum_eight_points: false,
                     multiple_winners: true,
                     false_win: false,
+                    ..MahjongRuleSet::default()
                 },
             },
         },

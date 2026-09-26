@@ -64,26 +64,31 @@ impl UiActionHandler<ChatActionContext<'_>> for ChatUiAction {
                 chat.open = !chat.open;
                 if !chat.open {
                     chat.focused = false;
+                    chat.selected_all = false;
                     chat.quick_voice_open = false;
                     chat.emoji_open = false;
                 }
             }
             ChatUiAction::FocusInput => {
                 developer_hand.focused = false;
+                developer_hand.selected_all = false;
                 chat.open = true;
                 chat.focused = true;
+                chat.selected_all = false;
                 chat.quick_voice_open = false;
                 chat.emoji_open = false;
             }
             ChatUiAction::ToggleQuickVoiceMenu => {
                 chat.open = true;
                 chat.focused = false;
+                chat.selected_all = false;
                 chat.quick_voice_open = !chat.quick_voice_open;
                 chat.emoji_open = false;
             }
             ChatUiAction::ToggleEmojiMenu => {
                 chat.open = true;
                 chat.focused = false;
+                chat.selected_all = false;
                 chat.emoji_open = !chat.emoji_open;
                 chat.quick_voice_open = false;
             }

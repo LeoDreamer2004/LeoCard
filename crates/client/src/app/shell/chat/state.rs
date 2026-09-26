@@ -50,6 +50,7 @@ pub(crate) struct ChatPanelState {
     pub quick_voice_scroll_y: f32,
     pub emoji_scroll_y: f32,
     pub input: String,
+    pub selected_all: bool,
     pub history: VecDeque<ChatHistoryEntry>,
 }
 
@@ -64,6 +65,7 @@ impl Default for ChatPanelState {
             quick_voice_scroll_y: 0.0,
             emoji_scroll_y: 0.0,
             input: String::new(),
+            selected_all: false,
             history: VecDeque::new(),
         }
     }
@@ -102,6 +104,7 @@ pub(crate) struct ActiveChatBubble {
     pub width: f32,
     pub elapsed: f32,
     pub duration: f32,
+    pub anchor_missing_secs: f32,
 }
 
 #[derive(Component)]

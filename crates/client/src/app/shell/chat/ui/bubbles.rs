@@ -162,6 +162,7 @@ fn spawn_chat_bubble(
         width,
         elapsed: 0.0,
         duration: 2.8 + (character_count as f32 * 0.055).min(2.2),
+        anchor_missing_secs: 0.0,
     });
     bubble
 }
@@ -217,6 +218,7 @@ fn spawn_emoji_bubble(
         width,
         elapsed: 0.0,
         duration: 3.4,
+        anchor_missing_secs: 0.0,
     });
     bubble
 }

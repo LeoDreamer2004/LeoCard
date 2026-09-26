@@ -5,7 +5,7 @@ use crate::app::presentation::{
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction};
 use bevy::prelude::*;
-use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
+use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet, MahjongUmaStyle};
 use leocard_protocol::LobbySnapshot;
 
 type MahjongRuleConfigRow<'a> = RuleConfigRow<'a, MahjongRuleSet>;
@@ -88,6 +88,45 @@ pub(crate) fn render_mahjong_lobby(
                 match_length: lengths[(index + 1) % lengths.len()],
                 ..rules
             }),
+        },
+        assets,
+    );
+    let styles = [
+        MahjongUmaStyle::Balanced,
+        MahjongUmaStyle::FirstPlace,
+        MahjongUmaStyle::AvoidFourth,
+    ];
+    let style_index = styles
+        .iter()
+        .position(|style| *style == rules.uma_style)
+        .unwrap_or_default();
+    add_rule_config_row(
+        commands,
+        rules_panel,
+        MahjongRuleConfigRow {
+            label: "马点",
+            value: if rules.match_length == MahjongMatchLength::SingleHand {
+                "不适用"
+            } else {
+                match rules.uma_style {
+                    MahjongUmaStyle::Balanced => "均衡",
+                    MahjongUmaStyle::FirstPlace => "争一",
+                    MahjongUmaStyle::AvoidFourth => "避四",
+                }
+            }
+            .to_owned(),
+            help: "均衡：一/四位、二/三位对等；争一：提高第一名奖励；避四：加重第四名惩罚。",
+            editable: can_configure,
+            previous: (can_configure && rules.match_length != MahjongMatchLength::SingleHand)
+                .then_some(MahjongRuleSet {
+                    uma_style: styles[(style_index + styles.len() - 1) % styles.len()],
+                    ..rules
+                }),
+            next: (can_configure && rules.match_length != MahjongMatchLength::SingleHand)
+                .then_some(MahjongRuleSet {
+                    uma_style: styles[(style_index + 1) % styles.len()],
+                    ..rules
+                }),
         },
         assets,
     );

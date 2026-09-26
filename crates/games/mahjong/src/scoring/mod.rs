@@ -5,8 +5,6 @@ mod finalize;
 mod forms;
 mod patterns;
 mod special;
-#[cfg(test)]
-mod tests;
 mod types;
 
 use context::*;

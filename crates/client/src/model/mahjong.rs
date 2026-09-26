@@ -1,6 +1,6 @@
 use super::ClientModel;
 use super::types::GameEventInbox;
-use leocard_protocol::{GameRules, MahjongEvent, MahjongSnapshot};
+use leocard_protocol::{GameRules, MahjongEvent, MahjongPhaseView, MahjongSnapshot};
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct MahjongClientState {
@@ -15,6 +15,11 @@ impl ClientModel {
     pub(super) fn apply_mahjong_snapshot(&mut self, snapshot: MahjongSnapshot) {
         if self.prepare_game_snapshot(snapshot.match_id, snapshot.host_port, snapshot.you) {
             self.games.mahjong.events.clear();
+        }
+        if let MahjongPhaseView::Finished { result } = &snapshot.phase
+            && result.match_complete
+        {
+            self.last_finished_match = Some((snapshot.match_id, result.reference_changes.clone()));
         }
         self.rules = Some(GameRules::Mahjong(snapshot.rules));
         self.store_game_snapshot(snapshot);

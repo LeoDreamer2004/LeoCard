@@ -27,20 +27,33 @@ pub(crate) fn developer_hand_input_label(
             placeholder.to_owned()
         }
     } else {
-        format!("{}{}", input.value, if input.focused { "│" } else { "" })
+        format!(
+            "{}{}",
+            input.value,
+            if input.focused && !input.selected_all {
+                "│"
+            } else {
+                ""
+            }
+        )
     }
 }
 
 pub(crate) fn sync_developer_hand_input_text(
     input: Res<DeveloperHandInput>,
-    mut labels: Query<(&DeveloperHandInputText, &mut Text, &mut TextColor)>,
+    mut labels: Query<(
+        &DeveloperHandInputText,
+        &mut Text,
+        &mut TextColor,
+        &mut TextBackgroundColor,
+    )>,
     mut fields: Query<(&mut Node, &mut BorderColor), With<DeveloperHandInputField>>,
 ) {
     if !input.is_changed() {
         return;
     }
     let expected_color = if input.value.is_empty() { MUTED } else { TEXT };
-    for (label, mut text, mut color) in &mut labels {
+    for (label, mut text, mut color, mut background) in &mut labels {
         let expected = developer_hand_input_label(&input, label.placeholder);
         if text.0 != expected {
             text.0 = expected;
@@ -48,6 +61,11 @@ pub(crate) fn sync_developer_hand_input_text(
         if color.0 != expected_color {
             color.0 = expected_color;
         }
+        background.0 = if input.selected_all {
+            Color::srgb(0.20, 0.42, 0.72)
+        } else {
+            Color::NONE
+        };
     }
     for (mut node, mut border) in &mut fields {
         node.border = UiRect::all(px(if input.focused { 2 } else { 1 }));

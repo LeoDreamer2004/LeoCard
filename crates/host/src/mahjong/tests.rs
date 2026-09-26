@@ -2,17 +2,98 @@ use super::{MAHJONG_DEAL_INTERVAL, MahjongSession};
 use crate::ConnectionId;
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_mahjong::{
-    MahjongPlayerId, MahjongRuleSet, MahjongSuit, MahjongTile, MahjongTileKind, Phase, build_deck,
+    Fan, FanValue, MahjongPlayerId, MahjongRuleSet, MahjongScoreResult, MahjongSuit, MahjongTile,
+    MahjongTileKind, Phase, build_deck,
 };
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameCommand, GameSnapshot, JoinRequest, MahjongCommand,
-    MahjongPhaseView, MahjongSnapshot, PlayerGameProfiles, PlayerId, ProfileId, ReconnectToken,
-    RequestId, RoomId, SeatId, ServerEvent, join_identity_payload,
+    MahjongEvent, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MahjongWinView,
+    PlayerGameProfiles, PlayerId, ProfileId, ReconnectToken, RequestId, RoomId, SeatId,
+    ServerEvent, join_identity_payload,
 };
 use std::collections::HashSet;
 use std::time::Duration;
 
 const ROOM: RoomId = RoomId(2014);
+
+#[test]
+fn match_profile_counts_major_fan_draw_and_false_win_once() {
+    let mut session =
+        MahjongSession::new(ROOM, 52300, MahjongRuleSet::default(), build_deck()).unwrap();
+    for index in 0..4 {
+        session.handle(
+            ConnectionId(index + 1),
+            message(1, join_command(&format!("玩家{index}"), index + 1)),
+        );
+    }
+    let tile = build_deck()[0];
+    session.record_statistics(&[
+        MahjongEvent::FalseWin {
+            player: PlayerId(2),
+            deltas: [10, 10, -30, 10],
+        },
+        MahjongEvent::HandFinished {
+            result: MahjongHandResultView {
+                winners: vec![MahjongWinView {
+                    player: PlayerId(0),
+                    from: Some(PlayerId(1)),
+                    winning_tile: tile,
+                    score: MahjongScoreResult {
+                        fans: vec![FanValue {
+                            fan: Fan::BigFourWinds,
+                            count: 1,
+                            points: 88,
+                        }],
+                        points_without_flowers: 88,
+                        flower_points: 0,
+                        total_points: 88,
+                    },
+                }],
+                exhaustive_draw: false,
+                deltas: [104, -88, -8, -8],
+                match_scores: [104, -88, -8, -8],
+                match_complete: true,
+                sequence_index: 0,
+                reference_changes: Vec::new(),
+            },
+        },
+    ]);
+    let winner = session.room.players[0]
+        .game_profiles
+        .mahjong
+        .as_ref()
+        .unwrap();
+    assert_eq!(
+        (
+            winner.wins,
+            winner.total_win_fan,
+            winner.major_fan_counts[0]
+        ),
+        (1, 88, 1)
+    );
+    assert_eq!(
+        session.room.players[1]
+            .game_profiles
+            .mahjong
+            .as_ref()
+            .unwrap()
+            .discards_into_win,
+        1
+    );
+    assert_eq!(
+        session.room.players[2]
+            .game_profiles
+            .mahjong
+            .as_ref()
+            .unwrap()
+            .false_wins,
+        1
+    );
+    assert_eq!(
+        session.finished_reference_changes.as_ref().unwrap().len(),
+        4
+    );
+}
 
 fn message(request: u64, command: ClientCommand) -> ClientMessage {
     ClientMessage::new(ROOM, RequestId(request), command)
@@ -191,6 +272,35 @@ fn four_clients_receive_private_views_and_continue_at_the_table() {
             ..
         }))
     )));
+    let MahjongPhaseView::Finished { result } = &session.game_snapshot(PlayerId(0)).phase else {
+        panic!("self draw finishes the single-hand match");
+    };
+    assert!(result.match_complete);
+    assert_eq!(result.reference_changes.len(), 4);
+    for player in &session.room.players {
+        let stats = player.game_profiles.mahjong.as_ref().unwrap();
+        assert_eq!(stats.completed_games, 1);
+        assert_eq!(stats.hands_played, 1);
+        assert_eq!(stats.wins, u32::from(player.id == PlayerId(0)));
+        assert_eq!(stats.self_draws, u32::from(player.id == PlayerId(0)));
+        assert_eq!(
+            stats.total_match_score,
+            i64::from(result.match_scores[usize::from(player.id.0)])
+        );
+        assert_eq!(
+            stats.total_reference_delta,
+            i64::from(result.reference_changes[usize::from(player.id.0)].delta)
+        );
+    }
+
+    let mut lobby_session = session.clone();
+    let returned = lobby_session.handle(connections[1], message(19, ClientCommand::ReturnToLobby));
+    assert!(lobby_session.game().is_none());
+    assert!(
+        returned
+            .iter()
+            .any(|delivery| matches!(delivery.message.event, ServerEvent::LobbySnapshot(_)))
+    );
 
     let original_match = session.match_id;
     let mut last = Vec::new();

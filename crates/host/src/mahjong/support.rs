@@ -159,6 +159,7 @@ pub(super) fn hand_result_view(result: &HandResult) -> MahjongHandResultView {
         match_scores: result.match_scores,
         match_complete: result.match_complete,
         sequence_index: result.sequence_index,
+        reference_changes: Vec::new(),
     }
 }
 

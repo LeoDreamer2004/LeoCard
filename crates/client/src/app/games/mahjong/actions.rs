@@ -13,6 +13,10 @@ use leocard_protocol::MahjongCommand;
 
 #[derive(Clone)]
 pub(crate) enum MahjongUiAction {
+    ToggleAutoDrawer,
+    ToggleAutoWin,
+    ToggleNoClaim,
+    ToggleAutoDrawDiscard,
     ToggleFanGuide,
     CloseFanGuide,
     SelectFanGuideTier(u16),
@@ -56,6 +60,33 @@ pub(super) fn dispatch_mahjong_actions(
 impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
     fn handle(&self, context: &mut MahjongActionContext<'_>) {
         match self {
+            Self::ToggleAutoDrawer => {
+                context.ui.auto_drawer_open = !context.ui.auto_drawer_open;
+                return;
+            }
+            Self::ToggleAutoWin => {
+                if context
+                    .client
+                    .as_ref()
+                    .and_then(|client| client.0.model().mahjong_game())
+                    .is_some_and(|game| game.rules.false_win)
+                {
+                    return;
+                }
+                context.ui.auto_win = !context.ui.auto_win;
+                context.ui.last_automatic_action = None;
+                return;
+            }
+            Self::ToggleNoClaim => {
+                context.ui.no_claim = !context.ui.no_claim;
+                context.ui.last_automatic_action = None;
+                return;
+            }
+            Self::ToggleAutoDrawDiscard => {
+                context.ui.auto_draw_discard = !context.ui.auto_draw_discard;
+                context.ui.last_automatic_action = None;
+                return;
+            }
             Self::ToggleFanGuide => {
                 context.ui.fan_guide_open = !context.ui.fan_guide_open;
                 if context.ui.fan_guide_tier == 0 {
@@ -84,7 +115,11 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
             MahjongUiAction::AddedKong(tile) => MahjongCommand::DeclareAddedKong { tile: *tile },
             MahjongUiAction::ToggleFanGuide
             | MahjongUiAction::CloseFanGuide
-            | MahjongUiAction::SelectFanGuideTier(_) => unreachable!(),
+            | MahjongUiAction::SelectFanGuideTier(_)
+            | MahjongUiAction::ToggleAutoDrawer
+            | MahjongUiAction::ToggleAutoWin
+            | MahjongUiAction::ToggleNoClaim
+            | MahjongUiAction::ToggleAutoDrawDiscard => unreachable!(),
         };
         send_game_command(&mut context.client, command);
     }

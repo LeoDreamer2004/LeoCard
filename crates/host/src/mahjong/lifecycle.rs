@@ -9,8 +9,8 @@ use crate::{
 use leocard_mahjong::{GameError, GameState, MahjongPlayerId, MahjongRuleSet, MahjongTile, Phase};
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, MahjongEvent,
-    MahjongViolation, PlayerId, PlayerInteraction, PlayerInteractionKind, PlayerViolation,
-    RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
+    MahjongProfileStats, MahjongViolation, PlayerId, PlayerInteraction, PlayerInteractionKind,
+    PlayerViolation, RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
 };
 use std::time::Duration;
 
@@ -36,6 +36,8 @@ impl MahjongSession {
             match_id: None,
             auto_play_delay: None,
             deal_delay: Duration::ZERO,
+            match_profile_stats: std::array::from_fn(|_| MahjongProfileStats::default()),
+            finished_reference_changes: None,
         })
     }
 
@@ -146,6 +148,7 @@ impl MahjongSession {
         self.room.bump_revision();
         let mut events = public_event.into_iter().collect::<Vec<_>>();
         events.extend(events_for_outcome(&outcome));
+        self.record_statistics(&events);
         let mut deliveries = self.broadcast_events(events);
         deliveries.extend(self.broadcast_game(None));
         deliveries
@@ -304,6 +307,8 @@ impl HostedGameLifecycle for MahjongSession {
             Ok(game) => {
                 self.game = Some(game);
                 self.match_id = Some(new_match_id());
+                self.match_profile_stats = std::array::from_fn(|_| MahjongProfileStats::default());
+                self.finished_reference_changes = None;
                 self.deal_delay = Duration::ZERO;
                 self.room.bump_revision();
                 self.broadcast_game(Some((connection, request_id)))
@@ -324,7 +329,10 @@ impl HostedGameLifecycle for MahjongSession {
                 RejectReason::Player(PlayerViolation::NotJoined),
             );
         }
-        if self.room.host_connection != Some(connection) {
+        let match_complete = self.game.as_ref().is_some_and(
+            |game| matches!(game.phase(), Phase::Finished(result) if result.match_complete),
+        );
+        if self.room.host_connection != Some(connection) && !match_complete {
             return self.room.reject(
                 connection,
                 request_id,

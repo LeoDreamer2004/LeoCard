@@ -31,15 +31,21 @@ pub(crate) fn animate_chat_bubbles(
             commands.entity(entity).despawn();
             continue;
         }
-        let Some(anchor) =
+        if let Some(anchor) =
             interaction_anchor_in_layer(bubble.player, layer_node, layer_transform, &avatars)
-        else {
-            commands.entity(entity).despawn();
-            continue;
-        };
-        let position = chat_bubble_position(anchor, layer_size, bubble.width);
-        node.left = px(position.x);
-        node.top = px(position.y);
+        {
+            bubble.anchor_missing_secs = 0.0;
+            let position = chat_bubble_position(anchor, layer_size, bubble.width);
+            node.left = px(position.x);
+            node.top = px(position.y);
+        } else {
+            // UI 重建后的头像布局需要一帧才能恢复；期间保持气泡原位置。
+            bubble.anchor_missing_secs += time.delta_secs();
+            if bubble.anchor_missing_secs > 0.5 {
+                commands.entity(entity).despawn();
+                continue;
+            }
+        }
 
         let enter = ease_out_cubic((bubble.elapsed / 0.18).clamp(0.0, 1.0));
         let fade = ((bubble.duration - bubble.elapsed) / 0.48).clamp(0.0, 1.0);
@@ -114,6 +120,62 @@ pub(crate) fn animate_chat_panel(
         if icon.image != *expected {
             icon.image = expected.clone();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use leocard_protocol::PlayerId;
+    use std::time::Duration;
+
+    #[test]
+    fn bubble_survives_a_temporary_missing_avatar_anchor() {
+        let mut app = App::new();
+        app.insert_resource(Time::<()>::default());
+        app.add_systems(Update, animate_chat_bubbles);
+        app.world_mut().spawn((
+            PlayerInteractionLayer,
+            ComputedNode::default(),
+            UiGlobalTransform::default(),
+        ));
+        let bubble = app
+            .world_mut()
+            .spawn((
+                ActiveChatBubble {
+                    player: PlayerId(0),
+                    text: None,
+                    emoji_image: None,
+                    emoji: true,
+                    width: 78.0,
+                    elapsed: 0.0,
+                    duration: 3.4,
+                    anchor_missing_secs: 0.0,
+                },
+                Node::default(),
+                UiTransform::default(),
+                BackgroundColor(Color::NONE),
+                BorderColor::all(Color::NONE),
+            ))
+            .id();
+        app.world_mut()
+            .resource_mut::<Time>()
+            .advance_by(Duration::from_millis(100));
+        app.update();
+        assert!(app.world().get_entity(bubble).is_ok());
+        assert!(
+            app.world()
+                .get::<ActiveChatBubble>(bubble)
+                .unwrap()
+                .anchor_missing_secs
+                > 0.0
+        );
+
+        app.world_mut()
+            .resource_mut::<Time>()
+            .advance_by(Duration::from_millis(600));
+        app.update();
+        assert!(app.world().get_entity(bubble).is_err());
     }
 }
 

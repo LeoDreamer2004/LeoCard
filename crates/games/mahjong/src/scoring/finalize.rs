@@ -244,6 +244,12 @@ fn suppress_implied(values: &mut FanValues, context: &ScoreContext<'_>) {
     if values.contains(Fan::AllFives) {
         remove(values, &[Fan::AllSimples, Fan::NoHonors]);
     }
+    if values.contains(Fan::UpperTiles) {
+        values.remove(Fan::UpperFour);
+    }
+    if values.contains(Fan::LowerTiles) {
+        values.remove(Fan::LowerFour);
+    }
     for fan in [
         Fan::UpperTiles,
         Fan::LowerTiles,
@@ -255,7 +261,7 @@ fn suppress_implied(values: &mut FanValues, context: &ScoreContext<'_>) {
         }
     }
     if values.contains(Fan::MiddleTiles) {
-        values.remove(Fan::AllSimples);
+        remove(values, &[Fan::AllSimples, Fan::NoHonors]);
     }
     if values.contains(Fan::AllSimples) || context.all_even_pungs {
         values.remove(Fan::NoHonors);
@@ -264,7 +270,7 @@ fn suppress_implied(values: &mut FanValues, context: &ScoreContext<'_>) {
         values.remove(Fan::DragonPung);
     }
     if values.contains(Fan::TwoConcealedKongs) {
-        values.remove(Fan::ConcealedKong);
+        remove(values, &[Fan::ConcealedKong, Fan::TwoConcealedPungs]);
     }
     if values.contains(Fan::TwoMeldedKongs) {
         remove(values, &[Fan::MeldedKong, Fan::ConcealedKong]);

@@ -6,9 +6,10 @@ use super::{
     MahjongPlayerTileVisuals, MahjongSettlementVisuals, MahjongTileMaterial, MahjongUiState,
     MahjongWinVisuals, MahjongWinningHandVisual, add_fan_guide_button,
     mahjong_major_fan_impact_times, render_action_bar, render_discard_rivers,
-    render_mahjong_claim_presentation, render_mahjong_flower_presentations,
-    render_mahjong_player_panel, render_mahjong_player_tiles, render_mahjong_settlement,
-    render_mahjong_wall, render_mahjong_win_effects, render_own_hand, render_round_status,
+    render_mahjong_auto_drawer, render_mahjong_claim_presentation,
+    render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
+    render_mahjong_settlement, render_mahjong_wall, render_mahjong_win_effects, render_own_hand,
+    render_round_status,
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, Observed, TableBackground, TableBackgroundMaterial,
@@ -481,10 +482,28 @@ pub(crate) fn render_mahjong_table(
         .as_ref()
         .unwrap_or(&assets.table_felt)
         .clone();
-    let material = table_materials.add(TableBackgroundMaterial {
-        params: table_material_params(brightness, vignette, appearance.custom_felt.is_none()),
-        texture: felt,
-    });
+    // 快照仍会重建界面；保留桌布材质可避免每次发牌都重新准备它的 GPU 资源。
+    let params = table_material_params(brightness, vignette, appearance.custom_felt.is_none());
+    let material = ui
+        .table_material
+        .as_ref()
+        .filter(|handle| table_materials.contains(*handle))
+        .cloned()
+        .unwrap_or_else(|| {
+            table_materials.add(TableBackgroundMaterial {
+                params,
+                texture: felt.clone(),
+            })
+        });
+    if table_materials
+        .get(&material)
+        .is_some_and(|existing| existing.params != params || existing.texture != felt)
+        && let Some(mut existing) = table_materials.get_mut(&material)
+    {
+        existing.params = params;
+        existing.texture = felt;
+    }
+    ui.table_material = Some(material.clone());
     commands
         .entity(content)
         .insert((MaterialNode(material), TableBackground));
@@ -606,6 +625,22 @@ pub(crate) fn render_mahjong_table(
         );
     }
     render_round_status(commands, table, game, own_seat, assets, game_assets);
+    if matches!(
+        game.phase,
+        MahjongPhaseView::Dealing { .. }
+            | MahjongPhaseView::ReplacingFlower { .. }
+            | MahjongPhaseView::Playing
+            | MahjongPhaseView::WaitingForClaims
+    ) {
+        render_mahjong_auto_drawer(
+            commands,
+            table,
+            ui,
+            game.rules.false_win,
+            cfg!(feature = "developer") && matches!(game.phase, MahjongPhaseView::Playing),
+            assets,
+        );
+    }
     let own_flower_replaced = game
         .players
         .iter()

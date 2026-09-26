@@ -209,7 +209,14 @@ fn add_text_input(commands: &mut Commands, row: Entity, chat: &ChatPanelState, a
         if chat.input.is_empty() { MUTED } else { TEXT },
         assets,
     );
-    commands.entity(label).insert(ChatInputText);
+    commands.entity(label).insert((
+        ChatInputText,
+        TextBackgroundColor(if chat.selected_all {
+            Color::srgb(0.20, 0.42, 0.72)
+        } else {
+            Color::NONE
+        }),
+    ));
 }
 
 fn add_input_icon_button(
@@ -265,7 +272,10 @@ fn add_input_icon_button(
 pub(crate) fn sync_chat_panel_text(
     chat: Res<ChatPanelState>,
     mut history_texts: Query<&mut Text, (With<ChatHistoryText>, Without<ChatInputText>)>,
-    mut input_texts: Query<(&mut Text, &mut TextColor), With<ChatInputText>>,
+    mut input_texts: Query<
+        (&mut Text, &mut TextColor, &mut TextBackgroundColor),
+        With<ChatInputText>,
+    >,
     mut quick_menus: Query<&mut Visibility, (With<QuickVoiceMenu>, Without<EmojiMenu>)>,
     mut emoji_menus: Query<&mut Visibility, (With<EmojiMenu>, Without<QuickVoiceMenu>)>,
 ) {
@@ -293,13 +303,18 @@ pub(crate) fn sync_chat_panel_text(
     } else {
         (chat_input_display(&chat.input), TEXT)
     };
-    for (mut text, mut text_color) in &mut input_texts {
+    for (mut text, mut text_color, mut background) in &mut input_texts {
         if text.0 != input {
             text.0.clone_from(&input);
         }
         if text_color.0 != color {
             text_color.0 = color;
         }
+        background.0 = if chat.selected_all {
+            Color::srgb(0.20, 0.42, 0.72)
+        } else {
+            Color::NONE
+        };
     }
     for mut visibility in &mut quick_menus {
         let expected = if chat.open && chat.quick_voice_open {

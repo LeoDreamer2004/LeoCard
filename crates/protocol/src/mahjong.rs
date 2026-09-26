@@ -1,4 +1,6 @@
-use crate::{AvatarId, MatchId, PlayerGameProfiles, PlayerId, ProfileId, SeatId};
+use crate::{
+    AvatarId, MatchId, PlayerGameProfiles, PlayerId, PlayerReferenceChange, ProfileId, SeatId,
+};
 use leocard_mahjong::{
     MahjongClaim, MahjongClaimOption, MahjongMeldKind, MahjongRuleSet, MahjongScoreResult,
     MahjongTile, MahjongTileKind, MahjongWind,
@@ -24,6 +26,7 @@ pub struct MahjongSnapshot {
     pub match_scores: [i32; 4],
     pub pending_claim: Option<MahjongPendingClaimView>,
     pub can_self_draw: bool,
+    pub can_legal_self_draw: bool,
     pub concealed_kong_options: Vec<MahjongTileKind>,
     pub added_kong_options: Vec<MahjongTile>,
     pub phase: MahjongPhaseView,
@@ -56,6 +59,7 @@ pub struct MahjongPendingClaimView {
     pub tile: MahjongTile,
     pub robbing_kong: bool,
     pub your_options: Vec<MahjongClaimOption>,
+    pub can_legal_win: bool,
     pub your_response: Option<MahjongClaim>,
     pub waiting_for: Vec<PlayerId>,
 }
@@ -90,6 +94,7 @@ pub struct MahjongHandResultView {
     pub match_scores: [i32; 4],
     pub match_complete: bool,
     pub sequence_index: u8,
+    pub reference_changes: Vec<PlayerReferenceChange>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

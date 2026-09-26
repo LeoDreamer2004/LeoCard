@@ -71,6 +71,9 @@ impl MahjongSession {
                     .options_for(core_recipient)
                     .unwrap_or_default()
                     .to_vec(),
+                can_legal_win: game
+                    .legal_claim_win_available(core_recipient)
+                    .unwrap_or(false),
                 your_response: pending.response_from(core_recipient),
                 waiting_for: pending
                     .waiting_for()
@@ -125,9 +128,14 @@ impl MahjongSession {
             },
             Phase::Playing => MahjongPhaseView::Playing,
             Phase::WaitingForClaims(_) => MahjongPhaseView::WaitingForClaims,
-            Phase::Finished(result) => MahjongPhaseView::Finished {
-                result: hand_result_view(result),
-            },
+            Phase::Finished(result) => {
+                let mut result = hand_result_view(result);
+                if result.match_complete {
+                    result.reference_changes =
+                        self.finished_reference_changes.clone().unwrap_or_default();
+                }
+                MahjongPhaseView::Finished { result }
+            }
         };
         MahjongSnapshot {
             match_id: self.match_id.expect("started Mahjong game has a match id"),
@@ -160,6 +168,9 @@ impl MahjongSession {
             match_scores: *game.match_scores(),
             pending_claim,
             can_self_draw: game.self_draw_available(core_recipient).unwrap_or(false),
+            can_legal_self_draw: game
+                .legal_self_draw_available(core_recipient)
+                .unwrap_or(false),
             concealed_kong_options,
             added_kong_options,
             phase,

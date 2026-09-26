@@ -19,7 +19,10 @@ pub use game::{
     PublicPlayerState, WinRecord,
 };
 pub use meld::{MahjongKongKind, MahjongMeldKind, Meld};
-pub use rules::{MahjongMatchLength, MahjongPlayerId, MahjongRuleSet, RuleError};
+pub use rules::{
+    MahjongMatchLength, MahjongPlayerId, MahjongRuleSet, MahjongUmaStyle, RuleError,
+    mahjong_reference_deltas,
+};
 pub use scoring::{
     Fan, FanValue, MahjongScoreResult, ScoreError, ScoreInput, WinContext, WinSource,
     is_complete_hand, score_hand,

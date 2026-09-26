@@ -105,7 +105,7 @@ fn default_audio_volume() -> f32 {
 
 pub fn load_player_preferences() -> Option<SavedPreferences> {
     let bytes = fs::read(config_file("client.prefs")?).ok()?;
-    postcard::from_bytes(&bytes).ok()
+    super::profile::migration::decode_player_preferences(&bytes)
 }
 
 pub fn save_player_preferences(preferences: &SavedPreferences) -> Result<(), String> {

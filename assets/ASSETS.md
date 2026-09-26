@@ -116,8 +116,7 @@ GitHub 名称与标志同时受 GitHub 商标规范约束；本项目仅将其�
 - `ui/panel_*.png`、`ui/player_panel_*.png`：窗口、分区和玩家框底图。
 - `shaders/table_background.wgsl`、`shaders/turn_border.wgsl`、`shaders/uno_palette.wgsl`：
   桌布、回合边框与 UNO 调色盘着色器。
-- `ui/effects/sequence_airplane.svg` 与其 PNG：七鬼五二三顺子效果；该图为项目原创，
-  说明见 `ui/effects/README.md`。
+- `ui/effects/sequence_airplane.svg` 与其 PNG：七鬼五二三顺子效果；SVG 是项目原创的简洁飞机剪影，PNG 为 Bevy 加载的运行时副本。
 - `icons/host-crown.*`、`icons/list-menu.*`、`icons/robot-2-fill.*`：房主、快捷语音和
   机器人界面图标；SVG 为可编辑源文件，PNG 为运行时副本。
 - `cards/uno-extension/uno-flip/`：UNO FLIP 亮暗双面牌纹理。

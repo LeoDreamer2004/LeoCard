@@ -1,4 +1,23 @@
+use leocard_mahjong::Fan;
 use serde::{Deserialize, Serialize};
+
+pub const MAHJONG_MAJOR_FANS: [Fan; 15] = [
+    Fan::BigFourWinds,
+    Fan::BigThreeDragons,
+    Fan::AllGreen,
+    Fan::NineGates,
+    Fan::FourKongs,
+    Fan::SevenShiftedPairs,
+    Fan::ThirteenOrphans,
+    Fan::AllTerminals,
+    Fan::LittleFourWinds,
+    Fan::LittleThreeDragons,
+    Fan::AllHonors,
+    Fan::FourConcealedPungs,
+    Fan::PureTerminalChows,
+    Fan::QuadrupleChow,
+    Fan::FourPureShiftedPungs,
+];
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct RoomId(pub u64);
@@ -23,6 +42,24 @@ pub struct PlayerGameProfiles {
     pub uno: Option<UnoProfileStats>,
     /// 玩家收到互动时累计的鲜花与鸡蛋数量。
     pub interactions: Option<PlayerInteractionStats>,
+    pub mahjong: Option<MahjongProfileStats>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct MahjongProfileStats {
+    pub completed_games: u32,
+    pub total_reference_delta: i64,
+    pub total_match_score: i64,
+    pub placement_counts: [u32; 4],
+    pub hands_played: u32,
+    pub wins: u32,
+    pub self_draws: u32,
+    pub discards_into_win: u32,
+    pub exhaustive_draws: u32,
+    pub false_wins: u32,
+    pub total_win_fan: u64,
+    /// 按麻将规则库中 88、64、48 番番种的顺序排列。
+    pub major_fan_counts: [u32; 15],
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

@@ -3,8 +3,8 @@
 use super::super::{NavigationUiAction, UiAction};
 use super::{
     ProfileGameColumn, ProfileGameContent, ProfileGameTab, ProfileGameTabButton, ProfileStat,
-    SelectedProfileGameTab, qigui523_profile_rows, reference_level, shengji_profile_rows,
-    texas_holdem_profile_rows, uno_profile_rows,
+    SelectedProfileGameTab, mahjong_profile_rows, qigui523_profile_rows, reference_level,
+    shengji_profile_rows, texas_holdem_profile_rows, uno_profile_rows,
 };
 use crate::app::presentation::{
     ACCENT, BORDER, ButtonKind, ButtonTint, HEADER_BG, MUTED, PANEL, PanelSkin, TEXT,
@@ -390,6 +390,7 @@ impl<'a> ProfileArchive<'a> {
             }
             ProfileGameTab::Shengji => shengji_profile_rows(self.game_profiles.shengji.as_ref()),
             ProfileGameTab::Uno => uno_profile_rows(self.game_profiles.uno.as_ref()),
+            ProfileGameTab::Mahjong => mahjong_profile_rows(self.game_profiles.mahjong.as_ref()),
         };
         let rows_per_column = rows.len().div_ceil(4).max(1);
         for column_index in 0..4 {

@@ -64,6 +64,7 @@ fn client_message_round_trips_through_tcp_frame() {
                     flowers_received: 14,
                     eggs_received: 23,
                 }),
+                mahjong: None,
             },
             identity_signature: vec![9; 64],
         }),

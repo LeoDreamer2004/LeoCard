@@ -68,8 +68,11 @@ impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
         match self {
             ConnectionUiAction::FocusInput(field) => {
                 context.chat.focused = false;
+                context.chat.selected_all = false;
                 context.developer_hand.focused = false;
+                context.developer_hand.selected_all = false;
                 context.connection.active = *field;
+                context.connection.selected_all = false;
                 context.page_error.error = None;
             }
             ConnectionUiAction::OpenHostGamePicker => {

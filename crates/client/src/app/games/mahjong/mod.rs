@@ -2,6 +2,7 @@
 
 pub(crate) mod actions;
 mod assets;
+mod auto;
 mod controls;
 mod fan_guide;
 mod hand;
@@ -19,6 +20,7 @@ pub(super) mod violation;
 
 pub(crate) use actions::*;
 pub(crate) use assets::*;
+use auto::*;
 use controls::*;
 use fan_guide::*;
 use hand::*;

@@ -15,8 +15,14 @@ pub(crate) fn interaction_anchor_in_layer(
     layer_transform: &UiGlobalTransform,
     avatars: &Query<(&PlayerAvatarAnchor, &ComputedNode, &UiGlobalTransform)>,
 ) -> Option<Vec2> {
+    if layer_node.size().min_element() <= 1.0 {
+        return None;
+    }
     let (_, avatar_node, avatar_transform) =
         avatars.iter().find(|(anchor, _, _)| anchor.0 == player)?;
+    if avatar_node.size().min_element() <= 1.0 {
+        return None;
+    }
     let inverse = layer_transform.try_inverse()?;
     let avatar_center = avatar_transform.to_scale_angle_translation().2;
     let mut position = inverse.transform_point2(avatar_center) + layer_node.size() * 0.5;

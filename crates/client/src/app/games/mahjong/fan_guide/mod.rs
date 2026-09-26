@@ -472,7 +472,7 @@ fn guide_base_kind(kind: MahjongTileKind, kong: bool, exposed: bool) -> Option<M
 fn fan_color(points: u16) -> Color {
     if points >= 48 {
         Color::srgb(0.94, 0.73, 0.22)
-    } else if points >= 8 {
+    } else if points >= 6 {
         Color::srgb(0.37, 0.81, 0.48)
     } else {
         Color::srgb(0.91, 0.95, 0.92)

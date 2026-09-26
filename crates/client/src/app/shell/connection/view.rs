@@ -292,6 +292,7 @@ impl<'a> ConnectionIdentity<'a> {
             &connection.player_name,
             InputField::PlayerName,
             connection.active == InputField::PlayerName,
+            connection.selected_all && connection.active == InputField::PlayerName,
             assets,
         )
         .render(commands, name_field);
@@ -424,6 +425,7 @@ impl<'a> ConnectionChoicePanel<'a> {
                 &form.host_port,
                 InputField::HostPort,
                 form.active == InputField::HostPort,
+                form.selected_all && form.active == InputField::HostPort,
                 assets,
             ),
             button_label: "选择游戏并创建",
@@ -443,6 +445,7 @@ impl<'a> ConnectionChoicePanel<'a> {
                 &form.join_address,
                 InputField::JoinAddress,
                 form.active == InputField::JoinAddress,
+                form.selected_all && form.active == InputField::JoinAddress,
                 assets,
             ),
             button_label: "连接并加入",
@@ -510,6 +513,7 @@ struct ConnectionInput<'a> {
     value: &'a str,
     field: InputField,
     active: bool,
+    selected_all: bool,
     assets: &'a UiAssets,
 }
 
@@ -519,6 +523,7 @@ impl<'a> ConnectionInput<'a> {
         value: &'a str,
         field: InputField,
         active: bool,
+        selected_all: bool,
         assets: &'a UiAssets,
     ) -> Self {
         Self {
@@ -526,6 +531,7 @@ impl<'a> ConnectionInput<'a> {
             value,
             field,
             active,
+            selected_all,
             assets,
         }
     }
@@ -550,13 +556,26 @@ impl<'a> ConnectionInput<'a> {
             ))
             .id();
         commands.entity(parent).add_child(input);
-        add_text(
+        let label = add_text(
             commands,
             input,
-            format!("{}{}", self.value, if self.active { "│" } else { "" }),
+            format!(
+                "{}{}",
+                self.value,
+                if self.active && !self.selected_all {
+                    "│"
+                } else {
+                    ""
+                }
+            ),
             16.0,
             if self.value.is_empty() { MUTED } else { TEXT },
             self.assets,
         );
+        if self.selected_all {
+            commands
+                .entity(label)
+                .insert(TextBackgroundColor(Color::srgb(0.20, 0.42, 0.72)));
+        }
     }
 }

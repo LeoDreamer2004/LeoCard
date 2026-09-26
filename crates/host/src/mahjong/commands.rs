@@ -7,8 +7,8 @@ use leocard_mahjong::{
     ActionOutcome, GameError, GameState, MahjongPlayerId, MahjongRuleSet, MahjongTileKind, Phase,
 };
 use leocard_protocol::{
-    GameViolation, MahjongCommand, MahjongEvent, PlayerId, PlayerViolation, RejectReason,
-    RequestId, RoomViolation,
+    GameViolation, MahjongCommand, MahjongEvent, MahjongProfileStats, PlayerId, PlayerViolation,
+    RejectReason, RequestId, RoomViolation,
 };
 use std::time::Duration;
 
@@ -205,6 +205,8 @@ impl MahjongSession {
         self.deal_delay = Duration::ZERO;
         if completed_match {
             self.match_id = Some(new_match_id());
+            self.match_profile_stats = std::array::from_fn(|_| MahjongProfileStats::default());
+            self.finished_reference_changes = None;
         }
         for player in &mut self.room.players {
             player.ready = false;
@@ -269,6 +271,7 @@ impl MahjongSession {
                 if matches!(game.phase(), Phase::ReplacingFlower { .. }) {
                     self.deal_delay = MAHJONG_DEAL_INTERVAL;
                 }
+                self.record_statistics(&events);
                 self.room.bump_revision();
                 let mut deliveries = self.broadcast_events(events);
                 deliveries.extend(self.broadcast_game(Some((connection, request_id))));

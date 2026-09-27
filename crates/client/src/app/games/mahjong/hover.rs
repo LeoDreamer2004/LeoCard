@@ -167,11 +167,11 @@ pub(super) fn mahjong_discard_waits(
             .filter_map(|(index, tile)| (index != discard_index).then_some(tile.kind()))
             .collect::<Vec<_>>();
         let mut kinds = Vec::new();
-        for index in 0..34 {
+        for (index, &visible_count) in visible.iter().enumerate() {
             let kind = MahjongTileKind::from_index34(index).expect("34 种非花牌");
             concealed.push(kind);
             if is_complete_hand(&concealed, &melds) {
-                kinds.push((kind, 4_u8.saturating_sub(visible[index])));
+                kinds.push((kind, 4_u8.saturating_sub(visible_count)));
             }
             concealed.pop();
         }

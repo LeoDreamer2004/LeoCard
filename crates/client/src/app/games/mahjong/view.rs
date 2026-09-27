@@ -2,11 +2,12 @@
 
 use super::tiles::queue_mahjong_deal_sound;
 use super::{
-    MAHJONG_WIN_PUSH_DURATION, MahjongAssets, MahjongOwnHandVisuals, MahjongPlayerPanelVisuals,
-    MahjongPlayerTileVisuals, MahjongSettlementVisuals, MahjongTableRoot, MahjongTileMaterial,
-    MahjongUiState, MahjongWinVisuals, MahjongWinningHandVisual, add_fan_guide_button,
-    mahjong_major_fan_impact_times, observe_discard_animations, render_action_bar,
-    render_discard_rivers, render_mahjong_auto_drawer, render_mahjong_claim_presentation,
+    MAHJONG_WIN_PUSH_DURATION, MahjongAssets, MahjongDiscardRiverAnimations, MahjongOwnHandVisuals,
+    MahjongPlayerPanelVisuals, MahjongPlayerTileVisuals, MahjongSettlementVisuals,
+    MahjongTableRoot, MahjongTileMaterial, MahjongUiState, MahjongWinVisuals,
+    MahjongWinningHandVisual, add_fan_guide_button, mahjong_major_fan_impact_times,
+    observe_discard_animations, render_action_bar, render_discard_rivers,
+    render_mahjong_auto_drawer, render_mahjong_claim_presentation,
     render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
     render_mahjong_settlement, render_mahjong_wall, render_mahjong_win_effects,
     render_own_discard_flight, render_own_hand, render_round_status,
@@ -635,8 +636,10 @@ pub(crate) fn render_mahjong_table(
         table,
         game,
         own_seat,
-        ui.discard_animation.as_ref(),
-        ui.remote_discard_animation.as_ref(),
+        MahjongDiscardRiverAnimations {
+            discard_animation: ui.discard_animation.as_ref(),
+            remote_discard: ui.remote_discard_animation.as_ref(),
+        },
         game_assets,
         tile_materials,
     );

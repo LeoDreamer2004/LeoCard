@@ -158,7 +158,6 @@ impl MahjongRemoteFlightPose {
             translation: Val2::px(self.source_offset_x + offset.x, offset.y),
             rotation: Rot2::radians(self.rotation * movement),
             scale: Vec2::ONE.lerp(self.scale, movement),
-            ..default()
         }
     }
 }

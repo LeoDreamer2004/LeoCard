@@ -42,7 +42,7 @@ pub(crate) fn handle_text_input(context: TextInputContext) {
         mut client,
         mut ui,
     } = context;
-    let mut form = &mut *form;
+    let form = &mut *form;
     let chat = &mut *chat;
     let developer_hand = &mut *developer_hand;
     let connection_visible = client.as_deref().is_none_or(|client| {
@@ -82,7 +82,7 @@ pub(crate) fn handle_text_input(context: TextInputContext) {
             } else if chat.focused {
                 chat.selected_all = !chat.input.is_empty();
             } else {
-                form.selected_all = !active_input_mut(&mut form).is_empty();
+                form.selected_all = !active_input_mut(form).is_empty();
                 ui.dirty = true;
             }
         } else if keyboard.just_pressed(KeyCode::KeyC) || keyboard.just_pressed(KeyCode::KeyX) {
@@ -94,8 +94,7 @@ pub(crate) fn handle_text_input(context: TextInputContext) {
             } else if chat.focused {
                 chat.selected_all.then(|| chat.input.clone())
             } else if connection_visible {
-                form.selected_all
-                    .then(|| active_input_mut(&mut form).clone())
+                form.selected_all.then(|| active_input_mut(form).clone())
             } else {
                 None
             };
@@ -112,7 +111,7 @@ pub(crate) fn handle_text_input(context: TextInputContext) {
                         } else if chat.focused {
                             clear_selection(&mut chat.input, &mut chat.selected_all);
                         } else {
-                            let value = active_input_mut(&mut form);
+                            let value = active_input_mut(form);
                             value.clear();
                             form.selected_all = false;
                             ui.dirty = true;
@@ -143,7 +142,7 @@ pub(crate) fn handle_text_input(context: TextInputContext) {
                         page_error.error = Some("剪贴板中没有可用的服务器地址".to_owned());
                     } else {
                         let selected_all = form.selected_all;
-                        let value = active_input_mut(&mut form);
+                        let value = active_input_mut(form);
                         if selected_all || active == InputField::JoinAddress {
                             value.clear();
                         }
@@ -182,7 +181,7 @@ pub(crate) fn handle_text_input(context: TextInputContext) {
                     continue;
                 }
                 let selected_all = form.selected_all;
-                let value = active_input_mut(&mut form);
+                let value = active_input_mut(form);
                 if selected_all {
                     value.clear();
                 } else {
@@ -254,10 +253,10 @@ pub(crate) fn handle_text_input(context: TextInputContext) {
                 }
                 let active = form.active;
                 if form.selected_all {
-                    active_input_mut(&mut form).clear();
+                    active_input_mut(form).clear();
                     form.selected_all = false;
                 }
-                let value = active_input_mut(&mut form);
+                let value = active_input_mut(form);
                 let maximum = maximum_length(active);
                 append_filtered_input(value, active, text, maximum);
                 page_error.error = None;

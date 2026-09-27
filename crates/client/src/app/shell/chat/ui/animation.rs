@@ -111,6 +111,10 @@ pub(crate) fn animate_chat_panel(
     }
 }
 
+fn chat_panel_translation(slide: f32) -> Val2 {
+    Val2::px(CHAT_PANEL_HIDDEN_OFFSET * slide, 0.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -165,8 +169,4 @@ mod tests {
         app.update();
         assert!(app.world().get_entity(bubble).is_err());
     }
-}
-
-fn chat_panel_translation(slide: f32) -> Val2 {
-    Val2::px(CHAT_PANEL_HIDDEN_OFFSET * slide, 0.0)
 }

@@ -606,16 +606,24 @@ pub(super) fn render_mahjong_player_tiles(
     }
 }
 
+pub(super) struct MahjongDiscardRiverAnimations<'a> {
+    pub discard_animation: Option<&'a MahjongOwnDiscardAnimation>,
+    pub remote_discard: Option<&'a MahjongRemoteDiscardAnimation>,
+}
+
 pub(super) fn render_discard_rivers(
     commands: &mut Commands,
     table: Entity,
     game: &MahjongSnapshot,
     own_seat: u8,
-    discard_animation: Option<&MahjongOwnDiscardAnimation>,
-    remote_discard: Option<&MahjongRemoteDiscardAnimation>,
+    animations: MahjongDiscardRiverAnimations<'_>,
     assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
+    let MahjongDiscardRiverAnimations {
+        discard_animation,
+        remote_discard,
+    } = animations;
     let result = match &game.phase {
         MahjongPhaseView::Finished { result } => Some(result),
         _ => None,

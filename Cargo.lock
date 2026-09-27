@@ -3162,7 +3162,7 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "leocard-client"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "bevy",
  "bevy_clipboard",
@@ -3191,7 +3191,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-host"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3206,14 +3206,14 @@ dependencies = [
 
 [[package]]
 name = "leocard-mahjong"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "leocard-protocol"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "leocard-mahjong",
  "leocard-qigui523",
@@ -3226,21 +3226,21 @@ dependencies = [
 
 [[package]]
 name = "leocard-qigui523"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "leocard-shengji"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "leocard-tcp"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "ed25519-dalek",
  "leocard-host",
@@ -3255,14 +3255,14 @@ dependencies = [
 
 [[package]]
 name = "leocard-texas-holdem"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "leocard-uno"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "serde",
 ]

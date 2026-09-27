@@ -10,13 +10,18 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing tag to rebuild and publish
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+  group: ${{ github.workflow }}-${{ inputs.release_tag || github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') && inputs.release_tag == '' }}
 
 env:
   CARGO_TERM_COLOR: always
@@ -30,6 +35,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_tag && format('refs/tags/{0}', inputs.release_tag) || github.ref }}
 
       - name: Install Linux test dependencies
         run: |
@@ -68,6 +75,8 @@ jobs:
             Linux-cargo-test-
 
       - name: Lint workspace
+        # Older tags may predate the strict Clippy gate; keep their original test gate.
+        if: inputs.release_tag == ''
         run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
       - name: Test workspace
@@ -75,7 +84,7 @@ jobs:
 
   build:
     name: Build ${{ matrix.name }}
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -91,6 +100,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_tag && format('refs/tags/{0}', inputs.release_tag) || github.ref }}
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
@@ -157,7 +168,7 @@ jobs:
 
   release:
     name: Publish GitHub Release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
     needs:
       - test
       - build
@@ -168,14 +179,18 @@ jobs:
     steps:
       - name: Check out tagged source
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_tag && format('refs/tags/{0}', inputs.release_tag) || github.ref }}
 
       - name: Verify tag matches the client version
         shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
         run: |
           package_id="$(cargo pkgid -p leocard-client)"
           package_version="${package_id##*@}"
-          if [[ "${GITHUB_REF_NAME}" != "v${package_version}" ]]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match leocard-client ${package_version}." >&2
+          if [[ "${RELEASE_TAG}" != "v${package_version}" ]]; then
+            echo "Tag ${RELEASE_TAG} does not match leocard-client ${package_version}." >&2
             exit 1
           fi
 
@@ -190,12 +205,13 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
         run: |
-          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            gh release upload "${GITHUB_REF_NAME}" release/* --clobber
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" release/* --clobber
           else
-            gh release create "${GITHUB_REF_NAME}" release/* \
+            gh release create "${RELEASE_TAG}" release/* \
               --verify-tag \
               --generate-notes \
-              --title "LeoCard ${GITHUB_REF_NAME}"
+              --title "LeoCard ${RELEASE_TAG}"
           fi

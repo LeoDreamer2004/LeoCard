@@ -154,7 +154,7 @@ pub(super) fn add_texas_showdown_reveal(
                 .position(|community| *community == card)
                 .unwrap_or(index);
             (
-                Vec2::new(520.0 + board_index as f32 * 63.0, 213.0),
+                Vec2::new(520.0 + board_index as f32 * 63.0, 167.0),
                 0.68 + board_index as f32 * 0.055,
                 0.80,
             )

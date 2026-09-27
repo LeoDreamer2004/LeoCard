@@ -158,6 +158,7 @@ impl MahjongSession {
                     player: from_core_player(discard.player),
                     tile: discard.tile,
                     claimed_by: discard.claimed_by.map(from_core_player),
+                    from_drawn: discard.from_drawn,
                 })
                 .collect(),
             dealer: from_core_player(game.dealer()),

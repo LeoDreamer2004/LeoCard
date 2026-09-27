@@ -9,8 +9,8 @@ use crate::{
 use leocard_mahjong::{GameError, GameState, MahjongPlayerId, MahjongRuleSet, MahjongTile, Phase};
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, MahjongEvent,
-    MahjongProfileStats, MahjongViolation, PlayerId, PlayerInteraction, PlayerInteractionKind,
-    PlayerViolation, RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
+    MahjongViolation, PlayerId, PlayerInteraction, PlayerInteractionKind, PlayerViolation,
+    RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
 };
 use std::time::Duration;
 
@@ -36,7 +36,6 @@ impl MahjongSession {
             match_id: None,
             auto_play_delay: None,
             deal_delay: Duration::ZERO,
-            match_profile_stats: std::array::from_fn(|_| MahjongProfileStats::default()),
             finished_reference_changes: None,
         })
     }
@@ -307,7 +306,6 @@ impl HostedGameLifecycle for MahjongSession {
             Ok(game) => {
                 self.game = Some(game);
                 self.match_id = Some(new_match_id());
-                self.match_profile_stats = std::array::from_fn(|_| MahjongProfileStats::default());
                 self.finished_reference_changes = None;
                 self.deal_delay = Duration::ZERO;
                 self.room.bump_revision();
@@ -462,12 +460,18 @@ impl HostedGameLifecycle for MahjongSession {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         }
-        if source == target
-            || !self
-                .room
-                .players
-                .iter()
-                .any(|player| player.id == target && !player.left)
+        if source == target {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::CannotInteractWithSelf),
+            );
+        }
+        if !self
+            .room
+            .players
+            .iter()
+            .any(|player| player.id == target && !player.left)
         {
             return self.room.reject(
                 connection,

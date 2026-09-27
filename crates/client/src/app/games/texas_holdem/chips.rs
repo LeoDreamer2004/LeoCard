@@ -29,8 +29,8 @@ pub(crate) use view::*;
 const DENOMINATIONS: [u16; 5] = [100, 25, 10, 5, 1];
 const CHIP_SIZE: f32 = 30.0;
 const CHIP_MOVE_DURATION: f32 = 0.42;
-const PLAYER_CHIP_ZONE_WIDTH: f32 = 160.0;
-const PLAYER_CHIP_ZONE_HEIGHT: f32 = 82.0;
+const PLAYER_CHIP_ZONE_WIDTH: f32 = 170.0;
+const PLAYER_CHIP_ZONE_HEIGHT: f32 = 106.0;
 const TEXAS_CHIP_ZONE_FILTER: Color = Color::srgba(0.005, 0.018, 0.014, 0.26);
 
 #[derive(Component)]

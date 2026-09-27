@@ -178,6 +178,7 @@ pub(crate) fn render_texas_holdem_table(
         own,
         initial_deal.as_ref().map(|deal| deal.own_delays.as_slice()),
         ui,
+        social.interaction_menu_open,
         assets,
         game_assets,
         avatars,
@@ -212,7 +213,7 @@ fn add_community_area(
         Node {
             position_type: PositionType::Absolute,
             left: percent(50),
-            top: px(206),
+            top: px(160),
             width: px(560),
             height: px(90),
             flex_direction: FlexDirection::Column,

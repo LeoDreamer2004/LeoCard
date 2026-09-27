@@ -1,19 +1,21 @@
-use super::tiles::mahjong_deal_spec;
+use super::tiles::{mahjong_deal_spec, mahjong_draw_spec};
 use super::{
-    ActiveMahjongClaimPresentation, MAHJONG_OWN_HAND_LEFT, MAHJONG_REMOTE_MELD_WIDTH,
-    MahjongAssets, MahjongClaimHandShift, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
+    ActiveMahjongClaimPresentation, MAHJONG_REMOTE_DRAW_GAP, MAHJONG_REMOTE_MELD_WIDTH,
+    MahjongAssets, MahjongClaimHandShift, MahjongDiscardRiverTile, MahjongOwnDiscardAnimation,
+    MahjongRemoteDiscardAnimation, MahjongRemoteDiscardRiverTile, MahjongRemoteDiscardSpacer,
+    MahjongRemoteHandShift, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
     MahjongWinningHand, MahjongWinningHandVisual, add_mahjong_tile_material,
     apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x, mahjong_claim_landing_time,
-    mahjong_local_light, mahjong_local_shadow, mahjong_win_tile_cues,
-    mahjong_winning_hand_progress, mark_mahjong_win_tile, render_mahjong_meld,
-    render_mahjong_staged_meld, wind_label,
+    mahjong_local_light, mahjong_local_shadow, mahjong_own_row_left, mahjong_remote_tile_advance,
+    mahjong_remote_tile_overhang, mahjong_win_tile_cues, mahjong_winning_hand_progress,
+    mark_mahjong_win_tile, render_mahjong_meld, render_mahjong_staged_meld,
 };
 use crate::app::presentation::{
-    BORDER, DANGER, GameSummaryAnimation, MUTED, PANEL, PlayerMenuProfile, TEXT,
-    add_auto_play_robot_indicator, add_avatar, add_interaction_menu, add_text, spawn_node,
+    DANGER, GameSummaryAnimation, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT,
+    add_player_portrait, add_text, attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{OpponentBadge, PlayerAvatarAnchor, SeatSide, SocialUiAction, UiAction};
+use crate::app::shell::SeatSide;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{
@@ -23,6 +25,7 @@ use leocard_protocol::{
 pub(super) struct MahjongPlayerPanelVisuals<'a> {
     pub own_seat: u8,
     pub interaction_menu_open: Option<PlayerId>,
+    pub start_transition_active: bool,
     pub assets: &'a UiAssets,
     pub avatars: &'a AvatarImages,
 }
@@ -30,138 +33,90 @@ pub(super) struct MahjongPlayerPanelVisuals<'a> {
 pub(super) fn render_mahjong_player_panel(
     commands: &mut Commands,
     table: Entity,
-    game: &MahjongSnapshot,
     player: &MahjongPlayerState,
     visuals: MahjongPlayerPanelVisuals<'_>,
 ) {
     let MahjongPlayerPanelVisuals {
         own_seat,
         interaction_menu_open,
+        start_transition_active,
         assets,
         avatars,
     } = visuals;
     let relative = (player.seat.0 + 4 - own_seat) % 4;
-    let (left, top, bottom, width) = match relative {
-        0 => (8.0, None, Some(8.0), 165.0),
-        1 => (1107.0, Some(300.0), None, 165.0),
-        2 => (557.5, Some(8.0), None, 165.0),
-        _ => (8.0, Some(300.0), None, 165.0),
+    let (left, top, bottom) = match relative {
+        0 => (20.0, None, Some(8.0)),
+        1 => (1280.0 - 96.0 * 1.17 - 20.0, Some(284.0), None),
+        // Keep the taller portrait beside the upper hand, not over its tiles.
+        2 => (920.0, Some(8.0), None),
+        _ => (20.0, Some(284.0), None),
     };
-    let panel = commands
-        .spawn((
-            Button,
-            UiAction::Social(SocialUiAction::ToggleInteractionMenu(player.id)),
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(left),
-                top: top.map_or(Val::Auto, px),
-                bottom: bottom.map_or(Val::Auto, px),
-                width: px(width),
-                height: px(50),
-                padding: UiRect::all(px(6)),
-                flex_direction: FlexDirection::Column,
-                justify_content: JustifyContent::Center,
-                row_gap: px(3),
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(8)),
-                ..default()
-            },
-            BackgroundColor(PANEL.with_alpha(0.92)),
-            BorderColor::all(BORDER),
-            BoxShadow::new(Color::BLACK.with_alpha(0.32), px(0), px(3), px(0), px(7)),
-        ))
-        .id();
-    commands.entity(table).add_child(panel);
-    let head = spawn_node(
-        commands,
-        panel,
-        Node {
-            width: percent(100),
-            align_items: AlignItems::Center,
-            column_gap: px(7),
-            ..default()
-        },
-        None,
-    );
-    let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
-    let avatar_entity = add_avatar(commands, head, &player.name, avatar, 30.0, assets);
-    commands
-        .entity(avatar_entity)
-        .insert(PlayerAvatarAnchor(player.id));
-    if player.auto_play {
-        let side = match relative {
-            1 => SeatSide::Right,
-            2 => SeatSide::Top,
-            _ => SeatSide::Left,
-        };
-        add_auto_play_robot_indicator(commands, panel, player.id, side, assets);
-    }
-    let info = spawn_node(
-        commands,
-        head,
-        Node {
-            flex_grow: 1.0,
-            flex_direction: FlexDirection::Column,
-            ..default()
-        },
-        None,
-    );
-    add_text(
-        commands,
-        info,
-        format!(
-            "{}  {}{}",
-            player.name,
-            wind_label(player.seat_wind),
-            if player.id == game.dealer { "庄" } else { "" }
-        ),
-        14.0,
-        if player.dead_hand { DANGER } else { TEXT },
-        assets,
-    );
-    add_text(
-        commands,
-        info,
-        format!(
-            "花 {} · 累计 {:+}",
-            player.flowers.len(),
-            game.match_scores[player.id.0 as usize]
-        ),
-        10.0,
-        MUTED,
-        assets,
-    );
     let side = match relative {
         1 => SeatSide::Right,
         2 => SeatSide::Top,
         _ => SeatSide::Left,
     };
-    let menu = add_interaction_menu(
+    let portrait = add_player_portrait(
         commands,
-        panel,
-        player.id,
-        side,
-        PlayerMenuProfile {
-            name: &player.name,
-            avatar,
-            reference_points: player.reference_points,
-            completed_games: player.completed_games,
-            game_profiles: &player.game_profiles,
+        table,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(left),
+            top: top.map_or(Val::Auto, px),
+            bottom: bottom.map_or(Val::Auto, px),
+            width: px(96.0 * 1.17),
+            height: px(76.0 * 1.17 + 20.0),
+            ..default()
+        },
+        PlayerPortraitSpec {
+            player: player.id,
+            profile: PlayerMenuProfile {
+                name: &player.name,
+                avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
+                reference_points: player.reference_points,
+                completed_games: player.completed_games,
+                game_profiles: &player.game_profiles,
+            },
+            side,
+            avatar_size: 52.0 * 1.17,
+            auto_play: player.auto_play,
+            menu_open: interaction_menu_open == Some(player.id),
+            menu_above: relative == 0,
+            name_color: if player.dead_hand { DANGER } else { TEXT },
         },
         assets,
     );
+    attach_start_game_seat_transition(
+        commands,
+        portrait.portrait,
+        player.id,
+        start_transition_active,
+    );
+    let flower_count = spawn_node(
+        commands,
+        portrait.portrait,
+        Node {
+            position_type: PositionType::Absolute,
+            top: px(76.0 * 1.17 + 2.0),
+            width: percent(100),
+            height: px(18),
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        None,
+    );
+    commands.entity(flower_count).insert(FocusPolicy::Pass);
+    let label = add_text(
+        commands,
+        flower_count,
+        format!("补花 {}", player.flowers.len()),
+        13.0,
+        MUTED,
+        assets,
+    );
     commands
-        .entity(menu)
-        .insert(if interaction_menu_open == Some(player.id) {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        });
-    commands.entity(panel).insert(OpponentBadge {
-        player: player.id,
-        score_popup: None,
-        interaction_menu: menu,
-    });
+        .entity(label)
+        .insert((TextLayout::default().with_no_wrap(), FocusPolicy::Pass));
 }
 
 pub(super) fn render_mahjong_wall(
@@ -175,7 +130,7 @@ pub(super) fn render_mahjong_wall(
     for side in 0..4 {
         let count = stack_count.saturating_sub(side * 18).min(18);
         let (left, top, rotation) = match side {
-            0 => (460.0, 135.0, 0.0),
+            0 => (460.0, 105.0, 0.0),
             1 => (820.0, 302.0, std::f32::consts::FRAC_PI_2),
             2 => (460.0, 480.0, std::f32::consts::PI),
             _ => (100.0, 302.0, -std::f32::consts::FRAC_PI_2),
@@ -275,8 +230,10 @@ pub(super) struct MahjongPlayerTileVisuals<'a> {
     pub dealing: bool,
     pub winning_hand: Option<MahjongWinningHandVisual>,
     pub separate_last_concealed: bool,
+    pub drawn_tile_falling: bool,
     pub animation: &'a GameSummaryAnimation,
     pub active_claim: Option<&'a ActiveMahjongClaimPresentation>,
+    pub remote_discard: Option<&'a MahjongRemoteDiscardAnimation>,
     pub result: Option<&'a MahjongHandResultView>,
     pub game_assets: &'a MahjongAssets,
     pub materials: &'a mut Assets<MahjongTileMaterial>,
@@ -295,8 +252,10 @@ pub(super) fn render_mahjong_player_tiles(
         dealing,
         winning_hand,
         separate_last_concealed,
+        drawn_tile_falling,
         animation,
         active_claim,
+        remote_discard,
         result,
         game_assets,
         materials,
@@ -306,11 +265,27 @@ pub(super) fn render_mahjong_player_tiles(
         .unwrap_or_default();
     let winning_hand = winning_hand.is_some();
     let relative = (player.seat.0 + 4 - own_seat) % 4;
+    let remote_discard =
+        remote_discard.filter(|active| active.player == player.id && relative != 0);
+    let separate_last_concealed = remote_discard
+        .map(|active| active.from_drawn)
+        .unwrap_or(separate_last_concealed);
     if relative == 0 && player.melds.is_empty() {
         return;
     }
     let (left, top, bottom, width, height, rotation) = match relative {
-        0 => (MAHJONG_OWN_HAND_LEFT, None, Some(8.0), 760.0, 80.0, 0.0),
+        0 => (
+            mahjong_own_row_left(
+                player.melds.len(),
+                usize::from(player.concealed_count)
+                    .saturating_sub(usize::from(separate_last_concealed)),
+            ),
+            None,
+            Some(8.0),
+            760.0,
+            80.0,
+            0.0,
+        ),
         1 => (
             840.0,
             Some(302.0),
@@ -319,7 +294,7 @@ pub(super) fn render_mahjong_player_tiles(
             54.0,
             -std::f32::consts::FRAC_PI_2,
         ),
-        2 => (415.0, Some(58.0), None, 450.0, 54.0, std::f32::consts::PI),
+        2 => (415.0, Some(56.0), None, 450.0, 54.0, std::f32::consts::PI),
         _ => (
             -10.0,
             Some(302.0),
@@ -340,7 +315,11 @@ pub(super) fn render_mahjong_player_tiles(
             width: px(width),
             height: px(height),
             align_items: AlignItems::FlexEnd,
-            justify_content: JustifyContent::FlexStart,
+            justify_content: if relative == 0 {
+                JustifyContent::FlexStart
+            } else {
+                JustifyContent::Center
+            },
             flex_direction: FlexDirection::Row,
             column_gap: px(0),
             ..default()
@@ -372,6 +351,24 @@ pub(super) fn render_mahjong_player_tiles(
 
     let staged_claim = active_claim
         .filter(|claim| claim.source.is_some() && claim.elapsed < mahjong_claim_landing_time());
+    if relative != 0 && separate_last_concealed && player.revealed_hand.is_none() {
+        let draw_width = MAHJONG_REMOTE_DRAW_GAP + mahjong_remote_tile_advance(relative, false);
+        let spacer = spawn_node(
+            commands,
+            group,
+            Node {
+                width: px(draw_width),
+                min_width: px(draw_width),
+                height: px(1),
+                ..default()
+            },
+            None,
+        );
+        commands.entity(spacer).insert(FocusPolicy::Pass);
+        if remote_discard.is_some_and(|active| active.from_drawn) {
+            commands.entity(spacer).insert(MahjongRemoteDiscardSpacer);
+        }
+    }
     let mut meld_index = 20;
     let visible_meld_count = player
         .melds
@@ -445,7 +442,8 @@ pub(super) fn render_mahjong_player_tiles(
                 )),
             ));
         }
-        let concealed_count = usize::from(player.concealed_count);
+        let concealed_count =
+            usize::from(player.concealed_count) + usize::from(remote_discard.is_some());
         let hidden_size = match relative {
             1 | 3 => MahjongTileSize::HiddenSide,
             _ => MahjongTileSize::HiddenOpposite,
@@ -487,12 +485,18 @@ pub(super) fn render_mahjong_player_tiles(
         } else {
             let joined_count = concealed_count.saturating_sub(usize::from(separate_last_concealed));
             for index in 0..joined_count {
-                add_mahjong_tile_material(
+                let ghost =
+                    remote_discard.filter(|active| !active.from_drawn && index == joined_count / 2);
+                let entity = add_mahjong_tile_material(
                     commands,
                     concealed,
                     MahjongTileVisual {
-                        kind: None,
-                        size: hidden_size,
+                        kind: ghost.map(|active| active.tile.kind()),
+                        size: if ghost.is_some() {
+                            MahjongTileSize::River
+                        } else {
+                            hidden_size
+                        },
                         index,
                         highlighted: false,
                         deal: (dealing
@@ -504,6 +508,32 @@ pub(super) fn render_mahjong_player_tiles(
                     game_assets,
                     materials,
                 );
+                if let Some(active) = ghost {
+                    commands
+                        .entity(entity)
+                        .entry::<Node>()
+                        .and_modify(move |mut node| {
+                            node.margin.right = px(if relative == 2 { -6 } else { -4 });
+                        });
+                    let advance = mahjong_remote_tile_advance(relative, false);
+                    let (ghost, transform) = active.ghost_visual(advance * 0.5);
+                    commands
+                        .entity(entity)
+                        .insert((ghost, transform, GlobalZIndex(900)));
+                } else if let Some(active) = remote_discard.filter(|active| !active.from_drawn) {
+                    let advance = mahjong_remote_tile_advance(relative, false);
+                    // The new centered row begins half a tile to the left. Keep the
+                    // left half fixed and slide only the tiles after the discard.
+                    let (start_x, end_x) = if index < joined_count / 2 {
+                        (advance * 0.5, advance * 0.5)
+                    } else {
+                        (advance * 0.5, -advance * 0.5)
+                    };
+                    commands.entity(entity).insert((
+                        MahjongRemoteHandShift { start_x, end_x },
+                        active.hand_shift_transform(start_x, end_x),
+                    ));
+                }
             }
             if separate_last_concealed && concealed_count > 0 {
                 let gap = spawn_node(
@@ -518,21 +548,60 @@ pub(super) fn render_mahjong_player_tiles(
                     None,
                 );
                 commands.entity(gap).insert(FocusPolicy::Pass);
-                add_mahjong_tile_material(
+                if remote_discard.is_some_and(|active| active.from_drawn) {
+                    commands.entity(gap).insert(MahjongRemoteDiscardSpacer);
+                }
+                let entity = add_mahjong_tile_material(
                     commands,
                     concealed,
                     MahjongTileVisual {
-                        kind: None,
-                        size: hidden_size,
+                        kind: remote_discard
+                            .filter(|active| active.from_drawn)
+                            .map(|active| active.tile.kind()),
+                        size: if remote_discard.is_some_and(|active| active.from_drawn) {
+                            MahjongTileSize::River
+                        } else {
+                            hidden_size
+                        },
                         index: concealed_count - 1,
                         highlighted: false,
-                        deal: None,
+                        deal: drawn_tile_falling.then(|| mahjong_draw_spec(relative)),
                         relative,
                     },
                     game_assets,
                     materials,
                 );
+                if let Some(active) = remote_discard.filter(|active| active.from_drawn) {
+                    commands
+                        .entity(entity)
+                        .entry::<Node>()
+                        .and_modify(move |mut node| {
+                            node.margin.right = px(if relative == 2 { -6 } else { -4 });
+                        });
+                    let (ghost, transform) = active.ghost_visual(0.0);
+                    commands
+                        .entity(entity)
+                        .insert((ghost, transform, GlobalZIndex(900)));
+                }
             }
+        }
+        if concealed_count > 0 {
+            let overhang = mahjong_remote_tile_overhang(
+                relative,
+                player.revealed_hand.is_some() && winning_hand,
+            );
+            let spacer = spawn_node(
+                commands,
+                concealed,
+                Node {
+                    width: px(overhang),
+                    min_width: px(overhang),
+                    height: px(1),
+                    ..default()
+                },
+                None,
+            );
+            commands.entity(spacer).insert(FocusPolicy::Pass);
         }
     }
 }
@@ -542,6 +611,8 @@ pub(super) fn render_discard_rivers(
     table: Entity,
     game: &MahjongSnapshot,
     own_seat: u8,
+    discard_animation: Option<&MahjongOwnDiscardAnimation>,
+    remote_discard: Option<&MahjongRemoteDiscardAnimation>,
     assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
@@ -557,9 +628,9 @@ pub(super) fn render_discard_rivers(
         let relative = (player.seat.0 + 4 - own_seat) % 4;
         let (left, top, rotation) = match relative {
             0 => (549.0, 382.0, 0.0),
-            1 => (785.0, 245.0, -std::f32::consts::FRAC_PI_2),
-            2 => (533.0, 160.0, std::f32::consts::PI),
-            _ => (281.0, 245.0, std::f32::consts::FRAC_PI_2),
+            1 => (735.0, 245.0, -std::f32::consts::FRAC_PI_2),
+            2 => (533.0, 150.0, std::f32::consts::PI),
+            _ => (331.0, 245.0, std::f32::consts::FRAC_PI_2),
         };
         let river = spawn_node(
             commands,
@@ -609,6 +680,16 @@ pub(super) fn render_discard_rivers(
                 assets,
                 materials,
             );
+            if discard_animation.is_some_and(|animation| animation.discard_index == index) {
+                commands
+                    .entity(entity)
+                    .insert((MahjongDiscardRiverTile, Visibility::Hidden));
+            }
+            if remote_discard.is_some_and(|animation| animation.discard_index == index) {
+                commands
+                    .entity(entity)
+                    .insert((MahjongRemoteDiscardRiverTile, Visibility::Hidden));
+            }
             if let (Some(result), Some(cues)) = (result, cues) {
                 mark_mahjong_win_tile(commands, entity, result, cues);
             }

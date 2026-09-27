@@ -38,8 +38,6 @@ pub(crate) struct ControlAssets {
     pub panel_window: Handle<Image>,
     pub panel_section: Handle<Image>,
     pub panel_popup: Handle<Image>,
-    pub player_panel_wide: Handle<Image>,
-    pub player_panel_compact: Handle<Image>,
     pub robot_icon: Handle<Image>,
     pub host_crown: Handle<Image>,
     pub github_mark: Handle<Image>,

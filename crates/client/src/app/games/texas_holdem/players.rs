@@ -1,18 +1,20 @@
 use super::{
-    TexasChipTableState, TexasHoldemAssets, TexasPlayerPanel, texas_player_border_color,
-    texas_player_status,
+    TexasChipTableState, TexasHoldemAssets, TexasPlayerPanel, TexasPlayerShake,
+    texas_player_border_color, texas_player_chip_zone,
 };
 use crate::app::presentation::{
-    ACCENT, HEADER_BG, MUTED, PlayerMenuProfile, TEXT, TURN_BORDER_THICKNESS,
-    TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_robot_indicator, add_avatar,
-    add_interaction_menu, add_player_panel_primary_value, add_text, add_turn_border_trace,
-    attach_start_game_seat_transition, decorate_player_panel, position_opponent_popup, spawn_node,
+    ACCENT, HEADER_BG, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
+    TurnBorderMaterial, add_player_portrait, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, position_opponent_popup, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{OpponentBadge, PlayerAvatarAnchor, SeatSide, SocialUiAction, UiAction};
+use crate::app::shell::{OpponentBadge, SeatSide};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{GameKind, PlayerId, TexasHoldemPlayerState, TexasHoldemSnapshot};
+
+pub(super) const TEXAS_PORTRAIT_WIDTH: f32 = 96.0 * 1.17;
+pub(super) const TEXAS_PORTRAIT_HEIGHT: f32 = 76.0 * 1.17 + 34.0;
 
 #[expect(
     clippy::too_many_arguments,
@@ -32,101 +34,98 @@ pub(super) fn add_texas_opponent(
     chip_state: &TexasChipTableState,
     start_transition_active: bool,
 ) {
-    let (left, right, top, bottom, side) = match relative {
-        // 两侧座位按牌桌高度定位，既向中部收拢，也能随窗口高度稳定缩放。
-        1 => (px(18), Val::Auto, Val::Auto, percent(30), SeatSide::Left),
-        2 => (px(18), Val::Auto, percent(25), Val::Auto, SeatSide::Left),
-        3 => (px(528), Val::Auto, px(26), Val::Auto, SeatSide::Top),
-        4 => (Val::Auto, px(18), percent(25), Val::Auto, SeatSide::Right),
-        5 => (Val::Auto, px(18), Val::Auto, percent(30), SeatSide::Right),
+    let side = match relative {
+        1 | 2 => SeatSide::Left,
+        3 => SeatSide::Top,
+        4 | 5 => SeatSide::Right,
         _ => return,
     };
-    let mut node = Node {
-        position_type: PositionType::Absolute,
-        width: px(224),
-        min_width: px(224),
-        height: px(72),
-        min_height: px(72),
-        max_height: px(72),
-        flex_shrink: 0.0,
-        padding: match side {
-            SeatSide::Left | SeatSide::Top => UiRect::new(px(8), px(68), px(4), px(4)),
-            SeatSide::Right => UiRect::new(px(68), px(8), px(4), px(4)),
-        },
-        flex_direction: FlexDirection::Row,
-        align_items: AlignItems::Center,
-        column_gap: px(8),
-        border: UiRect::all(px(TURN_BORDER_THICKNESS)),
-        border_radius: BorderRadius::all(px(8)),
-        ..default()
+    let zone = texas_player_chip_zone(relative);
+    let left = match side {
+        SeatSide::Left => zone.left - TEXAS_PORTRAIT_WIDTH - 8.0,
+        SeatSide::Top | SeatSide::Right => zone.left + zone.width + 8.0,
     };
-    node.left = left;
-    node.right = right;
-    node.top = top;
-    node.bottom = bottom;
-    let base_border = texas_player_border_color(player, game.current_player == Some(player.id));
-    let panel = commands
-        .spawn((
-            Button,
-            UiAction::Social(SocialUiAction::ToggleInteractionMenu(player.id)),
-            node,
-            BackgroundColor(HEADER_BG.with_alpha(if player.folded { 0.62 } else { 0.94 })),
-            BorderColor::all(base_border),
-            BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(0)),
-        ))
-        .id();
-    commands.entity(table).add_child(panel);
-    commands.entity(panel).insert(TexasPlayerPanel {
-        player: player.id,
-        base_border,
-    });
-    attach_start_game_seat_transition(commands, panel, player.id, start_transition_active);
-    decorate_player_panel(commands, panel, assets, 1.0);
-    if !player.folded && game.current_player == Some(player.id) {
-        add_turn_border_trace(
-            commands,
-            panel,
-            turn_border_materials,
-            TurnBorderAnimationKey::new(GameKind::TexasHoldem, game.match_id, player.id),
-        );
-    }
-    let avatar_handle = player.avatar.and_then(|id| avatars.remote.get(&id));
-    let avatar = add_avatar(commands, panel, &player.name, avatar_handle, 32.0, assets);
-    commands
-        .entity(avatar)
-        .insert(PlayerAvatarAnchor(player.id));
-    if player.auto_play {
-        add_auto_play_robot_indicator(commands, panel, player.id, side, assets);
-    }
-    add_role_tokens(commands, avatar, player.id, game, assets);
-    let info = spawn_node(
+    let top = if matches!(side, SeatSide::Top) {
+        zone.top + (zone.height - TEXAS_PORTRAIT_HEIGHT) * 0.5 - 16.0
+    } else {
+        zone.top + (zone.height - TEXAS_PORTRAIT_HEIGHT) * 0.5
+    };
+    let seat = spawn_node(
         commands,
-        panel,
+        table,
         Node {
-            flex_direction: FlexDirection::Column,
-            row_gap: px(1),
-            width: px(82),
-            min_width: px(82),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
+            position_type: PositionType::Absolute,
+            left: px(left),
+            top: px(top),
+            width: px(TEXAS_PORTRAIT_WIDTH),
+            height: px(TEXAS_PORTRAIT_HEIGHT),
             ..default()
         },
         None,
     );
-    add_text(commands, info, &player.name, 14.0, TEXT, assets);
-    add_text(
+    commands.entity(seat).insert(TexasPlayerShake(player.id));
+    attach_start_game_seat_transition(commands, seat, player.id, start_transition_active);
+    let portrait = add_player_portrait(
         commands,
-        info,
-        texas_player_status(player),
-        12.0,
-        MUTED,
+        seat,
+        Node {
+            width: px(TEXAS_PORTRAIT_WIDTH),
+            height: px(TEXAS_PORTRAIT_HEIGHT),
+            ..default()
+        },
+        PlayerPortraitSpec {
+            player: player.id,
+            profile: PlayerMenuProfile {
+                name: &player.name,
+                avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
+                reference_points: player.reference_points,
+                completed_games: player.completed_games,
+                game_profiles: &player.game_profiles,
+            },
+            side,
+            avatar_size: 52.0 * 1.17,
+            auto_play: player.auto_play,
+            menu_open: interaction_menu_open == Some(player.id),
+            menu_above: false,
+            name_color: if player.folded { MUTED } else { TEXT },
+        },
         assets,
     );
-    add_player_panel_primary_value(commands, panel, side, player.stack, assets);
+    let base_border = texas_player_border_color(player, game.current_player == Some(player.id));
+    commands
+        .entity(portrait.avatar_ring)
+        .entry::<Node>()
+        .and_modify(|mut node| node.border_radius = BorderRadius::all(px(52.0 * 1.17 * 0.2)));
+    commands.entity(portrait.avatar_ring).insert((
+        TexasPlayerPanel {
+            player: player.id,
+            base_border,
+        },
+        Outline::new(px(3.0), px(0), base_border),
+        BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(0)),
+    ));
+    if !player.folded && game.current_player == Some(player.id) {
+        add_turn_border_trace_with_radius(
+            commands,
+            portrait.avatar_ring,
+            turn_border_materials,
+            TurnBorderAnimationKey::new(GameKind::TexasHoldem, game.match_id, player.id),
+            52.0 * 1.17 * 0.2,
+            52.0 * 1.17,
+        );
+    }
+    add_role_tokens(commands, portrait.avatar_ring, player.id, game, assets);
+    add_texas_stack_value(
+        commands,
+        portrait.portrait,
+        player.stack,
+        assets,
+        game_assets,
+    );
 
     let popup = add_texas_chip_popup(
         commands,
-        panel,
+        seat,
         &player.name,
         player.stack,
         Some(side),
@@ -135,32 +134,86 @@ pub(super) fn add_texas_opponent(
         &chip_state.stack_counts(player.id),
     );
     commands.entity(popup).insert(Visibility::Hidden);
-    let menu = add_interaction_menu(
-        commands,
-        panel,
-        player.id,
-        side,
-        PlayerMenuProfile {
-            name: &player.name,
-            avatar: avatar_handle,
-            reference_points: player.reference_points,
-            completed_games: player.completed_games,
-            game_profiles: &player.game_profiles,
-        },
-        assets,
-    );
     commands
-        .entity(menu)
-        .insert(if interaction_menu_open == Some(player.id) {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
+        .entity(portrait.portrait)
+        .entry::<OpponentBadge>()
+        .and_modify(move |mut badge| {
+            badge.score_popup = Some(popup);
         });
-    commands.entity(panel).insert(OpponentBadge {
-        player: player.id,
-        score_popup: Some(popup),
-        interaction_menu: menu,
-    });
+}
+
+pub(super) fn add_texas_stack_value(
+    commands: &mut Commands,
+    portrait: Entity,
+    stack: u32,
+    assets: &UiAssets,
+    game_assets: &TexasHoldemAssets,
+) {
+    let node = Node {
+        position_type: PositionType::Absolute,
+        top: px(76.0 * 1.17 + 2.0),
+        width: percent(100),
+        height: px(31),
+        align_items: AlignItems::Center,
+        justify_content: JustifyContent::Center,
+        column_gap: px(8),
+        ..default()
+    };
+    let area = spawn_node(commands, portrait, node, None);
+    commands.entity(area).insert(FocusPolicy::Pass);
+    let fan = spawn_node(
+        commands,
+        area,
+        Node {
+            width: px(35),
+            height: px(30),
+            position_type: PositionType::Relative,
+            flex_shrink: 0.0,
+            ..default()
+        },
+        None,
+    );
+    commands.entity(fan).insert(FocusPolicy::Pass);
+    for (denomination, left, top, rotation, color, layer) in [
+        (1, 1.0, 6.0, -0.22, Color::BLACK, 0),
+        (5, 12.0, 1.0, 0.16, Color::WHITE, 1),
+    ] {
+        let Some(image) = game_assets.poker_chips.get(&denomination) else {
+            continue;
+        };
+        let chip = commands
+            .spawn((
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(left),
+                    top: px(top),
+                    width: px(24),
+                    height: px(24),
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                },
+                ImageNode::new(image.clone()),
+                UiTransform::from_rotation(Rot2::radians(rotation)),
+                ZIndex(layer),
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(fan).add_child(chip);
+        let label = add_text(commands, chip, denomination.to_string(), 9.0, color, assets);
+        commands.entity(label).insert(FocusPolicy::Pass);
+    }
+    let digits = stack.to_string();
+    let font_size = (28.0 - digits.len().saturating_sub(3) as f32 * 2.5).max(17.0);
+    let value = add_text(commands, area, digits, font_size, ACCENT, assets);
+    commands.entity(value).insert((
+        TextLayout::default().with_no_wrap(),
+        TextShadow {
+            offset: Vec2::new(1.5, 2.0),
+            color: Color::BLACK.with_alpha(0.82),
+        },
+        FocusPolicy::Pass,
+    ));
 }
 
 pub(super) fn add_role_tokens(
@@ -245,14 +298,20 @@ pub(super) fn add_texas_chip_popup(
     };
     if let Some(side) = opponent_side {
         position_opponent_popup(&mut node, side);
+        node.top = px(TEXAS_PORTRAIT_HEIGHT + 6.0);
     } else {
-        node.left = px(10);
-        node.bottom = px(64);
-        node.width = px(410);
+        node.left = px(TEXAS_PORTRAIT_WIDTH + 8.0);
+        node.top = px((76.0 * 1.17 - 58.0) * 0.5);
+        node.width = px(330);
         node.min_height = px(58);
-        node.padding = UiRect::new(px(6), px(76), px(6), px(6));
+        node.padding = UiRect::new(px(76), px(6), px(6), px(6));
     }
-    let popup = spawn_node(commands, parent, node, Some(Color::BLACK.with_alpha(0.30)));
+    let background = if opponent_side.is_some() {
+        Color::BLACK.with_alpha(0.78)
+    } else {
+        Color::BLACK.with_alpha(0.30)
+    };
+    let popup = spawn_node(commands, parent, node, Some(background));
     commands.entity(popup).insert((
         BorderColor::all(ACCENT.with_alpha(0.72)),
         GlobalZIndex(1500),
@@ -274,10 +333,10 @@ pub(super) fn add_texas_chip_popup(
             popup,
             Node {
                 position_type: PositionType::Absolute,
-                right: px(5),
+                left: px(6),
                 top: px(4),
                 bottom: px(4),
-                width: px(66),
+                width: px(65),
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
@@ -286,18 +345,11 @@ pub(super) fn add_texas_chip_popup(
             },
             None,
         );
-        commands
-            .entity(value_area)
-            .insert((ZIndex(3), FocusPolicy::Pass));
-        add_text(commands, value_area, "筹码", 10.0, MUTED, assets);
-        let value = add_text(
-            commands,
-            value_area,
-            stack.to_string(),
-            30.0,
-            ACCENT,
-            assets,
-        );
+        commands.entity(value_area).insert(FocusPolicy::Pass);
+        add_text(commands, value_area, "剩余", 10.0, MUTED, assets);
+        let digits = stack.to_string();
+        let font_size = (28.0 - digits.len().saturating_sub(3) as f32 * 2.5).max(17.0);
+        let value = add_text(commands, value_area, digits, font_size, ACCENT, assets);
         commands.entity(value).insert(TextShadow {
             offset: Vec2::new(1.5, 2.0),
             color: Color::BLACK.with_alpha(0.82),
@@ -313,7 +365,7 @@ pub(super) fn add_texas_chip_popup(
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::FlexStart,
-            column_gap: px(18),
+            column_gap: px(if opponent_side.is_some() { 18 } else { 10 }),
             ..default()
         },
         None,

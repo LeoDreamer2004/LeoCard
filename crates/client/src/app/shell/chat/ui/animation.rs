@@ -51,21 +51,9 @@ pub(crate) fn animate_chat_bubbles(
         let fade = ((bubble.duration - bubble.elapsed) / 0.48).clamp(0.0, 1.0);
         let alpha = enter * fade;
         transform.translation = Val2::px(0.0, 9.0 * (1.0 - enter) - bubble.elapsed * 1.4);
-        transform.scale = Vec2::splat(if bubble.emoji {
-            0.84 + enter * 0.16
-        } else {
-            0.88 + enter * 0.12
-        });
-        background.0 = if bubble.emoji {
-            Color::NONE
-        } else {
-            PANEL.with_alpha(0.96 * alpha)
-        };
-        border.set_all(if bubble.emoji {
-            Color::NONE
-        } else {
-            ACCENT.with_alpha(0.78 * alpha)
-        });
+        transform.scale = Vec2::splat(0.88 + enter * 0.12);
+        background.0 = PANEL.with_alpha(if bubble.emoji { alpha } else { 0.96 * alpha });
+        border.set_all(ACCENT.with_alpha(0.78 * alpha));
         if let Some(text) = bubble.text
             && let Ok(mut color) = texts.get_mut(text)
         {

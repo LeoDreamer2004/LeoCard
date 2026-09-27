@@ -8,9 +8,9 @@ use super::{
     uno_ui_color,
 };
 use crate::app::presentation::{
-    ACCENT, DANGER, DESIGN_WIDTH, GameSummaryAnimation, HEADER_BG, TEXT, TableBackground,
-    TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay, add_text, spawn_node,
-    table_material_params,
+    ACCENT, DANGER, DESIGN_WIDTH, GameSummaryAnimation, HEADER_BG, StartGameSeatTransition, TEXT,
+    TableBackground, TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay, add_text,
+    spawn_node, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
@@ -43,6 +43,7 @@ pub(crate) struct UnoTableVisuals<'a> {
     pub vignette: f32,
     pub table_materials: &'a mut Assets<TableBackgroundMaterial>,
     pub turn_border_materials: &'a mut Assets<TurnBorderMaterial>,
+    pub start_game_transition: &'a StartGameSeatTransition,
     pub game_summary: &'a GameSummaryAnimation,
 }
 
@@ -69,6 +70,7 @@ pub(crate) fn render_uno_table(
         vignette,
         table_materials,
         turn_border_materials,
+        start_game_transition,
         game_summary,
     } = visuals;
     let content = spawn_node(
@@ -149,6 +151,7 @@ pub(crate) fn render_uno_table(
         (player.seat.0 + UnoRuleSet::MAX_PLAYERS - own.seat.0) % UnoRuleSet::MAX_PLAYERS
     });
     let opponent_count = opponents.len();
+    let start_transition_active = start_game_transition.is_active_for(game.match_id);
     for (index, player) in opponents.into_iter().enumerate() {
         add_uno_player_panel(
             commands,
@@ -162,6 +165,7 @@ pub(crate) fn render_uno_table(
             assets,
             game_assets,
             turn_border_materials,
+            start_transition_active,
         );
     }
 
@@ -172,9 +176,12 @@ pub(crate) fn render_uno_table(
         game,
         own,
         ui,
+        social,
+        avatars,
         assets,
         game_assets,
         turn_border_materials,
+        start_transition_active,
     );
     add_uno_actions(commands, table, game, ui, assets);
     add_uno_callout_actions(commands, table, game, assets);

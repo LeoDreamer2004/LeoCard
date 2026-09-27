@@ -1,17 +1,18 @@
 use super::{
     MAHJONG_CLAIM_FLIGHT_DELAY, MAHJONG_CLAIM_FLIGHT_DURATION, MAHJONG_CLAIM_HAND_SHIFT_DURATION,
     MAHJONG_CLAIM_PRESENTATION_DURATION, MAHJONG_FLOWER_PRESENTATION_DURATION,
-    MAHJONG_OWN_HAND_LEFT, MAHJONG_REMOTE_MELD_WIDTH, MahjongAssets, MahjongClaimFlight,
+    MAHJONG_OWN_MELD_WIDTH, MAHJONG_REMOTE_MELD_WIDTH, MahjongAssets, MahjongClaimFlight,
     MahjongClaimHandShift, MahjongClaimHeldTile, MahjongClaimLabel, MahjongClaimPresentationState,
     MahjongFlowerLabel, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
-    add_mahjong_tile_material, mahjong_claim_landing_time,
+    add_mahjong_tile_material, mahjong_claim_landing_time, mahjong_own_row_left,
+    mahjong_remote_row_width,
 };
 use crate::app::presentation::{ACCENT, TEXT, add_text, ease_out_cubic, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_mahjong::{MahjongClaim, MahjongTileKind};
-use leocard_protocol::{MahjongSnapshot, PlayerId};
+use leocard_protocol::{MahjongPhaseView, MahjongSnapshot, PlayerId};
 
 fn mahjong_claim_label(claim: MahjongClaim) -> &'static str {
     match claim {
@@ -51,15 +52,27 @@ impl MahjongSeatGeometry {
     fn meld_anchor(
         relative: u8,
         meld_count: usize,
+        concealed_count: usize,
+        revealed: bool,
+        separated: bool,
         claim: MahjongClaim,
         tile: MahjongTileKind,
     ) -> Vec2 {
         let meld_index = meld_count.saturating_sub(1) as f32;
+        let regular_count = concealed_count.saturating_sub(usize::from(separated));
+        let remote_start =
+            (450.0 - mahjong_remote_row_width(relative, meld_count, regular_count, revealed)) / 2.0;
+        let remote_meld_center = remote_start + 39.0 + meld_index * MAHJONG_REMOTE_MELD_WIDTH;
         let center = match relative {
-            0 => Vec2::new(MAHJONG_OWN_HAND_LEFT + 70.0 + meld_index * 140.0, 610.0),
-            1 => Vec2::new(1073.5, 516.5 - meld_index * MAHJONG_REMOTE_MELD_WIDTH),
-            2 => Vec2::new(827.5 - meld_index * MAHJONG_REMOTE_MELD_WIDTH, 76.5),
-            _ => Vec2::new(206.5, 141.5 + meld_index * MAHJONG_REMOTE_MELD_WIDTH),
+            0 => Vec2::new(
+                mahjong_own_row_left(meld_count, regular_count)
+                    + 70.0
+                    + meld_index * MAHJONG_OWN_MELD_WIDTH,
+                610.0,
+            ),
+            1 => Vec2::new(1073.5, 554.0 - remote_meld_center),
+            2 => Vec2::new(865.0 - remote_meld_center, 74.5),
+            _ => Vec2::new(206.5, 104.0 + remote_meld_center),
         };
         let slot = match (claim, tile) {
             (MahjongClaim::Chow { start }, MahjongTileKind::Suited { rank, .. }) => {
@@ -164,14 +177,26 @@ pub(crate) fn render_mahjong_claim_presentation(
             return;
         };
         let start = MahjongSeatGeometry::river_anchor(source_relative);
-        let meld_count = game
+        let player = game
             .players
             .iter()
-            .find(|player| player.id == active.player)
-            .map_or(1, |player| player.melds.len());
+            .find(|player| player.id == active.player);
+        let meld_count = player.map_or(1, |player| player.melds.len());
+        let concealed_count = player.map_or(0, |player| usize::from(player.concealed_count));
+        let revealed = player.is_some_and(|player| player.revealed_hand.is_some());
+        let separated = !revealed
+            && matches!(
+                game.phase,
+                MahjongPhaseView::Playing | MahjongPhaseView::ReplacingFlower { .. }
+            )
+            && game.current_player == active.player
+            && concealed_count % 3 == 2;
         let target = MahjongSeatGeometry::meld_anchor(
             target_relative,
             meld_count,
+            concealed_count,
+            revealed,
+            separated,
             active.claim,
             tile.kind(),
         );

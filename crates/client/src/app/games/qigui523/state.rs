@@ -24,7 +24,7 @@ pub(super) struct SeatVisuals<'a> {
 
 #[derive(Clone, Copy)]
 pub(super) enum ScoreCardsPopupPlacement {
-    Opponent(SeatSide),
+    Opponent { side: SeatSide, above: bool },
     Own,
 }
 

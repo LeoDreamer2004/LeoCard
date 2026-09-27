@@ -267,6 +267,7 @@ fn game_waiting_for_win_pung_and_chow() -> GameState {
         player: MahjongPlayerId(0),
         tile,
         claimed_by: None,
+        from_drawn: false,
     });
     game.phase = Phase::WaitingForClaims(
         game.pending_for_discard(0, MahjongPlayerId(0), tile)

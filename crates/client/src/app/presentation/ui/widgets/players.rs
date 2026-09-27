@@ -4,76 +4,12 @@ use super::super::{ACCENT, BORDER, ButtonTint, HEADER_BG, MUTED, PANEL_ALT, READ
 use super::{add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    AutoPlayAntennaLight, AutoPlayAntennaLightPart, AutoPlayRobotIndicator,
     InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction, PlayerProfilePage, SeatSide,
     SocialUiAction, UiAction, reference_level,
 };
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerGameProfiles, PlayerId, PlayerInteractionKind};
-
-pub(crate) fn decorate_player_panel(
-    commands: &mut Commands,
-    panel: Entity,
-    assets: &UiAssets,
-    scale: f32,
-) {
-    let image = if scale < 1.0 {
-        assets.controls.player_panel_compact.clone()
-    } else {
-        assets.controls.player_panel_wide.clone()
-    };
-    let texture = commands
-        .spawn((
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                top: px(0),
-                width: percent(100),
-                height: percent(100),
-                border_radius: BorderRadius::all(px(7)),
-                ..default()
-            },
-            ImageNode::new(image)
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(Color::srgba(1.0, 1.0, 1.0, 0.82)),
-            ZIndex(-1),
-            FocusPolicy::Pass,
-        ))
-        .id();
-    commands.entity(panel).add_child(texture);
-}
-
-/// 人物框靠牌桌内侧的大号数值区域。七鬼五二三用于本局得分，德州用于剩余筹码。
-pub(crate) fn add_player_panel_primary_value(
-    commands: &mut Commands,
-    badge: Entity,
-    side: SeatSide,
-    value: impl ToString,
-    assets: &UiAssets,
-) -> Entity {
-    let mut node = Node {
-        position_type: PositionType::Absolute,
-        top: px(0),
-        bottom: px(0),
-        width: px(66),
-        align_items: AlignItems::Center,
-        justify_content: JustifyContent::Center,
-        ..default()
-    };
-    match side {
-        SeatSide::Left | SeatSide::Top => node.right = px(2),
-        SeatSide::Right => node.left = px(2),
-    }
-    let area = spawn_node(commands, badge, node, None);
-    commands.entity(area).insert((ZIndex(2), FocusPolicy::Pass));
-    let text = add_text(commands, area, value.to_string(), 28.0, ACCENT, assets);
-    commands.entity(text).insert(TextShadow {
-        offset: Vec2::new(1.5, 2.0),
-        color: Color::BLACK.with_alpha(0.82),
-    });
-    text
-}
 
 pub(crate) fn add_avatar(
     commands: &mut Commands,
@@ -206,91 +142,6 @@ pub(crate) fn avatar_color(name: &str) -> Color {
         .bytes()
         .fold(0_usize, |hash, byte| hash.wrapping_mul(31) + byte as usize);
     COLORS[hash % COLORS.len()]
-}
-
-pub(crate) fn add_auto_play_robot_indicator(
-    commands: &mut Commands,
-    badge: Entity,
-    player: PlayerId,
-    side: SeatSide,
-    assets: &UiAssets,
-) {
-    let mut node = Node {
-        position_type: PositionType::Absolute,
-        top: px(19),
-        width: px(34),
-        height: px(34),
-        ..default()
-    };
-    match side {
-        SeatSide::Left | SeatSide::Top => node.right = px(-38),
-        SeatSide::Right => node.left = px(-38),
-    }
-    let indicator = commands
-        .spawn((
-            node,
-            ImageNode::new(assets.controls.robot_icon.clone()),
-            UiTransform::IDENTITY,
-            ZIndex(30),
-            FocusPolicy::Pass,
-            AutoPlayRobotIndicator,
-        ))
-        .id();
-    commands.entity(badge).add_child(indicator);
-    add_auto_play_antenna_lights(commands, indicator, player);
-}
-
-fn add_auto_play_antenna_lights(commands: &mut Commands, indicator: Entity, player: PlayerId) {
-    let glow = commands
-        .spawn((
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(10.5),
-                top: px(-3),
-                width: px(13),
-                height: px(13),
-                border_radius: BorderRadius::all(percent(50)),
-                ..default()
-            },
-            BackgroundColor(Color::srgba(0.32, 1.0, 0.58, 0.0)),
-            UiTransform::IDENTITY,
-            ZIndex(2),
-            FocusPolicy::Pass,
-            AutoPlayAntennaLight {
-                player,
-                part: AutoPlayAntennaLightPart::Glow,
-            },
-        ))
-        .id();
-    commands.entity(indicator).add_child(glow);
-
-    for (left, top, rotation) in [(16.0, -8.0, 0.0), (7.5, -4.5, -0.82), (24.5, -4.5, 0.82)] {
-        let ray = commands
-            .spawn((
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(left),
-                    top: px(top),
-                    width: px(2),
-                    height: px(6),
-                    border_radius: BorderRadius::all(px(1)),
-                    ..default()
-                },
-                BackgroundColor(Color::srgba(0.46, 1.0, 0.68, 0.0)),
-                UiTransform {
-                    rotation: Rot2::radians(rotation),
-                    ..UiTransform::IDENTITY
-                },
-                ZIndex(3),
-                FocusPolicy::Pass,
-                AutoPlayAntennaLight {
-                    player,
-                    part: AutoPlayAntennaLightPart::Ray,
-                },
-            ))
-            .id();
-        commands.entity(indicator).add_child(ray);
-    }
 }
 
 pub(crate) struct PlayerMenuProfile<'a> {

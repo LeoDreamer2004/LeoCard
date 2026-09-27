@@ -163,6 +163,15 @@ pub(super) fn add_shengji_bid_button(
     assets: &UiAssets,
 ) {
     let enabled = cards.is_some();
+    let no_trump_color = if cards
+        .as_ref()
+        .and_then(|cards| cards.first())
+        .is_some_and(|card| card.rank() == ShengjiRank::BigJoker)
+    {
+        DANGER
+    } else {
+        Color::srgb(0.65, 0.68, 0.70)
+    };
     let entity = commands
         .spawn((
             Node {
@@ -171,6 +180,7 @@ pub(super) fn add_shengji_bid_button(
                 padding: UiRect::axes(px(6), px(4)),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
+                column_gap: px(if label == "无主" { 2 } else { 0 }),
                 ..default()
             },
             ImageNode::new(if enabled {
@@ -202,18 +212,30 @@ pub(super) fn add_shengji_bid_button(
             },
         ));
     }
-    add_text(
-        commands,
-        entity,
-        label,
-        13.0,
-        if enabled {
-            color
-        } else {
-            Color::srgb(0.58, 0.60, 0.60)
-        },
-        assets,
-    );
+    if label == "无主" {
+        add_text(commands, entity, "NG", 12.0, no_trump_color, assets);
+        add_text(
+            commands,
+            entity,
+            label,
+            12.0,
+            if enabled { color } else { MUTED },
+            assets,
+        );
+    } else {
+        add_text(
+            commands,
+            entity,
+            label,
+            13.0,
+            if enabled {
+                color
+            } else {
+                Color::srgb(0.58, 0.60, 0.60)
+            },
+            assets,
+        );
+    }
 }
 
 pub(crate) fn shengji_declaration_candidate(

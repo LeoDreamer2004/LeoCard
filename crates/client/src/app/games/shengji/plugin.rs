@@ -9,7 +9,7 @@ use super::{
     animate_shengji_throw_penalty_score_pulses, assets, handle_shengji_card_drag_selection,
     play_shengji_audio_cues, queue_shengji_deal_animations, spawn_shengji_settlement_absorption,
     sync_shengji_bidding_countdown, sync_shengji_card_drag_preview, sync_shengji_phase_selection,
-    sync_shengji_presentation, sync_shengji_score_capture_effect,
+    sync_shengji_presentation, sync_shengji_score_capture_effect, sync_shengji_score_tray_hover,
     update_shengji_settlement_animation,
 };
 use crate::app::runtime::ClientUpdateSet;
@@ -64,6 +64,7 @@ impl Plugin for ShengjiPlugin {
                 Update,
                 (
                     sync_shengji_bidding_countdown,
+                    sync_shengji_score_tray_hover,
                     (
                         animate_shengji_failed_throw_cards,
                         animate_shengji_failed_throw_labels,

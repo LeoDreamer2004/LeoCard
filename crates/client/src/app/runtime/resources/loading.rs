@@ -107,8 +107,6 @@ pub(crate) fn load_ui_assets(
             panel_window: asset_server.load("ui/panel_window.png"),
             panel_section: asset_server.load("ui/panel_section.png"),
             panel_popup: asset_server.load("ui/panel_popup.png"),
-            player_panel_wide: asset_server.load("ui/player_panel_wide.png"),
-            player_panel_compact: asset_server.load("ui/player_panel_compact.png"),
             robot_icon: asset_server.load("icons/robot-2-fill.png"),
             host_crown: asset_server.load("icons/host-crown.png"),
             github_mark: asset_server.load("icons/github-mark.png"),
@@ -121,10 +119,8 @@ pub(crate) fn load_ui_assets(
                 .map(|path| asset_server.load(*path))
                 .collect(),
             chat_emoji_icon: asset_server.load("icons/chat-emoji-white.png"),
-            chat_open_icon: asset_server
-                .load("vendor/kenney/ui/PNG/Blue/Default/arrow_basic_w.png"),
-            chat_close_icon: asset_server
-                .load("vendor/kenney/ui/PNG/Blue/Default/arrow_basic_e.png"),
+            chat_open_icon: asset_server.load("icons/chat-arrow-open-dark-green.png"),
+            chat_close_icon: asset_server.load("icons/chat-arrow-close-dark-green.png"),
             quick_voice_icon: asset_server.load("icons/list-menu.png"),
         },
         audio: CommonAudioAssets {

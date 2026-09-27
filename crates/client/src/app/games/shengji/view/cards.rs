@@ -288,11 +288,7 @@ pub(crate) fn shengji_hand_sort_trump(game: &ShengjiSnapshot) -> Option<ShengjiT
     })
 }
 
-pub(super) fn shengji_level_label(rank: ShengjiRank) -> String {
-    format!("打 {}", shengji_rank_label(rank))
-}
-
-fn shengji_rank_label(rank: ShengjiRank) -> &'static str {
+pub(super) fn shengji_rank_label(rank: ShengjiRank) -> &'static str {
     match rank {
         ShengjiRank::Two => "2",
         ShengjiRank::Three => "3",

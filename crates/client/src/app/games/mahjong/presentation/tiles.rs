@@ -383,9 +383,38 @@ pub(crate) fn add_mahjong_tile_material(
             },
         ))
         .id();
+    if let Some(kind) = kind
+        && !matches!(
+            size,
+            MahjongTileSize::GuideHand
+                | MahjongTileSize::GuideMeld
+                | MahjongTileSize::GuideConcealedMeld
+        )
+    {
+        let overlay = spawn_node(
+            commands,
+            entity,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                top: px(0),
+                width: percent(100),
+                height: percent(100),
+                border_radius: BorderRadius::all(px(3)),
+                ..default()
+            },
+            Some(Color::srgba(0.39, 0.76, 1.0, 0.34)),
+        );
+        commands.entity(overlay).insert((
+            super::super::MahjongMatchingTileOverlay(kind),
+            Visibility::Hidden,
+            FocusPolicy::Pass,
+        ));
+    }
     if let Some(deal) = deal {
         commands.entity(entity).insert(MahjongDealTile {
             elapsed: 0.0,
+            falling: deal.falling,
             start_offset: deal.start_offset,
             start_rotation: deal.start_rotation,
             final_offset,

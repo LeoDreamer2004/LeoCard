@@ -43,6 +43,7 @@ pub enum RoomViolation {
     WaitingForPlayers { expected: u8, actual: u8 },
     PlayersNotReady { players: Vec<PlayerId> },
     InvalidChatMessage,
+    CannotInteractWithSelf,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]

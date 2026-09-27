@@ -28,6 +28,7 @@ pub(crate) fn rejection_label(reason: &RejectReason) -> Option<String> {
         RejectReason::Room(RoomViolation::WaitingForPlayers { .. }) => "人数尚未到齐",
         RejectReason::Room(RoomViolation::PlayersNotReady { .. }) => "仍有玩家没有准备",
         RejectReason::Room(RoomViolation::InvalidChatMessage) => "聊天消息为空、过长或快捷语音无效",
+        RejectReason::Room(RoomViolation::CannotInteractWithSelf) => "不能和自己互动",
         RejectReason::Game(GameViolation::InvalidRuleConfiguration) => {
             "这组配置无法满足最多六名玩家的初始发牌"
         }

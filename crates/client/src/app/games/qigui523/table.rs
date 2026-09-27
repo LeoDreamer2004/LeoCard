@@ -3,26 +3,26 @@
 use super::cards::{HandCardSpec, add_card_button};
 use super::state::{ScoreCardsPopupPlacement, SeatVisuals};
 use super::{
-    NoLegalResponseHint, PlayEffectState, PlaySelectionCount, QiGui523Assets, QiGui523UiAction,
-    QiGui523UiState, add_draw_pile, add_game_summary_modal, add_opponent_slot,
-    add_play_effect_overlay, add_round_play, add_score_cards_popup, add_table_score_cards,
-    game_has_legal_response, sort_cards_high_to_low, spawn_round_play_container,
+    NoLegalResponseHint, PlayEffectState, PlaySelectionCount, QIGUI_AVATAR_SIZE,
+    QIGUI_PORTRAIT_WIDTH, QiGui523Assets, QiGui523UiAction, QiGui523UiState, add_draw_pile,
+    add_game_summary_modal, add_opponent_slot, add_play_effect_overlay, add_round_play,
+    add_score_cards_popup, add_table_score_cards, game_has_legal_response, sort_cards_high_to_low,
+    spawn_round_play_container,
 };
 use crate::app::presentation::CardSize;
 use crate::app::presentation::{
-    ACCENT, BORDER, ButtonKind, GameSummaryAnimation, HEADER_BG, MUTED, StartGameSeatTransition,
-    TEXT, TableBackground, TableBackgroundMaterial, TurnBorderAnimationKey, TurnBorderMaterial,
-    add_action_button, add_action_button_with_label, add_auto_play_overlay, add_avatar, add_text,
-    add_turn_border_trace, attach_start_game_seat_transition, decorate_player_panel, spawn_node,
-    table_material_params,
+    ACCENT, ButtonKind, GameSummaryAnimation, MUTED, PlayerMenuProfile, PlayerPortraitSpec,
+    StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_action_button, add_action_button_with_label,
+    add_auto_play_overlay, add_player_portrait, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, spawn_node, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 #[cfg(feature = "developer")]
 use crate::app::shell::add_developer_hand_input;
 use crate::app::shell::{
-    ChatPanelState, DeveloperHandInput, FinishedHandScoreSource, PlayerAvatarAnchor,
-    ScoreCaptureEffectState, SocialUiState, UiAction, add_chat_panel, add_reconnecting_overlay,
-    reference_points_label,
+    ChatPanelState, DeveloperHandInput, FinishedHandScoreSource, ScoreCaptureEffectState, SeatSide,
+    SocialUiState, UiAction, add_chat_panel, add_reconnecting_overlay,
 };
 use bevy::prelude::*;
 use leocard_client::NetworkState;
@@ -376,70 +376,65 @@ pub(crate) fn render_table(
         );
     }
 
-    let self_summary = spawn_node(
+    let own_portrait_height = 76.0 * 1.17;
+    let own_seat = spawn_node(
         commands,
         hand_area,
         Node {
             position_type: PositionType::Absolute,
             left: px(10),
             bottom: px(8),
-            width: px(118),
-            min_width: px(118),
-            max_width: px(118),
-            height: px(48),
-            min_height: px(48),
-            max_height: px(48),
-            padding: UiRect::axes(px(3), px(2)),
-            flex_direction: FlexDirection::Row,
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            column_gap: px(2),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(7)),
+            width: px(QIGUI_PORTRAIT_WIDTH),
+            height: px(own_portrait_height),
             ..default()
         },
-        Some(HEADER_BG.with_alpha(0.92)),
+        None,
     );
-    commands
-        .entity(self_summary)
-        .insert(BorderColor::all(BORDER));
-    attach_start_game_seat_transition(commands, self_summary, game.you, start_transition_active);
-    decorate_player_panel(commands, self_summary, assets, 0.72);
-    if current == Some(game.you) {
-        add_turn_border_trace(
-            commands,
-            self_summary,
-            turn_border_materials,
-            TurnBorderAnimationKey::new(GameKind::QiGui523, game.match_id, game.you),
-        );
-    }
     if let Some(player) = self_state {
-        let handle = player.avatar.and_then(|id| avatars.remote.get(&id));
-        let avatar = add_avatar(commands, self_summary, &player.name, handle, 24.0, assets);
-        commands
-            .entity(avatar)
-            .insert(PlayerAvatarAnchor(player.id));
-        let details = spawn_node(
+        let portrait = add_player_portrait(
             commands,
-            self_summary,
+            own_seat,
             Node {
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
+                width: px(QIGUI_PORTRAIT_WIDTH),
+                height: px(own_portrait_height),
                 ..default()
             },
-            None,
-        );
-        add_text(commands, details, &player.name, 11.0, TEXT, assets);
-        add_text(
-            commands,
-            details,
-            reference_points_label(player.reference_points),
-            7.5,
-            ACCENT,
+            PlayerPortraitSpec {
+                player: player.id,
+                profile: PlayerMenuProfile {
+                    name: &player.name,
+                    avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
+                    reference_points: player.reference_points,
+                    completed_games: player.completed_games,
+                    game_profiles: &player.game_profiles,
+                },
+                side: SeatSide::Left,
+                avatar_size: QIGUI_AVATAR_SIZE,
+                auto_play: player.auto_play,
+                menu_open: social.interaction_menu_open == Some(player.id),
+                menu_above: true,
+                name_color: TEXT,
+            },
             assets,
         );
+        attach_start_game_seat_transition(
+            commands,
+            portrait.portrait,
+            game.you,
+            start_transition_active,
+        );
+        if current == Some(game.you) {
+            add_turn_border_trace_with_radius(
+                commands,
+                portrait.avatar_ring,
+                turn_border_materials,
+                TurnBorderAnimationKey::new(GameKind::QiGui523, game.match_id, game.you),
+                QIGUI_AVATAR_SIZE * 0.2,
+                QIGUI_AVATAR_SIZE,
+            );
+        }
     } else {
-        add_text(commands, self_summary, "你", 13.0, TEXT, assets);
+        add_text(commands, own_seat, "你", 13.0, TEXT, assets);
     }
     #[cfg(feature = "developer")]
     if matches!(game.phase, GamePhaseView::Playing) {
@@ -448,7 +443,7 @@ pub(crate) fn render_table(
             hand_area,
             developer_hand,
             "编辑手牌，如 70523",
-            Vec2::new(136.0, 8.0),
+            Vec2::new(10.0, own_portrait_height + 16.0),
             assets,
         );
     }

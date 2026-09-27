@@ -209,21 +209,22 @@ pub(crate) fn animate_texas_pot_dividers(
 pub(crate) fn highlight_texas_pot_eligible_players(
     time: Res<Time>,
     hovers: Query<(&RelativeCursorPosition, &TexasPotHover)>,
-    mut panels: Query<(&TexasPlayerPanel, &mut BorderColor, &mut BoxShadow)>,
+    mut panels: Query<(&TexasPlayerPanel, &mut Outline, &mut BoxShadow)>,
 ) {
     let hovered = hovers
         .iter()
         .find(|(cursor, _)| cursor.cursor_over())
         .map(|(_, pot)| pot);
     let breath = pot_eligibility_breath(time.elapsed_secs());
-    for (panel, mut border, mut shadow) in &mut panels {
+    for (panel, mut outline, mut shadow) in &mut panels {
         if hovered.is_some_and(|pot| pot.eligible.contains(&panel.player)) {
             let green = Color::srgb(
                 0.28 + breath * 0.12,
                 0.82 + breath * 0.18,
                 0.48 + breath * 0.16,
             );
-            border.set_all(green.with_alpha(0.76 + breath * 0.24));
+            outline.color = green.with_alpha(0.76 + breath * 0.24);
+            outline.width = px(3.0 + breath * 0.6);
             *shadow = BoxShadow::new(
                 green.with_alpha(0.20 + breath * 0.34),
                 px(0),
@@ -232,7 +233,8 @@ pub(crate) fn highlight_texas_pot_eligible_players(
                 px(6.0 + breath * 10.0),
             );
         } else {
-            border.set_all(panel.base_border);
+            outline.color = panel.base_border;
+            outline.width = px(3.0);
             *shadow = BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(0));
         }
     }
@@ -292,6 +294,7 @@ fn add_chip_zone_title(
     label: &ActionLabel,
     assets: &UiAssets,
 ) {
+    let font_size = label.font_size * 1.2;
     let title = spawn_node(
         commands,
         zone,
@@ -300,7 +303,7 @@ fn add_chip_zone_title(
             left: px(0),
             right: px(0),
             top: px(5),
-            height: px((label.font_size + 5.0).max(22.0)),
+            height: px((font_size + 5.0).max(22.0)),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             ..default()
@@ -320,7 +323,7 @@ fn add_chip_zone_title(
         commands,
         title,
         label.text,
-        label.font_size,
+        font_size,
         action_feedback_text_color(label.kind, label.color, label.elapsed),
         assets,
     );

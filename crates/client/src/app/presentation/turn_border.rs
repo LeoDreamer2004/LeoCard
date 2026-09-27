@@ -13,7 +13,6 @@ const TURN_BORDER_GROW_DURATION: f32 = 0.95;
 const TURN_BORDER_HOLD_DURATION: f32 = 0.14;
 const TURN_BORDER_SHRINK_DURATION: f32 = 0.95;
 const TURN_BORDER_GAP_DURATION: f32 = 0.18;
-const TURN_BORDER_RADIUS: f32 = 8.0;
 pub(crate) const TURN_BORDER_THICKNESS: f32 = 2.6;
 const TURN_BORDER_OUTSET: f32 = TURN_BORDER_THICKNESS * 0.5 + 0.75;
 
@@ -22,7 +21,10 @@ pub(crate) struct TurnBorderMaterial {
     /// x: normalized tail, y: normalized head, z: corner radius, w: line thickness.
     #[uniform(0)]
     params: Vec4,
-    /// 与人物框大分数使用同一个 ACCENT 色，并由 Bevy 转换到线性色彩空间。
+    /// x: anchor width, y: anchor corner radius, z: overlap into the avatar.
+    #[uniform(0)]
+    geometry: Vec4,
+    /// 与游戏得分使用同一个 ACCENT 色，并由 Bevy 转换到线性色彩空间。
     #[uniform(0)]
     color: LinearRgba,
 }
@@ -64,19 +66,22 @@ pub(crate) struct TurnBorderAnimationState {
     elapsed: HashMap<TurnBorderAnimationKey, f32>,
 }
 
-pub(crate) fn add_turn_border_trace(
+pub(crate) fn add_turn_border_trace_with_radius(
     commands: &mut Commands,
     panel: Entity,
     materials: &mut Assets<TurnBorderMaterial>,
     key: TurnBorderAnimationKey,
+    corner_radius: f32,
+    anchor_width: f32,
 ) {
     let material = materials.add(TurnBorderMaterial {
         params: Vec4::new(
             0.0,
             0.0,
-            TURN_BORDER_RADIUS + TURN_BORDER_OUTSET,
+            corner_radius + TURN_BORDER_OUTSET,
             TURN_BORDER_THICKNESS,
         ),
+        geometry: Vec4::new(anchor_width, corner_radius, 0.5, 0.0),
         color: ACCENT.to_linear(),
     });
     commands.entity(panel).insert(TurnBorderTrace {

@@ -74,6 +74,8 @@ pub struct Discard {
     pub player: MahjongPlayerId,
     pub tile: MahjongTile,
     pub claimed_by: Option<MahjongPlayerId>,
+    /// 只公开摸打与手打，不公开手牌中的具体位置。
+    pub from_drawn: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

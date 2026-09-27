@@ -8,6 +8,8 @@ cards/uno/
 cards/uno-extension/
 fonts/
 icons/chat-emoji-white.png
+icons/chat-arrow-close-dark-green.png
+icons/chat-arrow-open-dark-green.png
 icons/github-mark.png
 icons/host-crown.png
 icons/list-menu.png

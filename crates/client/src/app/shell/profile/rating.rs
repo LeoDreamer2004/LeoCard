@@ -23,7 +23,3 @@ pub(crate) fn reference_level(points: i32) -> &'static str {
         "堆肥桶"
     }
 }
-
-pub(crate) fn reference_points_label(points: i32) -> String {
-    format!("等级:{}  分数:{}", reference_level(points), points)
-}

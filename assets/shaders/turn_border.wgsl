@@ -3,6 +3,8 @@
 struct TurnBorderMaterial {
     // x: normalized tail, y: normalized head, z: corner radius, w: thickness.
     params: vec4<f32>,
+    // x: anchor width, y: anchor corner radius, z: overlap into the avatar.
+    geometry: vec4<f32>,
     color: vec4<f32>,
 }
 
@@ -67,15 +69,25 @@ fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
     if material.params.y - material.params.x <= 0.0001 {
         return vec4<f32>(0.0);
     }
-    let inset = material.params.w * 0.5 + 0.75;
-    let half_size = max(in.size * 0.5 - vec2<f32>(inset), vec2<f32>(1.0));
-    let radius = clamp(material.params.z - inset, 1.0, min(half_size.x, half_size.y));
+    var inset = material.params.w * 0.5 + 0.75;
+    var thickness = material.params.w;
+    var overlap = 0.0;
+    var corner_radius = material.params.z - inset;
+    if material.geometry.x > 0.0 {
+        let scale = in.size.x / (material.geometry.x + 2.0 * inset);
+        inset *= scale;
+        thickness *= scale;
+        overlap = material.geometry.z * scale;
+        corner_radius = material.geometry.y * scale;
+    }
+    let half_size = max(in.size * 0.5 - vec2<f32>(inset + overlap), vec2<f32>(1.0));
+    let radius = clamp(corner_radius - overlap, 1.0, min(half_size.x, half_size.y));
     let point = (in.uv - vec2<f32>(0.5)) * in.size;
     let distance = rounded_rect_distance(point, half_size, radius);
     let antialias = max(fwidth(distance), 0.75);
     let line = 1.0 - smoothstep(
-        material.params.w * 0.5 - antialias,
-        material.params.w * 0.5 + antialias,
+        thickness * 0.5 - antialias,
+        thickness * 0.5 + antialias,
         abs(distance),
     );
 

@@ -1,25 +1,25 @@
 use super::super::{
-    ShengjiAssets, ShengjiBottomFlipPanelElement, ShengjiDealerBadge, ShengjiLevelIndicator,
-    ShengjiPresentationState, ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation,
-    ShengjiUiAction, ShengjiUiState, add_shengji_presentation_overlay,
+    ShengjiAssets, ShengjiBottomFlipPanelElement, ShengjiDealerBadge, ShengjiPresentationState,
+    ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation, ShengjiUiAction, ShengjiUiState,
+    add_shengji_presentation_overlay,
 };
 use super::{
     ShengjiCardSize, add_shengji_actions, add_shengji_bidding_panel, add_shengji_card_row,
     add_shengji_collecting_tray, add_shengji_hand, add_shengji_own_play, add_shengji_play_area,
     add_shengji_result, add_shengji_self_panel, add_shengji_throw_penalty_effect,
-    select_forced_shengji_follow_cards, shengji_display_trump, shengji_level_label,
+    select_forced_shengji_follow_cards, shengji_display_trump,
 };
 use crate::app::presentation::{
-    ACCENT, BORDER, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, StartGameSeatTransition, TEXT,
-    TableBackground, TableBackgroundMaterial, TurnBorderAnimationKey, TurnBorderMaterial,
-    add_auto_play_overlay, add_auto_play_robot_indicator, add_avatar, add_interaction_menu,
-    add_text, add_turn_border_trace, attach_start_game_seat_transition, decorate_panel_skin,
-    decorate_player_panel, spawn_node, table_material_params,
+    ACCENT, BORDER, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec,
+    StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay, add_player_portrait,
+    add_text, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
+    decorate_panel_skin, spawn_node, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{
-    ChatAuxiliaryAction, ChatPanelState, OpponentBadge, PlayerAvatarAnchor, SeatSide,
-    SocialUiAction, SocialUiState, UiAction, add_chat_panel, add_reconnecting_overlay,
+    ChatAuxiliaryAction, ChatPanelState, SeatSide, SocialUiState, UiAction, add_chat_panel,
+    add_reconnecting_overlay,
 };
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
@@ -199,6 +199,7 @@ pub(crate) fn render_shengji_table(
             visuals.avatars,
             visuals.turn_border_materials,
             start_transition_active,
+            social.interaction_menu_open,
         );
     }
     let local_auto_play = matches!(
@@ -472,10 +473,8 @@ fn add_shengji_opponent(
     previous_trick: Option<&[ShengjiPublicPlay]>,
     start_transition_active: bool,
 ) {
-    // 机器人图标会从人物框向牌桌内侧伸出 38px；左右出牌区额外留白，
-    // 保证牌、机器人标记和人物框各自拥有清晰的视觉边界。
     const SIDE_PLAY_GAP: f32 = 68.0;
-    const SIDE_SLOT_WIDTH: f32 = 188.0 + SIDE_PLAY_GAP + 165.0;
+    const SIDE_SLOT_WIDTH: f32 = 96.0 * 1.17 + SIDE_PLAY_GAP + 165.0;
     let side = match relative {
         1 => SeatSide::Left,
         2 => SeatSide::Top,
@@ -572,130 +571,79 @@ fn add_shengji_player_panel(
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     start_transition_active: bool,
 ) {
-    let current = game.current_player == Some(player.id);
-    let panel = spawn_node(
+    let panel = add_player_portrait(
         commands,
         parent,
         Node {
-            width: px(188),
-            min_width: px(188),
-            height: px(72),
-            min_height: px(72),
-            // 双升人物框没有七鬼/德州的内侧大数值区，使用完全对称的
-            // padding，确保“头像 + 文字”组合在三个方向上都处于框中心。
-            padding: UiRect::axes(px(8), px(4)),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            column_gap: px(8),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(8)),
+            width: px(96.0 * 1.17),
+            height: px(76.0 * 1.17),
             ..default()
         },
-        Some(HEADER_BG),
+        PlayerPortraitSpec {
+            player: player.id,
+            profile: PlayerMenuProfile {
+                name: &player.name,
+                avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
+                reference_points: player.reference_points,
+                completed_games: player.completed_games,
+                game_profiles: &player.game_profiles,
+            },
+            side,
+            avatar_size: 52.0 * 1.17,
+            auto_play: player.auto_play,
+            menu_open: interaction_menu_open == Some(player.id),
+            menu_above: false,
+            name_color: TEXT,
+        },
+        assets,
     );
-    commands.entity(panel).insert((
-        BorderColor::all(BORDER),
-        Button,
-        UiAction::Social(SocialUiAction::ToggleInteractionMenu(player.id)),
-    ));
-    attach_start_game_seat_transition(commands, panel, player.id, start_transition_active);
-    decorate_player_panel(commands, panel, assets, 1.0);
-    if current {
-        add_turn_border_trace(
+    attach_start_game_seat_transition(commands, panel.portrait, player.id, start_transition_active);
+    if game.current_player == Some(player.id) {
+        add_turn_border_trace_with_radius(
             commands,
-            panel,
+            panel.avatar_ring,
             turn_border_materials,
             TurnBorderAnimationKey::new(GameKind::Shengji, game.match_id, player.id),
+            52.0 * 1.17 * 0.2,
+            52.0 * 1.17,
         );
     }
-    let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
-    let avatar_entity = add_avatar(commands, panel, &player.name, avatar, 34.0, assets);
-    commands
-        .entity(avatar_entity)
-        .insert(PlayerAvatarAnchor(player.id));
-    if player.auto_play {
-        add_auto_play_robot_indicator(commands, panel, player.id, side, assets);
+    if game.dealer == Some(player.id) {
+        add_shengji_dealer_badge(commands, panel.portrait, side, assets);
     }
-    let details = spawn_node(
+}
+
+pub(super) fn add_shengji_dealer_badge(
+    commands: &mut Commands,
+    portrait: Entity,
+    side: SeatSide,
+    assets: &UiAssets,
+) {
+    let badge = spawn_node(
         commands,
-        panel,
+        portrait,
         Node {
-            min_width: px(82),
-            flex_direction: FlexDirection::Column,
+            position_type: PositionType::Absolute,
+            right: if matches!(side, SeatSide::Right) {
+                Val::Auto
+            } else {
+                px(6)
+            },
+            left: if matches!(side, SeatSide::Right) {
+                px(6)
+            } else {
+                Val::Auto
+            },
+            top: px(0),
+            width: px(21),
+            height: px(21),
             align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            border_radius: BorderRadius::all(percent(50)),
             ..default()
         },
-        None,
+        Some(ACCENT),
     );
-    add_text(commands, details, &player.name, 14.0, TEXT, assets);
-    let level = add_text(
-        commands,
-        details,
-        format!(
-            "{} · {}张",
-            shengji_level_label(game.levels[usize::from(player.id.0 % 2)]),
-            player.hand_len
-        ),
-        11.0,
-        MUTED,
-        assets,
-    );
-    commands
-        .entity(level)
-        .insert(ShengjiLevelIndicator { base_color: MUTED });
-    if game.dealer == Some(player.id) {
-        let dealer = spawn_node(
-            commands,
-            panel,
-            Node {
-                position_type: PositionType::Absolute,
-                right: if matches!(side, SeatSide::Right) {
-                    Val::Auto
-                } else {
-                    px(5)
-                },
-                left: if matches!(side, SeatSide::Right) {
-                    px(5)
-                } else {
-                    Val::Auto
-                },
-                top: px(4),
-                width: px(24),
-                height: px(24),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                border_radius: BorderRadius::all(percent(50)),
-                ..default()
-            },
-            Some(ACCENT),
-        );
-        commands.entity(dealer).insert(ShengjiDealerBadge);
-        add_text(commands, dealer, "庄", 12.0, Color::BLACK, assets);
-    }
-    let interaction_menu = add_interaction_menu(
-        commands,
-        panel,
-        player.id,
-        side,
-        PlayerMenuProfile {
-            name: &player.name,
-            avatar,
-            reference_points: player.reference_points,
-            completed_games: player.completed_games,
-            game_profiles: &player.game_profiles,
-        },
-        assets,
-    );
-    commands
-        .entity(interaction_menu)
-        .insert(if interaction_menu_open == Some(player.id) {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        });
-    commands.entity(panel).insert(OpponentBadge {
-        player: player.id,
-        score_popup: None,
-        interaction_menu,
-    });
+    commands.entity(badge).insert(ShengjiDealerBadge);
+    add_text(commands, badge, "庄", 11.0, Color::BLACK, assets);
 }

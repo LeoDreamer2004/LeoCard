@@ -1,4 +1,4 @@
-use super::MahjongUiAction;
+use super::{MahjongUiAction, MahjongUiState};
 use crate::app::presentation::{ButtonKind, MUTED, add_action_button, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -10,8 +10,17 @@ pub(super) fn render_action_bar(
     commands: &mut Commands,
     table: Entity,
     game: &MahjongSnapshot,
+    ui: &MahjongUiState,
     assets: &UiAssets,
 ) {
+    if ui.no_claim
+        && game
+            .pending_claim
+            .as_ref()
+            .is_some_and(|pending| !pending.your_options.contains(&MahjongClaimOption::Win))
+    {
+        return;
+    }
     let bar = spawn_node(
         commands,
         table,
@@ -38,6 +47,9 @@ pub(super) fn render_action_bar(
             return;
         }
         for option in &pending.your_options {
+            if ui.no_claim && *option != MahjongClaimOption::Win {
+                continue;
+            }
             let (label, claim) = match *option {
                 MahjongClaimOption::Chow { start } => (
                     format!("吃 {start}{}{}", start + 1, start + 2),
@@ -93,14 +105,16 @@ pub(super) fn render_action_bar(
             assets,
         );
     }
-    for tile in &game.added_kong_options {
-        add_action_button(
-            commands,
-            bar,
-            &format!("加杠 {}", tile.kind()),
-            UiAction::Mahjong(MahjongUiAction::AddedKong(*tile)),
-            ButtonKind::Secondary,
-            assets,
-        );
+    if !ui.no_claim {
+        for tile in &game.added_kong_options {
+            add_action_button(
+                commands,
+                bar,
+                &format!("加杠 {}", tile.kind()),
+                UiAction::Mahjong(MahjongUiAction::AddedKong(*tile)),
+                ButtonKind::Secondary,
+                assets,
+            );
+        }
     }
 }

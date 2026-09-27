@@ -52,3 +52,6 @@ pub(crate) struct TexasPlayerPanel {
     pub player: PlayerId,
     pub base_border: Color,
 }
+
+#[derive(Component, Clone, Copy)]
+pub(crate) struct TexasPlayerShake(pub PlayerId);

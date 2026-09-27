@@ -1,24 +1,24 @@
 use super::super::{
-    ShengjiDealerBadge, ShengjiHandCardSelectionOverlay, ShengjiHandCardSlot,
-    ShengjiHandCardVisual, ShengjiLevelIndicator, ShengjiUiAction, ShengjiUiState,
+    ShengjiHandCardSelectionOverlay, ShengjiHandCardSlot, ShengjiHandCardVisual, ShengjiUiAction,
+    ShengjiUiState,
 };
 use super::{
-    ShengjiCardSize, add_shengji_trump_stars, shengji_card_face, shengji_display_trump,
-    shengji_hand_sort_trump, shengji_level_label, sort_shengji_cards,
+    ShengjiCardSize, add_shengji_dealer_badge, add_shengji_trump_stars, shengji_card_face,
+    shengji_display_trump, shengji_hand_sort_trump, sort_shengji_cards,
 };
 use crate::app::presentation::CardDragSelection;
 use crate::app::presentation::CardSize;
 use crate::app::presentation::{
-    ACCENT, BORDER, CardAnimationState, HEADER_BG, PendingDealSound, TEXT, TurnBorderAnimationKey,
-    TurnBorderMaterial, add_avatar, add_text, add_turn_border_trace,
-    attach_start_game_seat_transition, decorate_player_panel, hand_card_pose,
+    ACCENT, BORDER, CardAnimationState, PendingDealSound, PlayerMenuProfile, PlayerPortraitSpec,
+    TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition, hand_card_pose,
     shengji_hand_card_reveal, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{PlayerAvatarAnchor, UiAction};
+use crate::app::shell::{SeatSide, UiAction};
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, RelativeCursorPosition};
-use leocard_protocol::{GameKind, ShengjiPhaseView, ShengjiPlayerState, ShengjiSnapshot};
+use leocard_protocol::{GameKind, PlayerId, ShengjiPhaseView, ShengjiPlayerState, ShengjiSnapshot};
 use leocard_shengji::{ShengjiCard, ShengjiTrump};
 
 /// 每位玩家相邻两张可见手牌的发牌间隔；对应全桌约 100ms 发一张牌。
@@ -335,82 +335,49 @@ pub(super) fn add_shengji_self_panel(
     avatars: &AvatarImages,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     start_transition_active: bool,
+    interaction_menu_open: Option<PlayerId>,
 ) {
-    let panel = spawn_node(
+    let panel = add_player_portrait(
         commands,
         hand_area,
         Node {
             position_type: PositionType::Absolute,
-            right: px(12),
+            left: px(12),
             bottom: px(12),
-            width: px(188),
-            height: px(72),
-            min_height: px(72),
-            padding: UiRect::axes(px(8), px(4)),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            column_gap: px(8),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(7)),
+            width: px(96.0 * 1.17),
+            height: px(76.0 * 1.17),
             ..default()
         },
-        Some(HEADER_BG.with_alpha(0.94)),
-    );
-    commands.entity(panel).insert(BorderColor::all(BORDER));
-    attach_start_game_seat_transition(commands, panel, player.id, start_transition_active);
-    decorate_player_panel(commands, panel, assets, 1.0);
-    if game.current_player == Some(player.id) {
-        add_turn_border_trace(
-            commands,
-            panel,
-            turn_border_materials,
-            TurnBorderAnimationKey::new(GameKind::Shengji, game.match_id, player.id),
-        );
-    }
-    let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
-    let avatar_entity = add_avatar(commands, panel, &player.name, avatar, 34.0, assets);
-    commands
-        .entity(avatar_entity)
-        .insert(PlayerAvatarAnchor(player.id));
-    let info = spawn_node(
-        commands,
-        panel,
-        Node {
-            flex_direction: FlexDirection::Column,
-            ..default()
+        PlayerPortraitSpec {
+            player: player.id,
+            profile: PlayerMenuProfile {
+                name: &player.name,
+                avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
+                reference_points: player.reference_points,
+                completed_games: player.completed_games,
+                game_profiles: &player.game_profiles,
+            },
+            side: SeatSide::Left,
+            avatar_size: 52.0 * 1.17,
+            auto_play: player.auto_play,
+            menu_open: interaction_menu_open == Some(player.id),
+            menu_above: true,
+            name_color: TEXT,
         },
-        None,
-    );
-    add_text(commands, info, &player.name, 14.0, TEXT, assets);
-    let level = add_text(
-        commands,
-        info,
-        shengji_level_label(game.levels[usize::from(player.id.0 % 2)]),
-        11.0,
-        ACCENT,
         assets,
     );
-    commands
-        .entity(level)
-        .insert(ShengjiLevelIndicator { base_color: ACCENT });
-    if game.dealer == Some(player.id) {
-        let dealer = spawn_node(
+    attach_start_game_seat_transition(commands, panel.portrait, player.id, start_transition_active);
+    if game.current_player == Some(player.id) {
+        add_turn_border_trace_with_radius(
             commands,
-            panel,
-            Node {
-                position_type: PositionType::Absolute,
-                right: px(5),
-                top: px(4),
-                width: px(24),
-                height: px(24),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                border_radius: BorderRadius::all(percent(50)),
-                ..default()
-            },
-            Some(ACCENT),
+            panel.avatar_ring,
+            turn_border_materials,
+            TurnBorderAnimationKey::new(GameKind::Shengji, game.match_id, player.id),
+            52.0 * 1.17 * 0.2,
+            52.0 * 1.17,
         );
-        commands.entity(dealer).insert(ShengjiDealerBadge);
-        add_text(commands, dealer, "庄", 12.0, Color::BLACK, assets);
+    }
+    if game.dealer == Some(player.id) {
+        add_shengji_dealer_badge(commands, panel.portrait, SeatSide::Left, assets);
     }
 }

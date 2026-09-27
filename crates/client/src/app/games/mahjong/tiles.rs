@@ -1,6 +1,6 @@
 use super::{
-    MahjongAssets, MahjongDealSpec, MahjongDealTile, MahjongHandTile, MahjongTileMaterial,
-    MahjongTurnArrow, mahjong_local_light,
+    MahjongAssets, MahjongDealSpec, MahjongDealTile, MahjongDiscardHandShift, MahjongHandTile,
+    MahjongHoverHandKind, MahjongTileMaterial, mahjong_local_light,
 };
 use crate::app::presentation::{PendingDealSound, ease_out_cubic};
 use crate::app::runtime::UiAssets;
@@ -9,6 +9,7 @@ use bevy::prelude::*;
 use leocard_mahjong::MahjongTileKind;
 
 const MAHJONG_DEAL_MOVE_DURATION: f32 = 0.28;
+const MAHJONG_DRAW_FALL_DURATION: f32 = 0.42;
 
 pub(super) fn mahjong_deal_spec(
     relative: u8,
@@ -30,6 +31,21 @@ pub(super) fn mahjong_deal_spec(
             3 => 0.12,
             _ => ((tile_index * 19 % 5) as f32 - 2.0) * 0.025,
         },
+        falling: false,
+    }
+}
+
+pub(super) fn mahjong_draw_spec(relative: u8) -> MahjongDealSpec {
+    let start_offset = match relative {
+        0 => Vec2::new(0.0, -92.0),
+        1 => Vec2::new(92.0, 0.0),
+        2 => Vec2::new(0.0, 92.0),
+        _ => Vec2::new(-92.0, 0.0),
+    };
+    MahjongDealSpec {
+        start_offset,
+        start_rotation: 0.0,
+        falling: true,
     }
 }
 
@@ -76,11 +92,13 @@ pub(super) fn add_mahjong_hand_tile(
     let base_rotation = 0.0;
     let entity = commands
         .spawn((
+            Button,
             MahjongHandTile {
                 lift: 0.0,
                 base_rotation,
                 index: index as i32,
             },
+            MahjongHoverHandKind(kind),
             Node {
                 width: px(50),
                 height: px(68),
@@ -96,11 +114,12 @@ pub(super) fn add_mahjong_hand_tile(
         ))
         .id();
     if let Some(action) = action {
-        commands.entity(entity).insert((Button, action));
+        commands.entity(entity).insert(action);
     }
     if let Some(deal) = deal {
         commands.entity(entity).insert(MahjongDealTile {
             elapsed: 0.0,
+            falling: deal.falling,
             start_offset: deal.start_offset,
             start_rotation: deal.start_rotation,
             final_offset: Vec2::ZERO,
@@ -128,7 +147,7 @@ pub(super) fn sync_mahjong_hand_tile_materials(
             &mut BoxShadow,
             &mut ZIndex,
         ),
-        Without<MahjongDealTile>,
+        (Without<MahjongDealTile>, Without<MahjongDiscardHandShift>),
     >,
 ) {
     let smoothing = 1.0 - (-18.0 * time.delta_secs()).exp();
@@ -181,14 +200,27 @@ pub(super) fn animate_mahjong_deal_tiles(
 ) {
     for (entity, mut deal, material_node, mut transform, mut shadow) in &mut tiles {
         deal.elapsed += time.delta_secs();
-        let raw = (deal.elapsed / MAHJONG_DEAL_MOVE_DURATION).clamp(0.0, 1.0);
+        let duration = if deal.falling {
+            MAHJONG_DRAW_FALL_DURATION
+        } else {
+            MAHJONG_DEAL_MOVE_DURATION
+        };
+        let raw = (deal.elapsed / duration).clamp(0.0, 1.0);
         let movement = ease_out_cubic(raw);
-        let lift = (raw * std::f32::consts::PI).sin() * 12.0;
+        let lift = if deal.falling {
+            0.0
+        } else {
+            (raw * std::f32::consts::PI).sin() * 12.0
+        };
         let offset = deal.final_offset + deal.start_offset * (1.0 - movement);
         transform.translation = Val2::px(offset.x, offset.y - lift);
         transform.rotation =
             Rot2::radians(deal.final_rotation + deal.start_rotation * (1.0 - movement));
-        transform.scale = Vec2::splat(0.82 + movement * 0.18);
+        transform.scale = Vec2::splat(if deal.falling {
+            0.94 + movement * 0.06
+        } else {
+            0.82 + movement * 0.18
+        });
         if let Some(mut material) = materials.get_mut(&material_node.0) {
             material.params.z = (raw * 4.0).min(1.0);
         }
@@ -198,20 +230,5 @@ pub(super) fn animate_mahjong_deal_tiles(
         if raw >= 1.0 {
             commands.entity(entity).remove::<MahjongDealTile>();
         }
-    }
-}
-
-pub(super) fn animate_mahjong_turn_arrows(
-    time: Res<Time>,
-    mut arrows: Query<(&MahjongTurnArrow, &mut ImageNode)>,
-) {
-    for (arrow, mut image) in &mut arrows {
-        let phase = (time.elapsed_secs() * 2.15 - arrow.slot * 0.22).rem_euclid(1.35);
-        let alpha = if phase < 0.62 {
-            (phase / 0.62 * std::f32::consts::PI).sin().powf(0.72)
-        } else {
-            0.0
-        };
-        image.color = Color::WHITE.with_alpha(alpha * 0.92);
     }
 }

@@ -13,7 +13,6 @@ pub(super) fn render_mahjong_auto_drawer(
     table: Entity,
     ui: &MahjongUiState,
     false_win_allowed: bool,
-    developer_hand_input_visible: bool,
     assets: &UiAssets,
 ) {
     let expanded = ui.auto_drawer_open;
@@ -22,12 +21,8 @@ pub(super) fn render_mahjong_auto_drawer(
         table,
         Node {
             position_type: PositionType::Absolute,
-            left: px(8),
-            bottom: px(if developer_hand_input_visible {
-                128
-            } else {
-                82
-            }),
+            left: px(0),
+            bottom: px(82),
             width: px(if expanded { 142 } else { 38 }),
             padding: UiRect::axes(px(if expanded { 9 } else { 3 }), px(6)),
             flex_direction: FlexDirection::Column,
@@ -157,6 +152,9 @@ pub(super) fn apply_automatic_mahjong_action(
         ui.last_automatic_action = None;
         return;
     };
+    if let Some(game) = client.0.model().mahjong_game() {
+        ui.begin_hand(game.match_id, game.sequence_index);
+    }
     let decision = client
         .0
         .model()
@@ -256,6 +254,25 @@ mod tests {
             added_kong_options: Vec::new(),
             phase: MahjongPhaseView::Playing,
         }
+    }
+
+    #[test]
+    fn auto_options_reset_only_when_a_new_hand_begins() {
+        let mut ui = MahjongUiState::default();
+        let match_id = MatchId([1; 16]);
+        ui.begin_hand(match_id, 0);
+        ui.auto_drawer_open = true;
+        ui.auto_win = true;
+        ui.no_claim = true;
+        ui.auto_draw_discard = true;
+        ui.begin_hand(match_id, 0);
+        assert!(ui.auto_win && ui.no_claim && ui.auto_draw_discard && ui.auto_drawer_open);
+
+        ui.begin_hand(match_id, 1);
+        assert!(!ui.auto_win && !ui.no_claim && !ui.auto_draw_discard && !ui.auto_drawer_open);
+        ui.auto_win = true;
+        ui.begin_hand(MatchId([2; 16]), 0);
+        assert!(!ui.auto_win);
     }
 
     #[test]

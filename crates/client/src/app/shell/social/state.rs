@@ -88,21 +88,6 @@ impl PlayerGameScoreText {
     }
 }
 
-#[derive(Component)]
-pub(crate) struct AutoPlayRobotIndicator;
-
-#[derive(Clone, Copy, Component)]
-pub(crate) struct AutoPlayAntennaLight {
-    pub player: PlayerId,
-    pub part: AutoPlayAntennaLightPart,
-}
-
-#[derive(Clone, Copy)]
-pub(crate) enum AutoPlayAntennaLightPart {
-    Glow,
-    Ray,
-}
-
 #[derive(Resource, Default)]
 pub(crate) struct PlayerInteractionCooldown {
     pub timers: HashMap<PlayerInteractionKind, InteractionCooldownTimer>,

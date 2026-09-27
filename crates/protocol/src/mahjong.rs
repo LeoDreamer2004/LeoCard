@@ -69,6 +69,7 @@ pub struct MahjongDiscardView {
     pub player: PlayerId,
     pub tile: MahjongTile,
     pub claimed_by: Option<PlayerId>,
+    pub from_drawn: bool,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]

@@ -1,3 +1,4 @@
+use super::{MahjongStatusImages, create_mahjong_status_images};
 use bevy::prelude::*;
 use leocard_mahjong::{MahjongTileKind, build_deck};
 use std::collections::{HashMap, HashSet};
@@ -7,11 +8,11 @@ pub(crate) struct MahjongAssets {
     pub tiles: HashMap<MahjongTileKind, Handle<Image>>,
     pub tile_heights: HashMap<MahjongTileKind, Handle<Image>>,
     pub tile_back: Handle<Image>,
-    pub turn_arrow: Handle<Image>,
+    pub(super) status: MahjongStatusImages,
 }
 
 impl MahjongAssets {
-    pub(super) fn load(asset_server: &AssetServer) -> Self {
+    pub(super) fn load(asset_server: &AssetServer, images: &mut Assets<Image>) -> Self {
         let kinds = build_deck()
             .into_iter()
             .map(|tile| tile.kind())
@@ -39,11 +40,15 @@ impl MahjongAssets {
             tiles,
             tile_heights,
             tile_back: asset_server.load("cards/mahjong/hong-kong/back.png"),
-            turn_arrow: asset_server.load("vendor/kenney/ui/PNG/Yellow/Default/arrow_basic_e.png"),
+            status: create_mahjong_status_images(images),
         }
     }
 }
 
-pub(super) fn load_mahjong_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.insert_resource(MahjongAssets::load(&asset_server));
+pub(super) fn load_mahjong_assets(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    commands.insert_resource(MahjongAssets::load(&asset_server, &mut images));
 }

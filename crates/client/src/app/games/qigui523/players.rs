@@ -2,21 +2,23 @@ use super::state::{ScoreCardsPopupPlacement, SeatVisuals};
 use super::{add_round_play_for_optional_player, add_score_cards_popup, sort_cards_high_to_low};
 use crate::app::presentation::CardSize;
 use crate::app::presentation::{
-    ACCENT, BORDER, HEADER_BG, MUTED, PANEL_ALT, PlayerMenuProfile, TEXT, TurnBorderAnimationKey,
-    TurnBorderMaterial, add_auto_play_robot_indicator, add_avatar, add_card_image,
-    add_interaction_menu, add_player_panel_primary_value, add_text, add_turn_border_trace,
-    attach_start_game_seat_transition, decorate_player_panel, spawn_node,
+    ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
+    TurnBorderMaterial, add_card_image, add_player_portrait, add_text,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    FinishedHandScoreSource, OpponentBadge, PlayerAvatarAnchor, PlayerGameScoreText, SeatSide,
-    SocialUiAction, UiAction, displayed_captured_score, reference_points_label,
+    FinishedHandScoreSource, OpponentBadge, PlayerGameScoreText, SeatSide, displayed_captured_score,
 };
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::QiGui523Snapshot;
 use leocard_protocol::{GameKind, GamePhaseView, PlayerId, PlayerPublicState};
 use leocard_qigui523::QiGuiCard;
+
+pub(super) const QIGUI_PORTRAIT_WIDTH: f32 = 96.0 * 1.17;
+pub(super) const QIGUI_AVATAR_SIZE: f32 = 52.0 * 1.17;
+pub(super) const QIGUI_PORTRAIT_HEIGHT: f32 = 76.0 * 1.17 + 34.0;
 
 pub(super) fn add_opponent_slot(
     commands: &mut Commands,
@@ -27,8 +29,8 @@ pub(super) fn add_opponent_slot(
     visuals: &SeatVisuals,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
 ) {
-    const SIDE_PLAY_GAP: f32 = 52.0;
-    const SIDE_SLOT_WIDTH: f32 = 224.0 + SIDE_PLAY_GAP + 148.0;
+    const SIDE_PLAY_GAP: f32 = 200.0 + 52.0 - QIGUI_PORTRAIT_WIDTH;
+    const SIDE_SLOT_WIDTH: f32 = QIGUI_PORTRAIT_WIDTH + SIDE_PLAY_GAP + 148.0;
     let side = match relative_seat {
         1 | 2 => SeatSide::Left,
         3 => SeatSide::Top,
@@ -40,7 +42,7 @@ pub(super) fn add_opponent_slot(
         min_height: px(if matches!(side, SeatSide::Top) {
             140
         } else {
-            100
+            124
         }),
         align_items: AlignItems::Center,
         justify_content: match side {
@@ -48,8 +50,7 @@ pub(super) fn add_opponent_slot(
             SeatSide::Top => JustifyContent::Center,
             SeatSide::Right => JustifyContent::FlexEnd,
         },
-        // 左右玩家的机器人标记会伸出玩家框 38px；为出牌区预留独立间距，
-        // 避免牌组覆盖标记及其天线动画。
+        // 两侧出牌区保持原位；顶部的出牌区与头像同行，避免挤入桌面中央。
         column_gap: px(if matches!(side, SeatSide::Top) {
             8.0
         } else {
@@ -73,7 +74,6 @@ pub(super) fn add_opponent_slot(
             node.left = percent(32);
             node.right = percent(32);
             node.top = px(4);
-            node.flex_direction = FlexDirection::Column;
         }
         4 => {
             node.right = px(10);
@@ -88,6 +88,20 @@ pub(super) fn add_opponent_slot(
         _ => unreachable!(),
     }
     let slot = spawn_node(commands, table, node, None);
+    if matches!(side, SeatSide::Top) {
+        let spacer = spawn_node(
+            commands,
+            slot,
+            Node {
+                width: px(148),
+                min_width: px(148),
+                height: px(1),
+                ..default()
+            },
+            None,
+        );
+        commands.entity(spacer).insert(FocusPolicy::Pass);
+    }
     if matches!(side, SeatSide::Right) {
         add_round_play_for_optional_player(
             commands,
@@ -101,159 +115,118 @@ pub(super) fn add_opponent_slot(
             visuals.assets,
         );
     }
-    let badge = spawn_node(
-        commands,
-        slot,
-        Node {
-            width: px(224),
-            min_width: px(224),
-            height: px(72),
-            min_height: px(72),
-            max_height: px(72),
-            flex_shrink: 0.0,
-            align_self: AlignSelf::Center,
-            padding: if player.is_none() {
-                UiRect::axes(px(8), px(4))
-            } else {
-                match side {
-                    SeatSide::Left => UiRect::new(px(8), px(68), px(4), px(4)),
-                    SeatSide::Right => UiRect::new(px(68), px(8), px(4), px(4)),
-                    SeatSide::Top => UiRect::new(px(8), px(68), px(4), px(4)),
-                }
-            },
-            flex_direction: FlexDirection::Row,
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            column_gap: px(6),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(8)),
-            ..default()
-        },
-        Some(if active { PANEL_ALT } else { HEADER_BG }),
-    );
     let interaction_menu_open =
         player.is_some_and(|player| visuals.interaction_menu_open == Some(player.id));
-    commands.entity(badge).insert(BorderColor::all(BORDER));
-    decorate_player_panel(commands, badge, visuals.ui, 1.0);
-    if active && let Some(player) = player {
-        add_turn_border_trace(
-            commands,
-            badge,
-            turn_border_materials,
-            TurnBorderAnimationKey::new(GameKind::QiGui523, visuals.game.match_id, player.id),
-        );
-    }
     match player {
         Some(player) => {
-            commands.entity(badge).insert((
-                Button,
-                UiAction::Social(SocialUiAction::ToggleInteractionMenu(player.id)),
-            ));
+            let avatar = player.avatar.and_then(|id| visuals.avatars.remote.get(&id));
+            let portrait = add_player_portrait(
+                commands,
+                slot,
+                Node {
+                    width: px(QIGUI_PORTRAIT_WIDTH),
+                    min_width: px(QIGUI_PORTRAIT_WIDTH),
+                    height: px(QIGUI_PORTRAIT_HEIGHT),
+                    flex_shrink: 0.0,
+                    ..default()
+                },
+                PlayerPortraitSpec {
+                    player: player.id,
+                    profile: PlayerMenuProfile {
+                        name: &player.name,
+                        avatar,
+                        reference_points: player.reference_points,
+                        completed_games: player.completed_games,
+                        game_profiles: &player.game_profiles,
+                    },
+                    side,
+                    avatar_size: QIGUI_AVATAR_SIZE,
+                    auto_play: player.auto_play,
+                    menu_open: interaction_menu_open,
+                    menu_above: matches!(relative_seat, 1 | 5),
+                    name_color: if !player.connected {
+                        MUTED
+                    } else if active {
+                        ACCENT
+                    } else {
+                        TEXT
+                    },
+                },
+                visuals.ui,
+            );
             attach_start_game_seat_transition(
                 commands,
-                badge,
+                portrait.portrait,
                 player.id,
                 visuals.start_transition_active,
             );
-            let handle = player.avatar.and_then(|id| visuals.avatars.remote.get(&id));
-            let avatar = add_avatar(commands, badge, &player.name, handle, 32.0, visuals.ui);
-            commands
-                .entity(avatar)
-                .insert(PlayerAvatarAnchor(player.id));
-            if player.auto_play {
-                add_auto_play_robot_indicator(commands, badge, player.id, side, visuals.ui);
+            if active {
+                add_turn_border_trace_with_radius(
+                    commands,
+                    portrait.avatar_ring,
+                    turn_border_materials,
+                    TurnBorderAnimationKey::new(
+                        GameKind::QiGui523,
+                        visuals.game.match_id,
+                        player.id,
+                    ),
+                    QIGUI_AVATAR_SIZE * 0.2,
+                    QIGUI_AVATAR_SIZE,
+                );
             }
-            let details = spawn_node(
-                commands,
-                badge,
-                Node {
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                None,
-            );
-            add_text(
-                commands,
-                details,
-                format!(
-                    "{}{}",
-                    player.name,
-                    if player.connected { "" } else { " [离线]" }
-                ),
-                14.0,
-                if active { ACCENT } else { TEXT },
-                visuals.ui,
-            );
-            add_text(
-                commands,
-                details,
-                reference_points_label(player.reference_points),
-                11.0,
-                MUTED,
-                visuals.ui,
-            );
-            add_text(
-                commands,
-                details,
-                format!("剩余 {} 张", player.hand_len),
-                12.0,
-                MUTED,
-                visuals.ui,
-            );
             let score = displayed_captured_score(visuals.score_capture, player.id, player.score);
-            let score_text =
-                add_player_panel_primary_value(commands, badge, side, score, visuals.ui);
-            commands
-                .entity(score_text)
-                .insert(PlayerGameScoreText::Opponent {
-                    player: player.id,
-                    side,
-                });
+            add_qigui_score_value(
+                commands,
+                portrait.portrait,
+                player.id,
+                side,
+                score,
+                visuals.ui,
+            );
             if let Some(cards) = finished_remaining_hand(visuals.game, player.id)
                 && !cards.is_empty()
             {
-                add_finished_remaining_hand(commands, badge, player.id, cards, visuals.ui);
+                add_finished_remaining_hand(
+                    commands,
+                    portrait.portrait,
+                    player.id,
+                    cards,
+                    matches!(relative_seat, 1 | 5),
+                    visuals.ui,
+                );
             }
             let score_popup = add_score_cards_popup(
                 commands,
-                badge,
+                portrait.portrait,
                 player,
                 visuals.client.0.model().captured_score_cards(player.id),
-                ScoreCardsPopupPlacement::Opponent(side),
+                ScoreCardsPopupPlacement::Opponent {
+                    side,
+                    above: matches!(relative_seat, 1 | 5),
+                },
                 visuals.score_capture,
                 visuals.ui,
             );
             commands.entity(score_popup).insert(Visibility::Hidden);
-            let interaction_menu = add_interaction_menu(
-                commands,
-                badge,
-                player.id,
-                side,
-                PlayerMenuProfile {
-                    name: &player.name,
-                    avatar: handle,
-                    reference_points: player.reference_points,
-                    completed_games: player.completed_games,
-                    game_profiles: &player.game_profiles,
-                },
-                visuals.ui,
-            );
             commands
-                .entity(interaction_menu)
-                .insert(if interaction_menu_open {
-                    Visibility::Visible
-                } else {
-                    Visibility::Hidden
-                });
-            commands.entity(badge).insert(OpponentBadge {
-                player: player.id,
-                score_popup: Some(score_popup),
-                interaction_menu,
-            });
+                .entity(portrait.portrait)
+                .entry::<OpponentBadge>()
+                .and_modify(move |mut badge| badge.score_popup = Some(score_popup));
         }
         None => {
-            add_text(commands, badge, "空位", 14.0, MUTED, visuals.ui);
+            spawn_node(
+                commands,
+                slot,
+                Node {
+                    width: px(QIGUI_PORTRAIT_WIDTH),
+                    height: px(QIGUI_PORTRAIT_HEIGHT),
+                    flex_shrink: 0.0,
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                },
+                None,
+            );
         }
     }
     if !matches!(side, SeatSide::Right) {
@@ -269,6 +242,64 @@ pub(super) fn add_opponent_slot(
             visuals.assets,
         );
     }
+}
+
+pub(super) fn add_qigui_score_value(
+    commands: &mut Commands,
+    portrait: Entity,
+    player: PlayerId,
+    side: SeatSide,
+    score: u32,
+    assets: &UiAssets,
+) {
+    let row = spawn_node(
+        commands,
+        portrait,
+        Node {
+            position_type: PositionType::Absolute,
+            top: px(76.0 * 1.17 + 2.0),
+            width: percent(100),
+            height: px(31),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            column_gap: px(7),
+            ..default()
+        },
+        None,
+    );
+    commands.entity(row).insert(FocusPolicy::Pass);
+    let icon = spawn_node(
+        commands,
+        row,
+        Node {
+            width: px(25),
+            height: px(25),
+            flex_shrink: 0.0,
+            border: UiRect::all(px(1.5)),
+            border_radius: BorderRadius::all(percent(50)),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        Some(Color::BLACK.with_alpha(0.48)),
+    );
+    commands
+        .entity(icon)
+        .insert((BorderColor::all(ACCENT.with_alpha(0.85)), FocusPolicy::Pass));
+    let glyph = add_text(commands, icon, "分", 15.0, ACCENT, assets);
+    commands.entity(glyph).insert(FocusPolicy::Pass);
+    let digits = score.to_string();
+    let font_size = (28.0 - digits.len().saturating_sub(3) as f32 * 2.5).max(17.0);
+    let value = add_text(commands, row, digits, font_size, ACCENT, assets);
+    commands.entity(value).insert((
+        PlayerGameScoreText::Opponent { player, side },
+        TextLayout::default().with_no_wrap(),
+        TextShadow {
+            offset: Vec2::new(1.5, 2.0),
+            color: Color::BLACK.with_alpha(0.82),
+        },
+        FocusPolicy::Pass,
+    ));
 }
 
 fn finished_remaining_hand(game: &QiGui523Snapshot, player: PlayerId) -> Option<&[QiGuiCard]> {
@@ -289,6 +320,7 @@ fn add_finished_remaining_hand(
     badge: Entity,
     player: PlayerId,
     cards: &[QiGuiCard],
+    above: bool,
     assets: &UiAssets,
 ) {
     let hand = spawn_node(
@@ -297,7 +329,16 @@ fn add_finished_remaining_hand(
         Node {
             position_type: PositionType::Absolute,
             left: px(0),
-            top: px(74),
+            top: if above {
+                Val::Auto
+            } else {
+                px(QIGUI_PORTRAIT_HEIGHT + 2.0)
+            },
+            bottom: if above {
+                px(QIGUI_PORTRAIT_HEIGHT + 2.0)
+            } else {
+                Val::Auto
+            },
             width: percent(100),
             height: px(CardSize::FinishedHand.dimensions().1),
             flex_direction: FlexDirection::Row,

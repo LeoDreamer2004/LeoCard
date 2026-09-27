@@ -1,15 +1,17 @@
 use super::{
-    UnoAssets, UnoExtensionCardHelp, UnoExtensionCardHelpOverlay, UnoFlipTarget, UnoHandCardButton,
-    UnoHandCardVisual, UnoSwapTargetPanel, UnoUiAction, UnoUiState, add_uno_skip_overlay,
+    UNO_AVATAR_SIZE, UNO_PORTRAIT_HEIGHT, UNO_PORTRAIT_WIDTH, UnoAssets, UnoExtensionCardHelp,
+    UnoExtensionCardHelpOverlay, UnoFlipTarget, UnoHandCardButton, UnoHandCardVisual,
+    UnoSwapTargetPanel, UnoUiAction, UnoUiState, add_uno_card_count, add_uno_skip_overlay,
     add_uno_swap_selected_label, uno_anchor_in_layer, uno_card_handle, uno_card_is_playable,
     uno_skip_count,
 };
 use crate::app::presentation::{
-    ACCENT, ButtonTint, CardAnimationState, MUTED, PANEL, PanelSkin, TEXT, TurnBorderAnimationKey,
-    TurnBorderMaterial, add_panel, add_text, add_turn_border_trace, spawn_node,
+    ACCENT, ButtonTint, CardAnimationState, MUTED, PANEL, PlayerMenuProfile, PlayerPortraitSpec,
+    TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_host_crown, add_player_portrait,
+    add_text, add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
 };
-use crate::app::runtime::UiAssets;
-use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer, UiAction};
+use crate::app::runtime::{AvatarImages, UiAssets};
+use crate::app::shell::{PlayerInteractionLayer, SeatSide, SocialUiState, UiAction};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{GameKind, UnoPendingSwapView, UnoPhaseView, UnoPlayerState, UnoSnapshot};
@@ -25,38 +27,64 @@ pub(super) fn add_uno_own_area(
     game: &UnoSnapshot,
     own: &UnoPlayerState,
     ui: &UnoUiState,
+    social: &SocialUiState,
+    avatars: &AvatarImages,
     assets: &UiAssets,
     game_assets: &UnoAssets,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
+    start_transition_active: bool,
 ) {
-    let info = add_panel(
+    let portrait = add_player_portrait(
         commands,
         table,
         Node {
             position_type: PositionType::Absolute,
             left: px(22),
             bottom: px(15),
-            width: px(175),
-            height: px(76),
-            padding: UiRect::all(px(10)),
-            flex_direction: FlexDirection::Column,
-            justify_content: JustifyContent::Center,
-            row_gap: px(4),
+            width: px(UNO_PORTRAIT_WIDTH),
+            height: px(UNO_PORTRAIT_HEIGHT),
             ..default()
         },
-        PANEL.with_alpha(0.94),
-        PanelSkin::Section,
+        PlayerPortraitSpec {
+            player: game.you,
+            profile: PlayerMenuProfile {
+                name: &own.name,
+                avatar: own.avatar.and_then(|id| avatars.remote.get(&id)),
+                reference_points: own.reference_points,
+                completed_games: own.completed_games,
+                game_profiles: &own.game_profiles,
+            },
+            side: SeatSide::Left,
+            avatar_size: UNO_AVATAR_SIZE,
+            auto_play: own.auto_play,
+            menu_open: !matches!(game.pending_swap, Some(UnoPendingSwapView::ForceTrade { player }) if player == game.you)
+                && social.interaction_menu_open == Some(game.you),
+            menu_above: true,
+            name_color: TEXT,
+        },
         assets,
     );
+    let info = portrait.portrait;
+    attach_start_game_seat_transition(commands, info, own.id, start_transition_active);
+    commands
+        .entity(portrait.avatar_ring)
+        .entry::<Node>()
+        .and_modify(|mut node| {
+            node.border_radius = BorderRadius::all(px(UNO_AVATAR_SIZE * 0.2));
+        });
+    if game.host == game.you {
+        add_host_crown(commands, portrait.avatar_ring, assets);
+    }
     let selecting_self = matches!(
         game.pending_swap,
         Some(UnoPendingSwapView::ForceTrade { player }) if player == game.you
     );
     let self_selected = selecting_self && ui.swap_targets.contains(&game.you);
     if selecting_self {
-        commands.entity(info).insert((
-            Button,
-            UiAction::Uno(UnoUiAction::ToggleSwapTarget(game.you)),
+        commands
+            .entity(info)
+            .insert(UiAction::Uno(UnoUiAction::ToggleSwapTarget(game.you)));
+        commands.entity(portrait.avatar_ring).insert((
             UnoSwapTargetPanel {
                 selected: self_selected,
             },
@@ -69,35 +97,26 @@ pub(super) fn add_uno_own_area(
             BoxShadow::new(ACCENT.with_alpha(0.32), px(0), px(0), px(2), px(9)),
         ));
     }
-    commands.entity(info).insert(PlayerAvatarAnchor(game.you));
     if game.current_player == Some(game.you) && matches!(game.phase, UnoPhaseView::Playing) {
-        add_turn_border_trace(
+        add_turn_border_trace_with_radius(
             commands,
-            info,
+            portrait.avatar_ring,
             turn_border_materials,
             TurnBorderAnimationKey::new(GameKind::Uno, game.match_id, game.you),
+            UNO_AVATAR_SIZE * 0.2,
+            UNO_AVATAR_SIZE,
         );
     }
-    add_text(
-        commands,
-        info,
-        format!("你 · {}", own.name),
-        15.0,
-        TEXT,
-        assets,
-    );
     if self_selected {
         add_uno_swap_selected_label(commands, info, assets);
     }
-    add_uno_skip_overlay(commands, info, uno_skip_count(game, own), assets);
-    add_text(
+    add_uno_skip_overlay(
         commands,
-        info,
-        format!("{} 张牌", game.your_hand.len()),
-        13.0,
-        MUTED,
+        portrait.avatar_ring,
+        uno_skip_count(game, own),
         assets,
     );
+    add_uno_card_count(commands, info, game.your_hand.len(), MUTED, assets);
 
     let hand = spawn_node(
         commands,
@@ -178,7 +197,7 @@ pub(super) fn add_uno_own_area(
                     width: px(78),
                     height: px(122),
                     border: UiRect::all(px(2)),
-                    border_radius: BorderRadius::all(px(6)),
+                    border_radius: BorderRadius::all(px(11)),
                     ..default()
                 },
                 UiTransform::from_translation(Val2::px(

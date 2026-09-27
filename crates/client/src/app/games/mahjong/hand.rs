@@ -1,12 +1,14 @@
-use super::tiles::{add_mahjong_hand_tile, mahjong_deal_spec};
+use super::tiles::{add_mahjong_hand_tile, mahjong_deal_spec, mahjong_draw_spec};
 use super::{
-    ActiveMahjongClaimPresentation, MAHJONG_OWN_HAND_LEFT, MAHJONG_OWN_MELD_WIDTH, MahjongAssets,
-    MahjongClaimHandShift, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
-    MahjongUiAction, MahjongWinningHand, add_mahjong_tile_material,
-    apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x, mahjong_win_tile_cues,
+    ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MahjongAssets, MahjongClaimHandShift,
+    MahjongDiscardHandShift, MahjongOwnDiscardAnimation, MahjongTileMaterial, MahjongTileSize,
+    MahjongTileVisual, MahjongUiAction, MahjongWinningHand, add_mahjong_tile_material,
+    add_mahjong_wait_popup, apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x,
+    mahjong_discard_waits, mahjong_own_row_left, mahjong_win_tile_cues,
     mahjong_winning_hand_progress, mark_mahjong_win_tile,
 };
 use crate::app::presentation::{GameSummaryAnimation, spawn_node};
+use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
@@ -22,10 +24,13 @@ pub(super) struct MahjongWinningHandVisual {
 pub(super) struct MahjongOwnHandVisuals<'a> {
     pub observed_hand: &'a [MahjongTile],
     pub dealing: bool,
+    pub drawn_tile_falling: bool,
     pub winning_hand: Option<MahjongWinningHandVisual>,
     pub animation: &'a GameSummaryAnimation,
     pub active_claim: Option<&'a ActiveMahjongClaimPresentation>,
+    pub discard_animation: Option<&'a MahjongOwnDiscardAnimation>,
     pub assets: &'a MahjongAssets,
+    pub ui_assets: &'a UiAssets,
     pub materials: &'a mut Assets<MahjongTileMaterial>,
 }
 
@@ -38,10 +43,13 @@ pub(super) fn render_own_hand(
     let MahjongOwnHandVisuals {
         observed_hand,
         dealing,
+        drawn_tile_falling,
         winning_hand,
         animation,
         active_claim,
+        discard_animation,
         assets,
+        ui_assets,
         materials,
     } = visuals;
     let (winning_hand_start, win_reveal_duration) = winning_hand
@@ -53,7 +61,25 @@ pub(super) fn render_own_hand(
         .iter()
         .find(|player| player.id == game.you)
         .map_or(0, |player| player.melds.len());
-    let left = MAHJONG_OWN_HAND_LEFT + meld_count as f32 * MAHJONG_OWN_MELD_WIDTH;
+    let can_discard =
+        matches!(game.phase, MahjongPhaseView::Playing) && game.current_player == game.you;
+    let discard_waits = can_discard.then(|| mahjong_discard_waits(game));
+    let separated_tile = if dealing {
+        game.your_drawn_tile
+    } else if can_discard {
+        game.your_drawn_tile.or_else(|| {
+            (game.your_hand.len() % 3 == 2)
+                .then(|| game.your_hand.last().copied())
+                .flatten()
+        })
+    } else {
+        None
+    };
+    let separated_index = separated_tile
+        .and_then(|separated| game.your_hand.iter().position(|tile| *tile == separated));
+    let regular_tile_count = game.your_hand.len() - usize::from(separated_index.is_some());
+    let left = mahjong_own_row_left(meld_count, regular_tile_count)
+        + meld_count as f32 * MAHJONG_OWN_MELD_WIDTH;
     let hand = spawn_node(
         commands,
         table,
@@ -101,25 +127,13 @@ pub(super) fn render_own_hand(
             ZIndex(100),
         ));
     }
-    let can_discard =
-        matches!(game.phase, MahjongPhaseView::Playing) && game.current_player == game.you;
-    let separated_tile = if dealing {
-        game.your_drawn_tile
-    } else if can_discard {
-        game.your_drawn_tile.or_else(|| {
-            (game.your_hand.len() % 3 == 2)
-                .then(|| game.your_hand.last().copied())
-                .flatten()
-        })
-    } else {
-        None
-    };
-    let separated_index = separated_tile
-        .and_then(|separated| game.your_hand.iter().position(|tile| *tile == separated));
+    let mut regular_slot = 0;
     for (index, tile) in game.your_hand.iter().copied().enumerate() {
         if separated_index == Some(index) {
             continue;
         }
+        let new_x = left + regular_slot as f32 * 45.0;
+        regular_slot += 1;
         let result = match &game.phase {
             MahjongPhaseView::Finished { result } => Some(result),
             _ => None,
@@ -161,6 +175,24 @@ pub(super) fn render_own_hand(
                 assets,
                 materials,
             );
+            if let Some(animation) = discard_animation
+                && let Some(old_x) = animation.old_tile_x(tile)
+            {
+                let start_x = old_x - new_x;
+                commands.entity(entity).insert((
+                    MahjongDiscardHandShift {
+                        start_x,
+                        drawn: animation.old_drawn == Some(tile),
+                    },
+                    animation.hand_shift_transform(start_x),
+                ));
+            }
+            if let Some(waits) = discard_waits
+                .as_ref()
+                .and_then(|waits| waits.get(&tile.kind()))
+            {
+                add_mahjong_wait_popup(commands, entity, waits, assets, materials, ui_assets);
+            }
             if let (Some(result), Some(cues)) = (result, cues) {
                 mark_mahjong_win_tile(commands, entity, result, cues);
             }
@@ -180,22 +212,32 @@ pub(super) fn render_own_hand(
         );
         commands.entity(gap).insert(FocusPolicy::Pass);
         let tile = game.your_hand[index];
-        add_mahjong_hand_tile(
+        let entity = add_mahjong_hand_tile(
             commands,
             hand,
             tile.kind(),
             can_discard.then_some(UiAction::Mahjong(MahjongUiAction::Discard(tile))),
             game.your_hand.len(),
-            (dealing && !observed_hand.contains(&tile)).then(|| {
-                mahjong_deal_spec(
-                    0,
-                    game.your_hand.len().saturating_sub(1),
-                    game.your_hand.len(),
-                    50.0,
-                )
-            }),
+            if drawn_tile_falling && game.your_drawn_tile == Some(tile) {
+                Some(mahjong_draw_spec(0))
+            } else {
+                (dealing && !observed_hand.contains(&tile)).then(|| {
+                    mahjong_deal_spec(
+                        0,
+                        game.your_hand.len().saturating_sub(1),
+                        game.your_hand.len(),
+                        50.0,
+                    )
+                })
+            },
             assets,
             materials,
         );
+        if let Some(waits) = discard_waits
+            .as_ref()
+            .and_then(|waits| waits.get(&tile.kind()))
+        {
+            add_mahjong_wait_popup(commands, entity, waits, assets, materials, ui_assets);
+        }
     }
 }

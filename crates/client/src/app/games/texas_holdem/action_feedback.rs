@@ -1,6 +1,6 @@
 //! 德州扑克下注动作的短促视觉反馈，与筹码账本和牌桌构建解耦。
 
-use super::{ActionFeedbackKind, TexasChipTableState, TexasPlayerPanel};
+use super::{ActionFeedbackKind, TexasChipTableState, TexasPlayerShake};
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use std::collections::HashSet;
@@ -167,7 +167,7 @@ pub(super) fn animate_texas_action_feedback(
     mut visuals: ParamSet<(
         Query<(&mut TexasActionFeedback, &mut UiTransform, &mut Visibility)>,
         Query<(&mut TexasFoldCard, &mut UiTransform, &mut ImageNode)>,
-        Query<(&TexasPlayerPanel, &mut UiTransform)>,
+        Query<(&TexasPlayerShake, &mut UiTransform)>,
     )>,
     mut texts: Query<(&mut TexasActionFeedbackText, &mut TextColor)>,
 ) {
@@ -199,7 +199,7 @@ pub(super) fn animate_texas_action_feedback(
     for (panel, mut transform) in &mut visuals.p2() {
         let shake_x = state
             .actions
-            .get(&panel.player)
+            .get(&panel.0)
             .filter(|label| label.kind == ActionFeedbackKind::AllIn)
             .map_or(0.0, |label| {
                 action_feedback_visual(label.kind, label.elapsed)

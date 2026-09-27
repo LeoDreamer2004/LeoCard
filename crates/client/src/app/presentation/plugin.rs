@@ -20,8 +20,11 @@ impl Plugin for PresentationPlugin {
             .insert_resource(CardDragSelection::default())
             .add_systems(
                 Update,
+                update_summary_animation.in_set(ClientUpdateSet::Sync),
+            )
+            .add_systems(
+                Update,
                 (
-                    update_summary_animation,
                     animate_game_summary_visuals,
                     animate_summary_scores,
                     animate_signed_summary_scores,

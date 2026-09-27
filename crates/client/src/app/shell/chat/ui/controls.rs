@@ -18,8 +18,8 @@ pub(super) fn add_chat_toggle(
             UiAction::Chat(ChatUiAction::TogglePanel),
             ButtonTint {
                 normal: Color::WHITE,
-                hovered: Color::srgb(1.0, 0.90, 0.56),
-                pressed: Color::srgb(0.68, 0.82, 0.90),
+                hovered: Color::srgb(0.86, 0.96, 0.88),
+                pressed: Color::srgb(0.65, 0.78, 0.70),
             },
             Node {
                 position_type: PositionType::Absolute,

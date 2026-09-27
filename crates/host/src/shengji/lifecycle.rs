@@ -798,12 +798,18 @@ impl HostedGameLifecycle for ShengjiSession {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         }
-        if source == target
-            || !self
-                .room
-                .players
-                .iter()
-                .any(|player| player.id == target && !player.left)
+        if source == target {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::CannotInteractWithSelf),
+            );
+        }
+        if !self
+            .room
+            .players
+            .iter()
+            .any(|player| player.id == target && !player.left)
         {
             return self.room.reject(
                 connection,

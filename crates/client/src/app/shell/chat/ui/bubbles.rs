@@ -176,7 +176,7 @@ fn spawn_emoji_bubble(
     emoji: ChatEmoji,
     assets: &UiAssets,
 ) -> Entity {
-    let width = 78.0;
+    let width = 86.0;
     let position = chat_bubble_position(anchor, layer_size, width);
     let bubble = commands
         .spawn((
@@ -186,13 +186,20 @@ fn spawn_emoji_bubble(
                 top: px(position.y),
                 width: px(width),
                 height: px(width),
+                padding: UiRect::all(px(7)),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
+                border: UiRect::all(px(1)),
+                border_radius: BorderRadius::all(px(9)),
                 ..default()
             },
-            UiTransform::IDENTITY,
-            BackgroundColor(Color::NONE),
-            BorderColor::all(Color::NONE),
+            UiTransform {
+                translation: Val2::px(0.0, 9.0),
+                scale: Vec2::splat(0.88),
+                ..UiTransform::IDENTITY
+            },
+            BackgroundColor(PANEL.with_alpha(0.0)),
+            BorderColor::all(ACCENT.with_alpha(0.0)),
             GlobalZIndex(1600),
             FocusPolicy::Pass,
         ))
@@ -201,8 +208,8 @@ fn spawn_emoji_bubble(
     let icon = commands
         .spawn((
             Node {
-                width: px(72),
-                height: px(72),
+                width: px(70),
+                height: px(70),
                 ..default()
             },
             ImageNode::new(assets.chat_emoji(emoji)),

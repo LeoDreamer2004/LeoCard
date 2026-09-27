@@ -1,3 +1,4 @@
+use super::texas_player_chip_zone;
 use crate::app::presentation::{PendingDealSound, TEXT, add_text, ease_out_cubic, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
@@ -186,7 +187,7 @@ pub(super) fn spawn_texas_initial_deal(
     own_seat: SeatId,
     assets: &UiAssets,
 ) -> TexasInitialDeal {
-    let source = Vec2::new(456.0, 258.0);
+    let source = Vec2::new(456.0, 212.0);
     let dealer_seat = game
         .players
         .iter()
@@ -257,15 +258,11 @@ pub(super) fn spawn_texas_initial_deal(
 }
 
 fn texas_seat_card_target(relative: u8) -> Vec2 {
-    match relative {
-        0 => Vec2::new(620.0, 570.0),
-        1 => Vec2::new(180.0, 400.0),
-        2 => Vec2::new(180.0, 175.0),
-        3 => Vec2::new(620.0, 50.0),
-        4 => Vec2::new(1060.0, 175.0),
-        5 => Vec2::new(1060.0, 400.0),
-        _ => Vec2::new(620.0, 300.0),
-    }
+    let zone = texas_player_chip_zone(relative);
+    Vec2::new(
+        zone.left + zone.width * 0.5 - 18.0,
+        zone.top + zone.height - 53.0,
+    )
 }
 
 pub(super) fn add_texas_card(

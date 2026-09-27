@@ -514,11 +514,17 @@ impl HostedGameLifecycle for QiGui523Session {
                 RejectReason::Game(GameViolation::QiGui523(RuleViolation::GameAlreadyFinished)),
             );
         }
-        if source == target
-            || !self
-                .players
-                .iter()
-                .any(|player| player.id == target && !player.left)
+        if source == target {
+            return self.reject(
+                connection,
+                request_id,
+                RejectReason::Room(RoomViolation::CannotInteractWithSelf),
+            );
+        }
+        if !self
+            .players
+            .iter()
+            .any(|player| player.id == target && !player.left)
         {
             return self.reject(
                 connection,

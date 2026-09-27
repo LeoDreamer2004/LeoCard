@@ -21,6 +21,7 @@ impl GameState {
             .iter()
             .position(|held| *held == tile)
             .ok_or(GameError::TileNotInHand(tile))?;
+        let from_drawn = self.last_drawn == Some(tile);
         self.players[player.0].hand.remove(position);
         self.last_drawn = None;
         let discard_index = self.discards.len();
@@ -28,6 +29,7 @@ impl GameState {
             player,
             tile,
             claimed_by: None,
+            from_drawn,
         });
         let pending = self.pending_for_discard(discard_index, player, tile)?;
         if pending.waiting_for().is_empty() {

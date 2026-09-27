@@ -3,17 +3,17 @@
 use super::tiles::queue_mahjong_deal_sound;
 use super::{
     MAHJONG_WIN_PUSH_DURATION, MahjongAssets, MahjongOwnHandVisuals, MahjongPlayerPanelVisuals,
-    MahjongPlayerTileVisuals, MahjongSettlementVisuals, MahjongTileMaterial, MahjongUiState,
-    MahjongWinVisuals, MahjongWinningHandVisual, add_fan_guide_button,
-    mahjong_major_fan_impact_times, render_action_bar, render_discard_rivers,
-    render_mahjong_auto_drawer, render_mahjong_claim_presentation,
+    MahjongPlayerTileVisuals, MahjongSettlementVisuals, MahjongTableRoot, MahjongTileMaterial,
+    MahjongUiState, MahjongWinVisuals, MahjongWinningHandVisual, add_fan_guide_button,
+    mahjong_major_fan_impact_times, observe_discard_animations, render_action_bar,
+    render_discard_rivers, render_mahjong_auto_drawer, render_mahjong_claim_presentation,
     render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
-    render_mahjong_settlement, render_mahjong_wall, render_mahjong_win_effects, render_own_hand,
-    render_round_status,
+    render_mahjong_settlement, render_mahjong_wall, render_mahjong_win_effects,
+    render_own_discard_flight, render_own_hand, render_round_status,
 };
 use crate::app::presentation::{
-    DESIGN_WIDTH, GameSummaryAnimation, Observed, TableBackground, TableBackgroundMaterial,
-    add_auto_play_overlay, spawn_node, table_material_params,
+    DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition, TableBackground,
+    TableBackgroundMaterial, add_auto_play_overlay, spawn_node, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 #[cfg(feature = "developer")]
@@ -33,9 +33,54 @@ pub(super) const MAHJONG_CLAIM_FLIGHT_DURATION: f32 = 0.52;
 pub(super) const MAHJONG_CLAIM_HAND_SHIFT_DURATION: f32 = 0.34;
 pub(super) const MAHJONG_CLAIM_PRESENTATION_DURATION: f32 = 1.42;
 pub(super) const MAHJONG_FLOWER_PRESENTATION_DURATION: f32 = 1.18;
-pub(super) const MAHJONG_OWN_HAND_LEFT: f32 = 315.0;
 pub(super) const MAHJONG_OWN_MELD_WIDTH: f32 = 140.0;
 pub(super) const MAHJONG_REMOTE_MELD_WIDTH: f32 = 78.0;
+pub(super) const MAHJONG_REMOTE_DRAW_GAP: f32 = 14.0;
+
+pub(super) fn mahjong_own_row_left(meld_count: usize, regular_tile_count: usize) -> f32 {
+    let tile_width = if regular_tile_count == 0 {
+        0.0
+    } else {
+        regular_tile_count as f32 * 45.0 + 5.0
+    };
+    (DESIGN_WIDTH - meld_count as f32 * MAHJONG_OWN_MELD_WIDTH - tile_width) / 2.0
+}
+
+pub(super) const fn mahjong_remote_tile_advance(relative: u8, revealed: bool) -> f32 {
+    if revealed {
+        24.0
+    } else if relative == 2 {
+        27.0
+    } else {
+        29.0
+    }
+}
+
+pub(super) const fn mahjong_remote_tile_overhang(relative: u8, mini: bool) -> f32 {
+    if mini {
+        3.0
+    } else if relative == 2 {
+        4.0
+    } else {
+        5.0
+    }
+}
+
+pub(super) fn mahjong_remote_row_width(
+    relative: u8,
+    meld_count: usize,
+    concealed_count: usize,
+    revealed: bool,
+) -> f32 {
+    meld_count as f32 * MAHJONG_REMOTE_MELD_WIDTH
+        + if meld_count > 0 { 10.0 } else { 0.0 }
+        + concealed_count as f32 * mahjong_remote_tile_advance(relative, revealed)
+        + if concealed_count > 0 {
+            mahjong_remote_tile_overhang(relative, revealed)
+        } else {
+            0.0
+        }
+}
 
 pub(super) const fn mahjong_claim_landing_time() -> f32 {
     MAHJONG_CLAIM_FLIGHT_DELAY + MAHJONG_CLAIM_FLIGHT_DURATION
@@ -51,6 +96,7 @@ pub(crate) struct MahjongHandTile {
 #[derive(Component)]
 pub(super) struct MahjongDealTile {
     pub elapsed: f32,
+    pub falling: bool,
     pub start_offset: Vec2,
     pub start_rotation: f32,
     pub final_offset: Vec2,
@@ -59,9 +105,7 @@ pub(super) struct MahjongDealTile {
 }
 
 #[derive(Component)]
-pub(super) struct MahjongTurnArrow {
-    pub slot: f32,
-}
+pub(super) struct MahjongTurnSector;
 
 #[derive(Component)]
 pub(crate) struct MahjongWinningHand {
@@ -278,6 +322,7 @@ pub(crate) struct MahjongWinScreenShake {
 pub(crate) struct MahjongDealSpec {
     pub start_offset: Vec2,
     pub start_rotation: f32,
+    pub falling: bool,
 }
 
 pub(crate) struct MahjongTableVisuals<'a> {
@@ -290,6 +335,7 @@ pub(crate) struct MahjongTableVisuals<'a> {
     pub vignette: f32,
     pub table_materials: &'a mut Assets<TableBackgroundMaterial>,
     pub tile_materials: &'a mut Assets<MahjongTileMaterial>,
+    pub start_game_transition: &'a StartGameSeatTransition,
     pub game_summary: &'a GameSummaryAnimation,
     pub claim_presentation: &'a MahjongClaimPresentationState,
 }
@@ -462,6 +508,7 @@ pub(crate) fn render_mahjong_table(
         vignette,
         table_materials,
         tile_materials,
+        start_game_transition,
         game_summary,
         claim_presentation,
     } = visuals;
@@ -521,10 +568,13 @@ pub(crate) fn render_mahjong_table(
         },
         None,
     );
-    commands.entity(table).insert(UiTransform {
-        translation: Val2::px(-DESIGN_WIDTH / 2.0, 0.0),
-        ..default()
-    });
+    commands.entity(table).insert((
+        MahjongTableRoot,
+        UiTransform {
+            translation: Val2::px(-DESIGN_WIDTH / 2.0, 0.0),
+            ..default()
+        },
+    ));
 
     let own_seat = game
         .players
@@ -532,8 +582,15 @@ pub(crate) fn render_mahjong_table(
         .find(|player| player.id == game.you)
         .map(|player| player.seat.0)
         .unwrap_or_default();
-    ui.observed_table
-        .observe((game.match_id, game.sequence_index));
+    let start_transition_active = start_game_transition.is_active_for(game.match_id);
+    if ui
+        .observed_table
+        .observe((game.match_id, game.sequence_index))
+    {
+        ui.discard_animation = None;
+        ui.remote_discard_animation = None;
+    }
+    observe_discard_animations(ui, game);
     let received_batch = game.players.iter().any(|player| {
         let index = player.id.0 as usize;
         player.concealed_count > ui.observed_table.state.counts[index]
@@ -543,6 +600,14 @@ pub(crate) fn render_mahjong_table(
         game.phase,
         MahjongPhaseView::Dealing { .. } | MahjongPhaseView::ReplacingFlower { .. }
     );
+    let drawn_tile_falling = matches!(
+        game.phase,
+        MahjongPhaseView::Playing | MahjongPhaseView::ReplacingFlower { .. }
+    ) && ui
+        .observed_table
+        .state
+        .wall_len
+        .is_some_and(|previous| previous > game.wall_len);
     let finished_result = match &game.phase {
         MahjongPhaseView::Finished { result } => Some(result),
         _ => None,
@@ -565,7 +630,16 @@ pub(crate) fn render_mahjong_table(
             .map(|index| mahjong_win_stage_start(result, index) + 0.78)
     });
     render_mahjong_wall(commands, table, game.wall_len, game_assets, tile_materials);
-    render_discard_rivers(commands, table, game, own_seat, game_assets, tile_materials);
+    render_discard_rivers(
+        commands,
+        table,
+        game,
+        own_seat,
+        ui.discard_animation.as_ref(),
+        ui.remote_discard_animation.as_ref(),
+        game_assets,
+        tile_materials,
+    );
     for player in &game.players {
         let winner_start = finished_result.and_then(|result| {
             result
@@ -604,8 +678,14 @@ pub(crate) fn render_mahjong_table(
                     reveal_duration: win_reveal_duration,
                 }),
                 separate_last_concealed,
+                drawn_tile_falling: drawn_tile_falling
+                    && game.current_player == player.id
+                    && !active_claim.is_some_and(|claim| {
+                        matches!(claim.claim, MahjongClaim::Chow { .. } | MahjongClaim::Pung)
+                    }),
                 animation: game_summary,
                 active_claim,
+                remote_discard: ui.remote_discard_animation.as_ref(),
                 result: finished_result,
                 game_assets,
                 materials: tile_materials,
@@ -614,11 +694,11 @@ pub(crate) fn render_mahjong_table(
         render_mahjong_player_panel(
             commands,
             table,
-            game,
             player,
             MahjongPlayerPanelVisuals {
                 own_seat,
                 interaction_menu_open,
+                start_transition_active,
                 assets,
                 avatars,
             },
@@ -632,14 +712,7 @@ pub(crate) fn render_mahjong_table(
             | MahjongPhaseView::Playing
             | MahjongPhaseView::WaitingForClaims
     ) {
-        render_mahjong_auto_drawer(
-            commands,
-            table,
-            ui,
-            game.rules.false_win,
-            cfg!(feature = "developer") && matches!(game.phase, MahjongPhaseView::Playing),
-            assets,
-        );
+        render_mahjong_auto_drawer(commands, content, ui, game.rules.false_win, assets);
     }
     let own_flower_replaced = game
         .players
@@ -679,14 +752,24 @@ pub(crate) fn render_mahjong_table(
         MahjongOwnHandVisuals {
             observed_hand: &ui.observed_table.state.hand,
             dealing: dealing || own_flower_replaced,
+            drawn_tile_falling,
             winning_hand: own_winning_hand,
             animation: game_summary,
             active_claim: claim_presentation.active.as_ref().filter(|claim| {
                 claim.match_id == game.match_id && claim.player == game.you && claim.shift_hand
             }),
+            discard_animation: ui.discard_animation.as_ref(),
             assets: game_assets,
+            ui_assets: assets,
             materials: tile_materials,
         },
+    );
+    render_own_discard_flight(
+        commands,
+        table,
+        ui.discard_animation.as_ref(),
+        game_assets,
+        tile_materials,
     );
     #[cfg(feature = "developer")]
     if matches!(game.phase, MahjongPhaseView::Playing) {
@@ -695,7 +778,7 @@ pub(crate) fn render_mahjong_table(
             table,
             developer_hand,
             "编辑手牌，如 123M456P789S1234Z",
-            Vec2::new(8.0, 66.0),
+            Vec2::new(8.0, 8.0),
             assets,
         );
     }
@@ -704,7 +787,7 @@ pub(crate) fn render_mahjong_table(
     if received_batch {
         queue_mahjong_deal_sound(commands, assets);
     }
-    render_action_bar(commands, table, game, assets);
+    render_action_bar(commands, table, game, ui, assets);
     render_mahjong_claim_presentation(
         commands,
         table,
@@ -773,5 +856,13 @@ pub(crate) fn render_mahjong_table(
         ui.observed_table.state.counts[player.id.0 as usize] = player.concealed_count;
         ui.observed_table.state.flowers[player.id.0 as usize] = player.flowers.len() as u8;
     }
+    ui.observed_table.state.wall_len = Some(game.wall_len);
+    ui.observed_table.state.discard_count = Some(game.discards.len());
+    ui.observed_table.state.drawn_tile = game.your_drawn_tile;
+    ui.observed_table.state.meld_count = game
+        .players
+        .iter()
+        .find(|player| player.id == game.you)
+        .map_or(0, |player| player.melds.len());
     let _ = client;
 }

@@ -3,20 +3,6 @@ use bevy::prelude::*;
 use leocard_protocol::{TexasHoldemPhaseView, TexasHoldemPlayerState};
 use leocard_texas_holdem::{TexasHoldemHandCategory, TexasHoldemStreet};
 
-pub(super) fn texas_player_status(player: &TexasHoldemPlayerState) -> String {
-    if !player.connected {
-        "已离线".to_owned()
-    } else if player.folded {
-        "已弃牌".to_owned()
-    } else if player.all_in {
-        format!("全下 · 本轮 {}", player.committed_street)
-    } else if player.committed_street > 0 {
-        format!("本轮投入 {}", player.committed_street)
-    } else {
-        "等待行动".to_owned()
-    }
-}
-
 pub(super) fn texas_player_border_color(player: &TexasHoldemPlayerState, current: bool) -> Color {
     if player.folded {
         Color::srgb(0.48, 0.52, 0.50)

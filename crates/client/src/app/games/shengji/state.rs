@@ -124,6 +124,11 @@ pub(super) struct ShengjiThrowPenaltyScorePulse {
 }
 
 #[derive(Component)]
+pub(crate) struct ShengjiScoreTrayHover {
+    pub popup: Entity,
+}
+
+#[derive(Component)]
 pub(crate) struct ShengjiDealerBadge;
 
 #[derive(Component)]

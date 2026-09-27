@@ -51,5 +51,4 @@ fn reference_levels_use_the_declared_boundaries() {
     assert_eq!(reference_level(-11), "泥土");
     assert_eq!(reference_level(-50), "泥土");
     assert_eq!(reference_level(-51), "堆肥桶");
-    assert_eq!(reference_points_label(500), "等级:钻石  分数:500");
 }

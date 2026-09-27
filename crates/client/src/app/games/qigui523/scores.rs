@@ -1,5 +1,5 @@
-use super::sort_cards_high_to_low;
 use super::state::ScoreCardsPopupPlacement;
+use super::{QIGUI_PORTRAIT_HEIGHT, QIGUI_PORTRAIT_WIDTH, sort_cards_high_to_low};
 use crate::app::presentation::CardSize;
 use crate::app::presentation::{
     ACCENT, MUTED, add_card_image, add_text, position_opponent_popup, spawn_node,
@@ -32,13 +32,21 @@ pub(super) fn add_score_cards_popup(
         ..default()
     };
     match placement {
-        ScoreCardsPopupPlacement::Opponent(side) => position_opponent_popup(&mut node, side),
+        ScoreCardsPopupPlacement::Opponent { side, above } => {
+            position_opponent_popup(&mut node, side);
+            if above {
+                node.top = Val::Auto;
+                node.bottom = px(QIGUI_PORTRAIT_HEIGHT + 6.0);
+            } else {
+                node.top = px(QIGUI_PORTRAIT_HEIGHT + 6.0);
+            }
+        }
         ScoreCardsPopupPlacement::Own => {
-            node.left = px(10);
-            node.bottom = px(64);
+            node.left = px(10.0 + QIGUI_PORTRAIT_WIDTH + 8.0);
+            node.bottom = px(25);
             node.width = px(410);
             node.min_height = px(58);
-            node.padding = UiRect::new(px(6), px(76), px(6), px(6));
+            node.padding = UiRect::new(px(76), px(6), px(6), px(6));
         }
     }
     let popup = spawn_node(commands, parent, node, Some(Color::BLACK.with_alpha(0.30)));
@@ -55,7 +63,7 @@ pub(super) fn add_score_cards_popup(
                 popup,
                 Node {
                     position_type: PositionType::Absolute,
-                    right: px(5),
+                    left: px(5),
                     top: px(4),
                     bottom: px(4),
                     width: px(66),
@@ -87,7 +95,7 @@ pub(super) fn add_score_cards_popup(
                 },
             ));
         }
-        ScoreCardsPopupPlacement::Opponent(_) => {
+        ScoreCardsPopupPlacement::Opponent { .. } => {
             let title = format!(
                 "{} 的分牌 · {} 分 · {} 张",
                 player.name,
@@ -98,7 +106,7 @@ pub(super) fn add_score_cards_popup(
         }
     }
     if cards.is_empty() {
-        if matches!(placement, ScoreCardsPopupPlacement::Opponent(_)) {
+        if matches!(placement, ScoreCardsPopupPlacement::Opponent { .. }) {
             add_text(commands, popup, "尚未获得分牌", 12.0, MUTED, assets);
         }
         return popup;

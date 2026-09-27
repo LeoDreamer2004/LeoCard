@@ -1,5 +1,5 @@
 use super::{
-    PlayerInteractionCooldown, animate_auto_play_robot_indicators, animate_player_interactions,
+    PlayerInteractionCooldown, animate_player_interactions,
     close_interaction_menu_on_outside_click, dispatch_social_actions,
     sync_interaction_cooldown_masks, sync_opponent_badge_popups, sync_player_interactions,
     tick_player_interaction_cooldown,
@@ -27,11 +27,7 @@ impl Plugin for SocialPlugin {
             )
             .add_systems(
                 Update,
-                (
-                    animate_player_interactions,
-                    animate_auto_play_robot_indicators,
-                )
-                    .in_set(ClientUpdateSet::Animate),
+                animate_player_interactions.in_set(ClientUpdateSet::Animate),
             );
     }
 }

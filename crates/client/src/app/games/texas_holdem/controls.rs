@@ -1,19 +1,19 @@
 use super::{
-    TexasChipTableState, TexasHoldemAssets, TexasHoldemUiAction, TexasHoldemUiState,
-    TexasPlayerPanel, TexasRaiseAdjustButton, add_role_tokens, add_texas_card,
-    add_texas_chip_popup, texas_player_border_color, texas_player_status,
+    TEXAS_PORTRAIT_WIDTH, TexasChipTableState, TexasHoldemAssets, TexasHoldemUiAction,
+    TexasHoldemUiState, TexasPlayerPanel, TexasPlayerShake, TexasRaiseAdjustButton,
+    add_role_tokens, add_texas_card, add_texas_chip_popup, texas_player_border_color,
 };
 use crate::app::presentation::{
-    ButtonKind, ButtonTint, HEADER_BG, MUTED, PendingDealSound, TEXT, TURN_BORDER_THICKNESS,
-    TurnBorderAnimationKey, TurnBorderMaterial, add_avatar, add_text, add_turn_border_trace,
-    attach_start_game_seat_transition, decorate_player_panel, spawn_node,
+    ButtonKind, ButtonTint, MUTED, PendingDealSound, PlayerMenuProfile, PlayerPortraitSpec, TEXT,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait, add_text,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{PlayerAvatarAnchor, UiAction};
+use crate::app::shell::{SeatSide, UiAction};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{
-    GameKind, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
+    GameKind, PlayerId, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
 };
 use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemBlindKind};
 
@@ -28,6 +28,7 @@ pub(super) fn add_texas_own_area(
     own: &TexasHoldemPlayerState,
     deal_delays: Option<&[f32]>,
     ui: &mut TexasHoldemUiState,
+    interaction_menu_open: Option<PlayerId>,
     assets: &UiAssets,
     game_assets: &TexasHoldemAssets,
     avatars: &AvatarImages,
@@ -35,70 +36,75 @@ pub(super) fn add_texas_own_area(
     chip_state: &TexasChipTableState,
     start_transition_active: bool,
 ) {
-    let own_panel = spawn_node(
+    let portrait_height = 76.0 * 1.17;
+    let own_seat = spawn_node(
         commands,
         table,
         Node {
             position_type: PositionType::Absolute,
             left: px(10),
             bottom: px(8),
-            width: px(118),
-            min_width: px(118),
-            max_width: px(118),
-            height: px(48),
-            min_height: px(48),
-            max_height: px(48),
-            flex_shrink: 0.0,
-            padding: UiRect::axes(px(3), px(2)),
-            flex_direction: FlexDirection::Row,
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            column_gap: px(2),
-            border: UiRect::all(px(TURN_BORDER_THICKNESS)),
-            border_radius: BorderRadius::all(px(8)),
-            ..default()
-        },
-        Some(HEADER_BG.with_alpha(0.94)),
-    );
-    let base_border = texas_player_border_color(own, game.current_player == Some(own.id));
-    commands.entity(own_panel).insert((
-        BorderColor::all(base_border),
-        BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(0)),
-        TexasPlayerPanel {
-            player: own.id,
-            base_border,
-        },
-    ));
-    attach_start_game_seat_transition(commands, own_panel, own.id, start_transition_active);
-    decorate_player_panel(commands, own_panel, assets, 0.72);
-    if !own.folded && game.current_player == Some(own.id) {
-        add_turn_border_trace(
-            commands,
-            own_panel,
-            turn_border_materials,
-            TurnBorderAnimationKey::new(GameKind::TexasHoldem, game.match_id, own.id),
-        );
-    }
-    let avatar_handle = own.avatar.and_then(|id| avatars.remote.get(&id));
-    let avatar = add_avatar(commands, own_panel, &own.name, avatar_handle, 24.0, assets);
-    commands.entity(avatar).insert(PlayerAvatarAnchor(own.id));
-    add_role_tokens(commands, avatar, own.id, game, assets);
-    let info = spawn_node(
-        commands,
-        own_panel,
-        Node {
-            flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
+            width: px(TEXAS_PORTRAIT_WIDTH),
+            height: px(portrait_height),
             ..default()
         },
         None,
     );
-    add_text(commands, info, &own.name, 11.0, TEXT, assets);
-    add_text(commands, info, texas_player_status(own), 7.5, MUTED, assets);
+    commands.entity(own_seat).insert(TexasPlayerShake(own.id));
+    let portrait = add_player_portrait(
+        commands,
+        own_seat,
+        Node {
+            width: px(TEXAS_PORTRAIT_WIDTH),
+            height: px(portrait_height),
+            ..default()
+        },
+        PlayerPortraitSpec {
+            player: own.id,
+            profile: PlayerMenuProfile {
+                name: &own.name,
+                avatar: own.avatar.and_then(|id| avatars.remote.get(&id)),
+                reference_points: own.reference_points,
+                completed_games: own.completed_games,
+                game_profiles: &own.game_profiles,
+            },
+            side: SeatSide::Left,
+            avatar_size: 52.0 * 1.17,
+            auto_play: own.auto_play,
+            menu_open: interaction_menu_open == Some(own.id),
+            menu_above: true,
+            name_color: if own.folded { MUTED } else { TEXT },
+        },
+        assets,
+    );
+    attach_start_game_seat_transition(commands, portrait.portrait, own.id, start_transition_active);
+    let base_border = texas_player_border_color(own, game.current_player == Some(own.id));
+    commands
+        .entity(portrait.avatar_ring)
+        .entry::<Node>()
+        .and_modify(|mut node| node.border_radius = BorderRadius::all(px(52.0 * 1.17 * 0.2)));
+    commands.entity(portrait.avatar_ring).insert((
+        TexasPlayerPanel {
+            player: own.id,
+            base_border,
+        },
+        Outline::new(px(3.0), px(0), base_border),
+        BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(0)),
+    ));
+    if !own.folded && game.current_player == Some(own.id) {
+        add_turn_border_trace_with_radius(
+            commands,
+            portrait.avatar_ring,
+            turn_border_materials,
+            TurnBorderAnimationKey::new(GameKind::TexasHoldem, game.match_id, own.id),
+            52.0 * 1.17 * 0.2,
+            52.0 * 1.17,
+        );
+    }
+    add_role_tokens(commands, portrait.avatar_ring, own.id, game, assets);
     add_texas_chip_popup(
         commands,
-        table,
+        own_seat,
         &own.name,
         own.stack,
         None,
@@ -143,7 +149,7 @@ pub(super) fn add_texas_own_area(
                 let delay = deal_delays
                     .and_then(|delays| delays.get(index).or_else(|| delays.last()))
                     .copied();
-                let animation = delay.map(|delay| (delay, Vec2::new(-280.0, -245.0)));
+                let animation = delay.map(|delay| (delay, Vec2::new(-280.0, -257.0)));
                 add_texas_card(
                     commands,
                     hole_cards,

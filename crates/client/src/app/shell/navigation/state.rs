@@ -7,5 +7,4 @@ pub(crate) struct NavigationUiState {
     pub profile_open: bool,
     pub player_profile: Option<PlayerProfilePage>,
     pub profile_game_tab: ProfileGameTab,
-    pub host_game_picker_open: bool,
 }

@@ -17,9 +17,39 @@ pub(crate) struct UiAssets {
     pub font: Handle<Font>,
     pub playing_cards: PlayingCardAssets,
     pub controls: ControlAssets,
+    pub home: HomeAssets,
     pub social: SocialAssets,
     pub audio: CommonAudioAssets,
     pub table_felt: Handle<Image>,
+}
+
+#[derive(Default)]
+pub(crate) struct HomeAssets {
+    pub panel: Handle<Image>,
+    pub warning_toast: Handle<Image>,
+    pub rule_left: Handle<Image>,
+    pub rule_left_highlighted: Handle<Image>,
+    pub rule_right: Handle<Image>,
+    pub rule_right_highlighted: Handle<Image>,
+    pub help_question: Handle<Image>,
+    pub checkbox: Handle<Image>,
+    pub checkbox_highlighted: Handle<Image>,
+    pub checkbox_selected: Handle<Image>,
+    pub checkbox_selected_highlighted: Handle<Image>,
+    pub button: Handle<Image>,
+    pub purple_button: Handle<Image>,
+    pub purple_button_compact: Handle<Image>,
+    pub button_arrows: Handle<Image>,
+    pub close_button: Handle<Image>,
+    pub close_button_highlighted: Handle<Image>,
+    pub slider: Handle<Image>,
+    pub slider_highlighted: Handle<Image>,
+    pub slider_handle: Handle<Image>,
+    pub slider_handle_highlighted: Handle<Image>,
+    pub input: Handle<Image>,
+    pub focused_input: Handle<Image>,
+    pub game_art: [Handle<Image>; 5],
+    pub reference_level_icons: [Handle<Image>; 10],
 }
 
 #[derive(Default)]
@@ -35,9 +65,6 @@ pub(crate) struct ControlAssets {
     pub warning_button: Handle<Image>,
     pub danger_button: Handle<Image>,
     pub disabled_button: Handle<Image>,
-    pub panel_window: Handle<Image>,
-    pub panel_section: Handle<Image>,
-    pub panel_popup: Handle<Image>,
     pub robot_icon: Handle<Image>,
     pub host_crown: Handle<Image>,
     pub github_mark: Handle<Image>,
@@ -49,8 +76,6 @@ pub(crate) struct SocialAssets {
     pub interaction_cooldown_masks: Vec<Handle<Image>>,
     pub chat_emojis: Vec<Handle<Image>>,
     pub chat_emoji_icon: Handle<Image>,
-    pub chat_open_icon: Handle<Image>,
-    pub chat_close_icon: Handle<Image>,
     pub quick_voice_icon: Handle<Image>,
 }
 

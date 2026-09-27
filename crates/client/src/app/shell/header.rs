@@ -1,10 +1,7 @@
 //! 顶栏及其连接状态、设置和个人资料入口。
 
-use super::{LobbyUiAction, NavigationUiAction, UiAction};
-use crate::app::presentation::{
-    ACCENT, BORDER, ButtonTint, HEADER_BG, MUTED, add_compact_button, add_text, avatar_color,
-    spawn_node,
-};
+use super::{LobbyUiAction, NavigationUiAction, UiAction, add_cozy_button};
+use crate::app::presentation::{BORDER, MUTED, add_text, avatar_color, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
@@ -39,13 +36,17 @@ impl<'a> Header<'a> {
             Node {
                 width: percent(100),
                 height: px(64),
+                border: UiRect::bottom(px(2)),
                 padding: UiRect::axes(px(24), px(10)),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::SpaceBetween,
                 ..default()
             },
-            Some(HEADER_BG),
+            Some(Color::srgba(0.095, 0.105, 0.12, 0.97)),
         );
+        commands
+            .entity(header)
+            .insert(BorderColor::all(Color::srgba(0.62, 0.59, 0.76, 0.45)));
         let left = spawn_node(
             commands,
             header,
@@ -57,7 +58,14 @@ impl<'a> Header<'a> {
             },
             None,
         );
-        add_text(commands, left, "LeoCard", 25.0, ACCENT, self.assets);
+        add_text(
+            commands,
+            left,
+            "LeoCard",
+            25.0,
+            Color::srgb(0.84, 0.81, 1.0),
+            self.assets,
+        );
         if let Some(host_port) = self.client.and_then(|client| client.0.model().host_port()) {
             let divider = spawn_node(
                 commands,
@@ -90,12 +98,14 @@ impl<'a> Header<'a> {
             },
             None,
         );
-        add_compact_button(
+        add_cozy_button(
             commands,
             right,
             "游戏设置",
             UiAction::Navigation(NavigationUiAction::ToggleSettings),
             self.assets,
+            px(116),
+            40.0,
         );
         if self
             .client
@@ -107,37 +117,14 @@ impl<'a> Header<'a> {
     }
 
     fn add_exit_button(&self, commands: &mut Commands, parent: Entity) {
-        let normal = Color::WHITE;
-        let entity = commands
-            .spawn((
-                Button,
-                UiAction::Lobby(LobbyUiAction::LeaveRoom),
-                ButtonTint {
-                    normal,
-                    hovered: Color::srgb(1.0, 0.88, 0.84),
-                    pressed: Color::srgb(0.74, 0.66, 0.64),
-                },
-                Node {
-                    min_width: px(108),
-                    height: px(36),
-                    padding: UiRect::axes(px(14), px(5)),
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                },
-                ImageNode::new(self.assets.controls.danger_button.clone())
-                    .with_mode(NodeImageMode::Stretch)
-                    .with_color(normal),
-            ))
-            .id();
-        commands.entity(parent).add_child(entity);
-        add_text(
+        add_cozy_button(
             commands,
-            entity,
+            parent,
             "退出游戏",
-            14.0,
-            Color::WHITE,
+            UiAction::Lobby(LobbyUiAction::LeaveRoom),
             self.assets,
+            px(116),
+            40.0,
         );
     }
 
@@ -146,9 +133,10 @@ impl<'a> Header<'a> {
             Button,
             UiAction::Navigation(NavigationUiAction::ToggleProfile),
             Node {
-                width: px(42),
-                height: px(42),
-                min_width: px(42),
+                width: px(44),
+                height: px(44),
+                min_width: px(44),
+                border: UiRect::all(px(2)),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 border_radius: BorderRadius::all(percent(50)),
@@ -157,6 +145,7 @@ impl<'a> Header<'a> {
             },
             UiTransform::IDENTITY,
         ));
+        entity.insert(BorderColor::all(Color::srgb(0.68, 0.65, 0.85)));
         if let Some(image) = self.avatars.local.as_ref() {
             entity.insert(ImageNode::new(image.clone()));
         } else {

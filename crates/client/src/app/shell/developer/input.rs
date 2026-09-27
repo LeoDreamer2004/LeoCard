@@ -1,7 +1,8 @@
 //! 开发者手牌输入框的显示同步。
 
 use super::{DeveloperHandInput, DeveloperHandInputField, DeveloperHandInputText};
-use crate::app::presentation::{ACCENT, BORDER, MUTED, TEXT};
+use crate::app::presentation::{MUTED, TEXT};
+use crate::app::runtime::UiAssets;
 #[cfg(feature = "developer")]
 use crate::app::{ClientResource, PageErrorState, game_command};
 use bevy::prelude::*;
@@ -41,13 +42,14 @@ pub(crate) fn developer_hand_input_label(
 
 pub(crate) fn sync_developer_hand_input_text(
     input: Res<DeveloperHandInput>,
+    assets: Res<UiAssets>,
     mut labels: Query<(
         &DeveloperHandInputText,
         &mut Text,
         &mut TextColor,
         &mut TextBackgroundColor,
     )>,
-    mut fields: Query<(&mut Node, &mut BorderColor), With<DeveloperHandInputField>>,
+    mut fields: Query<&mut ImageNode, With<DeveloperHandInputField>>,
 ) {
     if !input.is_changed() {
         return;
@@ -67,9 +69,15 @@ pub(crate) fn sync_developer_hand_input_text(
             Color::NONE
         };
     }
-    for (mut node, mut border) in &mut fields {
-        node.border = UiRect::all(px(if input.focused { 2 } else { 1 }));
-        border.set_all(if input.focused { ACCENT } else { BORDER });
+    let expected_image = if input.focused {
+        &assets.home.focused_input
+    } else {
+        &assets.home.input
+    };
+    for mut image in &mut fields {
+        if image.image != *expected_image {
+            image.image = expected_image.clone();
+        }
     }
 }
 

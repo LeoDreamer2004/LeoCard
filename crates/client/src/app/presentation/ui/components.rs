@@ -27,16 +27,7 @@ pub(crate) enum TableAppearanceSetting {
 }
 
 #[derive(Component)]
-pub(crate) struct TableAppearanceIndicator {
-    pub setting: TableAppearanceSetting,
-    pub part: TableAppearanceIndicatorPart,
-}
-
-#[derive(Clone, Copy)]
-pub(crate) enum TableAppearanceIndicatorPart {
-    Fill,
-    Knob,
-}
+pub(crate) struct TableAppearanceIndicator(pub TableAppearanceSetting);
 
 #[derive(Component)]
 pub(crate) struct TableAppearanceLabel(pub TableAppearanceSetting);

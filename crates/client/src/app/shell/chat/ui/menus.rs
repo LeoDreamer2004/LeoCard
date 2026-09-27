@@ -1,7 +1,8 @@
 use super::super::*;
-use crate::app::presentation::{ACCENT, ButtonTint, HEADER_BG, TEXT, add_text, spawn_node};
+use super::panel::{add_chat_button_highlight, cozy_chat_button_image};
+use crate::app::presentation::{TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{ChatUiAction, UiAction};
+use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
 use bevy::ecs::query::QueryFilter;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
@@ -14,30 +15,27 @@ pub(super) fn add_quick_voice_menu(
     chat: &ChatPanelState,
     assets: &UiAssets,
 ) {
-    let menu = spawn_node(
+    let menu = add_cozy_panel(
         commands,
         panel,
         Node {
             position_type: PositionType::Absolute,
-            right: px(8),
+            right: px(14),
             bottom: px(50),
-            width: px(285),
-            min_width: px(285),
-            max_width: px(285),
+            width: px(250),
+            min_width: px(250),
+            max_width: px(250),
             height: px(252),
             min_height: px(252),
             max_height: px(252),
             flex_shrink: 0.0,
-            padding: UiRect::all(px(2)),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(8)),
+            padding: UiRect::all(px(10)),
             ..default()
         },
-        Some(HEADER_BG.with_alpha(0.99)),
+        assets,
     );
     commands.entity(menu).insert((
         QuickVoiceMenu,
-        BorderColor::all(ACCENT.with_alpha(0.72)),
         menu_visibility(chat.open && chat.quick_voice_open),
         GlobalZIndex(1810),
     ));
@@ -69,31 +67,24 @@ pub(super) fn add_quick_voice_menu(
             .spawn((
                 Button,
                 UiAction::Chat(ChatUiAction::SendQuickVoice(index as u8)),
-                ButtonTint {
-                    normal: Color::srgb(0.10, 0.26, 0.20),
-                    hovered: Color::srgb(0.18, 0.43, 0.32),
-                    pressed: Color::srgb(0.07, 0.19, 0.15),
-                },
                 Node {
-                    width: px(273),
-                    min_width: px(273),
-                    max_width: px(273),
+                    width: px(222),
+                    min_width: px(222),
+                    max_width: px(222),
                     height: px(25),
                     min_height: px(25),
                     max_height: px(25),
                     flex_shrink: 0.0,
+                    margin: UiRect::left(px(3.5)),
                     padding: UiRect::left(px(11)),
-                    margin: UiRect::right(px(6)),
                     align_items: AlignItems::Center,
-                    border_radius: BorderRadius::all(px(5)),
                     ..default()
                 },
-                ImageNode::new(assets.controls.secondary_button.clone())
-                    .with_mode(NodeImageMode::Stretch)
-                    .with_color(Color::srgb(0.10, 0.26, 0.20)),
+                cozy_chat_button_image(assets.home.button.clone()),
             ))
             .id();
         commands.entity(scroll).add_child(button);
+        add_chat_button_highlight(commands, button, assets);
         add_text(commands, button, *voice, 11.0, TEXT, assets);
     }
 }
@@ -104,29 +95,26 @@ pub(super) fn add_emoji_menu(
     chat: &ChatPanelState,
     assets: &UiAssets,
 ) {
-    let menu = spawn_node(
+    let menu = add_cozy_panel(
         commands,
         panel,
         Node {
             position_type: PositionType::Absolute,
-            right: px(8),
+            right: px(14),
             bottom: px(50),
-            width: px(285),
-            min_width: px(285),
-            max_width: px(285),
+            width: px(250),
+            min_width: px(250),
+            max_width: px(250),
             height: px(178),
             min_height: px(178),
             max_height: px(178),
-            padding: UiRect::all(px(3)),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(8)),
+            padding: UiRect::all(px(10)),
             ..default()
         },
-        Some(HEADER_BG.with_alpha(0.99)),
+        assets,
     );
     commands.entity(menu).insert((
         EmojiMenu,
-        BorderColor::all(ACCENT.with_alpha(0.72)),
         menu_visibility(chat.open && chat.emoji_open),
         GlobalZIndex(1810),
     ));
@@ -160,11 +148,6 @@ pub(super) fn add_emoji_menu(
             .spawn((
                 Button,
                 UiAction::Chat(ChatUiAction::SendEmoji(emoji)),
-                ButtonTint {
-                    normal: Color::srgb(0.11, 0.26, 0.20),
-                    hovered: Color::srgb(0.18, 0.43, 0.32),
-                    pressed: Color::srgb(0.07, 0.19, 0.15),
-                },
                 Node {
                     width: px(42),
                     min_width: px(42),
@@ -174,13 +157,13 @@ pub(super) fn add_emoji_menu(
                     max_height: px(42),
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
-                    border_radius: BorderRadius::all(px(7)),
                     ..default()
                 },
-                BackgroundColor(Color::NONE),
+                cozy_chat_button_image(assets.home.button.clone()),
             ))
             .id();
         commands.entity(scroll).add_child(button);
+        add_chat_button_highlight(commands, button, assets);
         let icon = commands
             .spawn((
                 Node {

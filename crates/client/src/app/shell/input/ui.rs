@@ -3,9 +3,11 @@
 use super::super::{ChatPanelState, UiState};
 use super::{InputField, UiZoom};
 use crate::app::games::{HandCardSlot, MahjongHandTile, ShengjiHandCardSlot, UnoHandCardButton};
-use crate::app::presentation::{BackgroundButtonTint, ButtonTint, DESIGN_HEIGHT, DESIGN_WIDTH};
+use crate::app::presentation::{
+    BackgroundButtonTint, ButtonTint, DESIGN_HEIGHT, DESIGN_WIDTH, TableAppearanceSlider,
+};
 use crate::app::runtime::{ClientResource, ConnectionDraft, UiAssets};
-use crate::app::shell::DeveloperHandInput;
+use crate::app::shell::{DeveloperHandInput, ProfileGameTabButton};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use leocard_client::ClientPhaseRef;
@@ -169,6 +171,8 @@ pub(crate) fn animate_button_presses(
             Without<HandCardSlot>,
             Without<ShengjiHandCardSlot>,
             Without<MahjongHandTile>,
+            Without<TableAppearanceSlider>,
+            Without<ProfileGameTabButton>,
         ),
     >,
     mut buttons: Query<
@@ -178,6 +182,8 @@ pub(crate) fn animate_button_presses(
             Without<HandCardSlot>,
             Without<ShengjiHandCardSlot>,
             Without<MahjongHandTile>,
+            Without<TableAppearanceSlider>,
+            Without<ProfileGameTabButton>,
         ),
     >,
     mut active: Local<HashSet<Entity>>,

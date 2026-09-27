@@ -1,12 +1,9 @@
 use super::*;
-use crate::app::presentation::{
-    ButtonKind, PANEL, PANEL_ALT, PanelSkin, add_action_button, add_disabled_action_button,
-    add_panel, add_section_title, spawn_node,
-};
+use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{LobbyUiAction, UiAction};
+use crate::app::shell::{LobbyUiAction, UiAction, add_cozy_button, add_cozy_panel};
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_protocol::LobbySnapshot;
 
 #[derive(Clone, Copy)]
@@ -104,34 +101,32 @@ impl LobbyPage {
             },
             None,
         );
-        let rules = add_panel(
+        let rules = add_cozy_panel(
             commands,
             content,
             Node {
                 min_width: px(style.rules_min_width),
                 flex_basis: px(style.rules_basis),
                 flex_grow: 1.0,
+                padding: UiRect::all(px(20)),
                 flex_direction: FlexDirection::Column,
-                row_gap: px(style.rules_gap),
+                row_gap: px(style.rules_gap.min(8.0)),
                 ..default()
             },
-            PANEL,
-            PanelSkin::Section,
             assets,
         );
-        let players = add_panel(
+        let players = add_cozy_panel(
             commands,
             content,
             Node {
                 min_width: px(style.players_min_width),
                 flex_basis: px(style.players_basis),
                 flex_grow: 2.0,
+                padding: UiRect::all(px(20)),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(style.players_gap),
                 ..default()
             },
-            PANEL_ALT,
-            PanelSkin::Section,
             assets,
         );
         Self {
@@ -152,7 +147,7 @@ impl LobbyPage {
             can_start,
             waiting_label,
         } = section;
-        add_section_title(
+        add_lobby_rules_heading(
             commands,
             self.players,
             format!("玩家席位  {}/{}", self.connected_count, capacity),
@@ -181,40 +176,101 @@ impl LobbyPage {
         let ready = you
             .and_then(|you| lobby.players.iter().find(|player| player.id == you))
             .is_some_and(|player| player.ready);
-        add_action_button(
+        add_cozy_button(
             commands,
             actions,
             "退出房间",
             UiAction::Lobby(LobbyUiAction::LeaveRoom),
-            ButtonKind::Pass,
             assets,
+            px(150),
+            48.0,
         );
         if you == lobby.host {
             if can_start {
-                add_action_button(
+                add_cozy_button(
                     commands,
                     actions,
                     "开始游戏",
                     UiAction::Lobby(LobbyUiAction::StartGame),
-                    ButtonKind::Primary,
                     assets,
+                    px(150),
+                    48.0,
                 );
             } else {
-                add_disabled_action_button(commands, actions, waiting_label, assets);
+                add_disabled_lobby_button(commands, actions, waiting_label, assets);
             }
         } else {
-            add_action_button(
+            add_cozy_button(
                 commands,
                 actions,
                 if ready { "取消准备" } else { "准备" },
                 UiAction::Lobby(LobbyUiAction::ToggleReady),
-                if ready {
-                    ButtonKind::Secondary
-                } else {
-                    ButtonKind::Primary
-                },
                 assets,
+                px(150),
+                48.0,
             );
         }
     }
+}
+
+fn add_disabled_lobby_button(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    assets: &UiAssets,
+) {
+    let mut image = ImageNode::new(assets.home.button.clone()).with_mode(NodeImageMode::Sliced(
+        TextureSlicer {
+            border: BorderRect::all(32.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 0.55,
+        },
+    ));
+    image.visual_box = VisualBox::BorderBox;
+    image.color = Color::WHITE.with_alpha(0.5);
+    let button = commands
+        .spawn((
+            Node {
+                width: px(150),
+                height: px(48),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            image,
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(parent).add_child(button);
+    add_text(commands, button, label, 14.0, MUTED, assets);
+}
+
+pub(crate) fn add_lobby_rules_heading(
+    commands: &mut Commands,
+    parent: Entity,
+    title: impl Into<String>,
+    assets: &UiAssets,
+) {
+    let heading = spawn_node(
+        commands,
+        parent,
+        Node {
+            flex_direction: FlexDirection::Column,
+            row_gap: px(3),
+            ..default()
+        },
+        None,
+    );
+    add_text(commands, heading, title, 21.0, TEXT, assets);
+    spawn_node(
+        commands,
+        heading,
+        Node {
+            width: px(76),
+            height: px(2),
+            ..default()
+        },
+        Some(Color::srgb(0.64, 0.59, 0.93)),
+    );
 }

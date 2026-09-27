@@ -1,9 +1,9 @@
 //! 个人资料、设置、更新与桌面外观动作。
 
 use super::super::{
-    DomainUiAction, PlayerProfilePage, PressedUiAction, ProfileGameTab, UiAction, UiActionHandler,
-    UiState, UpdateManager, UpdateState, dispatch_domain_actions, open_github_repository,
-    start_table_felt_picker,
+    DomainUiAction, PlayerProfilePage, PressedUiAction, ProfileGameTab, ProfileMotion,
+    SettingsMotion, UiAction, UiActionHandler, UiState, UpdateManager, UpdateState,
+    dispatch_domain_actions, open_github_repository, start_table_felt_picker,
 };
 use crate::app::runtime::{
     AppearancePreferences, TableAppearance, TableFeltPicker, save_appearance_preferences,
@@ -51,6 +51,8 @@ pub(crate) struct NavigationActionContext<'w> {
     ui: ResMut<'w, UiState>,
     local: AppearanceUiResources<'w>,
     updater: ResMut<'w, UpdateManager>,
+    settings_motion: ResMut<'w, SettingsMotion>,
+    profile_motion: ResMut<'w, ProfileMotion>,
     app_exit: MessageWriter<'w, AppExit>,
 }
 
@@ -69,27 +71,26 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
         let updater = &mut *context.updater;
         match self {
             NavigationUiAction::ToggleProfile => {
-                ui.navigation.profile_open = !ui.navigation.profile_open;
-                ui.navigation.player_profile = None;
-                if ui.navigation.profile_open {
+                context.profile_motion.toggle(ui);
+                if context.profile_motion.target_open {
+                    ui.navigation.player_profile = None;
                     ui.navigation.settings_open = false;
-                    ui.navigation.host_game_picker_open = false;
                 }
             }
             NavigationUiAction::OpenPlayerProfile(player_profile) => {
-                ui.navigation.profile_open = true;
+                context.profile_motion.open(ui);
                 ui.navigation.player_profile = Some((**player_profile).clone());
                 ui.social.interaction_menu_open = None;
                 ui.navigation.settings_open = false;
-                ui.navigation.host_game_picker_open = false;
             }
             NavigationUiAction::SelectProfileGameTab(tab) => ui.navigation.profile_game_tab = *tab,
             NavigationUiAction::ToggleSettings => {
-                ui.navigation.settings_open = !ui.navigation.settings_open;
-                if ui.navigation.settings_open {
+                context.settings_motion.toggle(ui);
+                if context.settings_motion.target_open {
                     ui.navigation.profile_open = false;
                     ui.navigation.player_profile = None;
-                    ui.navigation.host_game_picker_open = false;
+                    context.profile_motion.target_open = false;
+                    context.profile_motion.progress = 0.0;
                 }
             }
             NavigationUiAction::StartUpdate => updater.begin_or_show(),

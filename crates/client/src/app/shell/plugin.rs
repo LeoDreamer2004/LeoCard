@@ -1,9 +1,9 @@
 use super::{
     ChatPlugin, ConnectionPlugin, DeveloperToolsPlugin, LobbyPlugin, NavigationPlugin,
-    PlayErrorToast, SettingsPlugin, SocialPlugin, UiActionPlugin, UiActionSet, UiState, UiZoom,
-    UpdatePlugin, animate_button_presses, close_interaction_menu_on_outside_click,
-    handle_text_input, play_button_click_sounds, rebuild_ui, sync_ime_enabled, update_button_tints,
-    update_ui_scale,
+    PlayErrorToast, ProfileMotion, SettingsPlugin, SocialPlugin, UiActionPlugin, UiActionSet,
+    UiState, UiZoom, UpdatePlugin, animate_button_presses, animate_cozy_modals,
+    close_interaction_menu_on_outside_click, handle_text_input, play_button_click_sounds,
+    rebuild_ui, sync_ime_enabled, update_button_tints, update_profile_tab_hover, update_ui_scale,
 };
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
@@ -18,6 +18,7 @@ impl Plugin for ShellPlugin {
                 ..default()
             })
             .insert_resource(UiZoom::default())
+            .init_resource::<ProfileMotion>()
             .add_plugins((
                 UiActionPlugin,
                 ChatPlugin,
@@ -46,6 +47,12 @@ impl Plugin for ShellPlugin {
                     .chain()
                     .in_set(ClientUpdateSet::Input),
             )
-            .add_systems(Update, rebuild_ui.in_set(ClientUpdateSet::Rebuild));
+            .add_systems(Update, rebuild_ui.in_set(ClientUpdateSet::Rebuild))
+            .add_systems(
+                Update,
+                update_profile_tab_hover
+                    .after(animate_cozy_modals)
+                    .in_set(ClientUpdateSet::Animate),
+            );
     }
 }

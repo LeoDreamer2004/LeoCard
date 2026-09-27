@@ -1,15 +1,16 @@
 use super::{
     MahjongClaimPresentationState, MahjongTileMaterial, MahjongUiState, actions,
     advance_mahjong_claim_presentation, animate_mahjong_claim_presentation,
-    animate_mahjong_deal_tiles, animate_mahjong_flower_presentations, animate_mahjong_turn_sector,
-    animate_mahjong_win_effects, animate_mahjong_win_screen_shake, animate_mahjong_win_tile_shakes,
+    animate_mahjong_deal_tiles, animate_mahjong_fan_guide_tiles,
+    animate_mahjong_flower_presentations, animate_mahjong_turn_sector, animate_mahjong_win_effects,
+    animate_mahjong_win_screen_shake, animate_mahjong_win_tile_shakes,
     animate_mahjong_winning_hands, animate_own_discard, animate_remote_discard,
     apply_automatic_mahjong_action, assets, scroll_mahjong_fan_guide,
     sync_mahjong_claim_presentation, sync_mahjong_fan_guide, sync_mahjong_hand_tile_materials,
     sync_mahjong_hover_hints,
 };
 use crate::app::runtime::ClientUpdateSet;
-use crate::app::shell::UiActionSet;
+use crate::app::shell::{UiActionSet, animate_cozy_modals};
 use bevy::prelude::*;
 
 pub(crate) struct MahjongPlugin;
@@ -28,6 +29,13 @@ impl Plugin for MahjongPlugin {
                 Update,
                 (sync_mahjong_fan_guide, scroll_mahjong_fan_guide)
                     .chain()
+                    .before(animate_cozy_modals)
+                    .in_set(ClientUpdateSet::Animate),
+            )
+            .add_systems(
+                Update,
+                animate_mahjong_fan_guide_tiles
+                    .after(animate_cozy_modals)
                     .in_set(ClientUpdateSet::Animate),
             )
             .add_systems(

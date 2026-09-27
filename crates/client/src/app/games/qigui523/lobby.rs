@@ -2,12 +2,14 @@
 
 use super::QiGui523UiAction;
 use crate::app::presentation::{
-    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_section_title, add_text,
-    next_suit_comparison, next_time_control, previous_suit_comparison, previous_time_control,
-    suit_comparison_label, time_control_label,
+    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_text, next_suit_comparison,
+    next_time_control, previous_suit_comparison, previous_time_control, suit_comparison_label,
+    time_control_label,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction};
+use crate::app::shell::{
+    LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_lobby_rules_heading,
+};
 use bevy::prelude::*;
 use leocard_protocol::LobbySnapshot;
 use leocard_protocol::TABLE_SEAT_COUNT;
@@ -48,7 +50,7 @@ pub(crate) fn render_qigui523_lobby(
     let rules = page.rules;
     let connected_count = page.connected_count;
     let can_configure = page.can_configure;
-    add_section_title(commands, rules, "游戏配置", assets);
+    add_lobby_rules_heading(commands, rules, "游戏配置", assets);
     add_text(
         commands,
         rules,

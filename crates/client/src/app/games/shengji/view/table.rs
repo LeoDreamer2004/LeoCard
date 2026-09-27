@@ -10,7 +10,7 @@ use super::{
     select_forced_shengji_follow_cards, shengji_display_trump,
 };
 use crate::app::presentation::{
-    ACCENT, BORDER, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec,
+    ACCENT, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec,
     StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial,
     TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay, add_player_portrait,
     add_text, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
@@ -304,11 +304,7 @@ fn add_shengji_private_buried(
         },
         Some(HEADER_BG.with_alpha(0.98)),
     );
-    commands.entity(panel).insert((
-        BorderColor::all(BORDER),
-        BoxShadow::new(Color::BLACK.with_alpha(0.55), px(2), px(8), px(0), px(15)),
-        FocusPolicy::Pass,
-    ));
+    commands.entity(panel).insert(FocusPolicy::Pass);
     decorate_panel_skin(commands, panel, PanelSkin::Popup, assets);
     add_text(commands, panel, "我的底牌", 22.0, ACCENT, assets);
     add_shengji_card_row(
@@ -354,11 +350,9 @@ fn add_shengji_bottom_flip(
         },
         Some(HEADER_BG.with_alpha(0.94)),
     );
-    commands.entity(panel).insert((
-        GlobalZIndex(900),
-        FocusPolicy::Pass,
-        BoxShadow::new(Color::BLACK.with_alpha(0.45), px(2), px(7), px(0), px(12)),
-    ));
+    commands
+        .entity(panel)
+        .insert((GlobalZIndex(900), FocusPolicy::Pass));
     decorate_panel_skin(commands, panel, PanelSkin::Section, assets);
     add_text(commands, panel, "扳底", 22.0, ACCENT, assets);
 

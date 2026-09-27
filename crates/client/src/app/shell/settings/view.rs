@@ -1,18 +1,17 @@
 //! 全局设置窗口与牌桌外观控制。
 use super::super::{
-    NavigationUiAction, UiAction, UpdateManager, UpdateState, add_github_repository_button,
-    add_green_update_button, settings_update_label, table_appearance_fraction,
-    table_appearance_label,
+    CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction, UiAction, UpdateManager,
+    UpdateState, add_cozy_button, add_cozy_button_with_icon, add_cozy_close_button, add_cozy_panel,
+    settings_update_label, table_appearance_fraction, table_appearance_label,
 };
+use super::{CozySettingsSlider, cozy_backdrop_color, cozy_panel_transform};
 use crate::app::presentation::{
-    BORDER, ButtonKind, HEADER_BG, MUTED, PANEL, PanelSkin, TEXT, TableAppearanceIndicator,
-    TableAppearanceIndicatorPart, TableAppearanceLabel, TableAppearanceSetting,
-    TableAppearanceSlider, add_action_button, add_compact_button, add_panel, add_section_title,
-    add_text, spawn_node,
+    MUTED, TEXT, TableAppearanceIndicator, TableAppearanceLabel, TableAppearanceSetting,
+    TableAppearanceSlider, add_text, spawn_node,
 };
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, RelativeCursorPosition};
+use bevy::ui::{FocusPolicy, RelativeCursorPosition, VisualBox};
 
 pub(crate) struct SettingsModal<'a> {
     form: &'a AppearancePreferences,
@@ -33,7 +32,7 @@ impl<'a> SettingsModal<'a> {
         }
     }
 
-    pub(crate) fn render(&self, commands: &mut Commands, root: Entity) {
+    pub(crate) fn render(&self, commands: &mut Commands, root: Entity, progress: f32) {
         let form = self.form;
         let updater = self.updater;
         let assets = self.assets;
@@ -50,29 +49,60 @@ impl<'a> SettingsModal<'a> {
                 justify_content: JustifyContent::Center,
                 ..default()
             },
-            Some(Color::srgba(0.005, 0.015, 0.012, 0.76)),
+            Some(cozy_backdrop_color(progress)),
         );
-        commands
-            .entity(overlay)
-            .insert((GlobalZIndex(2000), FocusPolicy::Block));
-        let modal = add_panel(
+        commands.entity(overlay).insert((
+            GlobalZIndex(2000),
+            FocusPolicy::Block,
+            CozyModalBackdrop(CozyModalKind::Settings),
+        ));
+        let modal = add_cozy_panel(
             commands,
             overlay,
             Node {
-                width: px(620),
+                width: px(680),
                 max_width: percent(92),
+                padding: UiRect::all(px(24)),
                 flex_direction: FlexDirection::Column,
-                row_gap: px(14),
+                row_gap: px(12),
                 ..default()
             },
-            PANEL,
-            PanelSkin::Window,
             assets,
         );
-        add_section_title(commands, modal, "游戏设置", assets);
+        commands.entity(modal).insert((
+            CozyModalPanel(CozyModalKind::Settings),
+            cozy_panel_transform(progress),
+        ));
+        let heading = spawn_node(
+            commands,
+            modal,
+            Node {
+                width: percent(100),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::SpaceBetween,
+                ..default()
+            },
+            None,
+        );
+        add_text(commands, heading, "游戏设置", 28.0, TEXT, assets);
+        add_cozy_close_button(
+            commands,
+            heading,
+            UiAction::Navigation(NavigationUiAction::ToggleSettings),
+            assets,
+        );
+        spawn_node(
+            commands,
+            modal,
+            Node {
+                width: px(96),
+                height: px(2),
+                ..default()
+            },
+            Some(Color::srgb(0.64, 0.59, 0.93)),
+        );
         TableAppearanceSettings::new(form, assets).render(commands, modal);
         SoftwareUpdateSettings::new(updater, assets).render(commands, modal);
-        SettingsActions::new(form, assets).render(commands, modal);
     }
 }
 
@@ -89,24 +119,31 @@ impl<'a> TableAppearanceSettings<'a> {
     fn render(&self, commands: &mut Commands, parent: Entity) {
         let form = self.form;
         let assets = self.assets;
-        add_text(commands, parent, "自定义桌布背景", 16.0, TEXT, assets);
-        let path_box = spawn_node(
-            commands,
-            parent,
-            Node {
-                width: percent(100),
-                min_height: px(54),
-                padding: UiRect::all(px(10)),
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(6)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::SpaceBetween,
-                column_gap: px(10),
-                ..default()
-            },
-            Some(HEADER_BG),
+        add_text(commands, parent, "桌面外观", 20.0, TEXT, assets);
+        add_text(commands, parent, "桌布背景", 15.0, MUTED, assets);
+        let mut path_image = ImageNode::new(assets.home.input.clone()).with_mode(
+            NodeImageMode::Sliced(TextureSlicer {
+                border: BorderRect::all(32.0),
+                center_scale_mode: SliceScaleMode::Stretch,
+                sides_scale_mode: SliceScaleMode::Stretch,
+                max_corner_scale: 0.55,
+            }),
         );
-        commands.entity(path_box).insert(BorderColor::all(BORDER));
+        path_image.visual_box = VisualBox::BorderBox;
+        let path_box = commands
+            .spawn((
+                Node {
+                    width: percent(100),
+                    min_height: px(54),
+                    padding: UiRect::axes(px(12), px(8)),
+                    align_items: AlignItems::Center,
+                    column_gap: px(10),
+                    ..default()
+                },
+                path_image,
+            ))
+            .id();
+        commands.entity(parent).add_child(path_box);
         let path_text = spawn_node(
             commands,
             path_box,
@@ -132,13 +169,26 @@ impl<'a> TableAppearanceSettings<'a> {
             },
             assets,
         );
-        add_compact_button(
+        add_cozy_button(
             commands,
             path_box,
             "选择图片",
             UiAction::Navigation(NavigationUiAction::ChooseTableFelt),
             assets,
+            px(110),
+            38.0,
         );
+        if form.table_felt_path.is_some() {
+            add_cozy_button(
+                commands,
+                path_box,
+                "恢复默认",
+                UiAction::Navigation(NavigationUiAction::UseDefaultTableFelt),
+                assets,
+                px(110),
+                38.0,
+            );
+        }
         for setting in [
             TableAppearanceSetting::Brightness,
             TableAppearanceSetting::Vignette,
@@ -158,7 +208,7 @@ impl<'a> TableAppearanceSettings<'a> {
             Node {
                 width: percent(100),
                 flex_direction: FlexDirection::Column,
-                row_gap: px(2),
+                row_gap: px(4),
                 ..default()
             },
             None,
@@ -167,7 +217,7 @@ impl<'a> TableAppearanceSettings<'a> {
             commands,
             group,
             table_appearance_label(setting, form),
-            14.0,
+            15.0,
             TEXT,
             assets,
         );
@@ -179,67 +229,59 @@ impl<'a> TableAppearanceSettings<'a> {
                 RelativeCursorPosition::default(),
                 Node {
                     width: percent(100),
-                    height: px(34),
+                    height: px(38),
                     position_type: PositionType::Relative,
                     ..default()
                 },
             ))
             .id();
         commands.entity(group).add_child(slider);
-        let track = spawn_node(
-            commands,
-            slider,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                right: px(0),
-                top: px(13),
-                height: px(8),
-                border_radius: BorderRadius::all(px(4)),
-                ..default()
-            },
-            Some(HEADER_BG),
+        let mut track_image = ImageNode::new(assets.home.slider.clone()).with_mode(
+            NodeImageMode::Sliced(TextureSlicer {
+                border: BorderRect::all(32.0),
+                center_scale_mode: SliceScaleMode::Stretch,
+                sides_scale_mode: SliceScaleMode::Stretch,
+                max_corner_scale: 0.375,
+            }),
         );
-        let fill = spawn_node(
-            commands,
-            track,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                top: px(0),
-                width: percent(fraction * 100.0),
-                height: percent(100),
-                border_radius: BorderRadius::all(px(4)),
-                ..default()
-            },
-            Some(Color::srgb(0.12, 0.48, 0.70)),
-        );
-        commands.entity(fill).insert(TableAppearanceIndicator {
-            setting,
-            part: TableAppearanceIndicatorPart::Fill,
-        });
-        let knob = spawn_node(
-            commands,
-            slider,
-            Node {
-                position_type: PositionType::Absolute,
-                left: percent(fraction * 100.0),
-                top: px(8),
-                width: px(18),
-                height: px(18),
-                border: UiRect::all(px(2)),
-                border_radius: BorderRadius::all(percent(50)),
-                ..default()
-            },
-            Some(TEXT),
-        );
+        track_image.visual_box = VisualBox::BorderBox;
+        let track = commands
+            .spawn((
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(0),
+                    right: px(0),
+                    top: px(7),
+                    height: px(24),
+                    ..default()
+                },
+                track_image,
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(slider).add_child(track);
+        let knob = commands
+            .spawn((
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: percent(fraction * 100.0),
+                    top: px(2),
+                    width: px(14),
+                    height: px(34),
+                    ..default()
+                },
+                ImageNode::new(assets.home.slider_handle.clone()).with_mode(NodeImageMode::Stretch),
+            ))
+            .id();
+        commands.entity(slider).add_child(knob);
         commands.entity(knob).insert((
-            TableAppearanceIndicator {
-                setting,
-                part: TableAppearanceIndicatorPart::Knob,
+            TableAppearanceIndicator(setting),
+            CozySettingsSlider {
+                owner: slider,
+                track,
+                hover: 0.0,
             },
-            BorderColor::all(Color::srgb(0.12, 0.48, 0.70)),
-            UiTransform::from_translation(Val2::px(-9.0, 0.0)),
+            UiTransform::from_translation(Val2::px(-7.0, 0.0)),
             FocusPolicy::Pass,
         ));
     }
@@ -258,15 +300,23 @@ impl<'a> SoftwareUpdateSettings<'a> {
     fn render(self, commands: &mut Commands, parent: Entity) {
         let updater = self.updater;
         let assets = self.assets;
+        spawn_node(
+            commands,
+            parent,
+            Node {
+                width: percent(100),
+                height: px(1),
+                margin: UiRect::vertical(px(4)),
+                ..default()
+            },
+            Some(Color::srgba(0.70, 0.68, 0.78, 0.36)),
+        );
         let update_row = spawn_node(
             commands,
             parent,
             Node {
                 width: percent(100),
-                min_height: px(68),
-                padding: UiRect::axes(px(12), px(10)),
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(7)),
+                min_height: px(54),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::SpaceBetween,
                 flex_wrap: FlexWrap::Wrap,
@@ -274,9 +324,8 @@ impl<'a> SoftwareUpdateSettings<'a> {
                 row_gap: px(8),
                 ..default()
             },
-            Some(HEADER_BG.with_alpha(0.78)),
+            None,
         );
-        commands.entity(update_row).insert(BorderColor::all(BORDER));
         let version_text = spawn_node(
             commands,
             update_row,
@@ -289,12 +338,12 @@ impl<'a> SoftwareUpdateSettings<'a> {
             },
             None,
         );
-        add_text(commands, version_text, "软件更新", 16.0, TEXT, assets);
+        add_text(commands, version_text, "软件更新", 20.0, TEXT, assets);
         add_text(
             commands,
             version_text,
             format!("当前版本 v{}", env!("CARGO_PKG_VERSION")),
-            12.0,
+            13.0,
             MUTED,
             assets,
         );
@@ -309,8 +358,17 @@ impl<'a> SoftwareUpdateSettings<'a> {
             },
             None,
         );
-        add_github_repository_button(commands, update_actions, assets);
-        add_green_update_button(
+        add_cozy_button_with_icon(
+            commands,
+            update_actions,
+            "GitHub",
+            UiAction::Navigation(NavigationUiAction::OpenGitHubRepository),
+            assets,
+            px(124),
+            40.0,
+            Some(assets.controls.github_mark.clone()),
+        );
+        add_cozy_button(
             commands,
             update_actions,
             settings_update_label(&updater.state),
@@ -321,52 +379,8 @@ impl<'a> SoftwareUpdateSettings<'a> {
                 _ => UiAction::Navigation(NavigationUiAction::StartUpdate),
             },
             assets,
-        );
-    }
-}
-
-struct SettingsActions<'a> {
-    form: &'a AppearancePreferences,
-    assets: &'a UiAssets,
-}
-
-impl<'a> SettingsActions<'a> {
-    fn new(form: &'a AppearancePreferences, assets: &'a UiAssets) -> Self {
-        Self { form, assets }
-    }
-
-    fn render(self, commands: &mut Commands, parent: Entity) {
-        let actions = spawn_node(
-            commands,
-            parent,
-            Node {
-                width: percent(100),
-                flex_direction: FlexDirection::Row,
-                flex_wrap: FlexWrap::Wrap,
-                justify_content: JustifyContent::FlexEnd,
-                column_gap: px(10),
-                row_gap: px(8),
-                ..default()
-            },
-            None,
-        );
-        if self.form.table_felt_path.is_some() {
-            add_action_button(
-                commands,
-                actions,
-                "恢复默认",
-                UiAction::Navigation(NavigationUiAction::UseDefaultTableFelt),
-                ButtonKind::Secondary,
-                self.assets,
-            );
-        }
-        add_action_button(
-            commands,
-            actions,
-            "关闭",
-            UiAction::Navigation(NavigationUiAction::ToggleSettings),
-            ButtonKind::Secondary,
-            self.assets,
+            px(155),
+            40.0,
         );
     }
 }

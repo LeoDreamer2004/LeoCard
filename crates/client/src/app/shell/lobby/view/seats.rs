@@ -6,7 +6,7 @@ use crate::app::presentation::{
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{LobbyUiAction, UiAction, reference_level};
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_protocol::{GameKind, LobbyPlayer, LobbySnapshot, SeatId};
 
 pub(super) struct LobbySeatSelector<'a> {
@@ -234,63 +234,50 @@ impl<'a> OccupiedLobbySeat<'a> {
     }
 
     fn spawn_avatar_ring(&self, commands: &mut Commands, parent: Entity) -> Entity {
-        let avatar_ring = spawn_node(
+        let ring = spawn_node(
             commands,
             parent,
             Node {
-                width: px(60),
-                height: px(60),
-                min_width: px(60),
+                width: px(58),
+                height: px(58),
+                min_width: px(58),
                 position_type: PositionType::Relative,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                border: UiRect::all(px(if self.is_you { 3 } else { 2 })),
+                border: UiRect::all(px(2)),
                 border_radius: BorderRadius::all(percent(50)),
                 ..default()
             },
-            Some(Color::srgba(0.02, 0.08, 0.06, 0.80)),
+            Some(Color::srgba(0.03, 0.07, 0.06, 0.88)),
         );
-        commands.entity(avatar_ring).insert((
-            BorderColor::all(if self.is_you {
+        commands
+            .entity(ring)
+            .insert(BorderColor::all(if self.is_you {
                 ACCENT
             } else if self.player.ready {
                 READY
             } else {
-                MUTED.with_alpha(0.42)
-            }),
-            BoxShadow::new(
-                if self.is_you {
-                    ACCENT.with_alpha(0.24)
-                } else {
-                    Color::BLACK.with_alpha(0.24)
-                },
-                px(0),
-                px(2),
-                px(0),
-                px(5),
-            ),
-        ));
-        avatar_ring
+                MUTED.with_alpha(0.7)
+            }));
+        ring
     }
 
     fn add_ready_badge(&self, commands: &mut Commands, parent: Entity) {
-        let check = spawn_node(
-            commands,
-            parent,
-            Node {
-                position_type: PositionType::Absolute,
-                right: px(-2),
-                bottom: px(-1),
-                width: px(18),
-                height: px(18),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                border_radius: BorderRadius::all(percent(50)),
-                ..default()
-            },
-            Some(READY),
-        );
-        add_text(commands, check, "✓", 11.5, Color::WHITE, self.assets);
+        let check = commands
+            .spawn((
+                Node {
+                    position_type: PositionType::Absolute,
+                    right: px(-2),
+                    bottom: px(-1),
+                    width: px(20),
+                    height: px(20),
+                    ..default()
+                },
+                ImageNode::new(self.assets.home.checkbox_selected.clone()),
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(parent).add_child(check);
     }
 
     fn add_status(&self, commands: &mut Commands, parent: Entity) {
@@ -343,48 +330,33 @@ impl<'a> EmptyLobbySeat<'a> {
             commands,
             parent,
             Node {
-                width: px(56),
-                height: px(56),
+                width: px(64),
+                height: px(64),
                 position_type: PositionType::Relative,
-                border: UiRect::all(px(2)),
-                border_radius: BorderRadius::all(percent(50)),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
                 ..default()
             },
-            Some(Color::srgba(0.03, 0.12, 0.085, 0.64)),
+            None,
         );
-        commands.entity(empty_ring).insert((
-            LobbyEmptySeatRing(self.index),
-            BorderColor::all(MUTED.with_alpha(0.34)),
-        ));
-        self.add_plus_sign(commands, empty_ring);
+        let mut image = ImageNode::new(self.assets.home.button.clone()).with_mode(
+            NodeImageMode::Sliced(TextureSlicer {
+                border: BorderRect::all(32.0),
+                center_scale_mode: SliceScaleMode::Stretch,
+                sides_scale_mode: SliceScaleMode::Stretch,
+                max_corner_scale: 0.42,
+            }),
+        );
+        image.visual_box = VisualBox::BorderBox;
+        commands
+            .entity(empty_ring)
+            .insert((LobbyEmptySeatRing(self.index), image));
+        let plus = add_text(commands, empty_ring, "+", 31.0, TEXT, self.assets);
+        commands.entity(plus).insert(FocusPolicy::Pass);
         let label = add_text(commands, parent, "空位", 12.0, MUTED, self.assets);
         commands
             .entity(label)
             .insert(LobbyEmptySeatLabel(self.index));
-    }
-
-    fn add_plus_sign(&self, commands: &mut Commands, parent: Entity) {
-        for node in [
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(15),
-                top: px(25),
-                width: px(22),
-                height: px(2),
-                ..default()
-            },
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(25),
-                top: px(15),
-                width: px(2),
-                height: px(22),
-                ..default()
-            },
-        ] {
-            let stroke = spawn_node(commands, parent, node, Some(MUTED.with_alpha(0.72)));
-            commands.entity(stroke).insert(FocusPolicy::Pass);
-        }
     }
 }
 

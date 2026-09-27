@@ -2,10 +2,12 @@
 
 use super::TexasHoldemUiAction;
 use crate::app::presentation::{
-    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_section_title, add_text,
+    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_text,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction};
+use crate::app::shell::{
+    LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_lobby_rules_heading,
+};
 use bevy::prelude::*;
 use leocard_protocol::LobbySnapshot;
 use leocard_protocol::TABLE_SEAT_COUNT;
@@ -45,7 +47,7 @@ pub(crate) fn render_texas_holdem_lobby(
     let rules_panel = page.rules;
     let connected_count = page.connected_count;
     let can_configure = page.can_configure;
-    add_section_title(commands, rules_panel, "德州扑克配置", assets);
+    add_lobby_rules_heading(commands, rules_panel, "德州扑克配置", assets);
     add_text(
         commands,
         rules_panel,

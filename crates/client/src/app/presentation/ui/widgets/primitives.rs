@@ -199,40 +199,6 @@ pub(crate) fn add_disabled_action_button(
     entity
 }
 
-pub(crate) fn add_compact_button(
-    commands: &mut Commands,
-    parent: Entity,
-    label: &str,
-    action: UiAction,
-    assets: &UiAssets,
-) {
-    let normal = Color::srgb(0.42, 0.56, 0.70);
-    let entity = commands
-        .spawn((
-            Button,
-            action,
-            ButtonTint {
-                normal,
-                hovered: Color::srgb(0.60, 0.72, 0.84),
-                pressed: Color::srgb(0.28, 0.40, 0.54),
-            },
-            Node {
-                min_width: px(108),
-                height: px(36),
-                padding: UiRect::axes(px(14), px(5)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            ImageNode::new(assets.controls.secondary_button.clone())
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(normal),
-        ))
-        .id();
-    commands.entity(parent).add_child(entity);
-    add_text(commands, entity, label, 14.0, Color::WHITE, assets);
-}
-
 pub(crate) fn add_panel(
     commands: &mut Commands,
     parent: Entity,
@@ -261,10 +227,10 @@ pub(crate) fn decorate_panel_skin(
     skin: PanelSkin,
     assets: &UiAssets,
 ) -> Entity {
-    let (image, border, alpha) = match skin {
-        PanelSkin::Window => (assets.controls.panel_window.clone(), 40.0, 0.98),
-        PanelSkin::Section => (assets.controls.panel_section.clone(), 28.0, 0.96),
-        PanelSkin::Popup => (assets.controls.panel_popup.clone(), 36.0, 0.98),
+    let corner_scale = match skin {
+        PanelSkin::Window => 0.42,
+        PanelSkin::Section => 0.35,
+        PanelSkin::Popup => 0.30,
     };
     commands
         .entity(panel)
@@ -279,14 +245,18 @@ pub(crate) fn decorate_panel_skin(
                 bottom: px(0),
                 ..default()
             },
-            ImageNode::new(image)
-                .with_mode(NodeImageMode::Sliced(TextureSlicer {
-                    border: BorderRect::all(border),
-                    center_scale_mode: SliceScaleMode::Stretch,
-                    sides_scale_mode: SliceScaleMode::Stretch,
-                    max_corner_scale: 1.0,
-                }))
-                .with_color(Color::WHITE.with_alpha(alpha)),
+            {
+                let mut image = ImageNode::new(assets.home.panel.clone())
+                    .with_mode(NodeImageMode::Sliced(TextureSlicer {
+                        border: BorderRect::all(80.0),
+                        center_scale_mode: SliceScaleMode::Stretch,
+                        sides_scale_mode: SliceScaleMode::Stretch,
+                        max_corner_scale: corner_scale,
+                    }))
+                    .with_color(Color::WHITE);
+                image.visual_box = bevy::ui::VisualBox::BorderBox;
+                image
+            },
             ZIndex(-1),
             FocusPolicy::Pass,
         ))

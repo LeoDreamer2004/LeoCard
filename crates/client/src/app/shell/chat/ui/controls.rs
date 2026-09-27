@@ -1,6 +1,7 @@
 use super::super::*;
 use super::panel::ChatAuxiliaryAction;
-use crate::app::presentation::{ACCENT, BORDER, ButtonTint, MUTED, add_text};
+use super::panel::{add_chat_button_highlight, cozy_chat_button_image};
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, SocialUiAction, UiAction};
 use bevy::prelude::*;
@@ -16,33 +17,24 @@ pub(super) fn add_chat_toggle(
         .spawn((
             Button,
             UiAction::Chat(ChatUiAction::TogglePanel),
-            ButtonTint {
-                normal: Color::WHITE,
-                hovered: Color::srgb(0.86, 0.96, 0.88),
-                pressed: Color::srgb(0.65, 0.78, 0.70),
-            },
             Node {
                 position_type: PositionType::Absolute,
                 left: px(-32),
-                top: px(154),
+                top: px(147),
                 width: px(32),
                 min_width: px(32),
                 max_width: px(32),
-                height: px(32),
-                min_height: px(32),
-                max_height: px(32),
+                height: px(46),
+                min_height: px(46),
+                max_height: px(46),
                 flex_shrink: 0.0,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                border_radius: BorderRadius::all(px(7)),
                 ..default()
             },
             ImageNode::new(if chat.open {
-                assets.social.chat_close_icon.clone()
+                assets.home.rule_right.clone()
             } else {
-                assets.social.chat_open_icon.clone()
-            })
-            .with_color(Color::WHITE),
+                assets.home.rule_left.clone()
+            }),
             ChatToggleIcon,
         ))
         .id();
@@ -55,24 +47,10 @@ pub(super) fn add_auto_play_toggle(
     enabled: bool,
     assets: &UiAssets,
 ) {
-    let normal = if enabled {
-        Color::srgb(0.18, 0.68, 0.38)
-    } else {
-        Color::srgb(0.13, 0.39, 0.29)
-    };
     let auto_button = commands
         .spawn((
             Button,
             UiAction::Social(SocialUiAction::ToggleAutoPlay),
-            ButtonTint {
-                normal,
-                hovered: if enabled {
-                    Color::srgb(0.43, 0.94, 0.60)
-                } else {
-                    Color::srgb(0.12, 0.38, 0.27)
-                },
-                pressed: Color::srgb(0.11, 0.27, 0.21),
-            },
             Node {
                 position_type: PositionType::Absolute,
                 left: px(-32),
@@ -86,17 +64,17 @@ pub(super) fn add_auto_play_toggle(
                 flex_shrink: 0.0,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(7)),
                 ..default()
             },
-            BorderColor::all(if enabled { ACCENT } else { BORDER }),
-            ImageNode::new(assets.controls.secondary_button.clone())
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(normal),
+            cozy_chat_button_image(if enabled {
+                assets.home.purple_button_compact.clone()
+            } else {
+                assets.home.button.clone()
+            }),
         ))
         .id();
     commands.entity(panel).add_child(auto_button);
+    add_chat_button_highlight(commands, auto_button, assets);
     let icon = commands
         .spawn((
             Node {
@@ -130,11 +108,6 @@ fn add_auxiliary_action(
     index: usize,
 ) {
     let enabled = auxiliary.action.is_some();
-    let normal = if enabled {
-        Color::srgb(0.13, 0.39, 0.29)
-    } else {
-        Color::srgb(0.09, 0.16, 0.14)
-    };
     let button = commands
         .spawn((
             Node {
@@ -150,39 +123,29 @@ fn add_auxiliary_action(
                 flex_shrink: 0.0,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(7)),
                 ..default()
             },
-            BorderColor::all(if auxiliary.highlighted && enabled {
-                ACCENT
+            cozy_chat_button_image(if auxiliary.highlighted && enabled {
+                assets.home.purple_button_compact.clone()
             } else {
-                BORDER
+                assets.home.button.clone()
             }),
-            ImageNode::new(assets.controls.secondary_button.clone())
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(normal),
         ))
         .id();
     if let Some(action) = auxiliary.action.clone() {
-        commands.entity(button).insert((
-            Button,
-            action,
-            ButtonTint {
-                normal,
-                hovered: Color::srgb(0.22, 0.56, 0.39),
-                pressed: Color::srgb(0.10, 0.27, 0.20),
-            },
-        ));
+        commands.entity(button).insert((Button, action));
     }
     commands.entity(panel).add_child(button);
+    if enabled {
+        add_chat_button_highlight(commands, button, assets);
+    }
     let label = add_text(
         commands,
         button,
         auxiliary.label,
         10.0,
         if auxiliary.highlighted && enabled {
-            ACCENT
+            TEXT
         } else {
             MUTED
         },

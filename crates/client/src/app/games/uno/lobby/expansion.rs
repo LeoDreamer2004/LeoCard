@@ -1,10 +1,7 @@
 use super::super::{UnoExpansionStatus, UnoExpansionStatusFrame, UnoUiAction};
-use crate::app::presentation::{
-    BORDER, ButtonKind, DANGER, HEADER_BG, MUTED, PANEL, PANEL_ALT, PanelSkin, READY, TEXT,
-    add_action_button, add_panel, add_section_title, add_text, spawn_node,
-};
+use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::UiAction;
+use crate::app::shell::{HomeHighlightKind, UiAction, add_cozy_close_button, add_cozy_panel};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_uno::UnoRuleSet;
@@ -29,26 +26,52 @@ pub(crate) fn render_uno_expansion_settings(
             justify_content: JustifyContent::Center,
             ..default()
         },
-        Some(Color::BLACK.with_alpha(0.62)),
+        Some(Color::srgba(0.005, 0.015, 0.012, 0.76)),
     );
     commands
         .entity(overlay)
         .insert((GlobalZIndex(2100), FocusPolicy::Block));
-    let modal = add_panel(
+    let modal = add_cozy_panel(
         commands,
         overlay,
         Node {
-            width: px(620),
+            width: px(540),
             max_width: percent(92),
+            padding: UiRect::all(px(24)),
             flex_direction: FlexDirection::Column,
-            row_gap: px(14),
+            row_gap: px(12),
             ..default()
         },
-        PANEL,
-        PanelSkin::Window,
         assets,
     );
-    add_section_title(commands, modal, "扩展包设置", assets);
+    let heading = spawn_node(
+        commands,
+        modal,
+        Node {
+            width: percent(100),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::SpaceBetween,
+            ..default()
+        },
+        None,
+    );
+    add_text(commands, heading, "扩展包设置", 24.0, TEXT, assets);
+    add_cozy_close_button(
+        commands,
+        heading,
+        UiAction::Uno(UnoUiAction::ToggleExpansionSettings),
+        assets,
+    );
+    spawn_node(
+        commands,
+        modal,
+        Node {
+            width: px(82),
+            height: px(2),
+            ..default()
+        },
+        Some(Color::srgb(0.64, 0.59, 0.93)),
+    );
     add_text(
         commands,
         modal,
@@ -109,24 +132,6 @@ pub(crate) fn render_uno_expansion_settings(
             assets,
         );
     }
-    let actions = spawn_node(
-        commands,
-        modal,
-        Node {
-            width: percent(100),
-            justify_content: JustifyContent::FlexEnd,
-            ..default()
-        },
-        None,
-    );
-    add_action_button(
-        commands,
-        actions,
-        "关闭",
-        UiAction::Uno(UnoUiAction::ToggleExpansionSettings),
-        ButtonKind::Secondary,
-        assets,
-    );
 }
 
 struct UnoExpansionRow {
@@ -143,22 +148,23 @@ impl UnoExpansionRow {
             parent,
             Node {
                 width: percent(100),
-                min_height: px(86),
-                padding: UiRect::all(px(13)),
+                min_height: px(72),
+                padding: UiRect::axes(px(11), px(8)),
                 align_items: AlignItems::Center,
-                column_gap: px(14),
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(8)),
+                column_gap: px(10),
+                border: UiRect::bottom(px(1)),
                 ..default()
             },
-            Some(PANEL_ALT.with_alpha(0.86)),
+            Some(Color::srgb(0.30, 0.31, 0.34)),
         );
-        commands.entity(row).insert(BorderColor::all(BORDER));
+        commands
+            .entity(row)
+            .insert(BorderColor::all(Color::srgba(0.70, 0.69, 0.77, 0.25)));
         let name_slot = spawn_node(
             commands,
             row,
             Node {
-                width: px(112),
+                width: px(100),
                 flex_shrink: 0.0,
                 ..default()
             },
@@ -193,50 +199,61 @@ impl UnoExpansionRow {
         editable: bool,
         assets: &UiAssets,
     ) {
+        let mut image = ImageNode::new(if self.enabled {
+            assets.home.checkbox_selected.clone()
+        } else {
+            assets.home.checkbox.clone()
+        });
+        if !editable {
+            image.color = Color::WHITE.with_alpha(0.62);
+        }
         let mut status = commands.spawn((
             UnoExpansionStatus,
             Node {
-                width: px(38),
-                height: px(38),
+                width: px(34),
+                height: px(34),
                 flex_shrink: 0.0,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 ..default()
             },
-            BackgroundColor(Color::NONE),
+            image,
         ));
         if editable {
             status.insert((
                 Button,
                 UiAction::Uno(UnoUiAction::UpdateRules(self.toggled_rules)),
                 UnoExpansionStatusFrame,
-                BorderColor::all(if self.enabled {
-                    READY.with_alpha(0.82)
-                } else {
-                    DANGER.with_alpha(0.82)
-                }),
-                BackgroundColor(HEADER_BG.with_alpha(0.92)),
-                Node {
-                    width: px(38),
-                    height: px(38),
-                    flex_shrink: 0.0,
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    border: UiRect::all(px(2)),
-                    border_radius: BorderRadius::all(px(6)),
-                    ..default()
-                },
             ));
         }
         let status = status.id();
         commands.entity(parent).add_child(status);
-        add_text(
-            commands,
-            status,
-            if self.enabled { "✓" } else { "×" },
-            24.0,
-            if self.enabled { READY } else { DANGER },
-            assets,
-        );
+        if editable {
+            let hover_image = ImageNode::new(if self.enabled {
+                assets.home.checkbox_selected_highlighted.clone()
+            } else {
+                assets.home.checkbox_highlighted.clone()
+            });
+            let hover = commands
+                .spawn((
+                    Node {
+                        position_type: PositionType::Absolute,
+                        left: px(0),
+                        right: px(0),
+                        top: px(0),
+                        bottom: px(0),
+                        ..default()
+                    },
+                    hover_image,
+                    Visibility::Hidden,
+                    FocusPolicy::Pass,
+                ))
+                .id();
+            commands.entity(status).add_child(hover);
+            commands.entity(status).insert(HomeHighlightKind::Button {
+                overlay: hover,
+                arrows: None,
+            });
+        }
     }
 }

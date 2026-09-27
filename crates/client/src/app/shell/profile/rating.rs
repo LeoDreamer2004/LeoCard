@@ -1,25 +1,42 @@
 //! 玩家公共等级与参考分显示。
 
-pub(crate) fn reference_level(points: i32) -> &'static str {
+const REFERENCE_LEVEL_NAMES: [&str; 10] = [
+    "下界合金",
+    "钻石",
+    "金",
+    "红石",
+    "铁",
+    "铜",
+    "圆石",
+    "木头",
+    "泥土",
+    "堆肥桶",
+];
+
+pub(crate) fn reference_level_index(points: i32) -> usize {
     if points > 1_000 {
-        "下界合金"
+        0
     } else if points >= 500 {
-        "钻石"
+        1
     } else if points >= 200 {
-        "金"
+        2
     } else if points >= 100 {
-        "红石"
+        3
     } else if points >= 50 {
-        "铁"
+        4
     } else if points >= 10 {
-        "铜"
+        5
     } else if points >= 0 {
-        "圆石"
+        6
     } else if points >= -10 {
-        "木头"
+        7
     } else if points >= -50 {
-        "泥土"
+        8
     } else {
-        "堆肥桶"
+        9
     }
+}
+
+pub(crate) fn reference_level(points: i32) -> &'static str {
+    REFERENCE_LEVEL_NAMES[reference_level_index(points)]
 }

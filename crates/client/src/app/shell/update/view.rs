@@ -1,9 +1,8 @@
 use super::download::format_bytes;
 use super::{UpdateEvent, UpdateManager, UpdateState};
 use crate::app::{
-    BORDER, ButtonKind, ButtonTint, HEADER_BG, MUTED, NavigationUiAction, PANEL, PanelSkin, READY,
-    TEXT, UiAction, UiAssets, UiState, add_action_button, add_panel, add_section_title, add_text,
-    spawn_node,
+    MUTED, NavigationUiAction, TEXT, UiAction, UiAssets, UiState, add_cozy_button, add_cozy_panel,
+    add_text, spawn_node,
 };
 use bevy::log::warn;
 use bevy::prelude::*;
@@ -82,16 +81,30 @@ pub(crate) fn poll_update_events(mut updater: ResMut<UpdateManager>, mut ui: Res
 
 pub(crate) fn sync_update_dialog(
     updater: Res<UpdateManager>,
+    time: Res<Time>,
     mut fills: Query<&mut Node, With<UpdateProgressFill>>,
     mut statuses: Query<&mut Text, (With<UpdateStatusText>, Without<UpdateDetailText>)>,
     mut details: Query<&mut Text, (With<UpdateDetailText>, Without<UpdateStatusText>)>,
 ) {
-    if !updater.is_changed() {
+    let indeterminate = matches!(
+        updater.state,
+        UpdateState::Checking | UpdateState::Downloading { total: None, .. }
+    );
+    if !updater.is_changed() && !indeterminate {
         return;
     }
     let (status, detail, fraction) = update_display(&updater.state);
     for mut fill in &mut fills {
-        fill.width = percent(fraction * 100.0);
+        if indeterminate {
+            fill.width = percent(28);
+            fill.left = percent(((time.elapsed_secs() * 0.62) % 1.28 - 0.28) * 100.0);
+        } else {
+            fill.width = percent(fraction * 100.0);
+            fill.left = px(0);
+        }
+    }
+    if !updater.is_changed() {
+        return;
     }
     for mut text in &mut statuses {
         text.0.clone_from(&status);
@@ -125,19 +138,18 @@ pub(crate) fn render_update_dialog(
     commands
         .entity(overlay)
         .insert((GlobalZIndex(2300), FocusPolicy::Block));
-    let modal = add_panel(
+    let modal = add_cozy_panel(
         commands,
         overlay,
         Node {
             width: px(560),
             max_width: percent(90),
+            padding: UiRect::all(px(24)),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Stretch,
             row_gap: px(14),
             ..default()
         },
-        PANEL,
-        PanelSkin::Window,
         assets,
     );
     let title = if matches!(updater.state, UpdateState::Ready { .. }) {
@@ -145,7 +157,17 @@ pub(crate) fn render_update_dialog(
     } else {
         "LeoCard 自动更新"
     };
-    add_section_title(commands, modal, title, assets);
+    add_text(commands, modal, title, 26.0, TEXT, assets);
+    spawn_node(
+        commands,
+        modal,
+        Node {
+            width: px(96),
+            height: px(2),
+            ..default()
+        },
+        Some(Color::srgb(0.64, 0.59, 0.93)),
+    );
 
     let (status, detail, fraction) = update_display(&updater.state);
     let status_entity = add_text(commands, modal, status, 18.0, TEXT, assets);
@@ -155,26 +177,38 @@ pub(crate) fn render_update_dialog(
         modal,
         Node {
             width: percent(100),
-            height: px(18),
+            height: px(14),
             border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(9)),
+            border_radius: BorderRadius::all(px(7)),
             overflow: Overflow::clip(),
             ..default()
         },
-        Some(HEADER_BG),
+        Some(Color::srgb(0.15, 0.15, 0.18)),
     );
     commands
         .entity(progress_track)
-        .insert(BorderColor::all(BORDER));
+        .insert(BorderColor::all(Color::srgba(0.62, 0.60, 0.69, 0.52)));
     let fill = spawn_node(
         commands,
         progress_track,
         Node {
-            width: percent(fraction * 100.0),
+            position_type: PositionType::Absolute,
+            left: px(0),
+            top: px(0),
+            width: percent(
+                if matches!(
+                    updater.state,
+                    UpdateState::Checking | UpdateState::Downloading { total: None, .. }
+                ) {
+                    28.0
+                } else {
+                    fraction * 100.0
+                },
+            ),
             height: percent(100),
             ..default()
         },
-        Some(READY),
+        Some(Color::srgb(0.54, 0.49, 0.88)),
     );
     commands.entity(fill).insert(UpdateProgressFill);
     let detail_entity = add_text(commands, modal, detail, 13.0, MUTED, assets);
@@ -196,100 +230,63 @@ pub(crate) fn render_update_dialog(
     );
     match updater.state {
         UpdateState::Ready { .. } => {
-            add_action_button(
+            add_cozy_button(
                 commands,
                 actions,
                 "稍后重启",
                 UiAction::Navigation(NavigationUiAction::HideUpdateDialog),
-                ButtonKind::Secondary,
                 assets,
+                px(120),
+                42.0,
             );
-            add_green_update_button(
+            add_cozy_button(
                 commands,
                 actions,
                 "重启游戏并更新",
                 UiAction::Navigation(NavigationUiAction::RestartToUpdate),
                 assets,
+                px(185),
+                42.0,
             );
         }
         UpdateState::Failed(_) | UpdateState::UpToDate { .. } | UpdateState::Idle => {
             if matches!(updater.state, UpdateState::Failed(_)) {
-                add_green_update_button(
+                add_cozy_button(
                     commands,
                     actions,
                     "重试",
                     UiAction::Navigation(NavigationUiAction::StartUpdate),
                     assets,
+                    px(100),
+                    42.0,
                 );
             }
-            add_action_button(
+            add_cozy_button(
                 commands,
                 actions,
                 "关闭",
                 UiAction::Navigation(NavigationUiAction::HideUpdateDialog),
-                ButtonKind::Secondary,
                 assets,
+                px(100),
+                42.0,
             );
         }
         UpdateState::Checking | UpdateState::Downloading { .. } => {
-            add_action_button(
+            add_cozy_button(
                 commands,
                 actions,
-                "后台下载",
+                if matches!(updater.state, UpdateState::Checking) {
+                    "后台检查"
+                } else {
+                    "后台下载"
+                },
                 UiAction::Navigation(NavigationUiAction::HideUpdateDialog),
-                ButtonKind::Secondary,
                 assets,
+                px(120),
+                42.0,
             );
         }
     }
-}
-
-#[derive(Component)]
-pub(crate) struct GitHubRepositoryButton;
-
-pub(crate) fn add_github_repository_button(
-    commands: &mut Commands,
-    parent: Entity,
-    assets: &UiAssets,
-) -> Entity {
-    let normal = Color::srgb(0.31, 0.40, 0.48);
-    let button = commands
-        .spawn((
-            Button,
-            UiAction::Navigation(NavigationUiAction::OpenGitHubRepository),
-            GitHubRepositoryButton,
-            ButtonTint {
-                normal,
-                hovered: Color::srgb(0.45, 0.57, 0.67),
-                pressed: Color::srgb(0.22, 0.30, 0.37),
-            },
-            Node {
-                width: px(48),
-                height: px(48),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            ImageNode::new(assets.controls.secondary_button.clone())
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(normal),
-            Name::new("打开 GitHub 仓库"),
-        ))
-        .id();
-    commands.entity(parent).add_child(button);
-    let mark = commands
-        .spawn((
-            Node {
-                width: px(28),
-                height: px(28),
-                ..default()
-            },
-            ImageNode::new(assets.controls.github_mark.clone()),
-            FocusPolicy::Pass,
-        ))
-        .id();
-    commands.entity(button).add_child(mark);
-    button
 }
 
 pub(crate) fn open_github_repository() -> Result<(), String> {
@@ -311,41 +308,6 @@ pub(crate) fn open_github_repository() -> Result<(), String> {
         Ok(_) => {}
     });
     Ok(())
-}
-
-pub(crate) fn add_green_update_button(
-    commands: &mut Commands,
-    parent: Entity,
-    label: &str,
-    action: UiAction,
-    assets: &UiAssets,
-) -> Entity {
-    let normal = READY;
-    let entity = commands
-        .spawn((
-            Button,
-            action,
-            ButtonTint {
-                normal,
-                hovered: Color::srgb(0.48, 0.96, 0.64),
-                pressed: Color::srgb(0.22, 0.66, 0.39),
-            },
-            Node {
-                min_width: px(180),
-                height: px(48),
-                padding: UiRect::axes(px(20), px(8)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            ImageNode::new(assets.controls.primary_button.clone())
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(normal),
-        ))
-        .id();
-    commands.entity(parent).add_child(entity);
-    add_text(commands, entity, label, 16.0, Color::WHITE, assets);
-    entity
 }
 
 pub(crate) fn settings_update_label(state: &UpdateState) -> &'static str {

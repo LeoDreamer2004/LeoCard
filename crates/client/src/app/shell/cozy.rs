@@ -1,0 +1,220 @@
+//! 首页、顶栏和设置窗口共用的 CozyUI 纹理控件。
+
+use super::{HomeHighlightKind, UiAction};
+use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
+use bevy::ui::{FocusPolicy, VisualBox};
+
+pub(crate) fn add_cozy_button(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    action: UiAction,
+    assets: &UiAssets,
+    width: Val,
+    height: f32,
+) -> Entity {
+    add_cozy_button_with_icon(commands, parent, label, action, assets, width, height, None)
+}
+
+pub(crate) fn add_cozy_disabled_button(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    assets: &UiAssets,
+    width: Val,
+    height: f32,
+) -> Entity {
+    let mut image = ImageNode::new(assets.home.button.clone()).with_mode(NodeImageMode::Sliced(
+        TextureSlicer {
+            border: BorderRect::all(32.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 0.55,
+        },
+    ));
+    image.visual_box = VisualBox::BorderBox;
+    image.color = Color::WHITE.with_alpha(0.55);
+    let button = commands
+        .spawn((
+            Node {
+                width,
+                height: px(height),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            image,
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(parent).add_child(button);
+    add_text(commands, button, label, 14.0, MUTED, assets);
+    button
+}
+
+pub(crate) fn add_cozy_close_button(
+    commands: &mut Commands,
+    parent: Entity,
+    action: UiAction,
+    assets: &UiAssets,
+) -> Entity {
+    let button = commands
+        .spawn((
+            Button,
+            action,
+            Node {
+                width: px(40),
+                height: px(40),
+                ..default()
+            },
+            ImageNode::new(assets.home.close_button.clone()).with_mode(NodeImageMode::Stretch),
+        ))
+        .id();
+    commands.entity(parent).add_child(button);
+    let overlay = commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                right: px(0),
+                top: px(0),
+                bottom: px(0),
+                ..default()
+            },
+            ImageNode::new(assets.home.close_button_highlighted.clone())
+                .with_mode(NodeImageMode::Stretch),
+            Visibility::Hidden,
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(button).add_child(overlay);
+    commands.entity(button).insert(HomeHighlightKind::Button {
+        overlay,
+        arrows: None,
+    });
+    button
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the shared button keeps its action, size and optional icon explicit"
+)]
+pub(crate) fn add_cozy_button_with_icon(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    action: UiAction,
+    assets: &UiAssets,
+    width: Val,
+    height: f32,
+    icon: Option<Handle<Image>>,
+) -> Entity {
+    let mut base = ImageNode::new(assets.home.button.clone()).with_mode(NodeImageMode::Sliced(
+        TextureSlicer {
+            border: BorderRect::all(32.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 0.55,
+        },
+    ));
+    base.visual_box = VisualBox::BorderBox;
+    let button = commands
+        .spawn((
+            Button,
+            action,
+            Node {
+                width,
+                height: px(height),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                column_gap: px(7),
+                ..default()
+            },
+            base,
+        ))
+        .id();
+    commands.entity(parent).add_child(button);
+
+    let mut highlight = ImageNode::new(assets.home.purple_button_compact.clone()).with_mode(
+        NodeImageMode::Sliced(TextureSlicer {
+            border: BorderRect::all(32.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 0.55,
+        }),
+    );
+    highlight.visual_box = VisualBox::BorderBox;
+    let overlay = commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                right: px(0),
+                top: px(0),
+                bottom: px(0),
+                ..default()
+            },
+            highlight,
+            Visibility::Hidden,
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(button).add_child(overlay);
+    if let Some(icon) = icon {
+        let image = commands
+            .spawn((
+                Node {
+                    width: px(22),
+                    height: px(22),
+                    ..default()
+                },
+                ImageNode::new(icon),
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(button).add_child(image);
+    }
+    add_text(commands, button, label, 14.0, TEXT, assets);
+    commands.entity(button).insert(HomeHighlightKind::Button {
+        overlay,
+        arrows: None,
+    });
+    button
+}
+
+pub(crate) fn add_cozy_panel(
+    commands: &mut Commands,
+    parent: Entity,
+    node: Node,
+    assets: &UiAssets,
+) -> Entity {
+    let panel = commands.spawn(node).id();
+    commands.entity(parent).add_child(panel);
+    let mut image =
+        ImageNode::new(assets.home.panel.clone()).with_mode(NodeImageMode::Sliced(TextureSlicer {
+            border: BorderRect::all(80.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 0.42,
+        }));
+    image.visual_box = VisualBox::BorderBox;
+    let background = commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                right: px(0),
+                top: px(0),
+                bottom: px(0),
+                ..default()
+            },
+            image,
+            ZIndex(-1),
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(panel).add_child(background);
+    panel
+}

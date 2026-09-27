@@ -1,8 +1,8 @@
 //! 根据网络模型与页面状态装配当前的顶层界面。
 
 use super::{
-    ChatPanelState, ConnectionScreen, DeveloperHandInput, Header, HostGamePicker, PlayErrorToast,
-    ProfileModal, SettingsModal, UiState, UpdateManager, add_play_error_popup,
+    ChatPanelState, ConnectionScreen, DeveloperHandInput, Header, PlayErrorToast, ProfileModal,
+    ProfileMotion, SettingsModal, SettingsMotion, UiState, UpdateManager, add_play_error_popup,
     render_update_dialog,
 };
 use crate::app::games::GameScreenResources;
@@ -22,6 +22,8 @@ struct VisualAssets<'w> {
     play_error: Res<'w, PlayErrorToast>,
     game_summary: Res<'w, GameSummaryAnimation>,
     updater: Res<'w, UpdateManager>,
+    settings_motion: Res<'w, SettingsMotion>,
+    profile_motion: Res<'w, ProfileMotion>,
 }
 
 #[derive(SystemParam)]
@@ -163,14 +165,14 @@ impl ScreenRenderer<'_, '_, '_> {
 
     fn render_overlays(&mut self, root: Entity) {
         if self.ui.navigation.settings_open {
-            SettingsModal::new(self.appearance, &self.visuals.updater, &self.visuals.ui)
-                .render(self.commands, root);
+            SettingsModal::new(self.appearance, &self.visuals.updater, &self.visuals.ui).render(
+                self.commands,
+                root,
+                self.visuals.settings_motion.progress,
+            );
         }
         if self.ui.navigation.profile_open {
             self.render_profile(root);
-        }
-        if self.ui.navigation.host_game_picker_open && self.client.is_none() {
-            HostGamePicker::new(&self.visuals.ui).render(self.commands, root);
         }
         if self.visuals.updater.dialog_open {
             render_update_dialog(self.commands, root, &self.visuals.updater, &self.visuals.ui);
@@ -216,6 +218,6 @@ impl ScreenRenderer<'_, '_, '_> {
             self.ui.navigation.profile_game_tab,
             &self.visuals.ui,
         )
-        .render(self.commands, root);
+        .render(self.commands, root, self.visuals.profile_motion.progress);
     }
 }

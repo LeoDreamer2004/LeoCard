@@ -19,8 +19,6 @@ use leocard_protocol::{GameKind, MAX_PLAYER_NAME_CHARS};
 #[derive(Clone)]
 pub(crate) enum ConnectionUiAction {
     FocusInput(InputField),
-    OpenHostGamePicker,
-    CloseHostGamePicker,
     CreateRoom(GameKind),
     JoinRoom,
     ChooseAvatar,
@@ -74,21 +72,6 @@ impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
                 context.connection.active = *field;
                 context.connection.selected_all = false;
                 context.page_error.error = None;
-            }
-            ConnectionUiAction::OpenHostGamePicker => {
-                match validated_host_form(&context.connection) {
-                    Ok(_) => {
-                        context.ui.navigation.host_game_picker_open = true;
-                        context.ui.navigation.profile_open = false;
-                        context.ui.navigation.player_profile = None;
-                        context.ui.navigation.settings_open = false;
-                        context.page_error.error = None;
-                    }
-                    Err(error) => context.page_error.error = Some(error),
-                }
-            }
-            ConnectionUiAction::CloseHostGamePicker => {
-                context.ui.navigation.host_game_picker_open = false;
             }
             ConnectionUiAction::CreateRoom(game_kind) => create_room(*game_kind, context),
             ConnectionUiAction::JoinRoom => join_room(context),
@@ -193,7 +176,6 @@ fn finish_connection(
             }
             avatars.remote.clear();
             commands.insert_resource(ClientResource(network));
-            ui.navigation.host_game_picker_open = false;
             ui.leaving_room = false;
             page_error.error = None;
         }

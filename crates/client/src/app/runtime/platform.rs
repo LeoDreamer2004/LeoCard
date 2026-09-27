@@ -78,7 +78,15 @@ mod tests {
             "vendor/kenney/boardgame/PNG/Cards/cardSpadesA.png",
             "vendor/kenney/interface-sounds/Audio/error_007.ogg",
             "vendor/noname/voice/male/22.mp3",
-            "ui/panel_window.png",
+            "ui/home/cozy-panel.png",
+            "ui/home/cozy-button-highlighted.png",
+            "ui/home/cozy-button-purple-plain.png",
+            "ui/home/cozy-button-arrows.png",
+            "ui/home/cozy-button-compact.png",
+            "ui/home/cozy-button-purple-compact.png",
+            "ui/home/cozy-input-compact.png",
+            "ui/home/cozy-input-focused-compact.png",
+            "ui/home/cozy-input-focused.png",
             "icons/github-mark.png",
         ] {
             assert!(

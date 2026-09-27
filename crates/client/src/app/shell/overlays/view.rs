@@ -1,12 +1,17 @@
 //! 错误提示与断线覆盖层的视图构建。
 
-use super::{PlayErrorPopup, PlayErrorPopupText, PlayErrorToast, play_error_toast_visual};
+use super::{
+    PlayErrorPopup, PlayErrorPopupImage, PlayErrorPopupText, PlayErrorToast,
+    play_error_toast_visual,
+};
 use crate::app::presentation::{
-    ACCENT, DANGER, HEADER_BG, MUTED, PanelSkin, TEXT, add_panel, add_text, spawn_node,
+    ACCENT, HEADER_BG, MUTED, PanelSkin, TEXT, add_panel, add_text, spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui::{FocusPolicy, VisualBox};
+
+pub(crate) const WARNING_TOAST_TEXT: Color = Color::srgb(0.97, 0.96, 1.0);
 
 pub(crate) fn add_play_error_popup(
     commands: &mut Commands,
@@ -16,47 +21,103 @@ pub(crate) fn add_play_error_popup(
     assets: &UiAssets,
 ) {
     let visual = play_error_toast_visual(toast);
-    let popup = spawn_node(
-        commands,
-        parent,
-        Node {
-            position_type: PositionType::Absolute,
-            left: percent(28),
-            right: percent(28),
-            top: percent(50),
-            min_height: px(62),
-            padding: UiRect::axes(px(18), px(12)),
+    let anchor = commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                right: px(0),
+                top: px(0),
+                bottom: px(0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(parent).add_child(anchor);
+    let popup = commands
+        .spawn(Node {
+            width: px(warning_toast_width(message)),
+            max_width: percent(82),
+            min_height: px(72),
+            padding: UiRect {
+                left: px(60),
+                right: px(24),
+                top: px(4),
+                bottom: px(18),
+            },
             align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            border: UiRect::all(px(2)),
-            border_radius: BorderRadius::all(px(9)),
             ..default()
-        },
-        Some(HEADER_BG.with_alpha(0.97 * visual.opacity)),
-    );
+        })
+        .id();
+    commands.entity(anchor).add_child(popup);
     commands.entity(popup).insert((
         PlayErrorPopup,
-        BorderColor::all(DANGER.with_alpha(0.9 * visual.opacity)),
-        BoxShadow::new(
-            Color::BLACK.with_alpha(0.45 * visual.opacity),
-            px(2),
-            px(5),
-            px(0),
-            px(8),
-        ),
         UiTransform::from_translation(Val2::px(visual.x, visual.y)),
         GlobalZIndex(1500),
         FocusPolicy::Pass,
     ));
+    let mut image = ImageNode::new(assets.home.warning_toast.clone()).with_mode(
+        NodeImageMode::Sliced(TextureSlicer {
+            border: BorderRect {
+                min_inset: Vec2::new(120.0, 100.0),
+                max_inset: Vec2::new(28.0, 16.0),
+            },
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 0.48,
+        }),
+    );
+    image.rect = Some(Rect::from_corners(
+        Vec2::new(4.5, 260.5),
+        Vec2::new(635.5, 379.5),
+    ));
+    image.visual_box = VisualBox::BorderBox;
+    image.color = Color::WHITE.with_alpha(visual.opacity);
+    let background = commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                right: px(0),
+                top: px(0),
+                bottom: px(0),
+                ..default()
+            },
+            image,
+            PlayErrorPopupImage,
+            ZIndex(-1),
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(popup).add_child(background);
     let text = add_text(
         commands,
         popup,
         message,
-        18.0,
-        DANGER.with_alpha(visual.opacity),
+        16.0,
+        WARNING_TOAST_TEXT.with_alpha(visual.opacity),
         assets,
     );
     commands.entity(text).insert(PlayErrorPopupText);
+}
+
+fn warning_toast_width(message: &str) -> f32 {
+    let content_width = message
+        .chars()
+        .map(|character| {
+            if character == ' ' {
+                6.0
+            } else if character.is_ascii() {
+                14.0
+            } else {
+                18.0
+            }
+        })
+        .sum::<f32>();
+    (content_width + 126.0).clamp(360.0, 1100.0)
 }
 
 pub(crate) fn add_reconnecting_overlay(

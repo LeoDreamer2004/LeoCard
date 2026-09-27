@@ -4,14 +4,14 @@ use super::{
 };
 use crate::app::presentation::add_animated_summary_text;
 use crate::app::presentation::{
-    ACCENT, ButtonKind, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider,
-    GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, READY,
+    ACCENT, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider, GameSummaryModal,
+    GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, READY,
     SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
-    TEXT, add_action_button, add_avatar, add_disabled_action_button, add_ready_avatar,
-    decorate_panel_skin, spawn_node, summary_modal_visual, summary_row_progress,
+    TEXT, add_avatar, add_ready_avatar, decorate_panel_skin, spawn_node, summary_modal_visual,
+    summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{LobbyUiAction, UiAction};
+use crate::app::shell::{LobbyUiAction, UiAction, add_cozy_button, add_cozy_disabled_button};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_mahjong::MahjongMatchLength;
@@ -118,6 +118,16 @@ pub(super) fn render_mahjong_settlement(
         0.0,
         animation.elapsed,
         assets,
+    );
+    spawn_node(
+        commands,
+        modal,
+        Node {
+            width: px(86),
+            height: px(2),
+            ..default()
+        },
+        Some(Color::srgb(0.64, 0.59, 0.93)),
     );
     if result.exhaustive_draw {
         add_animated_summary_text(
@@ -312,7 +322,6 @@ pub(super) fn render_mahjong_settlement(
                 padding: UiRect::axes(px(if multiple_hands { 9 } else { 10 }), px(3)),
                 align_items: AlignItems::Center,
                 column_gap: px(if multiple_hands { 8 } else { 10 }),
-                border_radius: BorderRadius::all(px(7)),
                 ..default()
             },
             Some(PANEL_ALT.with_alpha(0.82 * progress)),
@@ -456,7 +465,6 @@ pub(super) fn render_mahjong_settlement(
                     padding: UiRect::axes(px(10), px(3)),
                     align_items: AlignItems::Center,
                     column_gap: px(8),
-                    border_radius: BorderRadius::all(px(7)),
                     ..default()
                 },
                 Some(PANEL_ALT.with_alpha(0.82 * progress)),
@@ -556,32 +564,35 @@ pub(super) fn render_mahjong_settlement(
         },
     ));
     if final_standings {
-        add_action_button(
+        add_cozy_button(
             commands,
             actions,
             "返回大厅",
             UiAction::Lobby(LobbyUiAction::ReturnToLobby),
-            ButtonKind::Primary,
             assets,
+            px(150),
+            46.0,
         );
     } else {
         if !multiple_hands {
-            add_action_button(
+            add_cozy_button(
                 commands,
                 actions,
                 "退出游戏",
                 UiAction::Lobby(LobbyUiAction::LeaveRoom),
-                ButtonKind::Pass,
                 assets,
+                px(150),
+                48.0,
             );
             if game.you == game.host {
-                add_action_button(
+                add_cozy_button(
                     commands,
                     actions,
                     "返回房间",
                     UiAction::Lobby(LobbyUiAction::ReturnToLobby),
-                    ButtonKind::Warning,
                     assets,
+                    px(150),
+                    48.0,
                 );
             }
         }
@@ -591,9 +602,16 @@ pub(super) fn render_mahjong_settlement(
             .find(|player| player.id == game.you)
             .is_some_and(|player| player.ready);
         if ready {
-            add_disabled_action_button(commands, actions, "已准备", assets);
+            add_cozy_disabled_button(
+                commands,
+                actions,
+                "已准备",
+                assets,
+                px(150),
+                if multiple_hands { 46.0 } else { 48.0 },
+            );
         } else {
-            add_action_button(
+            add_cozy_button(
                 commands,
                 actions,
                 if multiple_hands {
@@ -602,8 +620,9 @@ pub(super) fn render_mahjong_settlement(
                     "再来一局"
                 },
                 UiAction::Lobby(LobbyUiAction::PlayAgain),
-                ButtonKind::Primary,
                 assets,
+                px(150),
+                if multiple_hands { 46.0 } else { 48.0 },
             );
         }
     }

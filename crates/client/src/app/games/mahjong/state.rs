@@ -10,6 +10,7 @@ use leocard_protocol::MatchId;
 pub(crate) struct MahjongUiState {
     pub observed_table: Observed<(MatchId, u8), MahjongTableObservation>,
     pub fan_guide_open: bool,
+    pub fan_guide_progress: f32,
     pub fan_guide_tier: u16,
     pub auto_drawer_open: bool,
     pub auto_win: bool,

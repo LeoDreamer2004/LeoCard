@@ -30,9 +30,9 @@ pub(super) fn add_shengji_play_area(
         commands,
         parent,
         Node {
-            width: px(165),
-            min_width: px(165),
-            min_height: px(104),
+            width: px(190),
+            min_width: px(190),
+            min_height: px(112),
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Center,
             justify_content: match side {

@@ -1,6 +1,6 @@
 use super::config_file;
 use leocard_mahjong::MahjongRuleSet;
-use leocard_protocol::TABLE_SEAT_COUNT;
+use leocard_protocol::{PlayerGender, TABLE_SEAT_COUNT};
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_shengji::ShengjiRuleSet;
 use leocard_texas_holdem::TexasHoldemRuleSet;
@@ -29,6 +29,7 @@ pub struct GlobalPreferences {
     pub table_vignette: f32,
     #[serde(default = "default_audio_volume")]
     pub audio_volume: f32,
+    pub gender: PlayerGender,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -77,6 +78,7 @@ impl Default for SavedPreferences {
                 table_brightness: 1.0,
                 table_vignette: DEFAULT_TABLE_VIGNETTE,
                 audio_volume: DEFAULT_AUDIO_VOLUME,
+                gender: PlayerGender::Male,
             },
             games: GamePreferences {
                 qigui523: QiGui523Preferences {

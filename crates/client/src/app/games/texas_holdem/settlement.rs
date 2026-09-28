@@ -12,7 +12,9 @@ use crate::app::presentation::{
     decorate_panel_skin, spawn_node, summary_modal_visual, summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{LobbyUiAction, UiAction, add_cozy_button, add_cozy_disabled_button};
+use crate::app::shell::{
+    CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
+};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{
@@ -603,7 +605,7 @@ pub(super) fn add_texas_hand_result(
         },
     ));
     if *tournament_complete {
-        add_cozy_button(
+        add_cozy_button_variant(
             commands,
             controls,
             "返回大厅",
@@ -611,6 +613,7 @@ pub(super) fn add_texas_hand_result(
             assets,
             px(150),
             46.0,
+            CozyButtonVariant::Primary,
         );
     } else {
         let ready = game
@@ -621,7 +624,7 @@ pub(super) fn add_texas_hand_result(
         if ready {
             add_cozy_disabled_button(commands, controls, "已准备", assets, px(150), 46.0);
         } else {
-            add_cozy_button(
+            add_cozy_button_variant(
                 commands,
                 controls,
                 "准备下一手",
@@ -629,6 +632,7 @@ pub(super) fn add_texas_hand_result(
                 assets,
                 px(150),
                 46.0,
+                CozyButtonVariant::Cool,
             );
         }
     }

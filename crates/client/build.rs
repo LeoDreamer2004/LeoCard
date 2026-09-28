@@ -128,6 +128,13 @@ fn collect_file(asset_root: &Path, source: &Path, assets: &mut BTreeMap<String, 
         source.display()
     );
     let relative = source.strip_prefix(asset_root).unwrap();
+    // Locally extracted Mahjong callouts may be embedded for development,
+    // but must not enter a release until redistribution rights are confirmed.
+    if env::var("PROFILE").as_deref() == Ok("release")
+        && relative.starts_with(Path::new("audio/mahjong/actions"))
+    {
+        return;
+    }
     let asset_path = relative
         .components()
         .map(|component| component.as_os_str())

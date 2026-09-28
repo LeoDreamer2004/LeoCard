@@ -1,5 +1,8 @@
 use super::download::format_bytes;
 use super::{UpdateEvent, UpdateManager, UpdateState};
+use crate::app::shell::{
+    CozyModalBackdrop, CozyModalKind, CozyModalPanel, cozy_backdrop_color, cozy_panel_transform,
+};
 use crate::app::{
     MUTED, NavigationUiAction, TEXT, UiAction, UiAssets, UiState, add_cozy_button, add_cozy_panel,
     add_text, spawn_node,
@@ -118,6 +121,7 @@ pub(crate) fn render_update_dialog(
     commands: &mut Commands,
     root: Entity,
     updater: &UpdateManager,
+    progress: f32,
     assets: &UiAssets,
 ) {
     let overlay = spawn_node(
@@ -133,11 +137,13 @@ pub(crate) fn render_update_dialog(
             justify_content: JustifyContent::Center,
             ..default()
         },
-        Some(Color::srgba(0.005, 0.015, 0.012, 0.76)),
+        Some(cozy_backdrop_color(progress)),
     );
-    commands
-        .entity(overlay)
-        .insert((GlobalZIndex(2300), FocusPolicy::Block));
+    commands.entity(overlay).insert((
+        GlobalZIndex(2300),
+        FocusPolicy::Block,
+        CozyModalBackdrop(CozyModalKind::UpdateDialog),
+    ));
     let modal = add_cozy_panel(
         commands,
         overlay,
@@ -152,6 +158,10 @@ pub(crate) fn render_update_dialog(
         },
         assets,
     );
+    commands.entity(modal).insert((
+        CozyModalPanel(CozyModalKind::UpdateDialog),
+        cozy_panel_transform(progress),
+    ));
     let title = if matches!(updater.state, UpdateState::Ready { .. }) {
         "更新下载完成"
     } else {

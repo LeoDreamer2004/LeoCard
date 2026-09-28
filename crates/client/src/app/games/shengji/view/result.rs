@@ -11,7 +11,9 @@ use crate::app::presentation::{
     spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{LobbyUiAction, UiAction, add_cozy_button, add_cozy_disabled_button};
+use crate::app::shell::{
+    CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
+};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::ShengjiHandResultView;
@@ -398,7 +400,7 @@ fn add_shengji_settlement_modal(
     if ready {
         add_cozy_disabled_button(commands, actions, "已准备", assets, px(150), 47.0);
     } else {
-        add_cozy_button(
+        add_cozy_button_variant(
             commands,
             actions,
             "准备下一局",
@@ -406,10 +408,11 @@ fn add_shengji_settlement_modal(
             assets,
             px(150),
             47.0,
+            CozyButtonVariant::Cool,
         );
     }
     if game.you == game.host {
-        add_cozy_button(
+        add_cozy_button_variant(
             commands,
             actions,
             "结束并返回大厅",
@@ -417,6 +420,7 @@ fn add_shengji_settlement_modal(
             assets,
             px(185),
             47.0,
+            CozyButtonVariant::Danger,
         );
     }
     let _ = animation;

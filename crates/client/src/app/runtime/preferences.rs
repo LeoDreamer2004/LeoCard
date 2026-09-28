@@ -12,7 +12,9 @@ pub(crate) use leocard_client::{
     TexasHoldemPreferences, UnoPreferences, load_player_preferences, save_player_preferences,
 };
 use leocard_mahjong::MahjongRuleSet;
-use leocard_protocol::{GameKind, GameRules, MAX_PLAYER_NAME_CHARS, TABLE_SEAT_COUNT};
+use leocard_protocol::{
+    GameKind, GameRules, MAX_PLAYER_NAME_CHARS, PlayerGender, TABLE_SEAT_COUNT,
+};
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_shengji::ShengjiRuleSet;
 use leocard_texas_holdem::TexasHoldemRuleSet;
@@ -24,6 +26,7 @@ const DEFAULT_AUDIO_VOLUME: f32 = 0.8;
 #[derive(Resource)]
 pub(crate) struct ConnectionDraft {
     pub player_name: String,
+    pub gender: PlayerGender,
     pub host_port: String,
     pub join_address: String,
     pub active: InputField,
@@ -93,6 +96,7 @@ impl PreferenceResources {
                 } else {
                     truncate_chars(saved_player_name, MAX_PLAYER_NAME_CHARS)
                 },
+                gender: saved.global.gender,
                 host_port: if saved
                     .global
                     .host_port
@@ -252,6 +256,7 @@ fn replace_if_changed<T: PartialEq>(slot: &mut T, value: T) -> bool {
 pub(crate) fn save_connection_draft(draft: &ConnectionDraft) -> Result<(), String> {
     let mut saved = load_player_preferences().unwrap_or_default();
     saved.global.player_name.clone_from(&draft.player_name);
+    saved.global.gender = draft.gender;
     saved.global.host_port.clone_from(&draft.host_port);
     saved.global.join_address.clone_from(&draft.join_address);
     save_player_preferences(&saved)

@@ -192,7 +192,7 @@ fn chip_zone_panel_uses_procedural_glass_layers_without_a_felt_image() {
 fn centre_panel_keeps_a_gap_above_the_own_chip_zone() {
     let centre = texas_center_zone_panel();
     let own = texas_player_chip_zone(0);
-    assert_eq!(own.top - (centre.top + centre.height), 12.0);
+    assert_eq!(own.top - (centre.top + centre.height), 7.0);
 }
 
 #[test]

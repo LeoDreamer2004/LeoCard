@@ -1,9 +1,9 @@
 use super::{
     PlayEffectState, QiGui523UiState, actions, advance_play_effect, animate_bomb_play_effect,
     animate_hand_card_slots, animate_hand_cards, animate_heaven_bomb_play_effect,
-    animate_no_legal_response_hint, animate_sequence_play_effect, animate_turn_clocks, assets,
-    handle_card_drag_selection, queue_deal_animations, sync_card_drag_preview, sync_play_effect,
-    sync_selection_label, sync_turn_timer_label,
+    animate_no_legal_response_hint, animate_sequence_play_effect, assets,
+    handle_card_drag_selection, queue_deal_animations, sync_card_drag_preview,
+    sync_own_score_detail, sync_play_effect, sync_selection_label, sync_turn_timer_label,
 };
 use crate::app::presentation::play_pending_deal_sounds;
 use crate::app::runtime::ClientUpdateSet;
@@ -36,6 +36,7 @@ impl Plugin for QiGui523Plugin {
                 (
                     sync_turn_timer_label,
                     sync_selection_label,
+                    sync_own_score_detail,
                     animate_no_legal_response_hint,
                     sync_play_effect,
                     queue_deal_animations,
@@ -52,7 +53,6 @@ impl Plugin for QiGui523Plugin {
                     animate_sequence_play_effect,
                     animate_bomb_play_effect,
                     animate_heaven_bomb_play_effect,
-                    animate_turn_clocks,
                     sync_card_drag_preview,
                     play_pending_deal_sounds,
                     animate_play_error_popup,

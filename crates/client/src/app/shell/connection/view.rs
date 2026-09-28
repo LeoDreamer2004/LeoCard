@@ -10,14 +10,14 @@ use bevy::ui::{
     RadialGradientShape, UiPosition, VisualBox,
 };
 use leocard_client::{NetworkState, TcpGameClient};
+use leocard_protocol::PlayerGender;
 
 const HOME_PURPLE: Color = Color::srgb(0.78, 0.74, 1.0);
 const HOME_SOFT: Color = Color::srgb(0.73, 0.79, 0.75);
 #[derive(Component)]
 pub(crate) enum HomeHighlightKind {
     Card {
-        overlay: Entity,
-        arrows: Option<[Entity; 2]>,
+        arrows: [Entity; 2],
     },
     Button {
         overlay: Entity,
@@ -67,22 +67,37 @@ pub(super) fn animate_home_arrows(
 
 pub(super) fn update_home_highlights(
     mut commands: Commands,
-    buttons: Query<(&Interaction, &HomeHighlightKind), Changed<Interaction>>,
+    buttons: Query<(Entity, &Interaction, &HomeHighlightKind), Changed<Interaction>>,
+    mut card_images: Query<&mut ImageNode>,
+    assets: Res<UiAssets>,
 ) {
-    for (interaction, kind) in &buttons {
-        let (overlay, arrows) = match kind {
-            HomeHighlightKind::Card { overlay, arrows } => (overlay, *arrows),
-            HomeHighlightKind::Button { overlay, arrows } => (overlay, *arrows),
-        };
-        let visibility = if *interaction == Interaction::None {
-            Visibility::Hidden
-        } else {
+    for (entity, interaction, kind) in &buttons {
+        let hovered = *interaction != Interaction::None;
+        let visibility = if hovered {
             Visibility::Visible
+        } else {
+            Visibility::Hidden
         };
-        commands.entity(*overlay).insert(visibility);
-        if let Some(arrows) = arrows {
-            for arrow in arrows {
-                commands.entity(arrow).insert(visibility);
+        match kind {
+            HomeHighlightKind::Card { arrows } => {
+                if let Ok(mut image) = card_images.get_mut(entity) {
+                    image.image = if hovered {
+                        assets.home.game_card_hover.clone()
+                    } else {
+                        assets.home.game_card.clone()
+                    };
+                }
+                for arrow in arrows {
+                    commands.entity(*arrow).insert(visibility);
+                }
+            }
+            HomeHighlightKind::Button { overlay, arrows } => {
+                commands.entity(*overlay).insert(visibility);
+                if let Some(arrows) = arrows {
+                    for arrow in arrows {
+                        commands.entity(*arrow).insert(visibility);
+                    }
+                }
             }
         }
     }
@@ -305,11 +320,10 @@ impl<'a> ConnectionScreen<'a> {
                     row_gap: px(4),
                     ..default()
                 },
-                home_panel_image(self.assets),
+                home_game_card_image(self.assets.home.game_card.clone()),
             ))
             .id();
         commands.entity(parent).add_child(card);
-        let overlay = add_home_purple_overlay(commands, card, self.assets, false, false);
         let title_row = spawn_node(
             commands,
             card,
@@ -387,8 +401,7 @@ impl<'a> ConnectionScreen<'a> {
             self.assets,
         );
         commands.entity(card).insert(HomeHighlightKind::Card {
-            overlay,
-            arrows: Some([left_arrow, right_arrow]),
+            arrows: [left_arrow, right_arrow],
         });
     }
 
@@ -480,6 +493,27 @@ impl<'a> ConnectionScreen<'a> {
             self.assets,
         )
         .render(commands, name);
+        let (symbol, color) = match self.connection.gender {
+            PlayerGender::Male => ("♂", Color::srgb(0.42, 0.70, 1.0)),
+            PlayerGender::Female => ("♀", Color::srgb(1.0, 0.58, 0.76)),
+        };
+        let gender = commands
+            .spawn((
+                Button,
+                UiAction::Connection(ConnectionUiAction::ToggleGender),
+                Node {
+                    width: px(48),
+                    height: px(48),
+                    flex_shrink: 0.0,
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                },
+            ))
+            .id();
+        commands.entity(row).add_child(gender);
+        let symbol = add_text(commands, gender, symbol, 31.0, color, self.assets);
+        commands.entity(symbol).insert(FocusPolicy::Pass);
         if self.appearance.avatar_png.is_some() {
             home_button(
                 commands,
@@ -554,6 +588,17 @@ fn home_panel_image(assets: &UiAssets) -> ImageNode {
             sides_scale_mode: SliceScaleMode::Stretch,
             max_corner_scale: 0.42,
         }));
+    image.visual_box = VisualBox::BorderBox;
+    image
+}
+
+fn home_game_card_image(texture: Handle<Image>) -> ImageNode {
+    let mut image = ImageNode::new(texture).with_mode(NodeImageMode::Sliced(TextureSlicer {
+        border: BorderRect::all(16.0),
+        center_scale_mode: SliceScaleMode::Stretch,
+        sides_scale_mode: SliceScaleMode::Stretch,
+        max_corner_scale: 1.0,
+    }));
     image.visual_box = VisualBox::BorderBox;
     image
 }

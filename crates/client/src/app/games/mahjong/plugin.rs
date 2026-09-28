@@ -1,11 +1,11 @@
 use super::{
-    MahjongClaimPresentationState, MahjongTileMaterial, MahjongUiState, actions,
-    advance_mahjong_claim_presentation, animate_mahjong_claim_presentation,
+    MahjongClaimPresentationState, MahjongFanVoicePlayback, MahjongTileMaterial, MahjongUiState,
+    actions, advance_mahjong_claim_presentation, animate_mahjong_claim_presentation,
     animate_mahjong_deal_tiles, animate_mahjong_fan_guide_tiles,
     animate_mahjong_flower_presentations, animate_mahjong_turn_sector, animate_mahjong_win_effects,
     animate_mahjong_win_screen_shake, animate_mahjong_win_tile_shakes,
     animate_mahjong_winning_hands, animate_own_discard, animate_remote_discard,
-    apply_automatic_mahjong_action, assets, scroll_mahjong_fan_guide,
+    apply_automatic_mahjong_action, assets, play_mahjong_fan_voices, scroll_mahjong_fan_guide,
     sync_mahjong_claim_presentation, sync_mahjong_fan_guide, sync_mahjong_hand_tile_materials,
     sync_mahjong_hover_hints,
 };
@@ -19,6 +19,7 @@ impl Plugin for MahjongPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(UiMaterialPlugin::<MahjongTileMaterial>::default())
             .insert_resource(MahjongClaimPresentationState::default())
+            .init_resource::<MahjongFanVoicePlayback>()
             .init_resource::<MahjongUiState>()
             .add_systems(Startup, assets::load_mahjong_assets)
             .add_systems(
@@ -71,6 +72,7 @@ impl Plugin for MahjongPlugin {
             .add_systems(
                 Update,
                 (
+                    play_mahjong_fan_voices,
                     animate_mahjong_claim_presentation,
                     animate_mahjong_flower_presentations,
                     animate_mahjong_win_effects,

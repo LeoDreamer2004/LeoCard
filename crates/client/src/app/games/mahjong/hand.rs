@@ -1,10 +1,10 @@
 use super::tiles::{add_mahjong_hand_tile, mahjong_deal_spec, mahjong_draw_spec};
 use super::{
     ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MahjongAssets, MahjongClaimHandShift,
-    MahjongDiscardHandShift, MahjongOwnDiscardAnimation, MahjongTileMaterial, MahjongTileSize,
-    MahjongTileVisual, MahjongUiAction, MahjongWinningHand, add_mahjong_tile_material,
-    add_mahjong_wait_popup, apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x,
-    mahjong_discard_waits, mahjong_own_row_left, mahjong_win_tile_cues,
+    MahjongDiscardHandShift, MahjongHandTile, MahjongOwnDiscardAnimation, MahjongTileMaterial,
+    MahjongTileSize, MahjongTileVisual, MahjongUiAction, MahjongWinningHand,
+    add_mahjong_tile_material, add_mahjong_wait_popup, apply_mahjong_winning_hand_visual,
+    mahjong_claim_hand_shift_x, mahjong_discard_waits, mahjong_own_row_left, mahjong_win_tile_cues,
     mahjong_winning_hand_progress, mark_mahjong_win_tile,
 };
 use crate::app::presentation::{GameSummaryAnimation, spawn_node};
@@ -23,6 +23,7 @@ pub(super) struct MahjongWinningHandVisual {
 
 pub(super) struct MahjongOwnHandVisuals<'a> {
     pub observed_hand: &'a [MahjongTile],
+    pub hover_lifts: &'a std::collections::HashMap<i32, (f32, Interaction)>,
     pub dealing: bool,
     pub drawn_tile_falling: bool,
     pub winning_hand: Option<MahjongWinningHandVisual>,
@@ -42,6 +43,7 @@ pub(super) fn render_own_hand(
 ) {
     let MahjongOwnHandVisuals {
         observed_hand,
+        hover_lifts,
         dealing,
         drawn_tile_falling,
         winning_hand,
@@ -88,7 +90,7 @@ pub(super) fn render_own_hand(
             left: px(left),
             width: px(760),
             bottom: px(8),
-            height: px(80),
+            height: px(88),
             align_items: AlignItems::FlexEnd,
             justify_content: JustifyContent::FlexStart,
             flex_direction: FlexDirection::Row,
@@ -132,7 +134,7 @@ pub(super) fn render_own_hand(
         if separated_index == Some(index) {
             continue;
         }
-        let new_x = left + regular_slot as f32 * 45.0;
+        let new_x = left + regular_slot as f32 * 50.0;
         regular_slot += 1;
         let result = match &game.phase {
             MahjongPhaseView::Finished { result } => Some(result),
@@ -175,6 +177,12 @@ pub(super) fn render_own_hand(
                 assets,
                 materials,
             );
+            restore_hand_hover(
+                commands,
+                entity,
+                hover_lifts.get(&(index as i32)).copied(),
+                index as i32,
+            );
             if let Some(animation) = discard_animation
                 && let Some(old_x) = animation.old_tile_x(tile)
             {
@@ -203,8 +211,8 @@ pub(super) fn render_own_hand(
             commands,
             hand,
             Node {
-                width: px(18),
-                min_width: px(18),
+                width: px(22),
+                min_width: px(22),
                 height: px(1),
                 ..default()
             },
@@ -233,6 +241,12 @@ pub(super) fn render_own_hand(
             assets,
             materials,
         );
+        restore_hand_hover(
+            commands,
+            entity,
+            hover_lifts.get(&(game.your_hand.len() as i32)).copied(),
+            game.your_hand.len() as i32,
+        );
         if let Some(waits) = discard_waits
             .as_ref()
             .and_then(|waits| waits.get(&tile.kind()))
@@ -240,4 +254,44 @@ pub(super) fn render_own_hand(
             add_mahjong_wait_popup(commands, entity, waits, assets, materials, ui_assets);
         }
     }
+}
+
+fn restore_hand_hover(
+    commands: &mut Commands,
+    entity: Entity,
+    hover: Option<(f32, Interaction)>,
+    index: i32,
+) {
+    let Some((lift, interaction)) = hover else {
+        return;
+    };
+    if lift <= 0.0 {
+        return;
+    }
+    commands.entity(entity).insert((
+        MahjongHandTile {
+            lift,
+            base_rotation: 0.0,
+            index,
+        },
+        // A rebuilt button must never inherit the previous button's click.
+        if interaction == Interaction::Pressed {
+            Interaction::Hovered
+        } else {
+            interaction
+        },
+        UiTransform {
+            translation: Val2::px(0.0, -11.0 * lift),
+            scale: Vec2::splat(1.0 + 0.025 * lift),
+            ..default()
+        },
+        ZIndex(if lift > 0.05 { 100 + index } else { index }),
+        BoxShadow::new(
+            Color::BLACK.with_alpha(lift * 0.22),
+            px(1),
+            px(7.0 + lift * 6.0),
+            px(0),
+            px(3.0 + lift * 4.0),
+        ),
+    ));
 }

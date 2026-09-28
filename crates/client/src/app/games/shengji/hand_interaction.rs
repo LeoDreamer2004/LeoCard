@@ -31,7 +31,7 @@ pub(crate) fn animate_shengji_hand_card_slots(
             .or_default()
             .slot_hover_amount = slot.hover_amount;
         node.width = px(if slot.is_last {
-            CardSize::Hand.dimensions().0
+            CardSize::ShengjiHand.dimensions().0
         } else {
             let reveal = shengji_hand_card_reveal(slot.hand_len);
             reveal + (HAND_CARD_HOVER_WIDTH - reveal) * slot.hover_amount

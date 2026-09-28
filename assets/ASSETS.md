@@ -35,6 +35,17 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 
 ## 需保留署名或许可证的素材
 
+### 国标麻将番种报读语音（Qwen3-TTS）
+
+- 运行时文件：`audio/mahjong/fans/` 下的 81 条 Ogg 语音，按国标麻将番种名称分别报读。
+- 生成模型：[Qwen3-TTS VoiceDesign](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign) 与 [Qwen3-TTS Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base)，模型卡标注 Apache-2.0。
+- 音色先由 VoiceDesign 生成参考语音，再由 Base 为各番种合成；运行时只包含转换后的音频，不包含模型权重。
+- “缺一门”重新合成时，低番参考音配套文本为“平胡。暗杠。自摸。断幺。”；参考音与文本必须对应。
+
+### 本机麻将操作语音
+
+`audio/mahjong/actions/` 下的男女声吃、碰、杠、胡、自摸语音取自本机提取的《大众麻将》资源。授权状态尚未确认，音频文件不纳入开源仓库，发布构建不内嵌；开发构建或指定外部资源目录时才加载。代码按玩家公开资料中的性别选择对应音色。
+
 ### Minecraft 等级物品图标（Mojang）
 
 - 运行时文件：`ui/profile/` 下的 10 张 PNG，分别用于下界合金锭、钻石、金锭、红石粉、铁锭、铜锭、圆石、橡木原木、泥土和堆肥桶等级。
@@ -44,14 +55,18 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 ### CozyUI+ 首页纹理（GPL-3.0）
 
 - 作者：零雾〇五 Fogg05；来源：<https://github.com/Fogg05/CozyUI-Plus>
-- 运行时文件：`ui/home/cozy-panel.png`、`cozy-toasts-atlas.png`、`cozy-host-crown.png`、`cozy-help-question.png`、`cozy-checkbox*.png`、`cozy-button-compact.png`、`cozy-button-purple-plain.png`、`cozy-button-purple-compact.png`、`cozy-button-arrows.png`、`cozy-input-compact.png`、`cozy-input-focused-compact.png`、`cross_button.png`、`cross_button_highlighted.png`、`slider.png`、`slider_highlighted.png`、`slider_handle.png`、`slider_handle_highlighted.png`、`rule-left.png`、`rule-left-highlighted.png`、`rule-right.png`、`rule-right-highlighted.png`
+- 运行时文件：`ui/home/cozy-panel.png`、`cozy-settings-page.png`、`cozy-game-card.png`、`cozy-game-card-hover.png`、`cozy-toasts-atlas.png`、`cozy-host-crown.png`、`cozy-help-question.png`、`cozy-checkbox*.png`、`cozy-button-compact.png`、`cozy-button-danger-compact.png`、`cozy-button-danger-hover-compact.png`、`cozy-button-cool-compact.png`、`cozy-button-cool-hover-compact.png`、`cozy-button-purple-plain.png`、`cozy-button-purple-compact.png`、`cozy-button-arrows.png`、`cozy-input-compact.png`、`cozy-input-focused-compact.png`、`cross_button.png`、`cross_button_highlighted.png`、`slider.png`、`slider_highlighted.png`、`slider_handle.png`、`slider_handle_highlighted.png`、`rule-left.png`、`rule-left-highlighted.png`、`rule-right.png`、`rule-right-highlighted.png`
 - `cozy-button-purple-plain.png` 和 `cozy-button-arrows.png` 从原版 `button_highlighted.png` 分离而来；原始文件也保存在同一目录，便于核对来源。
 - 两张 `compact` 按钮图保留原图的两端与中段，统一短按钮的圆角和亮边尺寸；原版 `button.png` 也保存在同一目录。
+- 两张红色 `compact` 按钮图分别从灰色常态和紫色高亮按钮的颜色层次转换而来；悬停态保留普通高亮贴图的原始白边，仅将彩色部分转为较暗的红色，两张图的透明轮廓一致。
+- 两张冷绿色 `compact` 按钮图同样由灰色常态和紫色高亮按钮变色而来；悬停态保留普通高亮贴图的原始白边，两张图的透明轮廓一致。
+- `cozy-game-card.png` 与 `cozy-game-card-hover.png` 分别取自 `hud/effect_background.png` 和 `hud/effect_background_ambient.png`，用于首页游戏卡的常态与悬停态；只清除了全透明区域的白色 RGB，可见像素未改动。
+- `cozy-settings-page.png` 取自 `recipe_book/slot_craftable.png`，用于设置窗口右侧内容页；左侧标签复用 `cozy-game-card.png` 与其高亮变种。
 - 两张输入框 `compact` 图使用同样的切片方式，保留原版 `text_field.png` 和 `text_field_highlighted.png` 的边框与底色；原版文件也保存在同一目录。
 - 四张 `rule-*.png` 箭头图保留原版箭头，将与画面不协调的连通灰色背景转为透明像素。
 - `cozy-help-question.png` 清除了透明区域残留的白色底色，避免缩放时在问号边缘出现白边；可见像素未改动。
 - 原始位置：CozyUI+ v1.10 的 `assets/minecraft/textures/gui/toasts.png`、`assets/minecraft/textures/gui/sprites/player_list/remove_operator.png`、`assets/minecraft/textures/gui/sprites/icon/chat_modified.png`，以及 `assets/minecraft/textures/gui/sprites/` 下的
-  `popup/background.png`、`recipe_book/page_backward*.png`、`recipe_book/page_forward*.png`、`widget/button.png`、`widget/button_highlighted.png`、`widget/text_field.png`、`widget/text_field_highlighted.png`、`widget/checkbox*.png`、`widget/cross_button.png`、`widget/cross_button_highlighted.png`，以及 `widget/slider*.png`
+  `popup/background.png`、`recipe_book/page_backward*.png`、`recipe_book/page_forward*.png`、`recipe_book/slot_craftable.png`、`hud/effect_background.png`、`hud/effect_background_ambient.png`、`widget/button.png`、`widget/button_highlighted.png`、`widget/text_field.png`、`widget/text_field_highlighted.png`、`widget/checkbox*.png`、`widget/cross_button.png`、`widget/cross_button_highlighted.png`，以及 `widget/slider*.png`
 - 许可证副本：`vendor/cozyui-plus/LICENSE.txt`
 
 这些纹理用于首页、顶栏、设置、资料页、游戏内聊天抽屉和警示提示；按钮与滑块轨道按原纹理的九宫格边距绘制，箭头和滑块柄使用原比例动画帧；其余资源包内容未加入发布物。
@@ -138,7 +153,9 @@ GitHub 名称与标志同时受 GitHub 商标规范约束；本项目仅将其�
 - `shaders/table_background.wgsl`、`shaders/turn_border.wgsl`、`shaders/uno_palette.wgsl`：
   桌布、回合边框与 UNO 调色盘着色器。
 - `ui/effects/sequence_airplane.svg` 与其 PNG：七鬼五二三顺子效果；SVG 是项目原创的简洁飞机剪影，PNG 为 Bevy 加载的运行时副本。
+- `ui/qigui523/`：七鬼五二三桌内操作按钮与“不出”字样的原创 SVG 与 PNG；`generate_buttons.py` 可重新生成三种按钮及各自的悬停纹理，`generate_pass_marker.py` 用项目字体重新生成透明的“不出”字样。
 - `icons/list-menu.*`、`icons/robot-2-fill.*`：快捷语音和机器人界面图标；SVG 为可编辑源文件，PNG 为运行时副本。
+- `icons/settings.png`、`icons/exit-room.png`：游戏内紧凑顶栏的设置与离开房间图标。用生图工具绘制，以 CozyUI+ 的 `cross_button.png`、`rule-left.png` 为风格参考；运行时使用缩小后的透明 PNG。
 - `cards/uno-extension/uno-flip/`：UNO FLIP 亮暗双面牌纹理。
 - `cards/uno-extension-source/uno-flip/dark-bases/`：以默认 UNO 牌框为母版制作的暗面底图；暗面
   外框使用纯黑描边并沿用原牌框透明圆角。

@@ -10,7 +10,7 @@ use crate::app::presentation::{
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{OpponentBadge, SeatSide};
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_protocol::{GameKind, PlayerId, TexasHoldemPlayerState, TexasHoldemSnapshot};
 
 pub(super) const TEXAS_PORTRAIT_WIDTH: f32 = 96.0 * 1.17;
@@ -292,31 +292,46 @@ pub(super) fn add_texas_chip_popup(
         flex_direction: FlexDirection::Column,
         align_items: AlignItems::Stretch,
         row_gap: px(3),
-        border: UiRect::all(px(1)),
-        border_radius: BorderRadius::all(px(8)),
         ..default()
     };
     if let Some(side) = opponent_side {
+        node.border = UiRect::all(px(1));
+        node.border_radius = BorderRadius::all(px(8));
         position_opponent_popup(&mut node, side);
         node.top = px(TEXAS_PORTRAIT_HEIGHT + 6.0);
     } else {
         node.left = px(TEXAS_PORTRAIT_WIDTH + 8.0);
-        node.top = px((76.0 * 1.17 - 58.0) * 0.5);
-        node.width = px(330);
-        node.min_height = px(58);
+        node.top = px((76.0 * 1.17 - 66.0) * 0.5);
+        node.width = px(300);
+        node.min_height = px(66);
         node.padding = UiRect::new(px(76), px(6), px(6), px(6));
+        node.justify_content = JustifyContent::Center;
     }
-    let background = if opponent_side.is_some() {
-        Color::BLACK.with_alpha(0.78)
+    let popup = spawn_node(
+        commands,
+        parent,
+        node,
+        opponent_side.map(|_| Color::BLACK.with_alpha(0.78)),
+    );
+    commands
+        .entity(popup)
+        .insert((GlobalZIndex(1500), FocusPolicy::Pass));
+    if opponent_side.is_some() {
+        commands
+            .entity(popup)
+            .insert(BorderColor::all(ACCENT.with_alpha(0.72)));
     } else {
-        Color::BLACK.with_alpha(0.30)
-    };
-    let popup = spawn_node(commands, parent, node, Some(background));
-    commands.entity(popup).insert((
-        BorderColor::all(ACCENT.with_alpha(0.72)),
-        GlobalZIndex(1500),
-        FocusPolicy::Pass,
-    ));
+        let mut image = ImageNode::new(assets.home.game_card.clone()).with_mode(
+            NodeImageMode::Sliced(TextureSlicer {
+                border: BorderRect::all(16.0),
+                center_scale_mode: SliceScaleMode::Stretch,
+                sides_scale_mode: SliceScaleMode::Stretch,
+                max_corner_scale: 1.0,
+            }),
+        );
+        image.visual_box = VisualBox::BorderBox;
+        commands.entity(popup).insert(image);
+    }
 
     if opponent_side.is_some() {
         add_text(

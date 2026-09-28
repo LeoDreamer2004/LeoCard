@@ -4,9 +4,7 @@ use super::{
     sequence_effect_style, sort_cards_high_to_low, turn_clock_visible,
 };
 use crate::app::presentation::CardSize;
-use crate::app::presentation::{
-    MUTED, READY, TABLE_CARD_REVEAL, add_card_image, add_text, spawn_node,
-};
+use crate::app::presentation::{READY, TABLE_CARD_REVEAL, add_card_image, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::SeatSide;
 use bevy::prelude::*;
@@ -132,19 +130,32 @@ pub(super) fn add_round_play(
             })
         })
     };
-    let Some(cards) = cards.filter(|cards| !cards.is_empty()) else {
-        if !matches!(&game.phase, GamePhaseView::Finished { .. }) {
-            add_text(commands, parent, "不出", 22.0, MUTED, assets);
-        }
+    let Some(cards) = cards else {
         return;
     };
+    if cards.is_empty() {
+        let marker = commands
+            .spawn((
+                Node {
+                    width: px(112),
+                    height: px(48),
+                    flex_shrink: 0.0,
+                    ..default()
+                },
+                ImageNode::new(game_assets.pass_marker.clone()),
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(parent).add_child(marker);
+        return;
+    }
     let sequence_style = play_effect
         .filter(|effect| effect.player == player && effect.play.cards.len() == cards.len())
         .and_then(|effect| sequence_effect_style(&effect.play.kind));
     let mut displayed_cards = cards.to_vec();
     sort_cards_high_to_low(&mut displayed_cards);
     let last_card = displayed_cards.len().saturating_sub(1);
-    let (card_width, card_height) = CardSize::Seat.dimensions();
+    let (card_width, card_height) = CardSize::QiGuiSeat.dimensions();
     let cards_width = card_width + TABLE_CARD_REVEAL * last_card as f32;
     let card_group = spawn_node(
         commands,
@@ -169,7 +180,7 @@ pub(super) fn add_round_play(
             commands,
             card_group,
             *card,
-            CardSize::Seat,
+            CardSize::QiGuiSeat,
             index,
             index == last_card,
             sequence_style.is_some(),

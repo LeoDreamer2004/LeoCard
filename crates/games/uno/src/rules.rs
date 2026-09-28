@@ -14,6 +14,7 @@ pub enum Mode {
 pub struct NoMercyRuleSet {
     pub draw_until_playable: bool,
     pub mercy_elimination: bool,
+    pub sudden_death: bool,
     pub zero_pass: bool,
     pub seven_swap: bool,
     pub uno_callout: bool,
@@ -24,6 +25,7 @@ impl Default for NoMercyRuleSet {
         Self {
             draw_until_playable: true,
             mercy_elimination: true,
+            sudden_death: false,
             zero_pass: true,
             seven_swap: true,
             uno_callout: true,
@@ -98,6 +100,10 @@ impl UnoRuleSet {
         matches!(self.mode, Mode::NoMercy)
     }
 
+    pub const fn sudden_death_enabled(self) -> bool {
+        self.is_no_mercy() && self.no_mercy.mercy_elimination && self.no_mercy.sudden_death
+    }
+
     pub const fn is_flip(self) -> bool {
         matches!(self.mode, Mode::Flip)
     }
@@ -154,6 +160,7 @@ mod tests {
         assert!(rules.uno_callout);
         assert!(rules.no_mercy.draw_until_playable);
         assert!(rules.no_mercy.mercy_elimination);
+        assert!(!rules.no_mercy.sudden_death);
         assert!(rules.flip.uno_callout);
         assert!(!rules.flip.random_pairing);
     }

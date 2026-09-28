@@ -20,11 +20,17 @@ impl Plugin for UiActionPlugin {
 
 fn collect_pressed_ui_actions(
     interactions: ButtonInteractions,
+    mouse: Res<ButtonInput<MouseButton>>,
     mut actions: MessageWriter<PressedUiAction>,
     mut ui: ResMut<UiState>,
 ) {
     for (interaction, action) in &interactions {
         if *interaction != Interaction::Pressed {
+            continue;
+        }
+        // A rebuilt button may become Pressed while the same mouse press is
+        // still held. Only the physical press edge may dispatch that click.
+        if mouse.pressed(MouseButton::Left) && !mouse.just_pressed(MouseButton::Left) {
             continue;
         }
         if action.rebuilds_ui() {
@@ -57,5 +63,55 @@ pub(crate) fn send_game_command(
 ) {
     if let Some(client) = client.as_deref_mut() {
         client.0.send(game_command(command));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::UiAction;
+    use crate::app::shell::NavigationUiAction;
+
+    #[derive(Resource, Default)]
+    struct ActionCount(usize);
+
+    fn count_actions(mut actions: MessageReader<PressedUiAction>, mut count: ResMut<ActionCount>) {
+        count.0 += actions.read().count();
+    }
+
+    #[test]
+    fn rebuilt_button_during_held_mouse_press_does_not_repeat_action() {
+        let mut app = App::new();
+        app.init_resource::<UiState>()
+            .init_resource::<ButtonInput<MouseButton>>()
+            .init_resource::<ActionCount>()
+            .add_message::<PressedUiAction>()
+            .add_systems(Update, (collect_pressed_ui_actions, count_actions).chain());
+
+        app.world_mut()
+            .resource_mut::<ButtonInput<MouseButton>>()
+            .press(MouseButton::Left);
+        let old = app
+            .world_mut()
+            .spawn((
+                Button,
+                Interaction::Pressed,
+                UiAction::Navigation(NavigationUiAction::ToggleSettings),
+            ))
+            .id();
+        app.update();
+        assert_eq!(app.world().resource::<ActionCount>().0, 1);
+
+        app.world_mut().despawn(old);
+        app.world_mut()
+            .resource_mut::<ButtonInput<MouseButton>>()
+            .clear();
+        app.world_mut().spawn((
+            Button,
+            Interaction::Pressed,
+            UiAction::Navigation(NavigationUiAction::ToggleSettings),
+        ));
+        app.update();
+        assert_eq!(app.world().resource::<ActionCount>().0, 1);
     }
 }

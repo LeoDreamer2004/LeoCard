@@ -1,13 +1,13 @@
+use super::cards::QIGUI_HAND_CARD_REVEAL;
 use super::{HandCardSlot, HandCardVisual, QiGui523UiState};
 use crate::app::{
-    ACCENT, BORDER, CardAnimationState, CardDragSelection, CardSize, HAND_CARD_REVEAL,
-    HandCardSelectionOverlay, advance_towards, drag_preview_color, hand_card_pose,
-    slot_hover_target, update_drag_selection,
+    ACCENT, BORDER, CardAnimationState, CardDragSelection, CardSize, HandCardSelectionOverlay,
+    advance_towards, drag_preview_color, hand_card_pose, slot_hover_target, update_drag_selection,
 };
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 
-const HAND_CARD_HOVER_WIDTH: f32 = 32.0;
+const HAND_CARD_HOVER_WIDTH: f32 = 36.0;
 
 type HandCardAnimations<'w, 's> = Query<
     'w,
@@ -48,9 +48,10 @@ pub(super) fn animate_hand_card_slots(
             .or_default()
             .slot_hover_amount = slot.hover_amount;
         node.width = px(if slot.is_last {
-            CardSize::Hand.dimensions().0
+            CardSize::QiGuiHand.dimensions().0
         } else {
-            HAND_CARD_REVEAL + (HAND_CARD_HOVER_WIDTH - HAND_CARD_REVEAL) * slot.hover_amount
+            QIGUI_HAND_CARD_REVEAL
+                + (HAND_CARD_HOVER_WIDTH - QIGUI_HAND_CARD_REVEAL) * slot.hover_amount
         });
     }
 }
@@ -155,6 +156,7 @@ pub(super) fn animate_hand_cards(
             visual.selected_amount,
             visual.deal_elapsed,
             visual.dealing,
+            CardSize::QiGuiHand,
         );
         transform.scale = Vec2::ONE;
         transform.translation = pose.translation;

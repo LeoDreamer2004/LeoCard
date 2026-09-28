@@ -3,7 +3,7 @@ use super::{
     uno_pair_for_selection, uno_ui_color,
 };
 use crate::app::presentation::{
-    ButtonKind, ButtonTint, DANGER, MUTED, PANEL, PanelSkin, READY, TEXT, add_action_button,
+    ButtonKind, ButtonTint, DANGER, PANEL, PanelSkin, READY, TEXT, add_action_button,
     add_disabled_action_button, add_panel, add_section_title, add_text, spawn_node,
 };
 use crate::app::runtime::UiAssets;
@@ -194,14 +194,44 @@ pub(super) fn add_uno_actions(
             add_disabled_action_button(commands, actions, "必须打出摸到的牌", assets);
         }
     } else {
-        add_action_button(
-            commands,
-            actions,
-            "摸牌",
-            UiAction::Uno(UnoUiAction::DrawCard),
-            ButtonKind::Secondary,
-            assets,
-        );
+        let has_response = game
+            .your_hand
+            .iter()
+            .copied()
+            .any(|card| uno_card_is_playable(game, card));
+        if game.sudden_death_free_play {
+            add_disabled_action_button(commands, actions, "任选一张出牌", assets);
+        } else if game.rules.sudden_death_enabled()
+            && game
+                .players
+                .iter()
+                .filter(|player| !player.eliminated)
+                .count()
+                == 2
+            && game.draw_pile_len == 0
+        {
+            if has_response {
+                add_disabled_action_button(commands, actions, "请选择一张出牌", assets);
+            } else {
+                add_action_button(
+                    commands,
+                    actions,
+                    "无法响应",
+                    UiAction::Uno(UnoUiAction::DrawCard),
+                    ButtonKind::Secondary,
+                    assets,
+                );
+            }
+        } else {
+            add_action_button(
+                commands,
+                actions,
+                "摸牌",
+                UiAction::Uno(UnoUiAction::DrawCard),
+                ButtonKind::Secondary,
+                assets,
+            );
+        }
     }
 }
 
@@ -476,7 +506,5 @@ fn add_color_choice_overlay(
                 assets,
             );
         }
-    } else {
-        add_text(commands, panel, "正在等待其他玩家……", 14.0, MUTED, assets);
     }
 }

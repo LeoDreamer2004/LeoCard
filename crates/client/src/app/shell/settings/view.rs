@@ -1,10 +1,14 @@
 //! 全局设置窗口与牌桌外观控制。
 use super::super::{
-    CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction, UiAction, UpdateManager,
-    UpdateState, add_cozy_button, add_cozy_button_with_icon, add_cozy_close_button, add_cozy_panel,
-    settings_update_label, table_appearance_fraction, table_appearance_label,
+    CozyButtonVariant, CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction,
+    SettingsTab, UiAction, UpdateManager, UpdateState, add_cozy_button, add_cozy_button_variant,
+    add_cozy_button_with_icon, add_cozy_close_button, add_cozy_panel, settings_update_label,
+    table_appearance_fraction, table_appearance_label,
 };
-use super::{CozySettingsSlider, cozy_backdrop_color, cozy_panel_transform};
+use super::{
+    CozySettingsSlider, SelectedSettingsTab, SettingsTabButton, cozy_backdrop_color,
+    cozy_panel_transform,
+};
 use crate::app::presentation::{
     MUTED, TEXT, TableAppearanceIndicator, TableAppearanceLabel, TableAppearanceSetting,
     TableAppearanceSlider, add_text, spawn_node,
@@ -32,7 +36,13 @@ impl<'a> SettingsModal<'a> {
         }
     }
 
-    pub(crate) fn render(&self, commands: &mut Commands, root: Entity, progress: f32) {
+    pub(crate) fn render(
+        &self,
+        commands: &mut Commands,
+        root: Entity,
+        progress: f32,
+        selected_tab: SettingsTab,
+    ) {
         let form = self.form;
         let updater = self.updater;
         let assets = self.assets;
@@ -101,9 +111,126 @@ impl<'a> SettingsModal<'a> {
             },
             Some(Color::srgb(0.64, 0.59, 0.93)),
         );
-        TableAppearanceSettings::new(form, assets).render(commands, modal);
-        SoftwareUpdateSettings::new(updater, assets).render(commands, modal);
+        let tabbed = spawn_node(
+            commands,
+            modal,
+            Node {
+                width: percent(100),
+                flex_direction: FlexDirection::Row,
+                column_gap: px(14),
+                ..default()
+            },
+            None,
+        );
+        let tabs = spawn_node(
+            commands,
+            tabbed,
+            Node {
+                width: px(100),
+                min_width: px(100),
+                padding: UiRect::top(px(18)),
+                flex_direction: FlexDirection::Column,
+                row_gap: px(6),
+                ..default()
+            },
+            None,
+        );
+        for (tab, label) in [
+            (SettingsTab::Appearance, "外观"),
+            (SettingsTab::About, "关于"),
+        ] {
+            add_settings_tab(commands, tabs, tab, label, selected_tab, assets);
+        }
+        let mut content_image = ImageNode::new(assets.home.settings_page.clone()).with_mode(
+            NodeImageMode::Sliced(TextureSlicer {
+                border: BorderRect::all(20.0),
+                center_scale_mode: SliceScaleMode::Stretch,
+                sides_scale_mode: SliceScaleMode::Stretch,
+                max_corner_scale: 1.0,
+            }),
+        );
+        content_image.visual_box = VisualBox::BorderBox;
+        content_image.color = Color::srgb(0.55, 0.54, 0.63);
+        let content = commands
+            .spawn((
+                Node {
+                    min_width: px(0),
+                    min_height: px(390),
+                    flex_grow: 1.0,
+                    padding: UiRect::all(px(22)),
+                    flex_direction: FlexDirection::Column,
+                    row_gap: px(12),
+                    ..default()
+                },
+                content_image,
+            ))
+            .id();
+        commands.entity(tabbed).add_child(content);
+        match selected_tab {
+            SettingsTab::Appearance => {
+                TableAppearanceSettings::new(form, assets).render(commands, content);
+            }
+            SettingsTab::About => {
+                AboutSettings::new(updater, assets).render(commands, content);
+            }
+        }
     }
+}
+
+fn add_settings_tab(
+    commands: &mut Commands,
+    parent: Entity,
+    tab: SettingsTab,
+    label: &str,
+    selected_tab: SettingsTab,
+    assets: &UiAssets,
+) {
+    let selected = tab == selected_tab;
+    let mut tab_image = ImageNode::new(if selected {
+        assets.home.game_card_hover.clone()
+    } else {
+        assets.home.game_card.clone()
+    })
+    .with_mode(NodeImageMode::Sliced(TextureSlicer {
+        border: BorderRect::all(16.0),
+        center_scale_mode: SliceScaleMode::Stretch,
+        sides_scale_mode: SliceScaleMode::Stretch,
+        max_corner_scale: 1.0,
+    }));
+    tab_image.visual_box = VisualBox::BorderBox;
+    let button = commands
+        .spawn((
+            Button,
+            UiAction::Navigation(NavigationUiAction::SelectSettingsTab(tab)),
+            Node {
+                width: percent(100),
+                height: px(48),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            tab_image,
+        ))
+        .id();
+    if selected {
+        commands.entity(button).insert(SelectedSettingsTab);
+    }
+    commands.entity(parent).add_child(button);
+    let text = add_text(
+        commands,
+        button,
+        label,
+        17.0,
+        if selected {
+            Color::srgb(0.85, 0.82, 1.0)
+        } else {
+            TEXT
+        },
+        assets,
+    );
+    commands
+        .entity(button)
+        .insert(SettingsTabButton { label: text });
 }
 
 struct TableAppearanceSettings<'a> {
@@ -119,6 +246,18 @@ impl<'a> TableAppearanceSettings<'a> {
     fn render(&self, commands: &mut Commands, parent: Entity) {
         let form = self.form;
         let assets = self.assets;
+        self.add_slider(commands, parent, TableAppearanceSetting::Volume);
+        spawn_node(
+            commands,
+            parent,
+            Node {
+                width: percent(100),
+                height: px(1),
+                margin: UiRect::vertical(px(3)),
+                ..default()
+            },
+            Some(Color::srgba(0.70, 0.68, 0.78, 0.36)),
+        );
         add_text(commands, parent, "桌面外观", 20.0, TEXT, assets);
         add_text(commands, parent, "桌布背景", 15.0, MUTED, assets);
         let mut path_image = ImageNode::new(assets.home.input.clone()).with_mode(
@@ -192,7 +331,6 @@ impl<'a> TableAppearanceSettings<'a> {
         for setting in [
             TableAppearanceSetting::Brightness,
             TableAppearanceSetting::Vignette,
-            TableAppearanceSetting::Volume,
         ] {
             self.add_slider(commands, parent, setting);
         }
@@ -287,6 +425,59 @@ impl<'a> TableAppearanceSettings<'a> {
     }
 }
 
+struct AboutSettings<'a> {
+    updater: &'a UpdateManager,
+    assets: &'a UiAssets,
+}
+
+impl<'a> AboutSettings<'a> {
+    fn new(updater: &'a UpdateManager, assets: &'a UiAssets) -> Self {
+        Self { updater, assets }
+    }
+
+    fn render(self, commands: &mut Commands, parent: Entity) {
+        let identity = spawn_node(
+            commands,
+            parent,
+            Node {
+                width: percent(100),
+                flex_grow: 1.0,
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                row_gap: px(8),
+                ..default()
+            },
+            None,
+        );
+        add_text(
+            commands,
+            identity,
+            "LeoCard",
+            34.0,
+            Color::srgb(0.85, 0.82, 1.0),
+            self.assets,
+        );
+        add_text(
+            commands,
+            identity,
+            "五种游戏，一张牌桌",
+            16.0,
+            TEXT,
+            self.assets,
+        );
+        add_text(
+            commands,
+            identity,
+            format!("版本 v{}", env!("CARGO_PKG_VERSION")),
+            14.0,
+            MUTED,
+            self.assets,
+        );
+        SoftwareUpdateSettings::new(self.updater, self.assets).render(commands, parent);
+    }
+}
+
 struct SoftwareUpdateSettings<'a> {
     updater: &'a UpdateManager,
     assets: &'a UiAssets,
@@ -342,7 +533,7 @@ impl<'a> SoftwareUpdateSettings<'a> {
         add_text(
             commands,
             version_text,
-            format!("当前版本 v{}", env!("CARGO_PKG_VERSION")),
+            "查看项目或检查新版本",
             13.0,
             MUTED,
             assets,
@@ -368,7 +559,7 @@ impl<'a> SoftwareUpdateSettings<'a> {
             40.0,
             Some(assets.controls.github_mark.clone()),
         );
-        add_cozy_button(
+        add_cozy_button_variant(
             commands,
             update_actions,
             settings_update_label(&updater.state),
@@ -379,8 +570,9 @@ impl<'a> SoftwareUpdateSettings<'a> {
                 _ => UiAction::Navigation(NavigationUiAction::StartUpdate),
             },
             assets,
-            px(155),
+            px(124),
             40.0,
+            CozyButtonVariant::Cool,
         );
     }
 }

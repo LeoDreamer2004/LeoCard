@@ -1,9 +1,14 @@
 use super::*;
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{LobbyUiAction, UiAction, add_cozy_button, add_cozy_panel};
+use crate::app::shell::{
+    CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button_variant, add_cozy_panel,
+};
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::{
+    BackgroundGradient, ColorStop, FocusPolicy, Gradient, LinearGradient, RadialGradient,
+    RadialGradientShape, UiPosition, VisualBox,
+};
 use leocard_protocol::LobbySnapshot;
 
 #[derive(Clone, Copy)]
@@ -79,9 +84,52 @@ impl LobbyPage {
         assets: &UiAssets,
         style: LobbyPageStyle,
     ) -> Self {
-        let content = spawn_node(
+        let canvas = spawn_node(
             commands,
             root,
+            Node {
+                width: percent(100),
+                flex_grow: 1.0,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            Some(Color::srgb(0.045, 0.05, 0.075)),
+        );
+        commands.entity(canvas).insert(BackgroundGradient(vec![
+            Gradient::Linear(LinearGradient::to_bottom_right(vec![
+                ColorStop::percent(Color::srgb(0.095, 0.09, 0.14), 0.0),
+                ColorStop::percent(Color::srgb(0.06, 0.065, 0.10), 55.0),
+                ColorStop::percent(Color::srgb(0.035, 0.05, 0.075), 100.0),
+            ])),
+            Gradient::Radial(RadialGradient::new(
+                UiPosition::TOP_RIGHT,
+                RadialGradientShape::FarthestCorner,
+                vec![
+                    ColorStop::percent(Color::srgba(0.32, 0.25, 0.46, 0.22), 0.0),
+                    ColorStop::percent(Color::srgba(0.32, 0.25, 0.46, 0.0), 70.0),
+                ],
+            )),
+        ]));
+        let texture = commands
+            .spawn((
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(0),
+                    right: px(0),
+                    top: px(0),
+                    bottom: px(0),
+                    ..default()
+                },
+                ImageNode::new(assets.table_felt.clone())
+                    .with_mode(NodeImageMode::Stretch)
+                    .with_color(Color::srgba(0.48, 0.45, 0.66, 0.07)),
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(canvas).add_child(texture);
+        let content = spawn_node(
+            commands,
+            canvas,
             Node {
                 width: percent(100),
                 max_width: px(1180),
@@ -176,7 +224,7 @@ impl LobbyPage {
         let ready = you
             .and_then(|you| lobby.players.iter().find(|player| player.id == you))
             .is_some_and(|player| player.ready);
-        add_cozy_button(
+        add_cozy_button_variant(
             commands,
             actions,
             "退出房间",
@@ -184,10 +232,11 @@ impl LobbyPage {
             assets,
             px(150),
             48.0,
+            CozyButtonVariant::Danger,
         );
         if you == lobby.host {
             if can_start {
-                add_cozy_button(
+                add_cozy_button_variant(
                     commands,
                     actions,
                     "开始游戏",
@@ -195,12 +244,13 @@ impl LobbyPage {
                     assets,
                     px(150),
                     48.0,
+                    CozyButtonVariant::Neutral,
                 );
             } else {
                 add_disabled_lobby_button(commands, actions, waiting_label, assets);
             }
         } else {
-            add_cozy_button(
+            add_cozy_button_variant(
                 commands,
                 actions,
                 if ready { "取消准备" } else { "准备" },
@@ -208,6 +258,11 @@ impl LobbyPage {
                 assets,
                 px(150),
                 48.0,
+                if ready {
+                    CozyButtonVariant::Neutral
+                } else {
+                    CozyButtonVariant::Cool
+                },
             );
         }
     }

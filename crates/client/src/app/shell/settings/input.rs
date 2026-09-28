@@ -47,7 +47,9 @@ pub(crate) fn table_appearance_label(
         TableAppearanceSetting::Vignette => {
             format!("四周视角阴影  {:.0}%", form.table_vignette * 100.0)
         }
-        TableAppearanceSetting::Volume => format!("音量  {:.0}%", form.audio_volume * 100.0),
+        TableAppearanceSetting::Volume => {
+            format!("游戏音量  {:.0}%", form.audio_volume * 100.0)
+        }
     }
 }
 

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="112" height="48" viewBox="0 0 112 48">
+  <defs>
+    <g id="letters" transform="translate(19 37) scale(.036 -.036)">
+      <path d="M933 727Q933 704 917.5 691.5Q902 679 873 679H617Q589 629 551 576V-22Q551 -51 538.0 -66.5Q525 -82 500 -82Q475 -82 461.5 -66.5Q448 -51 448 -22V446Q314 298 154 202Q135 191 120 191Q113 191 105 194Q89 199 80.0 211.5Q71 224 71 240Q71 249 74 258Q81 280 98 290Q220 360 323.0 463.0Q426 566 493 679H127Q98 679 82.5 691.5Q67 704 67 727Q67 750 82.5 762.5Q98 775 127 775H873Q902 775 917.5 762.5Q933 750 933 727ZM600 471Q600 486 613 496Q631 511 651 511Q672 511 692 495Q814 407 923 300Q945 278 945 257Q945 238 927 221Q907 202 888 202Q872 202 857 218Q811 267 751.0 322.0Q691 377 631 424Q600 450 600 471Z"/>
+      <path d="M550 783V494H758V696Q758 725 771.5 740.5Q785 756 810 756Q835 756 848.5 740.5Q862 725 862 696V462Q862 433 846.5 417.5Q831 402 802 402H550V67H797V284Q797 313 810.5 328.5Q824 344 850 344Q875 344 888.5 328.5Q902 313 902 284V-23Q902 -52 888.5 -67.5Q875 -83 850 -83Q824 -83 810.5 -75.5Q797 -68 797 -55V-27H156Q127 -27 111.5 -11.5Q96 4 96 33V283Q96 312 109.5 327.5Q123 343 149 343Q174 343 187.5 327.5Q201 312 201 283V67H445V402H204Q175 402 159.5 417.5Q144 433 144 462V696Q144 725 157.0 740.5Q170 756 194 756Q218 756 231.0 740.5Q244 725 244 696V494H445V783Q445 812 458.5 827.5Q472 843 498 843Q523 843 536.5 827.5Q550 812 550 783Z" transform="translate(1000 0)"/>
+    </g>
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffdfd"/>
+      <stop offset=".52" stop-color="#e8e2f2"/>
+      <stop offset="1" stop-color="#b6a7d0"/>
+    </linearGradient>
+    <pattern id="grain" width="4" height="4" patternUnits="userSpaceOnUse">
+      <path d="M0 4 4 0" fill="none" stroke="#fff" stroke-width=".35" opacity=".34"/>
+    </pattern>
+    <clipPath id="letter-shape"><use xlink:href="#letters"/></clipPath>
+  </defs>
+  <use xlink:href="#letters" transform="translate(1 1.5)" fill="#0b0a12" stroke="#0b0a12" stroke-width="55" stroke-linejoin="round" opacity=".68"/>
+  <use xlink:href="#letters" fill="#66597c" stroke="#66597c" stroke-width="33" stroke-linejoin="round"/>
+  <use xlink:href="#letters" fill="url(#ink)"/>
+  <rect width="112" height="48" fill="url(#grain)" clip-path="url(#letter-shape)"/>
+</svg>

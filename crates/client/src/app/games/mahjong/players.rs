@@ -132,7 +132,7 @@ pub(super) fn render_mahjong_wall(
         let (left, top, rotation) = match side {
             0 => (460.0, 105.0, 0.0),
             1 => (820.0, 302.0, std::f32::consts::FRAC_PI_2),
-            2 => (460.0, 480.0, std::f32::consts::PI),
+            2 => (460.0, 500.0, std::f32::consts::PI),
             _ => (100.0, 302.0, -std::f32::consts::FRAC_PI_2),
         };
         let segment = spawn_node(
@@ -283,7 +283,7 @@ pub(super) fn render_mahjong_player_tiles(
             None,
             Some(8.0),
             760.0,
-            80.0,
+            88.0,
             0.0,
         ),
         1 => (

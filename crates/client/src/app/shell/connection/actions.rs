@@ -14,7 +14,7 @@ use bevy::log::warn;
 use bevy::prelude::default;
 use bevy::prelude::*;
 use leocard_client::{LocalPlayerConnection, LocalPlayerProfile, TcpGameClient};
-use leocard_protocol::{GameKind, MAX_PLAYER_NAME_CHARS};
+use leocard_protocol::{GameKind, MAX_PLAYER_NAME_CHARS, PlayerGender};
 
 #[derive(Clone)]
 pub(crate) enum ConnectionUiAction {
@@ -23,6 +23,7 @@ pub(crate) enum ConnectionUiAction {
     JoinRoom,
     ChooseAvatar,
     ClearAvatar,
+    ToggleGender,
 }
 
 impl DomainUiAction for ConnectionUiAction {
@@ -90,6 +91,13 @@ impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
                 context.appearance.avatar_png = None;
                 context.page_error.error = save_appearance_preferences(&context.appearance).err();
             }
+            ConnectionUiAction::ToggleGender => {
+                context.connection.gender = match context.connection.gender {
+                    PlayerGender::Male => PlayerGender::Female,
+                    PlayerGender::Female => PlayerGender::Male,
+                };
+                context.page_error.error = save_connection_draft(&context.connection).err();
+            }
         }
     }
 }
@@ -118,6 +126,7 @@ fn create_room(game_kind: GameKind, context: &mut ConnectionActionContext<'_, '_
             &name,
             context.appearance.avatar_png.clone(),
             &context.profile,
+            context.connection.gender,
         );
         TcpGameClient::host_with_profile(port, context.host_rules.game_rules(game_kind), player)
             .map_err(|error| error.to_string())
@@ -144,6 +153,7 @@ fn join_room(context: &mut ConnectionActionContext<'_, '_>) {
             &name,
             context.appearance.avatar_png.clone(),
             &context.profile,
+            context.connection.gender,
         );
         TcpGameClient::join_with_profile(&context.connection.join_address, player)
             .map_err(|error| error.to_string())

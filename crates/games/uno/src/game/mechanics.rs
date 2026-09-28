@@ -271,7 +271,30 @@ impl GameState {
         } else if self.pending_draw_active() {
             self.stack_allowed(card)
         } else {
-            self.matches_top(card)
+            self.sudden_death_free_play() || self.matches_top(card)
+        }
+    }
+
+    pub(super) fn sudden_death_active(&self) -> bool {
+        self.rules.sudden_death_enabled()
+            && self
+                .players
+                .iter()
+                .filter(|player| !player.eliminated)
+                .count()
+                == 2
+    }
+
+    pub(super) fn sudden_death_free_play(&self) -> bool {
+        self.sudden_death_active() && self.sudden_death_misses >= 2
+    }
+
+    pub(super) fn sudden_death_missed(&mut self, player: UnoPlayerId) -> UnoPlayerId {
+        self.sudden_death_misses = self.sudden_death_misses.saturating_add(1).min(2);
+        if self.sudden_death_free_play() {
+            player
+        } else {
+            self.next_player(player)
         }
     }
 
@@ -299,10 +322,12 @@ impl GameState {
         let mut cards = Vec::with_capacity(usize::from(count));
         for _ in 0..count {
             self.replenish_draw_pile();
-            let card = self
-                .draw_pile
-                .pop_front()
-                .ok_or(GameError::DrawPileExhausted)?;
+            let Some(card) = self.draw_pile.pop_front() else {
+                if self.sudden_death_active() {
+                    break;
+                }
+                return Err(GameError::DrawPileExhausted);
+            };
             self.players[player.0].hand.push(card);
             cards.push(card);
         }
@@ -330,6 +355,9 @@ impl GameState {
 
     fn replenish_draw_pile(&mut self) {
         if !self.draw_pile.is_empty() {
+            return;
+        }
+        if self.sudden_death_active() {
             return;
         }
         if self.discard_pile.len() <= 1 && self.set_aside_cards.is_empty() {
@@ -382,10 +410,12 @@ impl GameState {
         let mut cards = Vec::new();
         loop {
             self.replenish_draw_pile();
-            let card = self
-                .draw_pile
-                .pop_front()
-                .ok_or(GameError::DrawPileExhausted)?;
+            let Some(card) = self.draw_pile.pop_front() else {
+                if self.sudden_death_active() {
+                    break;
+                }
+                return Err(GameError::DrawPileExhausted);
+            };
             self.players[player.0].hand.push(card);
             cards.push(card);
             if card.color() == Some(color) || self.check_mercy_elimination(player) {
@@ -478,6 +508,7 @@ impl GameState {
         self.jump_in_open = false;
         self.pending_swap = None;
         self.pending_finisher = None;
+        self.sudden_death_misses = 0;
         let hand_scores = self
             .players
             .iter()

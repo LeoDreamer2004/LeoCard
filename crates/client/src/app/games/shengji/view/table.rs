@@ -178,7 +178,7 @@ pub(crate) fn render_shengji_table(
             content,
             Node {
                 width: percent(100),
-                height: px(180),
+                height: px(210),
                 flex_shrink: 0.0,
                 position_type: PositionType::Relative,
                 ..default()
@@ -225,7 +225,7 @@ pub(crate) fn render_shengji_table(
         ChatAuxiliaryAction {
             label: "底牌",
             action: buried_cards.then_some(UiAction::Shengji(ShengjiUiAction::ToggleBuried)),
-            highlighted: true,
+            highlighted: false,
         },
     ];
     add_chat_panel(
@@ -468,7 +468,7 @@ fn add_shengji_opponent(
     start_transition_active: bool,
 ) {
     const SIDE_PLAY_GAP: f32 = 68.0;
-    const SIDE_SLOT_WIDTH: f32 = 96.0 * 1.17 + SIDE_PLAY_GAP + 165.0;
+    const SIDE_SLOT_WIDTH: f32 = 96.0 * 1.17 + SIDE_PLAY_GAP + 190.0;
     let side = match relative {
         1 => SeatSide::Left,
         2 => SeatSide::Top,
@@ -511,7 +511,7 @@ fn add_shengji_opponent(
         // 在任意窗口比例下都真正落在牌桌垂直中线上。
         commands
             .entity(slot)
-            .insert(UiTransform::from_translation(Val2::px(0.0, -52.0)));
+            .insert(UiTransform::from_translation(Val2::px(0.0, -56.0)));
     }
     if matches!(side, SeatSide::Right) {
         add_shengji_play_area(

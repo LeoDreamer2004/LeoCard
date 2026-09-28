@@ -1,12 +1,15 @@
-use super::{TurnClock, TurnClockHand, TurnClockLabel};
-use crate::app::presentation::{ACCENT, HEADER_BG, TEXT, add_text, spawn_node};
+use super::TurnClockLabel;
+use crate::app::presentation::add_text;
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::QiGui523Snapshot;
 use leocard_protocol::{GamePhaseView, PlayerId, TurnTimerView};
 
+const CLOCK_COLOR: Color = Color::srgb(0.73, 0.69, 0.94);
+
 pub(crate) fn turn_clock_visible(game: &QiGui523Snapshot, player: PlayerId) -> bool {
     matches!(&game.phase, GamePhaseView::Playing)
+        && game.turn_timer.is_some_and(|timer| timer.player == player)
         && game
             .trick
             .as_ref()
@@ -24,79 +27,26 @@ pub(super) fn add_turn_clock(
     timer: Option<TurnTimerView>,
     assets: &UiAssets,
 ) {
-    let clock = commands
-        .spawn((
-            TurnClock,
-            Node {
-                width: px(40),
-                height: px(40),
-                margin: UiRect::right(px(12)),
-                border: UiRect::all(px(2)),
-                border_radius: BorderRadius::all(percent(50)),
-                position_type: PositionType::Relative,
-                ..default()
-            },
-            BackgroundColor(HEADER_BG),
-            BorderColor::all(ACCENT),
-            UiTransform::IDENTITY,
-        ))
-        .id();
-    commands.entity(parent).add_child(clock);
-
-    for (left, rotation) in [(3.0, -0.25), (27.0, 0.25)] {
-        let bell = commands
-            .spawn((
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(left),
-                    top: px(-4),
-                    width: px(10),
-                    height: px(5),
-                    border_radius: BorderRadius::all(px(3)),
-                    ..default()
-                },
-                BackgroundColor(ACCENT),
-                UiTransform::from_rotation(Rot2::radians(rotation)),
-            ))
-            .id();
-        commands.entity(clock).add_child(bell);
-    }
-
-    let hand = commands
-        .spawn((
-            TurnClockHand,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(18),
-                top: px(8),
-                width: px(2),
-                height: px(22),
-                border_radius: BorderRadius::all(px(1)),
-                ..default()
-            },
-            BackgroundColor(ACCENT),
-            UiTransform::IDENTITY,
-        ))
-        .id();
-    commands.entity(clock).add_child(hand);
-    let center = spawn_node(
+    let size = if timer.is_some_and(|timer| timer.base_seconds == 0) {
+        16.0
+    } else {
+        20.0
+    };
+    let label = add_text(
         commands,
-        clock,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(16),
-            top: px(16),
-            width: px(6),
-            height: px(6),
-            border_radius: BorderRadius::all(percent(50)),
-            ..default()
-        },
-        Some(TEXT),
+        parent,
+        turn_timer_label(timer),
+        size,
+        CLOCK_COLOR,
+        assets,
     );
-    commands.entity(center).insert(ZIndex(2));
-    let label = turn_timer_label(timer);
-    let label = add_text(commands, parent, label, 22.0, ACCENT, assets);
-    commands.entity(label).insert(TurnClockLabel);
+    commands.entity(label).insert((
+        TurnClockLabel,
+        TextShadow {
+            offset: Vec2::new(1.0, 1.5),
+            color: Color::BLACK.with_alpha(0.8),
+        },
+    ));
 }
 
 pub(crate) fn turn_timer_label(timer: Option<TurnTimerView>) -> String {
@@ -104,22 +54,5 @@ pub(crate) fn turn_timer_label(timer: Option<TurnTimerView>) -> String {
         Some(timer) if timer.base_seconds > 0 => timer.base_seconds.to_string(),
         Some(timer) => format!("烧条中... {}", timer.reserve_seconds),
         None => String::new(),
-    }
-}
-
-pub(crate) fn animate_turn_clocks(
-    time: Res<Time>,
-    mut clocks: Query<(&mut UiTransform, &mut BorderColor), With<TurnClock>>,
-    mut hands: Query<&mut UiTransform, (With<TurnClockHand>, Without<TurnClock>)>,
-) {
-    let elapsed = time.elapsed_secs();
-    let ring = (elapsed * 8.0).sin();
-    for (mut transform, mut border) in &mut clocks {
-        transform.scale = Vec2::splat(1.04 + ring.abs() * 0.05);
-        transform.rotation = Rot2::radians(ring * 0.055);
-        border.set_all(ACCENT.with_alpha(0.72 + ring.abs() * 0.28));
-    }
-    for mut transform in &mut hands {
-        transform.rotation = Rot2::radians(elapsed * 2.8);
     }
 }

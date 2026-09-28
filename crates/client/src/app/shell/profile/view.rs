@@ -13,10 +13,13 @@ use crate::app::presentation::{MUTED, TEXT, add_avatar, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
-use leocard_protocol::{PlayerGameProfiles, PlayerInteractionKind, PlayerInteractionStats};
+use leocard_protocol::{
+    PlayerGameProfiles, PlayerGender, PlayerInteractionKind, PlayerInteractionStats,
+};
 
 pub(crate) struct ProfileModal<'a> {
     player_name: &'a str,
+    gender: PlayerGender,
     avatar: Option<&'a Handle<Image>>,
     reference_points: i32,
     completed_games: u32,
@@ -26,8 +29,13 @@ pub(crate) struct ProfileModal<'a> {
 }
 
 impl<'a> ProfileModal<'a> {
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "profile identity and statistics are passed explicitly"
+    )]
     pub(crate) fn new(
         player_name: &'a str,
+        gender: PlayerGender,
         avatar: Option<&'a Handle<Image>>,
         reference_points: i32,
         completed_games: u32,
@@ -37,6 +45,7 @@ impl<'a> ProfileModal<'a> {
     ) -> Self {
         Self {
             player_name,
+            gender,
             avatar,
             reference_points,
             completed_games,
@@ -49,6 +58,7 @@ impl<'a> ProfileModal<'a> {
     pub(crate) fn render(self, commands: &mut Commands, root: Entity, progress: f32) {
         let Self {
             player_name,
+            gender,
             avatar,
             reference_points,
             completed_games,
@@ -125,6 +135,7 @@ impl<'a> ProfileModal<'a> {
         );
         ProfileIdentity::new(
             player_name,
+            gender,
             avatar,
             reference_points,
             completed_games,
@@ -148,6 +159,7 @@ impl<'a> ProfileModal<'a> {
 
 struct ProfileIdentity<'a> {
     player_name: &'a str,
+    gender: PlayerGender,
     avatar: Option<&'a Handle<Image>>,
     reference_points: i32,
     completed_games: u32,
@@ -158,6 +170,7 @@ struct ProfileIdentity<'a> {
 impl<'a> ProfileIdentity<'a> {
     fn new(
         player_name: &'a str,
+        gender: PlayerGender,
         avatar: Option<&'a Handle<Image>>,
         reference_points: i32,
         completed_games: u32,
@@ -166,6 +179,7 @@ impl<'a> ProfileIdentity<'a> {
     ) -> Self {
         Self {
             player_name,
+            gender,
             avatar,
             reference_points,
             completed_games,
@@ -226,14 +240,31 @@ impl<'a> ProfileIdentity<'a> {
             },
             None,
         );
-        add_text(
+        let name_row = spawn_node(
             commands,
             identity_text,
+            Node {
+                min_width: px(0),
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                column_gap: px(8),
+                ..default()
+            },
+            None,
+        );
+        add_text(
+            commands,
+            name_row,
             self.player_name,
             27.0,
             TEXT,
             self.assets,
         );
+        let (symbol, color) = match self.gender {
+            PlayerGender::Male => ("♂", Color::srgb(0.42, 0.70, 1.0)),
+            PlayerGender::Female => ("♀", Color::srgb(1.0, 0.58, 0.76)),
+        };
+        add_text(commands, name_row, symbol, 25.0, color, self.assets);
         self.add_interaction_totals(commands, identity_text);
 
         let stats = spawn_node(

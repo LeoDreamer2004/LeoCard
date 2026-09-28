@@ -7,6 +7,7 @@ use super::{
     add_mahjong_tile_material, mahjong_claim_landing_time, mahjong_own_row_left,
     mahjong_remote_row_width,
 };
+use crate::app::presentation::DESIGN_HEIGHT;
 use crate::app::presentation::{ACCENT, TEXT, add_text, ease_out_cubic, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
@@ -49,8 +50,13 @@ impl MahjongSeatGeometry {
         }
     }
 
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the meld landing point needs the seat and revealed hand geometry"
+    )]
     fn meld_anchor(
         relative: u8,
+        table_height: f32,
         meld_count: usize,
         concealed_count: usize,
         revealed: bool,
@@ -66,9 +72,9 @@ impl MahjongSeatGeometry {
         let center = match relative {
             0 => Vec2::new(
                 mahjong_own_row_left(meld_count, regular_count)
-                    + 70.0
+                    + MAHJONG_OWN_MELD_WIDTH * 0.5
                     + meld_index * MAHJONG_OWN_MELD_WIDTH,
-                610.0,
+                table_height - 8.0 - 76.0 * 0.5,
             ),
             1 => Vec2::new(1073.5, 554.0 - remote_meld_center),
             2 => Vec2::new(865.0 - remote_meld_center, 74.5),
@@ -80,7 +86,7 @@ impl MahjongSeatGeometry {
             }
             _ => 0,
         } as f32;
-        let offset = slot * if relative == 0 { 45.0 } else { 24.0 };
+        let offset = slot * if relative == 0 { 50.0 } else { 24.0 };
         center
             + match relative {
                 0 => Vec2::new(offset, 0.0),
@@ -155,6 +161,7 @@ pub(crate) fn render_mahjong_claim_presentation(
     game: &MahjongSnapshot,
     own_seat: u8,
     presentation: &MahjongClaimPresentationState,
+    table_height: Option<f32>,
     assets: &UiAssets,
     game_assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
@@ -193,6 +200,7 @@ pub(crate) fn render_mahjong_claim_presentation(
             && concealed_count % 3 == 2;
         let target = MahjongSeatGeometry::meld_anchor(
             target_relative,
+            table_height.unwrap_or(DESIGN_HEIGHT),
             meld_count,
             concealed_count,
             revealed,
@@ -211,7 +219,7 @@ pub(crate) fn render_mahjong_claim_presentation(
             start_angle: MahjongSeatGeometry::angle(source_relative),
             target_angle: MahjongSeatGeometry::angle(target_relative),
             target_scale: if target_relative == 0 {
-                50.0 / 33.0
+                56.0 / 33.0
             } else {
                 27.0 / 33.0
             },

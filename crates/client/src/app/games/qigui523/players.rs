@@ -29,7 +29,8 @@ pub(super) fn add_opponent_slot(
     visuals: &SeatVisuals,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
 ) {
-    const SIDE_PLAY_GAP: f32 = 200.0 + 52.0 - QIGUI_PORTRAIT_WIDTH;
+    const SIDE_SLOT_INSET: f32 = 78.0;
+    const SIDE_PLAY_GAP: f32 = 24.0;
     const SIDE_SLOT_WIDTH: f32 = QIGUI_PORTRAIT_WIDTH + SIDE_PLAY_GAP + 148.0;
     let side = match relative_seat {
         1 | 2 => SeatSide::Left,
@@ -50,7 +51,7 @@ pub(super) fn add_opponent_slot(
             SeatSide::Top => JustifyContent::Center,
             SeatSide::Right => JustifyContent::FlexEnd,
         },
-        // 两侧出牌区保持原位；顶部的出牌区与头像同行，避免挤入桌面中央。
+        // 两侧出牌区保持原位，让头像向各自的出牌区靠拢。
         column_gap: px(if matches!(side, SeatSide::Top) {
             8.0
         } else {
@@ -61,13 +62,13 @@ pub(super) fn add_opponent_slot(
     };
     match relative_seat {
         1 => {
-            node.left = px(10);
+            node.left = px(SIDE_SLOT_INSET);
             node.bottom = px(36);
             node.width = px(SIDE_SLOT_WIDTH);
         }
         2 => {
-            node.left = px(10);
-            node.top = px(52);
+            node.left = px(SIDE_SLOT_INSET);
+            node.top = px(78);
             node.width = px(SIDE_SLOT_WIDTH);
         }
         3 => {
@@ -76,12 +77,12 @@ pub(super) fn add_opponent_slot(
             node.top = px(4);
         }
         4 => {
-            node.right = px(10);
-            node.top = px(52);
+            node.right = px(SIDE_SLOT_INSET);
+            node.top = px(78);
             node.width = px(SIDE_SLOT_WIDTH);
         }
         5 => {
-            node.right = px(10);
+            node.right = px(SIDE_SLOT_INSET);
             node.bottom = px(36);
             node.width = px(SIDE_SLOT_WIDTH);
         }
@@ -281,7 +282,7 @@ pub(super) fn add_qigui_score_value(
             justify_content: JustifyContent::Center,
             ..default()
         },
-        Some(Color::BLACK.with_alpha(0.48)),
+        None,
     );
     commands
         .entity(icon)

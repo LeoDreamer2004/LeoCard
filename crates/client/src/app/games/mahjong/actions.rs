@@ -1,6 +1,6 @@
 //! 麻将按钮动作到网络命令的转换。
 
-use crate::app::games::mahjong::MahjongUiState;
+use crate::app::games::mahjong::{MahjongChoiceMenu, MahjongUiState};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, dispatch_domain_actions,
@@ -21,6 +21,7 @@ pub(crate) enum MahjongUiAction {
     CloseFanGuide,
     SelectFanGuideTier(u16),
     UpdateRules(MahjongRuleSet),
+    ToggleChoiceMenu(MahjongChoiceMenu),
     Discard(MahjongTile),
     Respond(MahjongClaim),
     SelfDraw,
@@ -39,7 +40,10 @@ impl DomainUiAction for MahjongUiAction {
     fn rebuilds_ui(&self) -> bool {
         !matches!(
             self,
-            Self::ToggleFanGuide | Self::CloseFanGuide | Self::SelectFanGuideTier(_)
+            Self::ToggleFanGuide
+                | Self::CloseFanGuide
+                | Self::SelectFanGuideTier(_)
+                | Self::Discard(_)
         )
     }
 }
@@ -79,6 +83,7 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
             }
             Self::ToggleNoClaim => {
                 context.ui.no_claim = !context.ui.no_claim;
+                context.ui.choice_menu = None;
                 context.ui.last_automatic_action = None;
                 return;
             }
@@ -102,8 +107,13 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
                 context.ui.fan_guide_tier = *tier;
                 return;
             }
+            Self::ToggleChoiceMenu(menu) => {
+                context.ui.choice_menu = (context.ui.choice_menu != Some(*menu)).then_some(*menu);
+                return;
+            }
             _ => {}
         }
+        context.ui.choice_menu = None;
         let command = match self {
             MahjongUiAction::UpdateRules(rules) => MahjongCommand::UpdateRules { rules: *rules },
             MahjongUiAction::Discard(tile) => MahjongCommand::Discard { tile: *tile },
@@ -120,6 +130,7 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
             | MahjongUiAction::ToggleAutoWin
             | MahjongUiAction::ToggleNoClaim
             | MahjongUiAction::ToggleAutoDrawDiscard => unreachable!(),
+            MahjongUiAction::ToggleChoiceMenu(_) => unreachable!(),
         };
         send_game_command(&mut context.client, command);
     }

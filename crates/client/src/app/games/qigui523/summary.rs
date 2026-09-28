@@ -9,7 +9,10 @@ use crate::app::presentation::{
     summary_modal_visual, summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{LobbyUiAction, UiAction, add_cozy_button, add_cozy_disabled_button};
+use crate::app::shell::{
+    CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button, add_cozy_button_variant,
+    add_cozy_disabled_button,
+};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{GamePhaseView, QiGui523Snapshot};
@@ -250,7 +253,7 @@ pub(super) fn add_game_summary_modal(
             Visibility::Hidden
         },
     ));
-    add_cozy_button(
+    add_cozy_button_variant(
         commands,
         actions,
         "退出游戏",
@@ -258,6 +261,7 @@ pub(super) fn add_game_summary_modal(
         assets,
         px(150),
         48.0,
+        CozyButtonVariant::Danger,
     );
     if game.you == game.host {
         add_cozy_button(
@@ -278,7 +282,7 @@ pub(super) fn add_game_summary_modal(
     if ready {
         add_cozy_disabled_button(commands, actions, "已准备", assets, px(150), 48.0);
     } else {
-        add_cozy_button(
+        add_cozy_button_variant(
             commands,
             actions,
             "再来一局",
@@ -286,6 +290,7 @@ pub(super) fn add_game_summary_modal(
             assets,
             px(150),
             48.0,
+            CozyButtonVariant::Cool,
         );
     }
 }

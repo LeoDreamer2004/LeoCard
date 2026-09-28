@@ -94,36 +94,23 @@ pub(super) fn render_mahjong_auto_drawer(
             assets,
         );
         if expanded {
-            let circle = spawn_node(
-                commands,
-                row,
-                Node {
-                    width: px(16),
-                    height: px(16),
-                    border: UiRect::all(px(1.5)),
-                    border_radius: BorderRadius::all(px(8)),
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                },
-                None,
-            );
-            commands
-                .entity(circle)
-                .insert(BorderColor::all(if enabled { ACCENT } else { MUTED }));
-            if enabled {
-                spawn_node(
-                    commands,
-                    circle,
+            let checkbox = commands
+                .spawn((
                     Node {
-                        width: px(8),
-                        height: px(8),
-                        border_radius: BorderRadius::all(px(4)),
+                        width: px(20),
+                        height: px(20),
+                        flex_shrink: 0.0,
                         ..default()
                     },
-                    Some(ACCENT),
-                );
-            }
+                    ImageNode::new(if enabled {
+                        assets.home.checkbox_selected.clone()
+                    } else {
+                        assets.home.checkbox.clone()
+                    }),
+                    FocusPolicy::Pass,
+                ))
+                .id();
+            commands.entity(row).add_child(checkbox);
         }
     }
     let arrow_row = spawn_node(

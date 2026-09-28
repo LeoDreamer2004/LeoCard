@@ -1,6 +1,9 @@
 //! 顶栏及其连接状态、设置和个人资料入口。
 
-use super::{LobbyUiAction, NavigationUiAction, UiAction, add_cozy_button};
+use super::{
+    CozyButtonVariant, LobbyUiAction, NavigationUiAction, UiAction, add_cozy_button,
+    add_cozy_icon_button,
+};
 use crate::app::presentation::{BORDER, MUTED, add_text, avatar_color, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
 use bevy::prelude::*;
@@ -30,6 +33,13 @@ impl<'a> Header<'a> {
     }
 
     pub(super) fn render(self, commands: &mut Commands, root: Entity) {
+        if self
+            .client
+            .is_some_and(|client| matches!(client.0.model().phase(), ClientPhaseRef::Playing(_)))
+        {
+            self.render_game_header(commands, root);
+            return;
+        }
         let header = spawn_node(
             commands,
             root,
@@ -107,35 +117,72 @@ impl<'a> Header<'a> {
             px(116),
             40.0,
         );
-        if self
-            .client
-            .is_some_and(|client| matches!(client.0.model().phase(), ClientPhaseRef::Playing(_)))
-        {
-            self.add_exit_button(commands, right);
-        }
-        self.add_profile_button(commands, right);
+        self.add_profile_button(commands, right, 44.0, 17.5);
     }
 
-    fn add_exit_button(&self, commands: &mut Commands, parent: Entity) {
-        add_cozy_button(
+    fn render_game_header(&self, commands: &mut Commands, root: Entity) {
+        let header = spawn_node(
             commands,
-            parent,
-            "退出游戏",
+            root,
+            Node {
+                position_type: PositionType::Absolute,
+                right: px(0),
+                top: px(0),
+                width: px(158),
+                height: px(48),
+                padding: UiRect::axes(px(14), px(5)),
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            None,
+        );
+        commands
+            .entity(header)
+            .insert((GlobalZIndex(1000), FocusPolicy::Pass));
+        let right = spawn_node(
+            commands,
+            header,
+            Node {
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                column_gap: px(8),
+                ..default()
+            },
+            None,
+        );
+        add_cozy_icon_button(
+            commands,
+            right,
+            UiAction::Navigation(NavigationUiAction::ToggleSettings),
+            self.assets,
+            self.assets.home.settings_icon.clone(),
+            CozyButtonVariant::Neutral,
+        );
+        add_cozy_icon_button(
+            commands,
+            right,
             UiAction::Lobby(LobbyUiAction::LeaveRoom),
             self.assets,
-            px(116),
-            40.0,
+            self.assets.home.exit_icon.clone(),
+            CozyButtonVariant::Danger,
         );
+        self.add_profile_button(commands, right, 38.0, 15.0);
     }
 
-    fn add_profile_button(&self, commands: &mut Commands, parent: Entity) {
+    fn add_profile_button(
+        &self,
+        commands: &mut Commands,
+        parent: Entity,
+        size: f32,
+        fallback_font_size: f32,
+    ) {
         let mut entity = commands.spawn((
             Button,
             UiAction::Navigation(NavigationUiAction::ToggleProfile),
             Node {
-                width: px(44),
-                height: px(44),
-                min_width: px(44),
+                width: px(size),
+                height: px(size),
+                min_width: px(size),
                 border: UiRect::all(px(2)),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
@@ -163,7 +210,7 @@ impl<'a> Header<'a> {
                     .next()
                     .unwrap_or('玩')
                     .to_string(),
-                17.5,
+                fallback_font_size,
                 Color::WHITE,
                 self.assets,
             );

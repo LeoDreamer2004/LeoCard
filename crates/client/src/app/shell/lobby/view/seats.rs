@@ -45,7 +45,9 @@ impl<'a> LobbySeatSelector<'a> {
                 width: px(620),
                 height: px(390),
                 max_width: percent(100),
+                flex_shrink: 0.0,
                 align_self: AlignSelf::Center,
+                margin: UiRect::vertical(Val::Auto),
                 position_type: PositionType::Relative,
                 ..default()
             },

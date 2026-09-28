@@ -90,8 +90,15 @@ pub(crate) fn render_uno_lobby(
             "等待玩家中",
         ),
     );
-    if ui.expansion_settings_open {
-        render_uno_expansion_settings(commands, root, rules, can_configure, assets);
+    if ui.expansion_settings_open || ui.expansion_settings_progress > 0.0 {
+        render_uno_expansion_settings(
+            commands,
+            root,
+            rules,
+            can_configure,
+            ui.expansion_settings_progress,
+            assets,
+        );
     }
 }
 

@@ -1,6 +1,6 @@
-use super::super::{ProfileMotion, UiState};
-use crate::app::games::MahjongUiState;
-use crate::app::presentation::ease_out_cubic;
+use super::super::{ProfileMotion, UiState, UpdateManager};
+use crate::app::games::{MahjongUiState, UnoUiState};
+use crate::app::presentation::{TEXT, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 
@@ -13,11 +13,52 @@ pub(crate) struct SettingsMotion {
     pub target_open: bool,
 }
 
+#[derive(Component)]
+pub(crate) struct SettingsTabButton {
+    pub label: Entity,
+}
+
+#[derive(Component)]
+pub(crate) struct SelectedSettingsTab;
+
+pub(crate) fn update_settings_tab_hover(
+    motion: Res<SettingsMotion>,
+    assets: Res<UiAssets>,
+    mut tabs: Query<
+        (&Interaction, &SettingsTabButton, &mut ImageNode),
+        Without<SelectedSettingsTab>,
+    >,
+    mut labels: Query<&mut TextColor>,
+) {
+    let opacity = motion.progress * motion.progress * (3.0 - 2.0 * motion.progress);
+    for (interaction, tab, mut image) in &mut tabs {
+        let hovered = *interaction != Interaction::None;
+        let texture = if hovered {
+            &assets.home.game_card_hover
+        } else {
+            &assets.home.game_card
+        };
+        if image.image != *texture {
+            image.image = texture.clone();
+        }
+        let color = if hovered {
+            Color::srgb(0.85, 0.82, 1.0)
+        } else {
+            TEXT
+        };
+        if let Ok(mut label) = labels.get_mut(tab.label) {
+            label.0 = color.with_alpha(opacity);
+        }
+    }
+}
+
 #[derive(Clone, Copy, Component)]
 pub(crate) enum CozyModalKind {
     Settings,
     Profile,
     MahjongFanGuide,
+    UnoExpansionSettings,
+    UpdateDialog,
 }
 
 #[derive(Component)]
@@ -130,6 +171,8 @@ pub(crate) fn animate_cozy_modals(
     mut settings_motion: ResMut<SettingsMotion>,
     mut profile_motion: ResMut<ProfileMotion>,
     mut mahjong_ui: ResMut<MahjongUiState>,
+    mut uno_ui: ResMut<UnoUiState>,
+    mut updater: ResMut<UpdateManager>,
     mut ui: ResMut<UiState>,
     mut commands: Commands,
     mut backdrops: Query<(&CozyModalBackdrop, &mut BackgroundColor)>,
@@ -173,11 +216,25 @@ pub(crate) fn animate_cozy_modals(
     let direction = if mahjong_ui.fan_guide_open { 1.0 } else { -1.0 };
     mahjong_ui.fan_guide_progress =
         (mahjong_ui.fan_guide_progress + direction * time.delta_secs() / DURATION).clamp(0.0, 1.0);
+    let direction = if uno_ui.expansion_settings_open {
+        1.0
+    } else {
+        -1.0
+    };
+    let previous_uno_progress = uno_ui.expansion_settings_progress;
+    uno_ui.expansion_settings_progress =
+        (previous_uno_progress + direction * time.delta_secs() / DURATION).clamp(0.0, 1.0);
+    let direction = if updater.dialog_open { 1.0 } else { -1.0 };
+    let previous_update_progress = updater.dialog_progress;
+    updater.dialog_progress =
+        (previous_update_progress + direction * time.delta_secs() / DURATION).clamp(0.0, 1.0);
     for (kind, mut backdrop) in &mut backdrops {
         let progress = match kind.0 {
             CozyModalKind::Settings => settings_motion.progress,
             CozyModalKind::Profile => profile_motion.progress,
             CozyModalKind::MahjongFanGuide => mahjong_ui.fan_guide_progress,
+            CozyModalKind::UnoExpansionSettings => uno_ui.expansion_settings_progress,
+            CozyModalKind::UpdateDialog => updater.dialog_progress,
         };
         backdrop.0 = cozy_backdrop_color(progress);
     }
@@ -187,6 +244,8 @@ pub(crate) fn animate_cozy_modals(
             CozyModalKind::Settings => settings_motion.progress,
             CozyModalKind::Profile => profile_motion.progress,
             CozyModalKind::MahjongFanGuide => mahjong_ui.fan_guide_progress,
+            CozyModalKind::UnoExpansionSettings => uno_ui.expansion_settings_progress,
+            CozyModalKind::UpdateDialog => updater.dialog_progress,
         };
         roots.push((entity, progress));
         *panel = cozy_panel_transform(progress);
@@ -243,6 +302,15 @@ pub(crate) fn animate_cozy_modals(
     if ui.navigation.profile_open && !profile_motion.target_open && profile_motion.progress == 0.0 {
         ui.navigation.profile_open = false;
         ui.navigation.player_profile = None;
+        ui.dirty = true;
+    }
+    if !uno_ui.expansion_settings_open
+        && previous_uno_progress > 0.0
+        && uno_ui.expansion_settings_progress == 0.0
+    {
+        ui.dirty = true;
+    }
+    if !updater.dialog_open && previous_update_progress > 0.0 && updater.dialog_progress == 0.0 {
         ui.dirty = true;
     }
 }

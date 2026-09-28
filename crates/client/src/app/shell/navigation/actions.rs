@@ -2,7 +2,7 @@
 
 use super::super::{
     DomainUiAction, PlayerProfilePage, PressedUiAction, ProfileGameTab, ProfileMotion,
-    SettingsMotion, UiAction, UiActionHandler, UiState, UpdateManager, UpdateState,
+    SettingsMotion, SettingsTab, UiAction, UiActionHandler, UiState, UpdateManager, UpdateState,
     dispatch_domain_actions, open_github_repository, start_table_felt_picker,
 };
 use crate::app::runtime::{
@@ -18,6 +18,7 @@ pub(crate) enum NavigationUiAction {
     OpenPlayerProfile(Box<PlayerProfilePage>),
     SelectProfileGameTab(ProfileGameTab),
     ToggleSettings,
+    SelectSettingsTab(SettingsTab),
     StartUpdate,
     OpenGitHubRepository,
     HideUpdateDialog,
@@ -93,6 +94,7 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
                     context.profile_motion.progress = 0.0;
                 }
             }
+            NavigationUiAction::SelectSettingsTab(tab) => ui.navigation.settings_tab = *tab,
             NavigationUiAction::StartUpdate => updater.begin_or_show(),
             NavigationUiAction::OpenGitHubRepository => {
                 if let Err(error) = open_github_repository() {

@@ -39,7 +39,8 @@ pub(crate) fn add_play_error_popup(
     commands.entity(parent).add_child(anchor);
     let popup = commands
         .spawn(Node {
-            width: px(warning_toast_width(message)),
+            width: Val::Auto,
+            min_width: px(360),
             max_width: percent(82),
             min_height: px(72),
             padding: UiRect {
@@ -102,22 +103,6 @@ pub(crate) fn add_play_error_popup(
         assets,
     );
     commands.entity(text).insert(PlayErrorPopupText);
-}
-
-fn warning_toast_width(message: &str) -> f32 {
-    let content_width = message
-        .chars()
-        .map(|character| {
-            if character == ' ' {
-                6.0
-            } else if character.is_ascii() {
-                14.0
-            } else {
-                18.0
-            }
-        })
-        .sum::<f32>();
-    (content_width + 126.0).clamp(360.0, 1100.0)
 }
 
 pub(crate) fn add_reconnecting_overlay(

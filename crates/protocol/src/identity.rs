@@ -32,10 +32,19 @@ pub struct ProfileId(pub [u8; 32]);
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct MatchId(pub [u8; 16]);
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub enum PlayerGender {
+    #[default]
+    Male,
+    Female,
+}
+
 /// 可随玩家身份公开的各游戏长期档案。`None` 表示旧版本没有采集过该游戏的
 /// 明细，展示层必须与真实的零次记录区分开来。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PlayerGameProfiles {
+    /// Public profile attribute shared with other players and future voice lines.
+    pub gender: PlayerGender,
     pub qigui523: Option<QiGui523ProfileStats>,
     pub texas_holdem: Option<TexasHoldemProfileStats>,
     pub shengji: Option<ShengjiProfileStats>,

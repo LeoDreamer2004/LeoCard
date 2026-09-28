@@ -6,6 +6,14 @@ use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
 
+#[derive(Clone, Copy)]
+pub(crate) enum CozyButtonVariant {
+    Neutral,
+    Primary,
+    Cool,
+    Danger,
+}
+
 pub(crate) fn add_cozy_button(
     commands: &mut Commands,
     parent: Entity,
@@ -15,7 +23,44 @@ pub(crate) fn add_cozy_button(
     width: Val,
     height: f32,
 ) -> Entity {
-    add_cozy_button_with_icon(commands, parent, label, action, assets, width, height, None)
+    add_cozy_button_styled(
+        commands,
+        parent,
+        Some(label),
+        action,
+        assets,
+        width,
+        height,
+        None,
+        CozyButtonVariant::Neutral,
+    )
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the styled button keeps its action and geometry explicit"
+)]
+pub(crate) fn add_cozy_button_variant(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    action: UiAction,
+    assets: &UiAssets,
+    width: Val,
+    height: f32,
+    variant: CozyButtonVariant,
+) -> Entity {
+    add_cozy_button_styled(
+        commands,
+        parent,
+        Some(label),
+        action,
+        assets,
+        width,
+        height,
+        None,
+        variant,
+    )
 }
 
 pub(crate) fn add_cozy_disabled_button(
@@ -111,15 +156,93 @@ pub(crate) fn add_cozy_button_with_icon(
     height: f32,
     icon: Option<Handle<Image>>,
 ) -> Entity {
-    let mut base = ImageNode::new(assets.home.button.clone()).with_mode(NodeImageMode::Sliced(
-        TextureSlicer {
-            border: BorderRect::all(32.0),
-            center_scale_mode: SliceScaleMode::Stretch,
-            sides_scale_mode: SliceScaleMode::Stretch,
-            max_corner_scale: 0.55,
-        },
-    ));
+    add_cozy_button_styled(
+        commands,
+        parent,
+        Some(label),
+        action,
+        assets,
+        width,
+        height,
+        icon,
+        CozyButtonVariant::Neutral,
+    )
+}
+
+pub(crate) fn add_cozy_icon_button(
+    commands: &mut Commands,
+    parent: Entity,
+    action: UiAction,
+    assets: &UiAssets,
+    icon: Handle<Image>,
+    variant: CozyButtonVariant,
+) -> Entity {
+    add_cozy_button_styled(
+        commands,
+        parent,
+        None,
+        action,
+        assets,
+        px(38),
+        38.0,
+        Some(icon),
+        variant,
+    )
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the shared button keeps its action, size, optional icon and palette explicit"
+)]
+fn add_cozy_button_styled(
+    commands: &mut Commands,
+    parent: Entity,
+    label: Option<&str>,
+    action: UiAction,
+    assets: &UiAssets,
+    width: Val,
+    height: f32,
+    icon: Option<Handle<Image>>,
+    variant: CozyButtonVariant,
+) -> Entity {
+    let (base_image, base_tint, hover_image, hover_tint, border) = match variant {
+        CozyButtonVariant::Neutral => (
+            assets.home.button.clone(),
+            Color::WHITE,
+            assets.home.purple_button_compact.clone(),
+            Color::WHITE,
+            32.0,
+        ),
+        CozyButtonVariant::Primary => (
+            assets.home.purple_button_compact.clone(),
+            Color::srgb(0.83, 0.80, 0.95),
+            assets.home.purple_button_compact.clone(),
+            Color::WHITE,
+            32.0,
+        ),
+        CozyButtonVariant::Cool => (
+            assets.home.cool_button.clone(),
+            Color::WHITE,
+            assets.home.cool_button_hover.clone(),
+            Color::WHITE,
+            32.0,
+        ),
+        CozyButtonVariant::Danger => (
+            assets.home.danger_button.clone(),
+            Color::WHITE,
+            assets.home.danger_button_hover.clone(),
+            Color::WHITE,
+            32.0,
+        ),
+    };
+    let mut base = ImageNode::new(base_image).with_mode(NodeImageMode::Sliced(TextureSlicer {
+        border: BorderRect::all(border),
+        center_scale_mode: SliceScaleMode::Stretch,
+        sides_scale_mode: SliceScaleMode::Stretch,
+        max_corner_scale: 0.55,
+    }));
     base.visual_box = VisualBox::BorderBox;
+    base.color = base_tint;
     let button = commands
         .spawn((
             Button,
@@ -137,15 +260,15 @@ pub(crate) fn add_cozy_button_with_icon(
         .id();
     commands.entity(parent).add_child(button);
 
-    let mut highlight = ImageNode::new(assets.home.purple_button_compact.clone()).with_mode(
-        NodeImageMode::Sliced(TextureSlicer {
-            border: BorderRect::all(32.0),
+    let mut highlight =
+        ImageNode::new(hover_image).with_mode(NodeImageMode::Sliced(TextureSlicer {
+            border: BorderRect::all(border),
             center_scale_mode: SliceScaleMode::Stretch,
             sides_scale_mode: SliceScaleMode::Stretch,
             max_corner_scale: 0.55,
-        }),
-    );
+        }));
     highlight.visual_box = VisualBox::BorderBox;
+    highlight.color = hover_tint;
     let overlay = commands
         .spawn((
             Node {
@@ -176,7 +299,9 @@ pub(crate) fn add_cozy_button_with_icon(
             .id();
         commands.entity(button).add_child(image);
     }
-    add_text(commands, button, label, 14.0, TEXT, assets);
+    if let Some(label) = label {
+        add_text(commands, button, label, 14.0, TEXT, assets);
+    }
     commands.entity(button).insert(HomeHighlightKind::Button {
         overlay,
         arrows: None,

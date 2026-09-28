@@ -86,6 +86,7 @@ pub struct TurnState {
     pub pending_skip: u16,
     pub skipped_turns_remaining: u16,
     pub pending_swap: Option<PendingSwap>,
+    pub sudden_death_free_play: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -390,6 +391,7 @@ pub struct GameState {
     pending_finisher: Option<UnoPlayerId>,
     set_aside_cards: Vec<UnoCard>,
     elimination_order: Vec<UnoPlayerId>,
+    sudden_death_misses: u8,
     flip_side: Option<UnoFlipSide>,
     phase: Phase,
 }

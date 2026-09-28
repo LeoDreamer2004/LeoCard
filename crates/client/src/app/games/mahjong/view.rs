@@ -2,15 +2,16 @@
 
 use super::tiles::queue_mahjong_deal_sound;
 use super::{
-    MAHJONG_WIN_PUSH_DURATION, MahjongAssets, MahjongDiscardRiverAnimations, MahjongOwnHandVisuals,
-    MahjongPlayerPanelVisuals, MahjongPlayerTileVisuals, MahjongSettlementVisuals,
-    MahjongTableRoot, MahjongTileMaterial, MahjongUiState, MahjongWinVisuals,
-    MahjongWinningHandVisual, add_fan_guide_button, mahjong_major_fan_impact_times,
-    observe_discard_animations, render_action_bar, render_discard_rivers,
-    render_mahjong_auto_drawer, render_mahjong_claim_presentation,
-    render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
-    render_mahjong_settlement, render_mahjong_wall, render_mahjong_win_effects,
-    render_own_discard_flight, render_own_hand, render_round_status,
+    MAHJONG_WIN_PUSH_DURATION, MahjongActionVoice, MahjongAssets, MahjongDiscardRiverAnimations,
+    MahjongOwnHandVisuals, MahjongPlayerPanelVisuals, MahjongPlayerTileVisuals,
+    MahjongSettlementVisuals, MahjongTableRoot, MahjongTileMaterial, MahjongUiState,
+    MahjongWinVisuals, MahjongWinningHandVisual, add_fan_guide_button,
+    mahjong_major_fan_impact_times, observe_discard_animations, queue_mahjong_action_voice,
+    render_action_bar, render_discard_rivers, render_mahjong_auto_drawer,
+    render_mahjong_claim_presentation, render_mahjong_flower_presentations,
+    render_mahjong_player_panel, render_mahjong_player_tiles, render_mahjong_settlement,
+    render_mahjong_wall, render_mahjong_win_effects, render_own_discard_flight, render_own_hand,
+    render_round_status,
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition, TableBackground,
@@ -34,7 +35,7 @@ pub(super) const MAHJONG_CLAIM_FLIGHT_DURATION: f32 = 0.52;
 pub(super) const MAHJONG_CLAIM_HAND_SHIFT_DURATION: f32 = 0.34;
 pub(super) const MAHJONG_CLAIM_PRESENTATION_DURATION: f32 = 1.42;
 pub(super) const MAHJONG_FLOWER_PRESENTATION_DURATION: f32 = 1.18;
-pub(super) const MAHJONG_OWN_MELD_WIDTH: f32 = 140.0;
+pub(super) const MAHJONG_OWN_MELD_WIDTH: f32 = 158.0;
 pub(super) const MAHJONG_REMOTE_MELD_WIDTH: f32 = 78.0;
 pub(super) const MAHJONG_REMOTE_DRAW_GAP: f32 = 14.0;
 
@@ -42,7 +43,7 @@ pub(super) fn mahjong_own_row_left(meld_count: usize, regular_tile_count: usize)
     let tile_width = if regular_tile_count == 0 {
         0.0
     } else {
-        regular_tile_count as f32 * 45.0 + 5.0
+        regular_tile_count as f32 * 50.0 + 6.0
     };
     (DESIGN_WIDTH - meld_count as f32 * MAHJONG_OWN_MELD_WIDTH - tile_width) / 2.0
 }
@@ -342,24 +343,60 @@ pub(crate) struct MahjongTableVisuals<'a> {
 }
 
 pub(super) fn sync_mahjong_claim_presentation(
+    mut commands: Commands,
     mut client: Option<ResMut<ClientResource>>,
     mut presentation: ResMut<MahjongClaimPresentationState>,
+    assets: Res<MahjongAssets>,
 ) {
     let Some(client) = client.as_deref_mut() else {
         *presentation = MahjongClaimPresentationState::default();
         return;
     };
     let events = client.0.model_mut().take_mahjong_events();
-    let Some(match_id) = client.0.model().mahjong_game().map(|game| game.match_id) else {
+    let Some(game) = client.0.model().mahjong_game() else {
         *presentation = MahjongClaimPresentationState::default();
         return;
     };
+    let match_id = game.match_id;
     if presentation.observed_match.observe(match_id) {
         presentation.active = None;
         presentation.queued.clear();
         presentation.flowers.clear();
     }
     for event in events {
+        match &event {
+            MahjongEvent::ClaimResolved { player, claim, .. } => {
+                let action = match claim {
+                    MahjongClaim::Chow { .. } => Some(MahjongActionVoice::Chow),
+                    MahjongClaim::Pung => Some(MahjongActionVoice::Pung),
+                    MahjongClaim::Kong => Some(MahjongActionVoice::Kong),
+                    MahjongClaim::Pass | MahjongClaim::Win => None,
+                };
+                if let Some(action) = action {
+                    queue_mahjong_action_voice(&mut commands, &assets, game, *player, action);
+                }
+            }
+            MahjongEvent::KongDeclared { player, .. } => {
+                queue_mahjong_action_voice(
+                    &mut commands,
+                    &assets,
+                    game,
+                    *player,
+                    MahjongActionVoice::Kong,
+                );
+            }
+            MahjongEvent::HandFinished { result } => {
+                for winner in &result.winners {
+                    let action = if winner.from.is_some() {
+                        MahjongActionVoice::Win
+                    } else {
+                        MahjongActionVoice::SelfDraw
+                    };
+                    queue_mahjong_action_voice(&mut commands, &assets, game, winner.player, action);
+                }
+            }
+            _ => {}
+        }
         if let MahjongEvent::FlowerReplaced { player } = &event {
             if let Some(active) = presentation
                 .flowers
@@ -754,6 +791,7 @@ pub(crate) fn render_mahjong_table(
         game,
         MahjongOwnHandVisuals {
             observed_hand: &ui.observed_table.state.hand,
+            hover_lifts: &ui.hand_hover_lifts,
             dealing: dealing || own_flower_replaced,
             drawn_tile_falling,
             winning_hand: own_winning_hand,
@@ -790,13 +828,22 @@ pub(crate) fn render_mahjong_table(
     if received_batch {
         queue_mahjong_deal_sound(commands, assets);
     }
-    render_action_bar(commands, table, game, ui, assets);
+    render_action_bar(
+        commands,
+        table,
+        game,
+        ui,
+        assets,
+        game_assets,
+        tile_materials,
+    );
     render_mahjong_claim_presentation(
         commands,
         table,
         game,
         own_seat,
         claim_presentation,
+        ui.last_table_height,
         assets,
         game_assets,
         tile_materials,

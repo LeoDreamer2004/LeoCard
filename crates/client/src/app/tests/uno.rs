@@ -163,6 +163,7 @@ fn uno_expansion_settings_only_frames_the_hosts_status_control() {
                 ..default()
             },
             true,
+            1.0,
             &assets,
         );
         let guest_root = commands.spawn(Node::default()).id();
@@ -171,6 +172,7 @@ fn uno_expansion_settings_only_frames_the_hosts_status_control() {
             guest_root,
             UnoRuleSet::default(),
             false,
+            1.0,
             &assets,
         );
         let no_mercy_root = commands.spawn(Node::default()).id();
@@ -185,6 +187,7 @@ fn uno_expansion_settings_only_frames_the_hosts_status_control() {
                 ..UnoRuleSet::default()
             },
             true,
+            1.0,
             &assets,
         );
     }
@@ -233,14 +236,7 @@ fn uno_expansion_settings_only_frames_the_hosts_status_control() {
         .iter(app.world())
         .map(|text| text.0.as_str())
         .collect::<Vec<_>>();
-    for label in [
-        "扩展包设置",
-        "Swap Pack",
-        "Reverse Pack",
-        "Stack Pack",
-        "✓",
-        "×",
-    ] {
+    for label in ["扩展包设置", "Swap Pack", "Reverse Pack", "Stack Pack"] {
         assert!(labels.contains(&label));
     }
     assert!(

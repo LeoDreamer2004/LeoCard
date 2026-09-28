@@ -76,7 +76,7 @@ pub(crate) fn render_mahjong_staged_meld(
         MahjongTileSize::Mini
     };
     let (group_width, group_height, tile_advance) = if own_meld {
-        (MAHJONG_OWN_MELD_WIDTH, 80.0, 45.0)
+        (MAHJONG_OWN_MELD_WIDTH, 88.0, 50.0)
     } else {
         (MAHJONG_REMOTE_MELD_WIDTH, 54.0, 24.0)
     };
@@ -180,7 +180,7 @@ pub(crate) fn render_mahjong_meld(
         MahjongTileSize::Mini
     };
     let (group_width, group_height, stack_left, stack_width, stack_height) = if own_meld {
-        (MAHJONG_OWN_MELD_WIDTH, 80.0, 45.0, 50.0, 68.0)
+        (MAHJONG_OWN_MELD_WIDTH, 88.0, 50.0, 56.0, 76.0)
     } else {
         (MAHJONG_REMOTE_MELD_WIDTH, 54.0, 24.0, 27.0, 37.0)
     };
@@ -281,7 +281,7 @@ pub(crate) fn add_mahjong_tile_material(
         MahjongTileSize::Mini | MahjongTileSize::MiniConcealedMeld => (27.0, 37.0, -3.0),
         MahjongTileSize::WinUpright
         | MahjongTileSize::OwnMeld
-        | MahjongTileSize::OwnConcealedMeld => (50.0, 68.0, -5.0),
+        | MahjongTileSize::OwnConcealedMeld => (56.0, 76.0, -6.0),
         MahjongTileSize::HiddenSide => (34.0, 46.0, -5.0),
         MahjongTileSize::HiddenOpposite => (31.0, 42.0, -4.0),
     };
@@ -391,24 +391,9 @@ pub(crate) fn add_mahjong_tile_material(
                 | MahjongTileSize::GuideConcealedMeld
         )
     {
-        let overlay = spawn_node(
-            commands,
-            entity,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                top: px(0),
-                width: percent(100),
-                height: percent(100),
-                border_radius: BorderRadius::all(px(3)),
-                ..default()
-            },
-            Some(Color::srgba(0.39, 0.76, 1.0, 0.34)),
-        );
-        commands.entity(overlay).insert((
-            super::super::MahjongMatchingTileOverlay(kind),
-            Visibility::Hidden,
-            FocusPolicy::Pass,
+        commands.entity(entity).insert((
+            super::super::MahjongMatchingTileKind(kind),
+            Outline::new(px(0), px(0), Color::NONE),
         ));
     }
     if let Some(deal) = deal {

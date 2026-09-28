@@ -125,6 +125,7 @@ impl UnoSession {
             direction: game.direction(),
             pending_draw: turn.map_or(0, |turn| turn.pending_draw),
             pending_kind: turn.and_then(|turn| turn.pending_kind),
+            sudden_death_free_play: turn.is_some_and(|turn| turn.sudden_death_free_play),
             challenge_offender: turn
                 .and_then(|turn| turn.challenge_offender)
                 .map(from_core_player),

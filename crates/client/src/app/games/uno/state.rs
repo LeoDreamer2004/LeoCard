@@ -15,6 +15,7 @@ pub(crate) struct UnoUiState {
     pub card_animations: HashMap<UnoCard, CardAnimationState>,
     pub mode_menu_open: bool,
     pub expansion_settings_open: bool,
+    pub expansion_settings_progress: f32,
     pub color_choice: Option<UnoCard>,
 }
 
@@ -57,6 +58,7 @@ impl UnoUiState {
         self.clear_table();
         self.mode_menu_open = false;
         self.expansion_settings_open = false;
+        self.expansion_settings_progress = 0.0;
     }
 
     pub(crate) fn clear_table(&mut self) {

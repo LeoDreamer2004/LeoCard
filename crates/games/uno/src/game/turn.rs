@@ -28,20 +28,30 @@ impl GameState {
         if self.drawn_card.is_some() {
             return Err(GameError::MustDrawBeforePassing);
         }
-        let mut cards = self.draw_cards_for(player, 1)?;
-        self.jump_in_open = false;
-        loop {
+        if self.sudden_death_free_play() {
+            return Err(GameError::DrawPileExhausted);
+        }
+        let mut cards = Vec::new();
+        while let Some(card) = self.draw_cards_for(player, 1)?.pop() {
+            cards.push(card);
             if self.check_mercy_elimination(player)
                 || !self.rules.is_no_mercy()
                 || !self.rules.no_mercy.draw_until_playable
-                || cards
-                    .last()
-                    .is_some_and(|card| self.card_allowed_in_current_state(*card))
+                || self.card_allowed_in_current_state(card)
             {
                 break;
             }
-            cards.extend(self.draw_cards_for(player, 1)?);
         }
+        if cards.is_empty()
+            && self.players[player.0]
+                .hand
+                .iter()
+                .copied()
+                .any(|card| self.card_allowed_in_current_state(card))
+        {
+            return Err(GameError::DrawPileExhausted);
+        }
+        self.jump_in_open = false;
         let playable = if self.players[player.0].eliminated {
             None
         } else {
@@ -53,7 +63,10 @@ impl GameState {
         let next_player = if let Some(card) = playable {
             self.drawn_card = Some(card);
             player
+        } else if self.sudden_death_active() && self.draw_pile.is_empty() {
+            self.sudden_death_missed(player)
         } else {
+            self.sudden_death_misses = 0;
             self.next_player(player)
         };
         self.current_player = next_player;
@@ -105,6 +118,8 @@ impl GameState {
         // 收下罚牌并留在当前回合，随后再单独消耗禁手，不能把罚牌传给下下家。
         let next_player = if must_resolve_skip {
             player
+        } else if self.sudden_death_active() && self.draw_pile.is_empty() {
+            self.sudden_death_missed(player)
         } else {
             self.next_player(player)
         };
@@ -292,7 +307,11 @@ impl GameState {
         let remaining = total.saturating_sub(1);
         self.skip_turns[player.0] = remaining;
         self.drawn_card = None;
-        let next_player = self.next_player(player);
+        let next_player = if self.sudden_death_active() && self.draw_pile.is_empty() {
+            self.sudden_death_missed(player)
+        } else {
+            self.next_player(player)
+        };
         self.current_player = next_player;
         self.finish_pending_game();
         Ok(ActionOutcome::SkipResolved {

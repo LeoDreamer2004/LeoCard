@@ -1,6 +1,6 @@
 use super::{
     MahjongAssets, MahjongTileMaterial, MahjongTileSize, MahjongWinTileSizes,
-    mahjong_win_reveal_duration, render_mahjong_win_tile_row,
+    mahjong_settlement_timing, mahjong_win_reveal_duration, render_mahjong_win_tile_row,
 };
 use crate::app::presentation::add_animated_summary_text;
 use crate::app::presentation::{
@@ -11,23 +11,21 @@ use crate::app::presentation::{
     summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{LobbyUiAction, UiAction, add_cozy_button, add_cozy_disabled_button};
+use crate::app::shell::{
+    CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button, add_cozy_button_variant,
+    add_cozy_disabled_button,
+};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_mahjong::MahjongMatchLength;
 use leocard_protocol::{MahjongHandResultView, MahjongPhaseView, MahjongSnapshot};
 
-const FAN_INTERVAL: f32 = 0.14;
-
 pub(crate) fn mahjong_summary_descriptor(game: &MahjongSnapshot) -> Option<SummaryDescriptor> {
     let MahjongPhaseView::Finished { result } = &game.phase else {
         return None;
     };
-    let winner_delay = result
-        .winners
-        .iter()
-        .map(|winner| 0.50 + winner.score.fans.len() as f32 * FAN_INTERVAL)
-        .sum::<f32>();
+    let timing = mahjong_settlement_timing(result);
+    let winner_delay = timing.score_rows_delay - SUMMARY_ROW_START_DELAY;
     let final_standings =
         result.match_complete && game.rules.match_length != MahjongMatchLength::SingleHand;
     Some(SummaryDescriptor {
@@ -142,8 +140,8 @@ pub(super) fn render_mahjong_settlement(
         );
     }
 
-    let mut next_delay = SUMMARY_ROW_START_DELAY;
-    for winner in &result.winners {
+    let timing = mahjong_settlement_timing(result);
+    for (winner, winner_timing) in result.winners.iter().zip(&timing.winners) {
         let name = game
             .players
             .iter()
@@ -168,12 +166,11 @@ pub(super) fn render_mahjong_settlement(
             outcome,
             17.0,
             READY,
-            next_delay,
+            winner_timing.outcome_delay,
             animation.elapsed,
             assets,
         );
-        next_delay += FAN_INTERVAL;
-        let hand_delay = next_delay;
+        let hand_delay = winner_timing.hand_delay;
         let hand_progress = summary_row_progress(animation.elapsed, hand_delay);
         let hand = spawn_node(
             commands,
@@ -216,7 +213,6 @@ pub(super) fn render_mahjong_settlement(
                 materials,
             );
         }
-        next_delay += 0.28;
         let fans = spawn_node(
             commands,
             modal,
@@ -232,8 +228,7 @@ pub(super) fn render_mahjong_settlement(
             },
             None,
         );
-        for fan in &winner.score.fans {
-            let delay = next_delay;
+        for (fan, &delay) in winner.score.fans.iter().zip(&winner_timing.fan_delays) {
             let progress = summary_row_progress(animation.elapsed, delay);
             let color = if fan.points >= 48 {
                 Color::srgb(0.98, 0.76, 0.25)
@@ -287,10 +282,9 @@ pub(super) fn render_mahjong_settlement(
                     color: color.with_alpha(0.82),
                 });
             }
-            next_delay += FAN_INTERVAL;
         }
-        next_delay += 0.08;
     }
+    let next_delay = timing.score_rows_delay;
 
     let list = spawn_node(
         commands,
@@ -564,7 +558,7 @@ pub(super) fn render_mahjong_settlement(
         },
     ));
     if final_standings {
-        add_cozy_button(
+        add_cozy_button_variant(
             commands,
             actions,
             "返回大厅",
@@ -572,10 +566,11 @@ pub(super) fn render_mahjong_settlement(
             assets,
             px(150),
             46.0,
+            CozyButtonVariant::Primary,
         );
     } else {
         if !multiple_hands {
-            add_cozy_button(
+            add_cozy_button_variant(
                 commands,
                 actions,
                 "退出游戏",
@@ -583,6 +578,7 @@ pub(super) fn render_mahjong_settlement(
                 assets,
                 px(150),
                 48.0,
+                CozyButtonVariant::Danger,
             );
             if game.you == game.host {
                 add_cozy_button(
@@ -611,7 +607,7 @@ pub(super) fn render_mahjong_settlement(
                 if multiple_hands { 46.0 } else { 48.0 },
             );
         } else {
-            add_cozy_button(
+            add_cozy_button_variant(
                 commands,
                 actions,
                 if multiple_hands {
@@ -623,6 +619,7 @@ pub(super) fn render_mahjong_settlement(
                 assets,
                 px(150),
                 if multiple_hands { 46.0 } else { 48.0 },
+                CozyButtonVariant::Cool,
             );
         }
     }

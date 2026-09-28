@@ -73,6 +73,7 @@ impl LocalPlayerProfile {
                     last_change: None,
                 },
                 game_profiles: PlayerGameProfiles {
+                    gender: Default::default(),
                     qigui523: stored.games.qigui523.qigui523_stats,
                     texas_holdem: stored.games.texas_holdem_stats,
                     shengji: stored.games.shengji_stats,

@@ -7,12 +7,30 @@ use super::worker::run_network;
 use crate::ClientModel;
 use leocard_host::{GameSetup, HostSession};
 use leocard_protocol::{
-    ChatMessage, ClientCommand, GameRules, PlayerInteraction, ReconnectToken, ServerEvent,
+    ChatMessage, ClientCommand, GameCommand, GameRules, PlayerInteraction, ReconnectToken,
+    Revision, ServerEvent,
 };
 use std::collections::VecDeque;
 use std::io;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::{Duration, Instant};
+
+const GAME_COMMAND_REPEAT_WINDOW: Duration = Duration::from_millis(500);
+
+struct RecentGameCommand {
+    command: GameCommand,
+    revision: Revision,
+    sent_at: Instant,
+}
+
+impl RecentGameCommand {
+    fn repeats(&self, command: &GameCommand, revision: Revision, now: Instant) -> bool {
+        self.revision == revision
+            && &self.command == command
+            && now.duration_since(self.sent_at) < GAME_COMMAND_REPEAT_WINDOW
+    }
+}
 
 /// Bevy 主线程使用的非阻塞 TCP 客户端。所有套接字 I/O 都在独立 Tokio 线程中运行。
 pub struct TcpGameClient {
@@ -20,6 +38,7 @@ pub struct TcpGameClient {
     commands: CommandSender,
     events: EventQueue,
     state: NetworkState,
+    recent_game_command: Option<RecentGameCommand>,
     _worker: thread::JoinHandle<()>,
 }
 
@@ -128,6 +147,7 @@ impl TcpGameClient {
             commands: command_tx,
             events,
             state: NetworkState::Connecting(connecting),
+            recent_game_command: None,
             _worker: worker,
         };
         let _ = client.commands.try_send(join);
@@ -153,8 +173,28 @@ impl TcpGameClient {
         if !matches!(self.state, NetworkState::Connected(_)) {
             return false;
         }
+        let now = Instant::now();
+        let game_command = match &command {
+            ClientCommand::Game(game) => Some((game.clone(), self.model.latest_revision())),
+            _ => None,
+        };
+        if game_command.as_ref().is_some_and(|(game, revision)| {
+            self.recent_game_command
+                .as_ref()
+                .is_some_and(|recent| recent.repeats(game, *revision, now))
+        }) {
+            return false;
+        }
         let message = self.model.command(command);
-        self.commands.try_send(message).is_ok()
+        let sent = self.commands.try_send(message).is_ok();
+        if sent && let Some((command, revision)) = game_command {
+            self.recent_game_command = Some(RecentGameCommand {
+                command,
+                revision,
+                sent_at: now,
+            });
+        }
+        sent
     }
 
     pub fn take_player_interactions(&mut self) -> Vec<PlayerInteraction> {

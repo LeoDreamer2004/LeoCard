@@ -370,9 +370,9 @@ pub(super) fn add_fold_card_feedback(
                     } else {
                         percent(50)
                     },
-                    top: if own { px(layout.top + 28.0) } else { px(28) },
-                    width: px(34),
-                    height: px(48),
+                    top: if own { px(layout.top + 40.0) } else { px(40) },
+                    width: px(44),
+                    height: px(62),
                     border_radius: BorderRadius::all(px(3)),
                     ..default()
                 },
@@ -467,9 +467,9 @@ fn add_revealed_hole_cards(
 ) {
     let omaha = cards.len() > 2;
     let (width, card_width, card_height, gap) = if omaha {
-        (92.0, 29.0, 40.0, -8.0)
+        (117.0, 36.0, 50.0, -9.0)
     } else {
-        (70.0, 37.0, 49.0, -7.0)
+        (88.0, 48.0, 64.0, -8.0)
     };
     let hand = spawn_node(
         commands,
@@ -477,9 +477,9 @@ fn add_revealed_hole_cards(
         Node {
             position_type: PositionType::Absolute,
             left: percent(50),
-            bottom: px(4),
+            bottom: px(6),
             width: px(width),
-            height: px(50),
+            height: px(card_height),
             flex_direction: FlexDirection::Row,
             column_gap: px(gap),
             ..default()
@@ -547,7 +547,7 @@ fn add_chip_sprite(
         commands,
         entity,
         chip.denomination.to_string(),
-        8.0,
+        9.0,
         color,
         assets,
     );

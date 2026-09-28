@@ -18,7 +18,7 @@ use std::collections::HashMap;
 pub(super) struct MahjongHoverHandKind(pub MahjongTileKind);
 
 #[derive(Component)]
-pub(super) struct MahjongMatchingTileOverlay(pub MahjongTileKind);
+pub(super) struct MahjongMatchingTileKind(pub MahjongTileKind);
 
 #[derive(Component)]
 pub(super) struct MahjongWaitPopupLink(pub Entity);
@@ -108,7 +108,12 @@ pub(super) fn sync_mahjong_hover_hints(
         &MahjongHoverHandKind,
         Option<&MahjongWaitPopupLink>,
     )>,
-    overlays: Query<(Entity, &MahjongMatchingTileOverlay)>,
+    mut matching_tiles: Query<(
+        &MahjongMatchingTileKind,
+        &MaterialNode<MahjongTileMaterial>,
+        &mut Outline,
+    )>,
+    materials: Res<Assets<MahjongTileMaterial>>,
     mut visibility: Query<&mut Visibility>,
 ) {
     let mut hovered_kind = None;
@@ -130,17 +135,17 @@ pub(super) fn sync_mahjong_hover_hints(
             }
         }
     }
-    for (entity, overlay) in &overlays {
-        if let Ok(mut visible) = visibility.get_mut(entity) {
-            let next = if hovered_kind == Some(overlay.0) {
-                Visibility::Visible
-            } else {
-                Visibility::Hidden
-            };
-            if *visible != next {
-                *visible = next;
-            }
-        }
+    for (kind, material_node, mut outline) in &mut matching_tiles {
+        let face_visible = materials
+            .get(&material_node.0)
+            .is_some_and(|material| material.params.z > 0.98);
+        let matching = face_visible && hovered_kind == Some(kind.0);
+        outline.width = px(if matching { 2 } else { 0 });
+        outline.color = if matching {
+            Color::srgba(0.39, 0.76, 1.0, 0.94)
+        } else {
+            Color::NONE
+        };
     }
 }
 

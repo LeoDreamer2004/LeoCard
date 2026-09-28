@@ -6,12 +6,6 @@ use bevy::prelude::*;
 use leocard_protocol::QiGui523Snapshot;
 
 #[derive(Component)]
-pub(crate) struct TurnClock;
-
-#[derive(Component)]
-pub(crate) struct TurnClockHand;
-
-#[derive(Component)]
 pub(super) struct TurnClockLabel;
 
 pub(crate) fn only_turn_timer_changed(

@@ -30,8 +30,9 @@ pub(crate) struct HandCardSelectionOverlay {
 
 #[derive(Clone, Copy)]
 pub(crate) enum CardSize {
-    Hand,
-    Seat,
+    ShengjiHand,
+    QiGuiHand,
+    QiGuiSeat,
     Score,
     TableScore,
     FinishedHand,
@@ -40,8 +41,9 @@ pub(crate) enum CardSize {
 impl CardSize {
     pub(crate) fn dimensions(self) -> (f32, f32) {
         match self {
-            Self::Hand => (76.0, 103.0),
-            Self::Seat => (72.0, 98.0),
+            Self::ShengjiHand => (82.0, 111.0),
+            Self::QiGuiHand => (94.0, 128.0),
+            Self::QiGuiSeat => (80.0, 109.0),
             Self::Score => (36.0, 49.0),
             Self::TableScore => (28.0, 38.0),
             Self::FinishedHand => (43.2, 58.8),
@@ -142,6 +144,7 @@ pub(crate) fn hand_card_pose(
     selected_amount: f32,
     deal_elapsed: f32,
     dealing: bool,
+    size: CardSize,
 ) -> HandCardPose {
     let lift = hover_amount * 5.0 + selected_amount * HAND_CARD_SELECTED_LIFT;
     let deal_progress = if dealing {
@@ -151,14 +154,22 @@ pub(crate) fn hand_card_pose(
     };
     let deal_progress = 1.0 - (1.0 - deal_progress).powi(3);
     let deal_offset = 1.0 - deal_progress;
-    let reveal = shengji_hand_card_reveal(hand_len);
+    let card_width = size.dimensions().0;
+    let reveal = hand_card_reveal_for_width(
+        hand_len,
+        card_width,
+        match size {
+            CardSize::ShengjiHand => 30.0,
+            CardSize::QiGuiHand => 32.0,
+            _ => HAND_CARD_REVEAL,
+        },
+    );
     let hand_width = if hand_len == 0 {
         0.0
     } else {
-        (hand_len.saturating_sub(1) as f32 * reveal) + CardSize::Hand.dimensions().0
+        (hand_len.saturating_sub(1) as f32 * reveal) + card_width
     };
-    let final_center_x =
-        index as f32 * reveal + CardSize::Hand.dimensions().0 * 0.5 - hand_width * 0.5;
+    let final_center_x = index as f32 * reveal + card_width * 0.5 - hand_width * 0.5;
 
     HandCardPose {
         translation: Val2::px(-final_center_x * deal_offset, -270.0 * deal_offset - lift),
@@ -167,11 +178,14 @@ pub(crate) fn hand_card_pose(
 }
 
 pub(crate) fn shengji_hand_card_reveal(hand_len: usize) -> f32 {
-    let card_width = CardSize::Hand.dimensions().0;
+    hand_card_reveal_for_width(hand_len, CardSize::ShengjiHand.dimensions().0, 30.0)
+}
+
+fn hand_card_reveal_for_width(hand_len: usize, card_width: f32, preferred_reveal: f32) -> f32 {
     let available_width = DESIGN_WIDTH - 96.0;
     if hand_len <= 1 {
-        HAND_CARD_REVEAL
+        preferred_reveal
     } else {
-        HAND_CARD_REVEAL.min((available_width - card_width) / (hand_len - 1) as f32)
+        preferred_reveal.min((available_width - card_width) / (hand_len - 1) as f32)
     }
 }

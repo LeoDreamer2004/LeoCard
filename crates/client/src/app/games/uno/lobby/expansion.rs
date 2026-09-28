@@ -1,7 +1,10 @@
 use super::super::{UnoExpansionStatus, UnoExpansionStatusFrame, UnoUiAction};
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{HomeHighlightKind, UiAction, add_cozy_close_button, add_cozy_panel};
+use crate::app::shell::{
+    CozyModalBackdrop, CozyModalKind, CozyModalPanel, HomeHighlightKind, UiAction,
+    add_cozy_close_button, add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
+};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_uno::UnoRuleSet;
@@ -11,6 +14,7 @@ pub(crate) fn render_uno_expansion_settings(
     root: Entity,
     rules: UnoRuleSet,
     can_configure: bool,
+    progress: f32,
     assets: &UiAssets,
 ) {
     let overlay = spawn_node(
@@ -26,11 +30,13 @@ pub(crate) fn render_uno_expansion_settings(
             justify_content: JustifyContent::Center,
             ..default()
         },
-        Some(Color::srgba(0.005, 0.015, 0.012, 0.76)),
+        Some(cozy_backdrop_color(progress)),
     );
-    commands
-        .entity(overlay)
-        .insert((GlobalZIndex(2100), FocusPolicy::Block));
+    commands.entity(overlay).insert((
+        GlobalZIndex(2100),
+        FocusPolicy::Block,
+        CozyModalBackdrop(CozyModalKind::UnoExpansionSettings),
+    ));
     let modal = add_cozy_panel(
         commands,
         overlay,
@@ -44,6 +50,10 @@ pub(crate) fn render_uno_expansion_settings(
         },
         assets,
     );
+    commands.entity(modal).insert((
+        CozyModalPanel(CozyModalKind::UnoExpansionSettings),
+        cozy_panel_transform(progress),
+    ));
     let heading = spawn_node(
         commands,
         modal,

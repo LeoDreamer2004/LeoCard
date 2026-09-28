@@ -19,6 +19,7 @@ mod status;
 mod tiles;
 mod view;
 pub(super) mod violation;
+mod voices;
 
 pub(crate) use actions::*;
 pub(crate) use assets::*;
@@ -38,3 +39,4 @@ pub(crate) use state::*;
 use status::*;
 use tiles::*;
 pub(crate) use view::*;
+use voices::*;

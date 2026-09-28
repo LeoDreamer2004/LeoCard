@@ -2,11 +2,11 @@ use super::tiles::{mahjong_deal_spec, mahjong_draw_spec};
 use super::{
     ActiveMahjongClaimPresentation, MAHJONG_REMOTE_DRAW_GAP, MAHJONG_REMOTE_MELD_WIDTH,
     MahjongAssets, MahjongClaimHandShift, MahjongDiscardRiverTile, MahjongOwnDiscardAnimation,
-    MahjongRemoteDiscardAnimation, MahjongRemoteDiscardRiverTile, MahjongRemoteDiscardSpacer,
-    MahjongRemoteHandShift, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
-    MahjongWinningHand, MahjongWinningHandVisual, add_mahjong_tile_material,
-    apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x, mahjong_claim_landing_time,
-    mahjong_local_light, mahjong_local_shadow, mahjong_own_row_left, mahjong_remote_tile_advance,
+    MahjongRemoteDiscardAnimation, MahjongRemoteDiscardRiverTile, MahjongRemoteHandShift,
+    MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongWinningHand,
+    MahjongWinningHandVisual, add_mahjong_tile_material, apply_mahjong_winning_hand_visual,
+    mahjong_claim_hand_shift_x, mahjong_claim_landing_time, mahjong_local_light,
+    mahjong_local_shadow, mahjong_own_row_left, mahjong_remote_tile_advance,
     mahjong_remote_tile_overhang, mahjong_win_tile_cues, mahjong_winning_hand_progress,
     mark_mahjong_win_tile, render_mahjong_meld, render_mahjong_staged_meld,
 };
@@ -351,24 +351,6 @@ pub(super) fn render_mahjong_player_tiles(
 
     let staged_claim = active_claim
         .filter(|claim| claim.source.is_some() && claim.elapsed < mahjong_claim_landing_time());
-    if relative != 0 && separate_last_concealed && player.revealed_hand.is_none() {
-        let draw_width = MAHJONG_REMOTE_DRAW_GAP + mahjong_remote_tile_advance(relative, false);
-        let spacer = spawn_node(
-            commands,
-            group,
-            Node {
-                width: px(draw_width),
-                min_width: px(draw_width),
-                height: px(1),
-                ..default()
-            },
-            None,
-        );
-        commands.entity(spacer).insert(FocusPolicy::Pass);
-        if remote_discard.is_some_and(|active| active.from_drawn) {
-            commands.entity(spacer).insert(MahjongRemoteDiscardSpacer);
-        }
-    }
     let mut meld_index = 20;
     let visible_meld_count = player
         .melds
@@ -442,8 +424,12 @@ pub(super) fn render_mahjong_player_tiles(
                 )),
             ));
         }
-        let concealed_count =
-            usize::from(player.concealed_count) + usize::from(remote_discard.is_some());
+        // The drawn tile sits outside the centered row. A discard from the hand
+        // replaces its slot with that tile, so this width stays constant.
+        let concealed_count = usize::from(player.concealed_count);
+        let regular_count = concealed_count.saturating_sub(usize::from(
+            separate_last_concealed && remote_discard.is_none(),
+        ));
         let hidden_size = match relative {
             1 | 3 => MahjongTileSize::HiddenSide,
             _ => MahjongTileSize::HiddenOpposite,
@@ -483,20 +469,15 @@ pub(super) fn render_mahjong_player_tiles(
                 }
             }
         } else {
-            let joined_count = concealed_count.saturating_sub(usize::from(separate_last_concealed));
-            for index in 0..joined_count {
-                let ghost =
-                    remote_discard.filter(|active| !active.from_drawn && index == joined_count / 2);
+            let advance = mahjong_remote_tile_advance(relative, false);
+            let discarded_index = regular_count / 2;
+            for index in 0..regular_count {
                 let entity = add_mahjong_tile_material(
                     commands,
                     concealed,
                     MahjongTileVisual {
-                        kind: ghost.map(|active| active.tile.kind()),
-                        size: if ghost.is_some() {
-                            MahjongTileSize::River
-                        } else {
-                            hidden_size
-                        },
+                        kind: None,
+                        size: hidden_size,
                         index,
                         highlighted: false,
                         deal: (dealing
@@ -508,76 +489,66 @@ pub(super) fn render_mahjong_player_tiles(
                     game_assets,
                     materials,
                 );
-                if let Some(active) = ghost {
-                    commands
-                        .entity(entity)
-                        .entry::<Node>()
-                        .and_modify(move |mut node| {
-                            node.margin.right = px(if relative == 2 { -6 } else { -4 });
-                        });
-                    let advance = mahjong_remote_tile_advance(relative, false);
-                    let (ghost, transform) = active.ghost_visual(advance * 0.5);
-                    commands
-                        .entity(entity)
-                        .insert((ghost, transform, GlobalZIndex(900)));
-                } else if let Some(active) = remote_discard.filter(|active| !active.from_drawn) {
-                    let advance = mahjong_remote_tile_advance(relative, false);
-                    // The new centered row begins half a tile to the left. Keep the
-                    // left half fixed and slide only the tiles after the discard.
-                    let (start_x, end_x) = if index < joined_count / 2 {
-                        (advance * 0.5, advance * 0.5)
+                if let Some(active) = remote_discard.filter(|active| !active.from_drawn) {
+                    let start_x = if index == regular_count - 1 {
+                        advance + MAHJONG_REMOTE_DRAW_GAP
+                    } else if index >= discarded_index {
+                        advance
                     } else {
-                        (advance * 0.5, -advance * 0.5)
+                        0.0
                     };
-                    commands.entity(entity).insert((
-                        MahjongRemoteHandShift { start_x, end_x },
-                        active.hand_shift_transform(start_x, end_x),
-                    ));
+                    if start_x > 0.0 {
+                        commands.entity(entity).insert((
+                            MahjongRemoteHandShift {
+                                start_x,
+                                end_x: 0.0,
+                            },
+                            active.hand_shift_transform(start_x, 0.0),
+                        ));
+                    }
                 }
             }
-            if separate_last_concealed && concealed_count > 0 {
-                let gap = spawn_node(
-                    commands,
-                    concealed,
-                    Node {
-                        width: px(14),
-                        min_width: px(14),
-                        height: px(1),
-                        ..default()
-                    },
-                    None,
-                );
-                commands.entity(gap).insert(FocusPolicy::Pass);
-                if remote_discard.is_some_and(|active| active.from_drawn) {
-                    commands.entity(gap).insert(MahjongRemoteDiscardSpacer);
-                }
+            let ghost = remote_discard;
+            if regular_count > 0 && (separate_last_concealed || ghost.is_some()) {
+                let from_drawn = ghost.is_none_or(|active| active.from_drawn);
+                let tile_left = if from_drawn {
+                    regular_count as f32 * advance + MAHJONG_REMOTE_DRAW_GAP
+                } else {
+                    discarded_index as f32 * advance
+                };
                 let entity = add_mahjong_tile_material(
                     commands,
                     concealed,
                     MahjongTileVisual {
-                        kind: remote_discard
-                            .filter(|active| active.from_drawn)
-                            .map(|active| active.tile.kind()),
-                        size: if remote_discard.is_some_and(|active| active.from_drawn) {
+                        kind: ghost.map(|active| active.tile.kind()),
+                        size: if ghost.is_some() {
                             MahjongTileSize::River
                         } else {
                             hidden_size
                         },
-                        index: concealed_count - 1,
+                        index: if from_drawn {
+                            regular_count
+                        } else {
+                            discarded_index
+                        },
                         highlighted: false,
-                        deal: drawn_tile_falling.then(|| mahjong_draw_spec(relative)),
+                        deal: (ghost.is_none() && drawn_tile_falling)
+                            .then(|| mahjong_draw_spec(relative)),
                         relative,
                     },
                     game_assets,
                     materials,
                 );
-                if let Some(active) = remote_discard.filter(|active| active.from_drawn) {
-                    commands
-                        .entity(entity)
-                        .entry::<Node>()
-                        .and_modify(move |mut node| {
-                            node.margin.right = px(if relative == 2 { -6 } else { -4 });
-                        });
+                commands
+                    .entity(entity)
+                    .entry::<Node>()
+                    .and_modify(move |mut node| {
+                        node.position_type = PositionType::Absolute;
+                        node.left = px(tile_left);
+                        node.bottom = px(0);
+                        node.margin = UiRect::ZERO;
+                    });
+                if let Some(active) = ghost {
                     let (ghost, transform) = active.ghost_visual(0.0);
                     commands
                         .entity(entity)
@@ -585,7 +556,7 @@ pub(super) fn render_mahjong_player_tiles(
                 }
             }
         }
-        if concealed_count > 0 {
+        if regular_count > 0 {
             let overhang = mahjong_remote_tile_overhang(
                 relative,
                 player.revealed_hand.is_some() && winning_hand,

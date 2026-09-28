@@ -108,12 +108,8 @@ pub(super) fn sync_mahjong_hover_hints(
         &MahjongHoverHandKind,
         Option<&MahjongWaitPopupLink>,
     )>,
-    mut matching_tiles: Query<(
-        &MahjongMatchingTileKind,
-        &MaterialNode<MahjongTileMaterial>,
-        &mut Outline,
-    )>,
-    materials: Res<Assets<MahjongTileMaterial>>,
+    matching_tiles: Query<(&MahjongMatchingTileKind, &MaterialNode<MahjongTileMaterial>)>,
+    mut materials: ResMut<Assets<MahjongTileMaterial>>,
     mut visibility: Query<&mut Visibility>,
 ) {
     let mut hovered_kind = None;
@@ -135,17 +131,16 @@ pub(super) fn sync_mahjong_hover_hints(
             }
         }
     }
-    for (kind, material_node, mut outline) in &mut matching_tiles {
-        let face_visible = materials
-            .get(&material_node.0)
-            .is_some_and(|material| material.params.z > 0.98);
-        let matching = face_visible && hovered_kind == Some(kind.0);
-        outline.width = px(if matching { 2 } else { 0 });
-        outline.color = if matching {
-            Color::srgba(0.39, 0.76, 1.0, 0.94)
-        } else {
-            Color::NONE
+    for (kind, material_node) in &matching_tiles {
+        let Some(material) = materials.get(&material_node.0) else {
+            continue;
         };
+        let strength = f32::from(material.params.z > 0.98 && hovered_kind == Some(kind.0));
+        if material.lighting.z != strength
+            && let Some(mut material) = materials.get_mut(&material_node.0)
+        {
+            material.lighting.z = strength;
+        }
     }
 }
 

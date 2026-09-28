@@ -16,7 +16,7 @@ pub(crate) struct MahjongAssets {
     pub action_win: Handle<Image>,
     pub action_win_hover: Handle<Image>,
     pub fan_voices: BTreeMap<Fan, Handle<AudioSource>>,
-    action_voices: Option<[[Handle<AudioSource>; 5]; 2]>,
+    action_voices: [[[Handle<AudioSource>; 2]; 8]; 2],
     pub(super) status: MahjongStatusImages,
 }
 
@@ -24,21 +24,36 @@ pub(crate) struct MahjongAssets {
 pub(super) enum MahjongActionVoice {
     Chow,
     Pung,
-    Kong,
+    MeldedKong,
+    ConcealedKong,
+    AddedKong,
     Win,
     SelfDraw,
+    Flower,
 }
 
 impl MahjongActionVoice {
-    const FILES: [&'static str; 5] = ["chow", "pung", "kong", "win", "self_draw"];
+    const FILES: [&'static str; 8] = [
+        "chow",
+        "pung",
+        "melded_kong",
+        "concealed_kong",
+        "added_kong",
+        "win",
+        "self_draw",
+        "flower",
+    ];
 
     const fn index(self) -> usize {
         match self {
             Self::Chow => 0,
             Self::Pung => 1,
-            Self::Kong => 2,
-            Self::Win => 3,
-            Self::SelfDraw => 4,
+            Self::MeldedKong => 2,
+            Self::ConcealedKong => 3,
+            Self::AddedKong => 4,
+            Self::Win => 5,
+            Self::SelfDraw => 6,
+            Self::Flower => 7,
         }
     }
 }
@@ -87,12 +102,12 @@ impl MahjongAssets {
                     )
                 })
                 .collect(),
-            action_voices: (cfg!(debug_assertions)
-                || std::env::var_os("BEVY_ASSET_ROOT").is_some())
-            .then(|| {
-                ["male", "female"].map(|gender| {
-                    MahjongActionVoice::FILES.map(|name| {
-                        asset_server.load(format!("audio/mahjong/actions/{gender}/{name}.ogg"))
+            action_voices: ["male", "female"].map(|gender| {
+                MahjongActionVoice::FILES.map(|name| {
+                    [1, 2].map(|variant| {
+                        asset_server.load(format!(
+                            "audio/mahjong/actions/{gender}/{name}_{variant}.ogg"
+                        ))
                     })
                 })
             }),
@@ -104,14 +119,12 @@ impl MahjongAssets {
         &self,
         gender: PlayerGender,
         action: MahjongActionVoice,
-    ) -> Option<&Handle<AudioSource>> {
+    ) -> &Handle<AudioSource> {
         let voice_set = match gender {
             PlayerGender::Male => 0,
             PlayerGender::Female => 1,
         };
-        self.action_voices
-            .as_ref()
-            .map(|voices| &voices[voice_set][action.index()])
+        &self.action_voices[voice_set][action.index()][fastrand::usize(..2)]
     }
 }
 

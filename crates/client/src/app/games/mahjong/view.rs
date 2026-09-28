@@ -68,22 +68,6 @@ pub(super) const fn mahjong_remote_tile_overhang(relative: u8, mini: bool) -> f3
     }
 }
 
-pub(super) fn mahjong_remote_row_width(
-    relative: u8,
-    meld_count: usize,
-    concealed_count: usize,
-    revealed: bool,
-) -> f32 {
-    meld_count as f32 * MAHJONG_REMOTE_MELD_WIDTH
-        + if meld_count > 0 { 10.0 } else { 0.0 }
-        + concealed_count as f32 * mahjong_remote_tile_advance(relative, revealed)
-        + if concealed_count > 0 {
-            mahjong_remote_tile_overhang(relative, revealed)
-        } else {
-            0.0
-        }
-}
-
 pub(super) const fn mahjong_claim_landing_time() -> f32 {
     MAHJONG_CLAIM_FLIGHT_DELAY + MAHJONG_CLAIM_FLIGHT_DURATION
 }
@@ -369,20 +353,24 @@ pub(super) fn sync_mahjong_claim_presentation(
                 let action = match claim {
                     MahjongClaim::Chow { .. } => Some(MahjongActionVoice::Chow),
                     MahjongClaim::Pung => Some(MahjongActionVoice::Pung),
-                    MahjongClaim::Kong => Some(MahjongActionVoice::Kong),
+                    MahjongClaim::Kong => Some(MahjongActionVoice::MeldedKong),
                     MahjongClaim::Pass | MahjongClaim::Win => None,
                 };
                 if let Some(action) = action {
                     queue_mahjong_action_voice(&mut commands, &assets, game, *player, action);
                 }
             }
-            MahjongEvent::KongDeclared { player, .. } => {
+            MahjongEvent::KongDeclared { player, added, .. } => {
                 queue_mahjong_action_voice(
                     &mut commands,
                     &assets,
                     game,
                     *player,
-                    MahjongActionVoice::Kong,
+                    if *added {
+                        MahjongActionVoice::AddedKong
+                    } else {
+                        MahjongActionVoice::ConcealedKong
+                    },
                 );
             }
             MahjongEvent::HandFinished { result } => {
@@ -398,6 +386,13 @@ pub(super) fn sync_mahjong_claim_presentation(
             _ => {}
         }
         if let MahjongEvent::FlowerReplaced { player } = &event {
+            queue_mahjong_action_voice(
+                &mut commands,
+                &assets,
+                game,
+                *player,
+                MahjongActionVoice::Flower,
+            );
             if let Some(active) = presentation
                 .flowers
                 .iter_mut()
@@ -843,7 +838,6 @@ pub(crate) fn render_mahjong_table(
         game,
         own_seat,
         claim_presentation,
-        ui.last_table_height,
         assets,
         game_assets,
         tile_materials,

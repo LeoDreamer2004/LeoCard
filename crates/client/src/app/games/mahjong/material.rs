@@ -5,7 +5,7 @@ pub(crate) struct MahjongTileMaterial {
     /// x: 交互；y: 正背面；z: 可见度；w: -5 暗杠、-4 副露、-3 对家、-2 侧家、-1 自家、2 双层墙、3 下层牌。
     #[uniform(0)]
     pub params: Vec4,
-    /// 屏幕左上方光源转换到牌的局部坐标后的方向。
+    /// xy: 局部光照方向；z: 同张牌牌面蓝色蒙版强度。
     #[uniform(0)]
     pub lighting: Vec4,
     #[texture(1)]

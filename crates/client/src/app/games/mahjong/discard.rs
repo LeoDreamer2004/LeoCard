@@ -14,7 +14,7 @@ const DISCARD_DURATION: f32 = 0.48;
 const HAND_TILE_ADVANCE: f32 = 50.0;
 
 #[derive(Component)]
-pub(super) struct MahjongTableRoot;
+pub(crate) struct MahjongTableRoot;
 
 #[derive(Clone, Debug)]
 pub(crate) struct MahjongOwnDiscardAnimation {
@@ -127,9 +127,6 @@ pub(super) struct MahjongDiscardRiverTile;
 
 #[derive(Component)]
 pub(super) struct MahjongRemoteDiscardRiverTile;
-
-#[derive(Component)]
-pub(super) struct MahjongRemoteDiscardSpacer;
 
 #[derive(Component)]
 pub(super) struct MahjongRemoteHandShift {
@@ -381,7 +378,6 @@ pub(super) fn animate_remote_discard(
         (Entity, &ComputedNode, &UiGlobalTransform, &mut Visibility),
         With<MahjongRemoteDiscardRiverTile>,
     >,
-    spacers: Query<Entity, With<MahjongRemoteDiscardSpacer>>,
     mut hand_shifts: Query<
         (Entity, &MahjongRemoteHandShift, &mut UiTransform),
         Without<MahjongRemoteDiscardGhost>,
@@ -436,9 +432,6 @@ pub(super) fn animate_remote_discard(
     }
     if raw >= 1.0 {
         *target_visibility = Visibility::Visible;
-        for entity in &spacers {
-            commands.entity(entity).despawn();
-        }
         commands
             .entity(target_entity)
             .remove::<MahjongRemoteDiscardRiverTile>();

@@ -27,9 +27,7 @@ pub(super) fn queue_mahjong_action_voice(
     let Some(profile) = game.players.iter().find(|profile| profile.id == player) else {
         return;
     };
-    let Some(sound) = assets.action_voice(profile.game_profiles.gender, action) else {
-        return;
-    };
+    let sound = assets.action_voice(profile.game_profiles.gender, action);
     commands.spawn((
         AudioPlayer::new(sound.clone()),
         PlaybackSettings {

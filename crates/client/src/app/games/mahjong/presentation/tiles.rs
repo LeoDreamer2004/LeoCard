@@ -1,4 +1,4 @@
-use super::claim::mahjong_claim_held_tile_visual;
+use super::claim::{MahjongClaimLandingSlot, mahjong_claim_held_tile_visual};
 use super::{
     ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MAHJONG_REMOTE_MELD_WIDTH,
     MahjongAssets, MahjongClaimHeldTile, MahjongDealSpec, MahjongDealTile, MahjongTileMaterial,
@@ -75,10 +75,10 @@ pub(crate) fn render_mahjong_staged_meld(
     } else {
         MahjongTileSize::Mini
     };
-    let (group_width, group_height, tile_advance) = if own_meld {
-        (MAHJONG_OWN_MELD_WIDTH, 88.0, 50.0)
+    let (group_width, group_height, tile_width, tile_height, tile_overlap) = if own_meld {
+        (MAHJONG_OWN_MELD_WIDTH, 88.0, 56.0, 76.0, -6.0)
     } else {
-        (MAHJONG_REMOTE_MELD_WIDTH, 54.0, 24.0)
+        (MAHJONG_REMOTE_MELD_WIDTH, 54.0, 27.0, 37.0, -3.0)
     };
     let group = spawn_node(
         commands,
@@ -127,16 +127,48 @@ pub(crate) fn render_mahjong_staged_meld(
                 commands,
                 group,
                 Node {
-                    width: px(tile_advance),
-                    min_width: px(tile_advance),
-                    height: px(1),
+                    width: px(tile_width),
+                    min_width: px(tile_width),
+                    height: px(tile_height),
+                    margin: UiRect::right(px(tile_overlap)),
                     ..default()
                 },
                 None,
             );
-            commands.entity(slot).insert(FocusPolicy::Pass);
+            commands.entity(slot).insert((
+                MahjongClaimLandingSlot {
+                    player: claim.player,
+                },
+                FocusPolicy::Pass,
+            ));
         }
         *index += 1;
+    }
+    if matches!(claim.claim, MahjongClaim::Kong) {
+        let (left, width, height) = if own_meld {
+            (50.0, 56.0, 76.0)
+        } else {
+            (24.0, 27.0, 37.0)
+        };
+        let slot = spawn_node(
+            commands,
+            group,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(left),
+                top: px(group_height - height - MAHJONG_KONG_STACK_LIFT),
+                width: px(width),
+                height: px(height),
+                ..default()
+            },
+            None,
+        );
+        commands.entity(slot).insert((
+            MahjongClaimLandingSlot {
+                player: claim.player,
+            },
+            FocusPolicy::Pass,
+        ));
     }
 }
 
@@ -391,10 +423,9 @@ pub(crate) fn add_mahjong_tile_material(
                 | MahjongTileSize::GuideConcealedMeld
         )
     {
-        commands.entity(entity).insert((
-            super::super::MahjongMatchingTileKind(kind),
-            Outline::new(px(0), px(0), Color::NONE),
-        ));
+        commands
+            .entity(entity)
+            .insert(super::super::MahjongMatchingTileKind(kind));
     }
     if let Some(deal) = deal {
         commands.entity(entity).insert(MahjongDealTile {

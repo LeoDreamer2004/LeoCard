@@ -1,19 +1,21 @@
 use super::{
     MAHJONG_CLAIM_FLIGHT_DELAY, MAHJONG_CLAIM_FLIGHT_DURATION, MAHJONG_CLAIM_HAND_SHIFT_DURATION,
-    MAHJONG_CLAIM_PRESENTATION_DURATION, MAHJONG_FLOWER_PRESENTATION_DURATION,
-    MAHJONG_OWN_MELD_WIDTH, MAHJONG_REMOTE_MELD_WIDTH, MahjongAssets, MahjongClaimFlight,
-    MahjongClaimHandShift, MahjongClaimHeldTile, MahjongClaimLabel, MahjongClaimPresentationState,
-    MahjongFlowerLabel, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
-    add_mahjong_tile_material, mahjong_claim_landing_time, mahjong_own_row_left,
-    mahjong_remote_row_width,
+    MAHJONG_CLAIM_PRESENTATION_DURATION, MAHJONG_FLOWER_PRESENTATION_DURATION, MahjongAssets,
+    MahjongClaimFlight, MahjongClaimHandShift, MahjongClaimHeldTile, MahjongClaimLabel,
+    MahjongClaimPresentationState, MahjongFlowerLabel, MahjongTableRoot, MahjongTileMaterial,
+    MahjongTileSize, MahjongTileVisual, add_mahjong_tile_material, mahjong_claim_landing_time,
 };
-use crate::app::presentation::DESIGN_HEIGHT;
 use crate::app::presentation::{ACCENT, TEXT, add_text, ease_out_cubic, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
-use leocard_mahjong::{MahjongClaim, MahjongTileKind};
-use leocard_protocol::{MahjongPhaseView, MahjongSnapshot, PlayerId};
+use leocard_mahjong::MahjongClaim;
+use leocard_protocol::{MahjongSnapshot, PlayerId};
+
+#[derive(Component)]
+pub(crate) struct MahjongClaimLandingSlot {
+    pub player: PlayerId,
+}
 
 fn mahjong_claim_label(claim: MahjongClaim) -> &'static str {
     match claim {
@@ -48,52 +50,6 @@ impl MahjongSeatGeometry {
             2 => Vec2::new(640.0, 215.0),
             _ => Vec2::new(475.0, 335.0),
         }
-    }
-
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "the meld landing point needs the seat and revealed hand geometry"
-    )]
-    fn meld_anchor(
-        relative: u8,
-        table_height: f32,
-        meld_count: usize,
-        concealed_count: usize,
-        revealed: bool,
-        separated: bool,
-        claim: MahjongClaim,
-        tile: MahjongTileKind,
-    ) -> Vec2 {
-        let meld_index = meld_count.saturating_sub(1) as f32;
-        let regular_count = concealed_count.saturating_sub(usize::from(separated));
-        let remote_start =
-            (450.0 - mahjong_remote_row_width(relative, meld_count, regular_count, revealed)) / 2.0;
-        let remote_meld_center = remote_start + 39.0 + meld_index * MAHJONG_REMOTE_MELD_WIDTH;
-        let center = match relative {
-            0 => Vec2::new(
-                mahjong_own_row_left(meld_count, regular_count)
-                    + MAHJONG_OWN_MELD_WIDTH * 0.5
-                    + meld_index * MAHJONG_OWN_MELD_WIDTH,
-                table_height - 8.0 - 76.0 * 0.5,
-            ),
-            1 => Vec2::new(1073.5, 554.0 - remote_meld_center),
-            2 => Vec2::new(865.0 - remote_meld_center, 74.5),
-            _ => Vec2::new(206.5, 104.0 + remote_meld_center),
-        };
-        let slot = match (claim, tile) {
-            (MahjongClaim::Chow { start }, MahjongTileKind::Suited { rank, .. }) => {
-                i16::from(rank) - i16::from(start) - 1
-            }
-            _ => 0,
-        } as f32;
-        let offset = slot * if relative == 0 { 50.0 } else { 24.0 };
-        center
-            + match relative {
-                0 => Vec2::new(offset, 0.0),
-                1 => Vec2::new(0.0, -offset),
-                2 => Vec2::new(-offset, 0.0),
-                _ => Vec2::new(0.0, offset),
-            }
     }
 
     const fn angle(relative: u8) -> f32 {
@@ -161,7 +117,6 @@ pub(crate) fn render_mahjong_claim_presentation(
     game: &MahjongSnapshot,
     own_seat: u8,
     presentation: &MahjongClaimPresentationState,
-    table_height: Option<f32>,
     assets: &UiAssets,
     game_assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
@@ -184,38 +139,12 @@ pub(crate) fn render_mahjong_claim_presentation(
             return;
         };
         let start = MahjongSeatGeometry::river_anchor(source_relative);
-        let player = game
-            .players
-            .iter()
-            .find(|player| player.id == active.player);
-        let meld_count = player.map_or(1, |player| player.melds.len());
-        let concealed_count = player.map_or(0, |player| usize::from(player.concealed_count));
-        let revealed = player.is_some_and(|player| player.revealed_hand.is_some());
-        let separated = !revealed
-            && matches!(
-                game.phase,
-                MahjongPhaseView::Playing | MahjongPhaseView::ReplacingFlower { .. }
-            )
-            && game.current_player == active.player
-            && concealed_count % 3 == 2;
-        let target = MahjongSeatGeometry::meld_anchor(
-            target_relative,
-            table_height.unwrap_or(DESIGN_HEIGHT),
-            meld_count,
-            concealed_count,
-            revealed,
-            separated,
-            active.claim,
-            tile.kind(),
-        );
-        let midpoint = (start + target) * 0.5;
-        let toward_center = Vec2::new(640.0, 340.0) - midpoint;
         let flight = MahjongClaimFlight {
             player: active.player,
             tile,
             start,
-            control: midpoint + toward_center.normalize_or_zero() * 52.0,
-            target,
+            control: start,
+            target: start,
             start_angle: MahjongSeatGeometry::angle(source_relative),
             target_angle: MahjongSeatGeometry::angle(target_relative),
             target_scale: if target_relative == 0 {
@@ -224,8 +153,6 @@ pub(crate) fn render_mahjong_claim_presentation(
                 27.0 / 33.0
             },
         };
-        let flight_elapsed = (active.elapsed - MAHJONG_CLAIM_FLIGHT_DELAY).max(0.0);
-        let (position, angle, scale, _) = mahjong_claim_flight_pose(flight_elapsed, &flight);
         let tile = add_mahjong_tile_material(
             commands,
             table,
@@ -244,8 +171,8 @@ pub(crate) fn render_mahjong_claim_presentation(
             flight,
             Node {
                 position_type: PositionType::Absolute,
-                left: px(position.x - 16.5),
-                top: px(position.y - 22.5),
+                left: px(start.x - 16.5),
+                top: px(start.y - 22.5),
                 width: px(33),
                 min_width: px(33),
                 height: px(45),
@@ -253,17 +180,12 @@ pub(crate) fn render_mahjong_claim_presentation(
                 ..default()
             },
             UiTransform {
-                rotation: Rot2::radians(angle),
-                scale: Vec2::splat(scale),
+                rotation: Rot2::radians(MahjongSeatGeometry::angle(source_relative)),
                 ..default()
             },
             BoxShadow::new(Color::BLACK.with_alpha(0.38), px(2), px(6), px(0), px(7)),
             ZIndex(90),
-            if active.elapsed >= MAHJONG_CLAIM_FLIGHT_DELAY {
-                Visibility::Visible
-            } else {
-                Visibility::Hidden
-            },
+            Visibility::Hidden,
         ));
     }
 
@@ -406,12 +328,18 @@ pub(crate) fn animate_mahjong_flower_presentations(
     clippy::type_complexity,
     reason = "disjoint Bevy queries encode mutually exclusive presentation components"
 )]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Bevy needs separate disjoint queries for the flight, label, and hand animations"
+)]
 pub(crate) fn animate_mahjong_claim_presentation(
     presentation: Res<MahjongClaimPresentationState>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
+    tables: Query<(&ComputedNode, &UiGlobalTransform), With<MahjongTableRoot>>,
+    slots: Query<(&MahjongClaimLandingSlot, &ComputedNode, &UiGlobalTransform)>,
     mut flights: Query<
         (
-            &MahjongClaimFlight,
+            &mut MahjongClaimFlight,
             &mut Node,
             &mut UiTransform,
             &MaterialNode<MahjongTileMaterial>,
@@ -450,7 +378,7 @@ pub(crate) fn animate_mahjong_claim_presentation(
     mut texts: Query<(&mut TextColor, &mut TextShadow)>,
 ) {
     let active = presentation.active.as_ref();
-    for (flight, mut node, mut transform, material_node, mut visibility) in &mut flights {
+    for (mut flight, mut node, mut transform, material_node, mut visibility) in &mut flights {
         let Some(active) = active.filter(|active| {
             active.player == flight.player
                 && active.tile == Some(flight.tile)
@@ -460,8 +388,33 @@ pub(crate) fn animate_mahjong_claim_presentation(
             *visibility = Visibility::Hidden;
             continue;
         };
+        let target = tables
+            .single()
+            .ok()
+            .and_then(|(table_node, table_transform)| {
+                let (_, slot_node, slot_transform) = slots
+                    .iter()
+                    .find(|(slot, _, _)| slot.player == flight.player)?;
+                if table_node.size().min_element() <= 1.0 || slot_node.size().min_element() <= 1.0 {
+                    return None;
+                }
+                let inverse = table_transform.try_inverse()?;
+                let target = (inverse
+                    .transform_point2(slot_transform.to_scale_angle_translation().2)
+                    + table_node.size() * 0.5)
+                    * table_node.inverse_scale_factor();
+                let center = table_node.size() * 0.5 * table_node.inverse_scale_factor();
+                Some((target, center))
+            });
+        let Some((target, center)) = target else {
+            *visibility = Visibility::Hidden;
+            continue;
+        };
+        flight.target = target;
+        let midpoint = (flight.start + target) * 0.5;
+        flight.control = midpoint + (center - midpoint).normalize_or_zero() * 52.0;
         let flight_elapsed = active.elapsed - MAHJONG_CLAIM_FLIGHT_DELAY;
-        let (position, angle, scale, alpha) = mahjong_claim_flight_pose(flight_elapsed, flight);
+        let (position, angle, scale, alpha) = mahjong_claim_flight_pose(flight_elapsed, &flight);
         node.left = px(position.x - 16.5);
         node.top = px(position.y - 22.5);
         transform.rotation = Rot2::radians(angle);

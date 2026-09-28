@@ -122,6 +122,24 @@ fn every_runtime_ui_and_card_sound_decodes_with_enabled_bevy_formats() {
     sounds.push("vendor/noname/audio/effect/flappybird_die.ogg".to_owned());
     sounds.push("audio/shengji/power-off.ogg".to_owned());
     sounds.push("audio/shengji/power-on.ogg".to_owned());
+    for gender in ["male", "female"] {
+        for action in [
+            "chow",
+            "pung",
+            "melded_kong",
+            "concealed_kong",
+            "added_kong",
+            "win",
+            "self_draw",
+            "flower",
+        ] {
+            for variant in 1..=2 {
+                sounds.push(format!(
+                    "audio/mahjong/actions/{gender}/{action}_{variant}.ogg"
+                ));
+            }
+        }
+    }
     sounds.extend(
         (0..QUICK_VOICE_COUNT).map(|index| format!("vendor/noname/voice/male/{index}.mp3")),
     );

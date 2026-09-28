@@ -17,7 +17,6 @@
 *.log
 client.prefs
 profile.dat
-/assets/audio/mahjong/actions/
 /core
 /core.*
 

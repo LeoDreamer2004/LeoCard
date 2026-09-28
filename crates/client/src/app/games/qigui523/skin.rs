@@ -1,11 +1,10 @@
 //! 七鬼五二三牌桌的小面板与操作按钮纹理。
 
-use super::QiGui523Assets;
-use crate::app::presentation::{TEXT, add_text};
+use crate::app::presentation::{GameButtonImageMode, GameButtonSpec, add_textured_game_button};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{HomeHighlightKind, UiAction};
+use crate::app::shell::UiAction;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
 
 #[derive(Clone, Copy)]
 pub(super) enum QiGuiButtonTone {
@@ -46,63 +45,34 @@ pub(super) fn add_qigui_action_button(
     action: UiAction,
     tone: QiGuiButtonTone,
     assets: &UiAssets,
-    game_assets: &QiGui523Assets,
 ) -> (Entity, Entity) {
     let (normal, hovered) = match tone {
         QiGuiButtonTone::Play => (
-            game_assets.action_play.clone(),
-            game_assets.action_play_hover.clone(),
+            &assets.controls.game_play_button,
+            &assets.controls.game_play_button_hover,
         ),
         QiGuiButtonTone::Pass => (
-            game_assets.action_pass.clone(),
-            game_assets.action_pass_hover.clone(),
+            &assets.controls.game_pass_button,
+            &assets.controls.game_pass_button_hover,
         ),
         QiGuiButtonTone::Hint => (
-            game_assets.action_hint.clone(),
-            game_assets.action_hint_hover.clone(),
+            &assets.controls.game_hint_button,
+            &assets.controls.game_hint_button_hover,
         ),
     };
-    let flat = |texture| {
-        let mut image = ImageNode::new(texture).with_mode(NodeImageMode::Stretch);
-        image.visual_box = VisualBox::BorderBox;
-        image
-    };
-    let button = commands
-        .spawn((
-            Button,
-            action,
-            Node {
-                width: px(164),
-                height: px(54),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            flat(normal),
-        ))
-        .id();
-    commands.entity(parent).add_child(button);
-    let overlay = commands
-        .spawn((
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                right: px(0),
-                top: px(0),
-                bottom: px(0),
-                ..default()
-            },
-            flat(hovered),
-            Visibility::Hidden,
-            FocusPolicy::Pass,
-        ))
-        .id();
-    commands.entity(button).add_child(overlay);
-    let label = add_text(commands, button, label, 18.0, TEXT, assets);
-    commands.entity(label).insert(FocusPolicy::Pass);
-    commands.entity(button).insert(HomeHighlightKind::Button {
-        overlay,
-        arrows: None,
-    });
-    (button, label)
+    add_textured_game_button(
+        commands,
+        parent,
+        assets,
+        GameButtonSpec {
+            label,
+            action: Some(action),
+            normal,
+            hovered,
+            width: 164.0,
+            height: 54.0,
+            font_size: 18.0,
+            image_mode: GameButtonImageMode::Stretch,
+        },
+    )
 }

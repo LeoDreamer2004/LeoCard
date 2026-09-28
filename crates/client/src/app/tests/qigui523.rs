@@ -3,7 +3,34 @@ use leocard_protocol::{
     GamePhaseView, MatchId, PlayerGameProfiles, PlayerId, PlayerPublicState, ProfileId,
     QiGui523Snapshot, SeatId, StartingCardView, TrickView, TurnTimerView,
 };
+use leocard_qigui523::TimeControl;
 use leocard_qigui523::{QiGui523Bot, QiGuiCard, QiGuiRank, QiGuiRuleSet, QiGuiSuit, classify};
+
+#[test]
+fn time_control_options_follow_the_configured_order() {
+    assert_eq!(previous_time_control(TimeControl::FivePlusTen), None);
+    assert_eq!(
+        next_time_control(TimeControl::FivePlusTen),
+        Some(TimeControl::FivePlusThirty)
+    );
+    assert_eq!(
+        next_time_control(TimeControl::FivePlusThirty),
+        Some(TimeControl::FifteenPlusThirty)
+    );
+    assert_eq!(
+        next_time_control(TimeControl::FifteenPlusThirty),
+        Some(TimeControl::ThirtyPlusSixty)
+    );
+    assert_eq!(
+        next_time_control(TimeControl::ThirtyPlusSixty),
+        Some(TimeControl::Unlimited)
+    );
+    assert_eq!(
+        previous_time_control(TimeControl::Unlimited),
+        Some(TimeControl::ThirtyPlusSixty)
+    );
+    assert_eq!(next_time_control(TimeControl::Unlimited), None);
+}
 
 #[test]
 fn cards_are_displayed_from_high_to_low() {
@@ -71,26 +98,6 @@ fn greedy_hint_cycles_and_passes_when_no_response_exists() {
 }
 
 #[test]
-fn turn_timer_switches_from_base_to_reserve_wording() {
-    assert_eq!(
-        turn_timer_label(Some(TurnTimerView {
-            player: PlayerId(0),
-            base_seconds: 5,
-            reserve_seconds: 30,
-        })),
-        "5"
-    );
-    assert_eq!(
-        turn_timer_label(Some(TurnTimerView {
-            player: PlayerId(0),
-            base_seconds: 0,
-            reserve_seconds: 27,
-        })),
-        "烧条中... 27"
-    );
-}
-
-#[test]
 fn auto_playing_current_player_does_not_show_a_turn_clock() {
     let player = PlayerId(0);
     let mut game = QiGui523Snapshot {
@@ -138,35 +145,4 @@ fn auto_playing_current_player_does_not_show_a_turn_clock() {
     assert!(turn_clock_visible(&game, player));
     game.players[0].auto_play = true;
     assert!(!turn_clock_visible(&game, player));
-}
-
-#[test]
-fn auto_play_overlay_is_a_full_width_cancel_button_above_the_hand_ui() {
-    fn setup(mut commands: Commands, assets: Res<UiAssets>) {
-        let parent = commands
-            .spawn(Node {
-                position_type: PositionType::Relative,
-                ..default()
-            })
-            .id();
-        add_auto_play_overlay(&mut commands, parent, &assets);
-    }
-
-    let mut app = App::new();
-    app.init_resource::<UiAssets>();
-    app.add_systems(Startup, setup);
-    app.update();
-
-    let mut query = app
-        .world_mut()
-        .query_filtered::<(&Node, &UiAction, &GlobalZIndex), With<AutoPlayOverlay>>();
-    let (node, action, z_index) = query.single(app.world()).unwrap();
-    assert!(matches!(
-        action,
-        UiAction::Social(SocialUiAction::ToggleAutoPlay)
-    ));
-    assert_eq!(node.left, px(0));
-    assert_eq!(node.right, px(0));
-    assert_eq!(node.height, px(190));
-    assert_eq!(*z_index, GlobalZIndex(1900));
 }

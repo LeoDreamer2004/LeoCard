@@ -4,9 +4,10 @@ use super::{
     add_role_tokens, add_texas_card, add_texas_chip_popup, texas_player_border_color,
 };
 use crate::app::presentation::{
-    ButtonKind, MUTED, PendingDealSound, PlayerMenuProfile, PlayerPortraitSpec, TEXT,
-    TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait, add_text,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
+    ButtonKind, GameButtonImageMode, GameButtonSpec, MUTED, PendingDealSound, PlayerMenuProfile,
+    PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait,
+    add_textured_game_button, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
+    spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{HomeHighlightKind, SeatSide, UiAction};
@@ -432,81 +433,56 @@ fn add_texas_sized_button(
 ) -> Entity {
     let (normal, hovered) = match kind {
         ButtonKind::Primary => (
-            game_assets.action_primary.clone(),
-            game_assets.action_primary_hover.clone(),
+            &game_assets.action_primary,
+            &game_assets.action_primary_hover,
         ),
         ButtonKind::Secondary => (
-            game_assets.action_secondary.clone(),
-            game_assets.action_secondary_hover.clone(),
+            &game_assets.action_secondary,
+            &game_assets.action_secondary_hover,
         ),
         ButtonKind::Warning => (
-            game_assets.action_warning.clone(),
-            game_assets.action_warning_hover.clone(),
+            &game_assets.action_warning,
+            &game_assets.action_warning_hover,
         ),
-        ButtonKind::Pass => (
-            game_assets.action_pass.clone(),
-            game_assets.action_pass_hover.clone(),
-        ),
+        ButtonKind::Pass => (&game_assets.action_pass, &game_assets.action_pass_hover),
     };
-    let button = commands
-        .spawn((
-            Button,
-            action,
-            Node {
-                width: px(118),
-                min_width: px(118),
-                height: px(50),
-                min_height: px(50),
-                padding: UiRect::axes(px(9), px(4)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
+    let (button, label_entity) = add_textured_game_button(
+        commands,
+        parent,
+        assets,
+        GameButtonSpec {
+            label,
+            action: Some(action),
+            normal,
+            hovered,
+            width: 118.0,
+            height: 50.0,
+            font_size: 17.0,
+            image_mode: GameButtonImageMode::Sliced {
+                border: 30.0,
+                corner_scale: 0.42,
             },
-            texas_button_image(normal),
-        ))
-        .id();
-    commands.entity(parent).add_child(button);
-    let overlay = commands
-        .spawn((
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                right: px(0),
-                top: px(0),
-                bottom: px(0),
-                ..default()
-            },
-            texas_button_image(hovered),
-            Visibility::Hidden,
-            FocusPolicy::Pass,
-        ))
-        .id();
-    commands.entity(button).add_child(overlay);
-    commands.entity(button).insert(HomeHighlightKind::Button {
-        overlay,
-        arrows: None,
+        },
+    );
+    commands.entity(button).insert(Node {
+        width: px(118),
+        min_width: px(118),
+        height: px(50),
+        min_height: px(50),
+        padding: UiRect::axes(px(9), px(4)),
+        align_items: AlignItems::Center,
+        justify_content: JustifyContent::Center,
+        ..default()
     });
-    let text = add_text(commands, button, label, 17.0, Color::WHITE, assets);
-    commands.entity(text).insert((
+    commands.entity(label_entity).insert((
         Node {
             margin: UiRect::ZERO,
             align_self: AlignSelf::Center,
             ..default()
         },
-        FocusPolicy::Pass,
+        TextColor(Color::WHITE),
     ));
     button
-}
-
-fn texas_button_image(texture: Handle<Image>) -> ImageNode {
-    let mut image = ImageNode::new(texture).with_mode(NodeImageMode::Sliced(TextureSlicer {
-        border: BorderRect::all(30.0),
-        center_scale_mode: SliceScaleMode::Stretch,
-        sides_scale_mode: SliceScaleMode::Stretch,
-        max_corner_scale: 0.42,
-    }));
-    image.visual_box = VisualBox::BorderBox;
-    image
 }
 
 fn texas_adjust_button_image(texture: Handle<Image>) -> ImageNode {

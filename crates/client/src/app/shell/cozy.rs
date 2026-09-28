@@ -1,7 +1,7 @@
 //! 首页、顶栏和设置窗口共用的 CozyUI 纹理控件。
 
 use super::{HomeHighlightKind, UiAction};
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, PanelSkin, TEXT, add_text, decorate_panel_skin};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
@@ -316,31 +316,18 @@ pub(crate) fn add_cozy_panel(
     node: Node,
     assets: &UiAssets,
 ) -> Entity {
+    add_cozy_panel_with_skin(commands, parent, node, PanelSkin::Window, assets)
+}
+
+pub(crate) fn add_cozy_panel_with_skin(
+    commands: &mut Commands,
+    parent: Entity,
+    node: Node,
+    skin: PanelSkin,
+    assets: &UiAssets,
+) -> Entity {
     let panel = commands.spawn(node).id();
     commands.entity(parent).add_child(panel);
-    let mut image =
-        ImageNode::new(assets.home.panel.clone()).with_mode(NodeImageMode::Sliced(TextureSlicer {
-            border: BorderRect::all(80.0),
-            center_scale_mode: SliceScaleMode::Stretch,
-            sides_scale_mode: SliceScaleMode::Stretch,
-            max_corner_scale: 0.42,
-        }));
-    image.visual_box = VisualBox::BorderBox;
-    let background = commands
-        .spawn((
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                right: px(0),
-                top: px(0),
-                bottom: px(0),
-                ..default()
-            },
-            image,
-            ZIndex(-1),
-            FocusPolicy::Pass,
-        ))
-        .id();
-    commands.entity(panel).add_child(background);
+    decorate_panel_skin(commands, panel, skin, assets);
     panel
 }

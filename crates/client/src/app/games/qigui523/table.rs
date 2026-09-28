@@ -263,7 +263,6 @@ pub(crate) fn render_table(
                     UiAction::QiGui523(QiGui523UiAction::Play),
                     QiGuiButtonTone::Play,
                     assets,
-                    game_assets,
                 );
                 commands.entity(selection_label).insert(PlaySelectionCount);
             }
@@ -275,7 +274,6 @@ pub(crate) fn render_table(
                     UiAction::QiGui523(QiGui523UiAction::Pass),
                     QiGuiButtonTone::Pass,
                     assets,
-                    game_assets,
                 );
                 add_qigui_action_button(
                     commands,
@@ -284,7 +282,6 @@ pub(crate) fn render_table(
                     UiAction::QiGui523(QiGui523UiAction::Hint),
                     QiGuiButtonTone::Hint,
                     assets,
-                    game_assets,
                 );
             } else if !is_leading {
                 let hint = spawn_node(
@@ -330,7 +327,6 @@ pub(crate) fn render_table(
                     UiAction::QiGui523(QiGui523UiAction::Pass),
                     QiGuiButtonTone::Pass,
                     assets,
-                    game_assets,
                 );
             }
         }

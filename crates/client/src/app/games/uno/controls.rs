@@ -3,13 +3,13 @@ use super::{
     uno_pair_for_selection, uno_ui_color,
 };
 use crate::app::presentation::{
-    ButtonKind, ButtonTint, MUTED, PANEL, PanelSkin, TEXT, add_panel, add_section_title, add_text,
-    spawn_node,
+    ButtonKind, ButtonTint, GameButtonImageMode, GameButtonSpec, PanelSkin, add_section_title,
+    add_text, add_textured_game_button, spawn_node,
 };
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{HomeHighlightKind, UiAction};
+use crate::app::shell::{UiAction, add_cozy_panel_with_skin};
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
 use leocard_uno::{UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoPendingDrawKind};
 
@@ -21,32 +21,25 @@ fn uno_action_width(label: &str) -> f32 {
     }
 }
 
-fn uno_button_texture(assets: &UiAssets, kind: ButtonKind) -> (Handle<Image>, Handle<Image>) {
+fn uno_button_texture(assets: &UiAssets, kind: ButtonKind) -> (&Handle<Image>, &Handle<Image>) {
     match kind {
         ButtonKind::Primary => (
-            assets.controls.game_play_button.clone(),
-            assets.controls.game_play_button_hover.clone(),
+            &assets.controls.game_play_button,
+            &assets.controls.game_play_button_hover,
         ),
         ButtonKind::Warning => (
-            assets.controls.game_warning_button.clone(),
-            assets.controls.game_warning_button_hover.clone(),
+            &assets.controls.game_warning_button,
+            &assets.controls.game_warning_button_hover,
         ),
         ButtonKind::Secondary => (
-            assets.controls.game_pass_button.clone(),
-            assets.controls.game_pass_button_hover.clone(),
+            &assets.controls.game_pass_button,
+            &assets.controls.game_pass_button_hover,
         ),
         ButtonKind::Pass => (
-            assets.controls.game_hint_button.clone(),
-            assets.controls.game_hint_button_hover.clone(),
+            &assets.controls.game_hint_button,
+            &assets.controls.game_hint_button_hover,
         ),
     }
-}
-
-fn uno_button_image(texture: Handle<Image>, alpha: f32) -> ImageNode {
-    let mut image = ImageNode::new(texture).with_mode(NodeImageMode::Stretch);
-    image.visual_box = VisualBox::BorderBox;
-    image.color = Color::WHITE.with_alpha(alpha);
-    image
 }
 
 #[expect(
@@ -65,60 +58,27 @@ fn add_uno_button(
 ) -> Entity {
     let (normal, hovered) = uno_button_texture(assets, kind);
     let width = (uno_action_width(label) * height / 52.0).max(min_width);
-    let enabled = action.is_some();
-    let button = commands
-        .spawn((
-            Node {
-                width: px(width),
-                height: px(height),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            uno_button_image(normal, if enabled { 1.0 } else { 0.55 }),
-        ))
-        .id();
-    commands.entity(parent).add_child(button);
-    if let Some(action) = action {
-        commands.entity(button).insert((Button, action));
-        let overlay = commands
-            .spawn((
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(0),
-                    right: px(0),
-                    top: px(0),
-                    bottom: px(0),
-                    ..default()
-                },
-                uno_button_image(hovered, 1.0),
-                Visibility::Hidden,
-                FocusPolicy::Pass,
-            ))
-            .id();
-        commands.entity(button).add_child(overlay);
-        commands.entity(button).insert(HomeHighlightKind::Button {
-            overlay,
-            arrows: None,
-        });
-    } else {
-        commands.entity(button).insert(FocusPolicy::Pass);
-    }
     let font_size = if label.chars().count() >= 10 {
         15.0
     } else {
         18.0
     };
-    let text = add_text(
+    add_textured_game_button(
         commands,
-        button,
-        label,
-        font_size,
-        if enabled { TEXT } else { MUTED },
+        parent,
         assets,
-    );
-    commands.entity(text).insert(FocusPolicy::Pass);
-    button
+        GameButtonSpec {
+            label,
+            action,
+            normal,
+            hovered,
+            width,
+            height,
+            font_size,
+            image_mode: GameButtonImageMode::Stretch,
+        },
+    )
+    .0
 }
 
 pub(super) fn add_uno_action_button(
@@ -548,7 +508,7 @@ fn add_color_choice_overlay(
     commands
         .entity(overlay)
         .insert((GlobalZIndex(2050), FocusPolicy::Block));
-    let panel = add_panel(
+    let panel = add_cozy_panel_with_skin(
         commands,
         overlay,
         Node {
@@ -559,7 +519,6 @@ fn add_color_choice_overlay(
             row_gap: px(18),
             ..default()
         },
-        PANEL,
         PanelSkin::Popup,
         assets,
     );

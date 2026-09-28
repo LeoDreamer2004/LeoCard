@@ -161,77 +161,55 @@ pub(super) fn add_shengji_bid_strip(
     .enumerate()
     {
         let cards = shengji_declaration_candidate(game, target);
-        add_shengji_bid_button(
+        let enabled = cards.is_some();
+        let button = commands
+            .spawn((Node {
+                width: px(64),
+                height: px(54),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },))
+            .id();
+        commands.entity(strip).add_child(button);
+        if let Some(cards) = cards {
+            commands.entity(button).insert((
+                Button,
+                if bottom_copy {
+                    UiAction::Shengji(ShengjiUiAction::BottomCopy(cards))
+                } else {
+                    UiAction::Shengji(ShengjiUiAction::Declare(cards))
+                },
+            ));
+        }
+        if index < 4 {
+            spawn_node(
+                commands,
+                button,
+                Node {
+                    position_type: PositionType::Absolute,
+                    right: px(0),
+                    top: px(8),
+                    bottom: px(8),
+                    width: px(1),
+                    ..default()
+                },
+                Some(Color::srgba(0.72, 0.72, 0.76, 0.24)),
+            );
+        }
+        add_text(
             commands,
-            strip,
+            button,
             label,
-            cards,
-            color,
-            bottom_copy,
-            index < 4,
+            if label == "NG" { 19.0 } else { 27.0 },
+            if enabled {
+                color
+            } else {
+                Color::srgb(0.37, 0.38, 0.42)
+            },
             assets,
         );
     }
-}
-
-fn add_shengji_bid_button(
-    commands: &mut Commands,
-    parent: Entity,
-    label: &str,
-    cards: Option<Vec<ShengjiCard>>,
-    color: Color,
-    bottom_copy: bool,
-    divider: bool,
-    assets: &UiAssets,
-) {
-    let enabled = cards.is_some();
-    let entity = commands
-        .spawn((Node {
-            width: px(64),
-            height: px(54),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            ..default()
-        },))
-        .id();
-    commands.entity(parent).add_child(entity);
-    if let Some(cards) = cards {
-        commands.entity(entity).insert((
-            Button,
-            if bottom_copy {
-                UiAction::Shengji(ShengjiUiAction::BottomCopy(cards))
-            } else {
-                UiAction::Shengji(ShengjiUiAction::Declare(cards))
-            },
-        ));
-    }
-    if divider {
-        spawn_node(
-            commands,
-            entity,
-            Node {
-                position_type: PositionType::Absolute,
-                right: px(0),
-                top: px(8),
-                bottom: px(8),
-                width: px(1),
-                ..default()
-            },
-            Some(Color::srgba(0.72, 0.72, 0.76, 0.24)),
-        );
-    }
-    add_text(
-        commands,
-        entity,
-        label,
-        if label == "NG" { 19.0 } else { 27.0 },
-        if enabled {
-            color
-        } else {
-            Color::srgb(0.37, 0.38, 0.42)
-        },
-        assets,
-    );
 }
 
 pub(crate) fn shengji_declaration_candidate(

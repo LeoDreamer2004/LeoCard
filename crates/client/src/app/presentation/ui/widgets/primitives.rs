@@ -99,26 +99,6 @@ pub(crate) fn add_auto_play_overlay(commands: &mut Commands, parent: Entity, ass
     commands.entity(detail).insert(FocusPolicy::Pass);
 }
 
-pub(crate) fn add_panel(
-    commands: &mut Commands,
-    parent: Entity,
-    mut node: Node,
-    color: Color,
-    skin: PanelSkin,
-    assets: &UiAssets,
-) -> Entity {
-    node.padding = UiRect::all(px(match skin {
-        PanelSkin::Window => 28.0,
-        PanelSkin::Section => 24.0,
-        PanelSkin::Popup => 22.0,
-    }));
-    node.border = UiRect::all(px(1));
-    node.border_radius = BorderRadius::all(px(8));
-    let entity = spawn_node(commands, parent, node, Some(color));
-    decorate_panel_skin(commands, entity, skin, assets);
-    entity
-}
-
 /// 给任意布局节点叠加独立的九宫格面板皮肤。玩家框仍使用专用贴图；这里仅
 /// 服务于主窗口、内容分区和小型提示框，避免随尺寸拉伸边角与描边。
 pub(crate) fn decorate_panel_skin(

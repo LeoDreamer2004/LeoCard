@@ -4,10 +4,9 @@ use super::{
     PlayErrorPopup, PlayErrorPopupImage, PlayErrorPopupText, PlayErrorToast,
     play_error_toast_visual,
 };
-use crate::app::presentation::{
-    ACCENT, HEADER_BG, MUTED, PanelSkin, TEXT, add_panel, add_text, spawn_node,
-};
+use crate::app::presentation::{ACCENT, MUTED, PanelSkin, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
+use crate::app::shell::add_cozy_panel_with_skin;
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
 
@@ -129,20 +128,20 @@ pub(crate) fn add_reconnecting_overlay(
     commands
         .entity(overlay)
         .insert((GlobalZIndex(1400), FocusPolicy::Block));
-    let panel = add_panel(
+    let panel = add_cozy_panel_with_skin(
         commands,
         overlay,
         Node {
             width: px(520),
             max_width: percent(82),
             min_height: px(128),
+            padding: UiRect::all(px(22)),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             row_gap: px(8),
             ..default()
         },
-        HEADER_BG,
         PanelSkin::Popup,
         assets,
     );

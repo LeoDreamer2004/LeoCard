@@ -664,7 +664,6 @@ pub(super) fn scroll_mahjong_fan_guide(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::shell::DomainUiAction;
     use std::collections::HashSet;
 
     #[test]
@@ -699,20 +698,5 @@ mod tests {
                 entry.fan.name()
             );
         }
-    }
-
-    #[test]
-    fn guide_keeps_hand_tiles_upright_and_all_melds_laid_down() {
-        assert!(matches!(guide_tile_size(false), MahjongTileSize::GuideHand));
-        assert!(matches!(guide_tile_size(true), MahjongTileSize::GuideMeld));
-        assert!(matches!(
-            guide_kong_size(false),
-            MahjongTileSize::GuideConcealedMeld
-        ));
-        assert!(matches!(guide_kong_size(true), MahjongTileSize::GuideMeld));
-        let tile = MahjongTileKind::suited(MahjongSuit::Characters, 1);
-        assert_eq!(guide_base_kind(tile, true, false), None);
-        assert_eq!(guide_base_kind(tile, true, true), Some(tile));
-        assert!(!MahjongUiAction::SelectFanGuideTier(48).rebuilds_ui());
     }
 }

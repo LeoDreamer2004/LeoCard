@@ -104,13 +104,10 @@ OFL 关于保留名称与再分发的条件。
 由刻纹透明度及笔画内部距离计算生成，供 `shaders/mahjong_tile.wgsl` 实时绘制凹刻深度、
 象牙牌体、绿色侧边和表面反光，不包含新的第三方图形。
 
-### Game-icons 射箭图标（CC BY 3.0）
+### 升级杀牌图标
 
-- 作者：Lorc（`Archery target`）、Delapouite（`Dart`）
-- 运行时文件：`ui/effects/shengji_target.png`、`shengji_dart.png`
-- 原始文件与完整署名：`vendor/game-icons/archery/SOURCE.md`
-- 来源：<https://game-icons.net/>
-- 许可证：<https://creativecommons.org/licenses/by/3.0/>
+`ui/effects/shengji_target.svg` 和 `shengji_dart.svg` 是项目自行绘制的靶面与飞镖。
+运行时使用对应的 128×128 PNG 文件。
 
 两张运行时 PNG 由原 SVG 栅格化后按游戏主题着色，用于升级的目标与飞镖效果。再分发时
 须保留上述作者、来源和 CC BY 3.0 署名信息。

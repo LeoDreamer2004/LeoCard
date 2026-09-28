@@ -3,13 +3,13 @@ use super::{
     add_uno_disabled_action_button, uno_card_handle,
 };
 use crate::app::presentation::{
-    ACCENT, ButtonKind, DANGER, DESIGN_WIDTH, MUTED, PANEL, PanelSkin, PlayerMenuProfile,
+    ACCENT, ButtonKind, DANGER, DESIGN_WIDTH, MUTED, PanelSkin, PlayerMenuProfile,
     PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_host_crown,
-    add_panel, add_player_portrait, add_text, add_turn_border_trace_with_radius,
+    add_player_portrait, add_text, add_turn_border_trace_with_radius,
     attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{SeatSide, SocialUiState, UiAction};
+use crate::app::shell::{SeatSide, SocialUiState, UiAction, add_cozy_panel_with_skin};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{
@@ -468,7 +468,7 @@ fn add_uno_swap_prompt_panel(
     ready: bool,
     assets: &UiAssets,
 ) {
-    let panel = add_panel(
+    let panel = add_cozy_panel_with_skin(
         commands,
         table,
         Node {
@@ -476,13 +476,12 @@ fn add_uno_swap_prompt_panel(
             left: px(475),
             top: px(118),
             width: px(330),
-            padding: UiRect::axes(px(14), px(10)),
+            padding: UiRect::all(px(22)),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
             row_gap: px(8),
             ..default()
         },
-        PANEL.with_alpha(0.96),
         PanelSkin::Popup,
         assets,
     );

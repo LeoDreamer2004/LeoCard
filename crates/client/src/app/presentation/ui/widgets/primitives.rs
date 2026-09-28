@@ -1,8 +1,7 @@
 //! 卡牌、按钮、面板和文本等基础控件。
 
 use super::super::{
-    ACCENT, AutoPlayOverlay, ButtonKind, ButtonTint, PanelSkin, TABLE_CARD_REVEAL,
-    TABLE_SCORE_CARD_REVEAL, TEXT,
+    ACCENT, AutoPlayOverlay, PanelSkin, TABLE_CARD_REVEAL, TABLE_SCORE_CARD_REVEAL, TEXT,
 };
 use crate::app::presentation::CardSize;
 use crate::app::runtime::UiAssets;
@@ -62,78 +61,6 @@ pub(crate) fn add_card_image(
     entity
 }
 
-pub(crate) fn add_action_button(
-    commands: &mut Commands,
-    parent: Entity,
-    label: &str,
-    action: UiAction,
-    kind: ButtonKind,
-    assets: &UiAssets,
-) -> Entity {
-    add_action_button_with_label(commands, parent, label, action, kind, assets).0
-}
-
-pub(crate) fn add_action_button_with_label(
-    commands: &mut Commands,
-    parent: Entity,
-    label: &str,
-    action: UiAction,
-    kind: ButtonKind,
-    assets: &UiAssets,
-) -> (Entity, Entity) {
-    let (image, normal, hovered, pressed) = match kind {
-        ButtonKind::Primary => (
-            assets.controls.primary_button.clone(),
-            Color::WHITE,
-            Color::srgb(1.0, 1.0, 0.82),
-            Color::srgb(0.78, 0.90, 0.78),
-        ),
-        ButtonKind::Secondary => (
-            assets.controls.secondary_button.clone(),
-            Color::srgb(0.48, 0.62, 0.76),
-            Color::srgb(0.64, 0.76, 0.88),
-            Color::srgb(0.32, 0.46, 0.60),
-        ),
-        ButtonKind::Warning => (
-            assets.controls.warning_button.clone(),
-            Color::srgb(0.88, 0.68, 0.24),
-            Color::srgb(0.98, 0.82, 0.48),
-            Color::srgb(0.72, 0.54, 0.18),
-        ),
-        ButtonKind::Pass => (
-            assets.controls.danger_button.clone(),
-            Color::srgb(0.58, 0.42, 0.42),
-            Color::srgb(0.76, 0.58, 0.56),
-            Color::srgb(0.42, 0.28, 0.27),
-        ),
-    };
-    let entity = commands
-        .spawn((
-            Button,
-            action,
-            ButtonTint {
-                normal,
-                hovered,
-                pressed,
-            },
-            Node {
-                min_width: px(150),
-                height: px(48),
-                padding: UiRect::axes(px(20), px(8)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            ImageNode::new(image)
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(normal),
-        ))
-        .id();
-    commands.entity(parent).add_child(entity);
-    let label = add_text(commands, entity, label, 16.0, Color::WHITE, assets);
-    (entity, label)
-}
-
 /// 托管时覆盖整条手牌与操作区。蒙版本身是唯一可点击目标，因此其后的牌、
 /// 操作按钮和聊天抽屉在这个区域内都不会收到指针事件。
 pub(crate) fn add_auto_play_overlay(commands: &mut Commands, parent: Entity, assets: &UiAssets) {
@@ -170,33 +97,6 @@ pub(crate) fn add_auto_play_overlay(commands: &mut Commands, parent: Entity, ass
     ));
     let detail = add_text(commands, overlay, "点击此处取消", 14.0, TEXT, assets);
     commands.entity(detail).insert(FocusPolicy::Pass);
-}
-
-pub(crate) fn add_disabled_action_button(
-    commands: &mut Commands,
-    parent: Entity,
-    label: &str,
-    assets: &UiAssets,
-) -> Entity {
-    let entity = commands
-        .spawn((
-            Node {
-                min_width: px(150),
-                height: px(48),
-                padding: UiRect::axes(px(20), px(8)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            ImageNode::new(assets.controls.disabled_button.clone())
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(Color::srgb(0.56, 0.58, 0.57)),
-            FocusPolicy::Block,
-        ))
-        .id();
-    commands.entity(parent).add_child(entity);
-    add_text(commands, entity, label, 16.0, Color::WHITE, assets);
-    entity
 }
 
 pub(crate) fn add_panel(

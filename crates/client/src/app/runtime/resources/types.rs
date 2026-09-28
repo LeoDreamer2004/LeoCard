@@ -69,11 +69,14 @@ pub(crate) struct PlayingCardAssets {
 
 #[derive(Default)]
 pub(crate) struct ControlAssets {
-    pub primary_button: Handle<Image>,
-    pub secondary_button: Handle<Image>,
-    pub warning_button: Handle<Image>,
-    pub danger_button: Handle<Image>,
-    pub disabled_button: Handle<Image>,
+    pub game_play_button: Handle<Image>,
+    pub game_play_button_hover: Handle<Image>,
+    pub game_pass_button: Handle<Image>,
+    pub game_pass_button_hover: Handle<Image>,
+    pub game_hint_button: Handle<Image>,
+    pub game_hint_button_hover: Handle<Image>,
+    pub game_warning_button: Handle<Image>,
+    pub game_warning_button_hover: Handle<Image>,
     pub robot_icon: Handle<Image>,
     pub host_crown: Handle<Image>,
     pub github_mark: Handle<Image>,

@@ -21,14 +21,6 @@ vendor/kenney/boardgame/PNG/Chips/
 vendor/kenney/casino-audio/Audio/
 vendor/kenney/interface-sounds/Audio/
 vendor/kenney/ui/Sounds/
-vendor/kenney/ui/PNG/Blue/Default/arrow_basic_e.png
-vendor/kenney/ui/PNG/Blue/Default/arrow_basic_w.png
-vendor/kenney/ui/PNG/Blue/Default/button_rectangle_depth_gradient.png
-vendor/kenney/ui/PNG/Green/Default/button_rectangle_depth_gradient.png
-vendor/kenney/ui/PNG/Grey/Default/button_rectangle_depth_gradient.png
-vendor/kenney/ui/PNG/Red/Default/button_rectangle_depth_gradient.png
-vendor/kenney/ui/PNG/Yellow/Default/arrow_basic_e.png
-vendor/kenney/ui/PNG/Yellow/Default/button_rectangle_depth_gradient.png
 
 vendor/noname/audio/effect/
 vendor/noname/interactions/

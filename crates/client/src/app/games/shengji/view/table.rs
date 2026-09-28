@@ -511,7 +511,7 @@ fn add_shengji_opponent(
         // 在任意窗口比例下都真正落在牌桌垂直中线上。
         commands
             .entity(slot)
-            .insert(UiTransform::from_translation(Val2::px(0.0, -56.0)));
+            .insert(UiTransform::from_translation(Val2::px(0.0, -38.0)));
     }
     if matches!(side, SeatSide::Right) {
         add_shengji_play_area(

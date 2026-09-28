@@ -95,16 +95,14 @@ pub(crate) fn load_ui_assets(
             card_back: asset_server.load("vendor/kenney/boardgame/PNG/Cards/cardBack_blue4.png"),
         },
         controls: ControlAssets {
-            primary_button: asset_server
-                .load("vendor/kenney/ui/PNG/Green/Default/button_rectangle_depth_gradient.png"),
-            secondary_button: asset_server
-                .load("vendor/kenney/ui/PNG/Blue/Default/button_rectangle_depth_gradient.png"),
-            warning_button: asset_server
-                .load("vendor/kenney/ui/PNG/Yellow/Default/button_rectangle_depth_gradient.png"),
-            danger_button: asset_server
-                .load("vendor/kenney/ui/PNG/Red/Default/button_rectangle_depth_gradient.png"),
-            disabled_button: asset_server
-                .load("vendor/kenney/ui/PNG/Grey/Default/button_rectangle_depth_gradient.png"),
+            game_play_button: asset_server.load("ui/qigui523/play-normal.png"),
+            game_play_button_hover: asset_server.load("ui/qigui523/play-hover.png"),
+            game_pass_button: asset_server.load("ui/qigui523/pass-normal.png"),
+            game_pass_button_hover: asset_server.load("ui/qigui523/pass-hover.png"),
+            game_hint_button: asset_server.load("ui/qigui523/hint-normal.png"),
+            game_hint_button_hover: asset_server.load("ui/qigui523/hint-hover.png"),
+            game_warning_button: asset_server.load("ui/qigui523/warning-normal.png"),
+            game_warning_button_hover: asset_server.load("ui/qigui523/warning-hover.png"),
             robot_icon: asset_server.load("icons/robot-2-fill.png"),
             host_crown: asset_server.load("ui/home/cozy-host-crown.png"),
             github_mark: asset_server.load("icons/github-mark.png"),

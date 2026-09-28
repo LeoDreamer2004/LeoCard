@@ -1,9 +1,9 @@
 use super::{
     UNO_AVATAR_SIZE, UNO_PORTRAIT_HEIGHT, UNO_PORTRAIT_WIDTH, UnoAssets, UnoExtensionCardHelp,
     UnoExtensionCardHelpOverlay, UnoFlipTarget, UnoHandCardButton, UnoHandCardVisual,
-    UnoSwapTargetPanel, UnoUiAction, UnoUiState, add_uno_card_count, add_uno_skip_overlay,
-    add_uno_swap_selected_label, uno_anchor_in_layer, uno_card_handle, uno_card_is_playable,
-    uno_skip_count,
+    UnoSwapTargetPanel, UnoUiAction, UnoUiState, add_uno_card_count,
+    add_uno_eliminated_player_overlay, add_uno_skip_overlay, add_uno_swap_selected_label,
+    uno_anchor_in_layer, uno_card_handle, uno_card_is_playable, uno_skip_count,
 };
 use crate::app::presentation::{
     ACCENT, ButtonTint, CardAnimationState, MUTED, PANEL, PlayerMenuProfile, PlayerPortraitSpec,
@@ -13,7 +13,7 @@ use crate::app::presentation::{
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{PlayerInteractionLayer, SeatSide, SocialUiState, UiAction};
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_protocol::{GameKind, UnoPendingSwapView, UnoPhaseView, UnoPlayerState, UnoSnapshot};
 use leocard_uno::UnoFace;
 
@@ -40,7 +40,7 @@ pub(super) fn add_uno_own_area(
         Node {
             position_type: PositionType::Absolute,
             left: px(22),
-            bottom: px(15),
+            bottom: px(0),
             width: px(UNO_PORTRAIT_WIDTH),
             height: px(UNO_PORTRAIT_HEIGHT),
             ..default()
@@ -110,12 +110,16 @@ pub(super) fn add_uno_own_area(
     if self_selected {
         add_uno_swap_selected_label(commands, info, assets);
     }
-    add_uno_skip_overlay(
-        commands,
-        portrait.avatar_ring,
-        uno_skip_count(game, own),
-        assets,
-    );
+    if own.eliminated {
+        add_uno_eliminated_player_overlay(commands, portrait.avatar_ring, assets);
+    } else {
+        add_uno_skip_overlay(
+            commands,
+            portrait.avatar_ring,
+            uno_skip_count(game, own),
+            assets,
+        );
+    }
     add_uno_card_count(commands, info, game.your_hand.len(), MUTED, assets);
 
     let hand = spawn_node(
@@ -125,7 +129,7 @@ pub(super) fn add_uno_own_area(
             position_type: PositionType::Absolute,
             left: px(205),
             right: px(205),
-            bottom: px(4),
+            bottom: px(0),
             height: px(146),
             align_items: AlignItems::FlexEnd,
             justify_content: JustifyContent::Center,
@@ -330,15 +334,22 @@ fn spawn_uno_extension_card_tooltip(
             padding: UiRect::axes(px(11), px(9)),
             flex_direction: FlexDirection::Column,
             row_gap: px(4),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(8)),
             ..default()
         },
-        Some(PANEL.with_alpha(0.78)),
+        None,
     );
+    let mut texture = ImageNode::new(assets.home.game_card.clone()).with_mode(
+        NodeImageMode::Sliced(TextureSlicer {
+            border: BorderRect::all(22.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 0.42,
+        }),
+    );
+    texture.visual_box = VisualBox::BorderBox;
     commands.entity(tooltip).insert((
+        texture,
         Visibility::Hidden,
-        BorderColor::all(ACCENT.with_alpha(0.24)),
         BoxShadow::new(Color::BLACK.with_alpha(0.30), px(2), px(4), px(0), px(8)),
         GlobalZIndex(1900),
         FocusPolicy::Pass,

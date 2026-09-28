@@ -196,7 +196,7 @@ pub(super) fn add_shengji_actions(
                 "提示",
                 UiAction::Shengji(ShengjiUiAction::Hint),
                 assets,
-                px(120),
+                px(142),
                 48.0,
                 CozyButtonVariant::Neutral,
             );

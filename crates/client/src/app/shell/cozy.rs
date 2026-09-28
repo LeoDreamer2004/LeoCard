@@ -286,11 +286,12 @@ fn add_cozy_button_styled(
         .id();
     commands.entity(button).add_child(overlay);
     if let Some(icon) = icon {
+        let icon_size = if label.is_none() { 30.0 } else { 22.0 };
         let image = commands
             .spawn((
                 Node {
-                    width: px(22),
-                    height: px(22),
+                    width: px(icon_size),
+                    height: px(icon_size),
                     ..default()
                 },
                 ImageNode::new(icon),

@@ -18,7 +18,7 @@
 | 来源 | 运行时用途 | 本地位置 | 许可证与来源 |
 | --- | --- | --- | --- |
 | Kenney Boardgame Pack 2 | 普通牌面、牌背与德州扑克筹码 | `vendor/kenney/boardgame/` | CC0 1.0；<https://kenney.nl/assets/boardgame-pack> |
-| Kenney UI Pack 2.0 | 按钮底图、方向箭头与部分操作音效 | `vendor/kenney/ui/` | CC0 1.0；<https://kenney.nl/assets/ui-pack> |
+| Kenney UI Pack 2.0 | 部分操作音效 | `vendor/kenney/ui/Sounds/` | CC0 1.0；<https://kenney.nl/assets/ui-pack> |
 | Kenney Interface Sounds 1.0 | 通用界面提示和德州、UNO、升级操作音效 | `vendor/kenney/interface-sounds/` | CC0 1.0；<https://kenney.nl/assets/interface-sounds> |
 | Kenney Casino Audio 1.1 | 发牌、出牌、推牌、筹码和结算音效 | `vendor/kenney/casino-audio/` | CC0 1.0；<https://kenney.nl/assets/casino-audio> |
 | VerzatileDev 4 Colour Cards | UNO 牌面、选色状态和 UNO 牌背 | `cards/uno/` | CC0 1.0；<https://verzatiledev.itch.io/4colour>，许可声明见 <https://verzatiledev.itch.io/4colour/devlog/1447489/now-cc0-license> |

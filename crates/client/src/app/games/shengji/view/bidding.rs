@@ -217,7 +217,7 @@ fn add_shengji_bid_button(
                 width: px(1),
                 ..default()
             },
-            Some(ACCENT.with_alpha(0.48)),
+            Some(Color::srgba(0.72, 0.72, 0.76, 0.24)),
         );
     }
     add_text(

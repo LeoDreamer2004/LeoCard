@@ -82,6 +82,43 @@ struct PreviousSavedPreferences {
 }
 
 #[derive(Deserialize, Serialize)]
+struct PreviousVoiceSavedPreferences {
+    global: PreviousVoiceGlobalPreferences,
+    games: GamePreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreviousVoiceGlobalPreferences {
+    player_name: String,
+    avatar_png: Option<Vec<u8>>,
+    host_port: String,
+    join_address: String,
+    table_felt_path: Option<PathBuf>,
+    table_brightness: f32,
+    table_vignette: f32,
+    audio_volume: f32,
+    gender: PlayerGender,
+}
+
+impl From<PreviousVoiceGlobalPreferences> for GlobalPreferences {
+    fn from(previous: PreviousVoiceGlobalPreferences) -> Self {
+        Self {
+            player_name: previous.player_name,
+            avatar_png: previous.avatar_png,
+            host_port: previous.host_port,
+            join_address: previous.join_address,
+            table_felt_path: previous.table_felt_path,
+            table_brightness: previous.table_brightness,
+            table_vignette: previous.table_vignette,
+            audio_volume: previous.audio_volume,
+            gender: previous.gender,
+            mahjong_action_voices: true,
+            mahjong_fan_voices: true,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
 struct PreviousGlobalPreferences {
     player_name: String,
     avatar_png: Option<Vec<u8>>,
@@ -110,6 +147,8 @@ impl From<PreviousGlobalPreferences> for GlobalPreferences {
             table_brightness: previous.table_brightness,
             table_vignette: previous.table_vignette,
             audio_volume: previous.audio_volume,
+            mahjong_action_voices: true,
+            mahjong_fan_voices: true,
         }
     }
 }
@@ -139,6 +178,13 @@ struct V032MahjongRuleSet {
 pub(in crate::player) fn decode_player_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
     postcard::from_bytes(bytes)
         .ok()
+        .or_else(|| {
+            let previous: PreviousVoiceSavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: previous.global.into(),
+                games: previous.games,
+            })
+        })
         .or_else(|| {
             let previous: PreviousSavedPreferences = postcard::from_bytes(bytes).ok()?;
             Some(SavedPreferences {
@@ -285,5 +331,29 @@ mod tests {
         assert_eq!(decoded.global.player_name, "旧玩家");
         assert_eq!(decoded.global.gender, PlayerGender::Male);
         assert_eq!(decoded.global.audio_volume, 0.7);
+    }
+
+    #[test]
+    fn preferences_without_voice_switches_keep_existing_settings() {
+        let previous = PreviousVoiceSavedPreferences {
+            global: PreviousVoiceGlobalPreferences {
+                player_name: "旧玩家".to_owned(),
+                avatar_png: None,
+                host_port: "52300".to_owned(),
+                join_address: "127.0.0.1:52300".to_owned(),
+                table_felt_path: None,
+                table_brightness: 0.9,
+                table_vignette: 0.4,
+                audio_volume: 0.7,
+                gender: PlayerGender::Female,
+            },
+            games: SavedPreferences::default().games,
+        };
+        let encoded = postcard::to_allocvec(&previous).unwrap();
+        let decoded = decode_player_preferences(&encoded).unwrap();
+        assert_eq!(decoded.global.gender, PlayerGender::Female);
+        assert_eq!(decoded.global.audio_volume, 0.7);
+        assert!(decoded.global.mahjong_action_voices);
+        assert!(decoded.global.mahjong_fan_voices);
     }
 }

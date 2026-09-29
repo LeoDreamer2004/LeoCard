@@ -6,8 +6,8 @@ use super::super::{
     table_appearance_fraction, table_appearance_label,
 };
 use super::{
-    CozySettingsSlider, SelectedSettingsTab, SettingsTabButton, cozy_backdrop_color,
-    cozy_panel_transform,
+    CozySettingsSlider, SelectedSettingsTab, SettingsTabButton, SettingsVoiceToggle,
+    cozy_backdrop_color, cozy_panel_transform,
 };
 use crate::app::presentation::{
     MUTED, TEXT, TableAppearanceIndicator, TableAppearanceLabel, TableAppearanceSetting,
@@ -137,6 +137,7 @@ impl<'a> SettingsModal<'a> {
         );
         for (tab, label) in [
             (SettingsTab::Appearance, "外观"),
+            (SettingsTab::Sound, "声音"),
             (SettingsTab::About, "关于"),
         ] {
             add_settings_tab(commands, tabs, tab, label, selected_tab, assets);
@@ -169,6 +170,9 @@ impl<'a> SettingsModal<'a> {
         match selected_tab {
             SettingsTab::Appearance => {
                 TableAppearanceSettings::new(form, assets).render(commands, content);
+            }
+            SettingsTab::Sound => {
+                render_sound_settings(commands, content, form, assets);
             }
             SettingsTab::About => {
                 AboutSettings::new(updater, assets).render(commands, content);
@@ -246,18 +250,6 @@ impl<'a> TableAppearanceSettings<'a> {
     fn render(&self, commands: &mut Commands, parent: Entity) {
         let form = self.form;
         let assets = self.assets;
-        self.add_slider(commands, parent, TableAppearanceSetting::Volume);
-        spawn_node(
-            commands,
-            parent,
-            Node {
-                width: percent(100),
-                height: px(1),
-                margin: UiRect::vertical(px(3)),
-                ..default()
-            },
-            Some(Color::srgba(0.70, 0.68, 0.78, 0.36)),
-        );
         add_text(commands, parent, "桌面外观", 20.0, TEXT, assets);
         add_text(commands, parent, "桌布背景", 15.0, MUTED, assets);
         let mut path_image = ImageNode::new(assets.home.input.clone()).with_mode(
@@ -422,6 +414,90 @@ impl<'a> TableAppearanceSettings<'a> {
             UiTransform::from_translation(Val2::px(-7.0, 0.0)),
             FocusPolicy::Pass,
         ));
+    }
+}
+
+fn render_sound_settings(
+    commands: &mut Commands,
+    parent: Entity,
+    form: &AppearancePreferences,
+    assets: &UiAssets,
+) {
+    TableAppearanceSettings::new(form, assets).add_slider(
+        commands,
+        parent,
+        TableAppearanceSetting::Volume,
+    );
+    spawn_node(
+        commands,
+        parent,
+        Node {
+            width: percent(100),
+            height: px(1),
+            margin: UiRect::vertical(px(8)),
+            ..default()
+        },
+        Some(Color::srgba(0.70, 0.68, 0.78, 0.36)),
+    );
+    add_text(commands, parent, "麻将", 20.0, TEXT, assets);
+    let row = spawn_node(
+        commands,
+        parent,
+        Node {
+            width: percent(100),
+            flex_direction: FlexDirection::Row,
+            column_gap: px(18),
+            ..default()
+        },
+        None,
+    );
+    for (label, selected, action) in [
+        (
+            "吃碰语音",
+            form.mahjong_action_voices,
+            NavigationUiAction::ToggleMahjongActionVoices,
+        ),
+        (
+            "报番语音",
+            form.mahjong_fan_voices,
+            NavigationUiAction::ToggleMahjongFanVoices,
+        ),
+    ] {
+        let button = commands
+            .spawn((
+                Button,
+                UiAction::Navigation(action),
+                Node {
+                    flex_grow: 1.0,
+                    min_width: px(0),
+                    height: px(48),
+                    align_items: AlignItems::Center,
+                    column_gap: px(8),
+                    ..default()
+                },
+            ))
+            .id();
+        commands.entity(row).add_child(button);
+        let icon = commands
+            .spawn((
+                Node {
+                    width: px(34),
+                    height: px(34),
+                    ..default()
+                },
+                ImageNode::new(if selected {
+                    assets.home.checkbox_selected.clone()
+                } else {
+                    assets.home.checkbox.clone()
+                }),
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(button).add_child(icon);
+        commands
+            .entity(button)
+            .insert(SettingsVoiceToggle { icon, selected });
+        add_text(commands, button, label, 16.0, TEXT, assets);
     }
 }
 

@@ -56,6 +56,11 @@ pub(crate) struct GameScreenResources<'w> {
 }
 
 impl GameScreenResources<'_> {
+    pub(crate) fn start_transition_active(&self) -> bool {
+        self.start_game_transition.match_id.is_some()
+            && !self.start_game_transition.seats.is_empty()
+    }
+
     pub(crate) fn retain_mahjong_hand_hover(
         &mut self,
         client: Option<&ClientResource>,

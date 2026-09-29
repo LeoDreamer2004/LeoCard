@@ -9,7 +9,7 @@ use crate::app::shell::{
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_mahjong::{MahjongClaim, MahjongRuleSet, MahjongTile, MahjongTileKind};
-use leocard_protocol::MahjongCommand;
+use leocard_protocol::{MahjongCommand, MahjongPhaseView};
 
 #[derive(Clone)]
 pub(crate) enum MahjongUiAction {
@@ -22,6 +22,8 @@ pub(crate) enum MahjongUiAction {
     SelectFanGuideTier(u16),
     UpdateRules(MahjongRuleSet),
     ToggleChoiceMenu(MahjongChoiceMenu),
+    ContinueFanSummary,
+    ShowFinalSummary,
     Discard(MahjongTile),
     Respond(MahjongClaim),
     SelfDraw,
@@ -52,6 +54,7 @@ impl DomainUiAction for MahjongUiAction {
 pub(crate) struct MahjongActionContext<'w> {
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, MahjongUiState>,
+    time: Res<'w, Time>,
 }
 
 pub(super) fn dispatch_mahjong_actions(
@@ -111,6 +114,34 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
                 context.ui.choice_menu = (context.ui.choice_menu != Some(*menu)).then_some(*menu);
                 return;
             }
+            Self::ShowFinalSummary => {
+                if let Some(game) = context
+                    .client
+                    .as_deref()
+                    .and_then(|client| client.0.model().mahjong_game())
+                    && let MahjongPhaseView::Finished { result } = &game.phase
+                    && result.match_complete
+                {
+                    context.ui.final_summary_opened_at = Some((
+                        game.match_id,
+                        result.sequence_index,
+                        context.time.elapsed_secs(),
+                    ));
+                }
+                return;
+            }
+            Self::ContinueFanSummary => {
+                if let Some(game) = context
+                    .client
+                    .as_deref()
+                    .and_then(|client| client.0.model().mahjong_game())
+                    && let MahjongPhaseView::Finished { result } = &game.phase
+                    && !result.winners.is_empty()
+                {
+                    context.ui.fan_summary_continued = Some((game.match_id, result.sequence_index));
+                }
+                return;
+            }
             _ => {}
         }
         context.ui.choice_menu = None;
@@ -130,7 +161,9 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
             | MahjongUiAction::ToggleAutoWin
             | MahjongUiAction::ToggleNoClaim
             | MahjongUiAction::ToggleAutoDrawDiscard => unreachable!(),
-            MahjongUiAction::ToggleChoiceMenu(_) => unreachable!(),
+            MahjongUiAction::ToggleChoiceMenu(_)
+            | MahjongUiAction::ContinueFanSummary
+            | MahjongUiAction::ShowFinalSummary => unreachable!(),
         };
         send_game_command(&mut context.client, command);
     }

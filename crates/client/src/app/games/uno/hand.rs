@@ -33,6 +33,7 @@ pub(super) fn add_uno_own_area(
     game_assets: &UnoAssets,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     start_transition_active: bool,
+    intro_only: bool,
 ) {
     let portrait = add_player_portrait(
         commands,
@@ -66,6 +67,9 @@ pub(super) fn add_uno_own_area(
     );
     let info = portrait.portrait;
     attach_start_game_seat_transition(commands, info, own.id, start_transition_active);
+    if intro_only {
+        return;
+    }
     commands
         .entity(portrait.avatar_ring)
         .entry::<Node>()

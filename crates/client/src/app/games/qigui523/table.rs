@@ -135,6 +135,7 @@ pub(crate) fn render_table(
         last_play: client.0.model().last_play_effect(),
         score_capture,
         start_transition_active,
+        intro_only: start_transition_active,
     };
     for relative_seat in 1..TABLE_SEAT_COUNT {
         let physical_seat = SeatId((own_seat.0 + relative_seat) % TABLE_SEAT_COUNT);
@@ -151,6 +152,64 @@ pub(crate) fn render_table(
             &seat_visuals,
             turn_border_materials,
         );
+    }
+
+    if start_transition_active {
+        let hand_area = spawn_node(
+            commands,
+            content,
+            Node {
+                width: percent(100),
+                height: px(218),
+                flex_shrink: 0.0,
+                position_type: PositionType::Relative,
+                ..default()
+            },
+            None,
+        );
+        let own_seat = spawn_node(
+            commands,
+            hand_area,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(10),
+                bottom: px(8),
+                width: px(QIGUI_PORTRAIT_WIDTH),
+                height: px(76.0 * 1.17),
+                ..default()
+            },
+            None,
+        );
+        if let Some(player) = game.players.iter().find(|player| player.id == game.you) {
+            let portrait = add_player_portrait(
+                commands,
+                own_seat,
+                Node {
+                    width: px(QIGUI_PORTRAIT_WIDTH),
+                    height: px(76.0 * 1.17),
+                    ..default()
+                },
+                PlayerPortraitSpec {
+                    player: player.id,
+                    profile: PlayerMenuProfile {
+                        name: &player.name,
+                        avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
+                        reference_points: player.reference_points,
+                        completed_games: player.completed_games,
+                        game_profiles: &player.game_profiles,
+                    },
+                    side: SeatSide::Left,
+                    avatar_size: QIGUI_AVATAR_SIZE,
+                    auto_play: player.auto_play,
+                    menu_open: false,
+                    menu_above: true,
+                    name_color: TEXT,
+                },
+                assets,
+            );
+            attach_start_game_seat_transition(commands, portrait.portrait, game.you, true);
+        }
+        return;
     }
 
     let center = spawn_node(

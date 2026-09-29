@@ -10,6 +10,7 @@ use std::collections::HashMap;
 #[derive(Resource, Default)]
 pub(crate) struct MahjongUiState {
     pub observed_table: Observed<(MatchId, u8), MahjongTableObservation>,
+    pub intro_deal_match: Option<MatchId>,
     pub hand_hover_lifts: HashMap<i32, (f32, Interaction)>,
     pub fan_guide_open: bool,
     pub fan_guide_progress: f32,
@@ -19,6 +20,8 @@ pub(crate) struct MahjongUiState {
     pub no_claim: bool,
     pub auto_draw_discard: bool,
     pub choice_menu: Option<MahjongChoiceMenu>,
+    pub fan_summary_continued: Option<(MatchId, u8)>,
+    pub final_summary_opened_at: Option<(MatchId, u8, f32)>,
     pub last_automatic_action: Option<MahjongAutomaticActionKey>,
     pub(super) auto_hand: Option<(MatchId, u8)>,
     pub table_material: Option<Handle<TableBackgroundMaterial>>,
@@ -71,6 +74,8 @@ impl MahjongUiState {
         self.no_claim = false;
         self.auto_draw_discard = false;
         self.choice_menu = None;
+        self.fan_summary_continued = None;
+        self.final_summary_opened_at = None;
         self.last_automatic_action = None;
     }
 

@@ -166,7 +166,26 @@ pub(crate) fn render_uno_table(
             game_assets,
             turn_border_materials,
             start_transition_active,
+            start_transition_active,
         );
+    }
+
+    if start_transition_active {
+        add_uno_own_area(
+            commands,
+            table,
+            game,
+            own,
+            ui,
+            social,
+            avatars,
+            assets,
+            game_assets,
+            turn_border_materials,
+            true,
+            true,
+        );
+        return;
     }
 
     add_uno_center(commands, table, game, assets, game_assets);
@@ -182,6 +201,7 @@ pub(crate) fn render_uno_table(
         game_assets,
         turn_border_materials,
         start_transition_active,
+        false,
     );
     add_uno_actions(commands, table, game, ui, assets);
     add_uno_callout_actions(commands, table, game, assets);

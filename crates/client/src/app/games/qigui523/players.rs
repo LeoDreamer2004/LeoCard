@@ -109,7 +109,7 @@ pub(super) fn add_opponent_slot(
             slot,
             side,
             visuals.game,
-            player,
+            if visuals.intro_only { None } else { player },
             visuals.play_effect,
             visuals.last_play,
             visuals.ui,
@@ -161,6 +161,22 @@ pub(super) fn add_opponent_slot(
                 player.id,
                 visuals.start_transition_active,
             );
+            if visuals.intro_only {
+                if !matches!(side, SeatSide::Right) {
+                    add_round_play_for_optional_player(
+                        commands,
+                        slot,
+                        side,
+                        visuals.game,
+                        None,
+                        visuals.play_effect,
+                        visuals.last_play,
+                        visuals.ui,
+                        visuals.assets,
+                    );
+                }
+                return;
+            }
             if active {
                 add_turn_border_trace_with_radius(
                     commands,
@@ -236,7 +252,7 @@ pub(super) fn add_opponent_slot(
             slot,
             side,
             visuals.game,
-            player,
+            if visuals.intro_only { None } else { player },
             visuals.play_effect,
             visuals.last_play,
             visuals.ui,

@@ -20,6 +20,7 @@ pub(super) struct SeatVisuals<'a> {
     pub(super) last_play: Option<&'a (PlayerId, PublicPlay)>,
     pub(super) score_capture: &'a ScoreCaptureEffectState,
     pub(super) start_transition_active: bool,
+    pub(super) intro_only: bool,
 }
 
 #[derive(Clone, Copy)]

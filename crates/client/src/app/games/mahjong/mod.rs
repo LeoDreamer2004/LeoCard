@@ -34,6 +34,7 @@ pub(crate) use material::*;
 use players::*;
 pub(crate) use plugin::*;
 pub(crate) use presentation::*;
+pub(crate) use settlement::mahjong_fan_pause_at;
 use settlement::*;
 pub(crate) use state::*;
 use status::*;

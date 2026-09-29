@@ -1,6 +1,7 @@
 use super::{
     SettingsMotion, animate_cozy_modals, animate_settings_sliders, handle_table_appearance_sliders,
     poll_table_felt_picker, sync_table_appearance, update_settings_tab_hover,
+    update_settings_voice_toggle_hover,
 };
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
@@ -23,7 +24,10 @@ impl Plugin for SettingsPlugin {
             )
             .add_systems(
                 Update,
-                update_settings_tab_hover
+                (
+                    update_settings_tab_hover,
+                    update_settings_voice_toggle_hover,
+                )
                     .after(animate_cozy_modals)
                     .in_set(ClientUpdateSet::Animate),
             );

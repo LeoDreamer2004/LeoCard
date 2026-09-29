@@ -4,5 +4,6 @@
 pub(crate) enum SettingsTab {
     #[default]
     Appearance,
+    Sound,
     About,
 }

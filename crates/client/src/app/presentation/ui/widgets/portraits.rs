@@ -38,7 +38,7 @@ pub(crate) fn add_player_seat_value(
     parent: Entity,
     value: PlayerSeatValue<'_>,
     assets: &UiAssets,
-) {
+) -> Entity {
     let score = value.value.to_string();
     let units = value.label.chars().count() as f32 + score.len() as f32 * 0.65;
     let font_size = ((value.width - 10.0) / units.max(1.0)).clamp(9.0, 16.0);
@@ -62,12 +62,15 @@ pub(crate) fn add_player_seat_value(
         FocusPolicy::Pass,
     ));
     let color = if value.active { TEXT } else { MUTED };
+    let mut score_entity = row;
     for text in [value.label, score.as_str()] {
         let text = add_text(commands, row, text, font_size, color, assets);
         commands
             .entity(text)
             .insert((TextLayout::default().with_no_wrap(), FocusPolicy::Pass));
+        score_entity = text;
     }
+    score_entity
 }
 
 pub(crate) fn add_player_portrait(

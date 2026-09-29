@@ -15,7 +15,7 @@ pub(crate) struct MahjongAssets {
     pub action_pass_hover: Handle<Image>,
     pub action_win: Handle<Image>,
     pub action_win_hover: Handle<Image>,
-    pub fan_voices: BTreeMap<Fan, Handle<AudioSource>>,
+    fan_voices: BTreeMap<Fan, [Handle<AudioSource>; 2]>,
     action_voices: [[[Handle<AudioSource>; 2]; 8]; 2],
     pub(super) status: MahjongStatusImages,
 }
@@ -98,7 +98,11 @@ impl MahjongAssets {
                 .map(|spec| {
                     (
                         spec.fan,
-                        asset_server.load(format!("audio/mahjong/fans/{:?}.ogg", spec.fan)),
+                        [
+                            asset_server
+                                .load(format!("audio/mahjong/fans/male/{:?}.ogg", spec.fan)),
+                            asset_server.load(format!("audio/mahjong/fans/{:?}.ogg", spec.fan)),
+                        ],
                     )
                 })
                 .collect(),
@@ -125,6 +129,14 @@ impl MahjongAssets {
             PlayerGender::Female => 1,
         };
         &self.action_voices[voice_set][action.index()][fastrand::usize(..2)]
+    }
+
+    pub(super) fn fan_voice(&self, gender: PlayerGender, fan: Fan) -> Option<&Handle<AudioSource>> {
+        let voice_set = match gender {
+            PlayerGender::Male => 0,
+            PlayerGender::Female => 1,
+        };
+        self.fan_voices.get(&fan).map(|voices| &voices[voice_set])
     }
 }
 

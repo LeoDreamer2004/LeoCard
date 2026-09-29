@@ -30,6 +30,8 @@ pub struct GlobalPreferences {
     #[serde(default = "default_audio_volume")]
     pub audio_volume: f32,
     pub gender: PlayerGender,
+    pub mahjong_action_voices: bool,
+    pub mahjong_fan_voices: bool,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -79,6 +81,8 @@ impl Default for SavedPreferences {
                 table_vignette: DEFAULT_TABLE_VIGNETTE,
                 audio_volume: DEFAULT_AUDIO_VOLUME,
                 gender: PlayerGender::Male,
+                mahjong_action_voices: true,
+                mahjong_fan_voices: true,
             },
             games: GamePreferences {
                 qigui523: QiGui523Preferences {

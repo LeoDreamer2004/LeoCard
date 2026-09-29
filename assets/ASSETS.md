@@ -37,10 +37,10 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 
 ### 国标麻将番种报读语音（Qwen3-TTS）
 
-- 运行时文件：`audio/mahjong/fans/` 下的 81 条 Ogg 语音，按国标麻将番种名称分别报读。
+- 运行时文件：`audio/mahjong/fans/` 下的女声及 `audio/mahjong/fans/male/` 下的男声，各 81 条 Ogg 语音。结算时按获胜玩家的性别播放。
 - 生成模型：[Qwen3-TTS VoiceDesign](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign) 与 [Qwen3-TTS Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base)，模型卡标注 Apache-2.0。
-- 音色先由 VoiceDesign 生成参考语音，再由 Base 为各番种合成；运行时只包含转换后的音频，不包含模型权重。
-- “缺一门”重新合成时，低番参考音配套文本为“平胡。暗杠。自摸。断幺。”；参考音与文本必须对应。
+- 原女声音色由 VoiceDesign 生成，男声沿用已确认的麻将操作语音音色；两套报番均由 Base 合成。女声低番仅提取参考音色，避免参考台词混入番名。运行时只包含转换后的音频，不包含模型权重。
+- “和”按麻将读音朗读为“胡”；“单调将”朗读为“单钓将”。
 
 ### 麻将操作语音（Qwen3-TTS）
 

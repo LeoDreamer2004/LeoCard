@@ -33,6 +33,7 @@ pub(super) fn add_texas_opponent(
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     chip_state: &TexasChipTableState,
     start_transition_active: bool,
+    intro_only: bool,
 ) {
     let side = match relative {
         1 | 2 => SeatSide::Left,
@@ -122,6 +123,9 @@ pub(super) fn add_texas_opponent(
         assets,
         game_assets,
     );
+    if intro_only {
+        return;
+    }
 
     let popup = add_texas_chip_popup(
         commands,

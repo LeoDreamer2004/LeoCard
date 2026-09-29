@@ -17,7 +17,9 @@ use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition, TableBackground,
     TableBackgroundMaterial, add_auto_play_overlay, spawn_node, table_material_params,
 };
-use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
+use crate::app::runtime::{
+    AppearancePreferences, AvatarImages, ClientResource, TableAppearance, UiAssets,
+};
 #[cfg(feature = "developer")]
 use crate::app::shell::add_developer_hand_input;
 use crate::app::shell::{ChatPanelState, DeveloperHandInput, UiState, add_chat_panel};
@@ -331,6 +333,7 @@ pub(super) fn sync_mahjong_claim_presentation(
     mut client: Option<ResMut<ClientResource>>,
     mut presentation: ResMut<MahjongClaimPresentationState>,
     assets: Res<MahjongAssets>,
+    preferences: Res<AppearancePreferences>,
 ) {
     let Some(client) = client.as_deref_mut() else {
         *presentation = MahjongClaimPresentationState::default();
@@ -357,13 +360,21 @@ pub(super) fn sync_mahjong_claim_presentation(
                     MahjongClaim::Pass | MahjongClaim::Win => None,
                 };
                 if let Some(action) = action {
-                    queue_mahjong_action_voice(&mut commands, &assets, game, *player, action);
+                    queue_mahjong_action_voice(
+                        &mut commands,
+                        &assets,
+                        &preferences,
+                        game,
+                        *player,
+                        action,
+                    );
                 }
             }
             MahjongEvent::KongDeclared { player, added, .. } => {
                 queue_mahjong_action_voice(
                     &mut commands,
                     &assets,
+                    &preferences,
                     game,
                     *player,
                     if *added {
@@ -380,7 +391,14 @@ pub(super) fn sync_mahjong_claim_presentation(
                     } else {
                         MahjongActionVoice::SelfDraw
                     };
-                    queue_mahjong_action_voice(&mut commands, &assets, game, winner.player, action);
+                    queue_mahjong_action_voice(
+                        &mut commands,
+                        &assets,
+                        &preferences,
+                        game,
+                        winner.player,
+                        action,
+                    );
                 }
             }
             _ => {}
@@ -389,6 +407,7 @@ pub(super) fn sync_mahjong_claim_presentation(
             queue_mahjong_action_voice(
                 &mut commands,
                 &assets,
+                &preferences,
                 game,
                 *player,
                 MahjongActionVoice::Flower,
@@ -616,6 +635,28 @@ pub(crate) fn render_mahjong_table(
         .map(|player| player.seat.0)
         .unwrap_or_default();
     let start_transition_active = start_game_transition.is_active_for(game.match_id);
+    if start_transition_active {
+        ui.intro_deal_match = Some(game.match_id);
+        for player in &game.players {
+            render_mahjong_player_panel(
+                commands,
+                table,
+                player,
+                MahjongPlayerPanelVisuals {
+                    own_seat,
+                    interaction_menu_open,
+                    start_transition_active,
+                    assets,
+                    avatars,
+                },
+            );
+        }
+        return;
+    }
+    let intro_deal = ui.intro_deal_match == Some(game.match_id) && !game.your_hand.is_empty();
+    if intro_deal {
+        ui.intro_deal_match = None;
+    }
     if ui
         .observed_table
         .observe((game.match_id, game.sequence_index))
@@ -632,7 +673,7 @@ pub(crate) fn render_mahjong_table(
     let dealing = matches!(
         game.phase,
         MahjongPhaseView::Dealing { .. } | MahjongPhaseView::ReplacingFlower { .. }
-    );
+    ) || (intro_deal && !matches!(game.phase, MahjongPhaseView::Finished { .. }));
     let drawn_tile_falling = matches!(
         game.phase,
         MahjongPhaseView::Playing | MahjongPhaseView::ReplacingFlower { .. }
@@ -884,6 +925,7 @@ pub(crate) fn render_mahjong_table(
         render_mahjong_settlement(
             commands,
             table,
+            content,
             game,
             result,
             MahjongSettlementVisuals {
@@ -892,6 +934,14 @@ pub(crate) fn render_mahjong_table(
                 animation: game_summary,
                 game_assets,
                 materials: tile_materials,
+                fan_summary_continued: ui.fan_summary_continued
+                    == Some((game.match_id, result.sequence_index)),
+                final_summary_opened_at: ui
+                    .final_summary_opened_at
+                    .filter(|(match_id, sequence_index, _)| {
+                        *match_id == game.match_id && *sequence_index == result.sequence_index
+                    })
+                    .map(|(_, _, started_at)| started_at),
             },
         );
     }

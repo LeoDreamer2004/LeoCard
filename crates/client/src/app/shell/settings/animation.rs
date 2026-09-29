@@ -21,6 +21,32 @@ pub(crate) struct SettingsTabButton {
 #[derive(Component)]
 pub(crate) struct SelectedSettingsTab;
 
+#[derive(Component)]
+pub(crate) struct SettingsVoiceToggle {
+    pub icon: Entity,
+    pub selected: bool,
+}
+
+pub(crate) fn update_settings_voice_toggle_hover(
+    assets: Res<UiAssets>,
+    toggles: Query<(&Interaction, &SettingsVoiceToggle)>,
+    mut images: Query<&mut ImageNode>,
+) {
+    for (interaction, toggle) in &toggles {
+        let texture = match (toggle.selected, *interaction != Interaction::None) {
+            (false, false) => &assets.home.checkbox,
+            (false, true) => &assets.home.checkbox_highlighted,
+            (true, false) => &assets.home.checkbox_selected,
+            (true, true) => &assets.home.checkbox_selected_highlighted,
+        };
+        if let Ok(mut image) = images.get_mut(toggle.icon)
+            && image.image != *texture
+        {
+            image.image = texture.clone();
+        }
+    }
+}
+
 pub(crate) fn update_settings_tab_hover(
     motion: Res<SettingsMotion>,
     assets: Res<UiAssets>,

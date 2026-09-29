@@ -40,6 +40,8 @@ pub(crate) struct AppearancePreferences {
     pub table_brightness: f32,
     pub table_vignette: f32,
     pub audio_volume: f32,
+    pub mahjong_action_voices: bool,
+    pub mahjong_fan_voices: bool,
 }
 
 #[derive(Resource)]
@@ -134,6 +136,8 @@ impl PreferenceResources {
                     1.0,
                     DEFAULT_AUDIO_VOLUME,
                 ),
+                mahjong_action_voices: saved.global.mahjong_action_voices,
+                mahjong_fan_voices: saved.global.mahjong_fan_voices,
             },
             host_rules: HostRulePreferences {
                 host_rules: normalize_rules(saved.games.qigui523.host_rules),
@@ -274,6 +278,8 @@ pub(crate) fn save_appearance_preferences(
     saved.global.table_brightness = appearance.table_brightness;
     saved.global.table_vignette = appearance.table_vignette;
     saved.global.audio_volume = appearance.audio_volume;
+    saved.global.mahjong_action_voices = appearance.mahjong_action_voices;
+    saved.global.mahjong_fan_voices = appearance.mahjong_fan_voices;
     save_player_preferences(&saved)
 }
 

@@ -61,15 +61,6 @@ pub(crate) fn render_shengji_table(
     chat: &ChatPanelState,
     visuals: ShengjiTableVisuals,
 ) {
-    if ui.observed_hand.observe((game.match_id, game.hand_number)) {
-        ui.selected.clear();
-        ui.buried_open = false;
-    }
-    if game.your_buried.is_empty() {
-        ui.buried_open = false;
-    }
-    ui.selected.retain(|card| game.your_hand.contains(card));
-    select_forced_shengji_follow_cards(game, ui);
     let content = spawn_node(
         commands,
         root,
@@ -139,9 +130,46 @@ pub(crate) fn render_shengji_table(
                 visuals.turn_border_materials,
                 previous_trick,
                 start_transition_active,
+                start_transition_active,
             );
         }
     }
+    if start_transition_active {
+        ui.intro_deal_match = Some(game.match_id);
+        let hand_area = spawn_node(
+            commands,
+            content,
+            Node {
+                width: percent(100),
+                height: px(210),
+                flex_shrink: 0.0,
+                position_type: PositionType::Relative,
+                ..default()
+            },
+            None,
+        );
+        add_shengji_self_panel(
+            commands,
+            hand_area,
+            own,
+            game,
+            visuals.assets,
+            visuals.avatars,
+            visuals.turn_border_materials,
+            true,
+            social.interaction_menu_open,
+        );
+        return;
+    }
+    if ui.observed_hand.observe((game.match_id, game.hand_number)) {
+        ui.selected.clear();
+        ui.buried_open = false;
+    }
+    if game.your_buried.is_empty() {
+        ui.buried_open = false;
+    }
+    ui.selected.retain(|card| game.your_hand.contains(card));
+    select_forced_shengji_follow_cards(game, ui);
     let bidding_visible = matches!(
         game.phase,
         ShengjiPhaseView::Dealing { .. } | ShengjiPhaseView::BiddingGrace { .. }
@@ -466,6 +494,7 @@ fn add_shengji_opponent(
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     previous_trick: Option<&[ShengjiPublicPlay]>,
     start_transition_active: bool,
+    intro_only: bool,
 ) {
     const SIDE_PLAY_GAP: f32 = 68.0;
     const SIDE_SLOT_WIDTH: f32 = 96.0 * 1.17 + SIDE_PLAY_GAP + 190.0;
@@ -514,15 +543,19 @@ fn add_shengji_opponent(
             .insert(UiTransform::from_translation(Val2::px(0.0, -38.0)));
     }
     if matches!(side, SeatSide::Right) {
-        add_shengji_play_area(
-            commands,
-            slot,
-            game,
-            player.id,
-            side,
-            assets,
-            previous_trick,
-        );
+        if intro_only {
+            add_shengji_intro_play_placeholder(commands, slot);
+        } else {
+            add_shengji_play_area(
+                commands,
+                slot,
+                game,
+                player.id,
+                side,
+                assets,
+                previous_trick,
+            );
+        }
     }
     add_shengji_player_panel(
         commands,
@@ -537,16 +570,34 @@ fn add_shengji_opponent(
         start_transition_active,
     );
     if !matches!(side, SeatSide::Right) {
-        add_shengji_play_area(
-            commands,
-            slot,
-            game,
-            player.id,
-            side,
-            assets,
-            previous_trick,
-        );
+        if intro_only {
+            add_shengji_intro_play_placeholder(commands, slot);
+        } else {
+            add_shengji_play_area(
+                commands,
+                slot,
+                game,
+                player.id,
+                side,
+                assets,
+                previous_trick,
+            );
+        }
     }
+}
+
+fn add_shengji_intro_play_placeholder(commands: &mut Commands, parent: Entity) {
+    spawn_node(
+        commands,
+        parent,
+        Node {
+            width: px(190),
+            min_width: px(190),
+            min_height: px(112),
+            ..default()
+        },
+        None,
+    );
 }
 
 #[expect(

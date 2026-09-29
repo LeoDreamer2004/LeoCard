@@ -19,6 +19,8 @@ pub(crate) enum NavigationUiAction {
     SelectProfileGameTab(ProfileGameTab),
     ToggleSettings,
     SelectSettingsTab(SettingsTab),
+    ToggleMahjongActionVoices,
+    ToggleMahjongFanVoices,
     StartUpdate,
     OpenGitHubRepository,
     HideUpdateDialog,
@@ -95,6 +97,18 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
                 }
             }
             NavigationUiAction::SelectSettingsTab(tab) => ui.navigation.settings_tab = *tab,
+            NavigationUiAction::ToggleMahjongActionVoices => {
+                appearance.mahjong_action_voices = !appearance.mahjong_action_voices;
+                if let Err(error) = save_appearance_preferences(appearance) {
+                    warn!("{error}");
+                }
+            }
+            NavigationUiAction::ToggleMahjongFanVoices => {
+                appearance.mahjong_fan_voices = !appearance.mahjong_fan_voices;
+                if let Err(error) = save_appearance_preferences(appearance) {
+                    warn!("{error}");
+                }
+            }
             NavigationUiAction::StartUpdate => updater.begin_or_show(),
             NavigationUiAction::OpenGitHubRepository => {
                 if let Err(error) = open_github_repository() {

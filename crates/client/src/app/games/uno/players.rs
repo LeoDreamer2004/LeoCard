@@ -93,6 +93,7 @@ pub(super) fn add_uno_player_panel(
     game_assets: &UnoAssets,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     start_transition_active: bool,
+    intro_only: bool,
 ) {
     let selecting = match game.pending_swap {
         Some(UnoPendingSwapView::SwapOneTarget { player: actor }) => {
@@ -146,6 +147,9 @@ pub(super) fn add_uno_player_panel(
     );
     let panel = portrait.portrait;
     attach_start_game_seat_transition(commands, panel, player.id, start_transition_active);
+    if intro_only {
+        return;
+    }
     commands
         .entity(portrait.avatar_ring)
         .entry::<Node>()

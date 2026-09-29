@@ -37,6 +37,9 @@ struct ScreenResources<'w> {
     ui: ResMut<'w, UiState>,
 }
 
+#[derive(Component)]
+struct GameIntroRoot;
+
 #[derive(SystemParam)]
 pub(crate) struct ScreenRebuild<'w, 's> {
     commands: Commands<'w, 's>,
@@ -44,6 +47,7 @@ pub(crate) struct ScreenRebuild<'w, 's> {
     visuals: VisualAssets<'w>,
     games: GameScreenResources<'w>,
     roots: Query<'w, 's, Entity, With<UiRoot>>,
+    intro_roots: Query<'w, 's, Entity, With<GameIntroRoot>>,
     mahjong_hand_tiles: Query<'w, 's, (&'static MahjongHandTile, Option<&'static Interaction>)>,
 }
 
@@ -54,6 +58,12 @@ pub(crate) fn rebuild_ui(mut screen: ScreenRebuild) {
 impl ScreenRebuild<'_, '_> {
     fn rebuild(&mut self) {
         if !self.resources.ui.dirty {
+            return;
+        }
+        // The intro contains portraits and felt only. Keep its targets alive
+        // through opening snapshots, then build the game once it completes.
+        let intro_active = self.games.start_transition_active();
+        if intro_active && !self.intro_roots.is_empty() {
             return;
         }
         self.resources.ui.dirty = false;
@@ -90,6 +100,9 @@ impl ScreenRebuild<'_, '_> {
             games: &mut self.games,
         }
         .render(root);
+        if intro_active {
+            self.commands.entity(root).insert(GameIntroRoot);
+        }
     }
 }
 

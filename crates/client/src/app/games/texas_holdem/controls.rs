@@ -36,6 +36,7 @@ pub(super) fn add_texas_own_area(
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     chip_state: &TexasChipTableState,
     start_transition_active: bool,
+    intro_only: bool,
 ) {
     let portrait_height = 76.0 * 1.17;
     let own_seat = spawn_node(
@@ -103,6 +104,9 @@ pub(super) fn add_texas_own_area(
         );
     }
     add_role_tokens(commands, portrait.avatar_ring, own.id, game, assets);
+    if intro_only {
+        return;
+    }
     add_texas_chip_popup(
         commands,
         own_seat,

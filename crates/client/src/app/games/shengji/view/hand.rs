@@ -218,7 +218,11 @@ pub(crate) fn queue_shengji_deal_animations(
         .copied()
         .filter(|card| !ui.observed_hand.state.contains(card))
         .collect::<Vec<_>>();
-    let animate_deal = matches!(game.phase, ShengjiPhaseView::Dealing { .. });
+    let intro_deal = ui.intro_deal_match == Some(game.match_id) && !new_cards.is_empty();
+    if intro_deal {
+        ui.intro_deal_match = None;
+    }
+    let animate_deal = intro_deal || matches!(game.phase, ShengjiPhaseView::Dealing { .. });
     for (index, card) in new_cards.into_iter().enumerate() {
         let delay = if animate_deal {
             index as f32 * SHENGJI_LOCAL_DEAL_INTERVAL

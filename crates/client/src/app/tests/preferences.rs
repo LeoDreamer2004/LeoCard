@@ -21,6 +21,8 @@ fn preferences_round_trip_including_avatar() {
             table_vignette: 0.42,
             audio_volume: 0.63,
             gender: PlayerGender::Female,
+            mahjong_action_voices: false,
+            mahjong_fan_voices: true,
         },
         games: GamePreferences {
             qigui523: QiGui523Preferences {
@@ -91,6 +93,8 @@ fn preferences_round_trip_including_avatar() {
     assert_eq!(decoded.global.table_vignette, saved.global.table_vignette);
     assert_eq!(decoded.global.audio_volume, saved.global.audio_volume);
     assert_eq!(decoded.global.gender, PlayerGender::Female);
+    assert!(!decoded.global.mahjong_action_voices);
+    assert!(decoded.global.mahjong_fan_voices);
     assert_eq!(
         decoded.games.qigui523.host_rules,
         saved.games.qigui523.host_rules

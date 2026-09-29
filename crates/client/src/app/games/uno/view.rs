@@ -8,7 +8,7 @@ use super::{
     uno_ui_color,
 };
 use crate::app::presentation::{
-    ACCENT, DANGER, DESIGN_WIDTH, GameSummaryAnimation, HEADER_BG, StartGameSeatTransition, TEXT,
+    ACCENT, DANGER, DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT,
     TableBackground, TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay, add_text,
     spawn_node, table_material_params,
 };
@@ -166,7 +166,26 @@ pub(crate) fn render_uno_table(
             game_assets,
             turn_border_materials,
             start_transition_active,
+            start_transition_active,
         );
+    }
+
+    if start_transition_active {
+        add_uno_own_area(
+            commands,
+            table,
+            game,
+            own,
+            ui,
+            social,
+            avatars,
+            assets,
+            game_assets,
+            turn_border_materials,
+            true,
+            true,
+        );
+        return;
     }
 
     add_uno_center(commands, table, game, assets, game_assets);
@@ -182,6 +201,7 @@ pub(crate) fn render_uno_table(
         game_assets,
         turn_border_materials,
         start_transition_active,
+        false,
     );
     add_uno_actions(commands, table, game, ui, assets);
     add_uno_callout_actions(commands, table, game, assets);
@@ -245,7 +265,7 @@ fn add_uno_center(
         Node {
             position_type: PositionType::Absolute,
             left: px(467),
-            top: px(205),
+            top: px(229),
             width: px(346),
             height: px(170),
             align_items: AlignItems::Center,
@@ -300,23 +320,30 @@ fn add_uno_center(
         draw,
         Node {
             position_type: PositionType::Absolute,
-            right: px(-13),
-            top: px(-10),
-            min_width: px(31),
-            height: px(25),
-            padding: UiRect::horizontal(px(6)),
+            left: percent(50),
+            top: percent(50),
+            width: px(48),
+            height: px(36),
+            margin: UiRect {
+                left: px(-24),
+                top: px(-18),
+                ..default()
+            },
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
-            border_radius: BorderRadius::all(percent(50)),
+            border_radius: BorderRadius::all(px(7)),
             ..default()
         },
-        Some(HEADER_BG.with_alpha(0.94)),
+        Some(Color::BLACK.with_alpha(0.72)),
     );
+    commands
+        .entity(draw_count)
+        .insert((ZIndex(7), FocusPolicy::Pass));
     add_text(
         commands,
         draw_count,
         game.draw_pile_len.to_string(),
-        11.0,
+        20.0,
         TEXT,
         assets,
     );

@@ -2,8 +2,8 @@
 
 use crate::app::presentation::{
     MAX_TABLE_BRIGHTNESS, MAX_TABLE_VIGNETTE, MIN_TABLE_BRIGHTNESS, MIN_TABLE_VIGNETTE,
-    TableAppearanceIndicator, TableAppearanceIndicatorPart, TableAppearanceLabel,
-    TableAppearanceSetting, TableAppearanceSlider, TableBackground, TableBackgroundMaterial,
+    TableAppearanceIndicator, TableAppearanceLabel, TableAppearanceSetting, TableAppearanceSlider,
+    TableBackground, TableBackgroundMaterial,
 };
 use crate::app::runtime::{
     AppearancePreferences, normalize_table_brightness, save_appearance_preferences,
@@ -47,7 +47,9 @@ pub(crate) fn table_appearance_label(
         TableAppearanceSetting::Vignette => {
             format!("四周视角阴影  {:.0}%", form.table_vignette * 100.0)
         }
-        TableAppearanceSetting::Volume => format!("音量  {:.0}%", form.audio_volume * 100.0),
+        TableAppearanceSetting::Volume => {
+            format!("游戏音量  {:.0}%", form.audio_volume * 100.0)
+        }
     }
 }
 
@@ -106,13 +108,10 @@ pub(crate) fn handle_table_appearance_sliders(
         if (before - fraction).abs() > 0.001 {
             set_table_appearance_from_fraction(setting, fraction, &mut form);
             for (indicator, mut node) in &mut indicators {
-                if indicator.setting != setting {
+                if indicator.0 != setting {
                     continue;
                 }
-                match indicator.part {
-                    TableAppearanceIndicatorPart::Fill => node.width = percent(fraction * 100.0),
-                    TableAppearanceIndicatorPart::Knob => node.left = percent(fraction * 100.0),
-                }
+                node.left = percent(fraction * 100.0);
             }
             for (label, mut text) in &mut labels {
                 if label.0 == setting {

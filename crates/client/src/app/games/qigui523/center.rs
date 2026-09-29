@@ -24,7 +24,7 @@ pub(super) fn add_draw_pile(
             width: px(48.0 + layers as f32 * 2.0),
             height: px(64.0 + layers as f32 * 1.5),
             position_type: PositionType::Relative,
-            margin: UiRect::bottom(px(3)),
+            flex_shrink: 0.0,
             ..default()
         },
         None,
@@ -41,8 +41,6 @@ pub(super) fn add_draw_pile(
                 height: px(62),
                 border: UiRect::all(px(2)),
                 border_radius: BorderRadius::all(px(5)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
                 ..default()
             },
             Some(HEADER_BG.with_alpha(0.36)),
@@ -81,10 +79,10 @@ pub(super) fn add_draw_pile(
             position_type: PositionType::Absolute,
             left: percent(50),
             top: percent(50),
-            width: px(34),
+            width: px(36),
             height: px(28),
             margin: UiRect {
-                left: px(-17),
+                left: px(-18),
                 top: px(-14),
                 ..default()
             },
@@ -122,29 +120,45 @@ pub(super) fn add_table_score_cards(
         return;
     }
     sort_cards_high_to_low(&mut cards);
-    let hand = spawn_node(
+    let stack = spawn_node(
         commands,
         parent,
         Node {
-            height: px(CardSize::TableScore.dimensions().1),
-            flex_direction: FlexDirection::Row,
-            flex_wrap: FlexWrap::NoWrap,
-            align_items: AlignItems::Center,
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::FlexStart,
+            row_gap: px(3),
+            flex_shrink: 0.0,
+            margin: UiRect::top(px(8)),
             ..default()
         },
         None,
     );
-    let last_card = cards.len().saturating_sub(1);
-    for (index, card) in cards.into_iter().enumerate() {
-        add_card_image(
+    for chunk in cards.chunks(28) {
+        let hand = spawn_node(
             commands,
-            hand,
-            card,
-            CardSize::TableScore,
-            index,
-            index == last_card,
-            false,
-            assets,
+            stack,
+            Node {
+                height: px(CardSize::FinishedHand.dimensions().1),
+                flex_direction: FlexDirection::Row,
+                flex_wrap: FlexWrap::NoWrap,
+                align_items: AlignItems::Center,
+                flex_shrink: 0.0,
+                ..default()
+            },
+            None,
         );
+        let last_card = chunk.len().saturating_sub(1);
+        for (index, card) in chunk.iter().enumerate() {
+            add_card_image(
+                commands,
+                hand,
+                *card,
+                CardSize::FinishedHand,
+                index,
+                index == last_card,
+                false,
+                assets,
+            );
+        }
     }
 }

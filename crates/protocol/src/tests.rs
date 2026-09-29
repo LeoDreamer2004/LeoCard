@@ -32,6 +32,7 @@ fn client_message_round_trips_through_tcp_frame() {
             reference_points: 12,
             completed_games: 8,
             game_profiles: PlayerGameProfiles {
+                gender: PlayerGender::Female,
                 qigui523: Some(QiGui523ProfileStats {
                     completed_games: 2,
                     total_score: 180,

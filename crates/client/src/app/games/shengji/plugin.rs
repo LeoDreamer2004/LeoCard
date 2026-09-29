@@ -12,6 +12,7 @@ use super::{
     sync_shengji_presentation, sync_shengji_score_capture_effect, sync_shengji_score_tray_hover,
     update_shengji_settlement_animation,
 };
+use crate::app::presentation::start_game_intro_finished;
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::UiActionSet;
 use bevy::prelude::*;
@@ -48,6 +49,7 @@ impl Plugin for ShengjiPlugin {
                     update_shengji_settlement_animation,
                 )
                     .chain()
+                    .run_if(start_game_intro_finished)
                     .in_set(ClientUpdateSet::Sync),
             )
             .add_systems(
@@ -58,6 +60,7 @@ impl Plugin for ShengjiPlugin {
                 Update,
                 (queue_shengji_deal_animations, animate_shengji_hand_cards)
                     .chain()
+                    .run_if(start_game_intro_finished)
                     .in_set(ClientUpdateSet::Animate),
             )
             .add_systems(
@@ -82,6 +85,7 @@ impl Plugin for ShengjiPlugin {
                     spawn_shengji_settlement_absorption,
                     animate_shengji_score_absorbs,
                 )
+                    .run_if(start_game_intro_finished)
                     .in_set(ClientUpdateSet::Animate),
             );
     }

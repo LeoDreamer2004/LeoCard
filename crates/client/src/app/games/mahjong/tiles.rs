@@ -100,10 +100,10 @@ pub(super) fn add_mahjong_hand_tile(
             },
             MahjongHoverHandKind(kind),
             Node {
-                width: px(50),
-                height: px(68),
-                min_width: px(50),
-                margin: UiRect::right(px(-5)),
+                width: px(56),
+                height: px(76),
+                min_width: px(56),
+                margin: UiRect::right(px(-6)),
                 overflow: Overflow::visible(),
                 ..default()
             },

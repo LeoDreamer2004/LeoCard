@@ -5,15 +5,16 @@ use super::{
 };
 use crate::app::presentation::add_animated_summary_text;
 use crate::app::presentation::{
-    ACCENT, ButtonKind, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider,
-    GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, READY,
+    ACCENT, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider, GameSummaryModal,
+    GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, READY,
     SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
-    TEXAS_UNCONTESTED_REVEAL_DURATION, TEXT, add_action_button, add_avatar,
-    add_disabled_action_button, add_ready_avatar, add_text, decorate_panel_skin, spawn_node,
-    summary_modal_visual, summary_row_progress,
+    TEXAS_UNCONTESTED_REVEAL_DURATION, TEXT, add_avatar, add_ready_avatar, add_text,
+    decorate_panel_skin, spawn_node, summary_modal_visual, summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{LobbyUiAction, UiAction};
+use crate::app::shell::{
+    CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
+};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{
@@ -315,6 +316,16 @@ pub(super) fn add_texas_hand_result(
         animation.elapsed,
         assets,
     );
+    spawn_node(
+        commands,
+        panel,
+        Node {
+            width: px(86),
+            height: px(2),
+            ..default()
+        },
+        Some(Color::srgb(0.64, 0.59, 0.93)),
+    );
 
     let mut hand_players = game.players.iter().collect::<Vec<_>>();
     hand_players.sort_by(|left, right| {
@@ -346,7 +357,6 @@ pub(super) fn add_texas_hand_result(
                 padding: UiRect::axes(px(9), px(3)),
                 align_items: AlignItems::Center,
                 column_gap: px(8),
-                border_radius: BorderRadius::all(px(7)),
                 ..default()
             },
             Some(PANEL_ALT.with_alpha(0.82 * row_progress)),
@@ -504,7 +514,6 @@ pub(super) fn add_texas_hand_result(
                     padding: UiRect::axes(px(10), px(3)),
                     align_items: AlignItems::Center,
                     column_gap: px(8),
-                    border_radius: BorderRadius::all(px(7)),
                     ..default()
                 },
                 Some(PANEL_ALT.with_alpha(0.82 * progress)),
@@ -596,13 +605,15 @@ pub(super) fn add_texas_hand_result(
         },
     ));
     if *tournament_complete {
-        add_action_button(
+        add_cozy_button_variant(
             commands,
             controls,
             "返回大厅",
             UiAction::Lobby(LobbyUiAction::ReturnToLobby),
-            ButtonKind::Primary,
             assets,
+            px(150),
+            46.0,
+            CozyButtonVariant::Primary,
         );
     } else {
         let ready = game
@@ -611,15 +622,17 @@ pub(super) fn add_texas_hand_result(
             .find(|player| player.id == game.you)
             .is_some_and(|player| player.ready);
         if ready {
-            add_disabled_action_button(commands, controls, "已准备", assets);
+            add_cozy_disabled_button(commands, controls, "已准备", assets, px(150), 46.0);
         } else {
-            add_action_button(
+            add_cozy_button_variant(
                 commands,
                 controls,
                 "准备下一手",
                 UiAction::Lobby(LobbyUiAction::PlayAgain),
-                ButtonKind::Primary,
                 assets,
+                px(150),
+                46.0,
+                CozyButtonVariant::Cool,
             );
         }
     }

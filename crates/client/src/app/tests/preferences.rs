@@ -1,7 +1,7 @@
 use super::prelude::*;
 use leocard_client::GlobalPreferences;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
-use leocard_protocol::TABLE_SEAT_COUNT;
+use leocard_protocol::{PlayerGender, TABLE_SEAT_COUNT};
 use leocard_qigui523::{QiGuiRuleSet, TimeControl};
 use leocard_shengji::ShengjiRuleSet;
 use leocard_texas_holdem::TexasHoldemRuleSet;
@@ -20,6 +20,9 @@ fn preferences_round_trip_including_avatar() {
             table_brightness: 0.75,
             table_vignette: 0.42,
             audio_volume: 0.63,
+            gender: PlayerGender::Female,
+            mahjong_action_voices: false,
+            mahjong_fan_voices: true,
         },
         games: GamePreferences {
             qigui523: QiGui523Preferences {
@@ -89,6 +92,9 @@ fn preferences_round_trip_including_avatar() {
     );
     assert_eq!(decoded.global.table_vignette, saved.global.table_vignette);
     assert_eq!(decoded.global.audio_volume, saved.global.audio_volume);
+    assert_eq!(decoded.global.gender, PlayerGender::Female);
+    assert!(!decoded.global.mahjong_action_voices);
+    assert!(decoded.global.mahjong_fan_voices);
     assert_eq!(
         decoded.games.qigui523.host_rules,
         saved.games.qigui523.host_rules

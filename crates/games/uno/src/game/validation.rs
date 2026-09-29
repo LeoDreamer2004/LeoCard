@@ -61,7 +61,7 @@ impl GameState {
             if !self.stack_allowed(card) {
                 return Err(GameError::CannotStack(card));
             }
-        } else if !self.matches_top(card) {
+        } else if !self.sudden_death_free_play() && !self.matches_top(card) {
             return Err(GameError::CardDoesNotMatch);
         }
 

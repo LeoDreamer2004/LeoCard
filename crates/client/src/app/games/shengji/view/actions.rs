@@ -1,16 +1,14 @@
 use super::super::{ShengjiUiAction, ShengjiUiState};
-use super::{add_shengji_bid_button, shengji_declaration_candidate};
-use crate::app::presentation::{
-    ACCENT, ButtonKind, DANGER, MUTED, TEXT, add_action_button, add_disabled_action_button,
-    add_text, spawn_node,
-};
+use super::add_shengji_bid_strip;
+use crate::app::presentation::spawn_node;
 use crate::app::runtime::UiAssets;
-use crate::app::shell::UiAction;
+use crate::app::shell::{
+    CozyButtonVariant, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
+};
 use bevy::prelude::*;
 use leocard_protocol::{
     PlayerId, ShengjiFiveTrumpCrossingStage, ShengjiPhaseView, ShengjiSnapshot,
 };
-use leocard_shengji::ShengjiSuit;
 use leocard_shengji::forced_follow_cards;
 
 pub(super) fn add_shengji_actions(
@@ -28,7 +26,7 @@ pub(super) fn add_shengji_actions(
             left: percent(25),
             right: percent(25),
             top: px(0),
-            height: px(48),
+            height: px(54),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             column_gap: px(10),
@@ -40,74 +38,57 @@ pub(super) fn add_shengji_actions(
         ShengjiPhaseView::Burying if game.dealer == Some(game.you) => {
             let count = ui.selected.len();
             let kitty_size = game.rules.kitty_size();
+            let label = format!("埋底 ({count}/{kitty_size})");
             if count == kitty_size {
-                add_action_button(
+                add_cozy_button_variant(
                     commands,
                     actions,
-                    "埋下底牌",
+                    &label,
                     UiAction::Shengji(ShengjiUiAction::SubmitCards),
-                    ButtonKind::Primary,
                     assets,
+                    px(142),
+                    48.0,
+                    CozyButtonVariant::Cool,
                 );
             } else {
-                add_disabled_action_button(
-                    commands,
-                    actions,
-                    &format!("请选择 {kitty_size} 张底牌（{count}/{kitty_size}）"),
-                    assets,
-                );
+                add_cozy_disabled_button(commands, actions, &label, assets, px(142), 48.0);
             }
         }
-        ShengjiPhaseView::Burying => {
-            add_text(commands, actions, "等待庄家埋底…", 15.0, MUTED, assets);
-        }
+        ShengjiPhaseView::Burying => {}
         ShengjiPhaseView::BottomCopying { player, .. } if *player == game.you => {
-            for (label, target, color) in [
-                ("♦", Some(ShengjiSuit::Diamond), DANGER),
-                ("♣", Some(ShengjiSuit::Club), TEXT),
-                ("♥", Some(ShengjiSuit::Heart), DANGER),
-                ("♠", Some(ShengjiSuit::Spade), TEXT),
-                ("无主", None, ACCENT),
-            ] {
-                let cards = shengji_declaration_candidate(game, target);
-                add_shengji_bid_button(commands, actions, label, cards, color, true, assets);
-            }
-            add_action_button(
+            add_shengji_bid_strip(commands, actions, game, true, assets);
+            add_cozy_button_variant(
                 commands,
                 actions,
                 "不抄底",
                 UiAction::Shengji(ShengjiUiAction::DeclineBottomCopy),
-                ButtonKind::Secondary,
                 assets,
+                px(120),
+                48.0,
+                CozyButtonVariant::Neutral,
             );
         }
-        ShengjiPhaseView::BottomCopying { .. } => {
-            add_text(commands, actions, "等待抄底…", 15.0, MUTED, assets);
-        }
+        ShengjiPhaseView::BottomCopying { .. } => {}
         ShengjiPhaseView::BottomCopyBurying { player } if *player == game.you => {
             let count = ui.selected.len();
             let kitty_size = game.rules.kitty_size();
+            let label = format!("再埋底 ({count}/{kitty_size})");
             if count == kitty_size {
-                add_action_button(
+                add_cozy_button_variant(
                     commands,
                     actions,
-                    "重新埋底",
+                    &label,
                     UiAction::Shengji(ShengjiUiAction::SubmitCards),
-                    ButtonKind::Primary,
                     assets,
+                    px(142),
+                    48.0,
+                    CozyButtonVariant::Cool,
                 );
             } else {
-                add_disabled_action_button(
-                    commands,
-                    actions,
-                    &format!("选择 {kitty_size} 张重新埋底（{count}/{kitty_size}）"),
-                    assets,
-                );
+                add_cozy_disabled_button(commands, actions, &label, assets, px(142), 48.0);
             }
         }
-        ShengjiPhaseView::BottomCopyBurying { .. } => {
-            add_text(commands, actions, "等待抄底…", 15.0, MUTED, assets);
-        }
+        ShengjiPhaseView::BottomCopyBurying { .. } => {}
         ShengjiPhaseView::FiveTrumpCrossing {
             stage: ShengjiFiveTrumpCrossingStage::Deciding,
             eligible,
@@ -127,48 +108,30 @@ pub(super) fn add_shengji_actions(
                         .filter(|card| trump.is_trump(**card))
                         .all(|card| selected.contains(card))
                 });
+                let label = format!("过江 ({}/5)", selected.len());
                 if selected.len() == 5 && includes_all_trumps {
-                    add_action_button(
+                    add_cozy_button_variant(
                         commands,
                         actions,
-                        "五主过江",
+                        &label,
                         UiAction::Shengji(ShengjiUiAction::SubmitCards),
-                        ButtonKind::Primary,
                         assets,
+                        px(142),
+                        48.0,
+                        CozyButtonVariant::Cool,
                     );
                 } else {
-                    add_disabled_action_button(
-                        commands,
-                        actions,
-                        &format!("选择全部主牌并补足五张（{}/5）", selected.len()),
-                        assets,
-                    );
+                    add_cozy_disabled_button(commands, actions, &label, assets, px(142), 48.0);
                 }
-                add_action_button(
+                add_cozy_button_variant(
                     commands,
                     actions,
                     "不过江",
                     UiAction::Shengji(ShengjiUiAction::DeclineFiveTrumpCrossing),
-                    ButtonKind::Secondary,
                     assets,
-                );
-            } else if decided.contains(&game.you) {
-                add_text(
-                    commands,
-                    actions,
-                    "已选择，等待其他玩家…",
-                    15.0,
-                    MUTED,
-                    assets,
-                );
-            } else {
-                add_text(
-                    commands,
-                    actions,
-                    "等待可过江玩家选择…",
-                    15.0,
-                    MUTED,
-                    assets,
+                    px(120),
+                    48.0,
+                    CozyButtonVariant::Neutral,
                 );
             }
         }
@@ -186,34 +149,21 @@ pub(super) fn add_shengji_actions(
                     .iter()
                     .filter(|card| ui.selected.contains(card))
                     .count();
+                let label = format!("归还 ({selected_count}/5)");
                 if selected_count == 5 {
-                    add_action_button(
+                    add_cozy_button_variant(
                         commands,
                         actions,
-                        "归还五张",
+                        &label,
                         UiAction::Shengji(ShengjiUiAction::SubmitCards),
-                        ButtonKind::Primary,
                         assets,
+                        px(142),
+                        48.0,
+                        CozyButtonVariant::Cool,
                     );
                 } else {
-                    add_disabled_action_button(
-                        commands,
-                        actions,
-                        &format!("选择五张归还牌（{selected_count}/5）"),
-                        assets,
-                    );
+                    add_cozy_disabled_button(commands, actions, &label, assets, px(142), 48.0);
                 }
-            } else if returned.contains(&game.you) {
-                add_text(
-                    commands,
-                    actions,
-                    "已归还，等待其他玩家…",
-                    15.0,
-                    MUTED,
-                    assets,
-                );
-            } else {
-                add_text(commands, actions, "等待对家完成过江…", 15.0, MUTED, assets);
             }
         }
         ShengjiPhaseView::Playing if game.current_player == Some(game.you) => {
@@ -227,41 +177,34 @@ pub(super) fn add_shengji_actions(
                 |required| ui.selected.len() == required,
             );
             if !selection_ready {
-                add_disabled_action_button(commands, actions, "出牌", assets);
+                add_cozy_disabled_button(commands, actions, "出牌", assets, px(142), 48.0);
             } else {
-                add_action_button(
+                add_cozy_button_variant(
                     commands,
                     actions,
                     "出牌",
                     UiAction::Shengji(ShengjiUiAction::SubmitCards),
-                    ButtonKind::Primary,
                     assets,
+                    px(142),
+                    48.0,
+                    CozyButtonVariant::Cool,
                 );
             }
-            add_action_button(
+            add_cozy_button_variant(
                 commands,
                 actions,
                 "提示",
                 UiAction::Shengji(ShengjiUiAction::Hint),
-                ButtonKind::Secondary,
                 assets,
+                px(142),
+                48.0,
+                CozyButtonVariant::Neutral,
             );
         }
-        ShengjiPhaseView::Playing => {
-            add_text(commands, actions, "等待其他玩家出牌…", 15.0, MUTED, assets);
-        }
+        ShengjiPhaseView::Playing => {}
         ShengjiPhaseView::Finished { .. } => {}
         ShengjiPhaseView::BottomFlipping { .. } => {}
-        ShengjiPhaseView::Redealing => {
-            add_text(
-                commands,
-                actions,
-                "无人亮主，正在重新发牌…",
-                15.0,
-                ACCENT,
-                assets,
-            );
-        }
+        ShengjiPhaseView::Redealing => {}
         ShengjiPhaseView::Dealing { .. } | ShengjiPhaseView::BiddingGrace { .. } => {}
     }
 }

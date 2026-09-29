@@ -57,6 +57,7 @@ fn ctrl_a_replaces_the_entire_unicode_player_name_on_next_input() {
         .insert_resource(Clipboard::default())
         .insert_resource(ConnectionDraft {
             player_name: "原来的名字".to_owned(),
+            gender: Default::default(),
             host_port: "52300".to_owned(),
             join_address: "127.0.0.1:52300".to_owned(),
             active: InputField::PlayerName,

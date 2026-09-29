@@ -2,10 +2,10 @@ use super::*;
 use crate::app::games::lobby_rule_labels;
 #[cfg(feature = "developer")]
 use crate::app::presentation::MUTED;
-use crate::app::presentation::{TABLE_BG, TEXT, add_text, spawn_node};
+use crate::app::presentation::{TEXT, add_text, spawn_node};
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui::{BackgroundGradient, ColorStop, FocusPolicy, Gradient, LinearGradient};
 use leocard_protocol::{GameRules, LobbySnapshot};
 
 pub(super) struct LobbyTable<'a> {
@@ -28,34 +28,76 @@ impl<'a> LobbyTable<'a> {
     }
 
     pub(super) fn render(self, commands: &mut Commands, parent: Entity) {
-        let table = commands
+        let rail = spawn_node(
+            commands,
+            parent,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(145),
+                top: px(102),
+                width: px(330),
+                height: px(186),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                border: UiRect::all(px(2)),
+                border_radius: BorderRadius::all(percent(50)),
+                ..default()
+            },
+            Some(Color::srgb(0.095, 0.085, 0.13)),
+        );
+        commands.entity(rail).insert((
+            BackgroundGradient(vec![Gradient::Linear(LinearGradient::to_bottom(vec![
+                ColorStop::percent(Color::srgb(0.27, 0.25, 0.34), 0.0),
+                ColorStop::percent(Color::srgb(0.11, 0.10, 0.15), 42.0),
+                ColorStop::percent(Color::srgb(0.055, 0.055, 0.085), 100.0),
+            ]))]),
+            BorderColor::all(Color::srgba(0.72, 0.68, 0.88, 0.42)),
+            BoxShadow::new(Color::BLACK.with_alpha(0.52), px(2), px(8), px(0), px(10)),
+            FocusPolicy::Pass,
+        ));
+        let table = spawn_node(
+            commands,
+            rail,
+            Node {
+                width: px(314),
+                height: px(170),
+                padding: UiRect::axes(px(18), px(12)),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                row_gap: px(9),
+                border: UiRect::all(px(1)),
+                border_radius: BorderRadius::all(percent(50)),
+                overflow: Overflow::clip(),
+                ..default()
+            },
+            Some(Color::srgb(0.075, 0.085, 0.13)),
+        );
+        commands.entity(table).insert((
+            BackgroundGradient(vec![Gradient::Linear(LinearGradient::to_bottom(vec![
+                ColorStop::percent(Color::srgb(0.12, 0.13, 0.20), 0.0),
+                ColorStop::percent(Color::srgb(0.065, 0.075, 0.13), 100.0),
+            ]))]),
+            BorderColor::all(Color::srgba(0.62, 0.58, 0.78, 0.36)),
+            FocusPolicy::Pass,
+        ));
+        let felt = commands
             .spawn((
                 Node {
                     position_type: PositionType::Absolute,
-                    left: px(150),
-                    top: px(108),
-                    width: px(320),
-                    height: px(174),
-                    padding: UiRect::axes(px(24), px(18)),
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    row_gap: px(12),
-                    border: UiRect::all(px(1)),
-                    border_radius: BorderRadius::all(percent(50)),
-                    overflow: Overflow::clip(),
+                    left: px(0),
+                    right: px(0),
+                    top: px(0),
+                    bottom: px(0),
                     ..default()
                 },
                 ImageNode::new(self.assets.table_felt.clone())
                     .with_mode(NodeImageMode::Stretch)
-                    .with_color(Color::srgba(0.72, 0.83, 0.76, 0.92)),
-                BackgroundColor(TABLE_BG),
-                BorderColor::all(Color::srgba(0.62, 0.82, 0.70, 0.28)),
-                BoxShadow::new(Color::BLACK.with_alpha(0.38), px(2), px(7), px(0), px(9)),
+                    .with_color(Color::srgba(0.47, 0.43, 0.70, 0.10)),
                 FocusPolicy::Pass,
             ))
             .id();
-        commands.entity(parent).add_child(table);
+        commands.entity(table).add_child(felt);
 
         let metrics = LobbyMetrics::new(self.lobby);
         add_text(
@@ -66,7 +108,7 @@ impl<'a> LobbyTable<'a> {
                 metrics.ready_player_count(),
                 metrics.connected_player_count()
             ),
-            17.0,
+            21.0,
             TEXT,
             self.assets,
         );
@@ -83,6 +125,16 @@ impl<'a> LobbyTable<'a> {
         }
         #[cfg(not(feature = "developer"))]
         let _ = self.client;
+        spawn_node(
+            commands,
+            table,
+            Node {
+                width: px(86),
+                height: px(1),
+                ..default()
+            },
+            Some(Color::srgba(0.72, 0.68, 0.87, 0.42)),
+        );
         LobbyRuleSummary::new(&self.lobby.rules, self.assets).render(commands, table);
     }
 }
@@ -102,10 +154,13 @@ impl<'a> LobbyRuleSummary<'a> {
             commands,
             parent,
             Node {
+                width: percent(100),
                 flex_direction: FlexDirection::Row,
+                flex_wrap: FlexWrap::Wrap,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 column_gap: px(6),
+                row_gap: px(4),
                 ..default()
             },
             None,
@@ -125,14 +180,14 @@ impl<'a> LobbyRuleSummary<'a> {
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(12)),
+                border_radius: BorderRadius::all(px(4)),
                 ..default()
             },
-            Some(Color::srgba(0.015, 0.065, 0.048, 0.72)),
+            Some(Color::srgba(0.18, 0.17, 0.25, 0.72)),
         );
         commands
             .entity(chip)
-            .insert(BorderColor::all(Color::srgba(0.70, 0.88, 0.78, 0.18)));
+            .insert(BorderColor::all(Color::srgba(0.72, 0.68, 0.87, 0.28)));
         add_text(commands, chip, label, 11.5, TEXT, self.assets);
     }
 }

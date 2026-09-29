@@ -4,16 +4,14 @@ use super::cards::{HandCardSpec, add_card_button};
 use super::state::{ScoreCardsPopupPlacement, SeatVisuals};
 use super::{
     NoLegalResponseHint, PlayEffectState, PlaySelectionCount, QIGUI_AVATAR_SIZE,
-    QIGUI_PORTRAIT_WIDTH, QiGui523Assets, QiGui523UiAction, QiGui523UiState, add_draw_pile,
-    add_game_summary_modal, add_opponent_slot, add_play_effect_overlay, add_round_play,
-    add_score_cards_popup, add_table_score_cards, game_has_legal_response, sort_cards_high_to_low,
-    spawn_round_play_container,
+    QIGUI_PORTRAIT_WIDTH, QiGui523Assets, QiGui523UiAction, QiGui523UiState, QiGuiButtonTone,
+    add_draw_pile, add_game_summary_modal, add_opponent_slot, add_play_effect_overlay,
+    add_qigui_action_button, add_round_play, add_score_cards_popup, add_table_score_cards,
+    game_has_legal_response, qigui_plate_image, sort_cards_high_to_low, spawn_round_play_container,
 };
-use crate::app::presentation::CardSize;
 use crate::app::presentation::{
-    ACCENT, ButtonKind, GameSummaryAnimation, MUTED, PlayerMenuProfile, PlayerPortraitSpec,
-    StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial,
-    TurnBorderAnimationKey, TurnBorderMaterial, add_action_button, add_action_button_with_label,
+    GameSummaryAnimation, PlayerMenuProfile, PlayerPortraitSpec, StartGameSeatTransition, TEXT,
+    TableBackground, TableBackgroundMaterial, TurnBorderAnimationKey, TurnBorderMaterial,
     add_auto_play_overlay, add_player_portrait, add_text, add_turn_border_trace_with_radius,
     attach_start_game_seat_transition, spawn_node, table_material_params,
 };
@@ -137,6 +135,7 @@ pub(crate) fn render_table(
         last_play: client.0.model().last_play_effect(),
         score_capture,
         start_transition_active,
+        intro_only: start_transition_active,
     };
     for relative_seat in 1..TABLE_SEAT_COUNT {
         let physical_seat = SeatId((own_seat.0 + relative_seat) % TABLE_SEAT_COUNT);
@@ -155,46 +154,94 @@ pub(crate) fn render_table(
         );
     }
 
+    if start_transition_active {
+        let hand_area = spawn_node(
+            commands,
+            content,
+            Node {
+                width: percent(100),
+                height: px(218),
+                flex_shrink: 0.0,
+                position_type: PositionType::Relative,
+                ..default()
+            },
+            None,
+        );
+        let own_seat = spawn_node(
+            commands,
+            hand_area,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(10),
+                bottom: px(8),
+                width: px(QIGUI_PORTRAIT_WIDTH),
+                height: px(76.0 * 1.17),
+                ..default()
+            },
+            None,
+        );
+        if let Some(player) = game.players.iter().find(|player| player.id == game.you) {
+            let portrait = add_player_portrait(
+                commands,
+                own_seat,
+                Node {
+                    width: px(QIGUI_PORTRAIT_WIDTH),
+                    height: px(76.0 * 1.17),
+                    ..default()
+                },
+                PlayerPortraitSpec {
+                    player: player.id,
+                    profile: PlayerMenuProfile {
+                        name: &player.name,
+                        avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
+                        reference_points: player.reference_points,
+                        completed_games: player.completed_games,
+                        game_profiles: &player.game_profiles,
+                    },
+                    side: SeatSide::Left,
+                    avatar_size: QIGUI_AVATAR_SIZE,
+                    auto_play: player.auto_play,
+                    menu_open: false,
+                    menu_above: true,
+                    name_color: TEXT,
+                },
+                assets,
+            );
+            attach_start_game_seat_transition(commands, portrait.portrait, game.you, true);
+        }
+        return;
+    }
+
     let center = spawn_node(
         commands,
         table,
         Node {
             position_type: PositionType::Absolute,
-            left: percent(32),
-            right: percent(32),
-            top: percent(42),
-            min_height: px(142),
+            left: percent(42),
+            top: percent(47),
+            width: px(540),
+            min_height: px(80),
             flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            row_gap: px(3),
+            align_items: AlignItems::FlexStart,
             ..default()
         },
         None,
     );
-    let table_points = game.trick.as_ref().map_or(0, |trick| trick.table_points);
-    add_draw_pile(commands, center, game.draw_pile_len.into(), assets);
     let points_row = spawn_node(
         commands,
         center,
         Node {
-            min_height: px(CardSize::TableScore.dimensions().1),
+            width: percent(100),
+            min_height: px(80),
             flex_direction: FlexDirection::Row,
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            column_gap: px(7),
+            align_items: AlignItems::FlexStart,
+            justify_content: JustifyContent::FlexStart,
+            column_gap: px(18),
             ..default()
         },
         None,
     );
-    add_text(
-        commands,
-        points_row,
-        format!("桌面  {table_points} 分"),
-        16.0,
-        TEXT,
-        assets,
-    );
+    add_draw_pile(commands, points_row, game.draw_pile_len.into(), assets);
     add_table_score_cards(commands, points_row, game, assets);
     let own_play = spawn_node(
         commands,
@@ -229,7 +276,7 @@ pub(crate) fn render_table(
         content,
         Node {
             width: percent(100),
-            height: px(180),
+            height: px(218),
             flex_shrink: 0.0,
             position_type: PositionType::Relative,
             padding: UiRect::all(px(16)),
@@ -246,11 +293,11 @@ pub(crate) fn render_table(
             position_type: PositionType::Absolute,
             left: percent(30),
             right: percent(30),
-            top: px(2),
-            height: px(48),
+            top: px(-16),
+            height: px(58),
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
-            column_gap: px(12),
+            column_gap: px(8),
             ..default()
         },
         None,
@@ -268,31 +315,31 @@ pub(crate) fn render_table(
                     .qigui523_rules()
                     .is_some_and(|rules| game_has_legal_response(game, rules));
             if can_follow {
-                let (_, selection_label) = add_action_button_with_label(
+                let (_, selection_label) = add_qigui_action_button(
                     commands,
                     actions,
                     &format!("出牌 ({})", ui.selected.len()),
                     UiAction::QiGui523(QiGui523UiAction::Play),
-                    ButtonKind::Primary,
+                    QiGuiButtonTone::Play,
                     assets,
                 );
                 commands.entity(selection_label).insert(PlaySelectionCount);
             }
             if !is_leading && can_follow {
-                add_action_button(
+                add_qigui_action_button(
                     commands,
                     actions,
                     "不要",
                     UiAction::QiGui523(QiGui523UiAction::Pass),
-                    ButtonKind::Pass,
+                    QiGuiButtonTone::Pass,
                     assets,
                 );
-                add_action_button(
+                add_qigui_action_button(
                     commands,
                     actions,
                     "提示",
                     UiAction::QiGui523(QiGui523UiAction::Hint),
-                    ButtonKind::Secondary,
+                    QiGuiButtonTone::Hint,
                     assets,
                 );
             } else if !is_leading {
@@ -301,36 +348,48 @@ pub(crate) fn render_table(
                     actions,
                     Node {
                         position_type: PositionType::Absolute,
-                        left: px(-80),
-                        right: px(-80),
-                        bottom: px(50),
-                        height: px(28),
+                        left: px(0),
+                        right: px(0),
+                        bottom: px(61),
+                        height: px(38),
                         align_items: AlignItems::Center,
                         justify_content: JustifyContent::Center,
-                        border_radius: BorderRadius::all(px(7)),
                         ..default()
                     },
-                    Some(Color::BLACK.with_alpha(0.58)),
+                    None,
                 );
                 commands.entity(hint).insert((
                     NoLegalResponseHint,
                     UiTransform::IDENTITY,
                     GlobalZIndex(900),
                 ));
-                add_text(commands, hint, "没有牌能大过上家", 17.0, ACCENT, assets);
-                add_action_button(
+                let hint_plate = spawn_node(
+                    commands,
+                    hint,
+                    Node {
+                        width: px(280),
+                        height: px(38),
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        ..default()
+                    },
+                    None,
+                );
+                commands
+                    .entity(hint_plate)
+                    .insert(qigui_plate_image(assets));
+                add_text(commands, hint_plate, "没有牌能大过上家", 15.0, TEXT, assets);
+                add_qigui_action_button(
                     commands,
                     actions,
                     "不要",
                     UiAction::QiGui523(QiGui523UiAction::Pass),
-                    ButtonKind::Pass,
+                    QiGuiButtonTone::Pass,
                     assets,
                 );
             }
         }
-        GamePhaseView::Playing => {
-            add_text(commands, actions, "等待其他玩家出牌…", 15.0, MUTED, assets);
-        }
+        GamePhaseView::Playing => {}
         GamePhaseView::Finished { .. } => {}
     }
 
@@ -342,7 +401,7 @@ pub(crate) fn render_table(
             left: px(0),
             right: px(0),
             bottom: px(0),
-            height: px(105),
+            height: px(134),
             flex_direction: FlexDirection::Row,
             flex_wrap: FlexWrap::NoWrap,
             justify_content: JustifyContent::Center,

@@ -1,11 +1,9 @@
 use super::super::{UnoModeDropdownPanel, UnoUiAction};
-use crate::app::presentation::{
-    BackgroundButtonTint, ButtonTint, MUTED, TEXT, add_text, spawn_node,
-};
+use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::UiAction;
+use crate::app::shell::{HomeHighlightKind, UiAction, add_cozy_panel};
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_uno::{Mode, UnoRuleSet};
 
 pub(crate) fn render_uno_mode_dropdown(
@@ -17,7 +15,7 @@ pub(crate) fn render_uno_mode_dropdown(
     open: bool,
     assets: &UiAssets,
 ) {
-    let dropdown_accent = Color::srgb(0.24, 0.90, 0.86);
+    let dropdown_accent = Color::srgb(0.85, 0.82, 1.0);
     let mode_label = |mode| match mode {
         Mode::Classic => "UNO",
         Mode::NoMercy => "No Mercy",
@@ -59,6 +57,17 @@ pub(crate) fn render_uno_mode_dropdown(
     );
     commands.entity(selector).insert(GlobalZIndex(1870));
 
+    let mut trigger_image =
+        ImageNode::new(assets.home.input.clone()).with_mode(NodeImageMode::Sliced(TextureSlicer {
+            border: BorderRect::all(32.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 0.55,
+        }));
+    trigger_image.visual_box = VisualBox::BorderBox;
+    if !can_configure {
+        trigger_image.color = Color::WHITE.with_alpha(0.72);
+    }
     let mut trigger = commands.spawn((
         Node {
             width: percent(100),
@@ -66,44 +75,54 @@ pub(crate) fn render_uno_mode_dropdown(
             padding: UiRect::horizontal(px(13)),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::SpaceBetween,
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(8)),
             ..default()
         },
-        BackgroundColor(if can_configure {
-            Color::srgba(0.04, 0.48, 0.50, 0.48)
-        } else {
-            Color::srgba(0.30, 0.32, 0.33, 0.42)
-        }),
-        BorderColor::all(if can_configure {
-            Color::srgba(0.30, 0.92, 0.88, 0.62)
-        } else {
-            Color::srgba(0.72, 0.74, 0.74, 0.28)
-        }),
-        BoxShadow::new(Color::BLACK.with_alpha(0.26), px(1), px(3), px(0), px(6)),
+        trigger_image,
     ));
     if can_configure {
-        trigger.insert((
-            Button,
-            BackgroundButtonTint,
-            UiAction::Uno(UnoUiAction::ToggleModeMenu),
-            ButtonTint {
-                normal: Color::srgba(0.04, 0.48, 0.50, 0.48),
-                hovered: Color::srgba(0.06, 0.68, 0.70, 0.64),
-                pressed: Color::srgba(0.03, 0.36, 0.40, 0.42),
-            },
-        ));
+        trigger.insert((Button, UiAction::Uno(UnoUiAction::ToggleModeMenu)));
     } else {
         trigger.insert(FocusPolicy::Block);
     }
     let trigger = trigger.id();
     commands.entity(selector).add_child(trigger);
+    if can_configure {
+        let mut hover_image = ImageNode::new(assets.home.focused_input.clone()).with_mode(
+            NodeImageMode::Sliced(TextureSlicer {
+                border: BorderRect::all(32.0),
+                center_scale_mode: SliceScaleMode::Stretch,
+                sides_scale_mode: SliceScaleMode::Stretch,
+                max_corner_scale: 0.55,
+            }),
+        );
+        hover_image.visual_box = VisualBox::BorderBox;
+        let hover = commands
+            .spawn((
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(0),
+                    right: px(0),
+                    top: px(0),
+                    bottom: px(0),
+                    ..default()
+                },
+                hover_image,
+                Visibility::Hidden,
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(trigger).add_child(hover);
+        commands.entity(trigger).insert(HomeHighlightKind::Button {
+            overlay: hover,
+            arrows: None,
+        });
+    }
     let label = add_text(
         commands,
         trigger,
         mode_label(rules.mode),
         14.0,
-        Color::WHITE,
+        TEXT,
         assets,
     );
     commands.entity(label).insert(FocusPolicy::Pass);
@@ -128,7 +147,7 @@ pub(crate) fn render_uno_mode_dropdown(
     if !open || !can_configure {
         return;
     }
-    let menu = spawn_node(
+    let menu = add_cozy_panel(
         commands,
         selector,
         Node {
@@ -136,70 +155,80 @@ pub(crate) fn render_uno_mode_dropdown(
             right: px(0),
             top: px(44),
             width: px(190),
-            padding: UiRect::all(px(5)),
+            padding: UiRect::all(px(7)),
             flex_direction: FlexDirection::Column,
-            row_gap: px(3),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(9)),
+            row_gap: px(2),
             ..default()
         },
-        Some(Color::srgba(0.025, 0.090, 0.095, 0.88)),
+        assets,
     );
-    commands.entity(menu).insert((
-        UnoModeDropdownPanel,
-        BorderColor::all(Color::srgba(0.30, 0.92, 0.88, 0.38)),
-        BoxShadow::new(Color::BLACK.with_alpha(0.46), px(2), px(6), px(0), px(10)),
-        GlobalZIndex(1890),
-        FocusPolicy::Block,
-    ));
+    commands
+        .entity(menu)
+        .insert((UnoModeDropdownPanel, GlobalZIndex(1890), FocusPolicy::Block));
     for (mode, label) in [
         (Mode::Classic, "UNO"),
         (Mode::NoMercy, "No Mercy"),
         (Mode::Flip, "UNO FLIP"),
     ] {
         let selected = mode == rules.mode;
+        let mut option_image = ImageNode::new(if selected {
+            assets.home.purple_button_compact.clone()
+        } else {
+            assets.home.button.clone()
+        })
+        .with_mode(NodeImageMode::Sliced(TextureSlicer {
+            border: BorderRect::all(32.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 0.55,
+        }));
+        option_image.visual_box = VisualBox::BorderBox;
         let option = commands
             .spawn((
                 Button,
-                BackgroundButtonTint,
                 UiAction::Uno(UnoUiAction::UpdateRules(UnoRuleSet { mode, ..rules })),
-                ButtonTint {
-                    normal: if selected {
-                        Color::srgba(0.05, 0.62, 0.62, 0.38)
-                    } else {
-                        Color::srgba(0.22, 0.66, 0.66, 0.10)
-                    },
-                    hovered: Color::srgba(0.08, 0.76, 0.74, 0.48),
-                    pressed: Color::srgba(0.03, 0.42, 0.44, 0.34),
-                },
                 Node {
                     width: percent(100),
-                    height: px(36),
+                    height: px(38),
                     padding: UiRect::horizontal(px(11)),
                     align_items: AlignItems::Center,
-                    border_radius: BorderRadius::all(px(6)),
                     ..default()
                 },
-                BackgroundColor(if selected {
-                    Color::srgba(0.05, 0.62, 0.62, 0.38)
-                } else {
-                    Color::srgba(0.22, 0.66, 0.66, 0.10)
-                }),
+                option_image,
             ))
             .id();
         commands.entity(menu).add_child(option);
-        let label = add_text(
-            commands,
-            option,
-            if selected {
-                format!("✓  {label}")
-            } else {
-                format!("   {label}")
-            },
-            13.5,
-            if selected { dropdown_accent } else { TEXT },
-            assets,
-        );
+        if !selected {
+            let mut hover_image = ImageNode::new(assets.home.purple_button_compact.clone())
+                .with_mode(NodeImageMode::Sliced(TextureSlicer {
+                    border: BorderRect::all(32.0),
+                    center_scale_mode: SliceScaleMode::Stretch,
+                    sides_scale_mode: SliceScaleMode::Stretch,
+                    max_corner_scale: 0.55,
+                }));
+            hover_image.visual_box = VisualBox::BorderBox;
+            let hover = commands
+                .spawn((
+                    Node {
+                        position_type: PositionType::Absolute,
+                        left: px(0),
+                        right: px(0),
+                        top: px(0),
+                        bottom: px(0),
+                        ..default()
+                    },
+                    hover_image,
+                    Visibility::Hidden,
+                    FocusPolicy::Pass,
+                ))
+                .id();
+            commands.entity(option).add_child(hover);
+            commands.entity(option).insert(HomeHighlightKind::Button {
+                overlay: hover,
+                arrows: None,
+            });
+        }
+        let label = add_text(commands, option, label, 13.5, TEXT, assets);
         commands.entity(label).insert(FocusPolicy::Pass);
     }
 }

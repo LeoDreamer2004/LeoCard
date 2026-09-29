@@ -12,7 +12,9 @@ pub(crate) use leocard_client::{
     TexasHoldemPreferences, UnoPreferences, load_player_preferences, save_player_preferences,
 };
 use leocard_mahjong::MahjongRuleSet;
-use leocard_protocol::{GameKind, GameRules, MAX_PLAYER_NAME_CHARS, TABLE_SEAT_COUNT};
+use leocard_protocol::{
+    GameKind, GameRules, MAX_PLAYER_NAME_CHARS, PlayerGender, TABLE_SEAT_COUNT,
+};
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_shengji::ShengjiRuleSet;
 use leocard_texas_holdem::TexasHoldemRuleSet;
@@ -24,6 +26,7 @@ const DEFAULT_AUDIO_VOLUME: f32 = 0.8;
 #[derive(Resource)]
 pub(crate) struct ConnectionDraft {
     pub player_name: String,
+    pub gender: PlayerGender,
     pub host_port: String,
     pub join_address: String,
     pub active: InputField,
@@ -37,6 +40,8 @@ pub(crate) struct AppearancePreferences {
     pub table_brightness: f32,
     pub table_vignette: f32,
     pub audio_volume: f32,
+    pub mahjong_action_voices: bool,
+    pub mahjong_fan_voices: bool,
 }
 
 #[derive(Resource)]
@@ -93,6 +98,7 @@ impl PreferenceResources {
                 } else {
                     truncate_chars(saved_player_name, MAX_PLAYER_NAME_CHARS)
                 },
+                gender: saved.global.gender,
                 host_port: if saved
                     .global
                     .host_port
@@ -130,6 +136,8 @@ impl PreferenceResources {
                     1.0,
                     DEFAULT_AUDIO_VOLUME,
                 ),
+                mahjong_action_voices: saved.global.mahjong_action_voices,
+                mahjong_fan_voices: saved.global.mahjong_fan_voices,
             },
             host_rules: HostRulePreferences {
                 host_rules: normalize_rules(saved.games.qigui523.host_rules),
@@ -252,6 +260,7 @@ fn replace_if_changed<T: PartialEq>(slot: &mut T, value: T) -> bool {
 pub(crate) fn save_connection_draft(draft: &ConnectionDraft) -> Result<(), String> {
     let mut saved = load_player_preferences().unwrap_or_default();
     saved.global.player_name.clone_from(&draft.player_name);
+    saved.global.gender = draft.gender;
     saved.global.host_port.clone_from(&draft.host_port);
     saved.global.join_address.clone_from(&draft.join_address);
     save_player_preferences(&saved)
@@ -269,6 +278,8 @@ pub(crate) fn save_appearance_preferences(
     saved.global.table_brightness = appearance.table_brightness;
     saved.global.table_vignette = appearance.table_vignette;
     saved.global.audio_volume = appearance.audio_volume;
+    saved.global.mahjong_action_voices = appearance.mahjong_action_voices;
+    saved.global.mahjong_fan_voices = appearance.mahjong_fan_voices;
     save_player_preferences(&saved)
 }
 

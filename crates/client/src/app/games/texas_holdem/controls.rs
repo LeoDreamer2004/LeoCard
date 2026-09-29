@@ -4,14 +4,15 @@ use super::{
     add_role_tokens, add_texas_card, add_texas_chip_popup, texas_player_border_color,
 };
 use crate::app::presentation::{
-    ButtonKind, ButtonTint, MUTED, PendingDealSound, PlayerMenuProfile, PlayerPortraitSpec, TEXT,
-    TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait, add_text,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
+    ButtonKind, GameButtonImageMode, GameButtonSpec, MUTED, PendingDealSound, PlayerMenuProfile,
+    PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait,
+    add_textured_game_button, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
+    spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{SeatSide, UiAction};
+use crate::app::shell::{HomeHighlightKind, SeatSide, UiAction};
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_protocol::{
     GameKind, PlayerId, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
 };
@@ -35,6 +36,7 @@ pub(super) fn add_texas_own_area(
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     chip_state: &TexasChipTableState,
     start_transition_active: bool,
+    intro_only: bool,
 ) {
     let portrait_height = 76.0 * 1.17;
     let own_seat = spawn_node(
@@ -102,6 +104,9 @@ pub(super) fn add_texas_own_area(
         );
     }
     add_role_tokens(commands, portrait.avatar_ring, own.id, game, assets);
+    if intro_only {
+        return;
+    }
     add_texas_chip_popup(
         commands,
         own_seat,
@@ -117,7 +122,8 @@ pub(super) fn add_texas_own_area(
     if !matches!(game.phase, TexasHoldemPhaseView::HandComplete { .. }) {
         let omaha = game.your_hole_cards.len() == 4;
         let (area_width, card_width, card_height, card_gap) = if omaha {
-            (276.0, 62.0, 84.0, 4.0)
+            // 牌顶保持在操作按钮下缘（bottom 124）以下，留出 10 px 间距。
+            (324.0, 78.0, 106.0, 4.0)
         } else {
             (180.0, 84.0, 114.0, 9.0)
         };
@@ -165,33 +171,9 @@ pub(super) fn add_texas_own_area(
                     });
                 }
             }
-        } else {
-            let folded_label = spawn_node(
-                commands,
-                hole_cards,
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(0),
-                    right: px(0),
-                    top: px(0),
-                    bottom: px(0),
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                },
-                None,
-            );
-            commands
-                .entity(folded_label)
-                .insert((ZIndex(20), FocusPolicy::Pass));
-            let label = add_text(commands, folded_label, "您已弃牌", 18.0, MUTED, assets);
-            commands.entity(label).insert(TextShadow {
-                offset: Vec2::new(1.0, 1.5),
-                color: Color::BLACK.with_alpha(0.82),
-            });
         }
     }
-    add_texas_actions(commands, table, game, own, ui, assets);
+    add_texas_actions(commands, table, game, own, ui, assets, game_assets);
 }
 
 fn add_texas_actions(
@@ -201,6 +183,7 @@ fn add_texas_actions(
     own: &TexasHoldemPlayerState,
     ui: &mut TexasHoldemUiState,
     assets: &UiAssets,
+    game_assets: &TexasHoldemAssets,
 ) {
     let actions = spawn_node(
         commands,
@@ -249,26 +232,12 @@ fn add_texas_actions(
                 TexasHoldemAction::PostBlind,
                 ButtonKind::Primary,
                 assets,
-            );
-        } else {
-            let player = game
-                .players
-                .iter()
-                .find(|player| player.id == blind.player)
-                .map_or("玩家", |player| player.name.as_str());
-            add_text(
-                commands,
-                actions,
-                format!("等待 {player} 下盲注…"),
-                14.0,
-                MUTED,
-                assets,
+                game_assets,
             );
         }
         return;
     }
     if game.current_player != Some(game.you) {
-        add_text(commands, actions, "等待其他玩家行动…", 14.0, MUTED, assets);
         return;
     }
     let maximum_target = own.committed_street.saturating_add(own.stack);
@@ -296,6 +265,7 @@ fn add_texas_actions(
         TexasHoldemAction::Fold,
         ButtonKind::Pass,
         assets,
+        game_assets,
     );
     if game.amount_to_call == 0 {
         add_texas_action_button(
@@ -305,6 +275,7 @@ fn add_texas_actions(
             TexasHoldemAction::Check,
             ButtonKind::Secondary,
             assets,
+            game_assets,
         );
     } else {
         add_texas_action_button(
@@ -314,6 +285,7 @@ fn add_texas_actions(
             TexasHoldemAction::Call,
             ButtonKind::Secondary,
             assets,
+            game_assets,
         );
     }
     if game.raise_allowed && maximum_target >= game.minimum_raise_to {
@@ -326,7 +298,6 @@ fn add_texas_actions(
         add_raise_adjust_button(
             commands,
             row,
-            "−",
             lower,
             lower < ui.raise_to,
             TexasRaiseAdjustButton {
@@ -335,7 +306,7 @@ fn add_texas_actions(
                 minimum: minimum_target,
                 maximum: maximum_target,
             },
-            assets,
+            game_assets,
         );
         add_texas_action_button(
             commands,
@@ -344,11 +315,11 @@ fn add_texas_actions(
             TexasHoldemAction::RaiseTo(ui.raise_to),
             ButtonKind::Primary,
             assets,
+            game_assets,
         );
         add_raise_adjust_button(
             commands,
             row,
-            "+",
             higher,
             higher > ui.raise_to,
             TexasRaiseAdjustButton {
@@ -357,7 +328,7 @@ fn add_texas_actions(
                 minimum: minimum_target,
                 maximum: maximum_target,
             },
-            assets,
+            game_assets,
         );
     }
     add_texas_action_button(
@@ -367,6 +338,7 @@ fn add_texas_actions(
         TexasHoldemAction::AllIn,
         ButtonKind::Warning,
         assets,
+        game_assets,
     );
 }
 
@@ -377,6 +349,7 @@ fn add_texas_action_button(
     action: TexasHoldemAction,
     kind: ButtonKind,
     assets: &UiAssets,
+    game_assets: &TexasHoldemAssets,
 ) {
     add_texas_sized_button(
         commands,
@@ -384,71 +357,73 @@ fn add_texas_action_button(
         label,
         UiAction::TexasHoldem(TexasHoldemUiAction::Act(action)),
         kind,
-        105.0,
         assets,
+        game_assets,
     );
 }
 
 fn add_raise_adjust_button(
     commands: &mut Commands,
     parent: Entity,
-    label: &str,
     target: u32,
     enabled: bool,
     repeat: TexasRaiseAdjustButton,
-    assets: &UiAssets,
+    game_assets: &TexasHoldemAssets,
 ) {
-    if enabled {
-        let button = add_texas_sized_button(
-            commands,
-            parent,
-            label,
-            UiAction::TexasHoldem(TexasHoldemUiAction::SetRaiseTo(target)),
-            ButtonKind::Primary,
-            34.0,
-            assets,
-        );
-        commands.entity(button).insert(repeat);
+    let (normal, hovered) = if repeat.direction < 0 {
+        (&game_assets.adjust_left, &game_assets.adjust_left_hover)
     } else {
-        add_disabled_texas_sized_button(commands, parent, label, 34.0, assets);
+        (&game_assets.adjust_right, &game_assets.adjust_right_hover)
+    };
+    if enabled {
+        let button = commands
+            .spawn((
+                Button,
+                UiAction::TexasHoldem(TexasHoldemUiAction::SetRaiseTo(target)),
+                Node {
+                    width: px(48),
+                    height: px(50),
+                    ..default()
+                },
+                texas_adjust_button_image(normal.clone()),
+                repeat,
+            ))
+            .id();
+        commands.entity(parent).add_child(button);
+        let overlay = commands
+            .spawn((
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(0),
+                    right: px(0),
+                    top: px(0),
+                    bottom: px(0),
+                    ..default()
+                },
+                texas_adjust_button_image(hovered.clone()),
+                Visibility::Hidden,
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(button).add_child(overlay);
+        commands.entity(button).insert(HomeHighlightKind::Button {
+            overlay,
+            arrows: None,
+        });
+    } else {
+        let button = commands
+            .spawn((
+                Node {
+                    width: px(48),
+                    height: px(50),
+                    ..default()
+                },
+                texas_adjust_button_image(normal.clone()).with_color(Color::WHITE.with_alpha(0.48)),
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(parent).add_child(button);
     }
-}
-
-fn add_disabled_texas_sized_button(
-    commands: &mut Commands,
-    parent: Entity,
-    label: &str,
-    width: f32,
-    assets: &UiAssets,
-) {
-    let button = commands
-        .spawn((
-            Node {
-                width: px(width),
-                min_width: px(width),
-                height: px(42),
-                min_height: px(42),
-                padding: UiRect::axes(px(7), px(4)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                border_radius: BorderRadius::all(px(6)),
-                ..default()
-            },
-            ImageNode::new(assets.controls.secondary_button.clone())
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(Color::srgb(0.25, 0.29, 0.28)),
-            FocusPolicy::Pass,
-        ))
-        .id();
-    commands.entity(parent).add_child(button);
-    add_text(
-        commands,
-        button,
-        label,
-        15.0,
-        MUTED.with_alpha(0.66),
-        assets,
-    );
 }
 
 fn add_texas_sized_button(
@@ -457,69 +432,65 @@ fn add_texas_sized_button(
     label: &str,
     action: UiAction,
     kind: ButtonKind,
-    width: f32,
     assets: &UiAssets,
+    game_assets: &TexasHoldemAssets,
 ) -> Entity {
-    let (image, normal, hovered, pressed) = match kind {
+    let (normal, hovered) = match kind {
         ButtonKind::Primary => (
-            assets.controls.primary_button.clone(),
-            Color::WHITE,
-            Color::srgb(1.0, 1.0, 0.82),
-            Color::srgb(0.78, 0.90, 0.78),
+            &game_assets.action_primary,
+            &game_assets.action_primary_hover,
         ),
         ButtonKind::Secondary => (
-            assets.controls.secondary_button.clone(),
-            Color::srgb(0.48, 0.62, 0.76),
-            Color::srgb(0.64, 0.76, 0.88),
-            Color::srgb(0.32, 0.46, 0.60),
+            &game_assets.action_secondary,
+            &game_assets.action_secondary_hover,
         ),
         ButtonKind::Warning => (
-            assets.controls.warning_button.clone(),
-            Color::srgb(0.88, 0.68, 0.24),
-            Color::srgb(0.98, 0.82, 0.48),
-            Color::srgb(0.72, 0.54, 0.18),
+            &game_assets.action_warning,
+            &game_assets.action_warning_hover,
         ),
-        ButtonKind::Pass => (
-            assets.controls.danger_button.clone(),
-            Color::srgb(0.58, 0.42, 0.42),
-            Color::srgb(0.76, 0.58, 0.56),
-            Color::srgb(0.42, 0.28, 0.27),
-        ),
+        ButtonKind::Pass => (&game_assets.action_pass, &game_assets.action_pass_hover),
     };
-    let button = commands
-        .spawn((
-            Button,
-            action,
-            ButtonTint {
-                normal,
-                hovered,
-                pressed,
+    let (button, label_entity) = add_textured_game_button(
+        commands,
+        parent,
+        assets,
+        GameButtonSpec {
+            label,
+            action: Some(action),
+            normal,
+            hovered,
+            width: 118.0,
+            height: 50.0,
+            font_size: 17.0,
+            image_mode: GameButtonImageMode::Sliced {
+                border: 30.0,
+                corner_scale: 0.42,
             },
-            Node {
-                width: px(width),
-                min_width: px(width),
-                height: px(42),
-                min_height: px(42),
-                padding: UiRect::axes(px(7), px(4)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                border_radius: BorderRadius::all(px(6)),
-                ..default()
-            },
-            ImageNode::new(image)
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(normal),
-        ))
-        .id();
-    commands.entity(parent).add_child(button);
-    let text = add_text(commands, button, label, 15.0, Color::WHITE, assets);
-    commands.entity(text).insert((
+        },
+    );
+    commands.entity(button).insert(Node {
+        width: px(118),
+        min_width: px(118),
+        height: px(50),
+        min_height: px(50),
+        padding: UiRect::axes(px(9), px(4)),
+        align_items: AlignItems::Center,
+        justify_content: JustifyContent::Center,
+        ..default()
+    });
+    commands.entity(label_entity).insert((
         Node {
             margin: UiRect::ZERO,
             align_self: AlignSelf::Center,
             ..default()
         },
-        FocusPolicy::Pass,
+        TextColor(Color::WHITE),
     ));
     button
+}
+
+fn texas_adjust_button_image(texture: Handle<Image>) -> ImageNode {
+    let mut image = ImageNode::new(texture).with_mode(NodeImageMode::Stretch);
+    image.visual_box = VisualBox::BorderBox;
+    image
 }

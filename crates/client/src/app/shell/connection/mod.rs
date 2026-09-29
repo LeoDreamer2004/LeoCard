@@ -8,4 +8,4 @@ mod view;
 pub(crate) use actions::*;
 pub(crate) use files::*;
 pub(super) use plugin::*;
-pub(super) use view::*;
+pub(crate) use view::*;

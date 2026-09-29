@@ -1,8 +1,10 @@
 //! 错误提示的状态同步、重触发与入退场动画。
 
 use super::super::UiState;
-use super::{PlayErrorPopup, PlayErrorPopupText, PlayErrorToast, rejection_label};
-use crate::app::presentation::{DANGER, HEADER_BG};
+use super::{
+    PlayErrorPopup, PlayErrorPopupImage, PlayErrorPopupText, PlayErrorToast, WARNING_TOAST_TEXT,
+    rejection_label,
+};
 use crate::app::runtime::{ClientResource, PageErrorState, TableAppearance, UiAssets};
 use bevy::prelude::*;
 
@@ -91,7 +93,7 @@ pub(crate) fn play_error_toast_visual(toast: &PlayErrorToast) -> PlayErrorToastV
     });
     PlayErrorToastVisual {
         x,
-        y: -31.0 + (1.0 - entry) * 25.0 - life * 4.0,
+        y: (1.0 - entry) * 25.0 - life * 4.0,
         opacity: entry * fade,
     }
 }
@@ -99,20 +101,12 @@ pub(crate) fn play_error_toast_visual(toast: &PlayErrorToast) -> PlayErrorToastV
 pub(crate) fn animate_play_error_popup(
     time: Res<Time>,
     mut toast: ResMut<PlayErrorToast>,
-    mut popups: Query<
-        (
-            &mut UiTransform,
-            &mut BackgroundColor,
-            &mut BorderColor,
-            &mut BoxShadow,
-            &mut Visibility,
-        ),
-        With<PlayErrorPopup>,
-    >,
+    mut popups: Query<(&mut UiTransform, &mut Visibility), With<PlayErrorPopup>>,
+    mut images: Query<&mut ImageNode, With<PlayErrorPopupImage>>,
     mut texts: Query<&mut TextColor, With<PlayErrorPopupText>>,
 ) {
     if !toast.active {
-        for (_, _, _, _, mut visibility) in &mut popups {
+        for (_, mut visibility) in &mut popups {
             *visibility = Visibility::Hidden;
         }
         return;
@@ -133,20 +127,18 @@ pub(crate) fn animate_play_error_popup(
     }
 
     let visual = play_error_toast_visual(&toast);
-    for (mut transform, mut background, mut border, mut shadow, mut visibility) in &mut popups {
+    for (mut transform, mut visibility) in &mut popups {
         transform.translation = Val2::px(visual.x, visual.y);
-        background.0 = HEADER_BG.with_alpha(0.97 * visual.opacity);
-        border.set_all(DANGER.with_alpha(0.9 * visual.opacity));
-        if let Some(style) = shadow.0.first_mut() {
-            style.color = Color::BLACK.with_alpha(0.45 * visual.opacity);
-        }
         *visibility = if toast.active {
             Visibility::Visible
         } else {
             Visibility::Hidden
         };
     }
+    for mut image in &mut images {
+        image.color = Color::WHITE.with_alpha(visual.opacity);
+    }
     for mut text_color in &mut texts {
-        text_color.0 = DANGER.with_alpha(visual.opacity);
+        text_color.0 = WARNING_TOAST_TEXT.with_alpha(visual.opacity);
     }
 }

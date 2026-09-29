@@ -1,13 +1,13 @@
 use super::{HandCardSlot, HandCardVisual, QiGui523UiAction};
 use crate::app::presentation::HandCardSelectionOverlay;
-use crate::app::presentation::{
-    ACCENT, BORDER, CardAnimationState, CardSize, HAND_CARD_REVEAL, hand_card_pose,
-};
+use crate::app::presentation::{ACCENT, BORDER, CardAnimationState, CardSize, hand_card_pose};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, RelativeCursorPosition};
 use leocard_qigui523::QiGuiCard;
+
+pub(super) const QIGUI_HAND_CARD_REVEAL: f32 = 32.0;
 
 pub(crate) fn sort_cards_high_to_low(cards: &mut [QiGuiCard]) {
     cards.sort_by(|left, right| {
@@ -43,7 +43,7 @@ pub(super) fn add_card_button(
         hand_len,
         is_last,
     } = spec;
-    let (width, height) = CardSize::Hand.dimensions();
+    let (width, height) = CardSize::QiGuiHand.dimensions();
     let image = assets
         .playing_cards
         .cards
@@ -57,6 +57,7 @@ pub(super) fn add_card_button(
         animation.selected_amount,
         animation.deal_elapsed,
         animation.dealing,
+        CardSize::QiGuiHand,
     );
     let initial_glow =
         (animation.face_hover_amount * 0.72 + animation.selected_amount * 0.72).clamp(0.0, 1.0);
@@ -72,7 +73,11 @@ pub(super) fn add_card_button(
             },
             RelativeCursorPosition::default(),
             Node {
-                width: px(if is_last { width } else { HAND_CARD_REVEAL }),
+                width: px(if is_last {
+                    width
+                } else {
+                    QIGUI_HAND_CARD_REVEAL
+                }),
                 height: px(height),
                 ..default()
             },

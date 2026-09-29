@@ -1,6 +1,6 @@
 //! 麻将按钮动作到网络命令的转换。
 
-use crate::app::games::mahjong::MahjongUiState;
+use crate::app::games::mahjong::{MahjongChoiceMenu, MahjongUiState};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, dispatch_domain_actions,
@@ -9,7 +9,7 @@ use crate::app::shell::{
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_mahjong::{MahjongClaim, MahjongRuleSet, MahjongTile, MahjongTileKind};
-use leocard_protocol::MahjongCommand;
+use leocard_protocol::{MahjongCommand, MahjongPhaseView};
 
 #[derive(Clone)]
 pub(crate) enum MahjongUiAction {
@@ -21,6 +21,9 @@ pub(crate) enum MahjongUiAction {
     CloseFanGuide,
     SelectFanGuideTier(u16),
     UpdateRules(MahjongRuleSet),
+    ToggleChoiceMenu(MahjongChoiceMenu),
+    ContinueFanSummary,
+    ShowFinalSummary,
     Discard(MahjongTile),
     Respond(MahjongClaim),
     SelfDraw,
@@ -39,7 +42,10 @@ impl DomainUiAction for MahjongUiAction {
     fn rebuilds_ui(&self) -> bool {
         !matches!(
             self,
-            Self::ToggleFanGuide | Self::CloseFanGuide | Self::SelectFanGuideTier(_)
+            Self::ToggleFanGuide
+                | Self::CloseFanGuide
+                | Self::SelectFanGuideTier(_)
+                | Self::Discard(_)
         )
     }
 }
@@ -48,6 +54,7 @@ impl DomainUiAction for MahjongUiAction {
 pub(crate) struct MahjongActionContext<'w> {
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, MahjongUiState>,
+    time: Res<'w, Time>,
 }
 
 pub(super) fn dispatch_mahjong_actions(
@@ -79,6 +86,7 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
             }
             Self::ToggleNoClaim => {
                 context.ui.no_claim = !context.ui.no_claim;
+                context.ui.choice_menu = None;
                 context.ui.last_automatic_action = None;
                 return;
             }
@@ -102,8 +110,41 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
                 context.ui.fan_guide_tier = *tier;
                 return;
             }
+            Self::ToggleChoiceMenu(menu) => {
+                context.ui.choice_menu = (context.ui.choice_menu != Some(*menu)).then_some(*menu);
+                return;
+            }
+            Self::ShowFinalSummary => {
+                if let Some(game) = context
+                    .client
+                    .as_deref()
+                    .and_then(|client| client.0.model().mahjong_game())
+                    && let MahjongPhaseView::Finished { result } = &game.phase
+                    && result.match_complete
+                {
+                    context.ui.final_summary_opened_at = Some((
+                        game.match_id,
+                        result.sequence_index,
+                        context.time.elapsed_secs(),
+                    ));
+                }
+                return;
+            }
+            Self::ContinueFanSummary => {
+                if let Some(game) = context
+                    .client
+                    .as_deref()
+                    .and_then(|client| client.0.model().mahjong_game())
+                    && let MahjongPhaseView::Finished { result } = &game.phase
+                    && !result.winners.is_empty()
+                {
+                    context.ui.fan_summary_continued = Some((game.match_id, result.sequence_index));
+                }
+                return;
+            }
             _ => {}
         }
+        context.ui.choice_menu = None;
         let command = match self {
             MahjongUiAction::UpdateRules(rules) => MahjongCommand::UpdateRules { rules: *rules },
             MahjongUiAction::Discard(tile) => MahjongCommand::Discard { tile: *tile },
@@ -120,6 +161,9 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
             | MahjongUiAction::ToggleAutoWin
             | MahjongUiAction::ToggleNoClaim
             | MahjongUiAction::ToggleAutoDrawDiscard => unreachable!(),
+            MahjongUiAction::ToggleChoiceMenu(_)
+            | MahjongUiAction::ContinueFanSummary
+            | MahjongUiAction::ShowFinalSummary => unreachable!(),
         };
         send_game_command(&mut context.client, command);
     }

@@ -74,6 +74,7 @@ impl GameState {
             pending_finisher: None,
             set_aside_cards: Vec::new(),
             elimination_order: Vec::new(),
+            sudden_death_misses: 0,
             flip_side: rules.is_flip().then_some(UnoFlipSide::Light),
             phase: Phase::Playing,
         };
@@ -113,6 +114,7 @@ impl GameState {
             pending_skip: self.pending_skip,
             skipped_turns_remaining: self.skip_turns[self.current_player.0],
             pending_swap: self.pending_swap.map(PendingSwapState::public),
+            sudden_death_free_play: self.sudden_death_free_play(),
         })
     }
 

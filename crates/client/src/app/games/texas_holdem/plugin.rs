@@ -6,6 +6,7 @@ use super::{
     handle_texas_raise_button_hold, highlight_texas_pot_eligible_players, play_texas_audio_cues,
     sync_texas_chip_state, sync_texas_own_fold_tooltip,
 };
+use crate::app::presentation::start_game_intro_finished;
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::UiActionSet;
 use bevy::prelude::*;
@@ -27,10 +28,17 @@ impl Plugin for TexasHoldemPlugin {
                 Update,
                 handle_texas_raise_button_hold.in_set(ClientUpdateSet::Input),
             )
-            .add_systems(Update, sync_texas_chip_state.in_set(ClientUpdateSet::Sync))
             .add_systems(
                 Update,
-                play_texas_audio_cues.in_set(ClientUpdateSet::Animate),
+                sync_texas_chip_state
+                    .run_if(start_game_intro_finished)
+                    .in_set(ClientUpdateSet::Sync),
+            )
+            .add_systems(
+                Update,
+                play_texas_audio_cues
+                    .run_if(start_game_intro_finished)
+                    .in_set(ClientUpdateSet::Animate),
             )
             .add_systems(
                 Update,
@@ -44,6 +52,7 @@ impl Plugin for TexasHoldemPlugin {
                     animate_texas_pot_dividers,
                 )
                     .chain()
+                    .run_if(start_game_intro_finished)
                     .in_set(ClientUpdateSet::Animate),
             )
             .add_systems(
@@ -54,6 +63,7 @@ impl Plugin for TexasHoldemPlugin {
                     animate_texas_action_feedback,
                 )
                     .chain()
+                    .run_if(start_game_intro_finished)
                     .in_set(ClientUpdateSet::Animate),
             );
     }

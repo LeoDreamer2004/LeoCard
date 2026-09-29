@@ -1,13 +1,11 @@
 use super::super::*;
 use super::controls::{add_auto_play_toggle, add_auxiliary_actions, add_chat_toggle};
 use super::menus::{add_emoji_menu, add_quick_voice_menu};
-use crate::app::presentation::{
-    ACCENT, BORDER, ButtonTint, HEADER_BG, MUTED, PANEL, TEXT, add_text, spawn_node,
-};
+use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{ChatUiAction, UiAction};
+use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui::{FocusPolicy, VisualBox};
 
 pub(crate) struct ChatAuxiliaryAction {
     pub label: &'static str,
@@ -23,7 +21,7 @@ pub(crate) fn add_chat_panel(
     auto_play: Option<bool>,
     auxiliary_actions: &[ChatAuxiliaryAction],
 ) -> Entity {
-    let panel = spawn_chat_panel(commands, parent, chat);
+    let panel = spawn_chat_panel(commands, parent, chat, assets);
     add_chat_toggle(commands, panel, chat, assets);
     if let Some(enabled) = auto_play {
         add_auto_play_toggle(commands, panel, enabled, assets);
@@ -40,8 +38,9 @@ pub(super) fn spawn_chat_panel(
     commands: &mut Commands,
     parent: Entity,
     chat: &ChatPanelState,
+    assets: &UiAssets,
 ) -> Entity {
-    let panel = spawn_node(
+    let panel = add_cozy_panel(
         commands,
         parent,
         Node {
@@ -55,18 +54,15 @@ pub(super) fn spawn_chat_panel(
             min_height: px(340),
             max_height: px(340),
             flex_shrink: 0.0,
-            padding: UiRect::all(px(8)),
+            padding: UiRect::all(px(14)),
             flex_direction: FlexDirection::Column,
-            row_gap: px(6),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(10)),
+            row_gap: px(8),
             ..default()
         },
-        Some(HEADER_BG.with_alpha(0.97)),
+        assets,
     );
     commands.entity(panel).insert((
         ChatPanel,
-        BorderColor::all(ACCENT.with_alpha(0.55)),
         UiTransform {
             translation: Val2::px(CHAT_PANEL_HIDDEN_OFFSET * chat.slide, 0.0),
             ..UiTransform::IDENTITY
@@ -82,7 +78,7 @@ pub(super) fn add_chat_history(
     chat: &ChatPanelState,
     assets: &UiAssets,
 ) {
-    add_text(commands, panel, "聊天", 15.0, ACCENT, assets);
+    add_text(commands, panel, "聊天", 17.0, TEXT, assets);
     let history_box = spawn_node(
         commands,
         panel,
@@ -95,17 +91,15 @@ pub(super) fn add_chat_history(
             max_height: px(1000),
             flex_grow: 1.0,
             flex_shrink: 1.0,
-            padding: UiRect::all(px(7)),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(7)),
+            padding: UiRect::all(px(10)),
             overflow: Overflow::clip(),
             ..default()
         },
-        Some(PANEL.with_alpha(0.78)),
+        None,
     );
     commands
         .entity(history_box)
-        .insert(BorderColor::all(BORDER));
+        .insert(cozy_chat_input_image(false, assets));
     let history = chat
         .history
         .iter()
@@ -139,7 +133,7 @@ pub(super) fn add_chat_input_row(
             max_height: px(38),
             flex_shrink: 0.0,
             flex_direction: FlexDirection::Row,
-            column_gap: px(0),
+            column_gap: px(4),
             ..default()
         },
         None,
@@ -168,15 +162,10 @@ fn add_text_input(commands: &mut Commands, row: Entity, chat: &ChatPanelState, a
         .spawn((
             Button,
             UiAction::Chat(ChatUiAction::FocusInput),
-            ButtonTint {
-                normal: Color::srgb(0.08, 0.18, 0.15),
-                hovered: Color::srgb(0.11, 0.26, 0.20),
-                pressed: Color::srgb(0.06, 0.14, 0.12),
-            },
             Node {
-                width: px(CHAT_PANEL_WIDTH - 100.0),
-                min_width: px(CHAT_PANEL_WIDTH - 100.0),
-                max_width: px(CHAT_PANEL_WIDTH - 100.0),
+                width: px(CHAT_PANEL_WIDTH - 124.0),
+                min_width: px(CHAT_PANEL_WIDTH - 124.0),
+                max_width: px(CHAT_PANEL_WIDTH - 124.0),
                 height: percent(100),
                 min_height: percent(100),
                 max_height: percent(100),
@@ -184,15 +173,11 @@ fn add_text_input(commands: &mut Commands, row: Entity, chat: &ChatPanelState, a
                 flex_shrink: 0.0,
                 padding: UiRect::axes(px(9), px(5)),
                 align_items: AlignItems::Center,
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(7)),
                 overflow: Overflow::clip_x(),
                 ..default()
             },
-            ImageNode::new(assets.controls.secondary_button.clone())
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(Color::srgb(0.08, 0.18, 0.15)),
-            BorderColor::all(if chat.focused { ACCENT } else { BORDER }),
+            cozy_chat_input_image(chat.focused, assets),
+            ChatInputFieldTexture,
         ))
         .id();
     commands.entity(row).add_child(button);
@@ -231,11 +216,6 @@ fn add_input_icon_button(
         .spawn((
             Button,
             action,
-            ButtonTint {
-                normal: Color::srgb(0.20, 0.45, 0.35),
-                hovered: Color::srgb(0.28, 0.60, 0.45),
-                pressed: Color::srgb(0.13, 0.33, 0.26),
-            },
             Node {
                 width: px(42),
                 min_width: px(42),
@@ -246,15 +226,13 @@ fn add_input_icon_button(
                 flex_shrink: 0.0,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                border_radius: BorderRadius::all(px(7)),
                 ..default()
             },
-            ImageNode::new(assets.controls.secondary_button.clone())
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(Color::srgb(0.20, 0.45, 0.35)),
+            cozy_chat_button_image(assets.home.button.clone()),
         ))
         .id();
     commands.entity(row).add_child(button);
+    add_chat_button_highlight(commands, button, assets);
     let icon = commands
         .spawn((
             Node {
@@ -269,8 +247,65 @@ fn add_input_icon_button(
     commands.entity(button).add_child(icon);
 }
 
+pub(super) fn cozy_chat_button_image(texture: Handle<Image>) -> ImageNode {
+    let mut image = ImageNode::new(texture).with_mode(NodeImageMode::Sliced(TextureSlicer {
+        border: BorderRect::all(32.0),
+        center_scale_mode: SliceScaleMode::Stretch,
+        sides_scale_mode: SliceScaleMode::Stretch,
+        max_corner_scale: 0.40,
+    }));
+    image.visual_box = VisualBox::BorderBox;
+    image
+}
+
+pub(super) fn cozy_chat_input_image(focused: bool, assets: &UiAssets) -> ImageNode {
+    let mut image = ImageNode::new(if focused {
+        assets.home.focused_input.clone()
+    } else {
+        assets.home.input.clone()
+    })
+    .with_mode(NodeImageMode::Sliced(TextureSlicer {
+        border: BorderRect::all(32.0),
+        center_scale_mode: SliceScaleMode::Stretch,
+        sides_scale_mode: SliceScaleMode::Stretch,
+        max_corner_scale: 0.45,
+    }));
+    image.visual_box = VisualBox::BorderBox;
+    image
+}
+
+pub(super) fn add_chat_button_highlight(
+    commands: &mut Commands,
+    button: Entity,
+    assets: &UiAssets,
+) {
+    let overlay = commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                right: px(0),
+                top: px(0),
+                bottom: px(0),
+                ..default()
+            },
+            cozy_chat_button_image(assets.home.purple_button_compact.clone()),
+            Visibility::Hidden,
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(button).add_child(overlay);
+    commands
+        .entity(button)
+        .insert(crate::app::shell::HomeHighlightKind::Button {
+            overlay,
+            arrows: None,
+        });
+}
+
 pub(crate) fn sync_chat_panel_text(
     chat: Res<ChatPanelState>,
+    assets: Res<UiAssets>,
     mut history_texts: Query<&mut Text, (With<ChatHistoryText>, Without<ChatInputText>)>,
     mut input_texts: Query<
         (&mut Text, &mut TextColor, &mut TextBackgroundColor),
@@ -278,6 +313,7 @@ pub(crate) fn sync_chat_panel_text(
     >,
     mut quick_menus: Query<&mut Visibility, (With<QuickVoiceMenu>, Without<EmojiMenu>)>,
     mut emoji_menus: Query<&mut Visibility, (With<EmojiMenu>, Without<QuickVoiceMenu>)>,
+    mut input_backgrounds: Query<&mut ImageNode, With<ChatInputFieldTexture>>,
 ) {
     if !chat.is_changed() {
         return;
@@ -315,6 +351,16 @@ pub(crate) fn sync_chat_panel_text(
         } else {
             Color::NONE
         };
+    }
+    let expected_input = if chat.focused {
+        &assets.home.focused_input
+    } else {
+        &assets.home.input
+    };
+    for mut image in &mut input_backgrounds {
+        if image.image != *expected_input {
+            image.image = expected_input.clone();
+        }
     }
     for mut visibility in &mut quick_menus {
         let expected = if chat.open && chat.quick_voice_open {

@@ -5,6 +5,7 @@ use super::{
     START_GAME_SEAT_MOVE_DURATION, StartGameSeatTransition,
 };
 use crate::app::presentation::smootherstep;
+use crate::app::shell::UiState;
 use bevy::prelude::*;
 use leocard_protocol::PlayerId;
 
@@ -17,6 +18,10 @@ pub(crate) fn start_game_seat_transition_visual(elapsed: f32) -> StartGameSeatTr
     StartGameSeatTransitionVisual {
         movement: smootherstep((elapsed / START_GAME_SEAT_MOVE_DURATION).clamp(0.0, 1.0)),
     }
+}
+
+pub(crate) fn start_game_intro_finished(transition: Res<StartGameSeatTransition>) -> bool {
+    transition.match_id.is_none()
 }
 
 pub(crate) fn attach_start_game_seat_transition(
@@ -68,6 +73,7 @@ fn interpolated_transform(pose: GameSeatTransitionPose, movement: f32) -> UiTran
 pub(crate) fn animate_start_game_seat_transition(
     time: Res<Time>,
     mut transition: ResMut<StartGameSeatTransition>,
+    mut ui: ResMut<UiState>,
     mut targets: Query<(
         &GameSeatTransitionTarget,
         &ComputedNode,
@@ -131,6 +137,7 @@ pub(crate) fn animate_start_game_seat_transition(
             }
         }
         transition.clear();
+        ui.dirty = true;
     } else {
         transition.elapsed =
             (transition.elapsed + time.delta_secs()).min(START_GAME_SEAT_MOVE_DURATION);

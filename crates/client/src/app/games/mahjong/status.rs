@@ -123,6 +123,26 @@ pub(super) fn render_round_status(
     assets: &UiAssets,
     game_assets: &MahjongAssets,
 ) {
+    render_round_status_with_scores(
+        commands,
+        table,
+        game,
+        own_seat,
+        &game.match_scores,
+        assets,
+        game_assets,
+    );
+}
+
+pub(super) fn render_round_status_with_scores(
+    commands: &mut Commands,
+    table: Entity,
+    game: &MahjongSnapshot,
+    own_seat: u8,
+    scores: &[i32; 4],
+    assets: &UiAssets,
+    game_assets: &MahjongAssets,
+) -> Vec<Entity> {
     let status = spawn_node(
         commands,
         table,
@@ -208,6 +228,7 @@ pub(super) fn render_round_status(
         assets,
     );
 
+    let mut score_texts = Vec::with_capacity(4);
     for relative in 0..4 {
         let player = game
             .players
@@ -217,17 +238,18 @@ pub(super) fn render_round_status(
             .map(|player| wind_label(player.seat_wind))
             .unwrap_or("?");
         let score = player
-            .map(|player| game.match_scores[usize::from(player.id.0)])
+            .map(|player| scores[usize::from(player.id.0)])
             .unwrap_or(0);
-        render_wind_label(
+        score_texts.push(render_wind_label(
             commands,
             status,
             relative,
             (wind, score),
             current_relative == Some(relative),
             assets,
-        );
+        ));
     }
+    score_texts
 }
 
 fn spawn_status_image(
@@ -261,7 +283,7 @@ fn render_wind_label(
     (wind, score): (&str, i32),
     active: bool,
     assets: &UiAssets,
-) {
+) -> Entity {
     let (left, top, width, height) = match relative {
         0 => (INNER_LEFT, INNER_TOP + INNER_HEIGHT, INNER_WIDTH, INNER_TOP),
         1 => (
@@ -304,7 +326,7 @@ fn render_wind_label(
             active,
         },
         assets,
-    );
+    )
 }
 
 pub(super) fn animate_mahjong_turn_sector(

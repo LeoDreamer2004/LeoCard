@@ -18,7 +18,7 @@ use std::collections::HashMap;
 pub(super) struct MahjongHoverHandKind(pub MahjongTileKind);
 
 #[derive(Component)]
-pub(super) struct MahjongMatchingTileOverlay(pub MahjongTileKind);
+pub(super) struct MahjongMatchingTileKind(pub MahjongTileKind);
 
 #[derive(Component)]
 pub(super) struct MahjongWaitPopupLink(pub Entity);
@@ -108,7 +108,8 @@ pub(super) fn sync_mahjong_hover_hints(
         &MahjongHoverHandKind,
         Option<&MahjongWaitPopupLink>,
     )>,
-    overlays: Query<(Entity, &MahjongMatchingTileOverlay)>,
+    matching_tiles: Query<(&MahjongMatchingTileKind, &MaterialNode<MahjongTileMaterial>)>,
+    mut materials: ResMut<Assets<MahjongTileMaterial>>,
     mut visibility: Query<&mut Visibility>,
 ) {
     let mut hovered_kind = None;
@@ -130,16 +131,15 @@ pub(super) fn sync_mahjong_hover_hints(
             }
         }
     }
-    for (entity, overlay) in &overlays {
-        if let Ok(mut visible) = visibility.get_mut(entity) {
-            let next = if hovered_kind == Some(overlay.0) {
-                Visibility::Visible
-            } else {
-                Visibility::Hidden
-            };
-            if *visible != next {
-                *visible = next;
-            }
+    for (kind, material_node) in &matching_tiles {
+        let Some(material) = materials.get(&material_node.0) else {
+            continue;
+        };
+        let strength = f32::from(material.params.z > 0.98 && hovered_kind == Some(kind.0));
+        if material.lighting.z != strength
+            && let Some(mut material) = materials.get_mut(&material_node.0)
+        {
+            material.lighting.z = strength;
         }
     }
 }

@@ -14,17 +14,16 @@ use bevy::log::warn;
 use bevy::prelude::default;
 use bevy::prelude::*;
 use leocard_client::{LocalPlayerConnection, LocalPlayerProfile, TcpGameClient};
-use leocard_protocol::{GameKind, MAX_PLAYER_NAME_CHARS};
+use leocard_protocol::{GameKind, MAX_PLAYER_NAME_CHARS, PlayerGender};
 
 #[derive(Clone)]
 pub(crate) enum ConnectionUiAction {
     FocusInput(InputField),
-    OpenHostGamePicker,
-    CloseHostGamePicker,
     CreateRoom(GameKind),
     JoinRoom,
     ChooseAvatar,
     ClearAvatar,
+    ToggleGender,
 }
 
 impl DomainUiAction for ConnectionUiAction {
@@ -75,21 +74,6 @@ impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
                 context.connection.selected_all = false;
                 context.page_error.error = None;
             }
-            ConnectionUiAction::OpenHostGamePicker => {
-                match validated_host_form(&context.connection) {
-                    Ok(_) => {
-                        context.ui.navigation.host_game_picker_open = true;
-                        context.ui.navigation.profile_open = false;
-                        context.ui.navigation.player_profile = None;
-                        context.ui.navigation.settings_open = false;
-                        context.page_error.error = None;
-                    }
-                    Err(error) => context.page_error.error = Some(error),
-                }
-            }
-            ConnectionUiAction::CloseHostGamePicker => {
-                context.ui.navigation.host_game_picker_open = false;
-            }
             ConnectionUiAction::CreateRoom(game_kind) => create_room(*game_kind, context),
             ConnectionUiAction::JoinRoom => join_room(context),
             ConnectionUiAction::ChooseAvatar => {
@@ -106,6 +90,13 @@ impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
             ConnectionUiAction::ClearAvatar => {
                 context.appearance.avatar_png = None;
                 context.page_error.error = save_appearance_preferences(&context.appearance).err();
+            }
+            ConnectionUiAction::ToggleGender => {
+                context.connection.gender = match context.connection.gender {
+                    PlayerGender::Male => PlayerGender::Female,
+                    PlayerGender::Female => PlayerGender::Male,
+                };
+                context.page_error.error = save_connection_draft(&context.connection).err();
             }
         }
     }
@@ -135,6 +126,7 @@ fn create_room(game_kind: GameKind, context: &mut ConnectionActionContext<'_, '_
             &name,
             context.appearance.avatar_png.clone(),
             &context.profile,
+            context.connection.gender,
         );
         TcpGameClient::host_with_profile(port, context.host_rules.game_rules(game_kind), player)
             .map_err(|error| error.to_string())
@@ -161,6 +153,7 @@ fn join_room(context: &mut ConnectionActionContext<'_, '_>) {
             &name,
             context.appearance.avatar_png.clone(),
             &context.profile,
+            context.connection.gender,
         );
         TcpGameClient::join_with_profile(&context.connection.join_address, player)
             .map_err(|error| error.to_string())
@@ -193,7 +186,6 @@ fn finish_connection(
             }
             avatars.remote.clear();
             commands.insert_resource(ClientResource(network));
-            ui.navigation.host_game_picker_open = false;
             ui.leaving_room = false;
             page_error.error = None;
         }

@@ -19,6 +19,7 @@ mod status;
 mod tiles;
 mod view;
 pub(super) mod violation;
+mod voices;
 
 pub(crate) use actions::*;
 pub(crate) use assets::*;
@@ -33,8 +34,10 @@ pub(crate) use material::*;
 use players::*;
 pub(crate) use plugin::*;
 pub(crate) use presentation::*;
+pub(crate) use settlement::mahjong_fan_pause_at;
 use settlement::*;
 pub(crate) use state::*;
 use status::*;
 use tiles::*;
 pub(crate) use view::*;
+use voices::*;

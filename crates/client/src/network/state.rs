@@ -1,6 +1,6 @@
 use crate::{LocalPlayerProfile, PlayerIdentity};
 use leocard_host::HostSession;
-use leocard_protocol::{ClientMessage, PlayerGameProfiles, RoomId, ServerMessage};
+use leocard_protocol::{ClientMessage, PlayerGameProfiles, PlayerGender, RoomId, ServerMessage};
 use std::collections::VecDeque;
 use std::fmt;
 use std::io;
@@ -84,14 +84,17 @@ impl LocalPlayerConnection {
         name: impl Into<String>,
         avatar_png: Option<Vec<u8>>,
         profile: &LocalPlayerProfile,
+        gender: PlayerGender,
     ) -> Self {
+        let mut game_profiles = profile.game_profiles().clone();
+        game_profiles.gender = gender;
         Self {
             name: name.into(),
             avatar_png,
             identity: profile.identity.clone(),
             reference_points: profile.reference_points(),
             completed_games: profile.completed_games(),
-            game_profiles: profile.game_profiles().clone(),
+            game_profiles,
         }
     }
 

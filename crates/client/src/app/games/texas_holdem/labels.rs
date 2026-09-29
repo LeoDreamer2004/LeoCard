@@ -27,7 +27,7 @@ pub(super) fn street_label(phase: &TexasHoldemPhaseView) -> &'static str {
         TexasHoldemPhaseView::Betting {
             street: TexasHoldemStreet::River,
         } => "河牌圈",
-        TexasHoldemPhaseView::HandComplete { .. } => "本手结算",
+        TexasHoldemPhaseView::HandComplete { .. } => "结算",
     }
 }
 

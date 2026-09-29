@@ -1,11 +1,11 @@
 use super::{
     PlayEffectState, QiGui523UiState, actions, advance_play_effect, animate_bomb_play_effect,
     animate_hand_card_slots, animate_hand_cards, animate_heaven_bomb_play_effect,
-    animate_no_legal_response_hint, animate_sequence_play_effect, animate_turn_clocks, assets,
-    handle_card_drag_selection, queue_deal_animations, sync_card_drag_preview, sync_play_effect,
-    sync_selection_label, sync_turn_timer_label,
+    animate_no_legal_response_hint, animate_sequence_play_effect, assets,
+    handle_card_drag_selection, queue_deal_animations, sync_card_drag_preview,
+    sync_own_score_detail, sync_play_effect, sync_selection_label, sync_turn_timer_label,
 };
-use crate::app::presentation::play_pending_deal_sounds;
+use crate::app::presentation::{play_pending_deal_sounds, start_game_intro_finished};
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::{
     ScoreCaptureEffectState, UiActionSet, animate_play_error_popup, animate_score_capture_effects,
@@ -36,9 +36,10 @@ impl Plugin for QiGui523Plugin {
                 (
                     sync_turn_timer_label,
                     sync_selection_label,
+                    sync_own_score_detail,
                     animate_no_legal_response_hint,
-                    sync_play_effect,
-                    queue_deal_animations,
+                    sync_play_effect.run_if(start_game_intro_finished),
+                    queue_deal_animations.run_if(start_game_intro_finished),
                     sync_play_error_toast,
                     sync_score_capture_effect,
                 )
@@ -47,14 +48,13 @@ impl Plugin for QiGui523Plugin {
             .add_systems(
                 Update,
                 (
-                    animate_hand_cards,
-                    advance_play_effect,
-                    animate_sequence_play_effect,
-                    animate_bomb_play_effect,
-                    animate_heaven_bomb_play_effect,
-                    animate_turn_clocks,
+                    animate_hand_cards.run_if(start_game_intro_finished),
+                    advance_play_effect.run_if(start_game_intro_finished),
+                    animate_sequence_play_effect.run_if(start_game_intro_finished),
+                    animate_bomb_play_effect.run_if(start_game_intro_finished),
+                    animate_heaven_bomb_play_effect.run_if(start_game_intro_finished),
                     sync_card_drag_preview,
-                    play_pending_deal_sounds,
+                    play_pending_deal_sounds.run_if(start_game_intro_finished),
                     animate_play_error_popup,
                     animate_score_capture_effects,
                 )

@@ -7,11 +7,13 @@ use super::super::{
 };
 use super::{ShengjiCardSize, add_shengji_trump_stars, shengji_card_face, shengji_display_trump};
 use crate::app::presentation::{
-    ACCENT, ButtonKind, DANGER, HEADER_BG, MUTED, PanelSkin, READY, TEXT, add_action_button,
-    add_disabled_action_button, add_ready_avatar, add_text, decorate_panel_skin, spawn_node,
+    ACCENT, DANGER, MUTED, PanelSkin, READY, TEXT, add_ready_avatar, add_text, decorate_panel_skin,
+    spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{LobbyUiAction, UiAction};
+use crate::app::shell::{
+    CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
+};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::ShengjiHandResultView;
@@ -55,7 +57,7 @@ pub(super) fn add_shengji_result(
             border_radius: BorderRadius::all(px(12)),
             ..default()
         },
-        Some(HEADER_BG.with_alpha(0.94)),
+        None,
     );
     commands.entity(stage).insert((
         BorderColor::all(Color::NONE),
@@ -63,7 +65,7 @@ pub(super) fn add_shengji_result(
         GlobalZIndex(1120),
         FocusPolicy::Pass,
     ));
-    decorate_panel_skin(commands, stage, PanelSkin::Section, assets);
+    decorate_panel_skin(commands, stage, PanelSkin::Window, assets);
 
     let kitty_title = add_text(commands, stage, "底牌", 17.0, ACCENT, assets);
     commands
@@ -262,6 +264,16 @@ fn add_shengji_settlement_modal(
         .entity(texture)
         .insert(ShengjiSettlementPanelTexture);
     add_text(commands, modal, "本局结算", 24.0, ACCENT, assets);
+    spawn_node(
+        commands,
+        modal,
+        Node {
+            width: px(86),
+            height: px(2),
+            ..default()
+        },
+        Some(Color::srgb(0.64, 0.59, 0.93)),
+    );
     let outcome = add_text(
         commands,
         modal,
@@ -300,7 +312,6 @@ fn add_shengji_settlement_modal(
                 padding: UiRect::axes(px(9), px(4)),
                 align_items: AlignItems::Center,
                 column_gap: px(9),
-                border_radius: BorderRadius::all(px(7)),
                 ..default()
             },
             Some(Color::NONE),
@@ -387,25 +398,29 @@ fn add_shengji_settlement_modal(
         .find(|player| player.id == game.you)
         .is_some_and(|player| player.ready);
     if ready {
-        add_disabled_action_button(commands, actions, "已准备", assets);
+        add_cozy_disabled_button(commands, actions, "已准备", assets, px(150), 47.0);
     } else {
-        add_action_button(
+        add_cozy_button_variant(
             commands,
             actions,
             "准备下一局",
             UiAction::Lobby(LobbyUiAction::PlayAgain),
-            ButtonKind::Primary,
             assets,
+            px(150),
+            47.0,
+            CozyButtonVariant::Cool,
         );
     }
     if game.you == game.host {
-        add_action_button(
+        add_cozy_button_variant(
             commands,
             actions,
             "结束并返回大厅",
             UiAction::Lobby(LobbyUiAction::ReturnToLobby),
-            ButtonKind::Secondary,
             assets,
+            px(185),
+            47.0,
+            CozyButtonVariant::Danger,
         );
     }
     let _ = animation;

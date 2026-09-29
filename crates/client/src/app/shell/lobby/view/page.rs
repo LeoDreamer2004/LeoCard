@@ -1,12 +1,14 @@
 use super::*;
-use crate::app::presentation::{
-    ButtonKind, PANEL, PANEL_ALT, PanelSkin, add_action_button, add_disabled_action_button,
-    add_panel, add_section_title, spawn_node,
-};
+use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{LobbyUiAction, UiAction};
+use crate::app::shell::{
+    CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button_variant, add_cozy_panel,
+};
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui::{
+    BackgroundGradient, ColorStop, FocusPolicy, Gradient, LinearGradient, RadialGradient,
+    RadialGradientShape, UiPosition, VisualBox,
+};
 use leocard_protocol::LobbySnapshot;
 
 #[derive(Clone, Copy)]
@@ -82,9 +84,52 @@ impl LobbyPage {
         assets: &UiAssets,
         style: LobbyPageStyle,
     ) -> Self {
-        let content = spawn_node(
+        let canvas = spawn_node(
             commands,
             root,
+            Node {
+                width: percent(100),
+                flex_grow: 1.0,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            Some(Color::srgb(0.045, 0.05, 0.075)),
+        );
+        commands.entity(canvas).insert(BackgroundGradient(vec![
+            Gradient::Linear(LinearGradient::to_bottom_right(vec![
+                ColorStop::percent(Color::srgb(0.095, 0.09, 0.14), 0.0),
+                ColorStop::percent(Color::srgb(0.06, 0.065, 0.10), 55.0),
+                ColorStop::percent(Color::srgb(0.035, 0.05, 0.075), 100.0),
+            ])),
+            Gradient::Radial(RadialGradient::new(
+                UiPosition::TOP_RIGHT,
+                RadialGradientShape::FarthestCorner,
+                vec![
+                    ColorStop::percent(Color::srgba(0.32, 0.25, 0.46, 0.22), 0.0),
+                    ColorStop::percent(Color::srgba(0.32, 0.25, 0.46, 0.0), 70.0),
+                ],
+            )),
+        ]));
+        let texture = commands
+            .spawn((
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(0),
+                    right: px(0),
+                    top: px(0),
+                    bottom: px(0),
+                    ..default()
+                },
+                ImageNode::new(assets.table_felt.clone())
+                    .with_mode(NodeImageMode::Stretch)
+                    .with_color(Color::srgba(0.48, 0.45, 0.66, 0.07)),
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(canvas).add_child(texture);
+        let content = spawn_node(
+            commands,
+            canvas,
             Node {
                 width: percent(100),
                 max_width: px(1180),
@@ -104,34 +149,32 @@ impl LobbyPage {
             },
             None,
         );
-        let rules = add_panel(
+        let rules = add_cozy_panel(
             commands,
             content,
             Node {
                 min_width: px(style.rules_min_width),
                 flex_basis: px(style.rules_basis),
                 flex_grow: 1.0,
+                padding: UiRect::all(px(20)),
                 flex_direction: FlexDirection::Column,
-                row_gap: px(style.rules_gap),
+                row_gap: px(style.rules_gap.min(8.0)),
                 ..default()
             },
-            PANEL,
-            PanelSkin::Section,
             assets,
         );
-        let players = add_panel(
+        let players = add_cozy_panel(
             commands,
             content,
             Node {
                 min_width: px(style.players_min_width),
                 flex_basis: px(style.players_basis),
                 flex_grow: 2.0,
+                padding: UiRect::all(px(20)),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(style.players_gap),
                 ..default()
             },
-            PANEL_ALT,
-            PanelSkin::Section,
             assets,
         );
         Self {
@@ -152,7 +195,7 @@ impl LobbyPage {
             can_start,
             waiting_label,
         } = section;
-        add_section_title(
+        add_lobby_rules_heading(
             commands,
             self.players,
             format!("玩家席位  {}/{}", self.connected_count, capacity),
@@ -181,40 +224,108 @@ impl LobbyPage {
         let ready = you
             .and_then(|you| lobby.players.iter().find(|player| player.id == you))
             .is_some_and(|player| player.ready);
-        add_action_button(
+        add_cozy_button_variant(
             commands,
             actions,
             "退出房间",
             UiAction::Lobby(LobbyUiAction::LeaveRoom),
-            ButtonKind::Pass,
             assets,
+            px(150),
+            48.0,
+            CozyButtonVariant::Danger,
         );
         if you == lobby.host {
             if can_start {
-                add_action_button(
+                add_cozy_button_variant(
                     commands,
                     actions,
                     "开始游戏",
                     UiAction::Lobby(LobbyUiAction::StartGame),
-                    ButtonKind::Primary,
                     assets,
+                    px(150),
+                    48.0,
+                    CozyButtonVariant::Neutral,
                 );
             } else {
-                add_disabled_action_button(commands, actions, waiting_label, assets);
+                add_disabled_lobby_button(commands, actions, waiting_label, assets);
             }
         } else {
-            add_action_button(
+            add_cozy_button_variant(
                 commands,
                 actions,
                 if ready { "取消准备" } else { "准备" },
                 UiAction::Lobby(LobbyUiAction::ToggleReady),
-                if ready {
-                    ButtonKind::Secondary
-                } else {
-                    ButtonKind::Primary
-                },
                 assets,
+                px(150),
+                48.0,
+                if ready {
+                    CozyButtonVariant::Neutral
+                } else {
+                    CozyButtonVariant::Cool
+                },
             );
         }
     }
+}
+
+fn add_disabled_lobby_button(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    assets: &UiAssets,
+) {
+    let mut image = ImageNode::new(assets.home.button.clone()).with_mode(NodeImageMode::Sliced(
+        TextureSlicer {
+            border: BorderRect::all(32.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 0.55,
+        },
+    ));
+    image.visual_box = VisualBox::BorderBox;
+    image.color = Color::WHITE.with_alpha(0.5);
+    let button = commands
+        .spawn((
+            Node {
+                width: px(150),
+                height: px(48),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            image,
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(parent).add_child(button);
+    add_text(commands, button, label, 14.0, MUTED, assets);
+}
+
+pub(crate) fn add_lobby_rules_heading(
+    commands: &mut Commands,
+    parent: Entity,
+    title: impl Into<String>,
+    assets: &UiAssets,
+) {
+    let heading = spawn_node(
+        commands,
+        parent,
+        Node {
+            flex_direction: FlexDirection::Column,
+            row_gap: px(3),
+            ..default()
+        },
+        None,
+    );
+    add_text(commands, heading, title, 21.0, TEXT, assets);
+    spawn_node(
+        commands,
+        heading,
+        Node {
+            width: px(76),
+            height: px(2),
+            ..default()
+        },
+        Some(Color::srgb(0.64, 0.59, 0.93)),
+    );
 }

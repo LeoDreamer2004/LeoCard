@@ -84,7 +84,8 @@ pub(super) fn uno_card_is_playable(game: &UnoSnapshot, card: UnoCard) -> bool {
             _ => false,
         };
     }
-    card.face().is_wild()
+    game.sudden_death_free_play
+        || card.face().is_wild()
         || card.color() == game.current_color
         || uno_faces_match(card.face(), game.discard_top.face())
 }

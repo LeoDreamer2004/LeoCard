@@ -84,6 +84,9 @@ pub(crate) struct ChatHistoryText;
 pub(crate) struct ChatInputText;
 
 #[derive(Component)]
+pub(crate) struct ChatInputFieldTexture;
+
+#[derive(Component)]
 pub(crate) struct EmojiMenu;
 
 #[derive(Component)]

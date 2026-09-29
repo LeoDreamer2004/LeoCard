@@ -1,7 +1,8 @@
-use super::super::{add_text, spawn_node};
-use crate::app::presentation::{ACCENT, HEADER_BG, MUTED, RuleHelp, TEXT};
+use super::super::add_text;
+use crate::app::presentation::{RuleHelp, TEXT};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
+use bevy::ui::VisualBox;
 use leocard_qigui523::{SuitComparison, TimeControl};
 
 pub(super) fn add_rule_help(
@@ -14,42 +15,41 @@ pub(super) fn add_rule_help(
         .spawn((
             Button,
             Node {
-                width: px(22),
-                height: px(22),
+                width: px(26),
+                height: px(26),
                 position_type: PositionType::Relative,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(percent(50)),
                 ..default()
             },
-            BackgroundColor(HEADER_BG),
-            BorderColor::all(MUTED.with_alpha(0.8)),
+            ImageNode::new(assets.home.help_question.clone()),
         ))
         .id();
     commands.entity(parent).add_child(question);
-    add_text(commands, question, "?", 14.0, MUTED, assets);
 
-    let tooltip = spawn_node(
-        commands,
-        question,
-        Node {
-            position_type: PositionType::Absolute,
-            right: px(28),
-            top: px(-7),
-            width: px(270),
-            padding: UiRect::all(px(10)),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(6)),
-            ..default()
-        },
-        Some(HEADER_BG),
-    );
-    commands.entity(tooltip).insert((
-        Visibility::Hidden,
-        BorderColor::all(ACCENT.with_alpha(0.7)),
-        GlobalZIndex(1000),
-    ));
+    let mut tooltip_image =
+        ImageNode::new(assets.home.input.clone()).with_mode(NodeImageMode::Sliced(TextureSlicer {
+            border: BorderRect::all(32.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 0.55,
+        }));
+    tooltip_image.visual_box = VisualBox::BorderBox;
+    let tooltip = commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                right: px(30),
+                top: px(-7),
+                width: px(290),
+                padding: UiRect::all(px(15)),
+                ..default()
+            },
+            tooltip_image,
+        ))
+        .id();
+    commands.entity(question).add_child(tooltip);
+    commands
+        .entity(tooltip)
+        .insert((Visibility::Hidden, GlobalZIndex(1000)));
     add_text(commands, tooltip, help, 12.0, TEXT, assets);
     commands.entity(question).insert(RuleHelp { tooltip });
 }

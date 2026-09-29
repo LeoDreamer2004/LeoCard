@@ -1,10 +1,11 @@
 //! 麻将局内的快捷开关与本地自动操作。
 
 use super::{MahjongAutomaticActionKey, MahjongUiAction, MahjongUiState};
-use crate::app::presentation::{ACCENT, BORDER, MUTED, PANEL, TEXT, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, MUTED, add_text, spawn_node};
 use crate::app::runtime::{ClientResource, UiAssets};
-use crate::app::shell::{UiAction, game_command};
+use crate::app::shell::{HomeHighlightKind, UiAction, game_command};
 use bevy::prelude::*;
+use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_mahjong::{MahjongClaim, MahjongClaimOption};
 use leocard_protocol::{MahjongCommand, MahjongPhaseView, MahjongSnapshot};
 
@@ -16,6 +17,14 @@ pub(super) fn render_mahjong_auto_drawer(
     assets: &UiAssets,
 ) {
     let expanded = ui.auto_drawer_open;
+    let mut drawer_image =
+        ImageNode::new(assets.home.panel.clone()).with_mode(NodeImageMode::Sliced(TextureSlicer {
+            border: BorderRect::all(80.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 0.20,
+        }));
+    drawer_image.visual_box = VisualBox::BorderBox;
     let drawer = spawn_node(
         commands,
         table,
@@ -24,18 +33,16 @@ pub(super) fn render_mahjong_auto_drawer(
             left: px(0),
             bottom: px(82),
             width: px(if expanded { 142 } else { 38 }),
-            padding: UiRect::axes(px(if expanded { 9 } else { 3 }), px(6)),
+            padding: UiRect::axes(px(if expanded { 13 } else { 3 }), px(10)),
             flex_direction: FlexDirection::Column,
             row_gap: px(3),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(8)),
             ..default()
         },
-        Some(PANEL.with_alpha(0.94)),
+        None,
     );
     commands
         .entity(drawer)
-        .insert((BorderColor::all(BORDER), GlobalZIndex(1200)));
+        .insert((drawer_image, GlobalZIndex(1200)));
     for (short, label, enabled, action) in [
         (
             "和",
@@ -87,61 +94,78 @@ pub(super) fn render_mahjong_auto_drawer(
             assets,
         );
         if expanded {
-            let circle = spawn_node(
-                commands,
-                row,
-                Node {
-                    width: px(16),
-                    height: px(16),
-                    border: UiRect::all(px(1.5)),
-                    border_radius: BorderRadius::all(px(8)),
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                },
-                None,
-            );
-            commands
-                .entity(circle)
-                .insert(BorderColor::all(if enabled { ACCENT } else { MUTED }));
-            if enabled {
-                spawn_node(
-                    commands,
-                    circle,
+            let checkbox = commands
+                .spawn((
                     Node {
-                        width: px(8),
-                        height: px(8),
-                        border_radius: BorderRadius::all(px(4)),
+                        width: px(20),
+                        height: px(20),
+                        flex_shrink: 0.0,
                         ..default()
                     },
-                    Some(ACCENT),
-                );
-            }
+                    ImageNode::new(if enabled {
+                        assets.home.checkbox_selected.clone()
+                    } else {
+                        assets.home.checkbox.clone()
+                    }),
+                    FocusPolicy::Pass,
+                ))
+                .id();
+            commands.entity(row).add_child(checkbox);
         }
     }
+    let arrow_row = spawn_node(
+        commands,
+        drawer,
+        Node {
+            width: percent(100),
+            height: px(28),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        None,
+    );
     let arrow = commands
         .spawn((
             Button,
             UiAction::Mahjong(MahjongUiAction::ToggleAutoDrawer),
             Node {
-                width: percent(100),
-                height: px(24),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
+                width: px(20),
+                height: px(28),
                 ..default()
             },
-            BackgroundColor(Color::NONE),
+            ImageNode::new(if expanded {
+                assets.home.rule_left.clone()
+            } else {
+                assets.home.rule_right.clone()
+            }),
         ))
         .id();
-    commands.entity(drawer).add_child(arrow);
-    add_text(
-        commands,
-        arrow,
-        if expanded { "<" } else { ">" },
-        17.0,
-        TEXT,
-        assets,
-    );
+    commands.entity(arrow_row).add_child(arrow);
+    let hover = commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                right: px(0),
+                top: px(0),
+                bottom: px(0),
+                ..default()
+            },
+            ImageNode::new(if expanded {
+                assets.home.rule_left_highlighted.clone()
+            } else {
+                assets.home.rule_right_highlighted.clone()
+            }),
+            Visibility::Hidden,
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(arrow).add_child(hover);
+    commands.entity(arrow).insert(HomeHighlightKind::Button {
+        overlay: hover,
+        arrows: None,
+    });
 }
 
 pub(super) fn apply_automatic_mahjong_action(

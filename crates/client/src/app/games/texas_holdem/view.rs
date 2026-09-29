@@ -132,8 +132,29 @@ pub(crate) fn render_texas_holdem_table(
                 turn_border_materials,
                 chip_state,
                 start_transition_active,
+                start_transition_active,
             );
         }
+    }
+
+    if start_transition_active {
+        add_texas_own_area(
+            commands,
+            table,
+            game,
+            own,
+            None,
+            ui,
+            social.interaction_menu_open,
+            assets,
+            game_assets,
+            avatars,
+            turn_border_materials,
+            chip_state,
+            true,
+            true,
+        );
+        return;
     }
 
     let new_hand = ui.observed_table.observe((game.match_id, game.hand_number));
@@ -185,6 +206,7 @@ pub(crate) fn render_texas_holdem_table(
         turn_border_materials,
         chip_state,
         start_transition_active,
+        false,
     );
     add_texas_showdown_reveal(commands, table, game, own.seat, assets, game_summary);
     add_texas_hand_result(commands, table, game, assets, avatars, game_summary);

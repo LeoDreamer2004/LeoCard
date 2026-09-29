@@ -72,8 +72,19 @@ pub(crate) fn animate_chat_panel(
     assets: Res<UiAssets>,
     mut chat: ResMut<ChatPanelState>,
     mut panels: Query<&mut UiTransform, With<ChatPanel>>,
-    mut icons: Query<&mut ImageNode, With<ChatToggleIcon>>,
+    mut icons: Query<(&Interaction, &mut ImageNode), With<ChatToggleIcon>>,
 ) {
+    for (interaction, mut icon) in &mut icons {
+        let expected = match (chat.open, *interaction != Interaction::None) {
+            (false, false) => &assets.home.rule_left,
+            (false, true) => &assets.home.rule_left_highlighted,
+            (true, false) => &assets.home.rule_right,
+            (true, true) => &assets.home.rule_right_highlighted,
+        };
+        if icon.image != *expected {
+            icon.image = expected.clone();
+        }
+    }
     let target = if chat.open { 0.0 } else { 1.0 };
     if (chat.slide - target).abs() < 0.001 {
         if chat.slide != target {
@@ -98,16 +109,6 @@ pub(crate) fn animate_chat_panel(
     }
     for mut transform in &mut panels {
         transform.translation = chat_panel_translation(chat.slide);
-    }
-    let expected = if chat.open {
-        &assets.social.chat_close_icon
-    } else {
-        &assets.social.chat_open_icon
-    };
-    for mut icon in &mut icons {
-        if icon.image != *expected {
-            icon.image = expected.clone();
-        }
     }
 }
 

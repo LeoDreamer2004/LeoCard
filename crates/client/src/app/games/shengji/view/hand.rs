@@ -39,7 +39,7 @@ pub(super) fn add_shengji_hand(
             left: px(0),
             right: px(0),
             bottom: px(0),
-            height: px(112),
+            height: px(120),
             flex_direction: FlexDirection::Row,
             flex_wrap: FlexWrap::NoWrap,
             justify_content: JustifyContent::Center,
@@ -92,7 +92,7 @@ fn add_shengji_hand_card(
     trump: Option<ShengjiTrump>,
     assets: &UiAssets,
 ) {
-    let (width, height) = CardSize::Hand.dimensions();
+    let (width, height) = CardSize::ShengjiHand.dimensions();
     let image = shengji_card_face(card, assets);
     let initial_pose = hand_card_pose(
         index,
@@ -101,6 +101,7 @@ fn add_shengji_hand_card(
         animation.selected_amount,
         animation.deal_elapsed,
         animation.dealing,
+        CardSize::ShengjiHand,
     );
     let initial_glow =
         (animation.face_hover_amount * 0.72 + animation.selected_amount * 0.72).clamp(0.0, 1.0);
@@ -217,7 +218,11 @@ pub(crate) fn queue_shengji_deal_animations(
         .copied()
         .filter(|card| !ui.observed_hand.state.contains(card))
         .collect::<Vec<_>>();
-    let animate_deal = matches!(game.phase, ShengjiPhaseView::Dealing { .. });
+    let intro_deal = ui.intro_deal_match == Some(game.match_id) && !new_cards.is_empty();
+    if intro_deal {
+        ui.intro_deal_match = None;
+    }
+    let animate_deal = intro_deal || matches!(game.phase, ShengjiPhaseView::Dealing { .. });
     for (index, card) in new_cards.into_iter().enumerate() {
         let delay = if animate_deal {
             index as f32 * SHENGJI_LOCAL_DEAL_INTERVAL
@@ -307,6 +312,7 @@ pub(crate) fn animate_shengji_hand_cards(
             visual.selected_amount,
             visual.deal_elapsed,
             visual.dealing,
+            CardSize::ShengjiHand,
         );
         transform.translation = pose.translation;
         transform.rotation = pose.rotation;

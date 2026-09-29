@@ -28,13 +28,15 @@ pub(super) fn events_for_outcome(
             player: from_core_player(*player),
             color: *color,
         }),
-        ActionOutcome::DrewCards { player, cards, .. } => events.push(UnoEvent::CardsDrawn {
-            player: from_core_player(*player),
-            count: cards.len() as u16,
-            penalty: false,
-            card_backs: public_card_backs(cards),
-        }),
-        ActionOutcome::PenaltyDrawn { player, cards, .. } => {
+        ActionOutcome::DrewCards { player, cards, .. } if !cards.is_empty() => {
+            events.push(UnoEvent::CardsDrawn {
+                player: from_core_player(*player),
+                count: cards.len() as u16,
+                penalty: false,
+                card_backs: public_card_backs(cards),
+            })
+        }
+        ActionOutcome::PenaltyDrawn { player, cards, .. } if !cards.is_empty() => {
             events.push(UnoEvent::CardsDrawn {
                 player: from_core_player(*player),
                 count: cards.len() as u16,
@@ -154,7 +156,9 @@ pub(super) fn events_for_outcome(
             count: cards.len() as u16,
             card_backs: public_card_backs(cards),
         }),
-        ActionOutcome::PassedAfterDraw { .. } => {}
+        ActionOutcome::DrewCards { .. }
+        | ActionOutcome::PenaltyDrawn { .. }
+        | ActionOutcome::PassedAfterDraw { .. } => {}
     }
     events
 }

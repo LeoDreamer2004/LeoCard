@@ -29,6 +29,8 @@ pub struct UnoSnapshot {
     pub challenge_offender: Option<PlayerId>,
     pub pending_skip: u16,
     pub pending_swap: Option<UnoPendingSwapView>,
+    /// 牌堆耗尽且双方均无法响应时，当前玩家可任选一张出牌。
+    pub sudden_death_free_play: bool,
     /// 只有接收者本人摸到可出的牌并仍在本回合时才为 `Some`。
     pub your_drawn_card: Option<UnoCard>,
     /// 抢出窗口内，只有实际持有匹配牌的非下家会收到这张私有候选牌。

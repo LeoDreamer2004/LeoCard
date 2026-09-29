@@ -1,14 +1,15 @@
 use super::{
-    UnoAssets, UnoFlipTarget, UnoSwapTargetPanel, UnoUiAction, UnoUiState, uno_card_handle,
+    UnoAssets, UnoFlipTarget, UnoSwapTargetPanel, UnoUiAction, UnoUiState, add_uno_action_button,
+    add_uno_disabled_action_button, uno_card_handle,
 };
 use crate::app::presentation::{
-    ACCENT, ButtonKind, DANGER, DESIGN_WIDTH, MUTED, PANEL, PanelSkin, PlayerMenuProfile,
-    PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_action_button,
-    add_disabled_action_button, add_host_crown, add_panel, add_player_portrait, add_text,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
+    ACCENT, ButtonKind, DANGER, DESIGN_WIDTH, MUTED, PanelSkin, PlayerMenuProfile,
+    PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_host_crown,
+    add_player_portrait, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{SeatSide, SocialUiState, UiAction};
+use crate::app::shell::{SeatSide, SocialUiState, UiAction, add_cozy_panel_with_skin};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{
@@ -62,19 +63,20 @@ pub(super) fn add_uno_eliminated_own_overlay(
 
 pub(super) fn opponent_position(index: usize, count: usize) -> (f32, f32) {
     const POSITIONS: [&[(f32, f32)]; 5] = [
-        &[(550.0, 28.0)],
-        &[(275.0, 42.0), (825.0, 42.0)],
-        &[(135.0, 112.0), (550.0, 24.0), (965.0, 112.0)],
-        &[(85.0, 185.0), (330.0, 34.0), (770.0, 34.0), (1015.0, 185.0)],
+        &[(550.0, 10.0)],
+        &[(235.0, 52.0), (865.0, 52.0)],
+        &[(100.0, 140.0), (550.0, 8.0), (1000.0, 140.0)],
+        &[(60.0, 215.0), (300.0, 16.0), (800.0, 16.0), (1040.0, 215.0)],
         &[
-            (65.0, 220.0),
-            (225.0, 55.0),
-            (550.0, 22.0),
-            (875.0, 55.0),
-            (1035.0, 220.0),
+            (40.0, 252.0),
+            (205.0, 38.0),
+            (550.0, 8.0),
+            (895.0, 38.0),
+            (1060.0, 252.0),
         ],
     ];
-    POSITIONS[count.saturating_sub(1).min(4)][index]
+    let (left, top) = POSITIONS[count.saturating_sub(1).min(4)][index];
+    (left, top + 24.0)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -91,6 +93,7 @@ pub(super) fn add_uno_player_panel(
     game_assets: &UnoAssets,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     start_transition_active: bool,
+    intro_only: bool,
 ) {
     let selecting = match game.pending_swap {
         Some(UnoPendingSwapView::SwapOneTarget { player: actor }) => {
@@ -144,6 +147,9 @@ pub(super) fn add_uno_player_panel(
     );
     let panel = portrait.portrait;
     attach_start_game_seat_transition(commands, panel, player.id, start_transition_active);
+    if intro_only {
+        return;
+    }
     commands
         .entity(portrait.avatar_ring)
         .entry::<Node>()
@@ -356,7 +362,11 @@ pub(super) fn add_uno_card_count(
     ));
 }
 
-fn add_uno_eliminated_player_overlay(commands: &mut Commands, panel: Entity, assets: &UiAssets) {
+pub(super) fn add_uno_eliminated_player_overlay(
+    commands: &mut Commands,
+    panel: Entity,
+    assets: &UiAssets,
+) {
     let overlay = spawn_node(
         commands,
         panel,
@@ -368,41 +378,18 @@ fn add_uno_eliminated_player_overlay(commands: &mut Commands, panel: Entity, ass
             bottom: px(0),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(10)),
+            border: UiRect::all(px(2)),
+            border_radius: BorderRadius::all(px(UNO_AVATAR_SIZE * 0.2)),
             ..default()
         },
-        Some(Color::BLACK.with_alpha(0.58)),
+        Some(Color::BLACK.with_alpha(0.92)),
     );
     commands.entity(overlay).insert((
-        BorderColor::all(MUTED.with_alpha(0.42)),
-        ZIndex(18),
+        BorderColor::all(DANGER.with_alpha(0.96)),
+        ZIndex(80),
         FocusPolicy::Pass,
     ));
-    let badge = spawn_node(
-        commands,
-        overlay,
-        Node {
-            padding: UiRect::axes(px(12), px(5)),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(12)),
-            ..default()
-        },
-        Some(Color::BLACK.with_alpha(0.72)),
-    );
-    commands.entity(badge).insert((
-        BorderColor::all(TEXT.with_alpha(0.34)),
-        BoxShadow::new(Color::BLACK.with_alpha(0.42), px(1), px(3), px(0), px(5)),
-        FocusPolicy::Pass,
-    ));
-    let label = add_text(
-        commands,
-        badge,
-        "已淘汰",
-        14.0,
-        TEXT.with_alpha(0.86),
-        assets,
-    );
+    let label = add_text(commands, overlay, "OUT", 19.0, DANGER, assets);
     commands.entity(label).insert(FocusPolicy::Pass);
 }
 
@@ -485,7 +472,7 @@ fn add_uno_swap_prompt_panel(
     ready: bool,
     assets: &UiAssets,
 ) {
-    let panel = add_panel(
+    let panel = add_cozy_panel_with_skin(
         commands,
         table,
         Node {
@@ -493,13 +480,12 @@ fn add_uno_swap_prompt_panel(
             left: px(475),
             top: px(118),
             width: px(330),
-            padding: UiRect::axes(px(14), px(10)),
+            padding: UiRect::all(px(22)),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
             row_gap: px(8),
             ..default()
         },
-        PANEL.with_alpha(0.96),
         PanelSkin::Popup,
         assets,
     );
@@ -507,7 +493,7 @@ fn add_uno_swap_prompt_panel(
     add_text(commands, panel, title, 14.0, TEXT, assets);
     if required.is_some() {
         if ready {
-            add_action_button(
+            add_uno_action_button(
                 commands,
                 panel,
                 "确定选择",
@@ -516,7 +502,7 @@ fn add_uno_swap_prompt_panel(
                 assets,
             );
         } else {
-            add_disabled_action_button(commands, panel, "确定选择", assets);
+            add_uno_disabled_action_button(commands, panel, "确定选择", assets);
         }
     }
 }

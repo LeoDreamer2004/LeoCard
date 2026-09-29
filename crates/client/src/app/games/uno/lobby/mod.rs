@@ -5,11 +5,12 @@ mod mode;
 mod rules;
 
 use super::{UnoUiAction, UnoUiState};
-use crate::app::presentation::{
-    ButtonKind, MUTED, add_action_button, add_section_title, add_text, spawn_node,
-};
+use crate::app::presentation::{MUTED, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction};
+use crate::app::shell::{
+    LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_cozy_button,
+    add_lobby_rules_heading,
+};
 use bevy::prelude::*;
 pub(crate) use expansion::*;
 use leocard_protocol::LobbySnapshot;
@@ -50,7 +51,7 @@ pub(crate) fn render_uno_lobby(
         },
         None,
     );
-    add_section_title(commands, title_row, mode_title(rules), assets);
+    add_lobby_rules_heading(commands, title_row, mode_title(rules), assets);
     render_uno_mode_dropdown(
         commands,
         root,
@@ -89,8 +90,15 @@ pub(crate) fn render_uno_lobby(
             "等待玩家中",
         ),
     );
-    if ui.expansion_settings_open {
-        render_uno_expansion_settings(commands, root, rules, can_configure, assets);
+    if ui.expansion_settings_open || ui.expansion_settings_progress > 0.0 {
+        render_uno_expansion_settings(
+            commands,
+            root,
+            rules,
+            can_configure,
+            ui.expansion_settings_progress,
+            assets,
+        );
     }
 }
 
@@ -105,21 +113,13 @@ fn mode_title(rules: UnoRuleSet) -> &'static str {
 }
 
 fn add_expansion_button(commands: &mut Commands, parent: Entity, assets: &UiAssets) {
-    let button = add_action_button(
+    add_cozy_button(
         commands,
         parent,
         "扩展包设置",
         UiAction::Uno(UnoUiAction::ToggleExpansionSettings),
-        ButtonKind::Secondary,
         assets,
+        percent(100),
+        48.0,
     );
-    commands.entity(button).insert(Node {
-        width: percent(100),
-        min_width: px(0),
-        height: px(56),
-        padding: UiRect::axes(px(18), px(8)),
-        align_items: AlignItems::Center,
-        justify_content: JustifyContent::Center,
-        ..default()
-    });
 }

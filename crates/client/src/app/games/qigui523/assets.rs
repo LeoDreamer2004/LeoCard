@@ -3,12 +3,14 @@ use bevy::prelude::*;
 #[derive(Resource)]
 pub(crate) struct QiGui523Assets {
     pub sequence_airplane: Handle<Image>,
+    pub pass_marker: Handle<Image>,
 }
 
 impl QiGui523Assets {
     pub(super) fn load(asset_server: &AssetServer) -> Self {
         Self {
             sequence_airplane: asset_server.load("ui/effects/sequence_airplane.png"),
+            pass_marker: asset_server.load("ui/qigui523/pass-marker.png"),
         }
     }
 }

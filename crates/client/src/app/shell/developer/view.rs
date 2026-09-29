@@ -1,10 +1,11 @@
-use crate::app::presentation::{ACCENT, BORDER, HEADER_BG, MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     DeveloperHandInput, DeveloperHandInputField, DeveloperHandInputText, DeveloperUiAction,
     UiAction, developer_hand_input_label,
 };
 use bevy::prelude::*;
+use bevy::ui::VisualBox;
 
 pub(crate) fn add_developer_hand_input(
     commands: &mut Commands,
@@ -14,6 +15,18 @@ pub(crate) fn add_developer_hand_input(
     position: Vec2,
     assets: &UiAssets,
 ) {
+    let mut image = ImageNode::new(if input.focused {
+        assets.home.focused_input.clone()
+    } else {
+        assets.home.input.clone()
+    })
+    .with_mode(NodeImageMode::Sliced(TextureSlicer {
+        border: BorderRect::all(32.0),
+        center_scale_mode: SliceScaleMode::Stretch,
+        sides_scale_mode: SliceScaleMode::Stretch,
+        max_corner_scale: 0.45,
+    }));
+    image.visual_box = VisualBox::BorderBox;
     let field = commands
         .spawn((
             Button,
@@ -26,12 +39,9 @@ pub(crate) fn add_developer_hand_input(
                 height: px(48),
                 padding: UiRect::axes(px(12), px(7)),
                 align_items: AlignItems::Center,
-                border: UiRect::all(px(if input.focused { 2 } else { 1 })),
-                border_radius: BorderRadius::all(px(7)),
                 ..default()
             },
-            BackgroundColor(HEADER_BG.with_alpha(0.94)),
-            BorderColor::all(if input.focused { ACCENT } else { BORDER }),
+            image,
             DeveloperHandInputField,
         ))
         .id();

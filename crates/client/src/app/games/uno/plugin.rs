@@ -7,6 +7,7 @@ use super::{
     spawn_uno_presentation_effects, sync_uno_discard_reveal, sync_uno_extension_card_help,
     sync_uno_presentation,
 };
+use crate::app::presentation::start_game_intro_finished;
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::UiActionSet;
 use bevy::prelude::*;
@@ -33,7 +34,11 @@ impl Plugin for UnoPlugin {
             )
             .add_systems(
                 Update,
-                (sync_uno_extension_card_help, sync_uno_presentation).in_set(ClientUpdateSet::Sync),
+                (
+                    sync_uno_extension_card_help,
+                    sync_uno_presentation.run_if(start_game_intro_finished),
+                )
+                    .in_set(ClientUpdateSet::Sync),
             )
             .add_systems(
                 Update,
@@ -51,6 +56,7 @@ impl Plugin for UnoPlugin {
                     ),
                 )
                     .chain()
+                    .run_if(start_game_intro_finished)
                     .in_set(ClientUpdateSet::Animate),
             );
     }

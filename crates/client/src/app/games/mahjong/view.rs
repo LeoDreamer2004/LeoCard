@@ -2,21 +2,24 @@
 
 use super::tiles::queue_mahjong_deal_sound;
 use super::{
-    MAHJONG_WIN_PUSH_DURATION, MahjongAssets, MahjongDiscardRiverAnimations, MahjongOwnHandVisuals,
-    MahjongPlayerPanelVisuals, MahjongPlayerTileVisuals, MahjongSettlementVisuals,
-    MahjongTableRoot, MahjongTileMaterial, MahjongUiState, MahjongWinVisuals,
-    MahjongWinningHandVisual, add_fan_guide_button, mahjong_major_fan_impact_times,
-    observe_discard_animations, render_action_bar, render_discard_rivers,
-    render_mahjong_auto_drawer, render_mahjong_claim_presentation,
-    render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
-    render_mahjong_settlement, render_mahjong_wall, render_mahjong_win_effects,
-    render_own_discard_flight, render_own_hand, render_round_status,
+    MAHJONG_WIN_PUSH_DURATION, MahjongActionVoice, MahjongAssets, MahjongDiscardRiverAnimations,
+    MahjongOwnHandVisuals, MahjongPlayerPanelVisuals, MahjongPlayerTileVisuals,
+    MahjongSettlementVisuals, MahjongTableRoot, MahjongTileMaterial, MahjongUiState,
+    MahjongWinVisuals, MahjongWinningHandVisual, add_fan_guide_button,
+    mahjong_major_fan_impact_times, observe_discard_animations, queue_mahjong_action_voice,
+    render_action_bar, render_discard_rivers, render_mahjong_auto_drawer,
+    render_mahjong_claim_presentation, render_mahjong_flower_presentations,
+    render_mahjong_player_panel, render_mahjong_player_tiles, render_mahjong_settlement,
+    render_mahjong_wall, render_mahjong_win_effects, render_own_discard_flight, render_own_hand,
+    render_round_status,
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition, TableBackground,
     TableBackgroundMaterial, add_auto_play_overlay, spawn_node, table_material_params,
 };
-use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
+use crate::app::runtime::{
+    AppearancePreferences, AvatarImages, ClientResource, TableAppearance, UiAssets,
+};
 #[cfg(feature = "developer")]
 use crate::app::shell::add_developer_hand_input;
 use crate::app::shell::{ChatPanelState, DeveloperHandInput, UiState, add_chat_panel};
@@ -34,7 +37,7 @@ pub(super) const MAHJONG_CLAIM_FLIGHT_DURATION: f32 = 0.52;
 pub(super) const MAHJONG_CLAIM_HAND_SHIFT_DURATION: f32 = 0.34;
 pub(super) const MAHJONG_CLAIM_PRESENTATION_DURATION: f32 = 1.42;
 pub(super) const MAHJONG_FLOWER_PRESENTATION_DURATION: f32 = 1.18;
-pub(super) const MAHJONG_OWN_MELD_WIDTH: f32 = 140.0;
+pub(super) const MAHJONG_OWN_MELD_WIDTH: f32 = 158.0;
 pub(super) const MAHJONG_REMOTE_MELD_WIDTH: f32 = 78.0;
 pub(super) const MAHJONG_REMOTE_DRAW_GAP: f32 = 14.0;
 
@@ -42,7 +45,7 @@ pub(super) fn mahjong_own_row_left(meld_count: usize, regular_tile_count: usize)
     let tile_width = if regular_tile_count == 0 {
         0.0
     } else {
-        regular_tile_count as f32 * 45.0 + 5.0
+        regular_tile_count as f32 * 50.0 + 6.0
     };
     (DESIGN_WIDTH - meld_count as f32 * MAHJONG_OWN_MELD_WIDTH - tile_width) / 2.0
 }
@@ -65,22 +68,6 @@ pub(super) const fn mahjong_remote_tile_overhang(relative: u8, mini: bool) -> f3
     } else {
         5.0
     }
-}
-
-pub(super) fn mahjong_remote_row_width(
-    relative: u8,
-    meld_count: usize,
-    concealed_count: usize,
-    revealed: bool,
-) -> f32 {
-    meld_count as f32 * MAHJONG_REMOTE_MELD_WIDTH
-        + if meld_count > 0 { 10.0 } else { 0.0 }
-        + concealed_count as f32 * mahjong_remote_tile_advance(relative, revealed)
-        + if concealed_count > 0 {
-            mahjong_remote_tile_overhang(relative, revealed)
-        } else {
-            0.0
-        }
 }
 
 pub(super) const fn mahjong_claim_landing_time() -> f32 {
@@ -342,25 +329,89 @@ pub(crate) struct MahjongTableVisuals<'a> {
 }
 
 pub(super) fn sync_mahjong_claim_presentation(
+    mut commands: Commands,
     mut client: Option<ResMut<ClientResource>>,
     mut presentation: ResMut<MahjongClaimPresentationState>,
+    assets: Res<MahjongAssets>,
+    preferences: Res<AppearancePreferences>,
 ) {
     let Some(client) = client.as_deref_mut() else {
         *presentation = MahjongClaimPresentationState::default();
         return;
     };
     let events = client.0.model_mut().take_mahjong_events();
-    let Some(match_id) = client.0.model().mahjong_game().map(|game| game.match_id) else {
+    let Some(game) = client.0.model().mahjong_game() else {
         *presentation = MahjongClaimPresentationState::default();
         return;
     };
+    let match_id = game.match_id;
     if presentation.observed_match.observe(match_id) {
         presentation.active = None;
         presentation.queued.clear();
         presentation.flowers.clear();
     }
     for event in events {
+        match &event {
+            MahjongEvent::ClaimResolved { player, claim, .. } => {
+                let action = match claim {
+                    MahjongClaim::Chow { .. } => Some(MahjongActionVoice::Chow),
+                    MahjongClaim::Pung => Some(MahjongActionVoice::Pung),
+                    MahjongClaim::Kong => Some(MahjongActionVoice::MeldedKong),
+                    MahjongClaim::Pass | MahjongClaim::Win => None,
+                };
+                if let Some(action) = action {
+                    queue_mahjong_action_voice(
+                        &mut commands,
+                        &assets,
+                        &preferences,
+                        game,
+                        *player,
+                        action,
+                    );
+                }
+            }
+            MahjongEvent::KongDeclared { player, added, .. } => {
+                queue_mahjong_action_voice(
+                    &mut commands,
+                    &assets,
+                    &preferences,
+                    game,
+                    *player,
+                    if *added {
+                        MahjongActionVoice::AddedKong
+                    } else {
+                        MahjongActionVoice::ConcealedKong
+                    },
+                );
+            }
+            MahjongEvent::HandFinished { result } => {
+                for winner in &result.winners {
+                    let action = if winner.from.is_some() {
+                        MahjongActionVoice::Win
+                    } else {
+                        MahjongActionVoice::SelfDraw
+                    };
+                    queue_mahjong_action_voice(
+                        &mut commands,
+                        &assets,
+                        &preferences,
+                        game,
+                        winner.player,
+                        action,
+                    );
+                }
+            }
+            _ => {}
+        }
         if let MahjongEvent::FlowerReplaced { player } = &event {
+            queue_mahjong_action_voice(
+                &mut commands,
+                &assets,
+                &preferences,
+                game,
+                *player,
+                MahjongActionVoice::Flower,
+            );
             if let Some(active) = presentation
                 .flowers
                 .iter_mut()
@@ -584,6 +635,28 @@ pub(crate) fn render_mahjong_table(
         .map(|player| player.seat.0)
         .unwrap_or_default();
     let start_transition_active = start_game_transition.is_active_for(game.match_id);
+    if start_transition_active {
+        ui.intro_deal_match = Some(game.match_id);
+        for player in &game.players {
+            render_mahjong_player_panel(
+                commands,
+                table,
+                player,
+                MahjongPlayerPanelVisuals {
+                    own_seat,
+                    interaction_menu_open,
+                    start_transition_active,
+                    assets,
+                    avatars,
+                },
+            );
+        }
+        return;
+    }
+    let intro_deal = ui.intro_deal_match == Some(game.match_id) && !game.your_hand.is_empty();
+    if intro_deal {
+        ui.intro_deal_match = None;
+    }
     if ui
         .observed_table
         .observe((game.match_id, game.sequence_index))
@@ -600,7 +673,7 @@ pub(crate) fn render_mahjong_table(
     let dealing = matches!(
         game.phase,
         MahjongPhaseView::Dealing { .. } | MahjongPhaseView::ReplacingFlower { .. }
-    );
+    ) || (intro_deal && !matches!(game.phase, MahjongPhaseView::Finished { .. }));
     let drawn_tile_falling = matches!(
         game.phase,
         MahjongPhaseView::Playing | MahjongPhaseView::ReplacingFlower { .. }
@@ -754,6 +827,7 @@ pub(crate) fn render_mahjong_table(
         game,
         MahjongOwnHandVisuals {
             observed_hand: &ui.observed_table.state.hand,
+            hover_lifts: &ui.hand_hover_lifts,
             dealing: dealing || own_flower_replaced,
             drawn_tile_falling,
             winning_hand: own_winning_hand,
@@ -790,7 +864,15 @@ pub(crate) fn render_mahjong_table(
     if received_batch {
         queue_mahjong_deal_sound(commands, assets);
     }
-    render_action_bar(commands, table, game, ui, assets);
+    render_action_bar(
+        commands,
+        table,
+        game,
+        ui,
+        assets,
+        game_assets,
+        tile_materials,
+    );
     render_mahjong_claim_presentation(
         commands,
         table,
@@ -843,6 +925,7 @@ pub(crate) fn render_mahjong_table(
         render_mahjong_settlement(
             commands,
             table,
+            content,
             game,
             result,
             MahjongSettlementVisuals {
@@ -851,6 +934,14 @@ pub(crate) fn render_mahjong_table(
                 animation: game_summary,
                 game_assets,
                 materials: tile_materials,
+                fan_summary_continued: ui.fan_summary_continued
+                    == Some((game.match_id, result.sequence_index)),
+                final_summary_opened_at: ui
+                    .final_summary_opened_at
+                    .filter(|(match_id, sequence_index, _)| {
+                        *match_id == game.match_id && *sequence_index == result.sequence_index
+                    })
+                    .map(|(_, _, started_at)| started_at),
             },
         );
     }

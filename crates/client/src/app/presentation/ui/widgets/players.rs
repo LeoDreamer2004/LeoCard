@@ -1,14 +1,15 @@
 //! 玩家框、头像、准备标记和房主标记。
 
-use super::super::{ACCENT, BORDER, ButtonTint, HEADER_BG, MUTED, PANEL_ALT, READY, TEXT};
+use super::super::{BORDER, MUTED, READY, TEXT};
 use super::{add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction, PlayerProfilePage, SeatSide,
-    SocialUiAction, UiAction, reference_level,
+    HomeHighlightKind, InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction,
+    PlayerProfilePage, SeatSide, SocialUiAction, UiAction, add_cozy_button, add_cozy_panel,
+    reference_level,
 };
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_protocol::{PlayerGameProfiles, PlayerId, PlayerInteractionKind};
 
 pub(crate) fn add_avatar(
@@ -113,14 +114,14 @@ pub(crate) fn add_host_crown(commands: &mut Commands, avatar: Entity, assets: &U
         .spawn((
             Node {
                 position_type: PositionType::Absolute,
-                left: px(-9),
-                top: px(-11),
+                left: px(-2),
+                top: px(-8),
                 width: px(19),
                 height: px(17),
                 ..default()
             },
             ImageNode::new(assets.controls.host_crown.clone()),
-            UiTransform::from_rotation(Rot2::radians(-1.08)),
+            UiTransform::from_rotation(Rot2::radians(-0.2)),
             ZIndex(40),
             FocusPolicy::Pass,
         ))
@@ -169,21 +170,23 @@ pub(crate) fn add_interaction_menu(
     } = profile;
     let mut node = Node {
         position_type: PositionType::Absolute,
-        width: px(330),
-        min_height: px(118),
-        padding: UiRect::all(px(6)),
+        width: px(304),
+        min_height: px(145),
+        padding: UiRect {
+            left: px(12),
+            right: px(12),
+            top: px(16),
+            bottom: px(16),
+        },
         flex_direction: FlexDirection::Column,
         align_items: AlignItems::Stretch,
-        row_gap: px(4),
-        border: UiRect::all(px(1)),
-        border_radius: BorderRadius::all(px(8)),
+        row_gap: px(7),
         ..default()
     };
     position_opponent_popup(&mut node, side);
-    let menu = spawn_node(commands, parent, node, Some(HEADER_BG.with_alpha(0.98)));
+    let menu = add_cozy_panel(commands, parent, node, assets);
     commands.entity(menu).insert((
         InteractionMenuPanel(target),
-        BorderColor::all(ACCENT.with_alpha(0.72)),
         GlobalZIndex(1500),
         FocusPolicy::Pass,
     ));
@@ -192,17 +195,16 @@ pub(crate) fn add_interaction_menu(
         menu,
         Node {
             width: percent(100),
-            height: px(38),
-            min_height: px(38),
+            height: px(42),
+            min_height: px(42),
             padding: UiRect::axes(px(5), px(3)),
             align_items: AlignItems::Center,
             column_gap: px(7),
-            border_radius: BorderRadius::all(px(6)),
             ..default()
         },
-        Some(PANEL_ALT.with_alpha(0.82)),
+        None,
     );
-    add_avatar(commands, profile, player_name, avatar, 30.0, assets);
+    add_avatar(commands, profile, player_name, avatar, 34.0, assets);
     let identity = spawn_node(
         commands,
         profile,
@@ -216,69 +218,45 @@ pub(crate) fn add_interaction_menu(
         },
         None,
     );
-    add_text(commands, identity, player_name, 13.0, TEXT, assets);
+    add_text(commands, identity, player_name, 15.0, TEXT, assets);
     add_text(
         commands,
         identity,
         format!(
-            "等级:{}  分数:{}  对局:{}",
+            "等级:{}  分数:{}",
             reference_level(reference_points),
             reference_points,
-            completed_games
         ),
-        9.5,
+        10.5,
         MUTED,
         assets,
     );
-    let normal = Color::srgb(0.34, 0.50, 0.62);
-    let profile_button = commands
-        .spawn((
-            Button,
-            UiAction::Navigation(NavigationUiAction::OpenPlayerProfile(Box::new(
-                PlayerProfilePage {
-                    name: player_name.to_owned(),
-                    avatar: avatar.cloned(),
-                    reference_points,
-                    completed_games,
-                    game_profiles: game_profiles.clone(),
-                },
-            ))),
-            ButtonTint {
-                normal,
-                hovered: Color::srgb(0.50, 0.66, 0.78),
-                pressed: Color::srgb(0.24, 0.38, 0.50),
-            },
-            Node {
-                width: px(66),
-                min_width: px(66),
-                height: px(28),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            ImageNode::new(assets.controls.secondary_button.clone())
-                .with_mode(NodeImageMode::Stretch)
-                .with_color(normal),
-        ))
-        .id();
-    commands.entity(profile).add_child(profile_button);
-    add_text(
+    add_cozy_button(
         commands,
-        profile_button,
+        profile,
         "完整资料",
-        11.0,
-        Color::WHITE,
+        UiAction::Navigation(NavigationUiAction::OpenPlayerProfile(Box::new(
+            PlayerProfilePage {
+                name: player_name.to_owned(),
+                avatar: avatar.cloned(),
+                reference_points,
+                completed_games,
+                game_profiles: game_profiles.clone(),
+            },
+        ))),
         assets,
+        px(78),
+        30.0,
     );
     let actions = spawn_node(
         commands,
         menu,
         Node {
             width: percent(100),
-            height: px(62),
+            height: px(64),
             align_items: AlignItems::Center,
-            justify_content: JustifyContent::SpaceEvenly,
-            column_gap: px(5),
+            justify_content: JustifyContent::Center,
+            column_gap: px(0),
             ..default()
         },
         None,
@@ -289,37 +267,66 @@ pub(crate) fn add_interaction_menu(
         (PlayerInteractionKind::Wine, "酒杯"),
         (PlayerInteractionKind::Shoe, "拖鞋"),
     ] {
-        let normal = Color::srgb(0.18, 0.42, 0.34);
+        let mut base = ImageNode::new(assets.home.button.clone()).with_mode(NodeImageMode::Sliced(
+            TextureSlicer {
+                border: BorderRect::all(32.0),
+                center_scale_mode: SliceScaleMode::Stretch,
+                sides_scale_mode: SliceScaleMode::Stretch,
+                max_corner_scale: 0.5,
+            },
+        ));
+        base.visual_box = VisualBox::BorderBox;
         let button = commands
             .spawn((
                 Button,
                 UiAction::Social(SocialUiAction::SendInteraction { target, kind }),
-                ButtonTint {
-                    normal,
-                    hovered: Color::srgb(0.27, 0.58, 0.46),
-                    pressed: Color::srgb(0.12, 0.30, 0.24),
-                },
                 Node {
-                    width: px(72),
-                    height: px(62),
+                    width: px(69),
+                    height: px(64),
                     flex_direction: FlexDirection::Column,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
-                    row_gap: px(1),
-                    border_radius: BorderRadius::all(px(6)),
+                    row_gap: px(2),
                     ..default()
                 },
-                ImageNode::new(assets.controls.secondary_button.clone())
-                    .with_mode(NodeImageMode::Stretch)
-                    .with_color(normal),
+                base,
             ))
             .id();
         commands.entity(actions).add_child(button);
+        let mut highlight = ImageNode::new(assets.home.purple_button_compact.clone()).with_mode(
+            NodeImageMode::Sliced(TextureSlicer {
+                border: BorderRect::all(32.0),
+                center_scale_mode: SliceScaleMode::Stretch,
+                sides_scale_mode: SliceScaleMode::Stretch,
+                max_corner_scale: 0.5,
+            }),
+        );
+        highlight.visual_box = VisualBox::BorderBox;
+        let overlay = commands
+            .spawn((
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(0),
+                    right: px(0),
+                    top: px(0),
+                    bottom: px(0),
+                    ..default()
+                },
+                highlight,
+                Visibility::Hidden,
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(button).add_child(overlay);
+        commands.entity(button).insert(HomeHighlightKind::Button {
+            overlay,
+            arrows: None,
+        });
         let icon = commands
             .spawn((
                 Node {
-                    width: px(38),
-                    height: px(38),
+                    width: px(36),
+                    height: px(36),
                     ..default()
                 },
                 ImageNode::new(
@@ -334,7 +341,7 @@ pub(crate) fn add_interaction_menu(
             ))
             .id();
         commands.entity(button).add_child(icon);
-        add_text(commands, button, label, 11.0, TEXT, assets);
+        add_text(commands, button, label, 12.0, TEXT, assets);
         if matches!(
             kind,
             PlayerInteractionKind::Wine | PlayerInteractionKind::Shoe
@@ -347,7 +354,6 @@ pub(crate) fn add_interaction_menu(
                         right: px(0),
                         top: px(0),
                         bottom: px(0),
-                        border_radius: BorderRadius::all(px(6)),
                         ..default()
                     },
                     ImageNode::new(

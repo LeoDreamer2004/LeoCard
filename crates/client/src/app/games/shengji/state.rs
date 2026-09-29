@@ -13,6 +13,7 @@ pub(crate) struct ShengjiUiState {
     pub selected: HashSet<ShengjiCard>,
     pub card_animations: HashMap<ShengjiCard, CardAnimationState>,
     pub observed_hand: Observed<(MatchId, u32), Vec<ShengjiCard>>,
+    pub intro_deal_match: Option<MatchId>,
     pub buried_open: bool,
 }
 
@@ -25,6 +26,7 @@ impl ShengjiUiState {
         self.selected.clear();
         self.card_animations.clear();
         self.observed_hand.clear();
+        self.intro_deal_match = None;
         self.buried_open = false;
     }
 }

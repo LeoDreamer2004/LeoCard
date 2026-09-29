@@ -75,7 +75,7 @@ pub(super) fn add_sequence_play_decoration(
     assets: &UiAssets,
     game_assets: &QiGui523Assets,
 ) {
-    let (width, _) = CardSize::Seat.dimensions();
+    let (width, _) = CardSize::QiGuiSeat.dimensions();
     let cards_width = width + TABLE_CARD_REVEAL * card_count.saturating_sub(1) as f32;
 
     let guide = spawn_node(

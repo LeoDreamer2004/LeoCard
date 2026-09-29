@@ -2,18 +2,19 @@
 
 use crate::app::presentation::{
     ACCENT, LobbyEmptySeatLabel, LobbyEmptySeatRing, LobbySeatHover, LobbySeatVisual, MUTED,
-    PANEL_ALT, RuleHelp,
+    RuleHelp,
 };
-use crate::app::runtime::ClientResource;
+use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::prelude::*;
 #[cfg(feature = "developer")]
 use leocard_protocol::{ClientCommand, SeatId};
 
 pub(crate) fn animate_lobby_seat_hover(
     time: Res<Time>,
+    assets: Res<UiAssets>,
     mut seats: Query<(&Interaction, &mut LobbySeatHover)>,
     mut visuals: Query<(&LobbySeatVisual, &mut UiTransform)>,
-    mut empty_rings: Query<(&LobbyEmptySeatRing, &mut BorderColor, &mut BackgroundColor)>,
+    mut empty_rings: Query<(&LobbyEmptySeatRing, &mut ImageNode)>,
     mut empty_labels: Query<(&LobbyEmptySeatLabel, &mut Text, &mut TextColor)>,
 ) {
     let response = 1.0 - (-time.delta_secs() * 16.0).exp();
@@ -44,20 +45,18 @@ pub(crate) fn animate_lobby_seat_hover(
             );
             transform.scale = Vec2::splat(1.0 + hover.amount * 0.035);
         }
-        if let Some((_, mut border, mut background)) = empty_rings
+        if let Some((_, mut image)) = empty_rings
             .iter_mut()
-            .find(|(ring, _, _)| ring.0 == hover.seat)
+            .find(|(ring, _)| ring.0 == hover.seat)
         {
-            border.set_all(if hovered {
-                ACCENT.with_alpha(0.88)
+            let expected = if hovered {
+                &assets.home.purple_button_compact
             } else {
-                MUTED.with_alpha(0.34)
-            });
-            background.0 = if hovered {
-                PANEL_ALT.with_alpha(0.90)
-            } else {
-                Color::srgba(0.03, 0.12, 0.085, 0.64)
+                &assets.home.button
             };
+            if image.image != *expected {
+                image.image = expected.clone();
+            }
         }
         if let Some((_, mut text, mut color)) = empty_labels
             .iter_mut()

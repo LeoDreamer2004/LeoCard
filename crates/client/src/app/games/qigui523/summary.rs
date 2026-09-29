@@ -1,15 +1,18 @@
 //! 七鬼五二三终局结算弹窗与逐行得分演出。
 
 use crate::app::presentation::{
-    ACCENT, AnimatedSummaryScore, ButtonKind, DANGER, GameSummaryActions, GameSummaryAnimation,
+    ACCENT, AnimatedSummaryScore, DANGER, GameSummaryActions, GameSummaryAnimation,
     GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, PANEL_ALT, PanelSkin, READY,
     SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_HAND_REVEAL_DURATION, SUMMARY_ROW_INTERVAL,
-    SUMMARY_ROW_START_DELAY, SummaryDescriptor, TEXT, add_action_button, add_animated_summary_text,
-    add_disabled_action_button, add_ready_avatar, animated_summary_score, decorate_panel_skin,
-    sorted_summary_scores, spawn_node, summary_modal_visual, summary_row_progress,
+    SUMMARY_ROW_START_DELAY, SummaryDescriptor, TEXT, add_animated_summary_text, add_ready_avatar,
+    animated_summary_score, decorate_panel_skin, sorted_summary_scores, spawn_node,
+    summary_modal_visual, summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{LobbyUiAction, UiAction};
+use crate::app::shell::{
+    CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button, add_cozy_button_variant,
+    add_cozy_disabled_button,
+};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{GamePhaseView, QiGui523Snapshot};
@@ -100,6 +103,16 @@ pub(super) fn add_game_summary_modal(
         animation.elapsed,
         assets,
     );
+    spawn_node(
+        commands,
+        modal,
+        Node {
+            width: px(86),
+            height: px(2),
+            ..default()
+        },
+        Some(Color::srgb(0.64, 0.59, 0.93)),
+    );
     add_animated_summary_text(
         commands,
         modal,
@@ -139,7 +152,6 @@ pub(super) fn add_game_summary_modal(
                 padding: UiRect::axes(px(10), px(4)),
                 align_items: AlignItems::Center,
                 column_gap: px(10),
-                border_radius: BorderRadius::all(px(7)),
                 ..default()
             },
             Some(PANEL_ALT.with_alpha(0.82 * row_progress)),
@@ -241,22 +253,25 @@ pub(super) fn add_game_summary_modal(
             Visibility::Hidden
         },
     ));
-    add_action_button(
+    add_cozy_button_variant(
         commands,
         actions,
         "退出游戏",
         UiAction::Lobby(LobbyUiAction::LeaveRoom),
-        ButtonKind::Pass,
         assets,
+        px(150),
+        48.0,
+        CozyButtonVariant::Danger,
     );
     if game.you == game.host {
-        add_action_button(
+        add_cozy_button(
             commands,
             actions,
             "返回房间",
             UiAction::Lobby(LobbyUiAction::ReturnToLobby),
-            ButtonKind::Warning,
             assets,
+            px(150),
+            48.0,
         );
     }
     let ready = game
@@ -265,15 +280,17 @@ pub(super) fn add_game_summary_modal(
         .find(|player| player.id == game.you)
         .is_some_and(|player| player.ready);
     if ready {
-        add_disabled_action_button(commands, actions, "已准备", assets);
+        add_cozy_disabled_button(commands, actions, "已准备", assets, px(150), 48.0);
     } else {
-        add_action_button(
+        add_cozy_button_variant(
             commands,
             actions,
             "再来一局",
             UiAction::Lobby(LobbyUiAction::PlayAgain),
-            ButtonKind::Primary,
             assets,
+            px(150),
+            48.0,
+            CozyButtonVariant::Cool,
         );
     }
 }

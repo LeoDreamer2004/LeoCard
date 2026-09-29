@@ -11,10 +11,10 @@ use leocard_mahjong::MahjongTile;
 use leocard_protocol::{MahjongSnapshot, PlayerId};
 
 const DISCARD_DURATION: f32 = 0.48;
-const HAND_TILE_ADVANCE: f32 = 45.0;
+const HAND_TILE_ADVANCE: f32 = 50.0;
 
 #[derive(Component)]
-pub(super) struct MahjongTableRoot;
+pub(crate) struct MahjongTableRoot;
 
 #[derive(Clone, Debug)]
 pub(crate) struct MahjongOwnDiscardAnimation {
@@ -48,12 +48,12 @@ impl MahjongOwnDiscardAnimation {
     }
 
     fn flight_transform(&self, source_x: f32, target: Vec2, table_height: f32) -> UiTransform {
-        let source_center = Vec2::new(source_x + 25.0, table_height - 76.0 + 34.0);
+        let source_center = Vec2::new(source_x + 28.0, table_height - 8.0 - 38.0);
         let target_center = target + Vec2::new(16.5, 22.5);
         let offset = (source_center - target_center) * (1.0 - self.movement());
         UiTransform {
             translation: Val2::px(offset.x, offset.y),
-            scale: Vec2::splat(1.0 + 0.50 * (1.0 - self.movement())),
+            scale: Vec2::splat(1.0 + (56.0 / 33.0 - 1.0) * (1.0 - self.movement())),
             ..default()
         }
     }
@@ -67,7 +67,7 @@ impl MahjongOwnDiscardAnimation {
         let left = mahjong_own_row_left(self.old_meld_count, regular_count)
             + self.old_meld_count as f32 * super::MAHJONG_OWN_MELD_WIDTH;
         if drawn_index == Some(index) {
-            Some(left + regular_count as f32 * HAND_TILE_ADVANCE + 18.0)
+            Some(left + regular_count as f32 * HAND_TILE_ADVANCE + 22.0)
         } else {
             let regular_index = index - usize::from(drawn_index.is_some_and(|drawn| drawn < index));
             Some(left + regular_index as f32 * HAND_TILE_ADVANCE)
@@ -127,9 +127,6 @@ pub(super) struct MahjongDiscardRiverTile;
 
 #[derive(Component)]
 pub(super) struct MahjongRemoteDiscardRiverTile;
-
-#[derive(Component)]
-pub(super) struct MahjongRemoteDiscardSpacer;
 
 #[derive(Component)]
 pub(super) struct MahjongRemoteHandShift {
@@ -381,7 +378,6 @@ pub(super) fn animate_remote_discard(
         (Entity, &ComputedNode, &UiGlobalTransform, &mut Visibility),
         With<MahjongRemoteDiscardRiverTile>,
     >,
-    spacers: Query<Entity, With<MahjongRemoteDiscardSpacer>>,
     mut hand_shifts: Query<
         (Entity, &MahjongRemoteHandShift, &mut UiTransform),
         Without<MahjongRemoteDiscardGhost>,
@@ -436,9 +432,6 @@ pub(super) fn animate_remote_discard(
     }
     if raw >= 1.0 {
         *target_visibility = Visibility::Visible;
-        for entity in &spacers {
-            commands.entity(entity).despawn();
-        }
         commands
             .entity(target_entity)
             .remove::<MahjongRemoteDiscardRiverTile>();

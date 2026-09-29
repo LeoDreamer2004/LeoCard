@@ -18,4 +18,7 @@ pub(crate) struct PlayErrorToast {
 pub(crate) struct PlayErrorPopup;
 
 #[derive(Component)]
+pub(crate) struct PlayErrorPopupImage;
+
+#[derive(Component)]
 pub(crate) struct PlayErrorPopupText;

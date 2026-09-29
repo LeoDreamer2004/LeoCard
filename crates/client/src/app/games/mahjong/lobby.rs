@@ -1,9 +1,11 @@
 use super::MahjongUiAction;
 use crate::app::presentation::{
-    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_section_title, add_text,
+    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_text,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction};
+use crate::app::shell::{
+    LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_lobby_rules_heading,
+};
 use bevy::prelude::*;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet, MahjongUmaStyle};
 use leocard_protocol::LobbySnapshot;
@@ -47,7 +49,7 @@ pub(crate) fn render_mahjong_lobby(
     let rules_panel = page.rules;
     let connected = page.connected_count;
     let can_configure = page.can_configure;
-    add_section_title(commands, rules_panel, "国标麻将配置", assets);
+    add_lobby_rules_heading(commands, rules_panel, "国标麻将配置", assets);
     add_text(
         commands,
         rules_panel,

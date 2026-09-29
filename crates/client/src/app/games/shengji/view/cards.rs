@@ -63,10 +63,10 @@ fn add_shengji_card_row_internal(
 ) -> Entity {
     let (width, height, mut reveal): (f32, f32, f32) = match size {
         ShengjiCardSize::Hand => {
-            let (width, height) = CardSize::Hand.dimensions();
+            let (width, height) = CardSize::ShengjiHand.dimensions();
             (width, height, HAND_CARD_REVEAL)
         }
-        ShengjiCardSize::Seat => (58.0, 79.0, 24.0),
+        ShengjiCardSize::Seat => (70.0, 95.0, 27.0),
         ShengjiCardSize::Score => (36.0, 49.0, 14.0),
     };
     if matches!(size, ShengjiCardSize::Score) && cards.len() > 1 {
@@ -135,7 +135,7 @@ pub(super) fn add_shengji_trump_stars(
     }
     let (left, bottom, font_size) = match size {
         ShengjiCardSize::Hand => (4.0, 4.0, 14.0),
-        ShengjiCardSize::Seat => (3.0, 3.0, 12.0),
+        ShengjiCardSize::Seat => (4.0, 4.0, 14.0),
         ShengjiCardSize::Score => (2.0, 2.0, 8.0),
     };
     let marker = add_text(

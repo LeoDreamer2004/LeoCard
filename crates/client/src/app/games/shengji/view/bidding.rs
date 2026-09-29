@@ -1,8 +1,10 @@
 use super::super::ShengjiUiAction;
 use super::shengji_current_level;
-use crate::app::presentation::{ACCENT, ButtonTint, DANGER, MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, DANGER, TEXT, add_text, spawn_node};
 use crate::app::runtime::{ClientResource, UiAssets};
-use crate::app::shell::UiAction;
+use crate::app::shell::{
+    CozyButtonVariant, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
+};
 use bevy::prelude::*;
 use leocard_protocol::ShengjiDeclarationView;
 use leocard_protocol::{ShengjiPhaseView, ShengjiSnapshot};
@@ -52,10 +54,10 @@ pub(super) fn add_shengji_bidding_panel(
         hand_area,
         Node {
             position_type: PositionType::Absolute,
-            left: percent(29),
-            right: percent(29),
+            left: percent(25),
+            right: percent(25),
             top: px(2),
-            height: px(34),
+            height: px(54),
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -65,16 +67,7 @@ pub(super) fn add_shengji_bidding_panel(
         None,
     );
     commands.entity(panel).insert(GlobalZIndex(80));
-    for (label, target, color) in [
-        ("♦ 方块", Some(ShengjiSuit::Diamond), DANGER),
-        ("♣ 梅花", Some(ShengjiSuit::Club), TEXT),
-        ("♥ 红桃", Some(ShengjiSuit::Heart), DANGER),
-        ("♠ 黑桃", Some(ShengjiSuit::Spade), TEXT),
-        ("无主", None, ACCENT),
-    ] {
-        let cards = shengji_declaration_candidate(game, target);
-        add_shengji_bid_button(commands, panel, label, cards, color, false, assets);
-    }
+    add_shengji_bid_strip(commands, panel, game, false, assets);
     if let ShengjiPhaseView::BiddingGrace {
         milliseconds_remaining,
         confirmed_count,
@@ -112,126 +105,107 @@ fn add_shengji_bid_pass_button(
     confirmed: bool,
     assets: &UiAssets,
 ) {
-    let normal = if confirmed {
-        Color::srgb(0.12, 0.31, 0.22)
+    if confirmed {
+        add_cozy_disabled_button(commands, parent, label, assets, px(116), 42.0);
     } else {
-        Color::srgb(0.16, 0.43, 0.29)
-    };
-    let mut entity = commands.spawn((
-        Node {
-            min_width: px(88),
-            height: px(34),
-            padding: UiRect::axes(px(8), px(4)),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            ..default()
-        },
-        ImageNode::new(assets.controls.primary_button.clone())
-            .with_mode(NodeImageMode::Stretch)
-            .with_color(normal),
-    ));
-    if !confirmed {
-        entity.insert((
-            Button,
+        add_cozy_button_variant(
+            commands,
+            parent,
+            label,
             UiAction::Shengji(ShengjiUiAction::ConfirmBidPass),
-            ButtonTint {
-                normal,
-                hovered: Color::srgb(0.23, 0.58, 0.39),
-                pressed: Color::srgb(0.10, 0.30, 0.20),
-            },
-        ));
+            assets,
+            px(116),
+            42.0,
+            CozyButtonVariant::Neutral,
+        );
     }
-    let entity = entity.id();
-    commands.entity(parent).add_child(entity);
-    add_text(
-        commands,
-        entity,
-        label,
-        12.0,
-        if confirmed { MUTED } else { Color::WHITE },
-        assets,
-    );
 }
 
-pub(super) fn add_shengji_bid_button(
+pub(super) fn add_shengji_bid_strip(
     commands: &mut Commands,
     parent: Entity,
-    label: &str,
-    cards: Option<Vec<ShengjiCard>>,
-    color: Color,
+    game: &ShengjiSnapshot,
     bottom_copy: bool,
     assets: &UiAssets,
 ) {
-    let enabled = cards.is_some();
-    let no_trump_color = if cards
-        .as_ref()
-        .and_then(|cards| cards.first())
-        .is_some_and(|card| card.rank() == ShengjiRank::BigJoker)
+    let mut strip_image = ImageNode::new(assets.home.settings_page.clone()).with_mode(
+        NodeImageMode::Sliced(TextureSlicer {
+            border: BorderRect::all(20.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 1.0,
+        }),
+    );
+    strip_image.visual_box = VisualBox::BorderBox;
+    strip_image.color = Color::srgb(0.64, 0.63, 0.69);
+    let strip = spawn_node(
+        commands,
+        parent,
+        Node {
+            width: px(320),
+            height: px(54),
+            flex_direction: FlexDirection::Row,
+            ..default()
+        },
+        None,
+    );
+    commands.entity(strip).insert(strip_image);
+    for (index, (label, target, color)) in [
+        ("♦", Some(ShengjiSuit::Diamond), DANGER),
+        ("♣", Some(ShengjiSuit::Club), TEXT),
+        ("♥", Some(ShengjiSuit::Heart), DANGER),
+        ("♠", Some(ShengjiSuit::Spade), TEXT),
+        ("NG", None, ACCENT),
+    ]
+    .into_iter()
+    .enumerate()
     {
-        DANGER
-    } else {
-        Color::srgb(0.65, 0.68, 0.70)
-    };
-    let entity = commands
-        .spawn((
-            Node {
-                min_width: px(66),
-                height: px(34),
-                padding: UiRect::axes(px(6), px(4)),
+        let cards = shengji_declaration_candidate(game, target);
+        let enabled = cards.is_some();
+        let button = commands
+            .spawn((Node {
+                width: px(64),
+                height: px(54),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                column_gap: px(if label == "无主" { 2 } else { 0 }),
                 ..default()
-            },
-            ImageNode::new(if enabled {
-                assets.controls.primary_button.clone()
-            } else {
-                assets.controls.disabled_button.clone()
-            })
-            .with_mode(NodeImageMode::Stretch)
-            .with_color(if enabled {
-                Color::srgb(0.20, 0.62, 0.38)
-            } else {
-                Color::srgb(0.35, 0.37, 0.37)
-            }),
-        ))
-        .id();
-    commands.entity(parent).add_child(entity);
-    if let Some(cards) = cards {
-        commands.entity(entity).insert((
-            Button,
-            if bottom_copy {
-                UiAction::Shengji(ShengjiUiAction::BottomCopy(cards))
-            } else {
-                UiAction::Shengji(ShengjiUiAction::Declare(cards))
-            },
-            ButtonTint {
-                normal: Color::srgb(0.20, 0.62, 0.38),
-                hovered: Color::srgb(0.27, 0.75, 0.47),
-                pressed: Color::srgb(0.14, 0.46, 0.28),
-            },
-        ));
-    }
-    if label == "无主" {
-        add_text(commands, entity, "NG", 12.0, no_trump_color, assets);
+            },))
+            .id();
+        commands.entity(strip).add_child(button);
+        if let Some(cards) = cards {
+            commands.entity(button).insert((
+                Button,
+                if bottom_copy {
+                    UiAction::Shengji(ShengjiUiAction::BottomCopy(cards))
+                } else {
+                    UiAction::Shengji(ShengjiUiAction::Declare(cards))
+                },
+            ));
+        }
+        if index < 4 {
+            spawn_node(
+                commands,
+                button,
+                Node {
+                    position_type: PositionType::Absolute,
+                    right: px(0),
+                    top: px(8),
+                    bottom: px(8),
+                    width: px(1),
+                    ..default()
+                },
+                Some(Color::srgba(0.72, 0.72, 0.76, 0.24)),
+            );
+        }
         add_text(
             commands,
-            entity,
+            button,
             label,
-            12.0,
-            if enabled { color } else { MUTED },
-            assets,
-        );
-    } else {
-        add_text(
-            commands,
-            entity,
-            label,
-            13.0,
+            if label == "NG" { 19.0 } else { 27.0 },
             if enabled {
                 color
             } else {
-                Color::srgb(0.58, 0.60, 0.60)
+                Color::srgb(0.37, 0.38, 0.42)
             },
             assets,
         );

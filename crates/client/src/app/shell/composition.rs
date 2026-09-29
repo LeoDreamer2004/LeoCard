@@ -1,11 +1,11 @@
 //! 根据网络模型与页面状态装配当前的顶层界面。
 
 use super::{
-    ChatPanelState, ConnectionScreen, DeveloperHandInput, Header, HostGamePicker, PlayErrorToast,
-    ProfileModal, SettingsModal, UiState, UpdateManager, add_play_error_popup,
+    ChatPanelState, ConnectionScreen, DeveloperHandInput, Header, PlayErrorToast, ProfileModal,
+    ProfileMotion, SettingsModal, SettingsMotion, UiState, UpdateManager, add_play_error_popup,
     render_update_dialog,
 };
-use crate::app::games::GameScreenResources;
+use crate::app::games::{GameScreenResources, MahjongHandTile};
 use crate::app::presentation::{GameSummaryAnimation, UiRoot};
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, ClientResource, ConnectionDraft, TableAppearance, UiAssets,
@@ -22,6 +22,8 @@ struct VisualAssets<'w> {
     play_error: Res<'w, PlayErrorToast>,
     game_summary: Res<'w, GameSummaryAnimation>,
     updater: Res<'w, UpdateManager>,
+    settings_motion: Res<'w, SettingsMotion>,
+    profile_motion: Res<'w, ProfileMotion>,
 }
 
 #[derive(SystemParam)]
@@ -35,6 +37,9 @@ struct ScreenResources<'w> {
     ui: ResMut<'w, UiState>,
 }
 
+#[derive(Component)]
+struct GameIntroRoot;
+
 #[derive(SystemParam)]
 pub(crate) struct ScreenRebuild<'w, 's> {
     commands: Commands<'w, 's>,
@@ -42,6 +47,8 @@ pub(crate) struct ScreenRebuild<'w, 's> {
     visuals: VisualAssets<'w>,
     games: GameScreenResources<'w>,
     roots: Query<'w, 's, Entity, With<UiRoot>>,
+    intro_roots: Query<'w, 's, Entity, With<GameIntroRoot>>,
+    mahjong_hand_tiles: Query<'w, 's, (&'static MahjongHandTile, Option<&'static Interaction>)>,
 }
 
 pub(crate) fn rebuild_ui(mut screen: ScreenRebuild) {
@@ -53,7 +60,15 @@ impl ScreenRebuild<'_, '_> {
         if !self.resources.ui.dirty {
             return;
         }
+        // The intro contains portraits and felt only. Keep its targets alive
+        // through opening snapshots, then build the game once it completes.
+        let intro_active = self.games.start_transition_active();
+        if intro_active && !self.intro_roots.is_empty() {
+            return;
+        }
         self.resources.ui.dirty = false;
+        self.games
+            .retain_mahjong_hand_hover(self.resources.client.as_deref(), &self.mahjong_hand_tiles);
         self.games
             .reconcile_screen_state(self.resources.client.as_deref(), &mut self.resources.ui);
         for entity in &self.roots {
@@ -85,6 +100,9 @@ impl ScreenRebuild<'_, '_> {
             games: &mut self.games,
         }
         .render(root);
+        if intro_active {
+            self.commands.entity(root).insert(GameIntroRoot);
+        }
     }
 }
 
@@ -163,17 +181,24 @@ impl ScreenRenderer<'_, '_, '_> {
 
     fn render_overlays(&mut self, root: Entity) {
         if self.ui.navigation.settings_open {
-            SettingsModal::new(self.appearance, &self.visuals.updater, &self.visuals.ui)
-                .render(self.commands, root);
+            SettingsModal::new(self.appearance, &self.visuals.updater, &self.visuals.ui).render(
+                self.commands,
+                root,
+                self.visuals.settings_motion.progress,
+                self.ui.navigation.settings_tab,
+            );
         }
         if self.ui.navigation.profile_open {
             self.render_profile(root);
         }
-        if self.ui.navigation.host_game_picker_open && self.client.is_none() {
-            HostGamePicker::new(&self.visuals.ui).render(self.commands, root);
-        }
-        if self.visuals.updater.dialog_open {
-            render_update_dialog(self.commands, root, &self.visuals.updater, &self.visuals.ui);
+        if self.visuals.updater.dialog_open || self.visuals.updater.dialog_progress > 0.0 {
+            render_update_dialog(
+                self.commands,
+                root,
+                &self.visuals.updater,
+                self.visuals.updater.dialog_progress,
+                &self.visuals.ui,
+            );
         }
         if self.visuals.play_error.active
             && let Some(message) = self.visuals.play_error.message.as_deref()
@@ -189,10 +214,11 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn render_profile(&mut self, root: Entity) {
-        let (name, avatar, reference_points, completed_games, game_profiles) =
+        let (name, gender, avatar, reference_points, completed_games, game_profiles) =
             if let Some(player) = self.ui.navigation.player_profile.as_ref() {
                 (
                     player.name.as_str(),
+                    player.game_profiles.gender,
                     player.avatar.as_ref(),
                     player.reference_points,
                     player.completed_games,
@@ -201,6 +227,7 @@ impl ScreenRenderer<'_, '_, '_> {
             } else {
                 (
                     self.connection.player_name.as_str(),
+                    self.connection.gender,
                     self.visuals.avatars.local.as_ref(),
                     self.profile.reference_points(),
                     self.profile.completed_games(),
@@ -209,6 +236,7 @@ impl ScreenRenderer<'_, '_, '_> {
             };
         ProfileModal::new(
             name,
+            gender,
             avatar,
             reference_points,
             completed_games,
@@ -216,6 +244,6 @@ impl ScreenRenderer<'_, '_, '_> {
             self.ui.navigation.profile_game_tab,
             &self.visuals.ui,
         )
-        .render(self.commands, root);
+        .render(self.commands, root, self.visuals.profile_motion.progress);
     }
 }

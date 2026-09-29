@@ -1,22 +1,25 @@
 //! 玩家档案弹窗、游戏标签和互动统计视图。
 
-use super::super::{NavigationUiAction, UiAction};
+use super::super::{
+    CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction, UiAction,
+    add_cozy_close_button, add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
+};
 use super::{
     ProfileGameColumn, ProfileGameContent, ProfileGameTab, ProfileGameTabButton, ProfileStat,
-    SelectedProfileGameTab, mahjong_profile_rows, qigui523_profile_rows, reference_level,
-    shengji_profile_rows, texas_holdem_profile_rows, uno_profile_rows,
+    SelectedProfileGameTab, TAB_IDLE, mahjong_profile_rows, qigui523_profile_rows, reference_level,
+    reference_level_index, shengji_profile_rows, texas_holdem_profile_rows, uno_profile_rows,
 };
-use crate::app::presentation::{
-    ACCENT, BORDER, ButtonKind, ButtonTint, HEADER_BG, MUTED, PANEL, PanelSkin, TEXT,
-    add_action_button, add_avatar, add_panel, add_section_title, add_text, spawn_node,
-};
+use crate::app::presentation::{MUTED, TEXT, add_avatar, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
-use leocard_protocol::{PlayerGameProfiles, PlayerInteractionKind, PlayerInteractionStats};
+use leocard_protocol::{
+    PlayerGameProfiles, PlayerGender, PlayerInteractionKind, PlayerInteractionStats,
+};
 
 pub(crate) struct ProfileModal<'a> {
     player_name: &'a str,
+    gender: PlayerGender,
     avatar: Option<&'a Handle<Image>>,
     reference_points: i32,
     completed_games: u32,
@@ -26,8 +29,13 @@ pub(crate) struct ProfileModal<'a> {
 }
 
 impl<'a> ProfileModal<'a> {
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "profile identity and statistics are passed explicitly"
+    )]
     pub(crate) fn new(
         player_name: &'a str,
+        gender: PlayerGender,
         avatar: Option<&'a Handle<Image>>,
         reference_points: i32,
         completed_games: u32,
@@ -37,6 +45,7 @@ impl<'a> ProfileModal<'a> {
     ) -> Self {
         Self {
             player_name,
+            gender,
             avatar,
             reference_points,
             completed_games,
@@ -46,9 +55,10 @@ impl<'a> ProfileModal<'a> {
         }
     }
 
-    pub(crate) fn render(self, commands: &mut Commands, root: Entity) {
+    pub(crate) fn render(self, commands: &mut Commands, root: Entity, progress: f32) {
         let Self {
             player_name,
+            gender,
             avatar,
             reference_points,
             completed_games,
@@ -69,30 +79,63 @@ impl<'a> ProfileModal<'a> {
                 justify_content: JustifyContent::Center,
                 ..default()
             },
-            Some(Color::srgba(0.005, 0.015, 0.012, 0.76)),
+            Some(cozy_backdrop_color(progress)),
         );
-        commands
-            .entity(overlay)
-            .insert((GlobalZIndex(2000), FocusPolicy::Block));
+        commands.entity(overlay).insert((
+            GlobalZIndex(2000),
+            FocusPolicy::Block,
+            CozyModalBackdrop(CozyModalKind::Profile),
+        ));
 
-        let modal = add_panel(
+        let modal = add_cozy_panel(
             commands,
             overlay,
             Node {
                 width: px(820),
                 max_width: percent(90),
                 min_height: px(520),
+                padding: UiRect::all(px(24)),
                 flex_direction: FlexDirection::Column,
-                row_gap: px(14),
+                row_gap: px(12),
                 ..default()
             },
-            PANEL,
-            PanelSkin::Window,
             assets,
         );
-        add_section_title(commands, modal, "个人资料", assets);
+        commands.entity(modal).insert((
+            CozyModalPanel(CozyModalKind::Profile),
+            cozy_panel_transform(progress),
+        ));
+        let heading = spawn_node(
+            commands,
+            modal,
+            Node {
+                width: percent(100),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::SpaceBetween,
+                ..default()
+            },
+            None,
+        );
+        add_text(commands, heading, "个人资料", 28.0, TEXT, assets);
+        add_cozy_close_button(
+            commands,
+            heading,
+            UiAction::Navigation(NavigationUiAction::ToggleProfile),
+            assets,
+        );
+        spawn_node(
+            commands,
+            modal,
+            Node {
+                width: px(96),
+                height: px(2),
+                ..default()
+            },
+            Some(Color::srgb(0.64, 0.59, 0.93)),
+        );
         ProfileIdentity::new(
             player_name,
+            gender,
             avatar,
             reference_points,
             completed_games,
@@ -100,32 +143,23 @@ impl<'a> ProfileModal<'a> {
             assets,
         )
         .render(commands, modal);
-        ProfileArchive::new(game_profiles, selected_game, assets).render(commands, modal);
-
-        let actions = spawn_node(
+        spawn_node(
             commands,
             modal,
             Node {
                 width: percent(100),
-                align_items: AlignItems::FlexEnd,
-                justify_content: JustifyContent::FlexEnd,
+                height: px(1),
                 ..default()
             },
-            None,
+            Some(Color::srgba(0.70, 0.68, 0.78, 0.36)),
         );
-        add_action_button(
-            commands,
-            actions,
-            "关闭",
-            UiAction::Navigation(NavigationUiAction::ToggleProfile),
-            ButtonKind::Secondary,
-            assets,
-        );
+        ProfileArchive::new(game_profiles, selected_game, assets).render(commands, modal);
     }
 }
 
 struct ProfileIdentity<'a> {
     player_name: &'a str,
+    gender: PlayerGender,
     avatar: Option<&'a Handle<Image>>,
     reference_points: i32,
     completed_games: u32,
@@ -136,6 +170,7 @@ struct ProfileIdentity<'a> {
 impl<'a> ProfileIdentity<'a> {
     fn new(
         player_name: &'a str,
+        gender: PlayerGender,
         avatar: Option<&'a Handle<Image>>,
         reference_points: i32,
         completed_games: u32,
@@ -144,6 +179,7 @@ impl<'a> ProfileIdentity<'a> {
     ) -> Self {
         Self {
             player_name,
+            gender,
             avatar,
             reference_points,
             completed_games,
@@ -158,29 +194,26 @@ impl<'a> ProfileIdentity<'a> {
             parent,
             Node {
                 width: percent(100),
-                min_height: px(138),
-                padding: UiRect::all(px(16)),
+                min_height: px(118),
+                padding: UiRect::vertical(px(10)),
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
-                column_gap: px(12),
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(8)),
+                column_gap: px(16),
                 ..default()
             },
-            Some(HEADER_BG.with_alpha(0.86)),
+            None,
         );
-        commands.entity(identity).insert(BorderColor::all(BORDER));
 
         let avatar_area = spawn_node(
             commands,
             identity,
             Node {
-                width: px(96),
-                min_width: px(96),
+                width: px(88),
+                min_width: px(88),
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                row_gap: px(8),
+                row_gap: px(6),
                 ..default()
             },
             None,
@@ -190,7 +223,7 @@ impl<'a> ProfileIdentity<'a> {
             avatar_area,
             self.player_name,
             self.avatar,
-            82.0,
+            86.0,
             self.assets,
         );
 
@@ -207,24 +240,41 @@ impl<'a> ProfileIdentity<'a> {
             },
             None,
         );
-        add_text(
+        let name_row = spawn_node(
             commands,
             identity_text,
+            Node {
+                min_width: px(0),
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                column_gap: px(8),
+                ..default()
+            },
+            None,
+        );
+        add_text(
+            commands,
+            name_row,
             self.player_name,
-            25.0,
+            27.0,
             TEXT,
             self.assets,
         );
+        let (symbol, color) = match self.gender {
+            PlayerGender::Male => ("♂", Color::srgb(0.42, 0.70, 1.0)),
+            PlayerGender::Female => ("♀", Color::srgb(1.0, 0.58, 0.76)),
+        };
+        add_text(commands, name_row, symbol, 25.0, color, self.assets);
         self.add_interaction_totals(commands, identity_text);
 
         let stats = spawn_node(
             commands,
             identity,
             Node {
-                width: px(300),
-                min_width: px(300),
+                width: px(324),
+                min_width: px(324),
                 flex_direction: FlexDirection::Row,
-                column_gap: px(8),
+                column_gap: px(6),
                 ..default()
             },
             None,
@@ -236,12 +286,7 @@ impl<'a> ProfileIdentity<'a> {
             "完成对局",
             self.completed_games.to_string(),
         );
-        self.add_stat(
-            commands,
-            stats,
-            "等级",
-            reference_level(self.reference_points),
-        );
+        self.add_level_stat(commands, stats);
     }
 
     fn add_interaction_totals(&self, commands: &mut Commands, parent: Entity) {
@@ -291,7 +336,14 @@ impl<'a> ProfileIdentity<'a> {
                 ))
                 .id();
             commands.entity(item).add_child(icon);
-            add_text(commands, item, count.to_string(), 16.0, ACCENT, self.assets);
+            add_text(
+                commands,
+                item,
+                count.to_string(),
+                16.0,
+                Color::srgb(0.79, 0.75, 1.0),
+                self.assets,
+            );
         }
     }
 
@@ -302,27 +354,82 @@ impl<'a> ProfileIdentity<'a> {
         label: &str,
         value: impl Into<String>,
     ) {
+        let card = self.add_stat_card(commands, parent, label);
+        add_text(
+            commands,
+            card,
+            value,
+            21.0,
+            Color::srgb(0.79, 0.75, 1.0),
+            self.assets,
+        );
+    }
+
+    fn add_level_stat(&self, commands: &mut Commands, parent: Entity) {
+        let card = self.add_stat_card(commands, parent, "等级");
+        let row = spawn_node(
+            commands,
+            card,
+            Node {
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                column_gap: px(2),
+                ..default()
+            },
+            None,
+        );
+        let icon = commands
+            .spawn((
+                Node {
+                    width: px(22),
+                    height: px(22),
+                    ..default()
+                },
+                ImageNode::new(
+                    self.assets.home.reference_level_icons
+                        [reference_level_index(self.reference_points)]
+                    .clone(),
+                ),
+                FocusPolicy::Pass,
+            ))
+            .id();
+        commands.entity(row).add_child(icon);
+        let level = reference_level(self.reference_points);
+        add_text(
+            commands,
+            row,
+            level,
+            if level.chars().count() == 4 {
+                18.0
+            } else {
+                21.0
+            },
+            Color::srgb(0.79, 0.75, 1.0),
+            self.assets,
+        );
+    }
+
+    fn add_stat_card(&self, commands: &mut Commands, parent: Entity, label: &str) -> Entity {
         let card = spawn_node(
             commands,
             parent,
             Node {
                 min_width: px(0),
-                min_height: px(76),
+                min_height: px(72),
                 flex_basis: px(0),
                 flex_grow: 1.0,
                 padding: UiRect::axes(px(4), px(10)),
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                row_gap: px(5),
-                border: UiRect::ZERO,
+                row_gap: px(4),
                 ..default()
             },
             None,
         );
         commands.entity(card).insert(ProfileStat);
         add_text(commands, card, label, 12.0, MUTED, self.assets);
-        add_text(commands, card, value, 21.0, ACCENT, self.assets);
+        card
     }
 }
 
@@ -346,13 +453,24 @@ impl<'a> ProfileArchive<'a> {
     }
 
     fn render(self, commands: &mut Commands, parent: Entity) {
-        add_text(commands, parent, "游戏档案", 16.0, TEXT, self.assets);
-        let tabs = spawn_node(
+        add_text(commands, parent, "游戏档案", 20.0, TEXT, self.assets);
+        let archive_body = spawn_node(
             commands,
             parent,
             Node {
                 width: percent(100),
-                height: px(42),
+                flex_grow: 1.0,
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+            None,
+        );
+        let tabs = spawn_node(
+            commands,
+            archive_body,
+            Node {
+                width: percent(100),
+                height: px(44),
                 flex_direction: FlexDirection::Row,
                 column_gap: px(6),
                 ..default()
@@ -365,24 +483,20 @@ impl<'a> ProfileArchive<'a> {
 
         let content = spawn_node(
             commands,
-            parent,
+            archive_body,
             Node {
                 width: percent(100),
                 min_height: px(166),
                 flex_grow: 1.0,
-                padding: UiRect::all(px(14)),
+                padding: UiRect::all(px(16)),
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::FlexStart,
-                column_gap: px(12),
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(8)),
+                column_gap: px(16),
                 ..default()
             },
-            Some(HEADER_BG.with_alpha(0.54)),
+            Some(Color::srgb(0.30, 0.31, 0.34)),
         );
-        commands
-            .entity(content)
-            .insert((ProfileGameContent, BorderColor::all(BORDER)));
+        commands.entity(content).insert(ProfileGameContent);
         let rows = match self.selected_game {
             ProfileGameTab::QiGui523 => qigui523_profile_rows(self.game_profiles.qigui523.as_ref()),
             ProfileGameTab::TexasHoldem => {
@@ -402,7 +516,7 @@ impl<'a> ProfileArchive<'a> {
                     flex_basis: px(0),
                     flex_grow: 1.0,
                     flex_direction: FlexDirection::Column,
-                    row_gap: px(5),
+                    row_gap: px(7),
                     ..default()
                 },
                 None,
@@ -424,7 +538,7 @@ impl<'a> ProfileArchive<'a> {
             parent,
             Node {
                 width: percent(100),
-                min_height: px(22),
+                min_height: px(23),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::SpaceBetween,
                 column_gap: px(8),
@@ -432,30 +546,16 @@ impl<'a> ProfileArchive<'a> {
             },
             None,
         );
-        add_text(commands, row, label, 12.5, MUTED, self.assets);
-        add_text(commands, row, value, 13.0, TEXT, self.assets);
+        add_text(commands, row, label, 13.0, MUTED, self.assets);
+        add_text(commands, row, value, 14.0, TEXT, self.assets);
     }
 
     fn add_tab(&self, commands: &mut Commands, parent: Entity, game: ProfileGameTab, label: &str) {
         let selected = game == self.selected_game;
-        let normal = if selected {
-            Color::srgb(0.36, 0.48, 0.32)
-        } else {
-            Color::srgb(0.22, 0.32, 0.29)
-        };
         let button = commands
             .spawn((
                 Button,
                 UiAction::Navigation(NavigationUiAction::SelectProfileGameTab(game)),
-                ButtonTint {
-                    normal,
-                    hovered: if selected {
-                        Color::srgb(0.43, 0.55, 0.36)
-                    } else {
-                        Color::srgb(0.30, 0.42, 0.36)
-                    },
-                    pressed: Color::srgb(0.18, 0.28, 0.24),
-                },
                 Node {
                     min_width: px(0),
                     height: percent(100),
@@ -463,14 +563,13 @@ impl<'a> ProfileArchive<'a> {
                     flex_grow: 1.0,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
-                    border: UiRect::bottom(px(if selected { 3 } else { 1 })),
-                    border_radius: BorderRadius::top(px(7)),
                     ..default()
                 },
-                ImageNode::new(self.assets.controls.secondary_button.clone())
-                    .with_mode(NodeImageMode::Stretch)
-                    .with_color(normal),
-                BorderColor::all(if selected { ACCENT } else { BORDER }),
+                BackgroundColor(if selected {
+                    Color::srgb(0.30, 0.31, 0.34)
+                } else {
+                    TAB_IDLE
+                }),
                 ProfileGameTabButton,
             ))
             .id();
@@ -482,8 +581,12 @@ impl<'a> ProfileArchive<'a> {
             commands,
             button,
             label,
-            14.0,
-            if selected { Color::WHITE } else { MUTED },
+            15.0,
+            if selected {
+                Color::srgb(0.85, 0.82, 1.0)
+            } else {
+                TEXT
+            },
             self.assets,
         );
     }

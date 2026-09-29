@@ -4,23 +4,44 @@ use super::{MahjongOwnDiscardAnimation, MahjongRemoteDiscardAnimation};
 use crate::app::presentation::{Observed, TableBackgroundMaterial};
 use bevy::prelude::*;
 use leocard_mahjong::{MahjongClaim, MahjongTile};
-use leocard_protocol::MatchId;
+use leocard_protocol::{MatchId, PlayerId};
+use std::collections::HashMap;
 
 #[derive(Resource, Default)]
 pub(crate) struct MahjongUiState {
     pub observed_table: Observed<(MatchId, u8), MahjongTableObservation>,
+    pub intro_deal_match: Option<MatchId>,
+    pub hand_hover_lifts: HashMap<i32, (f32, Interaction)>,
     pub fan_guide_open: bool,
+    pub fan_guide_progress: f32,
     pub fan_guide_tier: u16,
     pub auto_drawer_open: bool,
     pub auto_win: bool,
     pub no_claim: bool,
     pub auto_draw_discard: bool,
+    pub choice_menu: Option<MahjongChoiceMenu>,
+    pub fan_summary_continued: Option<(MatchId, u8)>,
+    pub final_summary_opened_at: Option<(MatchId, u8, f32)>,
     pub last_automatic_action: Option<MahjongAutomaticActionKey>,
     pub(super) auto_hand: Option<(MatchId, u8)>,
     pub table_material: Option<Handle<TableBackgroundMaterial>>,
     pub(super) last_table_height: Option<f32>,
     pub discard_animation: Option<MahjongOwnDiscardAnimation>,
     pub remote_discard_animation: Option<MahjongRemoteDiscardAnimation>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum MahjongChoiceMenu {
+    Chow {
+        match_id: MatchId,
+        source: PlayerId,
+        tile: MahjongTile,
+    },
+    Kong {
+        match_id: MatchId,
+        sequence_index: u8,
+        hand_len: usize,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -52,6 +73,9 @@ impl MahjongUiState {
         self.auto_win = false;
         self.no_claim = false;
         self.auto_draw_discard = false;
+        self.choice_menu = None;
+        self.fan_summary_continued = None;
+        self.final_summary_opened_at = None;
         self.last_automatic_action = None;
     }
 

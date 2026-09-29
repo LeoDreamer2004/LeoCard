@@ -12,6 +12,7 @@ impl GameState {
         self.uno_exposed[player.0] = false;
         self.uno_declared[player.0] = false;
         self.drawn_card = None;
+        self.sudden_death_misses = 0;
         self.jump_in_open = false;
         remove_card(&mut self.players[player.0].hand, card);
         self.discard_pile.push(card);

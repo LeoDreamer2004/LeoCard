@@ -10,7 +10,7 @@ use super::{
     select_forced_shengji_follow_cards, shengji_display_trump,
 };
 use crate::app::presentation::{
-    ACCENT, BORDER, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec,
+    ACCENT, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec,
     StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial,
     TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay, add_player_portrait,
     add_text, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
@@ -61,15 +61,6 @@ pub(crate) fn render_shengji_table(
     chat: &ChatPanelState,
     visuals: ShengjiTableVisuals,
 ) {
-    if ui.observed_hand.observe((game.match_id, game.hand_number)) {
-        ui.selected.clear();
-        ui.buried_open = false;
-    }
-    if game.your_buried.is_empty() {
-        ui.buried_open = false;
-    }
-    ui.selected.retain(|card| game.your_hand.contains(card));
-    select_forced_shengji_follow_cards(game, ui);
     let content = spawn_node(
         commands,
         root,
@@ -139,9 +130,46 @@ pub(crate) fn render_shengji_table(
                 visuals.turn_border_materials,
                 previous_trick,
                 start_transition_active,
+                start_transition_active,
             );
         }
     }
+    if start_transition_active {
+        ui.intro_deal_match = Some(game.match_id);
+        let hand_area = spawn_node(
+            commands,
+            content,
+            Node {
+                width: percent(100),
+                height: px(210),
+                flex_shrink: 0.0,
+                position_type: PositionType::Relative,
+                ..default()
+            },
+            None,
+        );
+        add_shengji_self_panel(
+            commands,
+            hand_area,
+            own,
+            game,
+            visuals.assets,
+            visuals.avatars,
+            visuals.turn_border_materials,
+            true,
+            social.interaction_menu_open,
+        );
+        return;
+    }
+    if ui.observed_hand.observe((game.match_id, game.hand_number)) {
+        ui.selected.clear();
+        ui.buried_open = false;
+    }
+    if game.your_buried.is_empty() {
+        ui.buried_open = false;
+    }
+    ui.selected.retain(|card| game.your_hand.contains(card));
+    select_forced_shengji_follow_cards(game, ui);
     let bidding_visible = matches!(
         game.phase,
         ShengjiPhaseView::Dealing { .. } | ShengjiPhaseView::BiddingGrace { .. }
@@ -178,7 +206,7 @@ pub(crate) fn render_shengji_table(
             content,
             Node {
                 width: percent(100),
-                height: px(180),
+                height: px(210),
                 flex_shrink: 0.0,
                 position_type: PositionType::Relative,
                 ..default()
@@ -225,7 +253,7 @@ pub(crate) fn render_shengji_table(
         ChatAuxiliaryAction {
             label: "底牌",
             action: buried_cards.then_some(UiAction::Shengji(ShengjiUiAction::ToggleBuried)),
-            highlighted: true,
+            highlighted: false,
         },
     ];
     add_chat_panel(
@@ -304,11 +332,7 @@ fn add_shengji_private_buried(
         },
         Some(HEADER_BG.with_alpha(0.98)),
     );
-    commands.entity(panel).insert((
-        BorderColor::all(BORDER),
-        BoxShadow::new(Color::BLACK.with_alpha(0.55), px(2), px(8), px(0), px(15)),
-        FocusPolicy::Pass,
-    ));
+    commands.entity(panel).insert(FocusPolicy::Pass);
     decorate_panel_skin(commands, panel, PanelSkin::Popup, assets);
     add_text(commands, panel, "我的底牌", 22.0, ACCENT, assets);
     add_shengji_card_row(
@@ -354,11 +378,9 @@ fn add_shengji_bottom_flip(
         },
         Some(HEADER_BG.with_alpha(0.94)),
     );
-    commands.entity(panel).insert((
-        GlobalZIndex(900),
-        FocusPolicy::Pass,
-        BoxShadow::new(Color::BLACK.with_alpha(0.45), px(2), px(7), px(0), px(12)),
-    ));
+    commands
+        .entity(panel)
+        .insert((GlobalZIndex(900), FocusPolicy::Pass));
     decorate_panel_skin(commands, panel, PanelSkin::Section, assets);
     add_text(commands, panel, "扳底", 22.0, ACCENT, assets);
 
@@ -472,9 +494,10 @@ fn add_shengji_opponent(
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     previous_trick: Option<&[ShengjiPublicPlay]>,
     start_transition_active: bool,
+    intro_only: bool,
 ) {
     const SIDE_PLAY_GAP: f32 = 68.0;
-    const SIDE_SLOT_WIDTH: f32 = 96.0 * 1.17 + SIDE_PLAY_GAP + 165.0;
+    const SIDE_SLOT_WIDTH: f32 = 96.0 * 1.17 + SIDE_PLAY_GAP + 190.0;
     let side = match relative {
         1 => SeatSide::Left,
         2 => SeatSide::Top,
@@ -517,18 +540,22 @@ fn add_shengji_opponent(
         // 在任意窗口比例下都真正落在牌桌垂直中线上。
         commands
             .entity(slot)
-            .insert(UiTransform::from_translation(Val2::px(0.0, -52.0)));
+            .insert(UiTransform::from_translation(Val2::px(0.0, -38.0)));
     }
     if matches!(side, SeatSide::Right) {
-        add_shengji_play_area(
-            commands,
-            slot,
-            game,
-            player.id,
-            side,
-            assets,
-            previous_trick,
-        );
+        if intro_only {
+            add_shengji_intro_play_placeholder(commands, slot);
+        } else {
+            add_shengji_play_area(
+                commands,
+                slot,
+                game,
+                player.id,
+                side,
+                assets,
+                previous_trick,
+            );
+        }
     }
     add_shengji_player_panel(
         commands,
@@ -543,16 +570,34 @@ fn add_shengji_opponent(
         start_transition_active,
     );
     if !matches!(side, SeatSide::Right) {
-        add_shengji_play_area(
-            commands,
-            slot,
-            game,
-            player.id,
-            side,
-            assets,
-            previous_trick,
-        );
+        if intro_only {
+            add_shengji_intro_play_placeholder(commands, slot);
+        } else {
+            add_shengji_play_area(
+                commands,
+                slot,
+                game,
+                player.id,
+                side,
+                assets,
+                previous_trick,
+            );
+        }
     }
+}
+
+fn add_shengji_intro_play_placeholder(commands: &mut Commands, parent: Entity) {
+    spawn_node(
+        commands,
+        parent,
+        Node {
+            width: px(190),
+            min_width: px(190),
+            min_height: px(112),
+            ..default()
+        },
+        None,
+    );
 }
 
 #[expect(

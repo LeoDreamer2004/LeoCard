@@ -180,7 +180,7 @@ impl TexasChipTableState {
             if player.folded {
                 self.actions.entry(player.id).or_insert(ActionLabel {
                     text: "弃牌",
-                    font_size: 15.0,
+                    font_size: 18.0,
                     color: Color::srgb(0.58, 0.62, 0.60),
                     folded: true,
                     kind: ActionFeedbackKind::Fold,
@@ -227,7 +227,7 @@ impl TexasChipTableState {
                     player.id,
                     ActionLabel {
                         text: "弃牌",
-                        font_size: 15.0,
+                        font_size: 18.0,
                         color: Color::srgb(0.58, 0.62, 0.60),
                         folded: true,
                         kind: ActionFeedbackKind::Fold,
@@ -245,7 +245,7 @@ impl TexasChipTableState {
         let label = match action {
             TexasHoldemAction::PostBlind => ActionLabel {
                 text: "下盲注",
-                font_size: 15.0,
+                font_size: 18.0,
                 color: ACCENT,
                 folded: false,
                 kind: ActionFeedbackKind::Blind,
@@ -253,7 +253,7 @@ impl TexasChipTableState {
             },
             TexasHoldemAction::Fold => ActionLabel {
                 text: "弃牌",
-                font_size: 15.0,
+                font_size: 18.0,
                 color: Color::srgb(0.58, 0.62, 0.60),
                 folded: true,
                 kind: ActionFeedbackKind::Fold,
@@ -261,7 +261,7 @@ impl TexasChipTableState {
             },
             TexasHoldemAction::Check => ActionLabel {
                 text: "过牌",
-                font_size: 15.0,
+                font_size: 18.0,
                 color: TEXT,
                 folded: false,
                 kind: ActionFeedbackKind::Check,
@@ -269,7 +269,7 @@ impl TexasChipTableState {
             },
             TexasHoldemAction::Call => ActionLabel {
                 text: "跟注",
-                font_size: 15.0,
+                font_size: 18.0,
                 color: READY,
                 folded: false,
                 kind: ActionFeedbackKind::Call,
@@ -277,7 +277,7 @@ impl TexasChipTableState {
             },
             TexasHoldemAction::RaiseTo(_) => ActionLabel {
                 text: "加注",
-                font_size: 15.0,
+                font_size: 18.0,
                 color: ACCENT,
                 folded: false,
                 kind: ActionFeedbackKind::Raise,
@@ -285,7 +285,7 @@ impl TexasChipTableState {
             },
             TexasHoldemAction::AllIn => ActionLabel {
                 text: "全下",
-                font_size: 21.0,
+                font_size: 24.0,
                 color: DANGER,
                 folded: false,
                 kind: ActionFeedbackKind::AllIn,

@@ -3,15 +3,121 @@ use super::{
     uno_pair_for_selection, uno_ui_color,
 };
 use crate::app::presentation::{
-    ButtonKind, ButtonTint, DANGER, MUTED, PANEL, PanelSkin, READY, TEXT, add_action_button,
-    add_disabled_action_button, add_panel, add_section_title, add_text, spawn_node,
+    ButtonKind, ButtonTint, GameButtonImageMode, GameButtonSpec, PanelSkin, add_section_title,
+    add_text, add_textured_game_button, spawn_node,
 };
 use crate::app::runtime::UiAssets;
-use crate::app::shell::UiAction;
+use crate::app::shell::{UiAction, add_cozy_panel_with_skin};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
 use leocard_uno::{UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoPendingDrawKind};
+
+fn uno_action_width(label: &str) -> f32 {
+    match label.chars().count() {
+        0..=6 => 164.0,
+        7..=9 => 190.0,
+        _ => 216.0,
+    }
+}
+
+fn uno_button_texture(assets: &UiAssets, kind: ButtonKind) -> (&Handle<Image>, &Handle<Image>) {
+    match kind {
+        ButtonKind::Primary => (
+            &assets.controls.game_play_button,
+            &assets.controls.game_play_button_hover,
+        ),
+        ButtonKind::Warning => (
+            &assets.controls.game_warning_button,
+            &assets.controls.game_warning_button_hover,
+        ),
+        ButtonKind::Secondary => (
+            &assets.controls.game_pass_button,
+            &assets.controls.game_pass_button_hover,
+        ),
+        ButtonKind::Pass => (
+            &assets.controls.game_hint_button,
+            &assets.controls.game_hint_button_hover,
+        ),
+    }
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "game buttons share one texture renderer with explicit action and size"
+)]
+fn add_uno_button(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    action: Option<UiAction>,
+    kind: ButtonKind,
+    assets: &UiAssets,
+    height: f32,
+    min_width: f32,
+) -> Entity {
+    let (normal, hovered) = uno_button_texture(assets, kind);
+    let width = (uno_action_width(label) * height / 52.0).max(min_width);
+    let font_size = if label.chars().count() >= 10 {
+        15.0
+    } else {
+        18.0
+    };
+    add_textured_game_button(
+        commands,
+        parent,
+        assets,
+        GameButtonSpec {
+            label,
+            action,
+            normal,
+            hovered,
+            width,
+            height,
+            font_size,
+            image_mode: GameButtonImageMode::Stretch,
+        },
+    )
+    .0
+}
+
+pub(super) fn add_uno_action_button(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    action: UiAction,
+    kind: ButtonKind,
+    assets: &UiAssets,
+) -> Entity {
+    add_uno_button(
+        commands,
+        parent,
+        label,
+        Some(action),
+        kind,
+        assets,
+        52.0,
+        164.0,
+    )
+}
+
+pub(super) fn add_uno_disabled_action_button(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    assets: &UiAssets,
+) -> Entity {
+    add_uno_button(
+        commands,
+        parent,
+        label,
+        None,
+        ButtonKind::Secondary,
+        assets,
+        52.0,
+        164.0,
+    )
+}
 
 pub(super) fn add_uno_actions(
     commands: &mut Commands,
@@ -47,7 +153,7 @@ pub(super) fn add_uno_actions(
                 None,
             );
             if ui.selected.len() == 1 {
-                add_action_button(
+                add_uno_action_button(
                     commands,
                     actions,
                     "交出选中的牌",
@@ -56,7 +162,7 @@ pub(super) fn add_uno_actions(
                     assets,
                 );
             } else {
-                add_disabled_action_button(commands, actions, "请选择一张要交出的牌", assets);
+                add_uno_disabled_action_button(commands, actions, "请选择一张要交出的牌", assets);
             }
         }
         return;
@@ -82,7 +188,7 @@ pub(super) fn add_uno_actions(
         None,
     );
     if let Some(card) = jump_in {
-        add_action_button(
+        add_uno_action_button(
             commands,
             actions,
             "抢出",
@@ -114,7 +220,7 @@ pub(super) fn add_uno_actions(
         return;
     }
     if let Some((card, card_count)) = selected {
-        add_action_button(
+        add_uno_action_button(
             commands,
             actions,
             if matches!(
@@ -143,7 +249,7 @@ pub(super) fn add_uno_actions(
             assets,
         );
     } else if game.pending_kind.is_some() {
-        add_action_button(
+        add_uno_action_button(
             commands,
             actions,
             &if game.pending_kind == Some(UnoPendingDrawKind::FlipWildDrawColor) {
@@ -156,7 +262,7 @@ pub(super) fn add_uno_actions(
             assets,
         );
         if game.challenge_offender.is_some() {
-            add_action_button(
+            add_uno_action_button(
                 commands,
                 actions,
                 if game.pending_kind == Some(UnoPendingDrawKind::FlipWildDrawColor) {
@@ -172,7 +278,7 @@ pub(super) fn add_uno_actions(
             );
         }
     } else if game.pending_skip > 0 || own_skips > 0 {
-        add_action_button(
+        add_uno_action_button(
             commands,
             actions,
             &format!("接受禁手 ×{}", game.pending_skip + own_skips),
@@ -182,7 +288,7 @@ pub(super) fn add_uno_actions(
         );
     } else if game.your_drawn_card.is_some() {
         if !game.rules.is_no_mercy() || !game.rules.no_mercy.draw_until_playable {
-            add_action_button(
+            add_uno_action_button(
                 commands,
                 actions,
                 "结束回合",
@@ -191,17 +297,47 @@ pub(super) fn add_uno_actions(
                 assets,
             );
         } else {
-            add_disabled_action_button(commands, actions, "必须打出摸到的牌", assets);
+            add_uno_disabled_action_button(commands, actions, "必须打出摸到的牌", assets);
         }
     } else {
-        add_action_button(
-            commands,
-            actions,
-            "摸牌",
-            UiAction::Uno(UnoUiAction::DrawCard),
-            ButtonKind::Secondary,
-            assets,
-        );
+        let has_response = game
+            .your_hand
+            .iter()
+            .copied()
+            .any(|card| uno_card_is_playable(game, card));
+        if game.sudden_death_free_play {
+            add_uno_disabled_action_button(commands, actions, "任选一张出牌", assets);
+        } else if game.rules.sudden_death_enabled()
+            && game
+                .players
+                .iter()
+                .filter(|player| !player.eliminated)
+                .count()
+                == 2
+            && game.draw_pile_len == 0
+        {
+            if has_response {
+                add_uno_disabled_action_button(commands, actions, "请选择一张出牌", assets);
+            } else {
+                add_uno_action_button(
+                    commands,
+                    actions,
+                    "无法响应",
+                    UiAction::Uno(UnoUiAction::DrawCard),
+                    ButtonKind::Secondary,
+                    assets,
+                );
+            }
+        } else {
+            add_uno_action_button(
+                commands,
+                actions,
+                "摸牌",
+                UiAction::Uno(UnoUiAction::DrawCard),
+                ButtonKind::Secondary,
+                assets,
+            );
+        }
     }
 }
 
@@ -256,7 +392,7 @@ pub(super) fn add_uno_callout_actions(
             callouts,
             &format!("检举 {name}"),
             Some(UiAction::Uno(UnoUiAction::Report(target))),
-            DANGER,
+            ButtonKind::Warning,
             assets,
         );
     }
@@ -265,7 +401,7 @@ pub(super) fn add_uno_callout_actions(
         callouts,
         "UNO!",
         can_call.then_some(UiAction::Uno(UnoUiAction::Call)),
-        READY,
+        ButtonKind::Primary,
         assets,
     );
 }
@@ -275,37 +411,10 @@ fn add_subtle_uno_button(
     parent: Entity,
     label: &str,
     action: Option<UiAction>,
-    color: Color,
+    kind: ButtonKind,
     assets: &UiAssets,
 ) {
-    let mut button = commands.spawn((
-        Node {
-            min_width: px(90),
-            height: px(30),
-            padding: UiRect::horizontal(px(10)),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(6)),
-            ..default()
-        },
-        BackgroundColor(color.with_alpha(0.56)),
-        BorderColor::all(color.with_alpha(0.72)),
-    ));
-    if let Some(action) = action {
-        button.insert((
-            Button,
-            action,
-            ButtonTint {
-                normal: color.with_alpha(0.56),
-                hovered: color.with_alpha(0.56),
-                pressed: color.with_alpha(0.56),
-            },
-        ));
-    }
-    let button = button.id();
-    commands.entity(parent).add_child(button);
-    add_text(commands, button, label, 12.0, TEXT, assets);
+    add_uno_button(commands, parent, label, action, kind, assets, 42.0, 128.0);
 }
 
 pub(super) fn add_initial_color_choice(
@@ -399,7 +508,7 @@ fn add_color_choice_overlay(
     commands
         .entity(overlay)
         .insert((GlobalZIndex(2050), FocusPolicy::Block));
-    let panel = add_panel(
+    let panel = add_cozy_panel_with_skin(
         commands,
         overlay,
         Node {
@@ -410,7 +519,6 @@ fn add_color_choice_overlay(
             row_gap: px(18),
             ..default()
         },
-        PANEL,
         PanelSkin::Popup,
         assets,
     );
@@ -457,7 +565,7 @@ fn add_color_choice_overlay(
                 ))
                 .id();
             commands.entity(color_row).add_child(button);
-            add_text(
+            let label = add_text(
                 commands,
                 button,
                 color.to_string(),
@@ -465,9 +573,10 @@ fn add_color_choice_overlay(
                 Color::WHITE,
                 assets,
             );
+            commands.entity(label).insert(FocusPolicy::Pass);
         }
         if card.is_some() {
-            add_action_button(
+            add_uno_action_button(
                 commands,
                 panel,
                 "取消",
@@ -476,7 +585,5 @@ fn add_color_choice_overlay(
                 assets,
             );
         }
-    } else {
-        add_text(commands, panel, "正在等待其他玩家……", 14.0, MUTED, assets);
     }
 }

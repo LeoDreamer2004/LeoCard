@@ -32,6 +32,7 @@ pub(crate) enum UpdateState {
 pub(crate) struct UpdateManager {
     pub state: UpdateState,
     pub dialog_open: bool,
+    pub dialog_progress: f32,
     pub(super) receiver: Option<Mutex<Receiver<UpdateEvent>>>,
 }
 

@@ -1,6 +1,6 @@
 use super::{
     AdapterError, TablePlayer, TexasHoldemAdapter, TexasHoldemSession,
-    merge_texas_holdem_profile_stats,
+    merge_texas_holdem_profile_stats, texas_reference_point_deltas,
 };
 use crate::lifecycle::HostedGameLifecycle;
 use crate::player::settle_completed_match_profiles_once;
@@ -10,7 +10,6 @@ use leocard_protocol::{
     GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, TABLE_SEAT_COUNT,
     TexasHoldemProfileStats,
 };
-use leocard_qigui523::reference_point_deltas;
 use leocard_texas_holdem::{Phase, TexasHoldemAction, TexasHoldemRuleSet, build_deck};
 
 impl TexasHoldemSession {
@@ -266,7 +265,7 @@ impl TexasHoldemSession {
             .iter()
             .map(|(_, stack)| *stack)
             .collect::<Vec<_>>();
-        let deltas = reference_point_deltas(&scores)
+        let deltas = texas_reference_point_deltas(&scores)
             .expect("a Texas Hold'em table always contains between three and six players");
         let settlements = standings
             .iter()

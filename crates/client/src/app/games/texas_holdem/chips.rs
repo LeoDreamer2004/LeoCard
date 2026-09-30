@@ -13,16 +13,16 @@ mod view;
 use super::{
     TexasActionFeedback, TexasActionFeedbackText, TexasAudioCue, TexasFoldCard, TexasHoldemAssets,
     TexasOwnFoldCardHover, TexasOwnFoldTooltip, TexasPlayerPanel, TexasPotDivider, TexasPotHover,
-    action_feedback_text_color, action_feedback_transform, fold_card_visual,
-    queue_texas_turn_sound, texas_action_sound_plan, texas_card_face, texas_hand_finish_sound_plan,
-    texas_side_pot_sound_plan, texas_street_sound_plan,
+    TexasVoiceCue, action_feedback_text_color, action_feedback_transform, fold_card_visual,
+    queue_texas_turn_sound, texas_action_sound_plan, texas_action_voice_plan, texas_card_face,
+    texas_hand_finish_sound_plan, texas_side_pot_sound_plan, texas_street_sound_plan,
 };
 use bevy::prelude::*;
 pub(crate) use geometry::*;
 #[cfg(test)]
 use leocard_protocol::PlayerGameProfiles;
 use leocard_protocol::{MatchId, PlayerId, SeatId};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 pub(crate) use systems::*;
 pub(crate) use view::*;
 
@@ -121,6 +121,11 @@ pub(crate) struct TexasChipTableState {
     chips: Vec<TableChip>,
     pub actions: HashMap<PlayerId, ActionLabel>,
     pub audio_cues: Vec<TexasAudioCue>,
+    pub(super) voice_cues: VecDeque<TexasVoiceCue>,
+    pub(super) voice_busy_for: f32,
+    street_committed: HashMap<PlayerId, u32>,
+    street_bet: u32,
+    raised_this_street: bool,
     current_player: Option<PlayerId>,
     pots: Vec<VisualPot>,
     division: Option<PotDivisionTransition>,

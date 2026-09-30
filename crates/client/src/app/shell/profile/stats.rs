@@ -5,6 +5,10 @@ use leocard_protocol::{
 
 type ProfileRow = (&'static str, String);
 
+fn average_reference_delta(total: i64, completed_games: u32) -> String {
+    format!("{:+.3}", total as f64 / f64::from(completed_games))
+}
+
 struct ProfileRowsBuilder {
     rows: Vec<ProfileRow>,
 }
@@ -44,7 +48,7 @@ pub(crate) fn mahjong_profile_rows(stats: Option<&MahjongProfileStats>) -> Vec<P
         ("对局数", stats.completed_games.to_string()),
         (
             "分数增减",
-            format!("{:+.1}", stats.total_reference_delta as f64 / games),
+            average_reference_delta(stats.total_reference_delta, stats.completed_games),
         ),
         (
             "场得分",
@@ -112,7 +116,7 @@ impl ProfileRowsBuilder {
             ("对局数", completed_games.to_string()),
             (
                 "分数增减",
-                format!("{:+.1}", total_reference_delta as f64 / games),
+                average_reference_delta(total_reference_delta, completed_games),
             ),
             (average_label, format!("{:.1}", average_total / games)),
             ("平均顺位", format!("{:.2}", placement_total as f64 / games)),
@@ -130,13 +134,12 @@ impl ProfileRowsBuilder {
     }
 
     fn plain(completed_games: u32, total_reference_delta: i64) -> Self {
-        let games = f64::from(completed_games);
         Self {
             rows: vec![
                 ("对局数", completed_games.to_string()),
                 (
                     "分数增减",
-                    format!("{:+.1}", total_reference_delta as f64 / games),
+                    average_reference_delta(total_reference_delta, completed_games),
                 ),
             ],
         }

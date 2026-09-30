@@ -21,6 +21,7 @@ pub(crate) enum NavigationUiAction {
     SelectSettingsTab(SettingsTab),
     ToggleMahjongActionVoices,
     ToggleMahjongFanVoices,
+    ToggleTexasActionVoices,
     StartUpdate,
     OpenGitHubRepository,
     HideUpdateDialog,
@@ -105,6 +106,12 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
             }
             NavigationUiAction::ToggleMahjongFanVoices => {
                 appearance.mahjong_fan_voices = !appearance.mahjong_fan_voices;
+                if let Err(error) = save_appearance_preferences(appearance) {
+                    warn!("{error}");
+                }
+            }
+            NavigationUiAction::ToggleTexasActionVoices => {
+                appearance.texas_action_voices = !appearance.texas_action_voices;
                 if let Err(error) = save_appearance_preferences(appearance) {
                     warn!("{error}");
                 }

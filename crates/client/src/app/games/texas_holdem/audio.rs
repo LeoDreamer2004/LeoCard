@@ -4,8 +4,10 @@
 //! 被反复播放。密集筹码动作按“动作”聚合成少量错开的采样，不逐枚筹码发声。
 
 use super::{TexasChipTableState, TexasHoldemAssets};
+use crate::app::runtime::AppearancePreferences;
 use bevy::audio::Volume;
 use bevy::prelude::*;
+use leocard_protocol::PlayerGender;
 use leocard_texas_holdem::TexasHoldemAction;
 
 #[derive(Default)]
@@ -22,6 +24,7 @@ pub(crate) struct TexasSoundAssets {
     pot_divide: Vec<Handle<AudioSource>>,
     turn: Vec<Handle<AudioSource>>,
     confirm: Vec<Handle<AudioSource>>,
+    voices: [[Handle<AudioSource>; 7]; 2],
 }
 
 impl TexasSoundAssets {
@@ -49,6 +52,20 @@ impl TexasSoundAssets {
             confirm: (1..=4)
                 .map(|index| asset_server.load(format!("{interface}/confirmation_00{index}.ogg")))
                 .collect(),
+            voices: ["male", "female"].map(|gender| {
+                [
+                    "raise_1",
+                    "raise_big",
+                    "all_in_1",
+                    "all_in_2",
+                    "all_in_3",
+                    "call_1",
+                    "call_2",
+                ]
+                .map(|name| {
+                    asset_server.load(format!("audio/texas_holdem/voices/{gender}/{name}.ogg"))
+                })
+            }),
         }
     }
 
@@ -68,6 +85,52 @@ impl TexasSoundAssets {
             TexasSoundKind::Confirm => &self.confirm,
         }
     }
+
+    fn voice(&self, cue: TexasVoiceCue) -> Handle<AudioSource> {
+        let gender = match cue.gender {
+            PlayerGender::Male => 0,
+            PlayerGender::Female => 1,
+        };
+        self.voices[gender][cue.variant].clone()
+    }
+}
+
+#[derive(Component)]
+pub(super) struct TexasVoicePlayback;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum TexasVoiceKind {
+    Raise,
+    AllIn,
+    Call,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(super) struct TexasVoiceCue {
+    gender: PlayerGender,
+    kind: TexasVoiceKind,
+    variant: usize,
+}
+
+pub(super) fn texas_action_voice_plan(
+    action: TexasHoldemAction,
+    gender: PlayerGender,
+    seed: u64,
+) -> Option<TexasVoiceCue> {
+    let (kind, variant) = match action {
+        TexasHoldemAction::RaiseTo(target) => (
+            TexasVoiceKind::Raise,
+            usize::from(target >= 10),
+        ),
+        TexasHoldemAction::AllIn => (TexasVoiceKind::AllIn, 2 + seed as usize % 3),
+        TexasHoldemAction::Call => (TexasVoiceKind::Call, 5 + seed as usize % 2),
+        _ => return None,
+    };
+    Some(TexasVoiceCue {
+        gender,
+        kind,
+        variant,
+    })
 }
 
 fn numbered_sounds(
@@ -217,9 +280,37 @@ pub(super) fn queue_texas_turn_sound(cues: &mut Vec<TexasAudioCue>, seed: u64) {
 pub(super) fn play_texas_audio_cues(
     time: Res<Time>,
     assets: Res<TexasHoldemAssets>,
+    preferences: Res<AppearancePreferences>,
     mut state: ResMut<TexasChipTableState>,
+    playing_voices: Query<Entity, With<TexasVoicePlayback>>,
     mut commands: Commands,
 ) {
+    state.voice_busy_for = (state.voice_busy_for - time.delta_secs()).max(0.0);
+    if !preferences.texas_action_voices {
+        state.voice_cues.clear();
+        state.voice_busy_for = 0.0;
+        for entity in &playing_voices {
+            commands.entity(entity).despawn();
+        }
+    } else if state.voice_busy_for == 0.0 {
+        if let Some(voice) = state.voice_cues.pop_front() {
+            commands.spawn((
+                AudioPlayer::new(assets.sounds.voice(voice)),
+                PlaybackSettings {
+                    volume: Volume::Linear(0.80),
+                    ..PlaybackSettings::DESPAWN
+                },
+                TexasVoicePlayback,
+            ));
+            // 逐句播完同一轮的行动，确保加注后的每次跟注都有自己的播报。
+            state.voice_busy_for = match voice.kind {
+                TexasVoiceKind::Call => 1.12,
+                TexasVoiceKind::Raise => 1.30,
+                TexasVoiceKind::AllIn => 1.35,
+            };
+        }
+    }
+
     let mut waiting = Vec::with_capacity(state.audio_cues.len());
     let mut ready = Vec::new();
     for mut cue in std::mem::take(&mut state.audio_cues) {
@@ -241,7 +332,11 @@ pub(super) fn play_texas_audio_cues(
         commands.spawn((
             AudioPlayer::new(sound),
             PlaybackSettings {
-                volume: Volume::Linear(cue.volume),
+                volume: Volume::Linear(if state.voice_busy_for > 0.0 {
+                    cue.volume * 0.68
+                } else {
+                    cue.volume
+                }),
                 ..PlaybackSettings::DESPAWN
             },
         ));

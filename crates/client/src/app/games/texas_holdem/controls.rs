@@ -16,7 +16,7 @@ use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_protocol::{
     GameKind, PlayerId, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
 };
-use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemBlindKind};
+use leocard_texas_holdem::TexasHoldemAction;
 
 #[expect(
     clippy::too_many_arguments,
@@ -185,6 +185,12 @@ fn add_texas_actions(
     assets: &UiAssets,
     game_assets: &TexasHoldemAssets,
 ) {
+    if !matches!(game.phase, TexasHoldemPhaseView::Betting { .. })
+        || game.blind_to_post.is_some()
+        || game.current_player != Some(game.you)
+    {
+        return;
+    }
     let actions = spawn_node(
         commands,
         table,
@@ -205,41 +211,6 @@ fn add_texas_actions(
     commands
         .entity(actions)
         .insert(UiTransform::from_translation(Val2::px(-310.0, 0.0)));
-    if !matches!(game.phase, TexasHoldemPhaseView::Betting { .. }) {
-        return;
-    }
-    if let Some(blind) = game.blind_to_post {
-        if blind.player == game.you {
-            let label = match blind.kind {
-                TexasHoldemBlindKind::Small => format!("下小盲 {}", blind.amount),
-                TexasHoldemBlindKind::Big => format!("下大盲 {}", blind.amount),
-            };
-            let row = spawn_node(
-                commands,
-                actions,
-                Node {
-                    width: percent(100),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                None,
-            );
-            add_texas_action_button(
-                commands,
-                row,
-                &label,
-                TexasHoldemAction::PostBlind,
-                ButtonKind::Primary,
-                assets,
-                game_assets,
-            );
-        }
-        return;
-    }
-    if game.current_player != Some(game.you) {
-        return;
-    }
     let maximum_target = own.committed_street.saturating_add(own.stack);
     let minimum_target = game.minimum_raise_to.min(maximum_target);
     if ui.raise_to < minimum_target || ui.raise_to > maximum_target {

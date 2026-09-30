@@ -411,7 +411,7 @@ pub(super) fn render_mahjong_settlement(
                     .iter()
                     .find(|player| player.id == from)
                     .map_or("玩家", |player| player.name.as_str());
-                format!("荣和 · {source} 放炮")
+                format!("{source} 放炮")
             },
         );
         add_text(commands, title, outcome, 15.0, MUTED, assets);
@@ -461,7 +461,7 @@ pub(super) fn render_mahjong_settlement(
             panel,
             Node {
                 width: percent(100),
-                min_height: px(83),
+                min_height: px(72),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 overflow: Overflow::visible(),
@@ -488,8 +488,8 @@ pub(super) fn render_mahjong_settlement(
                 player,
                 winner,
                 MahjongWinTileSizes {
-                    meld: MahjongTileSize::GuideHand,
-                    hand: MahjongTileSize::GuideHand,
+                    meld: MahjongTileSize::SettlementHand,
+                    hand: MahjongTileSize::SettlementHand,
                 },
                 game_assets,
                 materials,

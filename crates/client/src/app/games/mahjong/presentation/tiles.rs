@@ -20,6 +20,7 @@ pub(crate) enum MahjongTileSize {
     GuideHand,
     GuideMeld,
     GuideConcealedMeld,
+    SettlementHand,
     Mini,
     MiniConcealedMeld,
     WinUpright,
@@ -310,6 +311,7 @@ pub(crate) fn add_mahjong_tile_material(
         | MahjongTileSize::GuideHand
         | MahjongTileSize::GuideMeld
         | MahjongTileSize::GuideConcealedMeld => (33.0, 45.0, -3.0),
+        MahjongTileSize::SettlementHand => (46.0, 63.0, -4.0),
         MahjongTileSize::Mini | MahjongTileSize::MiniConcealedMeld => (27.0, 37.0, -3.0),
         MahjongTileSize::WinUpright
         | MahjongTileSize::OwnMeld
@@ -346,7 +348,9 @@ pub(crate) fn add_mahjong_tile_material(
             match size {
                 MahjongTileSize::HiddenSide => -2.0,
                 MahjongTileSize::HiddenOpposite => -3.0,
-                MahjongTileSize::GuideHand | MahjongTileSize::WinUpright => -1.0,
+                MahjongTileSize::GuideHand
+                | MahjongTileSize::SettlementHand
+                | MahjongTileSize::WinUpright => -1.0,
                 MahjongTileSize::OwnMeld => -4.0,
                 MahjongTileSize::GuideMeld => -4.0,
                 MahjongTileSize::OwnConcealedMeld
@@ -372,7 +376,7 @@ pub(crate) fn add_mahjong_tile_material(
     let final_rotation = 0.0;
     let final_offset = Vec2::ZERO;
     let final_shadow_alpha = match size {
-        MahjongTileSize::GuideHand => 0.0,
+        MahjongTileSize::GuideHand | MahjongTileSize::SettlementHand => 0.0,
         MahjongTileSize::River
         | MahjongTileSize::GuideMeld
         | MahjongTileSize::GuideConcealedMeld => 0.12,
@@ -419,6 +423,7 @@ pub(crate) fn add_mahjong_tile_material(
         && !matches!(
             size,
             MahjongTileSize::GuideHand
+                | MahjongTileSize::SettlementHand
                 | MahjongTileSize::GuideMeld
                 | MahjongTileSize::GuideConcealedMeld
         )

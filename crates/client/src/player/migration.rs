@@ -88,6 +88,46 @@ struct PreviousVoiceSavedPreferences {
 }
 
 #[derive(Deserialize, Serialize)]
+struct PreviousTexasVoiceSavedPreferences {
+    global: PreviousTexasVoiceGlobalPreferences,
+    games: GamePreferences,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreviousTexasVoiceGlobalPreferences {
+    player_name: String,
+    avatar_png: Option<Vec<u8>>,
+    host_port: String,
+    join_address: String,
+    table_felt_path: Option<PathBuf>,
+    table_brightness: f32,
+    table_vignette: f32,
+    audio_volume: f32,
+    gender: PlayerGender,
+    mahjong_action_voices: bool,
+    mahjong_fan_voices: bool,
+}
+
+impl From<PreviousTexasVoiceGlobalPreferences> for GlobalPreferences {
+    fn from(previous: PreviousTexasVoiceGlobalPreferences) -> Self {
+        Self {
+            player_name: previous.player_name,
+            avatar_png: previous.avatar_png,
+            host_port: previous.host_port,
+            join_address: previous.join_address,
+            table_felt_path: previous.table_felt_path,
+            table_brightness: previous.table_brightness,
+            table_vignette: previous.table_vignette,
+            audio_volume: previous.audio_volume,
+            gender: previous.gender,
+            mahjong_action_voices: previous.mahjong_action_voices,
+            mahjong_fan_voices: previous.mahjong_fan_voices,
+            texas_action_voices: true,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
 struct PreviousVoiceGlobalPreferences {
     player_name: String,
     avatar_png: Option<Vec<u8>>,
@@ -114,6 +154,7 @@ impl From<PreviousVoiceGlobalPreferences> for GlobalPreferences {
             gender: previous.gender,
             mahjong_action_voices: true,
             mahjong_fan_voices: true,
+            texas_action_voices: true,
         }
     }
 }
@@ -149,6 +190,7 @@ impl From<PreviousGlobalPreferences> for GlobalPreferences {
             audio_volume: previous.audio_volume,
             mahjong_action_voices: true,
             mahjong_fan_voices: true,
+            texas_action_voices: true,
         }
     }
 }
@@ -178,6 +220,13 @@ struct V032MahjongRuleSet {
 pub(in crate::player) fn decode_player_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
     postcard::from_bytes(bytes)
         .ok()
+        .or_else(|| {
+            let previous: PreviousTexasVoiceSavedPreferences = postcard::from_bytes(bytes).ok()?;
+            Some(SavedPreferences {
+                global: previous.global.into(),
+                games: previous.games,
+            })
+        })
         .or_else(|| {
             let previous: PreviousVoiceSavedPreferences = postcard::from_bytes(bytes).ok()?;
             Some(SavedPreferences {

@@ -2,15 +2,16 @@ use super::{
     ActionFeedbackKind, ActionLabel, CHIP_MOVE_DURATION, CHIP_SIZE, ChipMotion, ChipZone,
     ChipZoneLayout, DENOMINATIONS, PotDivisionTransition, TableChip, TexasChipTableState,
     VisualPot, queue_texas_turn_sound, random_signed, random_unit, texas_action_sound_plan,
-    texas_hand_finish_sound_plan, texas_player_chip_zone, texas_pot_chip_zone,
-    texas_pot_partition_zone, texas_side_pot_sound_plan, texas_street_sound_plan,
+    texas_action_voice_plan, texas_hand_finish_sound_plan, texas_player_chip_zone,
+    texas_pot_chip_zone, texas_pot_partition_zone, texas_side_pot_sound_plan,
+    texas_street_sound_plan,
 };
 use crate::app::presentation::{ACCENT, DANGER, READY, TEXT};
 use bevy::prelude::*;
 use leocard_protocol::{
     PlayerId, TABLE_SEAT_COUNT, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemSnapshot,
 };
-use leocard_texas_holdem::TexasHoldemAction;
+use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemRuleSet, TexasHoldemStreet};
 
 pub(super) fn initial_chip_denominations(total: u32) -> Vec<u16> {
     let counts = match total {
@@ -138,13 +139,40 @@ impl TexasChipTableState {
                 } => {
                     self.audio_cues
                         .extend(texas_action_sound_plan(action, amount, sound_seed));
-                    self.apply_action(player, action, amount);
+                    let committed = self
+                        .street_committed
+                        .get(&player)
+                        .copied()
+                        .unwrap_or(0)
+                        .saturating_add(amount);
+                    let raises_bet = matches!(action, TexasHoldemAction::RaiseTo(_))
+                        || (action == TexasHoldemAction::AllIn && committed > self.street_bet);
+                    if !matches!(action, TexasHoldemAction::Call) || self.raised_this_street {
+                        if let Some(gender) = game
+                            .players
+                            .iter()
+                            .find(|profile| profile.id == player)
+                            .map(|profile| profile.game_profiles.gender)
+                        {
+                            if let Some(voice) = texas_action_voice_plan(action, gender, sound_seed)
+                            {
+                                self.voice_cues.push_back(voice);
+                            }
+                        }
+                    }
+                    self.street_committed.insert(player, committed);
+                    self.street_bet = self.street_bet.max(committed);
+                    self.raised_this_street |= raises_bet;
+                    self.apply_action(game, player, action, amount);
                 }
                 TexasHoldemEvent::StreetAdvanced { dealt, .. } => {
                     self.audio_cues
                         .extend(texas_street_sound_plan(dealt.len(), sound_seed));
                     self.sweep_bets_to_pot();
                     swept = true;
+                    self.street_committed.clear();
+                    self.street_bet = 0;
+                    self.raised_this_street = false;
                 }
                 TexasHoldemEvent::HandFinished { showdown } => {
                     self.audio_cues
@@ -155,6 +183,12 @@ impl TexasChipTableState {
                 }
             }
         }
+        self.street_committed = game
+            .players
+            .iter()
+            .map(|player| (player.id, player.committed_street))
+            .collect();
+        self.street_bet = game.current_bet;
         let next_pots = visual_pots(game);
         let old_count = self.pots.len().max(1);
         let new_count = next_pots.len().max(1);
@@ -200,6 +234,19 @@ impl TexasChipTableState {
         self.hand_number = game.hand_number;
         self.you = Some(game.you);
         self.current_player = game.current_player;
+        self.street_committed = game
+            .players
+            .iter()
+            .map(|player| (player.id, player.committed_street))
+            .collect();
+        self.street_bet = game.current_bet;
+        self.raised_this_street = match &game.phase {
+            TexasHoldemPhaseView::Betting {
+                street: TexasHoldemStreet::PreFlop,
+            } => game.current_bet > TexasHoldemRuleSet::BIG_BLIND,
+            TexasHoldemPhaseView::Betting { .. } => game.current_bet > 0,
+            TexasHoldemPhaseView::HandComplete { .. } => false,
+        };
         self.seats = game
             .players
             .iter()
@@ -241,10 +288,20 @@ impl TexasChipTableState {
         }
     }
 
-    fn apply_action(&mut self, player: PlayerId, action: TexasHoldemAction, amount: u32) {
+    fn apply_action(
+        &mut self,
+        game: &TexasHoldemSnapshot,
+        player: PlayerId,
+        action: TexasHoldemAction,
+        amount: u32,
+    ) {
         let label = match action {
             TexasHoldemAction::PostBlind => ActionLabel {
-                text: "下盲注",
+                text: if player == game.small_blind {
+                    "下小盲注"
+                } else {
+                    "下大盲注"
+                },
                 font_size: 18.0,
                 color: ACCENT,
                 folded: false,

@@ -23,6 +23,7 @@ fn preferences_round_trip_including_avatar() {
             gender: PlayerGender::Female,
             mahjong_action_voices: false,
             mahjong_fan_voices: true,
+            texas_action_voices: false,
         },
         games: GamePreferences {
             qigui523: QiGui523Preferences {

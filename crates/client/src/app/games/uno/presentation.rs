@@ -89,12 +89,18 @@ pub(super) fn sync_uno_presentation(
 ) {
     let Some(client) = client.as_deref_mut() else {
         presentation.events.clear();
+        presentation.event_match_id = None;
         return;
     };
+    let match_id = client.0.model().uno_game().map(|game| game.match_id);
+    if presentation.event_match_id != match_id {
+        presentation.events.clear();
+        presentation.event_match_id = match_id;
+    }
     presentation
         .events
         .extend(client.0.model_mut().take_uno_events());
-    if client.0.model().uno_game().is_none() {
+    if match_id.is_none() {
         presentation.events.clear();
     }
 }

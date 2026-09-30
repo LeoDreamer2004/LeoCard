@@ -58,6 +58,35 @@ fn blind_posting_is_exposed_before_normal_preflop_actions() {
 }
 
 #[test]
+fn session_posts_each_human_blind_automatically_after_a_short_delay() {
+    let mut session = session_waiting_for_blinds();
+    assert!(session.game().unwrap().game().blind_to_post().is_some());
+    assert!(
+        session
+            .advance_time(std::time::Duration::from_millis(1799))
+            .is_empty()
+    );
+    assert!(session.game().unwrap().game().blind_to_post().is_some());
+
+    session.advance_time(std::time::Duration::from_millis(1));
+    assert_eq!(
+        session.game().unwrap().game().blind_to_post().unwrap().1,
+        TexasHoldemBlindKind::Big
+    );
+    assert!(
+        session
+            .advance_time(std::time::Duration::from_millis(899))
+            .is_empty()
+    );
+    assert_eq!(
+        session.game().unwrap().game().blind_to_post().unwrap().1,
+        TexasHoldemBlindKind::Big
+    );
+    session.advance_time(std::time::Duration::from_millis(1));
+    assert!(session.game().unwrap().game().blind_to_post().is_none());
+}
+
+#[test]
 fn seat_order_maps_platform_ids_to_core_positions() {
     let game = adapter();
     let snapshot = game.snapshot(HOST).unwrap();

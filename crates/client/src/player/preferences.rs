@@ -32,6 +32,7 @@ pub struct GlobalPreferences {
     pub gender: PlayerGender,
     pub mahjong_action_voices: bool,
     pub mahjong_fan_voices: bool,
+    pub texas_action_voices: bool,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -83,6 +84,7 @@ impl Default for SavedPreferences {
                 gender: PlayerGender::Male,
                 mahjong_action_voices: true,
                 mahjong_fan_voices: true,
+                texas_action_voices: true,
             },
             games: GamePreferences {
                 qigui523: QiGui523Preferences {

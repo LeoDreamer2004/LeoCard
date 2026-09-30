@@ -286,6 +286,8 @@ fn add_uno_center(
         },
         None,
     );
+    // 牌堆耗尽时仍需保留飞牌演出的起点，尤其是突然死亡不会再洗牌。
+    commands.entity(draw).insert(UnoDrawPileAnchor);
     let visible_draw_cards = usize::from(game.draw_pile_len.min(6));
     for index_from_top in (0..visible_draw_cards).rev() {
         let image = game
@@ -294,25 +296,23 @@ fn add_uno_center(
             .copied()
             .map(|card| uno_card_handle(game_assets, card))
             .unwrap_or_else(|| game_assets.card_back.clone());
-        let mut card = commands.spawn((
-            UnoFlipTarget::DrawPile(index_from_top),
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(7.0 - index_from_top as f32 * 1.2),
-                top: px(6.0 - index_from_top as f32),
-                width: px(82),
-                height: px(128),
-                ..default()
-            },
-            ImageNode::new(image),
-            UiTransform::IDENTITY,
-            BoxShadow::new(Color::BLACK.with_alpha(0.45), px(3), px(5), px(0), px(7)),
-            FocusPolicy::Pass,
-        ));
-        if index_from_top == 0 {
-            card.insert(UnoDrawPileAnchor);
-        }
-        let card = card.id();
+        let card = commands
+            .spawn((
+                UnoFlipTarget::DrawPile(index_from_top),
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(7.0 - index_from_top as f32 * 1.2),
+                    top: px(6.0 - index_from_top as f32),
+                    width: px(82),
+                    height: px(128),
+                    ..default()
+                },
+                ImageNode::new(image),
+                UiTransform::IDENTITY,
+                BoxShadow::new(Color::BLACK.with_alpha(0.45), px(3), px(5), px(0), px(7)),
+                FocusPolicy::Pass,
+            ))
+            .id();
         commands.entity(draw).add_child(card);
     }
     let draw_count = spawn_node(

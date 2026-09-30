@@ -1,14 +1,21 @@
 use super::{TexasHoldemAdapter, TexasHoldemSession, hand_category_index, record_wager};
 use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState};
 use leocard_protocol::{PlayerId, TexasHoldemEvent};
-use leocard_texas_holdem::{PassiveBot, Phase, TexasHoldemAction, evaluate_player_hand};
+use leocard_texas_holdem::{
+    PassiveBot, Phase, TexasHoldemAction, TexasHoldemBlindKind, evaluate_player_hand,
+};
+use std::time::Duration;
+
+const FIRST_SMALL_BLIND_POST_DELAY: Duration = Duration::from_millis(1800);
+const BLIND_POST_DELAY: Duration = Duration::from_millis(900);
 
 impl TexasHoldemSession {
-    pub(super) fn current_auto_play_player(&self) -> Option<PlayerId> {
-        let current = self
-            .game
-            .as_ref()
-            .and_then(TexasHoldemAdapter::current_player)?;
+    pub(super) fn current_automatic_action_player(&self) -> Option<PlayerId> {
+        let game = self.game.as_ref()?;
+        let current = game.current_player()?;
+        if game.game().blind_to_post().is_some() {
+            return Some(current);
+        }
         self.room
             .players
             .iter()
@@ -19,13 +26,24 @@ impl TexasHoldemSession {
             .then_some(current)
     }
 
+    pub(super) fn automatic_delay_for_current_turn(&self) -> Duration {
+        let Some(game) = self.game.as_ref() else {
+            return AUTO_PLAY_DELAY;
+        };
+        match game.game().blind_to_post() {
+            Some((_, TexasHoldemBlindKind::Small, _)) if game.game().hand_number() == 0 => {
+                FIRST_SMALL_BLIND_POST_DELAY
+            }
+            Some(_) => BLIND_POST_DELAY,
+            None => AUTO_PLAY_DELAY,
+        }
+    }
+
     pub(super) fn reset_auto_play_delay_for_current_turn(&mut self) {
+        let remaining = self.automatic_delay_for_current_turn();
         self.auto_play_delay = self
-            .current_auto_play_player()
-            .map(|player| AutoPlayDelayState {
-                player,
-                remaining: AUTO_PLAY_DELAY,
-            });
+            .current_automatic_action_player()
+            .map(|player| AutoPlayDelayState { player, remaining });
     }
 
     pub(super) fn play_automatic_action(&mut self) -> Option<Vec<TexasHoldemEvent>> {
@@ -152,11 +170,10 @@ impl TexasHoldemSession {
             let Some(game) = self.game.as_mut() else {
                 break;
             };
-            let automatic_action = if game.game().blind_to_post().is_some() {
-                TexasHoldemAction::PostBlind
-            } else {
-                TexasHoldemAction::Fold
-            };
+            if game.game().blind_to_post().is_some() {
+                break;
+            }
+            let automatic_action = TexasHoldemAction::Fold;
             match game.act(current, automatic_action) {
                 Ok(auto_events) => events.extend(auto_events),
                 Err(_) => break,

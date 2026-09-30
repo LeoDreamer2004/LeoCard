@@ -3,7 +3,7 @@
 use crate::app::presentation::CardAnimationState;
 use crate::app::shell::SocialUiState;
 use bevy::prelude::*;
-use leocard_protocol::{PlayerId, UnoEvent, UnoPendingSwapView, UnoSnapshot};
+use leocard_protocol::{MatchId, PlayerId, UnoEvent, UnoPendingSwapView, UnoSnapshot};
 use leocard_uno::UnoCard;
 use std::collections::HashMap;
 use std::collections::{HashSet, VecDeque};
@@ -107,6 +107,7 @@ pub(super) struct UnoExtensionCardHelpOverlay {
 #[derive(Resource, Default)]
 pub(crate) struct UnoPresentationState {
     pub events: VecDeque<UnoEvent>,
+    pub event_match_id: Option<MatchId>,
     pub last_snapshot: Option<UnoSnapshot>,
 }
 

@@ -463,42 +463,72 @@ fn render_sound_settings(
             NavigationUiAction::ToggleMahjongFanVoices,
         ),
     ] {
-        let button = commands
-            .spawn((
-                Button,
-                UiAction::Navigation(action),
-                Node {
-                    flex_grow: 1.0,
-                    min_width: px(0),
-                    height: px(48),
-                    align_items: AlignItems::Center,
-                    column_gap: px(8),
-                    ..default()
-                },
-            ))
-            .id();
-        commands.entity(row).add_child(button);
-        let icon = commands
-            .spawn((
-                Node {
-                    width: px(34),
-                    height: px(34),
-                    ..default()
-                },
-                ImageNode::new(if selected {
-                    assets.home.checkbox_selected.clone()
-                } else {
-                    assets.home.checkbox.clone()
-                }),
-                FocusPolicy::Pass,
-            ))
-            .id();
-        commands.entity(button).add_child(icon);
-        commands
-            .entity(button)
-            .insert(SettingsVoiceToggle { icon, selected });
-        add_text(commands, button, label, 16.0, TEXT, assets);
+        add_voice_toggle(commands, row, label, selected, action, assets);
     }
+    add_text(commands, parent, "德州扑克", 20.0, TEXT, assets);
+    let texas_row = spawn_node(
+        commands,
+        parent,
+        Node {
+            width: percent(100),
+            flex_direction: FlexDirection::Row,
+            ..default()
+        },
+        None,
+    );
+    add_voice_toggle(
+        commands,
+        texas_row,
+        "行动语音",
+        form.texas_action_voices,
+        NavigationUiAction::ToggleTexasActionVoices,
+        assets,
+    );
+}
+
+fn add_voice_toggle(
+    commands: &mut Commands,
+    parent: Entity,
+    label: &str,
+    selected: bool,
+    action: NavigationUiAction,
+    assets: &UiAssets,
+) {
+    let button = commands
+        .spawn((
+            Button,
+            UiAction::Navigation(action),
+            Node {
+                flex_grow: 1.0,
+                min_width: px(0),
+                height: px(48),
+                align_items: AlignItems::Center,
+                column_gap: px(8),
+                ..default()
+            },
+        ))
+        .id();
+    commands.entity(parent).add_child(button);
+    let icon = commands
+        .spawn((
+            Node {
+                width: px(34),
+                height: px(34),
+                ..default()
+            },
+            ImageNode::new(if selected {
+                assets.home.checkbox_selected.clone()
+            } else {
+                assets.home.checkbox.clone()
+            }),
+            FocusPolicy::Pass,
+        ))
+        .id();
+    commands.entity(button).add_child(icon);
+    commands
+        .entity(button)
+        .insert(SettingsVoiceToggle { icon, selected });
+    add_text(commands, button, label, 16.0, TEXT, assets);
 }
 
 struct AboutSettings<'a> {

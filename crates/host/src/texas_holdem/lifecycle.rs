@@ -1,6 +1,6 @@
 use super::{TexasHoldemAdapter, TexasHoldemSession, validate_deck};
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
-use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession};
+use crate::{AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession};
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
     PlayerInteraction, PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, Revision,
@@ -61,24 +61,21 @@ impl TexasHoldemSession {
         self.room.heartbeat()
     }
 
-    /// 推进托管机器人的固定一秒行动延迟。
+    /// 推进自动盲注及托管机器人的行动延迟。
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         if elapsed.is_zero() || self.game.is_none() {
             return Vec::new();
         }
-        let Some(player) = self.current_auto_play_player() else {
+        let Some(player) = self.current_automatic_action_player() else {
             self.auto_play_delay = None;
             return Vec::new();
         };
-        let delay = self.auto_play_delay.get_or_insert(AutoPlayDelayState {
-            player,
-            remaining: AUTO_PLAY_DELAY,
-        });
+        let remaining = self.automatic_delay_for_current_turn();
+        let delay = self
+            .auto_play_delay
+            .get_or_insert(AutoPlayDelayState { player, remaining });
         if delay.player != player {
-            *delay = AutoPlayDelayState {
-                player,
-                remaining: AUTO_PLAY_DELAY,
-            };
+            *delay = AutoPlayDelayState { player, remaining };
         }
         if elapsed < delay.remaining {
             delay.remaining -= elapsed;

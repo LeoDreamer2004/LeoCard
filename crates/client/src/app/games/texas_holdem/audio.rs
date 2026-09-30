@@ -118,10 +118,7 @@ pub(super) fn texas_action_voice_plan(
     seed: u64,
 ) -> Option<TexasVoiceCue> {
     let (kind, variant) = match action {
-        TexasHoldemAction::RaiseTo(target) => (
-            TexasVoiceKind::Raise,
-            usize::from(target >= 10),
-        ),
+        TexasHoldemAction::RaiseTo(target) => (TexasVoiceKind::Raise, usize::from(target >= 10)),
         TexasHoldemAction::AllIn => (TexasVoiceKind::AllIn, 2 + seed as usize % 3),
         TexasHoldemAction::Call => (TexasVoiceKind::Call, 5 + seed as usize % 2),
         _ => return None,
@@ -292,23 +289,23 @@ pub(super) fn play_texas_audio_cues(
         for entity in &playing_voices {
             commands.entity(entity).despawn();
         }
-    } else if state.voice_busy_for == 0.0 {
-        if let Some(voice) = state.voice_cues.pop_front() {
-            commands.spawn((
-                AudioPlayer::new(assets.sounds.voice(voice)),
-                PlaybackSettings {
-                    volume: Volume::Linear(0.80),
-                    ..PlaybackSettings::DESPAWN
-                },
-                TexasVoicePlayback,
-            ));
-            // 逐句播完同一轮的行动，确保加注后的每次跟注都有自己的播报。
-            state.voice_busy_for = match voice.kind {
-                TexasVoiceKind::Call => 1.12,
-                TexasVoiceKind::Raise => 1.30,
-                TexasVoiceKind::AllIn => 1.35,
-            };
-        }
+    } else if state.voice_busy_for == 0.0
+        && let Some(voice) = state.voice_cues.pop_front()
+    {
+        commands.spawn((
+            AudioPlayer::new(assets.sounds.voice(voice)),
+            PlaybackSettings {
+                volume: Volume::Linear(0.80),
+                ..PlaybackSettings::DESPAWN
+            },
+            TexasVoicePlayback,
+        ));
+        // 逐句播完同一轮的行动，确保加注后的每次跟注都有自己的播报。
+        state.voice_busy_for = match voice.kind {
+            TexasVoiceKind::Call => 1.12,
+            TexasVoiceKind::Raise => 1.30,
+            TexasVoiceKind::AllIn => 1.35,
+        };
     }
 
     let mut waiting = Vec::with_capacity(state.audio_cues.len());

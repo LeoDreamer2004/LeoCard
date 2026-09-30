@@ -147,18 +147,15 @@ impl TexasChipTableState {
                         .saturating_add(amount);
                     let raises_bet = matches!(action, TexasHoldemAction::RaiseTo(_))
                         || (action == TexasHoldemAction::AllIn && committed > self.street_bet);
-                    if !matches!(action, TexasHoldemAction::Call) || self.raised_this_street {
-                        if let Some(gender) = game
+                    if (!matches!(action, TexasHoldemAction::Call) || self.raised_this_street)
+                        && let Some(gender) = game
                             .players
                             .iter()
                             .find(|profile| profile.id == player)
                             .map(|profile| profile.game_profiles.gender)
-                        {
-                            if let Some(voice) = texas_action_voice_plan(action, gender, sound_seed)
-                            {
-                                self.voice_cues.push_back(voice);
-                            }
-                        }
+                        && let Some(voice) = texas_action_voice_plan(action, gender, sound_seed)
+                    {
+                        self.voice_cues.push_back(voice);
                     }
                     self.street_committed.insert(player, committed);
                     self.street_bet = self.street_bet.max(committed);

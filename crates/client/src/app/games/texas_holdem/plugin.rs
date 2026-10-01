@@ -1,10 +1,10 @@
 use super::{
-    TexasChipTableState, TexasHoldemUiState, TexasRaiseHoldState, actions,
+    TexasChipTableState, TexasHoldemUiState, TexasRaiseHoldState, TexasVoiceState, actions,
     animate_texas_action_feedback, animate_texas_board_card_backs, animate_texas_board_card_flips,
     animate_texas_chip_sprites, animate_texas_deal_cards, animate_texas_flying_card_backs,
     animate_texas_pot_dividers, animate_texas_showdown_reveal, assets,
     handle_texas_raise_button_hold, highlight_texas_pot_eligible_players, play_texas_audio_cues,
-    sync_texas_chip_state, sync_texas_own_fold_tooltip,
+    sync_texas_chip_state, sync_texas_own_fold_tooltip, sync_texas_voices,
 };
 use crate::app::presentation::start_game_intro_finished;
 use crate::app::runtime::ClientUpdateSet;
@@ -18,6 +18,8 @@ impl Plugin for TexasHoldemPlugin {
         app.insert_resource(TexasRaiseHoldState::default())
             .insert_resource(TexasChipTableState::default())
             .init_resource::<TexasHoldemUiState>()
+            .init_resource::<TexasVoiceState>()
+            .add_systems(Update, sync_texas_voices.in_set(ClientUpdateSet::Sync))
             .add_systems(Startup, assets::load_texas_holdem_assets)
             .configure_sets(Update, UiActionSet.after(handle_texas_raise_button_hold))
             .add_systems(

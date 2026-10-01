@@ -1,4 +1,13 @@
+use crate::play::classify_cards;
+use crate::{
+    FollowError, TrickPlay, classify_lead, compare_for_trick, follow_suggestions,
+    forced_follow_cards, validate_follow,
+};
+
 use super::*;
+use crate::{ShengjiRank, ShengjiSuit};
+use crate::{ShengjiRuleSet, ShengjiThrowPenalty};
+use std::cmp::Ordering;
 
 #[test]
 fn failed_throw_selects_the_shortest_beatable_then_weakest_component() {

@@ -1,10 +1,13 @@
+use super::super::{
+    MahjongWinDecoration, MahjongWinDecorationKind, MahjongWinEffect, MahjongWinEffectText,
+    MahjongWinEffectTier, MahjongWinFanGlyph, MahjongWinScreenShake, MahjongWinStageKind,
+    MahjongWinStagePart, MahjongWinningHand, mahjong_win_effect_tier, mahjong_win_reveal_duration,
+    mahjong_win_stage_start,
+};
+
+use super::MAHJONG_WIN_PUSH_DURATION;
 use super::win_view::{
     mahjong_win_effect_color, mahjong_win_effect_elapsed, mahjong_win_effect_visual,
-};
-use super::{
-    MAHJONG_WIN_PUSH_DURATION, MahjongWinDecoration, MahjongWinDecorationKind, MahjongWinEffect,
-    MahjongWinEffectText, MahjongWinEffectTier, MahjongWinFanGlyph, MahjongWinScreenShake,
-    MahjongWinStageKind, MahjongWinStagePart, MahjongWinningHand,
 };
 use crate::app::presentation::{DESIGN_WIDTH, GameSummaryAnimation, ease_out_cubic};
 use bevy::prelude::*;
@@ -35,10 +38,10 @@ pub(crate) fn mahjong_win_tile_cues(
         .enumerate()
         .filter(|(_, winner)| matches(winner))
         .map(|(index, winner)| {
-            let tier = super::mahjong_win_effect_tier(winner);
+            let tier = mahjong_win_effect_tier(winner);
             MahjongWinTileCue {
                 tier,
-                start: super::mahjong_win_stage_start(result, index),
+                start: mahjong_win_stage_start(result, index),
                 duration: match tier {
                     MahjongWinEffectTier::Normal => 0.90,
                     MahjongWinEffectTier::HighTotal => 0.68,
@@ -60,7 +63,7 @@ pub(crate) fn mark_mahjong_win_tile(
     }
     commands.entity(entity).insert((
         MahjongWinTileShake {
-            reveal_duration: super::mahjong_win_reveal_duration(result),
+            reveal_duration: mahjong_win_reveal_duration(result),
             cues,
         },
         BorderColor::all(Color::NONE),

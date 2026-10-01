@@ -27,7 +27,7 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
         );
     }
     let tile = build_deck()[0];
-    session.record_statistics(&[
+    let events = [
         MahjongEvent::FalseWin {
             player: PlayerId(2),
             deltas: [10, 10, -30, 10],
@@ -57,7 +57,8 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
                 reference_changes: Vec::new(),
             },
         },
-    ]);
+    ];
+    session.record_statistics(&events);
     let winner = session.room.players[0]
         .game_profiles
         .mahjong
@@ -92,6 +93,15 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
     assert_eq!(
         session.finished_reference_changes.as_ref().unwrap().len(),
         4
+    );
+    assert_eq!(
+        session.room.players[0].game_profiles.achievements.by_tier(),
+        [0, 0, 0]
+    );
+    session.record_statistics(&events[1..]);
+    assert_eq!(
+        session.room.players[0].game_profiles.achievements.by_tier(),
+        [0, 0, 0]
     );
 }
 

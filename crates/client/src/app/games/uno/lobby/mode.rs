@@ -1,7 +1,8 @@
 use super::super::{UnoModeDropdownPanel, UnoUiAction};
+use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{HomeHighlightKind, UiAction, add_cozy_panel};
+use crate::app::shell::{UiAction, add_cozy_panel};
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_uno::{Mode, UnoRuleSet};
@@ -112,7 +113,7 @@ pub(crate) fn render_uno_mode_dropdown(
             ))
             .id();
         commands.entity(trigger).add_child(hover);
-        commands.entity(trigger).insert(HomeHighlightKind::Button {
+        commands.entity(trigger).insert(ButtonHighlight::Button {
             overlay: hover,
             arrows: None,
         });
@@ -223,7 +224,7 @@ pub(crate) fn render_uno_mode_dropdown(
                 ))
                 .id();
             commands.entity(option).add_child(hover);
-            commands.entity(option).insert(HomeHighlightKind::Button {
+            commands.entity(option).insert(ButtonHighlight::Button {
                 overlay: hover,
                 arrows: None,
             });

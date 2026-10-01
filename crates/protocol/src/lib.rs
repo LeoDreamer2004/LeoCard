@@ -3,6 +3,7 @@
 //! TCP 层只需读取 4 字节大端长度，再读取对应的 Postcard 负载；业务层始终处理
 //! [`ClientMessage`] 和 [`ServerMessage`]。
 
+pub mod achievements;
 pub mod events;
 pub mod framing;
 pub mod game;
@@ -17,6 +18,7 @@ pub mod texas_holdem;
 pub mod uno;
 pub mod violations;
 
+pub use achievements::*;
 pub use events::*;
 pub use framing::*;
 pub use game::*;
@@ -29,7 +31,7 @@ pub use texas_holdem::*;
 pub use uno::*;
 pub use violations::*;
 
-pub const PROTOCOL_VERSION: u16 = 40;
+pub const PROTOCOL_VERSION: u16 = 42;
 pub const MAX_FRAME_PAYLOAD: usize = 1024 * 1024;
 pub const MAX_PLAYER_NAME_CHARS: usize = 7;
 pub const AVATAR_DIMENSION: u32 = 64;

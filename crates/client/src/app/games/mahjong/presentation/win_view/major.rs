@@ -1,4 +1,5 @@
-use super::super::{MahjongWinEffectTier, MahjongWinFanGlyph, MahjongWinStageKind};
+use super::super::super::{MahjongWinEffectTier, MahjongWinFanGlyph, MahjongWinStageKind};
+
 use super::{
     MAJOR_FAN_GLYPH_DELAY, MAJOR_FAN_GLYPH_INTERVAL, WinStagePartSpec, add_win_stage_component,
     mahjong_win_effect_color,

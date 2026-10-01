@@ -88,7 +88,7 @@ impl UnoSession {
             .iter()
             .find(|participant| participant.id == player)
             .is_some_and(|participant| !participant.connected && !participant.is_bot);
-        if !disconnected {
+        if !disconnected || self.automatically_resolves_skip() {
             let delay = self.auto_play_delay.get_or_insert(AutoPlayDelayState {
                 player,
                 remaining: AUTO_PLAY_DELAY,

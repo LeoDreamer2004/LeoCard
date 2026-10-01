@@ -1,3 +1,4 @@
+use super::advance_mahjong_modal;
 use super::{
     MahjongClaimPresentationState, MahjongFanVoicePlayback, MahjongTileMaterial, MahjongUiState,
     actions, advance_mahjong_claim_presentation, animate_mahjong_claim_presentation,
@@ -11,6 +12,7 @@ use super::{
 };
 use crate::app::presentation::start_game_intro_finished;
 use crate::app::runtime::ClientUpdateSet;
+use crate::app::shell::ModalAnimationSet;
 use crate::app::shell::{UiActionSet, animate_cozy_modals};
 use bevy::prelude::*;
 
@@ -22,6 +24,10 @@ impl Plugin for MahjongPlugin {
             .insert_resource(MahjongClaimPresentationState::default())
             .init_resource::<MahjongFanVoicePlayback>()
             .init_resource::<MahjongUiState>()
+            .add_systems(
+                Update,
+                advance_mahjong_modal.in_set(ModalAnimationSet::Progress),
+            )
             .add_systems(Startup, assets::load_mahjong_assets)
             .add_systems(
                 Update,

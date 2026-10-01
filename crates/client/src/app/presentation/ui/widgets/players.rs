@@ -2,11 +2,11 @@
 
 use super::super::{BORDER, MUTED, READY, TEXT};
 use super::{add_text, spawn_node};
+use crate::app::presentation::ButtonHighlight;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    HomeHighlightKind, InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction,
-    PlayerProfilePage, SeatSide, SocialUiAction, UiAction, add_cozy_button, add_cozy_panel,
-    reference_level,
+    InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction, PlayerProfilePage, SeatSide,
+    SocialUiAction, UiAction, add_cozy_button, add_cozy_panel, reference_level,
 };
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
@@ -318,7 +318,7 @@ pub(crate) fn add_interaction_menu(
             ))
             .id();
         commands.entity(button).add_child(overlay);
-        commands.entity(button).insert(HomeHighlightKind::Button {
+        commands.entity(button).insert(ButtonHighlight::Button {
             overlay,
             arrows: None,
         });

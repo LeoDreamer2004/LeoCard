@@ -1,6 +1,7 @@
 use super::super::*;
 use super::controls::{add_auto_play_toggle, add_auxiliary_actions, add_chat_toggle};
 use super::menus::{add_emoji_menu, add_quick_voice_menu};
+use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
@@ -295,12 +296,10 @@ pub(super) fn add_chat_button_highlight(
         ))
         .id();
     commands.entity(button).add_child(overlay);
-    commands
-        .entity(button)
-        .insert(crate::app::shell::HomeHighlightKind::Button {
-            overlay,
-            arrows: None,
-        });
+    commands.entity(button).insert(ButtonHighlight::Button {
+        overlay,
+        arrows: None,
+    });
 }
 
 pub(crate) fn sync_chat_panel_text(

@@ -1,9 +1,10 @@
 //! 麻将局内的快捷开关与本地自动操作。
 
 use super::{MahjongAutomaticActionKey, MahjongUiAction, MahjongUiState};
+use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{ACCENT, MUTED, add_text, spawn_node};
 use crate::app::runtime::{ClientResource, UiAssets};
-use crate::app::shell::{HomeHighlightKind, UiAction, game_command};
+use crate::app::shell::{UiAction, game_command};
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_mahjong::{MahjongClaim, MahjongClaimOption};
@@ -162,7 +163,7 @@ pub(super) fn render_mahjong_auto_drawer(
         ))
         .id();
     commands.entity(arrow).add_child(hover);
-    commands.entity(arrow).insert(HomeHighlightKind::Button {
+    commands.entity(arrow).insert(ButtonHighlight::Button {
         overlay: hover,
         arrows: None,
     });

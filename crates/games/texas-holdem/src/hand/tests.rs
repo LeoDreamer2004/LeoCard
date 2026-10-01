@@ -1,5 +1,7 @@
 use super::*;
 use crate::TexasHoldemSuit::{Club, Diamond, Heart, Spade};
+use crate::{TexasHoldemCard, TexasHoldemRank, TexasHoldemRuleSet};
+use std::cmp::Ordering;
 
 fn c(rank: TexasHoldemRank, suit: crate::TexasHoldemSuit) -> TexasHoldemCard {
     TexasHoldemCard::new(suit, rank)

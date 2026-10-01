@@ -1,7 +1,8 @@
-use super::super::{
-    MahjongAssets, MahjongTileMaterial, MahjongTileSize, MahjongWinEffectTier, MahjongWinStageKind,
-    MahjongWinTileSizes, render_mahjong_win_tile_row,
+use super::super::super::{
+    MahjongAssets, MahjongTileMaterial, MahjongWinEffectTier, MahjongWinStageKind,
 };
+
+use super::super::{MahjongTileSize, MahjongWinTileSizes, render_mahjong_win_tile_row};
 use super::{WinStagePartSpec, add_win_stage_component, mahjong_win_effect_color};
 use crate::app::presentation::{add_text, spawn_node};
 use crate::app::runtime::UiAssets;

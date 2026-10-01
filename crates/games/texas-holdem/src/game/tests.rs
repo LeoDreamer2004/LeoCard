@@ -1,6 +1,8 @@
 use super::*;
+use crate::{TexasHoldemCard, TexasHoldemRuleSet, build_deck};
 use crate::{TexasHoldemRank, TexasHoldemSuit};
 use TexasHoldemSuit::{Club, Diamond, Heart, Spade};
+use std::collections::HashSet;
 
 fn ordered_deck(prefix: &[TexasHoldemCard], short_deck: bool) -> Vec<TexasHoldemCard> {
     let prefix_set = prefix.iter().copied().collect::<HashSet<_>>();

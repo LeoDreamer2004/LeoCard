@@ -1,8 +1,9 @@
 use crate::{
-    AvatarId, ChatContent, ChatMessage, GameCommand, GameEvent, GameKind, GameRules,
-    MahjongSnapshot, PROTOCOL_VERSION, PlayerGameProfiles, PlayerId, PlayerInteraction,
-    PlayerInteractionKind, ProfileId, QiGui523Snapshot, ReconnectToken, RejectReason, RequestId,
-    Revision, RoomId, SeatId, ShengjiSnapshot, TexasHoldemSnapshot, UnoSnapshot,
+    AchievementAnnouncement, AchievementCounts, AvatarId, ChatContent, ChatMessage, GameCommand,
+    GameEvent, GameKind, GameRules, MahjongSnapshot, PROTOCOL_VERSION, PlayerGameProfiles,
+    PlayerId, PlayerInteraction, PlayerInteractionKind, ProfileId, QiGui523Snapshot,
+    ReconnectToken, RejectReason, RequestId, Revision, RoomId, SeatId, ShengjiSnapshot,
+    TexasHoldemSnapshot, UnoSnapshot,
 };
 use serde::{Deserialize, Serialize};
 
@@ -78,6 +79,11 @@ impl JoinRequest {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ClientCommand {
+    /// Aggregate profile synchronization; IDs announce only newly earned awards.
+    PublishAchievements {
+        counts: AchievementCounts,
+        unlocked: Vec<String>,
+    },
     Join(Box<JoinRequest>),
     SetAvatar {
         png: Vec<u8>,
@@ -131,6 +137,7 @@ pub struct ServerMessage {
 // 快照是高频协议主体；保持内联可避免为单个大游戏改变既有线协议形状。
 #[allow(clippy::large_enum_variant)]
 pub enum ServerEvent {
+    AchievementUnlocked(AchievementAnnouncement),
     Heartbeat,
     Joined { you: PlayerId },
     AvatarData { id: AvatarId, png: Vec<u8> },

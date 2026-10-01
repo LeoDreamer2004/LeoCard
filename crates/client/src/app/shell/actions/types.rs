@@ -1,5 +1,6 @@
 use super::super::{
-    ChatUiAction, ConnectionUiAction, LobbyUiAction, NavigationUiAction, SocialUiAction,
+    AchievementUiAction, ChatUiAction, ConnectionUiAction, LobbyUiAction, NavigationUiAction,
+    ProfileUiAction, SettingsUiAction, SocialUiAction, UpdateUiAction,
 };
 use crate::app::games::mahjong::actions::MahjongUiAction;
 use crate::app::games::qigui523::actions::QiGui523UiAction;
@@ -26,6 +27,10 @@ pub(crate) enum UiAction {
     Developer(DeveloperUiAction),
     Connection(ConnectionUiAction),
     Navigation(NavigationUiAction),
+    Achievements(AchievementUiAction),
+    Profile(ProfileUiAction),
+    Settings(SettingsUiAction),
+    Update(UpdateUiAction),
     Lobby(LobbyUiAction),
 }
 
@@ -57,6 +62,10 @@ impl UiAction {
             #[cfg(feature = "developer")]
             Self::Developer(action) => action.rebuilds_ui(),
             Self::Navigation(action) => action.rebuilds_ui(),
+            Self::Achievements(action) => action.rebuilds_ui(),
+            Self::Profile(action) => action.rebuilds_ui(),
+            Self::Settings(action) => action.rebuilds_ui(),
+            Self::Update(action) => action.rebuilds_ui(),
             Self::Connection(action) => action.rebuilds_ui(),
             Self::Lobby(action) => action.rebuilds_ui(),
         }

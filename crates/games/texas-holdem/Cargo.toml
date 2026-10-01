@@ -1,12 +1,13 @@
 [package]
 name = "leocard-texas-holdem"
-version = "0.4.1"
+version = "0.5.0"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 description = "Pure Texas Hold'em rules for LeoCard"
 
 [dependencies]
+leocard-game-common = { path = "../common" }
 serde = { workspace = true, optional = true }
 
 [features]

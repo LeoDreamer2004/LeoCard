@@ -27,6 +27,7 @@ pub enum PlayerViolation {
     InvalidIdentityProof,
     InvalidAvatar,
     AvatarAlreadySet,
+    InvalidAchievements,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

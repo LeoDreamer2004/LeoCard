@@ -22,6 +22,13 @@ pub(crate) struct SummaryDescriptor {
     pub reveal_duration: f32,
 }
 
+/// Game adapters supply timing decisions; the renderer only consumes this projection.
+#[derive(Resource, Default)]
+pub(crate) struct SummaryPlayback {
+    pub descriptor: Option<SummaryDescriptor>,
+    pub pause_at: Option<f32>,
+}
+
 #[derive(Resource, Default)]
 pub(crate) struct GameSummaryAnimation {
     pub match_id: Option<MatchId>,

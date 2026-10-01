@@ -278,14 +278,16 @@ pub(super) fn add_uno_actions(
             );
         }
     } else if game.pending_skip > 0 || own_skips > 0 {
-        add_uno_action_button(
-            commands,
-            actions,
-            &format!("接受禁手 ×{}", game.pending_skip + own_skips),
-            UiAction::Uno(UnoUiAction::ResolveSkip),
-            ButtonKind::Pass,
-            assets,
-        );
+        if game.rules.action_stacking_enabled() {
+            add_uno_action_button(
+                commands,
+                actions,
+                &format!("接受禁手 ×{}", game.pending_skip + own_skips),
+                UiAction::Uno(UnoUiAction::ResolveSkip),
+                ButtonKind::Pass,
+                assets,
+            );
+        }
     } else if game.your_drawn_card.is_some() {
         if !game.rules.is_no_mercy() || !game.rules.no_mercy.draw_until_playable {
             add_uno_action_button(

@@ -3,8 +3,7 @@ use crate::app::presentation::CardSize;
 use crate::app::presentation::{HEADER_BG, MUTED, TEXT, add_card_image, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use leocard_protocol::PublicPlayRecord;
-use leocard_protocol::QiGui523Snapshot;
+use leocard_protocol::{PublicPlayRecord, QiGui523Snapshot};
 
 pub(super) fn add_draw_pile(
     commands: &mut Commands,

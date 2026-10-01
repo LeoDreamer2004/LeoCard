@@ -1,10 +1,12 @@
+use super::super::{ShengjiDealerBadge, ShengjiLevelIndicator};
+use super::content::presentation_color;
+
 use super::{
     ShengjiBottomFlipPanelElement, ShengjiBottomFlipVisual, ShengjiBottomFlipVisualKind,
-    ShengjiDealerBadge, ShengjiLevelIndicator, ShengjiPowerOutageVisual,
-    ShengjiPowerOutageVisualKind, ShengjiPresentationDivider, ShengjiPresentationKind,
-    ShengjiPresentationPacket, ShengjiPresentationRoot, ShengjiPresentationState,
-    ShengjiPresentationText, ShengjiPresentationVeil, ShengjiSoundAssets, ShengjiTrumpKillVisual,
-    ShengjiTrumpKillVisualKind, presentation_color,
+    ShengjiPowerOutageVisual, ShengjiPowerOutageVisualKind, ShengjiPresentationDivider,
+    ShengjiPresentationKind, ShengjiPresentationPacket, ShengjiPresentationRoot,
+    ShengjiPresentationState, ShengjiPresentationText, ShengjiPresentationVeil, ShengjiSoundAssets,
+    ShengjiTrumpKillVisual, ShengjiTrumpKillVisualKind,
 };
 use crate::app::presentation::{ACCENT, HEADER_BG, ease_out_cubic};
 use crate::app::shell::{PlayerAvatarAnchor, UiState};

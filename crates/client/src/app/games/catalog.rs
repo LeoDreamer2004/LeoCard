@@ -1,5 +1,6 @@
 //! 客户端支持的游戏目录与大厅摘要。
 
+use crate::app::presentation::time_control_label;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
 use leocard_protocol::{GameKind, GameRules, TABLE_SEAT_COUNT};
 use leocard_shengji::ShengjiRuleSet;
@@ -54,7 +55,7 @@ pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
         GameRules::QiGui523(rules) => [
             format!("{}副", rules.deck_count),
             format!("{}张", rules.hand_size),
-            crate::app::time_control_label(rules.time_control).to_owned(),
+            time_control_label(rules.time_control).to_owned(),
         ],
         GameRules::TexasHoldem(rules) => [
             format!("{}筹码", rules.starting_chips),

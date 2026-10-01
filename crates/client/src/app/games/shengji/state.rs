@@ -1,12 +1,12 @@
 //! 双升手牌、计分、甩牌反馈与结算演出的状态类型。
 
+use crate::app::presentation::CustomButtonMotion;
 use crate::app::presentation::{CardAnimationState, Observed};
 use bevy::prelude::*;
 use leocard_client::ShengjiScoreCaptureEffect;
 use leocard_protocol::{MatchId, ShengjiSnapshot, ShengjiThrowFailureStage};
 use leocard_shengji::ShengjiCard;
-use std::collections::HashMap;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Resource, Default)]
 pub(crate) struct ShengjiUiState {
@@ -153,6 +153,7 @@ pub(crate) struct ActiveShengjiScoreAbsorb {
 }
 
 #[derive(Component)]
+#[require(CustomButtonMotion)]
 pub(crate) struct ShengjiHandCardSlot {
     pub card: ShengjiCard,
     pub index: usize,

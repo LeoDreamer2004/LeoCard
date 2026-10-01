@@ -1,4 +1,6 @@
-use super::{ActionOutcome, GameError, GameState, UnoCard, UnoColor, UnoPlayerId, remove_card};
+use crate::{UnoCard, UnoColor};
+
+use super::{ActionOutcome, GameError, GameState, UnoPlayerId, remove_card};
 
 impl GameState {
     pub fn play_card(

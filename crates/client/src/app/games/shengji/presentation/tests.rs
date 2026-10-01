@@ -1,8 +1,9 @@
 use super::*;
-use leocard_protocol::ShengjiEvent;
-use leocard_protocol::{PlayerId, ShengjiPublicPlay};
-use leocard_shengji::{Category, Component, ShengjiBidTrump, ShengjiClassifiedPlay, ShengjiRank};
-use leocard_shengji::{ShengjiCard, ShengjiSuit, ShengjiThrowPenalty, ShengjiTrump};
+use bevy::prelude::*;
+use leocard_protocol::{PlayerId, ShengjiEvent, ShengjiPublicPlay};
+use leocard_shengji::{Category, Component, ShengjiClassifiedPlay, ShengjiRank};
+use leocard_shengji::{ShengjiBidTrump, ShengjiCard};
+use leocard_shengji::{ShengjiSuit, ShengjiThrowPenalty, ShengjiTrump};
 
 #[test]
 fn five_and_ten_point_throw_penalties_use_distinct_sound_weights() {

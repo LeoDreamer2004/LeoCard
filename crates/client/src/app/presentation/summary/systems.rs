@@ -1,5 +1,6 @@
 //! 跨游戏结算界面的入场、计分与音效演出。
 
+use super::SummaryPlayback;
 use super::{
     AnimatedSignedSummaryScore, AnimatedSummaryScore, AnimatedSummaryText, GameSummaryActions,
     GameSummaryAnimation, GameSummaryDivider, GameSummaryModal, GameSummaryPanelTexture,
@@ -7,10 +8,10 @@ use super::{
     SUMMARY_ROW_ENTRY_DURATION, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY,
     SUMMARY_SCORE_COUNT_DURATION,
 };
-use crate::app::games::{MahjongUiState, game_summary_descriptor, mahjong_fan_pause_at};
-use crate::app::{ClientResource, PANEL_ALT, UiAssets, ease_out_cubic};
+use crate::app::presentation::{PANEL_ALT, add_text, ease_out_cubic};
+use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use leocard_protocol::{GameSnapshot, MahjongPhaseView, PlayerScore};
+use leocard_protocol::PlayerScore;
 
 #[expect(
     clippy::too_many_arguments,
@@ -31,7 +32,7 @@ pub(crate) fn add_animated_summary_text(
     } else {
         summary_row_progress(elapsed, delay)
     };
-    let entity = crate::app::add_text(
+    let entity = add_text(
         commands,
         parent,
         text,
@@ -48,24 +49,11 @@ pub(crate) fn add_animated_summary_text(
 pub(crate) fn update_summary_animation(
     mut commands: Commands,
     time: Res<Time>,
-    client: Option<Res<ClientResource>>,
-    mahjong_ui: Option<Res<MahjongUiState>>,
+    playback: Res<SummaryPlayback>,
     assets: Res<UiAssets>,
     mut animation: ResMut<GameSummaryAnimation>,
 ) {
-    let snapshot = client
-        .as_deref()
-        .and_then(|client| client.0.model().game_snapshot());
-    let fan_pause = if let (Some(GameSnapshot::Mahjong(game)), Some(ui)) =
-        (snapshot, mahjong_ui.as_deref())
-        && let MahjongPhaseView::Finished { result } = &game.phase
-        && ui.fan_summary_continued != Some((game.match_id, result.sequence_index))
-    {
-        mahjong_fan_pause_at(result)
-    } else {
-        None
-    };
-    let summary = snapshot.and_then(game_summary_descriptor);
+    let summary = playback.descriptor;
     let Some(summary) = summary else {
         if animation.match_id.is_some() {
             *animation = GameSummaryAnimation::default();
@@ -89,7 +77,7 @@ pub(crate) fn update_summary_animation(
         if animation.elapsed < duration {
             animation.elapsed = (animation.elapsed + time.delta_secs())
                 .min(duration)
-                .min(fan_pause.unwrap_or(f32::INFINITY));
+                .min(playback.pause_at.unwrap_or(f32::INFINITY));
         }
     }
 

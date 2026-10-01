@@ -1,8 +1,9 @@
-use super::super::claim::MahjongSeatGeometry;
-use super::super::{
+use super::super::super::{
     MahjongAssets, MahjongTileMaterial, MahjongWinEffect, MahjongWinEffectText,
     MahjongWinEffectTier, mahjong_win_effect_tier, mahjong_win_reveal_duration,
 };
+
+use super::super::claim::MahjongSeatGeometry;
 use super::{
     WinStageContext, add_win_aura, mahjong_win_effect_color, mahjong_win_effect_visual,
     render_win_stage,

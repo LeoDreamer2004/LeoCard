@@ -1,10 +1,13 @@
-use super::ledger::{change_for, initial_chip_denominations, visual_pots};
+use super::denominations::{change_for, initial_chip_denominations};
+use super::ledger::visual_pots;
 use super::*;
 use crate::app::games::texas_holdem::TexasSoundKind;
-use leocard_protocol::ProfileId;
+use bevy::prelude::*;
+use leocard_protocol::{MatchId, PlayerId, SeatId};
+#[cfg(test)]
+use leocard_protocol::{PlayerGameProfiles, ProfileId};
 use leocard_protocol::{
-    MatchId, PlayerId, SeatId, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemPlayerState,
-    TexasHoldemSnapshot,
+    TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
 };
 use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemStreet};
 

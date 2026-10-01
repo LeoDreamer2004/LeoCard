@@ -7,3 +7,6 @@ mod ui;
 pub(crate) use state::*;
 pub(crate) use text::*;
 pub(crate) use ui::*;
+
+mod plugin;
+pub(crate) use plugin::InputPlugin;

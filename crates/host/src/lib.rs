@@ -3,6 +3,7 @@
 //! Tokio TCP 层只负责把连接映射为 [`ConnectionId`]、解码消息、调用
 //! [`HostSession::handle`]，再把 [`Delivery`] 写回指定连接。
 
+mod achievements;
 mod lifecycle;
 mod mahjong;
 mod player;

@@ -1,4 +1,6 @@
-use super::super::{ShengjiCard, ShengjiRank, ShengjiSuit, ShengjiTrump, strength};
+use crate::{ShengjiCard, ShengjiRank, ShengjiSuit, ShengjiTrump};
+
+use super::super::strength;
 use super::FollowPattern;
 use std::collections::{BTreeMap, HashSet};
 

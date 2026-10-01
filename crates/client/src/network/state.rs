@@ -2,10 +2,9 @@ use crate::{LocalPlayerProfile, PlayerIdentity};
 use leocard_host::HostSession;
 use leocard_protocol::{ClientMessage, PlayerGameProfiles, PlayerGender, RoomId, ServerMessage};
 use std::collections::VecDeque;
-use std::fmt;
-use std::io;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::{fmt, io};
 use tokio::sync::mpsc::{Receiver, Sender};
 
 pub(super) const RECONNECT_ATTEMPTS: u8 = 6;

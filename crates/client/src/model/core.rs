@@ -91,6 +91,16 @@ impl ClientModel {
 
     /// 返回消息是否被接受。错误房间、错误版本和旧修订号均被忽略。
     pub fn apply(&mut self, message: ServerMessage) -> bool {
+        self.apply_with_events(message, |_, _| {})
+    }
+
+    /// Observe accepted live events before applying state changes; rejected messages
+    /// never reach observers. Feature-specific consumers own their own state.
+    pub fn apply_with_events(
+        &mut self,
+        message: ServerMessage,
+        mut observe: impl FnMut(Option<PlayerId>, &ServerEvent),
+    ) -> bool {
         if message.protocol_version != PROTOCOL_VERSION
             || message.room_id != self.room_id
             || message.revision < self.latest_revision
@@ -98,7 +108,9 @@ impl ClientModel {
             return false;
         }
         self.latest_revision = message.revision;
+        observe(self.you, &message.event);
         match message.event {
+            ServerEvent::AchievementUnlocked(_) => {}
             ServerEvent::Joined { you } => {
                 self.you = Some(you);
                 self.rejection.value = None;

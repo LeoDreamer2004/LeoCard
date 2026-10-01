@@ -1,3 +1,4 @@
+use super::advance_uno_modal;
 use super::{
     UnoAudioState, UnoPaletteMaterial, UnoPresentationState, UnoUiState, actions,
     animate_uno_flip_effects, animate_uno_flying_cards, animate_uno_hand_cards,
@@ -9,7 +10,7 @@ use super::{
 };
 use crate::app::presentation::start_game_intro_finished;
 use crate::app::runtime::ClientUpdateSet;
-use crate::app::shell::UiActionSet;
+use crate::app::shell::{ModalAnimationSet, UiActionSet};
 use bevy::prelude::*;
 
 pub(crate) struct UnoPlugin;
@@ -21,6 +22,10 @@ impl Plugin for UnoPlugin {
             .insert_resource(UnoPresentationState::default())
             .insert_resource(UnoAudioState::default())
             .init_resource::<UnoUiState>()
+            .add_systems(
+                Update,
+                advance_uno_modal.in_set(ModalAnimationSet::Progress),
+            )
             .add_systems(Startup, assets::load_uno_assets)
             .add_systems(Update, actions::dispatch_uno_actions.in_set(UiActionSet))
             .add_systems(

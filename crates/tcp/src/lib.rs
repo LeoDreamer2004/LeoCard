@@ -9,10 +9,9 @@ use leocard_protocol::{
     encode_frame,
 };
 use std::collections::{HashMap, HashSet};
-use std::fmt;
-use std::io;
 use std::net::SocketAddr;
 use std::time::Duration;
+use std::{fmt, io};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};

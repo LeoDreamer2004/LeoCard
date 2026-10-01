@@ -5,7 +5,57 @@ use leocard_protocol::{
     PlayerReferenceChange, RejectReason, Revision, RoomId, ServerEvent, ServerMessage,
 };
 use leocard_protocol::{GameKind, GamePhaseView, GameViolation, ProfileId, RuleViolation};
+use leocard_protocol::{PlayerInteraction, PlayerInteractionKind};
 use leocard_qigui523::QiGuiRuleSet;
+
+#[test]
+fn accepted_events_reach_observers_without_consuming_presentation_queues() {
+    let mut model = ClientModel::new(RoomId(7));
+    model.apply(ServerMessage {
+        protocol_version: PROTOCOL_VERSION,
+        room_id: RoomId(7),
+        revision: Revision(1),
+        in_reply_to: None,
+        event: ServerEvent::Joined { you: PlayerId(0) },
+    });
+    let interaction = PlayerInteraction {
+        source: PlayerId(1),
+        target: PlayerId(0),
+        kind: PlayerInteractionKind::Flower,
+        seed: 1,
+    };
+    let message = ServerMessage {
+        protocol_version: PROTOCOL_VERSION,
+        room_id: RoomId(7),
+        revision: Revision(2),
+        in_reply_to: None,
+        event: ServerEvent::PlayerInteraction(interaction),
+    };
+    let mut observed = Vec::new();
+    assert!(model.apply_with_events(message.clone(), |player, event| {
+        observed.push((player, event.clone()))
+    }));
+    assert_eq!(observed, [(Some(PlayerId(0)), message.event.clone())]);
+    assert_eq!(model.take_player_interactions(), [interaction]);
+    for rejected in [
+        ServerMessage {
+            room_id: RoomId(99),
+            ..message.clone()
+        },
+        ServerMessage {
+            protocol_version: 0,
+            ..message.clone()
+        },
+        ServerMessage {
+            revision: Revision(1),
+            ..message
+        },
+    ] {
+        assert!(
+            !model.apply_with_events(rejected, |_, _| panic!("rejected event reached observer"))
+        );
+    }
+}
 
 #[test]
 fn finished_match_receipt_survives_a_following_lobby_snapshot() {

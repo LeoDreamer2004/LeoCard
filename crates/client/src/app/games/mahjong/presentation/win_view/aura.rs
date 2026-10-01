@@ -1,4 +1,5 @@
-use super::super::{MahjongWinDecoration, MahjongWinDecorationKind, MahjongWinEffectTier};
+use super::super::super::{MahjongWinDecoration, MahjongWinDecorationKind, MahjongWinEffectTier};
+
 use crate::app::presentation::spawn_node;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;

@@ -2,6 +2,7 @@
 
 use super::QiGui523Assets;
 use crate::app::presentation::{CardAnimationState, Observed};
+use crate::app::presentation::{CustomButtonMotion, SilentButton};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{ScoreCaptureEffectState, SeatSide};
 use bevy::prelude::*;
@@ -177,6 +178,7 @@ pub(super) struct HandCardVisual {
 }
 
 #[derive(Component)]
+#[require(CustomButtonMotion, SilentButton)]
 pub(crate) struct HandCardSlot {
     pub card: QiGuiCard,
     pub index: usize,

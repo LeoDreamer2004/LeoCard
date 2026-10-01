@@ -1,5 +1,7 @@
 //! 游戏设置窗口与桌面外观输入。
 
+mod actions;
+
 mod animation;
 mod files;
 mod input;
@@ -13,3 +15,5 @@ pub(crate) use input::*;
 pub(super) use plugin::*;
 pub(crate) use state::*;
 pub(super) use view::*;
+
+pub(crate) use actions::SettingsUiAction;

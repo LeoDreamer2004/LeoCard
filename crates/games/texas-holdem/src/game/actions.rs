@@ -1,6 +1,8 @@
+use crate::TexasHoldemRuleSet;
+
 use super::{
     ActionOutcome, GameError, GameState, Phase, PlayerState, TexasHoldemAction,
-    TexasHoldemBlindKind, TexasHoldemPlayerId, TexasHoldemRuleSet, TexasHoldemStreet,
+    TexasHoldemBlindKind, TexasHoldemPlayerId, TexasHoldemStreet,
 };
 
 impl GameState {

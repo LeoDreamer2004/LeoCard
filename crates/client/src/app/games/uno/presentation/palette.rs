@@ -1,7 +1,8 @@
-use super::{
+use super::super::{
     UnoPaletteColorRing, UnoPaletteEffect, UnoPaletteMaterial, UnoPaletteParticle,
     UnoPaletteSelectedSector, uno_ui_color,
 };
+
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_uno::UnoColor;

@@ -1,8 +1,16 @@
-use super::{
-    BTreeMap, Category, Component, HashSet, Ordering, PairUnit, PlayError, QuadUnit, ShengjiCard,
-    ShengjiClassifiedPlay, ShengjiRank, ShengjiSuit, ShengjiTrump, StructureDemands, TripleUnit,
+use super::follow::special_follow_hierarchy;
+use super::structure::{
     category_precedence, competition_key, component_priority, pair_units, quad_units,
-    spaceship_tops, special_follow_hierarchy, titanic_tops, tractor_tops, triple_units,
+    spaceship_tops, titanic_tops, tractor_tops, triple_units,
+};
+use crate::play::structure::StructureDemands;
+use crate::{ShengjiCard, ShengjiTrump};
+use crate::{ShengjiRank, ShengjiSuit};
+use std::cmp::Ordering;
+use std::collections::{BTreeMap, HashSet};
+
+use super::{
+    Category, Component, PairUnit, PlayError, QuadUnit, ShengjiClassifiedPlay, TripleUnit,
 };
 
 pub(super) fn classify_mixed_discard(

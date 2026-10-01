@@ -1,6 +1,6 @@
-use super::{
-    UNO_ACTION_AREA_BOTTOM, UNO_ACTION_AREA_HEIGHT, UnoReverseArrow, uno_player_anchor_in_layer,
-};
+use super::super::{UNO_ACTION_AREA_BOTTOM, UNO_ACTION_AREA_HEIGHT, UnoReverseArrow};
+
+use super::uno_player_anchor_in_layer;
 use crate::app::shell::PlayerAvatarAnchor;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;

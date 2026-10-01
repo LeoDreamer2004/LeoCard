@@ -17,6 +17,7 @@ pub(crate) fn rejection_label(reason: &RejectReason) -> Option<String> {
         }
         RejectReason::Player(PlayerViolation::InvalidAvatar) => "头像数据无效",
         RejectReason::Player(PlayerViolation::AvatarAlreadySet) => "本次连接已经上传过头像",
+        RejectReason::Player(PlayerViolation::InvalidAchievements) => "成就数量或条目无效",
         RejectReason::Room(RoomViolation::InvalidSeat) => "座位编号无效",
         RejectReason::Room(RoomViolation::SeatTaken) => "这个座位已经有人了",
         RejectReason::Room(RoomViolation::MustSelectSeat) => "必须先选择座位",

@@ -1,8 +1,9 @@
 use super::{ShengjiHandCardSelectionOverlay, ShengjiHandCardSlot, ShengjiUiState};
-use crate::app::{
-    CardDragSelection, CardSize, UiState, advance_towards, drag_preview_color,
-    shengji_hand_card_reveal, slot_hover_target, update_drag_selection,
+use crate::app::presentation::{
+    CardDragSelection, CardSize, advance_towards, drag_preview_color, shengji_hand_card_reveal,
+    slot_hover_target, update_drag_selection,
 };
+use crate::app::shell::UiState;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 

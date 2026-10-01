@@ -37,6 +37,7 @@ pub(super) struct Participant {
 /// 这里保存一份。具体游戏仍决定何时允许加入、何时广播大厅或私有牌局快照。
 #[derive(Clone, Debug)]
 pub struct RoomSession {
+    pub(super) achievements: crate::achievements::RoomAchievements,
     pub(super) room_id: RoomId,
     pub(super) host_port: u16,
     pub(super) players: Vec<Participant>,
@@ -71,6 +72,7 @@ impl RoomSession {
     ) -> Self {
         assert!(seat_count > 0 && seat_count <= TABLE_SEAT_COUNT);
         Self {
+            achievements: crate::achievements::RoomAchievements::default(),
             room_id,
             host_port,
             players: Vec::with_capacity(capacity),

@@ -1,4 +1,5 @@
 use super::{FAN_VOICE_SPECS, MahjongStatusImages, create_mahjong_status_images};
+use super::{mahjong_tile_asset_path, mahjong_tile_height_asset_path};
 use bevy::prelude::*;
 use leocard_mahjong::{Fan, MahjongTileKind, build_deck};
 use leocard_protocol::PlayerGender;
@@ -67,19 +68,14 @@ impl MahjongAssets {
         let tiles = kinds
             .iter()
             .copied()
-            .map(|kind| {
-                (
-                    kind,
-                    asset_server.load(crate::app::mahjong_tile_asset_path(kind)),
-                )
-            })
+            .map(|kind| (kind, asset_server.load(mahjong_tile_asset_path(kind))))
             .collect();
         let tile_heights = kinds
             .into_iter()
             .map(|kind| {
                 (
                     kind,
-                    asset_server.load(crate::app::mahjong_tile_height_asset_path(kind)),
+                    asset_server.load(mahjong_tile_height_asset_path(kind)),
                 )
             })
             .collect();

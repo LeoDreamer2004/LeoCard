@@ -1,5 +1,6 @@
-use super::*;
+use super::super::*;
 use crate::ShengjiSuit;
+use crate::{ShengjiBidTrump, ShengjiCard, ShengjiPlayerId, ShengjiRank};
 
 fn pair(suit: crate::ShengjiSuit, rank: ShengjiRank) -> [ShengjiCard; 2] {
     [

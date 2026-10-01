@@ -7,3 +7,9 @@ pub(crate) enum SettingsTab {
     Sound,
     About,
 }
+
+#[derive(Default)]
+pub(crate) struct SettingsUiState {
+    pub open: bool,
+    pub tab: SettingsTab,
+}

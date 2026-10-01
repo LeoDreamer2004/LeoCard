@@ -1,8 +1,9 @@
 use super::super::{add_text, spawn_node};
 use super::add_rule_help;
+use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{MUTED, TEXT};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{HomeHighlightKind, UiAction};
+use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
 
@@ -140,7 +141,7 @@ fn add_rule_step_button<R: EditableRuleSet>(
             ))
             .id();
         commands.entity(entity).add_child(hover);
-        commands.entity(entity).insert(HomeHighlightKind::Button {
+        commands.entity(entity).insert(ButtonHighlight::Button {
             overlay: hover,
             arrows: None,
         });

@@ -1,8 +1,9 @@
 //! 牌桌操作按钮共用的纹理、悬停层与禁用态。
 
+use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{HomeHighlightKind, UiAction};
+use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
 
@@ -84,7 +85,7 @@ pub(crate) fn add_textured_game_button(
             ))
             .id();
         commands.entity(button).add_child(overlay);
-        commands.entity(button).insert(HomeHighlightKind::Button {
+        commands.entity(button).insert(ButtonHighlight::Button {
             overlay,
             arrows: None,
         });

@@ -1,6 +1,5 @@
 use crate::HostError;
 use leocard_protocol::TexasHoldemProfileStats;
-use leocard_qigui523::reference_point_deltas;
 use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemHandCategory, build_deck};
 use std::collections::HashSet;
 
@@ -10,19 +9,6 @@ pub(super) fn record_wager(stats: &mut TexasHoldemProfileStats, amount: u32) {
     }
     stats.wagered_chips = stats.wagered_chips.saturating_add(u64::from(amount));
     stats.wager_actions = stats.wager_actions.saturating_add(1);
-}
-
-pub(super) fn texas_reference_point_deltas(scores: &[u32]) -> Option<Vec<i16>> {
-    reference_point_deltas(scores).map(|deltas| {
-        deltas
-            .into_iter()
-            .map(|delta| match delta.cmp(&0) {
-                std::cmp::Ordering::Greater => delta + 1,
-                std::cmp::Ordering::Less => delta - 1,
-                std::cmp::Ordering::Equal => 0,
-            })
-            .collect()
-    })
 }
 
 pub(super) const fn hand_category_index(category: TexasHoldemHandCategory) -> usize {

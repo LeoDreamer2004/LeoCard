@@ -1,4 +1,8 @@
-use super::*;
+use super::super::*;
+use crate::{
+    ShengjiCard, ShengjiPlayerId, ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTrump,
+    build_deck,
+};
 
 fn five_trump_crossing_game(trump_suit: Option<ShengjiSuit>) -> (GameState, Vec<ShengjiCard>) {
     let rules = ShengjiRuleSet {

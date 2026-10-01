@@ -1,6 +1,6 @@
 use super::cards::QIGUI_HAND_CARD_REVEAL;
 use super::{HandCardSlot, HandCardVisual, QiGui523UiState};
-use crate::app::{
+use crate::app::presentation::{
     ACCENT, BORDER, CardAnimationState, CardDragSelection, CardSize, HandCardSelectionOverlay,
     advance_towards, drag_preview_color, hand_card_pose, slot_hover_target, update_drag_selection,
 };

@@ -1,8 +1,8 @@
 //! Bevy 场景基础节点与静态资源的统一加载。
 
 use super::{
-    CHAT_EMOJI_ASSET_PATHS, CommonAudioAssets, ControlAssets, HomeAssets, PlayingCardAssets,
-    SocialAssets, TABLE_FELT_ASSET, UI_FONT_ASSET, UiAssets, card_asset_path,
+    AchievementAssets, CHAT_EMOJI_ASSET_PATHS, CommonAudioAssets, ControlAssets, HomeAssets,
+    PlayingCardAssets, SocialAssets, TABLE_FELT_ASSET, UI_FONT_ASSET, UiAssets, card_asset_path,
     interaction_cooldown_mask_image,
 };
 use crate::app::shell::{INTERACTION_COOLDOWN_MASK_FRAMES, PlayerInteractionLayer};
@@ -161,6 +161,28 @@ pub(crate) fn load_ui_assets(
                 asset_server.load("ui/profile/dirt.png"),
                 asset_server.load("ui/profile/composter.png"),
             ],
+        },
+        achievements: AchievementAssets {
+            icon: asset_server.load("icons/achievement-trophy.png"),
+            emblems: [
+                asset_server.load("ui/achievements/emblem-mahjong.png"),
+                asset_server.load("ui/achievements/emblem-qigui.png"),
+                asset_server.load("ui/achievements/emblem-texas.png"),
+                asset_server.load("ui/achievements/emblem-shengji.png"),
+                asset_server.load("ui/achievements/emblem-uno.png"),
+                asset_server.load("ui/achievements/emblem-personal.png"),
+            ],
+            medals: [
+                asset_server.load("ui/achievements/medal-gold.png"),
+                asset_server.load("ui/achievements/medal-silver.png"),
+                asset_server.load("ui/achievements/medal-bronze.png"),
+            ],
+            scroll_arrow: asset_server.load("ui/achievements/scroll-chevron.png"),
+            toast: asset_server.load("ui/achievements/toast-normal.png"),
+            toast_gold: asset_server.load("ui/achievements/toast-gold.png"),
+            sound: asset_server.load("vendor/kenney/interface-sounds/Audio/confirmation_001.ogg"),
+            gold_sound: asset_server
+                .load("vendor/kenney/interface-sounds/Audio/confirmation_004.ogg"),
         },
         social: SocialAssets {
             interaction_images,

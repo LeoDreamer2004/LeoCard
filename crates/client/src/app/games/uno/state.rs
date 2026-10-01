@@ -1,6 +1,7 @@
 //! UNO 牌桌交互、飞牌与规则特效的状态类型。
 
 use crate::app::presentation::CardAnimationState;
+use crate::app::presentation::SilentButton;
 use crate::app::shell::SocialUiState;
 use bevy::prelude::*;
 use leocard_protocol::{MatchId, PlayerId, UnoEvent, UnoPendingSwapView, UnoSnapshot};
@@ -90,6 +91,7 @@ pub(crate) struct UnoHandCardVisual {
 }
 
 #[derive(Component)]
+#[require(SilentButton)]
 pub(crate) struct UnoHandCardButton;
 
 #[derive(Component)]

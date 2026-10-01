@@ -32,6 +32,11 @@ fn client_message_round_trips_through_tcp_frame() {
             reference_points: 12,
             completed_games: 8,
             game_profiles: PlayerGameProfiles {
+                achievements: AchievementCounts {
+                    gold: 2,
+                    silver: 7,
+                    bronze: 11,
+                },
                 gender: PlayerGender::Female,
                 qigui523: Some(QiGui523ProfileStats {
                     completed_games: 2,

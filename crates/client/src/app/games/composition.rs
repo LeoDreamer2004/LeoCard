@@ -1,7 +1,7 @@
 //! 游戏大厅与牌桌的运行期组合边界。
 
 use super::mahjong::{
-    MahjongAssets, MahjongClaimPresentationState, MahjongHandTile, MahjongTableVisuals,
+    MahjongAssets, MahjongClaimPresentationState, MahjongHoverRetention, MahjongTableVisuals,
     MahjongTileMaterial, MahjongUiState, render_mahjong_lobby, render_mahjong_table,
 };
 use super::qigui523::{
@@ -55,39 +55,20 @@ pub(crate) struct GameScreenResources<'w> {
     turn_border_materials: ResMut<'w, Assets<TurnBorderMaterial>>,
 }
 
+#[derive(SystemParam)]
+pub(crate) struct GameScreenRetainedState<'w, 's> {
+    mahjong: MahjongHoverRetention<'w, 's>,
+}
+impl GameScreenRetainedState<'_, '_> {
+    pub(crate) fn capture(&self, client: Option<&ClientResource>, games: &mut GameScreenResources) {
+        self.mahjong.retain(client, &mut games.mahjong_ui);
+    }
+}
+
 impl GameScreenResources<'_> {
     pub(crate) fn start_transition_active(&self) -> bool {
         self.start_game_transition.match_id.is_some()
             && !self.start_game_transition.seats.is_empty()
-    }
-
-    pub(crate) fn retain_mahjong_hand_hover(
-        &mut self,
-        client: Option<&ClientResource>,
-        tiles: &Query<(&MahjongHandTile, Option<&Interaction>)>,
-    ) {
-        self.mahjong_ui.hand_hover_lifts.clear();
-        let Some(ClientPhaseRef::Playing(GameSnapshot::Mahjong(game))) =
-            client.map(|client| client.0.model().phase())
-        else {
-            return;
-        };
-        if self.mahjong_ui.observed_table.key != Some((game.match_id, game.sequence_index))
-            || self.mahjong_ui.observed_table.state.hand != game.your_hand
-        {
-            return;
-        }
-        self.mahjong_ui.hand_hover_lifts.extend(
-            tiles
-                .iter()
-                .filter(|(tile, _)| tile.lift > 0.0)
-                .map(|(tile, interaction)| {
-                    (
-                        tile.index,
-                        (tile.lift, interaction.copied().unwrap_or_default()),
-                    )
-                }),
-        );
     }
 
     pub(crate) fn reconcile_screen_state(

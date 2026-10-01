@@ -9,6 +9,7 @@ mod hand;
 mod interaction;
 mod lobby;
 mod material;
+mod modal;
 mod players;
 mod plugin;
 mod presentation;
@@ -32,3 +33,5 @@ pub(crate) use presentation::*;
 use settlement::*;
 pub(crate) use state::*;
 pub(crate) use view::*;
+
+use modal::advance_uno_modal;

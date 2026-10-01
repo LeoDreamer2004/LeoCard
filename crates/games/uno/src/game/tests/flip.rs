@@ -1,3 +1,6 @@
+use crate::{UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoRuleSet};
+use std::collections::VecDeque;
+
 use super::prelude::*;
 
 #[test]

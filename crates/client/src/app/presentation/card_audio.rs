@@ -1,6 +1,6 @@
 //! 跨游戏共用的发牌音效调度。
 
-use crate::app::UiAssets;
+use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 
 #[derive(Component)]

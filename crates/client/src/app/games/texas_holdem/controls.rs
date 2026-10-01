@@ -3,6 +3,7 @@ use super::{
     TexasHoldemUiState, TexasPlayerPanel, TexasPlayerShake, TexasRaiseAdjustButton,
     add_role_tokens, add_texas_card, add_texas_chip_popup, texas_player_border_color,
 };
+use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{
     ButtonKind, GameButtonImageMode, GameButtonSpec, MUTED, PendingDealSound, PlayerMenuProfile,
     PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait,
@@ -10,7 +11,7 @@ use crate::app::presentation::{
     spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{HomeHighlightKind, SeatSide, UiAction};
+use crate::app::shell::{SeatSide, UiAction};
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_protocol::{
@@ -377,7 +378,7 @@ fn add_raise_adjust_button(
             ))
             .id();
         commands.entity(button).add_child(overlay);
-        commands.entity(button).insert(HomeHighlightKind::Button {
+        commands.entity(button).insert(ButtonHighlight::Button {
             overlay,
             arrows: None,
         });

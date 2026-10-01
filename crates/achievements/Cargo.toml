@@ -1,0 +1,15 @@
+[package]
+name = "leocard-achievements"
+version = "0.5.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Pure achievement registry and progress evaluation for LeoCard"
+
+[dependencies]
+leocard-protocol = { path = "../protocol" }
+leocard-mahjong = { path = "../games/mahjong" }
+serde.workspace = true
+
+[dev-dependencies]
+postcard.workspace = true

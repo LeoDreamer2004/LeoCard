@@ -1,7 +1,7 @@
 use super::{
-    CardDragSelection, GameSummaryAnimation, StartGameSeatTransition, SummaryPlayback,
-    TableBackgroundMaterial, TurnBorderAnimationState, TurnBorderMaterial, animate_button_arrows,
-    animate_game_summary_visuals, animate_signed_summary_scores,
+    CardDragSelection, GameSummaryAnimation, StartGameSeatTransition, SummaryAnimationSet,
+    SummaryPlayback, TableBackgroundMaterial, TurnBorderAnimationState, TurnBorderMaterial,
+    animate_button_arrows, animate_game_summary_visuals, animate_signed_summary_scores,
     animate_start_game_seat_transition, animate_summary_scores, animate_turn_border_traces,
     update_button_highlights, update_summary_animation,
 };
@@ -37,7 +37,9 @@ impl Plugin for PresentationPlugin {
             )
             .add_systems(
                 Update,
-                update_summary_animation.in_set(ClientUpdateSet::Sync),
+                update_summary_animation
+                    .in_set(SummaryAnimationSet)
+                    .in_set(ClientUpdateSet::Sync),
             )
             .add_systems(
                 Update,
@@ -47,6 +49,7 @@ impl Plugin for PresentationPlugin {
                     animate_signed_summary_scores,
                 )
                     .chain()
+                    .in_set(SummaryAnimationSet)
                     .in_set(ClientUpdateSet::Animate),
             )
             .add_systems(

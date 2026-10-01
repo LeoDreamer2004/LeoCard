@@ -157,9 +157,6 @@ pub(crate) struct ActiveShengjiScoreAbsorb {
 pub(crate) struct ShengjiHandCardSlot {
     pub card: ShengjiCard,
     pub index: usize,
-    pub hand_len: usize,
-    pub is_last: bool,
-    pub hover_amount: f32,
 }
 
 #[derive(Component)]

@@ -134,7 +134,7 @@ impl<'a> AchievementsPage<'a> {
             None,
         );
         let counts = self.progress.counts().by_tier();
-        for (index, count) in counts.into_iter().enumerate() {
+        for (index, count) in counts.into_iter().enumerate().rev() {
             let counter = spawn_node(
                 commands,
                 trophies,

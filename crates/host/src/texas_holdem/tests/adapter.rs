@@ -180,6 +180,7 @@ fn adapter_emits_action_and_street_events() {
             player: RIGHT,
             action: TexasHoldemAction::Check,
             amount: 0,
+            ..
         }
     ));
     assert!(matches!(

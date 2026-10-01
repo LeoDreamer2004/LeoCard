@@ -98,6 +98,7 @@ pub(crate) fn sync_texas_voices(
                 player,
                 action,
                 amount,
+                ..
             } => {
                 let committed = voices
                     .committed

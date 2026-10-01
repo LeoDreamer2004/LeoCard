@@ -8,7 +8,11 @@ mod game;
 mod hand;
 mod rating;
 mod rules;
+mod statistics;
 pub use rating::reference_point_deltas;
+pub use statistics::{
+    TexasHoldemActionStatistics, TexasHoldemHandStatistics, TexasHoldemMatchStatistics,
+};
 
 pub use bot::{PassiveBot, PassiveBotRequest};
 pub use card::{TexasHoldemCard, TexasHoldemRank, TexasHoldemSuit, build_deck};

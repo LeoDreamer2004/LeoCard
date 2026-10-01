@@ -98,6 +98,7 @@ impl TexasChipTableState {
                     player,
                     action,
                     amount,
+                    ..
                 } => {
                     self.audio_cues
                         .extend(texas_action_sound_plan(action, amount, sound_seed));
@@ -109,6 +110,7 @@ impl TexasChipTableState {
                     self.sweep_bets_to_pot();
                     swept = true;
                 }
+                TexasHoldemEvent::HandAnalyzed { .. } => {}
                 TexasHoldemEvent::HandFinished { showdown } => {
                     self.audio_cues
                         .extend(texas_hand_finish_sound_plan(showdown, sound_seed));

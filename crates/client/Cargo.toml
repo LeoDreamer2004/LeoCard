@@ -22,6 +22,7 @@ embedded-assets = []
 leocard-achievements = { path = "../achievements" }
 bevy.workspace = true
 bevy_clipboard.workspace = true
+icu_provider.workspace = true
 ed25519-dalek.workspace = true
 leocard-qigui523 = { path = "../games/qigui523" }
 leocard-mahjong = { path = "../games/mahjong" }

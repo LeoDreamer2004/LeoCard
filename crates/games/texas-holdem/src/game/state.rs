@@ -1,3 +1,4 @@
+use crate::statistics::GameStatistics;
 use crate::{EvaluatedHand, HandError, RuleError, TexasHoldemCard, TexasHoldemRuleSet, build_deck};
 use std::collections::{HashSet, VecDeque};
 use std::fmt;
@@ -238,6 +239,7 @@ pub struct GameState {
     pub(super) phase: Phase,
     pub(super) pending_blind: Option<TexasHoldemBlindKind>,
     pub(super) hand_number: u32,
+    pub(crate) statistics: GameStatistics,
 }
 
 impl GameState {
@@ -303,6 +305,7 @@ impl GameState {
             phase: Phase::Betting(TexasHoldemStreet::PreFlop),
             pending_blind: None,
             hand_number: 0,
+            statistics: GameStatistics::new(player_count),
         };
         state.begin_hand(dealer, deck)?;
         Ok(state)

@@ -9,6 +9,7 @@ description = "Pure achievement registry and progress evaluation for LeoCard"
 [dependencies]
 leocard-protocol = { path = "../protocol" }
 leocard-mahjong = { path = "../games/mahjong" }
+leocard-texas-holdem = { path = "../games/texas-holdem" }
 serde.workspace = true
 
 [dev-dependencies]

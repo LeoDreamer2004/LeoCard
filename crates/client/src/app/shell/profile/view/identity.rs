@@ -157,6 +157,7 @@ impl<'a> ProfileIdentity<'a> {
             .by_tier()
             .into_iter()
             .enumerate()
+            .rev()
         {
             let item = spawn_node(
                 commands,

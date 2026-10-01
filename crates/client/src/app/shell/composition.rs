@@ -4,7 +4,7 @@ use super::{
     AchievementPageViewport, AchievementsPage, ChatPanelState, ConnectionScreen,
     DeveloperHandInput, Header, LobbyGameMotion, PageMotion, PlayErrorToast, ProfileModal,
     ProfileMotion, SettingsModal, SettingsMotion, UiState, UpdateManager, add_lobby_game_shade,
-    add_page_background, add_play_error_popup, render_update_dialog,
+    add_page_background, add_page_transition_shade, add_play_error_popup, render_update_dialog,
 };
 use crate::app::games::{GameScreenResources, GameScreenRetainedState};
 use crate::app::presentation::{GameSummaryAnimation, UiRoot};
@@ -210,6 +210,7 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn render_overlays(&mut self, root: Entity) {
+        add_page_transition_shade(self.commands, root, &self.visuals.page_motion);
         if self.visuals.lobby_game_motion.active() {
             add_lobby_game_shade(self.commands, root, &self.visuals.lobby_game_motion);
         }

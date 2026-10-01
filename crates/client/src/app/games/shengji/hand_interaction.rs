@@ -1,44 +1,8 @@
 use super::{ShengjiHandCardSelectionOverlay, ShengjiHandCardSlot, ShengjiUiState};
-use crate::app::presentation::{
-    CardDragSelection, CardSize, advance_towards, drag_preview_color, shengji_hand_card_reveal,
-    slot_hover_target, update_drag_selection,
-};
+use crate::app::presentation::{CardDragSelection, drag_preview_color, update_drag_selection};
 use crate::app::shell::UiState;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-
-const HAND_CARD_HOVER_WIDTH: f32 = 32.0;
-
-pub(crate) fn animate_shengji_hand_card_slots(
-    time: Res<Time>,
-    drag: Res<CardDragSelection>,
-    mut ui: ResMut<ShengjiUiState>,
-    mut cards: Query<
-        (
-            &Interaction,
-            &RelativeCursorPosition,
-            &mut ShengjiHandCardSlot,
-            &mut Node,
-        ),
-        With<Button>,
-    >,
-) {
-    let response = 1.0 - (-18.0 * time.delta_secs()).exp();
-    for (interaction, cursor, mut slot, mut node) in &mut cards {
-        let target = slot_hover_target(&drag, slot.index, *interaction, cursor);
-        slot.hover_amount = advance_towards(slot.hover_amount, target, response);
-        ui.card_animations
-            .entry(slot.card)
-            .or_default()
-            .slot_hover_amount = slot.hover_amount;
-        node.width = px(if slot.is_last {
-            CardSize::ShengjiHand.dimensions().0
-        } else {
-            let reveal = shengji_hand_card_reveal(slot.hand_len);
-            reveal + (HAND_CARD_HOVER_WIDTH - reveal) * slot.hover_amount
-        });
-    }
-}
 
 pub(crate) fn handle_shengji_card_drag_selection(
     mouse: Res<ButtonInput<MouseButton>>,

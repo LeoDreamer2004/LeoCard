@@ -1,5 +1,5 @@
 //! 国标麻将的成就条件；只读取实时游戏事实。
-use super::AchievementTrigger;
+use crate::AchievementTrigger;
 use leocard_mahjong::{Fan, MahjongMatchLength, MahjongScoreResult};
 use leocard_protocol::{GameEvent, MahjongEvent, MahjongHandResultView, MahjongWinView, PlayerId};
 use std::collections::BTreeSet;

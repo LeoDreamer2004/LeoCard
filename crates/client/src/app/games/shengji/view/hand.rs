@@ -107,13 +107,7 @@ fn add_shengji_hand_card(
     let button = commands
         .spawn((
             Button,
-            ShengjiHandCardSlot {
-                card,
-                index,
-                hand_len,
-                is_last,
-                hover_amount: animation.slot_hover_amount,
-            },
+            ShengjiHandCardSlot { card, index },
             UiAction::Shengji(ShengjiUiAction::ToggleCard),
             RelativeCursorPosition::default(),
             Node {

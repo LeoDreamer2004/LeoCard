@@ -13,7 +13,10 @@ impl GameState {
     ) -> Result<ActionOutcome, GameError> {
         let previous = self.clone();
         match self.act_inner(player, action) {
-            Ok(outcome) => Ok(outcome),
+            Ok(outcome) => {
+                self.record_action_statistics(&previous, player, action);
+                Ok(outcome)
+            }
             Err(error) => {
                 *self = previous;
                 Err(error)

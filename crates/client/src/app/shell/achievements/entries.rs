@@ -2,9 +2,10 @@ use super::super::{PageTransitionElement, add_cozy_panel};
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, RelativeCursorPosition, VisualBox};
-use leocard_achievements::{AchievementDefinition, achievements_in};
+use leocard_achievements::{AchievementDefinition, AchievementTier, achievements_in};
 
 use super::page::AchievementsPage;
+use super::scrollbar::AchievementScrollbar;
 use super::state::*;
 
 impl AchievementsPage<'_> {
@@ -38,17 +39,32 @@ impl AchievementsPage<'_> {
             Node {
                 width: percent(100),
                 height: px(2),
+                flex_shrink: 0.0,
                 ..default()
             },
             Some(ACCENT.with_alpha(0.65)),
         );
-        let scroll = spawn_node(
+        let viewport = spawn_node(
             commands,
             panel,
             Node {
                 width: percent(100),
                 min_height: px(0),
                 flex_grow: 1.0,
+                flex_basis: px(0),
+                column_gap: px(12),
+                ..default()
+            },
+            None,
+        );
+        let scroll = spawn_node(
+            commands,
+            viewport,
+            Node {
+                min_width: px(0),
+                min_height: px(0),
+                flex_grow: 1.0,
+                flex_basis: px(0),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(12),
                 overflow: Overflow::scroll_y(),
@@ -61,8 +77,14 @@ impl AchievementsPage<'_> {
             RelativeCursorPosition::default(),
             ScrollPosition(Vec2::ZERO),
         ));
-        let mut definitions = achievements_in(self.selected).peekable();
-        if definitions.peek().is_none() {
+        AchievementScrollbar::spawn(commands, viewport, scroll);
+        let mut definitions = achievements_in(self.selected).collect::<Vec<_>>();
+        definitions.sort_by_key(|definition| match definition.tier {
+            AchievementTier::Bronze => 0,
+            AchievementTier::Silver => 1,
+            AchievementTier::Gold => 2,
+        });
+        if definitions.is_empty() {
             add_text(
                 commands,
                 scroll,

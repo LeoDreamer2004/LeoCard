@@ -6,6 +6,7 @@ mod entries;
 mod input;
 mod page;
 mod plugin;
+mod scrollbar;
 mod state;
 
 pub(crate) use input::update_achievement_category_hover;

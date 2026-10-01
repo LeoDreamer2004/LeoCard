@@ -68,7 +68,9 @@ impl UiActionHandler<LobbyActionContext<'_, '_>> for LobbyUiAction {
                 if let Some(client) = client.as_deref_mut() {
                     ui.leaving_room = client.0.send(ClientCommand::LeaveRoom);
                     if !ui.leaving_room {
-                        if client.0.model().lobby().is_some() {
+                        if client.0.model().active_game_meta().is_some() {
+                            context.page_motion.begin_return();
+                        } else if client.0.model().lobby().is_some() {
                             context.page_motion.begin();
                         }
                         context.page_error.error = None;

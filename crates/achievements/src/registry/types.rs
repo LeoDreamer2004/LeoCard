@@ -49,6 +49,7 @@ pub enum AchievementScope {
     Hand,
 }
 
+#[derive(Clone, Copy)]
 pub struct AchievementCriterion {
     pub id: &'static str,
     pub amount: fn(&AchievementTrigger) -> u64,
@@ -56,6 +57,7 @@ pub struct AchievementCriterion {
     pub scope: AchievementScope,
 }
 
+#[derive(Clone, Copy)]
 pub struct AchievementDefinition {
     pub id: &'static str,
     pub category: AchievementCategory,

@@ -16,6 +16,7 @@ pub(crate) struct NetworkUiSnapshot {
     previous_state: NetworkState,
     previous_lobby: Option<LobbySnapshot>,
     was_home: bool,
+    was_game: bool,
     was_host: bool,
     lobby_seat_snapshots: Vec<LobbySeatTransitionSnapshot>,
     game_change: GameScreenChange,
@@ -49,6 +50,7 @@ impl NetworkUiContext<'_, '_> {
                 ClientPhaseRef::Idle | ClientPhaseRef::Closed
             ),
             was_host: local_player_is_host(client.model()),
+            was_game: client.model().active_game_meta().is_some(),
             lobby_seat_snapshots: collect_lobby_seats(client.model().lobby(), &self.lobby_seats),
             game_change: GameScreenChange::capture(client.model().game_snapshot()),
         }
@@ -64,10 +66,23 @@ impl NetworkUiContext<'_, '_> {
             previous_state,
             previous_lobby,
             was_home,
+            was_game,
             was_host,
             lobby_seat_snapshots,
             game_change,
         } = before;
+        let connection_end = ConnectionEndFeedback {
+            client,
+            was_host,
+            leaving_room: self.ui.leaving_room,
+        }
+        .message();
+        if was_game && (client.model().active_game_meta().is_none() || connection_end.is_some()) {
+            self.lobby_game_motion.cancel();
+            self.page_motion.begin_return();
+            self.ui.achievements.open = false;
+            self.close_modals();
+        }
         if was_home && client.model().lobby().is_some() {
             self.ui.achievements.open = false;
             self.page_motion.begin();
@@ -83,13 +98,7 @@ impl NetworkUiContext<'_, '_> {
         if previous_lobby.is_some() && client.model().active_game_meta().is_some() {
             self.page_motion.cancel();
             self.lobby_game_motion.begin();
-            self.ui.settings.open = false;
-            self.ui.profile.open = false;
-            self.ui.profile.player = None;
-            self.settings_motion.target_open = false;
-            self.settings_motion.progress = 0.0;
-            self.profile_motion.target_open = false;
-            self.profile_motion.progress = 0.0;
+            self.close_modals();
         }
         sync_start_game_transition(
             client.model(),
@@ -98,13 +107,7 @@ impl NetworkUiContext<'_, '_> {
             &mut self.seat_transition,
         );
 
-        if let Some(error) = (ConnectionEndFeedback {
-            client,
-            was_host,
-            leaving_room: self.ui.leaving_room,
-        })
-        .message()
-        {
+        if let Some(error) = connection_end {
             page_error.error = error;
             self.ui.leaving_room = false;
             self.commands.remove_resource::<ClientResource>();
@@ -114,6 +117,16 @@ impl NetworkUiContext<'_, '_> {
         {
             self.ui.dirty = true;
         }
+    }
+
+    fn close_modals(&mut self) {
+        self.ui.settings.open = false;
+        self.ui.profile.open = false;
+        self.ui.profile.player = None;
+        self.settings_motion.target_open = false;
+        self.settings_motion.progress = 0.0;
+        self.profile_motion.target_open = false;
+        self.profile_motion.progress = 0.0;
     }
 }
 

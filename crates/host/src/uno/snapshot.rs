@@ -8,7 +8,8 @@ use leocard_uno::{GameError, PendingSwap, Phase, UnoCard};
 
 impl UnoSession {
     pub(super) fn broadcast_events(&self, events: Vec<UnoEvent>) -> Vec<Delivery> {
-        self.room.broadcast_game_events(events)
+        self.room
+            .broadcast_game_events(events, self.match_id.map(|id| (id, None)))
     }
 
     pub(super) fn game_snapshot(&self, recipient: PlayerId) -> UnoSnapshot {

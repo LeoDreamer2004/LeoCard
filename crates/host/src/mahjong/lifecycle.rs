@@ -1,5 +1,6 @@
 use super::{
-    MAHJONG_DEAL_INTERVAL, MahjongSession, events_for_outcome, shuffled_deck, validate_deck,
+    MAHJONG_DEAL_INTERVAL, MahjongSession, MahjongWinFeedback, events_for_outcome, shuffled_deck,
+    validate_deck,
 };
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{
@@ -24,6 +25,7 @@ impl MahjongSession {
         let rules = rules.validate().map_err(GameError::from)?;
         validate_deck(&shuffled_deck)?;
         Ok(Self {
+            win_feedback: MahjongWinFeedback::default(),
             room: RoomSession::new_with_seat_count(
                 room_id,
                 host_port,
@@ -104,9 +106,12 @@ impl MahjongSession {
                 .find(|(index, player)| player.flowers().len() > flower_counts[*index])
                 .map(|(index, _)| PlayerId(index as u8));
             self.room.bump_revision();
-            let mut deliveries = replaced.map_or_else(Vec::new, |player| {
-                self.broadcast_events(vec![MahjongEvent::FlowerReplaced { player }])
-            });
+            let mut deliveries = self.broadcast_events(
+                replaced
+                    .map(|player| MahjongEvent::FlowerReplaced { player })
+                    .into_iter()
+                    .collect(),
+            );
             deliveries.extend(self.broadcast_game(None));
             return deliveries;
         }
@@ -129,7 +134,7 @@ impl MahjongSession {
             return Vec::new();
         }
         self.auto_play_delay = None;
-        let Some((public_event, outcome)) = self.play_automatic_action(player) else {
+        let Some((mut events, outcome)) = self.play_automatic_action(player) else {
             return Vec::new();
         };
         if matches!(
@@ -145,7 +150,6 @@ impl MahjongSession {
             self.deal_delay = MAHJONG_DEAL_INTERVAL;
         }
         self.room.bump_revision();
-        let mut events = public_event.into_iter().collect::<Vec<_>>();
         events.extend(events_for_outcome(&outcome));
         self.record_statistics(&events);
         let mut deliveries = self.broadcast_events(events);
@@ -399,6 +403,7 @@ impl HostedGameLifecycle for MahjongSession {
         }
         self.broadcast_game(Some((connection, request_id)))
     }
+
     fn leave_room(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
         let Some(index) = self
             .room
@@ -439,6 +444,7 @@ impl HostedGameLifecycle for MahjongSession {
         });
         deliveries
     }
+
     fn interact(
         &mut self,
         connection: ConnectionId,

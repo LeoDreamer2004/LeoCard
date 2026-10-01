@@ -214,7 +214,7 @@ impl TcpGameClient {
     /// in the transport or client model.
     pub fn poll_with_events(
         &mut self,
-        mut observe: impl FnMut(Option<leocard_protocol::PlayerId>, &ServerEvent),
+        mut observe: impl FnMut(Option<leocard_protocol::PlayerId>, &leocard_protocol::ServerMessage),
     ) -> bool {
         let mut changed = false;
         let pending = {

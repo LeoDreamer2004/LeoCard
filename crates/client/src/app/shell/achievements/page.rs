@@ -3,7 +3,7 @@ use crate::app::presentation::{TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
-pub(crate) use leocard_client::AchievementCategory;
+use leocard_achievements::AchievementCategory;
 use leocard_client::PlayerAchievements;
 
 pub(crate) struct AchievementsPage<'a> {

@@ -152,9 +152,12 @@ pub(super) fn hand_result_view(result: &HandResult) -> MahjongHandResultView {
                 from: winner.from.map(from_core_player),
                 winning_tile: winner.winning_tile,
                 score: winner.score.clone(),
+                wait_kind_count: winner.wait_kind_count,
             })
             .collect(),
         exhaustive_draw: result.exhaustive_draw,
+        match_length: result.match_length,
+        match_progress: result.match_progress,
         deltas: result.deltas,
         match_scores: result.match_scores,
         match_complete: result.match_complete,

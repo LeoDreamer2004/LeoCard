@@ -99,7 +99,7 @@ impl ClientModel {
     pub fn apply_with_events(
         &mut self,
         message: ServerMessage,
-        mut observe: impl FnMut(Option<PlayerId>, &ServerEvent),
+        mut observe: impl FnMut(Option<PlayerId>, &ServerMessage),
     ) -> bool {
         if message.protocol_version != PROTOCOL_VERSION
             || message.room_id != self.room_id
@@ -108,7 +108,7 @@ impl ClientModel {
             return false;
         }
         self.latest_revision = message.revision;
-        observe(self.you, &message.event);
+        observe(self.you, &message);
         match message.event {
             ServerEvent::AchievementUnlocked(_) => {}
             ServerEvent::Joined { you } => {

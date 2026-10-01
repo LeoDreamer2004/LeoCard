@@ -39,6 +39,11 @@ impl TexasHoldemSession {
     }
 
     pub(super) fn broadcast_events(&self, events: Vec<TexasHoldemEvent>) -> Vec<Delivery> {
-        self.room.broadcast_game_events(events)
+        self.room.broadcast_game_events(
+            events,
+            self.game
+                .as_ref()
+                .map(|game| (game.match_id(), Some(game.game().hand_number()))),
+        )
     }
 }

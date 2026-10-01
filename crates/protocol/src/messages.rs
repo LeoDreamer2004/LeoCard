@@ -1,6 +1,6 @@
 use crate::{
     AchievementAnnouncement, AchievementCounts, AvatarId, ChatContent, ChatMessage, GameCommand,
-    GameEvent, GameKind, GameRules, MahjongSnapshot, PROTOCOL_VERSION, PlayerGameProfiles,
+    GameEvent, GameKind, GameRules, MahjongSnapshot, MatchId, PROTOCOL_VERSION, PlayerGameProfiles,
     PlayerId, PlayerInteraction, PlayerInteractionKind, ProfileId, QiGui523Snapshot,
     ReconnectToken, RejectReason, RequestId, Revision, RoomId, SeatId, ShengjiSnapshot,
     TexasHoldemSnapshot, UnoSnapshot,
@@ -123,11 +123,21 @@ impl ClientCommand {
     }
 }
 
+/// Stable identity of a live fact within a match. Assigned by the game adapter.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct GameEventContext {
+    pub match_id: MatchId,
+    pub hand_index: Option<u32>,
+    pub sequence: u128,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ServerMessage {
     pub protocol_version: u16,
     pub room_id: RoomId,
     pub revision: Revision,
+    /// Present only on live gameplay events, never on snapshots.
+    pub game_context: Option<GameEventContext>,
     /// 对主动请求者设置；其他客户端收到同一次广播时为 `None`。
     pub in_reply_to: Option<RequestId>,
     pub event: ServerEvent,

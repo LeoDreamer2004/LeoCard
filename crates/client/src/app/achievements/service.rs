@@ -2,10 +2,10 @@ use super::{AchievementRecipient, AchievementUnlocked, LocalAchievementTrigger};
 use crate::app::runtime::{ClientResource, ServerNotification};
 use crate::app::shell::UiState;
 use bevy::prelude::*;
-use leocard_client::{
-    AchievementDefinition, AchievementTrigger, LocalPlayerProfile, PlayerAchievements,
-    achievement_by_id,
+use leocard_achievements::{
+    AchievementContext, AchievementDefinition, AchievementTrigger, achievement_by_id,
 };
+use leocard_client::{LocalPlayerProfile, PlayerAchievements};
 use leocard_protocol::{ClientCommand, ServerEvent};
 
 #[derive(Resource, Default)]
@@ -85,7 +85,12 @@ pub(super) fn process_triggers(
         if session.enabled
             && let Some(trigger) = trigger
         {
-            let result = book.trigger(&trigger);
+            let context = notification.game_context.map(|context| AchievementContext {
+                match_id: context.match_id,
+                hand_index: context.hand_index,
+                sequence: context.sequence,
+            });
+            let result = book.trigger_with_context(&trigger, context);
             session.dirty |= result.progressed;
             let epoch = session.connected.then_some(session.connection_epoch);
             session.pending.extend(
@@ -156,8 +161,11 @@ pub(super) fn commit_progress(
             recipient: AchievementRecipient::Local,
         });
     }
-    profile.game_profiles.achievements = book.counts();
-    ui.dirty = true;
+    let counts = book.counts();
+    if profile.game_profiles.achievements != counts {
+        profile.game_profiles.achievements = counts;
+        ui.dirty = true;
+    }
 }
 
 pub(super) fn publish_progress(

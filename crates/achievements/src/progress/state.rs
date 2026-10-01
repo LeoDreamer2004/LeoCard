@@ -12,8 +12,8 @@ use std::collections::BTreeMap;
 #[derive(Clone, Copy, Debug)]
 pub struct AchievementContext {
     pub match_id: MatchId,
-    pub hand_index: Option<u8>,
-    pub sequence: u64,
+    pub hand_index: Option<u32>,
+    pub sequence: u128,
 }
 
 #[derive(Default, Deserialize, Serialize)]
@@ -26,14 +26,14 @@ pub(super) struct AchievementProgress {
 pub(super) struct CriterionProgress {
     pub(super) count: u64,
     pub(super) reached_at: Option<u64>,
-    pub(super) scope: Option<([u8; 16], Option<u8>)>,
+    pub(super) scope: Option<([u8; 16], Option<u32>)>,
 }
 
 /// Pure local progress. The caller owns timestamps, persistence and delivery.
 #[derive(Default, Deserialize, Serialize)]
 pub struct AchievementBook {
     pub(super) progress: BTreeMap<String, AchievementProgress>,
-    pub(super) receipts: BTreeMap<[u8; 16], u64>,
+    pub(super) receipts: BTreeMap<[u8; 16], u128>,
 }
 
 #[derive(Default)]
@@ -75,10 +75,12 @@ impl AchievementBook {
         context: Option<AchievementContext>,
         now: u64,
     ) -> AchievementTriggerResult {
-        self.evaluate(event, context, now, ACHIEVEMENT_REGISTRY)
+        self.trigger_with_registry(event, context, now, ACHIEVEMENT_REGISTRY)
     }
 
-    pub(super) fn evaluate(
+    /// Evaluate a live fact against a supplied registry, including custom signals.
+    /// Use one complete registry consistently for a book; criterion IDs must stay stable.
+    pub fn trigger_with_registry(
         &mut self,
         event: &AchievementTrigger,
         context: Option<AchievementContext>,

@@ -7,7 +7,7 @@ use crate::app::runtime::UiAssets;
 use bevy::audio::Volume;
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
-use leocard_client::{AchievementDefinition, AchievementTier};
+use leocard_achievements::{AchievementDefinition, AchievementTier};
 use std::collections::VecDeque;
 
 const ENTRY_DURATION: f32 = 0.32;

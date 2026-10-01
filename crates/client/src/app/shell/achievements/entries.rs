@@ -2,7 +2,7 @@ use super::super::{PageTransitionElement, add_cozy_panel};
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, RelativeCursorPosition, VisualBox};
-use leocard_client::{AchievementDefinition, achievements_in};
+use leocard_achievements::{AchievementDefinition, achievements_in};
 
 use super::page::AchievementsPage;
 use super::state::*;

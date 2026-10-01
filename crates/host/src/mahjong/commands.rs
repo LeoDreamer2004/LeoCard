@@ -1,3 +1,4 @@
+use super::MahjongWinFeedback;
 use super::{
     MAHJONG_DEAL_INTERVAL, MahjongSession, events_for_outcome, shuffled_deck, to_core_player,
 };
@@ -238,6 +239,7 @@ impl MahjongSession {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         };
+        let unavailable = MahjongWinFeedback::before_discard(game, public_event.as_ref());
         let dead_before = game
             .players()
             .iter()
@@ -249,6 +251,7 @@ impl MahjongSession {
                 if let Some(event) = public_event {
                     events.push(event);
                 }
+                events.extend(unavailable);
                 events.extend(events_for_outcome(&outcome));
                 for (index, core_player) in game.players().iter().enumerate() {
                     let already_reported = matches!(

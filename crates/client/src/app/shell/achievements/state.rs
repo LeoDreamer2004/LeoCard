@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-pub(crate) use leocard_client::AchievementCategory;
+pub(crate) use leocard_achievements::AchievementCategory;
 
 pub(super) const ACCENT: Color = Color::srgb(0.77, 0.72, 1.0);
 pub(super) const GOLD: Color = Color::srgb(0.91, 0.78, 0.55);

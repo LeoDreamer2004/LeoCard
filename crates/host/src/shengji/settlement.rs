@@ -377,6 +377,7 @@ impl ShengjiSession {
     }
 
     pub(super) fn broadcast_events(&self, events: Vec<ShengjiEvent>) -> Vec<Delivery> {
-        self.room.broadcast_game_events(events)
+        self.room
+            .broadcast_game_events(events, self.match_id.map(|id| (id, Some(self.hand_number))))
     }
 }

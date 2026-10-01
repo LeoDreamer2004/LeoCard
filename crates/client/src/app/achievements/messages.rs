@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use leocard_client::{AchievementDefinition, AchievementTrigger};
+use leocard_achievements::{AchievementDefinition, AchievementTrigger};
 
 /// Local facts never produce room announcements; their trophy totals still sync.
 #[derive(Message)]

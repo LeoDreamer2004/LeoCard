@@ -5,12 +5,14 @@ use leocard_mahjong::{
     Fan, FanValue, MahjongPlayerId, MahjongRuleSet, MahjongScoreResult, MahjongSuit, MahjongTile,
     MahjongTileKind, Phase, build_deck,
 };
+use leocard_mahjong::{MahjongMatchLength, MahjongMatchProgress};
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameCommand, GameSnapshot, JoinRequest, MahjongCommand,
     MahjongEvent, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MahjongWinView,
     PlayerGameProfiles, PlayerId, ProfileId, ReconnectToken, RequestId, RoomId, SeatId,
     ServerEvent, join_identity_payload,
 };
+use leocard_protocol::{GameEvent, MatchId, ServerMessage, decode_frame, encode_frame};
 use std::collections::HashSet;
 use std::time::Duration;
 
@@ -34,10 +36,16 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
         },
         MahjongEvent::HandFinished {
             result: MahjongHandResultView {
+                match_length: MahjongMatchLength::SingleHand,
+                match_progress: MahjongMatchProgress {
+                    completed_hands: 1,
+                    exhaustive_draws: 0,
+                },
                 winners: vec![MahjongWinView {
                     player: PlayerId(0),
                     from: Some(PlayerId(1)),
                     winning_tile: tile,
+                    wait_kind_count: 1,
                     score: MahjongScoreResult {
                         fans: vec![FanValue {
                             fan: Fan::BigFourWinds,
@@ -426,4 +434,70 @@ fn player_can_toggle_mahjong_auto_play_and_cancel_a_pending_action() {
     let before_action = session.revision();
     assert!(!session.advance_time(Duration::from_secs(1)).is_empty());
     assert_ne!(session.revision(), before_action);
+}
+
+#[test]
+fn fan_feedback_is_private_and_gameplay_facts_have_stable_distinct_sequences() {
+    let mut session =
+        MahjongSession::new(ROOM, 52300, MahjongRuleSet::default(), build_deck()).unwrap();
+    for index in 0..4 {
+        session.handle(
+            ConnectionId(index + 1),
+            message(1, join_command(&format!("玩家{index}"), index + 1)),
+        );
+    }
+    let match_id = MatchId([7; 16]);
+    session.match_id = Some(match_id);
+    session.room.bump_revision();
+    let feedback = MahjongEvent::WinUnavailable {
+        player: PlayerId(2),
+        points_without_flowers: 7,
+    };
+    let public = MahjongEvent::FalseWin {
+        player: PlayerId(1),
+        deltas: [10, -30, 10, 10],
+    };
+    let first = session.broadcast_events(vec![feedback.clone(), public.clone()]);
+    let second = session.broadcast_events(vec![feedback, public]);
+    let private = first
+        .iter()
+        .filter(|delivery| {
+            matches!(
+                delivery.message.event,
+                ServerEvent::GameEvent(GameEvent::Mahjong(MahjongEvent::WinUnavailable { .. }))
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(private.len(), 1);
+    assert_eq!(private[0].recipient, ConnectionId(3));
+    let context = private[0].message.game_context.unwrap();
+    assert_eq!(context.match_id, match_id);
+    let public_context = first
+        .iter()
+        .find(|delivery| {
+            matches!(
+                delivery.message.event,
+                ServerEvent::GameEvent(GameEvent::Mahjong(MahjongEvent::FalseWin { .. }))
+            )
+        })
+        .unwrap()
+        .message
+        .game_context
+        .unwrap();
+    assert!(public_context.sequence > context.sequence);
+    assert_eq!(
+        first
+            .iter()
+            .map(|delivery| delivery.message.game_context)
+            .collect::<Vec<_>>(),
+        second
+            .iter()
+            .map(|delivery| delivery.message.game_context)
+            .collect::<Vec<_>>()
+    );
+    for delivery in first {
+        let frame = encode_frame(&delivery.message).unwrap();
+        let decoded: ServerMessage = decode_frame(&frame).unwrap();
+        assert_eq!(decoded, delivery.message);
+    }
 }

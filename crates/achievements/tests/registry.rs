@@ -1,5 +1,6 @@
-use super::*;
+use leocard_achievements::ACHIEVEMENT_REGISTRY;
 use std::collections::HashSet;
+
 #[test]
 fn registry_ids_and_criteria_are_unique_and_requirements_reference_real_criteria() {
     let mut ids = HashSet::new();

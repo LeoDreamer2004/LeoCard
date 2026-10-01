@@ -4,7 +4,7 @@ use crate::app::shell::AchievementUiAction;
 use crate::app::presentation::{MUTED, add_text, spawn_node};
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, RelativeCursorPosition};
-use leocard_client::achievements_in;
+use leocard_achievements::achievements_in;
 
 use super::input::category_tint;
 use super::page::AchievementsPage;

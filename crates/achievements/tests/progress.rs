@@ -1,6 +1,7 @@
-use super::*;
-use crate::{AchievementCategory, AchievementCriterion, AchievementTier};
-use crate::{AchievementDefinition, AchievementScope, AchievementTrigger};
+use leocard_achievements::{
+    AchievementBook, AchievementCategory, AchievementContext, AchievementCriterion,
+    AchievementDefinition, AchievementScope, AchievementTier, AchievementTrigger,
+};
 use leocard_protocol::MatchId;
 static COMBINED: &[AchievementDefinition] = &[AchievementDefinition {
     id: "test:combined",
@@ -34,7 +35,7 @@ static COMBINED: &[AchievementDefinition] = &[AchievementDefinition {
 #[test]
 fn mixed_and_or_criteria_survive_reload_and_support_non_fan_triggers() {
     let mut book = AchievementBook::default();
-    let result = book.evaluate(
+    let result = book.trigger_with_registry(
         &AchievementTrigger::Signal("alternative"),
         None,
         100,
@@ -45,13 +46,13 @@ fn mixed_and_or_criteria_survive_reload_and_support_non_fan_triggers() {
     let mut book: AchievementBook =
         postcard::from_bytes(&postcard::to_allocvec(&book).unwrap()).unwrap();
     assert_eq!(
-        book.evaluate(&AchievementTrigger::Signal("finish"), None, 100, COMBINED)
+        book.trigger_with_registry(&AchievementTrigger::Signal("finish"), None, 100, COMBINED)
             .unlocked
             .len(),
         1
     );
     assert!(
-        book.evaluate(&AchievementTrigger::Signal("start"), None, 100, COMBINED)
+        book.trigger_with_registry(&AchievementTrigger::Signal("start"), None, 100, COMBINED)
             .unlocked
             .is_empty()
     );
@@ -103,16 +104,16 @@ fn scoped_counters_reset_and_sequenced_receipts_survive_reload() {
             })
         };
         let tick = AchievementTrigger::Signal("tick");
-        book.evaluate(&tick, context(1, Some(0), 1), 10, definitions);
+        book.trigger_with_registry(&tick, context(1, Some(0), 1), 10, definitions);
         let mut book: AchievementBook =
             postcard::from_bytes(&postcard::to_allocvec(&book).unwrap()).unwrap();
         assert!(
             !book
-                .evaluate(&tick, context(1, Some(0), 1), 20, definitions)
+                .trigger_with_registry(&tick, context(1, Some(0), 1), 20, definitions)
                 .progressed
         );
         assert_eq!(book.criterion_count(&definitions[0], "count"), 1);
-        book.evaluate(&tick, context(1, Some(1), 2), 20, definitions);
+        book.trigger_with_registry(&tick, context(1, Some(1), 2), 20, definitions);
         assert_eq!(
             book.criterion_count(&definitions[0], "count"),
             if scope == AchievementScope::Hand {
@@ -121,7 +122,7 @@ fn scoped_counters_reset_and_sequenced_receipts_survive_reload() {
                 2
             }
         );
-        book.evaluate(&tick, context(2, Some(0), 1), 30, definitions);
+        book.trigger_with_registry(&tick, context(2, Some(0), 1), 30, definitions);
         assert_eq!(
             book.criterion_count(&definitions[0], "count"),
             if scope == AchievementScope::Lifetime {
@@ -132,10 +133,10 @@ fn scoped_counters_reset_and_sequenced_receipts_survive_reload() {
         );
         assert!(
             !book
-                .evaluate(&tick, context(1, Some(0), 1), 40, definitions)
+                .trigger_with_registry(&tick, context(1, Some(0), 1), 40, definitions)
                 .progressed
         );
-        book.evaluate(
+        book.trigger_with_registry(
             &AchievementTrigger::Signal("overflow"),
             context(2, Some(0), 2),
             40,
@@ -144,13 +145,18 @@ fn scoped_counters_reset_and_sequenced_receipts_survive_reload() {
         assert_eq!(book.criterion_count(&definitions[0], "count"), 2);
         if scope != AchievementScope::Lifetime {
             assert!(
-                book.evaluate(&AchievementTrigger::Signal("finish"), None, 50, definitions)
-                    .unlocked
-                    .is_empty()
+                book.trigger_with_registry(
+                    &AchievementTrigger::Signal("finish"),
+                    None,
+                    50,
+                    definitions
+                )
+                .unlocked
+                .is_empty()
             );
         }
         assert_eq!(
-            book.evaluate(
+            book.trigger_with_registry(
                 &AchievementTrigger::Signal("finish"),
                 context(2, Some(0), 3),
                 60,
@@ -161,7 +167,7 @@ fn scoped_counters_reset_and_sequenced_receipts_survive_reload() {
             1
         );
         assert_eq!(book.earned_at(&definitions[0]), Some(60));
-        book.evaluate(&tick, context(3, Some(0), 1), 70, definitions);
+        book.trigger_with_registry(&tick, context(3, Some(0), 1), 70, definitions);
         assert_eq!(book.earned_at(&definitions[0]), Some(60));
     }
 }
@@ -191,7 +197,7 @@ fn missing_hand_context_cannot_combine_stale_hand_and_current_match_criteria() {
         requirements: &[&["hand"], &["match"]],
     }]));
     let mut book = AchievementBook::default();
-    book.evaluate(
+    book.trigger_with_registry(
         &AchievementTrigger::Signal("hand"),
         Some(AchievementContext {
             match_id: MatchId([1; 16]),
@@ -202,7 +208,7 @@ fn missing_hand_context_cannot_combine_stale_hand_and_current_match_criteria() {
         definitions,
     );
     assert!(
-        book.evaluate(
+        book.trigger_with_registry(
             &AchievementTrigger::Signal("match"),
             Some(AchievementContext {
                 match_id: MatchId([2; 16]),

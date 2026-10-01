@@ -146,21 +146,27 @@ impl HostedGameLifecycle for TexasHoldemSession {
     fn room(&self) -> &RoomSession {
         &self.room
     }
+
     fn room_mut(&mut self) -> &mut RoomSession {
         &mut self.room
     }
+
     fn game_started(&self) -> bool {
         self.game.is_some()
     }
+
     fn capacity(&self) -> u8 {
         TABLE_SEAT_COUNT
     }
+
     fn game_rules(&self) -> GameRules {
         self.rules.into()
     }
+
     fn game_snapshot(&self, recipient: leocard_protocol::PlayerId) -> GameSnapshot {
         TexasHoldemSession::game_snapshot(self, recipient).into()
     }
+
     fn handle_game_command(
         &mut self,
         connection: ConnectionId,
@@ -180,6 +186,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
             TexasHoldemCommand::Act { action } => self.act(connection, request_id, action),
         })
     }
+
     fn start_game(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
             return self.room.reject(
@@ -264,6 +271,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
             }
         }
     }
+
     fn return_to_lobby(
         &mut self,
         connection: ConnectionId,
@@ -309,6 +317,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
         self.room.bump_revision();
         self.broadcast_lobby(Some((connection, request_id)))
     }
+
     fn play_again(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
             return self.room.reject(
@@ -371,6 +380,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
         }
         self.broadcast_game(Some((connection, request_id)))
     }
+
     fn leave_room(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
         let Some(index) = self
             .room
@@ -423,6 +433,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
         });
         deliveries
     }
+
     fn interact(
         &mut self,
         connection: ConnectionId,
@@ -489,6 +500,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
         deliveries.extend(self.broadcast_game(None));
         deliveries
     }
+
     fn after_join(&mut self, player: leocard_protocol::PlayerId) {
         if let Some(game) = self.game.as_mut() {
             let _ = game.set_connected(player, true);

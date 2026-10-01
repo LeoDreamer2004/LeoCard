@@ -4,13 +4,14 @@ use super::{HostRulePreferences, PageErrorState, save_host_rule_preferences};
 use crate::app::shell::NetworkUiContext;
 use bevy::prelude::*;
 use leocard_client::{ClientModel, LocalPlayerProfile, TcpGameClient};
-use leocard_protocol::{PlayerId, ServerEvent};
+use leocard_protocol::{GameEventContext, PlayerId, ServerEvent};
 
 /// Accepted transient server events; independent readers may consume them.
 #[derive(Message)]
 pub(crate) struct ServerNotification {
     pub player: Option<PlayerId>,
     pub event: ServerEvent,
+    pub game_context: Option<GameEventContext>,
 }
 
 #[derive(Resource)]
@@ -28,7 +29,8 @@ pub(super) fn poll_network(
         return;
     };
     let before = ui.before_poll(&client.0);
-    if !client.0.poll_with_events(|player, event| {
+    if !client.0.poll_with_events(|player, message| {
+        let event = &message.event;
         if !matches!(
             event,
             ServerEvent::GameSnapshot(_)
@@ -39,6 +41,7 @@ pub(super) fn poll_network(
             notifications.write(ServerNotification {
                 player,
                 event: event.clone(),
+                game_context: message.game_context,
             });
         }
     }) {

@@ -10,6 +10,29 @@ pub fn is_complete_hand(concealed: &[MahjongTileKind], melds: &[Meld]) -> bool {
     validated_forms(concealed, melds, None).is_ok_and(|forms| !forms.is_empty())
 }
 
+/// Structural waits, excluding fifth copies already held in the hand or melds.
+pub fn waiting_tile_kinds(concealed: &[MahjongTileKind], melds: &[Meld]) -> Vec<MahjongTileKind> {
+    let mut before = concealed.to_vec();
+    let mut wins = Vec::new();
+    for index in 0..34 {
+        let tile = MahjongTileKind::from_index34(index).expect("valid index");
+        let used = before.iter().filter(|held| **held == tile).count()
+            + melds
+                .iter()
+                .flat_map(|meld| meld.tile_kinds())
+                .filter(|held| *held == tile)
+                .count();
+        if used < 4 {
+            before.push(tile);
+            if is_complete_hand(&before, melds) {
+                wins.push(tile);
+            }
+            before.pop();
+        }
+    }
+    wins
+}
+
 pub fn score_hand(input: &ScoreInput) -> Result<MahjongScoreResult, ScoreError> {
     let forms = validated_forms(&input.concealed, &input.melds, Some(input.winning_tile))?;
     if forms.is_empty() {

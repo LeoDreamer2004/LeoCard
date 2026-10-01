@@ -41,6 +41,7 @@ pub(super) trait HostedGameLifecycle: Sized {
             .close_room(connection, request_id)
             .unwrap_or_else(|reason| self.room().reject(connection, request_id, reason))
     }
+
     fn interact(
         &mut self,
         connection: ConnectionId,

@@ -1,5 +1,6 @@
 mod catalog;
-#[cfg(test)]
-mod tests;
+mod mahjong;
+mod types;
 
 pub use catalog::*;
+pub use types::*;

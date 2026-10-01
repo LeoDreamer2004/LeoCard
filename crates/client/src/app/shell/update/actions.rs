@@ -18,6 +18,7 @@ impl DomainUiAction for UpdateUiAction {
     fn rebuilds_ui(&self) -> bool {
         !matches!(self, Self::OpenGitHubRepository)
     }
+
     fn extract(action: &UiAction) -> Option<&Self> {
         let UiAction::Update(action) = action else {
             return None;

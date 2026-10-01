@@ -13,6 +13,7 @@ impl GameScreenChange {
                 .cloned(),
         }
     }
+
     pub(crate) fn is_transient(&self, after: Option<&GameSnapshot>) -> bool {
         match (self.before.as_ref(), after) {
             (Some(GameSnapshot::QiGui523(before)), Some(GameSnapshot::QiGui523(after))) => {

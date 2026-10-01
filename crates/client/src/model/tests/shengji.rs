@@ -76,6 +76,7 @@ fn client_keeps_the_collecting_sides_public_shengji_score_cards() {
     let mut model = ClientModel::new(RoomId(7));
 
     assert!(model.apply(ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(7),
         revision: Revision(1),
@@ -83,6 +84,7 @@ fn client_keeps_the_collecting_sides_public_shengji_score_cards() {
         event: ServerEvent::GameSnapshot(GameSnapshot::Shengji(previous)),
     }));
     assert!(model.apply(ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(7),
         revision: Revision(2),
@@ -99,6 +101,7 @@ fn shengji_trick_events_keep_the_fourth_players_score_card() {
     let ten = ShengjiCard::suited(0, ShengjiSuit::Club, ShengjiRank::Ten);
     let mut model = ClientModel::new(RoomId(7));
     assert!(model.apply(ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(7),
         revision: Revision(1),
@@ -107,6 +110,7 @@ fn shengji_trick_events_keep_the_fourth_players_score_card() {
     }));
     for (revision, player, card) in [(2, 0, five), (3, 3, ten)] {
         assert!(model.apply(ServerMessage {
+            game_context: None,
             protocol_version: PROTOCOL_VERSION,
             room_id: RoomId(7),
             revision: Revision(revision),
@@ -126,6 +130,7 @@ fn shengji_trick_events_keep_the_fourth_players_score_card() {
         }));
     }
     assert!(model.apply(ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(7),
         revision: Revision(4),
@@ -191,6 +196,7 @@ fn shengji_finish_event_prevents_an_incomplete_snapshot_from_awarding_the_wrong_
         ),
     ] {
         assert!(model.apply(ServerMessage {
+            game_context: None,
             protocol_version: PROTOCOL_VERSION,
             room_id: RoomId(7),
             revision: Revision(revision),

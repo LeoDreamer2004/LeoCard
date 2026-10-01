@@ -149,6 +149,7 @@ fn client_clears_score_card_history_when_a_rematch_starts() {
     next.match_id = MatchId([3; 16]);
 
     assert!(model.apply(ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(7),
         revision: Revision(1),

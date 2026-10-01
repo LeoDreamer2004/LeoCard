@@ -24,6 +24,7 @@ impl ModalAnimations {
     pub(crate) fn set(&mut self, kind: CozyModalKind, progress: f32) {
         self.progress[kind as usize] = progress;
     }
+
     pub(super) fn progress(&self, kind: CozyModalKind) -> f32 {
         self.progress[kind as usize]
     }

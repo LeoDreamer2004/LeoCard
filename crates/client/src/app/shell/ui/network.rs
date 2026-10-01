@@ -53,6 +53,7 @@ impl NetworkUiContext<'_, '_> {
             game_change: GameScreenChange::capture(client.model().game_snapshot()),
         }
     }
+
     pub(crate) fn after_poll(
         &mut self,
         client: &TcpGameClient,

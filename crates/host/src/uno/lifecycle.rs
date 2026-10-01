@@ -156,21 +156,27 @@ impl HostedGameLifecycle for UnoSession {
     fn room(&self) -> &RoomSession {
         &self.room
     }
+
     fn room_mut(&mut self) -> &mut RoomSession {
         &mut self.room
     }
+
     fn game_started(&self) -> bool {
         self.game.is_some()
     }
+
     fn capacity(&self) -> u8 {
         UnoRuleSet::MAX_PLAYERS
     }
+
     fn game_rules(&self) -> GameRules {
         self.rules.into()
     }
+
     fn game_snapshot(&self, recipient: leocard_protocol::PlayerId) -> GameSnapshot {
         UnoSession::game_snapshot(self, recipient).into()
     }
+
     fn handle_game_command(
         &mut self,
         connection: ConnectionId,
@@ -182,6 +188,7 @@ impl HostedGameLifecycle for UnoSession {
         };
         Ok(self.handle_uno_command(connection, request_id, command))
     }
+
     fn start_game(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
             return self.room.reject(
@@ -473,6 +480,7 @@ impl HostedGameLifecycle for UnoSession {
         deliveries.extend(self.broadcast_game(None));
         deliveries
     }
+
     fn before_dispatch(&mut self) {
         self.apply_finished_reference_points();
     }

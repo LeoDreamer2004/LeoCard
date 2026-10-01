@@ -2,11 +2,9 @@
 
 use super::{LocalPlayerProfile, config_file};
 use bevy::prelude::Resource;
-use leocard_achievements::AchievementBook;
-pub use leocard_achievements::{
-    ACHIEVEMENT_REGISTRY, AchievementCategory, AchievementContext, AchievementCriterion,
-    AchievementDefinition, AchievementScope, AchievementTier, AchievementTrigger,
-    AchievementTriggerResult, achievement_by_id, achievements_in,
+use leocard_achievements::{
+    AchievementBook, AchievementContext, AchievementDefinition, AchievementTrigger,
+    AchievementTriggerResult,
 };
 use leocard_protocol::ProfileId;
 use serde::{Deserialize, Serialize};
@@ -14,9 +12,7 @@ use std::fs;
 use std::ops::Deref;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-// Older files have no header. Their awards are deliberately not migrated.
-const FILE_HEADER: &[u8] = b"LEOCARD-ACHIEVEMENTS/0.5.0/v2\n";
-const LEGACY_HEADER: &[u8] = b"LEOCARD-ACHIEVEMENTS/0.5.0\n";
+const FILE_HEADER: &[u8] = b"LEOCARD-ACHIEVEMENTS/0.5.0/v3\n";
 
 #[derive(Resource, Deserialize, Serialize)]
 pub struct PlayerAchievements {
@@ -26,6 +22,7 @@ pub struct PlayerAchievements {
 
 impl Deref for PlayerAchievements {
     type Target = AchievementBook;
+
     fn deref(&self) -> &Self::Target {
         &self.book
     }
@@ -53,16 +50,12 @@ impl PlayerAchievements {
     }
 
     fn decode(bytes: &[u8], profile_id: ProfileId) -> Result<Self, String> {
-        let stored: Self = if let Some(payload) = bytes.strip_prefix(FILE_HEADER) {
-            postcard::from_bytes(payload).map_err(|error| format!("无法解析成就档案：{error}"))?
-        } else if bytes.starts_with(LEGACY_HEADER) {
-            // The unreleased 0.5.0 prototype is explicitly reset by user choice.
-            return Ok(Self::new(profile_id));
-        } else if bytes.starts_with(b"LEOCARD-ACHIEVEMENTS/") {
-            return Err("成就档案版本不受支持".to_owned());
-        } else {
+        let Some(payload) = bytes.strip_prefix(FILE_HEADER) else {
+            // Noncurrent formats deliberately start with an empty book.
             return Ok(Self::new(profile_id));
         };
+        let stored: Self =
+            postcard::from_bytes(payload).map_err(|error| format!("无法解析成就档案：{error}"))?;
         Ok(if stored.profile_id == profile_id {
             stored
         } else {

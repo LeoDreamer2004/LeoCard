@@ -94,6 +94,7 @@ pub(in crate::app::games::uno) fn sync_uno_presentation(
         presentation.events.clear();
     }
 }
+
 #[expect(
     clippy::too_many_arguments,
     reason = "Bevy injects independent effect resources and target queries"

@@ -47,6 +47,11 @@ impl GameEvent {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongEvent {
+    /// Private feedback for a new completed-hand opportunity below the minimum fan.
+    WinUnavailable {
+        player: PlayerId,
+        points_without_flowers: u16,
+    },
     TileDiscarded {
         player: PlayerId,
         tile: MahjongTile,

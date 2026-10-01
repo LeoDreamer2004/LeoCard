@@ -509,21 +509,27 @@ impl HostedGameLifecycle for ShengjiSession {
     fn room(&self) -> &RoomSession {
         &self.room
     }
+
     fn room_mut(&mut self) -> &mut RoomSession {
         &mut self.room
     }
+
     fn game_started(&self) -> bool {
         self.game.is_some()
     }
+
     fn capacity(&self) -> u8 {
         PLAYER_COUNT
     }
+
     fn game_rules(&self) -> GameRules {
         self.rules.into()
     }
+
     fn game_snapshot(&self, recipient: leocard_protocol::PlayerId) -> GameSnapshot {
         ShengjiSession::game_snapshot(self, recipient).into()
     }
+
     fn handle_game_command(
         &mut self,
         connection: ConnectionId,
@@ -555,6 +561,7 @@ impl HostedGameLifecycle for ShengjiSession {
             ShengjiCommand::PlayCards { cards } => self.play_cards(connection, request_id, cards),
         })
     }
+
     fn start_game(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
             return self.room.reject(
@@ -638,6 +645,7 @@ impl HostedGameLifecycle for ShengjiSession {
         self.room.bump_revision();
         self.broadcast_game(Some((connection, request_id)))
     }
+
     fn return_to_lobby(
         &mut self,
         connection: ConnectionId,
@@ -690,6 +698,7 @@ impl HostedGameLifecycle for ShengjiSession {
         self.room.bump_revision();
         self.broadcast_lobby(Some((connection, request_id)))
     }
+
     fn play_again(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
             return self.room.reject(
@@ -736,6 +745,7 @@ impl HostedGameLifecycle for ShengjiSession {
         }
         self.broadcast_game(Some((connection, request_id)))
     }
+
     fn leave_room(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
         let Some(index) = self
             .room
@@ -777,6 +787,7 @@ impl HostedGameLifecycle for ShengjiSession {
         });
         deliveries
     }
+
     fn interact(
         &mut self,
         connection: ConnectionId,

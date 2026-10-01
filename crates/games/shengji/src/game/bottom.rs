@@ -3,8 +3,7 @@ use super::{
     GameState, Phase, next_player, remove_cards, validate_cards_owned,
 };
 use crate::{ShengjiCard, ShengjiPlayerId, ShengjiRuleSet, ShengjiTrump};
-use std::array;
-use std::mem;
+use std::{array, mem};
 
 impl GameState {
     pub fn bury(

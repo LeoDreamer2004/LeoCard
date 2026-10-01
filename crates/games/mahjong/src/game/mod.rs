@@ -11,3 +11,8 @@ mod types;
 pub use error::*;
 pub use state::*;
 pub use types::*;
+
+mod win_availability;
+
+#[cfg(test)]
+mod facts_tests;

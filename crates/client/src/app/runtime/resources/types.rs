@@ -18,6 +18,7 @@ pub(crate) struct UiAssets {
     pub playing_cards: PlayingCardAssets,
     pub controls: ControlAssets,
     pub home: HomeAssets,
+    pub achievements: AchievementAssets,
     pub social: SocialAssets,
     pub audio: CommonAudioAssets,
     pub table_felt: Handle<Image>,
@@ -59,6 +60,18 @@ pub(crate) struct HomeAssets {
     pub focused_input: Handle<Image>,
     pub game_art: [Handle<Image>; 5],
     pub reference_level_icons: [Handle<Image>; 10],
+}
+
+#[derive(Default)]
+pub(crate) struct AchievementAssets {
+    pub icon: Handle<Image>,
+    pub emblems: [Handle<Image>; 6],
+    pub medals: [Handle<Image>; 3],
+    pub scroll_arrow: Handle<Image>,
+    pub toast: Handle<Image>,
+    pub toast_gold: Handle<Image>,
+    pub sound: Handle<AudioSource>,
+    pub gold_sound: Handle<AudioSource>,
 }
 
 #[derive(Default)]

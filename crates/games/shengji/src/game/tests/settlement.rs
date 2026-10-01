@@ -1,4 +1,10 @@
+use super::super::*;
 use super::*;
+use crate::play::classify_cards;
+use crate::{
+    ShengjiCard, ShengjiPlayerId, ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTeamId,
+    ShengjiThrowPenalty, ShengjiTrump, build_deck,
+};
 
 #[test]
 fn dealer_may_bury_any_eight_cards() {

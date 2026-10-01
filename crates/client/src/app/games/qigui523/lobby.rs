@@ -11,8 +11,7 @@ use crate::app::shell::{
     LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_lobby_rules_heading,
 };
 use bevy::prelude::*;
-use leocard_protocol::LobbySnapshot;
-use leocard_protocol::TABLE_SEAT_COUNT;
+use leocard_protocol::{LobbySnapshot, TABLE_SEAT_COUNT};
 use leocard_qigui523::{QiGuiRuleSet, SameCardPolicy};
 
 impl EditableRuleSet for QiGuiRuleSet {

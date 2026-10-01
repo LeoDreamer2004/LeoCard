@@ -7,6 +7,20 @@ use leocard_protocol::{PlayerId, UnoEvent};
 use leocard_uno::PendingSwap;
 
 impl UnoSession {
+    pub(super) fn automatically_resolves_skip(&self) -> bool {
+        !self.rules.action_stacking_enabled()
+            && self
+                .game
+                .as_ref()
+                .and_then(|game| game.turn())
+                .is_some_and(|turn| {
+                    turn.pending_swap.is_none()
+                        && turn.current_color.is_some()
+                        && turn.pending_kind.is_none()
+                        && (turn.pending_skip > 0 || turn.skipped_turns_remaining > 0)
+                })
+    }
+
     pub(super) fn current_automatic_player(&self) -> Option<PlayerId> {
         let current = self
             .game
@@ -17,7 +31,12 @@ impl UnoSession {
             .players
             .iter()
             .find(|player| player.id == current && !player.left)
-            .is_some_and(|player| player.auto_play || !player.connected || player.is_bot)
+            .is_some_and(|player| {
+                self.automatically_resolves_skip()
+                    || player.auto_play
+                    || !player.connected
+                    || player.is_bot
+            })
             .then_some(current)
     }
 
@@ -33,12 +52,11 @@ impl UnoSession {
     pub(super) fn play_automatic_action(
         &mut self,
     ) -> Option<(Vec<UnoEvent>, Option<PendingDrawReveal>)> {
+        let forced_skip = self.automatically_resolves_skip();
         let game = self.game.as_mut()?;
         let turn = game.turn()?;
         let player = turn.current_player;
-        let uno_outcome = turn
-            .pending_swap
-            .is_none()
+        let uno_outcome = (turn.pending_swap.is_none() && !forced_skip)
             .then(|| game.call_uno(player).ok())
             .flatten();
         let mut events = uno_outcome
@@ -46,7 +64,9 @@ impl UnoSession {
             .map(|outcome| events_for_outcome(outcome, &[]))
             .unwrap_or_default();
         let mut played = Vec::new();
-        let outcome = if let Some(pending) = turn.pending_swap {
+        let outcome = if forced_skip {
+            game.resolve_skip(player)
+        } else if let Some(pending) = turn.pending_swap {
             match pending {
                 PendingSwap::SwapOneTarget { .. } => {
                     let target = game

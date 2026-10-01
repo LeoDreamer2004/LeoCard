@@ -1,12 +1,11 @@
 //! 在独立辅助进程中替换正在运行的客户端二进制。
 
 use std::ffi::OsString;
-use std::fs;
-use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
+use std::{fs, io};
 
 const APPLY_UPDATE_ARGUMENT: &str = "--leocard-apply-update";
 const REPLACE_ATTEMPTS: usize = 120;

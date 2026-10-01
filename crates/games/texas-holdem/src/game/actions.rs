@@ -1,6 +1,8 @@
+use crate::TexasHoldemRuleSet;
+
 use super::{
     ActionOutcome, GameError, GameState, Phase, PlayerState, TexasHoldemAction,
-    TexasHoldemBlindKind, TexasHoldemPlayerId, TexasHoldemRuleSet, TexasHoldemStreet,
+    TexasHoldemBlindKind, TexasHoldemPlayerId, TexasHoldemStreet,
 };
 
 impl GameState {
@@ -11,7 +13,10 @@ impl GameState {
     ) -> Result<ActionOutcome, GameError> {
         let previous = self.clone();
         match self.act_inner(player, action) {
-            Ok(outcome) => Ok(outcome),
+            Ok(outcome) => {
+                self.record_action_statistics(&previous, player, action);
+                Ok(outcome)
+            }
             Err(error) => {
                 *self = previous;
                 Err(error)

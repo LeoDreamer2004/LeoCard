@@ -1,6 +1,6 @@
 use crate::{
-    MahjongMeldKind, MahjongPlayerId, MahjongRuleSet, MahjongScoreResult, MahjongTile,
-    MahjongTileKind, Meld,
+    MahjongMatchLength, MahjongMeldKind, MahjongPlayerId, MahjongRuleSet, MahjongScoreResult,
+    MahjongTile, MahjongTileKind, Meld,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -179,6 +179,14 @@ pub struct WinRecord {
     pub from: Option<MahjongPlayerId>,
     pub winning_tile: MahjongTile,
     pub score: MahjongScoreResult,
+    pub wait_kind_count: u8,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct MahjongMatchProgress {
+    pub completed_hands: u8,
+    pub exhaustive_draws: u8,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -186,6 +194,8 @@ pub struct WinRecord {
 pub struct HandResult {
     pub winners: Vec<WinRecord>,
     pub exhaustive_draw: bool,
+    pub match_length: MahjongMatchLength,
+    pub match_progress: MahjongMatchProgress,
     pub deltas: [i32; MahjongRuleSet::PLAYER_COUNT],
     pub match_scores: [i32; MahjongRuleSet::PLAYER_COUNT],
     pub match_complete: bool,
@@ -233,4 +243,12 @@ pub enum ActionOutcome {
         deltas: [i32; MahjongRuleSet::PLAYER_COUNT],
     },
     HandFinished(HandResult),
+}
+
+/// Shape completion and minimum-fan eligibility are separate gameplay facts.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MahjongWinAvailability {
+    Unavailable,
+    InsufficientFan { points: u16 },
+    Legal,
 }

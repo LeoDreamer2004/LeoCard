@@ -8,8 +8,7 @@ use super::{
 use crate::app::presentation::{play_pending_deal_sounds, start_game_intro_finished};
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::{
-    ScoreCaptureEffectState, UiActionSet, animate_play_error_popup, animate_score_capture_effects,
-    sync_play_error_toast, sync_score_capture_effect,
+    ScoreCaptureEffectState, UiActionSet, animate_score_capture_effects, sync_score_capture_effect,
 };
 use bevy::prelude::*;
 
@@ -40,7 +39,6 @@ impl Plugin for QiGui523Plugin {
                     animate_no_legal_response_hint,
                     sync_play_effect.run_if(start_game_intro_finished),
                     queue_deal_animations.run_if(start_game_intro_finished),
-                    sync_play_error_toast,
                     sync_score_capture_effect,
                 )
                     .in_set(ClientUpdateSet::Sync),
@@ -55,7 +53,6 @@ impl Plugin for QiGui523Plugin {
                     animate_heaven_bomb_play_effect.run_if(start_game_intro_finished),
                     sync_card_drag_preview,
                     play_pending_deal_sounds.run_if(start_game_intro_finished),
-                    animate_play_error_popup,
                     animate_score_capture_effects,
                 )
                     .in_set(ClientUpdateSet::Animate),

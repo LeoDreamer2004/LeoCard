@@ -1,6 +1,5 @@
 use super::{
-    animate_home_arrows, dispatch_connection_actions, handle_avatar_drop, poll_avatar_picker,
-    sync_avatar_images, update_home_highlights,
+    dispatch_connection_actions, handle_avatar_drop, poll_avatar_picker, sync_avatar_images,
 };
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::UiActionSet;
@@ -17,7 +16,6 @@ impl Plugin for ConnectionPlugin {
                     .chain()
                     .in_set(ClientUpdateSet::Input),
             )
-            .add_systems(Update, sync_avatar_images.in_set(ClientUpdateSet::Sync))
-            .add_systems(Update, (update_home_highlights, animate_home_arrows));
+            .add_systems(Update, sync_avatar_images.in_set(ClientUpdateSet::Sync));
     }
 }

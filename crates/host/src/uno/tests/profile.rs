@@ -1,4 +1,12 @@
+use super::super::*;
 use super::*;
+use crate::ConnectionId;
+use leocard_protocol::{ClientCommand, UnoProfileStats};
+#[cfg(test)]
+use leocard_uno::build_deck;
+use leocard_uno::{
+    ActionOutcome, Phase, UnoCard, UnoChallengeResult, UnoColor, UnoPlayerId, UnoRuleSet,
+};
 
 #[test]
 fn profile_events_record_uno_penalties_and_challenge_results() {

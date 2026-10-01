@@ -1,12 +1,13 @@
 use super::download::format_bytes;
+use crate::app::shell::UpdateUiAction;
+
 use super::{UpdateEvent, UpdateManager, UpdateState};
+use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
+use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, cozy_backdrop_color, cozy_panel_transform,
 };
-use crate::app::{
-    MUTED, NavigationUiAction, TEXT, UiAction, UiAssets, UiState, add_cozy_button, add_cozy_panel,
-    add_text, spawn_node,
-};
+use crate::app::shell::{UiAction, UiState, add_cozy_button, add_cozy_panel};
 use bevy::log::warn;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
@@ -244,7 +245,7 @@ pub(crate) fn render_update_dialog(
                 commands,
                 actions,
                 "稍后重启",
-                UiAction::Navigation(NavigationUiAction::HideUpdateDialog),
+                UiAction::Update(UpdateUiAction::HideUpdateDialog),
                 assets,
                 px(120),
                 42.0,
@@ -253,7 +254,7 @@ pub(crate) fn render_update_dialog(
                 commands,
                 actions,
                 "重启游戏并更新",
-                UiAction::Navigation(NavigationUiAction::RestartToUpdate),
+                UiAction::Update(UpdateUiAction::RestartToUpdate),
                 assets,
                 px(185),
                 42.0,
@@ -265,7 +266,7 @@ pub(crate) fn render_update_dialog(
                     commands,
                     actions,
                     "重试",
-                    UiAction::Navigation(NavigationUiAction::StartUpdate),
+                    UiAction::Update(UpdateUiAction::StartUpdate),
                     assets,
                     px(100),
                     42.0,
@@ -275,7 +276,7 @@ pub(crate) fn render_update_dialog(
                 commands,
                 actions,
                 "关闭",
-                UiAction::Navigation(NavigationUiAction::HideUpdateDialog),
+                UiAction::Update(UpdateUiAction::HideUpdateDialog),
                 assets,
                 px(100),
                 42.0,
@@ -290,7 +291,7 @@ pub(crate) fn render_update_dialog(
                 } else {
                     "后台下载"
                 },
-                UiAction::Navigation(NavigationUiAction::HideUpdateDialog),
+                UiAction::Update(UpdateUiAction::HideUpdateDialog),
                 assets,
                 px(120),
                 42.0,

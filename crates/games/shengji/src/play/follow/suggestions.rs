@@ -1,8 +1,10 @@
-use super::super::{
-    Component, PairUnit, ShengjiCard, ShengjiClassifiedPlay, ShengjiSuit, ShengjiTrump,
-    StructureDemands, best_run_at_most, category, pair_units, remove_pair_indices, strength,
-    titanic_card_sets, triple_units,
+use super::super::structure::{
+    best_run_at_most, pair_units, remove_pair_indices, titanic_card_sets, triple_units,
 };
+use crate::play::structure::StructureDemands;
+use crate::{ShengjiCard, ShengjiSuit, ShengjiTrump};
+
+use super::super::{Component, PairUnit, ShengjiClassifiedPlay, category, strength};
 use super::{
     forced_cards_for_hierarchy, special_follow_card_sets, special_follow_hierarchy,
     triple_follow_rank, validate_follow,

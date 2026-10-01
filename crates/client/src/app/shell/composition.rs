@@ -1,18 +1,19 @@
 //! 根据网络模型与页面状态装配当前的顶层界面。
 
 use super::{
-    ChatPanelState, ConnectionScreen, DeveloperHandInput, Header, PlayErrorToast, ProfileModal,
-    ProfileMotion, SettingsModal, SettingsMotion, UiState, UpdateManager, add_play_error_popup,
-    render_update_dialog,
+    AchievementPageViewport, AchievementsPage, ChatPanelState, ConnectionScreen,
+    DeveloperHandInput, Header, LobbyGameMotion, PageMotion, PlayErrorToast, ProfileModal,
+    ProfileMotion, SettingsModal, SettingsMotion, UiState, UpdateManager, add_lobby_game_shade,
+    add_page_background, add_page_transition_shade, add_play_error_popup, render_update_dialog,
 };
-use crate::app::games::{GameScreenResources, MahjongHandTile};
+use crate::app::games::{GameScreenResources, GameScreenRetainedState};
 use crate::app::presentation::{GameSummaryAnimation, UiRoot};
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, ClientResource, ConnectionDraft, TableAppearance, UiAssets,
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_client::{ClientPhaseRef, LocalPlayerProfile};
+use leocard_client::{ClientPhaseRef, LocalPlayerProfile, PlayerAchievements};
 
 #[derive(SystemParam)]
 struct VisualAssets<'w> {
@@ -24,6 +25,8 @@ struct VisualAssets<'w> {
     updater: Res<'w, UpdateManager>,
     settings_motion: Res<'w, SettingsMotion>,
     profile_motion: Res<'w, ProfileMotion>,
+    page_motion: Res<'w, PageMotion>,
+    lobby_game_motion: Res<'w, LobbyGameMotion>,
 }
 
 #[derive(SystemParam)]
@@ -32,6 +35,7 @@ struct ScreenResources<'w> {
     connection: Res<'w, ConnectionDraft>,
     appearance: Res<'w, AppearancePreferences>,
     profile: Res<'w, LocalPlayerProfile>,
+    achievements: Res<'w, PlayerAchievements>,
     chat: Res<'w, ChatPanelState>,
     developer_hand: Res<'w, DeveloperHandInput>,
     ui: ResMut<'w, UiState>,
@@ -48,7 +52,8 @@ pub(crate) struct ScreenRebuild<'w, 's> {
     games: GameScreenResources<'w>,
     roots: Query<'w, 's, Entity, With<UiRoot>>,
     intro_roots: Query<'w, 's, Entity, With<GameIntroRoot>>,
-    mahjong_hand_tiles: Query<'w, 's, (&'static MahjongHandTile, Option<&'static Interaction>)>,
+    achievement_viewport: AchievementPageViewport<'w, 's>,
+    retained_game: GameScreenRetainedState<'w, 's>,
 }
 
 pub(crate) fn rebuild_ui(mut screen: ScreenRebuild) {
@@ -60,6 +65,9 @@ impl ScreenRebuild<'_, '_> {
         if !self.resources.ui.dirty {
             return;
         }
+        if self.visuals.lobby_game_motion.hold_lobby() || self.visuals.page_motion.hold_page() {
+            return;
+        }
         // The intro contains portraits and felt only. Keep its targets alive
         // through opening snapshots, then build the game once it completes.
         let intro_active = self.games.start_transition_active();
@@ -67,10 +75,12 @@ impl ScreenRebuild<'_, '_> {
             return;
         }
         self.resources.ui.dirty = false;
-        self.games
-            .retain_mahjong_hand_hover(self.resources.client.as_deref(), &self.mahjong_hand_tiles);
+        self.retained_game
+            .capture(self.resources.client.as_deref(), &mut self.games);
         self.games
             .reconcile_screen_state(self.resources.client.as_deref(), &mut self.resources.ui);
+        // Preserve the actual viewport before replacing the page's entities.
+        let achievement_scroll_y = self.achievement_viewport.offset();
         for entity in &self.roots {
             self.commands.entity(entity).despawn();
         }
@@ -93,9 +103,11 @@ impl ScreenRebuild<'_, '_> {
             connection: &self.resources.connection,
             appearance: &self.resources.appearance,
             profile: &self.resources.profile,
+            achievements: &self.resources.achievements,
             chat: &self.resources.chat,
             developer_hand: &self.resources.developer_hand,
             ui: &mut self.resources.ui,
+            achievement_scroll_y,
             visuals: &self.visuals,
             games: &mut self.games,
         }
@@ -112,15 +124,23 @@ struct ScreenRenderer<'a, 'w, 's> {
     connection: &'a ConnectionDraft,
     appearance: &'a AppearancePreferences,
     profile: &'a LocalPlayerProfile,
+    achievements: &'a PlayerAchievements,
     chat: &'a ChatPanelState,
     developer_hand: &'a DeveloperHandInput,
     ui: &'a mut UiState,
+    achievement_scroll_y: f32,
     visuals: &'a VisualAssets<'w>,
     games: &'a mut GameScreenResources<'w>,
 }
 
 impl ScreenRenderer<'_, '_, '_> {
     fn render(&mut self, root: Entity) {
+        if self
+            .client
+            .is_none_or(|client| !matches!(client.0.model().phase(), ClientPhaseRef::Playing(_)))
+        {
+            add_page_background(self.commands, root, &self.visuals.ui);
+        }
         Header::new(
             self.client,
             self.connection,
@@ -133,6 +153,16 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn render_primary_screen(&mut self, root: Entity) {
+        if self.ui.achievements.open {
+            AchievementsPage::new(
+                self.ui.achievements.category,
+                self.achievement_scroll_y,
+                self.achievements,
+                &self.visuals.ui,
+            )
+            .render(self.commands, root);
+            return;
+        }
         let Some(client) = self.client else {
             ConnectionScreen::new(
                 self.connection,
@@ -180,15 +210,19 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn render_overlays(&mut self, root: Entity) {
-        if self.ui.navigation.settings_open {
+        add_page_transition_shade(self.commands, root, &self.visuals.page_motion);
+        if self.visuals.lobby_game_motion.active() {
+            add_lobby_game_shade(self.commands, root, &self.visuals.lobby_game_motion);
+        }
+        if self.ui.settings.open {
             SettingsModal::new(self.appearance, &self.visuals.updater, &self.visuals.ui).render(
                 self.commands,
                 root,
                 self.visuals.settings_motion.progress,
-                self.ui.navigation.settings_tab,
+                self.ui.settings.tab,
             );
         }
-        if self.ui.navigation.profile_open {
+        if self.ui.profile.open {
             self.render_profile(root);
         }
         if self.visuals.updater.dialog_open || self.visuals.updater.dialog_progress > 0.0 {
@@ -214,34 +248,11 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn render_profile(&mut self, root: Entity) {
-        let (name, gender, avatar, reference_points, completed_games, game_profiles) =
-            if let Some(player) = self.ui.navigation.player_profile.as_ref() {
-                (
-                    player.name.as_str(),
-                    player.game_profiles.gender,
-                    player.avatar.as_ref(),
-                    player.reference_points,
-                    player.completed_games,
-                    &player.game_profiles,
-                )
-            } else {
-                (
-                    self.connection.player_name.as_str(),
-                    self.connection.gender,
-                    self.visuals.avatars.local.as_ref(),
-                    self.profile.reference_points(),
-                    self.profile.completed_games(),
-                    self.profile.game_profiles(),
-                )
-            };
-        ProfileModal::new(
-            name,
-            gender,
-            avatar,
-            reference_points,
-            completed_games,
-            game_profiles,
-            self.ui.navigation.profile_game_tab,
+        ProfileModal::for_selection(
+            &self.ui.profile,
+            self.connection,
+            &self.visuals.avatars,
+            self.profile,
             &self.visuals.ui,
         )
         .render(self.commands, root, self.visuals.profile_motion.progress);

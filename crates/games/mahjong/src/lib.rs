@@ -15,8 +15,8 @@ pub use card::{
 };
 pub use game::{
     ActionOutcome, Discard, GameError, GameState, HandResult, MahjongClaim, MahjongClaimOption,
-    MahjongDrawOrigin, MahjongHandReplacementError, PendingClaim, Phase, PlayerState, PublicMeld,
-    PublicPlayerState, WinRecord,
+    MahjongDrawOrigin, MahjongHandReplacementError, MahjongMatchProgress, MahjongWinAvailability,
+    PendingClaim, Phase, PlayerState, PublicMeld, PublicPlayerState, WinRecord,
 };
 pub use meld::{MahjongKongKind, MahjongMeldKind, Meld};
 pub use rules::{
@@ -25,5 +25,5 @@ pub use rules::{
 };
 pub use scoring::{
     Fan, FanValue, MahjongScoreResult, ScoreError, ScoreInput, WinContext, WinSource,
-    is_complete_hand, score_hand,
+    is_complete_hand, score_hand, waiting_tile_kinds,
 };

@@ -3,6 +3,7 @@ use super::{
     MahjongClaimOption, MahjongDrawOrigin, PendingClaim, Phase, WinRecord, claim_priority,
     next_player, players_after,
 };
+use crate::waiting_tile_kinds;
 use crate::{
     MahjongMatchLength, MahjongPlayerId, MahjongRuleSet, MahjongScoreResult, MahjongTile,
     MahjongTileKind, Meld, ScoreInput, WinContext, WinSource, is_complete_hand, score_hand,
@@ -88,6 +89,7 @@ impl GameState {
                     from: Some(from),
                     winning_tile: tile,
                     score,
+                    wait_kind_count: self.wait_kind_count(target, tile, false),
                 });
             } else {
                 self.apply_false_win(target);
@@ -253,6 +255,29 @@ impl GameState {
         Ok(self.is_legal_score(&score) || self.rules.false_win)
     }
 
+    pub(super) fn wait_kind_count(
+        &self,
+        player: MahjongPlayerId,
+        winning: MahjongTile,
+        self_draw: bool,
+    ) -> u8 {
+        let state = &self.players[player.0];
+        let mut before = state
+            .hand
+            .iter()
+            .map(|tile| tile.kind())
+            .collect::<Vec<_>>();
+        if self_draw {
+            let position = state
+                .hand
+                .iter()
+                .position(|tile| *tile == winning)
+                .expect("winning draw belongs to the hand");
+            before.remove(position);
+        }
+        waiting_tile_kinds(&before, &state.melds).len() as u8
+    }
+
     pub(super) fn score_for(
         &self,
         player: MahjongPlayerId,
@@ -406,12 +431,15 @@ impl GameState {
         for index in 0..MahjongRuleSet::PLAYER_COUNT {
             self.match_scores[index] += self.hand_deltas[index];
         }
-        self.hands_in_match += 1;
+        self.match_progress.completed_hands += 1;
+        self.match_progress.exhaustive_draws += u8::from(exhaustive_draw);
         let match_complete = self.rules.match_length == MahjongMatchLength::SingleHand
-            || self.hands_in_match >= self.rules.match_length.hand_count();
+            || self.match_progress.completed_hands >= self.rules.match_length.hand_count();
         let result = HandResult {
             winners,
             exhaustive_draw,
+            match_length: self.rules.match_length,
+            match_progress: self.match_progress,
             deltas: self.hand_deltas,
             match_scores: self.match_scores,
             match_complete,

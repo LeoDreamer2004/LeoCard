@@ -4,7 +4,9 @@ use super::{DeveloperHandInput, DeveloperHandInputField, DeveloperHandInputText}
 use crate::app::presentation::{MUTED, TEXT};
 use crate::app::runtime::UiAssets;
 #[cfg(feature = "developer")]
-use crate::app::{ClientResource, PageErrorState, game_command};
+use crate::app::runtime::{ClientResource, PageErrorState};
+#[cfg(feature = "developer")]
+use crate::app::shell::game_command;
 use bevy::prelude::*;
 #[cfg(feature = "developer")]
 use leocard_mahjong::{

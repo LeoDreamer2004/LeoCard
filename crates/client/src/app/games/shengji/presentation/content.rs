@@ -1,6 +1,7 @@
+use super::routes::shengji_partner_player;
+
 use super::{
     ShengjiAudioCue, ShengjiPlayPresentationKind, ShengjiPresentationKind, ShengjiSoundKind,
-    shengji_partner_player,
 };
 use crate::app::presentation::ACCENT;
 use bevy::prelude::*;

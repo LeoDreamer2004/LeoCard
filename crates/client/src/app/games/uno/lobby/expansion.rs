@@ -1,9 +1,10 @@
 use super::super::{UnoExpansionStatus, UnoExpansionStatusFrame, UnoUiAction};
+use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    CozyModalBackdrop, CozyModalKind, CozyModalPanel, HomeHighlightKind, UiAction,
-    add_cozy_close_button, add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
+    CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
+    add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
 };
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
@@ -260,7 +261,7 @@ impl UnoExpansionRow {
                 ))
                 .id();
             commands.entity(status).add_child(hover);
-            commands.entity(status).insert(HomeHighlightKind::Button {
+            commands.entity(status).insert(ButtonHighlight::Button {
                 overlay: hover,
                 arrows: None,
             });

@@ -96,6 +96,7 @@ Apache-2.0，运行时只包含转换后的 Ogg 音频。
 - 原始位置：CozyUI+ v1.10 的 `assets/minecraft/textures/gui/toasts.png`、`assets/minecraft/textures/gui/sprites/player_list/remove_operator.png`、`assets/minecraft/textures/gui/sprites/icon/chat_modified.png`，以及 `assets/minecraft/textures/gui/sprites/` 下的
   `popup/background.png`、`recipe_book/page_backward*.png`、`recipe_book/page_forward*.png`、`recipe_book/slot_craftable.png`、`hud/effect_background.png`、`hud/effect_background_ambient.png`、`widget/button.png`、`widget/button_highlighted.png`、`widget/text_field.png`、`widget/text_field_highlighted.png`、`widget/checkbox*.png`、`widget/cross_button.png`、`widget/cross_button_highlighted.png`，以及 `widget/slider*.png`
 - 许可证副本：`vendor/cozyui-plus/LICENSE.txt`
+- 成就通知使用 `ui/achievements/toast-normal.png` 和 `toast-gold.png`：提取自同版本 `assets/minecraft/textures/gui/advancements/widgets.png` 的蓝色与橙色横条，裁掉周围空白，将白色底转为透明；运行时保留边角，按九宫格拉伸。
 
 这些纹理用于首页、顶栏、设置、资料页、游戏内聊天抽屉和警示提示；按钮与滑块轨道按原纹理的九宫格边距绘制，箭头和滑块柄使用原比例动画帧；其余资源包内容未加入发布物。
 

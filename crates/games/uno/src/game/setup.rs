@@ -1,7 +1,9 @@
+use crate::{UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoRuleSet};
+use std::collections::VecDeque;
+
 use super::{
     ActionOutcome, GameError, GameState, PendingSwap, PendingSwapState, Phase, PlayerState,
-    TurnState, UnoCard, UnoColor, UnoDirection, UnoFace, UnoFlipSide, UnoPlayerId, UnoRuleSet,
-    VecDeque, validate_deck,
+    TurnState, UnoDirection, UnoPlayerId, validate_deck,
 };
 
 impl GameState {

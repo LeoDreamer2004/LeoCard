@@ -2952,6 +2952,7 @@ checksum = "d27bbb9d3abbefac45d55f647c9de1d44aafcd1186eb91879afef17c396c3e73"
 dependencies = [
  "displaydoc",
  "icu_locale_core",
+ "log",
  "serde",
  "stable_deref_trait",
  "writeable",
@@ -3161,15 +3162,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
+name = "leocard-achievements"
+version = "0.5.0"
+dependencies = [
+ "leocard-mahjong",
+ "leocard-protocol",
+ "leocard-texas-holdem",
+ "postcard",
+ "serde",
+]
+
+[[package]]
 name = "leocard-client"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "bevy",
  "bevy_clipboard",
  "ed25519-dalek",
  "fastrand",
  "getrandom 0.4.3",
+ "icu_provider",
  "image",
+ "leocard-achievements",
  "leocard-host",
  "leocard-mahjong",
  "leocard-protocol",
@@ -3190,12 +3204,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "leocard-game-common"
+version = "0.5.0"
+
+[[package]]
 name = "leocard-host"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
  "image",
+ "leocard-achievements",
  "leocard-mahjong",
  "leocard-protocol",
  "leocard-qigui523",
@@ -3206,14 +3225,14 @@ dependencies = [
 
 [[package]]
 name = "leocard-mahjong"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "leocard-protocol"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "leocard-mahjong",
  "leocard-qigui523",
@@ -3226,21 +3245,22 @@ dependencies = [
 
 [[package]]
 name = "leocard-qigui523"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
+ "leocard-game-common",
  "serde",
 ]
 
 [[package]]
 name = "leocard-shengji"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "leocard-tcp"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "ed25519-dalek",
  "leocard-host",
@@ -3255,14 +3275,15 @@ dependencies = [
 
 [[package]]
 name = "leocard-texas-holdem"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
+ "leocard-game-common",
  "serde",
 ]
 
 [[package]]
 name = "leocard-uno"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "serde",
 ]

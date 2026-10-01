@@ -1,4 +1,5 @@
-use super::super::{MahjongWinEffectTier, MahjongWinStageKind};
+use super::super::super::{MahjongWinEffectTier, MahjongWinStageKind};
+
 use super::{WinStagePartSpec, add_win_stage_component};
 use crate::app::presentation::{DESIGN_WIDTH, spawn_node};
 use bevy::prelude::*;

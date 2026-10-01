@@ -16,8 +16,7 @@ use crate::app::shell::{
 };
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
-use leocard_protocol::ShengjiHandResultView;
-use leocard_protocol::ShengjiSnapshot;
+use leocard_protocol::{ShengjiHandResultView, ShengjiSnapshot};
 use leocard_shengji::ShengjiCard;
 
 const SHENGJI_KITTY_SCORE_DELAY: f32 = 0.72;

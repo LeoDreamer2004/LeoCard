@@ -1,10 +1,15 @@
+use super::super::ShengjiAssets;
+use super::content::{presentation_color, presentation_text, rank_label};
+use super::routes::{
+    shengji_player_panel_anchor, shengji_power_outage_anchors, shengji_presentation_routes,
+};
+
 use super::{
-    ShengjiAssets, ShengjiBottomFlipVisual, ShengjiBottomFlipVisualKind, ShengjiPowerOutageVisual,
+    ShengjiBottomFlipVisual, ShengjiBottomFlipVisualKind, ShengjiPowerOutageVisual,
     ShengjiPowerOutageVisualKind, ShengjiPresentationDivider, ShengjiPresentationKind,
     ShengjiPresentationPacket, ShengjiPresentationRoot, ShengjiPresentationState,
     ShengjiPresentationText, ShengjiPresentationVeil, ShengjiTrumpKillVisual,
-    ShengjiTrumpKillVisualKind, presentation_color, presentation_text, rank_label,
-    shengji_player_panel_anchor, shengji_power_outage_anchors, shengji_presentation_routes,
+    ShengjiTrumpKillVisualKind,
 };
 use crate::app::presentation::{ACCENT, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;

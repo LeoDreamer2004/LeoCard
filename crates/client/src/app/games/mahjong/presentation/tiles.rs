@@ -1,9 +1,10 @@
-use super::claim::{MahjongClaimLandingSlot, mahjong_claim_held_tile_visual};
-use super::{
+use super::super::{
     ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MAHJONG_REMOTE_MELD_WIDTH,
     MahjongAssets, MahjongClaimHeldTile, MahjongDealSpec, MahjongDealTile, MahjongTileMaterial,
     mahjong_local_light, mahjong_local_shadow,
 };
+
+use super::claim::{MahjongClaimLandingSlot, mahjong_claim_held_tile_visual};
 use crate::app::presentation::spawn_node;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;

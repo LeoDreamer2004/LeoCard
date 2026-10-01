@@ -1,4 +1,13 @@
+use super::super::*;
 use super::*;
+use leocard_protocol::{
+    GameSnapshot, PROTOCOL_VERSION, ProfileId, Revision, SeatId, ServerEvent, ServerMessage,
+    TexasHoldemViolation, decode_frame, encode_frame,
+};
+use leocard_protocol::{MatchId, PlayerId, RoomId, TexasHoldemEvent, TexasHoldemPhaseView};
+use leocard_texas_holdem::{
+    TexasHoldemAction, TexasHoldemBlindKind, TexasHoldemRuleSet, TexasHoldemStreet, build_deck,
+};
 
 const HOST: PlayerId = PlayerId(20);
 const LEFT: PlayerId = PlayerId(30);
@@ -147,6 +156,7 @@ fn omaha_snapshots_deal_and_reveal_four_cards_with_an_evaluated_hand() {
     );
 
     let message = ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(523),
         revision: Revision(9),
@@ -170,6 +180,7 @@ fn adapter_emits_action_and_street_events() {
             player: RIGHT,
             action: TexasHoldemAction::Check,
             amount: 0,
+            ..
         }
     ));
     assert!(matches!(
@@ -266,6 +277,7 @@ fn next_hand_keeps_stacks_and_rotates_the_dealer() {
 fn private_snapshot_round_trips_through_the_wire_frame() {
     let snapshot = adapter().snapshot(HOST).unwrap();
     let message = ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(523),
         revision: Revision(8),

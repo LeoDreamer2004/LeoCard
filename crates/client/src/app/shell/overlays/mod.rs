@@ -9,3 +9,6 @@ pub(crate) use feedback::*;
 pub(crate) use rejection::*;
 pub(crate) use state::*;
 pub(crate) use view::*;
+
+mod plugin;
+pub(crate) use plugin::OverlaysPlugin;

@@ -2,8 +2,7 @@
 
 use super::QiGui523UiState;
 use bevy::prelude::*;
-use leocard_protocol::PublicPlayRecord;
-use leocard_protocol::QiGui523Snapshot;
+use leocard_protocol::{PublicPlayRecord, QiGui523Snapshot};
 use leocard_qigui523::{
     ClassifiedPlay, QiGui523Bot, QiGui523BotRequest, QiGuiCard, QiGuiRuleSet, classify,
     has_legal_response,

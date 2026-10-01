@@ -72,6 +72,7 @@ impl TexasHoldemSession {
                 player,
                 action,
                 amount,
+                ..
             } = event
             else {
                 continue;

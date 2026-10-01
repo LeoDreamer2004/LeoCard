@@ -1,7 +1,7 @@
 //! Shader-driven rounded trace around the player whose turn is active.
 
+use super::ACCENT;
 use super::smootherstep;
-use crate::app::ACCENT;
 use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;

@@ -1,5 +1,6 @@
 //! 跨页面共用的 UI 标记、皮肤与桌面外观控件类型。
 
+use crate::app::presentation::CustomButtonMotion;
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -17,6 +18,7 @@ pub(crate) struct RuleHelp {
 pub(crate) struct TableBackground;
 
 #[derive(Component)]
+#[require(CustomButtonMotion)]
 pub(crate) struct TableAppearanceSlider(pub TableAppearanceSetting);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

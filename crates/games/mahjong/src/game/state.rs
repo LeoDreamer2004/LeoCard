@@ -1,6 +1,6 @@
 use super::{
-    ClaimPriority, Discard, GameError, MahjongClaim, MahjongClaimOption, MahjongDrawOrigin, Phase,
-    PlayerState, PublicMeld, PublicPlayerState,
+    ClaimPriority, Discard, GameError, MahjongClaim, MahjongClaimOption, MahjongDrawOrigin,
+    MahjongMatchProgress, Phase, PlayerState, PublicMeld, PublicPlayerState,
 };
 use crate::{
     MahjongMeldKind, MahjongPlayerId, MahjongRuleSet, MahjongTile, MahjongWind, build_deck,
@@ -18,7 +18,7 @@ pub struct GameState {
     pub(super) dealer: MahjongPlayerId,
     pub(super) prevalent_wind: MahjongWind,
     pub(super) sequence_index: u8,
-    pub(super) hands_in_match: u8,
+    pub(super) match_progress: MahjongMatchProgress,
     pub(super) current_player: MahjongPlayerId,
     pub(super) last_drawn: Option<MahjongTile>,
     pub(super) draw_origin: MahjongDrawOrigin,
@@ -54,7 +54,7 @@ impl GameState {
             dealer: initial_dealer,
             prevalent_wind: MahjongWind::East,
             sequence_index: 0,
-            hands_in_match: 0,
+            match_progress: MahjongMatchProgress::default(),
             current_player: initial_dealer,
             last_drawn: None,
             draw_origin: MahjongDrawOrigin::Normal,

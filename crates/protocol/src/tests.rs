@@ -32,6 +32,11 @@ fn client_message_round_trips_through_tcp_frame() {
             reference_points: 12,
             completed_games: 8,
             game_profiles: PlayerGameProfiles {
+                achievements: AchievementCounts {
+                    gold: 2,
+                    silver: 7,
+                    bronze: 11,
+                },
                 gender: PlayerGender::Female,
                 qigui523: Some(QiGui523ProfileStats {
                     completed_games: 2,
@@ -82,6 +87,7 @@ fn client_message_round_trips_through_tcp_frame() {
 #[test]
 fn interaction_event_round_trips_with_its_shared_animation_seed() {
     let message = ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(42),
         revision: Revision(9),
@@ -107,6 +113,7 @@ fn chat_events_round_trip_for_text_quick_voice_and_emoji() {
         ChatContent::Emoji(ChatEmoji::Laugh),
     ] {
         let message = ServerMessage {
+            game_context: None,
             protocol_version: PROTOCOL_VERSION,
             room_id: RoomId(42),
             revision: Revision(9),

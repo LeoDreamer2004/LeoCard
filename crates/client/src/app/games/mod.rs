@@ -13,10 +13,8 @@ mod violations;
 
 pub(super) use catalog::*;
 pub(super) use composition::*;
-pub(crate) use mahjong::*;
 pub(super) use plugin::*;
-pub(crate) use qigui523::*;
-pub(crate) use shengji::*;
-pub(super) use summary::*;
-pub(crate) use uno::*;
 pub(super) use violations::*;
+
+mod screen_change;
+pub(crate) use screen_change::GameScreenChange;

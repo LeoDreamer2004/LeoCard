@@ -108,6 +108,15 @@ impl UnoRuleSet {
         matches!(self.mode, Mode::Flip)
     }
 
+    /// Whether skip cards can be answered by stacking another action card.
+    pub const fn action_stacking_enabled(self) -> bool {
+        if self.is_flip() {
+            self.flip.action_stacking
+        } else {
+            self.is_classic() && self.action_stacking
+        }
+    }
+
     pub const fn uno_callout(self) -> bool {
         match self.mode {
             Mode::Classic => self.uno_callout,

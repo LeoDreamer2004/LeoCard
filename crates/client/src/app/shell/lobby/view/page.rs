@@ -2,13 +2,11 @@ use super::*;
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
-    CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button_variant, add_cozy_panel,
+    CozyButtonVariant, LobbyTransitionPanel, LobbyUiAction, PageTransitionElement, UiAction,
+    add_cozy_button_variant, add_cozy_panel,
 };
 use bevy::prelude::*;
-use bevy::ui::{
-    BackgroundGradient, ColorStop, FocusPolicy, Gradient, LinearGradient, RadialGradient,
-    RadialGradientShape, UiPosition, VisualBox,
-};
+use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_protocol::LobbySnapshot;
 
 #[derive(Clone, Copy)]
@@ -93,40 +91,8 @@ impl LobbyPage {
                 justify_content: JustifyContent::Center,
                 ..default()
             },
-            Some(Color::srgb(0.045, 0.05, 0.075)),
+            None,
         );
-        commands.entity(canvas).insert(BackgroundGradient(vec![
-            Gradient::Linear(LinearGradient::to_bottom_right(vec![
-                ColorStop::percent(Color::srgb(0.095, 0.09, 0.14), 0.0),
-                ColorStop::percent(Color::srgb(0.06, 0.065, 0.10), 55.0),
-                ColorStop::percent(Color::srgb(0.035, 0.05, 0.075), 100.0),
-            ])),
-            Gradient::Radial(RadialGradient::new(
-                UiPosition::TOP_RIGHT,
-                RadialGradientShape::FarthestCorner,
-                vec![
-                    ColorStop::percent(Color::srgba(0.32, 0.25, 0.46, 0.22), 0.0),
-                    ColorStop::percent(Color::srgba(0.32, 0.25, 0.46, 0.0), 70.0),
-                ],
-            )),
-        ]));
-        let texture = commands
-            .spawn((
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(0),
-                    right: px(0),
-                    top: px(0),
-                    bottom: px(0),
-                    ..default()
-                },
-                ImageNode::new(assets.table_felt.clone())
-                    .with_mode(NodeImageMode::Stretch)
-                    .with_color(Color::srgba(0.48, 0.45, 0.66, 0.07)),
-                FocusPolicy::Pass,
-            ))
-            .id();
-        commands.entity(canvas).add_child(texture);
         let content = spawn_node(
             commands,
             canvas,
@@ -163,6 +129,11 @@ impl LobbyPage {
             },
             assets,
         );
+        commands.entity(rules).insert((
+            LobbyTransitionPanel(0),
+            PageTransitionElement::left(0),
+            UiTransform::IDENTITY,
+        ));
         let players = add_cozy_panel(
             commands,
             content,
@@ -177,6 +148,11 @@ impl LobbyPage {
             },
             assets,
         );
+        commands.entity(players).insert((
+            LobbyTransitionPanel(1),
+            PageTransitionElement::right(1),
+            UiTransform::IDENTITY,
+        ));
         Self {
             rules,
             players,

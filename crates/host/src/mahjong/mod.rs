@@ -10,3 +10,6 @@ mod tests;
 
 pub use state::*;
 use support::*;
+
+mod win_feedback;
+use win_feedback::MahjongWinFeedback;

@@ -1,7 +1,9 @@
 //! 内嵌资源源与操作系统窗口集成。
 
 #[cfg(all(test, leocard_embedded_assets))]
-use crate::app::{TABLE_BACKGROUND_SHADER, TABLE_FELT_ASSET, UI_FONT_ASSET};
+use super::{TABLE_FELT_ASSET, UI_FONT_ASSET};
+#[cfg(all(test, leocard_embedded_assets))]
+use crate::app::presentation::TABLE_BACKGROUND_SHADER;
 #[cfg(leocard_embedded_assets)]
 use bevy::asset::AssetApp;
 #[cfg(leocard_embedded_assets)]
@@ -98,6 +100,9 @@ mod tests {
             "ui/home/cozy-input-focused.png",
             "icons/github-mark.png",
             "icons/settings.png",
+            "icons/achievement-trophy.png",
+            "ui/achievements/emblem-mahjong.png",
+            "ui/achievements/medal-gold.png",
             "icons/exit-room.png",
         ] {
             assert!(

@@ -1,4 +1,4 @@
-use super::{Form, ScoreError, Set, SetKind, is_complete_hand};
+use super::{Form, ScoreError, Set, SetKind, waiting_tile_kinds};
 use crate::{MahjongMeldKind, MahjongSuit, MahjongTileKind, Meld};
 
 pub(super) fn validated_forms(
@@ -281,22 +281,5 @@ pub(super) fn unique_wait(
         return false;
     };
     before.remove(position);
-    let mut wins = 0;
-    for index in 0..34 {
-        let tile = MahjongTileKind::from_index34(index).expect("valid index");
-        let used = before.iter().filter(|held| **held == tile).count()
-            + melds
-                .iter()
-                .flat_map(|meld| meld.tile_kinds())
-                .filter(|held| *held == tile)
-                .count();
-        if used < 4 {
-            before.push(tile);
-            if is_complete_hand(&before, melds) {
-                wins += 1;
-            }
-            before.pop();
-        }
-    }
-    wins == 1
+    waiting_tile_kinds(&before, melds).len() == 1
 }

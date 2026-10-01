@@ -75,9 +75,9 @@ pub(crate) fn render_mahjong_lobby(
             label: "场次",
             value: match rules.match_length {
                 MahjongMatchLength::SingleHand => "单局结算",
-                MahjongMatchLength::EastRound => "东风场（4 局）",
-                MahjongMatchLength::HalfGame => "半庄场（8 局）",
-                MahjongMatchLength::FullGame => "全庄场（16 局）",
+                MahjongMatchLength::EastRound => "东风场",
+                MahjongMatchLength::HalfGame => "半庄场",
+                MahjongMatchLength::FullGame => "全庄场",
             }
             .to_owned(),
             help: "每盘结算后全员可直接准备下一盘，不会返回大厅。单局模式仍会继续轮庄。",

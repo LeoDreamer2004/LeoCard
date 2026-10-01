@@ -123,8 +123,10 @@ impl QiGui523Session {
 
     pub(super) fn broadcast_play_effect(&self, effect: (PlayerId, PublicPlay)) -> Vec<Delivery> {
         let (player, play) = effect;
-        self.room
-            .broadcast_game_events([QiGui523Event::PlayEffect { player, play }])
+        self.room.broadcast_game_events(
+            [QiGui523Event::PlayEffect { player, play }],
+            self.match_id.map(|id| (id, None)),
+        )
     }
 
     pub(super) fn game_snapshot(&self, recipient: PlayerId) -> QiGui523Snapshot {

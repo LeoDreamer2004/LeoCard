@@ -1,4 +1,6 @@
-use super::{GameState, UnoCard, UnoFace, UnoPlayerId};
+use crate::{UnoCard, UnoFace};
+
+use super::{GameState, UnoPlayerId};
 
 impl GameState {
     pub(super) fn finalize_play(

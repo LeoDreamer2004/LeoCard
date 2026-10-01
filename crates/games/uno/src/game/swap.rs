@@ -1,6 +1,8 @@
+use crate::{UnoCard, UnoColor, UnoFace};
+
 use super::{
-    ActionOutcome, GameError, GameState, PendingSwapState, UnoCard, UnoColor, UnoFace, UnoPlayerId,
-    remove_card, swap_player_hands,
+    ActionOutcome, GameError, GameState, PendingSwapState, UnoPlayerId, remove_card,
+    swap_player_hands,
 };
 
 impl GameState {

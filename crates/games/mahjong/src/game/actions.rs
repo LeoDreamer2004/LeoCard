@@ -144,6 +144,7 @@ impl GameState {
                 from: None,
                 winning_tile: winning,
                 score,
+                wait_kind_count: self.wait_kind_count(player, winning, true),
             }]);
         }
         if self.rules.false_win {
@@ -186,7 +187,7 @@ impl GameState {
         Ok(self.is_legal_score(&score))
     }
 
-    fn self_draw_score(
+    pub(super) fn self_draw_score(
         &self,
         player: MahjongPlayerId,
     ) -> Result<Option<MahjongScoreResult>, GameError> {

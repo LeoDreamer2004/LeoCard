@@ -1,8 +1,11 @@
-use super::super::{
-    Component, StructureDemands, category, classify_cards, classify_mixed_discard,
-    component_can_be_beaten, component_kind_order, pair_units, satisfies_follow_structure,
-    titanic_tops, tractor_tops, triple_units, validate_owned,
+use super::super::classification::{classify_mixed_discard, component_can_be_beaten};
+use super::super::structure::{
+    component_kind_order, pair_units, satisfies_follow_structure, titanic_tops, tractor_tops,
+    triple_units, validate_owned,
 };
+use crate::play::structure::StructureDemands;
+
+use super::super::{Component, category, classify_cards};
 use super::{best_follow_tier, special_follow_hierarchy};
 use crate::{
     FollowError, PlayError, ShengjiCard, ShengjiClassifiedPlay, ShengjiRank, ShengjiRuleSet,

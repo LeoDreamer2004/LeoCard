@@ -41,6 +41,7 @@ pub(super) trait HostedGameLifecycle: Sized {
             .close_room(connection, request_id)
             .unwrap_or_else(|reason| self.room().reject(connection, request_id, reason))
     }
+
     fn interact(
         &mut self,
         connection: ConnectionId,
@@ -204,6 +205,22 @@ pub(super) fn dispatch_client_command<S: HostedGameLifecycle>(
     session.before_dispatch();
     let request_id = message.request_id;
     match message.command {
+        ClientCommand::PublishAchievements { counts, unlocked } => {
+            match session
+                .room_mut()
+                .publish_achievements(connection, request_id, counts, unlocked)
+            {
+                Ok(mut deliveries) => {
+                    deliveries.extend(if session.game_started() {
+                        session.broadcast_game(Some((connection, request_id)))
+                    } else {
+                        session.broadcast_lobby(Some((connection, request_id)))
+                    });
+                    deliveries
+                }
+                Err(reason) => session.room().reject(connection, request_id, reason),
+            }
+        }
         ClientCommand::Join(request) => session.join(connection, request_id, *request),
         ClientCommand::SetAvatar { png } => session.set_avatar(connection, request_id, png),
         ClientCommand::SelectSeat { seat } => session.select_seat(connection, request_id, seat),

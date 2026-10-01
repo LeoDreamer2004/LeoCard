@@ -43,6 +43,8 @@ pub enum PlayerGender {
 /// 明细，展示层必须与真实的零次记录区分开来。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PlayerGameProfiles {
+    /// 仅公开各等级已解锁成就数量，不公开成就条目及日期。
+    pub achievements: AchievementCounts,
     /// Public profile attribute shared with other players and future voice lines.
     pub gender: PlayerGender,
     pub qigui523: Option<QiGui523ProfileStats>,
@@ -52,6 +54,19 @@ pub struct PlayerGameProfiles {
     /// 玩家收到互动时累计的鲜花与鸡蛋数量。
     pub interactions: Option<PlayerInteractionStats>,
     pub mahjong: Option<MahjongProfileStats>,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct AchievementCounts {
+    pub gold: u32,
+    pub silver: u32,
+    pub bronze: u32,
+}
+
+impl AchievementCounts {
+    pub const fn by_tier(self) -> [u32; 3] {
+        [self.gold, self.silver, self.bronze]
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

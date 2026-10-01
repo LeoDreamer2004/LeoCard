@@ -2,8 +2,8 @@ use crate::{
     AvatarId, MatchId, PlayerGameProfiles, PlayerId, PlayerReferenceChange, ProfileId, SeatId,
 };
 use leocard_mahjong::{
-    MahjongClaim, MahjongClaimOption, MahjongMeldKind, MahjongRuleSet, MahjongScoreResult,
-    MahjongTile, MahjongTileKind, MahjongWind,
+    MahjongClaim, MahjongClaimOption, MahjongMatchLength, MahjongMatchProgress, MahjongMeldKind,
+    MahjongRuleSet, MahjongScoreResult, MahjongTile, MahjongTileKind, MahjongWind,
 };
 use serde::{Deserialize, Serialize};
 
@@ -85,12 +85,15 @@ pub struct MahjongWinView {
     pub from: Option<PlayerId>,
     pub winning_tile: MahjongTile,
     pub score: MahjongScoreResult,
+    pub wait_kind_count: u8,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongHandResultView {
     pub winners: Vec<MahjongWinView>,
     pub exhaustive_draw: bool,
+    pub match_length: MahjongMatchLength,
+    pub match_progress: MahjongMatchProgress,
     pub deltas: [i32; 4],
     pub match_scores: [i32; 4],
     pub match_complete: bool,

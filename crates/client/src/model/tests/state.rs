@@ -5,7 +5,60 @@ use leocard_protocol::{
     PlayerReferenceChange, RejectReason, Revision, RoomId, ServerEvent, ServerMessage,
 };
 use leocard_protocol::{GameKind, GamePhaseView, GameViolation, ProfileId, RuleViolation};
+use leocard_protocol::{PlayerInteraction, PlayerInteractionKind};
 use leocard_qigui523::QiGuiRuleSet;
+
+#[test]
+fn accepted_events_reach_observers_without_consuming_presentation_queues() {
+    let mut model = ClientModel::new(RoomId(7));
+    model.apply(ServerMessage {
+        game_context: None,
+        protocol_version: PROTOCOL_VERSION,
+        room_id: RoomId(7),
+        revision: Revision(1),
+        in_reply_to: None,
+        event: ServerEvent::Joined { you: PlayerId(0) },
+    });
+    let interaction = PlayerInteraction {
+        source: PlayerId(1),
+        target: PlayerId(0),
+        kind: PlayerInteractionKind::Flower,
+        seed: 1,
+    };
+    let message = ServerMessage {
+        game_context: None,
+        protocol_version: PROTOCOL_VERSION,
+        room_id: RoomId(7),
+        revision: Revision(2),
+        in_reply_to: None,
+        event: ServerEvent::PlayerInteraction(interaction),
+    };
+    let mut observed = Vec::new();
+    assert!(model.apply_with_events(message.clone(), |player, event| {
+        observed.push((player, event.event.clone()))
+    }));
+    assert_eq!(observed, [(Some(PlayerId(0)), message.event.clone())]);
+    assert_eq!(model.take_player_interactions(), [interaction]);
+    for rejected in [
+        ServerMessage {
+            room_id: RoomId(99),
+            ..message.clone()
+        },
+        ServerMessage {
+            game_context: None,
+            protocol_version: 0,
+            ..message.clone()
+        },
+        ServerMessage {
+            revision: Revision(1),
+            ..message
+        },
+    ] {
+        assert!(
+            !model.apply_with_events(rejected, |_, _| panic!("rejected event reached observer"))
+        );
+    }
+}
 
 #[test]
 fn finished_match_receipt_survives_a_following_lobby_snapshot() {
@@ -18,6 +71,7 @@ fn finished_match_receipt_survives_a_following_lobby_snapshot() {
         delta: 2,
     };
     assert!(model.apply(ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(7),
         revision: Revision(1),
@@ -35,6 +89,7 @@ fn finished_match_receipt_survives_a_following_lobby_snapshot() {
         ))),
     }));
     assert!(model.apply(ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(7),
         revision: Revision(2),
@@ -56,6 +111,7 @@ fn avatar_payload_is_cached_independently_from_snapshots() {
     let mut model = ClientModel::new(RoomId(7));
     let png = vec![1, 2, 3, 4];
     assert!(model.apply(ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(7),
         revision: Revision(1),
@@ -74,6 +130,7 @@ fn avatar_payload_is_cached_independently_from_snapshots() {
 fn repeated_identical_rejections_each_advance_the_local_serial() {
     let mut model = ClientModel::new(RoomId(7));
     let rejection = ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(7),
         revision: Revision(1),
@@ -95,6 +152,7 @@ fn room_closed_event_is_remembered_by_the_client_model() {
     let mut model = ClientModel::new(RoomId(7));
     assert!(!model.room_closed());
     assert!(model.apply(ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(7),
         revision: Revision(1),
@@ -108,6 +166,7 @@ fn room_closed_event_is_remembered_by_the_client_model() {
 fn named_leave_notice_and_local_leave_are_remembered_separately() {
     let mut model = ClientModel::new(RoomId(7));
     assert!(model.apply(ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(7),
         revision: Revision(1),
@@ -121,6 +180,7 @@ fn named_leave_notice_and_local_leave_are_remembered_separately() {
     assert!(!model.left_room());
 
     assert!(model.apply(ServerMessage {
+        game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(7),
         revision: Revision(2),

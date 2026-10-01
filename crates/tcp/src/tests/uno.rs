@@ -1,4 +1,5 @@
 use super::prelude::*;
+use leocard_protocol::AchievementCounts;
 
 #[tokio::test]
 async fn uno_room_uses_the_shared_tcp_transport_and_private_hands() {
@@ -26,7 +27,14 @@ async fn uno_room_uses_the_shared_tcp_transport_and_private_hands() {
         secret[..8].copy_from_slice(&(index + 300).to_be_bytes());
         secret[8] = 4;
         let key = SigningKey::from_bytes(&secret);
-        let game_profiles = PlayerGameProfiles::default();
+        let game_profiles = PlayerGameProfiles {
+            achievements: AchievementCounts {
+                gold: index as u32 + 1,
+                silver: index as u32 + 3,
+                bronze: index as u32 + 5,
+            },
+            ..PlayerGameProfiles::default()
+        };
         let signature = key
             .sign(&join_identity_payload(
                 room,
@@ -95,6 +103,13 @@ async fn uno_room_uses_the_shared_tcp_transport_and_private_hands() {
         assert_eq!(snapshot.your_hand.len(), 7);
         assert_eq!(snapshot.players.len(), 2);
         assert!(snapshot.players.iter().all(|player| player.hand_len == 7));
+        for player in &snapshot.players {
+            let index = u32::from(player.id.0);
+            assert_eq!(
+                player.game_profiles.achievements.by_tier(),
+                [index + 1, index + 3, index + 5]
+            );
+        }
         hands.push(snapshot.your_hand);
     }
     assert!(hands.windows(2).any(|pair| pair[0] != pair[1]));

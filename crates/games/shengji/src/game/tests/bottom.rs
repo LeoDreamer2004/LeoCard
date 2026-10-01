@@ -1,4 +1,8 @@
-use super::*;
+use super::super::*;
+use crate::{
+    ShengjiBidTrump, ShengjiCard, ShengjiPlayerId, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
+    build_deck,
+};
 
 #[test]
 fn first_hand_final_counter_becomes_dealer_but_later_hands_keep_fixed_dealer() {

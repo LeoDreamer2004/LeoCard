@@ -173,6 +173,10 @@ impl TexasHoldemAdapter {
             player,
             action,
             amount,
+            statistics: self
+                .game
+                .last_action_statistics()
+                .expect("an accepted action has statistics"),
         }];
         match outcome {
             ActionOutcome::BlindPosted { .. } => {}
@@ -184,6 +188,16 @@ impl TexasHoldemAdapter {
                 });
             }
             ActionOutcome::HandComplete(result) => {
+                events.extend(self.players.iter().enumerate().map(|(index, participant)| {
+                    TexasHoldemEvent::HandAnalyzed {
+                        player: participant.id,
+                        statistics: Box::new(
+                            self.game
+                                .hand_statistics(TexasHoldemPlayerId(index))
+                                .expect("a settled hand has statistics"),
+                        ),
+                    }
+                }));
                 events.push(TexasHoldemEvent::HandFinished {
                     showdown: result.showdown,
                 });

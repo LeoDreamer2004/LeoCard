@@ -1,4 +1,9 @@
+use crate::play::classify_cards;
+use crate::{Component, FollowError, PlayError, compare_for_trick, validate_follow};
+
 use super::*;
+use crate::{ShengjiCard, ShengjiRank, ShengjiSuit, ShengjiTrump};
+use std::cmp::Ordering;
 
 #[test]
 fn three_deck_triples_form_titanics_across_skipped_and_special_levels() {

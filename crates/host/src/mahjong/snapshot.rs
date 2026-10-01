@@ -1,6 +1,7 @@
 use super::{MahjongSession, from_core_player, hand_result_view, to_core_player};
 use crate::{ConnectionId, Delivery};
 use leocard_mahjong::{GameError, MahjongMeldKind, Phase};
+use leocard_protocol::{GameEvent, ServerEvent};
 use leocard_protocol::{
     GameViolation, MahjongDiscardView, MahjongEvent, MahjongPendingClaimView, MahjongPhaseView,
     MahjongPlayerState, MahjongPublicMeldView, MahjongSnapshot, MahjongViolation, PlayerId,
@@ -9,8 +10,31 @@ use leocard_protocol::{
 use std::collections::HashSet;
 
 impl MahjongSession {
-    pub(super) fn broadcast_events(&self, events: Vec<MahjongEvent>) -> Vec<Delivery> {
-        self.room.broadcast_game_events(events)
+    pub(super) fn broadcast_events(&mut self, mut events: Vec<MahjongEvent>) -> Vec<Delivery> {
+        if let Some(game) = self.game.as_ref() {
+            self.win_feedback.after_action(game, &mut events);
+        }
+        self.room
+            .broadcast_game_events(
+                events,
+                self.match_id.map(|id| {
+                    (
+                        id,
+                        self.game
+                            .as_ref()
+                            .map(|game| u32::from(game.sequence_index())),
+                    )
+                }),
+            )
+            .into_iter()
+            .filter(|delivery| match &delivery.message.event {
+                ServerEvent::GameEvent(GameEvent::Mahjong(MahjongEvent::WinUnavailable {
+                    player,
+                    ..
+                })) => self.room.player_id(delivery.recipient) == Some(*player),
+                _ => true,
+            })
+            .collect()
     }
 
     pub(super) fn game_snapshot(&self, recipient: PlayerId) -> MahjongSnapshot {

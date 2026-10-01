@@ -1,3 +1,4 @@
+use crate::app::presentation::CustomButtonMotion;
 use bevy::prelude::*;
 use leocard_protocol::PlayerGameProfiles;
 
@@ -37,6 +38,7 @@ pub(crate) struct SelectedProfileGameTab;
 pub(crate) struct ProfileGameContent;
 
 #[derive(Component)]
+#[require(CustomButtonMotion)]
 pub(crate) struct ProfileGameTabButton;
 
 #[derive(Component)]
@@ -44,3 +46,10 @@ pub(crate) struct ProfileGameColumn;
 
 #[derive(Component)]
 pub(crate) struct ProfileStat;
+
+#[derive(Default)]
+pub(crate) struct ProfileUiState {
+    pub open: bool,
+    pub player: Option<PlayerProfilePage>,
+    pub game_tab: ProfileGameTab,
+}

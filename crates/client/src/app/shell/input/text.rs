@@ -1,11 +1,10 @@
 //! 文本输入、聊天输入与开发者手牌语法。
 
+use super::InputField;
+use crate::app::runtime::{ClientResource, ConnectionDraft, PageErrorState};
 #[cfg(feature = "developer")]
-use crate::app::submit_developer_hand;
-use crate::app::{
-    ChatPanelState, ClientResource, ConnectionDraft, DeveloperHandInput, InputField,
-    PageErrorState, UiState, append_developer_hand_input,
-};
+use crate::app::shell::submit_developer_hand;
+use crate::app::shell::{ChatPanelState, DeveloperHandInput, UiState, append_developer_hand_input};
 use bevy::ecs::system::SystemParam;
 use bevy::input::ButtonState;
 use bevy::input::keyboard::{Key, KeyboardInput};

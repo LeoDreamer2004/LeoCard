@@ -10,6 +10,7 @@ mod hand;
 mod hover;
 mod lobby;
 mod material;
+mod modal;
 mod players;
 mod plugin;
 mod presentation;
@@ -34,10 +35,14 @@ pub(crate) use material::*;
 use players::*;
 pub(crate) use plugin::*;
 pub(crate) use presentation::*;
-pub(crate) use settlement::mahjong_fan_pause_at;
 use settlement::*;
 pub(crate) use state::*;
 use status::*;
 use tiles::*;
 pub(crate) use view::*;
 use voices::*;
+
+use modal::advance_mahjong_modal;
+
+mod hover_retention;
+pub(crate) use hover_retention::MahjongHoverRetention;

@@ -1,3 +1,5 @@
+use crate::{UnoCard, UnoColor, UnoFace};
+
 use super::super::prelude::*;
 
 #[test]

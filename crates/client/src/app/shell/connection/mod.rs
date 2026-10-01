@@ -9,3 +9,6 @@ pub(crate) use actions::*;
 pub(crate) use files::*;
 pub(super) use plugin::*;
 pub(crate) use view::*;
+
+mod end_feedback;
+pub(crate) use end_feedback::ConnectionEndFeedback;

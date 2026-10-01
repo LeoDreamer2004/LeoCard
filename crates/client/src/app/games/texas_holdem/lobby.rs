@@ -9,8 +9,7 @@ use crate::app::shell::{
     LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_lobby_rules_heading,
 };
 use bevy::prelude::*;
-use leocard_protocol::LobbySnapshot;
-use leocard_protocol::TABLE_SEAT_COUNT;
+use leocard_protocol::{LobbySnapshot, TABLE_SEAT_COUNT};
 use leocard_texas_holdem::TexasHoldemRuleSet;
 
 type TexasRuleConfigRow<'a> = RuleConfigRow<'a, TexasHoldemRuleSet>;

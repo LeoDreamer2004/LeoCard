@@ -1,11 +1,11 @@
 use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
-    AvatarId, ChatContent, ChatMessage, ClientMessage, GameEvent, GameKind, GameRules,
-    GameViolation, JoinRequest, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MAX_PLAYER_NAME_CHARS,
-    PROTOCOL_VERSION, PlayerGameProfiles, PlayerId, PlayerInteractionKind, PlayerInteractionStats,
-    PlayerViolation, ProfileId, QUICK_VOICE_COUNT, ReconnectToken, RejectReason, RequestId,
-    RequestViolation, Revision, RoomId, RoomViolation, SeatId, ServerEvent, ServerMessage,
-    TABLE_SEAT_COUNT,
+    AvatarId, ChatContent, ChatMessage, ClientMessage, GameEvent, GameEventContext, GameKind,
+    GameRules, GameViolation, JoinRequest, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS,
+    MAX_PLAYER_NAME_CHARS, MatchId, PROTOCOL_VERSION, PlayerGameProfiles, PlayerId,
+    PlayerInteractionKind, PlayerInteractionStats, PlayerViolation, ProfileId, QUICK_VOICE_COUNT,
+    ReconnectToken, RejectReason, RequestId, RequestViolation, Revision, RoomId, RoomViolation,
+    SeatId, ServerEvent, ServerMessage, TABLE_SEAT_COUNT,
 };
 use std::collections::HashMap;
 
@@ -37,6 +37,7 @@ pub(super) struct Participant {
 /// 这里保存一份。具体游戏仍决定何时允许加入、何时广播大厅或私有牌局快照。
 #[derive(Clone, Debug)]
 pub struct RoomSession {
+    pub(super) achievements: crate::achievements::RoomAchievements,
     pub(super) room_id: RoomId,
     pub(super) host_port: u16,
     pub(super) players: Vec<Participant>,
@@ -71,6 +72,7 @@ impl RoomSession {
     ) -> Self {
         assert!(seat_count > 0 && seat_count <= TABLE_SEAT_COUNT);
         Self {
+            achievements: crate::achievements::RoomAchievements::default(),
             room_id,
             host_port,
             players: Vec::with_capacity(capacity),
@@ -584,6 +586,7 @@ impl RoomSession {
         Delivery {
             recipient,
             message: ServerMessage {
+                game_context: None,
                 protocol_version: PROTOCOL_VERSION,
                 room_id: self.room_id,
                 revision: self.revision,
@@ -644,13 +647,27 @@ impl RoomSession {
     pub(super) fn broadcast_game_events<E>(
         &self,
         events: impl IntoIterator<Item = E>,
+        origin: Option<(MatchId, Option<u32>)>,
     ) -> Vec<Delivery>
     where
         E: Into<GameEvent>,
     {
         events
             .into_iter()
-            .flat_map(|event| self.broadcast_event(None, ServerEvent::GameEvent(event.into())))
+            .enumerate()
+            .flat_map(|(index, event)| {
+                let context = origin.map(|(match_id, hand_index)| GameEventContext {
+                    match_id,
+                    hand_index,
+                    sequence: (u128::from(self.revision.0) << 64) | index as u128,
+                });
+                let mut deliveries =
+                    self.broadcast_event(None, ServerEvent::GameEvent(event.into()));
+                for delivery in &mut deliveries {
+                    delivery.message.game_context = context;
+                }
+                deliveries
+            })
             .collect()
     }
 

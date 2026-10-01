@@ -133,6 +133,7 @@ impl ClientModel {
         self.games.shengji.events.push(event);
     }
 }
+
 fn completed_shengji_trick_score_cards(
     previous: &ShengjiSnapshot,
     next: &ShengjiSnapshot,

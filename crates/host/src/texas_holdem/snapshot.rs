@@ -1,6 +1,8 @@
 use super::TexasHoldemSession;
 use crate::Delivery;
-use leocard_protocol::{PlayerId, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemSnapshot};
+use leocard_protocol::{
+    GameEvent, PlayerId, ServerEvent, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemSnapshot,
+};
 
 impl TexasHoldemSession {
     pub(super) fn game_snapshot(&self, recipient: PlayerId) -> TexasHoldemSnapshot {
@@ -39,6 +41,20 @@ impl TexasHoldemSession {
     }
 
     pub(super) fn broadcast_events(&self, events: Vec<TexasHoldemEvent>) -> Vec<Delivery> {
-        self.room.broadcast_game_events(events)
+        self.room
+            .broadcast_game_events(
+                events,
+                self.game
+                    .as_ref()
+                    .map(|game| (game.match_id(), Some(game.game().hand_number()))),
+            )
+            .into_iter()
+            .filter(|delivery| match &delivery.message.event {
+                ServerEvent::GameEvent(GameEvent::TexasHoldem(
+                    TexasHoldemEvent::HandAnalyzed { player, .. },
+                )) => self.room.player_id(delivery.recipient) == Some(*player),
+                _ => true,
+            })
+            .collect()
     }
 }

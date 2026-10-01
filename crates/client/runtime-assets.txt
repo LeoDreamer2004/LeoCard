@@ -10,6 +10,7 @@ fonts/
 icons/chat-emoji-white.png
 icons/github-mark.png
 icons/settings.png
+icons/achievement-trophy.png
 icons/exit-room.png
 icons/list-menu.png
 icons/robot-2-fill.png

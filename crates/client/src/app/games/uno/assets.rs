@@ -1,4 +1,5 @@
 use super::UnoSoundAssets;
+use crate::app::runtime::uno_card_asset_path;
 use bevy::prelude::*;
 use leocard_uno::{Mode, UnoColor, UnoFace, UnoRuleSet, build_deck_for_rules};
 use std::collections::HashMap;
@@ -32,9 +33,9 @@ impl UnoAssets {
             for card in build_deck_for_rules(rules) {
                 for face in [Some(card), card.opposite_public_face()] {
                     let Some(face) = face else { continue };
-                    cards.entry((face.color(), face.face())).or_insert_with(|| {
-                        asset_server.load(crate::app::uno_card_asset_path(face))
-                    });
+                    cards
+                        .entry((face.color(), face.face()))
+                        .or_insert_with(|| asset_server.load(uno_card_asset_path(face)));
                 }
             }
         }

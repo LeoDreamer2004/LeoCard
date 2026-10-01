@@ -13,6 +13,7 @@ use super::{
     render_mahjong_wall, render_mahjong_win_effects, render_own_discard_flight, render_own_hand,
     render_round_status,
 };
+use crate::app::presentation::CustomButtonMotion;
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition, TableBackground,
     TableBackgroundMaterial, add_auto_play_overlay, spawn_node, table_material_params,
@@ -75,6 +76,7 @@ pub(super) const fn mahjong_claim_landing_time() -> f32 {
 }
 
 #[derive(Component)]
+#[require(CustomButtonMotion)]
 pub(crate) struct MahjongHandTile {
     pub lift: f32,
     pub base_rotation: f32,

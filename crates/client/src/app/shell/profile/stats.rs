@@ -200,6 +200,7 @@ pub(crate) fn qigui523_profile_rows(
     ]);
     rows.finish()
 }
+
 pub(crate) fn texas_holdem_profile_rows(
     stats: Option<&TexasHoldemProfileStats>,
 ) -> Vec<(&'static str, String)> {

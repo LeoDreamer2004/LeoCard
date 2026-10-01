@@ -45,7 +45,8 @@ impl Plugin for RuntimePlugin {
         let audio_volume = preferences.appearance.audio_volume;
 
         configure_runtime_asset_source(app);
-        app.insert_resource(ClearColor(TABLE_BG))
+        app.add_message::<super::ServerNotification>()
+            .insert_resource(ClearColor(TABLE_BG))
             .insert_resource(preferences.connection)
             .insert_resource(preferences.appearance)
             .insert_resource(preferences.host_rules)

@@ -1,3 +1,4 @@
+use super::MahjongMatchProgress;
 use super::{ActionOutcome, GameError, GameState, MahjongDrawOrigin, Phase, validate_deck};
 use crate::{MahjongMatchLength, MahjongPlayerId, MahjongRuleSet, MahjongTile, MahjongWind};
 use std::collections::VecDeque;
@@ -13,11 +14,11 @@ impl GameState {
         if self.rules.match_length == MahjongMatchLength::SingleHand {
             self.match_scores = [0; MahjongRuleSet::PLAYER_COUNT];
             self.sequence_index = (self.sequence_index + 1) % 16;
-            self.hands_in_match = 0;
+            self.match_progress = MahjongMatchProgress::default();
         } else if completed_match {
             self.match_scores = [0; MahjongRuleSet::PLAYER_COUNT];
             self.sequence_index = 0;
-            self.hands_in_match = 0;
+            self.match_progress = MahjongMatchProgress::default();
         } else {
             self.sequence_index += 1;
         }

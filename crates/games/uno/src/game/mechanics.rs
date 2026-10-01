@@ -1,7 +1,9 @@
+use crate::rating::{placements_with_eliminations, reference_point_deltas_for_placements};
+use crate::{UnoCard, UnoColor, UnoFace, UnoFlipSide};
+
 use super::{
-    GameError, GameResult, GameState, Phase, PlayerState, UnoCard, UnoColor, UnoDirection, UnoFace,
-    UnoFlipSide, UnoPendingDrawKind, UnoPlayerId, faces_match, placements_with_eliminations,
-    reference_point_deltas_for_placements,
+    GameError, GameResult, GameState, Phase, PlayerState, UnoDirection, UnoPendingDrawKind,
+    UnoPlayerId, faces_match,
 };
 
 impl GameState {
@@ -146,11 +148,7 @@ impl GameState {
     }
 
     pub(super) const fn action_stacking_enabled(&self) -> bool {
-        if self.rules.is_flip() {
-            self.rules.flip.action_stacking
-        } else {
-            self.rules.is_classic() && self.rules.action_stacking
-        }
+        self.rules.action_stacking_enabled()
     }
 
     pub(super) const fn skip_draw_penalty_enabled(&self) -> bool {

@@ -4,7 +4,10 @@ use crate::{
 };
 use leocard_mahjong::{MahjongClaim, MahjongDrawOrigin, MahjongTile, MahjongTileKind};
 use leocard_shengji::{ShengjiCard, ShengjiRank};
-use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemCard, TexasHoldemStreet};
+use leocard_texas_holdem::{
+    TexasHoldemAction, TexasHoldemActionStatistics, TexasHoldemCard, TexasHoldemHandStatistics,
+    TexasHoldemStreet,
+};
 use leocard_uno::{UnoCard, UnoChallengeResult, UnoColor, UnoDirection, UnoFlipSide};
 use serde::{Deserialize, Serialize};
 
@@ -47,6 +50,11 @@ impl GameEvent {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongEvent {
+    /// Private feedback for a new completed-hand opportunity below the minimum fan.
+    WinUnavailable {
+        player: PlayerId,
+        points_without_flowers: u16,
+    },
     TileDiscarded {
         player: PlayerId,
         tile: MahjongTile,
@@ -178,11 +186,17 @@ pub enum QiGui523Event {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum TexasHoldemEvent {
+    /// Private settlement statistics, delivered only to the named player.
+    HandAnalyzed {
+        player: PlayerId,
+        statistics: Box<TexasHoldemHandStatistics>,
+    },
     ActionApplied {
         player: PlayerId,
         action: TexasHoldemAction,
         /// 此动作实际从玩家剩余筹码中投入的数量；过牌和弃牌为 0。
         amount: u32,
+        statistics: TexasHoldemActionStatistics,
     },
     StreetAdvanced {
         street: TexasHoldemStreet,

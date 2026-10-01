@@ -12,6 +12,9 @@ pub(super) const SUMMARY_SCORE_COUNT_DURATION: f32 = 0.72;
 pub(crate) const SUMMARY_ACTIONS_EXTRA_DELAY: f32 = 0.30;
 pub(crate) const TEXAS_UNCONTESTED_REVEAL_DURATION: f32 = 0.8;
 
+#[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(crate) struct SummaryAnimationSet;
+
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct SummaryDescriptor {
     pub match_id: MatchId,
@@ -20,6 +23,13 @@ pub(crate) struct SummaryDescriptor {
     pub entry_count: usize,
     pub nonnegative_outcome: bool,
     pub reveal_duration: f32,
+}
+
+/// Game adapters supply timing decisions; the renderer only consumes this projection.
+#[derive(Resource, Default)]
+pub(crate) struct SummaryPlayback {
+    pub descriptor: Option<SummaryDescriptor>,
+    pub pause_at: Option<f32>,
 }
 
 #[derive(Resource, Default)]

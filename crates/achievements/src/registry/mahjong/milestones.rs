@@ -1,0 +1,249 @@
+use super::super::{macros::award, types::*};
+use super::facts::*;
+use leocard_mahjong::{Fan, MahjongMatchLength};
+
+pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "small_fan_collector",
+        "总之就是凑数的",
+        Bronze,
+        "和出1番和2番的番种共200番次（不计花牌）",
+        mahjong_low_fans,
+        200,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "false_win",
+        "这是为什么",
+        Bronze,
+        "错和一次",
+        mahjong_false_win,
+        1,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "first_ten_wins",
+        "小试牛刀",
+        Bronze,
+        "和牌10次",
+        mahjong_wins,
+        10,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "big_eight_collector",
+        "萌新之友",
+        Bronze,
+        "和出国标八大番之一共50次「三色三步高」「三色三同顺」「花龙」「清龙」「混一色」「一色三步高」「五门齐」「碰碰和」",
+        |event| mahjong_group(event, BIG_EIGHT),
+        50,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "small_eight_collector",
+        "更进一步",
+        Bronze,
+        "和出国标八小番之一共50次「七对」「全带幺」「组合龙」「全不靠」「大于五」「小于五」「无番和」「全求人」",
+        |event| mahjong_group(event, SMALL_EIGHT),
+        50,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "almost_major_collector",
+        "寸止的艺术",
+        Bronze,
+        "和出以下番种之一共50次「三暗刻」「三杠」「混幺九」",
+        |event| mahjong_group(
+            event,
+            &[
+                Fan::ThreeConcealedPungs,
+                Fan::ThreeKongs,
+                Fan::AllTerminalsAndHonors
+            ]
+        ),
+        50,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "last_hand_comeback",
+        "永不言弃",
+        Bronze,
+        "在一场游戏的最后一局，从第四名翻盘到第一名",
+        |event| u64::from(
+            MahjongFacts::from_trigger(event).is_some_and(|facts| facts.last_hand_comeback())
+        ),
+        1,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "six_fan_eight_points",
+        "我是怎么胡的？",
+        Bronze,
+        "在拥有至少6种不同番种的情况下，恰好达到8番和牌条件（不计花牌）",
+        |event| mahjong_eight_points(event, false),
+        1,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "five_hundred_wins",
+        "千锤百炼",
+        Silver,
+        "和牌500次",
+        mahjong_wins,
+        500,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "three_winner_discard",
+        "三家分晋",
+        Silver,
+        "在启用一炮多响的一局中给三家同时点炮",
+        |event| u64::from(MahjongFacts::from_trigger(event).is_some_and(|facts| facts.fed_three())),
+        1,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "east_round_300",
+        "东风浩荡",
+        Silver,
+        "在一场东风局游戏中，获得300分以上",
+        |event| u64::from(
+            MahjongFacts::from_trigger(event)
+                .is_some_and(|facts| facts.final_score(MahjongMatchLength::EastRound, 300))
+        ),
+        1,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "south_round_500",
+        "南风送爽",
+        Silver,
+        "在一场南风局游戏中，获得500分以上",
+        |event| u64::from(
+            MahjongFacts::from_trigger(event)
+                .is_some_and(|facts| facts.final_score(MahjongMatchLength::HalfGame, 500))
+        ),
+        1,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "eight_one_point_fans",
+        "一切尽在掌握之中",
+        Silver,
+        "通过8种1番的番种，恰好达到8番和牌条件（不计花牌）",
+        |event| mahjong_eight_points(event, true),
+        1,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "ten_thousand_hands",
+        "万里挑一",
+        Gold,
+        "累计完成10000局，包含流局；多局游戏中的每局分别计数",
+        mahjong_hands,
+        10000,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "two_major_fans",
+        "龙凤胎",
+        Gold,
+        "一次性和出至少两个不低于48番的番种",
+        |event| u64::from(
+            MahjongFacts::from_trigger(event)
+                .is_some_and(|facts| facts.unique_fans(|fan| fan.points() >= 48) >= 2)
+        ),
+        1,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "two_major_wins",
+        "双喜临门",
+        Gold,
+        "在一场多局游戏中，至少两次和牌各含一个不低于48番的番种",
+        mahjong_high_win,
+        2,
+        Match
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "full_game_700",
+        "威震华夏",
+        Gold,
+        "在一场全庄局游戏中，获得700分以上",
+        |event| u64::from(
+            MahjongFacts::from_trigger(event)
+                .is_some_and(|facts| facts.final_score(MahjongMatchLength::FullGame, 700))
+        ),
+        1,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "broad_full_flush",
+        "搞不懂在听什么牌",
+        Bronze,
+        "在拥有至少5种听牌的情况下和出「清一色」",
+        |event| u64::from(
+            MahjongFacts::from_trigger(event).is_some_and(|facts| facts.broad_flush())
+        ),
+        1,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "all_draw_match",
+        "实属煎熬",
+        Silver,
+        "在一场多局游戏中，以所有局全部流局结束",
+        |event| u64::from(MahjongFacts::from_trigger(event).is_some_and(|facts| facts.all_draws())),
+        1,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "six_insufficient_fans",
+        "爱而不得",
+        Bronze,
+        "在一局中，至少6次因为番种不够而无法和牌",
+        mahjong_insufficient_fan,
+        6,
+        Hand
+    ),
+];

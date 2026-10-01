@@ -2,9 +2,10 @@ use super::{
     MahjongAssets, MahjongChoiceMenu, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
     MahjongUiAction, MahjongUiState, add_mahjong_tile_material,
 };
+use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{BackgroundButtonTint, ButtonTint, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{HomeHighlightKind, UiAction};
+use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_mahjong::{MahjongClaim, MahjongClaimOption, MahjongTileKind};
@@ -385,7 +386,7 @@ fn add_mahjong_button(
     commands.entity(button).add_child(overlay);
     let text = add_text(commands, button, label, 20.0, TEXT, assets);
     commands.entity(text).insert(FocusPolicy::Pass);
-    commands.entity(button).insert(HomeHighlightKind::Button {
+    commands.entity(button).insert(ButtonHighlight::Button {
         overlay,
         arrows: None,
     });

@@ -1,3 +1,4 @@
+use super::MahjongWinFeedback;
 use super::{
     AutomaticMahjongAction, MahjongSession, automatic_mahjong_action, from_core_player,
     to_core_player,
@@ -29,7 +30,7 @@ impl MahjongSession {
     pub(super) fn play_automatic_action(
         &mut self,
         player: PlayerId,
-    ) -> Option<(Option<MahjongEvent>, ActionOutcome)> {
+    ) -> Option<(Vec<MahjongEvent>, ActionOutcome)> {
         let core_player = to_core_player(player);
         let action = automatic_mahjong_action(self.game.as_ref()?, core_player)?;
         let game = self.game.as_mut()?;
@@ -39,6 +40,8 @@ impl MahjongSession {
             }
             _ => None,
         };
+        let mut events = MahjongWinFeedback::before_discard(game, public_event.as_ref());
+        events.extend(public_event);
         let outcome = match action {
             AutomaticMahjongAction::Discard(tile) => game.discard(core_player, tile),
             AutomaticMahjongAction::Respond(claim) => game.respond_to_claim(core_player, claim),
@@ -49,6 +52,6 @@ impl MahjongSession {
             AutomaticMahjongAction::AddedKong(tile) => game.declare_added_kong(core_player, tile),
         }
         .ok()?;
-        Some((public_event, outcome))
+        Some((events, outcome))
     }
 }

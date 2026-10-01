@@ -2,8 +2,8 @@ use super::{
     ShengjiPresentationState, ShengjiScoreCaptureEffectState, ShengjiSelectionSync,
     ShengjiSettlementAnimation, ShengjiUiState, actions, advance_shengji_presentation,
     animate_shengji_bottom_flip_markers, animate_shengji_failed_throw_cards,
-    animate_shengji_failed_throw_labels, animate_shengji_hand_card_slots,
-    animate_shengji_hand_cards, animate_shengji_power_outage_markers, animate_shengji_presentation,
+    animate_shengji_failed_throw_labels, animate_shengji_hand_cards,
+    animate_shengji_power_outage_markers, animate_shengji_presentation,
     animate_shengji_score_absorbs, animate_shengji_score_capture_score,
     animate_shengji_settlement_visuals, animate_shengji_throw_penalty_floats,
     animate_shengji_throw_penalty_score_pulses, assets, handle_shengji_card_drag_selection,
@@ -35,7 +35,6 @@ impl Plugin for ShengjiPlugin {
                 Update,
                 (
                     handle_shengji_card_drag_selection,
-                    animate_shengji_hand_card_slots,
                     sync_shengji_card_drag_preview,
                 )
                     .chain()

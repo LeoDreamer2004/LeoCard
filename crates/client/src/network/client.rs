@@ -207,6 +207,15 @@ impl TcpGameClient {
 
     /// 把后台线程已经收到的消息应用到模型；返回是否有可见状态变化。
     pub fn poll(&mut self) -> bool {
+        self.poll_with_events(|_, _| {})
+    }
+
+    /// Route accepted events to application observers without storing feature state
+    /// in the transport or client model.
+    pub fn poll_with_events(
+        &mut self,
+        mut observe: impl FnMut(Option<leocard_protocol::PlayerId>, &leocard_protocol::ServerMessage),
+    ) -> bool {
         let mut changed = false;
         let pending = {
             let mut events = self
@@ -234,7 +243,7 @@ impl TcpGameClient {
                             | ServerEvent::PlayerInteraction(_)
                             | ServerEvent::ChatMessage(_)
                     );
-                    changed |= self.model.apply(*message) && visible;
+                    changed |= self.model.apply_with_events(*message, &mut observe) && visible;
                 }
                 NetworkEvent::Failed(error) => {
                     let state = NetworkState::Failed(error);

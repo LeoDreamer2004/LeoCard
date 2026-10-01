@@ -1,6 +1,6 @@
 //! 按钮动作采集、领域系统注册与公共分发机制。
 
-use super::super::UiState;
+use super::super::{PageMotion, UiState};
 use super::{ButtonInteractions, PressedUiAction, UiActionHandler};
 use crate::app::runtime::ClientResource;
 use bevy::prelude::*;
@@ -23,7 +23,11 @@ fn collect_pressed_ui_actions(
     mouse: Res<ButtonInput<MouseButton>>,
     mut actions: MessageWriter<PressedUiAction>,
     mut ui: ResMut<UiState>,
+    page_motion: Option<Res<PageMotion>>,
 ) {
+    if page_motion.is_some_and(|motion| motion.active()) {
+        return;
+    }
     for (interaction, action) in &interactions {
         if *interaction != Interaction::Pressed {
             continue;
@@ -69,8 +73,8 @@ pub(crate) fn send_game_command(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::UiAction;
     use crate::app::shell::NavigationUiAction;
+    use crate::app::shell::UiAction;
 
     #[derive(Resource, Default)]
     struct ActionCount(usize);

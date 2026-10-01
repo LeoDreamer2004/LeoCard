@@ -20,6 +20,7 @@ pub(crate) fn asset_file_path() -> String {
         "assets".to_owned()
     }
 }
+
 pub(crate) fn uno_card_asset_path(card: UnoCard) -> String {
     match card.color() {
         None => match card.face() {

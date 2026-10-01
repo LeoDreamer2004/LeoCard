@@ -1,12 +1,15 @@
-use super::ledger::{change_for, initial_chip_denominations, visual_pots};
+use super::denominations::{change_for, initial_chip_denominations};
+use super::ledger::visual_pots;
 use super::*;
 use crate::app::games::texas_holdem::TexasSoundKind;
-use leocard_protocol::ProfileId;
+use bevy::prelude::*;
+use leocard_protocol::{MatchId, PlayerId, SeatId};
+#[cfg(test)]
+use leocard_protocol::{PlayerGameProfiles, ProfileId};
 use leocard_protocol::{
-    MatchId, PlayerId, SeatId, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemPlayerState,
-    TexasHoldemSnapshot,
+    TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
 };
-use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemStreet};
+use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemActionStatistics, TexasHoldemStreet};
 
 fn pot_test_snapshot(committed: &[(u32, bool, bool)]) -> TexasHoldemSnapshot {
     let players = committed
@@ -137,6 +140,13 @@ fn authoritative_action_audio_is_not_requeued_by_an_empty_ui_refresh() {
             player: PlayerId(1),
             action: TexasHoldemAction::Check,
             amount: 0,
+            statistics: TexasHoldemActionStatistics {
+                street: TexasHoldemStreet::PreFlop,
+                all_in_amount: 0,
+                full_raise: false,
+                raised: false,
+                bet_level: 1,
+            },
         }],
     );
     assert_eq!(state.audio_cues.len(), 1);

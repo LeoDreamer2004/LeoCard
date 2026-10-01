@@ -117,13 +117,21 @@ pub enum HostSession {
 
 trait HostBackend {
     fn game_kind(&self) -> GameKind;
+
     fn room_id(&self) -> RoomId;
+
     fn revision(&self) -> Revision;
+
     fn is_current_connection(&self, connection: ConnectionId) -> bool;
+
     fn is_closed(&self) -> bool;
+
     fn heartbeat(&self) -> Vec<Delivery>;
+
     fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery>;
+
     fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery>;
+
     fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery>;
 }
 
@@ -273,6 +281,7 @@ impl HostSession {
             return vec![Delivery {
                 recipient: connection,
                 message: ServerMessage {
+                    game_context: None,
                     protocol_version: PROTOCOL_VERSION,
                     room_id: self.room_id(),
                     revision: self.revision(),

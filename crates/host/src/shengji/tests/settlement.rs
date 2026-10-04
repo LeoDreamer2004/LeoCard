@@ -1,15 +1,9 @@
 use super::*;
-use leocard_protocol::PlayerId;
-#[cfg(feature = "developer")]
-use leocard_protocol::{ClientCommand, SeatId, ShengjiPhaseView};
-#[cfg(feature = "developer")]
-use leocard_shengji::build_deck;
+use leocard_protocol::{ClientCommand, PlayerId, SeatId, ShengjiPhaseView};
 use leocard_shengji::{
-    Category, Component, HandResult, ShengjiClassifiedPlay, ShengjiPlayerId, ShengjiRank,
-    ShengjiSuit, ShengjiTeamId,
+    Category, Component, HandResult, ShengjiCard, ShengjiClassifiedPlay, ShengjiPlayerId,
+    ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTeamId, build_deck,
 };
-#[cfg(feature = "developer")]
-use leocard_shengji::{ShengjiCard, ShengjiRuleSet};
 
 pub(super) fn result_for_reference_points(
     dealer_wins: bool,
@@ -180,9 +174,8 @@ fn throw_profile_lengths_include_every_internal_sequence() {
     assert_eq!(stats.longest_throw, 26);
 }
 
-#[cfg(feature = "developer")]
 #[test]
-fn developer_bots_bid_bury_and_play_with_the_greedy_policy() {
+fn bots_bid_bury_and_play_with_the_greedy_policy() {
     let target = ShengjiCard::suited(0, ShengjiSuit::Diamond, ShengjiRank::Two);
     let mut deck = build_deck();
     let target_index = deck.iter().position(|card| *card == target).unwrap();

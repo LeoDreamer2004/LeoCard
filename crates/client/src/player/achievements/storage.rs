@@ -1,6 +1,5 @@
 //! Versioned achievement archives. Game releases do not change the format version.
 
-use super::migration;
 use crate::player::config_file;
 use leocard_achievements::AchievementBook;
 use leocard_protocol::ProfileId;
@@ -31,23 +30,17 @@ impl AchievementArchive {
             Err(error) if error.kind() == ErrorKind::NotFound => return Ok(Self::new(profile_id)),
             Err(error) => return Err(format!("无法读取成就档案：{error}")),
         };
-        let (stored, needs_migration) = if let Some(body) = bytes.strip_prefix(FILE_MAGIC) {
-            (Self::decode_versioned(body)?, false)
-        } else {
-            (migration::decode_v3(&bytes)?, true)
-        };
+        let stored = Self::decode(&bytes)?;
         if stored.profile_id != profile_id {
             return Ok(Self::new(profile_id));
-        }
-        // Rewrite only a successfully decoded archive belonging to this profile.
-        // Atomic replacement keeps the original intact if conversion or writing fails.
-        if needs_migration {
-            stored.save()?;
         }
         Ok(stored)
     }
 
-    fn decode_versioned(body: &[u8]) -> Result<Self, String> {
+    pub(super) fn decode(bytes: &[u8]) -> Result<Self, String> {
+        let body = bytes
+            .strip_prefix(FILE_MAGIC)
+            .ok_or_else(|| "无法识别成就档案格式，原存档已保留".to_owned())?;
         let Some((version, payload)) = body.split_first_chunk::<2>() else {
             return Err("成就档案格式版本不完整，原存档已保留".to_owned());
         };
@@ -58,11 +51,11 @@ impl AchievementArchive {
         }
     }
 
-    pub(super) fn decode_payload(payload: &[u8]) -> Result<Self, String> {
+    fn decode_payload(payload: &[u8]) -> Result<Self, String> {
         postcard::from_bytes(payload).map_err(|error| format!("无法解析成就档案：{error}"))
     }
 
-    fn encode(&self) -> Result<Vec<u8>, String> {
+    pub(super) fn encode(&self) -> Result<Vec<u8>, String> {
         let mut bytes = FILE_MAGIC.to_vec();
         bytes.extend(FORMAT_VERSION.to_be_bytes());
         bytes.extend(

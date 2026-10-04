@@ -1,21 +1,9 @@
 use super::{GameError, PlayerState, QiGuiPlayerId, StartingCard};
 use crate::{QiGuiCard, build_deck};
-use std::collections::HashSet;
+use leocard_game_common::validate_deck as validate_physical_deck;
 
 pub(super) fn validate_deck(deck_count: u8, deck: &[QiGuiCard]) -> Result<(), GameError> {
-    let expected_deck = build_deck(deck_count);
-    if deck.len() != expected_deck.len() {
-        return Err(GameError::InvalidDeckSize {
-            expected: expected_deck.len(),
-            actual: deck.len(),
-        });
-    }
-    let expected: HashSet<_> = expected_deck.into_iter().collect();
-    let actual: HashSet<_> = deck.iter().copied().collect();
-    if actual.len() != deck.len() || actual != expected {
-        return Err(GameError::InvalidDeckContents);
-    }
-    Ok(())
+    validate_physical_deck(deck, &build_deck(deck_count)).map_err(GameError::from)
 }
 
 pub(super) fn find_starting_card(deal_order: &[(QiGuiPlayerId, QiGuiCard)]) -> StartingCard {

@@ -8,7 +8,9 @@ use crate::app::shell::{
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_mahjong::{MahjongClaim, MahjongRuleSet, MahjongTile, MahjongTileKind};
+use leocard_mahjong::{
+    MahjongClaim, MahjongMatchLength, MahjongRuleSet, MahjongTile, MahjongTileKind,
+};
 use leocard_protocol::{MahjongCommand, MahjongPhaseView};
 
 #[derive(Clone)]
@@ -139,6 +141,13 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
                     && !result.winners.is_empty()
                 {
                     context.ui.fan_summary_continued = Some((game.match_id, result.sequence_index));
+                    if result.match_length == MahjongMatchLength::SingleHand {
+                        context.ui.final_summary_opened_at = Some((
+                            game.match_id,
+                            result.sequence_index,
+                            context.time.elapsed_secs(),
+                        ));
+                    }
                 }
                 return;
             }

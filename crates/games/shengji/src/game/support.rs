@@ -1,6 +1,6 @@
 use super::GameError;
 use crate::{ShengjiCard, ShengjiPlayerId, ShengjiRuleSet, build_deck_for};
-use std::collections::HashSet;
+use leocard_game_common::{contains_unique_cards, validate_deck as validate_physical_deck};
 
 pub(super) fn next_player(player: ShengjiPlayerId) -> ShengjiPlayerId {
     ShengjiPlayerId((player.0 + 1) % ShengjiRuleSet::PLAYER_COUNT as u8)
@@ -24,25 +24,12 @@ pub(super) fn validate_cards_owned(
     cards: &[ShengjiCard],
     hand: &[ShengjiCard],
 ) -> Result<(), GameError> {
-    let unique = cards.iter().copied().collect::<HashSet<_>>();
-    if unique.len() != cards.len() || cards.iter().any(|card| !hand.contains(card)) {
+    if !contains_unique_cards(hand, cards) {
         return Err(GameError::CardsNotOwned);
     }
     Ok(())
 }
 
 pub(super) fn validate_deck(deck: &[ShengjiCard], rules: ShengjiRuleSet) -> Result<(), GameError> {
-    let expected = build_deck_for(rules.deck_count);
-    if deck.len() != expected.len() {
-        return Err(GameError::InvalidDeckSize {
-            expected: expected.len(),
-            actual: deck.len(),
-        });
-    }
-    let expected = expected.into_iter().collect::<HashSet<_>>();
-    let actual = deck.iter().copied().collect::<HashSet<_>>();
-    if actual.len() != deck.len() || actual != expected {
-        return Err(GameError::InvalidDeckContents);
-    }
-    Ok(())
+    validate_physical_deck(deck, &build_deck_for(rules.deck_count)).map_err(GameError::from)
 }

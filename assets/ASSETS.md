@@ -215,3 +215,9 @@ SHA-256 如下：
 | VerzatileDev 4 Colour Cards | `ee20da4f717ef44be9ee6f9c48561f169aebb672222d39aea2c254603be5d337` |
 
 本声明对应仓库中当前的运行时清单与随附来源记录。
+
+### 百度贴吧经典表情
+
+- 运行时文件：`ui/tieba-emoji/` 下的 50 张透明 PNG，保留原始 90×90 尺寸。
+- 来源：<https://github.com/microlong666/Tieba_mobile_emotions>，从百度贴吧 Android 11.6.8.2 提取的默认表情，取编号 1–50。
+- 原始表情归百度及对应权利人所有；来源仓库声明仅供学习交流与个人非营利性使用，未提供开源授权。

@@ -263,8 +263,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
                 self.broadcast_game(Some((connection, request_id)))
             }
             Err(_) => {
-                #[cfg(feature = "developer")]
-                self.room.remove_developer_bots();
+                self.room.remove_bots();
                 self.room.reject(
                     connection,
                     request_id,
@@ -303,8 +302,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
         self.game = None;
         self.match_profile_stats.clear();
         self.auto_play_delay = None;
-        #[cfg(feature = "developer")]
-        self.room.remove_developer_bots();
+        self.room.remove_bots();
         let host = self.room.host_connection;
         for player in &mut self.room.players {
             player.ready = host == Some(player.connection);

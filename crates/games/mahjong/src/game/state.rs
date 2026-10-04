@@ -5,8 +5,8 @@ use super::{
 use crate::{
     MahjongMeldKind, MahjongPlayerId, MahjongRuleSet, MahjongTile, MahjongWind, build_deck,
 };
-use std::array;
-use std::collections::{HashSet, VecDeque};
+use leocard_game_common::validate_deck as validate_physical_deck;
+use std::{array, collections::VecDeque};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GameState {
@@ -213,18 +213,7 @@ pub(super) fn claim_option_priority(
 }
 
 pub(super) fn validate_deck(deck: &[MahjongTile]) -> Result<(), GameError> {
-    if deck.len() != 144 {
-        return Err(GameError::InvalidDeckSize {
-            expected: 144,
-            actual: deck.len(),
-        });
-    }
-    let expected: HashSet<_> = build_deck().into_iter().collect();
-    let actual: HashSet<_> = deck.iter().copied().collect();
-    if actual.len() != deck.len() || actual != expected {
-        return Err(GameError::InvalidDeckContents);
-    }
-    Ok(())
+    validate_physical_deck(deck, &build_deck()).map_err(GameError::from)
 }
 
 pub(super) const fn next_player(player: MahjongPlayerId) -> MahjongPlayerId {

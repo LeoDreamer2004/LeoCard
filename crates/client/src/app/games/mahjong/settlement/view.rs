@@ -1,16 +1,16 @@
-//! 国标麻将结算：逐位报番，然后在牌桌座位上结算分数。
-
-use std::f32::consts;
+//! 国标麻将报番与结算；多局模式另播放牌桌分数演出。
 
 use super::super::{
     MahjongAssets, MahjongTileMaterial, MahjongTileSize, MahjongUiAction, MahjongWinTileSizes,
-    mahjong_settlement_timing, render_mahjong_win_tile_row, render_round_status_with_scores,
+    mahjong_settlement_timing, render_mahjong_win_tile_row,
 };
-use super::continuation::render_settlement_continue;
-use super::final_summary::FinalSummaryView;
 use super::*;
+use super::{
+    continuation::render_settlement_continue, final_summary::FinalSummaryView,
+    scores::ScoreStageView,
+};
 use crate::app::presentation::{
-    ACCENT, DANGER, GameSummaryAnimation, MUTED, PanelSkin, READY, TEXT, add_avatar, add_text,
+    ACCENT, GameSummaryAnimation, MUTED, PanelSkin, READY, TEXT, add_avatar, add_text,
     decorate_panel_skin, spawn_node, summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
@@ -18,14 +18,6 @@ use crate::app::shell::{LobbyUiAction, UiAction};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
-
-pub(super) const PAGE_FADE_DURATION: f32 = 0.28;
-pub(super) const SCORE_FADE_DURATION: f32 = 0.36;
-pub(super) const DELTA_FLIGHT_DURATION: f32 = 0.62;
-pub(super) const SCORE_ROLL_DURATION: f32 = 0.80;
-pub(super) const DELTA_APPEAR_DELAY: f32 = 0.14;
-pub(super) const DELTA_HOLD_DURATION: f32 = 0.75;
-pub(super) const SCORE_END_HOLD_DURATION: f32 = 0.65;
 
 pub(super) fn settlement_row_texture(assets: &UiAssets) -> ImageNode {
     let mut texture = ImageNode::new(assets.home.game_card.clone()).with_mode(
@@ -68,16 +60,9 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
         final_summary_opened_at,
     } = visuals;
     let timing = mahjong_settlement_timing(result);
-    let score_start = timing.score_rows_delay + if result.winners.is_empty() { 0.0 } else { 0.12 };
-    let (flight_start, roll_start, continue_start) = score_timing(score_start);
+    let timeline = SettlementTimeline::new(result);
     let final_standings = result.match_complete;
     let final_summary_open = final_standings && final_summary_opened_at.is_some();
-    let own_seat = game
-        .players
-        .iter()
-        .find(|player| player.id == game.you)
-        .map_or(0, |player| player.seat.0);
-
     // 牌桌和右侧抽屉一同压暗；胜家页面和头像舞台另绘在遮罩之上。
     let shade = spawn_node(
         commands,
@@ -101,11 +86,17 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
         FocusPolicy::Block,
     ));
 
-    for (index, (winner, winner_timing)) in result.winners.iter().zip(&timing.winners).enumerate() {
+    for (index, (winner, winner_timing)) in result
+        .winners
+        .iter()
+        .zip(&timing.winners)
+        .enumerate()
+        .filter(|_| !final_summary_open)
+    {
         let end = timing
             .winners
             .get(index + 1)
-            .map_or(score_start, |next| next.outcome_delay);
+            .map_or(timeline.pages_end, |next| next.outcome_delay);
         let player = game
             .players
             .iter()
@@ -375,127 +366,27 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
             assets,
             animation.elapsed,
             pause_at,
-            score_start,
+            timeline.pages_end,
             "点击任意位置继续",
             Some(UiAction::Mahjong(MahjongUiAction::ContinueFanSummary)),
         );
     }
 
-    let score_stage = spawn_node(
-        commands,
-        table,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(0),
-            right: px(0),
-            top: px(0),
-            bottom: px(0),
-            ..default()
-        },
-        None,
-    );
-    commands.entity(score_stage).insert((
-        MahjongScoreStage {
-            start: score_start,
+    if let Some(timing) = timeline.scores {
+        ScoreStageView {
+            game,
+            result,
+            assets,
+            game_assets,
+            elapsed: animation.elapsed,
+            timing,
             end: if final_summary_open {
-                continue_start
+                timeline.continue_at
             } else {
                 f32::INFINITY
             },
-        },
-        GlobalZIndex(1200),
-        if animation.elapsed >= score_start && !final_summary_open {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        },
-    ));
-
-    // 复刻牌桌中央的方位牌，让遮罩只留下这一块亮区。四面数值从结算前
-    // 的分数开始，沿各自座位的朝向接收增减，再滚到结算后的分数。
-    let layout_scores = std::array::from_fn(|slot| {
-        let to = result.match_scores[slot];
-        let from = to.saturating_sub(result.deltas[slot]);
-        if from.to_string().len() > to.to_string().len() {
-            from
-        } else {
-            to
         }
-    });
-    let score_texts = render_round_status_with_scores(
-        commands,
-        score_stage,
-        game,
-        own_seat,
-        &layout_scores,
-        assets,
-        game_assets,
-    );
-    for (relative, score_text) in score_texts.into_iter().enumerate() {
-        let Some(player) = game
-            .players
-            .iter()
-            .find(|player| usize::from((player.seat.0 + 4 - own_seat) % 4) == relative)
-        else {
-            continue;
-        };
-        let slot = usize::from(player.id.0);
-        let total = result.match_scores[slot];
-        let delta = result.deltas[slot];
-        let from = total.saturating_sub(delta);
-        commands.entity(score_text).insert((
-            Text(score_at(animation.elapsed, from, total, roll_start).to_string()),
-            MahjongScoreValue {
-                from,
-                to: total,
-                start: roll_start,
-            },
-            TextColor(TEXT),
-        ));
-        let (left, top, origin, rotation) = match relative {
-            0 => (637.0, 359.0, Vec2::new(0.0, 38.0), 0.0),
-            1 => (692.0, 317.0, Vec2::new(38.0, 0.0), -consts::FRAC_PI_2),
-            2 => (637.0, 281.0, Vec2::new(0.0, -38.0), consts::PI),
-            _ => (575.0, 317.0, Vec2::new(-38.0, 0.0), consts::FRAC_PI_2),
-        };
-        let color = if delta > 0 {
-            READY
-        } else if delta < 0 {
-            DANGER
-        } else {
-            MUTED
-        };
-        let flight_progress = delta_progress(animation.elapsed, flight_start);
-        let flying = add_text(
-            commands,
-            score_stage,
-            format!("{delta:+}"),
-            18.0,
-            color.with_alpha(1.0 - flight_progress.powi(3)),
-            assets,
-        );
-        commands.entity(flying).insert((
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(left),
-                top: px(top),
-                ..default()
-            },
-            MahjongFlyingDelta {
-                appear_at: score_start + DELTA_APPEAR_DELAY,
-                start: flight_start,
-                color,
-                origin,
-                rotation,
-            },
-            delta_transform(flight_progress, origin, rotation),
-            if animation.elapsed >= score_start + DELTA_APPEAR_DELAY && flight_progress < 1.0 {
-                Visibility::Visible
-            } else {
-                Visibility::Hidden
-            },
-            FocusPolicy::Pass,
-        ));
+        .render(commands, table);
     }
 
     if let Some(opened_at) = final_summary_opened_at.filter(|_| final_standings) {
@@ -520,7 +411,7 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
             content,
             assets,
             animation.elapsed,
-            continue_start,
+            timeline.continue_at,
             f32::INFINITY,
             if !final_standings && ready {
                 "等待其他玩家"

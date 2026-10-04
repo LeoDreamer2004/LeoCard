@@ -1,14 +1,9 @@
-//! Shared mechanics without any game-specific award policy.
+//! 不依赖具体游戏的物理牌校验与排名计算。
+//!
+//! 游戏提供合法牌堆和积分档位，并自行解释规则及校验错误。
 
-/// Apply rank awards in input order; tied scores take the highest tied rank.
-pub fn ranked_awards<Score: Ord>(scores: &[Score], awards: &[i16]) -> Option<Vec<i16>> {
-    if scores.len() != awards.len() || scores.is_empty() {
-        return None;
-    }
-    Some(
-        scores
-            .iter()
-            .map(|score| awards[scores.iter().filter(|other| *other > score).count()])
-            .collect(),
-    )
-}
+mod cards;
+mod ranking;
+
+pub use cards::{DeckError, contains_unique_cards, has_unique_cards, validate_deck};
+pub use ranking::ranked_awards;

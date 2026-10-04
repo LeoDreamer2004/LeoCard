@@ -6,8 +6,8 @@ use crate::{
     ShengjiBidTrump, ShengjiCard, ShengjiPlayerId, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
     ShengjiTrump,
 };
-use std::collections::{HashMap, HashSet};
-use std::{error::Error, fmt};
+use leocard_game_common::contains_unique_cards;
+use std::{collections::HashMap, error::Error, fmt};
 
 /// 带王亮时，红色花色配大王，黑色花色配小王。
 pub const fn bid_joker_for_suit(suit: ShengjiSuit) -> ShengjiRank {
@@ -434,8 +434,7 @@ fn validate_owned(cards: &[ShengjiCard], hand: &[ShengjiCard]) -> Result<(), Bid
     if cards.is_empty() {
         return Err(BidError::InvalidCards);
     }
-    let unique = cards.iter().copied().collect::<HashSet<_>>();
-    if unique.len() != cards.len() || cards.iter().any(|card| !hand.contains(card)) {
+    if !contains_unique_cards(hand, cards) {
         return Err(BidError::CardsNotOwned);
     }
     Ok(())

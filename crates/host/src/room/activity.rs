@@ -2,7 +2,7 @@ use leocard_protocol::{PlayerId, PlayerInteraction, PlayerInteractionKind};
 use std::time::Instant;
 
 #[derive(Clone, Debug)]
-pub(crate) struct RoomActivity {
+pub(super) struct RoomActivity {
     started: Instant,
 }
 
@@ -15,7 +15,7 @@ impl Default for RoomActivity {
 }
 
 impl RoomActivity {
-    pub(crate) fn interaction(
+    pub(super) fn interaction(
         &self,
         source: PlayerId,
         target: PlayerId,

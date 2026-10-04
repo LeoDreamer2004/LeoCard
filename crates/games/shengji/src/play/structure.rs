@@ -1,4 +1,5 @@
 use crate::{ShengjiCard, ShengjiRank, ShengjiSuit, ShengjiTrump};
+use leocard_game_common::has_unique_cards;
 use std::collections::{BTreeMap, HashSet};
 
 use super::{
@@ -541,8 +542,7 @@ fn remove_quad_indices(quads: &mut Vec<QuadUnit>, indices: &[usize]) {
 }
 
 pub(super) fn validate_owned(cards: &[ShengjiCard], hand: &[ShengjiCard]) -> Result<(), PlayError> {
-    let unique = cards.iter().copied().collect::<HashSet<_>>();
-    if unique.len() != cards.len() {
+    if !has_unique_cards(cards) {
         return Err(PlayError::DuplicatePhysicalCard);
     }
     if cards.iter().any(|card| !hand.contains(card)) {

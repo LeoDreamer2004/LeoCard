@@ -3,8 +3,10 @@
 
 use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_achievements::{ACHIEVEMENT_REGISTRY, achievement_by_id, achievement_counts};
-use leocard_protocol::{AchievementAnnouncement, AchievementCounts};
-use leocard_protocol::{PlayerViolation, ProfileId, RejectReason, RequestId, ServerEvent};
+use leocard_protocol::{
+    AchievementAnnouncement, AchievementCounts, PlayerViolation, ProfileId, RejectReason,
+    RequestId, ServerEvent,
+};
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, Default)]

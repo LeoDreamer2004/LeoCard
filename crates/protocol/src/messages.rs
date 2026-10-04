@@ -91,7 +91,7 @@ pub enum ClientCommand {
     SelectSeat {
         seat: SeatId,
     },
-    /// 开发者模式下由房主在指定座位添加或移除默认机器人。
+    /// 由房主在准备大厅的指定座位添加或移除机器人。
     ConfigureBotSeat {
         seat: SeatId,
         occupied: bool,

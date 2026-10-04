@@ -1,6 +1,6 @@
 use crate::{RuleError, UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoRuleSet, build_deck_for_rules};
-use std::collections::{HashSet, VecDeque};
-use std::fmt;
+use leocard_game_common::{DeckError, has_unique_cards, validate_deck as validate_physical_deck};
+use std::{collections::VecDeque, fmt};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -341,6 +341,17 @@ impl fmt::Display for GameError {
 
 impl std::error::Error for GameError {}
 
+impl From<DeckError> for GameError {
+    fn from(value: DeckError) -> Self {
+        match value {
+            DeckError::InvalidSize { expected, actual } => {
+                Self::InvalidDeckSize { expected, actual }
+            }
+            DeckError::InvalidContents => Self::InvalidDeckContents,
+        }
+    }
+}
+
 impl From<RuleError> for GameError {
     fn from(value: RuleError) -> Self {
         Self::InvalidRules(value)
@@ -407,44 +418,36 @@ pub(super) fn faces_match(left: UnoFace, right: UnoFace) -> bool {
 
 pub(super) fn validate_deck(deck: &[UnoCard], rules: UnoRuleSet) -> Result<(), GameError> {
     let expected = build_deck_for_rules(rules);
+    if !rules.is_flip() {
+        return validate_physical_deck(deck, &expected).map_err(GameError::from);
+    }
     if deck.len() != expected.len() {
         return Err(GameError::InvalidDeckSize {
             expected: expected.len(),
             actual: deck.len(),
         });
     }
-    if rules.is_flip() {
-        let mut actual_light = deck
-            .iter()
-            .map(|card| (card.color(), card.face()))
-            .collect::<Vec<_>>();
-        let mut expected_light = expected
-            .iter()
-            .map(|card| (card.color(), card.face()))
-            .collect::<Vec<_>>();
-        let mut actual_dark = deck
-            .iter()
-            .filter_map(|card| card.opposite().map(|side| (side.color(), side.face())))
-            .collect::<Vec<_>>();
-        let mut expected_dark = expected
-            .iter()
-            .filter_map(|card| card.opposite().map(|side| (side.color(), side.face())))
-            .collect::<Vec<_>>();
-        actual_light.sort_unstable();
-        expected_light.sort_unstable();
-        actual_dark.sort_unstable();
-        expected_dark.sort_unstable();
-        if actual_light != expected_light
-            || actual_dark != expected_dark
-            || deck.iter().copied().collect::<HashSet<_>>().len() != deck.len()
-        {
-            return Err(GameError::InvalidDeckContents);
-        }
-        return Ok(());
-    }
-    let expected = expected.into_iter().collect::<HashSet<_>>();
-    let actual = deck.iter().copied().collect::<HashSet<_>>();
-    if actual.len() != deck.len() || actual != expected {
+    let mut actual_light = deck
+        .iter()
+        .map(|card| (card.color(), card.face()))
+        .collect::<Vec<_>>();
+    let mut expected_light = expected
+        .iter()
+        .map(|card| (card.color(), card.face()))
+        .collect::<Vec<_>>();
+    let mut actual_dark = deck
+        .iter()
+        .filter_map(|card| card.opposite().map(|side| (side.color(), side.face())))
+        .collect::<Vec<_>>();
+    let mut expected_dark = expected
+        .iter()
+        .filter_map(|card| card.opposite().map(|side| (side.color(), side.face())))
+        .collect::<Vec<_>>();
+    actual_light.sort_unstable();
+    expected_light.sort_unstable();
+    actual_dark.sort_unstable();
+    expected_dark.sort_unstable();
+    if actual_light != expected_light || actual_dark != expected_dark || !has_unique_cards(deck) {
         return Err(GameError::InvalidDeckContents);
     }
     Ok(())

@@ -124,7 +124,7 @@ impl ClientModel {
                 }
                 self.games.shengji.finished_event_pending_snapshot = true;
             }
-            ShengjiEvent::RedealRequired => {
+            ShengjiEvent::RedealRequired { .. } => {
                 self.games.shengji.pending_trick_score_cards.clear();
                 self.games.shengji.finished_event_pending_snapshot = false;
             }

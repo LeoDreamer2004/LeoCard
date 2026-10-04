@@ -1,3 +1,4 @@
+mod analysis;
 mod gameplay;
 mod scenarios;
 mod settlement;

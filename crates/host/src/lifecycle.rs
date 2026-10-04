@@ -1,8 +1,8 @@
 use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_protocol::{
-    ChatContent, ClientCommand, ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot,
-    GameViolation, JoinRequest, LobbySnapshot, PlayerId, PlayerInteractionKind, PlayerViolation,
-    RejectReason, RequestId, SeatId, ServerEvent,
+    ChatContent, ClientCommand, ClientMessage, GameCommand, GameEventContext, GameKind, GameRules,
+    GameSnapshot, GameViolation, JoinRequest, LobbySnapshot, PlayerId, PlayerInteractionKind,
+    PlayerViolation, RejectReason, RequestId, SeatId, ServerEvent,
 };
 
 pub(super) trait HostedGameLifecycle: Sized {
@@ -28,6 +28,45 @@ pub(super) trait HostedGameLifecycle: Sized {
     ) -> Result<Vec<Delivery>, GameKind>;
 
     fn start_game(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery>;
+
+    fn start_game_and_announce(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+    ) -> Vec<Delivery> {
+        let was_started = self.game_started();
+        let mut deliveries = self.start_game(connection, request_id);
+        if !was_started && self.game_started() {
+            let host = self
+                .room()
+                .host_player_id()
+                .expect("starting a game requires a host");
+            let match_id = self.game_snapshot(host).match_id();
+            self.room_mut().bump_revision();
+            let context = GameEventContext {
+                match_id,
+                hand_index: None,
+                sequence: u128::from(self.room().revision.0) << 64,
+            };
+            deliveries.extend(
+                self.room()
+                    .broadcast_event(
+                        None,
+                        ServerEvent::GameStarted {
+                            host,
+                            game: Self::KIND,
+                            match_id,
+                        },
+                    )
+                    .into_iter()
+                    .map(|mut delivery| {
+                        delivery.message.game_context = Some(context);
+                        delivery
+                    }),
+            );
+        }
+        deliveries
+    }
 
     fn return_to_lobby(&mut self, connection: ConnectionId, request_id: RequestId)
     -> Vec<Delivery>;
@@ -243,7 +282,7 @@ pub(super) fn dispatch_client_command<S: HostedGameLifecycle>(
                     )
                 })
         }
-        ClientCommand::StartGame => session.start_game(connection, request_id),
+        ClientCommand::StartGame => session.start_game_and_announce(connection, request_id),
         ClientCommand::ReturnToLobby => session.return_to_lobby(connection, request_id),
         ClientCommand::PlayAgain => session.play_again(connection, request_id),
         ClientCommand::LeaveRoom => session.leave_room(connection, request_id),

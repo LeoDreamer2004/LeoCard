@@ -1,3 +1,5 @@
+use std::f32::consts;
+
 use super::super::{
     MahjongWinDecoration, MahjongWinDecorationKind, MahjongWinEffect, MahjongWinEffectText,
     MahjongWinEffectTier, MahjongWinFanGlyph, MahjongWinScreenShake, MahjongWinStageKind,
@@ -217,9 +219,8 @@ pub(crate) fn animate_mahjong_win_effects(
             -190.0 * (1.0 - impact) + (local * 127.0).sin() * 6.0 * strength,
         );
         transform.rotation = Rot2::radians((local * 71.0).sin() * 0.075 * strength);
-        transform.scale = Vec2::splat(
-            1.0 + 3.4 * (1.0 - impact) + (vibration * std::f32::consts::PI).sin() * 0.12,
-        );
+        transform.scale =
+            Vec2::splat(1.0 + 3.4 * (1.0 - impact) + (vibration * consts::PI).sin() * 0.12);
         color.0 = mahjong_win_effect_color(MahjongWinEffectTier::MajorFan, false, fade_out);
         shadow.color = Color::BLACK.with_alpha(0.88 * fade_out);
         *visibility = Visibility::Visible;
@@ -266,7 +267,7 @@ pub(crate) fn animate_mahjong_win_effects(
                     Vec2::ZERO,
                     start_scale + (end_scale - start_scale) * motion,
                     0.0,
-                    (progress * std::f32::consts::PI).sin().max(0.0) * max_alpha,
+                    (progress * consts::PI).sin().max(0.0) * max_alpha,
                     delay > 0.0,
                     true,
                 )
@@ -283,7 +284,7 @@ pub(crate) fn animate_mahjong_win_effects(
                     direction * distance * motion,
                     0.55 + motion * 0.65,
                     direction.y.atan2(direction.x),
-                    (progress * std::f32::consts::PI).sin().max(0.0) * 0.82,
+                    (progress * consts::PI).sin().max(0.0) * 0.82,
                     secondary,
                     false,
                 )
@@ -357,7 +358,7 @@ pub(crate) fn animate_mahjong_win_effects(
                 }
                 let intro = ease_out_cubic((local / 0.24).clamp(0.0, 1.0));
                 let cycle = (local * 0.72 + phase).fract();
-                let envelope = (cycle * std::f32::consts::PI).sin().max(0.0).powf(0.65);
+                let envelope = (cycle * consts::PI).sin().max(0.0).powf(0.65);
                 let travel = 72.0 - cycle * 112.0;
                 transform.translation = Val2::px(direction.x * travel, direction.y * travel);
                 transform.rotation = Rot2::radians(direction.y.atan2(direction.x));
@@ -414,7 +415,7 @@ pub(crate) fn animate_mahjong_win_effects(
                     continue;
                 }
                 let cycle = (local * 0.43 + phase).fract();
-                let glow = (cycle * std::f32::consts::PI).sin().max(0.0);
+                let glow = (cycle * consts::PI).sin().max(0.0);
                 transform.translation = Val2::px(drift.x * cycle, drift.y * cycle);
                 transform.rotation = Rot2::radians(local * 1.8 + phase * 5.0);
                 transform.scale = Vec2::splat(0.55 + glow * 0.85);
@@ -432,7 +433,7 @@ pub(crate) fn animate_mahjong_win_effects(
                     *visibility = Visibility::Hidden;
                     continue;
                 }
-                let strength = (local / 0.26 * std::f32::consts::PI).sin().max(0.0);
+                let strength = (local / 0.26 * consts::PI).sin().max(0.0);
                 transform.translation = Val2::ZERO;
                 transform.rotation = Rot2::IDENTITY;
                 transform.scale = Vec2::ONE;

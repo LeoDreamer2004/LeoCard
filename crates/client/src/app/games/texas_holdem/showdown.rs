@@ -1,5 +1,7 @@
 //! 德州扑克摊牌到结算弹窗之间的最佳五张牌演出。
 
+use std::f32::consts;
+
 use crate::app::presentation::{GameSummaryAnimation, ease_out_cubic};
 use bevy::prelude::*;
 
@@ -70,10 +72,10 @@ pub(super) fn animate_texas_showdown_reveal(
         let progress = ((elapsed - card.delay) / 0.52).clamp(0.0, 1.0);
         let movement = ease_out_cubic(progress);
         let mut position = card.source.lerp(card.target, movement);
-        position.y -= (progress * std::f32::consts::PI).sin() * 28.0;
+        position.y -= (progress * consts::PI).sin() * 28.0;
         transform.translation = Val2::px(position.x - card.target.x, position.y - card.target.y);
         let settle = ((elapsed - 1.42) / 0.48).clamp(0.0, 1.0);
-        let pulse = (settle * std::f32::consts::PI).sin() * 0.045;
+        let pulse = (settle * consts::PI).sin() * 0.045;
         transform.scale =
             Vec2::splat(card.start_scale + (1.0 - card.start_scale) * movement + pulse);
         let alpha = ((elapsed - card.delay) / 0.10).clamp(0.0, 1.0) * (1.0 - exit);

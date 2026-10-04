@@ -2,7 +2,7 @@ use super::{
     BOTTOM_COPY_DECISION_TIMEOUT, HeldThrowFailure, ShengjiSession, THROW_FAILURE_SHOW_DURATION,
     TRICK_HOLD_DURATION, completed_trick_events, finished_reference_point_magnitude,
     from_core_player, game_violation, merge_shengji_profile_stats, pre_kitty_collecting_score,
-    record_shengji_component, to_core_player,
+    to_core_player,
 };
 use crate::player::settle_completed_match_profiles_once;
 use crate::{ConnectionId, Delivery, new_match_id};
@@ -10,121 +10,12 @@ use leocard_protocol::{
     GameViolation, RejectReason, RequestId, ShengjiEvent, ShengjiHandResultView,
     ShengjiProfileStats, ShengjiPublicPlay, ShengjiThrowFailureStage,
 };
-use leocard_shengji::ShengjiTeamId;
 use leocard_shengji::{
-    ActionOutcome, FiveTrumpCrossingStage, GameError, GameState, HandResult, Phase, ShengjiBidKind,
-    ShengjiClassifiedPlay, ShengjiPlayerId, ShengjiRuleSet,
+    ActionOutcome, FiveTrumpCrossingStage, GameError, GameState, HandResult, Phase,
+    ShengjiPlayerId, ShengjiRuleSet, ShengjiTeamId,
 };
 
 impl ShengjiSession {
-    pub(super) fn record_current_declaration(&mut self) {
-        let Some((player, kind)) = self
-            .game
-            .as_ref()
-            .and_then(|game| game.bidding().current())
-            .map(|declaration| (declaration.player, declaration.kind))
-        else {
-            return;
-        };
-        let Some(stats) = self.statistics.profiles.get_mut(usize::from(player.0)) else {
-            return;
-        };
-        match kind {
-            ShengjiBidKind::Initial => stats.declaration_games = 1,
-            ShengjiBidKind::Counter | ShengjiBidKind::SelfCounter => stats.counter_games = 1,
-            ShengjiBidKind::Protect => {}
-        }
-    }
-
-    pub(super) fn record_profile_outcome(&mut self, outcome: &ActionOutcome) {
-        match outcome {
-            ActionOutcome::BottomCopyDecision {
-                player,
-                copied: true,
-                ..
-            } => {
-                if let Some(stats) = self.statistics.profiles.get_mut(usize::from(player.0)) {
-                    stats.counter_games = 1;
-                }
-            }
-            ActionOutcome::FiveTrumpCrossingDecision {
-                player,
-                crossing: true,
-                ..
-            } => {
-                if let Some(stats) = self.statistics.profiles.get_mut(usize::from(player.0)) {
-                    stats.crossing_games = 1;
-                }
-            }
-            ActionOutcome::Played { player, .. } | ActionOutcome::ThrowFailed { player, .. } => {
-                let play =
-                    self.game
-                        .as_ref()
-                        .and_then(GameState::current_trick)
-                        .and_then(|trick| {
-                            trick.plays.last().map(|(_, play)| {
-                                (play.clone(), trick.leader == *player, trick.winner)
-                            })
-                        });
-                if let Some((play, is_lead, winner)) = play {
-                    self.record_profile_play(*player, &play, is_lead, winner == *player);
-                }
-            }
-            ActionOutcome::TrickComplete(trick) => {
-                if let Some((player, play)) = trick.plays.last() {
-                    self.record_profile_play(
-                        *player,
-                        play,
-                        trick.leader == *player,
-                        trick.winner == *player,
-                    );
-                }
-            }
-            ActionOutcome::HandComplete(_) => {
-                let play = self
-                    .game
-                    .as_ref()
-                    .and_then(|game| game.history().last())
-                    .and_then(|trick| {
-                        trick.plays.last().map(|(player, play)| {
-                            (*player, play.clone(), trick.leader, trick.winner)
-                        })
-                    });
-                if let Some((player, play, leader, winner)) = play {
-                    self.record_profile_play(player, &play, leader == player, winner == player);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    pub(super) fn record_profile_play(
-        &mut self,
-        player: ShengjiPlayerId,
-        play: &ShengjiClassifiedPlay,
-        is_lead: bool,
-        is_winning: bool,
-    ) {
-        let Some(stats) = self.statistics.profiles.get_mut(usize::from(player.0)) else {
-            return;
-        };
-        stats.plays = stats.plays.saturating_add(1);
-        if is_winning {
-            stats.winning_plays = stats.winning_plays.saturating_add(1);
-        }
-        if is_lead && play.is_throw() {
-            stats.play_category_counts[4] = stats.play_category_counts[4].saturating_add(1);
-            stats.longest_throw = stats
-                .longest_throw
-                .max(play.cards.len().min(usize::from(u16::MAX)) as u16);
-            for component in &play.components {
-                record_shengji_component(stats, component);
-            }
-        } else {
-            record_shengji_component(stats, play.strongest_component());
-        }
-    }
-
     pub(super) fn events_for_outcome(&self, outcome: &ActionOutcome) -> Vec<ShengjiEvent> {
         match outcome {
             ActionOutcome::BuryComplete { leader } => vec![ShengjiEvent::CardsBuried {
@@ -182,6 +73,7 @@ impl ShengjiSession {
                     result: self.hand_result_view(result),
                     buried: game.buried().to_vec(),
                 });
+                events.extend(self.hand_analysis_events());
                 events
             }
             _ => Vec::new(),
@@ -267,7 +159,7 @@ impl ShengjiSession {
 
     pub(super) fn apply_finished_reference_points(&mut self, result: &HandResult) {
         let magnitude = finished_reference_point_magnitude(result);
-        let hand_profile_stats = self.statistics.profiles.clone();
+        let hand_profile_stats = self.statistics.hand.profiles.clone();
         let bottom_burier = self.game.as_ref().and_then(GameState::bottom_burier);
         let settlements = self
             .room
@@ -285,7 +177,7 @@ impl ShengjiSession {
             })
             .collect::<Vec<_>>();
         let applied = settle_completed_match_profiles_once(
-            &mut self.statistics.finished_reference_changes,
+            &mut self.statistics.hand.finished_reference_changes,
             &mut self.room,
             settlements,
             |participant, delta| {
@@ -333,7 +225,8 @@ impl ShengjiSession {
             },
         );
         if applied {
-            self.statistics.finished_settlement_id = Some(new_match_id());
+            self.statistics.hand.finished_settlement_id = Some(new_match_id());
+            self.statistics.match_statistics.record_hand(result);
         }
     }
 
@@ -341,6 +234,7 @@ impl ShengjiSession {
         ShengjiHandResultView {
             settlement_id: self
                 .statistics
+                .hand
                 .finished_settlement_id
                 .expect("完成的小局已经生成独立结算标识"),
             dealer: from_core_player(result.dealer),
@@ -357,6 +251,7 @@ impl ShengjiSession {
             levels: result.levels,
             reference_changes: self
                 .statistics
+                .hand
                 .finished_reference_changes
                 .clone()
                 .expect("完成的小局已经计算平台积分变化"),
@@ -374,10 +269,5 @@ impl ShengjiSession {
             request_id,
             RejectReason::Game(GameViolation::Shengji(game_violation(error))),
         )
-    }
-
-    pub(super) fn broadcast_events(&self, events: Vec<ShengjiEvent>) -> Vec<Delivery> {
-        self.room
-            .broadcast_game_events(events, self.match_id.map(|id| (id, Some(self.hand_number))))
     }
 }

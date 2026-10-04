@@ -3,7 +3,7 @@ use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
     GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, ShengjiEvent,
-    ShengjiProfileStats, ShengjiViolation,
+    ShengjiViolation,
 };
 use leocard_shengji::{
     ActionOutcome, GameError, GameState, Phase, ShengjiCard, ShengjiPlayerId, ShengjiRuleSet,
@@ -84,11 +84,7 @@ impl ShengjiSession {
         self.presentation.throw_penalties = [0; ShengjiRuleSet::PLAYER_COUNT];
         self.presentation.throw_failure = None;
         self.presentation.trick = None;
-        self.statistics
-            .profiles
-            .fill(ShengjiProfileStats::default());
-        self.statistics.finished_settlement_id = None;
-        self.statistics.finished_reference_changes = None;
+        self.statistics.start_hand();
         Ok(())
     }
 

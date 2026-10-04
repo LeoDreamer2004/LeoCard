@@ -1,17 +1,12 @@
-use super::prelude::*;
+use super::*;
 use leocard_protocol::{
-    GamePhaseView, PublicPlay, PublicPlayRecord, QiGui523Snapshot, RevealedHand, StartingCardView,
+    GamePhaseView, GameSnapshot, MatchId, PROTOCOL_VERSION, PlayerId, PublicPlay, PublicPlayRecord,
+    QiGui523Snapshot, RevealedHand, Revision, RoomId, ServerEvent, ServerMessage, StartingCardView,
     TrickView,
-};
-use leocard_protocol::{
-    GameSnapshot, MatchId, PROTOCOL_VERSION, PlayerId, Revision, RoomId, ServerEvent, ServerMessage,
 };
 use leocard_qigui523::{QiGuiCard, QiGuiPlayKind, QiGuiRank, QiGuiSuit};
 
-pub(super) fn score_history_snapshot(
-    trick: Option<TrickView>,
-    phase: GamePhaseView,
-) -> QiGui523Snapshot {
+fn score_history_snapshot(trick: Option<TrickView>, phase: GamePhaseView) -> QiGui523Snapshot {
     let match_id = match &phase {
         GamePhaseView::Finished { match_id, .. } => *match_id,
         GamePhaseView::Playing => MatchId([0; 16]),

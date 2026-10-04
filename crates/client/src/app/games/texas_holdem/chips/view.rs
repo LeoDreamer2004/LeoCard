@@ -1,3 +1,5 @@
+use std::f32::consts;
+
 use super::super::{
     TexasActionFeedback, TexasActionFeedbackText, TexasFoldCard, TexasHoldemAssets,
     TexasOwnFoldCardHover, TexasOwnFoldTooltip, TexasPlayerPanel, TexasPotDivider, TexasPotHover,
@@ -245,7 +247,7 @@ pub(crate) fn highlight_texas_pot_eligible_players(
 
 pub(super) fn pot_eligibility_breath(elapsed: f32) -> f32 {
     let phase = elapsed.rem_euclid(1.7) / 1.7;
-    let wave = 0.5 - 0.5 * (phase * std::f32::consts::TAU).cos();
+    let wave = 0.5 - 0.5 * (phase * consts::TAU).cos();
     wave * wave * (3.0 - 2.0 * wave)
 }
 

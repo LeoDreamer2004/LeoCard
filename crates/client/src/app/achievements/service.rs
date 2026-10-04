@@ -1,36 +1,18 @@
-use super::{AchievementRecipient, AchievementUnlocked, LocalAchievementTrigger};
-use crate::app::runtime::{ClientResource, ServerNotification};
-use crate::app::shell::UiState;
-use bevy::prelude::*;
-use leocard_achievements::{
-    AchievementContext, AchievementDefinition, AchievementTrigger, achievement_by_id,
+use super::{
+    AchievementPublication, AchievementRecipient, AchievementSession, AchievementUnlocked,
 };
+use crate::app::{runtime::ClientResource, shell::UiState};
+use bevy::prelude::*;
+use leocard_achievements::AchievementTrigger;
 use leocard_client::{LocalPlayerProfile, PlayerAchievements};
-use leocard_protocol::{ClientCommand, ServerEvent};
-
-#[derive(Resource, Default)]
-pub(super) struct AchievementSession {
-    enabled: bool,
-    dirty: bool,
-    since_save: f32,
-    save_failed: bool,
-    connection_epoch: u64,
-    connected: bool,
-    pending: Vec<(&'static AchievementDefinition, Option<u64>)>,
-}
-
-#[derive(Resource, Default)]
-pub(super) struct AchievementPublication {
-    unlocked: Vec<String>,
-    since_send: f32,
-}
+use leocard_protocol::ClientCommand;
 
 pub(super) fn setup_book(
     mut commands: Commands,
     mut profile: ResMut<LocalPlayerProfile>,
     mut session: ResMut<AchievementSession>,
 ) {
-    let book = match PlayerAchievements::load(&profile) {
+    let mut book = match PlayerAchievements::load(&profile) {
         Ok(book) => {
             session.enabled = true;
             book
@@ -42,6 +24,13 @@ pub(super) fn setup_book(
             PlayerAchievements::new(profile.identity.profile_id())
         }
     };
+    if session.enabled {
+        let counts = book.counts();
+        session.record(
+            book.trigger(&AchievementTrigger::TrophyTotals(counts)),
+            None,
+        );
+    }
     profile.game_profiles.achievements = book.counts();
     commands.insert_resource(book);
 }
@@ -58,73 +47,6 @@ pub(super) fn reconcile_connection(
         session.connection_epoch = session.connection_epoch.wrapping_add(1);
     }
     session.connected = client.is_some();
-}
-
-pub(super) fn process_triggers(
-    mut notifications: MessageReader<ServerNotification>,
-    mut local: MessageReader<LocalAchievementTrigger>,
-    profile: Res<LocalPlayerProfile>,
-    mut book: ResMut<PlayerAchievements>,
-    mut session: ResMut<AchievementSession>,
-    mut unlocked: MessageWriter<AchievementUnlocked>,
-) {
-    for notification in notifications.read() {
-        let trigger = match (&notification.event, notification.player) {
-            (ServerEvent::GameEvent(event), Some(player)) => Some(AchievementTrigger::Game {
-                player,
-                event: event.clone(),
-            }),
-            (ServerEvent::PlayerInteraction(event), Some(player)) => {
-                Some(AchievementTrigger::Interaction {
-                    player,
-                    event: *event,
-                })
-            }
-            _ => None,
-        };
-        if session.enabled
-            && let Some(trigger) = trigger
-        {
-            let context = notification.game_context.map(|context| AchievementContext {
-                match_id: context.match_id,
-                hand_index: context.hand_index,
-                sequence: context.sequence,
-            });
-            let result = book.trigger_with_context(&trigger, context);
-            session.dirty |= result.progressed;
-            let epoch = session.connected.then_some(session.connection_epoch);
-            session.pending.extend(
-                result
-                    .unlocked
-                    .into_iter()
-                    .map(|definition| (definition, epoch)),
-            );
-        }
-        if let ServerEvent::AchievementUnlocked(announcement) = &notification.event
-            && announcement.profile_id != profile.identity.profile_id()
-            && let Some(definition) = achievement_by_id(&announcement.achievement_id)
-        {
-            unlocked.write(AchievementUnlocked {
-                definition,
-                recipient: AchievementRecipient::TablePlayer {
-                    name: announcement.name.clone(),
-                },
-            });
-        }
-    }
-    for event in local.read() {
-        if !session.enabled {
-            continue;
-        }
-        let result = book.trigger(&event.0);
-        session.dirty |= result.progressed;
-        session.pending.extend(
-            result
-                .unlocked
-                .into_iter()
-                .map(|definition| (definition, None)),
-        );
-    }
 }
 
 pub(super) fn commit_progress(

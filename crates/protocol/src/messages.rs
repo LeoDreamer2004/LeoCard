@@ -136,7 +136,7 @@ pub struct ServerMessage {
     pub protocol_version: u16,
     pub room_id: RoomId,
     pub revision: Revision,
-    /// Present only on live gameplay events, never on snapshots.
+    /// Present only on live game/session events, never on snapshots.
     pub game_context: Option<GameEventContext>,
     /// 对主动请求者设置；其他客户端收到同一次广播时为 `None`。
     pub in_reply_to: Option<RequestId>,
@@ -149,17 +149,31 @@ pub struct ServerMessage {
 pub enum ServerEvent {
     AchievementUnlocked(AchievementAnnouncement),
     Heartbeat,
-    Joined { you: PlayerId },
-    AvatarData { id: AvatarId, png: Vec<u8> },
+    Joined {
+        you: PlayerId,
+    },
+    AvatarData {
+        id: AvatarId,
+        png: Vec<u8>,
+    },
     LobbySnapshot(LobbySnapshot),
     GameSnapshot(GameSnapshot),
     GameEvent(GameEvent),
     PlayerInteraction(PlayerInteraction),
     ChatMessage(ChatMessage),
-    PlayerLeft { name: String },
+    PlayerLeft {
+        name: String,
+    },
     LeftRoom,
     RoomClosed,
-    Rejected { reason: RejectReason },
+    Rejected {
+        reason: RejectReason,
+    },
+    GameStarted {
+        host: PlayerId,
+        game: GameKind,
+        match_id: MatchId,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -232,6 +246,16 @@ impl_game_snapshot_from!(UnoSnapshot, Uno);
 impl_game_snapshot_from!(MahjongSnapshot, Mahjong);
 
 impl GameSnapshot {
+    pub const fn match_id(&self) -> MatchId {
+        match self {
+            Self::QiGui523(snapshot) => snapshot.match_id,
+            Self::TexasHoldem(snapshot) => snapshot.match_id,
+            Self::Shengji(snapshot) => snapshot.match_id,
+            Self::Uno(snapshot) => snapshot.match_id,
+            Self::Mahjong(snapshot) => snapshot.match_id,
+        }
+    }
+
     pub const fn kind(&self) -> GameKind {
         match self {
             Self::QiGui523(_) => GameKind::QiGui523,

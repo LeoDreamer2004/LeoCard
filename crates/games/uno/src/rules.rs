@@ -117,6 +117,14 @@ impl UnoRuleSet {
         }
     }
 
+    pub const fn jump_in_enabled(self) -> bool {
+        match self.mode {
+            Mode::Classic => self.jump_in,
+            Mode::Flip => self.flip.jump_in,
+            Mode::NoMercy => false,
+        }
+    }
+
     pub const fn uno_callout(self) -> bool {
         match self.mode {
             Mode::Classic => self.uno_callout,

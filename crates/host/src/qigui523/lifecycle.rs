@@ -1,16 +1,17 @@
 use super::{QiGui523Session, validate_deck};
-use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{
     AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession,
+    lifecycle::{HostedGameLifecycle, dispatch_client_command},
     new_match_id,
 };
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
-    PlayerInteraction, PlayerInteractionKind, PlayerViolation, QiGui523Command,
-    QiGui523ProfileStats, RejectReason, RequestId, Revision, RoomId, RoomViolation, RuleViolation,
-    ServerEvent,
+    PlayerInteractionKind, PlayerViolation, QiGui523Command, RejectReason, RequestId, Revision,
+    RoomId, RoomViolation, RuleViolation, ServerEvent,
 };
-use leocard_qigui523::{GameState, Phase, QiGuiCard, QiGuiRuleSet, build_deck};
+use leocard_qigui523::{
+    GameState, Phase, QiGuiCard, QiGuiMatchStatistics, QiGuiRuleSet, build_deck,
+};
 use std::time::Duration;
 
 impl QiGui523Session {
@@ -29,7 +30,7 @@ impl QiGui523Session {
             game: None,
             match_id: None,
             finished_reference_changes: None,
-            match_profile_stats: Vec::new(),
+            statistics: None,
             turn_timer: None,
             auto_play_delay: None,
         })
@@ -71,10 +72,10 @@ impl QiGui523Session {
         }
         if self.current_player_is_disconnected() {
             self.auto_play_delay = None;
-            let effect = self.play_automatic_action();
+            let events = self.play_automatic_action();
             self.reset_timer_for_current_turn();
             self.bump_revision();
-            return self.broadcast_game_after_action(None, effect);
+            return self.broadcast_game_after_action(None, events);
         }
         if let Some(player) = self.current_auto_play_player() {
             let delay = self.auto_play_delay.get_or_insert(AutoPlayDelayState {
@@ -92,10 +93,10 @@ impl QiGui523Session {
                 return Vec::new();
             }
             self.auto_play_delay = None;
-            let effect = self.play_automatic_action();
+            let events = self.play_automatic_action();
             self.reset_timer_for_current_turn();
             self.bump_revision();
-            return self.broadcast_game_after_action(None, effect);
+            return self.broadcast_game_after_action(None, events);
         }
         self.auto_play_delay = None;
         if self.turn_timer.is_none() {
@@ -114,10 +115,10 @@ impl QiGui523Session {
         };
 
         if expired {
-            let effect = self.play_automatic_action();
+            let events = self.play_automatic_action();
             self.reset_timer_for_current_turn();
             self.bump_revision();
-            return self.broadcast_game_after_action(None, effect);
+            return self.broadcast_game_after_action(None, events);
         }
 
         if self.turn_timer_view() != before {
@@ -151,16 +152,16 @@ impl QiGui523Session {
             // 使用同一身份重新加入，并复用这个已离开的槽位。
             self.players[index].left = true;
         }
-        let effect = if self.current_player_is_disconnected() {
-            let effect = self.play_automatic_action();
+        let events = if self.current_player_is_disconnected() {
+            let events = self.play_automatic_action();
             self.reset_timer_for_current_turn();
-            effect
+            events
         } else {
-            None
+            Vec::new()
         };
         self.bump_revision();
         if self.game.is_some() {
-            self.broadcast_game_after_action(None, effect)
+            self.broadcast_game_after_action(None, events)
         } else {
             self.broadcast_lobby(None)
         }
@@ -324,10 +325,10 @@ impl HostedGameLifecycle for QiGui523Session {
                     .expect("host validated rules and deck during construction")
             }
         };
+        self.statistics = Some(QiGuiMatchStatistics::new(&game));
         self.game = Some(game);
         self.match_id = Some(new_match_id());
         self.finished_reference_changes = None;
-        self.match_profile_stats = vec![QiGui523ProfileStats::default(); self.players.len()];
         self.auto_play_delay = None;
         self.reset_auto_play_delay_for_current_turn();
         self.initialize_turn_timer();
@@ -372,7 +373,7 @@ impl HostedGameLifecycle for QiGui523Session {
         self.game = None;
         self.match_id = None;
         self.finished_reference_changes = None;
-        self.match_profile_stats.clear();
+        self.statistics = None;
         self.turn_timer = None;
         self.auto_play_delay = None;
         #[cfg(feature = "developer")]
@@ -449,18 +450,16 @@ impl HostedGameLifecycle for QiGui523Session {
         self.players[index].ready = false;
         self.players[index].connected = false;
         self.players[index].left = true;
-        let automatic_effect = if self.current_player_is_disconnected() {
-            let effect = self.play_automatic_action();
+        let automatic_events = if self.current_player_is_disconnected() {
+            let events = self.play_automatic_action();
             self.reset_timer_for_current_turn();
-            effect
+            events
         } else {
-            None
+            Vec::new()
         };
         self.bump_revision();
 
-        let mut deliveries = automatic_effect
-            .map(|effect| self.broadcast_play_effect(effect))
-            .unwrap_or_default();
+        let mut deliveries = self.broadcast_action_events(automatic_events);
         deliveries.push(self.delivery(connection, Some(request_id), ServerEvent::LeftRoom));
         deliveries.extend(
             self.room
@@ -533,13 +532,9 @@ impl HostedGameLifecycle for QiGui523Session {
             );
         }
 
-        let interaction = PlayerInteraction {
-            source,
-            target,
-            kind,
-            seed: fastrand::u32(..),
-        };
-        self.record_received_interaction(target, kind);
+        let interaction = self
+            .room
+            .record_interaction(source, target, kind, fastrand::u32(..));
         self.bump_revision();
         let mut deliveries = self.room.broadcast_event(
             Some((connection, request_id)),

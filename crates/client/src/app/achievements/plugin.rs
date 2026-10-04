@@ -1,6 +1,7 @@
-use super::messages::*;
-use super::notifications::*;
-use super::service::*;
+use super::{
+    AchievementPublication, AchievementSession, messages::*, notifications::*, processing::*,
+    service::*,
+};
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
 
@@ -12,6 +13,7 @@ impl Plugin for AchievementPlugin {
             .add_message::<LocalAchievementTrigger>()
             .init_resource::<AchievementSession>()
             .init_resource::<AchievementPublication>()
+            .init_resource::<ActivityObserver>()
             .init_resource::<AchievementNotifications>()
             .add_systems(Startup, (setup_book, setup_notifications))
             .add_systems(

@@ -2,8 +2,7 @@ use super::TurnClockLabel;
 use crate::app::presentation::add_text;
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use leocard_protocol::QiGui523Snapshot;
-use leocard_protocol::{GamePhaseView, PlayerId, TurnTimerView};
+use leocard_protocol::{GamePhaseView, PlayerId, QiGui523Snapshot, TurnTimerView};
 
 const CLOCK_COLOR: Color = Color::srgb(0.73, 0.69, 0.94);
 

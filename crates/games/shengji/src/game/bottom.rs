@@ -42,6 +42,7 @@ impl GameState {
         remove_cards(&mut self.players[usize::from(player.0)].hand, cards);
         self.buried = cards.to_vec();
         self.bottom_burier = Some(player);
+        self.record_burial(player, cards);
         if bottom_copy_bury {
             let state = self.bottom_copy.as_mut().unwrap();
             state.bottom_holder = None;

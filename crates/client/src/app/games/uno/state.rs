@@ -1,13 +1,11 @@
 //! UNO 牌桌交互、飞牌与规则特效的状态类型。
 
-use crate::app::presentation::CardAnimationState;
-use crate::app::presentation::SilentButton;
+use crate::app::presentation::{CardAnimationState, SilentButton};
 use crate::app::shell::SocialUiState;
 use bevy::prelude::*;
 use leocard_protocol::{MatchId, PlayerId, UnoEvent, UnoPendingSwapView, UnoSnapshot};
 use leocard_uno::UnoCard;
-use std::collections::HashMap;
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 #[derive(Resource, Default)]
 pub(crate) struct UnoUiState {

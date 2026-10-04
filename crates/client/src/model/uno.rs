@@ -85,7 +85,8 @@ pub(super) fn uno_event_notice(snapshot: Option<&UnoSnapshot>, event: &UnoEvent)
             player_name(*player)
         )),
         UnoEvent::SkipResolved { .. } => None,
-        UnoEvent::ColorChosen { .. }
+        UnoEvent::ActionAnalyzed { .. }
+        | UnoEvent::ColorChosen { .. }
         | UnoEvent::CardPlayed { .. }
         | UnoEvent::CardsDrawn { .. }
         | UnoEvent::HandRefreshed { .. }

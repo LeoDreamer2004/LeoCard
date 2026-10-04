@@ -138,6 +138,7 @@ pub(super) fn uno_event_sound_plan(event: &UnoEvent, you: PlayerId, seed: u64) -
         UnoEvent::SkipResolved {
             drew_card: false, ..
         }
+        | UnoEvent::ActionAnalyzed { .. }
         | UnoEvent::GameFinished { .. } => Vec::new(),
         UnoEvent::Flipped { .. } => vec![
             UnoAudioCue::new(UnoSoundKind::Reverse, 0.02, 0.56, seed).with_speed(0.78),

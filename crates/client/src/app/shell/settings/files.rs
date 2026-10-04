@@ -1,17 +1,23 @@
 //! 自定义桌布的文件选择与加载。
 
 use super::super::UiState;
+use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::{
     AppearancePreferences, TableAppearance, TableFeltPicker, TableFeltPickerReceiver,
     save_appearance_preferences,
 };
 use bevy::asset::RenderAssetUsages;
 use bevy::prelude::*;
-use std::fs;
-use std::path::PathBuf;
-use std::sync::mpsc::TryRecvError;
-use std::sync::{Mutex, mpsc};
-use std::thread;
+use leocard_achievements::{AchievementTrigger, PersonalEvent};
+use std::{
+    fs,
+    path::PathBuf,
+    sync::{
+        Mutex,
+        mpsc::{self, TryRecvError},
+    },
+    thread,
+};
 
 pub(crate) fn start_table_felt_picker() -> Result<TableFeltPickerReceiver, String> {
     let (sender, receiver) = mpsc::channel();
@@ -41,6 +47,7 @@ pub(crate) fn poll_table_felt_picker(
     mut preferences: ResMut<AppearancePreferences>,
     mut appearance: ResMut<TableAppearance>,
     mut ui: ResMut<UiState>,
+    mut achievements: MessageWriter<LocalAchievementTrigger>,
 ) {
     let Some(receiver) = picker.pending.as_ref() else {
         return;
@@ -57,8 +64,20 @@ pub(crate) fn poll_table_felt_picker(
     picker.pending = None;
     match result {
         Ok(Some(path)) => {
-            preferences.table_felt_path = Some(path);
-            appearance.error = save_appearance_preferences(&preferences).err();
+            let changed = preferences.table_felt_path.as_ref() != Some(&path);
+            let result = fs::read(&path)
+                .map_err(|error| format!("无法读取桌布图片：{error}"))
+                .and_then(|bytes| decode_table_felt_image(&bytes))
+                .and_then(|_| {
+                    preferences.table_felt_path = Some(path);
+                    save_appearance_preferences(&preferences)
+                });
+            if changed && result.is_ok() {
+                achievements.write(LocalAchievementTrigger(AchievementTrigger::Personal(
+                    PersonalEvent::TableBackgroundChanged,
+                )));
+            }
+            appearance.error = result.err();
         }
         Ok(None) => {}
         Err(error) => appearance.error = Some(error),

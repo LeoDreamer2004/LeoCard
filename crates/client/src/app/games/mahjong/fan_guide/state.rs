@@ -5,8 +5,7 @@ use super::super::{
     MahjongTileVisual, MahjongUiState, add_mahjong_tile_material,
 };
 use super::*;
-use crate::app::presentation::ButtonHighlight;
-use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{ButtonHighlight, MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
@@ -20,15 +19,15 @@ use leocard_mahjong::{MahjongDragon, MahjongFlower, MahjongSuit, MahjongTileKind
 pub(super) const TIERS: [u16; 12] = [88, 64, 48, 32, 24, 16, 12, 8, 6, 4, 2, 1];
 
 #[derive(Component)]
-pub(in crate::app::games::mahjong) struct MahjongFanGuideScroll;
+pub(in super::super) struct MahjongFanGuideScroll;
 
 #[derive(Component)]
-pub(in crate::app::games::mahjong) struct MahjongFanGuideRoot(pub(super) u16);
+pub(in super::super) struct MahjongFanGuideRoot(pub(super) u16);
 
 #[derive(Component)]
-pub(in crate::app::games::mahjong) struct MahjongFanGuideTile;
+pub(in super::super) struct MahjongFanGuideTile;
 
-pub(in crate::app::games::mahjong) fn sync_mahjong_fan_guide(
+pub(in super::super) fn sync_mahjong_fan_guide(
     mut commands: Commands,
     ui: Res<MahjongUiState>,
     roots: Query<(Entity, &MahjongFanGuideRoot)>,
@@ -77,7 +76,7 @@ pub(in crate::app::games::mahjong) fn sync_mahjong_fan_guide(
     );
 }
 
-pub(in crate::app::games::mahjong) fn animate_mahjong_fan_guide_tiles(
+pub(in super::super) fn animate_mahjong_fan_guide_tiles(
     ui: Res<MahjongUiState>,
     mut tiles: Query<
         (&MaterialNode<MahjongTileMaterial>, Option<&mut BoxShadow>),
@@ -103,7 +102,7 @@ pub(in crate::app::games::mahjong) fn animate_mahjong_fan_guide_tiles(
     }
 }
 
-pub(in crate::app::games::mahjong) fn add_fan_guide_button(
+pub(in super::super) fn add_fan_guide_button(
     commands: &mut Commands,
     chat_panel: Entity,
     assets: &UiAssets,
@@ -648,7 +647,7 @@ pub(super) fn parse_group(group: &str) -> Option<(bool, Vec<MahjongTileKind>)> {
     (!tiles.is_empty()).then_some((exposed, tiles))
 }
 
-pub(in crate::app::games::mahjong) fn scroll_mahjong_fan_guide(
+pub(in super::super) fn scroll_mahjong_fan_guide(
     mut wheels: MessageReader<MouseWheel>,
     mut scrolls: Query<
         (&RelativeCursorPosition, &mut ScrollPosition, &ComputedNode),

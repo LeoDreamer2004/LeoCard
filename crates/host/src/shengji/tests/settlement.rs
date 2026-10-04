@@ -2,15 +2,16 @@ use super::*;
 use leocard_protocol::PlayerId;
 #[cfg(feature = "developer")]
 use leocard_protocol::{ClientCommand, SeatId, ShengjiPhaseView};
-use leocard_shengji::ShengjiTeamId;
 #[cfg(feature = "developer")]
 use leocard_shengji::build_deck;
-use leocard_shengji::{Category, ShengjiRank, ShengjiSuit};
-use leocard_shengji::{Component, HandResult, ShengjiClassifiedPlay, ShengjiPlayerId};
+use leocard_shengji::{
+    Category, Component, HandResult, ShengjiClassifiedPlay, ShengjiPlayerId, ShengjiRank,
+    ShengjiSuit, ShengjiTeamId,
+};
 #[cfg(feature = "developer")]
 use leocard_shengji::{ShengjiCard, ShengjiRuleSet};
 
-fn result_for_reference_points(
+pub(super) fn result_for_reference_points(
     dealer_wins: bool,
     promoted_steps: u8,
     collecting_score: u32,
@@ -63,15 +64,16 @@ fn hand_rating_magnitude_matches_upgrade_outcome() {
 #[test]
 fn hand_rating_is_applied_once_and_updates_every_player() {
     let (mut session, _, _) = started_session();
-    session.statistics.profiles[0].declaration_games = 1;
-    session.statistics.profiles[0].counter_games = 1;
-    session.statistics.profiles[0].plays = 4;
-    session.statistics.profiles[0].winning_plays = 2;
+    session.statistics.hand.profiles[0].declaration_games = 1;
+    session.statistics.hand.profiles[0].counter_games = 1;
+    session.statistics.hand.profiles[0].plays = 4;
+    session.statistics.hand.profiles[0].winning_plays = 2;
     let result = result_for_reference_points(false, 1, 120);
     session.apply_finished_reference_points(&result);
-    let settlement_id = session.statistics.finished_settlement_id;
+    let settlement_id = session.statistics.hand.finished_settlement_id;
     let changes = session
         .statistics
+        .hand
         .finished_reference_changes
         .clone()
         .unwrap();
@@ -115,7 +117,10 @@ fn hand_rating_is_applied_once_and_updates_every_player() {
     assert_eq!(dealer_stats.winning_plays, 2);
 
     session.apply_finished_reference_points(&result);
-    assert_eq!(session.statistics.finished_settlement_id, settlement_id);
+    assert_eq!(
+        session.statistics.hand.finished_settlement_id,
+        settlement_id
+    );
     assert!(
         session
             .room
@@ -161,7 +166,7 @@ fn throw_profile_lengths_include_every_internal_sequence() {
 
     session.record_profile_play(ShengjiPlayerId(0), &play, true, true);
 
-    let stats = &session.statistics.profiles[0];
+    let stats = &session.statistics.hand.profiles[0];
     assert_eq!(stats.plays, 1);
     assert_eq!(stats.winning_plays, 1);
     assert_eq!(stats.play_category_counts[0], 1);
@@ -171,7 +176,7 @@ fn throw_profile_lengths_include_every_internal_sequence() {
     assert_eq!(stats.play_category_counts.iter().sum::<u32>(), 4);
     assert_eq!(stats.longest_tractor, 3);
     assert_eq!(stats.longest_titanic, 2);
-    assert_eq!(stats.longest_space_fortress, 2);
+    assert_eq!(stats.longest_spaceship, 2);
     assert_eq!(stats.longest_throw, 26);
 }
 

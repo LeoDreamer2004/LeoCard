@@ -14,7 +14,9 @@ pub use card::{ShengjiCard, ShengjiRank, ShengjiSuit, build_deck, build_deck_for
 pub use game::{
     ActionOutcome, BidError, BidState, BottomCopyState, BottomFlipMatch, BottomFlipReveal,
     Declaration, FiveTrumpCrossingStage, FiveTrumpCrossingState, GameError, GameState, HandResult,
-    Phase, PlayerState, ShengjiBidKind, TeamProgress, TrickRecord, bid_joker_for_suit,
+    Phase, PlayerState, ShengjiBidKind, ShengjiBurialStatistics, ShengjiHandStatistics,
+    ShengjiMatchStatistics, ShengjiOpeningHandStatistics, ShengjiRedealReason, TeamProgress,
+    TrickRecord, bid_joker_for_suit,
 };
 pub use play::{
     Category, Component, FollowError, PlayError, ShengjiClassifiedPlay, ThrowFailure, TrickPlay,

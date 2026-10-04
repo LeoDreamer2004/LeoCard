@@ -140,6 +140,19 @@ fn sequential_bottom_copies_change_trump_but_never_the_first_hands_dealer() {
         game.choose_bottom_copy(player, None).unwrap();
     }
     assert_eq!(game.phase(), &Phase::Playing);
+    let trump = game.trump().unwrap();
+    for player in game.players() {
+        let opening = game.statistics.opening[usize::from(player.id.0)].unwrap();
+        assert_eq!(
+            usize::from(opening.trump_count),
+            player
+                .hand
+                .iter()
+                .filter(|card| trump.is_trump(**card))
+                .count()
+        );
+    }
+
     assert_eq!(game.dealer(), Some(ShengjiPlayerId(0)));
     assert_eq!(game.current_player(), Some(ShengjiPlayerId(0)));
 }
@@ -267,7 +280,7 @@ fn nobody_declaring_requires_a_redeal() {
         game.close_bidding_and_take_kitty(),
         Err(GameError::RedealRequired)
     );
-    assert_eq!(game.phase(), &Phase::RedealRequired);
+    assert!(matches!(game.phase(), Phase::RedealRequired(_)));
 }
 
 #[test]

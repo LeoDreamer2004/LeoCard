@@ -1,5 +1,7 @@
 //! 升级收分与终局结算演出。
 
+use std::f32::consts;
+
 use super::state::{ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation};
 use super::view::shengji_card_face;
 use super::{
@@ -336,7 +338,7 @@ pub(crate) fn animate_shengji_settlement_visuals(
         };
         transform.translation = Val2::px(0.0, 16.0 * (1.0 - progress));
         let bounce = if raw < 1.0 {
-            (raw * std::f32::consts::PI).sin() * 0.08
+            (raw * consts::PI).sin() * 0.08
         } else {
             0.0
         };
@@ -365,7 +367,7 @@ pub(crate) fn animate_shengji_settlement_visuals(
             + (target.saturating_sub(score.base)) as f32 * ease_out_cubic(multiplier_roll))
         .round() as u32;
         text.0 = displayed.to_string();
-        let pulse = (multiplier_roll * std::f32::consts::PI).sin() * 0.20;
+        let pulse = (multiplier_roll * consts::PI).sin() * 0.20;
         transform.scale = Vec2::splat(1.0 + pulse);
     }
     for (mut transform, mut color, mut visibility) in &mut visuals.p4() {
@@ -388,7 +390,7 @@ pub(crate) fn animate_shengji_settlement_visuals(
     for (score, mut text, mut transform) in &mut visuals.p3() {
         let displayed = (score.target as f32 * ease_out_cubic(total_raw)).round() as u32;
         text.0 = displayed.to_string();
-        let pulse = (total_raw * std::f32::consts::PI).sin() * 0.16;
+        let pulse = (total_raw * consts::PI).sin() * 0.16;
         transform.scale = Vec2::splat(1.0 + pulse);
     }
 

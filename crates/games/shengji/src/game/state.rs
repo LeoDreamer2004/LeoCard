@@ -1,4 +1,4 @@
-use super::{GameError, partner, validate_deck};
+use super::{GameError, HandStatisticsTracker, ShengjiRedealReason, partner, validate_deck};
 use crate::{
     BidState, ShengjiCard, ShengjiClassifiedPlay, ShengjiPlayerId, ShengjiRank, ShengjiRuleSet,
     ShengjiTeamId, ShengjiTrump, level_after,
@@ -55,6 +55,7 @@ pub struct TrickRecord {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HandResult {
     pub dealer: ShengjiPlayerId,
     pub dealer_team: ShengjiTeamId,
@@ -81,7 +82,7 @@ pub enum Phase {
     FiveTrumpCrossing,
     Playing,
     Finished(HandResult),
-    RedealRequired,
+    RedealRequired(ShengjiRedealReason),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -247,6 +248,7 @@ pub enum ActionOutcome {
 
 #[derive(Clone, Debug)]
 pub struct GameState {
+    pub(super) statistics: HandStatisticsTracker,
     pub(super) rules: ShengjiRuleSet,
     pub(super) teams: TeamProgress,
     pub(super) fixed_dealer: Option<ShengjiPlayerId>,
@@ -304,6 +306,7 @@ impl GameState {
         let hand_size = rules.hand_size();
         let kitty_size = rules.kitty_size();
         Ok(Self {
+            statistics: HandStatisticsTracker::default(),
             rules,
             teams,
             fixed_dealer,
@@ -427,8 +430,9 @@ impl GameState {
         self.collecting_score
     }
 
-    /// 宿主在发牌结束后的五秒亮主窗口结束时调用。
+    /// 埋底、抄底与五主过江全部完成后，固定本盘完整起手统计并开始出牌。
     pub(super) fn start_playing(&mut self) {
+        self.record_opening_hands();
         self.phase = Phase::Playing;
         self.current_player = self.dealer;
     }

@@ -1,8 +1,9 @@
 use super::{UnoSession, from_core_player, map_game_error, to_core_player};
 use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
-    GameViolation, PlayerId, RejectReason, RequestId, UnoEvent, UnoPendingSwapView, UnoPhaseView,
-    UnoPlayerResult, UnoPlayerState, UnoRevealedHand, UnoSnapshot,
+    GameEvent, GameViolation, PlayerId, RejectReason, RequestId, ServerEvent, UnoEvent,
+    UnoPendingSwapView, UnoPhaseView, UnoPlayerResult, UnoPlayerState, UnoRevealedHand,
+    UnoSnapshot,
 };
 use leocard_uno::{GameError, PendingSwap, Phase, UnoCard};
 
@@ -10,6 +11,14 @@ impl UnoSession {
     pub(super) fn broadcast_events(&self, events: Vec<UnoEvent>) -> Vec<Delivery> {
         self.room
             .broadcast_game_events(events, self.match_id.map(|id| (id, None)))
+            .into_iter()
+            .filter(|delivery| match &delivery.message.event {
+                ServerEvent::GameEvent(GameEvent::Uno(UnoEvent::ActionAnalyzed {
+                    player, ..
+                })) => self.room.player_id(delivery.recipient) == Some(*player),
+                _ => true,
+            })
+            .collect()
     }
 
     pub(super) fn game_snapshot(&self, recipient: PlayerId) -> UnoSnapshot {

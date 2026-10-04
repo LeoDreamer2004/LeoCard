@@ -23,7 +23,7 @@ pub(super) fn record_shengji_component(stats: &mut ShengjiProfileStats, componen
         }
         Component::Quad { .. } => 2,
         Component::Spaceship { quad_count, .. } => {
-            stats.longest_space_fortress = stats.longest_space_fortress.max(u16::from(*quad_count));
+            stats.longest_spaceship = stats.longest_spaceship.max(u16::from(*quad_count));
             3
         }
     };
@@ -56,9 +56,7 @@ pub(super) fn merge_shengji_profile_stats(
     }
     aggregate.longest_tractor = aggregate.longest_tractor.max(current.longest_tractor);
     aggregate.longest_titanic = aggregate.longest_titanic.max(current.longest_titanic);
-    aggregate.longest_space_fortress = aggregate
-        .longest_space_fortress
-        .max(current.longest_space_fortress);
+    aggregate.longest_spaceship = aggregate.longest_spaceship.max(current.longest_spaceship);
     aggregate.longest_throw = aggregate.longest_throw.max(current.longest_throw);
 }
 

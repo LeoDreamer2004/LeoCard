@@ -3,7 +3,7 @@
 use super::{ActionFeedbackKind, TexasChipTableState, TexasPlayerShake};
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-use std::collections::HashSet;
+use std::{collections::HashSet, f32::consts};
 
 #[derive(Component)]
 pub(super) struct TexasActionFeedback {
@@ -60,7 +60,7 @@ pub(super) fn action_feedback_visual(
         }
         ActionFeedbackKind::Check => {}
         ActionFeedbackKind::Call => {
-            visual.scale = 1.0 + (entry * std::f32::consts::PI).sin() * 0.12;
+            visual.scale = 1.0 + (entry * consts::PI).sin() * 0.12;
         }
         ActionFeedbackKind::Raise => {
             let progress = (elapsed / 0.28).clamp(0.0, 1.0);

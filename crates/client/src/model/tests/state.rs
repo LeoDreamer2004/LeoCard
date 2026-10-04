@@ -1,12 +1,8 @@
-use super::prelude::*;
-use super::qigui::score_history_snapshot;
+use super::*;
 use leocard_protocol::{
-    AvatarId, GameRules, GameSnapshot, LobbySnapshot, MatchId, PROTOCOL_VERSION, PlayerId,
-    PlayerReferenceChange, RejectReason, Revision, RoomId, ServerEvent, ServerMessage,
+    AvatarId, GameViolation, PROTOCOL_VERSION, PlayerId, PlayerInteraction, PlayerInteractionKind,
+    RejectReason, Revision, RoomId, RuleViolation, ServerEvent, ServerMessage,
 };
-use leocard_protocol::{GameKind, GamePhaseView, GameViolation, ProfileId, RuleViolation};
-use leocard_protocol::{PlayerInteraction, PlayerInteractionKind};
-use leocard_qigui523::QiGuiRuleSet;
 
 #[test]
 fn accepted_events_reach_observers_without_consuming_presentation_queues() {
@@ -24,6 +20,7 @@ fn accepted_events_reach_observers_without_consuming_presentation_queues() {
         target: PlayerId(0),
         kind: PlayerInteractionKind::Flower,
         seed: 1,
+        elapsed_millis: 100,
     };
     let message = ServerMessage {
         game_context: None,
@@ -58,52 +55,6 @@ fn accepted_events_reach_observers_without_consuming_presentation_queues() {
             !model.apply_with_events(rejected, |_, _| panic!("rejected event reached observer"))
         );
     }
-}
-
-#[test]
-fn finished_match_receipt_survives_a_following_lobby_snapshot() {
-    let mut model = ClientModel::new(RoomId(7));
-    let match_id = MatchId([9; 16]);
-    let profile_id = ProfileId([4; 32]);
-    let change = PlayerReferenceChange {
-        player: PlayerId(0),
-        profile_id,
-        delta: 2,
-    };
-    assert!(model.apply(ServerMessage {
-        game_context: None,
-        protocol_version: PROTOCOL_VERSION,
-        room_id: RoomId(7),
-        revision: Revision(1),
-        in_reply_to: None,
-        event: ServerEvent::GameSnapshot(GameSnapshot::QiGui523(score_history_snapshot(
-            None,
-            GamePhaseView::Finished {
-                match_id,
-                finisher: PlayerId(0),
-                scores: Vec::new(),
-                remaining_hands: Vec::new(),
-                reference_changes: vec![change],
-                captured_hand_points: 0,
-            },
-        ))),
-    }));
-    assert!(model.apply(ServerMessage {
-        game_context: None,
-        protocol_version: PROTOCOL_VERSION,
-        room_id: RoomId(7),
-        revision: Revision(2),
-        in_reply_to: None,
-        event: ServerEvent::LobbySnapshot(LobbySnapshot {
-            game: GameKind::QiGui523,
-            rules: GameRules::QiGui523(QiGuiRuleSet::default()),
-            host_port: 52300,
-            host: None,
-            players: Vec::new(),
-        }),
-    }));
-
-    assert_eq!(model.last_finished_match(), Some((match_id, &[change][..])));
 }
 
 #[test]

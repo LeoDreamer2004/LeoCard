@@ -3,14 +3,16 @@ use super::{
     ActivePlayEffect, QiGui523Assets, SequenceEffectCard, add_sequence_play_decoration,
     sequence_effect_style, sort_cards_high_to_low, turn_clock_visible,
 };
-use crate::app::presentation::CardSize;
-use crate::app::presentation::{READY, TABLE_CARD_REVEAL, add_card_image, add_text, spawn_node};
+use crate::app::presentation::{
+    CardSize, READY, TABLE_CARD_REVEAL, add_card_image, add_text, spawn_node,
+};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::SeatSide;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
-use leocard_protocol::{GamePhaseView, PlayerPublicState, PublicPlay, PublicPlayRecord};
-use leocard_protocol::{PlayerId, QiGui523Snapshot};
+use leocard_protocol::{
+    GamePhaseView, PlayerId, PlayerPublicState, PublicPlay, PublicPlayRecord, QiGui523Snapshot,
+};
 
 #[expect(
     clippy::too_many_arguments,

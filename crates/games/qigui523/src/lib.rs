@@ -10,6 +10,7 @@ mod game;
 mod play;
 mod rating;
 mod rules;
+mod statistics;
 
 pub use bot::{QiGui523Bot, QiGui523BotRequest, has_legal_response};
 pub use card::{QiGuiCard, QiGuiRank, QiGuiSuit, build_deck};
@@ -23,3 +24,7 @@ pub use play::{
 };
 pub use rating::reference_point_deltas;
 pub use rules::{QiGuiRuleSet, RuleError, SameCardPolicy, SuitComparison, TimeControl};
+
+pub use statistics::{
+    QiGuiActionContext, QiGuiActionStatistics, QiGuiMatchStatistics, QiGuiPlayerStatistics,
+};

@@ -1,11 +1,12 @@
 use super::{UnoSession, resolve_public_hand_card, shuffled_uno_deck, to_core_player};
-use crate::lifecycle::HostedGameLifecycle;
-use crate::{ConnectionId, Delivery, new_match_id};
+use crate::{ConnectionId, Delivery, lifecycle::HostedGameLifecycle, new_match_id};
 use leocard_protocol::{
     GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, UnoCommand,
-    UnoProfileStats, UnoViolation,
+    UnoViolation,
 };
-use leocard_uno::{GameError, GameState, Phase, UnoRuleSet, build_deck_for_rules};
+use leocard_uno::{
+    GameError, GameState, Phase, UnoMatchStatistics, UnoRuleSet, build_deck_for_rules,
+};
 
 impl UnoSession {
     pub(super) fn handle_uno_command(
@@ -271,11 +272,10 @@ impl UnoSession {
         let game =
             GameState::new_with_deck(self.rules, player_count, shuffled_uno_deck(self.rules))
                 .expect("a freshly built UNO deck is valid");
+        self.statistics = Some(UnoMatchStatistics::new(&game));
         self.game = Some(game);
         self.pending_draw_reveal = None;
         self.match_id = Some(new_match_id());
-        self.match_profile_stats = vec![UnoProfileStats::default(); usize::from(player_count)];
-        self.record_state_peaks();
         self.finished_reference_changes = None;
         self.reset_auto_play_delay();
         self.room.bump_revision();

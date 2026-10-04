@@ -1,16 +1,16 @@
 use super::{
-    UnoSession, append_finished_event, events_for_outcome, merge_uno_profile_stats,
-    pending_draw_reveal_for_outcome, to_core_player,
+    UnoSession, analysis::profile_statistics, analysis_events, append_finished_event,
+    events_for_outcome, merge_uno_profile_stats, pending_draw_reveal_for_outcome, to_core_player,
 };
-use crate::lifecycle::HostedGameLifecycle;
-use crate::player::settle_completed_match_profiles_once;
-use crate::{ConnectionId, Delivery};
+use crate::{
+    ConnectionId, Delivery, lifecycle::HostedGameLifecycle,
+    player::settle_completed_match_profiles_once,
+};
 use leocard_protocol::{
     GameViolation, PlayerId, PlayerViolation, RejectReason, RequestId, UnoProfileStats,
 };
 use leocard_uno::{
-    ActionOutcome, GameError, GameState, Phase, PlayedEffect, UnoCard, UnoChallengeResult,
-    UnoColor, UnoPlayerId,
+    ActionOutcome, GameError, GameState, Phase, UnoActionContext, UnoCard, UnoColor, UnoPlayerId,
 };
 
 impl UnoSession {
@@ -41,20 +41,18 @@ impl UnoSession {
         };
         let jump_in_was_available =
             successful_jump_in && game.jump_in_card(to_core_player(player)).is_some();
+        let before = UnoActionContext::capture(game, to_core_player(player));
         match action(game, to_core_player(player)) {
             Ok(outcome) => {
-                if jump_in_was_available
-                    && let Some(stats) = self.match_profile_stats.get_mut(usize::from(player.0))
-                {
-                    stats.successful_jump_ins = stats.successful_jump_ins.saturating_add(1);
-                }
                 let mut events = events_for_outcome(&outcome, &played);
                 append_finished_event(&mut events, game);
-                self.record_profile_outcome(&outcome);
-                if !played.is_empty() {
-                    self.record_jump_in_opportunities();
-                }
-                self.record_state_peaks();
+                let before = before.expect("accepted UNO actions started in an active game");
+                events.extend(analysis_events(
+                    self.statistics
+                        .as_mut()
+                        .expect("active UNO games have a recorder")
+                        .observe(before, &outcome, &played, jump_in_was_available, game),
+                ));
                 self.apply_finished_reference_points();
                 self.reset_auto_play_delay();
                 self.room.bump_revision();
@@ -75,106 +73,6 @@ impl UnoSession {
         }
     }
 
-    fn record_jump_in_opportunities(&mut self) {
-        let Some(game) = self.game.as_ref() else {
-            return;
-        };
-        for participant in &self.room.players {
-            if game.jump_in_card(to_core_player(participant.id)).is_some()
-                && let Some(stats) = self
-                    .match_profile_stats
-                    .get_mut(usize::from(participant.id.0))
-            {
-                stats.jump_in_opportunities = stats.jump_in_opportunities.saturating_add(1);
-            }
-        }
-    }
-
-    pub(super) fn record_profile_outcome(&mut self, outcome: &ActionOutcome) {
-        match outcome {
-            ActionOutcome::PenaltyDrawn { player, cards, .. }
-            | ActionOutcome::SkipResolved { player, cards, .. } => {
-                self.record_penalty_peak(*player, cards.len());
-            }
-            ActionOutcome::ChallengeResolved {
-                challenger,
-                offender,
-                result,
-                penalized,
-                cards,
-                ..
-            } => {
-                if let Some(stats) = self.match_profile_stats.get_mut(challenger.0) {
-                    stats.challenges = stats.challenges.saturating_add(1);
-                    if *result == UnoChallengeResult::Successful {
-                        stats.successful_challenges = stats.successful_challenges.saturating_add(1);
-                    }
-                }
-                if let Some(stats) = self.match_profile_stats.get_mut(offender.0) {
-                    stats.challenges_received = stats.challenges_received.saturating_add(1);
-                    if *result == UnoChallengeResult::Successful {
-                        stats.successful_challenges_received =
-                            stats.successful_challenges_received.saturating_add(1);
-                    }
-                }
-                self.record_penalty_peak(*penalized, cards.len());
-            }
-            ActionOutcome::UnoCalled { player } => {
-                if let Some(stats) = self.match_profile_stats.get_mut(player.0) {
-                    stats.uno_calls = stats.uno_calls.saturating_add(1);
-                }
-            }
-            ActionOutcome::UnoReported { target, cards, .. } => {
-                if let Some(stats) = self.match_profile_stats.get_mut(target.0) {
-                    stats.uno_penalties = stats.uno_penalties.saturating_add(1);
-                }
-                self.record_penalty_peak(*target, cards.len());
-            }
-            ActionOutcome::Played {
-                effect: Some(PlayedEffect::DrawReflected { player, cards }),
-                ..
-            } => self.record_penalty_peak(*player, cards.len()),
-            ActionOutcome::ColorChosen { .. }
-            | ActionOutcome::Played { .. }
-            | ActionOutcome::SwapOneCardTaken { .. }
-            | ActionOutcome::SwapOneCompleted { .. }
-            | ActionOutcome::HandsTraded { .. }
-            | ActionOutcome::DrewCards { .. }
-            | ActionOutcome::PassedAfterDraw { .. }
-            | ActionOutcome::ColorRouletteResolved { .. } => {}
-        }
-    }
-
-    fn record_penalty_peak(&mut self, player: UnoPlayerId, card_count: usize) {
-        let card_count = u16::try_from(card_count).unwrap_or(u16::MAX);
-        if let Some(stats) = self.match_profile_stats.get_mut(player.0) {
-            stats.max_penalty_cards = stats.max_penalty_cards.max(card_count);
-        }
-    }
-
-    pub(super) fn record_state_peaks(&mut self) {
-        let Some(game) = self.game.as_ref() else {
-            return;
-        };
-        let turn = game.turn();
-        let peaks = game
-            .players()
-            .iter()
-            .map(|player| {
-                let hand_cards = u16::try_from(player.hand().len()).unwrap_or(u16::MAX);
-                let stored_skips = game.skipped_turns(player.id()).unwrap_or_default();
-                let pending_skips = turn
-                    .filter(|turn| turn.current_player == player.id())
-                    .map_or(0, |turn| turn.pending_skip);
-                (hand_cards, stored_skips.saturating_add(pending_skips))
-            })
-            .collect::<Vec<_>>();
-        for (stats, (hand_cards, skipped_turns)) in self.match_profile_stats.iter_mut().zip(peaks) {
-            stats.max_hand_cards = stats.max_hand_cards.max(hand_cards);
-            stats.max_skipped_turns = stats.max_skipped_turns.max(skipped_turns);
-        }
-    }
-
     pub(super) fn apply_finished_reference_points(&mut self) {
         let result = match self.game.as_ref().map(GameState::phase) {
             Some(Phase::Finished(result)) => result.clone(),
@@ -188,7 +86,19 @@ impl UnoSession {
             .iter()
             .map(|player| player.eliminated())
             .collect::<Vec<_>>();
-        let match_profile_stats = self.match_profile_stats.clone();
+        let statistics = self
+            .statistics
+            .as_ref()
+            .expect("a finished UNO game has a recorder");
+        let match_profile_stats = (0..result.hand_scores.len())
+            .map(|index| {
+                profile_statistics(
+                    statistics
+                        .player_statistics(UnoPlayerId(index))
+                        .expect("recorder and game players stay aligned"),
+                )
+            })
+            .collect::<Vec<_>>();
         let settlements = result
             .reference_deltas
             .iter()

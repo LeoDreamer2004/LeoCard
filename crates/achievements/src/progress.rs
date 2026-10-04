@@ -195,6 +195,16 @@ impl AchievementBook {
                 result.unlocked.push(definition);
             }
         }
+        if !matches!(event, AchievementTrigger::TrophyTotals(_)) {
+            let derived = self.trigger_with_registry(
+                &AchievementTrigger::TrophyTotals(self.counts()),
+                None,
+                now,
+                definitions,
+            );
+            result.progressed |= derived.progressed;
+            result.unlocked.extend(derived.unlocked);
+        }
         result
     }
 }

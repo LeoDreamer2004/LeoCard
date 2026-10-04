@@ -473,6 +473,7 @@ pub(crate) fn spawn_uno_presentation_effects(
             | UnoEvent::SkipResolved {
                 drew_card: false, ..
             }
+            | UnoEvent::ActionAnalyzed { .. }
             | UnoEvent::GameFinished { .. } => {}
         }
     }

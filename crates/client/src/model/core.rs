@@ -110,7 +110,7 @@ impl ClientModel {
         self.latest_revision = message.revision;
         observe(self.you, &message);
         match message.event {
-            ServerEvent::AchievementUnlocked(_) => {}
+            ServerEvent::AchievementUnlocked(_) | ServerEvent::GameStarted { .. } => {}
             ServerEvent::Joined { you } => {
                 self.you = Some(you);
                 self.rejection.value = None;

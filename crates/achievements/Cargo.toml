@@ -1,6 +1,6 @@
 [package]
 name = "leocard-achievements"
-version = "0.5.0"
+version = "0.5.1"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
@@ -10,6 +10,9 @@ description = "Pure achievement registry and progress evaluation for LeoCard"
 leocard-protocol = { path = "../protocol" }
 leocard-mahjong = { path = "../games/mahjong" }
 leocard-texas-holdem = { path = "../games/texas-holdem" }
+leocard-shengji = { path = "../games/shengji" }
+leocard-qigui523 = { path = "../games/qigui523" }
+leocard-uno = { path = "../games/uno" }
 serde.workspace = true
 
 [dev-dependencies]

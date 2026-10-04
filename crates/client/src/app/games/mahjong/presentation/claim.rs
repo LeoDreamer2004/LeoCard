@@ -1,3 +1,5 @@
+use std::f32::consts;
+
 use super::super::{
     MAHJONG_CLAIM_FLIGHT_DELAY, MAHJONG_CLAIM_FLIGHT_DURATION, MAHJONG_CLAIM_HAND_SHIFT_DURATION,
     MAHJONG_CLAIM_PRESENTATION_DURATION, MAHJONG_FLOWER_PRESENTATION_DURATION, MahjongAssets,
@@ -57,9 +59,9 @@ impl MahjongSeatGeometry {
     const fn angle(relative: u8) -> f32 {
         match relative {
             0 => 0.0,
-            1 => -std::f32::consts::FRAC_PI_2,
-            2 => std::f32::consts::PI,
-            _ => std::f32::consts::FRAC_PI_2,
+            1 => -consts::FRAC_PI_2,
+            2 => consts::PI,
+            _ => consts::FRAC_PI_2,
         }
     }
 }
@@ -71,11 +73,11 @@ fn mahjong_claim_flight_pose(elapsed: f32, flight: &MahjongClaimFlight) -> (Vec2
     let position = flight.start * inverse * inverse
         + flight.control * (2.0 * inverse * progress)
         + flight.target * progress * progress;
-    let angle_delta = (flight.target_angle - flight.start_angle + std::f32::consts::PI)
-        .rem_euclid(std::f32::consts::TAU)
-        - std::f32::consts::PI;
+    let angle_delta = (flight.target_angle - flight.start_angle + consts::PI)
+        .rem_euclid(consts::TAU)
+        - consts::PI;
     let angle = flight.start_angle + angle_delta * progress;
-    let lift = (raw * std::f32::consts::PI).sin();
+    let lift = (raw * consts::PI).sin();
     let base_scale = 1.0 + (flight.target_scale - 1.0) * progress;
     (
         position,
@@ -88,7 +90,7 @@ fn mahjong_claim_flight_pose(elapsed: f32, flight: &MahjongClaimFlight) -> (Vec2
 fn mahjong_claim_label_visual(elapsed: f32) -> (f32, f32, f32) {
     let focus = (elapsed / 0.24).clamp(0.0, 1.0);
     let focus = ease_out_cubic(focus);
-    let scale = 1.0 + (1.0 - focus) * 0.78 + (focus * std::f32::consts::PI).sin() * 0.06;
+    let scale = 1.0 + (1.0 - focus) * 0.78 + (focus * consts::PI).sin() * 0.06;
     let fade_in = (elapsed / 0.08).clamp(0.0, 1.0);
     let fade_out = ((MAHJONG_CLAIM_PRESENTATION_DURATION - elapsed) / 0.32).clamp(0.0, 1.0);
     (scale, fade_in * fade_out, 7.0 * (1.0 - focus))
@@ -96,7 +98,7 @@ fn mahjong_claim_label_visual(elapsed: f32) -> (f32, f32, f32) {
 
 fn mahjong_flower_label_visual(elapsed: f32) -> (f32, f32, f32) {
     let focus = ease_out_cubic((elapsed / 0.24).clamp(0.0, 1.0));
-    let scale = 1.0 + (1.0 - focus) * 0.52 + (focus * std::f32::consts::PI).sin() * 0.04;
+    let scale = 1.0 + (1.0 - focus) * 0.52 + (focus * consts::PI).sin() * 0.04;
     let fade_in = (elapsed / 0.08).clamp(0.0, 1.0);
     let fade_out = ((MAHJONG_FLOWER_PRESENTATION_DURATION - elapsed) / 0.28).clamp(0.0, 1.0);
     (scale, fade_in * fade_out, 6.0 * (1.0 - focus))

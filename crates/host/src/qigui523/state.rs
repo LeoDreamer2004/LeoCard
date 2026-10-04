@@ -1,6 +1,6 @@
 use crate::{AutoPlayDelayState, RoomSession, TurnTimerState};
-use leocard_protocol::{MatchId, PlayerReferenceChange, QiGui523ProfileStats};
-use leocard_qigui523::{GameState, QiGuiCard, QiGuiRuleSet};
+use leocard_protocol::{MatchId, PlayerReferenceChange};
+use leocard_qigui523::{GameState, QiGuiCard, QiGuiMatchStatistics, QiGuiRuleSet};
 use std::ops::{Deref, DerefMut};
 
 /// 单房间权威会话。所有命令均按调用顺序串行处理。
@@ -12,7 +12,7 @@ pub struct QiGui523Session {
     pub(super) game: Option<GameState>,
     pub(super) match_id: Option<MatchId>,
     pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
-    pub(super) match_profile_stats: Vec<QiGui523ProfileStats>,
+    pub(super) statistics: Option<QiGuiMatchStatistics>,
     pub(super) turn_timer: Option<TurnTimerState>,
     pub(super) auto_play_delay: Option<AutoPlayDelayState>,
 }

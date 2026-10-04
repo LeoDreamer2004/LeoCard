@@ -1,3 +1,4 @@
+mod analysis;
 mod fixtures;
 mod jump_in;
 mod lifecycle;

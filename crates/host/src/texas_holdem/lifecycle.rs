@@ -1,10 +1,12 @@
 use super::{TexasHoldemAdapter, TexasHoldemSession, validate_deck};
-use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
-use crate::{AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession};
+use crate::{
+    AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession,
+    lifecycle::{HostedGameLifecycle, dispatch_client_command},
+};
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
-    PlayerInteraction, PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, Revision,
-    RoomId, RoomViolation, ServerEvent, TABLE_SEAT_COUNT, TexasHoldemCommand, TexasHoldemViolation,
+    PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, Revision, RoomId,
+    RoomViolation, ServerEvent, TABLE_SEAT_COUNT, TexasHoldemCommand, TexasHoldemViolation,
 };
 use leocard_texas_holdem::{Phase, TexasHoldemCard, TexasHoldemRuleSet, build_deck};
 use std::time::Duration;
@@ -485,13 +487,9 @@ impl HostedGameLifecycle for TexasHoldemSession {
                 )),
             );
         }
-        let interaction = PlayerInteraction {
-            source,
-            target,
-            kind,
-            seed: fastrand::u32(..),
-        };
-        self.room.record_received_interaction(target, kind);
+        let interaction = self
+            .room
+            .record_interaction(source, target, kind, fastrand::u32(..));
         self.room.bump_revision();
         let mut deliveries = self.room.broadcast_event(
             Some((connection, request_id)),

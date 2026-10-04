@@ -9,7 +9,7 @@ use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_client::ScoreCaptureEffect;
 use leocard_protocol::PlayerId;
-use std::collections::HashMap;
+use std::{collections::HashMap, f32::consts};
 
 const SCORE_CAPTURE_TRAVEL_DURATION: f32 = 0.42;
 
@@ -339,8 +339,8 @@ pub(crate) fn animate_score_capture_effects(
         let alpha = enter * exit;
         background.0 = Color::BLACK.with_alpha(alpha * 0.82);
         border.set_all(Color::srgb(0.46, 1.0, 0.72).with_alpha(alpha * 0.82));
-        transform.rotation = Rot2::radians(progress * std::f32::consts::TAU * 1.7);
-        transform.scale = Vec2::splat(0.46 + (progress * std::f32::consts::PI).sin() * 0.72);
+        transform.rotation = Rot2::radians(progress * consts::TAU * 1.7);
+        transform.scale = Vec2::splat(0.46 + (progress * consts::PI).sin() * 0.72);
         if progress >= 1.0 {
             commands.entity(entity).despawn();
         }
@@ -404,7 +404,7 @@ pub(crate) fn vortex_card_pose(
         collapse * (1.0 + tidal * 1.34),
     );
     let rotation = if tangent.length_squared() > 0.0 {
-        tangent.y.atan2(tangent.x) - std::f32::consts::FRAC_PI_2
+        tangent.y.atan2(tangent.x) - consts::FRAC_PI_2
     } else {
         0.0
     };

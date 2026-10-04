@@ -1,6 +1,7 @@
 use super::{HandCardSlot, HandCardVisual, QiGui523UiAction};
-use crate::app::presentation::HandCardSelectionOverlay;
-use crate::app::presentation::{ACCENT, BORDER, CardAnimationState, CardSize, hand_card_pose};
+use crate::app::presentation::{
+    ACCENT, BORDER, CardAnimationState, CardSize, HandCardSelectionOverlay, hand_card_pose,
+};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;

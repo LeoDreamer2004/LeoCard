@@ -97,6 +97,7 @@ fn interaction_event_round_trips_with_its_shared_animation_seed() {
             target: PlayerId(3),
             kind: PlayerInteractionKind::Wine,
             seed: 523,
+            elapsed_millis: 100,
         }),
     };
 

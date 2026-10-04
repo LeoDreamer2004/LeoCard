@@ -5,6 +5,8 @@ use crate::app::shell::{
 use crate::updater::launch_installer;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use leocard_client::LocalPlayerProfile;
+use leocard_protocol::ProfileId;
 
 #[derive(Clone)]
 pub(crate) enum UpdateUiAction {
@@ -31,6 +33,7 @@ impl DomainUiAction for UpdateUiAction {
 pub(super) struct UpdateUiActionContext<'w> {
     updater: ResMut<'w, UpdateManager>,
     app_exit: MessageWriter<'w, AppExit>,
+    profile: Res<'w, LocalPlayerProfile>,
 }
 
 pub(super) fn dispatch_update_actions(
@@ -51,16 +54,24 @@ impl UiActionHandler<UpdateUiActionContext<'_>> for UpdateUiAction {
                 }
             }
             UpdateUiAction::HideUpdateDialog => updater.dialog_open = false,
-            UpdateUiAction::RestartToUpdate => restart_to_update(updater, &mut context.app_exit),
+            UpdateUiAction::RestartToUpdate => restart_to_update(
+                updater,
+                &mut context.app_exit,
+                context.profile.identity.profile_id(),
+            ),
         }
     }
 }
 
-fn restart_to_update(updater: &mut UpdateManager, app_exit: &mut MessageWriter<AppExit>) {
-    let UpdateState::Ready { staged, .. } = &updater.state else {
+fn restart_to_update(
+    updater: &mut UpdateManager,
+    app_exit: &mut MessageWriter<AppExit>,
+    profile_id: ProfileId,
+) {
+    let UpdateState::Ready { staged, version } = &updater.state else {
         return;
     };
-    match launch_installer(staged) {
+    match launch_installer(staged, &version.to_string(), profile_id) {
         Ok(()) => {
             app_exit.write(AppExit::Success);
         }

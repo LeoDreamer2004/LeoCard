@@ -1,3 +1,5 @@
+use std::f32::consts;
+
 use super::super::super::{MahjongWinEffectTier, MahjongWinStageKind};
 
 use super::{WinStagePartSpec, add_win_stage_component};
@@ -15,7 +17,7 @@ pub(super) fn add_high_focus_rays(
     let center = Vec2::new(DESIGN_WIDTH * 0.5, 340.0);
     for index in 0..RAY_COUNT {
         let phase = index as f32 / RAY_COUNT as f32;
-        let angle = phase * std::f32::consts::TAU;
+        let angle = phase * consts::TAU;
         let radial = Vec2::new(angle.cos() * 470.0, angle.sin() * 238.0);
         let direction = radial.normalize_or_zero();
         let length = 72.0 + (index % 5) as f32 * 13.0;

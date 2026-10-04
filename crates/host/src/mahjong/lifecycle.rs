@@ -2,16 +2,16 @@ use super::{
     MAHJONG_DEAL_INTERVAL, MahjongSession, MahjongWinFeedback, events_for_outcome, shuffled_deck,
     validate_deck,
 };
-use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{
     AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession,
+    lifecycle::{HostedGameLifecycle, dispatch_client_command},
     new_match_id,
 };
 use leocard_mahjong::{GameError, GameState, MahjongPlayerId, MahjongRuleSet, MahjongTile, Phase};
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, MahjongEvent,
-    MahjongViolation, PlayerId, PlayerInteraction, PlayerInteractionKind, PlayerViolation,
-    RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
+    MahjongViolation, PlayerId, PlayerInteractionKind, PlayerViolation, RejectReason, RequestId,
+    Revision, RoomId, RoomViolation, ServerEvent,
 };
 use std::time::Duration;
 
@@ -485,13 +485,9 @@ impl HostedGameLifecycle for MahjongSession {
                 RejectReason::Game(GameViolation::Mahjong(MahjongViolation::InvalidPlayer)),
             );
         }
-        let interaction = PlayerInteraction {
-            source,
-            target,
-            kind,
-            seed: fastrand::u32(..),
-        };
-        self.room.record_received_interaction(target, kind);
+        let interaction = self
+            .room
+            .record_interaction(source, target, kind, fastrand::u32(..));
         self.room.bump_revision();
         let mut deliveries = self.room.broadcast_event(
             Some((connection, request_id)),

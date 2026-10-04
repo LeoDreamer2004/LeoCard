@@ -9,6 +9,7 @@ mod mahjong;
 mod player;
 mod qigui523;
 mod room;
+mod room_activity;
 mod session;
 mod shengji;
 mod texas_holdem;
@@ -24,8 +25,7 @@ pub use qigui523::QiGui523Session;
 pub use room::RoomSession;
 pub use session::{GameSetup, HostSession};
 pub use shengji::ShengjiSession;
-use std::fmt;
-use std::time::Duration;
+use std::{fmt, time::Duration};
 pub use texas_holdem::{AdapterError, TablePlayer, TexasHoldemAdapter, TexasHoldemSession};
 pub use uno::UnoSession;
 

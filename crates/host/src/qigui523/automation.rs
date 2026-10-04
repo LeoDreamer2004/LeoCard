@@ -1,7 +1,7 @@
 use super::{QiGui523Session, duration_ceil_seconds, from_core_player};
 use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState, TurnTimerState};
-use leocard_protocol::{PlayerId, PublicPlay, TurnTimerView};
-use leocard_qigui523::{Phase, PlayRecord, QiGui523Bot, QiGui523BotRequest, classify};
+use leocard_protocol::{PlayerId, QiGui523Event, TurnTimerView};
+use leocard_qigui523::{Phase, PlayRecord, QiGui523Bot, QiGui523BotRequest};
 use std::time::Duration;
 
 impl QiGui523Session {
@@ -109,7 +109,7 @@ impl QiGui523Session {
             });
     }
 
-    pub(super) fn play_automatic_action(&mut self) -> Option<(PlayerId, PublicPlay)> {
+    pub(super) fn play_automatic_action(&mut self) -> Vec<QiGui523Event> {
         let (player, cards) = {
             let game = self.game.as_ref().expect("a running timer has a game");
             let trick = game.trick().expect("a playing game has a trick");
@@ -146,21 +146,7 @@ impl QiGui523Session {
             (player, cards)
         };
 
-        let game = self.game.as_mut().expect("a running timer has a game");
-        if let Some(cards) = cards {
-            let play = classify(&cards, game.rules())
-                .expect("the timeout strategy only returns classifiable cards");
-            let effect = PublicPlay {
-                kind: play.kind().clone(),
-                cards: cards.clone(),
-            };
-            game.play_cards(player, &cards)
-                .expect("the timeout strategy only returns legal cards");
-            Some((from_core_player(player), effect))
-        } else {
-            game.pass(player)
-                .expect("a player without a legal response may pass");
-            None
-        }
+        self.perform_action(player, cards.as_deref())
+            .expect("the timeout strategy only returns legal actions")
     }
 }

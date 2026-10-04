@@ -49,6 +49,10 @@ impl GameState {
             }
         };
 
+        let previous_winner = self
+            .trick
+            .as_ref()
+            .map(|trick| trick.plays[trick.winner_index].0);
         remove_cards(&mut self.players[usize::from(player.0)].hand, &play.cards);
         let play_points = play.cards.iter().map(|card| card.points()).sum::<u16>();
         let was_new_trick = self.trick.is_none();
@@ -69,6 +73,8 @@ impl GameState {
             trick.points = trick.points.saturating_add(play_points);
             trick.plays.push((player, play.clone()));
         }
+
+        self.record_first_trick_cut(player, previous_winner);
 
         if let Some((penalty, _)) = &failure {
             self.apply_throw_penalty(player.team(), *penalty);

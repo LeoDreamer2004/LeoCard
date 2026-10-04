@@ -3,9 +3,7 @@
 use bevy::asset::RenderAssetUsages;
 use bevy::prelude::*;
 use leocard_protocol::{AVATAR_DIMENSION, MAX_AVATAR_BYTES};
-use std::fs;
-use std::io::Cursor;
-use std::path::Path;
+use std::{f32::consts, fs, io::Cursor, path::Path};
 
 pub(crate) fn normalize_avatar(path: &Path) -> Result<Vec<u8>, String> {
     let source = fs::read(path).map_err(|error| format!("无法读取头像文件：{error}"))?;
@@ -58,10 +56,10 @@ pub(crate) fn image_handle_from_png(
 pub(crate) fn interaction_cooldown_mask_image(width: u32, height: u32, fraction: f32) -> Image {
     let mut pixels = image::RgbaImage::new(width, height);
     let center = Vec2::new(width as f32 * 0.5, height as f32 * 0.5);
-    let sweep = fraction.clamp(0.0, 1.0) * std::f32::consts::TAU;
+    let sweep = fraction.clamp(0.0, 1.0) * consts::TAU;
     for (x, y, pixel) in pixels.enumerate_pixels_mut() {
         let offset = Vec2::new(x as f32 + 0.5, y as f32 + 0.5) - center;
-        let angle = offset.x.atan2(-offset.y).rem_euclid(std::f32::consts::TAU);
+        let angle = offset.x.atan2(-offset.y).rem_euclid(consts::TAU);
         if fraction >= 1.0 || (fraction > 0.0 && angle <= sweep) {
             *pixel = image::Rgba([0, 0, 0, 158]);
         }

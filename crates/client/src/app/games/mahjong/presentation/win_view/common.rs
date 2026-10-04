@@ -1,3 +1,5 @@
+use std::f32::consts;
+
 use super::super::super::{MahjongWinEffectTier, mahjong_win_effect_tier, mahjong_win_stage_start};
 
 use crate::app::presentation::ease_out_cubic;
@@ -45,7 +47,7 @@ pub(crate) fn mahjong_win_effect_visual(
         MahjongWinEffectTier::HighTotal => 1.02,
         MahjongWinEffectTier::MajorFan => 1.28,
     };
-    let scale = 1.0 + (1.0 - focus) * impact + (focus * std::f32::consts::PI).sin() * 0.08;
+    let scale = 1.0 + (1.0 - focus) * impact + (focus * consts::PI).sin() * 0.08;
     let fade_in = (elapsed / 0.07).clamp(0.0, 1.0);
     let fade_out = ((duration - elapsed) / 0.26).clamp(0.0, 1.0);
     Some((scale, fade_in * fade_out, 9.0 * (1.0 - focus)))

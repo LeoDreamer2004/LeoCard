@@ -148,11 +148,11 @@ pub struct ShengjiProfileStats {
     pub plays: u32,
     pub winning_plays: u32,
     pub crossing_games: u32,
-    /// 拖拉机、泰坦尼克、炸弹、太空堡垒、甩牌。
+    /// 拖拉机、泰坦尼克、炸弹、宇宙飞船、甩牌。
     pub play_category_counts: [u32; 5],
     pub longest_tractor: u16,
     pub longest_titanic: u16,
-    pub longest_space_fortress: u16,
+    pub longest_spaceship: u16,
     pub longest_throw: u16,
 }
 
@@ -189,6 +189,24 @@ pub enum PlayerInteractionKind {
     Shoe,
 }
 
+impl PlayerInteractionKind {
+    pub const fn flower_count(self) -> u32 {
+        match self {
+            Self::Flower => 1,
+            Self::Wine => 10,
+            _ => 0,
+        }
+    }
+
+    pub const fn egg_count(self) -> u32 {
+        match self {
+            Self::Egg => 1,
+            Self::Shoe => 10,
+            _ => 0,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PlayerInteraction {
     pub source: PlayerId,
@@ -196,6 +214,8 @@ pub struct PlayerInteraction {
     pub kind: PlayerInteractionKind,
     /// 由房主生成，使所有客户端选择相同音效和命中偏移。
     pub seed: u32,
+    /// 房主记录的房间存续时间；互动窗口不依赖客户端收包时间。
+    pub elapsed_millis: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

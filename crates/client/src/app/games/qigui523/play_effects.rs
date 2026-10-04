@@ -14,6 +14,7 @@ use crate::app::shell::UiState;
 use bevy::audio::Volume;
 use bevy::prelude::*;
 use leocard_qigui523::QiGuiPlayKind;
+use std::f32::consts;
 
 const STRAIGHT_EFFECT: Color = Color::srgb(0.25, 0.78, 0.96);
 const CONSECUTIVE_PAIRS_EFFECT: Color = Color::srgb(0.76, 0.46, 0.98);
@@ -224,10 +225,10 @@ pub(crate) fn animate_sequence_play_effect(
         let entry = ((elapsed - 0.10 - streak.index as f32 * 0.018) / 0.16).clamp(0.0, 1.0);
         let cycle = (elapsed * 1.65 + streak.index as f32 * 0.137).fract();
         let drift = ease_out_cubic(cycle);
-        let wave = (cycle * std::f32::consts::TAU + streak.index as f32 * 0.9).sin();
+        let wave = (cycle * consts::TAU + streak.index as f32 * 0.9).sin();
         transform.translation = Val2::px(-18.0 + drift * 66.0 + motif_exit_x, wave * 2.8);
         transform.scale = Vec2::new(0.42 + (1.0 - cycle) * 0.72, 0.74 + wave.abs() * 0.26);
-        let alpha = entry * motif_fade * (std::f32::consts::PI * cycle).sin().max(0.0);
+        let alpha = entry * motif_fade * (consts::PI * cycle).sin().max(0.0);
         background.0 = effect_color.with_alpha(alpha * 0.82);
     }
 
@@ -246,12 +247,11 @@ pub(crate) fn animate_sequence_play_effect(
         };
         let pulse = 1.0 + (elapsed * 9.0 + part.index as f32).sin() * 0.035 * progress;
         if part.petal {
-            let angle =
-                part.index as f32 / 7.0 * std::f32::consts::TAU - std::f32::consts::FRAC_PI_2;
+            let angle = part.index as f32 / 7.0 * consts::TAU - consts::FRAC_PI_2;
             let radius = 9.5 * overshoot;
             transform.translation =
                 Val2::px(angle.cos() * radius + motif_exit_x, angle.sin() * radius);
-            transform.rotation = Rot2::radians(angle + std::f32::consts::FRAC_PI_2);
+            transform.rotation = Rot2::radians(angle + consts::FRAC_PI_2);
             transform.scale = Vec2::new(0.52 + overshoot * 0.48, overshoot * pulse);
             let tint = if part.index % 2 == 0 {
                 Color::srgb(0.98, 0.43, 0.76)
@@ -370,7 +370,7 @@ pub(crate) fn animate_bomb_play_effect(
     }
     let travel = ease_out_cubic((elapsed / 0.52).clamp(0.0, 1.0));
     for (bomb, mut transform, mut visibility) in &mut visuals.p0() {
-        let arc = (travel * std::f32::consts::PI).sin() * 86.0;
+        let arc = (travel * consts::PI).sin() * 86.0;
         transform.translation = Val2::px(
             bomb.source.x * (1.0 - travel),
             bomb.source.y * (1.0 - travel) - arc,

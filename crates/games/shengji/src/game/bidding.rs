@@ -1,12 +1,13 @@
 use super::{
-    ActionOutcome, BottomFlipMatch, BottomFlipReveal, GameError, GameState, Phase, next_player,
+    ActionOutcome, BottomFlipMatch, BottomFlipReveal, GameError, GameState, Phase,
+    ShengjiRedealReason, next_player,
 };
 use crate::{
     ShengjiBidTrump, ShengjiCard, ShengjiPlayerId, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
     ShengjiTrump,
 };
 use std::collections::{HashMap, HashSet};
-use std::fmt;
+use std::{error::Error, fmt};
 
 /// 带王亮时，红色花色配大王，黑色花色配小王。
 pub const fn bid_joker_for_suit(suit: ShengjiSuit) -> ShengjiRank {
@@ -489,7 +490,7 @@ impl fmt::Display for BidError {
     }
 }
 
-impl std::error::Error for BidError {}
+impl Error for BidError {}
 
 impl GameState {
     pub fn close_bidding_and_take_kitty(&mut self) -> Result<ActionOutcome, GameError> {
@@ -518,7 +519,7 @@ impl GameState {
                     self.phase = Phase::BottomFlipping;
                     return Ok(ActionOutcome::BottomFlipStarted);
                 }
-                self.phase = Phase::RedealRequired;
+                self.phase = Phase::RedealRequired(ShengjiRedealReason::NoDeclaration);
                 return Err(GameError::RedealRequired);
             }
             Err(error) => return Err(error.into()),
@@ -536,7 +537,9 @@ impl GameState {
             return Err(GameError::WrongPhase);
         }
         let Some(card) = self.deck.get(self.bottom_flip_index).copied() else {
-            self.phase = Phase::RedealRequired;
+            self.phase = Phase::RedealRequired(ShengjiRedealReason::BottomFlipExhausted {
+                power_outage_used: self.power_outage_used,
+            });
             return Err(GameError::RedealRequired);
         };
         self.bottom_flip_index += 1;
@@ -568,7 +571,9 @@ impl GameState {
             self.dealer_from_bottom_flip = true;
             self.bottom_flip_winner = Some((dealer, trump));
         } else if self.bottom_flip_index == self.deck.len() {
-            self.phase = Phase::RedealRequired;
+            self.phase = Phase::RedealRequired(ShengjiRedealReason::BottomFlipExhausted {
+                power_outage_used: self.power_outage_used,
+            });
         }
         Ok(ActionOutcome::BottomCardRevealed(BottomFlipReveal {
             card,

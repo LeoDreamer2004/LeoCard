@@ -1,6 +1,6 @@
 use crate::{AutoPlayDelayState, RoomSession};
-use leocard_protocol::{MatchId, PlayerId, PlayerReferenceChange, UnoProfileStats};
-use leocard_uno::{GameState, UnoCard, UnoRuleSet};
+use leocard_protocol::{MatchId, PlayerId, PlayerReferenceChange};
+use leocard_uno::{GameState, UnoCard, UnoMatchStatistics, UnoRuleSet};
 use std::time::Duration;
 
 pub(super) const DRAW_REVEAL_START_DELAY: Duration = Duration::from_millis(780);
@@ -21,8 +21,8 @@ pub struct UnoSession {
     pub(super) rules: UnoRuleSet,
     pub(super) shuffled_deck: Option<Vec<UnoCard>>,
     pub(super) game: Option<GameState>,
+    pub(super) statistics: Option<UnoMatchStatistics>,
     pub(super) match_id: Option<MatchId>,
-    pub(super) match_profile_stats: Vec<UnoProfileStats>,
     pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
     pub(super) auto_play_delay: Option<AutoPlayDelayState>,
     pub(super) pending_draw_reveal: Option<PendingDrawReveal>,

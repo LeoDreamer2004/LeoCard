@@ -1,7 +1,6 @@
+use super::SessionStatistics;
 use crate::RoomSession;
-use leocard_protocol::{
-    MatchId, PlayerReferenceChange, ShengjiProfileStats, ShengjiThrowFailureStage,
-};
+use leocard_protocol::{MatchId, ShengjiThrowFailureStage};
 use leocard_shengji::{
     BottomFlipReveal, GameState, ShengjiCard, ShengjiClassifiedPlay, ShengjiPlayerId,
     ShengjiRuleSet, TeamProgress, TrickRecord,
@@ -50,13 +49,6 @@ pub(super) struct HeldGamePresentation {
     pub(super) trick: Option<(TrickRecord, Duration)>,
 }
 
-#[derive(Clone, Debug, Default)]
-pub(super) struct HandStatistics {
-    pub(super) profiles: Vec<ShengjiProfileStats>,
-    pub(super) finished_settlement_id: Option<MatchId>,
-    pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
-}
-
 /// 四人双升的房主权威会话。发牌、亮主窗口和机器人行动都由房主时钟推进。
 #[derive(Clone, Debug)]
 pub struct ShengjiSession {
@@ -70,5 +62,5 @@ pub struct ShengjiSession {
     pub(super) next_dealer: Option<ShengjiPlayerId>,
     pub(super) flow: HandFlowState,
     pub(super) presentation: HeldGamePresentation,
-    pub(super) statistics: HandStatistics,
+    pub(super) statistics: SessionStatistics,
 }

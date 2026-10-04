@@ -1,16 +1,22 @@
 //! 头像拖放、文件选择与图片同步。
 
 use super::super::UiState;
+use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, AvatarPicker, AvatarPickerReceiver, ClientResource,
     PageErrorState, image_handle_from_png, normalize_avatar, save_appearance_preferences,
 };
 use bevy::prelude::*;
 use bevy::window::FileDragAndDrop;
-use std::path::PathBuf;
-use std::sync::mpsc::TryRecvError;
-use std::sync::{Mutex, mpsc};
-use std::thread;
+use leocard_achievements::{AchievementTrigger, PersonalEvent};
+use std::{
+    path::PathBuf,
+    sync::{
+        Mutex,
+        mpsc::{self, TryRecvError},
+    },
+    thread,
+};
 
 pub(crate) fn handle_avatar_drop(
     mut dropped_files: MessageReader<FileDragAndDrop>,
@@ -18,6 +24,7 @@ pub(crate) fn handle_avatar_drop(
     mut appearance: ResMut<AppearancePreferences>,
     mut page_error: ResMut<PageErrorState>,
     mut ui: ResMut<UiState>,
+    mut achievements: MessageWriter<LocalAchievementTrigger>,
 ) {
     for event in dropped_files.read() {
         let FileDragAndDrop::DroppedFile { path_buf, .. } = event else {
@@ -28,8 +35,7 @@ pub(crate) fn handle_avatar_drop(
         }
         match normalize_avatar(path_buf) {
             Ok(png) => {
-                appearance.avatar_png = Some(png);
-                page_error.error = save_appearance_preferences(&appearance).err();
+                page_error.error = save_avatar(png, &mut appearance, &mut achievements).err();
             }
             Err(error) => page_error.error = Some(error),
         }
@@ -53,6 +59,7 @@ pub(crate) fn poll_avatar_picker(
     mut appearance: ResMut<AppearancePreferences>,
     mut page_error: ResMut<PageErrorState>,
     mut ui: ResMut<UiState>,
+    mut achievements: MessageWriter<LocalAchievementTrigger>,
 ) {
     let Some(receiver) = picker.pending.as_ref() else {
         return;
@@ -70,8 +77,7 @@ pub(crate) fn poll_avatar_picker(
     match result {
         Ok(Some(path)) => match normalize_avatar(&path) {
             Ok(png) => {
-                appearance.avatar_png = Some(png);
-                page_error.error = save_appearance_preferences(&appearance).err();
+                page_error.error = save_avatar(png, &mut appearance, &mut achievements).err();
             }
             Err(error) => page_error.error = Some(error),
         },
@@ -79,6 +85,19 @@ pub(crate) fn poll_avatar_picker(
         Err(error) => page_error.error = Some(error),
     }
     ui.dirty = true;
+}
+
+fn save_avatar(
+    png: Vec<u8>,
+    appearance: &mut AppearancePreferences,
+    achievements: &mut MessageWriter<LocalAchievementTrigger>,
+) -> Result<(), String> {
+    appearance.avatar_png = Some(png);
+    save_appearance_preferences(appearance)?;
+    achievements.write(LocalAchievementTrigger(AchievementTrigger::Personal(
+        PersonalEvent::AvatarSaved,
+    )));
+    Ok(())
 }
 
 fn open_avatar_dialog() -> Result<Option<PathBuf>, String> {

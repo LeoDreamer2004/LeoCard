@@ -1,13 +1,10 @@
 use super::*;
 use leocard_protocol::{
     ClientCommand, GameCommand, GamePhaseView, MAX_PLAYER_NAME_CHARS, PlayerId, PlayerViolation,
-    QiGui523Command, QiGui523ProfileStats, ReconnectToken, RejectReason, RoomViolation,
-    ServerEvent,
+    QiGui523Command, ReconnectToken, RejectReason, RoomViolation, ServerEvent,
 };
-use leocard_qigui523::{BombKind, QiGuiRank, TimeControl};
-use leocard_qigui523::{
-    Phase, PlayRecord, QiGuiPlayKind, QiGuiRuleSet, build_deck, reference_point_deltas,
-};
+use leocard_qigui523::TimeControl;
+use leocard_qigui523::{Phase, PlayRecord, QiGuiRuleSet, build_deck, reference_point_deltas};
 
 #[test]
 fn player_name_limit_counts_unicode_characters() {
@@ -144,33 +141,6 @@ fn finished_match_applies_reference_points_exactly_once() {
             .as_ref()
             .is_some_and(|stats| stats.completed_games == 1)
     }));
-}
-
-#[test]
-fn qigui523_profile_play_statistics_count_types_and_keep_longest_lengths() {
-    let mut stats = QiGui523ProfileStats::default();
-    for kind in [
-        QiGuiPlayKind::Straight { card_count: 5 },
-        QiGuiPlayKind::Straight { card_count: 8 },
-        QiGuiPlayKind::ConsecutivePairs { pair_count: 3 },
-        QiGuiPlayKind::Airplane { triple_count: 2 },
-        QiGuiPlayKind::Bomb(BombKind::OfAKind {
-            card_count: 4,
-            rank: QiGuiRank::Ace,
-        }),
-        QiGuiPlayKind::HeavenBomb,
-    ] {
-        record_qigui523_play(&mut stats, &kind);
-    }
-
-    assert_eq!(stats.straight_plays, 2);
-    assert_eq!(stats.consecutive_pair_plays, 1);
-    assert_eq!(stats.airplane_plays, 1);
-    assert_eq!(stats.bomb_plays, 1);
-    assert_eq!(stats.heaven_bomb_plays, 1);
-    assert_eq!(stats.longest_straight, 8);
-    assert_eq!(stats.longest_consecutive_pairs, 3);
-    assert_eq!(stats.longest_airplane, 2);
 }
 
 #[test]

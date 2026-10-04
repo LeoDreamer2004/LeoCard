@@ -220,7 +220,7 @@ impl ShengjiSession {
                 result: self.hand_result_view(result),
                 buried: game.buried().to_vec(),
             },
-            Phase::RedealRequired => ShengjiPhaseView::Redealing,
+            Phase::RedealRequired(_) => ShengjiPhaseView::Redealing,
         }
     }
 

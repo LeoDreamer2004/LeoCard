@@ -1,8 +1,7 @@
 use super::state::{ScoreCardsPopupPlacement, SeatVisuals};
 use super::{add_round_play_for_optional_player, add_score_cards_popup, sort_cards_high_to_low};
-use crate::app::presentation::CardSize;
 use crate::app::presentation::{
-    ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
+    ACCENT, CardSize, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
     TurnBorderMaterial, add_card_image, add_player_portrait, add_text,
     add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
 };
@@ -12,8 +11,7 @@ use crate::app::shell::{
 };
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
-use leocard_protocol::QiGui523Snapshot;
-use leocard_protocol::{GameKind, GamePhaseView, PlayerId, PlayerPublicState};
+use leocard_protocol::{GameKind, GamePhaseView, PlayerId, PlayerPublicState, QiGui523Snapshot};
 use leocard_qigui523::QiGuiCard;
 
 pub(super) const QIGUI_PORTRAIT_WIDTH: f32 = 96.0 * 1.17;

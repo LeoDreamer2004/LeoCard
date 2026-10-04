@@ -5,6 +5,7 @@ use bevy::asset::RenderAssetUsages;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
+use std::{array, f32::consts};
 
 const STATUS_LEFT: f32 = 570.0;
 const STATUS_TOP: f32 = 276.0;
@@ -26,7 +27,7 @@ pub(super) fn create_mahjong_status_images(images: &mut Assets<Image>) -> Mahjon
     let width = STATUS_WIDTH * SCALE;
     let height = STATUS_HEIGHT * SCALE;
     let mut outline = image::RgbaImage::new(width, height);
-    let mut sectors = std::array::from_fn(|_| image::RgbaImage::new(width, height));
+    let mut sectors = array::from_fn(|_| image::RgbaImage::new(width, height));
     let corners = [
         (Vec2::new(0.0, 0.0), Vec2::new(INNER_LEFT, INNER_TOP)),
         (
@@ -322,7 +323,7 @@ fn render_wind_label(
             } else {
                 height
             },
-            rotation: -(relative as f32) * std::f32::consts::FRAC_PI_2,
+            rotation: -(relative as f32) * consts::FRAC_PI_2,
             active,
         },
         assets,
@@ -333,7 +334,7 @@ pub(super) fn animate_mahjong_turn_sector(
     time: Res<Time>,
     mut sectors: Query<&mut ImageNode, With<MahjongTurnSector>>,
 ) {
-    let breath = (time.elapsed_secs() * std::f32::consts::PI * 0.9).sin() * 0.5 + 0.5;
+    let breath = (time.elapsed_secs() * consts::PI * 0.9).sin() * 0.5 + 0.5;
     let alpha = 0.12 + breath * 0.24;
     for mut sector in &mut sectors {
         sector.color = Color::srgba(0.12, 0.42, 0.42, alpha);

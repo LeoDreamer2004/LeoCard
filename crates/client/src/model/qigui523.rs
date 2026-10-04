@@ -76,7 +76,9 @@ impl ClientModel {
     }
 
     pub(super) fn apply_qigui523_event(&mut self, event: QiGui523Event) {
-        let QiGui523Event::PlayEffect { player, play } = event;
+        let QiGui523Event::PlayEffect { player, play } = event else {
+            return;
+        };
         self.games.qigui523.play_effect.publish((player, play));
     }
 

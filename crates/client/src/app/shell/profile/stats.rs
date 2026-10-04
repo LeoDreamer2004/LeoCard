@@ -312,11 +312,11 @@ pub(crate) fn shengji_profile_rows(
         "拖拉机次数",
         "泰坦尼克次数",
         "炸弹次数",
-        "太空堡垒次数",
+        "宇宙飞船次数",
         "甩牌次数",
         "最长拖拉机长度",
         "最长泰坦尼克长度",
-        "最长太空堡垒长度",
+        "最长宇宙飞船长度",
         "最长甩牌长度",
     ];
     let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
@@ -375,7 +375,7 @@ pub(crate) fn shengji_profile_rows(
     rows.extend([
         ("最长拖拉机长度", stats.longest_tractor.to_string()),
         ("最长泰坦尼克长度", stats.longest_titanic.to_string()),
-        ("最长太空堡垒长度", stats.longest_space_fortress.to_string()),
+        ("最长宇宙飞船长度", stats.longest_spaceship.to_string()),
         ("最长甩牌长度", stats.longest_throw.to_string()),
     ]);
     rows.finish()

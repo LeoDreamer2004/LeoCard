@@ -1,8 +1,9 @@
 //! Nonblocking achievement presentation. Awards arrive after persistence.
 
 use super::{AchievementRecipient, AchievementUnlocked};
-use crate::app::presentation::{TEXT, add_text, ease_out_cubic, spawn_node};
-use crate::app::presentation::{TransitionVisuals, fade_panel};
+use crate::app::presentation::{
+    TEXT, TransitionVisuals, add_text, ease_out_cubic, fade_panel, spawn_node,
+};
 use crate::app::runtime::UiAssets;
 use bevy::audio::Volume;
 use bevy::prelude::*;

@@ -160,11 +160,7 @@ impl GameState {
     }
 
     pub(super) const fn jump_in_enabled(&self) -> bool {
-        if self.rules.is_flip() {
-            self.rules.flip.jump_in
-        } else {
-            self.rules.is_classic() && self.rules.jump_in
-        }
+        self.rules.jump_in_enabled()
     }
 
     pub(super) fn skip_stack_allowed(&self, card: UnoCard) -> bool {

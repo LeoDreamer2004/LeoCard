@@ -1,4 +1,5 @@
-use leocard_protocol::{GameEvent, PlayerId, PlayerInteraction};
+use crate::PersonalEvent;
+use leocard_protocol::{AchievementCounts, ChatMessage, GameEvent, PlayerId, PlayerInteraction};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AchievementTier {
@@ -38,6 +39,16 @@ pub enum AchievementTrigger {
         player: PlayerId,
         event: PlayerInteraction,
     },
+    Chat {
+        player: PlayerId,
+        message: ChatMessage,
+    },
+    SessionStarted {
+        player: PlayerId,
+        host: PlayerId,
+    },
+    Personal(PersonalEvent),
+    TrophyTotals(AchievementCounts),
     Signal(&'static str),
 }
 

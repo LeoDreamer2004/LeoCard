@@ -1,3 +1,5 @@
+use std::f32::consts;
+
 use super::super::super::{MahjongWinEffectTier, MahjongWinFanGlyph, MahjongWinStageKind};
 
 use super::{
@@ -124,7 +126,7 @@ fn add_sparks(
     let center = Vec2::new(DESIGN_WIDTH * 0.5, 340.0);
     for index in 0..SPARK_COUNT {
         let phase = index as f32 / SPARK_COUNT as f32;
-        let angle = phase * std::f32::consts::TAU + 0.17;
+        let angle = phase * consts::TAU + 0.17;
         let radius = 128.0 + (index % 6) as f32 * 39.0;
         let offset = Vec2::new(angle.cos() * radius, angle.sin() * radius * 0.52);
         let size = 3.0 + (index % 3) as f32 * 1.5;

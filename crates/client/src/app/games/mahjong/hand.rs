@@ -14,6 +14,7 @@ use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_mahjong::MahjongTile;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
+use std::collections::HashMap;
 
 #[derive(Clone, Copy)]
 pub(super) struct MahjongWinningHandVisual {
@@ -23,7 +24,7 @@ pub(super) struct MahjongWinningHandVisual {
 
 pub(super) struct MahjongOwnHandVisuals<'a> {
     pub observed_hand: &'a [MahjongTile],
-    pub hover_lifts: &'a std::collections::HashMap<i32, (f32, Interaction)>,
+    pub hover_lifts: &'a HashMap<i32, (f32, Interaction)>,
     pub dealing: bool,
     pub drawn_tile_falling: bool,
     pub winning_hand: Option<MahjongWinningHandVisual>,

@@ -1,3 +1,5 @@
+use std::f32::consts;
+
 use super::super::{
     UNO_FLYING_CARD_HEIGHT, UNO_FLYING_CARD_WIDTH, UNO_PALETTE_EFFECT_DURATION,
     UNO_REVERSE_EFFECT_DURATION, UnoFlipCard, UnoFlipOverlay, UnoFlyingCard, UnoPaletteColorRing,
@@ -75,7 +77,7 @@ pub(crate) fn animate_uno_flip_effects(
     for (entity, mut effect, mut background) in &mut overlays {
         effect.elapsed += delta;
         let progress = (effect.elapsed / 2.0).clamp(0.0, 1.0);
-        let alpha = (std::f32::consts::PI * progress).sin().powf(1.35) * 0.34;
+        let alpha = (consts::PI * progress).sin().powf(1.35) * 0.34;
         background.0.set_alpha(alpha);
         if progress >= 1.0 {
             commands.entity(entity).despawn();
@@ -95,8 +97,8 @@ pub(crate) fn animate_uno_flip_effects(
             image.image = card.old_face.clone();
             card.swapped = false;
         }
-        let edge = (std::f32::consts::PI * progress).cos().abs().max(0.028);
-        let lift = (std::f32::consts::PI * progress).sin();
+        let edge = (consts::PI * progress).cos().abs().max(0.028);
+        let lift = (consts::PI * progress).sin();
         let scale_y = if card.pile {
             1.0 + lift * 0.09
         } else {
@@ -124,10 +126,10 @@ pub(crate) fn uno_flying_card_scale(draw_animation: bool, progress: f32) -> f32 
         return 1.0;
     }
     if draw_animation {
-        0.76 + (progress * std::f32::consts::PI).sin() * 0.10
+        0.76 + (progress * consts::PI).sin() * 0.10
     } else {
         let settle = smoothstep(progress);
-        0.76 + settle * 0.24 + (progress * std::f32::consts::PI).sin() * 0.08
+        0.76 + settle * 0.24 + (progress * consts::PI).sin() * 0.08
     }
 }
 
@@ -194,7 +196,7 @@ pub(crate) fn animate_uno_palette_color_rings(
         let progress = ((ring.elapsed - ring.delay) / UNO_PALETTE_EFFECT_DURATION).clamp(0.0, 1.0);
         let burst = ((progress - 0.34) / 0.43).clamp(0.0, 1.0);
         let motion = smoothstep(burst);
-        let opacity = (burst * std::f32::consts::PI).sin().max(0.0).powf(0.72);
+        let opacity = (burst * consts::PI).sin().max(0.0).powf(0.72);
         transform.scale =
             Vec2::splat(ring.start_scale + (ring.end_scale - ring.start_scale) * motion);
         border.set_all(ring.color.with_alpha(opacity * ring.max_alpha));
@@ -214,7 +216,7 @@ pub(crate) fn animate_uno_palette_particles(
         particle.elapsed += time.delta_secs();
         let local = ((particle.elapsed - particle.delay) / 0.82).clamp(0.0, 1.0);
         let motion = ease_out_cubic(local);
-        let opacity = (local * std::f32::consts::PI).sin().max(0.0).powf(0.65);
+        let opacity = (local * consts::PI).sin().max(0.0).powf(0.65);
         let position = particle.origin + particle.direction * motion;
         node.left = px(position.x - particle.size.x * 0.5);
         node.top = px(position.y - particle.size.y * 0.5);

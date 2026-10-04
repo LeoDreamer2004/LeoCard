@@ -12,9 +12,9 @@ use crate::app::presentation::{TABLE_CARD_REVEAL, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
-use leocard_protocol::QiGui523Snapshot;
-use leocard_protocol::{PlayerId, TABLE_SEAT_COUNT};
+use leocard_protocol::{PlayerId, QiGui523Snapshot, TABLE_SEAT_COUNT};
 use leocard_qigui523::QiGuiPlayKind;
+use std::f32::consts;
 
 pub(super) fn add_play_effect_overlay(
     commands: &mut Commands,
@@ -422,7 +422,7 @@ fn add_bomb_play_effect(commands: &mut Commands, root: Entity, source: Vec2) {
     ));
 
     for index in 0..16 {
-        let angle = index as f32 / 16.0 * std::f32::consts::TAU;
+        let angle = index as f32 / 16.0 * consts::TAU;
         let direction = Vec2::new(angle.cos(), angle.sin());
         let particle = spawn_node(
             commands,
@@ -579,7 +579,7 @@ fn add_heaven_bomb_effect(commands: &mut Commands, root: Entity, assets: &UiAsse
             HeavenBombRay { index },
             UiTransform {
                 rotation: Rot2::radians(
-                    index as f32 / 14.0 * std::f32::consts::PI + 0.035 * (index % 2) as f32,
+                    index as f32 / 14.0 * consts::PI + 0.035 * (index % 2) as f32,
                 ),
                 scale: Vec2::new(0.0, 1.0),
                 ..UiTransform::IDENTITY
@@ -606,7 +606,7 @@ fn add_heaven_bomb_effect(commands: &mut Commands, root: Entity, assets: &UiAsse
     }
 
     for index in 0..36 {
-        let angle = index as f32 / 36.0 * std::f32::consts::TAU + (index % 5) as f32 * 0.031;
+        let angle = index as f32 / 36.0 * consts::TAU + (index % 5) as f32 * 0.031;
         let direction = Vec2::new(angle.cos(), angle.sin());
         let particle = spawn_node(
             commands,

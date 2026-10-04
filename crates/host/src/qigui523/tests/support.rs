@@ -1,5 +1,5 @@
 pub(super) use super::super::{
-    QiGui523Session, duration_ceil_seconds, from_core_player, record_qigui523_play, to_core_player,
+    QiGui523Session, duration_ceil_seconds, from_core_player, to_core_player,
 };
 pub(super) use crate::{ConnectionId, Delivery};
 use ed25519_dalek::{Signer, SigningKey};

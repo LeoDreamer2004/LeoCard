@@ -24,8 +24,7 @@ use crate::app::shell::{
 };
 use bevy::prelude::*;
 use leocard_client::NetworkState;
-use leocard_protocol::QiGui523Snapshot;
-use leocard_protocol::{GameKind, GamePhaseView, SeatId, TABLE_SEAT_COUNT};
+use leocard_protocol::{GameKind, GamePhaseView, QiGui523Snapshot, SeatId, TABLE_SEAT_COUNT};
 use leocard_qigui523::QiGuiPlayKind;
 
 pub(crate) struct TableVisualContext<'a> {

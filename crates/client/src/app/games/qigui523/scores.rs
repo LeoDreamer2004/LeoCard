@@ -1,9 +1,8 @@
 use super::sort_cards_high_to_low;
 use super::state::ScoreCardsPopupPlacement;
 use super::{QIGUI_PORTRAIT_HEIGHT, QIGUI_PORTRAIT_WIDTH, qigui_panel_image};
-use crate::app::presentation::CardSize;
 use crate::app::presentation::{
-    ACCENT, MUTED, TEXT, add_card_image, add_text, position_opponent_popup, spawn_node,
+    ACCENT, CardSize, MUTED, TEXT, add_card_image, add_text, position_opponent_popup, spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{PlayerGameScoreText, ScoreCaptureEffectState, displayed_captured_score};

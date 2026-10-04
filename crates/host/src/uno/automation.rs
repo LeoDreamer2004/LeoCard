@@ -1,10 +1,10 @@
 use super::{
-    PendingDrawReveal, UnoSession, append_finished_event, automatic_chosen_color,
+    PendingDrawReveal, UnoSession, analysis_events, append_finished_event, automatic_chosen_color,
     events_for_outcome, from_core_player, pending_draw_reveal_for_outcome, preferred_color,
 };
 use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState};
 use leocard_protocol::{PlayerId, UnoEvent};
-use leocard_uno::PendingSwap;
+use leocard_uno::{PendingSwap, UnoActionContext};
 
 impl UnoSession {
     pub(super) fn automatically_resolves_skip(&self) -> bool {
@@ -56,6 +56,7 @@ impl UnoSession {
         let game = self.game.as_mut()?;
         let turn = game.turn()?;
         let player = turn.current_player;
+        let uno_before = UnoActionContext::capture(game, player);
         let uno_outcome = (turn.pending_swap.is_none() && !forced_skip)
             .then(|| game.call_uno(player).ok())
             .flatten();
@@ -63,6 +64,15 @@ impl UnoSession {
             .as_ref()
             .map(|outcome| events_for_outcome(outcome, &[]))
             .unwrap_or_default();
+        if let (Some(before), Some(outcome)) = (uno_before, uno_outcome.as_ref()) {
+            events.extend(analysis_events(
+                self.statistics
+                    .as_mut()
+                    .expect("active UNO games have a recorder")
+                    .observe(before, outcome, &[], false, game),
+            ));
+        }
+        let before = UnoActionContext::capture(game, player)?;
         let mut played = Vec::new();
         let outcome = if forced_skip {
             game.resolve_skip(player)
@@ -162,12 +172,13 @@ impl UnoSession {
         .ok()?;
         events.extend(events_for_outcome(&outcome, &played));
         append_finished_event(&mut events, game);
+        events.extend(analysis_events(
+            self.statistics
+                .as_mut()
+                .expect("active UNO games have a recorder")
+                .observe(before, &outcome, &played, false, game),
+        ));
         let draw_reveal = pending_draw_reveal_for_outcome(&outcome, game);
-        if let Some(uno_outcome) = uno_outcome.as_ref() {
-            self.record_profile_outcome(uno_outcome);
-        }
-        self.record_profile_outcome(&outcome);
-        self.record_state_peaks();
         Some((events, draw_reveal))
     }
 }

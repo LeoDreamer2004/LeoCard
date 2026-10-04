@@ -1,6 +1,7 @@
 //! GitHub Release 自动更新、下载进度和更新窗口。
 
 mod actions;
+mod completion;
 
 mod animation;
 

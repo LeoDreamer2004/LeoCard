@@ -1,3 +1,5 @@
+use std::f32::consts;
+
 use super::super::{ShengjiDealerBadge, ShengjiLevelIndicator};
 use super::content::presentation_color;
 
@@ -228,7 +230,7 @@ pub(crate) fn animate_shengji_presentation(
 
         let direction = (packet.end - packet.start).normalize_or_zero();
         let perpendicular = Vec2::new(-direction.y, direction.x);
-        let arc = (packet_progress * std::f32::consts::PI).sin();
+        let arc = (packet_progress * consts::PI).sin();
         let offset = perpendicular * (spread * 7.0 + arc * (24.0 + packet.index as f32));
         transform.translation = Val2::px(-17.0 + offset.x, -24.0 + offset.y);
         transform.rotation = Rot2::radians((spread * 1.2_f32).to_radians());
@@ -258,13 +260,12 @@ pub(crate) fn animate_shengji_presentation(
                 let perpendicular = Vec2::new(-direction.y, direction.x);
                 let polarity = if index % 2 == 0 { 1.0 } else { -1.0 };
                 let position = start.lerp(end, travel)
-                    + perpendicular * ((local * std::f32::consts::PI).sin() * polarity * 1.8);
+                    + perpendicular * ((local * consts::PI).sin() * polarity * 1.8);
                 node.left = percent(position.x);
                 node.top = percent(position.y);
                 transform.translation = Val2::px(-4.0, -4.0);
-                transform.scale =
-                    Vec2::splat(0.72 + (local * std::f32::consts::PI).sin().max(0.0) * 0.58);
-                let spark_alpha = (local * std::f32::consts::PI).sin().max(0.0);
+                transform.scale = Vec2::splat(0.72 + (local * consts::PI).sin().max(0.0) * 0.58);
+                let spark_alpha = (local * consts::PI).sin().max(0.0);
                 background.0 = Color::srgba(0.42, 0.88, 1.0, spark_alpha * 0.96);
             }
             ShengjiPowerOutageVisualKind::TargetRing { target } => {
@@ -281,7 +282,7 @@ pub(crate) fn animate_shengji_presentation(
                 transform.scale = Vec2::splat(0.54 + ease_out_cubic(local) * 0.82);
                 background.0 = Color::NONE;
                 if let Some(mut border) = border {
-                    let ring_alpha = (local * std::f32::consts::PI).sin().max(0.0);
+                    let ring_alpha = (local * consts::PI).sin().max(0.0);
                     border.set_all(Color::srgba(0.42, 0.88, 1.0, ring_alpha * 0.92));
                 }
             }
@@ -335,7 +336,7 @@ pub(crate) fn animate_shengji_presentation(
                 let position = start.lerp(end, travel);
                 node.left = percent(position.x);
                 node.top = percent(position.y);
-                let arc = (local * std::f32::consts::PI).sin();
+                let arc = (local * consts::PI).sin();
                 transform.translation = Val2::px(
                     -3.5 + perpendicular.x * arc * polarity * 4.0,
                     -3.5 + perpendicular.y * arc * polarity * 4.0,
@@ -368,7 +369,7 @@ pub(crate) fn animate_shengji_presentation(
                 let position = start.lerp(end, travel);
                 node.left = percent(position.x);
                 node.top = percent(position.y);
-                let arc = (local * std::f32::consts::PI).sin();
+                let arc = (local * consts::PI).sin();
                 transform.translation = Val2::px(
                     -4.0 + perpendicular.x * arc * polarity * 5.0,
                     -4.0 + perpendicular.y * arc * polarity * 5.0,
@@ -387,7 +388,7 @@ pub(crate) fn animate_shengji_presentation(
                 let reveal = ease_out_cubic((progress / 0.16).clamp(0.0, 1.0));
                 let fade = 1.0 - ease_out_cubic(((progress - 0.84) / 0.16).clamp(0.0, 1.0));
                 let impact = ((progress - 0.48) / 0.16).clamp(0.0, 1.0);
-                let pulse = (impact * std::f32::consts::PI).sin().max(0.0);
+                let pulse = (impact * consts::PI).sin().max(0.0);
                 *visibility = if fade > 0.0 {
                     Visibility::Visible
                 } else {
@@ -409,7 +410,7 @@ pub(crate) fn animate_shengji_presentation(
                 };
                 let travel = ease_out_cubic(local);
                 node.left = px(-42.0 + 118.0 * travel);
-                node.top = px(4.0 - (local * std::f32::consts::PI).sin() * 7.0);
+                node.top = px(4.0 - (local * consts::PI).sin() * 7.0);
                 transform.rotation = Rot2::radians((-45.0 + (1.0 - local) * 3.0).to_radians());
                 transform.scale = Vec2::splat(0.88 + 0.12 * travel);
                 if let Some(mut image) = image {
@@ -508,7 +509,7 @@ pub(crate) fn animate_shengji_bottom_flip_markers(
                 } else {
                     Visibility::Hidden
                 };
-                let bounce = (reveal * std::f32::consts::PI).sin().max(0.0);
+                let bounce = (reveal * consts::PI).sin().max(0.0);
                 transform.translation = Val2::px(0.0, 7.0 * (1.0 - reveal));
                 transform.scale = Vec2::splat(0.88 + reveal * 0.12 + bounce * 0.08);
             }
@@ -525,9 +526,9 @@ pub(crate) fn animate_shengji_bottom_flip_markers(
         };
         let stagger = index as f32 / matches.len().max(1) as f32 * 0.10;
         let response = ((progress - 0.27 - stagger) / 0.22).clamp(0.0, 1.0);
-        let response_pulse = (response * std::f32::consts::PI).sin().max(0.0);
+        let response_pulse = (response * consts::PI).sin().max(0.0);
         let dealer_pulse = if dealer == Some(anchor.0) {
-            (((progress - 0.63) / 0.20).clamp(0.0, 1.0) * std::f32::consts::PI)
+            (((progress - 0.63) / 0.20).clamp(0.0, 1.0) * consts::PI)
                 .sin()
                 .max(0.0)
         } else {

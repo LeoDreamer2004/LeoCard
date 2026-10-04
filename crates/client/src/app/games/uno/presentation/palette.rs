@@ -1,3 +1,5 @@
+use std::f32::consts;
+
 use super::super::{
     UnoPaletteColorRing, UnoPaletteEffect, UnoPaletteMaterial, UnoPaletteParticle,
     UnoPaletteSelectedSector, uno_ui_color,
@@ -90,14 +92,14 @@ pub(super) fn spawn_uno_palette_effect(
     }
 
     let sector_angle = match selected {
-        UnoColor::Red => std::f32::consts::FRAC_PI_4,
-        UnoColor::Yellow => std::f32::consts::FRAC_PI_4 * 3.0,
-        UnoColor::Green => std::f32::consts::FRAC_PI_4 * 5.0,
-        UnoColor::Blue => std::f32::consts::FRAC_PI_4 * 7.0,
-        UnoColor::Pink => std::f32::consts::FRAC_PI_4,
-        UnoColor::Teal => std::f32::consts::FRAC_PI_4 * 3.0,
-        UnoColor::Orange => std::f32::consts::FRAC_PI_4 * 5.0,
-        UnoColor::Purple => std::f32::consts::FRAC_PI_4 * 7.0,
+        UnoColor::Red => consts::FRAC_PI_4,
+        UnoColor::Yellow => consts::FRAC_PI_4 * 3.0,
+        UnoColor::Green => consts::FRAC_PI_4 * 5.0,
+        UnoColor::Blue => consts::FRAC_PI_4 * 7.0,
+        UnoColor::Pink => consts::FRAC_PI_4,
+        UnoColor::Teal => consts::FRAC_PI_4 * 3.0,
+        UnoColor::Orange => consts::FRAC_PI_4 * 5.0,
+        UnoColor::Purple => consts::FRAC_PI_4 * 7.0,
     };
     for index in 0..10 {
         let spread = (index as f32 - 4.5) * 0.18;

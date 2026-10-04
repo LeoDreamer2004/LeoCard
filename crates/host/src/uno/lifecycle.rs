@@ -1,15 +1,17 @@
 use super::{DRAW_REVEAL_INTERVAL, UnoSession, shuffled_uno_deck, to_core_player, validate_deck};
-use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{
     AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession,
+    lifecycle::{HostedGameLifecycle, dispatch_client_command},
     new_match_id,
 };
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
-    PlayerInteraction, PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, Revision,
-    RoomId, RoomViolation, ServerEvent, UnoEvent, UnoProfileStats,
+    PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, Revision, RoomId,
+    RoomViolation, ServerEvent, UnoEvent,
 };
-use leocard_uno::{GameError, GameState, Phase, UnoCard, UnoFlipSide, UnoRuleSet};
+use leocard_uno::{
+    GameError, GameState, Phase, UnoCard, UnoFlipSide, UnoMatchStatistics, UnoRuleSet,
+};
 use std::time::Duration;
 
 impl UnoSession {
@@ -26,8 +28,8 @@ impl UnoSession {
             rules,
             shuffled_deck: Some(shuffled_deck),
             game: None,
+            statistics: None,
             match_id: None,
-            match_profile_stats: Vec::new(),
             finished_reference_changes: None,
             auto_play_delay: None,
             pending_draw_reveal: None,
@@ -272,11 +274,10 @@ impl HostedGameLifecycle for UnoSession {
         match GameState::new_with_deck(self.rules, active as u8, deck) {
             Ok(game) => {
                 let started_on_dark = game.flip_side() == Some(UnoFlipSide::Dark);
+                self.statistics = Some(UnoMatchStatistics::new(&game));
                 self.game = Some(game);
                 self.pending_draw_reveal = None;
                 self.match_id = Some(new_match_id());
-                self.match_profile_stats = vec![UnoProfileStats::default(); active];
-                self.record_state_peaks();
                 self.finished_reference_changes = None;
                 self.reset_auto_play_delay();
                 self.room.bump_revision();
@@ -327,9 +328,9 @@ impl HostedGameLifecycle for UnoSession {
             );
         }
         self.game = None;
+        self.statistics = None;
         self.pending_draw_reveal = None;
         self.match_id = None;
-        self.match_profile_stats.clear();
         self.finished_reference_changes = None;
         self.auto_play_delay = None;
         #[cfg(feature = "developer")]
@@ -465,13 +466,9 @@ impl HostedGameLifecycle for UnoSession {
                 &GameError::InvalidPlayer(to_core_player(target)),
             );
         }
-        let interaction = PlayerInteraction {
-            source,
-            target,
-            kind,
-            seed: fastrand::u32(..),
-        };
-        self.room.record_received_interaction(target, kind);
+        let interaction = self
+            .room
+            .record_interaction(source, target, kind, fastrand::u32(..));
         self.room.bump_revision();
         let mut deliveries = self.room.broadcast_event(
             Some((connection, request_id)),

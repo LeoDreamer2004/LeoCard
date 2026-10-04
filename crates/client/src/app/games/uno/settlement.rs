@@ -1,11 +1,10 @@
 use super::UNO_FINISH_REVEAL_DURATION;
-use crate::app::presentation::add_animated_summary_text;
 use crate::app::presentation::{
     ACCENT, AnimatedSummaryScore, DANGER, GameSummaryActions, GameSummaryAnimation,
     GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, READY,
     SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
-    TEXT, add_ready_avatar, animated_summary_score, decorate_panel_skin, spawn_node,
-    summary_modal_visual, summary_row_progress,
+    TEXT, add_animated_summary_text, add_ready_avatar, animated_summary_score, decorate_panel_skin,
+    spawn_node, summary_modal_visual, summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{

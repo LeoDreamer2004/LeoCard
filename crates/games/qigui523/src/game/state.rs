@@ -1,8 +1,8 @@
 use crate::{ClassifiedPlay, PlayError, QiGuiCard, QiGuiRuleSet, RuleError};
-use std::collections::VecDeque;
-use std::fmt;
+use std::{collections::VecDeque, error::Error, fmt};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct QiGuiPlayerId(pub usize);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -166,7 +166,7 @@ impl fmt::Display for GameError {
     }
 }
 
-impl std::error::Error for GameError {}
+impl Error for GameError {}
 
 impl From<RuleError> for GameError {
     fn from(value: RuleError) -> Self {
@@ -207,6 +207,19 @@ impl GameState {
 
     pub fn draw_pile_len(&self) -> usize {
         self.draw_pile.len()
+    }
+
+    /// Total scoring value of the deck, including captured and unplayed cards.
+    pub fn total_points(&self) -> u32 {
+        self.trick.as_ref().map_or(0, |trick| trick.table_points)
+            + self.players.iter().map(|player| player.score).sum::<u32>()
+            + self
+                .players
+                .iter()
+                .flat_map(|player| &player.hand)
+                .chain(&self.draw_pile)
+                .map(|card| u32::from(card.score()))
+                .sum::<u32>()
     }
 
     pub fn starting_card(&self) -> StartingCard {

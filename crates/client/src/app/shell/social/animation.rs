@@ -1,5 +1,7 @@
 //! 玩家互动投射物的运动、声音与命中反馈。
 
+use std::f32::consts;
+
 use super::{ActivePlayerInteraction, interaction_rotates};
 use crate::app::presentation::ease_out_cubic;
 use crate::app::runtime::UiAssets;
@@ -70,7 +72,7 @@ pub(crate) fn animate_player_interactions(
         transform.scale = Vec2::splat(0.45 + 0.55 * ease_out_cubic(appear));
         image.color = Color::WHITE.with_alpha(appear);
         transform.rotation = if interaction_rotates(effect.kind) {
-            Rot2::radians(accelerated * std::f32::consts::TAU * SHOE_ROTATIONS)
+            Rot2::radians(accelerated * consts::TAU * SHOE_ROTATIONS)
         } else if matches!(
             effect.kind,
             PlayerInteractionKind::Egg | PlayerInteractionKind::Flower
@@ -78,7 +80,7 @@ pub(crate) fn animate_player_interactions(
             && !(effect.impacted && matches!(effect.kind, PlayerInteractionKind::Egg))
         {
             let direction = effect.target - effect.source;
-            Rot2::radians(direction.y.atan2(direction.x) + std::f32::consts::FRAC_PI_2)
+            Rot2::radians(direction.y.atan2(direction.x) + consts::FRAC_PI_2)
         } else {
             Rot2::IDENTITY
         };

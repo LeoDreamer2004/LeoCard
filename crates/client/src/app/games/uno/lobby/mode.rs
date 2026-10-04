@@ -1,6 +1,5 @@
 use super::super::{UnoModeDropdownPanel, UnoUiAction};
-use crate::app::presentation::ButtonHighlight;
-use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{ButtonHighlight, MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{UiAction, add_cozy_panel};
 use bevy::prelude::*;

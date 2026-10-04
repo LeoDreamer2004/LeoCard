@@ -1,5 +1,7 @@
 //! 国标麻将结算：逐位报番，然后在牌桌座位上结算分数。
 
+use std::f32::consts;
+
 use super::super::{
     MahjongAssets, MahjongTileMaterial, MahjongTileSize, MahjongUiAction, MahjongWinTileSizes,
     mahjong_settlement_timing, render_mahjong_win_tile_row, render_round_status_with_scores,
@@ -452,19 +454,9 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
         ));
         let (left, top, origin, rotation) = match relative {
             0 => (637.0, 359.0, Vec2::new(0.0, 38.0), 0.0),
-            1 => (
-                692.0,
-                317.0,
-                Vec2::new(38.0, 0.0),
-                -std::f32::consts::FRAC_PI_2,
-            ),
-            2 => (637.0, 281.0, Vec2::new(0.0, -38.0), std::f32::consts::PI),
-            _ => (
-                575.0,
-                317.0,
-                Vec2::new(-38.0, 0.0),
-                std::f32::consts::FRAC_PI_2,
-            ),
+            1 => (692.0, 317.0, Vec2::new(38.0, 0.0), -consts::FRAC_PI_2),
+            2 => (637.0, 281.0, Vec2::new(0.0, -38.0), consts::PI),
+            _ => (575.0, 317.0, Vec2::new(-38.0, 0.0), consts::FRAC_PI_2),
         };
         let color = if delta > 0 {
             READY

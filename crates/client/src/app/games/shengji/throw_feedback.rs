@@ -1,5 +1,7 @@
 //! 甩牌失败、退牌与罚分演出。
 
+use std::f32::consts;
+
 use super::{
     ShengjiFailedThrowCard, ShengjiFailedThrowLabel, ShengjiThrowPenaltyFloat,
     ShengjiThrowPenaltyScorePulse,
@@ -33,7 +35,7 @@ pub(crate) fn shengji_failed_throw_card_visual(
             // 先由一叠牌完整展开；停顿片刻后向两边裂开，并弹回原位。
             let reveal = ease_out_cubic((elapsed / 0.20).clamp(0.0, 1.0));
             let crack_progress = ((elapsed - 0.30) / 0.48).clamp(0.0, 1.0);
-            let crack = (crack_progress * std::f32::consts::PI).sin();
+            let crack = (crack_progress * consts::PI).sin();
             let side = spread.signum();
             let alternate = if index.is_multiple_of(2) { -1.0 } else { 1.0 };
             ShengjiFailedThrowCardVisual {
@@ -114,8 +116,7 @@ pub(super) fn animate_shengji_failed_throw_labels(
         } else {
             let enter = ease_out_cubic((animation.elapsed / 0.16).clamp(0.0, 1.0));
             let shake_progress = ((animation.elapsed - 0.24) / 0.42).clamp(0.0, 1.0);
-            let shake =
-                (shake_progress * std::f32::consts::TAU * 3.0).sin() * (1.0 - shake_progress) * 3.0;
+            let shake = (shake_progress * consts::TAU * 3.0).sin() * (1.0 - shake_progress) * 3.0;
             transform.translation = Val2::px(shake, 7.0 * (1.0 - enter));
             transform.scale = Vec2::splat(0.86 + 0.14 * enter);
             color.0 = DANGER.with_alpha(enter);
@@ -143,7 +144,7 @@ pub(super) fn animate_shengji_throw_penalty_floats(
         let position = animation.source.lerp(animation.target, travel);
         node.left = percent(position.x);
         node.top = percent(position.y);
-        let arc = (raw * std::f32::consts::PI).sin();
+        let arc = (raw * consts::PI).sin();
         transform.translation = Val2::px(-30.0, -18.0 - arc * 20.0);
         transform.scale = Vec2::splat(0.86 + arc * 0.20);
         color.0 =
@@ -167,6 +168,6 @@ pub(super) fn animate_shengji_throw_penalty_score_pulses(
             - SHENGJI_THROW_PENALTY_DURATION * 0.72)
             / 0.30)
             .clamp(0.0, 1.0);
-        transform.scale = Vec2::splat(1.0 + (progress * std::f32::consts::PI).sin() * 0.18);
+        transform.scale = Vec2::splat(1.0 + (progress * consts::PI).sin() * 0.18);
     }
 }

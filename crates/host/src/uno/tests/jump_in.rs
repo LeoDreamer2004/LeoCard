@@ -97,8 +97,8 @@ fn jump_in_candidate_is_private_and_successful_command_moves_play_to_that_player
     assert_eq!(snapshot.discard_top, matching);
     assert_eq!(snapshot.current_player, Some(PlayerId(0)));
     assert_eq!(snapshot.your_hand.len(), 6);
-    assert_eq!(session.match_profile_stats[2].jump_in_opportunities, 1);
-    assert_eq!(session.match_profile_stats[2].successful_jump_ins, 1);
+    assert_eq!(statistics(&session, 2).jump_in_opportunities, 1);
+    assert_eq!(statistics(&session, 2).jump_ins, 1);
 }
 
 #[test]
@@ -137,8 +137,8 @@ fn any_successful_next_player_action_closes_server_jump_in_window() {
                 }
             )
     }));
-    assert_eq!(session.match_profile_stats[2].jump_in_opportunities, 1);
-    assert_eq!(session.match_profile_stats[2].successful_jump_ins, 0);
+    assert_eq!(statistics(&session, 2).jump_in_opportunities, 1);
+    assert_eq!(statistics(&session, 2).jump_ins, 0);
 }
 
 #[test]
@@ -154,13 +154,13 @@ fn non_play_actions_do_not_count_the_same_jump_in_window_twice() {
             })),
         ),
     );
-    assert_eq!(session.match_profile_stats[2].jump_in_opportunities, 1);
+    assert_eq!(statistics(&session, 2).jump_in_opportunities, 1);
 
     session.perform_action(third, RequestId(4), Vec::new(), false, |_, player| {
         Ok(ActionOutcome::UnoCalled { player })
     });
 
-    assert_eq!(session.match_profile_stats[2].jump_in_opportunities, 1);
+    assert_eq!(statistics(&session, 2).jump_in_opportunities, 1);
 }
 
 #[test]

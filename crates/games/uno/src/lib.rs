@@ -7,6 +7,7 @@ mod card;
 mod game;
 mod rating;
 mod rules;
+mod statistics;
 
 pub use card::{
     CardSide, UnoCard, UnoColor, UnoFace, UnoFlipSide, build_deck, build_deck_for_rules,
@@ -19,3 +20,7 @@ pub use game::{
 };
 pub use rating::reference_point_deltas;
 pub use rules::{FlipRuleSet, Mode, NoMercyRuleSet, RuleError, UnoRuleSet};
+
+pub use statistics::{
+    UnoActionContext, UnoActionStatistics, UnoMatchStatistics, UnoPlayerStatistics,
+};

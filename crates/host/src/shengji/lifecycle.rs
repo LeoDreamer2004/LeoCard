@@ -1,21 +1,24 @@
 use super::{
     AUTOMATIC_ACTION_DELAY, BIDDING_GRACE, BOTTOM_COPY_DECISION_TIMEOUT, BOTTOM_FLIP_HOLD_DURATION,
-    BOTTOM_FLIP_START_DELAY, DEAL_INTERVAL, HandFlowState, HandStatistics, HeldGamePresentation,
-    PLAYER_COUNT, POWER_OUTAGE_BIDDING_GRACE, REDEAL_DELAY, ShengjiSession,
+    BOTTOM_FLIP_START_DELAY, DEAL_INTERVAL, HandFlowState, HeldGamePresentation, PLAYER_COUNT,
+    POWER_OUTAGE_BIDDING_GRACE, REDEAL_DELAY, SessionStatistics, ShengjiSession,
     THROW_FAILURE_RETURN_DURATION, bottom_flip_reveal_view, from_core_player, shuffled_deck,
     validate_deck,
 };
-use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
-use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
+use crate::{
+    ConnectionId, Delivery, HostError, RoomSession,
+    lifecycle::{HostedGameLifecycle, dispatch_client_command},
+    new_match_id,
+};
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
-    PlayerInteraction, PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, Revision,
-    RoomId, RoomViolation, ServerEvent, ShengjiCommand, ShengjiEvent, ShengjiProfileStats,
-    ShengjiPublicPlay, ShengjiThrowFailureStage, ShengjiViolation,
+    PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, Revision, RoomId,
+    RoomViolation, ServerEvent, ShengjiCommand, ShengjiEvent, ShengjiPublicPlay,
+    ShengjiThrowFailureStage, ShengjiViolation,
 };
-use leocard_shengji::BottomCopyState;
 use leocard_shengji::{
-    ActionOutcome, GameError, GameState, Phase, ShengjiCard, ShengjiRuleSet, TeamProgress,
+    ActionOutcome, BottomCopyState, GameError, GameState, Phase, ShengjiCard, ShengjiRuleSet,
+    TeamProgress,
 };
 use std::time::Duration;
 
@@ -44,7 +47,7 @@ impl ShengjiSession {
             next_dealer: None,
             flow: HandFlowState::default(),
             presentation: HeldGamePresentation::default(),
-            statistics: HandStatistics::default(),
+            statistics: SessionStatistics::default(),
         })
     }
 
@@ -104,7 +107,7 @@ impl ShengjiSession {
                 | Phase::FiveTrumpCrossing
                 | Phase::Playing,
             ) => self.advance_automatic_action(elapsed),
-            Some(Phase::Finished(_) | Phase::RedealRequired) | None => Vec::new(),
+            Some(Phase::Finished(_) | Phase::RedealRequired(_)) | None => Vec::new(),
         }
     }
 
@@ -291,7 +294,7 @@ impl ShengjiSession {
             }
             Err(GameError::RedealRequired) => {
                 self.flow.redeal_remaining = Some(REDEAL_DELAY);
-                let mut deliveries = self.broadcast_events(vec![ShengjiEvent::RedealRequired]);
+                let mut deliveries = self.broadcast_events(vec![self.redeal_event()]);
                 deliveries.extend(self.broadcast_game(acknowledgement));
                 deliveries
             }
@@ -340,11 +343,11 @@ impl ShengjiSession {
                 self.room.bump_revision();
                 self.broadcast_game(None)
             }
-            Some(Phase::RedealRequired) => {
+            Some(Phase::RedealRequired(_)) => {
                 self.flow.bottom_flip_reveal = None;
                 self.flow.redeal_remaining = Some(REDEAL_DELAY);
                 self.room.bump_revision();
-                let mut deliveries = self.broadcast_events(vec![ShengjiEvent::RedealRequired]);
+                let mut deliveries = self.broadcast_events(vec![self.redeal_event()]);
                 deliveries.extend(self.broadcast_game(None));
                 deliveries
             }
@@ -369,8 +372,7 @@ impl ShengjiSession {
                     Err(GameError::RedealRequired) => {
                         self.flow.redeal_remaining = Some(REDEAL_DELAY);
                         self.room.bump_revision();
-                        let mut deliveries =
-                            self.broadcast_events(vec![ShengjiEvent::RedealRequired]);
+                        let mut deliveries = self.broadcast_events(vec![self.redeal_event()]);
                         deliveries.extend(self.broadcast_game(None));
                         deliveries
                     }
@@ -631,8 +633,7 @@ impl HostedGameLifecycle for ShengjiSession {
         self.hand_number = 0;
         self.teams = TeamProgress::for_rules(&self.rules);
         self.next_dealer = None;
-        self.statistics.profiles =
-            vec![ShengjiProfileStats::default(); ShengjiRuleSet::PLAYER_COUNT];
+        self.statistics = SessionStatistics::default();
         if self.start_hand(true).is_err() {
             #[cfg(feature = "developer")]
             self.room.remove_developer_bots();
@@ -678,7 +679,7 @@ impl HostedGameLifecycle for ShengjiSession {
         }
         self.game = None;
         self.match_id = None;
-        self.statistics.profiles.clear();
+        self.statistics = SessionStatistics::default();
         self.flow.automatic_action = None;
         self.flow.bottom_flip_reveal = None;
         self.flow.bottom_flip_remaining = None;
@@ -828,13 +829,9 @@ impl HostedGameLifecycle for ShengjiSession {
                 RejectReason::Game(GameViolation::Shengji(ShengjiViolation::InvalidPlayer)),
             );
         }
-        let interaction = PlayerInteraction {
-            source,
-            target,
-            kind,
-            seed: fastrand::u32(..),
-        };
-        self.room.record_received_interaction(target, kind);
+        let interaction = self
+            .room
+            .record_interaction(source, target, kind, fastrand::u32(..));
         self.room.bump_revision();
         let mut deliveries = self.room.broadcast_event(
             Some((connection, request_id)),

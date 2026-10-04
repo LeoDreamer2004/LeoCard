@@ -3,12 +3,17 @@ use crate::{
     ShengjiDeclarationView, ShengjiHandResultView, ShengjiPublicPlay,
 };
 use leocard_mahjong::{MahjongClaim, MahjongDrawOrigin, MahjongTile, MahjongTileKind};
-use leocard_shengji::{ShengjiCard, ShengjiRank};
+use leocard_qigui523::QiGuiActionStatistics;
+use leocard_shengji::{
+    ShengjiCard, ShengjiHandStatistics, ShengjiMatchStatistics, ShengjiRank, ShengjiRedealReason,
+};
 use leocard_texas_holdem::{
     TexasHoldemAction, TexasHoldemActionStatistics, TexasHoldemCard, TexasHoldemHandStatistics,
     TexasHoldemStreet,
 };
-use leocard_uno::{UnoCard, UnoChallengeResult, UnoColor, UnoDirection, UnoFlipSide};
+use leocard_uno::{
+    UnoActionStatistics, UnoCard, UnoChallengeResult, UnoColor, UnoDirection, UnoFlipSide,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -88,6 +93,11 @@ pub enum MahjongEvent {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum UnoEvent {
+    /// Accepted action statistics delivered only to the named player.
+    ActionAnalyzed {
+        player: PlayerId,
+        statistics: Box<UnoActionStatistics>,
+    },
     ColorChosen {
         player: PlayerId,
         color: UnoColor,
@@ -181,7 +191,15 @@ pub enum UnoEvent {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum QiGui523Event {
-    PlayEffect { player: PlayerId, play: PublicPlay },
+    /// Accepted statistics delivered only to the named player.
+    ActionAnalyzed {
+        player: PlayerId,
+        statistics: Box<QiGuiActionStatistics>,
+    },
+    PlayEffect {
+        player: PlayerId,
+        play: PublicPlay,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -261,5 +279,13 @@ pub enum ShengjiEvent {
         result: ShengjiHandResultView,
         buried: Vec<ShengjiCard>,
     },
-    RedealRequired,
+    /// Sent only to this player after settlement; absent from snapshots.
+    HandAnalyzed {
+        player: PlayerId,
+        statistics: Box<ShengjiHandStatistics>,
+        match_statistics: ShengjiMatchStatistics,
+    },
+    RedealRequired {
+        reason: ShengjiRedealReason,
+    },
 }

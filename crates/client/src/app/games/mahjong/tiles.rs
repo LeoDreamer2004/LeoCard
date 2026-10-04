@@ -7,6 +7,7 @@ use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongTileKind;
+use std::f32::consts;
 
 const MAHJONG_DEAL_MOVE_DURATION: f32 = 0.28;
 const MAHJONG_DRAW_FALL_DURATION: f32 = 0.42;
@@ -210,7 +211,7 @@ pub(super) fn animate_mahjong_deal_tiles(
         let lift = if deal.falling {
             0.0
         } else {
-            (raw * std::f32::consts::PI).sin() * 12.0
+            (raw * consts::PI).sin() * 12.0
         };
         let offset = deal.final_offset + deal.start_offset * (1.0 - movement);
         transform.translation = Val2::px(offset.x, offset.y - lift);

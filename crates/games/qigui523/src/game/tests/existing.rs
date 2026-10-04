@@ -1,4 +1,4 @@
-use super::*;
+use super::super::*;
 use crate::{QiGuiCard, QiGuiRank, QiGuiRuleSet, QiGuiSuit, build_deck, can_beat, classify};
 use std::collections::HashSet;
 

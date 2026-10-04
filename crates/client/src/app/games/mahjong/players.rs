@@ -21,6 +21,7 @@ use bevy::ui::FocusPolicy;
 use leocard_protocol::{
     MahjongHandResultView, MahjongPhaseView, MahjongPlayerState, MahjongSnapshot, PlayerId,
 };
+use std::f32::consts;
 
 pub(super) struct MahjongPlayerPanelVisuals<'a> {
     pub own_seat: u8,
@@ -131,9 +132,9 @@ pub(super) fn render_mahjong_wall(
         let count = stack_count.saturating_sub(side * 18).min(18);
         let (left, top, rotation) = match side {
             0 => (460.0, 105.0, 0.0),
-            1 => (820.0, 302.0, std::f32::consts::FRAC_PI_2),
-            2 => (460.0, 500.0, std::f32::consts::PI),
-            _ => (100.0, 302.0, -std::f32::consts::FRAC_PI_2),
+            1 => (820.0, 302.0, consts::FRAC_PI_2),
+            2 => (460.0, 500.0, consts::PI),
+            _ => (100.0, 302.0, -consts::FRAC_PI_2),
         };
         let segment = spawn_node(
             commands,
@@ -286,23 +287,9 @@ pub(super) fn render_mahjong_player_tiles(
             88.0,
             0.0,
         ),
-        1 => (
-            840.0,
-            Some(302.0),
-            None,
-            450.0,
-            54.0,
-            -std::f32::consts::FRAC_PI_2,
-        ),
-        2 => (415.0, Some(56.0), None, 450.0, 54.0, std::f32::consts::PI),
-        _ => (
-            -10.0,
-            Some(302.0),
-            None,
-            450.0,
-            54.0,
-            std::f32::consts::FRAC_PI_2,
-        ),
+        1 => (840.0, Some(302.0), None, 450.0, 54.0, -consts::FRAC_PI_2),
+        2 => (415.0, Some(56.0), None, 450.0, 54.0, consts::PI),
+        _ => (-10.0, Some(302.0), None, 450.0, 54.0, consts::FRAC_PI_2),
     };
     let group = spawn_node(
         commands,
@@ -607,9 +594,9 @@ pub(super) fn render_discard_rivers(
         let relative = (player.seat.0 + 4 - own_seat) % 4;
         let (left, top, rotation) = match relative {
             0 => (549.0, 382.0, 0.0),
-            1 => (735.0, 245.0, -std::f32::consts::FRAC_PI_2),
-            2 => (533.0, 150.0, std::f32::consts::PI),
-            _ => (331.0, 245.0, std::f32::consts::FRAC_PI_2),
+            1 => (735.0, 245.0, -consts::FRAC_PI_2),
+            2 => (533.0, 150.0, consts::PI),
+            _ => (331.0, 245.0, consts::FRAC_PI_2),
         };
         let river = spawn_node(
             commands,

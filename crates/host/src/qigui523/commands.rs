@@ -1,11 +1,15 @@
 use super::{QiGui523Session, map_game_error, to_core_player};
-use crate::lifecycle::HostedGameLifecycle;
-use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, new_match_id};
-use leocard_protocol::{
-    GameViolation, PlayerViolation, PublicPlay, QiGui523ProfileStats, RejectReason, RequestId,
-    RoomViolation, RuleViolation, TABLE_SEAT_COUNT,
+use crate::{
+    AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, lifecycle::HostedGameLifecycle,
+    new_match_id,
 };
-use leocard_qigui523::{GameState, Phase, QiGuiCard, QiGuiRuleSet, build_deck, classify};
+use leocard_protocol::{
+    GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, RuleViolation,
+    TABLE_SEAT_COUNT,
+};
+use leocard_qigui523::{
+    GameState, Phase, QiGuiCard, QiGuiMatchStatistics, QiGuiRuleSet, build_deck,
+};
 
 impl QiGui523Session {
     #[cfg(feature = "developer")]
@@ -192,10 +196,10 @@ impl QiGui523Session {
                     .expect("a freshly built deck always matches the configured rules")
             }
         };
+        self.statistics = Some(QiGuiMatchStatistics::new(&game));
         self.game = Some(game);
         self.match_id = Some(new_match_id());
         self.finished_reference_changes = None;
-        self.match_profile_stats = vec![QiGui523ProfileStats::default(); self.players.len()];
         self.reset_auto_play_delay_for_current_turn();
         self.initialize_turn_timer();
         self.bump_revision();
@@ -215,7 +219,7 @@ impl QiGui523Session {
                 RejectReason::Player(PlayerViolation::NotJoined),
             );
         };
-        let Some(game) = self.game.as_mut() else {
+        let Some(_) = self.game.as_ref() else {
             return self.reject(
                 connection,
                 request_id,
@@ -223,20 +227,11 @@ impl QiGui523Session {
             );
         };
 
-        match game.play_cards(to_core_player(player), cards) {
-            Ok(_) => {
-                let play = classify(cards, &self.rules)
-                    .expect("the game accepted a play that the shared classifier recognizes");
-                let effect = (
-                    player,
-                    PublicPlay {
-                        kind: play.kind().clone(),
-                        cards: cards.to_vec(),
-                    },
-                );
+        match self.perform_action(to_core_player(player), Some(cards)) {
+            Ok(events) => {
                 self.reset_timer_for_current_turn();
                 self.bump_revision();
-                self.broadcast_game_after_action(Some((connection, request_id)), Some(effect))
+                self.broadcast_game_after_action(Some((connection, request_id)), events)
             }
             Err(error) => self.reject(
                 connection,
@@ -258,7 +253,7 @@ impl QiGui523Session {
                 RejectReason::Player(PlayerViolation::NotJoined),
             );
         };
-        let Some(game) = self.game.as_mut() else {
+        let Some(_) = self.game.as_ref() else {
             return self.reject(
                 connection,
                 request_id,
@@ -266,11 +261,11 @@ impl QiGui523Session {
             );
         };
 
-        match game.pass(to_core_player(player)) {
-            Ok(_) => {
+        match self.perform_action(to_core_player(player), None) {
+            Ok(events) => {
                 self.reset_timer_for_current_turn();
                 self.bump_revision();
-                self.broadcast_game_after_update(Some((connection, request_id)))
+                self.broadcast_game_after_action(Some((connection, request_id)), events)
             }
             Err(error) => self.reject(
                 connection,

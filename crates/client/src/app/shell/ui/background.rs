@@ -1,5 +1,7 @@
 //! A continuous ambient backdrop shared by all pages outside a match.
 
+use std::f32::consts;
+
 use crate::app::presentation::spawn_node;
 use crate::app::runtime::{ClientUpdateSet, UiAssets};
 use bevy::prelude::*;
@@ -129,10 +131,10 @@ fn light_sample(index: usize, seconds: f32) -> (Vec2, f32) {
     (
         Vec2::new(
             x,
-            52.0 + 32.0 * (progress * std::f32::consts::PI + visitor * 1.8).sin()
-                + 7.0 * (progress * std::f32::consts::TAU + visitor).sin(),
+            52.0 + 32.0 * (progress * consts::PI + visitor * 1.8).sin()
+                + 7.0 * (progress * consts::TAU + visitor).sin(),
         ),
-        (progress * std::f32::consts::PI).sin().powi(2),
+        (progress * consts::PI).sin().powi(2),
     )
 }
 

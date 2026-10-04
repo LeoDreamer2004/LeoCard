@@ -83,6 +83,7 @@ fn teammates_can_cross_each_other_once_with_both_transfers_applied_simultaneousl
     let (mut game, buried) = five_trump_crossing_game(Some(ShengjiSuit::Heart));
     game.bury(ShengjiPlayerId(0), &buried).unwrap();
     assert_eq!(game.phase(), &Phase::FiveTrumpCrossing);
+    assert!(game.statistics.opening.iter().all(Option::is_none));
     let state = game.five_trump_crossing().unwrap();
     assert!(state.eligible(ShengjiPlayerId(0)));
     assert!(state.eligible(ShengjiPlayerId(2)));
@@ -143,6 +144,19 @@ fn teammates_can_cross_each_other_once_with_both_transfers_applied_simultaneousl
     game.return_five_trump_crossing(ShengjiPlayerId(2), &zero_out)
         .unwrap();
     assert_eq!(game.phase(), &Phase::Playing);
+    let trump = game.trump().unwrap();
+    for player in game.players() {
+        let opening = game.statistics.opening[usize::from(player.id.0)].unwrap();
+        assert_eq!(usize::from(opening.card_count), player.hand.len());
+        assert_eq!(
+            usize::from(opening.trump_count),
+            player
+                .hand
+                .iter()
+                .filter(|card| trump.is_trump(**card))
+                .count()
+        );
+    }
 
     let mut final_zero = game.players[0].hand.clone();
     let mut final_two = game.players[2].hand.clone();

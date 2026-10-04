@@ -1,4 +1,5 @@
 use super::{SettingsTab, start_table_felt_picker};
+use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::{
     AppearancePreferences, TableAppearance, TableFeltPicker, save_appearance_preferences,
 };
@@ -7,6 +8,7 @@ use crate::app::shell::{
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use leocard_achievements::{AchievementTrigger, PersonalEvent};
 
 #[derive(SystemParam)]
 struct AppearanceUiResources<'w> {
@@ -38,6 +40,7 @@ pub(super) struct SettingsUiActionContext<'w> {
     ui: ResMut<'w, UiState>,
     appearance: ResMut<'w, AppearancePreferences>,
     local: AppearanceUiResources<'w>,
+    achievements: MessageWriter<'w, LocalAchievementTrigger>,
 }
 
 pub(super) fn dispatch_settings_actions(
@@ -84,9 +87,14 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
                 }
             }
             SettingsUiAction::UseDefaultTableFelt => {
-                appearance.table_felt_path = None;
+                let changed = appearance.table_felt_path.take().is_some();
                 appearance.table_brightness = 1.0;
                 local.table_appearance.error = save_appearance_preferences(appearance).err();
+                if changed && local.table_appearance.error.is_none() {
+                    context.achievements.write(LocalAchievementTrigger(
+                        AchievementTrigger::Personal(PersonalEvent::TableBackgroundChanged),
+                    ));
+                }
             }
         }
     }

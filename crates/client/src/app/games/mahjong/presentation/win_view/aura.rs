@@ -1,3 +1,5 @@
+use std::f32::consts;
+
 use super::super::super::{MahjongWinDecoration, MahjongWinDecorationKind, MahjongWinEffectTier};
 
 use crate::app::presentation::spawn_node;
@@ -89,8 +91,7 @@ pub(super) fn add_win_aura(
         MahjongWinEffectTier::MajorFan => 12,
     };
     for index in 0..ray_count {
-        let angle = index as f32 / ray_count as f32 * std::f32::consts::TAU
-            + std::f32::consts::FRAC_PI_4 / 2.0;
+        let angle = index as f32 / ray_count as f32 * consts::TAU + consts::FRAC_PI_4 / 2.0;
         let direction = Vec2::new(angle.cos(), angle.sin());
         let width = if tier == MahjongWinEffectTier::MajorFan && index % 3 == 0 {
             18.0

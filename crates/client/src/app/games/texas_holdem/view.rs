@@ -1,10 +1,10 @@
 //! 德州扑克牌桌视图。房间、聊天、头像、桌布和按钮资源均复用公共客户端层。
 
 use super::{
-    TexasChipTableState, TexasHoldemAssets, TexasHoldemUiState, add_texas_board_back,
-    add_texas_board_face, add_texas_chip_areas, add_texas_draw_pile, add_texas_hand_result,
-    add_texas_opponent, add_texas_own_area, add_texas_showdown_reveal, spawn_texas_initial_deal,
-    street_label,
+    TexasChipTableState, TexasHoldemAssets, TexasHoldemUiAction, TexasHoldemUiState,
+    add_texas_board_back, add_texas_board_face, add_texas_chip_areas, add_texas_draw_pile,
+    add_texas_hand_result, add_texas_opponent, add_texas_own_area, add_texas_showdown_reveal,
+    spawn_texas_initial_deal, street_label,
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT, TableBackground,
@@ -12,7 +12,10 @@ use crate::app::presentation::{
     table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
-use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
+use crate::app::shell::{
+    ChatPanelState, SocialUiState, UiAction, add_chat_help_button, add_chat_panel,
+    add_reconnecting_overlay,
+};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_client::NetworkState;
@@ -213,7 +216,13 @@ pub(crate) fn render_texas_holdem_table(
 
     let local_auto_play =
         matches!(game.phase, TexasHoldemPhaseView::Betting { .. }).then_some(own.auto_play);
-    add_chat_panel(commands, content, chat, assets, local_auto_play, &[]);
+    let chat_panel = add_chat_panel(commands, content, chat, assets, local_auto_play, &[]);
+    add_chat_help_button(
+        commands,
+        chat_panel,
+        UiAction::TexasHoldem(TexasHoldemUiAction::ToggleHandGuide),
+        assets,
+    );
     if local_auto_play == Some(true) {
         add_auto_play_overlay(commands, content, assets);
     }

@@ -1,6 +1,6 @@
 //! 德州扑克按钮动作到本地状态或网络命令的转换。
 
-use super::TexasHoldemUiState;
+use super::{TexasHandGuideState, TexasHoldemUiState};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, dispatch_domain_actions,
@@ -16,9 +16,15 @@ pub(crate) enum TexasHoldemUiAction {
     UpdateRules(TexasHoldemRuleSet),
     SetRaiseTo(u32),
     Act(TexasHoldemAction),
+    ToggleHandGuide,
+    CloseHandGuide,
 }
 
 impl DomainUiAction for TexasHoldemUiAction {
+    fn rebuilds_ui(&self) -> bool {
+        !matches!(self, Self::ToggleHandGuide | Self::CloseHandGuide)
+    }
+
     fn extract(action: &UiAction) -> Option<&Self> {
         let UiAction::TexasHoldem(action) = action else {
             return None;
@@ -31,6 +37,7 @@ impl DomainUiAction for TexasHoldemUiAction {
 pub(crate) struct TexasHoldemActionContext<'w> {
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, TexasHoldemUiState>,
+    guide: ResMut<'w, TexasHandGuideState>,
 }
 
 pub(super) fn dispatch_texas_holdem_actions(
@@ -43,6 +50,8 @@ pub(super) fn dispatch_texas_holdem_actions(
 impl UiActionHandler<TexasHoldemActionContext<'_>> for TexasHoldemUiAction {
     fn handle(&self, context: &mut TexasHoldemActionContext<'_>) {
         match self {
+            Self::ToggleHandGuide => context.guide.toggle(),
+            Self::CloseHandGuide => context.guide.close(),
             TexasHoldemUiAction::UpdateRules(rules) => {
                 send_game_command(
                     &mut context.client,

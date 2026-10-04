@@ -97,7 +97,8 @@ impl MahjongAssets {
                         [
                             asset_server
                                 .load(format!("audio/mahjong/fans/male/{:?}.ogg", spec.fan)),
-                            asset_server.load(format!("audio/mahjong/fans/{:?}.ogg", spec.fan)),
+                            asset_server
+                                .load(format!("audio/mahjong/fans/female/{:?}.ogg", spec.fan)),
                         ],
                     )
                 })

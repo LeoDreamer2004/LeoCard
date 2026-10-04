@@ -18,6 +18,13 @@ pub enum TexasHoldemHandCategory {
     RoyalFlush,
 }
 
+impl TexasHoldemHandCategory {
+    /// 当前规则下的牌型强度，数值越大牌型越强。
+    pub const fn strength(self, rules: &TexasHoldemRuleSet) -> u8 {
+        category_strength(self, rules.short_deck)
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EvaluatedHand {

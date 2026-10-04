@@ -11,7 +11,6 @@ use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
     add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
 };
-use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, RelativeCursorPosition, VisualBox};
 use leocard_mahjong::{MahjongDragon, MahjongFlower, MahjongSuit, MahjongTileKind, MahjongWind};
@@ -100,32 +99,6 @@ pub(in super::super) fn animate_mahjong_fan_guide_tiles(
             );
         }
     }
-}
-
-pub(in super::super) fn add_fan_guide_button(
-    commands: &mut Commands,
-    chat_panel: Entity,
-    assets: &UiAssets,
-) {
-    let button = commands
-        .spawn((
-            Button,
-            UiAction::Mahjong(MahjongUiAction::ToggleFanGuide),
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(-32),
-                top: px(234),
-                width: px(32),
-                height: px(32),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            GlobalZIndex(2000),
-            ImageNode::new(assets.home.help_question.clone()),
-        ))
-        .id();
-    commands.entity(chat_panel).add_child(button);
 }
 
 pub(super) fn render_fan_guide(
@@ -645,32 +618,6 @@ pub(super) fn parse_group(group: &str) -> Option<(bool, Vec<MahjongTileKind>)> {
         tiles.push(kind);
     }
     (!tiles.is_empty()).then_some((exposed, tiles))
-}
-
-pub(in super::super) fn scroll_mahjong_fan_guide(
-    mut wheels: MessageReader<MouseWheel>,
-    mut scrolls: Query<
-        (&RelativeCursorPosition, &mut ScrollPosition, &ComputedNode),
-        With<MahjongFanGuideScroll>,
-    >,
-) {
-    let delta = wheels
-        .read()
-        .map(|wheel| match wheel.unit {
-            MouseScrollUnit::Line => wheel.y * 40.0,
-            MouseScrollUnit::Pixel => wheel.y,
-        })
-        .sum::<f32>();
-    if delta == 0.0 {
-        return;
-    }
-    for (cursor, mut position, node) in &mut scrolls {
-        if cursor.cursor_over() {
-            let maximum =
-                ((node.content_size().y - node.size().y) * node.inverse_scale_factor()).max(0.0);
-            position.y = (position.y - delta).clamp(0.0, maximum);
-        }
-    }
 }
 
 #[cfg(test)]

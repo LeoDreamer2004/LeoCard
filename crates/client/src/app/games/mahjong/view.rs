@@ -1,17 +1,17 @@
 //! 麻将房间、牌桌、动作按钮和结算视图。
 
+use super::actions::MahjongUiAction;
 use super::tiles::queue_mahjong_deal_sound;
 use super::{
     MAHJONG_WIN_PUSH_DURATION, MahjongActionVoice, MahjongAssets, MahjongDiscardRiverAnimations,
     MahjongOwnHandVisuals, MahjongPlayerPanelVisuals, MahjongPlayerTileVisuals,
     MahjongSettlementVisuals, MahjongTableRoot, MahjongTileMaterial, MahjongUiState,
-    MahjongWinVisuals, MahjongWinningHandVisual, add_fan_guide_button,
-    mahjong_major_fan_impact_times, observe_discard_animations, queue_mahjong_action_voice,
-    render_action_bar, render_discard_rivers, render_mahjong_auto_drawer,
-    render_mahjong_claim_presentation, render_mahjong_flower_presentations,
-    render_mahjong_player_panel, render_mahjong_player_tiles, render_mahjong_settlement,
-    render_mahjong_wall, render_mahjong_win_effects, render_own_discard_flight, render_own_hand,
-    render_round_status,
+    MahjongWinVisuals, MahjongWinningHandVisual, mahjong_major_fan_impact_times,
+    observe_discard_animations, queue_mahjong_action_voice, render_action_bar,
+    render_discard_rivers, render_mahjong_auto_drawer, render_mahjong_claim_presentation,
+    render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
+    render_mahjong_settlement, render_mahjong_wall, render_mahjong_win_effects,
+    render_own_discard_flight, render_own_hand, render_round_status,
 };
 use crate::app::presentation::CustomButtonMotion;
 use crate::app::presentation::{
@@ -23,7 +23,9 @@ use crate::app::runtime::{
 };
 #[cfg(feature = "developer")]
 use crate::app::shell::add_developer_hand_input;
-use crate::app::shell::{ChatPanelState, DeveloperHandInput, UiState, add_chat_panel};
+use crate::app::shell::{
+    ChatPanelState, DeveloperHandInput, UiAction, UiState, add_chat_help_button, add_chat_panel,
+};
 use bevy::prelude::*;
 use leocard_mahjong::{
     MahjongClaim, MahjongDragon, MahjongFlower, MahjongSuit, MahjongTile, MahjongTileKind,
@@ -919,7 +921,12 @@ pub(crate) fn render_mahjong_table(
             .is_some_and(|player| player.auto_play)
     });
     let chat_panel = add_chat_panel(commands, content, chat, assets, local_auto_play, &[]);
-    add_fan_guide_button(commands, chat_panel, assets);
+    add_chat_help_button(
+        commands,
+        chat_panel,
+        UiAction::Mahjong(MahjongUiAction::ToggleFanGuide),
+        assets,
+    );
     if local_auto_play == Some(true) {
         add_auto_play_overlay(commands, content, assets);
     }

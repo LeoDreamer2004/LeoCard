@@ -35,44 +35,13 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 
 ## 需保留署名或许可证的素材
 
-### 国标麻将番种报读语音（Qwen3-TTS）
+### Qwen3-TTS 生成语音
 
-- 运行时文件：`audio/mahjong/fans/` 下的女声及 `audio/mahjong/fans/male/` 下的男声，各 81 条 Ogg 语音。结算时按获胜玩家的性别播放。
-- 生成模型：[Qwen3-TTS VoiceDesign](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign) 与 [Qwen3-TTS Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base)，模型卡标注 Apache-2.0。
-- 原女声音色由 VoiceDesign 生成，男声沿用已确认的麻将操作语音音色；两套报番均由 Base 合成。女声低番仅提取参考音色，避免参考台词混入番名。运行时只包含转换后的音频，不包含模型权重。
-- “和”按麻将读音朗读为“胡”；“单调将”朗读为“单钓将”。
+生成模型：[Qwen3-TTS VoiceDesign](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign) 与 [Qwen3-TTS Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base)，模型卡标注 Apache-2.0。参考音保存在 `audio/reference`，不进入运行时资源包。
 
-### 麻将操作语音（Qwen3-TTS）
-
-`audio/mahjong/actions/` 下的男女声吃、碰、明杠、暗杠、补杠、胡、自摸和补花语音
-由 Qwen3-TTS 合成；每种动作各有两条同音色台词，游戏随机播放。男女参考音均由
-VoiceDesign 分别生成，随后各自固定参考音，用 Base 模型合成最终台词。
-参考音保存在 `mahjong-action-source/`，不进入运行时资源包；模型许可证为
-Apache-2.0，运行时只包含转换后的 Ogg 音频。
-
-| 动作 | 男声两条 | 女声两条 |
-| --- | --- | --- |
-| 吃 | 吃；吃 | 吃；吃一下 |
-| 碰 | 碰；碰 | 碰；有碰才有杠 |
-| 明杠 | 开杠；杠一个 | 明杠；杠一个 |
-| 暗杠 | 暗杠；开暗杠 | 暗杠；开暗杠 |
-| 补杠 | 回头杠；摸个杠子 | 回头杠；开你一杠 |
-| 和 | 胡；你这张点炮啦 | 不好意思，胡了；哎呀哎呀，一不小心就胡了 |
-| 自摸 | 自摸；这把是我自摸啦 | 不好意思，自摸三家；手气不错，自摸了 |
-| 补花 | 补花；补花 | 补花；补花 |
-
-### 德州扑克行动语音（Qwen3-TTS）
-
-`audio/texas_holdem/voices/` 下的 14 条男女声行动语音由 Qwen3-TTS Base 合成，
-使用项目已有的麻将操作语音提取男女音色，按玩家性别播放。模型卡标注 Apache-2.0；
-运行时只包含 Ogg 音频，不包含模型权重。加注目标达到 10 注时，可随机播出第二句。
-跟注播报只在本轮有自愿加注或抬高下注额的全下后播放，盲注不计入。
-
-| 动作 | 男声 | 女声 |
-| --- | --- | --- |
-| 加注 | 加注；玩点狠的！ | 加注；你敢跟吗？ |
-| 全下 | 全下！；全推了！；我 All 了！ | 全下！；梭哈！；我 All 了！ |
-| 跟注 | 跟注；跟了 | 跟注；我跟你 |
+- 国标麻将番种报读语音：`audio/mahjong/fans/` 下的男女声各 81 条语音。
+- 麻将操作语音：`audio/mahjong/actions/` 下的男女声吃、碰、明杠、暗杠、补杠、胡、自摸和补花语音。
+- 德州扑克行动语音：`audio/texas_holdem/voices/` 下的 14 条男女声行动语音。
 
 ### Minecraft 等级物品图标（Mojang）
 
@@ -83,7 +52,6 @@ Apache-2.0，运行时只包含转换后的 Ogg 音频。
 ### CozyUI+ 首页纹理（GPL-3.0）
 
 - 作者：零雾〇五 Fogg05；来源：<https://github.com/Fogg05/CozyUI-Plus>
-- 运行时文件：`ui/home/cozy-panel.png`、`cozy-settings-page.png`、`cozy-game-card.png`、`cozy-game-card-hover.png`、`cozy-toasts-atlas.png`、`cozy-host-crown.png`、`cozy-help-question.png`、`cozy-checkbox*.png`、`cozy-button-compact.png`、`cozy-button-danger-compact.png`、`cozy-button-danger-hover-compact.png`、`cozy-button-cool-compact.png`、`cozy-button-cool-hover-compact.png`、`cozy-button-purple-plain.png`、`cozy-button-purple-compact.png`、`cozy-button-arrows.png`、`cozy-input-compact.png`、`cozy-input-focused-compact.png`、`cross_button.png`、`cross_button_highlighted.png`、`slider.png`、`slider_highlighted.png`、`slider_handle.png`、`slider_handle_highlighted.png`、`rule-left.png`、`rule-left-highlighted.png`、`rule-right.png`、`rule-right-highlighted.png`
 - `cozy-button-purple-plain.png` 和 `cozy-button-arrows.png` 从原版 `button_highlighted.png` 分离而来；原始文件也保存在同一目录，便于核对来源。
 - 两张 `compact` 按钮图保留原图的两端与中段，统一短按钮的圆角和亮边尺寸；原版 `button.png` 也保存在同一目录。
 - 两张红色 `compact` 按钮图分别从灰色常态和紫色高亮按钮的颜色层次转换而来；悬停态保留普通高亮贴图的原始白边，仅将彩色部分转为较暗的红色，两张图的透明轮廓一致。
@@ -93,8 +61,6 @@ Apache-2.0，运行时只包含转换后的 Ogg 音频。
 - 两张输入框 `compact` 图使用同样的切片方式，保留原版 `text_field.png` 和 `text_field_highlighted.png` 的边框与底色；原版文件也保存在同一目录。
 - 四张 `rule-*.png` 箭头图保留原版箭头，将与画面不协调的连通灰色背景转为透明像素。
 - `cozy-help-question.png` 清除了透明区域残留的白色底色，避免缩放时在问号边缘出现白边；可见像素未改动。
-- 原始位置：CozyUI+ v1.10 的 `assets/minecraft/textures/gui/toasts.png`、`assets/minecraft/textures/gui/sprites/player_list/remove_operator.png`、`assets/minecraft/textures/gui/sprites/icon/chat_modified.png`，以及 `assets/minecraft/textures/gui/sprites/` 下的
-  `popup/background.png`、`recipe_book/page_backward*.png`、`recipe_book/page_forward*.png`、`recipe_book/slot_craftable.png`、`hud/effect_background.png`、`hud/effect_background_ambient.png`、`widget/button.png`、`widget/button_highlighted.png`、`widget/text_field.png`、`widget/text_field_highlighted.png`、`widget/checkbox*.png`、`widget/cross_button.png`、`widget/cross_button_highlighted.png`，以及 `widget/slider*.png`
 - 许可证副本：`vendor/cozyui-plus/LICENSE.txt`
 - 成就通知使用 `ui/achievements/toast-normal.png` 和 `toast-gold.png`：提取自同版本 `assets/minecraft/textures/gui/advancements/widgets.png` 的蓝色与橙色横条，裁掉周围空白，将白色底转为透明；运行时保留边角，按九宫格拉伸。
 
@@ -133,14 +99,6 @@ OFL 关于保留名称与再分发的条件。
 由刻纹透明度及笔画内部距离计算生成，供 `shaders/mahjong_tile.wgsl` 实时绘制凹刻深度、
 象牙牌体、绿色侧边和表面反光，不包含新的第三方图形。
 
-### 升级杀牌图标
-
-`ui/effects/shengji_target.svg` 和 `shengji_dart.svg` 是项目自行绘制的靶面与飞镖。
-运行时使用对应的 128×128 PNG 文件。
-
-两张运行时 PNG 由原 SVG 栅格化后按游戏主题着色，用于升级的目标与飞镖效果。再分发时
-须保留上述作者、来源和 CC BY 3.0 署名信息。
-
 ### GitHub Mark（MIT；受商标规范约束）
 
 - 运行时文件：`icons/github-mark.svg`、`icons/github-mark.png`
@@ -167,54 +125,6 @@ GitHub 名称与标志同时受 GitHub 商标规范约束；本项目仅将其�
 
 这些文件随 GPL-3.0 项目分发。分发包含它们的二进制或素材包时，必须同时满足项目及
 上游 GPL-3.0 的许可证保留和对应源代码提供义务。
-
-## 项目内素材
-
-以下文件由项目维护，用于界面与效果：
-
-- `icons/app-icon.png`：由用户提供并整理为透明方形画布的 LeoCard 应用图标，运行时
-  直接编译进客户端。
-- `icons/app-icon.ico`：由应用图标生成的多尺寸 Windows 可执行文件图标。
-- `ui/panel_*.png`、`ui/player_panel_*.png`：窗口、分区和玩家框底图。
-- `shaders/table_background.wgsl`、`shaders/turn_border.wgsl`、`shaders/uno_palette.wgsl`：
-  桌布、回合边框与 UNO 调色盘着色器。
-- `ui/effects/sequence_airplane.svg` 与其 PNG：七鬼五二三顺子效果；SVG 是项目原创的简洁飞机剪影，PNG 为 Bevy 加载的运行时副本。
-- `ui/qigui523/`：七鬼五二三桌内操作按钮与“不出”字样的原创 SVG 与 PNG；`generate_buttons.py` 可重新生成三种按钮及各自的悬停纹理，`generate_pass_marker.py` 用项目字体重新生成透明的“不出”字样。
-- `icons/list-menu.*`、`icons/robot-2-fill.*`：快捷语音和机器人界面图标；SVG 为可编辑源文件，PNG 为运行时副本。
-- `icons/settings.png`、`icons/exit-room.png`：游戏内紧凑顶栏的设置与离开房间图标。用生图工具绘制，以 CozyUI+ 的 `cross_button.png`、`rule-left.png` 为风格参考；运行时使用缩小后的透明 PNG。
-- `cards/uno-extension/uno-flip/`：UNO FLIP 亮暗双面牌纹理。
-- `cards/uno-extension-source/uno-flip/dark-bases/`：以默认 UNO 牌框为母版制作的暗面底图；暗面
-  外框使用纯黑描边并沿用原牌框透明圆角。
-- `cards/uno-extension-source/uno-flip/flip-glyph.png`：项目绘制的翻牌透明纹理，亮暗两面共享同一
-  几何结构并分别着色，不复用转向牌图案。
-- `cards/uno-extension-source/uno-flip/skip-everyone-glyph.png`：项目绘制的全员禁手双禁止透明纹理。
-- `cards/uno-extension-source/uno-flip/plus-one-glyph.png`、`plus-two-glyph.png`、
-  `plus-five-glyph.png`：整串绘制的摸牌
-  角标透明纹理，合成时不再分别拼接加号和数字。
-- `cards/uno-extension-source/uno-flip/dark-glyphs/wild-draw-color.png`：暗面指定颜色摸牌的透明
-  合成层。
-- `mahjong/demo/height/`：由香港麻将牌纹理内部距离场生成的刻印高度图；粗笔画中心更深，
-  用于计算连续凹槽法线、内阴影与反射高光。
-
-亮面摸一和 Wild 摸二、暗面摸五均直接以默认牌框及对应摸牌牌型的比例合成，不保留
-容易产生色边的中间抠图。
-
-上述项目内文件按 LeoCard 的 GPL-3.0 许可证提供。
-
-## 可追溯性记录
-
-Kenney 原始包均保留各自随包的 `License.txt` 或 `license.txt`。已记录的下载包
-SHA-256 如下：
-
-| 素材包 | SHA-256 |
-| --- | --- |
-| Kenney Boardgame Pack 2 | `3b6a7dd5af658d1ffa0071429d5dde10ff63121e88bd06d4904e721e60b2c398` |
-| Kenney UI Pack 2.0 | `a8a14a234911eb648c062622915c93e79e94e97cb7f9f375a70f6617f1174318` |
-| Kenney Interface Sounds 1.0 | `f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232` |
-| Kenney Casino Audio 1.1 | `f36250766ac5bc378c13708ddf12a23a8e54a3251f8d482c7536e51b5dbafa18` |
-| VerzatileDev 4 Colour Cards | `ee20da4f717ef44be9ee6f9c48561f169aebb672222d39aea2c254603be5d337` |
-
-本声明对应仓库中当前的运行时清单与随附来源记录。
 
 ### 百度贴吧经典表情
 

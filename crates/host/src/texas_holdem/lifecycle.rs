@@ -65,6 +65,19 @@ impl TexasHoldemSession {
 
     /// 推进自动盲注及托管机器人的行动延迟。
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        let mut deliveries = self.advance_automatic_turn(elapsed);
+        if self
+            .game
+            .as_ref()
+            .is_some_and(TexasHoldemAdapter::poll_spectator_equities)
+        {
+            self.room.bump_revision();
+            deliveries.extend(self.broadcast_game(None));
+        }
+        deliveries
+    }
+
+    fn advance_automatic_turn(&mut self, elapsed: Duration) -> Vec<Delivery> {
         if elapsed.is_zero() || self.game.is_none() {
             return Vec::new();
         }

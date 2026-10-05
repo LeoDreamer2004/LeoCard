@@ -1,6 +1,7 @@
 mod adapter;
 mod automation;
 mod commands;
+mod equity;
 mod lifecycle;
 mod snapshot;
 mod state;

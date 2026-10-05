@@ -4,7 +4,7 @@ use super::{
     TexasChipTableState, TexasHoldemAssets, TexasHoldemUiAction, TexasHoldemUiState,
     add_texas_board_back, add_texas_board_face, add_texas_chip_areas, add_texas_draw_pile,
     add_texas_hand_result, add_texas_opponent, add_texas_own_area, add_texas_showdown_reveal,
-    spawn_texas_initial_deal, street_label,
+    render_texas_spectator_drawer, spawn_texas_initial_deal, street_label,
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT, TableBackground,
@@ -136,6 +136,7 @@ pub(crate) fn render_texas_holdem_table(
                 chip_state,
                 start_transition_active,
                 start_transition_active,
+                &ui.spectator,
             );
         }
     }
@@ -211,6 +212,7 @@ pub(crate) fn render_texas_holdem_table(
         start_transition_active,
         false,
     );
+    render_texas_spectator_drawer(commands, table, game, ui, assets);
     add_texas_showdown_reveal(commands, table, game, own.seat, assets, game_summary);
     add_texas_hand_result(commands, table, game, assets, avatars, game_summary);
 

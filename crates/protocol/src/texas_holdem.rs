@@ -19,6 +19,9 @@ pub struct TexasHoldemSnapshot {
     pub your_hole_cards: Vec<TexasHoldemCard>,
     pub revealed_hands: Vec<TexasHoldemRevealedHand>,
     pub community: Vec<TexasHoldemCard>,
+    /// 仅弃牌所在下注轮已结束、且仍有至少两名玩家继续对局的接收者可见。
+    /// Some([]) 表示正在精确计算；不包含其他玩家底牌或未来牌堆顺序。
+    pub spectator_equities: Option<Vec<TexasHoldemEquity>>,
     /// 尚未从权威牌堆发出的牌数；客户端可扣除仍扣置在桌面的公共牌数量来绘制牌堆。
     pub draw_pile_len: u16,
     pub dealer: PlayerId,
@@ -32,6 +35,13 @@ pub struct TexasHoldemSnapshot {
     pub raise_allowed: bool,
     pub pot: u32,
     pub phase: TexasHoldemPhaseView,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct TexasHoldemEquity {
+    pub player: PlayerId,
+    /// 万分比；平局按获胜人数均分，弃牌玩家为零。
+    pub basis_points: u16,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]

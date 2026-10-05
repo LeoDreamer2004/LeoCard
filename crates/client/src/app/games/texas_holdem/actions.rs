@@ -1,7 +1,7 @@
 //! 德州扑克按钮动作到本地状态或网络命令的转换。
 
 use super::{TexasHandGuideState, TexasHoldemUiState};
-use crate::app::runtime::ClientResource;
+use crate::app::runtime::{ClientResource, PageErrorState};
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, dispatch_domain_actions,
     send_game_command,
@@ -18,6 +18,8 @@ pub(crate) enum TexasHoldemUiAction {
     Act(TexasHoldemAction),
     ToggleHandGuide,
     CloseHandGuide,
+    ToggleSpectatorDrawer,
+    ToggleWinRates,
 }
 
 impl DomainUiAction for TexasHoldemUiAction {
@@ -38,6 +40,7 @@ pub(crate) struct TexasHoldemActionContext<'w> {
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, TexasHoldemUiState>,
     guide: ResMut<'w, TexasHandGuideState>,
+    page_error: ResMut<'w, PageErrorState>,
 }
 
 pub(super) fn dispatch_texas_holdem_actions(
@@ -50,6 +53,17 @@ pub(super) fn dispatch_texas_holdem_actions(
 impl UiActionHandler<TexasHoldemActionContext<'_>> for TexasHoldemUiAction {
     fn handle(&self, context: &mut TexasHoldemActionContext<'_>) {
         match self {
+            Self::ToggleSpectatorDrawer => {
+                context.ui.spectator.drawer_open = !context.ui.spectator.drawer_open
+            }
+            Self::ToggleWinRates => {
+                let preferences = &mut context.ui.spectator.preferences;
+                preferences.show_win_rates = !preferences.show_win_rates;
+                if let Err(error) = preferences.save() {
+                    preferences.show_win_rates = !preferences.show_win_rates;
+                    context.page_error.error = Some(error);
+                }
+            }
             Self::ToggleHandGuide => context.guide.toggle(),
             Self::CloseHandGuide => context.guide.close(),
             TexasHoldemUiAction::UpdateRules(rules) => {

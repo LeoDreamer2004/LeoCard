@@ -37,6 +37,12 @@ pub(crate) struct TexasBoardCardFlip {
     face_visible: bool,
 }
 
+impl TexasBoardCardFlip {
+    pub(super) fn has_revealed(&self) -> bool {
+        self.face_visible
+    }
+}
+
 pub(super) struct TexasInitialDeal {
     pub(super) duration: f32,
     pub(super) own_delays: Vec<f32>,

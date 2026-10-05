@@ -293,3 +293,88 @@ fn private_snapshot_round_trips_through_the_wire_frame() {
     assert_eq!(decoded_snapshot.your_hole_cards, snapshot.your_hole_cards);
     assert!(decoded_snapshot.revealed_hands.is_empty());
 }
+
+#[test]
+fn spectator_equity_is_exact_and_waits_for_the_folded_betting_round() {
+    use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemRank as Rank, TexasHoldemSuit as Suit};
+    use std::{
+        thread,
+        time::{Duration, Instant},
+    };
+
+    // LEFT holds A♠K♠; the flop is Q♠J♠T♠. No possible turn/river can beat this hand.
+    let prefix = [
+        TexasHoldemCard::new(Suit::Spade, Rank::Ace),
+        TexasHoldemCard::new(Suit::Heart, Rank::Two),
+        TexasHoldemCard::new(Suit::Club, Rank::Two),
+        TexasHoldemCard::new(Suit::Spade, Rank::King),
+        TexasHoldemCard::new(Suit::Heart, Rank::Three),
+        TexasHoldemCard::new(Suit::Club, Rank::Three),
+        TexasHoldemCard::new(Suit::Spade, Rank::Queen),
+        TexasHoldemCard::new(Suit::Spade, Rank::Jack),
+        TexasHoldemCard::new(Suit::Spade, Rank::Ten),
+    ];
+    let mut deck = prefix.to_vec();
+    deck.extend(
+        build_deck(false)
+            .into_iter()
+            .filter(|card| !prefix.contains(card)),
+    );
+    let mut game = TexasHoldemAdapter::new(
+        MatchId([7; 16]),
+        52300,
+        HOST,
+        vec![player(HOST, 0), player(LEFT, 1), player(RIGHT, 2)],
+        TexasHoldemRuleSet::default(),
+        HOST,
+        deck,
+    )
+    .unwrap();
+    game.act(LEFT, TexasHoldemAction::PostBlind).unwrap();
+    game.act(RIGHT, TexasHoldemAction::PostBlind).unwrap();
+    game.act(HOST, TexasHoldemAction::Fold).unwrap();
+    assert!(game.snapshot(HOST).unwrap().spectator_equities.is_none());
+    game.act(LEFT, TexasHoldemAction::Call).unwrap();
+    assert!(game.snapshot(HOST).unwrap().spectator_equities.is_none());
+    game.act(RIGHT, TexasHoldemAction::Check).unwrap();
+
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let rates = loop {
+        let snapshot = game.snapshot(HOST).unwrap();
+        assert!(snapshot.revealed_hands.is_empty());
+        assert_eq!(
+            snapshot.your_hole_cards,
+            game.game().players()[0].hole_cards()
+        );
+        let rates = snapshot.spectator_equities.unwrap();
+        if !rates.is_empty() {
+            break rates;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "exact equity calculation did not finish"
+        );
+        thread::sleep(Duration::from_millis(5));
+    };
+    assert_eq!(
+        rates
+            .iter()
+            .find(|rate| rate.player == LEFT)
+            .unwrap()
+            .basis_points,
+        10_000
+    );
+    assert!(
+        rates
+            .iter()
+            .filter(|rate| rate.player != LEFT)
+            .all(|rate| rate.basis_points == 0)
+    );
+    for recipient in [LEFT, RIGHT] {
+        let snapshot = game.snapshot(recipient).unwrap();
+        assert!(snapshot.spectator_equities.is_none());
+        assert!(snapshot.revealed_hands.is_empty());
+    }
+    game.act(LEFT, TexasHoldemAction::Fold).unwrap();
+    assert!(game.snapshot(HOST).unwrap().spectator_equities.is_none());
+}

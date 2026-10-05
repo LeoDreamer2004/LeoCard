@@ -1,7 +1,8 @@
 use super::{
     TEXAS_PORTRAIT_WIDTH, TexasChipTableState, TexasHoldemAssets, TexasHoldemUiAction,
     TexasHoldemUiState, TexasPlayerPanel, TexasPlayerShake, TexasRaiseAdjustButton,
-    add_role_tokens, add_texas_card, add_texas_chip_popup, texas_player_border_color,
+    add_role_tokens, add_texas_card, add_texas_chip_popup, add_texas_win_rate,
+    texas_player_border_color,
 };
 use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{
@@ -105,6 +106,17 @@ pub(super) fn add_texas_own_area(
         );
     }
     add_role_tokens(commands, portrait.avatar_ring, own.id, game, assets);
+    if !intro_only {
+        add_texas_win_rate(
+            commands,
+            portrait.avatar_ring,
+            own.id,
+            SeatSide::Right,
+            game,
+            &ui.spectator,
+            assets,
+        );
+    }
     if intro_only {
         return;
     }

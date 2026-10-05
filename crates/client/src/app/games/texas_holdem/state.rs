@@ -1,5 +1,6 @@
 //! 德州扑克下注输入与牌桌组件状态。
 
+use super::TexasSpectatorUiState;
 use crate::app::presentation::Observed;
 use bevy::prelude::*;
 use leocard_protocol::{MatchId, PlayerId, TexasHoldemSnapshot};
@@ -7,6 +8,7 @@ use leocard_protocol::{MatchId, PlayerId, TexasHoldemSnapshot};
 #[derive(Resource, Default)]
 pub(crate) struct TexasHoldemUiState {
     pub raise_to: u32,
+    pub spectator: TexasSpectatorUiState,
     pub observed_table: Observed<(MatchId, u32), usize>,
 }
 
@@ -15,6 +17,7 @@ impl TexasHoldemUiState {
 
     pub(crate) fn clear(&mut self) {
         self.observed_table.clear();
+        self.spectator.clear();
     }
 }
 

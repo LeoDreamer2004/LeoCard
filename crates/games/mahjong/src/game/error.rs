@@ -1,4 +1,5 @@
 use crate::{MahjongPlayerId, MahjongTile, MahjongTileKind, RuleError, ScoreError};
+use leocard_game_common::DeckError;
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -91,6 +92,17 @@ impl fmt::Display for GameError {
 }
 
 impl std::error::Error for GameError {}
+
+impl From<DeckError> for GameError {
+    fn from(value: DeckError) -> Self {
+        match value {
+            DeckError::InvalidSize { expected, actual } => {
+                Self::InvalidDeckSize { expected, actual }
+            }
+            DeckError::InvalidContents => Self::InvalidDeckContents,
+        }
+    }
+}
 
 impl From<RuleError> for GameError {
     fn from(value: RuleError) -> Self {

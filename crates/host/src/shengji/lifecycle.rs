@@ -635,8 +635,7 @@ impl HostedGameLifecycle for ShengjiSession {
         self.next_dealer = None;
         self.statistics = SessionStatistics::default();
         if self.start_hand(true).is_err() {
-            #[cfg(feature = "developer")]
-            self.room.remove_developer_bots();
+            self.room.remove_bots();
             return self.room.reject(
                 connection,
                 request_id,
@@ -684,8 +683,7 @@ impl HostedGameLifecycle for ShengjiSession {
         self.flow.bottom_flip_reveal = None;
         self.flow.bottom_flip_remaining = None;
         self.flow.bottom_copy_remaining = None;
-        #[cfg(feature = "developer")]
-        self.room.remove_developer_bots();
+        self.room.remove_bots();
         let host = self.room.host_connection;
         for player in &mut self.room.players {
             player.ready = host == Some(player.connection);

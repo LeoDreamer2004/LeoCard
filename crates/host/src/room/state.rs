@@ -1,4 +1,5 @@
-use crate::{ConnectionId, Delivery, achievements::RoomAchievements, room_activity::RoomActivity};
+use super::RoomActivity;
+use crate::{ConnectionId, Delivery, achievements::RoomAchievements};
 use leocard_protocol::{
     AvatarId, ChatContent, ChatMessage, ClientMessage, GameEvent, GameEventContext, GameKind,
     GameRules, GameViolation, JoinRequest, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS,
@@ -10,7 +11,7 @@ use leocard_protocol::{
 use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
-pub(super) struct Participant {
+pub(crate) struct Participant {
     pub id: PlayerId,
     pub profile_id: ProfileId,
     pub connection: ConnectionId,
@@ -23,7 +24,7 @@ pub(super) struct Participant {
     pub connected: bool,
     /// 房主使用此字段执行游戏对应的托管策略。
     pub auto_play: bool,
-    /// 仅开发者模式手动占座使用；机器人没有真实网络连接。
+    /// 房主添加的托管座位；机器人没有真实网络连接。
     pub is_bot: bool,
     pub left: bool,
     pub reference_points: i32,
@@ -37,17 +38,17 @@ pub(super) struct Participant {
 /// 这里保存一份。具体游戏仍决定何时允许加入、何时广播大厅或私有牌局快照。
 #[derive(Clone, Debug)]
 pub struct RoomSession {
-    pub(super) achievements: RoomAchievements,
+    pub(crate) achievements: RoomAchievements,
     activity: RoomActivity,
-    pub(super) room_id: RoomId,
-    pub(super) host_port: u16,
-    pub(super) players: Vec<Participant>,
-    pub(super) host_connection: Option<ConnectionId>,
-    pub(super) last_requests: HashMap<ConnectionId, RequestId>,
-    pub(super) closed: bool,
-    pub(super) revision: Revision,
-    pub(super) next_avatar_id: u64,
-    pub(super) seat_count: u8,
+    pub(crate) room_id: RoomId,
+    pub(crate) host_port: u16,
+    pub(crate) players: Vec<Participant>,
+    pub(crate) host_connection: Option<ConnectionId>,
+    pub(crate) last_requests: HashMap<ConnectionId, RequestId>,
+    pub(crate) closed: bool,
+    pub(crate) revision: Revision,
+    pub(crate) next_avatar_id: u64,
+    pub(crate) seat_count: u8,
 }
 
 impl RoomSession {
@@ -57,15 +58,15 @@ impl RoomSession {
             .filter(|player| player.connected && !player.left)
     }
 
-    pub(super) fn heartbeat(&self) -> Vec<Delivery> {
+    pub(crate) fn heartbeat(&self) -> Vec<Delivery> {
         self.broadcast_event(None, ServerEvent::Heartbeat)
     }
 
-    pub(super) fn new(room_id: RoomId, host_port: u16, capacity: usize) -> Self {
+    pub(crate) fn new(room_id: RoomId, host_port: u16, capacity: usize) -> Self {
         Self::new_with_seat_count(room_id, host_port, capacity, TABLE_SEAT_COUNT)
     }
 
-    pub(super) fn new_with_seat_count(
+    pub(crate) fn new_with_seat_count(
         room_id: RoomId,
         host_port: u16,
         capacity: usize,
@@ -87,14 +88,14 @@ impl RoomSession {
         }
     }
 
-    pub(super) fn player_id(&self, connection: ConnectionId) -> Option<PlayerId> {
+    pub(crate) fn player_id(&self, connection: ConnectionId) -> Option<PlayerId> {
         self.players
             .iter()
             .find(|player| player.connection == connection && !player.left)
             .map(|player| player.id)
     }
 
-    pub(super) fn record_interaction(
+    pub(crate) fn record_interaction(
         &mut self,
         source: PlayerId,
         target: PlayerId,
@@ -121,7 +122,7 @@ impl RoomSession {
         stats.eggs_received = stats.eggs_received.saturating_add(kind.egg_count());
     }
 
-    pub(super) fn begin_request(
+    pub(crate) fn begin_request(
         &mut self,
         connection: ConnectionId,
         message: &ClientMessage,
@@ -163,7 +164,7 @@ impl RoomSession {
         Ok(())
     }
 
-    pub(super) fn join(
+    pub(crate) fn join(
         &mut self,
         connection: ConnectionId,
         request_id: RequestId,
@@ -322,7 +323,7 @@ impl RoomSession {
         deliveries
     }
 
-    pub(super) fn set_avatar(
+    pub(crate) fn set_avatar(
         &mut self,
         connection: ConnectionId,
         png: Vec<u8>,
@@ -349,7 +350,7 @@ impl RoomSession {
         Ok(self.broadcast_event(None, ServerEvent::AvatarData { id: avatar, png }))
     }
 
-    pub(super) fn select_seat(
+    pub(crate) fn select_seat(
         &mut self,
         connection: ConnectionId,
         seat: SeatId,
@@ -379,7 +380,7 @@ impl RoomSession {
         Ok(())
     }
 
-    pub(super) fn set_ready(
+    pub(crate) fn set_ready(
         &mut self,
         connection: ConnectionId,
         ready: bool,
@@ -406,96 +407,7 @@ impl RoomSession {
         Ok(())
     }
 
-    pub(super) fn configure_bot_seat(
-        &mut self,
-        connection: ConnectionId,
-        seat: SeatId,
-        occupied: bool,
-        game_started: bool,
-    ) -> Result<(), RejectReason> {
-        #[cfg(not(feature = "developer"))]
-        {
-            let _ = (connection, seat, occupied, game_started);
-            Err(RejectReason::Game(
-                GameViolation::DeveloperFeatureUnavailable,
-            ))
-        }
-        #[cfg(feature = "developer")]
-        {
-            self.player_id(connection)
-                .ok_or(RejectReason::Player(PlayerViolation::NotJoined))?;
-            if self.host_connection != Some(connection) {
-                return Err(RejectReason::Room(RoomViolation::OnlyHostCanConfigure));
-            }
-            if game_started {
-                return Err(RejectReason::Game(GameViolation::GameAlreadyStarted));
-            }
-            if seat.0 >= self.seat_count {
-                return Err(RejectReason::Room(RoomViolation::InvalidSeat));
-            }
-            let occupant = self
-                .players
-                .iter()
-                .position(|player| !player.left && player.seat == Some(seat));
-            if let Some(index) = occupant {
-                if !self.players[index].is_bot {
-                    return Err(RejectReason::Room(RoomViolation::SeatTaken));
-                }
-                if occupied {
-                    return Ok(());
-                }
-                let player = &mut self.players[index];
-                player.seat = None;
-                player.ready = false;
-                player.connected = false;
-                player.auto_play = false;
-                player.left = true;
-                self.bump_revision();
-                return Ok(());
-            }
-            if !occupied {
-                return Ok(());
-            }
-
-            let ordinal = (1..=self.seat_count)
-                .find(|ordinal| {
-                    let name = format!("机器人{ordinal}");
-                    self.players
-                        .iter()
-                        .all(|player| player.left || player.name != name)
-                })
-                .expect("there are at most six robot seats");
-            let vacant = self.players.iter().position(|player| player.left);
-            let id = PlayerId(vacant.unwrap_or(self.players.len()) as u8);
-            let participant = Participant {
-                id,
-                profile_id: ProfileId([0; 32]),
-                connection: ConnectionId(u64::MAX - u64::from(seat.0)),
-                name: format!("机器人{ordinal}"),
-                avatar: None,
-                avatar_png: None,
-                reconnect_token: ReconnectToken(u64::MAX - u64::from(seat.0)),
-                seat: Some(seat),
-                ready: true,
-                connected: false,
-                auto_play: true,
-                is_bot: true,
-                left: false,
-                reference_points: 0,
-                completed_games: 0,
-                game_profiles: PlayerGameProfiles::default(),
-            };
-            if let Some(index) = vacant {
-                self.players[index] = participant;
-            } else {
-                self.players.push(participant);
-            }
-            self.bump_revision();
-            Ok(())
-        }
-    }
-
-    pub(super) fn chat(
+    pub(crate) fn chat(
         &self,
         connection: ConnectionId,
         request_id: RequestId,
@@ -531,7 +443,7 @@ impl RoomSession {
         ))
     }
 
-    pub(super) fn close_room(
+    pub(crate) fn close_room(
         &mut self,
         connection: ConnectionId,
         request_id: RequestId,
@@ -548,7 +460,7 @@ impl RoomSession {
         Ok(deliveries)
     }
 
-    pub(super) fn host_player_id(&self) -> Option<PlayerId> {
+    pub(crate) fn host_player_id(&self) -> Option<PlayerId> {
         self.host_connection.and_then(|connection| {
             self.players
                 .iter()
@@ -557,11 +469,11 @@ impl RoomSession {
         })
     }
 
-    pub(super) fn bump_revision(&mut self) {
+    pub(crate) fn bump_revision(&mut self) {
         self.revision.0 += 1;
     }
 
-    pub(super) fn reject(
+    pub(crate) fn reject(
         &self,
         recipient: ConnectionId,
         request_id: RequestId,
@@ -574,7 +486,7 @@ impl RoomSession {
         )]
     }
 
-    pub(super) fn delivery(
+    pub(crate) fn delivery(
         &self,
         recipient: ConnectionId,
         in_reply_to: Option<RequestId>,
@@ -593,7 +505,7 @@ impl RoomSession {
         }
     }
 
-    pub(super) fn lobby_snapshot(&self, game: GameKind, rules: GameRules) -> LobbySnapshot {
+    pub(crate) fn lobby_snapshot(&self, game: GameKind, rules: GameRules) -> LobbySnapshot {
         LobbySnapshot {
             game,
             rules,
@@ -608,7 +520,7 @@ impl RoomSession {
         }
     }
 
-    pub(super) fn broadcast_lobby(
+    pub(crate) fn broadcast_lobby(
         &self,
         game: GameKind,
         rules: GameRules,
@@ -618,7 +530,7 @@ impl RoomSession {
         self.broadcast_event(origin, ServerEvent::LobbySnapshot(snapshot))
     }
 
-    pub(super) fn broadcast_event(
+    pub(crate) fn broadcast_event(
         &self,
         origin: Option<(ConnectionId, RequestId)>,
         event: ServerEvent,
@@ -626,7 +538,7 @@ impl RoomSession {
         self.broadcast_private(origin, |_| event.clone())
     }
 
-    pub(super) fn broadcast_private(
+    pub(crate) fn broadcast_private(
         &self,
         origin: Option<(ConnectionId, RequestId)>,
         mut event: impl FnMut(&Participant) -> ServerEvent,
@@ -641,7 +553,7 @@ impl RoomSession {
             .collect()
     }
 
-    pub(super) fn broadcast_game_events<E>(
+    pub(crate) fn broadcast_game_events<E>(
         &self,
         events: impl IntoIterator<Item = E>,
         origin: Option<(MatchId, Option<u32>)>,
@@ -682,7 +594,7 @@ impl RoomSession {
         available.pop()
     }
 
-    pub(super) fn remove_departed_players(&mut self) {
+    pub(crate) fn remove_departed_players(&mut self) {
         self.players.retain(|player| !player.left);
         self.players
             .sort_by_key(|player| player.seat.map_or(u8::MAX, |seat| seat.0));
@@ -692,27 +604,16 @@ impl RoomSession {
     }
 
     /// 进入终局准备阶段：仍在托管的玩家与机器人立即准备下一局，并保留托管状态。
-    pub(super) fn prepare_rematch(&mut self) {
+    pub(crate) fn prepare_rematch(&mut self) {
         for player in &mut self.players {
             player.ready = player.is_bot || player.auto_play;
         }
     }
 
-    pub(super) fn reset_ready_after_rules_change(&mut self) {
+    pub(crate) fn reset_ready_after_rules_change(&mut self) {
         let host = self.host_connection;
         for player in &mut self.players {
             player.ready = player.is_bot || host == Some(player.connection);
-        }
-    }
-
-    #[cfg(feature = "developer")]
-    pub(super) fn remove_developer_bots(&mut self) {
-        for player in self.players.iter_mut().filter(|player| player.is_bot) {
-            player.seat = None;
-            player.ready = false;
-            player.connected = false;
-            player.auto_play = false;
-            player.left = true;
         }
     }
 }

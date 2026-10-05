@@ -1,6 +1,6 @@
 use super::{
     TexasChipTableState, TexasHoldemAssets, TexasPlayerPanel, TexasPlayerShake,
-    texas_player_border_color, texas_player_chip_zone,
+    TexasSpectatorUiState, add_texas_win_rate, texas_player_border_color, texas_player_chip_zone,
 };
 use crate::app::presentation::{
     ACCENT, HEADER_BG, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
@@ -34,6 +34,7 @@ pub(super) fn add_texas_opponent(
     chip_state: &TexasChipTableState,
     start_transition_active: bool,
     intro_only: bool,
+    spectator: &TexasSpectatorUiState,
 ) {
     let side = match relative {
         1 | 2 => SeatSide::Left,
@@ -116,6 +117,17 @@ pub(super) fn add_texas_opponent(
         );
     }
     add_role_tokens(commands, portrait.avatar_ring, player.id, game, assets);
+    if !intro_only {
+        add_texas_win_rate(
+            commands,
+            portrait.avatar_ring,
+            player.id,
+            side,
+            game,
+            spectator,
+            assets,
+        );
+    }
     add_texas_stack_value(
         commands,
         portrait.portrait,

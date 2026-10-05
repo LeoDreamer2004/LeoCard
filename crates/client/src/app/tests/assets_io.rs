@@ -140,7 +140,7 @@ fn every_runtime_ui_and_card_sound_decodes_with_enabled_bevy_formats() {
             }
         }
     }
-    for directory in ["audio/mahjong/fans", "audio/mahjong/fans/male"] {
+    for directory in ["audio/mahjong/fans/female", "audio/mahjong/fans/male"] {
         let voices = std::fs::read_dir(asset_root.join(directory))
             .unwrap()
             .map(|entry| entry.unwrap().path())

@@ -1,6 +1,5 @@
 use super::super::{UnoExpansionStatus, UnoExpansionStatusFrame, UnoUiAction};
-use crate::app::presentation::ButtonHighlight;
-use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{ButtonHighlight, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
@@ -83,25 +82,10 @@ pub(crate) fn render_uno_expansion_settings(
         },
         Some(Color::srgb(0.64, 0.59, 0.93)),
     );
-    add_text(
-        commands,
-        modal,
-        if rules.is_no_mercy() {
-            "No Mercy 使用独立的扩展包设置。"
-        } else if rules.is_flip() {
-            "UNO FLIP 使用独立的扩展包设置。"
-        } else {
-            "选择要加入本房间牌堆的可选扩展包。"
-        },
-        13.0,
-        MUTED,
-        assets,
-    );
     if rules.is_classic() {
         for row in [
             UnoExpansionRow {
                 name: "Swap Pack",
-                description: "以交换手牌为特色，你的手牌随时可能变成别人的",
                 enabled: rules.swap_pack,
                 toggled_rules: UnoRuleSet {
                     swap_pack: !rules.swap_pack,
@@ -110,7 +94,6 @@ pub(crate) fn render_uno_expansion_settings(
             },
             UnoExpansionRow {
                 name: "Reverse Pack",
-                description: "以改变方向为特色，小心罚牌反弹——你可能会被自己罚到！",
                 enabled: rules.reverse_pack,
                 toggled_rules: UnoRuleSet {
                     reverse_pack: !rules.reverse_pack,
@@ -119,7 +102,6 @@ pub(crate) fn render_uno_expansion_settings(
             },
             UnoExpansionRow {
                 name: "Stack Pack",
-                description: "以累计罚牌为特色，加入堆叠 +1、+2、万能 +3 与随机堆叠牌",
                 enabled: rules.stack_pack,
                 toggled_rules: UnoRuleSet {
                     stack_pack: !rules.stack_pack,
@@ -147,7 +129,6 @@ pub(crate) fn render_uno_expansion_settings(
 
 struct UnoExpansionRow {
     name: &'static str,
-    description: &'static str,
     enabled: bool,
     toggled_rules: UnoRuleSet,
 }
@@ -159,7 +140,7 @@ impl UnoExpansionRow {
             parent,
             Node {
                 width: percent(100),
-                min_height: px(72),
+                min_height: px(56),
                 padding: UiRect::axes(px(11), px(8)),
                 align_items: AlignItems::Center,
                 column_gap: px(10),
@@ -175,32 +156,14 @@ impl UnoExpansionRow {
             commands,
             row,
             Node {
-                width: px(100),
-                flex_shrink: 0.0,
-                ..default()
-            },
-            None,
-        );
-        add_text(commands, name_slot, self.name, 16.0, TEXT, assets);
-        self.add_status(commands, row, editable, assets);
-        let description_slot = spawn_node(
-            commands,
-            row,
-            Node {
                 min_width: px(0),
                 flex_grow: 1.0,
                 ..default()
             },
             None,
         );
-        add_text(
-            commands,
-            description_slot,
-            self.description,
-            13.0,
-            MUTED,
-            assets,
-        );
+        add_text(commands, name_slot, self.name, 16.0, TEXT, assets);
+        self.add_status(commands, row, editable, assets);
     }
 
     fn add_status(

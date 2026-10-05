@@ -6,7 +6,6 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::prelude::*;
-#[cfg(feature = "developer")]
 use leocard_protocol::{ClientCommand, SeatId};
 
 pub(crate) fn animate_lobby_seat_hover(
@@ -79,45 +78,40 @@ pub(crate) fn handle_lobby_bot_seat_right_click(
     seats: Query<(&Interaction, &LobbySeatHover)>,
     mut client: Option<ResMut<ClientResource>>,
 ) {
-    #[cfg(not(feature = "developer"))]
-    let _ = (&mouse, &seats, &mut client);
-    #[cfg(feature = "developer")]
-    {
-        if !mouse.just_pressed(MouseButton::Right) {
+    if !mouse.just_pressed(MouseButton::Right) {
+        return;
+    }
+    let Some(seat) = seats
+        .iter()
+        .find(|(interaction, _)| !matches!(interaction, Interaction::None))
+        .map(|(_, hover)| SeatId(hover.seat))
+    else {
+        return;
+    };
+    let Some(client) = client.as_deref_mut() else {
+        return;
+    };
+    let occupied = {
+        let model = client.0.model();
+        let Some(lobby) = model.lobby() else {
+            return;
+        };
+        if model.you().is_none() || model.you() != lobby.host {
             return;
         }
-        let Some(seat) = seats
+        match lobby
+            .players
             .iter()
-            .find(|(interaction, _)| !matches!(interaction, Interaction::None))
-            .map(|(_, hover)| SeatId(hover.seat))
-        else {
-            return;
-        };
-        let Some(client) = client.as_deref_mut() else {
-            return;
-        };
-        let occupied = {
-            let model = client.0.model();
-            let Some(lobby) = model.lobby() else {
-                return;
-            };
-            if model.you() != lobby.host {
-                return;
-            }
-            match lobby
-                .players
-                .iter()
-                .find(|player| player.seat == Some(seat))
-            {
-                None => true,
-                Some(player) if player.profile_id.0 == [0; 32] => false,
-                Some(_) => return,
-            }
-        };
-        client
-            .0
-            .send(ClientCommand::ConfigureBotSeat { seat, occupied });
-    }
+            .find(|player| player.seat == Some(seat))
+        {
+            None => true,
+            Some(player) if player.profile_id.0 == [0; 32] => false,
+            Some(_) => return,
+        }
+    };
+    client
+        .0
+        .send(ClientCommand::ConfigureBotSeat { seat, occupied });
 }
 
 pub(crate) fn update_rule_help_tooltips(

@@ -1,6 +1,6 @@
 //! Settlement timing and visual animation components.
 
-use super::super::{MahjongUiState, mahjong_settlement_timing, mahjong_win_reveal_duration};
+use super::super::{MahjongUiState, mahjong_win_reveal_duration};
 use super::*;
 use crate::app::presentation::{
     GameSummaryAnimation, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL,
@@ -10,16 +10,8 @@ use bevy::prelude::*;
 use leocard_protocol::{MahjongHandResultView, MahjongPhaseView, MahjongSnapshot};
 
 pub(crate) fn mahjong_fan_pause_at(result: &MahjongHandResultView) -> Option<f32> {
-    (!result.winners.is_empty()).then(|| {
-        mahjong_settlement_timing(result).score_rows_delay + 0.12 - PAGE_FADE_DURATION - 0.04
-    })
-}
-
-pub(super) fn score_timing(score_start: f32) -> (f32, f32, f32) {
-    let flight_start = score_start + DELTA_APPEAR_DELAY + DELTA_HOLD_DURATION;
-    let roll_start = flight_start + DELTA_FLIGHT_DURATION * 0.72;
-    let continue_start = roll_start + SCORE_ROLL_DURATION + SCORE_END_HOLD_DURATION;
-    (flight_start, roll_start, continue_start)
+    (!result.winners.is_empty())
+        .then(|| SettlementTimeline::new(result).pages_end - PAGE_FADE_DURATION - 0.04)
 }
 
 pub(super) fn score_at(elapsed: f32, from: i32, to: i32, start: f32) -> i32 {
@@ -214,9 +206,7 @@ pub(crate) fn mahjong_summary_descriptor(game: &MahjongSnapshot) -> Option<Summa
     let MahjongPhaseView::Finished { result } = &game.phase else {
         return None;
     };
-    let timing = mahjong_settlement_timing(result);
-    let score_start = timing.score_rows_delay + if result.winners.is_empty() { 0.0 } else { 0.12 };
-    let (_, _, continue_delay) = score_timing(score_start);
+    let continue_delay = SettlementTimeline::new(result).continue_at;
     let entry_count =
         ((continue_delay + 0.05 - SUMMARY_ROW_START_DELAY - SUMMARY_ACTIONS_EXTRA_DELAY)
             / SUMMARY_ROW_INTERVAL)

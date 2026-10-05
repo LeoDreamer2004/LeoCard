@@ -5,10 +5,9 @@ use super::{
 use crate::lifecycle::HostedGameLifecycle;
 use crate::player::settle_completed_match_profiles_once;
 use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, new_match_id};
-use leocard_protocol::TexasHoldemViolation;
 use leocard_protocol::{
     GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, TABLE_SEAT_COUNT,
-    TexasHoldemProfileStats,
+    TexasHoldemProfileStats, TexasHoldemViolation,
 };
 use leocard_texas_holdem::{
     Phase, TexasHoldemAction, TexasHoldemRuleSet, build_deck, reference_point_deltas,

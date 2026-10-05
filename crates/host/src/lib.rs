@@ -9,7 +9,6 @@ mod mahjong;
 mod player;
 mod qigui523;
 mod room;
-mod room_activity;
 mod session;
 mod shengji;
 mod texas_holdem;

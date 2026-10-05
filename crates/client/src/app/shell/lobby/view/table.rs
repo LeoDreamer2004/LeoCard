@@ -1,8 +1,6 @@
 use super::*;
 use crate::app::games::lobby_rule_labels;
-#[cfg(feature = "developer")]
-use crate::app::presentation::MUTED;
-use crate::app::presentation::{TEXT, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::prelude::*;
 use bevy::ui::{BackgroundGradient, ColorStop, FocusPolicy, Gradient, LinearGradient};
@@ -112,8 +110,7 @@ impl<'a> LobbyTable<'a> {
             TEXT,
             self.assets,
         );
-        #[cfg(feature = "developer")]
-        if self.client.0.model().you() == self.lobby.host {
+        if self.lobby.host.is_some() && self.client.0.model().you() == self.lobby.host {
             add_text(
                 commands,
                 table,
@@ -123,8 +120,6 @@ impl<'a> LobbyTable<'a> {
                 self.assets,
             );
         }
-        #[cfg(not(feature = "developer"))]
-        let _ = self.client;
         spawn_node(
             commands,
             table,

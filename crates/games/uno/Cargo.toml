@@ -1,12 +1,13 @@
 [package]
 name = "leocard-uno"
-version = "0.5.1"
+version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 description = "Pure game rules for LeoCard UNO"
 
 [dependencies]
+leocard-game-common = { path = "../common" }
 serde = { workspace = true, optional = true }
 
 [features]

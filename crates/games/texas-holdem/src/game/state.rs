@@ -1,7 +1,7 @@
 use crate::statistics::GameStatistics;
 use crate::{EvaluatedHand, HandError, RuleError, TexasHoldemCard, TexasHoldemRuleSet, build_deck};
-use std::collections::{HashSet, VecDeque};
-use std::fmt;
+use leocard_game_common::{DeckError, validate_deck as validate_physical_deck};
+use std::{collections::VecDeque, fmt};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -210,6 +210,17 @@ impl fmt::Display for GameError {
 
 impl std::error::Error for GameError {}
 
+impl From<DeckError> for GameError {
+    fn from(value: DeckError) -> Self {
+        match value {
+            DeckError::InvalidSize { expected, actual } => {
+                Self::InvalidDeckSize { expected, actual }
+            }
+            DeckError::InvalidContents => Self::InvalidDeckContents,
+        }
+    }
+}
+
 impl From<RuleError> for GameError {
     fn from(value: RuleError) -> Self {
         Self::InvalidRules(value)
@@ -398,17 +409,5 @@ impl GameState {
 }
 
 pub(super) fn validate_deck(short_deck: bool, deck: &[TexasHoldemCard]) -> Result<(), GameError> {
-    let expected = build_deck(short_deck);
-    if deck.len() != expected.len() {
-        return Err(GameError::InvalidDeckSize {
-            expected: expected.len(),
-            actual: deck.len(),
-        });
-    }
-    let expected = expected.into_iter().collect::<HashSet<_>>();
-    let actual = deck.iter().copied().collect::<HashSet<_>>();
-    if actual.len() != deck.len() || actual != expected {
-        return Err(GameError::InvalidDeckContents);
-    }
-    Ok(())
+    validate_physical_deck(deck, &build_deck(short_deck)).map_err(GameError::from)
 }

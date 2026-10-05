@@ -376,8 +376,7 @@ impl HostedGameLifecycle for QiGui523Session {
         self.statistics = None;
         self.turn_timer = None;
         self.auto_play_delay = None;
-        #[cfg(feature = "developer")]
-        self.room.remove_developer_bots();
+        self.room.remove_bots();
         let host_connection = self.host_connection;
         for player in &mut self.players {
             player.ready = host_connection == Some(player.connection);

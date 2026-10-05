@@ -42,6 +42,7 @@ fn pot_test_snapshot(committed: &[(u32, bool, bool)]) -> TexasHoldemSnapshot {
         )
         .collect::<Vec<_>>();
     TexasHoldemSnapshot {
+        spectator_equities: None,
         match_id: MatchId([1; 16]),
         hand_number: 1,
         host_port: 5230,

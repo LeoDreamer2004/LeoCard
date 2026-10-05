@@ -1,4 +1,5 @@
 use crate::{ClassifiedPlay, PlayError, QiGuiCard, QiGuiRuleSet, RuleError};
+use leocard_game_common::DeckError;
 use std::{collections::VecDeque, error::Error, fmt};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -167,6 +168,17 @@ impl fmt::Display for GameError {
 }
 
 impl Error for GameError {}
+
+impl From<DeckError> for GameError {
+    fn from(value: DeckError) -> Self {
+        match value {
+            DeckError::InvalidSize { expected, actual } => {
+                Self::InvalidDeckSize { expected, actual }
+            }
+            DeckError::InvalidContents => Self::InvalidDeckContents,
+        }
+    }
+}
 
 impl From<RuleError> for GameError {
     fn from(value: RuleError) -> Self {

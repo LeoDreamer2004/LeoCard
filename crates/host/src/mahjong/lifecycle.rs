@@ -354,8 +354,7 @@ impl HostedGameLifecycle for MahjongSession {
         }
         self.game = None;
         self.match_id = None;
-        #[cfg(feature = "developer")]
-        self.room.remove_developer_bots();
+        self.room.remove_bots();
         let host = self.room.host_connection;
         for player in &mut self.room.players {
             player.ready = player.is_bot || host == Some(player.connection);

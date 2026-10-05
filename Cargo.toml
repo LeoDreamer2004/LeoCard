@@ -3,9 +3,10 @@ members = ["crates/games/common", "crates/achievements", "crates/client", "crate
 resolver = "3"
 
 [workspace.package]
+version = "0.5.2"
 edition = "2024"
 license = "GPL-3.0-only"
-rust-version = "1.98"
+rust-version = "1.99"
 
 [workspace.dependencies]
 bevy = { version = "0.19", default-features = false, features = ["std", "async_executor", "bevy_asset", "bevy_audio", "bevy_log", "bevy_state", "bevy_winit", "default_font", "mp3", "multi_threaded", "png", "ui_api", "ui_bevy_render", "vorbis", "wayland", "x11"] }

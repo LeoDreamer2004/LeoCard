@@ -1,12 +1,13 @@
 [package]
 name = "leocard-mahjong"
-version = "0.5.1"
+version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 description = "Pure 2014 MCR mahjong rules for LeoCard"
 
 [dependencies]
+leocard-game-common = { path = "../common" }
 serde = { workspace = true, optional = true }
 
 [features]

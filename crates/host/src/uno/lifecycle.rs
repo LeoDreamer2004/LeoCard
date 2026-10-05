@@ -1,7 +1,7 @@
 use super::{DRAW_REVEAL_INTERVAL, UnoSession, shuffled_uno_deck, to_core_player, validate_deck};
+use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{
     AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession,
-    lifecycle::{HostedGameLifecycle, dispatch_client_command},
     new_match_id,
 };
 use leocard_protocol::{
@@ -333,8 +333,7 @@ impl HostedGameLifecycle for UnoSession {
         self.match_id = None;
         self.finished_reference_changes = None;
         self.auto_play_delay = None;
-        #[cfg(feature = "developer")]
-        self.room.remove_developer_bots();
+        self.room.remove_bots();
         let host = self.room.host_connection;
         for player in &mut self.room.players {
             player.ready = host == Some(player.connection);

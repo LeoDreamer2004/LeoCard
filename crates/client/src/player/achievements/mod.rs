@@ -1,4 +1,3 @@
-mod migration;
 mod state;
 mod storage;
 

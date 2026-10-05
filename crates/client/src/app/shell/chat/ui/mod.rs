@@ -3,10 +3,12 @@
 mod animation;
 mod bubbles;
 mod controls;
+mod help;
 mod menus;
 mod panel;
 
 pub(crate) use animation::*;
 pub(crate) use bubbles::*;
+pub(crate) use help::*;
 pub(crate) use menus::*;
 pub(crate) use panel::*;

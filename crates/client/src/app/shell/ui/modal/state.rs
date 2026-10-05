@@ -5,8 +5,13 @@ pub(crate) enum CozyModalKind {
     Settings,
     Profile,
     MahjongFanGuide,
+    TexasHandGuide,
     UnoExpansionSettings,
     UpdateDialog,
+}
+
+impl CozyModalKind {
+    const COUNT: usize = Self::UpdateDialog as usize + 1;
 }
 
 #[derive(Component)]
@@ -17,7 +22,7 @@ pub(crate) struct CozyModalPanel(pub CozyModalKind);
 
 #[derive(Resource, Default)]
 pub(crate) struct ModalAnimations {
-    progress: [f32; 5],
+    progress: [f32; CozyModalKind::COUNT],
 }
 
 impl ModalAnimations {

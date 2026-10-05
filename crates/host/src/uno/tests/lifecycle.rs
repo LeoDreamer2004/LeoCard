@@ -1,8 +1,6 @@
 use super::super::*;
 use super::*;
 use crate::ConnectionId;
-#[cfg(feature = "developer")]
-use leocard_protocol::GameSnapshot;
 use leocard_protocol::{
     ClientCommand, GameCommand, GameKind, GameViolation, PlayerId, RejectReason, ServerEvent,
     UnoCommand,
@@ -124,55 +122,6 @@ fn rematch_keeps_auto_play_after_clearing_ready_state() {
         .unwrap();
     assert!(!participant.ready);
     assert!(participant.auto_play);
-}
-
-#[cfg(feature = "developer")]
-#[test]
-fn changing_rules_keeps_developer_bots_ready() {
-    let mut session = UnoSession::new(ROOM, 52300, UnoRuleSet::default(), build_deck()).unwrap();
-    session.handle(HOST, message(1, join_command("甲", 1)));
-    session.handle(
-        HOST,
-        message(2, ClientCommand::SelectSeat { seat: SeatId(0) }),
-    );
-    session.handle(
-        HOST,
-        message(
-            3,
-            ClientCommand::ConfigureBotSeat {
-                seat: SeatId(1),
-                occupied: true,
-            },
-        ),
-    );
-
-    session.handle(
-        HOST,
-        message(
-            4,
-            ClientCommand::Game(GameCommand::Uno(UnoCommand::UpdateRules {
-                rules: UnoRuleSet {
-                    uno_callout: false,
-                    ..UnoRuleSet::default()
-                },
-            })),
-        ),
-    );
-
-    assert!(session.room.players.iter().any(|player| player.is_bot));
-    assert!(
-        session
-            .room
-            .players
-            .iter()
-            .filter(|player| player.is_bot)
-            .all(|player| player.ready)
-    );
-    let deliveries = session.handle(HOST, message(5, ClientCommand::StartGame));
-    assert!(deliveries.iter().any(|delivery| matches!(
-        delivery.message.event,
-        ServerEvent::GameSnapshot(GameSnapshot::Uno(_))
-    )));
 }
 
 #[test]

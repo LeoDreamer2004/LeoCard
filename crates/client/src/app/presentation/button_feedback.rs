@@ -64,9 +64,9 @@ pub(crate) fn animate_button_arrows(
 }
 
 pub(crate) fn update_button_highlights(
-    mut commands: Commands,
     buttons: Query<(Entity, &Interaction, &ButtonHighlight), Changed<Interaction>>,
     mut card_images: Query<&mut ImageNode>,
+    mut highlights: Query<&mut Visibility>,
     assets: Res<UiAssets>,
 ) {
     for (entity, interaction, kind) in &buttons {
@@ -86,14 +86,20 @@ pub(crate) fn update_button_highlights(
                     };
                 }
                 for arrow in arrows {
-                    commands.entity(*arrow).insert(visibility);
+                    if let Ok(mut highlight) = highlights.get_mut(*arrow) {
+                        *highlight = visibility;
+                    }
                 }
             }
             ButtonHighlight::Button { overlay, arrows } => {
-                commands.entity(*overlay).insert(visibility);
+                if let Ok(mut highlight) = highlights.get_mut(*overlay) {
+                    *highlight = visibility;
+                }
                 if let Some(arrows) = arrows {
                     for arrow in arrows {
-                        commands.entity(*arrow).insert(visibility);
+                        if let Ok(mut highlight) = highlights.get_mut(*arrow) {
+                            *highlight = visibility;
+                        }
                     }
                 }
             }

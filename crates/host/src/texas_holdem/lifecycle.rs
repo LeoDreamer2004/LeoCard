@@ -65,6 +65,19 @@ impl TexasHoldemSession {
 
     /// 推进自动盲注及托管机器人的行动延迟。
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        let mut deliveries = self.advance_automatic_turn(elapsed);
+        if self
+            .game
+            .as_ref()
+            .is_some_and(TexasHoldemAdapter::poll_spectator_equities)
+        {
+            self.room.bump_revision();
+            deliveries.extend(self.broadcast_game(None));
+        }
+        deliveries
+    }
+
+    fn advance_automatic_turn(&mut self, elapsed: Duration) -> Vec<Delivery> {
         if elapsed.is_zero() || self.game.is_none() {
             return Vec::new();
         }
@@ -263,8 +276,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
                 self.broadcast_game(Some((connection, request_id)))
             }
             Err(_) => {
-                #[cfg(feature = "developer")]
-                self.room.remove_developer_bots();
+                self.room.remove_bots();
                 self.room.reject(
                     connection,
                     request_id,
@@ -303,8 +315,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
         self.game = None;
         self.match_profile_stats.clear();
         self.auto_play_delay = None;
-        #[cfg(feature = "developer")]
-        self.room.remove_developer_bots();
+        self.room.remove_bots();
         let host = self.room.host_connection;
         for player in &mut self.room.players {
             player.ready = host == Some(player.connection);

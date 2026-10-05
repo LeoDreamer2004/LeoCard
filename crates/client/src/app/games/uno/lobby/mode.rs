@@ -152,9 +152,9 @@ pub(crate) fn render_uno_mode_dropdown(
         selector,
         Node {
             position_type: PositionType::Absolute,
+            left: px(0),
             right: px(0),
             top: px(44),
-            width: px(190),
             padding: UiRect::all(px(7)),
             flex_direction: FlexDirection::Column,
             row_gap: px(2),
@@ -188,9 +188,11 @@ pub(crate) fn render_uno_mode_dropdown(
                 Button,
                 UiAction::Uno(UnoUiAction::UpdateRules(UnoRuleSet { mode, ..rules })),
                 Node {
-                    width: percent(100),
+                    width: percent(90),
+                    min_width: px(0),
                     height: px(38),
                     padding: UiRect::horizontal(px(11)),
+                    align_self: AlignSelf::Center,
                     align_items: AlignItems::Center,
                     ..default()
                 },

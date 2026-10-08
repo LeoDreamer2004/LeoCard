@@ -1,3 +1,5 @@
+use super::counter::{drag_counter_window, sync_counter};
+use super::missing_suits::{animate_missing_suits, sync_missing_suits};
 use super::{
     ShengjiPresentationState, ShengjiScoreCaptureEffectState, ShengjiSelectionSync,
     ShengjiSettlementAnimation, ShengjiUiState, actions, advance_shengji_presentation,
@@ -34,6 +36,7 @@ impl Plugin for ShengjiPlugin {
             .add_systems(
                 Update,
                 (
+                    drag_counter_window,
                     handle_shengji_card_drag_selection,
                     sync_shengji_card_drag_preview,
                 )
@@ -43,6 +46,8 @@ impl Plugin for ShengjiPlugin {
             .add_systems(
                 Update,
                 (
+                    sync_counter,
+                    sync_missing_suits,
                     sync_shengji_phase_selection,
                     sync_shengji_presentation,
                     update_shengji_settlement_animation,
@@ -65,6 +70,7 @@ impl Plugin for ShengjiPlugin {
             .add_systems(
                 Update,
                 (
+                    animate_missing_suits,
                     sync_shengji_bidding_countdown,
                     sync_shengji_score_tray_hover,
                     (

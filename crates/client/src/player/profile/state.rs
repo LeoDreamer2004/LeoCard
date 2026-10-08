@@ -73,6 +73,7 @@ impl LocalPlayerProfile {
                 },
                 game_profiles: PlayerGameProfiles {
                     achievements: Default::default(),
+                    coins: 0,
                     gender: Default::default(),
                     qigui523: stored.games.qigui523.qigui523_stats,
                     texas_holdem: stored.games.texas_holdem_stats,
@@ -174,6 +175,7 @@ impl LocalPlayerProfile {
         // Room snapshots own game statistics, never local achievement progress.
         let mut next = profiles.clone();
         next.achievements = self.game_profiles.achievements;
+        next.coins = self.game_profiles.coins;
         if self.game_profiles == next {
             return false;
         }

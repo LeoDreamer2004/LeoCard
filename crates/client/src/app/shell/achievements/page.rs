@@ -1,4 +1,4 @@
-use super::super::{NavigationUiAction, PageTransitionElement, UiAction};
+use super::super::{NavigationUiAction, PageTransitionElement, UiAction, add_page_back_title};
 use crate::app::presentation::{TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
@@ -90,38 +90,16 @@ impl<'a> AchievementsPage<'a> {
             },
             None,
         );
-        let title = spawn_node(
-            commands,
-            heading,
-            Node {
-                align_items: AlignItems::Center,
-                column_gap: px(12),
-                ..default()
-            },
-            None,
-        );
         commands
             .entity(heading)
             .insert((PageTransitionElement::left(0), UiTransform::IDENTITY));
-        commands.entity(title).insert((
-            Button,
+        add_page_back_title(
+            commands,
+            heading,
+            "成就图鉴",
             UiAction::Navigation(NavigationUiAction::ToggleAchievements),
-        ));
-        let arrow = commands
-            .spawn((
-                Node {
-                    width: px(24),
-                    height: px(14),
-                    margin: UiRect::horizontal(px(6)),
-                    ..default()
-                },
-                ImageNode::new(self.assets.achievements.scroll_arrow.clone()),
-                UiTransform::from_rotation(Rot2::degrees(-90.0)),
-                FocusPolicy::Pass,
-            ))
-            .id();
-        commands.entity(title).add_child(arrow);
-        add_text(commands, title, "成就图鉴", 31.0, TEXT, self.assets);
+            self.assets,
+        );
         let trophies = spawn_node(
             commands,
             heading,

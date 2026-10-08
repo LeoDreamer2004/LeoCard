@@ -1,6 +1,7 @@
 use super::super::{
-    AchievementUiAction, ChatUiAction, ConnectionUiAction, LobbyUiAction, NavigationUiAction,
-    ProfileUiAction, SettingsUiAction, SocialUiAction, UpdateUiAction,
+    AchievementUiAction, ChatUiAction, ConfirmationUiAction, ConnectionUiAction, LobbyUiAction,
+    NavigationUiAction, ProfileUiAction, SettingsUiAction, ShopUiAction, SocialUiAction,
+    UpdateUiAction,
 };
 use crate::app::games::mahjong::actions::MahjongUiAction;
 use crate::app::games::qigui523::actions::QiGui523UiAction;
@@ -28,6 +29,8 @@ pub(crate) enum UiAction {
     Connection(ConnectionUiAction),
     Navigation(NavigationUiAction),
     Achievements(AchievementUiAction),
+    Shop(ShopUiAction),
+    Confirmation(ConfirmationUiAction),
     Profile(ProfileUiAction),
     Settings(SettingsUiAction),
     Update(UpdateUiAction),
@@ -63,6 +66,8 @@ impl UiAction {
             Self::Developer(action) => action.rebuilds_ui(),
             Self::Navigation(action) => action.rebuilds_ui(),
             Self::Achievements(action) => action.rebuilds_ui(),
+            Self::Shop(action) => action.rebuilds_ui(),
+            Self::Confirmation(_) => false,
             Self::Profile(action) => action.rebuilds_ui(),
             Self::Settings(action) => action.rebuilds_ui(),
             Self::Update(action) => action.rebuilds_ui(),

@@ -14,6 +14,39 @@ use leocard_texas_holdem::{
 };
 
 impl TexasHoldemSession {
+    pub(super) fn set_spectator_win_rates(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        enabled: bool,
+    ) -> Vec<Delivery> {
+        let Some(player) = self.room.player_id(connection) else {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
+        };
+        let Some(game) = self.game.as_mut() else {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
+        };
+        if game.set_spectator_win_rates(player, enabled).is_err() {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::TexasHoldem(
+                    TexasHoldemViolation::InvalidPlayer,
+                )),
+            );
+        }
+        self.room.bump_revision();
+        self.broadcast_game(Some((connection, request_id)))
+    }
+
     pub(super) fn update_rules(
         &mut self,
         connection: ConnectionId,

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+<defs><linearGradient id="gold" x2=".8" y2="1"><stop stop-color="#fff0bd"/><stop offset=".5" stop-color="#d6b574"/><stop offset="1" stop-color="#937142"/></linearGradient><linearGradient id="paper" x2=".3" y2="1"><stop stop-color="#f0edf9"/><stop offset="1" stop-color="#bdb8d3"/></linearGradient></defs>
+<rect x="40" y="22" width="176" height="210" rx="24" fill="url(#gold)" stroke="#25232e" stroke-width="9"/>
+<rect x="54" y="37" width="148" height="180" rx="16" fill="url(#paper)" stroke="#69563b" stroke-width="4"/>
+<path d="M128 59 C111 81 84 99 84 120 C84 143 110 151 123 134 L115 164 H141 L133 134 C148 152 173 142 173 120 C173 99 145 81 128 59Z" fill="#51456f" stroke="#25232e" stroke-width="5" stroke-linejoin="round"/>
+<circle cx="169" cy="178" r="44" fill="#51456f" stroke="#25232e" stroke-width="9"/>
+<circle cx="169" cy="178" r="33" fill="none" stroke="url(#gold)" stroke-width="7"/>
+<path d="M145 202 L193 154" stroke="url(#gold)" stroke-width="9" stroke-linecap="round"/>
+<path d="M68 53H80M68 53V65" fill="none" stroke="#fff5d4" stroke-width="4" stroke-linecap="round"/>
+</svg>

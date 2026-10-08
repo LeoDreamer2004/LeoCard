@@ -9,7 +9,7 @@ use bevy::audio::{GlobalVolume, Volume};
 use bevy::log::{DEFAULT_FILTER, LogPlugin};
 use bevy::prelude::*;
 use bevy::window::WindowResizeConstraints;
-use leocard_client::{LocalPlayerProfile, PlayerIdentity, PlayerRatingProfile};
+use leocard_client::{LocalPlayerProfile, PlayerEconomy, PlayerIdentity, PlayerRatingProfile};
 use leocard_protocol::PlayerGameProfiles;
 use std::collections::HashSet;
 
@@ -43,6 +43,11 @@ impl Plugin for RuntimePlugin {
             }
         });
         let audio_volume = preferences.appearance.audio_volume;
+        let profile_id = profile.identity.profile_id();
+        let economy = PlayerEconomy::load(profile_id).unwrap_or_else(|error| {
+            page_error.error = Some(error.clone());
+            PlayerEconomy::unavailable(profile_id, error)
+        });
 
         configure_runtime_asset_source(app);
         app.add_message::<super::ServerNotification>()
@@ -53,6 +58,7 @@ impl Plugin for RuntimePlugin {
             .insert_resource(page_error)
             .insert_resource(GlobalVolume::new(Volume::Linear(audio_volume)))
             .insert_resource(profile)
+            .insert_resource(economy)
             .insert_resource(AvatarImages::default())
             .insert_resource(AvatarPicker::default())
             .insert_resource(TableFeltPicker::default())

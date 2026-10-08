@@ -19,6 +19,10 @@ pub struct TexasHoldemSnapshot {
     pub your_hole_cards: Vec<TexasHoldemCard>,
     pub revealed_hands: Vec<TexasHoldemRevealedHand>,
     pub community: Vec<TexasHoldemCard>,
+    /// 接收者弃牌所在下注轮已结束，且仍有至少两名玩家继续对局。
+    pub spectator_available: bool,
+    /// 接收者请求的胜率开关状态；其他玩家的设置不公开。
+    pub spectator_win_rates_enabled: bool,
     /// 仅弃牌所在下注轮已结束、且仍有至少两名玩家继续对局的接收者可见。
     /// Some([]) 表示正在精确计算；不包含其他玩家底牌或未来牌堆顺序。
     pub spectator_equities: Option<Vec<TexasHoldemEquity>>,

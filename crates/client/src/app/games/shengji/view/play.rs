@@ -11,7 +11,7 @@ use crate::app::presentation::{ACCENT, DANGER, HEADER_BG, MUTED, TEXT, add_text,
 use crate::app::runtime::UiAssets;
 use crate::app::shell::SeatSide;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui::{FocusPolicy, RelativeCursorPosition};
 use leocard_protocol::{
     PlayerId, ShengjiPhaseView, ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureStage,
 };
@@ -194,7 +194,9 @@ pub(super) fn add_shengji_collecting_tray(
         },
         Some(Color::BLACK.with_alpha(0.30)),
     );
-    commands.entity(tray).insert((Button, GlobalZIndex(30)));
+    commands
+        .entity(tray)
+        .insert((RelativeCursorPosition::default(), GlobalZIndex(30)));
 
     let dealer_team = game.dealer.map(|dealer| usize::from(dealer.0 % 2));
     for (label, level, color) in [
@@ -476,12 +478,12 @@ pub(super) fn add_shengji_outlined_mark(
 }
 
 pub(crate) fn sync_shengji_score_tray_hover(
-    trays: Query<(&Interaction, &ShengjiScoreTrayHover)>,
+    trays: Query<(&RelativeCursorPosition, &ShengjiScoreTrayHover)>,
     mut popups: Query<&mut Visibility>,
 ) {
-    for (interaction, tray) in &trays {
+    for (cursor, tray) in &trays {
         if let Ok(mut visibility) = popups.get_mut(tray.popup) {
-            let next = if matches!(interaction, Interaction::Hovered | Interaction::Pressed) {
+            let next = if cursor.cursor_over() {
                 Visibility::Visible
             } else {
                 Visibility::Hidden

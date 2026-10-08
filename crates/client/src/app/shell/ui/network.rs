@@ -81,10 +81,12 @@ impl NetworkUiContext<'_, '_> {
             self.lobby_game_motion.cancel();
             self.page_motion.begin_return();
             self.ui.achievements.open = false;
+            self.ui.shop.open = false;
             self.close_modals();
         }
         if was_home && client.model().lobby().is_some() {
             self.ui.achievements.open = false;
+            self.ui.shop.open = false;
             self.page_motion.begin();
         }
         if previous_lobby.is_some()

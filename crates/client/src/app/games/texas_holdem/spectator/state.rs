@@ -6,6 +6,8 @@ use std::collections::HashMap;
 pub(crate) struct TexasSpectatorUiState {
     pub drawer_open: bool,
     pub preferences: TexasSpectatorPreferences,
+    pub item_active: bool,
+    pub pending_request: Option<bool>,
     hand: Option<(MatchId, u32)>,
     rates: HashMap<PlayerId, WinRateRoll>,
 }
@@ -19,6 +21,8 @@ impl Default for TexasSpectatorUiState {
                 TexasSpectatorPreferences::default()
             }),
             hand: None,
+            item_active: false,
+            pending_request: None,
             rates: HashMap::new(),
         }
     }
@@ -29,6 +33,8 @@ impl TexasSpectatorUiState {
         self.drawer_open = false;
         self.hand = None;
         self.rates.clear();
+        self.item_active = false;
+        self.pending_request = None;
     }
 
     pub fn sync(&mut self, game: &TexasHoldemSnapshot, delta: f32, reveal_ready: bool) {

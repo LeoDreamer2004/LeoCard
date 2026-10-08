@@ -123,7 +123,6 @@ pub(super) fn add_texas_own_area(
     add_texas_chip_popup(
         commands,
         own_seat,
-        &own.name,
         own.stack,
         None,
         assets,

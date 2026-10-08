@@ -237,6 +237,7 @@ pub(crate) fn add_interaction_menu(
         "完整资料",
         UiAction::Navigation(NavigationUiAction::OpenPlayerProfile(Box::new(
             PlayerProfilePage {
+                id: target,
                 name: player_name.to_owned(),
                 avatar: avatar.cloned(),
                 reference_points,

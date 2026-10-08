@@ -4,6 +4,7 @@ mod commands;
 mod equity;
 mod lifecycle;
 mod snapshot;
+mod spectator;
 mod state;
 mod support;
 #[cfg(test)]

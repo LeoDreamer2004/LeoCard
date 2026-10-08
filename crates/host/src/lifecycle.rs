@@ -244,6 +244,18 @@ pub(super) fn dispatch_client_command<S: HostedGameLifecycle>(
     session.before_dispatch();
     let request_id = message.request_id;
     match message.command {
+        ClientCommand::PublishCoins { coins } => {
+            match session.room_mut().publish_coins(connection, coins) {
+                Ok(()) => {
+                    if session.game_started() {
+                        session.broadcast_game(Some((connection, request_id)))
+                    } else {
+                        session.broadcast_lobby(Some((connection, request_id)))
+                    }
+                }
+                Err(reason) => session.room().reject(connection, request_id, reason),
+            }
+        }
         ClientCommand::PublishAchievements { counts, unlocked } => {
             match session
                 .room_mut()

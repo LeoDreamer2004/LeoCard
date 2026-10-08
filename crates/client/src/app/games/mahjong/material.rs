@@ -1,3 +1,7 @@
+use bevy::prelude::*;
+use bevy::render::render_resource::AsBindGroup;
+use bevy::shader::ShaderRef;
+
 const MAHJONG_TILE_SHADER: &str = "shaders/mahjong_tile.wgsl";
 
 #[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
@@ -40,6 +44,3 @@ pub(super) fn mahjong_local_shadow(orientation: u8) -> Vec2 {
         _ => Vec2::new(5.0, -2.0),
     }
 }
-use bevy::prelude::*;
-use bevy::render::render_resource::AsBindGroup;
-use bevy::shader::ShaderRef;

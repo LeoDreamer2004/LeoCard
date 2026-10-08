@@ -1,3 +1,5 @@
+use super::super::counter::render_counter;
+use super::super::missing_suits::{MissingSuitsUi, render_missing_suits};
 use super::super::{
     ShengjiAssets, ShengjiBottomFlipPanelElement, ShengjiDealerBadge, ShengjiPresentationState,
     ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation, ShengjiUiAction, ShengjiUiState,
@@ -124,6 +126,7 @@ pub(crate) fn render_shengji_table(
                 relative,
                 player,
                 game,
+                &ui.missing_suits,
                 visuals.assets,
                 visuals.avatars,
                 social.interaction_menu_open,
@@ -174,6 +177,7 @@ pub(crate) fn render_shengji_table(
         game.phase,
         ShengjiPhaseView::Dealing { .. } | ShengjiPhaseView::BiddingGrace { .. }
     );
+    render_counter(commands, table, game, ui, visuals.assets);
     add_shengji_own_play(commands, table, game, visuals.assets, previous_trick);
     add_shengji_collecting_tray(
         commands,
@@ -488,6 +492,7 @@ fn add_shengji_opponent(
     relative: u8,
     player: &ShengjiPlayerState,
     game: &ShengjiSnapshot,
+    missing_suits: &MissingSuitsUi,
     assets: &UiAssets,
     avatars: &AvatarImages,
     interaction_menu_open: Option<PlayerId>,
@@ -517,7 +522,7 @@ fn add_shengji_opponent(
     };
     match side {
         SeatSide::Left => {
-            node.left = px(12);
+            node.left = px(42);
             node.top = percent(50);
             node.width = px(SIDE_SLOT_WIDTH);
         }
@@ -528,7 +533,7 @@ fn add_shengji_opponent(
             node.flex_direction = FlexDirection::Column;
         }
         SeatSide::Right => {
-            node.right = px(12);
+            node.right = px(42);
             node.top = percent(50);
             node.width = px(SIDE_SLOT_WIDTH);
             node.justify_content = JustifyContent::FlexEnd;
@@ -563,6 +568,7 @@ fn add_shengji_opponent(
         player,
         game,
         side,
+        missing_suits,
         assets,
         avatars,
         interaction_menu_open,
@@ -610,6 +616,7 @@ fn add_shengji_player_panel(
     player: &ShengjiPlayerState,
     game: &ShengjiSnapshot,
     side: SeatSide,
+    missing_suits: &MissingSuitsUi,
     assets: &UiAssets,
     avatars: &AvatarImages,
     interaction_menu_open: Option<PlayerId>,
@@ -643,6 +650,16 @@ fn add_shengji_player_panel(
         assets,
     );
     attach_start_game_seat_transition(commands, panel.portrait, player.id, start_transition_active);
+    if !start_transition_active {
+        render_missing_suits(
+            commands,
+            panel.avatar_ring,
+            player,
+            side,
+            missing_suits,
+            assets,
+        );
+    }
     if game.current_player == Some(player.id) {
         add_turn_border_trace_with_radius(
             commands,

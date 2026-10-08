@@ -2,6 +2,7 @@ mod analysis;
 mod automation;
 mod commands;
 mod lifecycle;
+mod missing_suits;
 mod settlement;
 mod snapshot;
 mod state;

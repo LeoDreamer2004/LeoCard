@@ -1,10 +1,10 @@
+use super::super::skin::{add_shengji_button, add_shengji_disabled_button};
 use super::super::{ShengjiUiAction, ShengjiUiState};
 use super::add_shengji_bid_strip;
+use crate::app::presentation::GameButtonTone;
 use crate::app::presentation::spawn_node;
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{
-    CozyButtonVariant, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
-};
+use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use leocard_protocol::{
     PlayerId, ShengjiFiveTrumpCrossingStage, ShengjiPhaseView, ShengjiSnapshot,
@@ -40,32 +40,32 @@ pub(super) fn add_shengji_actions(
             let kitty_size = game.rules.kitty_size();
             let label = format!("埋底 ({count}/{kitty_size})");
             if count == kitty_size {
-                add_cozy_button_variant(
+                add_shengji_button(
                     commands,
                     actions,
                     &label,
                     UiAction::Shengji(ShengjiUiAction::SubmitCards),
                     assets,
-                    px(142),
+                    142.0,
                     48.0,
-                    CozyButtonVariant::Cool,
+                    GameButtonTone::Play,
                 );
             } else {
-                add_cozy_disabled_button(commands, actions, &label, assets, px(142), 48.0);
+                add_shengji_disabled_button(commands, actions, &label, assets, 142.0, 48.0);
             }
         }
         ShengjiPhaseView::Burying => {}
         ShengjiPhaseView::BottomCopying { player, .. } if *player == game.you => {
             add_shengji_bid_strip(commands, actions, game, true, assets);
-            add_cozy_button_variant(
+            add_shengji_button(
                 commands,
                 actions,
                 "不抄底",
                 UiAction::Shengji(ShengjiUiAction::DeclineBottomCopy),
                 assets,
-                px(120),
+                120.0,
                 48.0,
-                CozyButtonVariant::Neutral,
+                GameButtonTone::Pass,
             );
         }
         ShengjiPhaseView::BottomCopying { .. } => {}
@@ -74,18 +74,18 @@ pub(super) fn add_shengji_actions(
             let kitty_size = game.rules.kitty_size();
             let label = format!("再埋底 ({count}/{kitty_size})");
             if count == kitty_size {
-                add_cozy_button_variant(
+                add_shengji_button(
                     commands,
                     actions,
                     &label,
                     UiAction::Shengji(ShengjiUiAction::SubmitCards),
                     assets,
-                    px(142),
+                    142.0,
                     48.0,
-                    CozyButtonVariant::Cool,
+                    GameButtonTone::Play,
                 );
             } else {
-                add_cozy_disabled_button(commands, actions, &label, assets, px(142), 48.0);
+                add_shengji_disabled_button(commands, actions, &label, assets, 142.0, 48.0);
             }
         }
         ShengjiPhaseView::BottomCopyBurying { .. } => {}
@@ -110,28 +110,28 @@ pub(super) fn add_shengji_actions(
                 });
                 let label = format!("过江 ({}/5)", selected.len());
                 if selected.len() == 5 && includes_all_trumps {
-                    add_cozy_button_variant(
+                    add_shengji_button(
                         commands,
                         actions,
                         &label,
                         UiAction::Shengji(ShengjiUiAction::SubmitCards),
                         assets,
-                        px(142),
+                        142.0,
                         48.0,
-                        CozyButtonVariant::Cool,
+                        GameButtonTone::Play,
                     );
                 } else {
-                    add_cozy_disabled_button(commands, actions, &label, assets, px(142), 48.0);
+                    add_shengji_disabled_button(commands, actions, &label, assets, 142.0, 48.0);
                 }
-                add_cozy_button_variant(
+                add_shengji_button(
                     commands,
                     actions,
                     "不过江",
                     UiAction::Shengji(ShengjiUiAction::DeclineFiveTrumpCrossing),
                     assets,
-                    px(120),
+                    120.0,
                     48.0,
-                    CozyButtonVariant::Neutral,
+                    GameButtonTone::Pass,
                 );
             }
         }
@@ -151,18 +151,18 @@ pub(super) fn add_shengji_actions(
                     .count();
                 let label = format!("归还 ({selected_count}/5)");
                 if selected_count == 5 {
-                    add_cozy_button_variant(
+                    add_shengji_button(
                         commands,
                         actions,
                         &label,
                         UiAction::Shengji(ShengjiUiAction::SubmitCards),
                         assets,
-                        px(142),
+                        142.0,
                         48.0,
-                        CozyButtonVariant::Cool,
+                        GameButtonTone::Play,
                     );
                 } else {
-                    add_cozy_disabled_button(commands, actions, &label, assets, px(142), 48.0);
+                    add_shengji_disabled_button(commands, actions, &label, assets, 142.0, 48.0);
                 }
             }
         }
@@ -177,28 +177,28 @@ pub(super) fn add_shengji_actions(
                 |required| ui.selected.len() == required,
             );
             if !selection_ready {
-                add_cozy_disabled_button(commands, actions, "出牌", assets, px(142), 48.0);
+                add_shengji_disabled_button(commands, actions, "出牌", assets, 142.0, 48.0);
             } else {
-                add_cozy_button_variant(
+                add_shengji_button(
                     commands,
                     actions,
                     "出牌",
                     UiAction::Shengji(ShengjiUiAction::SubmitCards),
                     assets,
-                    px(142),
+                    142.0,
                     48.0,
-                    CozyButtonVariant::Cool,
+                    GameButtonTone::Play,
                 );
             }
-            add_cozy_button_variant(
+            add_shengji_button(
                 commands,
                 actions,
                 "提示",
                 UiAction::Shengji(ShengjiUiAction::Hint),
                 assets,
-                px(142),
+                142.0,
                 48.0,
-                CozyButtonVariant::Neutral,
+                GameButtonTone::Hint,
             );
         }
         ShengjiPhaseView::Playing => {}

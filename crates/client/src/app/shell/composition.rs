@@ -1,10 +1,11 @@
 //! 根据网络模型与页面状态装配当前的顶层界面。
 
 use super::{
-    AchievementPageViewport, AchievementsPage, ChatPanelState, ConnectionScreen,
-    DeveloperHandInput, Header, LobbyGameMotion, PageMotion, PlayErrorToast, ProfileModal,
-    ProfileMotion, SettingsModal, SettingsMotion, UiState, UpdateManager, add_lobby_game_shade,
-    add_page_background, add_page_transition_shade, add_play_error_popup, render_update_dialog,
+    AchievementPageViewport, AchievementsPage, ChatPanelState, ConfirmationDialog,
+    ConnectionScreen, DeveloperHandInput, Header, LobbyGameMotion, PageMotion, PlayErrorToast,
+    ProfileModal, ProfileMotion, SettingsModal, SettingsMotion, ShopPage, UiState, UpdateManager,
+    add_lobby_game_shade, add_page_background, add_page_transition_shade, add_play_error_popup,
+    render_confirmation, render_update_dialog,
 };
 use crate::app::games::{GameScreenResources, GameScreenRetainedState};
 use crate::app::presentation::{GameSummaryAnimation, UiRoot};
@@ -13,7 +14,7 @@ use crate::app::runtime::{
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_client::{ClientPhaseRef, LocalPlayerProfile, PlayerAchievements};
+use leocard_client::{ClientPhaseRef, LocalPlayerProfile, PlayerAchievements, PlayerEconomy};
 
 #[derive(SystemParam)]
 struct VisualAssets<'w> {
@@ -23,6 +24,7 @@ struct VisualAssets<'w> {
     play_error: Res<'w, PlayErrorToast>,
     game_summary: Res<'w, GameSummaryAnimation>,
     updater: Res<'w, UpdateManager>,
+    confirmation: Res<'w, ConfirmationDialog>,
     settings_motion: Res<'w, SettingsMotion>,
     profile_motion: Res<'w, ProfileMotion>,
     page_motion: Res<'w, PageMotion>,
@@ -36,6 +38,7 @@ struct ScreenResources<'w> {
     appearance: Res<'w, AppearancePreferences>,
     profile: Res<'w, LocalPlayerProfile>,
     achievements: Res<'w, PlayerAchievements>,
+    economy: Res<'w, PlayerEconomy>,
     chat: Res<'w, ChatPanelState>,
     developer_hand: Res<'w, DeveloperHandInput>,
     ui: ResMut<'w, UiState>,
@@ -104,6 +107,7 @@ impl ScreenRebuild<'_, '_> {
             appearance: &self.resources.appearance,
             profile: &self.resources.profile,
             achievements: &self.resources.achievements,
+            economy: &self.resources.economy,
             chat: &self.resources.chat,
             developer_hand: &self.resources.developer_hand,
             ui: &mut self.resources.ui,
@@ -125,6 +129,7 @@ struct ScreenRenderer<'a, 'w, 's> {
     appearance: &'a AppearancePreferences,
     profile: &'a LocalPlayerProfile,
     achievements: &'a PlayerAchievements,
+    economy: &'a PlayerEconomy,
     chat: &'a ChatPanelState,
     developer_hand: &'a DeveloperHandInput,
     ui: &'a mut UiState,
@@ -135,11 +140,13 @@ struct ScreenRenderer<'a, 'w, 's> {
 
 impl ScreenRenderer<'_, '_, '_> {
     fn render(&mut self, root: Entity) {
-        if self
-            .client
-            .is_none_or(|client| !matches!(client.0.model().phase(), ClientPhaseRef::Playing(_)))
+        if self.ui.shop.open
+            || self.ui.achievements.open
+            || self.client.is_none_or(|client| {
+                !matches!(client.0.model().phase(), ClientPhaseRef::Playing(_))
+            })
         {
-            add_page_background(self.commands, root, &self.visuals.ui);
+            add_page_background(self.commands, root);
         }
         Header::new(
             self.client,
@@ -153,6 +160,18 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn render_primary_screen(&mut self, root: Entity) {
+        if self.ui.shop.open {
+            ShopPage {
+                assets: &self.visuals.ui,
+                economy: self.economy,
+                state: &self.ui.shop,
+                in_game: self.client.is_some_and(|client| {
+                    matches!(client.0.model().phase(), ClientPhaseRef::Playing(_))
+                }),
+            }
+            .render(self.commands, root);
+            return;
+        }
         if self.ui.achievements.open {
             AchievementsPage::new(
                 self.ui.achievements.category,
@@ -210,6 +229,12 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn render_overlays(&mut self, root: Entity) {
+        render_confirmation(
+            self.commands,
+            root,
+            &self.visuals.confirmation,
+            &self.visuals.ui,
+        );
         add_page_transition_shade(self.commands, root, &self.visuals.page_motion);
         if self.visuals.lobby_game_motion.active() {
             add_lobby_game_shade(self.commands, root, &self.visuals.lobby_game_motion);
@@ -250,6 +275,7 @@ impl ScreenRenderer<'_, '_, '_> {
     fn render_profile(&mut self, root: Entity) {
         ProfileModal::for_selection(
             &self.ui.profile,
+            self.client,
             self.connection,
             &self.visuals.avatars,
             self.profile,

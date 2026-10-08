@@ -8,12 +8,15 @@ use crate::app::shell::{
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use leocard_client::{ItemId, PlayerEconomy};
 use leocard_protocol::{ShengjiCommand, ShengjiFiveTrumpCrossingStage, ShengjiPhaseView};
 use leocard_shengji::{ShengjiCard, ShengjiRuleSet};
 
 #[derive(Clone)]
 pub(crate) enum ShengjiUiAction {
     UpdateRules(ShengjiRuleSet),
+    ToggleCounterDrawer,
+    ToggleCounter,
     Declare(Vec<ShengjiCard>),
     ConfirmBidPass,
     BottomCopy(Vec<ShengjiCard>),
@@ -43,6 +46,7 @@ impl DomainUiAction for ShengjiUiAction {
 pub(crate) struct ShengjiActionContext<'w> {
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, ShengjiUiState>,
+    economy: Res<'w, PlayerEconomy>,
     presentation: ResMut<'w, ShengjiPresentationState>,
 }
 
@@ -58,6 +62,12 @@ impl UiActionHandler<ShengjiActionContext<'_>> for ShengjiUiAction {
         let client = &mut context.client;
         let ui = &mut context.ui;
         match self {
+            Self::ToggleCounterDrawer => ui.counter.drawer_open = !ui.counter.drawer_open,
+            Self::ToggleCounter => {
+                if context.economy.active(ItemId::ShengjiCardCounter) {
+                    ui.counter.enabled = !ui.counter.enabled;
+                }
+            }
             ShengjiUiAction::UpdateRules(rules) => {
                 send_game_command(client, ShengjiCommand::UpdateRules { rules: *rules });
             }

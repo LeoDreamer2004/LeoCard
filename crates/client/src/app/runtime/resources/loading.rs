@@ -2,8 +2,8 @@
 
 use super::{
     AchievementAssets, CHAT_EMOJI_ASSET_PATHS, CommonAudioAssets, ControlAssets, HomeAssets,
-    PlayingCardAssets, SocialAssets, TABLE_FELT_ASSET, UI_FONT_ASSET, UiAssets, card_asset_path,
-    interaction_cooldown_mask_image,
+    PlayingCardAssets, ShopAssets, SocialAssets, TABLE_FELT_ASSET, UI_FONT_ASSET, UiAssets,
+    card_asset_path, interaction_cooldown_mask_image,
 };
 use crate::app::shell::{INTERACTION_COOLDOWN_MASK_FRAMES, PlayerInteractionLayer};
 use bevy::prelude::*;
@@ -91,6 +91,8 @@ pub(crate) fn load_ui_assets(
     commands.insert_resource(UiAssets {
         font: asset_server.load(UI_FONT_ASSET),
         playing_cards: PlayingCardAssets {
+            suits: ["diamond", "club", "heart", "spade"]
+                .map(|suit| asset_server.load(format!("ui/cards/suit-{suit}.png"))),
             cards,
             card_back: asset_server.load("vendor/kenney/boardgame/PNG/Cards/cardBack_blue4.png"),
         },
@@ -161,6 +163,13 @@ pub(crate) fn load_ui_assets(
                 asset_server.load("ui/profile/dirt.png"),
                 asset_server.load("ui/profile/composter.png"),
             ],
+        },
+        shop: ShopAssets {
+            coin: asset_server.load("ui/shop/coin.png"),
+            icon: asset_server.load("ui/shop/shop.png"),
+            observation_lens: asset_server.load("ui/shop/observation-lens.png"),
+            card_counter: asset_server.load("ui/shop/card-counter.png"),
+            missing_suit_card: asset_server.load("ui/shop/missing-suit-card.png"),
         },
         achievements: AchievementAssets {
             icon: asset_server.load("icons/achievement-trophy.png"),

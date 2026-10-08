@@ -1,5 +1,5 @@
 use super::super::{ProfileStat, reference_level, reference_level_index};
-use crate::app::presentation::{MUTED, TEXT, add_avatar, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, add_avatar, add_coin_balance, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
@@ -206,6 +206,14 @@ impl<'a> ProfileIdentity<'a> {
                 ..default()
             },
             None,
+        );
+        add_coin_balance(
+            commands,
+            row,
+            self.game_profiles.coins,
+            24.0,
+            16.0,
+            self.assets,
         );
         for (kind, count) in [
             (PlayerInteractionKind::Flower, stats.flowers_received),

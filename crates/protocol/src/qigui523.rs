@@ -11,6 +11,8 @@ pub struct QiGui523Snapshot {
     pub host: PlayerId,
     pub players: Vec<PlayerPublicState>,
     pub your_hand: Vec<QiGuiCard>,
+    /// 本局实际打出的公开牌，含已经结束的轮次。
+    pub played_cards: Vec<QiGuiCard>,
     pub draw_pile_len: u16,
     pub starting_card: StartingCardView,
     pub trick: Option<TrickView>,

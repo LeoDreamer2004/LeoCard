@@ -6,7 +6,7 @@ use super::super::super::{
 };
 use super::super::{ProfileGameTab, ProfileUiState};
 use crate::app::presentation::{TEXT, add_text, spawn_node};
-use crate::app::runtime::{AvatarImages, ConnectionDraft, UiAssets};
+use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_client::LocalPlayerProfile;
@@ -29,6 +29,7 @@ pub(crate) struct ProfileModal<'a> {
 impl<'a> ProfileModal<'a> {
     pub(crate) fn for_selection(
         selection: &'a ProfileUiState,
+        client: Option<&'a ClientResource>,
         connection: &'a ConnectionDraft,
         avatars: &'a AvatarImages,
         profile: &'a LocalPlayerProfile,
@@ -42,7 +43,15 @@ impl<'a> ProfileModal<'a> {
                     player.avatar.as_ref(),
                     player.reference_points,
                     player.completed_games,
-                    &player.game_profiles,
+                    client
+                        .and_then(|client| {
+                            if client.0.model().you() == Some(player.id) {
+                                Some(profile.game_profiles())
+                            } else {
+                                client.0.model().player_game_profiles(player.id)
+                            }
+                        })
+                        .unwrap_or(&player.game_profiles),
                 )
             } else {
                 (

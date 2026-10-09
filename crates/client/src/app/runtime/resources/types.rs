@@ -19,9 +19,19 @@ pub(crate) struct UiAssets {
     pub controls: ControlAssets,
     pub home: HomeAssets,
     pub achievements: AchievementAssets,
+    pub shop: ShopAssets,
     pub social: SocialAssets,
     pub audio: CommonAudioAssets,
     pub table_felt: Handle<Image>,
+}
+
+#[derive(Default)]
+pub(crate) struct ShopAssets {
+    pub coin: Handle<Image>,
+    pub icon: Handle<Image>,
+    pub observation_lens: Handle<Image>,
+    pub card_counter: Handle<Image>,
+    pub missing_suit_card: Handle<Image>,
 }
 
 #[derive(Default)]
@@ -58,7 +68,6 @@ pub(crate) struct HomeAssets {
     pub slider_handle_highlighted: Handle<Image>,
     pub input: Handle<Image>,
     pub focused_input: Handle<Image>,
-    pub game_art: [Handle<Image>; 5],
     pub reference_level_icons: [Handle<Image>; 10],
 }
 
@@ -76,6 +85,8 @@ pub(crate) struct AchievementAssets {
 
 #[derive(Default)]
 pub(crate) struct PlayingCardAssets {
+    /// 方、梅、红、黑四种花色图标。
+    pub suits: [Handle<Image>; 4],
     pub cards: HashMap<(QiGuiRank, QiGuiSuit), Handle<Image>>,
     pub card_back: Handle<Image>,
 }

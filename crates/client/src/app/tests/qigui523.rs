@@ -120,6 +120,7 @@ fn auto_playing_current_player_does_not_show_a_turn_clock() {
             completed_games: 0,
             game_profiles: PlayerGameProfiles::default(),
         }],
+        played_cards: Vec::new(),
         your_hand: Vec::new(),
         draw_pile_len: 0,
         starting_card: StartingCardView {

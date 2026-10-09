@@ -1,7 +1,8 @@
 use super::super::*;
-use crate::app::presentation::{ACCENT, PANEL, add_text};
+use crate::app::presentation::{add_text, card_background_image};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer, interaction_anchor_in_layer};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{ChatContent, ChatEmoji, PlayerId};
@@ -136,12 +137,9 @@ fn spawn_chat_bubble(
                 min_height: px(38),
                 padding: UiRect::axes(px(11), px(7)),
                 align_items: AlignItems::Center,
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(9)),
                 ..default()
             },
-            BackgroundColor(PANEL.with_alpha(0.0)),
-            BorderColor::all(ACCENT.with_alpha(0.0)),
+            card_background_image(assets.home.game_card.clone(), 0.42).with_color(Color::NONE),
             UiTransform {
                 translation: Val2::px(0.0, 9.0),
                 scale: Vec2::splat(0.88),
@@ -149,16 +147,18 @@ fn spawn_chat_bubble(
             },
             GlobalZIndex(1600),
             FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(layer).add_child(bubble);
     let text = add_text(commands, bubble, message, 13.0, Color::NONE, assets);
-    commands.entity(text).insert(ChatBubbleText);
+    commands
+        .entity(text)
+        .insert((ChatBubbleText, Pickable::IGNORE));
     commands.entity(bubble).insert(ActiveChatBubble {
         player,
         text: Some(text),
         emoji_image: None,
-        emoji: false,
         width,
         elapsed: 0.0,
         duration: 2.8 + (character_count as f32 * 0.055).min(2.2),
@@ -189,8 +189,6 @@ fn spawn_emoji_bubble(
                 padding: UiRect::all(px(7)),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(9)),
                 ..default()
             },
             UiTransform {
@@ -198,10 +196,10 @@ fn spawn_emoji_bubble(
                 scale: Vec2::splat(0.88),
                 ..UiTransform::IDENTITY
             },
-            BackgroundColor(PANEL.with_alpha(0.0)),
-            BorderColor::all(ACCENT.with_alpha(0.0)),
+            card_background_image(assets.home.game_card.clone(), 0.42).with_color(Color::NONE),
             GlobalZIndex(1600),
             FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(layer).add_child(bubble);
@@ -214,6 +212,7 @@ fn spawn_emoji_bubble(
             },
             ImageNode::new(assets.chat_emoji(emoji)),
             FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(bubble).add_child(icon);
@@ -221,7 +220,6 @@ fn spawn_emoji_bubble(
         player,
         text: None,
         emoji_image: Some(icon),
-        emoji: true,
         width,
         elapsed: 0.0,
         duration: 3.4,

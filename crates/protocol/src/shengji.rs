@@ -2,7 +2,7 @@ use crate::{
     AvatarId, MatchId, PlayerGameProfiles, PlayerId, PlayerReferenceChange, ProfileId, SeatId,
 };
 use leocard_shengji::{
-    ShengjiBidKind, ShengjiBidTrump, ShengjiCard, ShengjiClassifiedPlay, ShengjiRank,
+    Category, ShengjiBidKind, ShengjiBidTrump, ShengjiCard, ShengjiClassifiedPlay, ShengjiRank,
     ShengjiRuleSet, ShengjiTeamId, ShengjiTrump,
 };
 use serde::{Deserialize, Serialize};
@@ -30,6 +30,8 @@ pub struct ShengjiSnapshot {
     pub declaration: Option<ShengjiDeclarationView>,
     pub current_player: Option<PlayerId>,
     pub trick: Option<ShengjiTrickView>,
+    /// 本局已经公开打出的实体牌，含当前轮，供记牌及重连恢复使用。
+    pub played_cards: Vec<ShengjiCard>,
     /// 甩牌失败的公开演示状态；存在时先展示原甩牌，再收回并显示强制小牌。
     pub throw_failure: Option<ShengjiThrowFailureView>,
     /// 闲家当前总得分，已计入甩牌罚分，但尚未计入未发生的抠底。
@@ -50,6 +52,8 @@ pub struct ShengjiPlayerState {
     pub avatar: Option<AvatarId>,
     pub seat: SeatId,
     pub hand_len: u8,
+    /// 按首次公开跟牌证明的顺序记录缺门；不包含隐藏手牌信息。
+    pub missing_suits: Vec<Category>,
     pub ready: bool,
     pub connected: bool,
     pub auto_play: bool,

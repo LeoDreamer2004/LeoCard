@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+<defs><linearGradient id="metal" x2=".9" y2="1"><stop stop-color="#fff0bd"/><stop offset=".45" stop-color="#d6b574"/><stop offset="1" stop-color="#937142"/></linearGradient><linearGradient id="paper" x2=".3" y2="1"><stop stop-color="#f0edf9"/><stop offset="1" stop-color="#bdb8d3"/></linearGradient></defs>
+<rect x="32" y="22" width="176" height="202" rx="24" fill="url(#metal)" stroke="#25232e" stroke-width="9"/>
+<rect x="49" y="42" width="142" height="160" rx="14" fill="#51456f" stroke="#69563b" stroke-width="5"/>
+<path d="M65 68H175M65 96H175M65 124H175M65 152H175M93 57V167M121 57V167M149 57V167" stroke="#b9aad7" stroke-width="5" stroke-linecap="round"/>
+<rect x="122" y="119" width="76" height="105" rx="10" transform="rotate(-12 160 171)" fill="url(#paper)" stroke="#25232e" stroke-width="7"/>
+<rect x="155" y="132" width="74" height="103" rx="10" transform="rotate(9 192 183)" fill="url(#paper)" stroke="#25232e" stroke-width="7"/>
+<path d="M192 157C181 168 172 175 181 183C186 188 190 184 192 182C194 184 198 188 203 183C212 175 203 168 192 157Z M189 180L186 195H198L195 180" fill="#51456f"/>
+<path d="M47 34H161" stroke="#fff0bd" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+</svg>

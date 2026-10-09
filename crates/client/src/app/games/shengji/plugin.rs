@@ -1,3 +1,5 @@
+use super::counter::sync_counter;
+use super::missing_suits::{animate_missing_suits, sync_missing_suits};
 use super::{
     ShengjiPresentationState, ShengjiScoreCaptureEffectState, ShengjiSelectionSync,
     ShengjiSettlementAnimation, ShengjiUiState, actions, advance_shengji_presentation,
@@ -12,7 +14,7 @@ use super::{
     sync_shengji_presentation, sync_shengji_score_capture_effect, sync_shengji_score_tray_hover,
     update_shengji_settlement_animation,
 };
-use crate::app::presentation::start_game_intro_finished;
+use crate::app::presentation::{drag_card_counter_window, start_game_intro_finished};
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::UiActionSet;
 use bevy::prelude::*;
@@ -34,6 +36,7 @@ impl Plugin for ShengjiPlugin {
             .add_systems(
                 Update,
                 (
+                    drag_card_counter_window::<ShengjiUiState>,
                     handle_shengji_card_drag_selection,
                     sync_shengji_card_drag_preview,
                 )
@@ -43,6 +46,8 @@ impl Plugin for ShengjiPlugin {
             .add_systems(
                 Update,
                 (
+                    sync_counter,
+                    sync_missing_suits,
                     sync_shengji_phase_selection,
                     sync_shengji_presentation,
                     update_shengji_settlement_animation,
@@ -65,6 +70,7 @@ impl Plugin for ShengjiPlugin {
             .add_systems(
                 Update,
                 (
+                    animate_missing_suits,
                     sync_shengji_bidding_countdown,
                     sync_shengji_score_tray_hover,
                     (

@@ -8,12 +8,15 @@ use crate::app::shell::{
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use leocard_client::{ItemId, PlayerEconomy};
 use leocard_protocol::{PublicPlayRecord, QiGui523Command};
 use leocard_qigui523::{QiGuiRuleSet, classify};
 
 #[derive(Clone)]
 pub(crate) enum QiGui523UiAction {
     UpdateRules(QiGuiRuleSet),
+    ToggleCounterDrawer,
+    ToggleCounter,
     Hint,
     ToggleCard,
     Play,
@@ -37,6 +40,7 @@ impl DomainUiAction for QiGui523UiAction {
 pub(crate) struct QiGui523ActionContext<'w, 's> {
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, QiGui523UiState>,
+    economy: Res<'w, PlayerEconomy>,
     no_response_hints: Query<'w, 's, Entity, With<NoLegalResponseHint>>,
     commands: Commands<'w, 's>,
 }
@@ -53,6 +57,14 @@ impl UiActionHandler<QiGui523ActionContext<'_, '_>> for QiGui523UiAction {
         let client = &mut context.client;
         let ui = &mut context.ui;
         match self {
+            Self::ToggleCounterDrawer => {
+                ui.counter.window.drawer_open = !ui.counter.window.drawer_open
+            }
+            Self::ToggleCounter => {
+                if context.economy.active(ItemId::QiGui523CardCounter) {
+                    ui.counter.window.enabled = !ui.counter.window.enabled;
+                }
+            }
             QiGui523UiAction::UpdateRules(rules) => {
                 send_game_command(client, QiGui523Command::UpdateRules { rules: *rules });
             }

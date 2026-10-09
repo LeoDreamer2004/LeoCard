@@ -1,7 +1,7 @@
 use super::{
     AchievementsPagePlugin, ChatPlugin, ConnectionPlugin, DeveloperToolsPlugin, InputPlugin,
     LobbyPlugin, NavigationPlugin, OverlaysPlugin, ProfilePlugin, SettingsPlugin, ShellUiPlugin,
-    SocialPlugin, UiActionPlugin, UiActionSet, UiState, UpdatePlugin,
+    ShopPlugin, SocialPlugin, UiActionPlugin, UiActionSet, UiState, UpdatePlugin,
     close_interaction_menu_on_outside_click, rebuild_ui,
 };
 use crate::app::runtime::ClientUpdateSet;
@@ -20,6 +20,7 @@ impl Plugin for ShellPlugin {
             InputPlugin,
             OverlaysPlugin,
             AchievementsPagePlugin,
+            ShopPlugin,
             ShellUiPlugin,
             ChatPlugin,
             ConnectionPlugin,

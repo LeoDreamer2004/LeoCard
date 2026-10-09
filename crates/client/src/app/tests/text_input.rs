@@ -1,109 +1,148 @@
 use super::prelude::*;
-use bevy::input::ButtonState;
-use bevy::input::keyboard::{Key, KeyboardInput};
-use bevy::window::Ime;
+use bevy::{
+    input::{
+        ButtonState, InputPlugin as NativeInputPlugin,
+        keyboard::{Key, KeyboardInput},
+    },
+    input_focus::{InputDispatchPlugin, InputFocus, InputFocusPlugin},
+    picking::events::{Pointer, Release},
+    text::{
+        EditableText, Font, FontCx, LayoutCx, apply_text_edits,
+        load_font_assets_into_font_collection,
+    },
+    ui_widgets::EditableTextInputPlugin,
+    window::{Ime, PrimaryWindow, WindowPlugin},
+};
 use bevy_clipboard::Clipboard;
 use leocard_protocol::MAX_PLAYER_NAME_CHARS;
+use std::{fs, path::Path};
 
 #[test]
 fn saved_player_name_is_limited_by_unicode_characters() {
     let name = truncate_chars("一二三四五六七八", MAX_PLAYER_NAME_CHARS);
     assert_eq!(name, "一二三四五六七");
-    assert_eq!(name.chars().count(), MAX_PLAYER_NAME_CHARS);
 }
 
-#[test]
-fn ime_committed_chinese_is_accepted_by_the_player_name_filter() {
-    let mut name = String::new();
-    append_filtered_input(
-        &mut name,
-        InputField::PlayerName,
-        "七鬼五二三玩家甲",
-        MAX_PLAYER_NAME_CHARS,
-    );
-
-    assert_eq!(name, "七鬼五二三玩家");
-    assert_eq!(name.chars().count(), MAX_PLAYER_NAME_CHARS);
-}
-
-#[test]
-fn pasted_server_address_filters_whitespace_and_replaces_the_default_value() {
-    let mut address = String::new();
-    append_filtered_input(
-        &mut address,
-        InputField::JoinAddress,
-        " 192.168.1.20:52300\n",
-        64,
-    );
-
-    assert_eq!(address, "192.168.1.20:52300");
-
-    let mut hostname = String::new();
-    append_filtered_input(
-        &mut hostname,
-        InputField::JoinAddress,
-        "frp-off.com:52436",
-        64,
-    );
-    assert_eq!(hostname, "frp-off.com:52436");
-}
-
-#[test]
-fn ctrl_a_replaces_the_entire_unicode_player_name_on_next_input() {
+fn input_app(value: &str) -> (App, Entity, Entity) {
     let mut app = App::new();
-    app.add_message::<KeyboardInput>()
-        .add_message::<Ime>()
-        .insert_resource(ButtonInput::<KeyCode>::default())
-        .insert_resource(Clipboard::default())
-        .insert_resource(ConnectionDraft {
-            player_name: "原来的名字".to_owned(),
-            gender: Default::default(),
-            host_port: "52300".to_owned(),
-            join_address: "127.0.0.1:52300".to_owned(),
-            active: InputField::PlayerName,
-            selected_all: false,
-        })
-        .insert_resource(PageErrorState::default())
-        .insert_resource(ChatPanelState::default())
-        .insert_resource(DeveloperHandInput::default())
-        .insert_resource(UiState::default())
-        .add_systems(Update, handle_text_input);
-
-    {
-        let mut keyboard = app.world_mut().resource_mut::<ButtonInput<KeyCode>>();
-        keyboard.press(KeyCode::ControlLeft);
-        keyboard.press(KeyCode::KeyA);
-    }
-    app.world_mut()
-        .resource_mut::<Messages<KeyboardInput>>()
-        .write(KeyboardInput {
-            key_code: KeyCode::KeyA,
-            logical_key: Key::Character("a".into()),
-            state: ButtonState::Pressed,
-            text: Some("a".into()),
-            repeat: false,
-            window: Entity::PLACEHOLDER,
-        });
+    app.add_plugins((
+        NativeInputPlugin,
+        InputFocusPlugin,
+        InputDispatchPlugin,
+        WindowPlugin {
+            primary_window: None,
+            ..default()
+        },
+        EditableTextInputPlugin,
+    ))
+    .init_resource::<FontCx>()
+    .init_resource::<Assets<Font>>()
+    .init_resource::<LayoutCx>()
+    .init_resource::<UiScale>()
+    .insert_resource(Clipboard::default())
+    .add_message::<Pointer<Release>>()
+    .add_systems(
+        PostUpdate,
+        (load_font_assets_into_font_collection, apply_text_edits).chain(),
+    );
+    let font = fs::read(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../assets/fonts/ChillRoundGothic-Medium.ttf"),
+    )
+    .unwrap();
+    let font = app
+        .world_mut()
+        .resource_mut::<Assets<Font>>()
+        .add(Font::from_bytes(font));
+    let window = app
+        .world_mut()
+        .spawn((Window::default(), PrimaryWindow))
+        .id();
     app.update();
-    assert!(app.world().resource::<ConnectionDraft>().selected_all);
-
-    {
-        let mut keyboard = app.world_mut().resource_mut::<ButtonInput<KeyCode>>();
-        keyboard.clear();
-        keyboard.release(KeyCode::ControlLeft);
-    }
+    let alias = app
+        .world()
+        .resource::<Assets<Font>>()
+        .get(&font)
+        .unwrap()
+        .alias
+        .clone();
     app.world_mut()
-        .resource_mut::<Messages<KeyboardInput>>()
-        .write(KeyboardInput {
-            key_code: KeyCode::KeyN,
-            logical_key: Key::Character("新".into()),
-            state: ButtonState::Pressed,
-            text: Some("新".into()),
-            repeat: false,
-            window: Entity::PLACEHOLDER,
-        });
+        .resource_mut::<FontCx>()
+        .set_sans_serif_family(&alias)
+        .unwrap();
+    let editor = app.world_mut().spawn(EditableText::new(value)).id();
+    app.insert_resource(InputFocus::from_entity(editor));
     app.update();
-    let form = app.world().resource::<ConnectionDraft>();
-    assert_eq!(form.player_name, "新");
-    assert!(!form.selected_all);
+    (app, window, editor)
+}
+
+fn press(app: &mut App, window: Entity, key_code: KeyCode, key: Key, text: Option<&str>) {
+    app.world_mut().write_message(KeyboardInput {
+        key_code,
+        logical_key: key,
+        state: ButtonState::Pressed,
+        text: text.map(Into::into),
+        repeat: false,
+        window,
+    });
+}
+
+#[test]
+fn native_shortcut_replaces_the_selected_unicode_text() {
+    let (mut app, window, editor) = input_app("原来的名字");
+    press(&mut app, window, KeyCode::ControlLeft, Key::Control, None);
+    press(
+        &mut app,
+        window,
+        KeyCode::KeyA,
+        Key::Character("a".into()),
+        Some("a"),
+    );
+    app.update();
+    app.world_mut().write_message(KeyboardInput {
+        key_code: KeyCode::ControlLeft,
+        logical_key: Key::Control,
+        state: ButtonState::Released,
+        text: None,
+        repeat: false,
+        window,
+    });
+    press(
+        &mut app,
+        window,
+        KeyCode::KeyN,
+        Key::Character("新".into()),
+        Some("新"),
+    );
+    app.update();
+    assert_eq!(
+        app.world()
+            .get::<EditableText>(editor)
+            .unwrap()
+            .value()
+            .to_string(),
+        "新"
+    );
+}
+
+#[test]
+fn native_ime_keeps_preedit_out_of_the_committed_value() {
+    let (mut app, window, editor) = input_app("玩家");
+    app.world_mut().write_message(Ime::Preedit {
+        window,
+        value: "ni".to_owned(),
+        cursor: Some((2, 2)),
+    });
+    app.update();
+    let input = app.world().get::<EditableText>(editor).unwrap();
+    assert!(input.is_composing());
+    assert_eq!(input.value().to_string(), "玩家");
+    app.world_mut().write_message(Ime::Commit {
+        window,
+        value: "你".to_owned(),
+    });
+    app.update();
+    let input = app.world().get::<EditableText>(editor).unwrap();
+    assert!(!input.is_composing());
+    assert_eq!(input.value().to_string(), "玩家你");
 }

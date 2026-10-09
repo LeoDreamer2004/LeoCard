@@ -1,4 +1,5 @@
 use super::equity::EquityCache;
+use super::spectator::SpectatorAccess;
 use leocard_protocol::{
     AvatarId, MatchId, PlayerId, ProfileId, SeatId, TexasHoldemBlindView, TexasHoldemEquity,
     TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemPotAward,
@@ -71,7 +72,7 @@ pub struct TexasHoldemAdapter {
     game: GameState,
     hand_starting_stacks: Vec<u32>,
     equity_cache: EquityCache,
-    folded_at_board_len: Vec<Option<usize>>,
+    spectator: SpectatorAccess,
 }
 
 impl TexasHoldemAdapter {
@@ -109,14 +110,14 @@ impl TexasHoldemAdapter {
         let game =
             GameState::new_with_deck(effective_rules, dealer, deck).map_err(AdapterError::Game)?;
         let hand_starting_stacks = game.players().iter().map(|player| player.stack()).collect();
-        let folded_at_board_len = vec![None; players.len()];
+        let spectator = SpectatorAccess::new(players.len());
         Ok(Self {
             match_id,
             host_port,
             host,
             players,
             game,
-            folded_at_board_len,
+            spectator,
             hand_starting_stacks,
             equity_cache: EquityCache::default(),
         })
@@ -173,7 +174,7 @@ impl TexasHoldemAdapter {
             .act(core_player, action)
             .map_err(map_action_error)?;
         if matches!(action, TexasHoldemAction::Fold) {
-            self.folded_at_board_len[core_player.0] = Some(community_before);
+            self.spectator.record_fold(core_player.0, community_before);
         }
         if self.game.community().len() != community_before
             || matches!(action, TexasHoldemAction::Fold)
@@ -232,23 +233,14 @@ impl TexasHoldemAdapter {
             .start_next_hand(deck)
             .map_err(AdapterError::Game)?;
         self.hand_starting_stacks = starting_stacks;
-        self.folded_at_board_len.fill(None);
+        self.spectator.start_hand();
         self.equity_cache.clear();
         Ok(())
     }
 
     fn spectator_equities(&self, recipient_index: usize) -> Option<Vec<TexasHoldemEquity>> {
-        if !matches!(self.game.phase(), Phase::Betting(_))
-            || !self.game.players()[recipient_index].folded()
-            || !self.folded_at_board_len[recipient_index]
-                .is_some_and(|board_len| self.game.community().len() > board_len)
-            || self
-                .game
-                .players()
-                .iter()
-                .filter(|player| !player.folded())
-                .count()
-                < 2
+        if !self.spectator.available(&self.game, recipient_index)
+            || !self.spectator.requested(recipient_index)
         {
             return None;
         }
@@ -274,6 +266,16 @@ impl TexasHoldemAdapter {
             return false;
         }
         self.equity_cache.take_ready()
+    }
+
+    pub fn set_spectator_win_rates(
+        &mut self,
+        player: PlayerId,
+        enabled: bool,
+    ) -> Result<(), AdapterError> {
+        let index = self.player_index(player)?;
+        self.spectator.set_requested(index, enabled);
+        Ok(())
     }
 
     pub fn snapshot(&self, recipient: PlayerId) -> Result<TexasHoldemSnapshot, AdapterError> {
@@ -340,6 +342,8 @@ impl TexasHoldemAdapter {
             your_hole_cards: self.game.players()[recipient_index].hole_cards().to_vec(),
             revealed_hands,
             community: self.game.community().to_vec(),
+            spectator_available: self.spectator.available(&self.game, recipient_index),
+            spectator_win_rates_enabled: self.spectator.requested(recipient_index),
             spectator_equities: self.spectator_equities(recipient_index),
             draw_pile_len: self.game.draw_pile_len() as u16,
             dealer: self.protocol_player(self.game.dealer()),

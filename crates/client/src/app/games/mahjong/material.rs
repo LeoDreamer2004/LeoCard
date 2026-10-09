@@ -1,3 +1,7 @@
+use bevy::prelude::*;
+use bevy::render::render_resource::AsBindGroup;
+use bevy::shader::ShaderRef;
+
 const MAHJONG_TILE_SHADER: &str = "shaders/mahjong_tile.wgsl";
 
 #[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
@@ -8,12 +12,31 @@ pub(crate) struct MahjongTileMaterial {
     /// xy: 局部光照方向；z: 同张牌牌面蓝色蒙版强度。
     #[uniform(0)]
     pub lighting: Vec4,
+    /// rgb: 状态蒙版颜色；w: 强度，优先于同牌提示。
+    #[uniform(0)]
+    pub highlight: Vec4,
     #[texture(1)]
     #[sampler(2)]
     pub glyph: Handle<Image>,
     #[texture(3)]
     #[sampler(4)]
     pub height: Handle<Image>,
+}
+
+#[derive(Clone, Copy, Default)]
+pub(crate) enum MahjongTileHighlight {
+    #[default]
+    None,
+    Red,
+}
+
+impl MahjongTileHighlight {
+    pub(super) fn overlay(self) -> Vec4 {
+        match self {
+            Self::None => Vec4::ZERO,
+            Self::Red => Vec4::new(1.0, 0.18, 0.16, 0.52),
+        }
+    }
 }
 
 impl UiMaterial for MahjongTileMaterial {
@@ -40,6 +63,3 @@ pub(super) fn mahjong_local_shadow(orientation: u8) -> Vec2 {
         _ => Vec2::new(5.0, -2.0),
     }
 }
-use bevy::prelude::*;
-use bevy::render::render_resource::AsBindGroup;
-use bevy::shader::ShaderRef;

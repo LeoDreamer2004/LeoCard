@@ -6,6 +6,8 @@ struct MahjongTileMaterial {
     params: vec4<f32>,
     // xy: local light direction; z: matching-tile overlay on the visible face.
     lighting: vec4<f32>,
+    // rgb: state overlay color; w: strength. State overlays take precedence over matching tiles.
+    highlight: vec4<f32>,
 }
 
 @group(1) @binding(0)
@@ -251,11 +253,10 @@ fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
     let interactive = mix(face_color, face_color * vec3<f32>(0.90, 0.98, 0.92), 0.18 + pressed * 0.18)
         + vec3<f32>(0.035, 0.055, 0.025) * (1.0 - pressed);
     face_color = mix(face_color, interactive, interaction_amount);
-    face_color = mix(
-        face_color,
-        vec3<f32>(0.39, 0.76, 1.0),
-        clamp(material.lighting.z, 0.0, 1.0) * 0.52,
-    );
+    let has_highlight = material.highlight.w > 0.0;
+    let overlay_color = select(vec3<f32>(0.39, 0.76, 1.0), material.highlight.rgb, has_highlight);
+    let overlay_strength = select(clamp(material.lighting.z, 0.0, 1.0) * 0.52, material.highlight.w, has_highlight);
+    face_color = mix(face_color, overlay_color, clamp(overlay_strength, 0.0, 1.0));
     color = mix(color, face_color, face);
 
     return vec4<f32>(color, alpha * material.params.z);

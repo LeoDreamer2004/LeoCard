@@ -1,10 +1,10 @@
 use std::f32::consts;
 
 use super::super::{
-    MahjongWinDecoration, MahjongWinDecorationKind, MahjongWinEffect, MahjongWinEffectText,
-    MahjongWinEffectTier, MahjongWinFanGlyph, MahjongWinScreenShake, MahjongWinStageKind,
-    MahjongWinStagePart, MahjongWinningHand, mahjong_win_effect_tier, mahjong_win_reveal_duration,
-    mahjong_win_stage_start,
+    MahjongTileHighlight, MahjongTileMaterial, MahjongWinDecoration, MahjongWinDecorationKind,
+    MahjongWinEffect, MahjongWinEffectText, MahjongWinEffectTier, MahjongWinFanGlyph,
+    MahjongWinScreenShake, MahjongWinStageKind, MahjongWinStagePart, MahjongWinningHand,
+    mahjong_win_effect_tier, mahjong_win_reveal_duration, mahjong_win_stage_start,
 };
 
 use super::MAHJONG_WIN_PUSH_DURATION;
@@ -28,6 +28,8 @@ pub(crate) struct MahjongWinTileCue {
 pub(crate) struct MahjongWinTileShake {
     reveal_duration: f32,
     cues: Vec<MahjongWinTileCue>,
+    /// 手牌进入胡牌展示时恢复原色；牌河中的和牌张保持红色。
+    hand_reveal_start: Option<f32>,
 }
 
 pub(crate) fn mahjong_win_tile_cues(
@@ -59,6 +61,7 @@ pub(crate) fn mark_mahjong_win_tile(
     entity: Entity,
     result: &MahjongHandResultView,
     cues: Vec<MahjongWinTileCue>,
+    hand_reveal_start: Option<f32>,
 ) {
     if cues.is_empty() {
         return;
@@ -67,44 +70,51 @@ pub(crate) fn mark_mahjong_win_tile(
         MahjongWinTileShake {
             reveal_duration: mahjong_win_reveal_duration(result),
             cues,
+            hand_reveal_start,
         },
-        BorderColor::all(Color::NONE),
         GlobalZIndex(0),
     ));
 }
 
 pub(crate) fn animate_mahjong_win_tile_shakes(
     animation: Res<GameSummaryAnimation>,
+    mut materials: ResMut<Assets<MahjongTileMaterial>>,
     mut tiles: Query<(
         &MahjongWinTileShake,
+        &MaterialNode<MahjongTileMaterial>,
         &mut UiTransform,
-        &mut BorderColor,
         &mut GlobalZIndex,
     )>,
 ) {
-    for (shake, mut transform, mut border, mut z_index) in &mut tiles {
+    for (shake, material_node, mut transform, mut z_index) in &mut tiles {
         let time = animation.elapsed + shake.reveal_duration;
+        let highlight = if shake.hand_reveal_start.is_some_and(|start| time >= start) {
+            MahjongTileHighlight::None
+        } else {
+            MahjongTileHighlight::Red
+        };
+        if let Some(mut material) = materials.get_mut(&material_node.0) {
+            material.highlight = highlight.overlay();
+        }
         let active = shake.cues.iter().find_map(|cue| {
             (cue.start..cue.start + cue.duration)
                 .contains(&time)
                 .then_some((*cue, time - cue.start))
         });
         if let Some((cue, local)) = active {
-            let (rotation, scale, envelope) = mahjong_win_tile_pose(cue, local);
+            let (rotation, scale) = mahjong_win_tile_pose(cue, local);
             transform.translation = Val2::ZERO;
             transform.rotation = Rot2::radians(rotation);
             transform.scale = Vec2::splat(scale);
-            *border = BorderColor::all(mahjong_win_effect_color(cue.tier, false, envelope));
             *z_index = GlobalZIndex(1010);
         } else {
             *transform = UiTransform::IDENTITY;
-            *border = BorderColor::all(Color::NONE);
             *z_index = GlobalZIndex(0);
         }
     }
 }
 
-fn mahjong_win_tile_pose(cue: MahjongWinTileCue, local: f32) -> (f32, f32, f32) {
+fn mahjong_win_tile_pose(cue: MahjongWinTileCue, local: f32) -> (f32, f32) {
     let envelope = (local / 0.08).clamp(0.0, 1.0) * ((cue.duration - local) / 0.16).clamp(0.0, 1.0);
     let amplitude = match cue.tier {
         MahjongWinEffectTier::Normal => 0.045,
@@ -113,7 +123,7 @@ fn mahjong_win_tile_pose(cue: MahjongWinTileCue, local: f32) -> (f32, f32, f32) 
     };
     let rotation = ((local * 42.0).sin() + (local * 71.0).sin() * 0.28) * amplitude * envelope;
     let scale = 1.0 + (local * 27.0).sin().abs() * 0.025 * envelope;
-    (rotation, scale, envelope)
+    (rotation, scale)
 }
 
 #[expect(

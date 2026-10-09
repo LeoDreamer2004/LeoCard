@@ -1,15 +1,17 @@
 use super::{
-    MahjongAssets, MahjongChoiceMenu, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
-    MahjongUiAction, MahjongUiState, add_mahjong_tile_material,
+    MahjongActionPrompt, MahjongAssets, MahjongChoiceMenu, MahjongTileHighlight,
+    MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongUiAction, MahjongUiState,
+    add_mahjong_tile_material,
 };
-use crate::app::presentation::ButtonHighlight;
-use crate::app::presentation::{BackgroundButtonTint, ButtonTint, TEXT, add_text, spawn_node};
+use crate::app::presentation::{
+    BackgroundButtonTint, ButtonHighlight, ButtonTint, TEXT, add_text, spawn_node,
+};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_mahjong::{MahjongClaim, MahjongClaimOption, MahjongTileKind};
-use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
+use leocard_protocol::MahjongSnapshot;
 
 #[derive(Clone, Copy)]
 enum ActionTone {
@@ -23,7 +25,6 @@ struct TileChoice {
     label: &'static str,
     tiles: [MahjongTileKind; 4],
     count: usize,
-    claimed_index: Option<usize>,
 }
 
 pub(super) fn render_action_bar(
@@ -35,14 +36,9 @@ pub(super) fn render_action_bar(
     game_assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
-    if ui.no_claim
-        && game
-            .pending_claim
-            .as_ref()
-            .is_some_and(|pending| !pending.your_options.contains(&MahjongClaimOption::Win))
-    {
+    let Some(prompt) = MahjongActionPrompt::from_snapshot(game, ui) else {
         return;
-    }
+    };
     let bar = spawn_node(
         commands,
         table,
@@ -60,13 +56,8 @@ pub(super) fn render_action_bar(
         },
         None,
     );
+    commands.entity(bar).insert(prompt);
     if let Some(pending) = &game.pending_claim {
-        if pending.your_response.is_some() {
-            return;
-        }
-        if pending.your_options.is_empty() {
-            return;
-        }
         let chows = pending
             .your_options
             .iter()
@@ -90,7 +81,6 @@ pub(super) fn render_action_bar(
                         MahjongTileKind::suited(suit, start + 2),
                     ],
                     count: 3,
-                    claimed_index: Some(usize::from(rank - start)),
                 })
             })
             .collect::<Vec<_>>();
@@ -156,9 +146,6 @@ pub(super) fn render_action_bar(
         );
         return;
     }
-    if !matches!(game.phase, MahjongPhaseView::Playing) || game.current_player != game.you {
-        return;
-    }
     if game.can_self_draw {
         add_mahjong_button(
             commands,
@@ -179,7 +166,6 @@ pub(super) fn render_action_bar(
             label: "暗杠",
             tiles: [kind; 4],
             count: 4,
-            claimed_index: None,
         })
         .collect::<Vec<_>>();
     if !ui.no_claim {
@@ -192,7 +178,6 @@ pub(super) fn render_action_bar(
                     label: "加杠",
                     tiles: [tile.kind(); 4],
                     count: 4,
-                    claimed_index: None,
                 }),
         );
     }
@@ -314,7 +299,7 @@ fn add_choice_button(
                     kind: Some(choice.tiles[index]),
                     size: MahjongTileSize::GuideHand,
                     index,
-                    highlighted: choice.claimed_index == Some(index),
+                    highlight: MahjongTileHighlight::None,
                     deal: None,
                     relative: 0,
                 },
@@ -386,7 +371,7 @@ fn add_mahjong_button(
     commands.entity(button).add_child(overlay);
     let text = add_text(commands, button, label, 20.0, TEXT, assets);
     commands.entity(text).insert(FocusPolicy::Pass);
-    commands.entity(button).insert(ButtonHighlight::Button {
+    commands.entity(button).insert(ButtonHighlight {
         overlay,
         arrows: None,
     });

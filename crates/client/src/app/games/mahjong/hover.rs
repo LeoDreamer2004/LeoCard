@@ -1,7 +1,7 @@
 //! 手牌悬停时的同牌提示与弃牌听牌预览。
 
 use super::{
-    MahjongAssets, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
+    MahjongAssets, MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
     add_mahjong_tile_material,
 };
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
@@ -83,7 +83,7 @@ pub(super) fn add_mahjong_wait_popup(
                 kind: Some(kind),
                 size: MahjongTileSize::Mini,
                 index,
-                highlighted: false,
+                highlight: MahjongTileHighlight::None,
                 deal: None,
                 relative: 0,
             },

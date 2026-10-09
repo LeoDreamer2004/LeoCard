@@ -224,7 +224,7 @@ impl UnoExpansionRow {
                 ))
                 .id();
             commands.entity(status).add_child(hover);
-            commands.entity(status).insert(ButtonHighlight::Button {
+            commands.entity(status).insert(ButtonHighlight {
                 overlay: hover,
                 arrows: None,
             });

@@ -19,7 +19,7 @@ pub(in super::super) fn render_texas_spectator_drawer(
     ui: &TexasHoldemUiState,
     assets: &UiAssets,
 ) {
-    if game.spectator_equities.is_none() {
+    if !game.spectator_available || !ui.spectator.item_active {
         return;
     }
     let switches = [DrawerSwitch {
@@ -49,7 +49,8 @@ pub(in super::super) fn add_texas_win_rate(
     state: &TexasSpectatorUiState,
     assets: &UiAssets,
 ) {
-    if !state.preferences.show_win_rates
+    if !state.item_active
+        || !state.preferences.show_win_rates
         || game.spectator_equities.is_none()
         || !game
             .players

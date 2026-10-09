@@ -1,8 +1,8 @@
 //! 自己弃牌后，牌河飞行与手牌补位共用一段动画进度。
 
 use super::{
-    MahjongAssets, MahjongHandTile, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
-    MahjongUiState, add_mahjong_tile_material, mahjong_own_row_left,
+    MahjongAssets, MahjongHandTile, MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize,
+    MahjongTileVisual, MahjongUiState, add_mahjong_tile_material, mahjong_own_row_left,
 };
 use crate::app::presentation::ease_out_cubic;
 use bevy::prelude::*;
@@ -239,7 +239,7 @@ pub(super) fn render_own_discard_flight(
             kind: Some(animation.tile.kind()),
             size: MahjongTileSize::River,
             index: 0,
-            highlighted: false,
+            highlight: MahjongTileHighlight::None,
             deal: None,
             relative: 0,
         },

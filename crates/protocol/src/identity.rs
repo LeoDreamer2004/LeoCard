@@ -45,6 +45,8 @@ pub enum PlayerGender {
 pub struct PlayerGameProfiles {
     /// 仅公开各等级已解锁成就数量，不公开成就条目及日期。
     pub achievements: AchievementCounts,
+    /// 由本地钱包公开的金币余额，不随游戏档案存档。
+    pub coins: u32,
     /// Public profile attribute shared with other players and future voice lines.
     pub gender: PlayerGender,
     pub qigui523: Option<QiGui523ProfileStats>,

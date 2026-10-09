@@ -860,6 +860,7 @@ dependencies = [
  "bevy_ecs",
  "bevy_input",
  "bevy_math",
+ "bevy_picking",
  "bevy_reflect",
  "bevy_window",
  "log",
@@ -895,6 +896,7 @@ dependencies = [
  "bevy_material",
  "bevy_math",
  "bevy_mesh",
+ "bevy_picking",
  "bevy_platform",
  "bevy_ptr",
  "bevy_reflect",
@@ -909,6 +911,7 @@ dependencies = [
  "bevy_transform",
  "bevy_ui",
  "bevy_ui_render",
+ "bevy_ui_widgets",
  "bevy_utils",
  "bevy_window",
  "bevy_winit",
@@ -1048,6 +1051,28 @@ dependencies = [
  "thiserror 2.0.21",
  "tracing",
  "wgpu-types",
+]
+
+[[package]]
+name = "bevy_picking"
+version = "0.19.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "235d1ea0cd7d0ff2f37592f37b4d8504c597884296058ecadcb0d206d0258ab7"
+dependencies = [
+ "bevy_app",
+ "bevy_asset",
+ "bevy_camera",
+ "bevy_derive",
+ "bevy_ecs",
+ "bevy_input",
+ "bevy_math",
+ "bevy_platform",
+ "bevy_reflect",
+ "bevy_time",
+ "bevy_transform",
+ "bevy_window",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -1390,6 +1415,7 @@ dependencies = [
  "bevy_input_focus",
  "bevy_log",
  "bevy_math",
+ "bevy_picking",
  "bevy_platform",
  "bevy_reflect",
  "bevy_sprite",
@@ -1405,6 +1431,7 @@ dependencies = [
  "taffy",
  "thiserror 2.0.21",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -1438,6 +1465,30 @@ dependencies = [
  "derive_more",
  "indexmap",
  "tracing",
+]
+
+[[package]]
+name = "bevy_ui_widgets"
+version = "0.19.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a71063099a056a010bdbbcc1f1daf2d50bff517d69d62e5334d4c32d7bf9e9e0"
+dependencies = [
+ "accesskit",
+ "bevy_a11y",
+ "bevy_app",
+ "bevy_camera",
+ "bevy_ecs",
+ "bevy_input",
+ "bevy_input_focus",
+ "bevy_log",
+ "bevy_math",
+ "bevy_picking",
+ "bevy_reflect",
+ "bevy_text",
+ "bevy_ui",
+ "bevy_window",
+ "parley",
+ "smol_str",
 ]
 
 [[package]]
@@ -3162,7 +3213,7 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "leocard-achievements"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "leocard-mahjong",
  "leocard-protocol",
@@ -3176,7 +3227,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-client"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "bevy",
  "bevy_clipboard",
@@ -3207,11 +3258,11 @@ dependencies = [
 
 [[package]]
 name = "leocard-game-common"
-version = "0.5.2"
+version = "0.6.0"
 
 [[package]]
 name = "leocard-host"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3227,7 +3278,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-mahjong"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3235,7 +3286,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-protocol"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "leocard-mahjong",
  "leocard-qigui523",
@@ -3248,7 +3299,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-qigui523"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3256,7 +3307,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-shengji"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3264,7 +3315,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-tcp"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "ed25519-dalek",
  "leocard-host",
@@ -3279,7 +3330,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-texas-holdem"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3287,7 +3338,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-uno"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "leocard-game-common",
  "serde",

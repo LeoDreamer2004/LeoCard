@@ -112,7 +112,7 @@ pub(crate) fn render_uno_mode_dropdown(
             ))
             .id();
         commands.entity(trigger).add_child(hover);
-        commands.entity(trigger).insert(ButtonHighlight::Button {
+        commands.entity(trigger).insert(ButtonHighlight {
             overlay: hover,
             arrows: None,
         });
@@ -225,7 +225,7 @@ pub(crate) fn render_uno_mode_dropdown(
                 ))
                 .id();
             commands.entity(option).add_child(hover);
-            commands.entity(option).insert(ButtonHighlight::Button {
+            commands.entity(option).insert(ButtonHighlight {
                 overlay: hover,
                 arrows: None,
             });

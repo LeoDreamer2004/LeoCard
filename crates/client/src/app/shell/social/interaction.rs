@@ -1,5 +1,6 @@
 use super::*;
 use crate::app::runtime::{ClientResource, UiAssets};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerId, PlayerInteractionKind};
@@ -92,6 +93,7 @@ impl InteractionProjectile {
                 },
                 GlobalZIndex(1200),
                 FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(layer).add_child(effect);

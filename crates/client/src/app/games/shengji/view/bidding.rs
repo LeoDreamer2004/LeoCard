@@ -1,10 +1,10 @@
 use super::super::ShengjiUiAction;
+use super::super::skin::{add_shengji_button, add_shengji_disabled_button};
 use super::shengji_current_level;
+use crate::app::presentation::GameButtonTone;
 use crate::app::presentation::{ACCENT, DANGER, TEXT, add_text, spawn_node};
 use crate::app::runtime::{ClientResource, UiAssets};
-use crate::app::shell::{
-    CozyButtonVariant, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
-};
+use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use leocard_protocol::ShengjiDeclarationView;
 use leocard_protocol::{ShengjiPhaseView, ShengjiSnapshot};
@@ -106,17 +106,17 @@ fn add_shengji_bid_pass_button(
     assets: &UiAssets,
 ) {
     if confirmed {
-        add_cozy_disabled_button(commands, parent, label, assets, px(116), 42.0);
+        add_shengji_disabled_button(commands, parent, label, assets, 116.0, 42.0);
     } else {
-        add_cozy_button_variant(
+        add_shengji_button(
             commands,
             parent,
             label,
             UiAction::Shengji(ShengjiUiAction::ConfirmBidPass),
             assets,
-            px(116),
+            116.0,
             42.0,
-            CozyButtonVariant::Neutral,
+            GameButtonTone::Pass,
         );
     }
 }

@@ -79,6 +79,9 @@ impl JoinRequest {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ClientCommand {
+    PublishCoins {
+        coins: u32,
+    },
     /// Aggregate profile synchronization; IDs announce only newly earned awards.
     PublishAchievements {
         counts: AchievementCounts,

@@ -1,13 +1,16 @@
 use super::state::{ScoreCardsPopupPlacement, SeatVisuals};
-use super::{add_round_play_for_optional_player, add_score_cards_popup, sort_cards_high_to_low};
+use super::{
+    add_qigui_player_stats, add_round_play_for_optional_player, add_score_cards_popup,
+    sort_cards_high_to_low,
+};
 use crate::app::presentation::{
     ACCENT, CardSize, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
-    TurnBorderMaterial, add_card_image, add_player_portrait, add_text,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
+    TurnBorderMaterial, add_card_image, add_player_portrait, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    FinishedHandScoreSource, OpponentBadge, PlayerGameScoreText, SeatSide, displayed_captured_score,
+    FinishedHandScoreSource, OpponentBadge, SeatSide, displayed_captured_score,
 };
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
@@ -190,12 +193,13 @@ pub(super) fn add_opponent_slot(
                 );
             }
             let score = displayed_captured_score(visuals.score_capture, player.id, player.score);
-            add_qigui_score_value(
+            add_qigui_player_stats(
                 commands,
                 portrait.portrait,
                 player.id,
                 side,
                 score,
+                player.hand_len,
                 visuals.ui,
             );
             if let Some(cards) = finished_remaining_hand(visuals.game, player.id)
@@ -257,64 +261,6 @@ pub(super) fn add_opponent_slot(
             visuals.assets,
         );
     }
-}
-
-pub(super) fn add_qigui_score_value(
-    commands: &mut Commands,
-    portrait: Entity,
-    player: PlayerId,
-    side: SeatSide,
-    score: u32,
-    assets: &UiAssets,
-) {
-    let row = spawn_node(
-        commands,
-        portrait,
-        Node {
-            position_type: PositionType::Absolute,
-            top: px(76.0 * 1.17 + 2.0),
-            width: percent(100),
-            height: px(31),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            column_gap: px(7),
-            ..default()
-        },
-        None,
-    );
-    commands.entity(row).insert(FocusPolicy::Pass);
-    let icon = spawn_node(
-        commands,
-        row,
-        Node {
-            width: px(25),
-            height: px(25),
-            flex_shrink: 0.0,
-            border: UiRect::all(px(1.5)),
-            border_radius: BorderRadius::all(percent(50)),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            ..default()
-        },
-        None,
-    );
-    commands
-        .entity(icon)
-        .insert((BorderColor::all(ACCENT.with_alpha(0.85)), FocusPolicy::Pass));
-    let glyph = add_text(commands, icon, "分", 15.0, ACCENT, assets);
-    commands.entity(glyph).insert(FocusPolicy::Pass);
-    let digits = score.to_string();
-    let font_size = (28.0 - digits.len().saturating_sub(3) as f32 * 2.5).max(17.0);
-    let value = add_text(commands, row, digits, font_size, ACCENT, assets);
-    commands.entity(value).insert((
-        PlayerGameScoreText::Opponent { player, side },
-        TextLayout::default().with_no_wrap(),
-        TextShadow {
-            offset: Vec2::new(1.5, 2.0),
-            color: Color::BLACK.with_alpha(0.82),
-        },
-        FocusPolicy::Pass,
-    ));
 }
 
 fn finished_remaining_hand(game: &QiGui523Snapshot, player: PlayerId) -> Option<&[QiGuiCard]> {

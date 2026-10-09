@@ -1,145 +1,7 @@
-//! 开发者手牌输入框的显示同步。
-
-use super::{DeveloperHandInput, DeveloperHandInputField, DeveloperHandInputText};
-use crate::app::presentation::{MUTED, TEXT};
-use crate::app::runtime::UiAssets;
-#[cfg(feature = "developer")]
-use crate::app::runtime::{ClientResource, PageErrorState};
-#[cfg(feature = "developer")]
-use crate::app::shell::game_command;
-use bevy::prelude::*;
-#[cfg(feature = "developer")]
-use leocard_mahjong::{
-    MahjongDragon, MahjongHandReplacementError, MahjongSuit, MahjongTileKind, MahjongWind,
-};
-#[cfg(feature = "developer")]
-use leocard_protocol::{MahjongCommand, QiGui523Command};
-#[cfg(feature = "developer")]
+use leocard_mahjong::{MahjongDragon, MahjongSuit, MahjongTileKind, MahjongWind};
 use leocard_qigui523::{QiGuiCard, QiGuiRank, QiGuiSuit};
-#[cfg(feature = "developer")]
 use std::collections::HashMap;
 
-pub(crate) fn developer_hand_input_label(
-    input: &DeveloperHandInput,
-    placeholder: &'static str,
-) -> String {
-    if input.value.is_empty() {
-        if input.focused {
-            "│".to_owned()
-        } else {
-            placeholder.to_owned()
-        }
-    } else {
-        format!(
-            "{}{}",
-            input.value,
-            if input.focused && !input.selected_all {
-                "│"
-            } else {
-                ""
-            }
-        )
-    }
-}
-
-pub(crate) fn sync_developer_hand_input_text(
-    input: Res<DeveloperHandInput>,
-    assets: Res<UiAssets>,
-    mut labels: Query<(
-        &DeveloperHandInputText,
-        &mut Text,
-        &mut TextColor,
-        &mut TextBackgroundColor,
-    )>,
-    mut fields: Query<&mut ImageNode, With<DeveloperHandInputField>>,
-) {
-    if !input.is_changed() {
-        return;
-    }
-    let expected_color = if input.value.is_empty() { MUTED } else { TEXT };
-    for (label, mut text, mut color, mut background) in &mut labels {
-        let expected = developer_hand_input_label(&input, label.placeholder);
-        if text.0 != expected {
-            text.0 = expected;
-        }
-        if color.0 != expected_color {
-            color.0 = expected_color;
-        }
-        background.0 = if input.selected_all {
-            Color::srgb(0.20, 0.42, 0.72)
-        } else {
-            Color::NONE
-        };
-    }
-    let expected_image = if input.focused {
-        &assets.home.focused_input
-    } else {
-        &assets.home.input
-    };
-    for mut image in &mut fields {
-        if image.image != *expected_image {
-            image.image = expected_image.clone();
-        }
-    }
-}
-
-pub(crate) fn append_developer_hand_input(value: &mut String, text: &str) {
-    const MAX_DEVELOPER_HAND_INPUT: usize = 192;
-    for character in text
-        .chars()
-        .filter(|character| character.is_ascii_alphanumeric())
-    {
-        if value.len() >= MAX_DEVELOPER_HAND_INPUT {
-            break;
-        }
-        value.push(character.to_ascii_uppercase());
-    }
-}
-
-#[cfg(feature = "developer")]
-pub(crate) fn submit_developer_hand(
-    developer_hand: &mut DeveloperHandInput,
-    page_error: &mut PageErrorState,
-    client: Option<&mut ClientResource>,
-) {
-    developer_hand.focused = false;
-    let input = developer_hand.value.trim().to_owned();
-    if input.is_empty() {
-        page_error.error = None;
-        return;
-    }
-    let Some(client) = client else {
-        return;
-    };
-    let command = if let Some(game) = client.0.model().mahjong_game() {
-        parse_developer_mahjong_hand(&input).and_then(|tiles| {
-            if tiles.len() != game.your_hand.len() {
-                return Err(MahjongHandReplacementError::WrongTileCount {
-                    expected: game.your_hand.len() as u16,
-                    actual: tiles.len() as u16,
-                }
-                .to_string());
-            }
-            Ok(game_command(MahjongCommand::SetDeveloperHand { tiles }))
-        })
-    } else {
-        parse_developer_hand(&input)
-            .map(|cards| game_command(QiGui523Command::SetDeveloperHand { cards }))
-    };
-    match command {
-        Ok(command) => {
-            if client.0.send(command) {
-                page_error.error = None;
-                developer_hand.value.clear();
-            } else {
-                page_error.error = Some("当前未连接，无法编辑开发者手牌".to_owned());
-            }
-        }
-        Err(error) => page_error.error = Some(error),
-    }
-}
-
-#[cfg(feature = "developer")]
 pub fn parse_developer_hand(input: &str) -> Result<Vec<QiGuiCard>, String> {
     let source = input
         .chars()
@@ -183,7 +45,6 @@ pub fn parse_developer_hand(input: &str) -> Result<Vec<QiGuiCard>, String> {
     Ok(cards)
 }
 
-#[cfg(feature = "developer")]
 fn parse_developer_hand_by_rank(source: &[char]) -> Result<Vec<QiGuiCard>, String> {
     let mut cards = Vec::with_capacity(source.len());
     let mut copies = HashMap::<(QiGuiSuit, QiGuiRank), u8>::new();
@@ -207,7 +68,6 @@ fn parse_developer_hand_by_rank(source: &[char]) -> Result<Vec<QiGuiCard>, Strin
     Ok(cards)
 }
 
-#[cfg(feature = "developer")]
 fn parse_developer_rank(code: char) -> Option<QiGuiRank> {
     Some(match code {
         '2' => QiGuiRank::Two,
@@ -227,7 +87,6 @@ fn parse_developer_rank(code: char) -> Option<QiGuiRank> {
     })
 }
 
-#[cfg(feature = "developer")]
 pub fn parse_developer_mahjong_hand(input: &str) -> Result<Vec<MahjongTileKind>, String> {
     let source = input
         .chars()

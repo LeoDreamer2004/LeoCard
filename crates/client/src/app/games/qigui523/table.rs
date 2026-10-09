@@ -1,6 +1,7 @@
 //! 七鬼五二三牌桌、座位、手牌、出牌区、得分与计时布局。
 
 use super::cards::{HandCardSpec, add_card_button};
+use super::counter::render_counter;
 use super::state::{ScoreCardsPopupPlacement, SeatVisuals};
 use super::{
     NoLegalResponseHint, PlayEffectState, PlaySelectionCount, QIGUI_AVATAR_SIZE,
@@ -211,6 +212,7 @@ pub(crate) fn render_table(
         return;
     }
 
+    render_counter(commands, table, ui, assets);
     let center = spawn_node(
         commands,
         table,

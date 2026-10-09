@@ -5,7 +5,6 @@ use crate::app::presentation::{
     DEFAULT_TABLE_VIGNETTE, MAX_TABLE_BRIGHTNESS, MAX_TABLE_VIGNETTE, MIN_TABLE_BRIGHTNESS,
     MIN_TABLE_VIGNETTE,
 };
-use crate::app::shell::InputField;
 use bevy::prelude::*;
 pub(crate) use leocard_client::{
     GamePreferences, MahjongPreferences, QiGui523Preferences, SavedPreferences, ShengjiPreferences,
@@ -29,8 +28,6 @@ pub(crate) struct ConnectionDraft {
     pub gender: PlayerGender,
     pub host_port: String,
     pub join_address: String,
-    pub active: InputField,
-    pub selected_all: bool,
 }
 
 #[derive(Resource)]
@@ -115,8 +112,6 @@ impl PreferenceResources {
                 } else {
                     saved.global.join_address
                 },
-                active: InputField::PlayerName,
-                selected_all: false,
             },
             appearance: AppearancePreferences {
                 avatar_png: saved

@@ -5,6 +5,7 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::ecs::system::SystemParam;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_client::ScoreCaptureEffect;
@@ -146,6 +147,7 @@ fn spawn_score_capture_effect(
                 ActiveScoreVortex { elapsed: 0.0 },
                 GlobalZIndex(1550),
                 FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(layer).add_child(vortex);
@@ -208,6 +210,7 @@ fn spawn_score_capture_effect(
                 },
                 GlobalZIndex(1560 + index as i32),
                 FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(layer).add_child(entity);
@@ -228,9 +231,12 @@ fn spawn_score_capture_effect(
         },
         None,
     );
-    commands
-        .entity(score)
-        .insert((UiTransform::IDENTITY, GlobalZIndex(1700), FocusPolicy::Pass));
+    commands.entity(score).insert((
+        UiTransform::IDENTITY,
+        GlobalZIndex(1700),
+        FocusPolicy::Pass,
+        Pickable::IGNORE,
+    ));
     let text = add_text(
         commands,
         score,
@@ -242,6 +248,7 @@ fn spawn_score_capture_effect(
         Color::NONE,
         assets,
     );
+    commands.entity(text).insert(Pickable::IGNORE);
     commands
         .entity(score)
         .insert(ActiveScoreGainText { elapsed: 0.0, text });

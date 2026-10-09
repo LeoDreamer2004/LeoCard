@@ -134,23 +134,28 @@ impl ClientModel {
         self.player_name(id).is_some()
     }
 
-    pub fn local_game_profiles(&self) -> Option<&PlayerGameProfiles> {
-        macro_rules! local_profiles {
-            ($game:expr) => {{
-                let game = $game;
-                game.players
+    pub fn player_game_profiles(&self, id: PlayerId) -> Option<&PlayerGameProfiles> {
+        macro_rules! profiles {
+            ($players:expr) => {
+                $players
                     .iter()
-                    .find(|player| player.id == game.you)
+                    .find(|player| player.id == id)
                     .map(|player| &player.game_profiles)
-            }};
+            };
         }
-        match self.game.as_ref()? {
-            GameSnapshot::QiGui523(game) => local_profiles!(game),
-            GameSnapshot::TexasHoldem(game) => local_profiles!(game),
-            GameSnapshot::Shengji(game) => local_profiles!(game),
-            GameSnapshot::Uno(game) => local_profiles!(game),
-            GameSnapshot::Mahjong(game) => local_profiles!(game),
+        match self.phase() {
+            ClientPhaseRef::Lobby(lobby) => profiles!(lobby.players),
+            ClientPhaseRef::Playing(GameSnapshot::QiGui523(game)) => profiles!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::TexasHoldem(game)) => profiles!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::Shengji(game)) => profiles!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => profiles!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::Mahjong(game)) => profiles!(game.players),
+            ClientPhaseRef::Idle | ClientPhaseRef::Closed => None,
         }
+    }
+
+    pub fn local_game_profiles(&self) -> Option<&PlayerGameProfiles> {
+        self.player_game_profiles(self.you()?)
     }
 
     pub fn game_rules(&self) -> Option<&GameRules> {

@@ -11,7 +11,13 @@ pub(super) enum AchievementRecipient {
 }
 
 #[derive(Message)]
-pub(super) struct AchievementUnlocked {
+pub(crate) struct AchievementUnlocked {
     pub(super) definition: &'static AchievementDefinition,
     pub(super) recipient: AchievementRecipient,
+}
+
+impl AchievementUnlocked {
+    pub(crate) fn local_definition(&self) -> Option<&'static AchievementDefinition> {
+        matches!(&self.recipient, AchievementRecipient::Local).then_some(self.definition)
+    }
 }

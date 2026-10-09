@@ -1,6 +1,6 @@
 use super::lobby_game::animate_lobby_game_motion;
 use super::page::{animate_page_motion, page_content_can_animate};
-use super::{LobbyGameMotion, PageMotion};
+use super::{LobbyGameMotion, PageMotion, PageTransitionSet};
 use crate::app::presentation::{
     SummaryAnimationSet, animate_button_arrows, update_button_highlights,
 };
@@ -19,6 +19,7 @@ impl Plugin for PageTransitionPlugin {
                 Update,
                 (
                     animate_page_motion
+                        .in_set(PageTransitionSet)
                         .after(update_achievement_category_hover)
                         .after(update_button_highlights)
                         .after(animate_button_arrows),

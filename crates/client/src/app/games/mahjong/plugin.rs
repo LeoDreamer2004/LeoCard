@@ -1,13 +1,13 @@
-use super::advance_mahjong_modal;
 use super::{
     MahjongClaimPresentationState, MahjongFanGuideScroll, MahjongFanVoicePlayback,
-    MahjongTileMaterial, MahjongUiState, actions, advance_mahjong_claim_presentation,
-    animate_mahjong_claim_presentation, animate_mahjong_deal_tiles,
-    animate_mahjong_fan_guide_tiles, animate_mahjong_final_summary,
-    animate_mahjong_flower_presentations, animate_mahjong_settlement, animate_mahjong_turn_sector,
-    animate_mahjong_win_effects, animate_mahjong_win_screen_shake, animate_mahjong_win_tile_shakes,
+    MahjongPromptPlayback, MahjongTileMaterial, MahjongUiState, actions,
+    advance_mahjong_claim_presentation, advance_mahjong_modal, animate_mahjong_claim_presentation,
+    animate_mahjong_deal_tiles, animate_mahjong_fan_guide_tiles, animate_mahjong_final_summary,
+    animate_mahjong_flower_presentations, animate_mahjong_response_indicators,
+    animate_mahjong_settlement, animate_mahjong_turn_sector, animate_mahjong_win_effects,
+    animate_mahjong_win_screen_shake, animate_mahjong_win_tile_shakes,
     animate_mahjong_winning_hands, animate_own_discard, animate_remote_discard,
-    apply_automatic_mahjong_action, assets, play_mahjong_fan_voices,
+    apply_automatic_mahjong_action, assets, play_mahjong_action_prompt, play_mahjong_fan_voices,
     sync_mahjong_claim_presentation, sync_mahjong_fan_guide, sync_mahjong_hand_tile_materials,
     sync_mahjong_hover_hints,
 };
@@ -26,6 +26,7 @@ impl Plugin for MahjongPlugin {
             .insert_resource(MahjongClaimPresentationState::default())
             .init_resource::<MahjongFanVoicePlayback>()
             .init_resource::<MahjongUiState>()
+            .init_resource::<MahjongPromptPlayback>()
             .add_systems(
                 Update,
                 advance_mahjong_modal.in_set(ModalAnimationSet::Progress),
@@ -65,6 +66,8 @@ impl Plugin for MahjongPlugin {
             .add_systems(
                 Update,
                 (
+                    play_mahjong_action_prompt,
+                    animate_mahjong_response_indicators,
                     animate_mahjong_deal_tiles,
                     animate_own_discard,
                     animate_remote_discard,

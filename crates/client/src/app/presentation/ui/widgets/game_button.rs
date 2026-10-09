@@ -24,6 +24,47 @@ pub(crate) struct GameButtonSpec<'a> {
     pub image_mode: GameButtonImageMode,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum GameButtonTone {
+    Play,
+    Pass,
+    Hint,
+}
+
+impl<'a> GameButtonSpec<'a> {
+    pub fn action(
+        assets: &'a UiAssets,
+        label: &'a str,
+        action: Option<UiAction>,
+        tone: GameButtonTone,
+    ) -> Self {
+        let (normal, hovered) = match tone {
+            GameButtonTone::Play => (
+                &assets.controls.game_play_button,
+                &assets.controls.game_play_button_hover,
+            ),
+            GameButtonTone::Pass => (
+                &assets.controls.game_pass_button,
+                &assets.controls.game_pass_button_hover,
+            ),
+            GameButtonTone::Hint => (
+                &assets.controls.game_hint_button,
+                &assets.controls.game_hint_button_hover,
+            ),
+        };
+        Self {
+            label,
+            action,
+            normal,
+            hovered,
+            width: 164.0,
+            height: 54.0,
+            font_size: 18.0,
+            image_mode: GameButtonImageMode::Stretch,
+        }
+    }
+}
+
 fn game_button_image(texture: &Handle<Image>, mode: GameButtonImageMode, alpha: f32) -> ImageNode {
     let mode = match mode {
         GameButtonImageMode::Stretch => NodeImageMode::Stretch,
@@ -85,7 +126,7 @@ pub(crate) fn add_textured_game_button(
             ))
             .id();
         commands.entity(button).add_child(overlay);
-        commands.entity(button).insert(ButtonHighlight::Button {
+        commands.entity(button).insert(ButtonHighlight {
             overlay,
             arrows: None,
         });

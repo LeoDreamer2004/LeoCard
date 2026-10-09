@@ -2,12 +2,15 @@
 
 pub(crate) mod actions;
 mod assets;
+mod counter;
 mod hand_interaction;
 mod hints;
 mod lobby;
+mod missing_suits;
 mod plugin;
 mod presentation;
 mod settlement;
+mod skin;
 mod snapshot;
 mod state;
 mod throw_feedback;

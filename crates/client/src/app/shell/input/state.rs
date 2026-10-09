@@ -11,10 +11,3 @@ impl Default for UiZoom {
         Self { manual: 1.0 }
     }
 }
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum InputField {
-    PlayerName,
-    HostPort,
-    JoinAddress,
-}

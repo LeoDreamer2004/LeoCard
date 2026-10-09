@@ -5,12 +5,12 @@ use super::{
 use crate::app::presentation::{
     ACCENT, HEADER_BG, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
     TurnBorderMaterial, add_player_portrait, add_text, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, position_opponent_popup, spawn_node,
+    attach_start_game_seat_transition, card_background_image, position_opponent_popup, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{OpponentBadge, SeatSide};
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{GameKind, PlayerId, TexasHoldemPlayerState, TexasHoldemSnapshot};
 
 pub(super) const TEXAS_PORTRAIT_WIDTH: f32 = 96.0 * 1.17;
@@ -142,7 +142,6 @@ pub(super) fn add_texas_opponent(
     let popup = add_texas_chip_popup(
         commands,
         seat,
-        &player.name,
         player.stack,
         Some(side),
         assets,
@@ -286,15 +285,10 @@ pub(super) fn add_role_tokens(
     }
 }
 
-/// 德州筹码面板沿用七鬼五二三分牌面板的外观，并显示账本中真实存在的筹码。
-#[expect(
-    clippy::too_many_arguments,
-    reason = "the chip popup builder keeps player and stack presentation inputs explicit"
-)]
+/// 自己与其他玩家的筹码面板共用首页游戏卡片纹理，显示账本中的实际筹码。
 pub(super) fn add_texas_chip_popup(
     commands: &mut Commands,
     parent: Entity,
-    player_name: &str,
     stack: u32,
     opponent_side: Option<SeatSide>,
     assets: &UiAssets,
@@ -311,8 +305,6 @@ pub(super) fn add_texas_chip_popup(
         ..default()
     };
     if let Some(side) = opponent_side {
-        node.border = UiRect::all(px(1));
-        node.border_radius = BorderRadius::all(px(8));
         position_opponent_popup(&mut node, side);
         node.top = px(TEXAS_PORTRAIT_HEIGHT + 6.0);
     } else {
@@ -323,42 +315,14 @@ pub(super) fn add_texas_chip_popup(
         node.padding = UiRect::new(px(76), px(6), px(6), px(6));
         node.justify_content = JustifyContent::Center;
     }
-    let popup = spawn_node(
-        commands,
-        parent,
-        node,
-        opponent_side.map(|_| Color::BLACK.with_alpha(0.78)),
-    );
+    let popup = spawn_node(commands, parent, node, None);
     commands
         .entity(popup)
         .insert((GlobalZIndex(1500), FocusPolicy::Pass));
-    if opponent_side.is_some() {
-        commands
-            .entity(popup)
-            .insert(BorderColor::all(ACCENT.with_alpha(0.72)));
-    } else {
-        let mut image = ImageNode::new(assets.home.game_card.clone()).with_mode(
-            NodeImageMode::Sliced(TextureSlicer {
-                border: BorderRect::all(16.0),
-                center_scale_mode: SliceScaleMode::Stretch,
-                sides_scale_mode: SliceScaleMode::Stretch,
-                max_corner_scale: 1.0,
-            }),
-        );
-        image.visual_box = VisualBox::BorderBox;
-        commands.entity(popup).insert(image);
-    }
+    let image = card_background_image(assets.home.game_card.clone(), 1.0);
+    commands.entity(popup).insert(image);
 
-    if opponent_side.is_some() {
-        add_text(
-            commands,
-            popup,
-            format!("{player_name} 的筹码 · 剩余 {stack}"),
-            12.0,
-            ACCENT,
-            assets,
-        );
-    } else {
+    if opponent_side.is_none() {
         let value_area = spawn_node(
             commands,
             popup,

@@ -7,8 +7,10 @@ use leocard_protocol::{
     ShengjiPlayerState, ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureView,
     ShengjiTrickView,
 };
-use leocard_shengji::BottomCopyState;
-use leocard_shengji::{FiveTrumpCrossingStage, GameState, Phase, ShengjiPlayerId, ShengjiRuleSet};
+use leocard_shengji::{
+    BottomCopyState, FiveTrumpCrossingStage, GameState, Phase, ShengjiCard, ShengjiPlayerId,
+    ShengjiRuleSet,
+};
 
 impl ShengjiSession {
     pub(super) fn game_snapshot(&self, recipient: PlayerId) -> ShengjiSnapshot {
@@ -36,6 +38,25 @@ impl ShengjiSession {
                 .collect(),
             table_points: trick.points,
         });
+        let missing = super::missing_suits::missing_suits(game, trick.as_ref());
+        let mut played_cards: Vec<_> = game
+            .history()
+            .iter()
+            .flat_map(|trick| {
+                trick
+                    .plays
+                    .iter()
+                    .flat_map(|(_, play)| play.cards.iter().copied())
+            })
+            .chain(trick.as_ref().into_iter().flat_map(|trick| {
+                trick
+                    .plays
+                    .iter()
+                    .flat_map(|play| play.play.cards.iter().copied())
+            }))
+            .collect();
+        played_cards.sort_by(ShengjiCard::identity_cmp);
+        played_cards.dedup();
         ShengjiSnapshot {
             match_id: self.match_id.expect("started game has a match id"),
             hand_number: self.hand_number,
@@ -58,6 +79,7 @@ impl ShengjiSession {
                         name: public.name,
                         avatar: public.avatar,
                         seat: public.seat.expect("started player has a seat"),
+                        missing_suits: missing.get(&public.id).cloned().unwrap_or_default(),
                         hand_len: game
                             .players()
                             .get(usize::from(public.id.0))
@@ -84,6 +106,7 @@ impl ShengjiSession {
             .then(|| game.current_player().map(from_core_player))
             .flatten(),
             trick,
+            played_cards,
             throw_failure: self.presentation.throw_failure.as_ref().map(|failure| {
                 ShengjiThrowFailureView {
                     player: from_core_player(failure.player),

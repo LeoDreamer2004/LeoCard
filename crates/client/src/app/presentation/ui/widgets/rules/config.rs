@@ -141,7 +141,7 @@ fn add_rule_step_button<R: EditableRuleSet>(
             ))
             .id();
         commands.entity(entity).add_child(hover);
-        commands.entity(entity).insert(ButtonHighlight::Button {
+        commands.entity(entity).insert(ButtonHighlight {
             overlay: hover,
             arrows: None,
         });

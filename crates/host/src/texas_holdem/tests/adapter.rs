@@ -339,6 +339,10 @@ fn spectator_equity_is_exact_and_waits_for_the_folded_betting_round() {
     game.act(RIGHT, TexasHoldemAction::Check).unwrap();
 
     let deadline = Instant::now() + Duration::from_secs(5);
+    let observer = game.snapshot(HOST).unwrap();
+    assert!(observer.spectator_available);
+    assert!(observer.spectator_equities.is_none());
+    game.set_spectator_win_rates(HOST, true).unwrap();
     let rates = loop {
         let snapshot = game.snapshot(HOST).unwrap();
         assert!(snapshot.revealed_hands.is_empty());

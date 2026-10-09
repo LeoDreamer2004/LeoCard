@@ -7,6 +7,9 @@ use bevy::prelude::*;
 
 pub(crate) struct AchievementPlugin;
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, SystemSet)]
+pub(crate) struct AchievementUpdateSet;
+
 impl Plugin for AchievementPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<AchievementUnlocked>()
@@ -26,6 +29,7 @@ impl Plugin for AchievementPlugin {
                     queue_achievement_notifications,
                 )
                     .chain()
+                    .in_set(AchievementUpdateSet)
                     .in_set(ClientUpdateSet::Sync),
             )
             .add_systems(

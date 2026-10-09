@@ -197,6 +197,7 @@ pub enum QiGui523Command {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum TexasHoldemCommand {
     SetAutoPlay { enabled: bool },
+    SetSpectatorWinRates { enabled: bool },
     UpdateRules { rules: TexasHoldemRuleSet },
     Act { action: TexasHoldemAction },
 }

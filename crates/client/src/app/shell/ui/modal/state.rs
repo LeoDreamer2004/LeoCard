@@ -7,6 +7,7 @@ pub(crate) enum CozyModalKind {
     MahjongFanGuide,
     TexasHandGuide,
     UnoExpansionSettings,
+    Confirmation,
     UpdateDialog,
 }
 

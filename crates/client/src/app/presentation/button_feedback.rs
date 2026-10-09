@@ -13,14 +13,9 @@ pub(crate) struct CustomButtonMotion;
 pub(crate) struct SilentButton;
 
 #[derive(Component)]
-pub(crate) enum ButtonHighlight {
-    Card {
-        arrows: [Entity; 2],
-    },
-    Button {
-        overlay: Entity,
-        arrows: Option<[Entity; 2]>,
-    },
+pub(crate) struct ButtonHighlight {
+    pub overlay: Entity,
+    pub arrows: Option<[Entity; 2]>,
 }
 
 #[derive(Component)]
@@ -64,43 +59,22 @@ pub(crate) fn animate_button_arrows(
 }
 
 pub(crate) fn update_button_highlights(
-    buttons: Query<(Entity, &Interaction, &ButtonHighlight), Changed<Interaction>>,
-    mut card_images: Query<&mut ImageNode>,
+    buttons: Query<(&Interaction, &ButtonHighlight), Changed<Interaction>>,
     mut highlights: Query<&mut Visibility>,
-    assets: Res<UiAssets>,
 ) {
-    for (entity, interaction, kind) in &buttons {
-        let hovered = *interaction != Interaction::None;
-        let visibility = if hovered {
+    for (interaction, highlight) in &buttons {
+        let visibility = if *interaction != Interaction::None {
             Visibility::Visible
         } else {
             Visibility::Hidden
         };
-        match kind {
-            ButtonHighlight::Card { arrows } => {
-                if let Ok(mut image) = card_images.get_mut(entity) {
-                    image.image = if hovered {
-                        assets.home.game_card_hover.clone()
-                    } else {
-                        assets.home.game_card.clone()
-                    };
-                }
-                for arrow in arrows {
-                    if let Ok(mut highlight) = highlights.get_mut(*arrow) {
-                        *highlight = visibility;
-                    }
-                }
-            }
-            ButtonHighlight::Button { overlay, arrows } => {
-                if let Ok(mut highlight) = highlights.get_mut(*overlay) {
-                    *highlight = visibility;
-                }
-                if let Some(arrows) = arrows {
-                    for arrow in arrows {
-                        if let Ok(mut highlight) = highlights.get_mut(*arrow) {
-                            *highlight = visibility;
-                        }
-                    }
+        if let Ok(mut overlay) = highlights.get_mut(highlight.overlay) {
+            *overlay = visibility;
+        }
+        if let Some(arrows) = highlight.arrows {
+            for arrow in arrows {
+                if let Ok(mut arrow) = highlights.get_mut(arrow) {
+                    *arrow = visibility;
                 }
             }
         }

@@ -1,6 +1,6 @@
 use crate::app::presentation::CustomButtonMotion;
 use bevy::prelude::*;
-use leocard_protocol::PlayerGameProfiles;
+use leocard_protocol::{PlayerGameProfiles, PlayerId};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) enum ProfileGameTab {
@@ -24,6 +24,7 @@ impl ProfileGameTab {
 
 #[derive(Clone)]
 pub(crate) struct PlayerProfilePage {
+    pub id: PlayerId,
     pub name: String,
     pub avatar: Option<Handle<Image>>,
     pub reference_points: i32,

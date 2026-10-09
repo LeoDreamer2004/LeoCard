@@ -195,6 +195,9 @@ impl HostedGameLifecycle for TexasHoldemSession {
             TexasHoldemCommand::SetAutoPlay { enabled } => {
                 self.set_auto_play(connection, request_id, enabled)
             }
+            TexasHoldemCommand::SetSpectatorWinRates { enabled } => {
+                self.set_spectator_win_rates(connection, request_id, enabled)
+            }
             TexasHoldemCommand::UpdateRules { rules } => {
                 self.update_rules(connection, request_id, rules)
             }

@@ -12,6 +12,10 @@ const PAGE_EXIT_DURATION: f32 = 0.24;
 const PAGE_ENTER_DURATION: f32 = 0.38;
 const RETURN_DARKEN_DURATION: f32 = 0.17;
 
+/// Publish the page's current transform and opacity before animated visuals read them.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, SystemSet)]
+pub(crate) struct PageTransitionSet;
+
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 enum PageStage {
     #[default]

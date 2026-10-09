@@ -1,8 +1,8 @@
 use super::sort_cards_high_to_low;
 use super::state::ScoreCardsPopupPlacement;
-use super::{QIGUI_PORTRAIT_HEIGHT, QIGUI_PORTRAIT_WIDTH, qigui_panel_image};
+use super::{QIGUI_PORTRAIT_HEIGHT, QIGUI_PORTRAIT_WIDTH, qigui_plate_image};
 use crate::app::presentation::{
-    ACCENT, CardSize, MUTED, TEXT, add_card_image, add_text, position_opponent_popup, spawn_node,
+    ACCENT, CardSize, MUTED, add_card_image, add_text, position_opponent_popup, spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{PlayerGameScoreText, ScoreCaptureEffectState, displayed_captured_score};
@@ -61,25 +61,12 @@ pub(super) fn add_score_cards_popup(
     let popup = commands
         .spawn((
             node,
-            qigui_panel_image(assets),
+            qigui_plate_image(assets),
             GlobalZIndex(1500),
             FocusPolicy::Pass,
         ))
         .id();
     commands.entity(parent).add_child(popup);
-    add_text(
-        commands,
-        popup,
-        format!(
-            "{} 的分牌 · {} 分 · {} 张",
-            player.name,
-            displayed_score,
-            cards.len()
-        ),
-        12.0,
-        TEXT,
-        assets,
-    );
     if cards.is_empty() {
         add_text(commands, popup, "尚未获得分牌", 12.0, MUTED, assets);
     } else {
@@ -165,14 +152,13 @@ fn add_own_score_plaque(
                     row_gap: px(6),
                     ..default()
                 },
-                qigui_panel_image(assets),
+                qigui_plate_image(assets),
                 Visibility::Hidden,
                 GlobalZIndex(1500),
                 FocusPolicy::Pass,
             ))
             .id();
         commands.entity(plaque).add_child(detail);
-        add_text(commands, detail, "已得分牌", 12.0, TEXT, assets);
         add_score_card_rows(commands, detail, cards, assets);
         commands.entity(plaque).insert(OwnScoreDetail(detail));
     }

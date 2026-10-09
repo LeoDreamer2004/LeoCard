@@ -17,6 +17,7 @@ fn score_history_snapshot(trick: Option<TrickView>, phase: GamePhaseView) -> QiG
         you: PlayerId(0),
         host: PlayerId(0),
         players: Vec::new(),
+        played_cards: Vec::new(),
         your_hand: Vec::new(),
         draw_pile_len: 0,
         starting_card: StartingCardView {

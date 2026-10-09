@@ -2,11 +2,13 @@
 
 mod actions;
 mod files;
+mod form;
 mod plugin;
 mod view;
 
 pub(crate) use actions::*;
 pub(crate) use files::*;
+pub(crate) use form::InputField;
 pub(super) use plugin::*;
 pub(crate) use view::*;
 

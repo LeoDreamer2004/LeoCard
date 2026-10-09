@@ -1,5 +1,6 @@
 //! 麻将客户端表现层。
 
+mod action_prompt;
 pub(crate) mod actions;
 mod assets;
 mod auto;
@@ -22,6 +23,7 @@ mod view;
 pub(super) mod violation;
 mod voices;
 
+use action_prompt::*;
 pub(crate) use actions::*;
 pub(crate) use assets::*;
 use auto::*;

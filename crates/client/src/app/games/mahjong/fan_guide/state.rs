@@ -1,8 +1,8 @@
 use self::catalog::{ENTRIES, FanGuideEntry};
 use super::super::actions::MahjongUiAction;
 use super::super::{
-    MAHJONG_KONG_STACK_LIFT, MahjongAssets, MahjongTileMaterial, MahjongTileSize,
-    MahjongTileVisual, MahjongUiState, add_mahjong_tile_material,
+    MAHJONG_KONG_STACK_LIFT, MahjongAssets, MahjongTileHighlight, MahjongTileMaterial,
+    MahjongTileSize, MahjongTileVisual, MahjongUiState, add_mahjong_tile_material,
 };
 use super::*;
 use crate::app::presentation::{ButtonHighlight, MUTED, TEXT, add_text, spawn_node};
@@ -362,7 +362,7 @@ pub(super) fn render_tabs(
                 ))
                 .id();
             commands.entity(tab).add_child(overlay);
-            commands.entity(tab).insert(ButtonHighlight::Button {
+            commands.entity(tab).insert(ButtonHighlight {
                 overlay,
                 arrows: None,
             });
@@ -500,7 +500,7 @@ pub(super) fn render_example(
                         guide_tile_size(exposed)
                     },
                     index,
-                    highlighted: false,
+                    highlight: MahjongTileHighlight::None,
                     deal: None,
                     relative: 0,
                 },
@@ -531,7 +531,7 @@ pub(super) fn render_example(
                     kind: Some(kinds[3]),
                     size: guide_kong_size(exposed),
                     index: 3,
-                    highlighted: false,
+                    highlight: MahjongTileHighlight::None,
                     deal: None,
                     relative: 0,
                 },

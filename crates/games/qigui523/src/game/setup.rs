@@ -64,6 +64,7 @@ impl GameState {
             rules,
             players,
             draw_pile,
+            played_cards: Vec::new(),
             starting_card,
             trick,
             phase: Phase::Playing,

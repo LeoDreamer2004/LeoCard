@@ -2,10 +2,11 @@
 
 use super::{
     AchievementAssets, CHAT_EMOJI_ASSET_PATHS, CommonAudioAssets, ControlAssets, HomeAssets,
-    PlayingCardAssets, SocialAssets, TABLE_FELT_ASSET, UI_FONT_ASSET, UiAssets, card_asset_path,
-    interaction_cooldown_mask_image,
+    PlayingCardAssets, ShopAssets, SocialAssets, TABLE_FELT_ASSET, UI_FONT_ASSET, UiAssets,
+    card_asset_path, interaction_cooldown_mask_image,
 };
 use crate::app::shell::{INTERACTION_COOLDOWN_MASK_FRAMES, PlayerInteractionLayer};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerInteractionKind, QUICK_VOICE_COUNT};
@@ -26,6 +27,7 @@ pub(crate) fn setup_camera(mut commands: Commands) {
         },
         GlobalZIndex(1100),
         FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 
@@ -91,6 +93,8 @@ pub(crate) fn load_ui_assets(
     commands.insert_resource(UiAssets {
         font: asset_server.load(UI_FONT_ASSET),
         playing_cards: PlayingCardAssets {
+            suits: ["diamond", "club", "heart", "spade"]
+                .map(|suit| asset_server.load(format!("ui/cards/suit-{suit}.png"))),
             cards,
             card_back: asset_server.load("vendor/kenney/boardgame/PNG/Cards/cardBack_blue4.png"),
         },
@@ -141,13 +145,6 @@ pub(crate) fn load_ui_assets(
             slider_handle_highlighted: asset_server.load("ui/home/slider_handle_highlighted.png"),
             input: asset_server.load("ui/home/cozy-input-compact.png"),
             focused_input: asset_server.load("ui/home/cozy-input-focused-compact.png"),
-            game_art: [
-                asset_server.load("vendor/kenney/boardgame/PNG/Cards/cardClubs7.png"),
-                asset_server.load("vendor/kenney/boardgame/PNG/Cards/cardSpadesA.png"),
-                asset_server.load("vendor/kenney/boardgame/PNG/Cards/cardHearts2.png"),
-                asset_server.load("cards/uno/red_5.png"),
-                asset_server.load("cards/mahjong/hong-kong/dragon-red.png"),
-            ],
             // 与 profile::rating::REFERENCE_LEVEL_NAMES 的顺序一致。
             reference_level_icons: [
                 asset_server.load("ui/profile/netherite.png"),
@@ -161,6 +158,13 @@ pub(crate) fn load_ui_assets(
                 asset_server.load("ui/profile/dirt.png"),
                 asset_server.load("ui/profile/composter.png"),
             ],
+        },
+        shop: ShopAssets {
+            coin: asset_server.load("ui/shop/coin.png"),
+            icon: asset_server.load("ui/shop/shop.png"),
+            observation_lens: asset_server.load("ui/shop/observation-lens.png"),
+            card_counter: asset_server.load("ui/shop/card-counter.png"),
+            missing_suit_card: asset_server.load("ui/shop/missing-suit-card.png"),
         },
         achievements: AchievementAssets {
             icon: asset_server.load("icons/achievement-trophy.png"),

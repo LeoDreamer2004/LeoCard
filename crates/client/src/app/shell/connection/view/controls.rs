@@ -16,17 +16,6 @@ pub(super) fn home_panel_image(assets: &UiAssets) -> ImageNode {
     image
 }
 
-pub(super) fn home_game_card_image(texture: Handle<Image>) -> ImageNode {
-    let mut image = ImageNode::new(texture).with_mode(NodeImageMode::Sliced(TextureSlicer {
-        border: BorderRect::all(16.0),
-        center_scale_mode: SliceScaleMode::Stretch,
-        sides_scale_mode: SliceScaleMode::Stretch,
-        max_corner_scale: 1.0,
-    }));
-    image.visual_box = VisualBox::BorderBox;
-    image
-}
-
 pub(super) fn home_panel(
     commands: &mut Commands,
     parent: Entity,
@@ -195,7 +184,7 @@ pub(super) fn home_button(
             Vec2::new(64.0, 40.0),
         )
     });
-    commands.entity(entity).insert(ButtonHighlight::Button {
+    commands.entity(entity).insert(ButtonHighlight {
         overlay,
         arrows: left_arrow
             .zip(right_arrow)

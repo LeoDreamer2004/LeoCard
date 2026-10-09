@@ -136,7 +136,7 @@ pub(crate) fn add_cozy_close_button(
         ))
         .id();
     commands.entity(button).add_child(overlay);
-    commands.entity(button).insert(ButtonHighlight::Button {
+    commands.entity(button).insert(ButtonHighlight {
         overlay,
         arrows: None,
     });
@@ -304,7 +304,7 @@ fn add_cozy_button_styled(
     if let Some(label) = label {
         add_text(commands, button, label, 14.0, TEXT, assets);
     }
-    commands.entity(button).insert(ButtonHighlight::Button {
+    commands.entity(button).insert(ButtonHighlight {
         overlay,
         arrows: None,
     });

@@ -199,6 +199,7 @@ pub struct GameState {
     pub(super) rules: QiGuiRuleSet,
     pub(super) players: Vec<PlayerState>,
     pub(super) draw_pile: VecDeque<QiGuiCard>,
+    pub(super) played_cards: Vec<QiGuiCard>,
     pub(super) starting_card: StartingCard,
     pub(super) trick: Option<TrickState>,
     pub(super) phase: Phase,
@@ -215,6 +216,11 @@ impl GameState {
 
     pub fn player(&self, id: QiGuiPlayerId) -> Option<&PlayerState> {
         self.players.get(id.0)
+    }
+
+    /// 本局实际公开打出的实体牌，包含已经收走的轮次。
+    pub fn played_cards(&self) -> &[QiGuiCard] {
+        &self.played_cards
     }
 
     pub fn draw_pile_len(&self) -> usize {

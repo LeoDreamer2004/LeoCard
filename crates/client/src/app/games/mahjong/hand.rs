@@ -1,11 +1,12 @@
 use super::tiles::{add_mahjong_hand_tile, mahjong_deal_spec, mahjong_draw_spec};
 use super::{
     ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MahjongAssets, MahjongClaimHandShift,
-    MahjongDiscardHandShift, MahjongHandTile, MahjongOwnDiscardAnimation, MahjongTileMaterial,
-    MahjongTileSize, MahjongTileVisual, MahjongUiAction, MahjongWinningHand,
-    add_mahjong_tile_material, add_mahjong_wait_popup, apply_mahjong_winning_hand_visual,
-    mahjong_claim_hand_shift_x, mahjong_discard_waits, mahjong_own_row_left, mahjong_win_tile_cues,
-    mahjong_winning_hand_progress, mark_mahjong_win_tile,
+    MahjongDiscardHandShift, MahjongHandTile, MahjongOwnDiscardAnimation, MahjongTileHighlight,
+    MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongUiAction, MahjongWinningHand,
+    add_mahjong_response_indicator, add_mahjong_tile_material, add_mahjong_wait_popup,
+    apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x, mahjong_discard_waits,
+    mahjong_own_row_left, mahjong_win_tile_cues, mahjong_winning_hand_progress,
+    mark_mahjong_win_tile,
 };
 use crate::app::presentation::{GameSummaryAnimation, spawn_node};
 use crate::app::runtime::UiAssets;
@@ -23,6 +24,7 @@ pub(super) struct MahjongWinningHandVisual {
 }
 
 pub(super) struct MahjongOwnHandVisuals<'a> {
+    pub response_tile: Option<MahjongTile>,
     pub observed_hand: &'a [MahjongTile],
     pub hover_lifts: &'a HashMap<i32, (f32, Interaction)>,
     pub dealing: bool,
@@ -43,6 +45,7 @@ pub(super) fn render_own_hand(
     visuals: MahjongOwnHandVisuals<'_>,
 ) {
     let MahjongOwnHandVisuals {
+        response_tile,
         observed_hand,
         hover_lifts,
         dealing,
@@ -156,7 +159,7 @@ pub(super) fn render_own_hand(
                     kind: Some(tile.kind()),
                     size: MahjongTileSize::OwnMeld,
                     index,
-                    highlighted: cues.as_ref().is_some_and(|cues| !cues.is_empty()),
+                    highlight: MahjongTileHighlight::None,
                     deal: None,
                     relative: 0,
                 },
@@ -164,7 +167,7 @@ pub(super) fn render_own_hand(
                 materials,
             );
             if let (Some(result), Some(cues)) = (result, cues) {
-                mark_mahjong_win_tile(commands, entity, result, cues);
+                mark_mahjong_win_tile(commands, entity, result, cues, Some(winning_hand_start));
             }
         } else {
             let entity = add_mahjong_hand_tile(
@@ -178,6 +181,15 @@ pub(super) fn render_own_hand(
                 assets,
                 materials,
             );
+            if response_tile == Some(tile) {
+                add_mahjong_response_indicator(
+                    commands,
+                    entity,
+                    Vec2::new(56.0, 76.0),
+                    0.0,
+                    ui_assets,
+                );
+            }
             restore_hand_hover(
                 commands,
                 entity,
@@ -203,7 +215,7 @@ pub(super) fn render_own_hand(
                 add_mahjong_wait_popup(commands, entity, waits, assets, materials, ui_assets);
             }
             if let (Some(result), Some(cues)) = (result, cues) {
-                mark_mahjong_win_tile(commands, entity, result, cues);
+                mark_mahjong_win_tile(commands, entity, result, cues, None);
             }
         }
     }
@@ -242,6 +254,9 @@ pub(super) fn render_own_hand(
             assets,
             materials,
         );
+        if response_tile == Some(tile) {
+            add_mahjong_response_indicator(commands, entity, Vec2::new(56.0, 76.0), 0.0, ui_assets);
+        }
         restore_hand_hover(
             commands,
             entity,

@@ -2,7 +2,7 @@
 
 use super::super::{
     AchievementEntry, CozyButtonVariant, LobbyGameHeader, LobbyUiAction, NavigationUiAction,
-    PageTransitionElement, ProfileEntry, UiAction, add_cozy_icon_button,
+    PageTransitionElement, ProfileEntry, ShopEntry, UiAction, add_cozy_icon_button,
 };
 use crate::app::presentation::{BORDER, MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
@@ -124,6 +124,10 @@ impl<'a> Header<'a> {
                 ClientPhaseRef::Idle | ClientPhaseRef::Closed
             )
         }) {
+            ShopEntry {
+                assets: self.assets,
+            }
+            .render(commands, right);
             AchievementEntry {
                 assets: self.assets,
             }
@@ -153,7 +157,6 @@ impl<'a> Header<'a> {
                 position_type: PositionType::Absolute,
                 right: px(0),
                 top: px(0),
-                width: px(178),
                 height: px(66),
                 padding: UiRect::axes(px(12), px(4)),
                 align_items: AlignItems::Center,
@@ -174,6 +177,14 @@ impl<'a> Header<'a> {
                 ..default()
             },
             None,
+        );
+        self.add_labeled_icon_button(
+            commands,
+            right,
+            UiAction::Navigation(NavigationUiAction::ToggleShop),
+            self.assets.shop.icon.clone(),
+            CozyButtonVariant::Neutral,
+            "商店",
         );
         self.add_labeled_icon_button(
             commands,

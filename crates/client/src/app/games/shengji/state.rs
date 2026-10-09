@@ -1,7 +1,9 @@
 //! 双升手牌、计分、甩牌反馈与结算演出的状态类型。
 
-use crate::app::presentation::CustomButtonMotion;
+use super::counter::ShengjiCounterUi;
+use super::missing_suits::MissingSuitsUi;
 use crate::app::presentation::{CardAnimationState, Observed};
+use crate::app::presentation::{CardCounterOwner, CardCounterWindowState, CustomButtonMotion};
 use bevy::prelude::*;
 use leocard_client::ShengjiScoreCaptureEffect;
 use leocard_protocol::{MatchId, ShengjiSnapshot, ShengjiThrowFailureStage};
@@ -15,6 +17,8 @@ pub(crate) struct ShengjiUiState {
     pub observed_hand: Observed<(MatchId, u32), Vec<ShengjiCard>>,
     pub intro_deal_match: Option<MatchId>,
     pub buried_open: bool,
+    pub counter: ShengjiCounterUi,
+    pub missing_suits: MissingSuitsUi,
 }
 
 impl ShengjiUiState {
@@ -28,6 +32,8 @@ impl ShengjiUiState {
         self.observed_hand.clear();
         self.intro_deal_match = None;
         self.buried_open = false;
+        self.counter = ShengjiCounterUi::default();
+        self.missing_suits = MissingSuitsUi::default();
     }
 }
 
@@ -179,3 +185,9 @@ pub(crate) struct ShengjiHandCardSelectionOverlay {
 
 #[derive(Component)]
 pub(crate) struct ShengjiSettlementPanelTexture;
+
+impl CardCounterOwner for ShengjiUiState {
+    fn counter_window(&mut self) -> &mut CardCounterWindowState {
+        &mut self.counter.window
+    }
+}

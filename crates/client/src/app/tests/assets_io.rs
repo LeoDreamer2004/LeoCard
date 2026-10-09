@@ -1,8 +1,6 @@
 use super::prelude::*;
 use bevy::audio::Decodable;
-use leocard_protocol::{
-    AVATAR_DIMENSION, MAX_AVATAR_BYTES, MAX_CHAT_MESSAGE_CHARS, QUICK_VOICE_COUNT,
-};
+use leocard_protocol::{AVATAR_DIMENSION, MAX_AVATAR_BYTES, QUICK_VOICE_COUNT};
 use leocard_qigui523::build_deck;
 use leocard_uno::{Mode, UnoRuleSet, build_deck_for_rules};
 use std::collections::HashSet;
@@ -175,14 +173,6 @@ fn every_runtime_ui_and_card_sound_decodes_with_enabled_bevy_formats() {
             path.display()
         );
     }
-}
-
-#[test]
-fn chat_input_obeys_the_protocol_character_limit() {
-    let mut input = "你好".to_owned();
-    append_chat_input(&mut input, &"界".repeat(MAX_CHAT_MESSAGE_CHARS));
-    assert_eq!(input.chars().count(), MAX_CHAT_MESSAGE_CHARS);
-    assert_eq!(QUICK_VOICES.len(), usize::from(QUICK_VOICE_COUNT));
 }
 
 #[test]

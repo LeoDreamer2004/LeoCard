@@ -123,7 +123,6 @@ pub(super) fn add_texas_own_area(
     add_texas_chip_popup(
         commands,
         own_seat,
-        &own.name,
         own.stack,
         None,
         assets,
@@ -390,7 +389,7 @@ fn add_raise_adjust_button(
             ))
             .id();
         commands.entity(button).add_child(overlay);
-        commands.entity(button).insert(ButtonHighlight::Button {
+        commands.entity(button).insert(ButtonHighlight {
             overlay,
             arrows: None,
         });

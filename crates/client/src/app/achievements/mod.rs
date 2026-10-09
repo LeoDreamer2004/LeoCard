@@ -5,7 +5,7 @@ mod processing;
 mod service;
 mod session;
 
-pub(crate) use messages::LocalAchievementTrigger;
-use messages::{AchievementRecipient, AchievementUnlocked};
-pub(crate) use plugin::AchievementPlugin;
+use messages::AchievementRecipient;
+pub(crate) use messages::{AchievementUnlocked, LocalAchievementTrigger};
+pub(crate) use plugin::{AchievementPlugin, AchievementUpdateSet};
 use session::{AchievementPublication, AchievementSession};

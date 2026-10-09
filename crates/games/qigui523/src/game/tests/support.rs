@@ -70,6 +70,7 @@ impl Fixture {
                     score: 0,
                 })
                 .collect(),
+            played_cards: Vec::new(),
             draw_pile: VecDeque::from(pile),
             trick: Some(TrickState::new(QiGuiPlayerId(0))),
             phase: Phase::Playing,

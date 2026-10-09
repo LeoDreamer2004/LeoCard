@@ -8,6 +8,7 @@ use crate::app::shell::{
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use leocard_client::{ItemId, PlayerEconomy};
 use leocard_protocol::TexasHoldemCommand;
 use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemRuleSet};
 
@@ -41,6 +42,7 @@ pub(crate) struct TexasHoldemActionContext<'w> {
     ui: ResMut<'w, TexasHoldemUiState>,
     guide: ResMut<'w, TexasHandGuideState>,
     page_error: ResMut<'w, PageErrorState>,
+    economy: Res<'w, PlayerEconomy>,
 }
 
 pub(super) fn dispatch_texas_holdem_actions(
@@ -57,6 +59,9 @@ impl UiActionHandler<TexasHoldemActionContext<'_>> for TexasHoldemUiAction {
                 context.ui.spectator.drawer_open = !context.ui.spectator.drawer_open
             }
             Self::ToggleWinRates => {
+                if !context.economy.active(ItemId::ObservationLens) {
+                    return;
+                }
                 let preferences = &mut context.ui.spectator.preferences;
                 preferences.show_win_rates = !preferences.show_win_rates;
                 if let Err(error) = preferences.save() {

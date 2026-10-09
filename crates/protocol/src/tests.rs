@@ -37,6 +37,7 @@ fn client_message_round_trips_through_tcp_frame() {
                     silver: 7,
                     bronze: 11,
                 },
+                coins: 300,
                 gender: PlayerGender::Female,
                 qigui523: Some(QiGui523ProfileStats {
                     completed_games: 2,

@@ -4,8 +4,8 @@ use super::super::{
     MAHJONG_CLAIM_FLIGHT_DELAY, MAHJONG_CLAIM_FLIGHT_DURATION, MAHJONG_CLAIM_HAND_SHIFT_DURATION,
     MAHJONG_CLAIM_PRESENTATION_DURATION, MAHJONG_FLOWER_PRESENTATION_DURATION, MahjongAssets,
     MahjongClaimFlight, MahjongClaimHandShift, MahjongClaimHeldTile, MahjongClaimLabel,
-    MahjongClaimPresentationState, MahjongFlowerLabel, MahjongTableRoot, MahjongTileMaterial,
-    mahjong_claim_landing_time,
+    MahjongClaimPresentationState, MahjongFlowerLabel, MahjongTableRoot, MahjongTileHighlight,
+    MahjongTileMaterial, mahjong_claim_landing_time,
 };
 
 use super::{MahjongTileSize, MahjongTileVisual, add_mahjong_tile_material};
@@ -164,7 +164,7 @@ pub(crate) fn render_mahjong_claim_presentation(
                 kind: Some(tile.kind()),
                 size: MahjongTileSize::River,
                 index: 0,
-                highlighted: false,
+                highlight: MahjongTileHighlight::None,
                 deal: None,
                 relative: target_relative,
             },

@@ -44,13 +44,11 @@ pub(crate) struct ChatHistoryEntry {
 pub(crate) struct ChatPanelState {
     pub open: bool,
     pub slide: f32,
-    pub focused: bool,
     pub quick_voice_open: bool,
     pub emoji_open: bool,
     pub quick_voice_scroll_y: f32,
     pub emoji_scroll_y: f32,
     pub input: String,
-    pub selected_all: bool,
     pub history: VecDeque<ChatHistoryEntry>,
 }
 
@@ -59,13 +57,11 @@ impl Default for ChatPanelState {
         Self {
             open: false,
             slide: 1.0,
-            focused: false,
             quick_voice_open: false,
             emoji_open: false,
             quick_voice_scroll_y: 0.0,
             emoji_scroll_y: 0.0,
             input: String::new(),
-            selected_all: false,
             history: VecDeque::new(),
         }
     }
@@ -81,10 +77,7 @@ pub(crate) struct ChatToggleIcon;
 pub(crate) struct ChatHistoryText;
 
 #[derive(Component)]
-pub(crate) struct ChatInputText;
-
-#[derive(Component)]
-pub(crate) struct ChatInputFieldTexture;
+pub(crate) struct ChatTextInput;
 
 #[derive(Component)]
 pub(crate) struct EmojiMenu;
@@ -103,7 +96,6 @@ pub(crate) struct ActiveChatBubble {
     pub player: PlayerId,
     pub text: Option<Entity>,
     pub emoji_image: Option<Entity>,
-    pub emoji: bool,
     pub width: f32,
     pub elapsed: f32,
     pub duration: f32,

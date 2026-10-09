@@ -1,7 +1,7 @@
 use super::super::{
     ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MAHJONG_REMOTE_MELD_WIDTH,
-    MahjongAssets, MahjongClaimHeldTile, MahjongDealSpec, MahjongDealTile, MahjongTileMaterial,
-    mahjong_local_light, mahjong_local_shadow,
+    MahjongAssets, MahjongClaimHeldTile, MahjongDealSpec, MahjongDealTile, MahjongMatchingTileKind,
+    MahjongTileHighlight, MahjongTileMaterial, mahjong_local_light, mahjong_local_shadow,
 };
 
 use super::claim::{MahjongClaimLandingSlot, mahjong_claim_held_tile_visual};
@@ -35,7 +35,7 @@ pub(crate) struct MahjongTileVisual {
     pub kind: Option<MahjongTileKind>,
     pub size: MahjongTileSize,
     pub index: usize,
-    pub highlighted: bool,
+    pub highlight: MahjongTileHighlight,
     pub deal: Option<MahjongDealSpec>,
     pub relative: u8,
 }
@@ -107,7 +107,7 @@ pub(crate) fn render_mahjong_staged_meld(
                     kind: Some(kind),
                     size: tile_size,
                     index: *index,
-                    highlighted: false,
+                    highlight: MahjongTileHighlight::None,
                     deal: None,
                     relative,
                 },
@@ -241,7 +241,7 @@ pub(crate) fn render_mahjong_meld(
                 kind,
                 size: tile_size,
                 index: *index,
-                highlighted: false,
+                highlight: MahjongTileHighlight::None,
                 deal: None,
                 relative,
             },
@@ -273,7 +273,7 @@ pub(crate) fn render_mahjong_meld(
                 kind,
                 size: tile_size,
                 index: *index,
-                highlighted: false,
+                highlight: MahjongTileHighlight::None,
                 deal: None,
                 relative,
             },
@@ -303,7 +303,7 @@ pub(crate) fn add_mahjong_tile_material(
         kind,
         size,
         index,
-        highlighted,
+        highlight,
         deal,
         relative,
     } = visual;
@@ -361,6 +361,7 @@ pub(crate) fn add_mahjong_tile_material(
             },
         ),
         lighting: mahjong_local_light(relative),
+        highlight: highlight.overlay(),
         glyph,
         height: height_texture,
     });
@@ -369,7 +370,6 @@ pub(crate) fn add_mahjong_tile_material(
         height: px(height),
         min_width: px(width),
         margin: UiRect::right(px(overlap)),
-        border: UiRect::all(px(if highlighted { 1 } else { 0 })),
         border_radius: BorderRadius::all(px(3)),
         overflow: Overflow::visible(),
         ..default()
@@ -392,25 +392,16 @@ pub(crate) fn add_mahjong_tile_material(
         .spawn((
             node,
             MaterialNode(material),
-            BorderColor::all(if highlighted {
-                Color::srgba(0.96, 0.78, 0.28, 0.90)
-            } else {
-                Color::NONE
-            }),
             BoxShadow::new(
-                if highlighted {
-                    Color::srgba(0.95, 0.72, 0.20, 0.35)
+                Color::BLACK.with_alpha(if deal.is_some() {
+                    0.0
                 } else {
-                    Color::BLACK.with_alpha(if deal.is_some() {
-                        0.0
-                    } else {
-                        final_shadow_alpha
-                    })
-                },
+                    final_shadow_alpha
+                }),
                 px(shadow.x),
                 px(shadow.y),
                 px(0),
-                px(if highlighted { 5 } else { 2 }),
+                px(2),
             ),
             ZIndex(index as i32),
             UiTransform {
@@ -431,7 +422,7 @@ pub(crate) fn add_mahjong_tile_material(
     {
         commands
             .entity(entity)
-            .insert(super::super::MahjongMatchingTileKind(kind));
+            .insert(MahjongMatchingTileKind(kind));
     }
     if let Some(deal) = deal {
         commands.entity(entity).insert(MahjongDealTile {
@@ -491,7 +482,7 @@ pub(crate) fn render_mahjong_win_tile_row(
                     kind,
                     size: sizes.meld,
                     index,
-                    highlighted: false,
+                    highlight: MahjongTileHighlight::None,
                     deal: None,
                     relative: 0,
                 },
@@ -535,7 +526,7 @@ pub(crate) fn render_mahjong_win_tile_row(
                     kind: Some(tile.kind()),
                     size: sizes.hand,
                     index,
-                    highlighted: false,
+                    highlight: MahjongTileHighlight::None,
                     deal: None,
                     relative: 0,
                 },
@@ -561,7 +552,7 @@ pub(crate) fn render_mahjong_win_tile_row(
             kind: Some(winner.winning_tile.kind()),
             size: sizes.hand,
             index,
-            highlighted: true,
+            highlight: MahjongTileHighlight::None,
             deal: None,
             relative: 0,
         },

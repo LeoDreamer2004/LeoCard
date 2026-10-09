@@ -1,3 +1,4 @@
+use bevy::picking::Pickable;
 use std::f32::consts;
 
 use super::super::super::{MahjongWinEffectTier, MahjongWinFanGlyph, MahjongWinStageKind};
@@ -9,7 +10,6 @@ use super::{
 use crate::app::presentation::{DESIGN_WIDTH, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::MahjongWinView;
 
 pub(super) fn add_major_stage_decorations(
@@ -242,7 +242,7 @@ fn add_glyphs(
         });
         commands
             .entity(holder)
-            .insert((GlobalZIndex(1100), FocusPolicy::Pass));
+            .insert((GlobalZIndex(1100), Pickable::IGNORE));
         commands.entity(text).insert((
             MahjongWinFanGlyph {
                 reveal_duration,
@@ -251,7 +251,7 @@ fn add_glyphs(
             },
             UiTransform::IDENTITY,
             Visibility::Hidden,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
     }
 }

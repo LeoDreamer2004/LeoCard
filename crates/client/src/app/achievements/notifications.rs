@@ -8,7 +8,7 @@ use crate::app::runtime::UiAssets;
 use bevy::audio::Volume;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
 use leocard_achievements::{AchievementDefinition, AchievementTier};
 use std::collections::VecDeque;
 
@@ -55,7 +55,6 @@ pub(super) fn setup_notifications(mut commands: Commands) {
             ..default()
         },
         GlobalZIndex(2500),
-        FocusPolicy::Pass,
         Pickable::IGNORE,
     ));
 }
@@ -220,7 +219,6 @@ fn spawn_notification(
             elapsed: 0.0,
             visual: popup,
         },
-        FocusPolicy::Pass,
         Pickable::IGNORE,
     ));
     commands
@@ -236,7 +234,7 @@ fn spawn_notification(
     background.visual_box = VisualBox::BorderBox;
     commands
         .entity(popup)
-        .insert((background, FocusPolicy::Pass, Pickable::IGNORE));
+        .insert((background, Pickable::IGNORE));
     let trophy = commands
         .spawn((
             Node {
@@ -248,7 +246,6 @@ fn spawn_notification(
             ImageNode::new(
                 assets.achievements.medals[notice.definition.tier.medal_index()].clone(),
             ),
-            FocusPolicy::Pass,
             Pickable::IGNORE,
         ))
         .id();
@@ -260,7 +257,6 @@ fn spawn_notification(
             flex_grow: 1.0,
             ..default()
         },
-        FocusPolicy::Pass,
         Pickable::IGNORE,
     ));
 }

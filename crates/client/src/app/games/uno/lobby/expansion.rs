@@ -5,8 +5,9 @@ use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
     add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
 };
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui_widgets::Button;
 use leocard_uno::UnoRuleSet;
 
 pub(crate) fn render_uno_expansion_settings(
@@ -34,7 +35,7 @@ pub(crate) fn render_uno_expansion_settings(
     );
     commands.entity(overlay).insert((
         GlobalZIndex(2100),
-        FocusPolicy::Block,
+        Pickable::default(),
         CozyModalBackdrop(CozyModalKind::UnoExpansionSettings),
     ));
     let modal = add_cozy_panel(
@@ -220,7 +221,7 @@ impl UnoExpansionRow {
                     },
                     hover_image,
                     Visibility::Hidden,
-                    FocusPolicy::Pass,
+                    Pickable::IGNORE,
                 ))
                 .id();
             commands.entity(status).add_child(hover);

@@ -4,8 +4,10 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, RelativeCursorPosition};
+use bevy::ui::RelativeCursorPosition;
+use bevy::ui_widgets::Button;
 use leocard_qigui523::QiGuiCard;
 
 pub(super) const QIGUI_HAND_CARD_REVEAL: f32 = 32.0;
@@ -127,7 +129,7 @@ pub(super) fn add_card_button(
             ),
             BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(3)),
             GlobalZIndex(index as i32 + 1),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(button).add_child(card_face);
@@ -144,7 +146,7 @@ pub(super) fn add_card_button(
                 ..default()
             },
             BackgroundColor(Color::NONE),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(card_face).add_child(overlay);

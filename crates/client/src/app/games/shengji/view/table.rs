@@ -23,8 +23,9 @@ use crate::app::shell::{
     ChatAuxiliaryAction, ChatPanelState, SeatSide, SocialUiState, UiAction, add_chat_panel,
     add_reconnecting_overlay,
 };
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui_widgets::Button;
 use leocard_client::NetworkState;
 use leocard_protocol::ShengjiBottomFlipRevealView;
 use leocard_protocol::{
@@ -336,7 +337,7 @@ fn add_shengji_private_buried(
         },
         Some(HEADER_BG.with_alpha(0.98)),
     );
-    commands.entity(panel).insert(FocusPolicy::Pass);
+    commands.entity(panel).insert(Pickable::IGNORE);
     decorate_panel_skin(commands, panel, PanelSkin::Popup, assets);
     add_text(commands, panel, "我的底牌", 22.0, ACCENT, assets);
     add_shengji_card_row(
@@ -384,7 +385,7 @@ fn add_shengji_bottom_flip(
     );
     commands
         .entity(panel)
-        .insert((GlobalZIndex(900), FocusPolicy::Pass));
+        .insert((GlobalZIndex(900), Pickable::IGNORE));
     decorate_panel_skin(commands, panel, PanelSkin::Section, assets);
     add_text(commands, panel, "扳底", 22.0, ACCENT, assets);
 

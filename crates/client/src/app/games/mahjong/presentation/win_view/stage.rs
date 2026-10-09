@@ -2,6 +2,7 @@ use super::super::super::{
     MahjongAssets, MahjongTileMaterial, MahjongWinEffectTier, MahjongWinStageKind,
     MahjongWinStagePart, mahjong_win_effect_tier, mahjong_win_stage_start,
 };
+use bevy::picking::Pickable;
 
 use super::super::MAHJONG_HIGH_SHOWCASE_DELAY;
 use super::{
@@ -10,7 +11,6 @@ use super::{
 use crate::app::presentation::spawn_node;
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
 
 pub(super) struct WinStageContext<'a, 'w, 's> {
@@ -50,7 +50,7 @@ pub(super) fn add_win_stage_component(
         UiTransform::IDENTITY,
         Visibility::Hidden,
         ZIndex(spec.z_index),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 

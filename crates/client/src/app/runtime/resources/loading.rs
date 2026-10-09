@@ -8,7 +8,6 @@ use super::{
 use crate::app::shell::{INTERACTION_COOLDOWN_MASK_FRAMES, PlayerInteractionLayer};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerInteractionKind, QUICK_VOICE_COUNT};
 use leocard_qigui523::build_deck;
 use std::collections::HashMap;
@@ -26,7 +25,6 @@ pub(crate) fn setup_camera(mut commands: Commands) {
             ..default()
         },
         GlobalZIndex(1100),
-        FocusPolicy::Pass,
         Pickable::IGNORE,
     ));
 }
@@ -165,6 +163,8 @@ pub(crate) fn load_ui_assets(
             observation_lens: asset_server.load("ui/shop/observation-lens.png"),
             card_counter: asset_server.load("ui/shop/card-counter.png"),
             missing_suit_card: asset_server.load("ui/shop/missing-suit-card.png"),
+            uno_jump_in_device: asset_server.load("ui/shop/uno-jump-in-device.png"),
+            mahjong_fan_calculator: asset_server.load("ui/shop/mahjong-fan-calculator.png"),
         },
         achievements: AchievementAssets {
             icon: asset_server.load("icons/achievement-trophy.png"),

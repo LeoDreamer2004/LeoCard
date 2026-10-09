@@ -3,11 +3,11 @@ use super::super::{
     MahjongAssets, MahjongClaimHeldTile, MahjongDealSpec, MahjongDealTile, MahjongMatchingTileKind,
     MahjongTileHighlight, MahjongTileMaterial, mahjong_local_light, mahjong_local_shadow,
 };
+use bevy::picking::Pickable;
 
 use super::claim::{MahjongClaimLandingSlot, mahjong_claim_held_tile_visual};
 use crate::app::presentation::spawn_node;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_mahjong::{
     MahjongClaim, MahjongKongKind, MahjongMeldKind, MahjongTileKind, MahjongWind,
 };
@@ -141,7 +141,7 @@ pub(crate) fn render_mahjong_staged_meld(
                 MahjongClaimLandingSlot {
                     player: claim.player,
                 },
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ));
         }
         *index += 1;
@@ -169,7 +169,7 @@ pub(crate) fn render_mahjong_staged_meld(
             MahjongClaimLandingSlot {
                 player: claim.player,
             },
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
     }
 }

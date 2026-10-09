@@ -2,7 +2,7 @@ use super::{MissingSuitsUi, state::MissingSuitMarker};
 use crate::app::presentation::{ACCENT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::SeatSide;
-use bevy::{prelude::*, ui::FocusPolicy};
+use bevy::{picking::Pickable, prelude::*};
 use leocard_protocol::ShengjiPlayerState;
 use leocard_shengji::Category;
 
@@ -43,7 +43,7 @@ pub(in super::super) fn render_missing_suits(
     );
     commands
         .entity(column)
-        .insert((FocusPolicy::Pass, GlobalZIndex(40)));
+        .insert((Pickable::IGNORE, GlobalZIndex(40)));
     let circle = spawn_node(
         commands,
         column,
@@ -60,7 +60,7 @@ pub(in super::super) fn render_missing_suits(
     );
     commands
         .entity(circle)
-        .insert((BorderColor::all(ACCENT), FocusPolicy::Pass));
+        .insert((BorderColor::all(ACCENT), Pickable::IGNORE));
     add_text(commands, circle, "缺", 14.0, ACCENT, assets);
     for &door in &player.missing_suits {
         let marker = match door {
@@ -89,7 +89,7 @@ pub(in super::super) fn render_missing_suits(
                 door,
             },
             UiTransform::IDENTITY,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
     }
 }

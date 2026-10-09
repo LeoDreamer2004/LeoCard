@@ -1,6 +1,8 @@
 use super::{UnoAssets, UnoFlipCard, UnoHandCardVisual, UnoSwapTargetPanel, UnoUiState};
 use crate::app::presentation::{ACCENT, CardAnimationState, PANEL};
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
+use bevy::ui_widgets::Button;
 use leocard_protocol::{UnoPhaseView, UnoSnapshot};
 use leocard_uno::{UnoCard, UnoColor, UnoFace, UnoPendingDrawKind};
 use std::collections::HashSet;
@@ -174,7 +176,7 @@ pub(super) fn uno_should_show_reverse_effect(
 pub(crate) fn animate_uno_hand_cards(
     time: Res<Time>,
     mut ui: ResMut<UnoUiState>,
-    buttons: Query<&Interaction, With<Button>>,
+    buttons: Query<&PickingInteraction, With<Button>>,
     mut cards: Query<
         (
             &mut UnoHandCardVisual,
@@ -191,7 +193,10 @@ pub(crate) fn animate_uno_hand_cards(
     for (mut visual, mut transform, mut outline, mut shadow, mut border) in &mut cards {
         let selected = ui.selected.contains(&visual.card);
         let hovered = buttons.get(visual.button).is_ok_and(|interaction| {
-            matches!(*interaction, Interaction::Hovered | Interaction::Pressed)
+            matches!(
+                *interaction,
+                PickingInteraction::Hovered | PickingInteraction::Pressed
+            )
         });
         let hover_target = f32::from(hovered);
         let selected_target = f32::from(selected);

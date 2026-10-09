@@ -1,5 +1,4 @@
 use super::{QiGui523Session, analysis::profile_statistics, merge_qigui523_play_stats};
-use crate::player::settle_completed_match_profiles_once;
 use leocard_protocol::QiGui523ProfileStats;
 use leocard_qigui523::{Phase, reference_point_deltas};
 
@@ -30,9 +29,8 @@ impl QiGui523Session {
                     .collect::<Vec<_>>()
             })
             .expect("an active game has statistics");
-        let applied = settle_completed_match_profiles_once(
+        let applied = self.room.settle_completed_match_profiles_once(
             &mut self.finished_reference_changes,
-            &mut self.room,
             settlements,
             |player, delta| {
                 let index = usize::from(player.id.0);

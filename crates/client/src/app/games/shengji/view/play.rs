@@ -10,8 +10,9 @@ use super::{
 use crate::app::presentation::{ACCENT, DANGER, HEADER_BG, MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::SeatSide;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, RelativeCursorPosition};
+use bevy::ui::RelativeCursorPosition;
 use leocard_protocol::{
     PlayerId, ShengjiPhaseView, ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureStage,
 };
@@ -265,7 +266,7 @@ pub(super) fn add_shengji_collecting_tray(
     commands.entity(popup).insert((
         Visibility::Hidden,
         GlobalZIndex(1200),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
         BoxShadow::new(Color::BLACK.with_alpha(0.5), px(1), px(6), px(0), px(10)),
     ));
     commands
@@ -462,7 +463,7 @@ pub(super) fn add_shengji_outlined_mark(
                 top: px(dy),
                 ..default()
             },
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
     }
     let text = add_text(commands, parent, mark, size, color, assets);
@@ -473,7 +474,7 @@ pub(super) fn add_shengji_outlined_mark(
             top: px(1),
             ..default()
         },
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 
@@ -563,7 +564,7 @@ pub(super) fn add_shengji_throw_penalty_effect(
             color: Color::BLACK.with_alpha(0.9),
         },
         GlobalZIndex(840),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 

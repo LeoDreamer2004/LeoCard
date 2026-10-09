@@ -1,5 +1,6 @@
 //! 升级收分与终局结算演出。
 
+use bevy::picking::Pickable;
 use std::f32::consts;
 
 use super::state::{ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation};
@@ -21,7 +22,6 @@ use crate::app::shell::{
     vortex_card_pose,
 };
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_client::ShengjiScoreCaptureEffect;
 use leocard_protocol::ShengjiPhaseView;
 
@@ -112,7 +112,7 @@ fn spawn_shengji_score_capture(
             UiTransform::IDENTITY,
             ActiveScoreVortex { elapsed: 0.0 },
             GlobalZIndex(1550),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(layer).add_child(vortex);
@@ -152,7 +152,7 @@ fn spawn_shengji_score_capture(
                         * (0.72 + index as f32 % 3.0 * 0.14),
                 },
                 GlobalZIndex(1560 + index as i32),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(layer).add_child(entity);
@@ -174,7 +174,7 @@ fn spawn_shengji_score_capture(
     );
     commands
         .entity(gain)
-        .insert((UiTransform::IDENTITY, GlobalZIndex(1700), FocusPolicy::Pass));
+        .insert((UiTransform::IDENTITY, GlobalZIndex(1700), Pickable::IGNORE));
     let text = add_text(
         commands,
         gain,
@@ -519,7 +519,7 @@ pub(crate) fn spawn_shengji_settlement_absorption(
             UiTransform::IDENTITY,
             ActiveScoreVortex { elapsed: 0.0 },
             GlobalZIndex(1670),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(layer).add_child(vortex);
@@ -564,7 +564,7 @@ fn spawn_shengji_score_absorb(
             curve,
         },
         GlobalZIndex(1680),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 

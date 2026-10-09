@@ -66,6 +66,25 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
             },
         },
     ];
+    let mut with_bot = session.clone();
+    with_bot.room.players[3].is_bot = true;
+    with_bot.room.players[3].connected = false;
+    with_bot.record_statistics(&events[..1]);
+    assert!(with_bot.finished_reference_changes.is_none());
+    with_bot.record_statistics(&events[1..]);
+    assert!(
+        with_bot
+            .finished_reference_changes
+            .as_ref()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(with_bot.room.players.iter().all(|player| {
+        player.game_profiles == PlayerGameProfiles::default()
+            && player.reference_points == 0
+            && player.completed_games == 0
+    }));
+
     session.record_statistics(&events);
     let winner = session.room.players[0]
         .game_profiles

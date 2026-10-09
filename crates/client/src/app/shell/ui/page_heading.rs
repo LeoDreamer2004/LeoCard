@@ -1,7 +1,8 @@
 use super::super::UiAction;
 use crate::app::presentation::{TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
-use bevy::{prelude::*, ui::FocusPolicy};
+use bevy::ui_widgets::Button;
+use bevy::{picking::Pickable, prelude::*};
 
 pub(crate) fn add_page_back_title(
     commands: &mut Commands,
@@ -31,7 +32,7 @@ pub(crate) fn add_page_back_title(
             },
             ImageNode::new(assets.achievements.scroll_arrow.clone()),
             UiTransform::from_rotation(Rot2::degrees(-90.0)),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(title).add_child(arrow);

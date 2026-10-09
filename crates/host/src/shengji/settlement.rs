@@ -4,7 +4,6 @@ use super::{
     from_core_player, game_violation, merge_shengji_profile_stats, pre_kitty_collecting_score,
     to_core_player,
 };
-use crate::player::settle_completed_match_profiles_once;
 use crate::{ConnectionId, Delivery, new_match_id};
 use leocard_protocol::{
     GameViolation, RejectReason, RequestId, ShengjiEvent, ShengjiHandResultView,
@@ -176,9 +175,8 @@ impl ShengjiSession {
                 (participant.id, delta)
             })
             .collect::<Vec<_>>();
-        let applied = settle_completed_match_profiles_once(
+        let applied = self.room.settle_completed_match_profiles_once(
             &mut self.statistics.hand.finished_reference_changes,
-            &mut self.room,
             settlements,
             |participant, delta| {
                 let team = ShengjiTeamId(participant.id.0 % 2);

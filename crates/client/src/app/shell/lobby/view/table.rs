@@ -2,8 +2,9 @@ use super::*;
 use crate::app::games::lobby_rule_labels;
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::{ClientResource, UiAssets};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{BackgroundGradient, ColorStop, FocusPolicy, Gradient, LinearGradient};
+use bevy::ui::{BackgroundGradient, ColorStop, Gradient, LinearGradient};
 use leocard_protocol::{GameRules, LobbySnapshot};
 
 pub(super) struct LobbyTable<'a> {
@@ -51,7 +52,7 @@ impl<'a> LobbyTable<'a> {
             ]))]),
             BorderColor::all(Color::srgba(0.72, 0.68, 0.88, 0.42)),
             BoxShadow::new(Color::BLACK.with_alpha(0.52), px(2), px(8), px(0), px(10)),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
         let table = spawn_node(
             commands,
@@ -77,7 +78,7 @@ impl<'a> LobbyTable<'a> {
                 ColorStop::percent(Color::srgb(0.065, 0.075, 0.13), 100.0),
             ]))]),
             BorderColor::all(Color::srgba(0.62, 0.58, 0.78, 0.36)),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
         let felt = commands
             .spawn((
@@ -92,7 +93,7 @@ impl<'a> LobbyTable<'a> {
                 ImageNode::new(self.assets.table_felt.clone())
                     .with_mode(NodeImageMode::Stretch)
                     .with_color(Color::srgba(0.47, 0.43, 0.70, 0.10)),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(table).add_child(felt);

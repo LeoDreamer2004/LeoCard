@@ -31,6 +31,7 @@ use controls::*;
 use discard::*;
 use fan_guide::*;
 use hand::*;
+pub(crate) use hover::MahjongFanCalculator;
 use hover::*;
 pub(crate) use lobby::*;
 pub(crate) use material::*;

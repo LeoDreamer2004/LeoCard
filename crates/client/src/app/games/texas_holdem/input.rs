@@ -2,7 +2,9 @@
 
 use super::{TexasHoldemUiState, TexasRaiseAdjustButton, TexasRaiseHoldState};
 use crate::app::shell::UiState;
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
+use bevy::ui_widgets::Button;
 
 #[expect(
     clippy::type_complexity,
@@ -11,7 +13,10 @@ use bevy::prelude::*;
 pub(crate) fn handle_texas_raise_button_hold(
     time: Res<Time>,
     mouse: Res<ButtonInput<MouseButton>>,
-    changed: Query<(&Interaction, &TexasRaiseAdjustButton), (Changed<Interaction>, With<Button>)>,
+    changed: Query<
+        (&PickingInteraction, &TexasRaiseAdjustButton),
+        (Changed<PickingInteraction>, With<Button>),
+    >,
     mut hold: ResMut<TexasRaiseHoldState>,
     mut game_ui: ResMut<TexasHoldemUiState>,
     mut ui: ResMut<UiState>,
@@ -19,7 +24,7 @@ pub(crate) fn handle_texas_raise_button_hold(
     if mouse.just_pressed(MouseButton::Left) {
         if let Some((_, button)) = changed
             .iter()
-            .find(|(interaction, _)| **interaction == Interaction::Pressed)
+            .find(|(interaction, _)| **interaction == PickingInteraction::Pressed)
         {
             *hold = TexasRaiseHoldState {
                 direction: button.direction,

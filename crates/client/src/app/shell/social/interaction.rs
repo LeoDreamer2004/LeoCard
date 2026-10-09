@@ -2,7 +2,6 @@ use super::*;
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerId, PlayerInteractionKind};
 
 const INTERACTION_TRAVEL_DURATION: f32 = 0.60;
@@ -92,7 +91,6 @@ impl InteractionProjectile {
                     impacted: false,
                 },
                 GlobalZIndex(1200),
-                FocusPolicy::Pass,
                 Pickable::IGNORE,
             ))
             .id();

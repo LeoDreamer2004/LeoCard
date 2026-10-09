@@ -32,6 +32,8 @@ pub(crate) struct ShopAssets {
     pub observation_lens: Handle<Image>,
     pub card_counter: Handle<Image>,
     pub missing_suit_card: Handle<Image>,
+    pub uno_jump_in_device: Handle<Image>,
+    pub mahjong_fan_calculator: Handle<Image>,
 }
 
 #[derive(Default)]

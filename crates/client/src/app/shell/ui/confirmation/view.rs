@@ -5,7 +5,7 @@ use crate::app::shell::{
     CozyButtonVariant, CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_button,
     add_cozy_button_variant, add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
 };
-use bevy::{prelude::*, ui::FocusPolicy};
+use bevy::{picking::Pickable, prelude::*};
 
 pub(crate) fn render_confirmation(
     commands: &mut Commands,
@@ -33,7 +33,7 @@ pub(crate) fn render_confirmation(
     );
     commands.entity(overlay).insert((
         GlobalZIndex(2400),
-        FocusPolicy::Block,
+        Pickable::default(),
         CozyModalBackdrop(CozyModalKind::Confirmation),
     ));
     let panel = add_cozy_panel(

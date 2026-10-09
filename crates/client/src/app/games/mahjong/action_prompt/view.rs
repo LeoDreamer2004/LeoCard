@@ -1,6 +1,6 @@
 use crate::app::presentation::{add_text, spawn_node};
 use crate::app::runtime::UiAssets;
-use bevy::{picking::Pickable, prelude::*, ui::FocusPolicy};
+use bevy::{picking::Pickable, prelude::*};
 use std::f32::consts;
 
 const RESPONSE_GOLD: Color = Color::srgb(1.0, 0.80, 0.20);
@@ -44,7 +44,6 @@ pub(in super::super) fn add_mahjong_response_indicator(
             ResponseFrame { opacity },
             BorderColor::all(RESPONSE_GOLD.with_alpha(opacity)),
             ZIndex(200),
-            FocusPolicy::Pass,
             Pickable::IGNORE,
         ));
     }
@@ -76,7 +75,6 @@ pub(in super::super) fn add_mahjong_response_indicator(
             ..default()
         },
         ZIndex(201),
-        FocusPolicy::Pass,
         Pickable::IGNORE,
     ));
 }

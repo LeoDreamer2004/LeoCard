@@ -1,7 +1,8 @@
 use super::state::{InputPlaceholder, TextInputAction, TextInputEvent, TextInputSlot};
 use crate::app::runtime::UiAssets;
 use bevy::{
-    input_focus::{AcquireFocus, FocusCause, InputFocus},
+    input::{ButtonState, keyboard::KeyboardInput},
+    input_focus::{AcquireFocus, FocusCause, FocusedInput, InputFocus},
     prelude::*,
     text::EditableText,
 };
@@ -19,26 +20,29 @@ pub(super) fn focus_input_slot(
 }
 
 pub(super) fn collect_submissions(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    focus: Res<InputFocus>,
+    input: On<FocusedInput<KeyboardInput>>,
     editors: Query<&EditableText>,
     mut events: MessageWriter<TextInputEvent>,
 ) {
-    let Some(entity) = focus.get() else {
+    let entity = input.original_event_target();
+    if input.focused_entity != entity
+        || input.input.state != ButtonState::Pressed
+        || input.input.repeat
+    {
         return;
-    };
+    }
     let Ok(editor) = editors.get(entity) else {
         return;
     };
     if editor.is_composing() {
         return;
     }
-    let action = if keyboard.just_pressed(KeyCode::Enter) {
-        TextInputAction::Submit
-    } else if keyboard.just_pressed(KeyCode::Escape) {
-        TextInputAction::Cancel
-    } else {
-        return;
+    // Bevy 0.20 clears focus during Escape dispatch, before Update runs.
+    // Use the original input target so cancellation is still delivered once.
+    let action = match input.input.key_code {
+        KeyCode::Enter => TextInputAction::Submit,
+        KeyCode::Escape => TextInputAction::Cancel,
+        _ => return,
     };
     events.write(TextInputEvent { entity, action });
 }

@@ -10,8 +10,8 @@ use super::{
 use crate::app::presentation::CardSize;
 use crate::app::presentation::{TABLE_CARD_REVEAL, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerId, QiGui523Snapshot, TABLE_SEAT_COUNT};
 use leocard_qigui523::QiGuiPlayKind;
 use std::f32::consts;
@@ -50,7 +50,7 @@ pub(super) fn add_play_effect_overlay(
         } else {
             1100
         }),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     match effect.play.kind {
         QiGuiPlayKind::HeavenBomb => add_heaven_bomb_effect(commands, root, assets),
@@ -184,7 +184,7 @@ pub(super) fn add_sequence_play_decoration(
                     top: px(offset.y),
                     ..default()
                 },
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(label_root).add_child(outline);
@@ -202,7 +202,7 @@ pub(super) fn add_sequence_play_decoration(
                 top: px(0),
                 ..default()
             },
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(label_root).add_child(fill);
@@ -244,7 +244,7 @@ fn add_sequence_wind(commands: &mut Commands, parent: Entity, cards_width: f32, 
         commands.entity(streak).insert((
             SequenceWindStreak { index },
             UiTransform::IDENTITY,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
     }
 
@@ -264,7 +264,7 @@ fn add_sequence_wind(commands: &mut Commands, parent: Entity, cards_width: f32, 
         commands.entity(streak).insert((
             SequenceWindStreak { index },
             UiTransform::IDENTITY,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
     }
 }
@@ -289,7 +289,7 @@ fn add_sequence_flower(commands: &mut Commands, parent: Entity, cards_width: f32
                 scale: Vec2::ZERO,
                 ..UiTransform::IDENTITY
             },
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
     }
     let center = spawn_node(
@@ -312,7 +312,7 @@ fn add_sequence_flower(commands: &mut Commands, parent: Entity, cards_width: f32
             scale: Vec2::ZERO,
             ..UiTransform::IDENTITY
         },
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 
@@ -336,7 +336,7 @@ fn add_sequence_airplane(
                 scale: Vec2::splat(0.45),
                 ..UiTransform::IDENTITY
             },
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(parent).add_child(airplane);
@@ -356,7 +356,7 @@ fn add_sequence_airplane(
         commands.entity(trail).insert((
             SequenceAirplaneTrail { index },
             UiTransform::IDENTITY,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
     }
 }

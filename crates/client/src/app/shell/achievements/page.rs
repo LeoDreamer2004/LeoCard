@@ -1,8 +1,8 @@
 use super::super::{NavigationUiAction, PageTransitionElement, UiAction, add_page_back_title};
 use crate::app::presentation::{TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_achievements::AchievementCategory;
 use leocard_client::PlayerAchievements;
 
@@ -132,7 +132,7 @@ impl<'a> AchievementsPage<'a> {
                         ..default()
                     },
                     ImageNode::new(self.assets.achievements.medals[index].clone()),
-                    FocusPolicy::Pass,
+                    Pickable::IGNORE,
                 ))
                 .id();
             commands.entity(counter).add_child(trophy);

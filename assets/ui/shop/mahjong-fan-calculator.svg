@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="gold" x2=".9" y2="1"><stop stop-color="#fff0bd"/><stop offset=".5" stop-color="#d6b574"/><stop offset="1" stop-color="#937142"/></linearGradient>
+    <linearGradient id="ivory" x2=".3" y2="1"><stop stop-color="#f0edf9"/><stop offset="1" stop-color="#bdb8d3"/></linearGradient>
+  </defs>
+  <rect x="27" y="24" width="173" height="196" rx="23" fill="url(#gold)" stroke="#25232e" stroke-width="9"/>
+  <rect x="44" y="43" width="139" height="157" rx="12" fill="#51456f" stroke="#69563b" stroke-width="5"/>
+  <path d="M58 81H170M58 137H170M75 58V184M111 58V184M147 58V184" stroke="#b9aad7" stroke-width="5" stroke-linecap="round"/>
+  <g fill="url(#gold)" stroke="#25232e" stroke-width="4">
+    <rect x="63" y="88" width="24" height="13" rx="6"/><rect x="63" y="106" width="24" height="13" rx="6"/>
+    <rect x="99" y="63" width="24" height="13" rx="6"/><rect x="99" y="143" width="24" height="13" rx="6"/>
+    <rect x="135" y="88" width="24" height="13" rx="6"/><rect x="135" y="106" width="24" height="13" rx="6"/>
+  </g>
+  <g transform="rotate(10 190 177)">
+    <rect x="147" y="115" width="87" height="120" rx="11" fill="#827891" stroke="#25232e" stroke-width="7"/>
+    <rect x="147" y="110" width="87" height="114" rx="11" fill="url(#ivory)" stroke="#25232e" stroke-width="7"/>
+    <path d="M166 146H215V178H166ZM190 129V204" fill="none" stroke="#b65062" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M160 120H206" stroke="#fff" stroke-opacity=".55" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <path d="M45 34H157" stroke="#fff0bd" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+</svg>

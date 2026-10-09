@@ -2,8 +2,10 @@ use super::super::{UnoModeDropdownPanel, UnoUiAction};
 use crate::app::presentation::{ButtonHighlight, MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{UiAction, add_cozy_panel};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 use leocard_uno::{Mode, UnoRuleSet};
 
 pub(crate) fn render_uno_mode_dropdown(
@@ -37,7 +39,7 @@ pub(crate) fn render_uno_mode_dropdown(
                 },
                 BackgroundColor(Color::NONE),
                 GlobalZIndex(1850),
-                FocusPolicy::Block,
+                Pickable::default(),
             ))
             .id();
         commands.entity(root).add_child(dismiss);
@@ -82,7 +84,7 @@ pub(crate) fn render_uno_mode_dropdown(
     if can_configure {
         trigger.insert((Button, UiAction::Uno(UnoUiAction::ToggleModeMenu)));
     } else {
-        trigger.insert(FocusPolicy::Block);
+        trigger.insert(Pickable::default());
     }
     let trigger = trigger.id();
     commands.entity(selector).add_child(trigger);
@@ -108,7 +110,7 @@ pub(crate) fn render_uno_mode_dropdown(
                 },
                 hover_image,
                 Visibility::Hidden,
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(trigger).add_child(hover);
@@ -125,7 +127,7 @@ pub(crate) fn render_uno_mode_dropdown(
         TEXT,
         assets,
     );
-    commands.entity(label).insert(FocusPolicy::Pass);
+    commands.entity(label).insert(Pickable::IGNORE);
     let arrow = add_text(
         commands,
         trigger,
@@ -142,7 +144,7 @@ pub(crate) fn render_uno_mode_dropdown(
         },
         assets,
     );
-    commands.entity(arrow).insert(FocusPolicy::Pass);
+    commands.entity(arrow).insert(Pickable::IGNORE);
 
     if !open || !can_configure {
         return;
@@ -162,9 +164,11 @@ pub(crate) fn render_uno_mode_dropdown(
         },
         assets,
     );
-    commands
-        .entity(menu)
-        .insert((UnoModeDropdownPanel, GlobalZIndex(1890), FocusPolicy::Block));
+    commands.entity(menu).insert((
+        UnoModeDropdownPanel,
+        GlobalZIndex(1890),
+        Pickable::default(),
+    ));
     for (mode, label) in [
         (Mode::Classic, "UNO"),
         (Mode::NoMercy, "No Mercy"),
@@ -221,7 +225,7 @@ pub(crate) fn render_uno_mode_dropdown(
                     },
                     hover_image,
                     Visibility::Hidden,
-                    FocusPolicy::Pass,
+                    Pickable::IGNORE,
                 ))
                 .id();
             commands.entity(option).add_child(hover);
@@ -231,6 +235,6 @@ pub(crate) fn render_uno_mode_dropdown(
             });
         }
         let label = add_text(commands, option, label, 13.5, TEXT, assets);
-        commands.entity(label).insert(FocusPolicy::Pass);
+        commands.entity(label).insert(Pickable::IGNORE);
     }
 }

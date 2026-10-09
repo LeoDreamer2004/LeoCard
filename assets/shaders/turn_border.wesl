@@ -1,4 +1,4 @@
-#import bevy_ui::ui_vertex_output::UiVertexOutput
+import bevy_ui_render::ui_vertex_output::UiVertexOutput;
 
 struct TurnBorderMaterial {
     // x: normalized tail, y: normalized head, z: corner radius, w: thickness.

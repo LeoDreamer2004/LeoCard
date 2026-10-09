@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="metal" x2=".9" y2="1"><stop stop-color="#fff0bd"/><stop offset=".45" stop-color="#d6b574"/><stop offset="1" stop-color="#937142"/></linearGradient>
+    <linearGradient id="paper" x2=".3" y2="1"><stop stop-color="#f0edf9"/><stop offset="1" stop-color="#bdb8d3"/></linearGradient>
+    <linearGradient id="housing" x2=".4" y2="1"><stop stop-color="#695985"/><stop offset="1" stop-color="#51456f"/></linearGradient>
+  </defs>
+  <path d="M48 144H190Q208 144 214 163L229 207Q234 225 215 232H39Q20 225 25 207L40 163Q44 150 48 144Z" fill="url(#metal)" stroke="#25232e" stroke-width="9" stroke-linejoin="round"/>
+  <path d="M52 156H187L212 210Q214 218 203 218H49Q38 218 41 210Z" fill="url(#housing)" stroke="#69563b" stroke-width="5" stroke-linejoin="round"/>
+  <rect x="50" y="151" width="150" height="23" rx="11" fill="#25232e"/>
+  <g transform="rotate(-8 121 99)">
+    <rect x="71" y="26" width="102" height="137" rx="12" fill="url(#paper)" stroke="#25232e" stroke-width="8"/>
+    <path d="M128 52L93 104H118L108 138L149 85H124Z" fill="url(#metal)" stroke="#69563b" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M85 39H143" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".65"/>
+  </g>
+  <path d="M56 176H193" stroke="#ead8a1" stroke-width="7" stroke-linecap="round"/>
+  <path d="M58 199H103" stroke="#b9aad7" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="183" cy="198" r="6" fill="#d6b574" stroke="#25232e" stroke-width="3"/>
+  <path d="M188 56L201 69L188 82M214 56L227 69L214 82" fill="none" stroke="#25232e" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M188 56L201 69L188 82M214 56L227 69L214 82" fill="none" stroke="#b9aad7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

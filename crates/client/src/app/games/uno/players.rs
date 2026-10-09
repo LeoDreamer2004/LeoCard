@@ -10,8 +10,8 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SeatSide, SocialUiState, UiAction, add_cozy_panel_with_skin};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{
     GameKind, PlayerId, UnoPendingSwapView, UnoPhaseView, UnoPlayerState, UnoSnapshot,
 };
@@ -48,17 +48,17 @@ pub(super) fn add_uno_eliminated_own_overlay(
     );
     commands
         .entity(overlay)
-        .insert((GlobalZIndex(1900), FocusPolicy::Block));
+        .insert((GlobalZIndex(1900), Pickable::default()));
     let title = add_text(commands, overlay, "您已被淘汰", 27.0, DANGER, assets);
     commands.entity(title).insert((
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
         TextShadow {
             offset: Vec2::new(1.2, 1.5),
             color: Color::BLACK.with_alpha(0.92),
         },
     ));
     let detail = add_text(commands, overlay, "等待本局结束", 14.0, MUTED, assets);
-    commands.entity(detail).insert(FocusPolicy::Pass);
+    commands.entity(detail).insert(Pickable::IGNORE);
 }
 
 pub(super) fn opponent_position(index: usize, count: usize) -> (f32, f32) {
@@ -244,7 +244,7 @@ pub(super) fn add_uno_player_panel(
                     ImageNode::new(uno_card_handle(game_assets, card)),
                     UiTransform::IDENTITY,
                     BoxShadow::new(Color::BLACK.with_alpha(0.35), px(1), px(2), px(0), px(3)),
-                    FocusPolicy::Pass,
+                    Pickable::IGNORE,
                 ))
                 .id();
             commands.entity(slot).add_child(face);
@@ -295,7 +295,7 @@ pub(super) fn add_uno_card_count(
         },
         None,
     );
-    commands.entity(row).insert(FocusPolicy::Pass);
+    commands.entity(row).insert(Pickable::IGNORE);
     let fan = spawn_node(
         commands,
         row,
@@ -307,7 +307,7 @@ pub(super) fn add_uno_card_count(
         },
         None,
     );
-    commands.entity(fan).insert(FocusPolicy::Pass);
+    commands.entity(fan).insert(Pickable::IGNORE);
     for (left, top, rotation, layer) in [
         (2.0, 5.0, -0.27, 0),
         (10.0, 2.0, 0.0, 1),
@@ -334,7 +334,7 @@ pub(super) fn add_uno_card_count(
             BorderColor::all(Color::srgb(0.93, 0.94, 0.92)),
             UiTransform::from_rotation(Rot2::radians(rotation)),
             ZIndex(layer),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
         let diamond = spawn_node(
             commands,
@@ -348,7 +348,7 @@ pub(super) fn add_uno_card_count(
         );
         commands.entity(diamond).insert((
             UiTransform::from_rotation(Rot2::degrees(45.0)),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
     }
     let number = add_text(commands, row, count.to_string(), 14.0 * 1.17, color, assets);
@@ -358,7 +358,7 @@ pub(super) fn add_uno_card_count(
             offset: Vec2::new(1.0, 1.0),
             color: Color::BLACK.with_alpha(0.8),
         },
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 
@@ -387,10 +387,10 @@ pub(super) fn add_uno_eliminated_player_overlay(
     commands.entity(overlay).insert((
         BorderColor::all(DANGER.with_alpha(0.96)),
         ZIndex(80),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     let label = add_text(commands, overlay, "OUT", 19.0, DANGER, assets);
-    commands.entity(label).insert(FocusPolicy::Pass);
+    commands.entity(label).insert(Pickable::IGNORE);
 }
 
 pub(super) fn add_uno_swap_selected_label(
@@ -413,7 +413,7 @@ pub(super) fn add_uno_swap_selected_label(
     );
     commands
         .entity(badge)
-        .insert((GlobalZIndex(8), FocusPolicy::Pass));
+        .insert((GlobalZIndex(8), Pickable::IGNORE));
     add_text(commands, badge, "已选中", 11.0 * 1.17, Color::BLACK, assets);
 }
 
@@ -548,7 +548,7 @@ fn add_uno_finished_hand(
     );
     commands
         .entity(hand)
-        .insert((GlobalZIndex(850), FocusPolicy::Pass));
+        .insert((GlobalZIndex(850), Pickable::IGNORE));
     for (index, card) in cards.iter().copied().enumerate() {
         let slot = spawn_node(
             commands,
@@ -576,7 +576,7 @@ fn add_uno_finished_hand(
                 },
                 ImageNode::new(uno_card_handle(assets, card)),
                 BoxShadow::new(Color::BLACK.with_alpha(0.42), px(1), px(3), px(0), px(4)),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(slot).add_child(face);
@@ -629,7 +629,7 @@ pub(super) fn add_uno_skip_overlay(
     );
     commands.entity(overlay).insert((
         BorderColor::all(DANGER.with_alpha(0.96)),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
         ZIndex(80),
     ));
     let symbol = spawn_node(
@@ -648,7 +648,7 @@ pub(super) fn add_uno_skip_overlay(
     commands.entity(symbol).insert((
         BorderColor::all(DANGER),
         BoxShadow::new(Color::BLACK.with_alpha(0.58), px(2), px(3), px(0), px(5)),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     let slash = spawn_node(
         commands,
@@ -667,7 +667,7 @@ pub(super) fn add_uno_skip_overlay(
     commands.entity(slash).insert((
         UiTransform::from_rotation(Rot2::degrees(-45.0)),
         BoxShadow::new(Color::BLACK.with_alpha(0.60), px(2), px(3), px(0), px(4)),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     if count > 1 {
         let badge = spawn_node(
@@ -691,7 +691,7 @@ pub(super) fn add_uno_skip_overlay(
         commands.entity(badge).insert((
             BorderColor::all(DANGER),
             BoxShadow::new(Color::BLACK.with_alpha(0.5), px(1), px(2), px(0), px(3)),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
         add_text(
             commands,

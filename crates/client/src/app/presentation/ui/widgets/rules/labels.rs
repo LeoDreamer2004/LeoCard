@@ -3,6 +3,7 @@ use crate::app::presentation::{RuleHelp, TEXT};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 use leocard_qigui523::{SuitComparison, TimeControl};
 
 pub(super) fn add_rule_help(

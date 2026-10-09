@@ -1,6 +1,7 @@
 use super::{EntryGlow, GameEntry, GlowKind};
 use crate::app::presentation::TransitionOpacity;
 use crate::app::shell::PageMotion;
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::BackgroundGradient;
 
@@ -24,9 +25,9 @@ impl Default for EntryMotion {
 }
 
 impl EntryMotion {
-    fn advance(&mut self, interaction: Interaction, delta: f32, fresh_press: bool) {
-        let hovered = f32::from(interaction != Interaction::None);
-        let pressed = interaction == Interaction::Pressed;
+    fn advance(&mut self, interaction: PickingInteraction, delta: f32, fresh_press: bool) {
+        let hovered = f32::from(interaction != PickingInteraction::None);
+        let pressed = interaction == PickingInteraction::Pressed;
         self.hover += (hovered - self.hover) * (1.0 - (-delta * 12.0).exp());
         self.press += (f32::from(pressed) - self.press) * (1.0 - (-delta * 25.0).exp());
         if pressed && !self.was_pressed && fresh_press {
@@ -80,7 +81,7 @@ pub(super) fn animate_entries(
     time: Res<Time>,
     mouse: Res<ButtonInput<MouseButton>>,
     page: Res<PageMotion>,
-    entries: Query<(&Interaction, &GameEntry)>,
+    entries: Query<(&PickingInteraction, &GameEntry)>,
     mut states: Local<[EntryMotion; 5]>,
     mut transforms: Query<&mut UiTransform>,
     mut glows: Query<(&EntryGlow, &TransitionOpacity, &mut BackgroundGradient)>,
@@ -94,7 +95,7 @@ pub(super) fn animate_entries(
         let state = &mut states[entry.index];
         state.advance(
             if transitioning {
-                Interaction::None
+                PickingInteraction::None
             } else {
                 *interaction
             },

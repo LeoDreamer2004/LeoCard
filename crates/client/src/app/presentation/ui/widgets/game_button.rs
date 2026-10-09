@@ -4,8 +4,10 @@ use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 
 #[derive(Clone, Copy)]
 pub(crate) enum GameButtonImageMode {
@@ -122,7 +124,7 @@ pub(crate) fn add_textured_game_button(
                 },
                 game_button_image(spec.hovered, spec.image_mode, 1.0),
                 Visibility::Hidden,
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(button).add_child(overlay);
@@ -131,7 +133,7 @@ pub(crate) fn add_textured_game_button(
             arrows: None,
         });
     } else {
-        commands.entity(button).insert(FocusPolicy::Pass);
+        commands.entity(button).insert(Pickable::IGNORE);
     }
     let label = add_text(
         commands,
@@ -141,6 +143,6 @@ pub(crate) fn add_textured_game_button(
         if enabled { TEXT } else { MUTED },
         assets,
     );
-    commands.entity(label).insert(FocusPolicy::Pass);
+    commands.entity(label).insert(Pickable::IGNORE);
     (button, label)
 }

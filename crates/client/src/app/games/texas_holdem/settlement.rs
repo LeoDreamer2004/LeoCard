@@ -15,8 +15,8 @@ use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
 };
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{
     SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
 };
@@ -111,7 +111,7 @@ pub(super) fn add_texas_showdown_reveal(
     commands.entity(root).insert((
         TexasShowdownRevealRoot,
         GlobalZIndex(1080),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     let backdrop = spawn_node(
         commands,
@@ -128,7 +128,7 @@ pub(super) fn add_texas_showdown_reveal(
     );
     commands
         .entity(backdrop)
-        .insert((TexasShowdownBackdrop, FocusPolicy::Pass));
+        .insert((TexasShowdownBackdrop, Pickable::IGNORE));
 
     let relative = (winner.seat.0 + TABLE_SEAT_COUNT - own_seat.0) % TABLE_SEAT_COUNT;
     let winner_zone = texas_player_chip_zone(relative);
@@ -188,7 +188,7 @@ pub(super) fn add_texas_showdown_reveal(
                     start_scale,
                 },
                 ZIndex(index as i32 + 5),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(root).add_child(entity);
@@ -212,7 +212,7 @@ pub(super) fn add_texas_showdown_reveal(
     commands.entity(title_area).insert((
         TexasShowdownTitle,
         UiTransform::from_translation(Val2::px(0.0, 16.0)),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     let winner_names = main_award
         .winners
@@ -254,7 +254,7 @@ pub(super) fn add_texas_showdown_reveal(
             scale: Vec2::new(0.0, 1.0),
             ..UiTransform::IDENTITY
         },
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 
@@ -297,7 +297,7 @@ pub(super) fn add_texas_hand_result(
         GameSummaryModal,
         UiTransform::from_translation(Val2::px(0.0, modal_visual.offset_y)),
         GlobalZIndex(1200),
-        FocusPolicy::Block,
+        Pickable::default(),
         if animation.elapsed >= 0.0 {
             Visibility::Visible
         } else {
@@ -548,7 +548,7 @@ pub(super) fn add_texas_hand_result(
                 },
                 None,
             );
-            commands.entity(spacer).insert(FocusPolicy::Pass);
+            commands.entity(spacer).insert(Pickable::IGNORE);
             add_animated_summary_text(
                 commands,
                 row,

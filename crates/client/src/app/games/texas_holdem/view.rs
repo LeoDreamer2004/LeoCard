@@ -16,8 +16,8 @@ use crate::app::shell::{
     ChatPanelState, SocialUiState, UiAction, add_chat_help_button, add_chat_panel,
     add_reconnecting_overlay,
 };
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_client::NetworkState;
 use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemSnapshot};
 
@@ -310,7 +310,7 @@ fn add_community_area(
         },
         None,
     );
-    commands.entity(gap).insert(FocusPolicy::Pass);
+    commands.entity(gap).insert(Pickable::IGNORE);
     for index in 0..5 {
         if let Some(card) = game.community.get(index).copied() {
             let animate = index >= new_from;

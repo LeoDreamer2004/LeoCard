@@ -5,8 +5,10 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{LobbyUiAction, UiAction, reference_level};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 use leocard_protocol::{GameKind, LobbyPlayer, LobbySnapshot, SeatId};
 
 pub(super) struct LobbySeatSelector<'a> {
@@ -156,7 +158,7 @@ impl<'a> LobbySeat<'a> {
         commands.entity(visual).insert((
             LobbySeatVisual(self.index),
             UiTransform::IDENTITY,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
         visual
     }
@@ -276,7 +278,7 @@ impl<'a> OccupiedLobbySeat<'a> {
                     ..default()
                 },
                 ImageNode::new(self.assets.home.checkbox_selected.clone()),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(parent).add_child(check);
@@ -354,7 +356,7 @@ impl<'a> EmptyLobbySeat<'a> {
             .entity(empty_ring)
             .insert((LobbyEmptySeatRing(self.index), image));
         let plus = add_text(commands, empty_ring, "+", 31.0, TEXT, self.assets);
-        commands.entity(plus).insert(FocusPolicy::Pass);
+        commands.entity(plus).insert(Pickable::IGNORE);
         let label = add_text(commands, parent, "空位", 12.0, MUTED, self.assets);
         commands
             .entity(label)

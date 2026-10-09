@@ -5,8 +5,10 @@ use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
 use bevy::ecs::query::QueryFilter;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, RelativeCursorPosition};
+use bevy::ui::RelativeCursorPosition;
+use bevy::ui_widgets::Button;
 use leocard_protocol::ChatEmoji;
 
 pub(super) fn add_quick_voice_menu(
@@ -172,7 +174,7 @@ pub(super) fn add_emoji_menu(
                     ..default()
                 },
                 ImageNode::new(assets.chat_emoji(emoji)),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(button).add_child(icon);

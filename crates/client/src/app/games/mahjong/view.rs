@@ -1,18 +1,19 @@
 //! 麻将房间、牌桌、动作按钮和结算视图。
 
-use super::actions::MahjongUiAction;
 use super::tiles::queue_mahjong_deal_sound;
 use super::{
     MAHJONG_WIN_PUSH_DURATION, MahjongActionPrompt, MahjongActionVoice, MahjongAssets,
     MahjongDiscardRiverVisuals, MahjongOwnHandVisuals, MahjongPlayerPanelVisuals,
     MahjongPlayerTileVisuals, MahjongSettlementVisuals, MahjongTableRoot, MahjongTileMaterial,
-    MahjongUiState, MahjongWinVisuals, MahjongWinningHandVisual, mahjong_major_fan_impact_times,
-    observe_discard_animations, queue_mahjong_action_voice, render_action_bar,
-    render_discard_rivers, render_mahjong_auto_drawer, render_mahjong_claim_presentation,
-    render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
-    render_mahjong_settlement, render_mahjong_wall, render_mahjong_win_effects,
-    render_own_discard_flight, render_own_hand, render_round_status,
+    MahjongUiState, MahjongWinVisuals, MahjongWinningHandVisual, add_mahjong_ready_hint,
+    mahjong_major_fan_impact_times, observe_discard_animations, queue_mahjong_action_voice,
+    render_action_bar, render_discard_rivers, render_mahjong_auto_drawer,
+    render_mahjong_claim_presentation, render_mahjong_flower_presentations,
+    render_mahjong_player_panel, render_mahjong_player_tiles, render_mahjong_settlement,
+    render_mahjong_wall, render_mahjong_win_effects, render_own_discard_flight, render_own_hand,
+    render_round_status,
 };
+use super::{MahjongReadyHintState, actions::MahjongUiAction};
 use crate::app::presentation::CustomButtonMotion;
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition, TableBackground,
@@ -330,6 +331,7 @@ pub(crate) struct MahjongTableVisuals<'a> {
     pub start_game_transition: &'a StartGameSeatTransition,
     pub game_summary: &'a GameSummaryAnimation,
     pub claim_presentation: &'a MahjongClaimPresentationState,
+    pub show_wait_fans: bool,
 }
 
 pub(super) fn sync_mahjong_claim_presentation(
@@ -567,6 +569,7 @@ pub(crate) fn render_mahjong_table(
         start_game_transition,
         game_summary,
         claim_presentation,
+        show_wait_fans,
     } = visuals;
     let content = spawn_node(
         commands,
@@ -837,6 +840,7 @@ pub(crate) fn render_mahjong_table(
         game,
         MahjongOwnHandVisuals {
             response_tile,
+            show_wait_fans,
             observed_hand: &ui.observed_table.state.hand,
             hover_lifts: &ui.hand_hover_lifts,
             dealing: dealing || own_flower_replaced,
@@ -932,6 +936,18 @@ pub(crate) fn render_mahjong_table(
         commands,
         chat_panel,
         UiAction::Mahjong(MahjongUiAction::ToggleFanGuide),
+        assets,
+    );
+    add_mahjong_ready_hint(
+        commands,
+        chat_panel,
+        game,
+        MahjongReadyHintState {
+            show_fans: show_wait_fans,
+            hovered: ui.ready_hint_hovered,
+        },
+        game_assets,
+        tile_materials,
         assets,
     );
     if local_auto_play == Some(true) {

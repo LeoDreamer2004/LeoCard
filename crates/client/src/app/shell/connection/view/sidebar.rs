@@ -8,8 +8,9 @@ use super::{
 };
 use crate::app::presentation::{TEXT, add_avatar, add_text, spawn_node};
 use crate::app::shell::{ConnectionUiAction, InputField, PageTransitionElement, UiAction};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui_widgets::Button;
 use leocard_protocol::PlayerGender;
 
 impl ConnectionScreen<'_> {
@@ -122,7 +123,7 @@ impl ConnectionScreen<'_> {
             .id();
         commands.entity(row).add_child(gender);
         let symbol = add_text(commands, gender, symbol, 31.0, color, self.assets);
-        commands.entity(symbol).insert(FocusPolicy::Pass);
+        commands.entity(symbol).insert(Pickable::IGNORE);
         if self.appearance.avatar_png.is_some() {
             let clear = spawn_node(
                 commands,

@@ -6,7 +6,6 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{GameKind, MatchId, PlayerId};
 use std::collections::{HashMap, HashSet};
 
@@ -32,7 +31,7 @@ pub(crate) struct TurnBorderMaterial {
 
 impl UiMaterial for TurnBorderMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/turn_border.wgsl".into()
+        "shaders/turn_border.wesl".into()
     }
 }
 
@@ -101,7 +100,6 @@ pub(crate) fn add_turn_border_trace_with_radius(
             },
             MaterialNode(material),
             ZIndex(90),
-            FocusPolicy::Pass,
             Pickable::IGNORE,
         ))
         .id();

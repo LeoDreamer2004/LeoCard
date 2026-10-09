@@ -1,7 +1,7 @@
 use crate::app::presentation::{ACCENT, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{PlayerGameScoreText, SeatSide};
-use bevy::{prelude::*, ui::FocusPolicy};
+use bevy::{picking::Pickable, prelude::*};
 use leocard_protocol::PlayerId;
 
 pub(super) fn add_qigui_player_stats(
@@ -28,7 +28,7 @@ pub(super) fn add_qigui_player_stats(
         },
         None,
     );
-    commands.entity(row).insert(FocusPolicy::Pass);
+    commands.entity(row).insert(Pickable::IGNORE);
     add_hand_count(commands, row, hand_len, assets);
     let icon = spawn_node(
         commands,
@@ -47,9 +47,9 @@ pub(super) fn add_qigui_player_stats(
     );
     commands
         .entity(icon)
-        .insert((BorderColor::all(ACCENT.with_alpha(0.85)), FocusPolicy::Pass));
+        .insert((BorderColor::all(ACCENT.with_alpha(0.85)), Pickable::IGNORE));
     let glyph = add_text(commands, icon, "分", 11.0, ACCENT, assets);
-    commands.entity(glyph).insert(FocusPolicy::Pass);
+    commands.entity(glyph).insert(Pickable::IGNORE);
     let digits = score.to_string();
     let font_size = (20.0 - digits.len().saturating_sub(3) as f32 * 1.5).max(14.0);
     let value = add_text(commands, row, digits, font_size, ACCENT, assets);
@@ -60,7 +60,7 @@ pub(super) fn add_qigui_player_stats(
             offset: Vec2::new(1.5, 2.0),
             color: Color::BLACK.with_alpha(0.82),
         },
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 
@@ -77,7 +77,7 @@ fn add_hand_count(commands: &mut Commands, parent: Entity, count: u16, assets: &
         },
         None,
     );
-    commands.entity(fan).insert(FocusPolicy::Pass);
+    commands.entity(fan).insert(Pickable::IGNORE);
     for (left, top, rotation, layer) in [
         (2.0, 4.0, -0.27, 0),
         (8.0, 1.0, 0.0, 1),
@@ -96,7 +96,7 @@ fn add_hand_count(commands: &mut Commands, parent: Entity, count: u16, assets: &
                 ImageNode::new(assets.playing_cards.card_back.clone()),
                 UiTransform::from_rotation(Rot2::radians(rotation)),
                 ZIndex(layer),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(fan).add_child(card);
@@ -108,6 +108,6 @@ fn add_hand_count(commands: &mut Commands, parent: Entity, count: u16, assets: &
             offset: Vec2::new(1.0, 1.0),
             color: Color::BLACK.with_alpha(0.8),
         },
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }

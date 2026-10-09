@@ -1,9 +1,7 @@
 //! 房间参与者对各游戏公开的稳定身份与档案数据。
 
-use crate::room::{Participant, RoomSession};
-use leocard_protocol::{
-    AvatarId, LobbyPlayer, PlayerGameProfiles, PlayerId, PlayerReferenceChange, ProfileId, SeatId,
-};
+use crate::room::Participant;
+use leocard_protocol::{AvatarId, LobbyPlayer, PlayerGameProfiles, PlayerId, ProfileId, SeatId};
 
 #[derive(Clone, Debug)]
 pub(super) struct PublicPlayerMetadata {
@@ -53,40 +51,4 @@ impl From<PublicPlayerMetadata> for LobbyPlayer {
             game_profiles: player.game_profiles,
         }
     }
-}
-
-pub(super) fn settle_completed_match_profiles_once<I, F>(
-    finished: &mut Option<Vec<PlayerReferenceChange>>,
-    room: &mut RoomSession,
-    settlements: I,
-    mut record_game_profile: F,
-) -> bool
-where
-    I: IntoIterator<Item = (PlayerId, i16)>,
-    F: FnMut(&mut Participant, i16),
-{
-    if finished.is_some() {
-        return false;
-    }
-    let settlements = settlements.into_iter();
-    let mut changes = Vec::with_capacity(settlements.size_hint().0);
-    for (player, delta) in settlements {
-        let participant = room
-            .players
-            .iter_mut()
-            .find(|participant| participant.id == player)
-            .expect("a finished game participant belongs to its room");
-        participant.reference_points = participant
-            .reference_points
-            .saturating_add(i32::from(delta));
-        participant.completed_games = participant.completed_games.saturating_add(1);
-        record_game_profile(participant, delta);
-        changes.push(PlayerReferenceChange {
-            player,
-            profile_id: participant.profile_id,
-            delta,
-        });
-    }
-    *finished = Some(changes);
-    true
 }

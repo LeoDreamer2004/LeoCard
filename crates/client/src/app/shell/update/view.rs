@@ -1,5 +1,6 @@
 use super::download::format_bytes;
 use crate::app::shell::UpdateUiAction;
+use bevy::picking::Pickable;
 
 use super::{UpdateEvent, UpdateManager, UpdateState};
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
@@ -10,7 +11,6 @@ use crate::app::shell::{
 use crate::app::shell::{UiAction, UiState, add_cozy_button, add_cozy_panel};
 use bevy::log::warn;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use std::process::Command;
 use std::thread;
 
@@ -142,7 +142,7 @@ pub(crate) fn render_update_dialog(
     );
     commands.entity(overlay).insert((
         GlobalZIndex(2300),
-        FocusPolicy::Block,
+        Pickable::default(),
         CozyModalBackdrop(CozyModalKind::UpdateDialog),
     ));
     let modal = add_cozy_panel(

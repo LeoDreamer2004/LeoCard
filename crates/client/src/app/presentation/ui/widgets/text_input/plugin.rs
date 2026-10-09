@@ -15,15 +15,15 @@ impl Plugin for TextInputPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(TabNavigationPlugin)
             .add_observer(focus_input_slot)
+            .add_observer(collect_submissions)
             .init_resource::<RetainedEditors>()
             .add_message::<TextInputEvent>()
             .configure_sets(
                 PostUpdate,
                 TextInputSet::Publish
                     .after(EditableTextSystems)
-                    .before(UiSystems::Layout),
+                    .before(UiSystems::PostLayout),
             )
-            .add_systems(Update, collect_submissions.in_set(ClientUpdateSet::Input))
             .add_systems(
                 Update,
                 restore_editors
@@ -34,7 +34,7 @@ impl Plugin for TextInputPlugin {
                 PostUpdate,
                 sync_input_skin
                     .after(TextInputSet::Publish)
-                    .before(UiSystems::Layout),
+                    .before(UiSystems::PostLayout),
             );
     }
 }

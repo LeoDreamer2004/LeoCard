@@ -4,8 +4,10 @@ use crate::app::presentation::{
     ACCENT, BORDER, CardAnimationState, CardDragSelection, CardSize, HandCardSelectionOverlay,
     advance_towards, drag_preview_color, hand_card_pose, slot_hover_target, update_drag_selection,
 };
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
+use bevy::ui_widgets::Button;
 
 const HAND_CARD_HOVER_WIDTH: f32 = 36.0;
 
@@ -28,7 +30,7 @@ pub(super) fn animate_hand_card_slots(
     mut ui: ResMut<QiGui523UiState>,
     mut cards: Query<
         (
-            &Interaction,
+            &PickingInteraction,
             &RelativeCursorPosition,
             &mut HandCardSlot,
             &mut Node,
@@ -60,11 +62,11 @@ pub(super) fn handle_card_drag_selection(
     mouse: Res<ButtonInput<MouseButton>>,
     mut drag: ResMut<CardDragSelection>,
     mut ui: ResMut<QiGui523UiState>,
-    cards: Query<(&Interaction, &RelativeCursorPosition, &HandCardSlot)>,
+    cards: Query<(&PickingInteraction, &RelativeCursorPosition, &HandCardSlot)>,
 ) {
     let pressed = cards
         .iter()
-        .find(|(interaction, _, _)| **interaction == Interaction::Pressed)
+        .find(|(interaction, _, _)| **interaction == PickingInteraction::Pressed)
         .map(|(_, _, slot)| (slot.index, slot.card));
     let hovered = cards
         .iter()
@@ -100,7 +102,7 @@ pub(super) fn animate_hand_cards(
     time: Res<Time>,
     drag: Res<CardDragSelection>,
     mut ui: ResMut<QiGui523UiState>,
-    buttons: Query<&Interaction, With<Button>>,
+    buttons: Query<&PickingInteraction, With<Button>>,
     mut cards: HandCardAnimations,
 ) {
     let response = 1.0 - (-14.0 * time.delta_secs()).exp();
@@ -114,7 +116,10 @@ pub(super) fn animate_hand_cards(
         let hovered = if drag.active {
             visual.index == drag.current
         } else {
-            matches!(*interaction, Interaction::Hovered | Interaction::Pressed)
+            matches!(
+                *interaction,
+                PickingInteraction::Hovered | PickingInteraction::Pressed
+            )
         };
         let hover_target = f32::from(hovered);
         let selected_target = f32::from(selected);

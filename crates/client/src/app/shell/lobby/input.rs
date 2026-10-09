@@ -5,20 +5,21 @@ use crate::app::presentation::{
     RuleHelp,
 };
 use crate::app::runtime::{ClientResource, UiAssets};
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use leocard_protocol::{ClientCommand, SeatId};
 
 pub(crate) fn animate_lobby_seat_hover(
     time: Res<Time>,
     assets: Res<UiAssets>,
-    mut seats: Query<(&Interaction, &mut LobbySeatHover)>,
+    mut seats: Query<(&PickingInteraction, &mut LobbySeatHover)>,
     mut visuals: Query<(&LobbySeatVisual, &mut UiTransform)>,
     mut empty_rings: Query<(&LobbyEmptySeatRing, &mut ImageNode)>,
     mut empty_labels: Query<(&LobbyEmptySeatLabel, &mut Text, &mut TextColor)>,
 ) {
     let response = 1.0 - (-time.delta_secs() * 16.0).exp();
     for (interaction, mut hover) in &mut seats {
-        let hovered = !matches!(interaction, Interaction::None);
+        let hovered = !matches!(interaction, PickingInteraction::None);
         let target = if hovered { 1.0 } else { 0.0 };
         hover.amount += (target - hover.amount) * response;
         if (hover.amount - target).abs() < 0.002 {
@@ -75,7 +76,7 @@ pub(crate) fn animate_lobby_seat_hover(
 
 pub(crate) fn handle_lobby_bot_seat_right_click(
     mouse: Res<ButtonInput<MouseButton>>,
-    seats: Query<(&Interaction, &LobbySeatHover)>,
+    seats: Query<(&PickingInteraction, &LobbySeatHover)>,
     mut client: Option<ResMut<ClientResource>>,
 ) {
     if !mouse.just_pressed(MouseButton::Right) {
@@ -83,7 +84,7 @@ pub(crate) fn handle_lobby_bot_seat_right_click(
     }
     let Some(seat) = seats
         .iter()
-        .find(|(interaction, _)| !matches!(interaction, Interaction::None))
+        .find(|(interaction, _)| !matches!(interaction, PickingInteraction::None))
         .map(|(_, hover)| SeatId(hover.seat))
     else {
         return;
@@ -115,12 +116,15 @@ pub(crate) fn handle_lobby_bot_seat_right_click(
 }
 
 pub(crate) fn update_rule_help_tooltips(
-    helps: Query<(&Interaction, &RuleHelp), Changed<Interaction>>,
+    helps: Query<(&PickingInteraction, &RuleHelp), Changed<PickingInteraction>>,
     mut tooltips: Query<&mut Visibility>,
 ) {
     for (interaction, help) in &helps {
         if let Ok(mut visibility) = tooltips.get_mut(help.tooltip) {
-            *visibility = if matches!(interaction, Interaction::Hovered | Interaction::Pressed) {
+            *visibility = if matches!(
+                interaction,
+                PickingInteraction::Hovered | PickingInteraction::Pressed
+            ) {
                 Visibility::Visible
             } else {
                 Visibility::Hidden

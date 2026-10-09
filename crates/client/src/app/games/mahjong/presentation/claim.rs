@@ -1,3 +1,4 @@
+use bevy::picking::Pickable;
 use std::f32::consts;
 
 use super::super::{
@@ -12,7 +13,6 @@ use super::{MahjongTileSize, MahjongTileVisual, add_mahjong_tile_material};
 use crate::app::presentation::{ACCENT, TEXT, add_text, ease_out_cubic, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_mahjong::MahjongClaim;
 use leocard_protocol::{MahjongSnapshot, PlayerId};
 
@@ -233,7 +233,7 @@ pub(crate) fn render_mahjong_claim_presentation(
             ..default()
         },
         ZIndex(89),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 
@@ -294,7 +294,7 @@ pub(crate) fn render_mahjong_flower_presentations(
                 ..default()
             },
             ZIndex(89),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
     }
 }

@@ -5,12 +5,12 @@ use bevy::{
         keyboard::{Key, KeyboardInput},
     },
     input_focus::{InputDispatchPlugin, InputFocus, InputFocusPlugin},
-    picking::events::{Pointer, Release},
+    picking::events::{PointerRelease, PointerState},
     text::{
         EditableText, Font, FontCx, LayoutCx, apply_text_edits,
         load_font_assets_into_font_collection,
     },
-    ui_widgets::EditableTextInputPlugin,
+    ui_widgets::{TextInput as NativeTextInput, TextInputPlugin},
     window::{Ime, PrimaryWindow, WindowPlugin},
 };
 use bevy_clipboard::Clipboard;
@@ -33,14 +33,16 @@ fn input_app(value: &str) -> (App, Entity, Entity) {
             primary_window: None,
             ..default()
         },
-        EditableTextInputPlugin,
+        TextInputPlugin,
     ))
     .init_resource::<FontCx>()
     .init_resource::<Assets<Font>>()
     .init_resource::<LayoutCx>()
     .init_resource::<UiScale>()
+    .init_resource::<Time<Real>>()
+    .init_resource::<PointerState>()
     .insert_resource(Clipboard::default())
-    .add_message::<Pointer<Release>>()
+    .add_message::<PointerRelease>()
     .add_systems(
         PostUpdate,
         (load_font_assets_into_font_collection, apply_text_edits).chain(),
@@ -70,7 +72,10 @@ fn input_app(value: &str) -> (App, Entity, Entity) {
         .resource_mut::<FontCx>()
         .set_sans_serif_family(&alias)
         .unwrap();
-    let editor = app.world_mut().spawn(EditableText::new(value)).id();
+    let editor = app
+        .world_mut()
+        .spawn((NativeTextInput, EditableText::new(value)))
+        .id();
     app.insert_resource(InputFocus::from_entity(editor));
     app.update();
     (app, window, editor)

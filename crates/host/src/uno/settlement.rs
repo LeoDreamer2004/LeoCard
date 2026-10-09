@@ -2,10 +2,7 @@ use super::{
     UnoSession, analysis::profile_statistics, analysis_events, append_finished_event,
     events_for_outcome, merge_uno_profile_stats, pending_draw_reveal_for_outcome, to_core_player,
 };
-use crate::{
-    ConnectionId, Delivery, lifecycle::HostedGameLifecycle,
-    player::settle_completed_match_profiles_once,
-};
+use crate::{ConnectionId, Delivery, lifecycle::HostedGameLifecycle};
 use leocard_protocol::{
     GameViolation, PlayerId, PlayerViolation, RejectReason, RequestId, UnoProfileStats,
 };
@@ -106,9 +103,8 @@ impl UnoSession {
             .enumerate()
             .map(|(index, delta)| (PlayerId(index as u8), delta))
             .collect::<Vec<_>>();
-        let applied = settle_completed_match_profiles_once(
+        let applied = self.room.settle_completed_match_profiles_once(
             &mut self.finished_reference_changes,
-            &mut self.room,
             settlements,
             |participant, delta| {
                 let index = usize::from(participant.id.0);

@@ -1,5 +1,7 @@
-use super::{FAN_VOICE_SPECS, MahjongStatusImages, create_mahjong_status_images};
-use super::{mahjong_tile_asset_path, mahjong_tile_height_asset_path};
+use super::{
+    FAN_VOICE_SPECS, MahjongStatusImages, create_mahjong_status_images, mahjong_tile_asset_path,
+    mahjong_tile_height_asset_path,
+};
 use bevy::prelude::*;
 use leocard_mahjong::{Fan, MahjongTileKind, build_deck};
 use leocard_protocol::PlayerGender;
@@ -10,6 +12,7 @@ pub(crate) struct MahjongAssets {
     pub tiles: HashMap<MahjongTileKind, Handle<Image>>,
     pub tile_heights: HashMap<MahjongTileKind, Handle<Image>>,
     pub tile_back: Handle<Image>,
+    pub(super) action_prompt: Handle<AudioSource>,
     pub action_button: Handle<Image>,
     pub action_button_hover: Handle<Image>,
     pub action_pass: Handle<Image>,
@@ -112,6 +115,7 @@ impl MahjongAssets {
                     })
                 })
             }),
+            action_prompt: asset_server.load("vendor/kenney/interface-sounds/Audio/pluck_001.ogg"),
             status: create_mahjong_status_images(images),
         }
     }

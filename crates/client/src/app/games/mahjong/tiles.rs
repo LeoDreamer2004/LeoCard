@@ -87,6 +87,7 @@ pub(super) fn add_mahjong_hand_tile(
     let material = materials.add(MahjongTileMaterial {
         params: Vec4::new(0.0, 0.0, if deal.is_some() { 0.0 } else { 1.0 }, -1.0),
         lighting: mahjong_local_light(0),
+        highlight: Vec4::ZERO,
         glyph,
         height,
     });

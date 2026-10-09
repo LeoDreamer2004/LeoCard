@@ -7,7 +7,7 @@ use crate::app::presentation::CardSize;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{SocialUiAction, UiAction};
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui::{FocusPolicy, VisualBox};
 use leocard_qigui523::QiGuiCard;
 
 const SCORE_CARD_REVEAL: f32 = 12.0;
@@ -97,6 +97,18 @@ pub(crate) fn add_auto_play_overlay(commands: &mut Commands, parent: Entity, ass
     ));
     let detail = add_text(commands, overlay, "点击此处取消", 14.0, TEXT, assets);
     commands.entity(detail).insert(FocusPolicy::Pass);
+}
+
+/// Reuse the rounded card skin at both entry and compact popup sizes.
+pub(crate) fn card_background_image(texture: Handle<Image>, corner_scale: f32) -> ImageNode {
+    let mut image = ImageNode::new(texture).with_mode(NodeImageMode::Sliced(TextureSlicer {
+        border: BorderRect::all(16.0),
+        center_scale_mode: SliceScaleMode::Stretch,
+        sides_scale_mode: SliceScaleMode::Stretch,
+        max_corner_scale: corner_scale,
+    }));
+    image.visual_box = VisualBox::BorderBox;
+    image
 }
 
 /// 给任意布局节点叠加独立的九宫格面板皮肤。玩家框仍使用专用贴图；这里仅

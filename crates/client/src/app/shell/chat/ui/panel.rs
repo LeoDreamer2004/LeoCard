@@ -2,11 +2,12 @@ use super::super::*;
 use super::controls::{add_auto_play_toggle, add_auxiliary_actions, add_chat_toggle};
 use super::menus::{add_emoji_menu, add_quick_voice_menu};
 use crate::app::presentation::ButtonHighlight;
-use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{TEXT, TextInput, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
+use leocard_protocol::MAX_CHAT_MESSAGE_CHARS;
 
 pub(crate) struct ChatAuxiliaryAction {
     pub label: &'static str,
@@ -100,7 +101,7 @@ pub(super) fn add_chat_history(
     );
     commands
         .entity(history_box)
-        .insert(cozy_chat_input_image(false, assets));
+        .insert(cozy_chat_history_image(assets));
     let history = chat
         .history
         .iter()
@@ -159,50 +160,25 @@ pub(super) fn add_chat_input_row(
 }
 
 fn add_text_input(commands: &mut Commands, row: Entity, chat: &ChatPanelState, assets: &UiAssets) {
-    let button = commands
-        .spawn((
-            Button,
-            UiAction::Chat(ChatUiAction::FocusInput),
-            Node {
-                width: px(CHAT_PANEL_WIDTH - 124.0),
-                min_width: px(CHAT_PANEL_WIDTH - 124.0),
-                max_width: px(CHAT_PANEL_WIDTH - 124.0),
-                height: percent(100),
-                min_height: percent(100),
-                max_height: percent(100),
-                flex_grow: 0.0,
-                flex_shrink: 0.0,
-                padding: UiRect::axes(px(9), px(5)),
-                align_items: AlignItems::Center,
-                overflow: Overflow::clip_x(),
-                ..default()
-            },
-            cozy_chat_input_image(chat.focused, assets),
-            ChatInputFieldTexture,
-        ))
-        .id();
-    commands.entity(row).add_child(button);
-    let input_display = if chat.input.is_empty() {
-        "输入消息，回车发送".to_owned()
-    } else {
-        chat_input_display(&chat.input)
-    };
-    let label = add_text(
+    let mut input = TextInput::new("chat.message", &chat.input);
+    input.placeholder = "输入消息，回车发送";
+    input.max_characters = MAX_CHAT_MESSAGE_CHARS;
+    input.font_size = 12.5;
+    let editor = input.spawn(
         commands,
-        button,
-        input_display,
-        12.5,
-        if chat.input.is_empty() { MUTED } else { TEXT },
+        row,
+        Node {
+            width: px(CHAT_PANEL_WIDTH - 124.0),
+            min_width: px(CHAT_PANEL_WIDTH - 124.0),
+            max_width: px(CHAT_PANEL_WIDTH - 124.0),
+            height: percent(100),
+            flex_shrink: 0.0,
+            padding: UiRect::axes(px(9), px(5)),
+            ..default()
+        },
         assets,
     );
-    commands.entity(label).insert((
-        ChatInputText,
-        TextBackgroundColor(if chat.selected_all {
-            Color::srgb(0.20, 0.42, 0.72)
-        } else {
-            Color::NONE
-        }),
-    ));
+    commands.entity(editor).insert(ChatTextInput);
 }
 
 fn add_input_icon_button(
@@ -259,18 +235,14 @@ pub(super) fn cozy_chat_button_image(texture: Handle<Image>) -> ImageNode {
     image
 }
 
-pub(super) fn cozy_chat_input_image(focused: bool, assets: &UiAssets) -> ImageNode {
-    let mut image = ImageNode::new(if focused {
-        assets.home.focused_input.clone()
-    } else {
-        assets.home.input.clone()
-    })
-    .with_mode(NodeImageMode::Sliced(TextureSlicer {
-        border: BorderRect::all(32.0),
-        center_scale_mode: SliceScaleMode::Stretch,
-        sides_scale_mode: SliceScaleMode::Stretch,
-        max_corner_scale: 0.45,
-    }));
+pub(super) fn cozy_chat_history_image(assets: &UiAssets) -> ImageNode {
+    let mut image =
+        ImageNode::new(assets.home.input.clone()).with_mode(NodeImageMode::Sliced(TextureSlicer {
+            border: BorderRect::all(32.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 0.45,
+        }));
     image.visual_box = VisualBox::BorderBox;
     image
 }
@@ -296,7 +268,7 @@ pub(super) fn add_chat_button_highlight(
         ))
         .id();
     commands.entity(button).add_child(overlay);
-    commands.entity(button).insert(ButtonHighlight::Button {
+    commands.entity(button).insert(ButtonHighlight {
         overlay,
         arrows: None,
     });
@@ -304,15 +276,9 @@ pub(super) fn add_chat_button_highlight(
 
 pub(crate) fn sync_chat_panel_text(
     chat: Res<ChatPanelState>,
-    assets: Res<UiAssets>,
-    mut history_texts: Query<&mut Text, (With<ChatHistoryText>, Without<ChatInputText>)>,
-    mut input_texts: Query<
-        (&mut Text, &mut TextColor, &mut TextBackgroundColor),
-        With<ChatInputText>,
-    >,
+    mut history_texts: Query<&mut Text, With<ChatHistoryText>>,
     mut quick_menus: Query<&mut Visibility, (With<QuickVoiceMenu>, Without<EmojiMenu>)>,
     mut emoji_menus: Query<&mut Visibility, (With<EmojiMenu>, Without<QuickVoiceMenu>)>,
-    mut input_backgrounds: Query<&mut ImageNode, With<ChatInputFieldTexture>>,
 ) {
     if !chat.is_changed() {
         return;
@@ -331,34 +297,6 @@ pub(crate) fn sync_chat_panel_text(
     for mut text in &mut history_texts {
         if text.0 != history {
             text.0.clone_from(&history);
-        }
-    }
-    let (input, color) = if chat.input.is_empty() {
-        ("输入消息，回车发送".to_owned(), MUTED)
-    } else {
-        (chat_input_display(&chat.input), TEXT)
-    };
-    for (mut text, mut text_color, mut background) in &mut input_texts {
-        if text.0 != input {
-            text.0.clone_from(&input);
-        }
-        if text_color.0 != color {
-            text_color.0 = color;
-        }
-        background.0 = if chat.selected_all {
-            Color::srgb(0.20, 0.42, 0.72)
-        } else {
-            Color::NONE
-        };
-    }
-    let expected_input = if chat.focused {
-        &assets.home.focused_input
-    } else {
-        &assets.home.input
-    };
-    for mut image in &mut input_backgrounds {
-        if image.image != *expected_input {
-            image.image = expected_input.clone();
         }
     }
     for mut visibility in &mut quick_menus {
@@ -381,17 +319,4 @@ pub(crate) fn sync_chat_panel_text(
             *visibility = expected;
         }
     }
-}
-
-fn chat_input_display(input: &str) -> String {
-    const VISIBLE_CHARS: usize = 25;
-    let count = input.chars().count();
-    if count <= VISIBLE_CHARS {
-        return input.to_owned();
-    }
-    let tail = input
-        .chars()
-        .skip(count - VISIBLE_CHARS)
-        .collect::<String>();
-    format!("…{tail}")
 }

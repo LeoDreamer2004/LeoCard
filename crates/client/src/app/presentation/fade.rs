@@ -4,6 +4,23 @@ use bevy::ecs::query::QueryFilter;
 use bevy::prelude::*;
 use bevy::ui::{BackgroundGradient, Gradient};
 
+/// Visuals that animate their own alpha consume the transition factor directly,
+/// instead of restoring a cached color on every frame.
+#[derive(Component)]
+pub(crate) struct TransitionOpacity(f32);
+
+impl Default for TransitionOpacity {
+    fn default() -> Self {
+        Self(1.0)
+    }
+}
+
+impl TransitionOpacity {
+    pub(crate) fn factor(&self) -> f32 {
+        self.0
+    }
+}
+
 #[derive(Component, Clone)]
 pub(crate) struct TransitionFadeBase {
     image: Option<Color>,
@@ -23,6 +40,7 @@ pub(crate) type TransitionVisuals<'w, 's, Filter = ()> = Query<
         Option<&'static mut BorderColor>,
         Option<&'static mut BackgroundGradient>,
         Option<&'static TransitionFadeBase>,
+        Option<&'static mut TransitionOpacity>,
     ),
     Filter,
 >;
@@ -39,11 +57,15 @@ pub(crate) fn fade_panel<Filter: QueryFilter>(
         if let Ok(child_entities) = children.get(entity) {
             pending.extend(child_entities.iter());
         }
-        let Ok((mut image, mut text, mut background, mut border, mut gradient, cached)) =
+        let Ok((mut image, mut text, mut background, mut border, mut gradient, cached, transition)) =
             visuals.get_mut(entity)
         else {
             continue;
         };
+        if let Some(mut transition) = transition {
+            transition.0 = opacity.clamp(0.0, 1.0);
+            continue;
+        }
         let base = cached.cloned().unwrap_or_else(|| TransitionFadeBase {
             image: image.as_ref().map(|image| image.color),
             text: text.as_ref().map(|text| text.0),

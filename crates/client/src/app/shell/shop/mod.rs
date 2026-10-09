@@ -1,4 +1,6 @@
 mod actions;
+#[cfg(feature = "developer")]
+mod developer;
 mod entry;
 mod page;
 mod plugin;

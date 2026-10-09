@@ -1,7 +1,7 @@
 use super::super::{PageTransitionElement, add_cozy_panel};
-use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, add_text, card_background_image, spawn_node};
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, RelativeCursorPosition, VisualBox};
+use bevy::ui::{FocusPolicy, RelativeCursorPosition};
 use leocard_achievements::{AchievementDefinition, AchievementTier, achievements_in};
 
 use super::page::AchievementsPage;
@@ -116,7 +116,7 @@ impl AchievementsPage<'_> {
                     column_gap: px(18),
                     ..default()
                 },
-                card_texture(self.assets.home.game_card.clone()),
+                card_background_image(self.assets.home.game_card.clone(), 1.0),
             ))
             .id();
         commands.entity(parent).add_child(row);
@@ -182,15 +182,4 @@ impl AchievementsPage<'_> {
             }
         }
     }
-}
-
-fn card_texture(texture: Handle<Image>) -> ImageNode {
-    let mut image = ImageNode::new(texture).with_mode(NodeImageMode::Sliced(TextureSlicer {
-        border: BorderRect::all(16.0),
-        center_scale_mode: SliceScaleMode::Stretch,
-        sides_scale_mode: SliceScaleMode::Stretch,
-        max_corner_scale: 1.0,
-    }));
-    image.visual_box = VisualBox::BorderBox;
-    image
 }

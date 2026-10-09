@@ -9,7 +9,7 @@ license = "GPL-3.0-only"
 rust-version = "1.99"
 
 [workspace.dependencies]
-bevy = { version = "0.19", default-features = false, features = ["std", "async_executor", "bevy_asset", "bevy_audio", "bevy_log", "bevy_state", "bevy_winit", "default_font", "mp3", "multi_threaded", "png", "ui_api", "ui_bevy_render", "vorbis", "wayland", "x11"] }
+bevy = { version = "0.19", default-features = false, features = ["std", "async_executor", "bevy_asset", "bevy_audio", "bevy_log", "bevy_state", "bevy_winit", "default_font", "mp3", "multi_threaded", "png", "ui_api", "ui_bevy_render", "bevy_ui_widgets", "ui_picking", "vorbis", "wayland", "x11"] }
 bevy_clipboard = { version = "0.19", features = ["system_clipboard"] }
 # Route ICU diagnostics through Bevy's logger instead of debug-only stderr output.
 icu_provider = { version = "2.3", default-features = false, features = ["logging"] }

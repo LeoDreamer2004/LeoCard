@@ -1,3 +1,5 @@
+#[cfg(feature = "developer")]
+use super::developer::add_coin_input;
 use super::{ShopUiAction, ShopUiState};
 use crate::app::games::SUPPORTED_GAMES;
 use crate::app::presentation::{
@@ -78,9 +80,21 @@ impl ShopPage<'_> {
             UiAction::Navigation(NavigationUiAction::ToggleShop),
             self.assets,
         );
-        add_coin_balance(
+        let wallet = spawn_node(
             commands,
             heading,
+            Node {
+                align_items: AlignItems::Center,
+                column_gap: px(12),
+                ..default()
+            },
+            None,
+        );
+        #[cfg(feature = "developer")]
+        add_coin_input(commands, wallet, self.economy.coins(), self.assets);
+        add_coin_balance(
+            commands,
+            wallet,
             self.economy.coins(),
             27.0,
             19.0,
@@ -196,7 +210,9 @@ impl ShopPage<'_> {
             identity,
             match id {
                 ItemId::ObservationLens => self.assets.shop.observation_lens.clone(),
-                ItemId::ShengjiCardCounter => self.assets.shop.card_counter.clone(),
+                ItemId::ShengjiCardCounter | ItemId::QiGui523CardCounter => {
+                    self.assets.shop.card_counter.clone()
+                }
                 ItemId::ShengjiMissingSuitCard => self.assets.shop.missing_suit_card.clone(),
             },
             64.0,

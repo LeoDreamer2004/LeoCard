@@ -155,7 +155,7 @@ pub(crate) fn add_switch_drawer(
         ))
         .id();
     commands.entity(arrow).add_child(hover);
-    commands.entity(arrow).insert(ButtonHighlight::Button {
+    commands.entity(arrow).insert(ButtonHighlight {
         overlay: hover,
         arrows: None,
     });

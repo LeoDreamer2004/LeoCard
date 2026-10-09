@@ -121,7 +121,7 @@ pub(crate) fn add_host_crown(commands: &mut Commands, avatar: Entity, assets: &U
                 ..default()
             },
             ImageNode::new(assets.controls.host_crown.clone()),
-            UiTransform::from_rotation(Rot2::radians(-0.2)),
+            UiTransform::from_rotation(Rot2::degrees(-35.0)),
             ZIndex(40),
             FocusPolicy::Pass,
         ))
@@ -319,7 +319,7 @@ pub(crate) fn add_interaction_menu(
             ))
             .id();
         commands.entity(button).add_child(overlay);
-        commands.entity(button).insert(ButtonHighlight::Button {
+        commands.entity(button).insert(ButtonHighlight {
             overlay,
             arrows: None,
         });

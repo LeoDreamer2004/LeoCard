@@ -3,10 +3,10 @@
 use super::actions::MahjongUiAction;
 use super::tiles::queue_mahjong_deal_sound;
 use super::{
-    MAHJONG_WIN_PUSH_DURATION, MahjongActionVoice, MahjongAssets, MahjongDiscardRiverAnimations,
-    MahjongOwnHandVisuals, MahjongPlayerPanelVisuals, MahjongPlayerTileVisuals,
-    MahjongSettlementVisuals, MahjongTableRoot, MahjongTileMaterial, MahjongUiState,
-    MahjongWinVisuals, MahjongWinningHandVisual, mahjong_major_fan_impact_times,
+    MAHJONG_WIN_PUSH_DURATION, MahjongActionPrompt, MahjongActionVoice, MahjongAssets,
+    MahjongDiscardRiverVisuals, MahjongOwnHandVisuals, MahjongPlayerPanelVisuals,
+    MahjongPlayerTileVisuals, MahjongSettlementVisuals, MahjongTableRoot, MahjongTileMaterial,
+    MahjongUiState, MahjongWinVisuals, MahjongWinningHandVisual, mahjong_major_fan_impact_times,
     observe_discard_animations, queue_mahjong_action_voice, render_action_bar,
     render_discard_rivers, render_mahjong_auto_drawer, render_mahjong_claim_presentation,
     render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
@@ -708,12 +708,16 @@ pub(crate) fn render_mahjong_table(
             .map(|index| mahjong_win_stage_start(result, index) + 0.78)
     });
     render_mahjong_wall(commands, table, game.wall_len, game_assets, tile_materials);
+    let action_prompt = MahjongActionPrompt::from_snapshot(game, ui);
+    let response_tile = action_prompt.and_then(MahjongActionPrompt::response_tile);
     render_discard_rivers(
         commands,
         table,
         game,
         own_seat,
-        MahjongDiscardRiverAnimations {
+        MahjongDiscardRiverVisuals {
+            response_tile,
+            ui_assets: assets,
             discard_animation: ui.discard_animation.as_ref(),
             remote_discard: ui.remote_discard_animation.as_ref(),
         },
@@ -749,6 +753,8 @@ pub(crate) fn render_mahjong_table(
             table,
             player,
             MahjongPlayerTileVisuals {
+                robbing_tile: action_prompt.and_then(|prompt| prompt.robbing_tile_for(player.id)),
+                ui_assets: assets,
                 own_seat,
                 observed_count: ui.observed_table.state.counts[player.id.0 as usize],
                 flower_replaced,
@@ -830,6 +836,7 @@ pub(crate) fn render_mahjong_table(
         table,
         game,
         MahjongOwnHandVisuals {
+            response_tile,
             observed_hand: &ui.observed_table.state.hand,
             hover_lifts: &ui.hand_hover_lifts,
             dealing: dealing || own_flower_replaced,

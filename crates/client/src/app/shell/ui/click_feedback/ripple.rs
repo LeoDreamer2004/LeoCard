@@ -1,6 +1,7 @@
 //! Short-lived click feedback, independent of page rebuilds and transitions.
 
 use crate::app::runtime::ClientUpdateSet;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use bevy::window::PrimaryWindow;
@@ -74,13 +75,14 @@ fn spawn_ripple(
         return;
     };
     let ripple = ClickRipple::new(cursor);
-    // A separate root survives page rebuilds; Pass keeps the underlying controls interactive.
+    // A separate root survives page rebuilds; ignore hits in both UI input systems.
     commands.spawn((
         ripple.node(scale.0),
         ripple.color(),
         ripple,
         GlobalZIndex(Z_INDEX),
         FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 

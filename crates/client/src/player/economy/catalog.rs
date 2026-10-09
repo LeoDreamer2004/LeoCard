@@ -6,6 +6,7 @@ pub enum ItemId {
     ObservationLens,
     ShengjiCardCounter,
     ShengjiMissingSuitCard,
+    QiGui523CardCounter,
 }
 
 pub struct ShopItem {
@@ -18,14 +19,23 @@ pub struct ShopItem {
 }
 
 impl ItemId {
-    pub const ALL: [Self; 3] = [
+    pub const ALL: [Self; 4] = [
         Self::ObservationLens,
         Self::ShengjiCardCounter,
         Self::ShengjiMissingSuitCard,
+        Self::QiGui523CardCounter,
     ];
 
     pub const fn definition(self) -> ShopItem {
         match self {
+            Self::QiGui523CardCounter => ShopItem {
+                id: self,
+                game: GameKind::QiGui523,
+                name: "记牌器",
+                description: "按黑、红、梅、方记录除自己手牌和已出牌外的剩余牌，标亮分牌数量。",
+                price: 40,
+                duration_seconds: 3600,
+            },
             Self::ObservationLens => ShopItem {
                 id: self,
                 game: GameKind::TexasHoldem,

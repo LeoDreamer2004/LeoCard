@@ -389,7 +389,7 @@ fn add_raise_adjust_button(
             ))
             .id();
         commands.entity(button).add_child(overlay);
-        commands.entity(button).insert(ButtonHighlight::Button {
+        commands.entity(button).insert(ButtonHighlight {
             overlay,
             arrows: None,
         });

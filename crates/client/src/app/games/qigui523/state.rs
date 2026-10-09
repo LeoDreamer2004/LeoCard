@@ -1,7 +1,9 @@
 //! 七鬼五二三手牌动画与牌型演出状态。
 
 use super::QiGui523Assets;
+use super::counter::QiGuiCounterUi;
 use crate::app::presentation::{CardAnimationState, Observed};
+use crate::app::presentation::{CardCounterOwner, CardCounterWindowState};
 use crate::app::presentation::{CustomButtonMotion, SilentButton};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{ScoreCaptureEffectState, SeatSide};
@@ -36,6 +38,7 @@ pub(crate) struct QiGui523UiState {
     pub card_animations: HashMap<QiGuiCard, CardAnimationState>,
     pub observed_hand: Observed<MatchId, Vec<QiGuiCard>>,
     pub greedy_hint: QiGui523Bot,
+    pub counter: QiGuiCounterUi,
 }
 
 impl QiGui523UiState {
@@ -50,6 +53,7 @@ impl QiGui523UiState {
         self.card_animations.clear();
         self.observed_hand.clear();
         self.greedy_hint.reset();
+        self.counter = QiGuiCounterUi::default();
     }
 }
 
@@ -184,4 +188,10 @@ pub(crate) struct HandCardSlot {
     pub index: usize,
     pub is_last: bool,
     pub hover_amount: f32,
+}
+
+impl CardCounterOwner for QiGui523UiState {
+    fn counter_window(&mut self) -> &mut CardCounterWindowState {
+        &mut self.counter.window
+    }
 }

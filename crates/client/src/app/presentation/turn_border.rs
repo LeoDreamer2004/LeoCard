@@ -2,6 +2,7 @@
 
 use super::ACCENT;
 use super::smootherstep;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
@@ -101,6 +102,7 @@ pub(crate) fn add_turn_border_trace_with_radius(
             MaterialNode(material),
             ZIndex(90),
             FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(panel).add_child(trace);

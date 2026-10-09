@@ -34,6 +34,14 @@ impl PlayerEconomy {
         self.archive.coins
     }
 
+    #[cfg(feature = "developer")]
+    pub fn set_developer_coins(&mut self, coins: u32) -> Result<(), String> {
+        self.transact(|archive| {
+            archive.coins = coins;
+            Ok(())
+        })
+    }
+
     pub fn remaining_seconds(&self, item: ItemId) -> u64 {
         if self.load_error.is_some() {
             return 0;

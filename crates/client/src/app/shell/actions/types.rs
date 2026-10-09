@@ -8,8 +8,6 @@ use crate::app::games::qigui523::actions::QiGui523UiAction;
 use crate::app::games::shengji::actions::ShengjiUiAction;
 use crate::app::games::texas_holdem::actions::TexasHoldemUiAction;
 use crate::app::games::uno::actions::UnoUiAction;
-#[cfg(feature = "developer")]
-use crate::app::shell::DeveloperUiAction;
 use bevy::prelude::*;
 
 pub(super) type ButtonInteractions<'w, 's> =
@@ -24,8 +22,6 @@ pub(crate) enum UiAction {
     QiGui523(QiGui523UiAction),
     Social(SocialUiAction),
     Chat(ChatUiAction),
-    #[cfg(feature = "developer")]
-    Developer(DeveloperUiAction),
     Connection(ConnectionUiAction),
     Navigation(NavigationUiAction),
     Achievements(AchievementUiAction),
@@ -62,8 +58,6 @@ impl UiAction {
             Self::QiGui523(action) => action.rebuilds_ui(),
             Self::Social(_) => false,
             Self::Chat(action) => action.rebuilds_ui(),
-            #[cfg(feature = "developer")]
-            Self::Developer(action) => action.rebuilds_ui(),
             Self::Navigation(action) => action.rebuilds_ui(),
             Self::Achievements(action) => action.rebuilds_ui(),
             Self::Shop(action) => action.rebuilds_ui(),

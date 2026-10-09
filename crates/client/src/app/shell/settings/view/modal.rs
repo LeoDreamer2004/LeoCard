@@ -12,7 +12,7 @@ use super::super::{SelectedSettingsTab, SettingsTabButton};
 use super::about::AboutSettings;
 use super::appearance::TableAppearanceSettings;
 use super::sound::render_sound_settings;
-use crate::app::presentation::{TEXT, add_text, spawn_node};
+use crate::app::presentation::{TEXT, add_text, card_background_image, spawn_node};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, VisualBox};
@@ -190,18 +190,14 @@ fn add_settings_tab(
     assets: &UiAssets,
 ) {
     let selected = tab == selected_tab;
-    let mut tab_image = ImageNode::new(if selected {
-        assets.home.game_card_hover.clone()
-    } else {
-        assets.home.game_card.clone()
-    })
-    .with_mode(NodeImageMode::Sliced(TextureSlicer {
-        border: BorderRect::all(16.0),
-        center_scale_mode: SliceScaleMode::Stretch,
-        sides_scale_mode: SliceScaleMode::Stretch,
-        max_corner_scale: 1.0,
-    }));
-    tab_image.visual_box = VisualBox::BorderBox;
+    let tab_image = card_background_image(
+        if selected {
+            assets.home.game_card_hover.clone()
+        } else {
+            assets.home.game_card.clone()
+        },
+        1.0,
+    );
     let button = commands
         .spawn((
             Button,

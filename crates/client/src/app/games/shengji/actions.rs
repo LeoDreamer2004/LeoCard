@@ -62,10 +62,12 @@ impl UiActionHandler<ShengjiActionContext<'_>> for ShengjiUiAction {
         let client = &mut context.client;
         let ui = &mut context.ui;
         match self {
-            Self::ToggleCounterDrawer => ui.counter.drawer_open = !ui.counter.drawer_open,
+            Self::ToggleCounterDrawer => {
+                ui.counter.window.drawer_open = !ui.counter.window.drawer_open
+            }
             Self::ToggleCounter => {
                 if context.economy.active(ItemId::ShengjiCardCounter) {
-                    ui.counter.enabled = !ui.counter.enabled;
+                    ui.counter.window.enabled = !ui.counter.window.enabled;
                 }
             }
             ShengjiUiAction::UpdateRules(rules) => {

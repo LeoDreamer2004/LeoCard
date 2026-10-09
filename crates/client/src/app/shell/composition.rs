@@ -8,11 +8,12 @@ use super::{
     render_confirmation, render_update_dialog,
 };
 use crate::app::games::{GameScreenResources, GameScreenRetainedState};
-use crate::app::presentation::{GameSummaryAnimation, UiRoot};
+use crate::app::presentation::{GameSummaryAnimation, TextInputRetention, UiRoot};
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, ClientResource, ConnectionDraft, TableAppearance, UiAssets,
 };
 use bevy::ecs::system::SystemParam;
+use bevy::input_focus::tab_navigation::TabGroup;
 use bevy::prelude::*;
 use leocard_client::{ClientPhaseRef, LocalPlayerProfile, PlayerAchievements, PlayerEconomy};
 
@@ -57,6 +58,7 @@ pub(crate) struct ScreenRebuild<'w, 's> {
     intro_roots: Query<'w, 's, Entity, With<GameIntroRoot>>,
     achievement_viewport: AchievementPageViewport<'w, 's>,
     retained_game: GameScreenRetainedState<'w, 's>,
+    retained_inputs: TextInputRetention<'w, 's>,
 }
 
 pub(crate) fn rebuild_ui(mut screen: ScreenRebuild) {
@@ -84,6 +86,7 @@ impl ScreenRebuild<'_, '_> {
             .reconcile_screen_state(self.resources.client.as_deref(), &mut self.resources.ui);
         // Preserve the actual viewport before replacing the page's entities.
         let achievement_scroll_y = self.achievement_viewport.offset();
+        self.retained_inputs.capture(&mut self.commands);
         for entity in &self.roots {
             self.commands.entity(entity).despawn();
         }
@@ -92,6 +95,7 @@ impl ScreenRebuild<'_, '_> {
             .commands
             .spawn((
                 UiRoot,
+                TabGroup::default(),
                 Node {
                     width: percent(100),
                     height: percent(100),
@@ -186,7 +190,6 @@ impl ScreenRenderer<'_, '_, '_> {
             ConnectionScreen::new(
                 self.connection,
                 self.appearance,
-                None,
                 &self.visuals.ui,
                 &self.visuals.avatars,
             )
@@ -220,7 +223,6 @@ impl ScreenRenderer<'_, '_, '_> {
             ClientPhaseRef::Idle | ClientPhaseRef::Closed => ConnectionScreen::new(
                 self.connection,
                 self.appearance,
-                Some(&client.0),
                 &self.visuals.ui,
                 &self.visuals.avatars,
             )

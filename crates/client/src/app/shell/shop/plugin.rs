@@ -1,3 +1,5 @@
+#[cfg(feature = "developer")]
+use super::developer::DeveloperCoinsPlugin;
 use super::{
     actions::dispatch_shop_actions,
     page::{ItemRemaining, ShopList, remaining_label},
@@ -11,6 +13,8 @@ pub(crate) struct ShopPlugin;
 
 impl Plugin for ShopPlugin {
     fn build(&self, app: &mut App) {
+        #[cfg(feature = "developer")]
+        app.add_plugins(DeveloperCoinsPlugin);
         app.add_systems(PreUpdate, sync_coins);
         app.add_systems(
             Update,

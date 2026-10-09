@@ -10,6 +10,10 @@
 除另有说明外，项目自有的运行时素材随 LeoCard 的 GPL-3.0 许可证提供。用户在游戏中
 自行选择的桌布仅在本地读取，不随 LeoCard 发布物分发，相关使用权由用户自行确认。
 
+## 项目生成素材
+
+- `ui/home/entries/`：麻将、升级、德州、UNO、七鬼五二三的五张独立透明牌组，使用内置 imagegen 生成；采用柔和倒角、象牙白牌面和彩色反光的立体插画风格。光晕和交互反馈由客户端单独绘制。
+
 ## CC0 素材
 
 下列素材以 CC0 1.0 或等同公共领域声明提供，可随程序使用、修改和再分发，无署名
@@ -56,7 +60,7 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 - 两张 `compact` 按钮图保留原图的两端与中段，统一短按钮的圆角和亮边尺寸；原版 `button.png` 也保存在同一目录。
 - 两张红色 `compact` 按钮图分别从灰色常态和紫色高亮按钮的颜色层次转换而来；悬停态保留普通高亮贴图的原始白边，仅将彩色部分转为较暗的红色，两张图的透明轮廓一致。
 - 两张冷绿色 `compact` 按钮图同样由灰色常态和紫色高亮按钮变色而来；悬停态保留普通高亮贴图的原始白边，两张图的透明轮廓一致。
-- `cozy-game-card.png` 与 `cozy-game-card-hover.png` 分别取自 `hud/effect_background.png` 和 `hud/effect_background_ambient.png`，用于首页游戏卡的常态与悬停态；只清除了全透明区域的白色 RGB，可见像素未改动。
+- `cozy-game-card.png` 与 `cozy-game-card-hover.png` 分别取自 `hud/effect_background.png` 和 `hud/effect_background_ambient.png`，用于设置标签等卡片的常态与悬停态；只清除了全透明区域的白色 RGB，可见像素未改动。
 - `cozy-settings-page.png` 取自 `recipe_book/slot_craftable.png`，用于设置窗口右侧内容页；左侧标签复用 `cozy-game-card.png` 与其高亮变种。
 - 两张输入框 `compact` 图使用同样的切片方式，保留原版 `text_field.png` 和 `text_field_highlighted.png` 的边框与底色；原版文件也保存在同一目录。
 - 四张 `rule-*.png` 箭头图保留原版箭头，将与画面不协调的连通灰色背景转为透明像素。

@@ -68,7 +68,6 @@ pub(crate) struct HomeAssets {
     pub slider_handle_highlighted: Handle<Image>,
     pub input: Handle<Image>,
     pub focused_input: Handle<Image>,
-    pub game_art: [Handle<Image>; 5],
     pub reference_level_icons: [Handle<Image>; 10],
 }
 

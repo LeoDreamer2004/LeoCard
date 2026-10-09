@@ -1,6 +1,6 @@
 use super::super::*;
 use super::*;
-use crate::app::presentation::{ACCENT, PANEL, TEXT, ease_out_cubic};
+use crate::app::presentation::{TEXT, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer, interaction_anchor_in_layer};
 use bevy::prelude::*;
@@ -15,17 +15,16 @@ pub(crate) fn animate_chat_bubbles(
         &mut ActiveChatBubble,
         &mut Node,
         &mut UiTransform,
-        &mut BackgroundColor,
-        &mut BorderColor,
+        &mut ImageNode,
     )>,
     mut texts: Query<&mut TextColor, With<ChatBubbleText>>,
-    mut emoji_images: Query<&mut ImageNode>,
+    mut emoji_images: Query<&mut ImageNode, Without<ActiveChatBubble>>,
 ) {
     let Ok((layer_node, layer_transform)) = layers.single() else {
         return;
     };
     let layer_size = layer_node.size() * layer_node.inverse_scale_factor();
-    for (entity, mut bubble, mut node, mut transform, mut background, mut border) in &mut bubbles {
+    for (entity, mut bubble, mut node, mut transform, mut background) in &mut bubbles {
         bubble.elapsed += time.delta_secs();
         if bubble.elapsed >= bubble.duration {
             commands.entity(entity).despawn();
@@ -52,8 +51,7 @@ pub(crate) fn animate_chat_bubbles(
         let alpha = enter * fade;
         transform.translation = Val2::px(0.0, 9.0 * (1.0 - enter) - bubble.elapsed * 1.4);
         transform.scale = Vec2::splat(0.88 + enter * 0.12);
-        background.0 = PANEL.with_alpha(if bubble.emoji { alpha } else { 0.96 * alpha });
-        border.set_all(ACCENT.with_alpha(0.78 * alpha));
+        background.color = Color::WHITE.with_alpha(alpha);
         if let Some(text) = bubble.text
             && let Ok(mut color) = texts.get_mut(text)
         {
@@ -139,7 +137,6 @@ mod tests {
                     player: PlayerId(0),
                     text: None,
                     emoji_image: None,
-                    emoji: true,
                     width: 78.0,
                     elapsed: 0.0,
                     duration: 3.4,
@@ -147,8 +144,7 @@ mod tests {
                 },
                 Node::default(),
                 UiTransform::default(),
-                BackgroundColor(Color::NONE),
-                BorderColor::all(Color::NONE),
+                ImageNode::default(),
             ))
             .id();
         app.world_mut()

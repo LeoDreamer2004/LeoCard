@@ -1,8 +1,8 @@
 //! 建房、加入房间与连接身份设置。
 
 use super::super::{
-    ChatPanelState, DeveloperHandInput, DomainUiAction, InputField, PressedUiAction, UiAction,
-    UiActionHandler, UiState, dispatch_domain_actions, start_avatar_picker,
+    ChatPanelState, DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState,
+    dispatch_domain_actions, start_avatar_picker,
 };
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, AvatarPicker, ClientResource, ConnectionDraft,
@@ -18,7 +18,6 @@ use leocard_protocol::{GameKind, MAX_PLAYER_NAME_CHARS, PlayerGender};
 
 #[derive(Clone)]
 pub(crate) enum ConnectionUiAction {
-    FocusInput(InputField),
     CreateRoom(GameKind),
     JoinRoom,
     ChooseAvatar,
@@ -50,7 +49,6 @@ pub(crate) struct ConnectionActionContext<'w, 's> {
     profile: Res<'w, LocalPlayerProfile>,
     ui: ResMut<'w, UiState>,
     chat: ResMut<'w, ChatPanelState>,
-    developer_hand: ResMut<'w, DeveloperHandInput>,
     local: AvatarUiResources<'w>,
     commands: Commands<'w, 's>,
 }
@@ -65,15 +63,6 @@ pub(crate) fn dispatch_connection_actions(
 impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
     fn handle(&self, context: &mut ConnectionActionContext<'_, '_>) {
         match self {
-            ConnectionUiAction::FocusInput(field) => {
-                context.chat.focused = false;
-                context.chat.selected_all = false;
-                context.developer_hand.focused = false;
-                context.developer_hand.selected_all = false;
-                context.connection.active = *field;
-                context.connection.selected_all = false;
-                context.page_error.error = None;
-            }
             ConnectionUiAction::CreateRoom(game_kind) => create_room(*game_kind, context),
             ConnectionUiAction::JoinRoom => join_room(context),
             ConnectionUiAction::ChooseAvatar => {
@@ -155,7 +144,7 @@ fn join_room(context: &mut ConnectionActionContext<'_, '_>) {
             &context.profile,
             context.connection.gender,
         );
-        TcpGameClient::join_with_profile(&context.connection.join_address, player)
+        TcpGameClient::join_with_profile(context.connection.join_address.trim(), player)
             .map_err(|error| error.to_string())
     };
     finish_connection(

@@ -1,6 +1,7 @@
 //! A persistent, non-interactive backdrop shared by all opted-in pages.
 
 use super::{BackgroundAssets, FloatingSuit, SUITS};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::{FocusPolicy, LayoutConfig};
 
@@ -37,6 +38,7 @@ pub(super) fn setup_background(
             },
             GlobalZIndex(-100),
             FocusPolicy::Pass,
+            Pickable::IGNORE,
             Visibility::Hidden,
         ))
         .id();
@@ -62,6 +64,7 @@ pub(super) fn setup_background(
                 transform,
                 suit,
                 FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(canvas).add_child(decoration);

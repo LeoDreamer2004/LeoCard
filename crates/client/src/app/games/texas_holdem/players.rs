@@ -5,12 +5,12 @@ use super::{
 use crate::app::presentation::{
     ACCENT, HEADER_BG, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
     TurnBorderMaterial, add_player_portrait, add_text, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, position_opponent_popup, spawn_node,
+    attach_start_game_seat_transition, card_background_image, position_opponent_popup, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{OpponentBadge, SeatSide};
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::FocusPolicy;
 use leocard_protocol::{GameKind, PlayerId, TexasHoldemPlayerState, TexasHoldemSnapshot};
 
 pub(super) const TEXAS_PORTRAIT_WIDTH: f32 = 96.0 * 1.17;
@@ -319,15 +319,7 @@ pub(super) fn add_texas_chip_popup(
     commands
         .entity(popup)
         .insert((GlobalZIndex(1500), FocusPolicy::Pass));
-    let mut image = ImageNode::new(assets.home.game_card.clone()).with_mode(NodeImageMode::Sliced(
-        TextureSlicer {
-            border: BorderRect::all(16.0),
-            center_scale_mode: SliceScaleMode::Stretch,
-            sides_scale_mode: SliceScaleMode::Stretch,
-            max_corner_scale: 1.0,
-        },
-    ));
-    image.visual_box = VisualBox::BorderBox;
+    let image = card_background_image(assets.home.game_card.clone(), 1.0);
     commands.entity(popup).insert(image);
 
     if opponent_side.is_none() {

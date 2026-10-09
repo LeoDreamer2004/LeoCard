@@ -20,6 +20,7 @@ impl GameState {
         }
 
         remove_cards(&mut self.players[player.0].hand, cards);
+        self.played_cards.extend_from_slice(cards);
         let trick = self.trick.as_mut().expect("playing games have a trick");
         trick.table_points += u32::from(play.score());
         trick.winning_player = Some(player);

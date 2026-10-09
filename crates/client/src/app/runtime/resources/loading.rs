@@ -6,6 +6,7 @@ use super::{
     card_asset_path, interaction_cooldown_mask_image,
 };
 use crate::app::shell::{INTERACTION_COOLDOWN_MASK_FRAMES, PlayerInteractionLayer};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerInteractionKind, QUICK_VOICE_COUNT};
@@ -26,6 +27,7 @@ pub(crate) fn setup_camera(mut commands: Commands) {
         },
         GlobalZIndex(1100),
         FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 
@@ -143,13 +145,6 @@ pub(crate) fn load_ui_assets(
             slider_handle_highlighted: asset_server.load("ui/home/slider_handle_highlighted.png"),
             input: asset_server.load("ui/home/cozy-input-compact.png"),
             focused_input: asset_server.load("ui/home/cozy-input-focused-compact.png"),
-            game_art: [
-                asset_server.load("vendor/kenney/boardgame/PNG/Cards/cardClubs7.png"),
-                asset_server.load("vendor/kenney/boardgame/PNG/Cards/cardSpadesA.png"),
-                asset_server.load("vendor/kenney/boardgame/PNG/Cards/cardHearts2.png"),
-                asset_server.load("cards/uno/red_5.png"),
-                asset_server.load("cards/mahjong/hong-kong/dragon-red.png"),
-            ],
             // 与 profile::rating::REFERENCE_LEVEL_NAMES 的顺序一致。
             reference_level_icons: [
                 asset_server.load("ui/profile/netherite.png"),

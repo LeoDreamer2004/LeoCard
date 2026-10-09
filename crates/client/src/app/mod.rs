@@ -1,6 +1,7 @@
 //! Bevy 客户端应用。
 
 mod achievements;
+mod economy;
 mod games;
 mod presentation;
 mod runtime;

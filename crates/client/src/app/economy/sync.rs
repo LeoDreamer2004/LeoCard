@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use leocard_client::{LocalPlayerProfile, PlayerEconomy};
 use leocard_protocol::ClientCommand;
 
-/// 钱包是余额的唯一来源，公开档案只保存用于联网展示的投影。
+/// 钱包是余额的唯一来源，公开档案仅用于联网展示。
 pub(super) fn sync_coins(
     economy: Res<PlayerEconomy>,
     mut profile: ResMut<LocalPlayerProfile>,

@@ -3,7 +3,6 @@ use super::developer::DeveloperCoinsPlugin;
 use super::{
     actions::dispatch_shop_actions,
     page::{ItemRemaining, ShopList, remaining_label},
-    sync::{publish_coins, sync_coins},
 };
 use crate::app::shell::{UiActionSet, UiState, scroll_modal_content};
 use bevy::prelude::*;
@@ -15,13 +14,11 @@ impl Plugin for ShopPlugin {
     fn build(&self, app: &mut App) {
         #[cfg(feature = "developer")]
         app.add_plugins(DeveloperCoinsPlugin);
-        app.add_systems(PreUpdate, sync_coins);
         app.add_systems(
             Update,
             (
                 dispatch_shop_actions.in_set(UiActionSet),
                 update_remaining,
-                publish_coins,
                 scroll_modal_content::<ShopList>,
             ),
         );

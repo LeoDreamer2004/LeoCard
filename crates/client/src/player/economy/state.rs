@@ -1,12 +1,17 @@
-use super::{ItemId, storage::EconomyArchive};
+use super::{ItemId, rewards::login_day, storage::EconomyArchive};
 use bevy::prelude::Resource;
-use leocard_protocol::ProfileId;
-use std::time::{self, SystemTime};
+use leocard_achievements::AchievementDefinition;
+use leocard_protocol::{MatchId, PlayerReferenceChange, ProfileId};
+use std::{
+    mem,
+    time::{self, SystemTime},
+};
 
 #[derive(Resource)]
 pub struct PlayerEconomy {
     archive: EconomyArchive,
     load_error: Option<String>,
+    changes: Vec<i64>,
 }
 
 impl PlayerEconomy {
@@ -14,15 +19,15 @@ impl PlayerEconomy {
         Ok(Self {
             archive: EconomyArchive::load(profile_id)?,
             load_error: None,
+            changes: Vec::new(),
         })
     }
 
     pub fn unavailable(profile_id: ProfileId, error: String) -> Self {
-        let mut archive = EconomyArchive::new(profile_id);
-        archive.coins = 0;
         Self {
-            archive,
+            archive: EconomyArchive::new(profile_id),
             load_error: Some(error),
+            changes: Vec::new(),
         }
     }
 
@@ -32,6 +37,60 @@ impl PlayerEconomy {
 
     pub fn coins(&self) -> u32 {
         self.archive.coins
+    }
+
+    /// 只有成功保存的实际余额变化会产生提示，包括购买道具和开发者修改。
+    pub fn take_coin_changes(&mut self) -> Vec<i64> {
+        mem::take(&mut self.changes)
+    }
+
+    pub fn initialize_achievement_rewards(&mut self, earned: &[String]) -> Result<(), String> {
+        if self.archive.rewards_initialized {
+            return Ok(());
+        }
+        self.transact(|archive| {
+            // 新钱包不补发启用金币奖励之前已经获得的成就。
+            archive.rewarded_achievements.extend(earned.iter().cloned());
+            archive.rewards_initialized = true;
+            Ok(())
+        })
+    }
+
+    pub fn claim_daily_login(&mut self) -> Result<bool, String> {
+        let day = login_day(unix_seconds());
+        if self
+            .archive
+            .last_login_day
+            .is_some_and(|previous| previous >= day)
+        {
+            return Ok(false);
+        }
+        self.transact(|archive| Ok(archive.reward_daily(day)))
+    }
+
+    pub fn reward_achievement(
+        &mut self,
+        definition: &AchievementDefinition,
+    ) -> Result<bool, String> {
+        if self.archive.rewarded_achievements.contains(definition.id) {
+            return Ok(false);
+        }
+        self.transact(|archive| Ok(archive.reward_achievement(definition)))
+    }
+
+    pub fn settle_match(
+        &mut self,
+        match_id: MatchId,
+        changes: &[PlayerReferenceChange],
+    ) -> Result<bool, String> {
+        if self.archive.settled_matches.contains(&match_id)
+            || !changes
+                .iter()
+                .any(|change| change.profile_id == self.archive.profile_id)
+        {
+            return Ok(false);
+        }
+        self.transact(|archive| Ok(archive.settle_match(match_id, changes)))
     }
 
     #[cfg(feature = "developer")]
@@ -89,18 +148,22 @@ impl PlayerEconomy {
         })
     }
 
-    fn transact(
+    fn transact<T>(
         &mut self,
-        change: impl FnOnce(&mut EconomyArchive) -> Result<(), String>,
-    ) -> Result<(), String> {
+        change: impl FnOnce(&mut EconomyArchive) -> Result<T, String>,
+    ) -> Result<T, String> {
         if let Some(error) = &self.load_error {
             return Err(error.clone());
         }
         let mut updated = self.archive.clone();
-        change(&mut updated)?;
+        let result = change(&mut updated)?;
         updated.save()?;
+        let delta = i64::from(updated.coins) - i64::from(self.archive.coins);
         self.archive = updated;
-        Ok(())
+        if delta != 0 {
+            self.changes.push(delta);
+        }
+        Ok(result)
     }
 }
 

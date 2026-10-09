@@ -1,5 +1,6 @@
 use super::RuntimePlugin;
 use crate::app::achievements::AchievementPlugin;
+use crate::app::economy::EconomyPlugin;
 use crate::app::games::GamesPlugin;
 use crate::app::presentation::PresentationPlugin;
 use crate::app::shell::ShellPlugin;
@@ -13,6 +14,7 @@ pub(crate) fn launch() {
             ShellPlugin,
             GamesPlugin,
             AchievementPlugin,
+            EconomyPlugin,
         ))
         .run();
 }

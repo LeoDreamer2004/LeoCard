@@ -9,6 +9,7 @@ use crate::app::runtime::{
 use bevy::prelude::*;
 use bevy::window::FileDragAndDrop;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
+use leocard_client::pick_image;
 use std::{
     path::PathBuf,
     sync::{
@@ -101,10 +102,7 @@ fn save_avatar(
 }
 
 fn open_avatar_dialog() -> Result<Option<PathBuf>, String> {
-    Ok(rfd::FileDialog::new()
-        .set_title("选择玩家头像")
-        .add_filter("头像图片", &["png", "jpg", "jpeg"])
-        .pick_file())
+    pick_image("选择玩家头像")
 }
 
 pub(crate) fn sync_avatar_images(

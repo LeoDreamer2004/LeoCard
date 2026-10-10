@@ -1,0 +1,45 @@
+plugins { id 'com.android.application' }
+
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+
+def workspaceVersion = (file('../../Cargo.toml').text =~ /(?m)^version = "(\d+)\.(\d+)\.(\d+)"$/)[0]
+
+android {
+    namespace = 'com.leodreamer.leocard'
+    compileSdk = 36
+    buildToolsVersion = '36.0.0'
+    ndkVersion = '29.0.14206865'
+    defaultConfig {
+        applicationId = 'com.leodreamer.leocard'
+        minSdk = 31
+        targetSdk = 36
+        versionCode = workspaceVersion[1].toInteger() * 10000 + workspaceVersion[2].toInteger() * 100 + workspaceVersion[3].toInteger()
+        versionName = workspaceVersion[1..3].join('.')
+        ndk { abiFilters providers.gradleProperty('leocardAbi').getOrElse('arm64-v8a') }
+    }
+    sourceSets.main.jniLibs.srcDirs = ['../../target/android/jniLibs']
+    signingConfigs {
+        release {
+            def keystore = providers.environmentVariable('ANDROID_KEYSTORE_PATH').orNull
+            if (keystore != null) { storeFile = file(keystore) }
+            storePassword = providers.environmentVariable('ANDROID_KEYSTORE_PASSWORD').orNull
+            keyAlias = providers.environmentVariable('ANDROID_KEY_ALIAS').orNull
+            keyPassword = providers.environmentVariable('ANDROID_KEY_PASSWORD').orNull
+        }
+    }
+    buildTypes {
+        debug { debuggable = true; jniDebuggable = true }
+        release { minifyEnabled = false; signingConfig = signingConfigs.release }
+    }
+    packaging { jniLibs { useLegacyPackaging = false } }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation platform('org.jetbrains.kotlin:kotlin-bom:2.4.21')
+    implementation 'androidx.games:games-activity:4.4.2'
+    implementation 'androidx.appcompat:appcompat:1.8.0'
+}

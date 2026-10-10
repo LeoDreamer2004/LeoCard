@@ -12,13 +12,9 @@
 cargo run -p leocard-client
 ```
 
-开发时客户端会从工作区根目录的 `assets` 加载素材。Release 构建会自动把运行时所需的图片、字体、音频和着色器嵌入可执行文件，因此分享时不需要附带 `assets` 目录：
+开发时客户端会从工作区根目录的 `assets` 加载素材。内嵌文件列表由 `crates/client/runtime-assets.txt` 管理。
 
-```bash
-cargo build -p leocard-client --release
-```
-
-内嵌文件列表由 `crates/client/runtime-assets.txt` 管理
+自 0.7.0 版本起，本游戏支持 ARM64 的 Android 12 及以上客户端。
 
 ## 许可证
 

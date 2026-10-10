@@ -19,7 +19,8 @@ fn main() {
 
     let output = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join(GENERATED_FILE);
     let enabled = env::var_os("CARGO_FEATURE_EMBEDDED_ASSETS").is_some()
-        || env::var("PROFILE").is_ok_and(|profile| profile == "release");
+        || env::var("PROFILE").is_ok_and(|profile| profile == "release")
+        || env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("android");
 
     if !enabled {
         fs::write(

@@ -13,6 +13,8 @@ pub(crate) struct TextInputPlugin;
 
 impl Plugin for TextInputPlugin {
     fn build(&self, app: &mut App) {
+        #[cfg(target_os = "android")]
+        app.add_systems(PreUpdate, super::android::edit_native_text);
         app.add_plugins(TabNavigationPlugin)
             .add_observer(focus_input_slot)
             .add_observer(collect_submissions)

@@ -165,6 +165,7 @@ dependencies = [
  "ndk-context",
  "ndk-sys",
  "num_enum",
+ "simd_cesu8",
  "thiserror 2.0.21",
 ]
 
@@ -3360,7 +3361,7 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "leocard-achievements"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "leocard-mahjong",
  "leocard-protocol",
@@ -3374,7 +3375,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-client"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "bevy",
  "bevy_clipboard",
@@ -3383,6 +3384,7 @@ dependencies = [
  "getrandom 0.4.3",
  "icu_provider",
  "image",
+ "jni 0.21.1",
  "leocard-achievements",
  "leocard-host",
  "leocard-mahjong",
@@ -3405,11 +3407,11 @@ dependencies = [
 
 [[package]]
 name = "leocard-game-common"
-version = "0.6.1"
+version = "0.7.0"
 
 [[package]]
 name = "leocard-host"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3425,7 +3427,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-mahjong"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3433,7 +3435,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-protocol"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "leocard-mahjong",
  "leocard-qigui523",
@@ -3446,7 +3448,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-qigui523"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3454,7 +3456,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-shengji"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3462,7 +3464,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-tcp"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "ed25519-dalek",
  "leocard-host",
@@ -3477,7 +3479,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-texas-holdem"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3485,7 +3487,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-uno"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -5285,9 +5287,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.16.3"
+version = "1.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b3dc8af474f516a851ff4bd12db780f948b9250ad37211e4eec0bccea54e01b"
+checksum = "f9395f0f0eee849a9b707b2f06bb92a6a422090e2123bb2ef8e87a0e61892a8e"
 
 [[package]]
 name = "smithay-client-toolkit"

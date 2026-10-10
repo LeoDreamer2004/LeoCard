@@ -1,10 +1,10 @@
 use super::super::{UnoAssets, UnoFlipCard, UnoFlipOverlay, UnoFlipTarget, uno_card_handle};
+use bevy::picking::Pickable;
 
 use super::UNO_PLAY_CARD_DURATION;
 use crate::app::presentation::{add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::UnoSnapshot;
 use leocard_uno::UnoFlipSide;
 
@@ -35,7 +35,7 @@ pub(super) fn spawn_uno_flip_effect(
                 UnoFlipSide::Dark => Color::srgba(0.20, 0.08, 0.48, 0.0),
             }),
             GlobalZIndex(1490),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(layer).add_child(overlay);
@@ -60,7 +60,7 @@ pub(super) fn spawn_uno_flip_effect(
         Outline::new(px(2.0), px(1.0), Color::WHITE.with_alpha(0.52)),
         BoxShadow::new(Color::BLACK.with_alpha(0.58), px(2), px(5), px(0), px(10)),
         GlobalZIndex(1492),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     add_text(
         commands,

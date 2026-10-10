@@ -1,4 +1,4 @@
-#import bevy_ui::ui_vertex_output::UiVertexOutput
+import bevy_ui_render::ui_vertex_output::UiVertexOutput;
 
 struct UnoPaletteMaterial {
     // x: selected sector (red/yellow/green/blue = 0/1/2/3)

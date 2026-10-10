@@ -4,8 +4,8 @@ use super::super::{MahjongAssets, render_round_status_with_scores};
 use super::*;
 use crate::app::presentation::{DANGER, MUTED, READY, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
 use std::{array, f32::consts};
 
@@ -145,7 +145,7 @@ impl ScoreStageView<'_> {
                 } else {
                     Visibility::Hidden
                 },
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ));
         }
     }

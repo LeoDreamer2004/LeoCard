@@ -5,8 +5,8 @@ use super::{
     MahjongTileVisual, MahjongUiState, add_mahjong_tile_material, mahjong_own_row_left,
 };
 use crate::app::presentation::ease_out_cubic;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_mahjong::MahjongTile;
 use leocard_protocol::{MahjongSnapshot, PlayerId};
 
@@ -270,7 +270,7 @@ pub(super) fn render_own_discard_flight(
         } else {
             Visibility::Hidden
         },
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     if let Some(transform) = transform {
         commands.entity(flight).insert(transform);

@@ -8,8 +8,9 @@ use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
     add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
 };
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, RelativeCursorPosition};
+use bevy::ui::RelativeCursorPosition;
 use leocard_texas_holdem::TexasHoldemRuleSet;
 
 pub(super) fn render_hand_guide(
@@ -36,7 +37,7 @@ pub(super) fn render_hand_guide(
     );
     commands.entity(backdrop).insert((
         GlobalZIndex(2200),
-        FocusPolicy::Block,
+        Pickable::default(),
         CozyModalBackdrop(CozyModalKind::TexasHandGuide),
     ));
     let panel = add_cozy_panel(
@@ -57,7 +58,7 @@ pub(super) fn render_hand_guide(
     );
     commands.entity(panel).insert((
         GlobalZIndex(2201),
-        FocusPolicy::Block,
+        Pickable::default(),
         CozyModalPanel(CozyModalKind::TexasHandGuide),
         cozy_panel_transform(progress),
     ));
@@ -247,7 +248,7 @@ fn render_entry(
                 },
                 ImageNode::new(texas_card_face(card, assets)),
                 BorderColor::all(TEXT.with_alpha(0.42)),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(cards).add_child(image);

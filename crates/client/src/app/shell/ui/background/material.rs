@@ -13,6 +13,6 @@ pub(super) struct BackgroundMaterial {
 
 impl UiMaterial for BackgroundMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/page_background.wgsl".into()
+        "shaders/page_background.wesl".into()
     }
 }

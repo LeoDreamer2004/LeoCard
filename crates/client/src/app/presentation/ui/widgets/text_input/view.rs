@@ -1,5 +1,5 @@
 use super::state::{InputPlaceholder, TextInputKey, TextInputSlot};
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, UiPressTarget, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::{
     input_focus::tab_navigation::TabIndex,
@@ -7,6 +7,7 @@ use bevy::{
     prelude::*,
     text::{EditableText, EditableTextFilter, TextCursorStyle},
     ui::VisualBox,
+    ui_widgets::TextInput as NativeTextInput,
 };
 
 pub(crate) struct TextInput<'a> {
@@ -50,11 +51,12 @@ impl<'a> TextInput<'a> {
         image.visual_box = VisualBox::BorderBox;
         node.align_items = AlignItems::Center;
         let padding = node.padding;
-        let slot = commands.spawn((node, image)).id();
+        let slot = commands.spawn((node, image, UiPressTarget)).id();
         commands.entity(parent).add_child(slot);
         let editor = commands
             .spawn((
                 TextInputKey(self.key),
+                NativeTextInput,
                 EditableText {
                     max_characters: Some(self.max_characters),
                     allow_newlines: false,

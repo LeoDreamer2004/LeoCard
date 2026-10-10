@@ -4,11 +4,12 @@ use super::super::{ShengjiDealerBadge, ShengjiLevelIndicator};
 use super::content::presentation_color;
 
 use super::{
-    ShengjiBottomFlipPanelElement, ShengjiBottomFlipVisual, ShengjiBottomFlipVisualKind,
-    ShengjiPowerOutageVisual, ShengjiPowerOutageVisualKind, ShengjiPresentationDivider,
-    ShengjiPresentationKind, ShengjiPresentationPacket, ShengjiPresentationRoot,
-    ShengjiPresentationState, ShengjiPresentationText, ShengjiPresentationVeil, ShengjiSoundAssets,
-    ShengjiTrumpKillVisual, ShengjiTrumpKillVisualKind,
+    SHENGJI_BOTTOM_COPY_REVEAL_DURATION, ShengjiBottomFlipPanelElement, ShengjiBottomFlipVisual,
+    ShengjiBottomFlipVisualKind, ShengjiPowerOutageVisual, ShengjiPowerOutageVisualKind,
+    ShengjiPresentationDivider, ShengjiPresentationKind, ShengjiPresentationPacket,
+    ShengjiPresentationRoot, ShengjiPresentationState, ShengjiPresentationText,
+    ShengjiPresentationVeil, ShengjiSoundAssets, ShengjiTrumpKillVisual,
+    ShengjiTrumpKillVisualKind,
 };
 use crate::app::presentation::{ACCENT, HEADER_BG, ease_out_cubic};
 use crate::app::shell::{PlayerAvatarAnchor, UiState};
@@ -31,7 +32,14 @@ pub(crate) fn advance_shengji_presentation(
     let Some(active) = state.active.as_mut() else {
         return;
     };
+    let previous_elapsed = active.elapsed;
     active.elapsed += delta;
+    if matches!(active.kind, ShengjiPresentationKind::BottomCopy { .. })
+        && previous_elapsed < SHENGJI_BOTTOM_COPY_REVEAL_DURATION
+        && active.elapsed >= SHENGJI_BOTTOM_COPY_REVEAL_DURATION
+    {
+        ui.dirty = true;
+    }
     if active.elapsed >= active.duration {
         state.active = state.queued.pop_front();
         ui.dirty = true;
@@ -186,7 +194,7 @@ pub(crate) fn animate_shengji_presentation(
         }
         return;
     };
-    let progress = (active.elapsed / active.duration).clamp(0.0, 1.0);
+    let progress = active.motion_progress();
     let enter = ease_out_cubic((progress / 0.16).clamp(0.0, 1.0));
     let exit = ease_out_cubic(((progress - 0.82) / 0.18).clamp(0.0, 1.0));
     let alpha = enter * (1.0 - exit);

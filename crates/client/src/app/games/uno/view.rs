@@ -1,11 +1,12 @@
 //! UNO 牌桌视图。
 
+use super::jump_in_device::render_jump_in_device;
 use super::{
-    UnoAssets, UnoDiscardCard, UnoDiscardPileAnchor, UnoDrawPileAnchor, UnoFlipTarget, UnoUiState,
-    add_initial_color_choice, add_play_color_choice, add_uno_actions, add_uno_callout_actions,
-    add_uno_eliminated_own_overlay, add_uno_own_area, add_uno_player_panel, add_uno_summary,
-    add_uno_swap_selection_prompt, opponent_position, uno_card_handle, uno_discard_pose,
-    uno_ui_color,
+    UnoAssets, UnoDiscardCard, UnoDiscardPileAnchor, UnoDrawPileAnchor, UnoFlipTarget,
+    UnoJumpInDevice, UnoUiState, add_initial_color_choice, add_play_color_choice, add_uno_actions,
+    add_uno_callout_actions, add_uno_eliminated_own_overlay, add_uno_own_area,
+    add_uno_player_panel, add_uno_summary, add_uno_swap_selection_prompt, opponent_position,
+    uno_card_handle, uno_discard_pose, uno_ui_color,
 };
 use crate::app::presentation::{
     ACCENT, DANGER, DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT,
@@ -14,8 +15,8 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_client::NetworkState;
 use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
 use leocard_uno::{UnoFlipSide, UnoPendingDrawKind, UnoRuleSet};
@@ -45,6 +46,7 @@ pub(crate) struct UnoTableVisuals<'a> {
     pub turn_border_materials: &'a mut Assets<TurnBorderMaterial>,
     pub start_game_transition: &'a StartGameSeatTransition,
     pub game_summary: &'a GameSummaryAnimation,
+    pub jump_in_device: &'a UnoJumpInDevice,
 }
 
 #[expect(
@@ -72,6 +74,7 @@ pub(crate) fn render_uno_table(
         turn_border_materials,
         start_game_transition,
         game_summary,
+        jump_in_device,
     } = visuals;
     let content = spawn_node(
         commands,
@@ -109,7 +112,7 @@ pub(crate) fn render_uno_table(
             },
             Some(Color::srgba(0.12, 0.07, 0.30, 0.24)),
         );
-        commands.entity(tint).insert(FocusPolicy::Pass);
+        commands.entity(tint).insert(Pickable::IGNORE);
     }
 
     let table = spawn_node(
@@ -206,6 +209,7 @@ pub(crate) fn render_uno_table(
     add_uno_actions(commands, table, game, ui, assets);
     add_uno_callout_actions(commands, table, game, assets);
     add_uno_swap_selection_prompt(commands, table, game, ui, assets);
+    render_jump_in_device(commands, content, jump_in_device, assets);
 
     let needs_color_choice = game.current_color.is_none()
         && matches!(game.phase, UnoPhaseView::Playing)
@@ -310,7 +314,7 @@ fn add_uno_center(
                 ImageNode::new(image),
                 UiTransform::IDENTITY,
                 BoxShadow::new(Color::BLACK.with_alpha(0.45), px(3), px(5), px(0), px(7)),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(draw).add_child(card);
@@ -338,7 +342,7 @@ fn add_uno_center(
     );
     commands
         .entity(draw_count)
-        .insert((ZIndex(7), FocusPolicy::Pass));
+        .insert((ZIndex(7), Pickable::IGNORE));
     add_text(
         commands,
         draw_count,

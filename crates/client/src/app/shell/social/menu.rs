@@ -1,6 +1,7 @@
 use super::*;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiState;
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
@@ -17,7 +18,7 @@ pub(crate) fn close_interaction_menu_on_outside_click(
     mouse: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window, With<PrimaryWindow>>,
     mut ui: ResMut<UiState>,
-    badges: Query<&Interaction, With<OpponentBadge>>,
+    badges: Query<&PickingInteraction, With<OpponentBadge>>,
     menus: Query<(&InteractionMenuPanel, &ComputedNode, &UiGlobalTransform)>,
 ) {
     let Some(open_player) = ui.social.interaction_menu_open else {
@@ -26,7 +27,7 @@ pub(crate) fn close_interaction_menu_on_outside_click(
     if !mouse.just_pressed(MouseButton::Left)
         || badges
             .iter()
-            .any(|interaction| *interaction == Interaction::Pressed)
+            .any(|interaction| *interaction == PickingInteraction::Pressed)
     {
         return;
     }
@@ -75,7 +76,7 @@ pub(crate) fn sync_interaction_cooldown_masks(
 
 pub(crate) fn sync_opponent_badge_popups(
     ui: Res<UiState>,
-    badges: Query<(&Interaction, &OpponentBadge)>,
+    badges: Query<(&PickingInteraction, &OpponentBadge)>,
     mut visibility: Query<&mut Visibility>,
 ) {
     for (interaction, badge) in &badges {
@@ -84,8 +85,10 @@ pub(crate) fn sync_opponent_badge_popups(
             && let Ok(mut popup) = visibility.get_mut(score_popup)
         {
             let expected = if !menu_open
-                && matches!(interaction, Interaction::Hovered | Interaction::Pressed)
-            {
+                && matches!(
+                    interaction,
+                    PickingInteraction::Hovered | PickingInteraction::Pressed
+                ) {
                 Visibility::Visible
             } else {
                 Visibility::Hidden

@@ -1,11 +1,10 @@
 use super::{
-    CardDragSelection, GameSummaryAnimation, StartGameSeatTransition, SummaryAnimationSet,
-    SummaryPlayback, TableBackgroundMaterial, TextInputPlugin, TurnBorderAnimationState,
-    TurnBorderMaterial, animate_button_arrows, animate_button_presses,
+    CardDragSelection, GameSummaryAnimation, PointerInputPlugin, StartGameSeatTransition,
+    SummaryAnimationSet, SummaryPlayback, TableBackgroundMaterial, TextInputPlugin,
+    TurnBorderAnimationState, TurnBorderMaterial, animate_button_arrows, animate_button_presses,
     animate_game_summary_visuals, animate_signed_summary_scores,
     animate_start_game_seat_transition, animate_summary_scores, animate_turn_border_traces,
-    play_button_click_sounds, update_button_highlights, update_button_tints,
-    update_summary_animation,
+    play_ui_click_sounds, update_button_highlights, update_button_tints, update_summary_animation,
 };
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
@@ -15,7 +14,8 @@ pub(crate) struct PresentationPlugin;
 
 impl Plugin for PresentationPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(TextInputPlugin)
+        app.add_plugins(PointerInputPlugin)
+            .add_plugins(TextInputPlugin)
             .add_plugins(UiMaterialPlugin::<TableBackgroundMaterial>::default())
             .add_plugins(UiMaterialPlugin::<TurnBorderMaterial>::default())
             .init_resource::<SummaryPlayback>()
@@ -31,7 +31,7 @@ impl Plugin for PresentationPlugin {
                 Update,
                 (
                     update_button_tints,
-                    play_button_click_sounds,
+                    play_ui_click_sounds,
                     animate_button_presses,
                 )
                     .chain()

@@ -2,10 +2,8 @@ use super::window::{CardCounterOwner, CardCounterWindowState, CounterDragHandle,
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::add_cozy_panel;
-use bevy::{
-    prelude::*,
-    ui::{FocusPolicy, RelativeCursorPosition},
-};
+use bevy::picking::Pickable;
+use bevy::{prelude::*, ui::RelativeCursorPosition};
 use std::marker::PhantomData;
 
 pub(crate) struct CardCounterCell {
@@ -40,7 +38,7 @@ pub(crate) fn add_card_counter_window<T: CardCounterOwner>(
     commands.entity(panel).insert((
         CounterWindow::<T>(PhantomData),
         GlobalZIndex(1400),
-        FocusPolicy::Block,
+        Pickable::default(),
     ));
     let handle = spawn_node(
         commands,
@@ -58,7 +56,7 @@ pub(crate) fn add_card_counter_window<T: CardCounterOwner>(
         RelativeCursorPosition::default(),
     ));
     let title = add_text(commands, handle, "记牌器", 13.0, TEXT, assets);
-    commands.entity(title).insert(FocusPolicy::Pass);
+    commands.entity(title).insert(Pickable::IGNORE);
     for cells in rows {
         let row = spawn_node(
             commands,
@@ -85,7 +83,7 @@ pub(crate) fn add_card_counter_window<T: CardCounterOwner>(
                 },
                 None,
             );
-            commands.entity(slot).insert(FocusPolicy::Pass);
+            commands.entity(slot).insert(Pickable::IGNORE);
             if let Some(cell) = cell {
                 let card = commands
                     .spawn((
@@ -95,7 +93,7 @@ pub(crate) fn add_card_counter_window<T: CardCounterOwner>(
                             ..default()
                         },
                         ImageNode::new(cell.image),
-                        FocusPolicy::Pass,
+                        Pickable::IGNORE,
                     ))
                     .id();
                 commands.entity(slot).add_child(card);
@@ -111,7 +109,7 @@ pub(crate) fn add_card_counter_window<T: CardCounterOwner>(
                     },
                     assets,
                 );
-                commands.entity(number).insert(FocusPolicy::Pass);
+                commands.entity(number).insert(Pickable::IGNORE);
             }
         }
     }

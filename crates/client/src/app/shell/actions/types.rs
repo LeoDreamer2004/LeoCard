@@ -9,9 +9,9 @@ use crate::app::games::shengji::actions::ShengjiUiAction;
 use crate::app::games::texas_holdem::actions::TexasHoldemUiAction;
 use crate::app::games::uno::actions::UnoUiAction;
 use bevy::prelude::*;
+use bevy::ui_widgets::Button;
 
-pub(super) type ButtonInteractions<'w, 's> =
-    Query<'w, 's, (&'static Interaction, &'static UiAction), (Changed<Interaction>, With<Button>)>;
+pub(super) type ButtonActions<'w, 's> = Query<'w, 's, &'static UiAction, With<Button>>;
 
 #[derive(Clone, Component)]
 pub(crate) enum UiAction {

@@ -1,7 +1,9 @@
-//! 通用按钮的高亮、按压动画和点击音效。
-use super::{BackgroundButtonTint, ButtonTint};
+//! 通用按钮的高亮和按压动画，以及交互控件的点击音效。
+use super::{BackgroundButtonTint, ButtonTint, UiPress, UiPressTarget};
 use crate::app::runtime::UiAssets;
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
+use bevy::ui_widgets::Button;
 use std::collections::HashSet;
 
 /// The feature animates this control itself.
@@ -27,13 +29,13 @@ pub(crate) struct ButtonArrows {
 
 pub(crate) fn animate_button_arrows(
     time: Res<Time>,
-    interactions: Query<&Interaction>,
+    interactions: Query<&PickingInteraction>,
     mut images: Query<(&mut ButtonArrows, &mut ImageNode)>,
 ) {
     for (mut arrow, mut image) in &mut images {
         if !interactions
             .get(arrow.owner)
-            .is_ok_and(|state| *state != Interaction::None)
+            .is_ok_and(|state| *state != PickingInteraction::None)
         {
             arrow.elapsed = 0.0;
             continue;
@@ -59,11 +61,11 @@ pub(crate) fn animate_button_arrows(
 }
 
 pub(crate) fn update_button_highlights(
-    buttons: Query<(&Interaction, &ButtonHighlight), Changed<Interaction>>,
+    buttons: Query<(&PickingInteraction, &ButtonHighlight), Changed<PickingInteraction>>,
     mut highlights: Query<&mut Visibility>,
 ) {
     for (interaction, highlight) in &buttons {
-        let visibility = if *interaction != Interaction::None {
+        let visibility = if *interaction != PickingInteraction::None {
             Visibility::Visible
         } else {
             Visibility::Hidden
@@ -87,44 +89,41 @@ pub(crate) fn update_button_highlights(
 )]
 pub(crate) fn update_button_tints(
     mut image_buttons: Query<
-        (&Interaction, &ButtonTint, &mut ImageNode),
-        (Changed<Interaction>, Without<BackgroundButtonTint>),
+        (&PickingInteraction, &ButtonTint, &mut ImageNode),
+        (Changed<PickingInteraction>, Without<BackgroundButtonTint>),
     >,
     mut background_buttons: Query<
-        (&Interaction, &ButtonTint, &mut BackgroundColor),
-        (Changed<Interaction>, With<BackgroundButtonTint>),
+        (&PickingInteraction, &ButtonTint, &mut BackgroundColor),
+        (Changed<PickingInteraction>, With<BackgroundButtonTint>),
     >,
 ) {
     for (interaction, tint, mut image) in &mut image_buttons {
         image.color = match interaction {
-            Interaction::None => tint.normal,
-            Interaction::Hovered => tint.hovered,
-            Interaction::Pressed => tint.pressed,
+            PickingInteraction::None => tint.normal,
+            PickingInteraction::Hovered => tint.hovered,
+            PickingInteraction::Pressed => tint.pressed,
         };
     }
     for (interaction, tint, mut background) in &mut background_buttons {
         background.0 = match interaction {
-            Interaction::None => tint.normal,
-            Interaction::Hovered => tint.hovered,
-            Interaction::Pressed => tint.pressed,
+            PickingInteraction::None => tint.normal,
+            PickingInteraction::Hovered => tint.hovered,
+            PickingInteraction::Pressed => tint.pressed,
         };
     }
 }
 
-#[expect(
-    clippy::type_complexity,
-    reason = "the Bevy query precisely filters newly pressed ordinary buttons"
-)]
-pub(crate) fn play_button_click_sounds(
-    buttons: Query<&Interaction, (Changed<Interaction>, With<Button>, Without<SilentButton>)>,
+pub(crate) fn play_ui_click_sounds(
+    mut presses: MessageReader<UiPress>,
+    controls: Query<(), (With<UiPressTarget>, Without<SilentButton>)>,
     assets: Res<UiAssets>,
     mut commands: Commands,
 ) {
     if assets.audio.button_click_sounds.is_empty() {
         return;
     }
-    for interaction in &buttons {
-        if !matches!(interaction, Interaction::Pressed) {
+    for press in presses.read() {
+        if !controls.contains(press.0) {
             continue;
         }
         let sound = assets.audio.button_click_sounds
@@ -141,15 +140,15 @@ pub(crate) fn play_button_click_sounds(
 pub(crate) fn animate_button_presses(
     time: Res<Time>,
     changed: Query<
-        (Entity, &Interaction),
+        (Entity, &PickingInteraction),
         (
-            Changed<Interaction>,
+            Changed<PickingInteraction>,
             With<Button>,
             Without<CustomButtonMotion>,
         ),
     >,
     mut buttons: Query<
-        (&Interaction, &mut UiTransform),
+        (&PickingInteraction, &mut UiTransform),
         (With<Button>, Without<CustomButtonMotion>),
     >,
     mut active: Local<HashSet<Entity>>,
@@ -166,9 +165,9 @@ pub(crate) fn animate_button_presses(
             continue;
         };
         let (target_scale, target_y) = match interaction {
-            Interaction::Pressed => (0.97, 1.5),
-            Interaction::Hovered => (1.015, 0.0),
-            Interaction::None => (1.0, 0.0),
+            PickingInteraction::Pressed => (0.97, 1.5),
+            PickingInteraction::Hovered => (1.015, 0.0),
+            PickingInteraction::None => (1.0, 0.0),
         };
         let scale = transform.scale.x + (target_scale - transform.scale.x) * response;
         let current_y = match transform.translation.y {

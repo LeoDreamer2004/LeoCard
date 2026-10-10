@@ -3,7 +3,7 @@ use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
 use leocard_uno::UnoColor;
 
-const UNO_PALETTE_SHADER: &str = "shaders/uno_palette.wgsl";
+const UNO_PALETTE_SHADER: &str = "shaders/uno_palette.wesl";
 
 /// GPU 直接绘制调色轮。params: x=选中色编号，y=0 底盘/1 独立扇区，z=透明度。
 #[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]

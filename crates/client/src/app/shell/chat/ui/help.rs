@@ -1,6 +1,7 @@
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
+use bevy::ui_widgets::Button;
 
 pub(crate) fn add_chat_help_button(
     commands: &mut Commands,

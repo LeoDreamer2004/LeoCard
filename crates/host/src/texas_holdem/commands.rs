@@ -3,7 +3,6 @@ use super::{
     merge_texas_holdem_profile_stats,
 };
 use crate::lifecycle::HostedGameLifecycle;
-use crate::player::settle_completed_match_profiles_once;
 use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, new_match_id};
 use leocard_protocol::{
     GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, TABLE_SEAT_COUNT,
@@ -307,9 +306,8 @@ impl TexasHoldemSession {
             .map(|((player, _), delta)| (*player, delta))
             .collect::<Vec<_>>();
         let match_profile_stats = self.match_profile_stats.clone();
-        settle_completed_match_profiles_once(
+        self.room.settle_completed_match_profiles_once(
             &mut self.finished_reference_changes,
-            &mut self.room,
             settlements,
             |participant, delta| {
                 let player_id = participant.id;

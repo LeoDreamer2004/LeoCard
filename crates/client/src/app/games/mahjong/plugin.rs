@@ -1,6 +1,7 @@
+use super::hover::sync_fan_calculator;
 use super::{
-    MahjongClaimPresentationState, MahjongFanGuideScroll, MahjongFanVoicePlayback,
-    MahjongPromptPlayback, MahjongTileMaterial, MahjongUiState, actions,
+    MahjongClaimPresentationState, MahjongFanCalculator, MahjongFanGuideScroll,
+    MahjongFanVoicePlayback, MahjongPromptPlayback, MahjongTileMaterial, MahjongUiState, actions,
     advance_mahjong_claim_presentation, advance_mahjong_modal, animate_mahjong_claim_presentation,
     animate_mahjong_deal_tiles, animate_mahjong_fan_guide_tiles, animate_mahjong_final_summary,
     animate_mahjong_flower_presentations, animate_mahjong_response_indicators,
@@ -26,6 +27,7 @@ impl Plugin for MahjongPlugin {
             .insert_resource(MahjongClaimPresentationState::default())
             .init_resource::<MahjongFanVoicePlayback>()
             .init_resource::<MahjongUiState>()
+            .init_resource::<MahjongFanCalculator>()
             .init_resource::<MahjongPromptPlayback>()
             .add_systems(
                 Update,
@@ -57,6 +59,7 @@ impl Plugin for MahjongPlugin {
                 (
                     sync_mahjong_hand_tile_materials,
                     sync_mahjong_hover_hints,
+                    sync_fan_calculator,
                     apply_automatic_mahjong_action
                         .after(actions::dispatch_mahjong_actions)
                         .run_if(start_game_intro_finished),

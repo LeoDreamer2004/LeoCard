@@ -1,8 +1,8 @@
 use super::view::render_hand_guide;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{CozyModalKind, ModalAnimations, advance_modal};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_client::ClientPhaseRef;
 use leocard_protocol::GameSnapshot;
 use leocard_texas_holdem::TexasHoldemRuleSet;
@@ -93,7 +93,7 @@ pub(super) fn sync_texas_hand_guide(
                 ..default()
             },
             GlobalZIndex(2200),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     render_hand_guide(&mut commands, root, rules, guide.progress, &assets);

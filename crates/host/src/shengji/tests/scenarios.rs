@@ -85,6 +85,9 @@ fn bottom_copy_is_public_keeps_the_dealer_and_times_out_as_a_pass() {
     );
     let first_burier = game_snapshot(&inquiry, connections[0]);
     assert_eq!(first_burier.your_buried, buried);
+    assert_eq!(first_burier.bottom_copy_decisions.len(), 1);
+    assert_eq!(first_burier.bottom_copy_decisions[0].player, PlayerId(0));
+    assert!(first_burier.bottom_copy_decisions[0].cards.is_none());
     assert!(
         connections[1..]
             .iter()
@@ -100,6 +103,22 @@ fn bottom_copy_is_public_keeps_the_dealer_and_times_out_as_a_pass() {
 
     // 正常亮主定庄时，即使房间同时开启扳底配置，抄底仍然有效。
     let mut timeout_session = session.clone();
+    let timeout = timeout_session.advance_time(BOTTOM_COPY_DECISION_TIMEOUT);
+    let timeout_snapshot = game_snapshot(&timeout, connections[0]);
+    assert!(matches!(
+        timeout_snapshot.phase,
+        ShengjiPhaseView::BottomCopying {
+            player: PlayerId(2),
+            ..
+        }
+    ));
+    assert_eq!(timeout_snapshot.bottom_copy_decisions.len(), 2);
+    assert_eq!(
+        timeout_snapshot.bottom_copy_decisions[1].player,
+        PlayerId(1)
+    );
+    assert!(timeout_snapshot.bottom_copy_decisions[1].cards.is_none());
+    timeout_session.advance_time(BOTTOM_COPY_DECISION_TIMEOUT);
     let timeout = timeout_session.advance_time(BOTTOM_COPY_DECISION_TIMEOUT);
     assert!(matches!(
         game_snapshot(&timeout, connections[0]).phase,
@@ -121,6 +140,13 @@ fn bottom_copy_is_public_keeps_the_dealer_and_times_out_as_a_pass() {
     assert_eq!(copier.dealer, Some(PlayerId(0)));
     assert_eq!(copier.trump.unwrap().suit, Some(ShengjiSuit::Heart));
     assert_eq!(copier.your_hand.len(), 33);
+    assert_eq!(copier.bottom_copy_decisions.len(), 1);
+    assert_eq!(copier.bottom_copy_decisions[0].player, PlayerId(1));
+    assert_eq!(
+        copier.bottom_copy_decisions[0].cards.as_deref(),
+        Some(hearts.as_slice())
+    );
+    assert_eq!(copier.bottom_copy_decisions, opponent.bottom_copy_decisions);
     assert!(copier.your_buried.is_empty());
     assert_eq!(opponent.your_hand.len(), 25);
     assert!(opponent.your_buried.is_empty());
@@ -150,6 +176,12 @@ fn bottom_copy_is_public_keeps_the_dealer_and_times_out_as_a_pass() {
     );
     let copier_after_bury = game_snapshot(&finished, connections[1]);
     assert_eq!(copier_after_bury.your_buried, reburied);
+    assert_eq!(copier_after_bury.bottom_copy_decisions.len(), 1);
+    assert_eq!(
+        copier_after_bury.bottom_copy_decisions[0].player,
+        PlayerId(1)
+    );
+    assert!(copier_after_bury.bottom_copy_decisions[0].cards.is_none());
     assert!(
         connections
             .iter()
@@ -159,8 +191,15 @@ fn bottom_copy_is_public_keeps_the_dealer_and_times_out_as_a_pass() {
     );
     assert!(matches!(
         game_snapshot(&finished, connections[0]).phase,
-        ShengjiPhaseView::Playing
+        ShengjiPhaseView::BottomCopying {
+            player: PlayerId(2),
+            ..
+        }
     ));
+    for _ in 0..3 {
+        session.advance_time(BOTTOM_COPY_DECISION_TIMEOUT);
+    }
+    assert_eq!(session.game().unwrap().phase(), &Phase::Playing);
     assert_eq!(session.game().unwrap().dealer(), Some(ShengjiPlayerId(0)));
 }
 

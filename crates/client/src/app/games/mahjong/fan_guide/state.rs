@@ -11,8 +11,10 @@ use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
     add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
 };
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, RelativeCursorPosition, VisualBox};
+use bevy::ui::{RelativeCursorPosition, VisualBox};
+use bevy::ui_widgets::Button;
 use leocard_mahjong::{MahjongDragon, MahjongFlower, MahjongSuit, MahjongTileKind, MahjongWind};
 
 pub(super) const TIERS: [u16; 12] = [88, 64, 48, 32, 24, 16, 12, 8, 6, 4, 2, 1];
@@ -61,7 +63,7 @@ pub(in super::super) fn sync_mahjong_fan_guide(
                 ..default()
             },
             GlobalZIndex(2200),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     render_fan_guide(
@@ -127,7 +129,7 @@ pub(super) fn render_fan_guide(
     );
     commands.entity(backdrop).insert((
         GlobalZIndex(2200),
-        FocusPolicy::Block,
+        Pickable::default(),
         CozyModalBackdrop(CozyModalKind::MahjongFanGuide),
     ));
     let window = add_cozy_panel(
@@ -148,7 +150,7 @@ pub(super) fn render_fan_guide(
     );
     commands.entity(window).insert((
         GlobalZIndex(2201),
-        FocusPolicy::Block,
+        Pickable::default(),
         CozyModalPanel(CozyModalKind::MahjongFanGuide),
         cozy_panel_transform(progress),
     ));
@@ -358,7 +360,7 @@ pub(super) fn render_tabs(
                     },
                     image,
                     Visibility::Hidden,
-                    FocusPolicy::Pass,
+                    Pickable::IGNORE,
                 ))
                 .id();
             commands.entity(tab).add_child(overlay);
@@ -375,7 +377,7 @@ pub(super) fn render_tabs(
             fan_color(tier),
             assets,
         );
-        commands.entity(label).insert(FocusPolicy::Pass);
+        commands.entity(label).insert(Pickable::IGNORE);
     }
 }
 

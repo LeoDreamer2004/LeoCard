@@ -1,6 +1,7 @@
 mod activity;
 mod bots;
 mod economy;
+mod profiles;
 mod state;
 
 use activity::RoomActivity;

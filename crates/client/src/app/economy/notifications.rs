@@ -3,7 +3,7 @@ use crate::app::runtime::UiAssets;
 use bevy::{
     picking::Pickable,
     prelude::*,
-    ui::{BackgroundGradient, ColorStop, FocusPolicy, LinearGradient},
+    ui::{BackgroundGradient, ColorStop, LinearGradient},
 };
 use leocard_client::PlayerEconomy;
 use std::collections::VecDeque;
@@ -37,7 +37,6 @@ pub(super) fn setup_coin_notifications(mut commands: Commands) {
             ..default()
         },
         GlobalZIndex(2600),
-        FocusPolicy::Pass,
         Pickable::IGNORE,
     ));
 }
@@ -108,7 +107,6 @@ fn spawn_notice(commands: &mut Commands, layer: Entity, delta: i64, assets: &UiA
                 ColorStop::percent(Color::srgba(0.06, 0.06, 0.06, 0.76), 100.0),
             ])),
             UiTransform::from_translation(Val2::px(WIDTH, 0.0)),
-            FocusPolicy::Pass,
             Pickable::IGNORE,
         ))
         .id();
@@ -122,7 +120,6 @@ fn spawn_notice(commands: &mut Commands, layer: Entity, delta: i64, assets: &UiA
                 ..default()
             },
             ImageNode::new(assets.shop.coin.clone()),
-            FocusPolicy::Pass,
             Pickable::IGNORE,
         ))
         .id();
@@ -135,9 +132,7 @@ fn spawn_notice(commands: &mut Commands, layer: Entity, delta: i64, assets: &UiA
         Color::srgb(0.82, 0.82, 0.82),
         assets,
     );
-    commands.entity(text).insert((
-        TextLayout::default().with_no_wrap(),
-        FocusPolicy::Pass,
-        Pickable::IGNORE,
-    ));
+    commands
+        .entity(text)
+        .insert((TextLayout::default().with_no_wrap(), Pickable::IGNORE));
 }

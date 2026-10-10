@@ -3,8 +3,10 @@ use super::spawn_node;
 use crate::app::presentation::{ACCENT, ButtonHighlight, MUTED};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 
 pub(crate) struct DrawerSwitch<'a> {
     pub short: &'a str,
@@ -100,7 +102,7 @@ pub(crate) fn add_switch_drawer(
                     } else {
                         assets.home.checkbox.clone()
                     }),
-                    FocusPolicy::Pass,
+                    Pickable::IGNORE,
                 ))
                 .id();
             commands.entity(row).add_child(checkbox);
@@ -151,7 +153,7 @@ pub(crate) fn add_switch_drawer(
                 assets.home.rule_right_highlighted.clone()
             }),
             Visibility::Hidden,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(arrow).add_child(hover);

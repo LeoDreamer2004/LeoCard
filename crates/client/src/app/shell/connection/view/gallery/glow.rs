@@ -2,10 +2,9 @@
 
 use super::ENTRY_DESIGNS;
 use crate::app::presentation::TransitionOpacity;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{
-    BackgroundGradient, ColorStop, FocusPolicy, Gradient, RadialGradient, RadialGradientShape,
-};
+use bevy::ui::{BackgroundGradient, ColorStop, Gradient, RadialGradient, RadialGradientShape};
 
 #[derive(Clone, Copy)]
 pub(super) enum GlowKind {
@@ -72,7 +71,7 @@ impl EntryGlow {
                 TransitionOpacity::default(),
                 glow,
                 UiTransform::IDENTITY,
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(parent).add_child(entity);

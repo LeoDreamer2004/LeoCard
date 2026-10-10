@@ -3,6 +3,7 @@ use crate::app::presentation::{add_text, avatar_color};
 use crate::app::runtime::{AvatarImages, ConnectionDraft, UiAssets};
 use crate::app::shell::{NavigationUiAction, UiAction};
 use bevy::prelude::*;
+use bevy::ui_widgets::Button;
 
 pub(crate) struct ProfileEntry<'a> {
     pub form: &'a ConnectionDraft,

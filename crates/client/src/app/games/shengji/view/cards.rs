@@ -1,8 +1,8 @@
 use super::super::ShengjiFailedThrowCard;
 use crate::app::presentation::{CardSize, HAND_CARD_REVEAL, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{ShengjiSnapshot, ShengjiThrowFailureStage};
 use leocard_qigui523::{QiGuiRank, QiGuiSuit};
 use leocard_shengji::{ShengjiCard, ShengjiRank, ShengjiSuit, ShengjiTrump};
@@ -157,7 +157,7 @@ pub(super) fn add_shengji_trump_stars(
             color: Color::BLACK.with_alpha(0.92),
         },
         ZIndex(5),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 

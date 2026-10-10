@@ -17,8 +17,8 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::SeatSide;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_mahjong::MahjongTile;
 use leocard_protocol::{
     MahjongHandResultView, MahjongPhaseView, MahjongPlayerState, MahjongSnapshot, PlayerId,
@@ -108,7 +108,7 @@ pub(super) fn render_mahjong_player_panel(
         },
         None,
     );
-    commands.entity(flower_count).insert(FocusPolicy::Pass);
+    commands.entity(flower_count).insert(Pickable::IGNORE);
     let label = add_text(
         commands,
         flower_count,
@@ -119,7 +119,7 @@ pub(super) fn render_mahjong_player_panel(
     );
     commands
         .entity(label)
-        .insert((TextLayout::default().with_no_wrap(), FocusPolicy::Pass));
+        .insert((TextLayout::default().with_no_wrap(), Pickable::IGNORE));
 }
 
 pub(super) fn render_mahjong_wall(
@@ -221,7 +221,7 @@ fn add_mahjong_wall_stack(
                 px(2),
             ),
             ZIndex(1),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(stack).add_child(tile);
@@ -385,7 +385,7 @@ pub(super) fn render_mahjong_player_tiles(
             },
             None,
         );
-        commands.entity(gap).insert(FocusPolicy::Pass);
+        commands.entity(gap).insert(Pickable::IGNORE);
     }
 
     if relative != 0 {
@@ -597,7 +597,7 @@ pub(super) fn render_mahjong_player_tiles(
                 },
                 None,
             );
-            commands.entity(spacer).insert(FocusPolicy::Pass);
+            commands.entity(spacer).insert(Pickable::IGNORE);
         }
     }
 }

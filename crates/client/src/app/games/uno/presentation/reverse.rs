@@ -1,9 +1,9 @@
 use super::super::{UNO_ACTION_AREA_BOTTOM, UNO_ACTION_AREA_HEIGHT, UnoReverseArrow};
+use bevy::picking::Pickable;
 
 use super::uno_player_anchor_in_layer;
 use crate::app::shell::PlayerAvatarAnchor;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::UnoSnapshot;
 use leocard_uno::UnoDirection;
 
@@ -196,7 +196,7 @@ fn spawn_uno_reverse_arrow_layer(
             UiTransform::from_rotation(Rot2::degrees(angle)),
             BoxShadow::new(Color::BLACK.with_alpha(0.0), px(1), px(2), px(0), px(4)),
             GlobalZIndex(z_index),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(layer).add_child(arrow);

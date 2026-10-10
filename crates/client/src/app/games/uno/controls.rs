@@ -8,8 +8,9 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{UiAction, add_cozy_panel_with_skin};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui_widgets::Button;
 use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
 use leocard_uno::{UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoPendingDrawKind};
 
@@ -509,7 +510,7 @@ fn add_color_choice_overlay(
     );
     commands
         .entity(overlay)
-        .insert((GlobalZIndex(2050), FocusPolicy::Block));
+        .insert((GlobalZIndex(2050), Pickable::default()));
     let panel = add_cozy_panel_with_skin(
         commands,
         overlay,
@@ -575,7 +576,7 @@ fn add_color_choice_overlay(
                 Color::WHITE,
                 assets,
             );
-            commands.entity(label).insert(FocusPolicy::Pass);
+            commands.entity(label).insert(Pickable::IGNORE);
         }
         if card.is_some() {
             add_uno_action_button(

@@ -1,26 +1,21 @@
 use super::*;
 use crate::app::games::uno::{UnoAssets, UnoHandCardButton};
+use crate::app::presentation::UiPress;
 use crate::app::runtime::ClientResource;
 use bevy::audio::Volume;
 use bevy::prelude::*;
 
-type ChangedHandCardButtons<'w, 's> = Query<
-    'w,
-    's,
-    &'static Interaction,
-    (Changed<Interaction>, With<Button>, With<UnoHandCardButton>),
->;
-
 pub(crate) fn play_uno_card_selection_sounds(
-    buttons: ChangedHandCardButtons,
+    mut presses: MessageReader<UiPress>,
+    buttons: Query<(), With<UnoHandCardButton>>,
     assets: Res<UnoAssets>,
     mut commands: Commands,
 ) {
     if assets.sounds.select.is_empty() {
         return;
     }
-    for interaction in &buttons {
-        if !matches!(interaction, Interaction::Pressed) {
+    for press in presses.read() {
+        if !buttons.contains(press.0) {
             continue;
         }
         let index = fastrand::usize(..assets.sounds.select.len());

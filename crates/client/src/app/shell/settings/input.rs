@@ -10,6 +10,7 @@ use crate::app::runtime::{
 };
 use bevy::audio::Volume;
 use bevy::log::warn;
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 
@@ -78,7 +79,7 @@ fn set_table_appearance_from_fraction(
 pub(crate) fn handle_table_appearance_sliders(
     mouse: Res<ButtonInput<MouseButton>>,
     sliders: Query<(
-        &Interaction,
+        &PickingInteraction,
         &RelativeCursorPosition,
         &TableAppearanceSlider,
     )>,
@@ -92,7 +93,7 @@ pub(crate) fn handle_table_appearance_sliders(
 ) {
     if mouse.just_pressed(MouseButton::Left) {
         *dragging = sliders.iter().find_map(|(interaction, _, slider)| {
-            (*interaction == Interaction::Pressed).then_some(slider.0)
+            (*interaction == PickingInteraction::Pressed).then_some(slider.0)
         });
     }
 

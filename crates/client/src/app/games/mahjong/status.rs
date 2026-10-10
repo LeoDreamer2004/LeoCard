@@ -2,8 +2,8 @@ use super::{MahjongAssets, MahjongTurnSector, wind_label};
 use crate::app::presentation::{PlayerSeatValue, add_player_seat_value, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::asset::RenderAssetUsages;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 use std::{array, f32::consts};
 
@@ -163,7 +163,7 @@ pub(super) fn render_round_status_with_scores(
     commands.entity(status).insert((
         BorderColor::all(FRAME_COLOR),
         BoxShadow::new(Color::BLACK.with_alpha(0.46), px(0), px(4), px(0), px(9)),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
         ZIndex(20),
     ));
 
@@ -207,7 +207,7 @@ pub(super) fn render_round_status_with_scores(
     );
     commands
         .entity(center)
-        .insert((BorderColor::all(FRAME_COLOR), FocusPolicy::Pass));
+        .insert((BorderColor::all(FRAME_COLOR), Pickable::IGNORE));
     add_text(
         commands,
         center,
@@ -270,7 +270,7 @@ fn spawn_status_image(
                 ..default()
             },
             ImageNode::new(image.clone()).with_color(tint),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(status).add_child(entity);
@@ -311,7 +311,7 @@ fn render_wind_label(
         },
         None,
     );
-    commands.entity(label).insert(FocusPolicy::Pass);
+    commands.entity(label).insert(Pickable::IGNORE);
     add_player_seat_value(
         commands,
         label,

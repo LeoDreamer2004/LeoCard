@@ -6,8 +6,10 @@ use super::super::{
 use crate::app::presentation::CardSize;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{SocialUiAction, UiAction};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 use leocard_qigui523::QiGuiCard;
 
 const SCORE_CARD_REVEAL: f32 = 12.0;
@@ -82,21 +84,21 @@ pub(crate) fn add_auto_play_overlay(commands: &mut Commands, parent: Entity, ass
             },
             BackgroundColor(Color::BLACK.with_alpha(0.82)),
             GlobalZIndex(1900),
-            FocusPolicy::Block,
+            Pickable::default(),
             AutoPlayOverlay,
         ))
         .id();
     commands.entity(parent).add_child(overlay);
     let title = add_text(commands, overlay, "您已托管", 27.0, ACCENT, assets);
     commands.entity(title).insert((
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
         TextShadow {
             offset: Vec2::new(1.2, 1.5),
             color: Color::BLACK.with_alpha(0.92),
         },
     ));
     let detail = add_text(commands, overlay, "点击此处取消", 14.0, TEXT, assets);
-    commands.entity(detail).insert(FocusPolicy::Pass);
+    commands.entity(detail).insert(Pickable::IGNORE);
 }
 
 /// Reuse the rounded card skin at both entry and compact popup sizes.
@@ -150,7 +152,7 @@ pub(crate) fn decorate_panel_skin(
                 image
             },
             ZIndex(-1),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(panel).add_child(texture);

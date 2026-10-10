@@ -8,8 +8,10 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 use leocard_mahjong::{MahjongClaim, MahjongClaimOption, MahjongTileKind};
 use leocard_protocol::MahjongSnapshot;
 
@@ -290,7 +292,7 @@ fn add_choice_button(
             },
             None,
         );
-        commands.entity(tiles).insert(FocusPolicy::Pass);
+        commands.entity(tiles).insert(Pickable::IGNORE);
         for index in 0..choice.count {
             let tile = add_mahjong_tile_material(
                 commands,
@@ -306,10 +308,10 @@ fn add_choice_button(
                 game_assets,
                 materials,
             );
-            commands.entity(tile).insert(FocusPolicy::Pass);
+            commands.entity(tile).insert(Pickable::IGNORE);
         }
         let text = add_text(commands, row, choice.label, 15.0, TEXT, assets);
-        commands.entity(text).insert(FocusPolicy::Pass);
+        commands.entity(text).insert(Pickable::IGNORE);
     }
 }
 
@@ -365,12 +367,12 @@ fn add_mahjong_button(
             },
             ImageNode::new(hovered.clone()).with_mode(NodeImageMode::Stretch),
             Visibility::Hidden,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(button).add_child(overlay);
     let text = add_text(commands, button, label, 20.0, TEXT, assets);
-    commands.entity(text).insert(FocusPolicy::Pass);
+    commands.entity(text).insert(Pickable::IGNORE);
     commands.entity(button).insert(ButtonHighlight {
         overlay,
         arrows: None,

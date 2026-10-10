@@ -72,7 +72,7 @@ mod tests {
             UI_FONT_ASSET,
             TABLE_FELT_ASSET,
             TABLE_BACKGROUND_SHADER,
-            "shaders/uno_palette.wgsl",
+            "shaders/uno_palette.wesl",
             "cards/uno/card_back.png",
             "cards/uno/wild.png",
             "cards/uno-extension/uno-flip/dark/purple_flip.png",

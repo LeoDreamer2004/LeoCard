@@ -1,104 +1,14 @@
 use super::routes::shengji_partner_player;
 
-use super::{
-    ShengjiAudioCue, ShengjiPlayPresentationKind, ShengjiPresentationKind, ShengjiSoundKind,
-};
-use crate::app::presentation::ACCENT;
+use super::ShengjiPresentationKind;
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, ShengjiSnapshot};
-use leocard_shengji::{Component, ShengjiBidTrump, ShengjiClassifiedPlay, ShengjiRank};
-use leocard_shengji::{ShengjiCard, ShengjiSuit};
-
-pub(super) fn classify_play_presentation(
-    play: &ShengjiClassifiedPlay,
-) -> ShengjiPlayPresentationKind {
-    if play.is_throw() {
-        return ShengjiPlayPresentationKind::Throw;
-    }
-    match play.strongest_component() {
-        Component::Single { .. } => ShengjiPlayPresentationKind::Single,
-        Component::Pair { .. } => ShengjiPlayPresentationKind::Pair,
-        Component::Tractor { .. } => ShengjiPlayPresentationKind::Tractor,
-        Component::Triple { .. } => ShengjiPlayPresentationKind::Triple,
-        Component::Titanic { .. } => ShengjiPlayPresentationKind::Titanic,
-        Component::Quad { .. } => ShengjiPlayPresentationKind::Bomb,
-        Component::Spaceship { .. } => ShengjiPlayPresentationKind::Spaceship,
-    }
-}
-
-pub(super) fn should_show_play_presentation(
-    kind: ShengjiPlayPresentationKind,
-    is_lead: bool,
-    throw_penalty: u16,
-) -> bool {
-    if throw_penalty > 0
-        || matches!(
-            kind,
-            ShengjiPlayPresentationKind::Single
-                | ShengjiPlayPresentationKind::Pair
-                | ShengjiPlayPresentationKind::Triple
-        )
-    {
-        return false;
-    }
-    kind != ShengjiPlayPresentationKind::Throw || is_lead
-}
-
-pub(super) fn queue_play_audio(
-    cues: &mut Vec<ShengjiAudioCue>,
-    kind: ShengjiPlayPresentationKind,
-    seed: u64,
-    start: f32,
-) {
-    let cue = |kind, remaining, volume, offset| {
-        ShengjiAudioCue::new(
-            kind,
-            start + remaining,
-            volume,
-            seed.wrapping_mul(31) + offset,
-        )
-    };
-    match kind {
-        ShengjiPlayPresentationKind::Single => {
-            cues.push(cue(ShengjiSoundKind::CardPlace, 0.0, 0.34, 1));
-        }
-        ShengjiPlayPresentationKind::Pair => cues.extend([
-            cue(ShengjiSoundKind::CardPlace, 0.0, 0.30, 1),
-            cue(ShengjiSoundKind::CardPlace, 0.075, 0.42, 2),
-        ]),
-        ShengjiPlayPresentationKind::Tractor => cues.extend([
-            cue(ShengjiSoundKind::CardShove, 0.0, 0.44, 1),
-            cue(ShengjiSoundKind::CardPlace, 0.18, 0.32, 2),
-        ]),
-        ShengjiPlayPresentationKind::Triple => cues.extend([
-            cue(ShengjiSoundKind::CardPlace, 0.0, 0.26, 1),
-            cue(ShengjiSoundKind::CardPlace, 0.065, 0.32, 2),
-            cue(ShengjiSoundKind::CardPlace, 0.13, 0.44, 3),
-        ]),
-        ShengjiPlayPresentationKind::Titanic => cues.extend([
-            cue(ShengjiSoundKind::CardShove, 0.0, 0.46, 1),
-            cue(ShengjiSoundKind::Heavy, 0.16, 0.48, 2),
-        ]),
-        ShengjiPlayPresentationKind::Bomb => cues.extend([
-            cue(ShengjiSoundKind::CardPlace, 0.0, 0.32, 1),
-            cue(ShengjiSoundKind::Bomb, 0.10, 0.52, 2),
-        ]),
-        ShengjiPlayPresentationKind::Spaceship => cues.extend([
-            cue(ShengjiSoundKind::Bomb, 0.0, 0.48, 1),
-            cue(ShengjiSoundKind::Bomb, 0.18, 0.44, 2),
-            cue(ShengjiSoundKind::CardShove, 0.28, 0.50, 3),
-        ]),
-        ShengjiPlayPresentationKind::Throw => cues.extend([
-            cue(ShengjiSoundKind::CardShove, 0.0, 0.46, 1),
-            cue(ShengjiSoundKind::CardPlace, 0.20, 0.30, 2),
-        ]),
-    }
-}
+use leocard_shengji::{ShengjiCard, ShengjiRank, ShengjiSuit};
 
 pub(super) fn presentation_text(
     kind: &ShengjiPresentationKind,
     game: &ShengjiSnapshot,
-) -> (String, String) {
+) -> Option<(String, String)> {
     let player_name = |player: PlayerId| {
         game.players
             .iter()
@@ -108,15 +18,7 @@ pub(super) fn presentation_text(
                 |player| player.name.clone(),
             )
     };
-    match kind {
-        ShengjiPresentationKind::Declaration {
-            player,
-            trump,
-            label,
-        } => (
-            (*label).to_owned(),
-            format!("{} · {}", player_name(*player), bid_trump_label(*trump)),
-        ),
+    Some(match kind {
         ShengjiPresentationKind::PowerOutage {
             from_dealer,
             dealer,
@@ -152,25 +54,7 @@ pub(super) fn presentation_text(
                 },
             ),
         ),
-        ShengjiPresentationKind::BottomCopy {
-            from_player,
-            player,
-            trump,
-            count,
-        } => (
-            format!("第{count}次抄底"),
-            from_player.map_or_else(
-                || format!("{} · {}", player_name(*player), bid_trump_label(*trump)),
-                |from_player| {
-                    format!(
-                        "{} → {} · {}",
-                        player_name(from_player),
-                        player_name(*player),
-                        bid_trump_label(*trump)
-                    )
-                },
-            ),
-        ),
+        ShengjiPresentationKind::BottomCopy { .. } => return None,
         ShengjiPresentationKind::CrossingStarted { players } => {
             let directions = players
                 .iter()
@@ -201,12 +85,8 @@ pub(super) fn presentation_text(
                 |partner| format!("{} → {}", player_name(*player), player_name(partner)),
             ),
         ),
-        ShengjiPresentationKind::TrumpKill { covered, .. } => (
-            if *covered { "盖毙" } else { "毙牌" }.to_owned(),
-            String::new(),
-        ),
-        ShengjiPresentationKind::Play { kind, .. } => (kind.label().to_owned(), String::new()),
-    }
+        ShengjiPresentationKind::TrumpKill { .. } => return None,
+    })
 }
 
 pub(super) fn presentation_color(kind: &ShengjiPresentationKind) -> Color {
@@ -218,31 +98,7 @@ pub(super) fn presentation_color(kind: &ShengjiPresentationKind) -> Color {
         | ShengjiPresentationKind::CrossingReturned { .. } => Color::srgb(0.20, 0.88, 0.72),
         ShengjiPresentationKind::TrumpKill { covered: true, .. } => Color::srgb(1.0, 0.62, 0.14),
         ShengjiPresentationKind::TrumpKill { covered: false, .. } => Color::srgb(0.36, 0.94, 0.67),
-        ShengjiPresentationKind::Play {
-            kind: ShengjiPlayPresentationKind::Bomb,
-            ..
-        }
-        | ShengjiPresentationKind::Play {
-            kind: ShengjiPlayPresentationKind::Spaceship,
-            ..
-        } => Color::srgb(1.0, 0.27, 0.16),
-        ShengjiPresentationKind::Play {
-            kind: ShengjiPlayPresentationKind::Titanic,
-            ..
-        } => Color::srgb(0.24, 0.68, 1.0),
-        _ => ACCENT,
     }
-}
-
-fn bid_trump_label(trump: ShengjiBidTrump) -> String {
-    match trump {
-        ShengjiBidTrump::Suit(ShengjiSuit::Diamond) => "♦ 方块主",
-        ShengjiBidTrump::Suit(ShengjiSuit::Club) => "♣ 梅花主",
-        ShengjiBidTrump::Suit(ShengjiSuit::Heart) => "♥ 红桃主",
-        ShengjiBidTrump::Suit(ShengjiSuit::Spade) => "♠ 黑桃主",
-        ShengjiBidTrump::NoTrumpSmallJoker | ShengjiBidTrump::NoTrumpBigJoker => "无主",
-    }
-    .to_owned()
 }
 
 pub(super) fn rank_label(rank: ShengjiRank) -> &'static str {

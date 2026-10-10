@@ -12,8 +12,11 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{PlayerInteractionLayer, SeatSide, SocialUiState, UiAction};
+use bevy::picking::Pickable;
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 use leocard_protocol::{GameKind, UnoPendingSwapView, UnoPhaseView, UnoPlayerState, UnoSnapshot};
 use leocard_uno::UnoFace;
 
@@ -226,7 +229,7 @@ pub(super) fn add_uno_own_area(
                     offset: px(0),
                     color: ACCENT.with_alpha(0.8),
                 },
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(slot).add_child(face);
@@ -356,7 +359,7 @@ fn spawn_uno_extension_card_tooltip(
         Visibility::Hidden,
         BoxShadow::new(Color::BLACK.with_alpha(0.30), px(2), px(4), px(0), px(8)),
         GlobalZIndex(1900),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     let title = add_text(commands, tooltip, "", 13.0, TEXT.with_alpha(0.90), assets);
     let description = add_text(commands, tooltip, "", 11.5, MUTED.with_alpha(0.88), assets);
@@ -370,7 +373,7 @@ pub(super) fn sync_uno_extension_card_help(
     mut commands: Commands,
     assets: Res<UiAssets>,
     cards: Query<(
-        &Interaction,
+        &PickingInteraction,
         &UnoExtensionCardHelp,
         &ComputedNode,
         &UiGlobalTransform,
@@ -387,7 +390,10 @@ pub(super) fn sync_uno_extension_card_help(
         return;
     };
     let Some((_, help, card_node, card_transform)) = cards.iter().find(|(interaction, ..)| {
-        matches!(interaction, Interaction::Hovered | Interaction::Pressed)
+        matches!(
+            interaction,
+            PickingInteraction::Hovered | PickingInteraction::Pressed
+        )
     }) else {
         *visibility = Visibility::Hidden;
         return;

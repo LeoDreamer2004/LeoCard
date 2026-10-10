@@ -10,10 +10,8 @@ use crate::app::shell::{
     CozyButtonVariant, NavigationUiAction, PageTransitionElement, UiAction,
     add_cozy_button_variant, add_cozy_disabled_button, add_page_back_title,
 };
-use bevy::{
-    prelude::*,
-    ui::{FocusPolicy, RelativeCursorPosition},
-};
+use bevy::picking::Pickable;
+use bevy::{prelude::*, ui::RelativeCursorPosition};
 use leocard_client::{ItemId, PlayerEconomy};
 
 #[derive(Component)]
@@ -214,6 +212,8 @@ impl ShopPage<'_> {
                     self.assets.shop.card_counter.clone()
                 }
                 ItemId::ShengjiMissingSuitCard => self.assets.shop.missing_suit_card.clone(),
+                ItemId::UnoJumpInDevice => self.assets.shop.uno_jump_in_device.clone(),
+                ItemId::MahjongFanCalculator => self.assets.shop.mahjong_fan_calculator.clone(),
             },
             64.0,
         );
@@ -298,7 +298,7 @@ impl ShopPage<'_> {
                     ..default()
                 },
                 ImageNode::new(image),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(parent).add_child(icon);

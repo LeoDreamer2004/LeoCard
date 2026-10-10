@@ -15,8 +15,11 @@ use crate::app::presentation::{
 use crate::app::presentation::{CardDragSelection, CardSize};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{SeatSide, UiAction};
+use bevy::picking::Pickable;
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, RelativeCursorPosition};
+use bevy::ui::RelativeCursorPosition;
+use bevy::ui_widgets::Button;
 use leocard_protocol::{GameKind, PlayerId, ShengjiPhaseView, ShengjiPlayerState, ShengjiSnapshot};
 use leocard_shengji::{ShengjiCard, ShengjiTrump};
 
@@ -163,7 +166,7 @@ fn add_shengji_hand_card(
             ),
             BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(3)),
             GlobalZIndex(index as i32 + 1),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(button).add_child(face);
@@ -181,7 +184,7 @@ fn add_shengji_hand_card(
                 ..default()
             },
             BackgroundColor(Color::NONE),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(face).add_child(overlay);
@@ -246,7 +249,7 @@ pub(crate) fn animate_shengji_hand_cards(
     time: Res<Time>,
     drag: Res<CardDragSelection>,
     mut ui: ResMut<ShengjiUiState>,
-    buttons: Query<&Interaction, With<Button>>,
+    buttons: Query<&PickingInteraction, With<Button>>,
     mut cards: Query<(
         &mut ShengjiHandCardVisual,
         &mut UiTransform,
@@ -266,7 +269,10 @@ pub(crate) fn animate_shengji_hand_cards(
         let hovered = if drag.active {
             visual.index == drag.current
         } else {
-            matches!(*interaction, Interaction::Hovered | Interaction::Pressed)
+            matches!(
+                *interaction,
+                PickingInteraction::Hovered | PickingInteraction::Pressed
+            )
         };
         let hover_target = f32::from(hovered);
         let selected_target = f32::from(selected);

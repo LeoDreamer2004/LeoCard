@@ -8,8 +8,8 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::SeatSide;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{
     GamePhaseView, PlayerId, PlayerPublicState, PublicPlay, PublicPlayRecord, QiGui523Snapshot,
 };
@@ -145,7 +145,7 @@ pub(super) fn add_round_play(
                     ..default()
                 },
                 ImageNode::new(game_assets.pass_marker.clone()),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(parent).add_child(marker);
@@ -192,7 +192,7 @@ pub(super) fn add_round_play(
             commands.entity(card_entity).insert((
                 SequenceEffectCard { index },
                 UiTransform::IDENTITY,
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ));
         }
     }

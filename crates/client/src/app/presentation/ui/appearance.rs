@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
 
-pub(crate) const TABLE_BACKGROUND_SHADER: &str = "shaders/table_background.wgsl";
+pub(crate) const TABLE_BACKGROUND_SHADER: &str = "shaders/table_background.wesl";
 
 #[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
 pub(crate) struct TableBackgroundMaterial {

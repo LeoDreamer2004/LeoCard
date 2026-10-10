@@ -13,8 +13,10 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SeatSide, UiAction};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 use leocard_protocol::{
     GameKind, PlayerId, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
 };
@@ -385,7 +387,7 @@ fn add_raise_adjust_button(
                 },
                 texas_adjust_button_image(hovered.clone()),
                 Visibility::Hidden,
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(button).add_child(overlay);
@@ -402,7 +404,7 @@ fn add_raise_adjust_button(
                     ..default()
                 },
                 texas_adjust_button_image(normal.clone()).with_color(Color::WHITE.with_alpha(0.48)),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(parent).add_child(button);

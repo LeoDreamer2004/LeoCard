@@ -1,6 +1,7 @@
 //! Complete-match standings and continuation actions.
 
 use super::*;
+use bevy::picking::Pickable;
 
 use crate::app::presentation::{
     ACCENT, DANGER, PanelSkin, READY, TEXT, add_avatar, add_text, decorate_panel_skin, spawn_node,
@@ -11,7 +12,6 @@ use crate::app::shell::{
     add_cozy_disabled_button,
 };
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_mahjong::MahjongMatchLength;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
 
@@ -49,7 +49,7 @@ impl FinalSummaryView<'_> {
         );
         commands
             .entity(summary)
-            .insert((GlobalZIndex(1201), FocusPolicy::Pass));
+            .insert((GlobalZIndex(1201), Pickable::IGNORE));
         decorate_panel_skin(commands, summary, PanelSkin::Window, assets);
         add_text(commands, summary, "整局结算", 26.0, ACCENT, assets);
         spawn_node(
@@ -90,7 +90,7 @@ impl FinalSummaryView<'_> {
                 },
                 UiTransform::default(),
                 Visibility::Hidden,
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ));
             add_text(
                 commands,

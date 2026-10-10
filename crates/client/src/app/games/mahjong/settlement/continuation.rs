@@ -1,12 +1,13 @@
 //! Timed click-to-continue prompt.
 
 use super::*;
+use bevy::picking::Pickable;
+use bevy::ui_widgets::Button;
 
 use crate::app::presentation::{TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 
 #[expect(
     clippy::too_many_arguments,
@@ -38,7 +39,7 @@ pub(super) fn render_settlement_continue(
     commands.entity(area).insert((
         MahjongScoreStage { start, end },
         GlobalZIndex(1300),
-        FocusPolicy::Block,
+        Pickable::default(),
         if elapsed >= start && elapsed < end {
             Visibility::Visible
         } else {
@@ -60,6 +61,6 @@ pub(super) fn render_settlement_continue(
             offset: Vec2::new(1.0, 2.0),
             color: Color::BLACK.with_alpha(0.9),
         },
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }

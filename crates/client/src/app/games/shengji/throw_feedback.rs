@@ -2,10 +2,7 @@
 
 use std::f32::consts;
 
-use super::{
-    ShengjiFailedThrowCard, ShengjiFailedThrowLabel, ShengjiThrowPenaltyFloat,
-    ShengjiThrowPenaltyScorePulse,
-};
+use super::{ShengjiFailedThrowCard, ShengjiThrowPenaltyFloat, ShengjiThrowPenaltyScorePulse};
 use crate::app::presentation::{DANGER, ease_out_cubic};
 use bevy::prelude::*;
 use leocard_protocol::ShengjiThrowFailureStage;
@@ -91,37 +88,6 @@ pub(super) fn animate_shengji_failed_throw_cards(
         } else {
             Visibility::Hidden
         };
-    }
-}
-
-pub(super) fn animate_shengji_failed_throw_labels(
-    time: Res<Time>,
-    mut labels: Query<(
-        &mut ShengjiFailedThrowLabel,
-        &mut UiTransform,
-        &mut TextColor,
-        &mut Visibility,
-    )>,
-) {
-    for (mut animation, mut transform, mut color, mut visibility) in &mut labels {
-        animation.elapsed += time.delta_secs();
-        if animation.returning {
-            let progress = ease_out_cubic((animation.elapsed / 0.30).clamp(0.0, 1.0));
-            transform.translation = Val2::px(0.0, -12.0 * progress);
-            transform.scale = Vec2::splat(1.0 - 0.12 * progress);
-            color.0 = DANGER.with_alpha(1.0 - progress);
-            if progress >= 1.0 {
-                *visibility = Visibility::Hidden;
-            }
-        } else {
-            let enter = ease_out_cubic((animation.elapsed / 0.16).clamp(0.0, 1.0));
-            let shake_progress = ((animation.elapsed - 0.24) / 0.42).clamp(0.0, 1.0);
-            let shake = (shake_progress * consts::TAU * 3.0).sin() * (1.0 - shake_progress) * 3.0;
-            transform.translation = Val2::px(shake, 7.0 * (1.0 - enter));
-            transform.scale = Vec2::splat(0.86 + 0.14 * enter);
-            color.0 = DANGER.with_alpha(enter);
-            *visibility = Visibility::Visible;
-        }
     }
 }
 

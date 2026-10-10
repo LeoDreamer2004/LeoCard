@@ -6,8 +6,8 @@ use super::super::{
 };
 use crate::app::presentation::{BORDER, MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_client::ClientPhaseRef;
 
 pub(in crate::app::shell) struct Header<'a> {
@@ -97,7 +97,7 @@ impl<'a> Header<'a> {
                 },
                 Some(BORDER),
             );
-            commands.entity(divider).insert(FocusPolicy::Pass);
+            commands.entity(divider).insert(Pickable::IGNORE);
             add_text(
                 commands,
                 left,
@@ -166,7 +166,7 @@ impl<'a> Header<'a> {
         );
         commands
             .entity(header)
-            .insert((GlobalZIndex(1000), FocusPolicy::Pass));
+            .insert((GlobalZIndex(1000), Pickable::IGNORE));
         let right = spawn_node(
             commands,
             header,

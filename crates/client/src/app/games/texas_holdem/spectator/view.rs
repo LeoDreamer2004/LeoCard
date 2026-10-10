@@ -5,8 +5,8 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{SeatSide, UiAction};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerId, TexasHoldemSnapshot};
 
 #[derive(Component)]
@@ -87,7 +87,7 @@ pub(in super::super) fn add_texas_win_rate(
     );
     commands
         .entity(holder)
-        .insert((FocusPolicy::Pass, ZIndex(30)));
+        .insert((Pickable::IGNORE, ZIndex(30)));
     let label = add_text(
         commands,
         holder,
@@ -100,7 +100,7 @@ pub(in super::super) fn add_texas_win_rate(
     );
     commands.entity(label).insert((
         TexasWinRateLabel(player),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
         TextShadow {
             offset: Vec2::new(1.0, 2.0),
             color: Color::BLACK.with_alpha(0.7),

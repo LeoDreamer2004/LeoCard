@@ -5,8 +5,10 @@ use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{TEXT, TextInput, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 use leocard_protocol::MAX_CHAT_MESSAGE_CHARS;
 
 pub(crate) struct ChatAuxiliaryAction {
@@ -218,7 +220,7 @@ fn add_input_icon_button(
                 ..default()
             },
             ImageNode::new(icon.clone()),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(button).add_child(icon);
@@ -264,7 +266,7 @@ pub(super) fn add_chat_button_highlight(
             },
             cozy_chat_button_image(assets.home.purple_button_compact.clone()),
             Visibility::Hidden,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(button).add_child(overlay);

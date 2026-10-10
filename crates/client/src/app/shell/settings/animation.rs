@@ -1,6 +1,7 @@
 use super::super::{CozyModalKind, ModalAnimations, UiState, advance_modal};
 use crate::app::presentation::TEXT;
 use crate::app::runtime::UiAssets;
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 
 #[derive(Resource, Default)]
@@ -25,11 +26,11 @@ pub(crate) struct SettingsVoiceToggle {
 
 pub(crate) fn update_settings_voice_toggle_hover(
     assets: Res<UiAssets>,
-    toggles: Query<(&Interaction, &SettingsVoiceToggle)>,
+    toggles: Query<(&PickingInteraction, &SettingsVoiceToggle)>,
     mut images: Query<&mut ImageNode>,
 ) {
     for (interaction, toggle) in &toggles {
-        let texture = match (toggle.selected, *interaction != Interaction::None) {
+        let texture = match (toggle.selected, *interaction != PickingInteraction::None) {
             (false, false) => &assets.home.checkbox,
             (false, true) => &assets.home.checkbox_highlighted,
             (true, false) => &assets.home.checkbox_selected,
@@ -47,14 +48,14 @@ pub(crate) fn update_settings_tab_hover(
     motion: Res<SettingsMotion>,
     assets: Res<UiAssets>,
     mut tabs: Query<
-        (&Interaction, &SettingsTabButton, &mut ImageNode),
+        (&PickingInteraction, &SettingsTabButton, &mut ImageNode),
         Without<SelectedSettingsTab>,
     >,
     mut labels: Query<&mut TextColor>,
 ) {
     let opacity = motion.progress * motion.progress * (3.0 - 2.0 * motion.progress);
     for (interaction, tab, mut image) in &mut tabs {
-        let hovered = *interaction != Interaction::None;
+        let hovered = *interaction != PickingInteraction::None;
         let texture = if hovered {
             &assets.home.game_card_hover
         } else {
@@ -84,14 +85,14 @@ pub(crate) struct CozySettingsSlider {
 pub(crate) fn animate_settings_sliders(
     time: Res<Time>,
     assets: Res<UiAssets>,
-    interactions: Query<&Interaction>,
+    interactions: Query<&PickingInteraction>,
     mut handles: Query<(&mut CozySettingsSlider, &mut ImageNode)>,
     mut tracks: Query<&mut ImageNode, Without<CozySettingsSlider>>,
 ) {
     for (mut slider, mut handle) in &mut handles {
         let target = if interactions
             .get(slider.owner)
-            .is_ok_and(|interaction| *interaction != Interaction::None)
+            .is_ok_and(|interaction| *interaction != PickingInteraction::None)
         {
             1.0
         } else {

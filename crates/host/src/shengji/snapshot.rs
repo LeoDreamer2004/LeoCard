@@ -100,6 +100,7 @@ impl ShengjiSession {
             dealer: game.dealer().map(from_core_player),
             trump: game.trump(),
             declaration: self.declaration_view(),
+            bottom_copy_decisions: self.presentation.bottom_copy_decisions.clone(),
             current_player: (self.presentation.trick.is_none()
                 && self.presentation.throw_failure.is_none()
                 && self.flow.bottom_flip_remaining.is_none())

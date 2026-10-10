@@ -202,6 +202,7 @@ fn successful_bottom_copy_starts_a_new_round_and_non_dealer_original_bidder_can_
         .take(rules.kitty_size())
         .collect::<Vec<_>>();
     game.bury(ShengjiPlayerId(3), &first_bottom).unwrap();
+    // 原亮主者自动跳过，直接询问下一位玩家。
     assert_eq!(
         game.bottom_copy().unwrap().current(),
         Some(ShengjiPlayerId(1))
@@ -212,7 +213,11 @@ fn successful_bottom_copy_starts_a_new_round_and_non_dealer_original_bidder_can_
     let second_bottom = game.players()[1].hand[..rules.kitty_size()].to_vec();
     game.bury(ShengjiPlayerId(1), &second_bottom).unwrap();
 
-    // 2、3 号没有更强反主牌，询问会绕回最初亮主的 0 号。
+    // 没有更强反主牌也需要逐一确认，之后绕回最初亮主的 0 号。
+    for player in [ShengjiPlayerId(2), ShengjiPlayerId(3)] {
+        assert_eq!(game.bottom_copy().unwrap().current(), Some(player));
+        game.choose_bottom_copy(player, None).unwrap();
+    }
     assert_eq!(game.phase(), &Phase::BottomCopying);
     assert_eq!(
         game.bottom_copy().unwrap().current(),
@@ -267,6 +272,23 @@ fn dealer_cannot_copy_their_own_bottom_when_another_player_declared_trump() {
     game.bury(ShengjiPlayerId(0), &buried).unwrap();
 
     // 只有庄家持有能反方块单张的一对红桃级牌，但庄家不能抄自己的底。
+    assert_eq!(
+        game.choose_bottom_copy(ShengjiPlayerId(0), Some(&hearts)),
+        Err(GameError::NotBottomCopyPlayer)
+    );
+    assert_eq!(
+        game.choose_bottom_copy(ShengjiPlayerId(1), None),
+        Err(GameError::NotBottomCopyPlayer)
+    );
+    for player in [ShengjiPlayerId(2), ShengjiPlayerId(3)] {
+        assert_eq!(game.bottom_copy().unwrap().current(), Some(player));
+        assert!(
+            game.bidding()
+                .counter_options(player, &game.players()[usize::from(player.0)].hand)
+                .is_empty()
+        );
+        game.choose_bottom_copy(player, None).unwrap();
+    }
     assert_eq!(game.phase(), &Phase::Playing);
     assert!(game.bottom_copy().is_none());
     assert_eq!(game.trump().unwrap().suit, Some(ShengjiSuit::Diamond));

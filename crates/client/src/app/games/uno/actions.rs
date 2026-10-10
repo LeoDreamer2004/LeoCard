@@ -1,6 +1,7 @@
 //! UNO 按钮动作、本地选择状态与网络命令。
 
-use super::{UnoUiState, toggle_uno_selection, toggle_uno_swap_target_selection};
+use super::jump_in_device::send_jump_in;
+use super::{UnoJumpInDevice, UnoUiState, toggle_uno_selection, toggle_uno_swap_target_selection};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState, dispatch_domain_actions,
@@ -23,6 +24,8 @@ pub(crate) enum UnoUiAction {
     ChooseInitialColor(UnoColor),
     PlayCard(UnoCard, Option<UnoColor>),
     JumpIn(UnoCard),
+    ToggleJumpInDevice,
+    ToggleJumpInDrawer,
     ToggleSwapTarget(PlayerId),
     ConfirmSwapTargets,
     DrawCard,
@@ -48,6 +51,7 @@ pub(crate) struct UnoActionContext<'w> {
     client: Option<ResMut<'w, ClientResource>>,
     game_ui: ResMut<'w, UnoUiState>,
     ui: ResMut<'w, UiState>,
+    jump_in_device: ResMut<'w, UnoJumpInDevice>,
 }
 
 pub(super) fn dispatch_uno_actions(
@@ -96,8 +100,19 @@ impl UiActionHandler<UnoActionContext<'_>> for UnoUiAction {
                 ui.selected.clear();
             }
             UnoUiAction::JumpIn(card) => {
-                send_game_command(client, UnoCommand::JumpIn { card: *card });
-                ui.selected.clear();
+                if let Some(client) = client.as_deref_mut()
+                    && send_jump_in(client, &mut context.jump_in_device, *card)
+                {
+                    ui.selected.clear();
+                }
+            }
+            UnoUiAction::ToggleJumpInDevice => {
+                if context.jump_in_device.available {
+                    context.jump_in_device.enabled = !context.jump_in_device.enabled;
+                }
+            }
+            UnoUiAction::ToggleJumpInDrawer => {
+                context.jump_in_device.drawer_open = !context.jump_in_device.drawer_open;
             }
             UnoUiAction::ToggleSwapTarget(target) => {
                 let Some(game) = client

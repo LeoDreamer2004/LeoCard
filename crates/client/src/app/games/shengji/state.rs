@@ -114,12 +114,6 @@ pub(super) struct ShengjiFailedThrowCard {
 }
 
 #[derive(Component)]
-pub(super) struct ShengjiFailedThrowLabel {
-    pub returning: bool,
-    pub elapsed: f32,
-}
-
-#[derive(Component)]
 pub(super) struct ShengjiThrowPenaltyFloat {
     pub source: Vec2,
     pub target: Vec2,

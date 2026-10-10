@@ -15,6 +15,7 @@ impl AchievementsPage<'_> {
             commands,
             parent,
             Node {
+                height: percent(100),
                 min_width: px(0),
                 min_height: px(0),
                 flex_grow: 1.0,
@@ -50,6 +51,7 @@ impl AchievementsPage<'_> {
             panel,
             Node {
                 width: percent(100),
+                height: px(0),
                 min_height: px(0),
                 flex_grow: 1.0,
                 flex_basis: px(0),

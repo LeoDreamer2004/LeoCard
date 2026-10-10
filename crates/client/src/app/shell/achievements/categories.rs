@@ -19,6 +19,7 @@ impl AchievementsPage<'_> {
             parent,
             Node {
                 width: px(224),
+                height: percent(100),
                 min_height: px(0),
                 flex_shrink: 0.0,
                 flex_direction: FlexDirection::Column,
@@ -37,6 +38,7 @@ impl AchievementsPage<'_> {
             column,
             Node {
                 width: percent(100),
+                height: px(0),
                 min_height: px(0),
                 flex_basis: px(0),
                 flex_grow: 1.0,

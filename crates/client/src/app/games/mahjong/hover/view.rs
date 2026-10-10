@@ -182,7 +182,7 @@ fn add_wait_popup(
 
 fn popup_dimensions(waits: &[MahjongWait]) -> (f32, f32) {
     let show_fans = waits.iter().any(|wait| wait.scores.is_some());
-    let cell_width = if show_fans { 76.0 } else { 31.0 };
+    let cell_width = if show_fans { 96.0 } else { 31.0 };
     let columns = waits.len().min(if show_fans { 6 } else { 10 });
     (cell_width, columns as f32 * cell_width + 14.0)
 }
@@ -209,13 +209,14 @@ fn add_wait_score(
     for (text, color) in [
         (label.to_owned(), MUTED),
         (
-            score.total_points.to_string(),
+            score.points_without_flowers.to_string(),
             if score.points_without_flowers >= 8 {
                 ACCENT
             } else {
                 MUTED
             },
         ),
+        (format!("+ {}", score.flower_points), MUTED),
         ("番".to_owned(), MUTED),
     ] {
         let text = add_text(commands, row, text, 11.0, color, assets);

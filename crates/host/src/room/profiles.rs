@@ -2,12 +2,16 @@ use super::{Participant, RoomSession};
 use leocard_protocol::{PlayerId, PlayerReferenceChange};
 
 impl RoomSession {
-    /// 机器人只能在准备大厅增删；本局有机器人时，所有玩家均不记录游戏档案。
+    /// 机器人占未离开玩家的三分之一及以上时，不记录游戏档案。
     pub(crate) fn records_game_profiles(&self) -> bool {
-        !self
+        let (players, bots) = self
             .players
             .iter()
-            .any(|player| player.is_bot && !player.left)
+            .filter(|player| !player.left)
+            .fold((0, 0), |(players, bots), player| {
+                (players + 1, bots + usize::from(player.is_bot))
+            });
+        bots * 3 < players
     }
 
     pub(crate) fn settle_completed_match_profiles_once<I, F>(

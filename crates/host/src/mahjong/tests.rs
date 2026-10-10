@@ -66,8 +66,10 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
             },
         },
     ];
+    // 三名真人和一名机器人仍计入档案；两名机器人则超过三分之一。
+    session.room.players[3].is_bot = true;
     let mut with_bot = session.clone();
-    with_bot.room.players[3].is_bot = true;
+    with_bot.room.players[2].is_bot = true;
     with_bot.room.players[3].connected = false;
     with_bot.record_statistics(&events[..1]);
     assert!(with_bot.finished_reference_changes.is_none());

@@ -37,7 +37,9 @@ impl<'a> AchievementsPage<'a> {
                 min_height: px(0),
                 flex_basis: px(0),
                 flex_grow: 1.0,
-                justify_content: JustifyContent::Center,
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                overflow: Overflow::clip(),
                 ..default()
             },
             None,
@@ -47,7 +49,7 @@ impl<'a> AchievementsPage<'a> {
             canvas,
             Node {
                 width: percent(100),
-                height: percent(100),
+                height: px(0),
                 min_height: px(0),
                 max_width: px(1360),
                 flex_grow: 1.0,
@@ -64,6 +66,7 @@ impl<'a> AchievementsPage<'a> {
             page,
             Node {
                 width: percent(100),
+                height: px(0),
                 min_height: px(0),
                 flex_basis: px(0),
                 flex_grow: 1.0,

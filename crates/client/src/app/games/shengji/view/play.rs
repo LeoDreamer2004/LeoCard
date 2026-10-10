@@ -1,11 +1,11 @@
 use super::super::{
-    ShengjiCollectingScoreText, ShengjiFailedThrowLabel, ShengjiLevelIndicator,
-    ShengjiScoreCaptureEffectState, ShengjiScoreTrayAnchor, ShengjiScoreTrayHover,
-    ShengjiThrowPenaltyFloat, ShengjiThrowPenaltyScorePulse, displayed_shengji_captured_score,
+    ShengjiCollectingScoreText, ShengjiLevelIndicator, ShengjiScoreCaptureEffectState,
+    ShengjiScoreTrayAnchor, ShengjiScoreTrayHover, ShengjiThrowPenaltyFloat,
+    ShengjiThrowPenaltyScorePulse, displayed_shengji_captured_score,
 };
 use super::{
-    ShengjiCardSize, add_shengji_card_row, add_shengji_failed_throw_card_row,
-    shengji_display_trump, shengji_rank_label,
+    ShengjiCardSize, add_shengji_bottom_copy_decision, add_shengji_card_row,
+    add_shengji_failed_throw_card_row, shengji_display_trump, shengji_rank_label,
 };
 use crate::app::presentation::{ACCENT, DANGER, HEADER_BG, MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
@@ -45,6 +45,11 @@ pub(super) fn add_shengji_play_area(
         },
         None,
     );
+    if previous_trick.is_none()
+        && add_shengji_bottom_copy_decision(commands, area, game, player, assets)
+    {
+        return;
+    }
     let throw_failure = previous_trick.is_none().then_some(()).and_then(|_| {
         game.throw_failure
             .as_ref()
@@ -57,9 +62,7 @@ pub(super) fn add_shengji_play_area(
             .map(|played| played.play.cards.as_slice())
     } else if matches!(
         game.phase,
-        ShengjiPhaseView::Dealing { .. }
-            | ShengjiPhaseView::BiddingGrace { .. }
-            | ShengjiPhaseView::BottomCopyBurying { .. }
+        ShengjiPhaseView::Dealing { .. } | ShengjiPhaseView::BiddingGrace { .. }
     ) {
         game.declaration
             .as_ref()
@@ -93,17 +96,6 @@ pub(super) fn add_shengji_play_area(
             commands
                 .entity(holder)
                 .insert((UiTransform::IDENTITY, Visibility::Visible));
-            let label = add_text(commands, holder, "甩牌失败", 15.0, DANGER, assets);
-            commands.entity(label).insert((
-                ShengjiFailedThrowLabel {
-                    returning: failure.stage == ShengjiThrowFailureStage::Returning,
-                    elapsed: 0.0,
-                },
-                TextShadow {
-                    offset: Vec2::new(1.0, 1.0),
-                    color: Color::BLACK.with_alpha(0.88),
-                },
-            ));
             let direction = if player == game.you {
                 Vec2::new(0.0, 92.0)
             } else {

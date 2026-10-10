@@ -1,22 +1,26 @@
-//! 双升规则事件、牌型动画和音效的统一表现层。
+//! 双升规则事件、毙牌动画和音效的表现层。
 
 use crate::app::presentation::Observed;
 use bevy::prelude::*;
-use leocard_protocol::ShengjiBottomFlipMatchView;
-use leocard_protocol::{MatchId, PlayerId, ShengjiPublicPlay};
-use leocard_shengji::ShengjiCard;
-use leocard_shengji::{ShengjiBidTrump, ShengjiRank};
+use leocard_protocol::{MatchId, PlayerId, ShengjiBottomFlipMatchView, ShengjiPublicPlay};
+use leocard_shengji::{ShengjiCard, ShengjiRank};
 use std::collections::VecDeque;
 
 pub(super) const SHENGJI_TRICK_PLAY_COUNT: usize = 4;
+pub(super) const SHENGJI_BOTTOM_COPY_REVEAL_DURATION: f32 = 0.9;
+
+/// 已接受的出牌及其毙牌判定，供语音消费，与 UI 重建解耦。
+#[derive(Message)]
+pub(in crate::app::games::shengji) struct ShengjiPlayFeedback {
+    pub match_id: MatchId,
+    pub hand_number: u32,
+    pub play: ShengjiPublicPlay,
+    pub is_lead: bool,
+    pub trump_kill: bool,
+}
 
 #[derive(Clone, Debug)]
 pub(super) enum ShengjiPresentationKind {
-    Declaration {
-        player: PlayerId,
-        trump: ShengjiBidTrump,
-        label: &'static str,
-    },
     PowerOutage {
         from_dealer: Option<PlayerId>,
         dealer: PlayerId,
@@ -28,10 +32,9 @@ pub(super) enum ShengjiPresentationKind {
         dealer: Option<PlayerId>,
     },
     BottomCopy {
+        cards: Vec<ShengjiCard>,
         from_player: Option<PlayerId>,
         player: PlayerId,
-        trump: ShengjiBidTrump,
-        count: u8,
     },
     CrossingStarted {
         players: Vec<PlayerId>,
@@ -44,50 +47,6 @@ pub(super) enum ShengjiPresentationKind {
         player: PlayerId,
         covered: bool,
     },
-    Play {
-        player: PlayerId,
-        kind: ShengjiPlayPresentationKind,
-    },
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum ShengjiPlayPresentationKind {
-    Single,
-    Pair,
-    Tractor,
-    Triple,
-    Titanic,
-    Bomb,
-    Spaceship,
-    Throw,
-}
-
-impl ShengjiPlayPresentationKind {
-    pub(crate) const fn label(self) -> &'static str {
-        match self {
-            Self::Single => "单张",
-            Self::Pair => "对子",
-            Self::Tractor => "拖拉机",
-            Self::Triple => "三同张",
-            Self::Titanic => "泰坦尼克",
-            Self::Bomb => "炸弹",
-            Self::Spaceship => "宇宙飞船",
-            Self::Throw => "甩牌",
-        }
-    }
-
-    pub(super) const fn duration(self) -> f32 {
-        match self {
-            Self::Single => 0.45,
-            Self::Pair => 0.58,
-            Self::Tractor => 0.90,
-            Self::Triple => 0.72,
-            Self::Titanic => 1.20,
-            Self::Bomb => 1.28,
-            Self::Spaceship => 1.48,
-            Self::Throw => 1.05,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -97,13 +56,23 @@ pub(super) struct ActiveShengjiPresentation {
     pub(super) duration: f32,
 }
 
+impl ActiveShengjiPresentation {
+    pub(super) fn motion_progress(&self) -> f32 {
+        let delay = if matches!(self.kind, ShengjiPresentationKind::BottomCopy { .. }) {
+            SHENGJI_BOTTOM_COPY_REVEAL_DURATION
+        } else {
+            0.0
+        };
+        ((self.elapsed - delay) / (self.duration - delay)).clamp(0.0, 1.0)
+    }
+}
+
 #[derive(Resource, Default)]
 pub(crate) struct ShengjiPresentationState {
     pub(super) active: Option<ActiveShengjiPresentation>,
     pub(super) queued: VecDeque<ActiveShengjiPresentation>,
     pub(super) audio_cues: Vec<ShengjiAudioCue>,
     pub(super) observed_round: Observed<MatchId, u32>,
-    pub(super) bottom_copy_count: u8,
     pub(super) bottom_burier: Option<PlayerId>,
     pub(super) observed_throw_failure: Option<ObservedShengjiThrowFailure>,
     pub(super) observed_dealer: Option<PlayerId>,
@@ -135,7 +104,6 @@ pub(super) enum ShengjiSoundKind {
     TrumpKillLaunch,
     TrumpKillImpact,
     Heavy,
-    Bomb,
     ThrowFail,
     PenaltyFive,
     PenaltyTen,
@@ -180,7 +148,6 @@ pub(crate) struct ShengjiSoundAssets {
     pub(super) trump_kill_launch: Vec<Handle<AudioSource>>,
     pub(super) trump_kill_impact: Vec<Handle<AudioSource>>,
     pub(super) heavy: Vec<Handle<AudioSource>>,
-    pub(super) bomb: Vec<Handle<AudioSource>>,
     pub(super) throw_fail: Vec<Handle<AudioSource>>,
     pub(super) penalty_five: Vec<Handle<AudioSource>>,
     pub(super) penalty_ten: Vec<Handle<AudioSource>>,
@@ -224,7 +191,6 @@ impl ShengjiSoundAssets {
                 asset_server.load(format!("{interface}/bong_001.ogg")),
                 asset_server.load(format!("{interface}/drop_004.ogg")),
             ],
-            bomb: vec![asset_server.load("vendor/noname/damage_fire2.mp3")],
             throw_fail: vec![asset_server.load(format!("{interface}/scratch_004.ogg"))],
             penalty_five: vec![asset_server.load(format!("{casino}/chip-lay-2.ogg"))],
             penalty_ten: vec![asset_server.load(format!("{casino}/chips-collide-4.ogg"))],
@@ -246,7 +212,6 @@ impl ShengjiSoundAssets {
             ShengjiSoundKind::TrumpKillLaunch => &self.trump_kill_launch,
             ShengjiSoundKind::TrumpKillImpact => &self.trump_kill_impact,
             ShengjiSoundKind::Heavy => &self.heavy,
-            ShengjiSoundKind::Bomb => &self.bomb,
             ShengjiSoundKind::ThrowFail => &self.throw_fail,
             ShengjiSoundKind::PenaltyFive => &self.penalty_five,
             ShengjiSoundKind::PenaltyTen => &self.penalty_ten,
@@ -355,4 +320,17 @@ pub(super) struct ShengjiPresentationRoute {
     pub(super) start: Vec2,
     pub(super) end: Vec2,
     pub(super) packet_count: usize,
+}
+
+impl ShengjiPresentationState {
+    pub(in super::super) fn bottom_copy_reveal(&self) -> Option<(PlayerId, &[ShengjiCard])> {
+        let active = self.active.as_ref()?;
+        if active.elapsed >= SHENGJI_BOTTOM_COPY_REVEAL_DURATION {
+            return None;
+        }
+        match &active.kind {
+            ShengjiPresentationKind::BottomCopy { player, cards, .. } => Some((*player, cards)),
+            _ => None,
+        }
+    }
 }

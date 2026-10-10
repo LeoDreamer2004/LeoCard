@@ -5,6 +5,7 @@ use super::super::{
     ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation, ShengjiUiAction, ShengjiUiState,
     add_shengji_presentation_overlay,
 };
+use super::add_shengji_bottom_copy_reveal;
 use super::{
     ShengjiCardSize, add_shengji_actions, add_shengji_bidding_panel, add_shengji_card_row,
     add_shengji_collecting_tray, add_shengji_hand, add_shengji_own_play, add_shengji_play_area,
@@ -174,10 +175,6 @@ pub(crate) fn render_shengji_table(
     }
     ui.selected.retain(|card| game.your_hand.contains(card));
     select_forced_shengji_follow_cards(game, ui);
-    let bidding_visible = matches!(
-        game.phase,
-        ShengjiPhaseView::Dealing { .. } | ShengjiPhaseView::BiddingGrace { .. }
-    );
     render_counter(commands, table, game, ui, visuals.assets);
     add_shengji_own_play(commands, table, game, visuals.assets, previous_trick);
     add_shengji_collecting_tray(
@@ -192,6 +189,7 @@ pub(crate) fn render_shengji_table(
     if let ShengjiPhaseView::BottomFlipping { reveal } = &game.phase {
         add_shengji_bottom_flip(commands, table, game, reveal.as_ref(), visuals.assets);
     }
+    add_shengji_bottom_copy_reveal(commands, table, game, visuals.presentation, visuals.assets);
     add_shengji_presentation_overlay(
         commands,
         table,
@@ -218,9 +216,7 @@ pub(crate) fn render_shengji_table(
             },
             None,
         );
-        if bidding_visible {
-            add_shengji_bidding_panel(commands, hand_area, game, visuals.assets);
-        }
+        add_shengji_bidding_panel(commands, hand_area, game, visuals.assets);
         add_shengji_actions(commands, hand_area, game, ui, visuals.assets);
         add_shengji_hand(commands, hand_area, game, ui, visuals.assets);
         add_shengji_self_panel(

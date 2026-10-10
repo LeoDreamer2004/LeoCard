@@ -28,10 +28,6 @@ pub(crate) fn add_shengji_presentation_overlay(
     let Some(active) = state.active.as_ref() else {
         return;
     };
-    let is_play = matches!(
-        &active.kind,
-        ShengjiPresentationKind::Play { .. } | ShengjiPresentationKind::TrumpKill { .. }
-    );
     let is_trump_kill = matches!(&active.kind, ShengjiPresentationKind::TrumpKill { .. });
     let bottom_flip_matches = match &active.kind {
         ShengjiPresentationKind::BottomFlip { matches, .. } => Some(matches.as_slice()),
@@ -53,19 +49,16 @@ pub(crate) fn add_shengji_presentation_overlay(
     };
     let mut base_translation = Vec2::ZERO;
     let anchored_player = match &active.kind {
-        ShengjiPresentationKind::Play { player, .. }
-        | ShengjiPresentationKind::TrumpKill { player, .. } => Some(*player),
+        ShengjiPresentationKind::TrumpKill { player, .. } => Some(*player),
         _ => None,
     };
     if let Some(player) = anchored_player {
-        root_node.width = px(if is_trump_kill { 190 } else { 180 });
-        root_node.height = px(if is_trump_kill { 92 } else { 64 });
-        let half_width = if is_trump_kill { 95.0 } else { 90.0 };
-        if is_trump_kill {
-            root_node.justify_content = JustifyContent::FlexEnd;
-            root_node.row_gap = px(2);
-            root_node.padding = UiRect::bottom(px(3));
-        }
+        root_node.width = px(190);
+        root_node.height = px(92);
+        let half_width = 95.0;
+        root_node.justify_content = JustifyContent::FlexEnd;
+        root_node.row_gap = px(2);
+        root_node.padding = UiRect::bottom(px(3));
         let own_seat = game
             .players
             .iter()
@@ -425,19 +418,15 @@ pub(crate) fn add_shengji_presentation_overlay(
         return;
     }
 
-    let (title, subtitle) = presentation_text(&active.kind, game);
+    let Some((title, subtitle)) = presentation_text(&active.kind, game) else {
+        return;
+    };
     let title_color = presentation_color(&active.kind);
     let title = add_text(
         commands,
         root,
         title,
-        if is_play {
-            if is_trump_kill { 17.0 } else { 19.0 }
-        } else if is_routed {
-            22.0
-        } else {
-            25.0
-        },
+        if is_routed { 22.0 } else { 25.0 },
         title_color,
         assets,
     );
@@ -448,13 +437,7 @@ pub(crate) fn add_shengji_presentation_overlay(
         commands,
         root,
         Node {
-            width: px(if is_trump_kill {
-                42.0
-            } else if is_play {
-                54.0
-            } else {
-                88.0
-            }),
+            width: px(88),
             height: px(2),
             ..default()
         },

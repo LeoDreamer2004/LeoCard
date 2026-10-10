@@ -99,27 +99,42 @@ impl ShengjiSession {
 
     pub(super) fn after_game_outcome(&mut self, outcome: &ActionOutcome) {
         match outcome {
-            ActionOutcome::BuryComplete { .. } => {
+            ActionOutcome::BuryComplete { .. } | ActionOutcome::BottomCopyBuryComplete { .. } => {
                 self.flow.bottom_copy_remaining = self
                     .game
                     .as_ref()
                     .is_some_and(|game| matches!(game.phase(), Phase::BottomCopying))
                     .then_some(BOTTOM_COPY_DECISION_TIMEOUT);
+                if self.flow.bottom_copy_remaining.is_some() {
+                    let game = self.game.as_ref().expect("埋底完成时对局存在");
+                    for player in [
+                        game.bottom_burier(),
+                        game.bidding()
+                            .current()
+                            .map(|declaration| declaration.player),
+                    ]
+                    .into_iter()
+                    .flatten()
+                    {
+                        self.presentation
+                            .record_bottom_copy_decision(from_core_player(player), None);
+                    }
+                }
             }
-            ActionOutcome::BottomCopyDecision { copied, .. } => {
+            ActionOutcome::BottomCopyDecision { player, copied, .. } => {
+                let player = from_core_player(*player);
+                let cards = copied.then(|| {
+                    self.declaration_view()
+                        .expect("成功抄底已经更新公开声明")
+                        .cards
+                });
+                self.presentation.record_bottom_copy_decision(player, cards);
                 self.flow.bottom_copy_remaining = (!*copied
                     && self
                         .game
                         .as_ref()
                         .is_some_and(|game| matches!(game.phase(), Phase::BottomCopying)))
                 .then_some(BOTTOM_COPY_DECISION_TIMEOUT);
-            }
-            ActionOutcome::BottomCopyBuryComplete { .. } => {
-                self.flow.bottom_copy_remaining = self
-                    .game
-                    .as_ref()
-                    .is_some_and(|game| matches!(game.phase(), Phase::BottomCopying))
-                    .then_some(BOTTOM_COPY_DECISION_TIMEOUT);
             }
             ActionOutcome::ThrowFailed {
                 player,
@@ -128,6 +143,7 @@ impl ShengjiSession {
                 penalty_points,
                 ..
             } => {
+                self.presentation.bottom_copy_decisions.clear();
                 self.presentation.throw_penalties[usize::from(player.0)] = *penalty_points;
                 self.presentation.throw_failure = Some(HeldThrowFailure {
                     player: *player,
@@ -139,9 +155,11 @@ impl ShengjiSession {
                 });
             }
             ActionOutcome::TrickComplete(trick) => {
+                self.presentation.bottom_copy_decisions.clear();
                 self.presentation.trick = Some((trick.clone(), TRICK_HOLD_DURATION));
             }
             ActionOutcome::HandComplete(result) => {
+                self.presentation.bottom_copy_decisions.clear();
                 self.presentation.trick = self
                     .game
                     .as_ref()
@@ -152,6 +170,7 @@ impl ShengjiSession {
                 self.apply_finished_reference_points(result);
                 self.room.prepare_rematch();
             }
+            ActionOutcome::Played { .. } => self.presentation.bottom_copy_decisions.clear(),
             _ => {}
         }
     }

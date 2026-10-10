@@ -46,6 +46,7 @@ pub(super) fn shengji_ui_snapshot(
         dealer: None,
         trump: None,
         declaration,
+        bottom_copy_decisions: Vec::new(),
         current_player: None,
         trick: None,
         played_cards: Vec::new(),

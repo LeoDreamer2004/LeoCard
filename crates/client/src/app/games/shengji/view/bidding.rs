@@ -50,6 +50,19 @@ pub(super) fn add_shengji_bidding_panel(
     game: &ShengjiSnapshot,
     assets: &UiAssets,
 ) {
+    let bottom_copy = match game.phase {
+        ShengjiPhaseView::Dealing { .. } | ShengjiPhaseView::BiddingGrace { .. } => false,
+        ShengjiPhaseView::BottomCopying { player, .. }
+            if player == game.you
+                && !game
+                    .players
+                    .iter()
+                    .any(|player| player.id == game.you && player.auto_play) =>
+        {
+            true
+        }
+        _ => return,
+    };
     let panel = spawn_node(
         commands,
         hand_area,
@@ -68,10 +81,20 @@ pub(super) fn add_shengji_bidding_panel(
         None,
     );
     commands.entity(panel).insert(GlobalZIndex(80));
-    add_shengji_bid_strip(commands, panel, game, false, assets);
-    if let ShengjiPhaseView::BiddingGrace {
+    add_shengji_bid_strip(commands, panel, game, bottom_copy, assets);
+    if bottom_copy {
+        add_shengji_button(
+            commands,
+            panel,
+            "不抄底",
+            UiAction::Shengji(ShengjiUiAction::DeclineBottomCopy),
+            assets,
+            116.0,
+            42.0,
+            GameButtonTone::Pass,
+        );
+    } else if let ShengjiPhaseView::BiddingGrace {
         milliseconds_remaining,
-        confirmed_count,
         you_confirmed,
         ..
     } = &game.phase
@@ -86,16 +109,15 @@ pub(super) fn add_shengji_bidding_panel(
         );
         commands.entity(countdown).insert(ShengjiBiddingCountdown);
         let pass_label = if *you_confirmed {
-            format!("✓ 已确认 {confirmed_count}/4")
+            "✓ 已确认"
         } else {
-            let action = match game.declaration.as_ref() {
+            match game.declaration.as_ref() {
                 None => "不亮主",
                 Some(declaration) if declaration.player == game.you => "不加亮",
                 Some(_) => "不反主",
-            };
-            format!("{action} {confirmed_count}/4")
+            }
         };
-        add_shengji_bid_pass_button(commands, panel, &pass_label, *you_confirmed, assets);
+        add_shengji_bid_pass_button(commands, panel, pass_label, *you_confirmed, assets);
     }
 }
 
@@ -217,6 +239,14 @@ pub(crate) fn shengji_declaration_candidate(
     game: &ShengjiSnapshot,
     suit: Option<ShengjiSuit>,
 ) -> Option<Vec<ShengjiCard>> {
+    if matches!(game.phase, ShengjiPhaseView::BottomCopying { .. })
+        && game
+            .declaration
+            .as_ref()
+            .is_some_and(|declaration| declaration.player == game.you)
+    {
+        return None;
+    }
     let level = shengji_current_level(game);
     if game.rules.bid_with_joker {
         return joker_bid_declaration_candidate(game, suit, level);

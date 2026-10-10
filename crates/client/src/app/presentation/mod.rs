@@ -19,7 +19,7 @@ pub(crate) use fade::*;
 pub(crate) use hand::*;
 pub(crate) use motion::*;
 pub(super) use plugin::*;
-pub(crate) use pointer_input::{PointerInputPlugin, UiPress, UiPressTarget};
+pub(crate) use pointer_input::{PointerInputPlugin, SecondaryPressTarget, UiPress, UiPressTarget};
 pub(crate) use seat_transition::*;
 pub(super) use state::*;
 pub(crate) use summary::*;

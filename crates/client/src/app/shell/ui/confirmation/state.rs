@@ -21,6 +21,11 @@ pub(crate) struct ConfirmationDialog {
 }
 
 impl ConfirmationDialog {
+    #[cfg(target_os = "android")]
+    pub fn is_open(&self) -> bool {
+        self.open
+    }
+
     pub fn show(&mut self, title: String, message: String, accept: UiAction) {
         if self.request.is_none() {
             self.request = Some(ConfirmationRequest {

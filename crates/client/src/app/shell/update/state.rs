@@ -51,7 +51,11 @@ impl UpdateManager {
             );
             return;
         }
-        if !cfg!(any(target_os = "linux", target_os = "windows")) {
+        if !cfg!(any(
+            target_os = "linux",
+            target_os = "windows",
+            target_os = "android"
+        )) {
             self.state = UpdateState::Failed("当前平台暂不支持自动更新".to_owned());
             return;
         }

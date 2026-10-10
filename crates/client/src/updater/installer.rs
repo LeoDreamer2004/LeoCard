@@ -2,15 +2,12 @@
 
 use super::receipt::UpdateReceipt;
 use leocard_protocol::ProfileId;
-use std::{
-    env::{self, consts},
-    ffi::OsString,
-    fs, io,
-    path::{Path, PathBuf},
-    process::{self, Command},
-    thread,
-    time::Duration,
-};
+use std::env::consts;
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::time::Duration;
+use std::{env, fs, io, process, thread};
 
 const APPLY_UPDATE_ARGUMENT: &str = "--leocard-apply-update";
 const REPLACE_ATTEMPTS: usize = 120;

@@ -1,6 +1,6 @@
 use super::{
-    UpdateManager, actions::dispatch_update_actions, advance_update_modal,
-    completion::emit_update_completion, poll_update_events, sync_update_dialog,
+    UpdateManager, actions::dispatch_update_actions, advance_update_modal, poll_update_events,
+    sync_update_dialog,
 };
 use crate::app::{
     runtime::ClientUpdateSet,
@@ -12,8 +12,9 @@ pub(crate) struct UpdatePlugin;
 
 impl Plugin for UpdatePlugin {
     fn build(&self, app: &mut App) {
+        #[cfg(not(target_os = "android"))]
+        app.add_systems(Startup, super::completion::emit_update_completion);
         app.insert_resource(UpdateManager::default())
-            .add_systems(Startup, emit_update_completion)
             .add_systems(Update, dispatch_update_actions.in_set(UiActionSet))
             .add_systems(
                 Update,

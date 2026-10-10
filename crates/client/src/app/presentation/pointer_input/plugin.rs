@@ -17,10 +17,16 @@ pub(crate) struct UiPress(pub Entity);
 #[derive(Component, Default)]
 pub(crate) struct UiPressTarget;
 
+/// Touchscreens invoke a secondary action by holding this region.
+#[derive(Component)]
+pub(crate) struct SecondaryPressTarget;
+
 pub(crate) struct PointerInputPlugin;
 
 impl Plugin for PointerInputPlugin {
     fn build(&self, app: &mut App) {
+        #[cfg(target_os = "android")]
+        super::touch::install(app);
         // 只拾取明确声明的命中区域，不给布局节点预置不可点击状态。
         // 这样先创建 Node、随后添加 Button 的控件也能获得正常拾取规则。
         app.insert_resource(UiPickingSettings {

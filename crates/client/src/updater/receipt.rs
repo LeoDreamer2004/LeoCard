@@ -1,13 +1,10 @@
 use leocard_protocol::ProfileId;
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use std::{
-    env,
-    ffi::OsString,
-    fs,
-    io::{self, ErrorKind},
-    path::{Path, PathBuf},
-};
+use std::ffi::OsString;
+use std::io::ErrorKind;
+use std::path::{Path, PathBuf};
+use std::{env, fs, io};
 
 const RECEIPT_VERSION: u8 = 1;
 

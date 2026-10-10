@@ -81,6 +81,19 @@ impl<'a> TextInput<'a> {
                 },
             ))
             .id();
+        #[cfg(target_os = "android")]
+        commands
+            .entity(editor)
+            .insert(super::android::AndroidEditor {
+                title: if self.placeholder.is_empty() {
+                    "编辑文本"
+                } else {
+                    self.placeholder
+                }
+                .to_owned(),
+                numeric: !(self.filter)('a') && !(self.filter)('.'),
+                filter: self.filter,
+            });
         commands
             .entity(slot)
             .insert(TextInputSlot {

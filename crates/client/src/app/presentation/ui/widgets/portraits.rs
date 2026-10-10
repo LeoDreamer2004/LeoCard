@@ -4,8 +4,9 @@ use super::super::{MUTED, TEXT};
 use super::{PlayerMenuProfile, add_interaction_menu, add_text, avatar_color, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{OpponentBadge, PlayerAvatarAnchor, SeatSide, SocialUiAction, UiAction};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui_widgets::Button;
 use leocard_protocol::PlayerId;
 
 pub(crate) struct PlayerPortraitSpec<'a> {
@@ -59,7 +60,7 @@ pub(crate) fn add_player_seat_value(
     );
     commands.entity(row).insert((
         UiTransform::from_rotation(Rot2::radians(value.rotation)),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     let color = if value.active { TEXT } else { MUTED };
     let mut score_entity = row;
@@ -67,7 +68,7 @@ pub(crate) fn add_player_seat_value(
         let text = add_text(commands, row, text, font_size, color, assets);
         commands
             .entity(text)
-            .insert((TextLayout::default().with_no_wrap(), FocusPolicy::Pass));
+            .insert((TextLayout::default().with_no_wrap(), Pickable::IGNORE));
         score_entity = text;
     }
     score_entity
@@ -100,7 +101,7 @@ pub(crate) fn add_player_portrait(
         },
         None,
     );
-    commands.entity(avatar_ring).insert(FocusPolicy::Pass);
+    commands.entity(avatar_ring).insert(Pickable::IGNORE);
     let avatar = spawn_node(
         commands,
         avatar_ring,
@@ -121,7 +122,7 @@ pub(crate) fn add_player_portrait(
     commands.entity(avatar).insert((
         PlayerAvatarAnchor(spec.player),
         BorderColor::all(Color::srgb(0.82, 0.88, 0.84).with_alpha(0.78)),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     if let Some(image) = spec.profile.avatar {
         commands
@@ -130,7 +131,7 @@ pub(crate) fn add_player_portrait(
     } else {
         let initial = spec.profile.name.chars().next().unwrap_or('玩').to_string();
         let initial = add_text(commands, avatar, initial, size * 0.42, TEXT, assets);
-        commands.entity(initial).insert(FocusPolicy::Pass);
+        commands.entity(initial).insert(Pickable::IGNORE);
     }
     if spec.auto_play {
         add_avatar_auto_play_overlay(commands, avatar, size, assets);
@@ -151,7 +152,7 @@ pub(crate) fn add_player_portrait(
     );
     commands.entity(name_area).insert((
         UiTransform::from_translation(Val2::px(0.0, 2.0)),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     let name = add_text(
         commands,
@@ -167,7 +168,7 @@ pub(crate) fn add_player_portrait(
             offset: Vec2::new(1.0, 1.0),
             color: Color::BLACK.with_alpha(0.8),
         },
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     let menu = add_interaction_menu(
         commands,
@@ -233,7 +234,7 @@ pub(crate) fn add_avatar_auto_play_overlay(
     );
     commands
         .entity(overlay)
-        .insert((ZIndex(1), FocusPolicy::Pass));
+        .insert((ZIndex(1), Pickable::IGNORE));
     let robot = commands
         .spawn((
             Node {
@@ -242,7 +243,7 @@ pub(crate) fn add_avatar_auto_play_overlay(
                 ..default()
             },
             ImageNode::new(assets.controls.robot_icon.clone()),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(overlay).add_child(robot);

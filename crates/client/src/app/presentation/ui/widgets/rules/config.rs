@@ -4,8 +4,10 @@ use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{MUTED, TEXT};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 
 pub(crate) trait EditableRuleSet: Copy {
     const ROW_HEIGHT: f32;
@@ -83,7 +85,7 @@ pub(crate) fn add_rule_config_row<R: EditableRuleSet>(
                 ..default()
             },
             input_image,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(controls).add_child(value_box);
@@ -121,7 +123,7 @@ fn add_rule_step_button<R: EditableRuleSet>(
             .spawn((Button, rules.update_action(), node, image))
             .id()
     } else {
-        commands.spawn((node, image, FocusPolicy::Pass)).id()
+        commands.spawn((node, image, Pickable::IGNORE)).id()
     };
     commands.entity(parent).add_child(entity);
     if rules.is_some() {
@@ -137,7 +139,7 @@ fn add_rule_step_button<R: EditableRuleSet>(
                 },
                 ImageNode::new(highlighted.clone()).with_mode(NodeImageMode::Stretch),
                 Visibility::Hidden,
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(entity).add_child(hover);

@@ -1,5 +1,6 @@
 use super::state::*;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 
@@ -30,12 +31,13 @@ pub(crate) fn scroll_achievements(
 }
 
 pub(crate) fn update_achievement_category_hover(
-    buttons: Query<(&Interaction, &AchievementCategoryButton), Changed<Interaction>>,
+    buttons: Query<(&PickingInteraction, &AchievementCategoryButton), Changed<PickingInteraction>>,
     mut emblems: Query<&mut ImageNode>,
 ) {
     for (interaction, category) in &buttons {
         if let Ok(mut image) = emblems.get_mut(category.emblem) {
-            image.color = category_tint(category.selected, *interaction != Interaction::None);
+            image.color =
+                category_tint(category.selected, *interaction != PickingInteraction::None);
         }
     }
 }

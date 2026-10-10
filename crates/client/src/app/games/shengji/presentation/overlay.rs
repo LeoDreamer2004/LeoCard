@@ -3,6 +3,7 @@ use super::content::{presentation_color, presentation_text, rank_label};
 use super::routes::{
     shengji_player_panel_anchor, shengji_power_outage_anchors, shengji_presentation_routes,
 };
+use bevy::picking::Pickable;
 
 use super::{
     ShengjiBottomFlipVisual, ShengjiBottomFlipVisualKind, ShengjiPowerOutageVisual,
@@ -14,7 +15,6 @@ use super::{
 use crate::app::presentation::{ACCENT, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::ShengjiSnapshot;
 
 pub(crate) fn add_shengji_presentation_overlay(
@@ -28,10 +28,6 @@ pub(crate) fn add_shengji_presentation_overlay(
     let Some(active) = state.active.as_ref() else {
         return;
     };
-    let is_play = matches!(
-        &active.kind,
-        ShengjiPresentationKind::Play { .. } | ShengjiPresentationKind::TrumpKill { .. }
-    );
     let is_trump_kill = matches!(&active.kind, ShengjiPresentationKind::TrumpKill { .. });
     let bottom_flip_matches = match &active.kind {
         ShengjiPresentationKind::BottomFlip { matches, .. } => Some(matches.as_slice()),
@@ -53,19 +49,16 @@ pub(crate) fn add_shengji_presentation_overlay(
     };
     let mut base_translation = Vec2::ZERO;
     let anchored_player = match &active.kind {
-        ShengjiPresentationKind::Play { player, .. }
-        | ShengjiPresentationKind::TrumpKill { player, .. } => Some(*player),
+        ShengjiPresentationKind::TrumpKill { player, .. } => Some(*player),
         _ => None,
     };
     if let Some(player) = anchored_player {
-        root_node.width = px(if is_trump_kill { 190 } else { 180 });
-        root_node.height = px(if is_trump_kill { 92 } else { 64 });
-        let half_width = if is_trump_kill { 95.0 } else { 90.0 };
-        if is_trump_kill {
-            root_node.justify_content = JustifyContent::FlexEnd;
-            root_node.row_gap = px(2);
-            root_node.padding = UiRect::bottom(px(3));
-        }
+        root_node.width = px(190);
+        root_node.height = px(92);
+        let half_width = 95.0;
+        root_node.justify_content = JustifyContent::FlexEnd;
+        root_node.row_gap = px(2);
+        root_node.padding = UiRect::bottom(px(3));
         let own_seat = game
             .players
             .iter()
@@ -117,7 +110,7 @@ pub(crate) fn add_shengji_presentation_overlay(
     commands.entity(root).insert((
         ShengjiPresentationRoot { base_translation },
         GlobalZIndex(if is_bottom_flip { 920 } else { 520 }),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     let veil = spawn_node(
         commands,
@@ -134,7 +127,7 @@ pub(crate) fn add_shengji_presentation_overlay(
     );
     commands
         .entity(veil)
-        .insert((ShengjiPresentationVeil, FocusPolicy::Pass));
+        .insert((ShengjiPresentationVeil, Pickable::IGNORE));
 
     if let Some(matches) = bottom_flip_matches {
         const CENTER: Vec2 = Vec2::new(50.0, 30.5);
@@ -172,7 +165,7 @@ pub(crate) fn add_shengji_presentation_overlay(
                     },
                     UiTransform::from_translation(Val2::px(-3.5, -3.5)),
                     Visibility::Hidden,
-                    FocusPolicy::Pass,
+                    Pickable::IGNORE,
                 ));
             }
 
@@ -205,7 +198,7 @@ pub(crate) fn add_shengji_presentation_overlay(
                     },
                     UiTransform::from_translation(Val2::px(-4.0, -4.0)),
                     Visibility::Hidden,
-                    FocusPolicy::Pass,
+                    Pickable::IGNORE,
                 ));
             }
         }
@@ -239,7 +232,7 @@ pub(crate) fn add_shengji_presentation_overlay(
                 },
                 UiTransform::from_translation(Val2::px(-4.0, -4.0)),
                 Visibility::Hidden,
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ));
         }
 
@@ -265,7 +258,7 @@ pub(crate) fn add_shengji_presentation_overlay(
             BorderColor::all(Color::NONE),
             UiTransform::from_translation(Val2::px(-25.0, -25.0)),
             Visibility::Hidden,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
 
         let level_target = end.lerp(Vec2::new(50.0, 50.0), 0.24);
@@ -295,7 +288,7 @@ pub(crate) fn add_shengji_presentation_overlay(
             BorderColor::all(Color::NONE),
             UiTransform::from_translation(Val2::px(-58.0, -17.0)),
             Visibility::Hidden,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
         let rank = match &active.kind {
             ShengjiPresentationKind::PowerOutage { level, .. } => rank_label(*level),
@@ -332,7 +325,7 @@ pub(crate) fn add_shengji_presentation_overlay(
             ImageNode::new(game_assets.target.clone()).with_color(Color::NONE),
             UiTransform::IDENTITY,
             Visibility::Hidden,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
 
         let dart = spawn_node(
@@ -358,7 +351,7 @@ pub(crate) fn add_shengji_presentation_overlay(
                 ..default()
             },
             Visibility::Hidden,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
 
         let ring = spawn_node(
@@ -383,7 +376,7 @@ pub(crate) fn add_shengji_presentation_overlay(
             BorderColor::all(Color::NONE),
             UiTransform::IDENTITY,
             Visibility::Hidden,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
     }
 
@@ -414,7 +407,7 @@ pub(crate) fn add_shengji_presentation_overlay(
                 ImageNode::new(assets.playing_cards.card_back.clone())
                     .with_mode(NodeImageMode::Stretch),
                 UiTransform::from_translation(Val2::px(-17.0, -24.0)),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ));
         }
     }
@@ -425,19 +418,15 @@ pub(crate) fn add_shengji_presentation_overlay(
         return;
     }
 
-    let (title, subtitle) = presentation_text(&active.kind, game);
+    let Some((title, subtitle)) = presentation_text(&active.kind, game) else {
+        return;
+    };
     let title_color = presentation_color(&active.kind);
     let title = add_text(
         commands,
         root,
         title,
-        if is_play {
-            if is_trump_kill { 17.0 } else { 19.0 }
-        } else if is_routed {
-            22.0
-        } else {
-            25.0
-        },
+        if is_routed { 22.0 } else { 25.0 },
         title_color,
         assets,
     );
@@ -448,13 +437,7 @@ pub(crate) fn add_shengji_presentation_overlay(
         commands,
         root,
         Node {
-            width: px(if is_trump_kill {
-                42.0
-            } else if is_play {
-                54.0
-            } else {
-                88.0
-            }),
+            width: px(88),
             height: px(2),
             ..default()
         },
@@ -462,7 +445,7 @@ pub(crate) fn add_shengji_presentation_overlay(
     );
     commands
         .entity(divider)
-        .insert((ShengjiPresentationDivider, FocusPolicy::Pass));
+        .insert((ShengjiPresentationDivider, Pickable::IGNORE));
     if !subtitle.is_empty() {
         let subtitle = add_text(commands, root, subtitle, 15.0, TEXT, assets);
         commands

@@ -1,3 +1,4 @@
+use bevy::picking::Pickable;
 use std::f32::consts;
 
 use super::super::{
@@ -14,7 +15,7 @@ use super::{
 use crate::app::presentation::{HEADER_BG, MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, RelativeCursorPosition};
+use bevy::ui::RelativeCursorPosition;
 use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemSnapshot};
 use leocard_texas_holdem::TexasHoldemCard;
 
@@ -89,7 +90,7 @@ pub(crate) fn add_texas_chip_areas(
     );
     commands
         .entity(layer)
-        .insert((ZIndex(35), FocusPolicy::Pass));
+        .insert((ZIndex(35), Pickable::IGNORE));
     for chip in state.chips.iter().filter(|chip| {
         matches!(
             chip.zone,
@@ -154,7 +155,7 @@ fn spawn_pot_divider_set(
                     elapsed,
                 },
                 ZIndex(28),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(table).add_child(divider);
@@ -182,7 +183,7 @@ fn add_pot_hover_regions(commands: &mut Commands, table: Entity, state: &TexasCh
                     eligible: pot.eligible.clone(),
                 },
                 ZIndex(34),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(table).add_child(region);
@@ -288,7 +289,7 @@ pub(super) fn add_chip_zone_panel(
         BoxShadow::new(Color::BLACK.with_alpha(0.28), px(0), px(3), px(0), px(8)),
         // 区域框属于桌面底层；实际筹码在独立的高层中移动。
         ZIndex(-10),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     zone
 }
@@ -317,7 +318,7 @@ fn add_chip_zone_title(
     );
     commands.entity(title).insert((
         ZIndex(22),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
         TexasActionFeedback {
             kind: label.kind,
             elapsed: label.elapsed,
@@ -392,7 +393,7 @@ pub(super) fn add_fold_card_feedback(
                     back: assets.playing_cards.card_back.clone(),
                 },
                 ZIndex(if own { 44 } else { 24 } + index as i32),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         if let Some(tooltip) = tooltip {
@@ -444,7 +445,7 @@ fn add_own_fold_tooltip(
         TexasOwnFoldTooltip,
         BorderColor::all(MUTED.with_alpha(0.65)),
         ZIndex(80),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     for card in cards.iter().copied() {
         let face = commands
@@ -456,7 +457,7 @@ fn add_own_fold_tooltip(
                     ..default()
                 },
                 ImageNode::new(texas_card_face(card, assets)),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(tooltip).add_child(face);
@@ -506,7 +507,7 @@ fn add_revealed_hole_cards(
                     ..default()
                 },
                 ImageNode::new(image),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(hand).add_child(entity);
@@ -539,7 +540,7 @@ fn add_chip_sprite(
             UiTransform::from_rotation(Rot2::radians(chip.rotation)),
             TexasChipSprite(chip.id),
             ZIndex((chip.id % 200) as i32),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(layer).add_child(entity);

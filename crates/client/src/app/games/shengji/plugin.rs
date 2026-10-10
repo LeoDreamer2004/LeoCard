@@ -1,10 +1,11 @@
+use super::audio::ShengjiAudioPlugin;
 use super::counter::sync_counter;
 use super::missing_suits::{animate_missing_suits, sync_missing_suits};
 use super::{
-    ShengjiPresentationState, ShengjiScoreCaptureEffectState, ShengjiSelectionSync,
-    ShengjiSettlementAnimation, ShengjiUiState, actions, advance_shengji_presentation,
-    animate_shengji_bottom_flip_markers, animate_shengji_failed_throw_cards,
-    animate_shengji_failed_throw_labels, animate_shengji_hand_cards,
+    ShengjiPlayFeedback, ShengjiPresentationState, ShengjiScoreCaptureEffectState,
+    ShengjiSelectionSync, ShengjiSettlementAnimation, ShengjiUiState, actions,
+    advance_shengji_presentation, animate_shengji_bottom_flip_markers,
+    animate_shengji_failed_throw_cards, animate_shengji_hand_cards,
     animate_shengji_power_outage_markers, animate_shengji_presentation,
     animate_shengji_score_absorbs, animate_shengji_score_capture_score,
     animate_shengji_settlement_visuals, animate_shengji_throw_penalty_floats,
@@ -23,7 +24,9 @@ pub(crate) struct ShengjiPlugin;
 
 impl Plugin for ShengjiPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ShengjiScoreCaptureEffectState::default())
+        app.add_plugins(ShengjiAudioPlugin)
+            .add_message::<ShengjiPlayFeedback>()
+            .insert_resource(ShengjiScoreCaptureEffectState::default())
             .insert_resource(ShengjiSettlementAnimation::default())
             .insert_resource(ShengjiPresentationState::default())
             .insert_resource(ShengjiSelectionSync::default())
@@ -75,7 +78,6 @@ impl Plugin for ShengjiPlugin {
                     sync_shengji_score_tray_hover,
                     (
                         animate_shengji_failed_throw_cards,
-                        animate_shengji_failed_throw_labels,
                         animate_shengji_throw_penalty_floats,
                         animate_shengji_throw_penalty_score_pulses,
                     )

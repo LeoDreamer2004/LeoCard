@@ -3,8 +3,10 @@ use super::{ENTRY_DESIGNS, EntryGlow, GlowKind};
 use crate::app::presentation::{CustomButtonMotion, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ConnectionUiAction, PageTransitionElement, UiAction};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, LayoutConfig};
+use bevy::ui::LayoutConfig;
+use bevy::ui_widgets::Button;
 
 #[derive(Component)]
 pub(super) struct EntryArt(pub usize);
@@ -97,7 +99,7 @@ impl<'a> GameGallery<'a> {
             },
             None,
         );
-        commands.entity(stage).insert(FocusPolicy::Pass);
+        commands.entity(stage).insert(Pickable::IGNORE);
         let aura = EntryGlow::spawn(commands, stage, index, GlowKind::Aura);
         let orbit = EntryGlow::spawn(commands, stage, index, GlowKind::Orbit);
         let ripple = EntryGlow::spawn(commands, stage, index, GlowKind::Ripple);
@@ -112,7 +114,7 @@ impl<'a> GameGallery<'a> {
                 EntryArt(index),
                 ImageNode::default(),
                 UiTransform::IDENTITY,
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(stage).add_child(art);
@@ -128,7 +130,7 @@ impl<'a> GameGallery<'a> {
             },
             None,
         );
-        commands.entity(caption).insert(FocusPolicy::Pass);
+        commands.entity(caption).insert(Pickable::IGNORE);
         let underline = EntryGlow::spawn(commands, caption, index, GlowKind::Underline);
         let title = add_text(
             commands,
@@ -151,7 +153,7 @@ impl<'a> GameGallery<'a> {
             ..default()
         });
         for entity in [title, hint] {
-            commands.entity(entity).insert(FocusPolicy::Pass);
+            commands.entity(entity).insert(Pickable::IGNORE);
         }
         commands.entity(button).insert(GameEntry {
             index,

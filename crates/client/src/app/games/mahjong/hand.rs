@@ -11,8 +11,9 @@ use super::{
 use crate::app::presentation::{GameSummaryAnimation, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
+use bevy::picking::Pickable;
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_mahjong::MahjongTile;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 use std::collections::HashMap;
@@ -25,8 +26,9 @@ pub(super) struct MahjongWinningHandVisual {
 
 pub(super) struct MahjongOwnHandVisuals<'a> {
     pub response_tile: Option<MahjongTile>,
+    pub show_wait_fans: bool,
     pub observed_hand: &'a [MahjongTile],
-    pub hover_lifts: &'a HashMap<i32, (f32, Interaction)>,
+    pub hover_lifts: &'a HashMap<i32, (f32, PickingInteraction)>,
     pub dealing: bool,
     pub drawn_tile_falling: bool,
     pub winning_hand: Option<MahjongWinningHandVisual>,
@@ -46,6 +48,7 @@ pub(super) fn render_own_hand(
 ) {
     let MahjongOwnHandVisuals {
         response_tile,
+        show_wait_fans,
         observed_hand,
         hover_lifts,
         dealing,
@@ -69,7 +72,7 @@ pub(super) fn render_own_hand(
         .map_or(0, |player| player.melds.len());
     let can_discard =
         matches!(game.phase, MahjongPhaseView::Playing) && game.current_player == game.you;
-    let discard_waits = can_discard.then(|| mahjong_discard_waits(game));
+    let discard_waits = can_discard.then(|| mahjong_discard_waits(game, show_wait_fans));
     let separated_tile = if dealing {
         game.your_drawn_tile
     } else if can_discard {
@@ -212,7 +215,22 @@ pub(super) fn render_own_hand(
                 .as_ref()
                 .and_then(|waits| waits.get(&tile.kind()))
             {
-                add_mahjong_wait_popup(commands, entity, waits, assets, materials, ui_assets);
+                add_mahjong_wait_popup(
+                    commands,
+                    entity,
+                    waits,
+                    hover_lifts
+                        .get(&(index as i32))
+                        .is_some_and(|(_, interaction)| {
+                            matches!(
+                                interaction,
+                                PickingInteraction::Hovered | PickingInteraction::Pressed
+                            )
+                        }),
+                    assets,
+                    materials,
+                    ui_assets,
+                );
             }
             if let (Some(result), Some(cues)) = (result, cues) {
                 mark_mahjong_win_tile(commands, entity, result, cues, None);
@@ -231,7 +249,7 @@ pub(super) fn render_own_hand(
             },
             None,
         );
-        commands.entity(gap).insert(FocusPolicy::Pass);
+        commands.entity(gap).insert(Pickable::IGNORE);
         let tile = game.your_hand[index];
         let entity = add_mahjong_hand_tile(
             commands,
@@ -267,7 +285,22 @@ pub(super) fn render_own_hand(
             .as_ref()
             .and_then(|waits| waits.get(&tile.kind()))
         {
-            add_mahjong_wait_popup(commands, entity, waits, assets, materials, ui_assets);
+            add_mahjong_wait_popup(
+                commands,
+                entity,
+                waits,
+                hover_lifts
+                    .get(&(game.your_hand.len() as i32))
+                    .is_some_and(|(_, interaction)| {
+                        matches!(
+                            interaction,
+                            PickingInteraction::Hovered | PickingInteraction::Pressed
+                        )
+                    }),
+                assets,
+                materials,
+                ui_assets,
+            );
         }
     }
 }
@@ -275,7 +308,7 @@ pub(super) fn render_own_hand(
 fn restore_hand_hover(
     commands: &mut Commands,
     entity: Entity,
-    hover: Option<(f32, Interaction)>,
+    hover: Option<(f32, PickingInteraction)>,
     index: i32,
 ) {
     let Some((lift, interaction)) = hover else {
@@ -291,8 +324,8 @@ fn restore_hand_hover(
             index,
         },
         // A rebuilt button must never inherit the previous button's click.
-        if interaction == Interaction::Pressed {
-            Interaction::Hovered
+        if interaction == PickingInteraction::Pressed {
+            PickingInteraction::Hovered
         } else {
             interaction
         },

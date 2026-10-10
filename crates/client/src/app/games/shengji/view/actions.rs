@@ -1,6 +1,5 @@
 use super::super::skin::{add_shengji_button, add_shengji_disabled_button};
 use super::super::{ShengjiUiAction, ShengjiUiState};
-use super::add_shengji_bid_strip;
 use crate::app::presentation::GameButtonTone;
 use crate::app::presentation::spawn_node;
 use crate::app::runtime::UiAssets;
@@ -55,19 +54,6 @@ pub(super) fn add_shengji_actions(
             }
         }
         ShengjiPhaseView::Burying => {}
-        ShengjiPhaseView::BottomCopying { player, .. } if *player == game.you => {
-            add_shengji_bid_strip(commands, actions, game, true, assets);
-            add_shengji_button(
-                commands,
-                actions,
-                "不抄底",
-                UiAction::Shengji(ShengjiUiAction::DeclineBottomCopy),
-                assets,
-                120.0,
-                48.0,
-                GameButtonTone::Pass,
-            );
-        }
         ShengjiPhaseView::BottomCopying { .. } => {}
         ShengjiPhaseView::BottomCopyBurying { player } if *player == game.you => {
             let count = ui.selected.len();

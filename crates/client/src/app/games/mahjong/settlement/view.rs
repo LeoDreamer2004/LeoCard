@@ -15,8 +15,8 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{LobbyUiAction, UiAction};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
 
 pub(super) fn settlement_row_texture(assets: &UiAssets) -> ImageNode {
@@ -83,7 +83,7 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
     commands.entity(shade).insert((
         MahjongScoreShade { start: 0.0 },
         GlobalZIndex(1180),
-        FocusPolicy::Block,
+        Pickable::default(),
     ));
 
     for (index, (winner, winner_timing)) in result
@@ -124,7 +124,7 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
                 end,
             },
             GlobalZIndex(1200),
-            FocusPolicy::Block,
+            Pickable::default(),
             if animation.elapsed >= winner_timing.outcome_delay && animation.elapsed < end {
                 Visibility::Visible
             } else {
@@ -180,7 +180,7 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
             },
             None,
         );
-        commands.entity(spacer).insert(FocusPolicy::Pass);
+        commands.entity(spacer).insert(Pickable::IGNORE);
         let total = add_text(
             commands,
             heading,
@@ -211,7 +211,7 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
             },
             Some(ACCENT.with_alpha(0.7)),
         );
-        commands.entity(rule).insert(FocusPolicy::Pass);
+        commands.entity(rule).insert(Pickable::IGNORE);
         let hand = spawn_node(
             commands,
             panel,
@@ -302,7 +302,7 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
             ));
             commands
                 .entity(row)
-                .insert((settlement_row_texture(assets), FocusPolicy::Pass));
+                .insert((settlement_row_texture(assets), Pickable::IGNORE));
             let name = if fan.count > 1 {
                 format!("{} × {}", fan.fan.name(), fan.count)
             } else {
@@ -355,7 +355,7 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
         commands.entity(curtain).insert((
             MahjongFanPageCurtain { end },
             ZIndex(20),
-            FocusPolicy::Block,
+            Pickable::default(),
         ));
     }
 

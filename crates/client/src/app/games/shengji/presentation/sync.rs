@@ -1,21 +1,19 @@
-use super::content::{classify_play_presentation, queue_play_audio, should_show_play_presentation};
-
 use super::{
-    ActiveShengjiPresentation, ObservedShengjiThrowFailure, SHENGJI_TRICK_PLAY_COUNT,
-    ShengjiAudioCue, ShengjiPresentationKind, ShengjiPresentationState, ShengjiSoundKind,
+    ActiveShengjiPresentation, ObservedShengjiThrowFailure, SHENGJI_BOTTOM_COPY_REVEAL_DURATION,
+    SHENGJI_TRICK_PLAY_COUNT, ShengjiAudioCue, ShengjiPlayFeedback, ShengjiPresentationKind,
+    ShengjiPresentationState, ShengjiSoundKind,
 };
 use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
-use leocard_protocol::ShengjiEvent;
-use leocard_protocol::{ShengjiPublicPlay, ShengjiThrowFailureStage};
-use leocard_shengji::{Category, ShengjiBidKind, compare_for_trick};
-use leocard_shengji::{ShengjiThrowPenalty, ShengjiTrump};
+use leocard_protocol::{ShengjiEvent, ShengjiPublicPlay, ShengjiThrowFailureStage};
+use leocard_shengji::{Category, ShengjiThrowPenalty, ShengjiTrump, compare_for_trick};
 
-pub(crate) fn sync_shengji_presentation(
+pub(in crate::app::games::shengji) fn sync_shengji_presentation(
     mut client: Option<ResMut<ClientResource>>,
     mut state: ResMut<ShengjiPresentationState>,
     mut ui: ResMut<UiState>,
+    mut feedback: MessageWriter<ShengjiPlayFeedback>,
 ) {
     let Some(client) = client.as_deref_mut() else {
         if state.active.take().is_some() {
@@ -63,7 +61,6 @@ pub(crate) fn sync_shengji_presentation(
         }
         state.observed_round.observe(match_id);
         state.observed_round.state = hand_number;
-        state.bottom_copy_count = 0;
         state.bottom_burier = None;
         state.observed_throw_failure = None;
         state.active = None;
@@ -105,24 +102,10 @@ pub(crate) fn sync_shengji_presentation(
         };
         state.observe_trick_event(&event);
         match event {
-            ShengjiEvent::DeclarationChanged { declaration } => {
-                let label = match declaration.kind {
-                    ShengjiBidKind::Initial => "亮主",
-                    ShengjiBidKind::Protect => "自保",
-                    ShengjiBidKind::Counter => "反主",
-                    ShengjiBidKind::SelfCounter => "自反",
-                };
-                let start = state.activate(
-                    ShengjiPresentationKind::Declaration {
-                        player: declaration.player,
-                        trump: declaration.trump,
-                        label,
-                    },
-                    1.65,
-                );
+            ShengjiEvent::DeclarationChanged { .. } => {
                 state.audio_cues.push(ShengjiAudioCue::new(
                     ShengjiSoundKind::Confirm,
-                    start,
+                    0.0,
                     0.28,
                     3,
                 ));
@@ -185,21 +168,28 @@ pub(crate) fn sync_shengji_presentation(
                 }
             }
             ShengjiEvent::BottomCopied { declaration } => {
-                state.bottom_copy_count = state.bottom_copy_count.saturating_add(1);
-                let count = state.bottom_copy_count;
                 let from_player = state.bottom_burier;
                 let start = state.activate(
                     ShengjiPresentationKind::BottomCopy {
+                        cards: declaration.cards,
                         from_player,
                         player: declaration.player,
-                        trump: declaration.trump,
-                        count,
                     },
-                    1.75,
+                    SHENGJI_BOTTOM_COPY_REVEAL_DURATION + 1.75,
                 );
                 state.audio_cues.extend([
-                    ShengjiAudioCue::new(ShengjiSoundKind::Copy, start, 0.38, 17),
-                    ShengjiAudioCue::new(ShengjiSoundKind::Lock, start + 0.72, 0.26, 19),
+                    ShengjiAudioCue::new(
+                        ShengjiSoundKind::Copy,
+                        start + SHENGJI_BOTTOM_COPY_REVEAL_DURATION,
+                        0.38,
+                        17,
+                    ),
+                    ShengjiAudioCue::new(
+                        ShengjiSoundKind::Lock,
+                        start + SHENGJI_BOTTOM_COPY_REVEAL_DURATION + 0.72,
+                        0.26,
+                        19,
+                    ),
                 ]);
             }
             ShengjiEvent::FiveTrumpCrossingStarted { players } => {
@@ -228,8 +218,7 @@ pub(crate) fn sync_shengji_presentation(
                 state.bottom_burier = Some(dealer);
             }
             ShengjiEvent::CardsPlayed { play, is_lead } => {
-                let kind = classify_play_presentation(&play.play);
-                let start = if let Some(covered) = trump_kill {
+                if let Some(covered) = trump_kill {
                     let start = state.activate(
                         ShengjiPresentationKind::TrumpKill {
                             player: play.player,
@@ -251,19 +240,20 @@ pub(crate) fn sync_shengji_presentation(
                             play.player.0 as u64 + 67,
                         ),
                     ]);
-                    start
-                } else if should_show_play_presentation(kind, is_lead, play.throw_penalty) {
-                    state.activate(
-                        ShengjiPresentationKind::Play {
-                            player: play.player,
-                            kind,
-                        },
-                        kind.duration(),
-                    )
-                } else {
-                    0.0
-                };
-                queue_play_audio(&mut state.audio_cues, kind, play.player.0 as u64, start);
+                }
+                state.audio_cues.push(ShengjiAudioCue::new(
+                    ShengjiSoundKind::CardPlace,
+                    0.0,
+                    0.34,
+                    u64::from(play.player.0),
+                ));
+                feedback.write(ShengjiPlayFeedback {
+                    match_id,
+                    hand_number,
+                    play,
+                    is_lead,
+                    trump_kill: trump_kill.is_some(),
+                });
             }
             _ => {}
         }

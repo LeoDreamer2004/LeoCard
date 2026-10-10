@@ -4,8 +4,10 @@ use super::super::UiAction;
 use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{MUTED, PanelSkin, TEXT, add_text, decorate_panel_skin};
 use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 
 #[derive(Clone, Copy)]
 pub(crate) enum CozyButtonVariant {
@@ -92,7 +94,7 @@ pub(crate) fn add_cozy_disabled_button(
                 ..default()
             },
             image,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(parent).add_child(button);
@@ -132,7 +134,7 @@ pub(crate) fn add_cozy_close_button(
             ImageNode::new(assets.home.close_button_highlighted.clone())
                 .with_mode(NodeImageMode::Stretch),
             Visibility::Hidden,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(button).add_child(overlay);
@@ -282,7 +284,7 @@ fn add_cozy_button_styled(
             },
             highlight,
             Visibility::Hidden,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(button).add_child(overlay);
@@ -296,7 +298,7 @@ fn add_cozy_button_styled(
                     ..default()
                 },
                 ImageNode::new(icon),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(button).add_child(image);

@@ -1,6 +1,6 @@
 use crate::app::presentation::{ACCENT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
-use bevy::{prelude::*, ui::FocusPolicy};
+use bevy::{picking::Pickable, prelude::*};
 
 pub(crate) fn add_coin_balance(
     commands: &mut Commands,
@@ -28,7 +28,7 @@ pub(crate) fn add_coin_balance(
                 ..default()
             },
             ImageNode::new(assets.shop.coin.clone()),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(row).add_child(icon);

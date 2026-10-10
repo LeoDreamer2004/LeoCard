@@ -1,5 +1,6 @@
 use super::super::{CozyModalKind, ModalAnimations, UiState, advance_modal};
 use super::{ProfileGameTabButton, SelectedProfileGameTab};
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 
 pub(crate) const TAB_IDLE: Color = Color::srgb(0.23, 0.24, 0.27);
@@ -32,13 +33,13 @@ impl ProfileMotion {
 pub(crate) fn update_profile_tab_hover(
     motion: Res<ProfileMotion>,
     mut tabs: Query<
-        (&Interaction, &mut BackgroundColor),
+        (&PickingInteraction, &mut BackgroundColor),
         (With<ProfileGameTabButton>, Without<SelectedProfileGameTab>),
     >,
 ) {
     let opacity = motion.progress * motion.progress * (3.0 - 2.0 * motion.progress);
     for (interaction, mut background) in &mut tabs {
-        let color = if *interaction == Interaction::None {
+        let color = if *interaction == PickingInteraction::None {
             TAB_IDLE
         } else {
             TAB_HOVER

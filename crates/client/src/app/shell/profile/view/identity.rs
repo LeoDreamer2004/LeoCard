@@ -1,8 +1,8 @@
 use super::super::{ProfileStat, reference_level, reference_level_index};
 use crate::app::presentation::{MUTED, TEXT, add_avatar, add_coin_balance, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerGameProfiles, PlayerGender, PlayerInteractionKind};
 
 pub(super) struct ProfileIdentity<'a> {
@@ -178,7 +178,7 @@ impl<'a> ProfileIdentity<'a> {
                         ..default()
                     },
                     ImageNode::new(self.assets.achievements.medals[index].clone()),
-                    FocusPolicy::Pass,
+                    Pickable::IGNORE,
                 ))
                 .id();
             commands.entity(item).add_child(icon);
@@ -244,7 +244,7 @@ impl<'a> ProfileIdentity<'a> {
                             .cloned()
                             .unwrap_or_default(),
                     ),
-                    FocusPolicy::Pass,
+                    Pickable::IGNORE,
                 ))
                 .id();
             commands.entity(item).add_child(icon);
@@ -302,7 +302,7 @@ impl<'a> ProfileIdentity<'a> {
                         [reference_level_index(self.reference_points)]
                     .clone(),
                 ),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(row).add_child(icon);

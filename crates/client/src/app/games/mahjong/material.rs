@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
 
-const MAHJONG_TILE_SHADER: &str = "shaders/mahjong_tile.wgsl";
+const MAHJONG_TILE_SHADER: &str = "shaders/mahjong_tile.wesl";
 
 #[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
 pub(crate) struct MahjongTileMaterial {

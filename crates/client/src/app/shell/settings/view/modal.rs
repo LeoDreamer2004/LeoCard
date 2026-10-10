@@ -1,6 +1,8 @@
 //! 全局设置窗口与页签组合。
 
 use crate::app::shell::SettingsUiAction;
+use bevy::picking::Pickable;
+use bevy::ui_widgets::Button;
 
 use crate::app::shell::{cozy_backdrop_color, cozy_panel_transform};
 
@@ -15,7 +17,7 @@ use super::sound::render_sound_settings;
 use crate::app::presentation::{TEXT, add_text, card_background_image, spawn_node};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
 
 pub(crate) struct SettingsModal<'a> {
     form: &'a AppearancePreferences,
@@ -63,7 +65,7 @@ impl<'a> SettingsModal<'a> {
         );
         commands.entity(overlay).insert((
             GlobalZIndex(2000),
-            FocusPolicy::Block,
+            Pickable::default(),
             CozyModalBackdrop(CozyModalKind::Settings),
         ));
         let modal = add_cozy_panel(

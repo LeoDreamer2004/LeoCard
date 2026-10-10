@@ -41,6 +41,7 @@ fn shengji_score_snapshot(trick: Option<ShengjiTrickView>) -> ShengjiSnapshot {
         dealer: Some(PlayerId(0)),
         trump: Some(ShengjiTrump::new(ShengjiRank::Ten, Some(ShengjiSuit::Heart)).unwrap()),
         declaration: None,
+        bottom_copy_decisions: Vec::new(),
         current_player: Some(PlayerId(0)),
         trick,
         played_cards: Vec::new(),

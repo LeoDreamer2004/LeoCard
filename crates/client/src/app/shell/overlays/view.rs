@@ -7,8 +7,9 @@ use super::{
 use crate::app::presentation::{ACCENT, MUTED, PanelSkin, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::add_cozy_panel_with_skin;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
 
 pub(crate) const WARNING_TOAST_TEXT: Color = Color::srgb(0.97, 0.96, 1.0);
 
@@ -32,7 +33,7 @@ pub(crate) fn add_play_error_popup(
                 justify_content: JustifyContent::Center,
                 ..default()
             },
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(parent).add_child(anchor);
@@ -57,7 +58,7 @@ pub(crate) fn add_play_error_popup(
         PlayErrorPopup,
         UiTransform::from_translation(Val2::px(visual.x, visual.y)),
         GlobalZIndex(1500),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     let mut image = ImageNode::new(assets.home.warning_toast.clone()).with_mode(
         NodeImageMode::Sliced(TextureSlicer {
@@ -89,7 +90,7 @@ pub(crate) fn add_play_error_popup(
             image,
             PlayErrorPopupImage,
             ZIndex(-1),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(popup).add_child(background);
@@ -127,7 +128,7 @@ pub(crate) fn add_reconnecting_overlay(
     );
     commands
         .entity(overlay)
-        .insert((GlobalZIndex(1400), FocusPolicy::Block));
+        .insert((GlobalZIndex(1400), Pickable::default()));
     let panel = add_cozy_panel_with_skin(
         commands,
         overlay,

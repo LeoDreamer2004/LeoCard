@@ -1,8 +1,8 @@
 use super::*;
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, ShengjiEvent, ShengjiPublicPlay};
+use leocard_shengji::ShengjiCard;
 use leocard_shengji::{Category, Component, ShengjiClassifiedPlay, ShengjiRank};
-use leocard_shengji::{ShengjiBidTrump, ShengjiCard};
 use leocard_shengji::{ShengjiSuit, ShengjiThrowPenalty, ShengjiTrump};
 
 #[test]
@@ -40,10 +40,10 @@ fn presentations_queue_instead_of_overwriting_a_rule_effect() {
     );
     assert_eq!(
         state.activate(
-            ShengjiPresentationKind::Declaration {
+            ShengjiPresentationKind::BottomCopy {
+                cards: Vec::new(),
+                from_player: Some(PlayerId(0)),
                 player: PlayerId(1),
-                trump: ShengjiBidTrump::Suit(ShengjiSuit::Spade),
-                label: "亮主",
             },
             0.7,
         ),
@@ -55,7 +55,7 @@ fn presentations_queue_instead_of_overwriting_a_rule_effect() {
     ));
     assert!(matches!(
         state.queued.front().map(|active| &active.kind),
-        Some(ShengjiPresentationKind::Declaration { .. })
+        Some(ShengjiPresentationKind::BottomCopy { .. })
     ));
 }
 

@@ -28,6 +28,8 @@ pub struct ShengjiSnapshot {
     pub dealer: Option<PlayerId>,
     pub trump: Option<ShengjiTrump>,
     pub declaration: Option<ShengjiDeclarationView>,
+    /// 抄底询问中各玩家最近一次的公开选择；首次出牌后清空。
+    pub bottom_copy_decisions: Vec<ShengjiBottomCopyDecisionView>,
     pub current_player: Option<PlayerId>,
     pub trick: Option<ShengjiTrickView>,
     /// 本局已经公开打出的实体牌，含当前轮，供记牌及重连恢复使用。
@@ -70,6 +72,13 @@ pub struct ShengjiDeclarationView {
     pub protected: bool,
     /// 亮出的实体牌；同牌面的不同副牌仍具有不同的牌标识。
     pub cards: Vec<ShengjiCard>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ShengjiBottomCopyDecisionView {
+    pub player: PlayerId,
+    /// 抄底时公开使用的牌；`None` 表示不抄底。
+    pub cards: Option<Vec<ShengjiCard>>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

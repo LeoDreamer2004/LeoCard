@@ -5,7 +5,9 @@ use super::{
 use crate::app::presentation::{PendingDealSound, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
+use bevy::ui_widgets::Button;
 use leocard_mahjong::MahjongTileKind;
 use std::f32::consts;
 
@@ -143,7 +145,7 @@ pub(super) fn sync_mahjong_hand_tile_materials(
     mut tiles: Query<
         (
             &mut MahjongHandTile,
-            Option<&Interaction>,
+            Option<&PickingInteraction>,
             &MaterialNode<MahjongTileMaterial>,
             &mut UiTransform,
             &mut BoxShadow,
@@ -155,11 +157,11 @@ pub(super) fn sync_mahjong_hand_tile_materials(
     let smoothing = 1.0 - (-18.0 * time.delta_secs()).exp();
     for (mut tile, interaction, material_node, mut transform, mut shadow, mut z_index) in &mut tiles
     {
-        let interaction = interaction.copied().unwrap_or(Interaction::None);
+        let interaction = interaction.copied().unwrap_or(PickingInteraction::None);
         let target = match interaction {
-            Interaction::None => 0.0,
-            Interaction::Hovered => 1.0,
-            Interaction::Pressed => 0.62,
+            PickingInteraction::None => 0.0,
+            PickingInteraction::Hovered => 1.0,
+            PickingInteraction::Pressed => 0.62,
         };
         tile.lift += (target - tile.lift) * smoothing;
         transform.translation = Val2::px(0.0, -11.0 * tile.lift);
@@ -181,9 +183,9 @@ pub(super) fn sync_mahjong_hand_tile_materials(
             continue;
         };
         material.params.x = match interaction {
-            Interaction::None => 0.0,
-            Interaction::Hovered => 1.0,
-            Interaction::Pressed => 2.0,
+            PickingInteraction::None => 0.0,
+            PickingInteraction::Hovered => 1.0,
+            PickingInteraction::Pressed => 2.0,
         };
     }
 }

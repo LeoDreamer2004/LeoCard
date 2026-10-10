@@ -1,13 +1,13 @@
 use super::super::super::{
     MahjongAssets, MahjongTileMaterial, MahjongWinEffectTier, MahjongWinStageKind,
 };
+use bevy::picking::Pickable;
 
 use super::super::{MahjongTileSize, MahjongWinTileSizes, render_mahjong_win_tile_row};
 use super::{WinStagePartSpec, add_win_stage_component, mahjong_win_effect_color};
 use crate::app::presentation::{add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{MahjongSnapshot, MahjongWinView};
 
 pub(super) struct CenterWinHandContext<'a, 'w, 's> {
@@ -70,7 +70,7 @@ pub(super) fn render_center_win_hand(context: CenterWinHandContext<'_, '_, '_>) 
     );
     commands
         .entity(panel)
-        .insert((GlobalZIndex(1050), FocusPolicy::Pass));
+        .insert((GlobalZIndex(1050), Pickable::IGNORE));
     if tier == MahjongWinEffectTier::HighTotal {
         add_win_stage_component(
             commands,

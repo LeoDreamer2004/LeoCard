@@ -149,17 +149,14 @@ impl GameState {
                 || self
                     .bidding
                     .current()
-                    .is_some_and(|bid| bid.player == player)
+                    .is_some_and(|declaration| declaration.player == player)
             {
                 continue;
             }
-            let hand = &self.players[usize::from(player.0)].hand;
-            if !self.bidding.counter_options(player, hand).is_empty() {
-                self.bottom_copy.as_mut().unwrap().current = Some(player);
-                self.phase = Phase::BottomCopying;
-                self.current_player = None;
-                return true;
-            }
+            self.bottom_copy.as_mut().unwrap().current = Some(player);
+            self.phase = Phase::BottomCopying;
+            self.current_player = None;
+            return true;
         }
     }
 

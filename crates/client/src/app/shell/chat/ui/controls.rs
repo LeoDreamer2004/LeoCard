@@ -1,11 +1,11 @@
 use super::super::*;
-use super::panel::ChatAuxiliaryAction;
-use super::panel::{add_chat_button_highlight, cozy_chat_button_image};
+use super::panel::{ChatAuxiliaryAction, add_chat_button_highlight, cozy_chat_button_image};
 use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, SocialUiAction, UiAction};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui_widgets::Button;
 
 pub(super) fn add_chat_toggle(
     commands: &mut Commands,
@@ -83,7 +83,7 @@ pub(super) fn add_auto_play_toggle(
                 ..default()
             },
             ImageNode::new(assets.controls.robot_icon.clone()),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(auto_button).add_child(icon);
@@ -151,5 +151,5 @@ fn add_auxiliary_action(
         },
         assets,
     );
-    commands.entity(label).insert(FocusPolicy::Pass);
+    commands.entity(label).insert(Pickable::IGNORE);
 }

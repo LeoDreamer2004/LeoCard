@@ -1,7 +1,7 @@
 //! Full-screen layers used by page and game transitions.
 
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 
 pub(super) fn add_screen_layer(
     commands: &mut Commands,
@@ -20,7 +20,7 @@ pub(super) fn add_screen_layer(
                 ..default()
             },
             GlobalZIndex(z_index),
-            FocusPolicy::Block,
+            Pickable::default(),
             marker,
         ))
         .id();

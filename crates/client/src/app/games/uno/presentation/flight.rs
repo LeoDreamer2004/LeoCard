@@ -2,12 +2,12 @@ use super::super::{
     UNO_DISCARD_OFFSETS, UNO_FLYING_CARD_HEIGHT, UNO_FLYING_CARD_WIDTH, UnoAssets, UnoDiscardCard,
     UnoFlyingCard, UnoPresentationState, uno_card_handle,
 };
+use bevy::picking::Pickable;
 
 use super::UNO_PLAY_CARD_DURATION;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::PlayerAvatarAnchor;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{PlayerId, UnoEvent};
 use leocard_uno::{UnoCard, UnoColor, UnoFace};
 
@@ -90,7 +90,7 @@ pub(super) fn spawn_uno_flying_card(
             UiTransform::from_scale(Vec2::splat(0.76)),
             BoxShadow::new(Color::BLACK.with_alpha(0.42), px(2), px(5), px(0), px(6)),
             GlobalZIndex(1450),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(layer).add_child(card);

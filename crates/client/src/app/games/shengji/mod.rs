@@ -2,6 +2,7 @@
 
 pub(crate) mod actions;
 mod assets;
+mod audio;
 mod counter;
 mod hand_interaction;
 mod hints;

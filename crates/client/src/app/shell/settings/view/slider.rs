@@ -7,8 +7,10 @@ use crate::app::presentation::{
     TableAppearanceSlider, add_text, spawn_node,
 };
 use crate::app::runtime::{AppearancePreferences, UiAssets};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, RelativeCursorPosition, VisualBox};
+use bevy::ui::{RelativeCursorPosition, VisualBox};
+use bevy::ui_widgets::Button;
 
 pub(super) struct SettingsSlider<'a> {
     form: &'a AppearancePreferences,
@@ -83,7 +85,7 @@ impl<'a> SettingsSlider<'a> {
                     ..default()
                 },
                 track_image,
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(slider).add_child(track);
@@ -109,7 +111,7 @@ impl<'a> SettingsSlider<'a> {
                 hover: 0.0,
             },
             UiTransform::from_translation(Val2::px(-7.0, 0.0)),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ));
     }
 }

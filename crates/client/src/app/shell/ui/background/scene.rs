@@ -3,7 +3,7 @@
 use super::{BackgroundAssets, FloatingSuit, SUITS};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, LayoutConfig};
+use bevy::ui::LayoutConfig;
 
 #[derive(Component)]
 pub(super) struct PageBackground;
@@ -37,7 +37,6 @@ pub(super) fn setup_background(
                 use_rounding: false,
             },
             GlobalZIndex(-100),
-            FocusPolicy::Pass,
             Pickable::IGNORE,
             Visibility::Hidden,
         ))
@@ -63,7 +62,6 @@ pub(super) fn setup_background(
                 assets.suit(placement.atlas).with_color(color),
                 transform,
                 suit,
-                FocusPolicy::Pass,
                 Pickable::IGNORE,
             ))
             .id();

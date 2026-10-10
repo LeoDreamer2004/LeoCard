@@ -82,6 +82,7 @@ impl ShengjiSession {
         self.flow.automatic_action = None;
         self.flow.redeal_remaining = None;
         self.presentation.throw_penalties = [0; ShengjiRuleSet::PLAYER_COUNT];
+        self.presentation.bottom_copy_decisions.clear();
         self.presentation.throw_failure = None;
         self.presentation.trick = None;
         self.statistics.start_hand();

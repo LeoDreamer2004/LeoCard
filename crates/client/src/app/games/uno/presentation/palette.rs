@@ -1,3 +1,4 @@
+use bevy::picking::Pickable;
 use std::f32::consts;
 
 use super::super::{
@@ -6,7 +7,6 @@ use super::super::{
 };
 
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_uno::UnoColor;
 
 pub(super) fn spawn_uno_palette_effect(
@@ -33,7 +33,7 @@ pub(super) fn spawn_uno_palette_effect(
             UiTransform::from_scale(Vec2::splat(0.78)),
             BoxShadow::new(Color::BLACK.with_alpha(0.0), px(3), px(6), px(0), px(9)),
             GlobalZIndex(1500),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(layer).add_child(palette);
@@ -51,7 +51,7 @@ pub(super) fn spawn_uno_palette_effect(
             },
             MaterialNode(sector_material),
             UiTransform::from_scale(Vec2::ONE),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(palette).add_child(selected_sector);
@@ -84,7 +84,7 @@ pub(super) fn spawn_uno_palette_effect(
                 },
                 BorderColor::all(selected_color.with_alpha(0.0)),
                 UiTransform::from_scale(Vec2::splat(start_scale)),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
                 ZIndex(2),
             ))
             .id();
@@ -129,7 +129,7 @@ pub(super) fn spawn_uno_palette_effect(
                 },
                 BackgroundColor(selected_color.with_alpha(0.0)),
                 UiTransform::from_scale(Vec2::splat(0.2)),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
                 ZIndex(3),
             ))
             .id();

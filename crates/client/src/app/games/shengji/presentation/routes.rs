@@ -30,7 +30,10 @@ pub(super) fn shengji_seat_route_anchor(relative_seat: u8) -> Vec2 {
     }
 }
 
-fn shengji_player_route_anchor(game: &ShengjiSnapshot, player: PlayerId) -> Option<Vec2> {
+pub(in super::super) fn shengji_player_route_anchor(
+    game: &ShengjiSnapshot,
+    player: PlayerId,
+) -> Option<Vec2> {
     shengji_relative_seat(game, player).map(shengji_seat_route_anchor)
 }
 

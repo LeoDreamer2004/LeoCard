@@ -1,9 +1,11 @@
 use super::super::{PageTransitionElement, UiAction};
 use crate::app::shell::AchievementUiAction;
+use bevy::picking::Pickable;
+use bevy::ui_widgets::Button;
 
 use crate::app::presentation::{MUTED, add_text, spawn_node};
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, RelativeCursorPosition};
+use bevy::ui::RelativeCursorPosition;
 use leocard_achievements::achievements_in;
 
 use super::input::category_tint;
@@ -17,6 +19,7 @@ impl AchievementsPage<'_> {
             parent,
             Node {
                 width: px(224),
+                height: percent(100),
                 min_height: px(0),
                 flex_shrink: 0.0,
                 flex_direction: FlexDirection::Column,
@@ -35,6 +38,7 @@ impl AchievementsPage<'_> {
             column,
             Node {
                 width: percent(100),
+                height: px(0),
                 min_height: px(0),
                 flex_basis: px(0),
                 flex_grow: 1.0,
@@ -81,7 +85,7 @@ impl AchievementsPage<'_> {
                     },
                     ImageNode::new(self.assets.achievements.emblems[index].clone())
                         .with_color(category_tint(selected, false)),
-                    FocusPolicy::Pass,
+                    Pickable::IGNORE,
                 ))
                 .id();
             commands.entity(button).add_child(art);
@@ -150,7 +154,7 @@ impl AchievementsPage<'_> {
                 ImageNode::new(self.assets.achievements.scroll_arrow.clone())
                     .with_color(Color::WHITE.with_alpha(0.65)),
                 UiTransform::from_rotation(Rot2::degrees(if down { 180.0 } else { 0.0 })),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(parent).add_child(hint);

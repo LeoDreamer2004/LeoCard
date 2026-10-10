@@ -7,8 +7,8 @@ use super::super::super::{
 use super::super::{ProfileGameTab, ProfileUiState};
 use crate::app::presentation::{TEXT, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_client::LocalPlayerProfile;
 use leocard_protocol::{PlayerGameProfiles, PlayerGender};
 
@@ -129,7 +129,7 @@ impl<'a> ProfileModal<'a> {
         );
         commands.entity(overlay).insert((
             GlobalZIndex(2000),
-            FocusPolicy::Block,
+            Pickable::default(),
             CozyModalBackdrop(CozyModalKind::Profile),
         ));
 

@@ -1,6 +1,8 @@
 use super::SessionStatistics;
 use crate::RoomSession;
-use leocard_protocol::{MatchId, ShengjiThrowFailureStage};
+use leocard_protocol::{
+    MatchId, PlayerId, ShengjiBottomCopyDecisionView, ShengjiThrowFailureStage,
+};
 use leocard_shengji::{
     BottomFlipReveal, GameState, ShengjiCard, ShengjiClassifiedPlay, ShengjiPlayerId,
     ShengjiRuleSet, TeamProgress, TrickRecord,
@@ -44,9 +46,32 @@ pub(super) struct HandFlowState {
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct HeldGamePresentation {
+    pub(super) bottom_copy_decisions: Vec<ShengjiBottomCopyDecisionView>,
     pub(super) throw_penalties: [u16; ShengjiRuleSet::PLAYER_COUNT],
     pub(super) throw_failure: Option<HeldThrowFailure>,
     pub(super) trick: Option<(TrickRecord, Duration)>,
+}
+
+impl HeldGamePresentation {
+    pub(super) fn record_bottom_copy_decision(
+        &mut self,
+        player: PlayerId,
+        cards: Option<Vec<ShengjiCard>>,
+    ) {
+        if cards.is_some() {
+            self.bottom_copy_decisions.clear();
+        }
+        if let Some(decision) = self
+            .bottom_copy_decisions
+            .iter_mut()
+            .find(|decision| decision.player == player)
+        {
+            decision.cards = cards;
+        } else {
+            self.bottom_copy_decisions
+                .push(ShengjiBottomCopyDecisionView { player, cards });
+        }
+    }
 }
 
 /// 四人双升的房主权威会话。发牌、亮主窗口和机器人行动都由房主时钟推进。

@@ -2,6 +2,7 @@
 
 use super::{MahjongOwnDiscardAnimation, MahjongRemoteDiscardAnimation};
 use crate::app::presentation::{Observed, TableBackgroundMaterial};
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use leocard_mahjong::{MahjongClaim, MahjongTile};
 use leocard_protocol::{MatchId, PlayerId};
@@ -11,7 +12,8 @@ use std::collections::HashMap;
 pub(crate) struct MahjongUiState {
     pub observed_table: Observed<(MatchId, u8), MahjongTableObservation>,
     pub intro_deal_match: Option<MatchId>,
-    pub hand_hover_lifts: HashMap<i32, (f32, Interaction)>,
+    pub hand_hover_lifts: HashMap<i32, (f32, PickingInteraction)>,
+    pub ready_hint_hovered: bool,
     pub fan_guide_open: bool,
     pub fan_guide_progress: f32,
     pub fan_guide_tier: u16,

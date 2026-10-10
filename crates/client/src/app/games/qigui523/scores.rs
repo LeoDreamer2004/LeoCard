@@ -6,8 +6,10 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{PlayerGameScoreText, ScoreCaptureEffectState, displayed_captured_score};
+use bevy::picking::Pickable;
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
+use bevy::ui_widgets::Button;
 use leocard_protocol::PlayerPublicState;
 use leocard_qigui523::QiGuiCard;
 
@@ -15,12 +17,12 @@ use leocard_qigui523::QiGuiCard;
 pub(super) struct OwnScoreDetail(pub Entity);
 
 pub(super) fn sync_own_score_detail(
-    plaques: Query<(&Interaction, &OwnScoreDetail), Changed<Interaction>>,
+    plaques: Query<(&PickingInteraction, &OwnScoreDetail), Changed<PickingInteraction>>,
     mut visibility: Query<&mut Visibility>,
 ) {
     for (interaction, detail) in &plaques {
         if let Ok(mut visible) = visibility.get_mut(detail.0) {
-            *visible = if *interaction == Interaction::None {
+            *visible = if *interaction == PickingInteraction::None {
                 Visibility::Hidden
             } else {
                 Visibility::Visible
@@ -63,7 +65,7 @@ pub(super) fn add_score_cards_popup(
             node,
             qigui_plate_image(assets),
             GlobalZIndex(1500),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(parent).add_child(popup);
@@ -117,7 +119,7 @@ fn add_own_score_plaque(
     );
     commands
         .entity(icon)
-        .insert((BorderColor::all(ACCENT.with_alpha(0.75)), FocusPolicy::Pass));
+        .insert((BorderColor::all(ACCENT.with_alpha(0.75)), Pickable::IGNORE));
     add_text(commands, icon, "分", 18.0, ACCENT, assets);
     let values = spawn_node(
         commands,
@@ -137,7 +139,7 @@ fn add_own_score_plaque(
             offset: Vec2::new(1.5, 2.0),
             color: Color::BLACK.with_alpha(0.82),
         },
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     if !cards.is_empty() {
         let detail = commands
@@ -155,7 +157,7 @@ fn add_own_score_plaque(
                 qigui_plate_image(assets),
                 Visibility::Hidden,
                 GlobalZIndex(1500),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(plaque).add_child(detail);

@@ -1,6 +1,7 @@
 //! 手牌悬停、拖选和预览输入。
 
 use super::{DESIGN_WIDTH, HAND_CARD_REVEAL};
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use std::collections::HashSet;
@@ -60,13 +61,16 @@ pub(crate) struct HandCardPose {
 pub(crate) fn slot_hover_target(
     drag: &CardDragSelection,
     index: usize,
-    interaction: Interaction,
+    interaction: PickingInteraction,
     cursor: &RelativeCursorPosition,
 ) -> f32 {
     f32::from(if drag.active {
         cursor.cursor_over() || index == drag.current
     } else {
-        matches!(interaction, Interaction::Hovered | Interaction::Pressed)
+        matches!(
+            interaction,
+            PickingInteraction::Hovered | PickingInteraction::Pressed
+        )
     })
 }
 

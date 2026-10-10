@@ -4,7 +4,6 @@ use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer, interaction_anchor_in_layer};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{ChatContent, ChatEmoji, PlayerId};
 use std::collections::HashMap;
 
@@ -146,7 +145,6 @@ fn spawn_chat_bubble(
                 ..UiTransform::IDENTITY
             },
             GlobalZIndex(1600),
-            FocusPolicy::Pass,
             Pickable::IGNORE,
         ))
         .id();
@@ -198,7 +196,6 @@ fn spawn_emoji_bubble(
             },
             card_background_image(assets.home.game_card.clone(), 0.42).with_color(Color::NONE),
             GlobalZIndex(1600),
-            FocusPolicy::Pass,
             Pickable::IGNORE,
         ))
         .id();
@@ -211,7 +208,6 @@ fn spawn_emoji_bubble(
                 ..default()
             },
             ImageNode::new(assets.chat_emoji(emoji)),
-            FocusPolicy::Pass,
             Pickable::IGNORE,
         ))
         .id();

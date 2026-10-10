@@ -3,7 +3,6 @@
 use crate::app::runtime::ClientUpdateSet;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use bevy::window::PrimaryWindow;
 
 const DURATION: f32 = 0.4;
@@ -81,7 +80,6 @@ fn spawn_ripple(
         ripple.color(),
         ripple,
         GlobalZIndex(Z_INDEX),
-        FocusPolicy::Pass,
         Pickable::IGNORE,
     ));
 }

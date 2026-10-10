@@ -1,8 +1,10 @@
 use super::super::super::{ConnectionUiAction, UiAction};
 use crate::app::presentation::{ButtonArrows, ButtonHighlight, TEXT, add_text};
 use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 
 pub(super) fn home_panel_image(assets: &UiAssets) -> ImageNode {
     let mut image =
@@ -36,7 +38,7 @@ pub(super) fn home_panel(
             },
             home_panel_image(assets),
             ZIndex(-1),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(entity).add_child(background);
@@ -95,7 +97,7 @@ pub(super) fn add_home_purple_overlay(
                 Visibility::Hidden
             },
             image,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(parent).add_child(overlay);
@@ -130,7 +132,7 @@ pub(super) fn add_home_animated_arrow(
                 elapsed: 0.0,
             },
             Visibility::Hidden,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(parent).add_child(entity);

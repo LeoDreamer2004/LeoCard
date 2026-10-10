@@ -5,8 +5,9 @@ use crate::app::shell::{
     CozyButtonVariant, LobbyTransitionPanel, LobbyUiAction, PageTransitionElement, UiAction,
     add_cozy_button_variant, add_cozy_panel,
 };
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
 use leocard_protocol::LobbySnapshot;
 
 #[derive(Clone, Copy)]
@@ -195,7 +196,7 @@ impl LobbyPage {
         );
         commands
             .entity(actions)
-            .insert((GlobalZIndex(800), FocusPolicy::Pass));
+            .insert((GlobalZIndex(800), Pickable::IGNORE));
         let you = client.0.model().you();
         let ready = you
             .and_then(|you| lobby.players.iter().find(|player| player.id == you))
@@ -270,7 +271,7 @@ fn add_disabled_lobby_button(
                 ..default()
             },
             image,
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(parent).add_child(button);

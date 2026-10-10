@@ -1,6 +1,8 @@
 //! Sound volume and game voice switches.
 
 use crate::app::shell::SettingsUiAction;
+use bevy::picking::Pickable;
+use bevy::ui_widgets::Button;
 
 use super::super::super::UiAction;
 use super::super::SettingsVoiceToggle;
@@ -8,7 +10,6 @@ use super::slider::SettingsSlider;
 use crate::app::presentation::{TEXT, TableAppearanceSetting, add_text, spawn_node};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 
 pub(super) fn render_sound_settings(
     commands: &mut Commands,
@@ -110,7 +111,7 @@ fn add_voice_toggle(
             } else {
                 assets.home.checkbox.clone()
             }),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(button).add_child(icon);

@@ -13,8 +13,8 @@ use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button, add_cozy_button_variant,
     add_cozy_disabled_button,
 };
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{GamePhaseView, QiGui523Snapshot};
 
 pub(crate) fn qigui523_summary_descriptor(game: &QiGui523Snapshot) -> Option<SummaryDescriptor> {
@@ -84,7 +84,7 @@ pub(super) fn add_game_summary_modal(
         GameSummaryModal,
         UiTransform::from_translation(Val2::px(0.0, modal_visual.offset_y)),
         GlobalZIndex(1200),
-        FocusPolicy::Block,
+        Pickable::default(),
         if animation.elapsed >= 0.0 {
             Visibility::Visible
         } else {

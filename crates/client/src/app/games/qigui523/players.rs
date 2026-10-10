@@ -12,8 +12,8 @@ use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     FinishedHandScoreSource, OpponentBadge, SeatSide, displayed_captured_score,
 };
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{GameKind, GamePhaseView, PlayerId, PlayerPublicState, QiGui523Snapshot};
 use leocard_qigui523::QiGuiCard;
 
@@ -102,7 +102,7 @@ pub(super) fn add_opponent_slot(
             },
             None,
         );
-        commands.entity(spacer).insert(FocusPolicy::Pass);
+        commands.entity(spacer).insert(Pickable::IGNORE);
     }
     if matches!(side, SeatSide::Right) {
         add_round_play_for_optional_player(
@@ -313,7 +313,7 @@ fn add_finished_remaining_hand(
     commands.entity(hand).insert((
         FinishedHandScoreSource(player),
         GlobalZIndex(850),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     let mut displayed_cards = cards.to_vec();
     sort_cards_high_to_low(&mut displayed_cards);

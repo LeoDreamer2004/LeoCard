@@ -8,8 +8,10 @@ use crate::app::shell::{
     InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction, PlayerProfilePage, SeatSide,
     SocialUiAction, UiAction, add_cozy_button, add_cozy_panel, reference_level,
 };
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::{FocusPolicy, VisualBox};
+use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
 use leocard_protocol::{PlayerGameProfiles, PlayerId, PlayerInteractionKind};
 
 pub(crate) fn add_avatar(
@@ -123,7 +125,7 @@ pub(crate) fn add_host_crown(commands: &mut Commands, avatar: Entity, assets: &U
             ImageNode::new(assets.controls.host_crown.clone()),
             UiTransform::from_rotation(Rot2::degrees(-35.0)),
             ZIndex(40),
-            FocusPolicy::Pass,
+            Pickable::IGNORE,
         ))
         .id();
     commands.entity(avatar).add_child(crown);
@@ -188,7 +190,7 @@ pub(crate) fn add_interaction_menu(
     commands.entity(menu).insert((
         InteractionMenuPanel(target),
         GlobalZIndex(1500),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     let profile = spawn_node(
         commands,
@@ -315,7 +317,7 @@ pub(crate) fn add_interaction_menu(
                 },
                 highlight,
                 Visibility::Hidden,
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(button).add_child(overlay);
@@ -338,7 +340,7 @@ pub(crate) fn add_interaction_menu(
                         .expect("every interaction has a flight image")
                         .clone(),
                 ),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(button).add_child(icon);
@@ -371,7 +373,7 @@ pub(crate) fn add_interaction_menu(
                     },
                     Visibility::Hidden,
                     ZIndex(10),
-                    FocusPolicy::Pass,
+                    Pickable::IGNORE,
                 ))
                 .id();
             commands.entity(button).add_child(mask);

@@ -1,8 +1,9 @@
 //! 游戏大厅与牌桌的运行期组合边界。
 
 use super::mahjong::{
-    MahjongAssets, MahjongClaimPresentationState, MahjongHoverRetention, MahjongTableVisuals,
-    MahjongTileMaterial, MahjongUiState, render_mahjong_lobby, render_mahjong_table,
+    MahjongAssets, MahjongClaimPresentationState, MahjongFanCalculator, MahjongHoverRetention,
+    MahjongTableVisuals, MahjongTileMaterial, MahjongUiState, render_mahjong_lobby,
+    render_mahjong_table,
 };
 use super::qigui523::{
     PlayEffectState, QiGui523Assets, QiGui523UiState, TableVisualContext, render_qigui523_lobby,
@@ -17,7 +18,9 @@ use super::texas_holdem::{
     TexasChipTableState, TexasHoldemAssets, TexasHoldemUiState, TexasTableVisuals,
     render_texas_holdem_lobby, render_texas_holdem_table,
 };
-use super::uno::{UnoAssets, UnoTableVisuals, UnoUiState, render_uno_lobby, render_uno_table};
+use super::uno::{
+    UnoAssets, UnoJumpInDevice, UnoTableVisuals, UnoUiState, render_uno_lobby, render_uno_table,
+};
 use crate::app::presentation::{
     GameSummaryAnimation, StartGameSeatTransition, TableBackgroundMaterial, TurnBorderMaterial,
 };
@@ -41,7 +44,9 @@ pub(crate) struct GameScreenResources<'w> {
     texas_holdem_ui: ResMut<'w, TexasHoldemUiState>,
     shengji_ui: ResMut<'w, ShengjiUiState>,
     uno_ui: ResMut<'w, UnoUiState>,
+    uno_jump_in_device: Res<'w, UnoJumpInDevice>,
     mahjong_ui: ResMut<'w, MahjongUiState>,
+    mahjong_fan_calculator: Res<'w, MahjongFanCalculator>,
     play_effect: Res<'w, PlayEffectState>,
     score_capture: Res<'w, ScoreCaptureEffectState>,
     shengji_score_capture: Res<'w, ShengjiScoreCaptureEffectState>,
@@ -290,6 +295,7 @@ impl GameScreenResources<'_> {
                     turn_border_materials: &mut self.turn_border_materials,
                     start_game_transition: &self.start_game_transition,
                     game_summary,
+                    jump_in_device: &self.uno_jump_in_device,
                 },
             ),
             GameSnapshot::Mahjong(game) => {
@@ -315,6 +321,7 @@ impl GameScreenResources<'_> {
                         start_game_transition: &self.start_game_transition,
                         game_summary,
                         claim_presentation: &self.mahjong_claim_presentation,
+                        show_wait_fans: self.mahjong_fan_calculator.active,
                     },
                 );
             }

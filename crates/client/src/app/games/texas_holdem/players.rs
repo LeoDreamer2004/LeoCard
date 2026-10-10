@@ -9,8 +9,8 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{OpponentBadge, SeatSide};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{GameKind, PlayerId, TexasHoldemPlayerState, TexasHoldemSnapshot};
 
 pub(super) const TEXAS_PORTRAIT_WIDTH: f32 = 96.0 * 1.17;
@@ -175,7 +175,7 @@ pub(super) fn add_texas_stack_value(
         ..default()
     };
     let area = spawn_node(commands, portrait, node, None);
-    commands.entity(area).insert(FocusPolicy::Pass);
+    commands.entity(area).insert(Pickable::IGNORE);
     let fan = spawn_node(
         commands,
         area,
@@ -188,7 +188,7 @@ pub(super) fn add_texas_stack_value(
         },
         None,
     );
-    commands.entity(fan).insert(FocusPolicy::Pass);
+    commands.entity(fan).insert(Pickable::IGNORE);
     for (denomination, left, top, rotation, color, layer) in [
         (1, 1.0, 6.0, -0.22, Color::BLACK, 0),
         (5, 12.0, 1.0, 0.16, Color::WHITE, 1),
@@ -211,12 +211,12 @@ pub(super) fn add_texas_stack_value(
                 ImageNode::new(image.clone()),
                 UiTransform::from_rotation(Rot2::radians(rotation)),
                 ZIndex(layer),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(fan).add_child(chip);
         let label = add_text(commands, chip, denomination.to_string(), 9.0, color, assets);
-        commands.entity(label).insert(FocusPolicy::Pass);
+        commands.entity(label).insert(Pickable::IGNORE);
     }
     let digits = stack.to_string();
     let font_size = (28.0 - digits.len().saturating_sub(3) as f32 * 2.5).max(17.0);
@@ -227,7 +227,7 @@ pub(super) fn add_texas_stack_value(
             offset: Vec2::new(1.5, 2.0),
             color: Color::BLACK.with_alpha(0.82),
         },
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
 }
 
@@ -264,7 +264,7 @@ pub(super) fn add_role_tokens(
         },
         None,
     );
-    commands.entity(row).insert((ZIndex(45), FocusPolicy::Pass));
+    commands.entity(row).insert((ZIndex(45), Pickable::IGNORE));
     for label in labels {
         let chip = spawn_node(
             commands,
@@ -280,7 +280,7 @@ pub(super) fn add_role_tokens(
             },
             Some(ACCENT),
         );
-        commands.entity(chip).insert(FocusPolicy::Pass);
+        commands.entity(chip).insert(Pickable::IGNORE);
         add_text(commands, chip, label, 8.0, HEADER_BG, assets);
     }
 }
@@ -318,7 +318,7 @@ pub(super) fn add_texas_chip_popup(
     let popup = spawn_node(commands, parent, node, None);
     commands
         .entity(popup)
-        .insert((GlobalZIndex(1500), FocusPolicy::Pass));
+        .insert((GlobalZIndex(1500), Pickable::IGNORE));
     let image = card_background_image(assets.home.game_card.clone(), 1.0);
     commands.entity(popup).insert(image);
 
@@ -340,7 +340,7 @@ pub(super) fn add_texas_chip_popup(
             },
             None,
         );
-        commands.entity(value_area).insert(FocusPolicy::Pass);
+        commands.entity(value_area).insert(Pickable::IGNORE);
         add_text(commands, value_area, "剩余", 10.0, MUTED, assets);
         let digits = stack.to_string();
         let font_size = (28.0 - digits.len().saturating_sub(3) as f32 * 2.5).max(17.0);
@@ -413,7 +413,7 @@ fn add_horizontal_chip_group(
                 },
                 ImageNode::new(image.clone()),
                 ZIndex(index as i32),
-                FocusPolicy::Pass,
+                Pickable::IGNORE,
             ))
             .id();
         commands.entity(group).add_child(chip);

@@ -8,7 +8,6 @@ use crate::app::runtime::UiAssets;
 use bevy::audio::Volume;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::PlayerInteractionKind;
 
 const SHOE_ROTATIONS: f32 = 2.0;
@@ -115,7 +114,6 @@ pub(crate) fn animate_player_interactions(
                         },
                         ImageNode::new(impact_image),
                         ZIndex(2),
-                        FocusPolicy::Pass,
                         Pickable::IGNORE,
                     ))
                     .id();

@@ -110,7 +110,7 @@ pub(crate) fn render_shengji_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "庄家埋底后，从庄家下家开始依次询问可反主的玩家；每次抄底都公开反主牌、取得当前底牌并重新埋底，然后继续询问，直到一整轮无人再抄底。抄底永远不改变庄家，但实际通过扳底定庄的对局禁用。",
+            help: "庄家埋底后，从庄家下家开始按座次依次询问其他玩家；当前亮主者和上一位埋底者自动不抄底，其余玩家即使没有可抄底的牌也会被询问。每次抄底都公开反主牌、取得当前底牌并重新埋底，然后继续询问，直到一整轮无人再抄底。抄底永远不改变庄家，但实际通过扳底定庄的对局禁用。",
             editable: can_configure,
             previous: can_configure.then_some(bottom_copy_toggled),
             next: can_configure.then_some(bottom_copy_toggled),

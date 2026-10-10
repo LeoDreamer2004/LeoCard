@@ -3,6 +3,7 @@ use super::*;
 use crate::app::presentation::{TEXT, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer, interaction_anchor_in_layer};
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 
 pub(crate) fn animate_chat_bubbles(
@@ -70,10 +71,10 @@ pub(crate) fn animate_chat_panel(
     assets: Res<UiAssets>,
     mut chat: ResMut<ChatPanelState>,
     mut panels: Query<&mut UiTransform, With<ChatPanel>>,
-    mut icons: Query<(&Interaction, &mut ImageNode), With<ChatToggleIcon>>,
+    mut icons: Query<(&PickingInteraction, &mut ImageNode), With<ChatToggleIcon>>,
 ) {
     for (interaction, mut icon) in &mut icons {
-        let expected = match (chat.open, *interaction != Interaction::None) {
+        let expected = match (chat.open, *interaction != PickingInteraction::None) {
             (false, false) => &assets.home.rule_left,
             (false, true) => &assets.home.rule_left_highlighted,
             (true, false) => &assets.home.rule_right,

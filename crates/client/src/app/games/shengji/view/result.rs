@@ -14,8 +14,8 @@ use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
 };
+use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::FocusPolicy;
 use leocard_protocol::{ShengjiHandResultView, ShengjiSnapshot};
 use leocard_shengji::ShengjiCard;
 
@@ -62,7 +62,7 @@ pub(super) fn add_shengji_result(
         BorderColor::all(Color::NONE),
         BoxShadow::new(Color::BLACK.with_alpha(0.48), px(2), px(7), px(0), px(12)),
         GlobalZIndex(1120),
-        FocusPolicy::Pass,
+        Pickable::IGNORE,
     ));
     decorate_panel_skin(commands, stage, PanelSkin::Window, assets);
 
@@ -255,7 +255,7 @@ fn add_shengji_settlement_modal(
             ..default()
         },
         GlobalZIndex(1220),
-        FocusPolicy::Block,
+        Pickable::default(),
         Visibility::Hidden,
     ));
     let texture = decorate_panel_skin(commands, modal, PanelSkin::Window, assets);

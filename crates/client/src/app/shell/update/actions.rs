@@ -32,6 +32,7 @@ impl DomainUiAction for UpdateUiAction {
 #[derive(SystemParam)]
 pub(super) struct UpdateUiActionContext<'w> {
     updater: ResMut<'w, UpdateManager>,
+    #[cfg(not(target_os = "android"))]
     app_exit: MessageWriter<'w, AppExit>,
     profile: Res<'w, LocalPlayerProfile>,
 }
@@ -56,6 +57,7 @@ impl UiActionHandler<UpdateUiActionContext<'_>> for UpdateUiAction {
             UpdateUiAction::HideUpdateDialog => updater.dialog_open = false,
             UpdateUiAction::RestartToUpdate => restart_to_update(
                 updater,
+                #[cfg(not(target_os = "android"))]
                 &mut context.app_exit,
                 context.profile.identity.profile_id(),
             ),
@@ -65,7 +67,7 @@ impl UiActionHandler<UpdateUiActionContext<'_>> for UpdateUiAction {
 
 fn restart_to_update(
     updater: &mut UpdateManager,
-    app_exit: &mut MessageWriter<AppExit>,
+    #[cfg(not(target_os = "android"))] app_exit: &mut MessageWriter<AppExit>,
     profile_id: ProfileId,
 ) {
     let UpdateState::Ready { staged, version } = &updater.state else {
@@ -73,6 +75,8 @@ fn restart_to_update(
     };
     match launch_installer(staged, &version.to_string(), profile_id) {
         Ok(()) => {
+            updater.dialog_open = false;
+            #[cfg(not(target_os = "android"))]
             app_exit.write(AppExit::Success);
         }
         Err(error) => {

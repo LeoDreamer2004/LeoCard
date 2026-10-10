@@ -1,5 +1,7 @@
 //! 应用启动、平台集成、持久化、资源与网络会话。
 
+#[cfg(target_os = "android")]
+mod android;
 mod application;
 mod platform;
 mod plugin;

@@ -6,7 +6,11 @@ use crate::app::shell::UiState;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
-const MIN_AUTO_SCALE: f32 = 0.5;
+const MIN_AUTO_SCALE: f32 = if cfg!(target_os = "android") {
+    0.1
+} else {
+    0.5
+};
 const MAX_AUTO_SCALE: f32 = 2.5;
 const MIN_MANUAL_ZOOM: f32 = 0.7;
 const MAX_MANUAL_ZOOM: f32 = 1.5;

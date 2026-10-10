@@ -35,6 +35,7 @@ pub(crate) struct CounterDragHandle<T: CardCounterOwner>(pub PhantomData<T>);
 
 pub(crate) fn drag_card_counter_window<T: CardCounterOwner>(
     mouse: Res<ButtonInput<MouseButton>>,
+    touches: Res<Touches>,
     scale: Res<UiScale>,
     windows: Query<&Window, With<PrimaryWindow>>,
     handles: Query<&RelativeCursorPosition, With<CounterDragHandle<T>>>,
@@ -49,7 +50,10 @@ pub(crate) fn drag_card_counter_window<T: CardCounterOwner>(
     let Ok(window) = windows.single() else {
         return;
     };
-    let Some(cursor) = window.cursor_position() else {
+    let Some(cursor) = window
+        .cursor_position()
+        .or_else(|| touches.first_pressed_position())
+    else {
         return;
     };
     let cursor = cursor / scale.0;

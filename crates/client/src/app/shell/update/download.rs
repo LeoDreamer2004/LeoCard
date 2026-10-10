@@ -1,12 +1,16 @@
 use super::UpdateEvent;
+#[cfg(target_os = "android")]
+use leocard_client::platform::data_directory;
 use reqwest::blocking::Client;
 use semver::Version;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
+#[cfg(not(target_os = "android"))]
+use std::env;
 use std::ffi::OsString;
 use std::fs;
 use std::io::{Read, Write};
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "android")))]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
@@ -133,7 +137,7 @@ fn download_binary(
         .map_err(|error| format!("无法下载更新：{error}"))?;
     let total = response.content_length().or(expected_total);
     let mut file = fs::File::create(path)
-        .map_err(|error| format!("无法在程序目录创建更新文件（请检查写入权限）：{error}"))?;
+        .map_err(|error| format!("无法创建更新文件（请检查写入权限）：{error}"))?;
     let mut digest = Sha256::new();
     let mut buffer = [0_u8; DOWNLOAD_BUFFER_SIZE];
     let mut downloaded = 0_u64;
@@ -187,6 +191,8 @@ pub(super) fn parse_sha256(contents: &str) -> Result<String, String> {
 }
 
 fn platform_asset_name() -> Result<&'static str, String> {
+    #[cfg(all(target_os = "android", target_arch = "aarch64"))]
+    return Ok("leocard-android-arm64.apk");
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     return Ok("leocard-linux-x86_64");
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
@@ -195,9 +201,9 @@ fn platform_asset_name() -> Result<&'static str, String> {
     Err("当前系统没有对应的 GitHub Release 文件".to_owned())
 }
 
+#[cfg(not(target_os = "android"))]
 fn staged_update_path(version: &Version) -> Result<PathBuf, String> {
-    let executable =
-        std::env::current_exe().map_err(|error| format!("无法定位当前程序：{error}"))?;
+    let executable = env::current_exe().map_err(|error| format!("无法定位当前程序：{error}"))?;
     let file_name = executable
         .file_name()
         .ok_or_else(|| "当前程序路径没有文件名".to_owned())?;
@@ -205,6 +211,15 @@ fn staged_update_path(version: &Version) -> Result<PathBuf, String> {
     staged_name.push(file_name);
     staged_name.push(format!(".update-{version}"));
     Ok(executable.with_file_name(staged_name))
+}
+
+#[cfg(target_os = "android")]
+fn staged_update_path(version: &Version) -> Result<PathBuf, String> {
+    let directory = data_directory()
+        .ok_or("无法获取 Android 应用私有目录")?
+        .join("updates");
+    fs::create_dir_all(&directory).map_err(|error| format!("无法创建更新目录：{error}"))?;
+    Ok(directory.join(format!("leocard-{version}.apk")))
 }
 
 fn partial_update_path(staged: &Path) -> PathBuf {
@@ -215,13 +230,13 @@ fn partial_update_path(staged: &Path) -> PathBuf {
     staged.with_file_name(name)
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "android")))]
 fn set_executable_permissions(path: &Path) -> Result<(), String> {
     fs::set_permissions(path, fs::Permissions::from_mode(0o755))
         .map_err(|error| format!("无法设置更新文件的执行权限：{error}"))
 }
 
-#[cfg(not(unix))]
+#[cfg(any(not(unix), target_os = "android"))]
 fn set_executable_permissions(_path: &Path) -> Result<(), String> {
     Ok(())
 }

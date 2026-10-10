@@ -1,29 +1,76 @@
 [workspace]
-members = ["crates/games/common", "crates/achievements", "crates/client", "crates/games/mahjong", "crates/games/qigui523", "crates/games/shengji", "crates/games/texas-holdem", "crates/games/uno", "crates/host", "crates/protocol", "crates/tcp"]
+members = [
+    "crates/games/common",
+    "crates/achievements",
+    "crates/client",
+    "crates/games/mahjong",
+    "crates/games/qigui523",
+    "crates/games/shengji",
+    "crates/games/texas-holdem",
+    "crates/games/uno",
+    "crates/host",
+    "crates/protocol",
+    "crates/tcp",
+]
 resolver = "3"
 
 [workspace.package]
-version = "0.6.1"
+version = "0.7.0"
 edition = "2024"
 license = "GPL-3.0-only"
 rust-version = "1.99"
 
 [workspace.dependencies]
-bevy = { version = "0.20", default-features = false, features = ["std", "async_executor", "bevy_asset", "bevy_audio", "bevy_log", "bevy_state", "bevy_winit", "default_font", "mp3", "multi_threaded", "png", "ui_api", "ui_bevy_render", "bevy_ui_widgets", "ui_picking", "vorbis", "wayland", "x11"] }
-bevy_clipboard = { version = "0.20", features = ["system_clipboard"] }
+bevy = { version = "0.20", default-features = false, features = [
+    "std",
+    "async_executor",
+    "bevy_asset",
+    "bevy_audio",
+    "bevy_log",
+    "bevy_state",
+    "bevy_winit",
+    "default_font",
+    "mp3",
+    "multi_threaded",
+    "png",
+    "ui_api",
+    "ui_bevy_render",
+    "bevy_ui_widgets",
+    "ui_picking",
+    "vorbis",
+    "wayland",
+    "x11",
+] }
+bevy_clipboard = { version = "0.20", default-features = false }
 # Route ICU diagnostics through Bevy's logger instead of debug-only stderr output.
-icu_provider = { version = "2.3", default-features = false, features = ["logging"] }
+icu_provider = { version = "2.3", default-features = false, features = [
+    "logging",
+] }
 ed25519-dalek = "3.0"
 fastrand = "2.5"
 getrandom = "0.4"
-image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+image = { version = "0.25", default-features = false, features = [
+    "png",
+    "jpeg",
+] }
 postcard = { version = "1.1", features = ["alloc"] }
 rfd = "0.17"
-reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "rustls"] }
+reqwest = { version = "0.13", default-features = false, features = [
+    "blocking",
+    "json",
+    "rustls",
+] }
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.11"
-tokio = { version = "1.53", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.53", features = [
+    "io-util",
+    "macros",
+    "net",
+    "rt-multi-thread",
+    "sync",
+    "time",
+] }
 winit = { version = "0.30", default-features = false }
 
 [profile.release]
@@ -38,3 +85,11 @@ debug = "line-tables-only"
 [profile.dev.package."*"]
 opt-level = 3
 debug = 0
+
+# Cross-platform debug builds keep native compilation small enough for local emulators.
+[profile.android-dev]
+inherits = "dev"
+debug = "line-tables-only"
+
+[profile.android-dev.package."*"]
+opt-level = 3

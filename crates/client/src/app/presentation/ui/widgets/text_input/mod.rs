@@ -1,3 +1,5 @@
+#[cfg(target_os = "android")]
+mod android;
 mod plugin;
 mod retention;
 mod state;

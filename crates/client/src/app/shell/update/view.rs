@@ -1,6 +1,7 @@
 use super::download::format_bytes;
 use crate::app::shell::UpdateUiAction;
 use bevy::picking::Pickable;
+use leocard_client::open_url;
 
 use super::{UpdateEvent, UpdateManager, UpdateState};
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
@@ -9,10 +10,7 @@ use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, cozy_backdrop_color, cozy_panel_transform,
 };
 use crate::app::shell::{UiAction, UiState, add_cozy_button, add_cozy_panel};
-use bevy::log::warn;
 use bevy::prelude::*;
-use std::process::Command;
-use std::thread;
 
 #[derive(Component)]
 pub(crate) struct UpdateProgressFill;
@@ -244,7 +242,11 @@ pub(crate) fn render_update_dialog(
             add_cozy_button(
                 commands,
                 actions,
-                "稍后重启",
+                if cfg!(target_os = "android") {
+                    "稍后安装"
+                } else {
+                    "稍后重启"
+                },
                 UiAction::Update(UpdateUiAction::HideUpdateDialog),
                 assets,
                 px(120),
@@ -253,7 +255,11 @@ pub(crate) fn render_update_dialog(
             add_cozy_button(
                 commands,
                 actions,
-                "重启游戏并更新",
+                if cfg!(target_os = "android") {
+                    "安装更新"
+                } else {
+                    "重启游戏并更新"
+                },
                 UiAction::Update(UpdateUiAction::RestartToUpdate),
                 assets,
                 px(185),
@@ -301,31 +307,20 @@ pub(crate) fn render_update_dialog(
 }
 
 pub(crate) fn open_github_repository() -> Result<(), String> {
-    #[cfg(target_os = "windows")]
-    let result = Command::new("explorer.exe")
-        .arg(GITHUB_REPOSITORY_URL)
-        .spawn();
-    #[cfg(target_os = "macos")]
-    let result = Command::new("open").arg(GITHUB_REPOSITORY_URL).spawn();
-    #[cfg(all(unix, not(target_os = "macos")))]
-    let result = Command::new("xdg-open").arg(GITHUB_REPOSITORY_URL).spawn();
-    #[cfg(not(any(target_os = "windows", target_os = "macos", unix)))]
-    return Err("当前系统不支持自动打开网页".to_owned());
-
-    let mut child = result.map_err(|error| format!("无法打开 GitHub 仓库：{error}"))?;
-    thread::spawn(move || match child.wait() {
-        Ok(status) if !status.success() => warn!("系统浏览器未能打开 GitHub 仓库：{status}"),
-        Err(error) => warn!("等待系统浏览器时出错：{error}"),
-        Ok(_) => {}
-    });
-    Ok(())
+    open_url(GITHUB_REPOSITORY_URL)
 }
 
 pub(crate) fn settings_update_label(state: &UpdateState) -> &'static str {
     match state {
         UpdateState::Idle | UpdateState::UpToDate { .. } | UpdateState::Failed(_) => "检查并更新",
         UpdateState::Checking | UpdateState::Downloading { .. } => "查看更新进度",
-        UpdateState::Ready { .. } => "重启并更新",
+        UpdateState::Ready { .. } => {
+            if cfg!(target_os = "android") {
+                "安装更新"
+            } else {
+                "重启并更新"
+            }
+        }
     }
 }
 
@@ -370,7 +365,12 @@ pub(super) fn update_display(state: &UpdateState) -> (String, String, f32) {
         ),
         UpdateState::Ready { version, .. } => (
             format!("LeoCard v{version} 已下载并通过校验"),
-            "点击“重启游戏并更新”完成安装；也可以稍后从游戏设置中重启。".to_owned(),
+            if cfg!(target_os = "android") {
+                "点击“安装更新”打开系统安装器；也可以稍后从游戏设置中安装。"
+            } else {
+                "点击“重启游戏并更新”完成安装；也可以稍后从游戏设置中重启。"
+            }
+            .to_owned(),
             1.0,
         ),
         UpdateState::Failed(error) => ("自动更新失败".to_owned(), error.clone(), 0.0),

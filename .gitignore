@@ -47,3 +47,10 @@ Thumbs.db
 
 # My personal scripts
 *.sh
+
+# Android sources and reproducible launcher; generated SDK/APK data remain local.
+!android/**/*.sh
+/android/.gradle/
+/android/app/build/
+/android/build/
+/android/local.properties

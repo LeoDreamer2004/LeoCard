@@ -155,12 +155,114 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  android:
+    name: Build Android ARM64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      LEOCARD_ROOT: ${{ github.workspace }}
+      CARGO_BUILD_JOBS: "2"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Install native build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends clang mold pkg-config
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Select current stable Rust and Android target
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+          rustup component add clippy
+          rustup target add aarch64-linux-android
+
+      - name: Cache Android build dependencies
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/cargo-ndk
+            target/aarch64-linux-android
+            target/release
+            target/android/gradle-home/caches
+            target/android/gradle-9.8.1
+          key: Android-arm64-${{ hashFiles('**/Cargo.lock', 'android/**/*.gradle', 'android/gradle.properties', 'android/toolchain.sh') }}
+          restore-keys: |
+            Android-arm64-
+
+      - name: Prepare Android SDK, NDK and Gradle
+        run: |
+          source android/toolchain.sh
+          android_sdk
+          (set +o pipefail; yes | sdkmanager --licenses > /dev/null)
+          android_tools
+
+      - name: Lint and build ARM64 native library
+        run: |
+          source android/toolchain.sh
+          cargo ndk -t arm64-v8a -P 31 clippy -p leocard-client --lib --release --all-features --locked -- -D warnings
+          cargo ndk -t arm64-v8a -P 31 -o target/android/jniLibs build -p leocard-client --lib --release --locked
+
+      - name: Check debug APK packaging
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          source android/toolchain.sh
+          "$LEOCARD_GRADLE" -p android --no-daemon -PleocardAbi=arm64-v8a :app:assembleDebug
+
+      - name: Build and verify signed release APK
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing release signing secret: $name" >&2
+              exit 1
+            fi
+          done
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/leocard-release.p12"
+          trap 'rm -f "$ANDROID_KEYSTORE_PATH"' EXIT
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+          unset ANDROID_KEYSTORE_BASE64
+          source android/toolchain.sh
+          "$LEOCARD_GRADLE" -p android --no-daemon -PleocardAbi=arm64-v8a :app:assembleRelease
+          apk=android/app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$apk"
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 "$apk"
+          mkdir -p dist
+          cp "$apk" dist/leocard-android-arm64.apk
+          (cd dist; sha256sum leocard-android-arm64.apk > leocard-android-arm64.apk.sha256)
+
+      - name: Upload Android release artifact
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: leocard-android-arm64.apk
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
   release:
     name: Publish GitHub Release
     if: startsWith(github.ref, 'refs/tags/v')
     needs:
       - test
       - build
+      - android
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -179,12 +281,21 @@ jobs:
             exit 1
           fi
 
-      - name: Download Linux and Windows artifacts
+      - name: Download Linux, Windows and Android artifacts
         uses: actions/download-artifact@v5
         with:
           pattern: leocard-*
           path: release
           merge-multiple: true
+
+      - name: Verify release assets and checksums
+        shell: bash
+        run: |
+          cd release
+          for asset in leocard-linux-x86_64 leocard-windows-x86_64.exe leocard-android-arm64.apk; do
+            test -s "$asset"
+            sha256sum --check "$asset.sha256"
+          done
 
       - name: Create or update release
         shell: bash

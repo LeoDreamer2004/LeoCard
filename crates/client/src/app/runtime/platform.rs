@@ -11,14 +11,17 @@ use bevy::asset::io::memory::MemoryAssetReader;
 #[cfg(leocard_embedded_assets)]
 use bevy::asset::io::{AssetSourceBuilder, AssetSourceId};
 use bevy::prelude::*;
+#[cfg(not(target_os = "android"))]
 use bevy::window::WindowCreated;
 #[cfg(all(test, leocard_embedded_assets))]
 use std::path::Path;
+#[cfg(not(target_os = "android"))]
 use winit::window::Icon;
 
 #[cfg(leocard_embedded_assets)]
 include!(concat!(env!("OUT_DIR"), "/embedded_runtime_assets.rs"));
 
+#[cfg(not(target_os = "android"))]
 const APP_ICON_PNG: &[u8] = include_bytes!("../../../../../assets/icons/app-icon.png");
 
 /// 在构造 `AssetPlugin` 前将编译进程序的目录注册成 Bevy 默认资源源。
@@ -41,6 +44,7 @@ pub fn configure_runtime_asset_source(app: &mut App) {
 #[cfg(not(leocard_embedded_assets))]
 pub(super) fn configure_runtime_asset_source(_app: &mut App) {}
 
+#[cfg(not(target_os = "android"))]
 pub(super) fn set_app_window_icon(mut created_windows: MessageReader<WindowCreated>) {
     for event in created_windows.read() {
         let icon = decode_app_icon();
@@ -52,6 +56,7 @@ pub(super) fn set_app_window_icon(mut created_windows: MessageReader<WindowCreat
     }
 }
 
+#[cfg(not(target_os = "android"))]
 fn decode_app_icon() -> Icon {
     let pixels = image::load_from_memory(APP_ICON_PNG)
         .expect("the compiled application icon must be a valid PNG")
@@ -112,3 +117,6 @@ mod tests {
         }
     }
 }
+
+#[cfg(target_os = "android")]
+pub(super) fn set_app_window_icon() {}

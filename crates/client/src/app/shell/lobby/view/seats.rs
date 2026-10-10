@@ -1,7 +1,8 @@
 use super::*;
 use crate::app::presentation::{
     ACCENT, LobbyEmptySeatLabel, LobbyEmptySeatRing, LobbySeatHover, LobbySeatTransitionSource,
-    LobbySeatVisual, MUTED, READY, TEXT, add_avatar, add_host_crown, add_text, spawn_node,
+    LobbySeatVisual, MUTED, READY, SecondaryPressTarget, TEXT, add_avatar, add_host_crown,
+    add_text, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{LobbyUiAction, UiAction, reference_level};
@@ -117,6 +118,7 @@ impl<'a> LobbySeat<'a> {
         let entity = commands
             .spawn((
                 Button,
+                SecondaryPressTarget,
                 UiAction::Lobby(LobbyUiAction::SelectSeat(seat)),
                 LobbySeatHover {
                     seat: self.index,

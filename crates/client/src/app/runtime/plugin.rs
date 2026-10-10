@@ -26,6 +26,11 @@ pub(super) struct RuntimePlugin;
 
 impl Plugin for RuntimePlugin {
     fn build(&self, app: &mut App) {
+        #[cfg(target_os = "android")]
+        app.add_systems(
+            Update,
+            super::android::sync_audio_focus.in_set(ClientUpdateSet::Sync),
+        );
         let preferences = PreferenceResources::load();
         let mut page_error = PageErrorState::default();
         let profile = LocalPlayerProfile::load_or_create().unwrap_or_else(|error| {
@@ -49,6 +54,10 @@ impl Plugin for RuntimePlugin {
             PlayerEconomy::unavailable(profile_id, error)
         });
 
+        let plugins = DefaultPlugins;
+        #[cfg(target_os = "android")]
+        let plugins = plugins.set(super::android::render_plugin());
+
         configure_runtime_asset_source(app);
         app.add_message::<super::ServerNotification>()
             .insert_resource(ClearColor(TABLE_BG))
@@ -64,7 +73,7 @@ impl Plugin for RuntimePlugin {
             .insert_resource(TableFeltPicker::default())
             .insert_resource(TableAppearance::default())
             .add_plugins(
-                DefaultPlugins
+                plugins
                     .set(LogPlugin {
                         filter: format!("{DEFAULT_FILTER}icu_provider::error=error"),
                         ..default()

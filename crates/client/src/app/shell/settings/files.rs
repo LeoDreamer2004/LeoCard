@@ -9,6 +9,7 @@ use crate::app::runtime::{
 use bevy::asset::RenderAssetUsages;
 use bevy::prelude::*;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
+use leocard_client::pick_image;
 use std::{
     fs,
     path::PathBuf,
@@ -31,10 +32,7 @@ pub(crate) fn start_table_felt_picker() -> Result<TableFeltPickerReceiver, Strin
 }
 
 fn open_table_felt_dialog() -> Result<Option<PathBuf>, String> {
-    Ok(rfd::FileDialog::new()
-        .set_title("选择自定义桌布背景")
-        .add_filter("桌布图片", &["png", "jpg", "jpeg"])
-        .pick_file())
+    pick_image("选择自定义桌布背景")
 }
 
 pub(crate) fn decode_table_felt_image(bytes: &[u8]) -> Result<image::DynamicImage, String> {

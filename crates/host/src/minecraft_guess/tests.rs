@@ -3,9 +3,9 @@ use crate::{ConnectionId, Delivery};
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_minecraft_guess::{Catalogue, EntryKind, GameState, GuessPool, MinecraftGuessRuleSet};
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameSnapshot, GameViolation, JoinRequest, MinecraftGuessCommand,
-    MinecraftGuessSnapshot, PlayerGameProfiles, ProfileId, ReconnectToken, RejectReason, RequestId,
-    RoomId, SeatId, ServerEvent,
+    ClientCommand, ClientMessage, GameEvent, GameSnapshot, GameViolation, JoinRequest,
+    MinecraftGuessCommand, MinecraftGuessEvent, MinecraftGuessSnapshot, PlayerGameProfiles,
+    ProfileId, ReconnectToken, RejectReason, RequestId, RoomId, SeatId, ServerEvent,
 };
 use std::time::Duration;
 
@@ -142,6 +142,18 @@ fn all_players_receive_feedback_then_can_rematch_and_return_to_lobby() {
         snapshot(&deliveries, 1).round,
         snapshot(&deliveries, 2).round
     );
+    let facts: Vec<_> = deliveries
+        .iter()
+        .filter(|delivery| {
+            matches!(
+                delivery.message.event,
+                ServerEvent::GameEvent(GameEvent::MinecraftGuess(_))
+            )
+        })
+        .collect();
+    assert_eq!(facts.len(), 1);
+    assert_eq!(facts[0].recipient, ConnectionId(1));
+    assert!(facts[0].message.game_context.is_some());
     assert_eq!(snapshot(&deliveries, 2).round.guesses.len(), 1);
     assert_eq!(
         snapshot(&deliveries, 2).round.guesses[0].result.name(),
@@ -160,6 +172,20 @@ fn all_players_receive_feedback_then_can_rematch_and_return_to_lobby() {
         ),
     );
     assert_eq!(snapshot(&deliveries, 1).round.winner, Some(1));
+    assert_eq!(
+        deliveries
+            .iter()
+            .filter(|delivery| {
+                matches!(
+                    delivery.message.event,
+                    ServerEvent::GameEvent(GameEvent::MinecraftGuess(
+                        MinecraftGuessEvent::HandAnalyzed { .. }
+                    ))
+                )
+            })
+            .count(),
+        2
+    );
     let first_match = snapshot(&deliveries, 1).match_id;
     send(&mut session, 1, ClientCommand::PlayAgain);
     let next = send(&mut session, 2, ClientCommand::PlayAgain);

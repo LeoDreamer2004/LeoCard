@@ -1,14 +1,20 @@
-mod common;
-
-use common::context;
 use leocard_achievements::{
-    AchievementBook, AchievementDefinition, AchievementTrigger, achievement_by_id,
+    AchievementBook, AchievementContext, AchievementDefinition, AchievementTrigger,
+    achievement_by_id,
 };
 use leocard_minecraft_guess::{
     Catalogue, CorrectGuess, EntryKind, GuessActionStatistics, GuessHandStatistics, GuessPool,
 };
-use leocard_protocol::{GameEvent, MinecraftGuessEvent, PlayerId};
+use leocard_protocol::{GameEvent, MatchId, MinecraftGuessEvent, PlayerId};
 use std::collections::BTreeSet;
+
+fn context(match_byte: u8, hand: u32, sequence: u128) -> Option<AchievementContext> {
+    Some(AchievementContext {
+        match_id: MatchId([match_byte; 16]),
+        hand_index: Some(hand),
+        sequence,
+    })
+}
 
 fn definition(id: &str) -> &'static AchievementDefinition {
     achievement_by_id(&format!("leocard:minecraft_guess/{id}")).unwrap()

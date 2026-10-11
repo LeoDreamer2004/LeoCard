@@ -1,0 +1,167 @@
+use super::super::{MinecraftGuessUiAction, state::GuessInput, view::GuessTable};
+use super::{
+    buttons::{GuessButtonSpec, GuessSubmit, add_guess_button},
+    candidates::{GuessCandidates, add_candidates},
+};
+use crate::app::presentation::{ACCENT, TextInput, add_text, spawn_node};
+use bevy::prelude::*;
+use leocard_minecraft_guess::MAX_GUESS_CHARACTERS;
+
+impl GuessTable<'_> {
+    pub(in super::super) fn controls(&self, commands: &mut Commands, page: Entity) {
+        let controls = spawn_node(
+            commands,
+            page,
+            Node {
+                width: percent(100),
+                height: px(84),
+                flex_shrink: 0.0,
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                row_gap: px(6),
+                ..default()
+            },
+            None,
+        );
+        if self.transition.is_active_for(self.game.match_id) {
+            commands.entity(controls).insert(Visibility::Hidden);
+        }
+        let row = spawn_node(
+            commands,
+            controls,
+            Node {
+                height: px(46),
+                flex_shrink: 0.0,
+                align_items: AlignItems::Center,
+                column_gap: px(12),
+                ..default()
+            },
+            None,
+        );
+        if self.game.round.finished() && self.game.progress.is_last_game() {
+            return;
+        }
+        if self.game.round.finished() {
+            let winner = self
+                .game
+                .round
+                .winner
+                .and_then(|id| self.game.players.iter().find(|player| player.id.0 == id));
+            add_text(
+                commands,
+                row,
+                winner
+                    .map(|player| format!("{} 猜中了！", player.name))
+                    .unwrap_or_else(|| "全员跳过，本轮结束".to_owned()),
+                20.0,
+                ACCENT,
+                self.assets,
+            );
+            let ready = self
+                .game
+                .players
+                .iter()
+                .find(|player| player.id == self.game.you)
+                .is_some_and(|player| player.ready);
+            self.button(
+                commands,
+                row,
+                if ready {
+                    "已准备"
+                } else if self.game.progress.is_last_game() {
+                    "再玩一场"
+                } else {
+                    "准备下一局"
+                },
+                (!ready).then_some(MinecraftGuessUiAction::Again),
+            );
+            if self.game.you == self.game.host {
+                self.button(
+                    commands,
+                    row,
+                    "返回房间",
+                    Some(MinecraftGuessUiAction::Lobby),
+                );
+            }
+            return;
+        }
+        let active = self.game.round.current_player == Some(self.game.you.0);
+        let mut input = TextInput::new("minecraft-guess", &self.state.input);
+        input.placeholder = "输入方块 / 物品名称";
+        input.max_characters = MAX_GUESS_CHARACTERS;
+        input.font_size = 18.0;
+        input.skin = Some(self.game_assets.input());
+        let editor = input.spawn(
+            commands,
+            row,
+            Node {
+                width: px(310),
+                height: px(46),
+                padding: UiRect::horizontal(px(12)),
+                ..default()
+            },
+            self.assets,
+        );
+        commands.entity(editor).insert(GuessInput);
+        let submit = self.button(
+            commands,
+            row,
+            "猜测",
+            (active && !self.state.input.trim().is_empty())
+                .then_some(MinecraftGuessUiAction::Guess(None)),
+        );
+        commands.entity(submit).insert(GuessSubmit);
+        self.button(
+            commands,
+            row,
+            "跳过",
+            active.then_some(MinecraftGuessUiAction::Skip),
+        );
+        let candidates = spawn_node(
+            commands,
+            controls,
+            Node {
+                width: percent(100),
+                height: px(32),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                column_gap: px(6),
+                overflow: Overflow::clip(),
+                ..default()
+            },
+            None,
+        );
+        commands
+            .entity(candidates)
+            .insert(GuessCandidates(self.state.input.clone()));
+        add_candidates(
+            commands,
+            candidates,
+            self.game,
+            &self.state.input,
+            self.assets,
+            self.game_assets,
+        );
+    }
+
+    fn button(
+        &self,
+        commands: &mut Commands,
+        row: Entity,
+        label: &str,
+        action: Option<MinecraftGuessUiAction>,
+    ) -> Entity {
+        add_guess_button(
+            commands,
+            row,
+            GuessButtonSpec {
+                label,
+                action,
+                width: px(125),
+                height: 46.0,
+            },
+            self.assets,
+            self.game_assets,
+        )
+    }
+}

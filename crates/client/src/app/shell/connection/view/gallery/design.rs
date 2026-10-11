@@ -9,7 +9,7 @@ pub(super) struct EntryDesign {
     pub accent: Color,
 }
 
-pub(super) const ENTRY_DESIGNS: [EntryDesign; 5] = [
+pub(super) const ENTRY_DESIGNS: [EntryDesign; 6] = [
     EntryDesign {
         game: SUPPORTED_GAMES[4],
         image: "ui/home/entries/mahjong.png",
@@ -34,5 +34,10 @@ pub(super) const ENTRY_DESIGNS: [EntryDesign; 5] = [
         game: SUPPORTED_GAMES[0],
         image: "ui/home/entries/qigui.png",
         accent: Color::srgb(0.74, 0.67, 1.0),
+    },
+    EntryDesign {
+        game: SUPPORTED_GAMES[5],
+        image: "ui/home/entries/minecraft.png",
+        accent: Color::srgb(0.45, 0.90, 0.35),
     },
 ];

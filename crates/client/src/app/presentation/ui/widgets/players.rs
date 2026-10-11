@@ -1,7 +1,7 @@
 //! 玩家框、头像、准备标记和房主标记。
 
 use super::super::{BORDER, MUTED, READY, TEXT};
-use super::{add_text, spawn_node};
+use super::{add_ready_badge, add_text, spawn_node};
 use crate::app::presentation::ButtonHighlight;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
@@ -82,31 +82,7 @@ pub(crate) fn add_ready_avatar(
     }));
     add_avatar(commands, frame, name, image, avatar_size, assets);
     if ready {
-        let check_size = (avatar_size * 0.47).max(13.0);
-        let check = spawn_node(
-            commands,
-            frame,
-            Node {
-                position_type: PositionType::Absolute,
-                right: px(-3),
-                bottom: px(-2),
-                width: px(check_size),
-                height: px(check_size),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                border_radius: BorderRadius::all(percent(50)),
-                ..default()
-            },
-            Some(READY),
-        );
-        add_text(
-            commands,
-            check,
-            "✓",
-            check_size * 2.0 / 3.0,
-            Color::WHITE,
-            assets,
-        );
+        add_ready_badge(commands, frame, avatar_size, assets);
     }
     frame
 }

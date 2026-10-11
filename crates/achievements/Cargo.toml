@@ -12,6 +12,7 @@ leocard-mahjong = { path = "../games/mahjong" }
 leocard-texas-holdem = { path = "../games/texas-holdem" }
 leocard-shengji = { path = "../games/shengji" }
 leocard-qigui523 = { path = "../games/qigui523" }
+leocard-minecraft-guess = { path = "../games/minecraft-guess" }
 leocard-uno = { path = "../games/uno" }
 serde.workspace = true
 

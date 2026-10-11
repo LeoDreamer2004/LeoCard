@@ -174,6 +174,7 @@ pub(crate) fn load_ui_assets(
                 asset_server.load("ui/achievements/emblem-texas.png"),
                 asset_server.load("ui/achievements/emblem-shengji.png"),
                 asset_server.load("ui/achievements/emblem-uno.png"),
+                asset_server.load("ui/achievements/emblem-minecraft.png"),
                 asset_server.load("ui/achievements/emblem-personal.png"),
             ],
             medals: [

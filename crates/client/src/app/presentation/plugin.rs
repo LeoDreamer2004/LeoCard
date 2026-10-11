@@ -1,13 +1,15 @@
 use super::{
-    CardDragSelection, GameSummaryAnimation, PointerInputPlugin, StartGameSeatTransition,
-    SummaryAnimationSet, SummaryPlayback, TableBackgroundMaterial, TextInputPlugin,
-    TurnBorderAnimationState, TurnBorderMaterial, animate_button_arrows, animate_button_presses,
-    animate_game_summary_visuals, animate_signed_summary_scores,
+    CardDragSelection, GameSummaryAnimation, PointerInputPlugin, ScrollbarDrag,
+    StartGameSeatTransition, SummaryAnimationSet, SummaryPlayback, TableBackgroundMaterial,
+    TextInputPlugin, TurnBorderAnimationState, TurnBorderMaterial, animate_button_arrows,
+    animate_button_presses, animate_game_summary_visuals, animate_signed_summary_scores,
     animate_start_game_seat_transition, animate_summary_scores, animate_turn_border_traces,
-    play_ui_click_sounds, update_button_highlights, update_button_tints, update_summary_animation,
+    drag_scrollbar, play_ui_click_sounds, update_button_highlights, update_button_tints,
+    update_scrollbar, update_summary_animation,
 };
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
+use bevy::ui::UiSystems;
 use bevy::ui_render::UiMaterialPlugin;
 
 pub(crate) struct PresentationPlugin;
@@ -23,6 +25,9 @@ impl Plugin for PresentationPlugin {
             .insert_resource(StartGameSeatTransition::default())
             .insert_resource(TurnBorderAnimationState::default())
             .insert_resource(CardDragSelection::default())
+            .init_resource::<ScrollbarDrag>()
+            .add_systems(Update, drag_scrollbar.in_set(ClientUpdateSet::Input))
+            .add_systems(PostUpdate, update_scrollbar.after(UiSystems::Layout))
             .add_systems(
                 Update,
                 (update_button_highlights, animate_button_arrows).in_set(ClientUpdateSet::Animate),

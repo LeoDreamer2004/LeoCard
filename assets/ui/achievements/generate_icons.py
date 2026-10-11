@@ -96,6 +96,17 @@ SYMBOLS = {
  <path d="M130 87c-12 18-7 28 6 37 13 10 14 22-4 42 26-12 34-35 20-50-8-9-17-17-22-29Z" fill="#e8bd59"/>
 </g>
 """,
+    "minecraft": """
+<path d="m128 79 48 24v56l-48 28-48-28v-56Z" fill="#10172a" opacity=".7"/>
+<path d="m80 99 48 24v60l-48-28Z" fill="#bc9866" stroke="#715959" stroke-width="3" stroke-linejoin="round"/>
+<path d="m128 123 48-24v56l-48 28Z" fill="#886849" stroke="#715959" stroke-width="3" stroke-linejoin="round"/>
+<path d="m128 75 48 24-48 24-48-24Z" fill="url(#face)" stroke="#715959" stroke-width="3" stroke-linejoin="round"/>
+<path d="m112 83 48 24m-64-16 48 24m0-32-48 24m64-16-48 24" fill="none" stroke="#715959" stroke-width="3" stroke-linejoin="round"/>
+<path d="m85 110 37 20m-37 17 37 21m12-38 37-19m-37 58 37-22" fill="none" stroke="#e4c38a" stroke-width="2" stroke-opacity=".65"/>
+<path d="M103 124v34m-11-31 22 12" fill="none" stroke="#5d4c52" stroke-width="5" stroke-linecap="square"/>
+<path d="m139 133 24-12v18l-24 12Z" fill="#28314a" stroke="#d3af76" stroke-width="2" stroke-linejoin="round"/>
+<path d="m151 128 1 14" stroke="#d3af76" stroke-width="2"/>
+""",
     "personal": """
 <path d="M79 173v-12c0-25 18-41 49-41s49 16 49 41v12Z" fill="url(#face)" stroke="#725959" stroke-width="3" stroke-linejoin="round"/>
 <path d="m107 128 21 25 21-25m-21 25v20" fill="none" stroke="#66546f" stroke-width="4" stroke-linejoin="round"/>

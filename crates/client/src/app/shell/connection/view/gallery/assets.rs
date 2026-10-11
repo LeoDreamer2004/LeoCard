@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 #[derive(Resource)]
 pub(super) struct GalleryAssets {
-    images: [Handle<Image>; 5],
+    images: [Handle<Image>; ENTRY_DESIGNS.len()],
 }
 
 impl FromWorld for GalleryAssets {

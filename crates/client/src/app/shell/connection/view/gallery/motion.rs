@@ -5,7 +5,7 @@ use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::BackgroundGradient;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Component)]
 pub(super) struct EntryMotion {
     hover: f32,
     press: f32,
@@ -81,18 +81,15 @@ pub(super) fn animate_entries(
     time: Res<Time>,
     mouse: Res<ButtonInput<MouseButton>>,
     page: Res<PageMotion>,
-    entries: Query<(&PickingInteraction, &GameEntry)>,
-    mut states: Local<[EntryMotion; 5]>,
+    mut entries: Query<(&PickingInteraction, &GameEntry, &mut EntryMotion)>,
     mut transforms: Query<&mut UiTransform>,
     mut glows: Query<(&EntryGlow, &TransitionOpacity, &mut BackgroundGradient)>,
 ) {
     if entries.is_empty() {
-        *states = default();
         return;
     }
     let transitioning = page.active();
-    for (interaction, entry) in &entries {
-        let state = &mut states[entry.index];
+    for (interaction, entry, mut state) in &mut entries {
         state.advance(
             if transitioning {
                 PickingInteraction::None

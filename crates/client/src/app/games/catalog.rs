@@ -2,6 +2,7 @@
 
 use crate::app::presentation::time_control_label;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
+use leocard_minecraft_guess::GuessPool;
 use leocard_protocol::{GameKind, GameRules, TABLE_SEAT_COUNT};
 use leocard_shengji::ShengjiRuleSet;
 use leocard_uno::UnoRuleSet;
@@ -13,7 +14,7 @@ pub(crate) struct GameDescriptor {
     pub description: &'static str,
 }
 
-pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 5] = [
+pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 6] = [
     GameDescriptor {
         kind: GameKind::QiGui523,
         title: "七鬼五二三",
@@ -39,6 +40,11 @@ pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 5] = [
         title: "麻将合集",
         description: "八番起和，方城之战",
     },
+    GameDescriptor {
+        kind: GameKind::MinecraftGuess,
+        title: "MC竞猜",
+        description: "就你是 MC 高玩啊?",
+    },
 ];
 
 pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
@@ -46,12 +52,24 @@ pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
         GameRules::Shengji(_) => ShengjiRuleSet::PLAYER_COUNT as u8,
         GameRules::Uno(_) => UnoRuleSet::MAX_PLAYERS,
         GameRules::Mahjong(_) => MahjongRuleSet::PLAYER_COUNT as u8,
-        GameRules::QiGui523(_) | GameRules::TexasHoldem(_) => TABLE_SEAT_COUNT,
+        GameRules::QiGui523(_) | GameRules::TexasHoldem(_) | GameRules::MinecraftGuess(_) => {
+            TABLE_SEAT_COUNT
+        }
     }
 }
 
 pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
     match rules {
+        GameRules::MinecraftGuess(rules) => [
+            match rules.pool {
+                GuessPool::Blocks => "方块",
+                GuessPool::Items => "物品",
+                GuessPool::Mixed => "方块 / 物品",
+            }
+            .to_owned(),
+            "轮流竞猜".to_owned(),
+            "允许跳过".to_owned(),
+        ],
         GameRules::QiGui523(rules) => [
             format!("{}副", rules.deck_count),
             format!("{}张", rules.hand_size),

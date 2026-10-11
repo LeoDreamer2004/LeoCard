@@ -4,6 +4,7 @@ use super::super::{
     UpdateUiAction,
 };
 use crate::app::games::mahjong::actions::MahjongUiAction;
+use crate::app::games::minecraft_guess::MinecraftGuessUiAction;
 use crate::app::games::qigui523::actions::QiGui523UiAction;
 use crate::app::games::shengji::actions::ShengjiUiAction;
 use crate::app::games::texas_holdem::actions::TexasHoldemUiAction;
@@ -16,6 +17,7 @@ pub(super) type ButtonActions<'w, 's> = Query<'w, 's, &'static UiAction, With<Bu
 #[derive(Clone, Component)]
 pub(crate) enum UiAction {
     Mahjong(MahjongUiAction),
+    MinecraftGuess(MinecraftGuessUiAction),
     TexasHoldem(TexasHoldemUiAction),
     Uno(UnoUiAction),
     Shengji(ShengjiUiAction),
@@ -52,6 +54,7 @@ impl UiAction {
     pub(super) fn rebuilds_ui(&self) -> bool {
         match self {
             Self::Mahjong(action) => action.rebuilds_ui(),
+            Self::MinecraftGuess(action) => action.rebuilds_ui(),
             Self::TexasHoldem(action) => action.rebuilds_ui(),
             Self::Uno(action) => action.rebuilds_ui(),
             Self::Shengji(action) => action.rebuilds_ui(),

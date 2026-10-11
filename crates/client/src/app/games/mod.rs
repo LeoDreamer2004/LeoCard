@@ -3,6 +3,7 @@
 mod catalog;
 mod composition;
 pub(super) mod mahjong;
+pub(super) mod minecraft_guess;
 mod plugin;
 pub(super) mod qigui523;
 pub(super) mod shengji;

@@ -1,5 +1,6 @@
 use crate::PlayerId;
 use leocard_mahjong::{MahjongClaim, MahjongRuleSet, MahjongTile, MahjongTileKind};
+use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_qigui523::{QiGuiCard, QiGuiRuleSet};
 use leocard_shengji::{ShengjiCard, ShengjiRuleSet};
 use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemRuleSet};
@@ -15,6 +16,7 @@ pub enum GameKind {
     Shengji,
     Uno,
     Mahjong,
+    MinecraftGuess,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -24,6 +26,7 @@ pub enum GameRules {
     Shengji(ShengjiRuleSet),
     Uno(UnoRuleSet),
     Mahjong(MahjongRuleSet),
+    MinecraftGuess(MinecraftGuessRuleSet),
 }
 
 macro_rules! game_rule_projections {
@@ -47,6 +50,7 @@ impl GameRules {
             Self::Shengji(_) => GameKind::Shengji,
             Self::Uno(_) => GameKind::Uno,
             Self::Mahjong(_) => GameKind::Mahjong,
+            Self::MinecraftGuess(_) => GameKind::MinecraftGuess,
         }
     }
 
@@ -56,6 +60,7 @@ impl GameRules {
         shengji => Shengji(ShengjiRuleSet),
         uno => Uno(UnoRuleSet),
         mahjong => Mahjong(MahjongRuleSet),
+        minecraft_guess => MinecraftGuess(MinecraftGuessRuleSet),
     }
 }
 
@@ -97,6 +102,7 @@ pub enum GameCommand {
     Shengji(ShengjiCommand),
     Uno(UnoCommand),
     Mahjong(MahjongCommand),
+    MinecraftGuess(MinecraftGuessCommand),
 }
 
 macro_rules! impl_game_command_from {
@@ -114,6 +120,7 @@ impl_game_command_from!(TexasHoldemCommand, TexasHoldem);
 impl_game_command_from!(ShengjiCommand, Shengji);
 impl_game_command_from!(UnoCommand, Uno);
 impl_game_command_from!(MahjongCommand, Mahjong);
+impl_game_command_from!(MinecraftGuessCommand, MinecraftGuess);
 
 impl GameCommand {
     pub const fn kind(&self) -> GameKind {
@@ -123,6 +130,7 @@ impl GameCommand {
             Self::Shengji(_) => GameKind::Shengji,
             Self::Uno(_) => GameKind::Uno,
             Self::Mahjong(_) => GameKind::Mahjong,
+            Self::MinecraftGuess(_) => GameKind::MinecraftGuess,
         }
     }
 }
@@ -236,4 +244,17 @@ pub enum ShengjiCommand {
     PlayCards {
         cards: Vec<ShengjiCard>,
     },
+}
+
+impl From<MinecraftGuessRuleSet> for GameRules {
+    fn from(value: MinecraftGuessRuleSet) -> Self {
+        Self::MinecraftGuess(value)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum MinecraftGuessCommand {
+    UpdateRules { rules: MinecraftGuessRuleSet },
+    Guess { entry: String },
+    Skip,
 }

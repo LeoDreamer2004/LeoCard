@@ -11,6 +11,7 @@ pub(crate) use leocard_client::{
     TexasHoldemPreferences, UnoPreferences, load_player_preferences, save_player_preferences,
 };
 use leocard_mahjong::MahjongRuleSet;
+use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::{
     GameKind, GameRules, MAX_PLAYER_NAME_CHARS, PlayerGender, TABLE_SEAT_COUNT,
 };
@@ -217,6 +218,7 @@ impl_validated_rule_set!(ShengjiRuleSet, UnoRuleSet, MahjongRuleSet);
 impl HostRulePreferences {
     pub(crate) fn game_rules(&self, kind: GameKind) -> GameRules {
         match kind {
+            GameKind::MinecraftGuess => MinecraftGuessRuleSet::default().into(),
             GameKind::QiGui523 => normalize_rules(self.host_rules).into(),
             GameKind::TexasHoldem => normalize_rules(self.texas_holdem_rules).into(),
             GameKind::Shengji => normalize_rules(self.shengji_rules).into(),
@@ -227,6 +229,7 @@ impl HostRulePreferences {
 
     pub(super) fn accept_game_rules(&mut self, rules: &GameRules) -> bool {
         match rules {
+            GameRules::MinecraftGuess(_) => false,
             GameRules::QiGui523(rules) => {
                 replace_if_changed(&mut self.host_rules, normalize_rules(*rules))
             }

@@ -7,6 +7,7 @@ rust-version.workspace = true
 description = "Wire protocol and client-safe views for LeoCard"
 
 [dependencies]
+leocard-minecraft-guess = { path = "../games/minecraft-guess" }
 postcard.workspace = true
 leocard-qigui523 = { path = "../games/qigui523", features = ["serde"] }
 leocard-mahjong = { path = "../games/mahjong", features = ["serde"] }

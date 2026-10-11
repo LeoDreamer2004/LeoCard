@@ -76,7 +76,7 @@ pub(crate) struct HomeAssets {
 #[derive(Default)]
 pub(crate) struct AchievementAssets {
     pub icon: Handle<Image>,
-    pub emblems: [Handle<Image>; 6],
+    pub emblems: [Handle<Image>; 7],
     pub medals: [Handle<Image>; 3],
     pub scroll_arrow: Handle<Image>,
     pub toast: Handle<Image>,

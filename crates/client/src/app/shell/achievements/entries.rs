@@ -1,12 +1,13 @@
 use super::super::{PageTransitionElement, add_cozy_panel};
-use crate::app::presentation::{MUTED, TEXT, add_text, card_background_image, spawn_node};
+use crate::app::presentation::{
+    MUTED, Scrollbar, ScrollbarSkin, TEXT, add_text, card_background_image, spawn_node,
+};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_achievements::{AchievementDefinition, AchievementTier, achievements_in};
 
 use super::page::AchievementsPage;
-use super::scrollbar::AchievementScrollbar;
 use super::state::*;
 
 impl AchievementsPage<'_> {
@@ -80,7 +81,7 @@ impl AchievementsPage<'_> {
             RelativeCursorPosition::default(),
             ScrollPosition(Vec2::ZERO),
         ));
-        AchievementScrollbar::spawn(commands, viewport, scroll);
+        Scrollbar::spawn(commands, viewport, scroll, ScrollbarSkin::Colored(ACCENT));
         let mut definitions = achievements_in(self.selected).collect::<Vec<_>>();
         definitions.sort_by_key(|definition| match definition.tier {
             AchievementTier::Bronze => 0,

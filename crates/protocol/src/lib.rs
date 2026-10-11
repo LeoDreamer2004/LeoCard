@@ -10,6 +10,7 @@ pub mod game;
 pub mod identity;
 pub mod mahjong;
 pub mod messages;
+pub mod minecraft_guess;
 pub mod qigui523;
 pub mod shengji;
 #[cfg(test)]
@@ -25,13 +26,14 @@ pub use game::*;
 pub use identity::*;
 pub use mahjong::*;
 pub use messages::*;
+pub use minecraft_guess::*;
 pub use qigui523::*;
 pub use shengji::*;
 pub use texas_holdem::*;
 pub use uno::*;
 pub use violations::*;
 
-pub const PROTOCOL_VERSION: u16 = 55;
+pub const PROTOCOL_VERSION: u16 = 57;
 pub const MAX_FRAME_PAYLOAD: usize = 1024 * 1024;
 pub const MAX_PLAYER_NAME_CHARS: usize = 7;
 pub const AVATAR_DIMENSION: u32 = 64;

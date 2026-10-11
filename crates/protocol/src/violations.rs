@@ -1,5 +1,6 @@
 use crate::{GameKind, PlayerId, RequestId};
 use leocard_mahjong::MahjongHandReplacementError;
+use leocard_minecraft_guess::GameError as MinecraftGuessError;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -64,6 +65,7 @@ pub enum GameViolation {
     Shengji(ShengjiViolation),
     Uno(UnoViolation),
     Mahjong(MahjongViolation),
+    MinecraftGuess(MinecraftGuessError),
 }
 
 impl From<RuleViolation> for GameViolation {

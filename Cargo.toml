@@ -4,6 +4,7 @@ members = [
     "crates/achievements",
     "crates/client",
     "crates/games/mahjong",
+    "crates/games/minecraft-guess",
     "crates/games/qigui523",
     "crates/games/shengji",
     "crates/games/texas-holdem",
@@ -15,12 +16,13 @@ members = [
 resolver = "3"
 
 [workspace.package]
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
 license = "GPL-3.0-only"
 rust-version = "1.99"
 
 [workspace.dependencies]
+csv = "1.4"
 bevy = { version = "0.20", default-features = false, features = [
     "std",
     "async_executor",

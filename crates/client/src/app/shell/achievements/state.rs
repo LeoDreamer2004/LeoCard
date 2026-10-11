@@ -4,12 +4,13 @@ pub(crate) use leocard_achievements::AchievementCategory;
 pub(super) const ACCENT: Color = Color::srgb(0.77, 0.72, 1.0);
 pub(super) const GOLD: Color = Color::srgb(0.91, 0.78, 0.55);
 
-pub(super) const CATEGORIES: [(AchievementCategory, &str); 6] = [
+pub(super) const CATEGORIES: [(AchievementCategory, &str); 7] = [
     (AchievementCategory::Mahjong, "四方争雄"),
     (AchievementCategory::QiGui523, "七擒七纵"),
     (AchievementCategory::TexasHoldem, "运筹帷幄"),
     (AchievementCategory::Shengji, "步步高升"),
     (AchievementCategory::Uno, "千变万化"),
+    (AchievementCategory::MinecraftGuess, "合成天下"),
     (AchievementCategory::Personal, "独善其身"),
 ];
 

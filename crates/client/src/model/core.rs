@@ -129,6 +129,14 @@ impl ClientModel {
                 self.game = None;
                 self.rejection.value = None;
             }
+            ServerEvent::GameSnapshot(GameSnapshot::MinecraftGuess(snapshot)) => {
+                self.prepare_game_snapshot(snapshot.match_id, snapshot.host_port, snapshot.you);
+                if snapshot.round.finished() && snapshot.progress.is_last_game() {
+                    self.last_finished_match =
+                        Some((snapshot.match_id, snapshot.reference_changes.clone()));
+                }
+                self.store_game_snapshot(snapshot);
+            }
             ServerEvent::GameSnapshot(GameSnapshot::QiGui523(snapshot)) => {
                 self.apply_qigui523_snapshot(snapshot);
             }
@@ -159,6 +167,7 @@ impl ClientModel {
             ServerEvent::GameEvent(GameEvent::Mahjong(event)) => {
                 self.apply_mahjong_event(event);
             }
+            ServerEvent::GameEvent(GameEvent::MinecraftGuess(_)) => {}
             ServerEvent::PlayerInteraction(interaction) => {
                 self.pending.player_interactions.push(interaction);
             }

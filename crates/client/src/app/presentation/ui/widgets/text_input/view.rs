@@ -1,4 +1,7 @@
-use super::state::{InputPlaceholder, TextInputKey, TextInputSlot};
+use super::{
+    TextInputSkin,
+    state::{InputPlaceholder, TextInputKey, TextInputSlot},
+};
 use crate::app::presentation::{MUTED, TEXT, UiPressTarget, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::{
@@ -6,7 +9,6 @@ use bevy::{
     picking::Pickable,
     prelude::*,
     text::{EditableText, EditableTextFilter, TextCursorStyle},
-    ui::VisualBox,
     ui_widgets::TextInput as NativeTextInput,
 };
 
@@ -18,6 +20,7 @@ pub(crate) struct TextInput<'a> {
     pub filter: fn(char) -> bool,
     pub font_size: f32,
     pub tab_index: i32,
+    pub skin: Option<TextInputSkin>,
 }
 
 impl<'a> TextInput<'a> {
@@ -30,6 +33,7 @@ impl<'a> TextInput<'a> {
             filter: |character| !character.is_control(),
             font_size: 15.0,
             tab_index: 0,
+            skin: None,
         }
     }
 
@@ -40,18 +44,11 @@ impl<'a> TextInput<'a> {
         mut node: Node,
         assets: &UiAssets,
     ) -> Entity {
-        let mut image = ImageNode::new(assets.home.input.clone()).with_mode(NodeImageMode::Sliced(
-            TextureSlicer {
-                border: BorderRect::all(32.0),
-                center_scale_mode: SliceScaleMode::Stretch,
-                sides_scale_mode: SliceScaleMode::Stretch,
-                max_corner_scale: 0.45,
-            },
-        ));
-        image.visual_box = VisualBox::BorderBox;
+        let skin = self.skin.unwrap_or_else(|| TextInputSkin::cozy(assets));
+        let image = skin.image(false).clone();
         node.align_items = AlignItems::Center;
         let padding = node.padding;
-        let slot = commands.spawn((node, image, UiPressTarget)).id();
+        let slot = commands.spawn((node, image, skin, UiPressTarget)).id();
         commands.entity(parent).add_child(slot);
         let editor = commands
             .spawn((
@@ -113,6 +110,11 @@ impl<'a> TextInput<'a> {
             );
             commands.entity(placeholder).insert((
                 InputPlaceholder,
+                if self.value.is_empty() {
+                    Visibility::Inherited
+                } else {
+                    Visibility::Hidden
+                },
                 Pickable::IGNORE,
                 TextLayout::no_wrap(),
                 Node {

@@ -1,5 +1,5 @@
 use super::super::theme::HOME_SOFT;
-use super::{ENTRY_DESIGNS, EntryGlow, GlowKind};
+use super::{ENTRY_DESIGNS, EntryGlow, EntryMotion, GlowKind};
 use crate::app::presentation::{CustomButtonMotion, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ConnectionUiAction, PageTransitionElement, UiAction};
@@ -49,7 +49,7 @@ impl<'a> GameGallery<'a> {
                 use_rounding: false,
             },
         ));
-        for indices in [&[0, 1, 2][..], &[3, 4][..]] {
+        for (row_index, designs) in ENTRY_DESIGNS.chunks(3).enumerate() {
             let row = spawn_node(
                 commands,
                 gallery,
@@ -61,8 +61,8 @@ impl<'a> GameGallery<'a> {
                 },
                 None,
             );
-            for &index in indices {
-                self.entry(commands, row, index);
+            for column in 0..designs.len() {
+                self.entry(commands, row, row_index * 3 + column);
             }
         }
     }
@@ -155,6 +155,7 @@ impl<'a> GameGallery<'a> {
         for entity in [title, hint] {
             commands.entity(entity).insert(Pickable::IGNORE);
         }
+        commands.entity(button).insert(EntryMotion::default());
         commands.entity(button).insert(GameEntry {
             index,
             art,

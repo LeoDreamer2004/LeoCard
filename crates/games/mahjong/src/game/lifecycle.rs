@@ -128,7 +128,11 @@ impl GameState {
             .ok_or(GameError::InvalidDeckContents)?;
         self.players[player.0].hand.remove(position);
         self.players[player.0].flowers.push(flower);
-        let replacement = self.wall.pop_back().ok_or(GameError::InvalidDeckContents)?;
+        let Some(replacement) = self.wall.pop_back() else {
+            self.last_drawn = None;
+            self.finish_exhaustive_draw()?;
+            return Ok(player);
+        };
         self.players[player.0].hand.push(replacement);
         self.last_drawn = Some(replacement);
         self.draw_origin = MahjongDrawOrigin::FlowerReplacement;

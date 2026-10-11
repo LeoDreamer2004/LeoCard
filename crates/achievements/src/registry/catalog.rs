@@ -1,7 +1,8 @@
 //! Shared immutable registry, lookup and public medal counts.
 use super::table::combine;
 use super::{
-    AchievementCategory, AchievementDefinition, mahjong, personal, qigui523, shengji, texas, uno,
+    AchievementCategory, AchievementDefinition, mahjong, minecraft_guess, personal, qigui523,
+    shengji, texas, uno,
 };
 use leocard_protocol::AchievementCounts;
 use std::collections::HashSet;
@@ -11,7 +12,8 @@ const COUNT: usize = mahjong::DEFINITIONS.len()
     + shengji::DEFINITIONS.len()
     + personal::DEFINITIONS.len()
     + uno::DEFINITIONS.len()
-    + qigui523::DEFINITIONS.len();
+    + qigui523::DEFINITIONS.len()
+    + minecraft_guess::DEFINITIONS.len();
 pub static ACHIEVEMENT_REGISTRY: &[AchievementDefinition] = &combine::<COUNT>(&[
     mahjong::DEFINITIONS,
     texas::DEFINITIONS,
@@ -19,6 +21,7 @@ pub static ACHIEVEMENT_REGISTRY: &[AchievementDefinition] = &combine::<COUNT>(&[
     personal::DEFINITIONS,
     uno::DEFINITIONS,
     qigui523::DEFINITIONS,
+    minecraft_guess::DEFINITIONS,
 ]);
 
 pub fn achievement_by_id(id: &str) -> Option<&'static AchievementDefinition> {

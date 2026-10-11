@@ -2,7 +2,7 @@
 
 [![CI and Release](https://github.com/LeoDreamer2004/LeoCard/actions/workflows/ci.yml/badge.svg)](https://github.com/LeoDreamer2004/LeoCard/actions/workflows/ci.yml)
 
-使用 Rust、Bevy 开发的跨平台局域网棋牌游戏。目前包含七鬼五二三、德州扑克、升级（拖拉机）、UNO 牌及变种和麻将。
+使用 Rust、Bevy 开发的跨平台局域网棋牌游戏。目前包含七鬼五二三、德州扑克、升级（拖拉机）、UNO 牌及变种、麻将和 MC 竞猜。
 
 **本项目完全由 AI 开发，不保证代码质量和可维护性。**——当然，本人也会对质量做整体把关，当明显代码质量不佳时会使用 AI 进行大批量重构 (可以参考 [大幅重构记录](https://github.com/LeoDreamer2004/LeoCard/commit/96c51687c46f9fdf608d6e751f81da2259dce13f))。
 

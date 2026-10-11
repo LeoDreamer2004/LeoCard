@@ -1,12 +1,12 @@
 use super::ClientModel;
 use leocard_mahjong::MahjongRuleSet;
-use leocard_protocol::RoomId;
+use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::{
     AvatarId, ChatMessage, GameCommand, GameKind, GameRules, GameSnapshot, LobbySnapshot,
-    MahjongCommand, MahjongSnapshot, MatchId, PlayerGameProfiles, PlayerId, PlayerInteraction,
-    PlayerReferenceChange, QiGui523Command, QiGui523Snapshot, RejectReason, Revision,
-    ShengjiCommand, ShengjiSnapshot, TexasHoldemCommand, TexasHoldemSnapshot, UnoCommand,
-    UnoSnapshot,
+    MahjongCommand, MahjongSnapshot, MatchId, MinecraftGuessSnapshot, PlayerGameProfiles, PlayerId,
+    PlayerInteraction, PlayerReferenceChange, QiGui523Command, QiGui523Snapshot, RejectReason,
+    Revision, RoomId, ShengjiCommand, ShengjiSnapshot, TexasHoldemCommand, TexasHoldemSnapshot,
+    UnoCommand, UnoSnapshot,
 };
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_shengji::ShengjiRuleSet;
@@ -107,6 +107,7 @@ impl ClientModel {
             GameSnapshot::Shengji(game) => meta!(GameKind::Shengji, game),
             GameSnapshot::Uno(game) => meta!(GameKind::Uno, game),
             GameSnapshot::Mahjong(game) => meta!(GameKind::Mahjong, game),
+            GameSnapshot::MinecraftGuess(game) => meta!(GameKind::MinecraftGuess, game),
         })
     }
 
@@ -126,6 +127,7 @@ impl ClientModel {
             ClientPhaseRef::Playing(GameSnapshot::Shengji(game)) => find_name!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => find_name!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::Mahjong(game)) => find_name!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::MinecraftGuess(game)) => find_name!(game.players),
             ClientPhaseRef::Idle | ClientPhaseRef::Closed => None,
         }
     }
@@ -150,6 +152,7 @@ impl ClientModel {
             ClientPhaseRef::Playing(GameSnapshot::Shengji(game)) => profiles!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => profiles!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::Mahjong(game)) => profiles!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::MinecraftGuess(game)) => profiles!(game.players),
             ClientPhaseRef::Idle | ClientPhaseRef::Closed => None,
         }
     }
@@ -176,6 +179,7 @@ impl ClientModel {
         }
 
         match self.game.as_ref()? {
+            GameSnapshot::MinecraftGuess(_) => None,
             GameSnapshot::QiGui523(game) => {
                 toggle!(game, |enabled| QiGui523Command::SetAutoPlay { enabled })
             }
@@ -195,6 +199,14 @@ impl ClientModel {
     }
 
     game_accessors!(
+        (
+            minecraft_guess_game,
+            MinecraftGuessSnapshot,
+            minecraft_guess,
+            minecraft_guess_rules,
+            MinecraftGuessRuleSet,
+            minecraft_guess
+        ),
         (
             qigui523_game,
             QiGui523Snapshot,

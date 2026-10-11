@@ -1,9 +1,9 @@
 use crate::{
     AchievementAnnouncement, AchievementCounts, AvatarId, ChatContent, ChatMessage, GameCommand,
-    GameEvent, GameKind, GameRules, MahjongSnapshot, MatchId, PROTOCOL_VERSION, PlayerGameProfiles,
-    PlayerId, PlayerInteraction, PlayerInteractionKind, ProfileId, QiGui523Snapshot,
-    ReconnectToken, RejectReason, RequestId, Revision, RoomId, SeatId, ShengjiSnapshot,
-    TexasHoldemSnapshot, UnoSnapshot,
+    GameEvent, GameKind, GameRules, MahjongSnapshot, MatchId, MinecraftGuessSnapshot,
+    PROTOCOL_VERSION, PlayerGameProfiles, PlayerId, PlayerInteraction, PlayerInteractionKind,
+    ProfileId, QiGui523Snapshot, ReconnectToken, RejectReason, RequestId, Revision, RoomId, SeatId,
+    ShengjiSnapshot, TexasHoldemSnapshot, UnoSnapshot,
 };
 use serde::{Deserialize, Serialize};
 
@@ -210,6 +210,7 @@ pub enum GameSnapshot {
     Shengji(ShengjiSnapshot),
     Uno(UnoSnapshot),
     Mahjong(MahjongSnapshot),
+    MinecraftGuess(MinecraftGuessSnapshot),
 }
 
 macro_rules! game_snapshot_projections {
@@ -247,6 +248,7 @@ impl_game_snapshot_from!(TexasHoldemSnapshot, TexasHoldem);
 impl_game_snapshot_from!(ShengjiSnapshot, Shengji);
 impl_game_snapshot_from!(UnoSnapshot, Uno);
 impl_game_snapshot_from!(MahjongSnapshot, Mahjong);
+impl_game_snapshot_from!(MinecraftGuessSnapshot, MinecraftGuess);
 
 impl GameSnapshot {
     pub const fn match_id(&self) -> MatchId {
@@ -256,6 +258,7 @@ impl GameSnapshot {
             Self::Shengji(snapshot) => snapshot.match_id,
             Self::Uno(snapshot) => snapshot.match_id,
             Self::Mahjong(snapshot) => snapshot.match_id,
+            Self::MinecraftGuess(snapshot) => snapshot.match_id,
         }
     }
 
@@ -266,6 +269,7 @@ impl GameSnapshot {
             Self::Shengji(_) => GameKind::Shengji,
             Self::Uno(_) => GameKind::Uno,
             Self::Mahjong(_) => GameKind::Mahjong,
+            Self::MinecraftGuess(_) => GameKind::MinecraftGuess,
         }
     }
 
@@ -275,5 +279,6 @@ impl GameSnapshot {
         shengji, into_shengji => Shengji(ShengjiSnapshot),
         uno, into_uno => Uno(UnoSnapshot),
         mahjong, into_mahjong => Mahjong(MahjongSnapshot),
+        minecraft_guess, into_minecraft_guess => MinecraftGuess(MinecraftGuessSnapshot),
     }
 }

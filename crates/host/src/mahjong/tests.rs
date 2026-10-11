@@ -66,26 +66,33 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
             },
         },
     ];
-    // 三名真人和一名机器人仍计入档案；两名机器人则超过三分之一。
+    // 普通版本允许一名机器人；开发者模式即便全是机器人也记录档案。
     session.room.players[3].is_bot = true;
-    let mut with_bot = session.clone();
-    with_bot.room.players[2].is_bot = true;
-    with_bot.room.players[3].connected = false;
-    with_bot.record_statistics(&events[..1]);
-    assert!(with_bot.finished_reference_changes.is_none());
-    with_bot.record_statistics(&events[1..]);
-    assert!(
-        with_bot
-            .finished_reference_changes
-            .as_ref()
-            .unwrap()
-            .is_empty()
-    );
-    assert!(with_bot.room.players.iter().all(|player| {
-        player.game_profiles == PlayerGameProfiles::default()
-            && player.reference_points == 0
-            && player.completed_games == 0
-    }));
+    #[cfg(feature = "developer")]
+    for player in &mut session.room.players {
+        player.is_bot = true;
+    }
+    #[cfg(not(feature = "developer"))]
+    {
+        let mut with_bot = session.clone();
+        with_bot.room.players[2].is_bot = true;
+        with_bot.room.players[3].connected = false;
+        with_bot.record_statistics(&events[..1]);
+        assert!(with_bot.finished_reference_changes.is_none());
+        with_bot.record_statistics(&events[1..]);
+        assert!(
+            with_bot
+                .finished_reference_changes
+                .as_ref()
+                .unwrap()
+                .is_empty()
+        );
+        assert!(with_bot.room.players.iter().all(|player| {
+            player.game_profiles == PlayerGameProfiles::default()
+                && player.reference_points == 0
+                && player.completed_games == 0
+        }));
+    }
 
     session.record_statistics(&events);
     let winner = session.room.players[0]

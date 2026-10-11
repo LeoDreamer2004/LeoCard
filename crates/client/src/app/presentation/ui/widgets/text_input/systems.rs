@@ -1,5 +1,7 @@
-use super::state::{InputPlaceholder, TextInputAction, TextInputEvent, TextInputSlot};
-use crate::app::runtime::UiAssets;
+use super::{
+    TextInputSkin,
+    state::{InputPlaceholder, TextInputAction, TextInputEvent, TextInputSlot},
+};
 use bevy::{
     input::{ButtonState, keyboard::KeyboardInput},
     input_focus::{AcquireFocus, FocusCause, FocusedInput, InputFocus},
@@ -49,23 +51,18 @@ pub(super) fn collect_submissions(
 
 pub(super) fn sync_input_skin(
     focus: Res<InputFocus>,
-    assets: Res<UiAssets>,
-    mut slots: Query<(&TextInputSlot, &mut ImageNode)>,
+    mut slots: Query<(&TextInputSlot, &TextInputSkin, &mut ImageNode)>,
     editors: Query<&EditableText>,
     mut placeholders: Query<(&ChildOf, &mut Visibility), With<InputPlaceholder>>,
 ) {
-    for (slot, mut image) in &mut slots {
-        let texture = if focus.get() == Some(slot.editor) {
-            &assets.home.focused_input
-        } else {
-            &assets.home.input
-        };
-        if image.image != *texture {
-            image.image = texture.clone();
+    for (slot, skin, mut image) in &mut slots {
+        let target = skin.image(focus.get() == Some(slot.editor));
+        if image.image != target.image {
+            *image = target.clone();
         }
     }
     for (parent, mut visibility) in &mut placeholders {
-        let Ok((slot, _)) = slots.get(parent.parent()) else {
+        let Ok((slot, _, _)) = slots.get(parent.parent()) else {
             continue;
         };
         *visibility = if editors

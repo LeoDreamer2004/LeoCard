@@ -6,6 +6,7 @@
 mod achievements;
 mod lifecycle;
 mod mahjong;
+mod minecraft_guess;
 mod player;
 mod qigui523;
 mod room;
@@ -20,6 +21,7 @@ use leocard_protocol::{
 };
 use leocard_qigui523::RuleError;
 pub use mahjong::MahjongSession;
+pub use minecraft_guess::MinecraftGuessSession;
 pub use qigui523::QiGui523Session;
 pub use room::RoomSession;
 pub use session::{GameSetup, HostSession};

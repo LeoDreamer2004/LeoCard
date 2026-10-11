@@ -311,3 +311,46 @@ fn next_claim_resolves_as_soon_as_higher_player_passes() {
         }
     ));
 }
+
+#[test]
+fn flower_replacement_finishes_draw_when_no_tile_remains() {
+    for flower_count in 1..=2 {
+        for origin in [
+            MahjongDrawOrigin::Normal,
+            MahjongDrawOrigin::KongReplacement,
+        ] {
+            let mut game = GameState::new_with_deck(
+                MahjongRuleSet::default(),
+                build_deck(),
+                MahjongPlayerId(0),
+            )
+            .unwrap();
+            finish_dealing(&mut game);
+            game.wall = game
+                .wall
+                .iter()
+                .copied()
+                .filter(|tile| tile.kind().is_flower())
+                .take(flower_count)
+                .collect();
+            let player = MahjongPlayerId(1);
+            if origin == MahjongDrawOrigin::Normal {
+                game.draw_normal(player).unwrap();
+            } else {
+                game.draw_replacement(player, origin).unwrap();
+            }
+            for _ in 0..flower_count {
+                assert_eq!(game.advance_flower_replacement().unwrap(), player);
+            }
+            let Phase::Finished(result) = game.phase() else {
+                panic!("expected exhaustive draw");
+            };
+            assert!(result.exhaustive_draw);
+            assert!(result.winners.is_empty());
+            assert_eq!(result.match_progress.completed_hands, 1);
+            assert_eq!(game.players[player.0].flowers.len(), flower_count);
+            assert!(game.wall.is_empty());
+            assert!(game.last_drawn.is_none());
+        }
+    }
+}

@@ -5,6 +5,9 @@ use leocard_protocol::GameViolation;
 
 pub(crate) fn game_violation_label(violation: &GameViolation) -> Option<String> {
     match violation {
+        GameViolation::MinecraftGuess(violation) => {
+            Some(super::minecraft_guess::violation_label(*violation).to_owned())
+        }
         GameViolation::QiGui523(violation) => {
             qigui523::violation::qigui523_violation_label(violation)
         }

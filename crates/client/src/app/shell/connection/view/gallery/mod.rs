@@ -8,7 +8,7 @@ mod scene;
 use assets::{GalleryAssets, load_entry_art};
 use design::ENTRY_DESIGNS;
 use glow::{EntryGlow, GlowKind};
-use motion::animate_entries;
+use motion::{EntryMotion, animate_entries};
 use scene::{EntryArt, GameEntry};
 
 pub(in crate::app::shell::connection) use plugin::GameGalleryPlugin;

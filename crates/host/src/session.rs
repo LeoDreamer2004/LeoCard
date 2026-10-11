@@ -1,8 +1,9 @@
 use crate::{
-    ConnectionId, Delivery, HostError, MahjongSession, QiGui523Session, ShengjiSession,
-    TexasHoldemSession, UnoSession,
+    ConnectionId, Delivery, HostError, MahjongSession, MinecraftGuessSession, QiGui523Session,
+    ShengjiSession, TexasHoldemSession, UnoSession,
 };
 use leocard_mahjong::{MahjongRuleSet, MahjongTile};
+use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameKind, GameRules, PROTOCOL_VERSION, Revision, RoomId,
     ServerEvent, ServerMessage,
@@ -16,6 +17,10 @@ use std::time::Duration;
 /// 创建统一房主会话所需的具体游戏后端配置。
 #[derive(Clone, Debug)]
 pub enum GameSetup {
+    MinecraftGuess {
+        host_port: u16,
+        rules: MinecraftGuessRuleSet,
+    },
     QiGui523 {
         host_port: u16,
         rules: QiGuiRuleSet,
@@ -46,6 +51,7 @@ pub enum GameSetup {
 impl GameSetup {
     pub fn shuffled(host_port: u16, rules: GameRules) -> Self {
         match rules {
+            GameRules::MinecraftGuess(rules) => Self::MinecraftGuess { host_port, rules },
             GameRules::QiGui523(rules) => {
                 let mut shuffled_deck = build_deck(rules.deck_count);
                 fastrand::shuffle(&mut shuffled_deck);
@@ -101,6 +107,7 @@ impl GameSetup {
             Self::Shengji { .. } => GameKind::Shengji,
             Self::Uno { .. } => GameKind::Uno,
             Self::Mahjong { .. } => GameKind::Mahjong,
+            Self::MinecraftGuess { .. } => GameKind::MinecraftGuess,
         }
     }
 }
@@ -113,6 +120,7 @@ pub enum HostSession {
     Shengji(Box<ShengjiSession>),
     Uno(Box<UnoSession>),
     Mahjong(Box<MahjongSession>),
+    MinecraftGuess(Box<MinecraftGuessSession>),
 }
 
 trait HostBackend {
@@ -186,10 +194,14 @@ impl_host_backend!(TexasHoldemSession, TexasHoldem);
 impl_host_backend!(ShengjiSession, Shengji);
 impl_host_backend!(UnoSession, Uno);
 impl_host_backend!(MahjongSession, Mahjong);
+impl_host_backend!(MinecraftGuessSession, MinecraftGuess);
 
 impl HostSession {
     pub fn new(room_id: RoomId, setup: GameSetup) -> Result<Self, HostError> {
         match setup {
+            GameSetup::MinecraftGuess { host_port, rules } => Ok(Self::MinecraftGuess(Box::new(
+                MinecraftGuessSession::new(room_id, host_port, rules),
+            ))),
             GameSetup::QiGui523 {
                 host_port,
                 rules,
@@ -235,6 +247,7 @@ impl HostSession {
             Self::Shengji(session) => session.as_ref(),
             Self::Uno(session) => session.as_ref(),
             Self::Mahjong(session) => session.as_ref(),
+            Self::MinecraftGuess(session) => session.as_ref(),
         }
     }
 
@@ -245,6 +258,7 @@ impl HostSession {
             Self::Shengji(session) => session.as_mut(),
             Self::Uno(session) => session.as_mut(),
             Self::Mahjong(session) => session.as_mut(),
+            Self::MinecraftGuess(session) => session.as_mut(),
         }
     }
 

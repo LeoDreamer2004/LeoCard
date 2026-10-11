@@ -62,13 +62,13 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 ### CozyUI+ 首页纹理（GPL-3.0）
 
 - 作者：零雾〇五 Fogg05；来源：<https://github.com/Fogg05/CozyUI-Plus>
-- `cozy-button-purple-plain.png` 和 `cozy-button-arrows.png` 从原版 `button_highlighted.png` 分离而来；原始文件也保存在同一目录，便于核对来源。
-- 两张 `compact` 按钮图保留原图的两端与中段，统一短按钮的圆角和亮边尺寸；原版 `button.png` 也保存在同一目录。
+- `cozy-button-purple-plain.png` 和 `cozy-button-arrows.png` 从原版 `button_highlighted.png` 分离而来。
+- 两张 `compact` 按钮图保留原图的两端与中段，统一短按钮的圆角和亮边尺寸。
 - 两张红色 `compact` 按钮图分别从灰色常态和紫色高亮按钮的颜色层次转换而来；悬停态保留普通高亮贴图的原始白边，仅将彩色部分转为较暗的红色，两张图的透明轮廓一致。
 - 两张冷绿色 `compact` 按钮图同样由灰色常态和紫色高亮按钮变色而来；悬停态保留普通高亮贴图的原始白边，两张图的透明轮廓一致。
 - `cozy-game-card.png` 与 `cozy-game-card-hover.png` 分别取自 `hud/effect_background.png` 和 `hud/effect_background_ambient.png`，用于设置标签等卡片的常态与悬停态；只清除了全透明区域的白色 RGB，可见像素未改动。
 - `cozy-settings-page.png` 取自 `recipe_book/slot_craftable.png`，用于设置窗口右侧内容页；左侧标签复用 `cozy-game-card.png` 与其高亮变种。
-- 两张输入框 `compact` 图使用同样的切片方式，保留原版 `text_field.png` 和 `text_field_highlighted.png` 的边框与底色；原版文件也保存在同一目录。
+- 两张输入框 `compact` 图使用同样的切片方式，保留原版 `text_field.png` 和 `text_field_highlighted.png` 的边框与底色。
 - 四张 `rule-*.png` 箭头图保留原版箭头，将与画面不协调的连通灰色背景转为透明像素。
 - `cozy-help-question.png` 清除了透明区域残留的白色底色，避免缩放时在问号边缘出现白边；可见像素未改动。
 - 许可证副本：`vendor/cozyui-plus/LICENSE.txt`
@@ -109,7 +109,7 @@ OFL 关于保留名称与再分发的条件。
 
 ### GitHub Mark（MIT；受商标规范约束）
 
-- 运行时文件：`icons/github-mark.svg`、`icons/github-mark.png`
+- 运行时文件：`icons/github-mark.png`
 - 来源：GitHub Primer Octicons 的 `mark-github`，<https://github.com/primer/octicons>
 - 许可证：MIT
 - 用途：游戏设置中打开 LeoCard GitHub 仓库的按钮
@@ -139,3 +139,19 @@ GitHub 名称与标志同时受 GitHub 商标规范约束；本项目仅将其�
 - 运行时文件：`ui/tieba-emoji/` 下的 50 张透明 PNG，保留原始 90×90 尺寸。
 - 来源：<https://github.com/microlong666/Tieba_mobile_emotions>，从百度贴吧 Android 11.6.8.2 提取的默认表情，取编号 1–50。
 - 原始表情归百度及对应权利人所有；来源仓库声明仅供学习交流与个人非营利性使用，未提供开源授权。
+
+### AE2 Dark Mode GUI 贴图（CC BY-NC-SA 4.0）
+
+- 作者：Ridanisaurus；基于 Applied Energistics 2（Ridanisaurus Rid、AlgorithmX2 et al.）的 GUI。
+- Minecraft 1.21，AE2DarkMode V1.0.6：[作者发布页](https://www.curseforge.com/minecraft/texture-packs/ae2-dark-mode/files/5520011)。
+- 用于 MC竞猜表格的外框、内凹底面、单元格底纹，以及输入框和操作、候选词按钮。按钮直接采用原图；外框裁去底部多出的两行阴影以统一上下厚度，内凹底面及滚动条轨道取自 CPU 选择器，其余仅裁切，反馈颜色在运行时着色。
+- 许可副本：`vendor/ae2-dark-mode/LICENSE.txt`；来源和裁切记录：`vendor/ae2-dark-mode/SOURCE.md`；运行时贴图：`ui/minecraft_guess/`。原图及资源包元数据已移除。
+- 图片素材按 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 提供，保留署名，限非商业使用，衍生素材使用相同许可。
+
+### AE2 蓝色按钮高亮贴图（CC BY-NC-SA 3.0）
+
+- 作者：Ridanisaurus Rid、AlgorithmX2 et al.；AE2 19.2.18（Minecraft 1.21.1）。
+- 来源：[AE2 官方发布](https://github.com/AppliedEnergistics/Applied-Energistics-2/releases/tag/neoforge/v19.2.18)。
+- 原样采用 `button_highlighted.png`，用于 MC竞猜操作及候选词按钮的蓝色悬停高亮；暗色材质包没有覆盖该素材。
+- 运行时文件：`ui/minecraft_guess/button-highlighted.png`；许可副本：`vendor/ae2/LICENSE.txt`；来源、九宫格边距及上游授权说明：`vendor/ae2/SOURCE.md`。原图及资源包元数据已移除。
+- 图片素材按 [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) 提供。

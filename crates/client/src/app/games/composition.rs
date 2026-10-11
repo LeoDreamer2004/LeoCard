@@ -5,6 +5,10 @@ use super::mahjong::{
     MahjongTableVisuals, MahjongTileMaterial, MahjongUiState, render_mahjong_lobby,
     render_mahjong_table,
 };
+use super::minecraft_guess::{
+    GuessScorePlayback, GuessTable, MinecraftGuessAssets, MinecraftGuessUiState,
+    render_guess_lobby, render_guess_table,
+};
 use super::qigui523::{
     PlayEffectState, QiGui523Assets, QiGui523UiState, TableVisualContext, render_qigui523_lobby,
     render_table,
@@ -35,6 +39,9 @@ use leocard_protocol::{GameKind, GameSnapshot, LobbySnapshot, PlayerId};
 
 #[derive(SystemParam)]
 pub(crate) struct GameScreenResources<'w> {
+    minecraft_guess_assets: Res<'w, MinecraftGuessAssets>,
+    minecraft_guess_ui: Res<'w, MinecraftGuessUiState>,
+    minecraft_guess_scores: Res<'w, GuessScorePlayback>,
     qigui523_assets: Res<'w, QiGui523Assets>,
     texas_holdem_assets: Res<'w, TexasHoldemAssets>,
     shengji_assets: Res<'w, ShengjiAssets>,
@@ -90,6 +97,12 @@ impl GameScreenResources<'_> {
             self.uno_ui.expansion_settings_progress = 0.0;
         }
         match phase {
+            ClientPhaseRef::Playing(GameSnapshot::MinecraftGuess(game)) => {
+                self.clear_except(GameKind::MinecraftGuess);
+                retain_or_clear(shell, |target| {
+                    game.players.iter().any(|player| player.id == target)
+                });
+            }
             ClientPhaseRef::Playing(GameSnapshot::QiGui523(game)) => {
                 self.qigui523_ui.reconcile(game);
                 self.clear_except(GameKind::QiGui523);
@@ -169,6 +182,9 @@ impl GameScreenResources<'_> {
         avatars: &AvatarImages,
     ) {
         match lobby.game {
+            GameKind::MinecraftGuess => {
+                render_guess_lobby(commands, root, client, lobby, assets, avatars)
+            }
             GameKind::QiGui523 => {
                 render_qigui523_lobby(commands, root, client, lobby, assets, avatars)
             }
@@ -204,6 +220,24 @@ impl GameScreenResources<'_> {
         game_summary: &GameSummaryAnimation,
     ) {
         match game {
+            GameSnapshot::MinecraftGuess(game) => render_guess_table(
+                commands,
+                root,
+                GuessTable {
+                    client,
+                    game,
+                    state: &self.minecraft_guess_ui,
+                    scores: &self.minecraft_guess_scores,
+                    summary: game_summary,
+                    game_assets: &self.minecraft_guess_assets,
+                    turn_border_materials: &mut self.turn_border_materials,
+                    social: &ui.social,
+                    chat,
+                    assets,
+                    avatars,
+                    transition: &self.start_game_transition,
+                },
+            ),
             GameSnapshot::QiGui523(game) => {
                 let mut visuals = TableVisualContext {
                     assets,

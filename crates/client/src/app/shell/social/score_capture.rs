@@ -1,7 +1,7 @@
 use super::*;
 use crate::app::presentation::{
     ACCENT, CardSize, SCORE_ROLL_DELAY, SCORE_ROLL_DURATION, TABLE_SCORE_CARD_REVEAL, add_text,
-    ease_out_cubic, spawn_node,
+    rolling_score, score_gain_visual, spawn_node,
 };
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::ecs::system::SystemParam;
@@ -353,10 +353,8 @@ pub(crate) fn animate_score_capture_effects(
         if local < 0.0 {
             continue;
         }
-        let progress = (local / (SCORE_ROLL_DURATION + 0.30)).clamp(0.0, 1.0);
-        let fade = ((SCORE_ROLL_DURATION + 0.30 - local) / 0.30).clamp(0.0, 1.0);
-        transform.translation = Val2::px(0.0, -22.0 * ease_out_cubic(progress));
-        transform.scale = Vec2::splat(0.82 + 0.18 * ease_out_cubic((progress * 4.0).min(1.0)));
+        let (pose, fade) = score_gain_visual(gain.elapsed);
+        *transform = pose;
         if let Ok((_, _, mut color)) = texts.get_mut(gain.text) {
             color.0 = ACCENT.with_alpha(fade);
         }
@@ -418,11 +416,7 @@ pub(crate) fn vortex_card_pose(
 }
 
 fn rolling_captured_score(capture: &ScoreCaptureEffect, elapsed: f32) -> u32 {
-    let progress = ((elapsed - SCORE_ROLL_DELAY) / SCORE_ROLL_DURATION).clamp(0.0, 1.0);
-    let eased = ease_out_cubic(progress);
-    (capture.score_before as f32
-        + capture.score_after.saturating_sub(capture.score_before) as f32 * eased)
-        .round() as u32
+    rolling_score(capture.score_before, capture.score_after, elapsed)
 }
 
 pub(crate) fn displayed_captured_score(

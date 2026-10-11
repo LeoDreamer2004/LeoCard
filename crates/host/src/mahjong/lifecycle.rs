@@ -7,7 +7,9 @@ use crate::{
     lifecycle::{HostedGameLifecycle, dispatch_client_command},
     new_match_id,
 };
-use leocard_mahjong::{GameError, GameState, MahjongPlayerId, MahjongRuleSet, MahjongTile, Phase};
+use leocard_mahjong::{
+    ActionOutcome, GameError, GameState, MahjongPlayerId, MahjongRuleSet, MahjongTile, Phase,
+};
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, MahjongEvent,
     MahjongViolation, PlayerId, PlayerInteractionKind, PlayerViolation, RejectReason, RequestId,
@@ -105,13 +107,19 @@ impl MahjongSession {
                 .enumerate()
                 .find(|(index, player)| player.flowers().len() > flower_counts[*index])
                 .map(|(index, _)| PlayerId(index as u8));
+            let mut events = replaced
+                .map(|player| MahjongEvent::FlowerReplaced { player })
+                .into_iter()
+                .collect::<Vec<_>>();
+            if let Phase::Finished(result) = game.phase() {
+                events.extend(events_for_outcome(&ActionOutcome::HandFinished(
+                    result.clone(),
+                )));
+                self.room.prepare_rematch();
+            }
+            self.record_statistics(&events);
             self.room.bump_revision();
-            let mut deliveries = self.broadcast_events(
-                replaced
-                    .map(|player| MahjongEvent::FlowerReplaced { player })
-                    .into_iter()
-                    .collect(),
-            );
+            let mut deliveries = self.broadcast_events(events);
             deliveries.extend(self.broadcast_game(None));
             return deliveries;
         }

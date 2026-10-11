@@ -25,6 +25,7 @@ pub enum AchievementCategory {
     TexasHoldem,
     Shengji,
     Uno,
+    MinecraftGuess,
     Personal,
 }
 
@@ -50,6 +51,21 @@ pub enum AchievementTrigger {
     Personal(PersonalEvent),
     TrophyTotals(AchievementCounts),
     Signal(&'static str),
+    /// Derived collection updates use the existing criterion map for unique keys.
+    Collection {
+        id: &'static str,
+        item: String,
+        target: usize,
+    },
+    CollectionCount {
+        id: &'static str,
+        count: usize,
+        target: usize,
+    },
+    Streak {
+        id: &'static str,
+        qualifies: bool,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

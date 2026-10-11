@@ -1,7 +1,7 @@
 //! 棋牌游戏客户端插件组合。
 
 use super::summary::sync_summary_playback;
-use super::{mahjong, qigui523, shengji, texas_holdem, uno};
+use super::{mahjong, minecraft_guess, qigui523, shengji, texas_holdem, uno};
 use crate::app::presentation::update_summary_animation;
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
@@ -11,6 +11,7 @@ pub(crate) struct GamesPlugin;
 impl Plugin for GamesPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
+            minecraft_guess::MinecraftGuessPlugin,
             qigui523::QiGui523Plugin,
             texas_holdem::TexasHoldemPlugin,
             shengji::ShengjiPlugin,

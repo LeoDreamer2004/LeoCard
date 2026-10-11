@@ -34,7 +34,9 @@ pub(super) fn handle_escape(
         return;
     }
     if let Some(action) = back_action(&ui, &confirmation) {
-        ui.dirty |= action.rebuilds_ui();
+        if matches!(&action, UiAction::Navigation(_)) {
+            ui.dirty = true;
+        }
         actions.write(PressedUiAction(action));
     }
 }

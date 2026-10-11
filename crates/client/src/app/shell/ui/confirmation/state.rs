@@ -21,7 +21,6 @@ pub(crate) struct ConfirmationDialog {
 }
 
 impl ConfirmationDialog {
-    #[cfg(target_os = "android")]
     pub fn is_open(&self) -> bool {
         self.open
     }

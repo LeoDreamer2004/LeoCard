@@ -1,4 +1,6 @@
-use super::super::{MinecraftGuessUiAction, state::GuessInput, view::GuessTable};
+use super::super::{
+    MinecraftGuessUiAction, state::GuessInput, turn_timer::add_guess_clock, view::GuessTable,
+};
 use super::{
     buttons::{GuessButtonSpec, GuessSubmit, add_guess_button},
     candidates::{GuessCandidates, add_candidates},
@@ -116,6 +118,12 @@ impl GuessTable<'_> {
             row,
             "跳过",
             active.then_some(MinecraftGuessUiAction::Skip),
+        );
+        add_guess_clock(
+            commands,
+            row,
+            self.game.guess_seconds_remaining,
+            self.assets,
         );
         let candidates = spawn_node(
             commands,

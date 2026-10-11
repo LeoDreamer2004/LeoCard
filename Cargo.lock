@@ -3382,7 +3382,7 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "leocard-achievements"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "leocard-mahjong",
  "leocard-minecraft-guess",
@@ -3397,7 +3397,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-client"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "bevy",
  "bevy_clipboard",
@@ -3407,6 +3407,7 @@ dependencies = [
  "icu_provider",
  "image",
  "jni 0.21.1",
+ "jni 0.22.4",
  "leocard-achievements",
  "leocard-host",
  "leocard-mahjong",
@@ -3420,6 +3421,7 @@ dependencies = [
  "postcard",
  "reqwest",
  "rfd",
+ "rustls-platform-verifier",
  "semver",
  "serde",
  "sha2",
@@ -3430,11 +3432,11 @@ dependencies = [
 
 [[package]]
 name = "leocard-game-common"
-version = "0.8.0"
+version = "0.8.1"
 
 [[package]]
 name = "leocard-host"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3451,7 +3453,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-mahjong"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3459,7 +3461,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-minecraft-guess"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "csv",
  "leocard-game-common",
@@ -3468,7 +3470,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-protocol"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "leocard-mahjong",
  "leocard-minecraft-guess",
@@ -3482,7 +3484,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-qigui523"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3490,7 +3492,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-shengji"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3498,7 +3500,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-tcp"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "ed25519-dalek",
  "leocard-host",
@@ -3513,7 +3515,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-texas-holdem"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3521,7 +3523,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-uno"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -5226,9 +5228,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.151"
+version = "1.0.152"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14"
+checksum = "1741ab7a6cc54a03a89b5d563ed60075c277d9e3cfa73ad0c1f23f23974703c6"
 dependencies = [
  "itoa",
  "memchr",

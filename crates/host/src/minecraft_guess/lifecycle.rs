@@ -44,6 +44,7 @@ impl HostedGameLifecycle for MinecraftGuessSession {
             rules: self.rules,
             progress: self.match_state.as_ref().expect("active match").progress(),
             round: self.game.as_ref().expect("active game").view(),
+            guess_seconds_remaining: self.guess_seconds_remaining(),
             scores: self
                 .match_state
                 .as_ref()

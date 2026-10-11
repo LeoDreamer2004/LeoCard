@@ -54,6 +54,40 @@ pub(crate) fn render_guess_lobby(
         },
         assets,
     );
+    let limits = MinecraftGuessRuleSet::GUESS_SECONDS_OPTIONS;
+    let index = limits
+        .iter()
+        .position(|seconds| *seconds == rules.guess_seconds)
+        .expect("validated guess time limit");
+    add_rule_config_row(
+        commands,
+        page.rules,
+        RuleConfigRow {
+            label: "猜测计时",
+            value: if rules.guess_seconds == 0 {
+                "不限时".to_owned()
+            } else {
+                format!("{} 秒", rules.guess_seconds)
+            },
+            help: "每次轮到玩家猜测时重新计时，超时自动跳过。",
+            editable: page.can_configure,
+            previous: index
+                .checked_sub(1)
+                .filter(|_| page.can_configure)
+                .map(|index| MinecraftGuessRuleSet {
+                    guess_seconds: limits[index],
+                    ..rules
+                }),
+            next: limits
+                .get(index + 1)
+                .filter(|_| page.can_configure)
+                .map(|seconds| MinecraftGuessRuleSet {
+                    guess_seconds: *seconds,
+                    ..rules
+                }),
+        },
+        assets,
+    );
     let (label, previous, next) = match rules.pool {
         GuessPool::Blocks => ("方块", GuessPool::Mixed, GuessPool::Items),
         GuessPool::Items => ("物品", GuessPool::Blocks, GuessPool::Mixed),

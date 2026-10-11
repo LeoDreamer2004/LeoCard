@@ -4,6 +4,12 @@ java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
 
 def workspaceVersion = (file('../../Cargo.toml').text =~ /(?m)^version = "(\d+)\.(\d+)\.(\d+)"$/)[0]
 
+def verifierVersion = providers.fileContents(layout.projectDirectory.file('../../Cargo.lock')).asText.map { lock ->
+    def version = lock =~ /(?m)^name = "rustls-platform-verifier-android"\r?\nversion = "([^"]+)"$/
+    if (!version.find()) { throw new GradleException('rustls-platform-verifier-android is missing from Cargo.lock') }
+    version.group(1)
+}
+
 android {
     namespace = 'com.leodreamer.leocard'
     compileSdk = 36
@@ -42,4 +48,5 @@ dependencies {
     implementation platform('org.jetbrains.kotlin:kotlin-bom:2.4.21')
     implementation 'androidx.games:games-activity:4.4.2'
     implementation 'androidx.appcompat:appcompat:1.8.0'
+    implementation(verifierVersion.map { "org.rustls:rustls-platform-verifier:${it}" })
 }

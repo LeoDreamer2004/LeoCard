@@ -141,5 +141,15 @@ impl GuessTable<'_> {
                 ..default()
             },
         ));
+        if self.game.round.answer.is_none() {
+            add_text(
+                commands,
+                heading,
+                format!("({})", self.game.round.character_count),
+                17.0,
+                MUTED,
+                self.assets,
+            );
+        }
     }
 }

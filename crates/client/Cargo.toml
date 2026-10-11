@@ -54,6 +54,8 @@ bevy_clipboard = { workspace = true, features = ["system_clipboard"] }
 [target.'cfg(target_os = "android")'.dependencies]
 bevy = { workspace = true, features = ["android-game-activity"] }
 jni = "0.21.1"
+jni_tls = { package = "jni", version = "0.22.4", default-features = false }
+rustls-platform-verifier = "0.7.1"
 
 [build-dependencies]
 winresource = "0.1"

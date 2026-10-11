@@ -1,12 +1,12 @@
+use super::GuessTurnClock;
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, RoomSession};
-use leocard_minecraft_guess::{Catalogue, GameState, MatchState, MinecraftGuessRuleSet};
+use leocard_minecraft_guess::{GameState, MatchState, MinecraftGuessRuleSet};
 use leocard_protocol::{
     ClientMessage, MatchId, PlayerId, PlayerReferenceChange, PlayerViolation, RejectReason,
     Revision, RoomId, ServerEvent, TABLE_SEAT_COUNT,
 };
 use std::ops::{Deref, DerefMut};
-use std::time::Duration;
 
 #[derive(Clone, Debug)]
 pub struct MinecraftGuessSession {
@@ -16,7 +16,7 @@ pub struct MinecraftGuessSession {
     pub(super) match_id: Option<MatchId>,
     pub(super) match_state: Option<MatchState>,
     pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
-    pub(super) automatic_wait: Duration,
+    pub(super) turn_clock: GuessTurnClock,
 }
 
 impl Deref for MinecraftGuessSession {
@@ -41,7 +41,7 @@ impl MinecraftGuessSession {
             game: None,
             match_id: None,
             match_state: None,
-            automatic_wait: Duration::ZERO,
+            turn_clock: GuessTurnClock::default(),
             finished_reference_changes: None,
         }
     }
@@ -71,7 +71,7 @@ impl MinecraftGuessSession {
     }
 
     pub(super) fn after_action(&mut self) -> Vec<Delivery> {
-        self.automatic_wait = Duration::ZERO;
+        self.turn_clock = GuessTurnClock::default();
         let gains = self.game.as_mut().expect("active game").take_score_gains();
         self.match_state
             .as_mut()
@@ -83,46 +83,6 @@ impl MinecraftGuessSession {
         }
         self.bump_revision();
         self.achievement_events()
-    }
-
-    pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
-        let Some(current) = self.game.as_ref().and_then(GameState::current_player) else {
-            return Vec::new();
-        };
-        let player = &self.room.players[usize::from(current)];
-        if player.connected && !player.is_bot && !player.left {
-            return Vec::new();
-        }
-        self.automatic_wait += elapsed;
-        if self.automatic_wait < Duration::from_secs(2) {
-            return Vec::new();
-        }
-        let game = self.game.as_mut().expect("an active turn has a game");
-        if player.is_bot && !player.left {
-            // Bots use only public feedback; never peek at the chosen answer.
-            let view = game.view();
-            let candidates: Vec<_> = Catalogue::bundled()
-                .search(view.kind, "")
-                .filter(|entry| {
-                    entry.name.chars().count() == usize::from(view.character_count)
-                        && view
-                            .guesses
-                            .iter()
-                            .all(|guess| guess.result.accepts_candidate(entry))
-                })
-                .collect();
-            if let Some(entry) = candidates.get(fastrand::usize(..candidates.len().max(1))) {
-                game.guess(current, &entry.id)
-                    .expect("a public candidate is valid");
-            } else {
-                game.skip(current).expect("current player can skip");
-            }
-        } else {
-            game.skip(current).expect("current player can skip");
-        }
-        let mut deliveries = self.after_action();
-        deliveries.extend(self.broadcast_game(None));
-        deliveries
     }
 
     pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {

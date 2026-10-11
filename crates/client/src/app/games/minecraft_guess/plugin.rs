@@ -5,6 +5,7 @@ use super::{
     scores::{GuessScorePlayback, animate_scores, sync_score_playback},
     state::{GuessScroll, MinecraftGuessUiState},
     table::fill_empty_rows,
+    turn_timer::sync_guess_clock,
 };
 use crate::app::{
     runtime::ClientUpdateSet,
@@ -36,6 +37,7 @@ impl Plugin for MinecraftGuessPlugin {
                         sync_guess_input,
                         sync_guess_controls,
                         sync_guess_button_skins,
+                        sync_guess_clock,
                     )
                         .chain()
                         .in_set(ClientUpdateSet::Sync),

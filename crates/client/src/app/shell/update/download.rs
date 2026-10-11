@@ -1,6 +1,6 @@
 use super::UpdateEvent;
 #[cfg(target_os = "android")]
-use leocard_client::platform::data_directory;
+use leocard_client::platform::{data_directory, initialize_https};
 use reqwest::blocking::Client;
 use semver::Version;
 use serde::Deserialize;
@@ -30,6 +30,9 @@ struct GitHubAsset {
 }
 
 pub(super) fn download_latest_release(sender: &mpsc::Sender<UpdateEvent>) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    initialize_https()?;
+
     let client = Client::builder()
         .user_agent(format!("LeoCard/{}", env!("CARGO_PKG_VERSION")))
         .connect_timeout(Duration::from_secs(15))

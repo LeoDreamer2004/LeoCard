@@ -15,6 +15,7 @@ pub struct MinecraftGuessSnapshot {
     pub rules: MinecraftGuessRuleSet,
     pub progress: MatchProgress,
     pub round: RoundView,
+    pub guess_seconds_remaining: Option<u16>,
     pub scores: Vec<PlayerScore>,
     pub score_gains: Vec<ScoreGain>,
     pub reference_changes: Vec<PlayerReferenceChange>,

@@ -1,7 +1,6 @@
-use super::MinecraftGuessSession;
+use super::{GuessTurnClock, MinecraftGuessSession};
 use crate::new_match_id;
 use leocard_minecraft_guess::{Catalogue, GameState, MatchState};
-use std::time::Duration;
 
 impl MinecraftGuessSession {
     pub(super) fn begin_match(&mut self) {
@@ -33,7 +32,7 @@ impl MinecraftGuessSession {
             .expect("active match")
             .turn_order();
         self.game = Some(GameState::new(answer, players, self.rules));
-        self.automatic_wait = Duration::ZERO;
+        self.turn_clock = GuessTurnClock::default();
         for player in &mut self.room.players {
             player.ready = false;
         }

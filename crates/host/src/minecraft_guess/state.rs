@@ -4,7 +4,7 @@ use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_minecraft_guess::{GameState, MatchState, MinecraftGuessRuleSet};
 use leocard_protocol::{
     ClientMessage, MatchId, PlayerId, PlayerReferenceChange, PlayerViolation, RejectReason,
-    Revision, RoomId, ServerEvent, TABLE_SEAT_COUNT,
+    Revision, RoomId, ServerEvent,
 };
 use std::ops::{Deref, DerefMut};
 
@@ -36,7 +36,12 @@ impl DerefMut for MinecraftGuessSession {
 impl MinecraftGuessSession {
     pub fn new(room_id: RoomId, host_port: u16, rules: MinecraftGuessRuleSet) -> Self {
         Self {
-            room: RoomSession::new(room_id, host_port, usize::from(TABLE_SEAT_COUNT)),
+            room: RoomSession::new_with_seat_count(
+                room_id,
+                host_port,
+                usize::from(MinecraftGuessRuleSet::MAX_PLAYERS),
+                MinecraftGuessRuleSet::MAX_PLAYERS,
+            ),
             rules,
             game: None,
             match_id: None,
@@ -77,12 +82,13 @@ impl MinecraftGuessSession {
             .as_mut()
             .expect("active match")
             .record_gains(gains);
+        let events = self.analyze_action();
         self.settle_match();
         if self.game.as_ref().is_some_and(|game| game.finished()) {
             self.room.prepare_rematch();
         }
         self.bump_revision();
-        self.achievement_events()
+        self.deliver_game_events(events)
     }
 
     pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {

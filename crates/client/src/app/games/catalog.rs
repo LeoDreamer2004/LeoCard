@@ -2,7 +2,7 @@
 
 use crate::app::presentation::time_control_label;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
-use leocard_minecraft_guess::GuessPool;
+use leocard_minecraft_guess::{GuessPool, MinecraftGuessRuleSet};
 use leocard_protocol::{GameKind, GameRules, TABLE_SEAT_COUNT};
 use leocard_shengji::ShengjiRuleSet;
 use leocard_uno::UnoRuleSet;
@@ -52,9 +52,8 @@ pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
         GameRules::Shengji(_) => ShengjiRuleSet::PLAYER_COUNT as u8,
         GameRules::Uno(_) => UnoRuleSet::MAX_PLAYERS,
         GameRules::Mahjong(_) => MahjongRuleSet::PLAYER_COUNT as u8,
-        GameRules::QiGui523(_) | GameRules::TexasHoldem(_) | GameRules::MinecraftGuess(_) => {
-            TABLE_SEAT_COUNT
-        }
+        GameRules::MinecraftGuess(_) => MinecraftGuessRuleSet::MAX_PLAYERS,
+        GameRules::QiGui523(_) | GameRules::TexasHoldem(_) => TABLE_SEAT_COUNT,
     }
 }
 

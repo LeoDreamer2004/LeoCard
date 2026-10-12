@@ -1,5 +1,6 @@
 //! 各游戏共享的大厅布局与席位视图。
 
+mod layout;
 mod metrics;
 mod page;
 mod seats;

@@ -1,3 +1,4 @@
+use super::GuessFeedback;
 use crate::app::{
     presentation::{ACCENT, SCORE_GAIN_DURATION, rolling_score, score_gain_visual},
     runtime::ClientResource,
@@ -77,6 +78,7 @@ pub(super) fn sync_score_playback(
 pub(super) fn animate_scores(
     time: Res<Time>,
     mut playback: ResMut<GuessScorePlayback>,
+    feedback: Res<GuessFeedback>,
     mut values: Query<(&GuessScoreValue, &mut Text), Without<GuessScoreDelta>>,
     mut deltas: Query<
         (
@@ -96,7 +98,7 @@ pub(super) fn animate_scores(
             playback.active = None;
         }
     }
-    if playback.active.is_none() {
+    if playback.active.is_none() && feedback.scoring_ready() {
         playback.active = playback.queue.pop_front().map(|gain| (gain, 0.0));
     }
     for (player, mut text) in &mut values {

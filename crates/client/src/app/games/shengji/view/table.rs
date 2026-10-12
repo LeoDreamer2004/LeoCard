@@ -175,7 +175,7 @@ pub(crate) fn render_shengji_table(
     }
     ui.selected.retain(|card| game.your_hand.contains(card));
     select_forced_shengji_follow_cards(game, ui);
-    render_counter(commands, table, game, ui, visuals.assets);
+    render_counter(commands, root, table, game, ui, visuals.assets);
     add_shengji_own_play(commands, table, game, visuals.assets, previous_trick);
     add_shengji_collecting_tray(
         commands,

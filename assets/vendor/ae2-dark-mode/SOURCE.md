@@ -11,6 +11,7 @@
 Runtime files in `../../ui/minecraft_guess/`:
 
 - `table-frame.png`: `assets/ae2/textures/guis/background.png`, with the two dark bottom-shadow rows (253–254) removed while retaining the outermost border row (255), giving a symmetric two-pixel frame.
+- `popup-frame.png`: the same symmetric `table-frame.png` reduced to a 5×5 nine-slice sprite by retaining its two-pixel corner borders and one center pixel. This prevents Bevy from shrinking the border with the original 256×254 source size when displaying a compact reveal popup.
 - `table-inset.png`: the recessed panel from `assets/ae2/textures/guis/cpu_selector.png`, keeping the top three rows `(7, 18, 69, 3)`, a plain middle row `(7, 22, 69, 1)` and the bottom border `(7, 156, 69, 1)`; these are joined vertically into a 69×5 nine-slice sprite so the original baked row separators do not stretch inside the table.
 - `table-surface.png`: uncolored recessed fill cropped from `cpu_selector.png`, rectangle `(8, 22, 8, 8)`, for headings and empty rows.
 - `scroll-track.png`: recessed scrollbar track cropped from `cpu_selector.png`, rectangle `(80, 18, 6, 139)`.

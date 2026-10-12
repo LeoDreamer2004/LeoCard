@@ -4,8 +4,8 @@ use bevy::ui_widgets::Button;
 
 use super::super::{
     ProfileGameColumn, ProfileGameContent, ProfileGameTab, ProfileGameTabButton,
-    SelectedProfileGameTab, TAB_IDLE, mahjong_profile_rows, qigui523_profile_rows,
-    shengji_profile_rows, texas_holdem_profile_rows, uno_profile_rows,
+    SelectedProfileGameTab, TAB_IDLE, mahjong_profile_rows, minecraft_guess_profile_rows,
+    qigui523_profile_rows, shengji_profile_rows, texas_holdem_profile_rows, uno_profile_rows,
 };
 use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
@@ -84,6 +84,9 @@ impl<'a> ProfileArchive<'a> {
             ProfileGameTab::Shengji => shengji_profile_rows(self.game_profiles.shengji.as_ref()),
             ProfileGameTab::Uno => uno_profile_rows(self.game_profiles.uno.as_ref()),
             ProfileGameTab::Mahjong => mahjong_profile_rows(self.game_profiles.mahjong.as_ref()),
+            ProfileGameTab::MinecraftGuess => {
+                minecraft_guess_profile_rows(self.game_profiles.minecraft_guess.as_ref())
+            }
         };
         let rows_per_column = rows.len().div_ceil(4).max(1);
         for column_index in 0..4 {

@@ -26,6 +26,7 @@ pub(crate) fn sync_summary_playback(
     client: Option<Res<ClientResource>>,
     mahjong_ui: Res<mahjong::MahjongUiState>,
     guess_scores: Res<minecraft_guess::GuessScorePlayback>,
+    guess_feedback: Res<minecraft_guess::GuessFeedback>,
     mut playback: ResMut<SummaryPlayback>,
 ) {
     let game = client
@@ -36,7 +37,9 @@ pub(crate) fn sync_summary_playback(
         Some(GameSnapshot::Mahjong(game)) => {
             mahjong::settlement::mahjong_summary_pause(game, &mahjong_ui)
         }
-        Some(GameSnapshot::MinecraftGuess(_)) if guess_scores.busy() => Some(-0.01),
+        Some(GameSnapshot::MinecraftGuess(_)) if guess_scores.busy() || guess_feedback.busy() => {
+            Some(-0.01)
+        }
         _ => None,
     };
 }

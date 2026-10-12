@@ -4,9 +4,9 @@ use super::super::{PlayerIdentity, config_file};
 use super::migration;
 use bevy::prelude::Resource;
 use leocard_protocol::{
-    MahjongProfileStats, MatchId, PlayerGameProfiles, PlayerInteractionStats,
-    PlayerReferenceChange, QiGui523ProfileStats, ShengjiProfileStats, TexasHoldemProfileStats,
-    UnoProfileStats,
+    MahjongProfileStats, MatchId, MinecraftGuessProfileStats, PlayerGameProfiles,
+    PlayerInteractionStats, PlayerReferenceChange, QiGui523ProfileStats, ShengjiProfileStats,
+    TexasHoldemProfileStats, UnoProfileStats,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -33,6 +33,7 @@ pub(super) struct StoredGameProfiles {
     pub(super) uno_stats: Option<UnoProfileStats>,
     pub(super) interaction_stats: Option<PlayerInteractionStats>,
     pub(super) mahjong_stats: Option<MahjongProfileStats>,
+    pub(super) minecraft_guess_stats: Option<MinecraftGuessProfileStats>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -81,6 +82,7 @@ impl LocalPlayerProfile {
                     uno: stored.games.uno_stats,
                     interactions: stored.games.interaction_stats,
                     mahjong: stored.games.mahjong_stats,
+                    minecraft_guess: stored.games.minecraft_guess_stats,
                 },
             });
         }
@@ -120,6 +122,7 @@ impl LocalPlayerProfile {
                 uno_stats: self.game_profiles.uno.clone(),
                 interaction_stats: self.game_profiles.interactions.clone(),
                 mahjong_stats: self.game_profiles.mahjong.clone(),
+                minecraft_guess_stats: self.game_profiles.minecraft_guess.clone(),
             },
         };
         let bytes =

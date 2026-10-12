@@ -1,0 +1,887 @@
+{
+  "face_order": [
+    1,
+    3,
+    5,
+    4,
+    0,
+    2
+  ],
+  "vertical_flip": true,
+  "panoramas": [
+    {
+      "file": "panoramas/1.0.png",
+      "sha1": "2b59e099444cf6c4eeff864ffe1afffe5e484736",
+      "original_directory": "1.0",
+      "dimensions": [
+        256,
+        1536
+      ],
+      "original_faces": [
+        {
+          "file": "panorama_0.png",
+          "sha1": "c23f1d086f54b0621b9fc5af4eaadf40c17bb0f6",
+          "dimensions": [
+            256,
+            256
+          ],
+          "archive_url": "https://launcher.mojang.com/v1/objects/b679fea27f2284836202e9365e13a82552092e5d/client.jar",
+          "archive_sha1": "b679fea27f2284836202e9365e13a82552092e5d",
+          "path": "title/bg/panorama0.png"
+        },
+        {
+          "file": "panorama_1.png",
+          "sha1": "2a61a1db7180d196dd91cee72283842e841b3ddb",
+          "dimensions": [
+            256,
+            256
+          ],
+          "archive_url": "https://launcher.mojang.com/v1/objects/b679fea27f2284836202e9365e13a82552092e5d/client.jar",
+          "archive_sha1": "b679fea27f2284836202e9365e13a82552092e5d",
+          "path": "title/bg/panorama1.png"
+        },
+        {
+          "file": "panorama_2.png",
+          "sha1": "721f5449467551f990f0e349c462153ee66a05cf",
+          "dimensions": [
+            256,
+            256
+          ],
+          "archive_url": "https://launcher.mojang.com/v1/objects/b679fea27f2284836202e9365e13a82552092e5d/client.jar",
+          "archive_sha1": "b679fea27f2284836202e9365e13a82552092e5d",
+          "path": "title/bg/panorama2.png"
+        },
+        {
+          "file": "panorama_3.png",
+          "sha1": "5d7ce44d6906452a415f8ea93e0d8db41cdd54bf",
+          "dimensions": [
+            256,
+            256
+          ],
+          "archive_url": "https://launcher.mojang.com/v1/objects/b679fea27f2284836202e9365e13a82552092e5d/client.jar",
+          "archive_sha1": "b679fea27f2284836202e9365e13a82552092e5d",
+          "path": "title/bg/panorama3.png"
+        },
+        {
+          "file": "panorama_4.png",
+          "sha1": "21bbeca76cdfc6fd0abb055023c87088780d7a85",
+          "dimensions": [
+            256,
+            256
+          ],
+          "archive_url": "https://launcher.mojang.com/v1/objects/b679fea27f2284836202e9365e13a82552092e5d/client.jar",
+          "archive_sha1": "b679fea27f2284836202e9365e13a82552092e5d",
+          "path": "title/bg/panorama4.png"
+        },
+        {
+          "file": "panorama_5.png",
+          "sha1": "d6784464ed37c07079b16f212f3350f445b3a35a",
+          "dimensions": [
+            256,
+            256
+          ],
+          "archive_url": "https://launcher.mojang.com/v1/objects/b679fea27f2284836202e9365e13a82552092e5d/client.jar",
+          "archive_sha1": "b679fea27f2284836202e9365e13a82552092e5d",
+          "path": "title/bg/panorama5.png"
+        }
+      ]
+    },
+    {
+      "file": "panoramas/1.13.png",
+      "sha1": "2f99af66ee0f3229b6dc5d23f0acc05bba5bb2f3",
+      "original_directory": "1.13",
+      "dimensions": [
+        1024,
+        6144
+      ],
+      "original_faces": [
+        {
+          "file": "panorama_0.png",
+          "sha1": "39f20e6c806e4dbd110582797c0eca280e223c73",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "archive_url": "https://piston-data.mojang.com/v1/objects/c0b970952cdd279912da384cdbfc0c26e6c6090b/client.jar",
+          "archive_sha1": "c0b970952cdd279912da384cdbfc0c26e6c6090b",
+          "path": "assets/minecraft/textures/gui/title/background/panorama_0.png"
+        },
+        {
+          "file": "panorama_1.png",
+          "sha1": "a21bd35490d90c3dca72778d7c47de07b8051486",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "archive_url": "https://piston-data.mojang.com/v1/objects/c0b970952cdd279912da384cdbfc0c26e6c6090b/client.jar",
+          "archive_sha1": "c0b970952cdd279912da384cdbfc0c26e6c6090b",
+          "path": "assets/minecraft/textures/gui/title/background/panorama_1.png"
+        },
+        {
+          "file": "panorama_2.png",
+          "sha1": "b930a8829484f9028d381f3810e43a389916505c",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "archive_url": "https://piston-data.mojang.com/v1/objects/c0b970952cdd279912da384cdbfc0c26e6c6090b/client.jar",
+          "archive_sha1": "c0b970952cdd279912da384cdbfc0c26e6c6090b",
+          "path": "assets/minecraft/textures/gui/title/background/panorama_2.png"
+        },
+        {
+          "file": "panorama_3.png",
+          "sha1": "07d6e42c85a287b312faefd8ed01f27b6028a846",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "archive_url": "https://piston-data.mojang.com/v1/objects/c0b970952cdd279912da384cdbfc0c26e6c6090b/client.jar",
+          "archive_sha1": "c0b970952cdd279912da384cdbfc0c26e6c6090b",
+          "path": "assets/minecraft/textures/gui/title/background/panorama_3.png"
+        },
+        {
+          "file": "panorama_4.png",
+          "sha1": "8c6e6e5f70619b946ec178778205d215fddc6e6b",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "archive_url": "https://piston-data.mojang.com/v1/objects/c0b970952cdd279912da384cdbfc0c26e6c6090b/client.jar",
+          "archive_sha1": "c0b970952cdd279912da384cdbfc0c26e6c6090b",
+          "path": "assets/minecraft/textures/gui/title/background/panorama_4.png"
+        },
+        {
+          "file": "panorama_5.png",
+          "sha1": "bd2f8895d3d9e18f538742b5008c5140e5a3a22e",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "archive_url": "https://piston-data.mojang.com/v1/objects/c0b970952cdd279912da384cdbfc0c26e6c6090b/client.jar",
+          "archive_sha1": "c0b970952cdd279912da384cdbfc0c26e6c6090b",
+          "path": "assets/minecraft/textures/gui/title/background/panorama_5.png"
+        }
+      ]
+    },
+    {
+      "file": "panoramas/1.14.png",
+      "sha1": "acf16c3548316e224145c65e02616de146d3554e",
+      "original_directory": "1.14",
+      "dimensions": [
+        1024,
+        6144
+      ],
+      "original_faces": [
+        {
+          "file": "panorama_0.png",
+          "sha1": "d75f4a52c3a7333e1676f9d648dbc3a129eaf182",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/d7/d75f4a52c3a7333e1676f9d648dbc3a129eaf182",
+          "path": "minecraft/textures/gui/title/background/panorama_0.png"
+        },
+        {
+          "file": "panorama_1.png",
+          "sha1": "efd77d8aef4530e470dde3ac37d63be6e480f8a0",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/ef/efd77d8aef4530e470dde3ac37d63be6e480f8a0",
+          "path": "minecraft/textures/gui/title/background/panorama_1.png"
+        },
+        {
+          "file": "panorama_2.png",
+          "sha1": "56422fac8e05210fdccb2ff208070f9218c0da6d",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/56/56422fac8e05210fdccb2ff208070f9218c0da6d",
+          "path": "minecraft/textures/gui/title/background/panorama_2.png"
+        },
+        {
+          "file": "panorama_3.png",
+          "sha1": "20b8b2f99f0c6f659267366239f61d6a1b8c9156",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/20/20b8b2f99f0c6f659267366239f61d6a1b8c9156",
+          "path": "minecraft/textures/gui/title/background/panorama_3.png"
+        },
+        {
+          "file": "panorama_4.png",
+          "sha1": "42b33085867226820f5d6ea60d276fd22be2c0ef",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/42/42b33085867226820f5d6ea60d276fd22be2c0ef",
+          "path": "minecraft/textures/gui/title/background/panorama_4.png"
+        },
+        {
+          "file": "panorama_5.png",
+          "sha1": "b11528c03e56db38d3a09dc6f0f3fe7bcb4fc0f4",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/b1/b11528c03e56db38d3a09dc6f0f3fe7bcb4fc0f4",
+          "path": "minecraft/textures/gui/title/background/panorama_5.png"
+        }
+      ]
+    },
+    {
+      "file": "panoramas/1.15.png",
+      "sha1": "46845817d46a648e9b881c5c78832260928278ef",
+      "original_directory": "1.15",
+      "dimensions": [
+        1024,
+        6144
+      ],
+      "original_faces": [
+        {
+          "file": "panorama_0.png",
+          "sha1": "5f2e3863ecb4f942315bf65c30083831570065bc",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/5f/5f2e3863ecb4f942315bf65c30083831570065bc",
+          "path": "minecraft/textures/gui/title/background/panorama_0.png"
+        },
+        {
+          "file": "panorama_1.png",
+          "sha1": "6d6218dbc0344524ffafbe6f63657940029e25ba",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/6d/6d6218dbc0344524ffafbe6f63657940029e25ba",
+          "path": "minecraft/textures/gui/title/background/panorama_1.png"
+        },
+        {
+          "file": "panorama_2.png",
+          "sha1": "f67b109ec66db2100c9580d974937fb14bad0d94",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/f6/f67b109ec66db2100c9580d974937fb14bad0d94",
+          "path": "minecraft/textures/gui/title/background/panorama_2.png"
+        },
+        {
+          "file": "panorama_3.png",
+          "sha1": "363803ca6e29e3b3a86238086bb4ea06874e8a77",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/36/363803ca6e29e3b3a86238086bb4ea06874e8a77",
+          "path": "minecraft/textures/gui/title/background/panorama_3.png"
+        },
+        {
+          "file": "panorama_4.png",
+          "sha1": "e0ea270a90cb51b0ab135371f3604888a77be739",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/e0/e0ea270a90cb51b0ab135371f3604888a77be739",
+          "path": "minecraft/textures/gui/title/background/panorama_4.png"
+        },
+        {
+          "file": "panorama_5.png",
+          "sha1": "af7c80d4229733c732623f3b08ffd45110608b13",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/af/af7c80d4229733c732623f3b08ffd45110608b13",
+          "path": "minecraft/textures/gui/title/background/panorama_5.png"
+        }
+      ]
+    },
+    {
+      "file": "panoramas/1.16.png",
+      "sha1": "910ada0db74a0a34a0acb9624313b79dd11a31ca",
+      "original_directory": "1.16",
+      "dimensions": [
+        1024,
+        6144
+      ],
+      "original_faces": [
+        {
+          "file": "panorama_0.png",
+          "sha1": "fe531cd13f671fa7d7392d090b93bbeca4ed0029",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/fe/fe531cd13f671fa7d7392d090b93bbeca4ed0029",
+          "path": "minecraft/textures/gui/title/background/panorama_0.png"
+        },
+        {
+          "file": "panorama_1.png",
+          "sha1": "d8c61356bcb0c2dd087300d2857000078d05e862",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/d8/d8c61356bcb0c2dd087300d2857000078d05e862",
+          "path": "minecraft/textures/gui/title/background/panorama_1.png"
+        },
+        {
+          "file": "panorama_2.png",
+          "sha1": "781d243e743f1a716ae36d5fdcbd4c80adf8ee0d",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/78/781d243e743f1a716ae36d5fdcbd4c80adf8ee0d",
+          "path": "minecraft/textures/gui/title/background/panorama_2.png"
+        },
+        {
+          "file": "panorama_3.png",
+          "sha1": "98729ec34c8e1bceb9b0ff41a85ebee33eff8b41",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/98/98729ec34c8e1bceb9b0ff41a85ebee33eff8b41",
+          "path": "minecraft/textures/gui/title/background/panorama_3.png"
+        },
+        {
+          "file": "panorama_4.png",
+          "sha1": "6c426128a04ff458f823319e3e68c8bc893d0dda",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/6c/6c426128a04ff458f823319e3e68c8bc893d0dda",
+          "path": "minecraft/textures/gui/title/background/panorama_4.png"
+        },
+        {
+          "file": "panorama_5.png",
+          "sha1": "945630f5471aa307ec6bd6e53e9c1a278ff35f32",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/94/945630f5471aa307ec6bd6e53e9c1a278ff35f32",
+          "path": "minecraft/textures/gui/title/background/panorama_5.png"
+        }
+      ]
+    },
+    {
+      "file": "panoramas/1.17.png",
+      "sha1": "d503e1df9a03d8f13073efc716ddbd7bbd9153a3",
+      "original_directory": "1.17",
+      "dimensions": [
+        1024,
+        6144
+      ],
+      "original_faces": [
+        {
+          "file": "panorama_0.png",
+          "sha1": "81b7228275ad580fd0a47ab4e51061f330df0bd4",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/81/81b7228275ad580fd0a47ab4e51061f330df0bd4",
+          "path": "minecraft/textures/gui/title/background/panorama_0.png"
+        },
+        {
+          "file": "panorama_1.png",
+          "sha1": "4b7e517611dc9a5180201466046c2fe0d1216d00",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/4b/4b7e517611dc9a5180201466046c2fe0d1216d00",
+          "path": "minecraft/textures/gui/title/background/panorama_1.png"
+        },
+        {
+          "file": "panorama_2.png",
+          "sha1": "f4e61ad8551dad48c505b8258841d87ec7df75f5",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/f4/f4e61ad8551dad48c505b8258841d87ec7df75f5",
+          "path": "minecraft/textures/gui/title/background/panorama_2.png"
+        },
+        {
+          "file": "panorama_3.png",
+          "sha1": "5d3f8ef1dc0084d49b3a1c1e8b2606028d83cca0",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/5d/5d3f8ef1dc0084d49b3a1c1e8b2606028d83cca0",
+          "path": "minecraft/textures/gui/title/background/panorama_3.png"
+        },
+        {
+          "file": "panorama_4.png",
+          "sha1": "bc07f32c38f0321358c7399dc69f380a1401a888",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/bc/bc07f32c38f0321358c7399dc69f380a1401a888",
+          "path": "minecraft/textures/gui/title/background/panorama_4.png"
+        },
+        {
+          "file": "panorama_5.png",
+          "sha1": "873c08365fbb20413491b5d782f88aa0459fe8bc",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/87/873c08365fbb20413491b5d782f88aa0459fe8bc",
+          "path": "minecraft/textures/gui/title/background/panorama_5.png"
+        }
+      ]
+    },
+    {
+      "file": "panoramas/1.19.png",
+      "sha1": "821c55acbadc5fb5d2edc292bd062fee4fc92ced",
+      "original_directory": "1.19",
+      "dimensions": [
+        1024,
+        6144
+      ],
+      "original_faces": [
+        {
+          "file": "panorama_0.png",
+          "sha1": "e956e0986b597ec1b7d1db720dc8aec3a0642630",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/e9/e956e0986b597ec1b7d1db720dc8aec3a0642630",
+          "path": "minecraft/textures/gui/title/background/panorama_0.png"
+        },
+        {
+          "file": "panorama_1.png",
+          "sha1": "e11e318343cc7dad5d1ffd7f73b64a38c8efd307",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/e1/e11e318343cc7dad5d1ffd7f73b64a38c8efd307",
+          "path": "minecraft/textures/gui/title/background/panorama_1.png"
+        },
+        {
+          "file": "panorama_2.png",
+          "sha1": "10d2bc498bffd73e0f120ba3eb336953db05c713",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/10/10d2bc498bffd73e0f120ba3eb336953db05c713",
+          "path": "minecraft/textures/gui/title/background/panorama_2.png"
+        },
+        {
+          "file": "panorama_3.png",
+          "sha1": "70ae9c314c2c280af94a08c2403801e120ee4b3c",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/70/70ae9c314c2c280af94a08c2403801e120ee4b3c",
+          "path": "minecraft/textures/gui/title/background/panorama_3.png"
+        },
+        {
+          "file": "panorama_4.png",
+          "sha1": "9519c93477a4394b4ceaaa0f856c7fdd7babd834",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/95/9519c93477a4394b4ceaaa0f856c7fdd7babd834",
+          "path": "minecraft/textures/gui/title/background/panorama_4.png"
+        },
+        {
+          "file": "panorama_5.png",
+          "sha1": "9a5729d795b1edfeffaa99506983c8b279880fa9",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/9a/9a5729d795b1edfeffaa99506983c8b279880fa9",
+          "path": "minecraft/textures/gui/title/background/panorama_5.png"
+        }
+      ]
+    },
+    {
+      "file": "panoramas/1.20.png",
+      "sha1": "771981efade1ab216334ef6f1ce31b54fbbd2403",
+      "original_directory": "1.20",
+      "dimensions": [
+        1024,
+        6144
+      ],
+      "original_faces": [
+        {
+          "file": "panorama_0.png",
+          "sha1": "f228a4964175f885b334033c5e5cf12bf62421d0",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/f2/f228a4964175f885b334033c5e5cf12bf62421d0",
+          "path": "minecraft/textures/gui/title/background/panorama_0.png"
+        },
+        {
+          "file": "panorama_1.png",
+          "sha1": "28389e89137ba4ed2578c6748b23543759580b06",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/28/28389e89137ba4ed2578c6748b23543759580b06",
+          "path": "minecraft/textures/gui/title/background/panorama_1.png"
+        },
+        {
+          "file": "panorama_2.png",
+          "sha1": "28ed5175e545a92757ec60a2cc05e4599dd3e96a",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/28/28ed5175e545a92757ec60a2cc05e4599dd3e96a",
+          "path": "minecraft/textures/gui/title/background/panorama_2.png"
+        },
+        {
+          "file": "panorama_3.png",
+          "sha1": "29ef924f1bb2a66ec35aa032ca8ab59431a2ebf6",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/29/29ef924f1bb2a66ec35aa032ca8ab59431a2ebf6",
+          "path": "minecraft/textures/gui/title/background/panorama_3.png"
+        },
+        {
+          "file": "panorama_4.png",
+          "sha1": "dbd2a426590ecbbbe2ee416d8fa00e1cac800008",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/db/dbd2a426590ecbbbe2ee416d8fa00e1cac800008",
+          "path": "minecraft/textures/gui/title/background/panorama_4.png"
+        },
+        {
+          "file": "panorama_5.png",
+          "sha1": "344a480830217004a601358cb2bdbb4ccccf88a9",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/34/344a480830217004a601358cb2bdbb4ccccf88a9",
+          "path": "minecraft/textures/gui/title/background/panorama_5.png"
+        }
+      ]
+    },
+    {
+      "file": "panoramas/1.21.png",
+      "sha1": "39004826c694add3524c07d25564b9c1945ed722",
+      "original_directory": "1.21",
+      "dimensions": [
+        1024,
+        6144
+      ],
+      "original_faces": [
+        {
+          "file": "panorama_0.png",
+          "sha1": "dca189017c6b77dc6e55ebfb0baca2b645b6e4cd",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/dc/dca189017c6b77dc6e55ebfb0baca2b645b6e4cd",
+          "path": "minecraft/textures/gui/title/background/panorama_0.png"
+        },
+        {
+          "file": "panorama_1.png",
+          "sha1": "97d080a6827e54904eb7bbe0f04df20eb9070d1a",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/97/97d080a6827e54904eb7bbe0f04df20eb9070d1a",
+          "path": "minecraft/textures/gui/title/background/panorama_1.png"
+        },
+        {
+          "file": "panorama_2.png",
+          "sha1": "d79ff13dd8ff2f7b8d497a7516db1bb2d86d2ab8",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/d7/d79ff13dd8ff2f7b8d497a7516db1bb2d86d2ab8",
+          "path": "minecraft/textures/gui/title/background/panorama_2.png"
+        },
+        {
+          "file": "panorama_3.png",
+          "sha1": "b6265425a2c765dd5fc286d5f355a812cad938e2",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/b6/b6265425a2c765dd5fc286d5f355a812cad938e2",
+          "path": "minecraft/textures/gui/title/background/panorama_3.png"
+        },
+        {
+          "file": "panorama_4.png",
+          "sha1": "cec25b0246d77e6f1dcef0d051ccb328ba39227a",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/ce/cec25b0246d77e6f1dcef0d051ccb328ba39227a",
+          "path": "minecraft/textures/gui/title/background/panorama_4.png"
+        },
+        {
+          "file": "panorama_5.png",
+          "sha1": "74703134a27a57d2de96860bca55d447759c0edc",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/74/74703134a27a57d2de96860bca55d447759c0edc",
+          "path": "minecraft/textures/gui/title/background/panorama_5.png"
+        }
+      ]
+    },
+    {
+      "file": "panoramas/26.1.png",
+      "sha1": "4904e7d4f607d6956a8c3906f9c06fe7310f45d2",
+      "original_directory": "26.1",
+      "dimensions": [
+        1024,
+        6144
+      ],
+      "original_faces": [
+        {
+          "file": "panorama_0.png",
+          "sha1": "4a8493454b4307e330501892058541ed0bf228da",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/4a/4a8493454b4307e330501892058541ed0bf228da",
+          "path": "minecraft/textures/gui/title/background/panorama_0.png"
+        },
+        {
+          "file": "panorama_1.png",
+          "sha1": "9cf7432d7cf6ac9e1d67cb72fb3606860fdbca65",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/9c/9cf7432d7cf6ac9e1d67cb72fb3606860fdbca65",
+          "path": "minecraft/textures/gui/title/background/panorama_1.png"
+        },
+        {
+          "file": "panorama_2.png",
+          "sha1": "b1b1ffde0727a421f15b736c85b5bc6605ec1cc2",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/b1/b1b1ffde0727a421f15b736c85b5bc6605ec1cc2",
+          "path": "minecraft/textures/gui/title/background/panorama_2.png"
+        },
+        {
+          "file": "panorama_3.png",
+          "sha1": "fb5668247ffd51905e3a13eff34b74c9b709e2f4",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/fb/fb5668247ffd51905e3a13eff34b74c9b709e2f4",
+          "path": "minecraft/textures/gui/title/background/panorama_3.png"
+        },
+        {
+          "file": "panorama_4.png",
+          "sha1": "0f66c27917abf3b05c61c58e79e012b87ff87bcb",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/0f/0f66c27917abf3b05c61c58e79e012b87ff87bcb",
+          "path": "minecraft/textures/gui/title/background/panorama_4.png"
+        },
+        {
+          "file": "panorama_5.png",
+          "sha1": "81dedcb3d42b47306fde0d47e7388c62792b5fd3",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/81/81dedcb3d42b47306fde0d47e7388c62792b5fd3",
+          "path": "minecraft/textures/gui/title/background/panorama_5.png"
+        }
+      ]
+    },
+    {
+      "file": "panoramas/26.2.png",
+      "sha1": "7a344e5afcc54aad52449eaec98833aed1d6a448",
+      "original_directory": "26.2",
+      "dimensions": [
+        1024,
+        6144
+      ],
+      "original_faces": [
+        {
+          "file": "panorama_0.png",
+          "sha1": "f5e0a5cfbc2e7b1e89094d7882dde106b030ec26",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/f5/f5e0a5cfbc2e7b1e89094d7882dde106b030ec26",
+          "path": "minecraft/textures/gui/title/background/panorama_0.png"
+        },
+        {
+          "file": "panorama_1.png",
+          "sha1": "7eed27f04c07c11f28c8500f3bfe768efcce4ccb",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/7e/7eed27f04c07c11f28c8500f3bfe768efcce4ccb",
+          "path": "minecraft/textures/gui/title/background/panorama_1.png"
+        },
+        {
+          "file": "panorama_2.png",
+          "sha1": "cc6832a02808837dd5bc309020054592ef4b58de",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/cc/cc6832a02808837dd5bc309020054592ef4b58de",
+          "path": "minecraft/textures/gui/title/background/panorama_2.png"
+        },
+        {
+          "file": "panorama_3.png",
+          "sha1": "d57bf5739d53501e511593220aa730488f1be990",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/d5/d57bf5739d53501e511593220aa730488f1be990",
+          "path": "minecraft/textures/gui/title/background/panorama_3.png"
+        },
+        {
+          "file": "panorama_4.png",
+          "sha1": "894dbd30f3c467d78629927b6ec89d9838412415",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/89/894dbd30f3c467d78629927b6ec89d9838412415",
+          "path": "minecraft/textures/gui/title/background/panorama_4.png"
+        },
+        {
+          "file": "panorama_5.png",
+          "sha1": "e448b43724a15a06b9e2fe44114d2c203947d607",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/e4/e448b43724a15a06b9e2fe44114d2c203947d607",
+          "path": "minecraft/textures/gui/title/background/panorama_5.png"
+        }
+      ]
+    },
+    {
+      "file": "panoramas/26.3.png",
+      "sha1": "56a9be1ac3ac6c8ca9abed07f5f1f64a2538ff6b",
+      "original_directory": "26.3",
+      "dimensions": [
+        1024,
+        6144
+      ],
+      "original_faces": [
+        {
+          "file": "panorama_0.png",
+          "sha1": "479ad40b906b87eab6d9eaa66f273226988dc2b2",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/47/479ad40b906b87eab6d9eaa66f273226988dc2b2",
+          "path": "minecraft/textures/gui/title/background/panorama_0.png"
+        },
+        {
+          "file": "panorama_1.png",
+          "sha1": "6a84d4afab797aaf9f6ad283ebcd5899493c5c64",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/6a/6a84d4afab797aaf9f6ad283ebcd5899493c5c64",
+          "path": "minecraft/textures/gui/title/background/panorama_1.png"
+        },
+        {
+          "file": "panorama_2.png",
+          "sha1": "a9368ad23ea1b7517cc2fdf5b3d73cec45a045db",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/a9/a9368ad23ea1b7517cc2fdf5b3d73cec45a045db",
+          "path": "minecraft/textures/gui/title/background/panorama_2.png"
+        },
+        {
+          "file": "panorama_3.png",
+          "sha1": "4e260704b88f2cd57fbc05abcd1a4264df733f91",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/4e/4e260704b88f2cd57fbc05abcd1a4264df733f91",
+          "path": "minecraft/textures/gui/title/background/panorama_3.png"
+        },
+        {
+          "file": "panorama_4.png",
+          "sha1": "17229c85a056fa9e97e9b025fd76e1e081b36317",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/17/17229c85a056fa9e97e9b025fd76e1e081b36317",
+          "path": "minecraft/textures/gui/title/background/panorama_4.png"
+        },
+        {
+          "file": "panorama_5.png",
+          "sha1": "61331fc97f54d2f7500cdbb14d16bc1244539272",
+          "dimensions": [
+            1024,
+            1024
+          ],
+          "url": "https://resources.download.minecraft.net/61/61331fc97f54d2f7500cdbb14d16bc1244539272",
+          "path": "minecraft/textures/gui/title/background/panorama_5.png"
+        }
+      ]
+    }
+  ],
+  "dirt": {
+    "file": "dirt.png",
+    "sha1": "e9de271f1d03544888c6830c888dad0f508039dc",
+    "archive": {
+      "sha1": "0f275bc1547d01fa5f56ba34bdc87d981ee12daf",
+      "size": 10180113,
+      "url": "https://piston-data.mojang.com/v1/objects/0f275bc1547d01fa5f56ba34bdc87d981ee12daf/client.jar"
+    },
+    "path": "assets/minecraft/textures/gui/options_background.png"
+  }
+}

@@ -6,7 +6,7 @@ use super::mahjong::{
     render_mahjong_table,
 };
 use super::minecraft_guess::{
-    GuessScorePlayback, GuessTable, MinecraftGuessAssets, MinecraftGuessUiState,
+    GuessFeedback, GuessScorePlayback, GuessTable, MinecraftGuessAssets, MinecraftGuessUiState,
     render_guess_lobby, render_guess_table,
 };
 use super::qigui523::{
@@ -42,6 +42,7 @@ pub(crate) struct GameScreenResources<'w> {
     minecraft_guess_assets: Res<'w, MinecraftGuessAssets>,
     minecraft_guess_ui: Res<'w, MinecraftGuessUiState>,
     minecraft_guess_scores: Res<'w, GuessScorePlayback>,
+    minecraft_guess_feedback: Res<'w, GuessFeedback>,
     qigui523_assets: Res<'w, QiGui523Assets>,
     texas_holdem_assets: Res<'w, TexasHoldemAssets>,
     shengji_assets: Res<'w, ShengjiAssets>,
@@ -228,6 +229,7 @@ impl GameScreenResources<'_> {
                     game,
                     state: &self.minecraft_guess_ui,
                     scores: &self.minecraft_guess_scores,
+                    feedback: &self.minecraft_guess_feedback,
                     summary: game_summary,
                     game_assets: &self.minecraft_guess_assets,
                     turn_border_materials: &mut self.turn_border_materials,

@@ -1,10 +1,10 @@
-use super::super::{
-    MinecraftGuessUiAction, state::GuessInput, turn_timer::add_guess_clock, view::GuessTable,
-};
-use super::{
-    buttons::{GuessButtonSpec, GuessSubmit, add_guess_button},
-    candidates::{GuessCandidates, add_candidates},
-};
+use super::super::MinecraftGuessUiAction;
+use super::super::feedback::GuessReadyControls;
+use super::super::state::GuessInput;
+use super::super::turn_timer::add_guess_clock;
+use super::super::view::GuessTable;
+use super::buttons::{GuessButtonSpec, GuessSubmit, add_guess_button};
+use super::candidates::{GuessCandidates, add_candidates};
 use crate::app::presentation::{ACCENT, TextInput, add_text, spawn_node};
 use bevy::prelude::*;
 use leocard_minecraft_guess::MAX_GUESS_CHARACTERS;
@@ -16,7 +16,7 @@ impl GuessTable<'_> {
             page,
             Node {
                 width: percent(100),
-                height: px(84),
+                height: px(92),
                 flex_shrink: 0.0,
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
@@ -44,6 +44,14 @@ impl GuessTable<'_> {
             return;
         }
         if self.game.round.finished() {
+            commands.entity(row).insert((
+                GuessReadyControls,
+                if self.feedback.busy() || self.scores.busy() {
+                    Visibility::Hidden
+                } else {
+                    Visibility::Inherited
+                },
+            ));
             let winner = self
                 .game
                 .round
@@ -130,7 +138,7 @@ impl GuessTable<'_> {
             controls,
             Node {
                 width: percent(100),
-                height: px(32),
+                height: px(40),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 column_gap: px(6),
@@ -167,6 +175,7 @@ impl GuessTable<'_> {
                 action,
                 width: px(125),
                 height: 46.0,
+                icon: None,
             },
             self.assets,
             self.game_assets,

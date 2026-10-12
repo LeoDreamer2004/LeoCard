@@ -6,7 +6,7 @@ use crate::app::{
 };
 use bevy::prelude::*;
 use leocard_minecraft_guess::{GuessPool, MinecraftGuessRuleSet};
-use leocard_protocol::{LobbySnapshot, TABLE_SEAT_COUNT};
+use leocard_protocol::LobbySnapshot;
 
 impl EditableRuleSet for MinecraftGuessRuleSet {
     const ROW_HEIGHT: f32 = 44.0;
@@ -159,7 +159,7 @@ pub(crate) fn render_guess_lobby(
         },
         assets,
     );
-    let can_start = page.connected_count >= 2
+    let can_start = page.connected_count >= usize::from(MinecraftGuessRuleSet::MIN_PLAYERS)
         && lobby
             .players
             .iter()
@@ -172,7 +172,7 @@ pub(crate) fn render_guess_lobby(
             lobby,
             assets,
             avatars,
-            TABLE_SEAT_COUNT,
+            MinecraftGuessRuleSet::MAX_PLAYERS,
             can_start,
             "等待玩家中",
         ),

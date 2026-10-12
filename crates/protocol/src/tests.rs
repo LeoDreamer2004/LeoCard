@@ -38,6 +38,15 @@ fn client_message_round_trips_through_tcp_frame() {
                     bronze: 11,
                 },
                 coins: 300,
+                minecraft_guess: Some(MinecraftGuessProfileStats {
+                    completed_games: 2,
+                    total_score: 38,
+                    block_games: 4,
+                    block_wins: 1,
+                    item_games: 2,
+                    item_wins: 1,
+                    ..Default::default()
+                }),
                 gender: PlayerGender::Female,
                 qigui523: Some(QiGui523ProfileStats {
                     completed_games: 2,

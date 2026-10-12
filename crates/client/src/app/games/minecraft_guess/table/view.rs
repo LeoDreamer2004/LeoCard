@@ -1,9 +1,11 @@
-use super::super::{state::GuessScroll, view::GuessTable};
+use super::super::state::GuessScroll;
+use super::super::view::GuessTable;
 use super::cells::{CellSkin, TableCell};
 use super::rows::GuessEmptyRows;
 use super::style::ROW_HEIGHT;
 use crate::app::presentation::{Scrollbar, spawn_node};
-use bevy::{prelude::*, ui::RelativeCursorPosition};
+use bevy::prelude::*;
+use bevy::ui::RelativeCursorPosition;
 use leocard_minecraft_guess::{Catalogue, GuessRecord, GuessResult, MatchQuality, ValueDirection};
 
 impl GuessTable<'_> {
@@ -86,14 +88,21 @@ impl GuessTable<'_> {
             RelativeCursorPosition::default(),
             ScrollPosition(Vec2::new(0.0, self.state.scroll_y)),
         ));
-        for guess in &self.game.round.guesses {
-            self.guess_row(commands, scroll, guess, attribute_width);
+        for (index, guess) in self.game.round.guesses.iter().enumerate() {
+            self.guess_row(commands, scroll, guess, index, attribute_width);
         }
         GuessEmptyRows::spawn(commands, scroll, self.game.round.guesses.len());
         Scrollbar::spawn(commands, grid, scroll, self.game_assets.scrollbar());
     }
 
-    fn guess_row(&self, commands: &mut Commands, parent: Entity, guess: &GuessRecord, width: f32) {
+    fn guess_row(
+        &self,
+        commands: &mut Commands,
+        parent: Entity,
+        guess: &GuessRecord,
+        index: usize,
+        width: f32,
+    ) {
         let row = row(commands, parent, ROW_HEIGHT);
         let name_quality = if guess.result.is_correct() {
             MatchQuality::Exact
@@ -107,6 +116,10 @@ impl GuessTable<'_> {
             .find(|player| player.id.0 == guess.player)
             .map(|player| player.name.as_str())
             .unwrap_or("已离开玩家");
+        let icon = match &guess.result {
+            GuessResult::Known { entry, .. } => Some(self.game_assets.icon(entry)),
+            GuessResult::Unknown { .. } => None,
+        };
         TableCell::spawn(
             commands,
             row,
@@ -114,16 +127,15 @@ impl GuessTable<'_> {
             CellSkin::Feedback(name_quality),
             self.game_assets,
         )
-        .guess(commands, guess.result.name(), player, self.assets);
+        .revealing(commands, index, 0)
+        .guess(commands, guess.result.name(), player, icon, self.assets);
         let GuessResult::Known { entry, matches, .. } = &guess.result else {
-            TableCell::spawn(commands, row, 85.0, CellSkin::Unknown, self.game_assets).label(
-                commands,
-                "此条目不存在",
-                self.assets,
-            );
+            TableCell::spawn(commands, row, 85.0, CellSkin::Unknown, self.game_assets)
+                .revealing(commands, index, 1)
+                .label(commands, "此条目不存在", self.assets);
             return;
         };
-        for (attribute, feedback) in entry.attributes.iter().zip(matches) {
+        for (column, (attribute, feedback)) in entry.attributes.iter().zip(matches).enumerate() {
             let value = attribute.text();
             let label = match feedback.direction {
                 Some(ValueDirection::Up) => format!("{value}\u{00a0}↑"),
@@ -137,6 +149,7 @@ impl GuessTable<'_> {
                 CellSkin::Feedback(feedback.quality),
                 self.game_assets,
             )
+            .revealing(commands, index, column + 1)
             .label(commands, &label, self.assets);
         }
     }

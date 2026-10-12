@@ -1,16 +1,14 @@
+use super::super::icons::EntryIcons;
 use super::super::{MinecraftGuessAssets, MinecraftGuessUiAction};
-use crate::app::{
-    presentation::{MUTED, TEXT, add_text, spawn_node},
-    runtime::UiAssets,
-    shell::UiAction,
-};
-use bevy::{
-    input_focus::InputFocus,
-    picking::{Pickable, hover::PickingInteraction},
-    prelude::*,
-    ui::InteractionDisabled,
-    ui_widgets::Button,
-};
+use crate::app::presentation::{MUTED, SilentButton, TEXT, add_text, spawn_node};
+use crate::app::runtime::UiAssets;
+use crate::app::shell::UiAction;
+use bevy::input_focus::InputFocus;
+use bevy::picking::Pickable;
+use bevy::picking::hover::PickingInteraction;
+use bevy::prelude::*;
+use bevy::ui::InteractionDisabled;
+use bevy::ui_widgets::Button;
 
 #[derive(Component)]
 pub(in super::super) struct GuessButton {
@@ -26,6 +24,7 @@ pub(super) struct GuessButtonSpec<'a> {
     pub action: Option<MinecraftGuessUiAction>,
     pub width: Val,
     pub height: f32,
+    pub icon: Option<ImageNode>,
 }
 
 pub(super) fn add_guess_button(
@@ -46,15 +45,25 @@ pub(super) fn add_guess_button(
             padding: UiRect::horizontal(px(12)),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
+            column_gap: px(6),
             ..default()
         },
         None,
     );
     commands.entity(button).insert(Button);
+    if matches!(
+        spec.action,
+        Some(MinecraftGuessUiAction::Guess(_) | MinecraftGuessUiAction::Skip)
+    ) {
+        commands.entity(button).insert(SilentButton);
+    }
     if let Some(action) = spec.action {
         commands
             .entity(button)
             .insert(UiAction::MinecraftGuess(action));
+    }
+    if let Some(icon) = spec.icon {
+        EntryIcons::spawn(commands, button, icon, 32.0);
     }
     let label = add_text(commands, button, spec.label, 18.0, TEXT, assets);
     commands

@@ -1,3 +1,4 @@
+use super::feedback::GuessWinner;
 use super::{
     scores::{GuessScoreDelta, GuessScoreValue},
     view::GuessTable,
@@ -39,7 +40,9 @@ impl GuessTable<'_> {
                 commands,
                 row,
                 Node {
-                    width: px(136),
+                    width: percent(100.0 / self.game.players.len() as f32),
+                    min_width: px(0),
+                    flex_shrink: 0.0,
                     height: px(84),
                     ..default()
                 },
@@ -119,6 +122,9 @@ impl GuessTable<'_> {
                     ..default()
                 },
             ));
+            if self.game.round.winner == Some(player.id.0) {
+                commands.entity(portrait.avatar_ring).insert(GuessWinner);
+            }
             let skipped = self.game.round.skipped_players.contains(&player.id.0);
             if self.game.round.finished() && player.ready {
                 add_ready_badge(commands, portrait.avatar_ring, 52.0, self.assets);

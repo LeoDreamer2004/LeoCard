@@ -1,9 +1,10 @@
 use super::MinecraftGuessSession;
 use crate::{ConnectionId, Delivery, RoomSession, lifecycle::HostedGameLifecycle};
+use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::{
     GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, MinecraftGuessSnapshot,
     PlayerId, PlayerInteractionKind, PlayerScore, PlayerViolation, RejectReason, RequestId,
-    RoomViolation, ServerEvent, TABLE_SEAT_COUNT,
+    RoomViolation, ServerEvent,
 };
 
 impl HostedGameLifecycle for MinecraftGuessSession {
@@ -22,7 +23,7 @@ impl HostedGameLifecycle for MinecraftGuessSession {
     }
 
     fn capacity(&self) -> u8 {
-        TABLE_SEAT_COUNT
+        MinecraftGuessRuleSet::MAX_PLAYERS
     }
 
     fn game_rules(&self) -> GameRules {
@@ -90,9 +91,9 @@ impl HostedGameLifecycle for MinecraftGuessSession {
                 return Err(RejectReason::Room(RoomViolation::OnlyHostCanStart));
             }
             let players: Vec<_> = self.players.iter().filter(|player| !player.left).collect();
-            if players.len() < 2 {
+            if players.len() < usize::from(MinecraftGuessRuleSet::MIN_PLAYERS) {
                 return Err(RejectReason::Room(RoomViolation::NotEnoughPlayers {
-                    minimum: 2,
+                    minimum: MinecraftGuessRuleSet::MIN_PLAYERS,
                     actual: players.len() as u8,
                 }));
             }

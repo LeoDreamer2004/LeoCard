@@ -1,8 +1,9 @@
 use std::mem;
 
-use super::GuessActionStatistics;
-use super::analysis::{GuessAnalysisInput, RoundAnalysis};
-use super::{GameError, GuessRecord, GuessResult, RoundView};
+use super::{
+    GameError, GuessActionStatistics, GuessPlayStatistics, GuessRecord, GuessResult, RoundView,
+    analysis::{GuessAnalysisInput, RoundAnalysis},
+};
 use crate::{Catalogue, Entry, MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet};
 
 #[derive(Clone, Debug)]
@@ -158,6 +159,18 @@ impl GameState {
 
     pub fn consistency(&self) -> impl Iterator<Item = (u8, bool)> + '_ {
         self.analysis.consistency()
+    }
+
+    pub fn statistics(&self) -> impl Iterator<Item = (u8, GuessPlayStatistics)> + '_ {
+        assert!(self.finished);
+        self.analysis.statistics().map(|(player, mut statistics)| {
+            statistics.finish_game(
+                self.answer.kind,
+                self.winner == Some(player),
+                self.rules.allow_unknown_guesses,
+            );
+            (player, statistics)
+        })
     }
 
     pub fn take_score_gains(&mut self) -> Vec<(u8, u32)> {

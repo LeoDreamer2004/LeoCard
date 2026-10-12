@@ -257,6 +257,7 @@ fn scoring_settles_profiles_once_at_match_end_and_resets_for_next_match() {
     );
     assert!(first.reference_changes.is_empty());
     assert_eq!(session.players[0].completed_games, 0);
+    assert!(session.players[0].game_profiles.minecraft_guess.is_none());
     send(&mut session, 1, ClientCommand::PlayAgain);
     send(&mut session, 2, ClientCommand::PlayAgain);
     session.game = Some(GameState::new(answer.clone(), vec![1, 0], rules));
@@ -304,6 +305,44 @@ fn scoring_settles_profiles_once_at_match_end_and_resets_for_next_match() {
         (2, -2)
     );
     assert_eq!(session.players[0].completed_games, 1);
+    let first = last.players[0]
+        .game_profiles
+        .minecraft_guess
+        .as_ref()
+        .unwrap();
+    assert_eq!(
+        (
+            first.completed_games,
+            first.total_score,
+            first.total_reference_delta
+        ),
+        (1, 10, 2)
+    );
+    assert_eq!(first.placement_counts, [1, 0, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(
+        (
+            first.small_games(),
+            first.wins(),
+            first.actions(),
+            first.skips
+        ),
+        (2, 1, 2, 1)
+    );
+    let second = last.players[1]
+        .game_profiles
+        .minecraft_guess
+        .clone()
+        .unwrap();
+    assert_eq!(
+        (
+            second.small_games(),
+            second.wins(),
+            second.unknown_guesses,
+            second.unknown_enabled_guesses
+        ),
+        (2, 1, 1, 2)
+    );
+    assert_eq!(second.placement_counts, [0, 1, 0, 0, 0, 0, 0, 0]);
     send(&mut session, 1, ClientCommand::PlayAgain);
     assert_eq!(session.players[0].completed_games, 1);
     let start = send(&mut session, 2, ClientCommand::PlayAgain);
@@ -312,4 +351,8 @@ fn scoring_settles_profiles_once_at_match_end_and_resets_for_next_match() {
     assert!(next.scores.iter().all(|score| score.score == 0));
     assert!(next.score_gains.is_empty());
     assert!(next.reference_changes.is_empty());
+    assert_eq!(
+        next.players[1].game_profiles.minecraft_guess.as_ref(),
+        Some(&second)
+    );
 }

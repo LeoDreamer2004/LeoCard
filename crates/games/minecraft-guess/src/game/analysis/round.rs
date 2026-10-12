@@ -1,4 +1,4 @@
-use super::{CorrectGuess, GuessActionStatistics, types::PlayerRoundProgress};
+use super::{CorrectGuess, GuessActionStatistics, GuessPlayStatistics, types::PlayerRoundProgress};
 use crate::{GuessResult, MatchQuality};
 use std::mem;
 
@@ -42,11 +42,14 @@ impl RoundAnalysis {
         let correct = input.result.is_correct();
         let known = matches!(input.result, GuessResult::Known { .. });
         state.unknown_run = if known { 0 } else { state.unknown_run + 1 };
-        state.consistent &= input
+        let non_worse = input
             .result
             .closeness()
             .is_some_and(|score| input.previous.is_none_or(|previous| score >= previous));
-        state.known_guesses += u32::from(known);
+        state.consistent &= non_worse;
+        state.statistics.known_guesses += u32::from(known);
+        state.statistics.non_worse_guesses += u32::from(non_worse);
+        state.statistics.unknown_guesses += u32::from(!known);
         let qualities = match input.result {
             GuessResult::Known { matches, .. } => Some(matches),
             GuessResult::Unknown { .. } => None,
@@ -105,6 +108,7 @@ impl RoundAnalysis {
             .find(|state| state.player == player)
             .expect("round player");
         state.has_skipped = true;
+        state.statistics.skips += 1;
         state.skip_run += 1;
         state.unknown_run = 0;
         self.pending.push(GuessActionStatistics {
@@ -128,9 +132,18 @@ impl RoundAnalysis {
         mem::take(&mut self.pending)
     }
 
-    pub fn consistency(&self) -> impl Iterator<Item = (u8, bool)> + '_ {
+    pub fn statistics(&self) -> impl Iterator<Item = (u8, GuessPlayStatistics)> + '_ {
         self.players
             .iter()
-            .map(|state| (state.player, state.consistent && state.known_guesses > 0))
+            .map(|state| (state.player, state.statistics))
+    }
+
+    pub fn consistency(&self) -> impl Iterator<Item = (u8, bool)> + '_ {
+        self.players.iter().map(|state| {
+            (
+                state.player,
+                state.consistent && state.statistics.known_guesses > 0,
+            )
+        })
     }
 }

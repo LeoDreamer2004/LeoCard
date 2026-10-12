@@ -13,4 +13,4 @@ pub use scoring::{ScoreGain, reference_point_deltas};
 pub use state::GameState;
 pub use types::{GameError, RoundView};
 
-pub use analysis::{CorrectGuess, GuessActionStatistics, GuessHandStatistics};
+pub use analysis::{CorrectGuess, GuessActionStatistics, GuessHandStatistics, GuessPlayStatistics};

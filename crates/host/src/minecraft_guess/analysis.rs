@@ -3,7 +3,7 @@ use crate::Delivery;
 use leocard_protocol::{GameEvent, MinecraftGuessEvent, PlayerId, ServerEvent};
 
 impl MinecraftGuessSession {
-    pub(super) fn achievement_events(&mut self) -> Vec<Delivery> {
+    pub(super) fn analyze_action(&mut self) -> Vec<MinecraftGuessEvent> {
         let game = self.game.as_mut().expect("active game");
         let mut events: Vec<_> = game
             .take_action_statistics()
@@ -26,6 +26,10 @@ impl MinecraftGuessSession {
                     }),
             );
         }
+        events
+    }
+
+    pub(super) fn deliver_game_events(&self, events: Vec<MinecraftGuessEvent>) -> Vec<Delivery> {
         let hand = u32::from(
             self.match_state
                 .as_ref()

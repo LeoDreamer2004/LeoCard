@@ -3,22 +3,10 @@
 本文声明 LeoCard 当前发布物实际使用的图像、音频、字体素材及其许可来源。
 发布构建会按 `crates/client/runtime-assets.txt` 选取运行时文件，并默认内嵌到可执行文件；
 未被该清单选中的原始压缩包、预览图和备用素材不属于运行时发布内容。需要保留的第三方
-原始文件位于 `assets/vendor/`；仅保留加工成品的例外由对应条目记录来源和许可。项目加工
-后的素材位于 `assets/cards/`、`assets/ui/`、`assets/audio/`、`assets/icons/` 与
-`assets/fonts/`。
+原始文件位于 `assets/vendor/`；仅保留加工成品的例外由对应条目记录来源和许可。
 
 除另有说明外，项目自有的运行时素材随 LeoCard 的 GPL-3.0 许可证提供。用户在游戏中
 自行选择的桌布仅在本地读取，不随 LeoCard 发布物分发，相关使用权由用户自行确认。
-
-## 数据素材
-
-`data/minecraft/blocks.csv` 以 Java 版 26.1 中文方块清单为基础，补充 Wiki 属性及来源核验记录，尚未接入运行时资源包。
-数据字段、固定版本来源、筛选规则和授权说明见 [Minecraft 数据说明](data/minecraft/README.md)。
-加入版本字段尚待 Wiki 历史资料补全。
-
-## 项目生成素材
-
-- `ui/home/entries/`：麻将、升级、德州、UNO、七鬼五二三的五张独立透明牌组，使用内置 imagegen 生成；采用柔和倒角、象牙白牌面和彩色反光的立体插画风格。光晕和交互反馈由客户端单独绘制。
 
 ## CC0 素材
 
@@ -58,6 +46,24 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 - 运行时文件：`ui/profile/` 下的 10 张 PNG，分别用于下界合金锭、钻石、金锭、红石粉、铁锭、铜锭、圆石、橡木原木、泥土和堆肥桶等级。
 - 来源：[Minecraft Wiki 的 Invicon 图标](https://minecraft.wiki/)，对应文件为 `Invicon_Netherite_Ingot.png`、`Invicon_Diamond.png`、`Invicon_Gold_Ingot.png`、`Invicon_Redstone.png`、`Invicon_Iron_Ingot.png`、`Invicon_Copper_Ingot.png`、`Invicon_Cobblestone.png`、`Invicon_Oak_Log.png`、`Invicon_Dirt.png`、`Invicon_Composter.png`。
 - Minecraft 物品图像的权利归 Mojang Studios 所有，不适用 LeoCard 的 GPL-3.0 素材授权；使用须遵守 [Minecraft 使用规范](https://www.minecraft.net/en-us/usage-guidelines)。
+
+### MC 竞猜方块与物品图标（Mojang）
+
+- 运行时文件：`ui/minecraft_guess/entries.png`，用于猜测记录、候选词以及揭晓后的答案。
+- 来源：[Minecraft Wiki 库存图标](https://minecraft.wiki/w/Category:InvSprite_files)和对应的方块原始渲染图。按当前词库的方块／物品标识分别映射，外观相同的图标共用图集位置；动画取第一帧，保持长宽比装入 64×64 像素图格。物品保留原生像素图，三维方块采用较高分辨率的原始渲染图，客户端使用最近邻采样。
+- `data/minecraft/icon-sources.json` 记录每个条目的对应文件、下载地址和内容 SHA-1；`icons.tsv` 是客户端使用的图集索引。图集生成脚本位于本地 `tools/minecraft/`，不提交到 Git；原图仅缓存于 `target/minecraft-audit/icons/`，不随游戏发布。
+- Minecraft 图像的权利归 Mojang Studios 所有，授权要求与上述等级物品图标一致。
+
+### MC 竞猜游戏背景（Mojang）
+
+- 本地位置：`ui/minecraft_guess/background/`。游戏开始使用原版泥土菜单纹理，猜中加入版本后切换为该版本的全景；1.0 之前的条目使用经典背景，1.21 系列使用初版 1.21 背景。
+- 泥土纹理原样提取自 Java 版 1.12.2 客户端的 `assets/minecraft/textures/gui/options_background.png`。全景来自 [Mojang 官方版本清单](https://piston-meta.mojang.com/mc/game/version_manifest_v2.json)所列客户端归档与资源索引中的六面图片，保持原始分辨率，按原版立方体贴图顺序排列并垂直翻转后打包。
+- `sources.json` 记录原始来源与打包文件的 SHA-1；`versions.tsv` 记录版本映射。
+
+### MC 竞猜音符盒反馈音效（Mojang）
+
+- 运行时文件：`audio/minecraft_guess/note_block/{guitar,harp,pling,bass,bell}.ogg`。
+- 来源：Java 版 26.3 官方资源索引中的 `minecraft/sounds/note/`，保留原始单声道 Vorbis 文件。原文件未重新合成或转码；音高、音量和多音节奏由播放层控制，音高采用原版音符盒的 25 档调音规则，整体音量跟随游戏全局音量。
 
 ### CozyUI+ 首页纹理（GPL-3.0）
 

@@ -1,4 +1,6 @@
-use super::{GameState, GuessHandStatistics, ScoreGain, analysis::MatchAnalysis};
+use super::{
+    GameState, GuessHandStatistics, GuessPlayStatistics, ScoreGain, analysis::MatchAnalysis,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -32,6 +34,7 @@ pub struct MatchState {
     progress: MatchProgress,
     scores: Vec<u32>,
     gains: Vec<ScoreGain>,
+    statistics: Vec<GuessPlayStatistics>,
     analysis: MatchAnalysis,
 }
 
@@ -47,6 +50,7 @@ impl MatchState {
             },
             scores: vec![0; players.len()],
             gains: Vec::new(),
+            statistics: vec![GuessPlayStatistics::default(); players.len()],
             analysis: MatchAnalysis::new(&players),
             players,
         }
@@ -91,8 +95,20 @@ impl MatchState {
         &self.gains
     }
 
+    pub fn statistics(&self) -> impl Iterator<Item = (u8, &GuessPlayStatistics)> + '_ {
+        self.players.iter().copied().zip(&self.statistics)
+    }
+
     pub fn finish_round(&mut self, game: &GameState) -> Vec<GuessHandStatistics> {
         assert!(game.finished());
+        for (player, statistics) in game.statistics() {
+            let index = self
+                .players
+                .iter()
+                .position(|id| *id == player)
+                .expect("match participant");
+            self.statistics[index].merge(statistics);
+        }
         let scores: Vec<_> = self.scores().collect();
         self.analysis.finish(
             self.progress,

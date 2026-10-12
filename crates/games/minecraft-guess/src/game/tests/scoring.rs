@@ -91,20 +91,26 @@ fn points_accumulate_across_games_and_rank_awards_scale_with_rounds() {
         vec![(2, 12), (0, 1), (1, 0), (3, 5)]
     );
     assert_eq!((state.gains()[3].before, state.gains()[3].after), (10, 12));
-    assert_eq!(
-        reference_point_deltas(&[4, 3, 2, 1], 2),
-        Some(vec![2, 1, -1, -2])
-    );
-    assert_eq!(
-        reference_point_deltas(&[4, 3, 2, 1], 3),
-        Some(vec![4, 2, -2, -4])
-    );
-    assert_eq!(
-        reference_point_deltas(&[5, 4, 3, 3, 2, 1], 5),
-        Some(vec![4, 2, 0, 0, -2, -4])
-    );
+    let awards: &[&[i16]] = &[
+        &[2, -2],
+        &[2, 0, -2],
+        &[3, -2, -2, -3],
+        &[3, 2, 0, -2, -3],
+        &[5, 3, 1, -1, -3, -5],
+        &[5, 3, 1, 0, -1, -3, -5],
+        &[5, 3, 2, 1, -1, -2, -3, -5],
+    ];
+    for &tiers in awards {
+        let scores: Vec<_> = (1..=tiers.len() as u32).rev().collect();
+        for rounds in 1..=5 {
+            let multiplier = if rounds >= 3 { 2 } else { 1 };
+            let expected: Vec<_> = tiers.iter().map(|tier| tier * multiplier).collect();
+            assert_eq!(reference_point_deltas(&scores, rounds), Some(expected));
+        }
+    }
     assert_eq!(
         reference_point_deltas(&[4, 4, 2, 1], 1),
-        Some(vec![2, 2, -1, -2])
+        Some(vec![3, 3, -2, -3])
     );
+    assert_eq!(reference_point_deltas(&[1; 9], 1), None);
 }

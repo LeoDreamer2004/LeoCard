@@ -1,12 +1,11 @@
-use super::{GuessScorePlayback, MinecraftGuessAssets, state::MinecraftGuessUiState};
-use crate::app::{
-    presentation::{
-        ACCENT, GameSummaryAnimation, MUTED, StartGameSeatTransition, TEXT, TurnBorderMaterial,
-        add_text, spawn_node,
-    },
-    runtime::{AvatarImages, ClientResource, UiAssets},
-    shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay},
+use super::background::add_guess_background;
+use super::state::MinecraftGuessUiState;
+use super::{GuessFeedback, GuessScorePlayback, MinecraftGuessAssets};
+use crate::app::presentation::{
+    GameSummaryAnimation, StartGameSeatTransition, TurnBorderMaterial, spawn_node,
 };
+use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
+use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
 use bevy::prelude::*;
 use leocard_client::NetworkState;
 use leocard_protocol::MinecraftGuessSnapshot;
@@ -16,6 +15,7 @@ pub(crate) struct GuessTable<'a> {
     pub game: &'a MinecraftGuessSnapshot,
     pub state: &'a MinecraftGuessUiState,
     pub scores: &'a GuessScorePlayback,
+    pub feedback: &'a GuessFeedback,
     pub summary: &'a GameSummaryAnimation,
     pub social: &'a SocialUiState,
     pub chat: &'a ChatPanelState,
@@ -27,6 +27,7 @@ pub(crate) struct GuessTable<'a> {
 }
 
 pub(crate) fn render_guess_table(commands: &mut Commands, root: Entity, mut table: GuessTable<'_>) {
+    add_guess_background(commands, root);
     let page = spawn_node(
         commands,
         root,
@@ -65,7 +66,7 @@ pub(crate) fn render_guess_table(commands: &mut Commands, root: Entity, mut tabl
     if table.transition.is_active_for(table.game.match_id) {
         commands.entity(heading).insert(Visibility::Hidden);
     }
-    table.answer(commands, heading);
+    table.answer(commands, heading, page);
     let panel = spawn_node(
         commands,
         page,
@@ -92,64 +93,5 @@ pub(crate) fn render_guess_table(commands: &mut Commands, root: Entity, mut tabl
     add_chat_panel(commands, page, table.chat, table.assets, None, &[]);
     if let NetworkState::Reconnecting(message) = table.client.0.state() {
         add_reconnecting_overlay(commands, page, message, table.assets);
-    }
-}
-
-impl GuessTable<'_> {
-    fn answer(&self, commands: &mut Commands, heading: Entity) {
-        let progress = self.game.progress;
-        let label = add_text(
-            commands,
-            heading,
-            format!(
-                "第 {}/{} 轮  第 {}/{} 局",
-                progress.current_round(),
-                progress.rounds,
-                progress.game_index + 1,
-                progress.total_games(),
-            ),
-            14.0,
-            MUTED,
-            self.assets,
-        );
-        commands.entity(label).insert(Node {
-            position_type: PositionType::Absolute,
-            left: px(0),
-            ..default()
-        });
-        let (value, color) = match &self.game.round.answer {
-            Some(answer) => (answer.name.clone(), ACCENT),
-            None => (
-                "_ ".repeat(usize::from(self.game.round.character_count))
-                    .trim_end()
-                    .to_owned(),
-                TEXT,
-            ),
-        };
-        let label = add_text(
-            commands,
-            heading,
-            format!("{}：{value}", self.game.round.kind.label()),
-            23.0,
-            color,
-            self.assets,
-        );
-        commands.entity(label).insert((
-            TextLayout::justify(Justify::Center),
-            Node {
-                max_width: percent(100),
-                ..default()
-            },
-        ));
-        if self.game.round.answer.is_none() {
-            add_text(
-                commands,
-                heading,
-                format!("({})", self.game.round.character_count),
-                17.0,
-                MUTED,
-                self.assets,
-            );
-        }
     }
 }

@@ -1,3 +1,4 @@
+use crate::MinecraftGuessProfileStats;
 use leocard_mahjong::Fan;
 use serde::{Deserialize, Serialize};
 
@@ -56,6 +57,7 @@ pub struct PlayerGameProfiles {
     /// 玩家收到互动时累计的鲜花与鸡蛋数量。
     pub interactions: Option<PlayerInteractionStats>,
     pub mahjong: Option<MahjongProfileStats>,
+    pub minecraft_guess: Option<MinecraftGuessProfileStats>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

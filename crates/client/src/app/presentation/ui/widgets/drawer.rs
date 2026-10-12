@@ -26,7 +26,7 @@ pub(crate) fn add_switch_drawer(
     table: Entity,
     spec: SwitchDrawer<'_>,
     assets: &UiAssets,
-) {
+) -> Entity {
     let expanded = spec.expanded;
     let mut drawer_image =
         ImageNode::new(assets.home.panel.clone()).with_mode(NodeImageMode::Sliced(TextureSlicer {
@@ -161,4 +161,5 @@ pub(crate) fn add_switch_drawer(
         overlay: hover,
         arrows: None,
     });
+    drawer
 }

@@ -33,6 +33,9 @@ impl Default for MinecraftGuessRuleSet {
 }
 
 impl MinecraftGuessRuleSet {
+    pub const MIN_PLAYERS: u8 = 2;
+    pub const MAX_PLAYERS: u8 = 8;
+
     pub const GUESS_SECONDS_OPTIONS: [u16; 5] = [0, 15, 30, 60, 120];
 
     pub fn is_valid(self) -> bool {

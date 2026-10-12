@@ -55,7 +55,7 @@ impl RoomSession {
                     .iter()
                     .all(|player| player.left || player.name != name)
             })
-            .expect("there are at most six robot seats");
+            .expect("each robot occupies a distinct room seat");
         let vacant = self.players.iter().position(|player| player.left);
         let id = PlayerId(vacant.unwrap_or(self.players.len()) as u8);
         let participant = Participant {

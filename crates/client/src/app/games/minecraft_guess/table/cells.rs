@@ -1,10 +1,12 @@
 use super::super::MinecraftGuessAssets;
+use super::super::feedback::GuessCellReveal;
+use super::super::icons::EntryIcons;
+use super::names::GuessName;
 use super::style::{SEPARATOR_COLOR, SEPARATOR_WIDTH};
-use crate::app::{
-    presentation::{MUTED, TEXT, add_text, spawn_node},
-    runtime::UiAssets,
-};
-use bevy::{picking::Pickable, prelude::*};
+use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
+use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_minecraft_guess::MatchQuality;
 
 pub(super) enum CellSkin {
@@ -26,7 +28,9 @@ impl CellSkin {
 }
 
 pub(super) struct TableCell {
+    container: Entity,
     content: Entity,
+    color: Color,
 }
 
 impl TableCell {
@@ -37,7 +41,7 @@ impl TableCell {
         skin: CellSkin,
         assets: &MinecraftGuessAssets,
     ) -> Self {
-        let content = spawn_node(
+        let container = spawn_node(
             commands,
             parent,
             Node {
@@ -62,20 +66,83 @@ impl TableCell {
             CellSkin::Heading => assets.surface(),
             CellSkin::Feedback(_) | CellSkin::Unknown => assets.cell(skin.color()),
         };
-        commands.entity(content).insert((
+        commands.entity(container).insert((
             image,
             BorderColor::all(SEPARATOR_COLOR),
             Pickable::IGNORE,
         ));
-        Self { content }
+        let content = spawn_node(
+            commands,
+            container,
+            Node {
+                width: percent(100),
+                min_width: px(0),
+                flex_grow: 1.0,
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                row_gap: px(4),
+                ..default()
+            },
+            None,
+        );
+        Self {
+            container,
+            content,
+            color: skin.color(),
+        }
+    }
+
+    pub fn revealing(self, commands: &mut Commands, row: usize, column: usize) -> Self {
+        commands.entity(self.container).insert(GuessCellReveal::new(
+            row,
+            column,
+            self.color,
+            self.content,
+        ));
+        self
     }
 
     pub fn label(&self, commands: &mut Commands, text: &str, assets: &UiAssets) {
         self.text(commands, text, 18.0, TEXT, assets);
     }
 
-    pub fn guess(&self, commands: &mut Commands, name: &str, player: &str, assets: &UiAssets) {
-        self.text(commands, name, 20.0, TEXT, assets);
+    pub fn guess(
+        &self,
+        commands: &mut Commands,
+        name: &str,
+        player: &str,
+        icon: Option<ImageNode>,
+        assets: &UiAssets,
+    ) {
+        let group = spawn_node(
+            commands,
+            self.content,
+            Node {
+                width: percent(100),
+                min_width: px(0),
+                flex_shrink: 0.0,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                column_gap: px(4),
+                ..default()
+            },
+            None,
+        );
+        commands.entity(group).insert(Pickable::IGNORE);
+        if let Some(icon) = icon {
+            EntryIcons::spawn(commands, group, icon, 32.0);
+        }
+        let label = add_text(commands, group, name, 18.0, TEXT, assets);
+        commands.entity(label).insert((
+            GuessName,
+            Pickable::IGNORE,
+            TextLayout::justify(Justify::Center),
+            Node {
+                min_width: px(0),
+                ..default()
+            },
+        ));
         self.text(commands, player, 14.0, MUTED, assets);
     }
 

@@ -72,7 +72,7 @@ impl RoomSession {
         capacity: usize,
         seat_count: u8,
     ) -> Self {
-        assert!(seat_count > 0 && seat_count <= TABLE_SEAT_COUNT);
+        assert!(seat_count > 0 && capacity <= usize::from(seat_count));
         Self {
             achievements: RoomAchievements::default(),
             activity: RoomActivity::default(),

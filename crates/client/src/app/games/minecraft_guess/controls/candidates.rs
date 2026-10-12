@@ -1,9 +1,7 @@
 use super::super::{MinecraftGuessAssets, MinecraftGuessUiAction, MinecraftGuessUiState};
 use super::buttons::{GuessButton, GuessButtonSpec, GuessSubmit, add_guess_button, set_enabled};
-use crate::app::{
-    runtime::{ClientResource, UiAssets},
-    shell::UiAction,
-};
+use crate::app::runtime::{ClientResource, UiAssets};
+use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use leocard_minecraft_guess::Catalogue;
 use leocard_protocol::MinecraftGuessSnapshot;
@@ -47,7 +45,8 @@ pub(super) fn add_candidates(
                 label: &entry.name,
                 action: Some(MinecraftGuessUiAction::Guess(Some(entry.id.clone()))),
                 width: Val::Auto,
-                height: 30.0,
+                height: 38.0,
+                icon: Some(game_assets.icon(entry)),
             },
             assets,
             game_assets,

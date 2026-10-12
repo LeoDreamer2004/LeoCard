@@ -1,13 +1,14 @@
+use super::icons::EntryIcons;
 use crate::app::presentation::{ScrollbarSkin, TextInputSkin};
-use bevy::{
-    image::{ImageLoaderSettings, ImageSampler},
-    prelude::*,
-    ui::VisualBox,
-};
+use bevy::image::{ImageLoaderSettings, ImageSampler};
+use bevy::prelude::*;
+use bevy::ui::VisualBox;
+use leocard_minecraft_guess::Entry;
 
 #[derive(Resource)]
 pub(crate) struct MinecraftGuessAssets {
     frame: Handle<Image>,
+    popup_frame: Handle<Image>,
     inset: Handle<Image>,
     cell: Handle<Image>,
     surface: Handle<Image>,
@@ -19,11 +20,20 @@ pub(crate) struct MinecraftGuessAssets {
     highlighted_button: Handle<Image>,
     input: Handle<Image>,
     focused_input: Handle<Image>,
+    icons: EntryIcons,
 }
 
 impl MinecraftGuessAssets {
+    pub(super) fn icon(&self, entry: &Entry) -> ImageNode {
+        self.icons.image(entry)
+    }
+
     pub(super) fn frame(&self) -> ImageNode {
         Self::image(self.frame.clone())
+    }
+
+    pub(super) fn popup_frame(&self) -> ImageNode {
+        Self::image(self.popup_frame.clone())
     }
 
     pub(super) fn inset(&self) -> ImageNode {
@@ -101,7 +111,11 @@ impl MinecraftGuessAssets {
     }
 }
 
-pub(super) fn load_guess_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub(super) fn load_guess_assets(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+) {
     let load = |path: &'static str| {
         asset_server
             .load_builder()
@@ -112,6 +126,7 @@ pub(super) fn load_guess_assets(mut commands: Commands, asset_server: Res<AssetS
     };
     commands.insert_resource(MinecraftGuessAssets {
         frame: load("ui/minecraft_guess/table-frame.png"),
+        popup_frame: load("ui/minecraft_guess/popup-frame.png"),
         inset: load("ui/minecraft_guess/table-inset.png"),
         cell: load("ui/minecraft_guess/table-cell.png"),
         surface: load("ui/minecraft_guess/table-surface.png"),
@@ -123,5 +138,6 @@ pub(super) fn load_guess_assets(mut commands: Commands, asset_server: Res<AssetS
         highlighted_button: load("ui/minecraft_guess/button-highlighted.png"),
         input: load("ui/minecraft_guess/input.png"),
         focused_input: load("ui/minecraft_guess/input-focused.png"),
+        icons: EntryIcons::new(load("ui/minecraft_guess/entries.png"), &mut layouts),
     });
 }

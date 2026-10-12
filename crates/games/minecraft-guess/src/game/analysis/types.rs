@@ -1,3 +1,4 @@
+use super::GuessPlayStatistics;
 use crate::EntryKind;
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +39,7 @@ pub struct GuessHandStatistics {
 pub(super) struct PlayerRoundProgress {
     pub player: u8,
     pub has_skipped: bool,
-    pub known_guesses: u32,
+    pub statistics: GuessPlayStatistics,
     pub consistent: bool,
     pub unknown_run: u32,
     pub skip_run: u32,
@@ -49,7 +50,7 @@ impl PlayerRoundProgress {
         Self {
             player,
             has_skipped: false,
-            known_guesses: 0,
+            statistics: GuessPlayStatistics::default(),
             consistent: true,
             unknown_run: 0,
             skip_run: 0,

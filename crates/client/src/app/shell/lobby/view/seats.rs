@@ -1,3 +1,4 @@
+use super::layout::LobbySeatLayout;
 use super::*;
 use crate::app::presentation::{
     ACCENT, LobbyEmptySeatLabel, LobbyEmptySeatRing, LobbySeatHover, LobbySeatTransitionSource,
@@ -10,7 +11,7 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
-use leocard_protocol::{GameKind, LobbyPlayer, LobbySnapshot, SeatId};
+use leocard_protocol::{LobbyPlayer, LobbySnapshot, SeatId};
 
 pub(super) struct LobbySeatSelector<'a> {
     client: &'a ClientResource,
@@ -166,17 +167,7 @@ impl<'a> LobbySeat<'a> {
     }
 
     fn position(&self) -> (f32, f32) {
-        if matches!(self.lobby.game, GameKind::Shengji | GameKind::Mahjong) {
-            match self.index {
-                0 => (239.0, 290.0),
-                1 => (0.0, 145.0),
-                2 => (239.0, 0.0),
-                3 => (478.0, 145.0),
-                _ => unreachable!("双升和麻将固定四个座位"),
-            }
-        } else {
-            lobby_seat_position(self.index)
-        }
+        LobbySeatLayout::new(self.lobby.game).position(self.index)
     }
 }
 
@@ -363,17 +354,5 @@ impl<'a> EmptyLobbySeat<'a> {
         commands
             .entity(label)
             .insert(LobbyEmptySeatLabel(self.index));
-    }
-}
-
-fn lobby_seat_position(seat: u8) -> (f32, f32) {
-    match seat {
-        0 => (150.0, 290.0),
-        1 => (0.0, 145.0),
-        2 => (150.0, 0.0),
-        3 => (328.0, 0.0),
-        4 => (478.0, 145.0),
-        5 => (328.0, 290.0),
-        _ => unreachable!("there are exactly six table seats"),
     }
 }

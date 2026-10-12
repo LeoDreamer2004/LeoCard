@@ -10,6 +10,7 @@ use leocard_protocol::ShengjiSnapshot;
 
 pub(in super::super) fn render_counter(
     commands: &mut Commands,
+    root: Entity,
     table: Entity,
     game: &ShengjiSnapshot,
     ui: &ShengjiUiState,
@@ -19,9 +20,9 @@ pub(in super::super) fn render_counter(
     if !state.window.active {
         return;
     }
-    add_switch_drawer(
+    let drawer = add_switch_drawer(
         commands,
-        table,
+        root,
         SwitchDrawer {
             expanded: state.window.drawer_open,
             toggle_action: UiAction::Shengji(ShengjiUiAction::ToggleCounterDrawer),
@@ -34,6 +35,13 @@ pub(in super::super) fn render_counter(
         },
         assets,
     );
+    // Dock to the full viewport, retaining the 82px clearance above the 210px hand area.
+    commands
+        .entity(drawer)
+        .entry::<Node>()
+        .and_modify(|mut node| {
+            node.bottom = px(292);
+        });
     if !state.window.enabled {
         return;
     }

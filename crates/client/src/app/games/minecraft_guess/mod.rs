@@ -1,6 +1,9 @@
 mod actions;
 mod assets;
+mod background;
 mod controls;
+mod feedback;
+mod icons;
 mod lobby;
 mod players;
 mod plugin;
@@ -13,6 +16,7 @@ mod view;
 
 pub(crate) use actions::MinecraftGuessUiAction;
 pub(crate) use assets::MinecraftGuessAssets;
+pub(crate) use feedback::GuessFeedback;
 pub(crate) use lobby::render_guess_lobby;
 pub(crate) use plugin::MinecraftGuessPlugin;
 pub(crate) use scores::GuessScorePlayback;

@@ -1,4 +1,4 @@
-use super::GuessTurnClock;
+use super::{GuessTurnClock, MinecraftProcessPresence};
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_minecraft_guess::{GameState, MatchState, MinecraftGuessRuleSet};
@@ -17,6 +17,7 @@ pub struct MinecraftGuessSession {
     pub(super) match_state: Option<MatchState>,
     pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
     pub(super) turn_clock: GuessTurnClock,
+    pub(super) process_presence: MinecraftProcessPresence,
 }
 
 impl Deref for MinecraftGuessSession {
@@ -48,6 +49,7 @@ impl MinecraftGuessSession {
             match_state: None,
             turn_clock: GuessTurnClock::default(),
             finished_reference_changes: None,
+            process_presence: MinecraftProcessPresence::default(),
         }
     }
 
@@ -101,6 +103,8 @@ impl MinecraftGuessSession {
             return Vec::new();
         };
         player.connected = false;
+        let player_id = player.id;
+        self.process_presence.remove(player_id);
         if self.room.host_connection == Some(connection) {
             self.room.closed = true;
             self.bump_revision();

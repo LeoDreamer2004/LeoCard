@@ -51,7 +51,7 @@ impl UnoSession {
                         .observe(before, &outcome, &played, jump_in_was_available, game),
                 ));
                 self.apply_finished_reference_points();
-                self.reset_auto_play_delay();
+                self.reset_automatic_action_delay();
                 self.room.bump_revision();
                 let draw_reveal = pending_draw_reveal_for_outcome(
                     &outcome,

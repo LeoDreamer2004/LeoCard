@@ -1,13 +1,15 @@
 use super::feedback::GuessWinner;
+use super::process_presence::add_process_presence_overlay;
 use super::{
     scores::{GuessScoreDelta, GuessScoreValue},
     view::GuessTable,
 };
 use crate::app::{
     presentation::{
-        ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, READY, TEXT, TurnBorderAnimationKey,
-        add_player_portrait, add_ready_badge, add_text, add_turn_border_trace_with_radius,
-        attach_start_game_seat_transition, score_gain_visual, spawn_node,
+        ACCENT, DANGER, MUTED, PlayerMenuProfile, PlayerPortraitSpec, READY, TEXT,
+        TurnBorderAnimationKey, add_player_portrait, add_ready_badge, add_text,
+        add_turn_border_trace_with_radius, attach_start_game_seat_transition, score_gain_visual,
+        spawn_node,
     },
     shell::SeatSide,
 };
@@ -122,7 +124,8 @@ impl GuessTable<'_> {
                     ..default()
                 },
             ));
-            if self.game.round.winner == Some(player.id.0) {
+            let minecraft_running = self.game.minecraft_process_players.contains(&player.id);
+            if self.game.round.winner == Some(player.id.0) && !minecraft_running {
                 commands.entity(portrait.avatar_ring).insert(GuessWinner);
             }
             let skipped = self.game.round.skipped_players.contains(&player.id.0);
@@ -133,7 +136,12 @@ impl GuessTable<'_> {
                 .entity(portrait.avatar_ring)
                 .entry::<Node>()
                 .and_modify(|mut node| node.border_radius = BorderRadius::all(px(10.4)));
-            if !active {
+            if minecraft_running {
+                commands
+                    .entity(portrait.avatar_ring)
+                    .insert(Outline::new(px(3), px(0), DANGER));
+                add_process_presence_overlay(commands, portrait.avatar_ring, 52.0, self.assets);
+            } else if !active {
                 commands.entity(portrait.avatar_ring).insert(Outline::new(
                     px(3),
                     px(0),

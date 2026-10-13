@@ -19,6 +19,8 @@ pub struct MinecraftGuessSnapshot {
     pub scores: Vec<PlayerScore>,
     pub score_gains: Vec<ScoreGain>,
     pub reference_changes: Vec<PlayerReferenceChange>,
+    /// Advisory presence only; never affects guessing rules or scoring.
+    pub minecraft_process_players: Vec<PlayerId>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -30,6 +32,11 @@ pub enum MinecraftGuessEvent {
     HandAnalyzed {
         player: PlayerId,
         statistics: GuessHandStatistics,
+    },
+    ProcessPresenceChanged {
+        player: PlayerId,
+        name: String,
+        running: bool,
     },
 }
 

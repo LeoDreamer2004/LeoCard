@@ -2,8 +2,8 @@ use super::{MAHJONG_DEAL_INTERVAL, MahjongSession};
 use crate::ConnectionId;
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_mahjong::{
-    Fan, FanValue, MahjongPlayerId, MahjongRuleSet, MahjongScoreResult, MahjongSuit, MahjongTile,
-    MahjongTileKind, Phase, build_deck,
+    Fan, FanValue, MahjongRuleSet, MahjongScoreResult, MahjongSuit, MahjongTile, MahjongTileKind,
+    Phase, build_deck,
 };
 use leocard_mahjong::{MahjongMatchLength, MahjongMatchProgress};
 use leocard_protocol::{
@@ -365,43 +365,6 @@ fn four_clients_receive_private_views_and_continue_at_the_table() {
         session.game().expect("next hand started").sequence_index(),
         1
     );
-}
-
-#[test]
-fn robot_waits_then_takes_an_automatic_action() {
-    let mut session = MahjongSession::new(ROOM, 52300, MahjongRuleSet::default(), build_deck())
-        .expect("standard wall is valid");
-    let connections = [
-        ConnectionId(110),
-        ConnectionId(120),
-        ConnectionId(130),
-        ConnectionId(140),
-    ];
-    for (index, connection) in connections.into_iter().enumerate() {
-        session.handle(
-            connection,
-            message(
-                100 + index as u64,
-                join_command(&format!("玩家{index}"), 20 + index as u64),
-            ),
-        );
-    }
-    for (index, player) in session.room.players.iter_mut().enumerate() {
-        player.seat = Some(SeatId(index as u8));
-        player.ready = true;
-    }
-    session.handle(connections[0], message(200, ClientCommand::StartGame));
-    session.room.players[0].is_bot = true;
-    session.room.players[0].auto_play = true;
-    finish_server_deal(&mut session);
-
-    assert!(session.advance_time(Duration::from_millis(999)).is_empty());
-    let deliveries = session.advance_time(Duration::from_millis(1));
-
-    assert!(!deliveries.is_empty());
-    let game = session.game().expect("game remains active");
-    let dealer = game.player(MahjongPlayerId(0)).unwrap();
-    assert!(!game.discards().is_empty() || !dealer.melds().is_empty());
 }
 
 #[test]

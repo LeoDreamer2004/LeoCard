@@ -3,7 +3,8 @@ use super::{
     validate_deck,
 };
 use crate::{
-    AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession,
+    AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
+    RoomSession,
     lifecycle::{HostedGameLifecycle, dispatch_client_command},
     new_match_id,
 };
@@ -38,7 +39,8 @@ impl MahjongSession {
             shuffled_deck: Some(shuffled_deck),
             game: None,
             match_id: None,
-            auto_play_delay: None,
+            automatic_action_delay: None,
+            bot_decision: Default::default(),
             deal_delay: Duration::ZERO,
             finished_reference_changes: None,
         })
@@ -124,27 +126,31 @@ impl MahjongSession {
             return deliveries;
         }
         let Some(player) = self.current_automatic_player() else {
-            self.auto_play_delay = None;
+            self.automatic_action_delay = None;
+            self.bot_decision.clear();
             return Vec::new();
         };
-        let delay = self.auto_play_delay.get_or_insert(AutoPlayDelayState {
-            player,
-            remaining: AUTO_PLAY_DELAY,
-        });
-        if delay.player != player {
-            *delay = AutoPlayDelayState {
+        let delay = self
+            .automatic_action_delay
+            .get_or_insert(AutomaticActionDelayState {
                 player,
-                remaining: AUTO_PLAY_DELAY,
+                remaining: AUTOMATIC_ACTION_DELAY,
+            });
+        if delay.player != player {
+            *delay = AutomaticActionDelayState {
+                player,
+                remaining: AUTOMATIC_ACTION_DELAY,
             };
         }
         if elapsed < delay.remaining {
             delay.remaining -= elapsed;
             return Vec::new();
         }
-        self.auto_play_delay = None;
+        delay.remaining = Duration::ZERO;
         let Some((mut events, outcome)) = self.play_automatic_action(player) else {
             return Vec::new();
         };
+        self.automatic_action_delay = None;
         if matches!(
             self.game.as_ref().map(GameState::phase),
             Some(Phase::Finished(_))
@@ -366,7 +372,7 @@ impl HostedGameLifecycle for MahjongSession {
         let host = self.room.host_connection;
         for player in &mut self.room.players {
             player.ready = player.is_bot || host == Some(player.connection);
-            player.auto_play = player.is_bot;
+            player.auto_play = false;
             if !player.connected {
                 player.seat = None;
             }

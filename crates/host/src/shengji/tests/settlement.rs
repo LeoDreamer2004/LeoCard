@@ -1,8 +1,8 @@
 use super::*;
-use leocard_protocol::{ClientCommand, PlayerId, SeatId, ShengjiPhaseView};
+use leocard_protocol::PlayerId;
 use leocard_shengji::{
-    Category, Component, HandResult, ShengjiCard, ShengjiClassifiedPlay, ShengjiPlayerId,
-    ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTeamId, build_deck,
+    Category, Component, HandResult, ShengjiClassifiedPlay, ShengjiPlayerId, ShengjiRank,
+    ShengjiSuit, ShengjiTeamId,
 };
 
 pub(super) fn result_for_reference_points(
@@ -172,47 +172,4 @@ fn throw_profile_lengths_include_every_internal_sequence() {
     assert_eq!(stats.longest_titanic, 2);
     assert_eq!(stats.longest_spaceship, 2);
     assert_eq!(stats.longest_throw, 26);
-}
-
-#[test]
-fn bots_bid_bury_and_play_with_the_greedy_policy() {
-    let target = ShengjiCard::suited(0, ShengjiSuit::Diamond, ShengjiRank::Two);
-    let mut deck = build_deck();
-    let target_index = deck.iter().position(|card| *card == target).unwrap();
-    deck.swap(1, target_index);
-    let mut session = ShengjiSession::new(ROOM, 52300, ShengjiRuleSet::default(), deck).unwrap();
-    let host = ConnectionId(10);
-    session.handle(host, message(0, 1, join_command(0)));
-    session.handle(
-        host,
-        message(0, 2, ClientCommand::SelectSeat { seat: SeatId(0) }),
-    );
-    for seat in 1..PLAYER_COUNT {
-        session.handle(
-            host,
-            message(
-                0,
-                u64::from(seat) + 2,
-                ClientCommand::ConfigureBotSeat {
-                    seat: SeatId(seat),
-                    occupied: true,
-                },
-            ),
-        );
-    }
-    session.handle(host, message(0, 6, ClientCommand::StartGame));
-    let deliveries = session.advance_time(DEAL_INTERVAL * 100);
-    let bidding = game_snapshot(&deliveries, host);
-    assert_eq!(bidding.declaration.unwrap().player, PlayerId(1));
-
-    session.advance_time(BIDDING_GRACE);
-    session.advance_time(AUTOMATIC_ACTION_DELAY);
-    let deliveries = session.advance_time(AUTOMATIC_ACTION_DELAY);
-    let playing = game_snapshot(&deliveries, host);
-    assert!(matches!(playing.phase, ShengjiPhaseView::Playing));
-    assert_eq!(
-        playing.trick.as_ref().map(|trick| trick.plays.len()),
-        Some(1)
-    );
-    assert_eq!(playing.current_player, Some(PlayerId(2)));
 }

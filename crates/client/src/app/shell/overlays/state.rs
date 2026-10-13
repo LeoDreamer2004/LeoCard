@@ -14,6 +14,16 @@ pub(crate) struct PlayErrorToast {
     pub active: bool,
 }
 
+impl PlayErrorToast {
+    pub fn show_message(&mut self, message: String) {
+        self.message = Some(message);
+        self.elapsed = 0.0;
+        self.shake_elapsed = self.active.then_some(0.0);
+        self.entering = !self.active;
+        self.active = true;
+    }
+}
+
 #[derive(Component)]
 pub(crate) struct PlayErrorPopup;
 

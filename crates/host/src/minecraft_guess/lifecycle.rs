@@ -63,6 +63,7 @@ impl HostedGameLifecycle for MinecraftGuessSession {
                 .gains()
                 .to_vec(),
             reference_changes: self.finished_reference_changes.clone().unwrap_or_default(),
+            minecraft_process_players: self.process_presence.players(),
         }
         .into()
     }
@@ -134,6 +135,7 @@ impl HostedGameLifecycle for MinecraftGuessSession {
         self.match_id = None;
         self.match_state = None;
         self.finished_reference_changes = None;
+        self.process_presence.clear();
         self.room.remove_bots();
         self.room.reset_ready_after_rules_change();
         self.bump_revision();
@@ -174,6 +176,7 @@ impl HostedGameLifecycle for MinecraftGuessSession {
         let name = participant.name.clone();
         participant.connected = false;
         participant.left = true;
+        self.process_presence.remove(player);
         self.bump_revision();
         let mut deliveries = vec![self.delivery(connection, Some(request), ServerEvent::LeftRoom)];
         deliveries.extend(

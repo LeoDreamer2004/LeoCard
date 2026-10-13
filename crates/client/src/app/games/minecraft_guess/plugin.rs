@@ -1,4 +1,5 @@
 use super::background::GuessBackgroundPlugin;
+use super::process_presence::MinecraftProcessPresencePlugin;
 use super::{
     actions::{dispatch_guess_actions, sync_guess_input},
     assets::load_guess_assets,
@@ -23,7 +24,7 @@ pub(crate) struct MinecraftGuessPlugin;
 
 impl Plugin for MinecraftGuessPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(GuessBackgroundPlugin)
+        app.add_plugins((GuessBackgroundPlugin, MinecraftProcessPresencePlugin))
             .init_resource::<GuessFeedback>()
             .init_resource::<GuessScorePlayback>()
             .init_resource::<MinecraftGuessUiState>()

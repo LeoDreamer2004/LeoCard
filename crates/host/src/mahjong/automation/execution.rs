@@ -1,38 +1,21 @@
-use super::MahjongWinFeedback;
-use super::{
-    AutomaticMahjongAction, MahjongSession, automatic_mahjong_action, from_core_player,
-    to_core_player,
-};
-use leocard_mahjong::{ActionOutcome, MahjongPlayerId, Phase};
+use super::super::{MahjongSession, MahjongWinFeedback, to_core_player};
+use super::action::AutomaticMahjongAction;
+use super::{auto_play, bot};
+use leocard_mahjong::ActionOutcome;
 use leocard_protocol::{MahjongEvent, PlayerId};
 
 impl MahjongSession {
-    pub(super) fn current_automatic_player(&self) -> Option<PlayerId> {
-        let game = self.game.as_ref()?;
-        let automatic = |player: MahjongPlayerId| {
-            let player = from_core_player(player);
-            self.room
-                .players
-                .iter()
-                .find(|participant| participant.id == player && !participant.left)
-                .is_some_and(|participant| participant.is_bot || participant.auto_play)
-                .then_some(player)
-        };
-        match game.phase() {
-            Phase::Playing => automatic(game.current_player()),
-            Phase::WaitingForClaims(pending) => {
-                pending.waiting_for().into_iter().find_map(automatic)
-            }
-            Phase::Dealing { .. } | Phase::ReplacingFlower { .. } | Phase::Finished(_) => None,
-        }
-    }
-
-    pub(super) fn play_automatic_action(
+    pub(in super::super) fn play_automatic_action(
         &mut self,
         player: PlayerId,
     ) -> Option<(Vec<MahjongEvent>, ActionOutcome)> {
         let core_player = to_core_player(player);
-        let action = automatic_mahjong_action(self.game.as_ref()?, core_player)?;
+        let action = if self.room.players.get(usize::from(player.0))?.is_bot {
+            bot::Policy::choose(self.game.as_ref()?, core_player, &mut self.bot_decision)?
+        } else {
+            self.bot_decision.clear();
+            auto_play::Policy::choose(self.game.as_ref()?, core_player)?
+        };
         let game = self.game.as_mut()?;
         let public_event = match action {
             AutomaticMahjongAction::Discard(tile) => {

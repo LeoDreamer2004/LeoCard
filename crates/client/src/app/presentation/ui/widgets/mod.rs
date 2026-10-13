@@ -1,5 +1,6 @@
 //! 可复用的基础控件、规则编辑器与玩家信息组件。
 
+mod avatar_overlay;
 mod card_counter;
 mod currency;
 mod drawer;
@@ -12,6 +13,7 @@ mod rules;
 mod scrollbar;
 mod text_input;
 
+pub(crate) use avatar_overlay::*;
 pub(crate) use card_counter::*;
 pub(crate) use currency::*;
 pub(crate) use drawer::*;

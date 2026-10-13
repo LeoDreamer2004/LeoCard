@@ -245,7 +245,7 @@ fn scoring_settles_profiles_once_at_match_end_and_resets_for_next_match() {
             .iter()
             .map(|score| score.score)
             .collect::<Vec<_>>(),
-        vec![10, 0]
+        vec![7, 0]
     );
     assert_eq!(
         first
@@ -253,7 +253,7 @@ fn scoring_settles_profiles_once_at_match_end_and_resets_for_next_match() {
             .iter()
             .map(|gain| gain.after - gain.before)
             .collect::<Vec<_>>(),
-        vec![3, 7]
+        vec![7]
     );
     assert!(first.reference_changes.is_empty());
     assert_eq!(session.players[0].completed_games, 0);
@@ -288,7 +288,7 @@ fn scoring_settles_profiles_once_at_match_end_and_resets_for_next_match() {
             .iter()
             .map(|score| score.score)
             .collect::<Vec<_>>(),
-        vec![10, 9]
+        vec![7, 6]
     );
     assert_eq!(
         last.reference_changes
@@ -316,7 +316,7 @@ fn scoring_settles_profiles_once_at_match_end_and_resets_for_next_match() {
             first.total_score,
             first.total_reference_delta
         ),
-        (1, 10, 2)
+        (1, 7, 2)
     );
     assert_eq!(first.placement_counts, [1, 0, 0, 0, 0, 0, 0, 0]);
     assert_eq!(

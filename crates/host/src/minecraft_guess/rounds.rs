@@ -4,6 +4,7 @@ use leocard_minecraft_guess::{Catalogue, GameState, MatchState};
 
 impl MinecraftGuessSession {
     pub(super) fn begin_match(&mut self) {
+        self.process_presence.clear();
         self.room.remove_departed_players();
         self.match_state = Some(MatchState::new(
             self.room.players.iter().map(|player| player.id.0).collect(),

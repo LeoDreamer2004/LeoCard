@@ -69,7 +69,7 @@ impl RoomSession {
             seat: Some(seat),
             ready: true,
             connected: false,
-            auto_play: true,
+            auto_play: false,
             is_bot: true,
             left: false,
             reference_points: 0,

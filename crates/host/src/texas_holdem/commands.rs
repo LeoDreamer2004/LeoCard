@@ -3,7 +3,9 @@ use super::{
     merge_texas_holdem_profile_stats,
 };
 use crate::lifecycle::HostedGameLifecycle;
-use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, new_match_id};
+use crate::{
+    AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, new_match_id,
+};
 use leocard_protocol::{
     GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, TABLE_SEAT_COUNT,
     TexasHoldemProfileStats, TexasHoldemViolation,
@@ -139,16 +141,16 @@ impl TexasHoldemSession {
             .and_then(TexasHoldemAdapter::current_player)
             == Some(player)
         {
-            self.auto_play_delay = enabled.then_some(AutoPlayDelayState {
+            self.automatic_action_delay = enabled.then_some(AutomaticActionDelayState {
                 player,
-                remaining: AUTO_PLAY_DELAY,
+                remaining: AUTOMATIC_ACTION_DELAY,
             });
         } else if self
-            .auto_play_delay
+            .automatic_action_delay
             .as_ref()
             .is_some_and(|delay| delay.player == player)
         {
-            self.auto_play_delay = None;
+            self.automatic_action_delay = None;
         }
         if changed {
             self.room.bump_revision();
@@ -173,7 +175,7 @@ impl TexasHoldemSession {
             .filter(|player| !player.left)
             .map(|player| {
                 player.ready = false;
-                player.auto_play = player.is_bot;
+                player.auto_play = false;
                 TablePlayer {
                     id: player.id,
                     profile_id: player.profile_id,
@@ -200,8 +202,8 @@ impl TexasHoldemSession {
             vec![TexasHoldemProfileStats::default(); self.room.players.len()];
         self.record_hand_started();
         self.finished_reference_changes = None;
-        self.auto_play_delay = None;
-        self.reset_auto_play_delay_for_current_turn();
+        self.automatic_action_delay = None;
+        self.reset_automatic_action_delay_for_current_turn();
         Ok(())
     }
 
@@ -249,7 +251,7 @@ impl TexasHoldemSession {
         events.extend(self.fold_disconnected_players());
         self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
-        self.reset_auto_play_delay_for_current_turn();
+        self.reset_automatic_action_delay_for_current_turn();
         self.room.bump_revision();
         let mut deliveries = self.broadcast_events(events);
         deliveries.extend(self.broadcast_game(Some((connection, request_id))));
@@ -278,7 +280,7 @@ impl TexasHoldemSession {
         }
         self.record_completed_hand();
         self.room.prepare_rematch();
-        self.auto_play_delay = None;
+        self.automatic_action_delay = None;
         if self.tournament_complete() {
             self.apply_finished_reference_points();
         }

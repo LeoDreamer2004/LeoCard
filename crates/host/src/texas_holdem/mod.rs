@@ -6,6 +6,7 @@ mod lifecycle;
 mod snapshot;
 mod spectator;
 mod state;
+mod statistics;
 mod support;
 #[cfg(test)]
 mod tests;

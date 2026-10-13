@@ -773,7 +773,6 @@ TNT,minecraft:tnt,是,任意工具或徒手,否,是,是,不透明,0,0,pre-classi
 蓝冰,minecraft:blue_ice,是,镐,否,是,否,不透明,2.8,2.8,1.13,自然方块
 潮涌核心,minecraft:conduit,否,镐,是,否,否,透明,3,3,1.13,功能方块
 竹子,minecraft:bamboo,是,剑,否,否,是,透明,1,1,1.14,自然方块
-气泡柱,minecraft:bubble_column,是,任意工具或徒手,否,否,否,部分透明,0,0,1.13,非创造物品
 磨制花岗岩楼梯,minecraft:polished_granite_stairs,是,镐,否,否,否,部分透明,6,1.5,1.14,建筑方块
 平滑红砂岩楼梯,minecraft:smooth_red_sandstone_stairs,是,镐,否,否,否,部分透明,6,2,1.14,建筑方块
 苔石砖楼梯,minecraft:mossy_stone_brick_stairs,是,镐,否,否,否,部分透明,6,1.5,1.14,建筑方块

@@ -11,6 +11,9 @@ impl MinecraftGuessSession {
         request: RequestId,
         command: MinecraftGuessCommand,
     ) -> Vec<Delivery> {
+        if let MinecraftGuessCommand::ReportMinecraftProcess { running } = command {
+            return self.report_minecraft_process(connection, request, running);
+        }
         let result = self.apply_command(connection, command);
         match result {
             Ok(mut deliveries) if self.game.is_some() => {
@@ -51,6 +54,9 @@ impl MinecraftGuessSession {
             MinecraftGuessCommand::Guess { entry } => game.guess(player.0, &entry),
             MinecraftGuessCommand::Skip => game.skip(player.0),
             MinecraftGuessCommand::UpdateRules { .. } => unreachable!("handled above"),
+            MinecraftGuessCommand::ReportMinecraftProcess { .. } => {
+                unreachable!("handled separately from game actions")
+            }
         }
         .map_err(|error| RejectReason::Game(GameViolation::MinecraftGuess(error)))?;
         Ok(self.after_action())

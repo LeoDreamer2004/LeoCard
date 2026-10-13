@@ -1,54 +1,10 @@
 use crate::HostError;
 use leocard_protocol::{PlayerId, UnoProfileStats, UnoViolation};
 use leocard_uno::{
-    GameError, GameState, UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoPlayerId, UnoRuleSet,
-    build_deck_for_rules, build_flip_dark_sides, pair_flip_deck,
+    GameError, GameState, UnoCard, UnoPlayerId, UnoRuleSet, build_deck_for_rules,
+    build_flip_dark_sides, pair_flip_deck,
 };
 use std::collections::HashSet;
-
-pub(super) fn preferred_color(game: &GameState, player: UnoPlayerId) -> UnoColor {
-    let colors = match game.flip_side() {
-        Some(UnoFlipSide::Dark) => UnoColor::DARK,
-        Some(UnoFlipSide::Light) | None => UnoColor::LIGHT,
-    };
-    let mut counts = [0_u8; 4];
-    if let Some(state) = game.player(player) {
-        for color in state.hand().iter().filter_map(|card| card.color()) {
-            if let Some(index) = colors.iter().position(|candidate| *candidate == color) {
-                counts[index] = counts[index].saturating_add(1);
-            }
-        }
-    }
-    colors
-        .into_iter()
-        .enumerate()
-        .max_by_key(|(index, _)| (counts[*index], std::cmp::Reverse(*index)))
-        .map(|(_, color)| color)
-        .unwrap_or(UnoColor::Red)
-}
-
-pub(super) fn automatic_chosen_color(
-    game: &GameState,
-    player: UnoPlayerId,
-    card: UnoCard,
-) -> Option<UnoColor> {
-    matches!(
-        card.face(),
-        UnoFace::Wild
-            | UnoFace::DarkWild
-            | UnoFace::WildDrawFour
-            | UnoFace::WildDrawTwo
-            | UnoFace::WildDrawColor
-            | UnoFace::WildPowerReverse
-            | UnoFace::WildNoU
-            | UnoFace::WildStackThree
-            | UnoFace::WildStackNumber
-            | UnoFace::WildReverseDrawFour
-            | UnoFace::WildDrawSix
-            | UnoFace::WildDrawTen
-    )
-    .then(|| preferred_color(game, player))
-}
 
 pub(super) fn shuffled_uno_deck(rules: UnoRuleSet) -> Vec<UnoCard> {
     let mut deck = if rules.is_flip() && rules.flip.random_pairing {

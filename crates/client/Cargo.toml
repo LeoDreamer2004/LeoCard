@@ -50,6 +50,7 @@ winit.workspace = true
 [target.'cfg(not(target_os = "android"))'.dependencies]
 rfd.workspace = true
 bevy_clipboard = { workspace = true, features = ["system_clipboard"] }
+sysinfo = { version = "0.39.6", default-features = false, features = ["system"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 bevy = { workspace = true, features = ["android-game-activity"] }

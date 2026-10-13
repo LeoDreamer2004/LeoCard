@@ -93,7 +93,13 @@ impl GameState {
             guess_count: self.guesses.len(),
             skipped: &self.skipped,
         });
-        let score = result.score(previous, self.turns / self.players.len());
+        let first_matching_available =
+            !self.guesses.iter().any(|guess| guess.result.all_matching());
+        let score = result.score(
+            previous,
+            self.turns / self.players.len(),
+            first_matching_available,
+        );
         for points in [score.during_guess, score.after_answer] {
             if points > 0 {
                 self.pending_gains.push((player, points));

@@ -4,9 +4,9 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, ButtonKind, DANGER, DESIGN_WIDTH, MUTED, PanelSkin, PlayerMenuProfile,
-    PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_host_crown,
-    add_player_portrait, add_text, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, spawn_node,
+    PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial,
+    add_avatar_status_overlay, add_host_crown, add_player_portrait, add_text,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SeatSide, SocialUiState, UiAction, add_cozy_panel_with_skin};
@@ -610,28 +610,7 @@ pub(super) fn add_uno_skip_overlay(
     if count == 0 {
         return;
     }
-    let overlay = spawn_node(
-        commands,
-        panel,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(0),
-            right: px(0),
-            top: px(0),
-            bottom: px(0),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            border: UiRect::all(px(2)),
-            border_radius: BorderRadius::all(px(UNO_AVATAR_SIZE * 0.2)),
-            ..default()
-        },
-        Some(Color::BLACK.with_alpha(0.72)),
-    );
-    commands.entity(overlay).insert((
-        BorderColor::all(DANGER.with_alpha(0.96)),
-        Pickable::IGNORE,
-        ZIndex(80),
-    ));
+    let overlay = add_avatar_status_overlay(commands, panel, UNO_AVATAR_SIZE, DANGER);
     let symbol = spawn_node(
         commands,
         overlay,

@@ -256,7 +256,7 @@ impl UnoSession {
             participant.auto_play = enabled;
             self.room.bump_revision();
         }
-        self.reset_auto_play_delay();
+        self.reset_automatic_action_delay();
         self.broadcast_game(Some((connection, request_id)))
     }
 
@@ -277,7 +277,7 @@ impl UnoSession {
         self.pending_draw_reveal = None;
         self.match_id = Some(new_match_id());
         self.finished_reference_changes = None;
-        self.reset_auto_play_delay();
+        self.reset_automatic_action_delay();
         self.room.bump_revision();
         self.broadcast_game(origin)
     }

@@ -3,7 +3,9 @@ use super::{
     MAHJONG_DEAL_INTERVAL, MahjongSession, events_for_outcome, shuffled_deck, to_core_player,
 };
 use crate::lifecycle::HostedGameLifecycle;
-use crate::{AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, new_match_id};
+use crate::{
+    AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, new_match_id,
+};
 use leocard_mahjong::{
     ActionOutcome, GameError, GameState, MahjongPlayerId, MahjongRuleSet, MahjongTileKind, Phase,
 };
@@ -98,11 +100,11 @@ impl MahjongSession {
         if participant.auto_play != enabled {
             participant.auto_play = enabled;
             self.room.bump_revision();
-            self.auto_play_delay =
+            self.automatic_action_delay =
                 self.current_automatic_player()
-                    .map(|player| AutoPlayDelayState {
+                    .map(|player| AutomaticActionDelayState {
                         player,
-                        remaining: AUTO_PLAY_DELAY,
+                        remaining: AUTOMATIC_ACTION_DELAY,
                     });
         }
         self.broadcast_game(Some((connection, request_id)))

@@ -1,6 +1,7 @@
 use super::{QiGui523Session, validate_deck};
 use crate::{
-    AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession,
+    AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
+    RoomSession,
     lifecycle::{HostedGameLifecycle, dispatch_client_command},
     new_match_id,
 };
@@ -32,7 +33,7 @@ impl QiGui523Session {
             finished_reference_changes: None,
             statistics: None,
             turn_timer: None,
-            auto_play_delay: None,
+            automatic_action_delay: None,
         })
     }
 
@@ -71,34 +72,36 @@ impl QiGui523Session {
             return Vec::new();
         }
         if self.current_player_is_disconnected() {
-            self.auto_play_delay = None;
+            self.automatic_action_delay = None;
             let events = self.play_automatic_action();
             self.reset_timer_for_current_turn();
             self.bump_revision();
             return self.broadcast_game_after_action(None, events);
         }
-        if let Some(player) = self.current_auto_play_player() {
-            let delay = self.auto_play_delay.get_or_insert(AutoPlayDelayState {
-                player,
-                remaining: AUTO_PLAY_DELAY,
-            });
-            if delay.player != player {
-                *delay = AutoPlayDelayState {
+        if let Some(player) = self.current_automatic_player() {
+            let delay = self
+                .automatic_action_delay
+                .get_or_insert(AutomaticActionDelayState {
                     player,
-                    remaining: AUTO_PLAY_DELAY,
+                    remaining: AUTOMATIC_ACTION_DELAY,
+                });
+            if delay.player != player {
+                *delay = AutomaticActionDelayState {
+                    player,
+                    remaining: AUTOMATIC_ACTION_DELAY,
                 };
             }
             if elapsed < delay.remaining {
                 delay.remaining -= elapsed;
                 return Vec::new();
             }
-            self.auto_play_delay = None;
+            self.automatic_action_delay = None;
             let events = self.play_automatic_action();
             self.reset_timer_for_current_turn();
             self.bump_revision();
             return self.broadcast_game_after_action(None, events);
         }
-        self.auto_play_delay = None;
+        self.automatic_action_delay = None;
         if self.turn_timer.is_none() {
             return Vec::new();
         }
@@ -302,7 +305,7 @@ impl HostedGameLifecycle for QiGui523Session {
         for (index, player) in self.players.iter_mut().enumerate() {
             player.id = PlayerId(index as u8);
             player.ready = false;
-            player.auto_play = player.is_bot;
+            player.auto_play = false;
         }
         let game_rules = QiGuiRuleSet {
             player_count: self.players.len() as u8,
@@ -329,8 +332,8 @@ impl HostedGameLifecycle for QiGui523Session {
         self.game = Some(game);
         self.match_id = Some(new_match_id());
         self.finished_reference_changes = None;
-        self.auto_play_delay = None;
-        self.reset_auto_play_delay_for_current_turn();
+        self.automatic_action_delay = None;
+        self.reset_automatic_action_delay_for_current_turn();
         self.initialize_turn_timer();
         self.bump_revision();
         self.broadcast_game(Some((connection, request_id)))
@@ -375,7 +378,7 @@ impl HostedGameLifecycle for QiGui523Session {
         self.finished_reference_changes = None;
         self.statistics = None;
         self.turn_timer = None;
-        self.auto_play_delay = None;
+        self.automatic_action_delay = None;
         self.room.remove_bots();
         let host_connection = self.host_connection;
         for player in &mut self.players {

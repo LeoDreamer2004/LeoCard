@@ -1,7 +1,7 @@
 use crate::TexasHoldemRuleSet;
 
 use super::{
-    ActionOutcome, GameError, GameState, Phase, PlayerState, TexasHoldemAction,
+    ActionOutcome, BettingRecord, GameError, GameState, Phase, PlayerState, TexasHoldemAction,
     TexasHoldemBlindKind, TexasHoldemPlayerId, TexasHoldemStreet,
 };
 
@@ -15,6 +15,15 @@ impl GameState {
         match self.act_inner(player, action) {
             Ok(outcome) => {
                 self.record_action_statistics(&previous, player, action);
+                self.betting_history.push(BettingRecord {
+                    player,
+                    street: previous.street(),
+                    action,
+                    payment: self.players[player.0]
+                        .committed_total
+                        .saturating_sub(previous.players[player.0].committed_total),
+                    pot_before: previous.pot(),
+                });
                 Ok(outcome)
             }
             Err(error) => {

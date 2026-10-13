@@ -3,12 +3,14 @@
 //! 核心使用完整 144 张牌，负责牌墙校验、吃碰杠响应、补花、和牌判定、81 番种
 //! 计分及单局至全庄的盘序推进。洗牌和操作倒计时由房主负责。
 
+mod bot;
 mod card;
 mod game;
 mod meld;
 mod rules;
 mod scoring;
 
+pub use bot::{MahjongBot, MahjongBotAction, MahjongBotObservation};
 pub use card::{
     MahjongDragon, MahjongFlower, MahjongSuit, MahjongTile, MahjongTileKind, MahjongWind,
     build_deck,

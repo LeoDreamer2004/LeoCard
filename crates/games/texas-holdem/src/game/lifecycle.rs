@@ -46,6 +46,7 @@ impl GameState {
         self.dealer = dealer;
         self.deck = deck.into();
         self.community.clear();
+        self.betting_history.clear();
         self.statistics.start_hand(&self.players);
         self.current_bet = 0;
         self.minimum_raise = TexasHoldemRuleSet::BIG_BLIND;

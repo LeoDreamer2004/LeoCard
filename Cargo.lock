@@ -3382,7 +3382,7 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "leocard-achievements"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "leocard-mahjong",
  "leocard-minecraft-guess",
@@ -3397,7 +3397,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-client"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "bevy",
  "bevy_clipboard",
@@ -3425,6 +3425,7 @@ dependencies = [
  "semver",
  "serde",
  "sha2",
+ "sysinfo",
  "tokio",
  "winit",
  "winresource",
@@ -3432,16 +3433,17 @@ dependencies = [
 
 [[package]]
 name = "leocard-game-common"
-version = "0.8.2"
+version = "0.8.3"
 
 [[package]]
 name = "leocard-host"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
  "image",
  "leocard-achievements",
+ "leocard-game-common",
  "leocard-mahjong",
  "leocard-minecraft-guess",
  "leocard-protocol",
@@ -3453,7 +3455,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-mahjong"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3461,7 +3463,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-minecraft-guess"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "csv",
  "leocard-game-common",
@@ -3470,7 +3472,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-protocol"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "leocard-mahjong",
  "leocard-minecraft-guess",
@@ -3484,7 +3486,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-qigui523"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3492,7 +3494,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-shengji"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3500,7 +3502,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-tcp"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "ed25519-dalek",
  "leocard-host",
@@ -3515,7 +3517,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-texas-holdem"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3523,7 +3525,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-uno"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3906,6 +3908,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "610a5acd306ec67f907abe5567859a3c693fb9886eb1f012ab8f2a47bef3db51"
 
 [[package]]
+name = "ntapi"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3b335231dfd352ffb0f8017f3b6027a4917f7df785ea2143d8af2adc66980ae"
+dependencies = [
+ "winapi",
+]
+
+[[package]]
 name = "nu-ansi-term"
 version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4204,6 +4215,16 @@ dependencies = [
  "block2 0.6.2",
  "libc",
  "objc2 0.6.5",
+ "objc2-core-foundation",
+]
+
+[[package]]
+name = "objc2-io-kit"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33fafba39597d6dc1fb709123dfa8289d39406734be322956a69f0931c73bb15"
+dependencies = [
+ "libc",
  "objc2-core-foundation",
 ]
 
@@ -5549,6 +5570,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "sysinfo"
+version = "0.39.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2071df9448915b71c4fe6d25deaf1c22f12bd234f01540b77312bb8e41361e6"
+dependencies = [
+ "libc",
+ "memchr",
+ "ntapi",
+ "objc2-core-foundation",
+ "objc2-io-kit",
+ "windows",
+]
+
+[[package]]
 name = "taffy"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5916,9 +5951,9 @@ checksum = "214ca0b2191785cbc06209b9ca1861e048e39b5ba33574b3cedd58363d5bb5f6"
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.26"
+version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954"
+checksum = "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563"
 
 [[package]]
 name = "unicode-segmentation"
@@ -6479,6 +6514,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "winapi"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419"
+dependencies = [
+ "winapi-i686-pc-windows-gnu",
+ "winapi-x86_64-pc-windows-gnu",
+]
+
+[[package]]
+name = "winapi-i686-pc-windows-gnu"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
+
+[[package]]
 name = "winapi-util"
 version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6486,6 +6537,12 @@ checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
  "windows-sys 0.61.2",
 ]
+
+[[package]]
+name = "winapi-x86_64-pc-windows-gnu"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "windows"

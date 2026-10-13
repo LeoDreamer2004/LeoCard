@@ -33,7 +33,12 @@ impl GuessResult {
         )
     }
 
-    pub(super) fn score(&self, previous: Option<u32>, cycle: usize) -> GuessScore {
+    pub(super) fn score(
+        &self,
+        previous: Option<u32>,
+        cycle: usize,
+        first_matching_available: bool,
+    ) -> GuessScore {
         let Self::Known {
             matches, correct, ..
         } = self
@@ -43,6 +48,16 @@ impl GuessResult {
                 after_answer: 0,
             };
         };
+        if *correct {
+            return GuessScore {
+                during_guess: 0,
+                after_answer: 5 + match cycle {
+                    0 => 2,
+                    1 => 1,
+                    _ => 0,
+                },
+            };
+        }
         let improved = previous.is_none_or(|previous| self.closeness().unwrap() > previous);
         let differences = matches
             .iter()
@@ -53,17 +68,10 @@ impl GuessResult {
             1 => 1,
             _ => 0,
         };
+        let first_matching = 3 * u32::from(first_matching_available && self.all_matching());
         GuessScore {
-            during_guess: u32::from(improved) + matching,
-            after_answer: if *correct {
-                5 + match cycle {
-                    0 => 2,
-                    1 => 1,
-                    _ => 0,
-                }
-            } else {
-                0
-            },
+            during_guess: u32::from(improved) + matching + first_matching,
+            after_answer: 0,
         }
     }
 }

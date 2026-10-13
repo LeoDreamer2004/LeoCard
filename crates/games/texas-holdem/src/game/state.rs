@@ -1,3 +1,4 @@
+use super::BettingRecord;
 use crate::statistics::GameStatistics;
 use crate::{EvaluatedHand, HandError, RuleError, TexasHoldemCard, TexasHoldemRuleSet, build_deck};
 use leocard_game_common::{DeckError, validate_deck as validate_physical_deck};
@@ -235,6 +236,7 @@ impl From<HandError> for GameError {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GameState {
+    pub(super) betting_history: Vec<BettingRecord>,
     pub(super) rules: TexasHoldemRuleSet,
     pub(super) players: Vec<PlayerState>,
     pub(super) dealer: TexasHoldemPlayerId,
@@ -301,6 +303,7 @@ impl GameState {
             })
             .collect::<Vec<_>>();
         let mut state = Self {
+            betting_history: Vec::new(),
             rules,
             players,
             dealer,
@@ -324,6 +327,10 @@ impl GameState {
 
     pub const fn rules(&self) -> &TexasHoldemRuleSet {
         &self.rules
+    }
+
+    pub fn betting_history(&self) -> &[BettingRecord] {
+        &self.betting_history
     }
 
     pub fn players(&self) -> &[PlayerState] {

@@ -45,6 +45,7 @@ impl MinecraftGuessSession {
                     let player = match event {
                         MinecraftGuessEvent::ActionAnalyzed { player, .. }
                         | MinecraftGuessEvent::HandAnalyzed { player, .. } => *player,
+                        MinecraftGuessEvent::ProcessPresenceChanged { .. } => return true,
                     };
                     self.room.player_id(delivery.recipient) == Some(player)
                 }

@@ -1,7 +1,7 @@
 use super::{QiGui523Session, map_game_error, to_core_player};
 use crate::{
-    AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, lifecycle::HostedGameLifecycle,
-    new_match_id,
+    AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery,
+    lifecycle::HostedGameLifecycle, new_match_id,
 };
 use leocard_protocol::{
     GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, RuleViolation,
@@ -94,16 +94,16 @@ impl QiGui523Session {
         let changed = participant.auto_play != enabled;
         participant.auto_play = enabled;
         if self.current_player() == Some(player) {
-            self.auto_play_delay = enabled.then_some(AutoPlayDelayState {
+            self.automatic_action_delay = enabled.then_some(AutomaticActionDelayState {
                 player,
-                remaining: AUTO_PLAY_DELAY,
+                remaining: AUTOMATIC_ACTION_DELAY,
             });
         } else if self
-            .auto_play_delay
+            .automatic_action_delay
             .as_ref()
             .is_some_and(|delay| delay.player == player)
         {
-            self.auto_play_delay = None;
+            self.automatic_action_delay = None;
         }
         if changed {
             self.bump_revision();
@@ -167,7 +167,7 @@ impl QiGui523Session {
     ) -> Vec<Delivery> {
         self.game = None;
         self.turn_timer = None;
-        self.auto_play_delay = None;
+        self.automatic_action_delay = None;
         self.remove_departed_players();
         for player in &mut self.players {
             player.ready = false;
@@ -200,7 +200,7 @@ impl QiGui523Session {
         self.game = Some(game);
         self.match_id = Some(new_match_id());
         self.finished_reference_changes = None;
-        self.reset_auto_play_delay_for_current_turn();
+        self.reset_automatic_action_delay_for_current_turn();
         self.initialize_turn_timer();
         self.bump_revision();
         self.broadcast_game(origin)

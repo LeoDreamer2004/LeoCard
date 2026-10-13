@@ -1,4 +1,5 @@
-use crate::{AutoPlayDelayState, RoomSession, TurnTimerState};
+use super::automation::TurnTimerState;
+use crate::{AutomaticActionDelayState, RoomSession};
 use leocard_protocol::{MatchId, PlayerReferenceChange};
 use leocard_qigui523::{GameState, QiGuiCard, QiGuiMatchStatistics, QiGuiRuleSet};
 use std::ops::{Deref, DerefMut};
@@ -14,7 +15,7 @@ pub struct QiGui523Session {
     pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
     pub(super) statistics: Option<QiGuiMatchStatistics>,
     pub(super) turn_timer: Option<TurnTimerState>,
-    pub(super) auto_play_delay: Option<AutoPlayDelayState>,
+    pub(super) automatic_action_delay: Option<AutomaticActionDelayState>,
 }
 
 impl Deref for QiGui523Session {

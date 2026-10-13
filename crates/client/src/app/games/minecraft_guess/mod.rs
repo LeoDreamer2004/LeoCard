@@ -7,6 +7,7 @@ mod icons;
 mod lobby;
 mod players;
 mod plugin;
+mod process_presence;
 mod scores;
 mod state;
 pub(super) mod summary;

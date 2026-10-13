@@ -23,19 +23,19 @@ fn closeness_and_matching_are_independent_and_unknowns_earn_nothing() {
     use MatchQuality::{Exact, Partial, Wrong};
     let different = result(&[Exact, Partial, Wrong]);
     assert_eq!(different.closeness(), Some(3));
-    assert_eq!(different.score(None, 0).during_guess, 1);
-    assert_eq!(different.score(Some(2), 0).during_guess, 1);
-    assert_eq!(different.score(Some(3), 0).during_guess, 0);
-    assert_eq!(different.score(Some(4), 0).during_guess, 0);
+    assert_eq!(different.score(None, 0, false).during_guess, 1);
+    assert_eq!(different.score(Some(2), 0, false).during_guess, 1);
+    assert_eq!(different.score(Some(3), 0, false).during_guess, 0);
+    assert_eq!(different.score(Some(4), 0, false).during_guess, 0);
     assert_eq!(
         result(&[Exact, Partial, Exact])
-            .score(Some(6), 0)
+            .score(Some(6), 0, false)
             .during_guess,
         1
     );
     assert_eq!(
         result(&[Exact, Exact, Exact])
-            .score(Some(6), 0)
+            .score(Some(6), 0, false)
             .during_guess,
         2
     );
@@ -43,12 +43,32 @@ fn closeness_and_matching_are_independent_and_unknowns_earn_nothing() {
         name: "不存在的方块".to_owned(),
     };
     assert_eq!(unknown.closeness(), None);
-    assert_eq!(unknown.score(None, 0).during_guess, 0);
-    assert_eq!(unknown.score(None, 0).after_answer, 0);
+    assert_eq!(unknown.score(None, 0, false).during_guess, 0);
+    assert_eq!(unknown.score(None, 0, false).after_answer, 0);
 }
 
 #[test]
-fn speed_counts_skips_and_unknowns_and_first_known_guess_still_improves() {
+fn first_all_green_guess_gets_bonus_even_when_it_is_not_the_answer() {
+    let answer = Catalogue::bundled()
+        .find(EntryKind::Block, "minecraft:blue_wool")
+        .unwrap()
+        .clone();
+    let mut game = GameState::new(answer, vec![0, 1], MinecraftGuessRuleSet::default());
+    game.guess(0, "minecraft:red_wool").unwrap();
+    assert!(game.view().guesses[0].result.all_matching());
+    assert!(!game.finished());
+    assert_eq!(game.take_score_gains(), vec![(0, 6)]);
+
+    assert!(game.guess(1, "minecraft:red_wool").is_err());
+    assert!(game.take_score_gains().is_empty());
+    game.guess(1, "minecraft:green_wool").unwrap();
+    assert_eq!(game.take_score_gains(), vec![(1, 2)]);
+    game.guess(0, "minecraft:blue_wool").unwrap();
+    assert_eq!(game.take_score_gains(), vec![(0, 6)]);
+}
+
+#[test]
+fn correct_guesses_only_earn_answer_and_speed_points() {
     let answer = Catalogue::bundled()
         .find(EntryKind::Block, "minecraft:stone")
         .unwrap()
@@ -73,7 +93,7 @@ fn speed_counts_skips_and_unknowns_and_first_known_guess_still_improves() {
         }
         assert!(game.take_score_gains().is_empty());
         game.guess(0, &answer.id).unwrap();
-        assert_eq!(game.take_score_gains(), vec![(0, 3), (0, win_points)]);
+        assert_eq!(game.take_score_gains(), vec![(0, win_points)]);
         assert!(game.take_score_gains().is_empty());
         assert!(game.guess(0, &answer.id).is_err());
         assert!(game.take_score_gains().is_empty());

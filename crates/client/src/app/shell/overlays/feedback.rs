@@ -55,12 +55,7 @@ pub(crate) fn sync_play_error_toast(
     let Some(message) = next_message else {
         return;
     };
-    let retriggered = toast.active;
-    toast.message = Some(message);
-    toast.elapsed = 0.0;
-    toast.shake_elapsed = retriggered.then_some(0.0);
-    toast.entering = !retriggered;
-    toast.active = true;
+    toast.show_message(message);
     if play_error_sound {
         commands.spawn((
             AudioPlayer::new(assets.audio.error_popup_sound.clone()),

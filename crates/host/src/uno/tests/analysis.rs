@@ -1,4 +1,5 @@
-use super::super::{UnoSession, preferred_color};
+use super::super::UnoSession;
+use super::super::automation::BotPolicy;
 use super::*;
 use crate::ConnectionId;
 use leocard_protocol::{
@@ -42,7 +43,10 @@ fn analysis_is_private_sequenced_and_only_emitted_for_accepted_actions() {
         .copied()
         .find(|card| game.can_play(player, *card))
         .unwrap();
-    let color = card.face().is_wild().then(|| preferred_color(game, player));
+    let color = card
+        .face()
+        .is_wild()
+        .then(|| BotPolicy::preferred_color(game, player));
     let connection = session.room.players[player.0].connection;
     let request = session.room.last_requests[&connection].0 + 1;
     let command = ClientCommand::Game(GameCommand::Uno(UnoCommand::PlayCard {

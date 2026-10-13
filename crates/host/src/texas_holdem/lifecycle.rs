@@ -1,6 +1,6 @@
 use super::{TexasHoldemAdapter, TexasHoldemSession, validate_deck};
 use crate::{
-    AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession,
+    AutomaticActionDelayState, ConnectionId, Delivery, HostError, RoomSession,
     lifecycle::{HostedGameLifecycle, dispatch_client_command},
 };
 use leocard_protocol::{
@@ -31,7 +31,8 @@ impl TexasHoldemSession {
             game: None,
             match_profile_stats: Vec::new(),
             finished_reference_changes: None,
-            auto_play_delay: None,
+            automatic_action_delay: None,
+            bot_decision: Default::default(),
         })
     }
 
@@ -82,21 +83,22 @@ impl TexasHoldemSession {
             return Vec::new();
         }
         let Some(player) = self.current_automatic_action_player() else {
-            self.auto_play_delay = None;
+            self.automatic_action_delay = None;
+            self.bot_decision.clear();
             return Vec::new();
         };
         let remaining = self.automatic_delay_for_current_turn();
         let delay = self
-            .auto_play_delay
-            .get_or_insert(AutoPlayDelayState { player, remaining });
+            .automatic_action_delay
+            .get_or_insert(AutomaticActionDelayState { player, remaining });
         if delay.player != player {
-            *delay = AutoPlayDelayState { player, remaining };
+            *delay = AutomaticActionDelayState { player, remaining };
         }
         if elapsed < delay.remaining {
             delay.remaining -= elapsed;
             return Vec::new();
         }
-        self.auto_play_delay = None;
+        delay.remaining = Duration::ZERO;
         let Some(events) = self.play_automatic_action() else {
             return Vec::new();
         };
@@ -139,7 +141,7 @@ impl TexasHoldemSession {
         let events = self.fold_disconnected_players();
         self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
-        self.reset_auto_play_delay_for_current_turn();
+        self.reset_automatic_action_delay_for_current_turn();
         self.room.bump_revision();
         if self.game.is_some() {
             let mut deliveries = self.broadcast_events(events);
@@ -317,12 +319,12 @@ impl HostedGameLifecycle for TexasHoldemSession {
         }
         self.game = None;
         self.match_profile_stats.clear();
-        self.auto_play_delay = None;
+        self.automatic_action_delay = None;
         self.room.remove_bots();
         let host = self.room.host_connection;
         for player in &mut self.room.players {
             player.ready = host == Some(player.connection);
-            player.auto_play = player.is_bot;
+            player.auto_play = false;
             if !player.connected {
                 player.seat = None;
             }
@@ -388,7 +390,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
             self.record_hand_started();
             self.record_profile_events(&events);
             self.finish_hand_if_needed(false);
-            self.reset_auto_play_delay_for_current_turn();
+            self.reset_automatic_action_delay_for_current_turn();
             self.room.bump_revision();
             let mut deliveries = self.broadcast_events(events);
             deliveries.extend(self.broadcast_game(Some((connection, request_id))));
@@ -430,7 +432,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
         let events = self.fold_disconnected_players();
         self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
-        self.reset_auto_play_delay_for_current_turn();
+        self.reset_automatic_action_delay_for_current_turn();
         self.room.bump_revision();
         let mut deliveries =
             vec![

@@ -3,13 +3,19 @@
 //! 随机洗牌和亮主倒计时由宿主负责；核心只接收确定的牌序和玩家操作，因此相同
 //! 输入始终得到相同结果，便于联机同步、测试和回放。
 
+mod auto_play;
 mod bot;
 mod card;
 mod game;
 mod play;
 mod rules;
 
-pub use bot::{GreedyBotError, ShengjiGreedyBot, ShengjiGreedyBotRequest};
+pub use auto_play::{ShengjiAutoPlay, ShengjiAutoPlayError, ShengjiAutoPlayRequest};
+
+pub use bot::{
+    GreedyBotError, ShengjiBot, ShengjiBotAction, ShengjiBotObservation, ShengjiGreedyBot,
+    ShengjiGreedyBotRequest,
+};
 pub use card::{ShengjiCard, ShengjiRank, ShengjiSuit, build_deck, build_deck_for};
 pub use game::{
     ActionOutcome, BidError, BidState, BottomCopyState, BottomFlipMatch, BottomFlipReveal,

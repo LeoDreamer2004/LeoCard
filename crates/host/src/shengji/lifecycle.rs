@@ -48,6 +48,7 @@ impl ShengjiSession {
             flow: HandFlowState::default(),
             presentation: HeldGamePresentation::default(),
             statistics: SessionStatistics::default(),
+            bot_decision: Default::default(),
         })
     }
 
@@ -443,6 +444,7 @@ impl ShengjiSession {
     fn advance_automatic_action(&mut self, elapsed: Duration) -> Vec<Delivery> {
         let Some(player) = self.automatic_player() else {
             self.flow.automatic_action = None;
+            self.bot_decision.clear();
             return Vec::new();
         };
         let timer = self
@@ -456,10 +458,11 @@ impl ShengjiSession {
             timer.1 -= elapsed;
             return Vec::new();
         }
-        self.flow.automatic_action = None;
+        timer.1 = Duration::ZERO;
         let Some(outcome) = self.play_automatic_action(player) else {
             return Vec::new();
         };
+        self.flow.automatic_action = None;
         self.record_profile_outcome(&outcome);
         self.after_game_outcome(&outcome);
         let events = self.events_for_outcome(&outcome);
@@ -687,7 +690,7 @@ impl HostedGameLifecycle for ShengjiSession {
         let host = self.room.host_connection;
         for player in &mut self.room.players {
             player.ready = host == Some(player.connection);
-            player.auto_play = player.is_bot;
+            player.auto_play = false;
             if !player.connected {
                 player.seat = None;
                 player.left = true;

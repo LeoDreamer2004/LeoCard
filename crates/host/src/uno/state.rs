@@ -1,4 +1,4 @@
-use crate::{AutoPlayDelayState, RoomSession};
+use crate::{AutomaticActionDelayState, RoomSession};
 use leocard_protocol::{MatchId, PlayerId, PlayerReferenceChange};
 use leocard_uno::{GameState, UnoCard, UnoMatchStatistics, UnoRuleSet};
 use std::time::Duration;
@@ -24,6 +24,6 @@ pub struct UnoSession {
     pub(super) statistics: Option<UnoMatchStatistics>,
     pub(super) match_id: Option<MatchId>,
     pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
-    pub(super) auto_play_delay: Option<AutoPlayDelayState>,
+    pub(super) automatic_action_delay: Option<AutomaticActionDelayState>,
     pub(super) pending_draw_reveal: Option<PendingDrawReveal>,
 }

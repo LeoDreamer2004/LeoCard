@@ -1,8 +1,8 @@
 use super::{DRAW_REVEAL_INTERVAL, UnoSession, shuffled_uno_deck, to_core_player, validate_deck};
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{
-    AUTO_PLAY_DELAY, AutoPlayDelayState, ConnectionId, Delivery, HostError, RoomSession,
-    new_match_id,
+    AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
+    RoomSession, new_match_id,
 };
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
@@ -31,7 +31,7 @@ impl UnoSession {
             statistics: None,
             match_id: None,
             finished_reference_changes: None,
-            auto_play_delay: None,
+            automatic_action_delay: None,
             pending_draw_reveal: None,
         })
     }
@@ -81,7 +81,7 @@ impl UnoSession {
             return self.broadcast_game(None);
         }
         let Some(player) = self.current_automatic_player() else {
-            self.auto_play_delay = None;
+            self.automatic_action_delay = None;
             return Vec::new();
         };
         let disconnected = self
@@ -91,14 +91,16 @@ impl UnoSession {
             .find(|participant| participant.id == player)
             .is_some_and(|participant| !participant.connected && !participant.is_bot);
         if !disconnected || self.automatically_resolves_skip() {
-            let delay = self.auto_play_delay.get_or_insert(AutoPlayDelayState {
-                player,
-                remaining: AUTO_PLAY_DELAY,
-            });
-            if delay.player != player {
-                *delay = AutoPlayDelayState {
+            let delay = self
+                .automatic_action_delay
+                .get_or_insert(AutomaticActionDelayState {
                     player,
-                    remaining: AUTO_PLAY_DELAY,
+                    remaining: AUTOMATIC_ACTION_DELAY,
+                });
+            if delay.player != player {
+                *delay = AutomaticActionDelayState {
+                    player,
+                    remaining: AUTOMATIC_ACTION_DELAY,
                 };
             }
             if elapsed < delay.remaining {
@@ -106,12 +108,12 @@ impl UnoSession {
                 return Vec::new();
             }
         }
-        self.auto_play_delay = None;
+        self.automatic_action_delay = None;
         let Some((events, draw_reveal)) = self.play_automatic_action() else {
             return Vec::new();
         };
         self.apply_finished_reference_points();
-        self.reset_auto_play_delay();
+        self.reset_automatic_action_delay();
         self.room.bump_revision();
         let mut deliveries = self.broadcast_events(events);
         self.pending_draw_reveal = draw_reveal;
@@ -138,7 +140,7 @@ impl UnoSession {
             self.room.players[index].ready = false;
             self.room.players[index].left = true;
         }
-        self.reset_auto_play_delay();
+        self.reset_automatic_action_delay();
         self.room.bump_revision();
         if self.game.is_some() {
             self.broadcast_game(None)
@@ -265,7 +267,7 @@ impl HostedGameLifecycle for UnoSession {
         for (index, player) in self.room.players.iter_mut().enumerate() {
             player.id = PlayerId(index as u8);
             player.ready = false;
-            player.auto_play = player.is_bot;
+            player.auto_play = false;
         }
         let deck = self
             .shuffled_deck
@@ -279,7 +281,7 @@ impl HostedGameLifecycle for UnoSession {
                 self.pending_draw_reveal = None;
                 self.match_id = Some(new_match_id());
                 self.finished_reference_changes = None;
-                self.reset_auto_play_delay();
+                self.reset_automatic_action_delay();
                 self.room.bump_revision();
                 let mut deliveries = self.broadcast_game(Some((connection, request_id)));
                 if started_on_dark {
@@ -332,7 +334,7 @@ impl HostedGameLifecycle for UnoSession {
         self.pending_draw_reveal = None;
         self.match_id = None;
         self.finished_reference_changes = None;
-        self.auto_play_delay = None;
+        self.automatic_action_delay = None;
         self.room.remove_bots();
         let host = self.room.host_connection;
         for player in &mut self.room.players {
@@ -402,7 +404,7 @@ impl HostedGameLifecycle for UnoSession {
         if self.game.is_none() {
             self.room.players[index].seat = None;
         }
-        self.reset_auto_play_delay();
+        self.reset_automatic_action_delay();
         self.room.bump_revision();
         let mut deliveries =
             vec![

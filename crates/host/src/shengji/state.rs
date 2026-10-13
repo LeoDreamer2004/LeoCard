@@ -1,5 +1,6 @@
 use super::SessionStatistics;
 use crate::RoomSession;
+use crate::automation::BotDecision;
 use leocard_protocol::{
     MatchId, PlayerId, ShengjiBottomCopyDecisionView, ShengjiThrowFailureStage,
 };
@@ -7,6 +8,7 @@ use leocard_shengji::{
     BottomFlipReveal, GameState, ShengjiCard, ShengjiClassifiedPlay, ShengjiPlayerId,
     ShengjiRuleSet, TeamProgress, TrickRecord,
 };
+use leocard_shengji::{ShengjiBotAction, ShengjiBotObservation};
 use std::time::Duration;
 
 pub(super) const PLAYER_COUNT: u8 = ShengjiRuleSet::PLAYER_COUNT as u8;
@@ -77,6 +79,7 @@ impl HeldGamePresentation {
 /// 四人双升的房主权威会话。发牌、亮主窗口和机器人行动都由房主时钟推进。
 #[derive(Clone, Debug)]
 pub struct ShengjiSession {
+    pub(super) bot_decision: BotDecision<ShengjiBotObservation, ShengjiBotAction>,
     pub(super) room: RoomSession,
     pub(super) rules: ShengjiRuleSet,
     pub(super) shuffled_deck: Option<Vec<ShengjiCard>>,

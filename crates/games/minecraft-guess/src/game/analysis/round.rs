@@ -54,11 +54,7 @@ impl RoundAnalysis {
             GuessResult::Known { matches, .. } => Some(matches),
             GuessResult::Unknown { .. } => None,
         };
-        let all_matching = qualities.is_some_and(|matches| {
-            matches
-                .iter()
-                .all(|feedback| feedback.quality == MatchQuality::Exact)
-        });
+        let all_matching = input.result.all_matching();
         let all_wrong = qualities.is_some_and(|matches| {
             matches
                 .iter()

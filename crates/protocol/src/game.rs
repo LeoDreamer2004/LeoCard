@@ -254,7 +254,15 @@ impl From<MinecraftGuessRuleSet> for GameRules {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MinecraftGuessCommand {
-    UpdateRules { rules: MinecraftGuessRuleSet },
-    Guess { entry: String },
+    UpdateRules {
+        rules: MinecraftGuessRuleSet,
+    },
+    Guess {
+        entry: String,
+    },
     Skip,
+    /// The authenticated client reports only its own local process presence.
+    ReportMinecraftProcess {
+        running: bool,
+    },
 }

@@ -4,6 +4,8 @@
 
 mod cards;
 mod ranking;
+mod search;
 
 pub use cards::{DeckError, contains_unique_cards, has_unique_cards, validate_deck};
 pub use ranking::ranked_awards;
+pub use search::{SearchBudget, SearchRandom};

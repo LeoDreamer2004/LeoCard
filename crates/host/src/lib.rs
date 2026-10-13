@@ -4,6 +4,7 @@
 //! [`HostSession::handle`]，再把 [`Delivery`] 写回指定连接。
 
 mod achievements;
+mod automation;
 mod lifecycle;
 mod mahjong;
 mod minecraft_guess;
@@ -15,9 +16,10 @@ mod shengji;
 mod texas_holdem;
 mod uno;
 
+use automation::{AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState};
 use ed25519_dalek::{Signature, VerifyingKey};
 use leocard_protocol::{
-    AVATAR_DIMENSION, JoinRequest, MAX_AVATAR_BYTES, MatchId, PlayerId, RoomId, ServerMessage,
+    AVATAR_DIMENSION, JoinRequest, MAX_AVATAR_BYTES, MatchId, RoomId, ServerMessage,
 };
 use leocard_qigui523::RuleError;
 pub use mahjong::MahjongSession;
@@ -26,7 +28,7 @@ pub use qigui523::QiGui523Session;
 pub use room::RoomSession;
 pub use session::{GameSetup, HostSession};
 pub use shengji::ShengjiSession;
-use std::{fmt, time::Duration};
+use std::fmt;
 pub use texas_holdem::{AdapterError, TablePlayer, TexasHoldemAdapter, TexasHoldemSession};
 pub use uno::UnoSession;
 
@@ -104,21 +106,6 @@ impl From<leocard_mahjong::GameError> for HostError {
     fn from(value: leocard_mahjong::GameError) -> Self {
         Self::InvalidMahjongGame(value)
     }
-}
-
-#[derive(Clone, Debug)]
-struct TurnTimerState {
-    player: PlayerId,
-    base_remaining: Duration,
-    reserve_remaining: Vec<Duration>,
-}
-
-const AUTO_PLAY_DELAY: Duration = Duration::from_secs(1);
-
-#[derive(Clone, Debug)]
-struct AutoPlayDelayState {
-    player: PlayerId,
-    remaining: Duration,
 }
 
 fn valid_identity_proof(room_id: RoomId, request: &JoinRequest) -> bool {

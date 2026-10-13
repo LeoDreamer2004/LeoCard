@@ -7,8 +7,8 @@ use super::{
     add_lobby_game_shade, add_page_background, add_page_transition_shade, add_play_error_popup,
     render_confirmation, render_update_dialog,
 };
-use crate::app::games::{GameScreenResources, GameScreenRetainedState};
-use crate::app::presentation::{GameSummaryAnimation, TextInputRetention, UiRoot};
+use crate::app::games::GameScreenResources;
+use crate::app::presentation::{GameSummaryAnimation, UiComposer, UiRoot};
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, ClientResource, ConnectionDraft, TableAppearance, UiAssets,
 };
@@ -49,24 +49,22 @@ struct ScreenResources<'w> {
 struct GameIntroRoot;
 
 #[derive(SystemParam)]
-pub(crate) struct ScreenRebuild<'w, 's> {
-    commands: Commands<'w, 's>,
+pub(crate) struct ScreenComposition<'w, 's> {
+    commands: UiComposer<'w, 's>,
     resources: ScreenResources<'w>,
     visuals: VisualAssets<'w>,
     games: GameScreenResources<'w>,
     roots: Query<'w, 's, Entity, With<UiRoot>>,
     intro_roots: Query<'w, 's, Entity, With<GameIntroRoot>>,
     achievement_viewport: AchievementPageViewport<'w, 's>,
-    retained_game: GameScreenRetainedState<'w, 's>,
-    retained_inputs: TextInputRetention<'w, 's>,
 }
 
-pub(crate) fn rebuild_ui(mut screen: ScreenRebuild) {
-    screen.rebuild();
+pub(crate) fn compose_ui(mut screen: ScreenComposition) {
+    screen.compose();
 }
 
-impl ScreenRebuild<'_, '_> {
-    fn rebuild(&mut self) {
+impl ScreenComposition<'_, '_> {
+    fn compose(&mut self) {
         if !self.resources.ui.dirty {
             return;
         }
@@ -80,30 +78,25 @@ impl ScreenRebuild<'_, '_> {
             return;
         }
         self.resources.ui.dirty = false;
-        self.retained_game
-            .capture(self.resources.client.as_deref(), &mut self.games);
         self.games
             .reconcile_screen_state(self.resources.client.as_deref(), &mut self.resources.ui);
-        // Preserve the actual viewport before replacing the page's entities.
+        // Preserve the viewport across category and page transitions.
         let achievement_scroll_y = self.achievement_viewport.offset();
-        self.retained_inputs.capture(&mut self.commands);
-        for entity in &self.roots {
-            self.commands.entity(entity).despawn();
-        }
-
-        let root = self
-            .commands
-            .spawn((
-                UiRoot,
-                TabGroup::default(),
-                Node {
-                    width: percent(100),
-                    height: percent(100),
-                    flex_direction: FlexDirection::Column,
-                    ..default()
-                },
-            ))
-            .id();
+        let root = self.roots.iter().next().unwrap_or_else(|| {
+            self.commands
+                .spawn((
+                    UiRoot,
+                    TabGroup::default(),
+                    Node {
+                        width: percent(100),
+                        height: percent(100),
+                        flex_direction: FlexDirection::Column,
+                        ..default()
+                    },
+                ))
+                .id()
+        });
+        self.commands.begin(root);
         ScreenRenderer {
             commands: &mut self.commands,
             client: self.resources.client.as_deref(),
@@ -122,12 +115,15 @@ impl ScreenRebuild<'_, '_> {
         .render(root);
         if intro_active {
             self.commands.entity(root).insert(GameIntroRoot);
+        } else {
+            self.commands.entity(root).remove::<GameIntroRoot>();
         }
+        self.commands.finish();
     }
 }
 
 struct ScreenRenderer<'a, 'w, 's> {
-    commands: &'a mut Commands<'w, 's>,
+    commands: &'a mut UiComposer<'w, 's>,
     client: Option<&'a ClientResource>,
     connection: &'a ConnectionDraft,
     appearance: &'a AppearancePreferences,

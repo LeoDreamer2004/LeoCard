@@ -1,4 +1,5 @@
 use super::super::super::UiAction;
+use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::shell::ProfileUiAction;
 use bevy::ui_widgets::Button;
 
@@ -7,7 +8,6 @@ use super::super::{
     SelectedProfileGameTab, TAB_IDLE, mahjong_profile_rows, minecraft_guess_profile_rows,
     qigui523_profile_rows, shengji_profile_rows, texas_holdem_profile_rows, uno_profile_rows,
 };
-use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::PlayerGameProfiles;
@@ -31,7 +31,7 @@ impl<'a> ProfileArchive<'a> {
         }
     }
 
-    pub(super) fn render(self, commands: &mut Commands, parent: Entity) {
+    pub(super) fn render(self, commands: &mut UiComposer, parent: Entity) {
         add_text(commands, parent, "游戏档案", 20.0, TEXT, self.assets);
         let archive_body = spawn_node(
             commands,
@@ -114,7 +114,7 @@ impl<'a> ProfileArchive<'a> {
         }
     }
 
-    fn add_row(&self, commands: &mut Commands, parent: Entity, label: &str, value: &str) {
+    fn add_row(&self, commands: &mut UiComposer, parent: Entity, label: &str, value: &str) {
         let row = spawn_node(
             commands,
             parent,
@@ -132,10 +132,17 @@ impl<'a> ProfileArchive<'a> {
         add_text(commands, row, value, 14.0, TEXT, self.assets);
     }
 
-    fn add_tab(&self, commands: &mut Commands, parent: Entity, game: ProfileGameTab, label: &str) {
+    fn add_tab(
+        &self,
+        commands: &mut UiComposer,
+        parent: Entity,
+        game: ProfileGameTab,
+        label: &str,
+    ) {
         let selected = game == self.selected_game;
-        let button = commands
-            .spawn((
+        let button = commands.child(
+            parent,
+            (
                 Button,
                 UiAction::Profile(ProfileUiAction::SelectGameTab(game)),
                 Node {
@@ -153,12 +160,11 @@ impl<'a> ProfileArchive<'a> {
                     TAB_IDLE
                 }),
                 ProfileGameTabButton,
-            ))
-            .id();
+            ),
+        );
         if selected {
             commands.entity(button).insert(SelectedProfileGameTab);
         }
-        commands.entity(parent).add_child(button);
         add_text(
             commands,
             button,

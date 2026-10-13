@@ -1,10 +1,10 @@
 use super::download::format_bytes;
+use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::shell::UpdateUiAction;
 use bevy::picking::Pickable;
 use leocard_client::open_url;
 
 use super::{UpdateEvent, UpdateManager, UpdateState};
-use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, cozy_backdrop_color, cozy_panel_transform,
@@ -117,7 +117,7 @@ pub(crate) fn sync_update_dialog(
 }
 
 pub(crate) fn render_update_dialog(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     updater: &UpdateManager,
     progress: f32,

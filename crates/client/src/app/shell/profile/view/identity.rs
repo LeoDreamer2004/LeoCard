@@ -1,5 +1,7 @@
 use super::super::{ProfileStat, reference_level, reference_level_index};
-use crate::app::presentation::{MUTED, TEXT, add_avatar, add_coin_balance, add_text, spawn_node};
+use crate::app::presentation::{
+    MUTED, TEXT, UiComposer, add_avatar, add_coin_balance, add_text, spawn_node,
+};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -36,7 +38,7 @@ impl<'a> ProfileIdentity<'a> {
         }
     }
 
-    pub(super) fn render(self, commands: &mut Commands, parent: Entity) {
+    pub(super) fn render(self, commands: &mut UiComposer, parent: Entity) {
         let identity = spawn_node(
             commands,
             parent,
@@ -138,7 +140,7 @@ impl<'a> ProfileIdentity<'a> {
         self.add_level_stat(commands, stats);
     }
 
-    fn add_achievement_totals(&self, commands: &mut Commands, parent: Entity) {
+    fn add_achievement_totals(&self, commands: &mut UiComposer, parent: Entity) {
         let row = spawn_node(
             commands,
             parent,
@@ -169,8 +171,9 @@ impl<'a> ProfileIdentity<'a> {
                 },
                 None,
             );
-            let icon = commands
-                .spawn((
+            commands.child(
+                item,
+                (
                     Node {
                         width: px(24),
                         height: px(24),
@@ -179,9 +182,8 @@ impl<'a> ProfileIdentity<'a> {
                     },
                     ImageNode::new(self.assets.achievements.medals[index].clone()),
                     Pickable::IGNORE,
-                ))
-                .id();
-            commands.entity(item).add_child(icon);
+                ),
+            );
             add_text(
                 commands,
                 item,
@@ -193,7 +195,7 @@ impl<'a> ProfileIdentity<'a> {
         }
     }
 
-    fn add_interaction_totals(&self, commands: &mut Commands, parent: Entity) {
+    fn add_interaction_totals(&self, commands: &mut UiComposer, parent: Entity) {
         let stats = self.game_profiles.interactions.clone().unwrap_or_default();
         let row = spawn_node(
             commands,
@@ -229,8 +231,9 @@ impl<'a> ProfileIdentity<'a> {
                 },
                 None,
             );
-            let icon = commands
-                .spawn((
+            commands.child(
+                item,
+                (
                     Node {
                         width: px(24),
                         height: px(24),
@@ -245,9 +248,8 @@ impl<'a> ProfileIdentity<'a> {
                             .unwrap_or_default(),
                     ),
                     Pickable::IGNORE,
-                ))
-                .id();
-            commands.entity(item).add_child(icon);
+                ),
+            );
             add_text(
                 commands,
                 item,
@@ -261,7 +263,7 @@ impl<'a> ProfileIdentity<'a> {
 
     fn add_stat(
         &self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         parent: Entity,
         label: &str,
         value: impl Into<String>,
@@ -277,7 +279,7 @@ impl<'a> ProfileIdentity<'a> {
         );
     }
 
-    fn add_level_stat(&self, commands: &mut Commands, parent: Entity) {
+    fn add_level_stat(&self, commands: &mut UiComposer, parent: Entity) {
         let card = self.add_stat_card(commands, parent, "等级");
         let row = spawn_node(
             commands,
@@ -290,8 +292,9 @@ impl<'a> ProfileIdentity<'a> {
             },
             None,
         );
-        let icon = commands
-            .spawn((
+        commands.child(
+            row,
+            (
                 Node {
                     width: px(22),
                     height: px(22),
@@ -303,9 +306,8 @@ impl<'a> ProfileIdentity<'a> {
                     .clone(),
                 ),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(row).add_child(icon);
+            ),
+        );
         let level = reference_level(self.reference_points);
         add_text(
             commands,
@@ -321,7 +323,7 @@ impl<'a> ProfileIdentity<'a> {
         );
     }
 
-    fn add_stat_card(&self, commands: &mut Commands, parent: Entity, label: &str) -> Entity {
+    fn add_stat_card(&self, commands: &mut UiComposer, parent: Entity, label: &str) -> Entity {
         let card = spawn_node(
             commands,
             parent,

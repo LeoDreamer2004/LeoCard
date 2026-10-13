@@ -1,5 +1,10 @@
 //! 升级收分与终局结算演出。
 
+use crate::app::presentation::{
+    ACCENT, PANEL_ALT, READY, SCORE_ROLL_DELAY, SCORE_ROLL_DURATION, SUMMARY_MODAL_ENTRY_DURATION,
+    SUMMARY_ROW_ENTRY_DURATION, TABLE_SCORE_CARD_REVEAL, UiComposer, add_text, ease_out_cubic,
+    spawn_node,
+};
 use bevy::picking::Pickable;
 use std::f32::consts;
 
@@ -11,10 +16,6 @@ use super::{
     ShengjiScoreTrayAnchor, ShengjiSettlementActions, ShengjiSettlementModal,
     ShengjiSettlementPanelTexture, ShengjiSettlementRow, ShengjiSettlementTotalAnchor,
     ShengjiSettlementTotalText, ShengjiTimedReveal,
-};
-use crate::app::presentation::{
-    ACCENT, PANEL_ALT, READY, SCORE_ROLL_DELAY, SCORE_ROLL_DURATION, SUMMARY_MODAL_ENTRY_DURATION,
-    SUMMARY_ROW_ENTRY_DURATION, TABLE_SCORE_CARD_REVEAL, add_text, ease_out_cubic, spawn_node,
 };
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{
@@ -35,7 +36,7 @@ const SHENGJI_TOTAL_ABSORB_DELAY: f32 = 2.24;
 const SHENGJI_TOTAL_ABSORB_DURATION: f32 = 0.78;
 
 pub(super) fn sync_shengji_score_capture_effect(
-    mut commands: Commands,
+    mut commands: UiComposer,
     client: Option<Res<ClientResource>>,
     assets: Res<UiAssets>,
     mut state: ResMut<ShengjiScoreCaptureEffectState>,
@@ -87,7 +88,7 @@ pub(super) fn sync_shengji_score_capture_effect(
 }
 
 fn spawn_shengji_score_capture(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     source: Vec2,
     target: Vec2,
@@ -95,8 +96,9 @@ fn spawn_shengji_score_capture(
     capture: &ShengjiScoreCaptureEffect,
     assets: &UiAssets,
 ) {
-    let vortex = commands
-        .spawn((
+    commands.child(
+        layer,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(target.x - 18.0),
@@ -113,9 +115,8 @@ fn spawn_shengji_score_capture(
             ActiveScoreVortex { elapsed: 0.0 },
             GlobalZIndex(1550),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(layer).add_child(vortex);
+        ),
+    );
 
     let (width, height) = (36.0, 49.0);
     let count = capture.cards.len();
@@ -126,8 +127,9 @@ fn spawn_shengji_score_capture(
                 index as f32 * TABLE_SCORE_CARD_REVEAL - total_width * 0.5,
                 -height * 0.5,
             );
-        let entity = commands
-            .spawn((
+        commands.child(
+            layer,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(card_source.x),
@@ -153,9 +155,8 @@ fn spawn_shengji_score_capture(
                 },
                 GlobalZIndex(1560 + index as i32),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(layer).add_child(entity);
+            ),
+        );
     }
 
     let gain = spawn_node(
@@ -227,7 +228,7 @@ pub(super) fn displayed_shengji_captured_score(
 }
 
 pub(super) fn update_shengji_settlement_animation(
-    mut commands: Commands,
+    mut commands: UiComposer,
     time: Res<Time>,
     client: Option<Res<ClientResource>>,
     assets: Res<UiAssets>,
@@ -246,7 +247,8 @@ pub(super) fn update_shengji_settlement_animation(
         Some((
             result.settlement_id,
             nonnegative,
-            result.reference_changes.len(),
+            // Every player has a settlement row, even when this hand awards no profile points.
+            game.players.len(),
         ))
     });
     let Some((settlement_id, nonnegative, player_count)) = finished else {
@@ -275,7 +277,7 @@ pub(super) fn update_shengji_settlement_animation(
         } else {
             assets.audio.summary_die_sound.clone()
         };
-        commands.spawn((AudioPlayer::new(sound), PlaybackSettings::DESPAWN));
+        commands.effect((AudioPlayer::new(sound), PlaybackSettings::DESPAWN));
         animation.outcome_sound_played = true;
     }
 }
@@ -433,7 +435,7 @@ pub(crate) fn animate_shengji_settlement_visuals(
     reason = "Bevy injects independent settlement resources and anchor queries"
 )]
 pub(crate) fn spawn_shengji_settlement_absorption(
-    mut commands: Commands,
+    mut commands: UiComposer,
     assets: Res<UiAssets>,
     client: Option<Res<ClientResource>>,
     mut animation: ResMut<ShengjiSettlementAnimation>,
@@ -502,8 +504,9 @@ pub(crate) fn spawn_shengji_settlement_absorption(
             &assets,
         );
     }
-    let vortex = commands
-        .spawn((
+    commands.child(
+        layer,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(target.x - 18.0),
@@ -520,9 +523,8 @@ pub(crate) fn spawn_shengji_settlement_absorption(
             ActiveScoreVortex { elapsed: 0.0 },
             GlobalZIndex(1670),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(layer).add_child(vortex);
+        ),
+    );
     animation.absorption_spawned = true;
 }
 
@@ -531,7 +533,7 @@ pub(crate) fn spawn_shengji_settlement_absorption(
     reason = "the short-lived effect builder keeps geometry and presentation inputs explicit"
 )]
 fn spawn_shengji_score_absorb(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     source_center: Vec2,
     target_center: Vec2,
@@ -569,7 +571,7 @@ fn spawn_shengji_score_absorb(
 }
 
 pub(crate) fn animate_shengji_score_absorbs(
-    mut commands: Commands,
+    mut commands: UiComposer,
     time: Res<Time>,
     mut effects: Query<(
         Entity,

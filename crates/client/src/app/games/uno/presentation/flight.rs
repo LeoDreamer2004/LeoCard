@@ -2,6 +2,7 @@ use super::super::{
     UNO_DISCARD_OFFSETS, UNO_FLYING_CARD_HEIGHT, UNO_FLYING_CARD_WIDTH, UnoAssets, UnoDiscardCard,
     UnoFlyingCard, UnoPresentationState, uno_card_handle,
 };
+use crate::app::presentation::UiComposer;
 use bevy::picking::Pickable;
 
 use super::UNO_PLAY_CARD_DURATION;
@@ -40,7 +41,7 @@ pub(super) fn uno_player_anchor_in_layer(
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn spawn_uno_flying_card(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     image: Handle<Image>,
     played_card: Option<UnoCard>,
@@ -55,8 +56,9 @@ pub(super) fn spawn_uno_flying_card(
     let staging = source + Vec2::new(fan * 7.0, -32.0 - fan.abs() * 2.0);
     let midpoint = (source + target) * 0.5;
     let control = midpoint + Vec2::new(fan * 10.0, -95.0);
-    let card = commands
-        .spawn((
+    commands.child(
+        layer,
+        (
             UnoFlyingCard {
                 elapsed: 0.0,
                 delay,
@@ -91,13 +93,12 @@ pub(super) fn spawn_uno_flying_card(
             BoxShadow::new(Color::BLACK.with_alpha(0.42), px(2), px(5), px(0), px(6)),
             GlobalZIndex(1450),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(layer).add_child(card);
+        ),
+    );
 }
 
 pub(super) fn spawn_uno_draw_cards(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     source: Vec2,
     target: Vec2,
@@ -120,7 +121,7 @@ pub(super) fn spawn_uno_draw_cards(
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn spawn_uno_draw_cards_with_backs(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     source: Vec2,
     target: Vec2,
@@ -136,7 +137,7 @@ pub(super) fn spawn_uno_draw_cards_with_backs(
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn spawn_uno_draw_cards_with_interval(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     source: Vec2,
     target: Vec2,
@@ -168,7 +169,7 @@ pub(super) fn spawn_uno_draw_cards_with_interval(
 }
 
 pub(super) fn spawn_uno_transfer_cards(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     source: Vec2,
     target: Vec2,

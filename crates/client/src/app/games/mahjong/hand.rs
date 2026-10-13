@@ -1,22 +1,20 @@
 use super::tiles::{add_mahjong_hand_tile, mahjong_deal_spec, mahjong_draw_spec};
 use super::{
     ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MahjongAssets, MahjongClaimHandShift,
-    MahjongDiscardHandShift, MahjongHandTile, MahjongOwnDiscardAnimation, MahjongTileHighlight,
-    MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongUiAction, MahjongWinningHand,
+    MahjongDiscardHandShift, MahjongOwnDiscardAnimation, MahjongTileHighlight, MahjongTileMaterial,
+    MahjongTileSize, MahjongTileVisual, MahjongUiAction, MahjongWinningHand,
     add_mahjong_response_indicator, add_mahjong_tile_material, add_mahjong_wait_popup,
     apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x, mahjong_discard_waits,
     mahjong_own_row_left, mahjong_win_tile_cues, mahjong_winning_hand_progress,
     mark_mahjong_win_tile,
 };
-use crate::app::presentation::{GameSummaryAnimation, spawn_node};
+use crate::app::presentation::{GameSummaryAnimation, UiComposer, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
-use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongTile;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
-use std::collections::HashMap;
 
 #[derive(Clone, Copy)]
 pub(super) struct MahjongWinningHandVisual {
@@ -28,7 +26,6 @@ pub(super) struct MahjongOwnHandVisuals<'a> {
     pub response_tile: Option<MahjongTile>,
     pub show_wait_fans: bool,
     pub observed_hand: &'a [MahjongTile],
-    pub hover_lifts: &'a HashMap<i32, (f32, PickingInteraction)>,
     pub dealing: bool,
     pub drawn_tile_falling: bool,
     pub winning_hand: Option<MahjongWinningHandVisual>,
@@ -41,7 +38,7 @@ pub(super) struct MahjongOwnHandVisuals<'a> {
 }
 
 pub(super) fn render_own_hand(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &MahjongSnapshot,
     visuals: MahjongOwnHandVisuals<'_>,
@@ -50,7 +47,6 @@ pub(super) fn render_own_hand(
         response_tile,
         show_wait_fans,
         observed_hand,
-        hover_lifts,
         dealing,
         drawn_tile_falling,
         winning_hand,
@@ -176,7 +172,7 @@ pub(super) fn render_own_hand(
             let entity = add_mahjong_hand_tile(
                 commands,
                 hand,
-                tile.kind(),
+                tile,
                 can_discard.then_some(UiAction::Mahjong(MahjongUiAction::Discard(tile))),
                 index,
                 (dealing && !observed_hand.contains(&tile))
@@ -193,12 +189,6 @@ pub(super) fn render_own_hand(
                     ui_assets,
                 );
             }
-            restore_hand_hover(
-                commands,
-                entity,
-                hover_lifts.get(&(index as i32)).copied(),
-                index as i32,
-            );
             if let Some(animation) = discard_animation
                 && let Some(old_x) = animation.old_tile_x(tile)
             {
@@ -215,22 +205,7 @@ pub(super) fn render_own_hand(
                 .as_ref()
                 .and_then(|waits| waits.get(&tile.kind()))
             {
-                add_mahjong_wait_popup(
-                    commands,
-                    entity,
-                    waits,
-                    hover_lifts
-                        .get(&(index as i32))
-                        .is_some_and(|(_, interaction)| {
-                            matches!(
-                                interaction,
-                                PickingInteraction::Hovered | PickingInteraction::Pressed
-                            )
-                        }),
-                    assets,
-                    materials,
-                    ui_assets,
-                );
+                add_mahjong_wait_popup(commands, entity, waits, assets, materials, ui_assets);
             }
             if let (Some(result), Some(cues)) = (result, cues) {
                 mark_mahjong_win_tile(commands, entity, result, cues, None);
@@ -254,7 +229,7 @@ pub(super) fn render_own_hand(
         let entity = add_mahjong_hand_tile(
             commands,
             hand,
-            tile.kind(),
+            tile,
             can_discard.then_some(UiAction::Mahjong(MahjongUiAction::Discard(tile))),
             game.your_hand.len(),
             if drawn_tile_falling && game.your_drawn_tile == Some(tile) {
@@ -275,72 +250,11 @@ pub(super) fn render_own_hand(
         if response_tile == Some(tile) {
             add_mahjong_response_indicator(commands, entity, Vec2::new(56.0, 76.0), 0.0, ui_assets);
         }
-        restore_hand_hover(
-            commands,
-            entity,
-            hover_lifts.get(&(game.your_hand.len() as i32)).copied(),
-            game.your_hand.len() as i32,
-        );
         if let Some(waits) = discard_waits
             .as_ref()
             .and_then(|waits| waits.get(&tile.kind()))
         {
-            add_mahjong_wait_popup(
-                commands,
-                entity,
-                waits,
-                hover_lifts
-                    .get(&(game.your_hand.len() as i32))
-                    .is_some_and(|(_, interaction)| {
-                        matches!(
-                            interaction,
-                            PickingInteraction::Hovered | PickingInteraction::Pressed
-                        )
-                    }),
-                assets,
-                materials,
-                ui_assets,
-            );
+            add_mahjong_wait_popup(commands, entity, waits, assets, materials, ui_assets);
         }
     }
-}
-
-fn restore_hand_hover(
-    commands: &mut Commands,
-    entity: Entity,
-    hover: Option<(f32, PickingInteraction)>,
-    index: i32,
-) {
-    let Some((lift, interaction)) = hover else {
-        return;
-    };
-    if lift <= 0.0 {
-        return;
-    }
-    commands.entity(entity).insert((
-        MahjongHandTile {
-            lift,
-            base_rotation: 0.0,
-            index,
-        },
-        // A rebuilt button must never inherit the previous button's click.
-        if interaction == PickingInteraction::Pressed {
-            PickingInteraction::Hovered
-        } else {
-            interaction
-        },
-        UiTransform {
-            translation: Val2::px(0.0, -11.0 * lift),
-            scale: Vec2::splat(1.0 + 0.025 * lift),
-            ..default()
-        },
-        ZIndex(if lift > 0.05 { 100 + index } else { index }),
-        BoxShadow::new(
-            Color::BLACK.with_alpha(lift * 0.22),
-            px(1),
-            px(7.0 + lift * 6.0),
-            px(0),
-            px(3.0 + lift * 4.0),
-        ),
-    ));
 }

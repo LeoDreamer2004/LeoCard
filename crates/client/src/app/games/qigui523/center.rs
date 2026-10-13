@@ -1,13 +1,13 @@
 use super::sort_cards_high_to_low;
 use crate::app::presentation::{
-    CardSize, HEADER_BG, MUTED, TEXT, add_card_image, add_text, spawn_node,
+    CardSize, HEADER_BG, MUTED, TEXT, UiComposer, add_card_image, add_text, spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::{PublicPlayRecord, QiGui523Snapshot};
 
 pub(super) fn add_draw_pile(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     count: usize,
     assets: &UiAssets,
@@ -50,8 +50,9 @@ pub(super) fn add_draw_pile(
             .insert(BorderColor::all(MUTED.with_alpha(0.45)));
     } else {
         for layer in 0..layers {
-            let card = commands
-                .spawn((
+            commands.child(
+                pile,
+                (
                     Node {
                         position_type: PositionType::Absolute,
                         left: px(layer as f32 * 2.0),
@@ -66,9 +67,8 @@ pub(super) fn add_draw_pile(
                     BorderColor::all(TEXT.with_alpha(0.55)),
                     BoxShadow::new(Color::BLACK.with_alpha(0.28), px(1), px(2), px(0), px(3)),
                     ZIndex(layer as i32),
-                ))
-                .id();
-            commands.entity(pile).add_child(card);
+                ),
+            );
         }
     }
 
@@ -98,7 +98,7 @@ pub(super) fn add_draw_pile(
 }
 
 pub(super) fn add_table_score_cards(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     game: &QiGui523Snapshot,
     assets: &UiAssets,

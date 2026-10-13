@@ -2,7 +2,7 @@
 
 use super::ShengjiUiAction;
 use crate::app::presentation::{
-    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_text,
+    EditableRuleSet, MUTED, RuleConfigRow, UiComposer, add_rule_config_row, add_text,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
@@ -24,7 +24,7 @@ impl EditableRuleSet for ShengjiRuleSet {
 }
 
 pub(crate) fn render_shengji_lobby(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     client: &ClientResource,
     lobby: &LobbySnapshot,

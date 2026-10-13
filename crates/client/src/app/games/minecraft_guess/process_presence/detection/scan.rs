@@ -1,7 +1,8 @@
+use super::java::JavaLaunch;
 use std::path::Path;
 use sysinfo::{Process, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 
-pub(super) fn minecraft_running() -> Option<bool> {
+pub(in super::super) fn minecraft_running() -> Option<bool> {
     let mut system = System::new();
     system.refresh_processes_specifics(
         ProcessesToUpdate::All,
@@ -9,7 +10,8 @@ pub(super) fn minecraft_running() -> Option<bool> {
         ProcessRefreshKind::nothing()
             .without_tasks()
             .with_cmd(UpdateKind::Always)
-            .with_exe(UpdateKind::Always),
+            .with_exe(UpdateKind::Always)
+            .with_cwd(UpdateKind::Always),
     );
     if system.processes().is_empty() {
         return None;
@@ -45,30 +47,5 @@ fn minecraft_process(process: &Process) -> Option<bool> {
         // A permissions failure is not evidence that Minecraft was closed.
         return None;
     }
-    let arguments: Vec<_> = process
-        .cmd()
-        .iter()
-        .map(|argument| argument.to_string_lossy().to_ascii_lowercase())
-        .collect();
-    let client_main = arguments.iter().any(|argument| {
-        matches!(
-            argument.as_str(),
-            "net.minecraft.client.main.main"
-                | "net.minecraft.client.minecraft"
-                | "net.fabricmc.loader.impl.launch.knot.knotclient"
-                | "net.fabricmc.loader.launch.knot.knotclient"
-                | "org.quiltmc.loader.impl.launch.knot.knotclient"
-        )
-    });
-    let forge_client = arguments.windows(2).any(|pair| {
-        pair[0] == "--launchtarget"
-            && matches!(
-                pair[1].as_str(),
-                "forgeclient" | "neoforgeclient" | "fmlclient"
-            )
-    });
-    // Older launchwrapper and launcher-specific bootstraps retain these client arguments.
-    let client_arguments = arguments.iter().any(|argument| argument == "--assetsdir")
-        && arguments.iter().any(|argument| argument == "--username");
-    Some(client_main || forge_client || client_arguments)
+    JavaLaunch::from_process(process.cmd(), process.cwd()).minecraft_client()
 }

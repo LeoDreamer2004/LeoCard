@@ -2,7 +2,7 @@
 
 use super::{MahjongActionVoice, MahjongAssets};
 use crate::app::presentation::{
-    GameSummaryAnimation, SUMMARY_ROW_ENTRY_DURATION, SUMMARY_ROW_START_DELAY,
+    GameSummaryAnimation, SUMMARY_ROW_ENTRY_DURATION, SUMMARY_ROW_START_DELAY, UiComposer,
 };
 use crate::app::runtime::{AppearancePreferences, ClientResource};
 use bevy::audio::Volume;
@@ -19,7 +19,7 @@ const FAN_VOICE_HOLD: f32 = 0.22;
 const FAN_TOTAL_HOLD: f32 = 1.35;
 
 pub(super) fn queue_mahjong_action_voice(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     assets: &MahjongAssets,
     preferences: &AppearancePreferences,
     game: &MahjongSnapshot,
@@ -33,7 +33,7 @@ pub(super) fn queue_mahjong_action_voice(
         return;
     };
     let sound = assets.action_voice(profile.game_profiles.gender, action);
-    commands.spawn((
+    commands.effect((
         AudioPlayer::new(sound.clone()),
         PlaybackSettings {
             volume: Volume::Linear(0.88),
@@ -516,7 +516,7 @@ pub(crate) struct MahjongFanVoicePlayback {
 pub(super) struct MahjongFanVoicePlayer;
 
 pub(crate) fn play_mahjong_fan_voices(
-    mut commands: Commands,
+    mut commands: UiComposer,
     client: Option<Res<ClientResource>>,
     animation: Res<GameSummaryAnimation>,
     assets: Res<MahjongAssets>,
@@ -580,7 +580,7 @@ pub(crate) fn play_mahjong_fan_voices(
         if let Some(sound) = assets.fan_voice(gender, fan.fan)
             && preferences.mahjong_fan_voices
         {
-            commands.spawn((
+            commands.effect((
                 MahjongFanVoicePlayer,
                 AudioPlayer::new(sound.clone()),
                 PlaybackSettings {
@@ -594,7 +594,7 @@ pub(crate) fn play_mahjong_fan_voices(
 }
 
 fn clear_fan_voice_playback(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     playback: &mut MahjongFanVoicePlayback,
     active_voices: &Query<Entity, With<MahjongFanVoicePlayer>>,
 ) {

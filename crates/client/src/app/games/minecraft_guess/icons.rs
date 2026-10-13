@@ -1,3 +1,4 @@
+use crate::app::presentation::UiComposer;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_minecraft_guess::{Entry, EntryKind};
@@ -66,17 +67,19 @@ impl EntryIcons {
         )
     }
 
-    pub fn spawn(commands: &mut Commands, parent: Entity, image: ImageNode, size: f32) {
-        commands.spawn((
-            image,
-            Node {
-                width: px(size),
-                height: px(size),
-                flex_shrink: 0.0,
-                ..default()
-            },
-            Pickable::IGNORE,
-            ChildOf(parent),
-        ));
+    pub fn spawn(commands: &mut UiComposer, parent: Entity, image: ImageNode, size: f32) {
+        commands.child(
+            parent,
+            (
+                image,
+                Node {
+                    width: px(size),
+                    height: px(size),
+                    flex_shrink: 0.0,
+                    ..default()
+                },
+                Pickable::IGNORE,
+            ),
+        );
     }
 }

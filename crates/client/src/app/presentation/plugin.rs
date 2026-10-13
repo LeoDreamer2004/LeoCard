@@ -1,11 +1,11 @@
 use super::{
     CardDragSelection, GameSummaryAnimation, PointerInputPlugin, ScrollbarDrag,
     StartGameSeatTransition, SummaryAnimationSet, SummaryPlayback, TableBackgroundMaterial,
-    TextInputPlugin, TurnBorderAnimationState, TurnBorderMaterial, animate_button_arrows,
-    animate_button_presses, animate_game_summary_visuals, animate_signed_summary_scores,
-    animate_start_game_seat_transition, animate_summary_scores, animate_turn_border_traces,
-    drag_scrollbar, play_ui_click_sounds, update_button_highlights, update_button_tints,
-    update_scrollbar, update_summary_animation,
+    TextInputPlugin, TurnBorderAnimationState, TurnBorderMaterial, UiSceneProperties,
+    UiSceneRegistry, animate_button_arrows, animate_button_presses, animate_game_summary_visuals,
+    animate_signed_summary_scores, animate_start_game_seat_transition, animate_summary_scores,
+    animate_turn_border_traces, drag_scrollbar, image_node_eq, play_ui_click_sounds,
+    update_button_highlights, update_button_tints, update_scrollbar, update_summary_animation,
 };
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
@@ -16,7 +16,25 @@ pub(crate) struct PresentationPlugin;
 
 impl Plugin for PresentationPlugin {
     fn build(&self, app: &mut App) {
+        let mut properties = UiSceneProperties::default();
+        properties.preserve::<Node>();
+        properties.preserve::<UiTransform>();
+        properties.preserve::<Text>();
+        properties.preserve::<TextFont>();
+        properties.preserve_with::<TextLayout>(|left, right| {
+            left.justify == right.justify && left.linebreak == right.linebreak
+        });
+        properties.preserve::<TextColor>();
+        properties.preserve::<BackgroundColor>();
+        properties.preserve::<BorderColor>();
+        properties.preserve::<BackgroundGradient>();
+        properties.preserve::<Visibility>();
+        properties.preserve::<ZIndex>();
+        properties.preserve_with::<ScrollPosition>(|left, right| left.0 == right.0);
+        properties.preserve_with::<ImageNode>(image_node_eq);
         app.add_plugins(PointerInputPlugin)
+            .init_resource::<UiSceneRegistry>()
+            .insert_resource(properties)
             .add_plugins(TextInputPlugin)
             .add_plugins(UiMaterialPlugin::<TableBackgroundMaterial>::default())
             .add_plugins(UiMaterialPlugin::<TurnBorderMaterial>::default())

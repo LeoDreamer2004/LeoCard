@@ -1,6 +1,6 @@
 use super::super::summary::{RankedSummary, SummaryPlayer, add_ranked_summary};
 use crate::app::presentation::{
-    GameSummaryAnimation, SUMMARY_HAND_REVEAL_DURATION, SummaryDescriptor,
+    GameSummaryAnimation, SUMMARY_HAND_REVEAL_DURATION, SummaryDescriptor, UiComposer,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use bevy::prelude::*;
@@ -30,7 +30,7 @@ pub(crate) fn qigui523_summary_descriptor(game: &QiGui523Snapshot) -> Option<Sum
 }
 
 pub(super) fn add_game_summary_modal(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &QiGui523Snapshot,
     assets: &UiAssets,

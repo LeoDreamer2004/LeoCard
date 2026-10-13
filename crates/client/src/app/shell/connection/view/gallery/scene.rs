@@ -1,6 +1,6 @@
 use super::super::theme::HOME_SOFT;
 use super::{ENTRY_DESIGNS, EntryGlow, EntryMotion, GlowKind};
-use crate::app::presentation::{CustomButtonMotion, TEXT, add_text, spawn_node};
+use crate::app::presentation::{CustomButtonMotion, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ConnectionUiAction, PageTransitionElement, UiAction};
 use bevy::picking::Pickable;
@@ -27,7 +27,7 @@ impl<'a> GameGallery<'a> {
         Self { assets }
     }
 
-    pub fn render(&self, commands: &mut Commands, parent: Entity) {
+    pub fn render(&self, commands: &mut UiComposer, parent: Entity) {
         let gallery = spawn_node(
             commands,
             parent,
@@ -67,10 +67,11 @@ impl<'a> GameGallery<'a> {
         }
     }
 
-    fn entry(&self, commands: &mut Commands, parent: Entity, index: usize) {
+    fn entry(&self, commands: &mut UiComposer, parent: Entity, index: usize) {
         let design = &ENTRY_DESIGNS[index];
-        let button = commands
-            .spawn((
+        let button = commands.child(
+            parent,
+            (
                 Button,
                 UiAction::Connection(ConnectionUiAction::CreateRoom(design.game.kind)),
                 CustomButtonMotion,
@@ -83,9 +84,8 @@ impl<'a> GameGallery<'a> {
                     align_items: AlignItems::Center,
                     ..default()
                 },
-            ))
-            .id();
-        commands.entity(parent).add_child(button);
+            ),
+        );
         let stage = spawn_node(
             commands,
             button,
@@ -103,8 +103,9 @@ impl<'a> GameGallery<'a> {
         let aura = EntryGlow::spawn(commands, stage, index, GlowKind::Aura);
         let orbit = EntryGlow::spawn(commands, stage, index, GlowKind::Orbit);
         let ripple = EntryGlow::spawn(commands, stage, index, GlowKind::Ripple);
-        let art = commands
-            .spawn((
+        let art = commands.child(
+            stage,
+            (
                 Node {
                     width: percent(100),
                     max_width: px(190),
@@ -115,9 +116,8 @@ impl<'a> GameGallery<'a> {
                 ImageNode::default(),
                 UiTransform::IDENTITY,
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(stage).add_child(art);
+            ),
+        );
         let caption = spawn_node(
             commands,
             button,

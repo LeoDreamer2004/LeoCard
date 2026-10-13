@@ -13,8 +13,9 @@ use super::{
 use crate::app::presentation::{
     GameSummaryAnimation, PlayerMenuProfile, PlayerPortraitSpec, StartGameSeatTransition, TEXT,
     TableBackground, TableBackgroundMaterial, TurnBorderAnimationKey, TurnBorderMaterial,
-    add_auto_play_overlay, add_player_portrait, add_text, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, spawn_node, table_material_params,
+    UiComposer, add_auto_play_overlay, add_player_portrait, add_text,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
+    table_material_params, ui_component,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 #[cfg(feature = "developer")]
@@ -48,7 +49,7 @@ pub(crate) struct TableVisualContext<'a> {
     reason = "the game-screen adapter passes common screen state plus grouped visuals"
 )]
 pub(crate) fn render_table(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     client: &ClientResource,
     game: &QiGui523Snapshot,
@@ -74,28 +75,31 @@ pub(crate) fn render_table(
         start_game_transition,
         turn_border_materials,
     } = visuals;
-    let content = spawn_node(
-        commands,
+    let content = commands.mount(
         root,
-        Node {
+        format!("qigui:{:?}", game.match_id.0),
+        bsn! { @ui_component(Node {
             width: percent(100),
             flex_grow: 1.0,
             min_height: px(0),
             position_type: PositionType::Relative,
             flex_direction: FlexDirection::Column,
             ..default()
-        },
-        None,
+        }) },
     );
     let felt = appearance
         .custom_felt
         .as_ref()
         .unwrap_or(&assets.table_felt)
         .clone();
-    let material = table_materials.add(TableBackgroundMaterial {
-        params: table_material_params(*brightness, *vignette, appearance.custom_felt.is_none()),
-        texture: felt,
-    });
+    let material = commands.material(
+        content,
+        table_materials,
+        TableBackgroundMaterial {
+            params: table_material_params(*brightness, *vignette, appearance.custom_felt.is_none()),
+            texture: felt,
+        },
+    );
     commands
         .entity(content)
         .insert((MaterialNode(material), TableBackground));

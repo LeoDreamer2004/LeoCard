@@ -1,5 +1,7 @@
 use super::{MahjongAssets, MahjongTurnSector, wind_label};
-use crate::app::presentation::{PlayerSeatValue, add_player_seat_value, add_text, spawn_node};
+use crate::app::presentation::{
+    PlayerSeatValue, UiComposer, add_player_seat_value, add_text, spawn_node,
+};
 use crate::app::runtime::UiAssets;
 use bevy::asset::RenderAssetUsages;
 use bevy::picking::Pickable;
@@ -117,7 +119,7 @@ fn point_segment_distance(point: Vec2, start: Vec2, end: Vec2) -> f32 {
 }
 
 pub(super) fn render_round_status(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &MahjongSnapshot,
     own_seat: u8,
@@ -136,7 +138,7 @@ pub(super) fn render_round_status(
 }
 
 pub(super) fn render_round_status_with_scores(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &MahjongSnapshot,
     own_seat: u8,
@@ -254,13 +256,14 @@ pub(super) fn render_round_status_with_scores(
 }
 
 fn spawn_status_image(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     status: Entity,
     image: &Handle<Image>,
     tint: Color,
 ) -> Entity {
-    let entity = commands
-        .spawn((
+    commands.child(
+        status,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(0),
@@ -271,14 +274,12 @@ fn spawn_status_image(
             },
             ImageNode::new(image.clone()).with_color(tint),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(status).add_child(entity);
-    entity
+        ),
+    )
 }
 
 fn render_wind_label(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     status: Entity,
     relative: u8,
     (wind, score): (&str, i32),

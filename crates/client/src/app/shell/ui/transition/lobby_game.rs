@@ -1,7 +1,7 @@
 //! Lobby panels leave before the game is revealed through a dark screen.
 
 use super::layer::{add_screen_layer, shade_color};
-use crate::app::presentation::{TransitionVisuals, UiRoot, ease_out_cubic, fade_panel};
+use crate::app::presentation::{TransitionVisuals, UiComposer, UiRoot, ease_out_cubic, fade_panel};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
@@ -69,7 +69,7 @@ impl LobbyGameMotion {
 }
 
 pub(crate) fn add_lobby_game_shade(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     motion: &LobbyGameMotion,
 ) {
@@ -92,7 +92,7 @@ pub(super) fn animate_lobby_game_motion(
     mut motion: ResMut<LobbyGameMotion>,
     client: Option<Res<ClientResource>>,
     mut ui: ResMut<UiState>,
-    mut commands: Commands,
+    mut commands: UiComposer,
     roots: Query<Entity, With<UiRoot>>,
     mut panels: Query<
         (Entity, &LobbyTransitionPanel, &mut UiTransform),

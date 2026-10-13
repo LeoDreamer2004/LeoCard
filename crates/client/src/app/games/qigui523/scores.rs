@@ -2,7 +2,8 @@ use super::sort_cards_high_to_low;
 use super::state::ScoreCardsPopupPlacement;
 use super::{QIGUI_PORTRAIT_HEIGHT, QIGUI_PORTRAIT_WIDTH, qigui_plate_image};
 use crate::app::presentation::{
-    ACCENT, CardSize, MUTED, add_card_image, add_text, position_opponent_popup, spawn_node,
+    ACCENT, CardSize, MUTED, UiComposer, add_card_image, add_text, position_opponent_popup,
+    spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{PlayerGameScoreText, ScoreCaptureEffectState, displayed_captured_score};
@@ -32,7 +33,7 @@ pub(super) fn sync_own_score_detail(
 }
 
 pub(super) fn add_score_cards_popup(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     player: &PlayerPublicState,
     cards: &[QiGuiCard],
@@ -60,15 +61,15 @@ pub(super) fn add_score_cards_popup(
     } else {
         node.top = px(QIGUI_PORTRAIT_HEIGHT + 6.0);
     }
-    let popup = commands
-        .spawn((
+    let popup = commands.child(
+        parent,
+        (
             node,
             qigui_plate_image(assets),
             GlobalZIndex(1500),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(parent).add_child(popup);
+        ),
+    );
     if cards.is_empty() {
         add_text(commands, popup, "尚未获得分牌", 12.0, MUTED, assets);
     } else {
@@ -78,15 +79,16 @@ pub(super) fn add_score_cards_popup(
 }
 
 fn add_own_score_plaque(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     player: &PlayerPublicState,
     cards: &[QiGuiCard],
     score: u32,
     assets: &UiAssets,
 ) -> Entity {
-    let plaque = commands
-        .spawn((
+    let plaque = commands.child(
+        parent,
+        (
             Button,
             Node {
                 position_type: PositionType::Absolute,
@@ -99,9 +101,8 @@ fn add_own_score_plaque(
                 column_gap: px(11),
                 ..default()
             },
-        ))
-        .id();
-    commands.entity(parent).add_child(plaque);
+        ),
+    );
     let icon = spawn_node(
         commands,
         plaque,
@@ -142,8 +143,9 @@ fn add_own_score_plaque(
         Pickable::IGNORE,
     ));
     if !cards.is_empty() {
-        let detail = commands
-            .spawn((
+        let detail = commands.child(
+            plaque,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(0),
@@ -158,9 +160,8 @@ fn add_own_score_plaque(
                 Visibility::Hidden,
                 GlobalZIndex(1500),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(plaque).add_child(detail);
+            ),
+        );
         add_score_card_rows(commands, detail, cards, assets);
         commands.entity(plaque).insert(OwnScoreDetail(detail));
     }
@@ -168,7 +169,7 @@ fn add_own_score_plaque(
 }
 
 fn add_score_card_rows(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     popup: Entity,
     cards: &[QiGuiCard],
     assets: &UiAssets,

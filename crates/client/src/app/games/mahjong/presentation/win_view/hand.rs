@@ -1,17 +1,17 @@
 use super::super::super::{
     MahjongAssets, MahjongTileMaterial, MahjongWinEffectTier, MahjongWinStageKind,
 };
+use crate::app::presentation::{UiComposer, add_text, spawn_node};
 use bevy::picking::Pickable;
 
 use super::super::{MahjongTileSize, MahjongWinTileSizes, render_mahjong_win_tile_row};
 use super::{WinStagePartSpec, add_win_stage_component, mahjong_win_effect_color};
-use crate::app::presentation::{add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::{MahjongSnapshot, MahjongWinView};
 
 pub(super) struct CenterWinHandContext<'a, 'w, 's> {
-    pub commands: &'a mut Commands<'w, 's>,
+    pub commands: &'a mut UiComposer<'w, 's>,
     pub table: Entity,
     pub game: &'a MahjongSnapshot,
     pub winner: &'a MahjongWinView,

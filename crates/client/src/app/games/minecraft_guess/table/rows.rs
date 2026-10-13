@@ -1,6 +1,6 @@
 use super::super::MinecraftGuessAssets;
 use super::style::{ROW_HEIGHT, SEPARATOR_COLOR, SEPARATOR_WIDTH};
-use crate::app::presentation::spawn_node;
+use crate::app::presentation::{UiComposer, spawn_node};
 use bevy::{picking::Pickable, prelude::*};
 
 #[derive(Component)]
@@ -10,7 +10,7 @@ pub(in super::super) struct GuessEmptyRows {
 }
 
 impl GuessEmptyRows {
-    pub(super) fn spawn(commands: &mut Commands, scroll: Entity, guesses: usize) {
+    pub(super) fn spawn(commands: &mut UiComposer, scroll: Entity, guesses: usize) {
         let filler = spawn_node(
             commands,
             scroll,
@@ -31,7 +31,7 @@ impl GuessEmptyRows {
 }
 
 pub(in super::super) fn fill_empty_rows(
-    mut commands: Commands,
+    mut commands: UiComposer,
     assets: Res<MinecraftGuessAssets>,
     viewports: Query<&ComputedNode>,
     mut fillers: Query<(
@@ -71,7 +71,7 @@ pub(in super::super) fn fill_empty_rows(
 }
 
 fn add_blank_row(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     height: f32,
     image: ImageNode,

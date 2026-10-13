@@ -137,7 +137,7 @@ pub(crate) struct OpponentBadge {
     pub interaction_menu: Entity,
 }
 
-#[derive(Component)]
+#[derive(Component, Clone, Copy)]
 pub(crate) struct PlayerAvatarAnchor(pub PlayerId);
 
 #[derive(Component)]

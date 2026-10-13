@@ -14,7 +14,7 @@ use bevy::{
 pub(crate) struct UiPress(pub Entity);
 
 /// 控件参与通用点击反馈，实际功能仍由各控件处理。
-#[derive(Component, Default)]
+#[derive(Component, Clone, Default)]
 pub(crate) struct UiPressTarget;
 
 /// Touchscreens invoke a secondary action by holding this region.

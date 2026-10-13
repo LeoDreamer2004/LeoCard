@@ -1,3 +1,4 @@
+use crate::app::presentation::UiComposer;
 use crate::app::{
     presentation::{ACCENT, DANGER, add_text},
     runtime::{ClientResource, UiAssets},
@@ -21,7 +22,7 @@ fn guess_clock_color(remaining: Option<u16>) -> Color {
 }
 
 pub(super) fn add_guess_clock(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     remaining: Option<u16>,
     assets: &UiAssets,

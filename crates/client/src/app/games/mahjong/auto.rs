@@ -1,7 +1,7 @@
 //! 麻将局内的快捷开关与本地自动操作。
 
 use super::{MahjongAutomaticActionKey, MahjongUiAction, MahjongUiState};
-use crate::app::presentation::{DrawerSwitch, SwitchDrawer, add_switch_drawer};
+use crate::app::presentation::{DrawerSwitch, SwitchDrawer, UiComposer, add_switch_drawer};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{UiAction, game_command};
 use bevy::prelude::*;
@@ -9,7 +9,7 @@ use leocard_mahjong::{MahjongClaim, MahjongClaimOption};
 use leocard_protocol::{MahjongCommand, MahjongPhaseView, MahjongSnapshot};
 
 pub(super) fn render_mahjong_auto_drawer(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     ui: &MahjongUiState,
     false_win_allowed: bool,

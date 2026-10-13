@@ -1,12 +1,17 @@
 use super::super::icons::EntryIcons;
 use super::super::view::GuessTable;
 use super::visuals::{RevealPanel, RevealPixel};
-use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, MUTED, TEXT, UiComposer, add_text, spawn_node};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 
 impl GuessTable<'_> {
-    pub(in super::super) fn answer(&self, commands: &mut Commands, heading: Entity, page: Entity) {
+    pub(in super::super) fn answer(
+        &self,
+        commands: &mut UiComposer,
+        heading: Entity,
+        page: Entity,
+    ) {
         let progress = self.game.progress;
         let round_label = add_text(
             commands,
@@ -88,7 +93,7 @@ impl GuessTable<'_> {
         self.answer_banner(commands, page);
     }
 
-    fn answer_banner(&self, commands: &mut Commands, page: Entity) {
+    fn answer_banner(&self, commands: &mut UiComposer, page: Entity) {
         let answer = self.game.round.answer.as_ref().expect("revealed answer");
         let banner = spawn_node(
             commands,
@@ -149,23 +154,25 @@ impl GuessTable<'_> {
                     sign * (42.0 + (i / 2) as f32 * 14.0),
                     -25.0 - (i % 3) as f32 * 18.0,
                 );
-                commands.spawn((
-                    Node {
-                        position_type: PositionType::Absolute,
-                        left: percent(50),
-                        top: percent(50),
-                        width: px(4),
-                        height: px(4),
-                        ..default()
-                    },
-                    BackgroundColor(ACCENT),
-                    RevealPixel {
-                        velocity,
-                        delay: i as f32 * 0.02,
-                    },
-                    Pickable::IGNORE,
-                    ChildOf(banner),
-                ));
+                commands.child(
+                    banner,
+                    (
+                        Node {
+                            position_type: PositionType::Absolute,
+                            left: percent(50),
+                            top: percent(50),
+                            width: px(4),
+                            height: px(4),
+                            ..default()
+                        },
+                        BackgroundColor(ACCENT),
+                        RevealPixel {
+                            velocity,
+                            delay: i as f32 * 0.02,
+                        },
+                        Pickable::IGNORE,
+                    ),
+                );
             }
         }
     }

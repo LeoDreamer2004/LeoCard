@@ -1,5 +1,5 @@
 use super::*;
-use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
     CozyButtonVariant, LobbyTransitionPanel, LobbyUiAction, PageTransitionElement, UiAction,
@@ -76,7 +76,7 @@ pub(crate) struct LobbyPage {
 
 impl LobbyPage {
     pub(crate) fn spawn(
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         root: Entity,
         client: &ClientResource,
         lobby: &LobbySnapshot,
@@ -162,7 +162,7 @@ impl LobbyPage {
         }
     }
 
-    pub(crate) fn render_players(self, commands: &mut Commands, section: LobbyPlayerSection<'_>) {
+    pub(crate) fn render_players(self, commands: &mut UiComposer, section: LobbyPlayerSection<'_>) {
         let LobbyPlayerSection {
             client,
             lobby,
@@ -246,7 +246,7 @@ impl LobbyPage {
 }
 
 fn add_disabled_lobby_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     label: &str,
     assets: &UiAssets,
@@ -261,8 +261,9 @@ fn add_disabled_lobby_button(
     ));
     image.visual_box = VisualBox::BorderBox;
     image.color = Color::WHITE.with_alpha(0.5);
-    let button = commands
-        .spawn((
+    let button = commands.child(
+        parent,
+        (
             Node {
                 width: px(150),
                 height: px(48),
@@ -272,14 +273,13 @@ fn add_disabled_lobby_button(
             },
             image,
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(parent).add_child(button);
+        ),
+    );
     add_text(commands, button, label, 14.0, MUTED, assets);
 }
 
 pub(crate) fn add_lobby_rules_heading(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     title: impl Into<String>,
     assets: &UiAssets,

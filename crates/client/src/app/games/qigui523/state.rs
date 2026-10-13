@@ -2,9 +2,10 @@
 
 use super::QiGui523Assets;
 use super::counter::QiGuiCounterUi;
-use crate::app::presentation::{CardAnimationState, Observed};
-use crate::app::presentation::{CardCounterOwner, CardCounterWindowState};
-use crate::app::presentation::{CustomButtonMotion, SilentButton};
+use crate::app::presentation::{
+    CardAnimationState, CardCounterOwner, CardCounterWindowState, CustomButtonMotion, Observed,
+    SilentButton,
+};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{ScoreCaptureEffectState, SeatSide};
 use bevy::prelude::*;

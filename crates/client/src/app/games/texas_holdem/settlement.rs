@@ -3,13 +3,13 @@ use super::{
     TexasShowdownRevealRoot, TexasShowdownTitle, TexasShowdownTitleText, TexasShowdownUnderline,
     add_texas_card, texas_card_face, texas_category_label, texas_player_chip_zone,
 };
-use crate::app::presentation::add_animated_summary_text;
 use crate::app::presentation::{
     ACCENT, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider, GameSummaryModal,
     GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, READY,
     SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
-    TEXAS_UNCONTESTED_REVEAL_DURATION, TEXT, add_avatar, add_ready_avatar, add_text,
-    decorate_panel_skin, spawn_node, summary_modal_visual, summary_row_progress,
+    TEXAS_UNCONTESTED_REVEAL_DURATION, TEXT, UiComposer, add_animated_summary_text, add_avatar,
+    add_ready_avatar, add_text, decorate_panel_skin, spawn_node, summary_modal_visual,
+    summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -57,7 +57,7 @@ pub(crate) fn texas_holdem_summary_descriptor(
 }
 
 pub(super) fn add_texas_showdown_reveal(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &TexasHoldemSnapshot,
     own_seat: SeatId,
@@ -161,8 +161,9 @@ pub(super) fn add_texas_showdown_reveal(
             )
         };
         let target = Vec2::new(444.0 + index as f32 * 78.0, 238.0);
-        let entity = commands
-            .spawn((
+        commands.child(
+            root,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(target.x),
@@ -189,9 +190,8 @@ pub(super) fn add_texas_showdown_reveal(
                 },
                 ZIndex(index as i32 + 5),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(root).add_child(entity);
+            ),
+        );
     }
 
     let title_area = spawn_node(
@@ -259,7 +259,7 @@ pub(super) fn add_texas_showdown_reveal(
 }
 
 pub(super) fn add_texas_hand_result(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &TexasHoldemSnapshot,
     assets: &UiAssets,
@@ -639,7 +639,7 @@ pub(super) fn add_texas_hand_result(
 }
 
 fn add_texas_summary_avatar(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     player: &TexasHoldemPlayerState,
     avatars: &AvatarImages,

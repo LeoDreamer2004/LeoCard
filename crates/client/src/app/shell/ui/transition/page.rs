@@ -2,7 +2,7 @@
 
 use super::layer::{add_screen_layer, shade_color};
 use super::lobby_game::LobbyGameShade;
-use crate::app::presentation::{TransitionVisuals, UiRoot, ease_out_cubic, fade_panel};
+use crate::app::presentation::{TransitionVisuals, UiComposer, UiRoot, ease_out_cubic, fade_panel};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
@@ -123,7 +123,7 @@ pub(super) fn page_content_can_animate(motion: Res<PageMotion>) -> bool {
 }
 
 pub(crate) fn add_page_transition_shade(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     motion: &PageMotion,
 ) {
@@ -145,7 +145,7 @@ pub(super) fn animate_page_motion(
     mut motion: ResMut<PageMotion>,
     mut ui: ResMut<UiState>,
     assets: Res<UiAssets>,
-    mut commands: Commands,
+    mut commands: UiComposer,
     roots: Query<Entity, With<UiRoot>>,
     blockers: Query<Entity, With<PageTransitionBlocker>>,
     mut shades: Query<(Entity, &mut BackgroundColor), With<PageTransitionShade>>,
@@ -196,7 +196,7 @@ pub(super) fn animate_page_motion(
                         if let Some(sound) =
                             assets.audio.deal_sounds.get(usize::from(element.order))
                         {
-                            commands.spawn((
+                            commands.effect((
                                 AudioPlayer::new(sound.clone()),
                                 PlaybackSettings::DESPAWN,
                             ));

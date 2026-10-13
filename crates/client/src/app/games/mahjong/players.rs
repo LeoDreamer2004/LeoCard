@@ -12,7 +12,7 @@ use super::{
     render_mahjong_staged_meld,
 };
 use crate::app::presentation::{
-    DANGER, GameSummaryAnimation, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT,
+    DANGER, GameSummaryAnimation, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, UiComposer,
     add_player_portrait, add_text, attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
@@ -34,7 +34,7 @@ pub(super) struct MahjongPlayerPanelVisuals<'a> {
 }
 
 pub(super) fn render_mahjong_player_panel(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     player: &MahjongPlayerState,
     visuals: MahjongPlayerPanelVisuals<'_>,
@@ -123,7 +123,7 @@ pub(super) fn render_mahjong_player_panel(
 }
 
 pub(super) fn render_mahjong_wall(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     wall_len: u16,
     assets: &MahjongAssets,
@@ -185,23 +185,17 @@ pub(super) fn render_mahjong_wall(
 }
 
 fn add_mahjong_wall_stack(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     stack: Entity,
     layers: u8,
     orientation: u8,
     assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
-    let material = materials.add(MahjongTileMaterial {
-        params: Vec4::new(0.0, 1.0, 1.0, if layers == 2 { 2.0 } else { 3.0 }),
-        lighting: mahjong_local_light(orientation),
-        highlight: Vec4::ZERO,
-        glyph: assets.tile_back.clone(),
-        height: assets.tile_back.clone(),
-    });
     let shadow = mahjong_local_shadow(orientation);
-    let tile = commands
-        .spawn((
+    let entity = commands.child(
+        stack,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(0),
@@ -212,7 +206,6 @@ fn add_mahjong_wall_stack(
                 overflow: Overflow::visible(),
                 ..default()
             },
-            MaterialNode(material),
             BoxShadow::new(
                 Color::BLACK.with_alpha(0.10),
                 px(shadow.x),
@@ -222,9 +215,20 @@ fn add_mahjong_wall_stack(
             ),
             ZIndex(1),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(stack).add_child(tile);
+        ),
+    );
+    let material = commands.material(
+        entity,
+        materials,
+        MahjongTileMaterial {
+            params: Vec4::new(0.0, 1.0, 1.0, if layers == 2 { 2.0 } else { 3.0 }),
+            lighting: mahjong_local_light(orientation),
+            highlight: Vec4::ZERO,
+            glyph: assets.tile_back.clone(),
+            height: assets.tile_back.clone(),
+        },
+    );
+    commands.entity(entity).insert(MaterialNode(material));
 }
 
 pub(super) struct MahjongPlayerTileVisuals<'a> {
@@ -246,7 +250,7 @@ pub(super) struct MahjongPlayerTileVisuals<'a> {
 }
 
 pub(super) fn render_mahjong_player_tiles(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     player: &MahjongPlayerState,
     visuals: MahjongPlayerTileVisuals<'_>,
@@ -610,7 +614,7 @@ pub(super) struct MahjongDiscardRiverVisuals<'a> {
 }
 
 pub(super) fn render_discard_rivers(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &MahjongSnapshot,
     own_seat: u8,

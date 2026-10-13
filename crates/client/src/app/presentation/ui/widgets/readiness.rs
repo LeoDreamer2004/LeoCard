@@ -1,9 +1,10 @@
 use super::{add_text, spawn_node};
+use crate::app::presentation::UiComposer;
 use crate::app::{presentation::READY, runtime::UiAssets};
 use bevy::{picking::Pickable, prelude::*};
 
 pub(crate) fn add_ready_badge(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     avatar: Entity,
     avatar_size: f32,
     assets: &UiAssets,

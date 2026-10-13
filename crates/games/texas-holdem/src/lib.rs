@@ -21,7 +21,7 @@ pub use bot::{TexasHoldemBot, TexasHoldemBotObservation};
 pub use card::{TexasHoldemCard, TexasHoldemRank, TexasHoldemSuit, build_deck};
 pub use game::{
     ActionOutcome, BettingRecord, GameError, GameState, HandResult, Phase, PlayerState, PotAward,
-    TexasHoldemAction, TexasHoldemBlindKind, TexasHoldemPlayerId, TexasHoldemStreet,
+    RaiseSizing, TexasHoldemAction, TexasHoldemBlindKind, TexasHoldemPlayerId, TexasHoldemStreet,
 };
 pub use hand::{
     EvaluatedHand, HandError, TexasHoldemHandCategory, evaluate_best, evaluate_omaha,

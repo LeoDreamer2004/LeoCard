@@ -5,7 +5,7 @@ use super::super::super::{
     add_cozy_close_button, add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
 };
 use super::super::{ProfileGameTab, ProfileUiState};
-use crate::app::presentation::{TEXT, add_text, spawn_node};
+use crate::app::presentation::{TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -101,7 +101,7 @@ impl<'a> ProfileModal<'a> {
         }
     }
 
-    pub(crate) fn render(self, commands: &mut Commands, root: Entity, progress: f32) {
+    pub(crate) fn render(self, commands: &mut UiComposer, root: Entity, progress: f32) {
         let Self {
             player_name,
             gender,

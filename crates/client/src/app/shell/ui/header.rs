@@ -2,9 +2,9 @@
 
 use super::super::{
     AchievementEntry, CozyButtonVariant, LobbyGameHeader, LobbyUiAction, NavigationUiAction,
-    PageTransitionElement, ProfileEntry, ShopEntry, UiAction, add_cozy_icon_button,
+    PageTransitionElement, ProfileEntry, ShopEntry, UiAction, add_cozy_labeled_icon_button,
 };
-use crate::app::presentation::{BORDER, MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{BORDER, MUTED, UiComposer, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -32,7 +32,7 @@ impl<'a> Header<'a> {
         }
     }
 
-    pub(in crate::app::shell) fn render(self, commands: &mut Commands, root: Entity) {
+    pub(in crate::app::shell) fn render(self, commands: &mut UiComposer, root: Entity) {
         if self
             .client
             .is_some_and(|client| matches!(client.0.model().phase(), ClientPhaseRef::Playing(_)))
@@ -133,10 +133,11 @@ impl<'a> Header<'a> {
             }
             .render(commands, right);
         }
-        self.add_labeled_icon_button(
+        add_cozy_labeled_icon_button(
             commands,
             right,
             UiAction::Navigation(NavigationUiAction::ToggleSettings),
+            self.assets,
             self.assets.home.settings_icon.clone(),
             CozyButtonVariant::Neutral,
             "设置",
@@ -149,7 +150,7 @@ impl<'a> Header<'a> {
         .render(commands, right, 44.0, 17.5);
     }
 
-    fn render_game_header(&self, commands: &mut Commands, root: Entity) {
+    fn render_game_header(&self, commands: &mut UiComposer, root: Entity) {
         let header = spawn_node(
             commands,
             root,
@@ -178,26 +179,29 @@ impl<'a> Header<'a> {
             },
             None,
         );
-        self.add_labeled_icon_button(
+        add_cozy_labeled_icon_button(
             commands,
             right,
             UiAction::Navigation(NavigationUiAction::ToggleShop),
+            self.assets,
             self.assets.shop.icon.clone(),
             CozyButtonVariant::Neutral,
             "商店",
         );
-        self.add_labeled_icon_button(
+        add_cozy_labeled_icon_button(
             commands,
             right,
             UiAction::Navigation(NavigationUiAction::ToggleSettings),
+            self.assets,
             self.assets.home.settings_icon.clone(),
             CozyButtonVariant::Neutral,
             "设置",
         );
-        self.add_labeled_icon_button(
+        add_cozy_labeled_icon_button(
             commands,
             right,
             UiAction::Lobby(LobbyUiAction::LeaveRoom),
+            self.assets,
             self.assets.home.exit_icon.clone(),
             CozyButtonVariant::Danger,
             "退出",
@@ -208,30 +212,5 @@ impl<'a> Header<'a> {
             avatars: self.avatars,
         }
         .render(commands, right, 38.0, 15.0);
-    }
-
-    fn add_labeled_icon_button(
-        &self,
-        commands: &mut Commands,
-        parent: Entity,
-        action: UiAction,
-        icon: Handle<Image>,
-        variant: CozyButtonVariant,
-        label: &str,
-    ) {
-        let column = spawn_node(
-            commands,
-            parent,
-            Node {
-                width: px(44),
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                row_gap: px(1),
-                ..default()
-            },
-            None,
-        );
-        add_cozy_icon_button(commands, column, action, self.assets, icon, variant);
-        add_text(commands, column, label, 12.0, TEXT, self.assets);
     }
 }

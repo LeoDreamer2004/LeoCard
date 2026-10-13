@@ -2,28 +2,24 @@ use super::super::{
     MahjongAssets, MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
     add_mahjong_tile_material,
 };
-use super::{
-    MahjongReadyHint, MahjongReadyHintState, MahjongWaitPopupLink, mahjong_current_waits,
-    waits::MahjongWait,
-};
-use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text, spawn_node};
+use super::{MahjongReadyHint, MahjongWaitPopupLink, mahjong_current_waits, waits::MahjongWait};
+use crate::app::presentation::{ACCENT, MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
-use bevy::picking::{Pickable, hover::PickingInteraction};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongScoreResult;
 use leocard_protocol::MahjongSnapshot;
 
 pub(in super::super) fn add_mahjong_wait_popup(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     hand_tile: Entity,
     waits: &[MahjongWait],
-    initially_visible: bool,
     game_assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
     assets: &UiAssets,
 ) {
     let (_, width) = popup_dimensions(waits);
-    if let Some(popup) = add_wait_popup(
+    add_wait_popup(
         commands,
         hand_tile,
         waits,
@@ -35,30 +31,25 @@ pub(in super::super) fn add_mahjong_wait_popup(
         game_assets,
         materials,
         assets,
-    ) {
-        commands.entity(popup).insert(if initially_visible {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        });
-    }
+    );
 }
 
 pub(in super::super) fn add_mahjong_ready_hint(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     chat_panel: Entity,
     game: &MahjongSnapshot,
-    state: MahjongReadyHintState,
+    show_fans: bool,
     game_assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
     assets: &UiAssets,
 ) {
-    let waits = mahjong_current_waits(game, state.show_fans);
+    let waits = mahjong_current_waits(game, show_fans);
     if waits.is_empty() {
         return;
     }
-    let icon = commands
-        .spawn((
+    let icon = commands.child(
+        chat_panel,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(-32),
@@ -71,15 +62,9 @@ pub(in super::super) fn add_mahjong_ready_hint(
             GlobalZIndex(2000),
             Pickable::default(),
             MahjongReadyHint,
-            if state.hovered {
-                PickingInteraction::Hovered
-            } else {
-                PickingInteraction::None
-            },
-        ))
-        .id();
-    commands.entity(chat_panel).add_child(icon);
-    if let Some(popup) = add_wait_popup(
+        ),
+    );
+    add_wait_popup(
         commands,
         icon,
         &waits,
@@ -91,17 +76,11 @@ pub(in super::super) fn add_mahjong_ready_hint(
         game_assets,
         materials,
         assets,
-    ) {
-        commands.entity(popup).insert(if state.hovered {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        });
-    }
+    );
 }
 
 fn add_wait_popup(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     anchor: Entity,
     waits: &[MahjongWait],
     position: Node,
@@ -188,7 +167,7 @@ fn popup_dimensions(waits: &[MahjongWait]) -> (f32, f32) {
 }
 
 fn add_wait_score(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     cell: Entity,
     label: &str,
     score: &MahjongScoreResult,

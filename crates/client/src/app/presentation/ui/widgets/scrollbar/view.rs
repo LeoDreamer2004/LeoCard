@@ -1,10 +1,10 @@
 use super::{Scrollbar, ScrollbarSkin};
-use crate::app::presentation::spawn_node;
+use crate::app::presentation::{UiComposer, spawn_node};
 use bevy::{picking::Pickable, prelude::*, ui::RelativeCursorPosition};
 
 impl Scrollbar {
     pub(crate) fn spawn(
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         parent: Entity,
         scroll: Entity,
         skin: ScrollbarSkin,

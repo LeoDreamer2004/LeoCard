@@ -2,9 +2,9 @@
 
 use super::QiGui523UiAction;
 use crate::app::presentation::{
-    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_text, next_suit_comparison,
-    next_time_control, previous_suit_comparison, previous_time_control, suit_comparison_label,
-    time_control_label,
+    EditableRuleSet, MUTED, RuleConfigRow, UiComposer, add_rule_config_row, add_text,
+    next_suit_comparison, next_time_control, previous_suit_comparison, previous_time_control,
+    suit_comparison_label, time_control_label,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
@@ -24,7 +24,7 @@ impl EditableRuleSet for QiGuiRuleSet {
 }
 
 pub(crate) fn render_qigui523_lobby(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     client: &ClientResource,
     lobby: &LobbySnapshot,

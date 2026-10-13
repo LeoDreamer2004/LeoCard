@@ -3,12 +3,13 @@
 use super::super::{
     ACCENT, AutoPlayOverlay, PanelSkin, TABLE_CARD_REVEAL, TABLE_SCORE_CARD_REVEAL, TEXT,
 };
-use crate::app::presentation::CardSize;
+use super::sliced_image;
+use crate::app::presentation::{CardSize, UiComposer, ui_component};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{SocialUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::VisualBox;
+use bevy::text::FontSourceTemplate;
 use bevy::ui_widgets::Button;
 use leocard_qigui523::QiGuiCard;
 
@@ -20,7 +21,7 @@ const FINISHED_HAND_CARD_REVEAL: f32 = 14.4;
     reason = "the card-image primitive keeps card identity, geometry, and assets explicit"
 )]
 pub(crate) fn add_card_image(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     card: QiGuiCard,
     size: CardSize,
@@ -42,8 +43,9 @@ pub(crate) fn add_card_image(
         .get(&(card.rank(), card.suit()))
         .expect("all valid card faces are preloaded")
         .clone();
-    let entity = commands
-        .spawn((
+    commands.child(
+        parent,
+        (
             Node {
                 width: px(width),
                 height: px(height),
@@ -57,17 +59,16 @@ pub(crate) fn add_card_image(
                 Color::WHITE
             }),
             ZIndex(index as i32),
-        ))
-        .id();
-    commands.entity(parent).add_child(entity);
-    entity
+        ),
+    )
 }
 
 /// 托管时覆盖整条手牌与操作区。蒙版本身是唯一可点击目标，因此其后的牌、
 /// 操作按钮和聊天抽屉在这个区域内都不会收到指针事件。
-pub(crate) fn add_auto_play_overlay(commands: &mut Commands, parent: Entity, assets: &UiAssets) {
-    let overlay = commands
-        .spawn((
+pub(crate) fn add_auto_play_overlay(commands: &mut UiComposer, parent: Entity, assets: &UiAssets) {
+    let overlay = commands.child(
+        parent,
+        (
             Button,
             UiAction::Social(SocialUiAction::ToggleAutoPlay),
             Node {
@@ -86,9 +87,8 @@ pub(crate) fn add_auto_play_overlay(commands: &mut Commands, parent: Entity, ass
             GlobalZIndex(1900),
             Pickable::default(),
             AutoPlayOverlay,
-        ))
-        .id();
-    commands.entity(parent).add_child(overlay);
+        ),
+    );
     let title = add_text(commands, overlay, "您已托管", 27.0, ACCENT, assets);
     commands.entity(title).insert((
         Pickable::IGNORE,
@@ -103,20 +103,13 @@ pub(crate) fn add_auto_play_overlay(commands: &mut Commands, parent: Entity, ass
 
 /// Reuse the rounded card skin at both entry and compact popup sizes.
 pub(crate) fn card_background_image(texture: Handle<Image>, corner_scale: f32) -> ImageNode {
-    let mut image = ImageNode::new(texture).with_mode(NodeImageMode::Sliced(TextureSlicer {
-        border: BorderRect::all(16.0),
-        center_scale_mode: SliceScaleMode::Stretch,
-        sides_scale_mode: SliceScaleMode::Stretch,
-        max_corner_scale: corner_scale,
-    }));
-    image.visual_box = VisualBox::BorderBox;
-    image
+    sliced_image(texture, 16.0, corner_scale)
 }
 
 /// 给任意布局节点叠加独立的九宫格面板皮肤。玩家框仍使用专用贴图；这里仅
 /// 服务于主窗口、内容分区和小型提示框，避免随尺寸拉伸边角与描边。
 pub(crate) fn decorate_panel_skin(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     skin: PanelSkin,
     assets: &UiAssets,
@@ -129,53 +122,38 @@ pub(crate) fn decorate_panel_skin(
     commands
         .entity(panel)
         .insert((BackgroundColor(Color::NONE), BorderColor::all(Color::NONE)));
-    let texture = commands
-        .spawn((
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                right: px(0),
-                top: px(0),
-                bottom: px(0),
-                ..default()
-            },
-            {
-                let mut image = ImageNode::new(assets.home.panel.clone())
-                    .with_mode(NodeImageMode::Sliced(TextureSlicer {
-                        border: BorderRect::all(80.0),
-                        center_scale_mode: SliceScaleMode::Stretch,
-                        sides_scale_mode: SliceScaleMode::Stretch,
-                        max_corner_scale: corner_scale,
-                    }))
-                    .with_color(Color::WHITE);
-                image.visual_box = bevy::ui::VisualBox::BorderBox;
-                image
-            },
-            ZIndex(-1),
-            Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(panel).add_child(texture);
-    texture
+    let image = sliced_image(assets.home.panel.clone(), 80.0, corner_scale);
+    commands.mount(
+        panel,
+        "skin",
+        bsn! {
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(0),
+                    right: px(0),
+                    top: px(0),
+                    bottom: px(0),
+                }
+                @ui_component(image)
+                ZIndex(-1)
+                Pickable::IGNORE
+        },
+    )
 }
 
+#[track_caller]
 pub(crate) fn spawn_node(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     node: Node,
     background: Option<Color>,
 ) -> Entity {
-    let mut entity = commands.spawn(node);
-    if let Some(color) = background {
-        entity.insert(BackgroundColor(color));
-    }
-    let entity = entity.id();
-    commands.entity(parent).add_child(entity);
-    entity
+    let background = background.map(|color| bsn! { BackgroundColor(color) });
+    commands.node(parent, bsn! { node @background })
 }
 
 pub(crate) fn add_section_title(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     text: impl Into<String>,
     assets: &UiAssets,
@@ -183,21 +161,30 @@ pub(crate) fn add_section_title(
     add_text(commands, parent, text, 21.0, ACCENT, assets);
 }
 
+#[track_caller]
 pub(crate) fn add_text(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     text: impl Into<String>,
     size: f32,
     color: Color,
     assets: &UiAssets,
 ) -> Entity {
-    let entity = commands
-        .spawn((
-            Text::new(text),
-            TextFont::from_font_size(size).with_font(assets.font.clone()),
-            TextColor(color),
-        ))
-        .id();
-    commands.entity(parent).add_child(entity);
-    entity
+    commands.node(parent, text_scene(assets, text, size, color))
+}
+
+pub(crate) fn text_scene(
+    assets: &UiAssets,
+    text: impl Into<String>,
+    size: f32,
+    color: Color,
+) -> impl Scene {
+    let text = Text::new(text);
+    let font = assets.font.clone();
+    let font_source = FontSourceTemplate::Handle(font.into());
+    bsn! {
+            text
+            TextFont { font: font_source, font_size: px(size) }
+            TextColor(color)
+    }
 }

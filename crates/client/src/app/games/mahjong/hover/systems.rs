@@ -15,11 +15,6 @@ pub(in super::super) struct MahjongWaitPopupLink(pub Entity);
 #[derive(Component)]
 pub(in super::super) struct MahjongReadyHint;
 
-pub(in super::super) struct MahjongReadyHintState {
-    pub show_fans: bool,
-    pub hovered: bool,
-}
-
 pub(in super::super) fn sync_mahjong_hover_hints(
     hands: Query<(&PickingInteraction, &MahjongHoverHandKind)>,
     popups: Query<(&PickingInteraction, &MahjongWaitPopupLink)>,

@@ -8,8 +8,8 @@ use super::{
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT, TableBackground,
-    TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay, add_text, spawn_node,
-    table_material_params,
+    TableBackgroundMaterial, TurnBorderMaterial, UiComposer, add_auto_play_overlay, add_text,
+    spawn_node, table_material_params, ui_component,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{
@@ -40,7 +40,7 @@ pub(crate) struct TexasTableVisuals<'a> {
     reason = "the game-screen adapter passes common screen state plus grouped visuals"
 )]
 pub(crate) fn render_texas_holdem_table(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     client: &ClientResource,
     game: &TexasHoldemSnapshot,
@@ -62,17 +62,16 @@ pub(crate) fn render_texas_holdem_table(
         chip_state,
         game_summary,
     } = visuals;
-    let content = spawn_node(
-        commands,
+    let content = commands.mount(
         root,
-        Node {
+        format!("texas:{:?}:{}", game.match_id.0, game.hand_number),
+        bsn! { @ui_component(Node {
             width: percent(100),
             flex_grow: 1.0,
             min_height: px(0),
             position_type: PositionType::Relative,
             ..default()
-        },
-        None,
+        }) },
     );
     let felt = appearance
         .custom_felt
@@ -81,10 +80,14 @@ pub(crate) fn render_texas_holdem_table(
         .clone();
     let background_params =
         table_material_params(brightness, vignette, appearance.custom_felt.is_none());
-    let material = table_materials.add(TableBackgroundMaterial {
-        params: background_params,
-        texture: felt,
-    });
+    let material = commands.material(
+        content,
+        table_materials,
+        TableBackgroundMaterial {
+            params: background_params,
+            texture: felt,
+        },
+    );
     commands
         .entity(content)
         .insert((MaterialNode(material), TableBackground));
@@ -212,7 +215,7 @@ pub(crate) fn render_texas_holdem_table(
         start_transition_active,
         false,
     );
-    render_texas_spectator_drawer(commands, table, game, ui, assets);
+    render_texas_spectator_drawer(commands, content, game, ui, assets);
     add_texas_showdown_reveal(commands, table, game, own.seat, assets, game_summary);
     add_texas_hand_result(commands, table, game, assets, avatars, game_summary);
 
@@ -233,7 +236,7 @@ pub(crate) fn render_texas_holdem_table(
 }
 
 fn add_community_area(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &TexasHoldemSnapshot,
     new_from: usize,

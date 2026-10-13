@@ -2,7 +2,7 @@
 
 use super::super::{MahjongAssets, render_round_status_with_scores};
 use super::*;
-use crate::app::presentation::{DANGER, MUTED, READY, TEXT, add_text, spawn_node};
+use crate::app::presentation::{DANGER, MUTED, READY, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -20,7 +20,7 @@ pub(super) struct ScoreStageView<'a> {
 }
 
 impl ScoreStageView<'_> {
-    pub(super) fn render(self, commands: &mut Commands, table: Entity) {
+    pub(super) fn render(self, commands: &mut UiComposer, table: Entity) {
         let Self {
             game,
             result,

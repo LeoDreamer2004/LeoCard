@@ -4,7 +4,7 @@ use super::{
     sequence_effect_style, sort_cards_high_to_low, turn_clock_visible,
 };
 use crate::app::presentation::{
-    CardSize, READY, TABLE_CARD_REVEAL, add_card_image, add_text, spawn_node,
+    CardSize, READY, TABLE_CARD_REVEAL, UiComposer, add_card_image, add_text, spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::SeatSide;
@@ -19,7 +19,7 @@ use leocard_protocol::{
     reason = "the play renderer keeps seat geometry and assets explicit"
 )]
 pub(super) fn add_round_play_for_optional_player(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     side: SeatSide,
     game: &QiGui523Snapshot,
@@ -50,7 +50,7 @@ pub(super) fn add_round_play_for_optional_player(
 }
 
 pub(super) fn spawn_round_play_container(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     justify_content: JustifyContent,
 ) -> Entity {
@@ -79,7 +79,7 @@ pub(super) fn spawn_round_play_container(
     reason = "the play renderer keeps seat geometry and assets explicit"
 )]
 pub(super) fn add_round_play(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     game: &QiGui523Snapshot,
     player: PlayerId,
@@ -136,8 +136,9 @@ pub(super) fn add_round_play(
         return;
     };
     if cards.is_empty() {
-        let marker = commands
-            .spawn((
+        commands.child(
+            parent,
+            (
                 Node {
                     width: px(112),
                     height: px(48),
@@ -146,9 +147,8 @@ pub(super) fn add_round_play(
                 },
                 ImageNode::new(game_assets.pass_marker.clone()),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(parent).add_child(marker);
+            ),
+        );
         return;
     }
     let sequence_style = play_effect

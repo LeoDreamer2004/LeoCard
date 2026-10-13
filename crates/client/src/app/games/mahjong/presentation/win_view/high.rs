@@ -1,13 +1,13 @@
+use crate::app::presentation::{DESIGN_WIDTH, UiComposer, spawn_node};
 use std::f32::consts;
 
 use super::super::super::{MahjongWinEffectTier, MahjongWinStageKind};
 
 use super::{WinStagePartSpec, add_win_stage_component};
-use crate::app::presentation::{DESIGN_WIDTH, spawn_node};
 use bevy::prelude::*;
 
 pub(super) fn add_high_focus_rays(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     reveal_duration: f32,
     start: f32,

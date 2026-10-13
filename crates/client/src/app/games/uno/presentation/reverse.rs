@@ -1,4 +1,5 @@
 use super::super::{UNO_ACTION_AREA_BOTTOM, UNO_ACTION_AREA_HEIGHT, UnoReverseArrow};
+use crate::app::presentation::UiComposer;
 use bevy::picking::Pickable;
 
 use super::uno_player_anchor_in_layer;
@@ -8,7 +9,7 @@ use leocard_protocol::UnoSnapshot;
 use leocard_uno::UnoDirection;
 
 pub(super) fn spawn_uno_reverse_effect(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     layer_node: &ComputedNode,
     layer_transform: &UiGlobalTransform,
@@ -106,7 +107,7 @@ fn uno_reverse_own_anchor(layer_size: Vec2) -> Vec2 {
 }
 
 fn spawn_uno_reverse_arrow_part(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     position: Vec2,
     angle: f32,
@@ -163,7 +164,7 @@ fn spawn_uno_reverse_arrow_part(
 
 #[allow(clippy::too_many_arguments)]
 fn spawn_uno_reverse_arrow_layer(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     position: Vec2,
     angle: f32,
@@ -174,8 +175,9 @@ fn spawn_uno_reverse_arrow_layer(
     shadow_alpha: f32,
     z_index: i32,
 ) {
-    let arrow = commands
-        .spawn((
+    commands.child(
+        layer,
+        (
             UnoReverseArrow {
                 elapsed: 0.0,
                 delay,
@@ -197,9 +199,8 @@ fn spawn_uno_reverse_arrow_layer(
             BoxShadow::new(Color::BLACK.with_alpha(0.0), px(1), px(2), px(0), px(4)),
             GlobalZIndex(z_index),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(layer).add_child(arrow);
+        ),
+    );
 }
 
 pub(super) fn quadratic_bezier(start: Vec2, control: Vec2, end: Vec2, t: f32) -> Vec2 {

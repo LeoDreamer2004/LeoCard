@@ -4,7 +4,7 @@ use super::{
     MahjongAssets, MahjongHandTile, MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize,
     MahjongTileVisual, MahjongUiState, add_mahjong_tile_material, mahjong_own_row_left,
 };
-use crate::app::presentation::ease_out_cubic;
+use crate::app::presentation::{UiComposer, ease_out_cubic};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongTile;
@@ -221,7 +221,7 @@ pub(super) fn observe_discard_animations(ui: &mut MahjongUiState, game: &Mahjong
 }
 
 pub(super) fn render_own_discard_flight(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     animation: Option<&MahjongOwnDiscardAnimation>,
     assets: &MahjongAssets,
@@ -282,7 +282,7 @@ pub(super) fn render_own_discard_flight(
     reason = "the three visual groups share one discard progress"
 )]
 pub(super) fn animate_own_discard(
-    mut commands: Commands,
+    mut commands: UiComposer,
     time: Res<Time>,
     mut ui: ResMut<MahjongUiState>,
     tables: Query<&ComputedNode, With<MahjongTableRoot>>,
@@ -364,7 +364,7 @@ fn unrotate(vector: Vec2, angle: f32) -> Vec2 {
 }
 
 pub(super) fn animate_remote_discard(
-    mut commands: Commands,
+    mut commands: UiComposer,
     time: Res<Time>,
     mut ui: ResMut<MahjongUiState>,
     mut ghosts: Query<(

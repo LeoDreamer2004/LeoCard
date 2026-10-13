@@ -1,6 +1,8 @@
 use super::super::GuessScorePlayback;
 use super::state::GuessFeedback;
-use crate::app::presentation::{ACCENT, READY, TransitionVisuals, ease_out_cubic, fade_panel};
+use crate::app::presentation::{
+    ACCENT, READY, TransitionVisuals, UiComposer, ease_out_cubic, fade_panel,
+};
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -44,7 +46,7 @@ pub(in super::super) struct RevealPixel {
 }
 
 pub(in super::super) fn animate_cells(
-    mut commands: Commands,
+    mut commands: UiComposer,
     playback: Res<GuessFeedback>,
     children: Query<&Children>,
     mut cells: Query<(&mut GuessCellReveal, &mut ImageNode)>,
@@ -76,7 +78,7 @@ pub(in super::super) fn animate_cells(
     reason = "independent presentation components share the reveal clock"
 )]
 pub(in super::super) fn animate_reveal(
-    mut commands: Commands,
+    mut commands: UiComposer,
     playback: Res<GuessFeedback>,
     scores: Res<GuessScorePlayback>,
     panels: Query<(Entity, &RevealPanel)>,

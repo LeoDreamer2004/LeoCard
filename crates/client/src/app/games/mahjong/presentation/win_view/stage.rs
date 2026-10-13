@@ -2,19 +2,19 @@ use super::super::super::{
     MahjongAssets, MahjongTileMaterial, MahjongWinEffectTier, MahjongWinStageKind,
     MahjongWinStagePart, mahjong_win_effect_tier, mahjong_win_stage_start,
 };
+use crate::app::presentation::{UiComposer, spawn_node};
 use bevy::picking::Pickable;
 
 use super::super::MAHJONG_HIGH_SHOWCASE_DELAY;
 use super::{
     CenterWinHandContext, add_high_focus_rays, add_major_stage_decorations, render_center_win_hand,
 };
-use crate::app::presentation::spawn_node;
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
 
 pub(super) struct WinStageContext<'a, 'w, 's> {
-    pub commands: &'a mut Commands<'w, 's>,
+    pub commands: &'a mut UiComposer<'w, 's>,
     pub table: Entity,
     pub game: &'a MahjongSnapshot,
     pub result: &'a MahjongHandResultView,
@@ -35,7 +35,7 @@ pub(super) struct WinStagePartSpec {
 }
 
 pub(super) fn add_win_stage_component(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     entity: Entity,
     spec: WinStagePartSpec,
 ) {
@@ -120,7 +120,7 @@ pub(super) fn render_win_stage(context: WinStageContext<'_, '_, '_>) {
 }
 
 fn add_major_backdrop(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     tier: MahjongWinEffectTier,
     reveal_duration: f32,

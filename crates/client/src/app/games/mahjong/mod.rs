@@ -46,6 +46,3 @@ pub(crate) use view::*;
 use voices::*;
 
 use modal::advance_mahjong_modal;
-
-mod hover_retention;
-pub(crate) use hover_retention::MahjongHoverRetention;

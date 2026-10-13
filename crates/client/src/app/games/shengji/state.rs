@@ -2,8 +2,9 @@
 
 use super::counter::ShengjiCounterUi;
 use super::missing_suits::MissingSuitsUi;
-use crate::app::presentation::{CardAnimationState, Observed};
-use crate::app::presentation::{CardCounterOwner, CardCounterWindowState, CustomButtonMotion};
+use crate::app::presentation::{
+    CardAnimationState, CardCounterOwner, CardCounterWindowState, CustomButtonMotion, Observed,
+};
 use bevy::prelude::*;
 use leocard_client::ShengjiScoreCaptureEffect;
 use leocard_protocol::{MatchId, ShengjiSnapshot, ShengjiThrowFailureStage};

@@ -1,19 +1,15 @@
 //! 麻将客户端快照观察状态。
 
 use super::{MahjongOwnDiscardAnimation, MahjongRemoteDiscardAnimation};
-use crate::app::presentation::{Observed, TableBackgroundMaterial};
-use bevy::picking::hover::PickingInteraction;
+use crate::app::presentation::Observed;
 use bevy::prelude::*;
 use leocard_mahjong::{MahjongClaim, MahjongTile};
 use leocard_protocol::{MatchId, PlayerId};
-use std::collections::HashMap;
 
 #[derive(Resource, Default)]
 pub(crate) struct MahjongUiState {
     pub observed_table: Observed<(MatchId, u8), MahjongTableObservation>,
     pub intro_deal_match: Option<MatchId>,
-    pub hand_hover_lifts: HashMap<i32, (f32, PickingInteraction)>,
-    pub ready_hint_hovered: bool,
     pub fan_guide_open: bool,
     pub fan_guide_progress: f32,
     pub fan_guide_tier: u16,
@@ -26,7 +22,6 @@ pub(crate) struct MahjongUiState {
     pub final_summary_opened_at: Option<(MatchId, u8, f32)>,
     pub last_automatic_action: Option<MahjongAutomaticActionKey>,
     pub(super) auto_hand: Option<(MatchId, u8)>,
-    pub table_material: Option<Handle<TableBackgroundMaterial>>,
     pub(super) last_table_height: Option<f32>,
     pub discard_animation: Option<MahjongOwnDiscardAnimation>,
     pub remote_discard_animation: Option<MahjongRemoteDiscardAnimation>,

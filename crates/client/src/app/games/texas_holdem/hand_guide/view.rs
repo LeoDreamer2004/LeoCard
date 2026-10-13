@@ -2,7 +2,7 @@ use super::super::{TexasHoldemUiAction, texas_card_face, texas_category_label};
 use super::catalog::{HandGuideEntry, ordered_entries};
 use super::probabilities::HandGuideProbabilities;
 use super::state::TexasHandGuideScroll;
-use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
@@ -14,7 +14,7 @@ use bevy::ui::RelativeCursorPosition;
 use leocard_texas_holdem::TexasHoldemRuleSet;
 
 pub(super) fn render_hand_guide(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     rules: TexasHoldemRuleSet,
     progress: f32,
@@ -97,7 +97,7 @@ pub(super) fn render_hand_guide(
 }
 
 fn render_header(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     rules: TexasHoldemRuleSet,
     assets: &UiAssets,
@@ -147,7 +147,7 @@ fn render_header(
 }
 
 fn render_entry(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     rank: usize,
     entry: &HandGuideEntry,
@@ -236,8 +236,9 @@ fn render_entry(
         None,
     );
     for card in entry.example {
-        let image = commands
-            .spawn((
+        commands.child(
+            cards,
+            (
                 Node {
                     width: px(50),
                     height: px(68),
@@ -249,8 +250,7 @@ fn render_entry(
                 ImageNode::new(texas_card_face(card, assets)),
                 BorderColor::all(TEXT.with_alpha(0.42)),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(cards).add_child(image);
+            ),
+        );
     }
 }

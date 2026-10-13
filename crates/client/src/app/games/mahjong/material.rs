@@ -4,7 +4,7 @@ use bevy::shader::ShaderRef;
 
 const MAHJONG_TILE_SHADER: &str = "shaders/mahjong_tile.wesl";
 
-#[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
+#[derive(AsBindGroup, Asset, TypePath, Debug, Clone, PartialEq)]
 pub(crate) struct MahjongTileMaterial {
     /// x: 交互；y: 正背面；z: 可见度；w: -5 暗杠、-4 副露、-3 对家、-2 侧家、-1 自家、2 双层墙、3 下层牌。
     #[uniform(0)]

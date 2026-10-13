@@ -3,13 +3,13 @@ use super::super::view::GuessTable;
 use super::cells::{CellSkin, TableCell};
 use super::rows::GuessEmptyRows;
 use super::style::ROW_HEIGHT;
-use crate::app::presentation::{Scrollbar, spawn_node};
+use crate::app::presentation::{Scrollbar, UiComposer, spawn_node};
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_minecraft_guess::{Catalogue, GuessRecord, GuessResult, MatchQuality, ValueDirection};
 
 impl GuessTable<'_> {
-    pub(in super::super) fn attributes(&self, commands: &mut Commands, parent: Entity) {
+    pub(in super::super) fn attributes(&self, commands: &mut UiComposer, parent: Entity) {
         let example = Catalogue::bundled()
             .search(self.game.round.kind, "")
             .next()
@@ -97,7 +97,7 @@ impl GuessTable<'_> {
 
     fn guess_row(
         &self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         parent: Entity,
         guess: &GuessRecord,
         index: usize,
@@ -155,7 +155,7 @@ impl GuessTable<'_> {
     }
 }
 
-fn row(commands: &mut Commands, parent: Entity, minimum: f32) -> Entity {
+fn row(commands: &mut UiComposer, parent: Entity, minimum: f32) -> Entity {
     spawn_node(
         commands,
         parent,

@@ -1,8 +1,9 @@
 use super::super::ShengjiUiAction;
 use super::super::skin::{add_shengji_button, add_shengji_disabled_button};
 use super::shengji_current_level;
-use crate::app::presentation::GameButtonTone;
-use crate::app::presentation::{ACCENT, DANGER, TEXT, add_text, spawn_node};
+use crate::app::presentation::{
+    ACCENT, DANGER, GameButtonTone, TEXT, UiComposer, add_text, spawn_node,
+};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -45,7 +46,7 @@ pub(crate) fn sync_shengji_bidding_countdown(
 }
 
 pub(super) fn add_shengji_bidding_panel(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     hand_area: Entity,
     game: &ShengjiSnapshot,
     assets: &UiAssets,
@@ -122,7 +123,7 @@ pub(super) fn add_shengji_bidding_panel(
 }
 
 fn add_shengji_bid_pass_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     label: &str,
     confirmed: bool,
@@ -145,7 +146,7 @@ fn add_shengji_bid_pass_button(
 }
 
 pub(super) fn add_shengji_bid_strip(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     game: &ShengjiSnapshot,
     bottom_copy: bool,
@@ -185,16 +186,16 @@ pub(super) fn add_shengji_bid_strip(
     {
         let cards = shengji_declaration_candidate(game, target);
         let enabled = cards.is_some();
-        let button = commands
-            .spawn((Node {
+        let button = commands.child(
+            strip,
+            (Node {
                 width: px(64),
                 height: px(54),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 ..default()
-            },))
-            .id();
-        commands.entity(strip).add_child(button);
+            },),
+        );
         if let Some(cards) = cards {
             commands.entity(button).insert((
                 Button,

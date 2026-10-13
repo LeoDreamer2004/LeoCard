@@ -15,9 +15,10 @@ use super::{
 use crate::app::presentation::{
     ACCENT, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec,
     StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial,
-    TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay, add_player_portrait,
-    add_text, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
-    decorate_panel_skin, spawn_node, table_material_params,
+    TurnBorderAnimationKey, TurnBorderMaterial, UiComposer, add_auto_play_overlay,
+    add_player_portrait, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, decorate_panel_skin, spawn_node, table_material_params,
+    ui_component,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{
@@ -56,7 +57,7 @@ pub(crate) struct ShengjiTableVisuals<'a> {
     reason = "the game-screen adapter passes common screen state plus grouped visuals"
 )]
 pub(crate) fn render_shengji_table(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     client: &ClientResource,
     game: &ShengjiSnapshot,
@@ -65,18 +66,17 @@ pub(crate) fn render_shengji_table(
     chat: &ChatPanelState,
     visuals: ShengjiTableVisuals,
 ) {
-    let content = spawn_node(
-        commands,
+    let content = commands.mount(
         root,
-        Node {
+        format!("shengji:{:?}:{}", game.match_id.0, game.hand_number),
+        bsn! { @ui_component(Node {
             width: percent(100),
             flex_grow: 1.0,
             min_height: px(0),
             position_type: PositionType::Relative,
             flex_direction: FlexDirection::Column,
             ..default()
-        },
-        None,
+        }) },
     );
     let felt = visuals
         .appearance
@@ -84,14 +84,18 @@ pub(crate) fn render_shengji_table(
         .as_ref()
         .unwrap_or(&visuals.assets.table_felt)
         .clone();
-    let material = visuals.table_materials.add(TableBackgroundMaterial {
-        params: table_material_params(
-            visuals.brightness,
-            visuals.vignette,
-            visuals.appearance.custom_felt.is_none(),
-        ),
-        texture: felt,
-    });
+    let material = commands.material(
+        content,
+        visuals.table_materials,
+        TableBackgroundMaterial {
+            params: table_material_params(
+                visuals.brightness,
+                visuals.vignette,
+                visuals.appearance.custom_felt.is_none(),
+            ),
+            texture: felt,
+        },
+    );
     commands
         .entity(content)
         .insert((MaterialNode(material), TableBackground));
@@ -291,7 +295,7 @@ pub(crate) fn shengji_previous_trick_button_state(
 }
 
 fn add_shengji_private_buried(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &ShengjiSnapshot,
     assets: &UiAssets,
@@ -355,7 +359,7 @@ fn add_shengji_private_buried(
 }
 
 fn add_shengji_bottom_flip(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &ShengjiSnapshot,
     reveal: Option<&ShengjiBottomFlipRevealView>,
@@ -484,7 +488,7 @@ fn add_shengji_bottom_flip(
     reason = "the opponent builder keeps seat state and visual resources explicit"
 )]
 fn add_shengji_opponent(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     relative: u8,
     player: &ShengjiPlayerState,
@@ -589,7 +593,7 @@ fn add_shengji_opponent(
     }
 }
 
-fn add_shengji_intro_play_placeholder(commands: &mut Commands, parent: Entity) {
+fn add_shengji_intro_play_placeholder(commands: &mut UiComposer, parent: Entity) {
     spawn_node(
         commands,
         parent,
@@ -608,7 +612,7 @@ fn add_shengji_intro_play_placeholder(commands: &mut Commands, parent: Entity) {
     reason = "the player-panel builder keeps identity, score, and animation inputs explicit"
 )]
 fn add_shengji_player_panel(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     player: &ShengjiPlayerState,
     game: &ShengjiSnapshot,
@@ -673,7 +677,7 @@ fn add_shengji_player_panel(
 }
 
 pub(super) fn add_shengji_dealer_badge(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     portrait: Entity,
     side: SeatSide,
     assets: &UiAssets,

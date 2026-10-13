@@ -1,4 +1,5 @@
 use super::*;
+use crate::app::presentation::UiComposer;
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -56,9 +57,10 @@ struct InteractionProjectile {
 }
 
 impl InteractionProjectile {
-    fn spawn(self, commands: &mut Commands, layer: Entity, assets: &UiAssets) {
-        let effect = commands
-            .spawn((
+    fn spawn(self, commands: &mut UiComposer, layer: Entity, assets: &UiAssets) {
+        commands.child(
+            layer,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(self.source.x - 30.0),
@@ -92,9 +94,8 @@ impl InteractionProjectile {
                 },
                 GlobalZIndex(1200),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(layer).add_child(effect);
+            ),
+        );
     }
 }
 
@@ -120,7 +121,7 @@ fn interaction_volley_interval(kind: PlayerInteractionKind) -> f32 {
 }
 
 pub(crate) fn sync_player_interactions(
-    mut commands: Commands,
+    mut commands: UiComposer,
     mut client: Option<ResMut<ClientResource>>,
     assets: Res<UiAssets>,
     layers: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<PlayerInteractionLayer>>,

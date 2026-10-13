@@ -1,5 +1,5 @@
 use super::super::UnoUiAction;
-use crate::app::presentation::{EditableRuleSet, RuleConfigRow, add_rule_config_row};
+use crate::app::presentation::{EditableRuleSet, RuleConfigRow, UiComposer, add_rule_config_row};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -24,7 +24,7 @@ struct UnoRuleRow {
 impl UnoRuleRow {
     fn render(
         self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         parent: Entity,
         can_configure: bool,
         assets: &UiAssets,
@@ -46,7 +46,7 @@ impl UnoRuleRow {
 }
 
 pub(super) fn render_uno_rule_rows(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     rules: UnoRuleSet,
     can_configure: bool,

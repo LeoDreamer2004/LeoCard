@@ -1,3 +1,4 @@
+use crate::app::presentation::{DESIGN_WIDTH, UiComposer, add_text, spawn_node};
 use bevy::picking::Pickable;
 use std::f32::consts;
 
@@ -7,13 +8,12 @@ use super::{
     MAJOR_FAN_GLYPH_DELAY, MAJOR_FAN_GLYPH_INTERVAL, WinStagePartSpec, add_win_stage_component,
     mahjong_win_effect_color,
 };
-use crate::app::presentation::{DESIGN_WIDTH, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::MahjongWinView;
 
 pub(super) fn add_major_stage_decorations(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     winner: &MahjongWinView,
     reveal_duration: f32,
@@ -40,7 +40,7 @@ pub(super) fn add_major_stage_decorations(
 }
 
 fn add_frame(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     reveal_duration: f32,
     start: f32,
@@ -77,7 +77,7 @@ fn add_frame(
 }
 
 fn add_sweeps(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     reveal_duration: f32,
     start: f32,
@@ -116,7 +116,7 @@ fn add_sweeps(
 }
 
 fn add_sparks(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     reveal_duration: f32,
     start: f32,
@@ -164,7 +164,7 @@ fn add_sparks(
 }
 
 fn add_impact_flashes(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     reveal_duration: f32,
     start: f32,
@@ -203,7 +203,7 @@ fn add_impact_flashes(
 }
 
 fn add_glyphs(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     reveal_duration: f32,
     start: f32,

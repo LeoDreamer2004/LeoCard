@@ -7,7 +7,9 @@ use super::{
     ShengjiCardSize, add_shengji_bottom_copy_decision, add_shengji_card_row,
     add_shengji_failed_throw_card_row, shengji_display_trump, shengji_rank_label,
 };
-use crate::app::presentation::{ACCENT, DANGER, HEADER_BG, MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{
+    ACCENT, DANGER, HEADER_BG, MUTED, TEXT, UiComposer, add_text, spawn_node,
+};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::SeatSide;
 use bevy::picking::Pickable;
@@ -19,7 +21,7 @@ use leocard_protocol::{
 use leocard_shengji::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiSuit};
 
 pub(super) fn add_shengji_play_area(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     game: &ShengjiSnapshot,
     player: PlayerId,
@@ -128,7 +130,7 @@ pub(super) fn add_shengji_play_area(
 }
 
 pub(super) fn add_shengji_own_play(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &ShengjiSnapshot,
     assets: &UiAssets,
@@ -161,7 +163,7 @@ pub(super) fn add_shengji_own_play(
 }
 
 pub(super) fn add_shengji_collecting_tray(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &ShengjiSnapshot,
     cards: &[ShengjiCard],
@@ -279,7 +281,7 @@ pub(super) fn add_shengji_collecting_tray(
 }
 
 fn add_shengji_score_cell(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     label: &str,
     width: f32,
@@ -315,7 +317,7 @@ fn add_shengji_score_cell(
 }
 
 fn add_shengji_trump_summary(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     game: &ShengjiSnapshot,
     assets: &UiAssets,
@@ -439,7 +441,7 @@ fn shengji_trump_mark(trump: ShengjiBidTrump) -> (&'static str, Color) {
 }
 
 pub(super) fn add_shengji_outlined_mark(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     mark: &str,
     color: Color,
@@ -489,7 +491,7 @@ pub(crate) fn sync_shengji_score_tray_hover(
 }
 
 pub(super) fn add_shengji_throw_penalty_effect(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &ShengjiSnapshot,
     assets: &UiAssets,

@@ -7,12 +7,11 @@ use super::{
     shengji_display_trump, shengji_hand_sort_trump, sort_shengji_cards,
 };
 use crate::app::presentation::{
-    ACCENT, BORDER, CardAnimationState, PendingDealSound, PlayerMenuProfile, PlayerPortraitSpec,
-    TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition, hand_card_pose,
-    shengji_hand_card_reveal, spawn_node,
+    ACCENT, BORDER, CardAnimationState, CardDragSelection, CardSize, PendingDealSound,
+    PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial,
+    UiComposer, add_player_portrait, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, hand_card_pose, shengji_hand_card_reveal, spawn_node,
 };
-use crate::app::presentation::{CardDragSelection, CardSize};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{SeatSide, UiAction};
 use bevy::picking::Pickable;
@@ -27,7 +26,7 @@ use leocard_shengji::{ShengjiCard, ShengjiTrump};
 const SHENGJI_LOCAL_DEAL_INTERVAL: f32 = 0.40;
 
 pub(super) fn add_shengji_hand(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     hand_area: Entity,
     game: &ShengjiSnapshot,
     ui: &ShengjiUiState,
@@ -83,7 +82,7 @@ pub(super) fn add_shengji_hand(
     reason = "the hand-card builder keeps selection, layout, and asset inputs explicit"
 )]
 fn add_shengji_hand_card(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     card: ShengjiCard,
     index: usize,
@@ -107,8 +106,10 @@ fn add_shengji_hand_card(
     );
     let initial_glow =
         (animation.face_hover_amount * 0.72 + animation.selected_amount * 0.72).clamp(0.0, 1.0);
-    let button = commands
-        .spawn((
+    let button = commands.keyed_child(
+        parent,
+        format!("card:{card:?}"),
+        (
             Button,
             ShengjiHandCardSlot { card, index },
             UiAction::Shengji(ShengjiUiAction::ToggleCard),
@@ -122,11 +123,11 @@ fn add_shengji_hand_card(
                 height: px(height),
                 ..default()
             },
-        ))
-        .id();
-    commands.entity(parent).add_child(button);
-    let face = commands
-        .spawn((
+        ),
+    );
+    let face = commands.child(
+        button,
+        (
             ShengjiHandCardVisual {
                 button,
                 card,
@@ -167,12 +168,12 @@ fn add_shengji_hand_card(
             BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(3)),
             GlobalZIndex(index as i32 + 1),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(button).add_child(face);
+        ),
+    );
     add_shengji_trump_stars(commands, face, card, trump, ShengjiCardSize::Hand, assets);
-    let overlay = commands
-        .spawn((
+    commands.child(
+        face,
+        (
             ShengjiHandCardSelectionOverlay { index },
             Node {
                 position_type: PositionType::Absolute,
@@ -185,16 +186,15 @@ fn add_shengji_hand_card(
             },
             BackgroundColor(Color::NONE),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(face).add_child(overlay);
+        ),
+    );
 }
 
 pub(crate) fn queue_shengji_deal_animations(
     client: Option<Res<ClientResource>>,
     mut ui: ResMut<ShengjiUiState>,
     assets: Res<UiAssets>,
-    mut commands: Commands,
+    mut commands: UiComposer,
 ) {
     let Some(game) = client
         .as_deref()
@@ -234,7 +234,7 @@ pub(crate) fn queue_shengji_deal_animations(
             },
         );
         if animate_deal && !assets.audio.deal_sounds.is_empty() {
-            commands.spawn(PendingDealSound {
+            commands.effect(PendingDealSound {
                 remaining: delay,
                 variant: fastrand::usize(..assets.audio.deal_sounds.len()),
             });
@@ -332,7 +332,7 @@ pub(crate) fn animate_shengji_hand_cards(
     reason = "the self-panel builder combines player state with explicit visual resources"
 )]
 pub(super) fn add_shengji_self_panel(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     hand_area: Entity,
     player: &ShengjiPlayerState,
     game: &ShengjiSnapshot,

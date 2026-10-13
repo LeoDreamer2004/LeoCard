@@ -6,7 +6,7 @@ use super::{
     page::ConnectionScreen,
     theme::HOME_SOFT,
 };
-use crate::app::presentation::{TEXT, add_avatar, add_text, spawn_node};
+use crate::app::presentation::{TEXT, UiComposer, add_avatar, add_text, spawn_node};
 use crate::app::shell::{ConnectionUiAction, InputField, PageTransitionElement, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -14,7 +14,7 @@ use bevy::ui_widgets::Button;
 use leocard_protocol::PlayerGender;
 
 impl ConnectionScreen<'_> {
-    pub(super) fn render_sidebar(&self, commands: &mut Commands, parent: Entity) {
+    pub(super) fn render_sidebar(&self, commands: &mut UiComposer, parent: Entity) {
         let rail = spawn_node(
             commands,
             parent,
@@ -34,7 +34,7 @@ impl ConnectionScreen<'_> {
         self.render_join(commands, rail);
     }
 
-    fn render_identity(&self, commands: &mut Commands, parent: Entity) {
+    fn render_identity(&self, commands: &mut UiComposer, parent: Entity) {
         let panel = home_panel(
             commands,
             parent,
@@ -62,8 +62,9 @@ impl ConnectionScreen<'_> {
             },
             None,
         );
-        let avatar_button = commands
-            .spawn((
+        let avatar_button = commands.child(
+            row,
+            (
                 Button,
                 UiAction::Connection(ConnectionUiAction::ChooseAvatar),
                 Node {
@@ -75,9 +76,8 @@ impl ConnectionScreen<'_> {
                     ..default()
                 },
                 BackgroundColor(Color::srgb(0.19, 0.28, 0.24)),
-            ))
-            .id();
-        commands.entity(row).add_child(avatar_button);
+            ),
+        );
         add_avatar(
             commands,
             avatar_button,
@@ -107,8 +107,9 @@ impl ConnectionScreen<'_> {
             PlayerGender::Male => ("♂", Color::srgb(0.42, 0.70, 1.0)),
             PlayerGender::Female => ("♀", Color::srgb(1.0, 0.58, 0.76)),
         };
-        let gender = commands
-            .spawn((
+        let gender = commands.child(
+            row,
+            (
                 Button,
                 UiAction::Connection(ConnectionUiAction::ToggleGender),
                 Node {
@@ -119,9 +120,8 @@ impl ConnectionScreen<'_> {
                     justify_content: JustifyContent::Center,
                     ..default()
                 },
-            ))
-            .id();
-        commands.entity(row).add_child(gender);
+            ),
+        );
         let symbol = add_text(commands, gender, symbol, 31.0, color, self.assets);
         commands.entity(symbol).insert(Pickable::IGNORE);
         if self.appearance.avatar_png.is_some() {
@@ -150,7 +150,7 @@ impl ConnectionScreen<'_> {
 
     fn room_panel(
         &self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         parent: Entity,
         title: &str,
         order: u8,
@@ -175,7 +175,7 @@ impl ConnectionScreen<'_> {
         panel
     }
 
-    fn render_create(&self, commands: &mut Commands, parent: Entity) {
+    fn render_create(&self, commands: &mut UiComposer, parent: Entity) {
         let panel = self.room_panel(commands, parent, "创建房间", 2);
         let row = spawn_node(
             commands,
@@ -209,7 +209,7 @@ impl ConnectionScreen<'_> {
         .render(commands, input);
     }
 
-    fn render_join(&self, commands: &mut Commands, parent: Entity) {
+    fn render_join(&self, commands: &mut UiComposer, parent: Entity) {
         let panel = self.room_panel(commands, parent, "加入房间", 3);
         let heading = spawn_node(
             commands,

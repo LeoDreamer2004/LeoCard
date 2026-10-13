@@ -2,7 +2,7 @@ use super::{
     AchievementsPagePlugin, ChatPlugin, ConnectionPlugin, DeveloperToolsPlugin, InputPlugin,
     LobbyPlugin, NavigationPlugin, OverlaysPlugin, ProfilePlugin, SettingsPlugin, ShellUiPlugin,
     ShopPlugin, SocialPlugin, UiActionPlugin, UiActionSet, UiState, UpdatePlugin,
-    close_interaction_menu_on_outside_click, rebuild_ui,
+    close_interaction_menu_on_outside_click, compose_ui,
 };
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
@@ -36,6 +36,6 @@ impl Plugin for ShellPlugin {
             Update,
             UiActionSet.before(close_interaction_menu_on_outside_click),
         )
-        .add_systems(Update, rebuild_ui.in_set(ClientUpdateSet::Rebuild));
+        .add_systems(Update, compose_ui.in_set(ClientUpdateSet::Compose));
     }
 }

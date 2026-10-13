@@ -2,8 +2,8 @@ use super::layout::LobbySeatLayout;
 use super::*;
 use crate::app::presentation::{
     ACCENT, LobbyEmptySeatLabel, LobbyEmptySeatRing, LobbySeatHover, LobbySeatTransitionSource,
-    LobbySeatVisual, MUTED, READY, SecondaryPressTarget, TEXT, add_avatar, add_host_crown,
-    add_text, spawn_node,
+    LobbySeatVisual, MUTED, READY, SecondaryPressTarget, TEXT, UiComposer, add_avatar,
+    add_host_crown, add_text, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{LobbyUiAction, UiAction, reference_level};
@@ -35,7 +35,7 @@ impl<'a> LobbySeatSelector<'a> {
         }
     }
 
-    pub(super) fn render(self, commands: &mut Commands, parent: Entity) {
+    pub(super) fn render(self, commands: &mut UiComposer, parent: Entity) {
         let Self {
             client,
             lobby,
@@ -90,7 +90,7 @@ impl<'a> LobbySeat<'a> {
         }
     }
 
-    fn render(self, commands: &mut Commands, parent: Entity) {
+    fn render(self, commands: &mut UiComposer, parent: Entity) {
         let seat = SeatId(self.index);
         let occupant = self
             .lobby
@@ -114,10 +114,11 @@ impl<'a> LobbySeat<'a> {
         }
     }
 
-    fn spawn_container(&self, commands: &mut Commands, parent: Entity, seat: SeatId) -> Entity {
+    fn spawn_container(&self, commands: &mut UiComposer, parent: Entity, seat: SeatId) -> Entity {
         let (left, top) = self.position();
-        let entity = commands
-            .spawn((
+        commands.child(
+            parent,
+            (
                 Button,
                 SecondaryPressTarget,
                 UiAction::Lobby(LobbyUiAction::SelectSeat(seat)),
@@ -137,13 +138,11 @@ impl<'a> LobbySeat<'a> {
                 },
                 BackgroundColor(Color::NONE),
                 UiTransform::IDENTITY,
-            ))
-            .id();
-        commands.entity(parent).add_child(entity);
-        entity
+            ),
+        )
     }
 
-    fn spawn_visual(&self, commands: &mut Commands, parent: Entity) -> Entity {
+    fn spawn_visual(&self, commands: &mut UiComposer, parent: Entity) -> Entity {
         let visual = spawn_node(
             commands,
             parent,
@@ -196,7 +195,7 @@ impl<'a> OccupiedLobbySeat<'a> {
         }
     }
 
-    fn render(self, commands: &mut Commands, container: Entity, visual: Entity) {
+    fn render(self, commands: &mut UiComposer, container: Entity, visual: Entity) {
         commands
             .entity(container)
             .insert(LobbySeatTransitionSource(self.player.id));
@@ -230,7 +229,7 @@ impl<'a> OccupiedLobbySeat<'a> {
         self.add_status(commands, visual);
     }
 
-    fn spawn_avatar_ring(&self, commands: &mut Commands, parent: Entity) -> Entity {
+    fn spawn_avatar_ring(&self, commands: &mut UiComposer, parent: Entity) -> Entity {
         let ring = spawn_node(
             commands,
             parent,
@@ -259,9 +258,10 @@ impl<'a> OccupiedLobbySeat<'a> {
         ring
     }
 
-    fn add_ready_badge(&self, commands: &mut Commands, parent: Entity) {
-        let check = commands
-            .spawn((
+    fn add_ready_badge(&self, commands: &mut UiComposer, parent: Entity) {
+        commands.child(
+            parent,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     right: px(-2),
@@ -272,12 +272,11 @@ impl<'a> OccupiedLobbySeat<'a> {
                 },
                 ImageNode::new(self.assets.home.checkbox_selected.clone()),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(parent).add_child(check);
+            ),
+        );
     }
 
-    fn add_status(&self, commands: &mut Commands, parent: Entity) {
+    fn add_status(&self, commands: &mut UiComposer, parent: Entity) {
         let status = spawn_node(
             commands,
             parent,
@@ -322,7 +321,7 @@ impl<'a> EmptyLobbySeat<'a> {
         Self { index, assets }
     }
 
-    fn render(self, commands: &mut Commands, parent: Entity) {
+    fn render(self, commands: &mut UiComposer, parent: Entity) {
         let empty_ring = spawn_node(
             commands,
             parent,

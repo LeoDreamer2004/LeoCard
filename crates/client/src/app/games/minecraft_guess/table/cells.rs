@@ -3,7 +3,7 @@ use super::super::feedback::GuessCellReveal;
 use super::super::icons::EntryIcons;
 use super::names::GuessName;
 use super::style::{SEPARATOR_COLOR, SEPARATOR_WIDTH};
-use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -35,7 +35,7 @@ pub(super) struct TableCell {
 
 impl TableCell {
     pub fn spawn(
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         parent: Entity,
         width: f32,
         skin: CellSkin,
@@ -93,7 +93,7 @@ impl TableCell {
         }
     }
 
-    pub fn revealing(self, commands: &mut Commands, row: usize, column: usize) -> Self {
+    pub fn revealing(self, commands: &mut UiComposer, row: usize, column: usize) -> Self {
         commands.entity(self.container).insert(GuessCellReveal::new(
             row,
             column,
@@ -103,13 +103,13 @@ impl TableCell {
         self
     }
 
-    pub fn label(&self, commands: &mut Commands, text: &str, assets: &UiAssets) {
+    pub fn label(&self, commands: &mut UiComposer, text: &str, assets: &UiAssets) {
         self.text(commands, text, 18.0, TEXT, assets);
     }
 
     pub fn guess(
         &self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         name: &str,
         player: &str,
         icon: Option<ImageNode>,
@@ -148,7 +148,7 @@ impl TableCell {
 
     fn text(
         &self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         text: &str,
         size: f32,
         color: Color,

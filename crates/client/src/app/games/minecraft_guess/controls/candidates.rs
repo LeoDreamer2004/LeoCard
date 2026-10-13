@@ -1,5 +1,6 @@
 use super::super::{MinecraftGuessAssets, MinecraftGuessUiAction, MinecraftGuessUiState};
 use super::buttons::{GuessButton, GuessButtonSpec, GuessSubmit, add_guess_button, set_enabled};
+use crate::app::presentation::UiComposer;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -13,7 +14,7 @@ pub(in super::super) struct GuessCandidates(pub String);
 pub(in super::super) struct GuessCandidate(pub usize);
 
 pub(super) fn add_candidates(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     game: &MinecraftGuessSnapshot,
     input: &str,
@@ -56,7 +57,7 @@ pub(super) fn add_candidates(
 }
 
 pub(in super::super) fn sync_guess_controls(
-    mut commands: Commands,
+    mut commands: UiComposer,
     client: Option<Res<ClientResource>>,
     state: Res<MinecraftGuessUiState>,
     assets: Res<UiAssets>,

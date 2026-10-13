@@ -4,6 +4,7 @@ use super::{
     scores::{GuessScoreDelta, GuessScoreValue},
     view::GuessTable,
 };
+use crate::app::presentation::UiComposer;
 use crate::app::{
     presentation::{
         ACCENT, DANGER, MUTED, PlayerMenuProfile, PlayerPortraitSpec, READY, TEXT,
@@ -17,7 +18,7 @@ use bevy::prelude::*;
 use leocard_protocol::GameKind;
 
 impl GuessTable<'_> {
-    pub(super) fn players(&mut self, commands: &mut Commands, page: Entity) {
+    pub(super) fn players(&mut self, commands: &mut UiComposer, page: Entity) {
         let row = spawn_node(
             commands,
             page,

@@ -4,12 +4,11 @@ use super::{
     add_role_tokens, add_texas_card, add_texas_chip_popup, add_texas_win_rate,
     texas_player_border_color,
 };
-use crate::app::presentation::ButtonHighlight;
 use crate::app::presentation::{
-    ButtonKind, GameButtonImageMode, GameButtonSpec, MUTED, PendingDealSound, PlayerMenuProfile,
-    PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait,
-    add_textured_game_button, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
-    spawn_node,
+    ButtonHighlight, ButtonKind, GameButtonImageMode, GameButtonSpec, MUTED, PendingDealSound,
+    PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial,
+    UiComposer, add_player_portrait, add_textured_game_button, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SeatSide, UiAction};
@@ -20,14 +19,14 @@ use bevy::ui_widgets::Button;
 use leocard_protocol::{
     GameKind, PlayerId, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
 };
-use leocard_texas_holdem::TexasHoldemAction;
+use leocard_texas_holdem::{RaiseSizing, TexasHoldemAction};
 
 #[expect(
     clippy::too_many_arguments,
     reason = "the own-area builder combines game controls with explicit visual resources"
 )]
 pub(super) fn add_texas_own_area(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &TexasHoldemSnapshot,
     own: &TexasHoldemPlayerState,
@@ -179,7 +178,7 @@ pub(super) fn add_texas_own_area(
                     assets,
                 );
                 if let Some(delay) = delay {
-                    commands.spawn(PendingDealSound {
+                    commands.effect(PendingDealSound {
                         remaining: delay,
                         variant: index % assets.audio.deal_sounds.len().max(1),
                     });
@@ -191,7 +190,7 @@ pub(super) fn add_texas_own_area(
 }
 
 fn add_texas_actions(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &TexasHoldemSnapshot,
     own: &TexasHoldemPlayerState,
@@ -226,10 +225,11 @@ fn add_texas_actions(
         .entity(actions)
         .insert(UiTransform::from_translation(Val2::px(-310.0, 0.0)));
     let maximum_target = own.committed_street.saturating_add(own.stack);
-    let minimum_target = game.minimum_raise_to.min(maximum_target);
-    if ui.raise_to < minimum_target || ui.raise_to > maximum_target {
-        ui.raise_to = minimum_target;
-    }
+    let step = game
+        .minimum_raise_to
+        .saturating_sub(game.current_bet)
+        .max(1);
+    let sizing = RaiseSizing::new(game.current_bet, step, maximum_target);
     let row = spawn_node(
         commands,
         actions,
@@ -273,11 +273,11 @@ fn add_texas_actions(
             game_assets,
         );
     }
-    if game.raise_allowed && maximum_target >= game.minimum_raise_to {
-        let step = game
-            .minimum_raise_to
-            .saturating_sub(game.current_bet)
-            .max(1);
+    if game.raise_allowed
+        && let Some(maximum_target) = sizing.maximum()
+    {
+        let minimum_target = sizing.minimum();
+        ui.raise_to = sizing.normalize(ui.raise_to).expect("affordable raise");
         let lower = ui.raise_to.saturating_sub(step).max(minimum_target);
         let higher = ui.raise_to.saturating_add(step).min(maximum_target);
         add_raise_adjust_button(
@@ -328,7 +328,7 @@ fn add_texas_actions(
 }
 
 fn add_texas_action_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     label: &str,
     action: TexasHoldemAction,
@@ -348,7 +348,7 @@ fn add_texas_action_button(
 }
 
 fn add_raise_adjust_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     target: u32,
     enabled: bool,
@@ -361,8 +361,9 @@ fn add_raise_adjust_button(
         (&game_assets.adjust_right, &game_assets.adjust_right_hover)
     };
     if enabled {
-        let button = commands
-            .spawn((
+        let button = commands.child(
+            parent,
+            (
                 Button,
                 UiAction::TexasHoldem(TexasHoldemUiAction::SetRaiseTo(target)),
                 Node {
@@ -372,11 +373,11 @@ fn add_raise_adjust_button(
                 },
                 texas_adjust_button_image(normal.clone()),
                 repeat,
-            ))
-            .id();
-        commands.entity(parent).add_child(button);
-        let overlay = commands
-            .spawn((
+            ),
+        );
+        let overlay = commands.child(
+            button,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(0),
@@ -388,16 +389,16 @@ fn add_raise_adjust_button(
                 texas_adjust_button_image(hovered.clone()),
                 Visibility::Hidden,
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(button).add_child(overlay);
+            ),
+        );
         commands.entity(button).insert(ButtonHighlight {
             overlay,
             arrows: None,
         });
     } else {
-        let button = commands
-            .spawn((
+        commands.child(
+            parent,
+            (
                 Node {
                     width: px(48),
                     height: px(50),
@@ -405,14 +406,13 @@ fn add_raise_adjust_button(
                 },
                 texas_adjust_button_image(normal.clone()).with_color(Color::WHITE.with_alpha(0.48)),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(parent).add_child(button);
+            ),
+        );
     }
 }
 
 fn add_texas_sized_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     label: &str,
     action: UiAction,

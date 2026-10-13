@@ -1,5 +1,5 @@
 use super::super::ShengjiFailedThrowCard;
-use crate::app::presentation::{CardSize, HAND_CARD_REVEAL, add_text, spawn_node};
+use crate::app::presentation::{CardSize, HAND_CARD_REVEAL, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -21,7 +21,7 @@ struct ShengjiFailedThrowCardSpec {
 }
 
 pub(super) fn add_shengji_card_row(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     cards: &[ShengjiCard],
     size: ShengjiCardSize,
@@ -32,7 +32,7 @@ pub(super) fn add_shengji_card_row(
 }
 
 pub(super) fn add_shengji_failed_throw_card_row(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     cards: &[ShengjiCard],
     trump: Option<ShengjiTrump>,
@@ -52,7 +52,7 @@ pub(super) fn add_shengji_failed_throw_card_row(
 }
 
 fn add_shengji_card_row_internal(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     cards: &[ShengjiCard],
     size: ShengjiCardSize,
@@ -88,8 +88,10 @@ fn add_shengji_card_row_internal(
         None,
     );
     for (index, card) in cards.into_iter().enumerate() {
-        let entity = commands
-            .spawn((
+        let entity = commands.keyed_child(
+            row,
+            format!("card:{card:?}"),
+            (
                 Node {
                     width: px(width),
                     height: px(height),
@@ -99,9 +101,8 @@ fn add_shengji_card_row_internal(
                 },
                 ImageNode::new(shengji_card_face(card, assets)),
                 ZIndex(index as i32),
-            ))
-            .id();
-        commands.entity(row).add_child(entity);
+            ),
+        );
         if let Some(failed_throw) = failed_throw {
             commands.entity(entity).insert((
                 ShengjiFailedThrowCard {
@@ -121,7 +122,7 @@ fn add_shengji_card_row_internal(
 }
 
 pub(super) fn add_shengji_trump_stars(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     card_entity: Entity,
     card: ShengjiCard,
     trump: Option<ShengjiTrump>,

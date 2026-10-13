@@ -1,6 +1,6 @@
 use super::*;
 use crate::app::games::lobby_rule_labels;
-use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -26,7 +26,7 @@ impl<'a> LobbyTable<'a> {
         }
     }
 
-    pub(super) fn render(self, commands: &mut Commands, parent: Entity) {
+    pub(super) fn render(self, commands: &mut UiComposer, parent: Entity) {
         let rail = spawn_node(
             commands,
             parent,
@@ -80,8 +80,9 @@ impl<'a> LobbyTable<'a> {
             BorderColor::all(Color::srgba(0.62, 0.58, 0.78, 0.36)),
             Pickable::IGNORE,
         ));
-        let felt = commands
-            .spawn((
+        commands.child(
+            table,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(0),
@@ -94,9 +95,8 @@ impl<'a> LobbyTable<'a> {
                     .with_mode(NodeImageMode::Stretch)
                     .with_color(Color::srgba(0.47, 0.43, 0.70, 0.10)),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(table).add_child(felt);
+            ),
+        );
 
         let metrics = LobbyMetrics::new(self.lobby);
         add_text(
@@ -145,7 +145,7 @@ impl<'a> LobbyRuleSummary<'a> {
         Self { rules, assets }
     }
 
-    fn render(self, commands: &mut Commands, parent: Entity) {
+    fn render(self, commands: &mut UiComposer, parent: Entity) {
         let chips = spawn_node(
             commands,
             parent,
@@ -166,7 +166,7 @@ impl<'a> LobbyRuleSummary<'a> {
         }
     }
 
-    fn add_chip(&self, commands: &mut Commands, parent: Entity, label: String) {
+    fn add_chip(&self, commands: &mut UiComposer, parent: Entity, label: String) {
         let chip = spawn_node(
             commands,
             parent,

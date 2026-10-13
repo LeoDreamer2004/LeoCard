@@ -4,6 +4,7 @@ use super::super::{
     ChatPanelState, DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState,
     dispatch_domain_actions, start_avatar_picker,
 };
+use crate::app::presentation::UiComposer;
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, AvatarPicker, ClientResource, ConnectionDraft,
     HostRulePreferences, PageErrorState, save_appearance_preferences, save_connection_draft,
@@ -50,7 +51,7 @@ pub(crate) struct ConnectionActionContext<'w, 's> {
     ui: ResMut<'w, UiState>,
     chat: ResMut<'w, ChatPanelState>,
     local: AvatarUiResources<'w>,
-    commands: Commands<'w, 's>,
+    commands: UiComposer<'w, 's>,
 }
 
 pub(crate) fn dispatch_connection_actions(
@@ -165,7 +166,7 @@ fn finish_connection(
     ui: &mut UiState,
     chat: &mut ChatPanelState,
     avatars: &mut AvatarImages,
-    commands: &mut Commands,
+    commands: &mut UiComposer,
 ) {
     match result {
         Ok(network) => {

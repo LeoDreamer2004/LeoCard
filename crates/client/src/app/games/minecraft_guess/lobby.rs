@@ -1,4 +1,5 @@
 use super::MinecraftGuessUiAction;
+use crate::app::presentation::UiComposer;
 use crate::app::{
     presentation::{EditableRuleSet, RuleConfigRow, add_rule_config_row},
     runtime::{AvatarImages, ClientResource, UiAssets},
@@ -18,7 +19,7 @@ impl EditableRuleSet for MinecraftGuessRuleSet {
 }
 
 pub(crate) fn render_guess_lobby(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     client: &ClientResource,
     lobby: &LobbySnapshot,

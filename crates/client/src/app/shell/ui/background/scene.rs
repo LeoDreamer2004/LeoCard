@@ -1,6 +1,7 @@
 //! A persistent, non-interactive backdrop shared by all opted-in pages.
 
 use super::{BackgroundAssets, FloatingSuit, SUITS};
+use crate::app::presentation::UiComposer;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::LayoutConfig;
@@ -12,12 +13,12 @@ pub(super) struct PageBackground;
 pub(super) struct BackgroundCanvas;
 
 /// Opt a page into the shared backdrop. The backdrop itself survives UI rebuilds.
-pub(crate) fn add_page_background(commands: &mut Commands, root: Entity) {
+pub(crate) fn add_page_background(commands: &mut UiComposer, root: Entity) {
     commands.entity(root).insert(PageBackground);
 }
 
 pub(super) fn setup_background(
-    mut commands: Commands,
+    mut commands: UiComposer,
     assets: Res<BackgroundAssets>,
     time: Res<Time>,
 ) {
@@ -44,8 +45,9 @@ pub(super) fn setup_background(
     for (index, placement) in SUITS.into_iter().enumerate() {
         let suit = FloatingSuit::new(placement, index);
         let (transform, color) = suit.sample(time.elapsed_secs());
-        let decoration = commands
-            .spawn((
+        commands.child(
+            canvas,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: percent(placement.center.x),
@@ -63,9 +65,8 @@ pub(super) fn setup_background(
                 transform,
                 suit,
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(canvas).add_child(decoration);
+            ),
+        );
     }
 }
 

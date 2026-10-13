@@ -1,11 +1,12 @@
 //! Complete-match standings and continuation actions.
 
 use super::*;
+use crate::app::presentation::{
+    ACCENT, DANGER, PanelSkin, READY, TEXT, UiComposer, add_avatar, add_text, decorate_panel_skin,
+    spawn_node,
+};
 use bevy::picking::Pickable;
 
-use crate::app::presentation::{
-    ACCENT, DANGER, PanelSkin, READY, TEXT, add_avatar, add_text, decorate_panel_skin, spawn_node,
-};
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button, add_cozy_button_variant,
@@ -24,7 +25,7 @@ pub(super) struct FinalSummaryView<'a> {
 }
 
 impl FinalSummaryView<'_> {
-    pub(super) fn render(self, commands: &mut Commands, table: Entity) {
+    pub(super) fn render(self, commands: &mut UiComposer, table: Entity) {
         let Self {
             game,
             result,

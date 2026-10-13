@@ -1,9 +1,9 @@
-use crate::app::presentation::{ACCENT, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::{picking::Pickable, prelude::*};
 
 pub(crate) fn add_coin_balance(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     coins: u32,
     icon_size: f32,
@@ -20,8 +20,9 @@ pub(crate) fn add_coin_balance(
         },
         None,
     );
-    let icon = commands
-        .spawn((
+    commands.child(
+        row,
+        (
             Node {
                 width: px(icon_size),
                 height: px(icon_size),
@@ -29,9 +30,8 @@ pub(crate) fn add_coin_balance(
             },
             ImageNode::new(assets.shop.coin.clone()),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(row).add_child(icon);
+        ),
+    );
     add_text(commands, row, coins.to_string(), font_size, ACCENT, assets);
     row
 }

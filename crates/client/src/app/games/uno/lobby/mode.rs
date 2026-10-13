@@ -1,5 +1,5 @@
 use super::super::{UnoModeDropdownPanel, UnoUiAction};
-use crate::app::presentation::{ButtonHighlight, MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{ButtonHighlight, MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{UiAction, add_cozy_panel};
 use bevy::picking::Pickable;
@@ -9,7 +9,7 @@ use bevy::ui_widgets::Button;
 use leocard_uno::{Mode, UnoRuleSet};
 
 pub(crate) fn render_uno_mode_dropdown(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     parent: Entity,
     rules: UnoRuleSet,
@@ -25,8 +25,9 @@ pub(crate) fn render_uno_mode_dropdown(
     };
 
     if open && can_configure {
-        let dismiss = commands
-            .spawn((
+        commands.child(
+            root,
+            (
                 Button,
                 UiAction::Uno(UnoUiAction::CloseModeMenu),
                 Node {
@@ -40,9 +41,8 @@ pub(crate) fn render_uno_mode_dropdown(
                 BackgroundColor(Color::NONE),
                 GlobalZIndex(1850),
                 Pickable::default(),
-            ))
-            .id();
-        commands.entity(root).add_child(dismiss);
+            ),
+        );
     }
 
     let selector = spawn_node(
@@ -70,24 +70,28 @@ pub(crate) fn render_uno_mode_dropdown(
     if !can_configure {
         trigger_image.color = Color::WHITE.with_alpha(0.72);
     }
-    let mut trigger = commands.spawn((
-        Node {
-            width: percent(100),
-            height: px(40),
-            padding: UiRect::horizontal(px(13)),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::SpaceBetween,
-            ..default()
-        },
-        trigger_image,
-    ));
+    let child = commands.child(
+        selector,
+        (
+            Node {
+                width: percent(100),
+                height: px(40),
+                padding: UiRect::horizontal(px(13)),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::SpaceBetween,
+                ..default()
+            },
+            trigger_image,
+        ),
+    );
+    let mut trigger = commands.entity(child);
     if can_configure {
         trigger.insert((Button, UiAction::Uno(UnoUiAction::ToggleModeMenu)));
     } else {
         trigger.insert(Pickable::default());
     }
     let trigger = trigger.id();
-    commands.entity(selector).add_child(trigger);
+
     if can_configure {
         let mut hover_image = ImageNode::new(assets.home.focused_input.clone()).with_mode(
             NodeImageMode::Sliced(TextureSlicer {
@@ -98,8 +102,9 @@ pub(crate) fn render_uno_mode_dropdown(
             }),
         );
         hover_image.visual_box = VisualBox::BorderBox;
-        let hover = commands
-            .spawn((
+        let hover = commands.child(
+            trigger,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(0),
@@ -111,9 +116,8 @@ pub(crate) fn render_uno_mode_dropdown(
                 hover_image,
                 Visibility::Hidden,
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(trigger).add_child(hover);
+            ),
+        );
         commands.entity(trigger).insert(ButtonHighlight {
             overlay: hover,
             arrows: None,
@@ -187,8 +191,9 @@ pub(crate) fn render_uno_mode_dropdown(
             max_corner_scale: 0.55,
         }));
         option_image.visual_box = VisualBox::BorderBox;
-        let option = commands
-            .spawn((
+        let option = commands.child(
+            menu,
+            (
                 Button,
                 UiAction::Uno(UnoUiAction::UpdateRules(UnoRuleSet { mode, ..rules })),
                 Node {
@@ -201,9 +206,8 @@ pub(crate) fn render_uno_mode_dropdown(
                     ..default()
                 },
                 option_image,
-            ))
-            .id();
-        commands.entity(menu).add_child(option);
+            ),
+        );
         if !selected {
             let mut hover_image = ImageNode::new(assets.home.purple_button_compact.clone())
                 .with_mode(NodeImageMode::Sliced(TextureSlicer {
@@ -213,8 +217,9 @@ pub(crate) fn render_uno_mode_dropdown(
                     max_corner_scale: 0.55,
                 }));
             hover_image.visual_box = VisualBox::BorderBox;
-            let hover = commands
-                .spawn((
+            let hover = commands.child(
+                option,
+                (
                     Node {
                         position_type: PositionType::Absolute,
                         left: px(0),
@@ -226,9 +231,8 @@ pub(crate) fn render_uno_mode_dropdown(
                     hover_image,
                     Visibility::Hidden,
                     Pickable::IGNORE,
-                ))
-                .id();
-            commands.entity(option).add_child(hover);
+                ),
+            );
             commands.entity(option).insert(ButtonHighlight {
                 overlay: hover,
                 arrows: None,

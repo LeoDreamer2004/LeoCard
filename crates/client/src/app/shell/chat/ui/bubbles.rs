@@ -1,5 +1,5 @@
 use super::super::*;
-use crate::app::presentation::{add_text, card_background_image};
+use crate::app::presentation::{UiComposer, add_text, card_background_image};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer, interaction_anchor_in_layer};
 use bevy::picking::Pickable;
@@ -10,7 +10,7 @@ use std::collections::HashMap;
 const CHAT_HISTORY_LIMIT: usize = 60;
 
 pub(crate) fn sync_chat_messages(
-    mut commands: Commands,
+    mut commands: UiComposer,
     mut client: Option<ResMut<ClientResource>>,
     assets: Res<UiAssets>,
     mut chat: ResMut<ChatPanelState>,
@@ -42,7 +42,7 @@ pub(crate) fn sync_chat_messages(
                     continue;
                 };
                 if let Some(sound) = assets.audio.quick_voice_sounds.get(usize::from(index)) {
-                    commands.spawn((AudioPlayer::new(sound.clone()), PlaybackSettings::DESPAWN));
+                    commands.effect((AudioPlayer::new(sound.clone()), PlaybackSettings::DESPAWN));
                 }
                 ((*text).to_owned(), None)
             }
@@ -113,7 +113,7 @@ pub(crate) fn chat_bubble_position(anchor: Vec2, layer_size: Vec2, width: f32) -
 }
 
 fn spawn_chat_bubble(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     layer_size: Vec2,
     anchor: Vec2,
@@ -124,8 +124,9 @@ fn spawn_chat_bubble(
     let character_count = message.chars().count();
     let width = (character_count as f32 * 13.0 + 26.0).clamp(76.0, 230.0);
     let position = chat_bubble_position(anchor, layer_size, width);
-    let bubble = commands
-        .spawn((
+    let bubble = commands.child(
+        layer,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(position.x),
@@ -146,9 +147,8 @@ fn spawn_chat_bubble(
             },
             GlobalZIndex(1600),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(layer).add_child(bubble);
+        ),
+    );
     let text = add_text(commands, bubble, message, 13.0, Color::NONE, assets);
     commands
         .entity(text)
@@ -166,7 +166,7 @@ fn spawn_chat_bubble(
 }
 
 fn spawn_emoji_bubble(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     layer_size: Vec2,
     anchor: Vec2,
@@ -176,8 +176,9 @@ fn spawn_emoji_bubble(
 ) -> Entity {
     let width = 86.0;
     let position = chat_bubble_position(anchor, layer_size, width);
-    let bubble = commands
-        .spawn((
+    let bubble = commands.child(
+        layer,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(position.x),
@@ -197,11 +198,11 @@ fn spawn_emoji_bubble(
             card_background_image(assets.home.game_card.clone(), 0.42).with_color(Color::NONE),
             GlobalZIndex(1600),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(layer).add_child(bubble);
-    let icon = commands
-        .spawn((
+        ),
+    );
+    let icon = commands.child(
+        bubble,
+        (
             Node {
                 width: px(70),
                 height: px(70),
@@ -209,9 +210,8 @@ fn spawn_emoji_bubble(
             },
             ImageNode::new(assets.chat_emoji(emoji)),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(bubble).add_child(icon);
+        ),
+    );
     commands.entity(bubble).insert(ActiveChatBubble {
         player,
         text: None,

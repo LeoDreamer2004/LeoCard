@@ -7,8 +7,8 @@ use super::super::{
 };
 use super::{ShengjiCardSize, add_shengji_trump_stars, shengji_card_face, shengji_display_trump};
 use crate::app::presentation::{
-    ACCENT, DANGER, MUTED, PanelSkin, READY, TEXT, add_ready_avatar, add_text, decorate_panel_skin,
-    spawn_node,
+    ACCENT, DANGER, MUTED, PanelSkin, READY, TEXT, UiComposer, add_ready_avatar, add_text,
+    decorate_panel_skin, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -27,7 +27,7 @@ const SHENGJI_TOTAL_LABEL_DELAY: f32 = 1.92;
     reason = "the settlement renderer combines game state with explicit animation resources"
 )]
 pub(super) fn add_shengji_result(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &ShengjiSnapshot,
     result: &ShengjiHandResultView,
@@ -85,8 +85,9 @@ pub(super) fn add_shengji_result(
     );
     let trump = shengji_display_trump(game);
     for (index, card) in buried.iter().copied().enumerate() {
-        let entity = commands
-            .spawn((
+        let entity = commands.child(
+            card_row,
+            (
                 Node {
                     width: px(45),
                     height: px(62),
@@ -101,9 +102,8 @@ pub(super) fn add_shengji_result(
                 },
                 Visibility::Hidden,
                 ShengjiKittyRevealCard { index },
-            ))
-            .id();
-        commands.entity(card_row).add_child(entity);
+            ),
+        );
         add_shengji_trump_stars(
             commands,
             entity,
@@ -221,7 +221,7 @@ pub(super) fn add_shengji_result(
 }
 
 fn add_shengji_settlement_modal(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &ShengjiSnapshot,
     result: &ShengjiHandResultView,

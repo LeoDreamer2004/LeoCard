@@ -7,8 +7,9 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, ButtonTint, CardAnimationState, MUTED, PANEL, PlayerMenuProfile, PlayerPortraitSpec,
-    TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_host_crown, add_player_portrait,
-    add_text, add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
+    TEXT, TurnBorderAnimationKey, TurnBorderMaterial, UiComposer, add_host_crown,
+    add_player_portrait, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{PlayerInteractionLayer, SeatSide, SocialUiState, UiAction};
@@ -25,7 +26,7 @@ use leocard_uno::UnoFace;
     reason = "the hand builder combines game state with explicit visual resources"
 )]
 pub(super) fn add_uno_own_area(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &UnoSnapshot,
     own: &UnoPlayerState,
@@ -166,17 +167,22 @@ pub(super) fn add_uno_own_area(
         } else {
             CardAnimationState::default()
         };
-        let mut entity = commands.spawn((
-            Node {
-                width: px(if index + 1 == count { 78.0 } else { reveal }),
-                height: px(126),
-                flex_shrink: 0.0,
-                align_items: AlignItems::FlexStart,
-                overflow: Overflow::visible(),
-                ..default()
-            },
-            BackgroundColor(Color::NONE),
-        ));
+        let slot = commands.keyed_child(
+            hand,
+            format!("card:{card:?}"),
+            (
+                Node {
+                    width: px(if index + 1 == count { 78.0 } else { reveal }),
+                    height: px(126),
+                    flex_shrink: 0.0,
+                    align_items: AlignItems::FlexStart,
+                    overflow: Overflow::visible(),
+                    ..default()
+                },
+                BackgroundColor(Color::NONE),
+            ),
+        );
+        let mut entity = commands.entity(slot);
         let extension_help = uno_extension_card_help(card.face());
         if interactive {
             entity.insert((
@@ -192,10 +198,10 @@ pub(super) fn add_uno_own_area(
         } else if extension_help.is_some() {
             entity.insert(Button);
         }
-        let slot = entity.id();
-        commands.entity(hand).add_child(slot);
-        let face = commands
-            .spawn((
+
+        commands.child(
+            slot,
+            (
                 UnoFlipTarget::Own(index),
                 UnoHandCardVisual {
                     button: slot,
@@ -230,9 +236,8 @@ pub(super) fn add_uno_own_area(
                     color: ACCENT.with_alpha(0.8),
                 },
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(slot).add_child(face);
+            ),
+        );
         if let Some((title, description)) = extension_help {
             commands
                 .entity(slot)
@@ -326,7 +331,7 @@ pub(crate) const fn uno_extension_card_help(face: UnoFace) -> Option<(&'static s
 }
 
 fn spawn_uno_extension_card_tooltip(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     assets: &UiAssets,
 ) -> Entity {
@@ -370,7 +375,7 @@ fn spawn_uno_extension_card_tooltip(
 }
 
 pub(super) fn sync_uno_extension_card_help(
-    mut commands: Commands,
+    mut commands: UiComposer,
     assets: Res<UiAssets>,
     cards: Query<(
         &PickingInteraction,

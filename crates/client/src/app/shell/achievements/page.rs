@@ -1,5 +1,5 @@
 use super::super::{NavigationUiAction, PageTransitionElement, UiAction, add_page_back_title};
-use crate::app::presentation::{TEXT, add_text, spawn_node};
+use crate::app::presentation::{TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -28,7 +28,7 @@ impl<'a> AchievementsPage<'a> {
         }
     }
 
-    pub(crate) fn render(&self, commands: &mut Commands, root: Entity) {
+    pub(crate) fn render(&self, commands: &mut UiComposer, root: Entity) {
         let canvas = spawn_node(
             commands,
             root,
@@ -80,7 +80,7 @@ impl<'a> AchievementsPage<'a> {
         self.render_entries(commands, body);
     }
 
-    fn render_heading(&self, commands: &mut Commands, parent: Entity) {
+    fn render_heading(&self, commands: &mut UiComposer, parent: Entity) {
         let heading = spawn_node(
             commands,
             parent,
@@ -126,8 +126,9 @@ impl<'a> AchievementsPage<'a> {
                 },
                 None,
             );
-            let trophy = commands
-                .spawn((
+            commands.child(
+                counter,
+                (
                     Node {
                         width: px(42),
                         height: px(42),
@@ -136,9 +137,8 @@ impl<'a> AchievementsPage<'a> {
                     },
                     ImageNode::new(self.assets.achievements.medals[index].clone()),
                     Pickable::IGNORE,
-                ))
-                .id();
-            commands.entity(counter).add_child(trophy);
+                ),
+            );
             add_text(
                 commands,
                 counter,

@@ -4,7 +4,7 @@ use super::{
     GameSeatTransitionPose, GameSeatTransitionTarget, LobbySeatTransitionSnapshot,
     START_GAME_SEAT_MOVE_DURATION, StartGameSeatTransition,
 };
-use crate::app::presentation::smootherstep;
+use crate::app::presentation::{UiComposer, smootherstep};
 use crate::app::shell::UiState;
 use bevy::prelude::*;
 use leocard_protocol::PlayerId;
@@ -25,7 +25,7 @@ pub(crate) fn start_game_intro_finished(transition: Res<StartGameSeatTransition>
 }
 
 pub(crate) fn attach_start_game_seat_transition(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     player: PlayerId,
     active: bool,

@@ -10,6 +10,10 @@ pub struct Metrics {
     pub gains: usize,
     pub calls: usize,
     pub folds: usize,
+    pub preflop_actions: usize,
+    pub preflop_folds: usize,
+    pub flops: usize,
+    pub off_step_raises: usize,
 }
 
 impl Metrics {
@@ -49,5 +53,15 @@ impl Metrics {
             self.folds,
             self.decisions.last()
         );
+        if game == "texas" {
+            println!(
+                "preflop folds={}/{} ({:.1}%), hands reaching flop={}, off-step raises={}",
+                self.preflop_folds,
+                self.preflop_actions,
+                self.preflop_folds as f64 / self.preflop_actions.max(1) as f64 * 100.0,
+                self.flops,
+                self.off_step_raises,
+            );
+        }
     }
 }

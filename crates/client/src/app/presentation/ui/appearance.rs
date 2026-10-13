@@ -8,7 +8,7 @@ use bevy::shader::ShaderRef;
 
 pub(crate) const TABLE_BACKGROUND_SHADER: &str = "shaders/table_background.wesl";
 
-#[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
+#[derive(AsBindGroup, Asset, TypePath, Debug, Clone, PartialEq)]
 pub(crate) struct TableBackgroundMaterial {
     /// x: vignette strength, y: brightness, z: tiled flag, w: unused.
     #[uniform(0)]

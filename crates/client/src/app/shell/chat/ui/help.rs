@@ -1,16 +1,18 @@
+use crate::app::presentation::UiComposer;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 
 pub(crate) fn add_chat_help_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     chat_panel: Entity,
     action: UiAction,
     assets: &UiAssets,
 ) {
-    let button = commands
-        .spawn((
+    commands.child(
+        chat_panel,
+        (
             Button,
             action,
             Node {
@@ -25,7 +27,6 @@ pub(crate) fn add_chat_help_button(
             },
             GlobalZIndex(2000),
             ImageNode::new(assets.home.help_question.clone()),
-        ))
-        .id();
-    commands.entity(chat_panel).add_child(button);
+        ),
+    );
 }

@@ -1,10 +1,12 @@
 //! Table appearance settings.
 
+use crate::app::presentation::{
+    MUTED, TEXT, TableAppearanceSetting, UiComposer, add_text, spawn_node,
+};
 use crate::app::shell::SettingsUiAction;
 
 use super::super::super::{UiAction, add_cozy_button};
 use super::slider::SettingsSlider;
-use crate::app::presentation::{MUTED, TEXT, TableAppearanceSetting, add_text, spawn_node};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
@@ -19,7 +21,7 @@ impl<'a> TableAppearanceSettings<'a> {
         Self { form, assets }
     }
 
-    pub(super) fn render(&self, commands: &mut Commands, parent: Entity) {
+    pub(super) fn render(&self, commands: &mut UiComposer, parent: Entity) {
         let form = self.form;
         let assets = self.assets;
         add_text(commands, parent, "桌面外观", 20.0, TEXT, assets);
@@ -33,8 +35,9 @@ impl<'a> TableAppearanceSettings<'a> {
             }),
         );
         path_image.visual_box = VisualBox::BorderBox;
-        let path_box = commands
-            .spawn((
+        let path_box = commands.child(
+            parent,
+            (
                 Node {
                     width: percent(100),
                     min_height: px(54),
@@ -44,9 +47,8 @@ impl<'a> TableAppearanceSettings<'a> {
                     ..default()
                 },
                 path_image,
-            ))
-            .id();
-        commands.entity(parent).add_child(path_box);
+            ),
+        );
         let path_text = spawn_node(
             commands,
             path_box,

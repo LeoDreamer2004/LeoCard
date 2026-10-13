@@ -1,6 +1,6 @@
 use super::super::*;
 use super::panel::{ChatAuxiliaryAction, add_chat_button_highlight, cozy_chat_button_image};
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, SocialUiAction, UiAction};
 use bevy::picking::Pickable;
@@ -8,13 +8,14 @@ use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 
 pub(super) fn add_chat_toggle(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     chat: &ChatPanelState,
     assets: &UiAssets,
 ) {
-    let toggle = commands
-        .spawn((
+    commands.child(
+        panel,
+        (
             Button,
             UiAction::Chat(ChatUiAction::TogglePanel),
             Node {
@@ -36,19 +37,19 @@ pub(super) fn add_chat_toggle(
                 assets.home.rule_left.clone()
             }),
             ChatToggleIcon,
-        ))
-        .id();
-    commands.entity(panel).add_child(toggle);
+        ),
+    );
 }
 
 pub(super) fn add_auto_play_toggle(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     enabled: bool,
     assets: &UiAssets,
 ) {
-    let auto_button = commands
-        .spawn((
+    let auto_button = commands.child(
+        panel,
+        (
             Button,
             UiAction::Social(SocialUiAction::ToggleAutoPlay),
             Node {
@@ -71,12 +72,12 @@ pub(super) fn add_auto_play_toggle(
             } else {
                 assets.home.button.clone()
             }),
-        ))
-        .id();
-    commands.entity(panel).add_child(auto_button);
+        ),
+    );
     add_chat_button_highlight(commands, auto_button, assets);
-    let icon = commands
-        .spawn((
+    commands.child(
+        auto_button,
+        (
             Node {
                 width: px(25),
                 height: px(25),
@@ -84,13 +85,12 @@ pub(super) fn add_auto_play_toggle(
             },
             ImageNode::new(assets.controls.robot_icon.clone()),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(auto_button).add_child(icon);
+        ),
+    );
 }
 
 pub(super) fn add_auxiliary_actions(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     actions: &[ChatAuxiliaryAction],
     assets: &UiAssets,
@@ -101,15 +101,16 @@ pub(super) fn add_auxiliary_actions(
 }
 
 fn add_auxiliary_action(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     assets: &UiAssets,
     auxiliary: &ChatAuxiliaryAction,
     index: usize,
 ) {
     let enabled = auxiliary.action.is_some();
-    let button = commands
-        .spawn((
+    let button = commands.child(
+        panel,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(-32),
@@ -130,12 +131,11 @@ fn add_auxiliary_action(
             } else {
                 assets.home.button.clone()
             }),
-        ))
-        .id();
+        ),
+    );
     if let Some(action) = auxiliary.action.clone() {
         commands.entity(button).insert((Button, action));
     }
-    commands.entity(panel).add_child(button);
     if enabled {
         add_chat_button_highlight(commands, button, assets);
     }

@@ -1,5 +1,6 @@
 //! Sound volume and game voice switches.
 
+use crate::app::presentation::{TEXT, TableAppearanceSetting, UiComposer, add_text, spawn_node};
 use crate::app::shell::SettingsUiAction;
 use bevy::picking::Pickable;
 use bevy::ui_widgets::Button;
@@ -7,12 +8,11 @@ use bevy::ui_widgets::Button;
 use super::super::super::UiAction;
 use super::super::SettingsVoiceToggle;
 use super::slider::SettingsSlider;
-use crate::app::presentation::{TEXT, TableAppearanceSetting, add_text, spawn_node};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use bevy::prelude::*;
 
 pub(super) fn render_sound_settings(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     form: &AppearancePreferences,
     assets: &UiAssets,
@@ -77,15 +77,16 @@ pub(super) fn render_sound_settings(
 }
 
 fn add_voice_toggle(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     label: &str,
     selected: bool,
     action: SettingsUiAction,
     assets: &UiAssets,
 ) {
-    let button = commands
-        .spawn((
+    let button = commands.child(
+        parent,
+        (
             Button,
             UiAction::Settings(action),
             Node {
@@ -96,11 +97,11 @@ fn add_voice_toggle(
                 column_gap: px(8),
                 ..default()
             },
-        ))
-        .id();
-    commands.entity(parent).add_child(button);
-    let icon = commands
-        .spawn((
+        ),
+    );
+    let icon = commands.child(
+        button,
+        (
             Node {
                 width: px(34),
                 height: px(34),
@@ -112,9 +113,8 @@ fn add_voice_toggle(
                 assets.home.checkbox.clone()
             }),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(button).add_child(icon);
+        ),
+    );
     commands
         .entity(button)
         .insert(SettingsVoiceToggle { icon, selected });

@@ -386,8 +386,32 @@ fn full_raise_reopens_action_and_enforces_the_minimum_increment() {
             ..
         })
     ));
+    let before = state.clone();
+    assert_eq!(
+        state.act(TexasHoldemPlayerId(0), TexasHoldemAction::RaiseTo(5)),
+        Err(GameError::RaiseInvalidIncrement {
+            increment: 2,
+            target: 5,
+        })
+    );
+    assert_eq!(state, before);
     state
         .act(TexasHoldemPlayerId(0), TexasHoldemAction::Call)
+        .unwrap();
+    let mut larger_raise = state.clone();
+    larger_raise
+        .act(TexasHoldemPlayerId(1), TexasHoldemAction::RaiseTo(6))
+        .unwrap();
+    assert_eq!(larger_raise.minimum_raise(), 4);
+    assert_eq!(
+        larger_raise.act(TexasHoldemPlayerId(2), TexasHoldemAction::RaiseTo(11)),
+        Err(GameError::RaiseInvalidIncrement {
+            increment: 4,
+            target: 11,
+        })
+    );
+    larger_raise
+        .act(TexasHoldemPlayerId(2), TexasHoldemAction::RaiseTo(10))
         .unwrap();
     state
         .act(TexasHoldemPlayerId(1), TexasHoldemAction::RaiseTo(4))

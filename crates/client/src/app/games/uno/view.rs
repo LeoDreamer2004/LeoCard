@@ -10,8 +10,8 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, DANGER, DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT,
-    TableBackground, TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay, add_text,
-    spawn_node, table_material_params,
+    TableBackground, TableBackgroundMaterial, TurnBorderMaterial, UiComposer,
+    add_auto_play_overlay, add_text, spawn_node, table_material_params, ui_component,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
@@ -54,7 +54,7 @@ pub(crate) struct UnoTableVisuals<'a> {
     reason = "the game-screen adapter passes common screen state plus grouped visuals"
 )]
 pub(crate) fn render_uno_table(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     client: &ClientResource,
     game: &UnoSnapshot,
@@ -76,27 +76,30 @@ pub(crate) fn render_uno_table(
         game_summary,
         jump_in_device,
     } = visuals;
-    let content = spawn_node(
-        commands,
+    let content = commands.mount(
         root,
-        Node {
+        format!("uno:{:?}", game.match_id.0),
+        bsn! { @ui_component(Node {
             width: percent(100),
             flex_grow: 1.0,
             min_height: px(0),
             position_type: PositionType::Relative,
             ..default()
-        },
-        None,
+        }) },
     );
     let felt = appearance
         .custom_felt
         .as_ref()
         .unwrap_or(&assets.table_felt)
         .clone();
-    let material = table_materials.add(TableBackgroundMaterial {
-        params: table_material_params(brightness, vignette, appearance.custom_felt.is_none()),
-        texture: felt,
-    });
+    let material = commands.material(
+        content,
+        table_materials,
+        TableBackgroundMaterial {
+            params: table_material_params(brightness, vignette, appearance.custom_felt.is_none()),
+            texture: felt,
+        },
+    );
     commands
         .entity(content)
         .insert((MaterialNode(material), TableBackground));
@@ -257,7 +260,7 @@ pub(crate) fn render_uno_table(
 }
 
 fn add_uno_center(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &UnoSnapshot,
     assets: &UiAssets,
@@ -300,8 +303,9 @@ fn add_uno_center(
             .copied()
             .map(|card| uno_card_handle(game_assets, card))
             .unwrap_or_else(|| game_assets.card_back.clone());
-        let card = commands
-            .spawn((
+        commands.child(
+            draw,
+            (
                 UnoFlipTarget::DrawPile(index_from_top),
                 Node {
                     position_type: PositionType::Absolute,
@@ -315,9 +319,8 @@ fn add_uno_center(
                 UiTransform::IDENTITY,
                 BoxShadow::new(Color::BLACK.with_alpha(0.45), px(3), px(5), px(0), px(7)),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(draw).add_child(card);
+            ),
+        );
     }
     let draw_count = spawn_node(
         commands,
@@ -365,26 +368,28 @@ fn add_uno_center(
     );
     for (index, card) in game.discard_pile.iter().copied().enumerate() {
         let (x, y, angle) = uno_discard_pose(card);
-        let mut card_entity = commands.spawn((
-            UnoDiscardCard(card),
-            UnoFlipTarget::DiscardPile(game.discard_pile.len() - 1 - index),
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(7.0 + x),
-                top: px(6.0 + y),
-                width: px(82),
-                height: px(128),
-                ..default()
-            },
-            ImageNode::new(uno_card_handle(game_assets, card)),
-            UiTransform::from_rotation(Rot2::degrees(angle)),
-            BoxShadow::new(Color::BLACK.with_alpha(0.38), px(2), px(4), px(0), px(5)),
-        ));
+        let child = commands.child(
+            discard,
+            (
+                UnoDiscardCard(card),
+                UnoFlipTarget::DiscardPile(game.discard_pile.len() - 1 - index),
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(7.0 + x),
+                    top: px(6.0 + y),
+                    width: px(82),
+                    height: px(128),
+                    ..default()
+                },
+                ImageNode::new(uno_card_handle(game_assets, card)),
+                UiTransform::from_rotation(Rot2::degrees(angle)),
+                BoxShadow::new(Color::BLACK.with_alpha(0.38), px(2), px(4), px(0), px(5)),
+            ),
+        );
+        let mut card_entity = commands.entity(child);
         if index + 1 == game.discard_pile.len() {
             card_entity.insert(UnoDiscardPileAnchor);
         }
-        let card = card_entity.id();
-        commands.entity(discard).add_child(card);
     }
 
     let status = spawn_node(

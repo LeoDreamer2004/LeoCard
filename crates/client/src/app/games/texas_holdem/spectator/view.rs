@@ -1,7 +1,7 @@
 use super::super::{TexasHoldemUiAction, TexasHoldemUiState};
 use super::TexasSpectatorUiState;
 use crate::app::presentation::{
-    ACCENT, DrawerSwitch, SwitchDrawer, add_switch_drawer, add_text, spawn_node,
+    ACCENT, DrawerSwitch, SwitchDrawer, UiComposer, add_switch_drawer, add_text, spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{SeatSide, UiAction};
@@ -13,8 +13,8 @@ use leocard_protocol::{PlayerId, TexasHoldemSnapshot};
 pub(in super::super) struct TexasWinRateLabel(pub PlayerId);
 
 pub(in super::super) fn render_texas_spectator_drawer(
-    commands: &mut Commands,
-    table: Entity,
+    commands: &mut UiComposer,
+    viewport: Entity,
     game: &TexasHoldemSnapshot,
     ui: &TexasHoldemUiState,
     assets: &UiAssets,
@@ -30,7 +30,7 @@ pub(in super::super) fn render_texas_spectator_drawer(
     }];
     add_switch_drawer(
         commands,
-        table,
+        viewport,
         SwitchDrawer {
             expanded: ui.spectator.drawer_open,
             toggle_action: UiAction::TexasHoldem(TexasHoldemUiAction::ToggleSpectatorDrawer),
@@ -41,7 +41,7 @@ pub(in super::super) fn render_texas_spectator_drawer(
 }
 
 pub(in super::super) fn add_texas_win_rate(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     avatar: Entity,
     player: PlayerId,
     side: SeatSide,

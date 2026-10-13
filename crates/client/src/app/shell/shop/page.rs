@@ -3,7 +3,8 @@ use super::developer::add_coin_input;
 use super::{ShopUiAction, ShopUiState};
 use crate::app::games::SUPPORTED_GAMES;
 use crate::app::presentation::{
-    ACCENT, MUTED, PanelSkin, TEXT, add_coin_balance, add_text, decorate_panel_skin, spawn_node,
+    ACCENT, MUTED, PanelSkin, TEXT, UiComposer, add_coin_balance, add_text, decorate_panel_skin,
+    spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
@@ -31,7 +32,7 @@ pub(crate) struct ShopPage<'a> {
 }
 
 impl ShopPage<'_> {
-    pub fn render(&self, commands: &mut Commands, root: Entity) {
+    pub fn render(&self, commands: &mut UiComposer, root: Entity) {
         let canvas = spawn_node(
             commands,
             root,
@@ -174,7 +175,7 @@ impl ShopPage<'_> {
         }
     }
 
-    fn render_item(&self, commands: &mut Commands, parent: Entity, id: ItemId) {
+    fn render_item(&self, commands: &mut UiComposer, parent: Entity, id: ItemId) {
         let item = id.definition();
         let row = spawn_node(
             commands,
@@ -288,9 +289,10 @@ impl ShopPage<'_> {
             .insert(ItemRemaining { item: id, active });
     }
 
-    fn icon(&self, commands: &mut Commands, parent: Entity, image: Handle<Image>, size: f32) {
-        let icon = commands
-            .spawn((
+    fn icon(&self, commands: &mut UiComposer, parent: Entity, image: Handle<Image>, size: f32) {
+        commands.child(
+            parent,
+            (
                 Node {
                     width: px(size),
                     height: px(size),
@@ -299,9 +301,8 @@ impl ShopPage<'_> {
                 },
                 ImageNode::new(image),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(parent).add_child(icon);
+            ),
+        );
     }
 }
 

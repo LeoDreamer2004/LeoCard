@@ -1,13 +1,13 @@
+use crate::app::presentation::{UiComposer, spawn_node};
 use bevy::picking::Pickable;
 use std::f32::consts;
 
 use super::super::super::{MahjongWinDecoration, MahjongWinDecorationKind, MahjongWinEffectTier};
 
-use crate::app::presentation::spawn_node;
 use bevy::prelude::*;
 
 fn spawn_mahjong_win_decoration(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     node: Node,
     tier: MahjongWinEffectTier,
@@ -30,7 +30,7 @@ fn spawn_mahjong_win_decoration(
 }
 
 pub(super) fn add_win_aura(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     holder: Entity,
     tier: MahjongWinEffectTier,
     reveal_duration: f32,

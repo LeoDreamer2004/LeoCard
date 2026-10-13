@@ -1,5 +1,6 @@
 //! 全局设置窗口与页签组合。
 
+use crate::app::presentation::{TEXT, UiComposer, add_text, card_background_image, spawn_node};
 use crate::app::shell::SettingsUiAction;
 use bevy::picking::Pickable;
 use bevy::ui_widgets::Button;
@@ -14,7 +15,6 @@ use super::super::{SelectedSettingsTab, SettingsTabButton};
 use super::about::AboutSettings;
 use super::appearance::TableAppearanceSettings;
 use super::sound::render_sound_settings;
-use crate::app::presentation::{TEXT, add_text, card_background_image, spawn_node};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
@@ -40,7 +40,7 @@ impl<'a> SettingsModal<'a> {
 
     pub(crate) fn render(
         &self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         root: Entity,
         progress: f32,
         selected_tab: SettingsTab,
@@ -154,8 +154,9 @@ impl<'a> SettingsModal<'a> {
         );
         content_image.visual_box = VisualBox::BorderBox;
         content_image.color = Color::srgb(0.55, 0.54, 0.63);
-        let content = commands
-            .spawn((
+        let content = commands.child(
+            tabbed,
+            (
                 Node {
                     min_width: px(0),
                     min_height: px(390),
@@ -166,9 +167,8 @@ impl<'a> SettingsModal<'a> {
                     ..default()
                 },
                 content_image,
-            ))
-            .id();
-        commands.entity(tabbed).add_child(content);
+            ),
+        );
         match selected_tab {
             SettingsTab::Appearance => {
                 TableAppearanceSettings::new(form, assets).render(commands, content);
@@ -184,7 +184,7 @@ impl<'a> SettingsModal<'a> {
 }
 
 fn add_settings_tab(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     tab: SettingsTab,
     label: &str,
@@ -200,8 +200,9 @@ fn add_settings_tab(
         },
         1.0,
     );
-    let button = commands
-        .spawn((
+    let button = commands.child(
+        parent,
+        (
             Button,
             UiAction::Settings(SettingsUiAction::SelectTab(tab)),
             Node {
@@ -212,12 +213,11 @@ fn add_settings_tab(
                 ..default()
             },
             tab_image,
-        ))
-        .id();
+        ),
+    );
     if selected {
         commands.entity(button).insert(SelectedSettingsTab);
     }
-    commands.entity(parent).add_child(button);
     let text = add_text(
         commands,
         button,

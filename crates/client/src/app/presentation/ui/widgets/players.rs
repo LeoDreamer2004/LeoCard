@@ -1,8 +1,8 @@
 //! 玩家框、头像、准备标记和房主标记。
 
 use super::super::{BORDER, MUTED, READY, TEXT};
-use super::{add_ready_badge, add_text, spawn_node};
-use crate::app::presentation::ButtonHighlight;
+use super::{TextureButton, add_ready_badge, add_text, sliced_image, spawn_node, text_scene};
+use crate::app::presentation::{UiComposer, UiSceneKey, ui_component};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction, PlayerProfilePage, SeatSide,
@@ -10,47 +10,57 @@ use crate::app::shell::{
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::VisualBox;
-use bevy::ui_widgets::Button;
 use leocard_protocol::{PlayerGameProfiles, PlayerId, PlayerInteractionKind};
 
+#[track_caller]
 pub(crate) fn add_avatar(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     name: &str,
     image: Option<&Handle<Image>>,
     size: f32,
     assets: &UiAssets,
 ) -> Entity {
-    let mut entity = commands.spawn(Node {
-        width: px(size),
-        height: px(size),
-        min_width: px(size),
-        border: UiRect::all(px(1)),
-        border_radius: BorderRadius::all(percent(50)),
-        align_items: AlignItems::Center,
-        justify_content: JustifyContent::Center,
-        ..default()
+    commands.node(
+        parent,
+        bsn! {
+            Node {
+                width: px(size), height: px(size), min_width: px(size),
+                border: UiRect::all(px(1)), border_radius: BorderRadius::all(percent(50)),
+                align_items: AlignItems::Center, justify_content: JustifyContent::Center,
+            }
+            BorderColor::all(BORDER)
+            @avatar_content(name, image, size, assets)
+        },
+    )
+}
+
+pub(super) fn avatar_content(
+    name: &str,
+    image: Option<&Handle<Image>>,
+    size: f32,
+    assets: &UiAssets,
+) -> impl Scene {
+    let picture = image.map(|image| ui_component(ImageNode::new(image.clone())));
+    let initial = image.is_none().then(|| {
+        text_scene(
+            assets,
+            name.chars().next().unwrap_or('玩').to_string(),
+            size * 0.42,
+            TEXT,
+        )
     });
-    entity.insert(BorderColor::all(BORDER));
-    if let Some(image) = image {
-        entity.insert(ImageNode::new(image.clone()));
-    } else {
-        entity.insert(BackgroundColor(avatar_color(name)));
+    bsn! {
+        BackgroundColor({avatar_color(name)})
+        @picture
+        Children [ UiSceneKey("initial") @initial Pickable::IGNORE ]
     }
-    let entity = entity.id();
-    commands.entity(parent).add_child(entity);
-    if image.is_none() {
-        let initial = name.chars().next().unwrap_or('玩').to_string();
-        add_text(commands, entity, initial, size * 0.42, Color::WHITE, assets);
-    }
-    entity
 }
 
 /// 结算窗口中的下一局准备状态。保持德州扑克原有的绿色头像环和右下角对钩，
 /// 让所有游戏都能在玩家点击“再来一局”后直接看到彼此的准备进度。
 pub(crate) fn add_ready_avatar(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     name: &str,
     image: Option<&Handle<Image>>,
@@ -87,9 +97,14 @@ pub(crate) fn add_ready_avatar(
     frame
 }
 
-pub(crate) fn add_host_crown(commands: &mut Commands, avatar: Entity, assets: &UiAssets) -> Entity {
-    let crown = commands
-        .spawn((
+pub(crate) fn add_host_crown(
+    commands: &mut UiComposer,
+    avatar: Entity,
+    assets: &UiAssets,
+) -> Entity {
+    commands.child(
+        avatar,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(-2),
@@ -102,10 +117,8 @@ pub(crate) fn add_host_crown(commands: &mut Commands, avatar: Entity, assets: &U
             UiTransform::from_rotation(Rot2::degrees(-35.0)),
             ZIndex(40),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(avatar).add_child(crown);
-    crown
+        ),
+    )
 }
 
 pub(crate) fn avatar_color(name: &str) -> Color {
@@ -132,7 +145,7 @@ pub(crate) struct PlayerMenuProfile<'a> {
 }
 
 pub(crate) fn add_interaction_menu(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     target: PlayerId,
     side: SeatSide,
@@ -246,87 +259,42 @@ pub(crate) fn add_interaction_menu(
         (PlayerInteractionKind::Wine, "酒杯"),
         (PlayerInteractionKind::Shoe, "拖鞋"),
     ] {
-        let mut base = ImageNode::new(assets.home.button.clone()).with_mode(NodeImageMode::Sliced(
-            TextureSlicer {
-                border: BorderRect::all(32.0),
-                center_scale_mode: SliceScaleMode::Stretch,
-                sides_scale_mode: SliceScaleMode::Stretch,
-                max_corner_scale: 0.5,
+        let icon = assets
+            .social
+            .interaction_images
+            .get(&(kind, false))
+            .expect("every interaction has a flight image")
+            .clone();
+        let button = TextureButton {
+            node: Node {
+                width: px(69),
+                height: px(64),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                row_gap: px(2),
+                ..default()
             },
-        ));
-        base.visual_box = VisualBox::BorderBox;
-        let button = commands
-            .spawn((
-                Button,
-                UiAction::Social(SocialUiAction::SendInteraction { target, kind }),
-                Node {
-                    width: px(69),
-                    height: px(64),
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    row_gap: px(2),
-                    ..default()
-                },
-                base,
-            ))
-            .id();
-        commands.entity(actions).add_child(button);
-        let mut highlight = ImageNode::new(assets.home.purple_button_compact.clone()).with_mode(
-            NodeImageMode::Sliced(TextureSlicer {
-                border: BorderRect::all(32.0),
-                center_scale_mode: SliceScaleMode::Stretch,
-                sides_scale_mode: SliceScaleMode::Stretch,
-                max_corner_scale: 0.5,
-            }),
-        );
-        highlight.visual_box = VisualBox::BorderBox;
-        let overlay = commands
-            .spawn((
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(0),
-                    right: px(0),
-                    top: px(0),
-                    bottom: px(0),
-                    ..default()
-                },
-                highlight,
-                Visibility::Hidden,
-                Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(button).add_child(overlay);
-        commands.entity(button).insert(ButtonHighlight {
-            overlay,
-            arrows: None,
-        });
-        let icon = commands
-            .spawn((
-                Node {
-                    width: px(36),
-                    height: px(36),
-                    ..default()
-                },
-                ImageNode::new(
-                    assets
-                        .social
-                        .interaction_images
-                        .get(&(kind, false))
-                        .expect("every interaction has a flight image")
-                        .clone(),
-                ),
-                Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(button).add_child(icon);
-        add_text(commands, button, label, 12.0, TEXT, assets);
+            normal: sliced_image(assets.home.button.clone(), 32.0, 0.5),
+            hovered: sliced_image(assets.home.purple_button_compact.clone(), 32.0, 0.5),
+            action: Some(UiAction::Social(SocialUiAction::SendInteraction {
+                target,
+                kind,
+            })),
+            label: Some(label),
+            font_size: 12.0,
+            color: TEXT,
+            icon: Some((icon, 36.0)),
+        }
+        .mount(commands, actions, assets)
+        .0;
         if matches!(
             kind,
             PlayerInteractionKind::Wine | PlayerInteractionKind::Shoe
         ) {
-            let mask = commands
-                .spawn((
+            commands.child(
+                button,
+                (
                     Node {
                         position_type: PositionType::Absolute,
                         left: px(0),
@@ -350,9 +318,8 @@ pub(crate) fn add_interaction_menu(
                     Visibility::Hidden,
                     ZIndex(10),
                     Pickable::IGNORE,
-                ))
-                .id();
-            commands.entity(button).add_child(mask);
+                ),
+            );
         }
     }
     menu

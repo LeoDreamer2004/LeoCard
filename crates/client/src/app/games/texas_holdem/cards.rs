@@ -1,5 +1,7 @@
 use super::texas_player_chip_zone;
-use crate::app::presentation::{PendingDealSound, TEXT, add_text, ease_out_cubic, spawn_node};
+use crate::app::presentation::{
+    PendingDealSound, TEXT, UiComposer, add_text, ease_out_cubic, spawn_node,
+};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemSnapshot};
@@ -34,6 +36,7 @@ pub(crate) struct TexasBoardCardFlip {
     elapsed: f32,
     delay: f32,
     face: Handle<Image>,
+    back: Handle<Image>,
     face_visible: bool,
 }
 
@@ -49,7 +52,7 @@ pub(super) struct TexasInitialDeal {
 }
 
 pub(super) fn add_texas_draw_pile(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     count: usize,
     assets: &UiAssets,
@@ -66,8 +69,9 @@ pub(super) fn add_texas_draw_pile(
         None,
     );
     for layer in 0..5 {
-        let card = commands
-            .spawn((
+        commands.child(
+            pile,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(layer as f32 * 1.7),
@@ -81,9 +85,8 @@ pub(super) fn add_texas_draw_pile(
                 ImageNode::new(assets.playing_cards.card_back.clone()),
                 BorderColor::all(TEXT.with_alpha(0.52)),
                 ZIndex(layer),
-            ))
-            .id();
-        commands.entity(pile).add_child(card);
+            ),
+        );
     }
     let counter = spawn_node(
         commands,
@@ -106,15 +109,16 @@ pub(super) fn add_texas_draw_pile(
 }
 
 pub(super) fn add_texas_board_back(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     index: usize,
     delay: Option<f32>,
     assets: &UiAssets,
 ) {
     let animated = delay.is_some();
-    let card = commands
-        .spawn((
+    let card = commands.child(
+        parent,
+        (
             Node {
                 width: px(56),
                 height: px(76),
@@ -128,10 +132,9 @@ pub(super) fn add_texas_board_back(
                 Color::WHITE
             }),
             UiTransform::IDENTITY,
-        ))
-        .id();
-    commands.entity(parent).add_child(card);
-    commands.entity(card).insert(TexasBoardCardBack {
+        ),
+    );
+    commands.entity(card).init(TexasBoardCardBack {
         elapsed: if animated { 0.0 } else { 1.0 },
         delay: delay.unwrap_or(0.0),
         start_offset: if animated {
@@ -142,7 +145,7 @@ pub(super) fn add_texas_board_back(
         phase: index as f32 * 0.9,
     });
     if let Some(delay) = delay {
-        commands.spawn(PendingDealSound {
+        commands.effect(PendingDealSound {
             remaining: delay,
             variant: index % assets.audio.deal_sounds.len().max(1),
         });
@@ -150,15 +153,16 @@ pub(super) fn add_texas_board_back(
 }
 
 pub(super) fn add_texas_board_face(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     card: TexasHoldemCard,
     flip_delay: Option<f32>,
     assets: &UiAssets,
 ) {
     let face = texas_card_face(card, assets);
-    let entity = commands
-        .spawn((
+    let entity = commands.child(
+        parent,
+        (
             Node {
                 width: px(56),
                 height: px(76),
@@ -166,28 +170,24 @@ pub(super) fn add_texas_board_face(
                 border_radius: BorderRadius::all(px(5)),
                 ..default()
             },
-            ImageNode::new(if flip_delay.is_some() {
-                assets.playing_cards.card_back.clone()
-            } else {
-                face.clone()
-            }),
+            ImageNode::new(face.clone()),
             BorderColor::all(TEXT.with_alpha(0.42)),
             UiTransform::IDENTITY,
-        ))
-        .id();
-    commands.entity(parent).add_child(entity);
+        ),
+    );
     if let Some(delay) = flip_delay {
-        commands.entity(entity).insert(TexasBoardCardFlip {
+        commands.entity(entity).init(TexasBoardCardFlip {
             elapsed: 0.0,
             delay,
             face,
+            back: assets.playing_cards.card_back.clone(),
             face_visible: false,
         });
     }
 }
 
 pub(super) fn spawn_texas_initial_deal(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &TexasHoldemSnapshot,
     own_seat: SeatId,
@@ -226,8 +226,9 @@ pub(super) fn spawn_texas_initial_deal(
             let relative = (player.seat.0 + TABLE_SEAT_COUNT - own_seat.0) % TABLE_SEAT_COUNT;
             let target = texas_seat_card_target(relative);
             let delay = dealt as f32 * 0.07;
-            let entity = commands
-                .spawn((
+            commands.effect_child(
+                table,
+                (
                     Node {
                         position_type: PositionType::Absolute,
                         left: px(source.x),
@@ -247,10 +248,9 @@ pub(super) fn spawn_texas_initial_deal(
                         source,
                         target,
                     },
-                ))
-                .id();
-            commands.entity(table).add_child(entity);
-            commands.spawn(PendingDealSound {
+                ),
+            );
+            commands.effect(PendingDealSound {
                 remaining: delay,
                 variant: dealt % assets.audio.deal_sounds.len().max(1),
             });
@@ -272,7 +272,7 @@ fn texas_seat_card_target(relative: u8) -> Vec2 {
 }
 
 pub(super) fn add_texas_card(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     card: TexasHoldemCard,
     size: (f32, f32),
@@ -280,25 +280,21 @@ pub(super) fn add_texas_card(
     assets: &UiAssets,
 ) -> Entity {
     let face = texas_card_face(card, assets);
-    let entity = commands
-        .spawn((
+    let entity = commands.child(
+        parent,
+        (
             Node {
                 width: px(size.0),
                 height: px(size.1),
                 border_radius: BorderRadius::all(px(5)),
                 ..default()
             },
-            ImageNode::new(face).with_color(if animation.is_some() {
-                Color::WHITE.with_alpha(0.0)
-            } else {
-                Color::WHITE
-            }),
+            ImageNode::new(face),
             UiTransform::IDENTITY,
-        ))
-        .id();
-    commands.entity(parent).add_child(entity);
+        ),
+    );
     if let Some((delay, offset)) = animation {
-        commands.entity(entity).insert(TexasDealCard {
+        commands.entity(entity).init(TexasDealCard {
             elapsed: 0.0,
             delay,
             offset,
@@ -334,7 +330,7 @@ pub(super) fn animate_texas_deal_cards(
 }
 
 pub(super) fn animate_texas_flying_card_backs(
-    mut commands: Commands,
+    mut commands: UiComposer,
     time: Res<Time>,
     mut cards: Query<(
         Entity,
@@ -395,7 +391,9 @@ pub(super) fn animate_texas_board_card_flips(
     for (mut animation, mut transform, mut image) in &mut cards {
         animation.elapsed += time.delta_secs();
         let progress = ((animation.elapsed - animation.delay) / 0.34).clamp(0.0, 1.0);
-        if progress >= 0.5 && !animation.face_visible {
+        if progress < 0.5 {
+            image.image = animation.back.clone();
+        } else if !animation.face_visible {
             image.image = animation.face.clone();
             animation.face_visible = true;
         }

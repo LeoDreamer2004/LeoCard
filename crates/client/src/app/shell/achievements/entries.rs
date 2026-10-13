@@ -1,6 +1,7 @@
 use super::super::{PageTransitionElement, add_cozy_panel};
 use crate::app::presentation::{
-    MUTED, Scrollbar, ScrollbarSkin, TEXT, add_text, card_background_image, spawn_node,
+    MUTED, Scrollbar, ScrollbarSkin, TEXT, UiComposer, add_text, card_background_image, spawn_node,
+    ui_component,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -11,7 +12,7 @@ use super::page::AchievementsPage;
 use super::state::*;
 
 impl AchievementsPage<'_> {
-    pub(super) fn render_entries(&self, commands: &mut Commands, parent: Entity) {
+    pub(super) fn render_entries(&self, commands: &mut UiComposer, parent: Entity) {
         let panel = add_cozy_panel(
             commands,
             parent,
@@ -61,10 +62,10 @@ impl AchievementsPage<'_> {
             },
             None,
         );
-        let scroll = spawn_node(
-            commands,
+        let scroll = commands.mount(
             viewport,
-            Node {
+            format!("category:{:?}", self.selected),
+            bsn! { @ui_component(Node {
                 min_width: px(0),
                 min_height: px(0),
                 flex_grow: 1.0,
@@ -73,8 +74,7 @@ impl AchievementsPage<'_> {
                 row_gap: px(12),
                 overflow: Overflow::scroll_y(),
                 ..default()
-            },
-            None,
+            }) },
         );
         commands.entity(scroll).insert((
             AchievementsScroll,
@@ -105,12 +105,14 @@ impl AchievementsPage<'_> {
 
     fn render_entry(
         &self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         parent: Entity,
         achievement: &AchievementDefinition,
     ) {
-        let row = commands
-            .spawn((
+        let row = commands.keyed_child(
+            parent,
+            achievement.id,
+            (
                 Node {
                     width: percent(100),
                     min_height: px(116),
@@ -121,11 +123,11 @@ impl AchievementsPage<'_> {
                     ..default()
                 },
                 card_background_image(self.assets.home.game_card.clone(), 1.0),
-            ))
-            .id();
-        commands.entity(parent).add_child(row);
-        let trophy = commands
-            .spawn((
+            ),
+        );
+        commands.child(
+            row,
+            (
                 Node {
                     width: px(76),
                     height: px(76),
@@ -136,9 +138,8 @@ impl AchievementsPage<'_> {
                     self.assets.achievements.medals[achievement.tier.medal_index()].clone(),
                 ),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(row).add_child(trophy);
+            ),
+        );
         let text = spawn_node(
             commands,
             row,

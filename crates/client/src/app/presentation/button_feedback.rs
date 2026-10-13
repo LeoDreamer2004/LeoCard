@@ -14,7 +14,7 @@ pub(crate) struct CustomButtonMotion;
 #[derive(Component, Default)]
 pub(crate) struct SilentButton;
 
-#[derive(Component)]
+#[derive(Component, FromTemplate)]
 pub(crate) struct ButtonHighlight {
     pub overlay: Entity,
     pub arrows: Option<[Entity; 2]>,

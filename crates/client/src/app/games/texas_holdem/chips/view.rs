@@ -1,3 +1,4 @@
+use crate::app::presentation::{HEADER_BG, MUTED, TEXT, UiComposer, add_text, spawn_node};
 use bevy::picking::Pickable;
 use std::f32::consts;
 
@@ -12,7 +13,6 @@ use super::{
     TableChip, TexasChipSprite, TexasChipTableState, TexasChipZonePanel, texas_center_zone_panel,
     texas_player_chip_zone, texas_pot_chip_zone, texas_pot_partition_zone,
 };
-use crate::app::presentation::{HEADER_BG, MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
@@ -20,7 +20,7 @@ use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHold
 use leocard_texas_holdem::TexasHoldemCard;
 
 pub(crate) fn add_texas_chip_areas(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &TexasHoldemSnapshot,
     hole_card_count: usize,
@@ -101,7 +101,7 @@ pub(crate) fn add_texas_chip_areas(
     }
 }
 
-fn add_pot_divisions(commands: &mut Commands, table: Entity, state: &TexasChipTableState) {
+fn add_pot_divisions(commands: &mut UiComposer, table: Entity, state: &TexasChipTableState) {
     if let Some(transition) = state.division {
         spawn_pot_divider_set(
             commands,
@@ -123,7 +123,7 @@ fn add_pot_divisions(commands: &mut Commands, table: Entity, state: &TexasChipTa
 }
 
 fn spawn_pot_divider_set(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     count: usize,
     old_layout: bool,
@@ -135,8 +135,9 @@ fn spawn_pot_divider_set(
     let whole = texas_pot_chip_zone();
     let (alpha, scale) = pot_divider_visual(old_layout, elapsed);
     for index in 1..count {
-        let divider = commands
-            .spawn((
+        commands.child(
+            table,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(whole.left + whole.width * index as f32 / count as f32 - 0.5),
@@ -156,20 +157,20 @@ fn spawn_pot_divider_set(
                 },
                 ZIndex(28),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(table).add_child(divider);
+            ),
+        );
     }
 }
 
-fn add_pot_hover_regions(commands: &mut Commands, table: Entity, state: &TexasChipTableState) {
+fn add_pot_hover_regions(commands: &mut UiComposer, table: Entity, state: &TexasChipTableState) {
     if state.pots.len() <= 1 {
         return;
     }
     for (index, pot) in state.pots.iter().enumerate() {
         let layout = texas_pot_partition_zone(index, state.pots.len());
-        let region = commands
-            .spawn((
+        commands.child(
+            table,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(layout.left),
@@ -184,9 +185,8 @@ fn add_pot_hover_regions(commands: &mut Commands, table: Entity, state: &TexasCh
                 },
                 ZIndex(34),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(table).add_child(region);
+            ),
+        );
     }
 }
 
@@ -253,7 +253,7 @@ pub(super) fn pot_eligibility_breath(elapsed: f32) -> f32 {
 }
 
 pub(super) fn add_chip_zone_panel(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     layout: ChipZoneLayout,
 ) -> Entity {
@@ -295,7 +295,7 @@ pub(super) fn add_chip_zone_panel(
 }
 
 fn add_chip_zone_title(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     zone: Entity,
     label: &ActionLabel,
     assets: &UiAssets,
@@ -341,7 +341,7 @@ fn add_chip_zone_title(
 }
 
 pub(super) fn add_fold_card_feedback(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     zone: Entity,
     elapsed: f32,
@@ -367,8 +367,9 @@ pub(super) fn add_fold_card_feedback(
         } else {
             assets.playing_cards.card_back.clone()
         };
-        let card = commands
-            .spawn((
+        let card = commands.child(
+            if own { table } else { zone },
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: if own {
@@ -394,22 +395,19 @@ pub(super) fn add_fold_card_feedback(
                 },
                 ZIndex(if own { 44 } else { 24 } + index as i32),
                 Pickable::IGNORE,
-            ))
-            .id();
+            ),
+        );
         if let Some(tooltip) = tooltip {
             commands.entity(card).insert((
                 RelativeCursorPosition::default(),
                 TexasOwnFoldCardHover { tooltip },
             ));
         }
-        commands
-            .entity(if own { table } else { zone })
-            .add_child(card);
     }
 }
 
 fn add_own_fold_tooltip(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     cards: &[TexasHoldemCard],
     assets: &UiAssets,
@@ -448,8 +446,9 @@ fn add_own_fold_tooltip(
         Pickable::IGNORE,
     ));
     for card in cards.iter().copied() {
-        let face = commands
-            .spawn((
+        commands.child(
+            tooltip,
+            (
                 Node {
                     width: px(40),
                     height: px(54),
@@ -458,15 +457,14 @@ fn add_own_fold_tooltip(
                 },
                 ImageNode::new(texas_card_face(card, assets)),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(tooltip).add_child(face);
+            ),
+        );
     }
     tooltip
 }
 
 fn add_revealed_hole_cards(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     zone: Entity,
     cards: &[TexasHoldemCard],
     assets: &UiAssets,
@@ -498,8 +496,9 @@ fn add_revealed_hole_cards(
     ));
     for card in cards.iter().copied() {
         let image = texas_card_face(card, assets);
-        let entity = commands
-            .spawn((
+        commands.child(
+            hand,
+            (
                 Node {
                     width: px(card_width),
                     height: px(card_height),
@@ -508,14 +507,13 @@ fn add_revealed_hole_cards(
                 },
                 ImageNode::new(image),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(hand).add_child(entity);
+            ),
+        );
     }
 }
 
 fn add_chip_sprite(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     chip: &TableChip,
     assets: &UiAssets,
@@ -524,8 +522,9 @@ fn add_chip_sprite(
     let Some(image) = game_assets.poker_chips.get(&chip.denomination) else {
         return;
     };
-    let entity = commands
-        .spawn((
+    let entity = commands.child(
+        layer,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(chip.position.x),
@@ -541,9 +540,8 @@ fn add_chip_sprite(
             TexasChipSprite(chip.id),
             ZIndex((chip.id % 200) as i32),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(layer).add_child(entity);
+        ),
+    );
     let color = if chip.denomination == 1 {
         HEADER_BG
     } else {

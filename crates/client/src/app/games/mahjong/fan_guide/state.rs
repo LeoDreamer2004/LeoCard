@@ -5,7 +5,7 @@ use super::super::{
     MahjongTileSize, MahjongTileVisual, MahjongUiState, add_mahjong_tile_material,
 };
 use super::*;
-use crate::app::presentation::{ButtonHighlight, MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{ButtonHighlight, MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
@@ -29,7 +29,7 @@ pub(in super::super) struct MahjongFanGuideRoot(pub(super) u16);
 pub(in super::super) struct MahjongFanGuideTile;
 
 pub(in super::super) fn sync_mahjong_fan_guide(
-    mut commands: Commands,
+    mut commands: UiComposer,
     ui: Res<MahjongUiState>,
     roots: Query<(Entity, &MahjongFanGuideRoot)>,
     assets: Res<UiAssets>,
@@ -104,7 +104,7 @@ pub(in super::super) fn animate_mahjong_fan_guide_tiles(
 }
 
 pub(super) fn render_fan_guide(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     selected_tier: u16,
     progress: f32,
@@ -266,7 +266,7 @@ pub(super) fn render_fan_guide(
     }
 }
 
-pub(super) fn render_header(commands: &mut Commands, parent: Entity, assets: &UiAssets) {
+pub(super) fn render_header(commands: &mut UiComposer, parent: Entity, assets: &UiAssets) {
     let header = spawn_node(
         commands,
         parent,
@@ -289,7 +289,7 @@ pub(super) fn render_header(commands: &mut Commands, parent: Entity, assets: &Ui
 }
 
 pub(super) fn render_tabs(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     selected_tier: u16,
     assets: &UiAssets,
@@ -321,8 +321,9 @@ pub(super) fn render_tabs(
             max_corner_scale: 0.42,
         }));
         image.visual_box = VisualBox::BorderBox;
-        let tab = commands
-            .spawn((
+        let tab = commands.child(
+            tabs,
+            (
                 Button,
                 UiAction::Mahjong(MahjongUiAction::SelectFanGuideTier(tier)),
                 Node {
@@ -335,9 +336,8 @@ pub(super) fn render_tabs(
                     ..default()
                 },
                 image,
-            ))
-            .id();
-        commands.entity(tabs).add_child(tab);
+            ),
+        );
         if !active {
             let mut image = ImageNode::new(assets.home.purple_button_compact.clone()).with_mode(
                 NodeImageMode::Sliced(TextureSlicer {
@@ -348,8 +348,9 @@ pub(super) fn render_tabs(
                 }),
             );
             image.visual_box = VisualBox::BorderBox;
-            let overlay = commands
-                .spawn((
+            let overlay = commands.child(
+                tab,
+                (
                     Node {
                         position_type: PositionType::Absolute,
                         left: px(0),
@@ -361,9 +362,8 @@ pub(super) fn render_tabs(
                     image,
                     Visibility::Hidden,
                     Pickable::IGNORE,
-                ))
-                .id();
-            commands.entity(tab).add_child(overlay);
+                ),
+            );
             commands.entity(tab).insert(ButtonHighlight {
                 overlay,
                 arrows: None,
@@ -382,7 +382,7 @@ pub(super) fn render_tabs(
 }
 
 pub(super) fn render_fan_entry(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     entry: &FanGuideEntry,
     assets: &UiAssets,
@@ -436,7 +436,7 @@ pub(super) fn render_fan_entry(
 }
 
 pub(super) fn render_example(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     notation: &str,
     game_assets: &MahjongAssets,

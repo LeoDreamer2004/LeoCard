@@ -4,7 +4,7 @@ use super::super::super::{table_appearance_fraction, table_appearance_label};
 use super::super::CozySettingsSlider;
 use crate::app::presentation::{
     TEXT, TableAppearanceIndicator, TableAppearanceLabel, TableAppearanceSetting,
-    TableAppearanceSlider, add_text, spawn_node,
+    TableAppearanceSlider, UiComposer, add_text, spawn_node,
 };
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use bevy::picking::Pickable;
@@ -24,7 +24,7 @@ impl<'a> SettingsSlider<'a> {
 
     pub(super) fn render(
         &self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         parent: Entity,
         setting: TableAppearanceSetting,
     ) {
@@ -51,8 +51,9 @@ impl<'a> SettingsSlider<'a> {
             assets,
         );
         commands.entity(label).insert(TableAppearanceLabel(setting));
-        let slider = commands
-            .spawn((
+        let slider = commands.child(
+            group,
+            (
                 Button,
                 TableAppearanceSlider(setting),
                 RelativeCursorPosition::default(),
@@ -62,9 +63,8 @@ impl<'a> SettingsSlider<'a> {
                     position_type: PositionType::Relative,
                     ..default()
                 },
-            ))
-            .id();
-        commands.entity(group).add_child(slider);
+            ),
+        );
         let mut track_image = ImageNode::new(assets.home.slider.clone()).with_mode(
             NodeImageMode::Sliced(TextureSlicer {
                 border: BorderRect::all(32.0),
@@ -74,8 +74,9 @@ impl<'a> SettingsSlider<'a> {
             }),
         );
         track_image.visual_box = VisualBox::BorderBox;
-        let track = commands
-            .spawn((
+        let track = commands.child(
+            slider,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(0),
@@ -86,11 +87,11 @@ impl<'a> SettingsSlider<'a> {
                 },
                 track_image,
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(slider).add_child(track);
-        let knob = commands
-            .spawn((
+            ),
+        );
+        let knob = commands.child(
+            slider,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: percent(fraction * 100.0),
@@ -100,9 +101,8 @@ impl<'a> SettingsSlider<'a> {
                     ..default()
                 },
                 ImageNode::new(assets.home.slider_handle.clone()).with_mode(NodeImageMode::Stretch),
-            ))
-            .id();
-        commands.entity(slider).add_child(knob);
+            ),
+        );
         commands.entity(knob).insert((
             TableAppearanceIndicator(setting),
             CozySettingsSlider {

@@ -1,4 +1,6 @@
-use crate::app::presentation::{TransitionVisuals, add_text, ease_out_cubic, fade_panel};
+use crate::app::presentation::{
+    TransitionVisuals, UiComposer, add_text, ease_out_cubic, fade_panel,
+};
 use crate::app::runtime::UiAssets;
 use bevy::{
     picking::Pickable,
@@ -25,7 +27,7 @@ pub(super) struct CoinNotice {
     elapsed: f32,
 }
 
-pub(super) fn setup_coin_notifications(mut commands: Commands) {
+pub(super) fn setup_coin_notifications(mut commands: UiComposer) {
     // 独立于页面重建，所有页面复用；装饰层不参与鼠标拾取。
     commands.spawn((
         CoinNoticeLayer,
@@ -53,7 +55,7 @@ pub(super) fn queue_coin_notifications(
     reason = "Bevy injects the independent notice and subtree visual queries"
 )]
 pub(super) fn animate_coin_notifications(
-    mut commands: Commands,
+    mut commands: UiComposer,
     time: Res<Time>,
     assets: Res<UiAssets>,
     mut notices: ResMut<CoinNotifications>,
@@ -85,9 +87,10 @@ pub(super) fn animate_coin_notifications(
     }
 }
 
-fn spawn_notice(commands: &mut Commands, layer: Entity, delta: i64, assets: &UiAssets) {
-    let notice = commands
-        .spawn((
+fn spawn_notice(commands: &mut UiComposer, layer: Entity, delta: i64, assets: &UiAssets) {
+    let notice = commands.child(
+        layer,
+        (
             CoinNotice { elapsed: 0.0 },
             Node {
                 position_type: PositionType::Absolute,
@@ -108,11 +111,11 @@ fn spawn_notice(commands: &mut Commands, layer: Entity, delta: i64, assets: &UiA
             ])),
             UiTransform::from_translation(Val2::px(WIDTH, 0.0)),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(layer).add_child(notice);
-    let icon = commands
-        .spawn((
+        ),
+    );
+    commands.child(
+        notice,
+        (
             Node {
                 width: px(22),
                 height: px(22),
@@ -121,9 +124,8 @@ fn spawn_notice(commands: &mut Commands, layer: Entity, delta: i64, assets: &UiA
             },
             ImageNode::new(assets.shop.coin.clone()),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(notice).add_child(icon);
+        ),
+    );
     let text = add_text(
         commands,
         notice,

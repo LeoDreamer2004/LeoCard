@@ -1,13 +1,10 @@
 //! 牌桌操作按钮共用的纹理、悬停层与禁用态。
 
-use crate::app::presentation::ButtonHighlight;
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use super::{TextureButton, sliced_image};
+use crate::app::presentation::{MUTED, TEXT, UiComposer};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
-use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::VisualBox;
-use bevy::ui_widgets::Button;
 
 #[derive(Clone, Copy)]
 pub(crate) enum GameButtonImageMode {
@@ -67,82 +64,40 @@ impl<'a> GameButtonSpec<'a> {
     }
 }
 
-fn game_button_image(texture: &Handle<Image>, mode: GameButtonImageMode, alpha: f32) -> ImageNode {
-    let mode = match mode {
-        GameButtonImageMode::Stretch => NodeImageMode::Stretch,
-        GameButtonImageMode::Sliced {
-            border,
-            corner_scale,
-        } => NodeImageMode::Sliced(TextureSlicer {
-            border: BorderRect::all(border),
-            center_scale_mode: SliceScaleMode::Stretch,
-            sides_scale_mode: SliceScaleMode::Stretch,
-            max_corner_scale: corner_scale,
-        }),
-    };
-    let mut image = ImageNode::new(texture.clone()).with_mode(mode);
-    image.visual_box = VisualBox::BorderBox;
-    image.color = Color::WHITE.with_alpha(alpha);
-    image
-}
-
+#[track_caller]
 pub(crate) fn add_textured_game_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     assets: &UiAssets,
     spec: GameButtonSpec<'_>,
 ) -> (Entity, Entity) {
+    let image = |texture: &Handle<Image>| match spec.image_mode {
+        GameButtonImageMode::Stretch => ImageNode::new(texture.clone()),
+        GameButtonImageMode::Sliced {
+            border,
+            corner_scale,
+        } => sliced_image(texture.clone(), border, corner_scale),
+    };
     let enabled = spec.action.is_some();
-    let button = commands
-        .spawn((
-            Node {
-                width: px(spec.width),
-                height: px(spec.height),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            game_button_image(
-                spec.normal,
-                spec.image_mode,
-                if enabled { 1.0 } else { 0.55 },
-            ),
-        ))
-        .id();
-    commands.entity(parent).add_child(button);
-    if let Some(action) = spec.action {
-        commands.entity(button).insert((Button, action));
-        let overlay = commands
-            .spawn((
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(0),
-                    right: px(0),
-                    top: px(0),
-                    bottom: px(0),
-                    ..default()
-                },
-                game_button_image(spec.hovered, spec.image_mode, 1.0),
-                Visibility::Hidden,
-                Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(button).add_child(overlay);
-        commands.entity(button).insert(ButtonHighlight {
-            overlay,
-            arrows: None,
-        });
-    } else {
-        commands.entity(button).insert(Pickable::IGNORE);
+    TextureButton {
+        node: Node {
+            width: px(spec.width),
+            height: px(spec.height),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        normal: image(spec.normal).with_color(Color::WHITE.with_alpha(if enabled {
+            1.0
+        } else {
+            0.55
+        })),
+        hovered: image(spec.hovered),
+        action: spec.action,
+        label: Some(spec.label),
+        font_size: spec.font_size,
+        color: if enabled { TEXT } else { MUTED },
+        icon: None,
     }
-    let label = add_text(
-        commands,
-        button,
-        spec.label,
-        spec.font_size,
-        if enabled { TEXT } else { MUTED },
-        assets,
-    );
-    commands.entity(label).insert(Pickable::IGNORE);
-    (button, label)
+    .mount(commands, parent, assets)
 }

@@ -2,7 +2,7 @@ use super::background::add_guess_background;
 use super::state::MinecraftGuessUiState;
 use super::{GuessFeedback, GuessScorePlayback, MinecraftGuessAssets};
 use crate::app::presentation::{
-    GameSummaryAnimation, StartGameSeatTransition, TurnBorderMaterial, spawn_node,
+    GameSummaryAnimation, StartGameSeatTransition, TurnBorderMaterial, UiComposer, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
@@ -26,7 +26,11 @@ pub(crate) struct GuessTable<'a> {
     pub turn_border_materials: &'a mut Assets<TurnBorderMaterial>,
 }
 
-pub(crate) fn render_guess_table(commands: &mut Commands, root: Entity, mut table: GuessTable<'_>) {
+pub(crate) fn render_guess_table(
+    commands: &mut UiComposer,
+    root: Entity,
+    mut table: GuessTable<'_>,
+) {
     add_guess_background(commands, root);
     let page = spawn_node(
         commands,

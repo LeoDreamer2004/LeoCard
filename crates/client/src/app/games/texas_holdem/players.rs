@@ -4,8 +4,9 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, HEADER_BG, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
-    TurnBorderMaterial, add_player_portrait, add_text, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, card_background_image, position_opponent_popup, spawn_node,
+    TurnBorderMaterial, UiComposer, add_player_portrait, add_text,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition, card_background_image,
+    position_opponent_popup, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{OpponentBadge, SeatSide};
@@ -21,7 +22,7 @@ pub(super) const TEXAS_PORTRAIT_HEIGHT: f32 = 76.0 * 1.17 + 34.0;
     reason = "the opponent builder keeps seat state and visual resources explicit"
 )]
 pub(super) fn add_texas_opponent(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     player: &TexasHoldemPlayerState,
     relative: u8,
@@ -158,7 +159,7 @@ pub(super) fn add_texas_opponent(
 }
 
 pub(super) fn add_texas_stack_value(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     portrait: Entity,
     stack: u32,
     assets: &UiAssets,
@@ -196,8 +197,9 @@ pub(super) fn add_texas_stack_value(
         let Some(image) = game_assets.poker_chips.get(&denomination) else {
             continue;
         };
-        let chip = commands
-            .spawn((
+        let chip = commands.child(
+            fan,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(left),
@@ -212,9 +214,8 @@ pub(super) fn add_texas_stack_value(
                 UiTransform::from_rotation(Rot2::radians(rotation)),
                 ZIndex(layer),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(fan).add_child(chip);
+            ),
+        );
         let label = add_text(commands, chip, denomination.to_string(), 9.0, color, assets);
         commands.entity(label).insert(Pickable::IGNORE);
     }
@@ -232,7 +233,7 @@ pub(super) fn add_texas_stack_value(
 }
 
 pub(super) fn add_role_tokens(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     avatar: Entity,
     player: PlayerId,
     game: &TexasHoldemSnapshot,
@@ -287,7 +288,7 @@ pub(super) fn add_role_tokens(
 
 /// 自己与其他玩家的筹码面板共用首页游戏卡片纹理，显示账本中的实际筹码。
 pub(super) fn add_texas_chip_popup(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     stack: u32,
     opponent_side: Option<SeatSide>,
@@ -373,7 +374,7 @@ pub(super) fn add_texas_chip_popup(
 
 /// 同面值筹码水平紧叠，不同面值由父节点的 column_gap 分组隔开。
 fn add_horizontal_chip_group(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     denomination: u16,
     count: usize,
@@ -399,8 +400,9 @@ fn add_horizontal_chip_group(
         return;
     };
     for index in 0..count {
-        let chip = commands
-            .spawn((
+        let chip = commands.child(
+            group,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(index as f32 * CHIP_REVEAL),
@@ -414,9 +416,8 @@ fn add_horizontal_chip_group(
                 ImageNode::new(image.clone()),
                 ZIndex(index as i32),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(group).add_child(chip);
+            ),
+        );
         let label_color = if denomination == 1 { HEADER_BG } else { TEXT };
         let label = add_text(
             commands,

@@ -1,11 +1,11 @@
-use crate::app::presentation::{ACCENT, TEXT, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{PlayerGameScoreText, SeatSide};
 use bevy::{picking::Pickable, prelude::*};
 use leocard_protocol::PlayerId;
 
 pub(super) fn add_qigui_player_stats(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     portrait: Entity,
     player: PlayerId,
     side: SeatSide,
@@ -64,7 +64,7 @@ pub(super) fn add_qigui_player_stats(
     ));
 }
 
-fn add_hand_count(commands: &mut Commands, parent: Entity, count: u16, assets: &UiAssets) {
+fn add_hand_count(commands: &mut UiComposer, parent: Entity, count: u16, assets: &UiAssets) {
     let fan = spawn_node(
         commands,
         parent,
@@ -83,8 +83,9 @@ fn add_hand_count(commands: &mut Commands, parent: Entity, count: u16, assets: &
         (8.0, 1.0, 0.0, 1),
         (14.0, 4.0, 0.27, 2),
     ] {
-        let card = commands
-            .spawn((
+        commands.child(
+            fan,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(left),
@@ -97,9 +98,8 @@ fn add_hand_count(commands: &mut Commands, parent: Entity, count: u16, assets: &
                 UiTransform::from_rotation(Rot2::radians(rotation)),
                 ZIndex(layer),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(fan).add_child(card);
+            ),
+        );
     }
     let number = add_text(commands, parent, count.to_string(), 14.0, TEXT, assets);
     commands.entity(number).insert((

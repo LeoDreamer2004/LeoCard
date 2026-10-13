@@ -1,10 +1,10 @@
 use super::{DeveloperHandInput, DeveloperHandInputField};
-use crate::app::presentation::TextInput;
+use crate::app::presentation::{TextInput, UiComposer};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 
 pub(crate) fn add_developer_hand_input(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     input: &DeveloperHandInput,
     placeholder: &'static str,

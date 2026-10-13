@@ -3,8 +3,8 @@ use crate::app::presentation::{
     ACCENT, AnimatedSummaryScore, DANGER, GameSummaryActions, GameSummaryAnimation,
     GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, READY,
     SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
-    TEXT, add_animated_summary_text, add_ready_avatar, animated_summary_score, decorate_panel_skin,
-    spawn_node, summary_modal_visual, summary_row_progress,
+    TEXT, UiComposer, add_animated_summary_text, add_ready_avatar, animated_summary_score,
+    decorate_panel_skin, spawn_node, summary_modal_visual, summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -44,7 +44,7 @@ pub(crate) fn uno_summary_descriptor(game: &UnoSnapshot) -> Option<SummaryDescri
     reason = "the summary renderer combines game state with explicit animation resources"
 )]
 pub(super) fn add_uno_summary(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &UnoSnapshot,
     winner: PlayerId,

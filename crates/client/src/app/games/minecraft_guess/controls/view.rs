@@ -5,12 +5,12 @@ use super::super::turn_timer::add_guess_clock;
 use super::super::view::GuessTable;
 use super::buttons::{GuessButtonSpec, GuessSubmit, add_guess_button};
 use super::candidates::{GuessCandidates, add_candidates};
-use crate::app::presentation::{ACCENT, TextInput, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, TextInput, UiComposer, add_text, spawn_node};
 use bevy::prelude::*;
 use leocard_minecraft_guess::MAX_GUESS_CHARACTERS;
 
 impl GuessTable<'_> {
-    pub(in super::super) fn controls(&self, commands: &mut Commands, page: Entity) {
+    pub(in super::super) fn controls(&self, commands: &mut UiComposer, page: Entity) {
         let controls = spawn_node(
             commands,
             page,
@@ -162,7 +162,7 @@ impl GuessTable<'_> {
 
     fn button(
         &self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         row: Entity,
         label: &str,
         action: Option<MinecraftGuessUiAction>,

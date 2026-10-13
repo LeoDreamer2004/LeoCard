@@ -1,6 +1,6 @@
 use crate::{
-    BettingRecord, GameState, Phase, TexasHoldemAction, TexasHoldemCard, TexasHoldemPlayerId,
-    TexasHoldemRuleSet, TexasHoldemStreet,
+    BettingRecord, GameState, Phase, RaiseSizing, TexasHoldemAction, TexasHoldemCard,
+    TexasHoldemPlayerId, TexasHoldemRuleSet, TexasHoldemStreet,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -98,5 +98,29 @@ impl TexasHoldemBotObservation {
                     .wrapping_add(u64::from(card.rank().value()) * 4 + card.suit() as u64)
             },
         )
+    }
+
+    pub(super) fn raise_sizing(&self) -> RaiseSizing {
+        RaiseSizing::new(
+            self.current_bet,
+            self.minimum_raise - self.current_bet,
+            self.committed + self.stack,
+        )
+    }
+
+    pub(super) fn contestable_pot(&self) -> u32 {
+        let eligible = self
+            .opponents
+            .iter()
+            .map(|other| other.committed.min(self.total_commit + self.call))
+            .sum::<u32>()
+            + self.total_commit;
+        let active = self
+            .opponents
+            .iter()
+            .map(|other| other.committed)
+            .sum::<u32>()
+            + self.total_commit;
+        eligible + self.pot.saturating_sub(active)
     }
 }

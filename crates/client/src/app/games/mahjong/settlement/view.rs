@@ -10,7 +10,7 @@ use super::{
     scores::ScoreStageView,
 };
 use crate::app::presentation::{
-    ACCENT, GameSummaryAnimation, MUTED, PanelSkin, READY, TEXT, add_avatar, add_text,
+    ACCENT, GameSummaryAnimation, MUTED, PanelSkin, READY, TEXT, UiComposer, add_avatar, add_text,
     decorate_panel_skin, spawn_node, summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
@@ -43,7 +43,7 @@ pub(in crate::app::games::mahjong) struct MahjongSettlementVisuals<'a> {
 }
 
 pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     content: Entity,
     game: &MahjongSnapshot,

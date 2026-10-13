@@ -1,13 +1,11 @@
 use super::super::{add_text, spawn_node};
 use super::add_rule_help;
-use crate::app::presentation::ButtonHighlight;
-use crate::app::presentation::{MUTED, TEXT};
+use crate::app::presentation::{MUTED, TEXT, TextureButton, UiComposer};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
-use bevy::ui_widgets::Button;
 
 pub(crate) trait EditableRuleSet: Copy {
     const ROW_HEIGHT: f32;
@@ -26,7 +24,7 @@ pub(crate) struct RuleConfigRow<'a, R> {
 }
 
 pub(crate) fn add_rule_config_row<R: EditableRuleSet>(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     spec: RuleConfigRow<'_, R>,
     assets: &UiAssets,
@@ -74,8 +72,9 @@ pub(crate) fn add_rule_config_row<R: EditableRuleSet>(
             max_corner_scale: 0.55,
         }));
     input_image.visual_box = VisualBox::BorderBox;
-    let value_box = commands
-        .spawn((
+    let value_box = commands.child(
+        controls,
+        (
             Node {
                 min_width: px(R::VALUE_WIDTH),
                 min_height: px(34),
@@ -86,9 +85,8 @@ pub(crate) fn add_rule_config_row<R: EditableRuleSet>(
             },
             input_image,
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(controls).add_child(value_box);
+        ),
+    );
     add_text(commands, value_box, spec.value, 15.0, TEXT, assets);
     if spec.editable {
         add_rule_step_button(commands, controls, false, spec.next, assets);
@@ -97,7 +95,7 @@ pub(crate) fn add_rule_config_row<R: EditableRuleSet>(
 }
 
 fn add_rule_step_button<R: EditableRuleSet>(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     left: bool,
     rules: Option<R>,
@@ -118,34 +116,15 @@ fn add_rule_step_button<R: EditableRuleSet>(
         flex_shrink: 0.0,
         ..default()
     };
-    let entity = if let Some(rules) = rules {
-        commands
-            .spawn((Button, rules.update_action(), node, image))
-            .id()
-    } else {
-        commands.spawn((node, image, Pickable::IGNORE)).id()
-    };
-    commands.entity(parent).add_child(entity);
-    if rules.is_some() {
-        let hover = commands
-            .spawn((
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(0),
-                    right: px(0),
-                    top: px(0),
-                    bottom: px(0),
-                    ..default()
-                },
-                ImageNode::new(highlighted.clone()).with_mode(NodeImageMode::Stretch),
-                Visibility::Hidden,
-                Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(entity).add_child(hover);
-        commands.entity(entity).insert(ButtonHighlight {
-            overlay: hover,
-            arrows: None,
-        });
+    TextureButton {
+        node,
+        normal: image,
+        hovered: ImageNode::new(highlighted.clone()),
+        action: rules.map(EditableRuleSet::update_action),
+        label: None,
+        font_size: 14.0,
+        color: TEXT,
+        icon: None,
     }
+    .mount(commands, parent, assets);
 }

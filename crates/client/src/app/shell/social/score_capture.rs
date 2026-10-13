@@ -1,7 +1,7 @@
 use super::*;
 use crate::app::presentation::{
-    ACCENT, CardSize, SCORE_ROLL_DELAY, SCORE_ROLL_DURATION, TABLE_SCORE_CARD_REVEAL, add_text,
-    rolling_score, score_gain_visual, spawn_node,
+    ACCENT, CardSize, SCORE_ROLL_DELAY, SCORE_ROLL_DURATION, TABLE_SCORE_CARD_REVEAL, UiComposer,
+    add_text, rolling_score, score_gain_visual, spawn_node,
 };
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::ecs::system::SystemParam;
@@ -55,7 +55,7 @@ fn score_source_in_layer(
 }
 
 pub(crate) fn sync_score_capture_effect(
-    mut commands: Commands,
+    mut commands: UiComposer,
     client: Option<Res<ClientResource>>,
     assets: Res<UiAssets>,
     mut state: ResMut<ScoreCaptureEffectState>,
@@ -117,7 +117,7 @@ pub(crate) fn sync_score_capture_effect(
 }
 
 fn spawn_score_capture_effect(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     layer_size: Vec2,
     anchor: ScoreAnchor,
@@ -128,8 +128,9 @@ fn spawn_score_capture_effect(
     let source_center = Vec2::new(layer_size.x * 0.5, layer_size.y * 0.50);
     let target = anchor.center;
     if (target - source_center).length() > 1.0 {
-        let vortex = commands
-            .spawn((
+        commands.child(
+            layer,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(target.x - 18.0),
@@ -146,9 +147,8 @@ fn spawn_score_capture_effect(
                 ActiveScoreVortex { elapsed: 0.0 },
                 GlobalZIndex(1550),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(layer).add_child(vortex);
+            ),
+        );
     }
 
     let card_count = capture.cards.len();
@@ -177,8 +177,9 @@ fn spawn_score_capture_effect(
             .get(&(card.rank(), card.suit()))
             .expect("all valid card faces are preloaded")
             .clone();
-        let entity = commands
-            .spawn((
+        commands.child(
+            layer,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(card_source.x),
@@ -208,9 +209,8 @@ fn spawn_score_capture_effect(
                 },
                 GlobalZIndex(1560 + index as i32),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(layer).add_child(entity);
+            ),
+        );
     }
 
     let score = spawn_node(
@@ -290,7 +290,7 @@ pub(crate) struct ScoreCaptureVisuals<'w, 's> {
 
 pub(crate) fn animate_score_capture_effects(
     time: Res<Time>,
-    mut commands: Commands,
+    mut commands: UiComposer,
     mut state: ResMut<ScoreCaptureEffectState>,
     mut visuals: ScoreCaptureVisuals,
     mut texts: Query<(Option<&PlayerGameScoreText>, &mut Text, &mut TextColor)>,

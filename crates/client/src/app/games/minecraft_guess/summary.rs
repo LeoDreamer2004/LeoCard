@@ -1,6 +1,6 @@
 use super::super::summary::{RankedSummary, SummaryPlayer, add_ranked_summary};
 use super::view::GuessTable;
-use crate::app::presentation::{SUMMARY_HAND_REVEAL_DURATION, SummaryDescriptor};
+use crate::app::presentation::{SUMMARY_HAND_REVEAL_DURATION, SummaryDescriptor, UiComposer};
 use bevy::prelude::*;
 use leocard_protocol::MinecraftGuessSnapshot;
 
@@ -20,7 +20,7 @@ pub(crate) fn guess_summary_descriptor(game: &MinecraftGuessSnapshot) -> Option<
 }
 
 impl GuessTable<'_> {
-    pub(super) fn summary(&self, commands: &mut Commands, page: Entity) {
+    pub(super) fn summary(&self, commands: &mut UiComposer, page: Entity) {
         if guess_summary_descriptor(self.game).is_none() {
             return;
         }

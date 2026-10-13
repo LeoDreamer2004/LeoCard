@@ -1,5 +1,6 @@
 //! 麻将房间、牌桌、动作按钮和结算视图。
 
+use super::actions::MahjongUiAction;
 use super::tiles::queue_mahjong_deal_sound;
 use super::{
     MAHJONG_WIN_PUSH_DURATION, MahjongActionPrompt, MahjongActionVoice, MahjongAssets,
@@ -13,11 +14,10 @@ use super::{
     render_mahjong_wall, render_mahjong_win_effects, render_own_discard_flight, render_own_hand,
     render_round_status,
 };
-use super::{MahjongReadyHintState, actions::MahjongUiAction};
-use crate::app::presentation::CustomButtonMotion;
 use crate::app::presentation::{
-    DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition, TableBackground,
-    TableBackgroundMaterial, add_auto_play_overlay, spawn_node, table_material_params,
+    CustomButtonMotion, DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition,
+    TableBackground, TableBackgroundMaterial, UiComposer, add_auto_play_overlay, spawn_node,
+    table_material_params, ui_component,
 };
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, ClientResource, TableAppearance, UiAssets,
@@ -335,7 +335,7 @@ pub(crate) struct MahjongTableVisuals<'a> {
 }
 
 pub(super) fn sync_mahjong_claim_presentation(
-    mut commands: Commands,
+    mut commands: UiComposer,
     mut client: Option<ResMut<ClientResource>>,
     mut presentation: ResMut<MahjongClaimPresentationState>,
     assets: Res<MahjongAssets>,
@@ -547,7 +547,7 @@ pub(crate) fn mahjong_tile_height_asset_path(kind: MahjongTileKind) -> String {
     reason = "the game-screen adapter passes common screen state plus grouped visuals"
 )]
 pub(crate) fn render_mahjong_table(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     client: &ClientResource,
     game: &MahjongSnapshot,
@@ -571,45 +571,30 @@ pub(crate) fn render_mahjong_table(
         claim_presentation,
         show_wait_fans,
     } = visuals;
-    let content = spawn_node(
-        commands,
+    let content = commands.mount(
         root,
-        Node {
+        format!("mahjong:{:?}:{}", game.match_id.0, game.sequence_index),
+        bsn! { @ui_component(Node {
             width: percent(100),
             flex_grow: 1.0,
             min_height: px(0),
             position_type: PositionType::Relative,
             ..default()
-        },
-        None,
+        }) },
     );
     let felt = appearance
         .custom_felt
         .as_ref()
         .unwrap_or(&assets.table_felt)
         .clone();
-    // 快照仍会重建界面；保留桌布材质可避免每次发牌都重新准备它的 GPU 资源。
-    let params = table_material_params(brightness, vignette, appearance.custom_felt.is_none());
-    let material = ui
-        .table_material
-        .as_ref()
-        .filter(|handle| table_materials.contains(*handle))
-        .cloned()
-        .unwrap_or_else(|| {
-            table_materials.add(TableBackgroundMaterial {
-                params,
-                texture: felt.clone(),
-            })
-        });
-    if table_materials
-        .get(&material)
-        .is_some_and(|existing| existing.params != params || existing.texture != felt)
-        && let Some(mut existing) = table_materials.get_mut(&material)
-    {
-        existing.params = params;
-        existing.texture = felt;
-    }
-    ui.table_material = Some(material.clone());
+    let material = commands.material(
+        content,
+        table_materials,
+        TableBackgroundMaterial {
+            params: table_material_params(brightness, vignette, appearance.custom_felt.is_none()),
+            texture: felt,
+        },
+    );
     commands
         .entity(content)
         .insert((MaterialNode(material), TableBackground));
@@ -842,7 +827,6 @@ pub(crate) fn render_mahjong_table(
             response_tile,
             show_wait_fans,
             observed_hand: &ui.observed_table.state.hand,
-            hover_lifts: &ui.hand_hover_lifts,
             dealing: dealing || own_flower_replaced,
             drawn_tile_falling,
             winning_hand: own_winning_hand,
@@ -942,10 +926,7 @@ pub(crate) fn render_mahjong_table(
         commands,
         chat_panel,
         game,
-        MahjongReadyHintState {
-            show_fans: show_wait_fans,
-            hovered: ui.ready_hint_hovered,
-        },
+        show_wait_fans,
         game_assets,
         tile_materials,
         assets,

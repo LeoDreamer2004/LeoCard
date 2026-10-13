@@ -1,5 +1,5 @@
 use super::{ConfirmationDialog, ConfirmationUiAction};
-use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyButtonVariant, CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_button,
@@ -8,7 +8,7 @@ use crate::app::shell::{
 use bevy::{picking::Pickable, prelude::*};
 
 pub(crate) fn render_confirmation(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     dialog: &ConfirmationDialog,
     assets: &UiAssets,

@@ -1,7 +1,6 @@
 use super::super::skin::{add_shengji_button, add_shengji_disabled_button};
 use super::super::{ShengjiUiAction, ShengjiUiState};
-use crate::app::presentation::GameButtonTone;
-use crate::app::presentation::spawn_node;
+use crate::app::presentation::{GameButtonTone, UiComposer, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -11,7 +10,7 @@ use leocard_protocol::{
 use leocard_shengji::forced_follow_cards;
 
 pub(super) fn add_shengji_actions(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     hand_area: Entity,
     game: &ShengjiSnapshot,
     ui: &ShengjiUiState,

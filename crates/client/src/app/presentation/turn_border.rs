@@ -2,6 +2,7 @@
 
 use super::ACCENT;
 use super::smootherstep;
+use crate::app::presentation::UiComposer;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
@@ -16,7 +17,7 @@ const TURN_BORDER_GAP_DURATION: f32 = 0.18;
 pub(crate) const TURN_BORDER_THICKNESS: f32 = 2.6;
 const TURN_BORDER_OUTSET: f32 = TURN_BORDER_THICKNESS * 0.5 + 0.75;
 
-#[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
+#[derive(AsBindGroup, Asset, TypePath, Debug, Clone, PartialEq)]
 pub(crate) struct TurnBorderMaterial {
     /// x: normalized tail, y: normalized head, z: corner radius, w: line thickness.
     #[uniform(0)]
@@ -67,29 +68,34 @@ pub(crate) struct TurnBorderAnimationState {
 }
 
 pub(crate) fn add_turn_border_trace_with_radius(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     materials: &mut Assets<TurnBorderMaterial>,
     key: TurnBorderAnimationKey,
     corner_radius: f32,
     anchor_width: f32,
 ) {
-    let material = materials.add(TurnBorderMaterial {
-        params: Vec4::new(
-            0.0,
-            0.0,
-            corner_radius + TURN_BORDER_OUTSET,
-            TURN_BORDER_THICKNESS,
-        ),
-        geometry: Vec4::new(anchor_width, corner_radius, 0.5, 0.0),
-        color: ACCENT.to_linear(),
-    });
+    let material = commands.material(
+        panel,
+        materials,
+        TurnBorderMaterial {
+            params: Vec4::new(
+                0.0,
+                0.0,
+                corner_radius + TURN_BORDER_OUTSET,
+                TURN_BORDER_THICKNESS,
+            ),
+            geometry: Vec4::new(anchor_width, corner_radius, 0.5, 0.0),
+            color: ACCENT.to_linear(),
+        },
+    );
     commands.entity(panel).insert(TurnBorderTrace {
         key,
         material: material.clone(),
     });
-    let trace = commands
-        .spawn((
+    commands.child(
+        panel,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(-TURN_BORDER_OUTSET),
@@ -101,9 +107,8 @@ pub(crate) fn add_turn_border_trace_with_radius(
             MaterialNode(material),
             ZIndex(90),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(panel).add_child(trace);
+        ),
+    );
 }
 
 pub(crate) fn turn_border_visible_interval(elapsed: f32, perimeter: f32) -> (f32, f32) {

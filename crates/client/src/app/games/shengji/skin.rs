@@ -1,4 +1,6 @@
-use crate::app::presentation::{GameButtonSpec, GameButtonTone, add_textured_game_button};
+use crate::app::presentation::{
+    GameButtonSpec, GameButtonTone, UiComposer, add_textured_game_button,
+};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -8,7 +10,7 @@ use bevy::prelude::*;
     reason = "button label, action, appearance and dimensions remain explicit"
 )]
 pub(super) fn add_shengji_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     label: &str,
     action: UiAction,
@@ -30,7 +32,7 @@ pub(super) fn add_shengji_button(
 }
 
 pub(super) fn add_shengji_disabled_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     label: &str,
     assets: &UiAssets,

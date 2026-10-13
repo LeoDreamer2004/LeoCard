@@ -1,10 +1,10 @@
 //! Timed click-to-continue prompt.
 
 use super::*;
+use crate::app::presentation::{TEXT, UiComposer, add_text, spawn_node};
 use bevy::picking::Pickable;
 use bevy::ui_widgets::Button;
 
-use crate::app::presentation::{TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -14,7 +14,7 @@ use bevy::prelude::*;
     reason = "the prompt has explicit timing and action"
 )]
 pub(super) fn render_settlement_continue(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     content: Entity,
     assets: &UiAssets,
     elapsed: f32,

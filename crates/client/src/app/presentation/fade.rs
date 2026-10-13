@@ -1,5 +1,6 @@
 //! Shared visual subtree opacity, independent of page and feature state.
 
+use crate::app::presentation::UiComposer;
 use bevy::ecs::query::QueryFilter;
 use bevy::prelude::*;
 use bevy::ui::{BackgroundGradient, Gradient};
@@ -50,7 +51,7 @@ pub(crate) fn fade_panel<Filter: QueryFilter>(
     opacity: f32,
     children: &Query<&Children>,
     visuals: &mut TransitionVisuals<Filter>,
-    commands: &mut Commands,
+    commands: &mut UiComposer,
 ) {
     let mut pending = vec![root];
     while let Some(entity) = pending.pop() {
@@ -66,13 +67,30 @@ pub(crate) fn fade_panel<Filter: QueryFilter>(
             transition.0 = opacity.clamp(0.0, 1.0);
             continue;
         }
-        let base = cached.cloned().unwrap_or_else(|| TransitionFadeBase {
+        let mut base = cached.cloned().unwrap_or_else(|| TransitionFadeBase {
             image: image.as_ref().map(|image| image.color),
             text: text.as_ref().map(|text| text.0),
             background: background.as_ref().map(|background| background.0),
             border: border.as_ref().map(|border| **border),
             gradient: gradient.as_ref().map(|gradient| (**gradient).clone()),
         });
+        // Authored colors can change while the entity survives a page refresh.
+        // Use them as the alpha baseline rather than reusing a stale fade cache.
+        if let Some(image) = commands.declared::<ImageNode>(entity) {
+            base.image = Some(image.color);
+        }
+        if let Some(text) = commands.declared::<TextColor>(entity) {
+            base.text = Some(text.0);
+        }
+        if let Some(background) = commands.declared::<BackgroundColor>(entity) {
+            base.background = Some(background.0);
+        }
+        if let Some(border) = commands.declared::<BorderColor>(entity) {
+            base.border = Some(*border);
+        }
+        if let Some(gradient) = commands.declared::<BackgroundGradient>(entity) {
+            base.gradient = Some(gradient.clone());
+        }
         if cached.is_none() {
             commands.entity(entity).insert(base.clone());
         }

@@ -18,7 +18,7 @@ pub(crate) enum ClientUpdateSet {
     Input,
     Network,
     Sync,
-    Rebuild,
+    Compose,
     Animate,
 }
 
@@ -103,7 +103,7 @@ impl Plugin for RuntimePlugin {
                     ClientUpdateSet::Input,
                     ClientUpdateSet::Network,
                     ClientUpdateSet::Sync,
-                    ClientUpdateSet::Rebuild,
+                    ClientUpdateSet::Compose,
                     ClientUpdateSet::Animate,
                 )
                     .chain(),

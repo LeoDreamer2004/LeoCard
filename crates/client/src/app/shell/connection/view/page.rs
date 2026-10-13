@@ -1,7 +1,7 @@
 //! 建房游戏选择与主连接页面。
 
 use super::gallery::GameGallery;
-use crate::app::presentation::spawn_node;
+use crate::app::presentation::{UiComposer, UiSceneKey};
 use crate::app::runtime::{AppearancePreferences, AvatarImages, ConnectionDraft, UiAssets};
 use bevy::prelude::*;
 
@@ -27,34 +27,26 @@ impl<'a> ConnectionScreen<'a> {
         }
     }
 
-    pub(crate) fn render(self, commands: &mut Commands, root: Entity) {
-        let canvas = spawn_node(
-            commands,
+    pub(crate) fn render(self, commands: &mut UiComposer, root: Entity) {
+        let canvas = commands.mount(
             root,
-            Node {
-                width: percent(100),
-                flex_grow: 1.0,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
+            "connection",
+            bsn! {
+                Node {
+                    width: percent(100), flex_grow: 1.0,
+                    align_items: AlignItems::Center, justify_content: JustifyContent::Center,
+                }
+                Children [
+                    UiSceneKey("content")
+                    Node {
+                        width: percent(100), max_width: px(1370),
+                        padding: UiRect::all(px(20)), flex_direction: FlexDirection::Row,
+                        align_items: AlignItems::FlexStart, column_gap: px(16),
+                    }
+                ]
             },
-            None,
         );
-
-        let content = spawn_node(
-            commands,
-            canvas,
-            Node {
-                width: percent(100),
-                max_width: px(1370),
-                padding: UiRect::all(px(20)),
-                flex_direction: FlexDirection::Row,
-                align_items: AlignItems::FlexStart,
-                column_gap: px(16),
-                ..default()
-            },
-            None,
-        );
+        let content = commands.entity_for(canvas, "content");
         GameGallery::new(self.assets).render(commands, content);
         self.render_sidebar(commands, content);
     }

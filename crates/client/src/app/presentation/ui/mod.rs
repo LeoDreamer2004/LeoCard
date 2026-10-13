@@ -3,9 +3,11 @@
 mod appearance;
 mod components;
 mod constants;
+mod scene;
 mod widgets;
 
 pub(crate) use appearance::*;
 pub(crate) use components::*;
 pub(crate) use constants::*;
+pub(crate) use scene::*;
 pub(crate) use widgets::*;

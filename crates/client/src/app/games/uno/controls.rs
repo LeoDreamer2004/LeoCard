@@ -3,8 +3,8 @@ use super::{
     uno_pair_for_selection, uno_ui_color,
 };
 use crate::app::presentation::{
-    ButtonKind, ButtonTint, GameButtonImageMode, GameButtonSpec, PanelSkin, add_section_title,
-    add_text, add_textured_game_button, spawn_node,
+    ButtonKind, ButtonTint, GameButtonImageMode, GameButtonSpec, PanelSkin, UiComposer,
+    add_section_title, add_text, add_textured_game_button, spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{UiAction, add_cozy_panel_with_skin};
@@ -48,7 +48,7 @@ fn uno_button_texture(assets: &UiAssets, kind: ButtonKind) -> (&Handle<Image>, &
     reason = "game buttons share one texture renderer with explicit action and size"
 )]
 fn add_uno_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     label: &str,
     action: Option<UiAction>,
@@ -83,7 +83,7 @@ fn add_uno_button(
 }
 
 pub(super) fn add_uno_action_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     label: &str,
     action: UiAction,
@@ -103,7 +103,7 @@ pub(super) fn add_uno_action_button(
 }
 
 pub(super) fn add_uno_disabled_action_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     label: &str,
     assets: &UiAssets,
@@ -121,7 +121,7 @@ pub(super) fn add_uno_disabled_action_button(
 }
 
 pub(super) fn add_uno_actions(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &UnoSnapshot,
     ui: &UnoUiState,
@@ -345,7 +345,7 @@ pub(super) fn add_uno_actions(
 }
 
 pub(super) fn add_uno_callout_actions(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &UnoSnapshot,
     assets: &UiAssets,
@@ -410,7 +410,7 @@ pub(super) fn add_uno_callout_actions(
 }
 
 fn add_subtle_uno_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     label: &str,
     action: Option<UiAction>,
@@ -421,7 +421,7 @@ fn add_subtle_uno_button(
 }
 
 pub(super) fn add_initial_color_choice(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     game: &UnoSnapshot,
     assets: &UiAssets,
@@ -469,7 +469,7 @@ pub(super) fn add_initial_color_choice(
 }
 
 pub(super) fn add_play_color_choice(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     flip_side: Option<UnoFlipSide>,
     card: UnoCard,
@@ -486,7 +486,7 @@ pub(super) fn add_play_color_choice(
 }
 
 fn add_color_choice_overlay(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     title: String,
     choice: Option<Option<UnoCard>>,
@@ -542,8 +542,9 @@ fn add_color_choice_overlay(
             Some(UnoFlipSide::Light) | None => UnoColor::LIGHT,
         };
         for color in colors {
-            let button = commands
-                .spawn((
+            let button = commands.child(
+                color_row,
+                (
                     Button,
                     card.map_or(
                         UiAction::Uno(UnoUiAction::ChooseInitialColor(color)),
@@ -565,9 +566,8 @@ fn add_color_choice_overlay(
                     },
                     BackgroundColor(uno_ui_color(color)),
                     BorderColor::all(Color::WHITE.with_alpha(0.78)),
-                ))
-                .id();
-            commands.entity(color_row).add_child(button);
+                ),
+            );
             let label = add_text(
                 commands,
                 button,

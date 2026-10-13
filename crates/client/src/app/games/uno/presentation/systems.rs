@@ -9,6 +9,7 @@ use super::flip::*;
 use super::palette::*;
 use super::reverse::*;
 use super::*;
+use crate::app::presentation::UiComposer;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer};
 use bevy::prelude::*;
@@ -100,7 +101,7 @@ pub(in crate::app::games::uno) fn sync_uno_presentation(
     reason = "Bevy injects independent effect resources and target queries"
 )]
 pub(crate) fn spawn_uno_presentation_effects(
-    mut commands: Commands,
+    mut commands: UiComposer,
     client: Option<Res<ClientResource>>,
     ui_assets: Res<UiAssets>,
     game_assets: Res<UnoAssets>,
@@ -138,9 +139,8 @@ pub(crate) fn spawn_uno_presentation_effects(
     let Ok((discard_node, discard_transform)) = discards.single() else {
         return;
     };
-    // `rebuild_ui` 会在收到权威快照时重建牌桌；同一帧中新节点尚未经过
-    // Bevy 的布局阶段，ComputedNode/UiGlobalTransform 仍指向左上角。等到下一帧
-    // 所有锚点拥有真实尺寸后再消费事件，否则整组动画会被画在 (0, 0)。
+    // 新出现的锚点仍需经过布局阶段；既有锚点在快照更新后保持实体与坐标。
+    // 等到所有锚点拥有真实尺寸后再消费事件，避免将动画绘制在 (0, 0)。
     let Some(scene) = UnoPresentationScene::resolve(
         layer,
         layer_node,

@@ -1,17 +1,17 @@
 use super::metrics::Metrics;
 use leocard_texas_holdem::{
     GameState, Phase, TexasHoldemAction, TexasHoldemBot, TexasHoldemBotObservation,
-    TexasHoldemPlayerId, TexasHoldemRuleSet, build_deck,
+    TexasHoldemPlayerId, TexasHoldemRuleSet, TexasHoldemStreet, build_deck,
 };
 use std::time::Duration;
 
-pub fn run(seed: usize, budget: Duration, mixed: bool, metrics: &mut Metrics) {
+pub fn run(seed: usize, budget: Duration, mixed: bool, starting_chips: u16, metrics: &mut Metrics) {
     let rules = TexasHoldemRuleSet {
         player_count: 3 + (seed % 4) as u8,
-        starting_chips: 50,
-        short_deck: seed % 4 == 1,
-        omaha: seed % 4 == 2,
-        ignore_kickers: seed % 4 == 3,
+        starting_chips,
+        short_deck: seed / 4 % 4 == 1,
+        omaha: seed / 4 % 4 == 2,
+        ignore_kickers: seed / 4 % 4 == 3,
     };
     let mut deck = build_deck(rules.short_deck);
     fastrand::Rng::with_seed(seed as u64).shuffle(&mut deck);
@@ -21,9 +21,10 @@ pub fn run(seed: usize, budget: Duration, mixed: bool, metrics: &mut Metrics) {
         deck,
     )
     .unwrap();
+    let mut reached_flop = false;
     for _ in 0..300 {
         if let Phase::Complete(result) = game.phase() {
-            metrics.score += i64::from(result.final_stacks[0]) - 50;
+            metrics.score += i64::from(result.final_stacks[0]) - i64::from(starting_chips);
             println!(
                 "texas seed={seed}: stacks={:?} showdown={}",
                 result.final_stacks, result.showdown
@@ -41,6 +42,16 @@ pub fn run(seed: usize, budget: Duration, mixed: bool, metrics: &mut Metrics) {
                 TexasHoldemBot::choose(&observation, budget)
             })
         };
+        if game.phase() == &Phase::Betting(TexasHoldemStreet::PreFlop)
+            && action != TexasHoldemAction::PostBlind
+        {
+            metrics.preflop_actions += 1;
+            metrics.preflop_folds += usize::from(action == TexasHoldemAction::Fold);
+        }
+        if let TexasHoldemAction::RaiseTo(target) = action {
+            metrics.off_step_raises +=
+                usize::from(!(target - game.current_bet()).is_multiple_of(game.minimum_raise()));
+        }
         match action {
             TexasHoldemAction::RaiseTo(_) | TexasHoldemAction::AllIn => metrics.gains += 1,
             TexasHoldemAction::Call => metrics.calls += 1,
@@ -49,6 +60,10 @@ pub fn run(seed: usize, budget: Duration, mixed: bool, metrics: &mut Metrics) {
         }
         game.act(player, action)
             .unwrap_or_else(|error| panic!("texas seed={seed} action={action:?}: {error}"));
+        if !reached_flop && game.community().len() >= 3 {
+            metrics.flops += 1;
+            reached_flop = true;
+        }
     }
     panic!("texas did not finish");
 }

@@ -1,12 +1,12 @@
 use super::super::UnoUiAction;
 use super::UnoJumpInDevice;
-use crate::app::presentation::{DrawerSwitch, SwitchDrawer, add_switch_drawer};
+use crate::app::presentation::{DrawerSwitch, SwitchDrawer, UiComposer, add_switch_drawer};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 
 pub(in super::super) fn render_jump_in_device(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     content: Entity,
     device: &UnoJumpInDevice,
     assets: &UiAssets,

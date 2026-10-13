@@ -1,8 +1,8 @@
 use super::super::{UnoAssets, UnoFlipCard, UnoFlipOverlay, UnoFlipTarget, uno_card_handle};
+use crate::app::presentation::{UiComposer, add_text, spawn_node};
 use bevy::picking::Pickable;
 
 use super::UNO_PLAY_CARD_DURATION;
-use crate::app::presentation::{add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::UnoSnapshot;
@@ -10,7 +10,7 @@ use leocard_uno::UnoFlipSide;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn spawn_uno_flip_effect(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     layer_size: Vec2,
     previous_game: Option<&UnoSnapshot>,
@@ -19,8 +19,9 @@ pub(super) fn spawn_uno_flip_effect(
     ui_assets: &UiAssets,
     game_assets: &UnoAssets,
 ) {
-    let overlay = commands
-        .spawn((
+    let overlay = commands.child(
+        layer,
+        (
             UnoFlipOverlay { elapsed: 0.0 },
             Node {
                 position_type: PositionType::Absolute,
@@ -36,9 +37,8 @@ pub(super) fn spawn_uno_flip_effect(
             }),
             GlobalZIndex(1490),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(layer).add_child(overlay);
+        ),
+    );
 
     let title = spawn_node(
         commands,

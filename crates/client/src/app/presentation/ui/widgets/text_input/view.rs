@@ -2,7 +2,7 @@ use super::{
     TextInputSkin,
     state::{InputPlaceholder, TextInputKey, TextInputSlot},
 };
-use crate::app::presentation::{MUTED, TEXT, UiPressTarget, add_text};
+use crate::app::presentation::{MUTED, TEXT, UiComposer, UiPressTarget, add_text, ui_component};
 use crate::app::runtime::UiAssets;
 use bevy::{
     input_focus::tab_navigation::TabIndex,
@@ -39,7 +39,7 @@ impl<'a> TextInput<'a> {
 
     pub fn spawn(
         self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         parent: Entity,
         mut node: Node,
         assets: &UiAssets,
@@ -48,36 +48,46 @@ impl<'a> TextInput<'a> {
         let image = skin.image(false).clone();
         node.align_items = AlignItems::Center;
         let padding = node.padding;
-        let slot = commands.spawn((node, image, skin, UiPressTarget)).id();
-        commands.entity(parent).add_child(slot);
-        let editor = commands
-            .spawn((
-                TextInputKey(self.key),
-                NativeTextInput,
-                EditableText {
-                    max_characters: Some(self.max_characters),
-                    allow_newlines: false,
-                    ..EditableText::new(self.value)
-                },
-                EditableTextFilter::new(self.filter),
-                TextFont::from_font_size(self.font_size).with_font(assets.font.clone()),
-                TextColor(TEXT),
-                TextCursorStyle {
-                    color: TEXT,
-                    selection_color: Color::srgb(0.20, 0.42, 0.72),
-                    unfocused_selection_color: Color::NONE,
-                    ..default()
-                },
-                TextLayout::no_wrap(),
-                TabIndex(self.tab_index),
-                Node {
-                    width: percent(100),
-                    min_width: px(0),
-                    overflow: Overflow::clip(),
-                    ..default()
-                },
-            ))
-            .id();
+        let slot = commands.mount(
+            parent,
+            format!("input:{}", self.key),
+            bsn! {
+                node
+                @ui_component(image)
+                @ui_component(skin)
+                UiPressTarget
+            },
+        );
+        let editor = commands.entity_for(slot, "editor");
+        commands
+            .entity(editor)
+            .entry::<EditableText>()
+            .or_insert(EditableText {
+                max_characters: Some(self.max_characters),
+                allow_newlines: false,
+                ..EditableText::new(self.value)
+            });
+        commands.entity(editor).insert((
+            TextInputKey(self.key),
+            NativeTextInput,
+            EditableTextFilter::new(self.filter),
+            TextFont::from_font_size(self.font_size).with_font(assets.font.clone()),
+            TextColor(TEXT),
+            TextCursorStyle {
+                color: TEXT,
+                selection_color: Color::srgb(0.20, 0.42, 0.72),
+                unfocused_selection_color: Color::NONE,
+                ..default()
+            },
+            TextLayout::no_wrap(),
+            TabIndex(self.tab_index),
+            Node {
+                width: percent(100),
+                min_width: px(0),
+                overflow: Overflow::clip(),
+                ..default()
+            },
+        ));
         #[cfg(target_os = "android")]
         commands
             .entity(editor)
@@ -93,10 +103,7 @@ impl<'a> TextInput<'a> {
             });
         commands
             .entity(slot)
-            .insert(TextInputSlot {
-                key: TextInputKey(self.key),
-                editor,
-            })
+            .insert(TextInputSlot { editor })
             .add_child(editor);
         if !self.placeholder.is_empty() {
             // 原生编辑器必须保持为叶节点，才能使用文本测量计算高度。

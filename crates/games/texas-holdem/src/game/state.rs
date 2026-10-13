@@ -158,6 +158,10 @@ pub enum GameError {
         maximum_target: u32,
         target: u32,
     },
+    RaiseInvalidIncrement {
+        increment: u32,
+        target: u32,
+    },
     RaiseNotReopened,
     PlayerCannotAct(TexasHoldemPlayerId),
     MustPostBlind,
@@ -200,6 +204,12 @@ impl fmt::Display for GameError {
                 maximum_target,
                 target,
             } => write!(f, "最多只能下注到 {maximum_target}，实际目标为 {target}"),
+            Self::RaiseInvalidIncrement { increment, target } => {
+                write!(
+                    f,
+                    "普通加注增量必须为 {increment} 的倍数，实际目标为 {target}"
+                )
+            }
             Self::RaiseNotReopened => f.write_str("不足额全下没有重新开放加注权"),
             Self::PlayerCannotAct(player) => write!(f, "玩家 {:?} 已弃牌、全下或出局", player),
             Self::MustPostBlind => f.write_str("当前只能下盲注"),

@@ -1,5 +1,5 @@
 use super::TurnClockLabel;
-use crate::app::presentation::add_text;
+use crate::app::presentation::{UiComposer, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::{GamePhaseView, PlayerId, QiGui523Snapshot, TurnTimerView};
@@ -21,7 +21,7 @@ pub(crate) fn turn_clock_visible(game: &QiGui523Snapshot, player: PlayerId) -> b
 }
 
 pub(super) fn add_turn_clock(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     timer: Option<TurnTimerView>,
     assets: &UiAssets,

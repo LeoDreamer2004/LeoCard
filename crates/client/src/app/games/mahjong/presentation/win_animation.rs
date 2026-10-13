@@ -1,3 +1,4 @@
+use crate::app::presentation::{DESIGN_WIDTH, GameSummaryAnimation, UiComposer, ease_out_cubic};
 use std::f32::consts;
 
 use super::super::{
@@ -11,7 +12,6 @@ use super::MAHJONG_WIN_PUSH_DURATION;
 use super::win_view::{
     mahjong_win_effect_color, mahjong_win_effect_elapsed, mahjong_win_effect_visual,
 };
-use crate::app::presentation::{DESIGN_WIDTH, GameSummaryAnimation, ease_out_cubic};
 use bevy::prelude::*;
 use leocard_protocol::{MahjongHandResultView, MahjongWinView};
 
@@ -57,7 +57,7 @@ pub(crate) fn mahjong_win_tile_cues(
 }
 
 pub(crate) fn mark_mahjong_win_tile(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     entity: Entity,
     result: &MahjongHandResultView,
     cues: Vec<MahjongWinTileCue>,

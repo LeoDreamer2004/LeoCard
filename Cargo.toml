@@ -29,6 +29,7 @@ bevy = { version = "0.20", default-features = false, features = [
     "bevy_asset",
     "bevy_audio",
     "bevy_log",
+    "bevy_scene",
     "bevy_state",
     "bevy_winit",
     "default_font",

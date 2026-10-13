@@ -1,12 +1,12 @@
 //! Product information and update actions.
 
+use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::shell::UpdateUiAction;
 
 use super::super::super::{
     CozyButtonVariant, UiAction, UpdateManager, UpdateState, add_cozy_button_variant,
     add_cozy_button_with_icon, settings_update_label,
 };
-use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 
@@ -20,7 +20,7 @@ impl<'a> AboutSettings<'a> {
         Self { updater, assets }
     }
 
-    pub(super) fn render(self, commands: &mut Commands, parent: Entity) {
+    pub(super) fn render(self, commands: &mut UiComposer, parent: Entity) {
         let identity = spawn_node(
             commands,
             parent,
@@ -73,7 +73,7 @@ impl<'a> SoftwareUpdateSettings<'a> {
         Self { updater, assets }
     }
 
-    fn render(self, commands: &mut Commands, parent: Entity) {
+    fn render(self, commands: &mut UiComposer, parent: Entity) {
         let updater = self.updater;
         let assets = self.assets;
         spawn_node(

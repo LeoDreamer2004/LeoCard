@@ -4,7 +4,7 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, ButtonKind, DANGER, DESIGN_WIDTH, MUTED, PanelSkin, PlayerMenuProfile,
-    PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial,
+    PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, UiComposer,
     add_avatar_status_overlay, add_host_crown, add_player_portrait, add_text,
     add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
 };
@@ -25,7 +25,7 @@ pub(super) const UNO_PORTRAIT_HEIGHT: f32 = 106.0 * 1.17;
 pub(super) const UNO_AVATAR_SIZE: f32 = 52.0 * 1.17;
 
 pub(super) fn add_uno_eliminated_own_overlay(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     assets: &UiAssets,
 ) {
@@ -81,7 +81,7 @@ pub(super) fn opponent_position(index: usize, count: usize) -> (f32, f32) {
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn add_uno_player_panel(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &UnoSnapshot,
     player: &UnoPlayerState,
@@ -230,8 +230,9 @@ pub(super) fn add_uno_player_panel(
                 },
                 None,
             );
-            let face = commands
-                .spawn((
+            commands.child(
+                slot,
+                (
                     UnoFlipTarget::Opponent {
                         player: player.id,
                         index,
@@ -245,9 +246,8 @@ pub(super) fn add_uno_player_panel(
                     UiTransform::IDENTITY,
                     BoxShadow::new(Color::BLACK.with_alpha(0.35), px(1), px(2), px(0), px(3)),
                     Pickable::IGNORE,
-                ))
-                .id();
-            commands.entity(slot).add_child(face);
+                ),
+            );
         }
     }
     if selected {
@@ -273,7 +273,7 @@ pub(super) fn add_uno_player_panel(
 
 /// 三张散开的牌背与剩余手牌数，放在头像姓名正下方。
 pub(super) fn add_uno_card_count(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     portrait: Entity,
     count: usize,
     color: Color,
@@ -363,7 +363,7 @@ pub(super) fn add_uno_card_count(
 }
 
 pub(super) fn add_uno_eliminated_player_overlay(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     assets: &UiAssets,
 ) {
@@ -394,7 +394,7 @@ pub(super) fn add_uno_eliminated_player_overlay(
 }
 
 pub(super) fn add_uno_swap_selected_label(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     assets: &UiAssets,
 ) {
@@ -418,7 +418,7 @@ pub(super) fn add_uno_swap_selected_label(
 }
 
 pub(super) fn add_uno_swap_selection_prompt(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &UnoSnapshot,
     ui: &UnoUiState,
@@ -465,7 +465,7 @@ pub(super) fn add_uno_swap_selection_prompt(
 }
 
 fn add_uno_swap_prompt_panel(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     title: &str,
     required: Option<usize>,
@@ -523,7 +523,7 @@ fn uno_finished_hand(game: &UnoSnapshot, player: PlayerId) -> Option<&[UnoCard]>
 /// 终局停顿期间把对手的实际手牌摊开在人像框下方。牌再多也压缩间距，
 /// 保证整手牌仍归属于对应玩家，而不会挤入相邻座位。
 fn add_uno_finished_hand(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     cards: &[UnoCard],
     assets: &UnoAssets,
@@ -566,8 +566,9 @@ fn add_uno_finished_hand(
             },
             None,
         );
-        let face = commands
-            .spawn((
+        commands.child(
+            slot,
+            (
                 Node {
                     width: px(UNO_OPPONENT_CARD_WIDTH),
                     height: px(UNO_OPPONENT_CARD_HEIGHT),
@@ -577,9 +578,8 @@ fn add_uno_finished_hand(
                 ImageNode::new(uno_card_handle(assets, card)),
                 BoxShadow::new(Color::BLACK.with_alpha(0.42), px(1), px(3), px(0), px(4)),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(slot).add_child(face);
+            ),
+        );
     }
 }
 
@@ -602,7 +602,7 @@ pub(super) fn uno_skip_count(game: &UnoSnapshot, player: &UnoPlayerState) -> u16
 }
 
 pub(super) fn add_uno_skip_overlay(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     count: u16,
     assets: &UiAssets,

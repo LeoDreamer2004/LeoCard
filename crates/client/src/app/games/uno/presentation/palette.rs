@@ -1,3 +1,4 @@
+use crate::app::presentation::UiComposer;
 use bevy::picking::Pickable;
 use std::f32::consts;
 
@@ -10,15 +11,16 @@ use bevy::prelude::*;
 use leocard_uno::UnoColor;
 
 pub(super) fn spawn_uno_palette_effect(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     center: Vec2,
     selected: UnoColor,
     materials: &mut Assets<UnoPaletteMaterial>,
 ) {
     let base_material = materials.add(UnoPaletteMaterial::new(selected, false));
-    let palette = commands
-        .spawn((
+    let palette = commands.child(
+        layer,
+        (
             UnoPaletteEffect { elapsed: 0.0 },
             Node {
                 position_type: PositionType::Absolute,
@@ -34,12 +36,12 @@ pub(super) fn spawn_uno_palette_effect(
             BoxShadow::new(Color::BLACK.with_alpha(0.0), px(3), px(6), px(0), px(9)),
             GlobalZIndex(1500),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(layer).add_child(palette);
+        ),
+    );
     let sector_material = materials.add(UnoPaletteMaterial::new(selected, true));
-    let selected_sector = commands
-        .spawn((
+    commands.child(
+        palette,
+        (
             UnoPaletteSelectedSector { elapsed: 0.0 },
             Node {
                 position_type: PositionType::Absolute,
@@ -52,9 +54,8 @@ pub(super) fn spawn_uno_palette_effect(
             MaterialNode(sector_material),
             UiTransform::from_scale(Vec2::ONE),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(palette).add_child(selected_sector);
+        ),
+    );
 
     let selected_color = uno_ui_color(selected);
     for (diameter, thickness, delay, start_scale, end_scale, max_alpha) in [
@@ -62,8 +63,9 @@ pub(super) fn spawn_uno_palette_effect(
         (224.0, 6.0, 0.0, 1.16, 2.30, 0.82),
         (208.0, 2.5, 0.07, 1.19, 2.25, 0.68),
     ] {
-        let ring = commands
-            .spawn((
+        commands.child(
+            palette,
+            (
                 UnoPaletteColorRing {
                     elapsed: 0.0,
                     delay,
@@ -86,9 +88,8 @@ pub(super) fn spawn_uno_palette_effect(
                 UiTransform::from_scale(Vec2::splat(start_scale)),
                 Pickable::IGNORE,
                 ZIndex(2),
-            ))
-            .id();
-        commands.entity(palette).add_child(ring);
+            ),
+        );
     }
 
     let sector_angle = match selected {
@@ -107,8 +108,9 @@ pub(super) fn spawn_uno_palette_effect(
         let distance = 76.0 + (index % 4) as f32 * 12.0;
         let direction = Vec2::new(angle.cos(), angle.sin()) * distance;
         let size = 5.0 + (index % 3) as f32 * 1.7;
-        let particle = commands
-            .spawn((
+        commands.child(
+            palette,
+            (
                 UnoPaletteParticle {
                     elapsed: 0.0,
                     delay: 0.72 + index as f32 * 0.018,
@@ -131,8 +133,7 @@ pub(super) fn spawn_uno_palette_effect(
                 UiTransform::from_scale(Vec2::splat(0.2)),
                 Pickable::IGNORE,
                 ZIndex(3),
-            ))
-            .id();
-        commands.entity(palette).add_child(particle);
+            ),
+        );
     }
 }

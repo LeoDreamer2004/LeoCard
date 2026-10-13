@@ -2,13 +2,13 @@ use super::{
     MahjongAssets, MahjongDealSpec, MahjongDealTile, MahjongDiscardHandShift, MahjongHandTile,
     MahjongHoverHandKind, MahjongTileMaterial, mahjong_local_light,
 };
-use crate::app::presentation::{PendingDealSound, ease_out_cubic};
+use crate::app::presentation::{PendingDealSound, UiComposer, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
-use leocard_mahjong::MahjongTileKind;
+use leocard_mahjong::MahjongTile;
 use std::f32::consts;
 
 const MAHJONG_DEAL_MOVE_DURATION: f32 = 0.28;
@@ -52,11 +52,11 @@ pub(super) fn mahjong_draw_spec(relative: u8) -> MahjongDealSpec {
     }
 }
 
-pub(super) fn queue_mahjong_deal_sound(commands: &mut Commands, assets: &UiAssets) {
+pub(super) fn queue_mahjong_deal_sound(commands: &mut UiComposer, assets: &UiAssets) {
     if assets.audio.deal_sounds.is_empty() {
         return;
     }
-    commands.spawn(PendingDealSound {
+    commands.effect(PendingDealSound {
         remaining: 0.0,
         variant: fastrand::usize(..assets.audio.deal_sounds.len()),
     });
@@ -67,15 +67,16 @@ pub(super) fn queue_mahjong_deal_sound(commands: &mut Commands, assets: &UiAsset
     reason = "the tile builder keeps its material and animation inputs explicit"
 )]
 pub(super) fn add_mahjong_hand_tile(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
-    kind: MahjongTileKind,
+    tile: MahjongTile,
     action: Option<UiAction>,
     index: usize,
     deal: Option<MahjongDealSpec>,
     game_assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) -> Entity {
+    let kind = tile.kind();
     let glyph = game_assets
         .tiles
         .get(&kind)
@@ -86,22 +87,12 @@ pub(super) fn add_mahjong_hand_tile(
         .get(&kind)
         .cloned()
         .expect("所有麻将凹刻高度图都应预加载");
-    let material = materials.add(MahjongTileMaterial {
-        params: Vec4::new(0.0, 0.0, if deal.is_some() { 0.0 } else { 1.0 }, -1.0),
-        lighting: mahjong_local_light(0),
-        highlight: Vec4::ZERO,
-        glyph,
-        height,
-    });
     let base_rotation = 0.0;
-    let entity = commands
-        .spawn((
+    let entity = commands.keyed_child(
+        parent,
+        format!("tile:{tile:?}"),
+        (
             Button,
-            MahjongHandTile {
-                lift: 0.0,
-                base_rotation,
-                index: index as i32,
-            },
             MahjongHoverHandKind(kind),
             Node {
                 width: px(56),
@@ -111,17 +102,44 @@ pub(super) fn add_mahjong_hand_tile(
                 overflow: Overflow::visible(),
                 ..default()
             },
-            MaterialNode(material),
             BoxShadow::new(Color::BLACK.with_alpha(0.0), px(1), px(7), px(0), px(3)),
             ZIndex(index as i32),
             UiTransform::from_rotation(Rot2::radians(base_rotation)),
-        ))
-        .id();
+        ),
+    );
+
+    let material = commands.material(
+        entity,
+        materials,
+        MahjongTileMaterial {
+            params: Vec4::new(0.0, 0.0, if deal.is_some() { 0.0 } else { 1.0 }, -1.0),
+            lighting: mahjong_local_light(0),
+            highlight: Vec4::ZERO,
+            glyph,
+            height,
+        },
+    );
+    commands.entity(entity).insert(MaterialNode(material));
+    commands
+        .entity(entity)
+        .entry::<MahjongHandTile>()
+        .or_insert(MahjongHandTile {
+            lift: 0.0,
+            base_rotation,
+            index: index as i32,
+        });
+    commands
+        .entity(entity)
+        .entry::<MahjongHandTile>()
+        .and_modify(move |mut visual| {
+            visual.index = index as i32;
+            visual.base_rotation = base_rotation;
+        });
     if let Some(action) = action {
         commands.entity(entity).insert(action);
     }
     if let Some(deal) = deal {
-        commands.entity(entity).insert(MahjongDealTile {
+        commands.entity(entity).init(MahjongDealTile {
             elapsed: 0.0,
             falling: deal.falling,
             start_offset: deal.start_offset,
@@ -131,7 +149,6 @@ pub(super) fn add_mahjong_hand_tile(
             final_shadow_alpha: 0.0,
         });
     }
-    commands.entity(parent).add_child(entity);
     entity
 }
 
@@ -191,7 +208,7 @@ pub(super) fn sync_mahjong_hand_tile_materials(
 }
 
 pub(super) fn animate_mahjong_deal_tiles(
-    mut commands: Commands,
+    mut commands: UiComposer,
     time: Res<Time>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
     mut tiles: Query<(

@@ -3,10 +3,10 @@ use super::super::{
     MahjongAssets, MahjongClaimHeldTile, MahjongDealSpec, MahjongDealTile, MahjongMatchingTileKind,
     MahjongTileHighlight, MahjongTileMaterial, mahjong_local_light, mahjong_local_shadow,
 };
+use crate::app::presentation::{UiComposer, spawn_node};
 use bevy::picking::Pickable;
 
 use super::claim::{MahjongClaimLandingSlot, mahjong_claim_held_tile_visual};
-use crate::app::presentation::spawn_node;
 use bevy::prelude::*;
 use leocard_mahjong::{
     MahjongClaim, MahjongKongKind, MahjongMeldKind, MahjongTileKind, MahjongWind,
@@ -42,7 +42,7 @@ pub(crate) struct MahjongTileVisual {
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn render_mahjong_staged_meld(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     claim: &ActiveMahjongClaimPresentation,
     index: &mut usize,
@@ -175,7 +175,7 @@ pub(crate) fn render_mahjong_staged_meld(
 }
 
 pub(crate) fn render_mahjong_meld(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     meld: &MahjongPublicMeldView,
     index: &mut usize,
@@ -293,7 +293,7 @@ pub(crate) fn render_mahjong_meld(
 }
 
 pub(crate) fn add_mahjong_tile_material(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     visual: MahjongTileVisual,
     game_assets: &MahjongAssets,
@@ -341,30 +341,6 @@ pub(crate) fn add_mahjong_tile_material(
                 .expect("所有麻将凹刻高度图都应预加载")
         },
     );
-    let material = materials.add(MahjongTileMaterial {
-        params: Vec4::new(
-            0.0,
-            if back { 1.0 } else { 0.0 },
-            if deal.is_some() { 0.0 } else { 1.0 },
-            match size {
-                MahjongTileSize::HiddenSide => -2.0,
-                MahjongTileSize::HiddenOpposite => -3.0,
-                MahjongTileSize::GuideHand
-                | MahjongTileSize::SettlementHand
-                | MahjongTileSize::WinUpright => -1.0,
-                MahjongTileSize::OwnMeld => -4.0,
-                MahjongTileSize::GuideMeld => -4.0,
-                MahjongTileSize::OwnConcealedMeld
-                | MahjongTileSize::MiniConcealedMeld
-                | MahjongTileSize::GuideConcealedMeld => -5.0,
-                MahjongTileSize::River | MahjongTileSize::Mini => 0.0,
-            },
-        ),
-        lighting: mahjong_local_light(relative),
-        highlight: highlight.overlay(),
-        glyph,
-        height: height_texture,
-    });
     let node = Node {
         width: px(width),
         height: px(height),
@@ -388,10 +364,10 @@ pub(crate) fn add_mahjong_tile_material(
         MahjongTileSize::HiddenSide | MahjongTileSize::HiddenOpposite => 0.14,
     };
     let shadow = mahjong_local_shadow(relative);
-    let entity = commands
-        .spawn((
+    let entity = commands.child(
+        parent,
+        (
             node,
-            MaterialNode(material),
             BoxShadow::new(
                 Color::BLACK.with_alpha(if deal.is_some() {
                     0.0
@@ -409,8 +385,38 @@ pub(crate) fn add_mahjong_tile_material(
                 rotation: Rot2::radians(final_rotation),
                 ..default()
             },
-        ))
-        .id();
+        ),
+    );
+
+    let material = commands.material(
+        entity,
+        materials,
+        MahjongTileMaterial {
+            params: Vec4::new(
+                0.0,
+                if back { 1.0 } else { 0.0 },
+                if deal.is_some() { 0.0 } else { 1.0 },
+                match size {
+                    MahjongTileSize::HiddenSide => -2.0,
+                    MahjongTileSize::HiddenOpposite => -3.0,
+                    MahjongTileSize::GuideHand
+                    | MahjongTileSize::SettlementHand
+                    | MahjongTileSize::WinUpright => -1.0,
+                    MahjongTileSize::OwnMeld => -4.0,
+                    MahjongTileSize::GuideMeld => -4.0,
+                    MahjongTileSize::OwnConcealedMeld
+                    | MahjongTileSize::MiniConcealedMeld
+                    | MahjongTileSize::GuideConcealedMeld => -5.0,
+                    MahjongTileSize::River | MahjongTileSize::Mini => 0.0,
+                },
+            ),
+            lighting: mahjong_local_light(relative),
+            highlight: highlight.overlay(),
+            glyph,
+            height: height_texture,
+        },
+    );
+    commands.entity(entity).insert(MaterialNode(material));
     if let Some(kind) = kind
         && !matches!(
             size,
@@ -425,7 +431,7 @@ pub(crate) fn add_mahjong_tile_material(
             .insert(MahjongMatchingTileKind(kind));
     }
     if let Some(deal) = deal {
-        commands.entity(entity).insert(MahjongDealTile {
+        commands.entity(entity).init(MahjongDealTile {
             elapsed: 0.0,
             falling: deal.falling,
             start_offset: deal.start_offset,
@@ -435,7 +441,6 @@ pub(crate) fn add_mahjong_tile_material(
             final_shadow_alpha,
         });
     }
-    commands.entity(parent).add_child(entity);
     entity
 }
 
@@ -445,7 +450,7 @@ pub(crate) struct MahjongWinTileSizes {
 }
 
 pub(crate) fn render_mahjong_win_tile_row(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     row: Entity,
     player: &MahjongPlayerState,
     winner: &MahjongWinView,

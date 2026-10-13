@@ -1,6 +1,7 @@
 use super::{HandCardSlot, HandCardVisual, QiGui523UiAction};
 use crate::app::presentation::{
-    ACCENT, BORDER, CardAnimationState, CardSize, HandCardSelectionOverlay, hand_card_pose,
+    ACCENT, BORDER, CardAnimationState, CardSize, HandCardSelectionOverlay, UiComposer,
+    hand_card_pose,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -33,7 +34,7 @@ pub(super) struct HandCardSpec {
 }
 
 pub(super) fn add_card_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     spec: HandCardSpec,
     assets: &UiAssets,
@@ -64,8 +65,10 @@ pub(super) fn add_card_button(
     );
     let initial_glow =
         (animation.face_hover_amount * 0.72 + animation.selected_amount * 0.72).clamp(0.0, 1.0);
-    let button = commands
-        .spawn((
+    let button = commands.keyed_child(
+        parent,
+        format!("card:{card:?}"),
+        (
             Button,
             UiAction::QiGui523(QiGui523UiAction::ToggleCard),
             HandCardSlot {
@@ -84,12 +87,12 @@ pub(super) fn add_card_button(
                 height: px(height),
                 ..default()
             },
-        ))
-        .id();
-    commands.entity(parent).add_child(button);
+        ),
+    );
 
-    let card_face = commands
-        .spawn((
+    let card_face = commands.child(
+        button,
+        (
             HandCardVisual {
                 button,
                 card,
@@ -130,11 +133,11 @@ pub(super) fn add_card_button(
             BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(3)),
             GlobalZIndex(index as i32 + 1),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(button).add_child(card_face);
-    let overlay = commands
-        .spawn((
+        ),
+    );
+    commands.child(
+        card_face,
+        (
             HandCardSelectionOverlay { index },
             Node {
                 position_type: PositionType::Absolute,
@@ -147,7 +150,6 @@ pub(super) fn add_card_button(
             },
             BackgroundColor(Color::NONE),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(card_face).add_child(overlay);
+        ),
+    );
 }

@@ -1,5 +1,5 @@
 use super::window::{CardCounterOwner, CardCounterWindowState, CounterDragHandle, CounterWindow};
-use crate::app::presentation::{MUTED, TEXT, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::add_cozy_panel;
 use bevy::picking::Pickable;
@@ -13,7 +13,7 @@ pub(crate) struct CardCounterCell {
 }
 
 pub(crate) fn add_card_counter_window<T: CardCounterOwner>(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     state: &CardCounterWindowState,
     rows: [[Option<CardCounterCell>; 14]; 4],
@@ -85,8 +85,9 @@ pub(crate) fn add_card_counter_window<T: CardCounterOwner>(
             );
             commands.entity(slot).insert(Pickable::IGNORE);
             if let Some(cell) = cell {
-                let card = commands
-                    .spawn((
+                commands.child(
+                    slot,
+                    (
                         Node {
                             width: percent(100),
                             aspect_ratio: Some(48.0 / 65.0),
@@ -94,9 +95,8 @@ pub(crate) fn add_card_counter_window<T: CardCounterOwner>(
                         },
                         ImageNode::new(cell.image),
                         Pickable::IGNORE,
-                    ))
-                    .id();
-                commands.entity(slot).add_child(card);
+                    ),
+                );
                 let number = add_text(
                     commands,
                     slot,

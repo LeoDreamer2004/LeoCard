@@ -2,7 +2,7 @@
 
 use super::{AchievementRecipient, AchievementUnlocked};
 use crate::app::presentation::{
-    TEXT, TransitionVisuals, add_text, ease_out_cubic, fade_panel, spawn_node,
+    TEXT, TransitionVisuals, UiComposer, add_text, ease_out_cubic, fade_panel, spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use bevy::audio::Volume;
@@ -42,7 +42,7 @@ pub(super) struct AchievementToast {
     visual: Entity,
 }
 
-pub(super) fn setup_notifications(mut commands: Commands) {
+pub(super) fn setup_notifications(mut commands: UiComposer) {
     // This root survives screen rebuilds and does not capture pointer input.
     commands.spawn((
         AchievementToastLayer,
@@ -88,7 +88,7 @@ pub(super) fn animate_achievement_notifications(
     mut transforms: Query<&mut UiTransform>,
     children: Query<&Children>,
     mut visuals: TransitionVisuals,
-    mut commands: Commands,
+    mut commands: UiComposer,
 ) {
     let Ok((layer, viewport)) = layers.single() else {
         return;
@@ -159,7 +159,7 @@ pub(super) fn animate_achievement_notifications(
         } else {
             &assets.achievements.sound
         };
-        commands.spawn((
+        commands.effect((
             AudioPlayer::new(sound.clone()),
             PlaybackSettings {
                 volume: Volume::Linear(0.55),
@@ -170,7 +170,7 @@ pub(super) fn animate_achievement_notifications(
 }
 
 fn spawn_notification(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     layer: Entity,
     serial: u64,
     top: f32,
@@ -235,8 +235,9 @@ fn spawn_notification(
     commands
         .entity(popup)
         .insert((background, Pickable::IGNORE));
-    let trophy = commands
-        .spawn((
+    commands.child(
+        popup,
+        (
             Node {
                 width: px(54),
                 height: px(54),
@@ -247,9 +248,8 @@ fn spawn_notification(
                 assets.achievements.medals[notice.definition.tier.medal_index()].clone(),
             ),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(popup).add_child(trophy);
+        ),
+    );
     let text = add_text(commands, popup, &notice.text, 21.0, TEXT, assets);
     commands.entity(text).insert((
         Node {

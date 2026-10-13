@@ -1,6 +1,6 @@
 use super::super::icons::EntryIcons;
 use super::super::{MinecraftGuessAssets, MinecraftGuessUiAction};
-use crate::app::presentation::{MUTED, SilentButton, TEXT, add_text, spawn_node};
+use crate::app::presentation::{MUTED, SilentButton, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::input_focus::InputFocus;
@@ -28,7 +28,7 @@ pub(super) struct GuessButtonSpec<'a> {
 }
 
 pub(super) fn add_guess_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     spec: GuessButtonSpec<'_>,
     assets: &UiAssets,
@@ -80,7 +80,7 @@ pub(super) fn add_guess_button(
     button
 }
 
-pub(super) fn set_enabled(commands: &mut Commands, button: Entity, enabled: bool) {
+pub(super) fn set_enabled(commands: &mut UiComposer, button: Entity, enabled: bool) {
     let mut entity = commands.entity(button);
     if enabled {
         entity.remove::<InteractionDisabled>();

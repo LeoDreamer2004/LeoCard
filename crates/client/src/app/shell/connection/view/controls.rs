@@ -1,5 +1,5 @@
 use super::super::super::{ConnectionUiAction, UiAction};
-use crate::app::presentation::{ButtonArrows, ButtonHighlight, TEXT, add_text};
+use crate::app::presentation::{ButtonArrows, ButtonHighlight, TEXT, UiComposer, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -19,15 +19,15 @@ pub(super) fn home_panel_image(assets: &UiAssets) -> ImageNode {
 }
 
 pub(super) fn home_panel(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     node: Node,
     assets: &UiAssets,
 ) -> Entity {
-    let entity = commands.spawn(node).id();
-    commands.entity(parent).add_child(entity);
-    let background = commands
-        .spawn((
+    let entity = commands.child(parent, node);
+    commands.child(
+        entity,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(0),
@@ -39,9 +39,8 @@ pub(super) fn home_panel(
             home_panel_image(assets),
             ZIndex(-1),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(entity).add_child(background);
+        ),
+    );
     entity
 }
 
@@ -59,7 +58,7 @@ pub(super) fn home_button_image(assets: &UiAssets) -> ImageNode {
 }
 
 pub(super) fn add_home_purple_overlay(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     assets: &UiAssets,
     visible: bool,
@@ -81,8 +80,9 @@ pub(super) fn add_home_purple_overlay(
             max_corner_scale: 0.55,
         }));
     image.visual_box = VisualBox::BorderBox;
-    let overlay = commands
-        .spawn((
+    commands.child(
+        parent,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(0),
@@ -98,14 +98,12 @@ pub(super) fn add_home_purple_overlay(
             },
             image,
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(parent).add_child(overlay);
-    overlay
+        ),
+    )
 }
 
 pub(super) fn add_home_animated_arrow(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     owner: Entity,
     assets: &UiAssets,
@@ -118,8 +116,9 @@ pub(super) fn add_home_animated_arrow(
         Vec2::new(x, 8.0),
         Vec2::new(x + 112.0, 64.0),
     ));
-    let entity = commands
-        .spawn((
+    commands.child(
+        parent,
+        (
             Node {
                 width: px(size.x),
                 height: px(size.y),
@@ -133,14 +132,12 @@ pub(super) fn add_home_animated_arrow(
             },
             Visibility::Hidden,
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(parent).add_child(entity);
-    entity
+        ),
+    )
 }
 
 pub(super) fn home_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     label: &str,
     action: ConnectionUiAction,
@@ -148,8 +145,9 @@ pub(super) fn home_button(
     primary: bool,
     width: Val,
 ) {
-    let entity = commands
-        .spawn((
+    let entity = commands.child(
+        parent,
+        (
             Button,
             UiAction::Connection(action),
             Node {
@@ -161,9 +159,8 @@ pub(super) fn home_button(
                 ..default()
             },
             home_button_image(assets),
-        ))
-        .id();
-    commands.entity(parent).add_child(entity);
+        ),
+    );
     let overlay = add_home_purple_overlay(commands, entity, assets, false, true);
     let left_arrow = primary.then(|| {
         add_home_animated_arrow(

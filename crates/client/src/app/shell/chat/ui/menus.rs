@@ -1,6 +1,6 @@
 use super::super::*;
 use super::panel::{add_chat_button_highlight, cozy_chat_button_image};
-use crate::app::presentation::{TEXT, add_text, spawn_node};
+use crate::app::presentation::{TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
 use bevy::ecs::query::QueryFilter;
@@ -12,7 +12,7 @@ use bevy::ui_widgets::Button;
 use leocard_protocol::ChatEmoji;
 
 pub(super) fn add_quick_voice_menu(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     chat: &ChatPanelState,
     assets: &UiAssets,
@@ -65,8 +65,9 @@ pub(super) fn add_quick_voice_menu(
         ScrollPosition(Vec2::new(0.0, chat.quick_voice_scroll_y)),
     ));
     for (index, voice) in QUICK_VOICES.iter().enumerate() {
-        let button = commands
-            .spawn((
+        let button = commands.child(
+            scroll,
+            (
                 Button,
                 UiAction::Chat(ChatUiAction::SendQuickVoice(index as u8)),
                 Node {
@@ -83,16 +84,15 @@ pub(super) fn add_quick_voice_menu(
                     ..default()
                 },
                 cozy_chat_button_image(assets.home.button.clone()),
-            ))
-            .id();
-        commands.entity(scroll).add_child(button);
+            ),
+        );
         add_chat_button_highlight(commands, button, assets);
         add_text(commands, button, *voice, 11.0, TEXT, assets);
     }
 }
 
 pub(super) fn add_emoji_menu(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     chat: &ChatPanelState,
     assets: &UiAssets,
@@ -146,8 +146,9 @@ pub(super) fn add_emoji_menu(
         ScrollPosition(Vec2::new(0.0, chat.emoji_scroll_y)),
     ));
     for emoji in ChatEmoji::ALL {
-        let button = commands
-            .spawn((
+        let button = commands.child(
+            scroll,
+            (
                 Button,
                 UiAction::Chat(ChatUiAction::SendEmoji(emoji)),
                 Node {
@@ -162,12 +163,12 @@ pub(super) fn add_emoji_menu(
                     ..default()
                 },
                 cozy_chat_button_image(assets.home.button.clone()),
-            ))
-            .id();
-        commands.entity(scroll).add_child(button);
+            ),
+        );
         add_chat_button_highlight(commands, button, assets);
-        let icon = commands
-            .spawn((
+        commands.child(
+            button,
+            (
                 Node {
                     width: px(38),
                     height: px(38),
@@ -175,9 +176,8 @@ pub(super) fn add_emoji_menu(
                 },
                 ImageNode::new(assets.chat_emoji(emoji)),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(button).add_child(icon);
+            ),
+        );
     }
 }
 

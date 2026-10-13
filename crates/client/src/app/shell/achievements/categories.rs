@@ -1,9 +1,9 @@
 use super::super::{PageTransitionElement, UiAction};
+use crate::app::presentation::{MUTED, UiComposer, add_text, spawn_node};
 use crate::app::shell::AchievementUiAction;
 use bevy::picking::Pickable;
 use bevy::ui_widgets::Button;
 
-use crate::app::presentation::{MUTED, add_text, spawn_node};
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_achievements::achievements_in;
@@ -13,7 +13,7 @@ use super::page::AchievementsPage;
 use super::state::*;
 
 impl AchievementsPage<'_> {
-    pub(super) fn render_categories(&self, commands: &mut Commands, parent: Entity) {
+    pub(super) fn render_categories(&self, commands: &mut UiComposer, parent: Entity) {
         let column = spawn_node(
             commands,
             parent,
@@ -57,8 +57,9 @@ impl AchievementsPage<'_> {
         ));
         for (index, (tab, idiom)) in CATEGORIES.into_iter().enumerate() {
             let selected = self.selected == tab;
-            let button = commands
-                .spawn((
+            let button = commands.child(
+                rail,
+                (
                     Button,
                     UiAction::Achievements(AchievementUiAction::SelectCategory(tab)),
                     Node {
@@ -72,11 +73,11 @@ impl AchievementsPage<'_> {
                         ..default()
                     },
                     BackgroundColor(Color::NONE),
-                ))
-                .id();
-            commands.entity(rail).add_child(button);
-            let art = commands
-                .spawn((
+                ),
+            );
+            let art = commands.child(
+                button,
+                (
                     Node {
                         width: px(112),
                         height: px(112),
@@ -86,9 +87,8 @@ impl AchievementsPage<'_> {
                     ImageNode::new(self.assets.achievements.emblems[index].clone())
                         .with_color(category_tint(selected, false)),
                     Pickable::IGNORE,
-                ))
-                .id();
-            commands.entity(button).add_child(art);
+                ),
+            );
             commands.entity(button).insert(AchievementCategoryButton {
                 selected,
                 emblem: art,
@@ -142,9 +142,10 @@ impl AchievementsPage<'_> {
         self.render_scroll_hint(commands, column, true);
     }
 
-    fn render_scroll_hint(&self, commands: &mut Commands, parent: Entity, down: bool) {
-        let hint = commands
-            .spawn((
+    fn render_scroll_hint(&self, commands: &mut UiComposer, parent: Entity, down: bool) {
+        commands.child(
+            parent,
+            (
                 Node {
                     width: px(24),
                     height: px(14),
@@ -155,8 +156,7 @@ impl AchievementsPage<'_> {
                     .with_color(Color::WHITE.with_alpha(0.65)),
                 UiTransform::from_rotation(Rot2::degrees(if down { 180.0 } else { 0.0 })),
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(parent).add_child(hint);
+            ),
+        );
     }
 }

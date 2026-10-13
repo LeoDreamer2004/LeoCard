@@ -7,8 +7,7 @@ use super::{
     SequenceAirplane, SequenceAirplaneTrail, SequenceEffectLabel, SequenceEffectLabelPart,
     SequenceEffectMotif, SequenceFlowerPart, SequenceGuideSegment, SequenceWindStreak,
 };
-use crate::app::presentation::CardSize;
-use crate::app::presentation::{TABLE_CARD_REVEAL, add_text, spawn_node};
+use crate::app::presentation::{CardSize, TABLE_CARD_REVEAL, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -17,7 +16,7 @@ use leocard_qigui523::QiGuiPlayKind;
 use std::f32::consts;
 
 pub(super) fn add_play_effect_overlay(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     full_screen_parent: Entity,
     game: &QiGui523Snapshot,
@@ -66,7 +65,7 @@ pub(super) fn add_play_effect_overlay(
     reason = "the effect builder keeps geometry and asset inputs explicit"
 )]
 pub(super) fn add_sequence_play_decoration(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     play_area: Entity,
     card_count: usize,
     label: &str,
@@ -137,8 +136,9 @@ pub(super) fn add_sequence_play_decoration(
     // Animate one container and keep all glyph layers inside it.  This makes the
     // outline move and fade as a single label instead of letting several copied
     // text nodes drift independently.
-    let label_root = commands
-        .spawn((
+    let label_root = commands.child(
+        play_area,
+        (
             SequenceEffectLabel,
             Node {
                 position_type: PositionType::Absolute,
@@ -153,9 +153,8 @@ pub(super) fn add_sequence_play_decoration(
                 ..default()
             },
             UiTransform::IDENTITY,
-        ))
-        .id();
-    commands.entity(play_area).add_child(label_root);
+        ),
+    );
 
     // Bevy UI text has a single drop shadow but no native glyph stroke.  Eight
     // tightly packed copies form a stable, even outline; they share the animated
@@ -171,8 +170,9 @@ pub(super) fn add_sequence_play_decoration(
         Vec2::new(-0.6, 0.0),
     ];
     for offset in OUTLINE_OFFSETS {
-        let outline = commands
-            .spawn((
+        commands.child(
+            label_root,
+            (
                 Text::new(label),
                 font.clone(),
                 TextLayout::no_wrap(),
@@ -185,12 +185,12 @@ pub(super) fn add_sequence_play_decoration(
                     ..default()
                 },
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(label_root).add_child(outline);
+            ),
+        );
     }
-    let fill = commands
-        .spawn((
+    commands.child(
+        label_root,
+        (
             Text::new(label),
             font,
             TextLayout::no_wrap(),
@@ -203,9 +203,8 @@ pub(super) fn add_sequence_play_decoration(
                 ..default()
             },
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(label_root).add_child(fill);
+        ),
+    );
 
     match motif {
         SequenceEffectMotif::Wind => add_sequence_wind(commands, play_area, cards_width, color),
@@ -226,7 +225,7 @@ fn sequence_motif_node(cards_width: f32, offset_x: f32, offset_y: f32) -> Node {
     }
 }
 
-fn add_sequence_wind(commands: &mut Commands, parent: Entity, cards_width: f32, color: Color) {
+fn add_sequence_wind(commands: &mut UiComposer, parent: Entity, cards_width: f32, color: Color) {
     for index in 0..5 {
         let width = [48.0, 30.0, 58.0, 37.0, 24.0][index];
         let bottom = -22.0 - (index % 3) as f32 * 5.0;
@@ -269,7 +268,7 @@ fn add_sequence_wind(commands: &mut Commands, parent: Entity, cards_width: f32, 
     }
 }
 
-fn add_sequence_flower(commands: &mut Commands, parent: Entity, cards_width: f32, color: Color) {
+fn add_sequence_flower(commands: &mut UiComposer, parent: Entity, cards_width: f32, color: Color) {
     const PETAL_COUNT: usize = 7;
     for index in 0..PETAL_COUNT {
         let petal = spawn_node(
@@ -317,14 +316,15 @@ fn add_sequence_flower(commands: &mut Commands, parent: Entity, cards_width: f32
 }
 
 fn add_sequence_airplane(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     cards_width: f32,
     color: Color,
     game_assets: &QiGui523Assets,
 ) {
-    let airplane = commands
-        .spawn((
+    commands.child(
+        parent,
+        (
             SequenceAirplane,
             ImageNode::new(game_assets.sequence_airplane.clone()).with_color(Color::NONE),
             Node {
@@ -337,9 +337,8 @@ fn add_sequence_airplane(
                 ..UiTransform::IDENTITY
             },
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(parent).add_child(airplane);
+        ),
+    );
 
     for index in 0..4 {
         let trail = spawn_node(
@@ -382,7 +381,7 @@ fn bomb_effect_source(game: &QiGui523Snapshot, player: PlayerId) -> Vec2 {
     }
 }
 
-fn add_bomb_play_effect(commands: &mut Commands, root: Entity, source: Vec2) {
+fn add_bomb_play_effect(commands: &mut UiComposer, root: Entity, source: Vec2) {
     let center_node = |size: f32| Node {
         position_type: PositionType::Absolute,
         left: percent(50),
@@ -519,7 +518,7 @@ fn add_bomb_play_effect(commands: &mut Commands, root: Entity, source: Vec2) {
         .insert((BombFuseSpark, UiTransform::IDENTITY));
 }
 
-fn add_heaven_bomb_effect(commands: &mut Commands, root: Entity, assets: &UiAssets) {
+fn add_heaven_bomb_effect(commands: &mut UiComposer, root: Entity, assets: &UiAssets) {
     let backdrop = spawn_node(
         commands,
         root,

@@ -4,7 +4,7 @@ use super::{
     add_mahjong_tile_material,
 };
 use crate::app::presentation::{
-    BackgroundButtonTint, ButtonHighlight, ButtonTint, TEXT, add_text, spawn_node,
+    BackgroundButtonTint, ButtonHighlight, ButtonTint, TEXT, UiComposer, add_text, spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -30,7 +30,7 @@ struct TileChoice {
 }
 
 pub(super) fn render_action_bar(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &MahjongSnapshot,
     ui: &MahjongUiState,
@@ -207,7 +207,7 @@ pub(super) fn render_action_bar(
     reason = "the popup renders tile materials as well as controls"
 )]
 fn add_choice_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     bar: Entity,
     label: &str,
     menu: MahjongChoiceMenu,
@@ -260,8 +260,9 @@ fn add_choice_button(
     );
     commands.entity(popup).insert((image, GlobalZIndex(1500)));
     for choice in choices {
-        let row = commands
-            .spawn((
+        let row = commands.child(
+            popup,
+            (
                 Button,
                 UiAction::Mahjong(choice.action),
                 Node {
@@ -279,9 +280,8 @@ fn add_choice_button(
                     hovered: Color::srgba(0.31, 0.27, 0.43, 0.95),
                     pressed: Color::srgba(0.40, 0.35, 0.56, 0.95),
                 },
-            ))
-            .id();
-        commands.entity(popup).add_child(row);
+            ),
+        );
         let tiles = spawn_node(
             commands,
             row,
@@ -316,7 +316,7 @@ fn add_choice_button(
 }
 
 fn add_mahjong_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     bar: Entity,
     label: &str,
     action: MahjongUiAction,
@@ -340,8 +340,9 @@ fn add_mahjong_button(
         ActionTone::Pass => (&game_assets.action_pass, &game_assets.action_pass_hover),
         ActionTone::Win => (&game_assets.action_win, &game_assets.action_win_hover),
     };
-    let button = commands
-        .spawn((
+    let button = commands.child(
+        anchor,
+        (
             Button,
             UiAction::Mahjong(action),
             Node {
@@ -352,11 +353,11 @@ fn add_mahjong_button(
                 ..default()
             },
             ImageNode::new(normal.clone()).with_mode(NodeImageMode::Stretch),
-        ))
-        .id();
-    commands.entity(anchor).add_child(button);
-    let overlay = commands
-        .spawn((
+        ),
+    );
+    let overlay = commands.child(
+        button,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(0),
@@ -368,9 +369,8 @@ fn add_mahjong_button(
             ImageNode::new(hovered.clone()).with_mode(NodeImageMode::Stretch),
             Visibility::Hidden,
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(button).add_child(overlay);
+        ),
+    );
     let text = add_text(commands, button, label, 20.0, TEXT, assets);
     commands.entity(text).insert(Pickable::IGNORE);
     commands.entity(button).insert(ButtonHighlight {

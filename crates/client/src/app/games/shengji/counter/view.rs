@@ -1,6 +1,6 @@
 use super::super::{ShengjiUiAction, ShengjiUiState, shengji_card_face};
 use crate::app::presentation::{
-    ACCENT, CardCounterCell, DrawerSwitch, SwitchDrawer, TEXT, add_card_counter_window,
+    ACCENT, CardCounterCell, DrawerSwitch, SwitchDrawer, TEXT, UiComposer, add_card_counter_window,
     add_switch_drawer,
 };
 use crate::app::runtime::UiAssets;
@@ -9,7 +9,7 @@ use bevy::prelude::*;
 use leocard_protocol::ShengjiSnapshot;
 
 pub(in super::super) fn render_counter(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     table: Entity,
     game: &ShengjiSnapshot,

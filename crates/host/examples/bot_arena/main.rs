@@ -23,7 +23,12 @@ fn main() {
         .and_then(|value| value.parse().ok())
         .unwrap_or(100);
     let budget = Duration::from_millis(milliseconds);
-    let mixed = args.get(4).is_some_and(|value| value == "mixed");
+    let mixed = args.iter().skip(4).any(|value| value == "mixed");
+    let starting_chips = args
+        .iter()
+        .skip(4)
+        .find_map(|value| value.parse().ok())
+        .unwrap_or(50);
     for name in ["mahjong", "texas", "shengji"] {
         if game != "all" && game != name {
             continue;
@@ -32,7 +37,7 @@ fn main() {
         for seed in 0..games {
             match name {
                 "mahjong" => mahjong::run(seed, budget, mixed, &mut metrics),
-                "texas" => texas::run(seed, budget, mixed, &mut metrics),
+                "texas" => texas::run(seed, budget, mixed, starting_chips, &mut metrics),
                 _ => shengji::run(seed, budget, mixed, &mut metrics),
             }
         }

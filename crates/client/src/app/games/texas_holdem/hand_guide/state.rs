@@ -1,4 +1,5 @@
 use super::view::render_hand_guide;
+use crate::app::presentation::UiComposer;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{CozyModalKind, ModalAnimations, advance_modal};
 use bevy::picking::Pickable;
@@ -56,7 +57,7 @@ pub(super) fn advance_texas_hand_guide(
 }
 
 pub(super) fn sync_texas_hand_guide(
-    mut commands: Commands,
+    mut commands: UiComposer,
     client: Option<Res<ClientResource>>,
     guide: Res<TexasHandGuideState>,
     roots: Query<(Entity, &TexasHandGuideRoot)>,

@@ -1,6 +1,6 @@
 use super::super::{QiGui523UiAction, QiGui523UiState};
 use crate::app::presentation::{
-    ACCENT, CardCounterCell, DrawerSwitch, SwitchDrawer, TEXT, add_card_counter_window,
+    ACCENT, CardCounterCell, DrawerSwitch, SwitchDrawer, TEXT, UiComposer, add_card_counter_window,
     add_switch_drawer,
 };
 use crate::app::runtime::UiAssets;
@@ -8,7 +8,7 @@ use crate::app::shell::UiAction;
 use bevy::prelude::*;
 
 pub(in super::super) fn render_counter(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     ui: &QiGui523UiState,
     assets: &UiAssets,

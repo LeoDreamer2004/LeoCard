@@ -1,10 +1,10 @@
 use super::state::CoinInputField;
-use crate::app::presentation::TextInput;
+use crate::app::presentation::{TextInput, UiComposer};
 use crate::app::runtime::UiAssets;
 use bevy::{prelude::*, ui_widgets::SelectAllOnFocus};
 
 pub(crate) fn add_coin_input(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     coins: u32,
     assets: &UiAssets,

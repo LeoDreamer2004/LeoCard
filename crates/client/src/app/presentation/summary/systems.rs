@@ -8,7 +8,7 @@ use super::{
     SUMMARY_ROW_ENTRY_DURATION, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY,
     SUMMARY_SCORE_COUNT_DURATION,
 };
-use crate::app::presentation::{PANEL_ALT, add_text, ease_out_cubic};
+use crate::app::presentation::{PANEL_ALT, UiComposer, add_text, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::PlayerScore;
@@ -18,7 +18,7 @@ use leocard_protocol::PlayerScore;
     reason = "the text builder keeps animation timing and typography inputs explicit"
 )]
 pub(crate) fn add_animated_summary_text(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     text: impl Into<String>,
     size: f32,
@@ -47,7 +47,7 @@ pub(crate) fn add_animated_summary_text(
 }
 
 pub(crate) fn update_summary_animation(
-    mut commands: Commands,
+    mut commands: UiComposer,
     time: Res<Time>,
     playback: Res<SummaryPlayback>,
     assets: Res<UiAssets>,
@@ -87,7 +87,7 @@ pub(crate) fn update_summary_animation(
         } else {
             assets.audio.summary_die_sound.clone()
         };
-        commands.spawn((AudioPlayer::new(sound), PlaybackSettings::DESPAWN));
+        commands.effect((AudioPlayer::new(sound), PlaybackSettings::DESPAWN));
         animation.outcome_sound_played = true;
     }
 }

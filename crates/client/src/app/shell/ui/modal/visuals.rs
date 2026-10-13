@@ -1,5 +1,5 @@
 use super::{CozyModalBackdrop, CozyModalPanel, ModalAnimations};
-use crate::app::presentation::{TransitionVisuals, ease_out_cubic, fade_panel};
+use crate::app::presentation::{TransitionVisuals, UiComposer, ease_out_cubic, fade_panel};
 use bevy::prelude::*;
 
 const BACKDROP_ALPHA: f32 = 0.76;
@@ -27,7 +27,7 @@ pub(crate) fn advance_modal(progress: &mut f32, open: bool, delta: f32) {
 
 pub(crate) fn animate_cozy_modals(
     animations: Res<ModalAnimations>,
-    mut commands: Commands,
+    mut commands: UiComposer,
     mut backdrops: Query<(&CozyModalBackdrop, &mut BackgroundColor)>,
     mut panels: Query<(Entity, &CozyModalPanel, &mut UiTransform)>,
     children: Query<&Children>,

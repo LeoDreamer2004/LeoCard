@@ -1,8 +1,9 @@
 use super::super::spawn_node;
+use crate::app::presentation::UiComposer;
 use bevy::prelude::*;
 
 pub(crate) fn add_avatar_status_overlay(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     avatar: Entity,
     size: f32,
     border_color: Color,

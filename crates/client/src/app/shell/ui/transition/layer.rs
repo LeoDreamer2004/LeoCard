@@ -1,16 +1,18 @@
 //! Full-screen layers used by page and game transitions.
 
+use crate::app::presentation::UiComposer;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 
 pub(super) fn add_screen_layer(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     z_index: i32,
     marker: impl Component,
 ) -> Entity {
-    let layer = commands
-        .spawn((
+    commands.child(
+        root,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(0),
@@ -22,10 +24,8 @@ pub(super) fn add_screen_layer(
             GlobalZIndex(z_index),
             Pickable::default(),
             marker,
-        ))
-        .id();
-    commands.entity(root).add_child(layer);
-    layer
+        ),
+    )
 }
 
 pub(super) fn shade_color(alpha: f32) -> BackgroundColor {

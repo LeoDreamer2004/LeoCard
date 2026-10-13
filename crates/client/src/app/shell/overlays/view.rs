@@ -4,7 +4,7 @@ use super::{
     PlayErrorPopup, PlayErrorPopupImage, PlayErrorPopupText, PlayErrorToast,
     play_error_toast_visual,
 };
-use crate::app::presentation::{ACCENT, MUTED, PanelSkin, TEXT, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, MUTED, PanelSkin, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::add_cozy_panel_with_skin;
 use bevy::picking::Pickable;
@@ -14,15 +14,16 @@ use bevy::ui::VisualBox;
 pub(crate) const WARNING_TOAST_TEXT: Color = Color::srgb(0.97, 0.96, 1.0);
 
 pub(crate) fn add_play_error_popup(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     message: &str,
     toast: &PlayErrorToast,
     assets: &UiAssets,
 ) {
     let visual = play_error_toast_visual(toast);
-    let anchor = commands
-        .spawn((
+    let anchor = commands.child(
+        parent,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(0),
@@ -34,11 +35,11 @@ pub(crate) fn add_play_error_popup(
                 ..default()
             },
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(parent).add_child(anchor);
-    let popup = commands
-        .spawn(Node {
+        ),
+    );
+    let popup = commands.child(
+        anchor,
+        Node {
             width: Val::Auto,
             min_width: px(360),
             max_width: percent(82),
@@ -51,9 +52,8 @@ pub(crate) fn add_play_error_popup(
             },
             align_items: AlignItems::Center,
             ..default()
-        })
-        .id();
-    commands.entity(anchor).add_child(popup);
+        },
+    );
     commands.entity(popup).insert((
         PlayErrorPopup,
         UiTransform::from_translation(Val2::px(visual.x, visual.y)),
@@ -77,8 +77,9 @@ pub(crate) fn add_play_error_popup(
     ));
     image.visual_box = VisualBox::BorderBox;
     image.color = Color::WHITE.with_alpha(visual.opacity);
-    let background = commands
-        .spawn((
+    commands.child(
+        popup,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(0),
@@ -91,9 +92,8 @@ pub(crate) fn add_play_error_popup(
             PlayErrorPopupImage,
             ZIndex(-1),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(popup).add_child(background);
+        ),
+    );
     let text = add_text(
         commands,
         popup,
@@ -106,7 +106,7 @@ pub(crate) fn add_play_error_popup(
 }
 
 pub(crate) fn add_reconnecting_overlay(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     status: &str,
     assets: &UiAssets,

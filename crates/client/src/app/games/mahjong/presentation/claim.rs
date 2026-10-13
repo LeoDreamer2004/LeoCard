@@ -1,3 +1,4 @@
+use crate::app::presentation::{ACCENT, TEXT, UiComposer, add_text, ease_out_cubic, spawn_node};
 use bevy::picking::Pickable;
 use std::f32::consts;
 
@@ -10,7 +11,6 @@ use super::super::{
 };
 
 use super::{MahjongTileSize, MahjongTileVisual, add_mahjong_tile_material};
-use crate::app::presentation::{ACCENT, TEXT, add_text, ease_out_cubic, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongClaim;
@@ -116,7 +116,7 @@ pub(super) fn mahjong_claim_held_tile_visual(elapsed: f32) -> (f32, f32) {
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn render_mahjong_claim_presentation(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &MahjongSnapshot,
     own_seat: u8,
@@ -238,7 +238,7 @@ pub(crate) fn render_mahjong_claim_presentation(
 }
 
 pub(crate) fn render_mahjong_flower_presentations(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     game: &MahjongSnapshot,
     own_seat: u8,

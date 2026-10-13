@@ -1,8 +1,9 @@
 use super::super::*;
 use super::controls::{add_auto_play_toggle, add_auxiliary_actions, add_chat_toggle};
 use super::menus::{add_emoji_menu, add_quick_voice_menu};
-use crate::app::presentation::ButtonHighlight;
-use crate::app::presentation::{TEXT, TextInput, add_text, spawn_node};
+use crate::app::presentation::{
+    ButtonHighlight, TEXT, TextInput, UiComposer, add_text, spawn_node,
+};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
 use bevy::picking::Pickable;
@@ -18,7 +19,7 @@ pub(crate) struct ChatAuxiliaryAction {
 }
 
 pub(crate) fn add_chat_panel(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     chat: &ChatPanelState,
     assets: &UiAssets,
@@ -39,7 +40,7 @@ pub(crate) fn add_chat_panel(
 }
 
 pub(super) fn spawn_chat_panel(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     parent: Entity,
     chat: &ChatPanelState,
     assets: &UiAssets,
@@ -77,7 +78,7 @@ pub(super) fn spawn_chat_panel(
 }
 
 pub(super) fn add_chat_history(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     chat: &ChatPanelState,
     assets: &UiAssets,
@@ -120,7 +121,7 @@ pub(super) fn add_chat_history(
 }
 
 pub(super) fn add_chat_input_row(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     panel: Entity,
     chat: &ChatPanelState,
     assets: &UiAssets,
@@ -161,7 +162,12 @@ pub(super) fn add_chat_input_row(
     );
 }
 
-fn add_text_input(commands: &mut Commands, row: Entity, chat: &ChatPanelState, assets: &UiAssets) {
+fn add_text_input(
+    commands: &mut UiComposer,
+    row: Entity,
+    chat: &ChatPanelState,
+    assets: &UiAssets,
+) {
     let mut input = TextInput::new("chat.message", &chat.input);
     input.placeholder = "输入消息，回车发送";
     input.max_characters = MAX_CHAT_MESSAGE_CHARS;
@@ -184,15 +190,16 @@ fn add_text_input(commands: &mut Commands, row: Entity, chat: &ChatPanelState, a
 }
 
 fn add_input_icon_button(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     row: Entity,
     action: UiAction,
     icon: &Handle<Image>,
     icon_size: f32,
     assets: &UiAssets,
 ) {
-    let button = commands
-        .spawn((
+    let button = commands.child(
+        row,
+        (
             Button,
             action,
             Node {
@@ -208,12 +215,12 @@ fn add_input_icon_button(
                 ..default()
             },
             cozy_chat_button_image(assets.home.button.clone()),
-        ))
-        .id();
-    commands.entity(row).add_child(button);
+        ),
+    );
     add_chat_button_highlight(commands, button, assets);
-    let icon = commands
-        .spawn((
+    commands.child(
+        button,
+        (
             Node {
                 width: px(icon_size),
                 height: px(icon_size),
@@ -221,9 +228,8 @@ fn add_input_icon_button(
             },
             ImageNode::new(icon.clone()),
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(button).add_child(icon);
+        ),
+    );
 }
 
 pub(super) fn cozy_chat_button_image(texture: Handle<Image>) -> ImageNode {
@@ -250,12 +256,13 @@ pub(super) fn cozy_chat_history_image(assets: &UiAssets) -> ImageNode {
 }
 
 pub(super) fn add_chat_button_highlight(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     button: Entity,
     assets: &UiAssets,
 ) {
-    let overlay = commands
-        .spawn((
+    let overlay = commands.child(
+        button,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(0),
@@ -267,9 +274,8 @@ pub(super) fn add_chat_button_highlight(
             cozy_chat_button_image(assets.home.purple_button_compact.clone()),
             Visibility::Hidden,
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(button).add_child(overlay);
+        ),
+    );
     commands.entity(button).insert(ButtonHighlight {
         overlay,
         arrows: None,

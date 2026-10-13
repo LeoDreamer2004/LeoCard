@@ -1,7 +1,7 @@
 //! Soft light layers use regular UI gradients so page transitions fade them too.
 
 use super::ENTRY_DESIGNS;
-use crate::app::presentation::TransitionOpacity;
+use crate::app::presentation::{TransitionOpacity, UiComposer};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::{BackgroundGradient, ColorStop, Gradient, RadialGradient, RadialGradientShape};
@@ -46,7 +46,12 @@ pub(super) struct EntryGlow {
 }
 
 impl EntryGlow {
-    pub fn spawn(commands: &mut Commands, parent: Entity, index: usize, kind: GlowKind) -> Entity {
+    pub fn spawn(
+        commands: &mut UiComposer,
+        parent: Entity,
+        index: usize,
+        kind: GlowKind,
+    ) -> Entity {
         let (width, height, top) = match kind {
             GlowKind::Aura | GlowKind::Ripple => (112.0, 200.0, -2.0),
             GlowKind::Orbit => (100.0, 65.0, 135.0),
@@ -57,8 +62,9 @@ impl EntryGlow {
         if matches!(kind, GlowKind::Ripple) {
             glow.animate(&mut gradient, 0.0);
         }
-        let entity = commands
-            .spawn((
+        commands.child(
+            parent,
+            (
                 Node {
                     position_type: PositionType::Absolute,
                     left: percent((100.0 - width) * 0.5),
@@ -72,10 +78,8 @@ impl EntryGlow {
                 glow,
                 UiTransform::IDENTITY,
                 Pickable::IGNORE,
-            ))
-            .id();
-        commands.entity(parent).add_child(entity);
-        entity
+            ),
+        )
     }
 
     fn gradient(&self) -> BackgroundGradient {

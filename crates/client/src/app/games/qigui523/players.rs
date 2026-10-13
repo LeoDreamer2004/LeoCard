@@ -5,8 +5,8 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, CardSize, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
-    TurnBorderMaterial, add_card_image, add_player_portrait, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, spawn_node,
+    TurnBorderMaterial, UiComposer, add_card_image, add_player_portrait,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
@@ -22,7 +22,7 @@ pub(super) const QIGUI_AVATAR_SIZE: f32 = 52.0 * 1.17;
 pub(super) const QIGUI_PORTRAIT_HEIGHT: f32 = 76.0 * 1.17 + 34.0;
 
 pub(super) fn add_opponent_slot(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     table: Entity,
     relative_seat: u8,
     player: Option<&PlayerPublicState>,
@@ -277,7 +277,7 @@ fn finished_remaining_hand(game: &QiGui523Snapshot, player: PlayerId) -> Option<
 }
 
 fn add_finished_remaining_hand(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     badge: Entity,
     player: PlayerId,
     cards: &[QiGuiCard],

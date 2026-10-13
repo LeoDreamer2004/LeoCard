@@ -1,5 +1,5 @@
 use super::super::form::{ConnectionField, InputField};
-use crate::app::presentation::TextInput;
+use crate::app::presentation::{TextInput, UiComposer};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 
@@ -18,7 +18,7 @@ impl<'a> ConnectionInput<'a> {
         }
     }
 
-    pub(super) fn render(self, commands: &mut Commands, parent: Entity) {
+    pub(super) fn render(self, commands: &mut UiComposer, parent: Entity) {
         let mut input = TextInput::new(self.field.key(), self.value);
         input.max_characters = self.field.maximum_length();
         input.filter = self.field.filter();

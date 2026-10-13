@@ -1,5 +1,5 @@
 use super::super::{UnoExpansionStatus, UnoExpansionStatusFrame, UnoUiAction};
-use crate::app::presentation::{ButtonHighlight, TEXT, add_text, spawn_node};
+use crate::app::presentation::{ButtonHighlight, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
@@ -11,7 +11,7 @@ use bevy::ui_widgets::Button;
 use leocard_uno::UnoRuleSet;
 
 pub(crate) fn render_uno_expansion_settings(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     rules: UnoRuleSet,
     can_configure: bool,
@@ -135,7 +135,7 @@ struct UnoExpansionRow {
 }
 
 impl UnoExpansionRow {
-    fn render(self, commands: &mut Commands, parent: Entity, editable: bool, assets: &UiAssets) {
+    fn render(self, commands: &mut UiComposer, parent: Entity, editable: bool, assets: &UiAssets) {
         let row = spawn_node(
             commands,
             parent,
@@ -169,7 +169,7 @@ impl UnoExpansionRow {
 
     fn add_status(
         &self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         parent: Entity,
         editable: bool,
         assets: &UiAssets,
@@ -182,18 +182,22 @@ impl UnoExpansionRow {
         if !editable {
             image.color = Color::WHITE.with_alpha(0.62);
         }
-        let mut status = commands.spawn((
-            UnoExpansionStatus,
-            Node {
-                width: px(34),
-                height: px(34),
-                flex_shrink: 0.0,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            image,
-        ));
+        let child = commands.child(
+            parent,
+            (
+                UnoExpansionStatus,
+                Node {
+                    width: px(34),
+                    height: px(34),
+                    flex_shrink: 0.0,
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                },
+                image,
+            ),
+        );
+        let mut status = commands.entity(child);
         if editable {
             status.insert((
                 Button,
@@ -202,15 +206,16 @@ impl UnoExpansionRow {
             ));
         }
         let status = status.id();
-        commands.entity(parent).add_child(status);
+
         if editable {
             let hover_image = ImageNode::new(if self.enabled {
                 assets.home.checkbox_selected_highlighted.clone()
             } else {
                 assets.home.checkbox_highlighted.clone()
             });
-            let hover = commands
-                .spawn((
+            let hover = commands.child(
+                status,
+                (
                     Node {
                         position_type: PositionType::Absolute,
                         left: px(0),
@@ -222,9 +227,8 @@ impl UnoExpansionRow {
                     hover_image,
                     Visibility::Hidden,
                     Pickable::IGNORE,
-                ))
-                .id();
-            commands.entity(status).add_child(hover);
+                ),
+            );
             commands.entity(status).insert(ButtonHighlight {
                 overlay: hover,
                 arrows: None,

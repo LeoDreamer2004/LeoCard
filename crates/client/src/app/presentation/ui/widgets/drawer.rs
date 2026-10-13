@@ -1,6 +1,6 @@
 use super::add_text;
 use super::spawn_node;
-use crate::app::presentation::{ACCENT, ButtonHighlight, MUTED};
+use crate::app::presentation::{ACCENT, ButtonHighlight, MUTED, UiComposer};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
@@ -21,9 +21,10 @@ pub(crate) struct SwitchDrawer<'a> {
     pub switches: &'a [DrawerSwitch<'a>],
 }
 
+/// Anchor to a full-width game viewport, not a centered fixed-width table.
 pub(crate) fn add_switch_drawer(
-    commands: &mut Commands,
-    table: Entity,
+    commands: &mut UiComposer,
+    viewport: Entity,
     spec: SwitchDrawer<'_>,
     assets: &UiAssets,
 ) -> Entity {
@@ -38,7 +39,7 @@ pub(crate) fn add_switch_drawer(
     drawer_image.visual_box = VisualBox::BorderBox;
     let drawer = spawn_node(
         commands,
-        table,
+        viewport,
         Node {
             position_type: PositionType::Absolute,
             left: px(0),
@@ -61,8 +62,9 @@ pub(crate) fn add_switch_drawer(
             enabled,
             action,
         } = option;
-        let row = commands
-            .spawn((
+        let row = commands.child(
+            drawer,
+            (
                 Button,
                 action.clone(),
                 Node {
@@ -77,9 +79,8 @@ pub(crate) fn add_switch_drawer(
                     ..default()
                 },
                 BackgroundColor(Color::NONE),
-            ))
-            .id();
-        commands.entity(drawer).add_child(row);
+            ),
+        );
         add_text(
             commands,
             row,
@@ -89,8 +90,9 @@ pub(crate) fn add_switch_drawer(
             assets,
         );
         if expanded {
-            let checkbox = commands
-                .spawn((
+            commands.child(
+                row,
+                (
                     Node {
                         width: px(20),
                         height: px(20),
@@ -103,9 +105,8 @@ pub(crate) fn add_switch_drawer(
                         assets.home.checkbox.clone()
                     }),
                     Pickable::IGNORE,
-                ))
-                .id();
-            commands.entity(row).add_child(checkbox);
+                ),
+            );
         }
     }
     let arrow_row = spawn_node(
@@ -120,8 +121,9 @@ pub(crate) fn add_switch_drawer(
         },
         None,
     );
-    let arrow = commands
-        .spawn((
+    let arrow = commands.child(
+        arrow_row,
+        (
             Button,
             spec.toggle_action,
             Node {
@@ -134,11 +136,11 @@ pub(crate) fn add_switch_drawer(
             } else {
                 assets.home.rule_right.clone()
             }),
-        ))
-        .id();
-    commands.entity(arrow_row).add_child(arrow);
-    let hover = commands
-        .spawn((
+        ),
+    );
+    let hover = commands.child(
+        arrow,
+        (
             Node {
                 position_type: PositionType::Absolute,
                 left: px(0),
@@ -154,9 +156,8 @@ pub(crate) fn add_switch_drawer(
             }),
             Visibility::Hidden,
             Pickable::IGNORE,
-        ))
-        .id();
-    commands.entity(arrow).add_child(hover);
+        ),
+    );
     commands.entity(arrow).insert(ButtonHighlight {
         overlay: hover,
         arrows: None,

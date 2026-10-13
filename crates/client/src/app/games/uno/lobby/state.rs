@@ -3,7 +3,7 @@
 use super::super::{UnoUiAction, UnoUiState};
 use super::rules::*;
 use super::*;
-use crate::app::presentation::{MUTED, add_text, spawn_node};
+use crate::app::presentation::{MUTED, UiComposer, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
     LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_cozy_button,
@@ -14,7 +14,7 @@ use leocard_protocol::LobbySnapshot;
 use leocard_uno::UnoRuleSet;
 
 pub(crate) fn render_uno_lobby(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     root: Entity,
     client: &ClientResource,
     lobby: &LobbySnapshot,
@@ -107,7 +107,7 @@ pub(super) fn mode_title(rules: UnoRuleSet) -> &'static str {
     }
 }
 
-pub(super) fn add_expansion_button(commands: &mut Commands, parent: Entity, assets: &UiAssets) {
+pub(super) fn add_expansion_button(commands: &mut UiComposer, parent: Entity, assets: &UiAssets) {
     add_cozy_button(
         commands,
         parent,

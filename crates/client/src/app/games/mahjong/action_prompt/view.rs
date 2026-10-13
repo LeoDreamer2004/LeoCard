@@ -1,4 +1,4 @@
-use crate::app::presentation::{add_text, spawn_node};
+use crate::app::presentation::{UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::{picking::Pickable, prelude::*};
 use std::f32::consts;
@@ -18,7 +18,7 @@ pub(in super::super) struct ResponseArrow {
 }
 
 pub(in super::super) fn add_mahjong_response_indicator(
-    commands: &mut Commands,
+    commands: &mut UiComposer,
     tile: Entity,
     size: Vec2,
     rotation: f32,

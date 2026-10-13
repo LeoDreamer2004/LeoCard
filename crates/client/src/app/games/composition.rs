@@ -1,9 +1,8 @@
 //! 游戏大厅与牌桌的运行期组合边界。
 
 use super::mahjong::{
-    MahjongAssets, MahjongClaimPresentationState, MahjongFanCalculator, MahjongHoverRetention,
-    MahjongTableVisuals, MahjongTileMaterial, MahjongUiState, render_mahjong_lobby,
-    render_mahjong_table,
+    MahjongAssets, MahjongClaimPresentationState, MahjongFanCalculator, MahjongTableVisuals,
+    MahjongTileMaterial, MahjongUiState, render_mahjong_lobby, render_mahjong_table,
 };
 use super::minecraft_guess::{
     GuessFeedback, GuessScorePlayback, GuessTable, MinecraftGuessAssets, MinecraftGuessUiState,
@@ -27,6 +26,7 @@ use super::uno::{
 };
 use crate::app::presentation::{
     GameSummaryAnimation, StartGameSeatTransition, TableBackgroundMaterial, TurnBorderMaterial,
+    UiComposer,
 };
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, ClientResource, TableAppearance, UiAssets,
@@ -66,16 +66,6 @@ pub(crate) struct GameScreenResources<'w> {
     table_materials: ResMut<'w, Assets<TableBackgroundMaterial>>,
     mahjong_tile_materials: ResMut<'w, Assets<MahjongTileMaterial>>,
     turn_border_materials: ResMut<'w, Assets<TurnBorderMaterial>>,
-}
-
-#[derive(SystemParam)]
-pub(crate) struct GameScreenRetainedState<'w, 's> {
-    mahjong: MahjongHoverRetention<'w, 's>,
-}
-impl GameScreenRetainedState<'_, '_> {
-    pub(crate) fn capture(&self, client: Option<&ClientResource>, games: &mut GameScreenResources) {
-        self.mahjong.retain(client, &mut games.mahjong_ui);
-    }
 }
 
 impl GameScreenResources<'_> {
@@ -174,7 +164,7 @@ impl GameScreenResources<'_> {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn render_lobby(
         &mut self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         root: Entity,
         client: &ClientResource,
         lobby: &LobbySnapshot,
@@ -207,7 +197,7 @@ impl GameScreenResources<'_> {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn render_table(
         &mut self,
-        commands: &mut Commands,
+        commands: &mut UiComposer,
         root: Entity,
         client: &ClientResource,
         game: &GameSnapshot,

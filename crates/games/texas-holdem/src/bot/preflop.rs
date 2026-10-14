@@ -67,7 +67,11 @@ impl<'a> PreflopPolicy<'a> {
         let raise_threshold =
             0.38 + observation.opponents.len() as f64 * 0.012 - observation.position * 0.07;
         if observation.can_raise && self.strength >= raise_threshold {
-            if short_stack && self.strength >= 0.4 && maximum > observation.current_bet {
+            if short_stack
+                && self.strength >= 0.4
+                && maximum > observation.current_bet
+                && observation.can_all_in
+            {
                 return TexasHoldemAction::AllIn;
             }
             // Three big blinds plus one per limper. Unacted players are not assumed
@@ -129,11 +133,13 @@ impl<'a> PreflopPolicy<'a> {
             return TexasHoldemAction::Fold;
         }
         if premium && observation.can_raise && share > 0.55 {
-            if effective <= TexasHoldemRuleSet::BIG_BLIND * 12 || expense >= 0.35 {
-                if observation.committed + observation.stack > observation.current_bet {
-                    return TexasHoldemAction::AllIn;
-                }
-            } else if let Some(action) = self.raise_to(observation.current_bet * 3) {
+            if (effective <= TexasHoldemRuleSet::BIG_BLIND * 12 || expense >= 0.35)
+                && observation.can_all_in
+                && observation.committed + observation.stack > observation.current_bet
+            {
+                return TexasHoldemAction::AllIn;
+            }
+            if let Some(action) = self.raise_to(observation.current_bet * 3) {
                 return action;
             }
         }

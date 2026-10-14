@@ -64,6 +64,8 @@ fn pot_test_snapshot(committed: &[(u32, bool, bool)]) -> TexasHoldemSnapshot {
         minimum_raise_to: 1,
         amount_to_call: 0,
         raise_allowed: true,
+        maximum_raise_to: Some(20),
+        all_in_allowed: true,
         pot: committed.iter().map(|entry| entry.0).sum(),
         phase: TexasHoldemPhaseView::Betting {
             street: TexasHoldemStreet::PreFlop,

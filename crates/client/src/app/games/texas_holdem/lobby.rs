@@ -87,6 +87,28 @@ pub(crate) fn render_texas_holdem_lobby(
         },
         assets,
     );
+    let betting_toggled = TexasHoldemRuleSet {
+        fixed_limit: !rules_value.fixed_limit,
+        ..rules_value
+    };
+    add_rule_config_row(
+        commands,
+        rules_panel,
+        TexasRuleConfigRow {
+            label: "下注规则",
+            value: if rules_value.fixed_limit {
+                "有限注"
+            } else {
+                "无限注"
+            }
+            .to_owned(),
+            help: "有限注：翻前和翻牌每次下注或加注 2，转牌和河牌每次 4；每街最多一次下注加三次加注，大盲视为翻前的首次下注。全下也须遵守限额。无限注可加注至全部筹码。",
+            editable: can_configure,
+            previous: can_configure.then_some(betting_toggled),
+            next: can_configure.then_some(betting_toggled),
+        },
+        assets,
+    );
     let toggled = TexasHoldemRuleSet {
         short_deck: !rules_value.short_deck,
         ..rules_value

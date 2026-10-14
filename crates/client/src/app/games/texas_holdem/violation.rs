@@ -14,6 +14,8 @@ pub(crate) fn texas_holdem_violation_label(violation: &TexasHoldemViolation) -> 
         TexasHoldemViolation::RaiseBelowMinimum { .. } => "加注没有达到本轮最小额度",
         TexasHoldemViolation::RaiseExceedsStack { .. } => "加注额度超过了你的可用筹码",
         TexasHoldemViolation::RaiseNotReopened => "本轮下注尚未重新开放加注",
+        TexasHoldemViolation::RaiseExceedsLimit { .. } => "加注超过了固定限注额度",
+        TexasHoldemViolation::RaiseLimitReached => "本轮已达到三次加注上限",
     }
     .to_owned()
 }

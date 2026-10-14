@@ -222,7 +222,7 @@ fn add_texas_actions(
     commands
         .entity(actions)
         .insert(UiTransform::from_translation(Val2::px(-310.0, 0.0)));
-    let maximum_target = own.committed_street.saturating_add(own.stack);
+    let maximum_target = game.maximum_raise_to.unwrap_or(game.current_bet);
     let step = game
         .minimum_raise_to
         .saturating_sub(game.current_bet)
@@ -278,19 +278,21 @@ fn add_texas_actions(
         ui.raise_to = sizing.normalize(ui.raise_to).expect("affordable raise");
         let lower = ui.raise_to.saturating_sub(step).max(minimum_target);
         let higher = ui.raise_to.saturating_add(step).min(maximum_target);
-        add_raise_adjust_button(
-            commands,
-            row,
-            lower,
-            lower < ui.raise_to,
-            TexasRaiseAdjustButton {
-                direction: -1,
-                step,
-                minimum: minimum_target,
-                maximum: maximum_target,
-            },
-            game_assets,
-        );
+        if maximum_target > minimum_target {
+            add_raise_adjust_button(
+                commands,
+                row,
+                lower,
+                lower < ui.raise_to,
+                TexasRaiseAdjustButton {
+                    direction: -1,
+                    step,
+                    minimum: minimum_target,
+                    maximum: maximum_target,
+                },
+                game_assets,
+            );
+        }
         add_texas_action_button(
             commands,
             row,
@@ -300,29 +302,33 @@ fn add_texas_actions(
             assets,
             game_assets,
         );
-        add_raise_adjust_button(
+        if maximum_target > minimum_target {
+            add_raise_adjust_button(
+                commands,
+                row,
+                higher,
+                higher > ui.raise_to,
+                TexasRaiseAdjustButton {
+                    direction: 1,
+                    step,
+                    minimum: minimum_target,
+                    maximum: maximum_target,
+                },
+                game_assets,
+            );
+        }
+    }
+    if game.all_in_allowed {
+        add_texas_action_button(
             commands,
             row,
-            higher,
-            higher > ui.raise_to,
-            TexasRaiseAdjustButton {
-                direction: 1,
-                step,
-                minimum: minimum_target,
-                maximum: maximum_target,
-            },
+            "全下",
+            TexasHoldemAction::AllIn,
+            ButtonKind::Warning,
+            assets,
             game_assets,
         );
     }
-    add_texas_action_button(
-        commands,
-        row,
-        "全下",
-        TexasHoldemAction::AllIn,
-        ButtonKind::Warning,
-        assets,
-        game_assets,
-    );
 }
 
 fn add_texas_action_button(

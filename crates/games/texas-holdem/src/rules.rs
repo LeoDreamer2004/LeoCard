@@ -13,6 +13,9 @@ pub struct TexasHoldemRuleSet {
     /// 奥马哈高牌：每人四张底牌，成牌时必须恰好使用两张底牌和三张公共牌。
     #[cfg_attr(feature = "serde", serde(default))]
     pub omaha: bool,
+    /// 固定限注：前两街每次 2，后两街每次 4，每街最多四次完整下注。
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub fixed_limit: bool,
 }
 
 impl TexasHoldemRuleSet {
@@ -21,6 +24,7 @@ impl TexasHoldemRuleSet {
     pub const STARTING_CHIP_OPTIONS: [u16; 6] = [5, 10, 20, 30, 40, 50];
     pub const SMALL_BLIND: u32 = 1;
     pub const BIG_BLIND: u32 = 2;
+    pub const MAX_FIXED_LIMIT_BETS: u8 = 4;
 
     pub const fn hole_card_count(self) -> usize {
         if self.omaha { 4 } else { 2 }
@@ -45,6 +49,7 @@ impl Default for TexasHoldemRuleSet {
             short_deck: false,
             ignore_kickers: false,
             omaha: false,
+            fixed_limit: false,
         }
     }
 }

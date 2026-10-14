@@ -1,4 +1,4 @@
-pub(super) mod migration;
+mod migration;
 mod state;
 
 pub use state::{LocalPlayerProfile, PlayerRatingProfile};

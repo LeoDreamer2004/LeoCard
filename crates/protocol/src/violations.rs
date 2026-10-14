@@ -169,6 +169,8 @@ pub enum TexasHoldemViolation {
     RaiseBelowMinimum { minimum_target: u32, target: u32 },
     RaiseExceedsStack { maximum_target: u32, target: u32 },
     RaiseNotReopened,
+    RaiseExceedsLimit { maximum_target: u32, target: u32 },
+    RaiseLimitReached,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]

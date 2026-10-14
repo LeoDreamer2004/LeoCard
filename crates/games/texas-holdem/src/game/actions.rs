@@ -1,8 +1,8 @@
 use crate::TexasHoldemRuleSet;
 
 use super::{
-    ActionOutcome, BettingRecord, GameError, GameState, Phase, PlayerState, RaiseSizing,
-    TexasHoldemAction, TexasHoldemBlindKind, TexasHoldemPlayerId, TexasHoldemStreet,
+    ActionOutcome, BettingRecord, GameError, GameState, Phase, PlayerState, TexasHoldemAction,
+    TexasHoldemBlindKind, TexasHoldemPlayerId, TexasHoldemStreet,
 };
 
 impl GameState {
@@ -115,6 +115,8 @@ impl GameState {
     }
 
     fn open_preflop_betting(&mut self) -> Result<(), GameError> {
+        // 大盲是翻前的首次下注，之后最多再加注三次。
+        self.full_bets = 1;
         self.current_bet = self
             .players
             .iter()
@@ -171,9 +173,7 @@ impl GameState {
     }
 
     fn raise_to(&mut self, player: TexasHoldemPlayerId, target: u32) -> Result<bool, GameError> {
-        if !self.raise_allowed[player.0] {
-            return Err(GameError::RaiseNotReopened);
-        }
+        self.validate_raise_rights(player)?;
         if target <= self.current_bet {
             return Err(GameError::RaiseMustExceedCurrentBet {
                 current_bet: self.current_bet,
@@ -194,8 +194,8 @@ impl GameState {
                 target,
             });
         }
-        if !RaiseSizing::new(self.current_bet, self.minimum_raise, maximum_target).contains(target)
-        {
+        self.validate_fixed_limit_target(target)?;
+        if !self.raise_sizing(player)?.contains(target) {
             return Err(GameError::RaiseInvalidIncrement {
                 increment: self.minimum_raise,
                 target,
@@ -204,7 +204,7 @@ impl GameState {
 
         let payment = target - self.players[player.0].committed_street;
         self.commit(player, payment);
-        self.minimum_raise = target - self.current_bet;
+        self.record_full_raise(target);
         self.current_bet = target;
         self.raise_allowed[player.0] = false;
         Ok(true)
@@ -212,8 +212,9 @@ impl GameState {
 
     fn go_all_in(&mut self, player: TexasHoldemPlayerId) -> Result<bool, GameError> {
         let target = self.players[player.0].committed_street + self.players[player.0].stack;
-        if target > self.current_bet && !self.raise_allowed[player.0] {
-            return Err(GameError::RaiseNotReopened);
+        if target > self.current_bet {
+            self.validate_raise_rights(player)?;
+            self.validate_fixed_limit_target(target)?;
         }
         let payment = self.players[player.0].stack;
         self.commit(player, payment);
@@ -222,7 +223,7 @@ impl GameState {
             let raise_size = target - self.current_bet;
             full_raise = raise_size >= self.minimum_raise;
             if full_raise {
-                self.minimum_raise = raise_size;
+                self.record_full_raise(target);
             }
             self.current_bet = target;
         }

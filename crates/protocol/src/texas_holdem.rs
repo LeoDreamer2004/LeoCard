@@ -35,8 +35,11 @@ pub struct TexasHoldemSnapshot {
     pub blind_to_post: Option<TexasHoldemBlindView>,
     pub current_bet: u32,
     pub minimum_raise_to: u32,
+    /// 接收方本次能执行的最高普通加注；None 表示不能完整加注。
+    pub maximum_raise_to: Option<u32>,
     pub amount_to_call: u32,
     pub raise_allowed: bool,
+    pub all_in_allowed: bool,
     pub pot: u32,
     pub phase: TexasHoldemPhaseView,
 }

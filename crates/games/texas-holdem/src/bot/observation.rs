@@ -31,6 +31,8 @@ pub struct TexasHoldemBotObservation {
     pub(super) minimum_raise: u32,
     pub(super) current_bet: u32,
     pub(super) can_raise: bool,
+    pub(super) can_all_in: bool,
+    sizing: RaiseSizing,
     pub(super) blind: bool,
 }
 
@@ -74,6 +76,8 @@ impl TexasHoldemBotObservation {
             minimum_raise: game.minimum_raise_to(),
             current_bet: game.current_bet(),
             can_raise: game.raise_allowed(player).ok()?,
+            can_all_in: game.all_in_allowed(player).ok()?,
+            sizing: game.raise_sizing(player).ok()?,
             blind: game.blind_to_post().is_some(),
         })
     }
@@ -101,11 +105,7 @@ impl TexasHoldemBotObservation {
     }
 
     pub(super) fn raise_sizing(&self) -> RaiseSizing {
-        RaiseSizing::new(
-            self.current_bet,
-            self.minimum_raise - self.current_bet,
-            self.committed + self.stack,
-        )
+        self.sizing
     }
 
     pub(super) fn contestable_pot(&self) -> u32 {

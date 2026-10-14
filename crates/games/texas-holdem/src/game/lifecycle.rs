@@ -50,6 +50,7 @@ impl GameState {
         self.statistics.start_hand(&self.players);
         self.current_bet = 0;
         self.minimum_raise = TexasHoldemRuleSet::BIG_BLIND;
+        self.full_bets = 0;
         self.phase = Phase::Betting(TexasHoldemStreet::PreFlop);
         self.pending_blind = Some(TexasHoldemBlindKind::Small);
         for player in &mut self.players {
@@ -127,7 +128,16 @@ impl GameState {
         self.deal_community_for(next_street);
         self.phase = Phase::Betting(next_street);
         self.current_bet = 0;
-        self.minimum_raise = TexasHoldemRuleSet::BIG_BLIND;
+        self.minimum_raise = if self.rules.fixed_limit
+            && matches!(
+                next_street,
+                TexasHoldemStreet::Turn | TexasHoldemStreet::River
+            ) {
+            TexasHoldemRuleSet::BIG_BLIND * 2
+        } else {
+            TexasHoldemRuleSet::BIG_BLIND
+        };
+        self.full_bets = 0;
         self.needs_action.fill(false);
         self.raise_allowed.fill(false);
         for player in &mut self.players {

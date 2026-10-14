@@ -2,6 +2,7 @@ mod achievements;
 mod appearance;
 mod economy;
 mod identity;
+mod migration;
 mod paths;
 mod preferences;
 mod profile;

@@ -53,7 +53,7 @@ impl TexasHoldemBot {
                 targets.push(target);
             }
         }
-        if observation.stack <= observation.pot * 2 || strength > 0.75 {
+        if observation.can_all_in && (observation.stack <= observation.pot * 2 || strength > 0.75) {
             targets.push(maximum);
         }
         targets.sort_unstable();

@@ -12,6 +12,7 @@ pub fn run(seed: usize, budget: Duration, mixed: bool, starting_chips: u16, metr
         short_deck: seed / 4 % 4 == 1,
         omaha: seed / 4 % 4 == 2,
         ignore_kickers: seed / 4 % 4 == 3,
+        ..TexasHoldemRuleSet::default()
     };
     let mut deck = build_deck(rules.short_deck);
     fastrand::Rng::with_seed(seed as u64).shuffle(&mut deck);

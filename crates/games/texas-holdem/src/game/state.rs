@@ -163,6 +163,11 @@ pub enum GameError {
         target: u32,
     },
     RaiseNotReopened,
+    RaiseExceedsLimit {
+        maximum_target: u32,
+        target: u32,
+    },
+    RaiseLimitReached,
     PlayerCannotAct(TexasHoldemPlayerId),
     MustPostBlind,
     NoBlindToPost,
@@ -211,6 +216,16 @@ impl fmt::Display for GameError {
                 )
             }
             Self::RaiseNotReopened => f.write_str("不足额全下没有重新开放加注权"),
+            Self::RaiseExceedsLimit {
+                maximum_target,
+                target,
+            } => {
+                write!(
+                    f,
+                    "固定限注本次最多加注到 {maximum_target}，实际目标为 {target}"
+                )
+            }
+            Self::RaiseLimitReached => f.write_str("本街已达到一次下注加三次加注的上限"),
             Self::PlayerCannotAct(player) => write!(f, "玩家 {:?} 已弃牌、全下或出局", player),
             Self::MustPostBlind => f.write_str("当前只能下盲注"),
             Self::NoBlindToPost => f.write_str("当前没有待下的盲注"),
@@ -257,6 +272,7 @@ pub struct GameState {
     pub(super) current_player: Option<TexasHoldemPlayerId>,
     pub(super) current_bet: u32,
     pub(super) minimum_raise: u32,
+    pub(super) full_bets: u8,
     pub(super) needs_action: Vec<bool>,
     pub(super) raise_allowed: Vec<bool>,
     pub(super) phase: Phase,
@@ -324,6 +340,7 @@ impl GameState {
             current_player: None,
             current_bet: 0,
             minimum_raise: TexasHoldemRuleSet::BIG_BLIND,
+            full_bets: 0,
             needs_action: vec![false; player_count],
             raise_allowed: vec![false; player_count],
             phase: Phase::Betting(TexasHoldemStreet::PreFlop),
@@ -367,7 +384,7 @@ impl GameState {
         self.current_bet
     }
 
-    /// 当前最后一次完整加注的幅度；新下注街开始时等于大盲注。
+    /// 无限注为最后一次完整加注幅度；固定限注为当前街的固定额度。
     pub const fn minimum_raise(&self) -> u32 {
         self.minimum_raise
     }
@@ -383,7 +400,7 @@ impl GameState {
         self.players
             .get(player.0)
             .ok_or(GameError::InvalidPlayer(player))?;
-        Ok(self.raise_allowed[player.0] && self.can_act(player))
+        Ok(self.raise_allowed[player.0] && self.can_act(player) && !self.fixed_limit_reached())
     }
 
     pub fn community(&self) -> &[TexasHoldemCard] {

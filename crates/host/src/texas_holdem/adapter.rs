@@ -362,6 +362,11 @@ impl TexasHoldemAdapter {
             }),
             current_bet: self.game.current_bet(),
             minimum_raise_to: self.game.minimum_raise_to(),
+            maximum_raise_to: self
+                .game
+                .raise_sizing(recipient_core)
+                .expect("recipient maps to a core player")
+                .maximum(),
             amount_to_call: self
                 .game
                 .amount_to_call(recipient_core)
@@ -369,6 +374,10 @@ impl TexasHoldemAdapter {
             raise_allowed: self
                 .game
                 .raise_allowed(recipient_core)
+                .expect("recipient maps to a core player"),
+            all_in_allowed: self
+                .game
+                .all_in_allowed(recipient_core)
                 .expect("recipient maps to a core player"),
             pot: self.game.pot(),
             phase,
@@ -473,6 +482,14 @@ fn map_action_error(error: GameError) -> AdapterError {
             target,
         },
         GameError::RaiseNotReopened => TexasHoldemViolation::RaiseNotReopened,
+        GameError::RaiseExceedsLimit {
+            maximum_target,
+            target,
+        } => TexasHoldemViolation::RaiseExceedsLimit {
+            maximum_target,
+            target,
+        },
+        GameError::RaiseLimitReached => TexasHoldemViolation::RaiseLimitReached,
         other => return AdapterError::Game(other),
     };
     AdapterError::Violation(violation)

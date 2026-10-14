@@ -41,6 +41,7 @@ fn preferences_round_trip_including_avatar() {
                     short_deck: true,
                     ignore_kickers: true,
                     omaha: true,
+                    fixed_limit: true,
                     ..normalize_rules(TexasHoldemRuleSet::default())
                 },
             },

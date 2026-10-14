@@ -1,4 +1,5 @@
 use super::config_file;
+use super::migration::migrate_preferences;
 use leocard_mahjong::MahjongRuleSet;
 use leocard_protocol::{PlayerGender, TABLE_SEAT_COUNT};
 use leocard_qigui523::QiGuiRuleSet;
@@ -8,6 +9,8 @@ use leocard_uno::UnoRuleSet;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+
+pub(crate) const PREFERENCES_HEADER: &[u8] = b"LeoCard/prefs/v1\0";
 
 const DEFAULT_AUDIO_VOLUME: f32 = 0.8;
 const DEFAULT_TABLE_VIGNETTE: f32 = 0.38;
@@ -113,7 +116,15 @@ fn default_audio_volume() -> f32 {
 
 pub fn load_player_preferences() -> Option<SavedPreferences> {
     let bytes = fs::read(config_file("client.prefs")?).ok()?;
-    super::profile::migration::decode_player_preferences(&bytes)
+    decode_player_preferences(&bytes)
+}
+
+pub(crate) fn decode_player_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
+    if let Some(current) = bytes.strip_prefix(PREFERENCES_HEADER) {
+        postcard::from_bytes(current).ok()
+    } else {
+        migrate_preferences(bytes)
+    }
 }
 
 pub fn save_player_preferences(preferences: &SavedPreferences) -> Result<(), String> {
@@ -121,7 +132,9 @@ pub fn save_player_preferences(preferences: &SavedPreferences) -> Result<(), Str
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|error| format!("无法创建配置目录：{error}"))?;
     }
-    let bytes =
-        postcard::to_allocvec(preferences).map_err(|error| format!("配置编码失败：{error}"))?;
+    let mut bytes = PREFERENCES_HEADER.to_vec();
+    bytes.extend(
+        postcard::to_allocvec(preferences).map_err(|error| format!("配置编码失败：{error}"))?,
+    );
     fs::write(path, bytes).map_err(|error| format!("无法保存本地配置：{error}"))
 }

@@ -24,11 +24,11 @@ impl GuessTable<'_> {
         if guess_summary_descriptor(self.game).is_none() {
             return;
         }
-        let caption = format!(
-            "共 {} 轮 · {} 局",
-            self.game.progress.rounds,
-            self.game.progress.total_games()
-        );
+        let progress = self.game.progress;
+        let caption = match progress.round_count() {
+            Some(rounds) => format!("共 {rounds} 轮 · {} 局", progress.total_games()),
+            None => format!("抢答竞速 · 共 {} 局", progress.total_games()),
+        };
         add_ranked_summary(
             commands,
             page,

@@ -1,10 +1,11 @@
 use super::GuessRecord;
-use crate::{Entry, EntryKind};
+use crate::{Entry, EntryKind, GuessMode};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GameError {
     NotPlayersTurn,
+    CannotSkip,
     Finished,
     UnknownEntry,
     AlreadyGuessed,
@@ -25,6 +26,10 @@ pub struct RoundView {
 }
 
 impl RoundView {
+    pub fn can_guess(&self, player: u8, mode: GuessMode) -> bool {
+        !self.finished() && (mode == GuessMode::Race || self.current_player == Some(player))
+    }
+
     pub fn finished(&self) -> bool {
         self.answer.is_some()
     }

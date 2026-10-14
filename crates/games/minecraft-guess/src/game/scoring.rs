@@ -33,6 +33,15 @@ impl GuessResult {
         )
     }
 
+    pub(super) fn race_score(&self, first_matching_available: bool) -> GuessScore {
+        GuessScore {
+            during_guess: 3 * u32::from(
+                !self.is_correct() && first_matching_available && self.all_matching(),
+            ),
+            after_answer: 5 * u32::from(self.is_correct()),
+        }
+    }
+
     pub(super) fn score(
         &self,
         previous: Option<u32>,

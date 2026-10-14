@@ -2,12 +2,9 @@
 
 use crate::app::presentation::{TEXT, TableAppearanceSetting, UiComposer, add_text, spawn_node};
 use crate::app::shell::SettingsUiAction;
-use bevy::picking::Pickable;
-use bevy::ui_widgets::Button;
 
-use super::super::super::UiAction;
-use super::super::SettingsVoiceToggle;
 use super::slider::SettingsSlider;
+use super::toggle::add_settings_toggle;
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use bevy::prelude::*;
 
@@ -53,7 +50,7 @@ pub(super) fn render_sound_settings(
             SettingsUiAction::ToggleMahjongFanVoices,
         ),
     ] {
-        add_voice_toggle(commands, row, label, selected, action, assets);
+        add_settings_toggle(commands, row, label, selected, action, assets);
     }
     add_text(commands, parent, "德州扑克", 20.0, TEXT, assets);
     let texas_row = spawn_node(
@@ -66,7 +63,7 @@ pub(super) fn render_sound_settings(
         },
         None,
     );
-    add_voice_toggle(
+    add_settings_toggle(
         commands,
         texas_row,
         "行动语音",
@@ -74,49 +71,4 @@ pub(super) fn render_sound_settings(
         SettingsUiAction::ToggleTexasActionVoices,
         assets,
     );
-}
-
-fn add_voice_toggle(
-    commands: &mut UiComposer,
-    parent: Entity,
-    label: &str,
-    selected: bool,
-    action: SettingsUiAction,
-    assets: &UiAssets,
-) {
-    let button = commands.child(
-        parent,
-        (
-            Button,
-            UiAction::Settings(action),
-            Node {
-                flex_grow: 1.0,
-                min_width: px(0),
-                height: px(48),
-                align_items: AlignItems::Center,
-                column_gap: px(8),
-                ..default()
-            },
-        ),
-    );
-    let icon = commands.child(
-        button,
-        (
-            Node {
-                width: px(34),
-                height: px(34),
-                ..default()
-            },
-            ImageNode::new(if selected {
-                assets.home.checkbox_selected.clone()
-            } else {
-                assets.home.checkbox.clone()
-            }),
-            Pickable::IGNORE,
-        ),
-    );
-    commands
-        .entity(button)
-        .insert(SettingsVoiceToggle { icon, selected });
-    add_text(commands, button, label, 16.0, TEXT, assets);
 }

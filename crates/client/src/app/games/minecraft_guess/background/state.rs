@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use leocard_minecraft_guess::{GuessResult, MatchQuality, RoundView};
 use leocard_protocol::MatchId;
+use sha2::{Digest, Sha256};
 
 #[derive(Resource, Default)]
 pub(super) struct BackgroundPlayback {
@@ -9,16 +10,25 @@ pub(super) struct BackgroundPlayback {
     pub pending_panorama: Option<PendingPanorama>,
     pub seconds: f32,
     pub transition: f32,
+    pub tile_index: usize,
     revealing: bool,
 }
 
 impl BackgroundPlayback {
-    pub fn begin_round(&mut self, round: Option<(MatchId, u8)>) {
-        if round.is_none() {
+    pub fn begin_round(&mut self, round: Option<(MatchId, u8)>, tile_count: usize) {
+        let Some((match_id, game_index)) = round else {
             *self = Self::default();
             return;
-        }
+        };
         self.round = round;
+        // Fixed byte order and hash keep desktop, Android and reconnects in sync.
+        let digest = Sha256::new()
+            .chain_update(b"leocard-minecraft-background")
+            .chain_update(match_id.0)
+            .chain_update([game_index])
+            .finalize();
+        let seed = u64::from_le_bytes(digest[..8].try_into().expect("eight hash bytes"));
+        self.tile_index = (seed % tile_count as u64) as usize;
         self.pending_panorama = None;
         self.revealing = false;
     }
@@ -35,7 +45,7 @@ impl BackgroundPlayback {
         } else {
             self.transition = (self.transition - step).max(0.0);
             if self.transition == 0.0 {
-                // Replace the texture only when dirt completely covers the old panorama.
+                // Replace the texture only when the tiles completely cover the old panorama.
                 self.panorama = self
                     .pending_panorama
                     .take_if(|panorama| panorama.ready)

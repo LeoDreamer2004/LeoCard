@@ -7,8 +7,22 @@ use bevy::prelude::*;
 use leocard_minecraft_guess::Catalogue;
 use leocard_protocol::MinecraftGuessSnapshot;
 
-#[derive(Component)]
-pub(in super::super) struct GuessCandidates(pub String);
+#[derive(Component, PartialEq)]
+pub(in super::super) struct GuessCandidates {
+    input: String,
+    guesses: usize,
+    active: bool,
+}
+
+impl GuessCandidates {
+    pub(super) fn new(input: &str, game: &MinecraftGuessSnapshot) -> Self {
+        Self {
+            input: input.to_owned(),
+            guesses: game.round.guesses.len(),
+            active: game.can_guess(),
+        }
+    }
+}
 
 #[derive(Component)]
 pub(in super::super) struct GuessCandidate(pub usize);
@@ -21,10 +35,7 @@ pub(super) fn add_candidates(
     assets: &UiAssets,
     game_assets: &MinecraftGuessAssets,
 ) {
-    if !game.rules.candidate_hints
-        || input.trim().is_empty()
-        || game.round.current_player != Some(game.you.0)
-    {
+    if !game.rules.options().candidate_hints || input.trim().is_empty() || !game.can_guess() {
         return;
     }
     for (index, entry) in Catalogue::bundled()
@@ -72,10 +83,11 @@ pub(in super::super) fn sync_guess_controls(
         return;
     };
     for (parent, mut rendered, children) in &mut candidates {
-        if rendered.0 == state.input {
+        let expected = GuessCandidates::new(&state.input, game);
+        if *rendered == expected {
             continue;
         }
-        rendered.0.clone_from(&state.input);
+        *rendered = expected;
         if let Some(children) = children {
             for child in children.iter() {
                 commands.entity(child).despawn();
@@ -90,7 +102,7 @@ pub(in super::super) fn sync_guess_controls(
             &game_assets,
         );
     }
-    let enabled = game.round.current_player == Some(game.you.0) && !state.input.trim().is_empty();
+    let enabled = game.can_guess() && !state.input.trim().is_empty();
     for (entity, mut submit) in &mut submits {
         if submit.enabled == enabled {
             continue;

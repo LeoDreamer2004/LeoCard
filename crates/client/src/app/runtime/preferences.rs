@@ -7,8 +7,9 @@ use crate::app::presentation::{
 };
 use bevy::prelude::*;
 pub(crate) use leocard_client::{
-    GamePreferences, MahjongPreferences, QiGui523Preferences, SavedPreferences, ShengjiPreferences,
-    TexasHoldemPreferences, UnoPreferences, load_player_preferences, save_player_preferences,
+    GameAppearancePreferences, GamePreferences, MahjongPreferences, QiGui523Preferences,
+    SavedPreferences, ShengjiPreferences, TexasHoldemPreferences, UnoPreferences,
+    load_player_preferences, save_player_preferences,
 };
 use leocard_mahjong::MahjongRuleSet;
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
@@ -33,6 +34,7 @@ pub(crate) struct ConnectionDraft {
 
 #[derive(Resource)]
 pub(crate) struct AppearancePreferences {
+    pub games: GameAppearancePreferences,
     pub avatar_png: Option<Vec<u8>>,
     pub table_felt_path: Option<PathBuf>,
     pub table_brightness: f32,
@@ -115,6 +117,10 @@ impl PreferenceResources {
                 },
             },
             appearance: AppearancePreferences {
+                games: GameAppearancePreferences::load().unwrap_or_else(|error| {
+                    warn!("{error}");
+                    GameAppearancePreferences::default()
+                }),
                 avatar_png: saved
                     .global
                     .avatar_png

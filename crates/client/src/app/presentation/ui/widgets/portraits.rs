@@ -5,7 +5,7 @@ use super::players::avatar_content;
 use super::{PlayerMenuProfile, add_interaction_menu, add_text, spawn_node, text_scene};
 use crate::app::presentation::{UiComposer, UiSceneKey, ui_component};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{OpponentBadge, PlayerAvatarAnchor, SeatSide, SocialUiAction, UiAction};
+use crate::app::shell::{OpponentBadge, PlayerAvatarAnchor, SocialUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
@@ -14,11 +14,9 @@ use leocard_protocol::PlayerId;
 pub(crate) struct PlayerPortraitSpec<'a> {
     pub player: PlayerId,
     pub profile: PlayerMenuProfile<'a>,
-    pub side: SeatSide,
     pub avatar_size: f32,
     pub auto_play: bool,
     pub menu_open: bool,
-    pub menu_above: bool,
     pub name_color: Color,
 }
 
@@ -134,28 +132,7 @@ pub(crate) fn add_player_portrait(
     if spec.auto_play {
         add_avatar_auto_play_overlay(commands, avatar, size, assets);
     }
-    let menu = add_interaction_menu(
-        commands,
-        portrait,
-        spec.player,
-        spec.side,
-        spec.profile,
-        assets,
-    );
-    let menu_above = spec.menu_above;
-    commands
-        .entity(menu)
-        .entry::<Node>()
-        .and_modify(move |mut node| {
-            if menu_above {
-                node.top = Val::Auto;
-                node.bottom = percent(100);
-                node.margin.bottom = px(6);
-            } else {
-                node.top = percent(100);
-                node.margin.top = px(6);
-            }
-        });
+    let menu = add_interaction_menu(commands, portrait, spec.player, spec.profile, assets);
     commands.entity(menu).insert(if spec.menu_open {
         Visibility::Visible
     } else {

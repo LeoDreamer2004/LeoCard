@@ -24,6 +24,7 @@ pub(in super::super) fn sync_feedback(
         let continuing = playback.key.is_some_and(|(id, _)| id == game.match_id);
         *playback = GuessFeedback {
             key: Some(key),
+            mode: game.rules.mode,
             // Joining an existing game does not replay its old records or victory.
             rows: if continuing {
                 Vec::new()
@@ -43,7 +44,7 @@ pub(in super::super) fn sync_feedback(
             GuessResult::Known { matches, .. } => matches.len() + 1,
             GuessResult::Unknown { .. } => 2,
         };
-        let start = playback.tail();
+        let start = playback.row_start();
         playback.rows.push(Some(RowReveal { start, columns }));
         playback.cue(start, FeedbackSound::Submit);
         playback.cue(start + 0.10, FeedbackSound::Reveal);

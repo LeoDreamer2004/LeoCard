@@ -2,7 +2,7 @@ use super::rows::{ProfileRowsBuilder, rate_or_placeholder};
 use leocard_protocol::UnoProfileStats;
 
 pub(crate) fn uno_profile_rows(stats: Option<&UnoProfileStats>) -> Vec<(&'static str, String)> {
-    const LABELS: [&str; 21] = [
+    const LABELS: [&str; 23] = [
         "对局数",
         "分数增减",
         "场剩余分数",
@@ -13,6 +13,8 @@ pub(crate) fn uno_profile_rows(stats: Option<&UnoProfileStats>) -> Vec<(&'static
         "四位率",
         "五位率",
         "六位率",
+        "七位率",
+        "八位率",
         "最多牌数",
         "最多被罚牌数",
         "最多被禁轮数",
@@ -34,7 +36,7 @@ pub(crate) fn uno_profile_rows(stats: Option<&UnoProfileStats>) -> Vec<(&'static
         "场剩余分数",
         stats.total_remaining_score as f64,
         &stats.placement_counts,
-        &LABELS[4..10],
+        &LABELS[4..12],
     );
     rows.extend([
         ("最多牌数", stats.max_hand_cards.to_string()),

@@ -1,5 +1,6 @@
 //! 可复用的基础控件、规则编辑器与玩家信息组件。
 
+mod anchored_popup;
 mod avatar_overlay;
 mod button;
 mod card_counter;
@@ -15,6 +16,7 @@ mod scrollbar;
 mod skin;
 mod text_input;
 
+pub(crate) use anchored_popup::*;
 pub(crate) use avatar_overlay::*;
 pub(crate) use button::*;
 pub(crate) use card_counter::*;

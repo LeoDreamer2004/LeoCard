@@ -3,13 +3,13 @@ use super::{
     add_uno_disabled_action_button, uno_card_handle,
 };
 use crate::app::presentation::{
-    ACCENT, ButtonKind, DANGER, DESIGN_WIDTH, MUTED, PanelSkin, PlayerMenuProfile,
-    PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, UiComposer,
-    add_avatar_status_overlay, add_host_crown, add_player_portrait, add_text,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
+    ACCENT, ButtonKind, DANGER, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec, TEXT,
+    TurnBorderAnimationKey, TurnBorderMaterial, UiComposer, add_avatar_status_overlay,
+    add_host_crown, add_player_portrait, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{SeatSide, SocialUiState, UiAction, add_cozy_panel_with_skin};
+use crate::app::shell::{SocialUiState, UiAction, add_cozy_panel_with_skin};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{
@@ -46,9 +46,10 @@ pub(super) fn add_uno_eliminated_own_overlay(
         },
         Some(Color::BLACK.with_alpha(0.82)),
     );
+    // Cover the hand while leaving the chat drawer and quick voices usable.
     commands
         .entity(overlay)
-        .insert((GlobalZIndex(1900), Pickable::default()));
+        .insert((GlobalZIndex(1700), Pickable::default()));
     let title = add_text(commands, overlay, "您已被淘汰", 27.0, DANGER, assets);
     commands.entity(title).insert((
         Pickable::IGNORE,
@@ -59,24 +60,6 @@ pub(super) fn add_uno_eliminated_own_overlay(
     ));
     let detail = add_text(commands, overlay, "等待本局结束", 14.0, MUTED, assets);
     commands.entity(detail).insert(Pickable::IGNORE);
-}
-
-pub(super) fn opponent_position(index: usize, count: usize) -> (f32, f32) {
-    const POSITIONS: [&[(f32, f32)]; 5] = [
-        &[(550.0, 10.0)],
-        &[(235.0, 52.0), (865.0, 52.0)],
-        &[(100.0, 140.0), (550.0, 8.0), (1000.0, 140.0)],
-        &[(60.0, 215.0), (300.0, 16.0), (800.0, 16.0), (1040.0, 215.0)],
-        &[
-            (40.0, 252.0),
-            (205.0, 38.0),
-            (550.0, 8.0),
-            (895.0, 38.0),
-            (1060.0, 252.0),
-        ],
-    ];
-    let (left, top) = POSITIONS[count.saturating_sub(1).min(4)][index];
-    (left, top + 24.0)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -108,13 +91,6 @@ pub(super) fn add_uno_player_panel(
         _ => false,
     };
     let selected = selecting && ui.swap_targets.contains(&player.id);
-    let side = if left < DESIGN_WIDTH * 0.34 {
-        SeatSide::Left
-    } else if left > DESIGN_WIDTH * 0.66 {
-        SeatSide::Right
-    } else {
-        SeatSide::Top
-    };
     let avatar_handle = player.avatar.and_then(|id| avatars.remote.get(&id));
     let portrait = add_player_portrait(
         commands,
@@ -136,11 +112,9 @@ pub(super) fn add_uno_player_panel(
                 completed_games: player.completed_games,
                 game_profiles: &player.game_profiles,
             },
-            side,
             avatar_size: UNO_AVATAR_SIZE,
             auto_play: player.auto_play,
             menu_open: !selecting && social.interaction_menu_open == Some(player.id),
-            menu_above: false,
             name_color: if player.connected { TEXT } else { MUTED },
         },
         assets,

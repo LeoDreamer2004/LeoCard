@@ -7,7 +7,7 @@ use super::buttons::{GuessButtonSpec, GuessSubmit, add_guess_button};
 use super::candidates::{GuessCandidates, add_candidates};
 use crate::app::presentation::{ACCENT, TextInput, UiComposer, add_text, spawn_node};
 use bevy::prelude::*;
-use leocard_minecraft_guess::MAX_GUESS_CHARACTERS;
+use leocard_minecraft_guess::{GuessMode, MAX_GUESS_CHARACTERS};
 
 impl GuessTable<'_> {
     pub(in super::super) fn controls(&self, commands: &mut UiComposer, page: Entity) {
@@ -62,7 +62,13 @@ impl GuessTable<'_> {
                 row,
                 winner
                     .map(|player| format!("{} 猜中了！", player.name))
-                    .unwrap_or_else(|| "全员跳过，本轮结束".to_owned()),
+                    .unwrap_or_else(|| {
+                        if self.game.rules.mode == GuessMode::Race {
+                            "时间到，本局结束".to_owned()
+                        } else {
+                            "全员跳过，本轮结束".to_owned()
+                        }
+                    }),
                 20.0,
                 ACCENT,
                 self.assets,
@@ -95,7 +101,7 @@ impl GuessTable<'_> {
             }
             return;
         }
-        let active = self.game.round.current_player == Some(self.game.you.0);
+        let active = self.game.can_guess();
         let mut input = TextInput::new("minecraft-guess", &self.state.input);
         input.placeholder = "输入方块 / 物品名称";
         input.max_characters = MAX_GUESS_CHARACTERS;
@@ -121,12 +127,14 @@ impl GuessTable<'_> {
                 .then_some(MinecraftGuessUiAction::Guess(None)),
         );
         commands.entity(submit).insert(GuessSubmit);
-        self.button(
-            commands,
-            row,
-            "跳过",
-            active.then_some(MinecraftGuessUiAction::Skip),
-        );
+        if self.game.rules.mode == GuessMode::TurnBased {
+            self.button(
+                commands,
+                row,
+                "跳过",
+                active.then_some(MinecraftGuessUiAction::Skip),
+            );
+        }
         add_guess_clock(
             commands,
             row,
@@ -149,7 +157,7 @@ impl GuessTable<'_> {
         );
         commands
             .entity(candidates)
-            .insert(GuessCandidates(self.state.input.clone()));
+            .insert(GuessCandidates::new(&self.state.input, self.game));
         add_candidates(
             commands,
             candidates,

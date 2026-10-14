@@ -1,5 +1,8 @@
 use super::super::{GameState, GuessResult, MatchState, reference_point_deltas};
-use crate::{AttributeFeedback, Catalogue, EntryKind, MatchQuality, MinecraftGuessRuleSet};
+use crate::{
+    AttributeFeedback, Catalogue, EntryKind, GuessOptions, MatchQuality, MinecraftGuessRuleSet,
+    TurnBasedRules,
+};
 
 fn result(qualities: &[MatchQuality]) -> GuessResult {
     GuessResult::Known {
@@ -78,8 +81,14 @@ fn correct_guesses_only_earn_answer_and_speed_points() {
             answer.clone(),
             vec![0, 1],
             MinecraftGuessRuleSet {
-                allow_unknown_guesses: true,
-                candidate_hints: false,
+                turn_based: TurnBasedRules {
+                    options: GuessOptions {
+                        allow_unknown_guesses: true,
+                        candidate_hints: false,
+                        ..MinecraftGuessRuleSet::default().turn_based.options
+                    },
+                    ..MinecraftGuessRuleSet::default().turn_based
+                },
                 ..MinecraftGuessRuleSet::default()
             },
         );
@@ -102,7 +111,16 @@ fn correct_guesses_only_earn_answer_and_speed_points() {
 
 #[test]
 fn points_accumulate_across_games_and_rank_awards_scale_with_rounds() {
-    let mut state = MatchState::new(vec![2, 0, 1, 3], 3);
+    let mut state = MatchState::new(
+        vec![2, 0, 1, 3],
+        MinecraftGuessRuleSet {
+            turn_based: TurnBasedRules {
+                rounds: 3,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+    );
     state.record_gains([(2, 3), (2, 7), (0, 1)]);
     assert!(state.advance());
     state.record_gains([(2, 2), (3, 5)]);

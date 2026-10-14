@@ -19,14 +19,14 @@ pub(crate) struct SettingsTabButton {
 pub(crate) struct SelectedSettingsTab;
 
 #[derive(Component)]
-pub(crate) struct SettingsVoiceToggle {
+pub(crate) struct SettingsToggle {
     pub icon: Entity,
     pub selected: bool,
 }
 
-pub(crate) fn update_settings_voice_toggle_hover(
+pub(crate) fn update_settings_toggle_hover(
     assets: Res<UiAssets>,
-    toggles: Query<(&PickingInteraction, &SettingsVoiceToggle)>,
+    toggles: Query<(&PickingInteraction, &SettingsToggle)>,
     mut images: Query<&mut ImageNode>,
 ) {
     for (interaction, toggle) in &toggles {

@@ -141,11 +141,9 @@ pub(super) fn add_opponent_slot(
                         completed_games: player.completed_games,
                         game_profiles: &player.game_profiles,
                     },
-                    side,
                     avatar_size: QIGUI_AVATAR_SIZE,
                     auto_play: player.auto_play,
                     menu_open: interaction_menu_open,
-                    menu_above: matches!(relative_seat, 1 | 5),
                     name_color: if !player.connected {
                         MUTED
                     } else if active {

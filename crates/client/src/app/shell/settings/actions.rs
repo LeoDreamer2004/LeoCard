@@ -22,6 +22,7 @@ pub(crate) enum SettingsUiAction {
     ToggleMahjongActionVoices,
     ToggleMahjongFanVoices,
     ToggleTexasActionVoices,
+    ToggleMinecraftGuessBackground,
     ChooseTableFelt,
     UseDefaultTableFelt,
 }
@@ -72,6 +73,13 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
             SettingsUiAction::ToggleTexasActionVoices => {
                 appearance.texas_action_voices = !appearance.texas_action_voices;
                 if let Err(error) = save_appearance_preferences(appearance) {
+                    warn!("{error}");
+                }
+            }
+            SettingsUiAction::ToggleMinecraftGuessBackground => {
+                appearance.games.minecraft_guess_random_background =
+                    !appearance.games.minecraft_guess_random_background;
+                if let Err(error) = appearance.games.save() {
                     warn!("{error}");
                 }
             }

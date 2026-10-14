@@ -5,7 +5,8 @@ use super::{
     UiSceneRegistry, animate_button_arrows, animate_button_presses, animate_game_summary_visuals,
     animate_signed_summary_scores, animate_start_game_seat_transition, animate_summary_scores,
     animate_turn_border_traces, drag_scrollbar, image_node_eq, play_ui_click_sounds,
-    update_button_highlights, update_button_tints, update_scrollbar, update_summary_animation,
+    position_anchored_popups, update_button_highlights, update_button_tints, update_scrollbar,
+    update_summary_animation,
 };
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
@@ -46,6 +47,12 @@ impl Plugin for PresentationPlugin {
             .init_resource::<ScrollbarDrag>()
             .add_systems(Update, drag_scrollbar.in_set(ClientUpdateSet::Input))
             .add_systems(PostUpdate, update_scrollbar.after(UiSystems::Layout))
+            .add_systems(
+                PostUpdate,
+                position_anchored_popups
+                    .after(UiSystems::Layout)
+                    .before(UiSystems::PostLayout),
+            )
             .add_systems(
                 Update,
                 (update_button_highlights, animate_button_arrows).in_set(ClientUpdateSet::Animate),

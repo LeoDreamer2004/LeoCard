@@ -1,7 +1,9 @@
 use super::super::MinecraftGuessSession;
 use super::support::{join, send, snapshot};
 use crate::ConnectionId;
-use leocard_minecraft_guess::{Catalogue, EntryKind, GameState, GuessPool, MinecraftGuessRuleSet};
+use leocard_minecraft_guess::{
+    Catalogue, EntryKind, GameState, GuessOptions, GuessPool, MinecraftGuessRuleSet, TurnBasedRules,
+};
 use leocard_protocol::{
     ClientCommand, GameEvent, GameViolation, MinecraftGuessCommand, MinecraftGuessEvent,
     RejectReason, RoomId, SeatId, ServerEvent,
@@ -11,9 +13,14 @@ use std::time::Duration;
 #[test]
 fn all_players_receive_feedback_then_can_rematch_and_return_to_lobby() {
     let rules = MinecraftGuessRuleSet {
-        pool: GuessPool::Blocks,
-        candidate_hints: false,
-        allow_unknown_guesses: true,
+        turn_based: TurnBasedRules {
+            options: GuessOptions {
+                pool: GuessPool::Blocks,
+                candidate_hints: false,
+                allow_unknown_guesses: true,
+            },
+            ..MinecraftGuessRuleSet::default().turn_based
+        },
         ..MinecraftGuessRuleSet::default()
     };
     let mut session = MinecraftGuessSession::new(RoomId(99), 52300, rules);
@@ -38,7 +45,13 @@ fn all_players_receive_feedback_then_can_rematch_and_return_to_lobby() {
         ClientCommand::Game(
             MinecraftGuessCommand::UpdateRules {
                 rules: MinecraftGuessRuleSet {
-                    candidate_hints: true,
+                    turn_based: TurnBasedRules {
+                        options: GuessOptions {
+                            candidate_hints: true,
+                            ..rules.turn_based.options
+                        },
+                        ..rules.turn_based
+                    },
                     ..rules
                 },
             }
@@ -160,8 +173,14 @@ fn bots_can_start_and_disconnected_turns_do_not_block_the_game() {
         RoomId(99),
         52300,
         MinecraftGuessRuleSet {
-            candidate_hints: false,
-            allow_unknown_guesses: true,
+            turn_based: TurnBasedRules {
+                options: GuessOptions {
+                    candidate_hints: false,
+                    allow_unknown_guesses: true,
+                    ..MinecraftGuessRuleSet::default().turn_based.options
+                },
+                ..MinecraftGuessRuleSet::default().turn_based
+            },
             ..MinecraftGuessRuleSet::default()
         },
     );
@@ -201,8 +220,14 @@ fn bots_can_start_and_disconnected_turns_do_not_block_the_game() {
 #[test]
 fn scoring_settles_profiles_once_at_match_end_and_resets_for_next_match() {
     let rules = MinecraftGuessRuleSet {
-        allow_unknown_guesses: true,
-        candidate_hints: false,
+        turn_based: TurnBasedRules {
+            options: GuessOptions {
+                allow_unknown_guesses: true,
+                candidate_hints: false,
+                ..MinecraftGuessRuleSet::default().turn_based.options
+            },
+            ..MinecraftGuessRuleSet::default().turn_based
+        },
         ..MinecraftGuessRuleSet::default()
     };
     let mut session = MinecraftGuessSession::new(RoomId(99), 52300, rules);

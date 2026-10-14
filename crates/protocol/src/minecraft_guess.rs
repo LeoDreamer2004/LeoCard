@@ -23,6 +23,13 @@ pub struct MinecraftGuessSnapshot {
     pub minecraft_process_players: Vec<PlayerId>,
 }
 
+impl MinecraftGuessSnapshot {
+    pub fn can_guess(&self) -> bool {
+        self.round.can_guess(self.you.0, self.rules.mode)
+            && self.players.iter().any(|player| player.id == self.you)
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MinecraftGuessEvent {
     ActionAnalyzed {

@@ -21,7 +21,7 @@ use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAsset
 #[cfg(feature = "developer")]
 use crate::app::shell::add_developer_hand_input;
 use crate::app::shell::{
-    ChatPanelState, DeveloperHandInput, FinishedHandScoreSource, ScoreCaptureEffectState, SeatSide,
+    ChatPanelState, DeveloperHandInput, FinishedHandScoreSource, ScoreCaptureEffectState,
     SocialUiState, UiAction, add_chat_panel, add_reconnecting_overlay,
 };
 use bevy::prelude::*;
@@ -202,11 +202,9 @@ pub(crate) fn render_table(
                         completed_games: player.completed_games,
                         game_profiles: &player.game_profiles,
                     },
-                    side: SeatSide::Left,
                     avatar_size: QIGUI_AVATAR_SIZE,
                     auto_play: player.auto_play,
                     menu_open: false,
-                    menu_above: true,
                     name_color: TEXT,
                 },
                 assets,
@@ -472,11 +470,9 @@ pub(crate) fn render_table(
                     completed_games: player.completed_games,
                     game_profiles: &player.game_profiles,
                 },
-                side: SeatSide::Left,
                 avatar_size: QIGUI_AVATAR_SIZE,
                 auto_play: player.auto_play,
                 menu_open: social.interaction_menu_open == Some(player.id),
-                menu_above: true,
                 name_color: TEXT,
             },
             assets,

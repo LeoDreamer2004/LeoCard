@@ -55,4 +55,13 @@ pub(in crate::registry::uno) const DEFINITIONS: &[AchievementDefinition] = &[
             && s.progress.lucky_elimination),
         1
     ),
+    uno!(
+        "thirty_card_penalty",
+        "手要抽筋了！",
+        Silver,
+        "No Mercy 中一次性被罚牌至少 30 张",
+        |event| matches(event, |s| s.rules.is_no_mercy()
+            && s.progress.max_penalty_cards >= 30),
+        1
+    ),
 ];

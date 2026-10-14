@@ -1,5 +1,6 @@
 use crate::MinecraftGuessProfileStats;
 use leocard_mahjong::Fan;
+use leocard_uno::UnoRuleSet;
 use serde::{Deserialize, Serialize};
 
 pub const MAHJONG_MAJOR_FANS: [Fan; 15] = [
@@ -165,7 +166,7 @@ pub struct UnoProfileStats {
     pub completed_games: u32,
     pub total_reference_delta: i64,
     pub total_remaining_score: u64,
-    pub placement_counts: [u32; 6],
+    pub placement_counts: [u32; UnoRuleSet::MAX_PLAYERS as usize],
     pub max_hand_cards: u16,
     pub max_penalty_cards: u16,
     pub max_skipped_turns: u16,

@@ -46,7 +46,7 @@ impl<'a> AboutSettings<'a> {
         add_text(
             commands,
             identity,
-            "五种游戏，一张牌桌",
+            "2216 特供游戏桌",
             16.0,
             TEXT,
             self.assets,

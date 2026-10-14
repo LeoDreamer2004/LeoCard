@@ -1,9 +1,10 @@
 use super::{CorrectGuess, GuessActionStatistics, GuessPlayStatistics, types::PlayerRoundProgress};
-use crate::{GuessResult, MatchQuality};
+use crate::{GuessMode, GuessResult, MatchQuality};
 use std::mem;
 
 pub(in crate::game) struct GuessAnalysisInput<'a> {
     pub player: u8,
+    pub mode: GuessMode,
     pub result: &'a GuessResult,
     pub previous: Option<u32>,
     pub turns: usize,
@@ -81,7 +82,7 @@ impl RoundAnalysis {
             all_wrong_after_first: input.guess_count > 0 && all_wrong,
             ended_matching_run: correct && self.matching_run >= 5,
             won_after_skip: correct && state.has_skipped,
-            first_cycle_win: correct && input.turns < count,
+            first_cycle_win: correct && input.mode == GuessMode::TurnBased && input.turns < count,
             opening_win: correct && input.turns == 0,
             opponents_all_skipped: correct
                 && count >= 3

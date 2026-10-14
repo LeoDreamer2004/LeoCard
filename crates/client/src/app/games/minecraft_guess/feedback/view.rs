@@ -4,6 +4,7 @@ use super::visuals::{RevealPanel, RevealPixel};
 use crate::app::presentation::{ACCENT, MUTED, TEXT, UiComposer, add_text, spawn_node};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_minecraft_guess::GuessMode;
 
 impl GuessTable<'_> {
     pub(in super::super) fn answer(
@@ -16,13 +17,20 @@ impl GuessTable<'_> {
         let round_label = add_text(
             commands,
             heading,
-            format!(
-                "第 {}/{} 轮  第 {}/{} 局",
-                progress.current_round(),
-                progress.rounds,
-                progress.game_index + 1,
-                progress.total_games(),
-            ),
+            match progress.mode() {
+                GuessMode::TurnBased => format!(
+                    "第 {}/{} 轮  第 {}/{} 局",
+                    progress.current_round(),
+                    progress.round_count().expect("rotating match"),
+                    progress.game_index + 1,
+                    progress.total_games(),
+                ),
+                GuessMode::Race => format!(
+                    "抢答竞速  第 {}/{} 局",
+                    progress.game_index + 1,
+                    progress.total_games()
+                ),
+            },
             14.0,
             MUTED,
             self.assets,

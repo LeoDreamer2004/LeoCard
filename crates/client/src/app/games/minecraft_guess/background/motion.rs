@@ -2,7 +2,7 @@ use super::assets::BackgroundAssets;
 use super::material::GuessBackgroundMaterial;
 use super::scene::{GuessBackgroundCanvas, GuessBackgroundPage};
 use super::state::{BackgroundPlayback, PendingPanorama, matched_version};
-use crate::app::runtime::ClientResource;
+use crate::app::runtime::{AppearancePreferences, ClientResource};
 use bevy::asset::RenderAssetUsages;
 use bevy::image::{ImageArrayLayout, ImageLoaderSettings, ImageSampler};
 use bevy::prelude::*;
@@ -14,12 +14,18 @@ const SPIN_DEGREES_PER_SECOND: f32 = 2.0;
 
 pub(super) fn sync_background(
     client: Option<Res<ClientResource>>,
+    appearance: Res<AppearancePreferences>,
     pages: Query<(), With<GuessBackgroundPage>>,
     server: Res<AssetServer>,
     assets: Res<BackgroundAssets>,
     mut playback: ResMut<BackgroundPlayback>,
     mut materials: ResMut<Assets<GuessBackgroundMaterial>>,
 ) {
+    let random_background = appearance.games.minecraft_guess_random_background;
+    materials
+        .get_mut(&assets.material)
+        .expect("background material")
+        .random_background = u32::from(random_background);
     let game = client
         .as_deref()
         .and_then(|client| client.0.model().minecraft_guess_game());
@@ -29,7 +35,7 @@ pub(super) fn sync_background(
     }
     let round = game.map(|game| (game.match_id, game.progress.game_index));
     if playback.round != round {
-        playback.begin_round(round);
+        playback.begin_round(round, assets.tile_count);
         if round.is_none() {
             let mut material = materials
                 .get_mut(&assets.material)
@@ -38,7 +44,8 @@ pub(super) fn sync_background(
             material.params.y = 0.0;
         }
     }
-    if playback.needs_panorama()
+    if random_background
+        && playback.needs_panorama()
         && let Some(version) = game.and_then(|game| matched_version(&game.round))
     {
         playback.pending_panorama = Some(PendingPanorama {
@@ -101,6 +108,6 @@ pub(super) fn animate_background(
             .rem_euclid(consts::TAU),
         playback.transition,
         node.inverse_scale_factor(),
-        0.0,
+        playback.tile_index as f32,
     );
 }

@@ -25,7 +25,7 @@ pub(in super::super) fn navigate_guess_candidates(
     else {
         return;
     };
-    if !game.rules.candidate_hints || game.round.current_player != Some(game.you.0) {
+    if !game.rules.options().candidate_hints || !game.can_guess() {
         return;
     }
     let Ok((editor, input)) = inputs.single() else {

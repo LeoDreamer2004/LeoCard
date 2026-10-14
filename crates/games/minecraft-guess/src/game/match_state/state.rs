@@ -1,32 +1,7 @@
-use super::{
-    GameState, GuessHandStatistics, GuessPlayStatistics, ScoreGain, analysis::MatchAnalysis,
-};
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct MatchProgress {
-    pub game_index: u8,
-    pub player_count: u8,
-    pub rounds: u8,
-}
-
-impl MatchProgress {
-    pub fn current_round(self) -> u8 {
-        self.game_index / self.player_count + 1
-    }
-
-    pub fn game_in_round(self) -> u8 {
-        self.game_index % self.player_count + 1
-    }
-
-    pub fn total_games(self) -> u8 {
-        self.player_count * self.rounds
-    }
-
-    pub fn is_last_game(self) -> bool {
-        self.game_index + 1 == self.total_games()
-    }
-}
+use super::{MatchLength, MatchProgress};
+use crate::game::analysis::MatchAnalysis;
+use crate::game::{GameState, GuessHandStatistics, GuessPlayStatistics, ScoreGain};
+use crate::{GuessMode, MinecraftGuessRuleSet};
 
 #[derive(Clone, Debug)]
 pub struct MatchState {
@@ -39,14 +14,17 @@ pub struct MatchState {
 }
 
 impl MatchState {
-    pub fn new(players: Vec<u8>, rounds: u8) -> Self {
+    pub fn new(players: Vec<u8>, rules: MinecraftGuessRuleSet) -> Self {
         assert!(!players.is_empty());
-        assert!((1..=5).contains(&rounds));
+        assert!(rules.is_valid());
         Self {
             progress: MatchProgress {
                 game_index: 0,
+                length: match rules.mode {
+                    GuessMode::TurnBased => MatchLength::Rounds(rules.turn_based.rounds),
+                    GuessMode::Race => MatchLength::Games(rules.race.games),
+                },
                 player_count: players.len() as u8,
-                rounds,
             },
             scores: vec![0; players.len()],
             gains: Vec::new(),
@@ -62,7 +40,9 @@ impl MatchState {
 
     pub fn turn_order(&self) -> Vec<u8> {
         let mut players = self.players.clone();
-        players.rotate_left(usize::from(self.progress.game_in_round() - 1));
+        if self.progress.mode() == GuessMode::TurnBased {
+            players.rotate_left(usize::from(self.progress.game_in_round() - 1));
+        }
         players
     }
 

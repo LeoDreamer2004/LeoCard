@@ -1,7 +1,9 @@
 //! 玩家框、头像、准备标记和房主标记。
 
 use super::super::{BORDER, MUTED, READY, TEXT};
-use super::{TextureButton, add_ready_badge, add_text, sliced_image, spawn_node, text_scene};
+use super::{
+    AnchoredPopup, TextureButton, add_ready_badge, add_text, sliced_image, spawn_node, text_scene,
+};
 use crate::app::presentation::{UiComposer, UiSceneKey, ui_component};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
@@ -148,7 +150,6 @@ pub(crate) fn add_interaction_menu(
     commands: &mut UiComposer,
     parent: Entity,
     target: PlayerId,
-    side: SeatSide,
     profile: PlayerMenuProfile<'_>,
     assets: &UiAssets,
 ) -> Entity {
@@ -159,8 +160,10 @@ pub(crate) fn add_interaction_menu(
         completed_games,
         game_profiles,
     } = profile;
-    let mut node = Node {
+    let node = Node {
         position_type: PositionType::Absolute,
+        left: percent(50),
+        top: percent(100),
         width: px(304),
         min_height: px(145),
         padding: UiRect {
@@ -174,10 +177,10 @@ pub(crate) fn add_interaction_menu(
         row_gap: px(7),
         ..default()
     };
-    position_opponent_popup(&mut node, side);
     let menu = add_cozy_panel(commands, parent, node, assets);
     commands.entity(menu).insert((
         InteractionMenuPanel(target),
+        AnchoredPopup(parent),
         GlobalZIndex(1500),
         Pickable::IGNORE,
     ));
@@ -332,7 +335,8 @@ pub(crate) fn position_opponent_popup(node: &mut Node, side: SeatSide) {
             node.top = px(76);
         }
         SeatSide::Top => {
-            node.left = px(-81);
+            node.left = percent(50);
+            node.margin.left = node.width * -0.5;
             node.top = px(76);
         }
         SeatSide::Right => {

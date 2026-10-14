@@ -1,4 +1,4 @@
-use crate::{UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoRuleSet};
+use crate::{Mode, UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoRuleSet, build_deck_for_rules};
 use std::collections::VecDeque;
 
 use super::prelude::*;
@@ -218,15 +218,25 @@ fn stacked_dark_skip_everyone_is_consumed_by_every_other_player() {
 }
 
 #[test]
-fn two_to_six_players_are_supported_but_seven_are_rejected() {
-    for player_count in UnoRuleSet::MIN_PLAYERS..=UnoRuleSet::MAX_PLAYERS {
-        let game =
-            GameState::new_with_deck(UnoRuleSet::default(), player_count, build_deck()).unwrap();
-        assert_eq!(game.players().len(), usize::from(player_count));
-        assert!(game.players().iter().all(|player| player.hand().len() == 7));
+fn two_to_eight_players_are_supported_in_every_mode_but_nine_are_rejected() {
+    for mode in [Mode::Classic, Mode::NoMercy, Mode::Flip] {
+        let rules = UnoRuleSet {
+            mode,
+            ..UnoRuleSet::default()
+        };
+        for player_count in UnoRuleSet::MIN_PLAYERS..=UnoRuleSet::MAX_PLAYERS {
+            let game =
+                GameState::new_with_deck(rules, player_count, build_deck_for_rules(rules)).unwrap();
+            assert_eq!(game.players().len(), usize::from(player_count));
+            assert!(
+                game.players()
+                    .iter()
+                    .all(|player| player.hand().len() == usize::from(UnoRuleSet::HAND_SIZE))
+            );
+        }
+        assert!(matches!(
+            GameState::new_with_deck(rules, 9, build_deck_for_rules(rules)),
+            Err(GameError::InvalidRules(_))
+        ));
     }
-    assert!(matches!(
-        GameState::new_with_deck(UnoRuleSet::default(), 7, build_deck()),
-        Err(GameError::InvalidRules(_))
-    ));
 }

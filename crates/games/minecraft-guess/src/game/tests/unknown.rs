@@ -1,6 +1,6 @@
 use crate::{
-    Catalogue, EntryKind, GameError, GameState, GuessPool, GuessResult, MAX_GUESS_CHARACTERS,
-    MinecraftGuessRuleSet,
+    Catalogue, EntryKind, GameError, GameState, GuessOptions, GuessPool, GuessResult,
+    MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet, TurnBasedRules,
 };
 
 #[test]
@@ -10,8 +10,14 @@ fn unknown_guesses_consume_turns_without_attributes_or_answer_leaks() {
         .unwrap()
         .clone();
     let rules = MinecraftGuessRuleSet {
-        candidate_hints: false,
-        allow_unknown_guesses: true,
+        turn_based: TurnBasedRules {
+            options: GuessOptions {
+                candidate_hints: false,
+                allow_unknown_guesses: true,
+                ..MinecraftGuessRuleSet::default().turn_based.options
+            },
+            ..MinecraftGuessRuleSet::default().turn_based
+        },
         ..MinecraftGuessRuleSet::default()
     };
     let mut game = GameState::new(answer.clone(), vec![0, 1], rules);
@@ -51,15 +57,27 @@ fn rules_require_no_hints_and_the_catalogue_fits_the_name_limit() {
     assert!(rules.is_valid());
     assert!(
         !MinecraftGuessRuleSet {
-            allow_unknown_guesses: true,
+            turn_based: TurnBasedRules {
+                options: GuessOptions {
+                    allow_unknown_guesses: true,
+                    ..rules.turn_based.options
+                },
+                ..rules.turn_based
+            },
             ..rules
         }
         .is_valid()
     );
     assert!(
         MinecraftGuessRuleSet {
-            candidate_hints: false,
-            allow_unknown_guesses: true,
+            turn_based: TurnBasedRules {
+                options: GuessOptions {
+                    candidate_hints: false,
+                    allow_unknown_guesses: true,
+                    ..rules.turn_based.options
+                },
+                ..rules.turn_based
+            },
             ..rules
         }
         .is_valid()

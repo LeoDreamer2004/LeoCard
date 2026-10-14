@@ -1,10 +1,19 @@
-use crate::{Catalogue, EntryKind, GameState, MatchState, MinecraftGuessRuleSet};
+use crate::{
+    Catalogue, EntryKind, GameState, GuessOptions, MatchState, MinecraftGuessRuleSet,
+    TurnBasedRules,
+};
 
 #[test]
 fn match_statistics_include_each_small_game_and_only_accepted_actions() {
     let rules = MinecraftGuessRuleSet {
-        candidate_hints: false,
-        allow_unknown_guesses: true,
+        turn_based: TurnBasedRules {
+            options: GuessOptions {
+                candidate_hints: false,
+                allow_unknown_guesses: true,
+                ..MinecraftGuessRuleSet::default().turn_based.options
+            },
+            ..MinecraftGuessRuleSet::default().turn_based
+        },
         ..Default::default()
     };
     let answer = Catalogue::bundled()
@@ -12,7 +21,7 @@ fn match_statistics_include_each_small_game_and_only_accepted_actions() {
         .unwrap()
         .clone();
     let mut game = GameState::new(answer, vec![0, 1], rules);
-    let mut state = MatchState::new(vec![0, 1], 1);
+    let mut state = MatchState::new(vec![0, 1], rules);
     assert!(game.guess(1, "不存在").is_err());
     game.skip(0).unwrap();
     game.guess(1, "minecraft:granite").unwrap();

@@ -3,7 +3,7 @@ use leocard_minecraft_guess::{Catalogue, GameState};
 pub(super) struct Policy;
 
 impl Policy {
-    pub fn act(game: &mut GameState, current: u8) {
+    pub fn act(game: &mut GameState, current: u8) -> bool {
         // Bots use only public feedback; never peek at the chosen answer.
         let view = game.view();
         let full_feedback = cfg!(debug_assertions) || cfg!(feature = "developer");
@@ -21,8 +21,12 @@ impl Policy {
         if let Some(entry) = candidates.get(fastrand::usize(..candidates.len().max(1))) {
             game.guess(current, &entry.id)
                 .expect("a public candidate is valid");
-        } else {
+            true
+        } else if view.current_player == Some(current) {
             game.skip(current).expect("current player can skip");
+            true
+        } else {
+            false
         }
     }
 }

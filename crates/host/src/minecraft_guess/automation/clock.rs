@@ -1,12 +1,12 @@
 use std::time::Duration;
 
 #[derive(Clone, Debug, Default)]
-pub(in super::super) struct GuessTurnClock {
+pub(in super::super) struct GuessClock {
     elapsed: Duration,
     automatic_wait: Duration,
 }
 
-impl GuessTurnClock {
+impl GuessClock {
     pub(super) fn remaining(&self, limit: u16) -> Option<u16> {
         if limit == 0 {
             return None;
@@ -17,6 +17,10 @@ impl GuessTurnClock {
 
     pub(super) fn automatic_ready(&self, delay: Duration) -> bool {
         self.automatic_wait >= delay
+    }
+
+    pub(super) fn restart_automatic_wait(&mut self) {
+        self.automatic_wait = Duration::ZERO;
     }
 
     pub(super) fn advance(&mut self, elapsed: Duration, automatic: bool) {

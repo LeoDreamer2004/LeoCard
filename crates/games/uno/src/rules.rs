@@ -90,7 +90,7 @@ impl Default for UnoRuleSet {
 impl UnoRuleSet {
     pub const HAND_SIZE: u8 = 7;
     pub const MIN_PLAYERS: u8 = 2;
-    pub const MAX_PLAYERS: u8 = 6;
+    pub const MAX_PLAYERS: u8 = 8;
 
     pub const fn is_classic(self) -> bool {
         matches!(self.mode, Mode::Classic)

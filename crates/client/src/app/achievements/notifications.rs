@@ -2,7 +2,8 @@
 
 use super::{AchievementRecipient, AchievementUnlocked};
 use crate::app::presentation::{
-    TEXT, TransitionVisuals, UiComposer, add_text, ease_out_cubic, fade_panel, spawn_node,
+    TEXT, TransitionVisuals, UiComposer, ease_out_cubic, fade_panel, spawn_node, text_scene,
+    ui_component,
 };
 use crate::app::runtime::UiAssets;
 use bevy::audio::Volume;
@@ -198,32 +199,6 @@ fn spawn_notification(
     } else {
         &assets.achievements.toast
     };
-    let popup = spawn_node(
-        commands,
-        anchor,
-        Node {
-            width: px(620),
-            min_width: px(480),
-            max_width: percent(84),
-            min_height: px(MIN_HEIGHT),
-            padding: UiRect::axes(px(22), px(10)),
-            align_items: AlignItems::Center,
-            column_gap: px(14),
-            ..default()
-        },
-        None,
-    );
-    commands.entity(anchor).insert((
-        AchievementToast {
-            serial,
-            elapsed: 0.0,
-            visual: popup,
-        },
-        Pickable::IGNORE,
-    ));
-    commands
-        .entity(popup)
-        .insert(UiTransform::from_translation(Val2::px(0.0, -1000.0)));
     let mut background =
         ImageNode::new(texture.clone()).with_mode(NodeImageMode::Sliced(TextureSlicer {
             border: BorderRect::all(20.0),
@@ -232,30 +207,62 @@ fn spawn_notification(
             max_corner_scale: 0.7,
         }));
     background.visual_box = VisualBox::BorderBox;
-    commands
-        .entity(popup)
-        .insert((background, Pickable::IGNORE));
-    commands.child(
-        popup,
-        (
-            Node {
-                width: px(54),
-                height: px(54),
-                flex_shrink: 0.0,
-                ..default()
-            },
-            ImageNode::new(
-                assets.achievements.medals[notice.definition.tier.medal_index()].clone(),
-            ),
-            Pickable::IGNORE,
-        ),
+    let heading = text_scene(assets, &notice.text, 21.0, TEXT);
+    let description = text_scene(
+        assets,
+        notice.definition.description,
+        14.0,
+        TEXT.with_alpha(0.8),
     );
-    let text = add_text(commands, popup, &notice.text, 21.0, TEXT, assets);
-    commands.entity(text).insert((
-        Node {
-            min_width: px(0),
-            flex_grow: 1.0,
-            ..default()
+    // One scene keeps the medal and both text blocks ordered across page refreshes.
+    let popup = commands.node(
+        anchor,
+        bsn! {
+            @ui_component(Node {
+                min_width: px(760),
+                max_width: percent(84),
+                min_height: px(MIN_HEIGHT),
+                padding: UiRect::axes(px(22), px(10)),
+                align_items: AlignItems::Center,
+                column_gap: px(14),
+                ..default()
+            })
+            @ui_component(background)
+            UiTransform::from_translation(Val2::px(0.0, -1000.0))
+            Pickable::IGNORE
+            Children [
+                @ui_component(Node {
+                    width: px(54),
+                    height: px(54),
+                    flex_shrink: 0.0,
+                    ..default()
+                })
+                @ui_component(ImageNode::new(
+                    assets.achievements.medals[notice.definition.tier.medal_index()].clone()
+                ))
+                Pickable::IGNORE
+                --
+                @ui_component(Node { flex_shrink: 0.0, ..default() })
+                @heading
+                @ui_component(TextLayout::no_wrap())
+                Pickable::IGNORE
+                --
+                @ui_component(Node {
+                    min_width: px(120),
+                    flex_basis: px(180),
+                    flex_grow: 1.0,
+                    ..default()
+                })
+                @description
+                Pickable::IGNORE
+            ]
+        },
+    );
+    commands.entity(anchor).insert((
+        AchievementToast {
+            serial,
+            elapsed: 0.0,
+            visual: popup,
         },
         Pickable::IGNORE,
     ));

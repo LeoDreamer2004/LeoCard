@@ -1,4 +1,4 @@
-use super::{GuessTurnClock, MinecraftGuessSession};
+use super::{GuessClock, MinecraftGuessSession};
 use crate::new_match_id;
 use leocard_minecraft_guess::{Catalogue, GameState, MatchState};
 
@@ -8,7 +8,7 @@ impl MinecraftGuessSession {
         self.room.remove_departed_players();
         self.match_state = Some(MatchState::new(
             self.room.players.iter().map(|player| player.id.0).collect(),
-            self.rules.rounds,
+            self.rules,
         ));
         self.match_id = Some(new_match_id());
         self.finished_reference_changes = None;
@@ -25,7 +25,9 @@ impl MinecraftGuessSession {
     }
 
     fn begin_round(&mut self) {
-        let entries: Vec<_> = Catalogue::bundled().entries(self.rules.pool).collect();
+        let entries: Vec<_> = Catalogue::bundled()
+            .entries(self.rules.options().pool)
+            .collect();
         let answer = entries[fastrand::usize(..entries.len())].clone();
         let players = self
             .match_state
@@ -33,7 +35,7 @@ impl MinecraftGuessSession {
             .expect("active match")
             .turn_order();
         self.game = Some(GameState::new(answer, players, self.rules));
-        self.turn_clock = GuessTurnClock::default();
+        self.clock = GuessClock::default();
         for player in &mut self.room.players {
             player.ready = false;
         }

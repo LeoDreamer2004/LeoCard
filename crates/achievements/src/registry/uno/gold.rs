@@ -47,4 +47,13 @@ pub(in crate::registry::uno) const DEFINITIONS: &[AchievementDefinition] = &[
             && !s.progress.played_penalty),
         1
     ),
+    uno!(
+        "fifty_card_penalty",
+        "牌堆是给你这么抽的吗？",
+        Gold,
+        "No Mercy 中一次性被罚牌至少 50 张",
+        |event| matches(event, |s| s.rules.is_no_mercy()
+            && s.progress.max_penalty_cards >= 50),
+        1
+    ),
 ];

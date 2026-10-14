@@ -15,6 +15,8 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
+pub(super) const PROFILE_HEADER: &[u8] = b"LeoCard/profile/v1\0";
+
 fn player_profile_path() -> Option<PathBuf> {
     config_file("profile.dat")
 }
@@ -23,6 +25,14 @@ fn player_profile_path() -> Option<PathBuf> {
 pub(super) struct StoredPlayerProfile {
     pub(super) secret_key: [u8; 32],
     pub(super) games: StoredGameProfiles,
+}
+
+impl StoredPlayerProfile {
+    pub(super) fn encode(&self) -> Result<Vec<u8>, postcard::Error> {
+        let mut bytes = PROFILE_HEADER.to_vec();
+        bytes.extend_from_slice(&postcard::to_allocvec(self)?);
+        Ok(bytes)
+    }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -125,8 +135,9 @@ impl LocalPlayerProfile {
                 minecraft_guess_stats: self.game_profiles.minecraft_guess.clone(),
             },
         };
-        let bytes =
-            postcard::to_allocvec(&stored).map_err(|error| format!("玩家档案编码失败：{error}"))?;
+        let bytes = stored
+            .encode()
+            .map_err(|error| format!("玩家档案编码失败：{error}"))?;
         fs::write(&path, bytes).map_err(|error| format!("无法保存玩家档案：{error}"))?;
         #[cfg(unix)]
         {

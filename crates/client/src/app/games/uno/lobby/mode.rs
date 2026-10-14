@@ -1,11 +1,8 @@
-use super::super::{UnoModeDropdownPanel, UnoUiAction};
-use crate::app::presentation::{ButtonHighlight, MUTED, TEXT, UiComposer, add_text, spawn_node};
+use super::super::UnoUiAction;
+use crate::app::presentation::UiComposer;
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{UiAction, add_cozy_panel};
-use bevy::picking::Pickable;
+use crate::app::shell::{LobbyModeDropdown, LobbyModeOption, UiAction};
 use bevy::prelude::*;
-use bevy::ui::VisualBox;
-use bevy::ui_widgets::Button;
 use leocard_uno::{Mode, UnoRuleSet};
 
 pub(crate) fn render_uno_mode_dropdown(
@@ -17,228 +14,27 @@ pub(crate) fn render_uno_mode_dropdown(
     open: bool,
     assets: &UiAssets,
 ) {
-    let dropdown_accent = Color::srgb(0.85, 0.82, 1.0);
-    let mode_label = |mode| match mode {
-        Mode::Classic => "UNO",
-        Mode::NoMercy => "No Mercy",
-        Mode::Flip => "UNO FLIP",
-    };
-
-    if open && can_configure {
-        commands.child(
-            root,
-            (
-                Button,
-                UiAction::Uno(UnoUiAction::CloseModeMenu),
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(0),
-                    right: px(0),
-                    top: px(0),
-                    bottom: px(0),
-                    ..default()
-                },
-                BackgroundColor(Color::NONE),
-                GlobalZIndex(1850),
-                Pickable::default(),
-            ),
-        );
-    }
-
-    let selector = spawn_node(
-        commands,
-        parent,
-        Node {
-            position_type: PositionType::Relative,
-            width: px(190),
-            height: px(40),
-            flex_direction: FlexDirection::Column,
-            ..default()
-        },
-        None,
-    );
-    commands.entity(selector).insert(GlobalZIndex(1870));
-
-    let mut trigger_image =
-        ImageNode::new(assets.home.input.clone()).with_mode(NodeImageMode::Sliced(TextureSlicer {
-            border: BorderRect::all(32.0),
-            center_scale_mode: SliceScaleMode::Stretch,
-            sides_scale_mode: SliceScaleMode::Stretch,
-            max_corner_scale: 0.55,
-        }));
-    trigger_image.visual_box = VisualBox::BorderBox;
-    if !can_configure {
-        trigger_image.color = Color::WHITE.with_alpha(0.72);
-    }
-    let child = commands.child(
-        selector,
-        (
-            Node {
-                width: percent(100),
-                height: px(40),
-                padding: UiRect::horizontal(px(13)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::SpaceBetween,
-                ..default()
-            },
-            trigger_image,
-        ),
-    );
-    let mut trigger = commands.entity(child);
-    if can_configure {
-        trigger.insert((Button, UiAction::Uno(UnoUiAction::ToggleModeMenu)));
-    } else {
-        trigger.insert(Pickable::default());
-    }
-    let trigger = trigger.id();
-
-    if can_configure {
-        let mut hover_image = ImageNode::new(assets.home.focused_input.clone()).with_mode(
-            NodeImageMode::Sliced(TextureSlicer {
-                border: BorderRect::all(32.0),
-                center_scale_mode: SliceScaleMode::Stretch,
-                sides_scale_mode: SliceScaleMode::Stretch,
-                max_corner_scale: 0.55,
-            }),
-        );
-        hover_image.visual_box = VisualBox::BorderBox;
-        let hover = commands.child(
-            trigger,
-            (
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(0),
-                    right: px(0),
-                    top: px(0),
-                    bottom: px(0),
-                    ..default()
-                },
-                hover_image,
-                Visibility::Hidden,
-                Pickable::IGNORE,
-            ),
-        );
-        commands.entity(trigger).insert(ButtonHighlight {
-            overlay: hover,
-            arrows: None,
-        });
-    }
-    let label = add_text(
-        commands,
-        trigger,
-        mode_label(rules.mode),
-        14.0,
-        TEXT,
-        assets,
-    );
-    commands.entity(label).insert(Pickable::IGNORE);
-    let arrow = add_text(
-        commands,
-        trigger,
-        if can_configure {
-            if open { "▲" } else { "▼" }
-        } else {
-            "—"
-        },
-        12.0,
-        if can_configure {
-            dropdown_accent
-        } else {
-            MUTED
-        },
-        assets,
-    );
-    commands.entity(arrow).insert(Pickable::IGNORE);
-
-    if !open || !can_configure {
-        return;
-    }
-    let menu = add_cozy_panel(
-        commands,
-        selector,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(0),
-            right: px(0),
-            top: px(44),
-            padding: UiRect::all(px(7)),
-            flex_direction: FlexDirection::Column,
-            row_gap: px(2),
-            ..default()
-        },
-        assets,
-    );
-    commands.entity(menu).insert((
-        UnoModeDropdownPanel,
-        GlobalZIndex(1890),
-        Pickable::default(),
-    ));
-    for (mode, label) in [
+    let modes = [
         (Mode::Classic, "UNO"),
         (Mode::NoMercy, "No Mercy"),
         (Mode::Flip, "UNO FLIP"),
-    ] {
-        let selected = mode == rules.mode;
-        let mut option_image = ImageNode::new(if selected {
-            assets.home.purple_button_compact.clone()
-        } else {
-            assets.home.button.clone()
-        })
-        .with_mode(NodeImageMode::Sliced(TextureSlicer {
-            border: BorderRect::all(32.0),
-            center_scale_mode: SliceScaleMode::Stretch,
-            sides_scale_mode: SliceScaleMode::Stretch,
-            max_corner_scale: 0.55,
-        }));
-        option_image.visual_box = VisualBox::BorderBox;
-        let option = commands.child(
-            menu,
-            (
-                Button,
-                UiAction::Uno(UnoUiAction::UpdateRules(UnoRuleSet { mode, ..rules })),
-                Node {
-                    width: percent(90),
-                    min_width: px(0),
-                    height: px(38),
-                    padding: UiRect::horizontal(px(11)),
-                    align_self: AlignSelf::Center,
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                option_image,
-            ),
-        );
-        if !selected {
-            let mut hover_image = ImageNode::new(assets.home.purple_button_compact.clone())
-                .with_mode(NodeImageMode::Sliced(TextureSlicer {
-                    border: BorderRect::all(32.0),
-                    center_scale_mode: SliceScaleMode::Stretch,
-                    sides_scale_mode: SliceScaleMode::Stretch,
-                    max_corner_scale: 0.55,
-                }));
-            hover_image.visual_box = VisualBox::BorderBox;
-            let hover = commands.child(
-                option,
-                (
-                    Node {
-                        position_type: PositionType::Absolute,
-                        left: px(0),
-                        right: px(0),
-                        top: px(0),
-                        bottom: px(0),
-                        ..default()
-                    },
-                    hover_image,
-                    Visibility::Hidden,
-                    Pickable::IGNORE,
-                ),
-            );
-            commands.entity(option).insert(ButtonHighlight {
-                overlay: hover,
-                arrows: None,
-            });
-        }
-        let label = add_text(commands, option, label, 13.5, TEXT, assets);
-        commands.entity(label).insert(Pickable::IGNORE);
+    ];
+    LobbyModeDropdown {
+        label: modes
+            .iter()
+            .find(|(mode, _)| *mode == rules.mode)
+            .expect("UNO mode")
+            .1,
+        toggle_action: UiAction::Uno(UnoUiAction::ToggleModeMenu),
+        close_action: UiAction::Uno(UnoUiAction::CloseModeMenu),
+        options: modes
+            .into_iter()
+            .map(|(mode, label)| LobbyModeOption {
+                label,
+                selected: mode == rules.mode,
+                action: UiAction::Uno(UnoUiAction::UpdateRules(UnoRuleSet { mode, ..rules })),
+            })
+            .collect(),
     }
+    .render(commands, root, parent, can_configure, open, assets);
 }

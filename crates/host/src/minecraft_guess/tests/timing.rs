@@ -1,6 +1,7 @@
 use super::super::MinecraftGuessSession;
 use super::support::{join, send, snapshot};
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
+use leocard_minecraft_guess::TurnBasedRules;
 use leocard_protocol::{ClientCommand, MinecraftGuessCommand, RoomId, SeatId};
 use std::time::Duration;
 
@@ -9,7 +10,10 @@ fn started_session(guess_seconds: u16) -> MinecraftGuessSession {
         RoomId(99),
         52300,
         MinecraftGuessRuleSet {
-            guess_seconds,
+            turn_based: TurnBasedRules {
+                guess_seconds,
+                ..MinecraftGuessRuleSet::default().turn_based
+            },
             ..MinecraftGuessRuleSet::default()
         },
     );

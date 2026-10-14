@@ -1,7 +1,7 @@
-use super::{GuessTurnClock, MinecraftProcessPresence};
+use super::{GuessClock, MinecraftProcessPresence};
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, RoomSession};
-use leocard_minecraft_guess::{GameState, MatchState, MinecraftGuessRuleSet};
+use leocard_minecraft_guess::{GameState, GuessMode, MatchState, MinecraftGuessRuleSet};
 use leocard_protocol::{
     ClientMessage, MatchId, PlayerId, PlayerReferenceChange, PlayerViolation, RejectReason,
     Revision, RoomId, ServerEvent,
@@ -16,7 +16,7 @@ pub struct MinecraftGuessSession {
     pub(super) match_id: Option<MatchId>,
     pub(super) match_state: Option<MatchState>,
     pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
-    pub(super) turn_clock: GuessTurnClock,
+    pub(super) clock: GuessClock,
     pub(super) process_presence: MinecraftProcessPresence,
 }
 
@@ -47,7 +47,7 @@ impl MinecraftGuessSession {
             game: None,
             match_id: None,
             match_state: None,
-            turn_clock: GuessTurnClock::default(),
+            clock: GuessClock::default(),
             finished_reference_changes: None,
             process_presence: MinecraftProcessPresence::default(),
         }
@@ -78,7 +78,9 @@ impl MinecraftGuessSession {
     }
 
     pub(super) fn after_action(&mut self) -> Vec<Delivery> {
-        self.turn_clock = GuessTurnClock::default();
+        if self.rules.mode == GuessMode::TurnBased {
+            self.clock = GuessClock::default();
+        }
         let gains = self.game.as_mut().expect("active game").take_score_gains();
         self.match_state
             .as_mut()

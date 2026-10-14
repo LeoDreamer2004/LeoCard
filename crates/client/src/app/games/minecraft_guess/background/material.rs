@@ -4,14 +4,19 @@ use bevy::shader::ShaderRef;
 
 #[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
 pub(super) struct GuessBackgroundMaterial {
-    /// x: panorama spin in radians, y: transition progress, z: inverse UI scale.
+    /// x: panorama spin, y: transition, z: inverse UI scale, w: block front atlas index.
     #[uniform(0)]
     pub params: Vec4,
+    #[uniform(0)]
+    pub random_background: u32,
     #[texture(1, dimension = "cube")]
     #[sampler(2)]
     pub panorama: Option<Handle<Image>>,
     #[texture(3)]
     #[sampler(4)]
+    pub tiles: Handle<Image>,
+    #[texture(5)]
+    #[sampler(6)]
     pub dirt: Handle<Image>,
 }
 

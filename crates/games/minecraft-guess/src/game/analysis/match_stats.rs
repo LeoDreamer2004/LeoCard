@@ -1,5 +1,5 @@
 use super::GuessHandStatistics;
-use crate::MatchProgress;
+use crate::{GuessMode, MatchProgress};
 
 #[derive(Clone, Debug)]
 pub(in crate::game) struct MatchAnalysis {
@@ -46,7 +46,8 @@ impl MatchAnalysis {
             state.round_wins += 1;
             state.total_wins += 1;
         }
-        let round_end = progress.game_in_round() == progress.player_count;
+        let round_end = progress.mode() == GuessMode::TurnBased
+            && progress.game_in_round() == progress.player_count;
         let highest = scores
             .iter()
             .map(|(_, score)| *score)
@@ -65,8 +66,9 @@ impl MatchAnalysis {
                     round_sweep: progress.player_count >= 3
                         && round_end
                         && state.round_wins == progress.player_count,
-                    match_sweep: progress.player_count >= 3
-                        && progress.rounds >= 3
+                    match_sweep: progress.mode() == GuessMode::TurnBased
+                        && progress.player_count >= 3
+                        && progress.round_count().is_some_and(|rounds| rounds >= 3)
                         && progress.is_last_game()
                         && state.total_wins == progress.total_games(),
                     no_answers_top: progress.is_last_game()

@@ -1,4 +1,5 @@
 mod achievements;
+mod appearance;
 mod economy;
 mod identity;
 mod paths;
@@ -7,6 +8,7 @@ mod profile;
 mod spectator;
 
 pub use achievements::PlayerAchievements;
+pub use appearance::GameAppearancePreferences;
 pub use economy::{ItemId, PlayerEconomy, ShopItem};
 pub use identity::*;
 use paths::*;

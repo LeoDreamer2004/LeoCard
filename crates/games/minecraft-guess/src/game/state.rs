@@ -1,10 +1,10 @@
 use std::mem;
 
+use super::analysis::{GuessAnalysisInput, RoundAnalysis};
 use super::{
     GameError, GuessActionStatistics, GuessPlayStatistics, GuessRecord, GuessResult, RoundView,
-    analysis::{GuessAnalysisInput, RoundAnalysis},
 };
-use crate::{Catalogue, Entry, MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet};
+use crate::{Catalogue, Entry, GuessMode, MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet};
 
 #[derive(Clone, Debug)]
 pub struct GameState {
@@ -44,7 +44,7 @@ impl GameState {
         RoundView {
             kind: self.answer.kind,
             character_count: self.answer.name.chars().count() as u16,
-            current_player: (!self.finished).then(|| self.players[self.current]),
+            current_player: self.current_player(),
             guesses: self.guesses.clone(),
             skipped_players: self.skipped.clone(),
             answer: self.finished.then(|| self.answer.clone()),
@@ -57,21 +57,24 @@ impl GameState {
     }
 
     pub fn current_player(&self) -> Option<u8> {
-        (!self.finished).then(|| self.players[self.current])
+        (!self.finished && self.rules.mode == GuessMode::TurnBased)
+            .then(|| self.players[self.current])
     }
 
-    fn check_turn(&self, player: u8) -> Result<(), GameError> {
+    fn check_action(&self, player: u8) -> Result<(), GameError> {
         if self.finished {
             return Err(GameError::Finished);
         }
-        if self.current_player() != Some(player) {
+        if !self.players.contains(&player)
+            || (self.rules.mode == GuessMode::TurnBased && self.current_player() != Some(player))
+        {
             return Err(GameError::NotPlayersTurn);
         }
         Ok(())
     }
 
     pub fn guess(&mut self, player: u8, name_or_id: &str) -> Result<(), GameError> {
-        self.check_turn(player)?;
+        self.check_action(player)?;
         let result = self.resolve_guess(name_or_id)?;
         if self
             .guesses
@@ -87,6 +90,7 @@ impl GameState {
             .find_map(|guess| guess.result.closeness());
         self.analysis.guess(GuessAnalysisInput {
             player,
+            mode: self.rules.mode,
             result: &result,
             previous,
             turns: self.turns,
@@ -95,11 +99,14 @@ impl GameState {
         });
         let first_matching_available =
             !self.guesses.iter().any(|guess| guess.result.all_matching());
-        let score = result.score(
-            previous,
-            self.turns / self.players.len(),
-            first_matching_available,
-        );
+        let score = match self.rules.mode {
+            GuessMode::TurnBased => result.score(
+                previous,
+                self.turns / self.players.len(),
+                first_matching_available,
+            ),
+            GuessMode::Race => result.race_score(first_matching_available),
+        };
         for points in [score.during_guess, score.after_answer] {
             if points > 0 {
                 self.pending_gains.push((player, points));
@@ -140,7 +147,7 @@ impl GameState {
                     .map(|(ours, theirs)| ours.feedback(theirs))
                     .collect(),
             }),
-            None if self.rules.allow_unknown_guesses => Ok(GuessResult::Unknown {
+            None if self.rules.options().allow_unknown_guesses => Ok(GuessResult::Unknown {
                 name: name.to_owned(),
             }),
             None => Err(GameError::UnknownEntry),
@@ -148,7 +155,10 @@ impl GameState {
     }
 
     pub fn skip(&mut self, player: u8) -> Result<(), GameError> {
-        self.check_turn(player)?;
+        self.check_action(player)?;
+        if self.rules.mode == GuessMode::Race {
+            return Err(GameError::CannotSkip);
+        }
         self.analysis.skip(player);
         self.skipped.push(player);
         if self.skipped.len() == self.players.len() {
@@ -156,6 +166,14 @@ impl GameState {
         } else {
             self.next();
         }
+        Ok(())
+    }
+
+    pub fn expire(&mut self) -> Result<(), GameError> {
+        if self.finished {
+            return Err(GameError::Finished);
+        }
+        self.finished = true;
         Ok(())
     }
 
@@ -173,7 +191,7 @@ impl GameState {
             statistics.finish_game(
                 self.answer.kind,
                 self.winner == Some(player),
-                self.rules.allow_unknown_guesses,
+                self.rules.options().allow_unknown_guesses,
             );
             (player, statistics)
         })
@@ -185,6 +203,8 @@ impl GameState {
 
     fn next(&mut self) {
         self.turns += 1;
-        self.current = (self.current + 1) % self.players.len();
+        if self.rules.mode == GuessMode::TurnBased {
+            self.current = (self.current + 1) % self.players.len();
+        }
     }
 }

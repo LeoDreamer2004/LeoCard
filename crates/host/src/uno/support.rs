@@ -68,7 +68,7 @@ pub(super) fn to_core_player(player: PlayerId) -> UnoPlayerId {
 }
 
 pub(super) fn from_core_player(player: UnoPlayerId) -> PlayerId {
-    PlayerId(u8::try_from(player.0).expect("UNO supports at most six players"))
+    PlayerId(u8::try_from(player.0).expect("UNO supports at most eight players"))
 }
 
 pub(super) fn resolve_public_hand_card(

@@ -173,9 +173,15 @@ impl GameScreenResources<'_> {
         avatars: &AvatarImages,
     ) {
         match lobby.game {
-            GameKind::MinecraftGuess => {
-                render_guess_lobby(commands, root, client, lobby, assets, avatars)
-            }
+            GameKind::MinecraftGuess => render_guess_lobby(
+                commands,
+                root,
+                client,
+                lobby,
+                &self.minecraft_guess_ui,
+                assets,
+                avatars,
+            ),
             GameKind::QiGui523 => {
                 render_qigui523_lobby(commands, root, client, lobby, assets, avatars)
             }

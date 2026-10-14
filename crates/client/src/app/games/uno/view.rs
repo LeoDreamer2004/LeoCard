@@ -366,9 +366,12 @@ fn add_uno_center(
         },
         None,
     );
+    // Keep the anchor on the stable pile container: the top card's computed
+    // transform can still belong to the previous snapshot before layout runs.
+    commands.entity(discard).insert(UnoDiscardPileAnchor);
     for (index, card) in game.discard_pile.iter().copied().enumerate() {
         let (x, y, angle) = uno_discard_pose(card);
-        let child = commands.child(
+        commands.child(
             discard,
             (
                 UnoDiscardCard(card),
@@ -377,8 +380,8 @@ fn add_uno_center(
                     position_type: PositionType::Absolute,
                     left: px(7.0 + x),
                     top: px(6.0 + y),
-                    width: px(82),
-                    height: px(128),
+                    width: px(UNO_FLYING_CARD_WIDTH),
+                    height: px(UNO_FLYING_CARD_HEIGHT),
                     ..default()
                 },
                 ImageNode::new(uno_card_handle(game_assets, card)),
@@ -386,10 +389,6 @@ fn add_uno_center(
                 BoxShadow::new(Color::BLACK.with_alpha(0.38), px(2), px(4), px(0), px(5)),
             ),
         );
-        let mut card_entity = commands.entity(child);
-        if index + 1 == game.discard_pile.len() {
-            card_entity.insert(UnoDiscardPileAnchor);
-        }
     }
 
     let status = spawn_node(

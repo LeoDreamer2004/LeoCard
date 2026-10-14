@@ -7,7 +7,7 @@ mod rounds;
 mod settlement;
 mod state;
 
-use automation::GuessTurnClock;
+use automation::GuessClock;
 use process_presence::MinecraftProcessPresence;
 pub use state::MinecraftGuessSession;
 

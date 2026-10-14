@@ -1,5 +1,5 @@
 use super::MinecraftGuessSession;
-use leocard_minecraft_guess::reference_point_deltas;
+use leocard_minecraft_guess::{GuessMode, reference_point_deltas};
 use leocard_protocol::{MinecraftGuessProfileStats, PlayerId};
 
 impl MinecraftGuessSession {
@@ -12,8 +12,11 @@ impl MinecraftGuessSession {
         }
         let scores: Vec<_> = state.scores().collect();
         let values: Vec<_> = scores.iter().map(|(_, score)| *score).collect();
-        let deltas =
-            reference_point_deltas(&values, self.rules.rounds).expect("two to eight players");
+        let ranked_rounds = match self.rules.mode {
+            GuessMode::TurnBased => self.rules.turn_based.rounds,
+            GuessMode::Race => 1,
+        };
+        let deltas = reference_point_deltas(&values, ranked_rounds).expect("two to eight players");
         let statistics: Vec<_> = state
             .statistics()
             .map(|(player, stats)| (player, *stats))

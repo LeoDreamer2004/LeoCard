@@ -1,11 +1,13 @@
 use bevy::prelude::*;
+use leocard_minecraft_guess::GuessMode;
 use leocard_protocol::MatchId;
 use std::collections::VecDeque;
 
-pub(super) const ROW_DURATION: f32 = 0.64;
+const ROW_DURATION: f32 = 0.64;
+const RACE_ROW_SPEED: f32 = 3.0;
 pub(super) const ANSWER_DURATION: f32 = 1.55;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub(super) enum FeedbackSound {
     Submit,
     Reveal,
@@ -28,6 +30,7 @@ pub(super) struct RowReveal {
 #[derive(Resource, Default)]
 pub(crate) struct GuessFeedback {
     pub(super) key: Option<(MatchId, u8)>,
+    pub(super) mode: GuessMode,
     pub(super) clock: f32,
     pub(super) rows: Vec<Option<RowReveal>>,
     pub(super) cues: VecDeque<SoundCue>,
@@ -37,16 +40,41 @@ pub(crate) struct GuessFeedback {
 }
 
 impl GuessFeedback {
+    fn row_speed(&self) -> f32 {
+        if self.mode == GuessMode::Race {
+            RACE_ROW_SPEED
+        } else {
+            1.0
+        }
+    }
+
+    pub(super) fn row_start(&self) -> f32 {
+        if self.mode == GuessMode::Race {
+            self.clock
+        } else {
+            self.tail()
+        }
+    }
+
     pub(super) fn tail(&self) -> f32 {
         self.rows
             .iter()
             .flatten()
             .last()
-            .map_or(self.clock, |row| row.start + ROW_DURATION)
+            .map_or(self.clock, |row| {
+                row.start + ROW_DURATION / self.row_speed()
+            })
             .max(self.clock)
     }
 
     pub(super) fn cue(&mut self, at: f32, sound: FeedbackSound) {
+        if self
+            .cues
+            .iter()
+            .any(|cue| cue.at == at && cue.sound == sound)
+        {
+            return;
+        }
         let index = self.cues.partition_point(|cue| cue.at <= at);
         self.cues.insert(index, SoundCue { at, sound });
     }
@@ -60,7 +88,7 @@ impl GuessFeedback {
         } else {
             0.10 + (column - 1) as f32 * 0.37 / reveal.columns.saturating_sub(2).max(1) as f32
         };
-        ((self.clock - reveal.start - delay) / 0.16).clamp(0.0, 1.0)
+        (((self.clock - reveal.start) * self.row_speed() - delay) / 0.16).clamp(0.0, 1.0)
     }
 
     pub(super) fn answer_elapsed(&self) -> Option<f32> {

@@ -2,7 +2,7 @@
 
 use crate::app::presentation::time_control_label;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
-use leocard_minecraft_guess::{GuessPool, MinecraftGuessRuleSet};
+use leocard_minecraft_guess::{GuessMode, GuessPool, MinecraftGuessRuleSet};
 use leocard_protocol::{GameKind, GameRules, TABLE_SEAT_COUNT};
 use leocard_shengji::ShengjiRuleSet;
 use leocard_uno::UnoRuleSet;
@@ -60,14 +60,17 @@ pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
 pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
     match rules {
         GameRules::MinecraftGuess(rules) => [
-            match rules.pool {
+            match rules.options().pool {
                 GuessPool::Blocks => "方块",
                 GuessPool::Items => "物品",
                 GuessPool::Mixed => "方块 / 物品",
             }
             .to_owned(),
-            "轮流竞猜".to_owned(),
-            "允许跳过".to_owned(),
+            rules.mode.label().to_owned(),
+            match rules.mode {
+                GuessMode::TurnBased => "允许跳过".to_owned(),
+                GuessMode::Race => format!("{} 秒 / {} 局", rules.race.seconds, rules.race.games),
+            },
         ],
         GameRules::QiGui523(rules) => [
             format!("{}副", rules.deck_count),

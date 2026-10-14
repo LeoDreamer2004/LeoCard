@@ -12,7 +12,7 @@ use crate::app::presentation::{
     attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{PlayerInteractionLayer, SeatSide, SocialUiState, UiAction};
+use crate::app::shell::{PlayerInteractionLayer, SocialUiState, UiAction};
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
@@ -59,12 +59,10 @@ pub(super) fn add_uno_own_area(
                 completed_games: own.completed_games,
                 game_profiles: &own.game_profiles,
             },
-            side: SeatSide::Left,
             avatar_size: UNO_AVATAR_SIZE,
             auto_play: own.auto_play,
             menu_open: !matches!(game.pending_swap, Some(UnoPendingSwapView::ForceTrade { player }) if player == game.you)
                 && social.interaction_menu_open == Some(game.you),
-            menu_above: true,
             name_color: TEXT,
         },
         assets,

@@ -1,8 +1,9 @@
-use super::super::{StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
+use super::super::{PROFILE_HEADER, StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
 use super::minecraft_guess::SixSeatMinecraftGuessStats;
+use super::uno::SixSeatUnoStats;
 use leocard_protocol::{
-    MahjongProfileStats, MatchId, PlayerInteractionStats, ShengjiProfileStats,
-    TexasHoldemProfileStats, UnoProfileStats,
+    MahjongProfileStats, MatchId, MinecraftGuessProfileStats, PlayerInteractionStats,
+    ShengjiProfileStats, TexasHoldemProfileStats,
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
@@ -24,11 +25,20 @@ macro_rules! stored_profile_compatibility_types {
 }
 
 stored_profile_compatibility_types!(
+    (SixSeatUnoStoredPlayerProfile, SixSeatUnoStoredGameProfiles, {
+        qigui523: StoredRatingProfile,
+        texas_holdem_stats: Option<TexasHoldemProfileStats>,
+        shengji_stats: Option<ShengjiProfileStats>,
+        uno_stats: Option<SixSeatUnoStats>,
+        interaction_stats: Option<PlayerInteractionStats>,
+        mahjong_stats: Option<MahjongProfileStats>,
+        minecraft_guess_stats: Option<MinecraftGuessProfileStats>,
+    }),
     (SixSeatStoredPlayerProfile, SixSeatStoredGameProfiles, {
         qigui523: StoredRatingProfile,
         texas_holdem_stats: Option<TexasHoldemProfileStats>,
         shengji_stats: Option<ShengjiProfileStats>,
-        uno_stats: Option<UnoProfileStats>,
+        uno_stats: Option<SixSeatUnoStats>,
         interaction_stats: Option<PlayerInteractionStats>,
         mahjong_stats: Option<MahjongProfileStats>,
         minecraft_guess_stats: Option<SixSeatMinecraftGuessStats>,
@@ -38,7 +48,7 @@ stored_profile_compatibility_types!(
         qigui523: StoredRatingProfile,
         texas_holdem_stats: Option<TexasHoldemProfileStats>,
         shengji_stats: Option<ShengjiProfileStats>,
-        uno_stats: Option<UnoProfileStats>,
+        uno_stats: Option<SixSeatUnoStats>,
         interaction_stats: Option<PlayerInteractionStats>,
         mahjong_stats: Option<MahjongProfileStats>,
     }),
@@ -47,14 +57,14 @@ stored_profile_compatibility_types!(
         qigui523: StoredRatingProfile,
         texas_holdem_stats: Option<TexasHoldemProfileStats>,
         shengji_stats: Option<ShengjiProfileStats>,
-        uno_stats: Option<UnoProfileStats>,
+        uno_stats: Option<SixSeatUnoStats>,
         interaction_stats: Option<PlayerInteractionStats>,
     }),
     (PreInteractionStoredPlayerProfile, PreInteractionStoredGameProfiles, {
         qigui523: StoredRatingProfile,
         texas_holdem_stats: Option<TexasHoldemProfileStats>,
         shengji_stats: Option<ShengjiProfileStats>,
-        uno_stats: Option<UnoProfileStats>,
+        uno_stats: Option<SixSeatUnoStats>,
     }),
     (PreUnoStoredPlayerProfile, PreUnoStoredGameProfiles, {
         qigui523: StoredRatingProfile,
@@ -91,8 +101,24 @@ fn decode_exact<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, postcard::Error>
 pub(in crate::player::profile) fn decode_player_profile(
     bytes: &[u8],
 ) -> Result<StoredPlayerProfile, String> {
-    match decode_exact(bytes) {
-        Ok(stored) => Ok(stored),
+    // A schema marker prevents a six-placement archive from being interpreted
+    // as eight placements merely because the following counters happen to fit.
+    if let Some(current) = bytes.strip_prefix(PROFILE_HEADER) {
+        return decode_exact(current).map_err(|error| format!("玩家档案已损坏：{error}"));
+    }
+    match decode_exact::<SixSeatUnoStoredPlayerProfile>(bytes) {
+        Ok(previous) => Ok(StoredPlayerProfile {
+            secret_key: previous.secret_key,
+            games: StoredGameProfiles {
+                qigui523: previous.games.qigui523,
+                texas_holdem_stats: previous.games.texas_holdem_stats,
+                shengji_stats: previous.games.shengji_stats,
+                uno_stats: previous.games.uno_stats.map(Into::into),
+                interaction_stats: previous.games.interaction_stats,
+                mahjong_stats: previous.games.mahjong_stats,
+                minecraft_guess_stats: previous.games.minecraft_guess_stats,
+            },
+        }),
         Err(current_error) => {
             if let Ok(previous) = decode_exact::<SixSeatStoredPlayerProfile>(bytes) {
                 return Ok(StoredPlayerProfile {
@@ -101,7 +127,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats,
                         shengji_stats: previous.games.shengji_stats,
-                        uno_stats: previous.games.uno_stats,
+                        uno_stats: previous.games.uno_stats.map(Into::into),
                         interaction_stats: previous.games.interaction_stats,
                         mahjong_stats: previous.games.mahjong_stats,
                         minecraft_guess_stats: previous.games.minecraft_guess_stats.map(Into::into),
@@ -115,7 +141,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats,
                         shengji_stats: previous.games.shengji_stats,
-                        uno_stats: previous.games.uno_stats,
+                        uno_stats: previous.games.uno_stats.map(Into::into),
                         interaction_stats: previous.games.interaction_stats,
                         mahjong_stats: previous.games.mahjong_stats,
                         minecraft_guess_stats: None,
@@ -129,7 +155,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats,
                         shengji_stats: previous.games.shengji_stats,
-                        uno_stats: previous.games.uno_stats,
+                        uno_stats: previous.games.uno_stats.map(Into::into),
                         interaction_stats: previous.games.interaction_stats,
                         mahjong_stats: None,
                         minecraft_guess_stats: None,
@@ -143,7 +169,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats,
                         shengji_stats: previous.games.shengji_stats,
-                        uno_stats: previous.games.uno_stats,
+                        uno_stats: previous.games.uno_stats.map(Into::into),
                         interaction_stats: None,
                         mahjong_stats: None,
                         minecraft_guess_stats: None,

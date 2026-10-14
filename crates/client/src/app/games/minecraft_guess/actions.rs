@@ -11,6 +11,8 @@ use leocard_protocol::{ClientCommand, MinecraftGuessCommand};
 #[derive(Clone)]
 pub(crate) enum MinecraftGuessUiAction {
     UpdateRules(MinecraftGuessRuleSet),
+    ToggleModeMenu,
+    CloseModeMenu,
     Guess(Option<String>),
     Skip,
     Again,
@@ -26,14 +28,17 @@ impl DomainUiAction for MinecraftGuessUiAction {
     }
 
     fn rebuilds_ui(&self) -> bool {
-        false
+        matches!(
+            self,
+            Self::UpdateRules(_) | Self::ToggleModeMenu | Self::CloseModeMenu
+        )
     }
 }
 
 pub(super) fn dispatch_guess_actions(
     mut actions: MessageReader<PressedUiAction>,
     mut client: Option<ResMut<ClientResource>>,
-    state: Res<MinecraftGuessUiState>,
+    mut state: ResMut<MinecraftGuessUiState>,
 ) {
     let Some(client) = client.as_deref_mut() else {
         return;
@@ -43,7 +48,16 @@ pub(super) fn dispatch_guess_actions(
             continue;
         };
         let command = match action {
+            MinecraftGuessUiAction::ToggleModeMenu => {
+                state.mode_menu_open = !state.mode_menu_open;
+                continue;
+            }
+            MinecraftGuessUiAction::CloseModeMenu => {
+                state.mode_menu_open = false;
+                continue;
+            }
             MinecraftGuessUiAction::UpdateRules(rules) => {
+                state.mode_menu_open = false;
                 game_command(MinecraftGuessCommand::UpdateRules { rules: *rules })
             }
             MinecraftGuessUiAction::Guess(entry) => game_command(MinecraftGuessCommand::Guess {
@@ -67,6 +81,15 @@ pub(super) fn sync_guess_input(
         .as_deref()
         .and_then(|client| client.0.model().minecraft_guess_game());
     let Some(snapshot) = snapshot else {
+        if !client.as_deref().is_some_and(|client| {
+            client
+                .0
+                .model()
+                .lobby()
+                .is_some_and(|lobby| lobby.rules.minecraft_guess().is_some())
+        }) {
+            state.mode_menu_open = false;
+        }
         return;
     };
     if state.match_id != Some(snapshot.match_id) || state.game_index != snapshot.progress.game_index
@@ -81,13 +104,15 @@ pub(super) fn sync_guess_input(
         }
     }
     if state.guess_count != snapshot.round.guesses.len() {
+        let previous_count = state.guess_count;
         state.guess_count = snapshot.round.guesses.len();
         state.scroll_to_latest = true;
         if snapshot
             .round
             .guesses
-            .last()
-            .is_some_and(|guess| guess.player == snapshot.you.0)
+            .iter()
+            .skip(previous_count)
+            .any(|guess| guess.player == snapshot.you.0)
         {
             state.input.clear();
             for (_, mut input) in &mut inputs {
@@ -95,7 +120,7 @@ pub(super) fn sync_guess_input(
             }
         }
     }
-    let can_guess = snapshot.round.current_player == Some(snapshot.you.0);
+    let can_guess = snapshot.can_guess();
     for event in events.read() {
         if event.action == TextInputAction::Submit
             && can_guess

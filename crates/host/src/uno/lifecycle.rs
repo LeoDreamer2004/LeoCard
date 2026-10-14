@@ -24,7 +24,12 @@ impl UnoSession {
         let rules = rules.validate().map_err(GameError::from)?;
         validate_deck(&shuffled_deck, rules)?;
         Ok(Self {
-            room: RoomSession::new(room_id, host_port, usize::from(UnoRuleSet::MAX_PLAYERS)),
+            room: RoomSession::new_with_seat_count(
+                room_id,
+                host_port,
+                usize::from(UnoRuleSet::MAX_PLAYERS),
+                UnoRuleSet::MAX_PLAYERS,
+            ),
             rules,
             shuffled_deck: Some(shuffled_deck),
             game: None,

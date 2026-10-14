@@ -16,7 +16,6 @@ use crate::app::presentation::{
     add_player_portrait, add_text, attach_start_game_seat_transition, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::SeatSide;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongTile;
@@ -54,11 +53,6 @@ pub(super) fn render_mahjong_player_panel(
         2 => (920.0, Some(8.0), None),
         _ => (20.0, Some(284.0), None),
     };
-    let side = match relative {
-        1 => SeatSide::Right,
-        2 => SeatSide::Top,
-        _ => SeatSide::Left,
-    };
     let portrait = add_player_portrait(
         commands,
         table,
@@ -80,11 +74,9 @@ pub(super) fn render_mahjong_player_panel(
                 completed_games: player.completed_games,
                 game_profiles: &player.game_profiles,
             },
-            side,
             avatar_size: 52.0 * 1.17,
             auto_play: player.auto_play,
             menu_open: interaction_menu_open == Some(player.id),
-            menu_above: relative == 0,
             name_color: if player.dead_hand { DANGER } else { TEXT },
         },
         assets,

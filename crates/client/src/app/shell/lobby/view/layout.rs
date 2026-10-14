@@ -10,7 +10,7 @@ impl LobbySeatLayout {
             GameKind::Shengji | GameKind::Mahjong => {
                 &[(239.0, 290.0), (0.0, 145.0), (239.0, 0.0), (478.0, 145.0)]
             }
-            GameKind::MinecraftGuess => &[
+            GameKind::MinecraftGuess | GameKind::Uno => &[
                 (239.0, 290.0),
                 (82.0, 290.0),
                 (0.0, 145.0),
@@ -20,7 +20,7 @@ impl LobbySeatLayout {
                 (478.0, 145.0),
                 (396.0, 290.0),
             ],
-            GameKind::QiGui523 | GameKind::TexasHoldem | GameKind::Uno => &[
+            GameKind::QiGui523 | GameKind::TexasHoldem => &[
                 (150.0, 290.0),
                 (0.0, 145.0),
                 (150.0, 0.0),

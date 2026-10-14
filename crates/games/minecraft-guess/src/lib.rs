@@ -7,7 +7,10 @@ pub use catalog::{
 };
 pub use game::{
     CorrectGuess, GameError, GameState, GuessActionStatistics, GuessHandStatistics,
-    GuessPlayStatistics, GuessRecord, GuessResult, MatchProgress, MatchState, RoundView, ScoreGain,
-    reference_point_deltas,
+    GuessPlayStatistics, GuessRecord, GuessResult, MatchLength, MatchProgress, MatchState,
+    RoundView, ScoreGain, reference_point_deltas,
 };
-pub use rules::{GuessPool, MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet};
+pub use rules::{
+    GuessMode, GuessOptions, GuessPool, MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet, RaceRules,
+    TurnBasedRules,
+};

@@ -1,4 +1,4 @@
-//! Table appearance settings.
+//! Table and game appearance settings.
 
 use crate::app::presentation::{
     MUTED, TEXT, TableAppearanceSetting, UiComposer, add_text, spawn_node,
@@ -7,6 +7,7 @@ use crate::app::shell::SettingsUiAction;
 
 use super::super::super::{UiAction, add_cozy_button};
 use super::slider::SettingsSlider;
+use super::toggle::add_settings_toggle;
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
@@ -100,5 +101,14 @@ impl<'a> TableAppearanceSettings<'a> {
         ] {
             SettingsSlider::new(form, assets).render(commands, parent, setting);
         }
+        add_text(commands, parent, "MC 竞猜", 20.0, TEXT, assets);
+        add_settings_toggle(
+            commands,
+            parent,
+            "随机背景",
+            form.games.minecraft_guess_random_background,
+            SettingsUiAction::ToggleMinecraftGuessBackground,
+            assets,
+        );
     }
 }

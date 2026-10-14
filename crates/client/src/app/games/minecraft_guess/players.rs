@@ -4,15 +4,11 @@ use super::{
     scores::{GuessScoreDelta, GuessScoreValue},
     view::GuessTable,
 };
-use crate::app::presentation::UiComposer;
-use crate::app::{
-    presentation::{
-        ACCENT, DANGER, MUTED, PlayerMenuProfile, PlayerPortraitSpec, READY, TEXT,
-        TurnBorderAnimationKey, add_player_portrait, add_ready_badge, add_text,
-        add_turn_border_trace_with_radius, attach_start_game_seat_transition, score_gain_visual,
-        spawn_node,
-    },
-    shell::SeatSide,
+use crate::app::presentation::{
+    ACCENT, DANGER, MUTED, PlayerMenuProfile, PlayerPortraitSpec, READY, TEXT,
+    TurnBorderAnimationKey, UiComposer, add_player_portrait, add_ready_badge, add_text,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition, score_gain_visual,
+    spawn_node,
 };
 use bevy::prelude::*;
 use leocard_protocol::GameKind;
@@ -58,11 +54,9 @@ impl GuessTable<'_> {
                         completed_games: player.completed_games,
                         game_profiles: &player.game_profiles,
                     },
-                    side: SeatSide::Top,
                     avatar_size: 52.0,
                     auto_play: false,
                     menu_open: self.social.interaction_menu_open == Some(player.id),
-                    menu_above: true,
                     name_color: if active {
                         ACCENT
                     } else if player.connected {

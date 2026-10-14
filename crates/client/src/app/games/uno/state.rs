@@ -198,6 +198,3 @@ pub(crate) struct UnoReverseArrow {
     pub max_alpha: f32,
     pub shadow_alpha: f32,
 }
-
-#[derive(Component)]
-pub(crate) struct UnoModeDropdownPanel;

@@ -26,7 +26,6 @@ pub(super) struct UnoPresentationScene {
     pub(super) layer_size: Vec2,
     pub(super) draw: Vec2,
     pub(super) discard: Vec2,
-    pub(super) discard_top_pose: (f32, f32, f32),
     pub(super) players: HashMap<PlayerId, Vec2>,
 }
 
@@ -55,7 +54,6 @@ impl UnoPresentationScene {
             layer_size: layer_node.size() * layer_node.inverse_scale_factor(),
             draw,
             discard,
-            discard_top_pose: uno_discard_pose(game.discard_top),
             players,
         })
     }
@@ -66,11 +64,7 @@ impl UnoPresentationScene {
 
     pub(super) fn discard_target(&self, card: UnoCard) -> Vec2 {
         let pose = uno_discard_pose(card);
-        self.discard
-            + Vec2::new(
-                pose.0 - self.discard_top_pose.0,
-                pose.1 - self.discard_top_pose.1,
-            )
+        self.discard + Vec2::new(pose.0, pose.1)
     }
 }
 
@@ -251,7 +245,7 @@ pub(crate) fn spawn_uno_presentation_effects(
                         uno_card_handle(&game_assets, card),
                         Some(card),
                         source,
-                        scene.discard + Vec2::new(pose.0, pose.1),
+                        scene.discard_target(card),
                         UNO_PLAY_CARD_DURATION * 0.35 + index as f32 * 0.045,
                         false,
                         index,

@@ -1,27 +1,21 @@
-use crate::UnoPlayerId;
+use crate::{UnoPlayerId, UnoRuleSet};
 
-const TIERS: [&[i16]; 5] = [
+const TIERS: [&[i16]; 7] = [
     &[2, -2],
     &[3, -1, -2],
     &[3, 0, -1, -2],
     &[4, 1, 0, -2, -3],
     &[5, 1, 0, -1, -2, -3],
+    &[6, 2, 1, 0, -2, -3, -4],
+    &[7, 2, 1, 0, -1, -2, -3, -4],
 ];
 
 /// 胜者固定第一，其余玩家按剩余手牌分数从低到高排名。
 ///
 /// 并列者都取得并列区间中较高名次的档位，后续名次按并列人数跳过。
 pub fn reference_point_deltas(winner: UnoPlayerId, hand_scores: &[u16]) -> Option<Vec<i16>> {
-    if !(2..=6).contains(&hand_scores.len()) || winner.0 >= hand_scores.len() {
-        return None;
-    }
-    let placements = placements(winner, hand_scores);
+    let placements = placements_with_eliminations(winner, hand_scores, &[])?;
     reference_point_deltas_for_placements(&placements)
-}
-
-pub(crate) fn placements(winner: UnoPlayerId, hand_scores: &[u16]) -> Vec<u8> {
-    placements_with_eliminations(winner, hand_scores, &[])
-        .expect("winner and score list were validated")
 }
 
 pub(crate) fn placements_with_eliminations(
@@ -30,7 +24,10 @@ pub(crate) fn placements_with_eliminations(
     elimination_order: &[UnoPlayerId],
 ) -> Option<Vec<u8>> {
     let player_count = hand_scores.len();
-    if !(2..=6).contains(&player_count) || winner.0 >= player_count {
+    if !(usize::from(UnoRuleSet::MIN_PLAYERS)..=usize::from(UnoRuleSet::MAX_PLAYERS))
+        .contains(&player_count)
+        || winner.0 >= player_count
+    {
         return None;
     }
     let mut eliminated = vec![false; player_count];
@@ -68,10 +65,11 @@ pub(crate) fn placements_with_eliminations(
 }
 
 pub(crate) fn reference_point_deltas_for_placements(placements: &[u8]) -> Option<Vec<i16>> {
-    if !(2..=6).contains(&placements.len()) {
-        return None;
-    }
-    let tiers = TIERS[placements.len() - 2];
+    let tiers = TIERS.get(
+        placements
+            .len()
+            .checked_sub(usize::from(UnoRuleSet::MIN_PLAYERS))?,
+    )?;
     placements
         .iter()
         .copied()
@@ -89,7 +87,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn configured_tiers_cover_two_through_six_players() {
+    fn configured_tiers_cover_two_through_eight_players() {
         assert_eq!(
             reference_point_deltas(UnoPlayerId(0), &[0, 10]),
             Some(vec![2, -2])
@@ -110,6 +108,14 @@ mod tests {
             reference_point_deltas(UnoPlayerId(0), &[0, 10, 20, 30, 40, 50]),
             Some(vec![5, 1, 0, -1, -2, -3])
         );
+        assert_eq!(
+            reference_point_deltas(UnoPlayerId(0), &[0, 10, 20, 30, 40, 50, 60]),
+            Some(vec![6, 2, 1, 0, -2, -3, -4])
+        );
+        assert_eq!(
+            reference_point_deltas(UnoPlayerId(0), &[0, 10, 20, 30, 40, 50, 60, 70]),
+            Some(vec![7, 2, 1, 0, -1, -2, -3, -4])
+        );
     }
 
     #[test]
@@ -119,7 +125,7 @@ mod tests {
             Some(vec![3, 0, 0, -2])
         );
         assert_eq!(
-            placements(UnoPlayerId(0), &[0, 10, 10, 30]),
+            placements_with_eliminations(UnoPlayerId(0), &[0, 10, 10, 30], &[]).unwrap(),
             vec![1, 2, 2, 4]
         );
     }
@@ -136,6 +142,17 @@ mod tests {
         assert_eq!(
             reference_point_deltas_for_placements(&placements),
             Some(vec![5, -3, 1, -2, -1, 0])
+        );
+        let placements = placements_with_eliminations(
+            UnoPlayerId(0),
+            &[0, 99, 5, 88, 20, 10, 77, 66],
+            &[UnoPlayerId(1), UnoPlayerId(3), UnoPlayerId(6)],
+        )
+        .unwrap();
+        assert_eq!(placements, vec![1, 8, 2, 7, 4, 3, 6, 5]);
+        assert_eq!(
+            reference_point_deltas_for_placements(&placements),
+            Some(vec![7, -4, 2, -3, 0, 1, -2, -1])
         );
     }
 }

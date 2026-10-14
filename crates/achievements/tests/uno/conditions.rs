@@ -2,13 +2,13 @@ use super::support::*;
 use leocard_achievements::{AchievementCategory, AchievementTier, achievements_in};
 
 #[test]
-fn all_twenty_seven_awards_match_only_their_own_positive_facts() {
+fn all_uno_awards_match_only_their_own_positive_facts() {
     let entries = achievements_in(AchievementCategory::Uno).collect::<Vec<_>>();
-    assert_eq!(entries.len(), 27);
+    assert_eq!(entries.len(), 29);
     for (tier, count) in [
         (AchievementTier::Bronze, 16),
-        (AchievementTier::Silver, 6),
-        (AchievementTier::Gold, 5),
+        (AchievementTier::Silver, 7),
+        (AchievementTier::Gold, 6),
     ] {
         assert_eq!(
             entries.iter().filter(|entry| entry.tier == tier).count(),
@@ -72,6 +72,10 @@ fn all_twenty_seven_awards_match_only_their_own_positive_facts() {
             s.rules.mode = Mode::NoMercy;
             s.progress.lucky_elimination = true;
         }),
+        ("thirty_card_penalty", |s| {
+            s.rules.mode = Mode::NoMercy;
+            s.progress.max_penalty_cards = 30;
+        }),
         ("one_color_win", |s| {
             s.won = true;
             s.progress.colors = 1;
@@ -82,6 +86,10 @@ fn all_twenty_seven_awards_match_only_their_own_positive_facts() {
         ("merciful_win", |s| {
             s.rules.mode = Mode::NoMercy;
             s.won = true;
+        }),
+        ("fifty_card_penalty", |s| {
+            s.rules.mode = Mode::NoMercy;
+            s.progress.max_penalty_cards = 50;
         }),
     ];
     for (id, set) in cases {

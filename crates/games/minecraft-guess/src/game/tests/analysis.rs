@@ -1,5 +1,8 @@
 use super::super::analysis::{GuessAnalysisInput, MatchAnalysis, RoundAnalysis};
-use crate::{AttributeFeedback, Catalogue, EntryKind, GuessResult, MatchProgress, MatchQuality};
+use crate::{
+    AttributeFeedback, Catalogue, EntryKind, GuessMode, GuessResult, MatchLength, MatchProgress,
+    MatchQuality,
+};
 
 fn known(quality: MatchQuality, correct: bool) -> GuessResult {
     GuessResult::Known {
@@ -18,6 +21,7 @@ fn known(quality: MatchQuality, correct: bool) -> GuessResult {
 fn guess(analysis: &mut RoundAnalysis, result: &GuessResult, previous: Option<u32>, turns: usize) {
     analysis.guess(GuessAnalysisInput {
         player: 0,
+        mode: GuessMode::TurnBased,
         result,
         previous,
         turns,
@@ -79,7 +83,7 @@ fn sweeps_require_full_rounds_and_a_complete_three_round_match() {
             MatchProgress {
                 game_index: index,
                 player_count: 3,
-                rounds: 3,
+                length: MatchLength::Rounds(3),
             },
             Some(0),
             [(0, true), (1, false), (2, false)].into_iter(),
@@ -99,7 +103,7 @@ fn no_answer_victory_requires_every_game_to_be_solved() {
                 MatchProgress {
                     game_index: index,
                     player_count: 3,
-                    rounds: 1,
+                    length: MatchLength::Rounds(1),
                 },
                 if unsolved && index == 0 {
                     None

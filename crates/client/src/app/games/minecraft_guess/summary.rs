@@ -1,13 +1,15 @@
-use super::super::summary::{RankedSummary, SummaryPlayer, add_ranked_summary};
 use super::view::GuessTable;
-use crate::app::presentation::{SUMMARY_HAND_REVEAL_DURATION, SummaryDescriptor, UiComposer};
+use crate::app::presentation::{
+    RankedSummary, SUMMARY_HAND_REVEAL_DURATION, SummaryDescriptor, SummaryPlayer, UiComposer,
+    add_ranked_summary,
+};
+use crate::app::shell::{SummaryActions, add_summary_actions};
 use bevy::prelude::*;
 use leocard_protocol::MinecraftGuessSnapshot;
 
 pub(crate) fn guess_summary_descriptor(game: &MinecraftGuessSnapshot) -> Option<SummaryDescriptor> {
     (game.round.finished() && game.progress.is_last_game()).then(|| SummaryDescriptor {
         match_id: game.match_id,
-        texas_hand_number: None,
         settlement_index: None,
         entry_count: game.scores.len(),
         nonnegative_outcome: game
@@ -29,12 +31,10 @@ impl GuessTable<'_> {
             Some(rounds) => format!("共 {rounds} 轮 · {} 局", progress.total_games()),
             None => format!("抢答竞速 · 共 {} 局", progress.total_games()),
         };
-        add_ranked_summary(
+        let actions = add_ranked_summary(
             commands,
             page,
             &RankedSummary {
-                you: self.game.you,
-                host: self.game.host,
                 players: self
                     .game
                     .players
@@ -50,11 +50,26 @@ impl GuessTable<'_> {
                 reference_changes: &self.game.reference_changes,
                 title: "整场结算",
                 caption: &caption,
-                again: "开始下一场",
+                score_unit: "分",
             },
             self.assets,
             self.avatars,
             self.summary,
+        );
+        add_summary_actions(
+            commands,
+            actions,
+            SummaryActions {
+                is_host: self.game.you == self.game.host,
+                ready: self
+                    .game
+                    .players
+                    .iter()
+                    .find(|player| player.id == self.game.you)
+                    .is_some_and(|player| player.ready),
+                again: "开始下一场",
+            },
+            self.assets,
         );
     }
 }

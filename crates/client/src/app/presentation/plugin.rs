@@ -1,11 +1,13 @@
 use super::{
     CardDragSelection, GameSummaryAnimation, PointerInputPlugin, ScrollbarDrag,
     StartGameSeatTransition, SummaryAnimationSet, SummaryPlayback, TableBackgroundMaterial,
-    TextInputPlugin, TurnBorderAnimationState, TurnBorderMaterial, UiSceneProperties,
-    UiSceneRegistry, animate_button_arrows, animate_button_presses, animate_game_summary_visuals,
-    animate_signed_summary_scores, animate_start_game_seat_transition, animate_summary_scores,
-    animate_turn_border_traces, drag_scrollbar, image_node_eq, play_ui_click_sounds,
-    position_anchored_popups, update_button_highlights, update_button_tints, update_scrollbar,
+    TableStatusAnimation, TextInputPlugin, TurnBorderAnimationState, TurnBorderMaterial,
+    UiSceneProperties, UiSceneRegistry, animate_button_arrows, animate_button_presses,
+    animate_game_summary_visuals, animate_playing_card_flips, animate_signed_summary_scores,
+    animate_start_game_seat_transition, animate_summary_scores, animate_table_piece_deals,
+    animate_table_statuses, animate_turn_border_traces, drag_scrollbar, image_node_eq,
+    play_ui_click_sounds, position_anchored_popups, resolve_table_piece_origins,
+    start_game_intro_finished, update_button_highlights, update_button_tints, update_scrollbar,
     update_summary_animation,
 };
 use crate::app::runtime::ClientUpdateSet;
@@ -26,6 +28,7 @@ impl Plugin for PresentationPlugin {
             left.justify == right.justify && left.linebreak == right.linebreak
         });
         properties.preserve::<TextColor>();
+        properties.preserve::<TableStatusAnimation>();
         properties.preserve::<BackgroundColor>();
         properties.preserve::<BorderColor>();
         properties.preserve::<BackgroundGradient>();
@@ -45,6 +48,23 @@ impl Plugin for PresentationPlugin {
             .insert_resource(TurnBorderAnimationState::default())
             .insert_resource(CardDragSelection::default())
             .init_resource::<ScrollbarDrag>()
+            .add_systems(
+                Update,
+                (
+                    animate_table_piece_deals,
+                    animate_playing_card_flips,
+                    animate_table_statuses,
+                )
+                    .chain()
+                    .run_if(start_game_intro_finished)
+                    .in_set(ClientUpdateSet::Animate),
+            )
+            .add_systems(
+                PostUpdate,
+                resolve_table_piece_origins
+                    .after(UiSystems::Layout)
+                    .before(UiSystems::PostLayout),
+            )
             .add_systems(Update, drag_scrollbar.in_set(ClientUpdateSet::Input))
             .add_systems(PostUpdate, update_scrollbar.after(UiSystems::Layout))
             .add_systems(

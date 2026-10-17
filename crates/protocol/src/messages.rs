@@ -1,9 +1,9 @@
 use crate::{
-    AchievementAnnouncement, AchievementCounts, AvatarId, ChatContent, ChatMessage, GameCommand,
-    GameEvent, GameKind, GameRules, MahjongSnapshot, MatchId, MinecraftGuessSnapshot,
-    PROTOCOL_VERSION, PlayerGameProfiles, PlayerId, PlayerInteraction, PlayerInteractionKind,
-    ProfileId, QiGui523Snapshot, ReconnectToken, RejectReason, RequestId, Revision, RoomId, SeatId,
-    ShengjiSnapshot, TexasHoldemSnapshot, UnoSnapshot,
+    AchievementAnnouncement, AchievementCounts, AvatarId, BlackjackSnapshot, ChatContent,
+    ChatMessage, GameCommand, GameEvent, GameKind, GameRules, MahjongSnapshot, MatchId,
+    MinecraftGuessSnapshot, PROTOCOL_VERSION, PlayerGameProfiles, PlayerId, PlayerInteraction,
+    PlayerInteractionKind, ProfileId, QiGui523Snapshot, ReconnectToken, RejectReason, RequestId,
+    Revision, RoomId, SeatId, ShengjiSnapshot, TexasHoldemSnapshot, UnoSnapshot,
 };
 use serde::{Deserialize, Serialize};
 
@@ -211,6 +211,7 @@ pub enum GameSnapshot {
     Uno(UnoSnapshot),
     Mahjong(MahjongSnapshot),
     MinecraftGuess(MinecraftGuessSnapshot),
+    Blackjack(BlackjackSnapshot),
 }
 
 macro_rules! game_snapshot_projections {
@@ -249,6 +250,7 @@ impl_game_snapshot_from!(ShengjiSnapshot, Shengji);
 impl_game_snapshot_from!(UnoSnapshot, Uno);
 impl_game_snapshot_from!(MahjongSnapshot, Mahjong);
 impl_game_snapshot_from!(MinecraftGuessSnapshot, MinecraftGuess);
+impl_game_snapshot_from!(BlackjackSnapshot, Blackjack);
 
 impl GameSnapshot {
     pub const fn match_id(&self) -> MatchId {
@@ -259,6 +261,7 @@ impl GameSnapshot {
             Self::Uno(snapshot) => snapshot.match_id,
             Self::Mahjong(snapshot) => snapshot.match_id,
             Self::MinecraftGuess(snapshot) => snapshot.match_id,
+            Self::Blackjack(snapshot) => snapshot.match_id,
         }
     }
 
@@ -270,6 +273,7 @@ impl GameSnapshot {
             Self::Uno(_) => GameKind::Uno,
             Self::Mahjong(_) => GameKind::Mahjong,
             Self::MinecraftGuess(_) => GameKind::MinecraftGuess,
+            Self::Blackjack(_) => GameKind::Blackjack,
         }
     }
 
@@ -280,5 +284,6 @@ impl GameSnapshot {
         uno, into_uno => Uno(UnoSnapshot),
         mahjong, into_mahjong => Mahjong(MahjongSnapshot),
         minecraft_guess, into_minecraft_guess => MinecraftGuess(MinecraftGuessSnapshot),
+        blackjack, into_blackjack => Blackjack(BlackjackSnapshot),
     }
 }

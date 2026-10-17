@@ -66,6 +66,8 @@ impl<'w, 's> UiComposer<'w, 's> {
         }
     }
 
+    /// Read the previous authored value, not the component's live animation state.
+    /// The component must be registered with `UiSceneProperties::preserve` or `preserve_with`.
     pub(crate) fn declared<T: Component>(&self, entity: Entity) -> Option<&T> {
         let key = self.registry.keys.get(&entity)?;
         self.registry

@@ -1,12 +1,13 @@
 use super::ClientModel;
+use leocard_blackjack::BlackjackRuleSet;
 use leocard_mahjong::MahjongRuleSet;
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::{
-    AvatarId, ChatMessage, GameCommand, GameKind, GameRules, GameSnapshot, LobbySnapshot,
-    MahjongCommand, MahjongSnapshot, MatchId, MinecraftGuessSnapshot, PlayerGameProfiles, PlayerId,
-    PlayerInteraction, PlayerReferenceChange, QiGui523Command, QiGui523Snapshot, RejectReason,
-    Revision, RoomId, ShengjiCommand, ShengjiSnapshot, TexasHoldemCommand, TexasHoldemSnapshot,
-    UnoCommand, UnoSnapshot,
+    AvatarId, BlackjackCommand, BlackjackSnapshot, ChatMessage, GameCommand, GameKind, GameRules,
+    GameSnapshot, LobbySnapshot, MahjongCommand, MahjongSnapshot, MatchId, MinecraftGuessSnapshot,
+    PlayerGameProfiles, PlayerId, PlayerInteraction, PlayerReferenceChange, QiGui523Command,
+    QiGui523Snapshot, RejectReason, Revision, RoomId, ShengjiCommand, ShengjiSnapshot,
+    TexasHoldemCommand, TexasHoldemSnapshot, UnoCommand, UnoSnapshot,
 };
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_shengji::ShengjiRuleSet;
@@ -108,6 +109,13 @@ impl ClientModel {
             GameSnapshot::Uno(game) => meta!(GameKind::Uno, game),
             GameSnapshot::Mahjong(game) => meta!(GameKind::Mahjong, game),
             GameSnapshot::MinecraftGuess(game) => meta!(GameKind::MinecraftGuess, game),
+            GameSnapshot::Blackjack(game) => ActiveGameMeta {
+                kind: GameKind::Blackjack,
+                match_id: game.match_id,
+                you: game.you,
+                host: game.host,
+                players: game.players.iter().map(|player| player.player.id).collect(),
+            },
         })
     }
 
@@ -128,6 +136,11 @@ impl ClientModel {
             ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => find_name!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::Mahjong(game)) => find_name!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::MinecraftGuess(game)) => find_name!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::Blackjack(game)) => game
+                .players
+                .iter()
+                .find(|player| player.player.id == id)
+                .map(|player| player.player.name.as_str()),
             ClientPhaseRef::Idle | ClientPhaseRef::Closed => None,
         }
     }
@@ -153,6 +166,11 @@ impl ClientModel {
             ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => profiles!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::Mahjong(game)) => profiles!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::MinecraftGuess(game)) => profiles!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::Blackjack(game)) => game
+                .players
+                .iter()
+                .find(|player| player.player.id == id)
+                .map(|player| &player.player.game_profiles),
             ClientPhaseRef::Idle | ClientPhaseRef::Closed => None,
         }
     }
@@ -180,6 +198,14 @@ impl ClientModel {
 
         match self.game.as_ref()? {
             GameSnapshot::MinecraftGuess(_) => None,
+            GameSnapshot::Blackjack(game) => {
+                let enabled = game
+                    .players
+                    .iter()
+                    .find(|player| player.player.id == game.you)
+                    .is_some_and(|player| player.auto_play);
+                Some(BlackjackCommand::SetAutoPlay { enabled: !enabled }.into())
+            }
             GameSnapshot::QiGui523(game) => {
                 toggle!(game, |enabled| QiGui523Command::SetAutoPlay { enabled })
             }
@@ -199,6 +225,14 @@ impl ClientModel {
     }
 
     game_accessors!(
+        (
+            blackjack_game,
+            BlackjackSnapshot,
+            blackjack,
+            blackjack_rules,
+            BlackjackRuleSet,
+            blackjack
+        ),
         (
             minecraft_guess_game,
             MinecraftGuessSnapshot,

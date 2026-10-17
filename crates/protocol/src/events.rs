@@ -1,5 +1,5 @@
 use crate::{
-    GameKind, MahjongHandResultView, MinecraftGuessEvent, PlayerId, PublicPlay,
+    BlackjackEvent, GameKind, MahjongHandResultView, MinecraftGuessEvent, PlayerId, PublicPlay,
     ShengjiBottomFlipRevealView, ShengjiDeclarationView, ShengjiHandResultView, ShengjiPublicPlay,
 };
 use leocard_mahjong::{MahjongClaim, MahjongDrawOrigin, MahjongTile, MahjongTileKind};
@@ -24,6 +24,7 @@ pub enum GameEvent {
     Uno(UnoEvent),
     Mahjong(MahjongEvent),
     MinecraftGuess(MinecraftGuessEvent),
+    Blackjack(BlackjackEvent),
 }
 
 macro_rules! impl_game_event_from {
@@ -42,6 +43,7 @@ impl_game_event_from!(ShengjiEvent, Shengji);
 impl_game_event_from!(UnoEvent, Uno);
 impl_game_event_from!(MahjongEvent, Mahjong);
 impl_game_event_from!(MinecraftGuessEvent, MinecraftGuess);
+impl_game_event_from!(BlackjackEvent, Blackjack);
 
 impl GameEvent {
     pub const fn kind(&self) -> GameKind {
@@ -52,6 +54,7 @@ impl GameEvent {
             Self::Uno(_) => GameKind::Uno,
             Self::Mahjong(_) => GameKind::Mahjong,
             Self::MinecraftGuess(_) => GameKind::MinecraftGuess,
+            Self::Blackjack(_) => GameKind::Blackjack,
         }
     }
 }

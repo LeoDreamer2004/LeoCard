@@ -91,18 +91,7 @@ impl GameState {
                 self.direction = self.direction.reversed();
                 self.next_player(player)
             }
-            UnoFace::Skip => {
-                self.pending_skip = if self.action_stacking_enabled() {
-                    self.pending_skip_everyone = false;
-                    self.pending_skip_source = Some(player);
-                    self.pending_skip.saturating_add(1)
-                } else {
-                    let target = self.next_player(player);
-                    self.skip_turns[target.0] = self.skip_turns[target.0].max(1);
-                    0
-                };
-                self.next_player(player)
-            }
+            UnoFace::Skip => self.apply_skip_effect(player),
             UnoFace::SkipEveryone if self.rules.is_flip() && self.action_stacking_enabled() => {
                 self.pending_skip = self.pending_skip.saturating_add(1);
                 self.pending_skip_everyone = true;
@@ -147,16 +136,7 @@ impl GameState {
             }
             UnoFace::ReverseSkip => {
                 self.direction = self.direction.reversed();
-                self.pending_skip = if self.rules.action_stacking {
-                    self.pending_skip_everyone = false;
-                    self.pending_skip_source = Some(player);
-                    self.pending_skip.saturating_add(1)
-                } else {
-                    let target = self.next_player(player);
-                    self.skip_turns[target.0] = self.skip_turns[target.0].max(1);
-                    0
-                };
-                self.next_player(player)
+                self.apply_skip_effect(player)
             }
             UnoFace::StackOne => {
                 self.pending_draw = self.pending_draw.saturating_add(1);
@@ -275,5 +255,19 @@ impl GameState {
             UnoFace::Number(_) | UnoFace::Wild | UnoFace::DarkWild => self.next_player(player),
         };
         Ok((next_player, effect))
+    }
+
+    fn apply_skip_effect(&mut self, player: UnoPlayerId) -> UnoPlayerId {
+        let target = self.next_player(player);
+        self.pending_skip = if self.action_stacking_enabled() {
+            self.pending_skip_everyone = false;
+            self.pending_skip_source = Some(player);
+            self.pending_skip.saturating_add(1)
+        } else {
+            self.skip_turns[target.0] = self.skip_turns[target.0].max(1);
+            self.skip_effect_targets = vec![target];
+            0
+        };
+        target
     }
 }

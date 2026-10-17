@@ -129,6 +129,15 @@ impl ClientModel {
                 self.game = None;
                 self.rejection.value = None;
             }
+            ServerEvent::GameSnapshot(GameSnapshot::Blackjack(snapshot)) => {
+                self.prepare_game_snapshot(snapshot.match_id, snapshot.host_port, snapshot.you);
+                self.rules = Some(snapshot.rules.into());
+                if snapshot.match_complete {
+                    self.last_finished_match =
+                        Some((snapshot.match_id, snapshot.reference_changes.clone()));
+                }
+                self.store_game_snapshot(snapshot);
+            }
             ServerEvent::GameSnapshot(GameSnapshot::MinecraftGuess(snapshot)) => {
                 self.prepare_game_snapshot(snapshot.match_id, snapshot.host_port, snapshot.you);
                 if snapshot.round.finished() && snapshot.progress.is_last_game() {
@@ -167,7 +176,7 @@ impl ClientModel {
             ServerEvent::GameEvent(GameEvent::Mahjong(event)) => {
                 self.apply_mahjong_event(event);
             }
-            ServerEvent::GameEvent(GameEvent::MinecraftGuess(_)) => {}
+            ServerEvent::GameEvent(GameEvent::MinecraftGuess(_) | GameEvent::Blackjack(_)) => {}
             ServerEvent::PlayerInteraction(interaction) => {
                 self.pending.player_interactions.push(interaction);
             }

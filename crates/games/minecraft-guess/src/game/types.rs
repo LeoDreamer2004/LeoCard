@@ -1,6 +1,7 @@
 use super::GuessRecord;
 use crate::{Entry, EntryKind, GuessMode};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GameError {
@@ -11,6 +12,20 @@ pub enum GameError {
     AlreadyGuessed,
     InvalidGuess,
     GuessTooLong,
+}
+
+impl fmt::Display for GameError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::NotPlayersTurn => "还没有轮到你猜测",
+            Self::CannotSkip => "抢答模式不能跳过",
+            Self::Finished => "本轮竞猜已经结束",
+            Self::UnknownEntry => "没有找到这个名称，请输入完整的方块或物品名称",
+            Self::AlreadyGuessed => "此条目已猜过",
+            Self::InvalidGuess => "请输入有效的方块或物品名称",
+            Self::GuessTooLong => "名称最多输入 10 个字",
+        })
+    }
 }
 
 /// The chosen answer is only included after the round ends.

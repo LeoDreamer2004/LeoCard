@@ -1,19 +1,12 @@
 use super::texas_player_chip_zone;
 use crate::app::presentation::{
-    PendingDealSound, TEXT, UiComposer, add_text, ease_out_cubic, spawn_node,
+    CARD_DEAL_INTERVAL, PendingDealSound, PlayingCardFlip, TEXT, TablePieceDeal, UiComposer,
+    ease_out_cubic,
 };
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemSnapshot};
-use leocard_qigui523::{QiGuiRank, QiGuiSuit};
-use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemRank, TexasHoldemSuit};
-
-#[derive(Component)]
-pub(crate) struct TexasDealCard {
-    elapsed: f32,
-    delay: f32,
-    offset: Vec2,
-}
+use leocard_texas_holdem::TexasHoldemCard;
 
 #[derive(Component)]
 pub(crate) struct TexasFlyingCardBack {
@@ -32,80 +25,11 @@ pub(crate) struct TexasBoardCardBack {
 }
 
 #[derive(Component)]
-pub(crate) struct TexasBoardCardFlip {
-    elapsed: f32,
-    delay: f32,
-    face: Handle<Image>,
-    back: Handle<Image>,
-    face_visible: bool,
-}
-
-impl TexasBoardCardFlip {
-    pub(super) fn has_revealed(&self) -> bool {
-        self.face_visible
-    }
-}
+pub(crate) struct TexasBoardCard;
 
 pub(super) struct TexasInitialDeal {
     pub(super) duration: f32,
     pub(super) own_delays: Vec<f32>,
-}
-
-pub(super) fn add_texas_draw_pile(
-    commands: &mut UiComposer,
-    parent: Entity,
-    count: usize,
-    assets: &UiAssets,
-) {
-    let pile = spawn_node(
-        commands,
-        parent,
-        Node {
-            width: px(44),
-            height: px(62),
-            position_type: PositionType::Relative,
-            ..default()
-        },
-        None,
-    );
-    for layer in 0..5 {
-        commands.child(
-            pile,
-            (
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(layer as f32 * 1.7),
-                    top: px((4 - layer) as f32 * 1.0),
-                    width: px(39),
-                    height: px(54),
-                    border: UiRect::all(px(1)),
-                    border_radius: BorderRadius::all(px(4)),
-                    ..default()
-                },
-                ImageNode::new(assets.playing_cards.card_back.clone()),
-                BorderColor::all(TEXT.with_alpha(0.52)),
-                ZIndex(layer),
-            ),
-        );
-    }
-    let counter = spawn_node(
-        commands,
-        pile,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(7),
-            top: px(27),
-            width: px(29),
-            height: px(21),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            border_radius: BorderRadius::all(px(6)),
-            ..default()
-        },
-        Some(Color::BLACK.with_alpha(0.68)),
-    );
-    commands.entity(counter).insert(ZIndex(8));
-    add_text(commands, counter, count.to_string(), 12.0, TEXT, assets);
 }
 
 pub(super) fn add_texas_board_back(
@@ -159,7 +83,7 @@ pub(super) fn add_texas_board_face(
     flip_delay: Option<f32>,
     assets: &UiAssets,
 ) {
-    let face = texas_card_face(card, assets);
+    let face = assets.playing_cards.face(card);
     let entity = commands.child(
         parent,
         (
@@ -175,14 +99,13 @@ pub(super) fn add_texas_board_face(
             UiTransform::IDENTITY,
         ),
     );
+    commands.entity(entity).insert(TexasBoardCard);
     if let Some(delay) = flip_delay {
-        commands.entity(entity).init(TexasBoardCardFlip {
-            elapsed: 0.0,
-            delay,
+        commands.entity(entity).init(PlayingCardFlip::new(
             face,
-            back: assets.playing_cards.card_back.clone(),
-            face_visible: false,
-        });
+            assets.playing_cards.card_back.clone(),
+            delay,
+        ));
     }
 }
 
@@ -217,7 +140,7 @@ pub(super) fn spawn_texas_initial_deal(
         for player in &funded {
             if player.id == game.you {
                 if own_card < own_delays.len() {
-                    own_delays[own_card] = dealt as f32 * 0.07;
+                    own_delays[own_card] = dealt as f32 * CARD_DEAL_INTERVAL;
                     own_card += 1;
                 }
                 dealt += 1;
@@ -225,7 +148,7 @@ pub(super) fn spawn_texas_initial_deal(
             }
             let relative = (player.seat.0 + TABLE_SEAT_COUNT - own_seat.0) % TABLE_SEAT_COUNT;
             let target = texas_seat_card_target(relative);
-            let delay = dealt as f32 * 0.07;
+            let delay = dealt as f32 * CARD_DEAL_INTERVAL;
             commands.effect_child(
                 table,
                 (
@@ -258,7 +181,7 @@ pub(super) fn spawn_texas_initial_deal(
         }
     }
     TexasInitialDeal {
-        duration: dealt as f32 * 0.07 + 0.30,
+        duration: dealt as f32 * CARD_DEAL_INTERVAL + 0.30,
         own_delays,
     }
 }
@@ -279,7 +202,7 @@ pub(super) fn add_texas_card(
     animation: Option<(f32, Vec2)>,
     assets: &UiAssets,
 ) -> Entity {
-    let face = texas_card_face(card, assets);
+    let face = assets.playing_cards.face(card);
     let entity = commands.child(
         parent,
         (
@@ -294,39 +217,11 @@ pub(super) fn add_texas_card(
         ),
     );
     if let Some((delay, offset)) = animation {
-        commands.entity(entity).init(TexasDealCard {
-            elapsed: 0.0,
-            delay,
-            offset,
-        });
+        commands
+            .entity(entity)
+            .init(TablePieceDeal::new(delay, offset));
     }
     entity
-}
-
-pub(super) fn texas_card_face(card: TexasHoldemCard, assets: &UiAssets) -> Handle<Image> {
-    assets
-        .playing_cards
-        .cards
-        .get(&(qigui_rank(card.rank()), qigui_suit(card.suit())))
-        .expect("德州普通牌面应当已随公共牌组加载")
-        .clone()
-}
-
-pub(super) fn animate_texas_deal_cards(
-    time: Res<Time>,
-    mut cards: Query<(&mut TexasDealCard, &mut UiTransform, &mut ImageNode)>,
-) {
-    for (mut animation, mut transform, mut image) in &mut cards {
-        animation.elapsed += time.delta_secs();
-        let raw = ((animation.elapsed - animation.delay) / 0.28).clamp(0.0, 1.0);
-        let movement = ease_out_cubic(raw);
-        transform.translation = Val2::px(
-            animation.offset.x * (1.0 - movement),
-            animation.offset.y * (1.0 - movement),
-        );
-        transform.scale = Vec2::splat(0.76 + movement * 0.24);
-        image.color = Color::WHITE.with_alpha(raw);
-    }
 }
 
 pub(super) fn animate_texas_flying_card_backs(
@@ -381,54 +276,5 @@ pub(super) fn animate_texas_board_card_backs(
         transform.rotation = Rot2::radians(idle * 0.006);
         transform.scale = Vec2::splat(0.90 + movement * 0.10);
         image.color = Color::WHITE.with_alpha(raw);
-    }
-}
-
-pub(super) fn animate_texas_board_card_flips(
-    time: Res<Time>,
-    mut cards: Query<(&mut TexasBoardCardFlip, &mut UiTransform, &mut ImageNode)>,
-) {
-    for (mut animation, mut transform, mut image) in &mut cards {
-        animation.elapsed += time.delta_secs();
-        let progress = ((animation.elapsed - animation.delay) / 0.34).clamp(0.0, 1.0);
-        if progress < 0.5 {
-            image.image = animation.back.clone();
-        } else if !animation.face_visible {
-            image.image = animation.face.clone();
-            animation.face_visible = true;
-        }
-        let horizontal = if progress < 0.5 {
-            1.0 - ease_out_cubic(progress * 2.0)
-        } else {
-            ease_out_cubic((progress - 0.5) * 2.0)
-        };
-        transform.scale = Vec2::new(horizontal.max(0.025), 1.0 + (1.0 - horizontal) * 0.04);
-    }
-}
-
-fn qigui_rank(rank: TexasHoldemRank) -> QiGuiRank {
-    match rank {
-        TexasHoldemRank::Two => QiGuiRank::Two,
-        TexasHoldemRank::Three => QiGuiRank::Three,
-        TexasHoldemRank::Four => QiGuiRank::Four,
-        TexasHoldemRank::Five => QiGuiRank::Five,
-        TexasHoldemRank::Six => QiGuiRank::Six,
-        TexasHoldemRank::Seven => QiGuiRank::Seven,
-        TexasHoldemRank::Eight => QiGuiRank::Eight,
-        TexasHoldemRank::Nine => QiGuiRank::Nine,
-        TexasHoldemRank::Ten => QiGuiRank::Ten,
-        TexasHoldemRank::Jack => QiGuiRank::Jack,
-        TexasHoldemRank::Queen => QiGuiRank::Queen,
-        TexasHoldemRank::King => QiGuiRank::King,
-        TexasHoldemRank::Ace => QiGuiRank::Ace,
-    }
-}
-
-fn qigui_suit(suit: TexasHoldemSuit) -> QiGuiSuit {
-    match suit {
-        TexasHoldemSuit::Diamond => QiGuiSuit::Diamond,
-        TexasHoldemSuit::Club => QiGuiSuit::Club,
-        TexasHoldemSuit::Heart => QiGuiSuit::Heart,
-        TexasHoldemSuit::Spade => QiGuiSuit::Spade,
     }
 }

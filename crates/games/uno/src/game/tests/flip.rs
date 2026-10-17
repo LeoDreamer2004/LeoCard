@@ -193,7 +193,7 @@ fn identical_flip_pair_cancels_without_turning_the_table_over() {
 fn stacked_dark_skip_everyone_is_consumed_by_every_other_player() {
     let mut rules = flip_rules();
     rules.flip.action_stacking = true;
-    let mut game = GameState::new_with_deck(rules, 3, build_flip_deck()).unwrap();
+    let mut game = GameState::new_with_deck(rules, 4, build_flip_deck()).unwrap();
     game.flip_everything();
     let skip = build_flip_deck()
         .into_iter()
@@ -214,6 +214,8 @@ fn stacked_dark_skip_everyone_is_consumed_by_every_other_player() {
     game.resolve_skip(UnoPlayerId(1)).unwrap();
     assert!(matches!(game.phase(), Phase::Playing));
     game.resolve_skip(UnoPlayerId(2)).unwrap();
+    assert!(matches!(game.phase(), Phase::Playing));
+    game.resolve_skip(UnoPlayerId(3)).unwrap();
     assert!(matches!(game.phase(), Phase::Finished(_)));
 }
 

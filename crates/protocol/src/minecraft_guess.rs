@@ -1,4 +1,5 @@
 use crate::{LobbyPlayer, MatchId, PlayerId, PlayerReferenceChange, PlayerScore};
+pub use leocard_minecraft_guess::GameError as MinecraftGuessViolation;
 use leocard_minecraft_guess::{
     GuessActionStatistics, GuessHandStatistics, MatchProgress, MinecraftGuessRuleSet, RoundView,
     ScoreGain,

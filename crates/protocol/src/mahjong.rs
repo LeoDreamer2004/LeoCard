@@ -2,10 +2,12 @@ use crate::{
     AvatarId, MatchId, PlayerGameProfiles, PlayerId, PlayerReferenceChange, ProfileId, SeatId,
 };
 use leocard_mahjong::{
-    MahjongClaim, MahjongClaimOption, MahjongMatchLength, MahjongMatchProgress, MahjongMeldKind,
-    MahjongRuleSet, MahjongScoreResult, MahjongTile, MahjongTileKind, MahjongWind,
+    MahjongClaim, MahjongClaimOption, MahjongHandReplacementError, MahjongMatchLength,
+    MahjongMatchProgress, MahjongMeldKind, MahjongRuleSet, MahjongScoreResult, MahjongTile,
+    MahjongTileKind, MahjongWind,
 };
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongSnapshot {
@@ -108,4 +110,33 @@ pub enum MahjongPhaseView {
     Playing,
     WaitingForClaims,
     Finished { result: MahjongHandResultView },
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum MahjongViolation {
+    InvalidPlayer,
+    NotPlayersTurn,
+    WrongPhase,
+    TileNotInHand,
+    InvalidClaim,
+    AlreadyResponded,
+    CannotWin,
+    CannotKong,
+    InvalidDeveloperHand(MahjongHandReplacementError),
+}
+
+impl fmt::Display for MahjongViolation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::InvalidDeveloperHand(reason) => return reason.fmt(f),
+            Self::InvalidPlayer => "玩家身份无效",
+            Self::NotPlayersTurn => "还没有轮到你出牌",
+            Self::WrongPhase => "当前阶段不能执行这个操作",
+            Self::TileNotInHand => "这张牌不在你的手中",
+            Self::InvalidClaim => "当前不能这样吃、碰、杠或和",
+            Self::AlreadyResponded => "你已经响应过这张牌",
+            Self::CannotWin => "当前手牌不能和牌",
+            Self::CannotKong => "当前不能开杠",
+        })
+    }
 }

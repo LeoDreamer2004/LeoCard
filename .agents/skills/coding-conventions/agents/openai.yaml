@@ -1,0 +1,4 @@
+interface:
+  display_name: "LeoCard 编码规范"
+  short_description: "在 LeoCard 开发和代码审查中执行完整的十二条编码规范与模块边界要求。"
+  default_prompt: "请使用 $coding-conventions 完成这次代码修改，并逐条核对规范。"

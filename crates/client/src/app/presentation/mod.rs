@@ -11,6 +11,7 @@ mod score_motion;
 pub(super) mod seat_transition;
 mod state;
 pub(super) mod summary;
+mod tabletop;
 mod turn_border;
 pub(super) mod ui;
 
@@ -25,5 +26,6 @@ pub(crate) use score_motion::*;
 pub(crate) use seat_transition::*;
 pub(super) use state::*;
 pub(crate) use summary::*;
+pub(crate) use tabletop::*;
 pub(crate) use turn_border::*;
 pub(crate) use ui::*;

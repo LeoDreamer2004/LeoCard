@@ -1,5 +1,5 @@
 use super::UnoSoundAssets;
-use crate::app::runtime::uno_card_asset_path;
+use super::uno_card_asset_path;
 use bevy::prelude::*;
 use leocard_uno::{Mode, UnoColor, UnoFace, UnoRuleSet, build_deck_for_rules};
 use std::collections::HashMap;

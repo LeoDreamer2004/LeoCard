@@ -9,7 +9,6 @@ use bevy::picking::Pickable;
 use std::f32::consts;
 
 use super::state::{ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation};
-use super::view::shengji_card_face;
 use super::{
     ActiveShengjiScoreAbsorb, ActiveShengjiScoreCapture, ShengjiCollectingScoreText,
     ShengjiKittyMultiplier, ShengjiKittyRevealCard, ShengjiKittyScoreAnchor, ShengjiKittyScoreText,
@@ -139,7 +138,7 @@ fn spawn_shengji_score_capture(
                     border_radius: BorderRadius::all(px(4)),
                     ..default()
                 },
-                ImageNode::new(shengji_card_face(card, assets)),
+                ImageNode::new(assets.playing_cards.face(card)),
                 UiTransform::IDENTITY,
                 ActiveScoreCaptureCard {
                     source: card_source,

@@ -49,7 +49,7 @@ impl<'a> GameGallery<'a> {
                 use_rounding: false,
             },
         ));
-        for (row_index, designs) in ENTRY_DESIGNS.chunks(3).enumerate() {
+        for (row_index, designs) in ENTRY_DESIGNS.chunks(4).enumerate() {
             let row = spawn_node(
                 commands,
                 gallery,
@@ -62,7 +62,7 @@ impl<'a> GameGallery<'a> {
                 None,
             );
             for column in 0..designs.len() {
-                self.entry(commands, row, row_index * 3 + column);
+                self.entry(commands, row, row_index * 4 + column);
             }
         }
     }
@@ -76,7 +76,7 @@ impl<'a> GameGallery<'a> {
                 UiAction::Connection(ConnectionUiAction::CreateRoom(design.game.kind)),
                 CustomButtonMotion,
                 Node {
-                    width: percent(31),
+                    width: percent(22.5),
                     height: px(246),
                     min_width: px(0),
                     flex_shrink: 0.0,

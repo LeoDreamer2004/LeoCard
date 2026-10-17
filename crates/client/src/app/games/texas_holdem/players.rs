@@ -1,12 +1,12 @@
 use super::{
-    TexasChipTableState, TexasHoldemAssets, TexasPlayerPanel, TexasPlayerShake,
-    TexasSpectatorUiState, add_texas_win_rate, texas_player_border_color, texas_player_chip_zone,
+    TexasChipTableState, TexasPlayerPanel, TexasPlayerShake, TexasSpectatorUiState,
+    add_texas_win_rate, texas_player_border_color, texas_player_chip_zone,
 };
 use crate::app::presentation::{
     ACCENT, HEADER_BG, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
-    TurnBorderMaterial, UiComposer, add_player_portrait, add_text,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition, card_background_image,
-    position_opponent_popup, spawn_node,
+    TurnBorderMaterial, UiComposer, add_horizontal_chip_group, add_player_portrait,
+    add_poker_balance_panel, add_poker_chip_value, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, card_background_image, position_opponent_popup, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{OpponentBadge, SeatSide};
@@ -29,7 +29,6 @@ pub(super) fn add_texas_opponent(
     game: &TexasHoldemSnapshot,
     interaction_menu_open: Option<PlayerId>,
     assets: &UiAssets,
-    game_assets: &TexasHoldemAssets,
     avatars: &AvatarImages,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     chip_state: &TexasChipTableState,
@@ -127,13 +126,7 @@ pub(super) fn add_texas_opponent(
             assets,
         );
     }
-    add_texas_stack_value(
-        commands,
-        portrait.portrait,
-        player.stack,
-        assets,
-        game_assets,
-    );
+    add_texas_stack_value(commands, portrait.portrait, player.stack, assets);
     if intro_only {
         return;
     }
@@ -144,7 +137,6 @@ pub(super) fn add_texas_opponent(
         player.stack,
         Some(side),
         assets,
-        game_assets,
         &chip_state.stack_counts(player.id),
     );
     commands.entity(popup).insert(Visibility::Hidden);
@@ -161,7 +153,6 @@ pub(super) fn add_texas_stack_value(
     portrait: Entity,
     stack: u32,
     assets: &UiAssets,
-    game_assets: &TexasHoldemAssets,
 ) {
     let node = Node {
         position_type: PositionType::Absolute,
@@ -175,59 +166,7 @@ pub(super) fn add_texas_stack_value(
     };
     let area = spawn_node(commands, portrait, node, None);
     commands.entity(area).insert(Pickable::IGNORE);
-    let fan = spawn_node(
-        commands,
-        area,
-        Node {
-            width: px(35),
-            height: px(30),
-            position_type: PositionType::Relative,
-            flex_shrink: 0.0,
-            ..default()
-        },
-        None,
-    );
-    commands.entity(fan).insert(Pickable::IGNORE);
-    for (denomination, left, top, rotation, color, layer) in [
-        (1, 1.0, 6.0, -0.22, Color::BLACK, 0),
-        (5, 12.0, 1.0, 0.16, Color::WHITE, 1),
-    ] {
-        let Some(image) = game_assets.poker_chips.get(&denomination) else {
-            continue;
-        };
-        let chip = commands.child(
-            fan,
-            (
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(left),
-                    top: px(top),
-                    width: px(24),
-                    height: px(24),
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                },
-                ImageNode::new(image.clone()),
-                UiTransform::from_rotation(Rot2::radians(rotation)),
-                ZIndex(layer),
-                Pickable::IGNORE,
-            ),
-        );
-        let label = add_text(commands, chip, denomination.to_string(), 9.0, color, assets);
-        commands.entity(label).insert(Pickable::IGNORE);
-    }
-    let digits = stack.to_string();
-    let font_size = (28.0 - digits.len().saturating_sub(3) as f32 * 2.5).max(17.0);
-    let value = add_text(commands, area, digits, font_size, ACCENT, assets);
-    commands.entity(value).insert((
-        TextLayout::default().with_no_wrap(),
-        TextShadow {
-            offset: Vec2::new(1.5, 2.0),
-            color: Color::BLACK.with_alpha(0.82),
-        },
-        Pickable::IGNORE,
-    ));
+    add_poker_chip_value(commands, area, stack, assets);
 }
 
 pub(super) fn add_role_tokens(
@@ -291,9 +230,18 @@ pub(super) fn add_texas_chip_popup(
     stack: u32,
     opponent_side: Option<SeatSide>,
     assets: &UiAssets,
-    game_assets: &TexasHoldemAssets,
     stack_counts: &[(u16, usize)],
 ) -> Entity {
+    let Some(side) = opponent_side else {
+        return add_poker_balance_panel(
+            commands,
+            parent,
+            Vec2::new(TEXAS_PORTRAIT_WIDTH, 76.0 * 1.17),
+            stack,
+            stack_counts,
+            assets,
+        );
+    };
     let mut node = Node {
         position_type: PositionType::Absolute,
         width: px(330),
@@ -303,52 +251,14 @@ pub(super) fn add_texas_chip_popup(
         row_gap: px(3),
         ..default()
     };
-    if let Some(side) = opponent_side {
-        position_opponent_popup(&mut node, side);
-        node.top = px(TEXAS_PORTRAIT_HEIGHT + 6.0);
-    } else {
-        node.left = px(TEXAS_PORTRAIT_WIDTH + 8.0);
-        node.top = px((76.0 * 1.17 - 66.0) * 0.5);
-        node.width = px(300);
-        node.min_height = px(66);
-        node.padding = UiRect::new(px(76), px(6), px(6), px(6));
-        node.justify_content = JustifyContent::Center;
-    }
+    position_opponent_popup(&mut node, side);
+    node.top = px(TEXAS_PORTRAIT_HEIGHT + 6.0);
     let popup = spawn_node(commands, parent, node, None);
     commands
         .entity(popup)
         .insert((GlobalZIndex(1500), Pickable::IGNORE));
     let image = card_background_image(assets.home.game_card.clone(), 1.0);
     commands.entity(popup).insert(image);
-
-    if opponent_side.is_none() {
-        let value_area = spawn_node(
-            commands,
-            popup,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(6),
-                top: px(4),
-                bottom: px(4),
-                width: px(65),
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                row_gap: px(-2),
-                ..default()
-            },
-            None,
-        );
-        commands.entity(value_area).insert(Pickable::IGNORE);
-        add_text(commands, value_area, "剩余", 10.0, MUTED, assets);
-        let digits = stack.to_string();
-        let font_size = (28.0 - digits.len().saturating_sub(3) as f32 * 2.5).max(17.0);
-        let value = add_text(commands, value_area, digits, font_size, ACCENT, assets);
-        commands.entity(value).insert(TextShadow {
-            offset: Vec2::new(1.5, 2.0),
-            color: Color::BLACK.with_alpha(0.82),
-        });
-    }
 
     let chips = spawn_node(
         commands,
@@ -359,75 +269,13 @@ pub(super) fn add_texas_chip_popup(
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::FlexStart,
-            column_gap: px(if opponent_side.is_some() { 18 } else { 10 }),
+            column_gap: px(18),
             ..default()
         },
         None,
     );
     for &(denomination, count) in stack_counts {
-        add_horizontal_chip_group(commands, chips, denomination, count, assets, game_assets);
+        add_horizontal_chip_group(commands, chips, denomination, count, assets);
     }
     popup
-}
-
-/// 同面值筹码水平紧叠，不同面值由父节点的 column_gap 分组隔开。
-fn add_horizontal_chip_group(
-    commands: &mut UiComposer,
-    parent: Entity,
-    denomination: u16,
-    count: usize,
-    assets: &UiAssets,
-    game_assets: &TexasHoldemAssets,
-) {
-    const CHIP_SIZE: f32 = 34.0;
-    const CHIP_REVEAL: f32 = 11.0;
-    let group_width = CHIP_SIZE + count.saturating_sub(1) as f32 * CHIP_REVEAL;
-    let group = spawn_node(
-        commands,
-        parent,
-        Node {
-            position_type: PositionType::Relative,
-            width: px(group_width),
-            height: px(CHIP_SIZE),
-            flex_shrink: 0.0,
-            ..default()
-        },
-        None,
-    );
-    let Some(image) = game_assets.poker_chips.get(&denomination) else {
-        return;
-    };
-    for index in 0..count {
-        let chip = commands.child(
-            group,
-            (
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(index as f32 * CHIP_REVEAL),
-                    top: px(0),
-                    width: px(CHIP_SIZE),
-                    height: px(CHIP_SIZE),
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                },
-                ImageNode::new(image.clone()),
-                ZIndex(index as i32),
-                Pickable::IGNORE,
-            ),
-        );
-        let label_color = if denomination == 1 { HEADER_BG } else { TEXT };
-        let label = add_text(
-            commands,
-            chip,
-            denomination.to_string(),
-            9.0,
-            label_color,
-            assets,
-        );
-        commands.entity(label).insert(TextShadow {
-            offset: Vec2::new(0.7, 0.8),
-            color: Color::BLACK.with_alpha(0.55),
-        });
-    }
 }

@@ -20,7 +20,7 @@ impl LobbySeatLayout {
                 (478.0, 145.0),
                 (396.0, 290.0),
             ],
-            GameKind::QiGui523 | GameKind::TexasHoldem => &[
+            GameKind::QiGui523 | GameKind::TexasHoldem | GameKind::Blackjack => &[
                 (150.0, 290.0),
                 (0.0, 145.0),
                 (150.0, 0.0),

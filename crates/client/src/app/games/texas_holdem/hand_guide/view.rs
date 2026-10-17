@@ -1,4 +1,4 @@
-use super::super::{TexasHoldemUiAction, texas_card_face, texas_category_label};
+use super::super::{TexasHoldemUiAction, texas_category_label};
 use super::catalog::{HandGuideEntry, ordered_entries};
 use super::probabilities::HandGuideProbabilities;
 use super::state::TexasHandGuideScroll;
@@ -247,7 +247,7 @@ fn render_entry(
                     border_radius: BorderRadius::all(px(4)),
                     ..default()
                 },
-                ImageNode::new(texas_card_face(card, assets)),
+                ImageNode::new(assets.playing_cards.face(card)),
                 BorderColor::all(TEXT.with_alpha(0.42)),
                 Pickable::IGNORE,
             ),

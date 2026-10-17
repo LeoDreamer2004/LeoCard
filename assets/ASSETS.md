@@ -127,15 +127,13 @@ GitHub 名称与标志同时受 GitHub 商标规范约束；本项目仅将其�
 
 - 来源：<https://github.com/libnoname/noname>
 - 运行时目录：`vendor/noname/interactions/`、`vendor/noname/audio/effect/`、
-  `vendor/noname/voice/male/`、`vendor/noname/damage_fire2.mp3`
+  `vendor/noname/voice/{male,female}/`、`vendor/noname/damage_fire2.mp3`
 - 上游目录：`apps/core/image/emotion/throw_emotion`、`apps/core/audio/effect`、
-  `apps/core/audio/voice/male`
+  `apps/core/audio/voice/{male,female}`
 - 许可证：GPL-3.0
 
 互动素材提供鲜花、鸡蛋、酒杯、拖鞋的飞行/命中图片与音效，用于桌内互动和资料页的
-鲜花、鸡蛋累计展示；酒杯按 10 朵鲜花、拖鞋按 10 个鸡蛋计入目标玩家资料。快捷语音
-为编号 0 至 22 的男性语音。`interactions/NOTICE.md` 与 `voice/NOTICE.md` 保留了更具体
-的素材范围和来源说明。
+鲜花、鸡蛋累计展示。快捷语音为男女各一套编号 0 至 22 的语音。
 
 这些文件随 GPL-3.0 项目分发。分发包含它们的二进制或素材包时，必须同时满足项目及
 上游 GPL-3.0 的许可证保留和对应源代码提供义务。

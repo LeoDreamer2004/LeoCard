@@ -4,7 +4,6 @@ use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{ShengjiSnapshot, ShengjiThrowFailureStage};
-use leocard_qigui523::{QiGuiRank, QiGuiSuit};
 use leocard_shengji::{ShengjiCard, ShengjiRank, ShengjiSuit, ShengjiTrump};
 
 #[derive(Clone, Copy)]
@@ -99,7 +98,7 @@ fn add_shengji_card_row_internal(
                     border_radius: BorderRadius::all(px(4)),
                     ..default()
                 },
-                ImageNode::new(shengji_card_face(card, assets)),
+                ImageNode::new(assets.playing_cards.face(card)),
                 ZIndex(index as i32),
             ),
         );
@@ -207,40 +206,6 @@ fn shengji_display_key(card: ShengjiCard, trump: Option<ShengjiTrump>) -> (u8, u
     // 在牌副编号之前再按黑、红、梅、方分组，否则两副实体牌会交错成乱序。
     let suit_order = card.suit().map_or(4, ShengjiSuit::bid_strength);
     (u8::from(is_trump), category, strength, suit_order)
-}
-
-pub(crate) fn shengji_card_face(card: ShengjiCard, assets: &UiAssets) -> Handle<Image> {
-    let rank = match card.rank() {
-        ShengjiRank::Two => QiGuiRank::Two,
-        ShengjiRank::Three => QiGuiRank::Three,
-        ShengjiRank::Four => QiGuiRank::Four,
-        ShengjiRank::Five => QiGuiRank::Five,
-        ShengjiRank::Six => QiGuiRank::Six,
-        ShengjiRank::Seven => QiGuiRank::Seven,
-        ShengjiRank::Eight => QiGuiRank::Eight,
-        ShengjiRank::Nine => QiGuiRank::Nine,
-        ShengjiRank::Ten => QiGuiRank::Ten,
-        ShengjiRank::Jack => QiGuiRank::Jack,
-        ShengjiRank::Queen => QiGuiRank::Queen,
-        ShengjiRank::King => QiGuiRank::King,
-        ShengjiRank::Ace => QiGuiRank::Ace,
-        ShengjiRank::SmallJoker | ShengjiRank::BigJoker => QiGuiRank::Joker,
-    };
-    let suit = match (card.suit(), card.rank()) {
-        (Some(ShengjiSuit::Diamond), _) => QiGuiSuit::Diamond,
-        (Some(ShengjiSuit::Club), _) => QiGuiSuit::Club,
-        (Some(ShengjiSuit::Heart), _) => QiGuiSuit::Heart,
-        (Some(ShengjiSuit::Spade), _) => QiGuiSuit::Spade,
-        (None, ShengjiRank::SmallJoker) => QiGuiSuit::Club,
-        (None, ShengjiRank::BigJoker) => QiGuiSuit::Spade,
-        _ => unreachable!("合法双升牌的花色与点数组合"),
-    };
-    assets
-        .playing_cards
-        .cards
-        .get(&(rank, suit))
-        .expect("双升牌面已经加载")
-        .clone()
 }
 
 fn shengji_rank_order(rank: ShengjiRank) -> u8 {

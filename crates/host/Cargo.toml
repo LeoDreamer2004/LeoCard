@@ -11,6 +11,7 @@ default = []
 developer = ["leocard-qigui523/developer"]
 
 [dependencies]
+leocard-blackjack = { path = "../games/blackjack" }
 leocard-game-common = { path = "../games/common" }
 leocard-minecraft-guess = { path = "../games/minecraft-guess" }
 leocard-achievements = { path = "../achievements" }

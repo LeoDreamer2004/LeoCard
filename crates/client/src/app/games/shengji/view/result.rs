@@ -5,7 +5,7 @@ use super::super::{
     ShengjiSettlementOutcomeText, ShengjiSettlementPanelTexture, ShengjiSettlementRow,
     ShengjiSettlementTotalAnchor, ShengjiSettlementTotalText, ShengjiTimedReveal,
 };
-use super::{ShengjiCardSize, add_shengji_trump_stars, shengji_card_face, shengji_display_trump};
+use super::{ShengjiCardSize, add_shengji_trump_stars, shengji_display_trump};
 use crate::app::presentation::{
     ACCENT, DANGER, MUTED, PanelSkin, READY, TEXT, UiComposer, add_ready_avatar, add_text,
     decorate_panel_skin, spawn_node,
@@ -94,7 +94,7 @@ pub(super) fn add_shengji_result(
                     border_radius: BorderRadius::all(px(4)),
                     ..default()
                 },
-                ImageNode::new(shengji_card_face(card, assets)).with_color(Color::NONE),
+                ImageNode::new(assets.playing_cards.face(card)).with_color(Color::NONE),
                 UiTransform {
                     translation: Val2::px(0.0, 16.0),
                     scale: Vec2::splat(0.78),

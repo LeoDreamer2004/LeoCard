@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/games/blackjack",
     "crates/games/common",
     "crates/achievements",
     "crates/client",
@@ -16,10 +17,10 @@ members = [
 resolver = "3"
 
 [workspace.package]
-version = "0.8.4"
+version = "0.9.0"
 edition = "2024"
 license = "GPL-3.0-only"
-rust-version = "1.99"
+rust-version = "1.99.1"
 
 [workspace.dependencies]
 csv = "1.4"

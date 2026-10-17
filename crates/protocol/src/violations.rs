@@ -1,7 +1,11 @@
-use crate::{GameKind, PlayerId, RequestId};
-use leocard_mahjong::MahjongHandReplacementError;
-use leocard_minecraft_guess::GameError as MinecraftGuessError;
+//! 联机请求的通用拒绝原因与对应说明。
+
+use crate::{
+    BlackjackViolation, GameKind, MahjongViolation, MinecraftGuessViolation, PlayerId, RequestId,
+    RuleViolation, ShengjiViolation, TexasHoldemViolation, UnoViolation,
+};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum RejectReason {
@@ -11,12 +15,36 @@ pub enum RejectReason {
     Game(GameViolation),
 }
 
+impl fmt::Display for RejectReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Request(reason) => reason.fmt(f),
+            Self::Player(reason) => reason.fmt(f),
+            Self::Room(reason) => reason.fmt(f),
+            Self::Game(reason) => reason.fmt(f),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum RequestViolation {
     ProtocolMismatch { expected: u16, received: u16 },
     RoomMismatch,
     DuplicateRequest { last_seen: RequestId },
     StaleRequest { last_seen: RequestId },
+}
+
+impl fmt::Display for RequestViolation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ProtocolMismatch { expected, received } => {
+                write!(f, "协议版本不匹配：房主要求 {expected}，当前为 {received}")
+            }
+            Self::RoomMismatch => f.write_str("请求不属于当前房间"),
+            Self::DuplicateRequest { .. } => f.write_str("请勿重复发送同一请求"),
+            Self::StaleRequest { .. } => f.write_str("请求已过期，请重试"),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -29,6 +57,23 @@ pub enum PlayerViolation {
     InvalidAvatar,
     AvatarAlreadySet,
     InvalidAchievements,
+}
+
+impl fmt::Display for PlayerViolation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::AlreadyJoined => "你已经加入房间",
+            Self::NotJoined => "请先加入房间",
+            Self::NameEmpty => "玩家名称不能为空",
+            Self::NameTooLong { max_chars } => {
+                return write!(f, "玩家名称不能超过 {max_chars} 个字符");
+            }
+            Self::InvalidIdentityProof => "玩家身份签名无效，请重新生成或恢复玩家档案",
+            Self::InvalidAvatar => "头像数据无效",
+            Self::AvatarAlreadySet => "本次连接已经上传过头像",
+            Self::InvalidAchievements => "成就数量或条目无效",
+        })
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -48,6 +93,28 @@ pub enum RoomViolation {
     CannotInteractWithSelf,
 }
 
+impl fmt::Display for RoomViolation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::RoomFull => "房间人数已满",
+            Self::InvalidSeat => "座位编号无效",
+            Self::SeatTaken => "这个座位已经有人了",
+            Self::MustSelectSeat => "必须先选择座位",
+            Self::OnlyHostCanConfigure => "只有房主可以修改游戏配置",
+            Self::OnlyHostCanStart => "只有房主可以开始游戏",
+            Self::OnlyHostCanReturnToLobby => "只有房主可以返回大厅",
+            Self::OnlyHostCanCloseRoom => "只有房主可以关闭房间",
+            Self::NotEnoughPlayers { minimum, .. } => {
+                return write!(f, "至少需要 {minimum} 名玩家才能开始");
+            }
+            Self::WaitingForPlayers { .. } => "人数尚未到齐",
+            Self::PlayersNotReady { .. } => "仍有玩家没有准备",
+            Self::InvalidChatMessage => "聊天消息为空、过长或快捷语音无效",
+            Self::CannotInteractWithSelf => "不能和自己互动",
+        })
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GameViolation {
     InvalidRuleConfiguration,
@@ -65,7 +132,29 @@ pub enum GameViolation {
     Shengji(ShengjiViolation),
     Uno(UnoViolation),
     Mahjong(MahjongViolation),
-    MinecraftGuess(MinecraftGuessError),
+    MinecraftGuess(MinecraftGuessViolation),
+    Blackjack(BlackjackViolation),
+}
+
+impl fmt::Display for GameViolation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidRuleConfiguration => f.write_str("游戏规则配置无效"),
+            Self::DeveloperFeatureUnavailable => f.write_str("房主程序没有启用开发者功能"),
+            Self::InvalidDeveloperHand => f.write_str("开发者手牌无效"),
+            Self::WrongGame { .. } => f.write_str("该命令不属于当前房间游戏"),
+            Self::GameNotStarted => f.write_str("游戏尚未开始"),
+            Self::GameNotFinished => f.write_str("游戏尚未结束"),
+            Self::GameAlreadyStarted => f.write_str("游戏已经开始"),
+            Self::QiGui523(reason) => reason.fmt(f),
+            Self::TexasHoldem(reason) => reason.fmt(f),
+            Self::Shengji(reason) => reason.fmt(f),
+            Self::Uno(reason) => reason.fmt(f),
+            Self::Mahjong(reason) => reason.fmt(f),
+            Self::MinecraftGuess(reason) => reason.fmt(f),
+            Self::Blackjack(reason) => reason.fmt(f),
+        }
+    }
 }
 
 impl From<RuleViolation> for GameViolation {
@@ -96,109 +185,4 @@ impl From<MahjongViolation> for GameViolation {
     fn from(value: MahjongViolation) -> Self {
         Self::Mahjong(value)
     }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum MahjongViolation {
-    InvalidPlayer,
-    NotPlayersTurn,
-    WrongPhase,
-    TileNotInHand,
-    InvalidClaim,
-    AlreadyResponded,
-    CannotWin,
-    CannotKong,
-    InvalidDeveloperHand(MahjongHandReplacementError),
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum UnoViolation {
-    InvalidPlayer,
-    PlayerEliminated,
-    NotPlayersTurn,
-    GameAlreadyFinished,
-    InitialColorChoiceRequired,
-    InitialColorAlreadyChosen,
-    CardNotInHand,
-    CardDoesNotMatch,
-    ColorRequired,
-    UnexpectedColor,
-    MustPlayDrawnCard,
-    MustResolveDrawPenalty,
-    NoDrawPenalty,
-    CannotStack,
-    CannotChallenge,
-    MustDrawBeforePassing,
-    MustResolveSkip,
-    NoSkipToResolve,
-    UnoCalloutDisabled,
-    CannotCallUno,
-    MustPlayAfterUno,
-    CannotReportSelf,
-    PlayerNotReportable,
-    CannotPlayTogether,
-    CannotJumpIn,
-    MustResolveSwapEffect,
-    NoSwapEffect,
-    InvalidSwapTargets,
-    DrawPileExhausted,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum RuleViolation {
-    InvalidPlayer,
-    NotPlayersTurn,
-    GameAlreadyFinished,
-    MustLeadWithCards,
-    CardNotInHand,
-    InvalidPattern,
-    PlayDoesNotBeatCurrent,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum TexasHoldemViolation {
-    InvalidPlayer,
-    NotPlayersTurn,
-    HandAlreadyComplete,
-    PlayerCannotAct,
-    MustPostBlind,
-    NoBlindToPost,
-    CannotCheckWhileFacingBet { amount_to_call: u32 },
-    NothingToCall,
-    RaiseMustExceedCurrentBet { current_bet: u32, target: u32 },
-    RaiseBelowMinimum { minimum_target: u32, target: u32 },
-    RaiseExceedsStack { maximum_target: u32, target: u32 },
-    RaiseNotReopened,
-    RaiseExceedsLimit { maximum_target: u32, target: u32 },
-    RaiseLimitReached,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum ShengjiViolation {
-    InvalidPlayer,
-    WrongPhase,
-    InvalidDeclaration,
-    DeclarationCardsNotOwned,
-    CounterRequiresPair,
-    CounterNotStronger,
-    ProtectedSuitCanOnlyBeCounteredByNoTrump,
-    DeclarationRequiresJoker,
-    NoTrumpCannotOpen,
-    NotDealer,
-    WrongBuryCount { expected: u8, actual: u8 },
-    CrossingNotEligible,
-    CrossingAlreadyDecided,
-    WrongCrossingCount { expected: u8, actual: u8 },
-    CrossingMustIncludeAllTrumps,
-    CrossingReturnNotRequired,
-    CrossingAlreadyReturned,
-    NotBottomCopyPlayer,
-    CardsNotOwned,
-    NotPlayersTurn,
-    MustLeadWithCards,
-    ThrowDisabled,
-    InvalidPattern,
-    WrongCardCount { expected: u8, actual: u8 },
-    MustFollowCategory,
-    MustFollowStructure,
 }

@@ -8,15 +8,10 @@ use bevy::prelude::*;
 use leocard_protocol::{MatchId, PlayerId, SeatId};
 use std::collections::HashMap;
 
-pub(super) const DENOMINATIONS: [u16; 5] = [100, 25, 10, 5, 1];
 pub(super) const CHIP_SIZE: f32 = 34.0;
 pub(super) const CHIP_MOVE_DURATION: f32 = 0.42;
 pub(super) const PLAYER_CHIP_ZONE_WIDTH: f32 = 210.0;
 pub(super) const PLAYER_CHIP_ZONE_HEIGHT: f32 = 130.0;
-pub(super) const TEXAS_CHIP_ZONE_FILTER: Color = Color::srgba(0.005, 0.018, 0.014, 0.26);
-
-#[derive(Component)]
-pub(super) struct TexasChipZonePanel;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(super) enum ChipZone {

@@ -1,8 +1,10 @@
 //! 已加载 UI 资源、头像缓存与文件选择器状态。
 
+use super::quick_voices::QuickVoiceAssets;
+use super::{PlayingCardAssets, PokerChipAssets};
+
 use bevy::prelude::*;
 use leocard_protocol::{AvatarId, ChatEmoji, PlayerInteractionKind};
-use leocard_qigui523::{QiGuiRank, QiGuiSuit};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -16,6 +18,7 @@ pub(crate) const TABLE_FELT_ASSET: &str =
 pub(crate) struct UiAssets {
     pub font: Handle<Font>,
     pub playing_cards: PlayingCardAssets,
+    pub poker_chips: PokerChipAssets,
     pub controls: ControlAssets,
     pub home: HomeAssets,
     pub achievements: AchievementAssets,
@@ -86,14 +89,6 @@ pub(crate) struct AchievementAssets {
 }
 
 #[derive(Default)]
-pub(crate) struct PlayingCardAssets {
-    /// 方、梅、红、黑四种花色图标。
-    pub suits: [Handle<Image>; 4],
-    pub cards: HashMap<(QiGuiRank, QiGuiSuit), Handle<Image>>,
-    pub card_back: Handle<Image>,
-}
-
-#[derive(Default)]
 pub(crate) struct ControlAssets {
     pub game_play_button: Handle<Image>,
     pub game_play_button_hover: Handle<Image>,
@@ -103,6 +98,10 @@ pub(crate) struct ControlAssets {
     pub game_hint_button_hover: Handle<Image>,
     pub game_warning_button: Handle<Image>,
     pub game_warning_button_hover: Handle<Image>,
+    pub adjust_left: Handle<Image>,
+    pub adjust_left_hover: Handle<Image>,
+    pub adjust_right: Handle<Image>,
+    pub adjust_right_hover: Handle<Image>,
     pub robot_icon: Handle<Image>,
     pub host_crown: Handle<Image>,
     pub github_mark: Handle<Image>,
@@ -128,7 +127,7 @@ pub(crate) struct CommonAudioAssets {
     pub bomb_explosion_sound: Handle<AudioSource>,
     pub summary_score_sound: Handle<AudioSource>,
     pub summary_die_sound: Handle<AudioSource>,
-    pub quick_voice_sounds: Vec<Handle<AudioSource>>,
+    pub quick_voices: QuickVoiceAssets,
 }
 
 pub(super) const CHAT_EMOJI_ASSET_PATHS: [&str; ChatEmoji::ALL.len()] = [

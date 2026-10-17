@@ -213,7 +213,6 @@ pub(crate) fn mahjong_summary_descriptor(game: &MahjongSnapshot) -> Option<Summa
             .ceil() as usize;
     Some(SummaryDescriptor {
         match_id: game.match_id,
-        texas_hand_number: None,
         settlement_index: Some(u32::from(result.sequence_index)),
         entry_count: entry_count.max(game.players.len()),
         nonnegative_outcome: if result.match_complete {

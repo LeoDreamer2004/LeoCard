@@ -1,15 +1,15 @@
 //! Bevy 场景基础节点与静态资源的统一加载。
 
+use super::quick_voices::QuickVoiceAssets;
 use super::{
     AchievementAssets, CHAT_EMOJI_ASSET_PATHS, CommonAudioAssets, ControlAssets, HomeAssets,
-    PlayingCardAssets, ShopAssets, SocialAssets, TABLE_FELT_ASSET, UI_FONT_ASSET, UiAssets,
-    card_asset_path, interaction_cooldown_mask_image,
+    PlayingCardAssets, PokerChipAssets, ShopAssets, SocialAssets, TABLE_FELT_ASSET, UI_FONT_ASSET,
+    UiAssets, interaction_cooldown_mask_image,
 };
 use crate::app::shell::{INTERACTION_COOLDOWN_MASK_FRAMES, PlayerInteractionLayer};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_protocol::{PlayerInteractionKind, QUICK_VOICE_COUNT};
-use leocard_qigui523::build_deck;
+use leocard_protocol::PlayerInteractionKind;
 use std::collections::HashMap;
 
 pub(crate) fn setup_camera(mut commands: Commands) {
@@ -34,12 +34,6 @@ pub(crate) fn load_ui_assets(
     asset_server: Res<AssetServer>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    let mut cards = HashMap::new();
-    for card in build_deck(1) {
-        cards.entry((card.rank(), card.suit())).or_insert_with(|| {
-            asset_server.load::<Image>(card_asset_path(card.rank(), card.suit()))
-        });
-    }
     let mut interaction_images = HashMap::new();
     let mut interaction_sounds = HashMap::new();
     for (kind, name) in [
@@ -85,26 +79,23 @@ pub(crate) fn load_ui_assets(
     let button_click_sounds = ["click-a.ogg", "click-b.ogg"]
         .map(|name| asset_server.load(format!("vendor/kenney/ui/Sounds/{name}")))
         .to_vec();
-    let quick_voice_sounds = (0..QUICK_VOICE_COUNT)
-        .map(|index| asset_server.load(format!("vendor/noname/voice/male/{index}.mp3")))
-        .collect();
     commands.insert_resource(UiAssets {
         font: asset_server.load(UI_FONT_ASSET),
-        playing_cards: PlayingCardAssets {
-            suits: ["diamond", "club", "heart", "spade"]
-                .map(|suit| asset_server.load(format!("ui/cards/suit-{suit}.png"))),
-            cards,
-            card_back: asset_server.load("vendor/kenney/boardgame/PNG/Cards/cardBack_blue4.png"),
-        },
+        playing_cards: PlayingCardAssets::load(&asset_server),
+        poker_chips: PokerChipAssets::load(&asset_server),
         controls: ControlAssets {
-            game_play_button: asset_server.load("ui/qigui523/play-normal.png"),
-            game_play_button_hover: asset_server.load("ui/qigui523/play-hover.png"),
-            game_pass_button: asset_server.load("ui/qigui523/pass-normal.png"),
-            game_pass_button_hover: asset_server.load("ui/qigui523/pass-hover.png"),
-            game_hint_button: asset_server.load("ui/qigui523/hint-normal.png"),
-            game_hint_button_hover: asset_server.load("ui/qigui523/hint-hover.png"),
-            game_warning_button: asset_server.load("ui/qigui523/warning-normal.png"),
-            game_warning_button_hover: asset_server.load("ui/qigui523/warning-hover.png"),
+            game_play_button: asset_server.load("ui/game-buttons/play-normal.png"),
+            game_play_button_hover: asset_server.load("ui/game-buttons/play-hover.png"),
+            game_pass_button: asset_server.load("ui/game-buttons/pass-normal.png"),
+            game_pass_button_hover: asset_server.load("ui/game-buttons/pass-hover.png"),
+            game_hint_button: asset_server.load("ui/game-buttons/hint-normal.png"),
+            game_hint_button_hover: asset_server.load("ui/game-buttons/hint-hover.png"),
+            game_warning_button: asset_server.load("ui/game-buttons/warning-normal.png"),
+            game_warning_button_hover: asset_server.load("ui/game-buttons/warning-hover.png"),
+            adjust_left: asset_server.load("ui/game-buttons/adjust-left-normal.png"),
+            adjust_left_hover: asset_server.load("ui/game-buttons/adjust-left-hover.png"),
+            adjust_right: asset_server.load("ui/game-buttons/adjust-right-normal.png"),
+            adjust_right_hover: asset_server.load("ui/game-buttons/adjust-right-hover.png"),
             robot_icon: asset_server.load("icons/robot-2-fill.png"),
             host_crown: asset_server.load("ui/home/cozy-host-crown.png"),
             github_mark: asset_server.load("icons/github-mark.png"),
@@ -211,7 +202,7 @@ pub(crate) fn load_ui_assets(
             summary_score_sound: asset_server
                 .load("vendor/noname/audio/effect/flappybird_score.ogg"),
             summary_die_sound: asset_server.load("vendor/noname/audio/effect/flappybird_die.ogg"),
-            quick_voice_sounds,
+            quick_voices: QuickVoiceAssets::load(&asset_server),
         },
         table_felt: asset_server.load(TABLE_FELT_ASSET),
     });

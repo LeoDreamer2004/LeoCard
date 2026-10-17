@@ -6,6 +6,7 @@ use crate::app::presentation::{
     MIN_TABLE_VIGNETTE,
 };
 use bevy::prelude::*;
+use leocard_blackjack::BlackjackRuleSet;
 pub(crate) use leocard_client::{
     GameAppearancePreferences, GamePreferences, MahjongPreferences, QiGui523Preferences,
     SavedPreferences, ShengjiPreferences, TexasHoldemPreferences, UnoPreferences,
@@ -224,6 +225,7 @@ impl_validated_rule_set!(ShengjiRuleSet, UnoRuleSet, MahjongRuleSet);
 impl HostRulePreferences {
     pub(crate) fn game_rules(&self, kind: GameKind) -> GameRules {
         match kind {
+            GameKind::Blackjack => BlackjackRuleSet::default().into(),
             GameKind::MinecraftGuess => MinecraftGuessRuleSet::default().into(),
             GameKind::QiGui523 => normalize_rules(self.host_rules).into(),
             GameKind::TexasHoldem => normalize_rules(self.texas_holdem_rules).into(),
@@ -235,7 +237,7 @@ impl HostRulePreferences {
 
     pub(super) fn accept_game_rules(&mut self, rules: &GameRules) -> bool {
         match rules {
-            GameRules::MinecraftGuess(_) => false,
+            GameRules::MinecraftGuess(_) | GameRules::Blackjack(_) => false,
             GameRules::QiGui523(rules) => {
                 replace_if_changed(&mut self.host_rules, normalize_rules(*rules))
             }

@@ -22,6 +22,7 @@ developer = ["leocard-qigui523/developer", "leocard-host/developer"]
 embedded-assets = []
 
 [dependencies]
+leocard-blackjack = { path = "../games/blackjack" }
 leocard-minecraft-guess = { path = "../games/minecraft-guess" }
 leocard-achievements = { path = "../achievements" }
 bevy.workspace = true

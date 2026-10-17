@@ -2,6 +2,7 @@ mod bidding;
 mod burial;
 mod candidates;
 mod decision;
+mod evaluation;
 mod greedy;
 mod observation;
 mod search;

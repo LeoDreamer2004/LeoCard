@@ -38,7 +38,7 @@ pub(in super::super) fn render_counter(
     let rows = state.counts.rows().map(|row| {
         row.map(|cell| {
             cell.map(|cell| CardCounterCell {
-                image: assets.playing_cards.cards[&(cell.card.rank(), cell.card.suit())].clone(),
+                image: assets.playing_cards.face(cell.card),
                 remaining: cell.remaining,
                 color: if cell.card.score() > 0 { ACCENT } else { TEXT },
             })

@@ -12,3 +12,5 @@ pub(crate) use geometry::*;
 pub(crate) use state::*;
 pub(crate) use systems::*;
 pub(crate) use view::*;
+
+pub(super) use crate::app::runtime::POKER_CHIP_DENOMINATIONS as DENOMINATIONS;

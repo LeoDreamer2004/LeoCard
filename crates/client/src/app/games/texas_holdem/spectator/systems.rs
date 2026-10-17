@@ -1,5 +1,6 @@
-use super::super::{TexasBoardCardFlip, TexasHoldemUiState};
+use super::super::{TexasBoardCard, TexasHoldemUiState};
 use super::view::TexasWinRateLabel;
+use crate::app::presentation::PlayingCardFlip;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{UiState, game_command};
 use bevy::prelude::*;
@@ -10,7 +11,7 @@ pub(in super::super) fn sync_texas_spectator(
     mut client: Option<ResMut<ClientResource>>,
     time: Res<Time>,
     mut ui: ResMut<TexasHoldemUiState>,
-    flips: Query<&TexasBoardCardFlip>,
+    flips: Query<&PlayingCardFlip, With<TexasBoardCard>>,
     economy: Res<PlayerEconomy>,
     mut shell: ResMut<UiState>,
 ) {
@@ -21,7 +22,7 @@ pub(in super::super) fn sync_texas_spectator(
         ui.spectator.sync(
             game,
             time.delta_secs(),
-            flips.iter().all(TexasBoardCardFlip::has_revealed),
+            flips.iter().all(PlayingCardFlip::has_revealed),
         );
         let state = &mut ui.spectator;
         state.item_active = economy.active(ItemId::ObservationLens);

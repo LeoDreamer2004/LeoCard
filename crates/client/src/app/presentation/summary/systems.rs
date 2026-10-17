@@ -1,12 +1,11 @@
 //! 跨游戏结算界面的入场、计分与音效演出。
 
-use super::SummaryPlayback;
 use super::{
     AnimatedSignedSummaryScore, AnimatedSummaryScore, AnimatedSummaryText, GameSummaryActions,
     GameSummaryAnimation, GameSummaryDivider, GameSummaryModal, GameSummaryPanelTexture,
     GameSummaryRow, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_MODAL_ENTRY_DURATION,
     SUMMARY_ROW_ENTRY_DURATION, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY,
-    SUMMARY_SCORE_COUNT_DURATION,
+    SUMMARY_SCORE_COUNT_DURATION, SummaryPlayback,
 };
 use crate::app::presentation::{PANEL_ALT, UiComposer, add_text, ease_out_cubic};
 use crate::app::runtime::UiAssets;
@@ -62,11 +61,9 @@ pub(crate) fn update_summary_animation(
     };
 
     if animation.match_id != Some(summary.match_id)
-        || animation.texas_hand_number != summary.texas_hand_number
         || animation.settlement_index != summary.settlement_index
     {
         animation.match_id = Some(summary.match_id);
-        animation.texas_hand_number = summary.texas_hand_number;
         animation.settlement_index = summary.settlement_index;
         animation.entry_count = summary.entry_count;
         animation.elapsed = -summary.reveal_duration;
@@ -224,7 +221,7 @@ pub(crate) fn animate_summary_scores(
     }
     for (score, mut text) in &mut scores {
         let displayed = animated_summary_score(animation.elapsed, score.target, score.delay);
-        let expected = format!("{displayed} 分");
+        let expected = format!("{displayed} {}", score.unit);
         if text.0 != expected {
             text.0 = expected;
         }

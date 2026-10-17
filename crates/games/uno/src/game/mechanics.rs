@@ -1,9 +1,8 @@
-use crate::rating::{placements_with_eliminations, reference_point_deltas_for_placements};
 use crate::{UnoCard, UnoColor, UnoFace, UnoFlipSide};
+use std::mem;
 
 use super::{
-    GameError, GameResult, GameState, Phase, PlayerState, UnoDirection, UnoPendingDrawKind,
-    UnoPlayerId, faces_match,
+    GameError, GameState, Phase, UnoDirection, UnoPendingDrawKind, UnoPlayerId, faces_match,
 };
 
 impl GameState {
@@ -358,7 +357,7 @@ impl GameState {
             return;
         }
         let top = self.discard_pile.pop().expect("checked above");
-        let mut recycled = std::mem::take(&mut self.discard_pile);
+        let mut recycled = mem::take(&mut self.discard_pile);
         recycled.append(&mut self.set_aside_cards);
         recycled.reverse();
         self.draw_pile = recycled.into();
@@ -460,7 +459,7 @@ impl GameState {
     }
 
     pub(super) fn refresh_hand(&mut self, player: UnoPlayerId) -> Result<u16, GameError> {
-        let old_hand = std::mem::take(&mut self.players[player.0].hand);
+        let old_hand = mem::take(&mut self.players[player.0].hand);
         let count = u16::try_from(old_hand.len()).unwrap_or(u16::MAX);
         let mut discard = old_hand;
         discard.append(&mut self.discard_pile);
@@ -478,7 +477,7 @@ impl GameState {
             .collect::<Vec<_>>();
         let mut old_hands = active
             .iter()
-            .map(|player| std::mem::take(&mut self.players[player.0].hand))
+            .map(|player| mem::take(&mut self.players[player.0].hand))
             .collect::<Vec<_>>();
         let count = active.len();
         for (source, hand) in old_hands.iter_mut().enumerate() {
@@ -486,65 +485,7 @@ impl GameState {
                 UnoDirection::Clockwise => (source + 1) % count,
                 UnoDirection::CounterClockwise => (source + count - 1) % count,
             };
-            self.players[active[target_index].0].hand = std::mem::take(hand);
+            self.players[active[target_index].0].hand = mem::take(hand);
         }
-    }
-
-    pub(super) fn finish(&mut self, winner: UnoPlayerId) -> GameResult {
-        self.clear_pending_draw();
-        self.pending_skip = 0;
-        self.pending_skip_everyone = false;
-        self.pending_skip_source = None;
-        self.skip_turns.fill(0);
-        self.drawn_card = None;
-        self.uno_exposed.fill(false);
-        self.uno_declared.fill(false);
-        self.jump_in_open = false;
-        self.pending_swap = None;
-        self.pending_finisher = None;
-        self.sudden_death_misses = 0;
-        let hand_scores = self
-            .players
-            .iter()
-            .map(PlayerState::hand_score)
-            .collect::<Vec<_>>();
-        let placements =
-            placements_with_eliminations(winner, &hand_scores, &self.elimination_order)
-                .expect("the recorded elimination order contains valid players");
-        let result = GameResult {
-            winner,
-            reference_deltas: reference_point_deltas_for_placements(&placements)
-                .expect("validated placements"),
-            placements,
-            hand_scores,
-        };
-        self.phase = Phase::Finished(result.clone());
-        result
-    }
-
-    pub(super) fn finish_pending_game(&mut self) -> Option<GameResult> {
-        if !matches!(self.phase, Phase::Playing) {
-            return None;
-        }
-        if self.pending_swap.is_some()
-            || self.pending_draw_active()
-            || self.pending_skip > 0
-            || self.skip_turns.iter().any(|turns| *turns > 0)
-        {
-            return None;
-        }
-        let original = self.pending_finisher?;
-        let winner = self
-            .players
-            .get(original.0)
-            .filter(|player| !player.eliminated && player.hand.is_empty())
-            .map(|player| player.id)
-            .or_else(|| {
-                self.players
-                    .iter()
-                    .find(|player| !player.eliminated && player.hand.is_empty())
-                    .map(|player| player.id)
-            })?;
-        Some(self.finish(winner))
     }
 }

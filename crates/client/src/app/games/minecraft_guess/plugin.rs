@@ -13,6 +13,7 @@ use super::{
     table::{fill_empty_rows, sync_name_heights, sync_name_widths},
     turn_timer::sync_guess_clock,
 };
+use crate::app::games::sync_summary_playback;
 use crate::app::{
     runtime::ClientUpdateSet,
     shell::{UiActionSet, scroll_modal_content},
@@ -44,7 +45,7 @@ impl Plugin for MinecraftGuessPlugin {
                     (sync_feedback, sync_score_playback)
                         .chain()
                         .in_set(ClientUpdateSet::Sync)
-                        .before(super::super::summary::sync_summary_playback),
+                        .before(sync_summary_playback),
                     (
                         play_feedback_audio,
                         animate_cells,

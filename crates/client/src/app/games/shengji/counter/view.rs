@@ -1,4 +1,4 @@
-use super::super::{ShengjiUiAction, ShengjiUiState, shengji_card_face};
+use super::super::{ShengjiUiAction, ShengjiUiState};
 use crate::app::presentation::{
     ACCENT, CardCounterCell, DrawerSwitch, SwitchDrawer, TEXT, UiComposer, add_card_counter_window,
     add_switch_drawer,
@@ -51,7 +51,7 @@ pub(in super::super) fn render_counter(
     let rows = state.counts.rows(trump).map(|row| {
         row.map(|cell| {
             cell.map(|cell| CardCounterCell {
-                image: shengji_card_face(cell.card, assets),
+                image: assets.playing_cards.face(cell.card),
                 remaining: cell.remaining,
                 color: if trump.is_trump(cell.card) {
                     ACCENT

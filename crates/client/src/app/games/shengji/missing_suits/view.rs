@@ -73,9 +73,7 @@ pub(in super::super) fn render_missing_suits(
                         height: px(26),
                         ..default()
                     },
-                    ImageNode::new(
-                        assets.playing_cards.suits[usize::from(suit.bid_strength())].clone(),
-                    ),
+                    ImageNode::new(assets.playing_cards.suit(suit)),
                 ),
             ),
             Category::Mixed => continue,

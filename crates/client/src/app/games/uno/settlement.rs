@@ -28,7 +28,6 @@ pub(crate) fn uno_summary_descriptor(game: &UnoSnapshot) -> Option<SummaryDescri
     };
     Some(SummaryDescriptor {
         match_id: game.match_id,
-        texas_hand_number: None,
         settlement_index: None,
         entry_count: results.len(),
         nonnegative_outcome: reference_changes
@@ -243,6 +242,7 @@ pub(super) fn add_uno_summary(
             commands.entity(score_text).insert(AnimatedSummaryScore {
                 target: u32::from(result.hand_score),
                 delay,
+                unit: "分",
             });
         }
         let delta = reference_changes

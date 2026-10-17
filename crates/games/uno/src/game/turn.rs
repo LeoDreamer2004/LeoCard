@@ -282,6 +282,9 @@ impl GameState {
                 if !state.eliminated && state.id != source {
                     self.skip_turns[state.id.0] =
                         self.skip_turns[state.id.0].saturating_add(pending);
+                    if !self.skip_effect_targets.contains(&state.id) {
+                        self.skip_effect_targets.push(state.id);
+                    }
                 }
             }
         }
@@ -308,6 +311,7 @@ impl GameState {
         self.pending_skip_source = None;
         let remaining = total.saturating_sub(1);
         self.skip_turns[player.0] = remaining;
+        self.skip_effect_targets.retain(|target| *target != player);
         self.drawn_card = None;
         let next_player = if self.sudden_death_active() && self.draw_pile.is_empty() {
             self.sudden_death_missed(player)

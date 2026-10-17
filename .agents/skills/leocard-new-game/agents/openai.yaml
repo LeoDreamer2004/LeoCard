@@ -1,0 +1,4 @@
+interface:
+  display_name: "LeoCard 新游戏开发"
+  short_description: "为 LeoCard 新增游戏或玩法变体，贯通纯规则、协议、权威房主、客户端与内嵌素材。"
+  default_prompt: "请使用 $leocard-new-game 为 LeoCard 实现这个新游戏，沿用现有层级与公共组件。"

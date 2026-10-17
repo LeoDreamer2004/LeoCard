@@ -32,7 +32,6 @@ profile.dat
 /*.pfx
 
 # Editor and operating-system metadata
-/.agents/
 /.codex/
 .idea/
 .vscode/

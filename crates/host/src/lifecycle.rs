@@ -2,7 +2,7 @@ use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_protocol::{
     ChatContent, ClientCommand, ClientMessage, GameCommand, GameEventContext, GameKind, GameRules,
     GameSnapshot, GameViolation, JoinRequest, LobbySnapshot, PlayerId, PlayerInteractionKind,
-    PlayerViolation, RejectReason, RequestId, SeatId, ServerEvent,
+    PlayerViolation, RejectReason, RequestId, RoomViolation, SeatId, ServerEvent,
 };
 
 pub(super) trait HostedGameLifecycle: Sized {
@@ -87,7 +87,41 @@ pub(super) trait HostedGameLifecycle: Sized {
         request_id: RequestId,
         target: PlayerId,
         kind: PlayerInteractionKind,
-    ) -> Vec<Delivery>;
+    ) -> Vec<Delivery> {
+        let result = self
+            .room()
+            .player_id(connection)
+            .ok_or(RejectReason::Player(PlayerViolation::NotJoined))
+            .and_then(|source| {
+                if !self.game_started() {
+                    return Err(RejectReason::Game(GameViolation::GameNotStarted));
+                }
+                if source == target {
+                    return Err(RejectReason::Room(RoomViolation::CannotInteractWithSelf));
+                }
+                if !self
+                    .room()
+                    .players
+                    .iter()
+                    .any(|player| player.id == target && !player.left)
+                {
+                    return Err(RejectReason::Player(PlayerViolation::NotJoined));
+                }
+                Ok(self
+                    .room_mut()
+                    .record_interaction(source, target, kind, fastrand::u32(..)))
+            });
+        match result {
+            Ok(interaction) => {
+                self.room_mut().bump_revision();
+                self.room().broadcast_event(
+                    Some((connection, request_id)),
+                    ServerEvent::PlayerInteraction(interaction),
+                )
+            }
+            Err(reason) => self.room().reject(connection, request_id, reason),
+        }
+    }
 
     fn before_dispatch(&mut self) {}
 

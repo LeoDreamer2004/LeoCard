@@ -1,3 +1,4 @@
+mod blackjack;
 mod mahjong;
 mod minecraft_guess;
 mod qigui523;
@@ -6,6 +7,7 @@ mod shengji;
 mod texas_holdem;
 mod uno;
 
+pub(crate) use blackjack::blackjack_profile_rows;
 pub(crate) use mahjong::mahjong_profile_rows;
 pub(crate) use minecraft_guess::minecraft_guess_profile_rows;
 pub(crate) use qigui523::qigui523_profile_rows;

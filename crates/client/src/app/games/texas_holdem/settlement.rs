@@ -1,15 +1,14 @@
 use super::{
-    TEXAS_SHOWDOWN_REVEAL_DURATION, TexasShowdownBackdrop, TexasShowdownBestCard,
-    TexasShowdownRevealRoot, TexasShowdownTitle, TexasShowdownTitleText, TexasShowdownUnderline,
-    add_texas_card, texas_card_face, texas_category_label, texas_player_chip_zone,
+    TEXAS_SHOWDOWN_REVEAL_DURATION, TEXAS_UNCONTESTED_REVEAL_DURATION, TexasShowdownBackdrop,
+    TexasShowdownBestCard, TexasShowdownRevealRoot, TexasShowdownTitle, TexasShowdownTitleText,
+    TexasShowdownUnderline, add_texas_card, texas_category_label, texas_player_chip_zone,
 };
 use crate::app::presentation::{
     ACCENT, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider, GameSummaryModal,
     GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, READY,
     SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
-    TEXAS_UNCONTESTED_REVEAL_DURATION, TEXT, UiComposer, add_animated_summary_text, add_avatar,
-    add_ready_avatar, add_text, decorate_panel_skin, spawn_node, summary_modal_visual,
-    summary_row_progress,
+    TEXT, UiComposer, add_animated_summary_text, add_avatar, add_ready_avatar, add_text,
+    decorate_panel_skin, spawn_node, summary_modal_visual, summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -44,8 +43,7 @@ pub(crate) fn texas_holdem_summary_descriptor(
     };
     Some(SummaryDescriptor {
         match_id: game.match_id,
-        texas_hand_number: Some(game.hand_number),
-        settlement_index: None,
+        settlement_index: Some(game.hand_number),
         entry_count: game.players.len() * usize::from(*tournament_complete) + game.players.len(),
         nonnegative_outcome,
         reveal_duration: if *showdown {
@@ -174,7 +172,7 @@ pub(super) fn add_texas_showdown_reveal(
                     border_radius: BorderRadius::all(px(6)),
                     ..default()
                 },
-                ImageNode::new(texas_card_face(card, assets))
+                ImageNode::new(assets.playing_cards.face(card))
                     .with_color(Color::WHITE.with_alpha(0.0)),
                 BorderColor::all(Color::srgb(0.88, 0.75, 0.35).with_alpha(0.0)),
                 UiTransform {

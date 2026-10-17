@@ -3,7 +3,6 @@
 use super::super::UiState;
 use super::{
     PlayErrorPopup, PlayErrorPopupImage, PlayErrorPopupText, PlayErrorToast, WARNING_TOAST_TEXT,
-    rejection_label,
 };
 use crate::app::runtime::{ClientResource, PageErrorState, TableAppearance, UiAssets};
 use bevy::prelude::*;
@@ -27,7 +26,9 @@ pub(crate) fn sync_play_error_toast(
     if let Some(model) = client.as_deref().map(|client| client.0.model()) {
         if model.rejection_serial() != toast.seen_rejection_serial {
             toast.seen_rejection_serial = model.rejection_serial();
-            next_message = model.last_rejection().and_then(rejection_label);
+            next_message = model
+                .last_rejection()
+                .map(|reason| format!("提示：{reason}"));
             play_error_sound = next_message.is_some();
         }
         if model.notice_serial() != toast.seen_notice_serial {

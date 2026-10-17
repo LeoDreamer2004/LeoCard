@@ -2,6 +2,7 @@ mod activity;
 mod bots;
 mod economy;
 mod profiles;
+mod readiness;
 mod state;
 
 use activity::RoomActivity;

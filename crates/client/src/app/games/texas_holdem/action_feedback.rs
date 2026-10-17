@@ -1,22 +1,10 @@
 //! 德州扑克下注动作的短促视觉反馈，与筹码账本和牌桌构建解耦。
 
 use super::{ActionFeedbackKind, TexasChipTableState, TexasPlayerShake};
+use crate::app::presentation::TableStatusEffect;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-use std::{collections::HashSet, f32::consts};
-
-#[derive(Component)]
-pub(super) struct TexasActionFeedback {
-    pub kind: ActionFeedbackKind,
-    pub elapsed: f32,
-}
-
-#[derive(Component)]
-pub(super) struct TexasActionFeedbackText {
-    pub color: Color,
-    pub kind: ActionFeedbackKind,
-    pub elapsed: f32,
-}
+use std::collections::HashSet;
 
 #[derive(Component)]
 pub(super) struct TexasFoldCard {
@@ -36,71 +24,17 @@ pub(super) struct TexasOwnFoldCardHover {
 #[derive(Component)]
 pub(super) struct TexasOwnFoldTooltip;
 
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct ActionFeedbackVisual {
-    pub translation: Vec2,
-    pub scale: f32,
-    pub alpha: f32,
-}
-
-pub(super) fn action_feedback_visual(
-    kind: ActionFeedbackKind,
-    elapsed: f32,
-) -> ActionFeedbackVisual {
-    let entry = (elapsed / 0.18).clamp(0.0, 1.0);
-    let mut visual = ActionFeedbackVisual {
-        translation: Vec2::ZERO,
-        scale: 0.84 + entry * 0.16,
-        alpha: entry,
-    };
-    match kind {
-        ActionFeedbackKind::Blind => {}
-        ActionFeedbackKind::Fold => {
-            visual.scale = 0.90 + entry * 0.10;
-        }
-        ActionFeedbackKind::Check => {}
-        ActionFeedbackKind::Call => {
-            visual.scale = 1.0 + (entry * consts::PI).sin() * 0.12;
-        }
-        ActionFeedbackKind::Raise => {
-            let progress = (elapsed / 0.28).clamp(0.0, 1.0);
-            visual.scale = 0.78 + 1.22 * progress - progress * progress;
-        }
-        ActionFeedbackKind::AllIn => {
-            let progress = (elapsed / 0.34).clamp(0.0, 1.0);
-            visual.scale = 0.72 + 1.40 * progress - 1.12 * progress * progress;
-            let shake = 1.0 - (elapsed / 0.48).clamp(0.0, 1.0);
-            visual.translation.x = (elapsed * 56.0).sin() * 5.5 * shake;
+impl From<ActionFeedbackKind> for TableStatusEffect {
+    fn from(kind: ActionFeedbackKind) -> Self {
+        match kind {
+            ActionFeedbackKind::Blind => Self::Appear,
+            ActionFeedbackKind::Fold => Self::Settle,
+            ActionFeedbackKind::Check => Self::Dim,
+            ActionFeedbackKind::Call => Self::Pulse,
+            ActionFeedbackKind::Raise => Self::Bounce,
+            ActionFeedbackKind::AllIn => Self::Impact,
         }
     }
-    visual
-}
-
-pub(super) fn action_feedback_transform(kind: ActionFeedbackKind, elapsed: f32) -> UiTransform {
-    let visual = action_feedback_visual(kind, elapsed);
-    let mut transform = UiTransform::IDENTITY;
-    transform.translation = Val2::px(visual.translation.x, visual.translation.y);
-    transform.scale = Vec2::splat(visual.scale);
-    transform
-}
-
-pub(super) fn action_feedback_text_color(
-    kind: ActionFeedbackKind,
-    base: Color,
-    elapsed: f32,
-) -> Color {
-    let alpha = action_feedback_visual(kind, elapsed).alpha;
-    if kind != ActionFeedbackKind::Check {
-        return base.with_alpha(alpha);
-    }
-
-    // “过牌”不从桌面消失，只从正文白色平滑过渡到不抢眼的灰色。
-    let progress = ((elapsed - 0.22) / 0.42).clamp(0.0, 1.0);
-    let eased = progress * progress * (3.0 - 2.0 * progress);
-    let start = Vec3::new(0.94, 0.97, 0.95);
-    let end = Vec3::new(0.50, 0.55, 0.53);
-    let rgb = start.lerp(end, eased);
-    Color::srgba(rgb.x, rgb.y, rgb.z, alpha)
 }
 
 pub(crate) struct FoldCardVisual {
@@ -165,27 +99,11 @@ pub(super) fn animate_texas_action_feedback(
     time: Res<Time>,
     state: Res<TexasChipTableState>,
     mut visuals: ParamSet<(
-        Query<(&mut TexasActionFeedback, &mut UiTransform, &mut Visibility)>,
         Query<(&mut TexasFoldCard, &mut UiTransform, &mut ImageNode)>,
         Query<(&TexasPlayerShake, &mut UiTransform)>,
     )>,
-    mut texts: Query<(&mut TexasActionFeedbackText, &mut TextColor)>,
 ) {
-    for (mut feedback, mut transform, mut visibility) in &mut visuals.p0() {
-        feedback.elapsed += time.delta_secs();
-        let visual = action_feedback_visual(feedback.kind, feedback.elapsed);
-        *transform = action_feedback_transform(feedback.kind, feedback.elapsed);
-        *visibility = if visual.alpha > 0.001 {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        };
-    }
-    for (mut style, mut color) in &mut texts {
-        style.elapsed += time.delta_secs();
-        color.0 = action_feedback_text_color(style.kind, style.color, style.elapsed);
-    }
-    for (mut card, mut transform, mut image) in &mut visuals.p1() {
+    for (mut card, mut transform, mut image) in &mut visuals.p0() {
         card.elapsed += time.delta_secs();
         let visual = fold_card_visual(card.index, card.total, card.elapsed, card.own);
         *transform = visual.transform;
@@ -196,13 +114,14 @@ pub(super) fn animate_texas_action_feedback(
         };
         image.color = Color::WHITE;
     }
-    for (panel, mut transform) in &mut visuals.p2() {
+    for (panel, mut transform) in &mut visuals.p1() {
         let shake_x = state
             .actions
             .get(&panel.0)
             .filter(|label| label.kind == ActionFeedbackKind::AllIn)
             .map_or(0.0, |label| {
-                action_feedback_visual(label.kind, label.elapsed)
+                TableStatusEffect::from(label.kind)
+                    .visual(label.elapsed)
                     .translation
                     .x
             });

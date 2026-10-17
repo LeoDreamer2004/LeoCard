@@ -20,7 +20,6 @@ mod state;
 mod status;
 mod tiles;
 mod view;
-pub(super) mod violation;
 mod voices;
 
 use action_prompt::*;

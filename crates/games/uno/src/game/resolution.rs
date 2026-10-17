@@ -1,6 +1,7 @@
+use crate::rating::{placements_with_eliminations, reference_point_deltas_for_placements};
 use crate::{UnoCard, UnoFace};
 
-use super::{GameState, UnoPlayerId};
+use super::{GameResult, GameState, Phase, PlayerState, UnoPlayerId};
 
 impl GameState {
     pub(super) fn finalize_play(
@@ -31,12 +32,65 @@ impl GameState {
         if !defers_jump_in {
             self.jump_in_open = self.jump_in_enabled() && card.color().is_some();
         }
-        if self.pending_swap.is_none()
-            && !self.pending_draw_active()
-            && self.pending_skip == 0
-            && self.skip_turns[self.current_player.0] == 0
-        {
-            self.finish_pending_game();
+        self.finish_pending_game();
+    }
+
+    pub(super) fn finish(&mut self, winner: UnoPlayerId) -> GameResult {
+        self.clear_pending_draw();
+        self.pending_skip = 0;
+        self.pending_skip_everyone = false;
+        self.pending_skip_source = None;
+        self.skip_effect_targets.clear();
+        self.skip_turns.fill(0);
+        self.drawn_card = None;
+        self.uno_exposed.fill(false);
+        self.uno_declared.fill(false);
+        self.jump_in_open = false;
+        self.pending_swap = None;
+        self.pending_finisher = None;
+        self.sudden_death_misses = 0;
+        let hand_scores = self
+            .players
+            .iter()
+            .map(PlayerState::hand_score)
+            .collect::<Vec<_>>();
+        let placements =
+            placements_with_eliminations(winner, &hand_scores, &self.elimination_order)
+                .expect("the recorded elimination order contains valid players");
+        let result = GameResult {
+            winner,
+            reference_deltas: reference_point_deltas_for_placements(&placements)
+                .expect("validated placements"),
+            placements,
+            hand_scores,
+        };
+        self.phase = Phase::Finished(result.clone());
+        result
+    }
+
+    pub(super) fn finish_pending_game(&mut self) -> Option<GameResult> {
+        if !matches!(self.phase, Phase::Playing) {
+            return None;
         }
+        if self.pending_swap.is_some()
+            || self.pending_draw_active()
+            || self.pending_skip > 0
+            || !self.skip_effect_targets.is_empty()
+        {
+            return None;
+        }
+        let original = self.pending_finisher?;
+        let winner = self
+            .players
+            .get(original.0)
+            .filter(|player| !player.eliminated && player.hand.is_empty())
+            .map(|player| player.id)
+            .or_else(|| {
+                self.players
+                    .iter()
+                    .find(|player| !player.eliminated && player.hand.is_empty())
+                    .map(|player| player.id)
+            })?;
+        Some(self.finish(winner))
     }
 }

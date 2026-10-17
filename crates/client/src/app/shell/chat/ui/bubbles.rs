@@ -41,7 +41,9 @@ pub(crate) fn sync_chat_messages(
                 let Some(text) = QUICK_VOICES.get(usize::from(index)) else {
                     continue;
                 };
-                if let Some(sound) = assets.audio.quick_voice_sounds.get(usize::from(index)) {
+                if let Some(profile) = client.0.model().player_game_profiles(source)
+                    && let Some(sound) = assets.audio.quick_voices.get(profile.gender, index)
+                {
                     commands.effect((AudioPlayer::new(sound.clone()), PlaybackSettings::DESPAWN));
                 }
                 ((*text).to_owned(), None)

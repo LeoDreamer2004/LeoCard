@@ -1,8 +1,7 @@
 use super::{
-    TEXAS_PORTRAIT_WIDTH, TexasChipTableState, TexasHoldemAssets, TexasHoldemUiAction,
-    TexasHoldemUiState, TexasPlayerPanel, TexasPlayerShake, TexasRaiseAdjustButton,
-    add_role_tokens, add_texas_card, add_texas_chip_popup, add_texas_win_rate,
-    texas_player_border_color,
+    TEXAS_PORTRAIT_WIDTH, TexasChipTableState, TexasHoldemUiAction, TexasHoldemUiState,
+    TexasPlayerPanel, TexasPlayerShake, TexasRaiseAdjustButton, add_role_tokens, add_texas_card,
+    add_texas_chip_popup, add_texas_win_rate, texas_player_border_color,
 };
 use crate::app::presentation::{
     ButtonHighlight, ButtonKind, GameButtonImageMode, GameButtonSpec, MUTED, PendingDealSound,
@@ -34,7 +33,6 @@ pub(super) fn add_texas_own_area(
     ui: &mut TexasHoldemUiState,
     interaction_menu_open: Option<PlayerId>,
     assets: &UiAssets,
-    game_assets: &TexasHoldemAssets,
     avatars: &AvatarImages,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
     chip_state: &TexasChipTableState,
@@ -125,7 +123,6 @@ pub(super) fn add_texas_own_area(
         own.stack,
         None,
         assets,
-        game_assets,
         &chip_state.stack_counts(own.id),
     );
 
@@ -184,7 +181,7 @@ pub(super) fn add_texas_own_area(
             }
         }
     }
-    add_texas_actions(commands, table, game, own, ui, assets, game_assets);
+    add_texas_actions(commands, table, game, own, ui, assets);
 }
 
 fn add_texas_actions(
@@ -194,7 +191,6 @@ fn add_texas_actions(
     own: &TexasHoldemPlayerState,
     ui: &mut TexasHoldemUiState,
     assets: &UiAssets,
-    game_assets: &TexasHoldemAssets,
 ) {
     if !matches!(game.phase, TexasHoldemPhaseView::Betting { .. })
         || game.blind_to_post.is_some()
@@ -248,7 +244,6 @@ fn add_texas_actions(
         TexasHoldemAction::Fold,
         ButtonKind::Pass,
         assets,
-        game_assets,
     );
     if game.amount_to_call == 0 {
         add_texas_action_button(
@@ -258,7 +253,6 @@ fn add_texas_actions(
             TexasHoldemAction::Check,
             ButtonKind::Secondary,
             assets,
-            game_assets,
         );
     } else {
         add_texas_action_button(
@@ -268,7 +262,6 @@ fn add_texas_actions(
             TexasHoldemAction::Call,
             ButtonKind::Secondary,
             assets,
-            game_assets,
         );
     }
     if game.raise_allowed
@@ -290,7 +283,7 @@ fn add_texas_actions(
                     minimum: minimum_target,
                     maximum: maximum_target,
                 },
-                game_assets,
+                assets,
             );
         }
         add_texas_action_button(
@@ -300,7 +293,6 @@ fn add_texas_actions(
             TexasHoldemAction::RaiseTo(ui.raise_to),
             ButtonKind::Primary,
             assets,
-            game_assets,
         );
         if maximum_target > minimum_target {
             add_raise_adjust_button(
@@ -314,7 +306,7 @@ fn add_texas_actions(
                     minimum: minimum_target,
                     maximum: maximum_target,
                 },
-                game_assets,
+                assets,
             );
         }
     }
@@ -326,29 +318,8 @@ fn add_texas_actions(
             TexasHoldemAction::AllIn,
             ButtonKind::Warning,
             assets,
-            game_assets,
         );
     }
-}
-
-fn add_texas_action_button(
-    commands: &mut UiComposer,
-    parent: Entity,
-    label: &str,
-    action: TexasHoldemAction,
-    kind: ButtonKind,
-    assets: &UiAssets,
-    game_assets: &TexasHoldemAssets,
-) {
-    add_texas_sized_button(
-        commands,
-        parent,
-        label,
-        UiAction::TexasHoldem(TexasHoldemUiAction::Act(action)),
-        kind,
-        assets,
-        game_assets,
-    );
 }
 
 fn add_raise_adjust_button(
@@ -357,12 +328,18 @@ fn add_raise_adjust_button(
     target: u32,
     enabled: bool,
     repeat: TexasRaiseAdjustButton,
-    game_assets: &TexasHoldemAssets,
+    assets: &UiAssets,
 ) {
     let (normal, hovered) = if repeat.direction < 0 {
-        (&game_assets.adjust_left, &game_assets.adjust_left_hover)
+        (
+            &assets.controls.adjust_left,
+            &assets.controls.adjust_left_hover,
+        )
     } else {
-        (&game_assets.adjust_right, &game_assets.adjust_right_hover)
+        (
+            &assets.controls.adjust_right,
+            &assets.controls.adjust_right_hover,
+        )
     };
     if enabled {
         let button = commands.child(
@@ -415,29 +392,31 @@ fn add_raise_adjust_button(
     }
 }
 
-fn add_texas_sized_button(
+fn add_texas_action_button(
     commands: &mut UiComposer,
     parent: Entity,
     label: &str,
-    action: UiAction,
+    action: TexasHoldemAction,
     kind: ButtonKind,
     assets: &UiAssets,
-    game_assets: &TexasHoldemAssets,
 ) -> Entity {
     let (normal, hovered) = match kind {
         ButtonKind::Primary => (
-            &game_assets.action_primary,
-            &game_assets.action_primary_hover,
+            &assets.controls.game_play_button,
+            &assets.controls.game_play_button_hover,
         ),
         ButtonKind::Secondary => (
-            &game_assets.action_secondary,
-            &game_assets.action_secondary_hover,
+            &assets.controls.game_hint_button,
+            &assets.controls.game_hint_button_hover,
         ),
         ButtonKind::Warning => (
-            &game_assets.action_warning,
-            &game_assets.action_warning_hover,
+            &assets.controls.game_warning_button,
+            &assets.controls.game_warning_button_hover,
         ),
-        ButtonKind::Pass => (&game_assets.action_pass, &game_assets.action_pass_hover),
+        ButtonKind::Pass => (
+            &assets.controls.game_pass_button,
+            &assets.controls.game_pass_button_hover,
+        ),
     };
     let (button, label_entity) = add_textured_game_button(
         commands,
@@ -445,7 +424,7 @@ fn add_texas_sized_button(
         assets,
         GameButtonSpec {
             label,
-            action: Some(action),
+            action: Some(UiAction::TexasHoldem(TexasHoldemUiAction::Act(action))),
             normal,
             hovered,
             width: 118.0,

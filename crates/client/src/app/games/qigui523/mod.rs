@@ -5,6 +5,7 @@
 
 pub(crate) mod actions;
 mod assets;
+mod card_face;
 mod cards;
 mod center;
 mod clock;
@@ -24,7 +25,6 @@ mod state;
 pub(super) mod summary;
 mod table;
 mod turn_timer;
-pub(super) mod violation;
 
 pub(crate) use actions::*;
 pub(crate) use assets::*;

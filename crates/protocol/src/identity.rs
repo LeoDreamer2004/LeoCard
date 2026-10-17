@@ -1,4 +1,4 @@
-use crate::MinecraftGuessProfileStats;
+use crate::{BlackjackProfileStats, MinecraftGuessProfileStats};
 use leocard_mahjong::Fan;
 use leocard_uno::UnoRuleSet;
 use serde::{Deserialize, Serialize};
@@ -59,6 +59,7 @@ pub struct PlayerGameProfiles {
     pub interactions: Option<PlayerInteractionStats>,
     pub mahjong: Option<MahjongProfileStats>,
     pub minecraft_guess: Option<MinecraftGuessProfileStats>,
+    pub blackjack: Option<BlackjackProfileStats>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

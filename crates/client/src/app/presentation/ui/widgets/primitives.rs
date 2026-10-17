@@ -5,13 +5,12 @@ use super::super::{
 };
 use super::sliced_image;
 use crate::app::presentation::{CardSize, UiComposer, ui_component};
-use crate::app::runtime::UiAssets;
+use crate::app::runtime::{CardFace, UiAssets};
 use crate::app::shell::{SocialUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::text::FontSourceTemplate;
 use bevy::ui_widgets::Button;
-use leocard_qigui523::QiGuiCard;
 
 const SCORE_CARD_REVEAL: f32 = 12.0;
 const FINISHED_HAND_CARD_REVEAL: f32 = 14.4;
@@ -23,7 +22,7 @@ const FINISHED_HAND_CARD_REVEAL: f32 = 14.4;
 pub(crate) fn add_card_image(
     commands: &mut UiComposer,
     parent: Entity,
-    card: QiGuiCard,
+    card: impl Into<CardFace>,
     size: CardSize,
     index: usize,
     is_last: bool,
@@ -37,12 +36,7 @@ pub(crate) fn add_card_image(
         CardSize::FinishedHand => FINISHED_HAND_CARD_REVEAL,
         CardSize::ShengjiHand | CardSize::QiGuiHand | CardSize::QiGuiSeat => TABLE_CARD_REVEAL,
     };
-    let image = assets
-        .playing_cards
-        .cards
-        .get(&(card.rank(), card.suit()))
-        .expect("all valid card faces are preloaded")
-        .clone();
+    let image = assets.playing_cards.face(card);
     commands.child(
         parent,
         (

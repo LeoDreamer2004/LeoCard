@@ -6,6 +6,7 @@ use leocard_shengji::{
     ShengjiRuleSet, ShengjiTeamId, ShengjiTrump,
 };
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// 面向单个升级客户端生成的私有快照。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -190,4 +191,69 @@ pub struct ShengjiHandResultView {
     pub levels: [ShengjiRank; 2],
     /// 本小局对四名玩家平台积分的实际变动。
     pub reference_changes: Vec<PlayerReferenceChange>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum ShengjiViolation {
+    InvalidPlayer,
+    WrongPhase,
+    InvalidDeclaration,
+    DeclarationCardsNotOwned,
+    CounterRequiresPair,
+    CounterNotStronger,
+    ProtectedSuitCanOnlyBeCounteredByNoTrump,
+    DeclarationRequiresJoker,
+    NoTrumpCannotOpen,
+    NotDealer,
+    WrongBuryCount { expected: u8, actual: u8 },
+    CrossingNotEligible,
+    CrossingAlreadyDecided,
+    WrongCrossingCount { expected: u8, actual: u8 },
+    CrossingMustIncludeAllTrumps,
+    CrossingReturnNotRequired,
+    CrossingAlreadyReturned,
+    NotBottomCopyPlayer,
+    CardsNotOwned,
+    NotPlayersTurn,
+    MustLeadWithCards,
+    ThrowDisabled,
+    InvalidPattern,
+    WrongCardCount { expected: u8, actual: u8 },
+    MustFollowCategory,
+    MustFollowStructure,
+}
+
+impl fmt::Display for ShengjiViolation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::WrongBuryCount { expected, .. } => {
+                return write!(f, "必须埋下 {expected} 张底牌");
+            }
+            Self::InvalidPlayer => "玩家身份无效",
+            Self::WrongPhase => "当前阶段不能执行这个操作",
+            Self::InvalidDeclaration => "这些牌不能用于亮主或反主",
+            Self::DeclarationCardsNotOwned => "亮出的牌不全在你的手中",
+            Self::CounterRequiresPair => "反主必须亮出规则要求的同张牌",
+            Self::CounterNotStronger => "只能用更强的主牌反主",
+            Self::ProtectedSuitCanOnlyBeCounteredByNoTrump => "自保后只能用无主或更多级牌反主",
+            Self::DeclarationRequiresJoker => "带王亮必须同时亮出对应颜色的王",
+            Self::NoTrumpCannotOpen => "带王亮时无主只能用于反主",
+            Self::NotDealer => "只有庄家可以埋底",
+            Self::CardsNotOwned => "选择的牌不全在你的手中",
+            Self::CrossingNotEligible => "你本局不符合五主过江条件",
+            Self::CrossingAlreadyDecided => "你已经完成过江选择",
+            Self::WrongCrossingCount { .. } => "五主过江和归还都必须正好选择五张牌",
+            Self::CrossingMustIncludeAllTrumps => "过江牌必须包含你当前的全部主牌",
+            Self::CrossingReturnNotRequired => "当前不需要你归还过江牌",
+            Self::CrossingAlreadyReturned => "你已经归还过江牌",
+            Self::NotBottomCopyPlayer => "当前没有轮到你抄底或重新埋底",
+            Self::NotPlayersTurn => "还没有轮到你出牌",
+            Self::MustLeadWithCards => "领出时必须出牌",
+            Self::ThrowDisabled => "本房间不允许甩牌",
+            Self::InvalidPattern => "所选牌不能组成合法牌型",
+            Self::WrongCardCount { .. } => "跟牌张数必须与首家相同",
+            Self::MustFollowCategory => "手中有该门牌时必须先跟该门",
+            Self::MustFollowStructure => "必须优先跟泰坦尼克、拖拉机、三同张或对子结构",
+        })
+    }
 }

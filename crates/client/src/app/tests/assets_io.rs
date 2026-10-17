@@ -1,7 +1,6 @@
 use super::prelude::*;
 use bevy::audio::Decodable;
 use leocard_protocol::{AVATAR_DIMENSION, MAX_AVATAR_BYTES, QUICK_VOICE_COUNT};
-use leocard_qigui523::build_deck;
 use leocard_uno::{Mode, UnoRuleSet, build_deck_for_rules};
 use std::collections::HashSet;
 use std::io::Cursor;
@@ -9,8 +8,8 @@ use std::io::Cursor;
 #[test]
 fn every_card_maps_to_an_existing_asset() {
     let asset_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets");
-    for card in build_deck(1) {
-        let path = asset_root.join(card_asset_path(card.rank(), card.suit()));
+    for face in CardFace::all() {
+        let path = asset_root.join(face.asset_path());
         assert!(path.is_file(), "missing card asset: {}", path.display());
     }
     let mahjong_kinds = leocard_mahjong::build_deck()
@@ -156,9 +155,9 @@ fn every_runtime_ui_and_card_sound_decodes_with_enabled_bevy_formats() {
                 .into_owned()
         }));
     }
-    sounds.extend(
-        (0..QUICK_VOICE_COUNT).map(|index| format!("vendor/noname/voice/male/{index}.mp3")),
-    );
+    sounds.extend(["male", "female"].into_iter().flat_map(|gender| {
+        (0..QUICK_VOICE_COUNT).map(move |index| format!("vendor/noname/voice/{gender}/{index}.mp3"))
+    }));
     sounds.push("vendor/noname/damage_fire2.mp3".to_owned());
 
     for relative in sounds {

@@ -382,6 +382,8 @@ pub struct GameState {
     pub(super) pending_skip: u16,
     pub(super) pending_skip_everyone: bool,
     pub(super) pending_skip_source: Option<UnoPlayerId>,
+    /// Recipients that must still accept the current skip effect, before a pending win.
+    pub(super) skip_effect_targets: Vec<UnoPlayerId>,
     pub(super) skip_turns: Vec<u16>,
     pub(super) uno_exposed: Vec<bool>,
     pub(super) uno_declared: Vec<bool>,

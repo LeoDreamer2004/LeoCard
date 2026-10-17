@@ -3,8 +3,8 @@ use super::super::{
     ShengjiUiState,
 };
 use super::{
-    ShengjiCardSize, add_shengji_dealer_badge, add_shengji_trump_stars, shengji_card_face,
-    shengji_display_trump, shengji_hand_sort_trump, sort_shengji_cards,
+    ShengjiCardSize, add_shengji_dealer_badge, add_shengji_trump_stars, shengji_display_trump,
+    shengji_hand_sort_trump, sort_shengji_cards,
 };
 use crate::app::presentation::{
     ACCENT, BORDER, CardAnimationState, CardDragSelection, CardSize, PendingDealSound,
@@ -94,7 +94,7 @@ fn add_shengji_hand_card(
     assets: &UiAssets,
 ) {
     let (width, height) = CardSize::ShengjiHand.dimensions();
-    let image = shengji_card_face(card, assets);
+    let image = assets.playing_cards.face(card);
     let initial_pose = hand_card_pose(
         index,
         hand_len,

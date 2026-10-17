@@ -1,6 +1,7 @@
 use crate::{AvatarId, MatchId, PlayerGameProfiles, PlayerId, ProfileId, SeatId};
 use leocard_qigui523::{QiGuiCard, QiGuiPlayKind};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// 面向单个七鬼五二三客户端生成的状态。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -103,4 +104,29 @@ pub struct PlayerReferenceChange {
     pub player: PlayerId,
     pub profile_id: ProfileId,
     pub delta: i16,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum RuleViolation {
+    InvalidPlayer,
+    NotPlayersTurn,
+    GameAlreadyFinished,
+    MustLeadWithCards,
+    CardNotInHand,
+    InvalidPattern,
+    PlayDoesNotBeatCurrent,
+}
+
+impl fmt::Display for RuleViolation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::NotPlayersTurn => "还没有轮到你行动",
+            Self::MustLeadWithCards => "领出时必须出牌",
+            Self::CardNotInHand => "选择的牌不在手中",
+            Self::InvalidPattern => "所选牌不能组成合法牌型",
+            Self::PlayDoesNotBeatCurrent => "这手牌无法压过当前牌",
+            Self::GameAlreadyFinished => "游戏已经结束",
+            Self::InvalidPlayer => "玩家身份无效",
+        })
+    }
 }

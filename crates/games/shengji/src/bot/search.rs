@@ -1,5 +1,6 @@
 use super::ShengjiBotObservation;
 use super::candidates::{hand_value, plays};
+use super::evaluation::quick_value;
 use super::observation::category_index;
 use crate::play::category;
 use crate::{
@@ -281,49 +282,4 @@ fn append(
     hands[usize::from(player.0)].retain(|card| !play.cards.contains(card));
     trick.points += play.cards.iter().map(|card| card.points()).sum::<u16>();
     trick.plays.push((player, play));
-}
-
-fn quick_value(
-    play: &ShengjiClassifiedPlay,
-    hand: &[ShengjiCard],
-    trick: Option<&TrickRecord>,
-    player: ShengjiPlayerId,
-    trump: ShengjiTrump,
-) -> f64 {
-    let remaining: Vec<_> = hand
-        .iter()
-        .copied()
-        .filter(|card| !play.cards.contains(card))
-        .collect();
-    let cost = hand_value(hand, trump) - hand_value(&remaining, trump);
-    let points = play
-        .cards
-        .iter()
-        .map(|card| f64::from(card.points()))
-        .sum::<f64>();
-    if let Some(trick) = trick {
-        let current = &trick
-            .plays
-            .iter()
-            .find(|(actor, _)| *actor == trick.winner)
-            .expect("winner")
-            .1;
-        let wins = compare_for_trick(&trick.plays[0].1, current, play, trump) == Ordering::Greater;
-        let friendly = trick.winner.team() == player.team();
-        let secure = friendly
-            && (trick.plays.len() == 3
-                || current.strongest_component().comparison_strength() >= 12);
-        let captured = f64::from(trick.points) + points;
-        let gain = if wins {
-            captured + 3.0
-        } else if secure {
-            points
-        } else {
-            -points
-        };
-        gain - cost * if secure { 1.4 } else { 0.65 }
-    } else {
-        let strength = play.strongest_component().comparison_strength();
-        f64::from(strength) * 1.3 + play.cards.len() as f64 * 2.0 - cost * 0.8 - points * 0.12
-    }
 }

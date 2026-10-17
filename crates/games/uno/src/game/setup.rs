@@ -68,6 +68,7 @@ impl GameState {
             pending_skip: 0,
             pending_skip_everyone: false,
             pending_skip_source: None,
+            skip_effect_targets: Vec::new(),
             skip_turns: vec![0; player_count],
             uno_exposed: vec![false; player_count],
             uno_declared: vec![false; player_count],

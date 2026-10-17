@@ -1,4 +1,5 @@
 //! 游戏内容是否需要重建页面，由各游戏的比较规则决定。
+use super::blackjack::only_blackjack_timer_changed;
 use super::{
     minecraft_guess::only_guess_timer_changed, qigui523::only_turn_timer_changed,
     shengji::only_shengji_transient_progress_changed, texas_holdem::only_texas_equities_changed,
@@ -19,6 +20,7 @@ impl GameScreenChange {
                             | GameSnapshot::Shengji(_)
                             | GameSnapshot::TexasHoldem(_)
                             | GameSnapshot::MinecraftGuess(_)
+                            | GameSnapshot::Blackjack(_)
                     )
                 })
                 .cloned(),
@@ -27,6 +29,9 @@ impl GameScreenChange {
 
     pub(crate) fn is_transient(&self, after: Option<&GameSnapshot>) -> bool {
         match (self.before.as_ref(), after) {
+            (Some(GameSnapshot::Blackjack(before)), Some(GameSnapshot::Blackjack(after))) => {
+                only_blackjack_timer_changed(before, after)
+            }
             (
                 Some(GameSnapshot::MinecraftGuess(before)),
                 Some(GameSnapshot::MinecraftGuess(after)),

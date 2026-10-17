@@ -14,12 +14,6 @@ pub(crate) struct MahjongAssets {
     pub tile_back: Handle<Image>,
     pub(super) ready_hand: Handle<Image>,
     pub(super) action_prompt: Handle<AudioSource>,
-    pub action_button: Handle<Image>,
-    pub action_button_hover: Handle<Image>,
-    pub action_pass: Handle<Image>,
-    pub action_pass_hover: Handle<Image>,
-    pub action_win: Handle<Image>,
-    pub action_win_hover: Handle<Image>,
     fan_voices: BTreeMap<Fan, [Handle<AudioSource>; 2]>,
     action_voices: [[[Handle<AudioSource>; 2]; 8]; 2],
     pub(super) status: MahjongStatusImages,
@@ -88,12 +82,6 @@ impl MahjongAssets {
             tile_heights,
             tile_back: asset_server.load("cards/mahjong/hong-kong/back.png"),
             ready_hand: asset_server.load("ui/mahjong/ready-hand.png"),
-            action_button: asset_server.load("ui/qigui523/play-normal.png"),
-            action_button_hover: asset_server.load("ui/qigui523/play-hover.png"),
-            action_pass: asset_server.load("ui/qigui523/pass-normal.png"),
-            action_pass_hover: asset_server.load("ui/qigui523/pass-hover.png"),
-            action_win: asset_server.load("ui/qigui523/warning-normal.png"),
-            action_win_hover: asset_server.load("ui/qigui523/warning-hover.png"),
             fan_voices: FAN_VOICE_SPECS
                 .iter()
                 .map(|spec| {

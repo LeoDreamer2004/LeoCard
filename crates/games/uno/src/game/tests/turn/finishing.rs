@@ -1,4 +1,4 @@
-use crate::{UnoCard, UnoColor, UnoFace, UnoRuleSet};
+use crate::{UnoCard, UnoColor, UnoFace, UnoRuleSet, build_deck_for_rules};
 
 use super::super::prelude::*;
 
@@ -78,4 +78,81 @@ fn last_skip_finishes_after_the_target_loses_their_turn() {
             ..
         })
     ));
+}
+
+#[test]
+fn final_skip_chain_finishes_after_acceptance_without_waiting_for_future_turns() {
+    for skip_draw_penalty in [false, true] {
+        for face in [UnoFace::Skip, UnoFace::ReverseSkip] {
+            let rules = UnoRuleSet {
+                action_stacking: true,
+                reverse_pack: face == UnoFace::ReverseSkip,
+                skip_draw_penalty,
+                uno_callout: false,
+                ..UnoRuleSet::default()
+            };
+            let mut game = GameState::new_with_deck(rules, 3, build_deck_for_rules(rules)).unwrap();
+            let first = card(UnoColor::Red, face, 0);
+            let following = card(UnoColor::Yellow, UnoFace::Skip, 0);
+            game.players[0].hand = vec![first];
+            game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(5), 0)];
+            game.current_color = Some(UnoColor::Red);
+            game.current_player = UnoPlayerId(0);
+            game.direction = UnoDirection::Clockwise;
+            game.play_card(UnoPlayerId(0), first, None).unwrap();
+            let follower = game.turn().unwrap().current_player;
+            game.players[follower.0].hand =
+                vec![following, card(UnoColor::Blue, UnoFace::Number(3), 0)];
+            game.play_card(follower, following, None).unwrap();
+            let target = game.turn().unwrap().current_player;
+            assert_ne!(target, UnoPlayerId(0));
+            assert_eq!(game.turn().unwrap().pending_skip, 2);
+            let before = game.player(target).unwrap().hand().len();
+            let outcome = game.resolve_skip(target).unwrap();
+            assert!(matches!(
+                outcome,
+                ActionOutcome::SkipResolved { remaining: 1, .. }
+            ));
+            assert_eq!(
+                game.player(target).unwrap().hand().len(),
+                before + usize::from(skip_draw_penalty)
+            );
+            assert!(matches!(
+                game.phase(),
+                Phase::Finished(GameResult {
+                    winner: UnoPlayerId(0),
+                    ..
+                })
+            ));
+            assert!(
+                game.players
+                    .iter()
+                    .all(|player| game.skipped_turns(player.id) == Some(0))
+            );
+            assert_eq!(game.draw_card(target), Err(GameError::GameAlreadyFinished));
+        }
+    }
+}
+
+#[test]
+fn returning_skip_penalty_refills_the_finisher_instead_of_awarding_a_win() {
+    let rules = UnoRuleSet {
+        action_stacking: true,
+        skip_draw_penalty: true,
+        uno_callout: false,
+        ..UnoRuleSet::default()
+    };
+    let mut game = GameState::new_with_deck(rules, 2, build_deck()).unwrap();
+    let first = card(UnoColor::Red, UnoFace::Skip, 0);
+    let following = card(UnoColor::Yellow, UnoFace::Skip, 0);
+    game.players[0].hand = vec![first];
+    game.players[1].hand = vec![following, card(UnoColor::Blue, UnoFace::Number(3), 0)];
+    game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(5), 0)];
+    game.current_color = Some(UnoColor::Red);
+    game.current_player = UnoPlayerId(0);
+    game.play_card(UnoPlayerId(0), first, None).unwrap();
+    game.play_card(UnoPlayerId(1), following, None).unwrap();
+    game.resolve_skip(UnoPlayerId(0)).unwrap();
+    assert_eq!(game.player(UnoPlayerId(0)).unwrap().hand().len(), 1);
+    assert!(matches!(game.phase(), Phase::Playing));
 }

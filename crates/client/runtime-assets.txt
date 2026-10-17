@@ -26,5 +26,6 @@ vendor/kenney/ui/Sounds/
 vendor/noname/audio/effect/
 vendor/noname/interactions/
 vendor/noname/voice/male/
+vendor/noname/voice/female/
 vendor/noname/damage_fire2.mp3
 vendor/opengameart/green-textile/table_felt_dark_green.png

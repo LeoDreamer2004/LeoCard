@@ -6,6 +6,7 @@ use crate::app::presentation::{GameSummaryAnimation, ease_out_cubic};
 use bevy::prelude::*;
 
 pub(super) const TEXAS_SHOWDOWN_REVEAL_DURATION: f32 = 2.6;
+pub(super) const TEXAS_UNCONTESTED_REVEAL_DURATION: f32 = 0.8;
 
 #[derive(Component)]
 pub(super) struct TexasShowdownRevealRoot;
@@ -51,7 +52,7 @@ pub(super) fn animate_texas_showdown_reveal(
     mut title_texts: Query<&mut TextColor, With<TexasShowdownTitleText>>,
 ) {
     let elapsed = animation.elapsed + TEXAS_SHOWDOWN_REVEAL_DURATION;
-    let active = animation.texas_hand_number.is_some() && animation.elapsed < 0.0 && elapsed >= 0.0;
+    let active = animation.match_id.is_some() && animation.elapsed < 0.0 && elapsed >= 0.0;
     for mut visibility in &mut roots {
         *visibility = if active {
             Visibility::Visible

@@ -1,17 +1,19 @@
-use crate::app::presentation::{HEADER_BG, MUTED, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{
+    HEADER_BG, MUTED, PokerChipVisual, TableStatusSpec, UiComposer, add_poker_chip,
+    add_table_play_area, add_table_status, spawn_node,
+};
 use bevy::picking::Pickable;
 use std::f32::consts;
 
 use super::super::{
-    TexasActionFeedback, TexasActionFeedbackText, TexasFoldCard, TexasHoldemAssets,
-    TexasOwnFoldCardHover, TexasOwnFoldTooltip, TexasPlayerPanel, TexasPotDivider, TexasPotHover,
-    action_feedback_text_color, action_feedback_transform, fold_card_visual, texas_card_face,
+    TexasFoldCard, TexasOwnFoldCardHover, TexasOwnFoldTooltip, TexasPlayerPanel, TexasPotDivider,
+    TexasPotHover, fold_card_visual,
 };
 
 use super::{
-    ActionFeedbackKind, ActionLabel, CHIP_SIZE, ChipZone, ChipZoneLayout, TEXAS_CHIP_ZONE_FILTER,
-    TableChip, TexasChipSprite, TexasChipTableState, TexasChipZonePanel, texas_center_zone_panel,
-    texas_player_chip_zone, texas_pot_chip_zone, texas_pot_partition_zone,
+    ActionFeedbackKind, ActionLabel, CHIP_SIZE, ChipZone, ChipZoneLayout, TableChip,
+    TexasChipSprite, TexasChipTableState, texas_center_zone_panel, texas_player_chip_zone,
+    texas_pot_chip_zone, texas_pot_partition_zone,
 };
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
@@ -26,7 +28,6 @@ pub(crate) fn add_texas_chip_areas(
     hole_card_count: usize,
     state: &TexasChipTableState,
     assets: &UiAssets,
-    game_assets: &TexasHoldemAssets,
 ) {
     let own_seat = game
         .players
@@ -97,7 +98,7 @@ pub(crate) fn add_texas_chip_areas(
             ChipZone::Bet(_) | ChipZone::Pot(_) | ChipZone::Retired
         ) || chip.motion.is_some()
     }) {
-        add_chip_sprite(commands, layer, chip, assets, game_assets);
+        add_chip_sprite(commands, layer, chip, assets);
     }
 }
 
@@ -257,7 +258,7 @@ pub(super) fn add_chip_zone_panel(
     table: Entity,
     layout: ChipZoneLayout,
 ) -> Entity {
-    let zone = spawn_node(
+    let zone = add_table_play_area(
         commands,
         table,
         Node {
@@ -267,30 +268,11 @@ pub(super) fn add_chip_zone_panel(
             width: px(layout.width),
             height: px(layout.height),
             padding: UiRect::new(px(9), px(42), px(6), px(6)),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(11)),
-            overflow: Overflow::clip(),
             ..default()
         },
-        Some(TEXAS_CHIP_ZONE_FILTER),
     );
-    commands.entity(zone).insert((
-        TexasChipZonePanel,
-        BackgroundGradient::from(LinearGradient::to_bottom_right(vec![
-            ColorStop::auto(Color::srgba(0.10, 0.16, 0.13, 0.12)),
-            ColorStop::auto(Color::srgba(0.04, 0.08, 0.06, 0.08)),
-            ColorStop::auto(Color::BLACK.with_alpha(0.18)),
-        ])),
-        BorderGradient::from(LinearGradient::to_bottom_right(vec![
-            ColorStop::auto(Color::srgba(0.24, 0.34, 0.29, 0.20)),
-            ColorStop::auto(Color::srgba(0.10, 0.16, 0.13, 0.14)),
-            ColorStop::auto(Color::BLACK.with_alpha(0.24)),
-        ])),
-        BoxShadow::new(Color::BLACK.with_alpha(0.28), px(0), px(3), px(0), px(8)),
-        // 区域框属于桌面底层；实际筹码在独立的高层中移动。
-        ZIndex(-10),
-        Pickable::IGNORE,
-    ));
+    // 筹码在独立的高层中移动，不受背景框裁剪。
+    commands.entity(zone).insert(ZIndex(-10));
     zone
 }
 
@@ -316,28 +298,21 @@ fn add_chip_zone_title(
         },
         None,
     );
-    commands.entity(title).insert((
-        ZIndex(22),
-        Pickable::IGNORE,
-        TexasActionFeedback {
-            kind: label.kind,
-            elapsed: label.elapsed,
-        },
-        action_feedback_transform(label.kind, label.elapsed),
-    ));
-    let text = add_text(
+    commands
+        .entity(title)
+        .insert((ZIndex(22), Pickable::IGNORE));
+    add_table_status(
         commands,
         title,
-        label.text,
-        font_size,
-        action_feedback_text_color(label.kind, label.color, label.elapsed),
+        TableStatusSpec {
+            text: label.text,
+            font_size,
+            color: label.color,
+            effect: label.kind.into(),
+            elapsed: Some(label.elapsed),
+        },
         assets,
     );
-    commands.entity(text).insert(TexasActionFeedbackText {
-        color: label.color,
-        kind: label.kind,
-        elapsed: label.elapsed,
-    });
 }
 
 pub(super) fn add_fold_card_feedback(
@@ -359,7 +334,7 @@ pub(super) fn add_fold_card_feedback(
         let face = own_cards
             .and_then(|cards| cards.get(index))
             .copied()
-            .map(|card| texas_card_face(card, assets));
+            .map(|card| assets.playing_cards.face(card));
         let visual = fold_card_visual(index, card_count, elapsed, own);
         let initial_image = if visual.face_visible {
             face.clone()
@@ -455,7 +430,7 @@ fn add_own_fold_tooltip(
                     border_radius: BorderRadius::all(px(4)),
                     ..default()
                 },
-                ImageNode::new(texas_card_face(card, assets)),
+                ImageNode::new(assets.playing_cards.face(card)),
                 Pickable::IGNORE,
             ),
         );
@@ -495,7 +470,7 @@ fn add_revealed_hole_cards(
         ZIndex(20),
     ));
     for card in cards.iter().copied() {
-        let image = texas_card_face(card, assets);
+        let image = assets.playing_cards.face(card);
         commands.child(
             hand,
             (
@@ -512,47 +487,18 @@ fn add_revealed_hole_cards(
     }
 }
 
-fn add_chip_sprite(
-    commands: &mut UiComposer,
-    layer: Entity,
-    chip: &TableChip,
-    assets: &UiAssets,
-    game_assets: &TexasHoldemAssets,
-) {
-    let Some(image) = game_assets.poker_chips.get(&chip.denomination) else {
-        return;
-    };
-    let entity = commands.child(
-        layer,
-        (
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(chip.position.x),
-                top: px(chip.position.y),
-                width: px(CHIP_SIZE),
-                height: px(CHIP_SIZE),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            ImageNode::new(image.clone()),
-            UiTransform::from_rotation(Rot2::radians(chip.rotation)),
-            TexasChipSprite(chip.id),
-            ZIndex((chip.id % 200) as i32),
-            Pickable::IGNORE,
-        ),
-    );
-    let color = if chip.denomination == 1 {
-        HEADER_BG
-    } else {
-        TEXT
-    };
-    add_text(
+fn add_chip_sprite(commands: &mut UiComposer, layer: Entity, chip: &TableChip, assets: &UiAssets) {
+    let entity = add_poker_chip(
         commands,
-        entity,
-        chip.denomination.to_string(),
-        9.0,
-        color,
+        layer,
+        PokerChipVisual {
+            denomination: chip.denomination,
+            position: chip.position,
+            size: CHIP_SIZE,
+            rotation: chip.rotation,
+            layer: (chip.id % 200) as i32,
+        },
         assets,
     );
+    commands.entity(entity).insert(TexasChipSprite(chip.id));
 }

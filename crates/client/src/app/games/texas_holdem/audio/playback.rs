@@ -3,15 +3,16 @@
 //! 音效只由服务器事件入队，与可重复重建的 UI 实体解耦，避免一次动作因界面刷新
 //! 被反复播放。密集筹码动作按“动作”聚合成少量错开的采样，不逐枚筹码发声。
 
-use super::super::{TexasChipTableState, TexasHoldemAssets};
+use super::super::TexasChipTableState;
 use super::*;
 use crate::app::runtime::AppearancePreferences;
 use bevy::audio::Volume;
 use bevy::prelude::*;
 use leocard_protocol::PlayerGender;
 use leocard_texas_holdem::TexasHoldemAction;
+use std::mem;
 
-#[derive(Default)]
+#[derive(Resource, Default)]
 pub(crate) struct TexasSoundAssets {
     pub(super) chip_lay: Vec<Handle<AudioSource>>,
     pub(super) chip_handle: Vec<Handle<AudioSource>>,
@@ -253,7 +254,7 @@ pub(in crate::app::games::texas_holdem) fn queue_texas_turn_sound(
 
 pub(in crate::app::games::texas_holdem) fn play_texas_audio_cues(
     time: Res<Time>,
-    assets: Res<TexasHoldemAssets>,
+    assets: Res<TexasSoundAssets>,
     preferences: Res<AppearancePreferences>,
     mut state: ResMut<TexasChipTableState>,
     playing_voices: Query<Entity, With<TexasVoicePlayback>>,
@@ -271,7 +272,7 @@ pub(in crate::app::games::texas_holdem) fn play_texas_audio_cues(
         && let Some(voice) = voices.pending.pop_front()
     {
         commands.spawn((
-            AudioPlayer::new(assets.sounds.voice(voice)),
+            AudioPlayer::new(assets.voice(voice)),
             PlaybackSettings {
                 volume: Volume::Linear(0.80),
                 ..PlaybackSettings::DESPAWN
@@ -288,7 +289,7 @@ pub(in crate::app::games::texas_holdem) fn play_texas_audio_cues(
 
     let mut waiting = Vec::with_capacity(state.audio_cues.len());
     let mut ready = Vec::new();
-    for mut cue in std::mem::take(&mut state.audio_cues) {
+    for mut cue in mem::take(&mut state.audio_cues) {
         cue.remaining -= time.delta_secs();
         if cue.remaining <= 0.0 {
             ready.push(cue);
@@ -299,7 +300,7 @@ pub(in crate::app::games::texas_holdem) fn play_texas_audio_cues(
     state.audio_cues = waiting;
 
     for cue in ready {
-        let variants = assets.sounds.variants(cue.kind);
+        let variants = assets.variants(cue.kind);
         if variants.is_empty() {
             continue;
         }
@@ -316,6 +317,13 @@ pub(in crate::app::games::texas_holdem) fn play_texas_audio_cues(
             },
         ));
     }
+}
+
+pub(in crate::app::games::texas_holdem) fn load_texas_sounds(
+    mut commands: Commands,
+    server: Res<AssetServer>,
+) {
+    commands.insert_resource(TexasSoundAssets::load(&server));
 }
 
 #[cfg(test)]

@@ -5,6 +5,7 @@
 
 mod achievements;
 mod automation;
+mod blackjack;
 mod lifecycle;
 mod mahjong;
 mod minecraft_guess;
@@ -17,7 +18,9 @@ mod texas_holdem;
 mod uno;
 
 use automation::{AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState};
+pub use blackjack::BlackjackSession;
 use ed25519_dalek::{Signature, VerifyingKey};
+use leocard_blackjack::GameError as BlackjackError;
 use leocard_protocol::{
     AVATAR_DIMENSION, JoinRequest, MAX_AVATAR_BYTES, MatchId, RoomId, ServerMessage,
 };
@@ -44,6 +47,7 @@ pub struct Delivery {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HostError {
     InvalidRules(RuleError),
+    InvalidBlackjackGame(BlackjackError),
     InvalidTexasRules(leocard_texas_holdem::RuleError),
     InvalidShengjiGame(leocard_shengji::GameError),
     InvalidUnoGame(leocard_uno::GameError),
@@ -57,6 +61,7 @@ impl fmt::Display for HostError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidRules(error) => error.fmt(f),
+            Self::InvalidBlackjackGame(error) => write!(f, "21 点配置错误：{error:?}"),
             Self::InvalidTexasRules(error) => error.fmt(f),
             Self::InvalidShengjiGame(error) => error.fmt(f),
             Self::InvalidUnoGame(error) => error.fmt(f),

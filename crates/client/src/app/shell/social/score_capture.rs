@@ -171,12 +171,7 @@ fn spawn_score_capture_effect(
             .unwrap_or(source_center);
         let card_source =
             group_center + Vec2::new(offset_x, -CardSize::TableScore.dimensions().1 * 0.5);
-        let image = assets
-            .playing_cards
-            .cards
-            .get(&(card.rank(), card.suit()))
-            .expect("all valid card faces are preloaded")
-            .clone();
+        let image = assets.playing_cards.face(card);
         commands.child(
             layer,
             (

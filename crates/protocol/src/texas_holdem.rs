@@ -6,6 +6,7 @@ use leocard_texas_holdem::{
     TexasHoldemStreet,
 };
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// 面向单个德州扑克客户端的私有快照。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -112,4 +113,43 @@ pub struct TexasHoldemPotAward {
     pub amount: u32,
     pub winners: Vec<PlayerId>,
     pub winning_category: Option<TexasHoldemHandCategory>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum TexasHoldemViolation {
+    InvalidPlayer,
+    NotPlayersTurn,
+    HandAlreadyComplete,
+    PlayerCannotAct,
+    MustPostBlind,
+    NoBlindToPost,
+    CannotCheckWhileFacingBet { amount_to_call: u32 },
+    NothingToCall,
+    RaiseMustExceedCurrentBet { current_bet: u32, target: u32 },
+    RaiseBelowMinimum { minimum_target: u32, target: u32 },
+    RaiseExceedsStack { maximum_target: u32, target: u32 },
+    RaiseNotReopened,
+    RaiseExceedsLimit { maximum_target: u32, target: u32 },
+    RaiseLimitReached,
+}
+
+impl fmt::Display for TexasHoldemViolation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::InvalidPlayer => "玩家身份无效",
+            Self::NotPlayersTurn => "还没有轮到你行动",
+            Self::HandAlreadyComplete => "这一手已经结束",
+            Self::PlayerCannotAct => "弃牌、全下或离线玩家不能继续行动",
+            Self::MustPostBlind => "当前只能下盲注",
+            Self::NoBlindToPost => "当前没有需要下的盲注",
+            Self::CannotCheckWhileFacingBet { .. } => "面对下注时不能过牌",
+            Self::NothingToCall => "当前没有需要跟注的筹码",
+            Self::RaiseMustExceedCurrentBet { .. } => "加注必须超过当前最高注",
+            Self::RaiseBelowMinimum { .. } => "加注没有达到本轮最小额度",
+            Self::RaiseExceedsStack { .. } => "加注额度超过了你的可用筹码",
+            Self::RaiseNotReopened => "本轮下注尚未重新开放加注",
+            Self::RaiseExceedsLimit { .. } => "加注超过了固定限注额度",
+            Self::RaiseLimitReached => "本轮已达到三次加注上限",
+        })
+    }
 }

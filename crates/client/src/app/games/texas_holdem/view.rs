@@ -1,15 +1,15 @@
 //! 德州扑克牌桌视图。房间、聊天、头像、桌布和按钮资源均复用公共客户端层。
 
 use super::{
-    TexasChipTableState, TexasHoldemAssets, TexasHoldemUiAction, TexasHoldemUiState,
-    add_texas_board_back, add_texas_board_face, add_texas_chip_areas, add_texas_draw_pile,
-    add_texas_hand_result, add_texas_opponent, add_texas_own_area, add_texas_showdown_reveal,
-    render_texas_spectator_drawer, spawn_texas_initial_deal, street_label,
+    TexasChipTableState, TexasHoldemUiAction, TexasHoldemUiState, add_texas_board_back,
+    add_texas_board_face, add_texas_chip_areas, add_texas_hand_result, add_texas_opponent,
+    add_texas_own_area, add_texas_showdown_reveal, render_texas_spectator_drawer,
+    spawn_texas_initial_deal, street_label,
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT, TableBackground,
-    TableBackgroundMaterial, TurnBorderMaterial, UiComposer, add_auto_play_overlay, add_text,
-    spawn_node, table_material_params, ui_component,
+    TableBackgroundMaterial, TurnBorderMaterial, UiComposer, add_auto_play_overlay,
+    add_playing_card_pile, add_text, spawn_node, table_material_params, ui_component,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{
@@ -23,7 +23,6 @@ use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHold
 
 pub(crate) struct TexasTableVisuals<'a> {
     pub assets: &'a UiAssets,
-    pub game_assets: &'a TexasHoldemAssets,
     pub avatars: &'a AvatarImages,
     pub appearance: &'a TableAppearance,
     pub brightness: f32,
@@ -51,7 +50,6 @@ pub(crate) fn render_texas_holdem_table(
 ) {
     let TexasTableVisuals {
         assets,
-        game_assets,
         avatars,
         appearance,
         brightness,
@@ -133,7 +131,6 @@ pub(crate) fn render_texas_holdem_table(
                 game,
                 social.interaction_menu_open,
                 assets,
-                game_assets,
                 avatars,
                 turn_border_materials,
                 chip_state,
@@ -154,7 +151,6 @@ pub(crate) fn render_texas_holdem_table(
             ui,
             social.interaction_menu_open,
             assets,
-            game_assets,
             avatars,
             turn_border_materials,
             chip_state,
@@ -182,15 +178,7 @@ pub(crate) fn render_texas_holdem_table(
         },
         |rules| if rules.omaha { 4 } else { 2 },
     );
-    add_texas_chip_areas(
-        commands,
-        table,
-        game,
-        hole_card_count,
-        chip_state,
-        assets,
-        game_assets,
-    );
+    add_texas_chip_areas(commands, table, game, hole_card_count, chip_state, assets);
     add_community_area(
         commands,
         table,
@@ -208,7 +196,6 @@ pub(crate) fn render_texas_holdem_table(
         ui,
         social.interaction_menu_open,
         assets,
-        game_assets,
         avatars,
         turn_border_materials,
         chip_state,
@@ -294,7 +281,7 @@ fn add_community_area(
         },
         None,
     );
-    add_texas_draw_pile(commands, pile_column, visual_draw_pile, assets);
+    add_playing_card_pile(commands, pile_column, visual_draw_pile, assets);
     add_text(
         commands,
         pile_column,

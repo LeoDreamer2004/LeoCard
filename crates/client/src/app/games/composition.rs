@@ -1,5 +1,9 @@
 //! 游戏大厅与牌桌的运行期组合边界。
 
+use super::blackjack::{
+    BlackjackPlayback, BlackjackTable, BlackjackUiState, render_blackjack_lobby,
+    render_blackjack_table,
+};
 use super::mahjong::{
     MahjongAssets, MahjongClaimPresentationState, MahjongFanCalculator, MahjongTableVisuals,
     MahjongTileMaterial, MahjongUiState, render_mahjong_lobby, render_mahjong_table,
@@ -18,8 +22,8 @@ use super::shengji::{
     render_shengji_table,
 };
 use super::texas_holdem::{
-    TexasChipTableState, TexasHoldemAssets, TexasHoldemUiState, TexasTableVisuals,
-    render_texas_holdem_lobby, render_texas_holdem_table,
+    TexasChipTableState, TexasHoldemUiState, TexasTableVisuals, render_texas_holdem_lobby,
+    render_texas_holdem_table,
 };
 use super::uno::{
     UnoAssets, UnoJumpInDevice, UnoTableVisuals, UnoUiState, render_uno_lobby, render_uno_table,
@@ -39,12 +43,13 @@ use leocard_protocol::{GameKind, GameSnapshot, LobbySnapshot, PlayerId};
 
 #[derive(SystemParam)]
 pub(crate) struct GameScreenResources<'w> {
+    blackjack_ui: ResMut<'w, BlackjackUiState>,
+    blackjack_playback: Res<'w, BlackjackPlayback>,
     minecraft_guess_assets: Res<'w, MinecraftGuessAssets>,
     minecraft_guess_ui: Res<'w, MinecraftGuessUiState>,
     minecraft_guess_scores: Res<'w, GuessScorePlayback>,
     minecraft_guess_feedback: Res<'w, GuessFeedback>,
     qigui523_assets: Res<'w, QiGui523Assets>,
-    texas_holdem_assets: Res<'w, TexasHoldemAssets>,
     shengji_assets: Res<'w, ShengjiAssets>,
     uno_assets: Res<'w, UnoAssets>,
     mahjong_assets: Res<'w, MahjongAssets>,
@@ -88,6 +93,13 @@ impl GameScreenResources<'_> {
             self.uno_ui.expansion_settings_progress = 0.0;
         }
         match phase {
+            ClientPhaseRef::Playing(GameSnapshot::Blackjack(game)) => {
+                self.blackjack_ui.reconcile(game);
+                self.clear_except(GameKind::Blackjack);
+                retain_or_clear(shell, |target| {
+                    game.players.iter().any(|player| player.player.id == target)
+                });
+            }
             ClientPhaseRef::Playing(GameSnapshot::MinecraftGuess(game)) => {
                 self.clear_except(GameKind::MinecraftGuess);
                 retain_or_clear(shell, |target| {
@@ -136,6 +148,9 @@ impl GameScreenResources<'_> {
     }
 
     fn clear_except(&mut self, active: GameKind) {
+        if active != GameKind::Blackjack {
+            self.blackjack_ui.clear();
+        }
         if active != GameKind::QiGui523 {
             self.qigui523_ui.clear();
         }
@@ -154,6 +169,7 @@ impl GameScreenResources<'_> {
     }
 
     fn clear_tables(&mut self) {
+        self.blackjack_ui.clear();
         self.qigui523_ui.clear();
         self.texas_holdem_ui.clear();
         self.shengji_ui.clear();
@@ -173,6 +189,9 @@ impl GameScreenResources<'_> {
         avatars: &AvatarImages,
     ) {
         match lobby.game {
+            GameKind::Blackjack => {
+                render_blackjack_lobby(commands, root, client, lobby, assets, avatars)
+            }
             GameKind::MinecraftGuess => render_guess_lobby(
                 commands,
                 root,
@@ -217,6 +236,27 @@ impl GameScreenResources<'_> {
         game_summary: &GameSummaryAnimation,
     ) {
         match game {
+            GameSnapshot::Blackjack(game) => render_blackjack_table(
+                commands,
+                root,
+                BlackjackTable {
+                    client,
+                    game,
+                    ui: &self.blackjack_ui,
+                    playback: &self.blackjack_playback,
+                    social: &ui.social,
+                    chat,
+                    assets,
+                    avatars,
+                    appearance,
+                    brightness: form.table_brightness,
+                    vignette: form.table_vignette,
+                    table_materials: &mut self.table_materials,
+                    turn_materials: &mut self.turn_border_materials,
+                    transition: &self.start_game_transition,
+                    summary: game_summary,
+                },
+            ),
             GameSnapshot::MinecraftGuess(game) => render_guess_table(
                 commands,
                 root,
@@ -273,7 +313,6 @@ impl GameScreenResources<'_> {
                 chat,
                 TexasTableVisuals {
                     assets,
-                    game_assets: &self.texas_holdem_assets,
                     avatars,
                     appearance,
                     brightness: form.table_brightness,

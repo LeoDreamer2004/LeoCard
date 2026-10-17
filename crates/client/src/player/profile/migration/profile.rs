@@ -90,7 +90,7 @@ struct PreDetailedStoredRatingProfile {
     applied_matches: Vec<MatchId>,
 }
 
-fn decode_exact<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, postcard::Error> {
+pub(super) fn decode_exact<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, postcard::Error> {
     let (value, rest) = postcard::take_from_bytes(bytes)?;
     if !rest.is_empty() {
         return Err(postcard::Error::DeserializeBadEncoding);
@@ -106,10 +106,14 @@ pub(in crate::player::profile) fn decode_player_profile(
     if let Some(current) = bytes.strip_prefix(PROFILE_HEADER) {
         return decode_exact(current).map_err(|error| format!("玩家档案已损坏：{error}"));
     }
+    if let Some(previous) = bytes.strip_prefix(super::blackjack::V1_PROFILE_HEADER) {
+        return super::blackjack::decode_v1(previous);
+    }
     match decode_exact::<SixSeatUnoStoredPlayerProfile>(bytes) {
         Ok(previous) => Ok(StoredPlayerProfile {
             secret_key: previous.secret_key,
             games: StoredGameProfiles {
+                blackjack_stats: None,
                 qigui523: previous.games.qigui523,
                 texas_holdem_stats: previous.games.texas_holdem_stats,
                 shengji_stats: previous.games.shengji_stats,
@@ -124,6 +128,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats,
                         shengji_stats: previous.games.shengji_stats,
@@ -138,6 +143,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats,
                         shengji_stats: previous.games.shengji_stats,
@@ -152,6 +158,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats,
                         shengji_stats: previous.games.shengji_stats,
@@ -166,6 +173,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats,
                         shengji_stats: previous.games.shengji_stats,
@@ -180,6 +188,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats,
                         shengji_stats: previous.games.shengji_stats,
@@ -194,6 +203,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats,
                         shengji_stats: None,
@@ -208,6 +218,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: None,
                         shengji_stats: None,
@@ -223,6 +234,7 @@ pub(in crate::player::profile) fn decode_player_profile(
             Ok(StoredPlayerProfile {
                 secret_key: previous.secret_key,
                 games: StoredGameProfiles {
+                    blackjack_stats: None,
                     qigui523: StoredRatingProfile {
                         reference_points: previous.games.qigui523.reference_points,
                         completed_games: previous.games.qigui523.completed_games,
@@ -240,7 +252,3 @@ pub(in crate::player::profile) fn decode_player_profile(
         }
     }
 }
-
-#[cfg(test)]
-#[path = "profile_tests.rs"]
-mod tests;

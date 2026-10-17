@@ -3,6 +3,7 @@
 pub(crate) mod actions;
 mod assets;
 mod audio;
+mod card_face;
 mod counter;
 mod hand_interaction;
 mod hints;
@@ -16,7 +17,6 @@ mod snapshot;
 mod state;
 mod throw_feedback;
 mod view;
-pub(super) mod violation;
 
 pub(crate) use actions::*;
 pub(crate) use assets::*;

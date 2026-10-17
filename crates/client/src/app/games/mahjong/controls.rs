@@ -133,7 +133,6 @@ pub(super) fn render_action_bar(
                     MahjongUiAction::Respond(claim),
                     tone,
                     assets,
-                    game_assets,
                 );
             }
         }
@@ -144,7 +143,6 @@ pub(super) fn render_action_bar(
             MahjongUiAction::Respond(MahjongClaim::Pass),
             ActionTone::Pass,
             assets,
-            game_assets,
         );
         return;
     }
@@ -156,7 +154,6 @@ pub(super) fn render_action_bar(
             MahjongUiAction::SelfDraw,
             ActionTone::Win,
             assets,
-            game_assets,
         );
     }
     let mut kongs = game
@@ -222,15 +219,7 @@ fn add_choice_button(
     } else {
         MahjongUiAction::ToggleChoiceMenu(menu)
     };
-    let anchor = add_mahjong_button(
-        commands,
-        bar,
-        label,
-        action,
-        ActionTone::Normal,
-        assets,
-        game_assets,
-    );
+    let anchor = add_mahjong_button(commands, bar, label, action, ActionTone::Normal, assets);
     if choices.len() < 2 || ui.choice_menu != Some(menu) {
         return;
     }
@@ -322,7 +311,6 @@ fn add_mahjong_button(
     action: MahjongUiAction,
     tone: ActionTone,
     assets: &UiAssets,
-    game_assets: &MahjongAssets,
 ) -> Entity {
     let anchor = spawn_node(
         commands,
@@ -336,9 +324,18 @@ fn add_mahjong_button(
         None,
     );
     let (normal, hovered) = match tone {
-        ActionTone::Normal => (&game_assets.action_button, &game_assets.action_button_hover),
-        ActionTone::Pass => (&game_assets.action_pass, &game_assets.action_pass_hover),
-        ActionTone::Win => (&game_assets.action_win, &game_assets.action_win_hover),
+        ActionTone::Normal => (
+            &assets.controls.game_play_button,
+            &assets.controls.game_play_button_hover,
+        ),
+        ActionTone::Pass => (
+            &assets.controls.game_pass_button,
+            &assets.controls.game_pass_button_hover,
+        ),
+        ActionTone::Win => (
+            &assets.controls.game_warning_button,
+            &assets.controls.game_warning_button_hover,
+        ),
     };
     let button = commands.child(
         anchor,

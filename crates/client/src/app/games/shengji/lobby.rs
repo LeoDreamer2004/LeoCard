@@ -88,7 +88,7 @@ pub(crate) fn render_shengji_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "开启后首家可以甩出同门的单张、对子和拖拉机组合；甩牌失败会被强制改出最小可失败牌型。",
+            help: "开启后首家可以甩出同门组合牌型，甩牌失败会被强制改出最小可失败牌型。",
             editable: can_configure,
             previous: can_configure.then_some(throw_toggled),
             next: can_configure.then_some(throw_toggled),
@@ -110,7 +110,7 @@ pub(crate) fn render_shengji_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "庄家埋底后，从庄家下家开始按座次依次询问其他玩家；当前亮主者和上一位埋底者自动不抄底，其余玩家即使没有可抄底的牌也会被询问。每次抄底都公开反主牌、取得当前底牌并重新埋底，然后继续询问，直到一整轮无人再抄底。抄底永远不改变庄家，但实际通过扳底定庄的对局禁用。",
+            help: "庄家埋底后，从庄家下家开始按座次依次询问其他玩家。每次抄底取得当前底牌并重新埋底，然后继续询问，直到一整轮无人再抄底。抄底不改变庄家，但扳底定庄的对局不允许抄底。",
             editable: can_configure,
             previous: can_configure.then_some(bottom_copy_toggled),
             next: can_configure.then_some(bottom_copy_toggled),
@@ -189,7 +189,7 @@ pub(crate) fn render_shengji_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "开启后红桃/方块必须带一张大王，梅花/黑桃必须带一张小王；本人已经亮过的王可以复用。无主不能首亮，只能用于反主。",
+            help: "开启后红桃/方块必须带一张大王，梅花/黑桃必须带一张小王。无主不能首亮，只能用于反主。",
             editable: can_configure,
             previous: can_configure.then_some(bid_with_joker_toggled),
             next: can_configure.then_some(bid_with_joker_toggled),
@@ -211,7 +211,7 @@ pub(crate) fn render_shengji_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "第一次无人亮主时保持手牌不动，由当前庄家的下家直接接庄，改打新庄家一方的级牌并重新亮主 10 秒；不产生上台积分。",
+            help: "第一次无人亮主时保持手牌不动，由当前庄家的下家直接接庄，改打新庄家一方的级牌并重新亮主。",
             editable: can_configure,
             previous: can_configure.then_some(power_outage_dealer_toggled),
             next: can_configure.then_some(power_outage_dealer_toggled),
@@ -277,7 +277,7 @@ pub(crate) fn render_shengji_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "开启后双方从 3 开始，2 永远为主牌；牌力位于本局级牌和主牌 A 之间，并区分主 2 与副 2。",
+            help: "开启后双方从 3 开始，2 永远为主牌，牌力位于本局级牌和主牌 A 之间。",
             editable: can_configure,
             previous: can_configure.then_some(constant_trump_toggled),
             next: can_configure.then_some(constant_trump_toggled),

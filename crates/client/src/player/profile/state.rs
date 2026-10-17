@@ -4,9 +4,9 @@ use super::super::{PlayerIdentity, config_file};
 use super::migration;
 use bevy::prelude::Resource;
 use leocard_protocol::{
-    MahjongProfileStats, MatchId, MinecraftGuessProfileStats, PlayerGameProfiles,
-    PlayerInteractionStats, PlayerReferenceChange, QiGui523ProfileStats, ShengjiProfileStats,
-    TexasHoldemProfileStats, UnoProfileStats,
+    BlackjackProfileStats, MahjongProfileStats, MatchId, MinecraftGuessProfileStats,
+    PlayerGameProfiles, PlayerInteractionStats, PlayerReferenceChange, QiGui523ProfileStats,
+    ShengjiProfileStats, TexasHoldemProfileStats, UnoProfileStats,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -15,7 +15,7 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
-pub(super) const PROFILE_HEADER: &[u8] = b"LeoCard/profile/v1\0";
+pub(super) const PROFILE_HEADER: &[u8] = b"LeoCard/profile/v2\0";
 
 fn player_profile_path() -> Option<PathBuf> {
     config_file("profile.dat")
@@ -44,6 +44,7 @@ pub(super) struct StoredGameProfiles {
     pub(super) interaction_stats: Option<PlayerInteractionStats>,
     pub(super) mahjong_stats: Option<MahjongProfileStats>,
     pub(super) minecraft_guess_stats: Option<MinecraftGuessProfileStats>,
+    pub(super) blackjack_stats: Option<BlackjackProfileStats>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -93,6 +94,7 @@ impl LocalPlayerProfile {
                     interactions: stored.games.interaction_stats,
                     mahjong: stored.games.mahjong_stats,
                     minecraft_guess: stored.games.minecraft_guess_stats,
+                    blackjack: stored.games.blackjack_stats,
                 },
             });
         }
@@ -133,6 +135,7 @@ impl LocalPlayerProfile {
                 interaction_stats: self.game_profiles.interactions.clone(),
                 mahjong_stats: self.game_profiles.mahjong.clone(),
                 minecraft_guess_stats: self.game_profiles.minecraft_guess.clone(),
+                blackjack_stats: self.game_profiles.blackjack.clone(),
             },
         };
         let bytes = stored

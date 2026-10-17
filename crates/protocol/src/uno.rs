@@ -3,6 +3,7 @@ use crate::{
 };
 use leocard_uno::{UnoCard, UnoColor, UnoDirection, UnoFlipSide, UnoPendingDrawKind, UnoRuleSet};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// 面向单个 UNO 客户端的私有快照。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -93,4 +94,73 @@ pub struct UnoPlayerResult {
 pub struct UnoRevealedHand {
     pub player: PlayerId,
     pub cards: Vec<UnoCard>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum UnoViolation {
+    InvalidPlayer,
+    PlayerEliminated,
+    NotPlayersTurn,
+    GameAlreadyFinished,
+    InitialColorChoiceRequired,
+    InitialColorAlreadyChosen,
+    CardNotInHand,
+    CardDoesNotMatch,
+    ColorRequired,
+    UnexpectedColor,
+    MustPlayDrawnCard,
+    MustResolveDrawPenalty,
+    NoDrawPenalty,
+    CannotStack,
+    CannotChallenge,
+    MustDrawBeforePassing,
+    MustResolveSkip,
+    NoSkipToResolve,
+    UnoCalloutDisabled,
+    CannotCallUno,
+    MustPlayAfterUno,
+    CannotReportSelf,
+    PlayerNotReportable,
+    CannotPlayTogether,
+    CannotJumpIn,
+    MustResolveSwapEffect,
+    NoSwapEffect,
+    InvalidSwapTargets,
+    DrawPileExhausted,
+}
+
+impl fmt::Display for UnoViolation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::InvalidPlayer => "玩家身份无效",
+            Self::PlayerEliminated => "你已经被淘汰，不能继续操作",
+            Self::NotPlayersTurn => "还没有轮到你行动",
+            Self::GameAlreadyFinished => "游戏已经结束",
+            Self::InitialColorChoiceRequired => "请先为起始万能牌选择颜色",
+            Self::InitialColorAlreadyChosen => "当前不需要选择起始颜色",
+            Self::CardNotInHand => "这张牌不在你的手中",
+            Self::CardDoesNotMatch => "这张牌与当前颜色、数字或符号不匹配",
+            Self::ColorRequired => "万能牌必须选择后续颜色",
+            Self::UnexpectedColor => "普通牌不能指定后续颜色",
+            Self::MustPlayDrawnCard => "摸牌后只能打出刚摸到的牌",
+            Self::MustResolveDrawPenalty => "请先叠加、质疑或接受累计罚牌",
+            Self::NoDrawPenalty => "当前没有待结算的罚牌",
+            Self::CannotStack => "这张牌不能叠加到当前罚牌上",
+            Self::CannotChallenge => "当前没有可质疑的万能摸四",
+            Self::MustDrawBeforePassing => "必须先摸牌，才能结束回合",
+            Self::MustResolveSkip => "请先叠加禁手或接受累计禁手",
+            Self::NoSkipToResolve => "当前没有待结算的禁手",
+            Self::UnoCalloutDisabled => "本房间没有启用 UNO 宣告与检举",
+            Self::CannotCallUno => "你当前不能宣告 UNO",
+            Self::MustPlayAfterUno => "喊出 UNO 后，本回合必须出牌至只剩一张",
+            Self::CannotReportSelf => "不能检举自己",
+            Self::PlayerNotReportable => "该玩家当前不可被检举",
+            Self::CannotPlayTogether => "这些牌当前不能一次打出",
+            Self::CannotJumpIn => "抢出窗口已经关闭",
+            Self::DrawPileExhausted => "摸牌堆已经耗尽",
+            Self::MustResolveSwapEffect => "请先完成当前换牌效果",
+            Self::NoSwapEffect => "当前没有待处理的换牌效果",
+            Self::InvalidSwapTargets => "请选择符合要求且互不重复的玩家",
+        })
+    }
 }

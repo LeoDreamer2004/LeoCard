@@ -1,8 +1,9 @@
-use super::super::summary::{RankedSummary, SummaryPlayer, add_ranked_summary};
 use crate::app::presentation::{
-    GameSummaryAnimation, SUMMARY_HAND_REVEAL_DURATION, SummaryDescriptor, UiComposer,
+    GameSummaryAnimation, RankedSummary, SUMMARY_HAND_REVEAL_DURATION, SummaryDescriptor,
+    SummaryPlayer, UiComposer, add_ranked_summary,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
+use crate::app::shell::{SummaryActions, add_summary_actions};
 use bevy::prelude::*;
 use leocard_protocol::{GamePhaseView, QiGui523Snapshot};
 
@@ -18,7 +19,6 @@ pub(crate) fn qigui523_summary_descriptor(game: &QiGui523Snapshot) -> Option<Sum
     };
     Some(SummaryDescriptor {
         match_id: *match_id,
-        texas_hand_number: None,
         settlement_index: None,
         entry_count: scores.len(),
         nonnegative_outcome: reference_changes
@@ -52,12 +52,10 @@ pub(super) fn add_game_summary_modal(
         .find(|player| player.id == *finisher)
         .map_or("玩家", |player| player.name.as_str());
     let caption = format!("{finisher_name} 率先出完手牌");
-    add_ranked_summary(
+    let actions = add_ranked_summary(
         commands,
         table,
         &RankedSummary {
-            you: game.you,
-            host: game.host,
             players: game
                 .players
                 .iter()
@@ -72,10 +70,24 @@ pub(super) fn add_game_summary_modal(
             reference_changes,
             title: "本局结算",
             caption: &caption,
-            again: "再来一局",
+            score_unit: "分",
         },
         assets,
         avatars,
         animation,
+    );
+    add_summary_actions(
+        commands,
+        actions,
+        SummaryActions {
+            is_host: game.you == game.host,
+            ready: game
+                .players
+                .iter()
+                .find(|player| player.id == game.you)
+                .is_some_and(|player| player.ready),
+            again: "再来一局",
+        },
+        assets,
     );
 }

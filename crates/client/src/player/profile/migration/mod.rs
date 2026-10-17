@@ -1,3 +1,4 @@
+mod blackjack;
 mod minecraft_guess;
 mod profile;
 mod uno;

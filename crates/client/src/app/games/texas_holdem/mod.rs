@@ -5,8 +5,8 @@
 
 mod action_feedback;
 pub(crate) mod actions;
-mod assets;
 mod audio;
+mod card_face;
 mod cards;
 mod chips;
 mod controls;
@@ -21,11 +21,9 @@ mod showdown;
 mod spectator;
 mod state;
 mod view;
-pub(super) mod violation;
 
 pub(crate) use action_feedback::*;
 pub(crate) use actions::*;
-pub(crate) use assets::*;
 use audio::*;
 pub(crate) use cards::*;
 pub(crate) use chips::*;

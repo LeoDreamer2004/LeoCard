@@ -5,8 +5,9 @@ use bevy::ui_widgets::Button;
 
 use super::super::{
     ProfileGameColumn, ProfileGameContent, ProfileGameTab, ProfileGameTabButton,
-    SelectedProfileGameTab, TAB_IDLE, mahjong_profile_rows, minecraft_guess_profile_rows,
-    qigui523_profile_rows, shengji_profile_rows, texas_holdem_profile_rows, uno_profile_rows,
+    SelectedProfileGameTab, TAB_IDLE, blackjack_profile_rows, mahjong_profile_rows,
+    minecraft_guess_profile_rows, qigui523_profile_rows, shengji_profile_rows,
+    texas_holdem_profile_rows, uno_profile_rows,
 };
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
@@ -77,6 +78,9 @@ impl<'a> ProfileArchive<'a> {
         );
         commands.entity(content).insert(ProfileGameContent);
         let rows = match self.selected_game {
+            ProfileGameTab::Blackjack => {
+                blackjack_profile_rows(self.game_profiles.blackjack.as_ref())
+            }
             ProfileGameTab::QiGui523 => qigui523_profile_rows(self.game_profiles.qigui523.as_ref()),
             ProfileGameTab::TexasHoldem => {
                 texas_holdem_profile_rows(self.game_profiles.texas_holdem.as_ref())

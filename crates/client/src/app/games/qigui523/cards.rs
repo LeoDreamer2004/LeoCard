@@ -48,12 +48,7 @@ pub(super) fn add_card_button(
         is_last,
     } = spec;
     let (width, height) = CardSize::QiGuiHand.dimensions();
-    let image = assets
-        .playing_cards
-        .cards
-        .get(&(card.rank(), card.suit()))
-        .expect("all valid card faces are preloaded")
-        .clone();
+    let image = assets.playing_cards.face(card);
     let initial_pose = hand_card_pose(
         index,
         hand_len,

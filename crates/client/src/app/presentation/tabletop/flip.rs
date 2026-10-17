@@ -2,12 +2,11 @@ use super::TablePieceDeal;
 use crate::app::presentation::ease_out_cubic;
 use bevy::prelude::*;
 
-pub(crate) const CARD_FLIP_DURATION: f32 = 0.34;
-
 #[derive(Component)]
 pub(crate) struct PlayingCardFlip {
     elapsed: f32,
     delay: f32,
+    duration: f32,
     face: Handle<Image>,
     back: Handle<Image>,
     face_visible: bool,
@@ -19,11 +18,17 @@ impl PlayingCardFlip {
         Self {
             elapsed: 0.0,
             delay,
+            duration: 0.34,
             face,
             back,
             face_visible: false,
             finished: false,
         }
+    }
+
+    pub(crate) fn with_duration(mut self, duration: f32) -> Self {
+        self.duration = duration;
+        self
     }
 
     pub(crate) fn has_revealed(&self) -> bool {
@@ -45,7 +50,7 @@ pub(crate) fn animate_playing_card_flips(
             continue;
         }
         flip.elapsed += time.delta_secs();
-        let progress = ((flip.elapsed - flip.delay) / CARD_FLIP_DURATION).clamp(0.0, 1.0);
+        let progress = ((flip.elapsed - flip.delay) / flip.duration).clamp(0.0, 1.0);
         flip.face_visible = progress >= 0.5;
         image.image = if flip.face_visible {
             flip.face.clone()

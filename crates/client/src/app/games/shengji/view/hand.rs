@@ -22,9 +22,6 @@ use bevy::ui_widgets::Button;
 use leocard_protocol::{GameKind, PlayerId, ShengjiPhaseView, ShengjiPlayerState, ShengjiSnapshot};
 use leocard_shengji::{ShengjiCard, ShengjiTrump};
 
-/// 每位玩家相邻两张可见手牌的发牌间隔；对应全桌约 100ms 发一张牌。
-const SHENGJI_LOCAL_DEAL_INTERVAL: f32 = 0.40;
-
 pub(super) fn add_shengji_hand(
     commands: &mut UiComposer,
     hand_area: Entity,
@@ -221,7 +218,8 @@ pub(crate) fn queue_shengji_deal_animations(
     let animate_deal = intro_deal || matches!(game.phase, ShengjiPhaseView::Dealing { .. });
     for (index, card) in new_cards.into_iter().enumerate() {
         let delay = if animate_deal {
-            index as f32 * SHENGJI_LOCAL_DEAL_INTERVAL
+            // 每位玩家相邻两张牌间隔 0.4 秒，对应全桌约 100ms 发一张。
+            index as f32 * 0.40
         } else {
             0.0
         };

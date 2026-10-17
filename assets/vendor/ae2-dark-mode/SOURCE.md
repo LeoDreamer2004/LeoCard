@@ -8,7 +8,7 @@
 - License: CC BY-NC-SA 4.0, https://creativecommons.org/licenses/by-nc-sa/4.0/
 - License copy: `LICENSE.txt`.
 
-Runtime files in `../../ui/minecraft_guess/`:
+Runtime files in `../../ui/minecraft_guess/widgets/`:
 
 - `table-frame.png`: `assets/ae2/textures/guis/background.png`, with the two dark bottom-shadow rows (253–254) removed while retaining the outermost border row (255), giving a symmetric two-pixel frame.
 - `popup-frame.png`: the same symmetric `table-frame.png` reduced to a 5×5 nine-slice sprite by retaining its two-pixel corner borders and one center pixel. This prevents Bevy from shrinking the border with the original 256×254 source size when displaying a compact reveal popup.

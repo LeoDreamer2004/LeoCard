@@ -5,7 +5,6 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
-const DURATION: f32 = 0.4;
 const START_RADIUS: f32 = 4.0;
 const END_RADIUS: f32 = 22.0;
 const OPACITY: f32 = 0.32;
@@ -35,7 +34,7 @@ impl ClickRipple {
     fn new(cursor: Vec2) -> Self {
         Self {
             cursor,
-            timer: Timer::from_seconds(DURATION, TimerMode::Once),
+            timer: Timer::from_seconds(0.4, TimerMode::Once),
         }
     }
 

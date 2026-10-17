@@ -1,9 +1,9 @@
 //! 游戏内容是否需要重建页面，由各游戏的比较规则决定。
 use super::blackjack::only_blackjack_timer_changed;
-use super::{
-    minecraft_guess::only_guess_timer_changed, qigui523::only_turn_timer_changed,
-    shengji::only_shengji_transient_progress_changed, texas_holdem::only_texas_equities_changed,
-};
+use super::minecraft_guess::only_guess_timer_changed;
+use super::qigui523::only_turn_timer_changed;
+use super::shengji::only_shengji_transient_progress_changed;
+use super::texas_holdem::only_texas_equities_changed;
 use leocard_protocol::GameSnapshot;
 
 pub(crate) struct GameScreenChange {

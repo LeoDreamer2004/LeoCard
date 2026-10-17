@@ -3,7 +3,7 @@
 use crate::app::presentation::time_control_label;
 use leocard_blackjack::BlackjackRuleSet;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
-use leocard_minecraft_guess::{GuessMode, GuessPool, MinecraftGuessRuleSet};
+use leocard_minecraft_guess::{GuessMode, MinecraftGuessRuleSet};
 use leocard_protocol::{GameKind, GameRules, TABLE_SEAT_COUNT};
 use leocard_shengji::ShengjiRuleSet;
 use leocard_uno::UnoRuleSet;
@@ -72,12 +72,7 @@ pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
             "系统庄家".to_owned(),
         ],
         GameRules::MinecraftGuess(rules) => [
-            match rules.options().pool {
-                GuessPool::Blocks => "方块",
-                GuessPool::Items => "物品",
-                GuessPool::Mixed => "方块 / 物品",
-            }
-            .to_owned(),
+            rules.options().pool.label().to_owned(),
             rules.mode.label().to_owned(),
             match rules.mode {
                 GuessMode::TurnBased => "允许跳过".to_owned(),

@@ -1,15 +1,13 @@
-use super::{
-    BlackjackTable,
-    cards::{BlackjackCardSpec, add_card},
-    chips::{BlackjackWagerSpec, add_blackjack_wager},
-    playback::BlackjackCardSlot,
-};
+use super::BlackjackTable;
+use super::cards::{BlackjackCardSpec, add_card};
+use super::chips::{BlackjackWagerSpec, add_blackjack_wager};
+use super::playback::BlackjackCardSlot;
 use crate::app::presentation::{
     ACCENT, DANGER, MUTED, TEXT, TableStatusEffect, TableStatusSpec, UiComposer, add_table_status,
     spawn_node,
 };
 use bevy::prelude::*;
-use leocard_blackjack::{HandState, HandStatus, Phase};
+use leocard_blackjack::{HandState, HandStatus};
 use leocard_protocol::PlayerId;
 
 pub(super) struct BlackjackHandSpec<'a> {
@@ -165,7 +163,7 @@ impl BlackjackTable<'_> {
                 BlackjackWagerSpec {
                     wager: hand.wager,
                     net: hand.result.map(|_| hand.net_chips),
-                    settled: self.game.phase == Phase::Complete && !self.playback.busy(),
+                    settled: self.playback.settlement_started(),
                     width: spec.width,
                     height: spec.wager_height,
                     stack: spec.stack,

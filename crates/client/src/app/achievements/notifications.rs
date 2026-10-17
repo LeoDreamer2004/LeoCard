@@ -16,7 +16,6 @@ use std::collections::VecDeque;
 const ENTRY_DURATION: f32 = 0.32;
 const HOLD_DURATION: f32 = 4.2;
 const EXIT_DURATION: f32 = 0.30;
-const STAGGER: f32 = 0.26;
 const TOP: f32 = 80.0;
 const GAP: f32 = 10.0;
 const MIN_HEIGHT: f32 = 80.0;
@@ -148,7 +147,7 @@ pub(super) fn animate_achievement_notifications(
         .floor()
         .clamp(1.0, 4.0) as usize;
     if order.len() < capacity
-        && notifications.since_spawn >= STAGGER
+        && notifications.since_spawn >= 0.26
         && let Some(notice) = notifications.pending.pop_front()
     {
         notifications.since_spawn = 0.0;

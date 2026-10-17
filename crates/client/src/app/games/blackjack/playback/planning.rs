@@ -1,5 +1,7 @@
-use super::state::{BlackjackCardSlot, BlackjackCardTiming, BlackjackPlayback};
-use crate::app::presentation::{CARD_DEAL_DURATION, CARD_DEAL_INTERVAL, CARD_FLIP_DURATION};
+use super::state::{
+    BlackjackCardSlot, BlackjackCardTiming, BlackjackPlayback, DEALER_FLIP_DURATION,
+};
+use crate::app::presentation::CARD_DEAL_INTERVAL;
 use leocard_blackjack::{BlackjackCard, Phase};
 use leocard_protocol::BlackjackSnapshot;
 use std::slice;
@@ -47,7 +49,7 @@ impl BlackjackPlayback {
             deal_at: Some(at),
             flip_at: None,
         };
-        self.busy_until = self.busy_until.max(timing.finishes_at());
+        self.busy_until = self.busy_until.max(timing.finishes_at(slot));
         self.cards.insert(slot, timing);
         sounds.push((at - self.elapsed).max(0.0));
     }
@@ -134,17 +136,17 @@ impl BlackjackPlayback {
     }
 
     fn reveal_dealer(&mut self, game: &BlackjackSnapshot, sounds: &mut Vec<f32>) {
-        let mut at = self.busy_until.max(self.elapsed) + 0.12;
+        let mut at = self.busy_until.max(self.elapsed) + 0.4;
         if game.dealer.len() > 1 {
             let timing = self.cards.entry(BlackjackCardSlot::Dealer(1)).or_default();
             timing.flip_at = Some(at);
-            self.busy_until = self.busy_until.max(at + CARD_FLIP_DURATION);
+            self.busy_until = self.busy_until.max(at + DEALER_FLIP_DURATION);
             sounds.push((at - self.elapsed).max(0.0));
-            at += CARD_FLIP_DURATION + 0.18;
+            at += DEALER_FLIP_DURATION + 0.4;
         }
         for index in 2..game.dealer.len() {
             self.schedule_deal(BlackjackCardSlot::Dealer(index), at, sounds);
-            at += CARD_DEAL_DURATION + 0.16;
+            at = self.busy_until + 0.4;
         }
     }
 }

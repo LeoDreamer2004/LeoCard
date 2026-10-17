@@ -1,10 +1,17 @@
+use super::BiomeRanges;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum EntryKind {
     Block,
     Item,
+    Mob,
+    Enchantment,
+    Effect,
+    VillagerProfession,
+    Landscape,
+    Biome,
 }
 
 impl EntryKind {
@@ -12,6 +19,12 @@ impl EntryKind {
         match self {
             Self::Block => "方块",
             Self::Item => "物品",
+            Self::Mob => "生物",
+            Self::Enchantment => "附魔",
+            Self::Effect => "状态效果",
+            Self::VillagerProfession => "村民职业",
+            Self::Landscape => "世界景观",
+            Self::Biome => "生物群系",
         }
     }
 }
@@ -43,7 +56,15 @@ impl Attribute {
     }
 
     pub fn text(&self) -> String {
-        self.values.join("、")
+        self.display_values().join("、")
+    }
+
+    pub fn display_values(&self) -> Vec<String> {
+        if self.label == "生成生物群系" {
+            BiomeRanges::bundled().describe(&self.values)
+        } else {
+            self.values.clone()
+        }
     }
 }
 

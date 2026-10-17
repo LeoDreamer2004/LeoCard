@@ -32,7 +32,6 @@ pub(super) const UNO_DISCARD_OFFSETS: [(f32, f32, f32); 6] = [
 pub(super) const UNO_FLYING_CARD_WIDTH: f32 = 82.0;
 pub(super) const UNO_FLYING_CARD_HEIGHT: f32 = 128.0;
 pub(super) const UNO_PALETTE_EFFECT_DURATION: f32 = 2.2;
-pub(super) const UNO_REVERSE_EFFECT_DURATION: f32 = 1.65;
 pub(super) const UNO_ACTION_AREA_BOTTOM: f32 = 153.0;
 pub(super) const UNO_ACTION_AREA_HEIGHT: f32 = 52.0;
 pub(crate) struct UnoTableVisuals<'a> {

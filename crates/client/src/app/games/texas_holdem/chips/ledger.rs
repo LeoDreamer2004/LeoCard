@@ -7,8 +7,8 @@ use super::super::{
 
 use super::denominations::initial_chip_denominations;
 use super::{
-    ActionFeedbackKind, ActionLabel, CHIP_MOVE_DURATION, ChipZone, PotDivisionTransition,
-    TexasChipTableState, VisualPot,
+    ActionFeedbackKind, ActionLabel, ChipZone, PotDivisionTransition, TexasChipTableState,
+    VisualPot,
 };
 use crate::app::presentation::{ACCENT, DANGER, READY, TEXT};
 use bevy::prelude::*;
@@ -277,7 +277,7 @@ impl TexasChipTableState {
                     ChipZone::Bet(player),
                     target,
                     index as f32 * 0.045,
-                    CHIP_MOVE_DURATION,
+                    0.42,
                 );
             }
         }

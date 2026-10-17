@@ -1,13 +1,26 @@
-use crate::app::presentation::{CARD_DEAL_DURATION, CARD_FLIP_DURATION};
+use crate::app::presentation::CARD_DEAL_DURATION;
 use bevy::prelude::*;
 use leocard_blackjack::Phase;
 use leocard_protocol::{BlackjackPlayerView, BlackjackSnapshot, PlayerId};
 use std::collections::HashMap;
 
+// Playback completion must use the same durations as the rendered animations.
+pub(in super::super) const DEALER_FLIP_DURATION: f32 = 0.7;
+pub(in super::super) const SETTLEMENT_CHIP_DURATION: f32 = 1.2;
+
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) enum BlackjackCardSlot {
     Dealer(usize),
     Hand(PlayerId, usize, usize),
+}
+
+impl BlackjackCardSlot {
+    pub(in super::super) fn deal_duration(self) -> f32 {
+        match self {
+            Self::Dealer(index) if index >= 2 => 0.55,
+            _ => CARD_DEAL_DURATION,
+        }
+    }
 }
 
 #[derive(Component, Clone, Copy, Debug, Default, PartialEq)]
@@ -17,10 +30,10 @@ pub(crate) struct BlackjackCardTiming {
 }
 
 impl BlackjackCardTiming {
-    pub(super) fn finishes_at(self) -> f32 {
+    pub(super) fn finishes_at(self, slot: BlackjackCardSlot) -> f32 {
         self.flip_at.map_or_else(
-            || self.deal_at.map_or(0.0, |at| at + CARD_DEAL_DURATION),
-            |at| at + CARD_FLIP_DURATION,
+            || self.deal_at.map_or(0.0, |at| at + slot.deal_duration()),
+            |at| at + DEALER_FLIP_DURATION,
         )
     }
 }
@@ -35,7 +48,24 @@ pub(crate) struct BlackjackPlayback {
 
 impl BlackjackPlayback {
     pub(crate) fn busy(&self) -> bool {
-        self.elapsed < self.busy_until
+        let settlement = if self
+            .observed
+            .as_ref()
+            .is_some_and(|game| game.phase == Phase::Complete)
+        {
+            SETTLEMENT_CHIP_DURATION
+        } else {
+            0.0
+        };
+        self.elapsed < self.busy_until + settlement
+    }
+
+    pub(in super::super) fn settlement_started(&self) -> bool {
+        self.elapsed >= self.busy_until
+            && self
+                .observed
+                .as_ref()
+                .is_some_and(|game| game.phase == Phase::Complete)
     }
 
     pub(in super::super) fn elapsed(&self) -> f32 {
@@ -49,7 +79,7 @@ impl BlackjackPlayback {
     pub(in super::super) fn hand_ready(&self, player: PlayerId, hand: usize) -> bool {
         self.cards.iter().all(|(slot, timing)| {
             !matches!(slot, BlackjackCardSlot::Hand(id, index, _) if *id == player && *index == hand)
-                || timing.finishes_at() <= self.elapsed
+                || timing.finishes_at(*slot) <= self.elapsed
         })
     }
 

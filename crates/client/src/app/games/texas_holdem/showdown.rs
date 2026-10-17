@@ -6,7 +6,6 @@ use crate::app::presentation::{GameSummaryAnimation, ease_out_cubic};
 use bevy::prelude::*;
 
 pub(super) const TEXAS_SHOWDOWN_REVEAL_DURATION: f32 = 2.6;
-pub(super) const TEXAS_UNCONTESTED_REVEAL_DURATION: f32 = 0.8;
 
 #[derive(Component)]
 pub(super) struct TexasShowdownRevealRoot;

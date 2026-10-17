@@ -1,6 +1,6 @@
 use crate::app::presentation::{
-    GameSummaryAnimation, RankedSummary, SUMMARY_HAND_REVEAL_DURATION, SummaryDescriptor,
-    SummaryPlayer, UiComposer, add_ranked_summary,
+    GameSummaryAnimation, RankedSummary, SummaryDescriptor, SummaryPlayer, UiComposer,
+    add_ranked_summary,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SummaryActions, add_summary_actions};
@@ -25,7 +25,7 @@ pub(crate) fn qigui523_summary_descriptor(game: &QiGui523Snapshot) -> Option<Sum
             .iter()
             .find(|change| change.player == game.you)
             .is_none_or(|change| change.delta >= 0),
-        reveal_duration: SUMMARY_HAND_REVEAL_DURATION,
+        reveal_duration: 1.5,
     })
 }
 

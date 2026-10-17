@@ -212,9 +212,8 @@ pub(crate) fn animate_mahjong_win_effects(
         shadow.color = Color::BLACK.with_alpha(0.76 * alpha);
     }
     for (glyph, mut transform, mut visibility, mut color, mut shadow) in &mut glyphs {
-        const LIFETIME: f32 = 1.24;
         let local = animation.elapsed + glyph.reveal_duration - glyph.start - glyph.delay;
-        if !(0.0..LIFETIME).contains(&local) {
+        if !(0.0..1.24).contains(&local) {
             *visibility = Visibility::Hidden;
             color.0 = Color::NONE;
             shadow.color = Color::NONE;
@@ -223,7 +222,7 @@ pub(crate) fn animate_mahjong_win_effects(
         let impact = ease_out_cubic((local / 0.18).clamp(0.0, 1.0));
         let vibration = ((local - 0.12) / 0.42).clamp(0.0, 1.0);
         let strength = (1.0 - vibration).powi(2);
-        let fade_out = ((LIFETIME - local) / 0.28).clamp(0.0, 1.0);
+        let fade_out = ((1.24 - local) / 0.28).clamp(0.0, 1.0);
         transform.translation = Val2::px(
             (local * 93.0).sin() * 11.0 * strength,
             -190.0 * (1.0 - impact) + (local * 127.0).sin() * 6.0 * strength,

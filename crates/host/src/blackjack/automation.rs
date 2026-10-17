@@ -30,7 +30,9 @@ impl BlackjackSession {
                 return Vec::new();
             }
             self.elapsed += elapsed;
-            if self.elapsed < Duration::from_secs(3) {
+            let dealer_draws = game.visible_dealer().len().saturating_sub(2) as u64;
+            let result_hold = Duration::from_secs(4 + dealer_draws);
+            if self.elapsed < result_hold {
                 return Vec::new();
             }
             self.continue_match();
@@ -49,11 +51,16 @@ impl BlackjackSession {
             || !participant.connected
             || participant.left;
         let is_bot = participant.is_bot;
+        let action_interval = if is_bot {
+            Duration::from_secs(2)
+        } else {
+            Duration::from_millis(1100)
+        };
         let before = self.seconds_remaining();
         self.elapsed += elapsed;
         let expired = self.rules.turn_seconds > 0
             && self.elapsed >= Duration::from_secs(u64::from(self.rules.turn_seconds));
-        if (automatic && self.elapsed >= Duration::from_millis(1100)) || expired {
+        if (automatic && self.elapsed >= action_interval) || expired {
             let game = self.game.as_ref().expect("active game");
             let observation =
                 BlackjackObservation::for_player(game, index).expect("current turn observation");

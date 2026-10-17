@@ -1,4 +1,4 @@
-use super::super::icons::EntryIcons;
+use super::super::assets::EntryIcons;
 use super::super::{MinecraftGuessAssets, MinecraftGuessUiAction};
 use crate::app::presentation::{MUTED, SilentButton, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;

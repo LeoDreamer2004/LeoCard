@@ -3,7 +3,6 @@ mod assets;
 mod background;
 mod controls;
 mod feedback;
-mod icons;
 mod lobby;
 mod players;
 mod plugin;

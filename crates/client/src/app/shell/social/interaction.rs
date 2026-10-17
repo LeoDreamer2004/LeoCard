@@ -5,11 +5,6 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, PlayerInteractionKind};
 
-const INTERACTION_TRAVEL_DURATION: f32 = 0.60;
-const INTERACTION_IMPACT_DURATION: f32 = 1.20;
-const INTERACTION_APPEAR_DURATION: f32 = 0.32;
-const HEAVY_INTERACTION_TRAVEL_DURATION: f32 = 0.68;
-
 pub(crate) fn interaction_anchor_in_layer(
     player: PlayerId,
     layer_node: &ComputedNode,
@@ -178,8 +173,8 @@ pub(crate) fn sync_player_interactions(
                 play_sound: true,
                 delay: 9.0 * volley_interval + 0.55,
                 appear_duration: 0.16,
-                travel_duration: HEAVY_INTERACTION_TRAVEL_DURATION,
-                impact_duration: INTERACTION_IMPACT_DURATION,
+                travel_duration: 0.68,
+                impact_duration: 1.20,
             }
             .spawn(&mut commands, layer, &assets);
         } else {
@@ -190,9 +185,9 @@ pub(crate) fn sync_player_interactions(
                 sound_variant,
                 play_sound: true,
                 delay: 0.0,
-                appear_duration: INTERACTION_APPEAR_DURATION,
-                travel_duration: INTERACTION_TRAVEL_DURATION,
-                impact_duration: INTERACTION_IMPACT_DURATION,
+                appear_duration: 0.32,
+                travel_duration: 0.60,
+                impact_duration: 1.20,
             }
             .spawn(&mut commands, layer, &assets);
         }

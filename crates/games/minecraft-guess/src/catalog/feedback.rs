@@ -36,7 +36,8 @@ impl Attribute {
         let ours = &self.values[0];
         let theirs = &answer.values[0];
         match self.label.as_str() {
-            "硬度" | "爆炸抗性" | "堆叠数量" => {
+            "硬度" | "爆炸抗性" | "堆叠数量" | "最大生命" | "高度" | "最高等级" | "温度"
+            | "降水" => {
                 let number = |text: &str| {
                     let value = text.parse::<f64>().ok()?;
                     // Negative hardness is the unbreakable sentinel, not a softer block.

@@ -7,7 +7,6 @@ use crate::app::presentation::{DANGER, ease_out_cubic};
 use bevy::prelude::*;
 use leocard_protocol::ShengjiThrowFailureStage;
 
-const SHENGJI_FAILED_THROW_RETURN_DURATION: f32 = 0.42;
 const SHENGJI_THROW_PENALTY_DELAY: f32 = 0.38;
 const SHENGJI_THROW_PENALTY_DURATION: f32 = 0.58;
 
@@ -47,8 +46,7 @@ pub(crate) fn shengji_failed_throw_card_visual(
         }
         ShengjiThrowFailureStage::Returning => {
             let stagger = index as f32 / count.max(1) as f32 * 0.07;
-            let raw = ((elapsed - stagger) / (SHENGJI_FAILED_THROW_RETURN_DURATION - 0.07))
-                .clamp(0.0, 1.0);
+            let raw = ((elapsed - stagger) / (0.42 - 0.07)).clamp(0.0, 1.0);
             let return_progress = raw * raw * raw;
             let rebound = 1.0 - ease_out_cubic((raw / 0.34).clamp(0.0, 1.0));
             let alternate = if index.is_multiple_of(2) { -1.0 } else { 1.0 };

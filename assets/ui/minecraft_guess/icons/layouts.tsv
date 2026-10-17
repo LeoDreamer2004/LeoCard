@@ -1,0 +1,8 @@
+name	cell_size	columns
+entries	64	64
+mobs	64	16
+enchantments	32	1
+effects	18	8
+villager-professions	128	8
+landscapes	16	8
+biomes	16	16

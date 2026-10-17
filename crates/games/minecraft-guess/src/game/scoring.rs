@@ -21,6 +21,9 @@ impl GuessResult {
         let Self::Known { matches, .. } = self else {
             return None;
         };
+        if matches.is_empty() {
+            return None;
+        }
         Some(
             matches
                 .iter()
@@ -65,6 +68,12 @@ impl GuessResult {
                     1 => 1,
                     _ => 0,
                 },
+            };
+        }
+        if matches.is_empty() {
+            return GuessScore {
+                during_guess: 0,
+                after_answer: 0,
             };
         }
         let improved = previous.is_none_or(|previous| self.closeness().unwrap() > previous);

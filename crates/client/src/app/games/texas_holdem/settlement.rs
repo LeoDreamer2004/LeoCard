@@ -1,7 +1,7 @@
 use super::{
-    TEXAS_SHOWDOWN_REVEAL_DURATION, TEXAS_UNCONTESTED_REVEAL_DURATION, TexasShowdownBackdrop,
-    TexasShowdownBestCard, TexasShowdownRevealRoot, TexasShowdownTitle, TexasShowdownTitleText,
-    TexasShowdownUnderline, add_texas_card, texas_category_label, texas_player_chip_zone,
+    TEXAS_SHOWDOWN_REVEAL_DURATION, TexasShowdownBackdrop, TexasShowdownBestCard,
+    TexasShowdownRevealRoot, TexasShowdownTitle, TexasShowdownTitleText, TexasShowdownUnderline,
+    add_texas_card, texas_category_label, texas_player_chip_zone,
 };
 use crate::app::presentation::{
     ACCENT, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider, GameSummaryModal,
@@ -49,7 +49,7 @@ pub(crate) fn texas_holdem_summary_descriptor(
         reveal_duration: if *showdown {
             TEXAS_SHOWDOWN_REVEAL_DURATION
         } else {
-            TEXAS_UNCONTESTED_REVEAL_DURATION
+            0.8
         },
     })
 }

@@ -1,7 +1,6 @@
 use super::view::GuessTable;
 use crate::app::presentation::{
-    RankedSummary, SUMMARY_HAND_REVEAL_DURATION, SummaryDescriptor, SummaryPlayer, UiComposer,
-    add_ranked_summary,
+    RankedSummary, SummaryDescriptor, SummaryPlayer, UiComposer, add_ranked_summary,
 };
 use crate::app::shell::{SummaryActions, add_summary_actions};
 use bevy::prelude::*;
@@ -17,7 +16,7 @@ pub(crate) fn guess_summary_descriptor(game: &MinecraftGuessSnapshot) -> Option<
             .iter()
             .find(|change| change.player == game.you)
             .is_none_or(|change| change.delta >= 0),
-        reveal_duration: SUMMARY_HAND_REVEAL_DURATION,
+        reveal_duration: 1.5,
     })
 }
 

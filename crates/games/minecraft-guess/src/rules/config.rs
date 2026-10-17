@@ -1,3 +1,4 @@
+use crate::EntryKind;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -6,6 +7,55 @@ pub enum GuessPool {
     Items,
     #[default]
     Mixed,
+    Mobs,
+    Enchantments,
+    Effects,
+    VillagerProfessions,
+    Landscapes,
+    Biomes,
+}
+
+impl GuessPool {
+    pub const STANDARD: [Self; 3] = [Self::Blocks, Self::Items, Self::Mixed];
+    pub const ALL: [Self; 9] = [
+        Self::Blocks,
+        Self::Items,
+        Self::Mixed,
+        Self::Mobs,
+        Self::Enchantments,
+        Self::Effects,
+        Self::VillagerProfessions,
+        Self::Landscapes,
+        Self::Biomes,
+    ];
+
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Blocks => "方块",
+            Self::Items => "物品",
+            Self::Mixed => "全部",
+            Self::Mobs => "生物",
+            Self::Enchantments => "附魔",
+            Self::Effects => "状态效果",
+            Self::VillagerProfessions => "村民职业",
+            Self::Landscapes => "世界景观",
+            Self::Biomes => "生物群系",
+        }
+    }
+
+    pub const fn contains(self, kind: EntryKind) -> bool {
+        matches!(
+            (self, kind),
+            (Self::Blocks | Self::Mixed, EntryKind::Block)
+                | (Self::Items | Self::Mixed, EntryKind::Item)
+                | (Self::Mobs, EntryKind::Mob)
+                | (Self::Enchantments, EntryKind::Enchantment)
+                | (Self::Effects, EntryKind::Effect)
+                | (Self::VillagerProfessions, EntryKind::VillagerProfession)
+                | (Self::Landscapes, EntryKind::Landscape)
+                | (Self::Biomes, EntryKind::Biome)
+        )
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]

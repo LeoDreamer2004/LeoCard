@@ -244,7 +244,6 @@ TNT,minecraft:tnt,是,任意工具或徒手,否,是,是,不透明,0,0,pre-classi
 深层钻石矿石,minecraft:deepslate_diamond_ore,否,镐,否,是,否,不透明,3,4.5,1.17,自然方块
 钻石块,minecraft:diamond_block,否,镐,否,是,否,不透明,6,5,pre-classic,建筑方块
 工作台,minecraft:crafting_table,是,斧,否,是,否,不透明,2.5,2.5,pre-classic,功能方块
-小麦作物,minecraft:wheat,是,任意工具或徒手,否,否,否,透明,0,0,pre-classic,自然方块
 耕地,minecraft:farmland,是,锹,否,否,否,部分透明,0.6,0.6,pre-classic,自然方块
 熔炉,minecraft:furnace,是,镐,是,是,否,不透明,3.5,3.5,pre-classic,功能方块；红石方块
 橡木告示牌,minecraft:oak_sign,是,斧,否,否,否,透明,1,1,pre-classic,功能方块
@@ -424,8 +423,6 @@ TNT,minecraft:tnt,是,任意工具或徒手,否,是,是,不透明,0,0,pre-classi
 圆石墙,minecraft:cobblestone_wall,是,镐,否,否,否,透明,6,2,1.4,建筑方块
 苔石墙,minecraft:mossy_cobblestone_wall,是,镐,否,否,否,透明,6,2,1.4,建筑方块
 花盆,minecraft:flower_pot,是,任意工具或徒手,否,否,否,透明,0,0,1.4,功能方块
-胡萝卜,minecraft:carrots,是,任意工具或徒手,否,否,否,透明,0,0,1.4,食物与饮品
-马铃薯,minecraft:potatoes,是,任意工具或徒手,否,否,否,透明,0,0,1.4,食物与饮品
 橡木按钮,minecraft:oak_button,是,斧,否,否,否,透明,0.5,0.5,1.4,建筑方块；红石方块
 云杉木按钮,minecraft:spruce_button,是,斧,否,否,否,透明,0.5,0.5,1.13,建筑方块
 白桦木按钮,minecraft:birch_button,是,斧,否,否,否,透明,0.5,0.5,1.13,建筑方块

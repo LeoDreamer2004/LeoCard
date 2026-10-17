@@ -20,6 +20,7 @@ pub(crate) fn sync_blackjack_playback(
         return;
     };
     let was_busy = playback.busy();
+    let was_settling = playback.settlement_started();
     playback.elapsed += time.delta_secs();
     for (index, remaining) in playback.observe(game).into_iter().enumerate() {
         commands.spawn(PendingDealSound {
@@ -27,7 +28,7 @@ pub(crate) fn sync_blackjack_playback(
             variant: index % assets.audio.deal_sounds.len().max(1),
         });
     }
-    if was_busy != playback.busy() {
+    if was_busy != playback.busy() || was_settling != playback.settlement_started() {
         shell.dirty = true;
     }
 }

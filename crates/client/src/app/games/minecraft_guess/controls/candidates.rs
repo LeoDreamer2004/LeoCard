@@ -4,22 +4,27 @@ use crate::app::presentation::UiComposer;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
-use leocard_minecraft_guess::Catalogue;
+use leocard_minecraft_guess::{Catalogue, EntryKind};
 use leocard_protocol::MinecraftGuessSnapshot;
 
-#[derive(Component, PartialEq)]
-pub(in super::super) struct GuessCandidates {
+#[derive(Component, Default)]
+pub(in super::super) struct GuessCandidates(Option<CandidateQuery>);
+
+#[derive(PartialEq)]
+struct CandidateQuery {
     input: String,
     guesses: usize,
     active: bool,
+    kind: EntryKind,
 }
 
-impl GuessCandidates {
-    pub(super) fn new(input: &str, game: &MinecraftGuessSnapshot) -> Self {
+impl CandidateQuery {
+    fn new(input: &str, game: &MinecraftGuessSnapshot) -> Self {
         Self {
             input: input.to_owned(),
             guesses: game.round.guesses.len(),
-            active: game.can_guess(),
+            active: game.can_guess() && game.rules.options().candidate_hints,
+            kind: game.round.kind,
         }
     }
 }
@@ -27,7 +32,7 @@ impl GuessCandidates {
 #[derive(Component)]
 pub(in super::super) struct GuessCandidate(pub usize);
 
-pub(super) fn add_candidates(
+fn add_candidates(
     commands: &mut UiComposer,
     parent: Entity,
     game: &MinecraftGuessSnapshot,
@@ -83,11 +88,11 @@ pub(in super::super) fn sync_guess_controls(
         return;
     };
     for (parent, mut rendered, children) in &mut candidates {
-        let expected = GuessCandidates::new(&state.input, game);
-        if *rendered == expected {
+        let expected = CandidateQuery::new(&state.input, game);
+        if rendered.0.as_ref() == Some(&expected) {
             continue;
         }
-        *rendered = expected;
+        rendered.0 = Some(expected);
         if let Some(children) = children {
             for child in children.iter() {
                 commands.entity(child).despawn();

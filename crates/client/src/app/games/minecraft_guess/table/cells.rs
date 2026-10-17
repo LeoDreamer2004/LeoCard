@@ -1,13 +1,14 @@
 use super::super::MinecraftGuessAssets;
+use super::super::assets::EntryIcons;
 use super::super::feedback::GuessCellReveal;
-use super::super::icons::EntryIcons;
+use super::details::AttributeHint;
 use super::names::GuessName;
 use super::style::{SEPARATOR_COLOR, SEPARATOR_WIDTH};
 use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_minecraft_guess::MatchQuality;
+use leocard_minecraft_guess::{Attribute, MatchQuality};
 
 pub(super) enum CellSkin {
     Heading,
@@ -105,6 +106,24 @@ impl TableCell {
 
     pub fn label(&self, commands: &mut UiComposer, text: &str, assets: &UiAssets) {
         self.text(commands, text, 18.0, TEXT, assets);
+    }
+
+    pub fn details(
+        &self,
+        commands: &mut UiComposer,
+        layer: Entity,
+        attribute: &Attribute,
+        assets: &UiAssets,
+        game_assets: &MinecraftGuessAssets,
+    ) {
+        AttributeHint::spawn(
+            commands,
+            layer,
+            self.content,
+            attribute,
+            assets,
+            game_assets,
+        );
     }
 
     pub fn guess(

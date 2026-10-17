@@ -49,16 +49,27 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 
 ### MC 竞猜方块与物品图标（Mojang）
 
-- 运行时文件：`ui/minecraft_guess/entries.png`，用于猜测记录、候选词以及揭晓后的答案。
+- 运行时文件：`ui/minecraft_guess/icons/entries.png`，方块和物品共用，用于猜测记录、候选词以及揭晓后的答案。
 - 来源：[Minecraft Wiki 库存图标](https://minecraft.wiki/w/Category:InvSprite_files)和对应的方块原始渲染图。按当前词库的方块／物品标识分别映射，外观相同的图标共用图集位置；动画取第一帧，保持长宽比装入 64×64 像素图格。物品保留原生像素图，三维方块采用较高分辨率的原始渲染图，客户端使用最近邻采样。
-- `data/minecraft/icon-sources.json` 记录每个条目的对应文件、下载地址和内容 SHA-1；`icons.tsv` 是客户端使用的图集索引。图集生成脚本位于本地 `tools/minecraft/`，不提交到 Git；原图仅缓存于 `target/minecraft-audit/icons/`，不随游戏发布。
+- `tools/minecraft/sources/icons/entries.json`（不提交）记录每个条目的对应文件、下载地址和内容 SHA-1；`ui/minecraft_guess/icons/entries.tsv` 是客户端使用的图集索引，`layouts.tsv` 记录各图集的图格尺寸和列数。图集生成脚本位于本地 `tools/minecraft/`，不提交到 Git；原图仅缓存于 `target/minecraft-audit/`，不随游戏发布。
 - Minecraft 图像的权利归 Mojang Studios 所有，授权要求与上述等级物品图标一致。
+
+### MC 竞猜生物、附魔、状态效果与职业
+
+- 独立图集：`ui/minecraft_guess/icons/{mobs,enchantments,effects,villager-professions}.png`，各自使用相同名称的索引，位于 `ui/minecraft_guess/icons/`。原版生物头像来自 [Minecraft Wiki 生物列表](https://minecraft.wiki/w/Mob)，职业图像来自 [村民职业外观](https://minecraft.wiki/w/Villager#Professions)，状态效果纹理由 Mojang 官方 Java 26.3 客户端提取，附魔图标复用附魔书原图。
+- 图片地址、Wiki 原文件 SHA-1 和实际下载 SHA-1 按类别记录于 `tools/minecraft/sources/icons/`（不提交，CDN 可能无损重压缩 PNG）。Minecraft 图像权利归 Mojang Studios 所有，使用规范同上；原图仅在 `target/minecraft-audit/` 缓存。
+- 对应 CSV 属性依据官方注册表、[Minecraft Wiki](https://minecraft.wiki/)及[中文状态效果查论编](https://zh.minecraft.wiki/w/Template:Navbox_effects)整理；`tools/minecraft/sources/nodes.json`（不提交）记录逐条来源与正文校验和。Wiki 文本采用 [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/)；本目录记录结构化事实，不复制百科正文。
+
+### MC 竞猜世界景观与生物群系
+
+- 独立图集为 `ui/minecraft_guess/icons/{landscapes,biomes}.png`，索引位于 `ui/minecraft_guess/icons/`，逐图来源位于 `tools/minecraft/sources/icons/`（不提交）；来源是中文 Minecraft Wiki 的[地物](https://zh.minecraft.wiki/w/地物)、[生成结构](https://zh.minecraft.wiki/w/生成结构)和[生物群系](https://zh.minecraft.wiki/w/生物群系)页面中的精灵图。保持原像素风格，图片权利与上述 Minecraft 素材一致。
+- `tools/minecraft/sources/world.json`（不提交）记录条目固定修订、生成成员和完整群系集合；结构标签、地物放置链、基础温度和降水值依据 Mojang Java 26.3 客户端数据，群系分类与加入历史依据 Wiki。原始页面和图标仅缓存在 `target/minecraft-audit/nodes/`，工具位于忽略的 `tools/minecraft/`。
 
 ### MC 竞猜游戏背景（Mojang）
 
 - 本地位置：`ui/minecraft_guess/background/`。每小局从词库完整方块的正面中随机选一种密铺；关闭客户端随机背景时固定使用 Java 版 1.12.2 的原版泥土菜单背景。猜中加入版本后切换为该版本的全景。
 - `block-fronts.png` 从 Java 版 26.3 客户端的默认物品模型、正面纹理和默认染色提取，按 `block-fronts.tsv` 打包为 16×16 像素图格；动态纹理取首帧。全景来自 [Mojang 官方版本清单](https://piston-meta.mojang.com/mc/game/version_manifest_v2.json)所列客户端归档与资源索引中的六面图片，保持原始分辨率，按原版立方体贴图顺序排列并垂直翻转后打包。
-- `sources.json` 记录原始来源与打包文件的 SHA-1；`versions.tsv` 记录版本映射。
+- 来源与打包文件的 SHA-1 留存在 `tools/minecraft/sources/background.json`（不提交）；`background/versions.tsv` 记录运行时版本映射。
 
 ### MC 竞猜音符盒反馈音效（Mojang）
 
@@ -149,7 +160,7 @@ GitHub 名称与标志同时受 GitHub 商标规范约束；本项目仅将其�
 - 作者：Ridanisaurus；基于 Applied Energistics 2（Ridanisaurus Rid、AlgorithmX2 et al.）的 GUI。
 - Minecraft 1.21，AE2DarkMode V1.0.6：[作者发布页](https://www.curseforge.com/minecraft/texture-packs/ae2-dark-mode/files/5520011)。
 - 用于 MC竞猜表格的外框、内凹底面、单元格底纹，以及输入框和操作、候选词按钮。按钮直接采用原图；外框裁去底部多出的两行阴影以统一上下厚度，内凹底面及滚动条轨道取自 CPU 选择器，其余仅裁切，反馈颜色在运行时着色。
-- 许可副本：`vendor/ae2-dark-mode/LICENSE.txt`；来源和裁切记录：`vendor/ae2-dark-mode/SOURCE.md`；运行时贴图：`ui/minecraft_guess/`。原图及资源包元数据已移除。
+- 许可副本：`vendor/ae2-dark-mode/LICENSE.txt`；来源和裁切记录：`vendor/ae2-dark-mode/SOURCE.md`；运行时贴图：`ui/minecraft_guess/widgets/`。原图及资源包元数据已移除。
 - 图片素材按 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 提供，保留署名，限非商业使用，衍生素材使用相同许可。
 
 ### AE2 蓝色按钮高亮贴图（CC BY-NC-SA 3.0）
@@ -157,5 +168,5 @@ GitHub 名称与标志同时受 GitHub 商标规范约束；本项目仅将其�
 - 作者：Ridanisaurus Rid、AlgorithmX2 et al.；AE2 19.2.18（Minecraft 1.21.1）。
 - 来源：[AE2 官方发布](https://github.com/AppliedEnergistics/Applied-Energistics-2/releases/tag/neoforge/v19.2.18)。
 - 原样采用 `button_highlighted.png`，用于 MC竞猜操作及候选词按钮的蓝色悬停高亮；暗色材质包没有覆盖该素材。
-- 运行时文件：`ui/minecraft_guess/button-highlighted.png`；许可副本：`vendor/ae2/LICENSE.txt`；来源、九宫格边距及上游授权说明：`vendor/ae2/SOURCE.md`。原图及资源包元数据已移除。
+- 运行时文件：`ui/minecraft_guess/widgets/button-highlighted.png`；许可副本：`vendor/ae2/LICENSE.txt`；来源、九宫格边距及上游授权说明：`vendor/ae2/SOURCE.md`。原图及资源包元数据已移除。
 - 图片素材按 [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/) 提供。

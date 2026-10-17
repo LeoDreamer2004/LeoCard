@@ -4,7 +4,7 @@ use super::super::state::GuessInput;
 use super::super::turn_timer::add_guess_clock;
 use super::super::view::GuessTable;
 use super::buttons::{GuessButtonSpec, GuessSubmit, add_guess_button};
-use super::candidates::{GuessCandidates, add_candidates};
+use super::candidates::GuessCandidates;
 use crate::app::presentation::{ACCENT, TextInput, UiComposer, add_text, spawn_node};
 use bevy::prelude::*;
 use leocard_minecraft_guess::{GuessMode, MAX_GUESS_CHARACTERS};
@@ -157,15 +157,8 @@ impl GuessTable<'_> {
         );
         commands
             .entity(candidates)
-            .insert(GuessCandidates::new(&self.state.input, self.game));
-        add_candidates(
-            commands,
-            candidates,
-            self.game,
-            &self.state.input,
-            self.assets,
-            self.game_assets,
-        );
+            // 输入同步统一持有候选按钮；页面重建不重置缓存，也不再创建第二套。
+            .init(GuessCandidates::default());
     }
 
     fn button(

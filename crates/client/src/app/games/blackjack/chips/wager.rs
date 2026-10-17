@@ -1,3 +1,4 @@
+use super::super::playback::SETTLEMENT_CHIP_DURATION;
 use crate::app::presentation::{
     DANGER, MUTED, PokerChipScatter, READY, TablePieceDeal, TableStatusEffect, TableStatusSpec,
     UiComposer, UiSceneProperties, add_poker_chip, add_table_status, poker_chip_counts,
@@ -102,7 +103,7 @@ pub(in super::super) fn add_blackjack_wager(
                     UiTransform::IDENTITY,
                     GlobalZIndex(1100),
                     Pickable::IGNORE,
-                    TablePieceDeal::from_anchor(source, 0.0).transient(0.42),
+                    TablePieceDeal::from_anchor(source, 0.0).transient(SETTLEMENT_CHIP_DURATION),
                 ),
             );
             paint_wager(
@@ -152,8 +153,8 @@ fn paint_wager(
         if let Some(source) = source {
             let stamp = WagerChip(denomination);
             let previous = commands.declared::<WagerChip>(entity).copied();
-            let flight = TablePieceDeal::from_anchor(source, index as f32 * 0.025)
-                .with_duration(0.42)
+            let flight = TablePieceDeal::from_anchor(source, index as f32 * 0.045)
+                .with_duration(0.7)
                 .with_rotation(
                     rotation + table_random_signed(scatter.seed, index as u64 + 91) * 0.7,
                     rotation,

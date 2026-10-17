@@ -9,8 +9,6 @@ pub(super) const SCORE_FADE_DURATION: f32 = 0.36;
 pub(super) const DELTA_FLIGHT_DURATION: f32 = 0.62;
 pub(super) const SCORE_ROLL_DURATION: f32 = 0.80;
 pub(super) const DELTA_APPEAR_DELAY: f32 = 0.14;
-pub(super) const DELTA_HOLD_DURATION: f32 = 0.75;
-pub(super) const SCORE_END_HOLD_DURATION: f32 = 0.65;
 
 #[derive(Clone, Copy)]
 pub(super) struct ScoreTiming {
@@ -30,7 +28,7 @@ impl SettlementTimeline {
         let pages_end = mahjong_settlement_timing(result).score_rows_delay
             + if result.winners.is_empty() { 0.0 } else { 0.12 };
         let scores = (result.match_length != MahjongMatchLength::SingleHand).then(|| {
-            let flight = pages_end + DELTA_APPEAR_DELAY + DELTA_HOLD_DURATION;
+            let flight = pages_end + DELTA_APPEAR_DELAY + 0.75;
             ScoreTiming {
                 start: pages_end,
                 flight,
@@ -40,9 +38,8 @@ impl SettlementTimeline {
         Self {
             pages_end,
             scores,
-            continue_at: scores.map_or(pages_end, |timing| {
-                timing.roll + SCORE_ROLL_DURATION + SCORE_END_HOLD_DURATION
-            }),
+            continue_at: scores
+                .map_or(pages_end, |timing| timing.roll + SCORE_ROLL_DURATION + 0.65),
         }
     }
 }

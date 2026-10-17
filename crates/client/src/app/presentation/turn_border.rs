@@ -13,7 +13,6 @@ use std::collections::{HashMap, HashSet};
 const TURN_BORDER_GROW_DURATION: f32 = 0.95;
 const TURN_BORDER_HOLD_DURATION: f32 = 0.14;
 const TURN_BORDER_SHRINK_DURATION: f32 = 0.95;
-const TURN_BORDER_GAP_DURATION: f32 = 0.18;
 pub(crate) const TURN_BORDER_THICKNESS: f32 = 2.6;
 const TURN_BORDER_OUTSET: f32 = TURN_BORDER_THICKNESS * 0.5 + 0.75;
 
@@ -112,10 +111,8 @@ pub(crate) fn add_turn_border_trace_with_radius(
 }
 
 pub(crate) fn turn_border_visible_interval(elapsed: f32, perimeter: f32) -> (f32, f32) {
-    let cycle = TURN_BORDER_GROW_DURATION
-        + TURN_BORDER_HOLD_DURATION
-        + TURN_BORDER_SHRINK_DURATION
-        + TURN_BORDER_GAP_DURATION;
+    let cycle =
+        TURN_BORDER_GROW_DURATION + TURN_BORDER_HOLD_DURATION + TURN_BORDER_SHRINK_DURATION + 0.18;
     let phase = elapsed.rem_euclid(cycle);
     if phase < TURN_BORDER_GROW_DURATION {
         let progress = smootherstep(phase / TURN_BORDER_GROW_DURATION);

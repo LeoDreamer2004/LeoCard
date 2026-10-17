@@ -1,4 +1,5 @@
-use super::{CorrectGuess, GuessActionStatistics, GuessPlayStatistics, types::PlayerRoundProgress};
+use super::types::PlayerRoundProgress;
+use super::{CorrectGuess, GuessActionStatistics, GuessPlayStatistics};
 use crate::{GuessMode, GuessResult, MatchQuality};
 use std::mem;
 
@@ -57,9 +58,10 @@ impl RoundAnalysis {
         };
         let all_matching = input.result.all_matching();
         let all_wrong = qualities.is_some_and(|matches| {
-            matches
-                .iter()
-                .all(|feedback| feedback.quality == MatchQuality::Wrong)
+            !matches.is_empty()
+                && matches
+                    .iter()
+                    .all(|feedback| feedback.quality == MatchQuality::Wrong)
         });
         let correct_entry = match input.result {
             GuessResult::Known {

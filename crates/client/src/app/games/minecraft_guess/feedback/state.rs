@@ -3,8 +3,6 @@ use leocard_minecraft_guess::GuessMode;
 use leocard_protocol::MatchId;
 use std::collections::VecDeque;
 
-const ROW_DURATION: f32 = 0.64;
-const RACE_ROW_SPEED: f32 = 3.0;
 pub(super) const ANSWER_DURATION: f32 = 1.55;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -42,7 +40,7 @@ pub(crate) struct GuessFeedback {
 impl GuessFeedback {
     fn row_speed(&self) -> f32 {
         if self.mode == GuessMode::Race {
-            RACE_ROW_SPEED
+            3.0
         } else {
             1.0
         }
@@ -61,9 +59,7 @@ impl GuessFeedback {
             .iter()
             .flatten()
             .last()
-            .map_or(self.clock, |row| {
-                row.start + ROW_DURATION / self.row_speed()
-            })
+            .map_or(self.clock, |row| row.start + 0.64 / self.row_speed())
             .max(self.clock)
     }
 

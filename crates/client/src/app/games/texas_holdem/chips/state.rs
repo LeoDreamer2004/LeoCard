@@ -9,7 +9,6 @@ use leocard_protocol::{MatchId, PlayerId, SeatId};
 use std::collections::HashMap;
 
 pub(super) const CHIP_SIZE: f32 = 34.0;
-pub(super) const CHIP_MOVE_DURATION: f32 = 0.42;
 pub(super) const PLAYER_CHIP_ZONE_WIDTH: f32 = 210.0;
 pub(super) const PLAYER_CHIP_ZONE_HEIGHT: f32 = 130.0;
 

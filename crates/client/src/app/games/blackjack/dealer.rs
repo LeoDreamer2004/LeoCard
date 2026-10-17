@@ -1,15 +1,13 @@
-use super::{
-    BlackjackTable,
-    cards::{BlackjackCardSpec, add_card},
-    playback::BlackjackCardSlot,
-};
+use super::BlackjackTable;
+use super::cards::{BlackjackCardSpec, add_card};
+use super::playback::BlackjackCardSlot;
 use crate::app::presentation::{
     ACCENT, TableStatusEffect, TableStatusSpec, UiComposer, add_playing_card_pile,
     add_table_play_area, add_table_status, spawn_node,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_blackjack::{HandValue, Phase};
+use leocard_blackjack::HandValue;
 
 impl BlackjackTable<'_> {
     pub(super) fn dealer(&self, commands: &mut UiComposer, table: Entity) -> Entity {
@@ -37,7 +35,7 @@ impl BlackjackTable<'_> {
         ));
         let title = if self.game.dealer_hidden {
             "庄家 暗牌未揭晓".to_owned()
-        } else if self.game.phase == Phase::Complete && !self.playback.busy() {
+        } else if self.playback.settlement_started() {
             let total = HandValue::of(&self.game.dealer).total;
             if total > 21 {
                 "庄家 爆牌".to_owned()

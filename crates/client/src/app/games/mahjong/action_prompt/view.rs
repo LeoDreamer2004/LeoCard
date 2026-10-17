@@ -4,7 +4,6 @@ use bevy::{picking::Pickable, prelude::*};
 use std::f32::consts;
 
 const RESPONSE_GOLD: Color = Color::srgb(1.0, 0.80, 0.20);
-const BREATH_DURATION: f32 = 2.4;
 
 #[derive(Component)]
 pub(in super::super) struct ResponseFrame {
@@ -84,7 +83,7 @@ pub(in super::super) fn animate_mahjong_response_indicators(
     mut frames: Query<(&ResponseFrame, &mut BorderColor)>,
     mut arrows: Query<(&ResponseArrow, &mut UiTransform, &mut TextColor)>,
 ) {
-    let phase = time.elapsed_secs_wrapped() * consts::TAU / BREATH_DURATION;
+    let phase = time.elapsed_secs_wrapped() * consts::TAU / 2.4;
     let breath = (phase.sin() + 1.0) * 0.5;
     for (frame, mut border) in &mut frames {
         *border =

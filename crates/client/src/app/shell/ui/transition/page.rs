@@ -7,7 +7,6 @@ use crate::app::runtime::UiAssets;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
 
-const PAGE_STAGGER: f32 = 0.09;
 const PAGE_EXIT_DURATION: f32 = 0.24;
 const PAGE_ENTER_DURATION: f32 = 0.38;
 const RETURN_DARKEN_DURATION: f32 = 0.17;
@@ -186,7 +185,7 @@ pub(super) fn animate_page_motion(
     }
     let mut exit_end = PAGE_EXIT_DURATION;
     for (entity, element, mut transform) in &mut elements {
-        let delay = f32::from(element.order) * PAGE_STAGGER;
+        let delay = f32::from(element.order) * 0.09;
         exit_end = exit_end.max(delay + PAGE_EXIT_DURATION);
         let opacity = match motion.stage {
             PageStage::Exiting => {

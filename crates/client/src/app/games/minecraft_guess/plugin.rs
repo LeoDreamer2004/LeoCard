@@ -10,7 +10,7 @@ use super::{
     },
     scores::{GuessScorePlayback, animate_scores, sync_score_playback},
     state::{GuessScroll, MinecraftGuessUiState},
-    table::{fill_empty_rows, sync_name_heights, sync_name_widths},
+    table::{fill_empty_rows, sync_attribute_hints, sync_name_heights, sync_name_widths},
     turn_timer::sync_guess_clock,
 };
 use crate::app::games::sync_summary_playback;
@@ -62,6 +62,7 @@ impl Plugin for MinecraftGuessPlugin {
                         sync_guess_controls,
                         sync_guess_button_skins,
                         sync_guess_clock,
+                        sync_attribute_hints,
                     )
                         .chain()
                         .in_set(ClientUpdateSet::Sync),

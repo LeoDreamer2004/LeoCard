@@ -2,7 +2,6 @@ use super::super::{BlackjackTable, layout::BlackjackSeatLayout};
 use super::{BlackjackWagerSpec, add_blackjack_wager};
 use crate::app::presentation::{UiComposer, add_table_play_area};
 use bevy::prelude::*;
-use leocard_blackjack::Phase;
 use leocard_protocol::BlackjackPlayerView;
 
 impl BlackjackTable<'_> {
@@ -64,7 +63,7 @@ impl BlackjackTable<'_> {
                 BlackjackWagerSpec {
                     wager: hand.wager,
                     net: hand.result.map(|_| hand.net_chips),
-                    settled: self.game.phase == Phase::Complete && !self.playback.busy(),
+                    settled: self.playback.settlement_started(),
                     width,
                     height: 68.0,
                     stack,

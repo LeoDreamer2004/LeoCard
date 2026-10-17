@@ -19,9 +19,6 @@ use bevy::prelude::*;
 use leocard_protocol::{ShengjiHandResultView, ShengjiSnapshot};
 use leocard_shengji::ShengjiCard;
 
-const SHENGJI_KITTY_SCORE_DELAY: f32 = 0.72;
-const SHENGJI_TOTAL_LABEL_DELAY: f32 = 1.92;
-
 #[expect(
     clippy::too_many_arguments,
     reason = "the settlement renderer combines game state with explicit animation resources"
@@ -141,12 +138,9 @@ pub(super) fn add_shengji_result(
         },
         None,
     );
-    commands.entity(kitty_score_line).insert((
-        ShengjiTimedReveal {
-            delay: SHENGJI_KITTY_SCORE_DELAY,
-        },
-        Visibility::Hidden,
-    ));
+    commands
+        .entity(kitty_score_line)
+        .insert((ShengjiTimedReveal { delay: 0.72 }, Visibility::Hidden));
     add_text(commands, kitty_score_line, "底牌分数", 14.0, MUTED, assets);
     let kitty_score = add_text(
         commands,
@@ -201,12 +195,9 @@ pub(super) fn add_shengji_result(
         },
         None,
     );
-    commands.entity(total_box).insert((
-        ShengjiTimedReveal {
-            delay: SHENGJI_TOTAL_LABEL_DELAY,
-        },
-        Visibility::Hidden,
-    ));
+    commands
+        .entity(total_box)
+        .insert((ShengjiTimedReveal { delay: 1.92 }, Visibility::Hidden));
     add_text(commands, total_box, "闲家总得分", 13.0, MUTED, assets);
     let total_text = add_text(commands, total_box, "0", 28.0, ACCENT, assets);
     commands.entity(total_text).insert((

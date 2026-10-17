@@ -88,20 +88,19 @@ pub(crate) fn derived_triggers(event: &AchievementTrigger) -> Vec<AchievementTri
             let Some(correct) = &statistics.correct_entry else {
                 return Vec::new();
             };
+            // This collection still covers the public block/item catalogue only.
+            let collection_kind = match correct.kind {
+                EntryKind::Block => "block",
+                EntryKind::Item => "item",
+                _ => return Vec::new(),
+            };
             let catalogue = Catalogue::bundled();
             let Some(entry) = catalogue.find(correct.kind, &correct.id) else {
                 return Vec::new();
             };
             let mut events = vec![AchievementTrigger::Collection {
                 id: ENTRY_COLLECTION,
-                item: format!(
-                    "{}/{}",
-                    match correct.kind {
-                        EntryKind::Block => "block",
-                        EntryKind::Item => "item",
-                    },
-                    correct.id
-                ),
+                item: format!("{collection_kind}/{}", correct.id),
                 target: catalogue.entries(GuessPool::Mixed).count(),
             }];
             if let Some(version) = version(entry) {

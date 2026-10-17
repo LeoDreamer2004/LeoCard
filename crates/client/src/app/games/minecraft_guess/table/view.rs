@@ -1,9 +1,11 @@
 use super::super::state::GuessScroll;
 use super::super::view::GuessTable;
 use super::cells::{CellSkin, TableCell};
+use super::details::AttributeHint;
 use super::rows::GuessEmptyRows;
 use super::style::ROW_HEIGHT;
 use crate::app::presentation::{Scrollbar, UiComposer, spawn_node};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_minecraft_guess::{Catalogue, GuessRecord, GuessResult, MatchQuality, ValueDirection};
@@ -14,7 +16,19 @@ impl GuessTable<'_> {
             .search(self.game.round.kind, "")
             .next()
             .expect("nonempty catalogue");
-        let attribute_width = 85.0 / example.attributes.len() as f32;
+        let columns = TableColumns::new(example.attributes.len());
+        let details = spawn_node(
+            commands,
+            parent,
+            Node {
+                position_type: PositionType::Absolute,
+                width: percent(100),
+                height: percent(100),
+                ..default()
+            },
+            None,
+        );
+        commands.entity(details).insert(Pickable::IGNORE);
         let grid = spawn_node(
             commands,
             parent,
@@ -48,11 +62,14 @@ impl GuessTable<'_> {
         );
         commands.entity(list).insert(self.game_assets.inset());
         let header = row(commands, list, 54.0);
-        TableCell::spawn(commands, header, 15.0, CellSkin::Heading, self.game_assets).label(
+        TableCell::spawn(
             commands,
-            "猜测",
-            self.assets,
-        );
+            header,
+            columns.name,
+            CellSkin::Heading,
+            self.game_assets,
+        )
+        .label(commands, "猜测", self.assets);
         for attribute in &example.attributes {
             let label = match attribute.label.as_str() {
                 "创造模式物品栏分类" => "创造分类",
@@ -62,7 +79,7 @@ impl GuessTable<'_> {
             TableCell::spawn(
                 commands,
                 header,
-                attribute_width,
+                columns.attribute,
                 CellSkin::Heading,
                 self.game_assets,
             )
@@ -89,7 +106,7 @@ impl GuessTable<'_> {
             ScrollPosition(Vec2::new(0.0, self.state.scroll_y)),
         ));
         for (index, guess) in self.game.round.guesses.iter().enumerate() {
-            self.guess_row(commands, scroll, guess, index, attribute_width);
+            self.guess_row(commands, scroll, guess, index, columns, details);
         }
         GuessEmptyRows::spawn(commands, scroll, self.game.round.guesses.len());
         Scrollbar::spawn(commands, grid, scroll, self.game_assets.scrollbar());
@@ -101,7 +118,8 @@ impl GuessTable<'_> {
         parent: Entity,
         guess: &GuessRecord,
         index: usize,
-        width: f32,
+        columns: TableColumns,
+        details: Entity,
     ) {
         let row = row(commands, parent, ROW_HEIGHT);
         let name_quality = if guess.result.is_correct() {
@@ -120,37 +138,67 @@ impl GuessTable<'_> {
             GuessResult::Known { entry, .. } => Some(self.game_assets.icon(entry)),
             GuessResult::Unknown { .. } => None,
         };
+        let name = if columns.name == 100.0 && matches!(guess.result, GuessResult::Unknown { .. }) {
+            format!("{}（此条目不存在）", guess.result.name())
+        } else {
+            guess.result.name().to_owned()
+        };
         TableCell::spawn(
             commands,
             row,
-            15.0,
+            columns.name,
             CellSkin::Feedback(name_quality),
             self.game_assets,
         )
         .revealing(commands, index, 0)
-        .guess(commands, guess.result.name(), player, icon, self.assets);
+        .guess(commands, &name, player, icon, self.assets);
         let GuessResult::Known { entry, matches, .. } = &guess.result else {
-            TableCell::spawn(commands, row, 85.0, CellSkin::Unknown, self.game_assets)
-                .revealing(commands, index, 1)
-                .label(commands, "此条目不存在", self.assets);
+            if columns.name < 100.0 {
+                TableCell::spawn(commands, row, 85.0, CellSkin::Unknown, self.game_assets)
+                    .revealing(commands, index, 1)
+                    .label(commands, "此条目不存在", self.assets);
+            }
             return;
         };
         for (column, (attribute, feedback)) in entry.attributes.iter().zip(matches).enumerate() {
-            let value = attribute.text();
+            let value = AttributeHint::preview(attribute);
             let label = match feedback.direction {
                 Some(ValueDirection::Up) => format!("{value}\u{00a0}↑"),
                 Some(ValueDirection::Down) => format!("{value}\u{00a0}↓"),
                 None => value,
             };
-            TableCell::spawn(
+            let cell = TableCell::spawn(
                 commands,
                 row,
-                width,
+                columns.attribute,
                 CellSkin::Feedback(feedback.quality),
                 self.game_assets,
             )
-            .revealing(commands, index, column + 1)
-            .label(commands, &label, self.assets);
+            .revealing(commands, index, column + 1);
+            cell.label(commands, &label, self.assets);
+            cell.details(commands, details, attribute, self.assets, self.game_assets);
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct TableColumns {
+    name: f32,
+    attribute: f32,
+}
+
+impl TableColumns {
+    fn new(attributes: usize) -> Self {
+        if attributes == 0 {
+            Self {
+                name: 100.0,
+                attribute: 0.0,
+            }
+        } else {
+            Self {
+                name: 15.0,
+                attribute: 85.0 / attributes as f32,
+            }
         }
     }
 }

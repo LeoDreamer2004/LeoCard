@@ -1,5 +1,7 @@
-use super::playback::{BlackjackCardSlot, BlackjackCardTiming, BlackjackPlayback};
-use crate::app::presentation::{CARD_DEAL_DURATION, PlayingCardFlip, TablePieceDeal, UiComposer};
+use super::playback::{
+    BlackjackCardSlot, BlackjackCardTiming, BlackjackPlayback, DEALER_FLIP_DURATION,
+};
+use crate::app::presentation::{PlayingCardFlip, TablePieceDeal, UiComposer};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -39,7 +41,8 @@ pub(super) fn add_card(
     let previous = commands.declared::<BlackjackCardTiming>(entity).copied();
     if let Some(at) = timing.deal_at {
         let deal = TablePieceDeal::from_anchor(pile, at - playback.elapsed())
-            .with_fade_in(CARD_DEAL_DURATION * 0.2);
+            .with_duration(spec.slot.deal_duration())
+            .with_fade_in(spec.slot.deal_duration() * 0.2);
         if previous.is_some_and(|previous| previous.deal_at == timing.deal_at) {
             commands
                 .entity(entity)
@@ -54,7 +57,8 @@ pub(super) fn add_card(
     if let Some(at) = timing.flip_at
         && let Some(face) = face
     {
-        let flip = PlayingCardFlip::new(face, back, at - playback.elapsed());
+        let flip = PlayingCardFlip::new(face, back, at - playback.elapsed())
+            .with_duration(DEALER_FLIP_DURATION);
         if previous.is_some_and(|previous| previous.flip_at == timing.flip_at) {
             commands
                 .entity(entity)

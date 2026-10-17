@@ -1,4 +1,4 @@
-use super::icons::EntryIcons;
+use super::EntryIcons;
 use crate::app::presentation::{ScrollbarSkin, TextInputSkin};
 use bevy::image::{ImageLoaderSettings, ImageSampler};
 use bevy::prelude::*;
@@ -24,36 +24,36 @@ pub(crate) struct MinecraftGuessAssets {
 }
 
 impl MinecraftGuessAssets {
-    pub(super) fn icon(&self, entry: &Entry) -> ImageNode {
+    pub(in super::super) fn icon(&self, entry: &Entry) -> ImageNode {
         self.icons.image(entry)
     }
 
-    pub(super) fn frame(&self) -> ImageNode {
+    pub(in super::super) fn frame(&self) -> ImageNode {
         Self::image(self.frame.clone())
     }
 
-    pub(super) fn popup_frame(&self) -> ImageNode {
+    pub(in super::super) fn popup_frame(&self) -> ImageNode {
         Self::image(self.popup_frame.clone())
     }
 
-    pub(super) fn inset(&self) -> ImageNode {
+    pub(in super::super) fn inset(&self) -> ImageNode {
         Self::recessed(self.inset.clone())
     }
 
-    pub(super) fn surface(&self) -> ImageNode {
+    pub(in super::super) fn surface(&self) -> ImageNode {
         ImageNode::new(self.surface.clone())
             .with_mode(NodeImageMode::Stretch)
             .with_visual_box(VisualBox::PaddingBox)
     }
 
-    pub(super) fn cell(&self, tint: Color) -> ImageNode {
+    pub(in super::super) fn cell(&self, tint: Color) -> ImageNode {
         ImageNode::new(self.cell.clone())
             .with_mode(NodeImageMode::Stretch)
             .with_color(tint)
             .with_visual_box(VisualBox::PaddingBox)
     }
 
-    pub(super) fn scrollbar(&self) -> ScrollbarSkin {
+    pub(in super::super) fn scrollbar(&self) -> ScrollbarSkin {
         ScrollbarSkin::textured(
             Self::recessed(self.scroll_track.clone()),
             Self::sliced(self.scroll_thumb.clone(), 1.0),
@@ -61,7 +61,7 @@ impl MinecraftGuessAssets {
         )
     }
 
-    pub(super) fn button(&self, enabled: bool, highlighted: bool) -> ImageNode {
+    pub(in super::super) fn button(&self, enabled: bool, highlighted: bool) -> ImageNode {
         Self::sliced(
             if !enabled {
                 self.disabled_button.clone()
@@ -74,7 +74,7 @@ impl MinecraftGuessAssets {
         )
     }
 
-    pub(super) fn input(&self) -> TextInputSkin {
+    pub(in super::super) fn input(&self) -> TextInputSkin {
         TextInputSkin::new(
             Self::sliced(self.input.clone(), 3.0),
             Self::sliced(self.focused_input.clone(), 3.0),
@@ -111,7 +111,7 @@ impl MinecraftGuessAssets {
     }
 }
 
-pub(super) fn load_guess_assets(
+pub(in super::super) fn load_guess_assets(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
@@ -125,19 +125,19 @@ pub(super) fn load_guess_assets(
             .load(path)
     };
     commands.insert_resource(MinecraftGuessAssets {
-        frame: load("ui/minecraft_guess/table-frame.png"),
-        popup_frame: load("ui/minecraft_guess/popup-frame.png"),
-        inset: load("ui/minecraft_guess/table-inset.png"),
-        cell: load("ui/minecraft_guess/table-cell.png"),
-        surface: load("ui/minecraft_guess/table-surface.png"),
-        scroll_track: load("ui/minecraft_guess/scroll-track.png"),
-        scroll_thumb: load("ui/minecraft_guess/scroll-thumb.png"),
-        disabled_scroll_thumb: load("ui/minecraft_guess/scroll-thumb-disabled.png"),
-        button: load("ui/minecraft_guess/button.png"),
-        disabled_button: load("ui/minecraft_guess/button-disabled.png"),
-        highlighted_button: load("ui/minecraft_guess/button-highlighted.png"),
-        input: load("ui/minecraft_guess/input.png"),
-        focused_input: load("ui/minecraft_guess/input-focused.png"),
-        icons: EntryIcons::new(load("ui/minecraft_guess/entries.png"), &mut layouts),
+        frame: load("ui/minecraft_guess/widgets/table-frame.png"),
+        popup_frame: load("ui/minecraft_guess/widgets/popup-frame.png"),
+        inset: load("ui/minecraft_guess/widgets/table-inset.png"),
+        cell: load("ui/minecraft_guess/widgets/table-cell.png"),
+        surface: load("ui/minecraft_guess/widgets/table-surface.png"),
+        scroll_track: load("ui/minecraft_guess/widgets/scroll-track.png"),
+        scroll_thumb: load("ui/minecraft_guess/widgets/scroll-thumb.png"),
+        disabled_scroll_thumb: load("ui/minecraft_guess/widgets/scroll-thumb-disabled.png"),
+        button: load("ui/minecraft_guess/widgets/button.png"),
+        disabled_button: load("ui/minecraft_guess/widgets/button-disabled.png"),
+        highlighted_button: load("ui/minecraft_guess/widgets/button-highlighted.png"),
+        input: load("ui/minecraft_guess/widgets/input.png"),
+        focused_input: load("ui/minecraft_guess/widgets/input-focused.png"),
+        icons: EntryIcons::new(&asset_server, &mut layouts),
     });
 }

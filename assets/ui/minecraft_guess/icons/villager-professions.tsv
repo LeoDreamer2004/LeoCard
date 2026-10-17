@@ -1,0 +1,16 @@
+kind	id	index
+villager_profession	minecraft:armorer	0
+villager_profession	minecraft:butcher	1
+villager_profession	minecraft:cartographer	2
+villager_profession	minecraft:cleric	3
+villager_profession	minecraft:farmer	4
+villager_profession	minecraft:fisherman	5
+villager_profession	minecraft:fletcher	6
+villager_profession	minecraft:leatherworker	7
+villager_profession	minecraft:librarian	8
+villager_profession	minecraft:mason	9
+villager_profession	minecraft:nitwit	10
+villager_profession	minecraft:none	11
+villager_profession	minecraft:shepherd	12
+villager_profession	minecraft:toolsmith	13
+villager_profession	minecraft:weaponsmith	14

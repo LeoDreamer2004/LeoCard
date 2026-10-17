@@ -1,10 +1,9 @@
 use std::f32::consts;
 
 use super::super::{
-    UNO_FLYING_CARD_HEIGHT, UNO_FLYING_CARD_WIDTH, UNO_PALETTE_EFFECT_DURATION,
-    UNO_REVERSE_EFFECT_DURATION, UnoFlipCard, UnoFlipOverlay, UnoFlyingCard, UnoPaletteColorRing,
-    UnoPaletteEffect, UnoPaletteMaterial, UnoPaletteParticle, UnoPaletteSelectedSector,
-    UnoReverseArrow,
+    UNO_FLYING_CARD_HEIGHT, UNO_FLYING_CARD_WIDTH, UNO_PALETTE_EFFECT_DURATION, UnoFlipCard,
+    UnoFlipOverlay, UnoFlyingCard, UnoPaletteColorRing, UnoPaletteEffect, UnoPaletteMaterial,
+    UnoPaletteParticle, UnoPaletteSelectedSector, UnoReverseArrow,
 };
 use super::reverse::quadratic_bezier;
 
@@ -255,15 +254,14 @@ pub(crate) fn animate_uno_reverse_effects(
             continue;
         }
         let entry = ease_out_back((local / 0.16).clamp(0.0, 1.0));
-        let fade =
-            smoothstep(((UNO_REVERSE_EFFECT_DURATION - arrow.elapsed) / 0.30).clamp(0.0, 1.0));
+        let fade = smoothstep(((1.65 - arrow.elapsed) / 0.30).clamp(0.0, 1.0));
         let opacity = entry.clamp(0.0, 1.0) * fade;
         background.0 = arrow.color.with_alpha(opacity * arrow.max_alpha);
         if let Some(style) = shadow.0.first_mut() {
             style.color = Color::BLACK.with_alpha(opacity * arrow.shadow_alpha);
         }
         transform.scale = Vec2::splat(0.68 + entry * 0.32);
-        if arrow.elapsed >= UNO_REVERSE_EFFECT_DURATION {
+        if arrow.elapsed >= 1.65 {
             commands.entity(entity).despawn();
         }
     }

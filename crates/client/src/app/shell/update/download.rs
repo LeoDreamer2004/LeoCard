@@ -156,7 +156,7 @@ fn download_binary(
             .map_err(|error| format!("写入更新文件失败：{error}"))?;
         digest.update(&buffer[..read]);
         downloaded = downloaded.saturating_add(read as u64);
-        if last_progress.elapsed() >= PROGRESS_INTERVAL {
+        if last_progress.elapsed() >= Duration::from_millis(100) {
             let _ = sender.send(UpdateEvent::Progress { downloaded, total });
             last_progress = Instant::now();
         }
@@ -258,4 +258,3 @@ pub(super) fn format_bytes(bytes: u64) -> String {
 const LATEST_RELEASE_URL: &str =
     "https://api.github.com/repos/LeoDreamer2004/LeoCard/releases/latest";
 const DOWNLOAD_BUFFER_SIZE: usize = 64 * 1024;
-const PROGRESS_INTERVAL: Duration = Duration::from_millis(100);

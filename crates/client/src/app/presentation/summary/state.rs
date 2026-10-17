@@ -4,7 +4,6 @@ use bevy::prelude::*;
 use leocard_protocol::MatchId;
 
 pub(crate) const SUMMARY_MODAL_ENTRY_DURATION: f32 = 0.55;
-pub(crate) const SUMMARY_HAND_REVEAL_DURATION: f32 = 1.5;
 pub(crate) const SUMMARY_ROW_START_DELAY: f32 = 0.38;
 pub(crate) const SUMMARY_ROW_INTERVAL: f32 = 0.18;
 pub(crate) const SUMMARY_ROW_ENTRY_DURATION: f32 = 0.32;

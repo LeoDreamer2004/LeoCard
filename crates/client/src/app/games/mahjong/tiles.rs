@@ -11,9 +11,6 @@ use bevy::ui_widgets::Button;
 use leocard_mahjong::MahjongTile;
 use std::f32::consts;
 
-const MAHJONG_DEAL_MOVE_DURATION: f32 = 0.28;
-const MAHJONG_DRAW_FALL_DURATION: f32 = 0.42;
-
 pub(super) fn mahjong_deal_spec(
     relative: u8,
     tile_index: usize,
@@ -221,11 +218,7 @@ pub(super) fn animate_mahjong_deal_tiles(
 ) {
     for (entity, mut deal, material_node, mut transform, mut shadow) in &mut tiles {
         deal.elapsed += time.delta_secs();
-        let duration = if deal.falling {
-            MAHJONG_DRAW_FALL_DURATION
-        } else {
-            MAHJONG_DEAL_MOVE_DURATION
-        };
+        let duration = if deal.falling { 0.42 } else { 0.28 };
         let raw = (deal.elapsed / duration).clamp(0.0, 1.0);
         let movement = ease_out_cubic(raw);
         let lift = if deal.falling {

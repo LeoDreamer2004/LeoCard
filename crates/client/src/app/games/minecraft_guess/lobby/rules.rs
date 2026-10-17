@@ -60,18 +60,15 @@ impl RulesEditor<'_, '_, '_> {
             RuleChoice {
                 label: "答案范围",
                 help: "每局随机选取一个答案。",
-                values: &[GuessPool::Blocks, GuessPool::Items, GuessPool::Mixed],
+                values: if cfg!(debug_assertions) || cfg!(feature = "developer") {
+                    &GuessPool::ALL
+                } else {
+                    &GuessPool::STANDARD
+                },
                 current: options.pool,
             },
             |rules, value| rules.options_mut().pool = value,
-            |value| {
-                match value {
-                    GuessPool::Blocks => "方块",
-                    GuessPool::Items => "物品",
-                    GuessPool::Mixed => "方块与物品",
-                }
-                .to_owned()
-            },
+            |value| value.label().to_owned(),
         );
         let mut hints = rules;
         hints.options_mut().candidate_hints = !options.candidate_hints;
@@ -185,8 +182,7 @@ impl RulesEditor<'_, '_, '_> {
         let index = choice
             .values
             .iter()
-            .position(|value| *value == choice.current)
-            .expect("valid guessing rule");
+            .position(|value| *value == choice.current);
         let updated = |value: &T| {
             let mut rules = self.rules;
             set(&mut rules, *value);
@@ -201,12 +197,11 @@ impl RulesEditor<'_, '_, '_> {
                 help: choice.help,
                 editable: self.editable,
                 previous: index
-                    .checked_sub(1)
+                    .and_then(|index| index.checked_sub(1))
                     .filter(|_| self.editable)
                     .map(|index| updated(&choice.values[index])),
-                next: choice
-                    .values
-                    .get(index + 1)
+                next: index
+                    .and_then(|index| choice.values.get(index + 1))
                     .filter(|_| self.editable)
                     .map(updated),
             },

@@ -9,7 +9,6 @@ use bevy::prelude::*;
 
 pub(crate) const PLAY_ERROR_TOAST_DURATION: f32 = 2.4;
 pub(crate) const PLAY_ERROR_TOAST_ENTRY_DURATION: f32 = 0.28;
-const PLAY_ERROR_TOAST_FADE_DURATION: f32 = 0.42;
 pub(crate) const PLAY_ERROR_TOAST_SHAKE_DURATION: f32 = 0.42;
 
 pub(crate) fn sync_play_error_toast(
@@ -80,8 +79,7 @@ pub(crate) fn play_error_toast_visual(toast: &PlayErrorToast) -> PlayErrorToastV
         1.0
     };
     let entry = 1.0 - (1.0 - entry).powi(3);
-    let fade = ((PLAY_ERROR_TOAST_DURATION - toast.elapsed) / PLAY_ERROR_TOAST_FADE_DURATION)
-        .clamp(0.0, 1.0);
+    let fade = ((PLAY_ERROR_TOAST_DURATION - toast.elapsed) / 0.42).clamp(0.0, 1.0);
     let life = (toast.elapsed / PLAY_ERROR_TOAST_DURATION).clamp(0.0, 1.0);
     let x = toast.shake_elapsed.map_or(0.0, |elapsed| {
         let strength = 1.0 - (elapsed / PLAY_ERROR_TOAST_SHAKE_DURATION).clamp(0.0, 1.0);

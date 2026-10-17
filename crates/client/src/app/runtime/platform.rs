@@ -90,7 +90,7 @@ mod tests {
             "ui/home/cozy-game-card.png",
             "ui/home/cozy-game-card-hover.png",
             "ui/game-buttons/warning-normal.png",
-            "ui/minecraft_guess/entries.png",
+            "ui/minecraft_guess/icons/entries.png",
             "ui/minecraft_guess/background/block-fronts.png",
             "ui/minecraft_guess/background/dirt.png",
             "ui/minecraft_guess/background/panoramas/1.21.png",

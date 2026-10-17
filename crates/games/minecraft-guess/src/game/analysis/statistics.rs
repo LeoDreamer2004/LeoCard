@@ -16,12 +16,20 @@ pub struct GuessPlayStatistics {
 
 impl GuessPlayStatistics {
     pub(in crate::game) fn finish_game(&mut self, kind: EntryKind, won: bool, allow_unknown: bool) {
-        let (games, wins) = match kind {
-            EntryKind::Block => (&mut self.block_games, &mut self.block_wins),
-            EntryKind::Item => (&mut self.item_games, &mut self.item_wins),
+        let counts = match kind {
+            EntryKind::Block => Some((&mut self.block_games, &mut self.block_wins)),
+            EntryKind::Item => Some((&mut self.item_games, &mut self.item_wins)),
+            EntryKind::Mob
+            | EntryKind::Enchantment
+            | EntryKind::Effect
+            | EntryKind::VillagerProfession
+            | EntryKind::Landscape
+            | EntryKind::Biome => None,
         };
-        *games = 1;
-        *wins = u32::from(won);
+        if let Some((games, wins)) = counts {
+            *games = 1;
+            *wins = u32::from(won);
+        }
         if allow_unknown {
             self.unknown_enabled_guesses = self.known_guesses.saturating_add(self.unknown_guesses);
         }

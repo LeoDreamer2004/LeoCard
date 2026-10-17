@@ -12,12 +12,6 @@ use leocard_protocol::{
     GameSnapshot, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MatchId, PlayerId,
 };
 
-const FAN_OUTCOME_LEAD: f32 = 0.14;
-const FAN_HAND_LEAD: f32 = 0.28;
-const FAN_WINNER_GAP: f32 = 0.08;
-const FAN_VOICE_HOLD: f32 = 0.22;
-const FAN_TOTAL_HOLD: f32 = 1.35;
-
 pub(super) fn queue_mahjong_action_voice(
     commands: &mut UiComposer,
     assets: &MahjongAssets,
@@ -480,19 +474,19 @@ pub(super) fn mahjong_settlement_timing(result: &MahjongHandResultView) -> Mahjo
     let mut winners = Vec::with_capacity(result.winners.len());
     for winner in &result.winners {
         let outcome_delay = next_delay;
-        next_delay += FAN_OUTCOME_LEAD;
+        next_delay += 0.14;
         let hand_delay = next_delay;
-        next_delay += FAN_HAND_LEAD;
+        next_delay += 0.28;
         let mut fan_delays = Vec::with_capacity(winner.score.fans.len());
         for fan in &winner.score.fans {
             fan_delays.push(next_delay);
             next_delay += fan_voice_spec(fan.fan)
                 .duration
                 .max(SUMMARY_ROW_ENTRY_DURATION)
-                + FAN_VOICE_HOLD;
+                + 0.22;
         }
         let total_delay = next_delay;
-        next_delay += FAN_TOTAL_HOLD + FAN_WINNER_GAP;
+        next_delay += 1.35 + 0.08;
         winners.push(MahjongWinnerTiming {
             outcome_delay,
             hand_delay,

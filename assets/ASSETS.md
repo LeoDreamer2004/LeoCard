@@ -44,26 +44,21 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 ### Minecraft 等级物品图标（Mojang）
 
 - 运行时文件：`ui/profile/` 下的 10 张 PNG，分别用于下界合金锭、钻石、金锭、红石粉、铁锭、铜锭、圆石、橡木原木、泥土和堆肥桶等级。
-- 来源：[Minecraft Wiki 的 Invicon 图标](https://minecraft.wiki/)，对应文件为 `Invicon_Netherite_Ingot.png`、`Invicon_Diamond.png`、`Invicon_Gold_Ingot.png`、`Invicon_Redstone.png`、`Invicon_Iron_Ingot.png`、`Invicon_Copper_Ingot.png`、`Invicon_Cobblestone.png`、`Invicon_Oak_Log.png`、`Invicon_Dirt.png`、`Invicon_Composter.png`。
+- 来源：[Minecraft Wiki 的 Invicon 图标](https://minecraft.wiki/)。
 - Minecraft 物品图像的权利归 Mojang Studios 所有，不适用 LeoCard 的 GPL-3.0 素材授权；使用须遵守 [Minecraft 使用规范](https://www.minecraft.net/en-us/usage-guidelines)。
 
 ### MC 竞猜方块与物品图标（Mojang）
 
 - 运行时文件：`ui/minecraft_guess/icons/entries.png`，方块和物品共用，用于猜测记录、候选词以及揭晓后的答案。
 - 来源：[Minecraft Wiki 库存图标](https://minecraft.wiki/w/Category:InvSprite_files)和对应的方块原始渲染图。按当前词库的方块／物品标识分别映射，外观相同的图标共用图集位置；动画取第一帧，保持长宽比装入 64×64 像素图格。物品保留原生像素图，三维方块采用较高分辨率的原始渲染图，客户端使用最近邻采样。
-- `tools/minecraft/sources/icons/entries.json`（不提交）记录每个条目的对应文件、下载地址和内容 SHA-1；`ui/minecraft_guess/icons/entries.tsv` 是客户端使用的图集索引，`layouts.tsv` 记录各图集的图格尺寸和列数。图集生成脚本位于本地 `tools/minecraft/`，不提交到 Git；原图仅缓存于 `target/minecraft-audit/`，不随游戏发布。
+- `ui/minecraft_guess/icons/entries.tsv` 是客户端使用的图集索引，`layouts.tsv` 记录各图集的图格尺寸和列数。
 - Minecraft 图像的权利归 Mojang Studios 所有，授权要求与上述等级物品图标一致。
 
-### MC 竞猜生物、附魔、状态效果与职业
+### MC 竞猜生物、附魔、状态效果、职业、世界景观、生物群系
 
-- 独立图集：`ui/minecraft_guess/icons/{mobs,enchantments,effects,villager-professions}.png`，各自使用相同名称的索引，位于 `ui/minecraft_guess/icons/`。原版生物头像来自 [Minecraft Wiki 生物列表](https://minecraft.wiki/w/Mob)，职业图像来自 [村民职业外观](https://minecraft.wiki/w/Villager#Professions)，状态效果纹理由 Mojang 官方 Java 26.3 客户端提取，附魔图标复用附魔书原图。
-- 图片地址、Wiki 原文件 SHA-1 和实际下载 SHA-1 按类别记录于 `tools/minecraft/sources/icons/`（不提交，CDN 可能无损重压缩 PNG）。Minecraft 图像权利归 Mojang Studios 所有，使用规范同上；原图仅在 `target/minecraft-audit/` 缓存。
-- 对应 CSV 属性依据官方注册表、[Minecraft Wiki](https://minecraft.wiki/)及[中文状态效果查论编](https://zh.minecraft.wiki/w/Template:Navbox_effects)整理；`tools/minecraft/sources/nodes.json`（不提交）记录逐条来源与正文校验和。Wiki 文本采用 [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/)；本目录记录结构化事实，不复制百科正文。
-
-### MC 竞猜世界景观与生物群系
-
-- 独立图集为 `ui/minecraft_guess/icons/{landscapes,biomes}.png`，索引位于 `ui/minecraft_guess/icons/`，逐图来源位于 `tools/minecraft/sources/icons/`（不提交）；来源是中文 Minecraft Wiki 的[地物](https://zh.minecraft.wiki/w/地物)、[生成结构](https://zh.minecraft.wiki/w/生成结构)和[生物群系](https://zh.minecraft.wiki/w/生物群系)页面中的精灵图。保持原像素风格，图片权利与上述 Minecraft 素材一致。
-- `tools/minecraft/sources/world.json`（不提交）记录条目固定修订、生成成员和完整群系集合；结构标签、地物放置链、基础温度和降水值依据 Mojang Java 26.3 客户端数据，群系分类与加入历史依据 Wiki。原始页面和图标仅缓存在 `target/minecraft-audit/nodes/`，工具位于忽略的 `tools/minecraft/`。
+- 独立图集：`ui/minecraft_guess/icons/{mobs,enchantments,effects,villager-professions,landscapes,biomes}.png`，各自使用相同名称的索引，位于 `ui/minecraft_guess/icons/`。原版生物头像来自 [Minecraft Wiki 生物列表](https://minecraft.wiki/w/Mob)，职业图像来自 [村民职业外观](https://minecraft.wiki/w/Villager#Professions)，地物图标来自 [Minecraft Wiki 地物](https://zh.minecraft.wiki/w/地物)，生成结构图标来自 [Minecraft Wiki 生成结构](https://zh.minecraft.wiki/w/生成结构)，生物群系图标来自 [Minecraft Wiki 生物群系](https://zh.minecraft.wiki/w/生物群系)。状态效果纹理由 Mojang 官方 Java 26.3 客户端提取，附魔图标复用附魔书原图。
+- 对应 CSV 属性依据官方注册表、[Minecraft Wiki](https://minecraft.wiki/)及[中文状态效果查论编](https://zh.minecraft.wiki/w/Template:Navbox_effects)整理；Wiki 文本采用 [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/)。
+- Minecraft 图像权利归 Mojang Studios 所有，使用规范同上。
 
 ### MC 竞猜游戏背景（Mojang）
 

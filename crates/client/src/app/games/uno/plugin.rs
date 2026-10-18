@@ -1,3 +1,4 @@
+use super::drag::{UnoDragGuideMaterial, UnoDragState, render_uno_drag, update_uno_drag};
 use super::jump_in_device::update_jump_in_device;
 use super::{
     UnoAudioState, UnoJumpInDevice, UnoPaletteMaterial, UnoPresentationState, UnoUiState, actions,
@@ -19,6 +20,8 @@ impl Plugin for UnoPlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<UnoPaletteMaterial>()
             .add_plugins(UiMaterialPlugin::<UnoPaletteMaterial>::default())
+            .add_plugins(UiMaterialPlugin::<UnoDragGuideMaterial>::default())
+            .init_resource::<UnoDragState>()
             .insert_resource(UnoPresentationState::default())
             .insert_resource(UnoAudioState::default())
             .init_resource::<UnoUiState>()
@@ -29,6 +32,13 @@ impl Plugin for UnoPlugin {
             )
             .add_systems(Startup, assets::load_uno_assets)
             .add_systems(Update, actions::dispatch_uno_actions.in_set(UiActionSet))
+            .add_systems(
+                Update,
+                update_uno_drag
+                    .in_set(ClientUpdateSet::Input)
+                    .before(UiActionSet),
+            )
+            .add_systems(Update, render_uno_drag.in_set(ClientUpdateSet::Animate))
             .add_systems(Update, update_jump_in_device.in_set(ClientUpdateSet::Sync))
             .add_systems(
                 Update,

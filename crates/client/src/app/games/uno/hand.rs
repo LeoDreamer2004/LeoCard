@@ -1,3 +1,4 @@
+use super::drag::UnoDraggableCard;
 use super::{
     UNO_AVATAR_SIZE, UNO_PORTRAIT_HEIGHT, UNO_PORTRAIT_WIDTH, UnoAssets, UnoExtensionCardHelp,
     UnoExtensionCardHelpOverlay, UnoFlipTarget, UnoHandCardButton, UnoHandCardVisual,
@@ -157,8 +158,8 @@ pub(super) fn add_uno_own_area(
             game.pending_swap,
             Some(UnoPendingSwapView::SwapOneGive { player, .. }) if player == game.you
         );
-        let interactive = playable || selectable_for_swap;
         let jump_selected = game.your_jump_in_card == Some(card);
+        let interactive = playable || selectable_for_swap || jump_selected;
         let selected = playing && ui.selected.contains(&card);
         let animation = if playing {
             ui.card_animations.get(&card).copied().unwrap_or_default()
@@ -182,6 +183,9 @@ pub(super) fn add_uno_own_area(
         );
         let mut entity = commands.entity(slot);
         let extension_help = uno_extension_card_help(card.face());
+        if playable || jump_selected {
+            entity.insert(UnoDraggableCard(card));
+        }
         if interactive {
             entity.insert((
                 Button,

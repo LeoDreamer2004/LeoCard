@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 // Playback completion must use the same durations as the rendered animations.
 pub(in super::super) const DEALER_FLIP_DURATION: f32 = 0.7;
-pub(in super::super) const SETTLEMENT_CHIP_DURATION: f32 = 1.2;
+pub(in super::super) const SETTLEMENT_CHIP_DURATION: f32 = 0.56;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) enum BlackjackCardSlot {

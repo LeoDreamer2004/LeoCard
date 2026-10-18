@@ -34,7 +34,7 @@ pub(crate) fn add_poker_balance_panel(
     );
     commands.entity(panel).insert((
         card_background_image(assets.home.game_card.clone(), 1.0),
-        GlobalZIndex(1500),
+        GlobalZIndex(1000),
         Pickable::IGNORE,
     ));
     let value_area = spawn_node(

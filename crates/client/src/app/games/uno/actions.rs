@@ -1,7 +1,10 @@
 //! UNO 按钮动作、本地选择状态与网络命令。
 
 use super::jump_in_device::send_jump_in;
-use super::{UnoJumpInDevice, UnoUiState, toggle_uno_selection, toggle_uno_swap_target_selection};
+use super::{
+    UnoJumpInDevice, UnoUiState, toggle_uno_selection, toggle_uno_swap_target_selection,
+    uno_card_is_playable,
+};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState, dispatch_domain_actions,
@@ -19,6 +22,7 @@ pub(crate) enum UnoUiAction {
     CloseModeMenu,
     ToggleExpansionSettings,
     ToggleCard(UnoCard),
+    DragCard(UnoCard),
     SubmitCard,
     CloseColorChoice,
     ChooseInitialColor(UnoColor),
@@ -84,6 +88,25 @@ impl UiActionHandler<UnoActionContext<'_>> for UnoUiAction {
                 toggle_uno_selection(game, &mut ui.selected, *card);
             }
             UnoUiAction::SubmitCard => submit_selected_cards(client, ui),
+            UnoUiAction::DragCard(card) => {
+                let Some(game) = client
+                    .as_deref()
+                    .and_then(|client| client.0.model().uno_game())
+                else {
+                    return;
+                };
+                if game.your_jump_in_card == Some(*card) {
+                    if let Some(client) = client.as_deref_mut()
+                        && send_jump_in(client, &mut context.jump_in_device, *card)
+                    {
+                        ui.selected.clear();
+                    }
+                } else if game.your_hand.contains(card) && uno_card_is_playable(game, *card) {
+                    ui.selected.clear();
+                    ui.selected.insert(*card);
+                    submit_selected_cards(client, ui);
+                }
+            }
             UnoUiAction::CloseColorChoice => ui.color_choice = None,
             UnoUiAction::ChooseInitialColor(color) => {
                 send_game_command(client, UnoCommand::ChooseInitialColor { color: *color });

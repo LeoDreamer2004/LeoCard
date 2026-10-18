@@ -4,7 +4,7 @@ use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use leocard_minecraft_guess::{
-    GuessMode, GuessPool, MinecraftGuessRuleSet, RaceRules, TurnBasedRules,
+    GuessMode, GuessPool, MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet, RaceRules, TurnBasedRules,
 };
 
 impl EditableRuleSet for MinecraftGuessRuleSet {
@@ -94,7 +94,9 @@ impl RulesEditor<'_, '_, '_> {
             } else {
                 "关闭"
             },
-            "仅在关闭候选提示时可用。最多输入 10 个字，不存在的词也会记录。",
+            &format!(
+                "仅在关闭候选提示时可用。最多输入 {MAX_GUESS_CHARACTERS} 个字，不存在的词也会记录。"
+            ),
             (self.editable && !options.candidate_hints).then_some(unknown),
         );
     }
@@ -155,7 +157,7 @@ impl RulesEditor<'_, '_, '_> {
         &mut self,
         label: &'static str,
         value: &str,
-        help: &'static str,
+        help: &str,
         toggled: Option<MinecraftGuessRuleSet>,
     ) {
         add_rule_config_row(

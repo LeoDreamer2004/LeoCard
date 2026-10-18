@@ -1,5 +1,6 @@
 use bevy::android::ANDROID_APP;
-use jni_tls::{JavaVM, objects::JObject};
+use jni::JavaVM;
+use jni::objects::JObject;
 use rustls_platform_verifier::android::init_with_env;
 
 /// Store the JVM and application class loader before the first HTTPS handshake.

@@ -35,16 +35,17 @@ fn unknown_guesses_consume_turns_without_attributes_or_answer_leaks() {
         }
     );
     assert!(view.guesses[0].result.accepts_candidate(&answer));
+    let too_long = "字".repeat(MAX_GUESS_CHARACTERS + 1);
     for (text, error) in [
         ("不存在的方块", GameError::AlreadyGuessed),
-        ("一二三四五六七八九十个", GameError::GuessTooLong),
+        (too_long.as_str(), GameError::GuessTooLong),
         ("   ", GameError::InvalidGuess),
         ("名字\n换行", GameError::InvalidGuess),
     ] {
         assert_eq!(game.guess(0, text), Err(error));
         assert_eq!(game.view(), view);
     }
-    game.guess(0, "一二三四五六七八九十").unwrap();
+    game.guess(0, &"字".repeat(MAX_GUESS_CHARACTERS)).unwrap();
     assert_eq!(game.current_player(), Some(1));
     // Internal IDs remain usable, although their length exceeds the name input limit.
     game.guess(1, &answer.id).unwrap();
@@ -92,6 +93,6 @@ fn rules_require_no_hints_and_the_catalogue_fits_the_name_limit() {
     assert!(
         Catalogue::bundled()
             .find(EntryKind::Item, "minecraft:mojang_banner_pattern")
-            .is_none()
+            .is_some_and(|entry| entry.name == "Mojang徽标旗帜图案")
     );
 }

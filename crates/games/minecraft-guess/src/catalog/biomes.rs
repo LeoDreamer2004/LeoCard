@@ -100,4 +100,23 @@ impl BiomeRanges {
         }
         vec![rule]
     }
+
+    pub fn describe_by_dimension(&self, values: &[String]) -> Vec<String> {
+        let mut groups: BTreeMap<&str, Vec<String>> = BTreeMap::new();
+        for name in values {
+            let Some(biome) = self.biomes.get(name) else {
+                return values.to_vec();
+            };
+            groups
+                .entry(biome.dimension.as_str())
+                .or_default()
+                .push(name.clone());
+        }
+        groups
+            .into_iter()
+            .map(|(dimension, biomes)| {
+                format!("{dimension}：{}", self.describe(&biomes).join("、"))
+            })
+            .collect()
+    }
 }

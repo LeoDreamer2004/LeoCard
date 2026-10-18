@@ -1,7 +1,7 @@
 use super::{GuessOptions, RaceRules, TurnBasedRules};
 use serde::{Deserialize, Serialize};
 
-pub const MAX_GUESS_CHARACTERS: usize = 10;
+pub const MAX_GUESS_CHARACTERS: usize = 16;
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GuessMode {

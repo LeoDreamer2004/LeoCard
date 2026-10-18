@@ -1,5 +1,5 @@
 use super::GuessRecord;
-use crate::{Entry, EntryKind, GuessMode};
+use crate::{Entry, EntryKind, GuessMode, MAX_GUESS_CHARACTERS};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -16,15 +16,15 @@ pub enum GameError {
 
 impl fmt::Display for GameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::NotPlayersTurn => "还没有轮到你猜测",
-            Self::CannotSkip => "抢答模式不能跳过",
-            Self::Finished => "本轮竞猜已经结束",
-            Self::UnknownEntry => "没有找到这个名称，请输入完整的方块或物品名称",
-            Self::AlreadyGuessed => "此条目已猜过",
-            Self::InvalidGuess => "请输入有效的方块或物品名称",
-            Self::GuessTooLong => "名称最多输入 10 个字",
-        })
+        match self {
+            Self::NotPlayersTurn => f.write_str("还没有轮到你猜测"),
+            Self::CannotSkip => f.write_str("抢答模式不能跳过"),
+            Self::Finished => f.write_str("本轮竞猜已经结束"),
+            Self::UnknownEntry => f.write_str("没有找到这个名称，请输入完整的方块或物品名称"),
+            Self::AlreadyGuessed => f.write_str("此条目已猜过"),
+            Self::InvalidGuess => f.write_str("请输入有效的方块或物品名称"),
+            Self::GuessTooLong => write!(f, "名称最多输入 {MAX_GUESS_CHARACTERS} 个字"),
+        }
     }
 }
 

@@ -60,10 +60,10 @@ impl Attribute {
     }
 
     pub fn display_values(&self) -> Vec<String> {
-        if self.label == "生成生物群系" {
-            BiomeRanges::bundled().describe(&self.values)
-        } else {
-            self.values.clone()
+        match self.label.as_str() {
+            "生成生物群系" => BiomeRanges::bundled().describe(&self.values),
+            "生成群系" => BiomeRanges::bundled().describe_by_dimension(&self.values),
+            _ => self.values.clone(),
         }
     }
 }

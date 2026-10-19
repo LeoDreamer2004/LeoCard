@@ -25,6 +25,7 @@ impl GuessTable<'_> {
                     progress.game_index + 1,
                     progress.total_games(),
                 ),
+                GuessMode::Graph => "关系谜图".to_owned(),
                 GuessMode::Race => format!(
                     "抢答竞速  第 {}/{} 局",
                     progress.game_index + 1,

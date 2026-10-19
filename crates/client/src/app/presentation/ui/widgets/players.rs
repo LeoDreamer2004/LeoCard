@@ -7,11 +7,13 @@ use super::{
 use crate::app::presentation::{UiComposer, UiSceneKey, ui_component};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction, PlayerProfilePage, SeatSide,
-    SocialUiAction, UiAction, add_cozy_button, add_cozy_panel, reference_level,
+    InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction, OpponentBadge,
+    PlayerAvatarAnchor, PlayerProfilePage, SeatSide, SocialUiAction, UiAction, add_cozy_button,
+    add_cozy_panel, reference_level,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use bevy::ui_widgets::Button;
 use leocard_protocol::{PlayerGameProfiles, PlayerId, PlayerInteractionKind};
 
 #[track_caller]
@@ -64,8 +66,8 @@ pub(super) fn avatar_content(
 pub(crate) fn add_ready_avatar(
     commands: &mut UiComposer,
     parent: Entity,
-    name: &str,
-    image: Option<&Handle<Image>>,
+    player: PlayerId,
+    profile: PlayerMenuProfile<'_>,
     avatar_size: f32,
     ready: bool,
     assets: &UiAssets,
@@ -92,11 +94,45 @@ pub(crate) fn add_ready_avatar(
     } else {
         MUTED.with_alpha(0.42)
     }));
-    add_avatar(commands, frame, name, image, avatar_size, assets);
+    let avatar = add_avatar(
+        commands,
+        frame,
+        profile.name,
+        profile.avatar,
+        avatar_size,
+        assets,
+    );
+    commands.entity(avatar).insert(Pickable::IGNORE);
     if ready {
         add_ready_badge(commands, frame, avatar_size, assets);
     }
+    attach_summary_interactions(commands, frame, player, profile, assets);
     frame
+}
+
+pub(crate) fn attach_summary_interactions(
+    commands: &mut UiComposer,
+    avatar: Entity,
+    player: PlayerId,
+    profile: PlayerMenuProfile<'_>,
+    assets: &UiAssets,
+) {
+    let menu = add_interaction_menu(commands, avatar, player, profile, assets);
+    commands.entity(menu).insert(Visibility::Hidden);
+    commands.entity(avatar).insert((
+        Button,
+        UiAction::Social(SocialUiAction::ToggleInteractionMenu {
+            player,
+            anchor: avatar,
+        }),
+        PlayerAvatarAnchor(player),
+        GlobalZIndex(1301),
+        OpponentBadge {
+            player,
+            score_popup: None,
+            interaction_menu: menu,
+        },
+    ));
 }
 
 pub(crate) fn add_host_crown(
@@ -138,6 +174,7 @@ pub(crate) fn avatar_color(name: &str) -> Color {
     COLORS[hash % COLORS.len()]
 }
 
+#[derive(Clone, Copy)]
 pub(crate) struct PlayerMenuProfile<'a> {
     pub name: &'a str,
     pub avatar: Option<&'a Handle<Image>>,
@@ -182,7 +219,7 @@ pub(crate) fn add_interaction_menu(
         InteractionMenuPanel(target),
         AnchoredPopup(parent),
         GlobalZIndex(1500),
-        Pickable::IGNORE,
+        Pickable::default(),
     ));
     let profile = spawn_node(
         commands,

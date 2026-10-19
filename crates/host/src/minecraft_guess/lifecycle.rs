@@ -44,6 +44,7 @@ impl HostedGameLifecycle for MinecraftGuessSession {
             rules: self.rules,
             progress: self.match_state.as_ref().expect("active match").progress(),
             round: self.game.as_ref().expect("active game").view(),
+            graph: self.game.as_ref().expect("active game").graph_view(),
             guess_seconds_remaining: self.guess_seconds_remaining(),
             scores: self
                 .match_state
@@ -97,7 +98,13 @@ impl HostedGameLifecycle for MinecraftGuessSession {
         if let Err(reason) = validation {
             return self.reject(connection, request, reason);
         }
-        self.begin_match();
+        if let Err(error) = self.begin_match() {
+            return self.reject(
+                connection,
+                request,
+                RejectReason::Game(GameViolation::MinecraftGuess(error)),
+            );
+        }
         self.broadcast_game(Some((connection, request)))
     }
 
@@ -140,8 +147,13 @@ impl HostedGameLifecycle for MinecraftGuessSession {
         if !players.is_empty()
             && (continuing || players.len() >= 2)
             && players.iter().all(|player| player.ready)
+            && let Err(error) = self.continue_match()
         {
-            self.continue_match();
+            return self.reject(
+                connection,
+                request,
+                RejectReason::Game(GameViolation::MinecraftGuess(error)),
+            );
         }
         self.broadcast_game(Some((connection, request)))
     }

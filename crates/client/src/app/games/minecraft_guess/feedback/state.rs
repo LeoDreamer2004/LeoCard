@@ -29,6 +29,7 @@ pub(super) struct RowReveal {
 pub(crate) struct GuessFeedback {
     pub(super) key: Option<(MatchId, u8)>,
     pub(super) mode: GuessMode,
+    pub(super) selected_node: Option<u16>,
     pub(super) clock: f32,
     pub(super) rows: Vec<Option<RowReveal>>,
     pub(super) cues: VecDeque<SoundCue>,

@@ -1,210 +1,128 @@
-use std::mem;
-
-use super::analysis::{GuessAnalysisInput, RoundAnalysis};
-use super::{
-    GameError, GuessActionStatistics, GuessPlayStatistics, GuessRecord, GuessResult, RoundView,
-};
-use crate::{Catalogue, Entry, GuessMode, MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet};
+use super::single::SingleGameState;
+use super::{GameError, GuessActionStatistics, GuessPlayStatistics, RoundView};
+use crate::{Entry, GraphGame, GraphView, GuessMode, MinecraftGuessRuleSet};
+use std::time::Duration;
 
 #[derive(Clone, Debug)]
+enum Round {
+    Single(SingleGameState),
+    Graph(GraphGame),
+}
+
+/// A mode-neutral host interface; each game owns its private answers and transitions.
+#[derive(Clone, Debug)]
 pub struct GameState {
-    answer: Entry,
-    players: Vec<u8>,
-    current: usize,
-    turns: usize,
-    pending_gains: Vec<(u8, u32)>,
-    guesses: Vec<GuessRecord>,
-    skipped: Vec<u8>,
-    finished: bool,
-    winner: Option<u8>,
-    rules: MinecraftGuessRuleSet,
-    analysis: RoundAnalysis,
+    round: Round,
 }
 
 impl GameState {
     pub fn new(answer: Entry, players: Vec<u8>, rules: MinecraftGuessRuleSet) -> Self {
-        assert!(!players.is_empty());
-        assert!(rules.is_valid());
+        assert_ne!(rules.mode, GuessMode::Graph);
         Self {
-            analysis: RoundAnalysis::new(&players),
-            answer,
-            players,
-            current: 0,
-            turns: 0,
-            pending_gains: Vec::new(),
-            guesses: Vec::new(),
-            skipped: Vec::new(),
-            finished: false,
-            winner: None,
-            rules,
+            round: Round::Single(SingleGameState::new(answer, players, rules)),
         }
     }
 
+    pub fn new_graph(
+        players: Vec<u8>,
+        rules: MinecraftGuessRuleSet,
+        seed: u64,
+    ) -> Result<Self, GameError> {
+        assert!(!players.is_empty() && rules.is_valid() && rules.mode == GuessMode::Graph);
+        Ok(Self {
+            round: Round::Graph(GraphGame::new(players, rules.graph, seed)?),
+        })
+    }
+
     pub fn view(&self) -> RoundView {
-        RoundView {
-            kind: self.answer.kind,
-            character_count: self.answer.name.chars().count() as u16,
-            current_player: self.current_player(),
-            guesses: self.guesses.clone(),
-            skipped_players: self.skipped.clone(),
-            answer: self.finished.then(|| self.answer.clone()),
-            winner: self.winner,
+        match &self.round {
+            Round::Single(game) => game.view(),
+            Round::Graph(game) => game.round_view(),
+        }
+    }
+
+    pub fn graph_view(&self) -> Option<GraphView> {
+        match &self.round {
+            Round::Single(_) => None,
+            Round::Graph(game) => Some(game.view()),
+        }
+    }
+
+    pub fn current_player(&self) -> Option<u8> {
+        match &self.round {
+            Round::Single(game) => game.current_player(),
+            Round::Graph(game) => game.current_player(),
         }
     }
 
     pub fn finished(&self) -> bool {
-        self.finished
+        match &self.round {
+            Round::Single(game) => game.finished(),
+            Round::Graph(game) => game.finished(),
+        }
     }
 
-    pub fn current_player(&self) -> Option<u8> {
-        (!self.finished && self.rules.mode == GuessMode::TurnBased)
-            .then(|| self.players[self.current])
-    }
-
-    fn check_action(&self, player: u8) -> Result<(), GameError> {
-        if self.finished {
-            return Err(GameError::Finished);
-        }
-        if !self.players.contains(&player)
-            || (self.rules.mode == GuessMode::TurnBased && self.current_player() != Some(player))
-        {
-            return Err(GameError::NotPlayersTurn);
-        }
-        Ok(())
-    }
-
-    pub fn guess(&mut self, player: u8, name_or_id: &str) -> Result<(), GameError> {
-        self.check_action(player)?;
-        let result = self.resolve_guess(name_or_id)?;
-        if self
-            .guesses
-            .iter()
-            .any(|guess| guess.result.name() == result.name())
-        {
-            return Err(GameError::AlreadyGuessed);
-        }
-        let previous = self
-            .guesses
-            .iter()
-            .rev()
-            .find_map(|guess| guess.result.closeness());
-        self.analysis.guess(GuessAnalysisInput {
-            player,
-            mode: self.rules.mode,
-            result: &result,
-            previous,
-            turns: self.turns,
-            guess_count: self.guesses.len(),
-            skipped: &self.skipped,
-        });
-        let first_matching_available =
-            !self.guesses.iter().any(|guess| guess.result.all_matching());
-        let score = match self.rules.mode {
-            GuessMode::TurnBased => result.score(
-                previous,
-                self.turns / self.players.len(),
-                first_matching_available,
-            ),
-            GuessMode::Race => result.race_score(first_matching_available),
-        };
-        for points in [score.during_guess, score.after_answer] {
-            if points > 0 {
-                self.pending_gains.push((player, points));
-            }
-        }
-        let correct = result.is_correct();
-        self.guesses.push(GuessRecord { player, result });
-        self.skipped.clear();
-        if correct {
-            self.finished = true;
-            self.winner = Some(player);
-        } else {
-            self.next();
-        }
-        Ok(())
-    }
-
-    fn resolve_guess(&self, name_or_id: &str) -> Result<GuessResult, GameError> {
-        let name = name_or_id.trim();
-        if name.is_empty() || name.chars().any(char::is_control) {
-            return Err(GameError::InvalidGuess);
-        }
-        let entry = Catalogue::bundled().find(self.answer.kind, name);
-        // Canonical IDs are used by candidate buttons and bots, not as displayed names.
-        if !entry.is_some_and(|entry| entry.id == name)
-            && name.chars().count() > MAX_GUESS_CHARACTERS
-        {
-            return Err(GameError::GuessTooLong);
-        }
-        match entry {
-            Some(entry) => Ok(GuessResult::Known {
-                entry: entry.clone(),
-                correct: entry.id == self.answer.id,
-                matches: entry
-                    .attributes
-                    .iter()
-                    .zip(&self.answer.attributes)
-                    .map(|(ours, theirs)| ours.feedback(theirs))
-                    .collect(),
-            }),
-            None if self.rules.options().allow_unknown_guesses => Ok(GuessResult::Unknown {
-                name: name.to_owned(),
-            }),
-            None => Err(GameError::UnknownEntry),
+    pub fn guess(&mut self, player: u8, text: &str) -> Result<(), GameError> {
+        match &mut self.round {
+            Round::Single(game) => game.guess(player, text),
+            Round::Graph(game) => game.guess(player, text),
         }
     }
 
     pub fn skip(&mut self, player: u8) -> Result<(), GameError> {
-        self.check_action(player)?;
-        if self.rules.mode == GuessMode::Race {
-            return Err(GameError::CannotSkip);
+        match &mut self.round {
+            Round::Single(game) => game.skip(player),
+            Round::Graph(game) => game.skip(player),
         }
-        self.analysis.skip(player);
-        self.skipped.push(player);
-        if self.skipped.len() == self.players.len() {
-            self.finished = true;
-        } else {
-            self.next();
-        }
-        Ok(())
     }
 
     pub fn expire(&mut self) -> Result<(), GameError> {
-        if self.finished {
-            return Err(GameError::Finished);
+        match &mut self.round {
+            Round::Single(game) => game.expire(),
+            Round::Graph(_) => Err(GameError::CannotSkip),
         }
-        self.finished = true;
-        Ok(())
     }
 
-    pub fn take_action_statistics(&mut self) -> Vec<GuessActionStatistics> {
-        self.analysis.take_actions()
+    pub fn select_node(&mut self, player: u8, number: u16) -> Result<(), GameError> {
+        match &mut self.round {
+            Round::Graph(game) => game.select(player, number),
+            Round::Single(_) => Err(GameError::InvalidNode),
+        }
     }
 
-    pub fn consistency(&self) -> impl Iterator<Item = (u8, bool)> + '_ {
-        self.analysis.consistency()
-    }
-
-    pub fn statistics(&self) -> impl Iterator<Item = (u8, GuessPlayStatistics)> + '_ {
-        assert!(self.finished);
-        self.analysis.statistics().map(|(player, mut statistics)| {
-            statistics.finish_game(
-                self.answer.kind,
-                self.winner == Some(player),
-                self.rules.options().allow_unknown_guesses,
-            );
-            (player, statistics)
-        })
+    pub fn advance_selection_time(&mut self, elapsed: Duration) {
+        if let Round::Graph(game) = &mut self.round {
+            game.advance_time(elapsed);
+        }
     }
 
     pub fn take_score_gains(&mut self) -> Vec<(u8, u32)> {
-        mem::take(&mut self.pending_gains)
+        match &mut self.round {
+            Round::Single(game) => game.take_score_gains(),
+            Round::Graph(game) => game.take_score_gains(),
+        }
     }
 
-    fn next(&mut self) {
-        self.turns += 1;
-        if self.rules.mode == GuessMode::TurnBased {
-            self.current = (self.current + 1) % self.players.len();
+    pub fn take_action_statistics(&mut self) -> Vec<GuessActionStatistics> {
+        match &mut self.round {
+            Round::Single(game) => game.take_action_statistics(),
+            Round::Graph(_) => Vec::new(),
         }
+    }
+
+    pub fn statistics(&self) -> impl Iterator<Item = (u8, GuessPlayStatistics)> {
+        match &self.round {
+            Round::Single(game) => game.statistics().collect::<Vec<_>>(),
+            Round::Graph(_) => Vec::new(),
+        }
+        .into_iter()
+    }
+
+    pub fn consistency(&self) -> impl Iterator<Item = (u8, bool)> {
+        match &self.round {
+            Round::Single(game) => game.consistency().collect::<Vec<_>>(),
+            Round::Graph(_) => Vec::new(),
+        }
+        .into_iter()
     }
 }

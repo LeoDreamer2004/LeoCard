@@ -1,4 +1,4 @@
-use super::{GuessOptions, RaceRules, TurnBasedRules};
+use super::{GraphRules, GuessOptions, RaceRules, TurnBasedRules};
 use serde::{Deserialize, Serialize};
 
 pub const MAX_GUESS_CHARACTERS: usize = 16;
@@ -8,6 +8,7 @@ pub enum GuessMode {
     #[default]
     TurnBased,
     Race,
+    Graph,
 }
 
 impl GuessMode {
@@ -15,16 +16,18 @@ impl GuessMode {
         match self {
             Self::TurnBased => "轮流竞猜",
             Self::Race => "抢答竞速",
+            Self::Graph => "关系谜图",
         }
     }
 }
 
-/// Both configurations travel together so switching modes preserves every option.
+/// Mode configurations travel together so switching modes preserves every option.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MinecraftGuessRuleSet {
     pub mode: GuessMode,
     pub turn_based: TurnBasedRules,
     pub race: RaceRules,
+    pub graph: GraphRules,
 }
 
 impl MinecraftGuessRuleSet {
@@ -35,6 +38,7 @@ impl MinecraftGuessRuleSet {
         match self.mode {
             GuessMode::TurnBased => &self.turn_based.options,
             GuessMode::Race => &self.race.options,
+            GuessMode::Graph => &self.graph.options,
         }
     }
 
@@ -42,6 +46,7 @@ impl MinecraftGuessRuleSet {
         match self.mode {
             GuessMode::TurnBased => &mut self.turn_based.options,
             GuessMode::Race => &mut self.race.options,
+            GuessMode::Graph => &mut self.graph.options,
         }
     }
 
@@ -49,10 +54,11 @@ impl MinecraftGuessRuleSet {
         match self.mode {
             GuessMode::TurnBased => self.turn_based.guess_seconds,
             GuessMode::Race => self.race.seconds,
+            GuessMode::Graph => 0,
         }
     }
 
     pub fn is_valid(self) -> bool {
-        self.turn_based.is_valid() && self.race.is_valid()
+        self.turn_based.is_valid() && self.race.is_valid() && self.graph.is_valid()
     }
 }

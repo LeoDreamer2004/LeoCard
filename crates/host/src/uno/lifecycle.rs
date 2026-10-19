@@ -442,11 +442,7 @@ impl HostedGameLifecycle for UnoSession {
                 RejectReason::Player(PlayerViolation::NotJoined),
             );
         };
-        if !self
-            .game
-            .as_ref()
-            .is_some_and(|game| matches!(game.phase(), Phase::Playing))
-        {
+        if self.game.is_none() {
             return self.room.reject(
                 connection,
                 request_id,

@@ -1,6 +1,7 @@
 use super::view::GuessTable;
 use crate::app::presentation::{
-    RankedSummary, SummaryDescriptor, SummaryPlayer, UiComposer, add_ranked_summary,
+    PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, UiComposer,
+    add_ranked_summary,
 };
 use crate::app::shell::{SummaryActions, add_summary_actions};
 use bevy::prelude::*;
@@ -28,6 +29,7 @@ impl GuessTable<'_> {
         let progress = self.game.progress;
         let caption = match progress.round_count() {
             Some(rounds) => format!("共 {rounds} 轮 · {} 局", progress.total_games()),
+            None if self.game.graph.is_some() => "关系谜图".to_owned(),
             None => format!("抢答竞速 · 共 {} 局", progress.total_games()),
         };
         let actions = add_ranked_summary(
@@ -40,8 +42,13 @@ impl GuessTable<'_> {
                     .iter()
                     .map(|player| SummaryPlayer {
                         id: player.id,
-                        name: &player.name,
-                        avatar: player.avatar,
+                        profile: PlayerMenuProfile {
+                            name: &player.name,
+                            avatar: player.avatar.and_then(|id| self.avatars.remote.get(&id)),
+                            reference_points: player.reference_points,
+                            completed_games: player.completed_games,
+                            game_profiles: &player.game_profiles,
+                        },
                         ready: player.ready,
                     })
                     .collect(),
@@ -52,7 +59,6 @@ impl GuessTable<'_> {
                 score_unit: "分",
             },
             self.assets,
-            self.avatars,
             self.summary,
         );
         add_summary_actions(

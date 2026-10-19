@@ -20,8 +20,12 @@ impl MinecraftGuessSession {
         if !self.game.as_ref().is_some_and(|game| !game.finished()) {
             return Vec::new();
         }
+        self.game
+            .as_mut()
+            .expect("active game")
+            .advance_selection_time(elapsed);
         match self.rules.mode {
-            GuessMode::TurnBased => self.advance_turn(elapsed),
+            GuessMode::TurnBased | GuessMode::Graph => self.advance_turn(elapsed),
             GuessMode::Race => self.advance_race(elapsed),
         }
     }

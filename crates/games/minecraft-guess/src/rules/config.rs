@@ -136,3 +136,30 @@ impl RaceRules {
             && Self::SECONDS_OPTIONS.contains(&self.seconds)
     }
 }
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct GraphRules {
+    pub options: GuessOptions,
+    pub nodes: u8,
+    pub show_character_count: bool,
+    pub show_directions: bool,
+    pub include_tags: bool,
+}
+
+impl Default for GraphRules {
+    fn default() -> Self {
+        Self {
+            options: GuessOptions::default(),
+            nodes: 16,
+            show_character_count: true,
+            show_directions: false,
+            include_tags: true,
+        }
+    }
+}
+
+impl GraphRules {
+    pub(super) fn is_valid(self) -> bool {
+        self.options.is_valid() && [16, 24, 32].contains(&self.nodes)
+    }
+}

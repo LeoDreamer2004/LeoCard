@@ -19,7 +19,6 @@ impl Plugin for SocialPlugin {
                 (
                     tick_player_interaction_cooldown,
                     close_interaction_menu_on_outside_click,
-                    sync_opponent_badge_popups,
                     sync_interaction_cooldown_masks,
                     sync_player_interactions,
                 )
@@ -27,7 +26,8 @@ impl Plugin for SocialPlugin {
             )
             .add_systems(
                 Update,
-                animate_player_interactions.in_set(ClientUpdateSet::Animate),
+                (sync_opponent_badge_popups, animate_player_interactions)
+                    .in_set(ClientUpdateSet::Animate),
             );
     }
 }

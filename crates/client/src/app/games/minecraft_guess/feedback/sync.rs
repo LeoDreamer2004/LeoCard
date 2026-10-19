@@ -36,6 +36,12 @@ pub(in super::super) fn sync_feedback(
             ..default()
         };
     }
+    let selected = game.graph.as_ref().map(|graph| graph.selected);
+    if playback.selected_node != selected {
+        playback.selected_node = selected;
+        playback.rows = (0..game.round.guesses.len()).map(|_| None).collect();
+        playback.cues.clear();
+    }
     if !intro.is_active_for(game.match_id) {
         playback.clock += time.delta_secs();
     }

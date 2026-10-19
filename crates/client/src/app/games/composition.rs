@@ -9,8 +9,8 @@ use super::mahjong::{
     MahjongTileMaterial, MahjongUiState, render_mahjong_lobby, render_mahjong_table,
 };
 use super::minecraft_guess::{
-    GuessFeedback, GuessScorePlayback, GuessTable, MinecraftGuessAssets, MinecraftGuessUiState,
-    render_guess_lobby, render_guess_table,
+    GraphArt, GuessFeedback, GuessScorePlayback, GuessTable, MinecraftGuessAssets,
+    MinecraftGuessUiState, render_guess_lobby, render_guess_table,
 };
 use super::qigui523::{
     PlayEffectState, QiGui523Assets, QiGui523UiState, TableVisualContext, render_qigui523_lobby,
@@ -45,6 +45,7 @@ use leocard_protocol::{GameKind, GameSnapshot, LobbySnapshot, PlayerId};
 pub(crate) struct GameScreenResources<'w> {
     blackjack_ui: ResMut<'w, BlackjackUiState>,
     blackjack_playback: Res<'w, BlackjackPlayback>,
+    minecraft_guess_art: Res<'w, GraphArt>,
     minecraft_guess_assets: Res<'w, MinecraftGuessAssets>,
     minecraft_guess_ui: Res<'w, MinecraftGuessUiState>,
     minecraft_guess_scores: Res<'w, GuessScorePlayback>,
@@ -264,6 +265,7 @@ impl GameScreenResources<'_> {
                     client,
                     game,
                     state: &self.minecraft_guess_ui,
+                    graph_art: &self.minecraft_guess_art,
                     scores: &self.minecraft_guess_scores,
                     feedback: &self.minecraft_guess_feedback,
                     summary: game_summary,

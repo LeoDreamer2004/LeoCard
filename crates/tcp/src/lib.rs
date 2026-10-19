@@ -1,8 +1,10 @@
 //! Tokio TCP 传输。业务判定仍全部由 `leocard-host` 完成。
 
+mod execution;
 #[cfg(test)]
 mod tests;
 
+use execution::handle_command;
 use leocard_host::{ConnectionId, Delivery, HostSession};
 use leocard_protocol::{
     ClientMessage, FrameError, MAX_FRAME_PAYLOAD, ServerEvent, ServerMessage, decode_frame,
@@ -250,7 +252,11 @@ async fn run_server(
                 }
                 let deliveries = match inbound {
                     Inbound::Message(connection, message) => {
-                        let deliveries = session.handle(connection, message);
+                        let (returned, deliveries) = tokio::select! {
+                            _ = &mut shutdown => break,
+                            result = handle_command(session, connection, message, &writers) => result?,
+                        };
+                        session = returned;
                         if deliveries.iter().any(|delivery| {
                             delivery.recipient == connection
                                 && matches!(delivery.message.event, ServerEvent::Joined { .. })

@@ -23,6 +23,7 @@ impl MatchState {
                 length: match rules.mode {
                     GuessMode::TurnBased => MatchLength::Rounds(rules.turn_based.rounds),
                     GuessMode::Race => MatchLength::Games(rules.race.games),
+                    GuessMode::Graph => MatchLength::Graph,
                 },
                 player_count: players.len() as u8,
             },
@@ -81,6 +82,9 @@ impl MatchState {
 
     pub fn finish_round(&mut self, game: &GameState) -> Vec<GuessHandStatistics> {
         assert!(game.finished());
+        if self.progress.mode() == GuessMode::Graph {
+            return Vec::new();
+        }
         for (player, statistics) in game.statistics() {
             let index = self
                 .players

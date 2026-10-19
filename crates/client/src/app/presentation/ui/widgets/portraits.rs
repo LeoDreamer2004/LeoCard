@@ -23,6 +23,7 @@ pub(crate) struct PlayerPortraitSpec<'a> {
 pub(crate) struct PlayerPortraitEntities {
     pub portrait: Entity,
     pub avatar_ring: Entity,
+    pub name: Entity,
 }
 
 pub(crate) struct PlayerSeatValue<'a> {
@@ -85,12 +86,10 @@ pub(crate) fn add_player_portrait(
     node.align_items = AlignItems::Center;
     node.row_gap = px(4.0 * 1.17);
     let size = spec.avatar_size;
-    let action = UiAction::Social(SocialUiAction::ToggleInteractionMenu(spec.player));
     let name = text_scene(assets, spec.profile.name, 14.0 * 1.17, spec.name_color);
     let portrait = commands.mount(parent, format!("portrait:{}", spec.player.0), bsn! {
         node
         Button
-        @ui_component(action)
         Children [
             UiSceneKey("ring")
             Node { width: px(size), height: px(size), position_type: PositionType::Relative }
@@ -120,6 +119,7 @@ pub(crate) fn add_player_portrait(
             UiTransform::from_translation(Val2::px(0.0, 2.0))
             Pickable::IGNORE
             Children [
+                UiSceneKey("name")
                 @name
                 TextLayout::no_wrap()
                 TextShadow { offset: Vec2::new(1.0, 1.0), color: {Color::BLACK.with_alpha(0.8)} }
@@ -129,6 +129,8 @@ pub(crate) fn add_player_portrait(
     });
     let avatar_ring = commands.entity_for(portrait, "ring");
     let avatar = commands.entity_for(avatar_ring, "avatar");
+    let name_area = commands.entity_for(portrait, "name-area");
+    let name = commands.entity_for(name_area, "name");
     if spec.auto_play {
         add_avatar_auto_play_overlay(commands, avatar, size, assets);
     }
@@ -138,14 +140,21 @@ pub(crate) fn add_player_portrait(
     } else {
         Visibility::Hidden
     });
-    commands.entity(portrait).insert(OpponentBadge {
-        player: spec.player,
-        score_popup: None,
-        interaction_menu: menu,
-    });
+    commands.entity(portrait).insert((
+        UiAction::Social(SocialUiAction::ToggleInteractionMenu {
+            player: spec.player,
+            anchor: portrait,
+        }),
+        OpponentBadge {
+            player: spec.player,
+            score_popup: None,
+            interaction_menu: menu,
+        },
+    ));
     PlayerPortraitEntities {
         portrait,
         avatar_ring,
+        name,
     }
 }
 

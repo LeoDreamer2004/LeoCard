@@ -2,6 +2,7 @@ mod analysis;
 mod guess;
 mod match_state;
 mod scoring;
+mod single;
 mod state;
 #[cfg(test)]
 mod tests;

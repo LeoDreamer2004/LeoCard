@@ -262,6 +262,9 @@ impl From<MinecraftGuessRuleSet> for GameRules {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MinecraftGuessCommand {
+    SelectNode {
+        number: u16,
+    },
     UpdateRules {
         rules: MinecraftGuessRuleSet,
     },

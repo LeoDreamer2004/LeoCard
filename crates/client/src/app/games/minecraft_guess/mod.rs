@@ -3,6 +3,7 @@ mod assets;
 mod background;
 mod controls;
 mod feedback;
+mod graph;
 mod lobby;
 mod players;
 mod plugin;
@@ -23,3 +24,5 @@ pub(crate) use scores::GuessScorePlayback;
 pub(crate) use state::MinecraftGuessUiState;
 pub(crate) use turn_timer::only_guess_timer_changed;
 pub(crate) use view::{GuessTable, render_guess_table};
+
+pub(crate) use graph::GraphArt;

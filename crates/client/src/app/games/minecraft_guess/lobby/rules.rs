@@ -54,22 +54,25 @@ impl RulesEditor<'_, '_, '_> {
         match rules.mode {
             GuessMode::TurnBased => self.turn_based(),
             GuessMode::Race => self.race(),
+            GuessMode::Graph => self.graph(),
         }
         let options = *rules.options();
-        self.choice(
-            RuleChoice {
-                label: "答案范围",
-                help: "每局随机选取一个答案。",
-                values: if cfg!(debug_assertions) || cfg!(feature = "developer") {
-                    &GuessPool::ALL
-                } else {
-                    &GuessPool::STANDARD
+        if rules.mode != GuessMode::Graph {
+            self.choice(
+                RuleChoice {
+                    label: "答案范围",
+                    help: "每局随机选取一个答案。",
+                    values: if cfg!(debug_assertions) || cfg!(feature = "developer") {
+                        &GuessPool::ALL
+                    } else {
+                        &GuessPool::STANDARD
+                    },
+                    current: options.pool,
                 },
-                current: options.pool,
-            },
-            |rules, value| rules.options_mut().pool = value,
-            |value| value.label().to_owned(),
-        );
+                |rules, value| rules.options_mut().pool = value,
+                |value| value.label().to_owned(),
+            );
+        }
         let mut hints = rules;
         hints.options_mut().candidate_hints = !options.candidate_hints;
         hints.options_mut().allow_unknown_guesses = false;
@@ -99,6 +102,37 @@ impl RulesEditor<'_, '_, '_> {
             ),
             (self.editable && !options.candidate_hints).then_some(unknown),
         );
+    }
+
+    fn graph(&mut self) {
+        self.choice(
+            RuleChoice {
+                label: "节点数量",
+                help: "轮流猜测任意未揭晓节点，猜中加 5 分。",
+                values: &[16, 24, 32],
+                current: self.rules.graph.nodes,
+            },
+            |rules, value| rules.graph.nodes = value,
+            |value| format!("{value} 个"),
+        );
+        for (label, enabled, change) in [
+            ("字数提示", self.rules.graph.show_character_count, 0),
+            ("未知关系方向", self.rules.graph.show_directions, 1),
+            ("包含标签", self.rules.graph.include_tags, 2),
+        ] {
+            let mut next = self.rules;
+            match change {
+                0 => next.graph.show_character_count = !enabled,
+                1 => next.graph.show_directions = !enabled,
+                _ => next.graph.include_tags = !enabled,
+            }
+            self.toggle(
+                label,
+                if enabled { "开启" } else { "关闭" },
+                "标签在全部相邻节点揭晓后自动解锁，不参与计分。",
+                self.editable.then_some(next),
+            );
+        }
     }
 
     fn turn_based(&mut self) {

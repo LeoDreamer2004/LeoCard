@@ -200,7 +200,7 @@ impl<'a> Header<'a> {
         add_cozy_labeled_icon_button(
             commands,
             right,
-            UiAction::Lobby(LobbyUiAction::LeaveRoom),
+            UiAction::Lobby(LobbyUiAction::RequestLeaveRoom),
             self.assets,
             self.assets.home.exit_icon.clone(),
             CozyButtonVariant::Danger,

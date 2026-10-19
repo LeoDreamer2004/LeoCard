@@ -78,7 +78,7 @@ impl MinecraftGuessSession {
     }
 
     pub(super) fn after_action(&mut self) -> Vec<Delivery> {
-        if self.rules.mode == GuessMode::TurnBased {
+        if self.rules.mode != GuessMode::Race {
             self.clock = GuessClock::default();
         }
         let gains = self.game.as_mut().expect("active game").take_score_gains();

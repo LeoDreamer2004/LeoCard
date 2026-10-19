@@ -1,4 +1,4 @@
-use crate::{AttributeFeedback, Entry, MatchQuality};
+use crate::{AttributeFeedback, Catalogue, Entry, GameError, MAX_GUESS_CHARACTERS, MatchQuality};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -14,6 +14,39 @@ pub enum GuessResult {
 }
 
 impl GuessResult {
+    pub(crate) fn resolve(
+        answer: &Entry,
+        text: &str,
+        allow_unknown: bool,
+    ) -> Result<Self, GameError> {
+        let name = text.trim();
+        if name.is_empty() || name.chars().any(char::is_control) {
+            return Err(GameError::InvalidGuess);
+        }
+        let entry = Catalogue::bundled().find(answer.kind, name);
+        if !entry.is_some_and(|entry| entry.id == name)
+            && name.chars().count() > MAX_GUESS_CHARACTERS
+        {
+            return Err(GameError::GuessTooLong);
+        }
+        match entry {
+            Some(entry) => Ok(Self::Known {
+                entry: entry.clone(),
+                correct: entry.id == answer.id,
+                matches: entry
+                    .attributes
+                    .iter()
+                    .zip(&answer.attributes)
+                    .map(|(ours, theirs)| ours.feedback(theirs))
+                    .collect(),
+            }),
+            None if allow_unknown => Ok(Self::Unknown {
+                name: name.to_owned(),
+            }),
+            None => Err(GameError::UnknownEntry),
+        }
+    }
+
     pub fn name(&self) -> &str {
         match self {
             Self::Known { entry, .. } => &entry.name,

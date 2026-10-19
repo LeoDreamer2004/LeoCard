@@ -1,5 +1,6 @@
 mod catalog;
 mod game;
+mod graph;
 mod rules;
 
 pub use catalog::{
@@ -11,6 +12,10 @@ pub use game::{
     RoundView, ScoreGain, reference_point_deltas,
 };
 pub use rules::{
-    GuessMode, GuessOptions, GuessPool, MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet, RaceRules,
-    TurnBasedRules,
+    GraphRules, GuessMode, GuessOptions, GuessPool, MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet,
+    RaceRules, TurnBasedRules,
 };
+
+pub use graph::{GraphEdgeView, GraphNodeView, GraphRelation, GraphView};
+
+pub(crate) use graph::GraphGame;

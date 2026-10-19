@@ -18,7 +18,11 @@ impl GuessTable<'_> {
                 width: percent(100),
                 height: px(92),
                 flex_shrink: 0.0,
-                flex_direction: FlexDirection::Column,
+                flex_direction: if self.game.graph.is_some() {
+                    FlexDirection::ColumnReverse
+                } else {
+                    FlexDirection::Column
+                },
                 align_items: AlignItems::Center,
                 row_gap: px(6),
                 ..default()
@@ -103,7 +107,7 @@ impl GuessTable<'_> {
         }
         let active = self.game.can_guess();
         let mut input = TextInput::new("minecraft-guess", &self.state.input);
-        input.placeholder = "输入方块 / 物品名称";
+        input.placeholder = "输入条目名称";
         input.max_characters = MAX_GUESS_CHARACTERS;
         input.font_size = 18.0;
         input.skin = Some(self.game_assets.input());
@@ -127,12 +131,13 @@ impl GuessTable<'_> {
                 .then_some(MinecraftGuessUiAction::Guess(None)),
         );
         commands.entity(submit).insert(GuessSubmit);
-        if self.game.rules.mode == GuessMode::TurnBased {
+        if self.game.rules.mode != GuessMode::Race {
             self.button(
                 commands,
                 row,
                 "跳过",
-                active.then_some(MinecraftGuessUiAction::Skip),
+                (self.game.round.current_player == Some(self.game.you.0))
+                    .then_some(MinecraftGuessUiAction::Skip),
             );
         }
         add_guess_clock(

@@ -10,8 +10,9 @@ use super::{
     scores::ScoreStageView,
 };
 use crate::app::presentation::{
-    ACCENT, GameSummaryAnimation, MUTED, PanelSkin, READY, TEXT, UiComposer, add_avatar, add_text,
-    decorate_panel_skin, spawn_node, summary_row_progress,
+    ACCENT, GameSummaryAnimation, MUTED, PanelSkin, PlayerMenuProfile, READY, TEXT, UiComposer,
+    add_avatar, add_text, attach_summary_interactions, decorate_panel_skin, spawn_node,
+    summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{LobbyUiAction, UiAction};
@@ -146,7 +147,20 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
         );
         if let Some(player) = player {
             let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
-            add_avatar(commands, heading, name, avatar, 62.0, assets);
+            let image = add_avatar(commands, heading, name, avatar, 62.0, assets);
+            attach_summary_interactions(
+                commands,
+                image,
+                player.id,
+                PlayerMenuProfile {
+                    name,
+                    avatar,
+                    reference_points: player.reference_points,
+                    completed_games: player.completed_games,
+                    game_profiles: &player.game_profiles,
+                },
+                assets,
+            );
         }
         let title = spawn_node(
             commands,

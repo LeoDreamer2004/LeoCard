@@ -19,7 +19,12 @@ pub(crate) fn close_interaction_menu_on_outside_click(
     windows: Query<&Window, With<PrimaryWindow>>,
     mut ui: ResMut<UiState>,
     badges: Query<&PickingInteraction, With<OpponentBadge>>,
-    menus: Query<(&InteractionMenuPanel, &ComputedNode, &UiGlobalTransform)>,
+    menus: Query<(
+        &InteractionMenuPanel,
+        &ComputedNode,
+        &UiGlobalTransform,
+        &InheritedVisibility,
+    )>,
 ) {
     let Some(open_player) = ui.social.interaction_menu_open else {
         return;
@@ -38,8 +43,8 @@ pub(crate) fn close_interaction_menu_on_outside_click(
     else {
         return;
     };
-    let inside = menus.iter().any(|(panel, node, transform)| {
-        panel.0 == open_player && node.contains_point(*transform, cursor)
+    let inside = menus.iter().any(|(panel, node, transform, visibility)| {
+        visibility.get() && panel.0 == open_player && node.contains_point(*transform, cursor)
     });
     if !inside {
         ui.social.interaction_menu_open = None;
@@ -76,11 +81,12 @@ pub(crate) fn sync_interaction_cooldown_masks(
 
 pub(crate) fn sync_opponent_badge_popups(
     ui: Res<UiState>,
-    badges: Query<(&PickingInteraction, &OpponentBadge)>,
+    badges: Query<(Entity, &PickingInteraction, &OpponentBadge)>,
     mut visibility: Query<&mut Visibility>,
 ) {
-    for (interaction, badge) in &badges {
-        let menu_open = ui.social.interaction_menu_open == Some(badge.player);
+    for (entity, interaction, badge) in &badges {
+        let menu_open = ui.social.interaction_menu_open == Some(badge.player)
+            && ui.social.interaction_menu_anchor == Some(entity);
         if let Some(score_popup) = badge.score_popup
             && let Ok(mut popup) = visibility.get_mut(score_popup)
         {

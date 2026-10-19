@@ -56,7 +56,7 @@ fn ordered_feedback_points_toward_the_answer_without_revealing_it() {
 }
 
 #[test]
-fn catalogue_keeps_base_blocks_and_excludes_colors_and_technical_variants() {
+fn catalogue_keeps_playable_entries_and_excludes_technical_variants() {
     let catalogue = Catalogue::bundled();
     for id in [
         "command_block",
@@ -71,6 +71,7 @@ fn catalogue_keeps_base_blocks_and_excludes_colors_and_technical_variants() {
         "cake",
         "cauldron",
         "kelp",
+        "potted_dandelion",
     ] {
         assert!(
             catalogue
@@ -92,7 +93,6 @@ fn catalogue_keeps_base_blocks_and_excludes_colors_and_technical_variants() {
         "skeleton_wall_skull",
         "white_wall_banner",
         "tube_coral_wall_fan",
-        "potted_dandelion",
         "candle_cake",
         "red_candle_cake",
         "water_cauldron",
@@ -120,16 +120,12 @@ fn catalogue_keeps_base_blocks_and_excludes_colors_and_technical_variants() {
                 .all(|attribute| !attribute.values.is_empty())
         );
     }
-    assert_ne!(
+    assert!(
         catalogue
             .find(EntryKind::Block, "minecraft:wheat")
-            .unwrap()
-            .name,
-        catalogue
-            .find(EntryKind::Item, "minecraft:wheat")
-            .unwrap()
-            .name
+            .is_none()
     );
+    assert!(catalogue.find(EntryKind::Item, "minecraft:wheat").is_some());
 }
 
 #[test]

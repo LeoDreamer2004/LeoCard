@@ -29,7 +29,7 @@ pub(super) fn handle_escape(
 ) {
     if !keyboard.just_pressed(KeyCode::Escape)
         || page_motion.active()
-        || !(ui.shop.open || ui.achievements.open)
+        || !(confirmation.is_open() || ui.shop.open || ui.achievements.open)
     {
         return;
     }

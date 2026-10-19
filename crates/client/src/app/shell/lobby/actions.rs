@@ -1,8 +1,8 @@
 //! 席位、准备、开局与离开房间动作。
 
 use super::super::{
-    DomainUiAction, PageMotion, PressedUiAction, UiAction, UiActionHandler, UiState,
-    dispatch_domain_actions,
+    ConfirmationDialog, CozyButtonVariant, DomainUiAction, PageMotion, PressedUiAction, UiAction,
+    UiActionHandler, UiState, dispatch_domain_actions,
 };
 use crate::app::games::uno::UnoUiState;
 use crate::app::runtime::{ClientResource, PageErrorState};
@@ -18,6 +18,7 @@ pub(crate) enum LobbyUiAction {
     ReturnToLobby,
     PlayAgain,
     LeaveRoom,
+    RequestLeaveRoom,
 }
 
 impl DomainUiAction for LobbyUiAction {
@@ -36,6 +37,7 @@ pub(crate) struct LobbyActionContext<'w, 's> {
     uno_ui: ResMut<'w, UnoUiState>,
     page_error: ResMut<'w, PageErrorState>,
     page_motion: ResMut<'w, PageMotion>,
+    confirmation: ResMut<'w, ConfirmationDialog>,
     commands: Commands<'w, 's>,
 }
 
@@ -63,6 +65,17 @@ impl UiActionHandler<LobbyActionContext<'_, '_>> for LobbyUiAction {
             }
             LobbyUiAction::ReturnToLobby => send(client, ClientCommand::ReturnToLobby),
             LobbyUiAction::PlayAgain => send(client, ClientCommand::PlayAgain),
+            LobbyUiAction::RequestLeaveRoom => {
+                if client.is_some() && !ui.leaving_room {
+                    context.confirmation.show_with_button(
+                        "退出房间".to_owned(),
+                        "确定退出当前房间吗？".to_owned(),
+                        UiAction::Lobby(Self::LeaveRoom),
+                        "确定退出",
+                        CozyButtonVariant::Danger,
+                    );
+                }
+            }
             LobbyUiAction::LeaveRoom => {
                 context.uno_ui.expansion_settings_open = false;
                 if let Some(client) = client.as_deref_mut() {

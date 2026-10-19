@@ -7,8 +7,8 @@ use super::super::{
 };
 use super::{ShengjiCardSize, add_shengji_trump_stars, shengji_display_trump};
 use crate::app::presentation::{
-    ACCENT, DANGER, MUTED, PanelSkin, READY, TEXT, UiComposer, add_ready_avatar, add_text,
-    decorate_panel_skin, spawn_node,
+    ACCENT, DANGER, MUTED, PanelSkin, PlayerMenuProfile, READY, TEXT, UiComposer, add_ready_avatar,
+    add_text, decorate_panel_skin, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -318,8 +318,14 @@ fn add_shengji_settlement_modal(
         add_ready_avatar(
             commands,
             row,
-            &player.name,
-            avatar,
+            player.id,
+            PlayerMenuProfile {
+                name: &player.name,
+                avatar,
+                reference_points: player.reference_points,
+                completed_games: player.completed_games,
+                game_profiles: &player.game_profiles,
+            },
             28.0,
             player.ready,
             assets,

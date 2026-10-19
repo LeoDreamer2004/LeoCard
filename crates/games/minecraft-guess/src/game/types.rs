@@ -12,11 +12,21 @@ pub enum GameError {
     AlreadyGuessed,
     InvalidGuess,
     GuessTooLong,
+    GraphUnavailable,
+    InvalidNode,
+    NodeSwitchCoolingDown,
+    CannotGuessTag,
+    NodeAlreadyRevealed,
 }
 
 impl fmt::Display for GameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::GraphUnavailable => f.write_str("暂时未能生成足够的交织节点，请重试开始游戏"),
+            Self::InvalidNode => f.write_str("请选择有效的图谱节点"),
+            Self::NodeSwitchCoolingDown => f.write_str("请稍候再切换节点"),
+            Self::CannotGuessTag => f.write_str("标签由相邻节点全部揭晓后自动解锁"),
+            Self::NodeAlreadyRevealed => f.write_str("此节点已揭晓，请选择其他节点"),
             Self::NotPlayersTurn => f.write_str("还没有轮到你猜测"),
             Self::CannotSkip => f.write_str("抢答模式不能跳过"),
             Self::Finished => f.write_str("本轮竞猜已经结束"),
@@ -31,6 +41,8 @@ impl fmt::Display for GameError {
 /// The chosen answer is only included after the round ends.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RoundView {
+    /// Completion is independent of a single answer: graph games have many answers.
+    pub completed: bool,
     pub kind: EntryKind,
     pub character_count: u16,
     pub current_player: Option<u8>,
@@ -46,6 +58,6 @@ impl RoundView {
     }
 
     pub fn finished(&self) -> bool {
-        self.answer.is_some()
+        self.completed
     }
 }

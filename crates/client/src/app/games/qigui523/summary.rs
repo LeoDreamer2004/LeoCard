@@ -1,6 +1,6 @@
 use crate::app::presentation::{
-    GameSummaryAnimation, RankedSummary, SummaryDescriptor, SummaryPlayer, UiComposer,
-    add_ranked_summary,
+    GameSummaryAnimation, PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer,
+    UiComposer, add_ranked_summary,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SummaryActions, add_summary_actions};
@@ -61,8 +61,13 @@ pub(super) fn add_game_summary_modal(
                 .iter()
                 .map(|player| SummaryPlayer {
                     id: player.id,
-                    name: &player.name,
-                    avatar: player.avatar,
+                    profile: PlayerMenuProfile {
+                        name: &player.name,
+                        avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
+                        reference_points: player.reference_points,
+                        completed_games: player.completed_games,
+                        game_profiles: &player.game_profiles,
+                    },
                     ready: player.ready,
                 })
                 .collect(),
@@ -73,7 +78,6 @@ pub(super) fn add_game_summary_modal(
             score_unit: "分",
         },
         assets,
-        avatars,
         animation,
     );
     add_summary_actions(

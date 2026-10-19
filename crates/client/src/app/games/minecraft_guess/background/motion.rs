@@ -42,6 +42,7 @@ pub(super) fn sync_background(
         }
     }
     if random_background
+        && game.is_some_and(|game| game.graph.is_none())
         && playback.needs_panorama()
         && let Some(version) = game.and_then(|game| matched_version(&game.round))
     {

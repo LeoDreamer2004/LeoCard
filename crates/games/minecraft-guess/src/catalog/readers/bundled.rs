@@ -1,5 +1,5 @@
 use super::super::{Entry, EntryKind};
-use super::{CatalogueReader, DefaultReader, ItemReader, LandscapeReader};
+use super::{CatalogueReader, DefaultReader, EnchantmentReader, ItemReader, LandscapeReader};
 
 pub(in super::super) fn read_bundled() -> Vec<Entry> {
     [
@@ -15,7 +15,7 @@ pub(in super::super) fn read_bundled() -> Vec<Entry> {
             EntryKind::Mob,
             include_str!("../../../../../../assets/data/minecraft/mobs.csv"),
         ),
-        DefaultReader.read(
+        EnchantmentReader.read(
             EntryKind::Enchantment,
             include_str!("../../../../../../assets/data/minecraft/enchantments.csv"),
         ),

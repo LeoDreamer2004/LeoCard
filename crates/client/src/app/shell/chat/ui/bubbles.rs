@@ -1,7 +1,7 @@
 use super::super::*;
 use crate::app::presentation::{UiComposer, add_text, card_background_image};
 use crate::app::runtime::{ClientResource, UiAssets};
-use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer, interaction_anchor_in_layer};
+use crate::app::shell::{PlayerAvatar, PlayerInteractionLayer, interaction_anchor_in_layer};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{ChatContent, ChatEmoji, PlayerId};
@@ -15,7 +15,7 @@ pub(crate) fn sync_chat_messages(
     assets: Res<UiAssets>,
     mut chat: ResMut<ChatPanelState>,
     layers: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<PlayerInteractionLayer>>,
-    avatars: Query<(&PlayerAvatarAnchor, &ComputedNode, &UiGlobalTransform)>,
+    avatars: Query<PlayerAvatar>,
     existing_bubbles: Query<(Entity, &ActiveChatBubble)>,
 ) {
     let Some(client) = client.as_deref_mut() else {

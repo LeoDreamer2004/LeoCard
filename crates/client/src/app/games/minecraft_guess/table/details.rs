@@ -30,7 +30,8 @@ impl AttributeHint {
         assets: &UiAssets,
         game_assets: &MinecraftGuessAssets,
     ) {
-        if attribute.display_values().len() <= 4 {
+        let values = attribute.display_values();
+        if values.len() <= 4 {
             return;
         }
         let popup = spawn_node(
@@ -55,10 +56,10 @@ impl AttributeHint {
             Visibility::Hidden,
             Pickable::IGNORE,
         ));
-        let heading = format!("{}（{} 项）", attribute.label, attribute.values.len());
+        let heading = format!("{}（{} 项）", attribute.label, values.len());
         let heading = add_text(commands, popup, heading, 16.0, TEXT, assets);
         commands.entity(heading).insert(Pickable::IGNORE);
-        let text = add_text(commands, popup, attribute.text(), 14.0, TEXT, assets);
+        let text = add_text(commands, popup, values.join("、"), 14.0, TEXT, assets);
         commands.entity(text).insert((
             Pickable::IGNORE,
             Node {

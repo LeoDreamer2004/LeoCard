@@ -76,6 +76,7 @@ pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
             rules.mode.label().to_owned(),
             match rules.mode {
                 GuessMode::TurnBased => "允许跳过".to_owned(),
+                GuessMode::Graph => format!("{} 个节点 · 猜中 +5", rules.graph.nodes),
                 GuessMode::Race => format!("{} 秒 / {} 局", rules.race.seconds, rules.race.games),
             },
         ],

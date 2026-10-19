@@ -466,20 +466,11 @@ impl HostedGameLifecycle for TexasHoldemSession {
                 RejectReason::Player(PlayerViolation::NotJoined),
             );
         };
-        let Some(game) = self.game.as_ref() else {
+        if self.game.is_none() {
             return self.room.reject(
                 connection,
                 request_id,
                 RejectReason::Game(GameViolation::GameNotStarted),
-            );
-        };
-        if !matches!(game.game().phase(), Phase::Betting(_)) {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Game(GameViolation::TexasHoldem(
-                    TexasHoldemViolation::HandAlreadyComplete,
-                )),
             );
         }
         if source == target {

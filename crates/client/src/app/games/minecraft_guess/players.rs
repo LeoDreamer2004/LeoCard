@@ -15,12 +15,15 @@ use leocard_protocol::GameKind;
 
 impl GuessTable<'_> {
     pub(super) fn players(&mut self, commands: &mut UiComposer, page: Entity) {
+        let compact = self.game.graph.is_some();
+        let avatar_size = if compact { 44.0 } else { 52.0 };
         let row = spawn_node(
             commands,
             page,
             Node {
                 width: percent(100),
-                height: px(88),
+                height: px(if compact { 78.0 } else { 88.0 }),
+                padding: UiRect::right(px(if compact { 280.0 } else { 0.0 })),
                 flex_shrink: 0.0,
                 justify_content: JustifyContent::SpaceEvenly,
                 align_items: AlignItems::Center,
@@ -42,7 +45,7 @@ impl GuessTable<'_> {
                     width: percent(100.0 / self.game.players.len() as f32),
                     min_width: px(0),
                     flex_shrink: 0.0,
-                    height: px(84),
+                    height: px(if compact { 74.0 } else { 84.0 }),
                     ..default()
                 },
                 PlayerPortraitSpec {
@@ -54,7 +57,7 @@ impl GuessTable<'_> {
                         completed_games: player.completed_games,
                         game_profiles: &player.game_profiles,
                     },
-                    avatar_size: 52.0,
+                    avatar_size,
                     auto_play: false,
                     menu_open: self.social.interaction_menu_open == Some(player.id),
                     name_color: if active {
@@ -67,6 +70,12 @@ impl GuessTable<'_> {
                 },
                 self.assets,
             );
+            if compact {
+                commands
+                    .entity(portrait.name)
+                    .entry::<TextFont>()
+                    .and_modify(|mut font| font.font_size = px(14).into());
+            }
             attach_start_game_seat_transition(
                 commands,
                 portrait.portrait,
@@ -83,7 +92,7 @@ impl GuessTable<'_> {
                 commands,
                 portrait.avatar_ring,
                 self.scores.score(player.id, score).to_string(),
-                30.0,
+                if compact { 26.0 } else { 30.0 },
                 ACCENT,
                 self.assets,
             );
@@ -91,8 +100,8 @@ impl GuessTable<'_> {
                 GuessScoreValue(player.id),
                 Node {
                     position_type: PositionType::Absolute,
-                    left: px(64),
-                    top: px(7),
+                    left: px(if compact { 54.0 } else { 64.0 }),
+                    top: px(if compact { 9.0 } else { 7.0 }),
                     ..default()
                 },
                 TextShadow::default(),
@@ -105,7 +114,7 @@ impl GuessTable<'_> {
                 gain.map_or_else(String::new, |(gain, _)| {
                     format!("+{}", gain.after - gain.before)
                 }),
-                22.0,
+                if compact { 18.0 } else { 22.0 },
                 ACCENT.with_alpha(alpha),
                 self.assets,
             );
@@ -114,7 +123,7 @@ impl GuessTable<'_> {
                 pose,
                 Node {
                     position_type: PositionType::Absolute,
-                    left: px(94),
+                    left: px(if compact { 80.0 } else { 94.0 }),
                     top: px(0),
                     ..default()
                 },
@@ -125,17 +134,24 @@ impl GuessTable<'_> {
             }
             let skipped = self.game.round.skipped_players.contains(&player.id.0);
             if self.game.round.finished() && player.ready {
-                add_ready_badge(commands, portrait.avatar_ring, 52.0, self.assets);
+                add_ready_badge(commands, portrait.avatar_ring, avatar_size, self.assets);
             }
             commands
                 .entity(portrait.avatar_ring)
                 .entry::<Node>()
-                .and_modify(|mut node| node.border_radius = BorderRadius::all(px(10.4)));
+                .and_modify(move |mut node| {
+                    node.border_radius = BorderRadius::all(px(avatar_size * 0.2))
+                });
             if minecraft_running {
                 commands
                     .entity(portrait.avatar_ring)
                     .insert(Outline::new(px(3), px(0), DANGER));
-                add_process_presence_overlay(commands, portrait.avatar_ring, 52.0, self.assets);
+                add_process_presence_overlay(
+                    commands,
+                    portrait.avatar_ring,
+                    avatar_size,
+                    self.assets,
+                );
             } else if !active {
                 commands.entity(portrait.avatar_ring).insert(Outline::new(
                     px(3),
@@ -157,8 +173,8 @@ impl GuessTable<'_> {
                         self.game.match_id,
                         player.id,
                     ),
-                    10.4,
-                    52.0,
+                    avatar_size * 0.2,
+                    avatar_size,
                 );
             }
         }

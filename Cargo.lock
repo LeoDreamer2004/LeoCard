@@ -3510,8 +3510,10 @@ name = "leocard-minecraft-guess"
 version = "0.9.0"
 dependencies = [
  "csv",
+ "fastrand",
  "leocard-game-common",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

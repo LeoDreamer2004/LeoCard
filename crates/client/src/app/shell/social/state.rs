@@ -1,5 +1,6 @@
 //! 玩家互动菜单、冷却与飞行道具的状态类型。
 
+use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 use leocard_client::ScoreCaptureEffect;
 use leocard_protocol::{PlayerId, PlayerInteractionKind};
@@ -10,6 +11,7 @@ pub(crate) const INTERACTION_COOLDOWN_MASK_FRAMES: usize = 48;
 #[derive(Default)]
 pub(crate) struct SocialUiState {
     pub interaction_menu_open: Option<PlayerId>,
+    pub interaction_menu_anchor: Option<Entity>,
 }
 
 #[derive(Resource, Default)]
@@ -139,6 +141,15 @@ pub(crate) struct OpponentBadge {
 
 #[derive(Component, Clone, Copy)]
 pub(crate) struct PlayerAvatarAnchor(pub PlayerId);
+
+#[derive(QueryData)]
+pub(crate) struct PlayerAvatar {
+    pub anchor: &'static PlayerAvatarAnchor,
+    pub node: &'static ComputedNode,
+    pub transform: &'static UiGlobalTransform,
+    pub visibility: &'static InheritedVisibility,
+    pub z_index: Option<&'static GlobalZIndex>,
+}
 
 #[derive(Component)]
 pub(crate) struct InteractionMenuPanel(pub PlayerId);

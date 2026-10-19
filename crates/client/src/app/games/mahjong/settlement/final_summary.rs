@@ -2,8 +2,8 @@
 
 use super::*;
 use crate::app::presentation::{
-    ACCENT, DANGER, PanelSkin, READY, TEXT, UiComposer, add_avatar, add_text, decorate_panel_skin,
-    spawn_node,
+    ACCENT, DANGER, PanelSkin, PlayerMenuProfile, READY, TEXT, UiComposer, add_avatar, add_text,
+    attach_summary_interactions, decorate_panel_skin, spawn_node,
 };
 use bevy::picking::Pickable;
 
@@ -102,7 +102,20 @@ impl FinalSummaryView<'_> {
                 assets,
             );
             let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
-            add_avatar(commands, row, &player.name, avatar, 39.0, assets);
+            let image = add_avatar(commands, row, &player.name, avatar, 39.0, assets);
+            attach_summary_interactions(
+                commands,
+                image,
+                player.id,
+                PlayerMenuProfile {
+                    name: &player.name,
+                    avatar,
+                    reference_points: player.reference_points,
+                    completed_games: player.completed_games,
+                    game_profiles: &player.game_profiles,
+                },
+                assets,
+            );
             add_text(commands, row, &player.name, 17.0, TEXT, assets);
             spawn_node(
                 commands,

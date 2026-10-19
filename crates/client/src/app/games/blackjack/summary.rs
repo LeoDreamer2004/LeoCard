@@ -1,6 +1,7 @@
 use super::BlackjackTable;
 use crate::app::presentation::{
-    RankedSummary, SummaryDescriptor, SummaryPlayer, UiComposer, add_ranked_summary,
+    PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, UiComposer,
+    add_ranked_summary,
 };
 use crate::app::shell::{SummaryActions, add_summary_actions};
 use bevy::prelude::*;
@@ -45,8 +46,16 @@ impl BlackjackTable<'_> {
                     .iter()
                     .map(|view| SummaryPlayer {
                         id: view.player.id,
-                        name: &view.player.name,
-                        avatar: view.player.avatar,
+                        profile: PlayerMenuProfile {
+                            name: &view.player.name,
+                            avatar: view
+                                .player
+                                .avatar
+                                .and_then(|id| self.avatars.remote.get(&id)),
+                            reference_points: view.player.reference_points,
+                            completed_games: view.player.completed_games,
+                            game_profiles: &view.player.game_profiles,
+                        },
                         ready: view.player.ready,
                     })
                     .collect(),
@@ -57,7 +66,6 @@ impl BlackjackTable<'_> {
                 score_unit: "筹码",
             },
             self.assets,
-            self.avatars,
             self.summary,
         );
         add_summary_actions(

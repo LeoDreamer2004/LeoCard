@@ -2,7 +2,7 @@ use super::super::*;
 use super::*;
 use crate::app::presentation::{TEXT, ease_out_cubic};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer, interaction_anchor_in_layer};
+use crate::app::shell::{PlayerAvatar, PlayerInteractionLayer, interaction_anchor_in_layer};
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 
@@ -10,7 +10,7 @@ pub(crate) fn animate_chat_bubbles(
     time: Res<Time>,
     mut commands: Commands,
     layers: Query<(&ComputedNode, &UiGlobalTransform), With<PlayerInteractionLayer>>,
-    avatars: Query<(&PlayerAvatarAnchor, &ComputedNode, &UiGlobalTransform)>,
+    avatars: Query<PlayerAvatar>,
     mut bubbles: Query<(
         Entity,
         &mut ActiveChatBubble,

@@ -2,7 +2,7 @@ use super::{ConfirmationDialog, ConfirmationUiAction};
 use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    CozyButtonVariant, CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_button,
+    CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_button,
     add_cozy_button_variant, add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
 };
 use bevy::{picking::Pickable, prelude::*};
@@ -77,11 +77,11 @@ pub(crate) fn render_confirmation(
     add_cozy_button_variant(
         commands,
         buttons,
-        "确认",
+        request.accept_label,
         UiAction::Confirmation(ConfirmationUiAction::Accept),
         assets,
         px(130),
         44.0,
-        CozyButtonVariant::Cool,
+        request.accept_variant,
     );
 }

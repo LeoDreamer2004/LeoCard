@@ -50,7 +50,14 @@ impl MinecraftGuessSession {
             .game
             .as_mut()
             .ok_or(RejectReason::Game(GameViolation::GameNotStarted))?;
+        if let MinecraftGuessCommand::SelectNode { number } = command {
+            game.select_node(player.0, number)
+                .map_err(|error| RejectReason::Game(GameViolation::MinecraftGuess(error)))?;
+            self.bump_revision();
+            return Ok(Vec::new());
+        }
         match command {
+            MinecraftGuessCommand::SelectNode { .. } => unreachable!("handled separately"),
             MinecraftGuessCommand::Guess { entry } => game.guess(player.0, &entry),
             MinecraftGuessCommand::Skip => game.skip(player.0),
             MinecraftGuessCommand::UpdateRules { .. } => unreachable!("handled above"),

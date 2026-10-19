@@ -24,7 +24,7 @@ pub(crate) fn setup_camera(mut commands: Commands) {
             bottom: px(0),
             ..default()
         },
-        GlobalZIndex(1100),
+        GlobalZIndex(1450),
         Pickable::IGNORE,
     ));
 }

@@ -1,4 +1,4 @@
-use super::BiomeRanges;
+use super::{BiomeRanges, EnchantmentItems};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -61,6 +61,7 @@ impl Attribute {
 
     pub fn display_values(&self) -> Vec<String> {
         match self.label.as_str() {
+            "适用物品" => EnchantmentItems::bundled().describe(&self.values),
             "生成生物群系" => BiomeRanges::bundled().describe(&self.values),
             "生成群系" => BiomeRanges::bundled().describe_by_dimension(&self.values),
             _ => self.values.clone(),

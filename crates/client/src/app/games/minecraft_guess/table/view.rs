@@ -16,7 +16,7 @@ impl GuessTable<'_> {
             .search(self.game.round.kind, "")
             .next()
             .expect("nonempty catalogue");
-        let columns = TableColumns::new(example.attributes.len());
+        let columns = TableColumns::new(example.attributes.len(), self.game.graph.is_some());
         let details = spawn_node(
             commands,
             parent,
@@ -68,6 +68,7 @@ impl GuessTable<'_> {
             columns.name,
             CellSkin::Heading,
             self.game_assets,
+            self.game.graph.is_some(),
         )
         .label(commands, "猜测", self.assets);
         for attribute in &example.attributes {
@@ -82,6 +83,7 @@ impl GuessTable<'_> {
                 columns.attribute,
                 CellSkin::Heading,
                 self.game_assets,
+                self.game.graph.is_some(),
             )
             .label(commands, label, self.assets);
         }
@@ -149,14 +151,22 @@ impl GuessTable<'_> {
             columns.name,
             CellSkin::Feedback(name_quality),
             self.game_assets,
+            self.game.graph.is_some(),
         )
         .revealing(commands, index, 0)
         .guess(commands, &name, player, icon, self.assets);
         let GuessResult::Known { entry, matches, .. } = &guess.result else {
             if columns.name < 100.0 {
-                TableCell::spawn(commands, row, 85.0, CellSkin::Unknown, self.game_assets)
-                    .revealing(commands, index, 1)
-                    .label(commands, "此条目不存在", self.assets);
+                TableCell::spawn(
+                    commands,
+                    row,
+                    100.0 - columns.name,
+                    CellSkin::Unknown,
+                    self.game_assets,
+                    self.game.graph.is_some(),
+                )
+                .revealing(commands, index, 1)
+                .label(commands, "此条目不存在", self.assets);
             }
             return;
         };
@@ -173,6 +183,7 @@ impl GuessTable<'_> {
                 columns.attribute,
                 CellSkin::Feedback(feedback.quality),
                 self.game_assets,
+                self.game.graph.is_some(),
             )
             .revealing(commands, index, column + 1);
             cell.label(commands, &label, self.assets);
@@ -188,7 +199,7 @@ struct TableColumns {
 }
 
 impl TableColumns {
-    fn new(attributes: usize) -> Self {
+    fn new(attributes: usize, compact: bool) -> Self {
         if attributes == 0 {
             Self {
                 name: 100.0,
@@ -196,8 +207,8 @@ impl TableColumns {
             }
         } else {
             Self {
-                name: 15.0,
-                attribute: 85.0 / attributes as f32,
+                name: if compact { 28.0 } else { 15.0 },
+                attribute: (if compact { 72.0 } else { 85.0 }) / attributes as f32,
             }
         }
     }

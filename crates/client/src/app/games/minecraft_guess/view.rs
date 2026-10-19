@@ -14,6 +14,7 @@ pub(crate) struct GuessTable<'a> {
     pub client: &'a ClientResource,
     pub game: &'a MinecraftGuessSnapshot,
     pub state: &'a MinecraftGuessUiState,
+    pub graph_art: &'a super::GraphArt,
     pub scores: &'a GuessScorePlayback,
     pub feedback: &'a GuessFeedback,
     pub summary: &'a GameSummaryAnimation,
@@ -42,57 +43,72 @@ pub(crate) fn render_guess_table(
             padding: UiRect {
                 left: px(24),
                 right: px(24),
-                top: px(12),
+                top: px(if table.game.graph.is_some() {
+                    18.0
+                } else {
+                    12.0
+                }),
                 bottom: px(12),
             },
             flex_direction: FlexDirection::Column,
-            row_gap: px(12),
+            row_gap: px(if table.game.graph.is_some() {
+                8.0
+            } else {
+                12.0
+            }),
             position_type: PositionType::Relative,
             ..default()
         },
         None,
     );
-    let heading = spawn_node(
-        commands,
-        page,
-        Node {
-            width: percent(100),
-            min_height: px(38),
-            flex_shrink: 0.0,
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            column_gap: px(10),
-            padding: UiRect::horizontal(px(180)),
-            ..default()
-        },
-        None,
-    );
-    if table.transition.is_active_for(table.game.match_id) {
-        commands.entity(heading).insert(Visibility::Hidden);
+    if table.game.graph.is_some() {
+        table.players(commands, page);
+        table.graph_workspace(commands, page);
+    } else {
+        let heading = spawn_node(
+            commands,
+            page,
+            Node {
+                width: percent(100),
+                min_height: px(38),
+                flex_shrink: 0.0,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                column_gap: px(10),
+                padding: UiRect::horizontal(px(180)),
+                ..default()
+            },
+            None,
+        );
+        if table.transition.is_active_for(table.game.match_id) {
+            commands.entity(heading).insert(Visibility::Hidden);
+        }
+        table.answer(commands, heading, page);
+        let panel = spawn_node(
+            commands,
+            page,
+            Node {
+                width: percent(100),
+                height: px(0),
+                flex_grow: 1.0,
+                flex_basis: px(0),
+                min_height: px(0),
+                padding: UiRect::all(px(10)),
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+            None,
+        );
+        commands.entity(panel).insert(table.game_assets.frame());
+        if table.transition.is_active_for(table.game.match_id) {
+            commands.entity(panel).insert(Visibility::Hidden);
+        }
+        table.attributes(commands, panel);
     }
-    table.answer(commands, heading, page);
-    let panel = spawn_node(
-        commands,
-        page,
-        Node {
-            width: percent(100),
-            height: px(0),
-            flex_grow: 1.0,
-            flex_basis: px(0),
-            min_height: px(0),
-            padding: UiRect::all(px(10)),
-            flex_direction: FlexDirection::Column,
-            ..default()
-        },
-        None,
-    );
-    commands.entity(panel).insert(table.game_assets.frame());
-    if table.transition.is_active_for(table.game.match_id) {
-        commands.entity(panel).insert(Visibility::Hidden);
-    }
-    table.attributes(commands, panel);
     table.controls(commands, page);
-    table.players(commands, page);
+    if table.game.graph.is_none() {
+        table.players(commands, page);
+    }
     table.summary(commands, page);
     add_chat_panel(commands, page, table.chat, table.assets, None, &[]);
     if let NetworkState::Reconnecting(message) = table.client.0.state() {

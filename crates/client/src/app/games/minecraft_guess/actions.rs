@@ -103,6 +103,16 @@ pub(super) fn sync_guess_input(
             input.clear();
         }
     }
+    let selected = snapshot.graph.as_ref().map(|graph| graph.selected);
+    if state.selected_node != selected {
+        state.selected_node = selected;
+        state.guess_count = snapshot.round.guesses.len();
+        state.scroll_y = 0.0;
+        state.input.clear();
+        for (_, mut input) in &mut inputs {
+            input.clear();
+        }
+    }
     if state.guess_count != snapshot.round.guesses.len() {
         let previous_count = state.guess_count;
         state.guess_count = snapshot.round.guesses.len();

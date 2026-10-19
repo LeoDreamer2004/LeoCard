@@ -9,16 +9,21 @@ pub(crate) fn interaction_anchor_in_layer(
     player: PlayerId,
     layer_node: &ComputedNode,
     layer_transform: &UiGlobalTransform,
-    avatars: &Query<(&PlayerAvatarAnchor, &ComputedNode, &UiGlobalTransform)>,
+    avatars: &Query<PlayerAvatar>,
 ) -> Option<Vec2> {
     if layer_node.size().min_element() <= 1.0 {
         return None;
     }
-    let (_, avatar_node, avatar_transform) =
-        avatars.iter().find(|(anchor, _, _)| anchor.0 == player)?;
-    if avatar_node.size().min_element() <= 1.0 {
-        return None;
-    }
+    let avatar = avatars
+        .iter()
+        .filter(|avatar| {
+            avatar.anchor.0 == player
+                && avatar.visibility.get()
+                && avatar.node.size().min_element() > 1.0
+        })
+        .max_by_key(|avatar| avatar.z_index.map_or(0, |index| index.0))?;
+    let avatar_node = avatar.node;
+    let avatar_transform = avatar.transform;
     let inverse = layer_transform.try_inverse()?;
     let avatar_center = avatar_transform.to_scale_angle_translation().2;
     let mut position = inverse.transform_point2(avatar_center) + layer_node.size() * 0.5;
@@ -120,7 +125,7 @@ pub(crate) fn sync_player_interactions(
     mut client: Option<ResMut<ClientResource>>,
     assets: Res<UiAssets>,
     layers: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<PlayerInteractionLayer>>,
-    avatars: Query<(&PlayerAvatarAnchor, &ComputedNode, &UiGlobalTransform)>,
+    avatars: Query<PlayerAvatar>,
 ) {
     let Ok((layer, layer_node, layer_transform)) = layers.single() else {
         return;

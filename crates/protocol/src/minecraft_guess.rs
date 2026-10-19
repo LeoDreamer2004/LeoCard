@@ -1,8 +1,8 @@
 use crate::{LobbyPlayer, MatchId, PlayerId, PlayerReferenceChange, PlayerScore};
 pub use leocard_minecraft_guess::GameError as MinecraftGuessViolation;
 use leocard_minecraft_guess::{
-    GuessActionStatistics, GuessHandStatistics, MatchProgress, MinecraftGuessRuleSet, RoundView,
-    ScoreGain,
+    GraphView, GuessActionStatistics, GuessHandStatistics, MatchProgress, MinecraftGuessRuleSet,
+    RoundView, ScoreGain,
 };
 use serde::{Deserialize, Serialize};
 
@@ -16,6 +16,7 @@ pub struct MinecraftGuessSnapshot {
     pub rules: MinecraftGuessRuleSet,
     pub progress: MatchProgress,
     pub round: RoundView,
+    pub graph: Option<GraphView>,
     pub guess_seconds_remaining: Option<u16>,
     pub scores: Vec<PlayerScore>,
     pub score_gains: Vec<ScoreGain>,
@@ -26,7 +27,9 @@ pub struct MinecraftGuessSnapshot {
 
 impl MinecraftGuessSnapshot {
     pub fn can_guess(&self) -> bool {
-        self.round.can_guess(self.you.0, self.rules.mode)
+        self.graph.as_ref().is_none_or(|graph| {
+            graph.selected_node().kind.is_some() && !graph.selected_node().revealed()
+        }) && self.round.can_guess(self.you.0, self.rules.mode)
             && self.players.iter().any(|player| player.id == self.you)
     }
 }

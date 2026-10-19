@@ -501,18 +501,11 @@ impl HostedGameLifecycle for QiGui523Session {
                 RejectReason::Player(PlayerViolation::NotJoined),
             );
         };
-        let Some(game) = self.game.as_ref() else {
+        if self.game.is_none() {
             return self.reject(
                 connection,
                 request_id,
                 RejectReason::Game(GameViolation::GameNotStarted),
-            );
-        };
-        if !matches!(game.phase(), Phase::Playing) {
-            return self.reject(
-                connection,
-                request_id,
-                RejectReason::Game(GameViolation::QiGui523(RuleViolation::GameAlreadyFinished)),
             );
         }
         if source == target {

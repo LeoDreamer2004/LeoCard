@@ -12,7 +12,10 @@ use leocard_protocol::{ClientCommand, PlayerId, PlayerInteractionKind};
 
 #[derive(Clone)]
 pub(crate) enum SocialUiAction {
-    ToggleInteractionMenu(PlayerId),
+    ToggleInteractionMenu {
+        player: PlayerId,
+        anchor: Entity,
+    },
     ToggleAutoPlay,
     SendInteraction {
         target: PlayerId,
@@ -53,9 +56,12 @@ impl UiActionHandler<SocialActionContext<'_>> for SocialUiAction {
         let ui = &mut *context.ui;
         let cooldown = &mut *context.cooldown;
         match self {
-            SocialUiAction::ToggleInteractionMenu(player) => {
-                ui.social.interaction_menu_open =
-                    (ui.social.interaction_menu_open != Some(*player)).then_some(*player);
+            SocialUiAction::ToggleInteractionMenu { player, anchor } => {
+                ui.social.interaction_menu_open = (ui.social.interaction_menu_open
+                    != Some(*player)
+                    || ui.social.interaction_menu_anchor != Some(*anchor))
+                .then_some(*player);
+                ui.social.interaction_menu_anchor = Some(*anchor);
             }
             SocialUiAction::SendInteraction { target, kind } => {
                 if cooldown.is_active(*kind) {

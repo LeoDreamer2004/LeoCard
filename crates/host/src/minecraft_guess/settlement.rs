@@ -14,7 +14,7 @@ impl MinecraftGuessSession {
         let values: Vec<_> = scores.iter().map(|(_, score)| *score).collect();
         let ranked_rounds = match self.rules.mode {
             GuessMode::TurnBased => self.rules.turn_based.rounds,
-            GuessMode::Race => 1,
+            GuessMode::Race | GuessMode::Graph => 1,
         };
         let deltas = reference_point_deltas(&values, ranked_rounds).expect("two to eight players");
         let statistics: Vec<_> = state

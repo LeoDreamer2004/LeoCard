@@ -5,7 +5,7 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider, GameSummaryModal,
-    GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, READY,
+    GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, PlayerMenuProfile, READY,
     SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
     TEXT, UiComposer, add_animated_summary_text, add_avatar, add_ready_avatar, add_text,
     decorate_panel_skin, spawn_node, summary_modal_visual, summary_row_progress,
@@ -647,8 +647,14 @@ fn add_texas_summary_avatar(
     add_ready_avatar(
         commands,
         parent,
-        &player.name,
-        avatar,
+        player.id,
+        PlayerMenuProfile {
+            name: &player.name,
+            avatar,
+            reference_points: player.reference_points,
+            completed_games: player.completed_games,
+            game_profiles: &player.game_profiles,
+        },
         32.0,
         player.ready,
         assets,

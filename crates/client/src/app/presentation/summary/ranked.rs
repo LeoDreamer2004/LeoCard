@@ -2,20 +2,20 @@
 
 use crate::app::presentation::{
     ACCENT, AnimatedSummaryScore, DANGER, GameSummaryActions, GameSummaryAnimation,
-    GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, PANEL_ALT, PanelSkin, READY,
-    SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, TEXT, UiComposer,
-    add_animated_summary_text, add_ready_avatar, animated_summary_score, decorate_panel_skin,
-    sorted_summary_scores, spawn_node, summary_modal_visual, summary_row_progress,
+    GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, PANEL_ALT, PanelSkin,
+    PlayerMenuProfile, READY, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL,
+    SUMMARY_ROW_START_DELAY, TEXT, UiComposer, add_animated_summary_text, add_ready_avatar,
+    animated_summary_score, decorate_panel_skin, sorted_summary_scores, spawn_node,
+    summary_modal_visual, summary_row_progress,
 };
-use crate::app::runtime::{AvatarImages, UiAssets};
+use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_protocol::{AvatarId, PlayerId, PlayerReferenceChange, PlayerScore};
+use leocard_protocol::{PlayerId, PlayerReferenceChange, PlayerScore};
 
 pub(crate) struct SummaryPlayer<'a> {
     pub id: PlayerId,
-    pub name: &'a str,
-    pub avatar: Option<AvatarId>,
+    pub profile: PlayerMenuProfile<'a>,
     pub ready: bool,
 }
 
@@ -34,7 +34,6 @@ pub(crate) fn add_ranked_summary(
     table: Entity,
     game: &RankedSummary<'_>,
     assets: &UiAssets,
-    avatars: &AvatarImages,
     animation: &GameSummaryAnimation,
 ) -> Entity {
     let scores = game.scores;
@@ -142,12 +141,11 @@ pub(crate) fn add_ranked_summary(
                 Visibility::Hidden
             },
         ));
-        let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
         add_ready_avatar(
             commands,
             row,
-            player.name,
-            avatar,
+            player.id,
+            player.profile,
             28.0,
             player.ready,
             assets,
@@ -165,7 +163,7 @@ pub(crate) fn add_ranked_summary(
         add_animated_summary_text(
             commands,
             name,
-            player.name,
+            player.profile.name,
             16.0,
             TEXT,
             delay,

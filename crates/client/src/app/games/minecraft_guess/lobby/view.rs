@@ -45,7 +45,7 @@ pub(crate) fn render_guess_lobby(
         label: rules.mode.label(),
         toggle_action: UiAction::MinecraftGuess(MinecraftGuessUiAction::ToggleModeMenu),
         close_action: UiAction::MinecraftGuess(MinecraftGuessUiAction::CloseModeMenu),
-        options: [GuessMode::TurnBased, GuessMode::Race]
+        options: [GuessMode::TurnBased, GuessMode::Race, GuessMode::Graph]
             .into_iter()
             .map(|mode| LobbyModeOption {
                 label: mode.label(),

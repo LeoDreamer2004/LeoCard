@@ -8,9 +8,9 @@ use crate::app::presentation::{
 use bevy::prelude::*;
 use leocard_blackjack::BlackjackRuleSet;
 pub(crate) use leocard_client::{
-    GameAppearancePreferences, GamePreferences, MahjongPreferences, QiGui523Preferences,
-    SavedPreferences, ShengjiPreferences, TexasHoldemPreferences, UnoPreferences,
-    load_player_preferences, save_player_preferences,
+    GameAppearancePreferences, GamePreferences, MahjongPreferences, MinecraftGuessPreferences,
+    QiGui523Preferences, SavedPreferences, ShengjiPreferences, TexasHoldemPreferences,
+    UnoPreferences, load_player_preferences, save_player_preferences,
 };
 use leocard_mahjong::MahjongRuleSet;
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
@@ -53,6 +53,7 @@ pub(crate) struct HostRulePreferences {
     pub shengji_rules: ShengjiRuleSet,
     pub uno_rules: UnoRuleSet,
     pub mahjong_rules: MahjongRuleSet,
+    pub minecraft_guess_rules: MinecraftGuessRuleSet,
 }
 
 #[derive(Resource, Default)]
@@ -150,6 +151,7 @@ impl PreferenceResources {
                 shengji_rules: normalize_rules(saved.games.shengji.host_rules),
                 uno_rules: normalize_rules(saved.games.uno.host_rules),
                 mahjong_rules: normalize_rules(saved.games.mahjong.host_rules),
+                minecraft_guess_rules: normalize_rules(saved.games.minecraft_guess.host_rules),
             },
         }
     }
@@ -222,11 +224,21 @@ macro_rules! impl_validated_rule_set {
 
 impl_validated_rule_set!(ShengjiRuleSet, UnoRuleSet, MahjongRuleSet);
 
+impl NormalizeRuleSet for MinecraftGuessRuleSet {
+    fn normalized(self) -> Self {
+        if self.is_valid() {
+            self
+        } else {
+            Self::default()
+        }
+    }
+}
+
 impl HostRulePreferences {
     pub(crate) fn game_rules(&self, kind: GameKind) -> GameRules {
         match kind {
             GameKind::Blackjack => BlackjackRuleSet::default().into(),
-            GameKind::MinecraftGuess => MinecraftGuessRuleSet::default().into(),
+            GameKind::MinecraftGuess => normalize_rules(self.minecraft_guess_rules).into(),
             GameKind::QiGui523 => normalize_rules(self.host_rules).into(),
             GameKind::TexasHoldem => normalize_rules(self.texas_holdem_rules).into(),
             GameKind::Shengji => normalize_rules(self.shengji_rules).into(),
@@ -237,7 +249,10 @@ impl HostRulePreferences {
 
     pub(super) fn accept_game_rules(&mut self, rules: &GameRules) -> bool {
         match rules {
-            GameRules::MinecraftGuess(_) | GameRules::Blackjack(_) => false,
+            GameRules::Blackjack(_) => false,
+            GameRules::MinecraftGuess(rules) => {
+                replace_if_changed(&mut self.minecraft_guess_rules, normalize_rules(*rules))
+            }
             GameRules::QiGui523(rules) => {
                 replace_if_changed(&mut self.host_rules, normalize_rules(*rules))
             }
@@ -309,6 +324,9 @@ pub(super) fn save_host_rule_preferences(rules: &HostRulePreferences) -> Result<
         },
         mahjong: MahjongPreferences {
             host_rules: rules.mahjong_rules,
+        },
+        minecraft_guess: MinecraftGuessPreferences {
+            host_rules: normalize_rules(rules.minecraft_guess_rules),
         },
     };
     save_player_preferences(&saved)

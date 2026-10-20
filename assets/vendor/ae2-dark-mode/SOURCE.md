@@ -19,6 +19,7 @@ Runtime files in `../../ui/minecraft_guess/widgets/`:
 - `button.png` and `button-disabled.png`: unchanged `assets/ae2/textures/gui/sprites/button.png` and `button_disabled.png`, using the upstream three-pixel nine-slice border.
 - `input.png` and `input-focused.png`: cropped from `assets/ae2/textures/guis/text_field.png`, rectangles `(0, 0, 128, 12)` and `(0, 12, 128, 12)`.
 - `scroll-thumb.png` and `scroll-thumb-disabled.png`: unchanged `assets/ae2/textures/gui/sprites/big_scroller.png` and `big_scroller_disabled.png`.
+- `close.png`: close icon cropped from `assets/ae2/textures/guis/states.png`, rectangle `(96, 0, 16, 16)`; displayed on the existing OreUI button textures.
 
 The crops retain the upstream pixels. These files remain under CC BY-NC-SA 4.0.
 

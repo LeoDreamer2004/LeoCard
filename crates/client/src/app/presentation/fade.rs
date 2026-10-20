@@ -6,7 +6,8 @@ use bevy::prelude::*;
 use bevy::ui::{BackgroundGradient, Gradient};
 
 /// Visuals that animate their own alpha consume the transition factor directly,
-/// instead of restoring a cached color on every frame.
+/// instead of restoring a cached color on every frame. These nodes own opacity
+/// for their subtree, so traversal stops at this boundary.
 #[derive(Component)]
 pub(crate) struct TransitionOpacity(f32);
 
@@ -55,17 +56,20 @@ pub(crate) fn fade_panel<Filter: QueryFilter>(
 ) {
     let mut pending = vec![root];
     while let Some(entity) = pending.pop() {
-        if let Ok(child_entities) = children.get(entity) {
-            pending.extend(child_entities.iter());
-        }
         let Ok((mut image, mut text, mut background, mut border, mut gradient, cached, transition)) =
             visuals.get_mut(entity)
         else {
+            if let Ok(child_entities) = children.get(entity) {
+                pending.extend(child_entities.iter());
+            }
             continue;
         };
         if let Some(mut transition) = transition {
             transition.0 = opacity.clamp(0.0, 1.0);
             continue;
+        }
+        if let Ok(child_entities) = children.get(entity) {
+            pending.extend(child_entities.iter());
         }
         let mut base = cached.cloned().unwrap_or_else(|| TransitionFadeBase {
             image: image.as_ref().map(|image| image.color),

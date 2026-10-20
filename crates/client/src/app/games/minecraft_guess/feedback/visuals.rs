@@ -1,7 +1,7 @@
 use super::super::GuessScorePlayback;
 use super::state::GuessFeedback;
 use crate::app::presentation::{
-    ACCENT, READY, TransitionVisuals, UiComposer, ease_out_cubic, fade_panel,
+    ACCENT, READY, TransitionOpacity, TransitionVisuals, UiComposer, ease_out_cubic, fade_panel,
 };
 use bevy::prelude::*;
 
@@ -11,7 +11,7 @@ pub(in super::super) struct GuessCellReveal {
     pub column: usize,
     pub color: Color,
     pub content: Entity,
-    applied: f32,
+    applied: (f32, f32),
 }
 
 impl GuessCellReveal {
@@ -21,7 +21,7 @@ impl GuessCellReveal {
             column,
             color,
             content,
-            applied: -1.0,
+            applied: (-1.0, -1.0),
         }
     }
 }
@@ -49,20 +49,35 @@ pub(in super::super) fn animate_cells(
     mut commands: UiComposer,
     playback: Res<GuessFeedback>,
     children: Query<&Children>,
-    mut cells: Query<(&mut GuessCellReveal, &mut ImageNode)>,
+    mut cells: Query<(
+        Entity,
+        &mut GuessCellReveal,
+        &TransitionOpacity,
+        &mut ImageNode,
+        &mut BorderColor,
+    )>,
     mut visuals: TransitionVisuals<Without<GuessCellReveal>>,
     mut transforms: Query<&mut UiTransform>,
 ) {
-    for (mut cell, mut image) in &mut cells {
+    for (entity, mut cell, opacity, mut image, mut border) in &mut cells {
         let progress = ease_out_cubic(playback.cell_progress(cell.row, cell.column));
-        if cell.applied == progress {
+        let opacity = opacity.factor();
+        if cell.applied == (progress, opacity) {
             continue;
         }
-        cell.applied = progress;
-        image.color = Color::srgb(0.65, 0.65, 0.65).mix(&cell.color, progress);
+        cell.applied = (progress, opacity);
+        image.color = Color::srgb(0.65, 0.65, 0.65)
+            .mix(&cell.color, progress)
+            .with_alpha(opacity);
+        if let Some(base) = commands.declared::<BorderColor>(entity) {
+            border.top = base.top.with_alpha(base.top.alpha() * opacity);
+            border.right = base.right.with_alpha(base.right.alpha() * opacity);
+            border.bottom = base.bottom.with_alpha(base.bottom.alpha() * opacity);
+            border.left = base.left.with_alpha(base.left.alpha() * opacity);
+        }
         fade_panel(
             cell.content,
-            progress,
+            progress * opacity,
             &children,
             &mut visuals,
             &mut commands,

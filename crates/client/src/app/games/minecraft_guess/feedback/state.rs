@@ -5,13 +5,16 @@ use std::collections::VecDeque;
 
 pub(super) const ANSWER_DURATION: f32 = 1.55;
 
-#[derive(Clone, Copy, PartialEq)]
-pub(super) enum FeedbackSound {
+#[derive(Message, Clone, Copy, PartialEq)]
+pub(in super::super) enum FeedbackSound {
     Submit,
     Reveal,
     Success,
     Skip,
     Turn,
+    NodeSelect,
+    Combo(u16),
+    ComboBlocked,
 }
 
 pub(super) struct SoundCue {
@@ -30,6 +33,7 @@ pub(crate) struct GuessFeedback {
     pub(super) key: Option<(MatchId, u8)>,
     pub(super) mode: GuessMode,
     pub(super) selected_node: Option<u16>,
+    pub(super) graph_guesses: usize,
     pub(super) clock: f32,
     pub(super) rows: Vec<Option<RowReveal>>,
     pub(super) cues: VecDeque<SoundCue>,

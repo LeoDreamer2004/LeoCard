@@ -1,11 +1,14 @@
 use super::background::add_guess_background;
 use super::state::MinecraftGuessUiState;
-use super::{GuessFeedback, GuessScorePlayback, MinecraftGuessAssets};
+use super::{GuessFeedback, GuessScorePlayback, MinecraftGuessAssets, MinecraftGuessUiAction};
 use crate::app::presentation::{
     GameSummaryAnimation, StartGameSeatTransition, TurnBorderMaterial, UiComposer, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
+use crate::app::shell::{
+    ChatPanelState, SocialUiState, UiAction, add_chat_help_button, add_chat_panel,
+    add_reconnecting_overlay,
+};
 use bevy::prelude::*;
 use leocard_client::NetworkState;
 use leocard_protocol::MinecraftGuessSnapshot;
@@ -44,7 +47,7 @@ pub(crate) fn render_guess_table(
                 left: px(24),
                 right: px(24),
                 top: px(if table.game.graph.is_some() {
-                    18.0
+                    6.0
                 } else {
                     12.0
                 }),
@@ -62,7 +65,6 @@ pub(crate) fn render_guess_table(
         None,
     );
     if table.game.graph.is_some() {
-        table.players(commands, page);
         table.graph_workspace(commands, page);
     } else {
         let heading = spawn_node(
@@ -105,12 +107,20 @@ pub(crate) fn render_guess_table(
         }
         table.attributes(commands, panel);
     }
-    table.controls(commands, page);
     if table.game.graph.is_none() {
+        table.controls(commands, page);
         table.players(commands, page);
     }
     table.summary(commands, page);
-    add_chat_panel(commands, page, table.chat, table.assets, None, &[]);
+    let chat_panel = add_chat_panel(commands, page, table.chat, table.assets, None, &[]);
+    if table.game.graph.is_some() {
+        add_chat_help_button(
+            commands,
+            chat_panel,
+            UiAction::MinecraftGuess(MinecraftGuessUiAction::ToggleGraphGuide),
+            table.assets,
+        );
+    }
     if let NetworkState::Reconnecting(message) = table.client.0.state() {
         add_reconnecting_overlay(commands, page, message, table.assets);
     }

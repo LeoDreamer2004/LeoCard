@@ -9,6 +9,9 @@ const AUTOMATIC_ACTION_DELAY: Duration = Duration::from_secs(2);
 
 impl MinecraftGuessSession {
     pub(in super::super) fn guess_seconds_remaining(&self) -> Option<u16> {
+        if self.generation.is_some() {
+            return None;
+        }
         let game = self.game.as_ref()?;
         if game.finished() {
             return None;
@@ -17,6 +20,9 @@ impl MinecraftGuessSession {
     }
 
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        if self.generation.is_some() {
+            return self.advance_generation();
+        }
         if !self.game.as_ref().is_some_and(|game| !game.finished()) {
             return Vec::new();
         }

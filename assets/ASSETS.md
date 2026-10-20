@@ -52,6 +52,7 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 - 运行时文件：`ui/minecraft_guess/icons/entries.png`，方块和物品共用，用于猜测记录、候选词以及揭晓后的答案。
 - 来源：[Minecraft Wiki 库存图标](https://minecraft.wiki/w/Category:InvSprite_files)和对应的方块原始渲染图。按当前词库的方块／物品标识分别映射，外观相同的图标共用图集位置；动画取第一帧，保持长宽比装入 64×64 像素图格。物品保留原生像素图，三维方块采用较高分辨率的原始渲染图，客户端使用最近邻采样。
 - `ui/minecraft_guess/icons/entries.tsv` 是客户端使用的图集索引，`layouts.tsv` 记录各图集的图格尺寸和列数。
+- 关系谜图类别图集 `ui/minecraft_guess/graph/node-symbols.png` 使用 128×128 像素图格，复用草方块、金锭、僵尸正面头像、附魔书、药水、绿宝石和海底神殿图标；草方块采用 300×300 原始渲染图缩制，其余保留原生像素。绿色山脉剪影使用原版草方块顶部纹理。
 - Minecraft 图像的权利归 Mojang Studios 所有，授权要求与上述等级物品图标一致。
 
 ### MC 竞猜生物、附魔、状态效果、职业、世界景观、生物群系

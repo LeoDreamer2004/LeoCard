@@ -18,11 +18,7 @@ impl GuessTable<'_> {
                 width: percent(100),
                 height: px(92),
                 flex_shrink: 0.0,
-                flex_direction: if self.game.graph.is_some() {
-                    FlexDirection::ColumnReverse
-                } else {
-                    FlexDirection::Column
-                },
+                flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 row_gap: px(6),
                 ..default()
@@ -36,6 +32,11 @@ impl GuessTable<'_> {
             commands,
             controls,
             Node {
+                width: if self.game.graph.is_some() {
+                    percent(100)
+                } else {
+                    Val::Auto
+                },
                 height: px(46),
                 flex_shrink: 0.0,
                 align_items: AlignItems::Center,
@@ -67,7 +68,9 @@ impl GuessTable<'_> {
                 winner
                     .map(|player| format!("{} 猜中了！", player.name))
                     .unwrap_or_else(|| {
-                        if self.game.rules.mode == GuessMode::Race {
+                        if self.game.graph.is_some() {
+                            "本局谜图已完成".to_owned()
+                        } else if self.game.rules.mode == GuessMode::Race {
                             "时间到，本局结束".to_owned()
                         } else {
                             "全员跳过，本轮结束".to_owned()
@@ -105,7 +108,7 @@ impl GuessTable<'_> {
             }
             return;
         }
-        let active = self.game.can_guess();
+        let active = self.state.can_guess(self.game);
         let mut input = TextInput::new("minecraft-guess", &self.state.input);
         input.placeholder = "输入条目名称";
         input.max_characters = MAX_GUESS_CHARACTERS;
@@ -115,7 +118,13 @@ impl GuessTable<'_> {
             commands,
             row,
             Node {
-                width: px(310),
+                width: if self.game.graph.is_some() {
+                    px(0)
+                } else {
+                    px(310)
+                },
+                min_width: px(120),
+                flex_grow: f32::from(self.game.graph.is_some()),
                 height: px(46),
                 padding: UiRect::horizontal(px(12)),
                 ..default()
@@ -179,7 +188,11 @@ impl GuessTable<'_> {
             GuessButtonSpec {
                 label,
                 action,
-                width: px(125),
+                width: px(if self.game.graph.is_some() {
+                    100.0
+                } else {
+                    125.0
+                }),
                 height: 46.0,
                 icon: None,
             },

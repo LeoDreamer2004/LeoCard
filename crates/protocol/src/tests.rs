@@ -1,7 +1,42 @@
 use super::*;
+use leocard_minecraft_guess::{GameState, GraphView, GuessMode, MinecraftGuessRuleSet};
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_shengji::{Component, ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit};
 use leocard_texas_holdem::TexasHoldemRuleSet;
+
+#[test]
+fn graph_combo_targets_and_success_counts_round_trip_through_protocol_codec() {
+    let rules = MinecraftGuessRuleSet {
+        mode: GuessMode::Graph,
+        ..Default::default()
+    };
+    let mut game = GameState::new_graph(vec![0, 1], rules, 5).unwrap();
+    let mut revealed = game.clone();
+    revealed.reveal_graph().unwrap();
+    let answer = revealed
+        .graph_view()
+        .unwrap()
+        .selected_node()
+        .entry
+        .as_ref()
+        .unwrap()
+        .id
+        .clone();
+    game.guess(0, &answer).unwrap();
+    let graph = game.graph_view().unwrap();
+    let decoded: GraphView = decode_frame(&encode_frame(&graph).unwrap()).unwrap();
+    assert_eq!(graph, decoded);
+    assert_eq!(graph.guesses.last().unwrap().combo, 1);
+    let combo = graph.combo.as_ref().unwrap();
+    assert_eq!(combo.count, 1);
+    assert!(!combo.targets.is_empty());
+    assert!(
+        combo
+            .targets
+            .iter()
+            .all(|&number| graph.can_guess_node(number))
+    );
+}
 
 #[test]
 fn four_deck_spaceship_component_round_trips_through_protocol_codec() {

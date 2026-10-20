@@ -7,6 +7,7 @@ pub enum MatchLength {
     Rounds(u8),
     /// A fixed question count shared by every participant.
     Games(u8),
+    /// One graph per participant, each taking the opening turn once.
     Graph,
 }
 
@@ -51,7 +52,7 @@ impl MatchProgress {
         match self.length {
             MatchLength::Rounds(rounds) => self.player_count * rounds,
             MatchLength::Games(games) => games,
-            MatchLength::Graph => 1,
+            MatchLength::Graph => self.player_count,
         }
     }
 

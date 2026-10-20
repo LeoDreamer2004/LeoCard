@@ -129,6 +129,8 @@ impl ClientCommand {
 /// Stable identity of a live fact within a match. Assigned by the game adapter.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct GameEventContext {
+    /// The host applies the same eligibility policy to profiles, coins and live achievements.
+    pub records_progress: bool,
     pub match_id: MatchId,
     pub hand_index: Option<u32>,
     pub sequence: u128,

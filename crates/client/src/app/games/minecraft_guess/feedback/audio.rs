@@ -36,11 +36,21 @@ struct ScheduledNote {
 pub(in super::super) struct NotePlayback {
     key: Option<(MatchId, u8)>,
     pending: VecDeque<ScheduledNote>,
+    last_interaction: Option<f32>,
 }
 
 impl NotePlayback {
     fn enqueue(&mut self, at: f32, sound: FeedbackSound) {
-        for &note in sound.notes() {
+        if matches!(
+            sound,
+            FeedbackSound::NodeSelect | FeedbackSound::ComboBlocked
+        ) {
+            if self.last_interaction.is_some_and(|last| at - last < 0.18) {
+                return;
+            }
+            self.last_interaction = Some(at);
+        }
+        for note in sound.notes() {
             let at = at + note.delay;
             let index = self.pending.partition_point(|pending| pending.at <= at);
             self.pending.insert(index, ScheduledNote { at, note });
@@ -72,13 +82,20 @@ pub(in super::super) fn play_feedback_audio(
     intro: Res<StartGameSeatTransition>,
     assets: Res<FeedbackAudio>,
     mut notes: ResMut<NotePlayback>,
+    mut interactions: MessageReader<FeedbackSound>,
 ) {
     if notes.key != playback.key {
         notes.key = playback.key;
         notes.pending.clear();
+        notes.last_interaction = None;
     }
-    if playback.key.is_some_and(|(id, _)| intro.is_active_for(id)) {
+    if playback.key.is_none() || playback.key.is_some_and(|(id, _)| intro.is_active_for(id)) {
+        interactions.clear();
         return;
+    }
+    // Input feedback survives local Wordle switches, which clear row-animation cues.
+    for &sound in interactions.read() {
+        notes.enqueue(playback.clock, sound);
     }
     while playback
         .cues

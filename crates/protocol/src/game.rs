@@ -276,6 +276,7 @@ pub enum MinecraftGuessCommand {
     ReportMinecraftProcess {
         running: bool,
     },
+    DeveloperActivateAll,
 }
 
 impl From<BlackjackRuleSet> for GameRules {

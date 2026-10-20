@@ -41,7 +41,10 @@ impl MatchState {
 
     pub fn turn_order(&self) -> Vec<u8> {
         let mut players = self.players.clone();
-        if self.progress.mode() == GuessMode::TurnBased {
+        if matches!(
+            self.progress.mode(),
+            GuessMode::TurnBased | GuessMode::Graph
+        ) {
             players.rotate_left(usize::from(self.progress.game_in_round() - 1));
         }
         players

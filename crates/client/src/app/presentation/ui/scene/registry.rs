@@ -14,6 +14,7 @@ pub(super) struct MountedEntity {
     pub entity: Entity,
     pub owner: Entity,
     pub frame: u64,
+    pub retained: bool,
     pub authored: Vec<ComponentId>,
     pub next_authored: HashSet<ComponentId>,
     pub properties: HashMap<TypeId, PropertyValue>,
@@ -47,6 +48,7 @@ impl UiSceneRegistry {
                 entity: create(),
                 owner,
                 frame,
+                retained: false,
                 authored: Vec::new(),
                 next_authored: HashSet::new(),
                 properties: HashMap::new(),
@@ -56,6 +58,7 @@ impl UiSceneRegistry {
             entry.next_authored.clear();
             entry.frame = frame;
         }
+        entry.retained = false;
         self.keys.insert(entry.entity, identity);
         entry.entity
     }
@@ -98,7 +101,7 @@ impl UiSceneRegistry {
             for entry in self
                 .entities
                 .values_mut()
-                .filter(|entry| entry.owner == owner && entry.frame == frame)
+                .filter(|entry| entry.owner == owner && entry.frame == frame && !entry.retained)
             {
                 properties.reconcile(world, entry);
                 let mut required = HashSet::new();

@@ -27,9 +27,23 @@ pub struct MinecraftGuessSnapshot {
 
 impl MinecraftGuessSnapshot {
     pub fn can_guess(&self) -> bool {
-        self.graph.as_ref().is_none_or(|graph| {
-            graph.selected_node().kind.is_some() && !graph.selected_node().revealed()
-        }) && self.round.can_guess(self.you.0, self.rules.mode)
+        match &self.graph {
+            Some(graph) => self.can_guess_node(graph.selected),
+            None => self.is_guessing_player(),
+        }
+    }
+
+    /// Node eligibility independent of which question the host has selected.
+    pub fn can_guess_node(&self, number: u16) -> bool {
+        self.is_guessing_player()
+            && self
+                .graph
+                .as_ref()
+                .is_some_and(|graph| graph.can_guess_node(number))
+    }
+
+    fn is_guessing_player(&self) -> bool {
+        self.round.can_guess(self.you.0, self.rules.mode)
             && self.players.iter().any(|player| player.id == self.you)
     }
 }

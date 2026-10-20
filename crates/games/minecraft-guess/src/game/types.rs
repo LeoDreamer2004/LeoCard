@@ -17,6 +17,7 @@ pub enum GameError {
     NodeSwitchCoolingDown,
     CannotGuessTag,
     NodeAlreadyRevealed,
+    ComboRequiresNeighbour,
 }
 
 impl fmt::Display for GameError {
@@ -27,6 +28,7 @@ impl fmt::Display for GameError {
             Self::NodeSwitchCoolingDown => f.write_str("请稍候再切换节点"),
             Self::CannotGuessTag => f.write_str("标签由相邻节点全部揭晓后自动解锁"),
             Self::NodeAlreadyRevealed => f.write_str("此节点已揭晓，请选择其他节点"),
+            Self::ComboRequiresNeighbour => f.write_str("连击时请猜测刚猜中节点的相邻未揭晓节点"),
             Self::NotPlayersTurn => f.write_str("还没有轮到你猜测"),
             Self::CannotSkip => f.write_str("抢答模式不能跳过"),
             Self::Finished => f.write_str("本轮竞猜已经结束"),

@@ -43,27 +43,14 @@ pub(super) trait HostedGameLifecycle: Sized {
                 .expect("starting a game requires a host");
             let match_id = self.game_snapshot(host).match_id();
             self.room_mut().bump_revision();
-            let context = GameEventContext {
-                match_id,
-                hand_index: None,
-                sequence: u128::from(self.room().revision.0) << 64,
-            };
-            deliveries.extend(
-                self.room()
-                    .broadcast_event(
-                        None,
-                        ServerEvent::GameStarted {
-                            host,
-                            game: Self::KIND,
-                            match_id,
-                        },
-                    )
-                    .into_iter()
-                    .map(|mut delivery| {
-                        delivery.message.game_context = Some(context);
-                        delivery
-                    }),
-            );
+            deliveries.extend(self.with_game_context(self.room().broadcast_event(
+                None,
+                ServerEvent::GameStarted {
+                    host,
+                    game: Self::KIND,
+                    match_id,
+                },
+            )));
         }
         deliveries
     }
@@ -114,10 +101,10 @@ pub(super) trait HostedGameLifecycle: Sized {
         match result {
             Ok(interaction) => {
                 self.room_mut().bump_revision();
-                self.room().broadcast_event(
+                self.with_game_context(self.room().broadcast_event(
                     Some((connection, request_id)),
                     ServerEvent::PlayerInteraction(interaction),
-                )
+                ))
             }
             Err(reason) => self.room().reject(connection, request_id, reason),
         }
@@ -226,9 +213,26 @@ pub(super) trait HostedGameLifecycle: Sized {
             .room_mut()
             .chat(connection, request_id, content, game_started)
         {
-            Ok(deliveries) => deliveries,
+            Ok(deliveries) => self.with_game_context(deliveries),
             Err(reason) => self.room().reject(connection, request_id, reason),
         }
+    }
+
+    fn with_game_context(&self, mut deliveries: Vec<Delivery>) -> Vec<Delivery> {
+        if self.game_started()
+            && let Some(host) = self.room().host_player_id()
+        {
+            let context = GameEventContext {
+                records_progress: self.room().records_game_progress(),
+                match_id: self.game_snapshot(host).match_id(),
+                hand_index: None,
+                sequence: u128::from(self.room().revision.0) << 64,
+            };
+            for delivery in &mut deliveries {
+                delivery.message.game_context = Some(context);
+            }
+        }
+        deliveries
     }
 
     fn broadcast_lobby(&self, origin: Option<(ConnectionId, RequestId)>) -> Vec<Delivery> {

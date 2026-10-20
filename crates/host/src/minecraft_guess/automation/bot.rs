@@ -7,11 +7,11 @@ impl Policy {
         // Bots use only public feedback; never peek at the chosen answer.
         if let Some(graph) = game.graph_view() {
             let node = graph.selected_node();
-            if node.kind.is_none() || node.revealed() {
+            if !graph.can_guess_node(node.number) {
                 if let Some(next) = graph
                     .nodes
                     .iter()
-                    .find(|node| node.kind.is_some() && !node.revealed())
+                    .find(|node| graph.can_guess_node(node.number))
                 {
                     if game.select_node(current, next.number).is_err() {
                         return false;

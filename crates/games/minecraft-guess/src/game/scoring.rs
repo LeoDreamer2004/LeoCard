@@ -17,6 +17,14 @@ pub(super) struct GuessScore {
 }
 
 impl GuessResult {
+    pub(crate) fn all_matching_score(&self, first_matching_available: bool) -> u32 {
+        if !self.is_correct() && self.all_matching() {
+            2 + 3 * u32::from(first_matching_available)
+        } else {
+            0
+        }
+    }
+
     pub(super) fn closeness(&self) -> Option<u32> {
         let Self::Known { matches, .. } = self else {
             return None;
@@ -82,13 +90,12 @@ impl GuessResult {
             .filter(|feedback| feedback.quality != MatchQuality::Exact)
             .count();
         let matching = match differences {
-            0 => 2,
+            0 => self.all_matching_score(first_matching_available),
             1 => 1,
             _ => 0,
         };
-        let first_matching = 3 * u32::from(first_matching_available && self.all_matching());
         GuessScore {
-            during_guess: u32::from(improved) + matching + first_matching,
+            during_guess: u32::from(improved) + matching,
             after_answer: 0,
         }
     }

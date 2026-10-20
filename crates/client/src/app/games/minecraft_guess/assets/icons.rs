@@ -40,6 +40,12 @@ const INDEXES: [(&str, &str); 7] = [
     ),
 ];
 
+pub(in super::super) struct IconSprite {
+    pub image: Handle<Image>,
+    /// Atlas rectangle in source pixels, independent of the image loading state.
+    pub region: Vec4,
+}
+
 pub(in super::super) struct EntryIcons {
     atlases: [EntryIconAtlas; 7],
 }
@@ -47,6 +53,7 @@ pub(in super::super) struct EntryIcons {
 struct EntryIconAtlas {
     image: Handle<Image>,
     layout: Handle<TextureAtlasLayout>,
+    cell_size: u32,
     entries: HashMap<EntryKind, HashMap<String, usize>>,
 }
 
@@ -102,19 +109,26 @@ impl EntryIconAtlas {
         Self {
             image,
             layout,
+            cell_size,
             entries,
         }
     }
 
     fn image(&self, entry: &Entry) -> Option<ImageNode> {
         let index = *self.entries.get(&entry.kind)?.get(&entry.id)?;
-        Some(ImageNode::from_atlas_image(
+        let mut image = ImageNode::from_atlas_image(
             self.image.clone(),
             TextureAtlas {
                 layout: self.layout.clone(),
                 index,
             },
-        ))
+        );
+        // Sample inside texel centers so fractional UI scaling cannot reach adjacent cells.
+        image.rect = Some(Rect::from_corners(
+            Vec2::splat(0.5),
+            Vec2::splat(self.cell_size as f32 - 0.5),
+        ));
+        Some(image)
     }
 }
 
@@ -152,6 +166,23 @@ impl EntryIcons {
             .iter()
             .find_map(|atlas| atlas.image(entry))
             .expect("catalogue entry has an icon")
+    }
+
+    pub fn sprite(&self, entry: &Entry, layouts: &Assets<TextureAtlasLayout>) -> IconSprite {
+        let image = self.image(entry);
+        let atlas = image.texture_atlas.expect("entry icon uses an atlas");
+        let rect = layouts
+            .get(&atlas.layout)
+            .expect("bundled icon layout")
+            .textures[atlas.index];
+        IconSprite {
+            image: image.image,
+            region: rect
+                .min
+                .as_vec2()
+                .extend(rect.width() as f32)
+                .extend(rect.height() as f32),
+        }
     }
 
     pub fn spawn(commands: &mut UiComposer, parent: Entity, image: ImageNode, size: f32) {

@@ -58,7 +58,7 @@ impl GuessResult {
         matches!(self, Self::Known { correct: true, .. })
     }
 
-    pub(super) fn all_matching(&self) -> bool {
+    pub(crate) fn all_matching(&self) -> bool {
         matches!(self, Self::Known { matches, .. } if !matches.is_empty()
             && matches.iter().all(|feedback| feedback.quality == MatchQuality::Exact))
     }

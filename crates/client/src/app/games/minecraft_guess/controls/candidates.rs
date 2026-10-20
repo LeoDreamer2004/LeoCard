@@ -3,28 +3,47 @@ use super::buttons::{GuessButton, GuessButtonSpec, GuessSubmit, add_guess_button
 use crate::app::presentation::UiComposer;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiAction;
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_minecraft_guess::{Catalogue, EntryKind};
-use leocard_protocol::MinecraftGuessSnapshot;
+use leocard_minecraft_guess::{Catalogue, EntryKind, GuessRecord, RoundView};
+use leocard_protocol::{MatchId, MinecraftGuessSnapshot};
+
+#[cfg(test)]
+mod tests;
 
 #[derive(Component, Default)]
-pub(in super::super) struct GuessCandidates(Option<CandidateQuery>);
+pub(in super::super) struct GuessCandidates {
+    query: Option<CandidateQuery>,
+    count: usize,
+}
 
 #[derive(PartialEq)]
 struct CandidateQuery {
+    match_id: MatchId,
+    game_index: u8,
     input: String,
     guesses: usize,
     active: bool,
+    can_submit: bool,
     kind: EntryKind,
+    node: Option<u16>,
 }
 
 impl CandidateQuery {
-    fn new(input: &str, game: &MinecraftGuessSnapshot) -> Self {
+    fn new(
+        state: &MinecraftGuessUiState,
+        game: &MinecraftGuessSnapshot,
+        round: &RoundView,
+    ) -> Self {
         Self {
-            input: input.to_owned(),
-            guesses: game.round.guesses.len(),
-            active: game.can_guess() && game.rules.options().candidate_hints,
-            kind: game.round.kind,
+            match_id: game.match_id,
+            game_index: game.progress.game_index,
+            input: state.input.clone(),
+            guesses: round.guesses.len(),
+            active: state.can_suggest(game) && game.rules.options().candidate_hints,
+            can_submit: state.can_guess(game),
+            kind: round.kind,
+            node: state.viewed_node(game),
         }
     }
 }
@@ -32,27 +51,32 @@ impl CandidateQuery {
 #[derive(Component)]
 pub(in super::super) struct GuessCandidate(pub usize);
 
+#[derive(SystemParam)]
+pub(in super::super) struct GuessControlAssets<'w> {
+    ui: Res<'w, UiAssets>,
+    game: Res<'w, MinecraftGuessAssets>,
+}
+
 fn add_candidates(
     commands: &mut UiComposer,
     parent: Entity,
-    game: &MinecraftGuessSnapshot,
-    input: &str,
+    query: &CandidateQuery,
+    guesses: &[GuessRecord],
     assets: &UiAssets,
     game_assets: &MinecraftGuessAssets,
-) {
-    if !game.rules.options().candidate_hints || input.trim().is_empty() || !game.can_guess() {
-        return;
+) -> usize {
+    if !query.active || query.input.trim().is_empty() {
+        return 0;
     }
+    let mut count = 0;
     for (index, entry) in Catalogue::bundled()
-        .search(game.round.kind, input)
+        .search(query.kind, &query.input)
         .filter(|entry| {
-            !game
-                .round
-                .guesses
+            !guesses
                 .iter()
                 .any(|guess| guess.result.has_entry(&entry.id))
         })
-        .take(5)
+        .take(if query.node.is_some() { 3 } else { 5 })
         .enumerate()
     {
         let button = add_guess_button(
@@ -60,7 +84,9 @@ fn add_candidates(
             parent,
             GuessButtonSpec {
                 label: &entry.name,
-                action: Some(MinecraftGuessUiAction::Guess(Some(entry.id.clone()))),
+                action: query
+                    .can_submit
+                    .then(|| MinecraftGuessUiAction::Guess(Some(entry.id.clone()))),
                 width: Val::Auto,
                 height: 38.0,
                 icon: Some(game_assets.icon(entry)),
@@ -69,17 +95,19 @@ fn add_candidates(
             game_assets,
         );
         commands.entity(button).insert(GuessCandidate(index));
+        count += 1;
     }
+    count
 }
 
 pub(in super::super) fn sync_guess_controls(
     mut commands: UiComposer,
     client: Option<Res<ClientResource>>,
     state: Res<MinecraftGuessUiState>,
-    assets: Res<UiAssets>,
-    game_assets: Res<MinecraftGuessAssets>,
+    assets: GuessControlAssets,
     mut candidates: Query<(Entity, &mut GuessCandidates, Option<&Children>)>,
     mut submits: Query<(Entity, &mut GuessButton), With<GuessSubmit>>,
+    buttons: Query<(), With<GuessCandidate>>,
 ) {
     let Some(game) = client
         .as_deref()
@@ -87,27 +115,31 @@ pub(in super::super) fn sync_guess_controls(
     else {
         return;
     };
+    let round = state.viewed_round(game);
     for (parent, mut rendered, children) in &mut candidates {
-        let expected = CandidateQuery::new(&state.input, game);
-        if rendered.0.as_ref() == Some(&expected) {
+        let expected = CandidateQuery::new(&state, game, &round);
+        let complete = children.map_or(rendered.count == 0, |children| {
+            children.len() == rendered.count && children.iter().all(|child| buttons.contains(child))
+        });
+        if rendered.query.as_ref() == Some(&expected) && complete {
             continue;
         }
-        rendered.0 = Some(expected);
         if let Some(children) = children {
             for child in children.iter() {
                 commands.entity(child).despawn();
             }
         }
-        add_candidates(
+        rendered.count = add_candidates(
             &mut commands,
             parent,
-            game,
-            &state.input,
-            &assets,
-            &game_assets,
+            &expected,
+            &round.guesses,
+            &assets.ui,
+            &assets.game,
         );
+        rendered.query = Some(expected);
     }
-    let enabled = game.can_guess() && !state.input.trim().is_empty();
+    let enabled = state.can_guess(game) && !state.input.trim().is_empty();
     for (entity, mut submit) in &mut submits {
         if submit.enabled == enabled {
             continue;

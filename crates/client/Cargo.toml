@@ -15,7 +15,11 @@ path = "src/main.rs"
 
 [features]
 default = []
-developer = ["leocard-qigui523/developer", "leocard-host/developer"]
+developer = [
+    "leocard-qigui523/developer",
+    "leocard-minecraft-guess/developer",
+    "leocard-host/developer",
+]
 # Debug builds keep loading the workspace `assets` directory by default. This
 # feature enables the single-binary asset source explicitly; release builds
 # enable the same behavior automatically from build.rs.
@@ -49,6 +53,7 @@ tokio.workspace = true
 winit.workspace = true
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
+bevy = { workspace = true, features = ["custom_cursor"] }
 rfd.workspace = true
 bevy_clipboard = { workspace = true, features = ["system_clipboard"] }
 sysinfo = { workspace = true, features = ["system"] }

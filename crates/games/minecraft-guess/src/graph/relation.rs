@@ -45,6 +45,45 @@ pub enum GraphRelation {
 }
 
 impl GraphRelation {
+    /// Concrete relations before unrevealed edges are grouped by `coarse`.
+    pub const DETAILED: [Self; 35] = [
+        Self::Crafting,
+        Self::Cooking,
+        Self::Brewing,
+        Self::Smithing,
+        Self::Stonecutting,
+        Self::Loot,
+        Self::MiningDrop,
+        Self::Gifts,
+        Self::GrantsEffect,
+        Self::Equippable,
+        Self::SpawnWeapon,
+        Self::ConvertsTo,
+        Self::Enchantable,
+        Self::ConflictsWith,
+        Self::Generates,
+        Self::MemberOf,
+        Self::TradeIngredient,
+        Self::TradeOutput,
+        Self::Workstation,
+        Self::SpawnsMob,
+        Self::LandscapeSpawns,
+        Self::GeneratesLandscape,
+        Self::MajorBlock,
+        Self::Locates,
+        Self::SpawnsEntity,
+        Self::Hatches,
+        Self::LosesLife,
+        Self::Infests,
+        Self::Potting,
+        Self::Strips,
+        Self::Harvest,
+        Self::Oxidizes,
+        Self::Scrapes,
+        Self::Waxes,
+        Self::Unwaxes,
+    ];
+
     pub fn coarse(self) -> Self {
         match self {
             Self::Processing | Self::Natural | Self::Trading | Self::Other => self,

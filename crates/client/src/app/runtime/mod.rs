@@ -3,6 +3,8 @@
 #[cfg(target_os = "android")]
 mod android;
 mod application;
+#[cfg(not(target_os = "android"))]
+mod cursor;
 mod platform;
 mod plugin;
 mod preferences;

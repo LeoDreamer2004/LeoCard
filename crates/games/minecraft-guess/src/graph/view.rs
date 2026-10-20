@@ -1,5 +1,5 @@
 use super::GraphRelation;
-use crate::{Entry, EntryKind};
+use crate::{Entry, EntryKind, GuessRecord};
 use serde::{Deserialize, Serialize};
 
 /// Slot numbers carry no native answer IDs until the node is revealed.
@@ -37,13 +37,60 @@ pub struct GraphEdgeView {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct GraphGuessRecord {
+    pub node: u16,
+    pub guess: GuessRecord,
+    /// Successful streak length, starting at one; zero for an incorrect guess.
+    pub combo: u16,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct GraphCombo {
+    pub count: u16,
+    /// Authoritative playable targets; neighbours take priority over all other nodes.
+    pub targets: Vec<u16>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct GraphView {
     pub nodes: Vec<GraphNodeView>,
     pub edges: Vec<GraphEdgeView>,
     pub selected: u16,
+    pub combo: Option<GraphCombo>,
+    /// Public guesses in acceptance order; unrevealed answers are never included.
+    pub guesses: Vec<GraphGuessRecord>,
 }
 
 impl GraphView {
+    pub fn can_guess_node(&self, number: u16) -> bool {
+        number
+            .checked_sub(1)
+            .and_then(|index| self.nodes.get(usize::from(index)))
+            .is_some_and(|node| node.kind.is_some() && !node.revealed())
+            && self
+                .combo
+                .as_ref()
+                .is_none_or(|combo| combo.targets.contains(&number))
+    }
+
+    pub fn number_label(&self, number: u16) -> String {
+        let index = usize::from(number - 1);
+        if self.nodes[index].kind.is_some() {
+            return number.to_string();
+        }
+        let mut ordinal = self.nodes[..=index]
+            .iter()
+            .filter(|node| node.kind.is_none())
+            .count();
+        let mut letters = Vec::new();
+        while ordinal > 0 {
+            ordinal -= 1;
+            letters.push(char::from(b'A' + (ordinal % 26) as u8));
+            ordinal /= 26;
+        }
+        format!("#{}", letters.into_iter().rev().collect::<String>())
+    }
+
     pub fn selected_node(&self) -> &GraphNodeView {
         &self.nodes[usize::from(self.selected - 1)]
     }

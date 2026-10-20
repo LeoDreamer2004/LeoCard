@@ -46,6 +46,13 @@ impl MinecraftGuessSession {
             self.bump_revision();
             return Ok(Vec::new());
         }
+        if matches!(command, MinecraftGuessCommand::DeveloperActivateAll)
+            && !(cfg!(debug_assertions) || cfg!(feature = "developer"))
+        {
+            return Err(RejectReason::Game(
+                GameViolation::DeveloperFeatureUnavailable,
+            ));
+        }
         let game = self
             .game
             .as_mut()
@@ -60,6 +67,7 @@ impl MinecraftGuessSession {
             MinecraftGuessCommand::SelectNode { .. } => unreachable!("handled separately"),
             MinecraftGuessCommand::Guess { entry } => game.guess(player.0, &entry),
             MinecraftGuessCommand::Skip => game.skip(player.0),
+            MinecraftGuessCommand::DeveloperActivateAll => game.reveal_graph(),
             MinecraftGuessCommand::UpdateRules { .. } => unreachable!("handled above"),
             MinecraftGuessCommand::ReportMinecraftProcess { .. } => {
                 unreachable!("handled separately from game actions")

@@ -1,4 +1,7 @@
 import bevy_ui_render::ui_vertex_output::UiVertexOutput;
+import bevy_render::globals::Globals;
+
+@group(0) @binding(1) var<uniform> globals: Globals;
 
 struct GraphCurveMaterial {
     start_control: vec4<f32>,
@@ -33,7 +36,7 @@ fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
     let activated = material.appearance.x;
     let highlight = material.appearance.y;
     let directions = material.appearance.z;
-    let time = material.appearance.w;
+    let time = globals.time;
     let path_length = length(start-control) + length(control-end);
     let dash_phase = fract(progress * path_length / 11.0);
     let dash = select(select(0.0, 1.0, dash_phase < 0.58), 1.0, activated > 0.5);

@@ -16,7 +16,13 @@ impl MinecraftGuessSession {
             GuessMode::TurnBased => self.rules.turn_based.rounds,
             GuessMode::Race | GuessMode::Graph => 1,
         };
-        let deltas = reference_point_deltas(&values, ranked_rounds).expect("two to eight players");
+        let mut deltas =
+            reference_point_deltas(&values, ranked_rounds).expect("two to eight players");
+        if self.rules.mode == GuessMode::Graph {
+            for delta in &mut deltas {
+                *delta = *delta * i16::from(self.rules.graph.nodes) / 16;
+            }
+        }
         let statistics: Vec<_> = state
             .statistics()
             .map(|(player, stats)| (player, *stats))

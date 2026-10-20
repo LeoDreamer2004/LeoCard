@@ -26,6 +26,14 @@ pub(in super::super) struct GraphNodeMaterial {
     pub color: LinearRgba,
     #[uniform(0)]
     pub state: Vec4,
+    #[uniform(0)]
+    pub sprite: Vec4,
+    #[uniform(0)]
+    /// Question-wave strength/time, then combo-halo strength/time.
+    pub activity: Vec4,
+    #[texture(1)]
+    #[sampler(2)]
+    pub icon: Handle<Image>,
 }
 
 impl UiMaterial for GraphNodeMaterial {

@@ -2,11 +2,8 @@ use super::{Participant, RoomSession};
 use leocard_protocol::{PlayerId, PlayerReferenceChange};
 
 impl RoomSession {
-    /// 开发者模式始终记录档案；普通版本在机器人占未离开玩家的三分之一及以上时跳过。
-    pub(crate) fn records_game_profiles(&self) -> bool {
-        if cfg!(feature = "developer") {
-            return true;
-        }
+    /// 机器人占未离开玩家的三分之一及以上时，不记录分数、金币和对局成就。
+    pub(crate) fn records_game_progress(&self) -> bool {
         let (players, bots) = self
             .players
             .iter()
@@ -31,7 +28,7 @@ impl RoomSession {
             return false;
         }
         // 空结算同样标记本局已结束，客户端不会累计积分、局数或结算游戏金币。
-        if !self.records_game_profiles() {
+        if !self.records_game_progress() {
             *finished = Some(Vec::new());
             return true;
         }

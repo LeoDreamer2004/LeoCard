@@ -17,7 +17,7 @@ impl ProfileEntry<'_> {
         parent: Entity,
         size: f32,
         fallback_font_size: f32,
-    ) {
+    ) -> Entity {
         let child = commands.child(
             parent,
             (
@@ -61,5 +61,6 @@ impl ProfileEntry<'_> {
                 self.assets,
             );
         }
+        button
     }
 }

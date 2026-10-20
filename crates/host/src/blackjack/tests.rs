@@ -5,9 +5,9 @@ use leocard_blackjack::{
     BlackjackAction, BlackjackRank, BlackjackRuleSet, GameError, Phase, build_shoe,
 };
 use leocard_protocol::{
-    BlackjackCommand, ClientCommand, ClientMessage, GameSnapshot, GameViolation, JoinRequest,
-    PlayerGameProfiles, ProfileId, ReconnectToken, RejectReason, RequestId, RoomId, SeatId,
-    ServerEvent,
+    BlackjackCommand, ChatContent, ClientCommand, ClientMessage, GameSnapshot, GameViolation,
+    JoinRequest, PlayerGameProfiles, PlayerInteractionKind, ProfileId, ReconnectToken,
+    RejectReason, RequestId, RoomId, SeatId, ServerEvent,
 };
 use std::time::Duration;
 
@@ -98,7 +98,18 @@ fn started(robots: bool) -> BlackjackSession {
             },
         );
     }
-    send(&mut session, 1, ClientCommand::StartGame);
+    let started = send(&mut session, 1, ClientCommand::StartGame);
+    let announcements = started
+        .iter()
+        .filter(|delivery| matches!(delivery.message.event, ServerEvent::GameStarted { .. }))
+        .collect::<Vec<_>>();
+    assert!(!announcements.is_empty());
+    assert!(announcements.iter().all(|delivery| {
+        delivery
+            .message
+            .game_context
+            .is_some_and(|context| context.records_progress == !robots)
+    }));
     session
 }
 
@@ -159,17 +170,33 @@ fn host_rejects_out_of_turn_actions_without_resetting_time_and_keeps_hole_card_p
 #[test]
 fn robot_round_uses_shared_recording_policy_and_waits_for_human_rematch_ready() {
     let mut session = started(true);
+    let target = session.room.players[1].id;
+    for command in [
+        ClientCommand::Chat {
+            content: ChatContent::QuickVoice(0),
+        },
+        ClientCommand::Interact {
+            target,
+            kind: PlayerInteractionKind::Flower,
+        },
+    ] {
+        let deliveries = send(&mut session, 1, command);
+        assert!(!deliveries.is_empty());
+        assert!(deliveries.iter().all(|delivery| {
+            delivery
+                .message
+                .game_context
+                .is_some_and(|context| !context.records_progress)
+        }));
+    }
     act(&mut session, 1, BlackjackAction::Bet { amount: 2 });
     session.advance_time(Duration::from_secs(2));
     act(&mut session, 1, BlackjackAction::Stand);
     session.advance_time(Duration::from_secs(2));
     assert!(session.game.as_ref().unwrap().match_complete());
-    let expected_games = u32::from(cfg!(feature = "developer"));
+    let expected_games = 0;
     assert_eq!(session.room.players[0].completed_games, expected_games);
-    assert_eq!(
-        session.room.players[0].game_profiles.blackjack.is_some(),
-        cfg!(feature = "developer")
-    );
+    assert!(session.room.players[0].game_profiles.blackjack.is_none());
     let previous = session.match_id;
     assert!(session.advance_time(Duration::from_secs(20)).is_empty());
     send(&mut session, 1, ClientCommand::PlayAgain);

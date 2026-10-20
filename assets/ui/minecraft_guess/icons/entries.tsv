@@ -207,7 +207,6 @@ block	minecraft:cobblestone_slab	205
 block	minecraft:cobblestone_stairs	206
 block	minecraft:cobblestone_wall	207
 block	minecraft:cobweb	208
-block	minecraft:cocoa	209
 block	minecraft:command_block	210
 block	minecraft:comparator	211
 block	minecraft:composter	212
@@ -579,7 +578,6 @@ block	minecraft:mangrove_trapdoor	573
 block	minecraft:mangrove_wood	574
 block	minecraft:medium_amethyst_bud	575
 block	minecraft:melon	576
-block	minecraft:melon_stem	577
 block	minecraft:moss_block	578
 block	minecraft:moss_carpet	579
 block	minecraft:mossy_cobblestone	580
@@ -709,7 +707,6 @@ block	minecraft:pink_wool	702
 block	minecraft:pink_wool_slab	703
 block	minecraft:pink_wool_stairs	704
 block	minecraft:piston	705
-block	minecraft:pitcher_crop	706
 block	minecraft:pitcher_plant	707
 block	minecraft:player_head	708
 block	minecraft:podzol	709
@@ -777,7 +774,6 @@ block	minecraft:prismarine_slab	770
 block	minecraft:prismarine_stairs	771
 block	minecraft:prismarine_wall	772
 block	minecraft:pumpkin	773
-block	minecraft:pumpkin_stem	774
 block	minecraft:purple_banner	775
 block	minecraft:purple_bed	776
 block	minecraft:purple_candle	777
@@ -970,7 +966,6 @@ block	minecraft:sulfur_wall	961
 block	minecraft:sunflower	962
 block	minecraft:suspicious_gravel	963
 block	minecraft:suspicious_sand	964
-block	minecraft:sweet_berry_bush	965
 block	minecraft:tall_dry_grass	966
 block	minecraft:tall_grass	967
 block	minecraft:tall_seagrass	864
@@ -980,7 +975,6 @@ block	minecraft:tinted_glass	970
 block	minecraft:tnt	971
 block	minecraft:torch	972
 block	minecraft:torchflower	973
-block	minecraft:torchflower_crop	974
 block	minecraft:trapped_chest	975
 block	minecraft:trial_spawner	976
 block	minecraft:tripwire	977

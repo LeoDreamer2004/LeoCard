@@ -66,17 +66,37 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
             },
         },
     ];
-    // 普通版本允许一名机器人；开发者模式即便全是机器人也记录档案。
+    // 四人中一名机器人仍可记录；两名机器人时所有构建均禁止记录。
     session.room.players[3].is_bot = true;
-    #[cfg(feature = "developer")]
-    for player in &mut session.room.players {
-        player.is_bot = true;
-    }
-    #[cfg(not(feature = "developer"))]
+    assert!(session.room.records_game_progress());
+    let broadcasts = session
+        .room
+        .broadcast_game_events(events.clone(), Some((MatchId([1; 16]), Some(0))));
+    assert!(!broadcasts.is_empty());
+    assert!(broadcasts.iter().all(|delivery| {
+        delivery
+            .message
+            .game_context
+            .is_some_and(|context| context.records_progress)
+    }));
     {
         let mut with_bot = session.clone();
+        // 两名真人、一名机器人恰好达到三分之一，也不可记录。
+        with_bot.room.players[2].left = true;
+        assert!(!with_bot.room.records_game_progress());
+        with_bot.room.players[2].left = false;
         with_bot.room.players[2].is_bot = true;
         with_bot.room.players[3].connected = false;
+        let broadcasts = with_bot
+            .room
+            .broadcast_game_events(events.clone(), Some((MatchId([1; 16]), Some(0))));
+        assert!(!broadcasts.is_empty());
+        assert!(broadcasts.iter().all(|delivery| {
+            delivery
+                .message
+                .game_context
+                .is_some_and(|context| !context.records_progress)
+        }));
         with_bot.record_statistics(&events[..1]);
         assert!(with_bot.finished_reference_changes.is_none());
         with_bot.record_statistics(&events[1..]);

@@ -17,13 +17,23 @@ impl GuessTable<'_> {
     pub(super) fn players(&mut self, commands: &mut UiComposer, page: Entity) {
         let compact = self.game.graph.is_some();
         let avatar_size = if compact { 44.0 } else { 52.0 };
+        let columns = if compact {
+            self.game.players.len().min(4)
+        } else {
+            self.game.players.len()
+        };
+        let rows = self.game.players.len().div_ceil(columns);
         let row = spawn_node(
             commands,
             page,
             Node {
                 width: percent(100),
-                height: px(if compact { 78.0 } else { 88.0 }),
-                padding: UiRect::right(px(if compact { 280.0 } else { 0.0 })),
+                height: px(if compact { 78.0 * rows as f32 } else { 88.0 }),
+                flex_wrap: if compact {
+                    FlexWrap::Wrap
+                } else {
+                    FlexWrap::NoWrap
+                },
                 flex_shrink: 0.0,
                 justify_content: JustifyContent::SpaceEvenly,
                 align_items: AlignItems::Center,
@@ -42,7 +52,7 @@ impl GuessTable<'_> {
                 commands,
                 row,
                 Node {
-                    width: percent(100.0 / self.game.players.len() as f32),
+                    width: percent(100.0 / columns as f32),
                     min_width: px(0),
                     flex_shrink: 0.0,
                     height: px(if compact { 74.0 } else { 84.0 }),

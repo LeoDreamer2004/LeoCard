@@ -4,7 +4,7 @@ use super::super::feedback::GuessCellReveal;
 use super::details::AttributeHint;
 use super::names::GuessName;
 use super::style::{SEPARATOR_COLOR, SEPARATOR_WIDTH};
-use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, TransitionOpacity, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -97,12 +97,13 @@ impl TableCell {
         }
     }
 
-    pub fn revealing(self, commands: &mut UiComposer, row: usize, column: usize) -> Self {
-        commands.entity(self.container).insert(GuessCellReveal::new(
-            row,
-            column,
-            self.color,
-            self.content,
+    pub fn revealing(self, commands: &mut UiComposer, row: Option<usize>, column: usize) -> Self {
+        let Some(row) = row else {
+            return self;
+        };
+        commands.entity(self.container).insert((
+            GuessCellReveal::new(row, column, self.color, self.content),
+            TransitionOpacity::default(),
         ));
         self
     }

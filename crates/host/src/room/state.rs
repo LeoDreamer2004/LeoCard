@@ -566,6 +566,7 @@ impl RoomSession {
             .enumerate()
             .flat_map(|(index, event)| {
                 let context = origin.map(|(match_id, hand_index)| GameEventContext {
+                    records_progress: self.records_game_progress(),
                     match_id,
                     hand_index,
                     sequence: (u128::from(self.revision.0) << 64) | index as u128,

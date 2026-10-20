@@ -1,3 +1,4 @@
+use super::super::MinecraftGuessUiState;
 use super::{super::state::GuessInput, candidates::GuessCandidate};
 use crate::app::{presentation::UiPress, runtime::ClientResource};
 use bevy::{
@@ -12,6 +13,7 @@ pub(in super::super) fn navigate_guess_candidates(
     inputs: Query<(Entity, &EditableText), With<GuessInput>>,
     candidates: Query<(Entity, &GuessCandidate)>,
     client: Option<Res<ClientResource>>,
+    state: Res<MinecraftGuessUiState>,
     mut focus: ResMut<InputFocus>,
     mut presses: MessageWriter<UiPress>,
 ) {
@@ -25,7 +27,7 @@ pub(in super::super) fn navigate_guess_candidates(
     else {
         return;
     };
-    if !game.rules.options().candidate_hints || !game.can_guess() {
+    if !game.rules.options().candidate_hints || !state.can_guess(game) {
         return;
     }
     let Ok((editor, input)) = inputs.single() else {

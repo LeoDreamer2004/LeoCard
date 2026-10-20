@@ -1,5 +1,6 @@
 use super::super::GraphRelation;
 use super::super::data::{GraphData, GraphEdge};
+use super::temperature::Temperature;
 use fastrand::Rng;
 use std::collections::{HashMap, VecDeque};
 use std::sync::OnceLock;
@@ -8,6 +9,7 @@ pub(super) struct GraphIndex {
     pub data: &'static GraphData,
     pub adjacent: Vec<Vec<usize>>,
     pub starts: Vec<usize>,
+    core: Vec<Vec<usize>>,
     pairs: HashMap<(usize, usize), Vec<GraphEdge>>,
 }
 
@@ -53,31 +55,42 @@ impl GraphIndex {
                 }
             }
         }
-        for (node, neighbours) in adjacent.iter_mut().enumerate() {
+        let mut core_adjacent = adjacent.clone();
+        for (node, neighbours) in core_adjacent.iter_mut().enumerate() {
             if core[node] {
                 neighbours.retain(|&other| core[other]);
             } else {
                 neighbours.clear();
             }
         }
-        let starts = adjacent
+        let starts = core_adjacent
             .iter()
             .enumerate()
             .filter_map(|(node, neighbours)| {
-                ((2..=80).contains(&neighbours.len()) && data.nodes[node].entry.is_some())
-                    .then_some(node)
+                (neighbours.len() >= 2 && data.nodes[node].entry.is_some()).then_some(node)
             })
             .collect();
         Self {
             data,
             adjacent,
             starts,
+            core: core_adjacent,
             pairs,
         }
     }
 
-    pub fn neighbours(&self, node: usize, limit: usize, random: &mut Rng) -> Vec<usize> {
-        let adjacent = &self.adjacent[node];
+    pub fn neighbours(
+        &self,
+        node: usize,
+        limit: usize,
+        core_only: bool,
+        random: &mut Rng,
+    ) -> Vec<usize> {
+        let adjacent = if core_only {
+            &self.core[node]
+        } else {
+            &self.adjacent[node]
+        };
         if adjacent.len() <= limit {
             let mut result = adjacent.clone();
             random.shuffle(&mut result);
@@ -94,16 +107,26 @@ impl GraphIndex {
         result
     }
 
-    pub fn edges(&self, path: &[usize], counts: &HashMap<GraphRelation, usize>) -> Vec<GraphEdge> {
+    pub fn edges(
+        &self,
+        path: &[usize],
+        counts: &HashMap<GraphRelation, usize>,
+        temperature: Temperature,
+        random: &mut Rng,
+    ) -> Vec<GraphEdge> {
         let mut edges: Vec<GraphEdge> = Vec::with_capacity(path.len() - 1);
         for pair in path.windows(2) {
             let key = (pair[0].min(pair[1]), pair[0].max(pair[1]));
-            let edge = self.pairs[&key]
-                .iter()
-                .min_by_key(|edge| {
-                    counts.get(&edge.kind).copied().unwrap_or(0)
-                        + edges.iter().filter(|other| other.kind == edge.kind).count()
-                })
+            let edge = temperature
+                .choose(
+                    self.pairs[&key].iter(),
+                    |edge| {
+                        -((counts.get(&edge.kind).copied().unwrap_or(0)
+                            + edges.iter().filter(|other| other.kind == edge.kind).count())
+                            as f32)
+                    },
+                    random,
+                )
                 .expect("real edge");
             edges.push(*edge);
         }

@@ -1,30 +1,35 @@
 use super::super::GraphRelation;
 use super::super::data::GraphEdge;
 use super::index::GraphIndex;
+use super::temperature::Temperature;
 use crate::EntryKind;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 pub(in super::super) struct Sample {
     pub nodes: Vec<usize>,
     pub edges: Vec<GraphEdge>,
+    pub cycles: Vec<usize>,
 }
 
 pub(super) struct Topology {
     slots: Vec<usize>,
-    neighbours: Vec<[usize; 4]>,
+    neighbours: Vec<Vec<usize>>,
+    distances: Vec<Vec<usize>>,
     pub kinds: HashMap<Option<EntryKind>, usize>,
     pub relations: HashMap<GraphRelation, usize>,
     pub tags: usize,
+    pub leaves: usize,
 }
 
 impl Sample {
-    pub(super) fn append(&mut self, path: &[usize], edges: Vec<GraphEdge>) {
+    pub(super) fn append(&mut self, path: &[usize], edges: Vec<GraphEdge>, cycle: Option<usize>) {
         for &node in path {
             if !self.nodes.contains(&node) {
                 self.nodes.push(node);
             }
         }
         self.edges.extend(edges);
+        self.cycles.extend(cycle);
     }
 }
 
@@ -38,17 +43,33 @@ impl Topology {
                 .entry(index.data.nodes[node].entry.map(|entry| entry.kind))
                 .or_default() += 1;
         }
-        let mut neighbours = vec![[usize::MAX; 4]; sample.nodes.len()];
+        let mut neighbours = vec![Vec::new(); sample.nodes.len()];
         let mut relations = HashMap::new();
         for edge in &sample.edges {
-            insert_neighbour(&mut neighbours[slots[edge.from]], edge.to);
-            insert_neighbour(&mut neighbours[slots[edge.to]], edge.from);
+            neighbours[slots[edge.from]].push(edge.to);
+            neighbours[slots[edge.to]].push(edge.from);
             *relations.entry(edge.kind).or_default() += 1;
+        }
+        let mut distances = vec![vec![usize::MAX; sample.nodes.len()]; sample.nodes.len()];
+        for (start, row) in distances.iter_mut().enumerate() {
+            row[start] = 0;
+            let mut queue = VecDeque::from([start]);
+            while let Some(slot) = queue.pop_front() {
+                for &other in &neighbours[slot] {
+                    let next = slots[other];
+                    if row[next] == usize::MAX {
+                        row[next] = row[slot] + 1;
+                        queue.push_back(next);
+                    }
+                }
+            }
         }
         Self {
             slots,
-            neighbours,
+            distances,
             tags: kinds.get(&None).copied().unwrap_or(0),
+            leaves: neighbours.iter().filter(|others| others.len() == 1).count(),
+            neighbours,
             kinds,
             relations,
         }
@@ -60,59 +81,67 @@ impl Topology {
 
     pub fn degree(&self, node: usize) -> usize {
         if self.contains(node) {
-            self.neighbours[self.slots[node]]
-                .iter()
-                .filter(|&&other| other != usize::MAX)
-                .count()
+            self.neighbours[self.slots[node]].len()
         } else {
             0
         }
     }
 
-    pub fn twins_ok(&self, path: &[usize]) -> bool {
-        // Only a shortlisted path needs complete topology validation.
-        let existing = self.neighbours.len();
+    pub fn distance(&self, from: usize, to: usize) -> usize {
+        self.distances[self.slots[from]][self.slots[to]]
+    }
+
+    pub fn twins_ok(&self, path: &[usize], temperature: Temperature) -> bool {
+        // Full signature validation is reserved for shortlisted paths.
         let mut neighbours = self.neighbours.clone();
-        neighbours.extend((1..path.len() - 1).map(|_| [usize::MAX; 4]));
+        let mut added = HashMap::new();
+        for &node in path.iter().filter(|&&node| !self.contains(node)) {
+            added.insert(node, neighbours.len());
+            neighbours.push(Vec::new());
+        }
         let slot = |node| {
             if self.contains(node) {
                 self.slots[node]
             } else {
-                existing
-                    + path[1..path.len() - 1]
-                        .iter()
-                        .position(|&i| i == node)
-                        .unwrap()
+                added[&node]
             }
         };
         for pair in path.windows(2) {
-            insert_neighbour(&mut neighbours[slot(pair[0])], pair[1]);
-            insert_neighbour(&mut neighbours[slot(pair[1])], pair[0]);
+            neighbours[slot(pair[0])].push(pair[1]);
+            neighbours[slot(pair[1])].push(pair[0]);
         }
-        let mut signatures = HashMap::<_, u8>::new();
-        for mut neighbours in neighbours {
-            neighbours.sort_unstable();
-            let count = signatures.entry(neighbours).or_default();
+        let mut signatures = HashMap::<_, usize>::new();
+        for mut others in neighbours {
+            others.sort_unstable();
+            let count = signatures.entry(others).or_default();
             *count += 1;
-            if *count > 2 {
+            if *count > temperature.blend(2.0, 5.0).round() as usize {
                 return false;
             }
         }
         true
     }
 
-    pub fn quality(&self, sample: &Sample) -> f32 {
+    pub fn quality(&self, sample: &Sample, temperature: Temperature, ring_size: usize) -> f32 {
+        let degrees: Vec<_> = self.neighbours.iter().map(Vec::len).collect();
+        let average = degrees.iter().sum::<usize>() as f32 / degrees.len() as f32;
+        let variance = degrees
+            .iter()
+            .map(|&degree| (degree as f32 - average).powi(2))
+            .sum::<f32>()
+            / degrees.len() as f32;
+        let ring_error = sample
+            .cycles
+            .iter()
+            .map(|&size| (size as f32 - ring_size as f32).abs())
+            .sum::<f32>()
+            / sample.cycles.len() as f32;
         entropy(self.kinds.values().copied().collect()) * 5.0
             + entropy(self.relations.values().copied().collect()) * 4.0
-            + (sample.edges.len() - sample.nodes.len() + 1) as f32 * 0.3
+            - variance * temperature.blend(3.0, -0.4)
+            - ring_error * temperature.blend(1.8, 0.1)
+            - self.leaves as f32 * temperature.blend(5.0, 0.2)
     }
-}
-
-fn insert_neighbour(neighbours: &mut [usize; 4], node: usize) {
-    *neighbours
-        .iter_mut()
-        .find(|other| **other == usize::MAX)
-        .expect("mesh degree is at most four") = node;
 }
 
 fn entropy(mut counts: Vec<usize>) -> f32 {

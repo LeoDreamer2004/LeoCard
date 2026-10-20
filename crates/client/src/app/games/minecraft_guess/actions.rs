@@ -1,3 +1,4 @@
+use super::graph::{GraphGuideState, GraphLog};
 use super::state::{GuessInput, MinecraftGuessUiState};
 use crate::app::{
     presentation::{TextInputAction, TextInputEvent},
@@ -13,10 +14,14 @@ pub(crate) enum MinecraftGuessUiAction {
     UpdateRules(MinecraftGuessRuleSet),
     ToggleModeMenu,
     CloseModeMenu,
+    ToggleGraphGuide,
+    CloseGraphGuide,
+    ToggleGraphLog,
     Guess(Option<String>),
     Skip,
     Again,
     Lobby,
+    DeveloperActivateAll,
 }
 
 impl DomainUiAction for MinecraftGuessUiAction {
@@ -39,6 +44,8 @@ pub(super) fn dispatch_guess_actions(
     mut actions: MessageReader<PressedUiAction>,
     mut client: Option<ResMut<ClientResource>>,
     mut state: ResMut<MinecraftGuessUiState>,
+    mut guide: ResMut<GraphGuideState>,
+    mut log: ResMut<GraphLog>,
 ) {
     let Some(client) = client.as_deref_mut() else {
         return;
@@ -48,6 +55,18 @@ pub(super) fn dispatch_guess_actions(
             continue;
         };
         let command = match action {
+            MinecraftGuessUiAction::ToggleGraphLog => {
+                log.toggle();
+                continue;
+            }
+            MinecraftGuessUiAction::ToggleGraphGuide => {
+                guide.toggle();
+                continue;
+            }
+            MinecraftGuessUiAction::CloseGraphGuide => {
+                guide.close();
+                continue;
+            }
             MinecraftGuessUiAction::ToggleModeMenu => {
                 state.mode_menu_open = !state.mode_menu_open;
                 continue;
@@ -60,12 +79,28 @@ pub(super) fn dispatch_guess_actions(
                 state.mode_menu_open = false;
                 game_command(MinecraftGuessCommand::UpdateRules { rules: *rules })
             }
-            MinecraftGuessUiAction::Guess(entry) => game_command(MinecraftGuessCommand::Guess {
-                entry: entry.as_ref().unwrap_or(&state.input).clone(),
-            }),
+            MinecraftGuessUiAction::Guess(entry) => {
+                if !client
+                    .0
+                    .model()
+                    .minecraft_guess_game()
+                    .is_some_and(|game| state.can_guess(game))
+                {
+                    continue;
+                }
+                game_command(MinecraftGuessCommand::Guess {
+                    entry: entry.as_ref().unwrap_or(&state.input).clone(),
+                })
+            }
             MinecraftGuessUiAction::Skip => game_command(MinecraftGuessCommand::Skip),
             MinecraftGuessUiAction::Again => ClientCommand::PlayAgain,
             MinecraftGuessUiAction::Lobby => ClientCommand::ReturnToLobby,
+            MinecraftGuessUiAction::DeveloperActivateAll => {
+                if !(cfg!(debug_assertions) || cfg!(feature = "developer")) {
+                    continue;
+                }
+                game_command(MinecraftGuessCommand::DeveloperActivateAll)
+            }
         };
         client.0.send(command);
     }
@@ -103,22 +138,22 @@ pub(super) fn sync_guess_input(
             input.clear();
         }
     }
-    let selected = snapshot.graph.as_ref().map(|graph| graph.selected);
+    let selected = state.viewed_node(snapshot);
+    let round = state.viewed_round(snapshot);
     if state.selected_node != selected {
         state.selected_node = selected;
-        state.guess_count = snapshot.round.guesses.len();
+        state.guess_count = round.guesses.len();
         state.scroll_y = 0.0;
         state.input.clear();
         for (_, mut input) in &mut inputs {
             input.clear();
         }
     }
-    if state.guess_count != snapshot.round.guesses.len() {
+    if state.guess_count != round.guesses.len() {
         let previous_count = state.guess_count;
-        state.guess_count = snapshot.round.guesses.len();
+        state.guess_count = round.guesses.len();
         state.scroll_to_latest = true;
-        if snapshot
-            .round
+        if round
             .guesses
             .iter()
             .skip(previous_count)
@@ -130,7 +165,8 @@ pub(super) fn sync_guess_input(
             }
         }
     }
-    let can_guess = snapshot.can_guess();
+    let can_guess = state.can_guess(snapshot);
+    drop(round);
     for event in events.read() {
         if event.action == TextInputAction::Submit
             && can_guess

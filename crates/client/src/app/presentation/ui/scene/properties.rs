@@ -106,6 +106,7 @@ pub(super) fn author(
                 continue;
             };
             let authored = authored_components(world, *entity, tick);
+            entry.retained = false;
             entry.next_authored.extend(authored.iter().copied());
             for (property, old) in properties.properties.iter().zip(saved) {
                 property.remember(world, entry, old, &authored);

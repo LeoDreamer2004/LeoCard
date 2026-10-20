@@ -19,7 +19,7 @@ pub(in super::super) struct GuessButton {
 #[derive(Component)]
 pub(in super::super) struct GuessSubmit;
 
-pub(super) struct GuessButtonSpec<'a> {
+pub(in super::super) struct GuessButtonSpec<'a> {
     pub label: &'a str,
     pub action: Option<MinecraftGuessUiAction>,
     pub width: Val,
@@ -27,7 +27,7 @@ pub(super) struct GuessButtonSpec<'a> {
     pub icon: Option<ImageNode>,
 }
 
-pub(super) fn add_guess_button(
+pub(in super::super) fn add_guess_button(
     commands: &mut UiComposer,
     parent: Entity,
     spec: GuessButtonSpec<'_>,

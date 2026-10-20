@@ -54,7 +54,7 @@ impl MinecraftGuessRuleSet {
         match self.mode {
             GuessMode::TurnBased => self.turn_based.guess_seconds,
             GuessMode::Race => self.race.seconds,
-            GuessMode::Graph => 0,
+            GuessMode::Graph => self.graph.guess_seconds,
         }
     }
 

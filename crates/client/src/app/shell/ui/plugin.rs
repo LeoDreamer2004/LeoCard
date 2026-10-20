@@ -1,6 +1,6 @@
 use super::{
-    AmbientBackgroundPlugin, ClickFeedbackPlugin, ConfirmationPlugin, ModalAnimationSet,
-    ModalAnimations, PageTransitionPlugin, animate_cozy_modals,
+    AmbientBackgroundPlugin, ClickFeedbackPlugin, ConfirmationPlugin, GameHeaderPlugin,
+    ModalAnimationSet, ModalAnimations, PageTransitionPlugin, animate_cozy_modals,
 };
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
@@ -11,6 +11,7 @@ impl Plugin for ShellUiPlugin {
         app.add_plugins((
             AmbientBackgroundPlugin,
             ClickFeedbackPlugin,
+            GameHeaderPlugin,
             PageTransitionPlugin,
             ConfirmationPlugin,
         ))

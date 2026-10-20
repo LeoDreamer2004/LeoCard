@@ -34,8 +34,8 @@ impl Note {
 }
 
 impl FeedbackSound {
-    pub(super) fn notes(self) -> &'static [Note] {
-        match self {
+    pub(super) fn notes(self) -> impl Iterator<Item = Note> {
+        let notes: &'static [Note] = match self {
             Self::Submit => const { &[Note::new(Instrument::Guitar, 0.0, 6, 0.50)] },
             Self::Reveal => const { &[Note::new(Instrument::Harp, 0.0, 13, 0.32)] },
             Self::Success => {
@@ -56,6 +56,32 @@ impl FeedbackSound {
                     ]
                 }
             }
-        }
+            Self::NodeSelect => const { &[Note::new(Instrument::Guitar, 0.0, 18, 0.20)] },
+            Self::Combo(_) => {
+                const {
+                    &[
+                        Note::new(Instrument::Pling, 0.12, 6, 0.26),
+                        Note::new(Instrument::Pling, 0.22, 10, 0.29),
+                        Note::new(Instrument::Pling, 0.32, 13, 0.32),
+                    ]
+                }
+            }
+            Self::ComboBlocked => {
+                const {
+                    &[
+                        Note::new(Instrument::Bass, 0.0, 6, 0.22),
+                        Note::new(Instrument::Bass, 0.08, 3, 0.16),
+                    ]
+                }
+            }
+        };
+        let shift = match self {
+            Self::Combo(count) => count.saturating_sub(1).min(5) as u8 * 2,
+            _ => 0,
+        };
+        notes.iter().copied().map(move |mut note| {
+            note.pitch += shift;
+            note
+        })
     }
 }

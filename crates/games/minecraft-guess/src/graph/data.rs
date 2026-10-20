@@ -1,7 +1,7 @@
 use super::GraphRelation;
 use crate::{Catalogue, Entry, EntryKind};
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 
 pub(super) struct GraphNode {
@@ -20,6 +20,7 @@ pub(super) struct GraphEdge {
 pub(super) struct GraphData {
     pub nodes: Vec<GraphNode>,
     pub edges: Vec<GraphEdge>,
+    degrees: Vec<usize>,
 }
 
 #[derive(Deserialize)]
@@ -62,7 +63,7 @@ impl GraphData {
                 .enumerate()
                 .map(|(i, node)| (node.id.clone(), i))
                 .collect();
-            let nodes = raw
+            let nodes: Vec<_> = raw
                 .nodes
                 .into_iter()
                 .map(|node| {
@@ -81,7 +82,12 @@ impl GraphData {
                     let entry = kind.map(|kind| {
                         Catalogue::bundled()
                             .find(kind, node.id.split_once(':').expect("typed graph ID").1)
-                            .expect("graph node belongs to catalogue")
+                            .unwrap_or_else(|| {
+                                panic!(
+                                    "missing catalogue entry for graph node {} ({kind:?})",
+                                    node.id
+                                )
+                            })
                     });
                     GraphNode {
                         entry,
@@ -89,7 +95,7 @@ impl GraphData {
                     }
                 })
                 .collect();
-            let edges = raw
+            let edges: Vec<_> = raw
                 .edges
                 .into_iter()
                 .map(|raw| GraphEdge {
@@ -99,7 +105,25 @@ impl GraphData {
                     directed: raw.directed,
                 })
                 .collect();
-            Self { nodes, edges }
+            let mut degrees = vec![0; nodes.len()];
+            let mut pairs = HashSet::new();
+            for edge in &edges {
+                // Multiple relations or opposite arrows still describe one neighbour.
+                let pair = (edge.from.min(edge.to), edge.from.max(edge.to));
+                if edge.from != edge.to && pairs.insert(pair) {
+                    degrees[edge.from] += 1;
+                    degrees[edge.to] += 1;
+                }
+            }
+            Self {
+                nodes,
+                edges,
+                degrees,
+            }
         })
+    }
+
+    pub fn degree(&self, node: usize) -> usize {
+        self.degrees[node]
     }
 }

@@ -1,11 +1,15 @@
 use super::super::view::GuessTable;
 use crate::app::presentation::{ACCENT, MUTED, TEXT, UiComposer, add_text, spawn_node};
 use bevy::prelude::*;
+use leocard_minecraft_guess::GraphNodeView;
 
 impl GuessTable<'_> {
-    pub(super) fn graph_heading(&self, commands: &mut UiComposer, parent: Entity) {
-        let graph = self.game.graph.as_ref().expect("graph mode");
-        let selected = graph.selected_node();
+    pub(super) fn graph_heading(
+        &self,
+        commands: &mut UiComposer,
+        parent: Entity,
+        selected: &GraphNodeView,
+    ) {
         let heading = spawn_node(
             commands,
             parent,
@@ -25,7 +29,11 @@ impl GuessTable<'_> {
         let number = add_text(
             commands,
             heading,
-            graph.selected.to_string(),
+            self.game
+                .graph
+                .as_ref()
+                .expect("graph mode")
+                .number_label(selected.number),
             18.0,
             MUTED,
             self.assets,

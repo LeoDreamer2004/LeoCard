@@ -1,5 +1,5 @@
 use super::{Scrollbar, ScrollbarSkin};
-use crate::app::presentation::{UiComposer, spawn_node};
+use crate::app::presentation::{TransitionOpacity, UiComposer, spawn_node};
 use bevy::{picking::Pickable, prelude::*, ui::RelativeCursorPosition};
 
 impl Scrollbar {
@@ -50,7 +50,9 @@ impl Scrollbar {
                 commands.entity(thumb).insert(images.thumb.clone());
             }
         }
-        commands.entity(thumb).insert(Pickable::IGNORE);
+        commands
+            .entity(thumb)
+            .insert((Pickable::IGNORE, TransitionOpacity::default()));
         commands.entity(track).insert((
             Self {
                 scroll,

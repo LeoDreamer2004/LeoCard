@@ -78,7 +78,8 @@ fn sync_host_rule_preferences(
         .zip(model.you())
         .filter(|(lobby, you)| lobby.host == Some(*you))
         .map(|(lobby, _)| &lobby.rules);
-    if accepted_rules.is_some_and(|rules| host_rules.accept_game_rules(rules))
+    if let Some(rules) = accepted_rules
+        && host_rules.accept_game_rules(rules)
         && let Err(error) = save_host_rule_preferences(host_rules)
     {
         page_error.error = Some(error);

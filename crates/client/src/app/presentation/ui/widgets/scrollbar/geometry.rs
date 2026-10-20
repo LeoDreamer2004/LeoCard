@@ -1,4 +1,4 @@
-use super::{Scrollbar, ScrollbarSkin};
+use super::{ScrollContentHeight, Scrollbar, ScrollbarSkin};
 use bevy::prelude::*;
 
 pub(super) struct ScrollGeometry {
@@ -10,9 +10,17 @@ pub(super) struct ScrollGeometry {
 }
 
 impl ScrollGeometry {
-    fn new(scroll: &ComputedNode, position: &ScrollPosition, track: &ComputedNode) -> Self {
+    fn new(
+        scroll: &ComputedNode,
+        position: &ScrollPosition,
+        track: &ComputedNode,
+        content_height: Option<&ScrollContentHeight>,
+    ) -> Self {
         let height = track.size().y * track.inverse_scale_factor();
-        let content = scroll.content_size().y * scroll.inverse_scale_factor();
+        let content = content_height.map_or_else(
+            || scroll.content_size().y * scroll.inverse_scale_factor(),
+            |height| height.0,
+        );
         let visible = scroll.size().y * scroll.inverse_scale_factor();
         let maximum = (content - visible).max(0.0);
         let thumb = (height * (visible / content.max(1.0)).min(1.0))
@@ -40,8 +48,9 @@ impl Scrollbar {
         scroll: &ComputedNode,
         position: &ScrollPosition,
         track: &ComputedNode,
+        content_height: Option<&ScrollContentHeight>,
     ) -> ScrollGeometry {
-        let mut geometry = ScrollGeometry::new(scroll, position, track);
+        let mut geometry = ScrollGeometry::new(scroll, position, track, content_height);
         if matches!(self.skin, ScrollbarSkin::Textured(_)) {
             let inner_height = (track.size().y * track.inverse_scale_factor() - 8.0).max(0.0);
             geometry.start = 6.0;

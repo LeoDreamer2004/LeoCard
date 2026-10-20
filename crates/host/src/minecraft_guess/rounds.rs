@@ -1,8 +1,7 @@
+use super::generation::GraphGeneration;
 use super::{GuessClock, MinecraftGuessSession};
 use crate::new_match_id;
-use leocard_minecraft_guess::{
-    Catalogue, GameError, GameState, GuessMode, MatchState, MinecraftGuessRuleSet,
-};
+use leocard_minecraft_guess::{Catalogue, GameError, GameState, GuessMode, MatchState};
 
 impl MinecraftGuessSession {
     pub(super) fn begin_match(&mut self) -> Result<(), GameError> {
@@ -10,7 +9,7 @@ impl MinecraftGuessSession {
         room.remove_departed_players();
         let players = room.players.iter().map(|player| player.id.0).collect();
         let state = MatchState::new(players, self.rules);
-        let game = Self::new_round(state.turn_order(), self.rules)?;
+        let game = self.new_round(state.turn_order())?;
         self.process_presence.clear();
         self.room = room;
         self.match_state = Some(state);
@@ -23,7 +22,7 @@ impl MinecraftGuessSession {
     pub(super) fn continue_match(&mut self) -> Result<(), GameError> {
         let mut state = self.match_state.clone().expect("active match");
         if state.advance() {
-            let game = Self::new_round(state.turn_order(), self.rules)?;
+            let game = self.new_round(state.turn_order())?;
             self.match_state = Some(state);
             self.install_round(game);
             Ok(())
@@ -32,9 +31,11 @@ impl MinecraftGuessSession {
         }
     }
 
-    fn new_round(players: Vec<u8>, rules: MinecraftGuessRuleSet) -> Result<GameState, GameError> {
+    fn new_round(&mut self, players: Vec<u8>) -> Result<GameState, GameError> {
+        let rules = self.rules;
         if rules.mode == GuessMode::Graph {
-            return GameState::new_graph(players, rules, fastrand::u64(..));
+            self.generation = Some(GraphGeneration::new(players.clone(), rules));
+            return Ok(GameState::pending_graph(players, rules));
         }
         let entries: Vec<_> = Catalogue::bundled().entries(rules.options().pool).collect();
         let answer = entries[fastrand::usize(..entries.len())].clone();

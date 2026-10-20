@@ -13,6 +13,7 @@ pub(crate) use background::add_page_background;
 use click_feedback::ClickFeedbackPlugin;
 pub(crate) use confirmation::*;
 pub(crate) use cozy::*;
+use header::GameHeaderPlugin;
 pub(super) use header::Header;
 pub(crate) use modal::*;
 pub(crate) use page_heading::add_page_back_title;

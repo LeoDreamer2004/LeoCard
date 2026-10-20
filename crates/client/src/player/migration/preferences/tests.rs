@@ -2,6 +2,7 @@ use super::schema::{Games, Rules, TexasRules};
 use crate::player::preferences::{
     GamePreferences, PREFERENCES_HEADER, SavedPreferences, decode_player_preferences,
 };
+use leocard_minecraft_guess::{GuessMode, GuessPool, MinecraftGuessRuleSet};
 use leocard_protocol::PlayerGender;
 use std::path::PathBuf;
 
@@ -93,4 +94,77 @@ fn betting_preferences_keep_rules_and_current_settings_round_trip() {
         decoded.games.texas_holdem.host_rules
     );
     assert_eq!(current.global.player_name, "旧玩家");
+}
+
+#[test]
+fn version_one_keeps_all_existing_settings_and_defaults_unpublished_minecraft_rules() {
+    let mut saved = SavedPreferences::default();
+    saved.global.player_name = "原有偏好".to_owned();
+    saved.global.avatar_png = Some(vec![1, 2, 3]);
+    saved.global.gender = PlayerGender::Female;
+    saved.global.audio_volume = 0.35;
+    saved.global.mahjong_action_voices = false;
+    saved.games.qigui523.host_rules.deck_count = 4;
+    saved.games.texas_holdem.host_rules.fixed_limit = true;
+    saved.games.texas_holdem.host_rules.starting_chips = 40;
+    saved.games.shengji.host_rules.deck_count = 4;
+    saved.games.uno.host_rules.uno_callout = false;
+    saved.games.mahjong.host_rules.multiple_winners = true;
+    let global = postcard::to_allocvec(&saved.global).unwrap();
+    // Freeze the five-game layout independently of the new GamePreferences structure.
+    let games = postcard::to_allocvec(&(
+        saved.games.qigui523,
+        saved.games.texas_holdem,
+        saved.games.shengji,
+        saved.games.uno,
+        saved.games.mahjong,
+    ))
+    .unwrap();
+    let mut bytes = b"LeoCard/prefs/v1\0".to_vec();
+    bytes.extend(&global);
+    bytes.extend(&games);
+    let migrated = decode_player_preferences(&bytes).unwrap();
+    assert_eq!(postcard::to_allocvec(&migrated.global).unwrap(), global);
+    assert_eq!(
+        migrated.games.minecraft_guess.host_rules,
+        MinecraftGuessRuleSet::default()
+    );
+    assert_eq!(
+        postcard::to_allocvec(&(
+            migrated.games.qigui523,
+            migrated.games.texas_holdem,
+            migrated.games.shengji,
+            migrated.games.uno,
+            migrated.games.mahjong,
+        ))
+        .unwrap(),
+        games
+    );
+}
+
+#[test]
+fn current_preferences_remember_all_minecraft_modes_in_the_shared_archive() {
+    let mut saved = SavedPreferences::default();
+    let rules = &mut saved.games.minecraft_guess.host_rules;
+    rules.mode = GuessMode::Graph;
+    rules.turn_based.rounds = 4;
+    rules.turn_based.options.pool = GuessPool::Items;
+    rules.race.games = 10;
+    rules.race.seconds = 180;
+    rules.race.options.candidate_hints = false;
+    rules.race.options.allow_unknown_guesses = true;
+    rules.graph.nodes = 32;
+    rules.graph.temperature = 9;
+    rules.graph.guess_seconds = 240;
+    rules.graph.include_tags = false;
+    rules.graph.show_character_count = false;
+    rules.graph.show_directions = true;
+    assert!(rules.is_valid());
+    let mut bytes = PREFERENCES_HEADER.to_vec();
+    bytes.extend(postcard::to_allocvec(&saved).unwrap());
+    let decoded = decode_player_preferences(&bytes).unwrap();
+    assert_eq!(
+        decoded.games.minecraft_guess.host_rules,
+        saved.games.minecraft_guess.host_rules
+    );
 }

@@ -1,3 +1,4 @@
+use super::super::MinecraftGuessUiState;
 use super::state::{ANSWER_DURATION, FeedbackSound, GuessFeedback, RowReveal};
 use crate::app::presentation::StartGameSeatTransition;
 use crate::app::runtime::ClientResource;
@@ -9,6 +10,8 @@ pub(in super::super) fn sync_feedback(
     client: Option<Res<ClientResource>>,
     intro: Res<StartGameSeatTransition>,
     mut playback: ResMut<GuessFeedback>,
+    state: Res<MinecraftGuessUiState>,
+    mut sounds: MessageWriter<FeedbackSound>,
 ) {
     let Some(game) = client
         .as_deref()
@@ -20,32 +23,46 @@ pub(in super::super) fn sync_feedback(
         return;
     };
     let key = (game.match_id, game.progress.game_index);
+    let round = state.viewed_round(game);
     if playback.key != Some(key) {
         let continuing = playback.key.is_some_and(|(id, _)| id == game.match_id);
         *playback = GuessFeedback {
             key: Some(key),
             mode: game.rules.mode,
+            graph_guesses: game.graph.as_ref().map_or(0, |graph| graph.guesses.len()),
             // Joining an existing game does not replay its old records or victory.
             rows: if continuing {
                 Vec::new()
             } else {
-                (0..game.round.guesses.len()).map(|_| None).collect()
+                (0..round.guesses.len()).map(|_| None).collect()
             },
             finished_at: (!continuing && game.round.finished()).then_some(-ANSWER_DURATION),
             skipped: game.round.skipped_players.clone(),
             ..default()
         };
     }
-    let selected = game.graph.as_ref().map(|graph| graph.selected);
+    let selected = state.viewed_node(game);
     if playback.selected_node != selected {
         playback.selected_node = selected;
-        playback.rows = (0..game.round.guesses.len()).map(|_| None).collect();
+        playback.rows = (0..round.guesses.len()).map(|_| None).collect();
         playback.cues.clear();
     }
     if !intro.is_active_for(game.match_id) {
         playback.clock += time.delta_secs();
     }
-    for guess in game.round.guesses.iter().skip(playback.rows.len()) {
+    if let Some(graph) = &game.graph {
+        if graph.guesses.len() > playback.graph_guesses
+            && !game.round.finished()
+            && let Some(record) = graph
+                .guesses
+                .last()
+                .filter(|record| record.guess.result.is_correct())
+        {
+            sounds.write(FeedbackSound::Combo(record.combo));
+        }
+        playback.graph_guesses = graph.guesses.len();
+    }
+    for guess in round.guesses.iter().skip(playback.rows.len()) {
         let columns = match &guess.result {
             GuessResult::Known { matches, .. } => matches.len() + 1,
             GuessResult::Unknown { .. } => 2,
@@ -70,7 +87,7 @@ pub(in super::super) fn sync_feedback(
     if game.round.finished() && playback.finished_at.is_none() {
         let at = playback.tail() + 0.08;
         playback.finished_at = Some(at);
-        if game.round.winner.is_some() {
+        if game.round.winner.is_some() || game.graph.is_some() {
             playback.cue(at, FeedbackSound::Success);
         }
     }

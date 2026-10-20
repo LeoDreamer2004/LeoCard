@@ -1702,7 +1702,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc9a83f3cbaa04155b5dc9b247819c0e215aee754451a4324b82ddeb80dc53f1"
 dependencies = [
  "bevy_app",
+ "bevy_asset",
  "bevy_ecs",
+ "bevy_image",
  "bevy_input",
  "bevy_math",
  "bevy_platform",
@@ -1724,8 +1726,10 @@ dependencies = [
  "bevy_a11y",
  "bevy_android",
  "bevy_app",
+ "bevy_asset",
  "bevy_derive",
  "bevy_ecs",
+ "bevy_image",
  "bevy_input",
  "bevy_input_focus",
  "bevy_log",
@@ -1734,10 +1738,12 @@ dependencies = [
  "bevy_reflect",
  "bevy_tasks",
  "bevy_window",
+ "bytemuck",
  "js-sys",
  "tracing",
  "wasm-bindgen",
  "web-sys",
+ "wgpu-types",
  "winit",
 ]
 
@@ -3417,7 +3423,7 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "leocard-achievements"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "leocard-mahjong",
  "leocard-minecraft-guess",
@@ -3432,7 +3438,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-blackjack"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3440,7 +3446,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-client"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "bevy",
  "bevy_clipboard",
@@ -3476,11 +3482,11 @@ dependencies = [
 
 [[package]]
 name = "leocard-game-common"
-version = "0.9.0"
+version = "0.9.1"
 
 [[package]]
 name = "leocard-host"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3499,7 +3505,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-mahjong"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3507,7 +3513,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-minecraft-guess"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "csv",
  "fastrand",
@@ -3518,7 +3524,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-protocol"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "leocard-blackjack",
  "leocard-mahjong",
@@ -3533,7 +3539,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-qigui523"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3541,7 +3547,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-shengji"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3549,7 +3555,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-tcp"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "ed25519-dalek",
  "leocard-host",
@@ -3564,7 +3570,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-texas-holdem"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3572,7 +3578,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-uno"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "leocard-game-common",
  "serde",

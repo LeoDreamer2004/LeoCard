@@ -29,7 +29,9 @@ impl GuessTable<'_> {
         let progress = self.game.progress;
         let caption = match progress.round_count() {
             Some(rounds) => format!("共 {rounds} 轮 · {} 局", progress.total_games()),
-            None if self.game.graph.is_some() => "关系谜图".to_owned(),
+            None if self.game.graph.is_some() => {
+                format!("关系谜图 · 共 {} 局", progress.total_games())
+            }
             None => format!("抢答竞速 · 共 {} 局", progress.total_games()),
         };
         let actions = add_ranked_summary(

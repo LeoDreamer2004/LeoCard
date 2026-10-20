@@ -14,7 +14,8 @@ use std::panic::Location;
 pub(crate) struct UiComposer<'w, 's> {
     commands: Commands<'w, 's>,
     pub(super) registry: ResMut<'w, UiSceneRegistry>,
-    alive: Query<'w, 's, Entity>,
+    pub(super) alive: Query<'w, 's, Entity>,
+    pub(super) children: Query<'w, 's, &'static Children>,
     assets: Res<'w, AssetServer>,
     patches: Res<'w, Assets<ScenePatch>>,
 }

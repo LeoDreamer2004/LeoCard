@@ -23,6 +23,12 @@ impl GameState {
         }
     }
 
+    pub fn pending_graph(players: Vec<u8>, rules: MinecraftGuessRuleSet) -> Self {
+        Self {
+            round: Round::Graph(GraphGame::pending(players, rules.graph)),
+        }
+    }
+
     pub fn new_graph(
         players: Vec<u8>,
         rules: MinecraftGuessRuleSet,
@@ -86,6 +92,13 @@ impl GameState {
     pub fn select_node(&mut self, player: u8, number: u16) -> Result<(), GameError> {
         match &mut self.round {
             Round::Graph(game) => game.select(player, number),
+            Round::Single(_) => Err(GameError::InvalidNode),
+        }
+    }
+
+    pub fn reveal_graph(&mut self) -> Result<(), GameError> {
+        match &mut self.round {
+            Round::Graph(game) => game.reveal_all(),
             Round::Single(_) => Err(GameError::InvalidNode),
         }
     }

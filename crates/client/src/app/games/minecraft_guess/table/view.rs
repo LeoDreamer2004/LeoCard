@@ -8,12 +8,37 @@ use crate::app::presentation::{Scrollbar, UiComposer, spawn_node};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-use leocard_minecraft_guess::{Catalogue, GuessRecord, GuessResult, MatchQuality, ValueDirection};
+use leocard_minecraft_guess::{
+    Catalogue, GuessRecord, GuessResult, MatchQuality, RoundView, ValueDirection,
+};
+
+pub(in super::super) struct TableHistory<'a> {
+    pub round: &'a RoundView,
+    pub scroll_y: f32,
+    pub animate: bool,
+}
 
 impl GuessTable<'_> {
     pub(in super::super) fn attributes(&self, commands: &mut UiComposer, parent: Entity) {
+        self.history_attributes(
+            commands,
+            parent,
+            TableHistory {
+                round: &self.game.round,
+                scroll_y: self.state.scroll_y,
+                animate: true,
+            },
+        );
+    }
+
+    pub(in super::super) fn history_attributes(
+        &self,
+        commands: &mut UiComposer,
+        parent: Entity,
+        history: TableHistory<'_>,
+    ) {
         let example = Catalogue::bundled()
-            .search(self.game.round.kind, "")
+            .search(history.round.kind, "")
             .next()
             .expect("nonempty catalogue");
         let columns = TableColumns::new(example.attributes.len(), self.game.graph.is_some());
@@ -102,15 +127,24 @@ impl GuessTable<'_> {
             },
             None,
         );
-        commands.entity(scroll).insert((
-            GuessScroll,
-            RelativeCursorPosition::default(),
-            ScrollPosition(Vec2::new(0.0, self.state.scroll_y)),
-        ));
-        for (index, guess) in self.game.round.guesses.iter().enumerate() {
-            self.guess_row(commands, scroll, guess, index, columns, details);
+        if history.animate {
+            commands.entity(scroll).insert(GuessScroll);
         }
-        GuessEmptyRows::spawn(commands, scroll, self.game.round.guesses.len());
+        commands.entity(scroll).insert((
+            RelativeCursorPosition::default(),
+            ScrollPosition(Vec2::new(0.0, history.scroll_y)),
+        ));
+        for (index, guess) in history.round.guesses.iter().enumerate() {
+            self.guess_row(
+                commands,
+                scroll,
+                guess,
+                history.animate.then_some(index),
+                columns,
+                details,
+            );
+        }
+        GuessEmptyRows::spawn(commands, scroll, history.round.guesses.len());
         Scrollbar::spawn(commands, grid, scroll, self.game_assets.scrollbar());
     }
 
@@ -119,7 +153,7 @@ impl GuessTable<'_> {
         commands: &mut UiComposer,
         parent: Entity,
         guess: &GuessRecord,
-        index: usize,
+        index: Option<usize>,
         columns: TableColumns,
         details: Entity,
     ) {

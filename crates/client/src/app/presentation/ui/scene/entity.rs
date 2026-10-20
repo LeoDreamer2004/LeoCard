@@ -23,12 +23,9 @@ fn mark_authored<T: Component>(world: &mut World, entity: Entity) {
     };
     let mut registry = world.resource_mut::<UiSceneRegistry>();
     if let Some(key) = registry.key_for(entity) {
-        registry
-            .entities
-            .get_mut(&key)
-            .expect("mounted entity")
-            .next_authored
-            .insert(id);
+        let entry = registry.entities.get_mut(&key).expect("mounted entity");
+        entry.retained = false;
+        entry.next_authored.insert(id);
     }
 }
 

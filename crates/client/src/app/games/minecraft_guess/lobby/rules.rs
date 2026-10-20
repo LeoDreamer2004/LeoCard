@@ -4,7 +4,8 @@ use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use leocard_minecraft_guess::{
-    GuessMode, GuessPool, MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet, RaceRules, TurnBasedRules,
+    GraphRules, GuessMode, GuessPool, MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet, RaceRules,
+    TurnBasedRules,
 };
 
 impl EditableRuleSet for MinecraftGuessRuleSet {
@@ -108,17 +109,49 @@ impl RulesEditor<'_, '_, '_> {
         self.choice(
             RuleChoice {
                 label: "节点数量",
-                help: "轮流猜测任意未揭晓节点，猜中加 5 分。",
-                values: &[16, 24, 32],
+                help: "只统计可猜节点，标签不占名额。节点基础 1000 分，按度数、未知比例及连击计算，猜中获双倍奖励并续猜相邻节点；周围均已揭晓时可任选。未猜中的首绿获全额奖励，后续全绿获无连击价值的 30%，均换人；其他有效猜测基础 100～250 分。方块和物品按原分数，其他类型乘 2/3，村民职业乘 1/2。同一节点每多猜一次，得分再乘 95%。每人轮流先手一局。",
+                values: GraphRules::NODE_OPTIONS,
                 current: self.rules.graph.nodes,
             },
             |rules, value| rules.graph.nodes = value,
             |value| format!("{value} 个"),
         );
-        for (label, enabled, change) in [
-            ("字数提示", self.rules.graph.show_character_count, 0),
-            ("未知关系方向", self.rules.graph.show_directions, 1),
-            ("包含标签", self.rules.graph.include_tags, 2),
+        self.choice(
+            RuleChoice {
+                label: "图谱温度",
+                help: "低温偏向均衡度数与短环；高温更容易出现枢纽、叶子、长环及交错连边。",
+                values: &GraphRules::TEMPERATURE_OPTIONS,
+                current: self.rules.graph.temperature,
+            },
+            |rules, value| rules.graph.temperature = value,
+            |value| format!("{}.{}", value / 10, value % 10),
+        );
+        self.turn_clock(
+            &GraphRules::GUESS_SECONDS_OPTIONS,
+            self.rules.graph.guess_seconds,
+            |rules, seconds| {
+                rules.graph.guess_seconds = seconds;
+            },
+        );
+        for (label, help, enabled, change) in [
+            (
+                "字数提示",
+                "开启后提示未揭晓答案的字数，并按字数显示填空下划线。",
+                self.rules.graph.show_character_count,
+                0,
+            ),
+            (
+                "未知关系方向",
+                "开启后显示未知关系的方向箭头；关闭时，仅在关系两端节点均揭晓后显示。",
+                self.rules.graph.show_directions,
+                1,
+            ),
+            (
+                "包含标签",
+                "标签在全部相邻节点揭晓后自动解锁，不参与计分。",
+                self.rules.graph.include_tags,
+                2,
+            ),
         ] {
             let mut next = self.rules;
             match change {
@@ -129,7 +162,7 @@ impl RulesEditor<'_, '_, '_> {
             self.toggle(
                 label,
                 if enabled { "开启" } else { "关闭" },
-                "标签在全部相邻节点揭晓后自动解锁，不参与计分。",
+                help,
                 self.editable.then_some(next),
             );
         }
@@ -146,14 +179,29 @@ impl RulesEditor<'_, '_, '_> {
             |rules, value| rules.turn_based.rounds = value,
             |value| format!("{value} 轮"),
         );
+        self.turn_clock(
+            &TurnBasedRules::GUESS_SECONDS_OPTIONS,
+            self.rules.turn_based.guess_seconds,
+            |rules, seconds| {
+                rules.turn_based.guess_seconds = seconds;
+            },
+        );
+    }
+
+    fn turn_clock(
+        &mut self,
+        values: &[u16],
+        seconds: u16,
+        set: impl Fn(&mut MinecraftGuessRuleSet, u16),
+    ) {
         self.choice(
             RuleChoice {
                 label: "猜测计时",
                 help: "每次轮到玩家时重新计时，超时自动跳过。",
-                values: &TurnBasedRules::GUESS_SECONDS_OPTIONS,
-                current: self.rules.turn_based.guess_seconds,
+                values,
+                current: seconds,
             },
-            |rules, value| rules.turn_based.guess_seconds = value,
+            set,
             |value| {
                 if value == 0 {
                     "不限时".to_owned()

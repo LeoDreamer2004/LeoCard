@@ -8,7 +8,7 @@ description = "Authoritative in-memory room/session host for LeoCard"
 
 [features]
 default = []
-developer = ["leocard-qigui523/developer"]
+developer = ["leocard-qigui523/developer", "leocard-minecraft-guess/developer"]
 
 [dependencies]
 leocard-blackjack = { path = "../games/blackjack" }

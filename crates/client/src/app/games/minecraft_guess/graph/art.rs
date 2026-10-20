@@ -1,3 +1,4 @@
+use super::super::MinecraftGuessAssets;
 use super::material::{GraphCurveMaterial, GraphNodeMaterial};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
@@ -6,25 +7,30 @@ use leocard_protocol::MatchId;
 
 #[derive(Resource, Default)]
 pub(crate) struct GraphArt {
-    pub(super) key: Option<MatchId>,
+    pub(super) key: Option<(MatchId, u8)>,
     pub(super) curves: Vec<Handle<GraphCurveMaterial>>,
     pub(super) nodes: Vec<Handle<GraphNodeMaterial>>,
+    pub(super) revision: u64,
+    revealed: Vec<bool>,
 }
 
 #[derive(SystemParam)]
 pub(in super::super) struct GraphMaterials<'w> {
     pub curves: ResMut<'w, Assets<GraphCurveMaterial>>,
     pub nodes: ResMut<'w, Assets<GraphNodeMaterial>>,
+    pub assets: Res<'w, MinecraftGuessAssets>,
+    pub layouts: Res<'w, Assets<TextureAtlasLayout>>,
 }
 
 impl GraphArt {
     pub(super) fn begin(
         &mut self,
-        key: MatchId,
+        key: (MatchId, u8),
         graph: &GraphView,
         materials: &mut GraphMaterials,
     ) {
         self.key = Some(key);
+        self.revision = 0;
         self.curves = graph
             .edges
             .iter()
@@ -40,27 +46,49 @@ impl GraphArt {
         self.nodes = graph
             .nodes
             .iter()
-            .map(|_| {
+            .map(|node| {
+                let sprite = materials.assets.node_sprite(node, &materials.layouts);
                 materials.nodes.add(GraphNodeMaterial {
                     color: Color::WHITE.to_linear(),
                     state: Vec4::ZERO,
+                    sprite: sprite.region,
+                    activity: Vec4::ZERO,
+                    icon: sprite.image,
                 })
             })
             .collect();
+        self.revealed = graph.nodes.iter().map(|node| node.revealed()).collect();
+    }
+
+    pub(super) fn sync_sprites(&mut self, graph: &GraphView, materials: &mut GraphMaterials) {
+        for ((node, revealed), handle) in
+            graph.nodes.iter().zip(&mut self.revealed).zip(&self.nodes)
+        {
+            if *revealed == node.revealed() {
+                continue;
+            }
+            let sprite = materials.assets.node_sprite(node, &materials.layouts);
+            if let Some(mut material) = materials.nodes.get_mut(handle) {
+                material.sprite = sprite.region;
+                material.icon = sprite.image;
+            }
+            *revealed = node.revealed();
+            self.revision += 1;
+        }
     }
 }
 
 pub(super) fn node_color(kind: Option<EntryKind>) -> Color {
     rgb(match kind {
-        Some(EntryKind::Block) => 0x9ac5a1,
-        Some(EntryKind::Item) => 0xd5c491,
-        Some(EntryKind::Mob) => 0x8ebbd0,
-        Some(EntryKind::Enchantment) => 0x8ebfc0,
-        Some(EntryKind::Effect) => 0xb5a1d9,
-        Some(EntryKind::VillagerProfession) => 0xcead88,
-        Some(EntryKind::Landscape) => 0x83b7a1,
-        Some(EntryKind::Biome) => 0x98b991,
-        None => 0x91a19a,
+        Some(EntryKind::Block) => 0x7da858,
+        Some(EntryKind::Item) => 0xedbf49,
+        Some(EntryKind::Mob) => 0x6b944c,
+        Some(EntryKind::Enchantment) => 0xb96eb6,
+        Some(EntryKind::Effect) => 0xb77cc6,
+        Some(EntryKind::VillagerProfession) => 0x4cd668,
+        Some(EntryKind::Landscape) => 0x6ab0a4,
+        Some(EntryKind::Biome) => 0x90b155,
+        None => 0xa4a8b2,
     })
 }
 

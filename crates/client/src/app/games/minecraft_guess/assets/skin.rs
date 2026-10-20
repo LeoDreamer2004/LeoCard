@@ -1,9 +1,9 @@
-use super::EntryIcons;
+use super::{EntryIcons, IconSprite};
 use crate::app::presentation::{ScrollbarSkin, TextInputSkin};
 use bevy::image::{ImageLoaderSettings, ImageSampler};
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
-use leocard_minecraft_guess::Entry;
+use leocard_minecraft_guess::{Entry, EntryKind, GraphNodeView};
 
 #[derive(Resource)]
 pub(crate) struct MinecraftGuessAssets {
@@ -18,14 +18,44 @@ pub(crate) struct MinecraftGuessAssets {
     button: Handle<Image>,
     disabled_button: Handle<Image>,
     highlighted_button: Handle<Image>,
+    close_icon: Handle<Image>,
     input: Handle<Image>,
     focused_input: Handle<Image>,
     icons: EntryIcons,
+    node_symbols: Handle<Image>,
 }
 
 impl MinecraftGuessAssets {
+    pub(in super::super) fn close_icon(&self) -> Handle<Image> {
+        self.close_icon.clone()
+    }
+
     pub(in super::super) fn icon(&self, entry: &Entry) -> ImageNode {
         self.icons.image(entry)
+    }
+
+    pub(in super::super) fn node_sprite(
+        &self,
+        node: &GraphNodeView,
+        layouts: &Assets<TextureAtlasLayout>,
+    ) -> IconSprite {
+        if let Some(entry) = &node.entry {
+            return self.icons.sprite(entry, layouts);
+        }
+        let index = match node.kind {
+            Some(EntryKind::Block) | None => 0,
+            Some(EntryKind::Item) => 1,
+            Some(EntryKind::Mob) => 2,
+            Some(EntryKind::Enchantment) => 3,
+            Some(EntryKind::Effect) => 4,
+            Some(EntryKind::VillagerProfession) => 5,
+            Some(EntryKind::Landscape) => 6,
+            Some(EntryKind::Biome) => 7,
+        };
+        IconSprite {
+            image: self.node_symbols.clone(),
+            region: Vec4::new(index as f32 * 128.0, 0.0, 128.0, 128.0),
+        }
     }
 
     pub(in super::super) fn frame(&self) -> ImageNode {
@@ -57,6 +87,7 @@ impl MinecraftGuessAssets {
         ScrollbarSkin::textured(
             Self::recessed(self.scroll_track.clone()),
             Self::sliced(self.scroll_thumb.clone(), 1.0),
+            Self::sliced(self.highlighted_button.clone(), 3.0),
             Self::sliced(self.disabled_scroll_thumb.clone(), 1.0),
         )
     }
@@ -136,8 +167,10 @@ pub(in super::super) fn load_guess_assets(
         button: load("ui/minecraft_guess/widgets/button.png"),
         disabled_button: load("ui/minecraft_guess/widgets/button-disabled.png"),
         highlighted_button: load("ui/minecraft_guess/widgets/button-highlighted.png"),
+        close_icon: load("ui/minecraft_guess/widgets/close.png"),
         input: load("ui/minecraft_guess/widgets/input.png"),
         focused_input: load("ui/minecraft_guess/widgets/input-focused.png"),
         icons: EntryIcons::new(&asset_server, &mut layouts),
+        node_symbols: load("ui/minecraft_guess/graph/node-symbols.png"),
     });
 }

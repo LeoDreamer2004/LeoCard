@@ -7,7 +7,7 @@ use std::cmp::Reverse;
 
 impl MahjongSession {
     pub(super) fn record_statistics(&mut self, events: &[MahjongEvent]) {
-        let record_profiles = self.room.records_game_profiles();
+        let record_profiles = self.room.records_game_progress();
         for event in events {
             match event {
                 MahjongEvent::FalseWin { player, .. } if record_profiles => {

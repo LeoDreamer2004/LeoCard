@@ -1,3 +1,4 @@
+use super::generation::GraphGeneration;
 use super::{GuessClock, MinecraftProcessPresence};
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, RoomSession};
@@ -13,6 +14,7 @@ pub struct MinecraftGuessSession {
     pub(super) room: RoomSession,
     pub(super) rules: MinecraftGuessRuleSet,
     pub(super) game: Option<GameState>,
+    pub(super) generation: Option<GraphGeneration>,
     pub(super) match_id: Option<MatchId>,
     pub(super) match_state: Option<MatchState>,
     pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
@@ -45,6 +47,7 @@ impl MinecraftGuessSession {
             ),
             rules,
             game: None,
+            generation: None,
             match_id: None,
             match_state: None,
             clock: GuessClock::default(),

@@ -6,6 +6,7 @@ pub(crate) enum CozyModalKind {
     Profile,
     MahjongFanGuide,
     TexasHandGuide,
+    MinecraftGraphGuide,
     UnoExpansionSettings,
     Confirmation,
     UpdateDialog,

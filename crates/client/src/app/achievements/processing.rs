@@ -35,11 +35,22 @@ pub(super) fn process_triggers(
         state.observer.activity = PersonalActivity::default();
     }
     for notification in notifications.read() {
+        // A game that cannot settle profiles must not accumulate achievement progress either.
+        if notification
+            .game_context
+            .is_some_and(|context| !context.records_progress)
+        {
+            continue;
+        }
         let trigger = match (&notification.event, notification.player) {
-            (ServerEvent::GameEvent(event), Some(player)) => Some(AchievementTrigger::Game {
-                player,
-                event: event.clone(),
-            }),
+            (ServerEvent::GameEvent(event), Some(player))
+                if notification.game_context.is_some() =>
+            {
+                Some(AchievementTrigger::Game {
+                    player,
+                    event: event.clone(),
+                })
+            }
             (ServerEvent::PlayerInteraction(event), Some(player)) => {
                 Some(AchievementTrigger::Interaction {
                     player,
@@ -50,7 +61,9 @@ pub(super) fn process_triggers(
                 player,
                 message: message.clone(),
             }),
-            (ServerEvent::GameStarted { host, .. }, Some(player)) => {
+            (ServerEvent::GameStarted { host, .. }, Some(player))
+                if notification.game_context.is_some() =>
+            {
                 Some(AchievementTrigger::SessionStarted {
                     player,
                     host: *host,
@@ -61,11 +74,17 @@ pub(super) fn process_triggers(
         if state.session.enabled
             && let Some(trigger) = trigger
         {
-            let context = notification.game_context.map(|context| AchievementContext {
-                match_id: context.match_id,
-                hand_index: context.hand_index,
-                sequence: context.sequence,
-            });
+            // Chat and interaction messages carry eligibility, but do not share game-fact receipts.
+            let context = match &trigger {
+                AchievementTrigger::Game { .. } | AchievementTrigger::SessionStarted { .. } => {
+                    notification.game_context.map(|context| AchievementContext {
+                        match_id: context.match_id,
+                        hand_index: context.hand_index,
+                        sequence: context.sequence,
+                    })
+                }
+                _ => None,
+            };
             let source = state
                 .session
                 .connected

@@ -16,6 +16,8 @@ pub use rules::{
     RaceRules, TurnBasedRules,
 };
 
-pub use graph::{GraphEdgeView, GraphNodeView, GraphRelation, GraphView};
+pub use graph::{
+    GraphCombo, GraphEdgeView, GraphGuessRecord, GraphNodeView, GraphRelation, GraphView,
+};
 
 pub(crate) use graph::GraphGame;

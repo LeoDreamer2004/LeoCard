@@ -111,5 +111,8 @@ impl Plugin for RuntimePlugin {
             .add_systems(Startup, (setup_camera, load_ui_assets))
             .add_systems(Update, set_app_window_icon)
             .add_systems(Update, poll_network.in_set(ClientUpdateSet::Network));
+
+        #[cfg(not(target_os = "android"))]
+        app.add_plugins(super::cursor::CursorPlugin);
     }
 }

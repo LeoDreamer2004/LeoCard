@@ -1,20 +1,20 @@
 //! 顶栏及其连接状态、设置和个人资料入口。
 
-use super::super::{
-    AchievementEntry, CozyButtonVariant, LobbyGameHeader, LobbyUiAction, NavigationUiAction,
-    PageTransitionElement, ProfileEntry, ShopEntry, UiAction, add_cozy_labeled_icon_button,
-};
 use crate::app::presentation::{BORDER, MUTED, UiComposer, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
+use crate::app::shell::{
+    AchievementEntry, CozyButtonVariant, LobbyGameHeader, NavigationUiAction,
+    PageTransitionElement, ProfileEntry, ShopEntry, UiAction, add_cozy_labeled_icon_button,
+};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
 
 pub(in crate::app::shell) struct Header<'a> {
-    client: Option<&'a ClientResource>,
-    form: &'a ConnectionDraft,
-    assets: &'a UiAssets,
-    avatars: &'a AvatarImages,
+    pub(super) client: Option<&'a ClientResource>,
+    pub(super) form: &'a ConnectionDraft,
+    pub(super) assets: &'a UiAssets,
+    pub(super) avatars: &'a AvatarImages,
 }
 
 impl<'a> Header<'a> {
@@ -148,69 +148,5 @@ impl<'a> Header<'a> {
             avatars: self.avatars,
         }
         .render(commands, right, 44.0, 17.5);
-    }
-
-    fn render_game_header(&self, commands: &mut UiComposer, root: Entity) {
-        let header = spawn_node(
-            commands,
-            root,
-            Node {
-                position_type: PositionType::Absolute,
-                right: px(0),
-                top: px(0),
-                height: px(66),
-                padding: UiRect::axes(px(12), px(4)),
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            None,
-        );
-        commands
-            .entity(header)
-            .insert((GlobalZIndex(1000), Pickable::IGNORE));
-        let right = spawn_node(
-            commands,
-            header,
-            Node {
-                flex_direction: FlexDirection::Row,
-                align_items: AlignItems::Center,
-                column_gap: px(8),
-                ..default()
-            },
-            None,
-        );
-        add_cozy_labeled_icon_button(
-            commands,
-            right,
-            UiAction::Navigation(NavigationUiAction::ToggleShop),
-            self.assets,
-            self.assets.shop.icon.clone(),
-            CozyButtonVariant::Neutral,
-            "商店",
-        );
-        add_cozy_labeled_icon_button(
-            commands,
-            right,
-            UiAction::Navigation(NavigationUiAction::ToggleSettings),
-            self.assets,
-            self.assets.home.settings_icon.clone(),
-            CozyButtonVariant::Neutral,
-            "设置",
-        );
-        add_cozy_labeled_icon_button(
-            commands,
-            right,
-            UiAction::Lobby(LobbyUiAction::RequestLeaveRoom),
-            self.assets,
-            self.assets.home.exit_icon.clone(),
-            CozyButtonVariant::Danger,
-            "退出",
-        );
-        ProfileEntry {
-            form: self.form,
-            assets: self.assets,
-            avatars: self.avatars,
-        }
-        .render(commands, right, 38.0, 15.0);
     }
 }

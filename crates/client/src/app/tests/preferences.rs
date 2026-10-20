@@ -75,6 +75,7 @@ fn preferences_round_trip_including_avatar() {
                     ..MahjongRuleSet::default()
                 },
             },
+            minecraft_guess: Default::default(),
         },
     };
     let encoded = postcard::to_allocvec(&saved).unwrap();

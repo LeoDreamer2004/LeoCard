@@ -141,6 +141,10 @@ impl RaceRules {
 pub struct GraphRules {
     pub options: GuessOptions,
     pub nodes: u8,
+    /// Fixed-point tenths: 0 is regular, 10 is highly irregular.
+    pub temperature: u8,
+    /// Zero disables the individual turn clock.
+    pub guess_seconds: u16,
     pub show_character_count: bool,
     pub show_directions: bool,
     pub include_tags: bool,
@@ -151,6 +155,8 @@ impl Default for GraphRules {
         Self {
             options: GuessOptions::default(),
             nodes: 16,
+            temperature: 3,
+            guess_seconds: 120,
             show_character_count: true,
             show_directions: false,
             include_tags: true,
@@ -159,7 +165,19 @@ impl Default for GraphRules {
 }
 
 impl GraphRules {
+    pub const GUESS_SECONDS_OPTIONS: [u16; 5] = [30, 60, 120, 240, 0];
+    pub const NODE_OPTIONS: &'static [u8] = if cfg!(debug_assertions) || cfg!(feature = "developer")
+    {
+        &[2, 16, 24, 32, 40]
+    } else {
+        &[16, 24, 32, 40]
+    };
+    pub const TEMPERATURE_OPTIONS: [u8; 11] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
     pub(super) fn is_valid(self) -> bool {
-        self.options.is_valid() && [16, 24, 32].contains(&self.nodes)
+        self.options.is_valid()
+            && Self::NODE_OPTIONS.contains(&self.nodes)
+            && Self::TEMPERATURE_OPTIONS.contains(&self.temperature)
+            && Self::GUESS_SECONDS_OPTIONS.contains(&self.guess_seconds)
     }
 }

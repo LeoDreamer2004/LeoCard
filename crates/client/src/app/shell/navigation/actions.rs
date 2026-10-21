@@ -1,5 +1,7 @@
 //! 协调个人资料、设置和成就页面的导航。
 
+#[cfg(not(target_os = "android"))]
+use super::super::LauncherState;
 use super::super::{
     AchievementCategory, DomainUiAction, PageMotion, PlayerProfilePage, PressedUiAction,
     ProfileMotion, SettingsMotion, UiAction, UiActionHandler, UiState, dispatch_domain_actions,
@@ -34,6 +36,8 @@ pub(crate) struct NavigationActionContext<'w> {
     settings_motion: ResMut<'w, SettingsMotion>,
     profile_motion: ResMut<'w, ProfileMotion>,
     page_motion: ResMut<'w, PageMotion>,
+    #[cfg(not(target_os = "android"))]
+    launcher: ResMut<'w, LauncherState>,
 }
 
 pub(crate) fn dispatch_navigation_actions(
@@ -70,6 +74,10 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
                 }
             }
             NavigationUiAction::ToggleAchievements => {
+                #[cfg(not(target_os = "android"))]
+                {
+                    context.launcher.open = false;
+                }
                 context.page_motion.begin();
                 ui.achievements.open = !ui.achievements.open;
                 if ui.achievements.open {
@@ -82,6 +90,10 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
                 }
             }
             NavigationUiAction::ToggleShop => {
+                #[cfg(not(target_os = "android"))]
+                {
+                    context.launcher.open = false;
+                }
                 context.page_motion.begin();
                 ui.shop.open = !ui.shop.open;
                 if ui.shop.open {

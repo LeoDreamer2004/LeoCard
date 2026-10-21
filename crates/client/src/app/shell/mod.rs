@@ -8,6 +8,8 @@ mod connection;
 mod developer;
 pub(super) mod input;
 mod lobby;
+#[cfg(not(target_os = "android"))]
+mod minecraft_launcher;
 mod navigation;
 pub(super) mod overlays;
 mod plugin;
@@ -27,6 +29,8 @@ pub(crate) use connection::*;
 pub(crate) use developer::*;
 pub(crate) use input::*;
 pub(crate) use lobby::*;
+#[cfg(not(target_os = "android"))]
+pub(crate) use minecraft_launcher::*;
 pub(crate) use navigation::*;
 pub(crate) use overlays::*;
 pub(super) use plugin::*;

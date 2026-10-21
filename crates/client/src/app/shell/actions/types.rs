@@ -1,3 +1,5 @@
+#[cfg(not(target_os = "android"))]
+use super::super::LauncherUiAction;
 use super::super::{
     AchievementUiAction, ChatUiAction, ConfirmationUiAction, ConnectionUiAction, LobbyUiAction,
     NavigationUiAction, ProfileUiAction, SettingsUiAction, ShopUiAction, SocialUiAction,
@@ -35,6 +37,8 @@ pub(crate) enum UiAction {
     Settings(SettingsUiAction),
     Update(UpdateUiAction),
     Lobby(LobbyUiAction),
+    #[cfg(not(target_os = "android"))]
+    Launcher(LauncherUiAction),
 }
 
 #[derive(Clone, Message)]
@@ -73,6 +77,8 @@ impl UiAction {
             Self::Update(action) => action.rebuilds_ui(),
             Self::Connection(action) => action.rebuilds_ui(),
             Self::Lobby(action) => action.rebuilds_ui(),
+            #[cfg(not(target_os = "android"))]
+            Self::Launcher(action) => action.rebuilds_ui(),
         }
     }
 }

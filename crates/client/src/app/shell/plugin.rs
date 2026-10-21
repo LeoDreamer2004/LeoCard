@@ -1,3 +1,5 @@
+#[cfg(not(target_os = "android"))]
+use super::MinecraftLauncherPlugin;
 use super::{
     AchievementsPagePlugin, ChatPlugin, ConnectionPlugin, DeveloperToolsPlugin, InputPlugin,
     LobbyPlugin, NavigationPlugin, OverlaysPlugin, ProfilePlugin, SettingsPlugin, ShellUiPlugin,
@@ -37,5 +39,7 @@ impl Plugin for ShellPlugin {
             UiActionSet.before(close_interaction_menu_on_outside_click),
         )
         .add_systems(Update, compose_ui.in_set(ClientUpdateSet::Compose));
+        #[cfg(not(target_os = "android"))]
+        app.add_plugins(MinecraftLauncherPlugin);
     }
 }

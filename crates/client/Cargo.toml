@@ -53,6 +53,7 @@ tokio.workspace = true
 winit.workspace = true
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
+leocard-minecraft-launcher = { path = "../minecraft-launcher" }
 bevy = { workspace = true, features = ["custom_cursor"] }
 rfd.workspace = true
 bevy_clipboard = { workspace = true, features = ["system_clipboard"] }

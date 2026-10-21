@@ -2,6 +2,8 @@
 
 use crate::app::presentation::{BORDER, MUTED, UiComposer, add_text, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
+#[cfg(not(target_os = "android"))]
+use crate::app::shell::LauncherUiAction;
 use crate::app::shell::{
     AchievementEntry, CozyButtonVariant, LobbyGameHeader, NavigationUiAction,
     PageTransitionElement, ProfileEntry, ShopEntry, UiAction, add_cozy_labeled_icon_button,
@@ -124,6 +126,16 @@ impl<'a> Header<'a> {
                 ClientPhaseRef::Idle | ClientPhaseRef::Closed
             )
         }) {
+            #[cfg(not(target_os = "android"))]
+            add_cozy_labeled_icon_button(
+                commands,
+                right,
+                UiAction::Launcher(LauncherUiAction::Show),
+                self.assets,
+                self.assets.home.settings_icon.clone(),
+                CozyButtonVariant::Cool,
+                "MC 启动器",
+            );
             ShopEntry {
                 assets: self.assets,
             }

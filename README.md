@@ -14,6 +14,14 @@ cargo run -p leocard-client
 
 开发时客户端会从工作区根目录的 `assets` 加载素材。内嵌文件列表由 `crates/client/runtime-assets.txt` 管理。
 
+## Minecraft 启动器
+
+桌面端首页顶栏提供「MC 启动器」。它可以从 Mojang 下载 Java 版正式版和快照，安装 Fabric、Forge 和 NeoForge，并使用离线玩家名或微软账号启动已安装的版本。资源下载可选择 Modrinth 或 CurseForge，支持 Mod、资源包、光影和数据包。下载 Mod 时会安装平台标记为必需的依赖。游戏文件默认保存在系统数据目录的 `leocard/minecraft` 下，可通过 `LEOCARD_MINECRAFT_DIR` 指定其他位置。
+
+启动前需要在电脑上安装适合该游戏版本的 Java。启动器优先使用 `LEOCARD_JAVA_PATH`，其次使用 `JAVA_HOME`，最后查找系统路径中的 Java。Forge 和 NeoForge 安装也需要 Java。每个版本的存档和配置放在独立的 `instances/<版本>` 目录，启动日志写入该目录的 `launcher.log`。Android 端暂不提供该入口。
+
+微软正版登录需要先注册支持个人微软账号及公共客户端设备码流的 Azure 应用，并将其应用（客户端）ID 设为 `LEOCARD_MICROSOFT_CLIENT_ID`。点击「微软账号正版登录」后，按界面给出的地址和代码完成授权。登录会验证 Xbox 授权、Minecraft Java 版购买资格和玩家资料；账号会话只保留在当前运行的客户端内。CurseForge 需要将官方 API 密钥设为 `LEOCARD_CURSEFORGE_API_KEY`。若作者禁止第三方下载某个文件，客户端会提示改用其他资源。
+
 自 0.7.0 版本起，本游戏支持 ARM64 的 Android 12 及以上客户端。
 
 ## 许可证

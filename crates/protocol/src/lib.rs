@@ -5,6 +5,7 @@
 
 pub mod achievements;
 pub mod blackjack;
+pub mod discovery;
 pub mod events;
 pub mod framing;
 pub mod game;
@@ -22,6 +23,7 @@ pub mod violations;
 
 pub use achievements::*;
 pub use blackjack::*;
+pub use discovery::*;
 pub use events::*;
 pub use framing::*;
 pub use game::*;
@@ -35,7 +37,7 @@ pub use texas_holdem::*;
 pub use uno::*;
 pub use violations::*;
 
-pub const PROTOCOL_VERSION: u16 = 73;
+pub const PROTOCOL_VERSION: u16 = 77;
 pub const MAX_FRAME_PAYLOAD: usize = 1024 * 1024;
 pub const MAX_PLAYER_NAME_CHARS: usize = 7;
 pub const AVATAR_DIMENSION: u32 = 64;

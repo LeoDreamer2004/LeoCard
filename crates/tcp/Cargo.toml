@@ -13,7 +13,9 @@ developer = ["leocard-host/developer"]
 [dependencies]
 leocard-host = { path = "../host" }
 leocard-protocol = { path = "../protocol" }
+fastrand.workspace = true
 serde.workspace = true
+socket2.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]

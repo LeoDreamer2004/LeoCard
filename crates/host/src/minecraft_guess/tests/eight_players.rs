@@ -87,8 +87,8 @@ fn eight_players_take_every_first_turn_and_record_all_eight_placements() {
             for (index, player) in view.players.iter().enumerate() {
                 let stats = player.game_profiles.minecraft_guess.as_ref().unwrap();
                 assert_eq!(stats.completed_games, 1);
-                assert_eq!(stats.block_games, 8);
-                assert_eq!(stats.block_wins, 1);
+                assert_eq!(stats.categories.block.games, 8);
+                assert_eq!(stats.categories.block.wins, 1);
                 assert_eq!(stats.placement_counts[7 - index], 1);
             }
         } else {

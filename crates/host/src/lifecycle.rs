@@ -2,7 +2,7 @@ use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_protocol::{
     ChatContent, ClientCommand, ClientMessage, GameCommand, GameEventContext, GameKind, GameRules,
     GameSnapshot, GameViolation, JoinRequest, LobbySnapshot, PlayerId, PlayerInteractionKind,
-    PlayerViolation, RejectReason, RequestId, RoomViolation, SeatId, ServerEvent,
+    PlayerViolation, RejectReason, RequestId, RoomInfo, RoomViolation, SeatId, ServerEvent,
 };
 
 pub(super) trait HostedGameLifecycle: Sized {
@@ -19,6 +19,21 @@ pub(super) trait HostedGameLifecycle: Sized {
     fn game_rules(&self) -> GameRules;
 
     fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot;
+
+    fn room_info(&self) -> Option<RoomInfo> {
+        let room = self.room();
+        let host = room
+            .players
+            .iter()
+            .find(|player| Some(player.connection) == room.host_connection && !player.left)?;
+        (!room.closed).then(|| RoomInfo {
+            host_name: host.name.clone(),
+            host_avatar: host.avatar,
+            avatar_png: host.avatar_png.clone(),
+            game: Self::KIND,
+            playing: self.game_started(),
+        })
+    }
 
     fn handle_game_command(
         &mut self,
@@ -131,7 +146,16 @@ pub(super) trait HostedGameLifecycle: Sized {
                     .room()
                     .player_id(connection)
                     .expect("a successful join assigned a player");
-                self.after_join(player);
+                if !self.room().is_spectator(connection) {
+                    self.after_join(player);
+                }
+                if game_started {
+                    deliveries.push(self.room().delivery(
+                        connection,
+                        None,
+                        ServerEvent::RulesSnapshot(self.game_rules()),
+                    ));
+                }
                 deliveries.extend(if game_started {
                     self.broadcast_game(Some((connection, request_id)))
                 } else {
@@ -150,9 +174,13 @@ pub(super) trait HostedGameLifecycle: Sized {
         png: Vec<u8>,
     ) -> Vec<Delivery> {
         let game_started = self.game_started();
-        match self.room_mut().set_avatar(connection, png, game_started) {
+        match self.room_mut().set_avatar(connection, png) {
             Ok(mut deliveries) => {
-                deliveries.extend(self.broadcast_lobby(Some((connection, request_id))));
+                deliveries.extend(if game_started {
+                    self.broadcast_game(Some((connection, request_id)))
+                } else {
+                    self.broadcast_lobby(Some((connection, request_id)))
+                });
                 deliveries
             }
             Err(reason) => self.room().reject(connection, request_id, reason),
@@ -279,6 +307,52 @@ pub(super) fn dispatch_client_command<S: HostedGameLifecycle>(
     if let Err(deliveries) = session.room_mut().begin_request(connection, &message) {
         return deliveries;
     }
+    if session.room().is_spectator(connection)
+        && !matches!(
+            &message.command,
+            ClientCommand::RequestSnapshot
+                | ClientCommand::LeaveRoom
+                | ClientCommand::SetAvatar { .. }
+                | ClientCommand::PublishCoins { .. }
+                | ClientCommand::PublishAchievements { .. }
+        )
+    {
+        return session.room().reject(
+            connection,
+            message.request_id,
+            RejectReason::Room(RoomViolation::SpectatorCannotAct),
+        );
+    }
+    let mut deliveries = dispatch_joined_command(session, connection, message);
+    if !session.room().closed && !session.game_started() && session.room().has_spectators() {
+        let capacity = session.capacity();
+        let admissions = session.room_mut().admit_spectators(capacity);
+        if !admissions.is_empty() {
+            deliveries.retain(|delivery| {
+                !matches!(delivery.message.event, ServerEvent::LobbySnapshot(_))
+            });
+            deliveries.extend(admissions);
+            deliveries.extend(session.broadcast_lobby(None));
+        }
+    }
+    deliveries
+}
+
+fn dispatch_joined_command<S: HostedGameLifecycle>(
+    session: &mut S,
+    connection: ConnectionId,
+    message: ClientMessage,
+) -> Vec<Delivery> {
+    if session.room().is_spectator(connection)
+        && matches!(message.command, ClientCommand::LeaveRoom)
+    {
+        session.room_mut().remove_spectator(connection);
+        return vec![session.room().delivery(
+            connection,
+            Some(message.request_id),
+            ServerEvent::LeftRoom,
+        )];
+    }
     session.before_dispatch();
     let request_id = message.request_id;
     match message.command {
@@ -334,7 +408,19 @@ pub(super) fn dispatch_client_command<S: HostedGameLifecycle>(
         }
         ClientCommand::StartGame => session.start_game_and_announce(connection, request_id),
         ClientCommand::ReturnToLobby => session.return_to_lobby(connection, request_id),
-        ClientCommand::PlayAgain => session.play_again(connection, request_id),
+        ClientCommand::PlayAgain => {
+            if session.room().has_spectators()
+                && session.room().host_connection == Some(connection)
+                && session.game_started()
+                && session
+                    .game_snapshot(session.room().host_player_id().expect("room host"))
+                    .match_complete()
+            {
+                session.return_to_lobby(connection, request_id)
+            } else {
+                session.play_again(connection, request_id)
+            }
+        }
         ClientCommand::LeaveRoom => session.leave_room(connection, request_id),
         ClientCommand::CloseRoom => session.close_room(connection, request_id),
         ClientCommand::Interact { target, kind } => {
@@ -342,6 +428,7 @@ pub(super) fn dispatch_client_command<S: HostedGameLifecycle>(
         }
         ClientCommand::Chat { content } => session.chat(connection, request_id, content),
         ClientCommand::RequestSnapshot => session.snapshot(connection, request_id),
+        ClientCommand::RequestRoomInfo => unreachable!("discovery is handled by HostSession"),
         ClientCommand::Ping => unreachable!("transport pings are handled by HostSession"),
     }
 }

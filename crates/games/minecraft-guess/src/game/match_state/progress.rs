@@ -7,8 +7,8 @@ pub enum MatchLength {
     Rounds(u8),
     /// A fixed question count shared by every participant.
     Games(u8),
-    /// One graph per participant, each taking the opening turn once.
-    Graph,
+    /// A fixed graph count, with a different opening player for each graph.
+    Graph(u8),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -23,28 +23,28 @@ impl MatchProgress {
         match self.length {
             MatchLength::Rounds(_) => GuessMode::TurnBased,
             MatchLength::Games(_) => GuessMode::Race,
-            MatchLength::Graph => GuessMode::Graph,
+            MatchLength::Graph(_) => GuessMode::Graph,
         }
     }
 
     pub fn round_count(self) -> Option<u8> {
         match self.length {
             MatchLength::Rounds(rounds) => Some(rounds),
-            MatchLength::Games(_) | MatchLength::Graph => None,
+            MatchLength::Games(_) | MatchLength::Graph(_) => None,
         }
     }
 
     pub fn current_round(self) -> u8 {
         match self.length {
             MatchLength::Rounds(_) => self.game_index / self.player_count + 1,
-            MatchLength::Games(_) | MatchLength::Graph => 1,
+            MatchLength::Games(_) | MatchLength::Graph(_) => 1,
         }
     }
 
     pub fn game_in_round(self) -> u8 {
         match self.length {
             MatchLength::Rounds(_) => self.game_index % self.player_count + 1,
-            MatchLength::Games(_) | MatchLength::Graph => self.game_index + 1,
+            MatchLength::Games(_) | MatchLength::Graph(_) => self.game_index + 1,
         }
     }
 
@@ -52,7 +52,7 @@ impl MatchProgress {
         match self.length {
             MatchLength::Rounds(rounds) => self.player_count * rounds,
             MatchLength::Games(games) => games,
-            MatchLength::Graph => self.player_count,
+            MatchLength::Graph(games) => games,
         }
     }
 

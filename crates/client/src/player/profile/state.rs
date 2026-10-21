@@ -15,7 +15,7 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
-pub(super) const PROFILE_HEADER: &[u8] = b"LeoCard/profile/v2\0";
+pub(super) const PROFILE_HEADER: &[u8] = b"LeoCard/profile/v3\0";
 
 fn player_profile_path() -> Option<PathBuf> {
     config_file("profile.dat")

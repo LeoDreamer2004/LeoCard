@@ -126,7 +126,7 @@ impl GameState {
     pub fn statistics(&self) -> impl Iterator<Item = (u8, GuessPlayStatistics)> {
         match &self.round {
             Round::Single(game) => game.statistics().collect::<Vec<_>>(),
-            Round::Graph(_) => Vec::new(),
+            Round::Graph(game) => game.statistics().collect::<Vec<_>>(),
         }
         .into_iter()
     }

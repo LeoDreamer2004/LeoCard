@@ -9,7 +9,7 @@ use crate::app::presentation::{
 };
 use bevy::prelude::*;
 use leocard_blackjack::Phase;
-use leocard_protocol::{GameKind, TABLE_SEAT_COUNT};
+use leocard_protocol::{GameKind, SeatId, TABLE_SEAT_COUNT};
 
 impl BlackjackTable<'_> {
     pub(super) fn players(&mut self, commands: &mut UiComposer, table: Entity, pile: Entity) {
@@ -19,7 +19,7 @@ impl BlackjackTable<'_> {
             .iter()
             .find(|view| view.player.id == self.game.you)
             .and_then(|view| view.player.seat)
-            .expect("seated recipient");
+            .unwrap_or(SeatId(0));
         let intro = self.transition.is_active_for(self.game.match_id);
         let areas = (!intro).then(|| add_blackjack_hand_areas(commands, table));
         for view in &self.game.players {

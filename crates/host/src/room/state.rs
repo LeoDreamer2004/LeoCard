@@ -1,12 +1,13 @@
 use super::RoomActivity;
-use crate::{ConnectionId, Delivery, achievements::RoomAchievements};
+use crate::achievements::RoomAchievements;
+use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
     AvatarId, ChatContent, ChatMessage, ClientMessage, GameEvent, GameEventContext, GameKind,
-    GameRules, GameViolation, JoinRequest, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS,
-    MAX_PLAYER_NAME_CHARS, MatchId, PROTOCOL_VERSION, PlayerGameProfiles, PlayerId,
-    PlayerInteraction, PlayerInteractionKind, PlayerInteractionStats, PlayerViolation, ProfileId,
-    QUICK_VOICE_COUNT, ReconnectToken, RejectReason, RequestId, RequestViolation, Revision, RoomId,
-    RoomViolation, SeatId, ServerEvent, ServerMessage, TABLE_SEAT_COUNT,
+    GameRules, GameViolation, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MatchId, PROTOCOL_VERSION,
+    PlayerGameProfiles, PlayerId, PlayerInteraction, PlayerInteractionKind, PlayerInteractionStats,
+    PlayerViolation, ProfileId, QUICK_VOICE_COUNT, ReconnectToken, RejectReason, RequestId,
+    RequestViolation, Revision, RoomId, RoomViolation, SeatId, ServerEvent, ServerMessage,
+    TABLE_SEAT_COUNT,
 };
 use std::collections::HashMap;
 
@@ -43,6 +44,7 @@ pub struct RoomSession {
     pub(crate) room_id: RoomId,
     pub(crate) host_port: u16,
     pub(crate) players: Vec<Participant>,
+    pub(super) spectators: Vec<Participant>,
     pub(crate) host_connection: Option<ConnectionId>,
     pub(crate) last_requests: HashMap<ConnectionId, RequestId>,
     pub(crate) closed: bool,
@@ -52,9 +54,8 @@ pub struct RoomSession {
 }
 
 impl RoomSession {
-    fn active_participants(&self) -> impl Iterator<Item = &Participant> {
-        self.players
-            .iter()
+    pub(super) fn active_participants(&self) -> impl Iterator<Item = &Participant> {
+        self.participants()
             .filter(|player| player.connected && !player.left)
     }
 
@@ -79,6 +80,7 @@ impl RoomSession {
             room_id,
             host_port,
             players: Vec::with_capacity(capacity),
+            spectators: Vec::new(),
             host_connection: None,
             last_requests: HashMap::new(),
             closed: false,
@@ -89,8 +91,7 @@ impl RoomSession {
     }
 
     pub(crate) fn player_id(&self, connection: ConnectionId) -> Option<PlayerId> {
-        self.players
-            .iter()
+        self.participants()
             .find(|player| player.connection == connection && !player.left)
             .map(|player| player.id)
     }
@@ -164,178 +165,19 @@ impl RoomSession {
         Ok(())
     }
 
-    pub(crate) fn join(
-        &mut self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        request: JoinRequest,
-        game_started: bool,
-        capacity: u8,
-    ) -> Result<Vec<Delivery>, RejectReason> {
-        if self.player_id(connection).is_some() {
-            return Err(RejectReason::Player(PlayerViolation::AlreadyJoined));
-        }
-        let normalized_name = request.name.trim();
-        if normalized_name.is_empty() {
-            return Err(RejectReason::Player(PlayerViolation::NameEmpty));
-        }
-        if normalized_name.chars().count() > MAX_PLAYER_NAME_CHARS {
-            return Err(RejectReason::Player(PlayerViolation::NameTooLong {
-                max_chars: MAX_PLAYER_NAME_CHARS as u16,
-            }));
-        }
-        if !crate::valid_identity_proof(self.room_id, &request) {
-            return Err(RejectReason::Player(PlayerViolation::InvalidIdentityProof));
-        }
-        let JoinRequest {
-            name,
-            reconnect_token,
-            profile_id,
-            reference_points,
-            completed_games,
-            game_profiles,
-            identity_signature: _,
-        } = request;
-        let name = name.trim();
-        if let Some(index) = self
-            .players
-            .iter()
-            .position(|player| player.reconnect_token == reconnect_token && !player.left)
-        {
-            if self.players[index].name != name || self.players[index].profile_id != profile_id {
-                return Err(RejectReason::Player(PlayerViolation::AlreadyJoined));
-            }
-            return Ok(self.reconnect(index, connection, request_id, game_started));
-        }
-        if self
-            .players
-            .iter()
-            .any(|player| player.profile_id == profile_id && !player.left)
-        {
-            return Err(RejectReason::Player(PlayerViolation::AlreadyJoined));
-        }
-        if game_started {
-            return Err(RejectReason::Game(GameViolation::GameAlreadyStarted));
-        }
-        if self.players.iter().filter(|player| !player.left).count() >= usize::from(capacity) {
-            return Err(RejectReason::Room(RoomViolation::RoomFull));
-        }
-
-        let vacant = self.players.iter().position(|player| player.left);
-        let player = PlayerId(
-            vacant
-                .unwrap_or(self.players.len())
-                .try_into()
-                .expect("a room contains at most six active player slots"),
-        );
-        let joining_as_host = self.host_connection.is_none();
-        if joining_as_host {
-            self.host_connection = Some(connection);
-        }
-        let seat = self
-            .random_available_seat()
-            .expect("a non-full room always has an available seat");
-        let participant = Participant {
-            id: player,
-            profile_id,
-            connection,
-            name: name.to_owned(),
-            avatar: None,
-            avatar_png: None,
-            reconnect_token,
-            seat: Some(seat),
-            ready: joining_as_host,
-            connected: true,
-            auto_play: false,
-            is_bot: false,
-            left: false,
-            reference_points,
-            completed_games,
-            game_profiles,
-        };
-        if let Some(index) = vacant {
-            self.players[index] = participant;
-        } else {
-            self.players.push(participant);
-        }
-        self.bump_revision();
-        Ok(self.join_deliveries(connection, request_id, player))
-    }
-
-    fn reconnect(
-        &mut self,
-        index: usize,
-        connection: ConnectionId,
-        request_id: RequestId,
-        game_started: bool,
-    ) -> Vec<Delivery> {
-        let previous_connection = self.players[index].connection;
-        let player = self.players[index].id;
-        let reassigned_seat = (!game_started && self.players[index].seat.is_none())
-            .then(|| self.random_available_seat())
-            .flatten();
-        self.players[index].connection = connection;
-        self.players[index].connected = true;
-        if let Some(seat) = reassigned_seat {
-            self.players[index].seat = Some(seat);
-        }
-        if self.host_connection == Some(previous_connection) {
-            self.host_connection = Some(connection);
-        }
-        let previous_last_request = self.last_requests.remove(&previous_connection);
-        if let Some(last_request) = self.last_requests.get_mut(&connection) {
-            if let Some(previous_last_request) = previous_last_request {
-                *last_request = (*last_request).max(previous_last_request);
-            }
-        } else if let Some(previous_last_request) = previous_last_request {
-            self.last_requests.insert(connection, previous_last_request);
-        }
-        self.bump_revision();
-        self.join_deliveries(connection, request_id, player)
-    }
-
-    fn join_deliveries(
-        &self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        player: PlayerId,
-    ) -> Vec<Delivery> {
-        let mut deliveries = vec![self.delivery(
-            connection,
-            Some(request_id),
-            ServerEvent::Joined { you: player },
-        )];
-        deliveries.extend(
-            self.players
-                .iter()
-                .filter(|player| !player.left)
-                .filter_map(|participant| {
-                    Some(self.delivery(
-                        connection,
-                        None,
-                        ServerEvent::AvatarData {
-                            id: participant.avatar?,
-                            png: participant.avatar_png.clone()?,
-                        },
-                    ))
-                }),
-        );
-        deliveries
-    }
-
     pub(crate) fn set_avatar(
         &mut self,
         connection: ConnectionId,
         png: Vec<u8>,
-        game_started: bool,
     ) -> Result<Vec<Delivery>, RejectReason> {
         let player = self
             .player_id(connection)
             .ok_or(RejectReason::Player(PlayerViolation::NotJoined))?;
-        if game_started {
-            return Err(RejectReason::Game(GameViolation::GameAlreadyStarted));
-        }
-        if self.players[usize::from(player.0)].avatar.is_some() {
+        let participant = self.participant_mut(player).expect("joined participant");
+        if participant.avatar.is_some() {
+            if participant.avatar_png.as_deref() == Some(png.as_slice()) {
+                return Ok(Vec::new());
+            }
             return Err(RejectReason::Player(PlayerViolation::AvatarAlreadySet));
         }
         if !crate::valid_avatar_png(&png) {
@@ -343,7 +185,7 @@ impl RoomSession {
         }
         let avatar = AvatarId(self.next_avatar_id);
         self.next_avatar_id += 1;
-        let participant = &mut self.players[usize::from(player.0)];
+        let participant = self.participant_mut(player).expect("joined participant");
         participant.avatar = Some(avatar);
         participant.avatar_png = Some(png.clone());
         self.bump_revision();
@@ -581,7 +423,7 @@ impl RoomSession {
             .collect()
     }
 
-    fn random_available_seat(&self) -> Option<SeatId> {
+    pub(super) fn random_available_seat(&self) -> Option<SeatId> {
         let mut available = (0..self.seat_count)
             .map(SeatId)
             .filter(|seat| {

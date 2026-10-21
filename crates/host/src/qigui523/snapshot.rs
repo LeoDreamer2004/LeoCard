@@ -50,7 +50,11 @@ impl QiGui523Session {
                 })
                 .expect("a running game has a room host"),
             players,
-            your_hand: game.players()[recipient_index].hand().to_vec(),
+            your_hand: game
+                .players()
+                .get(recipient_index)
+                .map(|player| player.hand().to_vec())
+                .unwrap_or_default(),
             played_cards: game.played_cards().to_vec(),
             draw_pile_len: game.draw_pile_len() as u16,
             starting_card: StartingCardView {

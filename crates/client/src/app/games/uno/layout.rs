@@ -1,7 +1,7 @@
 use leocard_uno::UnoRuleSet;
 
 pub(super) fn opponent_position(index: usize, count: usize) -> (f32, f32) {
-    const POSITIONS: [&[(f32, f32)]; UnoRuleSet::MAX_PLAYERS as usize - 1] = [
+    const POSITIONS: [&[(f32, f32)]; UnoRuleSet::MAX_PLAYERS as usize] = [
         &[(550.0, 10.0)],
         &[(235.0, 52.0), (865.0, 52.0)],
         &[(100.0, 140.0), (550.0, 8.0), (1000.0, 140.0)],
@@ -29,6 +29,16 @@ pub(super) fn opponent_position(index: usize, count: usize) -> (f32, f32) {
             (759.0, 24.0),
             (954.0, 104.0),
             (1070.0, 280.0),
+        ],
+        &[
+            (30.0, 280.0),
+            (146.0, 104.0),
+            (341.0, 24.0),
+            (550.0, 0.0),
+            (759.0, 24.0),
+            (954.0, 104.0),
+            (1070.0, 280.0),
+            (550.0, 460.0),
         ],
     ];
     let (left, top) = POSITIONS[count - 1][index];

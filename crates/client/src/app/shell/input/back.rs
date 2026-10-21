@@ -1,12 +1,14 @@
 use crate::app::shell::{
-    ConfirmationDialog, ConfirmationUiAction, NavigationUiAction, PageMotion, PressedUiAction,
-    UiAction, UiState,
+    ConfirmationDialog, ConfirmationUiAction, ConnectionUiAction, NavigationUiAction, PageMotion,
+    PressedUiAction, UiAction, UiState,
 };
 use bevy::prelude::*;
 
 pub(super) fn back_action(ui: &UiState, confirmation: &ConfirmationDialog) -> Option<UiAction> {
     if confirmation.is_open() {
         Some(UiAction::Confirmation(ConfirmationUiAction::Cancel))
+    } else if ui.lan.open {
+        Some(UiAction::Connection(ConnectionUiAction::CloseLan))
     } else if ui.settings.open {
         Some(UiAction::Navigation(NavigationUiAction::ToggleSettings))
     } else if ui.profile.open {
@@ -29,7 +31,7 @@ pub(super) fn handle_escape(
 ) {
     if !keyboard.just_pressed(KeyCode::Escape)
         || page_motion.active()
-        || !(confirmation.is_open() || ui.shop.open || ui.achievements.open)
+        || !(confirmation.is_open() || ui.shop.open || ui.achievements.open || ui.lan.open)
     {
         return;
     }

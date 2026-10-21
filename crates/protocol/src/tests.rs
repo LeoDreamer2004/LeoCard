@@ -1,5 +1,8 @@
 use super::*;
-use leocard_minecraft_guess::{GameState, GraphView, GuessMode, MinecraftGuessRuleSet};
+use leocard_minecraft_guess::{
+    GameState, GraphView, GuessCategoryCount, GuessCategoryStatistics, GuessMode,
+    MinecraftGuessRuleSet,
+};
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_shengji::{Component, ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit};
 use leocard_texas_holdem::TexasHoldemRuleSet;
@@ -81,10 +84,11 @@ fn client_message_round_trips_through_tcp_frame() {
                 minecraft_guess: Some(MinecraftGuessProfileStats {
                     completed_games: 2,
                     total_score: 38,
-                    block_games: 4,
-                    block_wins: 1,
-                    item_games: 2,
-                    item_wins: 1,
+                    categories: GuessCategoryStatistics {
+                        block: GuessCategoryCount { games: 4, wins: 1 },
+                        item: GuessCategoryCount { games: 2, wins: 1 },
+                        ..Default::default()
+                    },
                     ..Default::default()
                 }),
                 gender: PlayerGender::Female,

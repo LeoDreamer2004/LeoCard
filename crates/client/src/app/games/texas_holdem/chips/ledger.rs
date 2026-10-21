@@ -10,7 +10,7 @@ use super::{
     ActionFeedbackKind, ActionLabel, ChipZone, PotDivisionTransition, TexasChipTableState,
     VisualPot,
 };
-use crate::app::presentation::{ACCENT, DANGER, READY, TEXT};
+use crate::app::presentation::{ACCENT, CHIP_BET_DURATION, CHIP_BET_INTERVAL, DANGER, READY, TEXT};
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemSnapshot};
 use leocard_texas_holdem::TexasHoldemAction;
@@ -276,8 +276,8 @@ impl TexasChipTableState {
                     id,
                     ChipZone::Bet(player),
                     target,
-                    index as f32 * 0.045,
-                    0.42,
+                    index as f32 * CHIP_BET_INTERVAL,
+                    CHIP_BET_DURATION,
                 );
             }
         }

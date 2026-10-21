@@ -1,5 +1,6 @@
 use super::super::GraphRelation;
 use super::super::data::GraphEdge;
+use super::diversity::Diversity;
 use super::index::GraphIndex;
 use super::temperature::Temperature;
 use crate::EntryKind;
@@ -19,6 +20,7 @@ pub(super) struct Topology {
     pub relations: HashMap<GraphRelation, usize>,
     pub tags: usize,
     pub leaves: usize,
+    pub diversity: Diversity,
 }
 
 impl Sample {
@@ -65,6 +67,7 @@ impl Topology {
             }
         }
         Self {
+            diversity: index.diversity.census(sample.nodes.iter().copied()),
             slots,
             distances,
             tags: kinds.get(&None).copied().unwrap_or(0),

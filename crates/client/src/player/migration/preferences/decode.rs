@@ -1,12 +1,16 @@
 use super::global::{AllVoices, Base, Gender, MahjongVoices};
 use super::schema::{Archive, Rules};
 use super::v032::MahjongRules;
+use super::v091::Preferences;
 use crate::player::preferences::{
     GlobalPreferences, MahjongPreferences, SavedPreferences, TexasHoldemPreferences,
 };
 use serde::de::DeserializeOwned;
 
 pub(in crate::player) fn migrate_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
+    if let Some(data) = bytes.strip_prefix(b"LeoCard/prefs/v2\0") {
+        return decode::<Preferences>(data);
+    }
     if let Some(data) = bytes.strip_prefix(b"LeoCard/prefs/v1\0") {
         return decode::<Archive<GlobalPreferences, MahjongPreferences, TexasHoldemPreferences>>(
             data,

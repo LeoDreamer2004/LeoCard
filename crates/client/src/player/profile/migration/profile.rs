@@ -1,9 +1,9 @@
 use super::super::{PROFILE_HEADER, StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
-use super::minecraft_guess::SixSeatMinecraftGuessStats;
+use super::minecraft_guess::{PreviousMinecraftGuessStats, SixSeatMinecraftGuessStats};
 use super::uno::SixSeatUnoStats;
 use leocard_protocol::{
-    MahjongProfileStats, MatchId, MinecraftGuessProfileStats, PlayerInteractionStats,
-    ShengjiProfileStats, TexasHoldemProfileStats,
+    MahjongProfileStats, MatchId, PlayerInteractionStats, ShengjiProfileStats,
+    TexasHoldemProfileStats,
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
@@ -32,7 +32,7 @@ stored_profile_compatibility_types!(
         uno_stats: Option<SixSeatUnoStats>,
         interaction_stats: Option<PlayerInteractionStats>,
         mahjong_stats: Option<MahjongProfileStats>,
-        minecraft_guess_stats: Option<MinecraftGuessProfileStats>,
+        minecraft_guess_stats: Option<PreviousMinecraftGuessStats>,
     }),
     (SixSeatStoredPlayerProfile, SixSeatStoredGameProfiles, {
         qigui523: StoredRatingProfile,
@@ -106,6 +106,9 @@ pub(in crate::player::profile) fn decode_player_profile(
     if let Some(current) = bytes.strip_prefix(PROFILE_HEADER) {
         return decode_exact(current).map_err(|error| format!("玩家档案已损坏：{error}"));
     }
+    if let Some(previous) = bytes.strip_prefix(super::graph::V2_PROFILE_HEADER) {
+        return super::graph::decode_v2(previous);
+    }
     if let Some(previous) = bytes.strip_prefix(super::blackjack::V1_PROFILE_HEADER) {
         return super::blackjack::decode_v1(previous);
     }
@@ -120,7 +123,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 uno_stats: previous.games.uno_stats.map(Into::into),
                 interaction_stats: previous.games.interaction_stats,
                 mahjong_stats: previous.games.mahjong_stats,
-                minecraft_guess_stats: previous.games.minecraft_guess_stats,
+                minecraft_guess_stats: previous.games.minecraft_guess_stats.map(Into::into),
             },
         }),
         Err(current_error) => {

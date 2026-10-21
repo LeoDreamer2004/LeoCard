@@ -10,7 +10,6 @@ use crate::app::shell::{
     add_reconnecting_overlay,
 };
 use bevy::prelude::*;
-use leocard_client::NetworkState;
 use leocard_protocol::MinecraftGuessSnapshot;
 
 pub(crate) struct GuessTable<'a> {
@@ -121,7 +120,7 @@ pub(crate) fn render_guess_table(
             table.assets,
         );
     }
-    if let NetworkState::Reconnecting(message) = table.client.0.state() {
+    if let Some(message) = table.client.0.reconnecting_message() {
         add_reconnecting_overlay(commands, page, message, table.assets);
     }
 }

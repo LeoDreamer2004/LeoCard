@@ -37,7 +37,7 @@ pub(super) fn add_texas_opponent(
     spectator: &TexasSpectatorUiState,
 ) {
     let side = match relative {
-        1 | 2 => SeatSide::Left,
+        0..=2 => SeatSide::Left,
         3 => SeatSide::Top,
         4 | 5 => SeatSide::Right,
         _ => return,

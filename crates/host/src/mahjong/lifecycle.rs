@@ -2,11 +2,10 @@ use super::{
     MAHJONG_DEAL_INTERVAL, MahjongSession, MahjongWinFeedback, events_for_outcome, shuffled_deck,
     validate_deck,
 };
+use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
-    RoomSession,
-    lifecycle::{HostedGameLifecycle, dispatch_client_command},
-    new_match_id,
+    RoomSession, new_match_id,
 };
 use leocard_mahjong::{
     ActionOutcome, GameError, GameState, MahjongPlayerId, MahjongRuleSet, MahjongTile, Phase,
@@ -172,6 +171,9 @@ impl MahjongSession {
     }
 
     pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
+        if self.room.disconnect_spectator(connection) {
+            return Vec::new();
+        }
         let Some(index) =
             self.room.players.iter().position(|player| {
                 player.connection == connection && player.connected && !player.left

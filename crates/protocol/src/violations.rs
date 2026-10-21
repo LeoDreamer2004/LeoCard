@@ -91,6 +91,7 @@ pub enum RoomViolation {
     PlayersNotReady { players: Vec<PlayerId> },
     InvalidChatMessage,
     CannotInteractWithSelf,
+    SpectatorCannotAct,
 }
 
 impl fmt::Display for RoomViolation {
@@ -111,6 +112,7 @@ impl fmt::Display for RoomViolation {
             Self::PlayersNotReady { .. } => "仍有玩家没有准备",
             Self::InvalidChatMessage => "聊天消息为空、过长或快捷语音无效",
             Self::CannotInteractWithSelf => "不能和自己互动",
+            Self::SpectatorCannotAct => "当前正在观战，请等待下一场入座",
         })
     }
 }

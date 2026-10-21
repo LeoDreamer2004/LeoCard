@@ -27,6 +27,13 @@ impl GraphGame {
             0
         };
         let points = self.score_guess(&result, combo);
+        let previous = self
+            .guesses
+            .iter()
+            .rev()
+            .filter(|record| record.node == number)
+            .find_map(|record| record.guess.result.closeness());
+        self.statistics[self.current].record_guess(&result, previous);
         self.guesses.push(GraphGuessRecord {
             node: number,
             guess: GuessRecord { player, result },

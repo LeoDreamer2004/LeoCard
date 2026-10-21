@@ -2,8 +2,36 @@ use super::index::GraphIndex;
 use super::mesh::{Sample, Topology};
 use super::temperature::Temperature;
 use crate::{GraphRules, MinecraftGuessRuleSet};
+use fastrand::Rng;
 use std::collections::{HashSet, VecDeque};
 use std::time::Instant;
+
+mod diversity;
+
+#[test]
+fn hot_neighbour_candidates_favor_low_source_degree() {
+    let index = GraphIndex::bundled(true);
+    let hub = *index
+        .starts
+        .iter()
+        .max_by_key(|&&node| index.data.degree(node))
+        .unwrap();
+    let mut total_degrees = [0, 0];
+    for (slot, temperature) in [0, 10].into_iter().enumerate() {
+        let mut random = Rng::with_seed(523);
+        for _ in 0..256 {
+            let neighbours =
+                index.neighbours(hub, 8, false, Temperature::new(temperature), &mut random);
+            assert_eq!(neighbours.len(), 8);
+            assert_eq!(neighbours.iter().copied().collect::<HashSet<_>>().len(), 8);
+            for node in neighbours {
+                assert!(index.adjacent[hub].contains(&node));
+                total_degrees[slot] += index.data.degree(node);
+            }
+        }
+    }
+    assert!(total_degrees[1] < total_degrees[0]);
+}
 
 #[test]
 fn all_temperature_steps_keep_real_connected_graphs_with_exact_playable_counts() {

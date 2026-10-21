@@ -1,12 +1,12 @@
-use super::NETWORK_ROOM_ID;
+use super::connection::{complete_handshake, run_connected};
 use super::state::{
-    CONNECTION_HEARTBEAT_TIMEOUT, CommandReceiver, EventQueue, NetworkEvent, NetworkLaunch,
-    PING_INTERVAL, RECONNECT_ATTEMPTS, RECONNECT_CONNECT_TIMEOUT, push_event,
+    CommandReceiver, EventQueue, NetworkEvent, NetworkLaunch, RECONNECT_ATTEMPTS,
+    RECONNECT_CONNECT_TIMEOUT, push_event,
 };
-use leocard_protocol::{ClientCommand, ClientMessage, RequestId, ServerEvent};
+use leocard_protocol::ClientMessage;
 use leocard_tcp::{TcpClient, TcpServerHandle};
 use std::net::{IpAddr, SocketAddr};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 pub(super) async fn run_network(
     launch: NetworkLaunch,
@@ -24,12 +24,16 @@ pub(super) async fn run_network(
             let client = TcpClient::connect(local_address)
                 .await
                 .map_err(|error| format!("房主无法回连本机端口 {port}：{error}"))?;
-            let result = run_connected(
-                client,
-                &mut commands,
-                events,
-                format!("已监听端口 {port}；请分享 房主局域网IP:{port}"),
-            )
+            let result = async {
+                let client = complete_handshake(client, &reconnect_join, events).await?;
+                push_event(
+                    events,
+                    NetworkEvent::Connected(format!(
+                        "已监听端口 {port}；请分享 房主局域网IP:{port}"
+                    )),
+                );
+                run_connected(client, &mut commands, events).await
+            }
             .await;
             let shutdown = server
                 .shutdown()
@@ -41,6 +45,8 @@ pub(super) async fn run_network(
             let client = TcpClient::connect(address.as_str())
                 .await
                 .map_err(|error| format!("连接 {address} 失败：{error}"))?;
+            let client = complete_handshake(client, &reconnect_join, events).await?;
+            push_event(events, NetworkEvent::Connected(format!("已连接 {address}")));
             run_joined_network(client, address, &mut commands, events, &reconnect_join).await
         }
     }
@@ -53,17 +59,23 @@ async fn run_joined_network(
     events: &EventQueue,
     reconnect_join: &ClientMessage,
 ) -> Result<(), String> {
+    let mut failures = 0;
     loop {
-        let disconnected =
-            match run_connected(client, commands, events, format!("已连接 {address}")).await {
-                Ok(()) => return Ok(()),
-                Err(error) => error,
-            };
+        let connected_at = Instant::now();
+        let disconnected = match run_connected(client, commands, events).await {
+            Ok(()) => return Ok(()),
+            Err(error) => error,
+        };
+        if connected_at.elapsed() >= Duration::from_secs(10) {
+            failures = 0;
+        }
         drain_pending_commands(commands);
         let reconnect = async {
             let mut last_error = disconnected;
             let mut reconnected = None;
-            for attempt in 1..=RECONNECT_ATTEMPTS {
+            while failures < RECONNECT_ATTEMPTS {
+                failures += 1;
+                let attempt = failures;
                 let delay = reconnect_delay(attempt);
                 let status = format!(
                     "连接已断开；{} 秒后进行第 {attempt}/{RECONNECT_ATTEMPTS} 次重连",
@@ -79,9 +91,7 @@ async fn run_joined_network(
                 .await
                 {
                     Ok(Ok(replacement)) => {
-                        match complete_reconnect_handshake(replacement, reconnect_join, events)
-                            .await
-                        {
+                        match complete_handshake(replacement, reconnect_join, events).await {
                             Ok(replacement) => {
                                 reconnected = Some(replacement);
                                 break;
@@ -120,83 +130,8 @@ async fn run_joined_network(
             }
         };
         drain_pending_commands(commands);
+        push_event(events, NetworkEvent::Connected(format!("已连接 {address}")));
         client = replacement;
-    }
-}
-
-async fn complete_reconnect_handshake(
-    mut client: TcpClient,
-    reconnect_join: &ClientMessage,
-    events: &EventQueue,
-) -> Result<TcpClient, String> {
-    client
-        .send(reconnect_join)
-        .await
-        .map_err(|error| error.to_string())?;
-    let message = tokio::time::timeout(RECONNECT_CONNECT_TIMEOUT, client.receive())
-        .await
-        .map_err(|_| "等待房主确认超时".to_owned())?
-        .map_err(|error| error.to_string())?;
-    match &message.event {
-        ServerEvent::Joined { .. } => {
-            push_event(events, NetworkEvent::Message(Box::new(message)));
-            Ok(client)
-        }
-        ServerEvent::Rejected { reason } => Err(format!("房主拒绝恢复身份：{reason:?}")),
-        _ => Err("房主未确认恢复玩家身份".to_owned()),
-    }
-}
-
-async fn run_connected(
-    client: TcpClient,
-    commands: &mut CommandReceiver,
-    events: &EventQueue,
-    connected_label: String,
-) -> Result<(), String> {
-    let (mut reader, mut writer) = client.into_split();
-    push_event(events, NetworkEvent::Connected(connected_label));
-    let heartbeat_timeout = tokio::time::sleep(CONNECTION_HEARTBEAT_TIMEOUT);
-    tokio::pin!(heartbeat_timeout);
-    let mut ping_interval = tokio::time::interval(PING_INTERVAL);
-    ping_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-
-    loop {
-        tokio::select! {
-            _ = &mut heartbeat_timeout => {
-                return Err("与房主的连接心跳超时".to_owned());
-            }
-            message = reader.receive() => {
-                let message = message.map_err(|error| format!("与房间的连接已断开：{error}"))?;
-                heartbeat_timeout.as_mut().reset(
-                    tokio::time::Instant::now() + CONNECTION_HEARTBEAT_TIMEOUT
-                );
-                if matches!(&message.event, ServerEvent::Heartbeat) {
-                    continue;
-                }
-                let connection_finished = matches!(
-                    &message.event,
-                    ServerEvent::RoomClosed | ServerEvent::LeftRoom
-                );
-                push_event(events, NetworkEvent::Message(Box::new(message)));
-                if connection_finished {
-                    return Ok(());
-                }
-            }
-            command = commands.recv() => {
-                let Some(command) = command else { return Ok(()) };
-                writer.send(&command).await
-                    .map_err(|error| format!("发送游戏指令失败：{error}"))?;
-            }
-            _ = ping_interval.tick() => {
-                let ping = ClientMessage::new(
-                    NETWORK_ROOM_ID,
-                    RequestId(0),
-                    ClientCommand::Ping,
-                );
-                writer.send(&ping).await
-                    .map_err(|error| format!("发送连接心跳失败：{error}"))?;
-            }
-        }
     }
 }
 

@@ -107,9 +107,8 @@ impl UnoSession {
             players,
             your_hand: game
                 .player(to_core_player(recipient))
-                .expect("recipient belongs to game")
-                .hand()
-                .iter()
+                .into_iter()
+                .flat_map(|player| player.hand().iter())
                 .map(|card| card.public_face())
                 .collect(),
             draw_pile_len: game.draw_pile_len() as u16,

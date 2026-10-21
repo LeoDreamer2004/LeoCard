@@ -1,5 +1,6 @@
 use super::super::GraphRelation;
 use super::super::data::{GraphData, GraphEdge};
+use super::diversity::DiversityIndex;
 use super::temperature::Temperature;
 use fastrand::Rng;
 use std::collections::{HashMap, VecDeque};
@@ -9,7 +10,9 @@ pub(super) struct GraphIndex {
     pub data: &'static GraphData,
     pub adjacent: Vec<Vec<usize>>,
     pub starts: Vec<usize>,
+    pub diversity: DiversityIndex,
     core: Vec<Vec<usize>>,
+    source_degree_logs: Vec<f32>,
     pairs: HashMap<(usize, usize), Vec<GraphEdge>>,
 }
 
@@ -72,6 +75,10 @@ impl GraphIndex {
             .collect();
         Self {
             data,
+            diversity: DiversityIndex::new(data),
+            source_degree_logs: (0..data.nodes.len())
+                .map(|node| (data.degree(node).max(1) as f32).ln())
+                .collect(),
             adjacent,
             starts,
             core: core_adjacent,
@@ -84,6 +91,7 @@ impl GraphIndex {
         node: usize,
         limit: usize,
         core_only: bool,
+        temperature: Temperature,
         random: &mut Rng,
     ) -> Vec<usize> {
         let adjacent = if core_only {
@@ -91,20 +99,52 @@ impl GraphIndex {
         } else {
             &self.adjacent[node]
         };
-        if adjacent.len() <= limit {
+        let cold = temperature.rarity_penalty(1.0) == 0.0;
+        let pool_size = adjacent.len().min(if cold { limit } else { limit * 4 });
+        let mut result = if adjacent.len() <= pool_size {
             let mut result = adjacent.clone();
             random.shuffle(&mut result);
-            return result;
-        }
-        // Sample a small prefix without copying/shuffling a high-degree hub's whole list.
-        let mut result = Vec::with_capacity(limit);
-        while result.len() < limit {
-            let other = adjacent[random.usize(..adjacent.len())];
-            if !result.contains(&other) {
-                result.push(other);
+            result
+        } else {
+            // Oversample a bounded pool without scanning a source hub's entire neighbourhood.
+            let mut result = Vec::with_capacity(pool_size);
+            while result.len() < pool_size {
+                let other = adjacent[random.usize(..adjacent.len())];
+                if !result.contains(&other) {
+                    result.push(other);
+                }
             }
+            result
+        };
+        if !cold {
+            result = temperature.prioritize(
+                result,
+                |&node| self.rarity_score([node], temperature),
+                random,
+            );
         }
+        result.truncate(limit);
         result
+    }
+
+    pub fn rarity_score(
+        &self,
+        nodes: impl IntoIterator<Item = usize>,
+        temperature: Temperature,
+    ) -> f32 {
+        let (sum, count, hubs) =
+            nodes
+                .into_iter()
+                .fold((0.0, 0, 0.0), |(sum, count, hubs), node| {
+                    let degree_log = self.source_degree_logs[node];
+                    (
+                        sum + degree_log,
+                        count + 1,
+                        hubs + temperature.hub_penalty(degree_log),
+                    )
+                });
+        // A source hub pays its own cost; many rare neighbours cannot dilute it away.
+        -temperature.rarity_penalty(sum / count.max(1) as f32) - hubs
     }
 
     pub fn edges(

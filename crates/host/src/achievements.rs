@@ -23,11 +23,13 @@ impl RoomSession {
         unlocked: Vec<String>,
     ) -> Result<Vec<Delivery>, RejectReason> {
         let player = self
-            .players
-            .iter_mut()
+            .participants()
             .find(|player| player.connection == connection && !player.left)
             .ok_or(RejectReason::Player(PlayerViolation::NotJoined))?;
         let old = player.game_profiles.achievements.by_tier();
+        let name = player.name.clone();
+        let changed = player.game_profiles.achievements != counts;
+        let profile_id = player.profile_id;
         let new = counts.by_tier();
         let maximum =
             achievement_counts(ACHIEVEMENT_REGISTRY.iter().map(|definition| definition.id))
@@ -42,7 +44,6 @@ impl RoomSession {
         {
             return Err(RejectReason::Player(PlayerViolation::InvalidAchievements));
         }
-        let profile_id = player.profile_id;
         let fresh = unlocked
             .iter()
             .filter(|id| {
@@ -61,9 +62,11 @@ impl RoomSession {
         {
             return Err(RejectReason::Player(PlayerViolation::InvalidAchievements));
         }
-        let name = player.name.clone();
-        let changed = player.game_profiles.achievements != counts;
-        player.game_profiles.achievements = counts;
+        self.participants_mut()
+            .find(|player| player.connection == connection && !player.left)
+            .expect("validated participant")
+            .game_profiles
+            .achievements = counts;
         let mut announcements = Vec::new();
         for id in unlocked {
             if self.achievements.announced.insert((profile_id, id.clone())) {

@@ -25,7 +25,7 @@ impl GuessResult {
         }
     }
 
-    pub(super) fn closeness(&self) -> Option<u32> {
+    pub(crate) fn closeness(&self) -> Option<u32> {
         let Self::Known { matches, .. } = self else {
             return None;
         };

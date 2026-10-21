@@ -7,7 +7,10 @@ impl MinecraftGuessSession {
     pub(super) fn begin_match(&mut self) -> Result<(), GameError> {
         let mut room = self.room.clone();
         room.remove_departed_players();
-        let players = room.players.iter().map(|player| player.id.0).collect();
+        let mut players: Vec<_> = room.players.iter().map(|player| player.id.0).collect();
+        if self.rules.mode == GuessMode::Graph && !self.rules.graph.round_robin {
+            fastrand::shuffle(&mut players);
+        }
         let state = MatchState::new(players, self.rules);
         let game = self.new_round(state.turn_order())?;
         self.process_presence.clear();

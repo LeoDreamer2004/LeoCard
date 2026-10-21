@@ -3,7 +3,7 @@ use crate::player::config_file;
 use crate::player::migration::migrate_preferences;
 use std::fs;
 
-pub(crate) const PREFERENCES_HEADER: &[u8] = b"LeoCard/prefs/v2\0";
+pub(crate) const PREFERENCES_HEADER: &[u8] = b"LeoCard/prefs/v3\0";
 
 pub fn load_player_preferences() -> Option<SavedPreferences> {
     let bytes = fs::read(config_file("client.prefs")?).ok()?;

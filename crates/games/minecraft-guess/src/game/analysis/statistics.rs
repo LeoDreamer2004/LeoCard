@@ -1,12 +1,10 @@
-use crate::EntryKind;
+use super::GuessCategoryStatistics;
+use crate::{EntryKind, GuessResult};
 
-/// Accepted guesses and skips accumulated only from completed small games.
+/// Accepted actions, finalized when a question or graph completes.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct GuessPlayStatistics {
-    pub block_games: u32,
-    pub block_wins: u32,
-    pub item_games: u32,
-    pub item_wins: u32,
+    pub categories: GuessCategoryStatistics,
     pub known_guesses: u32,
     pub non_worse_guesses: u32,
     pub unknown_guesses: u32,
@@ -15,32 +13,27 @@ pub struct GuessPlayStatistics {
 }
 
 impl GuessPlayStatistics {
-    pub(in crate::game) fn finish_game(&mut self, kind: EntryKind, won: bool, allow_unknown: bool) {
-        let counts = match kind {
-            EntryKind::Block => Some((&mut self.block_games, &mut self.block_wins)),
-            EntryKind::Item => Some((&mut self.item_games, &mut self.item_wins)),
-            EntryKind::Mob
-            | EntryKind::Enchantment
-            | EntryKind::Effect
-            | EntryKind::VillagerProfession
-            | EntryKind::Landscape
-            | EntryKind::Biome => None,
-        };
-        if let Some((games, wins)) = counts {
-            *games = 1;
-            *wins = u32::from(won);
-        }
+    pub(crate) fn record_guess(&mut self, result: &GuessResult, previous: Option<u32>) -> bool {
+        let known = matches!(result, GuessResult::Known { .. });
+        let non_worse = result
+            .closeness()
+            .is_some_and(|score| previous.is_none_or(|before| score >= before));
+        self.known_guesses = self.known_guesses.saturating_add(u32::from(known));
+        self.non_worse_guesses = self.non_worse_guesses.saturating_add(u32::from(non_worse));
+        self.unknown_guesses = self.unknown_guesses.saturating_add(u32::from(!known));
+        non_worse
+    }
+
+    pub(crate) fn finish_game(&mut self, kind: EntryKind, won: bool, allow_unknown: bool) {
+        self.categories.record(kind, won);
         if allow_unknown {
             self.unknown_enabled_guesses = self.known_guesses.saturating_add(self.unknown_guesses);
         }
     }
 
     pub(in crate::game) fn merge(&mut self, other: Self) {
+        self.categories.merge(other.categories);
         for (total, count) in [
-            (&mut self.block_games, other.block_games),
-            (&mut self.block_wins, other.block_wins),
-            (&mut self.item_games, other.item_games),
-            (&mut self.item_wins, other.item_wins),
             (&mut self.known_guesses, other.known_guesses),
             (&mut self.non_worse_guesses, other.non_worse_guesses),
             (&mut self.unknown_guesses, other.unknown_guesses),

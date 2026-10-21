@@ -28,7 +28,6 @@ use crate::app::shell::{
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
-use leocard_client::NetworkState;
 use leocard_protocol::ShengjiBottomFlipRevealView;
 use leocard_protocol::{
     GameKind, PlayerId, SeatId, ShengjiPhaseView, ShengjiPlayerState, ShengjiPublicPlay,
@@ -112,19 +111,16 @@ pub(crate) fn render_shengji_table(
         },
         None,
     );
-    if let NetworkState::Reconnecting(message) = client.0.state() {
+    if let Some(message) = client.0.reconnecting_message() {
         add_reconnecting_overlay(commands, table, message, visuals.assets);
     }
 
-    let own = game
-        .players
-        .iter()
-        .find(|player| player.id == game.you)
-        .expect("双升快照包含接收者");
+    let own = game.players.iter().find(|player| player.id == game.you);
+    let own_seat = own.map_or(SeatId(0), |player| player.seat);
     let start_transition_active = visuals.start_game_transition.is_active_for(game.match_id);
     let previous_trick = visuals.presentation.revealed_previous_trick();
-    for relative in 1..SHENGJI_PLAYER_COUNT {
-        let seat = SeatId((own.seat.0 + relative) % SHENGJI_PLAYER_COUNT);
+    for relative in u8::from(own.is_some())..SHENGJI_PLAYER_COUNT {
+        let seat = SeatId((own_seat.0 + relative) % SHENGJI_PLAYER_COUNT);
         if let Some(player) = game.players.iter().find(|player| player.seat == seat) {
             add_shengji_opponent(
                 commands,
@@ -143,7 +139,7 @@ pub(crate) fn render_shengji_table(
             );
         }
     }
-    if start_transition_active {
+    if start_transition_active && let Some(own) = own {
         ui.intro_deal_match = Some(game.match_id);
         let hand_area = spawn_node(
             commands,
@@ -207,7 +203,7 @@ pub(crate) fn render_shengji_table(
     if ui.buried_open && !finished {
         add_shengji_private_buried(commands, table, game, visuals.assets);
     }
-    if !finished {
+    if !finished && let Some(own) = own {
         let hand_area = spawn_node(
             commands,
             content,
@@ -243,7 +239,8 @@ pub(crate) fn render_shengji_table(
             | ShengjiPhaseView::FiveTrumpCrossing { .. }
             | ShengjiPhaseView::Playing
     )
-    .then_some(own.auto_play);
+    .then(|| own.map(|player| player.auto_play))
+    .flatten();
     let previous_trick =
         shengji_previous_trick_button_state(&game.phase, visuals.presentation.has_previous_trick());
     let buried_cards = !game.your_buried.is_empty() && !finished;
@@ -506,7 +503,7 @@ fn add_shengji_opponent(
     const SIDE_SLOT_WIDTH: f32 = 96.0 * 1.17 + SIDE_PLAY_GAP + 190.0;
     let side = match relative {
         1 => SeatSide::Left,
-        2 => SeatSide::Top,
+        0 | 2 => SeatSide::Top,
         3 => SeatSide::Right,
         _ => unreachable!(),
     };
@@ -530,7 +527,11 @@ fn add_shengji_opponent(
         SeatSide::Top => {
             node.left = percent(32);
             node.right = percent(32);
-            node.top = px(12);
+            if relative == 0 {
+                node.bottom = px(12);
+            } else {
+                node.top = px(12);
+            }
             node.flex_direction = FlexDirection::Column;
         }
         SeatSide::Right => {

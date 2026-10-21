@@ -25,7 +25,6 @@ use crate::app::shell::{
     SocialUiState, UiAction, add_chat_panel, add_reconnecting_overlay,
 };
 use bevy::prelude::*;
-use leocard_client::NetworkState;
 use leocard_protocol::{GameKind, GamePhaseView, QiGui523Snapshot, SeatId, TABLE_SEAT_COUNT};
 use leocard_qigui523::QiGuiPlayKind;
 
@@ -119,15 +118,14 @@ pub(crate) fn render_table(
         },
         None,
     );
-    if let NetworkState::Reconnecting(message) = client.0.state() {
+    if let Some(message) = client.0.reconnecting_message() {
         add_reconnecting_overlay(commands, table, message, assets);
     }
     let own_seat = game
         .players
         .iter()
         .find(|player| player.id == game.you)
-        .expect("game snapshot contains the recipient")
-        .seat;
+        .map_or(SeatId(0), |player| player.seat);
     let seat_visuals = SeatVisuals {
         game,
         client,
@@ -141,7 +139,7 @@ pub(crate) fn render_table(
         start_transition_active,
         intro_only: start_transition_active,
     };
-    for relative_seat in 1..TABLE_SEAT_COUNT {
+    for relative_seat in u8::from(!client.0.model().is_spectating())..TABLE_SEAT_COUNT {
         let physical_seat = SeatId((own_seat.0 + relative_seat) % TABLE_SEAT_COUNT);
         let player = game
             .players
@@ -508,7 +506,8 @@ pub(crate) fn render_table(
         );
     }
     let local_auto_play = matches!(game.phase, GamePhaseView::Playing)
-        .then(|| self_state.is_some_and(|player| player.auto_play));
+        .then(|| self_state.map(|player| player.auto_play))
+        .flatten();
     add_chat_panel(commands, content, chat, assets, local_auto_play, &[]);
     if local_auto_play == Some(true) {
         add_auto_play_overlay(commands, content, assets);

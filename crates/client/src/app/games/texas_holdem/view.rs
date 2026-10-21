@@ -18,7 +18,6 @@ use crate::app::shell::{
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_client::NetworkState;
 use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemSnapshot};
 
 pub(crate) struct TexasTableVisuals<'a> {
@@ -110,18 +109,15 @@ pub(crate) fn render_texas_holdem_table(
             -DESIGN_WIDTH * 0.5,
             0.0,
         )));
-    if let NetworkState::Reconnecting(message) = client.0.state() {
+    if let Some(message) = client.0.reconnecting_message() {
         add_reconnecting_overlay(commands, content, message, assets);
     }
 
-    let own = game
-        .players
-        .iter()
-        .find(|player| player.id == game.you)
-        .expect("德州快照必须包含接收方");
+    let own = game.players.iter().find(|player| player.id == game.you);
+    let own_seat = own.map_or(SeatId(0), |player| player.seat);
     let start_transition_active = start_game_transition.is_active_for(game.match_id);
-    for relative in 1..TABLE_SEAT_COUNT {
-        let physical = SeatId((own.seat.0 + relative) % TABLE_SEAT_COUNT);
+    for relative in u8::from(own.is_some())..TABLE_SEAT_COUNT {
+        let physical = SeatId((own_seat.0 + relative) % TABLE_SEAT_COUNT);
         if let Some(player) = game.players.iter().find(|player| player.seat == physical) {
             add_texas_opponent(
                 commands,
@@ -141,7 +137,7 @@ pub(crate) fn render_texas_holdem_table(
         }
     }
 
-    if start_transition_active {
+    if start_transition_active && let Some(own) = own {
         add_texas_own_area(
             commands,
             table,
@@ -167,7 +163,7 @@ pub(crate) fn render_texas_holdem_table(
         ui.observed_table.state.min(game.community.len())
     };
     let initial_deal =
-        new_hand.then(|| spawn_texas_initial_deal(commands, table, game, own.seat, assets));
+        new_hand.then(|| spawn_texas_initial_deal(commands, table, game, own_seat, assets));
     let hole_card_count = client.0.model().texas_holdem_rules().map_or_else(
         || {
             if game.your_hole_cards.len() == 4 {
@@ -187,27 +183,30 @@ pub(crate) fn render_texas_holdem_table(
         initial_deal.as_ref().map(|deal| deal.duration),
         assets,
     );
-    add_texas_own_area(
-        commands,
-        table,
-        game,
-        own,
-        initial_deal.as_ref().map(|deal| deal.own_delays.as_slice()),
-        ui,
-        social.interaction_menu_open,
-        assets,
-        avatars,
-        turn_border_materials,
-        chip_state,
-        start_transition_active,
-        false,
-    );
+    if let Some(own) = own {
+        add_texas_own_area(
+            commands,
+            table,
+            game,
+            own,
+            initial_deal.as_ref().map(|deal| deal.own_delays.as_slice()),
+            ui,
+            social.interaction_menu_open,
+            assets,
+            avatars,
+            turn_border_materials,
+            chip_state,
+            start_transition_active,
+            false,
+        );
+    }
     render_texas_spectator_drawer(commands, content, game, ui, assets);
-    add_texas_showdown_reveal(commands, table, game, own.seat, assets, game_summary);
+    add_texas_showdown_reveal(commands, table, game, own_seat, assets, game_summary);
     add_texas_hand_result(commands, table, game, assets, avatars, game_summary);
 
-    let local_auto_play =
-        matches!(game.phase, TexasHoldemPhaseView::Betting { .. }).then_some(own.auto_play);
+    let local_auto_play = matches!(game.phase, TexasHoldemPhaseView::Betting { .. })
+        .then(|| own.map(|player| player.auto_play))
+        .flatten();
     let chat_panel = add_chat_panel(commands, content, chat, assets, local_auto_play, &[]);
     add_chat_help_button(
         commands,

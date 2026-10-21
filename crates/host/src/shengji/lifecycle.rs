@@ -5,11 +5,8 @@ use super::{
     THROW_FAILURE_RETURN_DURATION, bottom_flip_reveal_view, from_core_player, shuffled_deck,
     validate_deck,
 };
-use crate::{
-    ConnectionId, Delivery, HostError, RoomSession,
-    lifecycle::{HostedGameLifecycle, dispatch_client_command},
-    new_match_id,
-};
+use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
+use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
     PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, Revision, RoomId,
@@ -474,6 +471,9 @@ impl ShengjiSession {
     }
 
     pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
+        if self.room.disconnect_spectator(connection) {
+            return Vec::new();
+        }
         let Some(index) =
             self.room.players.iter().position(|player| {
                 player.connection == connection && player.connected && !player.left

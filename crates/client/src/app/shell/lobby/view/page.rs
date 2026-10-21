@@ -211,7 +211,9 @@ impl LobbyPage {
             48.0,
             CozyButtonVariant::Danger,
         );
-        if you == lobby.host {
+        if client.0.model().is_spectating() {
+            add_disabled_lobby_button(commands, actions, "等待空位", assets);
+        } else if you == lobby.host {
             if can_start {
                 add_cozy_button_variant(
                     commands,

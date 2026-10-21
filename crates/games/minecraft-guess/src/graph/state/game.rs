@@ -1,7 +1,7 @@
 use super::super::data::{GraphData, GraphEdge};
 use super::super::sampling::Sample;
 use super::combo::Combo;
-use crate::{Entry, GameError, GraphGuessRecord, GraphRules};
+use crate::{Entry, GameError, GraphGuessRecord, GraphRules, GuessPlayStatistics};
 use std::mem;
 use std::time::Duration;
 
@@ -19,6 +19,7 @@ pub struct GraphGame {
     pub(super) skipped: Vec<u8>,
     pub(super) gains: Vec<(u8, u32)>,
     pub(super) combo: Option<Combo>,
+    pub(super) statistics: Vec<GuessPlayStatistics>,
 }
 
 impl GraphGame {
@@ -33,6 +34,7 @@ impl GraphGame {
 
     pub fn pending(players: Vec<u8>, rules: GraphRules) -> Self {
         Self {
+            statistics: vec![GuessPlayStatistics::default(); players.len()],
             players,
             rules,
             current: 0,
@@ -119,6 +121,7 @@ impl GraphGame {
 
     pub fn skip(&mut self, player: u8) -> Result<(), GameError> {
         self.check_player(player)?;
+        self.statistics[self.current].skips += 1;
         self.skipped.push(player);
         if self.skipped.len() == self.players.len() {
             self.skipped.clear();

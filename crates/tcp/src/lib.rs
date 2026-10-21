@@ -1,20 +1,25 @@
 //! Tokio TCP 传输。业务判定仍全部由 `leocard-host` 完成。
 
+mod codec;
+mod discovery;
 mod execution;
+
+pub use codec::{read_message, write_message};
+use discovery::LanAnnouncer;
+pub use discovery::{LanDiscoverySocket, LanRoomAnnouncement, query_room_info};
+
+use codec::FrameReader;
 #[cfg(test)]
 mod tests;
 
 use execution::handle_command;
 use leocard_host::{ConnectionId, Delivery, HostSession};
-use leocard_protocol::{
-    ClientMessage, FrameError, MAX_FRAME_PAYLOAD, ServerEvent, ServerMessage, decode_frame,
-    encode_frame,
-};
+use leocard_protocol::{ClientMessage, FrameError, ServerEvent, ServerMessage};
 use std::collections::{HashMap, HashSet};
 use std::net::SocketAddr;
 use std::time::Duration;
 use std::{fmt, io};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio::io::AsyncWriteExt;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 use tokio::sync::{mpsc, oneshot};
@@ -25,7 +30,7 @@ const INBOUND_QUEUE: usize = 256;
 const MAX_CONNECTIONS: usize = 16;
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(3);
 const CONNECTION_IDLE_TIMEOUT: Duration = Duration::from_secs(15);
-const FRAME_HEADER_TIMEOUT: Duration = Duration::from_secs(5);
+const FRAME_HEADER_TIMEOUT: Duration = CONNECTION_IDLE_TIMEOUT;
 const FRAME_BODY_TIMEOUT: Duration = Duration::from_secs(10);
 const WRITE_TIMEOUT: Duration = Duration::from_secs(5);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -68,55 +73,13 @@ impl From<FrameError> for TcpError {
     }
 }
 
-pub async fn write_message<W, T>(writer: &mut W, message: &T) -> Result<(), TcpError>
-where
-    W: AsyncWrite + Unpin,
-    T: serde::Serialize,
-{
-    let frame = encode_frame(message)?;
-    tokio::time::timeout(WRITE_TIMEOUT, writer.write_all(&frame))
-        .await
-        .map_err(|_| TcpError::Timeout("write"))??;
-    Ok(())
-}
-
-pub async fn read_message<R, T>(reader: &mut R) -> Result<T, TcpError>
-where
-    R: AsyncRead + Unpin,
-    T: for<'de> serde::Deserialize<'de>,
-{
-    let mut prefix = [0_u8; 4];
-    match tokio::time::timeout(FRAME_HEADER_TIMEOUT, reader.read_exact(&mut prefix)).await {
-        Err(_) => return Err(TcpError::Timeout("frame header read")),
-        Ok(Ok(_)) => {}
-        Ok(Err(error)) if error.kind() == io::ErrorKind::UnexpectedEof => {
-            return Err(TcpError::ConnectionClosed);
-        }
-        Ok(Err(error)) => return Err(TcpError::Io(error)),
-    }
-    let payload_len = u32::from_be_bytes(prefix) as usize;
-    if payload_len > MAX_FRAME_PAYLOAD {
-        return Err(TcpError::Frame(FrameError::PayloadTooLarge {
-            actual: payload_len,
-            maximum: MAX_FRAME_PAYLOAD,
-        }));
-    }
-    let mut frame = Vec::with_capacity(payload_len + 4);
-    frame.extend_from_slice(&prefix);
-    frame.resize(payload_len + 4, 0);
-    tokio::time::timeout(FRAME_BODY_TIMEOUT, reader.read_exact(&mut frame[4..]))
-        .await
-        .map_err(|_| TcpError::Timeout("frame body read"))??;
-    Ok(decode_frame(&frame)?)
-}
-
 pub struct TcpClient {
-    reader: OwnedReadHalf,
+    reader: FrameReader<OwnedReadHalf>,
     writer: OwnedWriteHalf,
 }
 
 /// TCP 客户端的只读半边。拆分后可与命令发送任务并行等待服务端广播。
-pub struct TcpClientReader(OwnedReadHalf);
+pub struct TcpClientReader(FrameReader<OwnedReadHalf>);
 
 /// TCP 客户端的只写半边。
 pub struct TcpClientWriter(OwnedWriteHalf);
@@ -128,7 +91,10 @@ impl TcpClient {
             .map_err(|_| TcpError::Timeout("connect"))??;
         stream.set_nodelay(true)?;
         let (reader, writer) = stream.into_split();
-        Ok(Self { reader, writer })
+        Ok(Self {
+            reader: FrameReader::new(reader),
+            writer,
+        })
     }
 
     pub async fn send(&mut self, message: &ClientMessage) -> Result<(), TcpError> {
@@ -136,7 +102,7 @@ impl TcpClient {
     }
 
     pub async fn receive(&mut self) -> Result<ServerMessage, TcpError> {
-        read_message(&mut self.reader).await
+        self.reader.receive().await
     }
 
     pub fn into_split(self) -> (TcpClientReader, TcpClientWriter) {
@@ -146,7 +112,7 @@ impl TcpClient {
 
 impl TcpClientReader {
     pub async fn receive(&mut self) -> Result<ServerMessage, TcpError> {
-        read_message(&mut self.0).await
+        self.0.receive().await
     }
 }
 
@@ -215,6 +181,9 @@ async fn run_server(
     turn_timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut last_timer_tick = tokio::time::Instant::now();
     let mut flush_writers = false;
+    let announcer = LanAnnouncer::new(listener.local_addr()?).await.ok();
+    let mut announcement_timer = tokio::time::interval(Duration::from_secs(1));
+    announcement_timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
     loop {
         tokio::select! {
@@ -332,6 +301,11 @@ async fn run_server(
                 if session.is_closed() {
                     flush_writers = true;
                     break;
+                }
+            }
+            _ = announcement_timer.tick() => {
+                if let Some(announcer) = &announcer && let Some(info) = session.room_info() {
+                    let _ = tokio::time::timeout(Duration::from_millis(250), announcer.announce(session.room_id(), info)).await;
                 }
             }
             _ = idle_check.tick() => {

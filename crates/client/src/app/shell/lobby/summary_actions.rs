@@ -10,7 +10,7 @@ use bevy::prelude::*;
 
 pub(crate) struct SummaryActions<'a> {
     pub is_host: bool,
-    pub ready: bool,
+    pub ready: Option<bool>,
     pub again: &'a str,
 }
 
@@ -41,7 +41,9 @@ pub(crate) fn add_summary_actions(
             48.0,
         );
     }
-    if state.ready {
+    if state.ready.is_none() {
+        add_cozy_disabled_button(commands, parent, "观战中", assets, px(150), 48.0);
+    } else if state.ready == Some(true) {
         add_cozy_disabled_button(commands, parent, "已准备", assets, px(150), 48.0);
     } else {
         add_cozy_button_variant(

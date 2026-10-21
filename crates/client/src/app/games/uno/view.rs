@@ -17,7 +17,6 @@ use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAsset
 use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_client::NetworkState;
 use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
 use leocard_uno::{UnoFlipSide, UnoPendingDrawKind, UnoRuleSet};
 
@@ -138,22 +137,19 @@ pub(crate) fn render_uno_table(
             0.0,
         )));
 
-    if let NetworkState::Reconnecting(message) = client.0.state() {
+    if let Some(message) = client.0.reconnecting_message() {
         add_reconnecting_overlay(commands, content, message, assets);
     }
 
-    let own = game
-        .players
-        .iter()
-        .find(|player| player.id == game.you)
-        .expect("UNO 快照必须包含接收方");
+    let own = game.players.iter().find(|player| player.id == game.you);
     let mut opponents = game
         .players
         .iter()
         .filter(|player| player.id != game.you)
         .collect::<Vec<_>>();
     opponents.sort_by_key(|player| {
-        (player.seat.0 + UnoRuleSet::MAX_PLAYERS - own.seat.0) % UnoRuleSet::MAX_PLAYERS
+        (player.seat.0 + UnoRuleSet::MAX_PLAYERS - own.map_or(0, |player| player.seat.0))
+            % UnoRuleSet::MAX_PLAYERS
     });
     let opponent_count = opponents.len();
     let start_transition_active = start_game_transition.is_active_for(game.match_id);
@@ -175,7 +171,7 @@ pub(crate) fn render_uno_table(
         );
     }
 
-    if start_transition_active {
+    if start_transition_active && let Some(own) = own {
         add_uno_own_area(
             commands,
             table,
@@ -194,24 +190,26 @@ pub(crate) fn render_uno_table(
     }
 
     add_uno_center(commands, table, game, assets, game_assets);
-    add_uno_own_area(
-        commands,
-        table,
-        game,
-        own,
-        ui,
-        social,
-        avatars,
-        assets,
-        game_assets,
-        turn_border_materials,
-        start_transition_active,
-        false,
-    );
-    add_uno_actions(commands, table, game, ui, assets);
-    add_uno_callout_actions(commands, table, game, assets);
-    add_uno_swap_selection_prompt(commands, table, game, ui, assets);
-    render_jump_in_device(commands, content, jump_in_device, assets);
+    if let Some(own) = own {
+        add_uno_own_area(
+            commands,
+            table,
+            game,
+            own,
+            ui,
+            social,
+            avatars,
+            assets,
+            game_assets,
+            turn_border_materials,
+            start_transition_active,
+            false,
+        );
+        add_uno_actions(commands, table, game, ui, assets);
+        add_uno_callout_actions(commands, table, game, assets);
+        add_uno_swap_selection_prompt(commands, table, game, ui, assets);
+        render_jump_in_device(commands, content, jump_in_device, assets);
+    }
 
     let needs_color_choice = game.current_color.is_none()
         && matches!(game.phase, UnoPhaseView::Playing)
@@ -223,10 +221,10 @@ pub(crate) fn render_uno_table(
                         | UnoPendingSwapView::ColorRoulette { .. }
                 )
             ));
-    if needs_color_choice {
+    if needs_color_choice && own.is_some() {
         add_initial_color_choice(commands, content, game, assets);
     }
-    if let Some(card) = ui.color_choice {
+    if let Some(card) = ui.color_choice.filter(|_| own.is_some()) {
         add_play_color_choice(commands, content, game.flip_side, card, assets);
     }
     if let UnoPhaseView::Finished {
@@ -249,11 +247,11 @@ pub(crate) fn render_uno_table(
         );
     }
 
-    let auto_play = own.auto_play;
-    add_chat_panel(commands, content, chat, assets, Some(auto_play), &[]);
-    if own.eliminated && matches!(game.phase, UnoPhaseView::Playing) {
+    let auto_play = own.map(|player| player.auto_play);
+    add_chat_panel(commands, content, chat, assets, auto_play, &[]);
+    if own.is_some_and(|player| player.eliminated) && matches!(game.phase, UnoPhaseView::Playing) {
         add_uno_eliminated_own_overlay(commands, content, assets);
-    } else if auto_play && matches!(game.phase, UnoPhaseView::Playing) {
+    } else if auto_play == Some(true) && matches!(game.phase, UnoPhaseView::Playing) {
         add_auto_play_overlay(commands, content, assets);
     }
 }

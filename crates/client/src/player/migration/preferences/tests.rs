@@ -154,6 +154,7 @@ fn current_preferences_remember_all_minecraft_modes_in_the_shared_archive() {
     rules.race.options.candidate_hints = false;
     rules.race.options.allow_unknown_guesses = true;
     rules.graph.nodes = 32;
+    rules.graph.round_robin = false;
     rules.graph.temperature = 9;
     rules.graph.guess_seconds = 240;
     rules.graph.include_tags = false;
@@ -167,4 +168,55 @@ fn current_preferences_remember_all_minecraft_modes_in_the_shared_archive() {
         decoded.games.minecraft_guess.host_rules,
         saved.games.minecraft_guess.host_rules
     );
+}
+
+#[test]
+fn version_two_keeps_minecraft_settings_and_adds_the_original_round_robin_format() {
+    let mut saved = SavedPreferences::default();
+    saved.global.player_name = "已发布玩家".to_owned();
+    saved.games.texas_holdem.host_rules.fixed_limit = true;
+    let mut rules = MinecraftGuessRuleSet {
+        mode: GuessMode::Graph,
+        ..Default::default()
+    };
+    rules.turn_based.rounds = 3;
+    rules.race.seconds = 90;
+    rules.graph.nodes = 24;
+    rules.graph.temperature = 7;
+    rules.graph.include_tags = false;
+    let graph = rules.graph;
+    let mut bytes = b"LeoCard/prefs/v2\0".to_vec();
+    bytes.extend(
+        postcard::to_allocvec(&(
+            &saved.global,
+            (
+                saved.games.qigui523,
+                saved.games.texas_holdem,
+                saved.games.shengji,
+                saved.games.uno,
+                saved.games.mahjong,
+            ),
+            (
+                rules.mode,
+                rules.turn_based,
+                rules.race,
+                (
+                    graph.options,
+                    graph.nodes,
+                    graph.temperature,
+                    graph.guess_seconds,
+                    graph.show_character_count,
+                    graph.show_directions,
+                    graph.include_tags,
+                ),
+            ),
+        ))
+        .unwrap(),
+    );
+    let decoded = decode_player_preferences(&bytes).unwrap();
+    assert_eq!(decoded.global.player_name, saved.global.player_name);
+    assert!(decoded.games.texas_holdem.host_rules.fixed_limit);
+    assert_eq!(decoded.games.minecraft_guess.host_rules, rules);
+    bytes.push(42);
+    assert!(decode_player_preferences(&bytes).is_none());
 }

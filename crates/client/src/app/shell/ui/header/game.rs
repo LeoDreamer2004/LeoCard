@@ -3,7 +3,7 @@ use super::state::{
     AVATAR_SIZE, GameHeaderAvatar, GameHeaderItem, GameHeaderMotion, HEIGHT, ITEM_WIDTH,
     RIGHT_INSET,
 };
-use crate::app::presentation::{UiComposer, spawn_node};
+use crate::app::presentation::{MUTED, UiComposer, add_text, spawn_node};
 use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, NavigationUiAction, ProfileEntry, UiAction,
     add_cozy_labeled_icon_button,
@@ -30,6 +30,30 @@ impl Header<'_> {
             ),
         );
         commands.entity(header).init(GameHeaderMotion::default());
+        if self
+            .client
+            .is_some_and(|client| client.0.model().is_spectating())
+        {
+            let notice = spawn_node(
+                commands,
+                header,
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(16),
+                    top: px(10),
+                    ..default()
+                },
+                None,
+            );
+            add_text(
+                commands,
+                notice,
+                "观战中  下一场有空位时入座",
+                15.0,
+                MUTED,
+                self.assets,
+            );
+        }
         for (slot, (label, action, icon, variant)) in [
             (
                 "退出",

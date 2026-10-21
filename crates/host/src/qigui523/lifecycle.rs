@@ -1,9 +1,8 @@
 use super::{QiGui523Session, validate_deck};
+use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
-    RoomSession,
-    lifecycle::{HostedGameLifecycle, dispatch_client_command},
-    new_match_id,
+    RoomSession, new_match_id,
 };
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
@@ -134,6 +133,9 @@ impl QiGui523Session {
 
     /// 标记连接离线并向仍在线的玩家广播新快照。
     pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
+        if self.room.disconnect_spectator(connection) {
+            return Vec::new();
+        }
         let Some(index) = self
             .players
             .iter()

@@ -2,6 +2,7 @@ use super::super::{
     ShengjiHandCardSelectionOverlay, ShengjiHandCardSlot, ShengjiHandCardVisual, ShengjiUiAction,
     ShengjiUiState,
 };
+use super::hand_hints::{add_hand_sequence_hint, sequence_labels};
 use super::{
     ShengjiCardSize, add_shengji_dealer_badge, add_shengji_trump_stars, shengji_display_trump,
     shengji_hand_sort_trump, sort_shengji_cards,
@@ -55,7 +56,9 @@ pub(super) fn add_shengji_hand(
         cards.retain(|card| !failure.attempted.contains(card));
     }
     let display_trump = shengji_display_trump(game);
-    sort_shengji_cards(&mut cards, shengji_hand_sort_trump(game));
+    let sort_trump = shengji_hand_sort_trump(game);
+    sort_shengji_cards(&mut cards, sort_trump);
+    let hints = sequence_labels(&cards, sort_trump);
     let hand_len = cards.len();
     let last = cards.len().saturating_sub(1);
     for (index, card) in cards.into_iter().enumerate() {
@@ -69,6 +72,7 @@ pub(super) fn add_shengji_hand(
             ui.selected.contains(&card),
             ui.card_animations.get(&card).copied().unwrap_or_default(),
             display_trump,
+            hints[index],
             assets,
         );
     }
@@ -88,6 +92,7 @@ fn add_shengji_hand_card(
     selected: bool,
     animation: CardAnimationState,
     trump: Option<ShengjiTrump>,
+    hint: Option<&str>,
     assets: &UiAssets,
 ) {
     let (width, height) = CardSize::ShengjiHand.dimensions();
@@ -151,6 +156,11 @@ fn add_shengji_hand_card(
                 rotation: initial_pose.rotation,
                 ..UiTransform::IDENTITY
             },
+            if animation.dealing && animation.deal_elapsed < 0.0 {
+                Visibility::Hidden
+            } else {
+                Visibility::Inherited
+            },
             ImageNode::new(image).with_color(Color::srgb(
                 1.0,
                 1.0 - initial_glow * 0.035,
@@ -168,6 +178,19 @@ fn add_shengji_hand_card(
         ),
     );
     add_shengji_trump_stars(commands, face, card, trump, ShengjiCardSize::Hand, assets);
+    if let Some(label) = hint {
+        add_hand_sequence_hint(
+            commands,
+            face,
+            label,
+            if is_last {
+                width
+            } else {
+                shengji_hand_card_reveal(hand_len)
+            },
+            assets,
+        );
+    }
     commands.child(
         face,
         (
@@ -255,11 +278,21 @@ pub(crate) fn animate_shengji_hand_cards(
         &mut BoxShadow,
         &mut ImageNode,
         &mut BorderColor,
+        &mut Visibility,
     )>,
 ) {
     let response = 1.0 - (-14.0 * time.delta_secs()).exp();
     let pulse = 0.72 + 0.28 * (time.elapsed_secs() * 7.0).sin();
-    for (mut visual, mut transform, mut outline, mut shadow, mut image, mut border) in &mut cards {
+    for (
+        mut visual,
+        mut transform,
+        mut outline,
+        mut shadow,
+        mut image,
+        mut border,
+        mut visibility,
+    ) in &mut cards
+    {
         let Ok(interaction) = buttons.get(visual.button) else {
             continue;
         };
@@ -290,6 +323,12 @@ pub(crate) fn animate_shengji_hand_cards(
                 visual.dealing = false;
             }
         }
+        // Queued cards must not gather at the flight origin while awaiting their turn.
+        *visibility = if visual.dealing && visual.deal_elapsed < 0.0 {
+            Visibility::Hidden
+        } else {
+            Visibility::Inherited
+        };
         let next_animation = CardAnimationState {
             face_hover_amount: visual.hover_amount,
             selected_amount: visual.selected_amount,

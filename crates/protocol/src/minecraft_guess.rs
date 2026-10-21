@@ -1,8 +1,8 @@
 use crate::{LobbyPlayer, MatchId, PlayerId, PlayerReferenceChange, PlayerScore};
 pub use leocard_minecraft_guess::GameError as MinecraftGuessViolation;
 use leocard_minecraft_guess::{
-    GraphView, GuessActionStatistics, GuessHandStatistics, MatchProgress, MinecraftGuessRuleSet,
-    RoundView, ScoreGain,
+    GraphView, GuessActionStatistics, GuessCategoryStatistics, GuessHandStatistics, MatchProgress,
+    MinecraftGuessRuleSet, RoundView, ScoreGain,
 };
 use serde::{Deserialize, Serialize};
 
@@ -72,11 +72,8 @@ pub struct MinecraftGuessProfileStats {
     pub total_reference_delta: i64,
     pub total_score: u64,
     pub placement_counts: [u32; MinecraftGuessRuleSet::MAX_PLAYERS as usize],
-    /// All completed small games of this type, including games nobody solved.
-    pub block_games: u32,
-    pub block_wins: u32,
-    pub item_games: u32,
-    pub item_wins: u32,
+    /// Completed questions and guessable graph nodes, including unsolved ones.
+    pub categories: GuessCategoryStatistics,
     pub known_guesses: u32,
     /// Known guesses at least as close as the previous known guess; the first qualifies.
     pub non_worse_guesses: u32,
@@ -88,11 +85,11 @@ pub struct MinecraftGuessProfileStats {
 
 impl MinecraftGuessProfileStats {
     pub fn small_games(&self) -> u32 {
-        self.block_games.saturating_add(self.item_games)
+        self.categories.total().games
     }
 
     pub fn wins(&self) -> u32 {
-        self.block_wins.saturating_add(self.item_wins)
+        self.categories.total().wins
     }
 
     pub fn actions(&self) -> u32 {

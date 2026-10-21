@@ -140,6 +140,8 @@ impl RaceRules {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct GraphRules {
     pub options: GuessOptions,
+    /// Every participant opens one graph; otherwise play one graph with a shuffled order.
+    pub round_robin: bool,
     pub nodes: u8,
     /// Fixed-point tenths: 0 is regular, 10 is highly irregular.
     pub temperature: u8,
@@ -154,8 +156,9 @@ impl Default for GraphRules {
     fn default() -> Self {
         Self {
             options: GuessOptions::default(),
+            round_robin: true,
             nodes: 16,
-            temperature: 3,
+            temperature: 5,
             guess_seconds: 120,
             show_character_count: true,
             show_directions: false,

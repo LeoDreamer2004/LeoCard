@@ -222,7 +222,10 @@ pub(crate) fn mahjong_summary_descriptor(game: &MahjongSnapshot) -> Option<Summa
                 .find(|change| change.player == game.you)
                 .is_none_or(|change| change.delta >= 0)
         } else {
-            result.deltas[usize::from(game.you.0)] >= 0
+            result
+                .deltas
+                .get(usize::from(game.you.0))
+                .is_none_or(|delta| *delta >= 0)
         },
         reveal_duration: if result.winners.is_empty() {
             0.0

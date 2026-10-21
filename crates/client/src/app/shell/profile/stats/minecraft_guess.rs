@@ -1,10 +1,11 @@
 use super::rows::{ProfileRowsBuilder, rate_or_placeholder};
+use leocard_minecraft_guess::EntryKind;
 use leocard_protocol::MinecraftGuessProfileStats;
 
 pub(crate) fn minecraft_guess_profile_rows(
     stats: Option<&MinecraftGuessProfileStats>,
 ) -> Vec<(&'static str, String)> {
-    const LABELS: [&str; 19] = [
+    const LABELS: [&str; 25] = [
         "对局数",
         "分数增减",
         "场得分",
@@ -21,6 +22,12 @@ pub(crate) fn minecraft_guess_profile_rows(
         "猜出率",
         "方块猜出率",
         "物品猜出率",
+        "生物猜出率",
+        "附魔猜出率",
+        "状态效果猜出率",
+        "村民职业猜出率",
+        "世界景观猜出率",
+        "生物群系猜出率",
         "跳过率",
         "错猜率",
         "猜测更优率",
@@ -42,14 +49,27 @@ pub(crate) fn minecraft_guess_profile_rows(
             "猜出率",
             rate_or_placeholder(stats.wins(), stats.small_games()),
         ),
-        (
-            "方块猜出率",
-            rate_or_placeholder(stats.block_wins, stats.block_games),
-        ),
-        (
-            "物品猜出率",
-            rate_or_placeholder(stats.item_wins, stats.item_games),
-        ),
+    ]);
+    rows.extend(
+        LABELS[14..22]
+            .iter()
+            .copied()
+            .zip([
+                EntryKind::Block,
+                EntryKind::Item,
+                EntryKind::Mob,
+                EntryKind::Enchantment,
+                EntryKind::Effect,
+                EntryKind::VillagerProfession,
+                EntryKind::Landscape,
+                EntryKind::Biome,
+            ])
+            .map(|(label, kind)| {
+                let counts = stats.categories.get(kind);
+                (label, rate_or_placeholder(counts.wins, counts.games))
+            }),
+    );
+    rows.extend([
         ("跳过率", rate_or_placeholder(stats.skips, stats.actions())),
         (
             "错猜率",

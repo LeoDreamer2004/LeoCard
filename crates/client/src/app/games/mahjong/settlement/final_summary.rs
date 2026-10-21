@@ -196,7 +196,9 @@ impl FinalSummaryView<'_> {
                 .iter()
                 .find(|player| player.id == game.you)
                 .is_some_and(|player| player.ready);
-            if ready {
+            if !game.players.iter().any(|player| player.id == game.you) {
+                add_cozy_disabled_button(commands, actions, "观战中", assets, px(150), 48.0);
+            } else if ready {
                 add_cozy_disabled_button(commands, actions, "已准备", assets, px(150), 48.0);
             } else {
                 add_cozy_button_variant(
@@ -210,6 +212,8 @@ impl FinalSummaryView<'_> {
                     CozyButtonVariant::Cool,
                 );
             }
+        } else if !game.players.iter().any(|player| player.id == game.you) {
+            add_cozy_disabled_button(commands, actions, "观战中", assets, percent(100), 48.0);
         } else {
             add_cozy_button_variant(
                 commands,

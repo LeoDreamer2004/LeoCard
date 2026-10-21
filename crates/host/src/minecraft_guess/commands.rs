@@ -1,5 +1,6 @@
 use super::MinecraftGuessSession;
 use crate::{ConnectionId, Delivery, lifecycle::HostedGameLifecycle};
+use leocard_minecraft_guess::GameError;
 use leocard_protocol::{
     GameViolation, MinecraftGuessCommand, RejectReason, RequestId, RoomViolation,
 };
@@ -21,6 +22,9 @@ impl MinecraftGuessSession {
                 deliveries
             }
             Ok(_) => self.broadcast_lobby(Some((connection, request))),
+            Err(RejectReason::Game(GameViolation::MinecraftGuess(
+                GameError::NodeSwitchCoolingDown,
+            ))) => Vec::new(),
             Err(reason) => self.reject(connection, request, reason),
         }
     }

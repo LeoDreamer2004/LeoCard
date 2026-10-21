@@ -7,6 +7,7 @@ use std::time::Duration;
 mod combo;
 mod fixtures;
 mod scoring;
+mod statistics;
 
 #[test]
 fn revealing_all_also_unlocks_tags_without_inventing_guesses_or_points() {

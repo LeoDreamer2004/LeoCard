@@ -9,8 +9,7 @@ impl RoomSession {
         coins: u32,
     ) -> Result<(), RejectReason> {
         let player = self
-            .players
-            .iter_mut()
+            .participants_mut()
             .find(|player| player.connection == connection && !player.left)
             .ok_or(RejectReason::Player(PlayerViolation::NotJoined))?;
         if player.game_profiles.coins != coins {

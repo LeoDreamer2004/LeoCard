@@ -3,6 +3,9 @@ use crate::app::runtime::{POKER_CHIP_DENOMINATIONS, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 
+pub(crate) const CHIP_BET_DURATION: f32 = 0.42;
+pub(crate) const CHIP_BET_INTERVAL: f32 = 0.045;
+
 pub(crate) struct PokerChipVisual {
     pub denomination: u16,
     pub position: Vec2,

@@ -106,10 +106,18 @@ impl RulesEditor<'_, '_, '_> {
     }
 
     fn graph(&mut self) {
+        let mut next = self.rules;
+        next.graph.round_robin = !next.graph.round_robin;
+        self.toggle(
+            "对局方式",
+            if self.rules.graph.round_robin { "轮流首位" } else { "单局" },
+            "轮流首位：每人依次先手一局，整场档案分数增减为单局的 3 倍。单局：开场随机打乱座次，只玩一局。两种方式均按节点数量缩放档案分数。",
+            self.editable.then_some(next),
+        );
         self.choice(
             RuleChoice {
                 label: "节点数量",
-                help: "只统计可猜节点，标签不占名额。节点基础 1000 分，按度数、未知比例及连击计算，猜中获双倍奖励并续猜相邻节点；周围均已揭晓时可任选。未猜中的首绿获全额奖励，后续全绿获无连击价值的 30%，均换人；其他有效猜测基础 100～250 分。方块和物品按原分数，其他类型乘 2/3，村民职业乘 1/2。同一节点每多猜一次，得分再乘 95%。每人轮流先手一局。",
+                help: "只统计可猜节点，标签不占名额。节点基础 1000 分，按度数、未知比例及连击计算，猜中获双倍奖励并续猜相邻节点；周围均已揭晓时可任选。未猜中的首绿获全额奖励，后续全绿获无连击价值的 30%，均换人；其他有效猜测基础 100～250 分。方块和物品按原分数，其他类型乘 2/3，村民职业乘 1/2。同一节点每多猜一次，得分再乘 95%。",
                 values: GraphRules::NODE_OPTIONS,
                 current: self.rules.graph.nodes,
             },
@@ -119,7 +127,7 @@ impl RulesEditor<'_, '_, '_> {
         self.choice(
             RuleChoice {
                 label: "图谱温度",
-                help: "低温偏向均衡度数与短环；高温更容易出现枢纽、叶子、长环及交错连边。",
+                help: "低温偏向均衡度数与短环；高温允许子图内出现枢纽、叶子、长环及交错连边，同时降低原图热门节点的入选权重，偏向低度数冷门节点。",
                 values: &GraphRules::TEMPERATURE_OPTIONS,
                 current: self.rules.graph.temperature,
             },

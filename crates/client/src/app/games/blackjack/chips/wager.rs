@@ -1,8 +1,8 @@
 use super::super::playback::SETTLEMENT_CHIP_DURATION;
 use crate::app::presentation::{
-    DANGER, MUTED, PokerChipScatter, READY, TablePieceDeal, TableStatusEffect, TableStatusSpec,
-    UiComposer, UiSceneProperties, add_poker_chip, add_table_status, poker_chip_counts,
-    table_random_signed,
+    CHIP_BET_DURATION, CHIP_BET_INTERVAL, DANGER, MUTED, PokerChipScatter, READY, TablePieceDeal,
+    TableStatusEffect, TableStatusSpec, UiComposer, UiSceneProperties, add_poker_chip,
+    add_table_status, poker_chip_counts, table_random_signed,
 };
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
@@ -153,8 +153,8 @@ fn paint_wager(
         if let Some(source) = source {
             let stamp = WagerChip(denomination);
             let previous = commands.declared::<WagerChip>(entity).copied();
-            let flight = TablePieceDeal::from_anchor(source, index as f32 * 0.045)
-                .with_duration(0.7)
+            let flight = TablePieceDeal::from_anchor(source, index as f32 * CHIP_BET_INTERVAL)
+                .with_duration(CHIP_BET_DURATION)
                 .with_rotation(
                     rotation + table_random_signed(scatter.seed, index as u64 + 91) * 0.7,
                     rotation,

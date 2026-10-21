@@ -31,7 +31,11 @@ fn match_statistics_include_each_small_game_and_only_accepted_actions() {
     state.finish_round(&game);
     let first = *state.statistics().next().unwrap().1;
     assert_eq!(
-        (first.block_games, first.block_wins, first.skips),
+        (
+            first.categories.block.games,
+            first.categories.block.wins,
+            first.skips
+        ),
         (1, 1, 1)
     );
     assert_eq!(
@@ -46,7 +50,7 @@ fn match_statistics_include_each_small_game_and_only_accepted_actions() {
     let other = *state.statistics().nth(1).unwrap().1;
     // Granite and diorite give equally close feedback, so both count as non-worse guesses.
     assert_eq!((other.known_guesses, other.non_worse_guesses), (2, 2));
-    assert_eq!(other.block_games, 1);
+    assert_eq!(other.categories.block.games, 1);
     assert!(state.advance());
     let answer = Catalogue::bundled()
         .find(EntryKind::Item, "minecraft:stick")
@@ -57,7 +61,11 @@ fn match_statistics_include_each_small_game_and_only_accepted_actions() {
     state.finish_round(&game);
     let other = *state.statistics().nth(1).unwrap().1;
     assert_eq!(
-        (other.block_games, other.item_games, other.item_wins),
+        (
+            other.categories.block.games,
+            other.categories.item.games,
+            other.categories.item.wins
+        ),
         (1, 1, 1)
     );
     assert_eq!((other.known_guesses, other.unknown_enabled_guesses), (3, 2));

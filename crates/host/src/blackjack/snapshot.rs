@@ -4,11 +4,7 @@ use leocard_protocol::{BlackjackPlayerView, BlackjackSnapshot, PlayerId};
 impl BlackjackSession {
     pub(super) fn snapshot_for(&self, recipient: PlayerId) -> BlackjackSnapshot {
         let game = self.game.as_ref().expect("active blackjack game");
-        let index = self
-            .order
-            .iter()
-            .position(|player| *player == recipient)
-            .expect("game participant");
+        let index = self.order.iter().position(|player| *player == recipient);
         BlackjackSnapshot {
             match_id: self.match_id.expect("active match"),
             host_port: self.room.host_port,
@@ -41,7 +37,9 @@ impl BlackjackSession {
             dealer_hidden: game.dealer_has_hidden_card(),
             current_player: game.current_player().map(|index| self.order[index]),
             current_hand: game.current_hand().map(|hand| hand as u8),
-            available: game.available_actions(index),
+            available: index
+                .map(|index| game.available_actions(index))
+                .unwrap_or_default(),
             seconds_remaining: self.seconds_remaining(),
             match_complete: game.match_complete(),
             reference_changes: self.finished_reference_changes.clone().unwrap_or_default(),

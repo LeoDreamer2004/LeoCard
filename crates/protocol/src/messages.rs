@@ -1,9 +1,10 @@
 use crate::{
     AchievementAnnouncement, AchievementCounts, AvatarId, BlackjackSnapshot, ChatContent,
-    ChatMessage, GameCommand, GameEvent, GameKind, GameRules, MahjongSnapshot, MatchId,
-    MinecraftGuessSnapshot, PROTOCOL_VERSION, PlayerGameProfiles, PlayerId, PlayerInteraction,
-    PlayerInteractionKind, ProfileId, QiGui523Snapshot, ReconnectToken, RejectReason, RequestId,
-    Revision, RoomId, SeatId, ShengjiSnapshot, TexasHoldemSnapshot, UnoSnapshot,
+    ChatMessage, GameCommand, GameEvent, GameKind, GamePhaseView, GameRules, MahjongPhaseView,
+    MahjongSnapshot, MatchId, MinecraftGuessSnapshot, PROTOCOL_VERSION, PlayerGameProfiles,
+    PlayerId, PlayerInteraction, PlayerInteractionKind, ProfileId, QiGui523Snapshot,
+    ReconnectToken, RejectReason, RequestId, Revision, RoomId, RoomInfo, SeatId, ShengjiSnapshot,
+    TexasHoldemPhaseView, TexasHoldemSnapshot, UnoPhaseView, UnoSnapshot,
 };
 use serde::{Deserialize, Serialize};
 
@@ -118,6 +119,8 @@ pub enum ClientCommand {
     /// 传输层存活探测，不参与房间请求序号和游戏状态。
     Ping,
     RequestSnapshot,
+    /// Read-only public metadata; does not require a Join request.
+    RequestRoomInfo,
 }
 
 impl ClientCommand {
@@ -179,6 +182,9 @@ pub enum ServerEvent {
         game: GameKind,
         match_id: MatchId,
     },
+    /// Bootstrap rules without temporarily moving a midgame joiner into the lobby.
+    RulesSnapshot(GameRules),
+    RoomInfo(Option<RoomInfo>),
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -255,6 +261,42 @@ impl_game_snapshot_from!(MinecraftGuessSnapshot, MinecraftGuess);
 impl_game_snapshot_from!(BlackjackSnapshot, Blackjack);
 
 impl GameSnapshot {
+    /// A rematch can change the roster only after the whole match, never between hands.
+    pub fn match_complete(&self) -> bool {
+        match self {
+            Self::QiGui523(snapshot) => matches!(snapshot.phase, GamePhaseView::Finished { .. }),
+            Self::TexasHoldem(snapshot) => matches!(
+                snapshot.phase,
+                TexasHoldemPhaseView::HandComplete {
+                    tournament_complete: true,
+                    ..
+                }
+            ),
+            // Shengji runs continuously; changing its four seats requires returning to the lobby.
+            Self::Shengji(_) => false,
+            Self::Uno(snapshot) => matches!(snapshot.phase, UnoPhaseView::Finished { .. }),
+            Self::Mahjong(snapshot) => {
+                matches!(&snapshot.phase, MahjongPhaseView::Finished { result } if result.match_complete)
+            }
+            Self::MinecraftGuess(snapshot) => {
+                snapshot.progress.is_last_game() && snapshot.round.finished()
+            }
+            Self::Blackjack(snapshot) => snapshot.match_complete,
+        }
+    }
+
+    pub const fn you(&self) -> PlayerId {
+        match self {
+            Self::QiGui523(snapshot) => snapshot.you,
+            Self::TexasHoldem(snapshot) => snapshot.you,
+            Self::Shengji(snapshot) => snapshot.you,
+            Self::Uno(snapshot) => snapshot.you,
+            Self::Mahjong(snapshot) => snapshot.you,
+            Self::MinecraftGuess(snapshot) => snapshot.you,
+            Self::Blackjack(snapshot) => snapshot.you,
+        }
+    }
+
     pub const fn match_id(&self) -> MatchId {
         match self {
             Self::QiGui523(snapshot) => snapshot.match_id,

@@ -1,3 +1,4 @@
+use crate::lifecycle::HostedGameLifecycle;
 use crate::{
     BlackjackSession, ConnectionId, Delivery, HostError, MahjongSession, MinecraftGuessSession,
     QiGui523Session, ShengjiSession, TexasHoldemSession, UnoSession,
@@ -7,7 +8,7 @@ use leocard_mahjong::{MahjongRuleSet, MahjongTile};
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameKind, GameRules, PROTOCOL_VERSION, Revision, RoomId,
-    ServerEvent, ServerMessage,
+    RoomInfo, ServerEvent, ServerMessage,
 };
 use leocard_qigui523::{QiGuiCard, QiGuiRuleSet, build_deck};
 use leocard_shengji::{ShengjiCard, ShengjiRuleSet, build_deck_for};
@@ -153,6 +154,8 @@ trait HostBackend {
 
     fn heartbeat(&self) -> Vec<Delivery>;
 
+    fn room_info(&self) -> Option<RoomInfo>;
+
     fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery>;
 
     fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery>;
@@ -185,6 +188,10 @@ macro_rules! impl_host_backend {
 
             fn heartbeat(&self) -> Vec<Delivery> {
                 <$session>::heartbeat(self)
+            }
+
+            fn room_info(&self) -> Option<RoomInfo> {
+                HostedGameLifecycle::room_info(self)
             }
 
             fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
@@ -309,6 +316,10 @@ impl HostSession {
         self.backend().is_closed()
     }
 
+    pub fn room_info(&self) -> Option<RoomInfo> {
+        self.backend().room_info()
+    }
+
     pub fn heartbeat(&self) -> Vec<Delivery> {
         self.backend().heartbeat()
     }
@@ -318,6 +329,22 @@ impl HostSession {
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
+        if matches!(&message.command, ClientCommand::RequestRoomInfo)
+            && message.protocol_version == PROTOCOL_VERSION
+            && message.room_id == self.room_id()
+        {
+            return vec![Delivery {
+                recipient: connection,
+                message: ServerMessage {
+                    protocol_version: PROTOCOL_VERSION,
+                    room_id: self.room_id(),
+                    revision: self.revision(),
+                    in_reply_to: Some(message.request_id),
+                    game_context: None,
+                    event: ServerEvent::RoomInfo(self.room_info()),
+                },
+            }];
+        }
         if matches!(&message.command, ClientCommand::Ping) {
             return vec![Delivery {
                 recipient: connection,

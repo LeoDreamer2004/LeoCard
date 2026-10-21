@@ -1,7 +1,9 @@
+mod archive;
+mod combo;
 mod eight_players;
 mod existing;
 mod graph;
+mod graph_matches;
 mod race;
-mod combo;
 mod support;
 mod timing;

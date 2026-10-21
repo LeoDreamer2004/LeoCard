@@ -78,7 +78,7 @@ impl BlackjackTable<'_> {
                     .players
                     .iter()
                     .find(|view| view.player.id == self.game.you)
-                    .is_some_and(|view| view.player.ready),
+                    .map(|view| view.player.ready),
                 again: "开始下一场",
             },
             self.assets,

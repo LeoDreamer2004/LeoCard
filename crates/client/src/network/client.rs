@@ -39,6 +39,8 @@ pub struct TcpGameClient {
     events: EventQueue,
     state: NetworkState,
     recent_game_command: Option<RecentGameCommand>,
+    reconnect_started: Option<Instant>,
+    reconnect_notice: bool,
     _worker: thread::JoinHandle<()>,
 }
 
@@ -148,9 +150,10 @@ impl TcpGameClient {
             events,
             state: NetworkState::Connecting(connecting),
             recent_game_command: None,
+            reconnect_started: None,
+            reconnect_notice: false,
             _worker: worker,
         };
-        let _ = client.commands.try_send(join);
         if let Some(avatar) = avatar {
             let _ = client.commands.try_send(avatar);
         }
@@ -169,8 +172,28 @@ impl TcpGameClient {
         &self.state
     }
 
+    /// Brief outages block commands immediately, but only sustained outages need an overlay.
+    pub fn reconnecting_message(&self) -> Option<&str> {
+        match &self.state {
+            NetworkState::Reconnecting(message) if self.reconnect_notice => Some(message),
+            _ => None,
+        }
+    }
+
     pub fn send(&mut self, command: ClientCommand) -> bool {
         if !matches!(self.state, NetworkState::Connected(_)) {
+            return false;
+        }
+        if self.model.is_spectating()
+            && matches!(
+                command,
+                ClientCommand::Game(_)
+                    | ClientCommand::PlayAgain
+                    | ClientCommand::SetReady { .. }
+                    | ClientCommand::Interact { .. }
+                    | ClientCommand::Chat { .. }
+            )
+        {
             return false;
         }
         let now = Instant::now();
@@ -230,8 +253,10 @@ impl TcpGameClient {
                     let state = NetworkState::Connected(address);
                     changed |= self.state != state;
                     self.state = state;
+                    self.reconnect_started = None;
                 }
                 NetworkEvent::Reconnecting(message) => {
+                    self.reconnect_started.get_or_insert_with(Instant::now);
                     let state = NetworkState::Reconnecting(message);
                     changed |= self.state != state;
                     self.state = state;
@@ -252,6 +277,12 @@ impl TcpGameClient {
                 }
             }
         }
+        let notice = matches!(self.state, NetworkState::Reconnecting(_))
+            && self
+                .reconnect_started
+                .is_some_and(|started| started.elapsed() >= Duration::from_millis(500));
+        changed |= self.reconnect_notice != notice;
+        self.reconnect_notice = notice;
         changed
     }
 }

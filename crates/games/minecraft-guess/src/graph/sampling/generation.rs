@@ -48,7 +48,9 @@ impl Sample {
             if sample.nodes.len() - topology.tags == size {
                 search.chords(&mut sample, size);
                 topology = Topology::new(index, &sample);
-                let quality = topology.quality(&sample, search.temperature, search.ring_size);
+                let quality = topology.quality(&sample, search.temperature, search.ring_size)
+                    + index.rarity_score(sample.nodes.iter().copied(), search.temperature)
+                    + topology.diversity.score();
                 complete.push((sample, quality));
             }
             if complete.len() >= 4 || search.remaining == 0 {

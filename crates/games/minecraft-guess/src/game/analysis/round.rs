@@ -44,14 +44,8 @@ impl RoundAnalysis {
         let correct = input.result.is_correct();
         let known = matches!(input.result, GuessResult::Known { .. });
         state.unknown_run = if known { 0 } else { state.unknown_run + 1 };
-        let non_worse = input
-            .result
-            .closeness()
-            .is_some_and(|score| input.previous.is_none_or(|previous| score >= previous));
+        let non_worse = state.statistics.record_guess(input.result, input.previous);
         state.consistent &= non_worse;
-        state.statistics.known_guesses += u32::from(known);
-        state.statistics.non_worse_guesses += u32::from(non_worse);
-        state.statistics.unknown_guesses += u32::from(!known);
         let qualities = match input.result {
             GuessResult::Known { matches, .. } => Some(matches),
             GuessResult::Unknown { .. } => None,

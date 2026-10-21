@@ -26,14 +26,17 @@ use crate::app::runtime::{
 use crate::app::shell::add_developer_hand_input;
 use crate::app::shell::{
     ChatPanelState, DeveloperHandInput, UiAction, UiState, add_chat_help_button, add_chat_panel,
+    add_reconnecting_overlay,
 };
 use bevy::prelude::*;
 use leocard_mahjong::{
     MahjongClaim, MahjongDragon, MahjongFlower, MahjongSuit, MahjongTile, MahjongTileKind,
     MahjongWind,
 };
-use leocard_protocol::{MahjongEvent, MahjongPhaseView, MahjongSnapshot, MatchId, PlayerId};
-use leocard_protocol::{MahjongHandResultView, MahjongWinView};
+use leocard_protocol::{
+    MahjongEvent, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MahjongWinView,
+    MatchId, PlayerId,
+};
 use std::collections::VecDeque;
 
 pub(super) const MAHJONG_CLAIM_FLIGHT_DELAY: f32 = 0.18;
@@ -745,6 +748,7 @@ pub(crate) fn render_mahjong_table(
                 ui_assets: assets,
                 own_seat,
                 observed_count: ui.observed_table.state.counts[player.id.0 as usize],
+                spectating: client.0.model().is_spectating(),
                 flower_replaced,
                 dealing: dealing || flower_replaced,
                 winning_hand: winning_hand.then_some(MahjongWinningHandVisual {
@@ -785,7 +789,8 @@ pub(crate) fn render_mahjong_table(
             | MahjongPhaseView::ReplacingFlower { .. }
             | MahjongPhaseView::Playing
             | MahjongPhaseView::WaitingForClaims
-    ) {
+    ) && !client.0.model().is_spectating()
+    {
         render_mahjong_auto_drawer(commands, content, ui, game.rules.false_win, assets);
     }
     let own_flower_replaced = game
@@ -971,5 +976,7 @@ pub(crate) fn render_mahjong_table(
         .iter()
         .find(|player| player.id == game.you)
         .map_or(0, |player| player.melds.len());
-    let _ = client;
+    if let Some(message) = client.0.reconnecting_message() {
+        add_reconnecting_overlay(commands, content, message, assets);
+    }
 }

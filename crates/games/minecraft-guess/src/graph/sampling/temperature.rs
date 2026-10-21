@@ -38,6 +38,29 @@ impl Temperature {
         self.blend(1.6, 1.15 + random.f32() * 0.65)
     }
 
+    /// High heat favors less connected source nodes without restricting local puzzle hubs.
+    pub fn rarity_penalty(self, source_degree_log: f32) -> f32 {
+        source_degree_log * self.0 * self.0 * 6.0
+    }
+
+    pub fn hub_penalty(self, source_degree_log: f32) -> f32 {
+        self.rarity_penalty((source_degree_log - 16.0_f32.ln()).max(0.0)) * 0.75
+    }
+
+    pub fn prioritize<T>(
+        self,
+        values: impl IntoIterator<Item = T>,
+        score: impl Fn(&T) -> f32,
+        random: &mut Rng,
+    ) -> Vec<T> {
+        let mut ranked: Vec<_> = values
+            .into_iter()
+            .map(|value| (self.perturb(score(&value), random), value))
+            .collect();
+        ranked.sort_unstable_by(|a, b| b.0.total_cmp(&a.0));
+        ranked.into_iter().map(|(_, value)| value).collect()
+    }
+
     /// Gumbel-max is a bounded, single-pass Boltzmann draw without exponent overflow.
     pub fn choose<T>(
         self,
@@ -48,13 +71,17 @@ impl Temperature {
         let mut best = None;
         let mut maximum = f32::NEG_INFINITY;
         for value in values {
-            let uniform = random.f32().clamp(f32::EPSILON, 1.0 - f32::EPSILON);
-            let perturbed = score(&value) - self.blend(0.08, 3.5) * (-uniform.ln()).ln();
+            let perturbed = self.perturb(score(&value), random);
             if perturbed > maximum {
                 best = Some(value);
                 maximum = perturbed;
             }
         }
         best
+    }
+
+    fn perturb(self, score: f32, random: &mut Rng) -> f32 {
+        let uniform = random.f32().clamp(f32::EPSILON, 1.0 - f32::EPSILON);
+        score - self.blend(0.08, 3.5) * (-uniform.ln()).ln()
     }
 }

@@ -427,14 +427,16 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
             animation.elapsed,
             timeline.continue_at,
             f32::INFINITY,
-            if !final_standings && ready {
+            if !game.players.iter().any(|player| player.id == game.you) && !final_standings {
+                "观战中，等待下一局"
+            } else if !final_standings && ready {
                 "等待其他玩家"
             } else {
                 "点击任意位置继续"
             },
             if final_standings {
                 Some(UiAction::Mahjong(MahjongUiAction::ShowFinalSummary))
-            } else if ready {
+            } else if ready || !game.players.iter().any(|player| player.id == game.you) {
                 None
             } else {
                 Some(UiAction::Lobby(LobbyUiAction::PlayAgain))

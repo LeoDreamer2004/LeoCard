@@ -92,6 +92,9 @@ impl BlackjackSession {
     }
 
     pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
+        if self.room.disconnect_spectator(connection) {
+            return Vec::new();
+        }
         let Some(player) = self
             .room
             .players

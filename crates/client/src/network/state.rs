@@ -114,15 +114,18 @@ impl LocalPlayerConnection {
 
 pub(super) fn push_event(events: &EventQueue, event: NetworkEvent) {
     let mut queue = events.lock().expect("network event queue mutex poisoned");
+    if queue
+        .iter()
+        .any(|event| matches!(event, NetworkEvent::Failed(_)))
+    {
+        return;
+    }
     if queue.len() >= EVENT_QUEUE {
-        if let Some(index) = queue
-            .iter()
-            .position(|queued| matches!(queued, NetworkEvent::Message(_)))
-        {
-            queue.remove(index);
-        } else {
-            queue.pop_front();
-        }
+        queue.clear();
+        queue.push_back(NetworkEvent::Failed(
+            "客户端处理网络消息过慢，请重新加入房间以同步完整状态".to_owned(),
+        ));
+        return;
     }
     queue.push_back(event);
 }

@@ -26,7 +26,8 @@ pub use game::{
 };
 pub use play::{
     Category, Component, FollowError, PlayError, ShengjiClassifiedPlay, ThrowFailure, TrickPlay,
-    classify_lead, compare_for_trick, follow_suggestions, forced_follow_cards, validate_follow,
+    classify_lead, compare_for_trick, follow_suggestions, forced_follow_cards, hand_sequences,
+    validate_follow,
 };
 pub use rules::{
     RuleError, ShengjiBidTrump, ShengjiPlayerId, ShengjiRuleSet, ShengjiTeamId,

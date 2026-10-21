@@ -1,4 +1,5 @@
 mod candidate;
+mod diversity;
 mod generation;
 mod growth;
 mod index;

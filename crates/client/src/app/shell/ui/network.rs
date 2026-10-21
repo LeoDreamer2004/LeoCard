@@ -1,6 +1,7 @@
 //! 网络会话变化驱动的页面、弹窗和开局演出协调。
 use super::super::{
-    ConnectionEndFeedback, LobbyGameMotion, PageMotion, ProfileMotion, SettingsMotion, UiState,
+    ChatPanelState, ConnectionEndFeedback, LobbyGameMotion, PageMotion, ProfileMotion,
+    SettingsMotion, UiState,
 };
 use crate::app::games::GameScreenChange;
 use crate::app::presentation::{
@@ -14,6 +15,7 @@ use leocard_protocol::LobbySnapshot;
 
 pub(crate) struct NetworkUiSnapshot {
     previous_state: NetworkState,
+    reconnect_notice: bool,
     previous_lobby: Option<LobbySnapshot>,
     was_home: bool,
     was_game: bool,
@@ -24,6 +26,7 @@ pub(crate) struct NetworkUiSnapshot {
 #[derive(SystemParam)]
 pub(crate) struct NetworkUiContext<'w, 's> {
     ui: ResMut<'w, UiState>,
+    chat: ResMut<'w, ChatPanelState>,
     page_motion: ResMut<'w, PageMotion>,
     lobby_game_motion: ResMut<'w, LobbyGameMotion>,
     settings_motion: ResMut<'w, SettingsMotion>,
@@ -44,6 +47,7 @@ impl NetworkUiContext<'_, '_> {
     pub(crate) fn before_poll(&self, client: &TcpGameClient) -> NetworkUiSnapshot {
         NetworkUiSnapshot {
             previous_state: client.state().clone(),
+            reconnect_notice: client.reconnecting_message().is_some(),
             previous_lobby: client.model().lobby().cloned(),
             was_home: matches!(
                 client.model().phase(),
@@ -62,8 +66,14 @@ impl NetworkUiContext<'_, '_> {
         before: NetworkUiSnapshot,
         page_error: &mut PageErrorState,
     ) {
+        let read_only = client.model().is_spectating();
+        if self.chat.read_only != read_only {
+            self.chat.read_only = read_only;
+            self.ui.dirty = true;
+        }
         let NetworkUiSnapshot {
             previous_state,
+            reconnect_notice,
             previous_lobby,
             was_home,
             was_game,
@@ -114,7 +124,8 @@ impl NetworkUiContext<'_, '_> {
             self.ui.leaving_room = false;
             self.commands.remove_resource::<ClientResource>();
         }
-        if previous_state != *client.state()
+        if reconnect_notice != client.reconnecting_message().is_some()
+            || previous_state != *client.state()
             || !game_change.is_transient(client.model().game_snapshot())
         {
             self.ui.dirty = true;

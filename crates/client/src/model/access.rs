@@ -47,12 +47,26 @@ pub enum ClientPhaseRef<'a> {
 }
 
 impl ActiveGameMeta {
+    pub fn is_spectating(&self) -> bool {
+        !self.players.contains(&self.you)
+    }
+
     pub fn is_host(&self) -> bool {
         self.you == self.host
     }
 }
 
 impl ClientModel {
+    pub fn is_spectating(&self) -> bool {
+        self.active_game_meta()
+            .is_some_and(|game| game.is_spectating())
+            || self
+                .lobby
+                .as_ref()
+                .zip(self.you)
+                .is_some_and(|(lobby, you)| !lobby.players.iter().any(|player| player.id == you))
+    }
+
     pub fn phase(&self) -> ClientPhaseRef<'_> {
         if self.room_closed || self.left_room {
             ClientPhaseRef::Closed

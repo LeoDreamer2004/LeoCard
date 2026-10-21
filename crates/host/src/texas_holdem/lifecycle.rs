@@ -1,8 +1,6 @@
 use super::{TexasHoldemAdapter, TexasHoldemSession, validate_deck};
-use crate::{
-    AutomaticActionDelayState, ConnectionId, Delivery, HostError, RoomSession,
-    lifecycle::{HostedGameLifecycle, dispatch_client_command},
-};
+use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
+use crate::{AutomaticActionDelayState, ConnectionId, Delivery, HostError, RoomSession};
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
     PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, Revision, RoomId,
@@ -109,6 +107,9 @@ impl TexasHoldemSession {
     }
 
     pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
+        if self.room.disconnect_spectator(connection) {
+            return Vec::new();
+        }
         let Some(index) =
             self.room.players.iter().position(|player| {
                 player.connection == connection && player.connected && !player.left

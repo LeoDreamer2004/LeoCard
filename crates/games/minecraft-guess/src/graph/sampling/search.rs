@@ -17,7 +17,7 @@ pub(super) struct Search<'a> {
 impl Search<'_> {
     pub fn neighbours(&mut self, node: usize, limit: usize, core_only: bool) -> Vec<usize> {
         self.index
-            .neighbours(node, limit, core_only, &mut self.random)
+            .neighbours(node, limit, core_only, self.temperature, &mut self.random)
     }
 
     pub fn spend(&mut self) -> bool {
@@ -37,7 +37,8 @@ impl Search<'_> {
         let root = self.temperature.choose(
             roots,
             |&node| {
-                (self.index.adjacent[node].len() as f32).ln() * self.temperature.blend(-1.8, 0.8)
+                (self.index.adjacent[node].len() as f32).ln() * self.temperature.blend(-1.8, 0.0)
+                    + self.index.rarity_score([node], self.temperature)
             },
             &mut self.random,
         )?;
@@ -87,7 +88,14 @@ impl Search<'_> {
         }
         let mut cycle = self.temperature.choose(
             cycles,
-            |cycle| -(cycle.len() as f32 - self.ring_size as f32).abs() * 2.0,
+            |cycle| {
+                -(cycle.len() as f32 - self.ring_size as f32).abs() * 2.0
+                    + self
+                        .index
+                        .rarity_score(cycle.iter().copied(), self.temperature)
+                    + self.index.diversity.census(cycle.iter().copied()).score()
+                        / cycle.len() as f32
+            },
             &mut self.random,
         )?;
         let length = cycle.len();

@@ -1,8 +1,9 @@
 use super::super::{StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
+use super::minecraft_guess::PreviousMinecraftGuessStats;
 use super::profile::decode_exact;
 use leocard_protocol::{
-    MahjongProfileStats, MinecraftGuessProfileStats, PlayerInteractionStats, ShengjiProfileStats,
-    TexasHoldemProfileStats, UnoProfileStats,
+    MahjongProfileStats, PlayerInteractionStats, ShengjiProfileStats, TexasHoldemProfileStats,
+    UnoProfileStats,
 };
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +23,7 @@ struct V1GameProfiles {
     uno_stats: Option<UnoProfileStats>,
     interaction_stats: Option<PlayerInteractionStats>,
     mahjong_stats: Option<MahjongProfileStats>,
-    minecraft_guess_stats: Option<MinecraftGuessProfileStats>,
+    minecraft_guess_stats: Option<PreviousMinecraftGuessStats>,
 }
 
 pub(super) fn decode_v1(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
@@ -37,7 +38,7 @@ pub(super) fn decode_v1(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
             uno_stats: previous.games.uno_stats,
             interaction_stats: previous.games.interaction_stats,
             mahjong_stats: previous.games.mahjong_stats,
-            minecraft_guess_stats: previous.games.minecraft_guess_stats,
+            minecraft_guess_stats: previous.games.minecraft_guess_stats.map(Into::into),
             blackjack_stats: None,
         },
     })

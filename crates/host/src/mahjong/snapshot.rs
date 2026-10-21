@@ -1,11 +1,10 @@
 use super::{MahjongSession, from_core_player, hand_result_view, to_core_player};
 use crate::{ConnectionId, Delivery};
 use leocard_mahjong::{GameError, MahjongMeldKind, Phase};
-use leocard_protocol::{GameEvent, ServerEvent};
 use leocard_protocol::{
-    GameViolation, MahjongDiscardView, MahjongEvent, MahjongPendingClaimView, MahjongPhaseView,
-    MahjongPlayerState, MahjongPublicMeldView, MahjongSnapshot, MahjongViolation, PlayerId,
-    RejectReason, RequestId,
+    GameEvent, GameViolation, MahjongDiscardView, MahjongEvent, MahjongPendingClaimView,
+    MahjongPhaseView, MahjongPlayerState, MahjongPublicMeldView, MahjongSnapshot, MahjongViolation,
+    PlayerId, RejectReason, RequestId, ServerEvent,
 };
 use std::collections::HashSet;
 
@@ -51,8 +50,18 @@ impl MahjongSession {
             .map(|participant| {
                 let metadata = participant.public_metadata();
                 let core_id = to_core_player(metadata.id);
+                // Public visibility is evaluated from another player's perspective for observers.
+                let viewer = if game.player(core_recipient).is_some() {
+                    core_recipient
+                } else {
+                    game.players()
+                        .iter()
+                        .find(|player| player.id() != core_id)
+                        .expect("four players")
+                        .id()
+                };
                 let game_player = game
-                    .public_player(core_recipient, core_id)
+                    .public_player(viewer, core_id)
                     .expect("room and Mahjong players stay aligned");
                 MahjongPlayerState {
                     id: metadata.id,
@@ -83,9 +92,7 @@ impl MahjongSession {
                 }
             })
             .collect();
-        let own = game
-            .player(core_recipient)
-            .expect("room and Mahjong players stay aligned");
+        let own = game.player(core_recipient);
         let pending_claim = match game.phase() {
             Phase::WaitingForClaims(pending) => Some(MahjongPendingClaimView {
                 source: from_core_player(pending.source_player()),
@@ -115,6 +122,7 @@ impl MahjongSession {
             && game.wall_len() > 0;
         let concealed_kong_options = if can_declare_kong {
             let mut kinds = own
+                .expect("current player has a hand")
                 .hand()
                 .iter()
                 .map(|tile| tile.kind())
@@ -131,13 +139,14 @@ impl MahjongSession {
             Vec::new()
         };
         let pung_kinds = own
-            .melds()
-            .iter()
+            .into_iter()
+            .flat_map(|player| player.melds().iter())
             .filter(|meld| meld.kind() == MahjongMeldKind::Pung)
             .map(|meld| meld.tile())
             .collect::<HashSet<_>>();
         let added_kong_options = if can_declare_kong {
-            own.hand()
+            own.expect("current player has a hand")
+                .hand()
                 .iter()
                 .copied()
                 .filter(|tile| pung_kinds.contains(&tile.kind()))
@@ -171,7 +180,7 @@ impl MahjongSession {
                 .expect("started Mahjong room retains a host"),
             rules: self.rules,
             players,
-            your_hand: own.hand().to_vec(),
+            your_hand: own.map(|player| player.hand().to_vec()).unwrap_or_default(),
             your_drawn_tile: (game.current_player() == core_recipient)
                 .then(|| game.last_drawn())
                 .flatten(),

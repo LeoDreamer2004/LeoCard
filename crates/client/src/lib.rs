@@ -16,7 +16,8 @@ pub use model::{
     ActiveGameMeta, ClientModel, ClientPhaseRef, ScoreCaptureEffect, ShengjiScoreCaptureEffect,
 };
 pub use network::{
-    LocalPlayerConnection, NETWORK_ROOM_ID, NetworkStartError, NetworkState, TcpGameClient,
+    LanRoom, LanRoomBrowser, LocalPlayerConnection, NETWORK_ROOM_ID, NetworkStartError,
+    NetworkState, TcpGameClient,
 };
 pub use platform::{open_url, pick_image};
 pub use player::*;

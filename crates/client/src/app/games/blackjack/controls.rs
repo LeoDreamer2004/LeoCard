@@ -10,7 +10,8 @@ use leocard_blackjack::{BlackjackAction, Phase};
 
 impl BlackjackTable<'_> {
     pub(super) fn controls(&self, commands: &mut UiComposer, table: Entity) {
-        if self.game.match_complete || self.playback.busy() {
+        if self.client.0.model().is_spectating() || self.game.match_complete || self.playback.busy()
+        {
             return;
         }
         if self.game.phase != Phase::Complete && self.game.current_player != Some(self.game.you) {

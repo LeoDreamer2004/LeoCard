@@ -238,9 +238,49 @@ impl ConnectionScreen<'_> {
             self.assets,
         )
         .render(commands, panel);
-        home_button(
+        let row = spawn_node(
             commands,
             panel,
+            Node {
+                width: percent(100),
+                column_gap: px(8),
+                ..default()
+            },
+            None,
+        );
+        let lan = spawn_node(
+            commands,
+            row,
+            Node {
+                width: percent(42),
+                flex_shrink: 0.0,
+                ..default()
+            },
+            None,
+        );
+        home_button(
+            commands,
+            lan,
+            "局域网联机",
+            ConnectionUiAction::OpenLan,
+            self.assets,
+            false,
+            percent(100),
+        );
+        let join = spawn_node(
+            commands,
+            row,
+            Node {
+                min_width: px(0),
+                flex_basis: px(0),
+                flex_grow: 1.0,
+                ..default()
+            },
+            None,
+        );
+        home_button(
+            commands,
+            join,
             "加入房间",
             ConnectionUiAction::JoinRoom,
             self.assets,

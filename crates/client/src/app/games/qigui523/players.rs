@@ -35,7 +35,7 @@ pub(super) fn add_opponent_slot(
     const SIDE_SLOT_WIDTH: f32 = QIGUI_PORTRAIT_WIDTH + SIDE_PLAY_GAP + 148.0;
     let side = match relative_seat {
         1 | 2 => SeatSide::Left,
-        3 => SeatSide::Top,
+        0 | 3 => SeatSide::Top,
         4 | 5 => SeatSide::Right,
         _ => unreachable!("the local player occupies relative seat zero"),
     };
@@ -62,6 +62,11 @@ pub(super) fn add_opponent_slot(
         ..default()
     };
     match relative_seat {
+        0 => {
+            node.left = percent(32);
+            node.right = percent(32);
+            node.bottom = px(4);
+        }
         1 => {
             node.left = px(SIDE_SLOT_INSET);
             node.bottom = px(36);

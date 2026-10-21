@@ -7,9 +7,8 @@ fn shengji_relative_seat(game: &ShengjiSnapshot, player: PlayerId) -> Option<u8>
     let own_seat = game
         .players
         .iter()
-        .find(|candidate| candidate.id == game.you)?
-        .seat
-        .0;
+        .find(|candidate| candidate.id == game.you)
+        .map_or(0, |player| player.seat.0);
     let player_seat = game
         .players
         .iter()

@@ -89,7 +89,7 @@ pub(super) fn add_game_summary_modal(
                 .players
                 .iter()
                 .find(|player| player.id == game.you)
-                .is_some_and(|player| player.ready),
+                .map(|player| player.ready),
             again: "再来一局",
         },
         assets,

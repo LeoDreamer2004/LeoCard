@@ -11,7 +11,6 @@ use crate::app::shell::{
 };
 use bevy::prelude::*;
 use leocard_blackjack::Phase;
-use leocard_client::NetworkState;
 use leocard_protocol::BlackjackSnapshot;
 
 pub(crate) struct BlackjackTable<'a> {
@@ -94,9 +93,10 @@ pub(crate) fn render_blackjack_table(
     let own = game
         .players
         .iter()
-        .find(|player| player.player.id == game.you)
-        .expect("snapshot includes recipient");
-    let auto_play = (game.phase != Phase::Complete).then_some(own.auto_play);
+        .find(|player| player.player.id == game.you);
+    let auto_play = (game.phase != Phase::Complete)
+        .then(|| own.map(|player| player.auto_play))
+        .flatten();
     let chat = add_chat_panel(
         commands,
         content,
@@ -117,7 +117,7 @@ pub(crate) fn render_blackjack_table(
     if context.ui.guide_open {
         context.guide(commands, content);
     }
-    if let NetworkState::Reconnecting(message) = context.client.0.state() {
+    if let Some(message) = context.client.0.reconnecting_message() {
         add_reconnecting_overlay(commands, content, message, context.assets);
     }
 }

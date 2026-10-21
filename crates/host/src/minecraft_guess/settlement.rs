@@ -21,6 +21,9 @@ impl MinecraftGuessSession {
         if self.rules.mode == GuessMode::Graph {
             for delta in &mut deltas {
                 *delta = *delta * i16::from(self.rules.graph.nodes) / 16;
+                if self.rules.graph.round_robin {
+                    *delta *= 3;
+                }
             }
         }
         let statistics: Vec<_> = state
@@ -58,11 +61,8 @@ impl MinecraftGuessSession {
                 aggregate.total_score = aggregate.total_score.saturating_add(u64::from(score));
                 aggregate.placement_counts[placement] =
                     aggregate.placement_counts[placement].saturating_add(1);
+                aggregate.categories.merge(current.categories);
                 for (total, count) in [
-                    (&mut aggregate.block_games, current.block_games),
-                    (&mut aggregate.block_wins, current.block_wins),
-                    (&mut aggregate.item_games, current.item_games),
-                    (&mut aggregate.item_wins, current.item_wins),
                     (&mut aggregate.known_guesses, current.known_guesses),
                     (&mut aggregate.non_worse_guesses, current.non_worse_guesses),
                     (&mut aggregate.unknown_guesses, current.unknown_guesses),

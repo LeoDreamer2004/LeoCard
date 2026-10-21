@@ -32,14 +32,14 @@ pub(crate) fn texas_holdem_summary_descriptor(
     else {
         return None;
     };
-    let own = game.players.iter().find(|player| player.id == game.you)?;
+    let own = game.players.iter().find(|player| player.id == game.you);
     let nonnegative_outcome = if *tournament_complete {
         reference_changes
             .iter()
             .find(|change| change.player == game.you)
             .is_none_or(|change| change.delta >= 0)
     } else {
-        own.stack >= own.hand_start_stack
+        own.is_none_or(|player| player.stack >= player.hand_start_stack)
     };
     Some(SummaryDescriptor {
         match_id: game.match_id,
@@ -602,6 +602,10 @@ pub(super) fn add_texas_hand_result(
             Visibility::Hidden
         },
     ));
+    if !game.players.iter().any(|player| player.id == game.you) {
+        add_cozy_disabled_button(commands, controls, "观战中", assets, px(150), 46.0);
+        return;
+    }
     if *tournament_complete {
         add_cozy_button_variant(
             commands,

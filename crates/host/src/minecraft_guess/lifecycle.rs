@@ -1,5 +1,6 @@
 use super::MinecraftGuessSession;
-use crate::{ConnectionId, Delivery, RoomSession, lifecycle::HostedGameLifecycle};
+use crate::lifecycle::HostedGameLifecycle;
+use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::{
     GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, MinecraftGuessSnapshot,
@@ -30,38 +31,36 @@ impl HostedGameLifecycle for MinecraftGuessSession {
     }
 
     fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
+        let state = self.match_state.as_ref().expect("active match");
         MinecraftGuessSnapshot {
             match_id: self.match_id.expect("active match"),
             host_port: self.host_port,
             you: recipient,
             host: self.host_player_id().expect("room host"),
-            players: self
-                .players
-                .iter()
+            players: state
+                .scores()
+                .map(|(id, _)| {
+                    self.players
+                        .iter()
+                        .find(|player| player.id.0 == id)
+                        .expect("match participant belongs to its room")
+                })
                 .filter(|player| !player.left)
                 .map(|player| player.public_metadata().into())
                 .collect(),
             rules: self.rules,
-            progress: self.match_state.as_ref().expect("active match").progress(),
+            progress: state.progress(),
             round: self.game.as_ref().expect("active game").view(),
             graph: self.game.as_ref().expect("active game").graph_view(),
             guess_seconds_remaining: self.guess_seconds_remaining(),
-            scores: self
-                .match_state
-                .as_ref()
-                .expect("active match")
+            scores: state
                 .scores()
                 .map(|(player, score)| PlayerScore {
                     player: PlayerId(player),
                     score,
                 })
                 .collect(),
-            score_gains: self
-                .match_state
-                .as_ref()
-                .expect("active match")
-                .gains()
-                .to_vec(),
+            score_gains: state.gains().to_vec(),
             reference_changes: self.finished_reference_changes.clone().unwrap_or_default(),
             minecraft_process_players: self.process_presence.players(),
         }

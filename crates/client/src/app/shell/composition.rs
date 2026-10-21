@@ -1,5 +1,6 @@
 //! 根据网络模型与页面状态装配当前的顶层界面。
 
+use super::connection::{LanDiscovery, render_lan_rooms};
 use super::{
     AchievementPageViewport, AchievementsPage, ChatPanelState, ConfirmationDialog,
     ConnectionScreen, DeveloperHandInput, Header, LobbyGameMotion, PageMotion, PlayErrorToast,
@@ -21,6 +22,7 @@ use leocard_client::{ClientPhaseRef, LocalPlayerProfile, PlayerAchievements, Pla
 struct VisualAssets<'w> {
     ui: Res<'w, UiAssets>,
     avatars: Res<'w, AvatarImages>,
+    lan: Res<'w, LanDiscovery>,
     table: Res<'w, TableAppearance>,
     play_error: Res<'w, PlayErrorToast>,
     game_summary: Res<'w, GameSummaryAnimation>,
@@ -227,6 +229,15 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn render_overlays(&mut self, root: Entity) {
+        if self.ui.lan.open {
+            render_lan_rooms(
+                self.commands,
+                root,
+                &self.visuals.lan,
+                &self.ui.lan,
+                &self.visuals.ui,
+            );
+        }
         render_confirmation(
             self.commands,
             root,

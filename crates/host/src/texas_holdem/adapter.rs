@@ -279,8 +279,20 @@ impl TexasHoldemAdapter {
     }
 
     pub fn snapshot(&self, recipient: PlayerId) -> Result<TexasHoldemSnapshot, AdapterError> {
-        let recipient_index = self.player_index(recipient)?;
-        let recipient_core = TexasHoldemPlayerId(recipient_index);
+        let index = self.player_index(recipient)?;
+        Ok(self.snapshot_for(recipient, Some(index)))
+    }
+
+    pub(super) fn spectator_snapshot(&self, recipient: PlayerId) -> TexasHoldemSnapshot {
+        self.snapshot_for(recipient, None)
+    }
+
+    fn snapshot_for(
+        &self,
+        recipient: PlayerId,
+        recipient_index: Option<usize>,
+    ) -> TexasHoldemSnapshot {
+        let recipient_core = recipient_index.map(TexasHoldemPlayerId);
         let revealed_hands = self.revealed_hands();
         let players = self
             .players
@@ -332,19 +344,23 @@ impl TexasHoldemAdapter {
                 reference_changes: Vec::new(),
             },
         };
-        Ok(TexasHoldemSnapshot {
+        TexasHoldemSnapshot {
             match_id: self.match_id,
             hand_number: self.game.hand_number(),
             host_port: self.host_port,
             you: recipient,
             host: self.host,
             players,
-            your_hole_cards: self.game.players()[recipient_index].hole_cards().to_vec(),
+            your_hole_cards: recipient_index
+                .map(|index| self.game.players()[index].hole_cards().to_vec())
+                .unwrap_or_default(),
             revealed_hands,
             community: self.game.community().to_vec(),
-            spectator_available: self.spectator.available(&self.game, recipient_index),
-            spectator_win_rates_enabled: self.spectator.requested(recipient_index),
-            spectator_equities: self.spectator_equities(recipient_index),
+            spectator_available: recipient_index
+                .is_some_and(|index| self.spectator.available(&self.game, index)),
+            spectator_win_rates_enabled: recipient_index
+                .is_some_and(|index| self.spectator.requested(index)),
+            spectator_equities: recipient_index.and_then(|index| self.spectator_equities(index)),
             draw_pile_len: self.game.draw_pile_len() as u16,
             dealer: self.protocol_player(self.game.dealer()),
             small_blind: self.protocol_player(self.game.small_blind()),
@@ -362,26 +378,19 @@ impl TexasHoldemAdapter {
             }),
             current_bet: self.game.current_bet(),
             minimum_raise_to: self.game.minimum_raise_to(),
-            maximum_raise_to: self
-                .game
-                .raise_sizing(recipient_core)
-                .expect("recipient maps to a core player")
-                .maximum(),
-            amount_to_call: self
-                .game
-                .amount_to_call(recipient_core)
-                .expect("recipient maps to a core player"),
-            raise_allowed: self
-                .game
-                .raise_allowed(recipient_core)
-                .expect("recipient maps to a core player"),
-            all_in_allowed: self
-                .game
-                .all_in_allowed(recipient_core)
-                .expect("recipient maps to a core player"),
+            maximum_raise_to: recipient_core
+                .and_then(|player| self.game.raise_sizing(player).ok())
+                .and_then(|sizing| sizing.maximum()),
+            amount_to_call: recipient_core
+                .and_then(|player| self.game.amount_to_call(player).ok())
+                .unwrap_or(0),
+            raise_allowed: recipient_core
+                .is_some_and(|player| self.game.raise_allowed(player).unwrap_or(false)),
+            all_in_allowed: recipient_core
+                .is_some_and(|player| self.game.all_in_allowed(player).unwrap_or(false)),
             pot: self.game.pot(),
             phase,
-        })
+        }
     }
 
     fn revealed_hands(&self) -> Vec<TexasHoldemRevealedHand> {

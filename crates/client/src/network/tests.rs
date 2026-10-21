@@ -49,7 +49,8 @@ async fn leaving_during_reconnect_cancels_a_stalled_handshake() {
         )
         .await
     });
-    let (initial, _) = listener.accept().await.unwrap();
+    let (mut initial, _) = listener.accept().await.unwrap();
+    super::connection_tests::confirm_join(&mut initial).await;
     drop(initial);
     let (_stalled, _) = tokio::time::timeout(Duration::from_secs(3), listener.accept())
         .await
@@ -133,6 +134,20 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
     wait_for(&mut host, |model| model.qigui523_game().is_some());
     wait_for(&mut guest_a, |model| model.qigui523_game().is_some());
     wait_for(&mut guest_b, |model| model.qigui523_game().is_some());
+    let mut observer = TcpGameClient::join("观战", &address).unwrap();
+    wait_for(&mut observer, |model| model.qigui523_game().is_some());
+    assert!(observer.model().is_spectating());
+    assert_eq!(observer.model().qigui523_rules(), Some(&rules));
+    assert!(
+        observer
+            .model()
+            .qigui523_game()
+            .unwrap()
+            .your_hand
+            .is_empty()
+    );
+    assert_eq!(observer.model().qigui523_game().unwrap().players.len(), 3);
+    assert!(!observer.send(ClientCommand::SetReady { ready: true }));
     assert_eq!(guest_a.model().qigui523_game().unwrap().host_port, port);
     assert_eq!(
         host.model().qigui523_game().unwrap().your_hand.len(),

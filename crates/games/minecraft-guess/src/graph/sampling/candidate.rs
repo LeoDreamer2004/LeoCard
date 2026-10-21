@@ -45,7 +45,19 @@ impl Search<'_> {
         let score = new_kinds.len() as f32 * 3.0 + new_relations.len() as f32 * 2.5 + balance
             - load * self.temperature.blend(1.2, -0.4)
             - ring_error * self.temperature.blend(1.8, 0.25)
-            - (path.len() - 2) as f32 * self.temperature.blend(0.6, -0.15);
+            - (path.len() - 2) as f32 * self.temperature.blend(0.6, -0.15)
+            + self.index.rarity_score(
+                path.iter()
+                    .copied()
+                    .filter(|&node| !topology.contains(node)),
+                self.temperature,
+            )
+            + topology.diversity.gain(
+                &self.index.diversity,
+                path.iter()
+                    .copied()
+                    .filter(|&node| !topology.contains(node)),
+            );
         Some(Candidate {
             path,
             edges,

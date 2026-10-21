@@ -6,12 +6,21 @@ use leocard_protocol::{
 
 impl TexasHoldemSession {
     pub(super) fn game_snapshot(&self, recipient: PlayerId) -> TexasHoldemSnapshot {
-        let mut snapshot = self
+        let game = self
             .game
             .as_ref()
-            .expect("a game snapshot requires an active game")
-            .snapshot(recipient)
-            .expect("an active room participant belongs to the adapter");
+            .expect("a game snapshot requires an active game");
+        let mut snapshot = if self
+            .room
+            .players
+            .iter()
+            .any(|player| player.id == recipient)
+        {
+            game.snapshot(recipient)
+                .expect("an active room participant belongs to the game")
+        } else {
+            game.spectator_snapshot(recipient)
+        };
         for state in &mut snapshot.players {
             if let Some(participant) = self
                 .room

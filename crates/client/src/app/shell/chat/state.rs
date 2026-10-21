@@ -42,6 +42,7 @@ pub(crate) struct ChatHistoryEntry {
 
 #[derive(Resource)]
 pub(crate) struct ChatPanelState {
+    pub read_only: bool,
     pub open: bool,
     pub slide: f32,
     pub quick_voice_open: bool,
@@ -55,6 +56,7 @@ pub(crate) struct ChatPanelState {
 impl Default for ChatPanelState {
     fn default() -> Self {
         Self {
+            read_only: false,
             open: false,
             slide: 1.0,
             quick_voice_open: false,

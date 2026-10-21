@@ -8,15 +8,19 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 pub(super) fn started_session(guess_seconds: u16) -> MinecraftGuessSession {
+    started_session_with_graph(GraphRules {
+        guess_seconds,
+        ..Default::default()
+    })
+}
+
+pub(super) fn started_session_with_graph(graph: GraphRules) -> MinecraftGuessSession {
     let mut session = MinecraftGuessSession::new(
         RoomId(99),
         52300,
         MinecraftGuessRuleSet {
             mode: GuessMode::Graph,
-            graph: GraphRules {
-                guess_seconds,
-                ..Default::default()
-            },
+            graph,
             ..Default::default()
         },
     );
@@ -133,10 +137,14 @@ fn selecting_nodes_broadcasts_the_same_history_without_advancing_turns() {
         assert!(view.round.guesses.is_empty());
         assert!(view.score_gains.is_empty());
     }
-    send(
+    let cooling_down = send(
         &mut session,
         1,
         ClientCommand::Game(MinecraftGuessCommand::SelectNode { number: 3 }.into()),
+    );
+    assert!(
+        cooling_down.is_empty(),
+        "switch cooldown is silently ignored"
     );
     assert_eq!(
         session

@@ -3,6 +3,7 @@ mod bidding;
 mod bottom_copy;
 mod cards;
 mod hand;
+mod hand_hints;
 mod play;
 mod result;
 mod table;

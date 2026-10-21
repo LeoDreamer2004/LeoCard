@@ -16,7 +16,11 @@ impl ShengjiSession {
     pub(super) fn game_snapshot(&self, recipient: PlayerId) -> ShengjiSnapshot {
         let game = self.game.as_ref().expect("game snapshot requires a game");
         let core_recipient = to_core_player(recipient);
-        let your_hand = game.players()[usize::from(core_recipient.0)].hand.clone();
+        let your_hand = game
+            .players()
+            .get(usize::from(core_recipient.0))
+            .map(|player| player.hand.clone())
+            .unwrap_or_default();
         let visible_trick = game.current_trick().or_else(|| {
             self.presentation
                 .trick

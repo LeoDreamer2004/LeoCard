@@ -2,7 +2,7 @@ use super::super::*;
 use super::controls::{add_auto_play_toggle, add_auxiliary_actions, add_chat_toggle};
 use super::menus::{add_emoji_menu, add_quick_voice_menu};
 use crate::app::presentation::{
-    ButtonHighlight, TEXT, TextInput, UiComposer, add_text, spawn_node,
+    ButtonHighlight, MUTED, TEXT, TextInput, UiComposer, add_text, spawn_node,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
@@ -33,9 +33,13 @@ pub(crate) fn add_chat_panel(
     }
     add_auxiliary_actions(commands, panel, auxiliary_actions, assets);
     add_chat_history(commands, panel, chat, assets);
-    add_chat_input_row(commands, panel, chat, assets);
-    add_quick_voice_menu(commands, panel, chat, assets);
-    add_emoji_menu(commands, panel, chat, assets);
+    if chat.read_only {
+        add_text(commands, panel, "观战中，仅查看聊天", 13.0, MUTED, assets);
+    } else {
+        add_chat_input_row(commands, panel, chat, assets);
+        add_quick_voice_menu(commands, panel, chat, assets);
+        add_emoji_menu(commands, panel, chat, assets);
+    }
     panel
 }
 

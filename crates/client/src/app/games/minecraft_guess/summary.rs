@@ -28,11 +28,11 @@ impl GuessTable<'_> {
         }
         let progress = self.game.progress;
         let caption = match progress.round_count() {
-            Some(rounds) => format!("共 {rounds} 轮 · {} 局", progress.total_games()),
+            Some(rounds) => format!("共 {rounds} 轮 {} 局", progress.total_games()),
             None if self.game.graph.is_some() => {
-                format!("关系谜图 · 共 {} 局", progress.total_games())
+                format!("关系谜图 共 {} 局", progress.total_games())
             }
-            None => format!("抢答竞速 · 共 {} 局", progress.total_games()),
+            None => format!("抢答竞速 共 {} 局", progress.total_games()),
         };
         let actions = add_ranked_summary(
             commands,
@@ -73,7 +73,7 @@ impl GuessTable<'_> {
                     .players
                     .iter()
                     .find(|player| player.id == self.game.you)
-                    .is_some_and(|player| player.ready),
+                    .map(|player| player.ready),
                 again: "开始下一场",
             },
             self.assets,

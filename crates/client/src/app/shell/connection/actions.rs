@@ -4,6 +4,7 @@ use super::super::{
     ChatPanelState, DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState,
     dispatch_domain_actions, start_avatar_picker,
 };
+use super::lan::LanDiscovery;
 use crate::app::presentation::UiComposer;
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, AvatarPicker, ClientResource, ConnectionDraft,
@@ -21,6 +22,10 @@ use leocard_protocol::{GameKind, MAX_PLAYER_NAME_CHARS, PlayerGender};
 pub(crate) enum ConnectionUiAction {
     CreateRoom(GameKind),
     JoinRoom,
+    OpenLan,
+    CloseLan,
+    RefreshLan,
+    JoinDiscovered(u64),
     ChooseAvatar,
     ClearAvatar,
     ToggleGender,
@@ -46,6 +51,7 @@ pub(crate) struct ConnectionActionContext<'w, 's> {
     connection: ResMut<'w, ConnectionDraft>,
     appearance: ResMut<'w, AppearancePreferences>,
     host_rules: Res<'w, HostRulePreferences>,
+    lan: Res<'w, LanDiscovery>,
     page_error: ResMut<'w, PageErrorState>,
     profile: Res<'w, LocalPlayerProfile>,
     ui: ResMut<'w, UiState>,
@@ -63,9 +69,33 @@ pub(crate) fn dispatch_connection_actions(
 
 impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
     fn handle(&self, context: &mut ConnectionActionContext<'_, '_>) {
+        context.ui.dirty = true;
         match self {
             ConnectionUiAction::CreateRoom(game_kind) => create_room(*game_kind, context),
             ConnectionUiAction::JoinRoom => join_room(context),
+            ConnectionUiAction::OpenLan => {
+                context.ui.lan.open = true;
+                context.ui.lan.scroll_y = 0.0;
+                context.ui.lan.generation = context.ui.lan.generation.wrapping_add(1);
+            }
+            ConnectionUiAction::CloseLan => context.ui.lan.open = false,
+            ConnectionUiAction::RefreshLan => {
+                context.ui.lan.scroll_y = 0.0;
+                context.ui.lan.generation = context.ui.lan.generation.wrapping_add(1);
+            }
+            ConnectionUiAction::JoinDiscovered(id) => {
+                if let Some(room) = context
+                    .lan
+                    .rooms()
+                    .iter()
+                    .find(|room| room.server_id == *id)
+                {
+                    context.connection.join_address = room.address.to_string();
+                    join_room(context);
+                } else {
+                    context.page_error.error = Some("此房间已离线，请刷新后重试".to_owned());
+                }
+            }
             ConnectionUiAction::ChooseAvatar => {
                 if context.local.avatar_picker.pending.is_none() {
                     match start_avatar_picker() {
@@ -177,6 +207,7 @@ fn finish_connection(
             avatars.remote.clear();
             commands.insert_resource(ClientResource(network));
             ui.leaving_room = false;
+            ui.lan.open = false;
             page_error.error = None;
         }
         Err(error) => page_error.error = Some(error),

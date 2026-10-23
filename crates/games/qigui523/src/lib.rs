@@ -14,7 +14,7 @@ mod rating;
 mod rules;
 mod statistics;
 
-pub use bot::{QiGui523Bot, QiGui523BotRequest, has_legal_response};
+pub use bot::{QiGui523Bot, QiGui523BotObservation, QiGui523BotRequest, has_legal_response};
 pub use card::{QiGuiCard, QiGuiRank, QiGuiSuit, build_deck};
 pub use game::{
     ActionOutcome, GameError, GameResult, GameState, Phase, PlayRecord, PlayerState, QiGuiPlayerId,

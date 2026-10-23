@@ -1,10 +1,10 @@
 use super::super::{
     PendingDrawReveal, UnoSession, analysis_events, append_finished_event, events_for_outcome,
-    from_core_player, pending_draw_reveal_for_outcome,
+    pending_draw_reveal_for_outcome,
 };
-use super::{BotPolicy, auto_play};
+use fastrand::Rng;
 use leocard_protocol::UnoEvent;
-use leocard_uno::UnoActionContext;
+use leocard_uno::{UnoActionContext, UnoBot, UnoBotObservation};
 
 impl UnoSession {
     pub(in super::super) fn play_automatic_action(
@@ -12,17 +12,9 @@ impl UnoSession {
     ) -> Option<(Vec<UnoEvent>, Option<PendingDrawReveal>)> {
         let forced_skip = self.automatically_resolves_skip();
         let player = self.game.as_ref()?.turn()?.current_player;
-        let is_bot = self
-            .room
-            .players
-            .get(usize::from(from_core_player(player).0))?
-            .is_bot;
         let game = self.game.as_mut()?;
-        let call_uno = if is_bot {
-            BotPolicy::should_call_uno(game, forced_skip)
-        } else {
-            auto_play::Policy::should_call_uno(game, forced_skip)
-        };
+        let observation = UnoBotObservation::from_game(game, forced_skip)?;
+        let call_uno = observation.should_call_uno();
         let uno_before = UnoActionContext::capture(game, player);
         let uno_outcome = call_uno.then(|| game.call_uno(player).ok()).flatten();
         let mut events = uno_outcome
@@ -38,11 +30,7 @@ impl UnoSession {
             ));
         }
         let before = UnoActionContext::capture(game, player)?;
-        let action = if is_bot {
-            BotPolicy::choose(game, forced_skip)?
-        } else {
-            auto_play::Policy::choose(game, forced_skip)?
-        };
+        let action = UnoBot::choose(&observation, &mut Rng::new())?;
         let played = action.played_cards();
         let outcome = action.apply(game, player).ok()?;
         events.extend(events_for_outcome(&outcome, &played));

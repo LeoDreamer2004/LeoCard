@@ -1,5 +1,4 @@
 use super::super::MinecraftGuessSession;
-use super::bot;
 use crate::Delivery;
 use crate::lifecycle::HostedGameLifecycle;
 use std::time::Duration;
@@ -35,7 +34,7 @@ impl MinecraftGuessSession {
             // Avoid giving the lowest seat the first chance at every shared bot tick.
             fastrand::shuffle(&mut bots);
             for player in bots {
-                if bot::Policy::act(self.game.as_mut().expect("active race"), player) {
+                if self.play_bot_action(player) {
                     changed = true;
                     deliveries.extend(self.after_action());
                 }

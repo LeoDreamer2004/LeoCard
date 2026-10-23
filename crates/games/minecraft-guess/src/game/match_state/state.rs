@@ -1,7 +1,7 @@
 use super::{MatchLength, MatchProgress};
-use crate::game::analysis::MatchAnalysis;
-use crate::game::{GameState, GuessHandStatistics, GuessPlayStatistics, ScoreGain};
-use crate::{GuessMode, MinecraftGuessRuleSet};
+use crate::analysis::MatchAnalysis;
+use crate::game::{GameState, ScoreGain};
+use crate::{GuessHandStatistics, GuessMode, GuessPlayStatistics, MinecraftGuessRuleSet};
 
 #[derive(Clone, Debug)]
 pub struct MatchState {
@@ -87,9 +87,10 @@ impl MatchState {
         self.players.iter().copied().zip(&self.statistics)
     }
 
-    pub fn finish_round(&mut self, game: &GameState) -> Vec<GuessHandStatistics> {
+    pub fn finish_round(&mut self, game: &mut GameState) -> Vec<GuessHandStatistics> {
         assert!(game.finished());
-        for (player, statistics) in game.statistics() {
+        let statistics: Vec<_> = game.statistics().collect();
+        for &(player, statistics) in &statistics {
             let index = self
                 .players
                 .iter()
@@ -97,11 +98,15 @@ impl MatchState {
                 .expect("match participant");
             self.statistics[index].merge(statistics);
         }
-        // Graphs share archive counters, but do not emit single-question achievements.
-        if self.progress.mode() == GuessMode::Graph {
-            return Vec::new();
-        }
         let scores: Vec<_> = self.scores().collect();
+        if self.progress.mode() == GuessMode::Graph {
+            return self.analysis.finish_graph(
+                self.progress,
+                &statistics,
+                &scores,
+                game.take_hand_statistics(),
+            );
+        }
         self.analysis.finish(
             self.progress,
             game.view().winner,

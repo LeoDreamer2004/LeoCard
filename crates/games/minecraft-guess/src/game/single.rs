@@ -1,10 +1,7 @@
+use super::{GameError, GuessRecord, GuessResult, RoundView};
+use crate::analysis::{GuessAnalysisInput, RoundAnalysis};
+use crate::{Entry, GuessActionStatistics, GuessMode, GuessPlayStatistics, MinecraftGuessRuleSet};
 use std::mem;
-
-use super::analysis::{GuessAnalysisInput, RoundAnalysis};
-use super::{
-    GameError, GuessActionStatistics, GuessPlayStatistics, GuessRecord, GuessResult, RoundView,
-};
-use crate::{Entry, GuessMode, MinecraftGuessRuleSet};
 
 #[derive(Clone, Debug)]
 pub struct SingleGameState {

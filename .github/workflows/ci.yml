@@ -211,13 +211,13 @@ jobs:
             target/android-dev
             target/android/gradle-home/caches
             target/android/gradle-9.8.1
-          key: Android-arm64-${{ env.LEOCARD_BUILD_PROFILE }}-${{ hashFiles('**/Cargo.lock', 'android/**/*.gradle', 'android/gradle.properties', 'android/toolchain.sh') }}
+          key: Android-arm64-${{ env.LEOCARD_BUILD_PROFILE }}-${{ hashFiles('**/Cargo.lock', 'crates/client/android/**/*.gradle', 'crates/client/android/gradle.properties', 'crates/client/android/toolchain.sh') }}
           restore-keys: |
             Android-arm64-${{ env.LEOCARD_BUILD_PROFILE }}-
 
       - name: Prepare Android SDK, NDK and Gradle
         run: |
-          source android/toolchain.sh
+          source crates/client/android/toolchain.sh
           android_sdk
           (set +o pipefail; yes | sdkmanager --licenses > /dev/null)
           android_tools
@@ -225,26 +225,26 @@ jobs:
       - name: Lint ARM64 release native library
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          source android/toolchain.sh
-          cargo ndk -t arm64-v8a -P 31 clippy -p leocard-client --lib --release --all-features --locked -- -D warnings
+          source crates/client/android/toolchain.sh
+          cargo ndk -t arm64-v8a -P 31 clippy -p leocard-android --lib --release --all-features --locked -- -D warnings
 
       - name: Build ARM64 debug native library
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: |
-          source android/toolchain.sh
-          cargo ndk -t arm64-v8a -P 31 -o target/android/jniLibs build -p leocard-client --lib --features developer --profile android-dev --locked
+          source crates/client/android/toolchain.sh
+          cargo ndk -t arm64-v8a -P 31 -o target/android/jniLibs build -p leocard-android --lib --features developer --profile android-dev --locked
 
       - name: Build ARM64 release native library
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          source android/toolchain.sh
-          cargo ndk -t arm64-v8a -P 31 -o target/android/jniLibs build -p leocard-client --lib --release --locked
+          source crates/client/android/toolchain.sh
+          cargo ndk -t arm64-v8a -P 31 -o target/android/jniLibs build -p leocard-android --lib --release --locked
 
       - name: Build debug APK
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: |
-          source android/toolchain.sh
-          "$LEOCARD_GRADLE" -p android --no-daemon -PleocardAbi=arm64-v8a :app:assembleDebug
+          source crates/client/android/toolchain.sh
+          "$LEOCARD_GRADLE" -p crates/client/android --no-daemon -PleocardAbi=arm64-v8a :app:assembleDebug
 
       - name: Build and verify signed release APK
         if: startsWith(github.ref, 'refs/tags/v')
@@ -265,9 +265,9 @@ jobs:
           umask 077
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
           unset ANDROID_KEYSTORE_BASE64
-          source android/toolchain.sh
-          "$LEOCARD_GRADLE" -p android --no-daemon -PleocardAbi=arm64-v8a :app:assembleRelease
-          apk=android/app/build/outputs/apk/release/app-release.apk
+          source crates/client/android/toolchain.sh
+          "$LEOCARD_GRADLE" -p crates/client/android --no-daemon -PleocardAbi=arm64-v8a :app:assembleRelease
+          apk=crates/client/android/app/build/outputs/apk/release/app-release.apk
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$apk"
           "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 "$apk"
           mkdir -p dist

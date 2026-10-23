@@ -1,4 +1,3 @@
-mod analysis;
 mod guess;
 mod match_state;
 mod scoring;
@@ -13,8 +12,3 @@ pub use match_state::{MatchLength, MatchProgress, MatchState};
 pub use scoring::{ScoreGain, reference_point_deltas};
 pub use state::GameState;
 pub use types::{GameError, RoundView};
-
-pub use analysis::{
-    CorrectGuess, GuessActionStatistics, GuessCategoryCount, GuessCategoryStatistics,
-    GuessHandStatistics, GuessPlayStatistics,
-};

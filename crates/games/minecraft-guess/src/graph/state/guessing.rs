@@ -33,7 +33,8 @@ impl GraphGame {
             .rev()
             .filter(|record| record.node == number)
             .find_map(|record| record.guess.result.closeness());
-        self.statistics[self.current].record_guess(&result, previous);
+        self.analysis
+            .guess(self.selected, player, &result, previous);
         self.guesses.push(GraphGuessRecord {
             node: number,
             guess: GuessRecord { player, result },

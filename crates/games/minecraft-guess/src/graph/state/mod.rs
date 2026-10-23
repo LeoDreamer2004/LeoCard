@@ -1,3 +1,4 @@
+mod analysis;
 mod combo;
 mod game;
 mod guessing;

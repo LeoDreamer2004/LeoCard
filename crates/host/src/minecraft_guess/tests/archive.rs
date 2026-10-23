@@ -1,7 +1,9 @@
 use super::graph::started_session_with_graph;
 use super::support::send;
 use leocard_minecraft_guess::GraphRules;
-use leocard_protocol::{ClientCommand, MinecraftGuessCommand};
+use leocard_protocol::{
+    ClientCommand, GameEvent, MinecraftGuessCommand, MinecraftGuessEvent, PlayerId, ServerEvent,
+};
 
 #[test]
 fn completed_graph_merges_node_statistics_into_existing_archives_once() {
@@ -50,7 +52,7 @@ fn completed_graph_merges_node_statistics_into_existing_archives_once() {
             .into(),
         ),
     );
-    send(
+    let deliveries = send(
         &mut session,
         connection,
         ClientCommand::Game(
@@ -60,6 +62,24 @@ fn completed_graph_merges_node_statistics_into_existing_archives_once() {
             .into(),
         ),
     );
+    assert!(deliveries.iter().any(|delivery| matches!(
+        &delivery.message.event,
+        ServerEvent::GameEvent(GameEvent::MinecraftGuess(MinecraftGuessEvent::ActionAnalyzed { player: actor, statistics }))
+            if *actor == PlayerId(player) && statistics.correct_entry.as_ref().is_some_and(|entry| entry.id == answer.id)
+    )));
+    for delivery in &deliveries {
+        if let ServerEvent::GameEvent(GameEvent::MinecraftGuess(
+            MinecraftGuessEvent::HandAnalyzed { player, .. },
+        )) = &delivery.message.event
+        {
+            assert_eq!(session.room.player_id(delivery.recipient), Some(*player));
+        }
+    }
+    assert!(deliveries.iter().any(|delivery| matches!(
+        &delivery.message.event,
+        ServerEvent::GameEvent(GameEvent::MinecraftGuess(MinecraftGuessEvent::HandAnalyzed { player: actor, statistics }))
+            if *actor == PlayerId(player) && statistics.consistent
+    )));
     // Finish the fixture without relying on the debug-only activation command.
     session.game.as_mut().unwrap().reveal_graph().unwrap();
     session.after_action();

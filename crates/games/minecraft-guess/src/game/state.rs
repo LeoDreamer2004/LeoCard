@@ -1,6 +1,9 @@
 use super::single::SingleGameState;
-use super::{GameError, GuessActionStatistics, GuessPlayStatistics, RoundView};
-use crate::{Entry, GraphGame, GraphView, GuessMode, MinecraftGuessRuleSet};
+use super::{GameError, RoundView};
+use crate::{
+    Entry, GraphGame, GraphView, GuessActionStatistics, GuessHandStatistics, GuessMode,
+    GuessPlayStatistics, MinecraftGuessRuleSet,
+};
 use std::time::Duration;
 
 #[derive(Clone, Debug)]
@@ -119,7 +122,15 @@ impl GameState {
     pub fn take_action_statistics(&mut self) -> Vec<GuessActionStatistics> {
         match &mut self.round {
             Round::Single(game) => game.take_action_statistics(),
-            Round::Graph(_) => Vec::new(),
+            Round::Graph(game) => game.take_action_statistics(),
+        }
+    }
+
+    /// Graph nodes finish independently before the whole graph is complete.
+    pub fn take_hand_statistics(&mut self) -> Vec<GuessHandStatistics> {
+        match &mut self.round {
+            Round::Single(_) => Vec::new(),
+            Round::Graph(game) => game.take_hand_statistics(),
         }
     }
 

@@ -1,8 +1,11 @@
 use super::super::MinecraftGuessSession;
-use super::{bot, fallback};
+use super::fallback;
 use crate::Delivery;
 use crate::lifecycle::HostedGameLifecycle;
-use leocard_minecraft_guess::GuessMode;
+use fastrand::Rng;
+use leocard_minecraft_guess::{
+    GuessMode, MinecraftGuessBot, MinecraftGuessBotAction, MinecraftGuessBotObservation,
+};
 use std::time::Duration;
 
 const AUTOMATIC_ACTION_DELAY: Duration = Duration::from_secs(2);
@@ -36,6 +39,27 @@ impl MinecraftGuessSession {
         }
     }
 
+    pub(super) fn play_bot_action(&mut self, player: u8) -> bool {
+        let game = self.game.as_mut().expect("an automatic action has a game");
+        let Some(observation) = MinecraftGuessBotObservation::from_game(game, player) else {
+            return false;
+        };
+        let Some(action) = MinecraftGuessBot::choose(&observation, &mut Rng::new()) else {
+            return false;
+        };
+        if let Some(node) = action.target_node()
+            && game.select_node(player, node).is_err()
+        {
+            return false;
+        }
+        match action {
+            MinecraftGuessBotAction::Guess { entry_id, .. } => game.guess(player, &entry_id),
+            MinecraftGuessBotAction::Skip { .. } => game.skip(player),
+        }
+        .expect("a public bot candidate is a legal action");
+        true
+    }
+
     fn advance_turn(&mut self, elapsed: Duration) -> Vec<Delivery> {
         let Some(current) = self.game.as_ref().and_then(|game| game.current_player()) else {
             return Vec::new();
@@ -47,10 +71,7 @@ impl MinecraftGuessSession {
         let expired = self.guess_seconds_remaining() == Some(0);
         if expired || (automatic && self.clock.automatic_ready(AUTOMATIC_ACTION_DELAY)) {
             if player.is_bot && !player.left {
-                bot::Policy::act(
-                    self.game.as_mut().expect("an active turn has a game"),
-                    current,
-                );
+                self.play_bot_action(current);
             } else {
                 fallback::Policy::act(
                     self.game.as_mut().expect("an active turn has a game"),

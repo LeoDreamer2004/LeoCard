@@ -206,7 +206,7 @@ impl SakuraClient {
             progress(FrpcProgress::Downloading { downloaded, total });
             progress(FrpcProgress::Verifying);
             output.flush().map_err(|error| error.to_string())?;
-            if format!("{:x}", hasher.finalize()) != expected {
+            if finish_hash(hasher) != expected {
                 return Err("frpc 下载文件校验失败".to_owned());
             }
             if target.exists() {
@@ -239,7 +239,18 @@ fn file_hash(path: &Path) -> Result<String, String> {
         }
         hasher.update(&buffer[..count]);
     }
-    Ok(format!("{:x}", hasher.finalize()))
+    Ok(finish_hash(hasher))
+}
+
+fn finish_hash(hasher: Md5) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let digest = hasher.finalize();
+    let mut checksum = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        checksum.push(char::from(HEX[usize::from(byte >> 4)]));
+        checksum.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+    checksum
 }
 
 fn write_private(path: &Path, contents: &[u8]) -> Result<(), String> {

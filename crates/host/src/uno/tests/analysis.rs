@@ -1,12 +1,11 @@
 use super::super::UnoSession;
-use super::super::automation::BotPolicy;
 use super::*;
 use crate::ConnectionId;
 use leocard_protocol::{
     ClientCommand, GameCommand, GameEvent, PlayerId, ServerEvent, ServerMessage, UnoCommand,
     UnoEvent, decode_frame, encode_frame,
 };
-use leocard_uno::{Phase, UnoRuleSet, build_deck};
+use leocard_uno::{Phase, UnoBot, UnoRuleSet, build_deck};
 
 fn session() -> UnoSession {
     let mut session = UnoSession::new(ROOM, 52300, UnoRuleSet::default(), build_deck()).unwrap();
@@ -46,7 +45,7 @@ fn analysis_is_private_sequenced_and_only_emitted_for_accepted_actions() {
     let color = card
         .face()
         .is_wild()
-        .then(|| BotPolicy::preferred_color(game, player));
+        .then(|| UnoBot::preferred_color(game.player(player).unwrap().hand(), game.flip_side()));
     let connection = session.room.players[player.0].connection;
     let request = session.room.last_requests[&connection].0 + 1;
     let command = ClientCommand::Game(GameCommand::Uno(UnoCommand::PlayCard {

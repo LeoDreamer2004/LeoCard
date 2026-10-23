@@ -28,7 +28,7 @@ fn match_statistics_include_each_small_game_and_only_accepted_actions() {
     game.guess(0, "不存在").unwrap();
     game.guess(1, "minecraft:diorite").unwrap();
     game.guess(0, "minecraft:stone").unwrap();
-    state.finish_round(&game);
+    state.finish_round(&mut game);
     let first = *state.statistics().next().unwrap().1;
     assert_eq!(
         (
@@ -58,7 +58,7 @@ fn match_statistics_include_each_small_game_and_only_accepted_actions() {
         .clone();
     let mut game = GameState::new(answer, vec![1, 0], MinecraftGuessRuleSet::default());
     game.guess(1, "minecraft:stick").unwrap();
-    state.finish_round(&game);
+    state.finish_round(&mut game);
     let other = *state.statistics().nth(1).unwrap().1;
     assert_eq!(
         (

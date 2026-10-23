@@ -5,12 +5,14 @@
 
 pub mod achievements;
 
+mod bot;
 mod card;
 mod game;
 mod rating;
 mod rules;
 mod statistics;
 
+pub use bot::{UnoBot, UnoBotAction, UnoBotObservation};
 pub use card::{
     CardSide, UnoCard, UnoColor, UnoFace, UnoFlipSide, build_deck, build_deck_for_rules,
     build_flip_dark_sides, build_flip_deck, build_flip_light_sides, build_no_mercy_deck,

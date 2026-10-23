@@ -105,7 +105,8 @@ fn rotation_finishes_after_every_opener_and_settles_exactly_three_times_single_g
         let changes = session.finished_reference_changes.as_ref().unwrap();
         let multiplier = if round_robin { 3 } else { 1 };
         // 3 * 24 / 16 truncates to 4 before tripling, so a full round awards 12, not 13.
-        for (index, single_delta) in [4, -3, -3, -4].into_iter().enumerate() {
+        assert_eq!(changes.iter().map(|change| change.delta).sum::<i16>(), 0);
+        for (index, single_delta) in [4, 3, -3, -4].into_iter().enumerate() {
             assert_eq!(
                 changes
                     .iter()

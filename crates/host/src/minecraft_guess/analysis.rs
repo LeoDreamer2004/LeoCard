@@ -13,19 +13,22 @@ impl MinecraftGuessSession {
                 statistics: Box::new(statistics),
             })
             .collect();
-        if game.finished() {
-            events.extend(
-                self.match_state
-                    .as_mut()
-                    .expect("active match")
-                    .finish_round(game)
-                    .into_iter()
-                    .map(|statistics| MinecraftGuessEvent::HandAnalyzed {
-                        player: PlayerId(statistics.player),
-                        statistics,
-                    }),
-            );
-        }
+        let hands = if game.finished() {
+            self.match_state
+                .as_mut()
+                .expect("active match")
+                .finish_round(game)
+        } else {
+            game.take_hand_statistics()
+        };
+        events.extend(
+            hands
+                .into_iter()
+                .map(|statistics| MinecraftGuessEvent::HandAnalyzed {
+                    player: PlayerId(statistics.player),
+                    statistics,
+                }),
+        );
         events
     }
 

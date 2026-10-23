@@ -132,7 +132,7 @@ fn points_accumulate_across_games_and_rank_awards_scale_with_rounds() {
     let awards: &[&[i16]] = &[
         &[2, -2],
         &[2, 0, -2],
-        &[3, -2, -2, -3],
+        &[3, 2, -2, -3],
         &[3, 2, 0, -2, -3],
         &[5, 3, 1, -1, -3, -5],
         &[5, 3, 1, 0, -1, -3, -5],
@@ -151,4 +151,23 @@ fn points_accumulate_across_games_and_rank_awards_scale_with_rounds() {
         Some(vec![3, 3, -2, -3])
     );
     assert_eq!(reference_point_deltas(&[1; 9], 1), None);
+}
+
+#[test]
+fn rank_awards_are_zero_sum_without_ties_and_non_negative_with_ties() {
+    for players in 2..=8 {
+        for rounds in 1..=5 {
+            let distinct: Vec<_> = (0..players).collect();
+            let deltas = reference_point_deltas(&distinct, rounds).unwrap();
+            assert_eq!(deltas.iter().sum::<i16>(), 0);
+            for scores in [
+                vec![0; players as usize],
+                (0..players).map(|index| index / 2).collect(),
+                (0..players).map(|index| u32::from(index > 0)).collect(),
+            ] {
+                let deltas = reference_point_deltas(&scores, rounds).unwrap();
+                assert!(deltas.iter().sum::<i16>() >= 0);
+            }
+        }
+    }
 }

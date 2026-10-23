@@ -1,3 +1,4 @@
+use super::super::analysis::GraphAnalysis;
 use super::{GraphGame, NodeValue};
 use crate::graph::data::{GraphData, GraphEdge};
 use crate::{
@@ -106,6 +107,7 @@ fn topology_is_unique_and_scores_precede_answer_and_tag_reveals() {
             .unwrap(),
     );
     game.revealed = vec![false, true, false, false];
+    game.analysis = GraphAnalysis::new(&game.players, game.nodes.len());
     game.edges = [(0, 1), (1, 0), (0, 1), (0, 0), (0, 3), (1, 3)]
         .into_iter()
         .map(|(from, to)| GraphEdge {
@@ -172,6 +174,7 @@ fn kind_weights_and_attempt_decay_apply_before_rounding_to_every_reward() {
             .unwrap();
         game.nodes = vec![index, (index + 1) % data.nodes.len()];
         game.revealed = vec![false, false];
+        game.analysis = GraphAnalysis::new(&game.players, game.nodes.len());
         let value = NodeValue::before_guess(&game);
         let mut result = GuessResult::Known {
             entry: game.entry(0).unwrap().clone(),

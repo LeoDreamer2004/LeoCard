@@ -1,4 +1,5 @@
 use super::super::GraphGame;
+use super::super::analysis::GraphAnalysis;
 use crate::graph::data::{GraphData, GraphEdge};
 use crate::{GraphRelation, GraphRules};
 use std::time::Duration;
@@ -16,6 +17,7 @@ pub(super) fn graph(ids: &[&str], edges: &[(usize, usize)]) -> GraphGame {
         })
         .collect();
     game.revealed = vec![false; game.nodes.len()];
+    game.analysis = GraphAnalysis::new(&game.players, game.nodes.len());
     game.edges = edges
         .iter()
         .map(|&(from, to)| GraphEdge {

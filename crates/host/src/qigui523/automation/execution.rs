@@ -1,6 +1,6 @@
-use super::super::{QiGui523Session, from_core_player};
-use super::{auto_play, bot};
+use super::super::QiGui523Session;
 use leocard_protocol::QiGui523Event;
+use leocard_qigui523::{QiGui523Bot, QiGui523BotObservation};
 
 impl QiGui523Session {
     pub(in super::super) fn play_automatic_action(&mut self) -> Vec<QiGui523Event> {
@@ -10,12 +10,9 @@ impl QiGui523Session {
                 .trick()
                 .expect("a playing game has a trick")
                 .current_player();
-            let participant = &self.players[usize::from(from_core_player(player).0)];
-            let cards = if participant.is_bot {
-                bot::Policy::choose(game, player)
-            } else {
-                auto_play::Policy::choose(game, player)
-            };
+            let observation = QiGui523BotObservation::from_game(game, player)
+                .expect("the automatic player owns the current turn");
+            let cards = QiGui523Bot::choose_action(&observation);
             (player, cards)
         };
         self.perform_action(player, cards.as_deref())

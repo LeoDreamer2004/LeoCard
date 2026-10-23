@@ -1,7 +1,7 @@
-use super::super::analysis::{GuessAnalysisInput, MatchAnalysis, RoundAnalysis};
+use crate::analysis::{GuessAnalysisInput, MatchAnalysis, RoundAnalysis};
 use crate::{
-    AttributeFeedback, Catalogue, EntryKind, GuessMode, GuessResult, MatchLength, MatchProgress,
-    MatchQuality,
+    AttributeFeedback, Catalogue, EntryKind, GuessHandStatistics, GuessMode, GuessPlayStatistics,
+    GuessResult, MatchLength, MatchProgress, MatchQuality,
 };
 
 fn known(quality: MatchQuality, correct: bool) -> GuessResult {
@@ -114,6 +114,57 @@ fn no_answer_victory_requires_every_game_to_be_solved() {
                 &[(0, 20), (1, 19), (2, 0)],
             );
             assert_eq!(facts[0].no_answers_top, index == 2 && !unsolved);
+        }
+    }
+}
+
+#[test]
+fn graph_match_facts_require_real_node_wins_and_keep_previous_graphs() {
+    for (previous_wins, expected) in [([0, 3, 0], true), ([1, 2, 0], false), ([0, 2, 0], false)] {
+        let mut analysis = MatchAnalysis::new(&[0, 1, 2]);
+        for index in 0..2 {
+            let wins = if index == 0 { previous_wins } else { [0, 0, 3] };
+            let statistics: Vec<_> = wins
+                .into_iter()
+                .enumerate()
+                .map(|(player, wins)| {
+                    let mut stats = GuessPlayStatistics::default();
+                    stats.categories.block.games = 3;
+                    stats.categories.block.wins = wins;
+                    (player as u8, stats)
+                })
+                .collect();
+            let completed = (0..3)
+                .map(|player| GuessHandStatistics {
+                    player,
+                    consistent: true,
+                    round_sweep: false,
+                    match_sweep: false,
+                    no_answers_top: false,
+                })
+                .collect();
+            let facts = analysis.finish_graph(
+                MatchProgress {
+                    game_index: index,
+                    player_count: 3,
+                    length: MatchLength::Graph(2),
+                },
+                &statistics,
+                &[(0, 100), (1, 90), (2, 80)],
+                completed,
+            );
+            assert_eq!(facts.len(), 3);
+            assert!(
+                facts
+                    .iter()
+                    .all(|fact| fact.consistent && !fact.match_sweep)
+            );
+            assert_eq!(facts[0].no_answers_top, index == 1 && expected);
+            if index == 1 {
+                assert!(facts[2].round_sweep);
+            } else {
+                assert_eq!(facts[1].round_sweep, previous_wins[1] == 3);
+            }
         }
     }
 }

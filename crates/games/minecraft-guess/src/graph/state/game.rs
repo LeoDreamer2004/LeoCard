@@ -1,7 +1,8 @@
 use super::super::data::{GraphData, GraphEdge};
 use super::super::sampling::Sample;
+use super::analysis::GraphAnalysis;
 use super::combo::Combo;
-use crate::{Entry, GameError, GraphGuessRecord, GraphRules, GuessPlayStatistics};
+use crate::{Entry, GameError, GraphGuessRecord, GraphRules};
 use std::mem;
 use std::time::Duration;
 
@@ -19,7 +20,7 @@ pub struct GraphGame {
     pub(super) skipped: Vec<u8>,
     pub(super) gains: Vec<(u8, u32)>,
     pub(super) combo: Option<Combo>,
-    pub(super) statistics: Vec<GuessPlayStatistics>,
+    pub(super) analysis: GraphAnalysis,
 }
 
 impl GraphGame {
@@ -27,6 +28,7 @@ impl GraphGame {
         let sample = Sample::generate(rules, seed).ok_or(GameError::GraphUnavailable)?;
         let mut game = Self::pending(players, rules);
         game.revealed = vec![false; sample.nodes.len()];
+        game.analysis = GraphAnalysis::new(&game.players, sample.nodes.len());
         game.nodes = sample.nodes;
         game.edges = sample.edges;
         Ok(game)
@@ -34,7 +36,7 @@ impl GraphGame {
 
     pub fn pending(players: Vec<u8>, rules: GraphRules) -> Self {
         Self {
-            statistics: vec![GuessPlayStatistics::default(); players.len()],
+            analysis: GraphAnalysis::new(&players, 0),
             players,
             rules,
             current: 0,
@@ -121,7 +123,9 @@ impl GraphGame {
 
     pub fn skip(&mut self, player: u8) -> Result<(), GameError> {
         self.check_player(player)?;
-        self.statistics[self.current].skips += 1;
+        let node = (self.entry(self.selected).is_some() && !self.revealed[self.selected])
+            .then_some(self.selected);
+        self.analysis.skip(node, player);
         self.skipped.push(player);
         if self.skipped.len() == self.players.len() {
             self.skipped.clear();

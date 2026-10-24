@@ -2,17 +2,14 @@
 //! Scroll gestures defer presses until release, allowing category lists to swipe without selecting tabs.
 
 use crate::{CardDragSelection, SecondaryPressTarget};
-use bevy::{
-    ecs::system::SystemParam,
-    input::{
-        ButtonState,
-        mouse::MouseButtonInput,
-        touch::{TouchInput, TouchPhase},
-    },
-    picking::{PickingSystems, input::PointerInputSettings},
-    prelude::*,
-    window::{CursorMoved, WindowEvent},
-};
+use bevy::ecs::system::SystemParam;
+use bevy::input::ButtonState;
+use bevy::input::mouse::MouseButtonInput;
+use bevy::input::touch::{TouchInput, TouchPhase};
+use bevy::picking::PickingSystems;
+use bevy::picking::input::PointerInputSettings;
+use bevy::prelude::*;
+use bevy::window::{CursorMoved, WindowEvent};
 
 pub(super) fn install(app: &mut App) {
     app.insert_resource(PointerInputSettings {

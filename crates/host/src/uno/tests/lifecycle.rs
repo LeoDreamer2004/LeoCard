@@ -2,8 +2,8 @@ use super::super::*;
 use super::*;
 use crate::ConnectionId;
 use leocard_protocol::{
-    ClientCommand, GameCommand, GameKind, GameViolation, PlayerId, RejectReason, ServerEvent,
-    UnoCommand,
+    ClientCommand, GameCommand, GameKind, GameViolation, PlayerId, PlayerInteractionKind,
+    RejectReason, ServerEvent, UnoCommand,
 };
 use leocard_protocol::{SeatId, TexasHoldemCommand};
 #[cfg(test)]
@@ -146,4 +146,56 @@ fn wrong_game_command_is_rejected_with_uno_as_expected_kind() {
             })
         }
     ));
+}
+
+#[test]
+fn lobby_interactions_broadcast_before_starting_a_game_and_reject_invalid_targets() {
+    let mut session = UnoSession::new(ROOM, 52300, UnoRuleSet::default(), build_deck()).unwrap();
+    session.handle(HOST, message(1, join_command("甲", 1)));
+    session.handle(ConnectionId(2), message(1, join_command("乙", 2)));
+    let deliveries = session.handle(
+        HOST,
+        message(
+            2,
+            ClientCommand::Interact {
+                target: PlayerId(1),
+                kind: PlayerInteractionKind::Flower,
+            },
+        ),
+    );
+    let interactions: Vec<_> = deliveries
+        .iter()
+        .filter_map(|delivery| {
+            if let ServerEvent::PlayerInteraction(interaction) = &delivery.message.event {
+                assert!(delivery.message.game_context.is_none());
+                Some(interaction)
+            } else {
+                None
+            }
+        })
+        .collect();
+    assert_eq!(interactions.len(), 2);
+    assert!(interactions.iter().all(|interaction| {
+        interaction.source == PlayerId(0)
+            && interaction.target == PlayerId(1)
+            && interaction.kind == PlayerInteractionKind::Flower
+    }));
+    assert!(session.game().is_none());
+    for (request, target) in [(3, PlayerId(0)), (4, PlayerId(99))] {
+        let rejected = session.handle(
+            HOST,
+            message(
+                request,
+                ClientCommand::Interact {
+                    target,
+                    kind: PlayerInteractionKind::Flower,
+                },
+            ),
+        );
+        assert!(
+            rejected
+                .iter()
+                .any(|delivery| matches!(delivery.message.event, ServerEvent::Rejected { .. }))
+        );
+    }
 }

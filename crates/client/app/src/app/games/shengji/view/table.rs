@@ -117,6 +117,11 @@ pub(crate) fn render_shengji_table(
 
     let own = game.players.iter().find(|player| player.id == game.you);
     let own_seat = own.map_or(SeatId(0), |player| player.seat);
+    let finished = matches!(game.phase, ShengjiPhaseView::Finished { .. });
+    let local_auto_play = own.filter(|_| !finished).map(|player| player.auto_play);
+    if local_auto_play == Some(true) {
+        add_auto_play_overlay(commands, content, visuals.assets);
+    }
     let start_transition_active = visuals.start_game_transition.is_active_for(game.match_id);
     let previous_trick = visuals.presentation.revealed_previous_trick();
     for relative in u8::from(own.is_some())..SHENGJI_PLAYER_COUNT {
@@ -199,7 +204,6 @@ pub(crate) fn render_shengji_table(
         visuals.game_assets,
     );
 
-    let finished = matches!(game.phase, ShengjiPhaseView::Finished { .. });
     if ui.buried_open && !finished {
         add_shengji_private_buried(commands, table, game, visuals.assets);
     }
@@ -237,16 +241,6 @@ pub(crate) fn render_shengji_table(
             social.interaction_menu_open,
         );
     }
-    let local_auto_play = matches!(
-        game.phase,
-        ShengjiPhaseView::Burying
-            | ShengjiPhaseView::BottomCopying { .. }
-            | ShengjiPhaseView::BottomCopyBurying { .. }
-            | ShengjiPhaseView::FiveTrumpCrossing { .. }
-            | ShengjiPhaseView::Playing
-    )
-    .then(|| own.map(|player| player.auto_play))
-    .flatten();
     let previous_trick =
         shengji_previous_trick_button_state(&game.phase, visuals.presentation.has_previous_trick());
     let buried_cards = !game.your_buried.is_empty() && !finished;
@@ -272,10 +266,6 @@ pub(crate) fn render_shengji_table(
         local_auto_play,
         &auxiliary_actions,
     );
-    if local_auto_play == Some(true) {
-        add_auto_play_overlay(commands, content, visuals.assets);
-    }
-
     if let ShengjiPhaseView::Finished { result, buried } = &game.phase {
         add_shengji_result(
             commands,

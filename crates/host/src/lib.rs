@@ -6,6 +6,9 @@
 mod achievements;
 mod automation;
 mod blackjack;
+mod error;
+#[cfg(test)]
+mod error_tests;
 mod lifecycle;
 mod mahjong;
 mod minecraft_guess;
@@ -20,18 +23,16 @@ mod uno;
 use automation::{AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState};
 pub use blackjack::BlackjackSession;
 use ed25519_dalek::{Signature, VerifyingKey};
-use leocard_blackjack::GameError as BlackjackError;
+pub use error::HostError;
 use leocard_protocol::{
     AVATAR_DIMENSION, JoinRequest, MAX_AVATAR_BYTES, MatchId, RoomId, ServerMessage,
 };
-use leocard_qigui523::RuleError;
 pub use mahjong::MahjongSession;
 pub use minecraft_guess::MinecraftGuessSession;
 pub use qigui523::QiGui523Session;
 pub use room::RoomSession;
 pub use session::{GameSetup, HostSession};
 pub use shengji::ShengjiSession;
-use std::fmt;
 pub use texas_holdem::{AdapterError, TablePlayer, TexasHoldemAdapter, TexasHoldemSession};
 pub use uno::UnoSession;
 
@@ -42,75 +43,6 @@ pub struct ConnectionId(pub u64);
 pub struct Delivery {
     pub recipient: ConnectionId,
     pub message: ServerMessage,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum HostError {
-    InvalidRules(RuleError),
-    InvalidBlackjackGame(BlackjackError),
-    InvalidTexasRules(leocard_texas_holdem::RuleError),
-    InvalidShengjiGame(leocard_shengji::GameError),
-    InvalidUnoGame(leocard_uno::GameError),
-    InvalidMahjongGame(leocard_mahjong::GameError),
-    TexasAdapter(AdapterError),
-    InvalidDeckSize { expected: usize, actual: usize },
-    InvalidDeckContents,
-}
-
-impl fmt::Display for HostError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::InvalidRules(error) => error.fmt(f),
-            Self::InvalidBlackjackGame(error) => write!(f, "21 点配置错误：{error:?}"),
-            Self::InvalidTexasRules(error) => error.fmt(f),
-            Self::InvalidShengjiGame(error) => error.fmt(f),
-            Self::InvalidUnoGame(error) => error.fmt(f),
-            Self::InvalidMahjongGame(error) => error.fmt(f),
-            Self::TexasAdapter(error) => error.fmt(f),
-            Self::InvalidDeckSize { expected, actual } => {
-                write!(f, "牌堆张数错误：应为 {expected}，实际为 {actual}")
-            }
-            Self::InvalidDeckContents => f.write_str("牌堆有缺牌、重复牌或非法牌"),
-        }
-    }
-}
-
-impl std::error::Error for HostError {}
-
-impl From<RuleError> for HostError {
-    fn from(value: RuleError) -> Self {
-        Self::InvalidRules(value)
-    }
-}
-
-impl From<leocard_texas_holdem::RuleError> for HostError {
-    fn from(value: leocard_texas_holdem::RuleError) -> Self {
-        Self::InvalidTexasRules(value)
-    }
-}
-
-impl From<AdapterError> for HostError {
-    fn from(value: AdapterError) -> Self {
-        Self::TexasAdapter(value)
-    }
-}
-
-impl From<leocard_shengji::GameError> for HostError {
-    fn from(value: leocard_shengji::GameError) -> Self {
-        Self::InvalidShengjiGame(value)
-    }
-}
-
-impl From<leocard_uno::GameError> for HostError {
-    fn from(value: leocard_uno::GameError) -> Self {
-        Self::InvalidUnoGame(value)
-    }
-}
-
-impl From<leocard_mahjong::GameError> for HostError {
-    fn from(value: leocard_mahjong::GameError) -> Self {
-        Self::InvalidMahjongGame(value)
-    }
 }
 
 fn valid_identity_proof(room_id: RoomId, request: &JoinRequest) -> bool {

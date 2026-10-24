@@ -1,6 +1,6 @@
 //! 玩家公共等级与参考分显示。
 
-const REFERENCE_LEVEL_NAMES: [&str; 10] = [
+const REFERENCE_LEVEL_NAMES: [&str; 11] = [
     "下界合金",
     "钻石",
     "金",
@@ -11,6 +11,7 @@ const REFERENCE_LEVEL_NAMES: [&str; 10] = [
     "木头",
     "泥土",
     "堆肥桶",
+    "可可豆",
 ];
 
 pub(crate) fn reference_level_index(points: i32) -> usize {
@@ -32,8 +33,10 @@ pub(crate) fn reference_level_index(points: i32) -> usize {
         7
     } else if points >= -50 {
         8
-    } else {
+    } else if points > -100 {
         9
+    } else {
+        10
     }
 }
 

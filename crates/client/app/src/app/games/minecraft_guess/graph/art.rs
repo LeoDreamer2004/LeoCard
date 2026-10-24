@@ -123,6 +123,7 @@ pub(super) fn relation_color(relation: GraphRelation) -> Color {
         GraphRelation::Scrapes => 0xb9d3df,
         GraphRelation::Waxes => 0xebad44,
         GraphRelation::Unwaxes => 0xdfb890,
+        GraphRelation::Hardens => 0x9bbab7,
         GraphRelation::Hatches => 0xe4bd64,
         GraphRelation::SpawnsEntity => 0xa9c95d,
         GraphRelation::MemberOf => 0x8498a5,

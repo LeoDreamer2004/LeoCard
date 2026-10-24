@@ -2,8 +2,8 @@ use super::layout::LobbySeatLayout;
 use super::*;
 use crate::app::presentation::{
     ACCENT, LobbyEmptySeatLabel, LobbyEmptySeatRing, LobbySeatHover, LobbySeatTransitionSource,
-    LobbySeatVisual, MUTED, READY, SecondaryPressTarget, TEXT, UiComposer, add_avatar,
-    add_host_crown, add_text, spawn_node,
+    LobbySeatVisual, MUTED, PlayerMenuProfile, READY, SecondaryPressTarget, TEXT, UiComposer,
+    add_avatar, add_host_crown, add_text, attach_player_interactions, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{LobbyUiAction, UiAction, reference_level};
@@ -210,6 +210,20 @@ impl<'a> OccupiedLobbySeat<'a> {
             &self.player.name,
             handle,
             52.0,
+            self.assets,
+        );
+        attach_player_interactions(
+            commands,
+            container,
+            avatar_ring,
+            self.player.id,
+            PlayerMenuProfile {
+                name: &self.player.name,
+                avatar: handle,
+                reference_points: self.player.reference_points,
+                completed_games: self.player.completed_games,
+                game_profiles: &self.player.game_profiles,
+            },
             self.assets,
         );
         if self.is_host {

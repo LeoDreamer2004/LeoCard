@@ -1,14 +1,13 @@
 //! 指针命中规则和交互控件的单次按下事件。
 
-use bevy::{
-    picking::{Pickable, events::PointerPress, hover::PickingInteraction, pointer::PointerButton},
-    prelude::*,
-    ui::{
-        InteractionDisabled,
-        picking_backend::{UiPickingCamera, UiPickingSettings},
-    },
-    ui_widgets::{Button, TextInput},
-};
+use bevy::picking::Pickable;
+use bevy::picking::events::PointerPress;
+use bevy::picking::hover::PickingInteraction;
+use bevy::picking::pointer::PointerButton;
+use bevy::prelude::*;
+use bevy::ui::InteractionDisabled;
+use bevy::ui::picking_backend::{UiPickingCamera, UiPickingSettings};
+use bevy::ui_widgets::{Button, TextInput};
 
 #[derive(Message)]
 pub struct UiPress(pub Entity);

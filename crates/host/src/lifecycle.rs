@@ -95,9 +95,6 @@ pub(super) trait HostedGameLifecycle: Sized {
             .player_id(connection)
             .ok_or(RejectReason::Player(PlayerViolation::NotJoined))
             .and_then(|source| {
-                if !self.game_started() {
-                    return Err(RejectReason::Game(GameViolation::GameNotStarted));
-                }
                 if source == target {
                     return Err(RejectReason::Room(RoomViolation::CannotInteractWithSelf));
                 }
@@ -116,10 +113,16 @@ pub(super) trait HostedGameLifecycle: Sized {
         match result {
             Ok(interaction) => {
                 self.room_mut().bump_revision();
-                self.with_game_context(self.room().broadcast_event(
+                let mut deliveries = self.room().broadcast_event(
                     Some((connection, request_id)),
                     ServerEvent::PlayerInteraction(interaction),
-                ))
+                );
+                deliveries.extend(if self.game_started() {
+                    self.broadcast_game(None)
+                } else {
+                    self.broadcast_lobby(None)
+                });
+                self.with_game_context(deliveries)
             }
             Err(reason) => self.room().reject(connection, request_id, reason),
         }

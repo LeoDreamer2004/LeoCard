@@ -1,4 +1,3 @@
-use crate::HostError;
 use leocard_protocol::{PlayerId, UnoProfileStats, UnoViolation};
 use leocard_uno::{
     GameError, GameState, UnoCard, UnoPlayerId, UnoRuleSet, build_deck_for_rules,
@@ -18,10 +17,10 @@ pub(super) fn shuffled_uno_deck(rules: UnoRuleSet) -> Vec<UnoCard> {
     deck
 }
 
-pub(super) fn validate_deck(deck: &[UnoCard], rules: UnoRuleSet) -> Result<(), HostError> {
+pub(super) fn validate_deck(deck: &[UnoCard], rules: UnoRuleSet) -> Result<(), GameError> {
     let expected_deck = build_deck_for_rules(rules);
     if deck.len() != expected_deck.len() {
-        return Err(HostError::InvalidDeckSize {
+        return Err(GameError::InvalidDeckSize {
             expected: expected_deck.len(),
             actual: deck.len(),
         });
@@ -51,14 +50,14 @@ pub(super) fn validate_deck(deck: &[UnoCard], rules: UnoRuleSet) -> Result<(), H
             || actual_dark != expected_dark
             || deck.iter().copied().collect::<HashSet<_>>().len() != deck.len()
         {
-            return Err(HostError::InvalidDeckContents);
+            return Err(GameError::InvalidDeckContents);
         }
         return Ok(());
     }
     let expected = expected_deck.into_iter().collect::<HashSet<_>>();
     let actual = deck.iter().copied().collect::<HashSet<_>>();
     if actual.len() != deck.len() || actual != expected {
-        return Err(HostError::InvalidDeckContents);
+        return Err(GameError::InvalidDeckContents);
     }
     Ok(())
 }

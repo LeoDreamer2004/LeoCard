@@ -1,6 +1,5 @@
-use crate::HostError;
 use leocard_protocol::TexasHoldemProfileStats;
-use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemHandCategory, build_deck};
+use leocard_texas_holdem::{GameError, TexasHoldemCard, TexasHoldemHandCategory, build_deck};
 use std::collections::HashSet;
 
 pub(super) fn record_wager(stats: &mut TexasHoldemProfileStats, amount: u32) {
@@ -59,10 +58,10 @@ pub(super) fn merge_texas_holdem_profile_stats(
     }
 }
 
-pub(super) fn validate_deck(short_deck: bool, deck: &[TexasHoldemCard]) -> Result<(), HostError> {
+pub(super) fn validate_deck(short_deck: bool, deck: &[TexasHoldemCard]) -> Result<(), GameError> {
     let expected_deck = build_deck(short_deck);
     if deck.len() != expected_deck.len() {
-        return Err(HostError::InvalidDeckSize {
+        return Err(GameError::InvalidDeckSize {
             expected: expected_deck.len(),
             actual: deck.len(),
         });
@@ -70,7 +69,7 @@ pub(super) fn validate_deck(short_deck: bool, deck: &[TexasHoldemCard]) -> Resul
     let expected = expected_deck.into_iter().collect::<HashSet<_>>();
     let actual = deck.iter().copied().collect::<HashSet<_>>();
     if actual.len() != deck.len() || actual != expected {
-        return Err(HostError::InvalidDeckContents);
+        return Err(GameError::InvalidDeckContents);
     }
     Ok(())
 }

@@ -1,12 +1,12 @@
-use crate::HostError;
 use leocard_protocol::{PlayerId, QiGui523ProfileStats, RuleViolation};
 use leocard_qigui523::{GameError, PlayError, QiGuiCard, QiGuiPlayerId, build_deck};
-use std::{collections::HashSet, time::Duration};
+use std::collections::HashSet;
+use std::time::Duration;
 
-pub(super) fn validate_deck(deck_count: u8, deck: &[QiGuiCard]) -> Result<(), HostError> {
+pub(super) fn validate_deck(deck_count: u8, deck: &[QiGuiCard]) -> Result<(), GameError> {
     let expected_deck = build_deck(deck_count);
     if deck.len() != expected_deck.len() {
-        return Err(HostError::InvalidDeckSize {
+        return Err(GameError::InvalidDeckSize {
             expected: expected_deck.len(),
             actual: deck.len(),
         });
@@ -14,7 +14,7 @@ pub(super) fn validate_deck(deck_count: u8, deck: &[QiGuiCard]) -> Result<(), Ho
     let expected: HashSet<_> = expected_deck.into_iter().collect();
     let actual: HashSet<_> = deck.iter().copied().collect();
     if actual.len() != deck.len() || actual != expected {
-        return Err(HostError::InvalidDeckContents);
+        return Err(GameError::InvalidDeckContents);
     }
     Ok(())
 }

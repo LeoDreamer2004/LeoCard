@@ -1,3 +1,4 @@
+mod audio;
 mod balance;
 mod chips;
 mod deal;
@@ -7,6 +8,7 @@ mod pile;
 mod scatter;
 mod status;
 
+pub(crate) use audio::*;
 pub(crate) use balance::add_poker_balance_panel;
 pub(crate) use chips::*;
 pub(crate) use deal::*;

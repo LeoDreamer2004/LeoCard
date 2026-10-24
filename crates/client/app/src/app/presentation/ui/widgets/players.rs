@@ -109,26 +109,29 @@ pub(crate) fn add_ready_avatar(
     if ready {
         add_ready_badge(commands, frame, avatar_size, assets);
     }
-    attach_summary_interactions(commands, frame, player, profile, assets);
+    attach_player_interactions(commands, frame, frame, player, profile, assets);
     frame
 }
 
-pub(crate) fn attach_summary_interactions(
+pub(crate) fn attach_player_interactions(
     commands: &mut UiComposer,
+    button: Entity,
     avatar: Entity,
     player: PlayerId,
     profile: PlayerMenuProfile<'_>,
     assets: &UiAssets,
 ) {
-    let menu = add_interaction_menu(commands, avatar, player, profile, assets);
-    commands.entity(menu).insert(Visibility::Hidden);
-    commands.entity(avatar).insert((
+    let menu = add_interaction_menu(commands, button, player, profile, assets);
+    commands
+        .entity(menu)
+        .insert((Visibility::Hidden, AnchoredPopup(avatar)));
+    commands.entity(avatar).insert(PlayerAvatarAnchor(player));
+    commands.entity(button).insert((
         Button,
         UiAction::Social(SocialUiAction::ToggleInteractionMenu {
             player,
-            anchor: avatar,
+            anchor: button,
         }),
-        PlayerAvatarAnchor(player),
         GlobalZIndex(1301),
         OpponentBadge {
             player,

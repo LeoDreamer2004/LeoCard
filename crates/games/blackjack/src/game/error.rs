@@ -1,5 +1,6 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::error::Error;
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -31,3 +32,5 @@ impl fmt::Display for GameError {
         })
     }
 }
+
+impl Error for GameError {}

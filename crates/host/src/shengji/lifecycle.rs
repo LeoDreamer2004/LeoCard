@@ -9,9 +9,8 @@ use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
-    PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, Revision, RoomId,
-    RoomViolation, ServerEvent, ShengjiCommand, ShengjiEvent, ShengjiPublicPlay,
-    ShengjiThrowFailureStage, ShengjiViolation,
+    PlayerViolation, RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
+    ShengjiCommand, ShengjiEvent, ShengjiPublicPlay, ShengjiThrowFailureStage,
 };
 use leocard_shengji::{
     ActionOutcome, BottomCopyState, GameError, GameState, Phase, ShengjiCard, ShengjiRuleSet,
@@ -26,7 +25,7 @@ impl ShengjiSession {
         rules: ShengjiRuleSet,
         shuffled_deck: Vec<ShengjiCard>,
     ) -> Result<Self, HostError> {
-        let rules = rules.validate().map_err(GameError::from)?;
+        let rules = rules.validate()?;
         validate_deck(&shuffled_deck, rules)?;
         Ok(Self {
             room: RoomSession::new_with_seat_count(
@@ -782,58 +781,6 @@ impl HostedGameLifecycle for ShengjiSession {
         } else {
             self.broadcast_lobby(None)
         });
-        deliveries
-    }
-
-    fn interact(
-        &mut self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        target: PlayerId,
-        kind: PlayerInteractionKind,
-    ) -> Vec<Delivery> {
-        let Some(source) = self.room.player_id(connection) else {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Player(PlayerViolation::NotJoined),
-            );
-        };
-        if self.game.is_none() {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Game(GameViolation::GameNotStarted),
-            );
-        }
-        if source == target {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Room(RoomViolation::CannotInteractWithSelf),
-            );
-        }
-        if !self
-            .room
-            .players
-            .iter()
-            .any(|player| player.id == target && !player.left)
-        {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Game(GameViolation::Shengji(ShengjiViolation::InvalidPlayer)),
-            );
-        }
-        let interaction = self
-            .room
-            .record_interaction(source, target, kind, fastrand::u32(..));
-        self.room.bump_revision();
-        let mut deliveries = self.room.broadcast_event(
-            Some((connection, request_id)),
-            ServerEvent::PlayerInteraction(interaction),
-        );
-        deliveries.extend(self.broadcast_game(None));
         deliveries
     }
 }

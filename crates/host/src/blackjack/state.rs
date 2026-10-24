@@ -26,7 +26,7 @@ impl BlackjackSession {
         rules: BlackjackRuleSet,
         shoe: Vec<BlackjackCard>,
     ) -> Result<Self, HostError> {
-        GameState::new(rules, 1, shoe.clone()).map_err(HostError::InvalidBlackjackGame)?;
+        GameState::new(rules, 1, shoe.clone())?;
         Ok(Self {
             room: RoomSession::new(
                 room_id,

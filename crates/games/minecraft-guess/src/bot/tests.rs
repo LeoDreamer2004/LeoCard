@@ -1,3 +1,5 @@
+mod graph;
+
 use super::{MinecraftGuessBot, MinecraftGuessBotObservation};
 use crate::{Catalogue, EntryKind, GameState, MinecraftGuessRuleSet};
 use fastrand::Rng;

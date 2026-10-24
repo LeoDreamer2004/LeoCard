@@ -1,6 +1,7 @@
 use super::GuessRecord;
 use crate::{Entry, EntryKind, GuessMode, MAX_GUESS_CHARACTERS};
 use serde::{Deserialize, Serialize};
+use std::error::Error;
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -39,6 +40,8 @@ impl fmt::Display for GameError {
         }
     }
 }
+
+impl Error for GameError {}
 
 /// The chosen answer is only included after the round ends.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

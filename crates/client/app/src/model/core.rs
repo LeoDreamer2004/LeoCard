@@ -126,7 +126,9 @@ impl ClientModel {
                 self.room_closed = false;
                 self.games = GameClientStates::default();
                 self.active_match_id = None;
-                self.pending.clear();
+                if self.lobby.is_none() {
+                    self.pending.clear();
+                }
                 self.rules = Some(snapshot.rules.clone());
                 self.lobby = Some(snapshot);
                 self.game = None;

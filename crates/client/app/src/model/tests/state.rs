@@ -1,8 +1,10 @@
 use super::*;
 use leocard_protocol::{
-    AvatarId, GameViolation, PROTOCOL_VERSION, PlayerId, PlayerInteraction, PlayerInteractionKind,
-    RejectReason, Revision, RoomId, RuleViolation, ServerEvent, ServerMessage,
+    AvatarId, GameKind, GameRules, GameViolation, LobbySnapshot, PROTOCOL_VERSION, PlayerId,
+    PlayerInteraction, PlayerInteractionKind, RejectReason, Revision, RoomId, RuleViolation,
+    ServerEvent, ServerMessage,
 };
+use leocard_uno::UnoRuleSet;
 
 #[test]
 fn accepted_events_reach_observers_without_consuming_presentation_queues() {
@@ -30,11 +32,27 @@ fn accepted_events_reach_observers_without_consuming_presentation_queues() {
         in_reply_to: None,
         event: ServerEvent::PlayerInteraction(interaction),
     };
+    let lobby = ServerMessage {
+        revision: Revision(1),
+        event: ServerEvent::LobbySnapshot(LobbySnapshot {
+            game: GameKind::Uno,
+            rules: GameRules::Uno(UnoRuleSet::default()),
+            host_port: 52300,
+            host: Some(PlayerId(0)),
+            players: Vec::new(),
+        }),
+        ..message.clone()
+    };
+    assert!(model.apply(lobby.clone()));
     let mut observed = Vec::new();
     assert!(model.apply_with_events(message.clone(), |player, event| {
         observed.push((player, event.event.clone()))
     }));
     assert_eq!(observed, [(Some(PlayerId(0)), message.event.clone())]);
+    assert!(model.apply(ServerMessage {
+        revision: Revision(2),
+        ..lobby
+    }));
     assert_eq!(model.take_player_interactions(), [interaction]);
     for rejected in [
         ServerMessage {

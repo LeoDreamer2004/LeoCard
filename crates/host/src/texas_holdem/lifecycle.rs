@@ -2,9 +2,9 @@ use super::{TexasHoldemAdapter, TexasHoldemSession, validate_deck};
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{AutomaticActionDelayState, ConnectionId, Delivery, HostError, RoomSession};
 use leocard_protocol::{
-    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
-    PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, Revision, RoomId,
-    RoomViolation, ServerEvent, TABLE_SEAT_COUNT, TexasHoldemCommand, TexasHoldemViolation,
+    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerViolation,
+    RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent, TABLE_SEAT_COUNT,
+    TexasHoldemCommand,
 };
 use leocard_texas_holdem::{Phase, TexasHoldemCard, TexasHoldemRuleSet, build_deck};
 use std::time::Duration;
@@ -450,60 +450,6 @@ impl HostedGameLifecycle for TexasHoldemSession {
         } else {
             self.broadcast_lobby(None)
         });
-        deliveries
-    }
-
-    fn interact(
-        &mut self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        target: PlayerId,
-        kind: PlayerInteractionKind,
-    ) -> Vec<Delivery> {
-        let Some(source) = self.room.player_id(connection) else {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Player(PlayerViolation::NotJoined),
-            );
-        };
-        if self.game.is_none() {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Game(GameViolation::GameNotStarted),
-            );
-        }
-        if source == target {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Room(RoomViolation::CannotInteractWithSelf),
-            );
-        }
-        if !self
-            .room
-            .players
-            .iter()
-            .any(|player| player.id == target && !player.left)
-        {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Game(GameViolation::TexasHoldem(
-                    TexasHoldemViolation::InvalidPlayer,
-                )),
-            );
-        }
-        let interaction = self
-            .room
-            .record_interaction(source, target, kind, fastrand::u32(..));
-        self.room.bump_revision();
-        let mut deliveries = self.room.broadcast_event(
-            Some((connection, request_id)),
-            ServerEvent::PlayerInteraction(interaction),
-        );
-        deliveries.extend(self.broadcast_game(None));
         deliveries
     }
 

@@ -1,4 +1,5 @@
 mod data;
+mod knowledge;
 mod relation;
 mod sampling;
 mod state;

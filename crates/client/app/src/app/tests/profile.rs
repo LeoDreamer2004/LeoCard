@@ -51,4 +51,7 @@ fn reference_levels_use_the_declared_boundaries() {
     assert_eq!(reference_level(-11), "泥土");
     assert_eq!(reference_level(-50), "泥土");
     assert_eq!(reference_level(-51), "堆肥桶");
+    assert_eq!(reference_level(-99), "堆肥桶");
+    assert_eq!(reference_level(-100), "可可豆");
+    assert_eq!(reference_level(-101), "可可豆");
 }

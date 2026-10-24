@@ -11,7 +11,7 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, GameSummaryAnimation, MUTED, PanelSkin, PlayerMenuProfile, READY, TEXT, UiComposer,
-    add_avatar, add_text, attach_summary_interactions, decorate_panel_skin, spawn_node,
+    add_avatar, add_text, attach_player_interactions, decorate_panel_skin, spawn_node,
     summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
@@ -148,8 +148,9 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
         if let Some(player) = player {
             let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
             let image = add_avatar(commands, heading, name, avatar, 62.0, assets);
-            attach_summary_interactions(
+            attach_player_interactions(
                 commands,
+                image,
                 image,
                 player.id,
                 PlayerMenuProfile {

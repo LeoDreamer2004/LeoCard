@@ -5,6 +5,7 @@
 
 use super::super::TexasChipTableState;
 use super::*;
+use crate::app::presentation::{PokerChipSoundKind, PokerChipSounds, numbered_table_sounds};
 use crate::app::runtime::AppearancePreferences;
 use bevy::audio::Volume;
 use bevy::prelude::*;
@@ -14,10 +15,7 @@ use std::mem;
 
 #[derive(Resource, Default)]
 pub(crate) struct TexasSoundAssets {
-    pub(super) chip_lay: Vec<Handle<AudioSource>>,
-    pub(super) chip_handle: Vec<Handle<AudioSource>>,
-    pub(super) chip_collide: Vec<Handle<AudioSource>>,
-    pub(super) chip_stack: Vec<Handle<AudioSource>>,
+    chips: PokerChipSounds,
     pub(super) check: Vec<Handle<AudioSource>>,
     pub(super) fold: Vec<Handle<AudioSource>>,
     pub(super) card_place: Vec<Handle<AudioSource>>,
@@ -34,16 +32,13 @@ impl TexasSoundAssets {
         let casino = "vendor/kenney/casino-audio/Audio";
         let interface = "vendor/kenney/interface-sounds/Audio";
         Self {
-            chip_lay: numbered_sounds(asset_server, casino, "chip-lay", 3),
-            chip_handle: numbered_sounds(asset_server, casino, "chips-handle", 6),
-            chip_collide: numbered_sounds(asset_server, casino, "chips-collide", 4),
-            chip_stack: numbered_sounds(asset_server, casino, "chips-stack", 6),
+            chips: PokerChipSounds::load(asset_server),
             check: ["tap-a.ogg", "tap-b.ogg"]
                 .map(|name| asset_server.load(format!("vendor/kenney/ui/Sounds/{name}")))
                 .to_vec(),
-            fold: numbered_sounds(asset_server, casino, "card-shove", 4),
-            card_place: numbered_sounds(asset_server, casino, "card-place", 4),
-            showdown_fan: numbered_sounds(asset_server, casino, "card-fan", 2),
+            fold: numbered_table_sounds(asset_server, casino, "card-shove", 4),
+            card_place: numbered_table_sounds(asset_server, casino, "card-place", 4),
+            showdown_fan: numbered_table_sounds(asset_server, casino, "card-fan", 2),
             all_in: vec![asset_server.load(format!("{interface}/bong_001.ogg"))],
             pot_divide: ["switch_003.ogg", "switch_004.ogg"]
                 .map(|name| asset_server.load(format!("{interface}/{name}")))
@@ -73,10 +68,10 @@ impl TexasSoundAssets {
 
     pub(super) fn variants(&self, kind: TexasSoundKind) -> &[Handle<AudioSource>] {
         match kind {
-            TexasSoundKind::ChipLay => &self.chip_lay,
-            TexasSoundKind::ChipHandle => &self.chip_handle,
-            TexasSoundKind::ChipCollide => &self.chip_collide,
-            TexasSoundKind::ChipStack => &self.chip_stack,
+            TexasSoundKind::ChipLay => self.chips.variants(PokerChipSoundKind::Lay),
+            TexasSoundKind::ChipHandle => self.chips.variants(PokerChipSoundKind::Handle),
+            TexasSoundKind::ChipCollide => self.chips.variants(PokerChipSoundKind::Collide),
+            TexasSoundKind::ChipStack => self.chips.variants(PokerChipSoundKind::Stack),
             TexasSoundKind::Check => &self.check,
             TexasSoundKind::Fold => &self.fold,
             TexasSoundKind::CardPlace => &self.card_place,
@@ -95,17 +90,6 @@ impl TexasSoundAssets {
         };
         self.voices[gender][cue.variant].clone()
     }
-}
-
-pub(super) fn numbered_sounds(
-    asset_server: &AssetServer,
-    directory: &str,
-    prefix: &str,
-    count: usize,
-) -> Vec<Handle<AudioSource>> {
-    (1..=count)
-        .map(|index| asset_server.load(format!("{directory}/{prefix}-{index}.ogg")))
-        .collect()
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

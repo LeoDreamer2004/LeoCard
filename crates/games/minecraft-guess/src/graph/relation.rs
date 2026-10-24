@@ -38,6 +38,7 @@ pub enum GraphRelation {
     Scrapes,
     Waxes,
     Unwaxes,
+    Hardens,
     Processing,
     Natural,
     Trading,
@@ -46,7 +47,7 @@ pub enum GraphRelation {
 
 impl GraphRelation {
     /// Concrete relations before unrevealed edges are grouped by `coarse`.
-    pub const DETAILED: [Self; 35] = [
+    pub const DETAILED: [Self; 36] = [
         Self::Crafting,
         Self::Cooking,
         Self::Brewing,
@@ -82,6 +83,7 @@ impl GraphRelation {
         Self::Scrapes,
         Self::Waxes,
         Self::Unwaxes,
+        Self::Hardens,
     ];
 
     pub fn coarse(self) -> Self {
@@ -141,7 +143,8 @@ impl GraphRelation {
             Self::Scrapes => "除锈",
             Self::Waxes => "涂蜡",
             Self::Unwaxes => "脱蜡",
-            Self::Processing => "加工成",
+            Self::Hardens => "固化",
+            Self::Processing => "加工",
             Self::Natural => "自然生成",
             Self::Trading => "交易",
             Self::Other => "其他",

@@ -1,5 +1,6 @@
-use crate::HostError;
-use leocard_mahjong::{ActionOutcome, HandResult, MahjongPlayerId, MahjongTile, build_deck};
+use leocard_mahjong::{
+    ActionOutcome, GameError, HandResult, MahjongPlayerId, MahjongTile, build_deck,
+};
 use leocard_protocol::{MahjongEvent, MahjongHandResultView, MahjongWinView, PlayerId};
 
 pub(super) fn events_for_outcome(outcome: &ActionOutcome) -> Vec<MahjongEvent> {
@@ -63,9 +64,9 @@ pub(super) fn hand_result_view(result: &HandResult) -> MahjongHandResultView {
     }
 }
 
-pub(super) fn validate_deck(deck: &[MahjongTile]) -> Result<(), HostError> {
+pub(super) fn validate_deck(deck: &[MahjongTile]) -> Result<(), GameError> {
     if deck.len() != 144 {
-        return Err(HostError::InvalidDeckSize {
+        return Err(GameError::InvalidDeckSize {
             expected: 144,
             actual: deck.len(),
         });
@@ -75,7 +76,7 @@ pub(super) fn validate_deck(deck: &[MahjongTile]) -> Result<(), HostError> {
     let mut expected = build_deck();
     expected.sort_unstable();
     if actual != expected {
-        return Err(HostError::InvalidDeckContents);
+        return Err(GameError::InvalidDeckContents);
     }
     Ok(())
 }

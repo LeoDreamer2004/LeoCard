@@ -6,8 +6,8 @@ use crate::{
 };
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
-    PlayerInteractionKind, PlayerViolation, QiGui523Command, RejectReason, RequestId, Revision,
-    RoomId, RoomViolation, RuleViolation, ServerEvent,
+    PlayerViolation, QiGui523Command, RejectReason, RequestId, Revision, RoomId, RoomViolation,
+    ServerEvent,
 };
 use leocard_qigui523::{
     GameState, Phase, QiGuiCard, QiGuiMatchStatistics, QiGuiRuleSet, build_deck,
@@ -486,58 +486,6 @@ impl HostedGameLifecycle for QiGui523Session {
         } else {
             deliveries.extend(self.broadcast_lobby(None));
         }
-        deliveries
-    }
-
-    fn interact(
-        &mut self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        target: PlayerId,
-        kind: PlayerInteractionKind,
-    ) -> Vec<Delivery> {
-        let Some(source) = self.player_id(connection) else {
-            return self.reject(
-                connection,
-                request_id,
-                RejectReason::Player(PlayerViolation::NotJoined),
-            );
-        };
-        if self.game.is_none() {
-            return self.reject(
-                connection,
-                request_id,
-                RejectReason::Game(GameViolation::GameNotStarted),
-            );
-        }
-        if source == target {
-            return self.reject(
-                connection,
-                request_id,
-                RejectReason::Room(RoomViolation::CannotInteractWithSelf),
-            );
-        }
-        if !self
-            .players
-            .iter()
-            .any(|player| player.id == target && !player.left)
-        {
-            return self.reject(
-                connection,
-                request_id,
-                RejectReason::Game(GameViolation::QiGui523(RuleViolation::InvalidPlayer)),
-            );
-        }
-
-        let interaction = self
-            .room
-            .record_interaction(source, target, kind, fastrand::u32(..));
-        self.bump_revision();
-        let mut deliveries = self.room.broadcast_event(
-            Some((connection, request_id)),
-            ServerEvent::PlayerInteraction(interaction),
-        );
-        deliveries.extend(self.broadcast_game(None));
         deliveries
     }
 

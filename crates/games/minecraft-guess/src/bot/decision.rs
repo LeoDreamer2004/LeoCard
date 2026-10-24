@@ -29,6 +29,10 @@ impl MinecraftGuessBot {
             .filter(|entry| {
                 (observation.character_count == 0
                     || entry.name.chars().count() == usize::from(observation.character_count))
+                    && observation
+                        .related_entries
+                        .as_ref()
+                        .is_none_or(|related| related.contains(&entry.id))
                     && observation.guesses.iter().all(|guess| {
                         guess.accepts_candidate_matching(entry, |label| {
                             full_feedback || !matches!(label, "硬度" | "爆炸抗性")

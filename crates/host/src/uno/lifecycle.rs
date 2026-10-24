@@ -1,4 +1,4 @@
-use super::{DRAW_REVEAL_INTERVAL, UnoSession, shuffled_uno_deck, to_core_player, validate_deck};
+use super::{DRAW_REVEAL_INTERVAL, UnoSession, shuffled_uno_deck, validate_deck};
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
@@ -6,12 +6,10 @@ use crate::{
 };
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
-    PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, Revision, RoomId,
-    RoomViolation, ServerEvent, UnoEvent,
+    PlayerViolation, RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
+    UnoEvent,
 };
-use leocard_uno::{
-    GameError, GameState, Phase, UnoCard, UnoFlipSide, UnoMatchStatistics, UnoRuleSet,
-};
+use leocard_uno::{GameState, Phase, UnoCard, UnoFlipSide, UnoMatchStatistics, UnoRuleSet};
 use std::time::Duration;
 
 impl UnoSession {
@@ -21,7 +19,7 @@ impl UnoSession {
         rules: UnoRuleSet,
         shuffled_deck: Vec<UnoCard>,
     ) -> Result<Self, HostError> {
-        let rules = rules.validate().map_err(GameError::from)?;
+        let rules = rules.validate()?;
         validate_deck(&shuffled_deck, rules)?;
         Ok(Self {
             room: RoomSession::new_with_seat_count(
@@ -428,58 +426,6 @@ impl HostedGameLifecycle for UnoSession {
         } else {
             self.broadcast_lobby(None)
         });
-        deliveries
-    }
-
-    fn interact(
-        &mut self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        target: PlayerId,
-        kind: PlayerInteractionKind,
-    ) -> Vec<Delivery> {
-        let Some(source) = self.room.player_id(connection) else {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Player(PlayerViolation::NotJoined),
-            );
-        };
-        if self.game.is_none() {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Game(GameViolation::GameNotStarted),
-            );
-        }
-        if source == target {
-            return self.room.reject(
-                connection,
-                request_id,
-                RejectReason::Room(RoomViolation::CannotInteractWithSelf),
-            );
-        }
-        if !self
-            .room
-            .players
-            .iter()
-            .any(|player| player.id == target && !player.left)
-        {
-            return self.reject_game_error(
-                connection,
-                request_id,
-                &GameError::InvalidPlayer(to_core_player(target)),
-            );
-        }
-        let interaction = self
-            .room
-            .record_interaction(source, target, kind, fastrand::u32(..));
-        self.room.bump_revision();
-        let mut deliveries = self.room.broadcast_event(
-            Some((connection, request_id)),
-            ServerEvent::PlayerInteraction(interaction),
-        );
-        deliveries.extend(self.broadcast_game(None));
         deliveries
     }
 

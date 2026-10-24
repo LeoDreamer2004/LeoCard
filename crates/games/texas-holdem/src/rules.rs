@@ -5,6 +5,8 @@ use std::fmt;
 pub struct TexasHoldemRuleSet {
     pub player_count: u8,
     pub starting_chips: u16,
+    /// Zero disables squid; otherwise at most player_count - 1 markers per round.
+    pub squid_markers: u8,
     pub short_deck: bool,
     /// 只比较构成牌型的点数，忽略对子、两对、三条和四条之外的踢脚牌。
     /// 高牌与同花只比较最大的一张牌。
@@ -37,6 +39,9 @@ impl TexasHoldemRuleSet {
         if !Self::STARTING_CHIP_OPTIONS.contains(&self.starting_chips) {
             return Err(RuleError::StartingChips(self.starting_chips));
         }
+        if self.squid_markers >= self.player_count {
+            return Err(RuleError::SquidMarkers(self.squid_markers));
+        }
         Ok(self)
     }
 }
@@ -46,6 +51,7 @@ impl Default for TexasHoldemRuleSet {
         Self {
             player_count: 4,
             starting_chips: 20,
+            squid_markers: 0,
             short_deck: false,
             ignore_kickers: false,
             omaha: false,
@@ -58,11 +64,13 @@ impl Default for TexasHoldemRuleSet {
 pub enum RuleError {
     PlayerCount(u8),
     StartingChips(u16),
+    SquidMarkers(u8),
 }
 
 impl fmt::Display for RuleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::SquidMarkers(value) => write!(f, "鱿鱼标记数必须少于玩家人数，实际为 {value}"),
             Self::PlayerCount(value) => write!(f, "玩家数必须为 3..=6，实际为 {value}"),
             Self::StartingChips(value) => {
                 write!(f, "初始筹码必须是 5、10、20、30、40 或 50，实际为 {value}")

@@ -3,7 +3,7 @@
 //! 规则核心仍以整数结算；这里把整数映射为有独立身份的实体筹码。每枚筹码在
 //! 玩家余额区、玩家下注区和中央底池之间转移，UI 重建时也能从资源恢复位置。
 
-use super::super::TexasAudioCue;
+use super::super::{SquidTableState, TexasAudioCue};
 use bevy::prelude::*;
 use leocard_protocol::{MatchId, PlayerId, SeatId};
 use std::collections::HashMap;
@@ -90,6 +90,7 @@ impl ChipZoneLayout {
 
 #[derive(Resource, Default)]
 pub(crate) struct TexasChipTableState {
+    pub(crate) squid: SquidTableState,
     pub(super) match_id: Option<MatchId>,
     pub(super) hand_number: u32,
     pub(super) you: Option<PlayerId>,

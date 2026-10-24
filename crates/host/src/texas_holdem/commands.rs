@@ -86,6 +86,19 @@ impl TexasHoldemSession {
                 RejectReason::Game(GameViolation::InvalidRuleConfiguration),
             );
         };
+        let count = self
+            .room
+            .players
+            .iter()
+            .filter(|player| !player.left)
+            .count();
+        if usize::from(rules.squid_markers) >= count {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::InvalidRuleConfiguration),
+            );
+        }
         if self.rules != rules {
             self.rules = rules;
             self.room.reset_ready_after_rules_change();

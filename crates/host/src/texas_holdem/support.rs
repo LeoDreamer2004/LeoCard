@@ -49,6 +49,12 @@ pub(super) fn merge_texas_holdem_profile_stats(
         .saturating_add(current.all_in_actions);
     aggregate.hands_played = aggregate.hands_played.saturating_add(current.hands_played);
     aggregate.hands_folded = aggregate.hands_folded.saturating_add(current.hands_folded);
+    aggregate.entry_tracked_hands = aggregate
+        .entry_tracked_hands
+        .saturating_add(current.entry_tracked_hands);
+    aggregate.entered_hands = aggregate
+        .entered_hands
+        .saturating_add(current.entered_hands);
     for (aggregate, current) in aggregate
         .hand_category_counts
         .iter_mut()

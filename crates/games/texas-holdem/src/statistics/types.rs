@@ -38,6 +38,8 @@ pub struct TexasHoldemHandStatistics {
     pub won_pot: u32,
     pub won_side_pot_chips: u32,
     pub showdown: bool,
+    /// Reached the flop without folding, or won uncontested before the flop.
+    pub entered_pot: bool,
     pub short_deck: bool,
     pub button: bool,
     pub big_blind: bool,

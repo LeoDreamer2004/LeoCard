@@ -87,6 +87,37 @@ pub(crate) fn render_texas_holdem_lobby(
         },
         assets,
     );
+    let maximum_markers =
+        (connected_count.saturating_sub(1) as u8).min(TexasHoldemRuleSet::MAX_PLAYERS - 1);
+    add_rule_config_row(
+        commands,
+        rules_panel,
+        TexasRuleConfigRow {
+            label: "鱿鱼标记",
+            value: if rules_value.squid_markers == 0 {
+                "关闭".to_owned()
+            } else {
+                rules_value.squid_markers.to_string()
+            },
+            help: "每手独赢主池获得一枚标记，可重复获得；平分主池或仅赢边池不发放。标记发完后，零标记者向持有者每枚支付 1BB（2 筹码），筹码不足则按比例支付。下一手重置标记；若有人出局，提前结算已发标记。数量最多为当前玩家数减一，0 为关闭。",
+            editable: can_configure,
+            previous: rules_value
+                .squid_markers
+                .checked_sub(1)
+                .filter(|_| can_configure)
+                .map(|squid_markers| TexasHoldemRuleSet {
+                    squid_markers,
+                    ..rules_value
+                }),
+            next: (can_configure && rules_value.squid_markers < maximum_markers).then_some(
+                TexasHoldemRuleSet {
+                    squid_markers: rules_value.squid_markers + 1,
+                    ..rules_value
+                },
+            ),
+        },
+        assets,
+    );
     let betting_toggled = TexasHoldemRuleSet {
         fixed_limit: !rules_value.fixed_limit,
         ..rules_value

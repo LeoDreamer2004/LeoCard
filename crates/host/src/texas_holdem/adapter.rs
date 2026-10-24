@@ -3,7 +3,8 @@ use super::spectator::SpectatorAccess;
 use leocard_protocol::{
     AvatarId, MatchId, PlayerId, ProfileId, SeatId, TexasHoldemBlindView, TexasHoldemEquity,
     TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemPotAward,
-    TexasHoldemRevealedHand, TexasHoldemSnapshot, TexasHoldemViolation,
+    TexasHoldemRevealedHand, TexasHoldemSnapshot, TexasHoldemSquidState, TexasHoldemSquidTransfer,
+    TexasHoldemViolation,
 };
 use leocard_texas_holdem::{
     ActionOutcome, GameError, GameState, Phase, RuleError, TexasHoldemAction, TexasHoldemCard,
@@ -104,6 +105,7 @@ impl TexasHoldemAdapter {
             .ok_or(AdapterError::RecipientNotAtTable(first_dealer))?;
         let effective_rules = TexasHoldemRuleSet {
             player_count: players.len() as u8,
+            squid_markers: rules.squid_markers.min(players.len() as u8 - 1),
             ..rules
         }
         .validate()?;
@@ -390,6 +392,28 @@ impl TexasHoldemAdapter {
                 .is_some_and(|player| self.game.all_in_allowed(player).unwrap_or(false)),
             pot: self.game.pot(),
             phase,
+            squid: TexasHoldemSquidState {
+                round: self.game.squid().round,
+                markers: self
+                    .game
+                    .squid()
+                    .markers
+                    .iter()
+                    .map(|owner| owner.map(|id| self.protocol_player(id)))
+                    .collect(),
+                settled: self.game.squid().settled,
+                transfers: self
+                    .game
+                    .squid()
+                    .transfers
+                    .iter()
+                    .map(|transfer| TexasHoldemSquidTransfer {
+                        from: self.protocol_player(transfer.from),
+                        to: self.protocol_player(transfer.to),
+                        amount: transfer.amount,
+                    })
+                    .collect(),
+            },
         }
     }
 

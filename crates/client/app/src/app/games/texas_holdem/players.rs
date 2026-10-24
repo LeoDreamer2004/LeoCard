@@ -17,6 +17,25 @@ use leocard_protocol::{GameKind, PlayerId, TexasHoldemPlayerState, TexasHoldemSn
 pub(super) const TEXAS_PORTRAIT_WIDTH: f32 = 96.0 * 1.17;
 pub(super) const TEXAS_PORTRAIT_HEIGHT: f32 = 76.0 * 1.17 + 34.0;
 
+pub(super) fn texas_portrait_position(relative: u8) -> Vec2 {
+    let side = match relative {
+        0..=2 => SeatSide::Left,
+        3 => SeatSide::Top,
+        _ => SeatSide::Right,
+    };
+    let zone = texas_player_chip_zone(relative);
+    let left = match side {
+        SeatSide::Left => zone.left - TEXAS_PORTRAIT_WIDTH - 8.0,
+        SeatSide::Top | SeatSide::Right => zone.left + zone.width + 8.0,
+    };
+    let top = if matches!(side, SeatSide::Top) {
+        zone.top + (zone.height - TEXAS_PORTRAIT_HEIGHT) * 0.5 - 16.0
+    } else {
+        zone.top + (zone.height - TEXAS_PORTRAIT_HEIGHT) * 0.5
+    };
+    Vec2::new(left, top)
+}
+
 #[expect(
     clippy::too_many_arguments,
     reason = "the opponent builder keeps seat state and visual resources explicit"
@@ -42,16 +61,8 @@ pub(super) fn add_texas_opponent(
         4 | 5 => SeatSide::Right,
         _ => return,
     };
-    let zone = texas_player_chip_zone(relative);
-    let left = match side {
-        SeatSide::Left => zone.left - TEXAS_PORTRAIT_WIDTH - 8.0,
-        SeatSide::Top | SeatSide::Right => zone.left + zone.width + 8.0,
-    };
-    let top = if matches!(side, SeatSide::Top) {
-        zone.top + (zone.height - TEXAS_PORTRAIT_HEIGHT) * 0.5 - 16.0
-    } else {
-        zone.top + (zone.height - TEXAS_PORTRAIT_HEIGHT) * 0.5
-    };
+    let position = texas_portrait_position(relative);
+    let (left, top) = (position.x, position.y);
     let seat = spawn_node(
         commands,
         table,

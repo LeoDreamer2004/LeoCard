@@ -10,6 +10,7 @@ use super::super::{
     TexasPotHover, fold_card_visual,
 };
 
+use super::super::add_squid_markers;
 use super::{
     ActionFeedbackKind, ActionLabel, CHIP_SIZE, ChipZone, ChipZoneLayout, TableChip,
     TexasChipSprite, TexasChipTableState, texas_center_zone_panel, texas_player_chip_zone,
@@ -75,6 +76,7 @@ pub(crate) fn add_texas_chip_areas(
     add_chip_zone_panel(commands, table, texas_center_zone_panel());
     add_pot_divisions(commands, table, state);
     add_pot_hover_regions(commands, table, state);
+    add_squid_markers(commands, table, &state.squid, assets);
 
     let layer = spawn_node(
         commands,

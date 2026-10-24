@@ -14,7 +14,6 @@ pub struct GlobalPreferences {
     pub table_felt_path: Option<PathBuf>,
     pub table_brightness: f32,
     pub table_vignette: f32,
-    #[serde(default = "default_audio_volume")]
     pub audio_volume: f32,
     pub gender: PlayerGender,
     pub mahjong_action_voices: bool,
@@ -39,8 +38,4 @@ impl Default for GlobalPreferences {
             texas_action_voices: true,
         }
     }
-}
-
-fn default_audio_volume() -> f32 {
-    DEFAULT_AUDIO_VOLUME
 }

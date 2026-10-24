@@ -1,21 +1,13 @@
 use super::SavedPreferences;
 use crate::player::config_file;
-use crate::player::migration::migrate_preferences;
 use std::fs;
 
-pub(crate) const PREFERENCES_HEADER: &[u8] = b"LeoCard/prefs/v3\0";
+const PREFERENCES_HEADER: &[u8] = b"LeoCard/prefs/v4\0";
 
 pub fn load_player_preferences() -> Option<SavedPreferences> {
     let bytes = fs::read(config_file("client.prefs")?).ok()?;
-    decode_player_preferences(&bytes)
-}
-
-pub(crate) fn decode_player_preferences(bytes: &[u8]) -> Option<SavedPreferences> {
-    if let Some(current) = bytes.strip_prefix(PREFERENCES_HEADER) {
-        postcard::from_bytes(current).ok()
-    } else {
-        migrate_preferences(bytes)
-    }
+    let current = bytes.strip_prefix(PREFERENCES_HEADER)?;
+    postcard::from_bytes(current).ok()
 }
 
 pub fn save_player_preferences(preferences: &SavedPreferences) -> Result<(), String> {

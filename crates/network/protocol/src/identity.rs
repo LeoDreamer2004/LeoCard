@@ -134,6 +134,10 @@ pub struct TexasHoldemProfileStats {
     /// 顺序依次为高牌、一对、两对、三条、顺子、同花、葫芦、四条、
     /// 同花顺及皇家同花顺。
     pub hand_category_counts: [u32; 10],
+    /// 已采集入池情况的小局数，不含无法还原该信息的旧档案。
+    pub entry_tracked_hands: u32,
+    /// 进入翻牌或翻前直接获胜的小局数。
+    pub entered_hands: u32,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

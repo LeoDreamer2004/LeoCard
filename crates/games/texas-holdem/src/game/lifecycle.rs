@@ -43,6 +43,7 @@ impl GameState {
         dealer: TexasHoldemPlayerId,
         deck: Vec<TexasHoldemCard>,
     ) -> Result<(), GameError> {
+        self.squid.start_hand();
         self.dealer = dealer;
         self.deck = deck.into();
         self.community.clear();
@@ -185,7 +186,7 @@ impl GameState {
         let winner = self.contenders()[0];
         let amount = self.pot();
         self.players[winner.0].stack += amount;
-        let result = HandResult {
+        let mut result = HandResult {
             dealer: self.dealer,
             showdown: false,
             community: self.community.clone(),
@@ -196,6 +197,7 @@ impl GameState {
             }],
             final_stacks: self.players.iter().map(PlayerState::stack).collect(),
         };
+        self.finish_squid(&mut result);
         self.current_player = None;
         self.phase = Phase::Complete(result.clone());
         result
@@ -269,16 +271,25 @@ impl GameState {
                 winning_hand: Some(best),
             });
         }
-        let result = HandResult {
+        let mut result = HandResult {
             dealer: self.dealer,
             showdown: true,
             community: self.community.clone(),
             awards,
             final_stacks: self.players.iter().map(PlayerState::stack).collect(),
         };
+        self.finish_squid(&mut result);
         self.current_player = None;
         self.phase = Phase::Complete(result.clone());
         Ok(result)
+    }
+
+    fn finish_squid(&mut self, result: &mut HandResult) {
+        self.squid
+            .finish_hand(&result.awards, &mut result.final_stacks);
+        for (player, &stack) in self.players.iter_mut().zip(&result.final_stacks) {
+            player.stack = stack;
+        }
     }
 
     pub(super) fn street(&self) -> TexasHoldemStreet {

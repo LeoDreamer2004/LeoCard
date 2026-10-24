@@ -4,7 +4,7 @@ use leocard_protocol::TexasHoldemProfileStats;
 pub(crate) fn texas_holdem_profile_rows(
     stats: Option<&TexasHoldemProfileStats>,
 ) -> Vec<(&'static str, String)> {
-    const LABELS: [&str; 25] = [
+    const LABELS: [&str; 26] = [
         "对局数",
         "分数增减",
         "场筹码",
@@ -20,6 +20,7 @@ pub(crate) fn texas_holdem_profile_rows(
         "加注率",
         "全下率",
         "局弃牌率",
+        "入池率",
         "高牌次数",
         "一对次数",
         "两对次数",
@@ -63,9 +64,13 @@ pub(crate) fn texas_holdem_profile_rows(
             "局弃牌率",
             rate_or_placeholder(stats.hands_folded, stats.hands_played),
         ),
+        (
+            "入池率",
+            rate_or_placeholder(stats.entered_hands, stats.entry_tracked_hands),
+        ),
     ]);
     rows.extend(
-        LABELS[15..]
+        LABELS[16..]
             .iter()
             .copied()
             .zip(stats.hand_category_counts)

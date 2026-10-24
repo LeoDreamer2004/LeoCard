@@ -178,7 +178,17 @@ impl HostedGameLifecycle for TexasHoldemSession {
     }
 
     fn game_rules(&self) -> GameRules {
-        self.rules.into()
+        let count = self
+            .room
+            .players
+            .iter()
+            .filter(|player| !player.left)
+            .count();
+        TexasHoldemRuleSet {
+            squid_markers: self.rules.squid_markers.min(count.saturating_sub(1) as u8),
+            ..self.rules
+        }
+        .into()
     }
 
     fn game_snapshot(&self, recipient: leocard_protocol::PlayerId) -> GameSnapshot {

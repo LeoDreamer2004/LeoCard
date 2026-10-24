@@ -34,6 +34,11 @@ impl GameState {
             hole_cards: state.hole_cards().to_vec(),
             category,
             showdown: result.showdown,
+            entered_pot: !state.hole_cards().is_empty()
+                && !own_actions.iter().any(|record| {
+                    record.action == TexasHoldemAction::Fold
+                        && record.statistics.street == TexasHoldemStreet::PreFlop
+                }),
             short_deck: self.rules().short_deck,
             button: player == self.dealer(),
             big_blind: player == self.big_blind(),

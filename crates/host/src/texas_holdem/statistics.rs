@@ -5,6 +5,17 @@ use leocard_texas_holdem::{Phase, TexasHoldemAction, evaluate_player_hand};
 impl TexasHoldemSession {
     pub(super) fn record_profile_events(&mut self, events: &[TexasHoldemEvent]) {
         for event in events {
+            if let TexasHoldemEvent::HandAnalyzed { player, statistics } = event {
+                if !statistics.hole_cards.is_empty()
+                    && let Some(stats) = self.match_profile_stats.get_mut(usize::from(player.0))
+                {
+                    stats.entry_tracked_hands = stats.entry_tracked_hands.saturating_add(1);
+                    stats.entered_hands = stats
+                        .entered_hands
+                        .saturating_add(u32::from(statistics.entered_pot));
+                }
+                continue;
+            }
             let TexasHoldemEvent::ActionApplied {
                 player,
                 action,

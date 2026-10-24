@@ -45,6 +45,7 @@ fn pot_test_snapshot(committed: &[(u32, bool, bool)]) -> TexasHoldemSnapshot {
         spectator_equities: None,
         spectator_available: false,
         spectator_win_rates_enabled: false,
+        squid: Default::default(),
         match_id: MatchId([1; 16]),
         hand_number: 1,
         host_port: 5230,
@@ -161,3 +162,5 @@ fn authoritative_action_audio_is_not_requeued_by_an_empty_ui_refresh() {
     state.observe(&snapshot, Vec::new());
     assert!(state.audio_cues.is_empty());
 }
+
+mod squid;

@@ -9,6 +9,4 @@ pub use games::{
 };
 pub use global::GlobalPreferences;
 pub use state::SavedPreferences;
-#[cfg(test)]
-pub(crate) use storage::{PREFERENCES_HEADER, decode_player_preferences};
 pub use storage::{load_player_preferences, save_player_preferences};

@@ -1,10 +1,11 @@
 use super::{
     TexasChipTableState, TexasHandGuidePlugin, TexasHoldemUiState, TexasRaiseHoldState,
-    TexasVoiceState, actions, animate_texas_action_feedback, animate_texas_board_card_backs,
-    animate_texas_chip_sprites, animate_texas_flying_card_backs, animate_texas_pot_dividers,
-    animate_texas_showdown_reveal, animate_texas_win_rates, handle_texas_raise_button_hold,
-    highlight_texas_pot_eligible_players, load_texas_sounds, play_texas_audio_cues,
-    sync_texas_chip_state, sync_texas_own_fold_tooltip, sync_texas_spectator, sync_texas_voices,
+    TexasVoiceState, actions, animate_squid_markers, animate_texas_action_feedback,
+    animate_texas_board_card_backs, animate_texas_chip_sprites, animate_texas_flying_card_backs,
+    animate_texas_pot_dividers, animate_texas_showdown_reveal, animate_texas_win_rates,
+    handle_texas_raise_button_hold, highlight_texas_pot_eligible_players, load_texas_sounds,
+    play_texas_audio_cues, sync_texas_chip_state, sync_texas_own_fold_tooltip,
+    sync_texas_spectator, sync_texas_voices,
 };
 use crate::app::presentation::start_game_intro_finished;
 use crate::app::runtime::ClientUpdateSet;
@@ -57,6 +58,7 @@ impl Plugin for TexasHoldemPlugin {
                     animate_texas_board_card_backs,
                     animate_texas_showdown_reveal,
                     animate_texas_chip_sprites,
+                    animate_squid_markers,
                     animate_texas_pot_dividers,
                 )
                     .chain()

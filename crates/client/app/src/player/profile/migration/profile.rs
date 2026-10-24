@@ -1,10 +1,8 @@
 use super::super::{PROFILE_HEADER, StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
 use super::minecraft_guess::{PreviousMinecraftGuessStats, SixSeatMinecraftGuessStats};
+use super::texas_holdem::V3TexasHoldemStats;
 use super::uno::SixSeatUnoStats;
-use leocard_protocol::{
-    MahjongProfileStats, MatchId, PlayerInteractionStats, ShengjiProfileStats,
-    TexasHoldemProfileStats,
-};
+use leocard_protocol::{MahjongProfileStats, MatchId, PlayerInteractionStats, ShengjiProfileStats};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 macro_rules! stored_profile_compatibility_types {
@@ -27,7 +25,7 @@ macro_rules! stored_profile_compatibility_types {
 stored_profile_compatibility_types!(
     (SixSeatUnoStoredPlayerProfile, SixSeatUnoStoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<TexasHoldemProfileStats>,
+        texas_holdem_stats: Option<V3TexasHoldemStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
         interaction_stats: Option<PlayerInteractionStats>,
@@ -36,7 +34,7 @@ stored_profile_compatibility_types!(
     }),
     (SixSeatStoredPlayerProfile, SixSeatStoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<TexasHoldemProfileStats>,
+        texas_holdem_stats: Option<V3TexasHoldemStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
         interaction_stats: Option<PlayerInteractionStats>,
@@ -46,7 +44,7 @@ stored_profile_compatibility_types!(
     // Through 0.8.0: MC guessing contributed only to the overall rating.
     (V080StoredPlayerProfile, V080StoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<TexasHoldemProfileStats>,
+        texas_holdem_stats: Option<V3TexasHoldemStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
         interaction_stats: Option<PlayerInteractionStats>,
@@ -55,25 +53,25 @@ stored_profile_compatibility_types!(
     // 0.3.2：已有互动统计，尚无麻将统计。
     (V032StoredPlayerProfile, V032StoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<TexasHoldemProfileStats>,
+        texas_holdem_stats: Option<V3TexasHoldemStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
         interaction_stats: Option<PlayerInteractionStats>,
     }),
     (PreInteractionStoredPlayerProfile, PreInteractionStoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<TexasHoldemProfileStats>,
+        texas_holdem_stats: Option<V3TexasHoldemStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
     }),
     (PreUnoStoredPlayerProfile, PreUnoStoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<TexasHoldemProfileStats>,
+        texas_holdem_stats: Option<V3TexasHoldemStats>,
         shengji_stats: Option<ShengjiProfileStats>,
     }),
     (PreShengjiStoredPlayerProfile, PreShengjiStoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<TexasHoldemProfileStats>,
+        texas_holdem_stats: Option<V3TexasHoldemStats>,
     }),
     (PreTexasStoredPlayerProfile, PreTexasStoredGameProfiles, {
         qigui523: StoredRatingProfile,
@@ -106,6 +104,9 @@ pub(in crate::player::profile) fn decode_player_profile(
     if let Some(current) = bytes.strip_prefix(PROFILE_HEADER) {
         return decode_exact(current).map_err(|error| format!("玩家档案已损坏：{error}"));
     }
+    if let Some(previous) = bytes.strip_prefix(super::texas_holdem::V3_PROFILE_HEADER) {
+        return super::texas_holdem::decode_v3(previous);
+    }
     if let Some(previous) = bytes.strip_prefix(super::graph::V2_PROFILE_HEADER) {
         return super::graph::decode_v2(previous);
     }
@@ -118,7 +119,7 @@ pub(in crate::player::profile) fn decode_player_profile(
             games: StoredGameProfiles {
                 blackjack_stats: None,
                 qigui523: previous.games.qigui523,
-                texas_holdem_stats: previous.games.texas_holdem_stats,
+                texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
                 shengji_stats: previous.games.shengji_stats,
                 uno_stats: previous.games.uno_stats.map(Into::into),
                 interaction_stats: previous.games.interaction_stats,
@@ -133,7 +134,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                     games: StoredGameProfiles {
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
-                        texas_holdem_stats: previous.games.texas_holdem_stats,
+                        texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
                         shengji_stats: previous.games.shengji_stats,
                         uno_stats: previous.games.uno_stats.map(Into::into),
                         interaction_stats: previous.games.interaction_stats,
@@ -148,7 +149,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                     games: StoredGameProfiles {
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
-                        texas_holdem_stats: previous.games.texas_holdem_stats,
+                        texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
                         shengji_stats: previous.games.shengji_stats,
                         uno_stats: previous.games.uno_stats.map(Into::into),
                         interaction_stats: previous.games.interaction_stats,
@@ -163,7 +164,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                     games: StoredGameProfiles {
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
-                        texas_holdem_stats: previous.games.texas_holdem_stats,
+                        texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
                         shengji_stats: previous.games.shengji_stats,
                         uno_stats: previous.games.uno_stats.map(Into::into),
                         interaction_stats: previous.games.interaction_stats,
@@ -178,7 +179,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                     games: StoredGameProfiles {
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
-                        texas_holdem_stats: previous.games.texas_holdem_stats,
+                        texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
                         shengji_stats: previous.games.shengji_stats,
                         uno_stats: previous.games.uno_stats.map(Into::into),
                         interaction_stats: None,
@@ -193,7 +194,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                     games: StoredGameProfiles {
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
-                        texas_holdem_stats: previous.games.texas_holdem_stats,
+                        texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
                         shengji_stats: previous.games.shengji_stats,
                         uno_stats: None,
                         interaction_stats: None,
@@ -208,7 +209,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                     games: StoredGameProfiles {
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
-                        texas_holdem_stats: previous.games.texas_holdem_stats,
+                        texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
                         shengji_stats: None,
                         uno_stats: None,
                         interaction_stats: None,

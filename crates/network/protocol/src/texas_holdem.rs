@@ -43,6 +43,23 @@ pub struct TexasHoldemSnapshot {
     pub all_in_allowed: bool,
     pub pot: u32,
     pub phase: TexasHoldemPhaseView,
+    pub squid: TexasHoldemSquidState,
+}
+
+/// Marker order gives every physical marker a stable identity across hands.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct TexasHoldemSquidState {
+    pub round: u32,
+    pub markers: Vec<Option<PlayerId>>,
+    pub settled: bool,
+    pub transfers: Vec<TexasHoldemSquidTransfer>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct TexasHoldemSquidTransfer {
+    pub from: PlayerId,
+    pub to: PlayerId,
+    pub amount: u32,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]

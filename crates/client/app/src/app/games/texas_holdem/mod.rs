@@ -19,6 +19,7 @@ mod plugin;
 pub(super) mod settlement;
 mod showdown;
 mod spectator;
+mod squid;
 mod state;
 mod view;
 
@@ -38,5 +39,6 @@ use settlement::*;
 use showdown::*;
 pub(crate) use spectator::only_texas_equities_changed;
 use spectator::*;
+use squid::*;
 pub(crate) use state::*;
 pub(crate) use view::*;

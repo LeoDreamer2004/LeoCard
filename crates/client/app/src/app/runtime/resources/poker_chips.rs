@@ -5,12 +5,14 @@ pub(crate) const POKER_CHIP_DENOMINATIONS: [u16; 5] = [100, 25, 10, 5, 1];
 
 #[derive(Default)]
 pub(crate) struct PokerChipAssets {
+    pub squid: Handle<Image>,
     images: HashMap<u16, Handle<Image>>,
 }
 
 impl PokerChipAssets {
     pub(crate) fn load(server: &AssetServer) -> Self {
         Self {
+            squid: server.load("ui/texas_holdem/squid_marker.png"),
             images: [
                 (1, "WhiteBlue"),
                 (5, "RedWhite"),

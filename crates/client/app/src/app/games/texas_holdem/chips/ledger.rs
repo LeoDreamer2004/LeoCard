@@ -14,6 +14,7 @@ use crate::app::presentation::{ACCENT, CHIP_BET_DURATION, CHIP_BET_INTERVAL, DAN
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemSnapshot};
 use leocard_texas_holdem::TexasHoldemAction;
+use std::mem;
 
 pub(super) fn visual_pots(game: &TexasHoldemSnapshot) -> Vec<VisualPot> {
     let maximum = game
@@ -82,6 +83,7 @@ impl TexasChipTableState {
             self.initialize(game);
             return;
         }
+        self.squid.observe(game);
         self.seats = game
             .players
             .iter()
@@ -140,6 +142,18 @@ impl TexasChipTableState {
         }
         if hand_finished {
             self.award_finished_pots(game);
+            for (index, transfer) in game.squid.transfers.iter().enumerate() {
+                let chips = self.take_exact_from_stack(transfer.from, transfer.amount);
+                for (offset, id) in chips.into_iter().enumerate() {
+                    self.move_chip(
+                        id,
+                        ChipZone::Stack(transfer.to),
+                        self.stack_anchor(transfer.to),
+                        1.65 + index as f32 * 0.08 + offset as f32 * 0.025,
+                        0.56,
+                    );
+                }
+            }
         }
         for player in &game.players {
             if player.folded {
@@ -160,7 +174,10 @@ impl TexasChipTableState {
     }
 
     pub(super) fn initialize(&mut self, game: &TexasHoldemSnapshot) {
+        let squid = mem::take(&mut self.squid);
         self.reset();
+        self.squid = squid;
+        self.squid.observe(game);
         self.match_id = Some(game.match_id);
         self.hand_number = game.hand_number;
         self.you = Some(game.you);

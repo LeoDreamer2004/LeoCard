@@ -1,9 +1,10 @@
 use super::super::{StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
 use super::minecraft_guess::PreviousMinecraftGuessStats;
 use super::profile::decode_exact;
+use super::texas_holdem::V3TexasHoldemStats;
 use leocard_protocol::{
     BlackjackProfileStats, MahjongProfileStats, PlayerInteractionStats, ShengjiProfileStats,
-    TexasHoldemProfileStats, UnoProfileStats,
+    UnoProfileStats,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +19,7 @@ struct V2PlayerProfile {
 #[derive(Deserialize, Serialize)]
 struct V2GameProfiles {
     qigui523: StoredRatingProfile,
-    texas_holdem_stats: Option<TexasHoldemProfileStats>,
+    texas_holdem_stats: Option<V3TexasHoldemStats>,
     shengji_stats: Option<ShengjiProfileStats>,
     uno_stats: Option<UnoProfileStats>,
     interaction_stats: Option<PlayerInteractionStats>,
@@ -34,7 +35,7 @@ pub(super) fn decode_v2(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
         secret_key: previous.secret_key,
         games: StoredGameProfiles {
             qigui523: previous.games.qigui523,
-            texas_holdem_stats: previous.games.texas_holdem_stats,
+            texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
             shengji_stats: previous.games.shengji_stats,
             uno_stats: previous.games.uno_stats,
             interaction_stats: previous.games.interaction_stats,
@@ -63,7 +64,7 @@ mod tests {
                     applied_matches: vec![MatchId([7; 16])],
                     qigui523_stats: None,
                 },
-                texas_holdem_stats: Some(TexasHoldemProfileStats {
+                texas_holdem_stats: Some(V3TexasHoldemStats {
                     completed_games: 4,
                     ..Default::default()
                 }),
@@ -138,7 +139,7 @@ mod tests {
         );
         assert_eq!(
             migrated.games.texas_holdem_stats,
-            previous.games.texas_holdem_stats
+            previous.games.texas_holdem_stats.map(Into::into)
         );
         assert_eq!(migrated.games.shengji_stats, previous.games.shengji_stats);
         assert_eq!(migrated.games.uno_stats, previous.games.uno_stats);

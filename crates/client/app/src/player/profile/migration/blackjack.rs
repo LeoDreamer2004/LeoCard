@@ -1,9 +1,9 @@
 use super::super::{StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
 use super::minecraft_guess::PreviousMinecraftGuessStats;
 use super::profile::decode_exact;
+use super::texas_holdem::V3TexasHoldemStats;
 use leocard_protocol::{
-    MahjongProfileStats, PlayerInteractionStats, ShengjiProfileStats, TexasHoldemProfileStats,
-    UnoProfileStats,
+    MahjongProfileStats, PlayerInteractionStats, ShengjiProfileStats, UnoProfileStats,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +18,7 @@ struct V1PlayerProfile {
 #[derive(Deserialize, Serialize)]
 struct V1GameProfiles {
     qigui523: StoredRatingProfile,
-    texas_holdem_stats: Option<TexasHoldemProfileStats>,
+    texas_holdem_stats: Option<V3TexasHoldemStats>,
     shengji_stats: Option<ShengjiProfileStats>,
     uno_stats: Option<UnoProfileStats>,
     interaction_stats: Option<PlayerInteractionStats>,
@@ -33,7 +33,7 @@ pub(super) fn decode_v1(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
         secret_key: previous.secret_key,
         games: StoredGameProfiles {
             qigui523: previous.games.qigui523,
-            texas_holdem_stats: previous.games.texas_holdem_stats,
+            texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
             shengji_stats: previous.games.shengji_stats,
             uno_stats: previous.games.uno_stats,
             interaction_stats: previous.games.interaction_stats,

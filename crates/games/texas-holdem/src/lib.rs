@@ -11,8 +11,10 @@ mod game;
 mod hand;
 mod rating;
 mod rules;
+mod squid;
 mod statistics;
 pub use rating::reference_point_deltas;
+pub use squid::{SquidState, SquidTransfer};
 pub use statistics::{
     TexasHoldemActionStatistics, TexasHoldemHandStatistics, TexasHoldemMatchStatistics,
 };

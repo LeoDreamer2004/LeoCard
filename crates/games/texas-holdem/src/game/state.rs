@@ -1,6 +1,9 @@
 use super::BettingRecord;
 use crate::statistics::GameStatistics;
-use crate::{EvaluatedHand, HandError, RuleError, TexasHoldemCard, TexasHoldemRuleSet, build_deck};
+use crate::{
+    EvaluatedHand, HandError, RuleError, SquidState, TexasHoldemCard, TexasHoldemRuleSet,
+    build_deck,
+};
 use leocard_game_common::{DeckError, validate_deck as validate_physical_deck};
 use std::{collections::VecDeque, fmt};
 
@@ -279,9 +282,14 @@ pub struct GameState {
     pub(super) pending_blind: Option<TexasHoldemBlindKind>,
     pub(super) hand_number: u32,
     pub(crate) statistics: GameStatistics,
+    pub(super) squid: SquidState,
 }
 
 impl GameState {
+    pub const fn squid(&self) -> &SquidState {
+        &self.squid
+    }
+
     /// 创建一桌新游戏；`deck[0]` 是本手最先发出的牌。
     pub fn new_with_deck(
         rules: TexasHoldemRuleSet,
@@ -329,6 +337,7 @@ impl GameState {
             })
             .collect::<Vec<_>>();
         let mut state = Self {
+            squid: SquidState::new(rules.squid_markers),
             betting_history: Vec::new(),
             rules,
             players,

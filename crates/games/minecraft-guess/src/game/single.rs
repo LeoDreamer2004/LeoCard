@@ -97,6 +97,7 @@ impl SingleGameState {
             previous,
             turns: self.turns,
             guess_count: self.guesses.len(),
+            character_count: Some(self.answer.name.chars().count()),
             skipped: &self.skipped,
         });
         let first_matching_available =

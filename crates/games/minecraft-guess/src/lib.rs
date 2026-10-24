@@ -8,8 +8,8 @@ mod graph;
 mod rules;
 
 pub use analysis::{
-    CorrectGuess, GuessActionStatistics, GuessCategoryCount, GuessCategoryStatistics,
-    GuessHandStatistics, GuessPlayStatistics,
+    CorrectGuess, GraphActionStatistics, GuessActionStatistics, GuessCategoryCount,
+    GuessCategoryStatistics, GuessHandStatistics, GuessPlayStatistics,
 };
 pub use bot::{MinecraftGuessBot, MinecraftGuessBotAction, MinecraftGuessBotObservation};
 pub use catalog::{

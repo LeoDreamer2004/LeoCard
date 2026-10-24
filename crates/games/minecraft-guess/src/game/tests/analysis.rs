@@ -26,6 +26,7 @@ fn guess(analysis: &mut RoundAnalysis, result: &GuessResult, previous: Option<u3
         previous,
         turns,
         guess_count: turns,
+        character_count: None,
         skipped: &[],
     });
 }

@@ -182,7 +182,7 @@ fn selecting_nodes_broadcasts_the_same_history_without_advancing_turns() {
 }
 
 #[test]
-fn graph_turn_clock_expires_without_revealing_nodes_and_switches_do_not_reset_it() {
+fn graph_turn_clock_preserves_node_switch_time_and_finishes_after_all_skip() {
     let mut session = started_session(30);
     let tick = session.advance_time(Duration::from_secs(5));
     assert_eq!(snapshot(&tick, 1).guess_seconds_remaining, Some(25));
@@ -199,9 +199,9 @@ fn graph_turn_clock_expires_without_revealing_nodes_and_switches_do_not_reset_it
     assert_eq!(game.graph.as_ref().unwrap().selected, 2);
     let expired_again = session.advance_time(Duration::from_secs(30));
     let game = snapshot(&expired_again, 1);
-    assert_eq!(game.round.current_player, Some(0));
-    assert_eq!(game.guess_seconds_remaining, Some(30));
-    assert!(!game.round.finished());
+    assert_eq!(game.round.current_player, None);
+    assert_eq!(game.guess_seconds_remaining, None);
+    assert!(game.round.finished());
     assert!(game.round.guesses.is_empty());
     assert!(
         game.graph
@@ -209,8 +209,10 @@ fn graph_turn_clock_expires_without_revealing_nodes_and_switches_do_not_reset_it
             .unwrap()
             .nodes
             .iter()
-            .all(|node| !node.revealed())
+            .all(|node| node.revealed())
     );
+    assert!(snapshot(&expired_again, 2).round.finished());
+    assert!(session.advance_time(Duration::from_secs(30)).is_empty());
 
     let mut unlimited = started_session(0);
     assert!(unlimited.advance_time(Duration::from_secs(600)).is_empty());

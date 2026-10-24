@@ -73,3 +73,32 @@ fn developer_reveal_does_not_invent_solved_nodes() {
         assert_eq!(stats.known_guesses, 0);
     }
 }
+
+#[test]
+fn consecutive_skips_finish_across_nodes_without_inventing_answers() {
+    let mut game = graph(&["minecraft:stone", "minecraft:stick"], &[(0, 1)]);
+    game.skip(0).unwrap();
+    assert!(!game.finished());
+    game.guess(1, "minecraft:dirt").unwrap();
+    game.take_score_gains();
+    assert_eq!(game.skip(1), Err(GameError::NotPlayersTurn));
+    game.skip(0).unwrap();
+    assert!(!game.finished());
+    select(&mut game, 2);
+    game.skip(1).unwrap();
+    assert!(game.finished());
+    assert_eq!(game.current_player(), None);
+    let view = game.view();
+    assert!(view.nodes.iter().all(|node| node.revealed()));
+    assert!(view.edges.iter().all(|edge| edge.active));
+    assert_eq!(view.guesses.len(), 1);
+    assert!(game.take_score_gains().is_empty());
+    assert!(game.take_hand_statistics().is_empty());
+    for (_, stats) in game.statistics() {
+        assert_eq!(
+            stats.categories.total(),
+            GuessCategoryCount { games: 2, wins: 0 }
+        );
+    }
+    assert_eq!(game.skip(0), Err(GameError::Finished));
+}

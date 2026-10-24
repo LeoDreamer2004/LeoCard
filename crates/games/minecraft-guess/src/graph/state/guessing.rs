@@ -1,4 +1,5 @@
 use super::GraphGame;
+use super::analysis::GraphGuessInput;
 use super::combo::Combo;
 use crate::{GameError, GraphGuessRecord, GuessRecord, GuessResult};
 use std::time::Duration;
@@ -33,8 +34,24 @@ impl GraphGame {
             .rev()
             .filter(|record| record.node == number)
             .find_map(|record| record.guess.result.closeness());
-        self.analysis
-            .guess(self.selected, player, &result, previous);
+        let neighbours = self.neighbours(self.selected);
+        self.analysis.guess(GraphGuessInput {
+            index: self.selected,
+            player,
+            result: &result,
+            previous,
+            character_count: self
+                .rules
+                .show_character_count
+                .then_some(answer.name.chars().count()),
+            combo,
+            points,
+            only_tag_neighbours: !neighbours.is_empty()
+                && neighbours.iter().all(|&index| self.entry(index).is_none()),
+            entry_count: (0..self.nodes.len())
+                .filter(|&index| self.entry(index).is_some())
+                .count(),
+        });
         self.guesses.push(GraphGuessRecord {
             node: number,
             guess: GuessRecord { player, result },
@@ -55,6 +72,9 @@ impl GraphGame {
             self.gains.push((player, points));
         }
         self.skipped.clear();
+        if self.finished() {
+            self.analysis.finish();
+        }
         Ok(())
     }
 

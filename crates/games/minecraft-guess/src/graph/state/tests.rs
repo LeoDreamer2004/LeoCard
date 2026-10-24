@@ -4,6 +4,7 @@ use crate::graph::data::GraphData;
 use crate::{GameError, GraphNodeView, GraphRules, GuessResult, MinecraftGuessRuleSet};
 use std::time::Duration;
 
+mod achievements;
 mod analysis;
 mod combo;
 mod fixtures;

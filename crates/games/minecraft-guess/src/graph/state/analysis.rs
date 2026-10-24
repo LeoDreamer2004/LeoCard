@@ -1,7 +1,7 @@
 use crate::analysis::{GuessAnalysisInput, RoundAnalysis};
 use crate::{
-    EntryKind, GuessActionStatistics, GuessHandStatistics, GuessMode, GuessPlayStatistics,
-    GuessResult,
+    EntryKind, GraphActionStatistics, GuessActionStatistics, GuessHandStatistics, GuessMode,
+    GuessPlayStatistics, GuessResult,
 };
 use std::mem;
 
@@ -12,6 +12,8 @@ pub(super) struct GraphAnalysis {
     unassigned_skips: Vec<u32>,
     actions: Vec<GuessActionStatistics>,
     hands: Vec<GuessHandStatistics>,
+    scores: Vec<u32>,
+    turns: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -21,6 +23,8 @@ struct NodeAnalysis {
     guesses: usize,
     skipped: Vec<u8>,
     winner: Option<u8>,
+    first_green: Option<u8>,
+    assisted: bool,
 }
 
 impl GraphAnalysis {
@@ -33,32 +37,47 @@ impl GraphAnalysis {
                     guesses: 0,
                     skipped: Vec::new(),
                     winner: None,
+                    first_green: None,
+                    assisted: false,
                 })
                 .collect(),
             players: players.to_vec(),
             unassigned_skips: vec![0; players.len()],
             actions: Vec::new(),
             hands: Vec::new(),
+            scores: vec![0; players.len()],
+            turns: 0,
         }
     }
 
-    pub fn guess(&mut self, index: usize, player: u8, result: &GuessResult, previous: Option<u32>) {
+    pub fn guess(&mut self, input: GraphGuessInput<'_>) {
+        let index = input.index;
+        let player = input.player;
+        let slot = self
+            .players
+            .iter()
+            .position(|&id| id == player)
+            .expect("graph player");
+        self.scores[slot] = self.scores[slot].saturating_add(input.points);
         let node = &mut self.nodes[index];
         node.round.guess(GuessAnalysisInput {
-            player,
-            mode: GuessMode::Graph,
-            result,
-            previous,
             turns: node.turns,
             guess_count: node.guesses,
             skipped: &node.skipped,
+            player,
+            mode: GuessMode::Graph,
+            result: input.result,
+            previous: input.previous,
+            character_count: input.character_count,
         });
-        self.actions.extend(node.round.take_actions());
-        node.turns += 1;
-        node.guesses += 1;
-        node.skipped.clear();
-        if result.is_correct() {
+        let mut actions = node.round.take_actions();
+        let action = actions.first_mut().expect("accepted graph guess");
+        if action.first_matching_wrong {
+            node.first_green = Some(player);
+        }
+        if input.result.is_correct() {
             node.winner = Some(player);
+            node.assisted = action.won_after_others_matching;
             self.hands
                 .extend(
                     node.round
@@ -72,9 +91,52 @@ impl GraphAnalysis {
                         }),
                 );
         }
+        node.turns += 1;
+        node.guesses += 1;
+        node.skipped.clear();
+        action.graph = Some(GraphActionStatistics {
+            combo: input.combo,
+            only_tag_neighbours: input.result.is_correct() && input.only_tag_neighbours,
+            opening_win: input.result.is_correct() && self.turns == 0,
+            first_green_nodes: self
+                .nodes
+                .iter()
+                .filter(|node| node.first_green == Some(player))
+                .count() as u32,
+            assisted_nodes: self
+                .nodes
+                .iter()
+                .filter(|node| node.winner == Some(player) && node.assisted)
+                .count() as u32,
+            combo_sweep: input.result.is_correct() && usize::from(input.combo) == input.entry_count,
+            ..Default::default()
+        });
+        self.actions.extend(actions);
+        self.turns += 1;
+    }
+
+    pub fn finish(&mut self) {
+        let highest = self.scores.iter().copied().max().expect("graph players");
+        let winners = self
+            .players
+            .iter()
+            .zip(&self.scores)
+            .filter_map(|(&player, &score)| {
+                (score == highest).then_some(GuessActionStatistics {
+                    player,
+                    graph: Some(GraphActionStatistics {
+                        round_win: true,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                })
+            })
+            .collect::<Vec<_>>();
+        self.actions.splice(0..0, winners);
     }
 
     pub fn skip(&mut self, index: Option<usize>, player: u8) {
+        self.turns += 1;
         let Some(index) = index else {
             let slot = self
                 .players
@@ -133,4 +195,16 @@ impl GraphAnalysis {
         }
         totals
     }
+}
+
+pub(super) struct GraphGuessInput<'a> {
+    pub index: usize,
+    pub player: u8,
+    pub result: &'a GuessResult,
+    pub previous: Option<u32>,
+    pub character_count: Option<usize>,
+    pub combo: u16,
+    pub points: u32,
+    pub only_tag_neighbours: bool,
+    pub entry_count: usize,
 }

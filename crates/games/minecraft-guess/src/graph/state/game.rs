@@ -128,7 +128,9 @@ impl GraphGame {
         self.analysis.skip(node, player);
         self.skipped.push(player);
         if self.skipped.len() == self.players.len() {
-            self.skipped.clear();
+            self.reveal_all()?;
+            self.analysis.finish();
+            return Ok(());
         }
         self.end_turn();
         Ok(())

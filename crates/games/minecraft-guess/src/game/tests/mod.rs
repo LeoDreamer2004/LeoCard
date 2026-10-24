@@ -1,3 +1,4 @@
+mod achievements;
 mod analysis;
 mod catalogue_nodes;
 mod existing;

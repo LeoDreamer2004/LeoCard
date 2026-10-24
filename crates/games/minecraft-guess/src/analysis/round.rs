@@ -3,6 +3,7 @@ use super::{CorrectGuess, GuessActionStatistics, GuessPlayStatistics};
 use crate::{GuessMode, GuessResult, MatchQuality};
 use std::mem;
 
+#[derive(Clone, Copy)]
 pub(crate) struct GuessAnalysisInput<'a> {
     pub player: u8,
     pub mode: GuessMode,
@@ -10,6 +11,7 @@ pub(crate) struct GuessAnalysisInput<'a> {
     pub previous: Option<u32>,
     pub turns: usize,
     pub guess_count: usize,
+    pub character_count: Option<usize>,
     pub skipped: &'a [u8],
 }
 
@@ -17,6 +19,8 @@ pub(crate) struct GuessAnalysisInput<'a> {
 pub(crate) struct RoundAnalysis {
     players: Vec<PlayerRoundProgress>,
     matching_run: u32,
+    matching_guesses: u32,
+    matching_players: Vec<u8>,
     pending: Vec<GuessActionStatistics>,
 }
 
@@ -29,6 +33,8 @@ impl RoundAnalysis {
                 .map(PlayerRoundProgress::new)
                 .collect(),
             matching_run: 0,
+            matching_guesses: 0,
+            matching_players: Vec::new(),
             pending: Vec::new(),
         }
     }
@@ -72,6 +78,15 @@ impl RoundAnalysis {
             player: input.player,
             correct_entry,
             wrong_all_matching: !correct && all_matching,
+            first_matching_wrong: !correct && all_matching && self.matching_guesses == 0,
+            won_after_others_matching: correct
+                && self
+                    .matching_players
+                    .iter()
+                    .any(|&player| player != input.player),
+            wrong_length: input
+                .character_count
+                .is_some_and(|count| input.result.name().chars().count() != count),
             unknown: !known,
             unknown_run: state.unknown_run,
             skip_run: 0,
@@ -79,14 +94,35 @@ impl RoundAnalysis {
             ended_matching_run: correct && self.matching_run >= 5,
             won_after_skip: correct && state.has_skipped,
             first_cycle_win: correct && input.mode != GuessMode::Race && input.turns < count,
-            opening_win: correct && input.turns == 0,
+            opening_win: correct && input.mode != GuessMode::Graph && input.turns == 0,
             opponents_all_skipped: correct
                 && count >= 3
                 && self.players.iter().all(|state| {
                     state.player == input.player || input.skipped.contains(&state.player)
                 }),
             long_search_win: correct && input.guess_count + 1 >= 12,
+            ..Default::default()
         });
+        if !correct && all_matching {
+            self.matching_guesses += 1;
+            let new_player = !self.matching_players.contains(&input.player);
+            if new_player {
+                self.matching_players.push(input.player);
+            }
+            let recipients = if self.matching_guesses == 15 {
+                self.matching_players.clone()
+            } else if self.matching_guesses > 15 && new_player {
+                vec![input.player]
+            } else {
+                Vec::new()
+            };
+            self.pending
+                .extend(recipients.into_iter().map(|player| GuessActionStatistics {
+                    player,
+                    unlucky_matching: true,
+                    ..Default::default()
+                }));
+        }
         self.matching_run = if !correct && all_matching {
             self.matching_run + 1
         } else {
@@ -106,18 +142,8 @@ impl RoundAnalysis {
         state.unknown_run = 0;
         self.pending.push(GuessActionStatistics {
             player,
-            correct_entry: None,
-            wrong_all_matching: false,
-            unknown: false,
-            unknown_run: 0,
             skip_run: state.skip_run,
-            all_wrong_after_first: false,
-            ended_matching_run: false,
-            won_after_skip: false,
-            first_cycle_win: false,
-            opening_win: false,
-            opponents_all_skipped: false,
-            long_search_win: false,
+            ..Default::default()
         });
     }
 

@@ -34,7 +34,7 @@ fn graph_actions_report_real_guesses_and_node_completion_once() {
 }
 
 #[test]
-fn matching_runs_and_opening_guesses_belong_to_the_selected_node() {
+fn matching_runs_and_first_cycle_guesses_belong_to_the_selected_node() {
     let mut game = graph(&["minecraft:blue_wool", "minecraft:stick"], &[(0, 1)]);
     for name in [
         "red",
@@ -63,7 +63,7 @@ fn matching_runs_and_opening_guesses_belong_to_the_selected_node() {
     let player = game.current_player().unwrap();
     game.guess(player, "minecraft:stick").unwrap();
     let action = game.take_action_statistics().pop().unwrap();
-    assert!(action.opening_win && action.first_cycle_win && !action.ended_matching_run);
+    assert!(!action.opening_win && action.first_cycle_win && !action.ended_matching_run);
     select(&mut game, 1);
     game.guess(player, "minecraft:blue_wool").unwrap();
     let action = game.take_action_statistics().pop().unwrap();

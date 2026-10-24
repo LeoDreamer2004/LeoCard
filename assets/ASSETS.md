@@ -43,7 +43,7 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 
 ### Minecraft 等级物品图标（Mojang）
 
-- 运行时文件：`ui/profile/` 下的 11 张 PNG，分别用于下界合金锭、钻石、金锭、红石粉、铁锭、铜锭、圆石、橡木原木、泥土、堆肥桶和可可豆等级；可可豆复用 MC 竞猜图集中的原生像素图标。
+- 运行时文件：`ui/profile/` 下的 11 张 PNG，分别用于下界合金锭、钻石、金锭、红石粉、铁锭、铜锭、圆石、橡木原木、泥土、堆肥桶和可可豆等级。
 - 来源：[Minecraft Wiki 的 Invicon 图标](https://minecraft.wiki/)。
 - Minecraft 物品图像的权利归 Mojang Studios 所有，不适用 LeoCard 的 GPL-3.0 素材授权；使用须遵守 [Minecraft 使用规范](https://www.minecraft.net/en-us/usage-guidelines)。
 

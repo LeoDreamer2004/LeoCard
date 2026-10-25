@@ -1,5 +1,6 @@
 use super::appearance::deepseek_squid_marker;
 use crate::{PotAward, TexasHoldemPlayerId, TexasHoldemRuleSet};
+use fastrand::Rng;
 use std::cmp::Reverse;
 
 /// A single newly awarded marker and the recipient's holdings in this round.
@@ -50,21 +51,24 @@ impl SquidState {
         }
     }
 
-    pub(crate) fn finish_hand(&mut self, awards: &[PotAward], stacks: &mut [u32]) {
+    pub(crate) fn finish_hand(&mut self, awards: &[PotAward], stacks: &mut [u32], draw_seed: u64) {
         if self.markers.is_empty() || self.settled {
             return;
         }
         if let Some(award) = awards.first()
             && let [winner] = award.winners.as_slice()
             && award.amount > 0
-            && let Some((index, marker)) = self
-                .markers
-                .iter_mut()
-                .enumerate()
-                .find(|(_, owner)| owner.is_none())
         {
-            *marker = Some(*winner);
-            self.last_award = Some(index);
+            let available = self
+                .markers
+                .iter()
+                .enumerate()
+                .filter_map(|(index, owner)| owner.is_none().then_some(index))
+                .collect::<Vec<_>>();
+            if let Some(index) = Rng::with_seed(draw_seed).choice(available) {
+                self.markers[index] = Some(*winner);
+                self.last_award = Some(index);
+            }
         }
         if self.markers.iter().all(Option::is_some) || stacks.contains(&0) {
             self.settle(stacks);

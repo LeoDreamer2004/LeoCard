@@ -45,11 +45,7 @@ pub(crate) fn add_squid_markers(
                     height: px(MARKER_SIZE),
                     ..default()
                 },
-                UiTransform {
-                    translation: Val2::px(0.0, marker.position.y),
-                    rotation: Rot2::radians(marker.rotation),
-                    ..default()
-                },
+                marker_transform(marker),
                 ImageNode::new(marker_image(marker, assets).clone()),
                 SquidMarkerSprite(index),
                 Pickable::IGNORE,
@@ -80,8 +76,15 @@ pub(crate) fn animate_squid_markers(
         }
         node.left = px(marker.position.x);
         node.top = percent(marker.position.z * 100.0);
-        transform.translation = Val2::px(0.0, marker.position.y);
-        transform.rotation = Rot2::radians(marker.rotation);
+        *transform = marker_transform(marker);
+    }
+}
+
+fn marker_transform(marker: &Marker) -> UiTransform {
+    UiTransform {
+        translation: Val2::px(0.0, marker.position.y),
+        rotation: Rot2::radians(marker.rotation),
+        scale: Vec2::splat(if marker.deepseek.is_some() { 1.2 } else { 1.0 }),
     }
 }
 

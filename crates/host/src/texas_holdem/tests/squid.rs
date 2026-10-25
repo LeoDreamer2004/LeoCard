@@ -106,11 +106,17 @@ fn a_squid_award_is_broadcast_once_as_a_live_serializable_fact() {
     assert_eq!(awarded.len(), 3);
     for (delivery, player, statistics) in awarded {
         let snapshot = game.snapshot(*player).unwrap();
-        assert_eq!(snapshot.squid.markers[0], Some(*player));
+        let drawn = snapshot
+            .squid
+            .markers
+            .iter()
+            .position(|owner| *owner == Some(*player))
+            .unwrap();
+        assert_eq!(snapshot.squid.markers.iter().flatten().count(), 1);
         assert_eq!(statistics.owned, 1);
         assert_eq!(
             statistics.deepseek,
-            deepseek_squid_marker(snapshot.match_id.0, snapshot.squid.round, 0).is_some()
+            deepseek_squid_marker(snapshot.match_id.0, snapshot.squid.round, drawn).is_some()
         );
         let context = delivery.message.game_context.unwrap();
         assert_eq!(context.match_id, snapshot.match_id);

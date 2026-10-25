@@ -103,16 +103,9 @@ fn marker_position(
     let random_x = table_random_signed(index as u64, seed);
     let random_y = table_random_signed(index as u64, seed.wrapping_add(17));
     let Some(owner) = owner else {
-        let count = game
-            .squid
-            .markers
-            .iter()
-            .filter(|owner| owner.is_none())
-            .count();
-        let slot = game.squid.markers[..index]
-            .iter()
-            .filter(|owner| owner.is_none())
-            .count();
+        // Awarded markers leave gaps until the pool resets for the next round.
+        let count = game.squid.markers.len();
+        let slot = index;
         let columns = count.min(2);
         let row = slot / columns;
         let row_count = (count - row * columns).min(columns);

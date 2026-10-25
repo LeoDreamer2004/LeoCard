@@ -4,6 +4,8 @@ use super::{
     GameError, GameState, HandResult, Phase, PlayerState, PotAward, TexasHoldemBlindKind,
     TexasHoldemPlayerId, TexasHoldemStreet, validate_deck,
 };
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 impl GameState {
     /// 结束后使用一副新洗好的牌开始下一手；庄家按钮顺时针移动到下一名有筹码玩家。
@@ -285,8 +287,12 @@ impl GameState {
     }
 
     fn finish_squid(&mut self, result: &mut HandResult) {
+        // The supplied shuffled deck keeps cosmetic draws random and rules replayable.
+        let mut draw_seed = DefaultHasher::new();
+        self.hand_number.hash(&mut draw_seed);
+        self.deck.hash(&mut draw_seed);
         self.squid
-            .finish_hand(&result.awards, &mut result.final_stacks);
+            .finish_hand(&result.awards, &mut result.final_stacks, draw_seed.finish());
         for (player, &stack) in self.players.iter_mut().zip(&result.final_stacks) {
             player.stack = stack;
         }

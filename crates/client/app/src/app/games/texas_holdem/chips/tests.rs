@@ -3,15 +3,15 @@ use super::ledger::visual_pots;
 use super::*;
 use crate::app::games::texas_holdem::TexasSoundKind;
 use bevy::prelude::*;
-use leocard_protocol::{MatchId, PlayerId, SeatId};
-#[cfg(test)]
-use leocard_protocol::{PlayerGameProfiles, ProfileId};
 use leocard_protocol::{
-    TexasHoldemEvent, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
+    MatchId, PlayerGameProfiles, PlayerId, ProfileId, SeatId, TexasHoldemEvent,
+    TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
 };
 use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemActionStatistics, TexasHoldemStreet};
 
-fn pot_test_snapshot(committed: &[(u32, bool, bool)]) -> TexasHoldemSnapshot {
+pub(in crate::app::games::texas_holdem) fn pot_test_snapshot(
+    committed: &[(u32, bool, bool)],
+) -> TexasHoldemSnapshot {
     let players = committed
         .iter()
         .enumerate()

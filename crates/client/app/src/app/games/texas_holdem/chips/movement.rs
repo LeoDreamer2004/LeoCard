@@ -8,6 +8,7 @@ use super::{
 use crate::app::presentation::{table_random_signed, table_random_unit};
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, TABLE_SEAT_COUNT};
+use std::cmp::Reverse;
 
 impl TexasChipTableState {
     pub(super) fn take_exact_from_stack(&mut self, player: PlayerId, amount: u32) -> Vec<u64> {
@@ -100,7 +101,7 @@ impl TexasChipTableState {
             })
             .map(|chip| (chip.id, chip.denomination))
             .collect::<Vec<_>>();
-        candidates.sort_unstable_by_key(|(_, denomination)| std::cmp::Reverse(*denomination));
+        candidates.sort_unstable_by_key(|(_, denomination)| Reverse(*denomination));
         let mut reachable = vec![None::<Vec<u64>>; amount as usize + 1];
         reachable[0] = Some(Vec::new());
         for (id, denomination) in candidates {
@@ -188,8 +189,10 @@ impl TexasChipTableState {
     fn zone_layout(&self, zone: ChipZone) -> ChipZoneLayout {
         match zone {
             ChipZone::Bet(player) => texas_player_chip_zone(self.relative_seat(player)),
-            ChipZone::Pot(index) => texas_pot_partition_zone(index, self.pots.len().max(1)),
-            ChipZone::Retired => texas_pot_chip_zone(),
+            ChipZone::Pot(index) => {
+                texas_pot_partition_zone(index, self.pots.len().max(1), self.squid.is_enabled())
+            }
+            ChipZone::Retired => texas_pot_chip_zone(self.squid.is_enabled()),
             ChipZone::Stack(player) => {
                 let center = self.stack_anchor(player);
                 ChipZoneLayout {

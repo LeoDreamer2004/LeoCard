@@ -5,7 +5,7 @@ mod movement;
 mod state;
 mod systems;
 #[cfg(test)]
-mod tests;
+pub(in crate::app::games::texas_holdem) mod tests;
 mod view;
 
 pub(crate) use geometry::*;

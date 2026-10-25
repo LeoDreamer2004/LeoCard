@@ -1,7 +1,10 @@
 use super::super::texas_portrait_position;
-use crate::app::presentation::table_random_signed;
+use super::appearance::deepseek_marker;
+use crate::app::presentation::{DESIGN_WIDTH, table_random_signed};
 use bevy::prelude::*;
 use leocard_protocol::{MatchId, PlayerId, SeatId, TABLE_SEAT_COUNT, TexasHoldemSnapshot};
+
+pub(super) const MARKER_SIZE: f32 = 44.0;
 
 #[derive(Default)]
 pub(crate) struct SquidTableState {
@@ -12,9 +15,12 @@ pub(crate) struct SquidTableState {
 
 pub(super) struct Marker {
     pub owner: Option<PlayerId>,
+    pub deepseek: Option<usize>,
     /// z is the fraction of parent height; the local portrait is bottom anchored.
     pub position: Vec3,
     pub rotation: f32,
+    start_rotation: f32,
+    target_rotation: f32,
     start: Vec3,
     target: Vec3,
     elapsed: f32,
@@ -22,6 +28,10 @@ pub(super) struct Marker {
 }
 
 impl SquidTableState {
+    pub(crate) fn is_enabled(&self) -> bool {
+        !self.markers.is_empty()
+    }
+
     pub(crate) fn observe(&mut self, game: &TexasHoldemSnapshot) {
         let reset = self.key != Some((game.match_id, game.you))
             || self.markers.len() != game.squid.markers.len();
@@ -33,11 +43,15 @@ impl SquidTableState {
         }
         for (index, &owner) in game.squid.markers.iter().enumerate() {
             let position = marker_position(game, index, owner, seed);
+            let rotation = table_random_signed(index as u64, seed) * 0.26;
             if reset {
                 self.markers.push(Marker {
                     owner,
+                    deepseek: deepseek_marker(game.match_id, game.squid.round, index),
                     position,
-                    rotation: table_random_signed(index as u64, seed) * 0.26,
+                    rotation,
+                    start_rotation: rotation,
+                    target_rotation: rotation,
                     start: position,
                     target: position,
                     elapsed: 1.0,
@@ -45,8 +59,13 @@ impl SquidTableState {
                 });
             } else {
                 let marker = &mut self.markers[index];
+                if new_round {
+                    marker.deepseek = deepseek_marker(game.match_id, game.squid.round, index);
+                }
                 if new_round || marker.owner != owner || marker.target != position {
                     marker.start = marker.position;
+                    marker.start_rotation = marker.rotation;
+                    marker.target_rotation = rotation;
                     marker.target = position;
                     marker.elapsed = 0.0;
                     marker.delay = if !new_round && marker.owner != owner {
@@ -66,9 +85,10 @@ impl SquidTableState {
         for marker in &mut self.markers {
             marker.elapsed += delta;
             let progress = ((marker.elapsed - marker.delay) / 0.62).clamp(0.0, 1.0);
-            marker.position = marker
-                .start
-                .lerp(marker.target, progress * progress * (3.0 - 2.0 * progress));
+            let eased = progress * progress * (3.0 - 2.0 * progress);
+            marker.position = marker.start.lerp(marker.target, eased);
+            marker.rotation =
+                marker.start_rotation + (marker.target_rotation - marker.start_rotation) * eased;
         }
     }
 }
@@ -92,15 +112,15 @@ fn marker_position(
             .iter()
             .filter(|owner| owner.is_none())
             .count();
-        let columns = count.min(3);
+        let columns = count.min(2);
         let row = slot / columns;
         let row_count = (count - row * columns).min(columns);
         // The draw-pile/street-label column is centred at x=475, below the board.
         return Vec3::new(
-            475.0 - 17.0 + (slot % columns) as f32 * 38.0
-                - row_count.saturating_sub(1) as f32 * 19.0
+            475.0 - MARKER_SIZE * 0.5 + (slot % columns) as f32 * (MARKER_SIZE + 4.0)
+                - row_count.saturating_sub(1) as f32 * (MARKER_SIZE + 4.0) * 0.5
                 + random_x * 3.0,
-            254.0 + row as f32 * 38.0 + random_y * 4.0,
+            254.0 + row as f32 * (MARKER_SIZE + 4.0) + random_y * 4.0,
             0.0,
         );
     };
@@ -123,7 +143,7 @@ fn marker_position(
     );
     let anchor = if relative == 0 {
         offset.y = -offset.y;
-        Vec3::new(42.0, -142.0, 1.0)
+        Vec3::new(42.0, -154.0, 1.0)
     } else {
         let portrait = texas_portrait_position(relative);
         let left = if relative <= 2 {
@@ -135,6 +155,6 @@ fn marker_position(
     };
     // All coordinates stay inside the 1280-wide design canvas.
     let mut point = anchor + offset;
-    point.x = point.x.clamp(3.0, 1244.0);
+    point.x = point.x.clamp(3.0, DESIGN_WIDTH - MARKER_SIZE - 2.0);
     point
 }

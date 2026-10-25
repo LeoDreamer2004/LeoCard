@@ -11,7 +11,7 @@ pub(crate) fn texas_player_chip_zone(relative: u8) -> ChipZoneLayout {
         3 => (640.0, 37.0, 116.0),
         4 => (998.0, 123.0, PLAYER_CHIP_ZONE_HEIGHT),
         5 => (998.0, 346.0, PLAYER_CHIP_ZONE_HEIGHT),
-        _ => return texas_pot_chip_zone(),
+        _ => return texas_pot_chip_zone(false),
     };
     ChipZoneLayout {
         left: center_x - PLAYER_CHIP_ZONE_WIDTH * 0.5,
@@ -21,19 +21,25 @@ pub(crate) fn texas_player_chip_zone(relative: u8) -> ChipZoneLayout {
     }
 }
 
-pub(super) fn texas_pot_chip_zone() -> ChipZoneLayout {
+pub(super) fn texas_pot_chip_zone(squid_enabled: bool) -> ChipZoneLayout {
+    // Reserve the left column below the street label for squid coins.
+    let left = if squid_enabled { 560.0 } else { 440.0 };
     ChipZoneLayout {
-        left: 440.0,
+        left,
         // Keep pot chips below the board cards, but reclaim the space that used
         // to be reserved for the "底池" title.
         top: 260.0,
-        width: 400.0,
+        width: 840.0 - left,
         height: 128.0,
     }
 }
 
-pub(super) fn texas_pot_partition_zone(index: usize, count: usize) -> ChipZoneLayout {
-    let whole = texas_pot_chip_zone();
+pub(super) fn texas_pot_partition_zone(
+    index: usize,
+    count: usize,
+    squid_enabled: bool,
+) -> ChipZoneLayout {
+    let whole = texas_pot_chip_zone(squid_enabled);
     let count = count.max(1);
     let gap = if count > 1 { 8.0 } else { 0.0 };
     let width = (whole.width - gap * count.saturating_sub(1) as f32) / count as f32;

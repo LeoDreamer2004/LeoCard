@@ -92,7 +92,7 @@ impl InteractionProjectile {
                     launched: false,
                     impacted: false,
                 },
-                GlobalZIndex(1200),
+                GlobalZIndex(1850),
                 Pickable::IGNORE,
             ),
         );

@@ -1,4 +1,7 @@
+mod appearance;
 mod state;
+#[cfg(test)]
+mod tests;
 mod view;
 
 pub(super) use state::SquidTableState;

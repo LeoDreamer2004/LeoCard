@@ -7,10 +7,9 @@ use std::f32::consts;
 
 use super::super::{
     TexasFoldCard, TexasOwnFoldCardHover, TexasOwnFoldTooltip, TexasPlayerPanel, TexasPotDivider,
-    TexasPotHover, fold_card_visual,
+    TexasPotHover, add_squid_markers, fold_card_visual,
 };
 
-use super::super::add_squid_markers;
 use super::{
     ActionFeedbackKind, ActionLabel, CHIP_SIZE, ChipZone, ChipZoneLayout, TableChip,
     TexasChipSprite, TexasChipTableState, texas_center_zone_panel, texas_player_chip_zone,
@@ -109,6 +108,7 @@ fn add_pot_divisions(commands: &mut UiComposer, table: Entity, state: &TexasChip
         spawn_pot_divider_set(
             commands,
             table,
+            state.squid.is_enabled(),
             transition.old_count,
             true,
             transition.elapsed,
@@ -116,18 +116,27 @@ fn add_pot_divisions(commands: &mut UiComposer, table: Entity, state: &TexasChip
         spawn_pot_divider_set(
             commands,
             table,
+            state.squid.is_enabled(),
             transition.new_count,
             false,
             transition.elapsed,
         );
     } else {
-        spawn_pot_divider_set(commands, table, state.pots.len().max(1), false, 1.0);
+        spawn_pot_divider_set(
+            commands,
+            table,
+            state.squid.is_enabled(),
+            state.pots.len().max(1),
+            false,
+            1.0,
+        );
     }
 }
 
 fn spawn_pot_divider_set(
     commands: &mut UiComposer,
     table: Entity,
+    squid_enabled: bool,
     count: usize,
     old_layout: bool,
     elapsed: f32,
@@ -135,7 +144,7 @@ fn spawn_pot_divider_set(
     if count <= 1 {
         return;
     }
-    let whole = texas_pot_chip_zone();
+    let whole = texas_pot_chip_zone(squid_enabled);
     let (alpha, scale) = pot_divider_visual(old_layout, elapsed);
     for index in 1..count {
         commands.child(
@@ -170,7 +179,7 @@ fn add_pot_hover_regions(commands: &mut UiComposer, table: Entity, state: &Texas
         return;
     }
     for (index, pot) in state.pots.iter().enumerate() {
-        let layout = texas_pot_partition_zone(index, state.pots.len());
+        let layout = texas_pot_partition_zone(index, state.pots.len(), state.squid.is_enabled());
         commands.child(
             table,
             (

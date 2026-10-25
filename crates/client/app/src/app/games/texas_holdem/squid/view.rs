@@ -1,4 +1,4 @@
-use super::state::SquidTableState;
+use super::state::{MARKER_SIZE, Marker, SquidTableState};
 use crate::app::games::texas_holdem::TexasChipTableState;
 use crate::app::presentation::{UiComposer, spawn_node};
 use crate::app::runtime::UiAssets;
@@ -41,8 +41,8 @@ pub(crate) fn add_squid_markers(
                     position_type: PositionType::Absolute,
                     left: px(marker.position.x),
                     top: percent(marker.position.z * 100.0),
-                    width: px(34),
-                    height: px(34),
+                    width: px(MARKER_SIZE),
+                    height: px(MARKER_SIZE),
                     ..default()
                 },
                 UiTransform {
@@ -50,7 +50,7 @@ pub(crate) fn add_squid_markers(
                     rotation: Rot2::radians(marker.rotation),
                     ..default()
                 },
-                ImageNode::new(assets.poker_chips.squid.clone()),
+                ImageNode::new(marker_image(marker, assets).clone()),
                 SquidMarkerSprite(index),
                 Pickable::IGNORE,
             ),
@@ -60,17 +60,34 @@ pub(crate) fn add_squid_markers(
 
 pub(crate) fn animate_squid_markers(
     time: Res<Time>,
+    assets: Res<UiAssets>,
     mut state: ResMut<TexasChipTableState>,
-    mut sprites: Query<(&SquidMarkerSprite, &mut Node, &mut UiTransform)>,
+    mut sprites: Query<(
+        &SquidMarkerSprite,
+        &mut Node,
+        &mut UiTransform,
+        &mut ImageNode,
+    )>,
 ) {
     state.squid.tick(time.delta_secs());
-    for (sprite, mut node, mut transform) in &mut sprites {
+    for (sprite, mut node, mut transform, mut image) in &mut sprites {
         let Some(marker) = state.squid.markers.get(sprite.0) else {
             continue;
         };
+        let expected = marker_image(marker, &assets);
+        if image.image != *expected {
+            image.image = expected.clone();
+        }
         node.left = px(marker.position.x);
         node.top = percent(marker.position.z * 100.0);
         transform.translation = Val2::px(0.0, marker.position.y);
         transform.rotation = Rot2::radians(marker.rotation);
+    }
+}
+
+fn marker_image<'a>(marker: &Marker, assets: &'a UiAssets) -> &'a Handle<Image> {
+    match marker.deepseek {
+        Some(index) => &assets.poker_chips.deepseek[index],
+        None => &assets.poker_chips.squid,
     }
 }

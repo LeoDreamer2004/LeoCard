@@ -3598,6 +3598,7 @@ dependencies = [
 name = "leocard-texas-holdem"
 version = "0.9.5"
 dependencies = [
+ "fastrand",
  "leocard-achievements",
  "leocard-game-common",
  "serde",

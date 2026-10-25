@@ -1,8 +1,8 @@
 use super::super::texas_portrait_position;
-use super::appearance::deepseek_marker;
 use crate::app::presentation::{DESIGN_WIDTH, table_random_signed};
 use bevy::prelude::*;
 use leocard_protocol::{MatchId, PlayerId, SeatId, TABLE_SEAT_COUNT, TexasHoldemSnapshot};
+use leocard_texas_holdem::deepseek_squid_marker;
 
 pub(super) const MARKER_SIZE: f32 = 44.0;
 
@@ -47,7 +47,7 @@ impl SquidTableState {
             if reset {
                 self.markers.push(Marker {
                     owner,
-                    deepseek: deepseek_marker(game.match_id, game.squid.round, index),
+                    deepseek: deepseek_squid_marker(game.match_id.0, game.squid.round, index),
                     position,
                     rotation,
                     start_rotation: rotation,
@@ -60,7 +60,8 @@ impl SquidTableState {
             } else {
                 let marker = &mut self.markers[index];
                 if new_round {
-                    marker.deepseek = deepseek_marker(game.match_id, game.squid.round, index);
+                    marker.deepseek =
+                        deepseek_squid_marker(game.match_id.0, game.squid.round, index);
                 }
                 if new_round || marker.owner != owner || marker.target != position {
                     marker.start = marker.position;

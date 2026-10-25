@@ -1,4 +1,4 @@
-use crate::{TexasHoldemActionStatistics, TexasHoldemHandStatistics};
+use crate::{SquidAwardStatistics, TexasHoldemActionStatistics, TexasHoldemHandStatistics};
 use leocard_achievements::{GameFacts, ParticipantId};
 #[derive(Clone, Debug)]
 pub enum TexasAchievementEvent {
@@ -9,6 +9,10 @@ pub enum TexasAchievementEvent {
     ActionApplied {
         player: ParticipantId,
         statistics: TexasHoldemActionStatistics,
+    },
+    SquidAwarded {
+        player: ParticipantId,
+        statistics: SquidAwardStatistics,
     },
 }
 

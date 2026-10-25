@@ -44,6 +44,7 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
                 winners: vec![MahjongWinView {
                     player: PlayerId(0),
                     from: Some(PlayerId(1)),
+                    concealed_hand: true,
                     winning_tile: tile,
                     wait_kind_count: 1,
                     score: MahjongScoreResult {

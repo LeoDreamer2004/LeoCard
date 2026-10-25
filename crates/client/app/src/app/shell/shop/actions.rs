@@ -1,9 +1,12 @@
+use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::PageErrorState;
 use crate::app::shell::{
     ConfirmationDialog, DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState,
     dispatch_domain_actions,
 };
-use bevy::{ecs::system::SystemParam, prelude::*};
+use bevy::ecs::system::SystemParam;
+use bevy::prelude::*;
+use leocard_achievements::{AchievementTrigger, PersonalEvent};
 use leocard_client::{ItemId, PlayerEconomy};
 use leocard_protocol::GameKind;
 
@@ -29,6 +32,7 @@ pub(super) struct ShopActionContext<'w> {
     confirmation: ResMut<'w, ConfirmationDialog>,
     ui: ResMut<'w, UiState>,
     error: ResMut<'w, PageErrorState>,
+    achievements: MessageWriter<'w, LocalAchievementTrigger>,
 }
 
 pub(super) fn dispatch_shop_actions(
@@ -70,8 +74,15 @@ impl UiActionHandler<ShopActionContext<'_>> for ShopUiAction {
                 } else {
                     context.economy.buy(*item)
                 };
-                if let Err(error) = result {
-                    context.error.error = Some(error);
+                match result {
+                    Ok(()) => {
+                        context.achievements.write(LocalAchievementTrigger(
+                            AchievementTrigger::Personal(PersonalEvent::ItemPurchased {
+                                price: item.definition().price,
+                            }),
+                        ));
+                    }
+                    Err(error) => context.error.error = Some(error),
                 }
             }
         }

@@ -1,7 +1,8 @@
 use bevy::prelude::*;
+use leocard_texas_holdem::DEEPSEEK_SQUID_VARIANTS;
 use std::collections::HashMap;
 
-pub(crate) const DEEPSEEK_MARKER_ASSETS: [&str; 8] = [
+pub(crate) const DEEPSEEK_MARKER_ASSETS: [&str; DEEPSEEK_SQUID_VARIANTS] = [
     "ui/texas_holdem/squid/deepseek/eating.png",
     "ui/texas_holdem/squid/deepseek/holding_sign.png",
     "ui/texas_holdem/squid/deepseek/greeting.png",

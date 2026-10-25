@@ -26,6 +26,12 @@ pub(super) fn received(trigger: &AchievementTrigger, kind: InteractionKind) -> u
     })
 }
 
+pub(super) fn purchased(trigger: &AchievementTrigger) -> u64 {
+    personal(trigger, |event| {
+        matches!(event, PersonalEvent::ItemPurchased { .. })
+    })
+}
+
 pub(super) fn flowers_sent(trigger: &AchievementTrigger) -> u64 {
     match trigger {
         AchievementTrigger::Interaction { player, event } if *player == event.source => {

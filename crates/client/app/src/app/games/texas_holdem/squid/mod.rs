@@ -1,4 +1,3 @@
-mod appearance;
 mod state;
 #[cfg(test)]
 mod tests;

@@ -1,5 +1,5 @@
 use super::facts::*;
-use crate::{Fan, MahjongMatchLength};
+use crate::MahjongMatchLength;
 use leocard_achievements::{AchievementDefinition, award};
 
 pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
@@ -39,46 +39,6 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
     award!(
         "leocard:mahjong/",
         Mahjong,
-        "big_eight_collector",
-        "萌新之友",
-        Bronze,
-        "和出国标八大番之一共50次「三色三步高」「三色三同顺」「花龙」「清龙」「混一色」「一色三步高」「五门齐」「碰碰和」",
-        |event| mahjong_group(event, BIG_EIGHT),
-        50,
-        Lifetime
-    ),
-    award!(
-        "leocard:mahjong/",
-        Mahjong,
-        "small_eight_collector",
-        "更进一步",
-        Bronze,
-        "和出国标八小番之一共50次「七对」「全带幺」「组合龙」「全不靠」「大于五」「小于五」「无番和」「全求人」",
-        |event| mahjong_group(event, SMALL_EIGHT),
-        50,
-        Lifetime
-    ),
-    award!(
-        "leocard:mahjong/",
-        Mahjong,
-        "almost_major_collector",
-        "寸止的艺术",
-        Bronze,
-        "和出以下番种之一共50次「三暗刻」「三杠」「混幺九」",
-        |event| mahjong_group(
-            event,
-            &[
-                Fan::ThreeConcealedPungs,
-                Fan::ThreeKongs,
-                Fan::AllTerminalsAndHonors
-            ]
-        ),
-        50,
-        Lifetime
-    ),
-    award!(
-        "leocard:mahjong/",
-        Mahjong,
         "last_hand_comeback",
         "永不言弃",
         Bronze,
@@ -104,7 +64,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         "leocard:mahjong/",
         Mahjong,
         "five_hundred_wins",
-        "千锤百炼",
+        "抓炮大王",
         Silver,
         "和牌500次",
         mahjong_wins,
@@ -245,5 +205,33 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         mahjong_insufficient_fan,
         6,
         Hand
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "two_hundred_self_draws",
+        "自力更生",
+        Silver,
+        "累计自摸和牌200次（包括未单列自摸番种的和牌）",
+        |event| u64::from(
+            MahjongFacts::from_trigger(event)
+                .is_some_and(|facts| { facts.win().is_some_and(|win| win.from.is_none()) })
+        ),
+        200,
+        Lifetime
+    ),
+    award!(
+        "leocard:mahjong/",
+        Mahjong,
+        "three_hundred_concealed_wins",
+        "门可罗雀",
+        Silver,
+        "以门前清形态和牌300次",
+        |event| u64::from(
+            MahjongFacts::from_trigger(event)
+                .is_some_and(|facts| { facts.win().is_some_and(|win| win.concealed_hand) })
+        ),
+        300,
+        Lifetime
     ),
 ];

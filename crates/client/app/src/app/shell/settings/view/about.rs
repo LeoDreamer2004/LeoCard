@@ -118,7 +118,7 @@ impl<'a> SoftwareUpdateSettings<'a> {
         add_text(
             commands,
             version_text,
-            "查看项目或检查新版本",
+            "可以给一个小小的Star吗? 谢谢辽~",
             13.0,
             MUTED,
             assets,

@@ -205,6 +205,14 @@ impl TexasHoldemAdapter {
                 });
             }
             ActionOutcome::HandComplete(result) => {
+                if let Some((player, statistics)) =
+                    self.game.squid().award_statistics(self.match_id.0)
+                {
+                    events.push(TexasHoldemEvent::SquidAwarded {
+                        player: self.protocol_player(player),
+                        statistics,
+                    });
+                }
                 events.extend(self.players.iter().enumerate().map(|(index, participant)| {
                     TexasHoldemEvent::HandAnalyzed {
                         player: participant.id,

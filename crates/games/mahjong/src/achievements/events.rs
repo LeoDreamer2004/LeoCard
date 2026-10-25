@@ -5,6 +5,7 @@ use leocard_achievements::{GameFacts, ParticipantId};
 pub struct MahjongWinFacts {
     pub player: ParticipantId,
     pub from: Option<ParticipantId>,
+    pub concealed_hand: bool,
     pub score: MahjongScoreResult,
     pub wait_kind_count: u8,
 }
@@ -21,6 +22,9 @@ pub struct MahjongHandFacts {
 
 #[derive(Clone, Debug)]
 pub enum MahjongAchievementEvent {
+    FlowerReplaced {
+        player: ParticipantId,
+    },
     WinUnavailable {
         player: ParticipantId,
         points_without_flowers: u16,

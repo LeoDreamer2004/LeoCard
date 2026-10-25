@@ -1,7 +1,7 @@
 use super::events::TexasAchievementEvent;
 use crate::{
-    TexasHoldemActionStatistics, TexasHoldemHandCategory as Category, TexasHoldemHandStatistics,
-    TexasHoldemRank,
+    SquidAwardStatistics, TexasHoldemActionStatistics, TexasHoldemHandCategory as Category,
+    TexasHoldemHandStatistics, TexasHoldemRank,
 };
 use leocard_achievements::AchievementTrigger;
 
@@ -42,6 +42,23 @@ pub(super) fn action(
 
 pub(super) fn pair(facts: &TexasHoldemHandStatistics, rank: TexasHoldemRank) -> bool {
     matches!(facts.hole_cards.as_slice(), [first, second] if first.rank() == rank && second.rank() == rank)
+}
+
+pub(super) fn squid(
+    trigger: &AchievementTrigger,
+    predicate: impl FnOnce(&SquidAwardStatistics) -> bool,
+) -> u64 {
+    let Some((
+        player,
+        TexasAchievementEvent::SquidAwarded {
+            player: actor,
+            statistics,
+        },
+    )) = trigger.game::<TexasAchievementEvent>()
+    else {
+        return 0;
+    };
+    u64::from(player == *actor && predicate(statistics))
 }
 
 pub(super) fn offsuit_two_seven(facts: &TexasHoldemHandStatistics) -> bool {

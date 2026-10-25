@@ -7,6 +7,7 @@ rust-version.workspace = true
 description = "Pure Texas Hold'em rules for LeoCard"
 
 [dependencies]
+fastrand.workspace = true
 leocard-achievements = { path = "../achievements" }
 leocard-game-common = { path = "../common" }
 serde = { workspace = true, optional = true }

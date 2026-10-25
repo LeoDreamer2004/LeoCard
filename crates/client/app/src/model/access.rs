@@ -163,6 +163,31 @@ impl ClientModel {
         self.player_name(id).is_some()
     }
 
+    pub fn player_avatar(&self, id: PlayerId) -> Option<AvatarId> {
+        macro_rules! avatar {
+            ($players:expr) => {
+                $players.iter().find(|player| player.id == id)?.avatar
+            };
+        }
+        match self.phase() {
+            ClientPhaseRef::Lobby(lobby) => avatar!(lobby.players),
+            ClientPhaseRef::Playing(GameSnapshot::QiGui523(game)) => avatar!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::TexasHoldem(game)) => avatar!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::Shengji(game)) => avatar!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => avatar!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::Mahjong(game)) => avatar!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::MinecraftGuess(game)) => avatar!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::Blackjack(game)) => {
+                game.players
+                    .iter()
+                    .find(|player| player.player.id == id)?
+                    .player
+                    .avatar
+            }
+            ClientPhaseRef::Idle | ClientPhaseRef::Closed => None,
+        }
+    }
+
     pub fn player_game_profiles(&self, id: PlayerId) -> Option<&PlayerGameProfiles> {
         macro_rules! profiles {
             ($players:expr) => {

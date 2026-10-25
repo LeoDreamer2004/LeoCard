@@ -8,8 +8,8 @@ use leocard_shengji::{
     ShengjiCard, ShengjiHandStatistics, ShengjiMatchStatistics, ShengjiRank, ShengjiRedealReason,
 };
 use leocard_texas_holdem::{
-    TexasHoldemAction, TexasHoldemActionStatistics, TexasHoldemCard, TexasHoldemHandStatistics,
-    TexasHoldemStreet,
+    SquidAwardStatistics, TexasHoldemAction, TexasHoldemActionStatistics, TexasHoldemCard,
+    TexasHoldemHandStatistics, TexasHoldemStreet,
 };
 use leocard_uno::{
     UnoActionStatistics, UnoCard, UnoChallengeResult, UnoColor, UnoDirection, UnoFlipSide,
@@ -228,6 +228,11 @@ pub enum TexasHoldemEvent {
     },
     HandFinished {
         showdown: bool,
+    },
+    /// Emitted once when a player actually receives a new squid marker.
+    SquidAwarded {
+        player: PlayerId,
+        statistics: SquidAwardStatistics,
     },
 }
 

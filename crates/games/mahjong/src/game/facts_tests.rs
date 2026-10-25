@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     MahjongMatchLength, MahjongPlayerId, MahjongRuleSet, MahjongSuit, MahjongTile, MahjongTileKind,
-    MahjongWind, WinSource, build_deck,
+    MahjongWind, Meld, WinSource, build_deck,
 };
 use std::collections::BTreeMap;
 
@@ -91,9 +91,37 @@ fn settlement_records_nine_gates_waits_before_adding_the_winning_tile() {
         panic!("must win");
     };
     assert_eq!(result.winners[0].wait_kind_count, 9);
+    assert!(result.winners[0].concealed_hand);
     assert_eq!(result.match_length, MahjongMatchLength::SingleHand);
     assert_eq!(result.match_progress.completed_hands, 1);
     assert_eq!(result.match_progress.exhaustive_draws, 0);
+}
+
+#[test]
+fn concealed_shape_in_settlement_allows_concealed_kongs_but_excludes_open_melds() {
+    let east = MahjongTileKind::Wind(MahjongWind::East);
+    for (meld, concealed) in [
+        (Meld::concealed_kong(east), true),
+        (Meld::melded_kong(east, MahjongPlayerId(1)), false),
+        (Meld::pung(east, MahjongPlayerId(1)), false),
+    ] {
+        let mut game =
+            GameState::new_with_deck(MahjongRuleSet::default(), build_deck(), MahjongPlayerId(0))
+                .unwrap();
+        game.players[0].hand = tiles(
+            [1, 1, 1, 2, 2, 2, 3, 3, 3, 5, 5]
+                .map(|rank| MahjongTileKind::suited(MahjongSuit::Characters, rank)),
+        );
+        game.players[0].melds = vec![meld];
+        game.last_drawn = game.players[0].hand.last().copied();
+        game.phase = Phase::Playing;
+        let ActionOutcome::HandFinished(result) =
+            game.declare_self_draw(MahjongPlayerId(0)).unwrap()
+        else {
+            panic!("must win");
+        };
+        assert_eq!(result.winners[0].concealed_hand, concealed);
+    }
 }
 
 #[test]

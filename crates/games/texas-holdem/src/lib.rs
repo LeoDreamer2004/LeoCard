@@ -14,7 +14,9 @@ mod rules;
 mod squid;
 mod statistics;
 pub use rating::reference_point_deltas;
-pub use squid::{SquidState, SquidTransfer};
+pub use squid::{
+    DEEPSEEK_SQUID_VARIANTS, SquidAwardStatistics, SquidState, SquidTransfer, deepseek_squid_marker,
+};
 pub use statistics::{
     TexasHoldemActionStatistics, TexasHoldemHandStatistics, TexasHoldemMatchStatistics,
 };

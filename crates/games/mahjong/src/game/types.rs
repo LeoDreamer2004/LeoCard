@@ -39,6 +39,10 @@ impl PlayerState {
         &self.flowers
     }
 
+    pub fn is_concealed_hand(&self) -> bool {
+        self.melds.iter().all(|meld| !meld.is_open())
+    }
+
     pub const fn is_dead_hand(&self) -> bool {
         self.dead_hand
     }
@@ -177,6 +181,8 @@ impl PendingClaim {
 pub struct WinRecord {
     pub player: MahjongPlayerId,
     pub from: Option<MahjongPlayerId>,
+    /// No exposed chow, pung or kong; concealed kongs preserve this shape.
+    pub concealed_hand: bool,
     pub winning_tile: MahjongTile,
     pub score: MahjongScoreResult,
     pub wait_kind_count: u8,

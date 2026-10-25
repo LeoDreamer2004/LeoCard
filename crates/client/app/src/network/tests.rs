@@ -3,12 +3,14 @@ use super::state::{EventQueue, NetworkEvent, NetworkLaunch, normalize_server_add
 use super::worker::run_network;
 use super::{LocalPlayerConnection, NETWORK_ROOM_ID, NetworkState, TcpGameClient};
 use crate::ClientModel;
+use image::{DynamicImage, ImageFormat, Rgba, RgbaImage};
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameRules, LobbySnapshot, PROTOCOL_VERSION, PlayerId, RequestId,
-    Revision, SeatId, ServerEvent, ServerMessage,
+    AVATAR_DIMENSION, ClientCommand, ClientMessage, GameRules, LobbySnapshot, PROTOCOL_VERSION,
+    PlayerId, RequestId, Revision, SeatId, ServerEvent, ServerMessage,
 };
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_tcp::{TcpClient, read_message, write_message};
+use std::io::Cursor;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::net::{TcpListener, TcpStream};
@@ -167,6 +169,30 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
         host.model().qigui523_game().unwrap().your_hand.len(),
         usize::from(rules.hand_size)
     );
+
+    // Replacing an uploaded image must reach the uploader, peers and spectators.
+    let player = guest_a.model().you().unwrap();
+    for shade in [40, 200] {
+        let image = RgbaImage::from_pixel(
+            AVATAR_DIMENSION,
+            AVATAR_DIMENSION,
+            Rgba([shade, 80, 160, 255]),
+        );
+        let mut png = Cursor::new(Vec::new());
+        DynamicImage::ImageRgba8(image)
+            .write_to(&mut png, ImageFormat::Png)
+            .unwrap();
+        let png = png.into_inner();
+        assert!(guest_a.send(ClientCommand::SetAvatar { png: png.clone() }));
+        for viewer in [&mut host, &mut guest_a, &mut guest_b, &mut observer] {
+            wait_for(viewer, |model| {
+                model
+                    .player_avatar(player)
+                    .and_then(|id| model.avatars().get(&id))
+                    == Some(&png)
+            });
+        }
+    }
 }
 
 #[test]

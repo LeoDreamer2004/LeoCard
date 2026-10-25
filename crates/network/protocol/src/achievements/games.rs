@@ -24,6 +24,7 @@ impl From<&GameEvent> for GameFacts {
                             .map(|win| MahjongWinFacts {
                                 player: ParticipantId(win.player.0),
                                 from: win.from.map(|player| ParticipantId(player.0)),
+                                concealed_hand: win.concealed_hand,
                                 score: win.score.clone(),
                                 wait_kind_count: win.wait_kind_count,
                             })
@@ -36,6 +37,12 @@ impl From<&GameEvent> for GameFacts {
                     },
                 }
                 .into(),
+                MahjongEvent::FlowerReplaced { player } => {
+                    MahjongAchievementEvent::FlowerReplaced {
+                        player: ParticipantId(player.0),
+                    }
+                    .into()
+                }
                 MahjongEvent::FalseWin { player, .. } => MahjongAchievementEvent::FalseWin {
                     player: ParticipantId(player.0),
                 }
@@ -65,6 +72,13 @@ impl From<&GameEvent> for GameFacts {
                 statistics: *statistics,
             }
             .into(),
+            GameEvent::TexasHoldem(TexasHoldemEvent::SquidAwarded { player, statistics }) => {
+                TexasAchievementEvent::SquidAwarded {
+                    player: ParticipantId(player.0),
+                    statistics: *statistics,
+                }
+                .into()
+            }
             GameEvent::QiGui523(QiGui523Event::ActionAnalyzed { player, statistics }) => {
                 QiGuiAchievementEvent::ActionAnalyzed {
                     player: ParticipantId(player.0),

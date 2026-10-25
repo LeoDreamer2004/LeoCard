@@ -1,6 +1,8 @@
+use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
+use leocard_achievements::{AchievementTrigger, PersonalEvent};
 use leocard_client::{LocalPlayerProfile, PlayerEconomy};
 use leocard_protocol::ClientCommand;
 
@@ -9,8 +11,16 @@ pub(super) fn sync_coins(
     economy: Res<PlayerEconomy>,
     mut profile: ResMut<LocalPlayerProfile>,
     mut ui: ResMut<UiState>,
+    mut observed: Local<Option<u32>>,
+    mut achievements: MessageWriter<LocalAchievementTrigger>,
 ) {
     let coins = economy.coins();
+    if *observed != Some(coins) {
+        *observed = Some(coins);
+        achievements.write(LocalAchievementTrigger(AchievementTrigger::Personal(
+            PersonalEvent::CoinBalance { coins },
+        )));
+    }
     if profile.game_profiles.coins != coins {
         profile.game_profiles.coins = coins;
         ui.dirty = true;

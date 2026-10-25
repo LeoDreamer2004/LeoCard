@@ -48,6 +48,7 @@ pub(super) fn hand_result_view(result: &HandResult) -> MahjongHandResultView {
             .map(|winner| MahjongWinView {
                 player: from_core_player(winner.player),
                 from: winner.from.map(from_core_player),
+                concealed_hand: winner.concealed_hand,
                 winning_tile: winner.winning_tile,
                 score: winner.score.clone(),
                 wait_kind_count: winner.wait_kind_count,

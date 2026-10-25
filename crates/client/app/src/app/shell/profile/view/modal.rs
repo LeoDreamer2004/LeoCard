@@ -22,6 +22,7 @@ pub(crate) struct ProfileModal<'a> {
     reference_points: i32,
     completed_games: u32,
     game_profiles: &'a PlayerGameProfiles,
+    editable_avatar: bool,
     selected_game: ProfileGameTab,
     assets: &'a UiAssets,
 }
@@ -35,12 +36,22 @@ impl<'a> ProfileModal<'a> {
         profile: &'a LocalPlayerProfile,
         assets: &'a UiAssets,
     ) -> Self {
+        let editable_avatar = selection.player.as_ref().is_none_or(|player| {
+            client.is_some_and(|client| client.0.model().you() == Some(player.id))
+        });
         let (name, gender, avatar, reference_points, completed_games, game_profiles) =
             if let Some(player) = selection.player.as_ref() {
                 (
                     player.name.as_str(),
                     player.game_profiles.gender,
-                    player.avatar.as_ref(),
+                    if editable_avatar {
+                        avatars.local.as_ref()
+                    } else {
+                        client
+                            .and_then(|client| client.0.model().player_avatar(player.id))
+                            .and_then(|id| avatars.remote.get(&id))
+                            .or(player.avatar.as_ref())
+                    },
                     player.reference_points,
                     player.completed_games,
                     client
@@ -63,40 +74,15 @@ impl<'a> ProfileModal<'a> {
                     profile.game_profiles(),
                 )
             };
-        Self::new(
-            name,
-            gender,
-            avatar,
-            reference_points,
-            completed_games,
-            game_profiles,
-            selection.game_tab,
-            assets,
-        )
-    }
-
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "profile identity and statistics are passed explicitly"
-    )]
-    pub(crate) fn new(
-        player_name: &'a str,
-        gender: PlayerGender,
-        avatar: Option<&'a Handle<Image>>,
-        reference_points: i32,
-        completed_games: u32,
-        game_profiles: &'a PlayerGameProfiles,
-        selected_game: ProfileGameTab,
-        assets: &'a UiAssets,
-    ) -> Self {
         Self {
-            player_name,
+            player_name: name,
             gender,
             avatar,
             reference_points,
             completed_games,
             game_profiles,
-            selected_game,
+            editable_avatar,
+            selected_game: selection.game_tab,
             assets,
         }
     }
@@ -109,6 +95,7 @@ impl<'a> ProfileModal<'a> {
             reference_points,
             completed_games,
             game_profiles,
+            editable_avatar,
             selected_game,
             assets,
         } = self;
@@ -188,7 +175,7 @@ impl<'a> ProfileModal<'a> {
             game_profiles,
             assets,
         )
-        .render(commands, modal);
+        .render(commands, modal, editable_avatar);
         spawn_node(
             commands,
             modal,

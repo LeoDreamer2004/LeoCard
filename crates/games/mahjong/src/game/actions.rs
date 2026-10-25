@@ -142,6 +142,7 @@ impl GameState {
             return self.finish_with_winners(vec![WinRecord {
                 player,
                 from: None,
+                concealed_hand: self.players[player.0].is_concealed_hand(),
                 winning_tile: winning,
                 score,
                 wait_kind_count: self.wait_kind_count(player, winning, true),

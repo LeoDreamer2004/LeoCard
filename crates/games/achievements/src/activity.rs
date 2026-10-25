@@ -7,6 +7,13 @@ pub enum PersonalEvent {
     AvatarSaved,
     TableBackgroundChanged,
     ClientUpdated,
+    ItemPurchased {
+        price: u32,
+    },
+    CoinBalance {
+        coins: u32,
+    },
+    SakuraTunnelStarted,
     InteractionRun {
         kind: InteractionKind,
         count: u8,

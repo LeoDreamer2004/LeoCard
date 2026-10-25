@@ -87,6 +87,7 @@ impl GameState {
                 valid_winners.push(WinRecord {
                     player: target,
                     from: Some(from),
+                    concealed_hand: self.players[target.0].is_concealed_hand(),
                     winning_tile: tile,
                     score,
                     wait_kind_count: self.wait_kind_count(target, tile, false),

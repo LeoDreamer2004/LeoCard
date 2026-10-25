@@ -1,7 +1,7 @@
 use super::lan::{LanDiscovery, LanRoomList, sync_lan_discovery};
 use super::{
     dispatch_connection_actions, form::sync_connection_inputs, handle_avatar_drop,
-    poll_avatar_picker, sync_avatar_images, view::GameGalleryPlugin,
+    poll_avatar_picker, publish_avatar, sync_avatar_images, view::GameGalleryPlugin,
 };
 use crate::app::presentation::TextInputSet;
 use crate::app::runtime::ClientUpdateSet;
@@ -28,7 +28,8 @@ impl Plugin for ConnectionPlugin {
             )
             .add_systems(
                 Update,
-                (sync_avatar_images, sync_lan_discovery).in_set(ClientUpdateSet::Sync),
+                (sync_avatar_images, publish_avatar, sync_lan_discovery)
+                    .in_set(ClientUpdateSet::Sync),
             )
             .add_systems(
                 Update,

@@ -1,6 +1,6 @@
 use super::RoomActivity;
 use crate::achievements::RoomAchievements;
-use crate::{ConnectionId, Delivery};
+use crate::{ConnectionId, Delivery, valid_avatar_png};
 use leocard_protocol::{
     AvatarId, ChatContent, ChatMessage, ClientMessage, GameEvent, GameEventContext, GameKind,
     GameRules, GameViolation, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MatchId, PROTOCOL_VERSION,
@@ -174,13 +174,10 @@ impl RoomSession {
             .player_id(connection)
             .ok_or(RejectReason::Player(PlayerViolation::NotJoined))?;
         let participant = self.participant_mut(player).expect("joined participant");
-        if participant.avatar.is_some() {
-            if participant.avatar_png.as_deref() == Some(png.as_slice()) {
-                return Ok(Vec::new());
-            }
-            return Err(RejectReason::Player(PlayerViolation::AvatarAlreadySet));
+        if participant.avatar_png.as_deref() == Some(png.as_slice()) {
+            return Ok(Vec::new());
         }
-        if !crate::valid_avatar_png(&png) {
+        if !valid_avatar_png(&png) {
             return Err(RejectReason::Player(PlayerViolation::InvalidAvatar));
         }
         let avatar = AvatarId(self.next_avatar_id);

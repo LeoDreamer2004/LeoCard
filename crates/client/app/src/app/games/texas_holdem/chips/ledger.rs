@@ -112,7 +112,7 @@ impl TexasChipTableState {
                     self.sweep_bets_to_pot();
                     swept = true;
                 }
-                TexasHoldemEvent::HandAnalyzed { .. } => {}
+                TexasHoldemEvent::HandAnalyzed { .. } | TexasHoldemEvent::SquidAwarded { .. } => {}
                 TexasHoldemEvent::HandFinished { showdown } => {
                     self.audio_cues
                         .extend(texas_hand_finish_sound_plan(showdown, sound_seed));

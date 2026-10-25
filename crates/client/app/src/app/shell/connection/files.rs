@@ -9,15 +9,12 @@ use crate::app::runtime::{
 use bevy::prelude::*;
 use bevy::window::FileDragAndDrop;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
-use leocard_client::pick_image;
-use std::{
-    path::PathBuf,
-    sync::{
-        Mutex,
-        mpsc::{self, TryRecvError},
-    },
-    thread,
-};
+use leocard_client::{NetworkState, pick_image};
+use leocard_protocol::ClientCommand;
+use std::path::PathBuf;
+use std::sync::Mutex;
+use std::sync::mpsc::{self, TryRecvError};
+use std::thread;
 
 pub(crate) fn handle_avatar_drop(
     mut dropped_files: MessageReader<FileDragAndDrop>,
@@ -131,5 +128,26 @@ pub(crate) fn sync_avatar_images(
             avatar_images.remote.insert(*id, handle);
             ui.dirty = true;
         }
+    }
+}
+
+/// Retry a saved change once connected, including after a lost connection.
+pub(crate) fn publish_avatar(
+    mut client: Option<ResMut<ClientResource>>,
+    appearance: Res<AppearancePreferences>,
+    mut sent: Local<Option<Vec<u8>>>,
+) {
+    let Some(client) = client.as_mut() else {
+        *sent = None;
+        return;
+    };
+    if client.is_added() || !matches!(client.0.state(), NetworkState::Connected(_)) {
+        *sent = None;
+    }
+    if let Some(png) = appearance.avatar_png.as_ref()
+        && sent.as_ref() != Some(png)
+        && client.0.send(ClientCommand::SetAvatar { png: png.clone() })
+    {
+        *sent = Some(png.clone());
     }
 }

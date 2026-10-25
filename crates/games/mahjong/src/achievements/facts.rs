@@ -131,26 +131,6 @@ pub(super) fn mahjong_low_fans(trigger: &AchievementTrigger) -> u64 {
         facts.fan_count(|fan| fan != Fan::FlowerTiles && fan.points() <= 2)
     })
 }
-pub(super) const BIG_EIGHT: &[Fan] = &[
-    Fan::MixedShiftedChows,
-    Fan::MixedTripleChow,
-    Fan::MixedStraight,
-    Fan::PureStraight,
-    Fan::HalfFlush,
-    Fan::PureShiftedChows,
-    Fan::AllTypes,
-    Fan::AllPungs,
-];
-pub(super) const SMALL_EIGHT: &[Fan] = &[
-    Fan::SevenPairs,
-    Fan::OutsideHand,
-    Fan::KnittedStraight,
-    Fan::LesserHonorsAndKnittedTiles,
-    Fan::UpperFour,
-    Fan::LowerFour,
-    Fan::ChickenHand,
-    Fan::MeldedHand,
-];
 
 pub(super) fn mahjong_group(trigger: &AchievementTrigger, group: &[Fan]) -> u64 {
     u64::from(

@@ -5,10 +5,12 @@ use super::input::{
 };
 use super::state::{SakuraState, TaskMessage, TaskOutcome};
 use super::view::{advance_startup_modal, sync_account_menu, sync_startup_dialog};
+use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::presentation::TextInputSet;
 use crate::app::runtime::{ClientUpdateSet, PageErrorState};
 use crate::app::shell::{ModalAnimationSet, UiActionSet, UiState};
 use bevy::prelude::*;
+use leocard_achievements::{AchievementTrigger, PersonalEvent};
 use std::mem;
 use std::time::{Duration, Instant};
 
@@ -51,6 +53,7 @@ fn poll_sakura_tasks(
     mut ui: ResMut<UiState>,
     mut error: ResMut<PageErrorState>,
     mut images: ResMut<Assets<Image>>,
+    mut achievements: MessageWriter<LocalAchievementTrigger>,
 ) {
     let messages = {
         let Ok(mut queue) = state.messages.lock() else {
@@ -124,6 +127,9 @@ fn poll_sakura_tasks(
                     Ok(TaskOutcome::Started(running)) => {
                         let id = running.id;
                         state.running.insert(id, running);
+                        achievements.write(LocalAchievementTrigger(AchievementTrigger::Personal(
+                            PersonalEvent::SakuraTunnelStarted,
+                        )));
                     }
                     Err(message) => {
                         state.startup = None;

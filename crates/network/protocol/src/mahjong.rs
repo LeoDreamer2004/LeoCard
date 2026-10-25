@@ -85,6 +85,7 @@ pub struct MahjongPublicMeldView {
 pub struct MahjongWinView {
     pub player: PlayerId,
     pub from: Option<PlayerId>,
+    pub concealed_hand: bool,
     pub winning_tile: MahjongTile,
     pub score: MahjongScoreResult,
     pub wait_kind_count: u8,

@@ -2,12 +2,13 @@ use super::super::actions::SakuraUiAction;
 use super::super::input::SakuraScroll;
 use super::page::SakuraPage;
 use super::widgets::{panel, row, scroll_list};
-use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, card_background_image};
+use crate::app::presentation::{MUTED, TEXT, add_text, card_background_image};
 use crate::app::shell::{PageTransitionElement, UiAction, add_cozy_button, add_cozy_switch};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_sakura_frp::Tunnel;
+use leocard_ui::UiComposer;
 
 impl SakuraPage<'_> {
     pub(super) fn render_tunnels(&self, commands: &mut UiComposer, body: Entity) {

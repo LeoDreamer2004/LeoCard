@@ -1,12 +1,12 @@
 use super::super::{MinecraftGuessAssets, MinecraftGuessUiAction, MinecraftGuessUiState};
 use super::buttons::{GuessButton, GuessButtonSpec, GuessSubmit, add_guess_button, set_enabled};
-use crate::app::presentation::UiComposer;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiAction;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_minecraft_guess::{Catalogue, EntryKind, GuessRecord, RoundView};
 use leocard_protocol::{MatchId, MinecraftGuessSnapshot};
+use leocard_ui::UiComposer;
 
 #[cfg(test)]
 mod tests;

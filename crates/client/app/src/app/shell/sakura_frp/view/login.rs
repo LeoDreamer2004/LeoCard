@@ -1,11 +1,12 @@
 use super::super::actions::SakuraUiAction;
 use super::super::input::SakuraInput;
 use super::page::SakuraPage;
-use crate::app::presentation::{TEXT, UiComposer, add_avatar, add_text, spawn_node};
+use crate::app::presentation::{TEXT, add_avatar, add_text};
 use crate::app::shell::{PageTransitionElement, UiAction, add_cozy_checkbox, add_cozy_panel};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
+use leocard_ui::{UiComposer, spawn_node};
 
 impl SakuraPage<'_> {
     pub(super) fn render_login(&self, commands: &mut UiComposer, page: Entity) {

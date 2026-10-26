@@ -9,11 +9,11 @@ use super::flip::*;
 use super::palette::*;
 use super::reverse::*;
 use super::*;
-use crate::app::presentation::UiComposer;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer};
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, UnoEvent, UnoSnapshot};
+use leocard_ui::UiComposer;
 use leocard_uno::{UnoCard, UnoDirection};
 use std::collections::HashMap;
 

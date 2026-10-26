@@ -1,10 +1,10 @@
 //! Soft light layers use regular UI gradients so page transitions fade them too.
 
 use super::ENTRY_DESIGNS;
-use crate::app::presentation::{TransitionOpacity, UiComposer};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::{BackgroundGradient, ColorStop, Gradient, RadialGradient, RadialGradientShape};
+use leocard_ui::{TransitionOpacity, UiComposer};
 
 #[derive(Clone, Copy)]
 pub(super) enum GlowKind {

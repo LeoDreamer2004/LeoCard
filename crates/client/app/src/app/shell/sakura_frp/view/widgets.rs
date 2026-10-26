@@ -1,15 +1,14 @@
 use super::super::actions::SakuraUiAction;
 use super::super::input::{SakuraInput, SakuraScroll};
 use super::page::SakuraPage;
-use crate::app::presentation::{
-    MUTED, Scrollbar, ScrollbarSkin, TextInput, UiComposer, add_text, spawn_node,
-};
+use crate::app::presentation::{MUTED, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyButtonVariant, UiAction, add_cozy_button_variant, add_cozy_disabled_button, add_cozy_panel,
 };
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
+use leocard_ui::{Scrollbar, ScrollbarSkin, TextInput, UiComposer, spawn_node};
 
 impl SakuraPage<'_> {
     #[expect(clippy::too_many_arguments, reason = "button styling stays explicit")]

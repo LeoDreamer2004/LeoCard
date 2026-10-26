@@ -1,6 +1,6 @@
 use super::super::assets::EntryIcons;
 use super::super::{MinecraftGuessAssets, MinecraftGuessUiAction};
-use crate::app::presentation::{MUTED, SilentButton, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{MUTED, SilentButton, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::input_focus::InputFocus;
@@ -9,6 +9,7 @@ use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::InteractionDisabled;
 use bevy::ui_widgets::Button;
+use leocard_ui::{UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(in super::super) struct GuessButton {

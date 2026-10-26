@@ -1,414 +1,100 @@
-//! 游戏大厅与牌桌的运行期组合边界。
+//! Route screens to game-owned composition resources.
 
-use super::blackjack::{
-    BlackjackPlayback, BlackjackTable, BlackjackUiState, render_blackjack_lobby,
-    render_blackjack_table,
-};
-use super::mahjong::{
-    MahjongAssets, MahjongClaimPresentationState, MahjongFanCalculator, MahjongTableVisuals,
-    MahjongTileMaterial, MahjongUiState, render_mahjong_lobby, render_mahjong_table,
-};
-use super::minecraft_guess::{
-    GraphArt, GuessFeedback, GuessScorePlayback, GuessTable, MinecraftGuessAssets,
-    MinecraftGuessUiState, render_guess_lobby, render_guess_table,
-};
-use super::qigui523::{
-    PlayEffectState, QiGui523Assets, QiGui523UiState, TableVisualContext, render_qigui523_lobby,
-    render_table,
-};
-use super::shengji::{
-    ShengjiAssets, ShengjiPresentationState, ShengjiScoreCaptureEffectState,
-    ShengjiSettlementAnimation, ShengjiTableVisuals, ShengjiUiState, render_shengji_lobby,
-    render_shengji_table,
-};
-use super::texas_holdem::{
-    TexasChipTableState, TexasHoldemUiState, TexasTableVisuals, render_texas_holdem_lobby,
-    render_texas_holdem_table,
-};
-use super::uno::{
-    UnoAssets, UnoJumpInDevice, UnoTableVisuals, UnoUiState, render_uno_lobby, render_uno_table,
-};
-use crate::app::presentation::{
-    GameSummaryAnimation, StartGameSeatTransition, TableBackgroundMaterial, TurnBorderMaterial,
-    UiComposer,
-};
-use crate::app::runtime::{
-    AppearancePreferences, AvatarImages, ClientResource, TableAppearance, UiAssets,
-};
-use crate::app::shell::{ChatPanelState, DeveloperHandInput, ScoreCaptureEffectState, UiState};
+use super::blackjack::BlackjackScreen;
+use super::mahjong::MahjongScreen;
+use super::minecraft_guess::MinecraftGuessScreen;
+use super::qigui523::QiGui523Screen;
+use super::shengji::ShengjiScreen;
+use super::texas_holdem::TexasHoldemScreen;
+use super::uno::UnoScreen;
+use super::{GameLobbyContext, GameScreen, GameTableContext};
+use crate::app::runtime::ClientResource;
+use crate::app::shell::UiState;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
-use leocard_protocol::{GameKind, GameSnapshot, LobbySnapshot, PlayerId};
+use leocard_protocol::{GameKind, GameSnapshot, LobbySnapshot};
+use leocard_ui::UiComposer;
 
 #[derive(SystemParam)]
-pub(crate) struct GameScreenResources<'w> {
-    blackjack_ui: ResMut<'w, BlackjackUiState>,
-    blackjack_playback: Res<'w, BlackjackPlayback>,
-    minecraft_guess_art: Res<'w, GraphArt>,
-    minecraft_guess_assets: Res<'w, MinecraftGuessAssets>,
-    minecraft_guess_ui: Res<'w, MinecraftGuessUiState>,
-    minecraft_guess_scores: Res<'w, GuessScorePlayback>,
-    minecraft_guess_feedback: Res<'w, GuessFeedback>,
-    qigui523_assets: Res<'w, QiGui523Assets>,
-    shengji_assets: Res<'w, ShengjiAssets>,
-    uno_assets: Res<'w, UnoAssets>,
-    mahjong_assets: Res<'w, MahjongAssets>,
-    qigui523_ui: ResMut<'w, QiGui523UiState>,
-    texas_holdem_ui: ResMut<'w, TexasHoldemUiState>,
-    shengji_ui: ResMut<'w, ShengjiUiState>,
-    uno_ui: ResMut<'w, UnoUiState>,
-    uno_jump_in_device: Res<'w, UnoJumpInDevice>,
-    mahjong_ui: ResMut<'w, MahjongUiState>,
-    mahjong_fan_calculator: Res<'w, MahjongFanCalculator>,
-    play_effect: Res<'w, PlayEffectState>,
-    score_capture: Res<'w, ScoreCaptureEffectState>,
-    shengji_score_capture: Res<'w, ShengjiScoreCaptureEffectState>,
-    shengji_settlement: Res<'w, ShengjiSettlementAnimation>,
-    shengji_presentation: Res<'w, ShengjiPresentationState>,
-    mahjong_claim_presentation: Res<'w, MahjongClaimPresentationState>,
-    start_game_transition: Res<'w, StartGameSeatTransition>,
-    texas_chips: Res<'w, TexasChipTableState>,
-    table_materials: ResMut<'w, Assets<TableBackgroundMaterial>>,
-    mahjong_tile_materials: ResMut<'w, Assets<MahjongTileMaterial>>,
-    turn_border_materials: ResMut<'w, Assets<TurnBorderMaterial>>,
+pub(crate) struct GameScreens<'w> {
+    blackjack: BlackjackScreen<'w>,
+    minecraft_guess: MinecraftGuessScreen<'w>,
+    qigui523: QiGui523Screen<'w>,
+    texas_holdem: TexasHoldemScreen<'w>,
+    shengji: ShengjiScreen<'w>,
+    uno: UnoScreen<'w>,
+    mahjong: MahjongScreen<'w>,
 }
 
-impl GameScreenResources<'_> {
-    pub(crate) fn start_transition_active(&self) -> bool {
-        self.start_game_transition.match_id.is_some()
-            && !self.start_game_transition.seats.is_empty()
-    }
-
+impl GameScreens<'_> {
     pub(crate) fn reconcile_screen_state(
         &mut self,
         client: Option<&ClientResource>,
         shell: &mut UiState,
     ) {
-        let phase = client
-            .map(|client| client.0.model().phase())
-            .unwrap_or(ClientPhaseRef::Idle);
-        if !matches!(phase, ClientPhaseRef::Lobby(lobby) if lobby.game == GameKind::Uno) {
-            self.uno_ui.mode_menu_open = false;
-            self.uno_ui.expansion_settings_open = false;
-            self.uno_ui.expansion_settings_progress = 0.0;
-        }
-        match phase {
-            ClientPhaseRef::Playing(GameSnapshot::Blackjack(game)) => {
-                self.blackjack_ui.reconcile(game);
-                self.clear_except(GameKind::Blackjack);
-                retain_or_clear(shell, |target| {
-                    game.players.iter().any(|player| player.player.id == target)
-                });
-            }
-            ClientPhaseRef::Playing(GameSnapshot::MinecraftGuess(game)) => {
-                self.clear_except(GameKind::MinecraftGuess);
-                retain_or_clear(shell, |target| {
-                    game.players.iter().any(|player| player.id == target)
-                });
-            }
-            ClientPhaseRef::Playing(GameSnapshot::QiGui523(game)) => {
-                self.qigui523_ui.reconcile(game);
-                self.clear_except(GameKind::QiGui523);
-                retain_or_clear(shell, |target| {
-                    game.players.iter().any(|player| player.id == target)
-                });
-            }
-            ClientPhaseRef::Playing(GameSnapshot::TexasHoldem(game)) => {
-                self.texas_holdem_ui.reconcile(game);
-                self.clear_except(GameKind::TexasHoldem);
-                retain_or_clear(shell, |target| {
-                    game.players.iter().any(|player| player.id == target)
-                });
-            }
-            ClientPhaseRef::Playing(GameSnapshot::Shengji(game)) => {
-                self.shengji_ui.reconcile(game);
-                self.clear_except(GameKind::Shengji);
-                retain_or_clear(shell, |target| {
-                    game.players.iter().any(|player| player.id == target)
-                });
-            }
-            ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => {
-                self.clear_except(GameKind::Uno);
-                self.uno_ui.reconcile(game, &mut shell.social);
-                retain_or_clear(shell, |target| {
-                    game.players.iter().any(|player| player.id == target)
-                });
-            }
-            ClientPhaseRef::Playing(GameSnapshot::Mahjong(game)) => {
-                self.mahjong_ui.reconcile(game);
-                self.clear_except(GameKind::Mahjong);
-                retain_or_clear(shell, |target| {
-                    game.players.iter().any(|player| player.id == target)
-                });
-            }
-            ClientPhaseRef::Idle | ClientPhaseRef::Lobby(_) | ClientPhaseRef::Closed => {
-                self.clear_tables();
-                shell.social.interaction_menu_open = None;
-            }
+        self.blackjack.reconcile(client, &mut shell.social);
+        self.minecraft_guess.reconcile(client, &mut shell.social);
+        self.qigui523.reconcile(client, &mut shell.social);
+        self.texas_holdem.reconcile(client, &mut shell.social);
+        self.shengji.reconcile(client, &mut shell.social);
+        self.uno.reconcile(client, &mut shell.social);
+        self.mahjong.reconcile(client, &mut shell.social);
+        if !client
+            .is_some_and(|client| matches!(client.0.model().phase(), ClientPhaseRef::Playing(_)))
+            || shell.social.interaction_menu_open.is_some_and(|target| {
+                client.is_none_or(|client| !client.0.model().has_player(target))
+            })
+        {
+            shell.social.interaction_menu_open = None;
         }
     }
 
-    fn clear_except(&mut self, active: GameKind) {
-        if active != GameKind::Blackjack {
-            self.blackjack_ui.clear();
-        }
-        if active != GameKind::QiGui523 {
-            self.qigui523_ui.clear();
-        }
-        if active != GameKind::TexasHoldem {
-            self.texas_holdem_ui.clear();
-        }
-        if active != GameKind::Shengji {
-            self.shengji_ui.clear();
-        }
-        if active != GameKind::Uno {
-            self.uno_ui.clear();
-        }
-        if active != GameKind::Mahjong {
-            self.mahjong_ui.clear();
-        }
-    }
-
-    fn clear_tables(&mut self) {
-        self.blackjack_ui.clear();
-        self.qigui523_ui.clear();
-        self.texas_holdem_ui.clear();
-        self.shengji_ui.clear();
-        self.uno_ui.clear_table();
-        self.mahjong_ui.clear();
-    }
-
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn render_lobby(
-        &mut self,
+        &self,
         commands: &mut UiComposer,
         root: Entity,
-        client: &ClientResource,
         lobby: &LobbySnapshot,
-        _ui: &UiState,
-        assets: &UiAssets,
-        avatars: &AvatarImages,
+        context: GameLobbyContext<'_>,
     ) {
         match lobby.game {
-            GameKind::Blackjack => {
-                render_blackjack_lobby(commands, root, client, lobby, assets, avatars)
-            }
-            GameKind::MinecraftGuess => render_guess_lobby(
-                commands,
-                root,
-                client,
-                lobby,
-                &self.minecraft_guess_ui,
-                assets,
-                avatars,
-            ),
-            GameKind::QiGui523 => {
-                render_qigui523_lobby(commands, root, client, lobby, assets, avatars)
-            }
-            GameKind::TexasHoldem => {
-                render_texas_holdem_lobby(commands, root, client, lobby, assets, avatars)
-            }
-            GameKind::Shengji => {
-                render_shengji_lobby(commands, root, client, lobby, assets, avatars)
-            }
-            GameKind::Uno => {
-                render_uno_lobby(commands, root, client, lobby, &self.uno_ui, assets, avatars)
-            }
-            GameKind::Mahjong => {
-                render_mahjong_lobby(commands, root, client, lobby, assets, avatars)
-            }
+            GameKind::Blackjack => self.blackjack.render_lobby(commands, root, lobby, context),
+            GameKind::MinecraftGuess => self
+                .minecraft_guess
+                .render_lobby(commands, root, lobby, context),
+            GameKind::QiGui523 => self.qigui523.render_lobby(commands, root, lobby, context),
+            GameKind::TexasHoldem => self
+                .texas_holdem
+                .render_lobby(commands, root, lobby, context),
+            GameKind::Shengji => self.shengji.render_lobby(commands, root, lobby, context),
+            GameKind::Uno => self.uno.render_lobby(commands, root, lobby, context),
+            GameKind::Mahjong => self.mahjong.render_lobby(commands, root, lobby, context),
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn render_table(
         &mut self,
         commands: &mut UiComposer,
         root: Entity,
-        client: &ClientResource,
         game: &GameSnapshot,
-        ui: &mut UiState,
-        chat: &ChatPanelState,
-        developer_hand: &DeveloperHandInput,
-        form: &AppearancePreferences,
-        assets: &UiAssets,
-        avatars: &AvatarImages,
-        appearance: &TableAppearance,
-        game_summary: &GameSummaryAnimation,
+        context: GameTableContext<'_>,
     ) {
         match game {
-            GameSnapshot::Blackjack(game) => render_blackjack_table(
-                commands,
-                root,
-                BlackjackTable {
-                    client,
-                    game,
-                    ui: &self.blackjack_ui,
-                    playback: &self.blackjack_playback,
-                    social: &ui.social,
-                    chat,
-                    assets,
-                    avatars,
-                    appearance,
-                    brightness: form.table_brightness,
-                    vignette: form.table_vignette,
-                    table_materials: &mut self.table_materials,
-                    turn_materials: &mut self.turn_border_materials,
-                    transition: &self.start_game_transition,
-                    summary: game_summary,
-                },
-            ),
-            GameSnapshot::MinecraftGuess(game) => render_guess_table(
-                commands,
-                root,
-                GuessTable {
-                    client,
-                    game,
-                    state: &self.minecraft_guess_ui,
-                    graph_art: &self.minecraft_guess_art,
-                    scores: &self.minecraft_guess_scores,
-                    feedback: &self.minecraft_guess_feedback,
-                    summary: game_summary,
-                    game_assets: &self.minecraft_guess_assets,
-                    turn_border_materials: &mut self.turn_border_materials,
-                    social: &ui.social,
-                    chat,
-                    assets,
-                    avatars,
-                    transition: &self.start_game_transition,
-                },
-            ),
+            GameSnapshot::Blackjack(game) => {
+                self.blackjack.render_table(commands, root, game, context)
+            }
+            GameSnapshot::MinecraftGuess(game) => self
+                .minecraft_guess
+                .render_table(commands, root, game, context),
             GameSnapshot::QiGui523(game) => {
-                let mut visuals = TableVisualContext {
-                    assets,
-                    game_assets: &self.qigui523_assets,
-                    avatars,
-                    appearance,
-                    brightness: form.table_brightness,
-                    vignette: form.table_vignette,
-                    table_materials: &mut self.table_materials,
-                    game_summary,
-                    play_effect: &self.play_effect,
-                    score_capture: &self.score_capture,
-                    start_game_transition: &self.start_game_transition,
-                    turn_border_materials: &mut self.turn_border_materials,
-                };
-                render_table(
-                    commands,
-                    root,
-                    client,
-                    game,
-                    &self.qigui523_ui,
-                    &ui.social,
-                    chat,
-                    developer_hand,
-                    &mut visuals,
-                );
+                self.qigui523.render_table(commands, root, game, context)
             }
-            GameSnapshot::TexasHoldem(game) => render_texas_holdem_table(
-                commands,
-                root,
-                client,
-                game,
-                &mut self.texas_holdem_ui,
-                &ui.social,
-                chat,
-                TexasTableVisuals {
-                    assets,
-                    avatars,
-                    appearance,
-                    brightness: form.table_brightness,
-                    vignette: form.table_vignette,
-                    table_materials: &mut self.table_materials,
-                    turn_border_materials: &mut self.turn_border_materials,
-                    start_game_transition: &self.start_game_transition,
-                    chip_state: &self.texas_chips,
-                    game_summary,
-                },
-            ),
-            GameSnapshot::Shengji(game) => render_shengji_table(
-                commands,
-                root,
-                client,
-                game,
-                &mut self.shengji_ui,
-                &ui.social,
-                chat,
-                ShengjiTableVisuals {
-                    assets,
-                    game_assets: &self.shengji_assets,
-                    avatars,
-                    appearance,
-                    brightness: form.table_brightness,
-                    vignette: form.table_vignette,
-                    table_materials: &mut self.table_materials,
-                    turn_border_materials: &mut self.turn_border_materials,
-                    start_game_transition: &self.start_game_transition,
-                    score_capture: &self.shengji_score_capture,
-                    settlement: &self.shengji_settlement,
-                    presentation: &self.shengji_presentation,
-                },
-            ),
-            GameSnapshot::Uno(game) => render_uno_table(
-                commands,
-                root,
-                client,
-                game,
-                &self.uno_ui,
-                &ui.social,
-                chat,
-                UnoTableVisuals {
-                    assets,
-                    game_assets: &self.uno_assets,
-                    avatars,
-                    appearance,
-                    brightness: form.table_brightness,
-                    vignette: form.table_vignette,
-                    table_materials: &mut self.table_materials,
-                    turn_border_materials: &mut self.turn_border_materials,
-                    start_game_transition: &self.start_game_transition,
-                    game_summary,
-                    jump_in_device: &self.uno_jump_in_device,
-                },
-            ),
-            GameSnapshot::Mahjong(game) => {
-                let interaction_menu_open = ui.social.interaction_menu_open;
-                render_mahjong_table(
-                    commands,
-                    root,
-                    client,
-                    game,
-                    &mut self.mahjong_ui,
-                    chat,
-                    interaction_menu_open,
-                    MahjongTableVisuals {
-                        assets,
-                        game_assets: &self.mahjong_assets,
-                        avatars,
-                        developer_hand,
-                        appearance,
-                        brightness: form.table_brightness,
-                        vignette: form.table_vignette,
-                        table_materials: &mut self.table_materials,
-                        tile_materials: &mut self.mahjong_tile_materials,
-                        start_game_transition: &self.start_game_transition,
-                        game_summary,
-                        claim_presentation: &self.mahjong_claim_presentation,
-                        show_wait_fans: self.mahjong_fan_calculator.active,
-                    },
-                );
-            }
+            GameSnapshot::TexasHoldem(game) => self
+                .texas_holdem
+                .render_table(commands, root, game, context),
+            GameSnapshot::Shengji(game) => self.shengji.render_table(commands, root, game, context),
+            GameSnapshot::Uno(game) => self.uno.render_table(commands, root, game, context),
+            GameSnapshot::Mahjong(game) => self.mahjong.render_table(commands, root, game, context),
         }
-    }
-}
-
-fn retain_or_clear(shell: &mut UiState, contains: impl FnOnce(PlayerId) -> bool) {
-    if shell
-        .social
-        .interaction_menu_open
-        .is_some_and(|target| !contains(target))
-    {
-        shell.social.interaction_menu_open = None;
     }
 }

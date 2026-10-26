@@ -1,11 +1,12 @@
 use super::super::super::MinecraftGuessAssets;
 use super::super::art::relation_color;
 use super::state::GraphGuideScroll;
-use crate::app::presentation::{Scrollbar, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_minecraft_guess::GraphRelation;
+use leocard_ui::{Scrollbar, UiComposer, spawn_node};
 
 struct RelationRow<'a> {
     group: &'a str,

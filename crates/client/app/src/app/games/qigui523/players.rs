@@ -5,8 +5,8 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, CardSize, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
-    TurnBorderMaterial, UiComposer, add_card_image, add_player_portrait,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
+    TurnBorderMaterial, add_card_image, add_player_portrait, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
@@ -16,6 +16,7 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{GameKind, GamePhaseView, PlayerId, PlayerPublicState, QiGui523Snapshot};
 use leocard_qigui523::QiGuiCard;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) const QIGUI_PORTRAIT_WIDTH: f32 = 96.0 * 1.17;
 pub(super) const QIGUI_AVATAR_SIZE: f32 = 52.0 * 1.17;

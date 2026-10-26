@@ -1,11 +1,12 @@
 use super::playback::{
     BlackjackCardSlot, BlackjackCardTiming, BlackjackPlayback, DEALER_FLIP_DURATION,
 };
-use crate::app::presentation::{PlayingCardFlip, TablePieceDeal, UiComposer};
+use crate::app::presentation::{PlayingCardFlip, TablePieceDeal};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_blackjack::BlackjackCard;
+use leocard_ui::UiComposer;
 
 pub(super) struct BlackjackCardSpec {
     pub slot: BlackjackCardSlot,

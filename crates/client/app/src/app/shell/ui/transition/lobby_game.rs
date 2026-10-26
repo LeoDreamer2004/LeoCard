@@ -1,10 +1,11 @@
 //! Lobby panels leave before the game is revealed through a dark screen.
 
 use super::layer::{add_screen_layer, shade_color};
-use crate::app::presentation::{TransitionVisuals, UiComposer, UiRoot, ease_out_cubic, fade_panel};
+use crate::app::presentation::{UiRoot, ease_out_cubic};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
+use leocard_ui::{TransitionVisuals, UiComposer, fade_panel};
 
 const GAME_EXIT_DURATION: f32 = 0.30;
 const GAME_DARKEN_DURATION: f32 = 0.17;

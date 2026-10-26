@@ -1,12 +1,11 @@
 use super::lobby_game::animate_lobby_game_motion;
 use super::page::{animate_page_motion, page_content_can_animate};
 use super::{LobbyGameMotion, PageMotion, PageTransitionSet};
-use crate::app::presentation::{
-    SummaryAnimationSet, animate_button_arrows, update_button_highlights,
-};
+use crate::app::presentation::{SummaryAnimationSet, animate_button_arrows};
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::update_achievement_category_hover;
 use bevy::prelude::*;
+use leocard_ui::update_button_highlights;
 
 pub(crate) struct PageTransitionPlugin;
 

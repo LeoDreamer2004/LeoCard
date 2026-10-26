@@ -1,9 +1,10 @@
-use super::window::{CardCounterOwner, CardCounterWindowState, CounterDragHandle, CounterWindow};
-use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
+use super::CardCounterWindowState;
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::add_cozy_panel;
 use bevy::picking::Pickable;
 use bevy::{prelude::*, ui::RelativeCursorPosition};
+use leocard_ui::{DraggableWindow, DraggableWindowOwner, UiComposer, WindowDragHandle, spawn_node};
 use std::marker::PhantomData;
 
 pub(crate) struct CardCounterCell {
@@ -12,7 +13,7 @@ pub(crate) struct CardCounterCell {
     pub color: Color,
 }
 
-pub(crate) fn add_card_counter_window<T: CardCounterOwner>(
+pub(crate) fn add_card_counter_window<T: DraggableWindowOwner>(
     commands: &mut UiComposer,
     parent: Entity,
     state: &CardCounterWindowState,
@@ -24,8 +25,8 @@ pub(crate) fn add_card_counter_window<T: CardCounterOwner>(
         parent,
         Node {
             position_type: PositionType::Absolute,
-            left: px(state.position.x),
-            top: px(state.position.y),
+            left: px(state.drag.position.x),
+            top: px(state.drag.position.y),
             width: px(509.0),
             max_width: percent(94),
             padding: UiRect::all(px(13.0)),
@@ -36,7 +37,7 @@ pub(crate) fn add_card_counter_window<T: CardCounterOwner>(
         assets,
     );
     commands.entity(panel).insert((
-        CounterWindow::<T>(PhantomData),
+        DraggableWindow::<T>(PhantomData),
         GlobalZIndex(1400),
         Pickable::default(),
     ));
@@ -52,7 +53,7 @@ pub(crate) fn add_card_counter_window<T: CardCounterOwner>(
         None,
     );
     commands.entity(handle).insert((
-        CounterDragHandle::<T>(PhantomData),
+        WindowDragHandle::<T>(PhantomData),
         RelativeCursorPosition::default(),
     ));
     let title = add_text(commands, handle, "记牌器", 13.0, TEXT, assets);

@@ -1,6 +1,6 @@
 //! 客户端支持的游戏目录与大厅摘要。
 
-use crate::app::presentation::time_control_label;
+use super::qigui523::time_control_label;
 use leocard_blackjack::BlackjackRuleSet;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
 use leocard_minecraft_guess::{GuessMode, MinecraftGuessRuleSet};

@@ -6,11 +6,11 @@ use super::input::{
 use super::state::{SakuraState, TaskMessage, TaskOutcome};
 use super::view::{advance_startup_modal, sync_account_menu, sync_startup_dialog};
 use crate::app::achievements::LocalAchievementTrigger;
-use crate::app::presentation::TextInputSet;
 use crate::app::runtime::{ClientUpdateSet, PageErrorState};
 use crate::app::shell::{ModalAnimationSet, UiActionSet, UiState};
 use bevy::prelude::*;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
+use leocard_ui::TextInputSet;
 use std::mem;
 use std::time::{Duration, Instant};
 

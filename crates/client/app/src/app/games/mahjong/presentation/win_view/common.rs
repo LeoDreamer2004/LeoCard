@@ -1,10 +1,8 @@
-use std::f32::consts;
-
 use super::super::super::{MahjongWinEffectTier, mahjong_win_effect_tier, mahjong_win_stage_start};
-
 use crate::app::presentation::ease_out_cubic;
 use bevy::prelude::*;
 use leocard_protocol::MahjongHandResultView;
+use std::f32::consts;
 
 pub(super) const MAJOR_FAN_GLYPH_DELAY: f32 = 1.02;
 pub(super) const MAJOR_FAN_GLYPH_INTERVAL: f32 = 0.30;

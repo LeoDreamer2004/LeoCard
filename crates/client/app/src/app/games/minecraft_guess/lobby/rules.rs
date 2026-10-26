@@ -1,5 +1,5 @@
 use super::super::MinecraftGuessUiAction;
-use crate::app::presentation::{EditableRuleSet, RuleConfigRow, UiComposer, add_rule_config_row};
+use crate::app::presentation::{EditableRuleSet, RuleConfigRow, add_rule_config_row};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -7,6 +7,7 @@ use leocard_minecraft_guess::{
     GraphRules, GuessMode, GuessPool, MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet, RaceRules,
     TurnBasedRules,
 };
+use leocard_ui::UiComposer;
 
 impl EditableRuleSet for MinecraftGuessRuleSet {
     const ROW_HEIGHT: f32 = 44.0;

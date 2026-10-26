@@ -1,13 +1,11 @@
 use super::graph::{GraphGuideState, GraphLog};
 use super::state::{GuessInput, MinecraftGuessUiState};
-use crate::app::{
-    presentation::{TextInputAction, TextInputEvent},
-    runtime::ClientResource,
-    shell::{DomainUiAction, PressedUiAction, UiAction, game_command},
-};
+use crate::app::runtime::ClientResource;
+use crate::app::shell::{DomainUiAction, PressedUiAction, UiAction, game_command};
 use bevy::{prelude::*, text::EditableText};
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::{ClientCommand, MinecraftGuessCommand};
+use leocard_ui::{TextInputAction, TextInputEvent};
 
 #[derive(Clone)]
 pub(crate) enum MinecraftGuessUiAction {

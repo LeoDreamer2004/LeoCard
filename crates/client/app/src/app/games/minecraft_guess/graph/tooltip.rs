@@ -1,10 +1,11 @@
 use super::super::MinecraftGuessUiState;
 use super::super::view::GuessTable;
-use crate::app::presentation::{AnchoredPopup, MUTED, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use leocard_minecraft_guess::GraphNodeView;
+use leocard_ui::{AnchoredPopup, UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(in super::super) struct NodeHint(Entity);

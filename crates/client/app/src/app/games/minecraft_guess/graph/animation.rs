@@ -3,12 +3,13 @@ use super::art::{GraphArt, GraphMaterials, node_color, relation_color};
 use super::labels::GraphLabel;
 use super::lod::GraphLod;
 use super::state::{GraphBroadcast, GraphHistoryPanel, GraphNodeVisual, GraphPanelAnimation};
-use crate::app::presentation::{TransitionVisuals, UiComposer, UiRoot, ease_out_cubic, fade_panel};
+use crate::app::presentation::{UiRoot, ease_out_cubic};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::ecs::system::SystemParam;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
+use leocard_ui::{TransitionVisuals, UiComposer, fade_panel};
 
 #[derive(SystemParam)]
 pub(in super::super) struct GraphPlayback<'w> {

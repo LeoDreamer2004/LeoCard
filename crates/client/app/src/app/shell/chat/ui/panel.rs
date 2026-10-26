@@ -1,9 +1,7 @@
 use super::super::*;
 use super::controls::{add_auto_play_toggle, add_auxiliary_actions, add_chat_toggle};
 use super::menus::{add_emoji_menu, add_quick_voice_menu};
-use crate::app::presentation::{
-    ButtonHighlight, MUTED, TEXT, TextInput, UiComposer, add_text, spawn_node,
-};
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
 use bevy::picking::Pickable;
@@ -11,6 +9,7 @@ use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
 use leocard_protocol::MAX_CHAT_MESSAGE_CHARS;
+use leocard_ui::{ButtonHighlight, TextInput, UiComposer, spawn_node};
 
 pub(crate) struct ChatAuxiliaryAction {
     pub label: &'static str,

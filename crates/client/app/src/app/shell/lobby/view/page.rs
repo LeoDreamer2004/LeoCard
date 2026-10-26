@@ -1,5 +1,5 @@
 use super::*;
-use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
     CozyButtonVariant, LobbyTransitionPanel, LobbyUiAction, PageTransitionElement, UiAction,
@@ -9,6 +9,7 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use leocard_protocol::LobbySnapshot;
+use leocard_ui::{UiComposer, spawn_node};
 
 #[derive(Clone, Copy)]
 pub(crate) struct LobbyPageStyle {

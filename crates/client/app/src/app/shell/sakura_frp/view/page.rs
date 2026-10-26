@@ -1,9 +1,9 @@
 use super::super::actions::SakuraUiAction;
 use super::super::state::SakuraState;
-use crate::app::presentation::{UiComposer, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{PageTransitionElement, UiAction, add_page_back_title};
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) struct SakuraPage<'a> {
     pub state: &'a SakuraState,

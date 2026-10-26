@@ -3,12 +3,12 @@ use super::cards::{BlackjackCardSpec, add_card};
 use super::chips::{BlackjackWagerSpec, add_blackjack_wager};
 use super::playback::BlackjackCardSlot;
 use crate::app::presentation::{
-    ACCENT, DANGER, MUTED, TEXT, TableStatusEffect, TableStatusSpec, UiComposer, add_table_status,
-    spawn_node,
+    ACCENT, DANGER, MUTED, TEXT, TableStatusEffect, TableStatusSpec, add_table_status,
 };
 use bevy::prelude::*;
 use leocard_blackjack::{HandState, HandStatus};
 use leocard_protocol::PlayerId;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) struct BlackjackHandSpec<'a> {
     pub hand: &'a HandState,

@@ -7,10 +7,11 @@ use super::{
     SUMMARY_ROW_ENTRY_DURATION, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY,
     SUMMARY_SCORE_COUNT_DURATION, SummaryPlayback,
 };
-use crate::app::presentation::{PANEL_ALT, UiComposer, add_text, ease_out_cubic};
+use crate::app::presentation::{PANEL_ALT, add_text, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::PlayerScore;
+use leocard_ui::UiComposer;
 
 #[expect(
     clippy::too_many_arguments,

@@ -1,4 +1,5 @@
 use super::prelude::*;
+use crate::app::games::qigui523::{next_time_control, previous_time_control};
 use leocard_protocol::{
     GamePhaseView, MatchId, PlayerGameProfiles, PlayerId, PlayerPublicState, ProfileId,
     QiGui523Snapshot, SeatId, StartingCardView, TrickView, TurnTimerView,

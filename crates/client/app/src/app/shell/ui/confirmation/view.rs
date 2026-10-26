@@ -1,11 +1,12 @@
 use super::{ConfirmationDialog, ConfirmationUiAction};
-use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_button,
     add_cozy_button_variant, add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
 };
 use bevy::{picking::Pickable, prelude::*};
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn render_confirmation(
     commands: &mut UiComposer,

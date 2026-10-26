@@ -2,13 +2,14 @@ use super::{
     MahjongAssets, MahjongDealSpec, MahjongDealTile, MahjongDiscardHandShift, MahjongHandTile,
     MahjongHoverHandKind, MahjongTileMaterial, MahjongUiState, mahjong_local_light,
 };
-use crate::app::presentation::{PendingDealSound, UiComposer, ease_out_cubic};
+use crate::app::presentation::{PendingDealSound, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_mahjong::MahjongTile;
+use leocard_ui::UiComposer;
 use std::f32::consts;
 
 pub(super) fn mahjong_deal_spec(

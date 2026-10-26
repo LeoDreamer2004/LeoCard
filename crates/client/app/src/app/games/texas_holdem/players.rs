@@ -4,15 +4,16 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, HEADER_BG, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
-    TurnBorderMaterial, UiComposer, add_horizontal_chip_group, add_player_portrait,
-    add_poker_balance_panel, add_poker_chip_value, add_text, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, card_background_image, position_opponent_popup, spawn_node,
+    TurnBorderMaterial, add_horizontal_chip_group, add_player_portrait, add_poker_balance_panel,
+    add_poker_chip_value, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, card_background_image, position_opponent_popup,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{OpponentBadge, SeatSide};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{GameKind, PlayerId, TexasHoldemPlayerState, TexasHoldemSnapshot};
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) const TEXAS_PORTRAIT_WIDTH: f32 = 96.0 * 1.17;
 pub(super) const TEXAS_PORTRAIT_HEIGHT: f32 = 76.0 * 1.17 + 34.0;

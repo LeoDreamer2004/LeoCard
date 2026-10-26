@@ -1,9 +1,8 @@
 //! 德州扑克摊牌到结算弹窗之间的最佳五张牌演出。
 
-use std::f32::consts;
-
 use crate::app::presentation::{GameSummaryAnimation, ease_out_cubic};
 use bevy::prelude::*;
+use std::f32::consts;
 
 pub(super) const TEXAS_SHOWDOWN_REVEAL_DURATION: f32 = 2.6;
 

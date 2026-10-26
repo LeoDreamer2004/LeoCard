@@ -1,5 +1,5 @@
 use super::{UpdateEvent, UpdateManager, UpdateState};
-use crate::app::presentation::{MUTED, ProgressBar, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, UiState, UpdateUiAction,
@@ -8,6 +8,7 @@ use crate::app::shell::{
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_client::open_url;
+use leocard_ui::{ProgressBar, UiComposer, spawn_node};
 use leocard_update::format_bytes;
 
 #[derive(Component)]

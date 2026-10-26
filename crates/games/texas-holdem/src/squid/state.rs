@@ -28,16 +28,20 @@ pub struct SquidState {
     pub settled: bool,
     pub transfers: Vec<SquidTransfer>,
     last_award: Option<usize>,
+    seed: [u8; 16],
+    deepseek_double: bool,
 }
 
 impl SquidState {
-    pub(crate) fn new(count: u8) -> Self {
+    pub(crate) fn new(count: u8, seed: [u8; 16], deepseek_double: bool) -> Self {
         Self {
             round: 1,
             markers: vec![None; usize::from(count)],
             settled: false,
             transfers: Vec::new(),
             last_award: None,
+            seed,
+            deepseek_double,
         }
     }
 
@@ -75,14 +79,11 @@ impl SquidState {
         }
     }
 
-    pub fn award_statistics(
-        &self,
-        seed: [u8; 16],
-    ) -> Option<(TexasHoldemPlayerId, SquidAwardStatistics)> {
+    pub fn award_statistics(&self) -> Option<(TexasHoldemPlayerId, SquidAwardStatistics)> {
         let index = self.last_award?;
         let player = self.markers[index]?;
         let mut statistics = SquidAwardStatistics {
-            deepseek: deepseek_squid_marker(seed, self.round, index).is_some(),
+            deepseek: deepseek_squid_marker(self.seed, self.round, index).is_some(),
             owned: 0,
             deepseek_owned: 0,
         };
@@ -90,7 +91,7 @@ impl SquidState {
             if *owner == Some(player) {
                 statistics.owned += 1;
                 statistics.deepseek_owned +=
-                    u8::from(deepseek_squid_marker(seed, self.round, index).is_some());
+                    u8::from(deepseek_squid_marker(self.seed, self.round, index).is_some());
             }
         }
         Some((player, statistics))
@@ -98,30 +99,35 @@ impl SquidState {
 
     fn settle(&mut self, stacks: &mut [u32]) {
         self.settled = true;
-        let mut counts = vec![0_u32; stacks.len()];
-        for owner in self.markers.iter().flatten() {
-            counts[owner.0] += 1;
+        let mut weights = vec![0_u32; stacks.len()];
+        for (index, owner) in self.markers.iter().enumerate() {
+            if let Some(owner) = owner {
+                weights[owner.0] += 1 + u32::from(
+                    self.deepseek_double
+                        && deepseek_squid_marker(self.seed, self.round, index).is_some(),
+                );
+            }
         }
-        let total: u32 = counts.iter().sum();
+        let total: u32 = weights.iter().sum();
         if total == 0 {
             return;
         }
         for loser in 0..stacks.len() {
-            if counts[loser] != 0 {
+            if weights[loser] != 0 {
                 continue;
             }
             let payment = stacks[loser].min(total * TexasHoldemRuleSet::BIG_BLIND);
             stacks[loser] -= payment;
-            let mut shares: Vec<_> = counts
+            let mut shares: Vec<_> = weights
                 .iter()
-                .map(|&count| payment * count / total)
+                .map(|&weight| payment * weight / total)
                 .collect();
             let mut remainder = payment - shares.iter().sum::<u32>();
             // Largest remainders preserve token proportions even when a payer is short.
-            let mut recipients: Vec<_> = (0..counts.len())
-                .filter(|&index| counts[index] > 0)
+            let mut recipients: Vec<_> = (0..weights.len())
+                .filter(|&index| weights[index] > 0)
                 .collect();
-            recipients.sort_by_key(|&index| (Reverse(payment * counts[index] % total), index));
+            recipients.sort_by_key(|&index| (Reverse(payment * weights[index] % total), index));
             for &index in &recipients {
                 if remainder == 0 {
                     break;

@@ -2,12 +2,12 @@
 
 use super::ACCENT;
 use super::smootherstep;
-use crate::app::presentation::UiComposer;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
 use leocard_protocol::{GameKind, MatchId, PlayerId};
+use leocard_ui::UiComposer;
 use std::collections::{HashMap, HashSet};
 
 const TURN_BORDER_GROW_DURATION: f32 = 0.95;

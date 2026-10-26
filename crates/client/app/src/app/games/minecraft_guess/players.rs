@@ -6,12 +6,12 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, DANGER, MUTED, PlayerMenuProfile, PlayerPortraitSpec, READY, TEXT,
-    TurnBorderAnimationKey, UiComposer, add_player_portrait, add_ready_badge, add_text,
+    TurnBorderAnimationKey, add_player_portrait, add_ready_badge, add_text,
     add_turn_border_trace_with_radius, attach_start_game_seat_transition, score_gain_visual,
-    spawn_node,
 };
 use bevy::prelude::*;
 use leocard_protocol::GameKind;
+use leocard_ui::{UiComposer, spawn_node};
 
 impl GuessTable<'_> {
     pub(super) fn players(&mut self, commands: &mut UiComposer, page: Entity) {

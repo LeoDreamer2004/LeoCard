@@ -5,10 +5,10 @@ use super::{
     input::{focus_chat_input, sync_chat_input},
     scroll_chat_menus, sync_chat_messages, sync_chat_panel_text,
 };
-use crate::app::presentation::TextInputSet;
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::UiActionSet;
 use bevy::prelude::*;
+use leocard_ui::TextInputSet;
 
 pub(crate) struct ChatPlugin;
 

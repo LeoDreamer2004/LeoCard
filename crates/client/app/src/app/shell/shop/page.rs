@@ -3,8 +3,7 @@ use super::developer::add_coin_input;
 use super::{ShopUiAction, ShopUiState};
 use crate::app::games::SUPPORTED_GAMES;
 use crate::app::presentation::{
-    ACCENT, MUTED, PanelSkin, TEXT, UiComposer, add_coin_balance, add_text, decorate_panel_skin,
-    spawn_node,
+    ACCENT, MUTED, PanelSkin, TEXT, add_coin_balance, add_text, decorate_panel_skin,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
@@ -14,6 +13,7 @@ use crate::app::shell::{
 use bevy::picking::Pickable;
 use bevy::{prelude::*, ui::RelativeCursorPosition};
 use leocard_client::{ItemId, PlayerEconomy};
+use leocard_ui::{UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(super) struct ShopList;

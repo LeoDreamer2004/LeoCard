@@ -2,14 +2,14 @@
 
 use super::super::{MUTED, TEXT};
 use super::players::avatar_content;
-use super::{PlayerMenuProfile, add_interaction_menu, add_text, spawn_node, text_scene};
-use crate::app::presentation::{UiComposer, UiSceneKey, ui_component};
+use super::{PlayerMenuProfile, add_interaction_menu, add_text, text_scene};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{OpponentBadge, PlayerAvatarAnchor, SocialUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_protocol::PlayerId;
+use leocard_ui::{UiComposer, UiSceneKey, spawn_node, ui_component};
 
 pub(crate) struct PlayerPortraitSpec<'a> {
     pub player: PlayerId,

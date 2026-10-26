@@ -4,11 +4,12 @@ use super::{
     MahjongAssets, MahjongHandTile, MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize,
     MahjongTileVisual, MahjongUiState, add_mahjong_tile_material, mahjong_own_row_left,
 };
-use crate::app::presentation::{UiComposer, ease_out_cubic};
+use crate::app::presentation::ease_out_cubic;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongTile;
 use leocard_protocol::{MahjongSnapshot, PlayerId};
+use leocard_ui::UiComposer;
 
 const DISCARD_DURATION: f32 = 0.48;
 const HAND_TILE_ADVANCE: f32 = 50.0;

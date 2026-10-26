@@ -1,9 +1,10 @@
-use crate::app::presentation::{TEXT, UiComposer, add_text};
+use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{CozyCheckbox, SettingsUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
+use leocard_ui::UiComposer;
 
 pub(in super::super) fn add_settings_toggle(
     commands: &mut UiComposer,

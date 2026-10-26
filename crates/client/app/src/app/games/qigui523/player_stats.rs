@@ -1,8 +1,9 @@
-use crate::app::presentation::{ACCENT, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{PlayerGameScoreText, SeatSide};
 use bevy::{picking::Pickable, prelude::*};
 use leocard_protocol::PlayerId;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) fn add_qigui_player_stats(
     commands: &mut UiComposer,

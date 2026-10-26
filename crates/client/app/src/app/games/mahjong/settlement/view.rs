@@ -10,15 +10,15 @@ use super::{
     scores::ScoreStageView,
 };
 use crate::app::presentation::{
-    ACCENT, GameSummaryAnimation, MUTED, PanelSkin, PlayerMenuProfile, READY, TEXT, UiComposer,
-    add_avatar, add_text, attach_player_interactions, decorate_panel_skin, spawn_node,
-    summary_row_progress,
+    ACCENT, GameSummaryAnimation, MUTED, PanelSkin, PlayerMenuProfile, READY, TEXT, add_avatar,
+    add_text, attach_player_interactions, decorate_panel_skin, summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{LobbyUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) fn settlement_row_texture(assets: &UiAssets) -> ImageNode {
     let mut texture = ImageNode::new(assets.home.game_card.clone()).with_mode(

@@ -1,12 +1,11 @@
 use super::{MahjongAssets, MahjongTurnSector, wind_label};
-use crate::app::presentation::{
-    PlayerSeatValue, UiComposer, add_player_seat_value, add_text, spawn_node,
-};
+use crate::app::presentation::{PlayerSeatValue, add_player_seat_value, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::asset::RenderAssetUsages;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
+use leocard_ui::{UiComposer, spawn_node};
 use std::{array, f32::consts};
 
 const STATUS_LEFT: f32 = 570.0;

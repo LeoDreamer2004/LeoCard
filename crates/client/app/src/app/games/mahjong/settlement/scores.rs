@@ -2,11 +2,12 @@
 
 use super::super::{MahjongAssets, render_round_status_with_scores};
 use super::*;
-use crate::app::presentation::{DANGER, MUTED, READY, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{DANGER, MUTED, READY, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
+use leocard_ui::{UiComposer, spawn_node};
 use std::{array, f32::consts};
 
 pub(super) struct ScoreStageView<'a> {

@@ -1,18 +1,13 @@
 //! 跨页面共用的 UI 标记、皮肤与桌面外观控件类型。
 
-use crate::app::presentation::CustomButtonMotion;
 use bevy::prelude::*;
+use leocard_ui::CustomButtonMotion;
 
 #[derive(Component)]
 pub(crate) struct UiRoot;
 
 #[derive(Component)]
 pub(crate) struct AutoPlayOverlay;
-
-#[derive(Component)]
-pub(crate) struct RuleHelp {
-    pub tooltip: Entity,
-}
 
 #[derive(Component)]
 pub(crate) struct TableBackground;
@@ -33,16 +28,6 @@ pub(crate) struct TableAppearanceIndicator(pub TableAppearanceSetting);
 
 #[derive(Component)]
 pub(crate) struct TableAppearanceLabel(pub TableAppearanceSetting);
-
-#[derive(Component)]
-pub(crate) struct ButtonTint {
-    pub normal: Color,
-    pub hovered: Color,
-    pub pressed: Color,
-}
-
-#[derive(Component)]
-pub(crate) struct BackgroundButtonTint;
 
 #[derive(Clone, Copy)]
 pub(crate) enum ButtonKind {

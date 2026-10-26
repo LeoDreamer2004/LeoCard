@@ -1,12 +1,12 @@
 //! Sound volume and game voice switches.
 
-use crate::app::presentation::{TEXT, TableAppearanceSetting, UiComposer, add_text, spawn_node};
-use crate::app::shell::SettingsUiAction;
-
 use super::slider::SettingsSlider;
 use super::toggle::add_settings_toggle;
+use crate::app::presentation::{TEXT, TableAppearanceSetting, add_text};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
+use crate::app::shell::SettingsUiAction;
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) fn render_sound_settings(
     commands: &mut UiComposer,

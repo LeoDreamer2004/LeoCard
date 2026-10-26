@@ -3,9 +3,7 @@ use super::{
     MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongUiAction, MahjongUiState,
     add_mahjong_tile_material,
 };
-use crate::app::presentation::{
-    BackgroundButtonTint, ButtonHighlight, ButtonTint, TEXT, UiComposer, add_text, spawn_node,
-};
+use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
@@ -14,6 +12,7 @@ use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
 use leocard_mahjong::{MahjongClaim, MahjongClaimOption, MahjongTileKind};
 use leocard_protocol::MahjongSnapshot;
+use leocard_ui::{BackgroundButtonTint, ButtonHighlight, ButtonTint, UiComposer, spawn_node};
 
 #[derive(Clone, Copy)]
 enum ActionTone {

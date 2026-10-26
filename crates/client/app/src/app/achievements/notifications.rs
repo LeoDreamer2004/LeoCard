@@ -1,16 +1,14 @@
 //! Nonblocking achievement presentation. Awards arrive after persistence.
 
 use super::{AchievementRecipient, AchievementUnlocked};
-use crate::app::presentation::{
-    TEXT, TransitionVisuals, UiComposer, ease_out_cubic, fade_panel, spawn_node, text_scene,
-    ui_component,
-};
+use crate::app::presentation::{TEXT, ease_out_cubic, text_scene};
 use crate::app::runtime::UiAssets;
 use bevy::audio::Volume;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use leocard_achievements::{AchievementDefinition, AchievementTier};
+use leocard_ui::{TransitionVisuals, UiComposer, fade_panel, spawn_node, ui_component};
 use std::collections::VecDeque;
 
 const ENTRY_DURATION: f32 = 0.32;

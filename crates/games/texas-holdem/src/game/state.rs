@@ -301,6 +301,18 @@ impl GameState {
         Self::new_with_stacks(rules, first_dealer, stacks, deck)
     }
 
+    /// Use the public match identity for marker appearances and weighted squid payouts.
+    pub fn new_with_squid_seed(
+        rules: TexasHoldemRuleSet,
+        first_dealer: TexasHoldemPlayerId,
+        deck: Vec<TexasHoldemCard>,
+        seed: [u8; 16],
+    ) -> Result<Self, GameError> {
+        let mut game = Self::new_with_deck(rules, first_dealer, deck)?;
+        game.squid = SquidState::new(rules.squid_markers, seed, rules.deepseek_squid_double);
+        Ok(game)
+    }
+
     /// 用已有筹码开始一手牌，供连续牌局和确定性的边池测试使用。
     pub fn new_with_stacks(
         rules: TexasHoldemRuleSet,
@@ -337,7 +349,7 @@ impl GameState {
             })
             .collect::<Vec<_>>();
         let mut state = Self {
-            squid: SquidState::new(rules.squid_markers),
+            squid: SquidState::new(rules.squid_markers, [0; 16], rules.deepseek_squid_double),
             betting_history: Vec::new(),
             rules,
             players,

@@ -1,8 +1,9 @@
 use super::super::UnoUiAction;
-use crate::app::presentation::{EditableRuleSet, RuleConfigRow, UiComposer, add_rule_config_row};
+use crate::app::presentation::{EditableRuleSet, RuleConfigRow, add_rule_config_row};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
+use leocard_ui::UiComposer;
 use leocard_uno::{FlipRuleSet, NoMercyRuleSet, UnoRuleSet};
 
 impl EditableRuleSet for UnoRuleSet {

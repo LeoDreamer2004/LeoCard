@@ -1,10 +1,11 @@
 //! 七鬼五二三准备大厅与规则配置。
 
-use super::QiGui523UiAction;
+use super::{
+    QiGui523UiAction, next_suit_comparison, next_time_control, previous_suit_comparison,
+    previous_time_control, suit_comparison_label, time_control_label,
+};
 use crate::app::presentation::{
-    EditableRuleSet, MUTED, RuleConfigRow, UiComposer, add_rule_config_row, add_text,
-    next_suit_comparison, next_time_control, previous_suit_comparison, previous_time_control,
-    suit_comparison_label, time_control_label,
+    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_text,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
@@ -13,6 +14,7 @@ use crate::app::shell::{
 use bevy::prelude::*;
 use leocard_protocol::{LobbySnapshot, TABLE_SEAT_COUNT};
 use leocard_qigui523::{QiGuiRuleSet, SameCardPolicy};
+use leocard_ui::UiComposer;
 
 impl EditableRuleSet for QiGuiRuleSet {
     const ROW_HEIGHT: f32 = 34.0;

@@ -10,8 +10,11 @@ use super::{
 };
 #[cfg(not(target_os = "android"))]
 use super::{SakuraPage, SakuraState, render_startup_dialog};
-use crate::app::games::GameScreenResources;
-use crate::app::presentation::{GameSummaryAnimation, UiComposer, UiRoot};
+use crate::app::games::{GameLobbyContext, GameScreens, GameTableContext};
+use crate::app::presentation::{
+    GameSummaryAnimation, StartGameSeatTransition, TableBackgroundMaterial, TurnBorderMaterial,
+    UiRoot,
+};
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, ClientResource, ConnectionDraft, TableAppearance, UiAssets,
 };
@@ -19,6 +22,7 @@ use bevy::ecs::system::SystemParam;
 use bevy::input_focus::tab_navigation::TabGroup;
 use bevy::prelude::*;
 use leocard_client::{ClientPhaseRef, LocalPlayerProfile, PlayerAchievements, PlayerEconomy};
+use leocard_ui::UiComposer;
 
 #[derive(SystemParam)]
 struct VisualAssets<'w> {
@@ -28,6 +32,9 @@ struct VisualAssets<'w> {
     table: Res<'w, TableAppearance>,
     play_error: Res<'w, PlayErrorToast>,
     game_summary: Res<'w, GameSummaryAnimation>,
+    start_game_transition: Res<'w, StartGameSeatTransition>,
+    table_materials: ResMut<'w, Assets<TableBackgroundMaterial>>,
+    turn_border_materials: ResMut<'w, Assets<TurnBorderMaterial>>,
     updater: Res<'w, UpdateManager>,
     confirmation: Res<'w, ConfirmationDialog>,
     settings_motion: Res<'w, SettingsMotion>,
@@ -59,7 +66,7 @@ pub(crate) struct ScreenComposition<'w, 's> {
     commands: UiComposer<'w, 's>,
     resources: ScreenResources<'w>,
     visuals: VisualAssets<'w>,
-    games: GameScreenResources<'w>,
+    games: GameScreens<'w>,
     roots: Query<'w, 's, Entity, With<UiRoot>>,
     intro_roots: Query<'w, 's, Entity, With<GameIntroRoot>>,
     achievement_viewport: AchievementPageViewport<'w, 's>,
@@ -79,7 +86,8 @@ impl ScreenComposition<'_, '_> {
         }
         // The intro contains portraits and felt only. Keep its targets alive
         // through opening snapshots, then build the game once it completes.
-        let intro_active = self.games.start_transition_active();
+        let intro_active = self.visuals.start_game_transition.match_id.is_some()
+            && !self.visuals.start_game_transition.seats.is_empty();
         if intro_active && !self.intro_roots.is_empty() {
             return;
         }
@@ -115,7 +123,7 @@ impl ScreenComposition<'_, '_> {
             developer_hand: &self.resources.developer_hand,
             ui: &mut self.resources.ui,
             achievement_scroll_y,
-            visuals: &self.visuals,
+            visuals: &mut self.visuals,
             games: &mut self.games,
         }
         .render(root);
@@ -140,8 +148,8 @@ struct ScreenRenderer<'a, 'w, 's> {
     developer_hand: &'a DeveloperHandInput,
     ui: &'a mut UiState,
     achievement_scroll_y: f32,
-    visuals: &'a VisualAssets<'w>,
-    games: &'a mut GameScreenResources<'w>,
+    visuals: &'a mut VisualAssets<'w>,
+    games: &'a mut GameScreens<'w>,
 }
 
 impl ScreenRenderer<'_, '_, '_> {
@@ -212,25 +220,31 @@ impl ScreenRenderer<'_, '_, '_> {
             ClientPhaseRef::Lobby(lobby) => self.games.render_lobby(
                 self.commands,
                 root,
-                client,
                 lobby,
-                self.ui,
-                &self.visuals.ui,
-                &self.visuals.avatars,
+                GameLobbyContext {
+                    client,
+                    assets: &self.visuals.ui,
+                    avatars: &self.visuals.avatars,
+                },
             ),
             ClientPhaseRef::Playing(game) => self.games.render_table(
                 self.commands,
                 root,
-                client,
                 game,
-                self.ui,
-                self.chat,
-                self.developer_hand,
-                self.appearance,
-                &self.visuals.ui,
-                &self.visuals.avatars,
-                &self.visuals.table,
-                &self.visuals.game_summary,
+                GameTableContext {
+                    client,
+                    social: &self.ui.social,
+                    chat: self.chat,
+                    developer_hand: self.developer_hand,
+                    form: self.appearance,
+                    assets: &self.visuals.ui,
+                    avatars: &self.visuals.avatars,
+                    appearance: &self.visuals.table,
+                    game_summary: &self.visuals.game_summary,
+                    transition: &self.visuals.start_game_transition,
+                    table_materials: &mut self.visuals.table_materials,
+                    turn_border_materials: &mut self.visuals.turn_border_materials,
+                },
             ),
             ClientPhaseRef::Idle | ClientPhaseRef::Closed => ConnectionScreen::new(
                 self.connection,
@@ -318,5 +332,19 @@ impl ScreenRenderer<'_, '_, '_> {
             &self.visuals.ui,
         )
         .render(self.commands, root, self.visuals.profile_motion.progress);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ScreenComposition;
+    use bevy::ecs::system::SystemState;
+    use bevy::prelude::*;
+
+    #[test]
+    fn screen_resources_have_no_conflicting_borrows() {
+        let mut world = World::new();
+        // Initialization checks nested SystemParams without loading assets or a window.
+        let _state = SystemState::<ScreenComposition>::new(&mut world);
     }
 }

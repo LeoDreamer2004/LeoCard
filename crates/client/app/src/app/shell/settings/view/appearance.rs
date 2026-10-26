@@ -1,16 +1,14 @@
 //! Table and game appearance settings.
 
-use crate::app::presentation::{
-    MUTED, TEXT, TableAppearanceSetting, UiComposer, add_text, spawn_node,
-};
-use crate::app::shell::SettingsUiAction;
-
 use super::super::super::{UiAction, add_cozy_button};
 use super::slider::SettingsSlider;
 use super::toggle::add_settings_toggle;
+use crate::app::presentation::{MUTED, TEXT, TableAppearanceSetting, add_text};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
+use crate::app::shell::SettingsUiAction;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) struct TableAppearanceSettings<'a> {
     form: &'a AppearancePreferences,

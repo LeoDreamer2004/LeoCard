@@ -6,12 +6,13 @@ use super::{
     page::ConnectionScreen,
     theme::HOME_SOFT,
 };
-use crate::app::presentation::{TEXT, UiComposer, add_avatar, add_text, spawn_node};
+use crate::app::presentation::{TEXT, add_avatar, add_text};
 use crate::app::shell::{ConnectionUiAction, InputField, PageTransitionElement, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_protocol::PlayerGender;
+use leocard_ui::{UiComposer, spawn_node};
 
 impl ConnectionScreen<'_> {
     pub(super) fn render_sidebar(&self, commands: &mut UiComposer, parent: Entity) {

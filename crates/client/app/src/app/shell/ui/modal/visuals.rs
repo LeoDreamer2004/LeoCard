@@ -1,6 +1,7 @@
 use super::{CozyModalBackdrop, CozyModalPanel, ModalAnimations};
-use crate::app::presentation::{TransitionVisuals, UiComposer, ease_out_cubic, fade_panel};
+use crate::app::presentation::ease_out_cubic;
 use bevy::prelude::*;
+use leocard_ui::{TransitionVisuals, UiComposer, fade_panel};
 
 const BACKDROP_ALPHA: f32 = 0.76;
 

@@ -1,11 +1,9 @@
 use super::state::{GameHeaderAvatar, GameHeaderItem, GameHeaderMotion};
-use crate::app::presentation::{
-    TransitionVisuals, UiComposer, fade_panel, update_button_highlights,
-};
 use crate::app::runtime::ClientUpdateSet;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
+use leocard_ui::{TransitionVisuals, UiComposer, fade_panel, update_button_highlights};
 
 pub(in crate::app::shell::ui) struct GameHeaderPlugin;
 

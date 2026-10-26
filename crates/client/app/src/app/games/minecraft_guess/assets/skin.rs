@@ -1,9 +1,9 @@
 use super::{EntryIcons, IconSprite};
-use crate::app::presentation::{ScrollbarSkin, TextInputSkin};
 use bevy::image::{ImageLoaderSettings, ImageSampler};
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use leocard_minecraft_guess::{Entry, EntryKind, GraphNodeView};
+use leocard_ui::{ScrollbarSkin, TextInputSkin};
 
 #[derive(Resource)]
 pub(crate) struct MinecraftGuessAssets {

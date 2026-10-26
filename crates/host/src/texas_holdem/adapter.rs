@@ -109,8 +109,8 @@ impl TexasHoldemAdapter {
             ..rules
         }
         .validate()?;
-        let game =
-            GameState::new_with_deck(effective_rules, dealer, deck).map_err(AdapterError::Game)?;
+        let game = GameState::new_with_squid_seed(effective_rules, dealer, deck, match_id.0)
+            .map_err(AdapterError::Game)?;
         let hand_starting_stacks = game.players().iter().map(|player| player.stack()).collect();
         let spectator = SpectatorAccess::new(players.len());
         Ok(Self {
@@ -205,9 +205,7 @@ impl TexasHoldemAdapter {
                 });
             }
             ActionOutcome::HandComplete(result) => {
-                if let Some((player, statistics)) =
-                    self.game.squid().award_statistics(self.match_id.0)
-                {
+                if let Some((player, statistics)) = self.game.squid().award_statistics() {
                     events.push(TexasHoldemEvent::SquidAwarded {
                         player: self.protocol_player(player),
                         statistics,

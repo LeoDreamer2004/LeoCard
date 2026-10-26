@@ -1,11 +1,11 @@
 use super::super::guide::GraphGuideState;
 use super::state::{GraphLog, GraphLogScroll};
 use super::systems::{animate_panel, remember_scroll, settle_scroll, sync_messages, sync_view};
-use crate::app::presentation::{drag_scrollbar, update_scrollbar};
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::{UiState, scroll_modal_content};
 use bevy::prelude::*;
 use bevy::ui::UiSystems;
+use leocard_ui::{drag_scrollbar, update_scrollbar};
 
 pub(in super::super::super) struct GraphLogPlugin;
 

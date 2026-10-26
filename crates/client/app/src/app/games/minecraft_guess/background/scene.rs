@@ -1,8 +1,8 @@
 use super::assets::BackgroundAssets;
-use crate::app::presentation::UiComposer;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::LayoutConfig;
+use leocard_ui::UiComposer;
 
 #[derive(Component)]
 pub(in super::super) struct GuessBackgroundPage;

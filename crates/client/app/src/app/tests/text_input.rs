@@ -1,5 +1,4 @@
 use super::prelude::*;
-use crate::app::presentation::TextInputPlugin as CozyTextInputPlugin;
 use bevy::{
     input::{
         ButtonState, InputPlugin as NativeInputPlugin,
@@ -16,6 +15,7 @@ use bevy::{
 };
 use bevy_clipboard::Clipboard;
 use leocard_protocol::MAX_PLAYER_NAME_CHARS;
+use leocard_ui::TextInputPlugin as CozyTextInputPlugin;
 use std::{fs, path::Path};
 
 #[test]

@@ -1,9 +1,10 @@
 //! 手牌悬停、拖选和预览输入。
 
-use super::{CardDragSelection, DESIGN_WIDTH, HAND_CARD_REVEAL};
+use super::{DESIGN_WIDTH, HAND_CARD_REVEAL};
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
+use leocard_ui::CardDragSelection;
 use std::collections::HashSet;
 use std::hash::Hash;
 

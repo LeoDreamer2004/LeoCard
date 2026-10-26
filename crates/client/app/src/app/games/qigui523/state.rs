@@ -2,15 +2,13 @@
 
 use super::QiGui523Assets;
 use super::counter::QiGuiCounterUi;
-use crate::app::presentation::{
-    CardAnimationState, CardCounterOwner, CardCounterWindowState, CustomButtonMotion, Observed,
-    SilentButton,
-};
+use crate::app::presentation::{CardAnimationState, Observed, SilentButton};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{ScoreCaptureEffectState, SeatSide};
 use bevy::prelude::*;
 use leocard_protocol::{MatchId, PlayerId, PublicPlay, QiGui523Snapshot};
 use leocard_qigui523::{QiGui523Bot, QiGuiCard};
+use leocard_ui::{CustomButtonMotion, DraggableWindowOwner, DraggableWindowState};
 use std::collections::{HashMap, HashSet};
 
 pub(super) struct SeatVisuals<'a> {
@@ -191,8 +189,8 @@ pub(crate) struct HandCardSlot {
     pub hover_amount: f32,
 }
 
-impl CardCounterOwner for QiGui523UiState {
-    fn counter_window(&mut self) -> &mut CardCounterWindowState {
-        &mut self.counter.window
+impl DraggableWindowOwner for QiGui523UiState {
+    fn window_state(&mut self) -> &mut DraggableWindowState {
+        &mut self.counter.window.drag
     }
 }

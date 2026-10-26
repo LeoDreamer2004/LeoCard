@@ -22,7 +22,7 @@ pub(in super::super) fn sync_counter(
     });
     if state.window.active != active {
         state.window.active = active;
-        state.window.grab = None;
+        state.window.drag.grab = None;
         ui.dirty = true;
     }
     if let Some(game) = game {

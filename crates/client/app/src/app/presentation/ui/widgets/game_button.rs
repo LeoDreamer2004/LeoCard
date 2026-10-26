@@ -1,10 +1,10 @@
 //! 牌桌操作按钮共用的纹理、悬停层与禁用态。
 
-use super::{TextureButton, sliced_image};
-use crate::app::presentation::{MUTED, TEXT, UiComposer};
+use crate::app::presentation::{MUTED, TEXT};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
+use leocard_ui::{TextureButton, UiComposer, sliced_image};
 
 #[derive(Clone, Copy)]
 pub(crate) enum GameButtonImageMode {
@@ -99,5 +99,5 @@ pub(crate) fn add_textured_game_button(
         color: if enabled { TEXT } else { MUTED },
         icon: None,
     }
-    .mount(commands, parent, assets)
+    .mount(commands, parent, &assets.font)
 }

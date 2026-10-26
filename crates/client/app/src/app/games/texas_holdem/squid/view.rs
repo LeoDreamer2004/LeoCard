@@ -1,9 +1,9 @@
 use super::state::{MARKER_SIZE, Marker, SquidTableState};
 use crate::app::games::texas_holdem::TexasChipTableState;
-use crate::app::presentation::{UiComposer, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(crate) struct SquidMarkerSprite(usize);

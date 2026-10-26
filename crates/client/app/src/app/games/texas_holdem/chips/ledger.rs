@@ -4,7 +4,6 @@ use super::super::{
     queue_texas_turn_sound, texas_action_sound_plan, texas_hand_finish_sound_plan,
     texas_side_pot_sound_plan, texas_street_sound_plan,
 };
-
 use super::denominations::initial_chip_denominations;
 use super::{
     ActionFeedbackKind, ActionLabel, ChipZone, PotDivisionTransition, TexasChipTableState,

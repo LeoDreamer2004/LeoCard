@@ -1,10 +1,10 @@
-use crate::app::presentation::UiComposer;
 use crate::app::{
     presentation::{ACCENT, DANGER, add_text},
     runtime::{ClientResource, UiAssets},
 };
 use bevy::prelude::*;
 use leocard_protocol::MinecraftGuessSnapshot;
+use leocard_ui::UiComposer;
 
 #[derive(Component)]
 pub(super) struct GuessClockLabel;

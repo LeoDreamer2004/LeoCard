@@ -1,12 +1,12 @@
 use super::texas_player_chip_zone;
 use crate::app::presentation::{
-    CARD_DEAL_INTERVAL, PendingDealSound, PlayingCardFlip, TEXT, TablePieceDeal, UiComposer,
-    ease_out_cubic,
+    CARD_DEAL_INTERVAL, PendingDealSound, PlayingCardFlip, TEXT, TablePieceDeal, ease_out_cubic,
 };
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemSnapshot};
 use leocard_texas_holdem::TexasHoldemCard;
+use leocard_ui::UiComposer;
 
 #[derive(Component)]
 pub(crate) struct TexasFlyingCardBack {

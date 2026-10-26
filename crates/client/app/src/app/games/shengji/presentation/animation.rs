@@ -1,8 +1,5 @@
-use std::f32::consts;
-
 use super::super::{ShengjiDealerBadge, ShengjiLevelIndicator};
 use super::content::presentation_color;
-
 use super::{
     SHENGJI_BOTTOM_COPY_REVEAL_DURATION, ShengjiBottomFlipPanelElement, ShengjiBottomFlipVisual,
     ShengjiBottomFlipVisualKind, ShengjiPowerOutageVisual, ShengjiPowerOutageVisualKind,
@@ -15,6 +12,7 @@ use crate::app::presentation::{ACCENT, HEADER_BG, ease_out_cubic};
 use crate::app::shell::{PlayerAvatarAnchor, UiState};
 use bevy::audio::Volume;
 use bevy::prelude::*;
+use std::f32::consts;
 
 pub(crate) fn advance_shengji_presentation(
     time: Res<Time>,

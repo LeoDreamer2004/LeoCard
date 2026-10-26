@@ -3,10 +3,11 @@ use super::labels::GraphLabel;
 use super::lod::GraphLod;
 use super::state::{GraphDragTarget, GraphNodeVisual};
 use super::tooltip::add_node_tooltip;
-use crate::app::presentation::{TEXT, UiComposer, spawn_node};
+use crate::app::presentation::TEXT;
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) fn add_graph_nodes(
     table: &GuessTable<'_>,

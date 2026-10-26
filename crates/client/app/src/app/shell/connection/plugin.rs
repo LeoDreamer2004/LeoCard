@@ -3,10 +3,10 @@ use super::{
     dispatch_connection_actions, form::sync_connection_inputs, handle_avatar_drop,
     poll_avatar_picker, publish_avatar, sync_avatar_images, view::GameGalleryPlugin,
 };
-use crate::app::presentation::TextInputSet;
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::{UiActionSet, scroll_modal_content};
 use bevy::prelude::*;
+use leocard_ui::TextInputSet;
 
 pub(crate) struct ConnectionPlugin;
 

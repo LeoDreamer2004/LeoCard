@@ -3,9 +3,6 @@ use super::content::{presentation_color, presentation_text, rank_label};
 use super::routes::{
     shengji_player_panel_anchor, shengji_power_outage_anchors, shengji_presentation_routes,
 };
-use crate::app::presentation::{ACCENT, TEXT, UiComposer, add_text, spawn_node};
-use bevy::picking::Pickable;
-
 use super::{
     ShengjiBottomFlipVisual, ShengjiBottomFlipVisualKind, ShengjiPowerOutageVisual,
     ShengjiPowerOutageVisualKind, ShengjiPresentationDivider, ShengjiPresentationKind,
@@ -13,9 +10,12 @@ use super::{
     ShengjiPresentationText, ShengjiPresentationVeil, ShengjiTrumpKillVisual,
     ShengjiTrumpKillVisualKind,
 };
+use crate::app::presentation::{ACCENT, TEXT, add_text};
 use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::ShengjiSnapshot;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn add_shengji_presentation_overlay(
     commands: &mut UiComposer,

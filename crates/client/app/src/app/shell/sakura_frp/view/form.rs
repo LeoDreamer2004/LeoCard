@@ -2,13 +2,14 @@ use super::super::actions::SakuraUiAction;
 use super::super::input::{SakuraInput, SakuraScroll};
 use super::page::SakuraPage;
 use super::widgets::{panel, row, scroll_list};
-use crate::app::presentation::{MUTED, TEXT, UiComposer, add_rule_help, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, add_rule_help, add_text};
 use crate::app::shell::{
     CozyButtonVariant, CozyDropdown, CozyDropdownOption, PageTransitionElement, UiAction,
     add_cozy_button_variant, add_cozy_checkbox,
 };
 use bevy::prelude::*;
 use leocard_sakura_frp::TunnelType;
+use leocard_ui::{UiComposer, spawn_node};
 
 impl SakuraPage<'_> {
     pub(super) fn render_form(&self, commands: &mut UiComposer, root: Entity, body: Entity) {

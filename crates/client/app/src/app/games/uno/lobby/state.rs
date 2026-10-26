@@ -3,7 +3,7 @@
 use super::super::{UnoUiAction, UnoUiState};
 use super::rules::*;
 use super::*;
-use crate::app::presentation::{MUTED, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{MUTED, add_text};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
     LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_cozy_button,
@@ -11,6 +11,7 @@ use crate::app::shell::{
 };
 use bevy::prelude::*;
 use leocard_protocol::LobbySnapshot;
+use leocard_ui::{UiComposer, spawn_node};
 use leocard_uno::UnoRuleSet;
 
 pub(crate) fn render_uno_lobby(

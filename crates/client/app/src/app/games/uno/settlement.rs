@@ -3,9 +3,8 @@ use crate::app::presentation::{
     ACCENT, AnimatedSummaryScore, DANGER, GameSummaryActions, GameSummaryAnimation,
     GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin,
     PlayerMenuProfile, READY, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL,
-    SUMMARY_ROW_START_DELAY, SummaryDescriptor, TEXT, UiComposer, add_animated_summary_text,
-    add_ready_avatar, animated_summary_score, decorate_panel_skin, spawn_node,
-    summary_modal_visual, summary_row_progress,
+    SUMMARY_ROW_START_DELAY, SummaryDescriptor, TEXT, add_animated_summary_text, add_ready_avatar,
+    animated_summary_score, decorate_panel_skin, summary_modal_visual, summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -17,6 +16,7 @@ use bevy::prelude::*;
 use leocard_protocol::{
     PlayerId, PlayerReferenceChange, UnoPhaseView, UnoPlayerResult, UnoSnapshot,
 };
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn uno_summary_descriptor(game: &UnoSnapshot) -> Option<SummaryDescriptor> {
     let UnoPhaseView::Finished {

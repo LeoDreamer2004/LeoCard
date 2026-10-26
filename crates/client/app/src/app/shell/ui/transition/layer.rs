@@ -1,8 +1,8 @@
 //! Full-screen layers used by page and game transitions.
 
-use crate::app::presentation::UiComposer;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_ui::UiComposer;
 
 pub(super) fn add_screen_layer(
     commands: &mut UiComposer,

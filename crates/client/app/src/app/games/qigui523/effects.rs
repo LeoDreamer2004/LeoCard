@@ -7,12 +7,13 @@ use super::{
     SequenceAirplane, SequenceAirplaneTrail, SequenceEffectLabel, SequenceEffectLabelPart,
     SequenceEffectMotif, SequenceFlowerPart, SequenceGuideSegment, SequenceWindStreak,
 };
-use crate::app::presentation::{CardSize, TABLE_CARD_REVEAL, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{CardSize, TABLE_CARD_REVEAL, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, QiGui523Snapshot, TABLE_SEAT_COUNT};
 use leocard_qigui523::QiGuiPlayKind;
+use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
 
 pub(super) fn add_play_effect_overlay(

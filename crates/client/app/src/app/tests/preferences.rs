@@ -38,6 +38,8 @@ fn preferences_round_trip_including_avatar() {
             texas_holdem: TexasHoldemPreferences {
                 host_rules: TexasHoldemRuleSet {
                     starting_chips: 40,
+                    squid_markers: 2,
+                    deepseek_squid_double: true,
                     short_deck: true,
                     ignore_kickers: true,
                     omaha: true,

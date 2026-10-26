@@ -2,7 +2,7 @@
 
 use super::{MahjongActionVoice, MahjongAssets};
 use crate::app::presentation::{
-    GameSummaryAnimation, SUMMARY_ROW_ENTRY_DURATION, SUMMARY_ROW_START_DELAY, UiComposer,
+    GameSummaryAnimation, SUMMARY_ROW_ENTRY_DURATION, SUMMARY_ROW_START_DELAY,
 };
 use crate::app::runtime::{AppearancePreferences, ClientResource};
 use bevy::audio::Volume;
@@ -11,6 +11,7 @@ use leocard_mahjong::Fan;
 use leocard_protocol::{
     GameSnapshot, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MatchId, PlayerId,
 };
+use leocard_ui::UiComposer;
 
 pub(super) fn queue_mahjong_action_voice(
     commands: &mut UiComposer,

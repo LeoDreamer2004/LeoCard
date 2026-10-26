@@ -2,7 +2,6 @@
 
 use super::quick_voices::QuickVoiceAssets;
 use super::{PlayingCardAssets, PokerChipAssets};
-
 use bevy::prelude::*;
 use leocard_protocol::{AvatarId, ChatEmoji, PlayerInteractionKind};
 use std::collections::HashMap;

@@ -1,9 +1,9 @@
 use super::*;
-use crate::app::presentation::UiComposer;
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, PlayerInteractionKind};
+use leocard_ui::UiComposer;
 
 pub(crate) fn interaction_anchor_in_layer(
     player: PlayerId,

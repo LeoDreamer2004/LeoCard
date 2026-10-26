@@ -1,12 +1,10 @@
 //! 首页、顶栏和设置窗口共用的 CozyUI 纹理控件。
 
 use super::super::UiAction;
-use crate::app::presentation::{
-    MUTED, PanelSkin, TEXT, TextureButton, UiComposer, decorate_panel_skin, sliced_image,
-    spawn_node, text_scene,
-};
+use crate::app::presentation::{MUTED, PanelSkin, TEXT, decorate_panel_skin, text_scene};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
+use leocard_ui::{TextureButton, UiComposer, sliced_image, spawn_node};
 
 #[derive(Clone, Copy)]
 pub(crate) enum CozyButtonVariant {
@@ -76,7 +74,7 @@ pub(crate) fn add_cozy_disabled_button(
     width: Val,
     height: f32,
 ) -> Entity {
-    TextureButton {
+    TextureButton::<UiAction> {
         node: button_node(width, height),
         normal: sliced_image(assets.home.button.clone(), 32.0, 0.55)
             .with_color(Color::WHITE.with_alpha(0.55)),
@@ -87,7 +85,7 @@ pub(crate) fn add_cozy_disabled_button(
         color: MUTED,
         icon: None,
     }
-    .mount(commands, parent, assets)
+    .mount(commands, parent, &assets.font)
     .0
 }
 
@@ -147,7 +145,7 @@ fn add_cozy_control_button(
         color: TEXT,
         icon: None,
     }
-    .mount(commands, parent, assets)
+    .mount(commands, parent, &assets.font)
     .0
 }
 
@@ -257,7 +255,7 @@ fn add_cozy_button_styled(
         color: TEXT,
         icon: icon.map(|icon| (icon, if label.is_none() { 30.0 } else { 22.0 })),
     }
-    .mount(commands, parent, assets)
+    .mount(commands, parent, &assets.font)
     .0
 }
 

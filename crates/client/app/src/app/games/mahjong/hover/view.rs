@@ -3,12 +3,13 @@ use super::super::{
     add_mahjong_tile_material,
 };
 use super::{MahjongReadyHint, MahjongWaitPopupLink, mahjong_current_waits, waits::MahjongWait};
-use crate::app::presentation::{ACCENT, MUTED, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongScoreResult;
 use leocard_protocol::MahjongSnapshot;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(in super::super) fn add_mahjong_wait_popup(
     commands: &mut UiComposer,

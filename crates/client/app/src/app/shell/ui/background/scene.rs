@@ -1,10 +1,10 @@
 //! A persistent, non-interactive backdrop shared by all opted-in pages.
 
 use super::{BackgroundAssets, FloatingSuit, SUITS};
-use crate::app::presentation::UiComposer;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::LayoutConfig;
+use leocard_ui::UiComposer;
 
 #[derive(Component)]
 pub(super) struct PageBackground;

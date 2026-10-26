@@ -3,13 +3,14 @@ use super::state::{
     AVATAR_SIZE, GameHeaderAvatar, GameHeaderItem, GameHeaderMotion, HEIGHT, ITEM_WIDTH,
     RIGHT_INSET,
 };
-use crate::app::presentation::{MUTED, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{MUTED, add_text};
 use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, NavigationUiAction, ProfileEntry, UiAction,
     add_cozy_labeled_icon_button,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, spawn_node};
 
 impl Header<'_> {
     pub(super) fn render_game_header(&self, commands: &mut UiComposer, root: Entity) {

@@ -7,8 +7,8 @@ use crate::app::presentation::{
     ACCENT, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider, GameSummaryModal,
     GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, PlayerMenuProfile, READY,
     SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
-    TEXT, UiComposer, add_animated_summary_text, add_avatar, add_ready_avatar, add_text,
-    decorate_panel_skin, spawn_node, summary_modal_visual, summary_row_progress,
+    TEXT, add_animated_summary_text, add_avatar, add_ready_avatar, add_text, decorate_panel_skin,
+    summary_modal_visual, summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -19,6 +19,7 @@ use bevy::prelude::*;
 use leocard_protocol::{
     SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
 };
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn texas_holdem_summary_descriptor(
     game: &TexasHoldemSnapshot,

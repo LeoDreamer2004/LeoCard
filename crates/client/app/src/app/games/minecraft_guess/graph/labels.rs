@@ -1,12 +1,13 @@
 use super::super::MinecraftGuessUiState;
 use super::super::view::GuessTable;
 use super::lod::GraphLod;
-use crate::app::presentation::{UiComposer, add_text, spawn_node};
+use crate::app::presentation::add_text;
 use crate::app::runtime::ClientResource;
 use bevy::ecs::system::SystemParam;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_minecraft_guess::GraphView;
+use leocard_ui::{UiComposer, spawn_node};
 
 #[derive(Component, Clone, Copy)]
 pub(super) enum GraphLabel {

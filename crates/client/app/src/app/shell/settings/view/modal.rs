@@ -1,12 +1,5 @@
 //! 全局设置窗口与页签组合。
 
-use crate::app::presentation::{TEXT, UiComposer, add_text, card_background_image, spawn_node};
-use crate::app::shell::SettingsUiAction;
-use bevy::picking::Pickable;
-use bevy::ui_widgets::Button;
-
-use crate::app::shell::{cozy_backdrop_color, cozy_panel_transform};
-
 use super::super::super::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction, SettingsTab, UiAction,
     UpdateManager, add_cozy_close_button, add_cozy_panel,
@@ -15,9 +8,15 @@ use super::super::{SelectedSettingsTab, SettingsTabButton};
 use super::about::AboutSettings;
 use super::appearance::TableAppearanceSettings;
 use super::sound::render_sound_settings;
+use crate::app::presentation::{TEXT, add_text, card_background_image};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
+use crate::app::shell::SettingsUiAction;
+use crate::app::shell::{cozy_backdrop_color, cozy_panel_transform};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
+use bevy::ui_widgets::Button;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) struct SettingsModal<'a> {
     form: &'a AppearancePreferences,

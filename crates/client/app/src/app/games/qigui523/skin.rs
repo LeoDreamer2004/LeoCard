@@ -1,10 +1,11 @@
 //! 七鬼五二三牌桌的小面板与操作按钮纹理。
 
-use crate::app::presentation::{GameButtonSpec, UiComposer, add_textured_game_button};
+use crate::app::presentation::{GameButtonSpec, add_textured_game_button};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
+use leocard_ui::UiComposer;
 
 pub(super) use crate::app::presentation::GameButtonTone as QiGuiButtonTone;
 

@@ -1,14 +1,14 @@
 //! Product information and update actions.
 
-use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
-use crate::app::shell::UpdateUiAction;
-
 use super::super::super::{
     CozyButtonVariant, UiAction, UpdateManager, UpdateState, add_cozy_button_variant,
     add_cozy_button_with_icon, settings_update_label,
 };
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
+use crate::app::shell::UpdateUiAction;
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) struct AboutSettings<'a> {
     updater: &'a UpdateManager,

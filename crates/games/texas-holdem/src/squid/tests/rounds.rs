@@ -10,13 +10,13 @@ fn pot(winners: &[usize]) -> PotAward {
 
 #[test]
 fn squid_awards_count_only_the_recipient_and_reset_with_the_pool() {
-    let mut state = SquidState::new(5);
     let seed = [17; 16];
+    let mut state = SquidState::new(5, seed, false);
     let mut stacks = [100; 6];
-    assert!(state.award_statistics(seed).is_none());
+    assert!(state.award_statistics().is_none());
     for count in 1..=5 {
         state.start_hand();
-        assert!(state.award_statistics(seed).is_none());
+        assert!(state.award_statistics().is_none());
         let previous = state.markers.clone();
         state.finish_hand(&[pot(&[0])], &mut stacks, count);
         let drawn = previous
@@ -25,7 +25,7 @@ fn squid_awards_count_only_the_recipient_and_reset_with_the_pool() {
             .position(|(before, after)| before != after)
             .unwrap();
         assert!(previous[drawn].is_none());
-        let (player, statistics) = state.award_statistics(seed).unwrap();
+        let (player, statistics) = state.award_statistics().unwrap();
         assert_eq!(player, TexasHoldemPlayerId(0));
         assert_eq!(statistics.owned, count as u8);
         assert_eq!(
@@ -47,10 +47,10 @@ fn squid_awards_count_only_the_recipient_and_reset_with_the_pool() {
     state.start_hand();
     assert_eq!(state.round, 2);
     assert!(state.markers.iter().all(Option::is_none));
-    assert!(state.award_statistics(seed).is_none());
+    assert!(state.award_statistics().is_none());
     state.finish_hand(&[pot(&[1])], &mut stacks, 6);
     let drawn = state.markers.iter().position(Option::is_some).unwrap();
-    let (player, statistics) = state.award_statistics(seed).unwrap();
+    let (player, statistics) = state.award_statistics().unwrap();
     assert_eq!(player, TexasHoldemPlayerId(1));
     assert_eq!(statistics.owned, 1);
     assert_eq!(
@@ -60,16 +60,16 @@ fn squid_awards_count_only_the_recipient_and_reset_with_the_pool() {
 
     state.start_hand();
     state.finish_hand(&[pot(&[0, 1]), pot(&[0])], &mut stacks, 7);
-    assert!(state.award_statistics(seed).is_none());
+    assert!(state.award_statistics().is_none());
     assert_eq!(state.markers.iter().flatten().count(), 1);
-    let mut disabled = SquidState::new(0);
+    let mut disabled = SquidState::new(0, seed, false);
     disabled.finish_hand(&[pot(&[0])], &mut stacks, 8);
-    assert!(disabled.award_statistics(seed).is_none());
+    assert!(disabled.award_statistics().is_none());
 }
 
 #[test]
 fn draws_can_select_every_remaining_marker_and_preserve_existing_owners() {
-    let mut pool = SquidState::new(5);
+    let mut pool = SquidState::new(5, [0; 16], false);
     pool.markers[1] = Some(TexasHoldemPlayerId(1));
     pool.markers[3] = Some(TexasHoldemPlayerId(2));
     let mut draws = [0; 5];

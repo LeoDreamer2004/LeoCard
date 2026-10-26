@@ -1,17 +1,15 @@
 use super::super::{PageTransitionElement, UiAction};
-use crate::app::presentation::{MUTED, UiComposer, add_text, spawn_node};
-use crate::app::shell::AchievementUiAction;
-use bevy::picking::Pickable;
-use bevy::ui_widgets::Button;
-
-use bevy::prelude::*;
-use bevy::ui::RelativeCursorPosition;
-
-use leocard_protocol::ACHIEVEMENT_REGISTRY;
-
 use super::input::category_tint;
 use super::page::AchievementsPage;
 use super::state::*;
+use crate::app::presentation::{MUTED, add_text};
+use crate::app::shell::AchievementUiAction;
+use bevy::picking::Pickable;
+use bevy::prelude::*;
+use bevy::ui::RelativeCursorPosition;
+use bevy::ui_widgets::Button;
+use leocard_protocol::ACHIEVEMENT_REGISTRY;
+use leocard_ui::{UiComposer, spawn_node};
 
 impl AchievementsPage<'_> {
     pub(super) fn render_categories(&self, commands: &mut UiComposer, parent: Entity) {

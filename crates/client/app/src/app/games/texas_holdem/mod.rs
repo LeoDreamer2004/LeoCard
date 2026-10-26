@@ -16,6 +16,7 @@ mod labels;
 mod lobby;
 mod players;
 mod plugin;
+mod screen;
 pub(super) mod settlement;
 mod showdown;
 mod spectator;
@@ -42,3 +43,5 @@ use spectator::*;
 use squid::*;
 pub(crate) use state::*;
 pub(crate) use view::*;
+
+pub(super) use screen::TexasHoldemScreen;

@@ -1,7 +1,7 @@
 use super::{DeveloperHandInput, DeveloperHandInputField};
-use crate::app::presentation::{TextInput, UiComposer};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
+use leocard_ui::{TextInput, UiComposer};
 
 pub(crate) fn add_developer_hand_input(
     commands: &mut UiComposer,

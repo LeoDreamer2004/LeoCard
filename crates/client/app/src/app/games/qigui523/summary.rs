@@ -1,11 +1,12 @@
 use crate::app::presentation::{
     GameSummaryAnimation, PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer,
-    UiComposer, add_ranked_summary,
+    add_ranked_summary,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SummaryActions, add_summary_actions};
 use bevy::prelude::*;
 use leocard_protocol::{GamePhaseView, QiGui523Snapshot};
+use leocard_ui::UiComposer;
 
 pub(crate) fn qigui523_summary_descriptor(game: &QiGui523Snapshot) -> Option<SummaryDescriptor> {
     let GamePhaseView::Finished {

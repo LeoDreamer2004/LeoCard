@@ -1,8 +1,9 @@
 use super::super::UiAction;
-use crate::app::presentation::{TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::ui_widgets::Button;
 use bevy::{picking::Pickable, prelude::*};
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn add_page_back_title(
     commands: &mut UiComposer,

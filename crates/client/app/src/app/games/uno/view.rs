@@ -10,14 +10,15 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, DANGER, DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT,
-    TableBackground, TableBackgroundMaterial, TurnBorderMaterial, UiComposer,
-    add_auto_play_overlay, add_text, spawn_node, table_material_params, ui_component,
+    TableBackground, TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay, add_text,
+    table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
+use leocard_ui::{UiComposer, spawn_node, ui_component};
 use leocard_uno::{UnoFlipSide, UnoPendingDrawKind, UnoRuleSet};
 
 pub(super) const UNO_DISCARD_OFFSETS: [(f32, f32, f32); 6] = [

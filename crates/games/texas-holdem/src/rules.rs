@@ -18,6 +18,8 @@ pub struct TexasHoldemRuleSet {
     /// 固定限注：前两街每次 2，后两街每次 4，每街最多四次完整下注。
     #[cfg_attr(feature = "serde", serde(default))]
     pub fixed_limit: bool,
+    /// DeepSeek squid markers cost 2BB instead of 1BB when squid is enabled.
+    pub deepseek_squid_double: bool,
 }
 
 impl TexasHoldemRuleSet {
@@ -56,6 +58,7 @@ impl Default for TexasHoldemRuleSet {
             ignore_kickers: false,
             omaha: false,
             fixed_limit: false,
+            deepseek_squid_double: false,
         }
     }
 }

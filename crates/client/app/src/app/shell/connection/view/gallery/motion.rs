@@ -1,9 +1,9 @@
 use super::{EntryGlow, GameEntry, GlowKind};
-use crate::app::presentation::TransitionOpacity;
 use crate::app::shell::PageMotion;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::BackgroundGradient;
+use leocard_ui::TransitionOpacity;
 
 #[derive(Clone, Copy, Component)]
 pub(super) struct EntryMotion {

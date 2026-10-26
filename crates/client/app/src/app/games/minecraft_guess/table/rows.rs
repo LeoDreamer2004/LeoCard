@@ -1,7 +1,7 @@
 use super::super::MinecraftGuessAssets;
 use super::style::{ROW_HEIGHT, SEPARATOR_COLOR, SEPARATOR_WIDTH};
-use crate::app::presentation::{UiComposer, spawn_node};
 use bevy::{picking::Pickable, prelude::*};
+use leocard_ui::{UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(in super::super) struct GuessEmptyRows {

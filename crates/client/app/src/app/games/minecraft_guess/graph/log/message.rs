@@ -1,8 +1,9 @@
 use super::state::{GraphLogMessage, LogMessage};
-use crate::app::presentation::{ACCENT, UiComposer, add_avatar, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, add_avatar, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) fn render_message(
     commands: &mut UiComposer,

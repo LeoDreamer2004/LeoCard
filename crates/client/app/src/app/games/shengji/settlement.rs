@@ -1,13 +1,5 @@
 //! 升级收分与终局结算演出。
 
-use crate::app::presentation::{
-    ACCENT, PANEL_ALT, READY, SCORE_ROLL_DELAY, SCORE_ROLL_DURATION, SUMMARY_MODAL_ENTRY_DURATION,
-    SUMMARY_ROW_ENTRY_DURATION, TABLE_SCORE_CARD_REVEAL, UiComposer, add_text, ease_out_cubic,
-    spawn_node,
-};
-use bevy::picking::Pickable;
-use std::f32::consts;
-
 use super::state::{ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation};
 use super::{
     ActiveShengjiScoreAbsorb, ActiveShengjiScoreCapture, ShengjiCollectingScoreText,
@@ -16,14 +8,21 @@ use super::{
     ShengjiSettlementPanelTexture, ShengjiSettlementRow, ShengjiSettlementTotalAnchor,
     ShengjiSettlementTotalText, ShengjiTimedReveal,
 };
+use crate::app::presentation::{
+    ACCENT, PANEL_ALT, READY, SCORE_ROLL_DELAY, SCORE_ROLL_DURATION, SUMMARY_MODAL_ENTRY_DURATION,
+    SUMMARY_ROW_ENTRY_DURATION, TABLE_SCORE_CARD_REVEAL, add_text, ease_out_cubic,
+};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{
     ActiveScoreCaptureCard, ActiveScoreGainText, ActiveScoreVortex, PlayerInteractionLayer,
     vortex_card_pose,
 };
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_client::ShengjiScoreCaptureEffect;
 use leocard_protocol::ShengjiPhaseView;
+use leocard_ui::{UiComposer, spawn_node};
+use std::f32::consts;
 
 pub(super) const SHENGJI_SETTLEMENT_MODAL_DELAY: f32 = 3.38;
 pub(super) const SHENGJI_SETTLEMENT_ROW_INTERVAL: f32 = 0.18;

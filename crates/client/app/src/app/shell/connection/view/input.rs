@@ -1,7 +1,7 @@
 use super::super::form::{ConnectionField, InputField};
-use crate::app::presentation::{TextInput, UiComposer};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
+use leocard_ui::{TextInput, UiComposer};
 
 pub(super) struct ConnectionInput<'a> {
     value: &'a str,

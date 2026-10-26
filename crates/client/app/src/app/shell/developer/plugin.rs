@@ -1,9 +1,9 @@
 use super::DeveloperHandInput;
 #[cfg(feature = "developer")]
 use super::submit::sync_developer_input;
-#[cfg(feature = "developer")]
-use crate::app::presentation::TextInputSet;
 use bevy::prelude::*;
+#[cfg(feature = "developer")]
+use leocard_ui::TextInputSet;
 
 pub(crate) struct DeveloperToolsPlugin;
 

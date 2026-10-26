@@ -1,9 +1,8 @@
-use crate::app::presentation::{
-    GameButtonSpec, GameButtonTone, UiComposer, add_textured_game_button,
-};
+use crate::app::presentation::{GameButtonSpec, GameButtonTone, add_textured_game_button};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
+use leocard_ui::UiComposer;
 
 #[expect(
     clippy::too_many_arguments,

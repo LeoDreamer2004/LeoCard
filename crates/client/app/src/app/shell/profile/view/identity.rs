@@ -1,13 +1,12 @@
 use super::super::{ProfileStat, reference_level, reference_level_index};
-use crate::app::presentation::{
-    MUTED, TEXT, UiComposer, add_avatar, add_coin_balance, add_text, spawn_node,
-};
+use crate::app::presentation::{MUTED, TEXT, add_avatar, add_coin_balance, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ConnectionUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_protocol::{PlayerGameProfiles, PlayerGender, PlayerInteractionKind};
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) struct ProfileIdentity<'a> {
     player_name: &'a str,

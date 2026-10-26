@@ -1,17 +1,17 @@
 use super::super::super::UiAction;
-use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
-use crate::app::shell::ProfileUiAction;
-use bevy::ui_widgets::Button;
-
 use super::super::{
     ProfileGameColumn, ProfileGameContent, ProfileGameTab, ProfileGameTabButton,
     SelectedProfileGameTab, TAB_IDLE, blackjack_profile_rows, mahjong_profile_rows,
     minecraft_guess_profile_rows, qigui523_profile_rows, shengji_profile_rows,
     texas_holdem_profile_rows, uno_profile_rows,
 };
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
+use crate::app::shell::ProfileUiAction;
 use bevy::prelude::*;
+use bevy::ui_widgets::Button;
 use leocard_protocol::PlayerGameProfiles;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) struct ProfileArchive<'a> {
     game_profiles: &'a PlayerGameProfiles,

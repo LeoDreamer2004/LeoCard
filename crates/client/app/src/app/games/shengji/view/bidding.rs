@@ -2,13 +2,14 @@ use super::super::skin::{add_shengji_button, add_shengji_disabled_button};
 use super::super::{ShengjiAssets, ShengjiUiAction};
 use super::bid_strip::add_shengji_bid_strip;
 use super::shengji_current_level;
-use crate::app::presentation::{ACCENT, GameButtonTone, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, GameButtonTone, add_text};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use leocard_protocol::{ShengjiDeclarationView, ShengjiPhaseView, ShengjiSnapshot};
 use leocard_shengji::bid_joker_for_suit;
 use leocard_shengji::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiSuit};
+use leocard_ui::{UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(crate) struct ShengjiBiddingCountdown;
@@ -162,6 +163,7 @@ pub(crate) fn shengji_declaration_candidate(
     let exposed = game
         .declaration
         .as_ref()
+        .filter(|declaration| declaration.player == game.you)
         .map_or(&[][..], |declaration| declaration.cards.as_slice());
     let available = game
         .your_hand
@@ -226,14 +228,6 @@ fn joker_bid_declaration_candidate(
     level: ShengjiRank,
 ) -> Option<Vec<ShengjiCard>> {
     let current = game.declaration.as_ref();
-    // 带王亮时只有王能由本人复用；过去公开过的级牌必须排除。私人快照
-    // 会在重连后继续提供这组牌，避免按钮生成服务端必然拒绝的候选。
-    let unexposed_primary = game
-        .your_hand
-        .iter()
-        .copied()
-        .filter(|card| !game.your_exposed_cards.contains(card))
-        .collect::<Vec<_>>();
     let current_count = current.map(|declaration| declaration_primary_count(declaration, level));
     let current_strength = current.and_then(|declaration| {
         declaration
@@ -259,15 +253,21 @@ fn joker_bid_declaration_candidate(
     match suit {
         Some(suit) => {
             let trump = ShengjiBidTrump::Suit(suit);
-            let matching = unexposed_primary
-                .iter()
-                .copied()
-                .filter(|card| card.rank() == level && card.suit() == Some(suit))
-                .collect::<Vec<_>>();
-            let companion_rank = bid_joker_for_suit(suit);
             let extends_current = current.is_some_and(|declaration| {
                 declaration.player == game.you && declaration.trump == trump
             });
+            // 加固只提交新增级牌；此前被反掉的声明不限制这些牌再次使用。
+            let matching = game
+                .your_hand
+                .iter()
+                .copied()
+                .filter(|card| {
+                    card.rank() == level
+                        && card.suit() == Some(suit)
+                        && (!extends_current || !current.unwrap().cards.contains(card))
+                })
+                .collect::<Vec<_>>();
+            let companion_rank = bid_joker_for_suit(suit);
             let companion = current
                 .filter(|_| extends_current)
                 .and_then(|declaration| {

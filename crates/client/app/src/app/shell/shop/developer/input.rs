@@ -1,5 +1,4 @@
 use super::state::CoinInputField;
-use crate::app::presentation::{TextInputAction, TextInputEvent};
 use crate::app::runtime::PageErrorState;
 use bevy::{
     input_focus::InputFocus,
@@ -7,6 +6,7 @@ use bevy::{
     text::{EditableText, TextEdit},
 };
 use leocard_client::PlayerEconomy;
+use leocard_ui::{TextInputAction, TextInputEvent};
 
 pub(super) fn sync_coin_input(
     mut events: MessageReader<TextInputEvent>,

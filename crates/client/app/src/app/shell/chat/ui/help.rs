@@ -1,8 +1,8 @@
-use crate::app::presentation::UiComposer;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
+use leocard_ui::UiComposer;
 
 pub(crate) fn add_chat_help_button(
     commands: &mut UiComposer,

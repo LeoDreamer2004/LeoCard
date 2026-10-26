@@ -10,7 +10,7 @@ use leocard_blackjack::BlackjackRuleSet;
 pub(crate) use leocard_client::{
     GameAppearancePreferences, GamePreferences, MahjongPreferences, MinecraftGuessPreferences,
     QiGui523Preferences, SavedPreferences, ShengjiPreferences, TexasHoldemPreferences,
-    UnoPreferences, load_player_preferences, save_player_preferences,
+    UnoPreferences, load_player_preferences, save_game_preferences, save_global_preferences,
 };
 use leocard_mahjong::MahjongRuleSet;
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
@@ -89,7 +89,10 @@ pub(crate) fn normalize_range(value: f32, minimum: f32, maximum: f32, fallback: 
 
 impl PreferenceResources {
     pub(super) fn load() -> Self {
-        Self::from_saved(load_player_preferences().unwrap_or_default())
+        Self::from_saved(load_player_preferences().unwrap_or_else(|error| {
+            warn!("{error}");
+            SavedPreferences::default()
+        }))
     }
 
     fn from_saved(saved: SavedPreferences) -> Self {
@@ -281,18 +284,18 @@ fn replace_if_changed<T: PartialEq>(slot: &mut T, value: T) -> bool {
 }
 
 pub(crate) fn save_connection_draft(draft: &ConnectionDraft) -> Result<(), String> {
-    let mut saved = load_player_preferences().unwrap_or_default();
+    let mut saved = load_player_preferences()?;
     saved.global.player_name.clone_from(&draft.player_name);
     saved.global.gender = draft.gender;
     saved.global.host_port.clone_from(&draft.host_port);
     saved.global.join_address.clone_from(&draft.join_address);
-    save_player_preferences(&saved)
+    save_global_preferences(&saved.global)
 }
 
 pub(crate) fn save_appearance_preferences(
     appearance: &AppearancePreferences,
 ) -> Result<(), String> {
-    let mut saved = load_player_preferences().unwrap_or_default();
+    let mut saved = load_player_preferences()?;
     saved.global.avatar_png.clone_from(&appearance.avatar_png);
     saved
         .global
@@ -304,12 +307,11 @@ pub(crate) fn save_appearance_preferences(
     saved.global.mahjong_action_voices = appearance.mahjong_action_voices;
     saved.global.mahjong_fan_voices = appearance.mahjong_fan_voices;
     saved.global.texas_action_voices = appearance.texas_action_voices;
-    save_player_preferences(&saved)
+    save_global_preferences(&saved.global)
 }
 
 pub(super) fn save_host_rule_preferences(rules: &HostRulePreferences) -> Result<(), String> {
-    let mut saved = load_player_preferences().unwrap_or_default();
-    saved.games = GamePreferences {
+    let games = GamePreferences {
         qigui523: QiGui523Preferences {
             host_rules: rules.host_rules,
         },
@@ -329,5 +331,5 @@ pub(super) fn save_host_rule_preferences(rules: &HostRulePreferences) -> Result<
             host_rules: normalize_rules(rules.minecraft_guess_rules),
         },
     };
-    save_player_preferences(&saved)
+    save_game_preferences(&games)
 }

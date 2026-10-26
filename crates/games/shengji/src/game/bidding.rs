@@ -86,8 +86,7 @@ impl BidState {
         self.closed
     }
 
-    /// 返回指定玩家已经公开过的物理牌。客户端用它避免再次提交不能复用的级牌；
-    /// 带王亮规则下的王仍可由同一玩家再次提交。
+    /// 返回指定玩家已经公开过的物理牌，仅记录公开信息，不限制再次亮牌。
     pub fn exposed_cards(&self, player: ShengjiPlayerId) -> Vec<ShengjiCard> {
         let mut cards = self
             .exposed
@@ -116,12 +115,11 @@ impl BidState {
             None => self.initial_declaration(player, cards)?,
             Some(current) => self.next_declaration(player, cards, current)?,
         };
-        validate_reexposure(player, cards, &self.exposed, self.bid_with_joker)?;
         if self.original_bidder.is_none() {
             self.original_bidder = Some(player);
         }
         for card in cards {
-            self.exposed.entry(*card).or_insert(player);
+            self.exposed.insert(*card, player);
         }
         self.current = Some(next);
         Ok(self.current.as_ref().unwrap())
@@ -146,9 +144,8 @@ impl BidState {
         validate_owned(cards, hand)?;
         let current = self.current.as_ref().ok_or(BidError::NoDeclaration)?;
         let next = self.next_declaration(player, cards, current)?;
-        validate_reexposure(player, cards, &self.exposed, self.bid_with_joker)?;
         for card in cards {
-            self.exposed.entry(*card).or_insert(player);
+            self.exposed.insert(*card, player);
         }
         self.current = Some(next);
         Ok(self.current.as_ref().unwrap())
@@ -212,7 +209,6 @@ impl BidState {
                     .as_ref()
                     .and_then(|current| self.next_declaration(player, cards, current).ok())
                     .is_some()
-                && validate_reexposure(player, cards, &self.exposed, self.bid_with_joker).is_ok()
         });
         candidates.sort_by_key(Vec::len);
         candidates
@@ -436,24 +432,6 @@ fn validate_owned(cards: &[ShengjiCard], hand: &[ShengjiCard]) -> Result<(), Bid
     }
     if !contains_unique_cards(hand, cards) {
         return Err(BidError::CardsNotOwned);
-    }
-    Ok(())
-}
-
-fn validate_reexposure(
-    player: ShengjiPlayerId,
-    cards: &[ShengjiCard],
-    exposed: &HashMap<ShengjiCard, ShengjiPlayerId>,
-    bid_with_joker: bool,
-) -> Result<(), BidError> {
-    if cards.iter().any(|card| {
-        exposed.get(card).is_some_and(|owner| {
-            *owner != player
-                || !bid_with_joker
-                || !matches!(card.rank(), ShengjiRank::SmallJoker | ShengjiRank::BigJoker)
-        })
-    }) {
-        return Err(BidError::InvalidCards);
     }
     Ok(())
 }

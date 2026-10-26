@@ -1,6 +1,7 @@
-use crate::app::presentation::{DANGER, TEXT, UiComposer, add_avatar_status_overlay, add_text};
+use crate::app::presentation::{DANGER, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, add_avatar_status_overlay};
 
 pub(in super::super) fn add_process_presence_overlay(
     commands: &mut UiComposer,

@@ -1,10 +1,11 @@
 use super::super::*;
-use crate::app::presentation::{UiComposer, add_text, card_background_image};
+use crate::app::presentation::{add_text, card_background_image};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{PlayerAvatar, PlayerInteractionLayer, interaction_anchor_in_layer};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{ChatContent, ChatEmoji, PlayerId};
+use leocard_ui::UiComposer;
 use std::collections::HashMap;
 
 const CHAT_HISTORY_LIMIT: usize = 60;

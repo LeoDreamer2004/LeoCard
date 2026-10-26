@@ -1,16 +1,13 @@
 use super::super::{PageTransitionElement, add_cozy_panel};
-use crate::app::presentation::{
-    MUTED, Scrollbar, ScrollbarSkin, TEXT, UiComposer, add_text, card_background_image, spawn_node,
-    ui_component,
-};
+use super::page::AchievementsPage;
+use super::state::*;
+use crate::app::presentation::{MUTED, TEXT, add_text, card_background_image};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_achievements::{AchievementDefinition, AchievementTier};
 use leocard_protocol::ACHIEVEMENT_REGISTRY;
-
-use super::page::AchievementsPage;
-use super::state::*;
+use leocard_ui::{Scrollbar, ScrollbarSkin, UiComposer, spawn_node, ui_component};
 
 impl AchievementsPage<'_> {
     pub(super) fn render_entries(&self, commands: &mut UiComposer, parent: Entity) {

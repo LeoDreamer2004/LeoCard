@@ -1,9 +1,8 @@
 use super::super::GuessScorePlayback;
 use super::state::GuessFeedback;
-use crate::app::presentation::{
-    ACCENT, READY, TransitionOpacity, TransitionVisuals, UiComposer, ease_out_cubic, fade_panel,
-};
+use crate::app::presentation::{ACCENT, READY, ease_out_cubic};
 use bevy::prelude::*;
+use leocard_ui::{TransitionOpacity, TransitionVisuals, UiComposer, fade_panel};
 
 #[derive(Component)]
 pub(in super::super) struct GuessCellReveal {

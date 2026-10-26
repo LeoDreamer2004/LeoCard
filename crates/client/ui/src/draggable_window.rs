@@ -1,48 +1,35 @@
-use bevy::{
-    ecs::component::Mutable, prelude::*, ui::RelativeCursorPosition, window::PrimaryWindow,
-};
+use bevy::ecs::component::Mutable;
+use bevy::prelude::*;
+use bevy::ui::RelativeCursorPosition;
+use bevy::window::PrimaryWindow;
 use std::marker::PhantomData;
 
-pub(crate) struct CardCounterWindowState {
-    pub drawer_open: bool,
-    pub enabled: bool,
-    pub active: bool,
+#[derive(Default)]
+pub struct DraggableWindowState {
     pub position: Vec2,
     pub grab: Option<Vec2>,
 }
 
-impl Default for CardCounterWindowState {
-    fn default() -> Self {
-        Self {
-            drawer_open: false,
-            enabled: false,
-            active: false,
-            position: Vec2::new(34.0, 296.0),
-            grab: None,
-        }
-    }
-}
-
-pub(crate) trait CardCounterOwner: Resource<Mutability = Mutable> {
-    fn counter_window(&mut self) -> &mut CardCounterWindowState;
+pub trait DraggableWindowOwner: Resource<Mutability = Mutable> {
+    fn window_state(&mut self) -> &mut DraggableWindowState;
 }
 
 #[derive(Component)]
-pub(crate) struct CounterWindow<T: CardCounterOwner>(pub PhantomData<T>);
+pub struct DraggableWindow<T: DraggableWindowOwner>(pub PhantomData<T>);
 
 #[derive(Component)]
-pub(crate) struct CounterDragHandle<T: CardCounterOwner>(pub PhantomData<T>);
+pub struct WindowDragHandle<T: DraggableWindowOwner>(pub PhantomData<T>);
 
-pub(crate) fn drag_card_counter_window<T: CardCounterOwner>(
+pub fn drag_draggable_window<T: DraggableWindowOwner>(
     mouse: Res<ButtonInput<MouseButton>>,
     touches: Res<Touches>,
     scale: Res<UiScale>,
     windows: Query<&Window, With<PrimaryWindow>>,
-    handles: Query<&RelativeCursorPosition, With<CounterDragHandle<T>>>,
-    mut panels: Query<(&mut Node, &ComputedNode), With<CounterWindow<T>>>,
+    handles: Query<&RelativeCursorPosition, With<WindowDragHandle<T>>>,
+    mut panels: Query<(&mut Node, &ComputedNode), With<DraggableWindow<T>>>,
     mut ui: ResMut<T>,
 ) {
-    let state = ui.counter_window();
+    let state = ui.window_state();
     if !mouse.pressed(MouseButton::Left) || panels.is_empty() {
         state.grab = None;
         return;

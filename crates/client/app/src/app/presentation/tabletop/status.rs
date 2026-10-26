@@ -1,7 +1,8 @@
-use crate::app::presentation::{UiComposer, add_text};
+use crate::app::presentation::add_text;
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_ui::UiComposer;
 use std::f32::consts;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

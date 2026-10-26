@@ -1,12 +1,12 @@
 //! 终局结算后的通用房间操作。
 
-use crate::app::presentation::UiComposer;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button, add_cozy_button_variant,
     add_cozy_disabled_button,
 };
 use bevy::prelude::*;
+use leocard_ui::UiComposer;
 
 pub(crate) struct SummaryActions<'a> {
     pub is_host: bool,

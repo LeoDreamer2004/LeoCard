@@ -4,10 +4,11 @@ use super::{
     GameSeatTransitionPose, GameSeatTransitionTarget, LobbySeatTransitionSnapshot,
     START_GAME_SEAT_MOVE_DURATION, StartGameSeatTransition,
 };
-use crate::app::presentation::{UiComposer, smootherstep};
+use crate::app::presentation::smootherstep;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
 use leocard_protocol::PlayerId;
+use leocard_ui::UiComposer;
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct StartGameSeatTransitionVisual {

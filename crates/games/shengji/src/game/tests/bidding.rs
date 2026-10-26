@@ -211,9 +211,9 @@ fn joker_bidding_reuses_the_owners_exposed_joker_for_protection_and_no_trump() {
         .declare(ShengjiPlayerId(0), &[heart[0], big[0]], &hand)
         .unwrap();
     assert_eq!(
-        bidding.declare(ShengjiPlayerId(1), &big, &hand),
-        Err(BidError::InvalidCards),
-        "其它玩家不能借用已经亮出的王"
+        bidding.declare(ShengjiPlayerId(1), &big, &big[1..]),
+        Err(BidError::CardsNotOwned),
+        "其它玩家不能亮出不在自己手中的王"
     );
     let protected = bidding
         .declare(ShengjiPlayerId(0), &[heart[1]], &hand)

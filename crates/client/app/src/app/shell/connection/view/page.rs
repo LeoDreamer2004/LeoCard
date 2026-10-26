@@ -1,9 +1,9 @@
 //! 建房游戏选择与主连接页面。
 
 use super::gallery::GameGallery;
-use crate::app::presentation::{UiComposer, UiSceneKey};
 use crate::app::runtime::{AppearancePreferences, AvatarImages, ConnectionDraft, UiAssets};
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, UiSceneKey};
 
 pub(crate) struct ConnectionScreen<'a> {
     pub(super) connection: &'a ConnectionDraft,

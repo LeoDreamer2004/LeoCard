@@ -1,10 +1,11 @@
 use super::super::ShengjiPresentationState;
 use super::super::presentation::shengji_player_route_anchor;
 use super::{ShengjiCardSize, add_shengji_card_row, shengji_display_trump};
-use crate::app::presentation::{ACCENT, MUTED, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, MUTED, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, ShengjiPhaseView, ShengjiSnapshot};
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) fn add_shengji_bottom_copy_decision(
     commands: &mut UiComposer,

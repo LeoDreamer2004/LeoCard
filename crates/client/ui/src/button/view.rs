@@ -1,32 +1,30 @@
 //! Texture buttons share their hierarchy, highlight binding and disabled state.
 
-use super::text_scene;
-use crate::app::presentation::{ButtonHighlight, UiComposer, UiSceneKey, ui_component};
-use crate::app::runtime::UiAssets;
-use crate::app::shell::UiAction;
+use super::ButtonHighlight;
+use crate::{UiComposer, UiSceneKey, label_scene, ui_component};
 use bevy::ecs::template::EntityTemplate;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 
-pub(crate) struct TextureButton<'a> {
+pub struct TextureButton<'a, A> {
     pub node: Node,
     pub normal: ImageNode,
     pub hovered: ImageNode,
-    pub action: Option<UiAction>,
+    pub action: Option<A>,
     pub label: Option<&'a str>,
     pub font_size: f32,
     pub color: Color,
     pub icon: Option<(Handle<Image>, f32)>,
 }
 
-impl TextureButton<'_> {
+impl<A: Component + Clone> TextureButton<'_, A> {
     #[track_caller]
-    pub(crate) fn mount(
+    pub fn mount(
         self,
         commands: &mut UiComposer,
         parent: Entity,
-        assets: &UiAssets,
+        font: &Handle<Font>,
     ) -> (Entity, Entity) {
         let enabled = self.action.is_some();
         let action = self
@@ -55,7 +53,7 @@ impl TextureButton<'_> {
         });
         let label = self
             .label
-            .map(|label| text_scene(assets, label, self.font_size, self.color));
+            .map(|label| label_scene(font.clone(), label, self.font_size, self.color));
         let pickable = if enabled {
             Pickable::default()
         } else {

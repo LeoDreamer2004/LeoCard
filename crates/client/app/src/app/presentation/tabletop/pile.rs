@@ -1,6 +1,7 @@
-use crate::app::presentation::{TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn add_playing_card_pile(
     commands: &mut UiComposer,

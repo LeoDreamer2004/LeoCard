@@ -1,6 +1,7 @@
-use crate::app::presentation::{UiComposer, add_text, spawn_node};
+use crate::app::presentation::add_text;
 use crate::app::runtime::UiAssets;
 use bevy::{picking::Pickable, prelude::*};
+use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
 
 const RESPONSE_GOLD: Color = Color::srgb(1.0, 0.80, 0.20);

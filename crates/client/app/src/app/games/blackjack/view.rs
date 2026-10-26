@@ -1,8 +1,7 @@
 use super::{BlackjackPlayback, BlackjackUiState};
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TableBackground,
-    TableBackgroundMaterial, TurnBorderMaterial, UiComposer, add_auto_play_overlay, spawn_node,
-    table_material_params, ui_component,
+    TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{
@@ -12,6 +11,7 @@ use crate::app::shell::{
 use bevy::prelude::*;
 use leocard_blackjack::Phase;
 use leocard_protocol::BlackjackSnapshot;
+use leocard_ui::{UiComposer, spawn_node, ui_component};
 
 pub(crate) struct BlackjackTable<'a> {
     pub client: &'a ClientResource,

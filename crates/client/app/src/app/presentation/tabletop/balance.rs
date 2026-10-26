@@ -1,10 +1,9 @@
 use super::add_horizontal_chip_group;
-use crate::app::presentation::{
-    ACCENT, MUTED, UiComposer, add_text, card_background_image, spawn_node,
-};
+use crate::app::presentation::{ACCENT, MUTED, add_text, card_background_image};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn add_poker_balance_panel(
     commands: &mut UiComposer,

@@ -1,9 +1,7 @@
 use super::background::add_guess_background;
 use super::state::MinecraftGuessUiState;
 use super::{GuessFeedback, GuessScorePlayback, MinecraftGuessAssets, MinecraftGuessUiAction};
-use crate::app::presentation::{
-    GameSummaryAnimation, StartGameSeatTransition, TurnBorderMaterial, UiComposer, spawn_node,
-};
+use crate::app::presentation::{GameSummaryAnimation, StartGameSeatTransition, TurnBorderMaterial};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
     ChatPanelState, SocialUiState, UiAction, add_chat_help_button, add_chat_panel,
@@ -11,6 +9,7 @@ use crate::app::shell::{
 };
 use bevy::prelude::*;
 use leocard_protocol::MinecraftGuessSnapshot;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) struct GuessTable<'a> {
     pub client: &'a ClientResource,

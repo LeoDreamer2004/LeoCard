@@ -1,6 +1,6 @@
 use super::input::sync_coin_input;
-use crate::app::presentation::TextInputSet;
 use bevy::prelude::*;
+use leocard_ui::TextInputSet;
 
 pub(crate) struct DeveloperCoinsPlugin;
 

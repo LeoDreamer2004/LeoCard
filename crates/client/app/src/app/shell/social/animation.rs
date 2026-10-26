@@ -1,7 +1,5 @@
 //! 玩家互动投射物的运动、声音与命中反馈。
 
-use std::f32::consts;
-
 use super::{ActivePlayerInteraction, interaction_rotates};
 use crate::app::presentation::ease_out_cubic;
 use crate::app::runtime::UiAssets;
@@ -9,6 +7,7 @@ use bevy::audio::Volume;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::PlayerInteractionKind;
+use std::f32::consts;
 
 const SHOE_ROTATIONS: f32 = 2.0;
 const INTERACTION_SOUND_VOLUME: f32 = 0.5;

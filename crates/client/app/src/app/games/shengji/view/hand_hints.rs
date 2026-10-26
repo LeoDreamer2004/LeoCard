@@ -1,8 +1,9 @@
-use crate::app::presentation::{CardSize, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{CardSize, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_shengji::{Component, ShengjiCard, ShengjiTrump, hand_sequences};
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) fn sequence_labels(
     cards: &[ShengjiCard],

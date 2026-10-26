@@ -1,7 +1,3 @@
-use crate::app::presentation::{ACCENT, TEXT, UiComposer, add_text, ease_out_cubic, spawn_node};
-use bevy::picking::Pickable;
-use std::f32::consts;
-
 use super::super::{
     MAHJONG_CLAIM_FLIGHT_DELAY, MAHJONG_CLAIM_FLIGHT_DURATION, MAHJONG_CLAIM_HAND_SHIFT_DURATION,
     MAHJONG_CLAIM_PRESENTATION_DURATION, MAHJONG_FLOWER_PRESENTATION_DURATION, MahjongAssets,
@@ -9,12 +5,15 @@ use super::super::{
     MahjongClaimPresentationState, MahjongFlowerLabel, MahjongTableRoot, MahjongTileHighlight,
     MahjongTileMaterial, mahjong_claim_landing_time,
 };
-
 use super::{MahjongTileSize, MahjongTileVisual, add_mahjong_tile_material};
+use crate::app::presentation::{ACCENT, TEXT, add_text, ease_out_cubic};
 use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongClaim;
 use leocard_protocol::{MahjongSnapshot, PlayerId};
+use leocard_ui::{UiComposer, spawn_node};
+use std::f32::consts;
 
 #[derive(Component)]
 pub(crate) struct MahjongClaimLandingSlot {

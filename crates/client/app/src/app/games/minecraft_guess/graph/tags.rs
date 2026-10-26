@@ -2,11 +2,12 @@ use super::super::assets::EntryIcons;
 use super::super::state::GuessScroll;
 use super::super::view::GuessTable;
 use super::history::HistoryContent;
-use crate::app::presentation::{MUTED, Scrollbar, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_minecraft_guess::Entry;
+use leocard_ui::{Scrollbar, UiComposer, spawn_node};
 
 impl GuessTable<'_> {
     pub(super) fn tag_contents(

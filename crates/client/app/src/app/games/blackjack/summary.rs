@@ -1,12 +1,12 @@
 use super::BlackjackTable;
 use crate::app::presentation::{
-    PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, UiComposer,
-    add_ranked_summary,
+    PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, add_ranked_summary,
 };
 use crate::app::shell::{SummaryActions, add_summary_actions};
 use bevy::prelude::*;
 use leocard_blackjack::Phase;
 use leocard_protocol::{BlackjackSnapshot, PlayerScore};
+use leocard_ui::UiComposer;
 
 pub(crate) fn blackjack_summary_descriptor(game: &BlackjackSnapshot) -> Option<SummaryDescriptor> {
     (game.phase == Phase::Complete).then(|| SummaryDescriptor {

@@ -1,8 +1,9 @@
 use super::super::{BlackjackTable, layout::BlackjackSeatLayout};
 use super::{BlackjackWagerSpec, add_blackjack_wager};
-use crate::app::presentation::{UiComposer, add_table_play_area};
+use crate::app::presentation::add_table_play_area;
 use bevy::prelude::*;
 use leocard_protocol::BlackjackPlayerView;
+use leocard_ui::UiComposer;
 
 impl BlackjackTable<'_> {
     pub(in super::super) fn own_wagers(

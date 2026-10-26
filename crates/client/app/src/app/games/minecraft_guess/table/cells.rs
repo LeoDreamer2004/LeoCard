@@ -4,11 +4,12 @@ use super::super::feedback::GuessCellReveal;
 use super::details::AttributeHint;
 use super::names::GuessName;
 use super::style::{SEPARATOR_COLOR, SEPARATOR_WIDTH};
-use crate::app::presentation::{MUTED, TEXT, TransitionOpacity, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_minecraft_guess::{Attribute, MatchQuality};
+use leocard_ui::{TransitionOpacity, UiComposer, spawn_node};
 
 pub(super) enum CellSkin {
     Heading,

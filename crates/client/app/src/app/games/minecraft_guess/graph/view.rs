@@ -2,9 +2,10 @@ use super::super::table::TableHistory;
 use super::super::view::GuessTable;
 use super::history::HistoryContent;
 use super::state::{GraphDragTarget, GraphHistoryPanel, GraphPanelAnimation, GraphWorkspace};
-use crate::app::presentation::{MUTED, UiComposer, spawn_node};
+use crate::app::presentation::MUTED;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, spawn_node};
 
 impl GuessTable<'_> {
     pub(in super::super) fn graph_workspace(&mut self, commands: &mut UiComposer, page: Entity) {

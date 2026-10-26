@@ -1,12 +1,13 @@
 use super::super::MinecraftGuessUiState;
 use super::{super::state::GuessInput, candidates::GuessCandidate};
-use crate::app::{presentation::UiPress, runtime::ClientResource};
+use crate::app::runtime::ClientResource;
 use bevy::{
     input::{ButtonState, keyboard::KeyboardInput},
     input_focus::{FocusCause, FocusedInput, InputFocus},
     prelude::*,
     text::EditableText,
 };
+use leocard_ui::UiPress;
 
 pub(in super::super) fn navigate_guess_candidates(
     mut event: On<FocusedInput<KeyboardInput>>,

@@ -1,6 +1,6 @@
 //! 顶栏及其连接状态、设置和个人资料入口。
 
-use crate::app::presentation::{BORDER, MUTED, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{BORDER, MUTED, add_text};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
 #[cfg(not(target_os = "android"))]
 use crate::app::shell::SakuraUiAction;
@@ -11,6 +11,7 @@ use crate::app::shell::{
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(in crate::app::shell) struct Header<'a> {
     pub(super) client: Option<&'a ClientResource>,

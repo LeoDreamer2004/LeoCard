@@ -5,11 +5,11 @@ use super::{
     ModalAnimationSet, ModalAnimations, PageTransitionPlugin, animate_cozy_modals,
     update_cozy_checkbox_hover,
 };
-#[cfg(not(target_os = "android"))]
-use crate::app::presentation::UiSceneProperties;
-use crate::app::presentation::update_rule_help_tooltips;
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
+#[cfg(not(target_os = "android"))]
+use leocard_ui::UiSceneProperties;
+use leocard_ui::update_help_tooltips;
 
 pub(crate) struct ShellUiPlugin;
 impl Plugin for ShellUiPlugin {
@@ -38,10 +38,7 @@ impl Plugin for ShellUiPlugin {
                 .after(animate_cozy_modals)
                 .in_set(ClientUpdateSet::Animate),
         )
-        .add_systems(
-            Update,
-            update_rule_help_tooltips.in_set(ClientUpdateSet::Input),
-        );
+        .add_systems(Update, update_help_tooltips.in_set(ClientUpdateSet::Input));
         #[cfg(not(target_os = "android"))]
         {
             app.world_mut()

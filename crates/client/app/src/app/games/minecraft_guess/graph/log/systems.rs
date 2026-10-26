@@ -1,11 +1,11 @@
 use super::super::super::MinecraftGuessAssets;
 use super::state::{GraphLog, GraphLogMessage, GraphLogRoot, GraphLogScroll, LogMessage};
 use super::view::render_log;
-use crate::app::presentation::{ScrollContentHeight, UiComposer};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::UiState;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
+use leocard_ui::{ScrollContentHeight, UiComposer};
 
 pub(super) fn sync_messages(
     client: Option<Res<ClientResource>>,

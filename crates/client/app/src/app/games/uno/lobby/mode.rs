@@ -1,8 +1,8 @@
 use super::super::UnoUiAction;
-use crate::app::presentation::UiComposer;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{CozyDropdown, CozyDropdownOption, UiAction};
 use bevy::prelude::*;
+use leocard_ui::UiComposer;
 use leocard_uno::{Mode, UnoRuleSet};
 
 pub(crate) fn render_uno_mode_dropdown(

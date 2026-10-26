@@ -1,10 +1,10 @@
-use crate::app::presentation::{CustomButtonMotion, UiComposer, sliced_image};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
+use leocard_ui::{CustomButtonMotion, UiComposer, sliced_image};
 
 #[derive(Component)]
 pub(super) struct CozySwitch {

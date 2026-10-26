@@ -1,10 +1,11 @@
 use super::{MissingSuitsUi, state::MissingSuitMarker};
-use crate::app::presentation::{ACCENT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::SeatSide;
 use bevy::{picking::Pickable, prelude::*};
 use leocard_protocol::ShengjiPlayerState;
 use leocard_shengji::Category;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(in super::super) fn render_missing_suits(
     commands: &mut UiComposer,

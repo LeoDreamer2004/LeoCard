@@ -1,10 +1,11 @@
 use super::super::MinecraftGuessAssets;
-use crate::app::presentation::{AnchoredPopup, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use leocard_minecraft_guess::Attribute;
+use leocard_ui::{AnchoredPopup, UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(in super::super) struct AttributeHint(Entity);

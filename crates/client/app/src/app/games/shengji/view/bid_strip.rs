@@ -1,6 +1,6 @@
 use super::super::{ShengjiAssets, ShengjiUiAction};
 use super::bidding::shengji_declaration_candidate;
-use crate::app::presentation::{TEXT, UiComposer, add_text, sliced_image, spawn_node};
+use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
@@ -8,6 +8,7 @@ use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_protocol::ShengjiSnapshot;
 use leocard_shengji::ShengjiSuit;
+use leocard_ui::{UiComposer, sliced_image, spawn_node};
 
 const SEGMENT_WIDTH: f32 = 76.0;
 const NG_SEGMENT_WIDTH: f32 = 56.0;

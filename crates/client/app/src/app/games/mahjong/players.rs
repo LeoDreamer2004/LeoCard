@@ -12,8 +12,8 @@ use super::{
     render_mahjong_staged_meld,
 };
 use crate::app::presentation::{
-    DANGER, GameSummaryAnimation, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, UiComposer,
-    add_player_portrait, add_text, attach_start_game_seat_transition, spawn_node,
+    DANGER, GameSummaryAnimation, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT,
+    add_player_portrait, add_text, attach_start_game_seat_transition,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use bevy::picking::Pickable;
@@ -22,6 +22,7 @@ use leocard_mahjong::MahjongTile;
 use leocard_protocol::{
     MahjongHandResultView, MahjongPhaseView, MahjongPlayerState, MahjongSnapshot, PlayerId,
 };
+use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
 
 pub(super) struct MahjongPlayerPanelVisuals<'a> {

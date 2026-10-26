@@ -1,13 +1,13 @@
 //! Timed click-to-continue prompt.
 
 use super::*;
-use crate::app::presentation::{TEXT, UiComposer, add_text, spawn_node};
-use bevy::picking::Pickable;
-use bevy::ui_widgets::Button;
-
+use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
+use bevy::ui_widgets::Button;
+use leocard_ui::{UiComposer, spawn_node};
 
 #[expect(
     clippy::too_many_arguments,

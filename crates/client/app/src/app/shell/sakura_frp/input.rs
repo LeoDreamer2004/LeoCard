@@ -1,11 +1,11 @@
 use super::state::SakuraState;
-use crate::app::presentation::{TextInputAction, TextInputEvent};
 use crate::app::runtime::PageErrorState;
 use crate::app::shell::UiState;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::text::EditableText;
 use bevy::ui::RelativeCursorPosition;
+use leocard_ui::{TextInputAction, TextInputEvent};
 
 #[derive(Component, Clone, Copy, PartialEq, Eq)]
 pub(super) enum SakuraScroll {

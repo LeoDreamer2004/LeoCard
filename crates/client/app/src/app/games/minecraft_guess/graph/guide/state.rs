@@ -1,11 +1,11 @@
 use super::super::super::MinecraftGuessAssets;
 use super::view::render_guide;
-use crate::app::presentation::UiComposer;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{CozyModalKind, ModalAnimations, advance_modal};
 use bevy::input_focus::InputFocus;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_ui::UiComposer;
 
 #[derive(Resource, Default)]
 pub(in super::super::super) struct GraphGuideState {

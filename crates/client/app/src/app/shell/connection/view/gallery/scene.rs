@@ -1,12 +1,13 @@
 use super::super::theme::HOME_SOFT;
 use super::{ENTRY_DESIGNS, EntryGlow, EntryMotion, GlowKind};
-use crate::app::presentation::{CustomButtonMotion, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ConnectionUiAction, PageTransitionElement, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::LayoutConfig;
 use bevy::ui_widgets::Button;
+use leocard_ui::{CustomButtonMotion, UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(super) struct EntryArt(pub usize);

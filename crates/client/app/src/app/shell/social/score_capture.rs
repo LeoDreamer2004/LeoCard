@@ -1,7 +1,7 @@
 use super::*;
 use crate::app::presentation::{
-    ACCENT, CardSize, SCORE_ROLL_DELAY, SCORE_ROLL_DURATION, TABLE_SCORE_CARD_REVEAL, UiComposer,
-    add_text, rolling_score, score_gain_visual, spawn_node,
+    ACCENT, CardSize, SCORE_ROLL_DELAY, SCORE_ROLL_DURATION, TABLE_SCORE_CARD_REVEAL, add_text,
+    rolling_score, score_gain_visual,
 };
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::ecs::system::SystemParam;
@@ -9,6 +9,7 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_client::ScoreCaptureEffect;
 use leocard_protocol::PlayerId;
+use leocard_ui::{UiComposer, spawn_node};
 use std::{collections::HashMap, f32::consts};
 
 const SCORE_CAPTURE_TRAVEL_DURATION: f32 = 0.42;

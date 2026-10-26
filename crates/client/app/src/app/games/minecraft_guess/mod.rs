@@ -9,6 +9,7 @@ mod players;
 mod plugin;
 mod process_presence;
 mod scores;
+mod screen;
 mod state;
 pub(super) mod summary;
 mod table;
@@ -26,3 +27,5 @@ pub(crate) use turn_timer::only_guess_timer_changed;
 pub(crate) use view::{GuessTable, render_guess_table};
 
 pub(crate) use graph::GraphArt;
+
+pub(super) use screen::MinecraftGuessScreen;

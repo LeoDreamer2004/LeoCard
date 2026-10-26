@@ -1,7 +1,6 @@
 use super::{HandCardSlot, HandCardVisual, QiGui523UiAction};
 use crate::app::presentation::{
-    ACCENT, BORDER, CardAnimationState, CardSize, HandCardSelectionOverlay, UiComposer,
-    hand_card_pose,
+    ACCENT, BORDER, CardAnimationState, CardSize, HandCardSelectionOverlay, hand_card_pose,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -10,6 +9,7 @@ use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use bevy::ui_widgets::Button;
 use leocard_qigui523::QiGuiCard;
+use leocard_ui::UiComposer;
 
 pub(super) const QIGUI_HAND_CARD_REVEAL: f32 = 32.0;
 

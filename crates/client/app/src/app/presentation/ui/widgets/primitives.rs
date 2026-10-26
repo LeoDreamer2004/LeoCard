@@ -3,14 +3,13 @@
 use super::super::{
     ACCENT, AutoPlayOverlay, PanelSkin, TABLE_CARD_REVEAL, TABLE_SCORE_CARD_REVEAL, TEXT,
 };
-use super::sliced_image;
-use crate::app::presentation::{CardSize, UiComposer, ui_component};
+use crate::app::presentation::CardSize;
 use crate::app::runtime::{CardFace, UiAssets};
 use crate::app::shell::{SocialUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::text::FontSourceTemplate;
 use bevy::ui_widgets::Button;
+use leocard_ui::{UiComposer, decorate_panel, label_scene, sliced_image};
 
 const SCORE_CARD_REVEAL: f32 = 12.0;
 const FINISHED_HAND_CARD_REVEAL: f32 = 14.4;
@@ -113,26 +112,8 @@ pub(crate) fn decorate_panel_skin(
         PanelSkin::Section => 0.35,
         PanelSkin::Popup => 0.30,
     };
-    commands
-        .entity(panel)
-        .insert((BackgroundColor(Color::NONE), BorderColor::all(Color::NONE)));
     let image = sliced_image(assets.home.panel.clone(), 80.0, corner_scale);
-    commands.mount(
-        panel,
-        "skin",
-        bsn! {
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(0),
-                    right: px(0),
-                    top: px(0),
-                    bottom: px(0),
-                }
-                @ui_component(image)
-                ZIndex(-1)
-                Pickable::IGNORE
-        },
-    )
+    decorate_panel(commands, panel, image)
 }
 
 pub(crate) fn add_section_title(
@@ -162,12 +143,5 @@ pub(crate) fn text_scene(
     size: f32,
     color: Color,
 ) -> impl Scene {
-    let text = Text::new(text);
-    let font = assets.font.clone();
-    let font_source = FontSourceTemplate::Handle(font.into());
-    bsn! {
-            text
-            TextFont { font: font_source, font_size: px(size) }
-            TextColor(color)
-    }
+    label_scene(assets.font.clone(), text, size, color)
 }

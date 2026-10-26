@@ -4,13 +4,14 @@ use super::super::super::{table_appearance_fraction, table_appearance_label};
 use super::super::CozySettingsSlider;
 use crate::app::presentation::{
     TEXT, TableAppearanceIndicator, TableAppearanceLabel, TableAppearanceSetting,
-    TableAppearanceSlider, UiComposer, add_text, spawn_node,
+    TableAppearanceSlider, add_text,
 };
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::{RelativeCursorPosition, VisualBox};
 use bevy::ui_widgets::Button;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) struct SettingsSlider<'a> {
     form: &'a AppearancePreferences,

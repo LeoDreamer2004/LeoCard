@@ -1,6 +1,6 @@
-use crate::app::presentation::CustomButtonMotion;
 use bevy::prelude::*;
 use leocard_protocol::{PlayerGameProfiles, PlayerId};
+use leocard_ui::CustomButtonMotion;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) enum ProfileGameTab {

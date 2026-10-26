@@ -2,7 +2,7 @@ use super::super::{TexasHoldemUiAction, texas_category_label};
 use super::catalog::{HandGuideEntry, ordered_entries};
 use super::probabilities::HandGuideProbabilities;
 use super::state::TexasHandGuideScroll;
-use crate::app::presentation::{ACCENT, MUTED, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
@@ -12,6 +12,7 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_texas_holdem::TexasHoldemRuleSet;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) fn render_hand_guide(
     commands: &mut UiComposer,

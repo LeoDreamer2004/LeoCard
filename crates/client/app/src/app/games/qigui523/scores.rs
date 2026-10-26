@@ -2,8 +2,7 @@ use super::sort_cards_high_to_low;
 use super::state::ScoreCardsPopupPlacement;
 use super::{QIGUI_PORTRAIT_HEIGHT, QIGUI_PORTRAIT_WIDTH, qigui_plate_image};
 use crate::app::presentation::{
-    ACCENT, CardSize, MUTED, UiComposer, add_card_image, add_text, position_opponent_popup,
-    spawn_node,
+    ACCENT, CardSize, MUTED, add_card_image, add_text, position_opponent_popup,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{PlayerGameScoreText, ScoreCaptureEffectState, displayed_captured_score};
@@ -13,6 +12,7 @@ use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_protocol::PlayerPublicState;
 use leocard_qigui523::QiGuiCard;
+use leocard_ui::{UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(super) struct OwnScoreDetail(pub Entity);

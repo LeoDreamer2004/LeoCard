@@ -7,8 +7,8 @@ use super::super::{
 };
 use super::{ShengjiCardSize, add_shengji_trump_stars, shengji_display_trump};
 use crate::app::presentation::{
-    ACCENT, DANGER, MUTED, PanelSkin, PlayerMenuProfile, READY, TEXT, UiComposer, add_ready_avatar,
-    add_text, decorate_panel_skin, spawn_node,
+    ACCENT, DANGER, MUTED, PanelSkin, PlayerMenuProfile, READY, TEXT, add_ready_avatar, add_text,
+    decorate_panel_skin,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -18,6 +18,7 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{ShengjiHandResultView, ShengjiSnapshot};
 use leocard_shengji::ShengjiCard;
+use leocard_ui::{UiComposer, spawn_node};
 
 #[expect(
     clippy::too_many_arguments,

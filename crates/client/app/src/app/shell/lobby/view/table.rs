@@ -1,11 +1,12 @@
 use super::*;
 use crate::app::games::lobby_rule_labels;
-use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::{BackgroundGradient, ColorStop, Gradient, LinearGradient};
 use leocard_protocol::{GameRules, LobbySnapshot};
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) struct LobbyTable<'a> {
     client: &'a ClientResource,

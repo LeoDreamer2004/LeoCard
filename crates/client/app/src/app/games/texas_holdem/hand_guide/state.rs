@@ -1,5 +1,4 @@
 use super::view::render_hand_guide;
-use crate::app::presentation::UiComposer;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{CozyModalKind, ModalAnimations, advance_modal};
 use bevy::picking::Pickable;
@@ -7,6 +6,7 @@ use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
 use leocard_protocol::GameSnapshot;
 use leocard_texas_holdem::TexasHoldemRuleSet;
+use leocard_ui::UiComposer;
 
 #[derive(Resource, Default)]
 pub(in super::super) struct TexasHandGuideState {

@@ -1,8 +1,6 @@
 use super::super::actions::SakuraUiAction;
 use super::page::SakuraPage;
-use crate::app::presentation::{
-    AnchoredPopup, BORDER, MUTED, TEXT, UiComposer, add_avatar, add_text, spawn_node,
-};
+use crate::app::presentation::{BORDER, MUTED, TEXT, add_avatar, add_text};
 use crate::app::shell::{
     CozyButtonVariant, PageMotion, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
     add_cozy_panel,
@@ -11,6 +9,7 @@ use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
+use leocard_ui::{AnchoredPopup, UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(in super::super) struct AccountMenu {

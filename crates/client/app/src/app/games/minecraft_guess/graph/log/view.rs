@@ -1,9 +1,7 @@
 use super::super::super::{MinecraftGuessAssets, MinecraftGuessUiAction};
 use super::message::render_message;
 use super::state::{GraphLog, GraphLogRoot, GraphLogScroll};
-use crate::app::presentation::{
-    CustomButtonMotion, ScrollContentHeight, Scrollbar, SilentButton, UiComposer, spawn_node,
-};
+use crate::app::presentation::SilentButton;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
@@ -11,6 +9,7 @@ use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use bevy::ui_widgets::Button;
 use leocard_protocol::MatchId;
+use leocard_ui::{CustomButtonMotion, ScrollContentHeight, Scrollbar, UiComposer, spawn_node};
 
 pub(super) fn render_log(
     commands: &mut UiComposer,

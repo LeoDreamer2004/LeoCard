@@ -6,10 +6,10 @@ use super::generation::render_generation_notice;
 use super::labels::GraphLabel;
 use super::nodes::add_graph_nodes;
 use super::state::{GraphCanvas, GraphCurve, GraphDragTarget, GraphEdgeLabel, GraphPane};
-use crate::app::presentation::{UiComposer, spawn_node};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
+use leocard_ui::{UiComposer, spawn_node};
 
 impl GuessTable<'_> {
     pub(super) fn graph_pane(&self, commands: &mut UiComposer, workspace: Entity) {

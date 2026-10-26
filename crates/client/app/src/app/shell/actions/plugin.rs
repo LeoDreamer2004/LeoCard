@@ -2,10 +2,10 @@
 
 use super::super::{PageMotion, UiState};
 use super::{ButtonActions, PressedUiAction, UiActionHandler};
-use crate::app::presentation::UiPress;
 use crate::app::runtime::ClientResource;
 use bevy::prelude::*;
 use leocard_protocol::{ClientCommand, GameCommand};
+use leocard_ui::UiPress;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, SystemSet)]
 pub(crate) struct UiActionSet;

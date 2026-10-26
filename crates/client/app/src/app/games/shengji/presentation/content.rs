@@ -1,6 +1,5 @@
-use super::routes::shengji_partner_player;
-
 use super::ShengjiPresentationKind;
+use super::routes::shengji_partner_player;
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, ShengjiSnapshot};
 use leocard_shengji::{ShengjiCard, ShengjiRank, ShengjiSuit};

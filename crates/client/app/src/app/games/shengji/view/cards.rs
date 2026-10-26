@@ -1,10 +1,11 @@
 use super::super::ShengjiFailedThrowCard;
-use crate::app::presentation::{CardSize, HAND_CARD_REVEAL, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{CardSize, HAND_CARD_REVEAL, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{ShengjiSnapshot, ShengjiThrowFailureStage};
 use leocard_shengji::{ShengjiCard, ShengjiRank, ShengjiSuit, ShengjiTrump};
+use leocard_ui::{UiComposer, spawn_node};
 
 #[derive(Clone, Copy)]
 pub(super) enum ShengjiCardSize {

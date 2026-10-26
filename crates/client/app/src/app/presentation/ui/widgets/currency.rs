@@ -1,6 +1,7 @@
-use crate::app::presentation::{ACCENT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::{picking::Pickable, prelude::*};
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn add_coin_balance(
     commands: &mut UiComposer,

@@ -1,9 +1,9 @@
-use crate::app::presentation::UiComposer;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyButtonVariant, NavigationUiAction, UiAction, add_cozy_labeled_icon_button,
 };
 use bevy::prelude::*;
+use leocard_ui::UiComposer;
 
 pub(crate) struct ShopEntry<'a> {
     pub assets: &'a UiAssets,

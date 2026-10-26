@@ -18,7 +18,7 @@ pub(in super::super) fn sync_counter(
         && economy.active(ItemId::QiGui523CardCounter);
     if state.window.active != active {
         state.window.active = active;
-        state.window.grab = None;
+        state.window.drag.grab = None;
         ui.dirty = true;
     }
     if let Some((game, rules)) = game.zip(model.and_then(|model| model.qigui523_rules())) {

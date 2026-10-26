@@ -1,6 +1,6 @@
-use crate::app::presentation::{UiComposer, spawn_node};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn add_table_play_area(
     commands: &mut UiComposer,

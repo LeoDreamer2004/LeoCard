@@ -1,10 +1,11 @@
 use super::super::super::{ConnectionUiAction, UiAction};
-use crate::app::presentation::{ButtonArrows, ButtonHighlight, TEXT, UiComposer, add_text};
+use crate::app::presentation::{ButtonArrows, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
+use leocard_ui::{ButtonHighlight, UiComposer};
 
 pub(super) fn home_panel_image(assets: &UiAssets) -> ImageNode {
     let mut image =

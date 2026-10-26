@@ -15,10 +15,9 @@ use super::{
 use crate::app::presentation::{
     ACCENT, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec,
     StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial,
-    TurnBorderAnimationKey, TurnBorderMaterial, UiComposer, add_auto_play_overlay,
-    add_player_portrait, add_text, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, decorate_panel_skin, spawn_node, table_material_params,
-    ui_component,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay, add_player_portrait,
+    add_text, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
+    decorate_panel_skin, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{
@@ -33,6 +32,7 @@ use leocard_protocol::{
     GameKind, PlayerId, SeatId, ShengjiPhaseView, ShengjiPlayerState, ShengjiPublicPlay,
     ShengjiSnapshot,
 };
+use leocard_ui::{UiComposer, spawn_node, ui_component};
 
 const SHENGJI_PLAYER_COUNT: u8 = 4;
 

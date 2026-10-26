@@ -2,17 +2,17 @@ use super::super::super::{
     MahjongAssets, MahjongTileMaterial, MahjongWinEffect, MahjongWinEffectText,
     MahjongWinEffectTier, mahjong_win_effect_tier, mahjong_win_reveal_duration,
 };
-use crate::app::presentation::{GameSummaryAnimation, UiComposer, add_text, spawn_node};
-use bevy::picking::Pickable;
-
 use super::super::claim::MahjongSeatGeometry;
 use super::{
     WinStageContext, add_win_aura, mahjong_win_effect_color, mahjong_win_effect_visual,
     render_win_stage,
 };
+use crate::app::presentation::{GameSummaryAnimation, add_text};
 use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) struct MahjongWinVisuals<'a> {
     pub assets: &'a UiAssets,

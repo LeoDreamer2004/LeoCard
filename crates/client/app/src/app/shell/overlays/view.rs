@@ -4,12 +4,13 @@ use super::{
     PlayErrorPopup, PlayErrorPopupImage, PlayErrorPopupText, PlayErrorToast,
     play_error_toast_visual,
 };
-use crate::app::presentation::{ACCENT, MUTED, PanelSkin, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, MUTED, PanelSkin, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::add_cozy_panel_with_skin;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) const WARNING_TOAST_TEXT: Color = Color::srgb(0.97, 0.96, 1.0);
 

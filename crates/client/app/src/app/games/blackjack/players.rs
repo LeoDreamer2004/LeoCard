@@ -3,13 +3,14 @@ use super::{
     hands::BlackjackHandSpec, layout::BlackjackSeatLayout,
 };
 use crate::app::presentation::{
-    ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, UiComposer,
+    ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
     add_player_portrait, add_poker_chip_value, add_ready_badge, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, spawn_node,
+    attach_start_game_seat_transition,
 };
 use bevy::prelude::*;
 use leocard_blackjack::Phase;
 use leocard_protocol::{GameKind, SeatId, TABLE_SEAT_COUNT};
+use leocard_ui::{UiComposer, spawn_node};
 
 impl BlackjackTable<'_> {
     pub(super) fn players(&mut self, commands: &mut UiComposer, table: Entity, pile: Entity) {

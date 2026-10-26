@@ -1,11 +1,11 @@
 use super::view::GuessTable;
 use crate::app::presentation::{
-    PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, UiComposer,
-    add_ranked_summary,
+    PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, add_ranked_summary,
 };
 use crate::app::shell::{SummaryActions, add_summary_actions};
 use bevy::prelude::*;
 use leocard_protocol::MinecraftGuessSnapshot;
+use leocard_ui::UiComposer;
 
 pub(crate) fn guess_summary_descriptor(game: &MinecraftGuessSnapshot) -> Option<SummaryDescriptor> {
     (game.round.finished() && game.progress.is_last_game()).then(|| SummaryDescriptor {

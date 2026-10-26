@@ -1,13 +1,12 @@
 use super::super::{TexasHoldemUiAction, TexasHoldemUiState};
 use super::TexasSpectatorUiState;
-use crate::app::presentation::{
-    ACCENT, DrawerSwitch, SwitchDrawer, UiComposer, add_switch_drawer, add_text, spawn_node,
-};
+use crate::app::presentation::{ACCENT, add_switch_drawer, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{SeatSide, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, TexasHoldemSnapshot};
+use leocard_ui::{DrawerSwitch, SwitchDrawer, UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(in super::super) struct TexasWinRateLabel(pub PlayerId);

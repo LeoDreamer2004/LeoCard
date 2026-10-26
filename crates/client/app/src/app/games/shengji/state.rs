@@ -2,13 +2,12 @@
 
 use super::counter::ShengjiCounterUi;
 use super::missing_suits::MissingSuitsUi;
-use crate::app::presentation::{
-    CardAnimationState, CardCounterOwner, CardCounterWindowState, CustomButtonMotion, Observed,
-};
+use crate::app::presentation::{CardAnimationState, Observed};
 use bevy::prelude::*;
 use leocard_client::ShengjiScoreCaptureEffect;
 use leocard_protocol::{MatchId, ShengjiSnapshot, ShengjiThrowFailureStage};
 use leocard_shengji::ShengjiCard;
+use leocard_ui::{CustomButtonMotion, DraggableWindowOwner, DraggableWindowState};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Resource, Default)]
@@ -181,8 +180,8 @@ pub(crate) struct ShengjiHandCardSelectionOverlay {
 #[derive(Component)]
 pub(crate) struct ShengjiSettlementPanelTexture;
 
-impl CardCounterOwner for ShengjiUiState {
-    fn counter_window(&mut self) -> &mut CardCounterWindowState {
-        &mut self.counter.window
+impl DraggableWindowOwner for ShengjiUiState {
+    fn window_state(&mut self) -> &mut DraggableWindowState {
+        &mut self.counter.window.drag
     }
 }

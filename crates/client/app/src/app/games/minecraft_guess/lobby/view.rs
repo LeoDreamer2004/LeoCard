@@ -1,6 +1,5 @@
 use super::super::{MinecraftGuessUiAction, MinecraftGuessUiState};
 use super::rules::render_rule_rows;
-use crate::app::presentation::{UiComposer, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
     CozyDropdown, CozyDropdownOption, LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction,
@@ -9,6 +8,7 @@ use crate::app::shell::{
 use bevy::prelude::*;
 use leocard_minecraft_guess::{GuessMode, MinecraftGuessRuleSet};
 use leocard_protocol::LobbySnapshot;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn render_guess_lobby(
     commands: &mut UiComposer,

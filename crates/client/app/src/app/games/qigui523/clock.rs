@@ -1,8 +1,9 @@
 use super::TurnClockLabel;
-use crate::app::presentation::{UiComposer, add_text};
+use crate::app::presentation::add_text;
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::{GamePhaseView, PlayerId, QiGui523Snapshot, TurnTimerView};
+use leocard_ui::UiComposer;
 
 const CLOCK_COLOR: Color = Color::srgb(0.73, 0.69, 0.94);
 

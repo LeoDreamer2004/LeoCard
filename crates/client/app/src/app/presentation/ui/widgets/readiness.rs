@@ -1,7 +1,9 @@
-use super::{add_text, spawn_node};
-use crate::app::presentation::UiComposer;
-use crate::app::{presentation::READY, runtime::UiAssets};
-use bevy::{picking::Pickable, prelude::*};
+use super::add_text;
+use crate::app::presentation::READY;
+use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
+use bevy::prelude::*;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn add_ready_badge(
     commands: &mut UiComposer,

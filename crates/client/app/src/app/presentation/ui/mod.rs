@@ -1,4 +1,4 @@
-//! 跨页面复用的 UI 主题、组件、材质与控件。
+//! 应用主题、资源适配与跨游戏复用的业务组件。
 
 mod appearance;
 mod components;

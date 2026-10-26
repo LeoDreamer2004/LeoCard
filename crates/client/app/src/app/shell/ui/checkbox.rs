@@ -1,5 +1,5 @@
 #[cfg(not(target_os = "android"))]
-use crate::app::presentation::{TEXT, UiComposer, add_text};
+use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 #[cfg(not(target_os = "android"))]
 use crate::app::shell::UiAction;
@@ -9,6 +9,8 @@ use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 #[cfg(not(target_os = "android"))]
 use bevy::ui_widgets::Button;
+#[cfg(not(target_os = "android"))]
+use leocard_ui::UiComposer;
 
 #[derive(Component)]
 pub(crate) struct CozyCheckbox {

@@ -19,8 +19,7 @@ pub struct ShengjiSnapshot {
     pub rules: ShengjiRuleSet,
     pub players: Vec<ShengjiPlayerState>,
     pub your_hand: Vec<ShengjiCard>,
-    /// 仅向接收者公开其本人此前亮过的物理牌；王在带王亮规则下可以复用，
-    /// 级牌不可复用。用于重连后继续生成正确的亮主候选。
+    /// 仅向接收者公开其本人此前亮过的物理牌；再次亮牌仍以实际手牌为准。
     pub your_exposed_cards: Vec<ShengjiCard>,
     pub levels: [ShengjiRank; 2],
     /// 本局抢亮所使用的级牌。首局无人亮主前庄家尚未公开；首局亮主后随当前

@@ -1,9 +1,10 @@
 //! 个人资料的头像入口。
-use crate::app::presentation::{UiComposer, add_text, avatar_color};
+use crate::app::presentation::{add_text, avatar_color};
 use crate::app::runtime::{AvatarImages, ConnectionDraft, UiAssets};
 use crate::app::shell::{NavigationUiAction, UiAction};
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
+use leocard_ui::UiComposer;
 
 pub(crate) struct ProfileEntry<'a> {
     pub form: &'a ConnectionDraft,

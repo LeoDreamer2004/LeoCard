@@ -5,15 +5,15 @@ use super::super::super::{
     add_cozy_close_button, add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
 };
 use super::super::{ProfileGameTab, ProfileUiState};
-use crate::app::presentation::{TEXT, UiComposer, add_text, spawn_node};
+use super::archive::ProfileArchive;
+use super::identity::ProfileIdentity;
+use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_client::LocalPlayerProfile;
 use leocard_protocol::{PlayerGameProfiles, PlayerGender};
-
-use super::archive::ProfileArchive;
-use super::identity::ProfileIdentity;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) struct ProfileModal<'a> {
     player_name: &'a str,

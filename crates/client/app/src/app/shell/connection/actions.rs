@@ -5,7 +5,6 @@ use super::super::{
     dispatch_domain_actions, start_avatar_picker,
 };
 use super::lan::LanDiscovery;
-use crate::app::presentation::UiComposer;
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, AvatarPicker, ClientResource, ConnectionDraft,
     HostRulePreferences, PageErrorState, save_appearance_preferences, save_connection_draft,
@@ -17,6 +16,7 @@ use bevy::prelude::default;
 use bevy::prelude::*;
 use leocard_client::{LocalPlayerConnection, LocalPlayerProfile, TcpGameClient};
 use leocard_protocol::{GameKind, MAX_PLAYER_NAME_CHARS, PlayerGender};
+use leocard_ui::UiComposer;
 
 #[derive(Clone)]
 pub(crate) enum ConnectionUiAction {

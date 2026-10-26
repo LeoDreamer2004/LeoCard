@@ -1,7 +1,8 @@
-use crate::app::presentation::{ACCENT, HEADER_BG, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, HEADER_BG, TEXT, add_text};
 use crate::app::runtime::{POKER_CHIP_DENOMINATIONS, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) const CHIP_BET_DURATION: f32 = 0.42;
 pub(crate) const CHIP_BET_INTERVAL: f32 = 0.045;

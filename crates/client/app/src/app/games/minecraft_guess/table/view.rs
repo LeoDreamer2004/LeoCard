@@ -4,13 +4,13 @@ use super::cells::{CellSkin, TableCell};
 use super::details::AttributeHint;
 use super::rows::GuessEmptyRows;
 use super::style::ROW_HEIGHT;
-use crate::app::presentation::{Scrollbar, UiComposer, spawn_node};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_minecraft_guess::{
     Catalogue, GuessRecord, GuessResult, MatchQuality, RoundView, ValueDirection,
 };
+use leocard_ui::{Scrollbar, UiComposer, spawn_node};
 
 pub(in super::super) struct TableHistory<'a> {
     pub round: &'a RoundView,

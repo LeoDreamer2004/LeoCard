@@ -2,7 +2,7 @@
 
 use super::TexasHoldemUiAction;
 use crate::app::presentation::{
-    EditableRuleSet, MUTED, RuleConfigRow, UiComposer, add_rule_config_row, add_text,
+    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_text,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
@@ -11,6 +11,7 @@ use crate::app::shell::{
 use bevy::prelude::*;
 use leocard_protocol::{LobbySnapshot, TABLE_SEAT_COUNT};
 use leocard_texas_holdem::TexasHoldemRuleSet;
+use leocard_ui::UiComposer;
 
 type TexasRuleConfigRow<'a> = RuleConfigRow<'a, TexasHoldemRuleSet>;
 
@@ -115,6 +116,31 @@ pub(crate) fn render_texas_holdem_lobby(
                     ..rules_value
                 },
             ),
+        },
+        assets,
+    );
+    let can_double = can_configure && rules_value.squid_markers > 0;
+    let deepseek_toggled = TexasHoldemRuleSet {
+        deepseek_squid_double: !rules_value.deepseek_squid_double,
+        ..rules_value
+    };
+    add_rule_config_row(
+        commands,
+        rules_panel,
+        TexasRuleConfigRow {
+            label: "肥鱼翻倍",
+            value: if rules_value.squid_markers == 0 {
+                "不适用"
+            } else if rules_value.deepseek_squid_double {
+                "开启"
+            } else {
+                "关闭"
+            }
+            .to_owned(),
+            help: "仅在开启鱿鱼时生效。DeepSeek 鱿鱼币每枚按 2BB（4 筹码）结算，普通鱿鱼币仍为 1BB（2 筹码）；筹码不足时按上述权重分配。",
+            editable: can_configure,
+            previous: can_double.then_some(deepseek_toggled),
+            next: can_double.then_some(deepseek_toggled),
         },
         assets,
     );

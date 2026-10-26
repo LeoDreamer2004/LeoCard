@@ -1,8 +1,8 @@
-use crate::app::presentation::UiComposer;
 use bevy::image::{ImageLoaderSettings, ImageSampler};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_minecraft_guess::{Entry, EntryKind};
+use leocard_ui::UiComposer;
 use std::collections::HashMap;
 
 const LAYOUTS: &str =

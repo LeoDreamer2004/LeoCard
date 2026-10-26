@@ -1,11 +1,10 @@
 //! 甩牌失败、退牌与罚分演出。
 
-use std::f32::consts;
-
 use super::{ShengjiFailedThrowCard, ShengjiThrowPenaltyFloat, ShengjiThrowPenaltyScorePulse};
 use crate::app::presentation::{DANGER, ease_out_cubic};
 use bevy::prelude::*;
 use leocard_protocol::ShengjiThrowFailureStage;
+use std::f32::consts;
 
 const SHENGJI_THROW_PENALTY_DELAY: f32 = 0.38;
 const SHENGJI_THROW_PENALTY_DURATION: f32 = 0.58;

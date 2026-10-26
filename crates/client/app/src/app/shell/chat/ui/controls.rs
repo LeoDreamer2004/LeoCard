@@ -1,11 +1,12 @@
 use super::super::*;
 use super::panel::{ChatAuxiliaryAction, add_chat_button_highlight, cozy_chat_button_image};
-use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, SocialUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
+use leocard_ui::UiComposer;
 
 pub(super) fn add_chat_toggle(
     commands: &mut UiComposer,

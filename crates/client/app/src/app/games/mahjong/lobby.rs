@@ -1,6 +1,6 @@
 use super::MahjongUiAction;
 use crate::app::presentation::{
-    EditableRuleSet, MUTED, RuleConfigRow, UiComposer, add_rule_config_row, add_text,
+    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_text,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
@@ -9,6 +9,7 @@ use crate::app::shell::{
 use bevy::prelude::*;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet, MahjongUmaStyle};
 use leocard_protocol::LobbySnapshot;
+use leocard_ui::UiComposer;
 
 type MahjongRuleConfigRow<'a> = RuleConfigRow<'a, MahjongRuleSet>;
 

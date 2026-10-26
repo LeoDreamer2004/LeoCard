@@ -8,13 +8,14 @@ use super::{
     mahjong_own_row_left, mahjong_win_tile_cues, mahjong_winning_hand_progress,
     mark_mahjong_win_tile,
 };
-use crate::app::presentation::{GameSummaryAnimation, UiComposer, spawn_node};
+use crate::app::presentation::GameSummaryAnimation;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongTile;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
+use leocard_ui::{UiComposer, spawn_node};
 
 #[derive(Clone, Copy)]
 pub(super) struct MahjongWinningHandVisual {

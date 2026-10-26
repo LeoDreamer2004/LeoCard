@@ -4,9 +4,8 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, ButtonKind, DANGER, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec, TEXT,
-    TurnBorderAnimationKey, TurnBorderMaterial, UiComposer, add_avatar_status_overlay,
-    add_host_crown, add_player_portrait, add_text, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, spawn_node,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_host_crown, add_player_portrait, add_text,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SocialUiState, UiAction, add_cozy_panel_with_skin};
@@ -15,6 +14,7 @@ use bevy::prelude::*;
 use leocard_protocol::{
     GameKind, PlayerId, UnoPendingSwapView, UnoPhaseView, UnoPlayerState, UnoSnapshot,
 };
+use leocard_ui::{UiComposer, add_avatar_status_overlay, spawn_node};
 use leocard_uno::UnoCard;
 
 const UNO_OPPONENT_HAND_WIDTH: f32 = 172.0;

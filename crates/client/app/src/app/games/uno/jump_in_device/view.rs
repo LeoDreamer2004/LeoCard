@@ -1,9 +1,10 @@
 use super::super::UnoUiAction;
 use super::UnoJumpInDevice;
-use crate::app::presentation::{DrawerSwitch, SwitchDrawer, UiComposer, add_switch_drawer};
+use crate::app::presentation::add_switch_drawer;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
+use leocard_ui::{DrawerSwitch, SwitchDrawer, UiComposer};
 
 pub(in super::super) fn render_jump_in_device(
     commands: &mut UiComposer,

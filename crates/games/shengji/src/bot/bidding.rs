@@ -33,6 +33,14 @@ impl<'a> ShengjiBiddingObservation<'a> {
         self.hand.iter().filter(|card| card.suit() == suit).count()
     }
 
+    fn already_in_current_declaration(&self, card: &ShengjiCard) -> bool {
+        self.bidding.current().is_some_and(|current| {
+            current.player == self.player
+                && current.trump.trump_suit() == card.suit()
+                && current.cards.contains(card)
+        })
+    }
+
     fn permits(&self, declaration: &Declaration) -> bool {
         let Some(dealer) = self.dealer else {
             return true;
@@ -100,7 +108,6 @@ impl<'a> ShengjiBiddingObservation<'a> {
 impl ShengjiBot {
     pub fn declaration(observation: &ShengjiBiddingObservation<'_>) -> Option<Vec<ShengjiCard>> {
         let mut candidates = Vec::new();
-        let exposed = observation.bidding.exposed_cards(observation.player);
         for suit in ShengjiSuit::ALL {
             let levels: Vec<_> = observation
                 .hand
@@ -109,7 +116,7 @@ impl ShengjiBot {
                 .filter(|card| {
                     card.rank() == observation.bidding.level()
                         && card.suit() == Some(suit)
-                        && !exposed.contains(card)
+                        && !observation.already_in_current_declaration(card)
                 })
                 .collect();
             for size in 1..=levels.len() {
@@ -133,7 +140,9 @@ impl ShengjiBot {
                 .hand
                 .iter()
                 .copied()
-                .filter(|card| card.rank() == rank && !exposed.contains(card))
+                .filter(|card| {
+                    card.rank() == rank && !observation.already_in_current_declaration(card)
+                })
                 .collect();
             for size in 1..=cards.len() {
                 candidates.push(cards[..size].to_vec());

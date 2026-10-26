@@ -1,9 +1,9 @@
 use super::*;
 use crate::app::games::uno::{UnoAssets, UnoHandCardButton};
-use crate::app::presentation::UiPress;
 use crate::app::runtime::ClientResource;
 use bevy::audio::Volume;
 use bevy::prelude::*;
+use leocard_ui::UiPress;
 
 pub(crate) fn play_uno_card_selection_sounds(
     mut presses: MessageReader<UiPress>,

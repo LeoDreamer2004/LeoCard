@@ -1,19 +1,18 @@
-use crate::app::presentation::{DESIGN_WIDTH, GameSummaryAnimation, UiComposer, ease_out_cubic};
-use std::f32::consts;
-
 use super::super::{
     MahjongTileHighlight, MahjongTileMaterial, MahjongWinDecoration, MahjongWinDecorationKind,
     MahjongWinEffect, MahjongWinEffectText, MahjongWinEffectTier, MahjongWinFanGlyph,
     MahjongWinScreenShake, MahjongWinStageKind, MahjongWinStagePart, MahjongWinningHand,
     mahjong_win_effect_tier, mahjong_win_reveal_duration, mahjong_win_stage_start,
 };
-
 use super::MAHJONG_WIN_PUSH_DURATION;
 use super::win_view::{
     mahjong_win_effect_color, mahjong_win_effect_elapsed, mahjong_win_effect_visual,
 };
+use crate::app::presentation::{DESIGN_WIDTH, GameSummaryAnimation, ease_out_cubic};
 use bevy::prelude::*;
 use leocard_protocol::{MahjongHandResultView, MahjongWinView};
+use leocard_ui::UiComposer;
+use std::f32::consts;
 
 pub(crate) const MAHJONG_HIGH_SHOWCASE_DELAY: f32 = 0.76;
 

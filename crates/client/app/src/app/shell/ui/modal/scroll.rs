@@ -1,7 +1,7 @@
-use crate::app::presentation::ScrollContentHeight;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
+use leocard_ui::ScrollContentHeight;
 
 pub(crate) fn scroll_modal_content<Marker: Component>(
     mut wheels: MessageReader<MouseWheel>,

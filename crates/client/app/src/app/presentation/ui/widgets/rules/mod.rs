@@ -2,8 +2,6 @@
 
 mod config;
 mod help;
-mod labels;
 
 pub(crate) use config::*;
 pub(crate) use help::*;
-pub(crate) use labels::*;

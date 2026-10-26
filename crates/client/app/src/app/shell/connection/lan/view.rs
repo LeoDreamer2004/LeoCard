@@ -1,8 +1,6 @@
 use super::{LanDiscovery, LanUiState};
 use crate::app::games::SUPPORTED_GAMES;
-use crate::app::presentation::{
-    MUTED, TEXT, UiComposer, UiSceneKey, add_avatar, add_text, spawn_node,
-};
+use crate::app::presentation::{MUTED, TEXT, add_avatar, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     ConnectionUiAction, UiAction, add_cozy_button, add_cozy_close_button, add_cozy_panel,
@@ -12,6 +10,7 @@ use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use bevy::ui_widgets::Button;
 use leocard_client::LanRoom;
+use leocard_ui::{UiComposer, UiSceneKey, spawn_node};
 
 #[derive(Component)]
 pub(crate) struct LanRoomList;

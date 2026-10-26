@@ -1,6 +1,6 @@
 use super::super::super::{MinecraftGuessAssets, MinecraftGuessUiAction};
 use super::table::render_table;
-use crate::app::presentation::{MUTED, TEXT, TextureButton, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, cozy_backdrop_color,
@@ -8,6 +8,7 @@ use crate::app::shell::{
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_ui::{TextureButton, UiComposer, spawn_node};
 
 pub(super) fn render_guide(
     commands: &mut UiComposer,
@@ -92,7 +93,7 @@ pub(super) fn render_guide(
         color: TEXT,
         icon: Some((game_assets.close_icon(), 28.0)),
     }
-    .mount(commands, header, assets);
+    .mount(commands, header, &assets.font);
     let explanation = add_text(
         commands,
         panel,

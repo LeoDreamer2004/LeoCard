@@ -13,9 +13,8 @@ use super::{
 use crate::app::presentation::{
     GameSummaryAnimation, PlayerMenuProfile, PlayerPortraitSpec, StartGameSeatTransition, TEXT,
     TableBackground, TableBackgroundMaterial, TurnBorderAnimationKey, TurnBorderMaterial,
-    UiComposer, add_auto_play_overlay, add_player_portrait, add_text,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition, spawn_node,
-    table_material_params, ui_component,
+    add_auto_play_overlay, add_player_portrait, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 #[cfg(feature = "developer")]
@@ -27,6 +26,7 @@ use crate::app::shell::{
 use bevy::prelude::*;
 use leocard_protocol::{GameKind, GamePhaseView, QiGui523Snapshot, SeatId, TABLE_SEAT_COUNT};
 use leocard_qigui523::QiGuiPlayKind;
+use leocard_ui::{UiComposer, spawn_node, ui_component};
 
 pub(crate) struct TableVisualContext<'a> {
     pub assets: &'a UiAssets,

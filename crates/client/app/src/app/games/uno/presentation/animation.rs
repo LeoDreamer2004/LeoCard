@@ -1,14 +1,12 @@
-use std::f32::consts;
-
 use super::super::{
     UNO_FLYING_CARD_HEIGHT, UNO_FLYING_CARD_WIDTH, UNO_PALETTE_EFFECT_DURATION, UnoFlipCard,
     UnoFlipOverlay, UnoFlyingCard, UnoPaletteColorRing, UnoPaletteEffect, UnoPaletteMaterial,
     UnoPaletteParticle, UnoPaletteSelectedSector, UnoReverseArrow,
 };
 use super::reverse::quadratic_bezier;
-
 use crate::app::presentation::ease_out_cubic;
 use bevy::prelude::*;
+use std::f32::consts;
 
 pub(crate) fn animate_uno_flying_cards(
     time: Res<Time>,

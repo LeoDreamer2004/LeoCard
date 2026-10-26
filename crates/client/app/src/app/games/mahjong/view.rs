@@ -15,9 +15,8 @@ use super::{
     render_round_status,
 };
 use crate::app::presentation::{
-    CustomButtonMotion, DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition,
-    TableBackground, TableBackgroundMaterial, UiComposer, add_auto_play_overlay, spawn_node,
-    table_material_params, ui_component,
+    DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition, TableBackground,
+    TableBackgroundMaterial, add_auto_play_overlay, table_material_params,
 };
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, ClientResource, TableAppearance, UiAssets,
@@ -37,6 +36,7 @@ use leocard_protocol::{
     MahjongEvent, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MahjongWinView,
     MatchId, PlayerId,
 };
+use leocard_ui::{CustomButtonMotion, UiComposer, spawn_node, ui_component};
 use std::collections::VecDeque;
 
 pub(super) const MAHJONG_CLAIM_FLIGHT_DELAY: f32 = 0.18;

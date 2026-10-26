@@ -2,12 +2,13 @@ use super::BlackjackTable;
 use super::cards::{BlackjackCardSpec, add_card};
 use super::playback::BlackjackCardSlot;
 use crate::app::presentation::{
-    ACCENT, TableStatusEffect, TableStatusSpec, UiComposer, add_playing_card_pile,
-    add_table_play_area, add_table_status, spawn_node,
+    ACCENT, TableStatusEffect, TableStatusSpec, add_playing_card_pile, add_table_play_area,
+    add_table_status,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_blackjack::HandValue;
+use leocard_ui::{UiComposer, spawn_node};
 
 impl BlackjackTable<'_> {
     pub(super) fn dealer(&self, commands: &mut UiComposer, table: Entity) -> Entity {

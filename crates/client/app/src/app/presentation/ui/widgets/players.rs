@@ -1,10 +1,7 @@
 //! 玩家框、头像、准备标记和房主标记。
 
 use super::super::{BORDER, MUTED, READY, TEXT};
-use super::{
-    AnchoredPopup, TextureButton, add_ready_badge, add_text, sliced_image, spawn_node, text_scene,
-};
-use crate::app::presentation::{UiComposer, UiSceneKey, ui_component};
+use super::{add_ready_badge, add_text, text_scene};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction, OpponentBadge,
@@ -15,6 +12,9 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_protocol::{PlayerGameProfiles, PlayerId, PlayerInteractionKind};
+use leocard_ui::{
+    AnchoredPopup, TextureButton, UiComposer, UiSceneKey, sliced_image, spawn_node, ui_component,
+};
 
 #[track_caller]
 pub(crate) fn add_avatar(
@@ -332,7 +332,7 @@ pub(crate) fn add_interaction_menu(
             color: TEXT,
             icon: Some((icon, 36.0)),
         }
-        .mount(commands, actions, assets)
+        .mount(commands, actions, &assets.font)
         .0;
         if matches!(
             kind,

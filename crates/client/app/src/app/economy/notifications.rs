@@ -1,6 +1,4 @@
-use crate::app::presentation::{
-    TransitionVisuals, UiComposer, add_text, ease_out_cubic, fade_panel,
-};
+use crate::app::presentation::{add_text, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use bevy::{
     picking::Pickable,
@@ -8,6 +6,7 @@ use bevy::{
     ui::{BackgroundGradient, ColorStop, LinearGradient},
 };
 use leocard_client::PlayerEconomy;
+use leocard_ui::{TransitionVisuals, UiComposer, fade_panel};
 use std::collections::VecDeque;
 
 const WIDTH: f32 = 280.0;

@@ -1,7 +1,8 @@
 use super::super::view::GuessTable;
-use crate::app::presentation::{ACCENT, MUTED, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text};
 use bevy::prelude::*;
 use leocard_minecraft_guess::GraphNodeView;
+use leocard_ui::{UiComposer, spawn_node};
 
 impl GuessTable<'_> {
     pub(super) fn graph_heading(

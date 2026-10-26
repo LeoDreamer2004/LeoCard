@@ -1,12 +1,13 @@
 use super::{BlackjackTable, BlackjackUiAction};
 use crate::app::presentation::{
-    ACCENT, GameButtonImageMode, GameButtonSpec, GameButtonTone, PanelSkin, TEXT, UiComposer,
-    add_text, add_textured_game_button, decorate_panel_skin, spawn_node,
+    ACCENT, GameButtonImageMode, GameButtonSpec, GameButtonTone, PanelSkin, TEXT, add_text,
+    add_textured_game_button, decorate_panel_skin,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{LobbyUiAction, UiAction, add_cozy_button};
 use bevy::prelude::*;
 use leocard_blackjack::{BlackjackAction, Phase};
+use leocard_ui::{UiComposer, spawn_node};
 
 impl BlackjackTable<'_> {
     pub(super) fn controls(&self, commands: &mut UiComposer, table: Entity) {

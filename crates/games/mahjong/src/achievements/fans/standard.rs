@@ -69,7 +69,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
     ),
     fan!(
         "outside_hand",
-        "拖衣带水",
+        "拖泥带水",
         Bronze,
         OutsideHand,
         "和出番种「全带幺」"

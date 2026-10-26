@@ -2,10 +2,11 @@
 
 use super::layer::{add_screen_layer, shade_color};
 use super::lobby_game::LobbyGameShade;
-use crate::app::presentation::{TransitionVisuals, UiComposer, UiRoot, ease_out_cubic, fade_panel};
+use crate::app::presentation::{UiRoot, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
+use leocard_ui::{TransitionVisuals, UiComposer, fade_panel};
 
 const PAGE_EXIT_DURATION: f32 = 0.24;
 const PAGE_ENTER_DURATION: f32 = 0.38;

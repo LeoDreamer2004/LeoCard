@@ -6,14 +6,13 @@ use super::{
     handle_card_drag_selection, queue_deal_animations, sync_card_drag_preview,
     sync_own_score_detail, sync_play_effect, sync_selection_label, sync_turn_timer_label,
 };
-use crate::app::presentation::{
-    drag_card_counter_window, play_pending_deal_sounds, start_game_intro_finished,
-};
+use crate::app::presentation::{play_pending_deal_sounds, start_game_intro_finished};
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::{
     ScoreCaptureEffectState, UiActionSet, animate_score_capture_effects, sync_score_capture_effect,
 };
 use bevy::prelude::*;
+use leocard_ui::drag_draggable_window;
 
 pub(crate) struct QiGui523Plugin;
 
@@ -30,7 +29,7 @@ impl Plugin for QiGui523Plugin {
             .add_systems(
                 Update,
                 (
-                    drag_card_counter_window::<QiGui523UiState>,
+                    drag_draggable_window::<QiGui523UiState>,
                     handle_card_drag_selection,
                     animate_hand_card_slots,
                 )

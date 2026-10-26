@@ -1,12 +1,13 @@
 use super::super::playback::SETTLEMENT_CHIP_DURATION;
 use crate::app::presentation::{
     CHIP_BET_DURATION, CHIP_BET_INTERVAL, DANGER, MUTED, PokerChipScatter, READY, TablePieceDeal,
-    TableStatusEffect, TableStatusSpec, UiComposer, UiSceneProperties, add_poker_chip,
-    add_table_status, poker_chip_counts, table_random_signed,
+    TableStatusEffect, TableStatusSpec, add_poker_chip, add_table_status, poker_chip_counts,
+    table_random_signed,
 };
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_ui::{UiComposer, UiSceneProperties};
 use std::iter::repeat_n;
 
 pub(in super::super) struct BlackjackWagerSpec {

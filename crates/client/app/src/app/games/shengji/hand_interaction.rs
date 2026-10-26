@@ -1,9 +1,10 @@
 use super::{ShengjiHandCardSelectionOverlay, ShengjiHandCardSlot, ShengjiUiState};
-use crate::app::presentation::{CardDragSelection, drag_preview_color, update_drag_selection};
+use crate::app::presentation::{drag_preview_color, update_drag_selection};
 use crate::app::shell::UiState;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
+use leocard_ui::CardDragSelection;
 
 pub(crate) fn handle_shengji_card_drag_selection(
     mouse: Res<ButtonInput<MouseButton>>,

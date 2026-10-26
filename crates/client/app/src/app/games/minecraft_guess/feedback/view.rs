@@ -1,10 +1,11 @@
 use super::super::assets::EntryIcons;
 use super::super::view::GuessTable;
 use super::visuals::{RevealPanel, RevealPixel};
-use crate::app::presentation::{ACCENT, MUTED, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_minecraft_guess::GuessMode;
+use leocard_ui::{UiComposer, spawn_node};
 
 impl GuessTable<'_> {
     pub(in super::super) fn answer(

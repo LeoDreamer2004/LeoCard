@@ -2,19 +2,19 @@
 
 use super::*;
 use crate::app::presentation::{
-    ACCENT, DANGER, PanelSkin, PlayerMenuProfile, READY, TEXT, UiComposer, add_avatar, add_text,
-    attach_player_interactions, decorate_panel_skin, spawn_node,
+    ACCENT, DANGER, PanelSkin, PlayerMenuProfile, READY, TEXT, add_avatar, add_text,
+    attach_player_interactions, decorate_panel_skin,
 };
-use bevy::picking::Pickable;
-
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button, add_cozy_button_variant,
     add_cozy_disabled_button,
 };
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongMatchLength;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) struct FinalSummaryView<'a> {
     pub game: &'a MahjongSnapshot,

@@ -8,8 +8,8 @@ use super::{
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT, TableBackground,
-    TableBackgroundMaterial, TurnBorderMaterial, UiComposer, add_auto_play_overlay,
-    add_playing_card_pile, add_text, spawn_node, table_material_params, ui_component,
+    TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay, add_playing_card_pile,
+    add_text, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{
@@ -19,6 +19,7 @@ use crate::app::shell::{
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemSnapshot};
+use leocard_ui::{UiComposer, spawn_node, ui_component};
 
 pub(crate) struct TexasTableVisuals<'a> {
     pub assets: &'a UiAssets,

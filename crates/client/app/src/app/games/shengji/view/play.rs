@@ -7,9 +7,7 @@ use super::{
     ShengjiCardSize, add_shengji_bottom_copy_decision, add_shengji_card_row,
     add_shengji_failed_throw_card_row, shengji_display_trump, shengji_rank_label,
 };
-use crate::app::presentation::{
-    ACCENT, DANGER, HEADER_BG, MUTED, TEXT, UiComposer, add_text, spawn_node,
-};
+use crate::app::presentation::{ACCENT, DANGER, HEADER_BG, MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::SeatSide;
 use bevy::picking::Pickable;
@@ -19,6 +17,7 @@ use leocard_protocol::{
     PlayerId, ShengjiPhaseView, ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureStage,
 };
 use leocard_shengji::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiSuit};
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) fn add_shengji_play_area(
     commands: &mut UiComposer,

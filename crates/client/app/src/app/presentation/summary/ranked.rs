@@ -4,14 +4,15 @@ use crate::app::presentation::{
     ACCENT, AnimatedSummaryScore, DANGER, GameSummaryActions, GameSummaryAnimation,
     GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, PANEL_ALT, PanelSkin,
     PlayerMenuProfile, READY, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL,
-    SUMMARY_ROW_START_DELAY, TEXT, UiComposer, add_animated_summary_text, add_ready_avatar,
-    animated_summary_score, decorate_panel_skin, sorted_summary_scores, spawn_node,
-    summary_modal_visual, summary_row_progress,
+    SUMMARY_ROW_START_DELAY, TEXT, add_animated_summary_text, add_ready_avatar,
+    animated_summary_score, decorate_panel_skin, sorted_summary_scores, summary_modal_visual,
+    summary_row_progress,
 };
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, PlayerReferenceChange, PlayerScore};
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) struct SummaryPlayer<'a> {
     pub id: PlayerId,

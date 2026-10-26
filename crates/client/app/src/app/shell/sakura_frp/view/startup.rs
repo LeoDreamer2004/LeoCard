@@ -1,6 +1,6 @@
 use super::super::actions::SakuraUiAction;
 use super::super::state::SakuraState;
-use crate::app::presentation::{MUTED, ProgressBar, TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, ModalAnimations, UiAction, UiState,
@@ -9,6 +9,7 @@ use crate::app::shell::{
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_sakura_frp::FrpcProgress;
+use leocard_ui::{ProgressBar, UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(in super::super) struct StartupStatusText;

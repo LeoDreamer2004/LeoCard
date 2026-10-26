@@ -11,6 +11,7 @@ mod lobby;
 mod missing_suits;
 mod plugin;
 mod presentation;
+mod screen;
 mod settlement;
 mod skin;
 mod snapshot;
@@ -30,3 +31,5 @@ pub(crate) use snapshot::*;
 pub(crate) use state::*;
 pub(crate) use throw_feedback::*;
 pub(crate) use view::*;
+
+pub(super) use screen::ShengjiScreen;

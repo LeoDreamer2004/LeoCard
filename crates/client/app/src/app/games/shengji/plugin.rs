@@ -15,10 +15,11 @@ use super::{
     sync_shengji_presentation, sync_shengji_score_capture_effect, sync_shengji_score_tray_hover,
     update_shengji_settlement_animation,
 };
-use crate::app::presentation::{drag_card_counter_window, start_game_intro_finished};
+use crate::app::presentation::start_game_intro_finished;
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::UiActionSet;
 use bevy::prelude::*;
+use leocard_ui::drag_draggable_window;
 
 pub(crate) struct ShengjiPlugin;
 
@@ -39,7 +40,7 @@ impl Plugin for ShengjiPlugin {
             .add_systems(
                 Update,
                 (
-                    drag_card_counter_window::<ShengjiUiState>,
+                    drag_draggable_window::<ShengjiUiState>,
                     handle_shengji_card_drag_selection,
                     sync_shengji_card_drag_preview,
                 )

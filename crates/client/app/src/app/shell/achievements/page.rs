@@ -1,10 +1,11 @@
 use super::super::{NavigationUiAction, PageTransitionElement, UiAction, add_page_back_title};
-use crate::app::presentation::{TEXT, UiComposer, add_text, spawn_node};
+use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_achievements::AchievementCategory;
 use leocard_client::PlayerAchievements;
+use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) struct AchievementsPage<'a> {
     pub(super) selected: AchievementCategory,

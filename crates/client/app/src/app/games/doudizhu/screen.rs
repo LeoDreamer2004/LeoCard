@@ -55,7 +55,7 @@ impl GameScreen for DoudizhuScreen<'_> {
             DoudizhuTable {
                 client: context.client,
                 game,
-                ui: &self.ui,
+                ui: &mut self.ui,
                 social: context.social,
                 chat: context.chat,
                 assets: context.assets,
@@ -64,6 +64,7 @@ impl GameScreen for DoudizhuScreen<'_> {
                 brightness: context.form.table_brightness,
                 vignette: context.form.table_vignette,
                 table_materials: context.table_materials,
+                turn_materials: context.turn_border_materials,
                 summary: context.game_summary,
                 transition: context.transition,
             },

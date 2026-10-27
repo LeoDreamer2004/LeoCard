@@ -19,7 +19,7 @@ impl GameState {
         let mut draw_pile = VecDeque::from(deck);
         let mut players = (0..player_count)
             .map(|index| PlayerState {
-                id: UnoPlayerId(index),
+                id: UnoPlayerId(usize::from(index)),
                 hand: Vec::with_capacity(usize::from(UnoRuleSet::HAND_SIZE)),
                 eliminated: false,
             })
@@ -69,9 +69,9 @@ impl GameState {
             pending_skip_everyone: false,
             pending_skip_source: None,
             skip_effect_targets: Vec::new(),
-            skip_turns: vec![0; player_count],
-            uno_exposed: vec![false; player_count],
-            uno_declared: vec![false; player_count],
+            skip_turns: vec![0; usize::from(player_count)],
+            uno_exposed: vec![false; usize::from(player_count)],
+            uno_declared: vec![false; usize::from(player_count)],
             jump_in_open: false,
             pending_swap: None,
             pending_finisher: None,

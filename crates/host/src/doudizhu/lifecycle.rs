@@ -57,6 +57,8 @@ impl HostedGameLifecycle for DoudizhuSession {
                     Err(RejectReason::Game(GameViolation::GameAlreadyStarted))
                 } else if self.room.host_connection != Some(connection) {
                     Err(RejectReason::Room(RoomViolation::OnlyHostCanConfigure))
+                } else if !rules.is_valid() {
+                    Err(RejectReason::Game(GameViolation::InvalidRuleConfiguration))
                 } else if self.room.players.iter().filter(|p| !p.left).count()
                     > usize::from(rules.mode.players())
                 {
@@ -133,7 +135,7 @@ impl HostedGameLifecycle for DoudizhuSession {
         for (i, p) in self.room.players.iter_mut().enumerate() {
             p.id = PlayerId(i as u8);
         }
-        self.start_round();
+        self.begin_match();
         self.room.bump_revision();
         self.broadcast_game(Some((connection, request)))
     }
@@ -147,9 +149,9 @@ impl HostedGameLifecycle for DoudizhuSession {
             );
         }
         if self
-            .game
+            .match_state
             .as_ref()
-            .is_none_or(|g| g.phase != Phase::Finished)
+            .is_none_or(|state| !state.complete())
         {
             return self.room.reject(
                 connection,
@@ -159,6 +161,8 @@ impl HostedGameLifecycle for DoudizhuSession {
         }
         self.game = None;
         self.match_id = None;
+        self.match_state = None;
+        self.finished_reference_changes = None;
         self.deck = None;
         self.room.remove_bots();
         self.room.remove_departed_players();
@@ -193,13 +197,8 @@ impl HostedGameLifecycle for DoudizhuSession {
             );
         };
         self.room.players[usize::from(player.0)].ready = true;
-        if self
-            .room
-            .players
-            .iter()
-            .all(|p| !p.left && (p.ready || p.is_bot))
-        {
-            self.start_round();
+        if self.everyone_ready() {
+            self.continue_match();
         }
         self.room.bump_revision();
         self.broadcast_game(Some((connection, request)))

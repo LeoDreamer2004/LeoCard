@@ -28,11 +28,7 @@ impl BlackjackSession {
     ) -> Result<Self, HostError> {
         GameState::new(rules, 1, shoe.clone())?;
         Ok(Self {
-            room: RoomSession::new(
-                room_id,
-                host_port,
-                usize::from(BlackjackRuleSet::MAX_PLAYERS),
-            ),
+            room: RoomSession::new(room_id, host_port, BlackjackRuleSet::MAX_PLAYERS),
             rules,
             game: None,
             match_id: None,

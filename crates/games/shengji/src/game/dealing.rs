@@ -11,13 +11,12 @@ impl GameState {
             .iter()
             .map(|player| player.hand.len())
             .sum::<usize>();
-        if dealt == ShengjiRuleSet::PLAYER_COUNT * self.rules.hand_size() {
+        if dealt == usize::from(ShengjiRuleSet::PLAYER_COUNT) * self.rules.hand_size() {
             self.phase = Phase::BiddingGrace;
             return Ok(ActionOutcome::DealComplete);
         }
         let player = ShengjiPlayerId(
-            (usize::from(self.first_recipient.0) + dealt) as u8
-                % ShengjiRuleSet::PLAYER_COUNT as u8,
+            (usize::from(self.first_recipient.0) + dealt) as u8 % ShengjiRuleSet::PLAYER_COUNT,
         );
         let card = self
             .deck

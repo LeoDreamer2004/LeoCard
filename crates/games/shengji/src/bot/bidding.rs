@@ -45,7 +45,7 @@ impl<'a> ShengjiBiddingObservation<'a> {
         let Some(dealer) = self.dealer else {
             return true;
         };
-        let total = self.rules.hand_size() * ShengjiRuleSet::PLAYER_COUNT;
+        let total = self.rules.hand_size() * usize::from(ShengjiRuleSet::PLAYER_COUNT);
         let complete = self.dealt >= total;
         let current = self.bidding.current();
         let protecting = current.is_some_and(|current| {

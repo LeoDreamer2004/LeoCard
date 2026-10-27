@@ -138,8 +138,8 @@ pub(super) enum ClaimTrigger {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PendingClaim {
     pub(super) trigger: ClaimTrigger,
-    pub(super) options: [Vec<MahjongClaimOption>; MahjongRuleSet::PLAYER_COUNT],
-    pub(super) responses: [Option<MahjongClaim>; MahjongRuleSet::PLAYER_COUNT],
+    pub(super) options: [Vec<MahjongClaimOption>; MahjongRuleSet::PLAYER_COUNT as usize],
+    pub(super) responses: [Option<MahjongClaim>; MahjongRuleSet::PLAYER_COUNT as usize],
 }
 
 impl PendingClaim {
@@ -169,7 +169,7 @@ impl PendingClaim {
     }
 
     pub fn waiting_for(&self) -> Vec<MahjongPlayerId> {
-        (0..MahjongRuleSet::PLAYER_COUNT)
+        (0..usize::from(MahjongRuleSet::PLAYER_COUNT))
             .filter(|index| !self.options[*index].is_empty() && self.responses[*index].is_none())
             .map(MahjongPlayerId)
             .collect()
@@ -202,8 +202,8 @@ pub struct HandResult {
     pub exhaustive_draw: bool,
     pub match_length: MahjongMatchLength,
     pub match_progress: MahjongMatchProgress,
-    pub deltas: [i32; MahjongRuleSet::PLAYER_COUNT],
-    pub match_scores: [i32; MahjongRuleSet::PLAYER_COUNT],
+    pub deltas: [i32; MahjongRuleSet::PLAYER_COUNT as usize],
+    pub match_scores: [i32; MahjongRuleSet::PLAYER_COUNT as usize],
     pub match_complete: bool,
     pub sequence_index: u8,
 }
@@ -246,7 +246,7 @@ pub enum ActionOutcome {
     },
     FalseWin {
         player: MahjongPlayerId,
-        deltas: [i32; MahjongRuleSet::PLAYER_COUNT],
+        deltas: [i32; MahjongRuleSet::PLAYER_COUNT as usize],
     },
     HandFinished(HandResult),
 }

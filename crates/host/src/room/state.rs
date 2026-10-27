@@ -63,23 +63,23 @@ impl RoomSession {
         self.broadcast_event(None, ServerEvent::Heartbeat)
     }
 
-    pub(crate) fn new(room_id: RoomId, host_port: u16, capacity: usize) -> Self {
+    pub(crate) fn new(room_id: RoomId, host_port: u16, capacity: u8) -> Self {
         Self::new_with_seat_count(room_id, host_port, capacity, TABLE_SEAT_COUNT)
     }
 
     pub(crate) fn new_with_seat_count(
         room_id: RoomId,
         host_port: u16,
-        capacity: usize,
+        capacity: u8,
         seat_count: u8,
     ) -> Self {
-        assert!(seat_count > 0 && capacity <= usize::from(seat_count));
+        assert!(seat_count > 0 && capacity <= seat_count);
         Self {
             achievements: RoomAchievements::default(),
             activity: RoomActivity::default(),
             room_id,
             host_port,
-            players: Vec::with_capacity(capacity),
+            players: Vec::with_capacity(usize::from(capacity)),
             spectators: Vec::new(),
             host_connection: None,
             last_requests: HashMap::new(),

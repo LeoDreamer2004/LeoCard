@@ -11,7 +11,7 @@ use std::{array, collections::VecDeque};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GameState {
     pub(super) rules: MahjongRuleSet,
-    pub(super) players: [PlayerState; MahjongRuleSet::PLAYER_COUNT],
+    pub(super) players: [PlayerState; MahjongRuleSet::PLAYER_COUNT as usize],
     pub(super) wall: VecDeque<MahjongTile>,
     pub(super) discards: Vec<Discard>,
     pub(super) initial_dealer: MahjongPlayerId,
@@ -22,8 +22,8 @@ pub struct GameState {
     pub(super) current_player: MahjongPlayerId,
     pub(super) last_drawn: Option<MahjongTile>,
     pub(super) draw_origin: MahjongDrawOrigin,
-    pub(super) hand_deltas: [i32; MahjongRuleSet::PLAYER_COUNT],
-    pub(super) match_scores: [i32; MahjongRuleSet::PLAYER_COUNT],
+    pub(super) hand_deltas: [i32; MahjongRuleSet::PLAYER_COUNT as usize],
+    pub(super) match_scores: [i32; MahjongRuleSet::PLAYER_COUNT as usize],
     pub(super) phase: Phase,
 }
 
@@ -58,8 +58,8 @@ impl GameState {
             current_player: initial_dealer,
             last_drawn: None,
             draw_origin: MahjongDrawOrigin::Normal,
-            hand_deltas: [0; MahjongRuleSet::PLAYER_COUNT],
-            match_scores: [0; MahjongRuleSet::PLAYER_COUNT],
+            hand_deltas: [0; MahjongRuleSet::PLAYER_COUNT as usize],
+            match_scores: [0; MahjongRuleSet::PLAYER_COUNT as usize],
             phase: Phase::Dealing { batch: 0 },
         };
         Ok(game)
@@ -69,7 +69,7 @@ impl GameState {
         &self.rules
     }
 
-    pub fn players(&self) -> &[PlayerState; MahjongRuleSet::PLAYER_COUNT] {
+    pub fn players(&self) -> &[PlayerState; MahjongRuleSet::PLAYER_COUNT as usize] {
         &self.players
     }
 
@@ -141,14 +141,14 @@ impl GameState {
         &self.phase
     }
 
-    pub const fn match_scores(&self) -> &[i32; MahjongRuleSet::PLAYER_COUNT] {
+    pub const fn match_scores(&self) -> &[i32; MahjongRuleSet::PLAYER_COUNT as usize] {
         &self.match_scores
     }
 
     pub fn seat_wind(&self, player: MahjongPlayerId) -> Option<MahjongWind> {
         validate_player(player).ok()?;
-        let distance = (player.0 + MahjongRuleSet::PLAYER_COUNT - self.dealer.0)
-            % MahjongRuleSet::PLAYER_COUNT;
+        let distance = (player.0 + usize::from(MahjongRuleSet::PLAYER_COUNT) - self.dealer.0)
+            % usize::from(MahjongRuleSet::PLAYER_COUNT);
         Some(MahjongWind::ALL[distance])
     }
 
@@ -174,7 +174,7 @@ impl GameState {
 }
 
 pub(super) fn validate_player(player: MahjongPlayerId) -> Result<(), GameError> {
-    (player.0 < MahjongRuleSet::PLAYER_COUNT)
+    (player.0 < usize::from(MahjongRuleSet::PLAYER_COUNT))
         .then_some(())
         .ok_or(GameError::InvalidPlayer(player))
 }
@@ -190,11 +190,11 @@ pub(super) fn claim_priority(
         MahjongClaim::Chow { .. } => 1,
         MahjongClaim::Pass => 0,
     };
-    let distance =
-        (player.0 + MahjongRuleSet::PLAYER_COUNT - source.0) % MahjongRuleSet::PLAYER_COUNT;
+    let distance = (player.0 + usize::from(MahjongRuleSet::PLAYER_COUNT) - source.0)
+        % usize::from(MahjongRuleSet::PLAYER_COUNT);
     ClaimPriority {
         category,
-        proximity: MahjongRuleSet::PLAYER_COUNT as u8 - distance as u8,
+        proximity: MahjongRuleSet::PLAYER_COUNT - distance as u8,
     }
 }
 
@@ -217,10 +217,11 @@ pub(super) fn validate_deck(deck: &[MahjongTile]) -> Result<(), GameError> {
 }
 
 pub(super) const fn next_player(player: MahjongPlayerId) -> MahjongPlayerId {
-    MahjongPlayerId((player.0 + 1) % MahjongRuleSet::PLAYER_COUNT)
+    MahjongPlayerId((player.0 + 1) % MahjongRuleSet::PLAYER_COUNT as usize)
 }
 
 pub(super) fn players_after(player: MahjongPlayerId) -> impl Iterator<Item = MahjongPlayerId> {
-    (1..MahjongRuleSet::PLAYER_COUNT)
-        .map(move |offset| MahjongPlayerId((player.0 + offset) % MahjongRuleSet::PLAYER_COUNT))
+    (1..usize::from(MahjongRuleSet::PLAYER_COUNT)).map(move |offset| {
+        MahjongPlayerId((player.0 + offset) % usize::from(MahjongRuleSet::PLAYER_COUNT))
+    })
 }

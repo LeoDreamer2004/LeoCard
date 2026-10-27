@@ -10,20 +10,20 @@ impl<'a> LobbyMetrics<'a> {
         Self { lobby }
     }
 
-    pub(super) fn connected_player_count(&self) -> usize {
+    pub(super) fn connected_player_count(&self) -> u8 {
         self.lobby
             .players
             .iter()
             .filter(|player| player.connected)
-            .count()
+            .count() as u8
     }
 
-    pub(super) fn ready_player_count(&self) -> usize {
+    pub(super) fn ready_player_count(&self) -> u8 {
         self.lobby
             .players
             .iter()
             .filter(|player| player.connected && player.ready)
-            .count()
+            .count() as u8
     }
 
     pub(super) fn seat_count(&self) -> u8 {

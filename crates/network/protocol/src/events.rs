@@ -210,6 +210,9 @@ pub enum QiGui523Event {
         player: PlayerId,
         play: PublicPlay,
     },
+    Passed {
+        player: PlayerId,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

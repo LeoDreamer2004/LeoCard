@@ -68,7 +68,7 @@ pub(crate) fn render_uno_lobby(
     render_uno_rule_rows(commands, rules_panel, rules, can_configure, assets);
     add_expansion_button(commands, rules_panel, assets);
 
-    let can_start = connected_count >= usize::from(UnoRuleSet::MIN_PLAYERS)
+    let can_start = connected_count >= UnoRuleSet::MIN_PLAYERS
         && lobby
             .players
             .iter()

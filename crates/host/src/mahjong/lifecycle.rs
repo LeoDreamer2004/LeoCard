@@ -32,7 +32,7 @@ impl MahjongSession {
                 room_id,
                 host_port,
                 MahjongRuleSet::PLAYER_COUNT,
-                MahjongRuleSet::PLAYER_COUNT as u8,
+                MahjongRuleSet::PLAYER_COUNT,
             ),
             rules,
             shuffled_deck: Some(shuffled_deck),
@@ -221,7 +221,7 @@ impl HostedGameLifecycle for MahjongSession {
     }
 
     fn capacity(&self) -> u8 {
-        MahjongRuleSet::PLAYER_COUNT as u8
+        MahjongRuleSet::PLAYER_COUNT
     }
 
     fn game_rules(&self) -> GameRules {
@@ -274,12 +274,12 @@ impl HostedGameLifecycle for MahjongSession {
             .iter()
             .filter(|player| !player.left)
             .count();
-        if active != MahjongRuleSet::PLAYER_COUNT {
+        if active != usize::from(MahjongRuleSet::PLAYER_COUNT) {
             return self.room.reject(
                 connection,
                 request_id,
                 RejectReason::Room(RoomViolation::WaitingForPlayers {
-                    expected: MahjongRuleSet::PLAYER_COUNT as u8,
+                    expected: MahjongRuleSet::PLAYER_COUNT,
                     actual: active as u8,
                 }),
             );
@@ -411,7 +411,7 @@ impl HostedGameLifecycle for MahjongSession {
         }
         self.room.bump_revision();
         let mut active = self.room.players.iter().filter(|player| !player.left);
-        if active.clone().count() == MahjongRuleSet::PLAYER_COUNT
+        if active.clone().count() == usize::from(MahjongRuleSet::PLAYER_COUNT)
             && active.all(|player| player.ready)
         {
             return self.start_next_hand(Some((connection, request_id)));

@@ -5,13 +5,12 @@ use leocard_protocol::{
     MatchId, PlayerId, ShengjiBottomCopyDecisionView, ShengjiThrowFailureStage,
 };
 use leocard_shengji::{
-    BottomFlipReveal, GameState, ShengjiCard, ShengjiClassifiedPlay, ShengjiPlayerId,
-    ShengjiRuleSet, TeamProgress, TrickRecord,
+    BottomFlipReveal, GameState, ShengjiBotAction, ShengjiBotObservation, ShengjiCard,
+    ShengjiClassifiedPlay, ShengjiPlayerId, ShengjiRuleSet, TeamProgress, TrickRecord,
 };
-use leocard_shengji::{ShengjiBotAction, ShengjiBotObservation};
 use std::time::Duration;
 
-pub(super) const PLAYER_COUNT: u8 = ShengjiRuleSet::PLAYER_COUNT as u8;
+pub(super) const PLAYER_COUNT: u8 = ShengjiRuleSet::PLAYER_COUNT;
 pub(super) const DEAL_INTERVAL: Duration = Duration::from_millis(100);
 pub(super) const BIDDING_GRACE: Duration = Duration::from_secs(5);
 pub(super) const POWER_OUTAGE_BIDDING_GRACE: Duration = Duration::from_secs(10);
@@ -38,7 +37,7 @@ pub(super) struct HeldThrowFailure {
 pub(super) struct HandFlowState {
     pub(super) deal_elapsed: Duration,
     pub(super) bidding_remaining: Option<Duration>,
-    pub(super) bid_pass_confirmed: [bool; ShengjiRuleSet::PLAYER_COUNT],
+    pub(super) bid_pass_confirmed: [bool; ShengjiRuleSet::PLAYER_COUNT as usize],
     pub(super) bottom_flip_reveal: Option<BottomFlipReveal>,
     pub(super) bottom_flip_remaining: Option<Duration>,
     pub(super) bottom_copy_remaining: Option<Duration>,
@@ -49,7 +48,7 @@ pub(super) struct HandFlowState {
 #[derive(Clone, Debug, Default)]
 pub(super) struct HeldGamePresentation {
     pub(super) bottom_copy_decisions: Vec<ShengjiBottomCopyDecisionView>,
-    pub(super) throw_penalties: [u16; ShengjiRuleSet::PLAYER_COUNT],
+    pub(super) throw_penalties: [u16; ShengjiRuleSet::PLAYER_COUNT as usize],
     pub(super) throw_failure: Option<HeldThrowFailure>,
     pub(super) trick: Option<(TrickRecord, Duration)>,
 }

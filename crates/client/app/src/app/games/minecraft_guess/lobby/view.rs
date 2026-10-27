@@ -65,7 +65,7 @@ pub(crate) fn render_guess_lobby(
         assets,
     );
     render_rule_rows(commands, page.rules, rules, page.can_configure, assets);
-    let can_start = page.connected_count >= usize::from(MinecraftGuessRuleSet::MIN_PLAYERS)
+    let can_start = page.connected_count >= MinecraftGuessRuleSet::MIN_PLAYERS
         && lobby
             .players
             .iter()

@@ -247,7 +247,8 @@ pub(super) fn add_uno_summary(
                 assets,
             );
             commands.entity(score_text).insert(AnimatedSummaryScore {
-                target: u32::from(result.hand_score),
+                target: i64::from(result.hand_score),
+                signed: false,
                 delay,
                 unit: "分",
             });

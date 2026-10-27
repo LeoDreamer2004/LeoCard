@@ -1,6 +1,6 @@
 //! 手牌悬停、拖选和预览输入。
 
-use super::{DESIGN_WIDTH, HAND_CARD_REVEAL};
+use super::{CardAnimationState, DESIGN_WIDTH, HAND_CARD_REVEAL};
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
@@ -23,6 +23,7 @@ pub(crate) enum CardSize {
     Score,
     TableScore,
     FinishedHand,
+    TrickSeat,
 }
 
 impl CardSize {
@@ -34,6 +35,7 @@ impl CardSize {
             Self::Score => (36.0, 49.0),
             Self::TableScore => (28.0, 38.0),
             Self::FinishedHand => (43.2, 58.8),
+            Self::TrickSeat => (70.0, 95.0),
         }
     }
 }
@@ -42,6 +44,13 @@ impl CardSize {
 pub(crate) struct HandCardPose {
     pub translation: Val2,
     pub rotation: Rot2,
+}
+
+pub(crate) struct HandCardLayout {
+    pub index: usize,
+    pub hand_len: usize,
+    pub card_width: f32,
+    pub reveal: f32,
 }
 
 pub(crate) fn slot_hover_target(
@@ -136,14 +145,6 @@ pub(crate) fn hand_card_pose(
     dealing: bool,
     size: CardSize,
 ) -> HandCardPose {
-    let lift = hover_amount * 5.0 + selected_amount * HAND_CARD_SELECTED_LIFT;
-    let deal_progress = if dealing {
-        (deal_elapsed / 0.20).clamp(0.0, 1.0)
-    } else {
-        1.0
-    };
-    let deal_progress = 1.0 - (1.0 - deal_progress).powi(3);
-    let deal_offset = 1.0 - deal_progress;
     let card_width = size.dimensions().0;
     let reveal = hand_card_reveal_for_width(
         hand_len,
@@ -154,6 +155,41 @@ pub(crate) fn hand_card_pose(
             _ => HAND_CARD_REVEAL,
         },
     );
+    hand_card_pose_for_layout(
+        HandCardLayout {
+            index,
+            hand_len,
+            card_width,
+            reveal,
+        },
+        CardAnimationState {
+            face_hover_amount: hover_amount,
+            selected_amount,
+            deal_elapsed,
+            dealing,
+            ..default()
+        },
+    )
+}
+
+pub(crate) fn hand_card_pose_for_layout(
+    layout: HandCardLayout,
+    animation: CardAnimationState,
+) -> HandCardPose {
+    let HandCardLayout {
+        index,
+        hand_len,
+        card_width,
+        reveal,
+    } = layout;
+    let lift =
+        animation.face_hover_amount * 5.0 + animation.selected_amount * HAND_CARD_SELECTED_LIFT;
+    let progress = if animation.dealing {
+        (animation.deal_elapsed / 0.20).clamp(0.0, 1.0)
+    } else {
+        1.0
+    };
+    let deal_offset = (1.0 - progress).powi(3);
     let hand_width = if hand_len == 0 {
         0.0
     } else {

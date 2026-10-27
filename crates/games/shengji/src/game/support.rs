@@ -3,11 +3,11 @@ use crate::{ShengjiCard, ShengjiPlayerId, ShengjiRuleSet, build_deck_for};
 use leocard_game_common::{contains_unique_cards, validate_deck as validate_physical_deck};
 
 pub(super) fn next_player(player: ShengjiPlayerId) -> ShengjiPlayerId {
-    ShengjiPlayerId((player.0 + 1) % ShengjiRuleSet::PLAYER_COUNT as u8)
+    ShengjiPlayerId((player.0 + 1) % ShengjiRuleSet::PLAYER_COUNT)
 }
 
 pub(super) const fn partner(player: ShengjiPlayerId) -> ShengjiPlayerId {
-    ShengjiPlayerId((player.0 + 2) % ShengjiRuleSet::PLAYER_COUNT as u8)
+    ShengjiPlayerId((player.0 + 2) % ShengjiRuleSet::PLAYER_COUNT)
 }
 
 pub(super) fn remove_cards(hand: &mut Vec<ShengjiCard>, cards: &[ShengjiCard]) {

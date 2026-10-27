@@ -1,16 +1,15 @@
 //! 跨游戏结算界面的入场、计分与音效演出。
 
 use super::{
-    AnimatedSignedSummaryScore, AnimatedSummaryScore, AnimatedSummaryText, GameSummaryActions,
-    GameSummaryAnimation, GameSummaryDivider, GameSummaryModal, GameSummaryPanelTexture,
-    GameSummaryRow, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_MODAL_ENTRY_DURATION,
-    SUMMARY_ROW_ENTRY_DURATION, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY,
-    SUMMARY_SCORE_COUNT_DURATION, SummaryPlayback,
+    AnimatedSummaryScore, AnimatedSummaryText, GameSummaryActions, GameSummaryAnimation,
+    GameSummaryDivider, GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow,
+    SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_MODAL_ENTRY_DURATION, SUMMARY_ROW_ENTRY_DURATION,
+    SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SUMMARY_SCORE_COUNT_DURATION, SummaryPlayback,
+    SummaryScore,
 };
 use crate::app::presentation::{PANEL_ALT, add_text, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use leocard_protocol::PlayerScore;
 use leocard_ui::UiComposer;
 
 #[expect(
@@ -90,17 +89,17 @@ pub(crate) fn update_summary_animation(
     }
 }
 
-fn summary_animation_duration(player_count: usize) -> f32 {
+fn summary_animation_duration(entry_count: usize) -> f32 {
     let last_row = SUMMARY_ROW_START_DELAY
-        + player_count.saturating_sub(1) as f32 * SUMMARY_ROW_INTERVAL
+        + entry_count.saturating_sub(1) as f32 * SUMMARY_ROW_INTERVAL
         + SUMMARY_SCORE_COUNT_DURATION.max(SUMMARY_ROW_ENTRY_DURATION);
     let actions = SUMMARY_ROW_START_DELAY
-        + player_count as f32 * SUMMARY_ROW_INTERVAL
+        + entry_count as f32 * SUMMARY_ROW_INTERVAL
         + SUMMARY_ACTIONS_EXTRA_DELAY;
     SUMMARY_MODAL_ENTRY_DURATION.max(last_row).max(actions)
 }
 
-pub(crate) fn sorted_summary_scores(scores: &[PlayerScore]) -> Vec<PlayerScore> {
+pub(crate) fn sorted_summary_scores(scores: &[SummaryScore]) -> Vec<SummaryScore> {
     let mut ranked = scores.to_vec();
     ranked.sort_by(|left, right| {
         right
@@ -208,9 +207,13 @@ pub(crate) fn animate_game_summary_visuals(
 }
 
 pub(crate) fn animated_summary_score(elapsed: f32, target: u32, delay: f32) -> u32 {
+    animated_summary_value(elapsed, i64::from(target), delay) as u32
+}
+
+pub(crate) fn animated_summary_value(elapsed: f32, target: i64, delay: f32) -> i64 {
     let progress = ((elapsed - delay) / SUMMARY_SCORE_COUNT_DURATION).clamp(0.0, 1.0);
     let eased = 1.0 - (1.0 - progress).powi(3);
-    (target as f32 * eased).round() as u32
+    (target as f64 * f64::from(eased)).round() as i64
 }
 
 pub(crate) fn animate_summary_scores(
@@ -221,27 +224,12 @@ pub(crate) fn animate_summary_scores(
         return;
     }
     for (score, mut text) in &mut scores {
-        let displayed = animated_summary_score(animation.elapsed, score.target, score.delay);
-        let expected = format!("{displayed} {}", score.unit);
-        if text.0 != expected {
-            text.0 = expected;
-        }
-    }
-}
-
-pub(crate) fn animate_signed_summary_scores(
-    animation: Res<GameSummaryAnimation>,
-    mut scores: Query<(&AnimatedSignedSummaryScore, &mut Text)>,
-) {
-    if !animation.is_changed() {
-        return;
-    }
-    for (score, mut text) in &mut scores {
-        let progress =
-            ((animation.elapsed - score.delay) / SUMMARY_SCORE_COUNT_DURATION).clamp(0.0, 1.0);
-        let eased = 1.0 - (1.0 - progress).powi(3);
-        let displayed = (score.target as f32 * eased).round() as i32;
-        let expected = format!("累计 {displayed:+}");
+        let displayed = animated_summary_value(animation.elapsed, score.target, score.delay);
+        let expected = if score.signed {
+            format!("{displayed:+} {}", score.unit)
+        } else {
+            format!("{displayed} {}", score.unit)
+        };
         if text.0 != expected {
             text.0 = expected;
         }

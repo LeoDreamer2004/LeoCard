@@ -151,6 +151,7 @@ pub(crate) fn load_ui_assets(
                 asset_server.load("ui/profile/dirt.png"),
                 asset_server.load("ui/profile/composter.png"),
                 asset_server.load("ui/profile/cocoa_beans.png"),
+                asset_server.load("ui/profile/brown_dye.png"),
             ],
         },
         shop: ShopAssets {

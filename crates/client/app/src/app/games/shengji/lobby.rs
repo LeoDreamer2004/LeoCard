@@ -299,7 +299,7 @@ pub(crate) fn render_shengji_lobby(
             lobby,
             assets,
             avatars,
-            ShengjiRuleSet::PLAYER_COUNT as u8,
+            ShengjiRuleSet::PLAYER_COUNT,
             can_start,
             "等待四名玩家",
         ),

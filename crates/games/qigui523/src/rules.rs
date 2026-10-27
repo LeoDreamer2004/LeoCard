@@ -83,12 +83,13 @@ impl QiGuiRuleSet {
     pub const MAX_DECK_COUNT: u8 = 8;
     pub const MIN_HAND_SIZE: u8 = 5;
     pub const MAX_HAND_SIZE: u8 = 15;
+    pub const MAX_PLAYERS: u8 = 6;
 
     pub fn validate(self) -> Result<Self, RuleError> {
         if !(Self::MIN_DECK_COUNT..=Self::MAX_DECK_COUNT).contains(&self.deck_count) {
             return Err(RuleError::DeckCount(self.deck_count));
         }
-        if !(2..=6).contains(&self.player_count) {
+        if !(2..=Self::MAX_PLAYERS).contains(&self.player_count) {
             return Err(RuleError::PlayerCount(self.player_count));
         }
         if !(Self::MIN_HAND_SIZE..=Self::MAX_HAND_SIZE).contains(&self.hand_size) {

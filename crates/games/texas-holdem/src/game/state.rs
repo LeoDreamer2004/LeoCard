@@ -367,7 +367,7 @@ impl GameState {
             phase: Phase::Betting(TexasHoldemStreet::PreFlop),
             pending_blind: None,
             hand_number: 0,
-            statistics: GameStatistics::new(player_count),
+            statistics: GameStatistics::new(rules.player_count),
         };
         state.begin_hand(dealer, deck)?;
         Ok(state)

@@ -71,7 +71,7 @@ impl<'a> LobbyPlayerSection<'a> {
 pub(crate) struct LobbyPage {
     pub rules: Entity,
     players: Entity,
-    pub connected_count: usize,
+    pub connected_count: u8,
     pub can_configure: bool,
 }
 

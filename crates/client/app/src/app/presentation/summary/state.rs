@@ -1,7 +1,7 @@
 //! 跨游戏结算演出的运行时状态与 UI 标记组件。
 
 use bevy::prelude::*;
-use leocard_protocol::MatchId;
+use leocard_protocol::{MatchId, PlayerId, PlayerScore};
 
 pub(crate) const SUMMARY_MODAL_ENTRY_DURATION: f32 = 0.55;
 pub(crate) const SUMMARY_ROW_START_DELAY: f32 = 0.38;
@@ -42,15 +42,37 @@ pub(crate) struct GameSummaryAnimation {
 
 #[derive(Component)]
 pub(crate) struct AnimatedSummaryScore {
-    pub target: u32,
+    pub target: i64,
+    pub signed: bool,
     pub delay: f32,
     pub unit: &'static str,
 }
 
-#[derive(Component)]
-pub(crate) struct AnimatedSignedSummaryScore {
-    pub target: i32,
-    pub delay: f32,
+#[derive(Clone, Copy)]
+pub(crate) struct SummaryScore {
+    pub player: PlayerId,
+    pub score: i64,
+    pub signed: bool,
+}
+
+impl From<PlayerScore> for SummaryScore {
+    fn from(value: PlayerScore) -> Self {
+        Self {
+            player: value.player,
+            score: i64::from(value.score),
+            signed: false,
+        }
+    }
+}
+
+impl SummaryScore {
+    pub(crate) fn signed(player: PlayerId, score: i32) -> Self {
+        Self {
+            player,
+            score: i64::from(score),
+            signed: true,
+        }
+    }
 }
 
 #[derive(Component)]

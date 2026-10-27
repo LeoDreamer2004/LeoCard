@@ -1,6 +1,6 @@
 use super::{HandCardSlot, HandCardVisual, QiGui523UiAction};
 use crate::app::presentation::{
-    ACCENT, BORDER, CardAnimationState, CardSize, HandCardSelectionOverlay, hand_card_pose,
+    CardAnimationState, CardSize, HandCardHighlight, HandCardSelectionOverlay, hand_card_pose,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -58,8 +58,12 @@ pub(super) fn add_card_button(
         animation.dealing,
         CardSize::QiGuiHand,
     );
-    let initial_glow =
-        (animation.face_hover_amount * 0.72 + animation.selected_amount * 0.72).clamp(0.0, 1.0);
+    let highlight = HandCardHighlight::new(
+        animation.face_hover_amount,
+        animation.selected_amount,
+        selected,
+        0.72,
+    );
     let button = commands.keyed_child(
         parent,
         format!("card:{card:?}"),
@@ -114,18 +118,10 @@ pub(super) fn add_card_button(
                 rotation: initial_pose.rotation,
                 ..UiTransform::IDENTITY
             },
-            ImageNode::new(image).with_color(Color::srgb(
-                1.0,
-                1.0 - initial_glow * 0.035,
-                1.0 - initial_glow * 0.16,
-            )),
-            BorderColor::all(if selected { ACCENT } else { BORDER }),
-            Outline::new(
-                px(0.75 + initial_glow * 1.5),
-                px(0),
-                ACCENT.with_alpha(initial_glow * 0.92),
-            ),
-            BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(3)),
+            ImageNode::new(image).with_color(highlight.tint()),
+            BorderColor::all(highlight.border()),
+            highlight.outline(),
+            highlight.shadow(),
             GlobalZIndex(index as i32 + 1),
             Pickable::IGNORE,
         ),

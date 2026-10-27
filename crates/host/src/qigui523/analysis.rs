@@ -29,6 +29,10 @@ impl QiGui523Session {
                     cards: play.cards().to_vec(),
                 },
             });
+        } else {
+            events.push(QiGui523Event::Passed {
+                player: from_core_player(player),
+            });
         }
         let statistics = self
             .statistics

@@ -261,7 +261,7 @@ impl MahjongSession {
                         ActionOutcome::FalseWin { player, .. } if player.0 == index
                     );
                     if !already_reported && !dead_before[index] && core_player.is_dead_hand() {
-                        let mut deltas = [10; MahjongRuleSet::PLAYER_COUNT];
+                        let mut deltas = [10; MahjongRuleSet::PLAYER_COUNT as usize];
                         deltas[index] = -30;
                         events.push(MahjongEvent::FalseWin {
                             player: PlayerId(index as u8),

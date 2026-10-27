@@ -1,3 +1,5 @@
+mod match_state;
+
 use crate::*;
 
 fn cards(ranks: &[u8]) -> Vec<Card> {
@@ -39,9 +41,38 @@ fn standard_patterns_and_bomb_order() {
 }
 
 #[test]
+fn hints_offer_distinct_legal_responses_in_bot_preference_order() {
+    let hand = cards(&[1, 1, 2, 3, 3, 3, 3, 5]);
+    let top = classify(&cards(&[0]), Mode::Three).unwrap();
+    let suggestions = hint_options(&hand, Some(&top), Mode::Three);
+    assert!(suggestions.len() > 1);
+    assert_eq!(
+        hint(&hand, Some(&top), Mode::Three),
+        suggestions.first().cloned()
+    );
+    for (index, play) in suggestions.iter().enumerate() {
+        assert!(play.beats(&top));
+        assert!(play.cards.iter().all(|card| hand.contains(card)));
+        assert!(
+            suggestions[..index]
+                .iter()
+                .all(|previous| previous.cards != play.cards)
+        );
+    }
+}
+
+#[test]
 fn deals_bidding_privacy_and_redeal() {
     for mode in [Mode::Three, Mode::Four] {
-        let mut game = GameState::new(RuleSet { mode }, build_deck(mode), 0).unwrap();
+        let mut game = GameState::new(
+            RuleSet {
+                mode,
+                ..Default::default()
+            },
+            build_deck(mode),
+            0,
+        )
+        .unwrap();
         let hand_len = if mode == Mode::Three { 17 } else { 25 };
         assert!(game.hand_lengths().iter().all(|&n| n == hand_len));
         assert!(game.public_kitty().is_empty());
@@ -65,7 +96,15 @@ fn deals_bidding_privacy_and_redeal() {
         assert!(game.table.is_none());
         assert_eq!(game.current, 1);
         assert!(game.last_actions.iter().all(Option::is_none));
-        let mut game = GameState::new(RuleSet { mode }, build_deck(mode), 0).unwrap();
+        let mut game = GameState::new(
+            RuleSet {
+                mode,
+                ..Default::default()
+            },
+            build_deck(mode),
+            0,
+        )
+        .unwrap();
         for _ in 0..mode.players() {
             game.act(game.current, Action::Bid(0)).unwrap();
         }
@@ -77,7 +116,15 @@ fn deals_bidding_privacy_and_redeal() {
 fn bots_complete_both_modes_and_settle_zero_sum() {
     for mode in [Mode::Three, Mode::Four] {
         for first in 0..mode.players() {
-            let mut game = GameState::new(RuleSet { mode }, build_deck(mode), first).unwrap();
+            let mut game = GameState::new(
+                RuleSet {
+                    mode,
+                    ..Default::default()
+                },
+                build_deck(mode),
+                first,
+            )
+            .unwrap();
             game.act(first, Action::Bid(3)).unwrap();
             for turn in 0..2000 {
                 if game.phase == Phase::Finished {
@@ -110,7 +157,15 @@ fn bots_complete_both_modes_and_settle_zero_sum() {
 fn spring_and_reverse_spring_double_once_and_settle_all_farmers() {
     for mode in [Mode::Three, Mode::Four] {
         for winner in [0, 1] {
-            let mut game = GameState::new(RuleSet { mode }, build_deck(mode), 0).unwrap();
+            let mut game = GameState::new(
+                RuleSet {
+                    mode,
+                    ..Default::default()
+                },
+                build_deck(mode),
+                0,
+            )
+            .unwrap();
             game.act(0, Action::Bid(3)).unwrap();
             if winner == 1 {
                 let card = game.hand(0).unwrap()[0];
@@ -136,7 +191,7 @@ fn spring_and_reverse_spring_double_once_and_settle_all_farmers() {
                 };
                 before_finish = game.multiplier;
                 if let Action::Play(cards) = &action
-                    && classify(cards, mode).unwrap().doubles()
+                    && classify(cards, mode).unwrap().doubles(mode)
                 {
                     before_finish *= 2;
                 }

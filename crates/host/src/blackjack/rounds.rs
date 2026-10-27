@@ -12,7 +12,7 @@ impl BlackjackSession {
         self.game = Some(
             GameState::new(
                 self.rules,
-                self.order.len(),
+                self.order.len() as u8,
                 self.initial_shoe.take().unwrap_or_else(shuffled_shoe),
             )
             .expect("validated rules and shoe"),

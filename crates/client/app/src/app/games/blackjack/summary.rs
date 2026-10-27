@@ -59,7 +59,7 @@ impl BlackjackTable<'_> {
                         ready: view.player.ready,
                     })
                     .collect(),
-                scores: &scores,
+                scores: scores.into_iter().map(Into::into).collect(),
                 reference_changes: &self.game.reference_changes,
                 title: "整场结算",
                 caption: &format!("21 点 · 共 {} 局", self.game.round),

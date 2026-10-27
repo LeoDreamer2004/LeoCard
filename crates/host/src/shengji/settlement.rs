@@ -38,7 +38,7 @@ impl ShengjiSession {
                 .and_then(GameState::five_trump_crossing)
                 .filter(|state| state.stage() == FiveTrumpCrossingStage::Returning)
                 .map(|state| ShengjiEvent::FiveTrumpCrossingStarted {
-                    players: (0..ShengjiRuleSet::PLAYER_COUNT as u8)
+                    players: (0..ShengjiRuleSet::PLAYER_COUNT)
                         .map(ShengjiPlayerId)
                         .filter(|player| state.crossing(*player))
                         .map(from_core_player)
@@ -183,7 +183,9 @@ impl ShengjiSession {
             .room
             .players
             .iter()
-            .filter(|participant| usize::from(participant.id.0) < ShengjiRuleSet::PLAYER_COUNT)
+            .filter(|participant| {
+                usize::from(participant.id.0) < usize::from(ShengjiRuleSet::PLAYER_COUNT)
+            })
             .map(|participant| {
                 let team = ShengjiTeamId(participant.id.0 % 2);
                 let delta = if team == result.promoted_team {

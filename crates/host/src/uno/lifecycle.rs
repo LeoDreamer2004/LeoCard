@@ -25,7 +25,7 @@ impl UnoSession {
             room: RoomSession::new_with_seat_count(
                 room_id,
                 host_port,
-                usize::from(UnoRuleSet::MAX_PLAYERS),
+                UnoRuleSet::MAX_PLAYERS,
                 UnoRuleSet::MAX_PLAYERS,
             ),
             rules,

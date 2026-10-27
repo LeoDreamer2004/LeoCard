@@ -304,11 +304,6 @@ pub(super) fn add_uno_actions(
             add_uno_disabled_action_button(commands, actions, "必须打出摸到的牌", assets);
         }
     } else {
-        let has_response = game
-            .your_hand
-            .iter()
-            .copied()
-            .any(|card| uno_card_is_playable(game, card));
         if game.sudden_death_free_play {
             add_uno_disabled_action_button(commands, actions, "任选一张出牌", assets);
         } else if game.rules.sudden_death_enabled()
@@ -320,18 +315,14 @@ pub(super) fn add_uno_actions(
                 == 2
             && game.draw_pile_len == 0
         {
-            if has_response {
-                add_uno_disabled_action_button(commands, actions, "请选择一张出牌", assets);
-            } else {
-                add_uno_action_button(
-                    commands,
-                    actions,
-                    "无法响应",
-                    UiAction::Uno(UnoUiAction::DrawCard),
-                    ButtonKind::Secondary,
-                    assets,
-                );
-            }
+            add_uno_action_button(
+                commands,
+                actions,
+                "不响应",
+                UiAction::Uno(UnoUiAction::DrawCard),
+                ButtonKind::Secondary,
+                assets,
+            );
         } else {
             add_uno_action_button(
                 commands,

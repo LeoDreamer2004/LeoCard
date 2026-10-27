@@ -612,8 +612,8 @@ pub(super) fn select_bottom_flip_dealer(
                 && matched.cards.len() == most_cards
         })
         .min_by_key(|matched| {
-            (matched.player.0 + ShengjiRuleSet::PLAYER_COUNT as u8 - current_dealer.0)
-                % ShengjiRuleSet::PLAYER_COUNT as u8
+            (matched.player.0 + ShengjiRuleSet::PLAYER_COUNT - current_dealer.0)
+                % ShengjiRuleSet::PLAYER_COUNT
         })
         .map(|matched| matched.player)
 }

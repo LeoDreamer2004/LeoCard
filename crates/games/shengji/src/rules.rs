@@ -67,7 +67,7 @@ pub struct ShengjiRuleSet {
 }
 
 impl ShengjiRuleSet {
-    pub const PLAYER_COUNT: usize = 4;
+    pub const PLAYER_COUNT: u8 = 4;
     /// 两副牌模式的兼容常量；规则计算应优先使用 [`Self::kitty_size`]。
     pub const KITTY_SIZE: usize = 8;
     /// 两副牌模式的兼容常量；规则计算应优先使用 [`Self::hand_size`]。
@@ -85,7 +85,7 @@ impl ShengjiRuleSet {
     }
 
     pub const fn hand_size(self) -> usize {
-        (self.deck_count as usize * 54 - self.kitty_size()) / Self::PLAYER_COUNT
+        (self.deck_count as usize * 54 - self.kitty_size()) / Self::PLAYER_COUNT as usize
     }
 
     pub const fn score_step(self) -> u32 {

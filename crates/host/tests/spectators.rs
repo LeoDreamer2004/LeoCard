@@ -134,6 +134,7 @@ fn midgame_join_is_read_only_and_private_hands_are_hidden_in_all_games() {
         GameRules::Blackjack(Default::default()),
         GameRules::Doudizhu(DoudizhuRuleSet {
             mode: DoudizhuMode::Four,
+            ..Default::default()
         }),
     ] {
         let mut room = Room::started(rules);

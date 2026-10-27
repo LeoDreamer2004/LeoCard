@@ -8,6 +8,7 @@ impl DoudizhuSession {
             .as_ref()
             .expect("snapshot requires a started game");
         let lengths = game.hand_lengths();
+        let state = self.match_state.as_ref().expect("active match");
         let players = self
             .room
             .players
@@ -35,6 +36,10 @@ impl DoudizhuSession {
             host: self.room.host_player_id().expect("room host"),
             players,
             rules: self.rules,
+            progress: state.progress(),
+            scores: state.scores().to_vec(),
+            match_complete: state.complete(),
+            reference_changes: self.finished_reference_changes.clone().unwrap_or_default(),
             phase: game.phase,
             current: PlayerId(game.current),
             landlord: game.landlord.map(PlayerId),

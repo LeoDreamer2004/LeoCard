@@ -8,7 +8,7 @@ use super::{
     shengji_hand_sort_trump, sort_shengji_cards,
 };
 use crate::app::presentation::{
-    ACCENT, BORDER, CardAnimationState, CardSize, PendingDealSound, PlayerMenuProfile,
+    CardAnimationState, CardSize, HandCardHighlight, PendingDealSound, PlayerMenuProfile,
     PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait,
     add_turn_border_trace_with_radius, attach_start_game_seat_transition, hand_card_pose,
     shengji_hand_card_reveal,
@@ -107,8 +107,12 @@ fn add_shengji_hand_card(
         animation.dealing,
         CardSize::ShengjiHand,
     );
-    let initial_glow =
-        (animation.face_hover_amount * 0.72 + animation.selected_amount * 0.72).clamp(0.0, 1.0);
+    let highlight = HandCardHighlight::new(
+        animation.face_hover_amount,
+        animation.selected_amount,
+        selected,
+        0.72,
+    );
     let button = commands.keyed_child(
         parent,
         format!("card:{card:?}"),
@@ -162,18 +166,10 @@ fn add_shengji_hand_card(
             } else {
                 Visibility::Inherited
             },
-            ImageNode::new(image).with_color(Color::srgb(
-                1.0,
-                1.0 - initial_glow * 0.035,
-                1.0 - initial_glow * 0.16,
-            )),
-            BorderColor::all(if selected { ACCENT } else { BORDER }),
-            Outline::new(
-                px(0.75 + initial_glow * 1.5),
-                px(0),
-                ACCENT.with_alpha(initial_glow * 0.92),
-            ),
-            BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(3)),
+            ImageNode::new(image).with_color(highlight.tint()),
+            BorderColor::all(highlight.border()),
+            highlight.outline(),
+            highlight.shadow(),
             GlobalZIndex(index as i32 + 1),
             Pickable::IGNORE,
         ),
@@ -341,7 +337,6 @@ pub(crate) fn animate_shengji_hand_cards(
                 .unwrap_or_default()
         };
         ui.card_animations.insert(visual.card, next_animation);
-        let glow = (visual.hover_amount * pulse + visual.selected_amount * 0.72).clamp(0.0, 1.0);
         let pose = hand_card_pose(
             visual.index,
             visual.hand_len,
@@ -353,15 +348,12 @@ pub(crate) fn animate_shengji_hand_cards(
         );
         transform.translation = pose.translation;
         transform.rotation = pose.rotation;
-        outline.width = px(0.75 + glow * 1.5);
-        outline.color = ACCENT.with_alpha(glow * 0.92);
-        image.color = Color::srgb(1.0, 1.0 - glow * 0.035, 1.0 - glow * 0.16);
-        border.set_all(if selected { ACCENT } else { BORDER });
-        if let Some(style) = shadow.0.first_mut() {
-            style.color = ACCENT.with_alpha(glow * 0.58);
-            style.spread_radius = px(glow * 2.0);
-            style.blur_radius = px(2.0 + glow * 10.0);
-        }
+        HandCardHighlight::new(visual.hover_amount, visual.selected_amount, selected, pulse).apply(
+            &mut image,
+            &mut border,
+            &mut outline,
+            &mut shadow,
+        );
     }
 }
 

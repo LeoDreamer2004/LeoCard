@@ -284,7 +284,7 @@ impl GameSnapshot {
                 snapshot.progress.is_last_game() && snapshot.round.finished()
             }
             Self::Blackjack(snapshot) => snapshot.match_complete,
-            Self::Doudizhu(snapshot) => snapshot.result.is_some(),
+            Self::Doudizhu(snapshot) => snapshot.match_complete,
         }
     }
 

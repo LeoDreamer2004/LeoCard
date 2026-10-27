@@ -51,8 +51,16 @@ fn assert_accepted(deliveries: &[Delivery]) {
 }
 
 fn started(mode: Mode, robots: bool) -> DoudizhuSession {
-    let mut session =
-        DoudizhuSession::new(RoomId(99), 52300, RuleSet { mode }, build_deck(mode)).unwrap();
+    let mut session = DoudizhuSession::new(
+        RoomId(99),
+        52300,
+        RuleSet {
+            mode,
+            ..Default::default()
+        },
+        build_deck(mode),
+    )
+    .unwrap();
     for connection in 1..=if robots { 1 } else { u64::from(mode.players()) } {
         assert_accepted(&send(&mut session, connection, join(connection)));
         assert_accepted(&send(
@@ -137,47 +145,123 @@ fn manual_turns_never_expire_and_snapshots_keep_hands_private() {
     }
 }
 
+fn finish_hand(session: &mut DoudizhuSession) {
+    for _ in 0..3000 {
+        let game = session.game.as_ref().unwrap();
+        if game.phase == Phase::Finished {
+            return;
+        }
+        let current = game.current;
+        let action = bot_action(game).unwrap();
+        session.apply_action(current, action, None);
+    }
+    panic!("bots did not finish a hand");
+}
+
+fn ready_players(session: &mut DoudizhuSession) {
+    let connections: Vec<_> = session
+        .room
+        .players
+        .iter()
+        .filter(|p| !p.is_bot && !p.left && p.connected)
+        .map(|p| p.connection.0)
+        .collect();
+    for connection in connections {
+        assert_accepted(&send(session, connection, ClientCommand::PlayAgain));
+    }
+}
+
 #[test]
-fn robots_play_both_modes_rematch_and_return_to_lobby() {
+fn robots_play_all_hands_rotate_first_bidder_rematch_and_return_to_lobby() {
     for mode in [Mode::Three, Mode::Four] {
         let mut session = started(mode, true);
         let match_id = session.match_id;
-        assert_accepted(&send(
-            &mut session,
-            1,
-            ClientCommand::Game(DoudizhuCommand::SetAutoPlay { enabled: true }.into()),
-        ));
-        for _ in 0..3000 {
-            if session.game.as_ref().unwrap().phase == Phase::Finished {
-                break;
+        let first = session.game.as_ref().unwrap().current;
+        for hand in 0..mode.players() {
+            assert_eq!(
+                session.game.as_ref().unwrap().current,
+                (first + hand) % mode.players()
+            );
+            finish_hand(&mut session);
+            let snapshot = session.snapshot_for(PlayerId(0));
+            assert_eq!(snapshot.progress.hand_number, hand + 1);
+            assert_eq!(snapshot.match_complete, hand == mode.players() - 1);
+            assert_eq!(snapshot.revealed_hands.len(), usize::from(mode.players()));
+            assert_eq!(snapshot.scores.iter().sum::<i32>(), 0);
+            assert!(snapshot.reference_changes.is_empty());
+            if !snapshot.match_complete {
+                ready_players(&mut session);
+                assert_eq!(session.match_id, match_id);
             }
-            session.advance_time(Duration::from_secs(1));
         }
-        assert_eq!(session.game.as_ref().unwrap().phase, Phase::Finished);
-        let snapshot = session.snapshot_for(PlayerId(0));
-        assert_eq!(snapshot.revealed_hands.len(), usize::from(mode.players()));
-        assert_eq!(
-            snapshot.result.as_ref().unwrap().scores.iter().sum::<i32>(),
-            0
-        );
-        assert_accepted(&send(&mut session, 1, ClientCommand::PlayAgain));
+        ready_players(&mut session);
         assert_ne!(session.match_id, match_id);
         assert_eq!(session.game.as_ref().unwrap().phase, Phase::Bidding);
-        assert!(!session.room.players[0].auto_play);
-        for _ in 0..3000 {
-            let game = session.game.as_ref().unwrap();
-            if game.phase == Phase::Finished {
-                break;
+        assert!(
+            session
+                .match_state
+                .as_ref()
+                .unwrap()
+                .scores()
+                .iter()
+                .all(|score| *score == 0)
+        );
+        for hand in 0..mode.players() {
+            finish_hand(&mut session);
+            if hand + 1 < mode.players() {
+                ready_players(&mut session);
             }
-            let current = game.current;
-            let action = bot_action(game).unwrap();
-            // The same legal rules interface is used for the human and robot moves.
-            session.apply_action(current, action, None);
         }
-        assert_eq!(session.game.as_ref().unwrap().phase, Phase::Finished);
         assert_accepted(&send(&mut session, 1, ClientCommand::ReturnToLobby));
         assert!(session.game.is_none());
         assert_eq!(session.room.players.iter().filter(|p| !p.left).count(), 1);
+    }
+}
+
+#[test]
+fn all_passes_redeal_without_advancing_and_profiles_settle_only_at_match_end() {
+    for mode in [Mode::Three, Mode::Four] {
+        let mut session = started(mode, false);
+        let first = session.game.as_ref().unwrap().current;
+        for _ in 0..mode.players() {
+            let player = session.game.as_ref().unwrap().current;
+            assert_accepted(&act(&mut session, player, Action::Bid(0)));
+        }
+        assert_eq!(session.game.as_ref().unwrap().current, first);
+        assert_eq!(session.snapshot_for(PlayerId(0)).progress.hand_number, 1);
+        let mut totals = vec![0; usize::from(mode.players())];
+        for hand in 0..mode.players() {
+            finish_hand(&mut session);
+            let snapshot = session.snapshot_for(PlayerId(0));
+            for (total, score) in totals.iter_mut().zip(&snapshot.result.unwrap().scores) {
+                *total += score;
+            }
+            assert_eq!(snapshot.scores, totals);
+            if hand + 1 < mode.players() {
+                assert!(snapshot.reference_changes.is_empty());
+                assert!(
+                    session
+                        .room
+                        .players
+                        .iter()
+                        .all(|p| p.completed_games == 0 && p.reference_points == 0)
+                );
+                ready_players(&mut session);
+            }
+        }
+        let snapshot = session.snapshot_for(PlayerId(0));
+        let changes = snapshot.reference_changes;
+        assert_eq!(changes.len(), usize::from(mode.players()));
+        assert!(session.room.players.iter().all(|p| p.completed_games == 1));
+        for change in &changes {
+            assert_eq!(
+                session.room.players[usize::from(change.player.0)].reference_points,
+                i32::from(change.delta)
+            );
+        }
+        session.advance_time(Duration::from_secs(60));
+        assert_eq!(session.snapshot_for(PlayerId(0)).reference_changes, changes);
+        assert!(session.room.players.iter().all(|p| p.completed_games == 1));
     }
 }
 

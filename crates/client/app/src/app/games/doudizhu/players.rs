@@ -1,129 +1,171 @@
-use super::cards::card_row;
+use super::DoudizhuTable;
 use crate::app::presentation::{
-    ACCENT, CardSize, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, add_player_portrait,
-    add_text, attach_start_game_seat_transition,
+    ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TRICK_AVATAR_SIZE,
+    TRICK_PORTRAIT_WIDTH, TrickSeatLayout, TurnBorderAnimationKey, add_hand_count_score,
+    add_player_portrait, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition,
 };
-use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::SocialUiState;
+use crate::app::shell::SeatSide;
 use bevy::prelude::*;
-use leocard_doudizhu::{Action, Phase};
-use leocard_protocol::DoudizhuSnapshot;
+use leocard_doudizhu::Phase;
+use leocard_protocol::{GameKind, PlayerPublicState};
 use leocard_ui::{UiComposer, spawn_node};
 
-pub(super) fn render(
-    commands: &mut UiComposer,
-    table: Entity,
-    game: &DoudizhuSnapshot,
-    avatars: &AvatarImages,
-    social: &SocialUiState,
-    assets: &UiAssets,
-    intro: bool,
-) {
-    let n = game.rules.mode.players();
-    let own_seat = game
-        .players
-        .iter()
-        .find(|p| p.id == game.you)
-        .map_or(0, |p| p.seat.0);
-    for player in &game.players {
-        let relative = (player.seat.0 + n - own_seat) % n;
-        let mut node = Node {
-            position_type: PositionType::Absolute,
-            width: px(150),
-            flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Center,
-            row_gap: px(4),
-            ..default()
-        };
-        match relative {
-            0 => {
-                node.left = px(18);
-                node.bottom = px(4);
+impl DoudizhuTable<'_> {
+    pub(super) fn players(
+        &mut self,
+        commands: &mut UiComposer,
+        table: Entity,
+        hand_area: Entity,
+        intro: bool,
+    ) {
+        let game = self.game;
+        let own = game.players.iter().find(|player| player.id == game.you);
+        let own_seat = own.map_or(0, |player| player.seat.0);
+        let count = game.rules.mode.players();
+        for player in &game.players {
+            let relative = (player.seat.0 + count - own_seat) % count;
+            if Some(player.id) == own.map(|player| player.id) {
+                self.portrait(
+                    commands,
+                    hand_area,
+                    player,
+                    Node {
+                        position_type: PositionType::Absolute,
+                        left: px(12),
+                        bottom: px(42),
+                        width: px(TRICK_PORTRAIT_WIDTH),
+                        height: px(76.0 * 1.17),
+                        ..default()
+                    },
+                    intro,
+                );
+                if !intro {
+                    let area = spawn_node(
+                        commands,
+                        table,
+                        Node {
+                            position_type: PositionType::Absolute,
+                            left: percent(35),
+                            right: percent(35),
+                            bottom: px(8),
+                            min_height: px(104),
+                            align_items: AlignItems::Center,
+                            justify_content: JustifyContent::Center,
+                            ..default()
+                        },
+                        None,
+                    );
+                    self.play_area(commands, area, player.id, SeatSide::Top, false);
+                }
+                continue;
             }
-            1 => {
-                node.left = px(34);
-                node.top = percent(22);
+            let visual_seat = if count == 3 && relative == 2 {
+                3
+            } else {
+                relative
+            };
+            let layout = TrickSeatLayout::opponent(visual_seat);
+            let side = layout.side;
+            let slot = layout.spawn(commands, table);
+            if matches!(side, SeatSide::Right) {
+                self.play_area(commands, slot, player.id, side, intro);
             }
-            2 if n == 4 => {
-                node.left = percent(43);
-                node.top = px(4);
-            }
-            _ => {
-                node.right = px(34);
-                node.top = percent(22);
+            self.portrait(
+                commands,
+                slot,
+                player,
+                Node {
+                    width: px(TRICK_PORTRAIT_WIDTH),
+                    height: px(76.0 * 1.17),
+                    // Leave room for the card count below the top opponent's portrait.
+                    margin: UiRect::bottom(px(if matches!(side, SeatSide::Top) {
+                        27.0
+                    } else {
+                        0.0
+                    })),
+                    ..default()
+                },
+                intro,
+            );
+            if !matches!(side, SeatSide::Right) {
+                self.play_area(commands, slot, player.id, side, intro);
             }
         }
-        let slot = spawn_node(commands, table, node, None);
-        let active = game.current == player.id && game.result.is_none();
+    }
+
+    fn portrait(
+        &mut self,
+        commands: &mut UiComposer,
+        parent: Entity,
+        player: &PlayerPublicState,
+        node: Node,
+        intro: bool,
+    ) {
         let portrait = add_player_portrait(
             commands,
-            slot,
-            Node {
-                width: px(112),
-                height: px(94),
-                ..default()
-            },
+            parent,
+            node,
             PlayerPortraitSpec {
                 player: player.id,
                 profile: PlayerMenuProfile {
                     name: &player.name,
-                    avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
+                    avatar: player.avatar.and_then(|id| self.avatars.remote.get(&id)),
                     reference_points: player.reference_points,
                     completed_games: player.completed_games,
                     game_profiles: &player.game_profiles,
                 },
-                avatar_size: 58.0,
+                avatar_size: TRICK_AVATAR_SIZE,
                 auto_play: player.auto_play,
-                menu_open: social.interaction_menu_open == Some(player.id),
-                name_color: if !player.connected {
-                    MUTED
-                } else if active {
-                    ACCENT
-                } else {
-                    TEXT
-                },
+                menu_open: !intro && self.social.interaction_menu_open == Some(player.id),
+                name_color: if player.connected { TEXT } else { MUTED },
             },
-            assets,
+            self.assets,
         );
         attach_start_game_seat_transition(commands, portrait.portrait, player.id, intro);
-        let role = if game.phase == Phase::Bidding {
-            "待定"
-        } else if game.landlord == Some(player.id) {
-            "地主"
-        } else {
-            "农民"
-        };
-        add_text(
+        if intro {
+            return;
+        }
+        if self.game.current == player.id && self.game.result.is_none() {
+            add_turn_border_trace_with_radius(
+                commands,
+                portrait.avatar_ring,
+                self.turn_materials,
+                TurnBorderAnimationKey::new(GameKind::Doudizhu, self.game.match_id, player.id),
+                TRICK_AVATAR_SIZE * 0.2,
+                TRICK_AVATAR_SIZE,
+            );
+        }
+        if self.game.phase != Phase::Bidding {
+            let landlord = self.game.landlord == Some(player.id);
+            let badge = spawn_node(
+                commands,
+                portrait.portrait,
+                Node {
+                    position_type: PositionType::Absolute,
+                    right: px(-12),
+                    top: px(-6),
+                    padding: UiRect::axes(px(5), px(2)),
+                    border_radius: BorderRadius::all(px(4)),
+                    ..default()
+                },
+                Some(Color::BLACK.with_alpha(0.55)),
+            );
+            add_text(
+                commands,
+                badge,
+                if landlord { "地主" } else { "农民" },
+                13.0,
+                if landlord { ACCENT } else { TEXT },
+                self.assets,
+            );
+        }
+        add_hand_count_score(
             commands,
-            slot,
-            format!("{role}  {} 张", player.hand_len),
-            15.0,
-            if active { ACCENT } else { TEXT },
-            assets,
+            portrait.portrait,
+            player.hand_len,
+            i64::from(self.game.scores[usize::from(player.id.0)]),
+            self.assets,
         );
-        if game.phase == Phase::Bidding {
-            if let Some(bid) = game.bids[usize::from(player.id.0)] {
-                add_text(
-                    commands,
-                    slot,
-                    if bid == 0 {
-                        "不叫".to_owned()
-                    } else {
-                        format!("{bid} 分")
-                    },
-                    17.0,
-                    ACCENT,
-                    assets,
-                );
-            }
-        } else if matches!(
-            game.last_actions[usize::from(player.id.0)],
-            Some(Action::Pass)
-        ) {
-            add_text(commands, slot, "不出", 17.0, MUTED, assets);
-        }
-        if let Some(hand) = game.revealed_hands.get(usize::from(player.id.0)) {
-            card_row(commands, slot, hand, CardSize::FinishedHand, assets);
-        }
     }
 }

@@ -42,10 +42,9 @@ pub(crate) fn render_doudizhu_lobby(
         } else {
             Mode::Three
         },
+        ..rules
     };
-    let can_switch = page.can_configure
-        && lobby.players.iter().filter(|p| p.connected).count()
-            <= usize::from(switched.mode.players());
+    let can_switch = page.can_configure && page.connected_count <= switched.mode.players();
     add_rule_config_row(
         commands,
         page.rules,
@@ -53,9 +52,28 @@ pub(crate) fn render_doudizhu_lobby(
             label: "玩法模式",
             value: rules.mode.label().to_owned(),
             help: "三人使用一副牌，每人17张、底牌3张；四人使用两副牌，每人25张、底牌8张。一名地主对抗其余农民。",
-            editable: can_switch,
+            editable: page.can_configure,
             previous: can_switch.then_some(switched),
             next: can_switch.then_some(switched),
+        },
+        assets,
+    );
+    add_rule_config_row(
+        commands,
+        page.rules,
+        RuleConfigRow {
+            label: "游戏轮数",
+            value: format!("{} 轮", rules.rounds),
+            help: "每轮所有玩家依次首叫一次。三人一轮为三局，四人一轮为四局；全员不叫时重新发牌，不计入局数。整场按累计分数排名结算积分。",
+            editable: page.can_configure,
+            previous: (page.can_configure && rules.rounds > 1).then(|| RuleSet {
+                rounds: rules.rounds - 1,
+                ..rules
+            }),
+            next: (page.can_configure && rules.rounds < 5).then(|| RuleSet {
+                rounds: rules.rounds + 1,
+                ..rules
+            }),
         },
         assets,
     );

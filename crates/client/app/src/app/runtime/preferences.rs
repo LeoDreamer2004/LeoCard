@@ -158,7 +158,7 @@ impl PreferenceResources {
                 uno_rules: normalize_rules(saved.games.uno.host_rules),
                 mahjong_rules: normalize_rules(saved.games.mahjong.host_rules),
                 minecraft_guess_rules: normalize_rules(saved.games.minecraft_guess.host_rules),
-                doudizhu_rules: saved.games.doudizhu.host_rules,
+                doudizhu_rules: normalize_rules(saved.games.doudizhu.host_rules),
             },
         }
     }
@@ -241,10 +241,19 @@ impl NormalizeRuleSet for MinecraftGuessRuleSet {
     }
 }
 
+impl NormalizeRuleSet for DoudizhuRuleSet {
+    fn normalized(self) -> Self {
+        Self {
+            rounds: self.rounds.clamp(1, 5),
+            ..self
+        }
+    }
+}
+
 impl HostRulePreferences {
     pub(crate) fn game_rules(&self, kind: GameKind) -> GameRules {
         match kind {
-            GameKind::Doudizhu => self.doudizhu_rules.into(),
+            GameKind::Doudizhu => normalize_rules(self.doudizhu_rules).into(),
             GameKind::Blackjack => BlackjackRuleSet::default().into(),
             GameKind::MinecraftGuess => normalize_rules(self.minecraft_guess_rules).into(),
             GameKind::QiGui523 => normalize_rules(self.host_rules).into(),
@@ -337,7 +346,7 @@ pub(super) fn save_host_rule_preferences(rules: &HostRulePreferences) -> Result<
             host_rules: normalize_rules(rules.minecraft_guess_rules),
         },
         doudizhu: DoudizhuPreferences {
-            host_rules: rules.doudizhu_rules,
+            host_rules: normalize_rules(rules.doudizhu_rules),
         },
     };
     save_game_preferences(&games)

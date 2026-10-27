@@ -3495,6 +3495,7 @@ dependencies = [
 name = "leocard-doudizhu"
 version = "0.10.0"
 dependencies = [
+ "leocard-game-common",
  "serde",
 ]
 

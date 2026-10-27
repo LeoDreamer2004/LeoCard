@@ -1,7 +1,9 @@
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, HostError, RoomSession};
-use leocard_doudizhu::{Card, GameState, Phase, RuleSet, auto_play_action, bot_action};
-use leocard_protocol::{ClientMessage, MatchId, Revision, RoomId, ServerEvent};
+use leocard_doudizhu::{Card, GameState, MatchState, Phase, RuleSet, auto_play_action, bot_action};
+use leocard_protocol::{
+    ClientMessage, MatchId, PlayerReferenceChange, Revision, RoomId, ServerEvent,
+};
 use std::time::Duration;
 
 #[derive(Clone, Debug)]
@@ -11,6 +13,8 @@ pub struct DoudizhuSession {
     pub(super) deck: Option<Vec<Card>>,
     pub(super) game: Option<GameState>,
     pub(super) match_id: Option<MatchId>,
+    pub(super) match_state: Option<MatchState>,
+    pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
     pub(super) automatic_elapsed: Duration,
 }
 
@@ -33,6 +37,8 @@ impl DoudizhuSession {
             deck: Some(deck),
             game: None,
             match_id: None,
+            match_state: None,
+            finished_reference_changes: None,
             automatic_elapsed: Duration::ZERO,
         })
     }
@@ -69,7 +75,19 @@ impl DoudizhuSession {
         let Some(game) = &self.game else {
             return Vec::new();
         };
-        if elapsed.is_zero() || game.phase == Phase::Finished {
+        if elapsed.is_zero() {
+            return Vec::new();
+        }
+        if game.phase == Phase::Finished {
+            if !self.match_state.as_ref().expect("active match").complete() && self.everyone_ready()
+            {
+                self.automatic_elapsed += elapsed;
+                if self.automatic_elapsed >= Duration::from_secs(3) {
+                    self.continue_match();
+                    self.room.bump_revision();
+                    return self.broadcast_game(None);
+                }
+            }
             return Vec::new();
         }
         let participant = &self.room.players[usize::from(game.current)];

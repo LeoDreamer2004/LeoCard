@@ -1,11 +1,11 @@
 use super::{
-    CardPatternVoices, GameSummaryAnimation, StartGameSeatTransition, SummaryAnimationSet,
+    CardVoices, GameSummaryAnimation, StartGameSeatTransition, SummaryAnimationSet,
     SummaryPlayback, TableBackgroundMaterial, TableStatusAnimation, TurnBorderAnimationState,
     TurnBorderMaterial, animate_button_arrows, animate_game_summary_visuals,
     animate_no_legal_response_hint, animate_playing_card_flips, animate_start_game_seat_transition,
     animate_summary_scores, animate_table_piece_deals, animate_table_statuses,
-    animate_turn_border_traces, play_card_pattern_voices, play_ui_click_sounds,
-    resolve_table_piece_origins, start_game_intro_finished, sync_card_pattern_voices,
+    animate_turn_border_traces, play_card_voices, play_ui_click_sounds,
+    resolve_table_piece_origins, start_game_intro_finished, sync_card_voices,
     update_summary_animation,
 };
 use crate::app::runtime::ClientUpdateSet;
@@ -46,19 +46,16 @@ impl Plugin for PresentationPlugin {
             .add_plugins(UiMaterialPlugin::<TableBackgroundMaterial>::default())
             .add_plugins(UiMaterialPlugin::<TurnBorderMaterial>::default())
             .init_resource::<SummaryPlayback>()
-            .init_resource::<CardPatternVoices>()
+            .init_resource::<CardVoices>()
             .insert_resource(GameSummaryAnimation::default())
             .insert_resource(StartGameSeatTransition::default())
             .insert_resource(TurnBorderAnimationState::default())
             .insert_resource(CardDragSelection::default())
             .init_resource::<ScrollbarDrag>()
+            .add_systems(Update, sync_card_voices.in_set(ClientUpdateSet::Sync))
             .add_systems(
                 Update,
-                sync_card_pattern_voices.in_set(ClientUpdateSet::Sync),
-            )
-            .add_systems(
-                Update,
-                play_card_pattern_voices
+                play_card_voices
                     .run_if(start_game_intro_finished)
                     .in_set(ClientUpdateSet::Animate),
             )

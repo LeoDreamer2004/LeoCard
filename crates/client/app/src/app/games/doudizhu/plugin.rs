@@ -6,7 +6,7 @@ use super::hand_interaction::{
     animate_hand_cards, handle_card_drag_selection, sync_card_drag_preview,
 };
 use super::voices::sync_doudizhu_voices;
-use crate::app::presentation::{start_game_intro_finished, sync_card_pattern_voices};
+use crate::app::presentation::{start_game_intro_finished, sync_card_voices};
 use crate::app::runtime::{ClientResource, ClientUpdateSet};
 use crate::app::shell::{UiActionSet, UiState};
 use bevy::prelude::*;
@@ -26,7 +26,7 @@ impl Plugin for DoudizhuPlugin {
             .add_systems(
                 Update,
                 sync_doudizhu_voices
-                    .after(sync_card_pattern_voices)
+                    .after(sync_card_voices)
                     .in_set(ClientUpdateSet::Sync),
             )
             .add_systems(

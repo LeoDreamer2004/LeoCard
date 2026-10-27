@@ -8,7 +8,7 @@ use super::{
     sync_turn_timer_label,
 };
 use crate::app::presentation::{
-    play_pending_deal_sounds, start_game_intro_finished, sync_card_pattern_voices,
+    play_pending_deal_sounds, start_game_intro_finished, sync_card_voices,
 };
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::{
@@ -44,7 +44,7 @@ impl Plugin for QiGui523Plugin {
                 (
                     sync_counter.run_if(start_game_intro_finished),
                     sync_turn_timer_label,
-                    sync_qigui_voices.after(sync_card_pattern_voices),
+                    sync_qigui_voices.after(sync_card_voices),
                     sync_selection_label,
                     sync_own_score_detail,
                     sync_play_effect.run_if(start_game_intro_finished),

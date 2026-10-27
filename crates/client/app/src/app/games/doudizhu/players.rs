@@ -1,12 +1,11 @@
 use super::DoudizhuTable;
 use crate::app::presentation::{
     ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TRICK_AVATAR_SIZE,
-    TRICK_PORTRAIT_WIDTH, TrickSeatLayout, TurnBorderAnimationKey, add_hand_count,
+    TRICK_PORTRAIT_WIDTH, TrickSeatLayout, TurnBorderAnimationKey, add_hand_count_score,
     add_player_portrait, add_text, add_turn_border_trace_with_radius,
     attach_start_game_seat_transition,
 };
 use crate::app::shell::SeatSide;
-use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_doudizhu::Phase;
 use leocard_protocol::{GameKind, PlayerPublicState};
@@ -34,7 +33,7 @@ impl DoudizhuTable<'_> {
                     Node {
                         position_type: PositionType::Absolute,
                         left: px(12),
-                        bottom: px(12),
+                        bottom: px(42),
                         width: px(TRICK_PORTRAIT_WIDTH),
                         height: px(76.0 * 1.17),
                         ..default()
@@ -79,6 +78,12 @@ impl DoudizhuTable<'_> {
                 Node {
                     width: px(TRICK_PORTRAIT_WIDTH),
                     height: px(76.0 * 1.17),
+                    // Leave room for the card count below the top opponent's portrait.
+                    margin: UiRect::bottom(px(if matches!(side, SeatSide::Top) {
+                        27.0
+                    } else {
+                        0.0
+                    })),
                     ..default()
                 },
                 intro,
@@ -155,24 +160,12 @@ impl DoudizhuTable<'_> {
                 self.assets,
             );
         }
-        if player.id != self.game.you {
-            let row = spawn_node(
-                commands,
-                portrait.portrait,
-                Node {
-                    position_type: PositionType::Absolute,
-                    top: px(76.0 * 1.17 + 2.0),
-                    width: percent(100),
-                    height: px(27),
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    column_gap: px(4),
-                    ..default()
-                },
-                None,
-            );
-            commands.entity(row).insert(Pickable::IGNORE);
-            add_hand_count(commands, row, player.hand_len, self.assets);
-        }
+        add_hand_count_score(
+            commands,
+            portrait.portrait,
+            player.hand_len,
+            i64::from(self.game.scores[usize::from(player.id.0)]),
+            self.assets,
+        );
     }
 }

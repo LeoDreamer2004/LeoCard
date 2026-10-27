@@ -5,37 +5,56 @@ use leocard_protocol::{GameEventContext, MatchId, PlayerGender};
 use std::collections::VecDeque;
 
 #[derive(Clone, Copy)]
-pub(crate) enum CardPatternVoice {
+pub(crate) enum CardVoice {
     Straight,
     ConsecutivePairs,
     Airplane,
     Bomb,
     HeavenBomb,
     Rocket,
+    Pass,
+    TripleSingle,
+    TriplePair,
+    FourTwo,
+    BidZero,
+    BidOne,
+    BidTwo,
+    BidThree,
+}
+
+impl CardVoice {
+    const FILES: [&str; 14] = [
+        "straight",
+        "consecutive_pairs",
+        "airplane",
+        "bomb",
+        "heaven_bomb",
+        "rocket",
+        "pass",
+        "triple_single",
+        "triple_pair",
+        "four_two",
+        "bid_zero",
+        "bid_one",
+        "bid_two",
+        "bid_three",
+    ];
 }
 
 #[derive(Resource)]
-pub(crate) struct CardPatternVoices {
-    variants: [[[Handle<AudioSource>; 2]; 6]; 2],
+pub(crate) struct CardVoices {
+    variants: [[[Handle<AudioSource>; 2]; CardVoice::FILES.len()]; 2],
     match_id: Option<MatchId>,
     sequence: Option<u128>,
     pending: VecDeque<Handle<AudioSource>>,
 }
 
-impl FromWorld for CardPatternVoices {
+impl FromWorld for CardVoices {
     fn from_world(world: &mut World) -> Self {
         let server = world.resource::<AssetServer>();
         Self {
             variants: ["male", "female"].map(|gender| {
-                [
-                    "straight",
-                    "consecutive_pairs",
-                    "airplane",
-                    "bomb",
-                    "heaven_bomb",
-                    "rocket",
-                ]
-                .map(|pattern| {
+                CardVoice::FILES.map(|pattern| {
                     [1, 2].map(|variant| {
                         server.load(format!(
                             "audio/card_patterns/{gender}/{pattern}_{variant}.ogg"
@@ -50,12 +69,12 @@ impl FromWorld for CardPatternVoices {
     }
 }
 
-impl CardPatternVoices {
+impl CardVoices {
     pub(crate) fn queue(
         &mut self,
         context: GameEventContext,
         gender: PlayerGender,
-        pattern: CardPatternVoice,
+        pattern: CardVoice,
     ) {
         if self.match_id != Some(context.match_id)
             || self
@@ -75,12 +94,12 @@ impl CardPatternVoices {
 }
 
 #[derive(Component)]
-pub(crate) struct CardPatternVoicePlayback;
+pub(crate) struct CardVoicePlayback;
 
-pub(crate) fn sync_card_pattern_voices(
+pub(crate) fn sync_card_voices(
     client: Option<Res<ClientResource>>,
-    mut voices: ResMut<CardPatternVoices>,
-    playing: Query<Entity, With<CardPatternVoicePlayback>>,
+    mut voices: ResMut<CardVoices>,
+    playing: Query<Entity, With<CardVoicePlayback>>,
     mut commands: Commands,
 ) {
     let match_id = client
@@ -97,9 +116,9 @@ pub(crate) fn sync_card_pattern_voices(
     }
 }
 
-pub(crate) fn play_card_pattern_voices(
-    mut voices: ResMut<CardPatternVoices>,
-    playing: Query<(), With<CardPatternVoicePlayback>>,
+pub(crate) fn play_card_voices(
+    mut voices: ResMut<CardVoices>,
+    playing: Query<(), With<CardVoicePlayback>>,
     mut commands: Commands,
 ) {
     if playing.is_empty()
@@ -111,7 +130,7 @@ pub(crate) fn play_card_pattern_voices(
                 volume: Volume::Linear(0.8),
                 ..PlaybackSettings::DESPAWN
             },
-            CardPatternVoicePlayback,
+            CardVoicePlayback,
         ));
     }
 }

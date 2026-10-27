@@ -1,4 +1,4 @@
-use crate::Card;
+use crate::{Card, Mode};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -66,7 +66,8 @@ impl Play {
             && self.rank > other.rank
     }
 
-    pub const fn doubles(&self) -> bool {
-        matches!(self.kind, PlayKind::Bomb | PlayKind::Rocket)
+    pub fn doubles(&self, mode: Mode) -> bool {
+        self.kind == PlayKind::Rocket
+            || (self.kind == PlayKind::Bomb && (mode == Mode::Three || self.cards.len() >= 6))
     }
 }

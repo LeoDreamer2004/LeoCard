@@ -33,7 +33,7 @@ impl GameState {
                 hand.retain(|card| !cards.contains(card));
                 self.played.extend_from_slice(cards);
                 self.play_counts[usize::from(player)] += 1;
-                if play.doubles() {
+                if play.doubles(self.rules.mode) {
                     self.multiplier = (self.multiplier * 2).min(1 << 20);
                 }
                 self.table = Some((player, play));

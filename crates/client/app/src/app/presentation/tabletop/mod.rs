@@ -18,6 +18,4 @@ pub(crate) use panel::add_table_play_area;
 pub(crate) use pile::add_playing_card_pile;
 pub(crate) use scatter::*;
 pub(crate) use status::*;
-pub(crate) use voices::{
-    CardPatternVoice, CardPatternVoices, play_card_pattern_voices, sync_card_pattern_voices,
-};
+pub(crate) use voices::{CardVoice, CardVoices, play_card_voices, sync_card_voices};

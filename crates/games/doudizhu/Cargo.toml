@@ -11,4 +11,5 @@ default = []
 serde = ["dep:serde"]
 
 [dependencies]
+leocard-game-common = { path = "../common" }
 serde = { workspace = true, optional = true }

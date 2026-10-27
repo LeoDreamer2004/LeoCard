@@ -137,6 +137,10 @@ impl ClientModel {
             ServerEvent::GameSnapshot(GameSnapshot::Doudizhu(snapshot)) => {
                 self.prepare_game_snapshot(snapshot.match_id, snapshot.host_port, snapshot.you);
                 self.rules = Some(snapshot.rules.into());
+                if snapshot.match_complete {
+                    self.last_finished_match =
+                        Some((snapshot.match_id, snapshot.reference_changes.clone()));
+                }
                 self.store_game_snapshot(snapshot);
             }
             ServerEvent::GameSnapshot(GameSnapshot::Blackjack(snapshot)) => {

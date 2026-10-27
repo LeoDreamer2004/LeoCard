@@ -1,5 +1,6 @@
 mod commands;
 mod lifecycle;
+mod rounds;
 mod snapshot;
 mod state;
 

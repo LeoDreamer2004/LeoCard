@@ -40,12 +40,12 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 - 国标麻将番种报读语音：`audio/mahjong/fans/` 下的男女声各 81 条语音。
 - 麻将操作语音：`audio/mahjong/actions/` 下的男女声吃、碰、明杠、暗杠、补杠、胡、自摸和补花语音。
 - 德州扑克行动语音：`audio/texas_holdem/voices/` 下的 14 条男女声行动语音。
-- 扑克牌型语音：`audio/card_patterns/` 下的顺子、连对、飞机、炸弹、天王炸和王炸，沿用相同的男女参考音色，每个牌型男女各两个备选，共 24 条，供七鬼五二三与斗地主共用。
+- 扑克牌桌语音：`audio/card_patterns/` 下的牌型、不出和叫分语音，沿用相同的男女参考音色，共 56 条，供七鬼五二三与斗地主使用。“不要”“要不起”男女各一条，其余台词男女各两个备选。
 
 ### Minecraft 等级物品图标（Mojang）
 
-- 运行时文件：`ui/profile/` 下的 11 张 PNG，分别用于下界合金锭、钻石、金锭、红石粉、铁锭、铜锭、圆石、橡木原木、泥土、堆肥桶和可可豆等级。
-- 来源：[Minecraft Wiki 的 Invicon 图标](https://minecraft.wiki/)。
+- 运行时文件：`ui/profile/` 下的 12 张 PNG，分别用于下界合金锭、钻石、金锭、红石粉、铁锭、铜锭、圆石、橡木原木、泥土、堆肥桶、可可豆和棕色染料等级。
+- 来源：[Minecraft Wiki 的 Invicon 图标](https://minecraft.wiki/)；棕色染料使用原版 Java 客户端的物品纹理。
 - Minecraft 物品图像的权利归 Mojang Studios 所有，不适用 LeoCard 的 GPL-3.0 素材授权；使用须遵守 [Minecraft 使用规范](https://www.minecraft.net/en-us/usage-guidelines)。
 
 ### MC 竞猜方块与物品图标（Mojang）

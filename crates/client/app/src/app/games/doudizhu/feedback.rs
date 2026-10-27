@@ -1,7 +1,7 @@
 use super::DoudizhuUiState;
 use crate::app::runtime::{ClientResource, ServerNotification, UiAssets};
 use bevy::prelude::*;
-use leocard_doudizhu::{Action, classify};
+use leocard_doudizhu::{Action, PlayKind, classify};
 use leocard_protocol::{DoudizhuEvent, GameEvent, MatchId, ServerEvent};
 
 #[derive(Resource, Default)]
@@ -45,7 +45,9 @@ pub(super) fn play_feedback(
         let variants = match event {
             DoudizhuEvent::ActionApplied { action, .. } => match action {
                 Action::Play(cards) => {
-                    if classify(cards, game.rules.mode).is_some_and(|p| p.doubles()) {
+                    if classify(cards, game.rules.mode)
+                        .is_some_and(|play| matches!(play.kind, PlayKind::Bomb | PlayKind::Rocket))
+                    {
                         commands.spawn((
                             AudioPlayer::new(assets.audio.bomb_explosion_sound.clone()),
                             PlaybackSettings::DESPAWN,
@@ -53,13 +55,13 @@ pub(super) fn play_feedback(
                     }
                     &assets.audio.place_sounds
                 }
-                Action::Bid(_) | Action::Pass => &assets.audio.shove_sounds,
+                Action::Bid(_) | Action::Pass => continue,
             },
             DoudizhuEvent::Redealt => {
                 ui.pending_deal = Some(game.match_id);
                 continue;
             }
-            DoudizhuEvent::Finished { .. } => continue,
+            DoudizhuEvent::HandFinished { .. } => continue,
         };
         if let Some(sound) = variants.get(fastrand::usize(..variants.len().max(1))) {
             commands.spawn((AudioPlayer::new(sound.clone()), PlaybackSettings::DESPAWN));

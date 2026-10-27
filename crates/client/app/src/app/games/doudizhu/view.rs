@@ -1,8 +1,8 @@
 use super::hand::render_hand;
 use super::{DoudizhuUiAction, DoudizhuUiState, controls, counter, summary};
 use crate::app::presentation::{
-    GameSummaryAnimation, StartGameSeatTransition, TableBackground, TableBackgroundMaterial,
-    TurnBorderMaterial, add_auto_play_overlay, table_material_params,
+    GameSummaryAnimation, MUTED, StartGameSeatTransition, TableBackground, TableBackgroundMaterial,
+    TurnBorderMaterial, add_auto_play_overlay, add_text, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{
@@ -95,6 +95,33 @@ pub(crate) fn render_doudizhu_table(
         context.ui.pending_deal = Some(game.match_id);
         return;
     }
+    let status = spawn_node(
+        commands,
+        table,
+        Node {
+            position_type: PositionType::Absolute,
+            top: px(10),
+            left: px(18),
+            ..default()
+        },
+        None,
+    );
+    add_text(
+        commands,
+        status,
+        format!(
+            "第 {}/{} 轮 第 {}/{} 局 底分 {} 倍数 ×{}",
+            game.progress.round(),
+            game.rules.rounds,
+            game.progress.hand_in_round(),
+            game.rules.mode.players(),
+            game.highest_bid,
+            game.multiplier
+        ),
+        15.0,
+        MUTED,
+        assets,
+    );
     controls::render(commands, hand_area, game, context.ui, assets);
     if !context.client.0.model().is_spectating() {
         let row = spawn_node(

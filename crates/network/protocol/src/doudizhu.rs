@@ -1,5 +1,5 @@
-use crate::{MatchId, PlayerId, PlayerPublicState};
-use leocard_doudizhu::{Action, Card, Phase, Play, ResultView, RuleSet};
+use crate::{MatchId, PlayerId, PlayerPublicState, PlayerReferenceChange};
+use leocard_doudizhu::{Action, Card, MatchProgress, Phase, Play, ResultView, RuleSet};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -13,7 +13,7 @@ pub enum DoudizhuCommand {
 pub enum DoudizhuEvent {
     ActionApplied { player: PlayerId, action: Action },
     Redealt,
-    Finished { result: ResultView },
+    HandFinished { result: ResultView },
 }
 
 /// Recipient-specific state. Other hands are sent only after settlement.
@@ -25,6 +25,10 @@ pub struct DoudizhuSnapshot {
     pub host: PlayerId,
     pub players: Vec<PlayerPublicState>,
     pub rules: RuleSet,
+    pub progress: MatchProgress,
+    pub scores: Vec<i32>,
+    pub match_complete: bool,
+    pub reference_changes: Vec<PlayerReferenceChange>,
     pub phase: Phase,
     pub current: PlayerId,
     pub landlord: Option<PlayerId>,

@@ -78,7 +78,7 @@ pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
         GameRules::Doudizhu(rules) => [
             rules.mode.label().to_owned(),
             format!("{} 副牌", rules.mode.deck_count()),
-            "叫分抢地主".to_owned(),
+            format!("{} 轮", rules.rounds),
         ],
         GameRules::Blackjack(rules) => [
             format!("{} 筹码", rules.initial_chips),

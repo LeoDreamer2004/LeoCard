@@ -15,11 +15,12 @@ pub(crate) struct DoudizhuUiState {
     pub pending_deal: Option<MatchId>,
     observed_hand: Observed<MatchId, Vec<Card>>,
     match_id: Option<MatchId>,
+    hand_number: u8,
 }
 
 impl DoudizhuUiState {
     pub fn reconcile(&mut self, game: &DoudizhuSnapshot) {
-        if self.match_id != Some(game.match_id) {
+        if self.match_id != Some(game.match_id) || self.hand_number != game.progress.hand_number {
             if self.match_id.is_some() {
                 self.pending_deal = Some(game.match_id);
             }
@@ -28,6 +29,7 @@ impl DoudizhuUiState {
             self.observed_hand.clear();
             self.kitty_open = false;
             self.match_id = Some(game.match_id);
+            self.hand_number = game.progress.hand_number;
         }
         self.selected.retain(|card| game.your_hand.contains(card));
         self.card_animations
@@ -41,6 +43,7 @@ impl DoudizhuUiState {
         self.selected.clear();
         self.card_animations.clear();
         self.match_id = None;
+        self.hand_number = 0;
         self.kitty_open = false;
         self.pending_deal = None;
         self.observed_hand.clear();

@@ -31,6 +31,7 @@ pub struct ResultView {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum GameError {
+    InvalidRules,
     InvalidDeck,
     InvalidPlayer,
     NotYourTurn,
@@ -45,6 +46,7 @@ pub enum GameError {
 impl fmt::Display for GameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
+            Self::InvalidRules => "游戏轮数必须为 1 至 5 轮",
             Self::InvalidDeck => "牌堆无效",
             Self::InvalidPlayer => "玩家身份无效",
             Self::NotYourTurn => "还没有轮到你",
@@ -81,6 +83,9 @@ pub struct GameState {
 
 impl GameState {
     pub fn new(rules: RuleSet, deck: Vec<Card>, first: u8) -> Result<Self, GameError> {
+        if !rules.is_valid() {
+            return Err(GameError::InvalidRules);
+        }
         let mut sorted = deck.clone();
         sorted.sort();
         if sorted != build_deck(rules.mode) {

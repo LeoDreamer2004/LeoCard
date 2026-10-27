@@ -1,11 +1,11 @@
 use super::super::{
     TexasFoldCard, TexasOwnFoldCardHover, TexasOwnFoldTooltip, TexasPlayerPanel, TexasPotDivider,
-    TexasPotHover, add_squid_markers, fold_card_visual,
+    TexasPotHover, TexasTableLayout, add_squid_markers, fold_card_visual,
 };
 use super::{
     ActionFeedbackKind, ActionLabel, CHIP_SIZE, ChipZone, ChipZoneLayout, TableChip,
-    TexasChipSprite, TexasChipTableState, texas_center_zone_panel, texas_player_chip_zone,
-    texas_pot_chip_zone, texas_pot_partition_zone,
+    TexasChipSprite, TexasChipTableState, texas_center_zone_panel, texas_pot_chip_zone,
+    texas_pot_partition_zone,
 };
 use crate::app::presentation::{
     HEADER_BG, MUTED, PokerChipVisual, TableStatusSpec, add_poker_chip, add_table_play_area,
@@ -15,8 +15,8 @@ use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-use leocard_protocol::{SeatId, TexasHoldemPhaseView, TexasHoldemSnapshot};
-use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemRuleSet};
+use leocard_protocol::{TexasHoldemPhaseView, TexasHoldemSnapshot};
+use leocard_texas_holdem::TexasHoldemCard;
 use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
 
@@ -28,44 +28,33 @@ pub(crate) fn add_texas_chip_areas(
     state: &TexasChipTableState,
     assets: &UiAssets,
 ) {
-    let own_seat = game
-        .players
-        .iter()
-        .find(|player| player.id == game.you)
-        .map_or(SeatId(0), |player| player.seat);
-    for relative in 0..TexasHoldemRuleSet::MAX_PLAYERS {
-        let physical_seat = SeatId((own_seat.0 + relative) % TexasHoldemRuleSet::MAX_PLAYERS);
-        let player = game
-            .players
-            .iter()
-            .find(|player| player.seat == physical_seat);
-        let layout = texas_player_chip_zone(relative);
+    let table_layout = TexasTableLayout::for_game(game);
+    for player in &game.players {
+        let relative = table_layout.player_slot(game, player.id);
+        let layout = table_layout.chip_zone(relative);
         let zone = add_chip_zone_panel(commands, table, layout);
-        if let Some(player) = player {
-            if let Some(label) = state.actions.get(&player.id) {
-                add_chip_zone_title(commands, zone, label, assets);
-                if label.kind == ActionFeedbackKind::Fold {
-                    let own_cards =
-                        (player.id == game.you).then_some(game.your_hole_cards.as_slice());
-                    add_fold_card_feedback(
-                        commands,
-                        table,
-                        zone,
-                        label.elapsed,
-                        own_cards,
-                        hole_card_count,
-                        assets,
-                    );
-                }
+        if let Some(label) = state.actions.get(&player.id) {
+            add_chip_zone_title(commands, zone, label, assets);
+            if label.kind == ActionFeedbackKind::Fold {
+                let own_cards = (player.id == game.you).then_some(game.your_hole_cards.as_slice());
+                add_fold_card_feedback(
+                    commands,
+                    table,
+                    zone,
+                    label.elapsed,
+                    own_cards,
+                    hole_card_count,
+                    assets,
+                );
             }
-            if matches!(game.phase, TexasHoldemPhaseView::HandComplete { .. })
-                && let Some(hand) = game
-                    .revealed_hands
-                    .iter()
-                    .find(|hand| hand.player == player.id)
-            {
-                add_revealed_hole_cards(commands, zone, &hand.cards, assets);
-            }
+        }
+        if matches!(game.phase, TexasHoldemPhaseView::HandComplete { .. })
+            && let Some(hand) = game
+                .revealed_hands
+                .iter()
+                .find(|hand| hand.player == player.id)
+        {
+            add_revealed_hole_cards(commands, zone, &hand.cards, assets);
         }
     }
 
@@ -338,7 +327,7 @@ pub(super) fn add_fold_card_feedback(
     let tooltip = own_cards.and_then(|cards| {
         (!cards.is_empty()).then(|| add_own_fold_tooltip(commands, table, cards, assets))
     });
-    let layout = texas_player_chip_zone(0);
+    let layout = TexasTableLayout::new(6).chip_zone(0);
     let card_count = own_cards.map_or(hidden_card_count, <[TexasHoldemCard]>::len);
     for index in 0..card_count {
         let face = own_cards
@@ -397,7 +386,7 @@ fn add_own_fold_tooltip(
     cards: &[TexasHoldemCard],
     assets: &UiAssets,
 ) -> Entity {
-    let layout = texas_player_chip_zone(0);
+    let layout = TexasTableLayout::new(6).chip_zone(0);
     let card_gap = 5.0;
     let card_width = 40.0;
     let content_width =

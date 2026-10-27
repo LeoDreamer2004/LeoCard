@@ -1,10 +1,10 @@
 //! 德州扑克牌桌视图。房间、聊天、头像、桌布和按钮资源均复用公共客户端层。
 
 use super::{
-    TexasChipTableState, TexasHoldemUiAction, TexasHoldemUiState, add_texas_board_back,
-    add_texas_board_face, add_texas_chip_areas, add_texas_hand_result, add_texas_opponent,
-    add_texas_own_area, add_texas_showdown_reveal, render_texas_spectator_drawer,
-    spawn_texas_initial_deal, street_label,
+    TexasChipTableState, TexasHoldemUiAction, TexasHoldemUiState, TexasTableLayout,
+    add_texas_board_back, add_texas_board_face, add_texas_chip_areas, add_texas_hand_result,
+    add_texas_opponent, add_texas_own_area, add_texas_showdown_reveal,
+    render_texas_spectator_drawer, spawn_texas_initial_deal, street_label,
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT, TableBackground,
@@ -18,8 +18,7 @@ use crate::app::shell::{
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_protocol::{SeatId, TexasHoldemPhaseView, TexasHoldemSnapshot};
-use leocard_texas_holdem::TexasHoldemRuleSet;
+use leocard_protocol::{TexasHoldemPhaseView, TexasHoldemSnapshot};
 use leocard_ui::{UiComposer, spawn_node, ui_component};
 
 pub(crate) struct TexasTableVisuals<'a> {
@@ -116,27 +115,25 @@ pub(crate) fn render_texas_holdem_table(
     }
 
     let own = game.players.iter().find(|player| player.id == game.you);
-    let own_seat = own.map_or(SeatId(0), |player| player.seat);
+    let layout = TexasTableLayout::for_game(game);
     let start_transition_active = start_game_transition.is_active_for(game.match_id);
-    for relative in u8::from(own.is_some())..TexasHoldemRuleSet::MAX_PLAYERS {
-        let physical = SeatId((own_seat.0 + relative) % TexasHoldemRuleSet::MAX_PLAYERS);
-        if let Some(player) = game.players.iter().find(|player| player.seat == physical) {
-            add_texas_opponent(
-                commands,
-                table,
-                player,
-                relative,
-                game,
-                social.interaction_menu_open,
-                assets,
-                avatars,
-                turn_border_materials,
-                chip_state,
-                start_transition_active,
-                start_transition_active,
-                &ui.spectator,
-            );
-        }
+    for player in game.players.iter().filter(|player| player.id != game.you) {
+        let relative = layout.player_slot(game, player.id);
+        add_texas_opponent(
+            commands,
+            table,
+            player,
+            relative,
+            game,
+            social.interaction_menu_open,
+            assets,
+            avatars,
+            turn_border_materials,
+            chip_state,
+            start_transition_active,
+            start_transition_active,
+            &ui.spectator,
+        );
     }
 
     if start_transition_active && let Some(own) = own {
@@ -164,8 +161,7 @@ pub(crate) fn render_texas_holdem_table(
     } else {
         ui.observed_table.state.min(game.community.len())
     };
-    let initial_deal =
-        new_hand.then(|| spawn_texas_initial_deal(commands, table, game, own_seat, assets));
+    let initial_deal = new_hand.then(|| spawn_texas_initial_deal(commands, table, game, assets));
     let hole_card_count = client.0.model().texas_holdem_rules().map_or_else(
         || {
             if game.your_hole_cards.len() == 4 {
@@ -203,7 +199,7 @@ pub(crate) fn render_texas_holdem_table(
         );
     }
     render_texas_spectator_drawer(commands, content, game, ui, assets);
-    add_texas_showdown_reveal(commands, table, game, own_seat, assets, game_summary);
+    add_texas_showdown_reveal(commands, table, game, assets, game_summary);
     add_texas_hand_result(commands, table, game, assets, avatars, game_summary);
 
     let local_auto_play = matches!(game.phase, TexasHoldemPhaseView::Betting { .. })

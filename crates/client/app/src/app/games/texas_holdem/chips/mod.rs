@@ -8,7 +8,7 @@ mod systems;
 pub(in crate::app::games::texas_holdem) mod tests;
 mod view;
 
-pub(crate) use geometry::*;
+use geometry::*;
 pub(crate) use state::*;
 pub(crate) use systems::*;
 pub(crate) use view::*;

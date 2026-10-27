@@ -1,9 +1,7 @@
 use super::super::*;
 use super::*;
 use crate::ConnectionId;
-use leocard_protocol::{
-    ClientCommand, GameCommand, GameViolation, RejectReason, ServerEvent, TexasHoldemCommand,
-};
+use leocard_protocol::{ClientCommand, GameCommand, SeatId, ServerEvent, TexasHoldemCommand};
 use leocard_texas_holdem::{TexasHoldemRuleSet, build_deck};
 
 fn joined_session(count: u8, rules: TexasHoldemRuleSet) -> TexasHoldemSession {
@@ -52,7 +50,7 @@ fn eight_players_can_join_and_start_standard_short_deck_or_omaha_tables() {
 }
 
 #[test]
-fn short_deck_omaha_rejects_seven_players_until_the_rules_are_changed() {
+fn short_deck_omaha_is_automatically_disabled_when_a_seventh_player_joins() {
     let rules = TexasHoldemRuleSet {
         short_deck: true,
         omaha: true,
@@ -62,18 +60,67 @@ fn short_deck_omaha_rejects_seven_players_until_the_rules_are_changed() {
     six.handle(HOST_CONNECTION, message(3, ClientCommand::StartGame));
     assert!(six.game().is_some());
 
-    let mut seven = joined_session(7, rules);
-    let deliveries = seven.handle(HOST_CONNECTION, message(3, ClientCommand::StartGame));
-    assert!(deliveries.iter().any(|delivery| matches!(
-        delivery.message.event,
-        ServerEvent::Rejected {
-            reason: RejectReason::Game(GameViolation::InvalidRuleConfiguration),
-            ..
+    let mut seven = joined_session(6, rules);
+    let deliveries = seven.handle(ConnectionId(70), message(1, join_command("玩家七", 7)));
+    assert!(!seven.rules().short_deck);
+    assert!(seven.rules().omaha);
+    let notices = deliveries
+        .iter()
+        .filter(|delivery| matches!(delivery.message.event, ServerEvent::Notice { .. }))
+        .collect::<Vec<_>>();
+    assert_eq!(notices.len(), 1);
+    assert_eq!(notices[0].recipient, HOST_CONNECTION);
+    for delivery in &deliveries {
+        if let ServerEvent::LobbySnapshot(lobby) = &delivery.message.event {
+            assert!(!lobby.rules.texas_holdem().unwrap().short_deck);
         }
-    )));
-    assert!(seven.game().is_none());
-    assert_eq!(seven.room.players.len(), 7);
-    let invalid = seven.handle(
+    }
+    let repeated = seven.handle(HOST_CONNECTION, message(3, ClientCommand::RequestSnapshot));
+    assert!(
+        !repeated
+            .iter()
+            .any(|delivery| matches!(delivery.message.event, ServerEvent::Notice { .. }))
+    );
+    for index in 1..=7 {
+        seven.handle(
+            ConnectionId(index * 10),
+            message(4, ClientCommand::SetReady { ready: true }),
+        );
+    }
+    seven.handle(HOST_CONNECTION, message(5, ClientCommand::StartGame));
+    assert_eq!(seven.game().unwrap().players().len(), 7);
+}
+
+#[test]
+fn changing_rules_or_adding_a_bot_also_corrects_short_deck_omaha() {
+    let rules = TexasHoldemRuleSet {
+        short_deck: true,
+        omaha: true,
+        ..TexasHoldemRuleSet::default()
+    };
+    let mut session = joined_session(6, rules);
+    let seat = (0..8)
+        .map(SeatId)
+        .find(|seat| !session.room.players.iter().any(|p| p.seat == Some(*seat)))
+        .unwrap();
+    let deliveries = session.handle(
+        HOST_CONNECTION,
+        message(
+            3,
+            ClientCommand::ConfigureBotSeat {
+                seat,
+                occupied: true,
+            },
+        ),
+    );
+    assert!(!session.rules().short_deck);
+    assert!(session.rules().omaha);
+    assert!(
+        deliveries
+            .iter()
+            .any(|delivery| matches!(delivery.message.event, ServerEvent::Notice { .. }))
+    );
+    let deliveries = session.handle(
         HOST_CONNECTION,
         message(
             4,
@@ -82,31 +129,18 @@ fn short_deck_omaha_rejects_seven_players_until_the_rules_are_changed() {
             })),
         ),
     );
+    assert!(!session.rules().short_deck);
+    assert!(session.rules().omaha);
     assert!(
-        invalid
+        deliveries
+            .iter()
+            .any(|delivery| matches!(delivery.message.event, ServerEvent::Notice { .. }))
+    );
+    assert!(
+        !deliveries
             .iter()
             .any(|delivery| matches!(delivery.message.event, ServerEvent::Rejected { .. }))
     );
-    seven.handle(
-        HOST_CONNECTION,
-        message(
-            5,
-            ClientCommand::Game(GameCommand::TexasHoldem(TexasHoldemCommand::UpdateRules {
-                rules: TexasHoldemRuleSet {
-                    short_deck: false,
-                    ..rules
-                },
-            })),
-        ),
-    );
-    for index in 1..=7 {
-        seven.handle(
-            ConnectionId(index * 10),
-            message(6, ClientCommand::SetReady { ready: true }),
-        );
-    }
-    seven.handle(HOST_CONNECTION, message(7, ClientCommand::StartGame));
-    assert_eq!(seven.game().unwrap().players().len(), 7);
 }
 
 #[test]

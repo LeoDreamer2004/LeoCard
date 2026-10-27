@@ -185,6 +185,10 @@ pub enum ServerEvent {
     /// Bootstrap rules without temporarily moving a midgame joiner into the lobby.
     RulesSnapshot(GameRules),
     RoomInfo(Option<RoomInfo>),
+    Notice {
+        title: String,
+        message: String,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

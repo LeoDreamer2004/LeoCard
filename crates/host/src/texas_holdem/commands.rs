@@ -92,9 +92,7 @@ impl TexasHoldemSession {
             .iter()
             .filter(|player| !player.left)
             .count();
-        if usize::from(rules.squid_markers) >= count
-            || !rules.supports_player_count((count as u8).max(TexasHoldemRuleSet::MIN_PLAYERS))
-        {
+        if usize::from(rules.squid_markers) >= count {
             return self.room.reject(
                 connection,
                 request_id,

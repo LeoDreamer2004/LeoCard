@@ -1,8 +1,9 @@
-use super::super::texas_portrait_position;
+use super::super::TexasTableLayout;
 use crate::app::presentation::{DESIGN_WIDTH, table_random_signed};
+use crate::app::shell::SeatSide;
 use bevy::prelude::*;
-use leocard_protocol::{MatchId, PlayerId, SeatId, TexasHoldemSnapshot};
-use leocard_texas_holdem::{TexasHoldemRuleSet, deepseek_squid_marker};
+use leocard_protocol::{MatchId, PlayerId, TexasHoldemSnapshot};
+use leocard_texas_holdem::deepseek_squid_marker;
 
 pub(super) const MARKER_SIZE: f32 = 44.0;
 
@@ -118,14 +119,8 @@ fn marker_position(
             0.0,
         );
     };
-    let origin = game
-        .players
-        .iter()
-        .find(|p| p.id == game.you)
-        .map_or(SeatId(0), |p| p.seat);
-    let relative = game.players.iter().find(|p| p.id == owner).map_or(0, |p| {
-        (p.seat.0 + TexasHoldemRuleSet::MAX_PLAYERS - origin.0) % TexasHoldemRuleSet::MAX_PLAYERS
-    });
+    let layout = TexasTableLayout::for_game(game);
+    let relative = layout.player_slot(game, owner);
     let slot = game.squid.markers[..index]
         .iter()
         .filter(|&&p| p == Some(owner))
@@ -139,8 +134,8 @@ fn marker_position(
         offset.y = -offset.y;
         Vec3::new(42.0, -154.0, 1.0)
     } else {
-        let portrait = texas_portrait_position(relative);
-        let left = if relative <= 2 {
+        let portrait = layout.portrait_position(relative);
+        let left = if matches!(layout.side(relative), SeatSide::Left) {
             portrait.x - 38.0
         } else {
             portrait.x + 108.0

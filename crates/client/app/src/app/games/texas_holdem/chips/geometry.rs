@@ -1,32 +1,4 @@
-use super::{ChipZoneLayout, PLAYER_CHIP_ZONE_HEIGHT, PLAYER_CHIP_ZONE_WIDTH};
-
-pub(crate) fn texas_player_chip_zone(relative: u8) -> ChipZoneLayout {
-    let (center_x, top, height) = match relative {
-        0 => {
-            // 自己的下注区位于底牌正上方，操作按钮紧接在其下方。
-            (640.0, 405.0, PLAYER_CHIP_ZONE_HEIGHT)
-        }
-        1 => (282.0, 346.0, PLAYER_CHIP_ZONE_HEIGHT),
-        2 => (282.0, 160.0, PLAYER_CHIP_ZONE_HEIGHT),
-        3 => (300.0, 20.0, 116.0),
-        4 => (620.0, 20.0, 116.0),
-        5 => (940.0, 20.0, 116.0),
-        6 => (998.0, 160.0, PLAYER_CHIP_ZONE_HEIGHT),
-        7 => (998.0, 346.0, PLAYER_CHIP_ZONE_HEIGHT),
-        _ => return texas_pot_chip_zone(false),
-    };
-    let width = if matches!(relative, 3..=5) {
-        180.0
-    } else {
-        PLAYER_CHIP_ZONE_WIDTH
-    };
-    ChipZoneLayout {
-        left: center_x - width * 0.5,
-        top,
-        width,
-        height,
-    }
-}
+use super::ChipZoneLayout;
 
 pub(super) fn texas_pot_chip_zone(squid_enabled: bool) -> ChipZoneLayout {
     // Reserve the left column below the street label for squid coins.

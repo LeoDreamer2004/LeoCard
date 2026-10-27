@@ -1,7 +1,7 @@
 use super::{
     TEXAS_SHOWDOWN_REVEAL_DURATION, TexasShowdownBackdrop, TexasShowdownBestCard,
     TexasShowdownRevealRoot, TexasShowdownTitle, TexasShowdownTitleText, TexasShowdownUnderline,
-    add_texas_card, texas_category_label, texas_player_chip_zone,
+    TexasTableLayout, add_texas_card, texas_category_label,
 };
 use crate::app::presentation::{
     ACCENT, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider, GameSummaryModal,
@@ -16,8 +16,7 @@ use crate::app::shell::{
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_protocol::{SeatId, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot};
-use leocard_texas_holdem::TexasHoldemRuleSet;
+use leocard_protocol::{TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn texas_holdem_summary_descriptor(
@@ -58,7 +57,6 @@ pub(super) fn add_texas_showdown_reveal(
     commands: &mut UiComposer,
     table: Entity,
     game: &TexasHoldemSnapshot,
-    own_seat: SeatId,
     assets: &UiAssets,
     animation: &GameSummaryAnimation,
 ) {
@@ -128,9 +126,9 @@ pub(super) fn add_texas_showdown_reveal(
         .entity(backdrop)
         .insert((TexasShowdownBackdrop, Pickable::IGNORE));
 
-    let relative = (winner.seat.0 + TexasHoldemRuleSet::MAX_PLAYERS - own_seat.0)
-        % TexasHoldemRuleSet::MAX_PLAYERS;
-    let winner_zone = texas_player_chip_zone(relative);
+    let layout = TexasTableLayout::for_game(game);
+    let relative = layout.player_slot(game, winner.id);
+    let winner_zone = layout.chip_zone(relative);
     let hole_spacing = if revealed.cards.len() > 2 { 18.0 } else { 31.0 };
     let first_hole_offset = -hole_spacing * (revealed.cards.len().saturating_sub(1) as f32) / 2.0;
     for (index, card) in best.cards().into_iter().enumerate() {

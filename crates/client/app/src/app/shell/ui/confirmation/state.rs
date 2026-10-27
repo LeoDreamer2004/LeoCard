@@ -10,7 +10,7 @@ pub(crate) enum ConfirmationUiAction {
 pub(super) struct ConfirmationRequest {
     pub title: String,
     pub message: String,
-    pub accept: UiAction,
+    pub accept: Option<UiAction>,
     pub accept_label: &'static str,
     pub accept_variant: CozyButtonVariant,
 }
@@ -39,14 +39,28 @@ impl ConfirmationDialog {
         accept_label: &'static str,
         accept_variant: CozyButtonVariant,
     ) {
+        self.open_request(ConfirmationRequest {
+            title,
+            message,
+            accept: Some(accept),
+            accept_label,
+            accept_variant,
+        });
+    }
+
+    pub fn inform(&mut self, title: String, message: String) {
+        self.open_request(ConfirmationRequest {
+            title,
+            message,
+            accept: None,
+            accept_label: "知道了",
+            accept_variant: CozyButtonVariant::Neutral,
+        });
+    }
+
+    fn open_request(&mut self, request: ConfirmationRequest) {
         if self.request.is_none() {
-            self.request = Some(ConfirmationRequest {
-                title,
-                message,
-                accept,
-                accept_label,
-                accept_variant,
-            });
+            self.request = Some(request);
             self.open = true;
             self.progress = 0.0;
         }

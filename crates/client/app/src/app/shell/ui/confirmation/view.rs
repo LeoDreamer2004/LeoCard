@@ -66,15 +66,17 @@ pub(crate) fn render_confirmation(
         },
         None,
     );
-    add_cozy_button(
-        commands,
-        buttons,
-        "取消",
-        UiAction::Confirmation(ConfirmationUiAction::Cancel),
-        assets,
-        px(130),
-        44.0,
-    );
+    if request.accept.is_some() {
+        add_cozy_button(
+            commands,
+            buttons,
+            "取消",
+            UiAction::Confirmation(ConfirmationUiAction::Cancel),
+            assets,
+            px(130),
+            44.0,
+        );
+    }
     add_cozy_button_variant(
         commands,
         buttons,

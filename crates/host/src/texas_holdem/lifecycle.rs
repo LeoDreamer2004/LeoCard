@@ -158,7 +158,43 @@ impl TexasHoldemSession {
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
-        dispatch_client_command(self, connection, message)
+        let request_id = message.request_id;
+        let mut deliveries = dispatch_client_command(self, connection, message);
+        if !self.room.closed
+            && self.game.is_none()
+            && self.rules.short_deck
+            && self.rules.omaha
+            && self
+                .room
+                .players
+                .iter()
+                .filter(|player| !player.left)
+                .count()
+                > 6
+        {
+            self.rules.short_deck = false;
+            self.room.reset_ready_after_rules_change();
+            let mut deck = build_deck(false);
+            fastrand::shuffle(&mut deck);
+            self.shuffled_deck = Some(deck);
+            self.room.bump_revision();
+            // Replace snapshots produced before the adjustment, so no peer sees invalid rules.
+            deliveries.retain(|delivery| {
+                !matches!(delivery.message.event, ServerEvent::LobbySnapshot(_))
+            });
+            deliveries.extend(self.broadcast_lobby(Some((connection, request_id))));
+            if let Some(host) = self.room.host_connection {
+                deliveries.push(self.room.delivery(
+                    host,
+                    None,
+                    ServerEvent::Notice {
+                        title: "规则已调整".to_owned(),
+                        message: "短牌奥马哈至多六人，已自动关闭短牌模式。".to_owned(),
+                    },
+                ));
+            }
+        }
+        deliveries
     }
 }
 

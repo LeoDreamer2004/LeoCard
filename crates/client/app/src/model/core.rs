@@ -113,7 +113,8 @@ impl ClientModel {
             ServerEvent::RulesSnapshot(rules) => self.rules = Some(rules),
             ServerEvent::AchievementUnlocked(_)
             | ServerEvent::GameStarted { .. }
-            | ServerEvent::RoomInfo(_) => {}
+            | ServerEvent::RoomInfo(_)
+            | ServerEvent::Notice { .. } => {}
             ServerEvent::Joined { you } => {
                 self.you = Some(you);
                 self.rejection.value = None;

@@ -1,10 +1,10 @@
-use super::texas_player_chip_zone;
+use super::TexasTableLayout;
 use crate::app::presentation::{
     CARD_DEAL_INTERVAL, PendingDealSound, PlayingCardFlip, TEXT, TablePieceDeal, ease_out_cubic,
 };
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use leocard_protocol::{SeatId, TexasHoldemSnapshot};
+use leocard_protocol::TexasHoldemSnapshot;
 use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemRuleSet};
 use leocard_ui::UiComposer;
 
@@ -113,7 +113,6 @@ pub(super) fn spawn_texas_initial_deal(
     commands: &mut UiComposer,
     table: Entity,
     game: &TexasHoldemSnapshot,
-    own_seat: SeatId,
     assets: &UiAssets,
 ) -> TexasInitialDeal {
     let source = Vec2::new(456.0, 212.0);
@@ -148,9 +147,9 @@ pub(super) fn spawn_texas_initial_deal(
                 dealt += 1;
                 continue;
             }
-            let relative = (player.seat.0 + TexasHoldemRuleSet::MAX_PLAYERS - own_seat.0)
-                % TexasHoldemRuleSet::MAX_PLAYERS;
-            let target = texas_seat_card_target(relative);
+            let layout = TexasTableLayout::for_game(game);
+            let relative = layout.player_slot(game, player.id);
+            let target = texas_seat_card_target(layout, relative);
             let delay = dealt as f32 * CARD_DEAL_INTERVAL;
             commands.effect_child(
                 table,
@@ -189,8 +188,8 @@ pub(super) fn spawn_texas_initial_deal(
     }
 }
 
-fn texas_seat_card_target(relative: u8) -> Vec2 {
-    let zone = texas_player_chip_zone(relative);
+fn texas_seat_card_target(layout: TexasTableLayout, relative: u8) -> Vec2 {
+    let zone = layout.chip_zone(relative);
     Vec2::new(
         zone.left + zone.width * 0.5 - 18.0,
         zone.top + zone.height - 53.0,

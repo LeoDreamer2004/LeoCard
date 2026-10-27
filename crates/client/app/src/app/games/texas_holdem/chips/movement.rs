@@ -1,15 +1,14 @@
 //! Chip selection, exchanges and physical zone transfers.
 
-use super::super::{TEXAS_PORTRAIT_WIDTH, texas_portrait_position};
+use super::super::{TEXAS_PORTRAIT_WIDTH, TexasTableLayout};
 use super::denominations::{canonical_chip_denominations, change_for};
 use super::{
     CHIP_SIZE, ChipMotion, ChipZone, ChipZoneLayout, DENOMINATIONS, TableChip, TexasChipTableState,
-    texas_player_chip_zone, texas_pot_chip_zone, texas_pot_partition_zone,
+    texas_pot_chip_zone, texas_pot_partition_zone,
 };
 use crate::app::presentation::{table_random_signed, table_random_unit};
 use bevy::prelude::*;
 use leocard_protocol::PlayerId;
-use leocard_texas_holdem::TexasHoldemRuleSet;
 use std::cmp::Reverse;
 
 impl TexasChipTableState {
@@ -168,11 +167,20 @@ impl TexasChipTableState {
     }
 
     pub(crate) fn relative_seat(&self, player: PlayerId) -> u8 {
-        let Some(you) = self.you.and_then(|you| self.seats.get(&you)).copied() else {
+        let Some(you) = self
+            .you
+            .and_then(|you| self.seats.get(&you))
+            .or_else(|| self.seats.values().min_by_key(|seat| seat.0))
+            .copied()
+        else {
             return 0;
         };
         self.seats.get(&player).map_or(0, |seat| {
-            (seat.0 + TexasHoldemRuleSet::MAX_PLAYERS - you.0) % TexasHoldemRuleSet::MAX_PLAYERS
+            TexasTableLayout::new(self.seats.len() as u8).relative_slot(
+                you,
+                *seat,
+                self.seats.values().copied(),
+            )
         })
     }
 
@@ -181,13 +189,15 @@ impl TexasChipTableState {
         if relative == 0 {
             return Vec2::new(386.0, 570.0);
         }
-        let portrait = texas_portrait_position(relative);
+        let portrait = TexasTableLayout::new(self.seats.len() as u8).portrait_position(relative);
         portrait + Vec2::new(TEXAS_PORTRAIT_WIDTH * 0.5, 30.0)
     }
 
     fn zone_layout(&self, zone: ChipZone) -> ChipZoneLayout {
         match zone {
-            ChipZone::Bet(player) => texas_player_chip_zone(self.relative_seat(player)),
+            ChipZone::Bet(player) => {
+                TexasTableLayout::new(self.seats.len() as u8).chip_zone(self.relative_seat(player))
+            }
             ChipZone::Pot(index) => {
                 texas_pot_partition_zone(index, self.pots.len().max(1), self.squid.is_enabled())
             }

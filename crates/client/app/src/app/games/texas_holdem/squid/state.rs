@@ -1,8 +1,8 @@
 use super::super::texas_portrait_position;
 use crate::app::presentation::{DESIGN_WIDTH, table_random_signed};
 use bevy::prelude::*;
-use leocard_protocol::{MatchId, PlayerId, SeatId, TABLE_SEAT_COUNT, TexasHoldemSnapshot};
-use leocard_texas_holdem::deepseek_squid_marker;
+use leocard_protocol::{MatchId, PlayerId, SeatId, TexasHoldemSnapshot};
+use leocard_texas_holdem::{TexasHoldemRuleSet, deepseek_squid_marker};
 
 pub(super) const MARKER_SIZE: f32 = 44.0;
 
@@ -124,7 +124,7 @@ fn marker_position(
         .find(|p| p.id == game.you)
         .map_or(SeatId(0), |p| p.seat);
     let relative = game.players.iter().find(|p| p.id == owner).map_or(0, |p| {
-        (p.seat.0 + TABLE_SEAT_COUNT - origin.0) % TABLE_SEAT_COUNT
+        (p.seat.0 + TexasHoldemRuleSet::MAX_PLAYERS - origin.0) % TexasHoldemRuleSet::MAX_PLAYERS
     });
     let slot = game.squid.markers[..index]
         .iter()

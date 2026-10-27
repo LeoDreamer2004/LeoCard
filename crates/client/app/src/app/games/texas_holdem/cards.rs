@@ -4,8 +4,8 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemSnapshot};
-use leocard_texas_holdem::TexasHoldemCard;
+use leocard_protocol::{SeatId, TexasHoldemSnapshot};
+use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemRuleSet};
 use leocard_ui::UiComposer;
 
 #[derive(Component)]
@@ -127,8 +127,10 @@ pub(super) fn spawn_texas_initial_deal(
         .iter()
         .filter(|player| !player.folded)
         .collect::<Vec<_>>();
-    funded
-        .sort_by_key(|player| (player.seat.0 + TABLE_SEAT_COUNT - dealer_seat) % TABLE_SEAT_COUNT);
+    funded.sort_by_key(|player| {
+        (player.seat.0 + TexasHoldemRuleSet::MAX_PLAYERS - dealer_seat)
+            % TexasHoldemRuleSet::MAX_PLAYERS
+    });
     if !funded.is_empty() {
         funded.rotate_left(1);
     }
@@ -146,7 +148,8 @@ pub(super) fn spawn_texas_initial_deal(
                 dealt += 1;
                 continue;
             }
-            let relative = (player.seat.0 + TABLE_SEAT_COUNT - own_seat.0) % TABLE_SEAT_COUNT;
+            let relative = (player.seat.0 + TexasHoldemRuleSet::MAX_PLAYERS - own_seat.0)
+                % TexasHoldemRuleSet::MAX_PLAYERS;
             let target = texas_seat_card_target(relative);
             let delay = dealt as f32 * CARD_DEAL_INTERVAL;
             commands.effect_child(

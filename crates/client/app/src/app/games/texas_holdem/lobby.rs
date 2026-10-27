@@ -9,7 +9,7 @@ use crate::app::shell::{
     LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_lobby_rules_heading,
 };
 use bevy::prelude::*;
-use leocard_protocol::{LobbySnapshot, TABLE_SEAT_COUNT};
+use leocard_protocol::LobbySnapshot;
 use leocard_texas_holdem::TexasHoldemRuleSet;
 use leocard_ui::UiComposer;
 
@@ -53,7 +53,8 @@ pub(crate) fn render_texas_holdem_lobby(
         rules_panel,
         format!(
             "当前人数 {}/{}，至少 3 人开局。",
-            connected_count, TABLE_SEAT_COUNT
+            connected_count,
+            TexasHoldemRuleSet::MAX_PLAYERS
         ),
         13.0,
         MUTED,
@@ -166,10 +167,18 @@ pub(crate) fn render_texas_holdem_lobby(
         },
         assets,
     );
-    let toggled = TexasHoldemRuleSet {
+    let short_deck_toggled = TexasHoldemRuleSet {
         short_deck: !rules_value.short_deck,
         ..rules_value
     };
+    let omaha_toggled = TexasHoldemRuleSet {
+        omaha: !rules_value.omaha,
+        ..rules_value
+    };
+    let participant_count = connected_count.max(TexasHoldemRuleSet::MIN_PLAYERS);
+    let can_toggle_omaha = can_configure && omaha_toggled.supports_player_count(participant_count);
+    let can_toggle_short_deck =
+        can_configure && short_deck_toggled.supports_player_count(participant_count);
     add_rule_config_row(
         commands,
         rules_panel,
@@ -180,16 +189,10 @@ pub(crate) fn render_texas_holdem_lobby(
             } else {
                 "关闭".to_owned()
             },
-            help: "开启后每人发四张底牌；最终牌型必须恰好使用两张底牌和三张公共牌。",
+            help: "开启后每人发四张底牌；最终牌型必须恰好使用两张底牌和三张公共牌。短牌奥马哈最多支持 6 人。",
             editable: can_configure,
-            previous: can_configure.then_some(TexasHoldemRuleSet {
-                omaha: !rules_value.omaha,
-                ..rules_value
-            }),
-            next: can_configure.then_some(TexasHoldemRuleSet {
-                omaha: !rules_value.omaha,
-                ..rules_value
-            }),
+            previous: can_toggle_omaha.then_some(omaha_toggled),
+            next: can_toggle_omaha.then_some(omaha_toggled),
         },
         assets,
     );
@@ -203,10 +206,10 @@ pub(crate) fn render_texas_holdem_lobby(
             } else {
                 "关闭".to_owned()
             },
-            help: "开启后移除 2、3、4、5。短牌中同花高于葫芦，三条高于顺子。",
+            help: "开启后移除 2、3、4、5。短牌中同花高于葫芦，三条高于顺子；短牌奥马哈最多支持 6 人。",
             editable: can_configure,
-            previous: can_configure.then_some(toggled),
-            next: can_configure.then_some(toggled),
+            previous: can_toggle_short_deck.then_some(short_deck_toggled),
+            next: can_toggle_short_deck.then_some(short_deck_toggled),
         },
         assets,
     );
@@ -232,7 +235,17 @@ pub(crate) fn render_texas_holdem_lobby(
         assets,
     );
 
-    let can_start = connected_count >= TexasHoldemRuleSet::MIN_PLAYERS
+    if !rules_value.supports_player_count(participant_count) {
+        add_text(
+            commands,
+            rules_panel,
+            "超过 6 人时请关闭短牌模式或奥马哈。",
+            13.0,
+            MUTED,
+            assets,
+        );
+    }
+    let can_start = rules_value.supports_player_count(connected_count)
         && lobby
             .players
             .iter()
@@ -245,7 +258,7 @@ pub(crate) fn render_texas_holdem_lobby(
             lobby,
             assets,
             avatars,
-            TABLE_SEAT_COUNT,
+            TexasHoldemRuleSet::MAX_PLAYERS,
             can_start,
             "等待玩家中",
         ),

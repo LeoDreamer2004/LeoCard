@@ -210,7 +210,7 @@ impl NormalizeRuleSet for TexasHoldemRuleSet {
             player_count: Self::MAX_PLAYERS,
             ..self
         };
-        rules.validate().unwrap_or_else(|_| Self {
+        rules.validate_options().unwrap_or_else(|_| Self {
             player_count: Self::MAX_PLAYERS,
             ..Self::default()
         })

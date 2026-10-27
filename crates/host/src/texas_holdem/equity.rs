@@ -82,6 +82,9 @@ impl EquityCache {
     }
 }
 
+// LCM(1..=8) keeps all possible split-pot shares exact.
+const SPLIT_SHARE_SCALE: u64 = 840;
+
 struct EquityCalculation<'a> {
     game: &'a GameState,
     board: Vec<TexasHoldemCard>,
@@ -124,9 +127,8 @@ impl<'a> EquityCalculation<'a> {
         if self.cancellation.load(AtomicOrdering::Relaxed) != self.generation {
             return None;
         }
-        // 60 is divisible by every possible split-pot winner count (1..=6).
         // Integer accumulation preserves exact split shares throughout enumeration.
-        let denominator = self.outcomes as u64 * 60;
+        let denominator = self.outcomes as u64 * SPLIT_SHARE_SCALE;
         Some(
             self.shares
                 .iter()
@@ -176,7 +178,7 @@ impl<'a> EquityCalculation<'a> {
             .count();
         for (index, hand) in &hands {
             if hand.cmp_with_rules(best, self.game.rules()) == Ordering::Equal {
-                self.shares[*index] += 60 / count as u64;
+                self.shares[*index] += SPLIT_SHARE_SCALE / count as u64;
             }
         }
         self.outcomes += 1;

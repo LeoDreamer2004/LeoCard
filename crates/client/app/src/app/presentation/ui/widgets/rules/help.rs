@@ -1,9 +1,9 @@
 use crate::app::presentation::TEXT;
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use leocard_ui::{HelpTooltipStyle, UiComposer, add_help_tooltip, sliced_image};
+use leocard_ui::{HelpTooltipStyle, sliced_image};
 
-pub(super) fn rule_help_style(assets: &UiAssets) -> HelpTooltipStyle<'_> {
+pub(crate) fn rule_help_style(assets: &UiAssets) -> HelpTooltipStyle<'_> {
     HelpTooltipStyle {
         font: &assets.font,
         icon: ImageNode::new(assets.home.help_question.clone()),
@@ -11,13 +11,4 @@ pub(super) fn rule_help_style(assets: &UiAssets) -> HelpTooltipStyle<'_> {
         text: TEXT,
         width: 290.0,
     }
-}
-
-pub(crate) fn add_rule_help(
-    commands: &mut UiComposer,
-    parent: Entity,
-    help: &str,
-    assets: &UiAssets,
-) {
-    add_help_tooltip(commands, parent, help, rule_help_style(assets));
 }

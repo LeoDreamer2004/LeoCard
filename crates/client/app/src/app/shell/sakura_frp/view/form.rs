@@ -2,14 +2,14 @@ use super::super::actions::SakuraUiAction;
 use super::super::input::{SakuraInput, SakuraScroll};
 use super::page::SakuraPage;
 use super::widgets::{panel, row, scroll_list};
-use crate::app::presentation::{MUTED, TEXT, add_rule_help, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, rule_help_style};
 use crate::app::shell::{
     CozyButtonVariant, CozyDropdown, CozyDropdownOption, PageTransitionElement, UiAction,
     add_cozy_button_variant, add_cozy_checkbox,
 };
 use bevy::prelude::*;
 use leocard_sakura_frp::TunnelType;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{UiComposer, add_help_tooltip, spawn_node};
 
 impl SakuraPage<'_> {
     pub(super) fn render_form(&self, commands: &mut UiComposer, root: Entity, body: Entity) {
@@ -82,11 +82,11 @@ impl SakuraPage<'_> {
             UiAction::Sakura(SakuraUiAction::TogglePublicGame),
             self.assets,
         );
-        add_rule_help(
+        add_help_tooltip(
             commands,
             public_game,
             "公开游戏服务器只能使用专用节点。私人联机及其他应用可使用普通节点。",
-            self.assets,
+            rule_help_style(self.assets),
         );
         self.render_nodes(commands, form);
         self.button(

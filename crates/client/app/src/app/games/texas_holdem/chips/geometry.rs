@@ -7,16 +7,23 @@ pub(crate) fn texas_player_chip_zone(relative: u8) -> ChipZoneLayout {
             (640.0, 405.0, PLAYER_CHIP_ZONE_HEIGHT)
         }
         1 => (282.0, 346.0, PLAYER_CHIP_ZONE_HEIGHT),
-        2 => (282.0, 123.0, PLAYER_CHIP_ZONE_HEIGHT),
-        3 => (640.0, 37.0, 116.0),
-        4 => (998.0, 123.0, PLAYER_CHIP_ZONE_HEIGHT),
-        5 => (998.0, 346.0, PLAYER_CHIP_ZONE_HEIGHT),
+        2 => (282.0, 160.0, PLAYER_CHIP_ZONE_HEIGHT),
+        3 => (300.0, 20.0, 116.0),
+        4 => (620.0, 20.0, 116.0),
+        5 => (940.0, 20.0, 116.0),
+        6 => (998.0, 160.0, PLAYER_CHIP_ZONE_HEIGHT),
+        7 => (998.0, 346.0, PLAYER_CHIP_ZONE_HEIGHT),
         _ => return texas_pot_chip_zone(false),
     };
+    let width = if matches!(relative, 3..=5) {
+        180.0
+    } else {
+        PLAYER_CHIP_ZONE_WIDTH
+    };
     ChipZoneLayout {
-        left: center_x - PLAYER_CHIP_ZONE_WIDTH * 0.5,
+        left: center_x - width * 0.5,
         top,
-        width: PLAYER_CHIP_ZONE_WIDTH,
+        width,
         height,
     }
 }

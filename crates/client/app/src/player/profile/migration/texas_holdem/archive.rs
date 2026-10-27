@@ -1,15 +1,15 @@
-use super::super::{StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
-use super::profile::decode_exact;
+use super::super::super::{StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
+use super::super::profile::decode_exact;
 use leocard_protocol::{
     BlackjackProfileStats, MahjongProfileStats, MinecraftGuessProfileStats, PlayerInteractionStats,
     ShengjiProfileStats, TexasHoldemProfileStats, UnoProfileStats,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-pub(super) const V3_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v3\0";
+pub(in crate::player::profile::migration) const V3_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v3\0";
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-pub(super) struct V3TexasHoldemStats {
+pub(in crate::player::profile::migration) struct V3TexasHoldemStats {
     pub completed_games: u32,
     pub total_reference_delta: i64,
     pub total_final_chips: u64,
@@ -27,11 +27,13 @@ pub(super) struct V3TexasHoldemStats {
 
 impl From<V3TexasHoldemStats> for TexasHoldemProfileStats {
     fn from(previous: V3TexasHoldemStats) -> Self {
+        let mut placement_counts = [0; 8];
+        placement_counts[..6].copy_from_slice(&previous.placement_counts);
         Self {
             completed_games: previous.completed_games,
             total_reference_delta: previous.total_reference_delta,
             total_final_chips: previous.total_final_chips,
-            placement_counts: previous.placement_counts,
+            placement_counts,
             wagered_chips: previous.wagered_chips,
             wager_actions: previous.wager_actions,
             voluntary_actions: previous.voluntary_actions,
@@ -48,15 +50,15 @@ impl From<V3TexasHoldemStats> for TexasHoldemProfileStats {
 }
 
 #[derive(Deserialize, Serialize)]
-struct V3PlayerProfile {
+struct ArchivedPlayerProfile<T> {
     secret_key: [u8; 32],
-    games: V3GameProfiles,
+    games: ArchivedGameProfiles<T>,
 }
 
 #[derive(Deserialize, Serialize)]
-struct V3GameProfiles {
+struct ArchivedGameProfiles<T> {
     qigui523: StoredRatingProfile,
-    texas_holdem_stats: Option<V3TexasHoldemStats>,
+    texas_holdem_stats: Option<T>,
     shengji_stats: Option<ShengjiProfileStats>,
     uno_stats: Option<UnoProfileStats>,
     interaction_stats: Option<PlayerInteractionStats>,
@@ -65,8 +67,16 @@ struct V3GameProfiles {
     blackjack_stats: Option<BlackjackProfileStats>,
 }
 
-pub(super) fn decode_v3(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
-    let previous: V3PlayerProfile =
+pub(in crate::player::profile::migration) fn decode_v3(
+    bytes: &[u8],
+) -> Result<StoredPlayerProfile, String> {
+    decode_archive::<V3TexasHoldemStats>(bytes)
+}
+
+fn decode_archive<T: DeserializeOwned + Into<TexasHoldemProfileStats>>(
+    bytes: &[u8],
+) -> Result<StoredPlayerProfile, String> {
+    let previous: ArchivedPlayerProfile<T> =
         decode_exact(bytes).map_err(|error| format!("玩家档案已损坏：{error}"))?;
     Ok(StoredPlayerProfile {
         secret_key: previous.secret_key,
@@ -81,4 +91,29 @@ pub(super) fn decode_v3(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
             blackjack_stats: previous.games.blackjack_stats,
         },
     })
+}
+
+pub(in crate::player::profile::migration) const V4_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v4\0";
+
+#[derive(Default, Deserialize, Serialize)]
+struct V4TexasHoldemStats {
+    base: V3TexasHoldemStats,
+    entry_tracked_hands: u32,
+    entered_hands: u32,
+}
+
+impl From<V4TexasHoldemStats> for TexasHoldemProfileStats {
+    fn from(previous: V4TexasHoldemStats) -> Self {
+        Self {
+            entry_tracked_hands: previous.entry_tracked_hands,
+            entered_hands: previous.entered_hands,
+            ..previous.base.into()
+        }
+    }
+}
+
+pub(in crate::player::profile::migration) fn decode_v4(
+    bytes: &[u8],
+) -> Result<StoredPlayerProfile, String> {
+    decode_archive::<V4TexasHoldemStats>(bytes)
 }

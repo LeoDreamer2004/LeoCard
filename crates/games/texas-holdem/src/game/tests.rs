@@ -538,3 +538,45 @@ fn dealer_button_moves_to_the_next_funded_player() {
     assert_eq!(state.dealer(), TexasHoldemPlayerId(1));
     assert_eq!(state.hand_number(), 1);
 }
+
+#[test]
+fn expanded_tables_finish_a_full_board_without_exhausting_the_deck() {
+    for player_count in 6..=8 {
+        for short_deck in [false, true] {
+            for omaha in [false, true] {
+                let rules = TexasHoldemRuleSet {
+                    player_count,
+                    short_deck,
+                    omaha,
+                    ..TexasHoldemRuleSet::default()
+                };
+                let game =
+                    GameState::new_with_deck(rules, TexasHoldemPlayerId(0), build_deck(short_deck));
+                if player_count > 6 && short_deck && omaha {
+                    assert!(matches!(game, Err(GameError::InvalidRules(_))));
+                    continue;
+                }
+                let mut game = game.unwrap();
+                for player in game.players() {
+                    assert_eq!(player.hole_cards().len(), rules.hole_card_count());
+                }
+                while let Some(player) = game.current_player() {
+                    let action = if game.blind_to_post().is_some() {
+                        TexasHoldemAction::PostBlind
+                    } else {
+                        TexasHoldemAction::AllIn
+                    };
+                    game.act(player, action).unwrap();
+                }
+                assert_eq!(game.community().len(), 5);
+                assert_eq!(
+                    game.players()
+                        .iter()
+                        .map(|player| player.stack())
+                        .sum::<u32>(),
+                    u32::from(player_count) * u32::from(rules.starting_chips)
+                );
+            }
+        }
+    }
+}

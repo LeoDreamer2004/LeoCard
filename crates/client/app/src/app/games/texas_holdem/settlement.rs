@@ -16,9 +16,8 @@ use crate::app::shell::{
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_protocol::{
-    SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot,
-};
+use leocard_protocol::{SeatId, TexasHoldemPhaseView, TexasHoldemPlayerState, TexasHoldemSnapshot};
+use leocard_texas_holdem::TexasHoldemRuleSet;
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn texas_holdem_summary_descriptor(
@@ -129,7 +128,8 @@ pub(super) fn add_texas_showdown_reveal(
         .entity(backdrop)
         .insert((TexasShowdownBackdrop, Pickable::IGNORE));
 
-    let relative = (winner.seat.0 + TABLE_SEAT_COUNT - own_seat.0) % TABLE_SEAT_COUNT;
+    let relative = (winner.seat.0 + TexasHoldemRuleSet::MAX_PLAYERS - own_seat.0)
+        % TexasHoldemRuleSet::MAX_PLAYERS;
     let winner_zone = texas_player_chip_zone(relative);
     let hole_spacing = if revealed.cards.len() > 2 { 18.0 } else { 31.0 };
     let first_hole_offset = -hole_spacing * (revealed.cards.len().saturating_sub(1) as f32) / 2.0;

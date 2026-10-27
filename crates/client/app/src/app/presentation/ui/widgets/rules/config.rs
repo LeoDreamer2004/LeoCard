@@ -1,4 +1,4 @@
-use super::help::rule_help_style;
+use super::rule_help_style;
 use crate::app::presentation::{MUTED, TEXT};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;

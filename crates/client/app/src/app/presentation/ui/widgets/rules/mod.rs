@@ -4,4 +4,4 @@ mod config;
 mod help;
 
 pub(crate) use config::*;
-pub(crate) use help::*;
+pub(crate) use help::rule_help_style;

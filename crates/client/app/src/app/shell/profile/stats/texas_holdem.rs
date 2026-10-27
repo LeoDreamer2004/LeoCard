@@ -4,7 +4,7 @@ use leocard_protocol::TexasHoldemProfileStats;
 pub(crate) fn texas_holdem_profile_rows(
     stats: Option<&TexasHoldemProfileStats>,
 ) -> Vec<(&'static str, String)> {
-    const LABELS: [&str; 26] = [
+    const LABELS: [&str; 28] = [
         "对局数",
         "分数增减",
         "场筹码",
@@ -15,6 +15,8 @@ pub(crate) fn texas_holdem_profile_rows(
         "四位率",
         "五位率",
         "六位率",
+        "七位率",
+        "八位率",
         "平均加注",
         "过牌率",
         "加注率",
@@ -41,7 +43,7 @@ pub(crate) fn texas_holdem_profile_rows(
         "场筹码",
         stats.total_final_chips as f64,
         &stats.placement_counts,
-        &LABELS[4..10],
+        &LABELS[4..12],
     );
     rows.extend([
         (
@@ -70,7 +72,7 @@ pub(crate) fn texas_holdem_profile_rows(
         ),
     ]);
     rows.extend(
-        LABELS[16..]
+        LABELS[18..]
             .iter()
             .copied()
             .zip(stats.hand_category_counts)

@@ -1,5 +1,6 @@
 use crate::{BlackjackProfileStats, MinecraftGuessProfileStats};
 use leocard_mahjong::Fan;
+use leocard_texas_holdem::TexasHoldemRuleSet;
 use leocard_uno::UnoRuleSet;
 use serde::{Deserialize, Serialize};
 
@@ -120,7 +121,7 @@ pub struct TexasHoldemProfileStats {
     pub completed_games: u32,
     pub total_reference_delta: i64,
     pub total_final_chips: u64,
-    pub placement_counts: [u32; 6],
+    pub placement_counts: [u32; TexasHoldemRuleSet::MAX_PLAYERS as usize],
     /// 跟注、加注和全下实际投入的筹码总和；不含盲注。
     pub wagered_chips: u64,
     pub wager_actions: u32,

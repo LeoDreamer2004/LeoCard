@@ -24,7 +24,7 @@ pub struct TexasHoldemRuleSet {
 
 impl TexasHoldemRuleSet {
     pub const MIN_PLAYERS: u8 = 3;
-    pub const MAX_PLAYERS: u8 = 6;
+    pub const MAX_PLAYERS: u8 = 8;
     pub const STARTING_CHIP_OPTIONS: [u16; 6] = [5, 10, 20, 30, 40, 50];
     pub const SMALL_BLIND: u32 = 1;
     pub const BIG_BLIND: u32 = 2;
@@ -34,7 +34,23 @@ impl TexasHoldemRuleSet {
         if self.omaha { 4 } else { 2 }
     }
 
+    pub const fn supports_player_count(self, player_count: u8) -> bool {
+        player_count >= Self::MIN_PLAYERS
+            && player_count <= Self::MAX_PLAYERS
+            && !(player_count > 6 && self.short_deck && self.omaha)
+    }
+
     pub fn validate(self) -> Result<Self, RuleError> {
+        self.validate_options()?;
+        if !self.supports_player_count(self.player_count) {
+            return Err(RuleError::ShortDeckOmahaPlayerCount(self.player_count));
+        }
+        Ok(self)
+    }
+
+    /// Validate lobby options independently of the room's seating capacity.
+    /// The actual participant count is validated again when starting a hand.
+    pub fn validate_options(self) -> Result<Self, RuleError> {
         if !(Self::MIN_PLAYERS..=Self::MAX_PLAYERS).contains(&self.player_count) {
             return Err(RuleError::PlayerCount(self.player_count));
         }
@@ -66,6 +82,7 @@ impl Default for TexasHoldemRuleSet {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RuleError {
     PlayerCount(u8),
+    ShortDeckOmahaPlayerCount(u8),
     StartingChips(u16),
     SquidMarkers(u8),
 }
@@ -74,7 +91,10 @@ impl fmt::Display for RuleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::SquidMarkers(value) => write!(f, "鱿鱼标记数必须少于玩家人数，实际为 {value}"),
-            Self::PlayerCount(value) => write!(f, "玩家数必须为 3..=6，实际为 {value}"),
+            Self::PlayerCount(value) => write!(f, "玩家数必须为 3..=8，实际为 {value}"),
+            Self::ShortDeckOmahaPlayerCount(value) => {
+                write!(f, "短牌奥马哈最多支持 6 人，实际为 {value}")
+            }
             Self::StartingChips(value) => {
                 write!(f, "初始筹码必须是 5、10、20、30、40 或 50，实际为 {value}")
             }

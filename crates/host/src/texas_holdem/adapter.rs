@@ -42,7 +42,7 @@ impl fmt::Display for AdapterError {
         match self {
             Self::InvalidRules(error) => error.fmt(f),
             Self::PlayerCount(actual) => {
-                write!(f, "德州扑克需要 3..=6 名玩家，实际为 {actual}")
+                write!(f, "德州扑克需要 3..=8 名玩家，实际为 {actual}")
             }
             Self::DuplicatePlayer(player) => write!(f, "玩家 ID {:?} 重复", player),
             Self::DuplicateSeat(seat) => write!(f, "座位 {:?} 重复", seat),

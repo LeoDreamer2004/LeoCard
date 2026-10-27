@@ -104,6 +104,9 @@ pub(in crate::player::profile) fn decode_player_profile(
     if let Some(current) = bytes.strip_prefix(PROFILE_HEADER) {
         return decode_exact(current).map_err(|error| format!("玩家档案已损坏：{error}"));
     }
+    if let Some(previous) = bytes.strip_prefix(super::texas_holdem::V4_PROFILE_HEADER) {
+        return super::texas_holdem::decode_v4(previous);
+    }
     if let Some(previous) = bytes.strip_prefix(super::texas_holdem::V3_PROFILE_HEADER) {
         return super::texas_holdem::decode_v3(previous);
     }

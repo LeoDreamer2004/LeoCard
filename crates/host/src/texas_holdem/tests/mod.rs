@@ -1,4 +1,5 @@
 mod adapter;
+mod capacity;
 mod fixtures;
 mod settlement;
 mod squid;

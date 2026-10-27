@@ -1,5 +1,6 @@
 //! Chip selection, exchanges and physical zone transfers.
 
+use super::super::{TEXAS_PORTRAIT_WIDTH, texas_portrait_position};
 use super::denominations::{canonical_chip_denominations, change_for};
 use super::{
     CHIP_SIZE, ChipMotion, ChipZone, ChipZoneLayout, DENOMINATIONS, TableChip, TexasChipTableState,
@@ -7,7 +8,8 @@ use super::{
 };
 use crate::app::presentation::{table_random_signed, table_random_unit};
 use bevy::prelude::*;
-use leocard_protocol::{PlayerId, TABLE_SEAT_COUNT};
+use leocard_protocol::PlayerId;
+use leocard_texas_holdem::TexasHoldemRuleSet;
 use std::cmp::Reverse;
 
 impl TexasChipTableState {
@@ -170,20 +172,17 @@ impl TexasChipTableState {
             return 0;
         };
         self.seats.get(&player).map_or(0, |seat| {
-            (seat.0 + TABLE_SEAT_COUNT - you.0) % TABLE_SEAT_COUNT
+            (seat.0 + TexasHoldemRuleSet::MAX_PLAYERS - you.0) % TexasHoldemRuleSet::MAX_PLAYERS
         })
     }
 
     pub(super) fn stack_anchor(&self, player: PlayerId) -> Vec2 {
-        match self.relative_seat(player) {
-            0 => Vec2::new(386.0, 570.0),
-            1 => Vec2::new(145.0, 415.0),
-            2 => Vec2::new(145.0, 165.0),
-            3 => Vec2::new(640.0, 65.0),
-            4 => Vec2::new(1135.0, 165.0),
-            5 => Vec2::new(1135.0, 415.0),
-            _ => Vec2::new(640.0, 330.0),
+        let relative = self.relative_seat(player);
+        if relative == 0 {
+            return Vec2::new(386.0, 570.0);
         }
+        let portrait = texas_portrait_position(relative);
+        portrait + Vec2::new(TEXAS_PORTRAIT_WIDTH * 0.5, 30.0)
     }
 
     fn zone_layout(&self, zone: ChipZone) -> ChipZoneLayout {

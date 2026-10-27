@@ -18,7 +18,8 @@ use crate::app::shell::{
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemSnapshot};
+use leocard_protocol::{SeatId, TexasHoldemPhaseView, TexasHoldemSnapshot};
+use leocard_texas_holdem::TexasHoldemRuleSet;
 use leocard_ui::{UiComposer, spawn_node, ui_component};
 
 pub(crate) struct TexasTableVisuals<'a> {
@@ -117,8 +118,8 @@ pub(crate) fn render_texas_holdem_table(
     let own = game.players.iter().find(|player| player.id == game.you);
     let own_seat = own.map_or(SeatId(0), |player| player.seat);
     let start_transition_active = start_game_transition.is_active_for(game.match_id);
-    for relative in u8::from(own.is_some())..TABLE_SEAT_COUNT {
-        let physical = SeatId((own_seat.0 + relative) % TABLE_SEAT_COUNT);
+    for relative in u8::from(own.is_some())..TexasHoldemRuleSet::MAX_PLAYERS {
+        let physical = SeatId((own_seat.0 + relative) % TexasHoldemRuleSet::MAX_PLAYERS);
         if let Some(player) = game.players.iter().find(|player| player.seat == physical) {
             add_texas_opponent(
                 commands,

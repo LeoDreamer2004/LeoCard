@@ -21,7 +21,7 @@ pub(super) const TEXAS_PORTRAIT_HEIGHT: f32 = 76.0 * 1.17 + 34.0;
 pub(super) fn texas_portrait_position(relative: u8) -> Vec2 {
     let side = match relative {
         0..=2 => SeatSide::Left,
-        3 => SeatSide::Top,
+        3..=5 => SeatSide::Top,
         _ => SeatSide::Right,
     };
     let zone = texas_player_chip_zone(relative);
@@ -58,8 +58,8 @@ pub(super) fn add_texas_opponent(
 ) {
     let side = match relative {
         0..=2 => SeatSide::Left,
-        3 => SeatSide::Top,
-        4 | 5 => SeatSide::Right,
+        3..=5 => SeatSide::Top,
+        6 | 7 => SeatSide::Right,
         _ => return,
     };
     let position = texas_portrait_position(relative);

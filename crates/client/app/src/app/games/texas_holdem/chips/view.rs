@@ -15,8 +15,8 @@ use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-use leocard_protocol::{SeatId, TABLE_SEAT_COUNT, TexasHoldemPhaseView, TexasHoldemSnapshot};
-use leocard_texas_holdem::TexasHoldemCard;
+use leocard_protocol::{SeatId, TexasHoldemPhaseView, TexasHoldemSnapshot};
+use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemRuleSet};
 use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
 
@@ -33,8 +33,8 @@ pub(crate) fn add_texas_chip_areas(
         .iter()
         .find(|player| player.id == game.you)
         .map_or(SeatId(0), |player| player.seat);
-    for relative in 0..TABLE_SEAT_COUNT {
-        let physical_seat = SeatId((own_seat.0 + relative) % TABLE_SEAT_COUNT);
+    for relative in 0..TexasHoldemRuleSet::MAX_PLAYERS {
+        let physical_seat = SeatId((own_seat.0 + relative) % TexasHoldemRuleSet::MAX_PLAYERS);
         let player = game
             .players
             .iter()

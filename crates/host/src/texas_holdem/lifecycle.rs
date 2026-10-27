@@ -3,8 +3,7 @@ use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{AutomaticActionDelayState, ConnectionId, Delivery, HostError, RoomSession};
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerViolation,
-    RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent, TABLE_SEAT_COUNT,
-    TexasHoldemCommand,
+    RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent, TexasHoldemCommand,
 };
 use leocard_texas_holdem::{Phase, TexasHoldemCard, TexasHoldemRuleSet, build_deck};
 use std::time::Duration;
@@ -17,13 +16,18 @@ impl TexasHoldemSession {
         shuffled_deck: Vec<TexasHoldemCard>,
     ) -> Result<Self, HostError> {
         let rules = TexasHoldemRuleSet {
-            player_count: TABLE_SEAT_COUNT,
+            player_count: TexasHoldemRuleSet::MAX_PLAYERS,
             ..rules
         }
-        .validate()?;
+        .validate_options()?;
         validate_deck(rules.short_deck, &shuffled_deck)?;
         Ok(Self {
-            room: RoomSession::new(room_id, host_port, TABLE_SEAT_COUNT),
+            room: RoomSession::new_with_seat_count(
+                room_id,
+                host_port,
+                TexasHoldemRuleSet::MAX_PLAYERS,
+                TexasHoldemRuleSet::MAX_PLAYERS,
+            ),
             rules,
             shuffled_deck: Some(shuffled_deck),
             game: None,
@@ -174,7 +178,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
     }
 
     fn capacity(&self) -> u8 {
-        TABLE_SEAT_COUNT
+        TexasHoldemRuleSet::MAX_PLAYERS
     }
 
     fn game_rules(&self) -> GameRules {
@@ -254,6 +258,13 @@ impl HostedGameLifecycle for TexasHoldemSession {
                     minimum: TexasHoldemRuleSet::MIN_PLAYERS,
                     actual: active_player_count as u8,
                 }),
+            );
+        }
+        if !self.rules.supports_player_count(active_player_count as u8) {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::InvalidRuleConfiguration),
             );
         }
         if self

@@ -7,7 +7,7 @@ use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, new_match_id,
 };
 use leocard_protocol::{
-    GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, TABLE_SEAT_COUNT,
+    GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation,
     TexasHoldemProfileStats, TexasHoldemViolation,
 };
 use leocard_texas_holdem::{
@@ -76,10 +76,10 @@ impl TexasHoldemSession {
             );
         }
         let Ok(rules) = (TexasHoldemRuleSet {
-            player_count: TABLE_SEAT_COUNT,
+            player_count: TexasHoldemRuleSet::MAX_PLAYERS,
             ..rules
         })
-        .validate() else {
+        .validate_options() else {
             return self.room.reject(
                 connection,
                 request_id,
@@ -92,7 +92,9 @@ impl TexasHoldemSession {
             .iter()
             .filter(|player| !player.left)
             .count();
-        if usize::from(rules.squid_markers) >= count {
+        if usize::from(rules.squid_markers) >= count
+            || !rules.supports_player_count((count as u8).max(TexasHoldemRuleSet::MIN_PLAYERS))
+        {
             return self.room.reject(
                 connection,
                 request_id,
@@ -314,7 +316,7 @@ impl TexasHoldemSession {
             .map(|(_, stack)| *stack)
             .collect::<Vec<_>>();
         let deltas = reference_point_deltas(&scores)
-            .expect("a Texas Hold'em table always contains between three and six players");
+            .expect("a Texas Hold'em table always contains between three and eight players");
         let settlements = standings
             .iter()
             .zip(deltas)

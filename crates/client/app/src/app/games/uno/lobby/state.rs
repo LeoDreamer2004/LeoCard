@@ -1,17 +1,14 @@
 //! UNO 模式、扩展包与房间规则界面。
 
 use super::super::{UnoUiAction, UnoUiState};
+use super::mode::uno_mode_dropdown;
 use super::rules::*;
 use super::*;
-use crate::app::presentation::{MUTED, add_text};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{
-    LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_cozy_button,
-    add_lobby_rules_heading,
-};
+use crate::app::shell::{LobbyPage, LobbyPageConfig, UiAction, add_cozy_button};
 use bevy::prelude::*;
 use leocard_protocol::LobbySnapshot;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::UiComposer;
 use leocard_uno::UnoRuleSet;
 
 pub(crate) fn render_uno_lobby(
@@ -30,62 +27,15 @@ pub(crate) fn render_uno_lobby(
         client,
         lobby,
         assets,
-        LobbyPageStyle::default(),
+        avatars,
+        LobbyPageConfig::new(mode_title(rules)).mode(uno_mode_dropdown(rules), ui.mode_menu_open),
     );
     let rules_panel = page.rules;
-    let connected_count = page.connected_count;
     let can_configure = page.can_configure;
-    let title_row = spawn_node(
-        commands,
-        rules_panel,
-        Node {
-            width: percent(100),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::SpaceBetween,
-            column_gap: px(12),
-            ..default()
-        },
-        None,
-    );
-    add_lobby_rules_heading(commands, title_row, mode_title(rules), assets);
-    render_uno_mode_dropdown(
-        commands,
-        root,
-        title_row,
-        rules,
-        can_configure,
-        ui.mode_menu_open,
-        assets,
-    );
-    add_text(
-        commands,
-        rules_panel,
-        format!("当前人数 {connected_count}/{}", UnoRuleSet::MAX_PLAYERS),
-        13.0,
-        MUTED,
-        assets,
-    );
+
     render_uno_rule_rows(commands, rules_panel, rules, can_configure, assets);
     add_expansion_button(commands, rules_panel, assets);
 
-    let can_start = connected_count >= UnoRuleSet::MIN_PLAYERS
-        && lobby
-            .players
-            .iter()
-            .filter(|player| player.connected)
-            .all(|player| player.seat.is_some() && player.ready);
-    page.render_players(
-        commands,
-        LobbyPlayerSection::new(
-            client,
-            lobby,
-            assets,
-            avatars,
-            UnoRuleSet::MAX_PLAYERS,
-            can_start,
-            "等待玩家中",
-        ),
-    );
     if ui.expansion_settings_open || ui.expansion_settings_progress > 0.0 {
         render_uno_expansion_settings(
             commands,

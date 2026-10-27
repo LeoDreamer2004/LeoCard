@@ -1,7 +1,7 @@
 use super::{MissingSuitsUi, state::MissingSuitMarker};
-use crate::app::presentation::{ACCENT, add_text};
+use crate::app::presentation::{ACCENT, SeatSide, add_text};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::SeatSide;
+
 use bevy::{picking::Pickable, prelude::*};
 use leocard_protocol::ShengjiPlayerState;
 use leocard_shengji::Category;

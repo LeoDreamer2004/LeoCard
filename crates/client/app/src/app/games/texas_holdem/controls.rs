@@ -5,11 +5,13 @@ use super::{
 };
 use crate::app::presentation::{
     ButtonKind, GameButtonImageMode, GameButtonSpec, MUTED, PendingDealSound, PlayerMenuProfile,
-    PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait,
-    add_textured_game_button, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
+    PlayerPortraitSpec, SeatSide, TEXT, TurnBorderAnimationKey, TurnBorderMaterial,
+    add_player_portrait, add_textured_game_button, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{SeatSide, UiAction};
+use crate::app::shell::UiAction;
+
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;

@@ -2,8 +2,12 @@ use super::{Participant, RoomSession};
 use leocard_protocol::{PlayerId, PlayerReferenceChange};
 
 impl RoomSession {
-    /// 机器人占未离开玩家的三分之一及以上时，不记录分数、金币和对局成就。
+    /// 开发者模式始终记录；其他构建仅在机器人不足未离开玩家的三分之一时记录。
     pub(crate) fn records_game_progress(&self) -> bool {
+        if cfg!(feature = "developer") {
+            return true;
+        }
+
         let (players, bots) = self
             .players
             .iter()

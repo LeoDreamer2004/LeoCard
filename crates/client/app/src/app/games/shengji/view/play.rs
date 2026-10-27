@@ -1,17 +1,17 @@
 use super::super::{
     ShengjiCollectingScoreText, ShengjiLevelIndicator, ShengjiScoreCaptureEffectState,
     ShengjiScoreTrayAnchor, ShengjiScoreTrayHover, ShengjiThrowPenaltyFloat,
-    ShengjiThrowPenaltyScorePulse, displayed_shengji_captured_score,
+    ShengjiThrowPenaltyScorePulse, displayed_shengji_captured_score, shengji_player_route_anchor,
 };
 use super::{
     ShengjiCardSize, add_shengji_bottom_copy_decision, add_shengji_card_row,
     add_shengji_failed_throw_card_row, shengji_display_trump, shengji_rank_label,
 };
 use crate::app::presentation::{
-    ACCENT, DANGER, HEADER_BG, MUTED, TEXT, add_text, spawn_trick_play_area,
+    ACCENT, DANGER, HEADER_BG, MUTED, SeatSide, TEXT, add_text, spawn_trick_play_area,
 };
 use crate::app::runtime::UiAssets;
-use crate::app::shell::SeatSide;
+
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
@@ -485,23 +485,8 @@ pub(super) fn add_shengji_throw_penalty_effect(
     }) else {
         return;
     };
-    let own_seat = game
-        .players
-        .iter()
-        .find(|player| player.id == game.you)
-        .map_or(0, |player| player.seat.0);
-    let offender_seat = game
-        .players
-        .iter()
-        .find(|player| player.id == failure.player)
-        .map_or(own_seat, |player| player.seat.0);
-    let offender_anchor = match (offender_seat + 4 - own_seat) % 4 {
-        0 => Vec2::new(50.0, 86.0),
-        1 => Vec2::new(20.0, 52.0),
-        2 => Vec2::new(50.0, 20.0),
-        3 => Vec2::new(80.0, 52.0),
-        _ => unreachable!(),
-    };
+    let offender_anchor =
+        shengji_player_route_anchor(game, failure.player).unwrap_or(Vec2::new(50.0, 50.0));
     // 左上四栏得分框的最后一栏是闲家得分。
     let score_anchor = Vec2::new(26.0, 6.0);
     let dealer_side_penalty = game

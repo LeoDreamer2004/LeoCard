@@ -1,9 +1,10 @@
 use super::*;
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, ShengjiEvent, ShengjiPublicPlay};
-use leocard_shengji::ShengjiCard;
-use leocard_shengji::{Category, Component, ShengjiClassifiedPlay, ShengjiRank};
-use leocard_shengji::{ShengjiSuit, ShengjiThrowPenalty, ShengjiTrump};
+use leocard_shengji::{
+    Category, Component, ShengjiCard, ShengjiClassifiedPlay, ShengjiMode, ShengjiRank, ShengjiSuit,
+    ShengjiThrowPenalty, ShengjiTrump,
+};
 
 #[test]
 fn five_and_ten_point_throw_penalties_use_distinct_sound_weights() {
@@ -155,32 +156,53 @@ fn only_a_structure_matching_winning_trump_play_triggers_the_target_effect() {
 }
 
 #[test]
-fn previous_trick_becomes_replayable_only_after_all_four_public_plays_finish() {
-    let mut state = ShengjiPresentationState::default();
-    for player in 0..4 {
-        let card = ShengjiCard::suited(player, ShengjiSuit::Spade, ShengjiRank::Three);
-        state.observe_trick_event(&ShengjiEvent::CardsPlayed {
-            play: ShengjiPublicPlay {
-                player: PlayerId(player),
-                play: ShengjiClassifiedPlay {
-                    cards: vec![card],
-                    category: Category::Suit(ShengjiSuit::Spade),
-                    components: vec![Component::Single { card, strength: 1 }],
+fn previous_trick_requires_a_complete_round_for_the_configured_player_count() {
+    for (mode, played_count) in [
+        (ShengjiMode::Classic, 4),
+        (ShengjiMode::SixPlayer, 6),
+        (ShengjiMode::SixPlayer, 4),
+    ] {
+        let mut state = ShengjiPresentationState::default();
+        let player_count = mode.player_count();
+        for player in 0..played_count {
+            let suit = if player % 2 == 0 {
+                ShengjiSuit::Spade
+            } else {
+                ShengjiSuit::Club
+            };
+            let card = ShengjiCard::suited(player / 2, suit, ShengjiRank::Three);
+            state.observe_trick_event(
+                &ShengjiEvent::CardsPlayed {
+                    play: ShengjiPublicPlay {
+                        player: PlayerId(player),
+                        play: ShengjiClassifiedPlay {
+                            cards: vec![card],
+                            category: Category::Suit(suit),
+                            components: vec![Component::Single { card, strength: 1 }],
+                        },
+                        throw_penalty: 0,
+                    },
+                    is_lead: player == 0,
                 },
-                throw_penalty: 0,
+                player_count,
+            );
+            assert!(!state.has_previous_trick());
+        }
+        state.observe_trick_event(
+            &ShengjiEvent::TrickFinished {
+                winner: PlayerId(0),
+                points: 0,
+                collecting_score: 0,
             },
-            is_lead: player == 0,
-        });
-        assert!(!state.has_previous_trick());
-    }
-    state.observe_trick_event(&ShengjiEvent::TrickFinished {
-        winner: PlayerId(0),
-        points: 0,
-        collecting_score: 0,
-    });
+            player_count,
+        );
 
-    assert!(state.has_previous_trick());
-    assert!(state.revealed_previous_trick().is_none());
-    state.reveal_previous_trick();
-    assert_eq!(state.revealed_previous_trick().unwrap().len(), 4);
+        assert_eq!(state.has_previous_trick(), played_count == player_count);
+        assert!(state.revealed_previous_trick().is_none());
+        state.reveal_previous_trick();
+        assert_eq!(
+            state.revealed_previous_trick().map(<[_]>::len),
+            (played_count == player_count).then_some(usize::from(player_count)),
+        );
+    }
 }

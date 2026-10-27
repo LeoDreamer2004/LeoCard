@@ -103,7 +103,7 @@ fn match_shutout_counter_updates_once_per_hand_and_survives_rematch() {
                 .consecutive_dealer_shutouts,
             [count, 0]
         );
-        session.statistics.start_hand();
+        session.statistics.start_hand(session.rules.player_count());
     }
     session.apply_finished_reference_points(&super::settlement::result_for_reference_points(
         true, 1, 40,

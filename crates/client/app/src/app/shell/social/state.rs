@@ -1,5 +1,7 @@
 //! 玩家互动菜单、冷却与飞行道具的状态类型。
 
+use crate::app::presentation::SeatSide;
+
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
 use leocard_client::ScoreCaptureEffect;
@@ -50,14 +52,6 @@ pub(crate) struct ActiveScoreVortex {
 pub(crate) struct ActiveScoreGainText {
     pub elapsed: f32,
     pub text: Entity,
-}
-
-/// 玩家框相对于牌桌的方位；多个游戏与公共弹窗布局共同使用。
-#[derive(Clone, Copy)]
-pub(crate) enum SeatSide {
-    Left,
-    Top,
-    Right,
 }
 
 #[derive(Clone, Copy, Component)]

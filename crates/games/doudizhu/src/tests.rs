@@ -1,4 +1,5 @@
 mod match_state;
+mod single_wings;
 
 use crate::*;
 
@@ -28,26 +29,29 @@ fn standard_patterns_and_bomb_order() {
         (vec![1, 1, 1, 2, 2, 2, 5, 5, 6, 6], PlayKind::AirplanePairs),
         (vec![3, 3, 3, 3, 5, 6], PlayKind::FourSingles),
     ] {
-        assert_eq!(classify(&cards(&ranks), Mode::Three).unwrap().kind, kind);
+        assert_eq!(
+            classify(&cards(&ranks), RuleSet::default()).unwrap().kind,
+            kind
+        );
     }
-    assert!(classify(&cards(&[8, 9, 10, 11, 12]), Mode::Three).is_none());
-    assert!(classify(&[Card(0), Card(0)], Mode::Three).is_none());
-    let bomb = classify(&cards(&[0; 5]), Mode::Four).unwrap();
-    assert!(bomb.beats(&classify(&cards(&[12; 4]), Mode::Four).unwrap()));
-    let rocket = classify(&cards(&[13, 13, 14, 14]), Mode::Four).unwrap();
+    assert!(classify(&cards(&[8, 9, 10, 11, 12]), RuleSet::default()).is_none());
+    assert!(classify(&[Card(0), Card(0)], RuleSet::default()).is_none());
+    let bomb = classify(&cards(&[0; 5]), RuleSet::for_mode(Mode::Four)).unwrap();
+    assert!(bomb.beats(&classify(&cards(&[12; 4]), RuleSet::for_mode(Mode::Four)).unwrap()));
+    let rocket = classify(&cards(&[13, 13, 14, 14]), RuleSet::for_mode(Mode::Four)).unwrap();
     assert_eq!(rocket.kind, PlayKind::Rocket);
     assert!(rocket.beats(&bomb));
-    assert!(classify(&cards(&[13, 14]), Mode::Four).is_none());
+    assert!(classify(&cards(&[13, 14]), RuleSet::for_mode(Mode::Four)).is_none());
 }
 
 #[test]
 fn hints_offer_distinct_legal_responses_in_bot_preference_order() {
     let hand = cards(&[1, 1, 2, 3, 3, 3, 3, 5]);
-    let top = classify(&cards(&[0]), Mode::Three).unwrap();
-    let suggestions = hint_options(&hand, Some(&top), Mode::Three);
+    let top = classify(&cards(&[0]), RuleSet::default()).unwrap();
+    let suggestions = hint_options(&hand, Some(&top), RuleSet::default());
     assert!(suggestions.len() > 1);
     assert_eq!(
-        hint(&hand, Some(&top), Mode::Three),
+        hint(&hand, Some(&top), RuleSet::default()),
         suggestions.first().cloned()
     );
     for (index, play) in suggestions.iter().enumerate() {
@@ -181,7 +185,7 @@ fn spring_and_reverse_spring_double_once_and_settle_all_farmers() {
                         hint(
                             game.hand(winner).unwrap(),
                             game.table.as_ref().map(|(_, p)| p),
-                            mode,
+                            game.rules,
                         )
                         .unwrap()
                         .cards,
@@ -191,7 +195,7 @@ fn spring_and_reverse_spring_double_once_and_settle_all_farmers() {
                 };
                 before_finish = game.multiplier;
                 if let Action::Play(cards) = &action
-                    && classify(cards, mode).unwrap().doubles(mode)
+                    && classify(cards, game.rules).unwrap().doubles(mode)
                 {
                     before_finish *= 2;
                 }

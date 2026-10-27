@@ -2,9 +2,10 @@
 
 use super::QiGui523Assets;
 use super::counter::QiGuiCounterUi;
-use crate::app::presentation::{CardAnimationState, Observed, SilentButton};
+use crate::app::presentation::{CardAnimationState, Observed, SeatSide, SilentButton};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{ScoreCaptureEffectState, SeatSide};
+use crate::app::shell::ScoreCaptureEffectState;
+
 use bevy::prelude::*;
 use leocard_protocol::{MatchId, PlayerId, PublicPlay, QiGui523Snapshot};
 use leocard_qigui523::{QiGui523Bot, QiGuiCard};

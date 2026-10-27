@@ -39,9 +39,34 @@ impl ShengjiThrowPenalty {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum ShengjiMode {
+    #[default]
+    Classic,
+    SixPlayer,
+}
+
+impl ShengjiMode {
+    pub const fn player_count(self) -> u8 {
+        match self {
+            Self::Classic => 4,
+            Self::SixPlayer => 6,
+        }
+    }
+
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Classic => "双升",
+            Self::SixPlayer => "六人拖拉机",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ShengjiRuleSet {
+    pub mode: ShengjiMode,
     /// 使用两至四副牌；三副加入泰坦尼克，四副再加入炸弹和宇宙飞船。
     pub deck_count: u8,
     pub allow_throw: bool,
@@ -68,12 +93,30 @@ pub struct ShengjiRuleSet {
 
 impl ShengjiRuleSet {
     pub const PLAYER_COUNT: u8 = 4;
+    pub const MAX_PLAYERS: u8 = 6;
     /// 两副牌模式的兼容常量；规则计算应优先使用 [`Self::kitty_size`]。
     pub const KITTY_SIZE: usize = 8;
     /// 两副牌模式的兼容常量；规则计算应优先使用 [`Self::hand_size`]。
     pub const HAND_SIZE: usize = 25;
 
+    pub fn for_mode(mode: ShengjiMode) -> Self {
+        Self {
+            mode,
+            deck_count: if mode == ShengjiMode::SixPlayer { 3 } else { 2 },
+            ..Self::default()
+        }
+    }
+
+    pub const fn player_count(self) -> u8 {
+        self.mode.player_count()
+    }
+
     pub const fn validate(self) -> Result<Self, RuleError> {
+        if matches!(self.mode, ShengjiMode::SixPlayer)
+            && (self.deck_count != 3 || self.five_trump_crossing)
+        {
+            return Err(RuleError::InvalidSixPlayerOptions);
+        }
         match self.deck_count {
             2..=4 => Ok(self),
             actual => Err(RuleError::InvalidDeckCount(actual)),
@@ -85,7 +128,7 @@ impl ShengjiRuleSet {
     }
 
     pub const fn hand_size(self) -> usize {
-        (self.deck_count as usize * 54 - self.kitty_size()) / Self::PLAYER_COUNT as usize
+        (self.deck_count as usize * 54 - self.kitty_size()) / self.player_count() as usize
     }
 
     pub const fn score_step(self) -> u32 {
@@ -108,6 +151,7 @@ impl ShengjiRuleSet {
 impl Default for ShengjiRuleSet {
     fn default() -> Self {
         Self {
+            mode: ShengjiMode::Classic,
             deck_count: 2,
             allow_throw: true,
             throw_penalty: ShengjiThrowPenalty::None,
@@ -124,12 +168,14 @@ impl Default for ShengjiRuleSet {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RuleError {
+    InvalidSixPlayerOptions,
     InvalidDeckCount(u8),
 }
 
 impl fmt::Display for RuleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidSixPlayerOptions => write!(f, "六人拖拉机固定三副牌，且不支持五主过江"),
             Self::InvalidDeckCount(actual) => {
                 write!(f, "升级只支持两至四副牌，实际为 {actual} 副")
             }

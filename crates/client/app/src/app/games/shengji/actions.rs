@@ -1,7 +1,7 @@
 //! 升级按钮动作、本地选牌状态与网络命令。
 
 use super::{ShengjiPresentationState, ShengjiUiState, next_shengji_hint};
-use crate::app::runtime::ClientResource;
+use crate::app::runtime::{ClientResource, HostRulePreferences};
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, dispatch_domain_actions,
     send_game_command,
@@ -10,11 +10,14 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::{ItemId, PlayerEconomy};
 use leocard_protocol::{ShengjiCommand, ShengjiFiveTrumpCrossingStage, ShengjiPhaseView};
-use leocard_shengji::{ShengjiCard, ShengjiRuleSet};
+use leocard_shengji::{ShengjiCard, ShengjiMode, ShengjiRuleSet};
 
 #[derive(Clone)]
 pub(crate) enum ShengjiUiAction {
     UpdateRules(ShengjiRuleSet),
+    SelectMode(ShengjiMode),
+    ToggleModeMenu,
+    CloseModeMenu,
     ToggleCounterDrawer,
     ToggleCounter,
     Declare(Vec<ShengjiCard>),
@@ -47,6 +50,7 @@ pub(crate) struct ShengjiActionContext<'w> {
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, ShengjiUiState>,
     economy: Res<'w, PlayerEconomy>,
+    preferences: Res<'w, HostRulePreferences>,
     presentation: ResMut<'w, ShengjiPresentationState>,
 }
 
@@ -62,6 +66,17 @@ impl UiActionHandler<ShengjiActionContext<'_>> for ShengjiUiAction {
         let client = &mut context.client;
         let ui = &mut context.ui;
         match self {
+            Self::ToggleModeMenu => ui.mode_menu_open = !ui.mode_menu_open,
+            Self::CloseModeMenu => ui.mode_menu_open = false,
+            Self::SelectMode(mode) => {
+                ui.mode_menu_open = false;
+                send_game_command(
+                    client,
+                    ShengjiCommand::UpdateRules {
+                        rules: context.preferences.shengji_modes[*mode as usize],
+                    },
+                );
+            }
             Self::ToggleCounterDrawer => {
                 ui.counter.window.drawer_open = !ui.counter.window.drawer_open
             }

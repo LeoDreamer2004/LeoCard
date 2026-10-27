@@ -1,7 +1,9 @@
 use super::DoudizhuTable;
 use super::cards::card_row_aligned;
-use crate::app::presentation::{ACCENT, CardSize, MUTED, add_text, spawn_trick_play_area};
-use crate::app::shell::SeatSide;
+use crate::app::presentation::{
+    ACCENT, CardSize, MUTED, SeatSide, add_text, spawn_trick_play_area,
+};
+
 use bevy::prelude::*;
 use leocard_doudizhu::{Action, Phase};
 use leocard_protocol::PlayerId;

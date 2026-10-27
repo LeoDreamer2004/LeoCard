@@ -8,6 +8,7 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Default, Resource)]
 pub(crate) struct DoudizhuUiState {
+    pub mode_menu_open: bool,
     pub selected: HashSet<Card>,
     pub kitty_open: bool,
     pub counter: CardCounterWindowState,

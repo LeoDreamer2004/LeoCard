@@ -1,16 +1,12 @@
 //! 升级房间规则与玩家席位界面。
 
-use super::ShengjiUiAction;
-use crate::app::presentation::{
-    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_text,
-};
+use super::super::{ShengjiUiAction, ShengjiUiState};
+use crate::app::presentation::{EditableRuleSet, RuleConfigRow, add_rule_config_row};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{
-    LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_lobby_rules_heading,
-};
+use crate::app::shell::{LobbyPage, LobbyPageConfig, UiAction};
 use bevy::prelude::*;
 use leocard_protocol::LobbySnapshot;
-use leocard_shengji::{ShengjiRuleSet, ShengjiThrowPenalty};
+use leocard_shengji::{ShengjiMode, ShengjiRuleSet, ShengjiThrowPenalty};
 use leocard_ui::UiComposer;
 
 type ShengjiRuleConfigRow<'a> = RuleConfigRow<'a, ShengjiRuleSet>;
@@ -29,6 +25,7 @@ pub(crate) fn render_shengji_lobby(
     root: Entity,
     client: &ClientResource,
     lobby: &LobbySnapshot,
+    ui: &ShengjiUiState,
     assets: &UiAssets,
     avatars: &AvatarImages,
 ) {
@@ -39,41 +36,36 @@ pub(crate) fn render_shengji_lobby(
         client,
         lobby,
         assets,
-        LobbyPageStyle::default(),
+        avatars,
+        LobbyPageConfig::new(format!("{}配置", rules_value.mode.label()))
+            .mode(super::mode::mode_dropdown(rules_value), ui.mode_menu_open),
     );
     let rules_panel = page.rules;
-    let connected_count = page.connected_count;
     let can_configure = page.can_configure;
-    add_lobby_rules_heading(commands, rules_panel, "双升配置", assets);
-    add_text(
-        commands,
-        rules_panel,
-        format!("当前人数 {connected_count}/4，需要四人开局。"),
-        13.0,
-        MUTED,
-        assets,
-    );
-    let previous_deck_count = (rules_value.deck_count > 2).then_some(ShengjiRuleSet {
-        deck_count: rules_value.deck_count - 1,
-        ..rules_value
-    });
-    let next_deck_count = (rules_value.deck_count < 4).then_some(ShengjiRuleSet {
-        deck_count: rules_value.deck_count + 1,
-        ..rules_value
-    });
-    add_rule_config_row(
-        commands,
-        rules_panel,
-        ShengjiRuleConfigRow {
-            label: "牌副数",
-            value: format!("{} 副", rules_value.deck_count),
-            help: "两副牌：25 张手牌、8 张底牌；三副牌：39 张手牌、6 张底牌，加入三同张和泰坦尼克；四副牌：52 张手牌、8 张底牌，再加入炸弹和宇宙飞船。",
-            editable: can_configure,
-            previous: previous_deck_count.filter(|_| can_configure),
-            next: next_deck_count.filter(|_| can_configure),
-        },
-        assets,
-    );
+
+    if rules_value.mode == ShengjiMode::Classic {
+        let previous_deck_count = (rules_value.deck_count > 2).then_some(ShengjiRuleSet {
+            deck_count: rules_value.deck_count - 1,
+            ..rules_value
+        });
+        let next_deck_count = (rules_value.deck_count < 4).then_some(ShengjiRuleSet {
+            deck_count: rules_value.deck_count + 1,
+            ..rules_value
+        });
+        add_rule_config_row(
+            commands,
+            rules_panel,
+            ShengjiRuleConfigRow {
+                label: "牌副数",
+                value: format!("{} 副", rules_value.deck_count),
+                help: "两副牌：25 张手牌、8 张底牌；三副牌：39 张手牌、6 张底牌，加入三同张和泰坦尼克；四副牌：52 张手牌、8 张底牌，再加入炸弹和宇宙飞船。",
+                editable: can_configure,
+                previous: previous_deck_count.filter(|_| can_configure),
+                next: next_deck_count.filter(|_| can_configure),
+            },
+            assets,
+        );
+    }
     let throw_toggled = ShengjiRuleSet {
         allow_throw: !rules_value.allow_throw,
         ..rules_value
@@ -241,28 +233,30 @@ pub(crate) fn render_shengji_lobby(
         },
         assets,
     );
-    let five_trump_crossing_toggled = ShengjiRuleSet {
-        five_trump_crossing: !rules_value.five_trump_crossing,
-        ..rules_value
-    };
-    add_rule_config_row(
-        commands,
-        rules_panel,
-        ShengjiRuleConfigRow {
-            label: "五主过江",
-            value: if rules_value.five_trump_crossing {
-                "开启"
-            } else {
-                "关闭"
-            }
-            .to_owned(),
-            help: "有主局埋底后，主牌不多于五张的玩家可将全部主牌补足五张交给对家，再由对家任选五张归还；每人每局仅可进行一次。",
-            editable: can_configure,
-            previous: can_configure.then_some(five_trump_crossing_toggled),
-            next: can_configure.then_some(five_trump_crossing_toggled),
-        },
-        assets,
-    );
+    if rules_value.mode == ShengjiMode::Classic {
+        let five_trump_crossing_toggled = ShengjiRuleSet {
+            five_trump_crossing: !rules_value.five_trump_crossing,
+            ..rules_value
+        };
+        add_rule_config_row(
+            commands,
+            rules_panel,
+            ShengjiRuleConfigRow {
+                label: "五主过江",
+                value: if rules_value.five_trump_crossing {
+                    "开启"
+                } else {
+                    "关闭"
+                }
+                .to_owned(),
+                help: "有主局埋底后，主牌不多于五张的玩家可将全部主牌补足五张交给对家，再由对家任选五张归还；每人每局仅可进行一次。",
+                editable: can_configure,
+                previous: can_configure.then_some(five_trump_crossing_toggled),
+                next: can_configure.then_some(five_trump_crossing_toggled),
+            },
+            assets,
+        );
+    }
     let constant_trump_toggled = ShengjiRuleSet {
         constant_trump: !rules_value.constant_trump,
         ..rules_value
@@ -284,24 +278,5 @@ pub(crate) fn render_shengji_lobby(
             next: can_configure.then_some(constant_trump_toggled),
         },
         assets,
-    );
-
-    let can_start = connected_count == ShengjiRuleSet::PLAYER_COUNT
-        && lobby
-            .players
-            .iter()
-            .filter(|player| player.connected)
-            .all(|player| player.seat.is_some() && player.ready);
-    page.render_players(
-        commands,
-        LobbyPlayerSection::new(
-            client,
-            lobby,
-            assets,
-            avatars,
-            ShengjiRuleSet::PLAYER_COUNT,
-            can_start,
-            "等待四名玩家",
-        ),
     );
 }

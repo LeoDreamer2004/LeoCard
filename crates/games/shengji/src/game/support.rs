@@ -2,8 +2,8 @@ use super::GameError;
 use crate::{ShengjiCard, ShengjiPlayerId, ShengjiRuleSet, build_deck_for};
 use leocard_game_common::{contains_unique_cards, validate_deck as validate_physical_deck};
 
-pub(super) fn next_player(player: ShengjiPlayerId) -> ShengjiPlayerId {
-    ShengjiPlayerId((player.0 + 1) % ShengjiRuleSet::PLAYER_COUNT)
+pub(super) fn next_player(player: ShengjiPlayerId, player_count: u8) -> ShengjiPlayerId {
+    ShengjiPlayerId((player.0 + 1) % player_count)
 }
 
 pub(super) const fn partner(player: ShengjiPlayerId) -> ShengjiPlayerId {

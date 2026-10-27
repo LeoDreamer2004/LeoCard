@@ -4,14 +4,13 @@ use super::{
     sort_cards_high_to_low,
 };
 use crate::app::presentation::{
-    ACCENT, CardSize, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
-    TurnBorderMaterial, add_card_image, add_player_portrait, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition,
+    ACCENT, CardSize, MUTED, PlayerMenuProfile, PlayerPortraitSpec, SeatSide, TEXT,
+    TrickSeatLayout, TurnBorderAnimationKey, TurnBorderMaterial, add_card_image,
+    add_player_portrait, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
 };
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{
-    FinishedHandScoreSource, OpponentBadge, SeatSide, displayed_captured_score,
-};
+use crate::app::shell::{FinishedHandScoreSource, OpponentBadge, displayed_captured_score};
+
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{GameKind, GamePhaseView, PlayerId, PlayerPublicState, QiGui523Snapshot};
@@ -31,71 +30,9 @@ pub(super) fn add_opponent_slot(
     visuals: &SeatVisuals,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
 ) {
-    const SIDE_SLOT_INSET: f32 = 78.0;
-    const SIDE_PLAY_GAP: f32 = 24.0;
-    const SIDE_SLOT_WIDTH: f32 = QIGUI_PORTRAIT_WIDTH + SIDE_PLAY_GAP + 148.0;
-    let side = match relative_seat {
-        1 | 2 => SeatSide::Left,
-        0 | 3 => SeatSide::Top,
-        4 | 5 => SeatSide::Right,
-        _ => unreachable!("the local player occupies relative seat zero"),
-    };
-    let mut node = Node {
-        position_type: PositionType::Absolute,
-        min_height: px(if matches!(side, SeatSide::Top) {
-            140
-        } else {
-            124
-        }),
-        align_items: AlignItems::Center,
-        justify_content: match side {
-            SeatSide::Left => JustifyContent::FlexStart,
-            SeatSide::Top => JustifyContent::Center,
-            SeatSide::Right => JustifyContent::FlexEnd,
-        },
-        // 两侧出牌区保持原位，让头像向各自的出牌区靠拢。
-        column_gap: px(if matches!(side, SeatSide::Top) {
-            8.0
-        } else {
-            SIDE_PLAY_GAP
-        }),
-        row_gap: px(5),
-        ..default()
-    };
-    match relative_seat {
-        0 => {
-            node.left = percent(32);
-            node.right = percent(32);
-            node.bottom = px(4);
-        }
-        1 => {
-            node.left = px(SIDE_SLOT_INSET);
-            node.bottom = px(36);
-            node.width = px(SIDE_SLOT_WIDTH);
-        }
-        2 => {
-            node.left = px(SIDE_SLOT_INSET);
-            node.top = px(78);
-            node.width = px(SIDE_SLOT_WIDTH);
-        }
-        3 => {
-            node.left = percent(32);
-            node.right = percent(32);
-            node.top = px(4);
-        }
-        4 => {
-            node.right = px(SIDE_SLOT_INSET);
-            node.top = px(78);
-            node.width = px(SIDE_SLOT_WIDTH);
-        }
-        5 => {
-            node.right = px(SIDE_SLOT_INSET);
-            node.bottom = px(36);
-            node.width = px(SIDE_SLOT_WIDTH);
-        }
-        _ => unreachable!(),
-    }
-    let slot = spawn_node(commands, table, node, None);
+    let layout = TrickSeatLayout::new(relative_seat, 6, 148.0);
+    let side = layout.side;
+    let slot = layout.spawn(commands, table);
     if matches!(side, SeatSide::Top) {
         let spacer = spawn_node(
             commands,

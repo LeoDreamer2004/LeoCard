@@ -5,13 +5,13 @@ use super::{
     UnoAssets, UnoDiscardCard, UnoDiscardPileAnchor, UnoDrawPileAnchor, UnoFlipTarget,
     UnoJumpInDevice, UnoUiState, add_initial_color_choice, add_play_color_choice, add_uno_actions,
     add_uno_callout_actions, add_uno_eliminated_own_overlay, add_uno_own_area,
-    add_uno_player_panel, add_uno_summary, add_uno_swap_selection_prompt, opponent_position,
-    uno_card_handle, uno_discard_pose, uno_ui_color,
+    add_uno_player_panel, add_uno_summary, add_uno_swap_selection_prompt, uno_card_handle,
+    uno_discard_pose, uno_ui_color,
 };
 use crate::app::presentation::{
-    ACCENT, DANGER, DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT,
-    TableBackground, TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay, add_text,
-    table_material_params,
+    ACCENT, ArcSeatLayout, DANGER, DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition,
+    TEXT, TableBackground, TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay,
+    add_text, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
@@ -160,7 +160,7 @@ pub(crate) fn render_uno_table(
             table,
             game,
             player,
-            opponent_position(index, opponent_count),
+            ArcSeatLayout::new(opponent_count as u8).position(index as u8),
             ui,
             social,
             avatars,

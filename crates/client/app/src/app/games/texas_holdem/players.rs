@@ -3,13 +3,14 @@ use super::{
     TexasTableLayout, add_texas_win_rate, texas_player_border_color,
 };
 use crate::app::presentation::{
-    ACCENT, HEADER_BG, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
-    TurnBorderMaterial, add_horizontal_chip_group, add_player_portrait, add_poker_balance_panel,
-    add_poker_chip_value, add_text, add_turn_border_trace_with_radius,
+    ACCENT, HEADER_BG, MUTED, PlayerMenuProfile, PlayerPortraitSpec, SeatSide, TEXT,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_horizontal_chip_group, add_player_portrait,
+    add_poker_balance_panel, add_poker_chip_value, add_text, add_turn_border_trace_with_radius,
     attach_start_game_seat_transition, card_background_image, position_opponent_popup,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{OpponentBadge, SeatSide};
+use crate::app::shell::OpponentBadge;
+
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{GameKind, PlayerId, TexasHoldemPlayerState, TexasHoldemSnapshot};

@@ -188,7 +188,16 @@ fn robots_play_all_hands_rotate_first_bidder_rematch_and_return_to_lobby() {
             assert_eq!(snapshot.match_complete, hand == mode.players() - 1);
             assert_eq!(snapshot.revealed_hands.len(), usize::from(mode.players()));
             assert_eq!(snapshot.scores.iter().sum::<i32>(), 0);
-            assert!(snapshot.reference_changes.is_empty());
+            let records = snapshot.match_complete && cfg!(feature = "developer");
+            assert_eq!(
+                snapshot.reference_changes.len(),
+                if records {
+                    usize::from(mode.players())
+                } else {
+                    0
+                }
+            );
+            assert_eq!(session.room.players[0].completed_games, u32::from(records));
             if !snapshot.match_complete {
                 ready_players(&mut session);
                 assert_eq!(session.match_id, match_id);

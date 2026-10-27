@@ -1,11 +1,7 @@
 use super::MahjongUiAction;
-use crate::app::presentation::{
-    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_text,
-};
+use crate::app::presentation::{EditableRuleSet, RuleConfigRow, add_rule_config_row};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{
-    LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_lobby_rules_heading,
-};
+use crate::app::shell::{LobbyPage, LobbyPageConfig, LobbyPageStyle, UiAction};
 use bevy::prelude::*;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet, MahjongUmaStyle};
 use leocard_protocol::LobbySnapshot;
@@ -37,28 +33,22 @@ pub(crate) fn render_mahjong_lobby(
         client,
         lobby,
         assets,
-        LobbyPageStyle {
-            rules_min_width: 340.0,
-            rules_basis: 390.0,
-            rules_gap: 15.0,
-            players_min_width: 500.0,
-            players_basis: 650.0,
-            players_gap: 11.0,
-            wrap: false,
-        },
+        avatars,
+        LobbyPageConfig::new("国标麻将配置")
+            .description("需要四人开局，采用 2014 版国标规则。")
+            .style(LobbyPageStyle {
+                rules_min_width: 340.0,
+                rules_basis: 390.0,
+                rules_gap: 15.0,
+                players_min_width: 500.0,
+                players_basis: 650.0,
+                players_gap: 11.0,
+                wrap: false,
+            }),
     );
     let rules_panel = page.rules;
-    let connected = page.connected_count;
     let can_configure = page.can_configure;
-    add_lobby_rules_heading(commands, rules_panel, "国标麻将配置", assets);
-    add_text(
-        commands,
-        rules_panel,
-        format!("当前人数 {connected}/4，需要四人开局。采用 2014 版国标规则。"),
-        13.0,
-        MUTED,
-        assets,
-    );
+
     let lengths = [
         MahjongMatchLength::SingleHand,
         MahjongMatchLength::EastRound,
@@ -201,16 +191,5 @@ pub(crate) fn render_mahjong_lobby(
             next: (can_configure && rules.minimum_eight_points).then_some(false_win_toggled),
         },
         assets,
-    );
-
-    let can_start = connected == 4
-        && lobby
-            .players
-            .iter()
-            .filter(|player| player.connected)
-            .all(|player| player.seat.is_some() && player.ready);
-    page.render_players(
-        commands,
-        LobbyPlayerSection::new(client, lobby, assets, avatars, 4, can_start, "等待四名玩家"),
     );
 }

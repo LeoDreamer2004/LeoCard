@@ -45,7 +45,7 @@ pub(super) fn play_feedback(
         let variants = match event {
             DoudizhuEvent::ActionApplied { action, .. } => match action {
                 Action::Play(cards) => {
-                    if classify(cards, game.rules.mode)
+                    if classify(cards, game.rules)
                         .is_some_and(|play| matches!(play.kind, PlayKind::Bomb | PlayKind::Rocket))
                     {
                         commands.spawn((

@@ -440,6 +440,7 @@ fn bottom_flip_dealer_selection_obeys_team_total_personal_count_and_distance() {
                 cards: cards(1),
             }],
             ShengjiPlayerId(0),
+            4,
         ),
         Some(ShengjiPlayerId(3))
     );
@@ -456,6 +457,7 @@ fn bottom_flip_dealer_selection_obeys_team_total_personal_count_and_distance() {
                 },
             ],
             ShengjiPlayerId(0),
+            4,
         ),
         None
     );
@@ -476,6 +478,7 @@ fn bottom_flip_dealer_selection_obeys_team_total_personal_count_and_distance() {
                 },
             ],
             ShengjiPlayerId(1),
+            4,
         ),
         Some(ShengjiPlayerId(0))
     );
@@ -496,6 +499,7 @@ fn bottom_flip_dealer_selection_obeys_team_total_personal_count_and_distance() {
                 },
             ],
             ShengjiPlayerId(1),
+            4,
         ),
         Some(ShengjiPlayerId(2))
     );

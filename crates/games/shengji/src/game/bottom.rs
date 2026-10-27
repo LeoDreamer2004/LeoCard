@@ -95,7 +95,7 @@ impl GameState {
             let state = self.bottom_copy.as_mut().unwrap();
             state.current = None;
             state.bottom_holder = Some(player);
-            state.remaining_without_copy = ShengjiRuleSet::PLAYER_COUNT;
+            state.remaining_without_copy = self.rules.player_count();
             self.phase = Phase::BottomCopyBurying;
             return Ok(ActionOutcome::BottomCopyDecision {
                 player,
@@ -115,8 +115,8 @@ impl GameState {
     fn start_bottom_copy_inquiry(&mut self) -> bool {
         let dealer = self.dealer.unwrap();
         self.bottom_copy = Some(BottomCopyState {
-            next_player: next_player(dealer),
-            remaining_without_copy: ShengjiRuleSet::PLAYER_COUNT,
+            next_player: next_player(dealer, self.rules.player_count()),
+            remaining_without_copy: self.rules.player_count(),
             current: None,
             bottom_holder: None,
             last_burier: dealer,
@@ -138,7 +138,7 @@ impl GameState {
             let player = {
                 let state = self.bottom_copy.as_mut().unwrap();
                 let player = state.next_player;
-                state.next_player = next_player(player);
+                state.next_player = next_player(player, self.rules.player_count());
                 state.remaining_without_copy -= 1;
                 player
             };

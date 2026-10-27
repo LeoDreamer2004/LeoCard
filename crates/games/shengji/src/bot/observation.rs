@@ -5,7 +5,6 @@ use crate::{
     Category, FiveTrumpCrossingStage, GameState, Phase, ShengjiCard, ShengjiPlayerId,
     ShengjiRuleSet, ShengjiTeamId, ShengjiTrump, TrickRecord, build_deck_for,
 };
-use std::array;
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -17,9 +16,9 @@ pub struct ShengjiBotObservation {
     pub(super) phase: Phase,
     pub(super) trick: Option<TrickRecord>,
     pub(super) unseen: Vec<ShengjiCard>,
-    pub(super) exposed: [Vec<ShengjiCard>; 4],
-    pub(super) lengths: [usize; 4],
-    pub(super) voids: [[bool; 5]; 4],
+    pub(super) exposed: Vec<Vec<ShengjiCard>>,
+    pub(super) lengths: Vec<usize>,
+    pub(super) voids: Vec<[bool; 5]>,
     pub(super) bottom: Option<Vec<ShengjiCard>>,
     pub(super) counter_options: Vec<Vec<ShengjiCard>>,
     pub(super) crossing: Option<FiveTrumpCrossingStage>,
@@ -43,21 +42,23 @@ impl ShengjiBotObservation {
                     .flat_map(|(_, play)| play.cards.iter().copied())
             })
             .collect();
-        let exposed = array::from_fn(|index| {
-            // Secret burial/copying or a partner exchange can relocate an exposed physical card.
-            // Only retain ownership when public rules still make it certain.
-            if game.dealer() == Some(ShengjiPlayerId(index as u8))
-                || game.rules().bottom_copy
-                || game.rules().five_trump_crossing
-            {
-                return Vec::new();
-            }
-            game.bidding()
-                .exposed_cards(ShengjiPlayerId(index as u8))
-                .into_iter()
-                .filter(|card| !played.contains(card))
-                .collect::<Vec<_>>()
-        });
+        let exposed = (0..usize::from(game.rules().player_count()))
+            .map(|index| {
+                // Secret burial/copying or a partner exchange can relocate an exposed physical card.
+                // Only retain ownership when public rules still make it certain.
+                if game.dealer() == Some(ShengjiPlayerId(index as u8))
+                    || game.rules().bottom_copy
+                    || game.rules().five_trump_crossing
+                {
+                    return Vec::new();
+                }
+                game.bidding()
+                    .exposed_cards(ShengjiPlayerId(index as u8))
+                    .into_iter()
+                    .filter(|card| !played.contains(card))
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
         let bottom = (game.bottom_burier() == Some(player)).then(|| game.buried().to_vec());
         let known: HashSet<_> = hand
             .iter()
@@ -66,7 +67,7 @@ impl ShengjiBotObservation {
             .chain(bottom.iter().flatten())
             .copied()
             .collect();
-        let mut voids = [[false; 5]; 4];
+        let mut voids = vec![[false; 5]; usize::from(game.rules().player_count())];
         for trick in game.history().iter().chain(trick.iter()) {
             let lead = trick.plays.first()?.1.category;
             for (other, play) in &trick.plays {
@@ -87,7 +88,11 @@ impl ShengjiBotObservation {
                 .filter(|card| !known.contains(card))
                 .collect(),
             exposed,
-            lengths: array::from_fn(|index| game.players()[index].hand.len()),
+            lengths: game
+                .players()
+                .iter()
+                .map(|player| player.hand.len())
+                .collect(),
             voids,
             bottom,
             counter_options: game

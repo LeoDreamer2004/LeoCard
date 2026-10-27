@@ -101,12 +101,12 @@ pub(super) fn choose_play(
 fn sample(
     observation: &ShengjiBotObservation,
     random: &mut SearchRandom,
-) -> Option<([Vec<ShengjiCard>; 4], u16)> {
+) -> Option<(Vec<Vec<ShengjiCard>>, u16)> {
     for _ in 0..12 {
         let mut pool = observation.unseen.clone();
         let mut hands = observation.exposed.clone();
         hands[usize::from(observation.player.0)] = observation.hand.clone();
-        let mut players: Vec<_> = (0..4)
+        let mut players: Vec<_> = (0..usize::from(observation.rules.player_count()))
             .filter(|index| *index != usize::from(observation.player.0))
             .collect();
         players.sort_by_key(|index| {
@@ -152,7 +152,7 @@ fn sample(
 
 fn rollout(
     observation: &ShengjiBotObservation,
-    mut hands: [Vec<ShengjiCard>; 4],
+    mut hands: Vec<Vec<ShengjiCard>>,
     first: ShengjiClassifiedPlay,
     bottom_points: u16,
     budget: &SearchBudget,
@@ -169,11 +169,13 @@ fn rollout(
     let mut value = 0.0;
     let mut collected = observation.collecting_score;
     for turn in 0..if observation.hand.len() <= 9 { 8 } else { 3 } {
-        while trick.plays.len() < 4 {
+        while trick.plays.len() < usize::from(observation.rules.player_count()) {
             if budget.exhausted() {
                 return None;
             }
-            let actor = ShengjiPlayerId((trick.leader.0 + trick.plays.len() as u8) % 4);
+            let actor = ShengjiPlayerId(
+                (trick.leader.0 + trick.plays.len() as u8) % observation.rules.player_count(),
+            );
             let candidates = plays(
                 &hands[usize::from(actor.0)],
                 Some(&trick.plays[0].1),
@@ -265,7 +267,7 @@ fn append(
     trick: &mut TrickRecord,
     player: ShengjiPlayerId,
     play: ShengjiClassifiedPlay,
-    hands: &mut [Vec<ShengjiCard>; 4],
+    hands: &mut [Vec<ShengjiCard>],
     trump: ShengjiTrump,
 ) {
     if let Some((_, lead)) = trick.plays.first() {

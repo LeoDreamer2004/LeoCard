@@ -1,6 +1,7 @@
-use crate::app::presentation::add_hand_count_score;
+use crate::app::presentation::{SeatSide, add_hand_count_score};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{PlayerGameScoreText, SeatSide};
+use crate::app::shell::PlayerGameScoreText;
+
 use bevy::prelude::*;
 use leocard_protocol::PlayerId;
 use leocard_ui::UiComposer;

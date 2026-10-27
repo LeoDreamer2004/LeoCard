@@ -1,8 +1,9 @@
 use super::{Play, PlayKind};
-use crate::{Card, Mode};
+use crate::{Card, RuleSet};
 use std::collections::HashSet;
 
-pub fn classify(cards: &[Card], mode: Mode) -> Option<Play> {
+pub fn classify(cards: &[Card], rules: RuleSet) -> Option<Play> {
+    let mode = rules.mode;
     if cards.is_empty()
         || cards.iter().any(|c| c.0 >= mode.deck_count() * 54)
         || cards.iter().collect::<HashSet<_>>().len() != cards.len()
@@ -54,6 +55,9 @@ pub fn classify(cards: &[Card], mode: Mode) -> Option<Play> {
             (PlayKind::AirplaneSingles, 1),
             (PlayKind::AirplanePairs, 2),
         ] {
+            if wing_width == 1 && !rules.allows_single_wings() {
+                continue;
+            }
             let group = 3 + wing_width;
             if !n.is_multiple_of(group) {
                 continue;

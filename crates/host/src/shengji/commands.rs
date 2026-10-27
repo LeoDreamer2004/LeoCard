@@ -2,7 +2,7 @@ use super::{ShengjiSession, shuffled_deck, to_core_player};
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
-    GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, ShengjiEvent,
+    GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, SeatId, ShengjiEvent,
     ShengjiViolation,
 };
 use leocard_shengji::{
@@ -45,7 +45,33 @@ impl ShengjiSession {
                 RejectReason::Game(GameViolation::InvalidRuleConfiguration),
             );
         };
+        if self
+            .room
+            .players
+            .iter()
+            .filter(|player| !player.left)
+            .count()
+            > usize::from(rules.player_count())
+        {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::InvalidRuleConfiguration),
+            );
+        }
         if self.rules != rules {
+            if self.rules.mode != rules.mode {
+                self.room.seat_count = rules.player_count();
+                for (index, player) in self
+                    .room
+                    .players
+                    .iter_mut()
+                    .filter(|player| !player.left)
+                    .enumerate()
+                {
+                    player.seat = Some(SeatId(index as u8));
+                }
+            }
             self.rules = rules;
             self.room.reset_ready_after_rules_change();
             self.shuffled_deck = Some(shuffled_deck(self.rules));
@@ -75,17 +101,17 @@ impl ShengjiSession {
         }
         self.flow.deal_elapsed = Duration::ZERO;
         self.flow.bidding_remaining = None;
-        self.flow.bid_pass_confirmed = [false; ShengjiRuleSet::PLAYER_COUNT as usize];
+        self.flow.bid_pass_confirmed = [false; ShengjiRuleSet::MAX_PLAYERS as usize];
         self.flow.bottom_flip_reveal = None;
         self.flow.bottom_flip_remaining = None;
         self.flow.bottom_copy_remaining = None;
         self.flow.automatic_action = None;
         self.flow.redeal_remaining = None;
-        self.presentation.throw_penalties = [0; ShengjiRuleSet::PLAYER_COUNT as usize];
+        self.presentation.throw_penalties = [0; ShengjiRuleSet::MAX_PLAYERS as usize];
         self.presentation.bottom_copy_decisions.clear();
         self.presentation.throw_failure = None;
         self.presentation.trick = None;
-        self.statistics.start_hand();
+        self.statistics.start_hand(self.rules.player_count());
         Ok(())
     }
 
@@ -187,6 +213,7 @@ impl ShengjiSession {
             .flow
             .bid_pass_confirmed
             .iter()
+            .take(usize::from(self.rules.player_count()))
             .all(|confirmed| *confirmed)
         {
             deliveries.extend(self.finish_bidding(Some((connection, request_id))));
@@ -197,13 +224,13 @@ impl ShengjiSession {
     }
 
     pub(super) fn reset_bid_pass_confirmations(&mut self) {
-        self.flow.bid_pass_confirmed = [false; ShengjiRuleSet::PLAYER_COUNT as usize];
+        self.flow.bid_pass_confirmed = [false; ShengjiRuleSet::MAX_PLAYERS as usize];
         self.confirm_automatic_bid_passes();
     }
 
     pub(super) fn confirm_automatic_bid_passes(&mut self) {
         for participant in &self.room.players {
-            if usize::from(participant.id.0) >= usize::from(ShengjiRuleSet::PLAYER_COUNT) {
+            if usize::from(participant.id.0) >= usize::from(self.rules.player_count()) {
                 continue;
             }
             if participant.is_bot

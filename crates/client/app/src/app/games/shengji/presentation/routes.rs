@@ -1,9 +1,10 @@
 use super::{ShengjiPresentationKind, ShengjiPresentationRoute};
+use crate::app::presentation::{TableSeatAnchors, TableSeats};
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, ShengjiSnapshot};
 
 fn shengji_relative_seat(game: &ShengjiSnapshot, player: PlayerId) -> Option<u8> {
-    const SEAT_COUNT: u8 = 4;
+    let seat_count = game.rules.player_count();
     let own_seat = game
         .players
         .iter()
@@ -15,44 +16,45 @@ fn shengji_relative_seat(game: &ShengjiSnapshot, player: PlayerId) -> Option<u8>
         .find(|candidate| candidate.id == player)?
         .seat
         .0;
-    Some((player_seat + SEAT_COUNT - own_seat) % SEAT_COUNT)
+    Some(TableSeats::new(seat_count).relative(own_seat, player_seat))
 }
 
-/// 百分比坐标以整张牌桌为基准，并落在各座位靠桌面内侧的出牌区。
-pub(super) fn shengji_seat_route_anchor(relative_seat: u8) -> Vec2 {
-    match relative_seat {
-        0 => Vec2::new(50.0, 88.0),
-        1 => Vec2::new(20.0, 52.0),
-        2 => Vec2::new(50.0, 20.0),
-        3 => Vec2::new(80.0, 52.0),
-        _ => Vec2::new(50.0, 50.0),
-    }
+/// 百分比坐标以整张牌桌为基准，发牌与抄底共用人数布局。
+fn route_anchor(relative: u8, count: u8) -> Vec2 {
+    TableSeats::new(count)
+        .seat(relative)
+        .position(TableSeatAnchors {
+            bottom: Vec2::new(50.0, 88.0),
+            top: Vec2::new(50.0, 20.0),
+            columns: Vec2::new(20.0, 80.0),
+            rows: if count == 6 { &[72.0, 32.0] } else { &[52.0] },
+        })
 }
 
 pub(in super::super) fn shengji_player_route_anchor(
     game: &ShengjiSnapshot,
     player: PlayerId,
 ) -> Option<Vec2> {
-    shengji_relative_seat(game, player).map(shengji_seat_route_anchor)
+    shengji_relative_seat(game, player)
+        .map(|relative| route_anchor(relative, game.rules.player_count()))
 }
 
-/// 扣底的“查找同牌”动画要指向玩家本人，而不是平时的出牌区。
-/// 这组锚点因此落在四个玩家框的头像附近。
-fn shengji_seat_player_anchor(relative_seat: u8) -> Vec2 {
-    match relative_seat {
-        0 => Vec2::new(92.0, 91.0),
-        1 => Vec2::new(4.5, 52.0),
-        2 => Vec2::new(50.0, 10.5),
-        3 => Vec2::new(95.5, 52.0),
-        _ => Vec2::new(50.0, 50.0),
-    }
-}
-
+/// 扳底查找同牌指向头像而非出牌区，仍按相同的座位方向取点。
 pub(super) fn shengji_player_panel_anchor(
     game: &ShengjiSnapshot,
     player: PlayerId,
 ) -> Option<Vec2> {
-    shengji_relative_seat(game, player).map(shengji_seat_player_anchor)
+    shengji_relative_seat(game, player).map(|relative| {
+        let count = game.rules.player_count();
+        TableSeats::new(count)
+            .seat(relative)
+            .position(TableSeatAnchors {
+                bottom: Vec2::new(92.0, 91.0),
+                top: Vec2::new(50.0, 10.5),
+                columns: Vec2::new(4.5, 95.5),
+                rows: if count == 6 { &[72.0, 32.0] } else { &[52.0] },
+            })
+    })
 }
 
 pub(super) fn shengji_power_outage_anchors(
@@ -111,8 +113,8 @@ pub(super) fn shengji_presentation_routes(
             .filter_map(|player| {
                 let relative = shengji_relative_seat(game, *player)?;
                 Some(ShengjiPresentationRoute {
-                    start: shengji_seat_route_anchor(relative),
-                    end: shengji_seat_route_anchor((relative + 2) % 4),
+                    start: route_anchor(relative, 4),
+                    end: route_anchor((relative + 2) % 4, 4),
                     packet_count: 5,
                 })
             })
@@ -120,8 +122,8 @@ pub(super) fn shengji_presentation_routes(
         ShengjiPresentationKind::CrossingReturned { player, .. } => {
             shengji_relative_seat(game, *player)
                 .map(|relative| ShengjiPresentationRoute {
-                    start: shengji_seat_route_anchor(relative),
-                    end: shengji_seat_route_anchor((relative + 2) % 4),
+                    start: route_anchor(relative, 4),
+                    end: route_anchor((relative + 2) % 4, 4),
                     packet_count: 5,
                 })
                 .into_iter()

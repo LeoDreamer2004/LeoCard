@@ -3,9 +3,11 @@ use super::{
     ActivePlayEffect, QiGui523Assets, SequenceEffectCard, add_sequence_play_decoration,
     sequence_effect_style, sort_cards_high_to_low, turn_clock_visible,
 };
-use crate::app::presentation::{CardSize, READY, TABLE_CARD_REVEAL, add_card_image, add_text};
+use crate::app::presentation::{
+    CardSize, READY, SeatSide, TABLE_CARD_REVEAL, add_card_image, add_text,
+};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::SeatSide;
+
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{

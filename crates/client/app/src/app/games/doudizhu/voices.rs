@@ -1,7 +1,7 @@
 use crate::app::presentation::{CardVoice, CardVoices};
 use crate::app::runtime::{ClientResource, ServerNotification};
 use bevy::prelude::*;
-use leocard_doudizhu::{Action, Mode, PlayKind, classify};
+use leocard_doudizhu::{Action, Mode, Play, PlayKind, classify};
 use leocard_protocol::{DoudizhuEvent, GameEvent, ServerEvent};
 
 pub(super) fn sync_doudizhu_voices(
@@ -28,8 +28,9 @@ pub(super) fn sync_doudizhu_voices(
             continue;
         };
         let voice = match action {
-            Action::Play(cards) => classify(cards, game.rules.mode)
-                .and_then(|play| pattern_voice(play.kind, game.rules.mode)),
+            Action::Play(cards) => {
+                classify(cards, game.rules).and_then(|play| pattern_voice(&play, game.rules.mode))
+            }
             Action::Pass => Some(CardVoice::Pass),
             Action::Bid(score) => match score {
                 0 => Some(CardVoice::BidZero),
@@ -42,24 +43,31 @@ pub(super) fn sync_doudizhu_voices(
         if let Some(pattern) = voice
             && let Some(profile) = game.players.iter().find(|profile| profile.id == *player)
         {
-            voices.queue(context, profile.game_profiles.gender, pattern);
+            voices.announce(context, profile.game_profiles.gender, pattern);
         }
     }
 }
 
-fn pattern_voice(kind: PlayKind, mode: Mode) -> Option<CardVoice> {
-    match kind {
+fn pattern_voice(play: &Play, mode: Mode) -> Option<CardVoice> {
+    match play.kind {
+        PlayKind::Single => play
+            .cards
+            .first()
+            .map(|card| CardVoice::Single((*card).into())),
+        PlayKind::Pair => play
+            .cards
+            .first()
+            .map(|card| CardVoice::Pair((*card).into())),
+        PlayKind::Triple => Some(CardVoice::Triple),
         PlayKind::TripleSingle => Some(CardVoice::TripleSingle),
         PlayKind::TriplePair => Some(CardVoice::TriplePair),
         PlayKind::FourSingles | PlayKind::FourPairs => Some(CardVoice::FourTwo),
         PlayKind::Straight => Some(CardVoice::Straight),
         PlayKind::Pairs => Some(CardVoice::ConsecutivePairs),
-        PlayKind::Airplane | PlayKind::AirplaneSingles | PlayKind::AirplanePairs => {
-            Some(CardVoice::Airplane)
-        }
+        PlayKind::Airplane => Some(CardVoice::TripleSequence),
+        PlayKind::AirplaneSingles | PlayKind::AirplanePairs => Some(CardVoice::Airplane),
         PlayKind::Bomb => Some(CardVoice::Bomb),
         PlayKind::Rocket if mode == Mode::Four => Some(CardVoice::HeavenBomb),
         PlayKind::Rocket => Some(CardVoice::Rocket),
-        _ => None,
     }
 }

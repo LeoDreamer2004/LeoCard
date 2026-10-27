@@ -12,6 +12,7 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Resource, Default)]
 pub(crate) struct ShengjiUiState {
+    pub mode_menu_open: bool,
     pub selected: HashSet<ShengjiCard>,
     pub card_animations: HashMap<ShengjiCard, CardAnimationState>,
     pub observed_hand: Observed<(MatchId, u32), Vec<ShengjiCard>>,

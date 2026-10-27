@@ -1,5 +1,6 @@
+use super::header::{LobbyPageConfig, add_lobby_rules_heading};
 use super::*;
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, add_text};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
     CozyButtonVariant, LobbyTransitionPanel, LobbyUiAction, PageTransitionElement, UiAction,
@@ -36,41 +37,9 @@ impl Default for LobbyPageStyle {
     }
 }
 
-pub(crate) struct LobbyPlayerSection<'a> {
-    client: &'a ClientResource,
-    lobby: &'a LobbySnapshot,
-    assets: &'a UiAssets,
-    avatars: &'a AvatarImages,
-    capacity: u8,
-    can_start: bool,
-    waiting_label: &'a str,
-}
-
-impl<'a> LobbyPlayerSection<'a> {
-    pub(crate) fn new(
-        client: &'a ClientResource,
-        lobby: &'a LobbySnapshot,
-        assets: &'a UiAssets,
-        avatars: &'a AvatarImages,
-        capacity: u8,
-        can_start: bool,
-        waiting_label: &'a str,
-    ) -> Self {
-        Self {
-            client,
-            lobby,
-            assets,
-            avatars,
-            capacity,
-            can_start,
-            waiting_label,
-        }
-    }
-}
-
 pub(crate) struct LobbyPage {
     pub rules: Entity,
-    players: Entity,
+    pub(crate) players: Entity,
     pub connected_count: u8,
     pub can_configure: bool,
 }
@@ -82,8 +51,10 @@ impl LobbyPage {
         client: &ClientResource,
         lobby: &LobbySnapshot,
         assets: &UiAssets,
-        style: LobbyPageStyle,
+        avatars: &AvatarImages,
+        config: LobbyPageConfig,
     ) -> Self {
+        let style = config.style;
         let canvas = spawn_node(
             commands,
             root,
@@ -155,24 +126,28 @@ impl LobbyPage {
             PageTransitionElement::right(1),
             UiTransform::IDENTITY,
         ));
-        Self {
+        let page = Self {
             rules,
             players,
             connected_count: LobbyMetrics::new(lobby).connected_player_count(),
             can_configure: client.0.model().you() == lobby.host,
-        }
+        };
+        config.render(commands, root, &page, assets);
+        page.render_players(commands, client, lobby, assets, avatars);
+        page
     }
 
-    pub(crate) fn render_players(self, commands: &mut UiComposer, section: LobbyPlayerSection<'_>) {
-        let LobbyPlayerSection {
-            client,
-            lobby,
-            assets,
-            avatars,
-            capacity,
-            can_start,
-            waiting_label,
-        } = section;
+    fn render_players(
+        &self,
+        commands: &mut UiComposer,
+        client: &ClientResource,
+        lobby: &LobbySnapshot,
+        assets: &UiAssets,
+        avatars: &AvatarImages,
+    ) {
+        let metrics = LobbyMetrics::new(lobby);
+        let capacity = metrics.seat_count();
+        let can_start = metrics.can_start();
         add_lobby_rules_heading(
             commands,
             self.players,
@@ -227,7 +202,7 @@ impl LobbyPage {
                     CozyButtonVariant::Neutral,
                 );
             } else {
-                add_disabled_lobby_button(commands, actions, waiting_label, assets);
+                add_disabled_lobby_button(commands, actions, "等待玩家准备", assets);
             }
         } else {
             add_cozy_button_variant(
@@ -279,33 +254,4 @@ fn add_disabled_lobby_button(
         ),
     );
     add_text(commands, button, label, 14.0, MUTED, assets);
-}
-
-pub(crate) fn add_lobby_rules_heading(
-    commands: &mut UiComposer,
-    parent: Entity,
-    title: impl Into<String>,
-    assets: &UiAssets,
-) {
-    let heading = spawn_node(
-        commands,
-        parent,
-        Node {
-            flex_direction: FlexDirection::Column,
-            row_gap: px(3),
-            ..default()
-        },
-        None,
-    );
-    add_text(commands, heading, title, 21.0, TEXT, assets);
-    spawn_node(
-        commands,
-        heading,
-        Node {
-            width: px(76),
-            height: px(2),
-            ..default()
-        },
-        Some(Color::srgb(0.64, 0.59, 0.93)),
-    );
 }

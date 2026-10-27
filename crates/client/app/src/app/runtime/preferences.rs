@@ -53,10 +53,12 @@ pub(crate) struct HostRulePreferences {
     pub host_rules: QiGuiRuleSet,
     pub texas_holdem_rules: TexasHoldemRuleSet,
     pub shengji_rules: ShengjiRuleSet,
+    pub shengji_modes: [ShengjiRuleSet; 2],
     pub uno_rules: UnoRuleSet,
     pub mahjong_rules: MahjongRuleSet,
     pub minecraft_guess_rules: MinecraftGuessRuleSet,
     pub doudizhu_rules: DoudizhuRuleSet,
+    pub doudizhu_modes: [DoudizhuRuleSet; 2],
 }
 
 #[derive(Resource, Default)]
@@ -155,10 +157,12 @@ impl PreferenceResources {
                 host_rules: normalize_rules(saved.games.qigui523.host_rules),
                 texas_holdem_rules: normalize_rules(saved.games.texas_holdem.host_rules),
                 shengji_rules: normalize_rules(saved.games.shengji.host_rules),
+                shengji_modes: saved.games.shengji.remembered_modes().map(normalize_rules),
                 uno_rules: normalize_rules(saved.games.uno.host_rules),
                 mahjong_rules: normalize_rules(saved.games.mahjong.host_rules),
                 minecraft_guess_rules: normalize_rules(saved.games.minecraft_guess.host_rules),
                 doudizhu_rules: normalize_rules(saved.games.doudizhu.host_rules),
+                doudizhu_modes: saved.games.doudizhu.remembered_modes().map(normalize_rules),
             },
         }
     }
@@ -267,7 +271,11 @@ impl HostRulePreferences {
     pub(super) fn accept_game_rules(&mut self, rules: &GameRules) -> bool {
         match rules {
             GameRules::Blackjack(_) => false,
-            GameRules::Doudizhu(rules) => replace_if_changed(&mut self.doudizhu_rules, *rules),
+            GameRules::Doudizhu(rules) => {
+                let rules = normalize_rules(*rules);
+                replace_if_changed(&mut self.doudizhu_rules, rules)
+                    | replace_if_changed(&mut self.doudizhu_modes[rules.mode as usize], rules)
+            }
             GameRules::MinecraftGuess(rules) => {
                 replace_if_changed(&mut self.minecraft_guess_rules, normalize_rules(*rules))
             }
@@ -278,7 +286,9 @@ impl HostRulePreferences {
                 replace_if_changed(&mut self.texas_holdem_rules, normalize_rules(*rules))
             }
             GameRules::Shengji(rules) => {
-                replace_if_changed(&mut self.shengji_rules, normalize_rules(*rules))
+                let rules = normalize_rules(*rules);
+                replace_if_changed(&mut self.shengji_rules, rules)
+                    | replace_if_changed(&mut self.shengji_modes[rules.mode as usize], rules)
             }
             GameRules::Uno(rules) => {
                 replace_if_changed(&mut self.uno_rules, normalize_rules(*rules))
@@ -335,6 +345,7 @@ pub(super) fn save_host_rule_preferences(rules: &HostRulePreferences) -> Result<
         },
         shengji: ShengjiPreferences {
             host_rules: rules.shengji_rules,
+            mode_rules: rules.shengji_modes,
         },
         uno: UnoPreferences {
             host_rules: rules.uno_rules,
@@ -347,6 +358,7 @@ pub(super) fn save_host_rule_preferences(rules: &HostRulePreferences) -> Result<
         },
         doudizhu: DoudizhuPreferences {
             host_rules: normalize_rules(rules.doudizhu_rules),
+            mode_rules: rules.doudizhu_modes,
         },
     };
     save_game_preferences(&games)

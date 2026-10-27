@@ -1,5 +1,5 @@
 use super::{ChipZoneLayout, TEXAS_PORTRAIT_HEIGHT, TEXAS_PORTRAIT_WIDTH};
-use crate::app::shell::SeatSide;
+use crate::app::presentation::{SeatSide, TableSeatAnchors, TableSeats};
 use bevy::prelude::Vec2;
 use leocard_protocol::{PlayerId, SeatId, TexasHoldemSnapshot};
 use leocard_texas_holdem::TexasHoldemRuleSet;
@@ -40,55 +40,45 @@ impl TexasTableLayout {
         target: SeatId,
         seats: impl Iterator<Item = SeatId>,
     ) -> u8 {
-        let distance = |seat: SeatId| {
-            (seat.0 + TexasHoldemRuleSet::MAX_PLAYERS - origin.0) % TexasHoldemRuleSet::MAX_PLAYERS
-        };
-        let rank = seats
-            .filter(|seat| distance(*seat) < distance(target))
-            .count() as u8;
-        let slots = if self.player_count <= 6 { 6 } else { 8 };
-        // Rounding distributes occupied seats symmetrically, even with gaps in room seat IDs.
-        ((u16::from(rank) * slots + u16::from(self.player_count) / 2)
-            / u16::from(self.player_count.max(1))) as u8
+        self.seats().occupied_slot(
+            origin.0,
+            target.0,
+            seats.map(|seat| seat.0),
+            TexasHoldemRuleSet::MAX_PLAYERS,
+        )
+    }
+
+    fn seats(self) -> TableSeats {
+        TableSeats::new(if self.player_count <= 6 { 6 } else { 8 })
     }
 
     pub(super) fn side(self, slot: u8) -> SeatSide {
-        let top = if self.player_count <= 6 { 3 } else { 4 };
-        if slot < top {
+        if slot == 0 {
             SeatSide::Left
-        } else if slot == top {
-            SeatSide::Top
         } else {
-            SeatSide::Right
+            self.seats().seat(slot).side()
         }
     }
 
     pub(super) fn chip_zone(self, slot: u8) -> ChipZoneLayout {
-        let (center_x, top) = if self.player_count <= 6 {
-            match slot {
-                0 => (640.0, 405.0),
-                1 => (282.0, 346.0),
-                2 => (282.0, 123.0),
-                3 => (640.0, 23.0),
-                4 => (998.0, 123.0),
-                _ => (998.0, 346.0),
-            }
-        } else {
-            match slot {
-                0 => (640.0, 405.0),
-                1 => (258.0, 346.0),
-                2 => (258.0, 201.0),
-                3 => (258.0, 56.0),
-                4 => (640.0, 23.0),
-                5 => (1022.0, 56.0),
-                6 => (1022.0, 201.0),
-                _ => (1022.0, 346.0),
-            }
-        };
-        // Extend the former 116-high top zone upwards, retaining its bottom edge.
+        let expanded = self.player_count > 6;
+        let position = self.seats().seat(slot).position(TableSeatAnchors {
+            bottom: Vec2::new(640.0, 405.0),
+            top: Vec2::new(640.0, 23.0),
+            columns: if expanded {
+                Vec2::new(258.0, 1022.0)
+            } else {
+                Vec2::new(282.0, 998.0)
+            },
+            rows: if expanded {
+                &[346.0, 201.0, 56.0]
+            } else {
+                &[346.0, 123.0]
+            },
+        });
         ChipZoneLayout {
-            left: center_x - 105.0,
-            top,
+            left: position.x - 105.0,
+            top: position.y,
             width: 210.0,
             height: 130.0,
         }

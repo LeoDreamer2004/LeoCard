@@ -1,13 +1,14 @@
 use super::{
     ActiveShengjiPresentation, ObservedShengjiThrowFailure, SHENGJI_BOTTOM_COPY_REVEAL_DURATION,
-    SHENGJI_TRICK_PLAY_COUNT, ShengjiAudioCue, ShengjiPlayFeedback, ShengjiPresentationKind,
-    ShengjiPresentationState, ShengjiSoundKind,
+    ShengjiAudioCue, ShengjiPlayFeedback, ShengjiPresentationKind, ShengjiPresentationState,
+    ShengjiSoundKind,
 };
 use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
 use leocard_protocol::{ShengjiEvent, ShengjiPublicPlay, ShengjiThrowFailureStage};
 use leocard_shengji::{Category, ShengjiThrowPenalty, ShengjiTrump, compare_for_trick};
+use std::mem;
 
 pub(in crate::app::games::shengji) fn sync_shengji_presentation(
     mut client: Option<ResMut<ClientResource>>,
@@ -36,10 +37,18 @@ pub(in crate::app::games::shengji) fn sync_shengji_presentation(
             game.rules.throw_penalty,
             game.dealer,
             game.trump,
+            game.rules.player_count(),
         )
     });
-    let Some((match_id, hand_number, throw_failure, throw_penalty, current_dealer, current_trump)) =
-        game_state
+    let Some((
+        match_id,
+        hand_number,
+        throw_failure,
+        throw_penalty,
+        current_dealer,
+        current_trump,
+        player_count,
+    )) = game_state
     else {
         if state.active.take().is_some() {
             ui.dirty = true;
@@ -100,7 +109,7 @@ pub(in crate::app::games::shengji) fn sync_shengji_presentation(
             }
             _ => None,
         };
-        state.observe_trick_event(&event);
+        state.observe_trick_event(&event, player_count);
         match event {
             ShengjiEvent::DeclarationChanged { .. } => {
                 state.audio_cues.push(ShengjiAudioCue::new(
@@ -312,7 +321,7 @@ impl ShengjiPresentationState {
     }
 
     pub(crate) fn has_previous_trick(&self) -> bool {
-        self.previous_trick_plays.len() == SHENGJI_TRICK_PLAY_COUNT
+        !self.previous_trick_plays.is_empty()
     }
 
     pub(crate) fn revealed_previous_trick(&self) -> Option<&[ShengjiPublicPlay]> {
@@ -332,7 +341,7 @@ impl ShengjiPresentationState {
         self.previous_trick_reveal_remaining = 0.0;
     }
 
-    pub(super) fn observe_trick_event(&mut self, event: &ShengjiEvent) {
+    pub(super) fn observe_trick_event(&mut self, event: &ShengjiEvent, player_count: u8) {
         match event {
             ShengjiEvent::CardsPlayed { play, is_lead } => {
                 if *is_lead {
@@ -349,8 +358,8 @@ impl ShengjiPresentationState {
                 }
             }
             ShengjiEvent::TrickFinished { .. } => {
-                if self.current_trick_plays.len() == SHENGJI_TRICK_PLAY_COUNT {
-                    self.previous_trick_plays = std::mem::take(&mut self.current_trick_plays);
+                if self.current_trick_plays.len() == usize::from(player_count) {
+                    self.previous_trick_plays = mem::take(&mut self.current_trick_plays);
                 } else {
                     self.current_trick_plays.clear();
                 }

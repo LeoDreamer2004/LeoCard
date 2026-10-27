@@ -9,7 +9,6 @@ use leocard_protocol::{
 };
 use leocard_shengji::{
     BottomCopyState, FiveTrumpCrossingStage, GameState, Phase, ShengjiCard, ShengjiPlayerId,
-    ShengjiRuleSet,
 };
 
 impl ShengjiSession {
@@ -154,7 +153,7 @@ impl ShengjiSession {
                     .map(|player| player.hand.len())
                     .sum::<usize>();
                 ShengjiPhaseView::Dealing {
-                    cards_remaining: (usize::from(ShengjiRuleSet::PLAYER_COUNT)
+                    cards_remaining: (usize::from(self.rules.player_count())
                         * self.rules.hand_size()
                         - dealt) as u8,
                 }
@@ -171,6 +170,7 @@ impl ShengjiSession {
                     .flow
                     .bid_pass_confirmed
                     .iter()
+                    .take(usize::from(self.rules.player_count()))
                     .filter(|confirmed| **confirmed)
                     .count() as u8,
                 you_confirmed: self
@@ -206,7 +206,7 @@ impl ShengjiSession {
                 let crossing = game
                     .five_trump_crossing()
                     .expect("过江阶段始终保留过江状态");
-                let players = (0..ShengjiRuleSet::PLAYER_COUNT).map(ShengjiPlayerId);
+                let players = (0..self.rules.player_count()).map(ShengjiPlayerId);
                 let eligible = players
                     .clone()
                     .filter(|player| crossing.eligible(*player))

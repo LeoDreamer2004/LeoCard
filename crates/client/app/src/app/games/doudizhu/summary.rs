@@ -1,9 +1,12 @@
 use crate::app::presentation::{
-    GameButtonSpec, GameButtonTone, GameSummaryAnimation, PlayerMenuProfile, RankedSummary,
-    SummaryDescriptor, SummaryPlayer, SummaryScore, add_ranked_summary, add_textured_game_button,
+    GameSummaryAnimation, PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer,
+    SummaryScore, add_ranked_summary,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{LobbyUiAction, SummaryActions, UiAction, add_summary_actions};
+use crate::app::shell::{
+    CozyButtonVariant, LobbyUiAction, SummaryActions, UiAction, add_cozy_button_variant,
+    add_cozy_disabled_button, add_summary_actions,
+};
 use bevy::prelude::*;
 use leocard_protocol::DoudizhuSnapshot;
 use leocard_ui::UiComposer;
@@ -122,20 +125,29 @@ pub(super) fn render(
             assets,
         );
     } else {
-        add_textured_game_button(
-            commands,
-            actions,
-            assets,
-            GameButtonSpec::compact(
-                assets,
-                match ready {
-                    Some(false) => "准备下一局",
-                    Some(true) => "已准备",
-                    None => "观战中",
-                },
-                (ready == Some(false)).then_some(UiAction::Lobby(LobbyUiAction::PlayAgain)),
-                GameButtonTone::Play,
-            ),
-        );
+        commands
+            .entity(actions)
+            .entry::<Node>()
+            .and_modify(|mut node| node.justify_content = JustifyContent::Center);
+        match ready {
+            Some(false) => {
+                add_cozy_button_variant(
+                    commands,
+                    actions,
+                    "准备下一局",
+                    UiAction::Lobby(LobbyUiAction::PlayAgain),
+                    assets,
+                    px(150),
+                    48.0,
+                    CozyButtonVariant::Cool,
+                );
+            }
+            Some(true) => {
+                add_cozy_disabled_button(commands, actions, "已准备", assets, px(150), 48.0);
+            }
+            None => {
+                add_cozy_disabled_button(commands, actions, "观战中", assets, px(150), 48.0);
+            }
+        }
     }
 }

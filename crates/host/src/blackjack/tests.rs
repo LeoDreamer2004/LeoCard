@@ -105,10 +105,9 @@ fn started(robots: bool) -> BlackjackSession {
         .collect::<Vec<_>>();
     assert!(!announcements.is_empty());
     assert!(announcements.iter().all(|delivery| {
-        delivery
-            .message
-            .game_context
-            .is_some_and(|context| context.records_progress == !robots)
+        delivery.message.game_context.is_some_and(|context| {
+            context.records_progress == (cfg!(feature = "developer") || !robots)
+        })
     }));
     session
 }
@@ -186,7 +185,7 @@ fn robot_round_uses_shared_recording_policy_and_waits_for_human_rematch_ready() 
             delivery
                 .message
                 .game_context
-                .is_some_and(|context| !context.records_progress)
+                .is_some_and(|context| context.records_progress == cfg!(feature = "developer"))
         }));
     }
     act(&mut session, 1, BlackjackAction::Bet { amount: 2 });
@@ -194,9 +193,12 @@ fn robot_round_uses_shared_recording_policy_and_waits_for_human_rematch_ready() 
     act(&mut session, 1, BlackjackAction::Stand);
     session.advance_time(Duration::from_secs(2));
     assert!(session.game.as_ref().unwrap().match_complete());
-    let expected_games = 0;
+    let expected_games = u32::from(cfg!(feature = "developer"));
     assert_eq!(session.room.players[0].completed_games, expected_games);
-    assert!(session.room.players[0].game_profiles.blackjack.is_none());
+    assert_eq!(
+        session.room.players[0].game_profiles.blackjack.is_some(),
+        cfg!(feature = "developer")
+    );
     let previous = session.match_id;
     assert!(session.advance_time(Duration::from_secs(20)).is_empty());
     send(&mut session, 1, ClientCommand::PlayAgain);

@@ -61,7 +61,7 @@ pub(super) fn render(
         }
     } else {
         let cards: Vec<_> = ui.selected.iter().copied().collect();
-        let legal = classify(&cards, game.rules.mode).is_some_and(|play| {
+        let legal = classify(&cards, game.rules).is_some_and(|play| {
             game.table
                 .as_ref()
                 .is_none_or(|(_, previous)| play.beats(previous))
@@ -69,7 +69,7 @@ pub(super) fn render(
         let can_hint = hint(
             &game.your_hand,
             game.table.as_ref().map(|(_, play)| play),
-            game.rules.mode,
+            game.rules,
         )
         .is_some();
         button(

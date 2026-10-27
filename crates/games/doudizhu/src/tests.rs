@@ -39,6 +39,27 @@ fn standard_patterns_and_bomb_order() {
 }
 
 #[test]
+fn hints_offer_distinct_legal_responses_in_bot_preference_order() {
+    let hand = cards(&[1, 1, 2, 3, 3, 3, 3, 5]);
+    let top = classify(&cards(&[0]), Mode::Three).unwrap();
+    let suggestions = hint_options(&hand, Some(&top), Mode::Three);
+    assert!(suggestions.len() > 1);
+    assert_eq!(
+        hint(&hand, Some(&top), Mode::Three),
+        suggestions.first().cloned()
+    );
+    for (index, play) in suggestions.iter().enumerate() {
+        assert!(play.beats(&top));
+        assert!(play.cards.iter().all(|card| hand.contains(card)));
+        assert!(
+            suggestions[..index]
+                .iter()
+                .all(|previous| previous.cards != play.cards)
+        );
+    }
+}
+
+#[test]
 fn deals_bidding_privacy_and_redeal() {
     for mode in [Mode::Three, Mode::Four] {
         let mut game = GameState::new(RuleSet { mode }, build_deck(mode), 0).unwrap();

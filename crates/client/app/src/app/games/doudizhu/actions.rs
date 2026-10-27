@@ -6,18 +6,17 @@ use crate::app::shell::{
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_doudizhu::{Action, RuleSet, hint};
+use leocard_doudizhu::{Action, RuleSet, hint_options};
 use leocard_protocol::DoudizhuCommand;
 
 #[derive(Clone)]
 pub(crate) enum DoudizhuUiAction {
     UpdateRules(RuleSet),
     ToggleCard,
-    Clear,
     Hint,
     Play,
     Act(Action),
-    ToggleGuide,
+    ToggleKitty,
     ToggleCounter,
     ToggleCounterDrawer,
 }
@@ -60,7 +59,6 @@ impl UiActionHandler<ActionContext<'_>> for DoudizhuUiAction {
                 send_game_command(&mut context.client, DoudizhuCommand::Act(action.clone()))
             }
             Self::ToggleCard => {}
-            Self::Clear => context.ui.selected.clear(),
             Self::Play => send_game_command(
                 &mut context.client,
                 DoudizhuCommand::Act(Action::Play(context.ui.selected.iter().copied().collect())),
@@ -71,16 +69,28 @@ impl UiActionHandler<ActionContext<'_>> for DoudizhuUiAction {
                     .as_deref()
                     .and_then(|c| c.0.model().doudizhu_game())
                 {
-                    context.ui.selected = hint(
+                    let suggestions = hint_options(
                         &game.your_hand,
                         game.table.as_ref().map(|(_, p)| p),
                         game.rules.mode,
-                    )
-                    .map(|p| p.cards.into_iter().collect())
-                    .unwrap_or_default();
+                    );
+                    let next = suggestions
+                        .iter()
+                        .position(|play| {
+                            play.cards.len() == context.ui.selected.len()
+                                && play
+                                    .cards
+                                    .iter()
+                                    .all(|card| context.ui.selected.contains(card))
+                        })
+                        .map_or(0, |index| (index + 1) % suggestions.len());
+                    context.ui.selected = suggestions
+                        .get(next)
+                        .map(|play| play.cards.iter().copied().collect())
+                        .unwrap_or_default();
                 }
             }
-            Self::ToggleGuide => context.ui.guide_open = !context.ui.guide_open,
+            Self::ToggleKitty => context.ui.kitty_open = !context.ui.kitty_open,
             Self::ToggleCounter => context.ui.counter.enabled = !context.ui.counter.enabled,
             Self::ToggleCounterDrawer => {
                 context.ui.counter.drawer_open = !context.ui.counter.drawer_open

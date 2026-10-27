@@ -72,7 +72,7 @@ pub(super) fn add_game_summary_modal(
                     ready: player.ready,
                 })
                 .collect(),
-            scores,
+            scores: scores.iter().copied().map(Into::into).collect(),
             reference_changes,
             title: "本局结算",
             caption: &caption,

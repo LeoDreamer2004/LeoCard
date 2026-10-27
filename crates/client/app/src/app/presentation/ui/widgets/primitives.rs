@@ -33,6 +33,7 @@ pub(crate) fn add_card_image(
         CardSize::Score => SCORE_CARD_REVEAL,
         CardSize::TableScore => TABLE_SCORE_CARD_REVEAL,
         CardSize::FinishedHand => FINISHED_HAND_CARD_REVEAL,
+        CardSize::TrickSeat => 27.0,
         CardSize::ShengjiHand | CardSize::QiGuiHand | CardSize::QiGuiSeat => TABLE_CARD_REVEAL,
     };
     let image = assets.playing_cards.face(card);

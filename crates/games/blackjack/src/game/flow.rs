@@ -5,15 +5,13 @@ use std::collections::HashMap;
 impl GameState {
     pub fn new(
         rules: BlackjackRuleSet,
-        player_count: usize,
+        player_count: u8,
         shoe: Vec<BlackjackCard>,
     ) -> Result<Self, GameError> {
         if !rules.is_valid() {
             return Err(GameError::InvalidRules);
         }
-        if !(usize::from(BlackjackRuleSet::MIN_PLAYERS)
-            ..=usize::from(BlackjackRuleSet::MAX_PLAYERS))
-            .contains(&player_count)
+        if !(BlackjackRuleSet::MIN_PLAYERS..=BlackjackRuleSet::MAX_PLAYERS).contains(&player_count)
         {
             return Err(GameError::InvalidPlayerCount);
         }

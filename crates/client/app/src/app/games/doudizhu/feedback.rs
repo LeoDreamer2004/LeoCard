@@ -1,3 +1,4 @@
+use super::DoudizhuUiState;
 use crate::app::runtime::{ClientResource, ServerNotification, UiAssets};
 use bevy::prelude::*;
 use leocard_doudizhu::{Action, classify};
@@ -15,6 +16,7 @@ pub(super) fn play_feedback(
     mut notifications: MessageReader<ServerNotification>,
     assets: Res<UiAssets>,
     mut feedback: ResMut<DoudizhuFeedback>,
+    mut ui: ResMut<DoudizhuUiState>,
 ) {
     let Some(game) = client.as_deref().and_then(|c| c.0.model().doudizhu_game()) else {
         notifications.clear();
@@ -53,7 +55,10 @@ pub(super) fn play_feedback(
                 }
                 Action::Bid(_) | Action::Pass => &assets.audio.shove_sounds,
             },
-            DoudizhuEvent::Redealt => &assets.audio.deal_sounds,
+            DoudizhuEvent::Redealt => {
+                ui.pending_deal = Some(game.match_id);
+                continue;
+            }
             DoudizhuEvent::Finished { .. } => continue,
         };
         if let Some(sound) = variants.get(fastrand::usize(..variants.len().max(1))) {

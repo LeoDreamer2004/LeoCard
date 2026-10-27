@@ -113,7 +113,7 @@ pub(crate) fn render_blackjack_lobby(
             assets,
         );
     }
-    let can_start = page.connected_count >= usize::from(BlackjackRuleSet::MIN_PLAYERS)
+    let can_start = page.connected_count >= BlackjackRuleSet::MIN_PLAYERS
         && lobby
             .players
             .iter()

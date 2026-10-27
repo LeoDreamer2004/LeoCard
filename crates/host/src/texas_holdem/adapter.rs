@@ -112,7 +112,7 @@ impl TexasHoldemAdapter {
         let game = GameState::new_with_squid_seed(effective_rules, dealer, deck, match_id.0)
             .map_err(AdapterError::Game)?;
         let hand_starting_stacks = game.players().iter().map(|player| player.stack()).collect();
-        let spectator = SpectatorAccess::new(players.len());
+        let spectator = SpectatorAccess::new(effective_rules.player_count);
         Ok(Self {
             match_id,
             host_port,

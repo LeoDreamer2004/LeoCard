@@ -25,9 +25,9 @@ impl GameState {
                 tile,
             },
             options: array::from_fn(|_| Vec::new()),
-            responses: [None; MahjongRuleSet::PLAYER_COUNT],
+            responses: [None; MahjongRuleSet::PLAYER_COUNT as usize],
         };
-        for target_index in 0..MahjongRuleSet::PLAYER_COUNT {
+        for target_index in 0..usize::from(MahjongRuleSet::PLAYER_COUNT) {
             let target = MahjongPlayerId(target_index);
             if target == from {
                 continue;
@@ -350,8 +350,8 @@ impl GameState {
     pub(super) fn apply_false_win(
         &mut self,
         player: MahjongPlayerId,
-    ) -> [i32; MahjongRuleSet::PLAYER_COUNT] {
-        let mut delta = [10; MahjongRuleSet::PLAYER_COUNT];
+    ) -> [i32; MahjongRuleSet::PLAYER_COUNT as usize] {
+        let mut delta = [10; MahjongRuleSet::PLAYER_COUNT as usize];
         delta[player.0] = -30;
         for (hand_delta, penalty) in self.hand_deltas.iter_mut().zip(delta) {
             *hand_delta += penalty;
@@ -393,7 +393,7 @@ impl GameState {
             match winner.from {
                 None => {
                     let payment = points + i32::from(self.rules.minimum_eight_points) * 8;
-                    for payer in 0..MahjongRuleSet::PLAYER_COUNT {
+                    for payer in 0..usize::from(MahjongRuleSet::PLAYER_COUNT) {
                         if payer != winner.player.0 {
                             self.hand_deltas[payer] -= payment;
                             self.hand_deltas[winner.player.0] += payment;
@@ -406,7 +406,7 @@ impl GameState {
                     self.hand_deltas[discarder.0] -= payment;
                     self.hand_deltas[winner.player.0] += payment;
                     if self.rules.minimum_eight_points {
-                        for payer in 0..MahjongRuleSet::PLAYER_COUNT {
+                        for payer in 0..usize::from(MahjongRuleSet::PLAYER_COUNT) {
                             let payer = MahjongPlayerId(payer);
                             if payer != discarder && !winner_ids.contains(&payer) {
                                 self.hand_deltas[payer.0] -= 8;
@@ -429,7 +429,7 @@ impl GameState {
         winners: Vec<WinRecord>,
         exhaustive_draw: bool,
     ) -> Result<ActionOutcome, GameError> {
-        for index in 0..MahjongRuleSet::PLAYER_COUNT {
+        for index in 0..usize::from(MahjongRuleSet::PLAYER_COUNT) {
             self.match_scores[index] += self.hand_deltas[index];
         }
         self.match_progress.completed_hands += 1;

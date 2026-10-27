@@ -286,7 +286,7 @@ pub(crate) struct ShengjiBottomFlipVisual {
 pub(super) enum ShengjiBottomFlipVisualKind {
     ScanSpark {
         player_index: usize,
-        player_count: usize,
+        player_count: u8,
         spark_index: usize,
         spark_count: usize,
         start: Vec2,
@@ -294,7 +294,7 @@ pub(super) enum ShengjiBottomFlipVisualKind {
     },
     ReplySpark {
         player_index: usize,
-        player_count: usize,
+        player_count: u8,
         spark_index: usize,
         spark_count: usize,
         start: Vec2,

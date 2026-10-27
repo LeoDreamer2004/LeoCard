@@ -80,11 +80,11 @@ impl GameState {
             self.apply_throw_penalty(player.team(), *penalty);
         }
         let trick_complete =
-            self.trick.as_ref().unwrap().plays.len() == ShengjiRuleSet::PLAYER_COUNT;
+            self.trick.as_ref().unwrap().plays.len() == usize::from(ShengjiRuleSet::PLAYER_COUNT);
         if trick_complete {
             return self.complete_trick();
         }
-        let next = ShengjiPlayerId((player.0 + 1) % ShengjiRuleSet::PLAYER_COUNT as u8);
+        let next = ShengjiPlayerId((player.0 + 1) % ShengjiRuleSet::PLAYER_COUNT);
         self.current_player = Some(next);
         if let Some((penalty_points, attempted)) = failure {
             Ok(ActionOutcome::ThrowFailed {

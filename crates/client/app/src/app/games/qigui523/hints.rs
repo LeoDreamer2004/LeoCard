@@ -17,9 +17,6 @@ pub(crate) enum HintDecision {
 #[derive(Component)]
 pub(crate) struct PlaySelectionCount;
 
-#[derive(Component)]
-pub(crate) struct NoLegalResponseHint;
-
 pub(crate) fn next_greedy_hint(
     strategy: &mut QiGui523Bot,
     hand: &[QiGuiCard],
@@ -79,15 +76,5 @@ pub(crate) fn sync_selection_label(
         if label.0 != expected {
             label.0.clone_from(&expected);
         }
-    }
-}
-
-pub(crate) fn animate_no_legal_response_hint(
-    time: Res<Time>,
-    mut hints: Query<&mut UiTransform, With<NoLegalResponseHint>>,
-) {
-    let offset = (time.elapsed_secs() * 3.2).sin() * 3.0;
-    for mut transform in &mut hints {
-        transform.translation = Val2::px(0.0, offset);
     }
 }

@@ -26,7 +26,7 @@ impl DoudizhuSession {
             room: RoomSession::new_with_seat_count(
                 room_id,
                 host_port,
-                usize::from(rules.mode.players()),
+                rules.mode.players(),
                 rules.mode.players(),
             ),
             rules,

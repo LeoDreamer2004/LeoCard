@@ -96,7 +96,7 @@ impl GameState {
         let Some((selected, selected_is_win)) = selected else {
             return Ok(());
         };
-        let mut cancel = [false; MahjongRuleSet::PLAYER_COUNT];
+        let mut cancel = [false; MahjongRuleSet::PLAYER_COUNT as usize];
         for player in players_after(source) {
             if pending.responses[player.0].is_some() || pending.options[player.0].is_empty() {
                 continue;
@@ -278,9 +278,9 @@ impl GameState {
                 meld_index,
             },
             options: array::from_fn(|_| Vec::new()),
-            responses: [None; MahjongRuleSet::PLAYER_COUNT],
+            responses: [None; MahjongRuleSet::PLAYER_COUNT as usize],
         };
-        for target in 0..MahjongRuleSet::PLAYER_COUNT {
+        for target in 0..usize::from(MahjongRuleSet::PLAYER_COUNT) {
             let target = MahjongPlayerId(target);
             if target != player
                 && self.win_button_available(target, tile.kind(), WinSource::RobbingKong(player))?

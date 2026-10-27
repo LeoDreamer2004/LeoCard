@@ -4,17 +4,17 @@ use super::cards::{HandCardSpec, add_card_button};
 use super::counter::render_counter;
 use super::state::{ScoreCardsPopupPlacement, SeatVisuals};
 use super::{
-    NoLegalResponseHint, PlayEffectState, PlaySelectionCount, QIGUI_AVATAR_SIZE,
-    QIGUI_PORTRAIT_WIDTH, QiGui523Assets, QiGui523UiAction, QiGui523UiState, QiGuiButtonTone,
-    add_draw_pile, add_game_summary_modal, add_opponent_slot, add_play_effect_overlay,
-    add_qigui_action_button, add_round_play, add_score_cards_popup, add_table_score_cards,
-    game_has_legal_response, qigui_plate_image, sort_cards_high_to_low, spawn_round_play_container,
+    PlayEffectState, PlaySelectionCount, QIGUI_AVATAR_SIZE, QIGUI_PORTRAIT_WIDTH, QiGui523Assets,
+    QiGui523UiAction, QiGui523UiState, QiGuiButtonTone, add_draw_pile, add_game_summary_modal,
+    add_opponent_slot, add_play_effect_overlay, add_qigui_action_button, add_round_play,
+    add_score_cards_popup, add_table_score_cards, game_has_legal_response, sort_cards_high_to_low,
+    spawn_round_play_container,
 };
 use crate::app::presentation::{
     GameSummaryAnimation, PlayerMenuProfile, PlayerPortraitSpec, StartGameSeatTransition, TEXT,
     TableBackground, TableBackgroundMaterial, TurnBorderAnimationKey, TurnBorderMaterial,
-    add_auto_play_overlay, add_player_portrait, add_text, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, table_material_params,
+    add_auto_play_overlay, add_no_legal_response_hint, add_player_portrait, add_text,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 #[cfg(feature = "developer")]
@@ -344,42 +344,7 @@ pub(crate) fn render_table(
                     assets,
                 );
             } else if !is_leading {
-                let hint = spawn_node(
-                    commands,
-                    actions,
-                    Node {
-                        position_type: PositionType::Absolute,
-                        left: px(0),
-                        right: px(0),
-                        bottom: px(61),
-                        height: px(38),
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::Center,
-                        ..default()
-                    },
-                    None,
-                );
-                commands.entity(hint).insert((
-                    NoLegalResponseHint,
-                    UiTransform::IDENTITY,
-                    GlobalZIndex(900),
-                ));
-                let hint_plate = spawn_node(
-                    commands,
-                    hint,
-                    Node {
-                        width: px(280),
-                        height: px(38),
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::Center,
-                        ..default()
-                    },
-                    None,
-                );
-                commands
-                    .entity(hint_plate)
-                    .insert(qigui_plate_image(assets));
-                add_text(commands, hint_plate, "没有牌能大过上家", 15.0, TEXT, assets);
+                add_no_legal_response_hint(commands, actions, assets);
                 add_qigui_action_button(
                     commands,
                     actions,

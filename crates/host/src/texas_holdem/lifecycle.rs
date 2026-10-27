@@ -23,7 +23,7 @@ impl TexasHoldemSession {
         .validate()?;
         validate_deck(rules.short_deck, &shuffled_deck)?;
         Ok(Self {
-            room: RoomSession::new(room_id, host_port, usize::from(TABLE_SEAT_COUNT)),
+            room: RoomSession::new(room_id, host_port, TABLE_SEAT_COUNT),
             rules,
             shuffled_deck: Some(shuffled_deck),
             game: None,

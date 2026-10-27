@@ -44,15 +44,7 @@ impl GameState {
                 break;
             }
         }
-        if cards.is_empty()
-            && self.players[player.0]
-                .hand
-                .iter()
-                .copied()
-                .any(|card| self.card_allowed_in_current_state(card))
-        {
-            return Err(GameError::DrawPileExhausted);
-        }
+        // With an exhausted sudden-death pile, drawing also means voluntarily declining.
         self.jump_in_open = false;
         let playable = if self.players[player.0].eliminated {
             None

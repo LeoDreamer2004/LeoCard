@@ -1,4 +1,5 @@
 use crate::{Action, Card, GameState, Mode, Phase, Play, PlayKind, classify};
+use std::collections::HashSet;
 
 /// Uses only the player's hand, public table and public team membership.
 pub fn bot_action(game: &GameState) -> Option<Action> {
@@ -41,6 +42,11 @@ pub fn auto_play_action(game: &GameState) -> Option<Action> {
 }
 
 pub fn hint(hand: &[Card], table: Option<&Play>, mode: Mode) -> Option<Play> {
+    hint_options(hand, table, mode).into_iter().next()
+}
+
+/// Distinct suggested responses, ordered by the same priorities used by bots.
+pub fn hint_options(hand: &[Card], table: Option<&Play>, mode: Mode) -> Vec<Play> {
     let mut groups = vec![Vec::new(); 15];
     for &card in hand {
         groups[usize::from(card.rank())].push(card);
@@ -99,7 +105,9 @@ pub fn hint(hand: &[Card], table: Option<&Play>, mode: Mode) -> Option<Play> {
             p.rank,
         )
     });
-    candidates.into_iter().next()
+    let mut seen = HashSet::new();
+    candidates.retain(|play| seen.insert(play.cards.clone()));
+    candidates
 }
 
 fn attachments(

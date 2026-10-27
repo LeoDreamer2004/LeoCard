@@ -156,7 +156,7 @@ pub(crate) fn add_shengji_presentation_overlay(
                     ShengjiBottomFlipVisual {
                         kind: ShengjiBottomFlipVisualKind::ScanSpark {
                             player_index,
-                            player_count: matches.len(),
+                            player_count: matches.len() as u8,
                             spark_index,
                             spark_count: SCAN_SPARK_COUNT,
                             start: CENTER,
@@ -189,7 +189,7 @@ pub(crate) fn add_shengji_presentation_overlay(
                     ShengjiBottomFlipVisual {
                         kind: ShengjiBottomFlipVisualKind::ReplySpark {
                             player_index,
-                            player_count: matches.len(),
+                            player_count: matches.len() as u8,
                             spark_index,
                             spark_count: REPLY_SPARK_COUNT,
                             start: target,

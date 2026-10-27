@@ -25,7 +25,7 @@ pub(super) fn add_shengji_button(
         GameButtonSpec {
             width,
             height,
-            ..GameButtonSpec::action(assets, label, Some(action), tone)
+            ..GameButtonSpec::compact(assets, label, Some(action), tone)
         },
     );
 }
@@ -45,7 +45,7 @@ pub(super) fn add_shengji_disabled_button(
         GameButtonSpec {
             width,
             height,
-            ..GameButtonSpec::action(assets, label, None, GameButtonTone::Play)
+            ..GameButtonSpec::compact(assets, label, None, GameButtonTone::Play)
         },
     );
 }

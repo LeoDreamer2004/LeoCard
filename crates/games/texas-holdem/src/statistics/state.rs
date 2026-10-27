@@ -9,10 +9,10 @@ pub(crate) struct GameStatistics {
 }
 
 impl GameStatistics {
-    pub(crate) fn new(players: usize) -> Self {
+    pub(crate) fn new(players: u8) -> Self {
         Self {
             history: HandHistory::default(),
-            players: vec![TexasHoldemMatchStatistics::default(); players],
+            players: vec![TexasHoldemMatchStatistics::default(); usize::from(players)],
         }
     }
 

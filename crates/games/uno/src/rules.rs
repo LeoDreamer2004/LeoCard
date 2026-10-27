@@ -137,10 +137,10 @@ impl UnoRuleSet {
         Ok(self)
     }
 
-    pub fn validate_player_count(player_count: u8) -> Result<usize, RuleError> {
+    pub fn validate_player_count(player_count: u8) -> Result<u8, RuleError> {
         (Self::MIN_PLAYERS..=Self::MAX_PLAYERS)
             .contains(&player_count)
-            .then_some(usize::from(player_count))
+            .then_some(player_count)
             .ok_or(RuleError)
     }
 }

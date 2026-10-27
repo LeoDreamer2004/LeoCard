@@ -7,10 +7,10 @@ pub(super) struct SpectatorAccess {
 }
 
 impl SpectatorAccess {
-    pub fn new(players: usize) -> Self {
+    pub fn new(players: u8) -> Self {
         Self {
-            folded_at: vec![None; players],
-            requested: vec![false; players],
+            folded_at: vec![None; usize::from(players)],
+            requested: vec![false; usize::from(players)],
         }
     }
 

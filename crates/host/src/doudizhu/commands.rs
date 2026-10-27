@@ -57,6 +57,7 @@ impl DoudizhuSession {
             events.push(DoudizhuEvent::Redealt);
         }
         if let Some(result) = self.game.as_ref().and_then(|g| g.result.clone()) {
+            self.room.prepare_rematch();
             events.push(DoudizhuEvent::Finished { result });
         }
         self.reset_automatic_delay();

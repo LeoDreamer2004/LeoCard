@@ -155,6 +155,7 @@ fn robots_play_both_modes_rematch_and_return_to_lobby() {
         }
         assert_eq!(session.game.as_ref().unwrap().phase, Phase::Finished);
         let snapshot = session.snapshot_for(PlayerId(0));
+        assert!(snapshot.players.iter().all(|player| player.ready));
         assert_eq!(snapshot.revealed_hands.len(), usize::from(mode.players()));
         assert_eq!(
             snapshot.result.as_ref().unwrap().scores.iter().sum::<i32>(),

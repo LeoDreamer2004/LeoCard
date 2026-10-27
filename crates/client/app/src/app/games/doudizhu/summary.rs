@@ -1,14 +1,12 @@
 use crate::app::presentation::{
-    ACCENT, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryModal, GameSummaryRow,
-    MUTED, PlayerMenuProfile, READY, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL,
-    SUMMARY_ROW_START_DELAY, SummaryDescriptor, TEXT, add_animated_summary_text, add_ready_avatar,
-    summary_modal_visual, summary_row_progress,
+    GameSummaryAnimation, PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer,
+    SummaryScore, add_ranked_summary,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
-use crate::app::shell::{SummaryActions, add_cozy_panel, add_summary_actions};
+use crate::app::shell::{SummaryActions, add_summary_actions};
 use bevy::prelude::*;
 use leocard_protocol::DoudizhuSnapshot;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::UiComposer;
 
 pub(crate) fn descriptor(game: &DoudizhuSnapshot) -> Option<SummaryDescriptor> {
     let result = game.result.as_ref()?;
@@ -35,151 +33,54 @@ pub(super) fn render(
     let Some(result) = &game.result else {
         return;
     };
-    let panel = add_cozy_panel(
+    let landlord = game
+        .players
+        .iter()
+        .find(|player| Some(player.id) == game.landlord)
+        .map_or("玩家", |player| player.name.as_str());
+    let actions = add_ranked_summary(
         commands,
         parent,
-        Node {
-            position_type: PositionType::Absolute,
-            left: percent(25),
-            right: percent(25),
-            top: px(15),
-            padding: UiRect::all(px(24)),
-            flex_direction: FlexDirection::Column,
-            row_gap: px(10),
-            ..default()
-        },
-        assets,
-    );
-    commands.entity(panel).insert((
-        GlobalZIndex(1200),
-        GameSummaryModal,
-        UiTransform::from_translation(Val2::px(
-            0.0,
-            summary_modal_visual(animation.elapsed).offset_y,
-        )),
-        if animation.elapsed >= 0.0 {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        },
-    ));
-    add_animated_summary_text(
-        commands,
-        panel,
-        if result.landlord_won {
-            "地主获胜"
-        } else {
-            "农民获胜"
-        },
-        27.0,
-        ACCENT,
-        0.0,
-        animation.elapsed,
-        assets,
-    );
-    add_animated_summary_text(
-        commands,
-        panel,
-        format!(
-            "底分 {}  倍数 ×{}{}",
-            game.highest_bid,
-            game.multiplier,
-            if result.spring { "  春天" } else { "" }
-        ),
-        15.0,
-        MUTED,
-        0.0,
-        animation.elapsed,
-        assets,
-    );
-    for (index, player) in game.players.iter().enumerate() {
-        let delay = SUMMARY_ROW_START_DELAY + index as f32 * SUMMARY_ROW_INTERVAL;
-        let progress = summary_row_progress(animation.elapsed, delay);
-        let row = spawn_node(
-            commands,
-            panel,
-            Node {
-                align_items: AlignItems::Center,
-                column_gap: px(12),
-                ..default()
-            },
-            None,
-        );
-        commands.entity(row).insert((
-            GameSummaryRow { delay },
-            BackgroundColor(Color::NONE),
-            UiTransform::from_translation(Val2::px(0.0, 12.0 * (1.0 - progress))),
-            if progress > 0.0 {
-                Visibility::Visible
+        &RankedSummary {
+            players: game
+                .players
+                .iter()
+                .map(|player| SummaryPlayer {
+                    id: player.id,
+                    profile: PlayerMenuProfile {
+                        name: &player.name,
+                        avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
+                        reference_points: player.reference_points,
+                        completed_games: player.completed_games,
+                        game_profiles: &player.game_profiles,
+                    },
+                    ready: player.ready,
+                })
+                .collect(),
+            scores: game
+                .players
+                .iter()
+                .map(|player| {
+                    SummaryScore::signed(player.id, result.scores[usize::from(player.id.0)])
+                })
+                .collect(),
+            reference_changes: &[],
+            title: if result.landlord_won {
+                "地主获胜"
             } else {
-                Visibility::Hidden
+                "农民获胜"
             },
-        ));
-        add_ready_avatar(
-            commands,
-            row,
-            player.id,
-            PlayerMenuProfile {
-                name: &player.name,
-                avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
-                reference_points: player.reference_points,
-                completed_games: player.completed_games,
-                game_profiles: &player.game_profiles,
-            },
-            36.0,
-            player.ready,
-            assets,
-        );
-        let role = if game.landlord == Some(player.id) {
-            "地主"
-        } else {
-            "农民"
-        };
-        add_animated_summary_text(
-            commands,
-            row,
-            format!("{}  {role}", player.name),
-            16.0,
-            TEXT,
-            delay,
-            animation.elapsed,
-            assets,
-        );
-        let score = result.scores[usize::from(player.id.0)];
-        add_animated_summary_text(
-            commands,
-            row,
-            format!("{score:+} 分"),
-            22.0,
-            if score >= 0 { READY } else { DANGER },
-            delay,
-            animation.elapsed,
-            assets,
-        );
-    }
-    let actions = spawn_node(
-        commands,
-        panel,
-        Node {
-            justify_content: JustifyContent::Center,
-            flex_wrap: FlexWrap::Wrap,
-            column_gap: px(8),
-            row_gap: px(8),
-            ..default()
+            caption: &format!(
+                "地主 {landlord}  底分 {}  倍数 ×{}{}",
+                game.highest_bid,
+                game.multiplier,
+                if result.spring { "  春天" } else { "" }
+            ),
+            score_unit: "分",
         },
-        None,
+        assets,
+        animation,
     );
-    let delay = SUMMARY_ROW_START_DELAY
-        + game.players.len() as f32 * SUMMARY_ROW_INTERVAL
-        + SUMMARY_ACTIONS_EXTRA_DELAY;
-    commands.entity(actions).insert((
-        GameSummaryActions { delay },
-        if animation.elapsed >= delay {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        },
-    ));
     add_summary_actions(
         commands,
         actions,
@@ -188,8 +89,8 @@ pub(super) fn render(
             ready: game
                 .players
                 .iter()
-                .find(|p| p.id == game.you)
-                .map(|p| p.ready),
+                .find(|player| player.id == game.you)
+                .map(|player| player.ready),
             again: "再来一局",
         },
         assets,

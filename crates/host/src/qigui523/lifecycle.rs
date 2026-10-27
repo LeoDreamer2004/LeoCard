@@ -24,7 +24,7 @@ impl QiGui523Session {
         let rules = rules.validate()?;
         validate_deck(rules.deck_count, &shuffled_deck)?;
         Ok(Self {
-            room: RoomSession::new(room_id, host_port, usize::from(rules.player_count)),
+            room: RoomSession::new(room_id, host_port, rules.player_count),
             rules,
             shuffled_deck: Some(shuffled_deck),
             game: None,

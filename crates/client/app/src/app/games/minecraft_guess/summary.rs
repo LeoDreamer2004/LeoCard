@@ -54,7 +54,7 @@ impl GuessTable<'_> {
                         ready: player.ready,
                     })
                     .collect(),
-                scores: &self.game.scores,
+                scores: self.game.scores.iter().copied().map(Into::into).collect(),
                 reference_changes: &self.game.reference_changes,
                 title: "整场结算",
                 caption: &caption,

@@ -1,12 +1,15 @@
 use super::counter::sync_counter;
+use super::voices::sync_qigui_voices;
 use super::{
     PlayEffectState, QiGui523UiState, actions, advance_play_effect, animate_bomb_play_effect,
     animate_hand_card_slots, animate_hand_cards, animate_heaven_bomb_play_effect,
-    animate_no_legal_response_hint, animate_sequence_play_effect, assets,
-    handle_card_drag_selection, queue_deal_animations, sync_card_drag_preview,
-    sync_own_score_detail, sync_play_effect, sync_selection_label, sync_turn_timer_label,
+    animate_sequence_play_effect, assets, handle_card_drag_selection, queue_deal_animations,
+    sync_card_drag_preview, sync_own_score_detail, sync_play_effect, sync_selection_label,
+    sync_turn_timer_label,
 };
-use crate::app::presentation::{play_pending_deal_sounds, start_game_intro_finished};
+use crate::app::presentation::{
+    play_pending_deal_sounds, start_game_intro_finished, sync_card_pattern_voices,
+};
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::{
     ScoreCaptureEffectState, UiActionSet, animate_score_capture_effects, sync_score_capture_effect,
@@ -41,9 +44,9 @@ impl Plugin for QiGui523Plugin {
                 (
                     sync_counter.run_if(start_game_intro_finished),
                     sync_turn_timer_label,
+                    sync_qigui_voices.after(sync_card_pattern_voices),
                     sync_selection_label,
                     sync_own_score_detail,
-                    animate_no_legal_response_hint,
                     sync_play_effect.run_if(start_game_intro_finished),
                     queue_deal_animations.run_if(start_game_intro_finished),
                     sync_score_capture_effect,

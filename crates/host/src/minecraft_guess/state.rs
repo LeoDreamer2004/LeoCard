@@ -42,7 +42,7 @@ impl MinecraftGuessSession {
             room: RoomSession::new_with_seat_count(
                 room_id,
                 host_port,
-                usize::from(MinecraftGuessRuleSet::MAX_PLAYERS),
+                MinecraftGuessRuleSet::MAX_PLAYERS,
                 MinecraftGuessRuleSet::MAX_PLAYERS,
             ),
             rules,

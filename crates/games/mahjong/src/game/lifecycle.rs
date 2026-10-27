@@ -12,11 +12,11 @@ impl GameState {
         validate_deck(&deck)?;
         let completed_match = result.match_complete;
         if self.rules.match_length == MahjongMatchLength::SingleHand {
-            self.match_scores = [0; MahjongRuleSet::PLAYER_COUNT];
+            self.match_scores = [0; MahjongRuleSet::PLAYER_COUNT as usize];
             self.sequence_index = (self.sequence_index + 1) % 16;
             self.match_progress = MahjongMatchProgress::default();
         } else if completed_match {
-            self.match_scores = [0; MahjongRuleSet::PLAYER_COUNT];
+            self.match_scores = [0; MahjongRuleSet::PLAYER_COUNT as usize];
             self.sequence_index = 0;
             self.match_progress = MahjongMatchProgress::default();
         } else {
@@ -24,12 +24,12 @@ impl GameState {
         }
         self.dealer = MahjongPlayerId(
             (self.initial_dealer.0 + usize::from(self.sequence_index))
-                % MahjongRuleSet::PLAYER_COUNT,
+                % usize::from(MahjongRuleSet::PLAYER_COUNT),
         );
         self.prevalent_wind = MahjongWind::ALL[usize::from(self.sequence_index / 4)];
         self.wall = VecDeque::from(deck);
         self.discards.clear();
-        self.hand_deltas = [0; MahjongRuleSet::PLAYER_COUNT];
+        self.hand_deltas = [0; MahjongRuleSet::PLAYER_COUNT as usize];
         self.current_player = self.dealer;
         self.last_drawn = None;
         self.draw_origin = MahjongDrawOrigin::Normal;
@@ -52,16 +52,20 @@ impl GameState {
         };
         let (player, count) = match batch {
             0..=11 => {
-                let offset = usize::from(batch % MahjongRuleSet::PLAYER_COUNT as u8);
+                let offset = usize::from(batch % MahjongRuleSet::PLAYER_COUNT);
                 (
-                    MahjongPlayerId((self.dealer.0 + offset) % MahjongRuleSet::PLAYER_COUNT),
+                    MahjongPlayerId(
+                        (self.dealer.0 + offset) % usize::from(MahjongRuleSet::PLAYER_COUNT),
+                    ),
                     4,
                 )
             }
             12..=15 => {
                 let offset = usize::from(batch - 12);
                 (
-                    MahjongPlayerId((self.dealer.0 + offset) % MahjongRuleSet::PLAYER_COUNT),
+                    MahjongPlayerId(
+                        (self.dealer.0 + offset) % usize::from(MahjongRuleSet::PLAYER_COUNT),
+                    ),
                     1,
                 )
             }
@@ -89,8 +93,10 @@ impl GameState {
     }
 
     fn advance_initial_flower_replacement(&mut self) -> Result<bool, GameError> {
-        for offset in 0..MahjongRuleSet::PLAYER_COUNT {
-            let player = MahjongPlayerId((self.dealer.0 + offset) % MahjongRuleSet::PLAYER_COUNT);
+        for offset in 0..usize::from(MahjongRuleSet::PLAYER_COUNT) {
+            let player = MahjongPlayerId(
+                (self.dealer.0 + offset) % usize::from(MahjongRuleSet::PLAYER_COUNT),
+            );
             let Some(position) = self.players[player.0]
                 .hand
                 .iter()

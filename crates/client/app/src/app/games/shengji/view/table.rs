@@ -14,7 +14,7 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec,
-    StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial,
+    StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial, TrickSeatLayout,
     TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay, add_player_portrait,
     add_text, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
     decorate_panel_skin, table_material_params,
@@ -495,56 +495,9 @@ fn add_shengji_opponent(
     start_transition_active: bool,
     intro_only: bool,
 ) {
-    const SIDE_PLAY_GAP: f32 = 68.0;
-    const SIDE_SLOT_WIDTH: f32 = 96.0 * 1.17 + SIDE_PLAY_GAP + 190.0;
-    let side = match relative {
-        1 => SeatSide::Left,
-        0 | 2 => SeatSide::Top,
-        3 => SeatSide::Right,
-        _ => unreachable!(),
-    };
-    let mut node = Node {
-        position_type: PositionType::Absolute,
-        align_items: AlignItems::Center,
-        column_gap: px(if matches!(side, SeatSide::Top) {
-            12.0
-        } else {
-            SIDE_PLAY_GAP
-        }),
-        row_gap: px(7),
-        ..default()
-    };
-    match side {
-        SeatSide::Left => {
-            node.left = px(42);
-            node.top = percent(50);
-            node.width = px(SIDE_SLOT_WIDTH);
-        }
-        SeatSide::Top => {
-            node.left = percent(32);
-            node.right = percent(32);
-            if relative == 0 {
-                node.bottom = px(12);
-            } else {
-                node.top = px(12);
-            }
-            node.flex_direction = FlexDirection::Column;
-        }
-        SeatSide::Right => {
-            node.right = px(42);
-            node.top = percent(50);
-            node.width = px(SIDE_SLOT_WIDTH);
-            node.justify_content = JustifyContent::FlexEnd;
-        }
-    }
-    let slot = spawn_node(commands, table, node, None);
-    if !matches!(side, SeatSide::Top) {
-        // 百分比定位以节点上沿为基准；回拉半个出牌槽高度，使左右人物框
-        // 在任意窗口比例下都真正落在牌桌垂直中线上。
-        commands
-            .entity(slot)
-            .insert(UiTransform::from_translation(Val2::px(0.0, -38.0)));
-    }
+    let layout = TrickSeatLayout::opponent(relative);
+    let side = layout.side;
+    let slot = layout.spawn(commands, table);
     if matches!(side, SeatSide::Right) {
         if intro_only {
             add_shengji_intro_play_placeholder(commands, slot);

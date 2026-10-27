@@ -4,14 +4,14 @@ use crate::app::presentation::{
     ACCENT, AnimatedSummaryScore, DANGER, GameSummaryActions, GameSummaryAnimation,
     GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, PANEL_ALT, PanelSkin,
     PlayerMenuProfile, READY, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL,
-    SUMMARY_ROW_START_DELAY, TEXT, add_animated_summary_text, add_ready_avatar,
-    animated_summary_score, decorate_panel_skin, sorted_summary_scores, summary_modal_visual,
+    SUMMARY_ROW_START_DELAY, SummaryScore, TEXT, add_animated_summary_text, add_ready_avatar,
+    animated_summary_value, decorate_panel_skin, sorted_summary_scores, summary_modal_visual,
     summary_row_progress,
 };
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_protocol::{PlayerId, PlayerReferenceChange, PlayerScore};
+use leocard_protocol::{PlayerId, PlayerReferenceChange};
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) struct SummaryPlayer<'a> {
@@ -22,7 +22,7 @@ pub(crate) struct SummaryPlayer<'a> {
 
 pub(crate) struct RankedSummary<'a> {
     pub players: Vec<SummaryPlayer<'a>>,
-    pub scores: &'a [PlayerScore],
+    pub scores: Vec<SummaryScore>,
     pub reference_changes: &'a [PlayerReferenceChange],
     pub title: &'a str,
     pub caption: &'a str,
@@ -37,7 +37,7 @@ pub(crate) fn add_ranked_summary(
     assets: &UiAssets,
     animation: &GameSummaryAnimation,
 ) -> Entity {
-    let scores = game.scores;
+    let scores = &game.scores;
     let reference_changes = game.reference_changes;
     let modal_visual = summary_modal_visual(animation.elapsed);
     let modal = spawn_node(
@@ -171,19 +171,28 @@ pub(crate) fn add_ranked_summary(
             animation.elapsed,
             assets,
         );
-        let displayed = animated_summary_score(animation.elapsed, score.score, delay);
+        let displayed = animated_summary_value(animation.elapsed, score.score, delay);
         let score_text = add_animated_summary_text(
             commands,
             row,
-            format!("{displayed} {}", game.score_unit),
+            if score.signed {
+                format!("{displayed:+} {}", game.score_unit)
+            } else {
+                format!("{displayed} {}", game.score_unit)
+            },
             19.0,
-            ACCENT,
+            if score.signed {
+                if score.score >= 0 { READY } else { DANGER }
+            } else {
+                ACCENT
+            },
             delay,
             animation.elapsed,
             assets,
         );
         commands.entity(score_text).insert(AnimatedSummaryScore {
             target: score.score,
+            signed: score.signed,
             delay,
             unit: game.score_unit,
         });

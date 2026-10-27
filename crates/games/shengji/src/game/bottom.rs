@@ -95,7 +95,7 @@ impl GameState {
             let state = self.bottom_copy.as_mut().unwrap();
             state.current = None;
             state.bottom_holder = Some(player);
-            state.remaining_without_copy = ShengjiRuleSet::PLAYER_COUNT as u8;
+            state.remaining_without_copy = ShengjiRuleSet::PLAYER_COUNT;
             self.phase = Phase::BottomCopyBurying;
             return Ok(ActionOutcome::BottomCopyDecision {
                 player,
@@ -116,7 +116,7 @@ impl GameState {
         let dealer = self.dealer.unwrap();
         self.bottom_copy = Some(BottomCopyState {
             next_player: next_player(dealer),
-            remaining_without_copy: ShengjiRuleSet::PLAYER_COUNT as u8,
+            remaining_without_copy: ShengjiRuleSet::PLAYER_COUNT,
             current: None,
             bottom_holder: None,
             last_burier: dealer,
@@ -175,7 +175,7 @@ impl GameState {
                 self.five_trump_crossing = Some(FiveTrumpCrossingState {
                     stage: FiveTrumpCrossingStage::Deciding,
                     eligible,
-                    declined: [false; ShengjiRuleSet::PLAYER_COUNT],
+                    declined: [false; ShengjiRuleSet::PLAYER_COUNT as usize],
                     outgoing: array::from_fn(|_| None),
                     returned: array::from_fn(|_| None),
                 });

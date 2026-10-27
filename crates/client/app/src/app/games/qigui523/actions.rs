@@ -1,6 +1,7 @@
 //! 七鬼五二三规则、提示与出牌按钮动作。
 
-use super::{HintDecision, NoLegalResponseHint, QiGui523UiState, next_greedy_hint};
+use super::{HintDecision, QiGui523UiState, next_greedy_hint};
+use crate::app::presentation::NoLegalResponseHint;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, dispatch_domain_actions,

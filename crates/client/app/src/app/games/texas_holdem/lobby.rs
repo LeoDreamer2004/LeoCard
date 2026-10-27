@@ -89,7 +89,7 @@ pub(crate) fn render_texas_holdem_lobby(
         assets,
     );
     let maximum_markers =
-        (connected_count.saturating_sub(1) as u8).min(TexasHoldemRuleSet::MAX_PLAYERS - 1);
+        (connected_count.saturating_sub(1)).min(TexasHoldemRuleSet::MAX_PLAYERS - 1);
     add_rule_config_row(
         commands,
         rules_panel,
@@ -232,7 +232,7 @@ pub(crate) fn render_texas_holdem_lobby(
         assets,
     );
 
-    let can_start = connected_count >= usize::from(TexasHoldemRuleSet::MIN_PLAYERS)
+    let can_start = connected_count >= TexasHoldemRuleSet::MIN_PLAYERS
         && lobby
             .players
             .iter()

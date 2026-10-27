@@ -1,7 +1,12 @@
 use super::DoudizhuUiState;
 use super::actions::dispatch_actions;
+use super::dealing::queue_deal_animations;
 use super::feedback::{DoudizhuFeedback, play_feedback};
-use super::hand_interaction::{handle_card_drag_selection, sync_card_drag_preview};
+use super::hand_interaction::{
+    animate_hand_cards, handle_card_drag_selection, sync_card_drag_preview,
+};
+use super::voices::sync_doudizhu_voices;
+use crate::app::presentation::{start_game_intro_finished, sync_card_pattern_voices};
 use crate::app::runtime::{ClientResource, ClientUpdateSet};
 use crate::app::shell::{UiActionSet, UiState};
 use bevy::prelude::*;
@@ -20,6 +25,19 @@ impl Plugin for DoudizhuPlugin {
             .add_systems(Update, play_feedback.in_set(ClientUpdateSet::Sync))
             .add_systems(
                 Update,
+                sync_doudizhu_voices
+                    .after(sync_card_pattern_voices)
+                    .in_set(ClientUpdateSet::Sync),
+            )
+            .add_systems(
+                Update,
+                queue_deal_animations
+                    .after(play_feedback)
+                    .run_if(start_game_intro_finished)
+                    .in_set(ClientUpdateSet::Sync),
+            )
+            .add_systems(
+                Update,
                 (
                     drag_draggable_window::<DoudizhuUiState>,
                     handle_card_drag_selection,
@@ -29,7 +47,9 @@ impl Plugin for DoudizhuPlugin {
             )
             .add_systems(
                 Update,
-                sync_card_drag_preview.in_set(ClientUpdateSet::Animate),
+                (sync_card_drag_preview, animate_hand_cards)
+                    .run_if(start_game_intro_finished)
+                    .in_set(ClientUpdateSet::Animate),
             );
     }
 }

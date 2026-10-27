@@ -27,6 +27,7 @@ mod state;
 pub(super) mod summary;
 mod table;
 mod turn_timer;
+mod voices;
 
 pub(crate) use actions::*;
 pub(crate) use assets::*;
@@ -44,10 +45,9 @@ use plays::*;
 pub(crate) use plugin::*;
 pub(crate) use rule_labels::*;
 use scores::*;
+pub(super) use screen::*;
 use skin::*;
 pub(crate) use state::*;
 pub(crate) use summary::*;
 pub(crate) use table::*;
 pub(crate) use turn_timer::*;
-
-pub(super) use screen::QiGui523Screen;

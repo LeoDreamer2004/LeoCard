@@ -151,7 +151,7 @@ impl ShengjiSession {
             return Vec::new();
         }
         self.presentation.trick = None;
-        self.presentation.throw_penalties = [0; ShengjiRuleSet::PLAYER_COUNT];
+        self.presentation.throw_penalties = [0; ShengjiRuleSet::PLAYER_COUNT as usize];
         self.reset_automatic_action();
         self.room.bump_revision();
         self.broadcast_game(None)
@@ -181,7 +181,7 @@ impl ShengjiSession {
                         .iter()
                         .map(|player| player.hand.len())
                         .sum::<usize>();
-                    if dealt == ShengjiRuleSet::PLAYER_COUNT * self.rules.hand_size() {
+                    if dealt == usize::from(ShengjiRuleSet::PLAYER_COUNT) * self.rules.hand_size() {
                         self.game.as_mut().unwrap().deal_next().unwrap();
                         self.flow.bidding_remaining = Some(BIDDING_GRACE);
                         self.reset_bid_pass_confirmations();
@@ -585,7 +585,7 @@ impl HostedGameLifecycle for ShengjiSession {
         }
         let active = self.room.players.iter().filter(|player| !player.left);
         let active_count = active.clone().count();
-        if active_count < ShengjiRuleSet::PLAYER_COUNT {
+        if active_count < usize::from(ShengjiRuleSet::PLAYER_COUNT) {
             return self.room.reject(
                 connection,
                 request_id,
@@ -723,7 +723,7 @@ impl HostedGameLifecycle for ShengjiSession {
             .players
             .iter()
             .filter(|player| !player.left && (player.connected || player.is_bot));
-        if active.clone().count() == ShengjiRuleSet::PLAYER_COUNT
+        if active.clone().count() == usize::from(ShengjiRuleSet::PLAYER_COUNT)
             && active.clone().all(|player| player.ready)
         {
             for player in &mut self.room.players {

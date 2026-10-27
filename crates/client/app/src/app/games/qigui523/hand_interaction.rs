@@ -1,7 +1,7 @@
 use super::cards::QIGUI_HAND_CARD_REVEAL;
 use super::{HandCardSlot, HandCardVisual, QiGui523UiState};
 use crate::app::presentation::{
-    ACCENT, BORDER, CardAnimationState, CardSize, HandCardSelectionOverlay, advance_towards,
+    CardAnimationState, CardSize, HandCardHighlight, HandCardSelectionOverlay, advance_towards,
     drag_preview_color, hand_card_pose, slot_hover_target, update_drag_selection,
 };
 use bevy::picking::hover::PickingInteraction;
@@ -154,7 +154,6 @@ pub(super) fn animate_hand_cards(
             ui.card_animations.insert(visual.card, next_animation);
         }
 
-        let glow = (visual.hover_amount * pulse + visual.selected_amount * 0.72).clamp(0.0, 1.0);
         let pose = hand_card_pose(
             visual.index,
             visual.hand_len,
@@ -167,15 +166,12 @@ pub(super) fn animate_hand_cards(
         transform.scale = Vec2::ONE;
         transform.translation = pose.translation;
         transform.rotation = pose.rotation;
-        outline.width = px(0.75 + glow * 1.5);
-        outline.offset = px(0);
-        outline.color = ACCENT.with_alpha(glow * 0.92);
-        image.color = Color::srgb(1.0, 1.0 - glow * 0.035, 1.0 - glow * 0.16);
-        border.set_all(if visual.selected { ACCENT } else { BORDER });
-        if let Some(style) = shadow.0.first_mut() {
-            style.color = ACCENT.with_alpha(glow * 0.58);
-            style.spread_radius = px(glow * 2.0);
-            style.blur_radius = px(2.0 + glow * 10.0);
-        }
+        HandCardHighlight::new(
+            visual.hover_amount,
+            visual.selected_amount,
+            visual.selected,
+            pulse,
+        )
+        .apply(&mut image, &mut border, &mut outline, &mut shadow);
     }
 }

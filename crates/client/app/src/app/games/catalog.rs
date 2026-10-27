@@ -4,8 +4,10 @@ use super::qigui523::time_control_label;
 use leocard_blackjack::BlackjackRuleSet;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
 use leocard_minecraft_guess::{GuessMode, MinecraftGuessRuleSet};
-use leocard_protocol::{GameKind, GameRules, TABLE_SEAT_COUNT};
+use leocard_protocol::{GameKind, GameRules};
+use leocard_qigui523::QiGuiRuleSet;
 use leocard_shengji::ShengjiRuleSet;
+use leocard_texas_holdem::TexasHoldemRuleSet;
 use leocard_uno::UnoRuleSet;
 
 #[derive(Clone, Copy)]
@@ -49,12 +51,12 @@ pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 8] = [
     GameDescriptor {
         kind: GameKind::Blackjack,
         title: "21 点",
-        description: "再来一张，还是见好就收？",
+        description: "再来一张，还是见好就收?",
     },
     GameDescriptor {
         kind: GameKind::Doudizhu,
         title: "斗地主",
-        description: "三人四人，谁是地主？",
+        description: "17张牌你能秒我?",
     },
 ];
 
@@ -62,11 +64,12 @@ pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
     match rules {
         GameRules::Doudizhu(rules) => rules.mode.players(),
         GameRules::Blackjack(_) => BlackjackRuleSet::MAX_PLAYERS,
-        GameRules::Shengji(_) => ShengjiRuleSet::PLAYER_COUNT as u8,
+        GameRules::Shengji(_) => ShengjiRuleSet::PLAYER_COUNT,
         GameRules::Uno(_) => UnoRuleSet::MAX_PLAYERS,
-        GameRules::Mahjong(_) => MahjongRuleSet::PLAYER_COUNT as u8,
+        GameRules::Mahjong(_) => MahjongRuleSet::PLAYER_COUNT,
         GameRules::MinecraftGuess(_) => MinecraftGuessRuleSet::MAX_PLAYERS,
-        GameRules::QiGui523(_) | GameRules::TexasHoldem(_) => TABLE_SEAT_COUNT,
+        GameRules::QiGui523(_) => QiGuiRuleSet::MAX_PLAYERS,
+        GameRules::TexasHoldem(_) => TexasHoldemRuleSet::MAX_PLAYERS,
     }
 }
 

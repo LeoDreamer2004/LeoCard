@@ -92,7 +92,7 @@ impl Default for MahjongRuleSet {
 }
 
 impl MahjongRuleSet {
-    pub const PLAYER_COUNT: usize = 4;
+    pub const PLAYER_COUNT: u8 = 4;
 
     pub const fn validate(self) -> Result<Self, RuleError> {
         if self.false_win && !self.minimum_eight_points {

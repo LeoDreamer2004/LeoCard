@@ -128,10 +128,10 @@ impl BottomCopyState {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FiveTrumpCrossingState {
     pub(super) stage: FiveTrumpCrossingStage,
-    pub(super) eligible: [bool; ShengjiRuleSet::PLAYER_COUNT],
-    pub(super) declined: [bool; ShengjiRuleSet::PLAYER_COUNT],
-    pub(super) outgoing: [Option<Vec<ShengjiCard>>; ShengjiRuleSet::PLAYER_COUNT],
-    pub(super) returned: [Option<Vec<ShengjiCard>>; ShengjiRuleSet::PLAYER_COUNT],
+    pub(super) eligible: [bool; ShengjiRuleSet::PLAYER_COUNT as usize],
+    pub(super) declined: [bool; ShengjiRuleSet::PLAYER_COUNT as usize],
+    pub(super) outgoing: [Option<Vec<ShengjiCard>>; ShengjiRuleSet::PLAYER_COUNT as usize],
+    pub(super) returned: [Option<Vec<ShengjiCard>>; ShengjiRuleSet::PLAYER_COUNT as usize],
 }
 
 impl FiveTrumpCrossingState {
@@ -171,7 +171,7 @@ impl FiveTrumpCrossingState {
     }
 
     pub fn pending_players(&self) -> Vec<ShengjiPlayerId> {
-        (0..ShengjiRuleSet::PLAYER_COUNT as u8)
+        (0..ShengjiRuleSet::PLAYER_COUNT)
             .map(ShengjiPlayerId)
             .filter(|player| match self.stage {
                 FiveTrumpCrossingStage::Deciding => {
@@ -288,10 +288,10 @@ impl GameState {
         shuffled_deck: Vec<ShengjiCard>,
     ) -> Result<Self, GameError> {
         let rules = rules.validate()?;
-        if first_recipient.0 >= ShengjiRuleSet::PLAYER_COUNT as u8 {
+        if first_recipient.0 >= ShengjiRuleSet::PLAYER_COUNT {
             return Err(GameError::InvalidPlayer(first_recipient));
         }
-        if fixed_dealer.is_some_and(|dealer| dealer.0 >= ShengjiRuleSet::PLAYER_COUNT as u8) {
+        if fixed_dealer.is_some_and(|dealer| dealer.0 >= ShengjiRuleSet::PLAYER_COUNT) {
             return Err(GameError::InvalidPlayer(fixed_dealer.unwrap()));
         }
         validate_deck(&shuffled_deck, rules)?;
@@ -319,7 +319,7 @@ impl GameState {
             deck: shuffled_deck.into(),
             players: (0..ShengjiRuleSet::PLAYER_COUNT)
                 .map(|id| PlayerState {
-                    id: ShengjiPlayerId(id as u8),
+                    id: ShengjiPlayerId(id),
                     hand: Vec::with_capacity(hand_size + kitty_size),
                 })
                 .collect(),

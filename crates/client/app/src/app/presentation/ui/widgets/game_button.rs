@@ -31,6 +31,19 @@ pub(crate) enum GameButtonTone {
 }
 
 impl<'a> GameButtonSpec<'a> {
+    pub(crate) fn compact(
+        assets: &'a UiAssets,
+        label: &'a str,
+        action: Option<UiAction>,
+        tone: GameButtonTone,
+    ) -> Self {
+        Self {
+            width: 142.0,
+            height: 48.0,
+            ..Self::action(assets, label, action, tone)
+        }
+    }
+
     pub fn action(
         assets: &'a UiAssets,
         label: &'a str,

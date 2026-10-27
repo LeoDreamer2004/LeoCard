@@ -7,7 +7,9 @@ use super::{
     ShengjiCardSize, add_shengji_bottom_copy_decision, add_shengji_card_row,
     add_shengji_failed_throw_card_row, shengji_display_trump, shengji_rank_label,
 };
-use crate::app::presentation::{ACCENT, DANGER, HEADER_BG, MUTED, TEXT, add_text};
+use crate::app::presentation::{
+    ACCENT, DANGER, HEADER_BG, MUTED, TEXT, add_text, spawn_trick_play_area,
+};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::SeatSide;
 use bevy::picking::Pickable;
@@ -28,24 +30,7 @@ pub(super) fn add_shengji_play_area(
     assets: &UiAssets,
     previous_trick: Option<&[ShengjiPublicPlay]>,
 ) {
-    let area = spawn_node(
-        commands,
-        parent,
-        Node {
-            width: px(190),
-            min_width: px(190),
-            min_height: px(112),
-            flex_direction: FlexDirection::Row,
-            align_items: AlignItems::Center,
-            justify_content: match side {
-                SeatSide::Left => JustifyContent::FlexStart,
-                SeatSide::Top => JustifyContent::Center,
-                SeatSide::Right => JustifyContent::FlexEnd,
-            },
-            ..default()
-        },
-        None,
-    );
+    let area = spawn_trick_play_area(commands, parent, side);
     if previous_trick.is_none()
         && add_shengji_bottom_copy_decision(commands, area, game, player, assets)
     {

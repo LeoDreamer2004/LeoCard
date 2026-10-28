@@ -91,6 +91,12 @@ jobs:
           - name: Windows x86_64
             os: windows-2022
             artifact: leocard-windows-x86_64.exe
+          - name: macOS Apple Silicon
+            os: macos-15
+            artifact: leocard-macos-arm64.zip
+          - name: macOS Intel
+            os: macos-15-intel
+            artifact: leocard-macos-x86_64.zip
 
     steps:
       - name: Check out source
@@ -121,6 +127,12 @@ jobs:
           rustc --version
           cargo --version
 
+      - name: Configure macOS builds
+        if: runner.os == 'macOS'
+        run: |
+          echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> "$GITHUB_ENV"
+          echo "CARGO_BUILD_JOBS=2" >> "$GITHUB_ENV"
+
       - name: Cache Cargo dependencies and build output
         uses: actions/cache@v6
         with:
@@ -128,9 +140,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ env.LEOCARD_BUILD_PROFILE }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ env.LEOCARD_BUILD_PROFILE }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-${{ env.LEOCARD_BUILD_PROFILE }}-
+            ${{ runner.os }}-${{ runner.arch }}-cargo-${{ env.LEOCARD_BUILD_PROFILE }}-
 
       - name: Build debug client
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
@@ -155,6 +167,10 @@ jobs:
           Copy-Item target/release/leocard.exe "dist/${{ matrix.artifact }}"
           $hash = (Get-FileHash "dist/${{ matrix.artifact }}" -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  ${{ matrix.artifact }}" | Set-Content -Encoding ascii "dist/${{ matrix.artifact }}.sha256"
+
+      - name: Package macOS app and checksum
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/v')
+        run: bash .github/scripts/package-macos.sh target/release/leocard "${{ matrix.artifact }}"
 
       - name: Upload build artifact
         if: startsWith(github.ref, 'refs/tags/v')
@@ -308,7 +324,7 @@ jobs:
             exit 1
           fi
 
-      - name: Download Linux, Windows and Android artifacts
+      - name: Download platform release artifacts
         uses: actions/download-artifact@v8
         with:
           pattern: leocard-*
@@ -319,7 +335,12 @@ jobs:
         shell: bash
         run: |
           cd release
-          for asset in leocard-linux-x86_64 leocard-windows-x86_64.exe leocard-android-arm64.apk; do
+          for asset in \
+            leocard-linux-x86_64 \
+            leocard-windows-x86_64.exe \
+            leocard-macos-arm64.zip \
+            leocard-macos-x86_64.zip \
+            leocard-android-arm64.apk; do
             test -s "$asset"
             sha256sum --check "$asset.sha256"
           done

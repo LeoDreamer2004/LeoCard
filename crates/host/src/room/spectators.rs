@@ -104,12 +104,6 @@ impl RoomSession {
     /// Admission is only called after the old game has been discarded.
     pub(crate) fn admit_spectators(&mut self, capacity: u8) -> Vec<Delivery> {
         let mut changed = false;
-        for player in &mut self.players {
-            if !player.connected && !player.is_bot {
-                player.left = true;
-                player.seat = None;
-            }
-        }
         for index in 0..self.spectators.len() {
             if !self.spectators[index].connected || self.spectators[index].left {
                 continue;
@@ -139,7 +133,6 @@ impl RoomSession {
         if !changed {
             return Vec::new();
         }
-        // Room backends may renumber players when cleaning the previous match.
         self.active_participants()
             .map(|player| {
                 self.delivery(

@@ -3,6 +3,20 @@ use crate::ConnectionId;
 use leocard_protocol::{GameViolation, PlayerViolation, RejectReason, RoomViolation};
 
 impl RoomSession {
+    /// Discard the finished match's absent participants without renumbering online players.
+    /// Lobby snapshots do not replace the recipient's in-game PlayerId.
+    pub(crate) fn prepare_lobby(&mut self) {
+        self.remove_bots();
+        for player in &mut self.players {
+            player.auto_play = false;
+            if !player.connected {
+                player.left = true;
+                player.seat = None;
+            }
+            player.ready = !player.left && self.host_connection == Some(player.connection);
+        }
+    }
+
     pub(crate) fn validate_start(
         &self,
         connection: ConnectionId,

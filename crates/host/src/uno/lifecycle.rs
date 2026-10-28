@@ -341,15 +341,7 @@ impl HostedGameLifecycle for UnoSession {
         self.match_id = None;
         self.finished_reference_changes = None;
         self.automatic_action_delay = None;
-        self.room.remove_bots();
-        let host = self.room.host_connection;
-        for player in &mut self.room.players {
-            player.ready = host == Some(player.connection);
-            player.auto_play = false;
-            if !player.connected {
-                player.seat = None;
-            }
-        }
+        self.room.prepare_lobby();
         self.shuffled_deck = Some(shuffled_uno_deck(self.rules));
         self.room.bump_revision();
         self.broadcast_lobby(Some((connection, request_id)))

@@ -681,16 +681,7 @@ impl HostedGameLifecycle for ShengjiSession {
         self.flow.bottom_flip_reveal = None;
         self.flow.bottom_flip_remaining = None;
         self.flow.bottom_copy_remaining = None;
-        self.room.remove_bots();
-        let host = self.room.host_connection;
-        for player in &mut self.room.players {
-            player.ready = host == Some(player.connection);
-            player.auto_play = false;
-            if !player.connected {
-                player.seat = None;
-                player.left = true;
-            }
-        }
+        self.room.prepare_lobby();
         self.shuffled_deck = Some(shuffled_deck(self.rules));
         self.room.bump_revision();
         self.broadcast_lobby(Some((connection, request_id)))

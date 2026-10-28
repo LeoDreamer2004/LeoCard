@@ -370,15 +370,7 @@ impl HostedGameLifecycle for MahjongSession {
         }
         self.game = None;
         self.match_id = None;
-        self.room.remove_bots();
-        let host = self.room.host_connection;
-        for player in &mut self.room.players {
-            player.ready = player.is_bot || host == Some(player.connection);
-            player.auto_play = false;
-            if !player.connected {
-                player.seat = None;
-            }
-        }
+        self.room.prepare_lobby();
         self.shuffled_deck = Some(shuffled_deck());
         self.room.bump_revision();
         self.broadcast_lobby(Some((connection, request_id)))

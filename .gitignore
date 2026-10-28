@@ -48,6 +48,9 @@ Thumbs.db
 *.sh
 /tools/
 
+# CI packaging scripts are required by release jobs.
+!/.github/scripts/*.sh
+
 # Android sources and reproducible launcher; generated SDK/APK data remain local.
 !/crates/client/android/**/*.sh
 /crates/client/android/.gradle/

@@ -85,9 +85,10 @@ pub(in super::super) fn add_texas_win_rate(
         },
         None,
     );
+    // Escape the portrait's local stack so table-wide squid and chip layers stay below the rate.
     commands
         .entity(holder)
-        .insert((Pickable::IGNORE, ZIndex(30)));
+        .insert((Pickable::IGNORE, GlobalZIndex(30)));
     let label = add_text(
         commands,
         holder,

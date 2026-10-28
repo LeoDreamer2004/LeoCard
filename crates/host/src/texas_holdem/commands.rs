@@ -313,7 +313,7 @@ impl TexasHoldemSession {
             .iter()
             .map(|(_, stack)| *stack)
             .collect::<Vec<_>>();
-        let deltas = reference_point_deltas(&scores)
+        let deltas = reference_point_deltas(&scores, game.rules().starting_chips)
             .expect("a Texas Hold'em table always contains between three and eight players");
         let settlements = standings
             .iter()

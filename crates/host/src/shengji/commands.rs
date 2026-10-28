@@ -2,7 +2,7 @@ use super::{ShengjiSession, shuffled_deck, to_core_player};
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
-    GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, SeatId, ShengjiEvent,
+    GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, ShengjiEvent,
     ShengjiViolation,
 };
 use leocard_shengji::{
@@ -61,16 +61,9 @@ impl ShengjiSession {
         }
         if self.rules != rules {
             if self.rules.mode != rules.mode {
-                self.room.seat_count = rules.player_count();
-                for (index, player) in self
-                    .room
-                    .players
-                    .iter_mut()
-                    .filter(|player| !player.left)
-                    .enumerate()
-                {
-                    player.seat = Some(SeatId(index as u8));
-                }
+                self.room
+                    .resize_seats(rules.player_count())
+                    .expect("validated rules and player count fit the new seats");
             }
             self.rules = rules;
             self.room.reset_ready_after_rules_change();

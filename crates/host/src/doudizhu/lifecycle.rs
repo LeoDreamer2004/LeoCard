@@ -75,13 +75,10 @@ impl HostedGameLifecycle for DoudizhuSession {
                     Err(RejectReason::Room(RoomViolation::RoomFull))
                 } else {
                     if rules != self.rules {
+                        self.room
+                            .resize_seats(rules.mode.players())
+                            .expect("validated rules and player count fit the new seats");
                         self.rules = rules;
-                        self.room.seat_count = rules.mode.players();
-                        for p in &mut self.room.players {
-                            if p.seat.is_some_and(|s| s.0 >= rules.mode.players()) {
-                                p.seat = None;
-                            }
-                        }
                         self.room.reset_ready_after_rules_change();
                         let mut deck = build_deck(rules.mode);
                         fastrand::shuffle(&mut deck);

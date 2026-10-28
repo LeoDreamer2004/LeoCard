@@ -189,36 +189,6 @@ impl RoomSession {
         Ok(self.broadcast_event(None, ServerEvent::AvatarData { id: avatar, png }))
     }
 
-    pub(crate) fn select_seat(
-        &mut self,
-        connection: ConnectionId,
-        seat: SeatId,
-        game_started: bool,
-    ) -> Result<(), RejectReason> {
-        let player = self
-            .player_id(connection)
-            .ok_or(RejectReason::Player(PlayerViolation::NotJoined))?;
-        if game_started {
-            return Err(RejectReason::Game(GameViolation::GameAlreadyStarted));
-        }
-        if seat.0 >= self.seat_count {
-            return Err(RejectReason::Room(RoomViolation::InvalidSeat));
-        }
-        if self.players.iter().any(|participant| {
-            !participant.left && participant.id != player && participant.seat == Some(seat)
-        }) {
-            return Err(RejectReason::Room(RoomViolation::SeatTaken));
-        }
-        let is_host = self.host_connection == Some(connection);
-        let participant = &mut self.players[usize::from(player.0)];
-        if participant.seat != Some(seat) {
-            participant.seat = Some(seat);
-            participant.ready = is_host;
-            self.bump_revision();
-        }
-        Ok(())
-    }
-
     pub(crate) fn set_ready(
         &mut self,
         connection: ConnectionId,
@@ -418,20 +388,6 @@ impl RoomSession {
                 deliveries
             })
             .collect()
-    }
-
-    pub(super) fn random_available_seat(&self) -> Option<SeatId> {
-        let mut available = (0..self.seat_count)
-            .map(SeatId)
-            .filter(|seat| {
-                !self
-                    .players
-                    .iter()
-                    .any(|player| !player.left && player.seat == Some(*seat))
-            })
-            .collect::<Vec<_>>();
-        fastrand::shuffle(&mut available);
-        available.pop()
     }
 
     pub(crate) fn remove_departed_players(&mut self) {

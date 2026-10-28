@@ -58,8 +58,8 @@ pub enum ShengjiRedealReason {
 #[derive(Clone, Debug, Default)]
 pub(in crate::game) struct HandStatisticsTracker {
     pub(in crate::game) opening:
-        [Option<ShengjiOpeningHandStatistics>; ShengjiRuleSet::PLAYER_COUNT as usize],
+        [Option<ShengjiOpeningHandStatistics>; ShengjiRuleSet::MAX_PLAYERS as usize],
     pub(in crate::game) burial:
-        [Option<ShengjiBurialStatistics>; ShengjiRuleSet::PLAYER_COUNT as usize],
-    pub(in crate::game) first_trick_cut_dealer: [bool; ShengjiRuleSet::PLAYER_COUNT as usize],
+        [Option<ShengjiBurialStatistics>; ShengjiRuleSet::MAX_PLAYERS as usize],
+    pub(in crate::game) first_trick_cut_dealer: [bool; ShengjiRuleSet::MAX_PLAYERS as usize],
 }

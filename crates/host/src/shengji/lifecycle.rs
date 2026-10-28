@@ -1,6 +1,6 @@
 use super::{
     AUTOMATIC_ACTION_DELAY, BIDDING_GRACE, BOTTOM_COPY_DECISION_TIMEOUT, BOTTOM_FLIP_HOLD_DURATION,
-    BOTTOM_FLIP_START_DELAY, DEAL_INTERVAL, HandFlowState, HeldGamePresentation, PLAYER_COUNT,
+    BOTTOM_FLIP_START_DELAY, DEAL_INTERVAL, HandFlowState, HeldGamePresentation,
     POWER_OUTAGE_BIDDING_GRACE, REDEAL_DELAY, SessionStatistics, ShengjiSession,
     THROW_FAILURE_RETURN_DURATION, bottom_flip_reveal_view, from_core_player, shuffled_deck,
     validate_deck,
@@ -31,8 +31,8 @@ impl ShengjiSession {
             room: RoomSession::new_with_seat_count(
                 room_id,
                 host_port,
-                ShengjiRuleSet::PLAYER_COUNT,
-                PLAYER_COUNT,
+                rules.player_count(),
+                rules.player_count(),
             ),
             rules,
             shuffled_deck: Some(shuffled_deck),
@@ -151,7 +151,7 @@ impl ShengjiSession {
             return Vec::new();
         }
         self.presentation.trick = None;
-        self.presentation.throw_penalties = [0; ShengjiRuleSet::PLAYER_COUNT as usize];
+        self.presentation.throw_penalties = [0; ShengjiRuleSet::MAX_PLAYERS as usize];
         self.reset_automatic_action();
         self.room.bump_revision();
         self.broadcast_game(None)
@@ -181,7 +181,7 @@ impl ShengjiSession {
                         .iter()
                         .map(|player| player.hand.len())
                         .sum::<usize>();
-                    if dealt == usize::from(ShengjiRuleSet::PLAYER_COUNT) * self.rules.hand_size() {
+                    if dealt == usize::from(self.rules.player_count()) * self.rules.hand_size() {
                         self.game.as_mut().unwrap().deal_next().unwrap();
                         self.flow.bidding_remaining = Some(BIDDING_GRACE);
                         self.reset_bid_pass_confirmations();
@@ -214,6 +214,7 @@ impl ShengjiSession {
             .flow
             .bid_pass_confirmed
             .iter()
+            .take(usize::from(self.rules.player_count()))
             .all(|confirmed| *confirmed)
         {
             let mut deliveries = self.broadcast_events(events);
@@ -518,7 +519,7 @@ impl HostedGameLifecycle for ShengjiSession {
     }
 
     fn capacity(&self) -> u8 {
-        PLAYER_COUNT
+        self.rules.player_count()
     }
 
     fn game_rules(&self) -> GameRules {
@@ -585,12 +586,12 @@ impl HostedGameLifecycle for ShengjiSession {
         }
         let active = self.room.players.iter().filter(|player| !player.left);
         let active_count = active.clone().count();
-        if active_count < usize::from(ShengjiRuleSet::PLAYER_COUNT) {
+        if active_count < usize::from(self.rules.player_count()) {
             return self.room.reject(
                 connection,
                 request_id,
                 RejectReason::Room(RoomViolation::NotEnoughPlayers {
-                    minimum: PLAYER_COUNT,
+                    minimum: self.rules.player_count(),
                     actual: active_count as u8,
                 }),
             );
@@ -723,7 +724,7 @@ impl HostedGameLifecycle for ShengjiSession {
             .players
             .iter()
             .filter(|player| !player.left && (player.connected || player.is_bot));
-        if active.clone().count() == usize::from(ShengjiRuleSet::PLAYER_COUNT)
+        if active.clone().count() == usize::from(self.rules.player_count())
             && active.clone().all(|player| player.ready)
         {
             for player in &mut self.room.players {

@@ -18,7 +18,7 @@ impl GameState {
                 if self.phase != Phase::Playing {
                     return Err(GameError::WrongPhase);
                 }
-                let play = classify(cards, self.rules.mode).ok_or(GameError::InvalidPattern)?;
+                let play = classify(cards, self.rules).ok_or(GameError::InvalidPattern)?;
                 let hand = &mut self.hands[usize::from(player)];
                 if !cards.iter().all(|card| hand.contains(card)) {
                     return Err(GameError::CardNotInHand);

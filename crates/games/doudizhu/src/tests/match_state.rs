@@ -13,7 +13,15 @@ fn result(scores: Vec<i32>) -> ResultView {
 #[test]
 fn every_round_rotates_first_bidder_and_counts_each_hand_once() {
     for mode in [Mode::Three, Mode::Four] {
-        let mut state = MatchState::new(RuleSet { mode, rounds: 5 }, 1).unwrap();
+        let mut state = MatchState::new(
+            RuleSet {
+                mode,
+                rounds: 5,
+                ..RuleSet::default()
+            },
+            1,
+        )
+        .unwrap();
         assert!(!state.next_hand());
         for hand in 1..=5 * mode.players() {
             assert_eq!(state.progress().hand_number, hand);
@@ -59,7 +67,15 @@ fn match_awards_use_total_scores_and_configured_round_brackets() {
         (Mode::Four, vec![4, 2, -2, -4], vec![6, 3, -3, -6]),
     ] {
         for rounds in 1..=5 {
-            let mut state = MatchState::new(RuleSet { mode, rounds }, 0).unwrap();
+            let mut state = MatchState::new(
+                RuleSet {
+                    mode,
+                    rounds,
+                    ..RuleSet::default()
+                },
+                0,
+            )
+            .unwrap();
             for _ in 0..state.progress().total_hands() {
                 state.finish_hand(&result(
                     (0..mode.players()).map(|i| -i32::from(i)).collect(),

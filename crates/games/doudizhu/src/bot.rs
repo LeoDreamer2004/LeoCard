@@ -1,4 +1,4 @@
-use crate::{Action, Card, GameState, Mode, Phase, Play, PlayKind, classify};
+use crate::{Action, Card, GameState, Phase, Play, PlayKind, RuleSet, classify};
 use std::collections::HashSet;
 
 /// Uses only the player's hand, public table and public team membership.
@@ -22,7 +22,7 @@ pub fn bot_action(game: &GameState) -> Option<Action> {
             Some(Action::Bid(if bid > game.highest_bid { bid } else { 0 }))
         }
         Phase::Playing => {
-            let play = hint(hand, game.table.as_ref().map(|(_, p)| p), game.rules.mode);
+            let play = hint(hand, game.table.as_ref().map(|(_, p)| p), game.rules);
             if let Some((leader, _)) = &game.table
                 && Some(*leader) != game.landlord
                 && Some(game.current) != game.landlord
@@ -41,19 +41,19 @@ pub fn auto_play_action(game: &GameState) -> Option<Action> {
     bot_action(game)
 }
 
-pub fn hint(hand: &[Card], table: Option<&Play>, mode: Mode) -> Option<Play> {
-    hint_options(hand, table, mode).into_iter().next()
+pub fn hint(hand: &[Card], table: Option<&Play>, rules: RuleSet) -> Option<Play> {
+    hint_options(hand, table, rules).into_iter().next()
 }
 
 /// Distinct suggested responses, ordered by the same priorities used by bots.
-pub fn hint_options(hand: &[Card], table: Option<&Play>, mode: Mode) -> Vec<Play> {
+pub fn hint_options(hand: &[Card], table: Option<&Play>, rules: RuleSet) -> Vec<Play> {
     let mut groups = vec![Vec::new(); 15];
     for &card in hand {
         groups[usize::from(card.rank())].push(card);
     }
     let mut candidates = Vec::new();
     let mut add = |cards: Vec<Card>| {
-        if let Some(play) = classify(&cards, mode)
+        if let Some(play) = classify(&cards, rules)
             && table.is_none_or(|previous| play.beats(previous))
         {
             candidates.push(play);
@@ -65,7 +65,9 @@ pub fn hint_options(hand: &[Card], table: Option<&Play>, mode: Mode) -> Vec<Play
             add(groups[rank][..size].to_vec());
         }
         if rank < 13 && groups[rank].len() >= 3 {
-            attachments(&groups, rank, rank + 1, 3, 1, 1, &mut add);
+            if rules.allows_single_wings() {
+                attachments(&groups, rank, rank + 1, 3, 1, 1, &mut add);
+            }
             attachments(&groups, rank, rank + 1, 3, 2, 1, &mut add);
         }
         if rank < 13 && groups[rank].len() >= 4 {
@@ -87,7 +89,9 @@ pub fn hint_options(hand: &[Card], table: Option<&Play>, mode: Mode) -> Vec<Play
                     .flat_map(|g| g[..width].iter().copied())
                     .collect());
                 if width == 3 {
-                    attachments(&groups, start, end, 3, 1, end - start, &mut add);
+                    if rules.allows_single_wings() {
+                        attachments(&groups, start, end, 3, 1, end - start, &mut add);
+                    }
                     attachments(&groups, start, end, 3, 2, end - start, &mut add);
                 }
             }

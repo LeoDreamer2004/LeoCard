@@ -1,5 +1,5 @@
 use super::{ActionOutcome, GameError, GameState, Phase};
-use crate::{ShengjiCard, ShengjiPlayerId, ShengjiRuleSet};
+use crate::{ShengjiCard, ShengjiPlayerId};
 
 impl GameState {
     pub fn deal_next(&mut self) -> Result<ActionOutcome, GameError> {
@@ -11,12 +11,12 @@ impl GameState {
             .iter()
             .map(|player| player.hand.len())
             .sum::<usize>();
-        if dealt == usize::from(ShengjiRuleSet::PLAYER_COUNT) * self.rules.hand_size() {
+        if dealt == usize::from(self.rules.player_count()) * self.rules.hand_size() {
             self.phase = Phase::BiddingGrace;
             return Ok(ActionOutcome::DealComplete);
         }
         let player = ShengjiPlayerId(
-            (usize::from(self.first_recipient.0) + dealt) as u8 % ShengjiRuleSet::PLAYER_COUNT,
+            (usize::from(self.first_recipient.0) + dealt) as u8 % self.rules.player_count(),
         );
         let card = self
             .deck

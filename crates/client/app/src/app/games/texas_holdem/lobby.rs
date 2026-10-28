@@ -1,13 +1,9 @@
 //! 德州扑克房间规则与玩家席位界面。
 
 use super::TexasHoldemUiAction;
-use crate::app::presentation::{
-    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_text,
-};
+use crate::app::presentation::{EditableRuleSet, RuleConfigRow, add_rule_config_row};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{
-    LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_lobby_rules_heading,
-};
+use crate::app::shell::{LobbyPage, LobbyPageConfig, UiAction};
 use bevy::prelude::*;
 use leocard_protocol::LobbySnapshot;
 use leocard_texas_holdem::TexasHoldemRuleSet;
@@ -42,24 +38,12 @@ pub(crate) fn render_texas_holdem_lobby(
         client,
         lobby,
         assets,
-        LobbyPageStyle::default(),
+        avatars,
+        LobbyPageConfig::new("德州扑克配置").description("至少 3 人开局。"),
     );
     let rules_panel = page.rules;
     let connected_count = page.connected_count;
     let can_configure = page.can_configure;
-    add_lobby_rules_heading(commands, rules_panel, "德州扑克配置", assets);
-    add_text(
-        commands,
-        rules_panel,
-        format!(
-            "当前人数 {}/{}，至少 3 人开局。",
-            connected_count,
-            TexasHoldemRuleSet::MAX_PLAYERS
-        ),
-        13.0,
-        MUTED,
-        assets,
-    );
 
     let chip_index = TexasHoldemRuleSet::STARTING_CHIP_OPTIONS
         .iter()
@@ -229,24 +213,5 @@ pub(crate) fn render_texas_holdem_lobby(
             next: can_configure.then_some(ignore_kickers_toggled),
         },
         assets,
-    );
-
-    let can_start = rules_value.supports_player_count(connected_count)
-        && lobby
-            .players
-            .iter()
-            .filter(|player| player.connected)
-            .all(|player| player.seat.is_some() && player.ready);
-    page.render_players(
-        commands,
-        LobbyPlayerSection::new(
-            client,
-            lobby,
-            assets,
-            avatars,
-            TexasHoldemRuleSet::MAX_PLAYERS,
-            can_start,
-            "等待玩家中",
-        ),
     );
 }

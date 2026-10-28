@@ -1,11 +1,15 @@
-use crate::app::runtime::ClientResource;
+use crate::app::runtime::{CardFace, ClientResource};
 use bevy::audio::Volume;
 use bevy::prelude::*;
 use leocard_protocol::{GameEventContext, MatchId, PlayerGender};
-use std::collections::VecDeque;
+use std::collections::HashMap;
 
 #[derive(Clone, Copy)]
 pub(crate) enum CardVoice {
+    Single(CardFace),
+    Pair(CardFace),
+    Triple,
+    TripleSequence,
     Straight,
     ConsecutivePairs,
     Airplane,
@@ -23,7 +27,27 @@ pub(crate) enum CardVoice {
 }
 
 impl CardVoice {
-    const FILES: [&str; 14] = [
+    const RANK_FILES: [&str; 15] = [
+        "ace",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "jack",
+        "queen",
+        "king",
+        "small_joker",
+        "big_joker",
+    ];
+
+    const FILES: [&str; 16] = [
+        "triple",
+        "triple_sequence",
         "straight",
         "consecutive_pairs",
         "airplane",
@@ -39,38 +63,84 @@ impl CardVoice {
         "bid_two",
         "bid_three",
     ];
+
+    fn file_name(self) -> String {
+        match self {
+            Self::Single(face) => return format!("single_{}", Self::rank_file(face)),
+            Self::Pair(face) => return format!("pair_{}", Self::rank_file(face)),
+            Self::Triple => "triple",
+            Self::TripleSequence => "triple_sequence",
+            Self::Straight => "straight",
+            Self::ConsecutivePairs => "consecutive_pairs",
+            Self::Airplane => "airplane",
+            Self::Bomb => "bomb",
+            Self::HeavenBomb => "heaven_bomb",
+            Self::Rocket => "rocket",
+            Self::Pass => "pass",
+            Self::TripleSingle => "triple_single",
+            Self::TriplePair => "triple_pair",
+            Self::FourTwo => "four_two",
+            Self::BidZero => "bid_zero",
+            Self::BidOne => "bid_one",
+            Self::BidTwo => "bid_two",
+            Self::BidThree => "bid_three",
+        }
+        .to_owned()
+    }
+
+    fn rank_file(face: CardFace) -> &'static str {
+        let rank = match face {
+            CardFace::Suited { rank, .. } => rank as usize,
+            CardFace::SmallJoker => 13,
+            CardFace::BigJoker => 14,
+        };
+        Self::RANK_FILES[rank]
+    }
 }
 
 #[derive(Resource)]
 pub(crate) struct CardVoices {
-    variants: [[[Handle<AudioSource>; 2]; CardVoice::FILES.len()]; 2],
+    variants: HashMap<String, [Vec<Handle<AudioSource>>; 2]>,
     match_id: Option<MatchId>,
     sequence: Option<u128>,
-    pending: VecDeque<Handle<AudioSource>>,
+    pending: Option<Handle<AudioSource>>,
 }
 
 impl FromWorld for CardVoices {
     fn from_world(world: &mut World) -> Self {
         let server = world.resource::<AssetServer>();
         Self {
-            variants: ["male", "female"].map(|gender| {
-                CardVoice::FILES.map(|pattern| {
-                    [1, 2].map(|variant| {
-                        server.load(format!(
-                            "audio/card_patterns/{gender}/{pattern}_{variant}.ogg"
-                        ))
-                    })
+            variants: CardVoice::FILES
+                .map(|pattern| (pattern.to_owned(), if pattern == "pass" { 6 } else { 2 }))
+                .into_iter()
+                .chain(["single", "pair"].into_iter().flat_map(|prefix| {
+                    CardVoice::RANK_FILES.map(|rank| (format!("{prefix}_{rank}"), 1))
+                }))
+                .map(|(pattern, count)| {
+                    let variants = ["male", "female"].map(|gender| {
+                        (1..=count)
+                            .map(|variant| {
+                                let file = if count == 1 {
+                                    format!("{pattern}.ogg")
+                                } else {
+                                    format!("{pattern}_{variant}.ogg")
+                                };
+                                server.load(format!("audio/card_patterns/{gender}/{file}"))
+                            })
+                            .collect()
+                    });
+                    (pattern, variants)
                 })
-            }),
+                .collect(),
             match_id: None,
             sequence: None,
-            pending: VecDeque::new(),
+            pending: None,
         }
     }
 }
 
 impl CardVoices {
-    pub(crate) fn queue(
+    pub(crate) fn announce(
         &mut self,
         context: GameEventContext,
         gender: PlayerGender,
@@ -88,8 +158,9 @@ impl CardVoices {
             PlayerGender::Male => 0,
             PlayerGender::Female => 1,
         };
-        self.pending
-            .push_back(self.variants[gender][pattern as usize][fastrand::usize(..2)].clone());
+        let variants = &self.variants[&pattern.file_name()][gender];
+        // 出牌播报紧跟最新动作，快速操作或批量收到事件时不积压旧语音。
+        self.pending = Some(variants[fastrand::usize(..variants.len())].clone());
     }
 }
 
@@ -109,7 +180,7 @@ pub(crate) fn sync_card_voices(
     if voices.match_id != match_id {
         voices.match_id = match_id;
         voices.sequence = None;
-        voices.pending.clear();
+        voices.pending = None;
         for entity in &playing {
             commands.entity(entity).despawn();
         }
@@ -118,19 +189,21 @@ pub(crate) fn sync_card_voices(
 
 pub(crate) fn play_card_voices(
     mut voices: ResMut<CardVoices>,
-    playing: Query<(), With<CardVoicePlayback>>,
+    playing: Query<Entity, With<CardVoicePlayback>>,
     mut commands: Commands,
 ) {
-    if playing.is_empty()
-        && let Some(sound) = voices.pending.pop_front()
-    {
-        commands.spawn((
-            AudioPlayer::new(sound),
-            PlaybackSettings {
-                volume: Volume::Linear(0.8),
-                ..PlaybackSettings::DESPAWN
-            },
-            CardVoicePlayback,
-        ));
+    let Some(sound) = voices.pending.take() else {
+        return;
+    };
+    for entity in &playing {
+        commands.entity(entity).despawn();
     }
+    commands.spawn((
+        AudioPlayer::new(sound),
+        PlaybackSettings {
+            volume: Volume::Linear(0.8),
+            ..PlaybackSettings::DESPAWN
+        },
+        CardVoicePlayback,
+    ));
 }

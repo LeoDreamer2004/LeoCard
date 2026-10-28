@@ -1,11 +1,10 @@
 use super::state::{HandStatistics, SessionStatistics};
 use leocard_protocol::ShengjiProfileStats;
-use leocard_shengji::ShengjiRuleSet;
 
 impl SessionStatistics {
-    pub(in crate::shengji) fn start_hand(&mut self) {
+    pub(in crate::shengji) fn start_hand(&mut self, player_count: u8) {
         self.hand = HandStatistics {
-            profiles: vec![ShengjiProfileStats::default(); ShengjiRuleSet::PLAYER_COUNT as usize],
+            profiles: vec![ShengjiProfileStats::default(); usize::from(player_count)],
             ..HandStatistics::default()
         };
     }

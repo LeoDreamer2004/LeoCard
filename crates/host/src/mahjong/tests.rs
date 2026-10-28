@@ -67,7 +67,7 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
             },
         },
     ];
-    // 四人中一名机器人仍可记录；两名机器人时所有构建均禁止记录。
+    // 四人中一名机器人仍可记录；非开发者模式下两名机器人时禁止记录。
     session.room.players[3].is_bot = true;
     assert!(session.room.records_game_progress());
     let broadcasts = session
@@ -82,9 +82,12 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
     }));
     {
         let mut with_bot = session.clone();
-        // 两名真人、一名机器人恰好达到三分之一，也不可记录。
+        // 两名真人、一名机器人恰好达到三分之一；开发者模式仍应记录。
         with_bot.room.players[2].left = true;
-        assert!(!with_bot.room.records_game_progress());
+        assert_eq!(
+            with_bot.room.records_game_progress(),
+            cfg!(feature = "developer")
+        );
         with_bot.room.players[2].left = false;
         with_bot.room.players[2].is_bot = true;
         with_bot.room.players[3].connected = false;
@@ -96,23 +99,25 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
             delivery
                 .message
                 .game_context
-                .is_some_and(|context| !context.records_progress)
+                .is_some_and(|context| context.records_progress == cfg!(feature = "developer"))
         }));
         with_bot.record_statistics(&events[..1]);
         assert!(with_bot.finished_reference_changes.is_none());
         with_bot.record_statistics(&events[1..]);
-        assert!(
-            with_bot
-                .finished_reference_changes
-                .as_ref()
-                .unwrap()
-                .is_empty()
-        );
-        assert!(with_bot.room.players.iter().all(|player| {
-            player.game_profiles == PlayerGameProfiles::default()
-                && player.reference_points == 0
-                && player.completed_games == 0
-        }));
+        let changes = with_bot.finished_reference_changes.as_ref().unwrap();
+        if cfg!(feature = "developer") {
+            assert_eq!(changes.len(), 4);
+            assert!(with_bot.room.players.iter().all(|player| {
+                player.game_profiles.mahjong.is_some() && player.completed_games == 1
+            }));
+        } else {
+            assert!(changes.is_empty());
+            assert!(with_bot.room.players.iter().all(|player| {
+                player.game_profiles == PlayerGameProfiles::default()
+                    && player.reference_points == 0
+                    && player.completed_games == 0
+            }));
+        }
     }
 
     session.record_statistics(&events);

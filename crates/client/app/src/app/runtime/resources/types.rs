@@ -24,6 +24,7 @@ pub(crate) struct UiAssets {
     pub shop: ShopAssets,
     pub social: SocialAssets,
     pub audio: CommonAudioAssets,
+    pub sequence_airplane: Handle<Image>,
     pub table_felt: Handle<Image>,
 }
 
@@ -82,7 +83,7 @@ pub(crate) struct HomeAssets {
 #[derive(Default)]
 pub(crate) struct AchievementAssets {
     pub icon: Handle<Image>,
-    pub emblems: [Handle<Image>; 7],
+    pub emblems: [Handle<Image>; 8],
     pub medals: [Handle<Image>; 3],
     pub scroll_arrow: Handle<Image>,
     pub toast: Handle<Image>,

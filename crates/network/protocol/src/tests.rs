@@ -125,6 +125,14 @@ fn client_message_round_trips_through_tcp_frame() {
                     eggs_received: 23,
                 }),
                 mahjong: None,
+                doudizhu: Some(DoudizhuProfileStats {
+                    completed_games: 4,
+                    total_match_score: -12,
+                    bid_actions: 7,
+                    total_bid_score: 9,
+                    bomb_plays: 3,
+                    ..Default::default()
+                }),
             },
             identity_signature: vec![9; 64],
         }),

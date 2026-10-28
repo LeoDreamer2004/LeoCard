@@ -40,6 +40,7 @@ pub struct Declaration {
 pub struct BidState {
     level: ShengjiRank,
     deck_count: u8,
+    player_count: u8,
     bid_with_joker: bool,
     original_bidder: Option<ShengjiPlayerId>,
     current: Option<Declaration>,
@@ -62,12 +63,19 @@ impl BidState {
         Self {
             level,
             deck_count,
+            player_count: ShengjiRuleSet::PLAYER_COUNT,
             bid_with_joker,
             original_bidder: None,
             current: None,
             exposed: HashMap::new(),
             closed: false,
         }
+    }
+
+    pub fn with_player_count(mut self, player_count: u8) -> Self {
+        assert!(matches!(player_count, 4 | 6));
+        self.player_count = player_count;
+        self
     }
 
     pub const fn level(&self) -> ShengjiRank {
@@ -106,7 +114,7 @@ impl BidState {
         if self.closed {
             return Err(BidError::Closed);
         }
-        if player.0 >= 4 {
+        if player.0 >= self.player_count {
             return Err(BidError::InvalidPlayer(player));
         }
         validate_owned(cards, hand)?;
@@ -478,7 +486,7 @@ impl GameState {
             Ok(trump) => trump.with_constant_trump(self.rules.constant_trump),
             Err(BidError::NoDeclaration) => {
                 if self.rules.power_outage_dealer && !self.power_outage_used {
-                    let dealer = next_player(self.bidding_dealer);
+                    let dealer = next_player(self.bidding_dealer, self.rules.player_count());
                     self.power_outage_used = true;
                     self.fixed_dealer = Some(dealer);
                     self.bidding_dealer = dealer;
@@ -487,7 +495,8 @@ impl GameState {
                         self.teams.level(dealer.team()),
                         self.rules.deck_count,
                         self.rules.bid_with_joker,
-                    );
+                    )
+                    .with_player_count(self.rules.player_count());
                     return Ok(ActionOutcome::PowerOutageDealerChanged { dealer });
                 }
                 if self.rules.bottom_flip {
@@ -536,7 +545,8 @@ impl GameState {
                 })
             })
             .collect::<Vec<_>>();
-        let dealer = select_bottom_flip_dealer(&matches, self.bidding_dealer);
+        let dealer =
+            select_bottom_flip_dealer(&matches, self.bidding_dealer, self.rules.player_count());
         if let Some(dealer) = dealer {
             let trump = ShengjiTrump::new(self.teams.level(dealer.team()), card.suit())
                 .expect("扳底只会从完整牌堆中翻出合法牌")
@@ -585,6 +595,7 @@ impl GameState {
 pub(super) fn select_bottom_flip_dealer(
     matches: &[BottomFlipMatch],
     current_dealer: ShengjiPlayerId,
+    player_count: u8,
 ) -> Option<ShengjiPlayerId> {
     if matches.len() == 1 {
         return Some(matches[0].player);
@@ -611,9 +622,6 @@ pub(super) fn select_bottom_flip_dealer(
             usize::from(matched.player.team().0) == winning_team
                 && matched.cards.len() == most_cards
         })
-        .min_by_key(|matched| {
-            (matched.player.0 + ShengjiRuleSet::PLAYER_COUNT - current_dealer.0)
-                % ShengjiRuleSet::PLAYER_COUNT
-        })
+        .min_by_key(|matched| (matched.player.0 + player_count - current_dealer.0) % player_count)
         .map(|matched| matched.player)
 }

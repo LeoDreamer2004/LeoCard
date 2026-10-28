@@ -85,6 +85,7 @@ impl GameState {
         report.won_chips = pots.won_chips;
         report.won_pot = pots.won_pot;
         report.won_side_pot_chips = pots.won_side_pot_chips;
+        report.tied_winners = pots.tied_winners;
         for index in pots.defeated {
             let other = &self.players()[index];
             report

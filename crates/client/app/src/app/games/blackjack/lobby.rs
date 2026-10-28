@@ -1,11 +1,7 @@
 use super::BlackjackUiAction;
-use crate::app::presentation::{
-    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_text,
-};
+use crate::app::presentation::{EditableRuleSet, RuleConfigRow, add_rule_config_row};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{
-    LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_lobby_rules_heading,
-};
+use crate::app::shell::{LobbyPage, LobbyPageConfig, UiAction};
 use bevy::prelude::*;
 use leocard_blackjack::BlackjackRuleSet;
 use leocard_protocol::LobbySnapshot;
@@ -35,17 +31,11 @@ pub(crate) fn render_blackjack_lobby(
         client,
         lobby,
         assets,
-        LobbyPageStyle::default(),
+        avatars,
+        LobbyPageConfig::new("21 点配置")
+            .description("1–6 人与系统庄家对局，六副牌，每小局重新洗牌。"),
     );
-    add_lobby_rules_heading(commands, page.rules, "21 点配置", assets);
-    add_text(
-        commands,
-        page.rules,
-        "1–6 人与系统庄家对局，六副牌，每小局重新洗牌。",
-        13.0,
-        MUTED,
-        assets,
-    );
+
     let choices = [
         (
             "初始筹码",
@@ -113,21 +103,4 @@ pub(crate) fn render_blackjack_lobby(
             assets,
         );
     }
-    let can_start = page.connected_count >= BlackjackRuleSet::MIN_PLAYERS
-        && lobby
-            .players
-            .iter()
-            .all(|player| player.connected && player.ready && player.seat.is_some());
-    page.render_players(
-        commands,
-        LobbyPlayerSection::new(
-            client,
-            lobby,
-            assets,
-            avatars,
-            BlackjackRuleSet::MAX_PLAYERS,
-            can_start,
-            "等待玩家中",
-        ),
-    );
 }

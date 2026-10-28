@@ -1,16 +1,12 @@
-use leocard_protocol::GameKind;
-
-pub(super) struct LobbySeatLayout {
+pub(crate) struct LobbySeatLayout {
     positions: &'static [(f32, f32)],
 }
 
 impl LobbySeatLayout {
-    pub(super) fn new(game: GameKind) -> Self {
-        let positions: &[_] = match game {
-            GameKind::Shengji | GameKind::Mahjong | GameKind::Doudizhu => {
-                &[(239.0, 290.0), (0.0, 145.0), (239.0, 0.0), (478.0, 145.0)]
-            }
-            GameKind::MinecraftGuess | GameKind::Uno | GameKind::TexasHoldem => &[
+    pub(crate) fn new(seat_count: u8) -> Self {
+        let positions: &[_] = match seat_count {
+            3 | 4 => &[(239.0, 290.0), (0.0, 145.0), (239.0, 0.0), (478.0, 145.0)],
+            8 => &[
                 (239.0, 290.0),
                 (82.0, 290.0),
                 (0.0, 145.0),
@@ -20,7 +16,7 @@ impl LobbySeatLayout {
                 (478.0, 145.0),
                 (396.0, 290.0),
             ],
-            GameKind::QiGui523 | GameKind::Blackjack => &[
+            6 => &[
                 (150.0, 290.0),
                 (0.0, 145.0),
                 (150.0, 0.0),
@@ -28,11 +24,12 @@ impl LobbySeatLayout {
                 (478.0, 145.0),
                 (328.0, 290.0),
             ],
+            _ => unreachable!("supported lobby seat counts are three, four, six or eight"),
         };
         Self { positions }
     }
 
-    pub(super) fn position(&self, seat: u8) -> (f32, f32) {
+    pub(crate) fn position(&self, seat: u8) -> (f32, f32) {
         self.positions[usize::from(seat)]
     }
 }

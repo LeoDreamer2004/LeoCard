@@ -4,9 +4,9 @@ use super::super::{PlayerIdentity, config_file};
 use super::migration;
 use bevy::prelude::Resource;
 use leocard_protocol::{
-    BlackjackProfileStats, MahjongProfileStats, MatchId, MinecraftGuessProfileStats,
-    PlayerGameProfiles, PlayerInteractionStats, PlayerReferenceChange, QiGui523ProfileStats,
-    ShengjiProfileStats, TexasHoldemProfileStats, UnoProfileStats,
+    BlackjackProfileStats, DoudizhuProfileStats, MahjongProfileStats, MatchId,
+    MinecraftGuessProfileStats, PlayerGameProfiles, PlayerInteractionStats, PlayerReferenceChange,
+    QiGui523ProfileStats, ShengjiProfileStats, TexasHoldemProfileStats, UnoProfileStats,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -15,7 +15,7 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
-pub(super) const PROFILE_HEADER: &[u8] = b"LeoCard/profile/v5\0";
+pub(super) const PROFILE_HEADER: &[u8] = b"LeoCard/profile/v6\0";
 
 fn player_profile_path() -> Option<PathBuf> {
     config_file("profile.dat")
@@ -45,6 +45,7 @@ pub(super) struct StoredGameProfiles {
     pub(super) mahjong_stats: Option<MahjongProfileStats>,
     pub(super) minecraft_guess_stats: Option<MinecraftGuessProfileStats>,
     pub(super) blackjack_stats: Option<BlackjackProfileStats>,
+    pub(super) doudizhu_stats: Option<DoudizhuProfileStats>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -75,7 +76,7 @@ impl LocalPlayerProfile {
         if path.is_file() {
             let bytes = fs::read(&path).map_err(|error| format!("无法读取玩家档案：{error}"))?;
             let stored = migration::decode_player_profile(&bytes)?;
-            return Ok(Self {
+            let profile = Self {
                 identity: PlayerIdentity::from_secret_bytes(stored.secret_key),
                 rating: PlayerRatingProfile {
                     reference_points: stored.games.qigui523.reference_points,
@@ -95,8 +96,13 @@ impl LocalPlayerProfile {
                     mahjong: stored.games.mahjong_stats,
                     minecraft_guess: stored.games.minecraft_guess_stats,
                     blackjack: stored.games.blackjack_stats,
+                    doudizhu: stored.games.doudizhu_stats,
                 },
-            });
+            };
+            if !bytes.starts_with(PROFILE_HEADER) {
+                profile.save()?;
+            }
+            return Ok(profile);
         }
 
         let identity =
@@ -136,6 +142,7 @@ impl LocalPlayerProfile {
                 mahjong_stats: self.game_profiles.mahjong.clone(),
                 minecraft_guess_stats: self.game_profiles.minecraft_guess.clone(),
                 blackjack_stats: self.game_profiles.blackjack.clone(),
+                doudizhu_stats: self.game_profiles.doudizhu.clone(),
             },
         };
         let bytes = stored

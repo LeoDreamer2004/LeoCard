@@ -137,7 +137,12 @@ fn every_runtime_ui_and_card_sound_decodes_with_enabled_bevy_formats() {
             }
         }
     }
-    for directory in ["audio/mahjong/fans/female", "audio/mahjong/fans/male"] {
+    for (directory, expected_count) in [
+        ("audio/mahjong/fans/female", 81),
+        ("audio/mahjong/fans/male", 81),
+        ("audio/card_patterns/female", 66),
+        ("audio/card_patterns/male", 66),
+    ] {
         let voices = std::fs::read_dir(asset_root.join(directory))
             .unwrap()
             .map(|entry| entry.unwrap().path())
@@ -145,8 +150,8 @@ fn every_runtime_ui_and_card_sound_decodes_with_enabled_bevy_formats() {
             .collect::<Vec<_>>();
         assert_eq!(
             voices.len(),
-            81,
-            "incomplete Mahjong fan voices: {directory}"
+            expected_count,
+            "incomplete voices: {directory}"
         );
         sounds.extend(voices.into_iter().map(|path| {
             path.strip_prefix(&asset_root)

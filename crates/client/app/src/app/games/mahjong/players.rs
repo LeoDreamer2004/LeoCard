@@ -12,8 +12,8 @@ use super::{
     render_mahjong_staged_meld,
 };
 use crate::app::presentation::{
-    DANGER, GameSummaryAnimation, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT,
-    add_player_portrait, add_text, attach_start_game_seat_transition,
+    DANGER, GameSummaryAnimation, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TableSeat,
+    TableSeatAnchors, TableSeats, add_player_portrait, add_text, attach_start_game_seat_transition,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use bevy::picking::Pickable;
@@ -46,22 +46,24 @@ pub(super) fn render_mahjong_player_panel(
         assets,
         avatars,
     } = visuals;
-    let relative = (player.seat.0 + 4 - own_seat) % 4;
-    let (left, top, bottom) = match relative {
-        0 => (20.0, None, Some(8.0)),
-        1 => (1280.0 - 96.0 * 1.17 - 20.0, Some(284.0), None),
-        // Keep the taller portrait beside the upper hand, not over its tiles.
-        2 => (920.0, Some(8.0), None),
-        _ => (20.0, Some(284.0), None),
-    };
+    let seats = TableSeats::new(4);
+    let relative = seats.relative(own_seat, player.seat.0);
+    let seat = seats.seat(relative).mirrored();
+    let position = seat.position(TableSeatAnchors {
+        bottom: Vec2::new(20.0, 0.0),
+        top: Vec2::new(920.0, 8.0),
+        columns: Vec2::new(20.0, 1280.0 - 96.0 * 1.17 - 20.0),
+        rows: &[284.0],
+    });
+    let own = matches!(seat, TableSeat::Bottom);
     let portrait = add_player_portrait(
         commands,
         table,
         Node {
             position_type: PositionType::Absolute,
-            left: px(left),
-            top: top.map_or(Val::Auto, px),
-            bottom: bottom.map_or(Val::Auto, px),
+            left: px(position.x),
+            top: if own { Val::Auto } else { px(position.y) },
+            bottom: if own { px(8) } else { Val::Auto },
             width: px(96.0 * 1.17),
             height: px(76.0 * 1.17 + 20.0),
             ..default()

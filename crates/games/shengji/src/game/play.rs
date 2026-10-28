@@ -1,11 +1,10 @@
 use super::{
     ActionOutcome, CurrentTrick, GameError, GameState, HandResult, Phase, TrickRecord, next_player,
-    partner, remove_cards, validate_cards_owned,
+    remove_cards, validate_cards_owned,
 };
 use crate::play::compare_for_trick;
 use crate::{
-    ShengjiCard, ShengjiPlayerId, ShengjiRuleSet, ShengjiTeamId, TrickPlay, classify_lead,
-    validate_follow,
+    ShengjiCard, ShengjiPlayerId, ShengjiTeamId, TrickPlay, classify_lead, validate_follow,
 };
 
 impl GameState {
@@ -80,11 +79,11 @@ impl GameState {
             self.apply_throw_penalty(player.team(), *penalty);
         }
         let trick_complete =
-            self.trick.as_ref().unwrap().plays.len() == usize::from(ShengjiRuleSet::PLAYER_COUNT);
+            self.trick.as_ref().unwrap().plays.len() == usize::from(self.rules.player_count());
         if trick_complete {
             return self.complete_trick();
         }
-        let next = ShengjiPlayerId((player.0 + 1) % ShengjiRuleSet::PLAYER_COUNT);
+        let next = ShengjiPlayerId((player.0 + 1) % self.rules.player_count());
         self.current_player = Some(next);
         if let Some((penalty_points, attempted)) = failure {
             Ok(ActionOutcome::ThrowFailed {
@@ -165,16 +164,36 @@ impl GameState {
         let step = self.rules.score_step();
         let takeover = self.rules.takeover_score();
         let (promoted_team, promoted_steps, next_dealer) = if self.collecting_score == 0 {
-            (dealer_team, 3, partner(dealer))
+            (
+                dealer_team,
+                3,
+                ShengjiPlayerId((dealer.0 + 2) % self.rules.player_count()),
+            )
         } else if self.collecting_score < step {
-            (dealer_team, 2, partner(dealer))
+            (
+                dealer_team,
+                2,
+                ShengjiPlayerId((dealer.0 + 2) % self.rules.player_count()),
+            )
         } else if self.collecting_score < takeover {
-            (dealer_team, 1, partner(dealer))
+            (
+                dealer_team,
+                1,
+                ShengjiPlayerId((dealer.0 + 2) % self.rules.player_count()),
+            )
         } else if self.collecting_score < takeover + step {
-            (collecting_team, 0, next_player(dealer))
+            (
+                collecting_team,
+                0,
+                next_player(dealer, self.rules.player_count()),
+            )
         } else {
             let steps = ((self.collecting_score - takeover) / step) as u8;
-            (collecting_team, steps, next_player(dealer))
+            (
+                collecting_team,
+                steps,
+                next_player(dealer, self.rules.player_count()),
+            )
         };
         self.teams.promote(
             promoted_team,

@@ -1,9 +1,8 @@
-use super::layout::LobbySeatLayout;
 use super::*;
 use crate::app::presentation::{
-    ACCENT, LobbyEmptySeatLabel, LobbyEmptySeatRing, LobbySeatHover, LobbySeatTransitionSource,
-    LobbySeatVisual, MUTED, PlayerMenuProfile, READY, TEXT, add_avatar, add_host_crown, add_text,
-    attach_player_interactions,
+    ACCENT, LobbyEmptySeatLabel, LobbyEmptySeatRing, LobbySeatHover, LobbySeatLayout,
+    LobbySeatTransitionSource, LobbySeatVisual, MUTED, PlayerMenuProfile, READY, TEXT, add_avatar,
+    add_host_crown, add_text, attach_player_interactions,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{LobbyUiAction, UiAction, reference_level};
@@ -167,7 +166,7 @@ impl<'a> LobbySeat<'a> {
     }
 
     fn position(&self) -> (f32, f32) {
-        LobbySeatLayout::new(self.lobby.game).position(self.index)
+        LobbySeatLayout::new(LobbyMetrics::new(self.lobby).seat_count()).position(self.index)
     }
 }
 

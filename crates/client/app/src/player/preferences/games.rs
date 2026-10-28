@@ -1,9 +1,9 @@
-use leocard_doudizhu::RuleSet as DoudizhuRuleSet;
+use leocard_doudizhu::{Mode as DoudizhuMode, RuleSet as DoudizhuRuleSet};
 use leocard_mahjong::MahjongRuleSet;
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::TABLE_SEAT_COUNT;
 use leocard_qigui523::QiGuiRuleSet;
-use leocard_shengji::ShengjiRuleSet;
+use leocard_shengji::{ShengjiMode, ShengjiRuleSet};
 use leocard_texas_holdem::TexasHoldemRuleSet;
 use leocard_uno::UnoRuleSet;
 use serde::{Deserialize, Serialize};
@@ -29,9 +29,34 @@ pub struct TexasHoldemPreferences {
     pub host_rules: TexasHoldemRuleSet,
 }
 
-#[derive(Default, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ShengjiPreferences {
     pub host_rules: ShengjiRuleSet,
+    pub mode_rules: [ShengjiRuleSet; 2],
+}
+
+impl ShengjiPreferences {
+    fn default_modes() -> [ShengjiRuleSet; 2] {
+        [
+            ShengjiRuleSet::default(),
+            ShengjiRuleSet::for_mode(ShengjiMode::SixPlayer),
+        ]
+    }
+
+    pub fn remembered_modes(&self) -> [ShengjiRuleSet; 2] {
+        let mut modes = self.mode_rules;
+        modes[self.host_rules.mode as usize] = self.host_rules;
+        modes
+    }
+}
+
+impl Default for ShengjiPreferences {
+    fn default() -> Self {
+        Self {
+            host_rules: ShengjiRuleSet::default(),
+            mode_rules: Self::default_modes(),
+        }
+    }
 }
 
 #[derive(Default, Deserialize, Serialize)]
@@ -49,9 +74,31 @@ pub struct MinecraftGuessPreferences {
     pub host_rules: MinecraftGuessRuleSet,
 }
 
-#[derive(Default, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
+#[serde(default)]
 pub struct DoudizhuPreferences {
     pub host_rules: DoudizhuRuleSet,
+    pub mode_rules: [DoudizhuRuleSet; 2],
+}
+
+impl DoudizhuPreferences {
+    pub fn remembered_modes(&self) -> [DoudizhuRuleSet; 2] {
+        let mut modes = self.mode_rules;
+        modes[self.host_rules.mode as usize] = self.host_rules;
+        modes
+    }
+}
+
+impl Default for DoudizhuPreferences {
+    fn default() -> Self {
+        Self {
+            host_rules: DoudizhuRuleSet::default(),
+            mode_rules: [DoudizhuMode::Three, DoudizhuMode::Four].map(|mode| DoudizhuRuleSet {
+                mode,
+                ..DoudizhuRuleSet::default()
+            }),
+        }
+    }
 }
 
 impl Default for GamePreferences {

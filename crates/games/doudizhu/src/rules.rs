@@ -41,6 +41,9 @@ impl Mode {
 pub struct RuleSet {
     pub mode: Mode,
     pub rounds: u8,
+    /// 四人玩法允许三带一及飞机带单张；三人玩法始终允许。
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub allow_single_wings: bool,
 }
 
 impl Default for RuleSet {
@@ -48,11 +51,23 @@ impl Default for RuleSet {
         Self {
             mode: Mode::Three,
             rounds: 1,
+            allow_single_wings: false,
         }
     }
 }
 
 impl RuleSet {
+    pub fn for_mode(mode: Mode) -> Self {
+        Self {
+            mode,
+            ..Self::default()
+        }
+    }
+
+    pub const fn allows_single_wings(self) -> bool {
+        matches!(self.mode, Mode::Three) || self.allow_single_wings
+    }
+
     pub const fn is_valid(self) -> bool {
         self.rounds >= 1 && self.rounds <= 5
     }

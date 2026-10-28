@@ -11,7 +11,7 @@ use leocard_protocol::{
 };
 use leocard_shengji::{
     ActionOutcome, FiveTrumpCrossingStage, GameError, GameState, HandResult, Phase,
-    ShengjiPlayerId, ShengjiRuleSet, ShengjiTeamId,
+    ShengjiPlayerId, ShengjiTeamId,
 };
 
 impl ShengjiSession {
@@ -38,7 +38,7 @@ impl ShengjiSession {
                 .and_then(GameState::five_trump_crossing)
                 .filter(|state| state.stage() == FiveTrumpCrossingStage::Returning)
                 .map(|state| ShengjiEvent::FiveTrumpCrossingStarted {
-                    players: (0..ShengjiRuleSet::PLAYER_COUNT)
+                    players: (0..self.rules.player_count())
                         .map(ShengjiPlayerId)
                         .filter(|player| state.crossing(*player))
                         .map(from_core_player)
@@ -184,7 +184,7 @@ impl ShengjiSession {
             .players
             .iter()
             .filter(|participant| {
-                usize::from(participant.id.0) < usize::from(ShengjiRuleSet::PLAYER_COUNT)
+                usize::from(participant.id.0) < usize::from(self.rules.player_count())
             })
             .map(|participant| {
                 let team = ShengjiTeamId(participant.id.0 % 2);

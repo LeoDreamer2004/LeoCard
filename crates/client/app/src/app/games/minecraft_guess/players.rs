@@ -5,7 +5,7 @@ use super::{
     view::GuessTable,
 };
 use crate::app::presentation::{
-    ACCENT, DANGER, MUTED, PlayerMenuProfile, PlayerPortraitSpec, READY, TEXT,
+    ACCENT, DANGER, MUTED, PlayerMenuProfile, PlayerPortraitSpec, READY, SeatRows, TEXT,
     TurnBorderAnimationKey, add_player_portrait, add_ready_badge, add_text,
     add_turn_border_trace_with_radius, attach_start_game_seat_transition, score_gain_visual,
 };
@@ -17,28 +17,11 @@ impl GuessTable<'_> {
     pub(super) fn players(&mut self, commands: &mut UiComposer, page: Entity) {
         let compact = self.game.graph.is_some();
         let avatar_size = if compact { 44.0 } else { 52.0 };
-        let columns = if compact {
-            self.game.players.len().min(4)
-        } else {
-            self.game.players.len()
-        };
-        let rows = self.game.players.len().div_ceil(columns);
+        let layout = SeatRows::new(self.game.players.len() as u8, if compact { 4 } else { 8 });
         let row = spawn_node(
             commands,
             page,
-            Node {
-                width: percent(100),
-                height: px(if compact { 78.0 * rows as f32 } else { 88.0 }),
-                flex_wrap: if compact {
-                    FlexWrap::Wrap
-                } else {
-                    FlexWrap::NoWrap
-                },
-                flex_shrink: 0.0,
-                justify_content: JustifyContent::SpaceEvenly,
-                align_items: AlignItems::Center,
-                ..default()
-            },
+            layout.node(if compact { 78.0 } else { 88.0 }),
             None,
         );
         for player in &self.game.players {
@@ -52,7 +35,7 @@ impl GuessTable<'_> {
                 commands,
                 row,
                 Node {
-                    width: percent(100.0 / columns as f32),
+                    width: layout.cell_width(),
                     min_width: px(0),
                     flex_shrink: 0.0,
                     height: px(if compact { 74.0 } else { 84.0 }),

@@ -350,8 +350,8 @@ pub(super) fn add_texas_hand_result(
             hand_list,
             Node {
                 width: percent(100),
-                height: px(47),
-                padding: UiRect::axes(px(9), px(3)),
+                height: px(44),
+                padding: UiRect::axes(px(9), px(2)),
                 align_items: AlignItems::Center,
                 column_gap: px(8),
                 ..default()
@@ -492,21 +492,30 @@ pub(super) fn add_texas_hand_result(
                 Visibility::Hidden
             },
         ));
-        let mut standings = hand_players.clone();
-        standings.sort_by(|left, right| {
-            right
-                .stack
-                .cmp(&left.stack)
-                .then_with(|| left.seat.0.cmp(&right.seat.0))
-        });
-        for (index, player) in standings.iter().enumerate() {
+        let standings = spawn_node(
+            commands,
+            panel,
+            Node {
+                display: Display::Grid,
+                width: percent(100),
+                grid_template_columns: RepeatedGridTrack::flex(2, 1.0),
+                grid_template_rows: RepeatedGridTrack::auto(hand_players.len().div_ceil(2) as u16),
+                grid_auto_flow: GridAutoFlow::Column,
+                column_gap: px(12),
+                row_gap: px(4),
+                ..default()
+            },
+            None,
+        );
+        for (index, player) in hand_players.iter().enumerate() {
             let delay = divider_delay + index as f32 * SUMMARY_ROW_INTERVAL;
             let progress = summary_row_progress(animation.elapsed, delay);
             let row = spawn_node(
                 commands,
-                panel,
+                standings,
                 Node {
                     width: percent(100),
+                    min_width: px(0),
                     height: px(35),
                     padding: UiRect::axes(px(10), px(3)),
                     align_items: AlignItems::Center,
@@ -526,7 +535,7 @@ pub(super) fn add_texas_hand_result(
             ));
             let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
             add_avatar(commands, row, &player.name, avatar, 26.0, assets);
-            add_animated_summary_text(
+            let name = add_animated_summary_text(
                 commands,
                 row,
                 format!("{}. {}", index + 1, player.name),
@@ -536,16 +545,15 @@ pub(super) fn add_texas_hand_result(
                 animation.elapsed,
                 assets,
             );
-            let spacer = spawn_node(
-                commands,
-                row,
+            commands.entity(name).insert((
                 Node {
                     flex_grow: 1.0,
+                    min_width: px(0),
+                    overflow: Overflow::clip(),
                     ..default()
                 },
-                None,
-            );
-            commands.entity(spacer).insert(Pickable::IGNORE);
+                TextLayout::no_wrap(),
+            ));
             add_animated_summary_text(
                 commands,
                 row,
@@ -572,7 +580,7 @@ pub(super) fn add_texas_hand_result(
                 );
             }
         }
-        row_count += standings.len();
+        row_count += hand_players.len();
     }
 
     let actions_delay = SUMMARY_ROW_START_DELAY

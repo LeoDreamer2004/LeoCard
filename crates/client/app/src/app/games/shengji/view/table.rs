@@ -13,7 +13,7 @@ use super::{
     select_forced_shengji_follow_cards, shengji_display_trump,
 };
 use crate::app::presentation::{
-    ACCENT, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec,
+    ACCENT, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec, SeatSide,
     StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial, TrickSeatLayout,
     TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay, add_player_portrait,
     add_text, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
@@ -21,9 +21,10 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{
-    ChatAuxiliaryAction, ChatPanelState, SeatSide, SocialUiState, UiAction, add_chat_panel,
+    ChatAuxiliaryAction, ChatPanelState, SocialUiState, UiAction, add_chat_panel,
     add_reconnecting_overlay,
 };
+
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
@@ -33,8 +34,6 @@ use leocard_protocol::{
     ShengjiSnapshot,
 };
 use leocard_ui::{UiComposer, spawn_node, ui_component};
-
-const SHENGJI_PLAYER_COUNT: u8 = 4;
 
 pub(crate) struct ShengjiTableVisuals<'a> {
     pub assets: &'a UiAssets,
@@ -124,8 +123,8 @@ pub(crate) fn render_shengji_table(
     }
     let start_transition_active = visuals.start_game_transition.is_active_for(game.match_id);
     let previous_trick = visuals.presentation.revealed_previous_trick();
-    for relative in u8::from(own.is_some())..SHENGJI_PLAYER_COUNT {
-        let seat = SeatId((own_seat.0 + relative) % SHENGJI_PLAYER_COUNT);
+    for relative in u8::from(own.is_some())..game.rules.player_count() {
+        let seat = SeatId((own_seat.0 + relative) % game.rules.player_count());
         if let Some(player) = game.players.iter().find(|player| player.seat == seat) {
             add_shengji_opponent(
                 commands,
@@ -495,7 +494,7 @@ fn add_shengji_opponent(
     start_transition_active: bool,
     intro_only: bool,
 ) {
-    let layout = TrickSeatLayout::opponent(relative);
+    let layout = TrickSeatLayout::new(relative, game.rules.player_count(), 190.0);
     let side = layout.side;
     let slot = layout.spawn(commands, table);
     if matches!(side, SeatSide::Right) {

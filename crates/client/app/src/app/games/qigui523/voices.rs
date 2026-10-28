@@ -33,7 +33,7 @@ pub(super) fn sync_qigui_voices(
         if let Some(pattern) = voice
             && let Some(profile) = game.players.iter().find(|profile| profile.id == player)
         {
-            voices.queue(context, profile.game_profiles.gender, pattern);
+            voices.announce(context, profile.game_profiles.gender, pattern);
         }
     }
 }

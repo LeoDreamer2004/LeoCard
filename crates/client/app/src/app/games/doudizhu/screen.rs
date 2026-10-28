@@ -2,24 +2,31 @@
 
 use super::super::{GameLobbyContext, GameScreen, GameTableContext};
 use super::{DoudizhuTable, DoudizhuUiState, render_doudizhu_lobby, render_doudizhu_table};
+use crate::app::presentation::PlayEffectState;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::SocialUiState;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
-use leocard_protocol::{DoudizhuSnapshot, GameSnapshot, LobbySnapshot};
+use leocard_protocol::{DoudizhuSnapshot, GameKind, GameSnapshot, LobbySnapshot};
 use leocard_ui::UiComposer;
 
 #[derive(SystemParam)]
 pub(crate) struct DoudizhuScreen<'w> {
     ui: ResMut<'w, DoudizhuUiState>,
+    play_effect: Res<'w, PlayEffectState>,
 }
 
 impl GameScreen for DoudizhuScreen<'_> {
     type Snapshot = DoudizhuSnapshot;
 
     fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
-        match client.map(|client| client.0.model().phase()) {
+        let phase = client.map(|client| client.0.model().phase());
+        if !matches!(phase, Some(ClientPhaseRef::Lobby(lobby)) if lobby.game == GameKind::Doudizhu)
+        {
+            self.ui.mode_menu_open = false;
+        }
+        match phase {
             Some(ClientPhaseRef::Playing(GameSnapshot::Doudizhu(game))) => self.ui.reconcile(game),
             _ => self.ui.clear(),
         }
@@ -37,6 +44,7 @@ impl GameScreen for DoudizhuScreen<'_> {
             root,
             context.client,
             lobby,
+            &self.ui,
             context.assets,
             context.avatars,
         );
@@ -67,6 +75,7 @@ impl GameScreen for DoudizhuScreen<'_> {
                 turn_materials: context.turn_border_materials,
                 summary: context.game_summary,
                 transition: context.transition,
+                play_effect: &self.play_effect,
             },
         );
     }

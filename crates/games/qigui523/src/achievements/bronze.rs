@@ -45,7 +45,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
     ),
     qigui523!(
         "bomb",
-        "请温柔一点",
+        "小小炸弹兵",
         Bronze,
         "打出炸弹",
         |event| matches(event, |s| s.progress.bomb_plays

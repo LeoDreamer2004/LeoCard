@@ -288,10 +288,10 @@ impl GameState {
         shuffled_deck: Vec<ShengjiCard>,
     ) -> Result<Self, GameError> {
         let rules = rules.validate()?;
-        if first_recipient.0 >= ShengjiRuleSet::PLAYER_COUNT {
+        if first_recipient.0 >= rules.player_count() {
             return Err(GameError::InvalidPlayer(first_recipient));
         }
-        if fixed_dealer.is_some_and(|dealer| dealer.0 >= ShengjiRuleSet::PLAYER_COUNT) {
+        if fixed_dealer.is_some_and(|dealer| dealer.0 >= rules.player_count()) {
             return Err(GameError::InvalidPlayer(fixed_dealer.unwrap()));
         }
         validate_deck(&shuffled_deck, rules)?;
@@ -317,13 +317,14 @@ impl GameState {
             bottom_flip_winner: None,
             dealer_from_bottom_flip: false,
             deck: shuffled_deck.into(),
-            players: (0..ShengjiRuleSet::PLAYER_COUNT)
+            players: (0..rules.player_count())
                 .map(|id| PlayerState {
                     id: ShengjiPlayerId(id),
                     hand: Vec::with_capacity(hand_size + kitty_size),
                 })
                 .collect(),
-            bidding: BidState::new_with_rules(level, rules.deck_count, rules.bid_with_joker),
+            bidding: BidState::new_with_rules(level, rules.deck_count, rules.bid_with_joker)
+                .with_player_count(rules.player_count()),
             trump: None,
             // 后续小局的庄家已由上一局结算确定，发牌开始就应公开；首局则
             // 等第一位玩家亮主后再随当前最高声明实时转移。

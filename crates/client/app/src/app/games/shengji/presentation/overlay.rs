@@ -69,28 +69,36 @@ pub(crate) fn add_shengji_presentation_overlay(
             .iter()
             .find(|candidate| candidate.id == player)
             .map_or(own_seat, |candidate| candidate.seat.0);
-        match (player_seat + 4 - own_seat) % 4 {
-            0 => {
-                root_node.left = percent(50);
-                root_node.bottom = px(116);
-                base_translation.x = -half_width;
+        if game.rules.player_count() == 6 {
+            let anchor = super::routes::shengji_player_route_anchor(game, player)
+                .unwrap_or(Vec2::new(50.0, 50.0));
+            root_node.left = percent(anchor.x);
+            root_node.top = percent(anchor.y);
+            base_translation = Vec2::new(-half_width, -92.0);
+        } else {
+            match (player_seat + 4 - own_seat) % 4 {
+                0 => {
+                    root_node.left = percent(50);
+                    root_node.bottom = px(116);
+                    base_translation.x = -half_width;
+                }
+                1 => {
+                    root_node.left = px(260);
+                    root_node.top = percent(50);
+                    base_translation.y = -92.0;
+                }
+                2 => {
+                    root_node.left = percent(50);
+                    root_node.top = px(202);
+                    base_translation.x = -half_width;
+                }
+                3 => {
+                    root_node.right = px(260);
+                    root_node.top = percent(50);
+                    base_translation.y = -92.0;
+                }
+                _ => unreachable!(),
             }
-            1 => {
-                root_node.left = px(260);
-                root_node.top = percent(50);
-                base_translation.y = -92.0;
-            }
-            2 => {
-                root_node.left = percent(50);
-                root_node.top = px(202);
-                base_translation.x = -half_width;
-            }
-            3 => {
-                root_node.right = px(260);
-                root_node.top = percent(50);
-                base_translation.y = -92.0;
-            }
-            _ => unreachable!(),
         }
     } else if is_routed || is_power_outage || is_bottom_flip {
         // 交牌和换庄演出覆盖整张桌面，移动方向才能和真实座位一致。

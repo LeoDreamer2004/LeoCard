@@ -2,10 +2,11 @@
 
 use super::super::{BORDER, MUTED, READY, TEXT};
 use super::{add_ready_badge, add_text, text_scene};
+use crate::app::presentation::SeatSide;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction, OpponentBadge,
-    PlayerAvatarAnchor, PlayerProfilePage, SeatSide, SocialUiAction, UiAction, add_cozy_button,
+    PlayerAvatarAnchor, PlayerProfilePage, SocialUiAction, UiAction, add_cozy_button,
     add_cozy_panel, reference_level,
 };
 use bevy::picking::Pickable;

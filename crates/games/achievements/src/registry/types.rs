@@ -26,6 +26,7 @@ pub enum AchievementCategory {
     Shengji,
     Uno,
     MinecraftGuess,
+    Doudizhu,
     Personal,
 }
 

@@ -1,10 +1,7 @@
-use super::super::super::{StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
-use super::super::profile::decode_exact;
-use leocard_protocol::{
-    BlackjackProfileStats, MahjongProfileStats, MinecraftGuessProfileStats, PlayerInteractionStats,
-    ShengjiProfileStats, TexasHoldemProfileStats, UnoProfileStats,
-};
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use super::super::super::StoredPlayerProfile;
+use super::super::archive::decode_archive;
+use leocard_protocol::TexasHoldemProfileStats;
+use serde::{Deserialize, Serialize};
 
 pub(in crate::player::profile::migration) const V3_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v3\0";
 
@@ -49,48 +46,10 @@ impl From<V3TexasHoldemStats> for TexasHoldemProfileStats {
     }
 }
 
-#[derive(Deserialize, Serialize)]
-struct ArchivedPlayerProfile<T> {
-    secret_key: [u8; 32],
-    games: ArchivedGameProfiles<T>,
-}
-
-#[derive(Deserialize, Serialize)]
-struct ArchivedGameProfiles<T> {
-    qigui523: StoredRatingProfile,
-    texas_holdem_stats: Option<T>,
-    shengji_stats: Option<ShengjiProfileStats>,
-    uno_stats: Option<UnoProfileStats>,
-    interaction_stats: Option<PlayerInteractionStats>,
-    mahjong_stats: Option<MahjongProfileStats>,
-    minecraft_guess_stats: Option<MinecraftGuessProfileStats>,
-    blackjack_stats: Option<BlackjackProfileStats>,
-}
-
 pub(in crate::player::profile::migration) fn decode_v3(
     bytes: &[u8],
 ) -> Result<StoredPlayerProfile, String> {
     decode_archive::<V3TexasHoldemStats>(bytes)
-}
-
-fn decode_archive<T: DeserializeOwned + Into<TexasHoldemProfileStats>>(
-    bytes: &[u8],
-) -> Result<StoredPlayerProfile, String> {
-    let previous: ArchivedPlayerProfile<T> =
-        decode_exact(bytes).map_err(|error| format!("玩家档案已损坏：{error}"))?;
-    Ok(StoredPlayerProfile {
-        secret_key: previous.secret_key,
-        games: StoredGameProfiles {
-            qigui523: previous.games.qigui523,
-            texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
-            shengji_stats: previous.games.shengji_stats,
-            uno_stats: previous.games.uno_stats,
-            interaction_stats: previous.games.interaction_stats,
-            mahjong_stats: previous.games.mahjong_stats,
-            minecraft_guess_stats: previous.games.minecraft_guess_stats,
-            blackjack_stats: previous.games.blackjack_stats,
-        },
-    })
 }
 
 pub(in crate::player::profile::migration) const V4_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v4\0";

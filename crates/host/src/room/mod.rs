@@ -4,6 +4,7 @@ mod economy;
 mod joining;
 mod profiles;
 mod readiness;
+mod seating;
 mod spectators;
 mod state;
 

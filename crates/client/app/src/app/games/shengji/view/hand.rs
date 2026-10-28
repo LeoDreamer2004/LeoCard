@@ -9,12 +9,13 @@ use super::{
 };
 use crate::app::presentation::{
     CardAnimationState, CardSize, HandCardHighlight, PendingDealSound, PlayerMenuProfile,
-    PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition, hand_card_pose,
-    shengji_hand_card_reveal,
+    PlayerPortraitSpec, SeatSide, TEXT, TurnBorderAnimationKey, TurnBorderMaterial,
+    add_player_portrait, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
+    hand_card_pose, shengji_hand_card_reveal,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{SeatSide, UiAction};
+use crate::app::shell::UiAction;
+
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;

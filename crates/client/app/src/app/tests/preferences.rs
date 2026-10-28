@@ -55,6 +55,7 @@ fn preferences_round_trip_including_avatar() {
                     constant_trump: true,
                     ..ShengjiRuleSet::default()
                 },
+                ..ShengjiPreferences::default()
             },
             uno: UnoPreferences {
                 host_rules: UnoRuleSet {
@@ -134,4 +135,33 @@ fn remembered_host_rules_keep_valid_preferences_and_fixed_room_capacity() {
     assert_eq!(normalized.time_control, TimeControl::Unlimited);
     assert!(normalized.advanced_play_types);
     assert!(normalized.validate().is_ok());
+}
+
+#[test]
+fn shengji_modes_keep_separate_rule_preferences() {
+    use leocard_shengji::ShengjiMode;
+    let classic = ShengjiRuleSet {
+        deck_count: 4,
+        five_trump_crossing: true,
+        ..ShengjiRuleSet::default()
+    };
+    let six = ShengjiRuleSet {
+        bottom_copy: true,
+        constant_trump: true,
+        ..ShengjiRuleSet::for_mode(ShengjiMode::SixPlayer)
+    };
+    let preferences = ShengjiPreferences {
+        host_rules: six,
+        mode_rules: [classic, six],
+    };
+    let saved = serde_json::to_vec(&preferences).unwrap();
+    let loaded: ShengjiPreferences = serde_json::from_slice(&saved).unwrap();
+    let remembered = loaded.remembered_modes();
+    assert_eq!(remembered, [classic, six]);
+    assert_eq!(loaded.host_rules.mode, ShengjiMode::SixPlayer);
+    assert!(remembered.iter().all(|rules| rules.validate().is_ok()));
+    assert_eq!(remembered[0].deck_count, 4);
+    assert!(remembered[0].five_trump_crossing);
+    assert_eq!(remembered[1].deck_count, 3);
+    assert!(!remembered[1].five_trump_crossing);
 }

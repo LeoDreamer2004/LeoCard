@@ -172,6 +172,7 @@ pub(crate) fn load_ui_assets(
                 asset_server.load("ui/achievements/emblem-shengji.png"),
                 asset_server.load("ui/achievements/emblem-uno.png"),
                 asset_server.load("ui/achievements/emblem-minecraft.png"),
+                asset_server.load("ui/achievements/emblem-doudizhu.png"),
                 asset_server.load("ui/achievements/emblem-personal.png"),
             ],
             medals: [
@@ -210,6 +211,7 @@ pub(crate) fn load_ui_assets(
             summary_die_sound: asset_server.load("vendor/noname/audio/effect/flappybird_die.ogg"),
             quick_voices: QuickVoiceAssets::load(&asset_server),
         },
+        sequence_airplane: asset_server.load("ui/effects/sequence_airplane.png"),
         table_felt: asset_server.load(TABLE_FELT_ASSET),
     });
 }

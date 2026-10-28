@@ -1,3 +1,4 @@
+pub mod achievements;
 mod bot;
 mod card;
 mod game;

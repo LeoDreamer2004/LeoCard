@@ -1,8 +1,9 @@
 use super::hand::render_hand;
 use super::{DoudizhuUiAction, DoudizhuUiState, controls, counter, summary};
 use crate::app::presentation::{
-    GameSummaryAnimation, MUTED, StartGameSeatTransition, TableBackground, TableBackgroundMaterial,
-    TurnBorderMaterial, add_auto_play_overlay, add_text, table_material_params,
+    GameSummaryAnimation, MUTED, PlayEffectKind, PlayEffectState, StartGameSeatTransition,
+    TableBackground, TableBackgroundMaterial, TableSeat, TableSeats, TurnBorderMaterial,
+    add_auto_play_overlay, add_play_effect_overlay, add_text, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{
@@ -28,6 +29,7 @@ pub(crate) struct DoudizhuTable<'a> {
     pub turn_materials: &'a mut Assets<TurnBorderMaterial>,
     pub summary: &'a GameSummaryAnimation,
     pub transition: &'a StartGameSeatTransition,
+    pub play_effect: &'a PlayEffectState,
 }
 
 pub(crate) fn render_doudizhu_table(
@@ -159,6 +161,31 @@ pub(crate) fn render_doudizhu_table(
     }
     context.kitty(commands, table);
     counter::render(commands, content, game, context.ui, assets);
+    if let Some(effect) =
+        context.play_effect.active.as_ref().filter(|effect| {
+            effect.match_id == game.match_id && effect.kind == PlayEffectKind::Bomb
+        })
+    {
+        let own_seat = game
+            .players
+            .iter()
+            .find(|player| player.id == game.you)
+            .map_or(0, |player| player.seat.0);
+        let player_seat = game
+            .players
+            .iter()
+            .find(|player| player.id == effect.player)
+            .map_or(own_seat, |player| player.seat.0);
+        let count = game.rules.mode.players();
+        let relative = (player_seat + count - own_seat) % count;
+        let source = match TableSeats::new(count).seat(relative) {
+            TableSeat::Bottom => Vec2::new(0.0, 225.0),
+            TableSeat::Top => Vec2::new(0.0, -145.0),
+            TableSeat::Left(_) => Vec2::new(-385.0, 0.0),
+            TableSeat::Right(_) => Vec2::new(385.0, 0.0),
+        };
+        add_play_effect_overlay(commands, table, content, effect.kind, source, assets);
+    }
     summary::render(
         commands,
         table,

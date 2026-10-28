@@ -1,11 +1,11 @@
 use super::DoudizhuTable;
 use crate::app::presentation::{
-    ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TRICK_AVATAR_SIZE,
+    ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, SeatSide, TEXT, TRICK_AVATAR_SIZE,
     TRICK_PORTRAIT_WIDTH, TrickSeatLayout, TurnBorderAnimationKey, add_hand_count_score,
     add_player_portrait, add_text, add_turn_border_trace_with_radius,
     attach_start_game_seat_transition,
 };
-use crate::app::shell::SeatSide;
+
 use bevy::prelude::*;
 use leocard_doudizhu::Phase;
 use leocard_protocol::{GameKind, PlayerPublicState};
@@ -60,12 +60,7 @@ impl DoudizhuTable<'_> {
                 }
                 continue;
             }
-            let visual_seat = if count == 3 && relative == 2 {
-                3
-            } else {
-                relative
-            };
-            let layout = TrickSeatLayout::opponent(visual_seat);
+            let layout = TrickSeatLayout::new(relative, count, 190.0);
             let side = layout.side;
             let slot = layout.spawn(commands, table);
             if matches!(side, SeatSide::Right) {

@@ -1,17 +1,20 @@
 use super::DoudizhuUiState;
-use crate::app::runtime::ClientResource;
+use crate::app::runtime::{ClientResource, HostRulePreferences};
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, dispatch_domain_actions,
     send_game_command,
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_doudizhu::{Action, RuleSet, hint_options};
+use leocard_doudizhu::{Action, Mode, RuleSet, hint_options};
 use leocard_protocol::DoudizhuCommand;
 
 #[derive(Clone)]
 pub(crate) enum DoudizhuUiAction {
     UpdateRules(RuleSet),
+    SelectMode(Mode),
+    ToggleModeMenu,
+    CloseModeMenu,
     ToggleCard,
     Hint,
     Play,
@@ -39,6 +42,7 @@ impl DomainUiAction for DoudizhuUiAction {
 pub(super) struct ActionContext<'w> {
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, DoudizhuUiState>,
+    preferences: Res<'w, HostRulePreferences>,
 }
 
 pub(super) fn dispatch_actions(
@@ -51,6 +55,17 @@ pub(super) fn dispatch_actions(
 impl UiActionHandler<ActionContext<'_>> for DoudizhuUiAction {
     fn handle(&self, context: &mut ActionContext<'_>) {
         match self {
+            Self::ToggleModeMenu => context.ui.mode_menu_open = !context.ui.mode_menu_open,
+            Self::CloseModeMenu => context.ui.mode_menu_open = false,
+            Self::SelectMode(mode) => {
+                context.ui.mode_menu_open = false;
+                send_game_command(
+                    &mut context.client,
+                    DoudizhuCommand::UpdateRules {
+                        rules: context.preferences.doudizhu_modes[*mode as usize],
+                    },
+                );
+            }
             Self::UpdateRules(rules) => send_game_command(
                 &mut context.client,
                 DoudizhuCommand::UpdateRules { rules: *rules },
@@ -72,7 +87,7 @@ impl UiActionHandler<ActionContext<'_>> for DoudizhuUiAction {
                     let suggestions = hint_options(
                         &game.your_hand,
                         game.table.as_ref().map(|(_, p)| p),
-                        game.rules.mode,
+                        game.rules,
                     );
                     let next = suggestions
                         .iter()

@@ -1,4 +1,6 @@
+mod archive;
 mod blackjack;
+mod doudizhu;
 mod graph;
 mod minecraft_guess;
 mod profile;

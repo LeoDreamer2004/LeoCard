@@ -1,3 +1,6 @@
+mod achievements;
+mod modes;
+
 use super::DoudizhuSession;
 use crate::{ConnectionId, Delivery};
 use ed25519_dalek::{Signer, SigningKey};
@@ -188,7 +191,20 @@ fn robots_play_all_hands_rotate_first_bidder_rematch_and_return_to_lobby() {
             assert_eq!(snapshot.match_complete, hand == mode.players() - 1);
             assert_eq!(snapshot.revealed_hands.len(), usize::from(mode.players()));
             assert_eq!(snapshot.scores.iter().sum::<i32>(), 0);
-            assert!(snapshot.reference_changes.is_empty());
+            let records = snapshot.match_complete && cfg!(feature = "developer");
+            assert_eq!(
+                snapshot.reference_changes.len(),
+                if records {
+                    usize::from(mode.players())
+                } else {
+                    0
+                }
+            );
+            assert_eq!(session.room.players[0].completed_games, u32::from(records));
+            assert_eq!(
+                session.room.players[0].game_profiles.doudizhu.is_some(),
+                records
+            );
             if !snapshot.match_complete {
                 ready_players(&mut session);
                 assert_eq!(session.match_id, match_id);
@@ -197,6 +213,13 @@ fn robots_play_all_hands_rotate_first_bidder_rematch_and_return_to_lobby() {
         ready_players(&mut session);
         assert_ne!(session.match_id, match_id);
         assert_eq!(session.game.as_ref().unwrap().phase, Phase::Bidding);
+        assert!(
+            session
+                .statistics
+                .players
+                .iter()
+                .all(|stats| *stats == Default::default())
+        );
         assert!(
             session
                 .match_state
@@ -259,7 +282,36 @@ fn all_passes_redeal_without_advancing_and_profiles_settle_only_at_match_end() {
                 i32::from(change.delta)
             );
         }
+        let archived = session
+            .room
+            .players
+            .iter()
+            .map(|player| player.game_profiles.doudizhu.clone().unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            archived
+                .iter()
+                .map(|stats| stats.landlord_hands)
+                .sum::<u32>(),
+            u32::from(mode.players())
+        );
+        for (index, stats) in archived.iter().enumerate() {
+            assert_eq!(stats.completed_games, 1);
+            assert_eq!(stats.hands_played, u32::from(mode.players()));
+            assert_eq!(stats.total_match_score, i64::from(totals[index]));
+            assert!(stats.bid_actions >= 1); // The initial all-pass deal counted a real zero bid.
+            assert_eq!(stats.total_reference_delta, i64::from(changes[index].delta));
+        }
         session.advance_time(Duration::from_secs(60));
+        assert_eq!(
+            session
+                .room
+                .players
+                .iter()
+                .map(|player| player.game_profiles.doudizhu.clone().unwrap())
+                .collect::<Vec<_>>(),
+            archived
+        );
         assert_eq!(session.snapshot_for(PlayerId(0)).reference_changes, changes);
         assert!(session.room.players.iter().all(|p| p.completed_games == 1));
     }
@@ -295,4 +347,76 @@ fn disconnect_uses_automation_and_reconnect_restores_own_hand() {
     assert_eq!(snapshot.your_hand, expected);
     assert!(snapshot.revealed_hands.is_empty());
     assert!(!session.is_current_connection(ConnectionId(2)));
+}
+
+#[test]
+fn bidding_statistics_count_passes_but_not_players_skipped_by_a_three_bid() {
+    for mode in [Mode::Three, Mode::Four] {
+        let mut session = started(mode, false);
+        for _ in 0..mode.players() {
+            let current = session.game.as_ref().unwrap().current;
+            assert_accepted(&act(&mut session, current, Action::Bid(0)));
+        }
+        // All passes redeal the same hand; these accepted zero bids remain recorded.
+        let current = session.game.as_ref().unwrap().current;
+        assert_accepted(&act(&mut session, current, Action::Bid(3)));
+        assert_eq!(session.game.as_ref().unwrap().phase, Phase::Playing);
+        for (player, stats) in session.statistics.players.iter().enumerate() {
+            let called_three = player == usize::from(current);
+            assert_eq!(stats.bid_actions, if called_three { 2 } else { 1 });
+            assert_eq!(stats.total_bid_score, if called_three { 3 } else { 0 });
+            assert_eq!(stats.hands_played, 0);
+        }
+        let before = session.statistics.players.clone();
+        act(&mut session, current, Action::Bid(1));
+        assert_eq!(session.statistics.players, before);
+        assert!(
+            session
+                .room
+                .players
+                .iter()
+                .all(|player| player.game_profiles.doudizhu.is_none())
+        );
+    }
+}
+
+#[test]
+fn pattern_statistics_count_body_lengths_and_combine_both_rocket_types_with_bombs() {
+    use super::statistics::DoudizhuStatistics;
+    use leocard_doudizhu::{Card, classify};
+    use leocard_protocol::DoudizhuProfileStats;
+
+    let mut stats = DoudizhuProfileStats::default();
+    let patterns = [
+        (Mode::Three, vec![0, 4, 8, 12, 16, 20]),
+        (Mode::Three, vec![0, 1, 4, 5, 8, 9]),
+        (Mode::Three, vec![0, 1, 2, 4, 5, 6]),
+        (Mode::Three, vec![0, 1, 2, 4, 5, 6, 8, 12]),
+        (Mode::Three, vec![0, 1, 2, 4, 5, 6, 8, 9, 12, 13]),
+        (Mode::Three, vec![0, 1, 2, 3]),
+        (Mode::Three, vec![52, 53]),
+        (Mode::Four, vec![0, 1, 2, 3]),
+        (Mode::Four, vec![52, 53, 106, 107]),
+    ];
+    for (mode, cards) in patterns {
+        let play = classify(
+            &cards.into_iter().map(Card).collect::<Vec<_>>(),
+            RuleSet {
+                mode,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        DoudizhuStatistics::observe_play(&mut stats, &play);
+    }
+    assert_eq!((stats.straight_plays, stats.longest_straight), (1, 6));
+    assert_eq!(
+        (
+            stats.consecutive_pair_plays,
+            stats.longest_consecutive_pairs
+        ),
+        (1, 3)
+    );
+    assert_eq!((stats.airplane_plays, stats.longest_airplane), (3, 2));
+    assert_eq!(stats.bomb_plays, 4);
 }

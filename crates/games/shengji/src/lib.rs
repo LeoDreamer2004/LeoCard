@@ -32,6 +32,6 @@ pub use play::{
     validate_follow,
 };
 pub use rules::{
-    RuleError, ShengjiBidTrump, ShengjiPlayerId, ShengjiRuleSet, ShengjiTeamId,
+    RuleError, ShengjiBidTrump, ShengjiMode, ShengjiPlayerId, ShengjiRuleSet, ShengjiTeamId,
     ShengjiThrowPenalty, ShengjiTrump, level_after, level_steps_between,
 };

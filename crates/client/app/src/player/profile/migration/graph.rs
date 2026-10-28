@@ -34,6 +34,7 @@ pub(super) fn decode_v2(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
     Ok(StoredPlayerProfile {
         secret_key: previous.secret_key,
         games: StoredGameProfiles {
+            doudizhu_stats: None,
             qigui523: previous.games.qigui523,
             texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
             shengji_stats: previous.games.shengji_stats,

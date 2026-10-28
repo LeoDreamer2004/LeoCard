@@ -1,14 +1,11 @@
 use super::super::{MinecraftGuessUiAction, MinecraftGuessUiState};
 use super::rules::render_rule_rows;
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{
-    CozyDropdown, CozyDropdownOption, LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction,
-    add_lobby_rules_heading,
-};
+use crate::app::shell::{CozyDropdown, CozyDropdownOption, LobbyPage, LobbyPageConfig, UiAction};
 use bevy::prelude::*;
 use leocard_minecraft_guess::{GuessMode, MinecraftGuessRuleSet};
 use leocard_protocol::LobbySnapshot;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::UiComposer;
 
 pub(crate) fn render_guess_lobby(
     commands: &mut UiComposer,
@@ -26,61 +23,26 @@ pub(crate) fn render_guess_lobby(
         client,
         lobby,
         assets,
-        LobbyPageStyle::default(),
-    );
-    let heading = spawn_node(
-        commands,
-        page.rules,
-        Node {
-            width: percent(100),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::SpaceBetween,
-            column_gap: px(12),
-            ..default()
-        },
-        None,
-    );
-    add_lobby_rules_heading(commands, heading, "竞猜配置", assets);
-    CozyDropdown {
-        label: rules.mode.label(),
-        toggle_action: UiAction::MinecraftGuess(MinecraftGuessUiAction::ToggleModeMenu),
-        close_action: UiAction::MinecraftGuess(MinecraftGuessUiAction::CloseModeMenu),
-        options: [GuessMode::TurnBased, GuessMode::Race, GuessMode::Graph]
-            .into_iter()
-            .map(|mode| CozyDropdownOption {
-                label: mode.label(),
-                selected: mode == rules.mode,
-                action: UiAction::MinecraftGuess(MinecraftGuessUiAction::UpdateRules(
-                    MinecraftGuessRuleSet { mode, ..rules },
-                )),
-            })
-            .collect(),
-    }
-    .render(
-        commands,
-        root,
-        heading,
-        page.can_configure,
-        state.mode_menu_open,
-        assets,
-    );
-    render_rule_rows(commands, page.rules, rules, page.can_configure, assets);
-    let can_start = page.connected_count >= MinecraftGuessRuleSet::MIN_PLAYERS
-        && lobby
-            .players
-            .iter()
-            .filter(|player| player.connected)
-            .all(|player| player.ready && player.seat.is_some());
-    page.render_players(
-        commands,
-        LobbyPlayerSection::new(
-            client,
-            lobby,
-            assets,
-            avatars,
-            MinecraftGuessRuleSet::MAX_PLAYERS,
-            can_start,
-            "等待玩家中",
+        avatars,
+        LobbyPageConfig::new("竞猜配置").mode(
+            CozyDropdown {
+                label: rules.mode.label(),
+                toggle_action: UiAction::MinecraftGuess(MinecraftGuessUiAction::ToggleModeMenu),
+                close_action: UiAction::MinecraftGuess(MinecraftGuessUiAction::CloseModeMenu),
+                options: [GuessMode::TurnBased, GuessMode::Race, GuessMode::Graph]
+                    .into_iter()
+                    .map(|mode| CozyDropdownOption {
+                        label: mode.label(),
+                        selected: mode == rules.mode,
+                        action: UiAction::MinecraftGuess(MinecraftGuessUiAction::UpdateRules(
+                            MinecraftGuessRuleSet { mode, ..rules },
+                        )),
+                    })
+                    .collect(),
+            },
+            state.mode_menu_open,
         ),
     );
+
+    render_rule_rows(commands, page.rules, rules, page.can_configure, assets);
 }

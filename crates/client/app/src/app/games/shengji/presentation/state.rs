@@ -6,7 +6,6 @@ use leocard_protocol::{MatchId, PlayerId, ShengjiBottomFlipMatchView, ShengjiPub
 use leocard_shengji::{ShengjiCard, ShengjiRank};
 use std::collections::VecDeque;
 
-pub(super) const SHENGJI_TRICK_PLAY_COUNT: usize = 4;
 pub(super) const SHENGJI_BOTTOM_COPY_REVEAL_DURATION: f32 = 0.9;
 
 /// 已接受的出牌及其毙牌判定，供语音消费，与 UI 重建解耦。

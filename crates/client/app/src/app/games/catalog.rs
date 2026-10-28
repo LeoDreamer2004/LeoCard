@@ -6,7 +6,6 @@ use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
 use leocard_minecraft_guess::{GuessMode, MinecraftGuessRuleSet};
 use leocard_protocol::{GameKind, GameRules};
 use leocard_qigui523::QiGuiRuleSet;
-use leocard_shengji::ShengjiRuleSet;
 use leocard_texas_holdem::TexasHoldemRuleSet;
 use leocard_uno::UnoRuleSet;
 
@@ -64,12 +63,30 @@ pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
     match rules {
         GameRules::Doudizhu(rules) => rules.mode.players(),
         GameRules::Blackjack(_) => BlackjackRuleSet::MAX_PLAYERS,
-        GameRules::Shengji(_) => ShengjiRuleSet::PLAYER_COUNT,
+        GameRules::Shengji(rules) => rules.player_count(),
         GameRules::Uno(_) => UnoRuleSet::MAX_PLAYERS,
         GameRules::Mahjong(_) => MahjongRuleSet::PLAYER_COUNT,
         GameRules::MinecraftGuess(_) => MinecraftGuessRuleSet::MAX_PLAYERS,
         GameRules::QiGui523(_) => QiGuiRuleSet::MAX_PLAYERS,
         GameRules::TexasHoldem(_) => TexasHoldemRuleSet::MAX_PLAYERS,
+    }
+}
+
+/// 大厅与游戏开始按钮共用的人数约束，规则仍由房主最终校验。
+pub(crate) fn game_accepts_player_count(rules: &GameRules, count: u8) -> bool {
+    match rules {
+        GameRules::Blackjack(_) => {
+            (BlackjackRuleSet::MIN_PLAYERS..=BlackjackRuleSet::MAX_PLAYERS).contains(&count)
+        }
+        GameRules::Doudizhu(rules) => count == rules.mode.players(),
+        GameRules::Mahjong(_) => count == MahjongRuleSet::PLAYER_COUNT,
+        GameRules::Shengji(rules) => count == rules.player_count(),
+        GameRules::Uno(_) => (UnoRuleSet::MIN_PLAYERS..=UnoRuleSet::MAX_PLAYERS).contains(&count),
+        GameRules::MinecraftGuess(_) => (MinecraftGuessRuleSet::MIN_PLAYERS
+            ..=MinecraftGuessRuleSet::MAX_PLAYERS)
+            .contains(&count),
+        GameRules::QiGui523(_) => (2..=QiGuiRuleSet::MAX_PLAYERS).contains(&count),
+        GameRules::TexasHoldem(rules) => rules.supports_player_count(count),
     }
 }
 
@@ -120,7 +137,9 @@ pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
             } else {
                 "不抄底".to_owned()
             },
-            if rules.five_trump_crossing {
+            if rules.player_count() == 6 {
+                "3v3".to_owned()
+            } else if rules.five_trump_crossing {
                 "五主过江".to_owned()
             } else {
                 "不过江".to_owned()

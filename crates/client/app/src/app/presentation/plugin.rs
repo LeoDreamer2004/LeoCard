@@ -1,10 +1,11 @@
 use super::{
-    CardVoices, GameSummaryAnimation, StartGameSeatTransition, SummaryAnimationSet,
-    SummaryPlayback, TableBackgroundMaterial, TableStatusAnimation, TurnBorderAnimationState,
-    TurnBorderMaterial, animate_button_arrows, animate_game_summary_visuals,
-    animate_no_legal_response_hint, animate_playing_card_flips, animate_start_game_seat_transition,
-    animate_summary_scores, animate_table_piece_deals, animate_table_statuses,
-    animate_turn_border_traces, play_card_voices, play_ui_click_sounds,
+    CardVoices, GameSummaryAnimation, PlayEffectState, StartGameSeatTransition,
+    SummaryAnimationSet, SummaryPlayback, TableBackgroundMaterial, TableStatusAnimation,
+    TurnBorderAnimationState, TurnBorderMaterial, advance_play_effect, animate_bomb_play_effect,
+    animate_button_arrows, animate_game_summary_visuals, animate_heaven_bomb_play_effect,
+    animate_no_legal_response_hint, animate_playing_card_flips, animate_sequence_play_effect,
+    animate_start_game_seat_transition, animate_summary_scores, animate_table_piece_deals,
+    animate_table_statuses, animate_turn_border_traces, play_card_voices, play_ui_click_sounds,
     resolve_table_piece_origins, start_game_intro_finished, sync_card_voices,
     update_summary_animation,
 };
@@ -47,6 +48,7 @@ impl Plugin for PresentationPlugin {
             .add_plugins(UiMaterialPlugin::<TurnBorderMaterial>::default())
             .init_resource::<SummaryPlayback>()
             .init_resource::<CardVoices>()
+            .init_resource::<PlayEffectState>()
             .insert_resource(GameSummaryAnimation::default())
             .insert_resource(StartGameSeatTransition::default())
             .insert_resource(TurnBorderAnimationState::default())
@@ -56,6 +58,18 @@ impl Plugin for PresentationPlugin {
             .add_systems(
                 Update,
                 play_card_voices
+                    .run_if(start_game_intro_finished)
+                    .in_set(ClientUpdateSet::Animate),
+            )
+            .add_systems(
+                Update,
+                (
+                    advance_play_effect,
+                    animate_sequence_play_effect,
+                    animate_bomb_play_effect,
+                    animate_heaven_bomb_play_effect,
+                )
+                    .chain()
                     .run_if(start_game_intro_finished)
                     .in_set(ClientUpdateSet::Animate),
             )

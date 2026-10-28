@@ -4,17 +4,18 @@ use super::cards::{HandCardSpec, add_card_button};
 use super::counter::render_counter;
 use super::state::{ScoreCardsPopupPlacement, SeatVisuals};
 use super::{
-    PlayEffectState, PlaySelectionCount, QIGUI_AVATAR_SIZE, QIGUI_PORTRAIT_WIDTH, QiGui523Assets,
-    QiGui523UiAction, QiGui523UiState, QiGuiButtonTone, add_draw_pile, add_game_summary_modal,
-    add_opponent_slot, add_play_effect_overlay, add_qigui_action_button, add_round_play,
-    add_score_cards_popup, add_table_score_cards, game_has_legal_response, sort_cards_high_to_low,
+    PlaySelectionCount, QIGUI_AVATAR_SIZE, QIGUI_PORTRAIT_WIDTH, QiGui523Assets, QiGui523UiAction,
+    QiGui523UiState, QiGuiButtonTone, add_draw_pile, add_game_summary_modal, add_opponent_slot,
+    add_qigui_action_button, add_round_play, add_score_cards_popup, add_table_score_cards,
+    bomb_effect_source, game_has_legal_response, sort_cards_high_to_low,
     spawn_round_play_container,
 };
 use crate::app::presentation::{
-    GameSummaryAnimation, PlayerMenuProfile, PlayerPortraitSpec, StartGameSeatTransition, TEXT,
-    TableBackground, TableBackgroundMaterial, TurnBorderAnimationKey, TurnBorderMaterial,
-    add_auto_play_overlay, add_no_legal_response_hint, add_player_portrait, add_text,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition, table_material_params,
+    GameSummaryAnimation, PlayEffectKind, PlayEffectState, PlayerMenuProfile, PlayerPortraitSpec,
+    StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay, add_no_legal_response_hint,
+    add_play_effect_overlay, add_player_portrait, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 #[cfg(feature = "developer")]
@@ -25,7 +26,6 @@ use crate::app::shell::{
 };
 use bevy::prelude::*;
 use leocard_protocol::{GameKind, GamePhaseView, QiGui523Snapshot, SeatId, TABLE_SEAT_COUNT};
-use leocard_qigui523::QiGuiPlayKind;
 use leocard_ui::{UiComposer, spawn_node, ui_component};
 
 pub(crate) struct TableVisualContext<'a> {
@@ -493,10 +493,17 @@ pub(crate) fn render_table(
     }
     if let Some(effect) = play_effect.active.as_ref().filter(|effect| {
         matches!(
-            effect.play.kind,
-            QiGuiPlayKind::Bomb(_) | QiGuiPlayKind::HeavenBomb
-        )
+            effect.kind,
+            PlayEffectKind::Bomb | PlayEffectKind::HeavenBomb
+        ) && effect.match_id == game.match_id
     }) {
-        add_play_effect_overlay(commands, table, root, game, effect, assets);
+        add_play_effect_overlay(
+            commands,
+            table,
+            root,
+            effect.kind,
+            bomb_effect_source(game, effect.player),
+            assets,
+        );
     }
 }

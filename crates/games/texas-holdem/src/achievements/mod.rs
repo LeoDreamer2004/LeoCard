@@ -6,3 +6,6 @@ mod squid;
 
 pub use catalog::{DEFINITIONS, register};
 pub use events::*;
+
+#[cfg(test)]
+mod tests;

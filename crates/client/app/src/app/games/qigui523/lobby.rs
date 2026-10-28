@@ -4,15 +4,11 @@ use super::{
     QiGui523UiAction, next_suit_comparison, next_time_control, previous_suit_comparison,
     previous_time_control, suit_comparison_label, time_control_label,
 };
-use crate::app::presentation::{
-    EditableRuleSet, MUTED, RuleConfigRow, add_rule_config_row, add_text,
-};
+use crate::app::presentation::{EditableRuleSet, RuleConfigRow, add_rule_config_row};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{
-    LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction, add_lobby_rules_heading,
-};
+use crate::app::shell::{LobbyPage, LobbyPageConfig, LobbyPageStyle, UiAction};
 use bevy::prelude::*;
-use leocard_protocol::{LobbySnapshot, TABLE_SEAT_COUNT};
+use leocard_protocol::LobbySnapshot;
 use leocard_qigui523::{QiGuiRuleSet, SameCardPolicy};
 use leocard_ui::UiComposer;
 
@@ -43,23 +39,14 @@ pub(crate) fn render_qigui523_lobby(
         client,
         lobby,
         assets,
-        LobbyPageStyle {
+        avatars,
+        LobbyPageConfig::new("游戏配置").style(LobbyPageStyle {
             rules_gap: 12.0,
             ..default()
-        },
+        }),
     );
     let rules = page.rules;
-    let connected_count = page.connected_count;
     let can_configure = page.can_configure;
-    add_lobby_rules_heading(commands, rules, "游戏配置", assets);
-    add_text(
-        commands,
-        rules,
-        format!("当前人数 {connected_count}/{TABLE_SEAT_COUNT}。"),
-        13.0,
-        MUTED,
-        assets,
-    );
 
     let deck_previous = (game_rules.deck_count > QiGuiRuleSet::MIN_DECK_COUNT)
         .then(|| QiGuiRuleSet {
@@ -230,23 +217,5 @@ pub(crate) fn render_qigui523_lobby(
             next: can_configure.then_some(toggled_advanced_play_types),
         },
         assets,
-    );
-    let can_start = connected_count >= 2
-        && lobby
-            .players
-            .iter()
-            .filter(|player| player.connected)
-            .all(|player| player.seat.is_some() && player.ready);
-    page.render_players(
-        commands,
-        LobbyPlayerSection::new(
-            client,
-            lobby,
-            assets,
-            avatars,
-            game_rules.player_count,
-            can_start,
-            "等待玩家中",
-        ),
     );
 }

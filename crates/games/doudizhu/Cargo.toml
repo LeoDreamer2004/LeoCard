@@ -11,5 +11,6 @@ default = []
 serde = ["dep:serde"]
 
 [dependencies]
+leocard-achievements = { path = "../achievements" }
 leocard-game-common = { path = "../common" }
 serde = { workspace = true, optional = true }

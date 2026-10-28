@@ -1,7 +1,9 @@
 use super::DoudizhuTable;
-use super::cards::card_row_aligned;
-use crate::app::presentation::{ACCENT, CardSize, MUTED, add_text, spawn_trick_play_area};
-use crate::app::shell::SeatSide;
+use super::cards::{CardRowStyle, card_row_aligned};
+use crate::app::presentation::{
+    ACCENT, CardSize, MUTED, SeatSide, add_text, spawn_trick_play_area,
+};
+
 use bevy::prelude::*;
 use leocard_doudizhu::{Action, Phase};
 use leocard_protocol::PlayerId;
@@ -80,7 +82,29 @@ impl DoudizhuTable<'_> {
                     px(0),
                     percent(-50),
                 )));
-            card_row_aligned(commands, holder, cards, size, self.assets, alignment);
+            let effect = self
+                .play_effect
+                .active
+                .as_ref()
+                .filter(|effect| {
+                    revealed.is_none()
+                        && effect.match_id == self.game.match_id
+                        && effect.player == player
+                        && effect.card_count == cards.len()
+                        && effect.kind.is_sequence()
+                })
+                .map(|effect| effect.kind);
+            card_row_aligned(
+                commands,
+                holder,
+                cards,
+                CardRowStyle {
+                    size,
+                    alignment,
+                    effect,
+                },
+                self.assets,
+            );
         } else if matches!(action, Some(Action::Pass)) {
             add_text(commands, area, "不出", 28.0, MUTED, self.assets);
         }

@@ -156,10 +156,22 @@ fn doudizhu_preferences_default_and_persist_without_changing_existing_files() {
     let texas = fs::read(directory.path("games/texas_holdem.json")).unwrap();
     let mut restored = directory.files.load().unwrap();
     assert_eq!(restored.games.doudizhu.host_rules.mode, Mode::Three);
+    restored.games.doudizhu.mode_rules[0].rounds = 2;
+    restored.games.doudizhu.mode_rules[1].rounds = 4;
+    restored.games.doudizhu.mode_rules[1].allow_single_wings = true;
     restored.games.doudizhu.host_rules.mode = Mode::Four;
+    restored.games.doudizhu.host_rules.rounds = 4;
+    restored.games.doudizhu.host_rules.allow_single_wings = true;
     directory.files.save_games(&restored.games).unwrap();
     let restored = directory.files.load().unwrap();
     assert_eq!(restored.games.doudizhu.host_rules.mode, Mode::Four);
+    let modes = restored.games.doudizhu.remembered_modes();
+    assert_eq!(modes[0].mode, Mode::Three);
+    assert_eq!(modes[0].rounds, 2);
+    assert_eq!(modes[1].mode, Mode::Four);
+    assert_eq!(modes[1].rounds, 4);
+    assert!(modes[1].allow_single_wings);
+    assert!(!modes[0].allow_single_wings);
     assert_eq!(fs::read(directory.path("global.json")).unwrap(), global);
     assert_eq!(
         fs::read(directory.path("games/texas_holdem.json")).unwrap(),

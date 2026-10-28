@@ -1,5 +1,7 @@
+use super::statistics::DoudizhuStatistics;
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, HostError, RoomSession};
+use leocard_doudizhu::achievements::DoudizhuAchievementTracker;
 use leocard_doudizhu::{Card, GameState, MatchState, Phase, RuleSet, auto_play_action, bot_action};
 use leocard_protocol::{
     ClientMessage, MatchId, PlayerReferenceChange, Revision, RoomId, ServerEvent,
@@ -16,6 +18,8 @@ pub struct DoudizhuSession {
     pub(super) match_state: Option<MatchState>,
     pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
     pub(super) automatic_elapsed: Duration,
+    pub(super) statistics: DoudizhuStatistics,
+    pub(super) achievements: DoudizhuAchievementTracker,
 }
 
 impl DoudizhuSession {
@@ -40,6 +44,8 @@ impl DoudizhuSession {
             match_state: None,
             finished_reference_changes: None,
             automatic_elapsed: Duration::ZERO,
+            statistics: DoudizhuStatistics::default(),
+            achievements: DoudizhuAchievementTracker::default(),
         })
     }
 

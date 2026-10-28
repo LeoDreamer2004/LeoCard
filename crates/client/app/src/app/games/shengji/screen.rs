@@ -11,7 +11,7 @@ use crate::app::shell::SocialUiState;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
-use leocard_protocol::{GameSnapshot, LobbySnapshot, ShengjiSnapshot};
+use leocard_protocol::{GameKind, GameSnapshot, LobbySnapshot, ShengjiSnapshot};
 use leocard_ui::UiComposer;
 
 #[derive(SystemParam)]
@@ -27,7 +27,11 @@ impl GameScreen for ShengjiScreen<'_> {
     type Snapshot = ShengjiSnapshot;
 
     fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
-        match client.map(|client| client.0.model().phase()) {
+        let phase = client.map(|client| client.0.model().phase());
+        if !matches!(phase, Some(ClientPhaseRef::Lobby(lobby)) if lobby.game == GameKind::Shengji) {
+            self.ui.mode_menu_open = false;
+        }
+        match phase {
             Some(ClientPhaseRef::Playing(GameSnapshot::Shengji(game))) => self.ui.reconcile(game),
             _ => self.ui.clear(),
         }
@@ -45,6 +49,7 @@ impl GameScreen for ShengjiScreen<'_> {
             root,
             context.client,
             lobby,
+            &self.ui,
             context.assets,
             context.avatars,
         );

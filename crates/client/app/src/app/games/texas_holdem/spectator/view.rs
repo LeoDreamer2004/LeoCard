@@ -1,8 +1,9 @@
 use super::super::{TexasHoldemUiAction, TexasHoldemUiState};
 use super::TexasSpectatorUiState;
-use crate::app::presentation::{ACCENT, add_switch_drawer, add_text};
+use crate::app::presentation::{ACCENT, SeatSide, add_switch_drawer, add_text};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{SeatSide, UiAction};
+use crate::app::shell::UiAction;
+
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, TexasHoldemSnapshot};

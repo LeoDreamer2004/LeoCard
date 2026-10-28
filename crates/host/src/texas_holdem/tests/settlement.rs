@@ -168,6 +168,9 @@ fn first_busted_player_finishes_the_tournament_and_applies_shared_rating_once() 
             .find(|change| change.player == player.id)
             .unwrap()
             .delta;
+        // This table starts with five chips each: its sole winner receives all fifteen.
+        // Comparing against the default twenty would incorrectly erase that winner's award.
+        assert_eq!(delta, if player.stack == 15 { 3 } else { 0 });
         let placement = 1 + snapshot
             .players
             .iter()

@@ -25,7 +25,7 @@ pub struct TexasHoldemRuleSet {
 impl TexasHoldemRuleSet {
     pub const MIN_PLAYERS: u8 = 3;
     pub const MAX_PLAYERS: u8 = 8;
-    pub const STARTING_CHIP_OPTIONS: [u16; 6] = [5, 10, 20, 30, 40, 50];
+    pub const STARTING_CHIP_OPTIONS: [u16; 11] = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
     pub const SMALL_BLIND: u32 = 1;
     pub const BIG_BLIND: u32 = 2;
     pub const MAX_FIXED_LIMIT_BETS: u8 = 4;
@@ -96,7 +96,7 @@ impl fmt::Display for RuleError {
                 write!(f, "短牌奥马哈最多支持 6 人，实际为 {value}")
             }
             Self::StartingChips(value) => {
-                write!(f, "初始筹码必须是 5、10、20、30、40 或 50，实际为 {value}")
+                write!(f, "初始筹码必须是 5 或 10 至 100 的整十数，实际为 {value}")
             }
         }
     }
@@ -122,6 +122,7 @@ mod tests {
             4
         );
         assert_eq!(TexasHoldemRuleSet::default().starting_chips, 20);
+        assert_eq!(TexasHoldemRuleSet::STARTING_CHIP_OPTIONS.last(), Some(&100));
         for starting_chips in TexasHoldemRuleSet::STARTING_CHIP_OPTIONS {
             assert!(
                 TexasHoldemRuleSet {
@@ -147,6 +148,14 @@ mod tests {
             }
             .validate(),
             Err(RuleError::StartingChips(15))
+        );
+        assert_eq!(
+            TexasHoldemRuleSet {
+                starting_chips: 110,
+                ..TexasHoldemRuleSet::default()
+            }
+            .validate(),
+            Err(RuleError::StartingChips(110))
         );
     }
 }

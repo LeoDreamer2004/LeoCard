@@ -73,15 +73,7 @@ impl HostedGameLifecycle for BlackjackSession {
         self.match_id = None;
         self.order.clear();
         self.finished_reference_changes = None;
-        self.room.remove_bots();
-        for player in &mut self.room.players {
-            player.auto_play = false;
-            if !player.connected {
-                player.left = true;
-                player.seat = None;
-            }
-        }
-        self.room.reset_ready_after_rules_change();
+        self.room.prepare_lobby();
         self.room.bump_revision();
         self.broadcast_lobby(Some((connection, request)))
     }

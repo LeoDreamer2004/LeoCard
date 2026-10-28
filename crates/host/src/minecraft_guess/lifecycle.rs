@@ -123,8 +123,7 @@ impl HostedGameLifecycle for MinecraftGuessSession {
         self.match_state = None;
         self.finished_reference_changes = None;
         self.process_presence.clear();
-        self.room.remove_bots();
-        self.room.reset_ready_after_rules_change();
+        self.room.prepare_lobby();
         self.bump_revision();
         self.broadcast_lobby(Some((connection, request)))
     }

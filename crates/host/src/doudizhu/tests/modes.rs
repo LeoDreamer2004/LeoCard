@@ -1,4 +1,4 @@
-use super::{assert_accepted, join, send};
+use super::{assert_accepted, finish_hand, join, ready_players, send};
 use crate::DoudizhuSession;
 use leocard_doudizhu::{Mode, RuleSet, build_deck};
 use leocard_protocol::{
@@ -161,4 +161,52 @@ fn bots_relocated_during_shrinking_do_not_conflict_with_new_bots_after_expanding
         4
     );
     ready_and_start(&mut session, &[1]);
+}
+
+#[test]
+fn returning_with_bots_keeps_the_hosts_seat_and_game_identity() {
+    let mut session = lobby(&[2]);
+    assert_accepted(&switch(&mut session, Mode::Three));
+    for seat in [0, 1] {
+        assert_accepted(&send(
+            &mut session,
+            1,
+            ClientCommand::ConfigureBotSeat {
+                seat: SeatId(seat),
+                occupied: true,
+            },
+        ));
+    }
+    ready_and_start(&mut session, &[1]);
+    let host_id = session.room.player_id(crate::ConnectionId(1)).unwrap();
+    assert_eq!(host_id, PlayerId(2));
+    for hand in 0..Mode::Three.players() {
+        finish_hand(&mut session);
+        if hand + 1 < Mode::Three.players() {
+            ready_players(&mut session);
+        }
+    }
+    let deliveries = send(&mut session, 1, ClientCommand::ReturnToLobby);
+    assert_accepted(&deliveries);
+    let lobby = deliveries
+        .iter()
+        .find_map(|delivery| match &delivery.message.event {
+            ServerEvent::LobbySnapshot(lobby) => Some(lobby),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(
+        lobby.host,
+        Some(host_id),
+        "the client still uses its in-game identity"
+    );
+    assert_eq!(lobby.players.len(), 1);
+    assert_eq!(lobby.players[0].id, host_id);
+    assert_eq!(lobby.players[0].seat, Some(SeatId(2)));
+    assert!(lobby.players[0].ready);
+    assert_accepted(&send(&mut session, 2, join(2)));
+    assert_eq!(
+        session.room.player_id(crate::ConnectionId(1)),
+        Some(host_id)
+    );
 }

@@ -378,15 +378,7 @@ impl HostedGameLifecycle for TexasHoldemSession {
         self.game = None;
         self.match_profile_stats.clear();
         self.automatic_action_delay = None;
-        self.room.remove_bots();
-        let host = self.room.host_connection;
-        for player in &mut self.room.players {
-            player.ready = host == Some(player.connection);
-            player.auto_play = false;
-            if !player.connected {
-                player.seat = None;
-            }
-        }
+        self.room.prepare_lobby();
         let mut deck = build_deck(self.rules.short_deck);
         fastrand::shuffle(&mut deck);
         self.shuffled_deck = Some(deck);

@@ -1,7 +1,9 @@
 use super::super::*;
 use super::*;
-use leocard_protocol::TexasHoldemPhaseView;
-use leocard_protocol::{ClientCommand, GameCommand, TexasHoldemCommand};
+use crate::ConnectionId;
+use leocard_protocol::{
+    ClientCommand, GameCommand, GameSnapshot, ServerEvent, TexasHoldemCommand, TexasHoldemPhaseView,
+};
 use leocard_texas_holdem::TexasHoldemCard;
 use leocard_texas_holdem::{
     Phase, TexasHoldemAction, TexasHoldemRank, TexasHoldemRuleSet, TexasHoldemSuit, build_deck,
@@ -200,5 +202,55 @@ fn first_busted_player_finishes_the_tournament_and_applies_shared_rating_once() 
             .map(|player| player.reference_points)
             .collect::<Vec<_>>(),
         points_after
+    );
+
+    let host_id = session.room.player_id(HOST_CONNECTION).unwrap();
+    let host_seat = session.room.players[usize::from(host_id.0)].seat;
+    session.disconnect(THIRD_CONNECTION);
+    let deliveries = session.handle(
+        HOST_CONNECTION,
+        message(request, ClientCommand::ReturnToLobby),
+    );
+    let lobby = deliveries
+        .iter()
+        .find_map(|delivery| match &delivery.message.event {
+            ServerEvent::LobbySnapshot(lobby) => Some(lobby),
+            _ => None,
+        })
+        .expect("finished tournament returns to the lobby");
+    assert_eq!(
+        lobby.players.len(),
+        2,
+        "offline players must release their slots"
+    );
+    assert_eq!(lobby.host, Some(host_id));
+    assert!(lobby.players.iter().all(|player| player.seat.is_some()));
+    assert_eq!(
+        lobby
+            .players
+            .iter()
+            .find(|player| player.id == host_id)
+            .unwrap()
+            .seat,
+        host_seat
+    );
+    let replacement = ConnectionId(40);
+    session.handle(replacement, message(request + 1, join_command("新玩家", 4)));
+    for connection in [SECOND_CONNECTION, replacement] {
+        session.handle(
+            connection,
+            message(request + 2, ClientCommand::SetReady { ready: true }),
+        );
+    }
+    let restarted = session.handle(
+        HOST_CONNECTION,
+        message(request + 3, ClientCommand::StartGame),
+    );
+    assert!(
+        restarted.iter().any(|delivery| matches!(
+            delivery.message.event,
+            ServerEvent::GameSnapshot(GameSnapshot::TexasHoldem(_))
+        )),
+        "{restarted:?}"
     );
 }

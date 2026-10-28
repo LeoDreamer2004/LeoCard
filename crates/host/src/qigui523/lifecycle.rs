@@ -381,15 +381,7 @@ impl HostedGameLifecycle for QiGui523Session {
         self.statistics = None;
         self.turn_timer = None;
         self.automatic_action_delay = None;
-        self.room.remove_bots();
-        let host_connection = self.host_connection;
-        for player in &mut self.players {
-            player.ready = host_connection == Some(player.connection);
-            player.auto_play = false;
-            if !player.connected {
-                player.seat = None;
-            }
-        }
+        self.room.prepare_lobby();
         let mut deck = build_deck(self.rules.deck_count);
         fastrand::shuffle(&mut deck);
         self.shuffled_deck = Some(deck);

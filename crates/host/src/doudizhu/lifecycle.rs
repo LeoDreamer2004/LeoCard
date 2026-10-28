@@ -171,12 +171,7 @@ impl HostedGameLifecycle for DoudizhuSession {
         self.match_state = None;
         self.finished_reference_changes = None;
         self.deck = None;
-        self.room.remove_bots();
-        self.room.remove_departed_players();
-        for p in &mut self.room.players {
-            p.ready = Some(p.connection) == self.room.host_connection;
-            p.auto_play = false;
-        }
+        self.room.prepare_lobby();
         let mut deck = build_deck(self.rules.mode);
         fastrand::shuffle(&mut deck);
         self.deck = Some(deck);

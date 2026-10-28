@@ -344,4 +344,20 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
             && facts.match_statistics.won_hands == facts.match_statistics.hands),
         1
     ),
+    texas!(
+        "three_way_tie",
+        "三足鼎立",
+        Silver,
+        "自己参与至少三家平分的同一底池",
+        |event| hand(event, |facts| facts.tied_winners >= 3),
+        1
+    ),
+    texas!(
+        "five_way_tie",
+        "平分秋色",
+        Gold,
+        "自己参与至少五家平分的同一底池",
+        |event| hand(event, |facts| facts.tied_winners >= 5),
+        1
+    ),
 ];

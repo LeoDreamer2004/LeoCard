@@ -1,8 +1,9 @@
 use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_protocol::{
     ChatContent, ClientCommand, ClientMessage, GameCommand, GameEventContext, GameKind, GameRules,
-    GameSnapshot, GameViolation, JoinRequest, LobbySnapshot, PlayerId, PlayerInteractionKind,
-    PlayerViolation, RejectReason, RequestId, RoomInfo, RoomViolation, SeatId, ServerEvent,
+    GameSnapshot, GameViolation, JoinRequest, LobbySnapshot, PlayerId, PlayerInteraction,
+    PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, RoomInfo, RoomViolation,
+    SeatId, ServerEvent,
 };
 
 pub(super) trait HostedGameLifecycle: Sized {
@@ -112,6 +113,7 @@ pub(super) trait HostedGameLifecycle: Sized {
             });
         match result {
             Ok(interaction) => {
+                self.observe_interaction(&interaction);
                 self.room_mut().bump_revision();
                 let mut deliveries = self.room().broadcast_event(
                     Some((connection, request_id)),
@@ -129,6 +131,8 @@ pub(super) trait HostedGameLifecycle: Sized {
     }
 
     fn before_dispatch(&mut self) {}
+
+    fn observe_interaction(&mut self, _interaction: &PlayerInteraction) {}
 
     fn after_join(&mut self, _player: PlayerId) {}
 

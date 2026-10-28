@@ -1,8 +1,16 @@
-use crate::app::presentation::{CardSize, add_card_image};
+use crate::app::presentation::{
+    CardSize, PlayEffectKind, SequenceEffectCard, add_card_image, add_sequence_play_decoration,
+};
 use crate::app::runtime::{CardFace, CardRank, CardSuit, UiAssets};
 use bevy::prelude::*;
 use leocard_doudizhu::Card;
 use leocard_ui::{UiComposer, spawn_node};
+
+pub(super) struct CardRowStyle {
+    pub size: CardSize,
+    pub alignment: AlignItems,
+    pub effect: Option<PlayEffectKind>,
+}
 
 impl From<Card> for CardFace {
     fn from(card: Card) -> Self {
@@ -40,17 +48,31 @@ pub(super) fn card_row(
     size: CardSize,
     assets: &UiAssets,
 ) {
-    card_row_aligned(commands, parent, cards, size, assets, AlignItems::Center);
+    card_row_aligned(
+        commands,
+        parent,
+        cards,
+        CardRowStyle {
+            size,
+            alignment: AlignItems::Center,
+            effect: None,
+        },
+        assets,
+    );
 }
 
 pub(super) fn card_row_aligned(
     commands: &mut UiComposer,
     parent: Entity,
     cards: &[Card],
-    size: CardSize,
+    style: CardRowStyle,
     assets: &UiAssets,
-    alignment: AlignItems,
 ) {
+    let CardRowStyle {
+        size,
+        alignment,
+        effect,
+    } = style;
     let column = spawn_node(
         commands,
         parent,
@@ -70,18 +92,20 @@ pub(super) fn card_row_aligned(
         CardSize::FinishedHand => 8,
         _ => 14,
     };
-    for chunk in sorted.chunks(per_row) {
+    for (row_index, chunk) in sorted.chunks(per_row).enumerate() {
+        let cards_width = size.dimensions().0
+            + chunk.len().saturating_sub(1) as f32
+                * if matches!(size, CardSize::FinishedHand) {
+                    14.4
+                } else {
+                    27.0
+                };
         let row = spawn_node(
             commands,
             column,
             Node {
-                width: px(size.dimensions().0
-                    + chunk.len().saturating_sub(1) as f32
-                        * if matches!(size, CardSize::FinishedHand) {
-                            14.4
-                        } else {
-                            27.0
-                        }),
+                width: px(cards_width),
+                position_type: PositionType::Relative,
                 flex_shrink: 0.0,
                 justify_content: JustifyContent::Center,
                 flex_wrap: FlexWrap::NoWrap,
@@ -90,16 +114,29 @@ pub(super) fn card_row_aligned(
             None,
         );
         for (i, card) in chunk.iter().enumerate() {
-            add_card_image(
+            let card = add_card_image(
                 commands,
                 row,
                 *card,
                 size,
                 i,
                 i + 1 == chunk.len(),
-                false,
+                effect.is_some(),
                 assets,
             );
+            if effect.is_some() {
+                commands.entity(card).insert((
+                    SequenceEffectCard {
+                        index: row_index * per_row + i,
+                    },
+                    UiTransform::IDENTITY,
+                ));
+            }
+        }
+        if let Some(kind) = effect
+            && (row_index + 1) * per_row >= sorted.len()
+        {
+            add_sequence_play_decoration(commands, row, cards_width, kind, assets);
         }
     }
 }

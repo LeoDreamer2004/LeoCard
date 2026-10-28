@@ -1,10 +1,8 @@
 use super::clock::add_turn_clock;
-use super::{
-    ActivePlayEffect, QiGui523Assets, SequenceEffectCard, add_sequence_play_decoration,
-    sequence_effect_style, sort_cards_high_to_low, turn_clock_visible,
-};
+use super::{QiGui523Assets, sort_cards_high_to_low, turn_clock_visible};
 use crate::app::presentation::{
-    CardSize, READY, SeatSide, TABLE_CARD_REVEAL, add_card_image, add_text,
+    ActivePlayEffect, CardSize, READY, SeatSide, SequenceEffectCard, TABLE_CARD_REVEAL,
+    add_card_image, add_sequence_play_decoration, add_text,
 };
 use crate::app::runtime::UiAssets;
 
@@ -152,9 +150,12 @@ pub(super) fn add_round_play(
         );
         return;
     }
-    let sequence_style = play_effect
-        .filter(|effect| effect.player == player && effect.play.cards.len() == cards.len())
-        .and_then(|effect| sequence_effect_style(&effect.play.kind));
+    let sequence_effect = play_effect.filter(|effect| {
+        effect.match_id == game.match_id
+            && effect.player == player
+            && effect.card_count == cards.len()
+            && effect.kind.is_sequence()
+    });
     let mut displayed_cards = cards.to_vec();
     sort_cards_high_to_low(&mut displayed_cards);
     let last_card = displayed_cards.len().saturating_sub(1);
@@ -186,10 +187,10 @@ pub(super) fn add_round_play(
             CardSize::QiGuiSeat,
             index,
             index == last_card,
-            sequence_style.is_some(),
+            sequence_effect.is_some(),
             assets,
         );
-        if sequence_style.is_some() {
+        if sequence_effect.is_some() {
             commands.entity(card_entity).insert((
                 SequenceEffectCard { index },
                 UiTransform::IDENTITY,
@@ -197,16 +198,7 @@ pub(super) fn add_round_play(
             ));
         }
     }
-    if let Some((label, color, motif)) = sequence_style {
-        add_sequence_play_decoration(
-            commands,
-            card_group,
-            displayed_cards.len(),
-            label,
-            color,
-            motif,
-            assets,
-            game_assets,
-        );
+    if let Some(effect) = sequence_effect {
+        add_sequence_play_decoration(commands, card_group, cards_width, effect.kind, assets);
     }
 }

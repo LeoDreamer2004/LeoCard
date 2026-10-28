@@ -37,6 +37,8 @@ pub struct TexasHoldemHandStatistics {
     /// Total size of contested pots won, before splitting tied pots.
     pub won_pot: u32,
     pub won_side_pot_chips: u32,
+    /// Largest number of tied winners sharing a contested pot received by this player.
+    pub tied_winners: u8,
     pub showdown: bool,
     /// Reached the flop without folding, or won uncontested before the flop.
     pub entered_pot: bool,

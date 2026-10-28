@@ -104,6 +104,9 @@ pub(in crate::player::profile) fn decode_player_profile(
     if let Some(current) = bytes.strip_prefix(PROFILE_HEADER) {
         return decode_exact(current).map_err(|error| format!("玩家档案已损坏：{error}"));
     }
+    if let Some(previous) = bytes.strip_prefix(super::doudizhu::V5_PROFILE_HEADER) {
+        return super::doudizhu::decode_v5(previous);
+    }
     if let Some(previous) = bytes.strip_prefix(super::texas_holdem::V4_PROFILE_HEADER) {
         return super::texas_holdem::decode_v4(previous);
     }
@@ -120,6 +123,7 @@ pub(in crate::player::profile) fn decode_player_profile(
         Ok(previous) => Ok(StoredPlayerProfile {
             secret_key: previous.secret_key,
             games: StoredGameProfiles {
+                doudizhu_stats: None,
                 blackjack_stats: None,
                 qigui523: previous.games.qigui523,
                 texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
@@ -135,6 +139,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
@@ -150,6 +155,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
@@ -165,6 +171,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
@@ -180,6 +187,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
@@ -195,6 +203,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
@@ -210,6 +219,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
@@ -225,6 +235,7 @@ pub(in crate::player::profile) fn decode_player_profile(
                 return Ok(StoredPlayerProfile {
                     secret_key: previous.secret_key,
                     games: StoredGameProfiles {
+                        doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
                         texas_holdem_stats: None,
@@ -241,6 +252,7 @@ pub(in crate::player::profile) fn decode_player_profile(
             Ok(StoredPlayerProfile {
                 secret_key: previous.secret_key,
                 games: StoredGameProfiles {
+                    doudizhu_stats: None,
                     blackjack_stats: None,
                     qigui523: StoredRatingProfile {
                         reference_points: previous.games.qigui523.reference_points,

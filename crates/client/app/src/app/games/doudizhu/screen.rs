@@ -2,6 +2,7 @@
 
 use super::super::{GameLobbyContext, GameScreen, GameTableContext};
 use super::{DoudizhuTable, DoudizhuUiState, render_doudizhu_lobby, render_doudizhu_table};
+use crate::app::presentation::PlayEffectState;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::SocialUiState;
 use bevy::ecs::system::SystemParam;
@@ -13,6 +14,7 @@ use leocard_ui::UiComposer;
 #[derive(SystemParam)]
 pub(crate) struct DoudizhuScreen<'w> {
     ui: ResMut<'w, DoudizhuUiState>,
+    play_effect: Res<'w, PlayEffectState>,
 }
 
 impl GameScreen for DoudizhuScreen<'_> {
@@ -73,6 +75,7 @@ impl GameScreen for DoudizhuScreen<'_> {
                 turn_materials: context.turn_border_materials,
                 summary: context.game_summary,
                 transition: context.transition,
+                play_effect: &self.play_effect,
             },
         );
     }

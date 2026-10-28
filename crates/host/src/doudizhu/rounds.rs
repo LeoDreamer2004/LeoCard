@@ -1,10 +1,14 @@
 use super::DoudizhuSession;
+use super::statistics::DoudizhuStatistics;
 use crate::new_match_id;
+use leocard_doudizhu::achievements::DoudizhuAchievementTracker;
 use leocard_doudizhu::{Card, GameState, MatchState, build_deck};
-use leocard_protocol::PlayerId;
+use leocard_protocol::{DoudizhuEvent, DoudizhuProfileStats, PlayerId};
 
 impl DoudizhuSession {
     pub(super) fn begin_match(&mut self) {
+        self.statistics = DoudizhuStatistics::new(self.rules.mode.players());
+        self.achievements = DoudizhuAchievementTracker::new(self.rules.mode.players());
         self.match_state = Some(
             MatchState::new(self.rules, fastrand::u8(..self.rules.mode.players()))
                 .expect("validated rules"),
@@ -40,6 +44,7 @@ impl DoudizhuSession {
     }
 
     fn deal_hand(&mut self, deck: Vec<Card>) {
+        self.achievements.begin_hand();
         let first = self
             .match_state
             .as_ref()
@@ -60,16 +65,19 @@ impl DoudizhuSession {
             .all(|player| player.ready || player.is_bot || player.left || !player.connected)
     }
 
-    pub(super) fn finish_hand(&mut self) {
-        let result = self
-            .game
-            .as_ref()
-            .expect("active game")
-            .result
-            .as_ref()
-            .expect("finished hand");
+    pub(super) fn finish_hand(&mut self) -> Vec<DoudizhuEvent> {
+        let game = self.game.as_ref().expect("active game");
+        let result = game.result.as_ref().expect("finished hand");
         let state = self.match_state.as_mut().expect("active match");
+        let before = state.scores().to_vec();
         assert!(state.finish_hand(result));
+        let achievements =
+            self.achievements
+                .finish_hand(game, &before, state.scores(), state.complete());
+        self.statistics.finish_hand(
+            game.landlord.expect("finished hand has a landlord"),
+            &result.scores,
+        );
         if let Some(deltas) = state.reference_deltas(self.rules.mode) {
             self.room.settle_completed_match_profiles_once(
                 &mut self.finished_reference_changes,
@@ -77,9 +85,22 @@ impl DoudizhuSession {
                     .into_iter()
                     .enumerate()
                     .map(|(player, delta)| (PlayerId(player as u8), delta)),
-                |_, _| {},
+                |player, delta| {
+                    let stats = player
+                        .game_profiles
+                        .doudizhu
+                        .get_or_insert_with(DoudizhuProfileStats::default);
+                    self.statistics.merge_into(player.id.0, stats, delta);
+                },
             );
         }
         self.room.prepare_rematch();
+        achievements
+            .into_iter()
+            .map(|(player, statistics)| DoudizhuEvent::ActionAnalyzed {
+                player: PlayerId(player),
+                statistics: Box::new(statistics),
+            })
+            .collect()
     }
 }

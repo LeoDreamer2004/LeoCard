@@ -4,7 +4,8 @@ use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_doudizhu::{Phase, build_deck};
 use leocard_protocol::{
     DoudizhuCommand, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
-    PlayerViolation, RejectReason, RequestId, RoomViolation, ServerEvent,
+    PlayerInteraction, PlayerInteractionKind, PlayerViolation, RejectReason, RequestId,
+    RoomViolation, ServerEvent,
 };
 use std::time::Duration;
 
@@ -33,6 +34,15 @@ impl HostedGameLifecycle for DoudizhuSession {
 
     fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
         self.snapshot_for(recipient).into()
+    }
+
+    fn observe_interaction(&mut self, interaction: &PlayerInteraction) {
+        if interaction.kind == PlayerInteractionKind::Flower
+            && let Some(game) = &self.game
+        {
+            self.achievements
+                .observe_flower(interaction.source.0, interaction.target.0, game);
+        }
     }
 
     fn handle_game_command(

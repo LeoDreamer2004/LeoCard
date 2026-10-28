@@ -1,8 +1,9 @@
 use crate::{
-    GameEvent, MahjongEvent, MinecraftGuessEvent, QiGui523Event, ShengjiDeclarationView,
-    ShengjiEvent, TexasHoldemEvent, UnoEvent,
+    DoudizhuEvent, GameEvent, MahjongEvent, MinecraftGuessEvent, QiGui523Event,
+    ShengjiDeclarationView, ShengjiEvent, TexasHoldemEvent, UnoEvent,
 };
 use leocard_achievements::{GameFacts, ParticipantId};
+use leocard_doudizhu::achievements::DoudizhuAchievementEvent;
 use leocard_mahjong::achievements::{MahjongAchievementEvent, MahjongHandFacts, MahjongWinFacts};
 use leocard_minecraft_guess::achievements::GuessAchievementEvent;
 use leocard_qigui523::achievements::QiGuiAchievementEvent;
@@ -15,6 +16,13 @@ use leocard_uno::achievements::UnoAchievementEvent;
 impl From<&GameEvent> for GameFacts {
     fn from(event: &GameEvent) -> Self {
         match event {
+            GameEvent::Doudizhu(DoudizhuEvent::ActionAnalyzed { player, statistics }) => {
+                DoudizhuAchievementEvent::ActionAnalyzed {
+                    player: ParticipantId(player.0),
+                    statistics: statistics.clone(),
+                }
+                .into()
+            }
             GameEvent::Mahjong(event) => match event {
                 MahjongEvent::HandFinished { result } => MahjongAchievementEvent::HandFinished {
                     result: MahjongHandFacts {

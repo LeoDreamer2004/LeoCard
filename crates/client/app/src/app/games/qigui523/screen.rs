@@ -2,9 +2,9 @@
 
 use super::super::{GameLobbyContext, GameScreen, GameTableContext};
 use super::{
-    PlayEffectState, QiGui523Assets, QiGui523UiState, TableVisualContext, render_qigui523_lobby,
-    render_table,
+    QiGui523Assets, QiGui523UiState, TableVisualContext, render_qigui523_lobby, render_table,
 };
+use crate::app::presentation::PlayEffectState;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{ScoreCaptureEffectState, SocialUiState};
 use bevy::ecs::system::SystemParam;

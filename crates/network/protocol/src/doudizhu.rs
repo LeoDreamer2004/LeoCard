@@ -1,4 +1,5 @@
 use crate::{MatchId, PlayerId, PlayerPublicState, PlayerReferenceChange};
+use leocard_doudizhu::achievements::DoudizhuAchievementFacts;
 use leocard_doudizhu::{Action, Card, MatchProgress, Phase, Play, ResultView, RuleSet};
 use serde::{Deserialize, Serialize};
 
@@ -11,9 +12,18 @@ pub enum DoudizhuCommand {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum DoudizhuEvent {
-    ActionApplied { player: PlayerId, action: Action },
+    ActionApplied {
+        player: PlayerId,
+        action: Action,
+    },
     Redealt,
-    HandFinished { result: ResultView },
+    HandFinished {
+        result: ResultView,
+    },
+    ActionAnalyzed {
+        player: PlayerId,
+        statistics: Box<DoudizhuAchievementFacts>,
+    },
 }
 
 /// Recipient-specific state. Other hands are sent only after settlement.

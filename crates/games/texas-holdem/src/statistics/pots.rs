@@ -6,6 +6,7 @@ pub(super) struct PotStatistics {
     pub won_chips: u32,
     pub won_pot: u32,
     pub won_side_pot_chips: u32,
+    pub tied_winners: u8,
     pub defeated: HashSet<usize>,
 }
 
@@ -47,6 +48,9 @@ impl PotStatistics {
                     continue;
                 }
                 pots.won_chips += received;
+                if award.winners.len() > 1 {
+                    pots.tied_winners = pots.tied_winners.max(award.winners.len() as u8);
+                }
                 pots.won_pot += award.amount;
                 if pot_index > 0 {
                     pots.won_side_pot_chips += received;

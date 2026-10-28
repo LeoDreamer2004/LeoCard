@@ -1,9 +1,9 @@
 use super::super::super::UiAction;
 use super::super::{
     ProfileGameColumn, ProfileGameContent, ProfileGameTab, ProfileGameTabButton,
-    SelectedProfileGameTab, TAB_IDLE, blackjack_profile_rows, mahjong_profile_rows,
-    minecraft_guess_profile_rows, qigui523_profile_rows, shengji_profile_rows,
-    texas_holdem_profile_rows, uno_profile_rows,
+    SelectedProfileGameTab, TAB_IDLE, blackjack_profile_rows, doudizhu_profile_rows,
+    mahjong_profile_rows, minecraft_guess_profile_rows, qigui523_profile_rows,
+    shengji_profile_rows, texas_holdem_profile_rows, uno_profile_rows,
 };
 use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
@@ -81,6 +81,7 @@ impl<'a> ProfileArchive<'a> {
             ProfileGameTab::Blackjack => {
                 blackjack_profile_rows(self.game_profiles.blackjack.as_ref())
             }
+            ProfileGameTab::Doudizhu => doudizhu_profile_rows(self.game_profiles.doudizhu.as_ref()),
             ProfileGameTab::QiGui523 => qigui523_profile_rows(self.game_profiles.qigui523.as_ref()),
             ProfileGameTab::TexasHoldem => {
                 texas_holdem_profile_rows(self.game_profiles.texas_holdem.as_ref())

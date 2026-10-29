@@ -4,6 +4,11 @@ use bevy::prelude::*;
 
 pub(crate) const DESIGN_WIDTH: f32 = 1280.0;
 pub(crate) const DESIGN_HEIGHT: f32 = 720.0;
+pub(crate) const GAME_SIDE_CONTROL_SCALE: f32 = if cfg!(target_os = "android") {
+    1.5
+} else {
+    1.0
+};
 pub(crate) const HAND_CARD_REVEAL: f32 = 28.0;
 pub(crate) const TABLE_CARD_REVEAL: f32 = 27.0;
 pub(crate) const TABLE_SCORE_CARD_REVEAL: f32 = 8.0;

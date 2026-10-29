@@ -1,3 +1,4 @@
+use super::super::layout::MahjongLayout as Layout;
 use super::super::{
     ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MAHJONG_REMOTE_MELD_WIDTH,
     MahjongAssets, MahjongClaimHeldTile, MahjongDealSpec, MahjongDealTile, MahjongMatchingTileKind,
@@ -77,9 +78,21 @@ pub(crate) fn render_mahjong_staged_meld(
         MahjongTileSize::Mini
     };
     let (group_width, group_height, tile_width, tile_height, tile_overlap) = if own_meld {
-        (MAHJONG_OWN_MELD_WIDTH, 88.0, 56.0, 76.0, -6.0)
+        (
+            MAHJONG_OWN_MELD_WIDTH,
+            Layout::OWN_ROW_HEIGHT,
+            Layout::OWN_WIDTH,
+            Layout::OWN_HEIGHT,
+            Layout::OWN_STEP - Layout::OWN_WIDTH,
+        )
     } else {
-        (MAHJONG_REMOTE_MELD_WIDTH, 54.0, 27.0, 37.0, -3.0)
+        (
+            MAHJONG_REMOTE_MELD_WIDTH,
+            Layout::REMOTE_HEIGHT,
+            Layout::MINI_WIDTH,
+            Layout::MINI_HEIGHT,
+            Layout::MINI_STEP - Layout::MINI_WIDTH,
+        )
     };
     let group = spawn_node(
         commands,
@@ -147,9 +160,9 @@ pub(crate) fn render_mahjong_staged_meld(
     }
     if matches!(claim.claim, MahjongClaim::Kong) {
         let (left, width, height) = if own_meld {
-            (50.0, 56.0, 76.0)
+            (Layout::OWN_STEP, Layout::OWN_WIDTH, Layout::OWN_HEIGHT)
         } else {
-            (24.0, 27.0, 37.0)
+            (Layout::MINI_STEP, Layout::MINI_WIDTH, Layout::MINI_HEIGHT)
         };
         let slot = spawn_node(
             commands,
@@ -213,9 +226,21 @@ pub(crate) fn render_mahjong_meld(
         MahjongTileSize::Mini
     };
     let (group_width, group_height, stack_left, stack_width, stack_height) = if own_meld {
-        (MAHJONG_OWN_MELD_WIDTH, 88.0, 50.0, 56.0, 76.0)
+        (
+            MAHJONG_OWN_MELD_WIDTH,
+            Layout::OWN_ROW_HEIGHT,
+            Layout::OWN_STEP,
+            Layout::OWN_WIDTH,
+            Layout::OWN_HEIGHT,
+        )
     } else {
-        (MAHJONG_REMOTE_MELD_WIDTH, 54.0, 24.0, 27.0, 37.0)
+        (
+            MAHJONG_REMOTE_MELD_WIDTH,
+            Layout::REMOTE_HEIGHT,
+            Layout::MINI_STEP,
+            Layout::MINI_WIDTH,
+            Layout::MINI_HEIGHT,
+        )
     };
     let group = spawn_node(
         commands,
@@ -307,17 +332,40 @@ pub(crate) fn add_mahjong_tile_material(
         relative,
     } = visual;
     let (width, height, overlap) = match size {
-        MahjongTileSize::River
-        | MahjongTileSize::GuideHand
+        MahjongTileSize::River => (
+            Layout::RIVER_WIDTH,
+            Layout::RIVER_HEIGHT,
+            Layout::RIVER_STEP - Layout::RIVER_WIDTH,
+        ),
+        MahjongTileSize::GuideHand
         | MahjongTileSize::GuideMeld
         | MahjongTileSize::GuideConcealedMeld => (33.0, 45.0, -3.0),
         MahjongTileSize::SettlementHand => (46.0, 63.0, -4.0),
-        MahjongTileSize::Mini | MahjongTileSize::MiniConcealedMeld => (27.0, 37.0, -3.0),
-        MahjongTileSize::WinUpright
-        | MahjongTileSize::OwnMeld
-        | MahjongTileSize::OwnConcealedMeld => (56.0, 76.0, -6.0),
-        MahjongTileSize::HiddenSide => (34.0, 46.0, -5.0),
-        MahjongTileSize::HiddenOpposite => (31.0, 42.0, -4.0),
+        MahjongTileSize::Mini | MahjongTileSize::MiniConcealedMeld => (
+            Layout::MINI_WIDTH,
+            Layout::MINI_HEIGHT,
+            Layout::MINI_STEP - Layout::MINI_WIDTH,
+        ),
+        MahjongTileSize::WinUpright => (56.0, 76.0, -6.0),
+        MahjongTileSize::OwnMeld | MahjongTileSize::OwnConcealedMeld => (
+            Layout::OWN_WIDTH,
+            Layout::OWN_HEIGHT,
+            Layout::OWN_STEP - Layout::OWN_WIDTH,
+        ),
+        MahjongTileSize::HiddenSide => {
+            if cfg!(target_os = "android") {
+                (46.0, 62.0, -7.0)
+            } else {
+                (34.0, 46.0, -5.0)
+            }
+        }
+        MahjongTileSize::HiddenOpposite => {
+            if cfg!(target_os = "android") {
+                (42.0, 57.0, -6.0)
+            } else {
+                (31.0, 42.0, -4.0)
+            }
+        }
     };
     let back = kind.is_none();
     let glyph = kind.map_or_else(

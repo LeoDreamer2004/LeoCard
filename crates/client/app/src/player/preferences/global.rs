@@ -17,6 +17,8 @@ pub struct GlobalPreferences {
     pub mahjong_action_voices: bool,
     pub mahjong_fan_voices: bool,
     pub texas_action_voices: bool,
+    pub qigui_action_voices: bool,
+    pub doudizhu_action_voices: bool,
 }
 
 impl Default for GlobalPreferences {
@@ -34,6 +36,8 @@ impl Default for GlobalPreferences {
             mahjong_action_voices: true,
             mahjong_fan_voices: true,
             texas_action_voices: true,
+            qigui_action_voices: true,
+            doudizhu_action_voices: true,
         }
     }
 }

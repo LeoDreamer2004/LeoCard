@@ -46,6 +46,8 @@ pub(crate) struct AppearancePreferences {
     pub mahjong_action_voices: bool,
     pub mahjong_fan_voices: bool,
     pub texas_action_voices: bool,
+    pub qigui_action_voices: bool,
+    pub doudizhu_action_voices: bool,
 }
 
 #[derive(Resource)]
@@ -152,6 +154,8 @@ impl PreferenceResources {
                 mahjong_action_voices: saved.global.mahjong_action_voices,
                 mahjong_fan_voices: saved.global.mahjong_fan_voices,
                 texas_action_voices: saved.global.texas_action_voices,
+                qigui_action_voices: saved.global.qigui_action_voices,
+                doudizhu_action_voices: saved.global.doudizhu_action_voices,
             },
             host_rules: HostRulePreferences {
                 host_rules: normalize_rules(saved.games.qigui523.host_rules),
@@ -332,6 +336,8 @@ pub(crate) fn save_appearance_preferences(
     saved.global.mahjong_action_voices = appearance.mahjong_action_voices;
     saved.global.mahjong_fan_voices = appearance.mahjong_fan_voices;
     saved.global.texas_action_voices = appearance.texas_action_voices;
+    saved.global.qigui_action_voices = appearance.qigui_action_voices;
+    saved.global.doudizhu_action_voices = appearance.doudizhu_action_voices;
     save_global_preferences(&saved.global)
 }
 

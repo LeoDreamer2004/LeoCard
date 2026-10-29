@@ -134,5 +134,7 @@ impl Header<'_> {
         }
         .render(commands, anchor, AVATAR_SIZE, 15.0);
         commands.entity(avatar).insert(GameHeaderAvatar);
+        #[cfg(target_os = "android")]
+        commands.entity(avatar).remove::<UiAction>();
     }
 }

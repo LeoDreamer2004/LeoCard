@@ -2,7 +2,7 @@
 
 [![CI and Release](https://github.com/LeoDreamer2004/LeoCard/actions/workflows/ci.yml/badge.svg)](https://github.com/LeoDreamer2004/LeoCard/actions/workflows/ci.yml)
 
-使用 Rust、Bevy 开发的跨平台局域网棋牌游戏。目前包含七鬼五二三、德州扑克、升级（拖拉机）、UNO 牌及变种、21 点、麻将和 MC 竞猜。
+使用 Rust、Bevy 开发的跨平台局域网棋牌游戏。目前包含七鬼五二三、德州扑克、升级（拖拉机）、UNO 牌及变种、21 点、国标麻将、斗地主和 MC 竞猜。
 
 **本项目完全由 AI 开发，不保证代码质量和可维护性。**——当然，本人也会对质量做整体把关，当明显代码质量不佳时会使用 AI 进行大批量重构 (可以参考 [大幅重构记录](https://github.com/LeoDreamer2004/LeoCard/commit/96c51687c46f9fdf608d6e751f81da2259dce13f))。
 
@@ -14,7 +14,7 @@ cargo run -p leocard-client
 
 开发时客户端会从工作区根目录的 `assets` 加载素材。内嵌文件列表由 `crates/client/runtime-assets.txt` 管理。
 
-自 0.7.0 版本起，本游戏支持 ARM64 的 Android 12 及以上客户端。
+自 0.7.0 版本起，本游戏支持 ARM64 的 Android 12 及以上客户端。自 0.10.2 版本起，本游戏支持 MacOS 客户端。
 
 ## 许可证
 

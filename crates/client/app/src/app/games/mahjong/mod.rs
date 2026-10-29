@@ -9,6 +9,7 @@ mod discard;
 mod fan_guide;
 mod hand;
 mod hover;
+mod layout;
 mod lobby;
 mod material;
 mod modal;

@@ -7,14 +7,16 @@ use super::worker::run_network;
 use crate::ClientModel;
 use leocard_host::{GameSetup, HostSession};
 use leocard_protocol::{
-    ChatMessage, ClientCommand, GameCommand, GameRules, PlayerInteraction, ReconnectToken,
-    Revision, ServerEvent,
+    ChatMessage, ClientCommand, GameCommand, GameRules, PlayerId, PlayerInteraction,
+    ReconnectToken, Revision, ServerEvent, ServerMessage,
 };
 use std::collections::VecDeque;
 use std::io;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
+use tokio::runtime;
+use tokio::sync::mpsc;
 
 const GAME_COMMAND_REPEAT_WINDOW: Duration = Duration::from_millis(500);
 
@@ -93,7 +95,7 @@ impl TcpGameClient {
         launch: NetworkLaunch,
         connecting: String,
     ) -> Result<Self, NetworkStartError> {
-        let (command_tx, command_rx) = tokio::sync::mpsc::channel(COMMAND_QUEUE);
+        let (command_tx, command_rx) = mpsc::channel(COMMAND_QUEUE);
         let events = Arc::new(Mutex::new(VecDeque::new()));
         let mut model = ClientModel::new(NETWORK_ROOM_ID);
         let reconnect_token = ReconnectToken(loop {
@@ -120,10 +122,7 @@ impl TcpGameClient {
         let worker = thread::Builder::new()
             .name("leocard-network".to_owned())
             .spawn(move || {
-                let runtime = match tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                {
+                let runtime = match runtime::Builder::new_current_thread().enable_all().build() {
                     Ok(runtime) => runtime,
                     Err(error) => {
                         push_event(
@@ -237,7 +236,7 @@ impl TcpGameClient {
     /// in the transport or client model.
     pub fn poll_with_events(
         &mut self,
-        mut observe: impl FnMut(Option<leocard_protocol::PlayerId>, &leocard_protocol::ServerMessage),
+        mut observe: impl FnMut(Option<PlayerId>, &ServerMessage),
     ) -> bool {
         let mut changed = false;
         let pending = {

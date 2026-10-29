@@ -1,3 +1,4 @@
+use super::layout::MahjongLayout as Layout;
 use super::tiles::{add_mahjong_hand_tile, mahjong_deal_spec, mahjong_draw_spec};
 use super::{
     ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MahjongAssets, MahjongClaimHandShift,
@@ -92,9 +93,9 @@ pub(super) fn render_own_hand(
         Node {
             position_type: PositionType::Absolute,
             left: px(left),
-            width: px(760),
+            width: px(Layout::OWN_ROW_WIDTH),
             bottom: px(8),
-            height: px(88),
+            height: px(Layout::OWN_ROW_HEIGHT),
             align_items: AlignItems::FlexEnd,
             justify_content: JustifyContent::FlexStart,
             flex_direction: FlexDirection::Row,
@@ -138,7 +139,7 @@ pub(super) fn render_own_hand(
         if separated_index == Some(index) {
             continue;
         }
-        let new_x = left + regular_slot as f32 * 50.0;
+        let new_x = left + regular_slot as f32 * Layout::OWN_STEP;
         regular_slot += 1;
         let result = match &game.phase {
             MahjongPhaseView::Finished { result } => Some(result),
@@ -177,7 +178,7 @@ pub(super) fn render_own_hand(
                 can_discard.then_some(UiAction::Mahjong(MahjongUiAction::Discard(tile))),
                 index,
                 (dealing && !observed_hand.contains(&tile))
-                    .then(|| mahjong_deal_spec(0, index, game.your_hand.len(), 50.0)),
+                    .then(|| mahjong_deal_spec(0, index, game.your_hand.len(), Layout::OWN_STEP)),
                 assets,
                 materials,
             );
@@ -185,7 +186,7 @@ pub(super) fn render_own_hand(
                 add_mahjong_response_indicator(
                     commands,
                     entity,
-                    Vec2::new(56.0, 76.0),
+                    Vec2::new(Layout::OWN_WIDTH, Layout::OWN_HEIGHT),
                     0.0,
                     ui_assets,
                 );
@@ -218,8 +219,8 @@ pub(super) fn render_own_hand(
             commands,
             hand,
             Node {
-                width: px(22),
-                min_width: px(22),
+                width: px(Layout::DRAW_GAP),
+                min_width: px(Layout::DRAW_GAP),
                 height: px(1),
                 ..default()
             },
@@ -241,7 +242,7 @@ pub(super) fn render_own_hand(
                         0,
                         game.your_hand.len().saturating_sub(1),
                         game.your_hand.len(),
-                        50.0,
+                        Layout::OWN_STEP,
                     )
                 })
             },
@@ -249,7 +250,13 @@ pub(super) fn render_own_hand(
             materials,
         );
         if response_tile == Some(tile) {
-            add_mahjong_response_indicator(commands, entity, Vec2::new(56.0, 76.0), 0.0, ui_assets);
+            add_mahjong_response_indicator(
+                commands,
+                entity,
+                Vec2::new(Layout::OWN_WIDTH, Layout::OWN_HEIGHT),
+                0.0,
+                ui_assets,
+            );
         }
         if let Some(waits) = discard_waits
             .as_ref()

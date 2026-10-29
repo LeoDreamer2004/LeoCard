@@ -52,7 +52,24 @@ fn saved_preferences() -> SavedPreferences {
 
 fn legacy_bytes(version: u8, preferences: &SavedPreferences) -> Vec<u8> {
     let mut bytes = format!("LeoCard/prefs/v{version}\0").into_bytes();
-    bytes.extend(postcard::to_allocvec(&preferences.global).unwrap());
+    let global = &preferences.global;
+    bytes.extend(
+        postcard::to_allocvec(&(
+            &global.player_name,
+            &global.avatar_png,
+            &global.host_port,
+            &global.join_address,
+            &global.table_felt_path,
+            global.table_brightness,
+            global.table_vignette,
+            global.audio_volume,
+            global.gender,
+            global.mahjong_action_voices,
+            global.mahjong_fan_voices,
+            global.texas_action_voices,
+        ))
+        .unwrap(),
+    );
     if version == 4 {
         let rules = preferences.games.texas_holdem.host_rules;
         bytes.extend(

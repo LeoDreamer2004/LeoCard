@@ -22,6 +22,8 @@ pub(crate) enum SettingsUiAction {
     ToggleMahjongActionVoices,
     ToggleMahjongFanVoices,
     ToggleTexasActionVoices,
+    ToggleQiGuiActionVoices,
+    ToggleDoudizhuActionVoices,
     ToggleMinecraftGuessBackground,
     ChooseTableFelt,
     UseDefaultTableFelt,
@@ -72,6 +74,18 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
             }
             SettingsUiAction::ToggleTexasActionVoices => {
                 appearance.texas_action_voices = !appearance.texas_action_voices;
+                if let Err(error) = save_appearance_preferences(appearance) {
+                    warn!("{error}");
+                }
+            }
+            SettingsUiAction::ToggleQiGuiActionVoices => {
+                appearance.qigui_action_voices = !appearance.qigui_action_voices;
+                if let Err(error) = save_appearance_preferences(appearance) {
+                    warn!("{error}");
+                }
+            }
+            SettingsUiAction::ToggleDoudizhuActionVoices => {
+                appearance.doudizhu_action_voices = !appearance.doudizhu_action_voices;
                 if let Err(error) = save_appearance_preferences(appearance) {
                     warn!("{error}");
                 }

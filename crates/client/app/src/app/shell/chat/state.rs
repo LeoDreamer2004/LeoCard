@@ -5,6 +5,7 @@ use leocard_protocol::{PlayerId, QUICK_VOICE_COUNT};
 use std::collections::VecDeque;
 
 pub(super) const CHAT_PANEL_WIDTH: f32 = 350.0;
+pub(super) const CHAT_PANEL_HEIGHT: f32 = 340.0;
 /// 将面板本体移出右侧，同时保留其左侧的 32px 折叠箭头。
 pub(super) const CHAT_PANEL_HIDDEN_OFFSET: f32 = CHAT_PANEL_WIDTH + 2.0;
 

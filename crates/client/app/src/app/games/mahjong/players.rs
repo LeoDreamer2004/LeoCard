@@ -462,7 +462,18 @@ pub(super) fn render_mahjong_player_tiles(
                         deal: (dealing
                             && (index >= usize::from(observed_count)
                                 || (flower_replaced && index + 1 == concealed_count)))
-                            .then(|| mahjong_deal_spec(relative, index, concealed_count, 24.0)),
+                            .then(|| {
+                                mahjong_deal_spec(
+                                    relative,
+                                    index,
+                                    concealed_count,
+                                    if cfg!(target_os = "android") {
+                                        mahjong_remote_tile_advance(relative, winning_hand)
+                                    } else {
+                                        24.0
+                                    },
+                                )
+                            }),
                         relative,
                     },
                     game_assets,
@@ -473,9 +484,17 @@ pub(super) fn render_mahjong_player_tiles(
                         commands,
                         entity,
                         if matches!(relative, 1 | 3) {
-                            Vec2::new(34.0, 46.0)
+                            if cfg!(target_os = "android") {
+                                Vec2::new(46.0, 62.0)
+                            } else {
+                                Vec2::new(34.0, 46.0)
+                            }
                         } else {
-                            Vec2::new(31.0, 42.0)
+                            if cfg!(target_os = "android") {
+                                Vec2::new(42.0, 57.0)
+                            } else {
+                                Vec2::new(31.0, 42.0)
+                            }
                         },
                         rotation,
                         ui_assets,
@@ -506,7 +525,18 @@ pub(super) fn render_mahjong_player_tiles(
                         deal: (dealing
                             && (index >= usize::from(observed_count)
                                 || (flower_replaced && index + 1 == concealed_count)))
-                            .then(|| mahjong_deal_spec(relative, index, concealed_count, 24.0)),
+                            .then(|| {
+                                mahjong_deal_spec(
+                                    relative,
+                                    index,
+                                    concealed_count,
+                                    if cfg!(target_os = "android") {
+                                        mahjong_remote_tile_advance(relative, winning_hand)
+                                    } else {
+                                        24.0
+                                    },
+                                )
+                            }),
                         relative,
                     },
                     game_assets,

@@ -1,7 +1,7 @@
-use crate::app::runtime::{CardFace, ClientResource};
+use crate::app::runtime::{AppearancePreferences, CardFace, ClientResource};
 use bevy::audio::Volume;
 use bevy::prelude::*;
-use leocard_protocol::{GameEventContext, MatchId, PlayerGender};
+use leocard_protocol::{GameEventContext, GameKind, MatchId, PlayerGender};
 use std::collections::HashMap;
 
 #[derive(Clone, Copy)]
@@ -188,16 +188,30 @@ pub(crate) fn sync_card_voices(
 }
 
 pub(crate) fn play_card_voices(
+    client: Option<Res<ClientResource>>,
+    preferences: Res<AppearancePreferences>,
     mut voices: ResMut<CardVoices>,
     playing: Query<Entity, With<CardVoicePlayback>>,
     mut commands: Commands,
 ) {
-    let Some(sound) = voices.pending.take() else {
+    let enabled = client
+        .as_deref()
+        .and_then(|client| client.0.model().game_snapshot())
+        .is_some_and(|game| match game.kind() {
+            GameKind::QiGui523 => preferences.qigui_action_voices,
+            GameKind::Doudizhu => preferences.doudizhu_action_voices,
+            _ => false,
+        });
+    let sound = voices.pending.take().filter(|_| enabled);
+    if enabled && sound.is_none() {
         return;
-    };
+    }
     for entity in &playing {
         commands.entity(entity).despawn();
     }
+    let Some(sound) = sound else {
+        return;
+    };
     commands.spawn((
         AudioPlayer::new(sound),
         PlaybackSettings {

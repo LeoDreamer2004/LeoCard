@@ -1,3 +1,4 @@
+use super::layout::MahjongLayout as Layout;
 use super::{
     MahjongActionPrompt, MahjongAssets, MahjongChoiceMenu, MahjongTileHighlight,
     MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongUiAction, MahjongUiState,
@@ -45,10 +46,14 @@ pub(super) fn render_action_bar(
         table,
         Node {
             position_type: PositionType::Absolute,
-            left: px(240),
-            right: px(240),
-            bottom: px(104),
-            min_height: px(54),
+            left: px(if cfg!(target_os = "android") { 80 } else { 240 }),
+            right: px(if cfg!(target_os = "android") { 80 } else { 240 }),
+            bottom: px(if cfg!(target_os = "android") {
+                138
+            } else {
+                104
+            }),
+            min_height: px(Layout::BUTTON_HEIGHT),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             column_gap: px(8),
@@ -238,7 +243,11 @@ fn add_choice_button(
             position_type: PositionType::Absolute,
             left: px(-38),
             bottom: px(62),
-            width: px(240),
+            width: px(if cfg!(target_os = "android") {
+                320
+            } else {
+                240
+            }),
             padding: UiRect::all(px(12)),
             flex_direction: FlexDirection::Column,
             row_gap: px(5),
@@ -255,7 +264,7 @@ fn add_choice_button(
                 UiAction::Mahjong(choice.action),
                 Node {
                     width: percent(100),
-                    height: px(57),
+                    height: px(if cfg!(target_os = "android") { 76 } else { 57 }),
                     padding: UiRect::axes(px(9), px(5)),
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::SpaceBetween,
@@ -274,7 +283,7 @@ fn add_choice_button(
             commands,
             row,
             Node {
-                height: px(45),
+                height: px(if cfg!(target_os = "android") { 62 } else { 45 }),
                 align_items: AlignItems::Center,
                 ..default()
             },
@@ -315,8 +324,8 @@ fn add_mahjong_button(
         commands,
         bar,
         Node {
-            width: px(164),
-            height: px(54),
+            width: px(Layout::BUTTON_WIDTH),
+            height: px(Layout::BUTTON_HEIGHT),
             overflow: Overflow::visible(),
             ..default()
         },
@@ -342,8 +351,8 @@ fn add_mahjong_button(
             Button,
             UiAction::Mahjong(action),
             Node {
-                width: px(164),
-                height: px(54),
+                width: px(Layout::BUTTON_WIDTH),
+                height: px(Layout::BUTTON_HEIGHT),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 ..default()
@@ -367,7 +376,7 @@ fn add_mahjong_button(
             Pickable::IGNORE,
         ),
     );
-    let text = add_text(commands, button, label, 20.0, TEXT, assets);
+    let text = add_text(commands, button, label, Layout::BUTTON_FONT, TEXT, assets);
     commands.entity(text).insert(Pickable::IGNORE);
     commands.entity(button).insert(ButtonHighlight {
         overlay,

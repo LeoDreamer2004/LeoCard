@@ -24,6 +24,8 @@ fn preferences_round_trip_including_avatar() {
             mahjong_action_voices: false,
             mahjong_fan_voices: true,
             texas_action_voices: false,
+            qigui_action_voices: false,
+            doudizhu_action_voices: true,
         },
         games: GamePreferences {
             qigui523: QiGui523Preferences {

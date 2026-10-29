@@ -1,6 +1,7 @@
 //! 麻将房间、牌桌、动作按钮和结算视图。
 
 use super::actions::MahjongUiAction;
+use super::layout::MahjongLayout as Layout;
 use super::tiles::queue_mahjong_deal_sound;
 use super::{
     MAHJONG_WIN_PUSH_DURATION, MahjongActionPrompt, MahjongActionVoice, MahjongAssets,
@@ -44,36 +45,64 @@ pub(super) const MAHJONG_CLAIM_FLIGHT_DURATION: f32 = 0.52;
 pub(super) const MAHJONG_CLAIM_HAND_SHIFT_DURATION: f32 = 0.34;
 pub(super) const MAHJONG_CLAIM_PRESENTATION_DURATION: f32 = 1.42;
 pub(super) const MAHJONG_FLOWER_PRESENTATION_DURATION: f32 = 1.18;
-pub(super) const MAHJONG_OWN_MELD_WIDTH: f32 = 158.0;
-pub(super) const MAHJONG_REMOTE_MELD_WIDTH: f32 = 78.0;
-pub(super) const MAHJONG_REMOTE_DRAW_GAP: f32 = 14.0;
+pub(super) const MAHJONG_OWN_MELD_WIDTH: f32 = if cfg!(target_os = "android") {
+    218.0
+} else {
+    158.0
+};
+pub(super) const MAHJONG_REMOTE_MELD_WIDTH: f32 = if cfg!(target_os = "android") {
+    104.0
+} else {
+    78.0
+};
+pub(super) const MAHJONG_REMOTE_DRAW_GAP: f32 = if cfg!(target_os = "android") {
+    20.0
+} else {
+    14.0
+};
 
 pub(super) fn mahjong_own_row_left(meld_count: usize, regular_tile_count: usize) -> f32 {
     let tile_width = if regular_tile_count == 0 {
         0.0
     } else {
-        regular_tile_count as f32 * 50.0 + 6.0
+        regular_tile_count as f32 * Layout::OWN_STEP + Layout::OWN_WIDTH - Layout::OWN_STEP
     };
     (DESIGN_WIDTH - meld_count as f32 * MAHJONG_OWN_MELD_WIDTH - tile_width) / 2.0
 }
 
 pub(super) const fn mahjong_remote_tile_advance(relative: u8, revealed: bool) -> f32 {
     if revealed {
-        24.0
+        Layout::MINI_STEP
     } else if relative == 2 {
-        27.0
+        if cfg!(target_os = "android") {
+            36.0
+        } else {
+            27.0
+        }
     } else {
-        29.0
+        if cfg!(target_os = "android") {
+            39.0
+        } else {
+            29.0
+        }
     }
 }
 
 pub(super) const fn mahjong_remote_tile_overhang(relative: u8, mini: bool) -> f32 {
     if mini {
-        3.0
+        Layout::MINI_WIDTH - Layout::MINI_STEP
     } else if relative == 2 {
-        4.0
+        if cfg!(target_os = "android") {
+            6.0
+        } else {
+            4.0
+        }
     } else {
-        5.0
+        if cfg!(target_os = "android") {
+            7.0
+        } else {
+            5.0
+        }
     }
 }
 
@@ -699,7 +728,9 @@ pub(crate) fn render_mahjong_table(
             .position(|winner| mahjong_win_effect_tier(winner) == MahjongWinEffectTier::MajorFan)
             .map(|index| mahjong_win_stage_start(result, index) + 0.78)
     });
-    render_mahjong_wall(commands, table, game.wall_len, game_assets, tile_materials);
+    if !cfg!(target_os = "android") {
+        render_mahjong_wall(commands, table, game.wall_len, game_assets, tile_materials);
+    }
     let action_prompt = MahjongActionPrompt::from_snapshot(game, ui);
     let response_tile = action_prompt.and_then(MahjongActionPrompt::response_tile);
     render_discard_rivers(

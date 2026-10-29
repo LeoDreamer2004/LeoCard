@@ -1,7 +1,7 @@
 use super::super::*;
 use super::controls::{add_auto_play_toggle, add_auxiliary_actions, add_chat_toggle};
 use super::menus::{add_emoji_menu, add_quick_voice_menu};
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
 use bevy::picking::Pickable;
@@ -17,6 +17,7 @@ pub(crate) struct ChatAuxiliaryAction {
     pub highlighted: bool,
 }
 
+/// Returns the side-control anchor, including its slide and platform-specific scale.
 pub(crate) fn add_chat_panel(
     commands: &mut UiComposer,
     parent: Entity,
@@ -26,11 +27,12 @@ pub(crate) fn add_chat_panel(
     auxiliary_actions: &[ChatAuxiliaryAction],
 ) -> Entity {
     let panel = spawn_chat_panel(commands, parent, chat, assets);
-    add_chat_toggle(commands, panel, chat, assets);
+    let controls = spawn_side_controls(commands, panel);
+    add_chat_toggle(commands, controls, chat, assets);
     if let Some(enabled) = auto_play {
-        add_auto_play_toggle(commands, panel, enabled, assets);
+        add_auto_play_toggle(commands, controls, enabled, assets);
     }
-    add_auxiliary_actions(commands, panel, auxiliary_actions, assets);
+    add_auxiliary_actions(commands, controls, auxiliary_actions, assets);
     add_chat_history(commands, panel, chat, assets);
     if chat.read_only {
         add_text(commands, panel, "观战中，仅查看聊天", 13.0, MUTED, assets);
@@ -39,7 +41,41 @@ pub(crate) fn add_chat_panel(
         add_quick_voice_menu(commands, panel, chat, assets);
         add_emoji_menu(commands, panel, chat, assets);
     }
-    panel
+    controls
+}
+
+fn spawn_side_controls(commands: &mut UiComposer, panel: Entity) -> Entity {
+    let anchor = spawn_node(
+        commands,
+        panel,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(0),
+            bottom: px(0),
+            width: px(0),
+            height: px(0),
+            ..default()
+        },
+        None,
+    );
+    commands
+        .entity(anchor)
+        .insert(UiTransform::from_scale(Vec2::splat(
+            GAME_SIDE_CONTROL_SCALE,
+        )));
+    spawn_node(
+        commands,
+        anchor,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(0),
+            bottom: px(0),
+            width: px(0),
+            height: px(CHAT_PANEL_HEIGHT),
+            ..default()
+        },
+        None,
+    )
 }
 
 pub(super) fn spawn_chat_panel(
@@ -58,9 +94,9 @@ pub(super) fn spawn_chat_panel(
             width: px(CHAT_PANEL_WIDTH),
             min_width: px(CHAT_PANEL_WIDTH),
             max_width: px(CHAT_PANEL_WIDTH),
-            height: px(340),
-            min_height: px(340),
-            max_height: px(340),
+            height: px(CHAT_PANEL_HEIGHT),
+            min_height: px(CHAT_PANEL_HEIGHT),
+            max_height: px(CHAT_PANEL_HEIGHT),
             flex_shrink: 0.0,
             padding: UiRect::all(px(14)),
             flex_direction: FlexDirection::Column,

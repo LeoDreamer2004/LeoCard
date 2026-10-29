@@ -1,3 +1,4 @@
+use super::super::layout::MahjongLayout as Layout;
 use super::super::{
     MAHJONG_CLAIM_FLIGHT_DELAY, MAHJONG_CLAIM_FLIGHT_DURATION, MAHJONG_CLAIM_HAND_SHIFT_DURATION,
     MAHJONG_CLAIM_PRESENTATION_DURATION, MAHJONG_FLOWER_PRESENTATION_DURATION, MahjongAssets,
@@ -46,7 +47,14 @@ impl MahjongSeatGeometry {
             .map(|candidate| (candidate.seat.0 + 4 - self.own_seat) % 4)
     }
 
-    pub(super) const fn river_anchor(relative: u8) -> Vec2 {
+    pub(super) fn river_anchor(relative: u8) -> Vec2 {
+        if cfg!(target_os = "android") {
+            return Layout::river_origin(relative)
+                + Vec2::new(
+                    Layout::RIVER_ROWS_WIDTH / 2.0,
+                    Layout::RIVER_ROWS_HEIGHT / 2.0,
+                );
+        }
         match relative {
             0 => Vec2::new(640.0, 430.0),
             1 => Vec2::new(805.0, 335.0),
@@ -151,9 +159,9 @@ pub(crate) fn render_mahjong_claim_presentation(
             start_angle: MahjongSeatGeometry::angle(source_relative),
             target_angle: MahjongSeatGeometry::angle(target_relative),
             target_scale: if target_relative == 0 {
-                56.0 / 33.0
+                Layout::OWN_WIDTH / Layout::RIVER_WIDTH
             } else {
-                27.0 / 33.0
+                Layout::MINI_WIDTH / Layout::RIVER_WIDTH
             },
         };
         let tile = add_mahjong_tile_material(

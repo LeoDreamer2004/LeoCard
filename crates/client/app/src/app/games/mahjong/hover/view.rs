@@ -1,3 +1,4 @@
+use super::super::layout::MahjongLayout as Layout;
 use super::super::{
     MahjongAssets, MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
     add_mahjong_tile_material,
@@ -25,8 +26,8 @@ pub(in super::super) fn add_mahjong_wait_popup(
         hand_tile,
         waits,
         Node {
-            left: px((50.0 - width) * 0.5),
-            bottom: px(76),
+            left: px((Layout::OWN_STEP - width) * 0.5),
+            bottom: px(Layout::OWN_HEIGHT),
             ..default()
         },
         game_assets,

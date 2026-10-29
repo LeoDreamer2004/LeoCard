@@ -1,5 +1,6 @@
 //! 自己弃牌后，牌河飞行与手牌补位共用一段动画进度。
 
+use super::layout::MahjongLayout as Layout;
 use super::{
     MahjongAssets, MahjongHandTile, MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize,
     MahjongTileVisual, MahjongUiState, add_mahjong_tile_material, mahjong_own_row_left,
@@ -12,7 +13,7 @@ use leocard_protocol::{MahjongSnapshot, PlayerId};
 use leocard_ui::UiComposer;
 
 const DISCARD_DURATION: f32 = 0.48;
-const HAND_TILE_ADVANCE: f32 = 50.0;
+const HAND_TILE_ADVANCE: f32 = Layout::OWN_STEP;
 
 #[derive(Component)]
 pub(crate) struct MahjongTableRoot;
@@ -49,12 +50,18 @@ impl MahjongOwnDiscardAnimation {
     }
 
     fn flight_transform(&self, source_x: f32, target: Vec2, table_height: f32) -> UiTransform {
-        let source_center = Vec2::new(source_x + 28.0, table_height - 8.0 - 38.0);
-        let target_center = target + Vec2::new(16.5, 22.5);
+        let source_center = Vec2::new(
+            source_x + Layout::OWN_WIDTH / 2.0,
+            table_height - 8.0 - Layout::OWN_HEIGHT / 2.0,
+        );
+        let target_center =
+            target + Vec2::new(Layout::RIVER_WIDTH / 2.0, Layout::RIVER_HEIGHT / 2.0);
         let offset = (source_center - target_center) * (1.0 - self.movement());
         UiTransform {
             translation: Val2::px(offset.x, offset.y),
-            scale: Vec2::splat(1.0 + (56.0 / 33.0 - 1.0) * (1.0 - self.movement())),
+            scale: Vec2::splat(
+                1.0 + (Layout::OWN_WIDTH / Layout::RIVER_WIDTH - 1.0) * (1.0 - self.movement()),
+            ),
             ..default()
         }
     }
@@ -68,7 +75,7 @@ impl MahjongOwnDiscardAnimation {
         let left = mahjong_own_row_left(self.old_meld_count, regular_count)
             + self.old_meld_count as f32 * super::MAHJONG_OWN_MELD_WIDTH;
         if drawn_index == Some(index) {
-            Some(left + regular_count as f32 * HAND_TILE_ADVANCE + 22.0)
+            Some(left + regular_count as f32 * HAND_TILE_ADVANCE + Layout::DRAW_GAP)
         } else {
             let regular_index = index - usize::from(drawn_index.is_some_and(|drawn| drawn < index));
             Some(left + regular_index as f32 * HAND_TILE_ADVANCE)
@@ -76,10 +83,12 @@ impl MahjongOwnDiscardAnimation {
     }
 
     fn river_position(&self) -> Vec2 {
-        Vec2::new(
-            549.0 + (self.river_slot % 6) as f32 * 30.0,
-            382.0 + (self.river_slot / 6) as f32 * 42.0,
-        )
+        Layout::river_origin(0)
+            + Vec2::new(
+                (self.river_slot % Layout::RIVER_COLUMNS) as f32 * Layout::RIVER_STEP,
+                (self.river_slot / Layout::RIVER_COLUMNS) as f32
+                    * (Layout::RIVER_HEIGHT + Layout::RIVER_STEP - Layout::RIVER_WIDTH),
+            )
     }
 }
 

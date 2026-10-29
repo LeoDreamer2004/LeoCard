@@ -50,7 +50,10 @@ impl<'a> Header<'a> {
                 width: percent(100),
                 height: px(72),
                 border: UiRect::bottom(px(2)),
-                padding: UiRect::axes(px(24), px(5)),
+                padding: UiRect {
+                    right: px(if cfg!(target_os = "android") { 48 } else { 24 }),
+                    ..UiRect::axes(px(24), px(5))
+                },
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::SpaceBetween,
                 ..default()

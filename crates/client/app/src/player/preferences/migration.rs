@@ -38,6 +38,8 @@ impl From<LegacyGlobalPreferences> for GlobalPreferences {
             mahjong_action_voices: previous.mahjong_action_voices,
             mahjong_fan_voices: previous.mahjong_fan_voices,
             texas_action_voices: previous.texas_action_voices,
+            qigui_action_voices: true,
+            doudizhu_action_voices: true,
         }
     }
 }

@@ -26,7 +26,7 @@ env:
 jobs:
   test:
     name: Test workspace
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Check out source
@@ -86,17 +86,14 @@ jobs:
       matrix:
         include:
           - name: Linux x86_64
-            os: ubuntu-22.04
+            os: ubuntu-latest
             artifact: leocard-linux-x86_64
           - name: Windows x86_64
-            os: windows-2022
+            os: windows-latest
             artifact: leocard-windows-x86_64.exe
           - name: macOS Apple Silicon
-            os: macos-15
+            os: macos-latest
             artifact: leocard-macos-arm64.zip
-          - name: macOS Intel
-            os: macos-15-intel
-            artifact: leocard-macos-x86_64.zip
 
     steps:
       - name: Check out source
@@ -130,6 +127,7 @@ jobs:
       - name: Configure macOS builds
         if: runner.os == 'macOS'
         run: |
+          test "$(uname -m)" = arm64
           echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> "$GITHUB_ENV"
           echo "CARGO_BUILD_JOBS=2" >> "$GITHUB_ENV"
 
@@ -183,7 +181,7 @@ jobs:
 
   android:
     name: Build Android ARM64
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
       LEOCARD_ROOT: ${{ github.workspace }}
@@ -339,7 +337,6 @@ jobs:
             leocard-linux-x86_64 \
             leocard-windows-x86_64.exe \
             leocard-macos-arm64.zip \
-            leocard-macos-x86_64.zip \
             leocard-android-arm64.apk; do
             test -s "$asset"
             sha256sum --check "$asset.sha256"

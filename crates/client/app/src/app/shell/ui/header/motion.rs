@@ -1,7 +1,15 @@
-use super::state::{GameHeaderAvatar, GameHeaderItem, GameHeaderMotion};
+#[cfg(target_os = "android")]
+use super::input::handle_header_taps;
+#[cfg(not(target_os = "android"))]
+use super::state::GameHeaderAvatar;
+use super::state::{GameHeaderItem, GameHeaderMotion};
 use crate::app::runtime::ClientUpdateSet;
+#[cfg(target_os = "android")]
+use crate::app::shell::UiActionSet;
+#[cfg(not(target_os = "android"))]
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
+#[cfg(not(target_os = "android"))]
 use bevy::window::PrimaryWindow;
 use leocard_ui::{TransitionVisuals, UiComposer, fade_panel, update_button_highlights};
 
@@ -16,11 +24,25 @@ impl Plugin for GameHeaderPlugin {
                 .after(update_button_highlights)
                 .in_set(ClientUpdateSet::Animate),
         );
+        #[cfg(not(target_os = "android"))]
+        app.add_systems(
+            Update,
+            track_header_hover
+                .before(advance_header)
+                .in_set(ClientUpdateSet::Animate),
+        );
+        #[cfg(target_os = "android")]
+        app.add_systems(
+            Update,
+            handle_header_taps
+                .before(UiActionSet)
+                .in_set(ClientUpdateSet::Input),
+        );
     }
 }
 
-fn advance_header(
-    time: Res<Time>,
+#[cfg(not(target_os = "android"))]
+fn track_header_hover(
     windows: Query<&Window, With<PrimaryWindow>>,
     avatars: Query<&PickingInteraction, With<GameHeaderAvatar>>,
     mut headers: Query<(&mut GameHeaderMotion, &ComputedNode, &UiGlobalTransform)>,
@@ -37,11 +59,18 @@ fn advance_header(
     for (mut motion, node, transform) in &mut headers {
         let inside = cursor.is_some_and(|point| node.contains_point(*transform, point));
         let expanded = hovered || motion.expanded && inside;
-        let direction = if expanded { 1.0 } else { -1.0 };
+        if motion.expanded != expanded {
+            motion.expanded = expanded;
+        }
+    }
+}
+
+fn advance_header(time: Res<Time>, mut headers: Query<&mut GameHeaderMotion>) {
+    for mut motion in &mut headers {
+        let direction = if motion.expanded { 1.0 } else { -1.0 };
         let progress = (motion.progress + direction * time.delta_secs().min(1.0 / 30.0) / 0.28)
             .clamp(0.0, 1.0);
-        if motion.expanded != expanded || motion.progress != progress {
-            motion.expanded = expanded;
+        if motion.progress != progress {
             motion.progress = progress;
         }
     }

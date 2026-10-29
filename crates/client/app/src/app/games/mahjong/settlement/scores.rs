@@ -110,6 +110,11 @@ impl ScoreStageView<'_> {
                 2 => (637.0, 281.0, Vec2::new(0.0, -38.0), consts::PI),
                 _ => (575.0, 317.0, Vec2::new(-38.0, 0.0), consts::FRAC_PI_2),
             };
+            let top = if cfg!(target_os = "android") {
+                top - 36.0
+            } else {
+                top
+            };
             let color = if delta > 0 {
                 READY
             } else if delta < 0 {

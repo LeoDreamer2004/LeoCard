@@ -1,3 +1,4 @@
+use super::layout::MahjongLayout as Layout;
 use super::{
     MahjongAssets, MahjongDealSpec, MahjongDealTile, MahjongDiscardHandShift, MahjongHandTile,
     MahjongHoverHandKind, MahjongTileMaterial, MahjongUiState, mahjong_local_light,
@@ -93,10 +94,10 @@ pub(super) fn add_mahjong_hand_tile(
             Button,
             MahjongHoverHandKind(kind),
             Node {
-                width: px(56),
-                height: px(76),
-                min_width: px(56),
-                margin: UiRect::right(px(-6)),
+                width: px(Layout::OWN_WIDTH),
+                height: px(Layout::OWN_HEIGHT),
+                min_width: px(Layout::OWN_WIDTH),
+                margin: UiRect::right(px(Layout::OWN_STEP - Layout::OWN_WIDTH)),
                 overflow: Overflow::visible(),
                 ..default()
             },

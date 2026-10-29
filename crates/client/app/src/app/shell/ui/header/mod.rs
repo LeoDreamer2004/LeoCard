@@ -1,4 +1,6 @@
 mod game;
+#[cfg(target_os = "android")]
+mod input;
 mod motion;
 mod page;
 mod state;

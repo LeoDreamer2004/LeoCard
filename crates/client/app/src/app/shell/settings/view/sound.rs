@@ -52,23 +52,34 @@ pub(super) fn render_sound_settings(
     ] {
         add_settings_toggle(commands, row, label, selected, action, assets);
     }
-    add_text(commands, parent, "德州扑克", 20.0, TEXT, assets);
-    let texas_row = spawn_node(
-        commands,
-        parent,
-        Node {
-            width: percent(100),
-            flex_direction: FlexDirection::Row,
-            ..default()
-        },
-        None,
-    );
-    add_settings_toggle(
-        commands,
-        texas_row,
-        "行动语音",
-        form.texas_action_voices,
-        SettingsUiAction::ToggleTexasActionVoices,
-        assets,
-    );
+    for (title, selected, action) in [
+        (
+            "德州扑克",
+            form.texas_action_voices,
+            SettingsUiAction::ToggleTexasActionVoices,
+        ),
+        (
+            "七鬼五二三",
+            form.qigui_action_voices,
+            SettingsUiAction::ToggleQiGuiActionVoices,
+        ),
+        (
+            "斗地主",
+            form.doudizhu_action_voices,
+            SettingsUiAction::ToggleDoudizhuActionVoices,
+        ),
+    ] {
+        add_text(commands, parent, title, 20.0, TEXT, assets);
+        let row = spawn_node(
+            commands,
+            parent,
+            Node {
+                width: percent(100),
+                flex_direction: FlexDirection::Row,
+                ..default()
+            },
+            None,
+        );
+        add_settings_toggle(commands, row, "行动语音", selected, action, assets);
+    }
 }

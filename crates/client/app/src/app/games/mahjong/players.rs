@@ -1,3 +1,4 @@
+use super::layout::MahjongLayout as Layout;
 use super::tiles::{mahjong_deal_spec, mahjong_draw_spec};
 use super::{
     ActiveMahjongClaimPresentation, MAHJONG_REMOTE_DRAW_GAP, MAHJONG_REMOTE_MELD_WIDTH,
@@ -292,12 +293,19 @@ pub(super) fn render_mahjong_player_tiles(
             ),
             None,
             Some(8.0),
-            760.0,
-            88.0,
+            Layout::OWN_ROW_WIDTH,
+            Layout::OWN_ROW_HEIGHT,
             0.0,
         ),
+        1 if cfg!(target_os = "android") => {
+            (810.0, Some(284.0), None, 600.0, 72.0, -consts::FRAC_PI_2)
+        }
         1 => (840.0, Some(302.0), None, 450.0, 54.0, -consts::FRAC_PI_2),
+        2 if cfg!(target_os = "android") => (340.0, Some(12.0), None, 600.0, 72.0, consts::PI),
         2 => (415.0, Some(56.0), None, 450.0, 54.0, consts::PI),
+        _ if cfg!(target_os = "android") => {
+            (-130.0, Some(284.0), None, 600.0, 72.0, consts::FRAC_PI_2)
+        }
         _ => (-10.0, Some(302.0), None, 450.0, 54.0, consts::FRAC_PI_2),
     };
     let group = spawn_node(
@@ -569,7 +577,7 @@ pub(super) fn render_mahjong_player_tiles(
                     add_mahjong_response_indicator(
                         commands,
                         entity,
-                        Vec2::new(33.0, 45.0),
+                        Vec2::new(Layout::RIVER_WIDTH, Layout::RIVER_HEIGHT),
                         rotation,
                         ui_assets,
                     );
@@ -631,11 +639,13 @@ pub(super) fn render_discard_rivers(
     };
     for player in &game.players {
         let relative = (player.seat.0 + 4 - own_seat) % 4;
-        let (left, top, rotation) = match relative {
-            0 => (549.0, 382.0, 0.0),
-            1 => (735.0, 245.0, -consts::FRAC_PI_2),
-            2 => (533.0, 150.0, consts::PI),
-            _ => (331.0, 245.0, consts::FRAC_PI_2),
+        let origin = Layout::river_origin(relative);
+        let (left, top) = (origin.x, origin.y);
+        let rotation = match relative {
+            0 => 0.0,
+            1 => -consts::FRAC_PI_2,
+            2 => consts::PI,
+            _ => consts::FRAC_PI_2,
         };
         let river = spawn_node(
             commands,
@@ -644,12 +654,12 @@ pub(super) fn render_discard_rivers(
                 position_type: PositionType::Absolute,
                 left: px(left),
                 top: px(top),
-                width: px(182),
-                height: px(126),
+                width: px(Layout::RIVER_ROWS_WIDTH),
+                height: px(Layout::RIVER_ROWS_HEIGHT),
                 align_content: AlignContent::FlexStart,
                 flex_direction: FlexDirection::Row,
                 flex_wrap: FlexWrap::Wrap,
-                row_gap: px(-3),
+                row_gap: px(Layout::RIVER_STEP - Layout::RIVER_WIDTH),
                 overflow: Overflow::visible(),
                 ..default()
             },
@@ -692,7 +702,7 @@ pub(super) fn render_discard_rivers(
                 add_mahjong_response_indicator(
                     commands,
                     entity,
-                    Vec2::new(33.0, 45.0),
+                    Vec2::new(Layout::RIVER_WIDTH, Layout::RIVER_HEIGHT),
                     rotation,
                     ui_assets,
                 );

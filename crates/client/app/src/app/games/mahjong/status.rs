@@ -9,7 +9,11 @@ use leocard_ui::{UiComposer, spawn_node};
 use std::{array, f32::consts};
 
 const STATUS_LEFT: f32 = 570.0;
-const STATUS_TOP: f32 = 276.0;
+const STATUS_TOP: f32 = if cfg!(target_os = "android") {
+    240.0
+} else {
+    276.0
+};
 const STATUS_WIDTH: u32 = 140;
 const STATUS_HEIGHT: u32 = 104;
 const INNER_LEFT: f32 = 24.0;

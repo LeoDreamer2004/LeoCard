@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 
 pub struct SwitchDrawerStyle<'a> {
+    pub scale: f32,
     pub font: &'a Handle<Font>,
     pub background: ImageNode,
     pub checkbox: Handle<Image>,
@@ -37,13 +38,30 @@ pub fn spawn_switch_drawer<A: Component + Clone>(
     style: &SwitchDrawerStyle,
 ) -> Entity {
     let expanded = spec.expanded;
-    let drawer = spawn_node(
+    // A zero-sized anchor scales around the viewport edge, keeping the drawer flush with it.
+    let anchor = spawn_node(
         commands,
         viewport,
         Node {
             position_type: PositionType::Absolute,
             left: px(0),
             bottom: px(82),
+            width: px(0),
+            height: px(0),
+            ..default()
+        },
+        None,
+    );
+    commands
+        .entity(anchor)
+        .insert(UiTransform::from_scale(Vec2::splat(style.scale)));
+    let drawer = spawn_node(
+        commands,
+        anchor,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(0),
+            bottom: px(0),
             width: px(if expanded { 142 } else { 38 }),
             padding: UiRect::axes(px(if expanded { 13 } else { 3 }), px(10)),
             flex_direction: FlexDirection::Column,

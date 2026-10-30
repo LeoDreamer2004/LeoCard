@@ -37,7 +37,8 @@ pub(super) async fn complete_handshake(
                 }
                 ServerEvent::LobbySnapshot(snapshot) => joined.is_some() && snapshot.host.is_some(),
                 ServerEvent::GameSnapshot(snapshot) => {
-                    joined == Some(snapshot.you()) && rules == Some(snapshot.kind())
+                    // A spectator's identity differs from the player whose view is streamed.
+                    joined.is_some() && rules == Some(snapshot.kind())
                 }
                 _ => false,
             };

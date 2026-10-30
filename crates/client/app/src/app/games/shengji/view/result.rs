@@ -221,13 +221,15 @@ fn add_shengji_settlement_modal(
     avatars: &AvatarImages,
     animation: &ShengjiSettlementAnimation,
 ) {
+    let columns = if game.players.len() > 4 { 2 } else { 1 };
+    let inset = if columns == 2 { 18.0 } else { 25.0 };
     let modal = spawn_node(
         commands,
         table,
         Node {
             position_type: PositionType::Absolute,
-            left: percent(25),
-            right: percent(25),
+            left: percent(inset),
+            right: percent(inset),
             top: percent(37),
             height: percent(50),
             min_height: px(300),
@@ -281,9 +283,11 @@ fn add_shengji_settlement_modal(
         commands,
         modal,
         Node {
+            display: Display::Grid,
             width: percent(100),
             flex_grow: 1.0,
-            flex_direction: FlexDirection::Column,
+            grid_template_columns: RepeatedGridTrack::flex(columns, 1.0),
+            column_gap: px(12),
             row_gap: px(4),
             ..default()
         },
@@ -299,6 +303,7 @@ fn add_shengji_settlement_modal(
             list,
             Node {
                 width: percent(100),
+                min_width: px(0),
                 min_height: px(38),
                 padding: UiRect::axes(px(9), px(4)),
                 align_items: AlignItems::Center,

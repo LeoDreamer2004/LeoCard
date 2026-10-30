@@ -6,6 +6,7 @@ mod interaction;
 mod menu;
 mod plugin;
 mod score_capture;
+mod spectator;
 mod state;
 
 pub(crate) use actions::*;
@@ -14,4 +15,5 @@ pub(crate) use interaction::*;
 pub(crate) use menu::*;
 pub(super) use plugin::*;
 pub(crate) use score_capture::*;
+pub(crate) use spectator::*;
 pub(crate) use state::*;

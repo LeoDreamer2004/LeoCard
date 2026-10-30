@@ -46,6 +46,11 @@ pub(crate) fn add_cozy_switch(
         (
             CozySwitch { selected, enabled },
             CustomButtonMotion,
+            if enabled {
+                Pickable::default()
+            } else {
+                Pickable::IGNORE
+            },
             Node {
                 width: px(56),
                 height: px(30),
@@ -58,8 +63,6 @@ pub(crate) fn add_cozy_switch(
     );
     if let Some(action) = action {
         commands.entity(switch).insert((Button, action));
-    } else {
-        commands.entity(switch).insert(Pickable::IGNORE);
     }
     commands.child(
         switch,

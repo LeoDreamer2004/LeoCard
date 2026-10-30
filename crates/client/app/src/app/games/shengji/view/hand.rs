@@ -122,6 +122,7 @@ fn add_shengji_hand_card(
             ShengjiHandCardSlot { card, index },
             UiAction::Shengji(ShengjiUiAction::ToggleCard),
             RelativeCursorPosition::default(),
+            GlobalZIndex(index as i32 + 1),
             Node {
                 width: px(if is_last {
                     width
@@ -171,7 +172,6 @@ fn add_shengji_hand_card(
             BorderColor::all(highlight.border()),
             highlight.outline(),
             highlight.shadow(),
-            GlobalZIndex(index as i32 + 1),
             Pickable::IGNORE,
         ),
     );

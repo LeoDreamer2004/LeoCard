@@ -85,6 +85,14 @@ pub(super) fn completed(trigger: &AchievementTrigger, deck_count: u8) -> u64 {
     hand(trigger, |facts| facts.deck_count == deck_count)
 }
 
+pub(super) fn first_cut(trigger: &AchievementTrigger) -> u64 {
+    u64::from(matches!(
+        trigger.game::<ShengjiAchievementEvent>(),
+        Some((player, ShengjiAchievementEvent::FirstTrickDealerCut { player: cutter }))
+            if player == *cutter
+    ))
+}
+
 pub(super) fn attacking(facts: &ShengjiHandStatistics) -> bool {
     facts.player.team() == facts.result.collecting_team
 }

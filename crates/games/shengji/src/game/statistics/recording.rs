@@ -59,6 +59,15 @@ impl GameState {
         }
     }
 
+    /// This result is public as soon as the dealer is cut; no private hand facts are exposed.
+    pub fn first_trick_cut_dealer(&self, player: ShengjiPlayerId) -> bool {
+        self.statistics
+            .first_trick_cut_dealer
+            .get(usize::from(player.0))
+            .copied()
+            .unwrap_or(false)
+    }
+
     pub fn hand_statistics(&self, player: ShengjiPlayerId) -> Option<ShengjiHandStatistics> {
         let Phase::Finished(result) = &self.phase else {
             return None;

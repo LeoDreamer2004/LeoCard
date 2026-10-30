@@ -37,6 +37,9 @@ pub enum ShengjiAchievementEvent {
     RedealRequired {
         reason: ShengjiRedealReason,
     },
+    FirstTrickDealerCut {
+        player: ParticipantId,
+    },
 }
 
 impl From<ShengjiAchievementEvent> for GameFacts {

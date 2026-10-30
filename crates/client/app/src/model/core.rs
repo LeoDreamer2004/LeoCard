@@ -79,7 +79,8 @@ impl ClientModel {
         let new_match = self.active_match_id != Some(match_id);
         self.host_port = Some(host_port);
         self.active_match_id = Some(match_id);
-        self.you = Some(you);
+        // Joined owns our identity; a spectator snapshot belongs to the viewed player.
+        self.you.get_or_insert(you);
         self.lobby = None;
         self.rejection.value = None;
         new_match
@@ -202,6 +203,9 @@ impl ClientModel {
             }
             ServerEvent::PlayerLeft { name } => {
                 self.notice.publish(format!("{name}退出了游戏"));
+            }
+            ServerEvent::SpectatorJoined { name } => {
+                self.notice.publish(format!("{name} 正在旁观游戏"));
             }
             ServerEvent::LeftRoom => {
                 self.left_room = true;

@@ -16,7 +16,7 @@ use leocard_shengji::{
 
 impl ShengjiSession {
     pub(super) fn events_for_outcome(&self, outcome: &ActionOutcome) -> Vec<ShengjiEvent> {
-        match outcome {
+        let mut events = match outcome {
             ActionOutcome::BuryComplete { leader } => vec![ShengjiEvent::CardsBuried {
                 dealer: from_core_player(*leader),
             }],
@@ -76,7 +76,9 @@ impl ShengjiSession {
                 events
             }
             _ => Vec::new(),
-        }
+        };
+        events.extend(self.first_trick_cut_event(outcome));
+        events
     }
 
     fn current_public_play(

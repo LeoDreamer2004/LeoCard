@@ -306,4 +306,8 @@ pub enum ShengjiEvent {
     RedealRequired {
         reason: ShengjiRedealReason,
     },
+    /// Public immediately after the qualifying play, even if a later player overtrumps it.
+    FirstTrickDealerCut {
+        player: PlayerId,
+    },
 }

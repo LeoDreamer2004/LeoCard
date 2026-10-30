@@ -154,6 +154,12 @@ fn shengji_facts(event: &ShengjiEvent) -> GameFacts {
         ShengjiEvent::RedealRequired { reason } => {
             ShengjiAchievementEvent::RedealRequired { reason: *reason }.into()
         }
+        ShengjiEvent::FirstTrickDealerCut { player } => {
+            ShengjiAchievementEvent::FirstTrickDealerCut {
+                player: ParticipantId(player.0),
+            }
+            .into()
+        }
         _ => GameFacts::default(),
     }
 }

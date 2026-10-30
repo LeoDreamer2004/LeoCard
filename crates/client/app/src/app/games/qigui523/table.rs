@@ -139,7 +139,7 @@ pub(crate) fn render_table(
         start_transition_active,
         intro_only: start_transition_active,
     };
-    for relative_seat in u8::from(!client.0.model().is_spectating())..TABLE_SEAT_COUNT {
+    for relative_seat in 1..TABLE_SEAT_COUNT {
         let physical_seat = SeatId((own_seat.0 + relative_seat) % TABLE_SEAT_COUNT);
         let player = game
             .players

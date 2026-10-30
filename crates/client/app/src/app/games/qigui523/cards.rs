@@ -77,6 +77,7 @@ pub(super) fn add_card_button(
                 hover_amount: animation.slot_hover_amount,
             },
             RelativeCursorPosition::default(),
+            GlobalZIndex(index as i32 + 1),
             Node {
                 width: px(if is_last {
                     width
@@ -122,7 +123,6 @@ pub(super) fn add_card_button(
             BorderColor::all(highlight.border()),
             highlight.outline(),
             highlight.shadow(),
-            GlobalZIndex(index as i32 + 1),
             Pickable::IGNORE,
         ),
     );

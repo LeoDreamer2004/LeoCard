@@ -3,7 +3,7 @@ use std::path::Path;
 use sysinfo::{Process, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 
 pub(in super::super) fn minecraft_running() -> Option<bool> {
-    let mut system = System::new();
+    let mut system = System::new().ok()?;
     system.refresh_processes_specifics(
         ProcessesToUpdate::All,
         true,

@@ -1,13 +1,80 @@
 use super::{Participant, RoomSession};
 use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
-    JoinRequest, PlayerId, RejectReason, RequestId, RoomViolation, ServerEvent,
+    JoinRequest, PlayerId, PlayerViolation, RejectReason, RequestId, RoomViolation, ServerEvent,
 };
 
 const MAX_SPECTATORS: usize = 8;
 const FIRST_SPECTATOR_ID: u8 = 128;
 
 impl RoomSession {
+    pub(crate) fn viewing_player(&self, recipient: PlayerId) -> PlayerId {
+        if !self
+            .spectators
+            .iter()
+            .any(|player| player.id == recipient && !player.left)
+        {
+            return recipient;
+        }
+        self.spectator_views
+            .get(&recipient)
+            .copied()
+            .filter(|id| {
+                self.players
+                    .iter()
+                    .any(|player| player.id == *id && !player.left)
+            })
+            .or_else(|| {
+                self.players
+                    .iter()
+                    .find(|player| !player.left)
+                    .map(|player| player.id)
+            })
+            .unwrap_or(recipient)
+    }
+
+    pub(crate) fn set_spectator_view(
+        &mut self,
+        connection: ConnectionId,
+        target: PlayerId,
+    ) -> Result<(), RejectReason> {
+        if !self.is_spectator(connection)
+            || !self
+                .players
+                .iter()
+                .any(|player| player.id == target && !player.left)
+        {
+            return Err(RejectReason::Player(PlayerViolation::NotJoined));
+        }
+        let spectator = self.player_id(connection).expect("joined spectator");
+        self.spectator_views.insert(spectator, target);
+        self.bump_revision();
+        Ok(())
+    }
+
+    pub(crate) fn spectator_join_notice(&self, connection: ConnectionId) -> Vec<Delivery> {
+        let Some(player) = self
+            .spectators
+            .iter()
+            .find(|player| player.connection == connection && !player.left)
+        else {
+            return Vec::new();
+        };
+        self.broadcast_event(
+            None,
+            ServerEvent::SpectatorJoined {
+                name: player.name.clone(),
+            },
+        )
+        .into_iter()
+        .filter(|delivery| {
+            self.players
+                .iter()
+                .any(|player| player.connection == delivery.recipient)
+        })
+        .collect()
+    }
+
     pub(crate) fn participants(&self) -> impl Iterator<Item = &Participant> {
         self.players.iter().chain(&self.spectators)
     }
@@ -45,6 +112,7 @@ impl RoomSession {
             return Err(RejectReason::Room(RoomViolation::RoomFull));
         }
         let id = PlayerId(FIRST_SPECTATOR_ID + index as u8);
+        self.spectator_views.remove(&id);
         let participant = Participant {
             id,
             profile_id: request.profile_id,

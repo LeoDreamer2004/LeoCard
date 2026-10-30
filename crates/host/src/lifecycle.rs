@@ -155,6 +155,8 @@ pub(super) trait HostedGameLifecycle: Sized {
                     .expect("a successful join assigned a player");
                 if !self.room().is_spectator(connection) {
                     self.after_join(player);
+                } else {
+                    deliveries.extend(self.room().spectator_join_notice(connection));
                 }
                 if game_started {
                     deliveries.push(self.room().delivery(
@@ -285,7 +287,7 @@ pub(super) trait HostedGameLifecycle: Sized {
             "game broadcast requires an active game"
         );
         self.room().broadcast_private(origin, |player| {
-            ServerEvent::GameSnapshot(self.game_snapshot(player.id))
+            ServerEvent::GameSnapshot(self.game_snapshot(self.room().viewing_player(player.id)))
         })
     }
 
@@ -298,7 +300,7 @@ pub(super) trait HostedGameLifecycle: Sized {
             );
         };
         let event = if self.game_started() {
-            ServerEvent::GameSnapshot(self.game_snapshot(player))
+            ServerEvent::GameSnapshot(self.game_snapshot(self.room().viewing_player(player)))
         } else {
             ServerEvent::LobbySnapshot(self.lobby_snapshot())
         };
@@ -318,6 +320,8 @@ pub(super) fn dispatch_client_command<S: HostedGameLifecycle>(
         && !matches!(
             &message.command,
             ClientCommand::RequestSnapshot
+                | ClientCommand::SpectatePlayer { .. }
+                | ClientCommand::Interact { .. }
                 | ClientCommand::LeaveRoom
                 | ClientCommand::SetAvatar { .. }
                 | ClientCommand::PublishCoins { .. }
@@ -363,6 +367,12 @@ fn dispatch_joined_command<S: HostedGameLifecycle>(
     session.before_dispatch();
     let request_id = message.request_id;
     match message.command {
+        ClientCommand::SpectatePlayer { player } => {
+            match session.room_mut().set_spectator_view(connection, player) {
+                Ok(()) => session.snapshot(connection, request_id),
+                Err(reason) => session.room().reject(connection, request_id, reason),
+            }
+        }
         ClientCommand::PublishCoins { coins } => {
             match session.room_mut().publish_coins(connection, coins) {
                 Ok(()) => {

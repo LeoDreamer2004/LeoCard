@@ -125,19 +125,17 @@ pub(crate) fn render_doudizhu_table(
         assets,
     );
     controls::render(commands, hand_area, game, context.ui, assets);
-    if !context.client.0.model().is_spectating() {
-        let row = spawn_node(
-            commands,
-            hand_area,
-            Node {
-                height: px(146),
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            None,
-        );
-        render_hand(commands, row, &game.your_hand, context.ui, assets);
-    }
+    let row = spawn_node(
+        commands,
+        hand_area,
+        Node {
+            height: px(146),
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        None,
+    );
+    render_hand(commands, row, &game.your_hand, context.ui, assets);
     let auto = game
         .players
         .iter()

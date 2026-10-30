@@ -80,6 +80,9 @@ impl JoinRequest {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ClientCommand {
+    SpectatePlayer {
+        player: PlayerId,
+    },
     PublishCoins {
         coins: u32,
     },
@@ -170,6 +173,9 @@ pub enum ServerEvent {
     PlayerInteraction(PlayerInteraction),
     ChatMessage(ChatMessage),
     PlayerLeft {
+        name: String,
+    },
+    SpectatorJoined {
         name: String,
     },
     LeftRoom,
@@ -292,6 +298,7 @@ impl GameSnapshot {
         }
     }
 
+    /// The player whose private view is represented; spectators retain their Joined identity.
     pub const fn you(&self) -> PlayerId {
         match self {
             Self::QiGui523(snapshot) => snapshot.you,

@@ -154,14 +154,20 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
     wait_for(&mut observer, |model| model.qigui523_game().is_some());
     assert!(observer.model().is_spectating());
     assert_eq!(observer.model().qigui523_rules(), Some(&rules));
-    assert!(
-        observer
-            .model()
-            .qigui523_game()
-            .unwrap()
-            .your_hand
-            .is_empty()
+    let viewed = observer.model().qigui523_game().unwrap();
+    assert_ne!(observer.model().you(), Some(viewed.you));
+    assert_eq!(viewed.your_hand.len(), usize::from(rules.hand_size));
+    assert!(!observer.model().active_game_meta().unwrap().is_host());
+    let target = guest_a.model().you().unwrap();
+    assert!(observer.send(ClientCommand::SpectatePlayer { player: target }));
+    wait_for(&mut observer, |model| {
+        model.qigui523_game().is_some_and(|game| game.you == target)
+    });
+    assert_eq!(
+        observer.model().qigui523_game().unwrap().your_hand,
+        guest_a.model().qigui523_game().unwrap().your_hand
     );
+    assert!(observer.model().is_spectating());
     assert_eq!(observer.model().qigui523_game().unwrap().players.len(), 3);
     assert!(!observer.send(ClientCommand::SetReady { ready: true }));
     assert_eq!(guest_a.model().qigui523_game().unwrap().host_port, port);

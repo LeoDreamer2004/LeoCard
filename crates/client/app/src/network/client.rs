@@ -184,13 +184,15 @@ impl TcpGameClient {
             return false;
         }
         if self.model.is_spectating()
-            && matches!(
+            && !matches!(
                 command,
-                ClientCommand::Game(_)
-                    | ClientCommand::PlayAgain
-                    | ClientCommand::SetReady { .. }
+                ClientCommand::RequestSnapshot
+                    | ClientCommand::LeaveRoom
+                    | ClientCommand::SetAvatar { .. }
+                    | ClientCommand::PublishCoins { .. }
+                    | ClientCommand::PublishAchievements { .. }
                     | ClientCommand::Interact { .. }
-                    | ClientCommand::Chat { .. }
+                    | ClientCommand::SpectatePlayer { .. }
             )
         {
             return false;

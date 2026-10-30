@@ -112,7 +112,7 @@ impl ClientModel {
                 ActiveGameMeta {
                     kind: $kind,
                     match_id: game.match_id,
-                    you: game.you,
+                    you: self.you.unwrap_or(game.you),
                     host: game.host,
                     players: game.players.iter().map(|player| player.id).collect(),
                 }
@@ -129,7 +129,7 @@ impl ClientModel {
             GameSnapshot::Blackjack(game) => ActiveGameMeta {
                 kind: GameKind::Blackjack,
                 match_id: game.match_id,
-                you: game.you,
+                you: self.you.unwrap_or(game.you),
                 host: game.host,
                 players: game.players.iter().map(|player| player.player.id).collect(),
             },

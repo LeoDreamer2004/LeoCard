@@ -232,7 +232,6 @@ pub(super) struct MahjongPlayerTileVisuals<'a> {
     pub ui_assets: &'a UiAssets,
     pub own_seat: u8,
     pub observed_count: u8,
-    pub spectating: bool,
     pub flower_replaced: bool,
     pub dealing: bool,
     pub winning_hand: Option<MahjongWinningHandVisual>,
@@ -257,7 +256,6 @@ pub(super) fn render_mahjong_player_tiles(
         ui_assets,
         own_seat,
         observed_count,
-        spectating,
         flower_replaced,
         dealing,
         winning_hand,
@@ -281,7 +279,7 @@ pub(super) fn render_mahjong_player_tiles(
         || remote_discard
             .map(|active| active.from_drawn)
             .unwrap_or(separate_last_concealed);
-    if relative == 0 && !spectating && player.melds.is_empty() {
+    if relative == 0 && player.melds.is_empty() {
         return;
     }
     let (left, top, bottom, width, height, rotation) = match relative {
@@ -397,7 +395,7 @@ pub(super) fn render_mahjong_player_tiles(
         commands.entity(gap).insert(Pickable::IGNORE);
     }
 
-    if relative != 0 || spectating {
+    if relative != 0 {
         let concealed = spawn_node(
             commands,
             group,

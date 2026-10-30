@@ -1,9 +1,27 @@
 use super::{ShengjiSession, from_core_player};
 use crate::Delivery;
 use leocard_protocol::{GameEvent, ServerEvent, ShengjiEvent};
-use leocard_shengji::Phase;
+use leocard_shengji::{ActionOutcome, Phase};
 
 impl ShengjiSession {
+    pub(super) fn first_trick_cut_event(&self, outcome: &ActionOutcome) -> Option<ShengjiEvent> {
+        let game = self.game.as_ref()?;
+        let player = match outcome {
+            ActionOutcome::Played { player, .. } if game.history().is_empty() => *player,
+            ActionOutcome::TrickComplete(trick) if game.history().len() == 1 => {
+                trick.plays.last()?.0
+            }
+            ActionOutcome::HandComplete(_) if game.history().len() == 1 => {
+                game.history().last()?.plays.last()?.0
+            }
+            _ => return None,
+        };
+        game.first_trick_cut_dealer(player)
+            .then_some(ShengjiEvent::FirstTrickDealerCut {
+                player: from_core_player(player),
+            })
+    }
+
     pub(super) fn hand_analysis_events(&self) -> Vec<ShengjiEvent> {
         let Some(game) = self
             .game

@@ -31,7 +31,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
     ),
     shengji!(
         "two_deck_ten",
-        "二副小胜",
+        "二副入门",
         Bronze,
         "完成10盘2副牌",
         |event| completed(event, 2),
@@ -39,7 +39,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
     ),
     shengji!(
         "three_deck_ten",
-        "三副小胜",
+        "三副入门",
         Bronze,
         "完成10盘3副牌",
         |event| completed(event, 3),
@@ -47,7 +47,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
     ),
     shengji!(
         "four_deck_ten",
-        "四副小胜",
+        "四副入门",
         Bronze,
         "完成10盘4副牌",
         |event| completed(event, 4),
@@ -113,7 +113,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         "没想到吧",
         Bronze,
         "在游戏第一手就杀掉庄家的牌",
-        |event| hand(event, |facts| facts.first_trick_cut_dealer),
+        first_cut,
         1
     ),
 ];

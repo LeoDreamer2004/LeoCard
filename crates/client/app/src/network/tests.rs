@@ -114,9 +114,24 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
     )
     .unwrap();
     wait_for(&mut host, |model| model.lobby().is_some());
+    host.send(ClientCommand::SelectSeat { seat: SeatId(0) });
+    wait_for(&mut host, |model| {
+        model
+            .lobby()
+            .is_some_and(|lobby| lobby.players[0].seat == Some(SeatId(0)))
+    });
 
     let address = format!("127.0.0.1:{port}");
     let mut guest_a = TcpGameClient::join("甲", &address).unwrap();
+    wait_for(&mut guest_a, |model| {
+        model.lobby().is_some_and(|lobby| lobby.players.len() == 2)
+    });
+    guest_a.send(ClientCommand::SelectSeat { seat: SeatId(5) });
+    wait_for(&mut guest_a, |model| {
+        model
+            .lobby()
+            .is_some_and(|lobby| lobby.players[1].seat == Some(SeatId(5)))
+    });
     let mut guest_b = TcpGameClient::join("乙", &address).unwrap();
     wait_for(&mut host, |model| {
         model.lobby().is_some_and(|lobby| lobby.players.len() == 3)
@@ -135,9 +150,8 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
     assert_eq!(guest_a.model().host_port(), Some(port));
     assert_eq!(guest_b.model().host_port(), Some(port));
 
-    host.send(ClientCommand::SelectSeat { seat: SeatId(0) });
-    guest_a.send(ClientCommand::SelectSeat { seat: SeatId(2) });
-    guest_b.send(ClientCommand::SelectSeat { seat: SeatId(5) });
+    // Seats reverse join order to exercise the player ID remapping at game start.
+    guest_b.send(ClientCommand::SelectSeat { seat: SeatId(2) });
     host.send(ClientCommand::SetReady { ready: true });
     guest_a.send(ClientCommand::SetReady { ready: true });
     guest_b.send(ClientCommand::SetReady { ready: true });
@@ -150,18 +164,26 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
     wait_for(&mut host, |model| model.qigui523_game().is_some());
     wait_for(&mut guest_a, |model| model.qigui523_game().is_some());
     wait_for(&mut guest_b, |model| model.qigui523_game().is_some());
+    assert_eq!(guest_a.model().you(), Some(PlayerId(2)));
+    assert_eq!(guest_b.model().you(), Some(PlayerId(1)));
     let mut observer = TcpGameClient::join("观战", &address).unwrap();
     wait_for(&mut observer, |model| model.qigui523_game().is_some());
     assert!(observer.model().is_spectating());
     assert_eq!(observer.model().qigui523_rules(), Some(&rules));
-    assert!(
-        observer
-            .model()
-            .qigui523_game()
-            .unwrap()
-            .your_hand
-            .is_empty()
+    let viewed = observer.model().qigui523_game().unwrap();
+    assert_ne!(observer.model().you(), Some(viewed.you));
+    assert_eq!(viewed.your_hand.len(), usize::from(rules.hand_size));
+    assert!(!observer.model().active_game_meta().unwrap().is_host());
+    let target = guest_a.model().you().unwrap();
+    assert!(observer.send(ClientCommand::SpectatePlayer { player: target }));
+    wait_for(&mut observer, |model| {
+        model.qigui523_game().is_some_and(|game| game.you == target)
+    });
+    assert_eq!(
+        observer.model().qigui523_game().unwrap().your_hand,
+        guest_a.model().qigui523_game().unwrap().your_hand
     );
+    assert!(observer.model().is_spectating());
     assert_eq!(observer.model().qigui523_game().unwrap().players.len(), 3);
     assert!(!observer.send(ClientCommand::SetReady { ready: true }));
     assert_eq!(guest_a.model().qigui523_game().unwrap().host_port, port);

@@ -780,7 +780,6 @@ pub(crate) fn render_mahjong_table(
                 ui_assets: assets,
                 own_seat,
                 observed_count: ui.observed_table.state.counts[player.id.0 as usize],
-                spectating: client.0.model().is_spectating(),
                 flower_replaced,
                 dealing: dealing || flower_replaced,
                 winning_hand: winning_hand.then_some(MahjongWinningHandVisual {
@@ -821,8 +820,7 @@ pub(crate) fn render_mahjong_table(
             | MahjongPhaseView::ReplacingFlower { .. }
             | MahjongPhaseView::Playing
             | MahjongPhaseView::WaitingForClaims
-    ) && !client.0.model().is_spectating()
-    {
+    ) {
         render_mahjong_auto_drawer(commands, content, ui, game.rules.false_win, assets);
     }
     let own_flower_replaced = game

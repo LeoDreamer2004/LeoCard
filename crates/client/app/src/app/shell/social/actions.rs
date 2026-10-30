@@ -12,6 +12,7 @@ use leocard_protocol::{ClientCommand, PlayerId, PlayerInteractionKind};
 
 #[derive(Clone)]
 pub(crate) enum SocialUiAction {
+    SpectatePlayer(PlayerId),
     ToggleInteractionMenu {
         player: PlayerId,
         anchor: Entity,
@@ -56,6 +57,13 @@ impl UiActionHandler<SocialActionContext<'_>> for SocialUiAction {
         let ui = &mut *context.ui;
         let cooldown = &mut *context.cooldown;
         match self {
+            Self::SpectatePlayer(player) => {
+                if let Some(client) = client.as_deref_mut() {
+                    client
+                        .0
+                        .send(ClientCommand::SpectatePlayer { player: *player });
+                }
+            }
             SocialUiAction::ToggleInteractionMenu { player, anchor } => {
                 ui.social.interaction_menu_open = (ui.social.interaction_menu_open
                     != Some(*player)

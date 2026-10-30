@@ -1,11 +1,12 @@
 use super::{
     TEXAS_PORTRAIT_WIDTH, TexasChipTableState, TexasHoldemUiAction, TexasHoldemUiState,
-    TexasPlayerPanel, TexasPlayerShake, TexasRaiseAdjustButton, add_role_tokens, add_texas_card,
-    add_texas_chip_popup, add_texas_win_rate, texas_player_border_color,
+    TexasInitialDeal, TexasPlayerPanel, TexasPlayerShake, TexasRaiseAdjustButton, TexasTableLayout,
+    add_role_tokens, add_texas_card, add_texas_chip_popup, add_texas_win_rate,
+    texas_player_border_color,
 };
 use crate::app::presentation::{
     ButtonKind, GameButtonImageMode, GameButtonSpec, MUTED, PendingDealSound, PlayerMenuProfile,
-    PlayerPortraitSpec, SeatSide, TEXT, TurnBorderAnimationKey, TurnBorderMaterial,
+    PlayerPortraitSpec, SeatSide, TEXT, TablePieceDeal, TurnBorderAnimationKey, TurnBorderMaterial,
     add_player_portrait, add_textured_game_button, add_turn_border_trace_with_radius,
     attach_start_game_seat_transition,
 };
@@ -31,7 +32,7 @@ pub(super) fn add_texas_own_area(
     table: Entity,
     game: &TexasHoldemSnapshot,
     own: &TexasHoldemPlayerState,
-    deal_delays: Option<&[f32]>,
+    initial_deal: Option<&TexasInitialDeal>,
     ui: &mut TexasHoldemUiState,
     interaction_menu_open: Option<PlayerId>,
     assets: &UiAssets,
@@ -110,7 +111,7 @@ pub(super) fn add_texas_own_area(
             commands,
             portrait.avatar_ring,
             own.id,
-            SeatSide::Right,
+            SeatSide::Top,
             game,
             &ui.spectator,
             assets,
@@ -132,11 +133,18 @@ pub(super) fn add_texas_own_area(
     if !matches!(game.phase, TexasHoldemPhaseView::HandComplete { .. }) {
         let omaha = game.your_hole_cards.len() == 4;
         let (area_width, card_width, card_height, card_gap) = if omaha {
-            // 牌顶保持在操作按钮下缘（bottom 124）以下，留出 10 px 间距。
+            // 四张底牌使用较窄牌面，与操作行保留间隔。
             (324.0, 78.0, 106.0, 4.0)
         } else {
             (180.0, 84.0, 114.0, 9.0)
         };
+        let scale = TexasTableLayout::HAND_SCALE;
+        let (area_width, card_width, card_height, card_gap) = (
+            area_width * scale,
+            card_width * scale,
+            card_height * scale,
+            card_gap * scale,
+        );
         let hole_cards = spawn_node(
             commands,
             table,
@@ -162,10 +170,20 @@ pub(super) fn add_texas_own_area(
             )));
         if !own.folded {
             for (index, card) in game.your_hole_cards.iter().copied().enumerate() {
-                let delay = deal_delays
-                    .and_then(|delays| delays.get(index).or_else(|| delays.last()))
+                let delay = initial_deal
+                    .and_then(|deal| {
+                        deal.own_delays
+                            .get(index)
+                            .or_else(|| deal.own_delays.last())
+                    })
                     .copied();
-                let animation = delay.map(|delay| (delay, Vec2::new(-280.0, -257.0)));
+                let animation = initial_deal.zip(delay).map(|(deal, delay)| {
+                    if cfg!(target_os = "android") {
+                        TablePieceDeal::from_anchor(deal.source, delay)
+                    } else {
+                        TablePieceDeal::new(delay, Vec2::new(-280.0, -257.0))
+                    }
+                });
                 add_texas_card(
                     commands,
                     hole_cards,
@@ -206,20 +224,23 @@ fn add_texas_actions(
         Node {
             position_type: PositionType::Absolute,
             left: percent(50),
-            bottom: px(124),
-            width: px(620),
-            min_height: px(42),
+            bottom: px(TexasTableLayout::ACTION_BOTTOM),
+            width: px(620.0 * TexasTableLayout::ACTION_SCALE),
+            min_height: px(42.0 * TexasTableLayout::ACTION_SCALE),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
-            row_gap: px(7),
+            row_gap: px(7.0 * TexasTableLayout::ACTION_SCALE),
             ..default()
         },
         None,
     );
     commands
         .entity(actions)
-        .insert(UiTransform::from_translation(Val2::px(-310.0, 0.0)));
+        .insert(UiTransform::from_translation(Val2::px(
+            -310.0 * TexasTableLayout::ACTION_SCALE,
+            0.0,
+        )));
     let maximum_target = game.maximum_raise_to.unwrap_or(game.current_bet);
     let step = game
         .minimum_raise_to
@@ -234,7 +255,7 @@ fn add_texas_actions(
             flex_direction: FlexDirection::Row,
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
-            column_gap: px(8),
+            column_gap: px(8.0 * TexasTableLayout::ACTION_SCALE),
             ..default()
         },
         None,
@@ -350,8 +371,9 @@ fn add_raise_adjust_button(
                 Button,
                 UiAction::TexasHoldem(TexasHoldemUiAction::SetRaiseTo(target)),
                 Node {
-                    width: px(48),
-                    height: px(50),
+                    width: px(48.0 * TexasTableLayout::ACTION_SCALE),
+                    height: px(50.0 * TexasTableLayout::ACTION_SCALE),
+                    flex_shrink: 0.0,
                     ..default()
                 },
                 texas_adjust_button_image(normal.clone()),
@@ -383,8 +405,9 @@ fn add_raise_adjust_button(
             parent,
             (
                 Node {
-                    width: px(48),
-                    height: px(50),
+                    width: px(48.0 * TexasTableLayout::ACTION_SCALE),
+                    height: px(50.0 * TexasTableLayout::ACTION_SCALE),
+                    flex_shrink: 0.0,
                     ..default()
                 },
                 texas_adjust_button_image(normal.clone()).with_color(Color::WHITE.with_alpha(0.48)),
@@ -429,21 +452,25 @@ fn add_texas_action_button(
             action: Some(UiAction::TexasHoldem(TexasHoldemUiAction::Act(action))),
             normal,
             hovered,
-            width: 118.0,
-            height: 50.0,
-            font_size: 17.0,
+            width: 118.0 * TexasTableLayout::ACTION_SCALE,
+            height: 50.0 * TexasTableLayout::ACTION_SCALE,
+            font_size: 17.0 * TexasTableLayout::ACTION_SCALE,
             image_mode: GameButtonImageMode::Sliced {
                 border: 30.0,
-                corner_scale: 0.42,
+                corner_scale: 0.42 * TexasTableLayout::ACTION_SCALE,
             },
         },
     );
     commands.entity(button).insert(Node {
-        width: px(118),
-        min_width: px(118),
-        height: px(50),
-        min_height: px(50),
-        padding: UiRect::axes(px(9), px(4)),
+        width: px(118.0 * TexasTableLayout::ACTION_SCALE),
+        min_width: px(118.0 * TexasTableLayout::ACTION_SCALE),
+        height: px(50.0 * TexasTableLayout::ACTION_SCALE),
+        min_height: px(50.0 * TexasTableLayout::ACTION_SCALE),
+        flex_shrink: 0.0,
+        padding: UiRect::axes(
+            px(9.0 * TexasTableLayout::ACTION_SCALE),
+            px(4.0 * TexasTableLayout::ACTION_SCALE),
+        ),
         align_items: AlignItems::Center,
         justify_content: JustifyContent::Center,
         ..default()

@@ -1,6 +1,6 @@
 plugins { id 'com.android.application' }
 
-java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }
 
 def workspaceRoot = rootProject.layout.projectDirectory.dir('../../..')
 def workspaceVersion = (workspaceRoot.file('Cargo.toml').asFile.text =~ /(?m)^version = "(\d+)\.(\d+)\.(\d+)"$/)[0]

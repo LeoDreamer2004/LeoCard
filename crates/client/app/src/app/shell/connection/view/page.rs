@@ -40,7 +40,7 @@ impl<'a> ConnectionScreen<'a> {
                     UiSceneKey("content")
                     Node {
                         width: percent(100), max_width: px(1370),
-                        padding: UiRect::all(px(20)), flex_direction: FlexDirection::Row,
+                        padding: UiRect::axes(px(20), px(if cfg!(target_os = "android") { 4 } else { 20 })), flex_direction: FlexDirection::Row,
                         align_items: AlignItems::FlexStart, column_gap: px(16),
                     }
                 ]

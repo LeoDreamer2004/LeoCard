@@ -1,7 +1,7 @@
 use super::{DoudizhuUiAction, DoudizhuUiState};
 use crate::app::presentation::{
-    CardAnimationState, CardSize, HandCardHighlight, HandCardLayout, SilentButton,
-    hand_card_pose_for_layout,
+    CardAnimationState, CardSize, GAME_SIDE_CONTROL_SCALE, HandCardHighlight, HandCardLayout,
+    SilentButton, hand_card_pose_for_layout,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -38,7 +38,7 @@ pub(super) fn hand_layout(index: usize, hand_len: usize) -> HandCardLayout {
         index,
         hand_len,
         card_width: CardSize::ShengjiHand.dimensions().0,
-        reveal: (760.0 / hand_len.max(1) as f32).clamp(18.0, 30.0),
+        reveal: (760.0 / hand_len.max(1) as f32).clamp(18.0, 30.0 * GAME_SIDE_CONTROL_SCALE),
     }
 }
 

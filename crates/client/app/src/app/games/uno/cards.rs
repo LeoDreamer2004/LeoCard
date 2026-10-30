@@ -1,4 +1,6 @@
-use super::{UnoAssets, UnoFlipCard, UnoHandCardVisual, UnoSwapTargetPanel, UnoUiState};
+use super::{
+    UNO_CARD_SCALE, UnoAssets, UnoFlipCard, UnoHandCardVisual, UnoSwapTargetPanel, UnoUiState,
+};
 use crate::app::presentation::{ACCENT, CardAnimationState, PANEL};
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
@@ -207,7 +209,7 @@ pub(crate) fn animate_uno_hand_cards(
         let glow = (visual.selected_amount * (0.76 + pulse * 0.24)).clamp(0.0, 1.0);
         transform.translation = Val2::px(
             0.0,
-            -(visual.hover_amount * 10.0 + visual.selected_amount * 22.0),
+            -(visual.hover_amount * 10.0 + visual.selected_amount * 22.0) * UNO_CARD_SCALE,
         );
         transform.scale = Vec2::splat(1.0 + visual.hover_amount * 0.025);
         outline.width = px(glow * 2.3);

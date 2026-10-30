@@ -1,7 +1,9 @@
 //! 首页、顶栏和设置窗口共用的 CozyUI 纹理控件。
 
 use super::super::UiAction;
-use crate::app::presentation::{MUTED, PanelSkin, TEXT, decorate_panel_skin, text_scene};
+use crate::app::presentation::{
+    GAME_SIDE_CONTROL_SCALE, MUTED, PanelSkin, TEXT, decorate_panel_skin, text_scene,
+};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_ui::{TextureButton, UiComposer, sliced_image, spawn_node};
@@ -192,8 +194,8 @@ pub(crate) fn add_cozy_icon_button(
         None,
         action,
         assets,
-        px(38),
-        38.0,
+        px(38.0 * GAME_SIDE_CONTROL_SCALE),
+        38.0 * GAME_SIDE_CONTROL_SCALE,
         Some(icon),
         variant,
     )
@@ -245,15 +247,30 @@ fn add_cozy_button_styled(
             32.0,
         ),
     };
+    let corner_scale = 0.55
+        * if label.is_none() {
+            GAME_SIDE_CONTROL_SCALE
+        } else {
+            1.0
+        };
     TextureButton {
         node: button_node(width, height),
-        normal: sliced_image(base_image, border, 0.55).with_color(base_tint),
-        hovered: sliced_image(hover_image, border, 0.55).with_color(hover_tint),
+        normal: sliced_image(base_image, border, corner_scale).with_color(base_tint),
+        hovered: sliced_image(hover_image, border, corner_scale).with_color(hover_tint),
         action: Some(action),
         label,
         font_size: 14.0,
         color: TEXT,
-        icon: icon.map(|icon| (icon, if label.is_none() { 30.0 } else { 22.0 })),
+        icon: icon.map(|icon| {
+            (
+                icon,
+                if label.is_none() {
+                    30.0 * GAME_SIDE_CONTROL_SCALE
+                } else {
+                    22.0
+                },
+            )
+        }),
     }
     .mount(commands, parent, &assets.font)
     .0
@@ -307,11 +324,14 @@ pub(crate) fn add_cozy_labeled_icon_button(
         format!("entry:{label}"),
         bsn! {
             Node {
-                width: px(44), flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center, row_gap: px(1),
+                width: px(44.0 * GAME_SIDE_CONTROL_SCALE), flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center, row_gap: px(GAME_SIDE_CONTROL_SCALE),
             }
         },
     );
     add_cozy_icon_button(commands, column, action, assets, icon, variant);
-    commands.node(column, text_scene(assets, label, 12.0, TEXT));
+    commands.node(
+        column,
+        text_scene(assets, label, 12.0 * GAME_SIDE_CONTROL_SCALE, TEXT),
+    );
 }

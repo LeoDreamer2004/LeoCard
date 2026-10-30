@@ -187,7 +187,7 @@ pub(crate) fn render_texas_holdem_table(
             table,
             game,
             own,
-            initial_deal.as_ref().map(|deal| deal.own_delays.as_slice()),
+            initial_deal.as_ref(),
             ui,
             social.interaction_menu_open,
             assets,
@@ -233,9 +233,9 @@ fn add_community_area(
         Node {
             position_type: PositionType::Absolute,
             left: percent(50),
-            top: px(160),
+            top: px(TexasTableLayout::BOARD_TOP),
             width: px(560),
-            height: px(90),
+            height: px(TexasTableLayout::BOARD_ROW_HEIGHT),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
             ..default()
@@ -252,7 +252,7 @@ fn add_community_area(
         center,
         Node {
             width: percent(100),
-            height: px(90),
+            height: px(TexasTableLayout::BOARD_ROW_HEIGHT),
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -268,7 +268,7 @@ fn add_community_area(
         cards,
         Node {
             width: px(46),
-            height: px(90),
+            height: px(TexasTableLayout::BOARD_ROW_HEIGHT),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,

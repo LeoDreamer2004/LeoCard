@@ -1,4 +1,5 @@
-use super::super::{BlackjackTable, layout::BlackjackSeatLayout};
+use super::super::BlackjackTable;
+use super::super::layout::BlackjackSeatLayout;
 use super::{BlackjackWagerSpec, add_blackjack_wager};
 use crate::app::presentation::add_table_play_area;
 use bevy::prelude::*;
@@ -15,6 +16,11 @@ impl BlackjackTable<'_> {
         house: Entity,
     ) {
         let area_width = BlackjackSeatLayout::OPPONENT_AREA_WIDTH;
+        let height = if cfg!(target_os = "android") {
+            56.0
+        } else {
+            80.0
+        };
         let area = commands.keyed_child(
             table,
             "blackjack-own-wagers",
@@ -22,9 +28,13 @@ impl BlackjackTable<'_> {
                 Node {
                     position_type: PositionType::Absolute,
                     left: percent(50),
-                    bottom: px(240),
+                    bottom: px(if cfg!(target_os = "android") {
+                        300
+                    } else {
+                        240
+                    }),
                     width: px(area_width),
-                    height: px(80),
+                    height: px(height),
                     padding: UiRect::all(px(6)),
                     justify_content: JustifyContent::Center,
                     column_gap: px(6),
@@ -66,7 +76,7 @@ impl BlackjackTable<'_> {
                     net: hand.result.map(|_| hand.net_chips),
                     settled: self.playback.settlement_started(),
                     width,
-                    height: 68.0,
+                    height: height - 12.0,
                     stack,
                     house,
                 },

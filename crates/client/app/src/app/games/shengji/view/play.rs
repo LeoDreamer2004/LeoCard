@@ -8,7 +8,8 @@ use super::{
     add_shengji_failed_throw_card_row, shengji_display_trump, shengji_rank_label,
 };
 use crate::app::presentation::{
-    ACCENT, DANGER, HEADER_BG, MUTED, SeatSide, TEXT, add_text, spawn_trick_play_area,
+    ACCENT, DANGER, GAME_SIDE_CONTROL_SCALE, HEADER_BG, MUTED, SeatSide, TEXT, add_text,
+    spawn_trick_play_area,
 };
 use crate::app::runtime::UiAssets;
 
@@ -128,7 +129,7 @@ pub(super) fn add_shengji_own_play(
             left: percent(35),
             right: percent(35),
             bottom: px(8),
-            min_height: px(104),
+            min_height: px(104.0 * GAME_SIDE_CONTROL_SCALE),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             ..default()
@@ -173,9 +174,18 @@ pub(super) fn add_shengji_collecting_tray(
         },
         Some(Color::BLACK.with_alpha(0.30)),
     );
-    commands
-        .entity(tray)
-        .insert((RelativeCursorPosition::default(), GlobalZIndex(30)));
+    commands.entity(tray).insert((
+        RelativeCursorPosition::default(),
+        GlobalZIndex(30),
+        UiTransform {
+            translation: Val2::px(
+                183.0 * (GAME_SIDE_CONTROL_SCALE - 1.0),
+                33.0 * (GAME_SIDE_CONTROL_SCALE - 1.0),
+            ),
+            scale: Vec2::splat(GAME_SIDE_CONTROL_SCALE),
+            ..default()
+        },
+    ));
 
     let dealer_team = game.dealer.map(|dealer| usize::from(dealer.0 % 2));
     for (label, level, color) in [

@@ -11,11 +11,11 @@ use super::{
     spawn_round_play_container,
 };
 use crate::app::presentation::{
-    GameSummaryAnimation, PlayEffectKind, PlayEffectState, PlayerMenuProfile, PlayerPortraitSpec,
-    StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial,
-    TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay, add_no_legal_response_hint,
-    add_play_effect_overlay, add_player_portrait, add_text, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, table_material_params,
+    GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation, PlayEffectKind, PlayEffectState,
+    PlayerMenuProfile, PlayerPortraitSpec, StartGameSeatTransition, TEXT, TableBackground,
+    TableBackgroundMaterial, TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay,
+    add_no_legal_response_hint, add_play_effect_overlay, add_player_portrait, add_text,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 #[cfg(feature = "developer")]
@@ -110,7 +110,11 @@ pub(crate) fn render_table(
         Node {
             width: percent(100),
             flex_grow: 1.0,
-            min_height: px(410),
+            min_height: px(if cfg!(target_os = "android") {
+                330
+            } else {
+                410
+            }),
             position_type: PositionType::Relative,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -162,7 +166,11 @@ pub(crate) fn render_table(
             content,
             Node {
                 width: percent(100),
-                height: px(218),
+                height: px(if cfg!(target_os = "android") {
+                    310
+                } else {
+                    218
+                }),
                 flex_shrink: 0.0,
                 position_type: PositionType::Relative,
                 ..default()
@@ -277,7 +285,11 @@ pub(crate) fn render_table(
         content,
         Node {
             width: percent(100),
-            height: px(218),
+            height: px(if cfg!(target_os = "android") {
+                310
+            } else {
+                218
+            }),
             flex_shrink: 0.0,
             position_type: PositionType::Relative,
             padding: UiRect::all(px(16)),
@@ -292,10 +304,10 @@ pub(crate) fn render_table(
         hand_area,
         Node {
             position_type: PositionType::Absolute,
-            left: percent(30),
-            right: percent(30),
+            left: percent(if cfg!(target_os = "android") { 18 } else { 30 }),
+            right: percent(if cfg!(target_os = "android") { 18 } else { 30 }),
             top: px(-16),
-            height: px(58),
+            height: px(58.0 * GAME_SIDE_CONTROL_SCALE),
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
             column_gap: px(8),
@@ -367,7 +379,7 @@ pub(crate) fn render_table(
             left: px(0),
             right: px(0),
             bottom: px(0),
-            height: px(134),
+            height: px(134.0 * GAME_SIDE_CONTROL_SCALE),
             flex_direction: FlexDirection::Row,
             flex_wrap: FlexWrap::NoWrap,
             justify_content: JustifyContent::Center,

@@ -1,5 +1,5 @@
 use super::super::ShengjiFailedThrowCard;
-use crate::app::presentation::{CardSize, HAND_CARD_REVEAL, add_text};
+use crate::app::presentation::{CardSize, GAME_SIDE_CONTROL_SCALE, HAND_CARD_REVEAL, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -65,7 +65,10 @@ fn add_shengji_card_row_internal(
             let (width, height) = CardSize::ShengjiHand.dimensions();
             (width, height, HAND_CARD_REVEAL)
         }
-        ShengjiCardSize::Seat => (70.0, 95.0, 27.0),
+        ShengjiCardSize::Seat => {
+            let (width, height) = CardSize::TrickSeat.dimensions();
+            (width, height, 27.0 * GAME_SIDE_CONTROL_SCALE)
+        }
         ShengjiCardSize::Score => (36.0, 49.0, 14.0),
     };
     if matches!(size, ShengjiCardSize::Score) && cards.len() > 1 {

@@ -1,6 +1,7 @@
 use super::{DoudizhuUiAction, DoudizhuUiState};
 use crate::app::presentation::{
-    GameButtonSpec, GameButtonTone, add_no_legal_response_hint, add_textured_game_button,
+    GAME_SIDE_CONTROL_SCALE, GameButtonSpec, GameButtonTone, add_no_legal_response_hint,
+    add_textured_game_button,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -20,7 +21,7 @@ pub(super) fn render(
         commands,
         parent,
         Node {
-            height: px(54),
+            height: px(54.0 * GAME_SIDE_CONTROL_SCALE),
             column_gap: px(10),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -43,7 +44,8 @@ pub(super) fn render(
             commands,
             row,
             assets,
-            GameButtonSpec::compact(assets, label, action.map(UiAction::Doudizhu), tone),
+            GameButtonSpec::compact(assets, label, action.map(UiAction::Doudizhu), tone)
+                .scaled(GAME_SIDE_CONTROL_SCALE),
         );
     };
     if game.phase == Phase::Bidding {

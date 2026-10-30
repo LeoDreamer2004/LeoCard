@@ -2,9 +2,11 @@
 
 use super::UiZoom;
 use crate::app::presentation::{DESIGN_HEIGHT, DESIGN_WIDTH};
+use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
+use leocard_client::ClientPhaseRef;
 
 const MIN_AUTO_SCALE: f32 = if cfg!(target_os = "android") {
     0.1
@@ -21,6 +23,7 @@ pub(crate) fn update_ui_scale(
     mut zoom: ResMut<UiZoom>,
     mut scale: ResMut<UiScale>,
     mut ui: ResMut<UiState>,
+    client: Option<Res<ClientResource>>,
 ) {
     let ctrl = keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight);
     if ctrl && (keyboard.just_pressed(KeyCode::Equal) || keyboard.just_pressed(KeyCode::NumpadAdd))
@@ -42,16 +45,32 @@ pub(crate) fn update_ui_scale(
     let Ok(window) = windows.single() else {
         return;
     };
-    let effective = calculate_ui_scale(window.width(), window.height(), zoom.manual);
+    let design_height = if cfg!(target_os = "android")
+        && !ui.shop.open
+        && !ui.achievements.open
+        && client
+            .as_deref()
+            .is_none_or(|client| !matches!(client.0.model().phase(), ClientPhaseRef::Playing(_)))
+    {
+        660.0
+    } else {
+        DESIGN_HEIGHT
+    };
+    let effective = calculate_ui_scale(window.width(), window.height(), zoom.manual, design_height);
     if (scale.0 - effective).abs() > 0.005 {
         scale.0 = effective;
         ui.dirty = true;
     }
 }
 
-pub(crate) fn calculate_ui_scale(width: f32, height: f32, manual_zoom: f32) -> f32 {
+pub(crate) fn calculate_ui_scale(
+    width: f32,
+    height: f32,
+    manual_zoom: f32,
+    design_height: f32,
+) -> f32 {
     let automatic = (width / DESIGN_WIDTH)
-        .min(height / DESIGN_HEIGHT)
+        .min(height / design_height)
         .clamp(MIN_AUTO_SCALE, MAX_AUTO_SCALE);
     automatic * manual_zoom.clamp(MIN_MANUAL_ZOOM, MAX_MANUAL_ZOOM)
 }

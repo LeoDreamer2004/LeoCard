@@ -1,9 +1,10 @@
 use super::hand::render_hand;
 use super::{DoudizhuUiAction, DoudizhuUiState, controls, counter, summary};
 use crate::app::presentation::{
-    GameSummaryAnimation, MUTED, PlayEffectKind, PlayEffectState, StartGameSeatTransition,
-    TableBackground, TableBackgroundMaterial, TableSeat, TableSeats, TurnBorderMaterial,
-    add_auto_play_overlay, add_play_effect_overlay, add_text, table_material_params,
+    GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation, MUTED, PlayEffectKind, PlayEffectState,
+    StartGameSeatTransition, TableBackground, TableBackgroundMaterial, TableSeat, TableSeats,
+    TurnBorderMaterial, add_auto_play_overlay, add_play_effect_overlay, add_text,
+    table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{
@@ -69,7 +70,11 @@ pub(crate) fn render_doudizhu_table(
         Node {
             flex_grow: 1.0,
             width: percent(100),
-            min_height: px(410),
+            min_height: px(if cfg!(target_os = "android") {
+                330
+            } else {
+                410
+            }),
             position_type: PositionType::Relative,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -82,7 +87,11 @@ pub(crate) fn render_doudizhu_table(
         content,
         Node {
             width: percent(100),
-            height: px(210),
+            height: px(if cfg!(target_os = "android") {
+                312
+            } else {
+                210
+            }),
             flex_shrink: 0.0,
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
@@ -130,7 +139,7 @@ pub(crate) fn render_doudizhu_table(
             commands,
             hand_area,
             Node {
-                height: px(146),
+                height: px(146.0 * GAME_SIDE_CONTROL_SCALE),
                 justify_content: JustifyContent::Center,
                 ..default()
             },

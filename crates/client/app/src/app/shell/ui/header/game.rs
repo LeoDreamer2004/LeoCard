@@ -3,7 +3,7 @@ use super::state::{
     AVATAR_SIZE, GameHeaderAvatar, GameHeaderItem, GameHeaderMotion, HEIGHT, ITEM_WIDTH,
     RIGHT_INSET,
 };
-use crate::app::presentation::{MUTED, add_text};
+use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, MUTED, add_text};
 use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, NavigationUiAction, ProfileEntry, UiAction,
     add_cozy_labeled_icon_button,
@@ -88,9 +88,9 @@ impl Header<'_> {
                 Node {
                     position_type: PositionType::Absolute,
                     right: px(item.right()),
-                    top: px(4),
+                    top: px(4.0 * GAME_SIDE_CONTROL_SCALE),
                     width: px(ITEM_WIDTH),
-                    height: px(HEIGHT - 8.0),
+                    height: px(HEIGHT - 8.0 * GAME_SIDE_CONTROL_SCALE),
                     display: Display::None,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
@@ -132,7 +132,12 @@ impl Header<'_> {
             assets: self.assets,
             avatars: self.avatars,
         }
-        .render(commands, anchor, AVATAR_SIZE, 15.0);
+        .render(
+            commands,
+            anchor,
+            AVATAR_SIZE,
+            15.0 * GAME_SIDE_CONTROL_SCALE,
+        );
         commands.entity(avatar).insert(GameHeaderAvatar);
         #[cfg(target_os = "android")]
         commands.entity(avatar).remove::<UiAction>();

@@ -9,9 +9,9 @@ use super::{
     uno_discard_pose, uno_ui_color,
 };
 use crate::app::presentation::{
-    ACCENT, ArcSeatLayout, DANGER, DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition,
-    TEXT, TableBackground, TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay,
-    add_text, table_material_params,
+    ACCENT, ArcSeatLayout, DANGER, DESIGN_WIDTH, GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation,
+    StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial, TurnBorderMaterial,
+    add_auto_play_overlay, add_text, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
@@ -29,11 +29,20 @@ pub(super) const UNO_DISCARD_OFFSETS: [(f32, f32, f32); 6] = [
     (-1.0, 0.0, -1.5),
     (1.0, -1.0, 2.0),
 ];
-pub(super) const UNO_FLYING_CARD_WIDTH: f32 = 82.0;
-pub(super) const UNO_FLYING_CARD_HEIGHT: f32 = 128.0;
+pub(super) const UNO_CARD_SCALE: f32 = if cfg!(target_os = "android") {
+    1.4
+} else {
+    1.0
+};
+pub(super) const UNO_FLYING_CARD_WIDTH: f32 = 82.0 * UNO_CARD_SCALE;
+pub(super) const UNO_FLYING_CARD_HEIGHT: f32 = 128.0 * UNO_CARD_SCALE;
 pub(super) const UNO_PALETTE_EFFECT_DURATION: f32 = 2.2;
-pub(super) const UNO_ACTION_AREA_BOTTOM: f32 = 153.0;
-pub(super) const UNO_ACTION_AREA_HEIGHT: f32 = 52.0;
+pub(super) const UNO_ACTION_AREA_BOTTOM: f32 = if cfg!(target_os = "android") {
+    220.0
+} else {
+    153.0
+};
+pub(super) const UNO_ACTION_AREA_HEIGHT: f32 = 52.0 * GAME_SIDE_CONTROL_SCALE;
 pub(crate) struct UnoTableVisuals<'a> {
     pub assets: &'a UiAssets,
     pub game_assets: &'a UnoAssets,
@@ -269,13 +278,17 @@ fn add_uno_center(
         table,
         Node {
             position_type: PositionType::Absolute,
-            left: px(467),
-            top: px(229),
-            width: px(346),
-            height: px(170),
+            left: px(640.0 - 173.0 * UNO_CARD_SCALE),
+            top: px(if cfg!(target_os = "android") {
+                135
+            } else {
+                229
+            }),
+            width: px(346.0 * UNO_CARD_SCALE),
+            height: px(170.0 * UNO_CARD_SCALE),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
-            column_gap: px(34),
+            column_gap: px(34.0 * UNO_CARD_SCALE),
             ..default()
         },
         None,
@@ -284,8 +297,8 @@ fn add_uno_center(
         commands,
         center,
         Node {
-            width: px(96),
-            height: px(140),
+            width: px(96.0 * UNO_CARD_SCALE),
+            height: px(140.0 * UNO_CARD_SCALE),
             position_type: PositionType::Relative,
             ..default()
         },
@@ -307,10 +320,10 @@ fn add_uno_center(
                 UnoFlipTarget::DrawPile(index_from_top),
                 Node {
                     position_type: PositionType::Absolute,
-                    left: px(7.0 - index_from_top as f32 * 1.2),
-                    top: px(6.0 - index_from_top as f32),
-                    width: px(82),
-                    height: px(128),
+                    left: px((7.0 - index_from_top as f32 * 1.2) * UNO_CARD_SCALE),
+                    top: px((6.0 - index_from_top as f32) * UNO_CARD_SCALE),
+                    width: px(UNO_FLYING_CARD_WIDTH),
+                    height: px(UNO_FLYING_CARD_HEIGHT),
                     ..default()
                 },
                 ImageNode::new(image),
@@ -327,11 +340,11 @@ fn add_uno_center(
             position_type: PositionType::Absolute,
             left: percent(50),
             top: percent(50),
-            width: px(48),
-            height: px(36),
+            width: px(48.0 * UNO_CARD_SCALE),
+            height: px(36.0 * UNO_CARD_SCALE),
             margin: UiRect {
-                left: px(-24),
-                top: px(-18),
+                left: px(-24.0 * UNO_CARD_SCALE),
+                top: px(-18.0 * UNO_CARD_SCALE),
                 ..default()
             },
             align_items: AlignItems::Center,
@@ -348,7 +361,7 @@ fn add_uno_center(
         commands,
         draw_count,
         game.draw_pile_len.to_string(),
-        20.0,
+        20.0 * UNO_CARD_SCALE,
         TEXT,
         assets,
     );
@@ -357,8 +370,8 @@ fn add_uno_center(
         commands,
         center,
         Node {
-            width: px(96),
-            height: px(140),
+            width: px(96.0 * UNO_CARD_SCALE),
+            height: px(140.0 * UNO_CARD_SCALE),
             position_type: PositionType::Relative,
             ..default()
         },
@@ -376,8 +389,8 @@ fn add_uno_center(
                 UnoFlipTarget::DiscardPile(game.discard_pile.len() - 1 - index),
                 Node {
                     position_type: PositionType::Absolute,
-                    left: px(7.0 + x),
-                    top: px(6.0 + y),
+                    left: px(7.0 * UNO_CARD_SCALE + x),
+                    top: px(6.0 * UNO_CARD_SCALE + y),
                     width: px(UNO_FLYING_CARD_WIDTH),
                     height: px(UNO_FLYING_CARD_HEIGHT),
                     ..default()
@@ -395,7 +408,11 @@ fn add_uno_center(
         Node {
             position_type: PositionType::Absolute,
             left: px(440),
-            top: px(382),
+            top: px(if cfg!(target_os = "android") {
+                354
+            } else {
+                382
+            }),
             width: px(400),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,

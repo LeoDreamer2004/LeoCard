@@ -13,6 +13,11 @@ pub(crate) fn add_poker_balance_panel(
     counts: &[(u16, usize)],
     assets: &UiAssets,
 ) -> Entity {
+    let width = if cfg!(target_os = "android") {
+        250.0
+    } else {
+        300.0
+    };
     let panel = spawn_node(
         commands,
         parent,
@@ -20,7 +25,7 @@ pub(crate) fn add_poker_balance_panel(
             position_type: PositionType::Absolute,
             left: px(portrait_size.x + 8.0),
             top: px((portrait_size.y - 66.0) * 0.5),
-            width: px(300),
+            width: px(width),
             min_height: px(66),
             padding: UiRect::new(px(76), px(6), px(6), px(6)),
             flex_direction: FlexDirection::Column,
@@ -62,11 +67,35 @@ pub(crate) fn add_poker_balance_panel(
         offset: Vec2::new(1.5, 2.0),
         color: Color::BLACK.with_alpha(0.82),
     });
-    let chips = spawn_node(
+    let chip_area = spawn_node(
         commands,
         panel,
         Node {
+            position_type: PositionType::Relative,
             width: percent(100),
+            height: px(38),
+            ..default()
+        },
+        None,
+    );
+    let chip_width = counts
+        .iter()
+        .map(|(_, count)| 34.0 + count.saturating_sub(1) as f32 * 11.0)
+        .sum::<f32>()
+        + counts.len().saturating_sub(1) as f32 * 10.0;
+    let scale = if cfg!(target_os = "android") {
+        ((width - 82.0) / chip_width.max(1.0)).min(1.0)
+    } else {
+        1.0
+    };
+    let chips = spawn_node(
+        commands,
+        chip_area,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(0),
+            top: px(0),
+            width: px(chip_width),
             height: px(38),
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Center,
@@ -76,6 +105,12 @@ pub(crate) fn add_poker_balance_panel(
         },
         None,
     );
+    // Keep the numeric balance full size; fit only the decorative chips from their left edge.
+    commands.entity(chips).insert(UiTransform {
+        translation: Val2::px((scale - 1.0) * chip_width * 0.5, 0.0),
+        scale: Vec2::splat(scale),
+        ..default()
+    });
     for &(denomination, count) in counts {
         add_horizontal_chip_group(commands, chips, denomination, count, assets);
     }

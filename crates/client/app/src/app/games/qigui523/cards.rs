@@ -1,6 +1,7 @@
 use super::{HandCardSlot, HandCardVisual, QiGui523UiAction};
 use crate::app::presentation::{
     CardAnimationState, CardSize, HandCardHighlight, HandCardSelectionOverlay, hand_card_pose,
+    qigui_hand_card_reveal,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -10,8 +11,6 @@ use bevy::ui::RelativeCursorPosition;
 use bevy::ui_widgets::Button;
 use leocard_qigui523::QiGuiCard;
 use leocard_ui::UiComposer;
-
-pub(super) const QIGUI_HAND_CARD_REVEAL: f32 = 32.0;
 
 pub(crate) fn sort_cards_high_to_low(cards: &mut [QiGuiCard]) {
     cards.sort_by(|left, right| {
@@ -81,7 +80,11 @@ pub(super) fn add_card_button(
                 width: px(if is_last {
                     width
                 } else {
-                    QIGUI_HAND_CARD_REVEAL
+                    if cfg!(target_os = "android") {
+                        qigui_hand_card_reveal(hand_len)
+                    } else {
+                        32.0
+                    }
                 }),
                 height: px(height),
                 ..default()

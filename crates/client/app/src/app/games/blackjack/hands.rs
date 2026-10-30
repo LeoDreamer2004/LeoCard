@@ -1,6 +1,7 @@
 use super::BlackjackTable;
 use super::cards::{BlackjackCardSpec, add_card};
 use super::chips::{BlackjackWagerSpec, add_blackjack_wager};
+use super::layout::BlackjackSeatLayout;
 use super::playback::BlackjackCardSlot;
 use crate::app::presentation::{
     ACCENT, DANGER, MUTED, TEXT, TableStatusEffect, TableStatusSpec, add_table_status,
@@ -120,7 +121,12 @@ impl BlackjackTable<'_> {
             },
             self.assets,
         );
-        let size = (spec.width - 12.0).clamp(30.0, if spec.own { 84.0 } else { 44.0 });
+        let scale = if spec.own {
+            BlackjackSeatLayout::HAND_SCALE
+        } else {
+            1.0
+        };
+        let size = (spec.width - 12.0).clamp(30.0, if spec.own { 84.0 * scale } else { 44.0 });
         let cards = spawn_node(
             commands,
             column,
@@ -133,8 +139,9 @@ impl BlackjackTable<'_> {
             },
             None,
         );
-        let span = (spec.width - 8.0 - size)
-            .min(if spec.own { 92.0 } else { 27.0 } * hand.cards.len().saturating_sub(1) as f32);
+        let span = (spec.width - 8.0 - size).min(
+            if spec.own { 92.0 * scale } else { 27.0 } * hand.cards.len().saturating_sub(1) as f32,
+        );
         let step = span / hand.cards.len().saturating_sub(1).max(1) as f32;
         for (index, &card) in hand.cards.iter().enumerate() {
             add_card(

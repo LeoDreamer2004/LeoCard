@@ -1,6 +1,6 @@
 //! 手牌悬停、拖选和预览输入。
 
-use super::{CardAnimationState, DESIGN_WIDTH, HAND_CARD_REVEAL};
+use super::{CardAnimationState, DESIGN_WIDTH, GAME_SIDE_CONTROL_SCALE, HAND_CARD_REVEAL};
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
@@ -28,7 +28,7 @@ pub(crate) enum CardSize {
 
 impl CardSize {
     pub(crate) fn dimensions(self) -> (f32, f32) {
-        match self {
+        let (width, height) = match self {
             Self::ShengjiHand => (82.0, 111.0),
             Self::QiGuiHand => (94.0, 128.0),
             Self::QiGuiSeat => (80.0, 109.0),
@@ -36,7 +36,14 @@ impl CardSize {
             Self::TableScore => (28.0, 38.0),
             Self::FinishedHand => (43.2, 58.8),
             Self::TrickSeat => (70.0, 95.0),
-        }
+        };
+        let scale = match self {
+            Self::ShengjiHand | Self::QiGuiHand | Self::QiGuiSeat | Self::TrickSeat => {
+                GAME_SIDE_CONTROL_SCALE
+            }
+            _ => 1.0,
+        };
+        (width * scale, height * scale)
     }
 }
 
@@ -150,8 +157,8 @@ pub(crate) fn hand_card_pose(
         hand_len,
         card_width,
         match size {
-            CardSize::ShengjiHand => 30.0,
-            CardSize::QiGuiHand => 32.0,
+            CardSize::ShengjiHand => 30.0 * GAME_SIDE_CONTROL_SCALE,
+            CardSize::QiGuiHand => 32.0 * GAME_SIDE_CONTROL_SCALE,
             _ => HAND_CARD_REVEAL,
         },
     );
@@ -204,7 +211,19 @@ pub(crate) fn hand_card_pose_for_layout(
 }
 
 pub(crate) fn shengji_hand_card_reveal(hand_len: usize) -> f32 {
-    hand_card_reveal_for_width(hand_len, CardSize::ShengjiHand.dimensions().0, 30.0)
+    hand_card_reveal_for_width(
+        hand_len,
+        CardSize::ShengjiHand.dimensions().0,
+        30.0 * GAME_SIDE_CONTROL_SCALE,
+    )
+}
+
+pub(crate) fn qigui_hand_card_reveal(hand_len: usize) -> f32 {
+    hand_card_reveal_for_width(
+        hand_len,
+        CardSize::QiGuiHand.dimensions().0,
+        32.0 * GAME_SIDE_CONTROL_SCALE,
+    )
 }
 
 fn hand_card_reveal_for_width(hand_len: usize, card_width: f32, preferred_reveal: f32) -> f32 {

@@ -2,7 +2,7 @@ use super::super::skin::{add_shengji_button, add_shengji_disabled_button};
 use super::super::{ShengjiAssets, ShengjiUiAction};
 use super::bid_strip::add_shengji_bid_strip;
 use super::shengji_current_level;
-use crate::app::presentation::{ACCENT, GameButtonTone, add_text};
+use crate::app::presentation::{ACCENT, GAME_SIDE_CONTROL_SCALE, GameButtonTone, add_text};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -68,10 +68,10 @@ pub(super) fn add_shengji_bidding_panel(
         hand_area,
         Node {
             position_type: PositionType::Absolute,
-            left: percent(25),
-            right: percent(25),
+            left: percent(if cfg!(target_os = "android") { 18 } else { 25 }),
+            right: percent(if cfg!(target_os = "android") { 18 } else { 25 }),
             top: px(2),
-            height: px(54),
+            height: px(54.0 * GAME_SIDE_CONTROL_SCALE),
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,

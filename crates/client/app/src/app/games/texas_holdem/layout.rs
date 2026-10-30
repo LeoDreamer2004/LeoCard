@@ -4,13 +4,72 @@ use bevy::prelude::Vec2;
 use leocard_protocol::{PlayerId, SeatId, TexasHoldemSnapshot};
 use leocard_texas_holdem::TexasHoldemRuleSet;
 
-/// Keep the original six-seat table for smaller games; expand only the side columns.
+/// Seat mapping and shared geometry for the desktop and compact Android tables.
 #[derive(Clone, Copy)]
 pub(super) struct TexasTableLayout {
     player_count: u8,
 }
 
 impl TexasTableLayout {
+    pub(super) const BOARD_CARD_SIZE: Vec2 = if cfg!(target_os = "android") {
+        Vec2::new(72.0, 98.0)
+    } else {
+        Vec2::new(56.0, 76.0)
+    };
+    pub(super) const BOARD_TOP: f32 = if cfg!(target_os = "android") {
+        142.0
+    } else {
+        160.0
+    };
+    pub(super) const BOARD_ROW_HEIGHT: f32 = if cfg!(target_os = "android") {
+        112.0
+    } else {
+        90.0
+    };
+    pub(super) const HAND_SCALE: f32 = if cfg!(target_os = "android") {
+        1.5
+    } else {
+        1.0
+    };
+    pub(super) const ACTION_SCALE: f32 = if cfg!(target_os = "android") {
+        1.4
+    } else {
+        1.0
+    };
+    pub(super) const ACTION_BOTTOM: f32 = if cfg!(target_os = "android") {
+        189.0
+    } else {
+        124.0
+    };
+
+    pub(super) fn board_card_origin(index: usize) -> Vec2 {
+        let content_width = 46.0 + 8.0 + 5.0 * Self::BOARD_CARD_SIZE.x + 6.0 * 7.0;
+        Vec2::new(
+            640.0 - content_width * 0.5
+                + 46.0
+                + 8.0
+                + 14.0
+                + index as f32 * (Self::BOARD_CARD_SIZE.x + 7.0),
+            Self::BOARD_TOP + (Self::BOARD_ROW_HEIGHT - Self::BOARD_CARD_SIZE.y) * 0.5,
+        )
+    }
+
+    pub(super) fn draw_pile_center() -> Vec2 {
+        let first = Self::board_card_origin(0);
+        Vec2::new(
+            first.x - 45.0,
+            Self::BOARD_TOP + Self::BOARD_ROW_HEIGHT * 0.5 - 12.5,
+        )
+    }
+
+    pub(super) fn initial_deal_source() -> Vec2 {
+        if cfg!(target_os = "android") {
+            Self::draw_pile_center() - Vec2::new(18.0, 24.5)
+        } else {
+            Vec2::new(456.0, 212.0)
+        }
+    }
+
     pub(super) const fn new(player_count: u8) -> Self {
         Self { player_count }
     }
@@ -63,14 +122,28 @@ impl TexasTableLayout {
     pub(super) fn chip_zone(self, slot: u8) -> ChipZoneLayout {
         let expanded = self.player_count > 6;
         let position = self.seats().seat(slot).position(TableSeatAnchors {
-            bottom: Vec2::new(640.0, 405.0),
+            bottom: Vec2::new(
+                640.0,
+                if cfg!(target_os = "android") {
+                    338.0
+                } else {
+                    405.0
+                },
+            ),
             top: Vec2::new(640.0, 23.0),
-            columns: if expanded {
+            columns: if cfg!(target_os = "android") {
+                Vec2::new(250.0, 1030.0)
+            } else if expanded {
                 Vec2::new(258.0, 1022.0)
             } else {
                 Vec2::new(282.0, 998.0)
             },
-            rows: if expanded {
+            rows: if cfg!(target_os = "android") && expanded {
+                // Keep all three portrait/stack rows clear of the enlarged mobile header.
+                &[356.0, 228.0, 100.0]
+            } else if cfg!(target_os = "android") {
+                &[346.0, 116.0]
+            } else if expanded {
                 &[346.0, 201.0, 56.0]
             } else {
                 &[346.0, 123.0]
@@ -80,7 +153,11 @@ impl TexasTableLayout {
             left: position.x - 105.0,
             top: position.y,
             width: 210.0,
-            height: 130.0,
+            height: if cfg!(target_os = "android") {
+                96.0
+            } else {
+                130.0
+            },
         }
     }
 

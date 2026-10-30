@@ -1,8 +1,8 @@
 use super::drag::UnoDraggableCard;
 use super::{
-    UNO_AVATAR_SIZE, UNO_PORTRAIT_HEIGHT, UNO_PORTRAIT_WIDTH, UnoAssets, UnoExtensionCardHelp,
-    UnoExtensionCardHelpOverlay, UnoFlipTarget, UnoHandCardButton, UnoHandCardVisual,
-    UnoSwapTargetPanel, UnoUiAction, UnoUiState, add_uno_card_count,
+    UNO_AVATAR_SIZE, UNO_CARD_SCALE, UNO_PORTRAIT_HEIGHT, UNO_PORTRAIT_WIDTH, UnoAssets,
+    UnoExtensionCardHelp, UnoExtensionCardHelpOverlay, UnoFlipTarget, UnoHandCardButton,
+    UnoHandCardVisual, UnoSwapTargetPanel, UnoUiAction, UnoUiState, add_uno_card_count,
     add_uno_eliminated_player_overlay, add_uno_skip_overlay, add_uno_swap_selected_label,
     uno_anchor_in_layer, uno_card_handle, uno_card_is_playable, uno_skip_count,
 };
@@ -137,7 +137,7 @@ pub(super) fn add_uno_own_area(
             left: px(205),
             right: px(205),
             bottom: px(0),
-            height: px(146),
+            height: px(146.0 * UNO_CARD_SCALE),
             align_items: AlignItems::FlexEnd,
             justify_content: JustifyContent::Center,
             overflow: Overflow::visible(),
@@ -147,7 +147,10 @@ pub(super) fn add_uno_own_area(
     );
     let count = game.your_hand.len();
     let reveal = if count <= 1 {
-        78.0
+        78.0 * UNO_CARD_SCALE
+    } else if cfg!(target_os = "android") {
+        ((820.0 - 78.0 * UNO_CARD_SCALE) / count.saturating_sub(1) as f32)
+            .min(72.0 * UNO_CARD_SCALE)
     } else {
         (820.0 / count as f32).clamp(24.0, 72.0)
     };
@@ -171,8 +174,12 @@ pub(super) fn add_uno_own_area(
             format!("card:{card:?}"),
             (
                 Node {
-                    width: px(if index + 1 == count { 78.0 } else { reveal }),
-                    height: px(126),
+                    width: px(if index + 1 == count {
+                        78.0 * UNO_CARD_SCALE
+                    } else {
+                        reveal
+                    }),
+                    height: px(126.0 * UNO_CARD_SCALE),
                     flex_shrink: 0.0,
                     align_items: AlignItems::FlexStart,
                     overflow: Overflow::visible(),
@@ -213,15 +220,16 @@ pub(super) fn add_uno_own_area(
                     selected_amount: animation.selected_amount,
                 },
                 Node {
-                    width: px(78),
-                    height: px(122),
+                    width: px(78.0 * UNO_CARD_SCALE),
+                    height: px(122.0 * UNO_CARD_SCALE),
                     border: UiRect::all(px(2)),
                     border_radius: BorderRadius::all(px(11)),
                     ..default()
                 },
                 UiTransform::from_translation(Val2::px(
                     0.0,
-                    -(animation.face_hover_amount * 10.0 + animation.selected_amount * 22.0),
+                    -(animation.face_hover_amount * 10.0 + animation.selected_amount * 22.0)
+                        * UNO_CARD_SCALE,
                 )),
                 ImageNode::new(uno_card_handle(game_assets, card)).with_color(
                     if interactive || jump_selected || !playing {

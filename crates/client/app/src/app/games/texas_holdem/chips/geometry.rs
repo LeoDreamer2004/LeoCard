@@ -1,6 +1,15 @@
 use super::ChipZoneLayout;
 
 pub(super) fn texas_pot_chip_zone(squid_enabled: bool) -> ChipZoneLayout {
+    if cfg!(target_os = "android") {
+        let left = if squid_enabled { 600.0 } else { 380.0 };
+        return ChipZoneLayout {
+            left,
+            top: 256.0,
+            width: 900.0 - left,
+            height: 64.0,
+        };
+    }
     // Reserve the left column below the street label for squid coins.
     let left = if squid_enabled { 560.0 } else { 440.0 };
     ChipZoneLayout {
@@ -33,6 +42,14 @@ pub(super) fn texas_pot_partition_zone(
 /// The visual centre zone contains both the board cards and the physical pot.
 /// Chip scattering still uses `texas_pot_chip_zone`, so chips cannot cover cards.
 pub(super) fn texas_center_zone_panel() -> ChipZoneLayout {
+    if cfg!(target_os = "android") {
+        return ChipZoneLayout {
+            left: 368.0,
+            top: 140.0,
+            width: 544.0,
+            height: 186.0,
+        };
+    }
     ChipZoneLayout {
         // Keep the board and pot in one frame while leaving a gap to the
         // player chip zones above, below, and on both sides.

@@ -197,11 +197,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends clang mold pkg-config
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
 
       - name: Select current stable Rust and Android target
         run: |

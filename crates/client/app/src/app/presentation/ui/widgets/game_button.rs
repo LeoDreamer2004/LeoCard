@@ -31,6 +31,13 @@ pub(crate) enum GameButtonTone {
 }
 
 impl<'a> GameButtonSpec<'a> {
+    pub(crate) fn scaled(mut self, scale: f32) -> Self {
+        self.width *= scale;
+        self.height *= scale;
+        self.font_size *= scale;
+        self
+    }
+
     pub(crate) fn compact(
         assets: &'a UiAssets,
         label: &'a str,

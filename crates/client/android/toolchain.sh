@@ -9,7 +9,7 @@ export ANDROID_AVD_HOME="$LEOCARD_ANDROID_CACHE/avd"
 export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
 export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-25-openjdk}"
 export PATH="$JAVA_HOME/bin:$PATH"
-LEOCARD_GRADLE="$LEOCARD_ANDROID_CACHE/gradle-9.8.1/bin/gradle"
+LEOCARD_GRADLE="$LEOCARD_ANDROID_CACHE/gradle-9.8.2/bin/gradle"
 mkdir -p "$ANDROID_USER_HOME" "$ANDROID_AVD_HOME" "$LEOCARD_ANDROID_CACHE/downloads"
 
 android_sdk() {
@@ -28,9 +28,9 @@ android_tools() {
         sdkmanager --sdk_root="$ANDROID_HOME" 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0' 'ndk;29.0.14206865'
     fi
     if [[ ! -x "$LEOCARD_GRADLE" ]]; then
-        local archive="$LEOCARD_ANDROID_CACHE/downloads/gradle-9.8.1-bin.zip"
-        curl -fL --retry 2 https://services.gradle.org/distributions/gradle-9.8.1-bin.zip -o "$archive"
-        curl -fsL https://services.gradle.org/distributions/gradle-9.8.1-bin.zip.sha256 -o "$archive.sha256"
+        local archive="$LEOCARD_ANDROID_CACHE/downloads/gradle-9.8.2-bin.zip"
+        curl -fL --retry 2 https://services.gradle.org/distributions/gradle-9.8.2-bin.zip -o "$archive"
+        curl -fsL https://services.gradle.org/distributions/gradle-9.8.2-bin.zip.sha256 -o "$archive.sha256"
         (cd "$(dirname "$archive")"; printf '%s  %s\n' "$(cat "$archive.sha256")" "$(basename "$archive")" | sha256sum -c -)
         unzip -q "$archive" -d "$LEOCARD_ANDROID_CACHE"
     fi

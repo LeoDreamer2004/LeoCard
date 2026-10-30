@@ -224,7 +224,7 @@ jobs:
             target/release
             target/android-dev
             target/android/gradle-home/caches
-            target/android/gradle-9.8.1
+            target/android/gradle-9.8.2
           key: Android-arm64-${{ env.LEOCARD_BUILD_PROFILE }}-${{ hashFiles('**/Cargo.lock', 'crates/client/android/**/*.gradle', 'crates/client/android/gradle.properties', 'crates/client/android/toolchain.sh') }}
           restore-keys: |
             Android-arm64-${{ env.LEOCARD_BUILD_PROFILE }}-

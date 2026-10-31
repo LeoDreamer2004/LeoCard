@@ -22,10 +22,16 @@ impl NotificationBackend {
             .icon
             .to_str()
             .ok_or("通知图标路径不是 UTF-8")?;
+        // 桌面通知正文支持标记语法，玩家名称按纯文本显示。
+        let body = notification
+            .body
+            .replace('&', "&amp;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;");
         let handle = Notification::new()
             .appname(&self.application.name)
             .summary(&notification.title)
-            .body(&notification.body)
+            .body(&body)
             .icon(icon)
             .hint(Hint::DesktopEntry(self.application.id.clone()))
             .timeout(8_000)

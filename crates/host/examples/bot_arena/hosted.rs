@@ -8,10 +8,8 @@ use leocard_protocol::{
 };
 use leocard_shengji::{ShengjiRuleSet, build_deck as shengji_deck};
 use leocard_texas_holdem::{TexasAction, TexasRuleSet, build_deck as texas_deck};
-use std::{
-    thread,
-    time::{Duration, Instant},
-};
+use std::thread;
+use std::time::{Duration, Instant};
 
 pub fn run() {
     let mut mahjong = mahjong_deck();

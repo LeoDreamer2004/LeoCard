@@ -3,4 +3,4 @@ mod core;
 pub(crate) mod event;
 
 pub use access::*;
-pub use core::*;
+pub use core::ClientModel;

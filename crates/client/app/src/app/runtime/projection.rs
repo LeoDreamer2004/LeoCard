@@ -91,7 +91,8 @@ impl<E: GameEventSource> GameProjection for GameEvents<E> {
             ServerEvent::GameSnapshot(_)
             | ServerEvent::LobbySnapshot(_)
             | ServerEvent::RoomClosed
-            | ServerEvent::LeftRoom => *self = Self::default(),
+            | ServerEvent::LeftRoom
+            | ServerEvent::KickedFromRoom => *self = Self::default(),
             _ => {}
         }
     }

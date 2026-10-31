@@ -5,7 +5,7 @@ use crate::app::presentation::{
     add_host_crown, add_text, attach_player_interactions,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{LobbyUiAction, UiAction, reference_level};
+use crate::app::shell::{LobbySeatedAvatar, LobbyUiAction, UiAction, reference_level};
 use bevy::picking::Pickable;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
@@ -214,6 +214,9 @@ impl<'a> OccupiedLobbySeat<'a> {
             52.0,
             self.assets,
         );
+        commands
+            .entity(avatar)
+            .insert(LobbySeatedAvatar(self.player.player.id));
         attach_player_interactions(
             commands,
             container,

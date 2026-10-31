@@ -116,7 +116,7 @@ impl<'a> LobbyTable<'a> {
             add_text(
                 commands,
                 table,
-                "右键空座添加机器人，右键机器人移除",
+                "右键空座添加机器人，右键玩家管理座位",
                 10.5,
                 MUTED,
                 self.assets,

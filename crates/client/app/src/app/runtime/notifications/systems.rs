@@ -13,9 +13,9 @@ use crate::platform::notifications::{
 use crate::player::config_file;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
-#[cfg(not(target_os = "android"))]
-use leocard_client::PlayerPersona;
 use leocard_client::{ClientPhaseRef, NetworkState};
+#[cfg(not(target_os = "android"))]
+use leocard_game_common::PlayerPersona;
 use std::time::Instant;
 
 #[derive(Resource, Default)]
@@ -68,10 +68,10 @@ impl TurnNotifications {
 #[cfg(not(target_os = "android"))]
 pub(super) fn reminder_body(name: &str) -> String {
     let name = match PlayerPersona::from(name) {
-        PlayerPersona::Yang120 => "官儿",
-        PlayerPersona::SnowyWind => "马眼",
         PlayerPersona::DreamerLeo => "Dev",
         PlayerPersona::Cnofne => "群主",
+        PlayerPersona::Yang120 => "官儿",
+        PlayerPersona::SnowyWind => "马眼",
         PlayerPersona::Wpy03 => "盆儿",
         PlayerPersona::Regular => name,
     };

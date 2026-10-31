@@ -126,6 +126,10 @@ pub enum ClientCommand {
     RequestSnapshot,
     /// Read-only public metadata; does not require a Join request.
     RequestRoomInfo,
+    /// 房主仅可在准备大厅踢出其他真人玩家。
+    KickPlayer {
+        player: PlayerId,
+    },
 }
 
 impl ClientCommand {
@@ -197,6 +201,11 @@ pub enum ServerEvent {
         title: String,
         message: String,
     },
+    PlayerKicked {
+        name: String,
+    },
+    /// 仅发给被踢出的客户端，收到后停止重连并退出房间。
+    KickedFromRoom,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -207,6 +216,20 @@ pub struct LobbySnapshot {
     pub host_port: u16,
     pub host: Option<PlayerId>,
     pub players: Vec<LobbyPlayerView>,
+    /// 房主为新加入的玩家发起的一次性入场演出，不因重连或返回大厅重新生成。
+    pub entrance: Option<LobbyEntranceView>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct LobbyEntranceView {
+    pub sequence: u64,
+    pub player: PlayerId,
+    pub elapsed_millis: u16,
+}
+
+impl LobbyEntranceView {
+    /// 展示两秒后，用最后 400 毫秒同时淡出标题与遮罩，房主锁定使用同一时长。
+    pub const DURATION_MILLIS: u16 = 2_400;
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

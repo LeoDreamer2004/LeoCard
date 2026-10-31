@@ -39,6 +39,7 @@ pub(super) fn poll_network(
                 | ServerEvent::GameEvent(_)
                 | ServerEvent::LobbySnapshot(_)
                 | ServerEvent::LeftRoom
+                | ServerEvent::KickedFromRoom
                 | ServerEvent::RoomClosed
         ) {
             updates.write(GameStateMessage(event.clone()));

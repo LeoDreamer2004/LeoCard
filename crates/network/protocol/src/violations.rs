@@ -96,6 +96,8 @@ pub enum RoomViolation {
     InvalidChatMessage,
     CannotInteractWithSelf,
     SpectatorCannotAct,
+    OnlyHostCanKick,
+    CannotKickPlayer,
 }
 
 impl fmt::Display for RoomViolation {
@@ -117,6 +119,8 @@ impl fmt::Display for RoomViolation {
             Self::InvalidChatMessage => "聊天消息为空、过长或快捷语音无效",
             Self::CannotInteractWithSelf => "不能和自己互动",
             Self::SpectatorCannotAct => "当前正在观战，请等待下一场入座",
+            Self::OnlyHostCanKick => "只有房主可以踢出玩家",
+            Self::CannotKickPlayer => "只能踢出其他真人玩家",
         })
     }
 }

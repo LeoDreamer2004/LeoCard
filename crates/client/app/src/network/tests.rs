@@ -1,3 +1,5 @@
+mod kicking;
+
 use super::connection::complete_handshake;
 use super::state::{EventQueue, NetworkEvent, NetworkLaunch, normalize_server_address};
 use super::worker::run_network;
@@ -324,6 +326,7 @@ fn snapshot() -> ServerMessage {
         host_port: 52300,
         host: Some(PlayerId(0)),
         players: Vec::new(),
+        entrance: None,
     }))
 }
 

@@ -7,11 +7,10 @@ use crate::app::shell::{
     add_configuration_scroll, add_cozy_button_variant, add_cozy_panel,
 };
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use leocard_protocol::LobbySnapshot;
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 #[derive(Clone, Copy)]
 pub(crate) struct LobbyPageStyle {
@@ -56,6 +55,11 @@ impl LobbyPage {
         config: LobbyPageConfig,
     ) -> Self {
         let style = config.style;
+        let panel_height = if cfg!(target_os = "android") {
+            560.0
+        } else {
+            530.0
+        };
         let canvas = spawn_node(
             commands,
             root,
@@ -88,7 +92,8 @@ impl LobbyPage {
                 },
                 row_gap: px(if cfg!(target_os = "android") { 10 } else { 18 }),
                 column_gap: px(18),
-                align_items: AlignItems::FlexStart,
+                align_items: AlignItems::Center,
+                align_content: AlignContent::Center,
                 ..default()
             },
             None,
@@ -98,6 +103,7 @@ impl LobbyPage {
             content,
             Node {
                 min_width: px(style.rules_min_width),
+                height: px(panel_height),
                 min_height: px(0),
                 max_height: percent(100),
                 flex_basis: px(style.rules_basis),
@@ -119,6 +125,7 @@ impl LobbyPage {
             content,
             Node {
                 min_width: px(style.players_min_width),
+                height: px(panel_height),
                 min_height: px(0),
                 max_height: percent(100),
                 flex_basis: px(style.players_basis),

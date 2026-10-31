@@ -1,6 +1,6 @@
 //! 自定义桌布的文件选择与加载。
 
-use super::super::UiState;
+use crate::app::shell::UiState;
 use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::{
     AppearancePreferences, TableAppearance, TableFeltPicker, TableFeltPickerReceiver,

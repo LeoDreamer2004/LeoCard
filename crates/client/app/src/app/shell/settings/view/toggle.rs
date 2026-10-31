@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_ui::UiComposer;
 
-pub(in super::super) fn add_settings_toggle(
+pub(super) fn add_settings_toggle(
     commands: &mut UiComposer,
     parent: Entity,
     label: &str,

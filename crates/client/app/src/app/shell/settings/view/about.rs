@@ -26,7 +26,9 @@ impl<'a> AboutSettings<'a> {
             parent,
             Node {
                 width: percent(100),
+                min_height: px(0),
                 flex_grow: 1.0,
+                flex_basis: px(0),
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
@@ -82,6 +84,7 @@ impl<'a> SoftwareUpdateSettings<'a> {
             Node {
                 width: percent(100),
                 height: px(1),
+                flex_shrink: 0.0,
                 margin: UiRect::vertical(px(4)),
                 ..default()
             },
@@ -93,6 +96,7 @@ impl<'a> SoftwareUpdateSettings<'a> {
             Node {
                 width: percent(100),
                 min_height: px(54),
+                flex_shrink: 0.0,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::SpaceBetween,
                 flex_wrap: FlexWrap::Wrap,

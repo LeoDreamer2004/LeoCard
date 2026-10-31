@@ -1,17 +1,16 @@
 //! 全局设置窗口与页签组合。
 
-use super::super::super::{
-    CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction, SettingsTab, UiAction,
-    UpdateManager, add_configuration_scroll, add_cozy_close_button, add_cozy_panel,
-};
 use super::super::{SelectedSettingsTab, SettingsTabButton};
 use super::about::AboutSettings;
 use super::appearance::TableAppearanceSettings;
 use super::sound::render_sound_settings;
 use crate::app::presentation::{TEXT, add_text, card_background_image};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
-use crate::app::shell::SettingsUiAction;
-use crate::app::shell::{cozy_backdrop_color, cozy_panel_transform};
+use crate::app::shell::{
+    CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction, SettingsTab,
+    SettingsUiAction, UiAction, UpdateManager, add_configuration_scroll, add_cozy_close_button,
+    add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
+};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
@@ -72,6 +71,7 @@ impl<'a> SettingsModal<'a> {
             overlay,
             Node {
                 width: px(680),
+                height: px(620),
                 max_width: percent(92),
                 max_height: percent(92),
                 min_height: px(0),
@@ -122,6 +122,8 @@ impl<'a> SettingsModal<'a> {
             Node {
                 width: percent(100),
                 min_height: px(0),
+                flex_grow: 1.0,
+                flex_basis: px(0),
                 flex_direction: FlexDirection::Row,
                 column_gap: px(14),
                 ..default()
@@ -167,17 +169,24 @@ impl<'a> SettingsModal<'a> {
                     flex_grow: 1.0,
                     padding: UiRect::all(px(22)),
                     flex_direction: FlexDirection::Column,
+                    row_gap: px(12),
                     ..default()
                 },
                 content_image,
             ),
         );
-        let content = add_configuration_scroll(
-            commands,
-            content,
-            format!("settings:{selected_tab:?}"),
-            12.0,
-        );
+        // About owns a full-height column so its update controls remain at the bottom.
+        // Configuration lists scroll only when necessary and do not draw a scrollbar.
+        let content = if selected_tab == SettingsTab::About {
+            content
+        } else {
+            add_configuration_scroll(
+                commands,
+                content,
+                format!("settings:{selected_tab:?}"),
+                12.0,
+            )
+        };
         match selected_tab {
             SettingsTab::Appearance => {
                 TableAppearanceSettings::new(form, assets).render(commands, content);

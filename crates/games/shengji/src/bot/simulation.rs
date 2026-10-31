@@ -56,9 +56,10 @@ impl Simulation {
             collecting_score: self.collecting_score,
             // Each rollout seat sees only its own private information. Sampled
             // holdings of other seats never enter its heuristic observation.
-            bottom: (self.actor == self.observer)
-                .then_some(self.known_bottom.as_deref())
-                .flatten(),
+            bottom: self
+                .known_bottom
+                .as_deref()
+                .filter(|_| self.actor == self.observer),
         }
     }
 

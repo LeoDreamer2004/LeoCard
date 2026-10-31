@@ -36,6 +36,7 @@
 | 手牌尺寸、布局、拖选 | `crates/client/app/src/app/presentation/hand.rs`、`crates/client/ui/src/selection.rs` |
 | 选中高亮 | `crates/client/app/src/app/presentation/hand_style.rs`；接入参考 `crates/client/app/src/app/games/doudizhu/hand_interaction.rs` |
 | UNO 牌面和飞牌几何 | `crates/client/app/src/app/games/uno/hand.rs`、`crates/client/app/src/app/games/uno/view.rs`、`crates/client/app/src/app/games/uno/presentation/flight.rs` |
+| 后台行动提醒及名称彩蛋 | `crates/client/app/src/app/runtime/notifications/`、`crates/client/app/src/platform/notifications/`、各游戏 `screen.rs` 的 `GameScreen::requires_action`；公共身份见 `crates/client/app/src/player/persona.rs` 的 `PlayerPersona` |
 | 分数反馈 | `crates/client/app/src/app/presentation/score_motion.rs` |
 | 缓动及座位过渡 | `crates/client/app/src/app/presentation/motion.rs`、`crates/client/app/src/app/presentation/seat_transition/` |
 | 页面转场 | `crates/client/app/src/app/shell/ui/transition/` |

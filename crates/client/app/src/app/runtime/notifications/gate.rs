@@ -2,6 +2,8 @@ use leocard_game_common::PlayerId;
 use leocard_protocol::{GameKind, MatchId, RoomId};
 use std::time::{Duration, Instant};
 
+pub(super) const REMINDER_COOLDOWN: Duration = Duration::from_secs(45);
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct ActionContext {
     pub room: RoomId,
@@ -34,7 +36,7 @@ impl ActionReminder {
             || self.notified
             || self
                 .last_attempt
-                .is_some_and(|last| now.duration_since(last) < Duration::from_secs(45))
+                .is_some_and(|last| now.duration_since(last) < REMINDER_COOLDOWN)
         {
             return false;
         }

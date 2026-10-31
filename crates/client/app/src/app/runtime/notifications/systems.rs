@@ -1,8 +1,10 @@
+#[cfg(not(target_os = "android"))]
+use super::gate::REMINDER_COOLDOWN;
 use super::gate::{ActionContext, ActionReminder};
 use crate::app::games::GameScreens;
-use crate::app::runtime::ClientResource;
 #[cfg(not(target_os = "android"))]
 use crate::app::runtime::APP_ICON_PNG;
+use crate::app::runtime::ClientResource;
 #[cfg(not(target_os = "android"))]
 use crate::platform::notifications::{
     DesktopNotification, DesktopNotifications, NotificationTicket,
@@ -47,10 +49,13 @@ impl TurnNotifications {
     #[cfg(not(target_os = "android"))]
     fn show(&mut self, name: &str) {
         let Some(service) = &self.service else { return };
-        match service.show(DesktopNotification {
-            title: "LeoCard".to_owned(),
-            body: reminder_body(name),
-        }) {
+        match service.show(
+            DesktopNotification {
+                title: "LeoCard".to_owned(),
+                body: reminder_body(name),
+            },
+            REMINDER_COOLDOWN,
+        ) {
             Ok(ticket) => self.ticket = Some(ticket),
             Err(error) => warn!("{error}"),
         }
@@ -62,7 +67,9 @@ impl TurnNotifications {
 
 #[cfg(not(target_os = "android"))]
 pub(super) fn reminder_body(name: &str) -> String {
-    let name = PlayerPersona::from(name).nickname().unwrap_or(name);
+    let name = PlayerPersona::from(name)
+        .notification_nickname()
+        .unwrap_or(name);
     format!("{name}，轮到你行动了！")
 }
 

@@ -11,6 +11,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::{Duration, Instant};
 
 pub struct DesktopNotification {
     pub title: String,
@@ -35,6 +36,7 @@ pub(super) struct NotificationApplication {
 struct NotificationRequest {
     notification: DesktopNotification,
     cancelled: Arc<AtomicBool>,
+    minimum_interval: Duration,
 }
 
 /// 单个后台线程负责系统调用与授权，调用方不等待 D-Bus、WinRT 或授权对话框。
@@ -85,11 +87,22 @@ impl DesktopNotifications {
                         return;
                     }
                 };
+                let mut last_delivery: Option<Instant> = None;
                 for request in receiver {
-                    if !request.cancelled.load(Ordering::Relaxed)
-                        && let Err(error) = backend.show(&request.notification)
-                    {
-                        let _ = errors.try_send(error);
+                    if request.cancelled.load(Ordering::Relaxed) {
+                        continue;
+                    }
+                    if let Some(last) = last_delivery {
+                        // 授权或系统调用可能延迟首次发送，冷却以实际提交时间再次兜底。
+                        thread::sleep(request.minimum_interval.saturating_sub(last.elapsed()));
+                    }
+                    if !request.cancelled.load(Ordering::Relaxed) {
+                        match backend.show(&request.notification) {
+                            Ok(()) => last_delivery = Some(Instant::now()),
+                            Err(error) => {
+                                let _ = errors.try_send(error);
+                            }
+                        }
                     }
                 }
             })?;
@@ -99,12 +112,17 @@ impl DesktopNotifications {
         })
     }
 
-    pub fn show(&self, notification: DesktopNotification) -> Result<NotificationTicket, String> {
+    pub fn show(
+        &self,
+        notification: DesktopNotification,
+        minimum_interval: Duration,
+    ) -> Result<NotificationTicket, String> {
         let cancelled = Arc::new(AtomicBool::new(false));
         self.requests
             .try_send(NotificationRequest {
                 notification,
                 cancelled: Arc::clone(&cancelled),
+                minimum_interval,
             })
             .map_err(|error| format!("无法提交桌面通知：{error}"))?;
         Ok(NotificationTicket(cancelled))

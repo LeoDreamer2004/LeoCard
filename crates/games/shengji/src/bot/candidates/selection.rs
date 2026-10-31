@@ -1,3 +1,4 @@
+use super::super::hand::counts;
 use super::{follow::responses, units};
 use crate::{ShengjiCard, ShengjiClassifiedPlay, ShengjiTrump};
 use std::collections::{BTreeMap, HashSet};
@@ -21,7 +22,7 @@ pub(in super::super) fn groups(hand: &[ShengjiCard]) -> Vec<Vec<ShengjiCard>> {
 
 pub(in super::super) fn unique(choices: &mut Vec<ShengjiClassifiedPlay>) {
     let mut seen = HashSet::new();
-    choices.retain(|play| seen.insert(super::super::hand::counts(&play.cards)));
+    choices.retain(|play| seen.insert(counts(&play.cards)));
 }
 
 pub(in super::super) fn plays(

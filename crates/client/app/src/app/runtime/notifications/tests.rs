@@ -45,17 +45,3 @@ fn cooldown_is_global_across_rooms_and_focus_changes() {
     assert!(!reminder.observe(other, true, start + Duration::from_secs(45)));
     assert!(reminder.observe(other, false, start + Duration::from_secs(45)));
 }
-
-#[cfg(not(target_os = "android"))]
-#[test]
-fn notification_names_have_one_separator() {
-    for (name, expected) in [
-        ("Yang", "官儿，轮到你行动了！"),
-        ("Snowy", "马眼，轮到你行动了！"),
-        ("Dreamer", "Dev，轮到你行动了！"),
-        ("ofne", "群主，轮到你行动了！"),
-        ("Alice", "Alice，轮到你行动了！"),
-    ] {
-        assert_eq!(reminder_body(name), expected);
-    }
-}

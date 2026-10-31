@@ -9,13 +9,14 @@ impl NotificationBackend {
         // 裸 cargo run 没有应用包身份，必须先检查，避免原生框架因缺失标识而崩溃。
         check_bundle().map_err(|error| error.to_string())?;
         let _ = (application.id, application.name, application.icon);
-        if !blocking::request_auth().map_err(|error| error.to_string())? {
-            return Err("系统通知未获授权".to_owned());
-        }
+        blocking::request_auth().map_err(|error| error.to_string())?;
         Ok(Self)
     }
 
     pub(super) fn show(&mut self, notification: &DesktopNotification) -> Result<(), String> {
+        if !blocking::request_auth().map_err(|error| error.to_string())? {
+            return Err("系统通知未获授权".to_owned());
+        }
         // macOS 左侧图标来自 LeoCard.app 的 CFBundleIconFile。
         Notification::new()
             .title(&notification.title)

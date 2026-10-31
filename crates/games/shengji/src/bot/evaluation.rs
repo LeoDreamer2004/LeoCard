@@ -8,6 +8,7 @@ use crate::{
 };
 use leocard_game_common::PlayerId;
 use std::collections::HashSet;
+use std::mem;
 
 #[derive(Clone, Copy)]
 pub(super) struct PositionView<'a> {
@@ -28,11 +29,12 @@ pub(super) struct Evaluation<'a> {
     value: f64,
     remaining: Vec<PlayerId>,
     side_controls: usize,
+    before: f64,
 }
 
 impl<'a> Evaluation<'a> {
     pub fn new(view: PositionView<'a>) -> Self {
-        let remaining = (1..view.rules.player_count())
+        let remaining: Vec<_> = (1..view.rules.player_count())
             .map(|offset| PlayerId((view.player.0 + offset) % view.rules.player_count()))
             .take(
                 view.trick
@@ -57,12 +59,22 @@ impl<'a> Evaluation<'a> {
                 knowledge.master(&classify_cards(&[**card], view.trump).expect("single"))
             })
             .count();
+        let before = view.trick.map_or(0.0, |trick| {
+            let current = &trick
+                .plays
+                .iter()
+                .find(|(seat, _)| *seat == trick.winner)
+                .expect("winner")
+                .1;
+            knowledge.team_probability(&trick.plays[0].1, current, trick.winner, &remaining)
+        });
         Self {
             knowledge,
             value: hand_value(view.hand, view.trump),
             view,
             remaining,
             side_controls,
+            before,
         }
     }
 
@@ -96,7 +108,14 @@ impl<'a> Evaluation<'a> {
             let mut selected = Vec::new();
             let mut families = HashSet::new();
             for (index, (play, _)) in ranked.iter().enumerate() {
-                let fresh = families.insert((play.category, play.cards.len(), play.is_throw()));
+                let fresh = families.insert((
+                    play.category,
+                    play.cards.len(),
+                    play.components
+                        .iter()
+                        .map(mem::discriminant)
+                        .collect::<Vec<_>>(),
+                ));
                 if index < limit.div_ceil(2) || fresh {
                     selected.push(index);
                 }
@@ -265,12 +284,13 @@ impl<'a> Evaluation<'a> {
         } else {
             (current, trick.winner)
         };
-        let before = self
-            .knowledge
-            .team_probability(lead, current, trick.winner, &self.remaining);
-        let confidence = self
-            .knowledge
-            .team_probability(lead, winner, seat, &self.remaining);
+        let before = self.before;
+        let confidence = if wins {
+            self.knowledge
+                .team_probability(lead, winner, seat, &self.remaining)
+        } else {
+            before
+        };
         let friendly = ShengjiTeamId::of(trick.winner) == ShengjiTeamId::of(self.view.player);
         let own = points(play);
         let captured = f64::from(trick.points) + own;

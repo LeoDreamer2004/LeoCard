@@ -75,6 +75,8 @@ pub(super) struct Knowledge<'a> {
     pub public: &'a PublicKnowledge,
     pub lengths: &'a [usize],
     outside: [u8; FACES],
+    category_counts: [usize; 5],
+    allowed: Vec<usize>,
     shapes: Vec<ShengjiClassifiedPlay>,
 }
 
@@ -92,23 +94,36 @@ impl<'a> Knowledge<'a> {
             outside[face(card)] = outside[face(card)].saturating_sub(1);
         }
         let pool = cards_from_counts(&outside);
+        let mut category_counts = [0; 5];
+        for (index, count) in outside.iter().enumerate() {
+            category_counts[category_index(face_card(index), trump)] += usize::from(*count);
+        }
+        let allowed = public
+            .voids
+            .iter()
+            .map(|voids| {
+                category_counts
+                    .iter()
+                    .enumerate()
+                    .filter(|(cat, _)| !voids[*cat])
+                    .map(|(_, count)| *count)
+                    .sum()
+            })
+            .collect();
         Self {
             player,
             trump,
             public,
             lengths,
             outside,
+            category_counts,
+            allowed,
             shapes: units(&pool, trump),
         }
     }
 
     pub fn outside_count(&self, cat: usize) -> usize {
-        self.outside
-            .iter()
-            .enumerate()
-            .filter(|(index, _)| category_index(face_card(*index), self.trump) == cat)
-            .map(|(_, count)| usize::from(*count))
-            .sum()
+        self.category_counts[cat]
     }
 
     pub fn outside_points(&self) -> f64 {
@@ -157,15 +172,7 @@ impl<'a> Knowledge<'a> {
     }
 
     fn allowed_count(&self, seat: PlayerId) -> usize {
-        self.outside
-            .iter()
-            .enumerate()
-            .filter(|(index, _)| {
-                !self.public.voids[usize::from(seat.0)]
-                    [category_index(face_card(*index), self.trump)]
-            })
-            .map(|(_, count)| usize::from(*count))
-            .sum()
+        self.allowed[usize::from(seat.0)]
     }
 
     fn holding_probability(&self, seat: PlayerId, play: &ShengjiClassifiedPlay) -> f64 {

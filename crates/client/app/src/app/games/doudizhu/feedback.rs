@@ -25,6 +25,7 @@ pub(super) fn play_feedback(
         *feedback = DoudizhuFeedback::default();
         return;
     };
+    ui.reconcile(game);
     if feedback.match_id != Some(game.match_id) {
         *feedback = DoudizhuFeedback {
             match_id: Some(game.match_id),
@@ -39,30 +40,36 @@ pub(super) fn play_feedback(
             continue;
         };
         if context.match_id != game.match_id
+            || context.hand_index != Some(u32::from(game.progress.hand_number))
             || feedback.sequence.is_some_and(|s| s >= context.sequence)
         {
             continue;
         }
         feedback.sequence = Some(context.sequence);
         let variants = match event {
-            DoudizhuEvent::ActionApplied { player, action } => match action {
-                Action::Play(cards) => {
-                    let kind =
-                        classify(cards, game.rules).and_then(|play| pattern_effect(play.kind));
-                    effects.active = None;
-                    if let Some(kind) = kind {
-                        effects.start(game.match_id, *player, kind, cards.len());
+            DoudizhuEvent::ActionApplied { player, action } => {
+                ui.history
+                    .observe(*player, action, game.rules.mode.players());
+                match action {
+                    Action::Play(cards) => {
+                        let kind =
+                            classify(cards, game.rules).and_then(|play| pattern_effect(play.kind));
+                        effects.active = None;
+                        if let Some(kind) = kind {
+                            effects.start(game.match_id, *player, kind, cards.len());
+                        }
+                        if kind.is_some_and(PlayEffectKind::is_sequence) {
+                            &assets.audio.shove_sounds
+                        } else {
+                            &assets.audio.place_sounds
+                        }
                     }
-                    if kind.is_some_and(PlayEffectKind::is_sequence) {
-                        &assets.audio.shove_sounds
-                    } else {
-                        &assets.audio.place_sounds
-                    }
+                    Action::Bid(_) | Action::Pass => continue,
                 }
-                Action::Bid(_) | Action::Pass => continue,
-            },
+            }
             DoudizhuEvent::Redealt => {
                 ui.pending_deal = Some(game.match_id);
+                ui.history.clear();
                 continue;
             }
             DoudizhuEvent::HandFinished { .. } | DoudizhuEvent::ActionAnalyzed { .. } => continue,

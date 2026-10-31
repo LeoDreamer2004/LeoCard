@@ -1,9 +1,8 @@
 //! Bounded configuration lists share scrolling and preserve their offset during composition.
 
-use crate::app::presentation::MUTED;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-use leocard_ui::{Scrollbar, ScrollbarSkin, UiComposer, spawn_node};
+use leocard_ui::{UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(super) struct ConfigurationScroll;
@@ -23,7 +22,6 @@ pub(crate) fn add_configuration_scroll(
             min_height: px(0),
             flex_grow: 1.0,
             flex_basis: px(0),
-            column_gap: px(8),
             ..default()
         },
     );
@@ -45,7 +43,6 @@ pub(crate) fn add_configuration_scroll(
         ),
     );
     commands.entity(scroll).init(ScrollPosition::default());
-    Scrollbar::spawn(commands, viewport, scroll, ScrollbarSkin::Colored(MUTED));
     // Keep rows at their natural height rather than squeezing controls to fit the viewport.
     spawn_node(
         commands,

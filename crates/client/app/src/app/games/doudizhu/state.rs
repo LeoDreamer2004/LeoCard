@@ -1,6 +1,7 @@
+use super::history::DoudizhuTrickHistory;
 use crate::app::presentation::{CardAnimationState, CardCounterWindowState, Observed};
 use bevy::prelude::*;
-use leocard_doudizhu::Card;
+use leocard_doudizhu::{Card, Phase};
 use leocard_protocol::{DoudizhuSnapshot, MatchId};
 use leocard_ui::{DraggableWindowOwner, DraggableWindowState};
 use std::cmp::Reverse;
@@ -14,6 +15,7 @@ pub(crate) struct DoudizhuUiState {
     pub counter: CardCounterWindowState,
     pub card_animations: HashMap<Card, CardAnimationState>,
     pub pending_deal: Option<MatchId>,
+    pub(super) history: DoudizhuTrickHistory,
     observed_hand: Observed<MatchId, Vec<Card>>,
     match_id: Option<MatchId>,
     hand_number: u8,
@@ -29,6 +31,7 @@ impl DoudizhuUiState {
             self.card_animations.clear();
             self.observed_hand.clear();
             self.kitty_open = false;
+            self.history.clear();
             self.match_id = Some(game.match_id);
             self.hand_number = game.progress.hand_number;
         }
@@ -37,6 +40,9 @@ impl DoudizhuUiState {
             .retain(|card, _| game.your_hand.contains(card));
         if game.kitty.is_empty() {
             self.kitty_open = false;
+        }
+        if game.phase != Phase::Playing {
+            self.history.clear();
         }
     }
 
@@ -49,6 +55,7 @@ impl DoudizhuUiState {
         self.pending_deal = None;
         self.observed_hand.clear();
         self.counter.active = false;
+        self.history.clear();
     }
 
     pub(super) fn observe_dealt_hand(

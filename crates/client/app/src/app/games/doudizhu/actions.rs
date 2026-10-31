@@ -20,6 +20,7 @@ pub(crate) enum DoudizhuUiAction {
     Play,
     Act(Action),
     ToggleKitty,
+    ShowPreviousTrick,
     ToggleCounter,
     ToggleCounterDrawer,
 }
@@ -106,6 +107,7 @@ impl UiActionHandler<ActionContext<'_>> for DoudizhuUiAction {
                 }
             }
             Self::ToggleKitty => context.ui.kitty_open = !context.ui.kitty_open,
+            Self::ShowPreviousTrick => context.ui.history.reveal(),
             Self::ToggleCounter => context.ui.counter.enabled = !context.ui.counter.enabled,
             Self::ToggleCounterDrawer => {
                 context.ui.counter.drawer_open = !context.ui.counter.drawer_open

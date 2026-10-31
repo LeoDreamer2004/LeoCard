@@ -12,6 +12,7 @@ use crate::app::shell::{
     add_reconnecting_overlay,
 };
 use bevy::prelude::*;
+use leocard_doudizhu::Phase;
 use leocard_protocol::DoudizhuSnapshot;
 use leocard_ui::{UiComposer, spawn_node, ui_component};
 
@@ -156,12 +157,20 @@ pub(crate) fn render_doudizhu_table(
         context.chat,
         assets,
         game.result.is_none().then_some(auto).flatten(),
-        &[ChatAuxiliaryAction {
-            label: "底牌",
-            action: (!game.kitty.is_empty())
-                .then_some(UiAction::Doudizhu(DoudizhuUiAction::ToggleKitty)),
-            highlighted: context.ui.kitty_open,
-        }],
+        &[
+            ChatAuxiliaryAction {
+                label: "上轮",
+                action: (game.phase == Phase::Playing && context.ui.history.has_previous())
+                    .then_some(UiAction::Doudizhu(DoudizhuUiAction::ShowPreviousTrick)),
+                highlighted: false,
+            },
+            ChatAuxiliaryAction {
+                label: "底牌",
+                action: (!game.kitty.is_empty())
+                    .then_some(UiAction::Doudizhu(DoudizhuUiAction::ToggleKitty)),
+                highlighted: context.ui.kitty_open,
+            },
+        ],
     );
     if auto == Some(true) && game.result.is_none() {
         add_auto_play_overlay(commands, content, assets);

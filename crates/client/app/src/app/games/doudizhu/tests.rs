@@ -1,6 +1,7 @@
 use super::DoudizhuUiState;
-use leocard_doudizhu::Card;
-use leocard_protocol::MatchId;
+use super::history::DoudizhuTrickHistory;
+use leocard_doudizhu::{Action, Card};
+use leocard_protocol::{MatchId, PlayerId};
 
 #[test]
 fn initial_and_redealt_hands_animate_once_without_restart_on_refresh() {
@@ -70,4 +71,54 @@ fn joining_an_existing_hand_does_not_replay_its_deal() {
             .observe_dealt_hand(MatchId([13; 16]), &cards)
             .is_empty()
     );
+}
+
+#[test]
+fn previous_trick_waits_for_every_pass_and_a_raise_resets_the_pass_count() {
+    for count in [3, 4] {
+        let mut history = DoudizhuTrickHistory::default();
+        history.observe(PlayerId(0), &Action::Bid(3), count);
+        history.observe(PlayerId(0), &Action::Play(vec![Card(0)]), count);
+        history.observe(PlayerId(1), &Action::Pass, count);
+        let winning_play = Action::Play(vec![Card(4)]);
+        history.observe(PlayerId(2), &winning_play, count);
+        for offset in 1..count {
+            assert!(!history.has_previous());
+            history.observe(PlayerId((2 + offset) % count), &Action::Pass, count);
+        }
+        assert!(history.has_previous());
+        assert!(history.revealed_actions().is_none());
+        history.reveal();
+        let actions = history.revealed_actions().unwrap().to_vec();
+        assert_eq!(actions.len(), usize::from(count));
+        assert_eq!(actions[2], Some(winning_play));
+        assert!(
+            actions
+                .iter()
+                .enumerate()
+                .all(|(index, action)| { index == 2 || matches!(action, Some(Action::Pass)) })
+        );
+
+        // New plays and ordinary UI refreshes don't overwrite the recalled trick.
+        history.observe(PlayerId(2), &Action::Play(vec![Card(8)]), count);
+        assert!(!history.advance(1.0));
+        assert_eq!(history.revealed_actions().unwrap(), actions);
+        assert!(history.advance(1.0));
+        assert!(history.revealed_actions().is_none());
+        history.reveal();
+        assert!(history.revealed_actions().is_some());
+        history.clear();
+        assert!(!history.has_previous());
+        assert!(history.revealed_actions().is_none());
+    }
+}
+
+#[test]
+fn missed_lead_does_not_create_a_pass_only_previous_trick() {
+    let mut history = DoudizhuTrickHistory::default();
+    history.observe(PlayerId(1), &Action::Pass, 3);
+    history.observe(PlayerId(2), &Action::Pass, 3);
+    assert!(!history.has_previous());
+    history.reveal();
+    assert!(history.revealed_actions().is_none());
 }

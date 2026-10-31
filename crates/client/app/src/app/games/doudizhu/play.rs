@@ -39,16 +39,16 @@ impl DoudizhuTable<'_> {
             }
             return;
         }
-        let action = self
-            .game
-            .last_actions
+        let previous = self.ui.history.revealed_actions();
+        let action = previous
+            .unwrap_or(&self.game.last_actions)
             .get(usize::from(player.0))
             .and_then(Option::as_ref);
         let revealed = self
             .game
             .revealed_hands
             .get(usize::from(player.0))
-            .filter(|hand| player != self.game.you && !hand.is_empty());
+            .filter(|hand| previous.is_none() && player != self.game.you && !hand.is_empty());
         let cards = revealed
             .map(|hand| (hand.as_slice(), CardSize::FinishedHand))
             .or(match action {
@@ -87,7 +87,8 @@ impl DoudizhuTable<'_> {
                 .active
                 .as_ref()
                 .filter(|effect| {
-                    revealed.is_none()
+                    previous.is_none()
+                        && revealed.is_none()
                         && effect.match_id == self.game.match_id
                         && effect.player == player
                         && effect.card_count == cards.len()

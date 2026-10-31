@@ -126,6 +126,7 @@ impl RoomSession {
             self.players.push(participant);
         }
         self.bump_revision();
+        self.welcome_new_player(player);
         Ok(self.join_deliveries(connection, request_id, player))
     }
 
@@ -138,6 +139,7 @@ impl RoomSession {
     ) -> Vec<Delivery> {
         let previous_connection = self.players[index].connection;
         let player = self.players[index].id;
+        self.cancel_entrance_for(player);
         let reassigned_seat = (!game_started && self.players[index].seat.is_none())
             .then(|| self.random_available_seat())
             .flatten();

@@ -1,6 +1,6 @@
 //! 按钮动作采集、领域系统注册与公共分发机制。
 
-use super::super::{PageMotion, UiState};
+use super::super::{LobbyEntranceState, PageMotion, UiState};
 use super::{ButtonActions, PressedUiAction, UiActionHandler};
 use crate::app::runtime::ClientResource;
 use bevy::prelude::*;
@@ -25,8 +25,11 @@ fn collect_pressed_ui_actions(
     mut actions: MessageWriter<PressedUiAction>,
     mut ui: ResMut<UiState>,
     page_motion: Option<Res<PageMotion>>,
+    entrance: Option<Res<LobbyEntranceState>>,
 ) {
-    if page_motion.is_some_and(|motion| motion.active()) {
+    if page_motion.is_some_and(|motion| motion.active())
+        || entrance.is_some_and(|entrance| entrance.active())
+    {
         presses.clear();
         return;
     }

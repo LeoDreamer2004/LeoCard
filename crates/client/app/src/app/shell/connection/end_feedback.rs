@@ -6,7 +6,9 @@ pub(crate) struct ConnectionEndFeedback<'a> {
 }
 impl ConnectionEndFeedback<'_> {
     pub(crate) fn message(&self) -> Option<Option<String>> {
-        if self.client.model().room_closed() {
+        if self.client.model().kicked_from_room() {
+            Some(Some("你已被房主踢出".to_owned()))
+        } else if self.client.model().room_closed() {
             Some((!self.was_host && !self.leaving_room).then(|| "房主结束了游戏".to_owned()))
         } else if self.client.model().left_room() {
             Some(None)

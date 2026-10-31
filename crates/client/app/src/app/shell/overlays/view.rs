@@ -4,7 +4,7 @@ use super::{
     PlayErrorPopup, PlayErrorPopupImage, PlayErrorPopupText, PlayErrorToast,
     play_error_toast_visual,
 };
-use crate::app::presentation::{ACCENT, MUTED, PanelSkin, TEXT, add_text};
+use crate::app::presentation::{ACCENT, GAME_SIDE_CONTROL_SCALE, MUTED, PanelSkin, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::add_cozy_panel_with_skin;
 use bevy::picking::Pickable;
@@ -42,14 +42,14 @@ pub(crate) fn add_play_error_popup(
         anchor,
         Node {
             width: Val::Auto,
-            min_width: px(360),
+            min_width: px(360.0 * GAME_SIDE_CONTROL_SCALE),
             max_width: percent(82),
-            min_height: px(72),
+            min_height: px(72.0 * GAME_SIDE_CONTROL_SCALE),
             padding: UiRect {
-                left: px(60),
-                right: px(24),
-                top: px(4),
-                bottom: px(18),
+                left: px(60.0 * GAME_SIDE_CONTROL_SCALE),
+                right: px(24.0 * GAME_SIDE_CONTROL_SCALE),
+                top: px(4.0 * GAME_SIDE_CONTROL_SCALE),
+                bottom: px(18.0 * GAME_SIDE_CONTROL_SCALE),
             },
             align_items: AlignItems::Center,
             ..default()
@@ -69,7 +69,7 @@ pub(crate) fn add_play_error_popup(
             },
             center_scale_mode: SliceScaleMode::Stretch,
             sides_scale_mode: SliceScaleMode::Stretch,
-            max_corner_scale: 0.48,
+            max_corner_scale: 0.48 * GAME_SIDE_CONTROL_SCALE,
         }),
     );
     image.rect = Some(Rect::from_corners(
@@ -99,7 +99,7 @@ pub(crate) fn add_play_error_popup(
         commands,
         popup,
         message,
-        16.0,
+        16.0 * GAME_SIDE_CONTROL_SCALE,
         WARNING_TOAST_TEXT.with_alpha(visual.opacity),
         assets,
     );

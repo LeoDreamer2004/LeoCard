@@ -35,6 +35,7 @@ pub(super) async fn complete_handshake(
                 ServerEvent::RoomClosed | ServerEvent::LeftRoom => {
                     return Err("房间已关闭".to_owned());
                 }
+                ServerEvent::KickedFromRoom => return Err("你已被房主踢出".to_owned()),
                 ServerEvent::LobbySnapshot(snapshot) => joined.is_some() && snapshot.host.is_some(),
                 ServerEvent::GameSnapshot(snapshot) => {
                     // A spectator's identity differs from the player whose view is streamed.
@@ -73,7 +74,7 @@ pub(super) async fn run_connected(
                 if matches!(&message.event, ServerEvent::Heartbeat) {
                     continue;
                 }
-                let finished = matches!(&message.event, ServerEvent::RoomClosed | ServerEvent::LeftRoom);
+                let finished = matches!(&message.event, ServerEvent::RoomClosed | ServerEvent::LeftRoom | ServerEvent::KickedFromRoom);
                 push_event(events, NetworkEvent::Message(Box::new(message)));
                 if finished {
                     return Ok(());

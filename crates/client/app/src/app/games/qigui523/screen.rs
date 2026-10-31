@@ -1,11 +1,9 @@
 //! This game owns its screen resources, state reconciliation and view assembly.
+use super::super::{GameLobbyContext, GameScreen, GameTableContext};
 use super::{
     QiGui523Assets, QiGui523UiState, QiGuiClientState, TableVisualContext, render_qigui523_lobby,
     render_table,
 };
-
-use super::super::{GameLobbyContext, GameScreen, GameTableContext};
-
 use crate::app::presentation::PlayEffectState;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{ScoreCaptureEffectState, SocialUiState};
@@ -26,6 +24,21 @@ pub(crate) struct QiGui523Screen<'w> {
 
 impl GameScreen for QiGui523Screen<'_> {
     type Snapshot = QiGui523Snapshot;
+
+    fn requires_action(&self, game: &Self::Snapshot) -> bool {
+        use leocard_protocol::QiGui523PhaseView;
+        matches!(game.phase, QiGui523PhaseView::Playing)
+            && game
+                .trick
+                .as_ref()
+                .is_some_and(|trick| trick.current_player == game.you)
+            && game.players.iter().any(|player| {
+                player.player.id == game.you
+                    && player.connected
+                    && !player.auto_play
+                    && player.hand_len > 0
+            })
+    }
 
     fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
         match client.map(|client| client.0.model().phase()) {

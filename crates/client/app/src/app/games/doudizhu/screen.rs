@@ -20,6 +20,16 @@ pub(crate) struct DoudizhuScreen<'w> {
 impl GameScreen for DoudizhuScreen<'_> {
     type Snapshot = DoudizhuSnapshot;
 
+    fn requires_action(&self, game: &Self::Snapshot) -> bool {
+        use leocard_doudizhu::DoudizhuPhase;
+        matches!(game.phase, DoudizhuPhase::Bidding | DoudizhuPhase::Playing)
+            && game.current == game.you
+            && game
+                .players
+                .iter()
+                .any(|player| player.player.id == game.you && player.connected && !player.auto_play)
+    }
+
     fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
         let phase = client.map(|client| client.0.model().phase());
         if !matches!(phase, Some(ClientPhaseRef::Lobby(lobby)) if lobby.game == GameKind::Doudizhu)

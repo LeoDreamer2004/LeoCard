@@ -21,6 +21,23 @@ pub(crate) struct TexasScreen<'w> {
 impl GameScreen for TexasScreen<'_> {
     type Snapshot = TexasSnapshot;
 
+    fn requires_action(&self, game: &Self::Snapshot) -> bool {
+        use leocard_protocol::TexasPhaseView;
+        matches!(game.phase, TexasPhaseView::Betting { .. })
+            && game
+                .blind_to_post
+                .map_or(game.current_player == Some(game.you), |blind| {
+                    blind.player == game.you
+                })
+            && game.players.iter().any(|player| {
+                player.player.id == game.you
+                    && player.connected
+                    && !player.auto_play
+                    && !player.folded
+                    && !player.all_in
+            })
+    }
+
     fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
         match client.map(|client| client.0.model().phase()) {
             Some(ClientPhaseRef::Playing(GameSnapshot::Texas(game))) => self.ui.reconcile(game),

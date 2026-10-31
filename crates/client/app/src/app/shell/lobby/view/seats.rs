@@ -5,14 +5,13 @@ use crate::app::presentation::{
     add_host_crown, add_text, attach_player_interactions,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
-use crate::app::shell::{LobbyUiAction, UiAction, reference_level};
+use crate::app::shell::{LobbySeatedAvatar, LobbyUiAction, UiAction, reference_level};
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
 use leocard_protocol::{LobbyPlayerView, LobbySnapshot, SeatId};
 use leocard_ui::{SecondaryPressTarget, UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 pub(super) struct LobbySeatSelector<'a> {
     client: &'a ClientResource,
@@ -214,6 +213,9 @@ impl<'a> OccupiedLobbySeat<'a> {
             52.0,
             self.assets,
         );
+        commands
+            .entity(avatar)
+            .insert(LobbySeatedAvatar(self.player.player.id));
         attach_player_interactions(
             commands,
             container,

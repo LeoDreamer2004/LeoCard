@@ -408,6 +408,19 @@ fn dispatch_joined_command<S: HostedGameLifecycle>(
         ClientCommand::ConfigureBotSeat { seat, occupied } => {
             session.configure_bot_seat(connection, request_id, seat, occupied)
         }
+        ClientCommand::KickPlayer { player } => {
+            let game_started = session.game_started();
+            match session
+                .room_mut()
+                .kick_player(connection, request_id, player, game_started)
+            {
+                Ok(mut deliveries) => {
+                    deliveries.extend(session.broadcast_lobby(None));
+                    deliveries
+                }
+                Err(reason) => session.room().reject(connection, request_id, reason),
+            }
+        }
         ClientCommand::SetReady { ready } => session.set_ready(connection, request_id, ready),
         ClientCommand::Game(command) => session
             .handle_game_command(connection, request_id, command)

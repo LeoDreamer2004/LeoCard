@@ -8,6 +8,7 @@ use crate::app::games::uno::UnoUiState;
 use crate::app::runtime::{ClientResource, PageErrorState};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{ClientCommand, SeatId};
 
 #[derive(Clone)]
@@ -19,6 +20,7 @@ pub(crate) enum LobbyUiAction {
     PlayAgain,
     LeaveRoom,
     RequestLeaveRoom,
+    KickPlayer(PlayerId),
 }
 
 impl DomainUiAction for LobbyUiAction {
@@ -65,6 +67,9 @@ impl UiActionHandler<LobbyActionContext<'_, '_>> for LobbyUiAction {
             }
             LobbyUiAction::ReturnToLobby => send(client, ClientCommand::ReturnToLobby),
             LobbyUiAction::PlayAgain => send(client, ClientCommand::PlayAgain),
+            LobbyUiAction::KickPlayer(player) => {
+                send(client, ClientCommand::KickPlayer { player: *player })
+            }
             LobbyUiAction::RequestLeaveRoom => {
                 if client.is_some() && !ui.leaving_room {
                     context.confirmation.show_with_button(

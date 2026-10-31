@@ -1,6 +1,7 @@
 //! Tokio TCP 传输。业务判定仍全部由 `leocard-host` 完成。
 
 mod codec;
+mod connections;
 mod discovery;
 mod execution;
 
@@ -9,6 +10,7 @@ use discovery::LanAnnouncer;
 pub use discovery::{LanDiscoverySocket, LanRoomAnnouncement, query_room_info};
 
 use codec::FrameReader;
+use connections::{finish_connection, retire_connection};
 #[cfg(test)]
 mod tests;
 
@@ -245,11 +247,12 @@ async fn run_server(
                         session.disconnect(connection)
                     }
                 };
+                let kicked: HashSet<_> = deliveries.iter().filter(|delivery| matches!(delivery.message.event, ServerEvent::KickedFromRoom)).map(|delivery| delivery.recipient).collect();
                 let replaced = authenticated
                     .iter()
                     .copied()
                     .filter(|candidate| {
-                        *candidate != connection && !session.is_current_connection(*candidate)
+                        *candidate != connection && !kicked.contains(candidate) && !session.is_current_connection(*candidate)
                     })
                     .collect::<Vec<_>>();
                 for replaced in replaced {
@@ -269,6 +272,9 @@ async fn run_server(
                     &mut authenticated,
                     deliveries,
                 );
+                for connection in kicked {
+                    finish_connection(connection, &mut writers, &mut last_seen, &mut tasks, &mut authenticated);
+                }
                 if session.is_closed() {
                     flush_writers = true;
                     break;
@@ -432,20 +438,4 @@ fn route_deliveries(
         }
     }
     failed_connections
-}
-
-fn retire_connection(
-    connection: ConnectionId,
-    writers: &mut HashMap<ConnectionId, mpsc::Sender<ServerMessage>>,
-    last_seen: &mut HashMap<ConnectionId, tokio::time::Instant>,
-    tasks: &mut HashMap<ConnectionId, ConnectionTasks>,
-    authenticated: &mut HashSet<ConnectionId>,
-) {
-    writers.remove(&connection);
-    last_seen.remove(&connection);
-    authenticated.remove(&connection);
-    if let Some((reader, writer)) = tasks.remove(&connection) {
-        reader.abort();
-        writer.abort();
-    }
 }

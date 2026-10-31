@@ -1,14 +1,14 @@
-use super::RoomActivity;
+use super::{RoomActivity, RoomEntrance};
 use crate::achievements::RoomAchievements;
 use crate::{ConnectionId, Delivery, valid_avatar_png};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    AvatarId, ChatContent, ChatMessage, ClientMessage, GameEvent, GameEventContext, GameKind,
-    GameRules, GameViolation, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MatchId, PROTOCOL_VERSION,
-    PlayerGameProfiles, PlayerInteraction, PlayerInteractionKind, PlayerInteractionStats,
-    PlayerViolation, ProfileId, QUICK_VOICE_COUNT, ReconnectToken, RejectReason, RequestId,
-    RequestViolation, Revision, RoomId, RoomViolation, SeatId, ServerEvent, ServerMessage,
-    TABLE_SEAT_COUNT,
+    AvatarId, ChatContent, ChatMessage, ClientCommand, ClientMessage, GameEvent, GameEventContext,
+    GameKind, GameRules, GameViolation, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MatchId,
+    PROTOCOL_VERSION, PlayerGameProfiles, PlayerInteraction, PlayerInteractionKind,
+    PlayerInteractionStats, PlayerViolation, ProfileId, QUICK_VOICE_COUNT, ReconnectToken,
+    RejectReason, RequestId, RequestViolation, Revision, RoomId, RoomViolation, SeatId,
+    ServerEvent, ServerMessage, TABLE_SEAT_COUNT,
 };
 use std::collections::HashMap;
 
@@ -42,6 +42,7 @@ pub(crate) struct Participant {
 pub struct RoomSession {
     pub(crate) achievements: RoomAchievements,
     activity: RoomActivity,
+    pub(super) entrance: Option<RoomEntrance>,
     pub(crate) room_id: RoomId,
     pub(crate) host_port: u16,
     pub(crate) players: Vec<Participant>,
@@ -79,6 +80,7 @@ impl RoomSession {
         Self {
             achievements: RoomAchievements::default(),
             activity: RoomActivity::default(),
+            entrance: None,
             room_id,
             host_port,
             players: Vec::with_capacity(usize::from(capacity)),
@@ -165,6 +167,23 @@ impl RoomSession {
             }
         }
         self.last_requests.insert(connection, message.request_id);
+        // 心跳、身份及头像同步继续流动；冻结期间的大厅交互静默丢弃，不积压补发。
+        if self.lobby_entrance().is_some()
+            && !matches!(
+                message.command,
+                ClientCommand::Join(_)
+                    | ClientCommand::SetAvatar { .. }
+                    | ClientCommand::PublishCoins { .. }
+                    | ClientCommand::PublishAchievements { .. }
+                    | ClientCommand::Ping
+                    | ClientCommand::RequestSnapshot
+                    | ClientCommand::RequestRoomInfo
+                    | ClientCommand::LeaveRoom
+                    | ClientCommand::CloseRoom
+            )
+        {
+            return Err(Vec::new());
+        }
         Ok(())
     }
 
@@ -319,6 +338,7 @@ impl RoomSession {
 
     pub(crate) fn lobby_snapshot(&self, game: GameKind, rules: GameRules) -> LobbySnapshot {
         LobbySnapshot {
+            entrance: self.lobby_entrance(),
             game,
             rules,
             host_port: self.host_port,

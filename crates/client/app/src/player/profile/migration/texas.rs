@@ -46,13 +46,11 @@ impl From<V3TexasStats> for TexasProfileStats {
     }
 }
 
-pub(in super) fn decode_v3(
-    bytes: &[u8],
-) -> Result<StoredPlayerProfile, String> {
+pub(super) fn decode_v3(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
     decode_archive::<V3TexasStats>(bytes)
 }
 
-pub(in super) const V4_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v4\0";
+pub(super) const V4_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v4\0";
 
 #[derive(Default, Deserialize, Serialize)]
 struct V4TexasStats {

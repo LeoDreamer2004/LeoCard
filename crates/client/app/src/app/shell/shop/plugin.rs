@@ -1,6 +1,6 @@
+use super::actions::dispatch_shop_actions;
 #[cfg(feature = "developer")]
 use super::developer::DeveloperCoinsPlugin;
-use super::actions::dispatch_shop_actions;
 use super::page::{ItemRemaining, ShopList, remaining_label};
 use crate::app::shell::{UiActionSet, UiState, scroll_modal_content};
 use bevy::prelude::*;

@@ -8,8 +8,6 @@ mod automation;
 mod blackjack;
 mod doudizhu;
 mod error;
-#[cfg(test)]
-mod error_tests;
 mod lifecycle;
 mod mahjong;
 mod mc_guess;

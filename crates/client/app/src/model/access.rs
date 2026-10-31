@@ -1,4 +1,5 @@
 use super::ClientModel;
+use super::core::RoomExitReason;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
     AvatarId, ChatMessage, GameCommand, GameKind, GameRules, GameSnapshot, LobbySnapshot, MatchId,
@@ -48,7 +49,7 @@ impl ClientModel {
     }
 
     pub fn phase(&self) -> ClientPhaseRef<'_> {
-        if self.room_closed || self.left_room {
+        if self.room_exit.is_some() {
             ClientPhaseRef::Closed
         } else if let Some(lobby) = self.lobby.as_ref() {
             ClientPhaseRef::Lobby(lobby)
@@ -139,11 +140,18 @@ impl ClientModel {
     }
 
     pub fn room_closed(&self) -> bool {
-        self.room_closed
+        self.room_exit == Some(RoomExitReason::Closed)
     }
 
     pub fn left_room(&self) -> bool {
-        self.left_room
+        matches!(
+            self.room_exit,
+            Some(RoomExitReason::Left | RoomExitReason::Kicked)
+        )
+    }
+
+    pub fn kicked_from_room(&self) -> bool {
+        self.room_exit == Some(RoomExitReason::Kicked)
     }
 
     pub fn last_notice(&self) -> Option<&str> {

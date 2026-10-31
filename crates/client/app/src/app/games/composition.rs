@@ -30,6 +30,19 @@ pub(crate) struct GameScreens<'w> {
 }
 
 impl GameScreens<'_> {
+    pub(crate) fn requires_action(&self, game: &GameSnapshot) -> bool {
+        match game {
+            GameSnapshot::Blackjack(game) => self.blackjack.requires_action(game),
+            GameSnapshot::Doudizhu(game) => self.doudizhu.requires_action(game),
+            GameSnapshot::McGuess(game) => self.mc_guess.requires_action(game),
+            GameSnapshot::QiGui523(game) => self.qigui523.requires_action(game),
+            GameSnapshot::Texas(game) => self.texas.requires_action(game),
+            GameSnapshot::Shengji(game) => self.shengji.requires_action(game),
+            GameSnapshot::Uno(game) => self.uno.requires_action(game),
+            GameSnapshot::Mahjong(game) => self.mahjong.requires_action(game),
+        }
+    }
+
     pub(crate) fn reconcile_screen_state(
         &mut self,
         client: Option<&ClientResource>,

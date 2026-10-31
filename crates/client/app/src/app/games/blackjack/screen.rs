@@ -8,11 +8,10 @@ use super::{
 use crate::app::runtime::ClientResource;
 use crate::app::shell::SocialUiState;
 use bevy::ecs::system::SystemParam;
+use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
 use leocard_protocol::{BlackjackSnapshot, GameSnapshot, LobbySnapshot};
 use leocard_ui::UiComposer;
-
-use bevy::prelude::*;
 
 #[derive(SystemParam)]
 pub(crate) struct BlackjackScreen<'w> {
@@ -22,6 +21,22 @@ pub(crate) struct BlackjackScreen<'w> {
 
 impl GameScreen for BlackjackScreen<'_> {
     type Snapshot = BlackjackSnapshot;
+
+    fn requires_action(&self, game: &Self::Snapshot) -> bool {
+        use leocard_blackjack::BlackjackPhase;
+        !game.match_complete
+            && game.phase != BlackjackPhase::Complete
+            && game.current_player == Some(game.you)
+            && (game.available.minimum_bet > 0
+                || game.available.hit
+                || game.available.stand
+                || game.available.double_down
+                || game.available.split)
+            && game
+                .players
+                .iter()
+                .any(|player| player.player.id == game.you && player.connected && !player.auto_play)
+    }
 
     fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
         match client.map(|client| client.0.model().phase()) {

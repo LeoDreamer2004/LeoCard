@@ -9,7 +9,7 @@ mod spectator;
 pub use achievements::PlayerAchievements;
 pub use economy::{ItemId, PlayerEconomy, ShopItem};
 pub use identity::*;
-use paths::*;
+pub(crate) use paths::config_file;
 pub use preferences::*;
 pub use profile::*;
 pub use spectator::TexasSpectatorPreferences;

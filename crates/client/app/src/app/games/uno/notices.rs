@@ -26,7 +26,8 @@ pub(super) fn sync_notices(
             ServerEvent::GameSnapshot(_)
             | ServerEvent::LobbySnapshot(_)
             | ServerEvent::LeftRoom
-            | ServerEvent::RoomClosed => *snapshot = None,
+            | ServerEvent::RoomClosed
+            | ServerEvent::KickedFromRoom => *snapshot = None,
             _ => {}
         }
     }

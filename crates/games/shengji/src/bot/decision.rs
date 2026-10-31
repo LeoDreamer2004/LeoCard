@@ -1,6 +1,6 @@
 use super::ShengjiBotObservation;
 use super::burial::bury;
-use super::candidates::hand_value;
+use super::hand::trump_value;
 use super::search::choose_play;
 use crate::{ShengjiCard, ShengjiFiveTrumpCrossingStage, ShengjiPhase, ShengjiTrump};
 
@@ -25,6 +25,7 @@ impl ShengjiBot {
                     &observation.hand,
                     observation.rules.kitty_size(),
                     observation.trump,
+                    observation.rules,
                     budget,
                 ))
             }
@@ -36,7 +37,7 @@ impl ShengjiBot {
                     let trump = ShengjiTrump::new(observation.trump.level, suit)
                         .expect("level")
                         .with_constant_trump(observation.rules.constant_trump);
-                    let strength = hand_value(&observation.hand, trump);
+                    let strength = trump_value(&observation.hand, trump);
                     if strength > value {
                         value = strength;
                         best = Some(cards.clone());
@@ -47,7 +48,13 @@ impl ShengjiBot {
             ShengjiPhase::FiveTrumpCrossing
                 if observation.crossing == Some(ShengjiFiveTrumpCrossingStage::Returning) =>
             {
-                ShengjiBotAction::Return(bury(&observation.hand, 5, observation.trump, budget))
+                ShengjiBotAction::Return(bury(
+                    &observation.hand,
+                    5,
+                    observation.trump,
+                    observation.rules,
+                    budget,
+                ))
             }
             ShengjiPhase::FiveTrumpCrossing => {
                 let cards: Vec<_> = observation
@@ -88,6 +95,7 @@ mod tests {
             },
             phase: ShengjiPhase::BottomCopying,
             trick: None,
+            history: Vec::new(),
             unseen: Vec::new(),
             exposed: Default::default(),
             lengths: vec![0; 4],

@@ -61,6 +61,16 @@ leocard-sakura-frp = { path = "../../network/sakura-frp" }
 rfd.workspace = true
 sysinfo = { workspace = true, features = ["system"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+notify-rust.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+mac-usernotifications.workspace = true
+
+[target.'cfg(target_os = "windows")'.dependencies]
+tauri-winrt-notification.workspace = true
+winreg.workspace = true
+
 [target.'cfg(target_os = "android")'.dependencies]
 bevy = { workspace = true, features = ["android-game-activity"] }
 jni.workspace = true

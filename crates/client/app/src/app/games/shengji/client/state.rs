@@ -187,7 +187,8 @@ impl GameProjection for ShengjiClientState {
             ServerEvent::GameSnapshot(_)
             | ServerEvent::LobbySnapshot(_)
             | ServerEvent::LeftRoom
-            | ServerEvent::RoomClosed => *self = Self::default(),
+            | ServerEvent::RoomClosed
+            | ServerEvent::KickedFromRoom => *self = Self::default(),
             _ => {}
         }
     }

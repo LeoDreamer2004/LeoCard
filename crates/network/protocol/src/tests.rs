@@ -7,15 +7,11 @@ use leocard_mc_guess::{
     McGuessCategoryCount, McGuessCategoryStatistics, McGuessGameState, McGuessGraphView,
     McGuessMode, McGuessProfileStats, McGuessRuleSet,
 };
-
 use leocard_qigui523::{QiGui523ProfileStats, QiGuiRuleSet};
-
 use leocard_shengji::{
     ShengjiCard, ShengjiComponent, ShengjiProfileStats, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
 };
-
 use leocard_texas_holdem::{TexasProfileStats, TexasRuleSet};
-
 use leocard_uno::UnoProfileStats;
 
 #[test]
@@ -212,6 +208,7 @@ fn lobby_game_kind_and_rules_remain_consistent() {
         host_port: 52300,
         host: None,
         players: Vec::new(),
+        entrance: None,
     };
 
     assert_eq!(lobby.game, lobby.rules.kind());
@@ -224,6 +221,7 @@ fn lobby_game_kind_and_rules_remain_consistent() {
         host_port: 52301,
         host: None,
         players: Vec::new(),
+        entrance: None,
     };
     assert_eq!(texas_lobby.game, texas_lobby.rules.kind());
     assert_eq!(texas_lobby.rules.texas(), Some(&texas_rules));
@@ -235,6 +233,7 @@ fn lobby_game_kind_and_rules_remain_consistent() {
         host_port: 52302,
         host: None,
         players: Vec::new(),
+        entrance: None,
     };
     assert_eq!(shengji_lobby.game, shengji_lobby.rules.kind());
     assert_eq!(shengji_lobby.rules.shengji(), Some(&shengji_rules));

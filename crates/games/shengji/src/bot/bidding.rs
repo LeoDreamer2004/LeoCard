@@ -1,4 +1,5 @@
 use super::ShengjiBot;
+use super::hand::trump_value;
 use crate::ShengjiTeamId;
 use crate::{
     ShengjiBidState, ShengjiCard, ShengjiDeclaration, ShengjiGameState, ShengjiPhase, ShengjiRank,
@@ -163,6 +164,26 @@ impl ShengjiBot {
                 if !observation.permits(declaration) {
                     return None;
                 }
+                if let Some(current) = observation.bidding.current()
+                    && current.player != observation.player
+                    && ShengjiTeamId::of(current.player) == ShengjiTeamId::of(observation.player)
+                {
+                    let before =
+                        ShengjiTrump::new(observation.bidding.level(), current.trump.trump_suit())
+                            .expect("level")
+                            .with_constant_trump(observation.rules.constant_trump);
+                    let after = ShengjiTrump::new(
+                        observation.bidding.level(),
+                        declaration.trump.trump_suit(),
+                    )
+                    .expect("level")
+                    .with_constant_trump(observation.rules.constant_trump);
+                    if trump_value(observation.hand, after)
+                        < trump_value(observation.hand, before) * 1.15 + 2.0
+                    {
+                        return None;
+                    }
+                }
                 let suit = declaration.trump.trump_suit();
                 let primary_count = declaration
                     .cards
@@ -172,14 +193,17 @@ impl ShengjiBot {
                 let strength = declaration
                     .trump
                     .declaration_strength(observation.rules.deck_count, primary_count)?;
-                let count = if observation.dealer.is_none() {
-                    0
+                let quality = if observation.dealer.is_none() {
+                    0.0
                 } else {
-                    observation.suit_count(suit)
+                    let trump = ShengjiTrump::new(observation.bidding.level(), suit)
+                        .expect("level")
+                        .with_constant_trump(observation.rules.constant_trump);
+                    trump_value(observation.hand, trump)
                 };
-                Some(((count, strength), cards))
+                Some(((quality, strength), cards))
             })
-            .max_by_key(|(value, _)| *value)
+            .max_by(|(left, _), (right, _)| left.0.total_cmp(&right.0).then(left.1.cmp(&right.1)))
             .map(|(_, cards)| cards)
     }
 }

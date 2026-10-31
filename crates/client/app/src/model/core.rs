@@ -7,6 +7,13 @@ use leocard_protocol::{
 };
 use std::collections::HashMap;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum RoomExitReason {
+    Left,
+    Closed,
+    Kicked,
+}
+
 #[derive(Clone, Debug)]
 pub struct ClientModel {
     pub(super) room_id: RoomId,
@@ -18,8 +25,7 @@ pub struct ClientModel {
     pub(super) game: Option<GameSnapshot>,
     pub(super) rules: Option<GameRules>,
     pub(super) avatars: HashMap<AvatarId, Vec<u8>>,
-    pub(super) room_closed: bool,
-    pub(super) left_room: bool,
+    pub(super) room_exit: Option<RoomExitReason>,
     pub(super) rejection: EventSequence<RejectReason>,
     pub(super) notice: EventSequence<String>,
     pub(super) pending: PendingEvents,
@@ -38,8 +44,7 @@ impl ClientModel {
             game: None,
             rules: None,
             avatars: HashMap::new(),
-            room_closed: false,
-            left_room: false,
+            room_exit: None,
             rejection: EventSequence::default(),
             notice: EventSequence::default(),
             pending: PendingEvents::default(),
@@ -110,7 +115,7 @@ impl ClientModel {
             }
             ServerEvent::LobbySnapshot(snapshot) => {
                 self.host_port = Some(snapshot.host_port);
-                self.room_closed = false;
+                self.room_exit = None;
                 if self.lobby.is_none() {
                     self.pending.clear();
                 }
@@ -130,14 +135,20 @@ impl ClientModel {
             ServerEvent::PlayerLeft { name } => {
                 self.notice.publish(format!("{name}退出了游戏"));
             }
+            ServerEvent::PlayerKicked { name } => {
+                self.notice.publish(format!("{name}已被房主踢出"));
+            }
             ServerEvent::SpectatorJoined { name } => {
                 self.notice.publish(format!("{name} 正在旁观游戏"));
             }
             ServerEvent::LeftRoom => {
-                self.left_room = true;
+                self.room_exit = Some(RoomExitReason::Left);
             }
             ServerEvent::RoomClosed => {
-                self.room_closed = true;
+                self.room_exit = Some(RoomExitReason::Closed);
+            }
+            ServerEvent::KickedFromRoom => {
+                self.room_exit = Some(RoomExitReason::Kicked);
             }
             ServerEvent::Rejected { reason } => {
                 self.rejection.publish(reason);

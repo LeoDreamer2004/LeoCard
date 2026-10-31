@@ -1,5 +1,5 @@
 use super::candidates::{plays, unique};
-use super::hand::{category_index, hand_value};
+use super::hand::{category_index, hand_value, material_value};
 use super::knowledge::{Knowledge, PublicKnowledge};
 use crate::play::classify_cards;
 use crate::{
@@ -206,6 +206,10 @@ impl<'a> Evaluation<'a> {
             self.knowledge
                 .team_probability(play, play, self.view.player, &self.remaining);
         let points = points(play);
+        // A leading combination spends its value on this trick. Charge only
+        // the unconverted value and damage to the remaining hand, rather than
+        // treating an intact played tractor as if it had been broken apart.
+        let cost = cost - material_value(&play.cards, self.view.trump) * confidence;
         let mut value =
             20.0 * confidence + points * (confidence * 2.0 - 1.0) + play.cards.len() as f64 * 1.7
                 - cost * 0.8;

@@ -1,14 +1,16 @@
 use super::TurnClockLabel;
 use crate::app::presentation::add_text;
 use crate::app::runtime::UiAssets;
-use bevy::prelude::*;
-use leocard_protocol::{GamePhaseView, PlayerId, QiGui523Snapshot, TurnTimerView};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{QiGui523PhaseView, QiGui523Snapshot, QiGui523TurnTimerView};
 use leocard_ui::UiComposer;
+
+use bevy::prelude::*;
 
 const CLOCK_COLOR: Color = Color::srgb(0.73, 0.69, 0.94);
 
 pub(crate) fn turn_clock_visible(game: &QiGui523Snapshot, player: PlayerId) -> bool {
-    matches!(&game.phase, GamePhaseView::Playing)
+    matches!(&game.phase, QiGui523PhaseView::Playing)
         && game.turn_timer.is_some_and(|timer| timer.player == player)
         && game
             .trick
@@ -17,14 +19,14 @@ pub(crate) fn turn_clock_visible(game: &QiGui523Snapshot, player: PlayerId) -> b
         && game
             .players
             .iter()
-            .find(|state| state.id == player)
+            .find(|state| state.player.id == player)
             .is_some_and(|state| !state.auto_play)
 }
 
 pub(super) fn add_turn_clock(
     commands: &mut UiComposer,
     parent: Entity,
-    timer: Option<TurnTimerView>,
+    timer: Option<QiGui523TurnTimerView>,
     assets: &UiAssets,
 ) {
     let size = if timer.is_some_and(|timer| timer.base_seconds == 0) {
@@ -49,7 +51,7 @@ pub(super) fn add_turn_clock(
     ));
 }
 
-pub(crate) fn turn_timer_label(timer: Option<TurnTimerView>) -> String {
+pub(crate) fn turn_timer_label(timer: Option<QiGui523TurnTimerView>) -> String {
     match timer {
         Some(timer) if timer.base_seconds > 0 => timer.base_seconds.to_string(),
         Some(timer) => format!("烧条中... {}", timer.reserve_seconds),

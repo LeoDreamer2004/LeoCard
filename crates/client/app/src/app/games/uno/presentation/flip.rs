@@ -3,10 +3,11 @@ use super::UNO_PLAY_CARD_DURATION;
 use crate::app::presentation::add_text;
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use leocard_protocol::UnoSnapshot;
 use leocard_ui::{UiComposer, spawn_node};
 use leocard_uno::UnoFlipSide;
+
+use bevy::prelude::*;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn spawn_uno_flip_effect(
@@ -88,7 +89,7 @@ pub(super) fn spawn_uno_flip_effect(
                 previous
                     .players
                     .iter()
-                    .find(|candidate| candidate.id == player)
+                    .find(|candidate| candidate.player.id == player)
                     .and_then(|candidate| candidate.inactive_hand.get(index))
                     .copied(),
                 UNO_PLAY_CARD_DURATION + player.0 as f32 * 0.025 + index as f32 * 0.018,

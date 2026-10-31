@@ -1,4 +1,5 @@
 use super::prelude::*;
+use leocard_game_common::PlayerId;
 
 #[tokio::test]
 async fn shengji_room_slow_deals_private_hands_over_the_shared_tcp_transport() {
@@ -96,7 +97,7 @@ async fn shengji_room_slow_deals_private_hands_over_the_shared_tcp_transport() {
             snapshot
                 .players
                 .iter()
-                .find(|player| player.id == expected)
+                .find(|player| player.player.id == expected)
                 .map(|player| player.hand_len),
             Some(1)
         );

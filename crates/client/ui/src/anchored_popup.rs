@@ -1,3 +1,4 @@
+use crate::placement::clamp_overlay_origin;
 use bevy::prelude::*;
 use bevy::ui::ComputedUiRenderTargetInfo;
 
@@ -27,10 +28,7 @@ impl PopupGeometry {
             above
         };
         let desired = Vec2::new(self.anchor.center().x - self.size.x * 0.5, top);
-        desired.clamp(
-            self.bounds.min,
-            (self.bounds.max - self.size).max(self.bounds.min),
-        )
+        clamp_overlay_origin(desired, self.size, self.bounds)
     }
 }
 

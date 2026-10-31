@@ -1,17 +1,18 @@
-use crate::{TexasHoldemCard, TexasHoldemRuleSet, evaluate_player_hand};
+use crate::{TexasCard, TexasRuleSet, evaluate_player_hand};
+use leocard_game_common::PlayerId;
 
 use super::{
-    GameError, GameState, HandResult, Phase, PlayerState, PotAward, TexasHoldemBlindKind,
-    TexasHoldemPlayerId, TexasHoldemStreet, validate_deck,
+    TexasBlindKind, TexasGameError, TexasGameState, TexasHandResult, TexasPhase, TexasPlayerState,
+    TexasPotAward, TexasStreet, validate_deck,
 };
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-impl GameState {
+impl TexasGameState {
     /// 结束后使用一副新洗好的牌开始下一手；庄家按钮顺时针移动到下一名有筹码玩家。
-    pub fn start_next_hand(&mut self, deck: Vec<TexasHoldemCard>) -> Result<(), GameError> {
-        if !matches!(self.phase, Phase::Complete(_)) {
-            return Err(GameError::HandStillInProgress);
+    pub fn start_next_hand(&mut self, deck: Vec<TexasCard>) -> Result<(), TexasGameError> {
+        if !matches!(self.phase, TexasPhase::Complete(_)) {
+            return Err(TexasGameError::HandStillInProgress);
         }
         validate_deck(self.rules.short_deck, &deck)?;
         if self
@@ -21,7 +22,7 @@ impl GameState {
             .count()
             < 2
         {
-            return Err(GameError::NotEnoughFundedPlayers);
+            return Err(TexasGameError::NotEnoughFundedPlayers);
         }
         let dealer = self
             .next_funded(self.dealer)
@@ -30,7 +31,7 @@ impl GameState {
         self.begin_hand(dealer, deck)
     }
 
-    pub fn table_winner(&self) -> Option<TexasHoldemPlayerId> {
+    pub fn table_winner(&self) -> Option<PlayerId> {
         let funded = self
             .players
             .iter()
@@ -42,9 +43,9 @@ impl GameState {
 
     pub(super) fn begin_hand(
         &mut self,
-        dealer: TexasHoldemPlayerId,
-        deck: Vec<TexasHoldemCard>,
-    ) -> Result<(), GameError> {
+        dealer: PlayerId,
+        deck: Vec<TexasCard>,
+    ) -> Result<(), TexasGameError> {
         self.squid.start_hand();
         self.dealer = dealer;
         self.deck = deck.into();
@@ -52,10 +53,10 @@ impl GameState {
         self.betting_history.clear();
         self.statistics.start_hand(&self.players);
         self.current_bet = 0;
-        self.minimum_raise = TexasHoldemRuleSet::BIG_BLIND;
+        self.minimum_raise = TexasRuleSet::BIG_BLIND;
         self.full_bets = 0;
-        self.phase = Phase::Betting(TexasHoldemStreet::PreFlop);
-        self.pending_blind = Some(TexasHoldemBlindKind::Small);
+        self.phase = TexasPhase::Betting(TexasStreet::PreFlop);
+        self.pending_blind = Some(TexasBlindKind::Small);
         for player in &mut self.players {
             player.hole_cards.clear();
             player.folded = player.stack == 0;
@@ -70,10 +71,10 @@ impl GameState {
             .filter(|player| player.stack > 0)
             .count();
         if funded < 2 {
-            return Err(GameError::NotEnoughFundedPlayers);
+            return Err(TexasGameError::NotEnoughFundedPlayers);
         }
-        if self.players[dealer.0].stack == 0 {
-            return Err(GameError::InvalidDealer(dealer));
+        if self.players[dealer.index()].stack == 0 {
+            return Err(TexasGameError::InvalidDealer(dealer));
         }
         self.small_blind = if funded == 2 {
             dealer
@@ -92,7 +93,7 @@ impl GameState {
                     .deck
                     .pop_front()
                     .expect("validated deck is large enough");
-                self.players[dealt_to.0].hole_cards.push(card);
+                self.players[dealt_to.index()].hole_cards.push(card);
                 dealt_to = self.next_funded(dealt_to).expect("funded player ring");
                 if dealt_to == first_dealt {
                     break;
@@ -106,39 +107,37 @@ impl GameState {
         Ok(())
     }
 
-    pub(super) fn commit(&mut self, player: TexasHoldemPlayerId, amount: u32) {
-        let state = &mut self.players[player.0];
+    pub(super) fn commit(&mut self, player: PlayerId, amount: u32) {
+        let state = &mut self.players[player.index()];
         debug_assert!(amount <= state.stack);
         state.stack -= amount;
         state.committed_street += amount;
         state.committed_total += amount;
         state.all_in = state.stack == 0;
         if state.all_in {
-            self.needs_action[player.0] = false;
+            self.needs_action[player.index()] = false;
         }
     }
 
-    pub(super) fn finish_betting_round(&mut self) -> Result<(), GameError> {
+    pub(super) fn finish_betting_round(&mut self) -> Result<(), TexasGameError> {
         if self.actionable_players().len() <= 1 {
             return self.run_out_and_showdown();
         }
         let next_street = match self.street() {
-            TexasHoldemStreet::PreFlop => TexasHoldemStreet::Flop,
-            TexasHoldemStreet::Flop => TexasHoldemStreet::Turn,
-            TexasHoldemStreet::Turn => TexasHoldemStreet::River,
-            TexasHoldemStreet::River => return self.settle_showdown().map(|_| ()),
+            TexasStreet::PreFlop => TexasStreet::Flop,
+            TexasStreet::Flop => TexasStreet::Turn,
+            TexasStreet::Turn => TexasStreet::River,
+            TexasStreet::River => return self.settle_showdown().map(|_| ()),
         };
         self.deal_community_for(next_street);
-        self.phase = Phase::Betting(next_street);
+        self.phase = TexasPhase::Betting(next_street);
         self.current_bet = 0;
         self.minimum_raise = if self.rules.fixed_limit
-            && matches!(
-                next_street,
-                TexasHoldemStreet::Turn | TexasHoldemStreet::River
-            ) {
-            TexasHoldemRuleSet::BIG_BLIND * 2
+            && matches!(next_street, TexasStreet::Turn | TexasStreet::River)
+        {
+            TexasRuleSet::BIG_BLIND * 2
         } else {
-            TexasHoldemRuleSet::BIG_BLIND
+            TexasRuleSet::BIG_BLIND
         };
         self.full_bets = 0;
         self.needs_action.fill(false);
@@ -147,7 +146,7 @@ impl GameState {
             player.committed_street = 0;
         }
         for index in 0..self.players.len() {
-            if self.can_act(TexasHoldemPlayerId(index)) {
+            if self.can_act(PlayerId::from_index(index)) {
                 self.needs_action[index] = true;
                 self.raise_allowed[index] = true;
             }
@@ -156,12 +155,12 @@ impl GameState {
         Ok(())
     }
 
-    pub(super) fn run_out_and_showdown(&mut self) -> Result<(), GameError> {
+    pub(super) fn run_out_and_showdown(&mut self) -> Result<(), TexasGameError> {
         while self.community.len() < 5 {
             let street = match self.community.len() {
-                0 => TexasHoldemStreet::Flop,
-                3 => TexasHoldemStreet::Turn,
-                4 => TexasHoldemStreet::River,
+                0 => TexasStreet::Flop,
+                3 => TexasStreet::Turn,
+                4 => TexasStreet::River,
                 _ => unreachable!("community is dealt as 0, 3, 4, 5"),
             };
             self.deal_community_for(street);
@@ -169,12 +168,8 @@ impl GameState {
         self.settle_showdown().map(|_| ())
     }
 
-    fn deal_community_for(&mut self, street: TexasHoldemStreet) {
-        let count = if street == TexasHoldemStreet::Flop {
-            3
-        } else {
-            1
-        };
+    fn deal_community_for(&mut self, street: TexasStreet) {
+        let count = if street == TexasStreet::Flop { 3 } else { 1 };
         for _ in 0..count {
             self.community.push(
                 self.deck
@@ -184,33 +179,33 @@ impl GameState {
         }
     }
 
-    pub(super) fn settle_uncontested(&mut self) -> HandResult {
+    pub(super) fn settle_uncontested(&mut self) -> TexasHandResult {
         let winner = self.contenders()[0];
         let amount = self.pot();
-        self.players[winner.0].stack += amount;
-        let mut result = HandResult {
+        self.players[winner.index()].stack += amount;
+        let mut result = TexasHandResult {
             dealer: self.dealer,
             showdown: false,
             community: self.community.clone(),
-            awards: vec![PotAward {
+            awards: vec![TexasPotAward {
                 amount,
                 winners: vec![winner],
                 winning_hand: None,
             }],
-            final_stacks: self.players.iter().map(PlayerState::stack).collect(),
+            final_stacks: self.players.iter().map(TexasPlayerState::stack).collect(),
         };
         self.finish_squid(&mut result);
         self.current_player = None;
-        self.phase = Phase::Complete(result.clone());
+        self.phase = TexasPhase::Complete(result.clone());
         result
     }
 
-    fn settle_showdown(&mut self) -> Result<HandResult, GameError> {
+    fn settle_showdown(&mut self) -> Result<TexasHandResult, TexasGameError> {
         let contenders = self.contenders();
         let mut evaluated = vec![None; self.players.len()];
         for player in &contenders {
-            evaluated[player.0] = Some(evaluate_player_hand(
-                &self.players[player.0].hole_cards,
+            evaluated[player.index()] = Some(evaluate_player_hand(
+                &self.players[player.index()].hole_cards,
                 &self.community,
                 &self.rules,
             )?);
@@ -219,7 +214,7 @@ impl GameState {
         let mut levels = self
             .players
             .iter()
-            .map(PlayerState::committed_total)
+            .map(TexasPlayerState::committed_total)
             .filter(|amount| *amount > 0)
             .collect::<Vec<_>>();
         levels.sort_unstable();
@@ -240,17 +235,17 @@ impl GameState {
             let eligible = contenders
                 .iter()
                 .copied()
-                .filter(|player| self.players[player.0].committed_total >= level)
+                .filter(|player| self.players[player.index()].committed_total >= level)
                 .collect::<Vec<_>>();
             let best = eligible
                 .iter()
-                .filter_map(|player| evaluated[player.0])
+                .filter_map(|player| evaluated[player.index()])
                 .max_by(|left, right| left.cmp_with_rules(right, &self.rules))
                 .expect("each pot has an eligible contender");
             let mut winners = eligible
                 .into_iter()
                 .filter(|player| {
-                    evaluated[player.0]
+                    evaluated[player.index()]
                         .is_some_and(|hand| hand.cmp_with_rules(&best, &self.rules).is_eq())
                 })
                 .collect::<Vec<_>>();
@@ -265,28 +260,28 @@ impl GameState {
             let share = amount / winners.len() as u32;
             let remainder = amount % winners.len() as u32;
             for (index, winner) in winners.iter().enumerate() {
-                self.players[winner.0].stack += share + u32::from((index as u32) < remainder);
+                self.players[winner.index()].stack += share + u32::from((index as u32) < remainder);
             }
-            awards.push(PotAward {
+            awards.push(TexasPotAward {
                 amount,
                 winners,
                 winning_hand: Some(best),
             });
         }
-        let mut result = HandResult {
+        let mut result = TexasHandResult {
             dealer: self.dealer,
             showdown: true,
             community: self.community.clone(),
             awards,
-            final_stacks: self.players.iter().map(PlayerState::stack).collect(),
+            final_stacks: self.players.iter().map(TexasPlayerState::stack).collect(),
         };
         self.finish_squid(&mut result);
         self.current_player = None;
-        self.phase = Phase::Complete(result.clone());
+        self.phase = TexasPhase::Complete(result.clone());
         Ok(result)
     }
 
-    fn finish_squid(&mut self, result: &mut HandResult) {
+    fn finish_squid(&mut self, result: &mut TexasHandResult) {
         // The supplied shuffled deck keeps cosmetic draws random and rules replayable.
         let mut draw_seed = DefaultHasher::new();
         self.hand_number.hash(&mut draw_seed);
@@ -298,14 +293,14 @@ impl GameState {
         }
     }
 
-    pub(super) fn street(&self) -> TexasHoldemStreet {
+    pub(super) fn street(&self) -> TexasStreet {
         match self.phase {
-            Phase::Betting(street) => street,
-            Phase::Complete(_) => TexasHoldemStreet::River,
+            TexasPhase::Betting(street) => street,
+            TexasPhase::Complete(_) => TexasStreet::River,
         }
     }
 
-    pub(super) fn contenders(&self) -> Vec<TexasHoldemPlayerId> {
+    pub(super) fn contenders(&self) -> Vec<PlayerId> {
         self.players
             .iter()
             .filter(|player| !player.folded)
@@ -313,7 +308,7 @@ impl GameState {
             .collect()
     }
 
-    fn actionable_players(&self) -> Vec<TexasHoldemPlayerId> {
+    fn actionable_players(&self) -> Vec<PlayerId> {
         self.players
             .iter()
             .filter(|player| !player.folded && !player.all_in)
@@ -321,28 +316,25 @@ impl GameState {
             .collect()
     }
 
-    pub(super) fn can_act(&self, player: TexasHoldemPlayerId) -> bool {
+    pub(super) fn can_act(&self, player: PlayerId) -> bool {
         self.players
-            .get(player.0)
+            .get(player.index())
             .is_some_and(|player| !player.folded && !player.all_in)
     }
 
-    pub(super) fn next_needing_action(
-        &self,
-        after: TexasHoldemPlayerId,
-    ) -> Option<TexasHoldemPlayerId> {
+    pub(super) fn next_needing_action(&self, after: PlayerId) -> Option<PlayerId> {
         (1..=self.players.len())
-            .map(|offset| TexasHoldemPlayerId((after.0 + offset) % self.players.len()))
-            .find(|player| self.needs_action[player.0] && self.can_act(*player))
+            .map(|offset| PlayerId::from_index((after.index() + offset) % self.players.len()))
+            .find(|player| self.needs_action[player.index()] && self.can_act(*player))
     }
 
-    fn next_funded(&self, after: TexasHoldemPlayerId) -> Option<TexasHoldemPlayerId> {
+    fn next_funded(&self, after: PlayerId) -> Option<PlayerId> {
         (1..=self.players.len())
-            .map(|offset| TexasHoldemPlayerId((after.0 + offset) % self.players.len()))
-            .find(|player| self.players[player.0].stack > 0)
+            .map(|offset| PlayerId::from_index((after.index() + offset) % self.players.len()))
+            .find(|player| self.players[player.index()].stack > 0)
     }
 
-    fn clockwise_distance(&self, from: TexasHoldemPlayerId, to: TexasHoldemPlayerId) -> usize {
-        (to.0 + self.players.len() - from.0) % self.players.len()
+    fn clockwise_distance(&self, from: PlayerId, to: PlayerId) -> usize {
+        (to.index() + self.players.len() - from.index()) % self.players.len()
     }
 }

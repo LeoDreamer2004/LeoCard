@@ -1,14 +1,15 @@
+use leocard_game_common::PlayerId;
 use leocard_shengji::{
-    GameState, ShengjiBiddingObservation, ShengjiBot, ShengjiCard, ShengjiPlayerId, ShengjiRank,
-    ShengjiRuleSet, ShengjiSuit, TeamProgress, build_deck,
+    ShengjiBiddingObservation, ShengjiBot, ShengjiCard, ShengjiGameState, ShengjiRank,
+    ShengjiRuleSet, ShengjiSuit, ShengjiTeamProgress, build_deck,
 };
 
 fn game_with_hand(
-    player: ShengjiPlayerId,
+    player: PlayerId,
     jokers: usize,
     spades: usize,
     bottom_copy: bool,
-) -> GameState {
+) -> ShengjiGameState {
     let mut hand = vec![ShengjiCard::small_joker(0), ShengjiCard::small_joker(1)];
     hand.extend((0..jokers - 2).map(|index| ShengjiCard::big_joker(index as u8)));
     for (suit, count) in [
@@ -34,14 +35,14 @@ fn game_with_hand(
     let level = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Two);
     let source = deck.iter().position(|card| *card == level).unwrap();
     deck.swap(source, bidder);
-    let mut game = GameState::new(
+    let mut game = ShengjiGameState::new(
         ShengjiRuleSet {
             bottom_copy,
             ..ShengjiRuleSet::default()
         },
-        TeamProgress::default(),
-        Some(ShengjiPlayerId(0)),
-        ShengjiPlayerId(0),
+        ShengjiTeamProgress::default(),
+        Some(PlayerId(0)),
+        PlayerId(0),
         deck,
     )
     .unwrap();
@@ -57,7 +58,7 @@ fn no_trump_opening_requires_one_third_of_the_normal_trump_share() {
         (true, 3, false),
         (true, 4, true),
     ] {
-        let player = ShengjiPlayerId(1);
+        let player = PlayerId(1);
         let game = game_with_hand(player, jokers, 0, bottom_copy);
         let observation = ShengjiBiddingObservation::from_game(&game, player).unwrap();
         assert_eq!(ShengjiBot::declaration(&observation).is_some(), expected);
@@ -74,9 +75,9 @@ fn no_trump_counters_apply_the_reduced_threshold_for_each_role() {
         (1, 13, true),
         (1, 14, false),
     ] {
-        let player = ShengjiPlayerId(player);
+        let player = PlayerId(player);
         let mut game = game_with_hand(player, 4, spades, false);
-        let bidder = ShengjiPlayerId(if player.0 == 1 { 0 } else { 1 });
+        let bidder = PlayerId(if player.0 == 1 { 0 } else { 1 });
         game.declare(
             bidder,
             &[ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Two)],

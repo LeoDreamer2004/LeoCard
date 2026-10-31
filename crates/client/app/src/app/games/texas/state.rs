@@ -1,0 +1,61 @@
+//! 德州扑克下注输入与牌桌组件状态。
+
+use super::TexasSpectatorUiState;
+use crate::app::presentation::Observed;
+use bevy::prelude::*;
+use leocard_game_common::PlayerId;
+use leocard_protocol::{MatchId, TexasSnapshot};
+
+#[derive(Resource, Default)]
+pub(crate) struct TexasUiState {
+    pub raise_to: u32,
+    pub spectator: TexasSpectatorUiState,
+    pub observed_table: Observed<(MatchId, u32), usize>,
+}
+
+impl TexasUiState {
+    pub(crate) fn reconcile(&mut self, _game: &TexasSnapshot) {}
+
+    pub(crate) fn clear(&mut self) {
+        self.observed_table.clear();
+        self.spectator.clear();
+    }
+}
+
+#[derive(Resource, Default)]
+pub(crate) struct TexasRaiseHoldState {
+    pub direction: i8,
+    pub step: u32,
+    pub minimum: u32,
+    pub maximum: u32,
+    pub elapsed: f32,
+    pub next_repeat: f32,
+}
+
+#[derive(Component, Clone, Copy)]
+pub(crate) struct TexasRaiseAdjustButton {
+    pub direction: i8,
+    pub step: u32,
+    pub minimum: u32,
+    pub maximum: u32,
+}
+
+#[derive(Component)]
+pub(crate) struct TexasPotDivider {
+    pub old_layout: bool,
+    pub elapsed: f32,
+}
+
+#[derive(Component)]
+pub(crate) struct TexasPotHover {
+    pub eligible: Vec<PlayerId>,
+}
+
+#[derive(Component, Clone, Copy)]
+pub(crate) struct TexasPlayerPanel {
+    pub player: PlayerId,
+    pub base_border: Color,
+}
+
+#[derive(Component, Clone, Copy)]
+pub(crate) struct TexasPlayerShake(pub PlayerId);

@@ -3,11 +3,12 @@ use super::{
 };
 use crate::app::presentation::{ACCENT, CardAnimationState, PANEL};
 use bevy::picking::hover::PickingInteraction;
-use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_protocol::{UnoPhaseView, UnoSnapshot};
 use leocard_uno::{UnoCard, UnoColor, UnoFace, UnoPendingDrawKind};
 use std::collections::HashSet;
+
+use bevy::prelude::*;
 
 pub(super) fn uno_card_handle(assets: &UnoAssets, card: UnoCard) -> Handle<Image> {
     assets
@@ -31,7 +32,7 @@ pub(super) fn uno_card_is_playable(game: &UnoSnapshot, card: UnoCard) -> bool {
     let own_skips = game
         .players
         .iter()
-        .find(|player| player.id == game.you)
+        .find(|player| player.player.id == game.you)
         .map_or(0, |player| player.skipped_turns);
     if own_skips > 0 {
         return false;

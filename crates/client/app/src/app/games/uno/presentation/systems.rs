@@ -1,21 +1,23 @@
 //! UNO 出牌、摸牌、换牌、翻面、调色与转向演出。
-
 use super::super::{
     UnoAssets, UnoAudioState, UnoDiscardPileAnchor, UnoDrawPileAnchor, UnoFlipTarget,
     UnoPaletteMaterial, UnoPresentationState, uno_card_handle, uno_should_show_reverse_effect,
     uno_ui_color,
 };
+use crate::app::runtime::{ClientResource, GameEvents, UiAssets};
+use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{GameSnapshot, UnoEvent, UnoSnapshot};
+use leocard_ui::UiComposer;
+use leocard_uno::{UnoCard, UnoDirection};
+use std::collections::HashMap;
+
 use super::flip::*;
 use super::palette::*;
 use super::reverse::*;
 use super::*;
-use crate::app::runtime::{ClientResource, UiAssets};
-use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer};
+
 use bevy::prelude::*;
-use leocard_protocol::{PlayerId, UnoEvent, UnoSnapshot};
-use leocard_ui::UiComposer;
-use leocard_uno::{UnoCard, UnoDirection};
-use std::collections::HashMap;
 
 /// UNO 最后一张牌的飞行动画结束后，完整公开牌桌两秒再进入结算。
 pub(in crate::app::games::uno) const UNO_PLAY_CARD_DURATION: f32 = 0.58;
@@ -45,8 +47,8 @@ impl UnoPresentationScene {
             .players
             .iter()
             .map(|player| {
-                uno_player_anchor_in_layer(player.id, layer_node, layer_transform, anchors)
-                    .map(|position| (player.id, position))
+                uno_player_anchor_in_layer(player.player.id, layer_node, layer_transform, anchors)
+                    .map(|position| (player.player.id, position))
             })
             .collect::<Option<HashMap<_, _>>>()?;
         Some(Self {
@@ -69,22 +71,26 @@ impl UnoPresentationScene {
 }
 
 pub(in crate::app::games::uno) fn sync_uno_presentation(
-    mut client: Option<ResMut<ClientResource>>,
+    client: Option<Res<ClientResource>>,
+    mut game_client: ResMut<GameEvents<UnoEvent>>,
     mut presentation: ResMut<UnoPresentationState>,
 ) {
-    let Some(client) = client.as_deref_mut() else {
+    let Some(client) = client.as_deref() else {
         presentation.events.clear();
         presentation.event_match_id = None;
         return;
     };
-    let match_id = client.0.model().uno_game().map(|game| game.match_id);
+    let match_id = client
+        .0
+        .model()
+        .game_snapshot()
+        .and_then(GameSnapshot::uno)
+        .map(|game| game.match_id);
     if presentation.event_match_id != match_id {
         presentation.events.clear();
         presentation.event_match_id = match_id;
     }
-    presentation
-        .events
-        .extend(client.0.model_mut().take_uno_events());
+    presentation.events.extend(game_client.take());
     if match_id.is_none() {
         presentation.events.clear();
     }
@@ -110,7 +116,7 @@ pub(crate) fn spawn_uno_presentation_effects(
 ) {
     let Some(game) = client
         .as_deref()
-        .and_then(|client| client.0.model().uno_game())
+        .and_then(|client| client.0.model().game_snapshot().and_then(GameSnapshot::uno))
     else {
         presentation.events.clear();
         presentation.last_snapshot = None;
@@ -438,8 +444,8 @@ pub(crate) fn spawn_uno_presentation_effects(
                         UnoDirection::Clockwise => (index + 1) % count,
                         UnoDirection::CounterClockwise => (index + count - 1) % count,
                     };
-                    let source = scene.player(player.id);
-                    let target = scene.player(ring[target_index].id);
+                    let source = scene.player(player.player.id);
+                    let target = scene.player(ring[target_index].player.id);
                     spawn_uno_transfer_cards(
                         &mut commands,
                         scene.layer,

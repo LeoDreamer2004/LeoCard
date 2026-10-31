@@ -1,10 +1,11 @@
 use super::super::{StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
-use super::minecraft_guess::PreviousMinecraftGuessStats;
+use super::mc_guess::PreviousMcGuessStats;
 use super::profile::decode_exact;
-use super::texas_holdem::V3TexasHoldemStats;
-use leocard_protocol::{
-    MahjongProfileStats, PlayerInteractionStats, ShengjiProfileStats, UnoProfileStats,
-};
+use super::texas::V3TexasStats;
+use leocard_mahjong::MahjongProfileStats;
+use leocard_protocol::PlayerInteractionStats;
+use leocard_shengji::ShengjiProfileStats;
+use leocard_uno::UnoProfileStats;
 use serde::{Deserialize, Serialize};
 
 pub(super) const V1_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v1\0";
@@ -18,12 +19,12 @@ struct V1PlayerProfile {
 #[derive(Deserialize, Serialize)]
 struct V1GameProfiles {
     qigui523: StoredRatingProfile,
-    texas_holdem_stats: Option<V3TexasHoldemStats>,
+    texas_stats: Option<V3TexasStats>,
     shengji_stats: Option<ShengjiProfileStats>,
     uno_stats: Option<UnoProfileStats>,
     interaction_stats: Option<PlayerInteractionStats>,
     mahjong_stats: Option<MahjongProfileStats>,
-    minecraft_guess_stats: Option<PreviousMinecraftGuessStats>,
+    mc_guess_stats: Option<PreviousMcGuessStats>,
 }
 
 pub(super) fn decode_v1(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
@@ -34,12 +35,12 @@ pub(super) fn decode_v1(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
         games: StoredGameProfiles {
             doudizhu_stats: None,
             qigui523: previous.games.qigui523,
-            texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
+            texas_stats: previous.games.texas_stats.map(Into::into),
             shengji_stats: previous.games.shengji_stats,
             uno_stats: previous.games.uno_stats,
             interaction_stats: previous.games.interaction_stats,
             mahjong_stats: previous.games.mahjong_stats,
-            minecraft_guess_stats: previous.games.minecraft_guess_stats.map(Into::into),
+            mc_guess_stats: previous.games.mc_guess_stats.map(Into::into),
             blackjack_stats: None,
         },
     })

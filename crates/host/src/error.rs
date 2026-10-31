@@ -1,26 +1,26 @@
 //! 按具体游戏保留规则、牌堆和运行错误的来源。
 
-use leocard_blackjack::GameError as BlackjackError;
-use leocard_doudizhu::GameError as DoudizhuError;
-use leocard_mahjong::{GameError as MahjongError, RuleError as MahjongRuleError};
-use leocard_minecraft_guess::GameError as MinecraftGuessError;
-use leocard_qigui523::{GameError as QiGui523Error, RuleError as QiGui523RuleError};
-use leocard_shengji::{GameError as ShengjiError, RuleError as ShengjiRuleError};
-use leocard_texas_holdem::{GameError as TexasHoldemError, RuleError as TexasHoldemRuleError};
-use leocard_uno::{GameError as UnoError, RuleError as UnoRuleError};
+use leocard_blackjack::BlackjackGameError;
+use leocard_doudizhu::DoudizhuGameError;
+use leocard_mahjong::{MahjongGameError, MahjongRuleError};
+use leocard_mc_guess::McGuessGameError;
+use leocard_qigui523::{QiGuiGameError, QiGuiRuleError};
+use leocard_shengji::{ShengjiGameError, ShengjiRuleError};
+use leocard_texas_holdem::{TexasGameError, TexasRuleError};
+use leocard_uno::{UnoGameError, UnoRuleError};
 use std::error::Error;
 use std::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HostError {
-    Doudizhu(DoudizhuError),
-    Blackjack(BlackjackError),
-    Mahjong(MahjongError),
-    MinecraftGuess(MinecraftGuessError),
-    QiGui523(QiGui523Error),
-    Shengji(ShengjiError),
-    TexasHoldem(TexasHoldemError),
-    Uno(UnoError),
+    Doudizhu(DoudizhuGameError),
+    Blackjack(BlackjackGameError),
+    Mahjong(MahjongGameError),
+    McGuess(McGuessGameError),
+    QiGui523(QiGuiGameError),
+    Shengji(ShengjiGameError),
+    Texas(TexasGameError),
+    Uno(UnoGameError),
 }
 
 impl fmt::Display for HostError {
@@ -29,10 +29,10 @@ impl fmt::Display for HostError {
             Self::Doudizhu(error) => error.fmt(f),
             Self::Blackjack(error) => error.fmt(f),
             Self::Mahjong(error) => error.fmt(f),
-            Self::MinecraftGuess(error) => error.fmt(f),
+            Self::McGuess(error) => error.fmt(f),
             Self::QiGui523(error) => error.fmt(f),
             Self::Shengji(error) => error.fmt(f),
-            Self::TexasHoldem(error) => error.fmt(f),
+            Self::Texas(error) => error.fmt(f),
             Self::Uno(error) => error.fmt(f),
         }
     }
@@ -44,23 +44,23 @@ impl Error for HostError {
             Self::Doudizhu(error) => Some(error),
             Self::Blackjack(error) => Some(error),
             Self::Mahjong(error) => Some(error),
-            Self::MinecraftGuess(error) => Some(error),
+            Self::McGuess(error) => Some(error),
             Self::QiGui523(error) => Some(error),
             Self::Shengji(error) => Some(error),
-            Self::TexasHoldem(error) => Some(error),
+            Self::Texas(error) => Some(error),
             Self::Uno(error) => Some(error),
         }
     }
 }
 
-impl From<BlackjackError> for HostError {
-    fn from(error: BlackjackError) -> Self {
+impl From<BlackjackGameError> for HostError {
+    fn from(error: BlackjackGameError) -> Self {
         Self::Blackjack(error)
     }
 }
 
-impl From<MahjongError> for HostError {
-    fn from(error: MahjongError) -> Self {
+impl From<MahjongGameError> for HostError {
+    fn from(error: MahjongGameError) -> Self {
         Self::Mahjong(error)
     }
 }
@@ -71,26 +71,26 @@ impl From<MahjongRuleError> for HostError {
     }
 }
 
-impl From<MinecraftGuessError> for HostError {
-    fn from(error: MinecraftGuessError) -> Self {
-        Self::MinecraftGuess(error)
+impl From<McGuessGameError> for HostError {
+    fn from(error: McGuessGameError) -> Self {
+        Self::McGuess(error)
     }
 }
 
-impl From<QiGui523Error> for HostError {
-    fn from(error: QiGui523Error) -> Self {
+impl From<QiGuiGameError> for HostError {
+    fn from(error: QiGuiGameError) -> Self {
         Self::QiGui523(error)
     }
 }
 
-impl From<QiGui523RuleError> for HostError {
-    fn from(error: QiGui523RuleError) -> Self {
+impl From<QiGuiRuleError> for HostError {
+    fn from(error: QiGuiRuleError) -> Self {
         Self::QiGui523(error.into())
     }
 }
 
-impl From<ShengjiError> for HostError {
-    fn from(error: ShengjiError) -> Self {
+impl From<ShengjiGameError> for HostError {
+    fn from(error: ShengjiGameError) -> Self {
         Self::Shengji(error)
     }
 }
@@ -101,20 +101,20 @@ impl From<ShengjiRuleError> for HostError {
     }
 }
 
-impl From<TexasHoldemError> for HostError {
-    fn from(error: TexasHoldemError) -> Self {
-        Self::TexasHoldem(error)
+impl From<TexasGameError> for HostError {
+    fn from(error: TexasGameError) -> Self {
+        Self::Texas(error)
     }
 }
 
-impl From<TexasHoldemRuleError> for HostError {
-    fn from(error: TexasHoldemRuleError) -> Self {
-        Self::TexasHoldem(error.into())
+impl From<TexasRuleError> for HostError {
+    fn from(error: TexasRuleError) -> Self {
+        Self::Texas(error.into())
     }
 }
 
-impl From<UnoError> for HostError {
-    fn from(error: UnoError) -> Self {
+impl From<UnoGameError> for HostError {
+    fn from(error: UnoGameError) -> Self {
         Self::Uno(error)
     }
 }
@@ -125,8 +125,8 @@ impl From<UnoRuleError> for HostError {
     }
 }
 
-impl From<DoudizhuError> for HostError {
-    fn from(error: DoudizhuError) -> Self {
+impl From<DoudizhuGameError> for HostError {
+    fn from(error: DoudizhuGameError) -> Self {
         Self::Doudizhu(error)
     }
 }

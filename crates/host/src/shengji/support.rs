@@ -1,27 +1,30 @@
-use leocard_protocol::{
-    PlayerId, ShengjiBottomFlipMatchView, ShengjiBottomFlipRevealView, ShengjiEvent,
-    ShengjiProfileStats, ShengjiPublicPlay, ShengjiViolation,
-};
+use leocard_protocol::{ShengjiEvent, ShengjiPublicPlay, ShengjiViolation};
 use leocard_shengji::{
-    BidError, BottomFlipReveal, Component, FollowError, GameError, HandResult, PlayError,
-    ShengjiCard, ShengjiPlayerId, ShengjiRuleSet, ShengjiSuit, ShengjiTrump, TrickRecord,
-    build_deck_for,
+    ShengjiBidError, ShengjiCard, ShengjiComponent, ShengjiFollowError, ShengjiGameError,
+    ShengjiHandResult, ShengjiPlayError, ShengjiProfileStats, ShengjiRuleSet, ShengjiSuit,
+    ShengjiTrickRecord, ShengjiTrump, build_deck_for,
 };
+
 use std::collections::HashSet;
 
-pub(super) fn record_shengji_component(stats: &mut ShengjiProfileStats, component: &Component) {
+pub(super) fn record_shengji_component(
+    stats: &mut ShengjiProfileStats,
+    component: &ShengjiComponent,
+) {
     let index = match component {
-        Component::Single { .. } | Component::Pair { .. } | Component::Triple { .. } => return,
-        Component::Tractor { pair_count, .. } => {
+        ShengjiComponent::Single { .. }
+        | ShengjiComponent::Pair { .. }
+        | ShengjiComponent::Triple { .. } => return,
+        ShengjiComponent::Tractor { pair_count, .. } => {
             stats.longest_tractor = stats.longest_tractor.max(u16::from(*pair_count));
             0
         }
-        Component::Titanic { triple_count, .. } => {
+        ShengjiComponent::Titanic { triple_count, .. } => {
             stats.longest_titanic = stats.longest_titanic.max(u16::from(*triple_count));
             1
         }
-        Component::Quad { .. } => 2,
-        Component::Spaceship { quad_count, .. } => {
+        ShengjiComponent::Quad { .. } => 2,
+        ShengjiComponent::Spaceship { quad_count, .. } => {
             stats.longest_spaceship = stats.longest_spaceship.max(u16::from(*quad_count));
             3
         }
@@ -60,7 +63,7 @@ pub(super) fn merge_shengji_profile_stats(
 }
 
 pub(super) fn completed_trick_events(
-    trick: &TrickRecord,
+    trick: &ShengjiTrickRecord,
     collecting_score: u32,
 ) -> Vec<ShengjiEvent> {
     let last = trick
@@ -68,7 +71,7 @@ pub(super) fn completed_trick_events(
         .last()
         .map(|(player, play)| ShengjiEvent::CardsPlayed {
             play: ShengjiPublicPlay {
-                player: from_core_player(*player),
+                player: *player,
                 play: play.clone(),
                 throw_penalty: 0,
             },
@@ -76,35 +79,20 @@ pub(super) fn completed_trick_events(
         });
     last.into_iter()
         .chain([ShengjiEvent::TrickFinished {
-            winner: from_core_player(trick.winner),
+            winner: trick.winner,
             points: trick.points,
             collecting_score,
         }])
         .collect()
 }
 
-pub(super) fn bottom_flip_reveal_view(reveal: &BottomFlipReveal) -> ShengjiBottomFlipRevealView {
-    ShengjiBottomFlipRevealView {
-        card: reveal.card,
-        matches: reveal
-            .matches
-            .iter()
-            .map(|matched| ShengjiBottomFlipMatchView {
-                player: from_core_player(matched.player),
-                cards: matched.cards.clone(),
-            })
-            .collect(),
-        dealer: reveal.dealer.map(from_core_player),
-    }
-}
-
-pub(super) fn pre_kitty_collecting_score(result: &HandResult) -> u32 {
+pub(super) fn pre_kitty_collecting_score(result: &ShengjiHandResult) -> u32 {
     i64::from(result.trick_points)
         .saturating_add(i64::from(result.penalty_adjustment))
         .max(0) as u32
 }
 
-pub(super) fn finished_reference_point_magnitude(result: &HandResult) -> i16 {
+pub(super) fn finished_reference_point_magnitude(result: &ShengjiHandResult) -> i16 {
     if result.promoted_team == result.dealer_team {
         i16::from(result.promoted_steps) * 2
     } else {
@@ -112,67 +100,73 @@ pub(super) fn finished_reference_point_magnitude(result: &HandResult) -> i16 {
     }
 }
 
-pub(super) fn game_violation(error: GameError) -> ShengjiViolation {
+pub(super) fn game_violation(error: ShengjiGameError) -> ShengjiViolation {
     match error {
-        GameError::InvalidPlayer(_) => ShengjiViolation::InvalidPlayer,
-        GameError::WrongPhase | GameError::RedealRequired | GameError::Rules(_) => {
-            ShengjiViolation::WrongPhase
-        }
-        GameError::NotDealer => ShengjiViolation::NotDealer,
-        GameError::WrongBuryCount { expected, actual } => ShengjiViolation::WrongBuryCount {
+        ShengjiGameError::InvalidPlayer(_) => ShengjiViolation::InvalidPlayer,
+        ShengjiGameError::WrongPhase
+        | ShengjiGameError::RedealRequired
+        | ShengjiGameError::Rules(_) => ShengjiViolation::WrongPhase,
+        ShengjiGameError::NotDealer => ShengjiViolation::NotDealer,
+        ShengjiGameError::WrongBuryCount { expected, actual } => ShengjiViolation::WrongBuryCount {
             expected: expected.min(usize::from(u8::MAX)) as u8,
             actual: actual.min(usize::from(u8::MAX)) as u8,
         },
-        GameError::CardsNotOwned => ShengjiViolation::CardsNotOwned,
-        GameError::CrossingNotEligible => ShengjiViolation::CrossingNotEligible,
-        GameError::CrossingAlreadyDecided => ShengjiViolation::CrossingAlreadyDecided,
-        GameError::WrongCrossingCount { expected, actual } => {
+        ShengjiGameError::CardsNotOwned => ShengjiViolation::CardsNotOwned,
+        ShengjiGameError::CrossingNotEligible => ShengjiViolation::CrossingNotEligible,
+        ShengjiGameError::CrossingAlreadyDecided => ShengjiViolation::CrossingAlreadyDecided,
+        ShengjiGameError::WrongCrossingCount { expected, actual } => {
             ShengjiViolation::WrongCrossingCount {
                 expected: expected.min(usize::from(u8::MAX)) as u8,
                 actual: actual.min(usize::from(u8::MAX)) as u8,
             }
         }
-        GameError::CrossingMustIncludeAllTrumps => ShengjiViolation::CrossingMustIncludeAllTrumps,
-        GameError::CrossingReturnNotRequired => ShengjiViolation::CrossingReturnNotRequired,
-        GameError::CrossingAlreadyReturned => ShengjiViolation::CrossingAlreadyReturned,
-        GameError::NotBottomCopyPlayer => ShengjiViolation::NotBottomCopyPlayer,
-        GameError::NotPlayersTurn { .. } => ShengjiViolation::NotPlayersTurn,
-        GameError::Bid(error) => match error {
-            BidError::InvalidPlayer(_) => ShengjiViolation::InvalidPlayer,
-            BidError::Closed | BidError::NoDeclaration | BidError::InvalidCards => {
-                ShengjiViolation::InvalidDeclaration
+        ShengjiGameError::CrossingMustIncludeAllTrumps => {
+            ShengjiViolation::CrossingMustIncludeAllTrumps
+        }
+        ShengjiGameError::CrossingReturnNotRequired => ShengjiViolation::CrossingReturnNotRequired,
+        ShengjiGameError::CrossingAlreadyReturned => ShengjiViolation::CrossingAlreadyReturned,
+        ShengjiGameError::NotBottomCopyPlayer => ShengjiViolation::NotBottomCopyPlayer,
+        ShengjiGameError::NotPlayersTurn { .. } => ShengjiViolation::NotPlayersTurn,
+        ShengjiGameError::Bid(error) => match error {
+            ShengjiBidError::InvalidPlayer(_) => ShengjiViolation::InvalidPlayer,
+            ShengjiBidError::Closed
+            | ShengjiBidError::NoDeclaration
+            | ShengjiBidError::InvalidCards => ShengjiViolation::InvalidDeclaration,
+            ShengjiBidError::CardsNotOwned => ShengjiViolation::DeclarationCardsNotOwned,
+            ShengjiBidError::CounterRequiresPair => ShengjiViolation::CounterRequiresPair,
+            ShengjiBidError::NotStronger => ShengjiViolation::CounterNotStronger,
+            ShengjiBidError::ProtectedSuit => {
+                ShengjiViolation::ProtectedSuitCanOnlyBeCounteredByNoTrump
             }
-            BidError::CardsNotOwned => ShengjiViolation::DeclarationCardsNotOwned,
-            BidError::CounterRequiresPair => ShengjiViolation::CounterRequiresPair,
-            BidError::NotStronger => ShengjiViolation::CounterNotStronger,
-            BidError::ProtectedSuit => ShengjiViolation::ProtectedSuitCanOnlyBeCounteredByNoTrump,
-            BidError::JokerRequired => ShengjiViolation::DeclarationRequiresJoker,
-            BidError::NoTrumpCannotOpen => ShengjiViolation::NoTrumpCannotOpen,
+            ShengjiBidError::JokerRequired => ShengjiViolation::DeclarationRequiresJoker,
+            ShengjiBidError::NoTrumpCannotOpen => ShengjiViolation::NoTrumpCannotOpen,
         },
-        GameError::Play(error) => play_violation(error),
-        GameError::Follow(error) => match error {
-            FollowError::Play(error) => play_violation(error),
-            FollowError::WrongCardCount { expected, actual } => ShengjiViolation::WrongCardCount {
-                expected: expected.min(usize::from(u8::MAX)) as u8,
-                actual: actual.min(usize::from(u8::MAX)) as u8,
-            },
-            FollowError::MustFollowCategory { .. } => ShengjiViolation::MustFollowCategory,
-            FollowError::MustFollowStructure => ShengjiViolation::MustFollowStructure,
+        ShengjiGameError::Play(error) => play_violation(error),
+        ShengjiGameError::Follow(error) => match error {
+            ShengjiFollowError::Play(error) => play_violation(error),
+            ShengjiFollowError::WrongCardCount { expected, actual } => {
+                ShengjiViolation::WrongCardCount {
+                    expected: expected.min(usize::from(u8::MAX)) as u8,
+                    actual: actual.min(usize::from(u8::MAX)) as u8,
+                }
+            }
+            ShengjiFollowError::MustFollowCategory { .. } => ShengjiViolation::MustFollowCategory,
+            ShengjiFollowError::MustFollowStructure => ShengjiViolation::MustFollowStructure,
         },
-        GameError::InvalidDeckSize { .. } | GameError::InvalidDeckContents => {
+        ShengjiGameError::InvalidDeckSize { .. } | ShengjiGameError::InvalidDeckContents => {
             ShengjiViolation::WrongPhase
         }
     }
 }
 
-fn play_violation(error: PlayError) -> ShengjiViolation {
+fn play_violation(error: ShengjiPlayError) -> ShengjiViolation {
     match error {
-        PlayError::Empty => ShengjiViolation::MustLeadWithCards,
-        PlayError::DuplicatePhysicalCard | PlayError::CardsNotOwned => {
+        ShengjiPlayError::Empty => ShengjiViolation::MustLeadWithCards,
+        ShengjiPlayError::DuplicatePhysicalCard | ShengjiPlayError::CardsNotOwned => {
             ShengjiViolation::CardsNotOwned
         }
-        PlayError::MixedCategory => ShengjiViolation::InvalidPattern,
-        PlayError::ThrowDisabled => ShengjiViolation::ThrowDisabled,
+        ShengjiPlayError::MixedCategory => ShengjiViolation::InvalidPattern,
+        ShengjiPlayError::ThrowDisabled => ShengjiViolation::ThrowDisabled,
     }
 }
 
@@ -185,10 +179,13 @@ pub(super) fn card_sort_key(card: ShengjiCard, trump: ShengjiTrump) -> (bool, u8
     )
 }
 
-pub(super) fn validate_deck(deck: &[ShengjiCard], rules: ShengjiRuleSet) -> Result<(), GameError> {
+pub(super) fn validate_deck(
+    deck: &[ShengjiCard],
+    rules: ShengjiRuleSet,
+) -> Result<(), ShengjiGameError> {
     let expected = build_deck_for(rules.deck_count);
     if deck.len() != expected.len() {
-        return Err(GameError::InvalidDeckSize {
+        return Err(ShengjiGameError::InvalidDeckSize {
             expected: expected.len(),
             actual: deck.len(),
         });
@@ -196,7 +193,7 @@ pub(super) fn validate_deck(deck: &[ShengjiCard], rules: ShengjiRuleSet) -> Resu
     let expected = expected.into_iter().collect::<HashSet<_>>();
     let actual = deck.iter().copied().collect::<HashSet<_>>();
     if actual.len() != deck.len() || actual != expected {
-        return Err(GameError::InvalidDeckContents);
+        return Err(ShengjiGameError::InvalidDeckContents);
     }
     Ok(())
 }
@@ -205,12 +202,4 @@ pub(super) fn shuffled_deck(rules: ShengjiRuleSet) -> Vec<ShengjiCard> {
     let mut deck = build_deck_for(rules.deck_count);
     fastrand::shuffle(&mut deck);
     deck
-}
-
-pub(super) const fn to_core_player(player: PlayerId) -> ShengjiPlayerId {
-    ShengjiPlayerId(player.0)
-}
-
-pub(super) const fn from_core_player(player: ShengjiPlayerId) -> PlayerId {
-    PlayerId(player.0)
 }

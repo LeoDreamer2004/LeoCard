@@ -1,13 +1,13 @@
 use super::{
     UnoSession, analysis::profile_statistics, analysis_events, append_finished_event,
-    events_for_outcome, merge_uno_profile_stats, pending_draw_reveal_for_outcome, to_core_player,
+    events_for_outcome, merge_uno_profile_stats, pending_draw_reveal_for_outcome,
 };
 use crate::{ConnectionId, Delivery, lifecycle::HostedGameLifecycle};
-use leocard_protocol::{
-    GameViolation, PlayerId, PlayerViolation, RejectReason, RequestId, UnoProfileStats,
-};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{GameViolation, PlayerViolation, RejectReason, RequestId};
 use leocard_uno::{
-    ActionOutcome, GameError, GameState, Phase, UnoActionContext, UnoCard, UnoColor, UnoPlayerId,
+    UnoActionContext, UnoActionOutcome, UnoCard, UnoColor, UnoGameError, UnoGameState, UnoPhase,
+    UnoProfileStats,
 };
 
 impl UnoSession {
@@ -20,7 +20,7 @@ impl UnoSession {
         action: F,
     ) -> Vec<Delivery>
     where
-        F: FnOnce(&mut GameState, UnoPlayerId) -> Result<ActionOutcome, GameError>,
+        F: FnOnce(&mut UnoGameState, PlayerId) -> Result<UnoActionOutcome, UnoGameError>,
     {
         let Some(player) = self.room.player_id(connection) else {
             return self.room.reject(
@@ -36,10 +36,9 @@ impl UnoSession {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         };
-        let jump_in_was_available =
-            successful_jump_in && game.jump_in_card(to_core_player(player)).is_some();
-        let before = UnoActionContext::capture(game, to_core_player(player));
-        match action(game, to_core_player(player)) {
+        let jump_in_was_available = successful_jump_in && game.jump_in_card(player).is_some();
+        let before = UnoActionContext::capture(game, player);
+        match action(game, player) {
             Ok(outcome) => {
                 let mut events = events_for_outcome(&outcome, &played);
                 append_finished_event(&mut events, game);
@@ -71,8 +70,8 @@ impl UnoSession {
     }
 
     pub(super) fn apply_finished_reference_points(&mut self) {
-        let result = match self.game.as_ref().map(GameState::phase) {
-            Some(Phase::Finished(result)) => result.clone(),
+        let result = match self.game.as_ref().map(UnoGameState::phase) {
+            Some(UnoPhase::Finished(result)) => result.clone(),
             _ => return,
         };
         let eliminated = self
@@ -91,7 +90,7 @@ impl UnoSession {
             .map(|index| {
                 profile_statistics(
                     statistics
-                        .player_statistics(UnoPlayerId(index))
+                        .player_statistics(PlayerId::from_index(index))
                         .expect("recorder and game players stay aligned"),
                 )
             })

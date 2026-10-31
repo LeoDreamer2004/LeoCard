@@ -9,28 +9,31 @@ mod bot;
 mod card;
 mod game;
 mod hand;
+mod profile;
 mod rating;
 mod rules;
 mod squid;
 mod statistics;
 pub use rating::reference_point_deltas;
 pub use squid::{
-    DEEPSEEK_SQUID_VARIANTS, SquidAwardStatistics, SquidState, SquidTransfer, deepseek_squid_marker,
+    DEEPSEEK_SQUID_VARIANTS, TexasSquidAwardStatistics, TexasSquidState, TexasSquidTransfer,
+    deepseek_squid_marker,
 };
-pub use statistics::{
-    TexasHoldemActionStatistics, TexasHoldemHandStatistics, TexasHoldemMatchStatistics,
-};
+pub use statistics::{TexasActionStatistics, TexasHandStatistics, TexasMatchStatistics};
 
-pub use auto_play::{PassiveAutoPlay, PassiveAutoPlayRequest};
+pub use auto_play::{TexasPassiveAutoPlay, TexasPassiveAutoPlayRequest};
 
-pub use bot::{TexasHoldemBot, TexasHoldemBotObservation};
-pub use card::{TexasHoldemCard, TexasHoldemRank, TexasHoldemSuit, build_deck};
+pub use bot::{TexasBot, TexasBotObservation};
+pub use card::{TexasCard, TexasRank, TexasSuit, build_deck};
 pub use game::{
-    ActionOutcome, BettingRecord, GameError, GameState, HandResult, Phase, PlayerState, PotAward,
-    RaiseSizing, TexasHoldemAction, TexasHoldemBlindKind, TexasHoldemPlayerId, TexasHoldemStreet,
+    TexasAction, TexasActionOutcome, TexasBettingRecord, TexasBlindKind, TexasGameError,
+    TexasGameState, TexasHandResult, TexasPhase, TexasPlayerState, TexasPotAward, TexasRaiseSizing,
+    TexasStreet,
 };
 pub use hand::{
-    EvaluatedHand, HandError, TexasHoldemHandCategory, evaluate_best, evaluate_omaha,
+    TexasEvaluatedHand, TexasHandCategory, TexasHandError, evaluate_best, evaluate_omaha,
     evaluate_player_hand,
 };
-pub use rules::{RuleError, TexasHoldemRuleSet};
+pub use rules::{TexasRuleError, TexasRuleSet};
+
+pub use profile::TexasProfileStats;

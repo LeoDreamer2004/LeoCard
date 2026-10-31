@@ -1,7 +1,7 @@
 use super::prelude::*;
 use bevy::audio::Decodable;
 use leocard_protocol::{AVATAR_DIMENSION, MAX_AVATAR_BYTES, QUICK_VOICE_COUNT};
-use leocard_uno::{Mode, UnoRuleSet, build_deck_for_rules};
+use leocard_uno::{UnoMode, UnoRuleSet, build_deck_for_rules};
 use std::collections::HashSet;
 use std::io::Cursor;
 
@@ -30,7 +30,7 @@ fn every_card_maps_to_an_existing_asset() {
     let mahjong_back = asset_root.join("cards/mahjong/hong-kong/back.png");
     assert!(mahjong_back.is_file());
     for card in build_deck_for_rules(UnoRuleSet {
-        mode: Mode::NoMercy,
+        mode: UnoMode::NoMercy,
         ..UnoRuleSet::default()
     }) {
         let path = asset_root.join(uno_card_asset_path(card));
@@ -140,6 +140,8 @@ fn every_runtime_ui_and_card_sound_decodes_with_enabled_bevy_formats() {
     for (directory, expected_count) in [
         ("audio/mahjong/fans/female", 81),
         ("audio/mahjong/fans/male", 81),
+        ("audio/mahjong/tiles/female", 68),
+        ("audio/mahjong/tiles/male", 68),
         ("audio/card_patterns/female", 66),
         ("audio/card_patterns/male", 66),
     ] {

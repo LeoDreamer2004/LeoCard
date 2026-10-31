@@ -5,6 +5,4 @@ mod types;
 
 mod state;
 pub(crate) use state::GameStatistics;
-pub use types::{
-    TexasHoldemActionStatistics, TexasHoldemHandStatistics, TexasHoldemMatchStatistics,
-};
+pub use types::{TexasActionStatistics, TexasHandStatistics, TexasMatchStatistics};

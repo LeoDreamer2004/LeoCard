@@ -3,12 +3,13 @@ use super::{
     state::{DrawChain, FinishCandidate, TrackedPlayer},
 };
 use crate::{
-    ActionOutcome, GameState, PendingSwap, Phase, UnoCard, UnoChallengeResult, UnoColor,
-    UnoFlipSide, UnoPlayerId, UnoRuleSet,
+    UnoActionOutcome, UnoCard, UnoChallengeResult, UnoColor, UnoFlipSide, UnoGameState,
+    UnoPendingSwap, UnoPhase, UnoRuleSet,
 };
+use leocard_game_common::PlayerId;
 
 impl UnoMatchStatistics {
-    pub fn new(game: &GameState) -> Self {
+    pub fn new(game: &UnoGameState) -> Self {
         let players = game
             .players()
             .iter()
@@ -41,17 +42,19 @@ impl UnoMatchStatistics {
         }
     }
 
-    pub fn player_statistics(&self, player: UnoPlayerId) -> Option<&UnoPlayerStatistics> {
-        self.players.get(player.0).map(|player| &player.progress)
+    pub fn player_statistics(&self, player: PlayerId) -> Option<&UnoPlayerStatistics> {
+        self.players
+            .get(player.index())
+            .map(|player| &player.progress)
     }
 
     pub fn observe(
         &mut self,
         before: UnoActionContext,
-        outcome: &ActionOutcome,
+        outcome: &UnoActionOutcome,
         played: &[(UnoCard, Option<UnoColor>)],
         jump_in: bool,
-        game: &GameState,
+        game: &UnoGameState,
     ) -> Vec<UnoActionStatistics> {
         let previous = self
             .players
@@ -61,8 +64,8 @@ impl UnoMatchStatistics {
         self.record_plays(&before, outcome, played, jump_in, game);
         self.record_draws(&before, outcome, game);
         match outcome {
-            ActionOutcome::UnoCalled { player } => {
-                let tracked = &mut self.players[player.0];
+            UnoActionOutcome::UnoCalled { player } => {
+                let tracked = &mut self.players[player.index()];
                 tracked.progress.uno_calls = tracked.progress.uno_calls.saturating_add(1);
                 if before.turn.current_player == *player && !tracked.called_this_turn {
                     tracked.called_this_turn = true;
@@ -71,38 +74,41 @@ impl UnoMatchStatistics {
                         tracked.progress.max_uno_call_run.max(tracked.uno_call_run);
                 }
             }
-            ActionOutcome::UnoReported {
+            UnoActionOutcome::UnoReported {
                 reporter, target, ..
             } => {
-                self.players[reporter.0].progress.uno_reports = self.players[reporter.0]
-                    .progress
-                    .uno_reports
-                    .saturating_add(1);
-                self.players[target.0].progress.uno_penalties = self.players[target.0]
+                self.players[reporter.index()].progress.uno_reports = self.players
+                    [reporter.index()]
+                .progress
+                .uno_reports
+                .saturating_add(1);
+                self.players[target.index()].progress.uno_penalties = self.players[target.index()]
                     .progress
                     .uno_penalties
                     .saturating_add(1);
             }
-            ActionOutcome::ChallengeResolved {
+            UnoActionOutcome::ChallengeResolved {
                 challenger,
                 offender,
                 result,
                 ..
             } => {
                 let successful = u32::from(*result == UnoChallengeResult::Successful);
-                let stats = &mut self.players[challenger.0].progress;
+                let stats = &mut self.players[challenger.index()].progress;
                 stats.challenges = stats.challenges.saturating_add(1);
                 stats.successful_challenges =
                     stats.successful_challenges.saturating_add(successful);
-                let stats = &mut self.players[offender.0].progress;
+                let stats = &mut self.players[offender.index()].progress;
                 stats.challenges_received = stats.challenges_received.saturating_add(1);
                 stats.successful_challenges_received = stats
                     .successful_challenges_received
                     .saturating_add(successful);
             }
-            ActionOutcome::HandsTraded { player, .. } if before.seven_swap() => {
-                self.players[player.0].progress.hand_swaps =
-                    self.players[player.0].progress.hand_swaps.saturating_add(1);
+            UnoActionOutcome::HandsTraded { player, .. } if before.seven_swap() => {
+                self.players[player.index()].progress.hand_swaps = self.players[player.index()]
+                    .progress
+                    .hand_swaps
+                    .saturating_add(1);
             }
             _ => {}
         }
@@ -110,15 +116,15 @@ impl UnoMatchStatistics {
             && before.turn.current_player == before.player
             && turn_ended(&before, outcome, game)
         {
-            let tracked = &mut self.players[before.player.0];
+            let tracked = &mut self.players[before.player.index()];
             if !tracked.called_this_turn {
                 tracked.uno_call_run = 0;
             }
             tracked.called_this_turn = false;
         }
         let winner = match game.phase() {
-            Phase::Finished(result) => Some(result.winner),
-            Phase::Playing => None,
+            UnoPhase::Finished(result) => Some(result.winner),
+            UnoPhase::Playing => None,
         };
         for (tracked, state) in self.players.iter_mut().zip(game.players()) {
             let count = state.hand().len() as u16;
@@ -151,7 +157,7 @@ impl UnoMatchStatistics {
             .zip(previous)
             .enumerate()
             .filter_map(|(index, (tracked, previous))| {
-                let player = UnoPlayerId(index);
+                let player = PlayerId::from_index(index);
                 let eliminated = game
                     .player(player)
                     .expect("recorder and game players stay aligned")
@@ -184,18 +190,18 @@ impl UnoMatchStatistics {
     }
 }
 
-fn turn_ended(before: &UnoActionContext, outcome: &ActionOutcome, game: &GameState) -> bool {
+fn turn_ended(before: &UnoActionContext, outcome: &UnoActionOutcome, game: &UnoGameState) -> bool {
     match outcome {
-        ActionOutcome::Played { .. } => !game.pending_swap().is_some_and(|pending| matches!(pending,
-            PendingSwap::SwapOneTarget { player } | PendingSwap::SwapOneGive { player, .. } |
-            PendingSwap::ForceTrade { player } | PendingSwap::ChooseColor { player } | PendingSwap::SevenSwap { player }
+        UnoActionOutcome::Played { .. } => !game.pending_swap().is_some_and(|pending| matches!(pending,
+            UnoPendingSwap::SwapOneTarget { player } | UnoPendingSwap::SwapOneGive { player, .. } |
+            UnoPendingSwap::ForceTrade { player } | UnoPendingSwap::ChooseColor { player } | UnoPendingSwap::SevenSwap { player }
             if player == before.player)),
-        ActionOutcome::DrewCards { playable, .. } => playable.is_none(),
-        ActionOutcome::PenaltyDrawn { .. } | ActionOutcome::ChallengeResolved { result: UnoChallengeResult::Failed, .. } => !game.turn().is_some_and(|turn| turn.current_player == before.player && (turn.pending_skip > 0 || turn.skipped_turns_remaining > 0)),
-        ActionOutcome::PassedAfterDraw { .. } | ActionOutcome::SkipResolved { .. } |
-        ActionOutcome::SwapOneCompleted { .. } | ActionOutcome::ColorRouletteResolved { .. } => true,
-        ActionOutcome::HandsTraded { .. } => before.seven_swap(),
-        ActionOutcome::ColorChosen { .. } => matches!(before.turn.pending_swap, Some(PendingSwap::ChooseColor { .. })),
+        UnoActionOutcome::DrewCards { playable, .. } => playable.is_none(),
+        UnoActionOutcome::PenaltyDrawn { .. } | UnoActionOutcome::ChallengeResolved { result: UnoChallengeResult::Failed, .. } => !game.turn().is_some_and(|turn| turn.current_player == before.player && (turn.pending_skip > 0 || turn.skipped_turns_remaining > 0)),
+        UnoActionOutcome::PassedAfterDraw { .. } | UnoActionOutcome::SkipResolved { .. } |
+        UnoActionOutcome::SwapOneCompleted { .. } | UnoActionOutcome::ColorRouletteResolved { .. } => true,
+        UnoActionOutcome::HandsTraded { .. } => before.seven_swap(),
+        UnoActionOutcome::ColorChosen { .. } => matches!(before.turn.pending_swap, Some(UnoPendingSwap::ChooseColor { .. })),
         _ => false,
     }
 }

@@ -1,12 +1,12 @@
 use super::SessionStatistics;
 use crate::RoomSession;
 use crate::automation::BotDecision;
-use leocard_protocol::{
-    MatchId, PlayerId, ShengjiBottomCopyDecisionView, ShengjiThrowFailureStage,
-};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{MatchId, ShengjiBottomCopyDecisionView, ShengjiThrowFailureStage};
 use leocard_shengji::{
-    BottomFlipReveal, GameState, ShengjiBotAction, ShengjiBotObservation, ShengjiCard,
-    ShengjiClassifiedPlay, ShengjiPlayerId, ShengjiRuleSet, TeamProgress, TrickRecord,
+    ShengjiBotAction, ShengjiBotObservation, ShengjiBottomFlipReveal, ShengjiCard,
+    ShengjiClassifiedPlay, ShengjiGameState, ShengjiRuleSet, ShengjiTeamProgress,
+    ShengjiTrickRecord,
 };
 use std::time::Duration;
 
@@ -24,7 +24,7 @@ pub(super) const THROW_FAILURE_RETURN_DURATION: Duration = Duration::from_millis
 
 #[derive(Clone, Debug)]
 pub(super) struct HeldThrowFailure {
-    pub(super) player: ShengjiPlayerId,
+    pub(super) player: PlayerId,
     pub(super) attempted: Vec<ShengjiCard>,
     pub(super) forced: ShengjiClassifiedPlay,
     pub(super) penalty_points: u16,
@@ -37,10 +37,10 @@ pub(super) struct HandFlowState {
     pub(super) deal_elapsed: Duration,
     pub(super) bidding_remaining: Option<Duration>,
     pub(super) bid_pass_confirmed: [bool; ShengjiRuleSet::MAX_PLAYERS as usize],
-    pub(super) bottom_flip_reveal: Option<BottomFlipReveal>,
+    pub(super) bottom_flip_reveal: Option<ShengjiBottomFlipReveal>,
     pub(super) bottom_flip_remaining: Option<Duration>,
     pub(super) bottom_copy_remaining: Option<Duration>,
-    pub(super) automatic_action: Option<(ShengjiPlayerId, Duration)>,
+    pub(super) automatic_action: Option<(PlayerId, Duration)>,
     pub(super) redeal_remaining: Option<Duration>,
 }
 
@@ -49,7 +49,7 @@ pub(super) struct HeldGamePresentation {
     pub(super) bottom_copy_decisions: Vec<ShengjiBottomCopyDecisionView>,
     pub(super) throw_penalties: [u16; ShengjiRuleSet::MAX_PLAYERS as usize],
     pub(super) throw_failure: Option<HeldThrowFailure>,
-    pub(super) trick: Option<(TrickRecord, Duration)>,
+    pub(super) trick: Option<(ShengjiTrickRecord, Duration)>,
 }
 
 impl HeldGamePresentation {
@@ -81,11 +81,11 @@ pub struct ShengjiSession {
     pub(super) room: RoomSession,
     pub(super) rules: ShengjiRuleSet,
     pub(super) shuffled_deck: Option<Vec<ShengjiCard>>,
-    pub(super) game: Option<GameState>,
+    pub(super) game: Option<ShengjiGameState>,
     pub(super) match_id: Option<MatchId>,
     pub(super) hand_number: u32,
-    pub(super) teams: TeamProgress,
-    pub(super) next_dealer: Option<ShengjiPlayerId>,
+    pub(super) teams: ShengjiTeamProgress,
+    pub(super) next_dealer: Option<PlayerId>,
     pub(super) flow: HandFlowState,
     pub(super) presentation: HeldGamePresentation,
     pub(super) statistics: SessionStatistics,

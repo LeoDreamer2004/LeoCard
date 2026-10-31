@@ -5,10 +5,12 @@ use super::*;
 use crate::app::presentation::{DANGER, MUTED, READY, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
-use std::{array, f32::consts};
+use std::array;
+use std::f32::consts;
+
+use bevy::prelude::*;
 
 pub(super) struct ScoreStageView<'a> {
     pub(super) game: &'a MahjongSnapshot,
@@ -34,7 +36,7 @@ impl ScoreStageView<'_> {
         let own_seat = game
             .players
             .iter()
-            .find(|player| player.id == game.you)
+            .find(|player| player.player.id == game.you)
             .map_or(0, |player| player.seat.0);
 
         let score_stage = spawn_node(
@@ -91,7 +93,7 @@ impl ScoreStageView<'_> {
             else {
                 continue;
             };
-            let slot = usize::from(player.id.0);
+            let slot = usize::from(player.player.id.0);
             let total = result.match_scores[slot];
             let delta = result.deltas[slot];
             let from = total.saturating_sub(delta);

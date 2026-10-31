@@ -1,14 +1,16 @@
 use super::*;
-use leocard_protocol::{ClientCommand, GameCommand, ServerEvent};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    GameEvent, GameViolation, PlayerId, RejectReason, ShengjiCommand, ShengjiDeclarationView,
-    ShengjiEvent, ShengjiPhaseView, ShengjiThrowFailureStage, ShengjiThrowFailureView,
-    ShengjiViolation,
+    ClientCommand, GameCommand, GameEvent, GameViolation, RejectReason, ServerEvent,
+    ShengjiCommand, ShengjiDeclarationView, ShengjiEvent, ShengjiPhaseView,
+    ShengjiThrowFailureStage, ShengjiThrowFailureView, ShengjiViolation,
 };
+
 #[cfg(test)]
 use leocard_shengji::build_deck;
-use leocard_shengji::{ActionOutcome, ShengjiCard, ShengjiPlayerId, ShengjiRuleSet};
-use leocard_shengji::{ShengjiRank, ShengjiSuit};
+use leocard_shengji::{
+    ShengjiActionOutcome, ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
+};
 
 #[test]
 fn bid_pass_confirmations_reset_on_a_new_declaration_and_close_early_when_unanimous() {
@@ -198,8 +200,8 @@ fn first_hand_dealer_badge_follows_initial_bid_and_counter_immediately() {
 #[test]
 fn later_hand_snapshot_exposes_the_fixed_dealer_while_dealing() {
     let (mut session, _, _) = started_session();
-    session.next_dealer = Some(ShengjiPlayerId(2));
-    session.start_hand(true).unwrap();
+    session.next_dealer = Some(PlayerId(2));
+    session.start_hand().unwrap();
 
     let snapshot = session.game_snapshot(PlayerId(0));
     assert!(matches!(snapshot.phase, ShengjiPhaseView::Dealing { .. }));
@@ -239,7 +241,7 @@ fn failed_throw_is_shown_then_returned_before_the_forced_play_is_revealed() {
         .game
         .as_mut()
         .unwrap()
-        .play_cards(ShengjiPlayerId(0), &[forced_card])
+        .play_cards(PlayerId(0), &[forced_card])
         .unwrap();
     let forced = session
         .game
@@ -250,12 +252,12 @@ fn failed_throw_is_shown_then_returned_before_the_forced_play_is_revealed() {
         .plays[0]
         .1
         .clone();
-    session.after_game_outcome(&ActionOutcome::ThrowFailed {
-        player: ShengjiPlayerId(0),
+    session.after_game_outcome(&ShengjiActionOutcome::ThrowFailed {
+        player: PlayerId(0),
         attempted: vec![forced_card, returned_card],
         forced: forced.clone(),
         penalty_points: 10,
-        next: ShengjiPlayerId(1),
+        next: PlayerId(1),
     });
 
     let showing = session.game_snapshot(PlayerId(0));

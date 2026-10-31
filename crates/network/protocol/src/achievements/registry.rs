@@ -10,7 +10,7 @@ pub static ACHIEVEMENT_REGISTRY: LazyLock<AchievementRegistry> = LazyLock::new(|
     leocard_shengji::achievements::register(&mut registry);
     leocard_uno::achievements::register(&mut registry);
     leocard_qigui523::achievements::register(&mut registry);
-    leocard_minecraft_guess::achievements::register(&mut registry);
+    leocard_mc_guess::achievements::register(&mut registry);
     leocard_doudizhu::achievements::register(&mut registry);
     registry
 });

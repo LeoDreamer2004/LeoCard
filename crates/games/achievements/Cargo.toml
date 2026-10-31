@@ -7,4 +7,5 @@ rust-version.workspace = true
 description = "Game-independent achievement registry and progress evaluation for LeoCard"
 
 [dependencies]
+leocard-game-common = { path = "../common" }
 serde.workspace = true

@@ -1,21 +1,24 @@
 use super::state::{DoudizhuAchievementTracker, DoudizhuActionContext, is_airplane, is_bomb};
 use crate::achievements::{DoudizhuAchievementFacts, DoudizhuPlayFacts};
-use crate::{Action, Card, GameState, Phase, classify};
+use crate::{DoudizhuAction, DoudizhuCard, DoudizhuGameState, DoudizhuPhase, classify};
+use leocard_game_common::PlayerId;
 use std::array;
 
 impl DoudizhuAchievementTracker {
     /// Call only after the rules accept an action, so rejected attempts never affect streaks.
     pub fn observe_action(
         &mut self,
-        player: u8,
-        action: &Action,
+        player: PlayerId,
+        action: &DoudizhuAction,
         before: DoudizhuActionContext,
-        game: &GameState,
-    ) -> Vec<(u8, DoudizhuAchievementFacts)> {
-        if before.phase == Phase::Bidding && game.phase == Phase::Playing {
+        game: &DoudizhuGameState,
+    ) -> Vec<(PlayerId, DoudizhuAchievementFacts)> {
+        if before.phase == DoudizhuPhase::Bidding && game.phase == DoudizhuPhase::Playing {
             for (index, progress) in self.players.iter_mut().enumerate() {
-                let hand = game.hand(index as u8).expect("seated player has a hand");
-                let mut ranks: [Vec<Card>; 14] = array::from_fn(|_| Vec::new());
+                let hand = game
+                    .hand(PlayerId::from_index(index))
+                    .expect("seated player has a hand");
+                let mut ranks: [Vec<DoudizhuCard>; 14] = array::from_fn(|_| Vec::new());
                 for card in hand {
                     // Keep both joker ranks together so the rules validate a complete rocket.
                     ranks[usize::from(card.rank().min(13))].push(*card);
@@ -29,7 +32,7 @@ impl DoudizhuAchievementTracker {
             }
         }
         match action {
-            Action::Play(_) => {
+            DoudizhuAction::Play(_) => {
                 let (_, play) = game
                     .table
                     .as_ref()
@@ -68,7 +71,7 @@ impl DoudizhuAchievementTracker {
                 self.flower_senders.clear();
                 events
             }
-            Action::Pass => {
+            DoudizhuAction::Pass => {
                 self.players[usize::from(player)].hand.consecutive_bombs = 0;
                 self.flower_senders.clear();
                 if game.table.is_none() {
@@ -76,7 +79,7 @@ impl DoudizhuAchievementTracker {
                 }
                 Vec::new()
             }
-            Action::Bid(_) => Vec::new(),
+            DoudizhuAction::Bid(_) => Vec::new(),
         }
     }
 

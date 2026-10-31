@@ -1,15 +1,12 @@
 use super::facts::*;
-use crate::{
-    TexasHoldemHandCategory as Category, TexasHoldemRank as Rank, TexasHoldemRuleSet,
-    TexasHoldemStreet,
-};
+use crate::{TexasHandCategory, TexasRank, TexasRuleSet, TexasStreet};
 use leocard_achievements::{AchievementDefinition, award};
 
 macro_rules! texas {
     ($id:literal, $title:literal, $tier:ident, $description:literal, $amount:expr, $target:expr) => {
         award!(
             "leocard:texas/",
-            TexasHoldem,
+            Texas,
             $id,
             $title,
             $tier,
@@ -29,9 +26,10 @@ macro_rules! category {
             $tier,
             $description,
             |event| hand(event, |facts| facts.won_chips > 0
-                && (facts.category == Some(Category::$category)
-                    || (Category::$category == Category::StraightFlush
-                        && facts.category == Some(Category::RoyalFlush)))),
+                && (facts.category == Some(TexasHandCategory::$category)
+                    || (TexasHandCategory::$category
+                        == TexasHandCategory::StraightFlush
+                        && facts.category == Some(TexasHandCategory::RoyalFlush)))),
             1
         )
     };
@@ -96,7 +94,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         Bronze,
         "一次全下本轮下注总额不少于20BB",
         |event| action(event, |facts| facts.all_in_amount
-            >= 20 * TexasHoldemRuleSet::BIG_BLIND),
+            >= 20 * TexasRuleSet::BIG_BLIND),
         1
     ),
     texas!(
@@ -104,7 +102,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         "加注上瘾",
         Bronze,
         "在一手中做一次翻前3-bet",
-        |event| action(event, |facts| facts.street == TexasHoldemStreet::PreFlop
+        |event| action(event, |facts| facts.street == TexasStreet::PreFlop
             && facts.full_raise
             && facts.bet_level == 3),
         1
@@ -171,7 +169,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         "持AA或KK做翻前3-bet，并赢下该手",
         |event| hand(event, |facts| facts.won_chips > 0
             && facts.preflop_bet_levels.contains(&3)
-            && (pair(facts, Rank::Ace) || pair(facts, Rank::King))),
+            && (pair(facts, TexasRank::Ace) || pair(facts, TexasRank::King))),
         1
     ),
     texas!(
@@ -188,7 +186,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         Silver,
         "持AA在摊牌中击败另一家的口袋对子",
         |event| hand(event, |facts| facts.won_chips > 0
-            && pair(facts, Rank::Ace)
+            && pair(facts, TexasRank::Ace)
             && facts.defeated_pocket_pairs >= 1),
         1
     ),
@@ -210,7 +208,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| hand(event, |facts| facts.match_complete
             && facts.first_place
             && facts.match_statistics.lowest_starting_stack
-                < 5 * TexasHoldemRuleSet::BIG_BLIND),
+                < 5 * TexasRuleSet::BIG_BLIND),
         1
     ),
     texas!(
@@ -283,9 +281,11 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| hand(event, |facts| facts.won_chips > 0
             && matches!(
                 facts.category,
-                Some(Category::StraightFlush | Category::RoyalFlush)
+                Some(TexasHandCategory::StraightFlush | TexasHandCategory::RoyalFlush)
             )
-            && facts.defeated_categories.contains(&Category::FourOfAKind)),
+            && facts
+                .defeated_categories
+                .contains(&TexasHandCategory::FourOfAKind)),
         1
     ),
     texas!(
@@ -294,7 +294,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         Gold,
         "持AA与另两家的口袋对子翻前全下，并在摊牌中击败双方",
         |event| hand(event, |facts| facts.won_chips > 0
-            && pair(facts, Rank::Ace)
+            && pair(facts, TexasRank::Ace)
             && facts.preflop_all_in
             && facts.defeated_preflop_all_in_pairs >= 2),
         1
@@ -316,7 +316,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         "用高牌河牌全下赢下底池，使对手弃掉三条或更强的牌",
         |event| hand(event, |facts| facts.won_chips > 0
             && !facts.showdown
-            && facts.category == Some(Category::HighCard)
+            && facts.category == Some(TexasHandCategory::HighCard)
             && facts
                 .river_all_in_folded_categories
                 .iter()
@@ -331,7 +331,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| hand(event, |facts| facts.won_chips > 0
             && facts.under_the_gun
             && offsuit_two_seven(facts)
-            && facts.won_pot >= 20 * TexasHoldemRuleSet::BIG_BLIND),
+            && facts.won_pot >= 20 * TexasRuleSet::BIG_BLIND),
         1
     ),
     texas!(

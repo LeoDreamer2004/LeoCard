@@ -2,9 +2,10 @@ use super::super::*;
 use super::*;
 use crate::play::classify_cards;
 use crate::{
-    ShengjiCard, ShengjiPlayerId, ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTeamId,
-    ShengjiThrowPenalty, ShengjiTrump, build_deck,
+    ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTeamId, ShengjiThrowPenalty,
+    ShengjiTrump, build_deck,
 };
+use leocard_game_common::PlayerId;
 
 #[test]
 fn dealer_may_bury_any_eight_cards() {
@@ -24,11 +25,11 @@ fn constant_trump_first_hand_starts_both_teams_at_three() {
         constant_trump: true,
         ..ShengjiRuleSet::default()
     };
-    let game = GameState::new(
+    let game = ShengjiGameState::new(
         rules,
-        TeamProgress::default(),
+        ShengjiTeamProgress::default(),
         None,
-        ShengjiPlayerId(0),
+        PlayerId(0),
         build_deck(),
     )
     .unwrap();
@@ -46,7 +47,7 @@ fn dealer_throw_penalty_adds_to_collectors_and_collectors_never_go_below_zero() 
         throw_penalty: ShengjiThrowPenalty::TenPerCard,
         ..ShengjiRuleSet::default()
     });
-    game.dealer = Some(ShengjiPlayerId(0));
+    game.dealer = Some(PlayerId(0));
     game.apply_throw_penalty(ShengjiTeamId(0), 50);
     assert_eq!(game.collecting_score(), 50);
     game.apply_throw_penalty(ShengjiTeamId(1), 80);
@@ -57,21 +58,21 @@ fn dealer_throw_penalty_adds_to_collectors_and_collectors_never_go_below_zero() 
 
 #[test]
 fn failed_throw_keeps_the_attempt_visible_but_only_plays_the_forced_low_card() {
-    let mut game = GameState::standard(build_deck()).unwrap();
+    let mut game = ShengjiGameState::standard(build_deck()).unwrap();
     let low = ShengjiCard::suited(0, ShengjiSuit::Diamond, ShengjiRank::Three);
     let high = ShengjiCard::suited(0, ShengjiSuit::Diamond, ShengjiRank::Nine);
     let beating_card = ShengjiCard::suited(0, ShengjiSuit::Diamond, ShengjiRank::Four);
     game.rules.throw_penalty = ShengjiThrowPenalty::TenPerCard;
-    game.phase = Phase::Playing;
+    game.phase = ShengjiPhase::Playing;
     game.trump = Some(ShengjiTrump::new(ShengjiRank::Two, Some(ShengjiSuit::Spade)).unwrap());
-    game.dealer = Some(ShengjiPlayerId(0));
-    game.current_player = Some(ShengjiPlayerId(0));
+    game.dealer = Some(PlayerId(0));
+    game.current_player = Some(PlayerId(0));
     game.players[0].hand = vec![low, high];
     game.players[1].hand = vec![beating_card];
 
     let attempted = vec![high, low];
-    let outcome = game.play_cards(ShengjiPlayerId(0), &attempted).unwrap();
-    let ActionOutcome::ThrowFailed {
+    let outcome = game.play_cards(PlayerId(0), &attempted).unwrap();
+    let ShengjiActionOutcome::ThrowFailed {
         player,
         attempted: visible_attempt,
         forced,
@@ -82,30 +83,30 @@ fn failed_throw_keeps_the_attempt_visible_but_only_plays_the_forced_low_card() {
         panic!("the beatable mixed single throw should fail");
     };
 
-    assert_eq!(player, ShengjiPlayerId(0));
+    assert_eq!(player, PlayerId(0));
     assert_eq!(visible_attempt, attempted);
     assert_eq!(forced.cards, vec![low]);
     assert_eq!(penalty_points, 20);
-    assert_eq!(next, ShengjiPlayerId(1));
+    assert_eq!(next, PlayerId(1));
     assert_eq!(game.players[0].hand, vec![high]);
     assert_eq!(game.collecting_score(), 20);
-    assert_eq!(game.current_player(), Some(ShengjiPlayerId(1)));
+    assert_eq!(game.current_player(), Some(PlayerId(1)));
 }
 
 #[test]
 fn settlement_thresholds_and_next_dealers_match_the_declared_rules() {
     let cases = [
-        (0, ShengjiTeamId(0), 3, ShengjiPlayerId(2)),
-        (35, ShengjiTeamId(0), 2, ShengjiPlayerId(2)),
-        (75, ShengjiTeamId(0), 1, ShengjiPlayerId(2)),
-        (80, ShengjiTeamId(1), 0, ShengjiPlayerId(1)),
-        (120, ShengjiTeamId(1), 1, ShengjiPlayerId(1)),
-        (160, ShengjiTeamId(1), 2, ShengjiPlayerId(1)),
-        (200, ShengjiTeamId(1), 3, ShengjiPlayerId(1)),
+        (0, ShengjiTeamId(0), 3, PlayerId(2)),
+        (35, ShengjiTeamId(0), 2, PlayerId(2)),
+        (75, ShengjiTeamId(0), 1, PlayerId(2)),
+        (80, ShengjiTeamId(1), 0, PlayerId(1)),
+        (120, ShengjiTeamId(1), 1, PlayerId(1)),
+        (160, ShengjiTeamId(1), 2, PlayerId(1)),
+        (200, ShengjiTeamId(1), 3, PlayerId(1)),
     ];
     for (score, promoted_team, steps, next_dealer) in cases {
         let mut game = dealt_game(ShengjiRuleSet::default());
-        game.dealer = Some(ShengjiPlayerId(0));
+        game.dealer = Some(PlayerId(0));
         game.collecting_score = score;
         game.buried.clear();
         let play = classify_cards(
@@ -117,13 +118,13 @@ fn settlement_thresholds_and_next_dealers_match_the_declared_rules() {
             game.trump.unwrap(),
         )
         .unwrap();
-        let last = TrickRecord {
-            leader: ShengjiPlayerId(0),
-            plays: vec![(ShengjiPlayerId(0), play)],
-            winner: ShengjiPlayerId(0),
+        let last = ShengjiTrickRecord {
+            leader: PlayerId(0),
+            plays: vec![(PlayerId(0), play)],
+            winner: PlayerId(0),
             points: 0,
         };
-        let result = game.finish_hand(ShengjiPlayerId(0), &last);
+        let result = game.finish_hand(PlayerId(0), &last);
         assert_eq!(result.promoted_team, promoted_team);
         assert_eq!(result.promoted_steps, steps);
         assert_eq!(result.next_dealer, next_dealer);
@@ -133,21 +134,21 @@ fn settlement_thresholds_and_next_dealers_match_the_declared_rules() {
 #[test]
 fn three_deck_settlement_uses_sixty_point_bands() {
     let cases = [
-        (0, ShengjiTeamId(0), 3, ShengjiPlayerId(2)),
-        (59, ShengjiTeamId(0), 2, ShengjiPlayerId(2)),
-        (60, ShengjiTeamId(0), 1, ShengjiPlayerId(2)),
-        (119, ShengjiTeamId(0), 1, ShengjiPlayerId(2)),
-        (120, ShengjiTeamId(1), 0, ShengjiPlayerId(1)),
-        (179, ShengjiTeamId(1), 0, ShengjiPlayerId(1)),
-        (180, ShengjiTeamId(1), 1, ShengjiPlayerId(1)),
-        (240, ShengjiTeamId(1), 2, ShengjiPlayerId(1)),
+        (0, ShengjiTeamId(0), 3, PlayerId(2)),
+        (59, ShengjiTeamId(0), 2, PlayerId(2)),
+        (60, ShengjiTeamId(0), 1, PlayerId(2)),
+        (119, ShengjiTeamId(0), 1, PlayerId(2)),
+        (120, ShengjiTeamId(1), 0, PlayerId(1)),
+        (179, ShengjiTeamId(1), 0, PlayerId(1)),
+        (180, ShengjiTeamId(1), 1, PlayerId(1)),
+        (240, ShengjiTeamId(1), 2, PlayerId(1)),
     ];
     for (score, promoted_team, steps, next_dealer) in cases {
         let mut game = dealt_game(ShengjiRuleSet {
             deck_count: 3,
             ..ShengjiRuleSet::default()
         });
-        game.dealer = Some(ShengjiPlayerId(0));
+        game.dealer = Some(PlayerId(0));
         game.collecting_score = score;
         game.buried.clear();
         let play = classify_cards(
@@ -159,13 +160,13 @@ fn three_deck_settlement_uses_sixty_point_bands() {
             game.trump.unwrap(),
         )
         .unwrap();
-        let last = TrickRecord {
-            leader: ShengjiPlayerId(0),
-            plays: vec![(ShengjiPlayerId(0), play)],
-            winner: ShengjiPlayerId(0),
+        let last = ShengjiTrickRecord {
+            leader: PlayerId(0),
+            plays: vec![(PlayerId(0), play)],
+            winner: PlayerId(0),
             points: 0,
         };
-        let result = game.finish_hand(ShengjiPlayerId(0), &last);
+        let result = game.finish_hand(PlayerId(0), &last);
         assert_eq!(result.promoted_team, promoted_team, "score={score}");
         assert_eq!(result.promoted_steps, steps, "score={score}");
         assert_eq!(result.next_dealer, next_dealer, "score={score}");
@@ -189,7 +190,7 @@ fn four_deck_settlement_uses_eighty_point_bands() {
             deck_count: 4,
             ..ShengjiRuleSet::default()
         });
-        game.dealer = Some(ShengjiPlayerId(0));
+        game.dealer = Some(PlayerId(0));
         game.collecting_score = score;
         game.buried.clear();
         let play = classify_cards(
@@ -201,13 +202,13 @@ fn four_deck_settlement_uses_eighty_point_bands() {
             game.trump.unwrap(),
         )
         .unwrap();
-        let last = TrickRecord {
-            leader: ShengjiPlayerId(0),
-            plays: vec![(ShengjiPlayerId(0), play)],
-            winner: ShengjiPlayerId(0),
+        let last = ShengjiTrickRecord {
+            leader: PlayerId(0),
+            plays: vec![(PlayerId(0), play)],
+            winner: PlayerId(0),
             points: 0,
         };
-        let result = game.finish_hand(ShengjiPlayerId(0), &last);
+        let result = game.finish_hand(PlayerId(0), &last);
         assert_eq!(result.promoted_team, promoted_team, "score={score}");
         assert_eq!(result.promoted_steps, steps, "score={score}");
     }

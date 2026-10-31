@@ -4,12 +4,12 @@ use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
     RoomSession, new_match_id,
 };
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
-    PlayerViolation, RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
-    UnoEvent,
+    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerViolation,
+    RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent, UnoEvent,
 };
-use leocard_uno::{GameState, Phase, UnoCard, UnoFlipSide, UnoMatchStatistics, UnoRuleSet};
+use leocard_uno::{UnoCard, UnoFlipSide, UnoGameState, UnoMatchStatistics, UnoPhase, UnoRuleSet};
 use std::time::Duration;
 
 impl UnoSession {
@@ -51,7 +51,7 @@ impl UnoSession {
         self.room.revision
     }
 
-    pub const fn game(&self) -> Option<&GameState> {
+    pub const fn game(&self) -> Option<&UnoGameState> {
         self.game.as_ref()
     }
 
@@ -183,7 +183,7 @@ impl HostedGameLifecycle for UnoSession {
         self.rules.into()
     }
 
-    fn game_snapshot(&self, recipient: leocard_protocol::PlayerId) -> GameSnapshot {
+    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
         UnoSession::game_snapshot(self, recipient).into()
     }
 
@@ -279,7 +279,7 @@ impl HostedGameLifecycle for UnoSession {
             .shuffled_deck
             .take()
             .unwrap_or_else(|| shuffled_uno_deck(self.rules));
-        match GameState::new_with_deck(self.rules, active as u8, deck) {
+        match UnoGameState::new_with_deck(self.rules, active as u8, deck) {
             Ok(game) => {
                 let started_on_dark = game.flip_side() == Some(UnoFlipSide::Dark);
                 self.statistics = Some(UnoMatchStatistics::new(&game));
@@ -327,7 +327,7 @@ impl HostedGameLifecycle for UnoSession {
         if !self
             .game
             .as_ref()
-            .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
+            .is_some_and(|game| matches!(game.phase(), UnoPhase::Finished(_)))
         {
             return self.room.reject(
                 connection,
@@ -358,7 +358,7 @@ impl HostedGameLifecycle for UnoSession {
         if !self
             .game
             .as_ref()
-            .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
+            .is_some_and(|game| matches!(game.phase(), UnoPhase::Finished(_)))
         {
             return self.room.reject(
                 connection,

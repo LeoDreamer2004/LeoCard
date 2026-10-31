@@ -3,7 +3,7 @@ use crate::app::presentation::{CardCounterCell, TEXT, add_card_counter_window, a
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
-use leocard_doudizhu::Card;
+use leocard_doudizhu::DoudizhuCard;
 use leocard_protocol::DoudizhuSnapshot;
 use leocard_ui::{DrawerSwitch, SwitchDrawer, UiComposer};
 use std::array;
@@ -42,12 +42,12 @@ pub(super) fn render(
         array::from_fn(|column| {
             let card = if column == 0 {
                 match suit {
-                    3 => Card(53),
-                    1 => Card(52),
+                    3 => DoudizhuCard(53),
+                    1 => DoudizhuCard(52),
                     _ => return None,
                 }
             } else {
-                Card((13 - column) as u8 * 4 + suit)
+                DoudizhuCard((13 - column) as u8 * 4 + suit)
             };
             let known = excluded
                 .iter()

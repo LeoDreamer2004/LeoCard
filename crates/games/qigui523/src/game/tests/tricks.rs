@@ -1,4 +1,5 @@
 use super::support::*;
+use leocard_game_common::PlayerId;
 
 #[test]
 fn first_trick_and_unanswered_runs_use_completed_tricks_not_pass_actions() {
@@ -106,11 +107,11 @@ fn last_play_comeback_and_remaining_score_cards_are_reported_once() {
     f.game.players[1].score = 10;
     // Recreate the observer from a consistent state including already captured scores.
     f.statistics = QiGuiMatchStatistics::new(&f.game);
-    let before = QiGuiActionContext::capture(&f.game, QiGuiPlayerId(0)).unwrap();
-    let replay = QiGuiActionContext::capture(&f.game, QiGuiPlayerId(0)).unwrap();
+    let before = QiGuiActionContext::capture(&f.game, PlayerId(0)).unwrap();
+    let replay = QiGuiActionContext::capture(&f.game, PlayerId(0)).unwrap();
     let outcome = f
         .game
-        .play_cards(QiGuiPlayerId(0), &[card(0, QiGuiRank::Seven)])
+        .play_cards(PlayerId(0), &[card(0, QiGuiRank::Seven)])
         .unwrap();
     let play = classify(&[card(0, QiGuiRank::Seven)], f.game.rules()).unwrap();
     let reports = f.statistics.observe(before, &outcome, Some(&play), &f.game);

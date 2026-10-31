@@ -4,9 +4,10 @@ use super::playback::{
 use crate::app::presentation::{PlayingCardFlip, TablePieceDeal};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use leocard_blackjack::BlackjackCard;
 use leocard_ui::UiComposer;
+
+use bevy::prelude::*;
 
 pub(super) struct BlackjackCardSpec {
     pub slot: BlackjackCardSlot,

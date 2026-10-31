@@ -5,7 +5,7 @@ use leocard_protocol::{ClientCommand, GameCommand, QiGui523Command};
 #[cfg(not(feature = "developer"))]
 use leocard_protocol::{GameViolation, RejectReason};
 #[cfg(feature = "developer")]
-use leocard_qigui523::Phase;
+use leocard_qigui523::QiGuiPhase;
 use leocard_qigui523::{QiGuiCard, QiGuiRank, QiGuiSuit, build_deck};
 
 #[cfg(feature = "developer")]
@@ -19,7 +19,7 @@ fn player_can_replace_only_their_own_hand() {
     let other_hand = session
         .game()
         .unwrap()
-        .player(to_core_player(other))
+        .player(other)
         .unwrap()
         .hand()
         .to_vec();
@@ -38,12 +38,7 @@ fn player_can_replace_only_their_own_hand() {
     );
 
     assert_eq!(deliveries.len(), 3);
-    let hand = session
-        .game()
-        .unwrap()
-        .player(to_core_player(player))
-        .unwrap()
-        .hand();
+    let hand = session.game().unwrap().player(player).unwrap().hand();
     assert_eq!(hand.len(), replacement.len());
     assert_eq!(
         hand.iter().filter(|card| **card == replacement[0]).count(),
@@ -51,12 +46,7 @@ fn player_can_replace_only_their_own_hand() {
     );
     assert!(hand.contains(&replacement[2]));
     assert_eq!(
-        session
-            .game()
-            .unwrap()
-            .player(to_core_player(other))
-            .unwrap()
-            .hand(),
+        session.game().unwrap().player(other).unwrap().hand(),
         other_hand
     );
 }
@@ -68,7 +58,7 @@ fn player_can_play_a_semantic_pair_from_impossible_physical_copies() {
     join_three(&mut session);
     ready_and_start(&mut session);
 
-    let current = from_core_player(session.game().unwrap().trick().unwrap().current_player());
+    let current = session.game().unwrap().trick().unwrap().current_player();
     let connection = connection_for_player(&session, current);
     let pair = vec![
         QiGuiCard::suited(0, QiGuiSuit::Club, QiGuiRank::Joker),
@@ -97,7 +87,7 @@ fn player_can_play_a_semantic_pair_from_impossible_physical_copies() {
     );
     assert!(matches!(
         session.game().unwrap().phase(),
-        Phase::Finished(_)
+        QiGuiPhase::Finished(_)
     ));
 }
 

@@ -111,7 +111,7 @@ fn toggle_ready(client: &mut Option<ResMut<ClientResource>>) {
         .lobby()
         .and_then(|lobby| {
             let you = client.0.model().you()?;
-            lobby.players.iter().find(|player| player.id == you)
+            lobby.players.iter().find(|player| player.player.id == you)
         })
         .is_some_and(|player| player.ready);
     client.0.send(ClientCommand::SetReady { ready: !ready });

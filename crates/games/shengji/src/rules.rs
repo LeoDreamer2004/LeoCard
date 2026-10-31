@@ -1,21 +1,16 @@
 use crate::{ShengjiCard, ShengjiRank, ShengjiSuit};
+use leocard_game_common::PlayerId;
 use std::fmt;
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ShengjiPlayerId(pub u8);
-
-impl ShengjiPlayerId {
-    pub const fn team(self) -> ShengjiTeamId {
-        ShengjiTeamId(self.0 % 2)
-    }
-}
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ShengjiTeamId(pub u8);
 
 impl ShengjiTeamId {
+    pub const fn of(player: PlayerId) -> Self {
+        Self(player.0 % 2)
+    }
+
     pub const fn other(self) -> Self {
         Self(1 - self.0)
     }
@@ -111,15 +106,15 @@ impl ShengjiRuleSet {
         self.mode.player_count()
     }
 
-    pub const fn validate(self) -> Result<Self, RuleError> {
+    pub const fn validate(self) -> Result<Self, ShengjiRuleError> {
         if matches!(self.mode, ShengjiMode::SixPlayer)
             && (self.deck_count != 3 || self.five_trump_crossing)
         {
-            return Err(RuleError::InvalidSixPlayerOptions);
+            return Err(ShengjiRuleError::InvalidSixPlayerOptions);
         }
         match self.deck_count {
             2..=4 => Ok(self),
-            actual => Err(RuleError::InvalidDeckCount(actual)),
+            actual => Err(ShengjiRuleError::InvalidDeckCount(actual)),
         }
     }
 
@@ -167,12 +162,12 @@ impl Default for ShengjiRuleSet {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuleError {
+pub enum ShengjiRuleError {
     InvalidSixPlayerOptions,
     InvalidDeckCount(u8),
 }
 
-impl fmt::Display for RuleError {
+impl fmt::Display for ShengjiRuleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidSixPlayerOptions => write!(f, "六人拖拉机固定三副牌，且不支持五主过江"),
@@ -183,7 +178,7 @@ impl fmt::Display for RuleError {
     }
 }
 
-impl std::error::Error for RuleError {}
+impl std::error::Error for ShengjiRuleError {}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -259,7 +254,7 @@ pub struct ShengjiTrump {
 }
 
 impl ShengjiTrump {
-    pub fn new(level: ShengjiRank, suit: Option<ShengjiSuit>) -> Result<Self, RuleError> {
+    pub fn new(level: ShengjiRank, suit: Option<ShengjiSuit>) -> Result<Self, ShengjiRuleError> {
         assert!(level.is_level_rank(), "jokers cannot be a level");
         Ok(Self {
             level,
@@ -452,7 +447,7 @@ mod tests {
                 ..ShengjiRuleSet::default()
             }
             .validate(),
-            Err(RuleError::InvalidDeckCount(5))
+            Err(ShengjiRuleError::InvalidDeckCount(5))
         ));
     }
 }

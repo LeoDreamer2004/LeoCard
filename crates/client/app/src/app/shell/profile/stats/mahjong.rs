@@ -1,5 +1,5 @@
 use super::rows::{ProfileRow, ProfileRowsBuilder, average_reference_delta, rate_or_placeholder};
-use leocard_protocol::{MAHJONG_MAJOR_FANS, MahjongProfileStats};
+use leocard_mahjong::{MAHJONG_MAJOR_FANS, MahjongProfileStats};
 
 pub(crate) fn mahjong_profile_rows(stats: Option<&MahjongProfileStats>) -> Vec<ProfileRow> {
     const LABELS: [&str; 14] = [

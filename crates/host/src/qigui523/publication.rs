@@ -1,7 +1,7 @@
 use super::QiGui523Session;
 use crate::{ConnectionId, Delivery, lifecycle::HostedGameLifecycle};
 use leocard_protocol::{QiGui523Event, RequestId, ServerEvent};
-use leocard_qigui523::Phase;
+use leocard_qigui523::QiGuiPhase;
 
 impl QiGui523Session {
     pub(super) fn broadcast_game_after_update(
@@ -12,7 +12,7 @@ impl QiGui523Session {
         let finished = self
             .game
             .as_ref()
-            .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)));
+            .is_some_and(|game| matches!(game.phase(), QiGuiPhase::Finished(_)));
         if !finished {
             return self.broadcast_game(origin);
         }

@@ -1,32 +1,17 @@
-use crate::{BlackjackProfileStats, MinecraftGuessProfileStats};
-use leocard_mahjong::Fan;
-use leocard_texas_holdem::TexasHoldemRuleSet;
-use leocard_uno::UnoRuleSet;
+use leocard_achievements::TrophyCounts;
+use leocard_blackjack::BlackjackProfileStats;
+use leocard_doudizhu::DoudizhuProfileStats;
+use leocard_game_common::PlayerId;
+use leocard_mahjong::MahjongProfileStats;
+use leocard_mc_guess::McGuessProfileStats;
+use leocard_qigui523::QiGui523ProfileStats;
+use leocard_shengji::ShengjiProfileStats;
+use leocard_texas_holdem::TexasProfileStats;
+use leocard_uno::UnoProfileStats;
 use serde::{Deserialize, Serialize};
-
-pub const MAHJONG_MAJOR_FANS: [Fan; 15] = [
-    Fan::BigFourWinds,
-    Fan::BigThreeDragons,
-    Fan::AllGreen,
-    Fan::NineGates,
-    Fan::FourKongs,
-    Fan::SevenShiftedPairs,
-    Fan::ThirteenOrphans,
-    Fan::AllTerminals,
-    Fan::LittleFourWinds,
-    Fan::LittleThreeDragons,
-    Fan::AllHonors,
-    Fan::FourConcealedPungs,
-    Fan::PureTerminalChows,
-    Fan::QuadrupleChow,
-    Fan::FourPureShiftedPungs,
-];
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct RoomId(pub u64);
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub struct PlayerId(pub u8);
 
 /// 跨房间稳定的本地玩家身份；其字节同时是 Ed25519 验证公钥。
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -47,169 +32,27 @@ pub enum PlayerGender {
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PlayerGameProfiles {
     /// 仅公开各等级已解锁成就数量，不公开成就条目及日期。
-    pub achievements: AchievementCounts,
+    pub achievements: TrophyCounts,
     /// 由本地钱包公开的金币余额，不随游戏档案存档。
     pub coins: u32,
     /// Public profile attribute shared with other players and future voice lines.
     pub gender: PlayerGender,
     pub qigui523: Option<QiGui523ProfileStats>,
-    pub texas_holdem: Option<TexasHoldemProfileStats>,
+    pub texas: Option<TexasProfileStats>,
     pub shengji: Option<ShengjiProfileStats>,
     pub uno: Option<UnoProfileStats>,
     /// 玩家收到互动时累计的鲜花与鸡蛋数量。
     pub interactions: Option<PlayerInteractionStats>,
     pub mahjong: Option<MahjongProfileStats>,
-    pub minecraft_guess: Option<MinecraftGuessProfileStats>,
+    pub mc_guess: Option<McGuessProfileStats>,
     pub blackjack: Option<BlackjackProfileStats>,
     pub doudizhu: Option<DoudizhuProfileStats>,
-}
-
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-pub struct AchievementCounts {
-    pub gold: u32,
-    pub silver: u32,
-    pub bronze: u32,
-}
-
-impl AchievementCounts {
-    pub const fn by_tier(self) -> [u32; 3] {
-        [self.gold, self.silver, self.bronze]
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-pub struct MahjongProfileStats {
-    pub completed_games: u32,
-    pub total_reference_delta: i64,
-    pub total_match_score: i64,
-    pub placement_counts: [u32; 4],
-    pub hands_played: u32,
-    pub wins: u32,
-    pub self_draws: u32,
-    pub discards_into_win: u32,
-    pub exhaustive_draws: u32,
-    pub false_wins: u32,
-    pub total_win_fan: u64,
-    /// 按麻将规则库中 88、64、48 番番种的顺序排列。
-    pub major_fan_counts: [u32; 15],
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PlayerInteractionStats {
     pub flowers_received: u32,
     pub eggs_received: u32,
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-pub struct QiGui523ProfileStats {
-    pub completed_games: u32,
-    pub total_score: u64,
-    pub total_reference_delta: i64,
-    pub placement_counts: [u32; 6],
-    pub straight_plays: u32,
-    pub consecutive_pair_plays: u32,
-    pub airplane_plays: u32,
-    pub bomb_plays: u32,
-    pub heaven_bomb_plays: u32,
-    pub longest_straight: u16,
-    pub longest_consecutive_pairs: u16,
-    pub longest_airplane: u16,
-}
-
-/// 三人、四人斗地主共用的长期档案，场得分可为负数。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-pub struct DoudizhuProfileStats {
-    pub completed_games: u32,
-    pub total_reference_delta: i64,
-    pub total_match_score: i64,
-    pub hands_played: u32,
-    pub landlord_hands: u32,
-    /// 仅统计实际发生的叫分，不叫计零；含流局重发前的叫分。
-    pub bid_actions: u32,
-    pub total_bid_score: u64,
-    pub straight_plays: u32,
-    pub consecutive_pair_plays: u32,
-    pub airplane_plays: u32,
-    /// 普通炸弹、王炸、天王炸合并计数。
-    pub bomb_plays: u32,
-    pub longest_straight: u16,
-    /// 连对按对数、飞机按主体的三张组数计长度，不包含翅膀。
-    pub longest_consecutive_pairs: u16,
-    pub longest_airplane: u16,
-}
-
-/// 普通德州扑克与奥马哈共用的长期档案。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-pub struct TexasHoldemProfileStats {
-    pub completed_games: u32,
-    pub total_reference_delta: i64,
-    pub total_final_chips: u64,
-    pub placement_counts: [u32; TexasHoldemRuleSet::MAX_PLAYERS as usize],
-    /// 跟注、加注和全下实际投入的筹码总和；不含盲注。
-    pub wagered_chips: u64,
-    pub wager_actions: u32,
-    /// 不含盲注的弃牌、过牌、跟注、加注及全下动作总数。
-    pub voluntary_actions: u32,
-    pub check_actions: u32,
-    pub raise_actions: u32,
-    pub all_in_actions: u32,
-    pub hands_played: u32,
-    pub hands_folded: u32,
-    /// 顺序依次为高牌、一对、两对、三条、顺子、同花、葫芦、四条、
-    /// 同花顺及皇家同花顺。
-    pub hand_category_counts: [u32; 10],
-    /// 已采集入池情况的小局数，不含无法还原该信息的旧档案。
-    pub entry_tracked_hands: u32,
-    /// 进入翻牌或翻前直接获胜的小局数。
-    pub entered_hands: u32,
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-pub struct ShengjiProfileStats {
-    pub completed_games: u32,
-    pub total_reference_delta: i64,
-    pub dealer_team_games: u32,
-    pub dealer_team_score: u64,
-    pub collecting_team_games: u32,
-    pub collecting_team_score: u64,
-    pub dealer_games: u32,
-    pub declaration_games: u32,
-    pub counter_games: u32,
-    pub defended_kitty_games: u32,
-    pub captured_kitty_games: u32,
-    pub buried_games: u32,
-    pub buried_points: u64,
-    pub plays: u32,
-    pub winning_plays: u32,
-    pub crossing_games: u32,
-    /// 拖拉机、泰坦尼克、炸弹、宇宙飞船、甩牌。
-    pub play_category_counts: [u32; 5],
-    pub longest_tractor: u16,
-    pub longest_titanic: u16,
-    pub longest_spaceship: u16,
-    pub longest_throw: u16,
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-pub struct UnoProfileStats {
-    pub completed_games: u32,
-    pub total_reference_delta: i64,
-    pub total_remaining_score: u64,
-    pub placement_counts: [u32; UnoRuleSet::MAX_PLAYERS as usize],
-    pub max_hand_cards: u16,
-    pub max_penalty_cards: u16,
-    pub max_skipped_turns: u16,
-    pub uno_calls: u32,
-    pub uno_penalties: u32,
-    pub challenges: u32,
-    pub successful_challenges: u32,
-    pub challenges_received: u32,
-    /// 别的玩家成功质疑自己的次数。
-    pub successful_challenges_received: u32,
-    /// 玩家实际收到抢出候选牌的次数，而非发送抢出命令的次数。
-    #[serde(alias = "jump_in_attempts")]
-    pub jump_in_opportunities: u32,
-    pub successful_jump_ins: u32,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]

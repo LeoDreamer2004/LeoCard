@@ -1,4 +1,5 @@
-use crate::{QiGuiPlayKind, QiGuiPlayerId, QiGuiRuleSet};
+use crate::{QiGuiPlayKind, QiGuiRuleSet};
+use leocard_game_common::PlayerId;
 
 /// Match facts owned by the rule core; independent of persistence and achievements.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -27,7 +28,7 @@ pub struct QiGuiPlayerStatistics {
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct QiGuiActionStatistics {
-    pub player: QiGuiPlayerId,
+    pub player: PlayerId,
     pub rules: QiGuiRuleSet,
     pub progress: QiGuiPlayerStatistics,
     pub played_kind: Option<QiGuiPlayKind>,

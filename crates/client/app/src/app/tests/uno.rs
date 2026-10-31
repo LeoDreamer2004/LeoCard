@@ -1,5 +1,6 @@
 use super::prelude::*;
-use leocard_protocol::{PlayerId, UnoPendingSwapView};
+use leocard_game_common::PlayerId;
+use leocard_protocol::UnoPendingSwapView;
 use leocard_uno::{UnoCard, UnoColor, UnoFace, build_flip_deck};
 use std::path::Path;
 

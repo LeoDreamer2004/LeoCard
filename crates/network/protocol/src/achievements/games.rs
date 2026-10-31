@@ -1,11 +1,11 @@
 use crate::{
-    DoudizhuEvent, GameEvent, MahjongEvent, MinecraftGuessEvent, QiGui523Event,
-    ShengjiDeclarationView, ShengjiEvent, TexasHoldemEvent, UnoEvent,
+    DoudizhuEvent, GameEvent, MahjongEvent, McGuessEvent, QiGui523Event, ShengjiDeclarationView,
+    ShengjiEvent, TexasEvent, UnoEvent,
 };
-use leocard_achievements::{GameFacts, ParticipantId};
+use leocard_achievements::GameFacts;
 use leocard_doudizhu::achievements::DoudizhuAchievementEvent;
 use leocard_mahjong::achievements::{MahjongAchievementEvent, MahjongHandFacts, MahjongWinFacts};
-use leocard_minecraft_guess::achievements::GuessAchievementEvent;
+use leocard_mc_guess::achievements::McGuessAchievementEvent;
 use leocard_qigui523::achievements::QiGuiAchievementEvent;
 use leocard_shengji::achievements::{
     ShengjiAchievementEvent, ShengjiDeclarationFacts, ShengjiPlayFacts,
@@ -18,7 +18,7 @@ impl From<&GameEvent> for GameFacts {
         match event {
             GameEvent::Doudizhu(DoudizhuEvent::ActionAnalyzed { player, statistics }) => {
                 DoudizhuAchievementEvent::ActionAnalyzed {
-                    player: ParticipantId(player.0),
+                    player: *player,
                     statistics: statistics.clone(),
                 }
                 .into()
@@ -30,8 +30,8 @@ impl From<&GameEvent> for GameFacts {
                             .winners
                             .iter()
                             .map(|win| MahjongWinFacts {
-                                player: ParticipantId(win.player.0),
-                                from: win.from.map(|player| ParticipantId(player.0)),
+                                player: win.player,
+                                from: win.from,
                                 concealed_hand: win.concealed_hand,
                                 score: win.score.clone(),
                                 wait_kind_count: win.wait_kind_count,
@@ -46,72 +46,67 @@ impl From<&GameEvent> for GameFacts {
                 }
                 .into(),
                 MahjongEvent::FlowerReplaced { player } => {
-                    MahjongAchievementEvent::FlowerReplaced {
-                        player: ParticipantId(player.0),
-                    }
-                    .into()
+                    MahjongAchievementEvent::FlowerReplaced { player: *player }.into()
                 }
-                MahjongEvent::FalseWin { player, .. } => MahjongAchievementEvent::FalseWin {
-                    player: ParticipantId(player.0),
+                MahjongEvent::FalseWin { player, .. } => {
+                    MahjongAchievementEvent::FalseWin { player: *player }.into()
                 }
-                .into(),
                 MahjongEvent::WinUnavailable {
                     player,
                     points_without_flowers,
                 } => MahjongAchievementEvent::WinUnavailable {
-                    player: ParticipantId(player.0),
+                    player: *player,
                     points_without_flowers: *points_without_flowers,
                 }
                 .into(),
                 _ => GameFacts::default(),
             },
             GameEvent::Shengji(event) => shengji_facts(event),
-            GameEvent::TexasHoldem(TexasHoldemEvent::HandAnalyzed { player, statistics }) => {
+            GameEvent::Texas(TexasEvent::HandAnalyzed { player, statistics }) => {
                 TexasAchievementEvent::HandAnalyzed {
-                    player: ParticipantId(player.0),
+                    player: *player,
                     statistics: statistics.clone(),
                 }
                 .into()
             }
-            GameEvent::TexasHoldem(TexasHoldemEvent::ActionApplied {
+            GameEvent::Texas(TexasEvent::ActionApplied {
                 player, statistics, ..
             }) => TexasAchievementEvent::ActionApplied {
-                player: ParticipantId(player.0),
+                player: *player,
                 statistics: *statistics,
             }
             .into(),
-            GameEvent::TexasHoldem(TexasHoldemEvent::SquidAwarded { player, statistics }) => {
+            GameEvent::Texas(TexasEvent::SquidAwarded { player, statistics }) => {
                 TexasAchievementEvent::SquidAwarded {
-                    player: ParticipantId(player.0),
+                    player: *player,
                     statistics: *statistics,
                 }
                 .into()
             }
             GameEvent::QiGui523(QiGui523Event::ActionAnalyzed { player, statistics }) => {
                 QiGuiAchievementEvent::ActionAnalyzed {
-                    player: ParticipantId(player.0),
+                    player: *player,
                     statistics: statistics.clone(),
                 }
                 .into()
             }
             GameEvent::Uno(UnoEvent::ActionAnalyzed { player, statistics }) => {
                 UnoAchievementEvent::ActionAnalyzed {
-                    player: ParticipantId(player.0),
+                    player: *player,
                     statistics: statistics.clone(),
                 }
                 .into()
             }
-            GameEvent::MinecraftGuess(MinecraftGuessEvent::ActionAnalyzed {
-                player,
-                statistics,
-            }) => GuessAchievementEvent::ActionAnalyzed {
-                player: ParticipantId(player.0),
-                statistics: statistics.clone(),
+            GameEvent::McGuess(McGuessEvent::ActionAnalyzed { player, statistics }) => {
+                McGuessAchievementEvent::ActionAnalyzed {
+                    player: *player,
+                    statistics: statistics.clone(),
+                }
+                .into()
             }
-            .into(),
-            GameEvent::MinecraftGuess(MinecraftGuessEvent::HandAnalyzed { player, statistics }) => {
-                GuessAchievementEvent::HandAnalyzed {
-                    player: ParticipantId(player.0),
+            GameEvent::McGuess(McGuessEvent::HandAnalyzed { player, statistics }) => {
+                McGuessAchievementEvent::HandAnalyzed {
+                    player: *player,
                     statistics: *statistics,
                 }
                 .into()
@@ -135,7 +130,7 @@ fn shengji_facts(event: &ShengjiEvent) -> GameFacts {
         .into(),
         ShengjiEvent::CardsPlayed { play, is_lead } => ShengjiAchievementEvent::CardsPlayed {
             play: ShengjiPlayFacts {
-                player: ParticipantId(play.player.0),
+                player: play.player,
                 play: play.play.clone(),
             },
             is_lead: *is_lead,
@@ -146,7 +141,7 @@ fn shengji_facts(event: &ShengjiEvent) -> GameFacts {
             statistics,
             match_statistics,
         } => ShengjiAchievementEvent::HandAnalyzed {
-            player: ParticipantId(player.0),
+            player: *player,
             statistics: statistics.clone(),
             match_statistics: *match_statistics,
         }
@@ -155,10 +150,7 @@ fn shengji_facts(event: &ShengjiEvent) -> GameFacts {
             ShengjiAchievementEvent::RedealRequired { reason: *reason }.into()
         }
         ShengjiEvent::FirstTrickDealerCut { player } => {
-            ShengjiAchievementEvent::FirstTrickDealerCut {
-                player: ParticipantId(player.0),
-            }
-            .into()
+            ShengjiAchievementEvent::FirstTrickDealerCut { player: *player }.into()
         }
         _ => GameFacts::default(),
     }
@@ -166,7 +158,7 @@ fn shengji_facts(event: &ShengjiEvent) -> GameFacts {
 
 fn declaration_facts(declaration: &ShengjiDeclarationView) -> ShengjiDeclarationFacts {
     ShengjiDeclarationFacts {
-        player: ParticipantId(declaration.player.0),
+        player: declaration.player,
         trump: declaration.trump,
         kind: declaration.kind,
     }

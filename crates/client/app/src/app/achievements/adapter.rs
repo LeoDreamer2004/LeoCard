@@ -1,5 +1,5 @@
 use crate::app::runtime::ServerNotification;
-use leocard_achievements::{AchievementContext, AchievementTrigger, ParticipantId};
+use leocard_achievements::{AchievementContext, AchievementTrigger};
 use leocard_protocol::ServerEvent;
 
 pub(super) struct AchievementInput {
@@ -9,7 +9,7 @@ pub(super) struct AchievementInput {
 
 impl AchievementInput {
     pub fn from_notification(notification: &ServerNotification) -> Option<Self> {
-        let player = ParticipantId(notification.player?.0);
+        let player = notification.player?;
         let trigger = match &notification.event {
             ServerEvent::GameEvent(event) if notification.game_context.is_some() => {
                 AchievementTrigger::Game {
@@ -28,7 +28,7 @@ impl AchievementInput {
             ServerEvent::GameStarted { host, .. } if notification.game_context.is_some() => {
                 AchievementTrigger::SessionStarted {
                     player,
-                    host: ParticipantId(host.0),
+                    host: *host,
                 }
             }
             _ => return None,

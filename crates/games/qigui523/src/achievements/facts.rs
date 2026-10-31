@@ -10,7 +10,7 @@ pub(super) fn facts(trigger: &AchievementTrigger) -> Option<&QiGuiActionStatisti
                 player: actor,
                 statistics,
             },
-        )) if player == *actor && usize::from(player.0) == statistics.player.0 => Some(statistics),
+        )) if player == *actor && player.index() == statistics.player.index() => Some(statistics),
         _ => None,
     }
 }

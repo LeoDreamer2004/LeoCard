@@ -2,10 +2,12 @@
 
 mod anchored_popup;
 mod avatar_overlay;
+mod bubble;
 mod button;
 mod draggable_window;
 mod drawer;
 mod fade;
+mod placement;
 mod pointer_input;
 mod primitives;
 mod progress;
@@ -19,10 +21,12 @@ mod text_input;
 
 pub use anchored_popup::*;
 pub use avatar_overlay::*;
+pub use bubble::*;
 pub use button::*;
 pub use draggable_window::*;
 pub use drawer::*;
 pub use fade::*;
+pub use placement::anchor_position_in_layer;
 pub use pointer_input::*;
 pub use primitives::*;
 pub use progress::*;

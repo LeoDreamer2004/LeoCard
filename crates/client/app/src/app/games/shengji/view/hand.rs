@@ -15,15 +15,18 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::UiAction;
-
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
-use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use bevy::ui_widgets::Button;
-use leocard_protocol::{GameKind, PlayerId, ShengjiPhaseView, ShengjiPlayerState, ShengjiSnapshot};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{
+    GameKind, GameSnapshot, ShengjiPhaseView, ShengjiPlayerView, ShengjiSnapshot,
+};
 use leocard_shengji::{ShengjiCard, ShengjiTrump};
 use leocard_ui::{CardDragSelection, UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 pub(super) fn add_shengji_hand(
     commands: &mut UiComposer,
@@ -214,10 +217,13 @@ pub(crate) fn queue_shengji_deal_animations(
     assets: Res<UiAssets>,
     mut commands: UiComposer,
 ) {
-    let Some(game) = client
-        .as_deref()
-        .and_then(|client| client.0.model().shengji_game())
-    else {
+    let Some(game) = client.as_deref().and_then(|client| {
+        client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::shengji)
+    }) else {
         ui.observed_hand.clear();
         ui.card_animations.clear();
         return;
@@ -365,7 +371,7 @@ pub(crate) fn animate_shengji_hand_cards(
 pub(super) fn add_shengji_self_panel(
     commands: &mut UiComposer,
     hand_area: Entity,
-    player: &ShengjiPlayerState,
+    player: &ShengjiPlayerView,
     game: &ShengjiSnapshot,
     assets: &UiAssets,
     avatars: &AvatarImages,
@@ -385,33 +391,38 @@ pub(super) fn add_shengji_self_panel(
             ..default()
         },
         PlayerPortraitSpec {
-            player: player.id,
+            player: player.player.id,
             profile: PlayerMenuProfile {
-                name: &player.name,
-                avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
-                reference_points: player.reference_points,
-                completed_games: player.completed_games,
-                game_profiles: &player.game_profiles,
+                name: &player.player.name,
+                avatar: player.player.avatar.and_then(|id| avatars.remote.get(&id)),
+                reference_points: player.player.reference_points,
+                completed_games: player.player.completed_games,
+                game_profiles: &player.player.game_profiles,
             },
             avatar_size: 52.0 * 1.17,
             auto_play: player.auto_play,
-            menu_open: interaction_menu_open == Some(player.id),
+            menu_open: interaction_menu_open == Some(player.player.id),
             name_color: TEXT,
         },
         assets,
     );
-    attach_start_game_seat_transition(commands, panel.portrait, player.id, start_transition_active);
-    if game.current_player == Some(player.id) {
+    attach_start_game_seat_transition(
+        commands,
+        panel.portrait,
+        player.player.id,
+        start_transition_active,
+    );
+    if game.current_player == Some(player.player.id) {
         add_turn_border_trace_with_radius(
             commands,
             panel.avatar_ring,
             turn_border_materials,
-            TurnBorderAnimationKey::new(GameKind::Shengji, game.match_id, player.id),
+            TurnBorderAnimationKey::new(GameKind::Shengji, game.match_id, player.player.id),
             52.0 * 1.17 * 0.2,
             52.0 * 1.17,
         );
     }
-    if game.dealer == Some(player.id) {
+    if game.dealer == Some(player.player.id) {
         add_shengji_dealer_badge(commands, panel.portrait, SeatSide::Left, assets);
     }
 }

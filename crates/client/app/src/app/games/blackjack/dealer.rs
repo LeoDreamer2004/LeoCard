@@ -7,9 +7,10 @@ use crate::app::presentation::{
     add_table_status,
 };
 use bevy::picking::Pickable;
-use bevy::prelude::*;
-use leocard_blackjack::HandValue;
+use leocard_blackjack::BlackjackHandValue;
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 impl BlackjackTable<'_> {
     pub(super) fn dealer(&self, commands: &mut UiComposer, table: Entity) -> Entity {
@@ -46,7 +47,7 @@ impl BlackjackTable<'_> {
         let title = if self.game.dealer_hidden {
             "庄家 暗牌未揭晓".to_owned()
         } else if self.playback.settlement_started() {
-            let total = HandValue::of(&self.game.dealer).total;
+            let total = BlackjackHandValue::of(&self.game.dealer).total;
             if total > 21 {
                 "庄家 爆牌".to_owned()
             } else {

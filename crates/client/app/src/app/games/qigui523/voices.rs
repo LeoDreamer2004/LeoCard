@@ -1,17 +1,22 @@
 use crate::app::presentation::{CardVoice, CardVoices};
 use crate::app::runtime::{ClientResource, ServerNotification};
 use bevy::prelude::*;
-use leocard_protocol::{GameEvent, QiGui523Event, ServerEvent};
-use leocard_qigui523::{BombKind, QiGuiPlayKind, QiGuiRank};
+use leocard_protocol::{GameEvent, GameSnapshot, QiGui523Event, ServerEvent};
+
+use leocard_qigui523::{QiGuiBombKind, QiGuiPlayKind, QiGuiRank};
 
 pub(super) fn sync_qigui_voices(
     client: Option<Res<ClientResource>>,
     mut notifications: MessageReader<ServerNotification>,
     mut voices: ResMut<CardVoices>,
 ) {
-    let game = client
-        .as_deref()
-        .and_then(|client| client.0.model().qigui523_game());
+    let game = client.as_deref().and_then(|client| {
+        client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::qigui523)
+    });
     let Some(game) = game else {
         notifications.clear();
         return;
@@ -31,9 +36,12 @@ pub(super) fn sync_qigui_voices(
             continue;
         };
         if let Some(pattern) = voice
-            && let Some(profile) = game.players.iter().find(|profile| profile.id == player)
+            && let Some(profile) = game
+                .players
+                .iter()
+                .find(|profile| profile.player.id == player)
         {
-            voices.announce(context, profile.game_profiles.gender, pattern);
+            voices.announce(context, profile.player.game_profiles.gender, pattern);
         }
     }
 }
@@ -43,7 +51,7 @@ fn pattern_voice(kind: &QiGuiPlayKind) -> Option<CardVoice> {
         QiGuiPlayKind::Straight { .. } => Some(CardVoice::Straight),
         QiGuiPlayKind::ConsecutivePairs { .. } => Some(CardVoice::ConsecutivePairs),
         QiGuiPlayKind::Airplane { .. } => Some(CardVoice::Airplane),
-        QiGuiPlayKind::Bomb(BombKind::OfAKind {
+        QiGuiPlayKind::Bomb(QiGuiBombKind::OfAKind {
             rank: QiGuiRank::Joker,
             ..
         }) => Some(CardVoice::Rocket),

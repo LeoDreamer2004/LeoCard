@@ -1,11 +1,12 @@
 use super::super::UnoSession;
 use crate::ConnectionId;
 use ed25519_dalek::{Signer, SigningKey};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
     ClientCommand, ClientMessage, JoinRequest, PlayerGameProfiles, ProfileId, ReconnectToken,
     RequestId, RoomId, join_identity_payload,
 };
-use leocard_uno::{UnoPlayerId, UnoPlayerStatistics};
+use leocard_uno::UnoPlayerStatistics;
 
 pub(super) const ROOM: RoomId = RoomId(108);
 pub(super) const HOST: ConnectionId = ConnectionId(1);
@@ -38,6 +39,6 @@ pub(super) fn statistics(session: &UnoSession, player: usize) -> &UnoPlayerStati
         .statistics
         .as_ref()
         .unwrap()
-        .player_statistics(UnoPlayerId(player))
+        .player_statistics(PlayerId::from_index(player))
         .unwrap()
 }

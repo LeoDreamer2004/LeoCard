@@ -1,19 +1,20 @@
-use crate::{ActionOutcome, GameError, GameState, UnoCard, UnoColor, UnoPlayerId};
+use crate::{UnoActionOutcome, UnoCard, UnoColor, UnoGameError, UnoGameState};
+use leocard_game_common::PlayerId;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UnoBotAction {
     ResolveSkip,
     SwapOneTarget {
-        target: UnoPlayerId,
+        target: PlayerId,
         index: usize,
     },
     GiveSwapOneCard(UnoCard),
     ForceTrade {
-        first: UnoPlayerId,
-        second: UnoPlayerId,
+        first: PlayerId,
+        second: PlayerId,
     },
     ChooseColor(UnoColor),
-    SevenSwap(UnoPlayerId),
+    SevenSwap(PlayerId),
     Play {
         card: UnoCard,
         color: Option<UnoColor>,
@@ -32,9 +33,9 @@ impl UnoBotAction {
 
     pub fn apply(
         self,
-        game: &mut GameState,
-        player: UnoPlayerId,
-    ) -> Result<ActionOutcome, GameError> {
+        game: &mut UnoGameState,
+        player: PlayerId,
+    ) -> Result<UnoActionOutcome, UnoGameError> {
         match self {
             Self::ResolveSkip => game.resolve_skip(player),
             Self::SwapOneTarget { target, index } => {

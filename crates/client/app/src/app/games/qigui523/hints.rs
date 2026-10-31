@@ -2,9 +2,9 @@
 
 use super::QiGui523UiState;
 use bevy::prelude::*;
-use leocard_protocol::{PublicPlayRecord, QiGui523Snapshot};
+use leocard_protocol::{QiGui523PublicPlayRecord, QiGui523Snapshot};
 use leocard_qigui523::{
-    ClassifiedPlay, QiGui523Bot, QiGui523BotRequest, QiGuiCard, QiGuiRuleSet, classify,
+    QiGui523Bot, QiGui523BotRequest, QiGuiCard, QiGuiClassifiedPlay, QiGuiRuleSet, classify,
     has_legal_response,
 };
 
@@ -20,7 +20,7 @@ pub(crate) struct PlaySelectionCount;
 pub(crate) fn next_greedy_hint(
     strategy: &mut QiGui523Bot,
     hand: &[QiGuiCard],
-    current_play: &ClassifiedPlay,
+    current_play: &QiGuiClassifiedPlay,
     played_cards: &[QiGuiCard],
     rules: &QiGuiRuleSet,
 ) -> HintDecision {
@@ -54,8 +54,8 @@ pub(super) fn game_has_legal_response(game: &QiGui523Snapshot, rules: &QiGuiRule
         .records
         .iter()
         .flat_map(|record| match record {
-            PublicPlayRecord::Played { play, .. } => play.cards.as_slice(),
-            PublicPlayRecord::Passed { .. } => &[],
+            QiGui523PublicPlayRecord::Played { play, .. } => play.cards.as_slice(),
+            QiGui523PublicPlayRecord::Passed { .. } => &[],
         })
         .copied()
         .collect::<Vec<_>>();

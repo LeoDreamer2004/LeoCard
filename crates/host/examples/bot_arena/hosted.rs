@@ -3,11 +3,11 @@ use leocard_host::{ConnectionId, GameSetup, HostSession};
 use leocard_mahjong::{MahjongRuleSet, build_deck as mahjong_deck};
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameEvent, JoinRequest, MahjongEvent, PlayerGameProfiles,
-    ProfileId, ReconnectToken, RequestId, RoomId, SeatId, ServerEvent, ShengjiEvent,
-    TexasHoldemCommand, TexasHoldemEvent, join_identity_payload,
+    ProfileId, ReconnectToken, RequestId, RoomId, SeatId, ServerEvent, ShengjiEvent, TexasCommand,
+    TexasEvent, join_identity_payload,
 };
 use leocard_shengji::{ShengjiRuleSet, build_deck as shengji_deck};
-use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemRuleSet, build_deck as texas_deck};
+use leocard_texas_holdem::{TexasAction, TexasRuleSet, build_deck as texas_deck};
 use std::{
     thread,
     time::{Duration, Instant},
@@ -27,11 +27,11 @@ pub fn run() {
             rules: MahjongRuleSet::default(),
             shuffled_deck: mahjong,
         },
-        GameSetup::TexasHoldem {
+        GameSetup::Texas {
             host_port: 52300,
-            rules: TexasHoldemRuleSet {
+            rules: TexasRuleSet {
                 player_count: 3,
-                ..TexasHoldemRuleSet::default()
+                ..TexasRuleSet::default()
             },
             shuffled_deck: texas,
         },
@@ -42,7 +42,7 @@ pub fn run() {
         },
     ];
     for setup in setups {
-        let seats = if matches!(setup, GameSetup::TexasHoldem { .. }) {
+        let seats = if matches!(setup, GameSetup::Texas { .. }) {
             3
         } else {
             4
@@ -83,7 +83,7 @@ pub fn run() {
             // The random dealer can make the human host act before either bot.
             send(
                 &mut session,
-                ClientCommand::Game(TexasHoldemCommand::SetAutoPlay { enabled: true }.into()),
+                ClientCommand::Game(TexasCommand::SetAutoPlay { enabled: true }.into()),
             );
         }
         let start = Instant::now();
@@ -99,9 +99,11 @@ pub fn run() {
                     ServerEvent::GameEvent(GameEvent::Mahjong(
                         MahjongEvent::TileDiscarded { .. } | MahjongEvent::KongDeclared { .. },
                     )) => true,
-                    ServerEvent::GameEvent(GameEvent::TexasHoldem(
-                        TexasHoldemEvent::ActionApplied { player, action, .. },
-                    )) => player.0 != 0 && *action != TexasHoldemAction::PostBlind,
+                    ServerEvent::GameEvent(GameEvent::Texas(TexasEvent::ActionApplied {
+                        player,
+                        action,
+                        ..
+                    })) => player.0 != 0 && *action != TexasAction::PostBlind,
                     ServerEvent::GameEvent(GameEvent::Shengji(ShengjiEvent::CardsBuried {
                         ..
                     })) => true,

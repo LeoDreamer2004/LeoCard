@@ -8,10 +8,10 @@ use super::super::{
 use crate::app::games::blackjack::BlackjackUiAction;
 use crate::app::games::doudizhu::DoudizhuUiAction;
 use crate::app::games::mahjong::actions::MahjongUiAction;
-use crate::app::games::minecraft_guess::MinecraftGuessUiAction;
+use crate::app::games::mc_guess::McGuessUiAction;
 use crate::app::games::qigui523::actions::QiGui523UiAction;
 use crate::app::games::shengji::actions::ShengjiUiAction;
-use crate::app::games::texas_holdem::actions::TexasHoldemUiAction;
+use crate::app::games::texas::actions::TexasUiAction;
 use crate::app::games::uno::actions::UnoUiAction;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
@@ -23,8 +23,8 @@ pub(crate) enum UiAction {
     Blackjack(BlackjackUiAction),
     Doudizhu(DoudizhuUiAction),
     Mahjong(MahjongUiAction),
-    MinecraftGuess(MinecraftGuessUiAction),
-    TexasHoldem(TexasHoldemUiAction),
+    McGuess(McGuessUiAction),
+    Texas(TexasUiAction),
     Uno(UnoUiAction),
     Shengji(ShengjiUiAction),
     QiGui523(QiGui523UiAction),
@@ -64,8 +64,8 @@ impl UiAction {
             Self::Blackjack(action) => action.rebuilds_ui(),
             Self::Doudizhu(action) => action.rebuilds_ui(),
             Self::Mahjong(action) => action.rebuilds_ui(),
-            Self::MinecraftGuess(action) => action.rebuilds_ui(),
-            Self::TexasHoldem(action) => action.rebuilds_ui(),
+            Self::McGuess(action) => action.rebuilds_ui(),
+            Self::Texas(action) => action.rebuilds_ui(),
             Self::Uno(action) => action.rebuilds_ui(),
             Self::Shengji(action) => action.rebuilds_ui(),
             Self::QiGui523(action) => action.rebuilds_ui(),

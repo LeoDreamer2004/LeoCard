@@ -1,11 +1,10 @@
-use super::TexasHoldemBotObservation;
+use super::TexasBotObservation;
 use super::observation::Opponent;
 use crate::{
-    TexasHoldemAction, TexasHoldemCard, TexasHoldemHandCategory, TexasHoldemRuleSet,
-    TexasHoldemStreet, evaluate_player_hand,
+    TexasAction, TexasCard, TexasHandCategory, TexasRuleSet, TexasStreet, evaluate_player_hand,
 };
 
-pub(super) fn starting_strength(cards: &[TexasHoldemCard], rules: &TexasHoldemRuleSet) -> f64 {
+pub(super) fn starting_strength(cards: &[TexasCard], rules: &TexasRuleSet) -> f64 {
     let mut pairs = Vec::new();
     for left in 0..cards.len() {
         for right in left + 1..cards.len() {
@@ -68,8 +67,8 @@ pub(super) fn starting_strength(cards: &[TexasHoldemCard], rules: &TexasHoldemRu
 }
 
 pub(super) fn range_weight(
-    cards: &[TexasHoldemCard],
-    observation: &TexasHoldemBotObservation,
+    cards: &[TexasCard],
+    observation: &TexasBotObservation,
     opponent: &Opponent,
 ) -> f64 {
     let mut threshold: f64 = 0.08;
@@ -80,15 +79,15 @@ pub(super) fn range_weight(
         .filter(|record| record.player == opponent.id)
     {
         match record.action {
-            TexasHoldemAction::RaiseTo(_) | TexasHoldemAction::AllIn => {
+            TexasAction::RaiseTo(_) | TexasAction::AllIn => {
                 let pressure = f64::from(record.payment) / f64::from(record.pot_before.max(2));
-                if record.street == TexasHoldemStreet::PreFlop {
+                if record.street == TexasStreet::PreFlop {
                     threshold = threshold.max(0.28 + (pressure * 0.1).min(0.22));
                 } else {
                     aggression = aggression.max((pressure * 0.12).min(0.3));
                 }
             }
-            TexasHoldemAction::Call if record.street == TexasHoldemStreet::PreFlop => {
+            TexasAction::Call if record.street == TexasStreet::PreFlop => {
                 threshold = threshold.max(0.18)
             }
             _ => {}
@@ -101,9 +100,9 @@ pub(super) fn range_weight(
         && let Ok(hand) = evaluate_player_hand(cards, &observation.board, &observation.rules)
     {
         let made = match hand.category() {
-            TexasHoldemHandCategory::HighCard => 0.05,
-            TexasHoldemHandCategory::OnePair => 0.35,
-            TexasHoldemHandCategory::TwoPair => 0.65,
+            TexasHandCategory::HighCard => 0.05,
+            TexasHandCategory::OnePair => 0.35,
+            TexasHandCategory::TwoPair => 0.65,
             _ => 0.9,
         };
         weight *= (0.1 + 0.9 / (1.0 + ((aggression + 0.15 - made) * 12.0).exp())).clamp(0.08, 1.0);

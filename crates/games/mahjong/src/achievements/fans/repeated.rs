@@ -1,6 +1,6 @@
 use super::super::facts::mahjong_fan;
 use super::definition::fan;
-use crate::Fan;
+use crate::MahjongFan;
 use leocard_achievements::{AchievementDefinition, award};
 
 pub(super) const DEFINITIONS: &[AchievementDefinition] = &[

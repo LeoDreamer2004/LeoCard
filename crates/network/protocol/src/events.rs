@@ -1,16 +1,18 @@
 use crate::{
-    BlackjackEvent, DoudizhuEvent, GameKind, MahjongHandResultView, MinecraftGuessEvent, PlayerId,
-    PublicPlay, ShengjiBottomFlipRevealView, ShengjiDeclarationView, ShengjiHandResultView,
-    ShengjiPublicPlay,
+    BlackjackEvent, DoudizhuEvent, GameKind, MahjongHandResultView, McGuessEvent,
+    QiGui523PublicPlay, ShengjiDeclarationView, ShengjiHandResultView, ShengjiPublicPlay,
 };
+use leocard_game_common::PlayerId;
 use leocard_mahjong::{MahjongClaim, MahjongDrawOrigin, MahjongTile, MahjongTileKind};
 use leocard_qigui523::QiGuiActionStatistics;
 use leocard_shengji::{
-    ShengjiCard, ShengjiHandStatistics, ShengjiMatchStatistics, ShengjiRank, ShengjiRedealReason,
+    ShengjiBottomFlipReveal, ShengjiCard, ShengjiHandStatistics, ShengjiMatchStatistics,
+    ShengjiRank, ShengjiRedealReason,
 };
+
 use leocard_texas_holdem::{
-    SquidAwardStatistics, TexasHoldemAction, TexasHoldemActionStatistics, TexasHoldemCard,
-    TexasHoldemHandStatistics, TexasHoldemStreet,
+    TexasAction, TexasActionStatistics, TexasCard, TexasHandStatistics, TexasSquidAwardStatistics,
+    TexasStreet,
 };
 use leocard_uno::{
     UnoActionStatistics, UnoCard, UnoChallengeResult, UnoColor, UnoDirection, UnoFlipSide,
@@ -20,11 +22,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GameEvent {
     QiGui523(QiGui523Event),
-    TexasHoldem(TexasHoldemEvent),
+    Texas(TexasEvent),
     Shengji(ShengjiEvent),
     Uno(UnoEvent),
     Mahjong(MahjongEvent),
-    MinecraftGuess(MinecraftGuessEvent),
+    McGuess(McGuessEvent),
     Blackjack(BlackjackEvent),
     Doudizhu(DoudizhuEvent),
 }
@@ -40,11 +42,11 @@ macro_rules! impl_game_event_from {
 }
 
 impl_game_event_from!(QiGui523Event, QiGui523);
-impl_game_event_from!(TexasHoldemEvent, TexasHoldem);
+impl_game_event_from!(TexasEvent, Texas);
 impl_game_event_from!(ShengjiEvent, Shengji);
 impl_game_event_from!(UnoEvent, Uno);
 impl_game_event_from!(MahjongEvent, Mahjong);
-impl_game_event_from!(MinecraftGuessEvent, MinecraftGuess);
+impl_game_event_from!(McGuessEvent, McGuess);
 impl_game_event_from!(BlackjackEvent, Blackjack);
 impl_game_event_from!(DoudizhuEvent, Doudizhu);
 
@@ -52,11 +54,11 @@ impl GameEvent {
     pub const fn kind(&self) -> GameKind {
         match self {
             Self::QiGui523(_) => GameKind::QiGui523,
-            Self::TexasHoldem(_) => GameKind::TexasHoldem,
+            Self::Texas(_) => GameKind::Texas,
             Self::Shengji(_) => GameKind::Shengji,
             Self::Uno(_) => GameKind::Uno,
             Self::Mahjong(_) => GameKind::Mahjong,
-            Self::MinecraftGuess(_) => GameKind::MinecraftGuess,
+            Self::McGuess(_) => GameKind::McGuess,
             Self::Blackjack(_) => GameKind::Blackjack,
             Self::Doudizhu(_) => GameKind::Doudizhu,
         }
@@ -208,7 +210,7 @@ pub enum QiGui523Event {
     },
     PlayEffect {
         player: PlayerId,
-        play: PublicPlay,
+        play: QiGui523PublicPlay,
     },
     Passed {
         player: PlayerId,
@@ -216,22 +218,22 @@ pub enum QiGui523Event {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum TexasHoldemEvent {
+pub enum TexasEvent {
     /// Private settlement statistics, delivered only to the named player.
     HandAnalyzed {
         player: PlayerId,
-        statistics: Box<TexasHoldemHandStatistics>,
+        statistics: Box<TexasHandStatistics>,
     },
     ActionApplied {
         player: PlayerId,
-        action: TexasHoldemAction,
+        action: TexasAction,
         /// 此动作实际从玩家剩余筹码中投入的数量；过牌和弃牌为 0。
         amount: u32,
-        statistics: TexasHoldemActionStatistics,
+        statistics: TexasActionStatistics,
     },
     StreetAdvanced {
-        street: TexasHoldemStreet,
-        dealt: Vec<TexasHoldemCard>,
+        street: TexasStreet,
+        dealt: Vec<TexasCard>,
     },
     HandFinished {
         showdown: bool,
@@ -239,7 +241,7 @@ pub enum TexasHoldemEvent {
     /// Emitted once when a player actually receives a new squid marker.
     SquidAwarded {
         player: PlayerId,
-        statistics: SquidAwardStatistics,
+        statistics: TexasSquidAwardStatistics,
     },
 }
 
@@ -264,7 +266,7 @@ pub enum ShengjiEvent {
         level: ShengjiRank,
     },
     BottomCardRevealed {
-        reveal: ShengjiBottomFlipRevealView,
+        reveal: ShengjiBottomFlipReveal,
     },
     BottomCopied {
         declaration: ShengjiDeclarationView,

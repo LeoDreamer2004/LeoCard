@@ -3,10 +3,10 @@
 use super::qigui523::time_control_label;
 use leocard_blackjack::BlackjackRuleSet;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
-use leocard_minecraft_guess::{GuessMode, MinecraftGuessRuleSet};
+use leocard_mc_guess::{McGuessMode, McGuessRuleSet};
 use leocard_protocol::{GameKind, GameRules};
 use leocard_qigui523::QiGuiRuleSet;
-use leocard_texas_holdem::TexasHoldemRuleSet;
+use leocard_texas_holdem::TexasRuleSet;
 use leocard_uno::UnoRuleSet;
 
 #[derive(Clone, Copy)]
@@ -23,7 +23,7 @@ pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 8] = [
         description: "放空大脑, 有牌就出",
     },
     GameDescriptor {
-        kind: GameKind::TexasHoldem,
+        kind: GameKind::Texas,
         title: "德州扑克",
         description: "窝要验牌!",
     },
@@ -43,7 +43,7 @@ pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 8] = [
         description: "八番起和，方城之战",
     },
     GameDescriptor {
-        kind: GameKind::MinecraftGuess,
+        kind: GameKind::McGuess,
         title: "MC竞猜",
         description: "就你是 MC 高玩啊?",
     },
@@ -66,9 +66,9 @@ pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
         GameRules::Shengji(rules) => rules.player_count(),
         GameRules::Uno(_) => UnoRuleSet::MAX_PLAYERS,
         GameRules::Mahjong(_) => MahjongRuleSet::PLAYER_COUNT,
-        GameRules::MinecraftGuess(_) => MinecraftGuessRuleSet::MAX_PLAYERS,
+        GameRules::McGuess(_) => McGuessRuleSet::MAX_PLAYERS,
         GameRules::QiGui523(_) => QiGuiRuleSet::MAX_PLAYERS,
-        GameRules::TexasHoldem(_) => TexasHoldemRuleSet::MAX_PLAYERS,
+        GameRules::Texas(_) => TexasRuleSet::MAX_PLAYERS,
     }
 }
 
@@ -82,11 +82,11 @@ pub(crate) fn game_accepts_player_count(rules: &GameRules, count: u8) -> bool {
         GameRules::Mahjong(_) => count == MahjongRuleSet::PLAYER_COUNT,
         GameRules::Shengji(rules) => count == rules.player_count(),
         GameRules::Uno(_) => (UnoRuleSet::MIN_PLAYERS..=UnoRuleSet::MAX_PLAYERS).contains(&count),
-        GameRules::MinecraftGuess(_) => (MinecraftGuessRuleSet::MIN_PLAYERS
-            ..=MinecraftGuessRuleSet::MAX_PLAYERS)
-            .contains(&count),
+        GameRules::McGuess(_) => {
+            (McGuessRuleSet::MIN_PLAYERS..=McGuessRuleSet::MAX_PLAYERS).contains(&count)
+        }
         GameRules::QiGui523(_) => (2..=QiGuiRuleSet::MAX_PLAYERS).contains(&count),
-        GameRules::TexasHoldem(rules) => rules.supports_player_count(count),
+        GameRules::Texas(rules) => rules.supports_player_count(count),
     }
 }
 
@@ -102,13 +102,13 @@ pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
             format!("{} 局", rules.rounds),
             "系统庄家".to_owned(),
         ],
-        GameRules::MinecraftGuess(rules) => [
+        GameRules::McGuess(rules) => [
             rules.options().pool.label().to_owned(),
             rules.mode.label().to_owned(),
             match rules.mode {
-                GuessMode::TurnBased => "允许跳过".to_owned(),
-                GuessMode::Graph => format!("{} 个节点", rules.graph.nodes),
-                GuessMode::Race => format!("{} 秒 / {} 局", rules.race.seconds, rules.race.games),
+                McGuessMode::TurnBased => "允许跳过".to_owned(),
+                McGuessMode::Graph => format!("{} 个节点", rules.graph.nodes),
+                McGuessMode::Race => format!("{} 秒 / {} 局", rules.race.seconds, rules.race.games),
             },
         ],
         GameRules::QiGui523(rules) => [
@@ -116,7 +116,7 @@ pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
             format!("{}张", rules.hand_size),
             time_control_label(rules.time_control).to_owned(),
         ],
-        GameRules::TexasHoldem(rules) => [
+        GameRules::Texas(rules) => [
             format!("{}筹码", rules.starting_chips),
             match (rules.omaha, rules.short_deck) {
                 (true, true) => "短牌奥马哈".to_owned(),

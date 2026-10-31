@@ -1,5 +1,6 @@
 use crate::PersonalEvent;
-use crate::facts::{ChatFacts, GameFacts, InteractionFacts, ParticipantId, TrophyCounts};
+use crate::facts::{ChatFacts, GameFacts, InteractionFacts, TrophyCounts};
+use leocard_game_common::PlayerId;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AchievementTier {
@@ -22,10 +23,10 @@ pub enum AchievementCategory {
     #[default]
     Mahjong,
     QiGui523,
-    TexasHoldem,
+    Texas,
     Shengji,
     Uno,
-    MinecraftGuess,
+    McGuess,
     Doudizhu,
     Personal,
 }
@@ -34,20 +35,20 @@ pub enum AchievementCategory {
 #[derive(Clone, Debug)]
 pub enum AchievementTrigger {
     Game {
-        player: ParticipantId,
+        player: PlayerId,
         event: GameFacts,
     },
     Interaction {
-        player: ParticipantId,
+        player: PlayerId,
         event: InteractionFacts,
     },
     Chat {
-        player: ParticipantId,
+        player: PlayerId,
         message: ChatFacts,
     },
     SessionStarted {
-        player: ParticipantId,
-        host: ParticipantId,
+        player: PlayerId,
+        host: PlayerId,
     },
     Personal(PersonalEvent),
     TrophyTotals(TrophyCounts),

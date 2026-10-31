@@ -4,7 +4,7 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
-use leocard_protocol::{PublicPlayRecord, QiGui523Snapshot};
+use leocard_protocol::{QiGui523PublicPlayRecord, QiGui523Snapshot};
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) fn add_draw_pile(
@@ -118,8 +118,8 @@ pub(super) fn add_table_score_cards(
         .records
         .iter()
         .flat_map(|record| match record {
-            PublicPlayRecord::Played { play, .. } => play.cards.as_slice(),
-            PublicPlayRecord::Passed { .. } => &[],
+            QiGui523PublicPlayRecord::Played { play, .. } => play.cards.as_slice(),
+            QiGui523PublicPlayRecord::Passed { .. } => &[],
         })
         .copied()
         .filter(|card| card.score() > 0)

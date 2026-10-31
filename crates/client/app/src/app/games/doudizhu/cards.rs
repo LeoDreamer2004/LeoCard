@@ -3,7 +3,7 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{CardFace, CardRank, CardSuit, UiAssets};
 use bevy::prelude::*;
-use leocard_doudizhu::Card;
+use leocard_doudizhu::DoudizhuCard;
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) struct CardRowStyle {
@@ -12,8 +12,8 @@ pub(super) struct CardRowStyle {
     pub effect: Option<PlayEffectKind>,
 }
 
-impl From<Card> for CardFace {
-    fn from(card: Card) -> Self {
+impl From<DoudizhuCard> for CardFace {
+    fn from(card: DoudizhuCard) -> Self {
         let rank = match card.rank() {
             0 => CardRank::Three,
             1 => CardRank::Four,
@@ -44,7 +44,7 @@ impl From<Card> for CardFace {
 pub(super) fn card_row(
     commands: &mut UiComposer,
     parent: Entity,
-    cards: &[Card],
+    cards: &[DoudizhuCard],
     size: CardSize,
     assets: &UiAssets,
 ) {
@@ -64,7 +64,7 @@ pub(super) fn card_row(
 pub(super) fn card_row_aligned(
     commands: &mut UiComposer,
     parent: Entity,
-    cards: &[Card],
+    cards: &[DoudizhuCard],
     style: CardRowStyle,
     assets: &UiAssets,
 ) {

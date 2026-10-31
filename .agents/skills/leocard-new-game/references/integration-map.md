@@ -10,8 +10,8 @@
 | 阶段较多、组队、亮主和结算 | `crates/games/shengji/` 及 `shengji` 模块 |
 | 回合外响应、连锁效果、多模式 | `crates/games/uno/` 及 `uno` 模块 |
 | 隐藏信息、响应窗口、多小局 | `crates/games/mahjong/` 及 `mahjong` 模块 |
-| 筹码与底池、行动约束 | `crates/games/texas-holdem/` 及 `texas_holdem` 模块 |
-| 词库、共用反馈、轮流与抢答 | `crates/games/minecraft-guess/` 及 `minecraft_guess` 模块 |
+| 筹码与底池、行动约束 | `crates/games/texas-holdem/` 及 `texas` 模块 |
+| 词库、共用反馈、轮流与抢答 | `crates/games/mc-guess/` 及 `mc_guess` 模块 |
 
 参考组织方式和公共接口，不复制已有游戏的特有规则、玩家数量或具体积分。
 
@@ -34,7 +34,7 @@
 - **大厅与首页**：`crates/client/src/app/shell/lobby/`、首页入口资源及 `UiAssets` 加载。模式选择复用 `shell/lobby/mode/`；规则行复用 `presentation/ui/widgets/rules/`。
 - **公共玩家组件**：`crates/client/src/app/presentation/ui/widgets/` 下的头像、托管、牌数、互动锚点、文本编辑及滚动组件，和 `crates/client/src/app/shell/chat/`。先找到组件负责的坐标与输入边界。
 - **转场与结算**：`crates/client/src/app/presentation/seat_transition/`、`crates/client/src/app/shell/ui/transition/`、`crates/client/src/app/games/summary/`，以及各游戏结算描述器。防止结束按钮被动画可见性或布局遮住。
-- **用户设置与档案**：`crates/client/src/app/runtime/preferences.rs`、`crates/client/src/player/preferences.rs`、`crates/client/src/player/profile/`、相应 migration，以及 `crates/network/protocol/src/identity.rs` 的公开档案和 `crates/client/src/app/shell/profile/stats/` 的显示。
+- **用户设置与档案**：各游戏长期统计定义在 `crates/games/<game>/src/profile.rs`；`crates/network/protocol/src/identity.rs` 只聚合公开档案。检查 `crates/client/app/src/player/preferences/`、`player/profile/` 及其 migration，以及 `crates/client/app/src/app/shell/profile/stats/` 的显示。客户端和房主直接从所属游戏 crate 导入统计类型，不经 protocol 重导出。
 - **成就**：`crates/achievements/src/registry/`、`activity/`、`progress/`；房主事件路径与 `crates/client/src/app/achievements/`。成就定义和进度判断归成就 crate。
 - **素材发布**：`assets/`、`crates/client/runtime-assets.txt`、`crates/client/build.rs`、`crates/client/src/app/runtime/platform.rs`。检查新资源确实进入生成的 `embedded_runtime_assets.rs`，并符合第三方素材来源要求。
 - **验证入口**：游戏 crate 的独立测试模块、`host/src/<game>/tests/`、既有协议／素材检查，以及工作流实际规定的 gate。不要为复用而新增通用测试框架。

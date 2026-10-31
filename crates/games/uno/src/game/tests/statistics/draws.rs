@@ -1,5 +1,6 @@
 use super::support::*;
 use crate::{UnoFace, build_deck, build_deck_for_rules};
+use leocard_game_common::PlayerId;
 
 #[test]
 fn full_stack_tracks_all_twelve_physical_cards_and_the_original_sender() {
@@ -38,7 +39,7 @@ fn full_stack_tracks_all_twelve_physical_cards_and_the_original_sender() {
         0,
         &[],
         false,
-        GameState::accept_draw_penalty,
+        UnoGameState::accept_draw_penalty,
     );
     assert!(progress(&stats, 0).full_draw_chain);
     assert!(progress(&stats, 0).draw_chain_returned);
@@ -65,7 +66,7 @@ fn a_large_penalty_without_the_full_chain_does_not_unlock_the_grand_slam() {
         0,
         &[],
         false,
-        GameState::accept_draw_penalty,
+        UnoGameState::accept_draw_penalty,
     );
     assert!(!progress(&stats, 0).full_draw_chain);
     assert!(!progress(&stats, 0).draw_chain_returned);
@@ -74,7 +75,7 @@ fn a_large_penalty_without_the_full_chain_does_not_unlock_the_grand_slam() {
 #[test]
 fn a_normal_draw_from_five_cards_can_eliminate_but_is_not_a_penalty() {
     let rules = UnoRuleSet {
-        mode: Mode::NoMercy,
+        mode: UnoMode::NoMercy,
         ..UnoRuleSet::default()
     };
     let (mut game, mut stats) = table(
@@ -93,8 +94,15 @@ fn a_normal_draw_from_five_cards_can_eliminate_but_is_not_a_penalty() {
                 && card.face() != UnoFace::Number(9)
         })
         .collect();
-    let facts = record(&mut game, &mut stats, 0, &[], false, GameState::draw_card);
-    assert!(game.player(UnoPlayerId(0)).unwrap().eliminated());
+    let facts = record(
+        &mut game,
+        &mut stats,
+        0,
+        &[],
+        false,
+        UnoGameState::draw_card,
+    );
+    assert!(game.player(PlayerId(0)).unwrap().eliminated());
     assert!(progress(&stats, 0).lucky_elimination);
     assert!(progress(&stats, 0).has_drawn);
     assert!(!progress(&stats, 0).has_penalty);
@@ -103,7 +111,7 @@ fn a_normal_draw_from_five_cards_can_eliminate_but_is_not_a_penalty() {
     assert!(
         facts
             .iter()
-            .find(|facts| facts.player == UnoPlayerId(1))
+            .find(|facts| facts.player == PlayerId(1))
             .unwrap()
             .all_opponents_eliminated
     );
@@ -112,8 +120,8 @@ fn a_normal_draw_from_five_cards_can_eliminate_but_is_not_a_penalty() {
 #[test]
 fn twenty_four_is_a_surviving_hand_size_and_skip_batches_are_separate_from_draws() {
     let rules = UnoRuleSet {
-        mode: Mode::NoMercy,
-        no_mercy: crate::NoMercyRuleSet {
+        mode: UnoMode::NoMercy,
+        no_mercy: crate::UnoNoMercyRuleSet {
             draw_until_playable: false,
             ..Default::default()
         },
@@ -128,9 +136,16 @@ fn twenty_four_is_a_surviving_hand_size_and_skip_batches_are_separate_from_draws
         number(UnoColor::Red, 9),
     );
     game.draw_pile = vec![number(UnoColor::Green, 1)].into();
-    record(&mut game, &mut stats, 0, &[], false, GameState::draw_card);
+    record(
+        &mut game,
+        &mut stats,
+        0,
+        &[],
+        false,
+        UnoGameState::draw_card,
+    );
     assert!(progress(&stats, 0).reached_twenty_four);
-    assert!(!game.player(UnoPlayerId(0)).unwrap().eliminated());
+    assert!(!game.player(PlayerId(0)).unwrap().eliminated());
     let rules = UnoRuleSet {
         action_stacking: true,
         ..UnoRuleSet::default()
@@ -150,7 +165,7 @@ fn twenty_four_is_a_surviving_hand_size_and_skip_batches_are_separate_from_draws
         0,
         &[],
         false,
-        GameState::resolve_skip,
+        UnoGameState::resolve_skip,
     );
     assert_eq!(progress(&stats, 0).max_skip_batch, 3);
     assert!(!progress(&stats, 0).has_drawn);
@@ -180,7 +195,7 @@ fn uno_report_and_challenge_record_the_actual_recipient_and_result() {
             1,
             &[],
             false,
-            GameState::challenge_draw_four,
+            UnoGameState::challenge_draw_four,
         );
         assert_eq!(progress(&stats, 1).challenges, 1);
         assert_eq!(progress(&stats, 1).successful_challenges, u32::from(!legal));
@@ -209,7 +224,7 @@ fn uno_report_and_challenge_record_the_actual_recipient_and_result() {
         |game, player| game.play_card(player, red, None),
     );
     record(&mut game, &mut stats, 1, &[], false, |game, player| {
-        game.report_uno(player, UnoPlayerId(0))
+        game.report_uno(player, PlayerId(0))
     });
     assert_eq!(progress(&stats, 1).uno_reports, 1);
     assert_eq!(progress(&stats, 0).uno_penalties, 1);

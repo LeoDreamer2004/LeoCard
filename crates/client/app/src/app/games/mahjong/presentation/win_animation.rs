@@ -10,7 +10,8 @@ use super::win_view::{
 };
 use crate::app::presentation::{DESIGN_WIDTH, GameSummaryAnimation, ease_out_cubic};
 use bevy::prelude::*;
-use leocard_protocol::{MahjongHandResultView, MahjongWinView};
+use leocard_mahjong::MahjongWinRecord;
+use leocard_protocol::MahjongHandResultView;
 use leocard_ui::UiComposer;
 use std::f32::consts;
 
@@ -33,7 +34,7 @@ pub(crate) struct MahjongWinTileShake {
 
 pub(crate) fn mahjong_win_tile_cues(
     result: &MahjongHandResultView,
-    matches: impl Fn(&MahjongWinView) -> bool,
+    matches: impl Fn(&MahjongWinRecord) -> bool,
 ) -> Vec<MahjongWinTileCue> {
     result
         .winners

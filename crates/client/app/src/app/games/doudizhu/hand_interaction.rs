@@ -9,6 +9,7 @@ use crate::app::shell::UiState;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
+use leocard_protocol::GameSnapshot;
 use leocard_ui::CardDragSelection;
 
 pub(super) fn handle_card_drag_selection(
@@ -19,12 +20,18 @@ pub(super) fn handle_card_drag_selection(
     mut ui: ResMut<UiState>,
     cards: Query<(&PickingInteraction, &RelativeCursorPosition, &HandCardSlot)>,
 ) {
-    let Some(game) = client.as_deref().and_then(|c| c.0.model().doudizhu_game()) else {
+    let Some(game) = client
+        .as_deref()
+        .and_then(|c| c.0.model().game_snapshot().and_then(GameSnapshot::doudizhu))
+    else {
         return;
     };
     if game.result.is_some()
         || game_ui.kitty_open
-        || game.players.iter().any(|p| p.id == game.you && p.auto_play)
+        || game
+            .players
+            .iter()
+            .any(|p| p.player.id == game.you && p.auto_play)
     {
         drag.active = false;
         return;

@@ -1,4 +1,5 @@
 //! 麻将按钮动作到网络命令的转换。
+use leocard_protocol::{GameSnapshot, MahjongCommand, MahjongPhaseView};
 
 use crate::app::games::mahjong::{MahjongChoiceMenu, MahjongUiState};
 use crate::app::runtime::ClientResource;
@@ -11,7 +12,6 @@ use bevy::prelude::*;
 use leocard_mahjong::{
     MahjongClaim, MahjongMatchLength, MahjongRuleSet, MahjongTile, MahjongTileKind,
 };
-use leocard_protocol::{MahjongCommand, MahjongPhaseView};
 
 #[derive(Clone)]
 pub(crate) enum MahjongUiAction {
@@ -77,7 +77,13 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
                 if context
                     .client
                     .as_ref()
-                    .and_then(|client| client.0.model().mahjong_game())
+                    .and_then(|client| {
+                        client
+                            .0
+                            .model()
+                            .game_snapshot()
+                            .and_then(GameSnapshot::mahjong)
+                    })
                     .is_some_and(|game| game.rules.false_win)
                 {
                     return;
@@ -117,11 +123,13 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
                 return;
             }
             Self::ShowFinalSummary => {
-                if let Some(game) = context
-                    .client
-                    .as_deref()
-                    .and_then(|client| client.0.model().mahjong_game())
-                    && let MahjongPhaseView::Finished { result } = &game.phase
+                if let Some(game) = context.client.as_deref().and_then(|client| {
+                    client
+                        .0
+                        .model()
+                        .game_snapshot()
+                        .and_then(GameSnapshot::mahjong)
+                }) && let MahjongPhaseView::Finished { result } = &game.phase
                     && result.match_complete
                 {
                     context.ui.final_summary_opened_at = Some((
@@ -133,11 +141,13 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
                 return;
             }
             Self::ContinueFanSummary => {
-                if let Some(game) = context
-                    .client
-                    .as_deref()
-                    .and_then(|client| client.0.model().mahjong_game())
-                    && let MahjongPhaseView::Finished { result } = &game.phase
+                if let Some(game) = context.client.as_deref().and_then(|client| {
+                    client
+                        .0
+                        .model()
+                        .game_snapshot()
+                        .and_then(GameSnapshot::mahjong)
+                }) && let MahjongPhaseView::Finished { result } = &game.phase
                     && !result.winners.is_empty()
                 {
                     context.ui.fan_summary_continued = Some((game.match_id, result.sequence_index));
@@ -152,11 +162,13 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
                 return;
             }
             Self::Discard(tile) => {
-                let Some(game) = context
-                    .client
-                    .as_deref()
-                    .and_then(|client| client.0.model().mahjong_game())
-                else {
+                let Some(game) = context.client.as_deref().and_then(|client| {
+                    client
+                        .0
+                        .model()
+                        .game_snapshot()
+                        .and_then(GameSnapshot::mahjong)
+                }) else {
                     return;
                 };
                 if !matches!(game.phase, MahjongPhaseView::Playing)

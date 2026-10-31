@@ -1,11 +1,11 @@
-use crate::{
-    AvatarId, MatchId, PlayerGameProfiles, PlayerId, PlayerReferenceChange, ProfileId, SeatId,
-};
+use crate::{MatchId, PlayerPublicInfo, PlayerReferenceChange, SeatId};
+use leocard_game_common::PlayerId;
 use leocard_mahjong::{
-    MahjongClaim, MahjongClaimOption, MahjongHandReplacementError, MahjongMatchLength,
-    MahjongMatchProgress, MahjongMeldKind, MahjongRuleSet, MahjongScoreResult, MahjongTile,
-    MahjongTileKind, MahjongWind,
+    MahjongClaim, MahjongClaimOption, MahjongDiscard, MahjongHandReplacementError,
+    MahjongMatchLength, MahjongMatchProgress, MahjongPublicMeld, MahjongRuleSet, MahjongTile,
+    MahjongTileKind, MahjongWinRecord, MahjongWind,
 };
+
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -16,10 +16,10 @@ pub struct MahjongSnapshot {
     pub you: PlayerId,
     pub host: PlayerId,
     pub rules: MahjongRuleSet,
-    pub players: Vec<MahjongPlayerState>,
+    pub players: Vec<MahjongPlayerView>,
     pub your_hand: Vec<MahjongTile>,
     pub your_drawn_tile: Option<MahjongTile>,
-    pub discards: Vec<MahjongDiscardView>,
+    pub discards: Vec<MahjongDiscard>,
     pub dealer: PlayerId,
     pub prevalent_wind: MahjongWind,
     pub sequence_index: u8,
@@ -35,24 +35,18 @@ pub struct MahjongSnapshot {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct MahjongPlayerState {
-    pub id: PlayerId,
-    pub profile_id: ProfileId,
-    pub name: String,
-    pub avatar: Option<AvatarId>,
+pub struct MahjongPlayerView {
+    pub player: PlayerPublicInfo,
     pub seat: SeatId,
     pub seat_wind: MahjongWind,
     pub concealed_count: u8,
     pub revealed_hand: Option<Vec<MahjongTile>>,
-    pub melds: Vec<MahjongPublicMeldView>,
+    pub melds: Vec<MahjongPublicMeld>,
     pub flowers: Vec<MahjongTile>,
     pub dead_hand: bool,
     pub auto_play: bool,
     pub ready: bool,
     pub connected: bool,
-    pub reference_points: i32,
-    pub completed_games: u32,
-    pub game_profiles: PlayerGameProfiles,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -66,34 +60,9 @@ pub struct MahjongPendingClaimView {
     pub waiting_for: Vec<PlayerId>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct MahjongDiscardView {
-    pub player: PlayerId,
-    pub tile: MahjongTile,
-    pub claimed_by: Option<PlayerId>,
-    pub from_drawn: bool,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct MahjongPublicMeldView {
-    pub kind: MahjongMeldKind,
-    pub tile: Option<MahjongTileKind>,
-    pub claimed_from: Option<PlayerId>,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct MahjongWinView {
-    pub player: PlayerId,
-    pub from: Option<PlayerId>,
-    pub concealed_hand: bool,
-    pub winning_tile: MahjongTile,
-    pub score: MahjongScoreResult,
-    pub wait_kind_count: u8,
-}
-
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MahjongHandResultView {
-    pub winners: Vec<MahjongWinView>,
+    pub winners: Vec<MahjongWinRecord>,
     pub exhaustive_draw: bool,
     pub match_length: MahjongMatchLength,
     pub match_progress: MahjongMatchProgress,

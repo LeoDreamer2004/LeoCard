@@ -2,9 +2,9 @@ use super::prelude::*;
 use leocard_client::GlobalPreferences;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
 use leocard_protocol::{PlayerGender, TABLE_SEAT_COUNT};
-use leocard_qigui523::{QiGuiRuleSet, TimeControl};
+use leocard_qigui523::{QiGuiRuleSet, QiGuiTimeControl};
 use leocard_shengji::ShengjiRuleSet;
-use leocard_texas_holdem::TexasHoldemRuleSet;
+use leocard_texas_holdem::TexasRuleSet;
 use leocard_uno::UnoRuleSet;
 use std::path::PathBuf;
 
@@ -23,6 +23,7 @@ fn preferences_round_trip_including_avatar() {
             gender: PlayerGender::Female,
             mahjong_action_voices: false,
             mahjong_fan_voices: true,
+            mahjong_tile_voices: false,
             texas_action_voices: false,
             qigui_action_voices: false,
             doudizhu_action_voices: true,
@@ -32,13 +33,13 @@ fn preferences_round_trip_including_avatar() {
                 host_rules: QiGuiRuleSet {
                     deck_count: 3,
                     hand_size: 12,
-                    time_control: TimeControl::ThirtyPlusSixty,
+                    time_control: QiGuiTimeControl::ThirtyPlusSixty,
                     advanced_play_types: true,
                     ..normalize_rules(QiGuiRuleSet::default())
                 },
             },
-            texas_holdem: TexasHoldemPreferences {
-                host_rules: TexasHoldemRuleSet {
+            texas: TexasPreferences {
+                host_rules: TexasRuleSet {
                     starting_chips: 40,
                     squid_markers: 2,
                     deepseek_squid_double: true,
@@ -46,7 +47,7 @@ fn preferences_round_trip_including_avatar() {
                     ignore_kickers: true,
                     omaha: true,
                     fixed_limit: true,
-                    ..normalize_rules(TexasHoldemRuleSet::default())
+                    ..normalize_rules(TexasRuleSet::default())
                 },
             },
             shengji: ShengjiPreferences {
@@ -80,7 +81,7 @@ fn preferences_round_trip_including_avatar() {
                     ..MahjongRuleSet::default()
                 },
             },
-            minecraft_guess: Default::default(),
+            mc_guess: Default::default(),
             doudizhu: Default::default(),
         },
     };
@@ -90,10 +91,7 @@ fn preferences_round_trip_including_avatar() {
     assert_eq!(decoded.global.avatar_png, saved.global.avatar_png);
     assert_eq!(decoded.global.host_port, saved.global.host_port);
     assert_eq!(decoded.global.join_address, saved.global.join_address);
-    assert_eq!(
-        decoded.games.texas_holdem.host_rules,
-        saved.games.texas_holdem.host_rules
-    );
+    assert_eq!(decoded.games.texas.host_rules, saved.games.texas.host_rules);
     assert_eq!(decoded.global.table_felt_path, saved.global.table_felt_path);
     assert_eq!(
         decoded.global.table_brightness,
@@ -104,6 +102,7 @@ fn preferences_round_trip_including_avatar() {
     assert_eq!(decoded.global.gender, PlayerGender::Female);
     assert!(!decoded.global.mahjong_action_voices);
     assert!(decoded.global.mahjong_fan_voices);
+    assert!(!decoded.global.mahjong_tile_voices);
     assert_eq!(
         decoded.games.qigui523.host_rules,
         saved.games.qigui523.host_rules
@@ -125,7 +124,7 @@ fn remembered_host_rules_keep_valid_preferences_and_fixed_room_capacity() {
         deck_count: 4,
         player_count: 2,
         hand_size: 15,
-        time_control: TimeControl::Unlimited,
+        time_control: QiGuiTimeControl::Unlimited,
         advanced_play_types: true,
         ..QiGuiRuleSet::default()
     };
@@ -134,7 +133,7 @@ fn remembered_host_rules_keep_valid_preferences_and_fixed_room_capacity() {
     assert_eq!(normalized.player_count, TABLE_SEAT_COUNT);
     assert_eq!(normalized.deck_count, 4);
     assert_eq!(normalized.hand_size, 15);
-    assert_eq!(normalized.time_control, TimeControl::Unlimited);
+    assert_eq!(normalized.time_control, QiGuiTimeControl::Unlimited);
     assert!(normalized.advanced_play_types);
     assert!(normalized.validate().is_ok());
 }

@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use leocard_protocol::{MatchId, PlayerId, UnoPhaseView, UnoSnapshot};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{MatchId, UnoPhaseView, UnoSnapshot};
 use leocard_uno::UnoCard;
 
 #[derive(Resource, Default)]
@@ -25,7 +26,10 @@ impl JumpInOpportunity {
         if !matches!(game.phase, UnoPhaseView::Playing) {
             return None;
         }
-        let own = game.players.iter().find(|player| player.id == game.you)?;
+        let own = game
+            .players
+            .iter()
+            .find(|player| player.player.id == game.you)?;
         if own.auto_play || own.eliminated || !own.connected {
             return None;
         }

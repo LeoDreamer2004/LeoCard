@@ -1,4 +1,6 @@
 //! 升级按钮动作、本地选牌状态与网络命令。
+use leocard_protocol::{GameSnapshot, ShengjiCommand, ShengjiPhaseView};
+use leocard_shengji::{ShengjiCard, ShengjiFiveTrumpCrossingStage, ShengjiMode, ShengjiRuleSet};
 
 use super::{ShengjiPresentationState, ShengjiUiState, next_shengji_hint};
 use crate::app::runtime::{ClientResource, HostRulePreferences};
@@ -9,8 +11,6 @@ use crate::app::shell::{
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::{ItemId, PlayerEconomy};
-use leocard_protocol::{ShengjiCommand, ShengjiFiveTrumpCrossingStage, ShengjiPhaseView};
-use leocard_shengji::{ShengjiCard, ShengjiMode, ShengjiRuleSet};
 
 #[derive(Clone)]
 pub(crate) enum ShengjiUiAction {
@@ -125,10 +125,13 @@ impl UiActionHandler<ShengjiActionContext<'_>> for ShengjiUiAction {
 }
 
 fn select_hint(client: &mut Option<ResMut<ClientResource>>, ui: &mut ShengjiUiState) {
-    let Some(game) = client
-        .as_deref()
-        .and_then(|client| client.0.model().shengji_game())
-    else {
+    let Some(game) = client.as_deref().and_then(|client| {
+        client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::shengji)
+    }) else {
         return;
     };
     let Some(cards) = next_shengji_hint(game, &ui.selected) else {
@@ -139,10 +142,13 @@ fn select_hint(client: &mut Option<ResMut<ClientResource>>, ui: &mut ShengjiUiSt
 }
 
 fn submit_selected_cards(client: &mut Option<ResMut<ClientResource>>, ui: &mut ShengjiUiState) {
-    let Some(game) = client
-        .as_deref()
-        .and_then(|client| client.0.model().shengji_game())
-    else {
+    let Some(game) = client.as_deref().and_then(|client| {
+        client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::shengji)
+    }) else {
         return;
     };
     let cards = game

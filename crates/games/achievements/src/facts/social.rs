@@ -1,5 +1,4 @@
-use super::ParticipantId;
-
+use leocard_game_common::PlayerId;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum InteractionKind {
     Flower,
@@ -28,8 +27,8 @@ impl InteractionKind {
 
 #[derive(Clone, Copy, Debug)]
 pub struct InteractionFacts {
-    pub source: ParticipantId,
-    pub target: ParticipantId,
+    pub source: PlayerId,
+    pub target: PlayerId,
     pub kind: InteractionKind,
     /// Source-assigned session time, independent of delivery latency.
     pub elapsed_millis: u64,
@@ -44,6 +43,6 @@ pub enum ChatActivity {
 
 #[derive(Clone, Debug)]
 pub struct ChatFacts {
-    pub source: ParticipantId,
+    pub source: PlayerId,
     pub content: ChatActivity,
 }

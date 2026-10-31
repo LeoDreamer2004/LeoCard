@@ -1,4 +1,4 @@
-use crate::{Mode, PlayKind};
+use crate::{DoudizhuMode, DoudizhuPlayKind};
 
 /// Authority-produced, recipient-specific facts. Opening-hand details are released only at settlement.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -13,8 +13,8 @@ pub enum DoudizhuAchievementFacts {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DoudizhuPlayFacts {
-    pub mode: Mode,
-    pub kind: PlayKind,
+    pub mode: DoudizhuMode,
+    pub kind: DoudizhuPlayKind,
     pub card_count: u8,
     pub rank: u8,
     pub is_lead: bool,

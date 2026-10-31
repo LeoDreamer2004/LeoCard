@@ -1,7 +1,7 @@
 use super::patterns::{
     all_suited_in, has_mixed_shifted_chows, is_reversible, max_matching, set_contains_rank,
 };
-use super::{Fan, FanValues, Form, ScoreContext, SetKind};
+use super::{FanValues, Form, MahjongFan, ScoreContext, SetKind};
 use crate::MahjongTileKind;
 
 pub(super) fn collect_combination_fans(
@@ -17,26 +17,26 @@ pub(super) fn collect_combination_fans(
 }
 
 fn collect_high_value_fans(values: &mut FanValues, context: &ScoreContext<'_>) {
-    values.add(Fan::QuadrupleChow, u8::from(context.quadruple_chow));
+    values.add(MahjongFan::QuadrupleChow, u8::from(context.quadruple_chow));
     values.add(
-        Fan::FourPureShiftedPungs,
+        MahjongFan::FourPureShiftedPungs,
         u8::from(context.four_shifted_pungs),
     );
     values.add(
-        Fan::FourPureShiftedChows,
+        MahjongFan::FourPureShiftedChows,
         u8::from(context.four_shifted_chows),
     );
-    values.add(Fan::ThreeKongs, u8::from(context.kongs.len() == 3));
+    values.add(MahjongFan::ThreeKongs, u8::from(context.kongs.len() == 3));
     values.add(
-        Fan::AllTerminalsAndHonors,
+        MahjongFan::AllTerminalsAndHonors,
         u8::from(context.terminals_honors),
     );
     values.add(
-        Fan::SevenPairs,
+        MahjongFan::SevenPairs,
         u8::from(matches!(context.form, Form::SevenPairs { shifted: false })),
     );
     values.add(
-        Fan::GreaterHonorsAndKnittedTiles,
+        MahjongFan::GreaterHonorsAndKnittedTiles,
         u8::from(matches!(
             context.form,
             Form::Knitted {
@@ -46,38 +46,38 @@ fn collect_high_value_fans(values: &mut FanValues, context: &ScoreContext<'_>) {
             }
         )),
     );
-    values.add(Fan::AllEvenPungs, u8::from(context.all_even_pungs));
-    values.add(Fan::FullFlush, u8::from(context.full_flush));
+    values.add(MahjongFan::AllEvenPungs, u8::from(context.all_even_pungs));
+    values.add(MahjongFan::FullFlush, u8::from(context.full_flush));
     values.add(
-        Fan::PureTripleChow,
+        MahjongFan::PureTripleChow,
         u8::from(context.pure_triple && !context.quadruple_chow),
     );
     values.add(
-        Fan::PureShiftedPungs,
+        MahjongFan::PureShiftedPungs,
         u8::from(context.pure_shifted_pungs && !context.four_shifted_pungs),
     );
     values.add(
-        Fan::UpperTiles,
+        MahjongFan::UpperTiles,
         u8::from(all_suited_in(&context.all_tiles, 7, 9)),
     );
     values.add(
-        Fan::MiddleTiles,
+        MahjongFan::MiddleTiles,
         u8::from(all_suited_in(&context.all_tiles, 4, 6)),
     );
     values.add(
-        Fan::LowerTiles,
+        MahjongFan::LowerTiles,
         u8::from(all_suited_in(&context.all_tiles, 1, 3)),
     );
 }
 
 fn collect_medium_value_fans(values: &mut FanValues, context: &ScoreContext<'_>) {
-    values.add(Fan::PureStraight, u8::from(context.pure_straight));
+    values.add(MahjongFan::PureStraight, u8::from(context.pure_straight));
     values.add(
-        Fan::ThreeSuitedTerminalChows,
+        MahjongFan::ThreeSuitedTerminalChows,
         u8::from(context.three_suited_terminal),
     );
     values.add(
-        Fan::PureShiftedChows,
+        MahjongFan::PureShiftedChows,
         u8::from(context.pure_shifted_chows && !context.four_shifted_chows),
     );
     let all_fives = context.sets_pair.is_some_and(|(sets, pair)| {
@@ -85,14 +85,14 @@ fn collect_medium_value_fans(values: &mut FanValues, context: &ScoreContext<'_>)
             && matches!(pair, MahjongTileKind::Suited { rank: 5, .. })
             && sets.iter().all(|set| set_contains_rank(set, 5))
     });
-    values.add(Fan::AllFives, u8::from(all_fives));
-    values.add(Fan::TriplePung, u8::from(context.triple_pung));
+    values.add(MahjongFan::AllFives, u8::from(all_fives));
+    values.add(MahjongFan::TriplePung, u8::from(context.triple_pung));
     values.add(
-        Fan::ThreeConcealedPungs,
+        MahjongFan::ThreeConcealedPungs,
         u8::from(context.concealed_pungs == 3),
     );
     values.add(
-        Fan::LesserHonorsAndKnittedTiles,
+        MahjongFan::LesserHonorsAndKnittedTiles,
         u8::from(matches!(
             context.form,
             Form::Knitted {
@@ -103,81 +103,84 @@ fn collect_medium_value_fans(values: &mut FanValues, context: &ScoreContext<'_>)
         )),
     );
     values.add(
-        Fan::KnittedStraight,
+        MahjongFan::KnittedStraight,
         u8::from(matches!(context.form, Form::Knitted { straight: true, .. })),
     );
     values.add(
-        Fan::UpperFour,
+        MahjongFan::UpperFour,
         u8::from(all_suited_in(&context.all_tiles, 6, 9)),
     );
     values.add(
-        Fan::LowerFour,
+        MahjongFan::LowerFour,
         u8::from(all_suited_in(&context.all_tiles, 1, 4)),
     );
     values.add(
-        Fan::BigThreeWinds,
+        MahjongFan::BigThreeWinds,
         u8::from(context.wind_pungs == 3 && !context.big_four && !context.little_four),
     );
-    values.add(Fan::MixedStraight, u8::from(context.mixed_straight));
+    values.add(MahjongFan::MixedStraight, u8::from(context.mixed_straight));
     values.add(
-        Fan::ReversibleTiles,
+        MahjongFan::ReversibleTiles,
         u8::from(context.all_tiles.iter().all(is_reversible)),
     );
-    values.add(Fan::MixedTripleChow, u8::from(context.mixed_triple));
+    values.add(MahjongFan::MixedTripleChow, u8::from(context.mixed_triple));
     values.add(
-        Fan::MixedShiftedPungs,
+        MahjongFan::MixedShiftedPungs,
         u8::from(context.mixed_shifted_pungs),
     );
 }
 
 fn collect_basic_fans(values: &mut FanValues, context: &ScoreContext<'_>) {
-    values.add(Fan::AllPungs, u8::from(context.all_pungs));
+    values.add(MahjongFan::AllPungs, u8::from(context.all_pungs));
     values.add(
-        Fan::HalfFlush,
+        MahjongFan::HalfFlush,
         u8::from(context.suit_count == 1 && context.has_honor),
     );
     values.add(
-        Fan::MixedShiftedChows,
+        MahjongFan::MixedShiftedChows,
         u8::from(has_mixed_shifted_chows(&context.chows)),
     );
-    values.add(Fan::AllTypes, u8::from(context.all_types));
-    values.add(Fan::MeldedHand, u8::from(context.melded_hand));
+    values.add(MahjongFan::AllTypes, u8::from(context.all_types));
+    values.add(MahjongFan::MeldedHand, u8::from(context.melded_hand));
     values.add(
-        Fan::TwoDragonPungs,
+        MahjongFan::TwoDragonPungs,
         u8::from(context.dragon_pungs == 2 && !context.big_three_dragons && !context.little_three),
     );
-    values.add(Fan::OutsideHand, u8::from(context.outside));
-    values.add(Fan::FullyConcealedHand, u8::from(context.fully_concealed));
+    values.add(MahjongFan::OutsideHand, u8::from(context.outside));
+    values.add(
+        MahjongFan::FullyConcealedHand,
+        u8::from(context.fully_concealed),
+    );
     if !context.big_three_dragons && !context.little_three && context.dragon_pungs == 1 {
-        values.add(Fan::DragonPung, 1);
+        values.add(MahjongFan::DragonPung, 1);
     }
     if !context.big_four {
         if context
             .pungs
             .contains(&MahjongTileKind::Wind(context.input.context.prevalent_wind))
         {
-            values.add(Fan::PrevalentWind, 1);
+            values.add(MahjongFan::PrevalentWind, 1);
         }
         if context
             .pungs
             .contains(&MahjongTileKind::Wind(context.input.context.seat_wind))
         {
-            values.add(Fan::SeatWind, 1);
+            values.add(MahjongFan::SeatWind, 1);
         }
     }
-    values.add(Fan::ConcealedHand, u8::from(context.concealed_hand));
-    values.add(Fan::AllChows, u8::from(context.all_chows));
+    values.add(MahjongFan::ConcealedHand, u8::from(context.concealed_hand));
+    values.add(MahjongFan::AllChows, u8::from(context.all_chows));
     if !context.quadruple_chow {
-        values.add(Fan::TileHog, context.tile_hogs);
+        values.add(MahjongFan::TileHog, context.tile_hogs);
     }
     if !context.triple_pung {
-        values.add(Fan::DoublePung, context.double_pungs);
+        values.add(MahjongFan::DoublePung, context.double_pungs);
     }
     values.add(
-        Fan::TwoConcealedPungs,
+        MahjongFan::TwoConcealedPungs,
         u8::from(context.concealed_pungs == 2),
     );
-    values.add(Fan::AllSimples, u8::from(context.all_simples));
+    values.add(MahjongFan::AllSimples, u8::from(context.all_simples));
     collect_terminal_and_suit_fans(values, context);
 }
 
@@ -199,20 +202,20 @@ fn collect_terminal_and_suit_fans(values: &mut FanValues, context: &ScoreContext
                 _ => false,
             })
             .count() as u8;
-        values.add(Fan::PungOfTerminalsOrHonors, terminal_honor_pungs);
+        values.add(MahjongFan::PungOfTerminalsOrHonors, terminal_honor_pungs);
     }
     if !context.full_flush && !context.pure_terminal_chows {
-        values.add(Fan::OneVoidedSuit, u8::from(context.suit_count <= 2));
+        values.add(MahjongFan::OneVoidedSuit, u8::from(context.suit_count <= 2));
     }
     if !context.full_flush
         && !context.all_chows
-        && !values.contains(Fan::UpperTiles)
-        && !values.contains(Fan::LowerTiles)
-        && !values.contains(Fan::UpperFour)
-        && !values.contains(Fan::LowerFour)
+        && !values.contains(MahjongFan::UpperTiles)
+        && !values.contains(MahjongFan::LowerTiles)
+        && !values.contains(MahjongFan::UpperFour)
+        && !values.contains(MahjongFan::LowerFour)
         && !context.three_suited_terminal
     {
-        values.add(Fan::NoHonors, u8::from(!context.has_honor));
+        values.add(MahjongFan::NoHonors, u8::from(!context.has_honor));
     }
 }
 
@@ -265,10 +268,10 @@ fn collect_relation_fans(values: &mut FanValues, context: &ScoreContext<'_>) {
         context.chows.len().saturating_sub(1) as u8
     };
     for (fan, count) in [
-        (Fan::PureDoubleChow, pure_double),
-        (Fan::MixedDoubleChow, mixed_double),
-        (Fan::ShortStraight, short_straight),
-        (Fan::TwoTerminalChows, terminal_chows),
+        (MahjongFan::PureDoubleChow, pure_double),
+        (MahjongFan::MixedDoubleChow, mixed_double),
+        (MahjongFan::ShortStraight, short_straight),
+        (MahjongFan::TwoTerminalChows, terminal_chows),
     ] {
         let awarded = count.min(remaining);
         values.add(fan, awarded);
@@ -300,10 +303,10 @@ fn collect_wait_fan(values: &mut FanValues, context: &ScoreContext<'_>, unique_w
         }
     }
     if single {
-        values.add(Fan::SingleWait, 1);
+        values.add(MahjongFan::SingleWait, 1);
     } else if edge {
-        values.add(Fan::EdgeWait, 1);
+        values.add(MahjongFan::EdgeWait, 1);
     } else if closed {
-        values.add(Fan::ClosedWait, 1);
+        values.add(MahjongFan::ClosedWait, 1);
     }
 }

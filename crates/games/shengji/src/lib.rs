@@ -10,28 +10,32 @@ mod bot;
 mod card;
 mod game;
 mod play;
+mod profile;
 mod rules;
 
 pub use auto_play::{ShengjiAutoPlay, ShengjiAutoPlayError, ShengjiAutoPlayRequest};
 
 pub use bot::{
-    GreedyBotError, ShengjiBiddingObservation, ShengjiBot, ShengjiBotAction, ShengjiBotObservation,
-    ShengjiGreedyBot, ShengjiGreedyBotRequest,
+    ShengjiBiddingObservation, ShengjiBot, ShengjiBotAction, ShengjiBotObservation,
+    ShengjiGreedyBot, ShengjiGreedyBotError, ShengjiGreedyBotRequest,
 };
 pub use card::{ShengjiCard, ShengjiRank, ShengjiSuit, build_deck, build_deck_for};
 pub use game::{
-    ActionOutcome, BidError, BidState, BottomCopyState, BottomFlipMatch, BottomFlipReveal,
-    Declaration, FiveTrumpCrossingStage, FiveTrumpCrossingState, GameError, GameState, HandResult,
-    Phase, PlayerState, ShengjiBidKind, ShengjiBurialStatistics, ShengjiHandStatistics,
-    ShengjiMatchStatistics, ShengjiOpeningHandStatistics, ShengjiRedealReason, TeamProgress,
-    TrickRecord, bid_joker_for_suit,
+    ShengjiActionOutcome, ShengjiBidError, ShengjiBidKind, ShengjiBidState, ShengjiBottomCopyState,
+    ShengjiBottomFlipMatch, ShengjiBottomFlipReveal, ShengjiBurialStatistics, ShengjiDeclaration,
+    ShengjiFiveTrumpCrossingStage, ShengjiFiveTrumpCrossingState, ShengjiGameError,
+    ShengjiGameState, ShengjiHandResult, ShengjiHandStatistics, ShengjiMatchStatistics,
+    ShengjiOpeningHandStatistics, ShengjiPhase, ShengjiPlayerState, ShengjiRedealReason,
+    ShengjiTeamProgress, ShengjiTrickRecord, bid_joker_for_suit,
 };
 pub use play::{
-    Category, Component, FollowError, PlayError, ShengjiClassifiedPlay, ThrowFailure, TrickPlay,
-    classify_lead, compare_for_trick, follow_suggestions, forced_follow_cards, hand_sequences,
-    validate_follow,
+    ShengjiCategory, ShengjiClassifiedPlay, ShengjiComponent, ShengjiFollowError, ShengjiPlayError,
+    ShengjiThrowFailure, ShengjiTrickPlay, classify_lead, compare_for_trick, follow_suggestions,
+    forced_follow_cards, hand_sequences, validate_follow,
 };
 pub use rules::{
-    RuleError, ShengjiBidTrump, ShengjiMode, ShengjiPlayerId, ShengjiRuleSet, ShengjiTeamId,
+    ShengjiBidTrump, ShengjiMode, ShengjiRuleError, ShengjiRuleSet, ShengjiTeamId,
     ShengjiThrowPenalty, ShengjiTrump, level_after, level_steps_between,
 };
+
+pub use profile::ShengjiProfileStats;

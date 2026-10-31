@@ -1,13 +1,13 @@
 use super::events::TexasAchievementEvent;
 use crate::{
-    SquidAwardStatistics, TexasHoldemActionStatistics, TexasHoldemHandCategory as Category,
-    TexasHoldemHandStatistics, TexasHoldemRank,
+    TexasActionStatistics, TexasHandCategory, TexasHandStatistics, TexasRank,
+    TexasSquidAwardStatistics,
 };
 use leocard_achievements::AchievementTrigger;
 
 pub(super) fn hand(
     trigger: &AchievementTrigger,
-    predicate: impl FnOnce(&TexasHoldemHandStatistics) -> bool,
+    predicate: impl FnOnce(&TexasHandStatistics) -> bool,
 ) -> u64 {
     let Some((
         player,
@@ -24,7 +24,7 @@ pub(super) fn hand(
 
 pub(super) fn action(
     trigger: &AchievementTrigger,
-    predicate: impl FnOnce(&TexasHoldemActionStatistics) -> bool,
+    predicate: impl FnOnce(&TexasActionStatistics) -> bool,
 ) -> u64 {
     let Some((
         player,
@@ -40,13 +40,13 @@ pub(super) fn action(
     u64::from(player == *actor && predicate(statistics))
 }
 
-pub(super) fn pair(facts: &TexasHoldemHandStatistics, rank: TexasHoldemRank) -> bool {
+pub(super) fn pair(facts: &TexasHandStatistics, rank: TexasRank) -> bool {
     matches!(facts.hole_cards.as_slice(), [first, second] if first.rank() == rank && second.rank() == rank)
 }
 
 pub(super) fn squid(
     trigger: &AchievementTrigger,
-    predicate: impl FnOnce(&SquidAwardStatistics) -> bool,
+    predicate: impl FnOnce(&TexasSquidAwardStatistics) -> bool,
 ) -> u64 {
     let Some((
         player,
@@ -61,18 +61,20 @@ pub(super) fn squid(
     u64::from(player == *actor && predicate(statistics))
 }
 
-pub(super) fn offsuit_two_seven(facts: &TexasHoldemHandStatistics) -> bool {
-    matches!(facts.hole_cards.as_slice(), [first, second] if first.suit() != second.suit() && matches!((first.rank(), second.rank()), (TexasHoldemRank::Two, TexasHoldemRank::Seven) | (TexasHoldemRank::Seven, TexasHoldemRank::Two)))
+pub(super) fn offsuit_two_seven(facts: &TexasHandStatistics) -> bool {
+    matches!(facts.hole_cards.as_slice(), [first, second] if first.suit() != second.suit() && matches!((first.rank(), second.rank()), (TexasRank::Two, TexasRank::Seven) | (TexasRank::Seven, TexasRank::Two)))
 }
 
 pub(super) fn wins(trigger: &AchievementTrigger) -> u64 {
     hand(trigger, |facts| facts.won_chips > 0)
 }
 
-pub(super) fn at_least_trips(category: Category, short_deck: bool) -> bool {
+pub(super) fn at_least_trips(category: TexasHandCategory, short_deck: bool) -> bool {
     match category {
-        Category::HighCard | Category::OnePair | Category::TwoPair => false,
-        Category::Straight => !short_deck,
+        TexasHandCategory::HighCard | TexasHandCategory::OnePair | TexasHandCategory::TwoPair => {
+            false
+        }
+        TexasHandCategory::Straight => !short_deck,
         _ => true,
     }
 }

@@ -1,20 +1,15 @@
-use super::TexasHoldemHandStatistics;
+use super::TexasHandStatistics;
 use super::pots::PotStatistics;
-use crate::{
-    GameState, Phase, TexasHoldemAction, TexasHoldemPlayerId, TexasHoldemStreet,
-    evaluate_player_hand,
-};
+use crate::{TexasAction, TexasGameState, TexasPhase, TexasStreet, evaluate_player_hand};
+use leocard_game_common::PlayerId;
 
-impl GameState {
+impl TexasGameState {
     /// Only available after settlement; the caller must deliver this solely to `player`.
-    pub fn hand_statistics(
-        &self,
-        player: TexasHoldemPlayerId,
-    ) -> Option<TexasHoldemHandStatistics> {
-        let Phase::Complete(result) = self.phase() else {
+    pub fn hand_statistics(&self, player: PlayerId) -> Option<TexasHandStatistics> {
+        let TexasPhase::Complete(result) = self.phase() else {
             return None;
         };
-        let state = self.players().get(player.0)?;
+        let state = self.players().get(player.index())?;
         let own_actions = self
             .statistics
             .history
@@ -29,15 +24,15 @@ impl GameState {
                 evaluate_player_hand(other.hole_cards(), self.community(), self.rules()).ok()
             })
             .collect::<Vec<_>>();
-        let category = evaluated[player.0].map(|hand| hand.category());
-        let mut report = TexasHoldemHandStatistics {
+        let category = evaluated[player.index()].map(|hand| hand.category());
+        let mut report = TexasHandStatistics {
             hole_cards: state.hole_cards().to_vec(),
             category,
             showdown: result.showdown,
             entered_pot: !state.hole_cards().is_empty()
                 && !own_actions.iter().any(|record| {
-                    record.action == TexasHoldemAction::Fold
-                        && record.statistics.street == TexasHoldemStreet::PreFlop
+                    record.action == TexasAction::Fold
+                        && record.statistics.street == TexasStreet::PreFlop
                 }),
             short_deck: self.rules().short_deck,
             button: player == self.dealer(),
@@ -49,16 +44,15 @@ impl GameState {
                 .count()
                 >= 3
                 && (1..self.players().len())
-                    .map(|distance| (self.big_blind().0 + distance) % self.players().len())
+                    .map(|distance| (self.big_blind().index() + distance) % self.players().len())
                     .find(|&index| !self.players()[index].hole_cards().is_empty())
-                    == Some(player.0),
+                    == Some(player.index()),
             defended_blind: player == self.big_blind()
                 && own_actions.iter().any(|record| record.facing_raise),
             preflop_bet_levels: own_actions
                 .iter()
                 .filter(|record| {
-                    record.statistics.street == TexasHoldemStreet::PreFlop
-                        && record.statistics.full_raise
+                    record.statistics.street == TexasStreet::PreFlop && record.statistics.full_raise
                 })
                 .map(|record| record.statistics.bet_level)
                 .collect(),
@@ -68,7 +62,7 @@ impl GameState {
                 .filter(|record| record.side_pot_raise)
                 .count() as u32,
             preflop_all_in: own_actions.iter().any(|record| {
-                record.statistics.street == TexasHoldemStreet::PreFlop
+                record.statistics.street == TexasStreet::PreFlop
                     && record.statistics.all_in_amount > 0
             }),
             final_stack: state.stack(),
@@ -78,7 +72,7 @@ impl GameState {
                 .final_stacks
                 .iter()
                 .all(|stack| *stack <= state.stack()),
-            match_statistics: self.statistics.players[player.0].clone(),
+            match_statistics: self.statistics.players[player.index()].clone(),
             ..Default::default()
         };
         let pots = PotStatistics::new(self, result, player, &evaluated);
@@ -96,8 +90,8 @@ impl GameState {
             {
                 report.defeated_pocket_pairs += 1;
                 if self.statistics.history.actions.iter().any(|record| {
-                    record.player.0 == index
-                        && record.statistics.street == TexasHoldemStreet::PreFlop
+                    record.player.index() == index
+                        && record.statistics.street == TexasStreet::PreFlop
                         && record.statistics.all_in_amount > 0
                 }) {
                     report.defeated_preflop_all_in_pairs += 1;
@@ -109,7 +103,7 @@ impl GameState {
             .sort_by_key(|category| *category as u8);
         if let Some(index) = self.statistics.history.actions.iter().rposition(|record| {
             record.player == player
-                && record.statistics.street == TexasHoldemStreet::River
+                && record.statistics.street == TexasStreet::River
                 && record.statistics.raised
                 && record.statistics.all_in_amount > 0
         }) {
@@ -118,17 +112,19 @@ impl GameState {
                 report.river_all_in_folded_categories = subsequent
                     .iter()
                     .filter(|record| {
-                        record.action == TexasHoldemAction::Fold
-                            && record.statistics.street == TexasHoldemStreet::River
+                        record.action == TexasAction::Fold
+                            && record.statistics.street == TexasStreet::River
                     })
-                    .filter_map(|record| evaluated[record.player.0].map(|hand| hand.category()))
+                    .filter_map(|record| {
+                        evaluated[record.player.index()].map(|hand| hand.category())
+                    })
                     .collect();
             }
         }
         Some(report)
     }
 
-    fn river_bet_called(&self, player: TexasHoldemPlayerId) -> bool {
+    fn river_bet_called(&self, player: PlayerId) -> bool {
         self.statistics
             .history
             .actions
@@ -136,18 +132,15 @@ impl GameState {
             .enumerate()
             .any(|(index, record)| {
                 record.player == player
-                    && record.statistics.street == TexasHoldemStreet::River
+                    && record.statistics.street == TexasStreet::River
                     && record.statistics.raised
                     && self.statistics.history.actions[index + 1..]
                         .iter()
                         .take_while(|later| !later.statistics.raised)
                         .any(|later| {
                             later.player != player
-                                && later.statistics.street == TexasHoldemStreet::River
-                                && matches!(
-                                    later.action,
-                                    TexasHoldemAction::Call | TexasHoldemAction::AllIn
-                                )
+                                && later.statistics.street == TexasStreet::River
+                                && matches!(later.action, TexasAction::Call | TexasAction::AllIn)
                         })
             })
     }

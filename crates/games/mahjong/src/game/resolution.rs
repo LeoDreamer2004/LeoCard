@@ -1,24 +1,27 @@
 use super::{
-    ActionOutcome, ClaimTrigger, GameError, GameState, HandResult, MahjongClaim,
-    MahjongClaimOption, MahjongDrawOrigin, PendingClaim, Phase, WinRecord, claim_priority,
-    next_player, players_after,
+    ClaimTrigger, MahjongActionOutcome, MahjongClaim, MahjongClaimOption, MahjongDrawOrigin,
+    MahjongGameError, MahjongGameState, MahjongHandResult, MahjongPendingClaim, MahjongPhase,
+    MahjongWinRecord, claim_priority, next_player, players_after,
 };
 use crate::waiting_tile_kinds;
 use crate::{
-    MahjongMatchLength, MahjongPlayerId, MahjongRuleSet, MahjongScoreResult, MahjongTile,
-    MahjongTileKind, Meld, ScoreInput, WinContext, WinSource, is_complete_hand, score_hand,
+    MahjongMatchLength, MahjongMeld, MahjongRuleSet, MahjongScoreInput, MahjongScoreResult,
+    MahjongTile, MahjongTileKind, MahjongWinContext, MahjongWinSource, is_complete_hand,
+    score_hand,
 };
+use leocard_game_common::PlayerId;
+
 use std::array;
 use std::collections::HashSet;
 
-impl GameState {
+impl MahjongGameState {
     pub(super) fn pending_for_discard(
         &self,
         discard_index: usize,
-        from: MahjongPlayerId,
+        from: PlayerId,
         tile: MahjongTile,
-    ) -> Result<PendingClaim, GameError> {
-        let mut pending = PendingClaim {
+    ) -> Result<MahjongPendingClaim, MahjongGameError> {
+        let mut pending = MahjongPendingClaim {
             trigger: ClaimTrigger::Discard {
                 discard_index,
                 from,
@@ -28,11 +31,11 @@ impl GameState {
             responses: [None; MahjongRuleSet::PLAYER_COUNT as usize],
         };
         for target_index in 0..usize::from(MahjongRuleSet::PLAYER_COUNT) {
-            let target = MahjongPlayerId(target_index);
+            let target = PlayerId::from_index(target_index);
             if target == from {
                 continue;
             }
-            if self.win_button_available(target, tile.kind(), WinSource::Discard(from))? {
+            if self.win_button_available(target, tile.kind(), MahjongWinSource::Discard(from))? {
                 pending.options[target_index].push(MahjongClaimOption::Win);
             }
             let hand = &self.players[target_index].hand;
@@ -66,28 +69,32 @@ impl GameState {
         Ok(pending)
     }
 
-    pub(super) fn resolve_pending_claim(&mut self) -> Result<ActionOutcome, GameError> {
-        let Phase::WaitingForClaims(pending) = &self.phase else {
-            return Err(GameError::WrongPhase);
+    pub(super) fn resolve_pending_claim(
+        &mut self,
+    ) -> Result<MahjongActionOutcome, MahjongGameError> {
+        let MahjongPhase::WaitingForClaims(pending) = &self.phase else {
+            return Err(MahjongGameError::WrongPhase);
         };
         let pending = pending.clone();
         let (from, tile, source) = match pending.trigger {
-            ClaimTrigger::Discard { from, tile, .. } => (from, tile, WinSource::Discard(from)),
+            ClaimTrigger::Discard { from, tile, .. } => {
+                (from, tile, MahjongWinSource::Discard(from))
+            }
             ClaimTrigger::AddedKong { player, tile, .. } => {
-                (player, tile, WinSource::RobbingKong(player))
+                (player, tile, MahjongWinSource::RobbingKong(player))
             }
         };
         let mut valid_winners = Vec::new();
         for target in players_after(from) {
-            if pending.responses[target.0] != Some(MahjongClaim::Win) {
+            if pending.responses[target.index()] != Some(MahjongClaim::Win) {
                 continue;
             }
             let score = self.score_for(target, tile.kind(), source)?;
             if self.is_legal_score(&score) {
-                valid_winners.push(WinRecord {
+                valid_winners.push(MahjongWinRecord {
                     player: target,
                     from: Some(from),
-                    concealed_hand: self.players[target.0].is_concealed_hand(),
+                    concealed_hand: self.players[target.index()].is_concealed_hand(),
                     winning_tile: tile,
                     score,
                     wait_kind_count: self.wait_kind_count(target, tile, false),
@@ -110,7 +117,7 @@ impl GameState {
                 meld_index,
             } => {
                 self.finalize_added_kong(player, tile, meld_index)?;
-                Ok(ActionOutcome::KongDeclared {
+                Ok(MahjongActionOutcome::KongDeclared {
                     player,
                     tile: tile.kind(),
                     added: true,
@@ -123,7 +130,7 @@ impl GameState {
             } => {
                 let best_claim = players_after(from)
                     .filter_map(|player| {
-                        let claim = pending.responses[player.0]?;
+                        let claim = pending.responses[player.index()]?;
                         matches!(
                             claim,
                             MahjongClaim::Chow { .. } | MahjongClaim::Pung | MahjongClaim::Kong
@@ -138,7 +145,7 @@ impl GameState {
                 if let Some((player, claim, _)) = best_claim {
                     return self.apply_discard_claim(player, claim, tile, discard_index, from);
                 }
-                self.phase = Phase::Playing;
+                self.phase = MahjongPhase::Playing;
                 self.advance_after_unclaimed_discard(from)
             }
         }
@@ -146,35 +153,35 @@ impl GameState {
 
     fn apply_discard_claim(
         &mut self,
-        player: MahjongPlayerId,
+        player: PlayerId,
         claim: MahjongClaim,
         tile: MahjongTile,
         discard_index: usize,
-        from: MahjongPlayerId,
-    ) -> Result<ActionOutcome, GameError> {
+        from: PlayerId,
+    ) -> Result<MahjongActionOutcome, MahjongGameError> {
         self.discards[discard_index].claimed_by = Some(player);
         match claim {
             MahjongClaim::Pung => {
                 self.remove_kind_from_hand(player, tile.kind(), 2)?;
-                self.players[player.0]
+                self.players[player.index()]
                     .melds
-                    .push(Meld::pung(tile.kind(), from));
+                    .push(MahjongMeld::pung(tile.kind(), from));
                 self.current_player = player;
                 self.last_drawn = None;
-                self.phase = Phase::Playing;
+                self.phase = MahjongPhase::Playing;
             }
             MahjongClaim::Kong => {
                 self.remove_kind_from_hand(player, tile.kind(), 3)?;
-                self.players[player.0]
+                self.players[player.index()]
                     .melds
-                    .push(Meld::melded_kong(tile.kind(), from));
+                    .push(MahjongMeld::melded_kong(tile.kind(), from));
                 self.current_player = player;
-                self.phase = Phase::Playing;
+                self.phase = MahjongPhase::Playing;
                 self.draw_replacement(player, MahjongDrawOrigin::KongReplacement)?;
             }
             MahjongClaim::Chow { start } => {
                 let MahjongTileKind::Suited { suit, rank } = tile.kind() else {
-                    return Err(GameError::InvalidClaim);
+                    return Err(MahjongGameError::InvalidClaim);
                 };
                 for value in start..=start + 2 {
                     if value != rank {
@@ -185,19 +192,19 @@ impl GameState {
                         )?;
                     }
                 }
-                self.players[player.0]
+                self.players[player.index()]
                     .melds
-                    .push(Meld::chow(suit, start, from));
+                    .push(MahjongMeld::chow(suit, start, from));
                 self.current_player = player;
                 self.last_drawn = None;
-                self.phase = Phase::Playing;
+                self.phase = MahjongPhase::Playing;
             }
-            MahjongClaim::Pass | MahjongClaim::Win => return Err(GameError::InvalidClaim),
+            MahjongClaim::Pass | MahjongClaim::Win => return Err(MahjongGameError::InvalidClaim),
         }
-        if !matches!(self.phase, Phase::ReplacingFlower { .. }) {
+        if !matches!(self.phase, MahjongPhase::ReplacingFlower { .. }) {
             self.sort_hands();
         }
-        Ok(ActionOutcome::Claimed {
+        Ok(MahjongActionOutcome::Claimed {
             player,
             source: from,
             tile,
@@ -207,20 +214,23 @@ impl GameState {
 
     pub(super) fn finalize_added_kong(
         &mut self,
-        player: MahjongPlayerId,
+        player: PlayerId,
         tile: MahjongTile,
         meld_index: usize,
-    ) -> Result<(), GameError> {
-        let original = self.players[player.0].melds[meld_index];
-        let from = original.claimed_from().ok_or(GameError::CannotKong)?;
-        let position = self.players[player.0]
+    ) -> Result<(), MahjongGameError> {
+        let original = self.players[player.index()].melds[meld_index];
+        let from = original
+            .claimed_from()
+            .ok_or(MahjongGameError::CannotKong)?;
+        let position = self.players[player.index()]
             .hand
             .iter()
             .position(|held| *held == tile)
-            .ok_or(GameError::TileNotInHand(tile))?;
-        self.players[player.0].hand.remove(position);
-        self.players[player.0].melds[meld_index] = Meld::melded_kong(tile.kind(), from);
-        self.phase = Phase::Playing;
+            .ok_or(MahjongGameError::TileNotInHand(tile))?;
+        self.players[player.index()].hand.remove(position);
+        self.players[player.index()].melds[meld_index] =
+            MahjongMeld::melded_kong(tile.kind(), from);
+        self.phase = MahjongPhase::Playing;
         self.current_player = player;
         self.draw_replacement(player, MahjongDrawOrigin::KongReplacement)?;
         Ok(())
@@ -228,28 +238,28 @@ impl GameState {
 
     pub(super) fn advance_after_unclaimed_discard(
         &mut self,
-        from: MahjongPlayerId,
-    ) -> Result<ActionOutcome, GameError> {
-        self.phase = Phase::Playing;
+        from: PlayerId,
+    ) -> Result<MahjongActionOutcome, MahjongGameError> {
+        self.phase = MahjongPhase::Playing;
         self.draw_normal(next_player(from))
     }
 
     pub(super) fn win_button_available(
         &self,
-        player: MahjongPlayerId,
+        player: PlayerId,
         tile: MahjongTileKind,
-        source: WinSource,
-    ) -> Result<bool, GameError> {
-        if self.players[player.0].dead_hand {
+        source: MahjongWinSource,
+    ) -> Result<bool, MahjongGameError> {
+        if self.players[player.index()].dead_hand {
             return Ok(false);
         }
-        let mut concealed: Vec<_> = self.players[player.0]
+        let mut concealed: Vec<_> = self.players[player.index()]
             .hand
             .iter()
             .map(|held| held.kind())
             .collect();
         concealed.push(tile);
-        if !is_complete_hand(&concealed, &self.players[player.0].melds) {
+        if !is_complete_hand(&concealed, &self.players[player.index()].melds) {
             return Ok(false);
         }
         let score = self.score_for_with_concealed(player, tile, source, concealed)?;
@@ -258,11 +268,11 @@ impl GameState {
 
     pub(super) fn wait_kind_count(
         &self,
-        player: MahjongPlayerId,
+        player: PlayerId,
         winning: MahjongTile,
         self_draw: bool,
     ) -> u8 {
-        let state = &self.players[player.0];
+        let state = &self.players[player.index()];
         let mut before = state
             .hand
             .iter()
@@ -281,11 +291,11 @@ impl GameState {
 
     pub(super) fn score_for(
         &self,
-        player: MahjongPlayerId,
+        player: PlayerId,
         winning_tile: MahjongTileKind,
-        source: WinSource,
-    ) -> Result<MahjongScoreResult, GameError> {
-        let mut concealed: Vec<_> = self.players[player.0]
+        source: MahjongWinSource,
+    ) -> Result<MahjongScoreResult, MahjongGameError> {
+        let mut concealed: Vec<_> = self.players[player.index()]
             .hand
             .iter()
             .map(|tile| tile.kind())
@@ -298,22 +308,22 @@ impl GameState {
 
     fn score_for_with_concealed(
         &self,
-        player: MahjongPlayerId,
+        player: PlayerId,
         winning_tile: MahjongTileKind,
-        source: WinSource,
+        source: MahjongWinSource,
         concealed: Vec<MahjongTileKind>,
-    ) -> Result<MahjongScoreResult, GameError> {
-        let score = score_hand(&ScoreInput {
+    ) -> Result<MahjongScoreResult, MahjongGameError> {
+        let score = score_hand(&MahjongScoreInput {
             concealed,
-            melds: self.players[player.0].melds.clone(),
+            melds: self.players[player.index()].melds.clone(),
             winning_tile,
-            context: WinContext {
+            context: MahjongWinContext {
                 source,
                 seat_wind: self.seat_wind(player).expect("player was validated"),
                 prevalent_wind: self.prevalent_wind,
                 last_wall_tile: self.wall.is_empty(),
                 last_of_kind: self.is_last_of_kind(winning_tile, source),
-                flower_count: self.players[player.0].flowers.len() as u8,
+                flower_count: self.players[player.index()].flowers.len() as u8,
             },
         })?;
         Ok(score)
@@ -323,7 +333,7 @@ impl GameState {
         !self.rules.minimum_eight_points || score.points_without_flowers >= 8
     }
 
-    fn is_last_of_kind(&self, tile: MahjongTileKind, source: WinSource) -> bool {
+    fn is_last_of_kind(&self, tile: MahjongTileKind, source: MahjongWinSource) -> bool {
         let mut visible = self
             .discards
             .iter()
@@ -341,39 +351,39 @@ impl GameState {
             }
         }
         match source {
-            WinSource::Discard(_) => visible >= 4,
-            WinSource::RobbingKong(_) => false,
+            MahjongWinSource::Discard(_) => visible >= 4,
+            MahjongWinSource::RobbingKong(_) => false,
             _ => visible >= 3,
         }
     }
 
     pub(super) fn apply_false_win(
         &mut self,
-        player: MahjongPlayerId,
+        player: PlayerId,
     ) -> [i32; MahjongRuleSet::PLAYER_COUNT as usize] {
         let mut delta = [10; MahjongRuleSet::PLAYER_COUNT as usize];
-        delta[player.0] = -30;
+        delta[player.index()] = -30;
         for (hand_delta, penalty) in self.hand_deltas.iter_mut().zip(delta) {
             *hand_delta += penalty;
         }
-        self.players[player.0].dead_hand = true;
-        self.players[player.0].hand_revealed = true;
+        self.players[player.index()].dead_hand = true;
+        self.players[player.index()].hand_revealed = true;
         delta
     }
 
     pub(super) fn finish_with_winners(
         &mut self,
-        winners: Vec<WinRecord>,
-    ) -> Result<ActionOutcome, GameError> {
+        winners: Vec<MahjongWinRecord>,
+    ) -> Result<MahjongActionOutcome, MahjongGameError> {
         let claimed_tile = match &self.phase {
-            Phase::WaitingForClaims(pending) => Some(pending.tile()),
+            MahjongPhase::WaitingForClaims(pending) => Some(pending.tile()),
             _ => None,
         };
         let reveal_all_hands = winners
             .iter()
             .any(|winner| winner.score.fans.iter().any(|fan| fan.fan.points() >= 48));
         for winner in &winners {
-            let hand = &mut self.players[winner.player.0];
+            let hand = &mut self.players[winner.player.index()];
             hand.hand_revealed = true;
             if winner.from.is_some()
                 && let Some(tile) = claimed_tile
@@ -394,23 +404,23 @@ impl GameState {
                 None => {
                     let payment = points + i32::from(self.rules.minimum_eight_points) * 8;
                     for payer in 0..usize::from(MahjongRuleSet::PLAYER_COUNT) {
-                        if payer != winner.player.0 {
+                        if payer != winner.player.index() {
                             self.hand_deltas[payer] -= payment;
-                            self.hand_deltas[winner.player.0] += payment;
+                            self.hand_deltas[winner.player.index()] += payment;
                         }
                     }
                 }
                 Some(discarder) => {
                     let base = i32::from(self.rules.minimum_eight_points) * 8;
                     let payment = points + base;
-                    self.hand_deltas[discarder.0] -= payment;
-                    self.hand_deltas[winner.player.0] += payment;
+                    self.hand_deltas[discarder.index()] -= payment;
+                    self.hand_deltas[winner.player.index()] += payment;
                     if self.rules.minimum_eight_points {
                         for payer in 0..usize::from(MahjongRuleSet::PLAYER_COUNT) {
-                            let payer = MahjongPlayerId(payer);
+                            let payer = PlayerId::from_index(payer);
                             if payer != discarder && !winner_ids.contains(&payer) {
-                                self.hand_deltas[payer.0] -= 8;
-                                self.hand_deltas[winner.player.0] += 8;
+                                self.hand_deltas[payer.index()] -= 8;
+                                self.hand_deltas[winner.player.index()] += 8;
                             }
                         }
                     }
@@ -420,15 +430,17 @@ impl GameState {
         self.finish_hand(winners, false)
     }
 
-    pub(super) fn finish_exhaustive_draw(&mut self) -> Result<ActionOutcome, GameError> {
+    pub(super) fn finish_exhaustive_draw(
+        &mut self,
+    ) -> Result<MahjongActionOutcome, MahjongGameError> {
         self.finish_hand(Vec::new(), true)
     }
 
     fn finish_hand(
         &mut self,
-        winners: Vec<WinRecord>,
+        winners: Vec<MahjongWinRecord>,
         exhaustive_draw: bool,
-    ) -> Result<ActionOutcome, GameError> {
+    ) -> Result<MahjongActionOutcome, MahjongGameError> {
         for index in 0..usize::from(MahjongRuleSet::PLAYER_COUNT) {
             self.match_scores[index] += self.hand_deltas[index];
         }
@@ -436,7 +448,7 @@ impl GameState {
         self.match_progress.exhaustive_draws += u8::from(exhaustive_draw);
         let match_complete = self.rules.match_length == MahjongMatchLength::SingleHand
             || self.match_progress.completed_hands >= self.rules.match_length.hand_count();
-        let result = HandResult {
+        let result = MahjongHandResult {
             winners,
             exhaustive_draw,
             match_length: self.rules.match_length,
@@ -446,25 +458,25 @@ impl GameState {
             match_complete,
             sequence_index: self.sequence_index,
         };
-        self.phase = Phase::Finished(result.clone());
-        Ok(ActionOutcome::HandFinished(result))
+        self.phase = MahjongPhase::Finished(result.clone());
+        Ok(MahjongActionOutcome::HandFinished(result))
     }
 
     fn remove_kind_from_hand(
         &mut self,
-        player: MahjongPlayerId,
+        player: PlayerId,
         kind: MahjongTileKind,
         count: usize,
-    ) -> Result<(), GameError> {
+    ) -> Result<(), MahjongGameError> {
         for _ in 0..count {
-            let Some(position) = self.players[player.0]
+            let Some(position) = self.players[player.index()]
                 .hand
                 .iter()
                 .position(|tile| tile.kind() == kind)
             else {
-                return Err(GameError::InvalidClaim);
+                return Err(MahjongGameError::InvalidClaim);
             };
-            self.players[player.0].hand.remove(position);
+            self.players[player.index()].hand.remove(position);
         }
         Ok(())
     }

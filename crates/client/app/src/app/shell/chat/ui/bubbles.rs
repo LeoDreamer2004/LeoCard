@@ -1,23 +1,21 @@
-use super::super::*;
-use crate::app::presentation::{add_text, card_background_image};
+use super::super::{ChatBubbleOwner, ChatHistoryEntry, ChatPanelState, QUICK_VOICES};
+use crate::app::presentation::{TEXT, card_background_image};
 use crate::app::runtime::{ClientResource, UiAssets};
-use crate::app::shell::{PlayerAvatar, PlayerInteractionLayer, interaction_anchor_in_layer};
-use bevy::picking::Pickable;
+use crate::app::shell::{PlayerAvatar, PlayerInteractionLayer, interaction_anchor_entity};
 use bevy::prelude::*;
-use leocard_protocol::{ChatContent, ChatEmoji, PlayerId};
-use leocard_ui::UiComposer;
+use leocard_game_common::PlayerId;
+use leocard_protocol::ChatContent;
+use leocard_ui::{AnchoredBubble, Bubble, BubbleContent, BubbleStyle, UiComposer};
 use std::collections::HashMap;
-
-const CHAT_HISTORY_LIMIT: usize = 60;
 
 pub(crate) fn sync_chat_messages(
     mut commands: UiComposer,
     mut client: Option<ResMut<ClientResource>>,
     assets: Res<UiAssets>,
     mut chat: ResMut<ChatPanelState>,
-    layers: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<PlayerInteractionLayer>>,
+    layers: Query<Entity, With<PlayerInteractionLayer>>,
     avatars: Query<PlayerAvatar>,
-    existing_bubbles: Query<(Entity, &ActiveChatBubble)>,
+    existing_bubbles: Query<(Entity, &ChatBubbleOwner)>,
 ) {
     let Some(client) = client.as_deref_mut() else {
         return;
@@ -33,7 +31,7 @@ pub(crate) fn sync_chat_messages(
         let player_name = client
             .0
             .model()
-            .player_name(message.source)
+            .player_name(source)
             .unwrap_or("玩家")
             .to_owned();
         let (text, emoji) = match message.content {
@@ -55,174 +53,54 @@ pub(crate) fn sync_chat_messages(
             player_name,
             message: text.clone(),
         });
-        while chat.history.len() > CHAT_HISTORY_LIMIT {
+        while chat.history.len() > 60 {
             chat.history.pop_front();
         }
-
-        let Some((layer, layer_node, layer_transform)) = layer else {
+        let Some(layer) = layer else {
             continue;
         };
-        let Some(anchor) =
-            interaction_anchor_in_layer(source, layer_node, layer_transform, &avatars)
-        else {
+        let Some(anchor) = interaction_anchor_entity(source, &avatars) else {
             continue;
         };
-        for (entity, bubble) in &existing_bubbles {
-            if bubble.player == source {
+        for (entity, owner) in &existing_bubbles {
+            if owner.0 == source {
                 commands.entity(entity).despawn();
             }
         }
         if let Some(previous) = spawned.remove(&source) {
             commands.entity(previous).despawn();
         }
-        let layer_size = layer_node.size() * layer_node.inverse_scale_factor();
-        let entity = if let Some(emoji) = emoji {
-            spawn_emoji_bubble(
-                &mut commands,
-                layer,
-                layer_size,
-                anchor,
-                source,
-                emoji,
-                &assets,
-            )
-        } else {
-            spawn_chat_bubble(
-                &mut commands,
-                layer,
-                layer_size,
-                anchor,
-                source,
-                &text,
-                &assets,
-            )
+        let mut style = BubbleStyle::new(
+            card_background_image(assets.home.game_card.clone(), 0.42),
+            assets.font.clone(),
+            TEXT,
+        );
+        style.anchor_offset = Vec2::new(0.0, 0.16);
+        style.z_index = 1600;
+        let (content, duration) = match emoji {
+            Some(emoji) => (BubbleContent::Image(assets.chat_emoji(emoji)), 3.4),
+            None => (
+                BubbleContent::Text(text.as_str()),
+                2.8 + (text.chars().count() as f32 * 0.055).min(2.2),
+            ),
         };
+        let entity = Bubble {
+            anchor,
+            content,
+            duration,
+        }
+        .spawn(&mut commands, layer, &style);
+        commands.entity(entity).insert(ChatBubbleOwner(source));
         spawned.insert(source, entity);
     }
 }
 
-pub(crate) fn chat_bubble_position(anchor: Vec2, layer_size: Vec2, width: f32) -> Vec2 {
-    let x = if anchor.x < layer_size.x * 0.34 {
-        anchor.x + 27.0
-    } else if anchor.x > layer_size.x * 0.66 {
-        anchor.x - width - 27.0
-    } else {
-        anchor.x - width * 0.5
-    };
-    Vec2::new(
-        x.clamp(8.0, (layer_size.x - width - 8.0).max(8.0)),
-        (anchor.y - 69.0).clamp(8.0, (layer_size.y - 48.0).max(8.0)),
-    )
-}
-
-fn spawn_chat_bubble(
-    commands: &mut UiComposer,
-    layer: Entity,
-    layer_size: Vec2,
-    anchor: Vec2,
-    player: PlayerId,
-    message: &str,
-    assets: &UiAssets,
-) -> Entity {
-    let character_count = message.chars().count();
-    let width = (character_count as f32 * 13.0 + 26.0).clamp(76.0, 230.0);
-    let position = chat_bubble_position(anchor, layer_size, width);
-    let bubble = commands.child(
-        layer,
-        (
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(position.x),
-                top: px(position.y),
-                width: px(width),
-                min_width: px(width),
-                max_width: px(width),
-                min_height: px(38),
-                padding: UiRect::axes(px(11), px(7)),
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            card_background_image(assets.home.game_card.clone(), 0.42).with_color(Color::NONE),
-            UiTransform {
-                translation: Val2::px(0.0, 9.0),
-                scale: Vec2::splat(0.88),
-                ..UiTransform::IDENTITY
-            },
-            GlobalZIndex(1600),
-            Pickable::IGNORE,
-        ),
-    );
-    let text = add_text(commands, bubble, message, 13.0, Color::NONE, assets);
-    commands
-        .entity(text)
-        .insert((ChatBubbleText, Pickable::IGNORE));
-    commands.entity(bubble).insert(ActiveChatBubble {
-        player,
-        text: Some(text),
-        emoji_image: None,
-        width,
-        elapsed: 0.0,
-        duration: 2.8 + (character_count as f32 * 0.055).min(2.2),
-        anchor_missing_secs: 0.0,
-    });
-    bubble
-}
-
-fn spawn_emoji_bubble(
-    commands: &mut UiComposer,
-    layer: Entity,
-    layer_size: Vec2,
-    anchor: Vec2,
-    player: PlayerId,
-    emoji: ChatEmoji,
-    assets: &UiAssets,
-) -> Entity {
-    let width = 86.0;
-    let position = chat_bubble_position(anchor, layer_size, width);
-    let bubble = commands.child(
-        layer,
-        (
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(position.x),
-                top: px(position.y),
-                width: px(width),
-                height: px(width),
-                padding: UiRect::all(px(7)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            UiTransform {
-                translation: Val2::px(0.0, 9.0),
-                scale: Vec2::splat(0.88),
-                ..UiTransform::IDENTITY
-            },
-            card_background_image(assets.home.game_card.clone(), 0.42).with_color(Color::NONE),
-            GlobalZIndex(1600),
-            Pickable::IGNORE,
-        ),
-    );
-    let icon = commands.child(
-        bubble,
-        (
-            Node {
-                width: px(70),
-                height: px(70),
-                ..default()
-            },
-            ImageNode::new(assets.chat_emoji(emoji)),
-            Pickable::IGNORE,
-        ),
-    );
-    commands.entity(bubble).insert(ActiveChatBubble {
-        player,
-        text: None,
-        emoji_image: Some(icon),
-        width,
-        elapsed: 0.0,
-        duration: 3.4,
-        anchor_missing_secs: 0.0,
-    });
-    bubble
+/// Player identities are resolved here; the UI crate only knows anchor entities.
+pub(crate) fn sync_chat_bubble_anchors(
+    avatars: Query<PlayerAvatar>,
+    mut bubbles: Query<(&ChatBubbleOwner, &mut AnchoredBubble)>,
+) {
+    for (owner, mut bubble) in &mut bubbles {
+        bubble.anchor = interaction_anchor_entity(owner.0, &avatars);
+    }
 }

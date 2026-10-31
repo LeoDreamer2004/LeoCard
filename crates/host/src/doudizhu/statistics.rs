@@ -1,5 +1,8 @@
-use leocard_doudizhu::{Action, GameState, Play, PlayKind};
-use leocard_protocol::DoudizhuProfileStats;
+use leocard_doudizhu::{
+    DoudizhuAction, DoudizhuGameState, DoudizhuPlay, DoudizhuPlayKind, DoudizhuProfileStats,
+};
+
+use leocard_game_common::PlayerId;
 
 /// 一整场的统计，重发和进入下一小局时保留，开始新场时重置。
 #[derive(Clone, Debug, Default)]
@@ -14,52 +17,59 @@ impl DoudizhuStatistics {
         }
     }
 
-    pub(super) fn observe(&mut self, player: u8, action: &Action, game: &GameState) {
+    pub(super) fn observe(
+        &mut self,
+        player: PlayerId,
+        action: &DoudizhuAction,
+        game: &DoudizhuGameState,
+    ) {
         let stats = &mut self.players[usize::from(player)];
         match action {
-            Action::Bid(score) => {
+            DoudizhuAction::Bid(score) => {
                 stats.bid_actions = stats.bid_actions.saturating_add(1);
                 stats.total_bid_score = stats.total_bid_score.saturating_add(u64::from(*score));
             }
-            Action::Play(_) => {
+            DoudizhuAction::Play(_) => {
                 let (_, play) = game
                     .table
                     .as_ref()
                     .expect("accepted play remains on the table");
                 Self::observe_play(stats, play);
             }
-            Action::Pass => {}
+            DoudizhuAction::Pass => {}
         }
     }
 
-    pub(super) fn observe_play(stats: &mut DoudizhuProfileStats, play: &Play) {
+    pub(super) fn observe_play(stats: &mut DoudizhuProfileStats, play: &DoudizhuPlay) {
         let cards = play.cards.len() as u16;
         match play.kind {
-            PlayKind::Straight => {
+            DoudizhuPlayKind::Straight => {
                 stats.straight_plays = stats.straight_plays.saturating_add(1);
                 stats.longest_straight = stats.longest_straight.max(cards);
             }
-            PlayKind::Pairs => {
+            DoudizhuPlayKind::Pairs => {
                 stats.consecutive_pair_plays = stats.consecutive_pair_plays.saturating_add(1);
                 stats.longest_consecutive_pairs = stats.longest_consecutive_pairs.max(cards / 2);
             }
-            PlayKind::Airplane | PlayKind::AirplaneSingles | PlayKind::AirplanePairs => {
+            DoudizhuPlayKind::Airplane
+            | DoudizhuPlayKind::AirplaneSingles
+            | DoudizhuPlayKind::AirplanePairs => {
                 let group_size = match play.kind {
-                    PlayKind::AirplaneSingles => 4,
-                    PlayKind::AirplanePairs => 5,
+                    DoudizhuPlayKind::AirplaneSingles => 4,
+                    DoudizhuPlayKind::AirplanePairs => 5,
                     _ => 3,
                 };
                 stats.airplane_plays = stats.airplane_plays.saturating_add(1);
                 stats.longest_airplane = stats.longest_airplane.max(cards / group_size);
             }
-            PlayKind::Bomb | PlayKind::Rocket => {
+            DoudizhuPlayKind::Bomb | DoudizhuPlayKind::Rocket => {
                 stats.bomb_plays = stats.bomb_plays.saturating_add(1);
             }
             _ => {}
         }
     }
 
-    pub(super) fn finish_hand(&mut self, landlord: u8, scores: &[i32]) {
+    pub(super) fn finish_hand(&mut self, landlord: PlayerId, scores: &[i32]) {
         for (player, (stats, score)) in self.players.iter_mut().zip(scores).enumerate() {
             stats.hands_played = stats.hands_played.saturating_add(1);
             stats.landlord_hands = stats
@@ -69,7 +79,12 @@ impl DoudizhuStatistics {
         }
     }
 
-    pub(super) fn merge_into(&self, player: u8, aggregate: &mut DoudizhuProfileStats, delta: i16) {
+    pub(super) fn merge_into(
+        &self,
+        player: PlayerId,
+        aggregate: &mut DoudizhuProfileStats,
+        delta: i16,
+    ) {
         let current = &self.players[usize::from(player)];
         aggregate.completed_games = aggregate.completed_games.saturating_add(1);
         aggregate.total_reference_delta = aggregate

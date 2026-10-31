@@ -11,7 +11,8 @@ use crate::app::shell::{
     add_cozy_button_variant, add_cozy_disabled_button, add_page_back_title,
 };
 use bevy::picking::Pickable;
-use bevy::{prelude::*, ui::RelativeCursorPosition};
+use bevy::prelude::*;
+use bevy::ui::RelativeCursorPosition;
 use leocard_client::{ItemId, PlayerEconomy};
 use leocard_ui::{UiComposer, spawn_node};
 

@@ -11,7 +11,7 @@ pub(crate) struct AchievementEntry<'a> {
 }
 
 impl AchievementEntry<'_> {
-    pub(crate) fn render(&self, commands: &mut UiComposer, parent: Entity) {
+    pub(crate) fn render(&self, commands: &mut UiComposer, parent: Entity, scale: f32) {
         add_cozy_labeled_icon_button(
             commands,
             parent,
@@ -20,6 +20,7 @@ impl AchievementEntry<'_> {
             self.assets.achievements.icon.clone(),
             CozyButtonVariant::Neutral,
             "成就",
+            scale,
         );
     }
 }

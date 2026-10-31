@@ -1,11 +1,11 @@
-use super::{UnoSession, from_core_player, map_game_error, to_core_player};
+use super::{UnoSession, map_game_error};
 use crate::{ConnectionId, Delivery};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    GameEvent, GameViolation, PlayerId, RejectReason, RequestId, ServerEvent, UnoEvent,
-    UnoPendingSwapView, UnoPhaseView, UnoPlayerResult, UnoPlayerState, UnoRevealedHand,
-    UnoSnapshot,
+    GameEvent, GameViolation, RejectReason, RequestId, ServerEvent, UnoEvent, UnoPendingSwapView,
+    UnoPhaseView, UnoPlayerResult, UnoPlayerView, UnoRevealedHand, UnoSnapshot,
 };
-use leocard_uno::{GameError, PendingSwap, Phase, UnoCard};
+use leocard_uno::{UnoCard, UnoGameError, UnoPendingSwap, UnoPhase};
 
 impl UnoSession {
     pub(super) fn broadcast_events(&self, events: Vec<UnoEvent>) -> Vec<Delivery> {
@@ -32,9 +32,9 @@ impl UnoSession {
             .map(|participant| {
                 let public = participant.public_metadata();
                 let state = game
-                    .player(to_core_player(public.id))
+                    .player(public.player.id)
                     .expect("room and UNO core players stay aligned");
-                let mut inactive_hand = if self.rules.is_flip() && public.id != recipient {
+                let mut inactive_hand = if self.rules.is_flip() && public.player.id != recipient {
                     state
                         .hand()
                         .iter()
@@ -44,29 +44,23 @@ impl UnoSession {
                     Vec::new()
                 };
                 inactive_hand.sort_unstable_by_key(|card| (card.color(), card.face(), card.copy()));
-                UnoPlayerState {
-                    id: public.id,
-                    profile_id: public.profile_id,
-                    name: public.name,
-                    avatar: public.avatar,
+                UnoPlayerView {
                     seat: public.seat.expect("started players retain seats"),
                     hand_len: state.hand().len() as u8,
                     inactive_hand,
                     ready: public.ready,
                     connected: public.connected,
                     auto_play: public.auto_play,
-                    reference_points: public.reference_points,
-                    completed_games: public.completed_games,
-                    game_profiles: public.game_profiles,
-                    skipped_turns: game.skipped_turns(to_core_player(public.id)).unwrap_or(0),
+                    skipped_turns: game.skipped_turns(public.player.id).unwrap_or(0),
                     eliminated: state.eliminated(),
+                    player: public.player,
                 }
             })
             .collect();
         let phase = match game.phase() {
-            Phase::Playing => UnoPhaseView::Playing,
-            Phase::Finished(result) => UnoPhaseView::Finished {
-                winner: from_core_player(result.winner),
+            UnoPhase::Playing => UnoPhaseView::Playing,
+            UnoPhase::Finished(result) => UnoPhaseView::Finished {
+                winner: result.winner,
                 results: result
                     .hand_scores
                     .iter()
@@ -81,7 +75,7 @@ impl UnoSession {
                     .players()
                     .iter()
                     .map(|player| UnoRevealedHand {
-                        player: from_core_player(player.id()),
+                        player: player.id(),
                         cards: player
                             .hand()
                             .iter()
@@ -106,7 +100,7 @@ impl UnoSession {
             rules: self.rules,
             players,
             your_hand: game
-                .player(to_core_player(recipient))
+                .player(recipient)
                 .into_iter()
                 .flat_map(|player| player.hand().iter())
                 .map(|card| card.public_face())
@@ -130,46 +124,37 @@ impl UnoSession {
                 .collect(),
             current_color: game.current_color(),
             flip_side: game.flip_side(),
-            current_player: turn.map(|turn| from_core_player(turn.current_player)),
+            current_player: turn.map(|turn| turn.current_player),
             direction: game.direction(),
             pending_draw: turn.map_or(0, |turn| turn.pending_draw),
             pending_kind: turn.and_then(|turn| turn.pending_kind),
             sudden_death_free_play: turn.is_some_and(|turn| turn.sudden_death_free_play),
-            challenge_offender: turn
-                .and_then(|turn| turn.challenge_offender)
-                .map(from_core_player),
+            challenge_offender: turn.and_then(|turn| turn.challenge_offender),
             pending_skip: turn.map_or(0, |turn| turn.pending_skip),
             pending_swap: game.pending_swap().map(|pending| match pending {
-                PendingSwap::SwapOneTarget { player } => UnoPendingSwapView::SwapOneTarget {
-                    player: from_core_player(player),
-                },
-                PendingSwap::SwapOneGive { player, target } => UnoPendingSwapView::SwapOneGive {
-                    player: from_core_player(player),
-                    target: from_core_player(target),
-                },
-                PendingSwap::ForceTrade { player } => UnoPendingSwapView::ForceTrade {
-                    player: from_core_player(player),
-                },
-                PendingSwap::ChooseColor { player } => UnoPendingSwapView::ChooseColor {
-                    player: from_core_player(player),
-                },
-                PendingSwap::SevenSwap { player } => UnoPendingSwapView::SevenSwap {
-                    player: from_core_player(player),
-                },
-                PendingSwap::ColorRoulette { player } => UnoPendingSwapView::ColorRoulette {
-                    player: from_core_player(player),
-                },
+                UnoPendingSwap::SwapOneTarget { player } => {
+                    UnoPendingSwapView::SwapOneTarget { player }
+                }
+                UnoPendingSwap::SwapOneGive { player, target } => {
+                    UnoPendingSwapView::SwapOneGive { player, target }
+                }
+                UnoPendingSwap::ForceTrade { player } => UnoPendingSwapView::ForceTrade { player },
+                UnoPendingSwap::ChooseColor { player } => {
+                    UnoPendingSwapView::ChooseColor { player }
+                }
+                UnoPendingSwap::SevenSwap { player } => UnoPendingSwapView::SevenSwap { player },
+                UnoPendingSwap::ColorRoulette { player } => {
+                    UnoPendingSwapView::ColorRoulette { player }
+                }
             }),
             your_drawn_card: turn
-                .filter(|turn| from_core_player(turn.current_player) == recipient)
+                .filter(|turn| turn.current_player == recipient)
                 .and_then(|turn| turn.drawn_card)
                 .map(UnoCard::public_face),
-            your_jump_in_card: game
-                .jump_in_card(to_core_player(recipient))
-                .map(UnoCard::public_face),
-            uno_exposed: game.uno_exposed_players().map(from_core_player).collect(),
-            uno_declared: game.uno_declared_players().map(from_core_player).collect(),
-            can_call_uno: game.can_call_uno(to_core_player(recipient)),
+            your_jump_in_card: game.jump_in_card(recipient).map(UnoCard::public_face),
+            uno_exposed: game.uno_exposed_players().collect(),
+            uno_declared: game.uno_declared_players().collect(),
+            can_call_uno: game.can_call_uno(recipient),
             phase,
         };
         if let Some(reveal) = self.pending_draw_reveal.as_ref() {
@@ -187,7 +172,7 @@ impl UnoSession {
             if let Some(player) = snapshot
                 .players
                 .iter_mut()
-                .find(|player| player.id == reveal.player)
+                .find(|player| player.player.id == reveal.player)
             {
                 player.hand_len = player.hand_len.saturating_sub(hidden_count);
                 let hidden_inactive = hidden_cards
@@ -233,7 +218,7 @@ impl UnoSession {
         &self,
         connection: ConnectionId,
         request_id: RequestId,
-        error: &GameError,
+        error: &UnoGameError,
     ) -> Vec<Delivery> {
         self.room.reject(
             connection,

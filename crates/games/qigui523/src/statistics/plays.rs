@@ -1,18 +1,18 @@
 use super::{QiGuiActionContext, QiGuiActionStatistics, QiGuiMatchStatistics};
 use crate::{
-    BombKind, ClassifiedPlay, PlayComparison, PlayRecord, QiGuiPlayKind, QiGuiRank, QiGuiSuit,
-    SameCardPolicy, compare_plays,
+    QiGuiBombKind, QiGuiClassifiedPlay, QiGuiPlayComparison, QiGuiPlayKind, QiGuiPlayRecord,
+    QiGuiRank, QiGuiSameCardPolicy, QiGuiSuit, compare_plays,
 };
 
 impl QiGuiMatchStatistics {
     pub(super) fn observe_play(
         &mut self,
         before: &QiGuiActionContext,
-        play: Option<&ClassifiedPlay>,
+        play: Option<&QiGuiClassifiedPlay>,
         report: &mut QiGuiActionStatistics,
     ) {
-        let progress = &mut self.players[before.actor.0];
-        let run = &mut self.runs[before.actor.0];
+        let progress = &mut self.players[before.actor.index()];
+        let run = &mut self.runs[before.actor.index()];
         let Some(play) = play else {
             run.straight = 0;
             return;
@@ -51,13 +51,14 @@ impl QiGuiMatchStatistics {
         }
         report.late_bomb = before.draw_pile_empty && is_bomb(play.kind());
         report.full_hand_play = report.rules.hand_size >= 8
-            && before.hands[before.actor.0].len() == usize::from(report.rules.hand_size)
-            && play.cards().len() == before.hands[before.actor.0].len();
+            && before.hands[before.actor.index()].len() == usize::from(report.rules.hand_size)
+            && play.cards().len() == before.hands[before.actor.index()].len();
         report.diamond_four = matches!(play.kind(), QiGuiPlayKind::Single)
             && play.cards()[0].rank() == QiGuiRank::Four
             && play.cards()[0].suit() == QiGuiSuit::Diamond;
         if let Some(current) = before.trick.winning_play() {
-            report.spade_seven_follow = report.rules.same_card_policy == SameCardPolicy::CanFollow
+            report.spade_seven_follow = report.rules.same_card_policy
+                == QiGuiSameCardPolicy::CanFollow
                 && matches!(play.kind(), QiGuiPlayKind::Single)
                 && matches!(current.kind(), QiGuiPlayKind::Single)
                 && [play.cards()[0], current.cards()[0]]
@@ -65,7 +66,7 @@ impl QiGuiMatchStatistics {
                     .all(|card| card.rank() == QiGuiRank::Seven && card.suit() == QiGuiSuit::Spade);
             report.heaven_over_heaven = matches!(play.kind(), QiGuiPlayKind::HeavenBomb)
                 && matches!(current.kind(), QiGuiPlayKind::HeavenBomb)
-                && compare_plays(play, current, &report.rules) == PlayComparison::Greater;
+                && compare_plays(play, current, &report.rules) == QiGuiPlayComparison::Greater;
         }
         report.bomb_revenge =
             bomb_rank(play.kind()) == Some(QiGuiRank::Five) && bomb_revenge(before);
@@ -79,8 +80,8 @@ fn bomb_revenge(before: &QiGuiActionContext) -> bool {
         .iter()
         .rev()
         .filter_map(|record| match record {
-            PlayRecord::Played { player, play } => Some((*player, play)),
-            PlayRecord::Passed { .. } => None,
+            QiGuiPlayRecord::Played { player, play } => Some((*player, play)),
+            QiGuiPlayRecord::Passed { .. } => None,
         });
     matches!((plays.next(), plays.next()), (Some((king_player, king)), Some((_, ten)))
         if king_player != before.actor
@@ -94,7 +95,7 @@ pub(super) fn is_bomb(kind: &QiGuiPlayKind) -> bool {
 
 pub(super) fn bomb_rank(kind: &QiGuiPlayKind) -> Option<QiGuiRank> {
     match kind {
-        QiGuiPlayKind::Bomb(BombKind::OfAKind { rank, .. }) => Some(*rank),
+        QiGuiPlayKind::Bomb(QiGuiBombKind::OfAKind { rank, .. }) => Some(*rank),
         _ => None,
     }
 }

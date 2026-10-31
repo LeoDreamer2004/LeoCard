@@ -9,19 +9,19 @@ use bevy::prelude::*;
 use leocard_blackjack::BlackjackRuleSet;
 pub(crate) use leocard_client::{
     DoudizhuPreferences, GameAppearancePreferences, GamePreferences, MahjongPreferences,
-    MinecraftGuessPreferences, QiGui523Preferences, SavedPreferences, ShengjiPreferences,
-    TexasHoldemPreferences, UnoPreferences, load_player_preferences, save_game_preferences,
+    McGuessPreferences, QiGui523Preferences, SavedPreferences, ShengjiPreferences,
+    TexasPreferences, UnoPreferences, load_player_preferences, save_game_preferences,
     save_global_preferences,
 };
-use leocard_doudizhu::RuleSet as DoudizhuRuleSet;
+use leocard_doudizhu::DoudizhuRuleSet;
 use leocard_mahjong::MahjongRuleSet;
-use leocard_minecraft_guess::MinecraftGuessRuleSet;
+use leocard_mc_guess::McGuessRuleSet;
 use leocard_protocol::{
     GameKind, GameRules, MAX_PLAYER_NAME_CHARS, PlayerGender, TABLE_SEAT_COUNT,
 };
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_shengji::ShengjiRuleSet;
-use leocard_texas_holdem::TexasHoldemRuleSet;
+use leocard_texas_holdem::TexasRuleSet;
 use leocard_uno::UnoRuleSet;
 use std::path::PathBuf;
 
@@ -45,6 +45,7 @@ pub(crate) struct AppearancePreferences {
     pub audio_volume: f32,
     pub mahjong_action_voices: bool,
     pub mahjong_fan_voices: bool,
+    pub mahjong_tile_voices: bool,
     pub texas_action_voices: bool,
     pub qigui_action_voices: bool,
     pub doudizhu_action_voices: bool,
@@ -53,12 +54,12 @@ pub(crate) struct AppearancePreferences {
 #[derive(Resource)]
 pub(crate) struct HostRulePreferences {
     pub host_rules: QiGuiRuleSet,
-    pub texas_holdem_rules: TexasHoldemRuleSet,
+    pub texas_rules: TexasRuleSet,
     pub shengji_rules: ShengjiRuleSet,
     pub shengji_modes: [ShengjiRuleSet; 2],
     pub uno_rules: UnoRuleSet,
     pub mahjong_rules: MahjongRuleSet,
-    pub minecraft_guess_rules: MinecraftGuessRuleSet,
+    pub mc_guess_rules: McGuessRuleSet,
     pub doudizhu_rules: DoudizhuRuleSet,
     pub doudizhu_modes: [DoudizhuRuleSet; 2],
 }
@@ -153,18 +154,19 @@ impl PreferenceResources {
                 ),
                 mahjong_action_voices: saved.global.mahjong_action_voices,
                 mahjong_fan_voices: saved.global.mahjong_fan_voices,
+                mahjong_tile_voices: saved.global.mahjong_tile_voices,
                 texas_action_voices: saved.global.texas_action_voices,
                 qigui_action_voices: saved.global.qigui_action_voices,
                 doudizhu_action_voices: saved.global.doudizhu_action_voices,
             },
             host_rules: HostRulePreferences {
                 host_rules: normalize_rules(saved.games.qigui523.host_rules),
-                texas_holdem_rules: normalize_rules(saved.games.texas_holdem.host_rules),
+                texas_rules: normalize_rules(saved.games.texas.host_rules),
                 shengji_rules: normalize_rules(saved.games.shengji.host_rules),
                 shengji_modes: saved.games.shengji.remembered_modes().map(normalize_rules),
                 uno_rules: normalize_rules(saved.games.uno.host_rules),
                 mahjong_rules: normalize_rules(saved.games.mahjong.host_rules),
-                minecraft_guess_rules: normalize_rules(saved.games.minecraft_guess.host_rules),
+                mc_guess_rules: normalize_rules(saved.games.mc_guess.host_rules),
                 doudizhu_rules: normalize_rules(saved.games.doudizhu.host_rules),
                 doudizhu_modes: saved.games.doudizhu.remembered_modes().map(normalize_rules),
             },
@@ -212,7 +214,7 @@ impl NormalizeRuleSet for QiGuiRuleSet {
     }
 }
 
-impl NormalizeRuleSet for TexasHoldemRuleSet {
+impl NormalizeRuleSet for TexasRuleSet {
     fn normalized(self) -> Self {
         let rules = Self {
             player_count: Self::MAX_PLAYERS,
@@ -239,7 +241,7 @@ macro_rules! impl_validated_rule_set {
 
 impl_validated_rule_set!(ShengjiRuleSet, UnoRuleSet, MahjongRuleSet);
 
-impl NormalizeRuleSet for MinecraftGuessRuleSet {
+impl NormalizeRuleSet for McGuessRuleSet {
     fn normalized(self) -> Self {
         if self.is_valid() {
             self
@@ -263,9 +265,9 @@ impl HostRulePreferences {
         match kind {
             GameKind::Doudizhu => normalize_rules(self.doudizhu_rules).into(),
             GameKind::Blackjack => BlackjackRuleSet::default().into(),
-            GameKind::MinecraftGuess => normalize_rules(self.minecraft_guess_rules).into(),
+            GameKind::McGuess => normalize_rules(self.mc_guess_rules).into(),
             GameKind::QiGui523 => normalize_rules(self.host_rules).into(),
-            GameKind::TexasHoldem => normalize_rules(self.texas_holdem_rules).into(),
+            GameKind::Texas => normalize_rules(self.texas_rules).into(),
             GameKind::Shengji => normalize_rules(self.shengji_rules).into(),
             GameKind::Uno => normalize_rules(self.uno_rules).into(),
             GameKind::Mahjong => normalize_rules(self.mahjong_rules).into(),
@@ -280,14 +282,14 @@ impl HostRulePreferences {
                 replace_if_changed(&mut self.doudizhu_rules, rules)
                     | replace_if_changed(&mut self.doudizhu_modes[rules.mode as usize], rules)
             }
-            GameRules::MinecraftGuess(rules) => {
-                replace_if_changed(&mut self.minecraft_guess_rules, normalize_rules(*rules))
+            GameRules::McGuess(rules) => {
+                replace_if_changed(&mut self.mc_guess_rules, normalize_rules(*rules))
             }
             GameRules::QiGui523(rules) => {
                 replace_if_changed(&mut self.host_rules, normalize_rules(*rules))
             }
-            GameRules::TexasHoldem(rules) => {
-                replace_if_changed(&mut self.texas_holdem_rules, normalize_rules(*rules))
+            GameRules::Texas(rules) => {
+                replace_if_changed(&mut self.texas_rules, normalize_rules(*rules))
             }
             GameRules::Shengji(rules) => {
                 let rules = normalize_rules(*rules);
@@ -335,6 +337,7 @@ pub(crate) fn save_appearance_preferences(
     saved.global.audio_volume = appearance.audio_volume;
     saved.global.mahjong_action_voices = appearance.mahjong_action_voices;
     saved.global.mahjong_fan_voices = appearance.mahjong_fan_voices;
+    saved.global.mahjong_tile_voices = appearance.mahjong_tile_voices;
     saved.global.texas_action_voices = appearance.texas_action_voices;
     saved.global.qigui_action_voices = appearance.qigui_action_voices;
     saved.global.doudizhu_action_voices = appearance.doudizhu_action_voices;
@@ -346,8 +349,8 @@ pub(super) fn save_host_rule_preferences(rules: &HostRulePreferences) -> Result<
         qigui523: QiGui523Preferences {
             host_rules: rules.host_rules,
         },
-        texas_holdem: TexasHoldemPreferences {
-            host_rules: rules.texas_holdem_rules,
+        texas: TexasPreferences {
+            host_rules: rules.texas_rules,
         },
         shengji: ShengjiPreferences {
             host_rules: rules.shengji_rules,
@@ -359,8 +362,8 @@ pub(super) fn save_host_rule_preferences(rules: &HostRulePreferences) -> Result<
         mahjong: MahjongPreferences {
             host_rules: rules.mahjong_rules,
         },
-        minecraft_guess: MinecraftGuessPreferences {
-            host_rules: normalize_rules(rules.minecraft_guess_rules),
+        mc_guess: McGuessPreferences {
+            host_rules: normalize_rules(rules.mc_guess_rules),
         },
         doudizhu: DoudizhuPreferences {
             host_rules: normalize_rules(rules.doudizhu_rules),

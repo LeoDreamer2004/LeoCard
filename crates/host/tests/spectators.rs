@@ -1,11 +1,12 @@
 use ed25519_dalek::{Signer, SigningKey};
-use leocard_blackjack::{BlackjackAction, BlackjackRuleSet, Phase};
-use leocard_doudizhu::{Mode as DoudizhuMode, RuleSet as DoudizhuRuleSet};
+use leocard_blackjack::{BlackjackAction, BlackjackPhase, BlackjackRuleSet};
+use leocard_doudizhu::{DoudizhuMode, DoudizhuRuleSet};
+use leocard_game_common::PlayerId;
 use leocard_host::{ConnectionId, Delivery, GameSetup, HostSession};
 use leocard_protocol::{
     BlackjackCommand, ClientCommand, ClientMessage, GameRules, GameSnapshot, JoinRequest,
-    PlayerGameProfiles, PlayerId, PlayerInteractionKind, ProfileId, QiGui523Command,
-    ReconnectToken, RejectReason, RequestId, RoomId, RoomViolation, SeatId, ServerEvent,
+    PlayerGameProfiles, PlayerInteractionKind, ProfileId, QiGui523Command, ReconnectToken,
+    RejectReason, RequestId, RoomId, RoomViolation, SeatId, ServerEvent,
 };
 use leocard_qigui523::QiGuiRuleSet;
 use std::collections::HashMap;
@@ -57,7 +58,7 @@ impl Room {
     fn finish_blackjack_hand(&mut self) {
         for _ in 0..100 {
             let snapshot = self.snapshot(1).into_blackjack().unwrap();
-            if snapshot.phase == Phase::Complete {
+            if snapshot.phase == BlackjackPhase::Complete {
                 break;
             }
             for connection in 1..=4 {
@@ -65,7 +66,7 @@ impl Room {
                 if snapshot.current_player != Some(PlayerId(connection as u8 - 1)) {
                     continue;
                 }
-                let action = if snapshot.phase == Phase::Betting {
+                let action = if snapshot.phase == BlackjackPhase::Betting {
                     BlackjackAction::Bet { amount: 2 }
                 } else {
                     BlackjackAction::Stand
@@ -126,11 +127,11 @@ fn midgame_spectators_share_selected_player_views_but_cannot_play_in_all_games()
             player_count: 4,
             ..Default::default()
         }),
-        GameRules::TexasHoldem(Default::default()),
+        GameRules::Texas(Default::default()),
         GameRules::Shengji(Default::default()),
         GameRules::Uno(Default::default()),
         GameRules::Mahjong(Default::default()),
-        GameRules::MinecraftGuess(Default::default()),
+        GameRules::McGuess(Default::default()),
         GameRules::Blackjack(Default::default()),
         GameRules::Doudizhu(DoudizhuRuleSet {
             mode: DoudizhuMode::Four,
@@ -283,10 +284,10 @@ fn observers_enter_the_lobby_and_get_seats_before_the_next_match() {
     let observer = lobby
         .players
         .iter()
-        .find(|player| player.id == observer_id)
+        .find(|player| player.player.id == observer_id)
         .unwrap();
     assert!(observer.seat.is_some() && !observer.ready);
-    assert_eq!(observer.completed_games, 0);
+    assert_eq!(observer.player.completed_games, 0);
     room.send(OBSERVER, ClientCommand::SetReady { ready: true });
     for connection in 1..=4 {
         room.send(connection, ClientCommand::SetReady { ready: true });

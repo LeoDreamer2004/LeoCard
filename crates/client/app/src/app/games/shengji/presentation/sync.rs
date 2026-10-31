@@ -3,20 +3,23 @@ use super::{
     ShengjiAudioCue, ShengjiPlayFeedback, ShengjiPresentationKind, ShengjiPresentationState,
     ShengjiSoundKind,
 };
+use crate::app::games::shengji::ShengjiClientState;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
-use leocard_protocol::{ShengjiEvent, ShengjiPublicPlay, ShengjiThrowFailureStage};
-use leocard_shengji::{Category, ShengjiThrowPenalty, ShengjiTrump, compare_for_trick};
+use leocard_protocol::{GameSnapshot, ShengjiEvent, ShengjiPublicPlay, ShengjiThrowFailureStage};
+
+use leocard_shengji::{ShengjiCategory, ShengjiThrowPenalty, ShengjiTrump, compare_for_trick};
 use std::mem;
 
 pub(in crate::app::games::shengji) fn sync_shengji_presentation(
-    mut client: Option<ResMut<ClientResource>>,
+    client: Option<Res<ClientResource>>,
+    mut game_client: ResMut<ShengjiClientState>,
     mut state: ResMut<ShengjiPresentationState>,
     mut ui: ResMut<UiState>,
     mut feedback: MessageWriter<ShengjiPlayFeedback>,
 ) {
-    let Some(client) = client.as_deref_mut() else {
+    let Some(client) = client.as_deref() else {
         if state.active.take().is_some() {
             ui.dirty = true;
         }
@@ -29,17 +32,22 @@ pub(in crate::app::games::shengji) fn sync_shengji_presentation(
         state.clear_trick_history();
         return;
     };
-    let game_state = client.0.model().shengji_game().map(|game| {
-        (
-            game.match_id,
-            game.hand_number,
-            game.throw_failure.clone(),
-            game.rules.throw_penalty,
-            game.dealer,
-            game.trump,
-            game.rules.player_count(),
-        )
-    });
+    let game_state = client
+        .0
+        .model()
+        .game_snapshot()
+        .and_then(GameSnapshot::shengji)
+        .map(|game| {
+            (
+                game.match_id,
+                game.hand_number,
+                game.throw_failure.clone(),
+                game.rules.throw_penalty,
+                game.dealer,
+                game.trump,
+                game.rules.player_count(),
+            )
+        });
     let Some((
         match_id,
         hand_number,
@@ -60,7 +68,7 @@ pub(in crate::app::games::shengji) fn sync_shengji_presentation(
         state.observed_throw_failure = None;
         state.observed_dealer = None;
         state.clear_trick_history();
-        client.0.model_mut().take_shengji_events();
+        game_client.take_shengji_events();
         return;
     };
     let match_changed = state.observed_round.key != Some(match_id);
@@ -97,7 +105,7 @@ pub(in crate::app::games::shengji) fn sync_shengji_presentation(
         state.observed_throw_failure = observed_throw_failure;
     }
 
-    let events = client.0.model_mut().take_shengji_events();
+    let events = game_client.take_shengji_events();
     if events.is_empty() {
         state.observed_dealer = current_dealer;
         return;
@@ -304,8 +312,8 @@ impl ShengjiPresentationState {
         let trump = trump?;
         let lead = &self.current_trick_plays.first()?.play;
         if is_lead
-            || !matches!(lead.category, Category::Suit(_))
-            || challenger.play.category != Category::Trump
+            || !matches!(lead.category, ShengjiCategory::Suit(_))
+            || challenger.play.category != ShengjiCategory::Trump
         {
             return None;
         }
@@ -317,7 +325,7 @@ impl ShengjiPresentationState {
         }
         compare_for_trick(lead, winner, &challenger.play, trump)
             .is_gt()
-            .then_some(winner.category == Category::Trump)
+            .then_some(winner.category == ShengjiCategory::Trump)
     }
 
     pub(crate) fn has_previous_trick(&self) -> bool {

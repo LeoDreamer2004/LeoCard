@@ -6,15 +6,17 @@ use super::{WinStagePartSpec, add_win_stage_component, mahjong_win_effect_color}
 use crate::app::presentation::add_text;
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
-use bevy::prelude::*;
-use leocard_protocol::{MahjongSnapshot, MahjongWinView};
+use leocard_mahjong::MahjongWinRecord;
+use leocard_protocol::MahjongSnapshot;
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 pub(super) struct CenterWinHandContext<'a, 'w, 's> {
     pub commands: &'a mut UiComposer<'w, 's>,
     pub table: Entity,
     pub game: &'a MahjongSnapshot,
-    pub winner: &'a MahjongWinView,
+    pub winner: &'a MahjongWinRecord,
     pub tier: MahjongWinEffectTier,
     pub reveal_duration: f32,
     pub start: f32,
@@ -41,7 +43,7 @@ pub(super) fn render_center_win_hand(context: CenterWinHandContext<'_, '_, '_>) 
     let Some(player) = game
         .players
         .iter()
-        .find(|player| player.id == winner.player)
+        .find(|player| player.player.id == winner.player)
     else {
         return;
     };
@@ -103,7 +105,7 @@ pub(super) fn render_center_win_hand(context: CenterWinHandContext<'_, '_, '_>) 
     add_text(
         commands,
         content,
-        format!("{} 的和牌", player.name),
+        format!("{} 的和牌", player.player.name),
         18.0,
         mahjong_win_effect_color(tier, false, 1.0),
         assets,

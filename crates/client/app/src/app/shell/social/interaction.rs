@@ -2,8 +2,24 @@ use super::*;
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_protocol::{PlayerId, PlayerInteractionKind};
-use leocard_ui::UiComposer;
+use leocard_game_common::PlayerId;
+use leocard_protocol::PlayerInteractionKind;
+use leocard_ui::{UiComposer, anchor_position_in_layer};
+
+pub(crate) fn interaction_anchor_entity(
+    player: PlayerId,
+    avatars: &Query<PlayerAvatar>,
+) -> Option<Entity> {
+    avatars
+        .iter()
+        .filter(|avatar| {
+            avatar.anchor.0 == player
+                && avatar.visibility.get()
+                && avatar.node.size().min_element() > 1.0
+        })
+        .max_by_key(|avatar| avatar.z_index.map_or(0, |index| index.0))
+        .map(|avatar| avatar.entity)
+}
 
 pub(crate) fn interaction_anchor_in_layer(
     player: PlayerId,
@@ -11,24 +27,16 @@ pub(crate) fn interaction_anchor_in_layer(
     layer_transform: &UiGlobalTransform,
     avatars: &Query<PlayerAvatar>,
 ) -> Option<Vec2> {
-    if layer_node.size().min_element() <= 1.0 {
-        return None;
-    }
     let avatar = avatars
-        .iter()
-        .filter(|avatar| {
-            avatar.anchor.0 == player
-                && avatar.visibility.get()
-                && avatar.node.size().min_element() > 1.0
-        })
-        .max_by_key(|avatar| avatar.z_index.map_or(0, |index| index.0))?;
-    let avatar_node = avatar.node;
-    let avatar_transform = avatar.transform;
-    let inverse = layer_transform.try_inverse()?;
-    let avatar_center = avatar_transform.to_scale_angle_translation().2;
-    let mut position = inverse.transform_point2(avatar_center) + layer_node.size() * 0.5;
-    position.y += avatar_node.size().y * 0.16;
-    Some(position * layer_node.inverse_scale_factor())
+        .get(interaction_anchor_entity(player, avatars)?)
+        .ok()?;
+    anchor_position_in_layer(
+        layer_node,
+        layer_transform,
+        avatar.node,
+        avatar.transform,
+        Vec2::new(0.0, 0.16),
+    )
 }
 
 fn interaction_target_offset(kind: PlayerInteractionKind, seed: u32) -> Vec2 {

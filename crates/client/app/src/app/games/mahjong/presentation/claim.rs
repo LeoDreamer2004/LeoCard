@@ -10,11 +10,13 @@ use super::{MahjongTileSize, MahjongTileVisual, add_mahjong_tile_material};
 use crate::app::presentation::{ACCENT, TEXT, add_text, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
-use bevy::prelude::*;
+use leocard_game_common::PlayerId;
 use leocard_mahjong::MahjongClaim;
-use leocard_protocol::{MahjongSnapshot, PlayerId};
+use leocard_protocol::MahjongSnapshot;
 use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
+
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub(crate) struct MahjongClaimLandingSlot {
@@ -43,7 +45,7 @@ impl MahjongSeatGeometry {
     pub(super) fn relative_player(self, game: &MahjongSnapshot, player: PlayerId) -> Option<u8> {
         game.players
             .iter()
-            .find(|candidate| candidate.id == player)
+            .find(|candidate| candidate.player.id == player)
             .map(|candidate| (candidate.seat.0 + 4 - self.own_seat) % 4)
     }
 

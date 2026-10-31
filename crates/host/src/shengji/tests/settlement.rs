@@ -1,7 +1,8 @@
 use super::*;
-use leocard_protocol::PlayerId;
+use leocard_game_common::PlayerId;
+
 use leocard_shengji::{
-    Category, Component, HandResult, ShengjiClassifiedPlay, ShengjiPlayerId, ShengjiRank,
+    ShengjiCategory, ShengjiClassifiedPlay, ShengjiComponent, ShengjiHandResult, ShengjiRank,
     ShengjiSuit, ShengjiTeamId,
 };
 
@@ -9,10 +10,10 @@ pub(super) fn result_for_reference_points(
     dealer_wins: bool,
     promoted_steps: u8,
     collecting_score: u32,
-) -> HandResult {
+) -> ShengjiHandResult {
     let dealer_team = ShengjiTeamId(0);
-    HandResult {
-        dealer: ShengjiPlayerId(0),
+    ShengjiHandResult {
+        dealer: PlayerId(0),
         dealer_team,
         collecting_team: ShengjiTeamId(1),
         trick_points: collecting_score,
@@ -26,7 +27,7 @@ pub(super) fn result_for_reference_points(
             ShengjiTeamId(1)
         },
         promoted_steps,
-        next_dealer: ShengjiPlayerId(1),
+        next_dealer: PlayerId(1),
         levels: [ShengjiRank::Two, ShengjiRank::Two],
     }
 }
@@ -129,28 +130,28 @@ fn throw_profile_lengths_include_every_internal_sequence() {
     let (mut session, _, card) = started_session();
     let play = ShengjiClassifiedPlay {
         cards: vec![card; 26],
-        category: Category::Suit(ShengjiSuit::Diamond),
+        category: ShengjiCategory::Suit(ShengjiSuit::Diamond),
         components: vec![
-            Component::Single { card, strength: 2 },
-            Component::Pair {
+            ShengjiComponent::Single { card, strength: 2 },
+            ShengjiComponent::Pair {
                 cards: [card; 2],
                 strength: 3,
             },
-            Component::Triple {
+            ShengjiComponent::Triple {
                 cards: [card; 3],
                 strength: 4,
             },
-            Component::Tractor {
+            ShengjiComponent::Tractor {
                 cards: vec![card; 6],
                 pair_count: 3,
                 top_strength: 8,
             },
-            Component::Titanic {
+            ShengjiComponent::Titanic {
                 cards: vec![card; 6],
                 triple_count: 2,
                 top_strength: 9,
             },
-            Component::Spaceship {
+            ShengjiComponent::Spaceship {
                 cards: vec![card; 8],
                 quad_count: 2,
                 top_strength: 10,
@@ -158,7 +159,7 @@ fn throw_profile_lengths_include_every_internal_sequence() {
         ],
     };
 
-    session.record_profile_play(ShengjiPlayerId(0), &play, true, true);
+    session.record_profile_play(PlayerId(0), &play, true, true);
 
     let stats = &session.statistics.hand.profiles[0];
     assert_eq!(stats.plays, 1);

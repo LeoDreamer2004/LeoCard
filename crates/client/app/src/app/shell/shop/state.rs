@@ -9,7 +9,7 @@ impl Default for ShopUiState {
     fn default() -> Self {
         Self {
             open: false,
-            category: GameKind::TexasHoldem,
+            category: GameKind::Texas,
         }
     }
 }

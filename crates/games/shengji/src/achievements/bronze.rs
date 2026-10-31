@@ -1,6 +1,6 @@
 use super::facts::*;
 use super::macros::shengji;
-use crate::Component;
+use crate::ShengjiComponent;
 use leocard_achievements::{AchievementDefinition, award};
 
 pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
@@ -96,7 +96,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         Bronze,
         "打出至少4连的拖拉机",
         |event| play(event, |facts, _| {
-            facts.play.components.iter().any(|component| matches!(component, Component::Tractor { pair_count, .. } if *pair_count >= 4))
+            facts.play.components.iter().any(|component| matches!(component, ShengjiComponent::Tractor { pair_count, .. } if *pair_count >= 4))
         }),
         1
     ),

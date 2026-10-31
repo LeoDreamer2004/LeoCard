@@ -1,19 +1,30 @@
 use super::*;
-use leocard_minecraft_guess::{
-    GameState, GraphView, GuessCategoryCount, GuessCategoryStatistics, GuessMode,
-    MinecraftGuessRuleSet,
+use leocard_achievements::TrophyCounts;
+use leocard_blackjack::BlackjackProfileStats;
+use leocard_doudizhu::DoudizhuProfileStats;
+use leocard_game_common::PlayerId;
+use leocard_mc_guess::{
+    McGuessCategoryCount, McGuessCategoryStatistics, McGuessGameState, McGuessGraphView,
+    McGuessMode, McGuessProfileStats, McGuessRuleSet,
 };
-use leocard_qigui523::QiGuiRuleSet;
-use leocard_shengji::{Component, ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit};
-use leocard_texas_holdem::TexasHoldemRuleSet;
+
+use leocard_qigui523::{QiGui523ProfileStats, QiGuiRuleSet};
+
+use leocard_shengji::{
+    ShengjiCard, ShengjiComponent, ShengjiProfileStats, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
+};
+
+use leocard_texas_holdem::{TexasProfileStats, TexasRuleSet};
+
+use leocard_uno::UnoProfileStats;
 
 #[test]
 fn graph_combo_targets_and_success_counts_round_trip_through_protocol_codec() {
-    let rules = MinecraftGuessRuleSet {
-        mode: GuessMode::Graph,
+    let rules = McGuessRuleSet {
+        mode: McGuessMode::Graph,
         ..Default::default()
     };
-    let mut game = GameState::new_graph(vec![0, 1], rules, 5).unwrap();
+    let mut game = McGuessGameState::new_graph(vec![PlayerId(0), PlayerId(1)], rules, 5).unwrap();
     let mut revealed = game.clone();
     revealed.reveal_graph().unwrap();
     let answer = revealed
@@ -25,9 +36,9 @@ fn graph_combo_targets_and_success_counts_round_trip_through_protocol_codec() {
         .unwrap()
         .id
         .clone();
-    game.guess(0, &answer).unwrap();
+    game.guess(PlayerId(0), &answer).unwrap();
     let graph = game.graph_view().unwrap();
-    let decoded: GraphView = decode_frame(&encode_frame(&graph).unwrap()).unwrap();
+    let decoded: McGuessGraphView = decode_frame(&encode_frame(&graph).unwrap()).unwrap();
     assert_eq!(graph, decoded);
     assert_eq!(graph.guesses.last().unwrap().combo, 1);
     let combo = graph.combo.as_ref().unwrap();
@@ -49,12 +60,12 @@ fn four_deck_spaceship_component_round_trips_through_protocol_codec() {
             (0..4).map(move |deck| ShengjiCard::suited(deck, ShengjiSuit::Spade, rank))
         })
         .collect::<Vec<_>>();
-    let component = Component::Spaceship {
+    let component = ShengjiComponent::Spaceship {
         cards,
         quad_count: 2,
         top_strength: 2,
     };
-    let decoded: Component = decode_frame(&encode_frame(&component).unwrap()).unwrap();
+    let decoded: ShengjiComponent = decode_frame(&encode_frame(&component).unwrap()).unwrap();
     assert_eq!(decoded, component);
 }
 
@@ -75,18 +86,18 @@ fn client_message_round_trips_through_tcp_frame() {
                     total_chips_delta: 42,
                     ..Default::default()
                 }),
-                achievements: AchievementCounts {
+                achievements: TrophyCounts {
                     gold: 2,
                     silver: 7,
                     bronze: 11,
                 },
                 coins: 300,
-                minecraft_guess: Some(MinecraftGuessProfileStats {
+                mc_guess: Some(McGuessProfileStats {
                     completed_games: 2,
                     total_score: 38,
-                    categories: GuessCategoryStatistics {
-                        block: GuessCategoryCount { games: 4, wins: 1 },
-                        item: GuessCategoryCount { games: 2, wins: 1 },
+                    categories: McGuessCategoryStatistics {
+                        block: McGuessCategoryCount { games: 4, wins: 1 },
+                        item: McGuessCategoryCount { games: 2, wins: 1 },
                         ..Default::default()
                     },
                     ..Default::default()
@@ -100,11 +111,11 @@ fn client_message_round_trips_through_tcp_frame() {
                     longest_straight: 7,
                     ..QiGui523ProfileStats::default()
                 }),
-                texas_holdem: Some(TexasHoldemProfileStats {
+                texas: Some(TexasProfileStats {
                     completed_games: 3,
                     total_reference_delta: -1,
                     total_final_chips: 240,
-                    ..TexasHoldemProfileStats::default()
+                    ..TexasProfileStats::default()
                 }),
                 shengji: Some(ShengjiProfileStats {
                     completed_games: 4,
@@ -206,16 +217,16 @@ fn lobby_game_kind_and_rules_remain_consistent() {
     assert_eq!(lobby.game, lobby.rules.kind());
     assert_eq!(lobby.rules.qigui523(), Some(&rules));
 
-    let texas_rules = TexasHoldemRuleSet::default();
+    let texas_rules = TexasRuleSet::default();
     let texas_lobby = LobbySnapshot {
-        game: GameKind::TexasHoldem,
-        rules: GameRules::TexasHoldem(texas_rules),
+        game: GameKind::Texas,
+        rules: GameRules::Texas(texas_rules),
         host_port: 52301,
         host: None,
         players: Vec::new(),
     };
     assert_eq!(texas_lobby.game, texas_lobby.rules.kind());
-    assert_eq!(texas_lobby.rules.texas_holdem(), Some(&texas_rules));
+    assert_eq!(texas_lobby.rules.texas(), Some(&texas_rules));
 
     let shengji_rules = ShengjiRuleSet::default();
     let shengji_lobby = LobbySnapshot {

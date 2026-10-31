@@ -1,25 +1,25 @@
-use super::action::AutomaticMahjongAction;
+use leocard_game_common::PlayerId;
 use leocard_mahjong::{
-    GameState, MahjongClaim, MahjongClaimOption, MahjongMeldKind, MahjongPlayerId, MahjongTile,
-    MahjongTileKind, Phase,
+    MahjongBotAction, MahjongClaim, MahjongClaimOption, MahjongGameState, MahjongMeldKind,
+    MahjongPhase, MahjongTile, MahjongTileKind,
 };
 
 pub(super) struct Policy;
 
 impl Policy {
-    pub fn choose(game: &GameState, player: MahjongPlayerId) -> Option<AutomaticMahjongAction> {
+    pub fn choose(game: &MahjongGameState, player: PlayerId) -> Option<MahjongBotAction> {
         choose_action(game, player)
     }
 }
 
-fn choose_action(game: &GameState, player: MahjongPlayerId) -> Option<AutomaticMahjongAction> {
+fn choose_action(game: &MahjongGameState, player: PlayerId) -> Option<MahjongBotAction> {
     match game.phase() {
-        Phase::WaitingForClaims(pending) => {
+        MahjongPhase::WaitingForClaims(pending) => {
             let options = pending.options_for(player)?;
             if options.contains(&MahjongClaimOption::Win)
                 && game.legal_claim_win_available(player).ok()?
             {
-                return Some(AutomaticMahjongAction::Respond(MahjongClaim::Win));
+                return Some(MahjongBotAction::Respond(MahjongClaim::Win));
             }
             let claim = if options.contains(&MahjongClaimOption::Kong) {
                 MahjongClaim::Kong
@@ -33,11 +33,11 @@ fn choose_action(game: &GameState, player: MahjongPlayerId) -> Option<AutomaticM
             } else {
                 MahjongClaim::Pass
             };
-            Some(AutomaticMahjongAction::Respond(claim))
+            Some(MahjongBotAction::Respond(claim))
         }
-        Phase::Playing if game.current_player() == player => {
+        MahjongPhase::Playing if game.current_player() == player => {
             if game.legal_self_draw_available(player).ok()? {
-                return Some(AutomaticMahjongAction::SelfDraw);
+                return Some(MahjongBotAction::SelfDraw);
             }
             let state = game.player(player)?;
             if game.wall_len() > 0
@@ -50,7 +50,7 @@ fn choose_action(game: &GameState, player: MahjongPlayerId) -> Option<AutomaticM
                         == 4
                 })
             {
-                return Some(AutomaticMahjongAction::ConcealedKong(kind));
+                return Some(MahjongBotAction::ConcealedKong(kind));
             }
             if game.wall_len() > 0
                 && let Some(tile) = state.hand().iter().copied().find(|tile| {
@@ -59,14 +59,14 @@ fn choose_action(game: &GameState, player: MahjongPlayerId) -> Option<AutomaticM
                     })
                 })
             {
-                return Some(AutomaticMahjongAction::AddedKong(tile));
+                return Some(MahjongBotAction::AddedKong(tile));
             }
-            automatic_discard(state.hand()).map(AutomaticMahjongAction::Discard)
+            automatic_discard(state.hand()).map(MahjongBotAction::Discard)
         }
-        Phase::Dealing { .. }
-        | Phase::ReplacingFlower { .. }
-        | Phase::Playing
-        | Phase::Finished(_) => None,
+        MahjongPhase::Dealing { .. }
+        | MahjongPhase::ReplacingFlower { .. }
+        | MahjongPhase::Playing
+        | MahjongPhase::Finished(_) => None,
     }
 }
 

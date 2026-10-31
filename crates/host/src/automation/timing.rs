@@ -1,4 +1,4 @@
-use leocard_protocol::PlayerId;
+use leocard_game_common::PlayerId;
 use std::time::Duration;
 
 pub(crate) const AUTOMATIC_ACTION_DELAY: Duration = Duration::from_secs(1);

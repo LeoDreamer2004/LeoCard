@@ -1,7 +1,8 @@
 use super::{Participant, RoomSession};
 use crate::{ConnectionId, Delivery};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    JoinRequest, PlayerId, PlayerViolation, RejectReason, RequestId, RoomViolation, ServerEvent,
+    JoinRequest, PlayerViolation, RejectReason, RequestId, RoomViolation, ServerEvent,
 };
 
 const MAX_SPECTATORS: usize = 8;

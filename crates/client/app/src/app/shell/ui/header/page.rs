@@ -1,6 +1,6 @@
 //! 顶栏及其连接状态、设置和个人资料入口。
 
-use crate::app::presentation::{BORDER, GAME_SIDE_CONTROL_SCALE, MUTED, add_text};
+use crate::app::presentation::{BORDER, MUTED, add_text};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
 #[cfg(not(target_os = "android"))]
 use crate::app::shell::SakuraUiAction;
@@ -12,6 +12,12 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
 use leocard_ui::{UiComposer, spawn_node};
+
+const PAGE_HEADER_SCALE: f32 = if cfg!(target_os = "android") {
+    1.2
+} else {
+    1.0
+};
 
 pub(in crate::app::shell) struct Header<'a> {
     pub(super) client: Option<&'a ClientResource>,
@@ -48,7 +54,7 @@ impl<'a> Header<'a> {
             root,
             Node {
                 width: percent(100),
-                height: px(72.0 * GAME_SIDE_CONTROL_SCALE),
+                height: px(72.0 * PAGE_HEADER_SCALE),
                 flex_shrink: 0.0,
                 border: UiRect::bottom(px(2)),
                 padding: UiRect {
@@ -80,7 +86,7 @@ impl<'a> Header<'a> {
             Node {
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
-                column_gap: px(14.0 * GAME_SIDE_CONTROL_SCALE),
+                column_gap: px(14.0 * PAGE_HEADER_SCALE),
                 ..default()
             },
             None,
@@ -89,7 +95,7 @@ impl<'a> Header<'a> {
             commands,
             left,
             "LeoCard",
-            25.0 * GAME_SIDE_CONTROL_SCALE,
+            25.0 * PAGE_HEADER_SCALE,
             Color::srgb(0.84, 0.81, 1.0),
             self.assets,
         );
@@ -99,7 +105,7 @@ impl<'a> Header<'a> {
                 left,
                 Node {
                     width: px(1),
-                    height: px(24.0 * GAME_SIDE_CONTROL_SCALE),
+                    height: px(24.0 * PAGE_HEADER_SCALE),
                     ..default()
                 },
                 Some(BORDER),
@@ -109,7 +115,7 @@ impl<'a> Header<'a> {
                 commands,
                 left,
                 format!("端口 {host_port}"),
-                15.0 * GAME_SIDE_CONTROL_SCALE,
+                15.0 * PAGE_HEADER_SCALE,
                 MUTED,
                 self.assets,
             );
@@ -120,7 +126,7 @@ impl<'a> Header<'a> {
             Node {
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
-                column_gap: px(14.0 * GAME_SIDE_CONTROL_SCALE),
+                column_gap: px(14.0 * PAGE_HEADER_SCALE),
                 ..default()
             },
             None,
@@ -140,15 +146,16 @@ impl<'a> Header<'a> {
                 self.assets.home.network_icon.clone(),
                 CozyButtonVariant::Cool,
                 "联机",
+                PAGE_HEADER_SCALE,
             );
             ShopEntry {
                 assets: self.assets,
             }
-            .render(commands, right);
+            .render(commands, right, PAGE_HEADER_SCALE);
             AchievementEntry {
                 assets: self.assets,
             }
-            .render(commands, right);
+            .render(commands, right, PAGE_HEADER_SCALE);
         }
         add_cozy_labeled_icon_button(
             commands,
@@ -158,6 +165,7 @@ impl<'a> Header<'a> {
             self.assets.home.settings_icon.clone(),
             CozyButtonVariant::Neutral,
             "设置",
+            PAGE_HEADER_SCALE,
         );
         ProfileEntry {
             form: self.form,
@@ -167,8 +175,8 @@ impl<'a> Header<'a> {
         .render(
             commands,
             right,
-            44.0 * GAME_SIDE_CONTROL_SCALE,
-            17.5 * GAME_SIDE_CONTROL_SCALE,
+            44.0 * PAGE_HEADER_SCALE,
+            17.5 * PAGE_HEADER_SCALE,
         );
     }
 }

@@ -1,12 +1,13 @@
 //! Shader-driven rounded trace around the player whose turn is active.
 
-use super::ACCENT;
-use super::smootherstep;
+use super::{ACCENT, smootherstep};
+
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
-use leocard_protocol::{GameKind, MatchId, PlayerId};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{GameKind, MatchId};
 use leocard_ui::UiComposer;
 use std::collections::{HashMap, HashSet};
 

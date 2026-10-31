@@ -4,10 +4,10 @@ use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, GameButtonTone};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
-use leocard_protocol::{
-    PlayerId, ShengjiFiveTrumpCrossingStage, ShengjiPhaseView, ShengjiSnapshot,
-};
-use leocard_shengji::forced_follow_cards;
+use leocard_game_common::PlayerId;
+use leocard_protocol::{ShengjiPhaseView, ShengjiSnapshot};
+use leocard_shengji::{ShengjiFiveTrumpCrossingStage, forced_follow_cards};
+
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) fn add_shengji_actions(

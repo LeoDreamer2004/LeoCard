@@ -1,8 +1,11 @@
 use super::scores::{WaitScoreCalculator, WaitScores};
+use leocard_game_common::PlayerId;
 use leocard_mahjong::{
-    MahjongKongKind, MahjongMeldKind, MahjongPlayerId, MahjongTileKind, Meld, waiting_tile_kinds,
+    MahjongKongKind, MahjongMeld, MahjongMeldKind, MahjongPublicMeld, MahjongTileKind,
+    waiting_tile_kinds,
 };
-use leocard_protocol::{MahjongPhaseView, MahjongPublicMeldView, MahjongSnapshot};
+
+use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 use std::collections::HashMap;
 
 pub(in super::super) fn mahjong_discard_waits(
@@ -56,14 +59,17 @@ pub(in super::super) struct MahjongWait {
 }
 
 struct WaitCalculator {
-    melds: Vec<Meld>,
+    melds: Vec<MahjongMeld>,
     visible: [u8; 34],
     scores: Option<WaitScoreCalculator>,
 }
 
 impl WaitCalculator {
     fn new(game: &MahjongSnapshot, show_fans: bool) -> Option<Self> {
-        let own = game.players.iter().find(|player| player.id == game.you)?;
+        let own = game
+            .players
+            .iter()
+            .find(|player| player.player.id == game.you)?;
         let melds = own
             .melds
             .iter()
@@ -98,19 +104,19 @@ impl WaitCalculator {
     }
 }
 
-pub(super) fn core_meld(meld: &MahjongPublicMeldView) -> Option<Meld> {
+pub(super) fn core_meld(meld: &MahjongPublicMeld) -> Option<MahjongMeld> {
     let tile = meld.tile?;
-    let source = MahjongPlayerId(meld.claimed_from.map_or(0, |player| player.0 as usize));
+    let source = meld.claimed_from.unwrap_or(PlayerId(0));
     Some(match meld.kind {
         MahjongMeldKind::Chow => {
             let MahjongTileKind::Suited { suit, rank } = tile else {
                 return None;
             };
-            Meld::chow(suit, rank, source)
+            MahjongMeld::chow(suit, rank, source)
         }
-        MahjongMeldKind::Pung => Meld::pung(tile, source),
-        MahjongMeldKind::Kong(MahjongKongKind::Melded) => Meld::melded_kong(tile, source),
-        MahjongMeldKind::Kong(MahjongKongKind::Concealed) => Meld::concealed_kong(tile),
+        MahjongMeldKind::Pung => MahjongMeld::pung(tile, source),
+        MahjongMeldKind::Kong(MahjongKongKind::Melded) => MahjongMeld::melded_kong(tile, source),
+        MahjongMeldKind::Kong(MahjongKongKind::Concealed) => MahjongMeld::concealed_kong(tile),
     })
 }
 
@@ -132,7 +138,7 @@ fn visible_kind_counts(game: &MahjongSnapshot) -> [u8; 34] {
         add(discard.tile.kind());
     }
     for player in &game.players {
-        if player.id != game.you
+        if player.player.id != game.you
             && let Some(revealed) = &player.revealed_hand
         {
             for tile in revealed {
@@ -140,7 +146,7 @@ fn visible_kind_counts(game: &MahjongSnapshot) -> [u8; 34] {
             }
         }
         for meld in &player.melds {
-            if player.id != game.you
+            if player.player.id != game.you
                 && matches!(meld.kind, MahjongMeldKind::Kong(MahjongKongKind::Concealed))
             {
                 continue;

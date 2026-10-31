@@ -10,12 +10,12 @@ use crate::app::presentation::{
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SocialUiState, UiAction, add_cozy_panel_with_skin};
 use bevy::picking::Pickable;
-use bevy::prelude::*;
-use leocard_protocol::{
-    GameKind, PlayerId, UnoPendingSwapView, UnoPhaseView, UnoPlayerState, UnoSnapshot,
-};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{GameKind, UnoPendingSwapView, UnoPhaseView, UnoPlayerView, UnoSnapshot};
 use leocard_ui::{UiComposer, add_avatar_status_overlay, spawn_node};
 use leocard_uno::UnoCard;
+
+use bevy::prelude::*;
 
 const UNO_OPPONENT_HAND_WIDTH: f32 = 172.0;
 const UNO_OPPONENT_CARD_WIDTH: f32 = 44.0;
@@ -67,7 +67,7 @@ pub(super) fn add_uno_player_panel(
     commands: &mut UiComposer,
     table: Entity,
     game: &UnoSnapshot,
-    player: &UnoPlayerState,
+    player: &UnoPlayerView,
     (left, top): (f32, f32),
     ui: &UnoUiState,
     social: &SocialUiState,
@@ -80,18 +80,18 @@ pub(super) fn add_uno_player_panel(
 ) {
     let selecting = match game.pending_swap {
         Some(UnoPendingSwapView::SwapOneTarget { player: actor }) => {
-            actor == game.you && player.id != game.you && !player.eliminated
+            actor == game.you && player.player.id != game.you && !player.eliminated
         }
         Some(UnoPendingSwapView::ForceTrade { player: actor }) => {
             actor == game.you && !player.eliminated
         }
         Some(UnoPendingSwapView::SevenSwap { player: actor }) => {
-            actor == game.you && player.id != game.you && !player.eliminated
+            actor == game.you && player.player.id != game.you && !player.eliminated
         }
         _ => false,
     };
-    let selected = selecting && ui.swap_targets.contains(&player.id);
-    let avatar_handle = player.avatar.and_then(|id| avatars.remote.get(&id));
+    let selected = selecting && ui.swap_targets.contains(&player.player.id);
+    let avatar_handle = player.player.avatar.and_then(|id| avatars.remote.get(&id));
     let portrait = add_player_portrait(
         commands,
         table,
@@ -104,23 +104,23 @@ pub(super) fn add_uno_player_panel(
             ..default()
         },
         PlayerPortraitSpec {
-            player: player.id,
+            player: player.player.id,
             profile: PlayerMenuProfile {
-                name: &player.name,
+                name: &player.player.name,
                 avatar: avatar_handle,
-                reference_points: player.reference_points,
-                completed_games: player.completed_games,
-                game_profiles: &player.game_profiles,
+                reference_points: player.player.reference_points,
+                completed_games: player.player.completed_games,
+                game_profiles: &player.player.game_profiles,
             },
             avatar_size: UNO_AVATAR_SIZE,
             auto_play: player.auto_play,
-            menu_open: !selecting && social.interaction_menu_open == Some(player.id),
+            menu_open: !selecting && social.interaction_menu_open == Some(player.player.id),
             name_color: if player.connected { TEXT } else { MUTED },
         },
         assets,
     );
     let panel = portrait.portrait;
-    attach_start_game_seat_transition(commands, panel, player.id, start_transition_active);
+    attach_start_game_seat_transition(commands, panel, player.player.id, start_transition_active);
     if intro_only {
         return;
     }
@@ -133,7 +133,9 @@ pub(super) fn add_uno_player_panel(
     if selecting {
         commands
             .entity(panel)
-            .insert(UiAction::Uno(UnoUiAction::ToggleSwapTarget(player.id)));
+            .insert(UiAction::Uno(UnoUiAction::ToggleSwapTarget(
+                player.player.id,
+            )));
         commands.entity(portrait.avatar_ring).insert((
             UnoSwapTargetPanel { selected },
             BackgroundColor(Color::NONE),
@@ -142,33 +144,33 @@ pub(super) fn add_uno_player_panel(
         ));
     }
     if !player.eliminated
-        && game.current_player == Some(player.id)
+        && game.current_player == Some(player.player.id)
         && matches!(game.phase, UnoPhaseView::Playing)
     {
         add_turn_border_trace_with_radius(
             commands,
             portrait.avatar_ring,
             turn_border_materials,
-            TurnBorderAnimationKey::new(GameKind::Uno, game.match_id, player.id),
+            TurnBorderAnimationKey::new(GameKind::Uno, game.match_id, player.player.id),
             UNO_AVATAR_SIZE * 0.2,
             UNO_AVATAR_SIZE,
         );
     }
-    if player.id == game.host {
+    if player.player.id == game.host {
         add_host_crown(commands, portrait.avatar_ring, assets);
     }
     add_uno_card_count(
         commands,
         panel,
         player.hand_len.into(),
-        if game.uno_exposed.contains(&player.id) {
+        if game.uno_exposed.contains(&player.player.id) {
             DANGER
         } else {
             MUTED
         },
         assets,
     );
-    let finished_hand = uno_finished_hand(game, player.id);
+    let finished_hand = uno_finished_hand(game, player.player.id);
     if finished_hand.is_none() && !player.inactive_hand.is_empty() {
         let row = spawn_node(
             commands,
@@ -208,7 +210,7 @@ pub(super) fn add_uno_player_panel(
                 slot,
                 (
                     UnoFlipTarget::Opponent {
-                        player: player.id,
+                        player: player.player.id,
                         index,
                     },
                     Node {
@@ -407,8 +409,8 @@ pub(super) fn add_uno_swap_selection_prompt(
             let target_name = game
                 .players
                 .iter()
-                .find(|candidate| candidate.id == target)
-                .map(|candidate| candidate.name.as_str())
+                .find(|candidate| candidate.player.id == target)
+                .map(|candidate| candidate.player.name.as_str())
                 .unwrap_or("目标玩家");
             let title = if player == game.you {
                 format!("已从 {target_name} 随机取得一张牌，请选择一张交还")
@@ -426,8 +428,8 @@ pub(super) fn add_uno_swap_selection_prompt(
     let actor_name = game
         .players
         .iter()
-        .find(|candidate| candidate.id == actor)
-        .map(|candidate| candidate.name.as_str())
+        .find(|candidate| candidate.player.id == actor)
+        .map(|candidate| candidate.player.name.as_str())
         .unwrap_or("玩家");
     let title = if own_turn {
         title.to_owned()
@@ -566,9 +568,9 @@ fn uno_opponent_hand_reveal(card_count: usize) -> f32 {
     }
 }
 
-pub(super) fn uno_skip_count(game: &UnoSnapshot, player: &UnoPlayerState) -> u16 {
+pub(super) fn uno_skip_count(game: &UnoSnapshot, player: &UnoPlayerView) -> u16 {
     player.skipped_turns
-        + if game.current_player == Some(player.id) {
+        + if game.current_player == Some(player.player.id) {
             game.pending_skip
         } else {
             0

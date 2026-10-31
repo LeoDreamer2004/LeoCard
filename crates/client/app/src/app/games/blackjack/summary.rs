@@ -3,13 +3,14 @@ use crate::app::presentation::{
     PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, add_ranked_summary,
 };
 use crate::app::shell::{SummaryActions, add_summary_actions};
-use bevy::prelude::*;
-use leocard_blackjack::Phase;
+use leocard_blackjack::BlackjackPhase;
 use leocard_protocol::{BlackjackSnapshot, PlayerScore};
 use leocard_ui::UiComposer;
 
+use bevy::prelude::*;
+
 pub(crate) fn blackjack_summary_descriptor(game: &BlackjackSnapshot) -> Option<SummaryDescriptor> {
-    (game.phase == Phase::Complete).then(|| SummaryDescriptor {
+    (game.phase == BlackjackPhase::Complete).then(|| SummaryDescriptor {
         match_id: game.match_id,
         settlement_index: Some(u32::from(game.round)),
         entry_count: game.players.len(),
@@ -56,7 +57,7 @@ impl BlackjackTable<'_> {
                             completed_games: view.player.completed_games,
                             game_profiles: &view.player.game_profiles,
                         },
-                        ready: view.player.ready,
+                        ready: view.ready,
                     })
                     .collect(),
                 scores: scores.into_iter().map(Into::into).collect(),
@@ -78,7 +79,7 @@ impl BlackjackTable<'_> {
                     .players
                     .iter()
                     .find(|view| view.player.id == self.game.you)
-                    .map(|view| view.player.ready),
+                    .map(|view| view.ready),
                 again: "开始下一场",
             },
             self.assets,

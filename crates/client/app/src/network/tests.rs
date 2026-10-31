@@ -4,10 +4,12 @@ use super::worker::run_network;
 use super::{LocalPlayerConnection, NETWORK_ROOM_ID, NetworkState, TcpGameClient};
 use crate::ClientModel;
 use image::{DynamicImage, ImageFormat, Rgba, RgbaImage};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    AVATAR_DIMENSION, ClientCommand, ClientMessage, GameRules, LobbySnapshot, PROTOCOL_VERSION,
-    PlayerId, RequestId, Revision, SeatId, ServerEvent, ServerMessage,
+    AVATAR_DIMENSION, ClientCommand, ClientMessage, GameRules, GameSnapshot, LobbySnapshot,
+    PROTOCOL_VERSION, RequestId, Revision, SeatId, ServerEvent, ServerMessage,
 };
+
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_tcp::{TcpClient, read_message, write_message};
 use std::io::Cursor;
@@ -161,34 +163,96 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
             .is_some_and(|lobby| lobby.players.iter().all(|player| player.ready))
     });
     host.send(ClientCommand::StartGame);
-    wait_for(&mut host, |model| model.qigui523_game().is_some());
-    wait_for(&mut guest_a, |model| model.qigui523_game().is_some());
-    wait_for(&mut guest_b, |model| model.qigui523_game().is_some());
+    wait_for(&mut host, |model| {
+        model
+            .game_snapshot()
+            .and_then(GameSnapshot::qigui523)
+            .is_some()
+    });
+    wait_for(&mut guest_a, |model| {
+        model
+            .game_snapshot()
+            .and_then(GameSnapshot::qigui523)
+            .is_some()
+    });
+    wait_for(&mut guest_b, |model| {
+        model
+            .game_snapshot()
+            .and_then(GameSnapshot::qigui523)
+            .is_some()
+    });
     assert_eq!(guest_a.model().you(), Some(PlayerId(2)));
     assert_eq!(guest_b.model().you(), Some(PlayerId(1)));
     let mut observer = TcpGameClient::join("观战", &address).unwrap();
-    wait_for(&mut observer, |model| model.qigui523_game().is_some());
+    wait_for(&mut observer, |model| {
+        model
+            .game_snapshot()
+            .and_then(GameSnapshot::qigui523)
+            .is_some()
+    });
     assert!(observer.model().is_spectating());
-    assert_eq!(observer.model().qigui523_rules(), Some(&rules));
-    let viewed = observer.model().qigui523_game().unwrap();
+    assert_eq!(
+        observer.model().game_rules().and_then(GameRules::qigui523),
+        Some(&rules)
+    );
+    let viewed = observer
+        .model()
+        .game_snapshot()
+        .and_then(GameSnapshot::qigui523)
+        .unwrap();
     assert_ne!(observer.model().you(), Some(viewed.you));
     assert_eq!(viewed.your_hand.len(), usize::from(rules.hand_size));
     assert!(!observer.model().active_game_meta().unwrap().is_host());
     let target = guest_a.model().you().unwrap();
     assert!(observer.send(ClientCommand::SpectatePlayer { player: target }));
     wait_for(&mut observer, |model| {
-        model.qigui523_game().is_some_and(|game| game.you == target)
+        model
+            .game_snapshot()
+            .and_then(GameSnapshot::qigui523)
+            .is_some_and(|game| game.you == target)
     });
     assert_eq!(
-        observer.model().qigui523_game().unwrap().your_hand,
-        guest_a.model().qigui523_game().unwrap().your_hand
+        observer
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::qigui523)
+            .unwrap()
+            .your_hand,
+        guest_a
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::qigui523)
+            .unwrap()
+            .your_hand
     );
     assert!(observer.model().is_spectating());
-    assert_eq!(observer.model().qigui523_game().unwrap().players.len(), 3);
-    assert!(!observer.send(ClientCommand::SetReady { ready: true }));
-    assert_eq!(guest_a.model().qigui523_game().unwrap().host_port, port);
     assert_eq!(
-        host.model().qigui523_game().unwrap().your_hand.len(),
+        observer
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::qigui523)
+            .unwrap()
+            .players
+            .len(),
+        3
+    );
+    assert!(!observer.send(ClientCommand::SetReady { ready: true }));
+    assert_eq!(
+        guest_a
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::qigui523)
+            .unwrap()
+            .host_port,
+        port
+    );
+    assert_eq!(
+        host.model()
+            .game_snapshot()
+            .and_then(GameSnapshot::qigui523)
+            .unwrap()
+            .your_hand
+            .len(),
         usize::from(rules.hand_size)
     );
 

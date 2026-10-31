@@ -1,55 +1,62 @@
-use super::{GameError, GameState, HandState, HandStatus, Phase, PlayerState, PlayerStatistics};
-use crate::{BlackjackCard, BlackjackRuleSet, HandValue, build_shoe};
+use super::{
+    BlackjackGameError, BlackjackGameState, BlackjackHandState, BlackjackHandStatus,
+    BlackjackPhase, BlackjackPlayerState, BlackjackPlayerStatistics,
+};
+use crate::{BlackjackCard, BlackjackHandValue, BlackjackRuleSet, build_shoe};
+use leocard_game_common::PlayerId;
 use std::collections::HashMap;
 
-impl GameState {
+impl BlackjackGameState {
     pub fn new(
         rules: BlackjackRuleSet,
         player_count: u8,
         shoe: Vec<BlackjackCard>,
-    ) -> Result<Self, GameError> {
+    ) -> Result<Self, BlackjackGameError> {
         if !rules.is_valid() {
-            return Err(GameError::InvalidRules);
+            return Err(BlackjackGameError::InvalidRules);
         }
         if !(BlackjackRuleSet::MIN_PLAYERS..=BlackjackRuleSet::MAX_PLAYERS).contains(&player_count)
         {
-            return Err(GameError::InvalidPlayerCount);
+            return Err(BlackjackGameError::InvalidPlayerCount);
         }
         validate_shoe(&shoe)?;
         let mut game = Self {
             rules,
             players: (0..player_count)
-                .map(|_| PlayerState {
+                .map(|_| BlackjackPlayerState {
                     stack: rules.initial_chips,
                     round_start_stack: rules.initial_chips,
                     hands: Vec::new(),
-                    statistics: PlayerStatistics::default(),
+                    statistics: BlackjackPlayerStatistics::default(),
                 })
                 .collect(),
             dealer: Vec::new(),
             shoe,
-            phase: Phase::Betting,
+            phase: BlackjackPhase::Betting,
             round: 1,
-            current: Some(0),
+            current: Some(PlayerId(0)),
             hand: 0,
         };
         game.shoe.reverse();
         Ok(game)
     }
 
-    pub fn start_next_round(&mut self, mut shoe: Vec<BlackjackCard>) -> Result<(), GameError> {
-        if self.phase != Phase::Complete {
-            return Err(GameError::WrongPhase);
+    pub fn start_next_round(
+        &mut self,
+        mut shoe: Vec<BlackjackCard>,
+    ) -> Result<(), BlackjackGameError> {
+        if self.phase != BlackjackPhase::Complete {
+            return Err(BlackjackGameError::WrongPhase);
         }
         if self.match_complete() {
-            return Err(GameError::MatchComplete);
+            return Err(BlackjackGameError::MatchComplete);
         }
         validate_shoe(&shoe)?;
         shoe.reverse();
         self.shoe = shoe;
         self.round += 1;
         self.dealer.clear();
-        self.phase = Phase::Betting;
+        self.phase = BlackjackPhase::Betting;
         self.hand = 0;
         for player in &mut self.players {
             player.hands.clear();
@@ -58,23 +65,25 @@ impl GameState {
         self.current = self
             .players
             .iter()
-            .position(|player| player.stack >= self.rules.minimum_bet);
+            .position(|player| player.stack >= self.rules.minimum_bet)
+            .map(PlayerId::from_index);
         Ok(())
     }
 
-    pub(super) fn bet(&mut self, player: usize, amount: u32) {
-        self.players[player].stack -= amount;
-        self.players[player].hands.push(HandState {
+    pub(super) fn bet(&mut self, player: PlayerId, amount: u32) {
+        self.players[player.index()].stack -= amount;
+        self.players[player.index()].hands.push(BlackjackHandState {
             cards: Vec::new(),
             wager: amount,
-            status: HandStatus::Playing,
+            status: BlackjackHandStatus::Playing,
             split: false,
             doubled: false,
             result: None,
             net_chips: 0,
         });
         self.current = self.players.iter().enumerate().find_map(|(index, player)| {
-            (player.stack >= self.rules.minimum_bet && player.hands.is_empty()).then_some(index)
+            (player.stack >= self.rules.minimum_bet && player.hands.is_empty())
+                .then_some(PlayerId::from_index(index))
         });
         if self.current.is_none() {
             self.deal();
@@ -96,11 +105,11 @@ impl GameState {
             if let Some(hand) = player.hands.first_mut()
                 && hand.value().total == 21
             {
-                hand.status = HandStatus::Blackjack;
+                hand.status = BlackjackHandStatus::Blackjack;
             }
         }
-        self.phase = Phase::Playing;
-        if HandValue::of(&self.dealer).total == 21 {
+        self.phase = BlackjackPhase::Playing;
+        if BlackjackHandValue::of(&self.dealer).total == 21 {
             self.settle();
         } else {
             self.advance_play();
@@ -112,11 +121,11 @@ impl GameState {
             state
                 .hands
                 .iter()
-                .position(|hand| hand.status == HandStatus::Playing)
+                .position(|hand| hand.status == BlackjackHandStatus::Playing)
                 .map(|hand| (player, hand))
         });
         if let Some((player, hand)) = next {
-            self.current = Some(player);
+            self.current = Some(PlayerId::from_index(player));
             self.hand = hand;
             return;
         }
@@ -124,9 +133,9 @@ impl GameState {
             .players
             .iter()
             .flat_map(|player| &player.hands)
-            .any(|hand| hand.status == HandStatus::Standing);
+            .any(|hand| hand.status == BlackjackHandStatus::Standing);
         if needs_comparison {
-            while HandValue::of(&self.dealer).total < 17 {
+            while BlackjackHandValue::of(&self.dealer).total < 17 {
                 let card = self.draw();
                 self.dealer.push(card);
             }
@@ -142,17 +151,17 @@ impl GameState {
     }
 }
 
-fn validate_shoe(shoe: &[BlackjackCard]) -> Result<(), GameError> {
+fn validate_shoe(shoe: &[BlackjackCard]) -> Result<(), BlackjackGameError> {
     let expected = build_shoe();
     if shoe.len() != expected.len() {
-        return Err(GameError::InvalidShoe);
+        return Err(BlackjackGameError::InvalidShoe);
     }
     let mut counts = HashMap::new();
     for &card in shoe {
         *counts.entry(card).or_insert(0_u16) += 1;
     }
     if expected.iter().any(|card| counts.get(card) != Some(&6)) {
-        return Err(GameError::InvalidShoe);
+        return Err(BlackjackGameError::InvalidShoe);
     }
     Ok(())
 }

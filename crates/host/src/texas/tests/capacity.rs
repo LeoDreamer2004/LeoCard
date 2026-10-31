@@ -1,0 +1,200 @@
+use super::super::*;
+use super::*;
+use crate::ConnectionId;
+use leocard_game_common::PlayerId;
+use leocard_protocol::{ClientCommand, GameCommand, SeatId, ServerEvent, TexasCommand};
+use leocard_texas_holdem::{TexasRuleSet, build_deck};
+
+fn joined_session(count: u8, rules: TexasRuleSet) -> TexasSession {
+    let mut session = TexasSession::new(ROOM, 52300, rules, build_deck(rules.short_deck)).unwrap();
+    for index in 1..=count {
+        let connection = ConnectionId(u64::from(index) * 10);
+        session.handle(
+            connection,
+            message(1, join_command(&format!("玩家{index}"), u64::from(index))),
+        );
+        session.handle(
+            connection,
+            message(2, ClientCommand::SetReady { ready: true }),
+        );
+    }
+    session
+}
+
+#[test]
+fn eight_players_can_join_and_start_standard_short_deck_or_omaha_tables() {
+    for (short_deck, omaha) in [(false, false), (true, false), (false, true)] {
+        let mut session = joined_session(
+            8,
+            TexasRuleSet {
+                short_deck,
+                omaha,
+                ..TexasRuleSet::default()
+            },
+        );
+        assert_eq!(session.room.seat_count, 8);
+        let deliveries = session.handle(HOST_CONNECTION, message(3, ClientCommand::StartGame));
+        assert!(
+            deliveries
+                .iter()
+                .any(|delivery| matches!(delivery.message.event, ServerEvent::GameSnapshot(_)))
+        );
+        let game = session.game().unwrap();
+        assert_eq!(game.players().len(), 8);
+        for player in game.players() {
+            let snapshot = game.snapshot(player.id).unwrap();
+            assert_eq!(snapshot.your_hole_cards.len(), if omaha { 4 } else { 2 });
+            assert!(snapshot.revealed_hands.is_empty());
+        }
+    }
+}
+
+#[test]
+fn short_deck_omaha_is_automatically_disabled_when_a_seventh_player_joins() {
+    let rules = TexasRuleSet {
+        short_deck: true,
+        omaha: true,
+        ..TexasRuleSet::default()
+    };
+    let mut six = joined_session(6, rules);
+    six.handle(HOST_CONNECTION, message(3, ClientCommand::StartGame));
+    assert!(six.game().is_some());
+
+    let mut seven = joined_session(6, rules);
+    let deliveries = seven.handle(ConnectionId(70), message(1, join_command("玩家七", 7)));
+    assert!(!seven.rules().short_deck);
+    assert!(seven.rules().omaha);
+    let notices = deliveries
+        .iter()
+        .filter(|delivery| matches!(delivery.message.event, ServerEvent::Notice { .. }))
+        .collect::<Vec<_>>();
+    assert_eq!(notices.len(), 1);
+    assert_eq!(notices[0].recipient, HOST_CONNECTION);
+    for delivery in &deliveries {
+        if let ServerEvent::LobbySnapshot(lobby) = &delivery.message.event {
+            assert!(!lobby.rules.texas().unwrap().short_deck);
+        }
+    }
+    let repeated = seven.handle(HOST_CONNECTION, message(3, ClientCommand::RequestSnapshot));
+    assert!(
+        !repeated
+            .iter()
+            .any(|delivery| matches!(delivery.message.event, ServerEvent::Notice { .. }))
+    );
+    for index in 1..=7 {
+        seven.handle(
+            ConnectionId(index * 10),
+            message(4, ClientCommand::SetReady { ready: true }),
+        );
+    }
+    seven.handle(HOST_CONNECTION, message(5, ClientCommand::StartGame));
+    assert_eq!(seven.game().unwrap().players().len(), 7);
+}
+
+#[test]
+fn changing_rules_or_adding_a_bot_also_corrects_short_deck_omaha() {
+    let rules = TexasRuleSet {
+        short_deck: true,
+        omaha: true,
+        ..TexasRuleSet::default()
+    };
+    let mut session = joined_session(6, rules);
+    let seat = (0..8)
+        .map(SeatId)
+        .find(|seat| !session.room.players.iter().any(|p| p.seat == Some(*seat)))
+        .unwrap();
+    let deliveries = session.handle(
+        HOST_CONNECTION,
+        message(
+            3,
+            ClientCommand::ConfigureBotSeat {
+                seat,
+                occupied: true,
+            },
+        ),
+    );
+    assert!(!session.rules().short_deck);
+    assert!(session.rules().omaha);
+    assert!(
+        deliveries
+            .iter()
+            .any(|delivery| matches!(delivery.message.event, ServerEvent::Notice { .. }))
+    );
+    let deliveries = session.handle(
+        HOST_CONNECTION,
+        message(
+            4,
+            ClientCommand::Game(GameCommand::Texas(TexasCommand::UpdateRules { rules })),
+        ),
+    );
+    assert!(!session.rules().short_deck);
+    assert!(session.rules().omaha);
+    assert!(
+        deliveries
+            .iter()
+            .any(|delivery| matches!(delivery.message.event, ServerEvent::Notice { .. }))
+    );
+    assert!(
+        !deliveries
+            .iter()
+            .any(|delivery| matches!(delivery.message.event, ServerEvent::Rejected { .. }))
+    );
+}
+
+#[test]
+fn exact_equity_handles_seven_and_eight_way_split_pots() {
+    use super::super::equity::EquityCache;
+    use leocard_texas_holdem::{TexasAction, TexasCard, TexasGameState, TexasRank, TexasSuit};
+    use std::thread;
+    use std::time::{Duration, Instant};
+
+    for player_count in [7, 8] {
+        let mut deck = build_deck(false);
+        let dealt = usize::from(player_count) * 2;
+        for (index, rank) in (dealt..dealt + 5).zip([
+            TexasRank::Ten,
+            TexasRank::Jack,
+            TexasRank::Queen,
+            TexasRank::King,
+            TexasRank::Ace,
+        ]) {
+            let card = TexasCard::new(TexasSuit::Spade, rank);
+            let source = deck
+                .iter()
+                .position(|candidate| *candidate == card)
+                .unwrap();
+            deck.swap(index, source);
+        }
+        let mut game = TexasGameState::new_with_deck(
+            TexasRuleSet {
+                player_count,
+                ..TexasRuleSet::default()
+            },
+            PlayerId(0),
+            deck,
+        )
+        .unwrap();
+        while let Some(player) = game.current_player() {
+            let action = if game.blind_to_post().is_some() {
+                TexasAction::PostBlind
+            } else {
+                TexasAction::AllIn
+            };
+            game.act(player, action).unwrap();
+        }
+        let cache = EquityCache::default();
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let values = loop {
+            if let Some(values) = cache.values(&game) {
+                break values;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "equity calculation did not finish"
+            );
+            thread::sleep(Duration::from_millis(1));
+        };
+        let expected = (10_000.0 / f64::from(player_count)).round() as u16;
+        assert_eq!(values, vec![expected; usize::from(player_count)]);
+    }
+}

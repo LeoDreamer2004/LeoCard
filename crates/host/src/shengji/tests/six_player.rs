@@ -1,11 +1,9 @@
 use super::settlement::result_for_reference_points;
 use super::support::*;
-use leocard_protocol::{
-    ClientCommand, GameCommand, PlayerId, SeatId, ShengjiCommand, ShengjiPhaseView,
-};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{ClientCommand, GameCommand, SeatId, ShengjiCommand, ShengjiPhaseView};
 use leocard_shengji::{
-    ShengjiCard, ShengjiMode, ShengjiPlayerId, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
-    build_deck_for,
+    ShengjiCard, ShengjiMode, ShengjiRank, ShengjiRuleSet, ShengjiSuit, build_deck_for,
 };
 
 #[test]
@@ -100,7 +98,7 @@ fn six_player_lobby_deals_private_hands_and_settles_every_participant() {
         }
         assert_eq!(
             session.game.as_ref().unwrap().players()[index].id,
-            ShengjiPlayerId(index as u8)
+            PlayerId(index as u8)
         );
     }
     session.apply_finished_reference_points(&result_for_reference_points(false, 1, 120));

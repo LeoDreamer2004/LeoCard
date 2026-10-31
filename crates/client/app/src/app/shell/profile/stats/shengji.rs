@@ -1,5 +1,5 @@
 use super::rows::{ProfileRowsBuilder, average_or_placeholder, rate_or_placeholder};
-use leocard_protocol::ShengjiProfileStats;
+use leocard_shengji::ShengjiProfileStats;
 
 pub(crate) fn shengji_profile_rows(
     stats: Option<&ShengjiProfileStats>,

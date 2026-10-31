@@ -2,7 +2,7 @@ use std::fmt;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Mode {
+pub enum UnoMode {
     #[default]
     Classic,
     NoMercy,
@@ -11,7 +11,7 @@ pub enum Mode {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct NoMercyRuleSet {
+pub struct UnoNoMercyRuleSet {
     pub draw_until_playable: bool,
     pub mercy_elimination: bool,
     pub sudden_death: bool,
@@ -20,7 +20,7 @@ pub struct NoMercyRuleSet {
     pub uno_callout: bool,
 }
 
-impl Default for NoMercyRuleSet {
+impl Default for UnoNoMercyRuleSet {
     fn default() -> Self {
         Self {
             draw_until_playable: true,
@@ -35,7 +35,7 @@ impl Default for NoMercyRuleSet {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct FlipRuleSet {
+pub struct UnoFlipRuleSet {
     pub random_pairing: bool,
     pub action_stacking: bool,
     pub uno_callout: bool,
@@ -43,7 +43,7 @@ pub struct FlipRuleSet {
     pub jump_in: bool,
 }
 
-impl Default for FlipRuleSet {
+impl Default for UnoFlipRuleSet {
     fn default() -> Self {
         Self {
             random_pairing: false,
@@ -58,7 +58,7 @@ impl Default for FlipRuleSet {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct UnoRuleSet {
-    pub mode: Mode,
+    pub mode: UnoMode,
     pub action_stacking: bool,
     pub uno_callout: bool,
     pub skip_draw_penalty: bool,
@@ -66,14 +66,14 @@ pub struct UnoRuleSet {
     pub swap_pack: bool,
     pub reverse_pack: bool,
     pub stack_pack: bool,
-    pub no_mercy: NoMercyRuleSet,
-    pub flip: FlipRuleSet,
+    pub no_mercy: UnoNoMercyRuleSet,
+    pub flip: UnoFlipRuleSet,
 }
 
 impl Default for UnoRuleSet {
     fn default() -> Self {
         Self {
-            mode: Mode::Classic,
+            mode: UnoMode::Classic,
             action_stacking: false,
             uno_callout: true,
             skip_draw_penalty: false,
@@ -81,8 +81,8 @@ impl Default for UnoRuleSet {
             swap_pack: false,
             reverse_pack: false,
             stack_pack: false,
-            no_mercy: NoMercyRuleSet::default(),
-            flip: FlipRuleSet::default(),
+            no_mercy: UnoNoMercyRuleSet::default(),
+            flip: UnoFlipRuleSet::default(),
         }
     }
 }
@@ -93,11 +93,11 @@ impl UnoRuleSet {
     pub const MAX_PLAYERS: u8 = 8;
 
     pub const fn is_classic(self) -> bool {
-        matches!(self.mode, Mode::Classic)
+        matches!(self.mode, UnoMode::Classic)
     }
 
     pub const fn is_no_mercy(self) -> bool {
-        matches!(self.mode, Mode::NoMercy)
+        matches!(self.mode, UnoMode::NoMercy)
     }
 
     pub const fn sudden_death_enabled(self) -> bool {
@@ -105,7 +105,7 @@ impl UnoRuleSet {
     }
 
     pub const fn is_flip(self) -> bool {
-        matches!(self.mode, Mode::Flip)
+        matches!(self.mode, UnoMode::Flip)
     }
 
     /// Whether skip cards can be answered by stacking another action card.
@@ -119,42 +119,42 @@ impl UnoRuleSet {
 
     pub const fn jump_in_enabled(self) -> bool {
         match self.mode {
-            Mode::Classic => self.jump_in,
-            Mode::Flip => self.flip.jump_in,
-            Mode::NoMercy => false,
+            UnoMode::Classic => self.jump_in,
+            UnoMode::Flip => self.flip.jump_in,
+            UnoMode::NoMercy => false,
         }
     }
 
     pub const fn uno_callout(self) -> bool {
         match self.mode {
-            Mode::Classic => self.uno_callout,
-            Mode::NoMercy => self.no_mercy.uno_callout,
-            Mode::Flip => self.flip.uno_callout,
+            UnoMode::Classic => self.uno_callout,
+            UnoMode::NoMercy => self.no_mercy.uno_callout,
+            UnoMode::Flip => self.flip.uno_callout,
         }
     }
 
-    pub const fn validate(self) -> Result<Self, RuleError> {
+    pub const fn validate(self) -> Result<Self, UnoRuleError> {
         Ok(self)
     }
 
-    pub fn validate_player_count(player_count: u8) -> Result<u8, RuleError> {
+    pub fn validate_player_count(player_count: u8) -> Result<u8, UnoRuleError> {
         (Self::MIN_PLAYERS..=Self::MAX_PLAYERS)
             .contains(&player_count)
             .then_some(player_count)
-            .ok_or(RuleError)
+            .ok_or(UnoRuleError)
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RuleError;
+pub struct UnoRuleError;
 
-impl fmt::Display for RuleError {
+impl fmt::Display for UnoRuleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("UNO 规则无效")
     }
 }
 
-impl std::error::Error for RuleError {}
+impl std::error::Error for UnoRuleError {}
 
 #[cfg(test)]
 mod tests {
@@ -173,7 +173,7 @@ mod tests {
     #[test]
     fn modes_keep_independent_default_rule_sets() {
         let rules = UnoRuleSet::default();
-        assert_eq!(rules.mode, Mode::Classic);
+        assert_eq!(rules.mode, UnoMode::Classic);
         assert!(rules.uno_callout);
         assert!(rules.no_mercy.draw_until_playable);
         assert!(rules.no_mercy.mercy_elimination);

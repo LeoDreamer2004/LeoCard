@@ -1,10 +1,7 @@
 //! 棋牌游戏客户端插件组合。
 
 use super::doudizhu::DoudizhuPlugin;
-use super::{
-    blackjack, mahjong, minecraft_guess, qigui523, shengji, sync_summary_playback, texas_holdem,
-    uno,
-};
+use super::{blackjack, mahjong, mc_guess, qigui523, shengji, sync_summary_playback, texas, uno};
 use crate::app::presentation::update_summary_animation;
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
@@ -16,9 +13,9 @@ impl Plugin for GamesPlugin {
         app.add_plugins((
             blackjack::BlackjackPlugin,
             DoudizhuPlugin,
-            minecraft_guess::MinecraftGuessPlugin,
+            mc_guess::McGuessPlugin,
             qigui523::QiGui523Plugin,
-            texas_holdem::TexasHoldemPlugin,
+            texas::TexasPlugin,
             shengji::ShengjiPlugin,
             uno::UnoPlugin,
             mahjong::MahjongPlugin,

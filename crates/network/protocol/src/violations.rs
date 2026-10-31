@@ -1,9 +1,13 @@
 //! 联机请求的通用拒绝原因与对应说明。
 
 use crate::{
-    BlackjackViolation, GameKind, MahjongViolation, MinecraftGuessViolation, PlayerId, RequestId,
-    RuleViolation, ShengjiViolation, TexasHoldemViolation, UnoViolation,
+    BlackjackViolation, DoudizhuViolation, MahjongViolation, McGuessViolation, QiGui523Violation,
+    RequestId, ShengjiViolation, TexasViolation, UnoViolation,
 };
+use leocard_blackjack::BlackjackGameError;
+use leocard_doudizhu::DoudizhuGameError;
+use leocard_game_common::PlayerId;
+use leocard_mc_guess::McGuessGameError;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -121,22 +125,18 @@ impl fmt::Display for RoomViolation {
 pub enum GameViolation {
     InvalidRuleConfiguration,
     DeveloperFeatureUnavailable,
-    InvalidDeveloperHand,
-    WrongGame {
-        expected: GameKind,
-        received: GameKind,
-    },
+    WrongGame,
     GameNotStarted,
     GameNotFinished,
     GameAlreadyStarted,
-    QiGui523(RuleViolation),
-    TexasHoldem(TexasHoldemViolation),
+    QiGui523(QiGui523Violation),
+    Texas(TexasViolation),
     Shengji(ShengjiViolation),
     Uno(UnoViolation),
     Mahjong(MahjongViolation),
-    MinecraftGuess(MinecraftGuessViolation),
+    McGuess(McGuessViolation),
     Blackjack(BlackjackViolation),
-    Doudizhu(leocard_doudizhu::GameError),
+    Doudizhu(DoudizhuViolation),
 }
 
 impl fmt::Display for GameViolation {
@@ -144,32 +144,31 @@ impl fmt::Display for GameViolation {
         match self {
             Self::InvalidRuleConfiguration => f.write_str("游戏规则配置无效"),
             Self::DeveloperFeatureUnavailable => f.write_str("房主程序没有启用开发者功能"),
-            Self::InvalidDeveloperHand => f.write_str("开发者手牌无效"),
-            Self::WrongGame { .. } => f.write_str("该命令不属于当前房间游戏"),
+            Self::WrongGame => f.write_str("该命令不属于当前房间游戏"),
             Self::GameNotStarted => f.write_str("游戏尚未开始"),
             Self::GameNotFinished => f.write_str("游戏尚未结束"),
             Self::GameAlreadyStarted => f.write_str("游戏已经开始"),
             Self::QiGui523(reason) => reason.fmt(f),
-            Self::TexasHoldem(reason) => reason.fmt(f),
+            Self::Texas(reason) => reason.fmt(f),
             Self::Shengji(reason) => reason.fmt(f),
             Self::Uno(reason) => reason.fmt(f),
             Self::Mahjong(reason) => reason.fmt(f),
-            Self::MinecraftGuess(reason) => reason.fmt(f),
+            Self::McGuess(reason) => reason.fmt(f),
             Self::Blackjack(reason) => reason.fmt(f),
             Self::Doudizhu(reason) => reason.fmt(f),
         }
     }
 }
 
-impl From<RuleViolation> for GameViolation {
-    fn from(value: RuleViolation) -> Self {
+impl From<QiGui523Violation> for GameViolation {
+    fn from(value: QiGui523Violation) -> Self {
         Self::QiGui523(value)
     }
 }
 
-impl From<TexasHoldemViolation> for GameViolation {
-    fn from(value: TexasHoldemViolation) -> Self {
-        Self::TexasHoldem(value)
+impl From<TexasViolation> for GameViolation {
+    fn from(value: TexasViolation) -> Self {
+        Self::Texas(value)
     }
 }
 
@@ -188,5 +187,41 @@ impl From<UnoViolation> for GameViolation {
 impl From<MahjongViolation> for GameViolation {
     fn from(value: MahjongViolation) -> Self {
         Self::Mahjong(value)
+    }
+}
+
+impl From<McGuessViolation> for GameViolation {
+    fn from(value: McGuessViolation) -> Self {
+        Self::McGuess(value)
+    }
+}
+
+impl From<BlackjackViolation> for GameViolation {
+    fn from(value: BlackjackViolation) -> Self {
+        Self::Blackjack(value)
+    }
+}
+
+impl From<DoudizhuViolation> for GameViolation {
+    fn from(value: DoudizhuViolation) -> Self {
+        Self::Doudizhu(value)
+    }
+}
+
+impl From<BlackjackGameError> for GameViolation {
+    fn from(value: BlackjackGameError) -> Self {
+        Self::Blackjack(value.into())
+    }
+}
+
+impl From<DoudizhuGameError> for GameViolation {
+    fn from(value: DoudizhuGameError) -> Self {
+        Self::Doudizhu(value.into())
+    }
+}
+
+impl From<McGuessGameError> for GameViolation {
+    fn from(value: McGuessGameError) -> Self {
+        Self::McGuess(value.into())
     }
 }

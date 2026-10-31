@@ -1,39 +1,41 @@
 use super::super::card_sort_key;
+use leocard_game_common::PlayerId;
+
 use leocard_shengji::{
-    ActionOutcome, FiveTrumpCrossingStage, GameState, Phase, ShengjiAutoPlay,
-    ShengjiAutoPlayRequest, ShengjiPlayerId,
+    ShengjiActionOutcome, ShengjiAutoPlay, ShengjiAutoPlayRequest, ShengjiFiveTrumpCrossingStage,
+    ShengjiGameState, ShengjiPhase,
 };
 
 pub(super) struct Policy;
 
 impl Policy {
-    pub fn act(game: &mut GameState, player: ShengjiPlayerId) -> Option<ActionOutcome> {
+    pub fn act(game: &mut ShengjiGameState, player: PlayerId) -> Option<ShengjiActionOutcome> {
         let outcome = match game.phase() {
-            Phase::Burying => {
+            ShengjiPhase::Burying => {
                 let trump = game.trump()?;
                 let mut hand = game.players()[usize::from(player.0)].hand.clone();
                 hand.sort_by_key(|card| card_sort_key(*card, trump));
                 game.bury(player, &hand[..game.rules().kitty_size()]).ok()?
             }
-            Phase::BottomCopying => game.choose_bottom_copy(player, None).ok()?,
-            Phase::BottomCopyBurying => {
+            ShengjiPhase::BottomCopying => game.choose_bottom_copy(player, None).ok()?,
+            ShengjiPhase::BottomCopyBurying => {
                 let trump = game.trump()?;
                 let mut hand = game.players()[usize::from(player.0)].hand.clone();
                 hand.sort_by_key(|card| card_sort_key(*card, trump));
                 game.bury(player, &hand[..game.rules().kitty_size()]).ok()?
             }
-            Phase::FiveTrumpCrossing => match game.five_trump_crossing()?.stage() {
-                FiveTrumpCrossingStage::Deciding => {
+            ShengjiPhase::FiveTrumpCrossing => match game.five_trump_crossing()?.stage() {
+                ShengjiFiveTrumpCrossingStage::Deciding => {
                     game.choose_five_trump_crossing(player, None).ok()?
                 }
-                FiveTrumpCrossingStage::Returning => {
+                ShengjiFiveTrumpCrossingStage::Returning => {
                     let mut hand = game.players()[usize::from(player.0)].hand.clone();
                     let trump = game.trump()?;
                     hand.sort_by_key(|card| card_sort_key(*card, trump));
                     game.return_five_trump_crossing(player, &hand[..5]).ok()?
                 }
             },
-            Phase::Playing => {
+            ShengjiPhase::Playing => {
                 let trick = game.current_trick();
                 let play = ShengjiAutoPlay::choose(ShengjiAutoPlayRequest {
                     hand: &game.players()[usize::from(player.0)].hand,

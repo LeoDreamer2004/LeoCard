@@ -3,6 +3,7 @@ use crate::app::games::uno::{UnoAssets, UnoHandCardButton};
 use crate::app::runtime::ClientResource;
 use bevy::audio::Volume;
 use bevy::prelude::*;
+use leocard_protocol::GameSnapshot;
 use leocard_ui::UiPress;
 
 pub(crate) fn play_uno_card_selection_sounds(
@@ -39,7 +40,7 @@ pub(crate) fn play_uno_audio_cues(
 ) {
     if client
         .as_deref()
-        .and_then(|client| client.0.model().uno_game())
+        .and_then(|client| client.0.model().game_snapshot().and_then(GameSnapshot::uno))
         .is_none()
     {
         state.cues.clear();

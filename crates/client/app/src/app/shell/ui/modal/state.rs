@@ -6,7 +6,7 @@ pub(crate) enum CozyModalKind {
     Profile,
     MahjongFanGuide,
     TexasHandGuide,
-    MinecraftGraphGuide,
+    McGraphGuide,
     UnoExpansionSettings,
     Confirmation,
     #[cfg(not(target_os = "android"))]

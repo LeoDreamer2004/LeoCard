@@ -1,13 +1,14 @@
 use crate::{UnoCard, UnoColor, UnoFace, UnoRuleSet, build_deck_for_rules};
+use leocard_game_common::PlayerId;
 
 use super::super::prelude::*;
 
-fn reverse_pack_game() -> GameState {
+fn reverse_pack_game() -> UnoGameState {
     let rules = UnoRuleSet {
         reverse_pack: true,
         ..UnoRuleSet::default()
     };
-    GameState::new_with_deck(rules, 6, build_deck_for_rules(rules)).unwrap()
+    UnoGameState::new_with_deck(rules, 6, build_deck_for_rules(rules)).unwrap()
 }
 
 #[test]
@@ -18,17 +19,17 @@ fn reverse_draw_two_matches_reverse_and_redirects_the_penalty() {
     game.players[0].hand = vec![reverse_draw, filler];
     game.discard_pile = vec![card(UnoColor::Blue, UnoFace::Reverse, 0)];
     game.current_color = Some(UnoColor::Blue);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
 
-    assert!(game.can_play(UnoPlayerId(0), reverse_draw));
-    game.play_card(UnoPlayerId(0), reverse_draw, None).unwrap();
+    assert!(game.can_play(PlayerId(0), reverse_draw));
+    game.play_card(PlayerId(0), reverse_draw, None).unwrap();
 
     let turn = game.turn().unwrap();
     assert_eq!(turn.direction, UnoDirection::CounterClockwise);
     assert_eq!(turn.pending_draw, 2);
     assert_eq!(turn.pending_kind, Some(UnoPendingDrawKind::DrawTwo));
-    assert_eq!(turn.pending_draw_source, Some(UnoPlayerId(0)));
-    assert_eq!(turn.current_player, UnoPlayerId(5));
+    assert_eq!(turn.pending_draw_source, Some(PlayerId(0)));
+    assert_eq!(turn.current_player, PlayerId(5));
 }
 
 #[test]
@@ -39,15 +40,15 @@ fn reverse_skip_changes_direction_before_choosing_the_skipped_player() {
     game.players[0].hand = vec![reverse_skip, filler];
     game.discard_pile = vec![card(UnoColor::Blue, UnoFace::Skip, 0)];
     game.current_color = Some(UnoColor::Blue);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
 
-    assert!(game.can_play(UnoPlayerId(0), reverse_skip));
-    game.play_card(UnoPlayerId(0), reverse_skip, None).unwrap();
+    assert!(game.can_play(PlayerId(0), reverse_skip));
+    game.play_card(PlayerId(0), reverse_skip, None).unwrap();
 
     let turn = game.turn().unwrap();
     assert_eq!(turn.direction, UnoDirection::CounterClockwise);
-    assert_eq!(turn.current_player, UnoPlayerId(5));
-    assert_eq!(game.skipped_turns(UnoPlayerId(5)), Some(1));
+    assert_eq!(turn.current_player, PlayerId(5));
+    assert_eq!(game.skipped_turns(PlayerId(5)), Some(1));
 }
 
 #[test]
@@ -58,15 +59,15 @@ fn power_reverse_changes_color_and_gives_the_actor_another_turn() {
     game.players[0].hand = vec![power, filler];
     game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(7), 0)];
     game.current_color = Some(UnoColor::Red);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
 
-    game.play_card(UnoPlayerId(0), power, Some(UnoColor::Green))
+    game.play_card(PlayerId(0), power, Some(UnoColor::Green))
         .unwrap();
 
     let turn = game.turn().unwrap();
     assert_eq!(turn.direction, UnoDirection::CounterClockwise);
     assert_eq!(turn.current_color, Some(UnoColor::Green));
-    assert_eq!(turn.current_player, UnoPlayerId(0));
+    assert_eq!(turn.current_player, PlayerId(0));
 }
 
 #[test]
@@ -80,16 +81,16 @@ fn reverse_skip_can_redirect_an_accumulated_skip() {
     game.players[1].hand = vec![reverse_skip, filler];
     game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(7), 0)];
     game.current_color = Some(UnoColor::Red);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
 
-    game.play_card(UnoPlayerId(0), skip, None).unwrap();
-    assert!(game.can_play(UnoPlayerId(1), reverse_skip));
-    game.play_card(UnoPlayerId(1), reverse_skip, None).unwrap();
+    game.play_card(PlayerId(0), skip, None).unwrap();
+    assert!(game.can_play(PlayerId(1), reverse_skip));
+    game.play_card(PlayerId(1), reverse_skip, None).unwrap();
 
     let turn = game.turn().unwrap();
     assert_eq!(turn.direction, UnoDirection::CounterClockwise);
     assert_eq!(turn.pending_skip, 2);
-    assert_eq!(turn.current_player, UnoPlayerId(0));
+    assert_eq!(turn.current_player, PlayerId(0));
 }
 
 #[test]
@@ -103,16 +104,16 @@ fn ordinary_skip_can_stack_on_reverse_skip() {
     game.players[5].hand = vec![skip, filler];
     game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(7), 0)];
     game.current_color = Some(UnoColor::Red);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
 
-    game.play_card(UnoPlayerId(0), reverse_skip, None).unwrap();
-    assert!(game.can_play(UnoPlayerId(5), skip));
-    game.play_card(UnoPlayerId(5), skip, None).unwrap();
+    game.play_card(PlayerId(0), reverse_skip, None).unwrap();
+    assert!(game.can_play(PlayerId(5), skip));
+    game.play_card(PlayerId(5), skip, None).unwrap();
 
     let turn = game.turn().unwrap();
     assert_eq!(turn.direction, UnoDirection::CounterClockwise);
     assert_eq!(turn.pending_skip, 2);
-    assert_eq!(turn.current_player, UnoPlayerId(4));
+    assert_eq!(turn.current_player, PlayerId(4));
 }
 
 #[test]
@@ -126,17 +127,17 @@ fn ordinary_draw_two_can_stack_on_reverse_draw_two() {
     game.players[5].hand = vec![draw_two, filler];
     game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(7), 0)];
     game.current_color = Some(UnoColor::Red);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
 
-    game.play_card(UnoPlayerId(0), reverse_draw, None).unwrap();
-    assert!(game.can_play(UnoPlayerId(5), draw_two));
-    game.play_card(UnoPlayerId(5), draw_two, None).unwrap();
+    game.play_card(PlayerId(0), reverse_draw, None).unwrap();
+    assert!(game.can_play(PlayerId(5), draw_two));
+    game.play_card(PlayerId(5), draw_two, None).unwrap();
 
     let turn = game.turn().unwrap();
     assert_eq!(turn.direction, UnoDirection::CounterClockwise);
     assert_eq!(turn.pending_draw, 4);
-    assert_eq!(turn.pending_draw_source, Some(UnoPlayerId(5)));
-    assert_eq!(turn.current_player, UnoPlayerId(4));
+    assert_eq!(turn.pending_draw_source, Some(PlayerId(5)));
+    assert_eq!(turn.current_player, PlayerId(4));
 }
 
 #[test]
@@ -147,30 +148,30 @@ fn last_no_u_reflects_the_pending_penalty_before_winning() {
     game.players[0].hand = vec![no_u];
     game.discard_pile = vec![card(UnoColor::Red, UnoFace::DrawTwo, 0)];
     game.current_color = Some(UnoColor::Red);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
     game.pending_draw = 2;
     game.pending_kind = Some(UnoPendingDrawKind::DrawTwo);
-    game.pending_draw_source = Some(UnoPlayerId(5));
-    let source_hand_len = game.player(UnoPlayerId(5)).unwrap().hand().len();
+    game.pending_draw_source = Some(PlayerId(5));
+    let source_hand_len = game.player(PlayerId(5)).unwrap().hand().len();
 
     assert!(matches!(
-        game.play_card(UnoPlayerId(0), no_u, Some(UnoColor::Blue)),
-        Ok(ActionOutcome::Played {
-            effect: Some(PlayedEffect::DrawReflected {
-                player: UnoPlayerId(5),
+        game.play_card(PlayerId(0), no_u, Some(UnoColor::Blue)),
+        Ok(UnoActionOutcome::Played {
+            effect: Some(UnoPlayedEffect::DrawReflected {
+                player: PlayerId(5),
                 ref cards,
             }),
             ..
         }) if cards.len() == 2
     ));
     assert_eq!(
-        game.player(UnoPlayerId(5)).unwrap().hand().len(),
+        game.player(PlayerId(5)).unwrap().hand().len(),
         source_hand_len + 2
     );
     assert!(matches!(
         game.phase(),
-        Phase::Finished(GameResult {
-            winner: UnoPlayerId(0),
+        UnoPhase::Finished(UnoGameResult {
+            winner: PlayerId(0),
             ..
         })
     ));

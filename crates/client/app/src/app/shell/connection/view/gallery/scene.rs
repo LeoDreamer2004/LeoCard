@@ -36,7 +36,7 @@ impl<'a> GameGallery<'a> {
                 min_width: px(0),
                 flex_basis: px(0),
                 flex_grow: 1.1,
-                padding: UiRect::axes(px(12), px(if cfg!(target_os = "android") { 4 } else { 10 })),
+                padding: UiRect::axes(px(12), px(10)),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(10),
                 ..default()

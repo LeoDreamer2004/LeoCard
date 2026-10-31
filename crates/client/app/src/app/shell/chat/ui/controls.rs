@@ -1,12 +1,11 @@
 use super::super::*;
-use super::panel::{ChatAuxiliaryAction, add_chat_button_highlight, cozy_chat_button_image};
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use super::panel::{ChatAuxiliaryAction, cozy_chat_button_image};
+use crate::app::presentation::{MUTED, TEXT};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, SocialUiAction, UiAction};
-use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
-use leocard_ui::UiComposer;
+use leocard_ui::{TextureButton, UiComposer};
 
 pub(super) fn add_chat_toggle(
     commands: &mut UiComposer,
@@ -48,46 +47,35 @@ pub(super) fn add_auto_play_toggle(
     enabled: bool,
     assets: &UiAssets,
 ) {
-    let auto_button = commands.child(
-        panel,
-        (
-            Button,
-            UiAction::Social(SocialUiAction::ToggleAutoPlay),
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(-32),
-                top: px(194),
-                width: px(32),
-                min_width: px(32),
-                max_width: px(32),
-                height: px(32),
-                min_height: px(32),
-                max_height: px(32),
-                flex_shrink: 0.0,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            cozy_chat_button_image(if enabled {
-                assets.home.purple_button_compact.clone()
-            } else {
-                assets.home.button.clone()
-            }),
-        ),
-    );
-    add_chat_button_highlight(commands, auto_button, assets);
-    commands.child(
-        auto_button,
-        (
-            Node {
-                width: px(25),
-                height: px(25),
-                ..default()
-            },
-            ImageNode::new(assets.controls.robot_icon.clone()),
-            Pickable::IGNORE,
-        ),
-    );
+    TextureButton {
+        node: Node {
+            position_type: PositionType::Absolute,
+            left: px(-32),
+            top: px(194),
+            width: px(32),
+            min_width: px(32),
+            max_width: px(32),
+            height: px(32),
+            min_height: px(32),
+            max_height: px(32),
+            flex_shrink: 0.0,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        normal: cozy_chat_button_image(if enabled {
+            assets.home.purple_button_compact.clone()
+        } else {
+            assets.home.button.clone()
+        }),
+        hovered: cozy_chat_button_image(assets.home.purple_button_compact.clone()),
+        action: Some(UiAction::Social(SocialUiAction::ToggleAutoPlay)),
+        label: None,
+        font_size: 13.0,
+        color: TEXT,
+        icon: Some((assets.controls.robot_icon.clone(), 25.0)),
+    }
+    .mount(commands, panel, &assets.font);
 }
 
 pub(super) fn add_auxiliary_actions(
@@ -109,48 +97,37 @@ fn add_auxiliary_action(
     index: usize,
 ) {
     let enabled = auxiliary.action.is_some();
-    let button = commands.child(
-        panel,
-        (
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(-32),
-                top: px(234.0 + index as f32 * 40.0),
-                width: px(32),
-                min_width: px(32),
-                max_width: px(32),
-                height: px(32),
-                min_height: px(32),
-                max_height: px(32),
-                flex_shrink: 0.0,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            cozy_chat_button_image(if auxiliary.highlighted && enabled {
-                assets.home.purple_button_compact.clone()
-            } else {
-                assets.home.button.clone()
-            }),
-        ),
-    );
-    if let Some(action) = auxiliary.action.clone() {
-        commands.entity(button).insert((Button, action));
-    }
-    if enabled {
-        add_chat_button_highlight(commands, button, assets);
-    }
-    let label = add_text(
-        commands,
-        button,
-        auxiliary.label,
-        10.0,
-        if auxiliary.highlighted && enabled {
+    TextureButton {
+        node: Node {
+            position_type: PositionType::Absolute,
+            left: px(-32),
+            top: px(234.0 + index as f32 * 40.0),
+            width: px(32),
+            min_width: px(32),
+            max_width: px(32),
+            height: px(32),
+            min_height: px(32),
+            max_height: px(32),
+            flex_shrink: 0.0,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        normal: cozy_chat_button_image(if auxiliary.highlighted && enabled {
+            assets.home.purple_button_compact.clone()
+        } else {
+            assets.home.button.clone()
+        }),
+        hovered: cozy_chat_button_image(assets.home.purple_button_compact.clone()),
+        action: auxiliary.action.clone(),
+        label: Some(auxiliary.label),
+        font_size: 10.0,
+        color: if auxiliary.highlighted && enabled {
             TEXT
         } else {
             MUTED
         },
-        assets,
-    );
-    commands.entity(label).insert(Pickable::IGNORE);
+        icon: None,
+    }
+    .mount(commands, panel, &assets.font);
 }

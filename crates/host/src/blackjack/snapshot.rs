@@ -1,5 +1,6 @@
 use super::BlackjackSession;
-use leocard_protocol::{BlackjackPlayerView, BlackjackSnapshot, PlayerId};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{BlackjackPlayerView, BlackjackSnapshot};
 
 impl BlackjackSession {
     pub(super) fn snapshot_for(&self, recipient: PlayerId) -> BlackjackSnapshot {
@@ -24,8 +25,12 @@ impl BlackjackSession {
                         .iter()
                         .find(|player| player.id == *id)
                         .expect("retained match participant");
+                    let public = participant.public_metadata();
                     BlackjackPlayerView {
-                        player: participant.public_metadata().into(),
+                        player: public.player,
+                        seat: public.seat.expect("active blackjack players have seats"),
+                        ready: public.ready,
+                        connected: public.connected,
                         stack: state.stack,
                         round_start_stack: state.round_start_stack,
                         hands: state.hands.clone(),
@@ -35,10 +40,10 @@ impl BlackjackSession {
                 .collect(),
             dealer: game.visible_dealer().to_vec(),
             dealer_hidden: game.dealer_has_hidden_card(),
-            current_player: game.current_player().map(|index| self.order[index]),
+            current_player: game.current_player().map(|index| self.order[index.index()]),
             current_hand: game.current_hand().map(|hand| hand as u8),
             available: index
-                .map(|index| game.available_actions(index))
+                .map(|index| game.available_actions(PlayerId::from_index(index)))
                 .unwrap_or_default(),
             seconds_remaining: self.seconds_remaining(),
             match_complete: game.match_complete(),

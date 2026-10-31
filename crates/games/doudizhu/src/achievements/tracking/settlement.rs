@@ -1,16 +1,17 @@
 use super::state::{DoudizhuAchievementTracker, is_bomb};
 use crate::achievements::{DoudizhuAchievementFacts, DoudizhuHandFacts, DoudizhuMatchFacts};
-use crate::{GameState, Phase};
+use crate::{DoudizhuGameState, DoudizhuPhase};
+use leocard_game_common::PlayerId;
 
 impl DoudizhuAchievementTracker {
     pub fn finish_hand(
         &mut self,
-        game: &GameState,
+        game: &DoudizhuGameState,
         scores_before: &[i32],
         scores_after: &[i32],
         match_complete: bool,
-    ) -> Vec<(u8, DoudizhuAchievementFacts)> {
-        assert_eq!(game.phase, Phase::Finished);
+    ) -> Vec<(PlayerId, DoudizhuAchievementFacts)> {
+        assert_eq!(game.phase, DoudizhuPhase::Finished);
         let result = game.result.as_ref().expect("finished hand has a result");
         let landlord = game.landlord.expect("finished hand has a landlord");
         let mut events = Vec::new();
@@ -19,13 +20,13 @@ impl DoudizhuAchievementTracker {
             let won = is_landlord == result.landlord_won;
             player.perfect_spring &= won && result.spring;
             events.push((
-                index as u8,
+                PlayerId::from_index(index),
                 DoudizhuAchievementFacts::Hand(DoudizhuHandFacts {
                     landlord: is_landlord,
                     won,
                     spring: result.spring,
-                    finished_cards: result.winner == index as u8,
-                    finishing_bomb: result.winner == index as u8
+                    finished_cards: result.winner == PlayerId::from_index(index),
+                    finishing_bomb: result.winner == PlayerId::from_index(index)
                         && game
                             .table
                             .as_ref()
@@ -38,7 +39,7 @@ impl DoudizhuAchievementTracker {
             ));
             if match_complete {
                 events.push((
-                    index as u8,
+                    PlayerId::from_index(index),
                     DoudizhuAchievementFacts::Match(DoudizhuMatchFacts {
                         score: scores_after[index],
                         perfect_spring: player.perfect_spring,

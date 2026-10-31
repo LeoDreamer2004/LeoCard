@@ -68,7 +68,7 @@ impl ItemId {
             },
             Self::ObservationLens => ShopItem {
                 id: self,
-                game: GameKind::TexasHoldem,
+                game: GameKind::Texas,
                 name: "观局镜",
                 description: "弃牌后，查看仍在对局的玩家胜率。\n仅在弃牌所在下注轮结束后可用，不显示其他玩家的底牌。",
                 price: 40,

@@ -2,7 +2,8 @@ use super::ShengjiBotObservation;
 use super::burial::bury;
 use super::candidates::hand_value;
 use super::search::choose_play;
-use crate::{FiveTrumpCrossingStage, Phase, ShengjiCard, ShengjiTrump};
+use crate::{ShengjiCard, ShengjiFiveTrumpCrossingStage, ShengjiPhase, ShengjiTrump};
+
 use leocard_game_common::SearchBudget;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -19,13 +20,15 @@ pub struct ShengjiBot;
 impl ShengjiBot {
     pub fn choose(observation: &ShengjiBotObservation, budget: &SearchBudget) -> ShengjiBotAction {
         match observation.phase {
-            Phase::Burying | Phase::BottomCopyBurying => ShengjiBotAction::Bury(bury(
-                &observation.hand,
-                observation.rules.kitty_size(),
-                observation.trump,
-                budget,
-            )),
-            Phase::BottomCopying => {
+            ShengjiPhase::Burying | ShengjiPhase::BottomCopyBurying => {
+                ShengjiBotAction::Bury(bury(
+                    &observation.hand,
+                    observation.rules.kitty_size(),
+                    observation.trump,
+                    budget,
+                ))
+            }
+            ShengjiPhase::BottomCopying => {
                 let mut best = None;
                 let mut value = f64::NEG_INFINITY;
                 for cards in &observation.counter_options {
@@ -41,12 +44,12 @@ impl ShengjiBot {
                 }
                 ShengjiBotAction::Copy(best)
             }
-            Phase::FiveTrumpCrossing
-                if observation.crossing == Some(FiveTrumpCrossingStage::Returning) =>
+            ShengjiPhase::FiveTrumpCrossing
+                if observation.crossing == Some(ShengjiFiveTrumpCrossingStage::Returning) =>
             {
                 ShengjiBotAction::Return(bury(&observation.hand, 5, observation.trump, budget))
             }
-            Phase::FiveTrumpCrossing => {
+            ShengjiPhase::FiveTrumpCrossing => {
                 let cards: Vec<_> = observation
                     .hand
                     .iter()
@@ -55,7 +58,7 @@ impl ShengjiBot {
                     .collect();
                 ShengjiBotAction::Cross((cards.len() <= 5 && !cards.is_empty()).then_some(cards))
             }
-            Phase::Playing => ShengjiBotAction::Play(choose_play(observation, budget)),
+            ShengjiPhase::Playing => ShengjiBotAction::Play(choose_play(observation, budget)),
             _ => observation.fallback(),
         }
     }
@@ -64,7 +67,8 @@ impl ShengjiBot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ShengjiPlayerId, ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTeamId};
+    use crate::{ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTeamId};
+    use leocard_game_common::PlayerId;
     use std::time::Duration;
 
     #[test]
@@ -75,14 +79,14 @@ mod tests {
             ShengjiRank::LEVELS.map(|rank| ShengjiCard::suited(0, ShengjiSuit::Heart, rank)),
         );
         let observation = ShengjiBotObservation {
-            player: ShengjiPlayerId(1),
+            player: PlayerId(1),
             hand,
             trump: ShengjiTrump::new(ShengjiRank::Two, Some(ShengjiSuit::Heart)).unwrap(),
             rules: ShengjiRuleSet {
                 bottom_copy: true,
                 ..ShengjiRuleSet::default()
             },
-            phase: Phase::BottomCopying,
+            phase: ShengjiPhase::BottomCopying,
             trick: None,
             unseen: Vec::new(),
             exposed: Default::default(),

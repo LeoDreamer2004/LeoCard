@@ -1,27 +1,28 @@
-use crate::TexasHoldemRuleSet;
+use crate::TexasRuleSet;
+use leocard_game_common::PlayerId;
 
 use super::{
-    ActionOutcome, BettingRecord, GameError, GameState, Phase, PlayerState, TexasHoldemAction,
-    TexasHoldemBlindKind, TexasHoldemPlayerId, TexasHoldemStreet,
+    TexasAction, TexasActionOutcome, TexasBettingRecord, TexasBlindKind, TexasGameError,
+    TexasGameState, TexasPhase, TexasPlayerState, TexasStreet,
 };
 
-impl GameState {
+impl TexasGameState {
     pub fn act(
         &mut self,
-        player: TexasHoldemPlayerId,
-        action: TexasHoldemAction,
-    ) -> Result<ActionOutcome, GameError> {
+        player: PlayerId,
+        action: TexasAction,
+    ) -> Result<TexasActionOutcome, TexasGameError> {
         let previous = self.clone();
         match self.act_inner(player, action) {
             Ok(outcome) => {
                 self.record_action_statistics(&previous, player, action);
-                self.betting_history.push(BettingRecord {
+                self.betting_history.push(TexasBettingRecord {
                     player,
                     street: previous.street(),
                     action,
-                    payment: self.players[player.0]
+                    payment: self.players[player.index()]
                         .committed_total
-                        .saturating_sub(previous.players[player.0].committed_total),
+                        .saturating_sub(previous.players[player.index()].committed_total),
                     pot_before: previous.pot(),
                 });
                 Ok(outcome)
@@ -35,18 +36,18 @@ impl GameState {
 
     fn act_inner(
         &mut self,
-        player: TexasHoldemPlayerId,
-        action: TexasHoldemAction,
-    ) -> Result<ActionOutcome, GameError> {
+        player: PlayerId,
+        action: TexasAction,
+    ) -> Result<TexasActionOutcome, TexasGameError> {
         self.validate_actor(player)?;
         if let Some(kind) = self.pending_blind {
             return self.post_blind(player, action, kind);
         }
-        if action == TexasHoldemAction::PostBlind {
-            return Err(GameError::NoBlindToPost);
+        if action == TexasAction::PostBlind {
+            return Err(TexasGameError::NoBlindToPost);
         }
         if !self.can_act(player) {
-            return Err(GameError::PlayerCannotAct(player));
+            return Err(TexasGameError::PlayerCannotAct(player));
         }
 
         let old_street = self.street();
@@ -55,16 +56,16 @@ impl GameState {
 
         if self.contenders().len() == 1 {
             let result = self.settle_uncontested();
-            return Ok(ActionOutcome::HandComplete(result));
+            return Ok(TexasActionOutcome::HandComplete(result));
         }
 
         self.mark_follow_up_actions(player, full_raise);
         self.advance_after_action(player, action, old_street, old_community)
     }
 
-    fn validate_actor(&self, player: TexasHoldemPlayerId) -> Result<(), GameError> {
-        if matches!(self.phase, Phase::Complete(_)) {
-            return Err(GameError::HandAlreadyComplete);
+    fn validate_actor(&self, player: PlayerId) -> Result<(), TexasGameError> {
+        if matches!(self.phase, TexasPhase::Complete(_)) {
+            return Err(TexasGameError::HandAlreadyComplete);
         }
         let expected = self
             .current_player
@@ -72,7 +73,7 @@ impl GameState {
         if player == expected {
             Ok(())
         } else {
-            Err(GameError::NotPlayersTurn {
+            Err(TexasGameError::NotPlayersTurn {
                 expected,
                 actual: player,
             })
@@ -81,32 +82,32 @@ impl GameState {
 
     fn post_blind(
         &mut self,
-        player: TexasHoldemPlayerId,
-        action: TexasHoldemAction,
-        kind: TexasHoldemBlindKind,
-    ) -> Result<ActionOutcome, GameError> {
-        if action != TexasHoldemAction::PostBlind {
-            return Err(GameError::MustPostBlind);
+        player: PlayerId,
+        action: TexasAction,
+        kind: TexasBlindKind,
+    ) -> Result<TexasActionOutcome, TexasGameError> {
+        if action != TexasAction::PostBlind {
+            return Err(TexasGameError::MustPostBlind);
         }
         let requested = match kind {
-            TexasHoldemBlindKind::Small => TexasHoldemRuleSet::SMALL_BLIND,
-            TexasHoldemBlindKind::Big => TexasHoldemRuleSet::BIG_BLIND,
+            TexasBlindKind::Small => TexasRuleSet::SMALL_BLIND,
+            TexasBlindKind::Big => TexasRuleSet::BIG_BLIND,
         };
-        let amount = requested.min(self.players[player.0].stack);
+        let amount = requested.min(self.players[player.index()].stack);
         self.commit(player, amount);
 
-        if kind == TexasHoldemBlindKind::Small {
-            self.pending_blind = Some(TexasHoldemBlindKind::Big);
+        if kind == TexasBlindKind::Small {
+            self.pending_blind = Some(TexasBlindKind::Big);
             self.current_player = Some(self.big_blind);
         } else {
             self.pending_blind = None;
             self.open_preflop_betting()?;
         }
 
-        if let Phase::Complete(result) = &self.phase {
-            return Ok(ActionOutcome::HandComplete(result.clone()));
+        if let TexasPhase::Complete(result) = &self.phase {
+            return Ok(TexasActionOutcome::HandComplete(result.clone()));
         }
-        Ok(ActionOutcome::BlindPosted {
+        Ok(TexasActionOutcome::BlindPosted {
             player,
             kind,
             amount,
@@ -114,19 +115,19 @@ impl GameState {
         })
     }
 
-    fn open_preflop_betting(&mut self) -> Result<(), GameError> {
+    fn open_preflop_betting(&mut self) -> Result<(), TexasGameError> {
         // 大盲是翻前的首次下注，之后最多再加注三次。
         self.full_bets = 1;
         self.current_bet = self
             .players
             .iter()
-            .map(PlayerState::committed_street)
+            .map(TexasPlayerState::committed_street)
             .max()
             .unwrap_or(0);
         self.needs_action.fill(false);
         self.raise_allowed.fill(false);
         for index in 0..self.players.len() {
-            if self.can_act(TexasHoldemPlayerId(index)) {
+            if self.can_act(PlayerId::from_index(index)) {
                 self.needs_action[index] = true;
                 self.raise_allowed[index] = true;
             }
@@ -140,83 +141,85 @@ impl GameState {
 
     fn apply_betting_action(
         &mut self,
-        player: TexasHoldemPlayerId,
-        action: TexasHoldemAction,
-    ) -> Result<bool, GameError> {
+        player: PlayerId,
+        action: TexasAction,
+    ) -> Result<bool, TexasGameError> {
         let amount_to_call = self.amount_to_call(player)?;
-        self.needs_action[player.0] = false;
+        self.needs_action[player.index()] = false;
         match action {
-            TexasHoldemAction::PostBlind => unreachable!("盲注动作已在常规下注前处理"),
-            TexasHoldemAction::Fold => {
-                self.players[player.0].folded = true;
-                self.raise_allowed[player.0] = false;
+            TexasAction::PostBlind => unreachable!("盲注动作已在常规下注前处理"),
+            TexasAction::Fold => {
+                self.players[player.index()].folded = true;
+                self.raise_allowed[player.index()] = false;
                 Ok(false)
             }
-            TexasHoldemAction::Check => {
+            TexasAction::Check => {
                 if amount_to_call > 0 {
-                    return Err(GameError::CannotCheckWhileFacingBet { amount_to_call });
+                    return Err(TexasGameError::CannotCheckWhileFacingBet { amount_to_call });
                 }
                 Ok(false)
             }
-            TexasHoldemAction::Call => {
+            TexasAction::Call => {
                 if amount_to_call == 0 {
-                    return Err(GameError::NothingToCall);
+                    return Err(TexasGameError::NothingToCall);
                 }
-                let payment = amount_to_call.min(self.players[player.0].stack);
+                let payment = amount_to_call.min(self.players[player.index()].stack);
                 self.commit(player, payment);
-                self.raise_allowed[player.0] = false;
+                self.raise_allowed[player.index()] = false;
                 Ok(false)
             }
-            TexasHoldemAction::RaiseTo(target) => self.raise_to(player, target),
-            TexasHoldemAction::AllIn => self.go_all_in(player),
+            TexasAction::RaiseTo(target) => self.raise_to(player, target),
+            TexasAction::AllIn => self.go_all_in(player),
         }
     }
 
-    fn raise_to(&mut self, player: TexasHoldemPlayerId, target: u32) -> Result<bool, GameError> {
+    fn raise_to(&mut self, player: PlayerId, target: u32) -> Result<bool, TexasGameError> {
         self.validate_raise_rights(player)?;
         if target <= self.current_bet {
-            return Err(GameError::RaiseMustExceedCurrentBet {
+            return Err(TexasGameError::RaiseMustExceedCurrentBet {
                 current_bet: self.current_bet,
                 target,
             });
         }
-        let maximum_target = self.players[player.0].committed_street + self.players[player.0].stack;
+        let maximum_target =
+            self.players[player.index()].committed_street + self.players[player.index()].stack;
         if target > maximum_target {
-            return Err(GameError::RaiseExceedsStack {
+            return Err(TexasGameError::RaiseExceedsStack {
                 maximum_target,
                 target,
             });
         }
         let minimum_target = self.current_bet + self.minimum_raise;
         if target < minimum_target {
-            return Err(GameError::RaiseBelowMinimum {
+            return Err(TexasGameError::RaiseBelowMinimum {
                 minimum_target,
                 target,
             });
         }
         self.validate_fixed_limit_target(target)?;
         if !self.raise_sizing(player)?.contains(target) {
-            return Err(GameError::RaiseInvalidIncrement {
+            return Err(TexasGameError::RaiseInvalidIncrement {
                 increment: self.minimum_raise,
                 target,
             });
         }
 
-        let payment = target - self.players[player.0].committed_street;
+        let payment = target - self.players[player.index()].committed_street;
         self.commit(player, payment);
         self.record_full_raise(target);
         self.current_bet = target;
-        self.raise_allowed[player.0] = false;
+        self.raise_allowed[player.index()] = false;
         Ok(true)
     }
 
-    fn go_all_in(&mut self, player: TexasHoldemPlayerId) -> Result<bool, GameError> {
-        let target = self.players[player.0].committed_street + self.players[player.0].stack;
+    fn go_all_in(&mut self, player: PlayerId) -> Result<bool, TexasGameError> {
+        let target =
+            self.players[player.index()].committed_street + self.players[player.index()].stack;
         if target > self.current_bet {
             self.validate_raise_rights(player)?;
             self.validate_fixed_limit_target(target)?;
         }
-        let payment = self.players[player.0].stack;
+        let payment = self.players[player.index()].stack;
         self.commit(player, payment);
         let mut full_raise = false;
         if target > self.current_bet {
@@ -227,22 +230,22 @@ impl GameState {
             }
             self.current_bet = target;
         }
-        self.raise_allowed[player.0] = false;
+        self.raise_allowed[player.index()] = false;
         Ok(full_raise)
     }
 
-    fn mark_follow_up_actions(&mut self, player: TexasHoldemPlayerId, full_raise: bool) {
+    fn mark_follow_up_actions(&mut self, player: PlayerId, full_raise: bool) {
         if full_raise {
             for index in 0..self.players.len() {
-                if index != player.0 && self.can_act(TexasHoldemPlayerId(index)) {
+                if index != player.index() && self.can_act(PlayerId::from_index(index)) {
                     self.needs_action[index] = true;
                     self.raise_allowed[index] = true;
                 }
             }
         } else {
             for index in 0..self.players.len() {
-                if index != player.0
-                    && self.can_act(TexasHoldemPlayerId(index))
+                if index != player.index()
+                    && self.can_act(PlayerId::from_index(index))
                     && self.players[index].committed_street < self.current_bet
                 {
                     self.needs_action[index] = true;
@@ -253,14 +256,14 @@ impl GameState {
 
     fn advance_after_action(
         &mut self,
-        player: TexasHoldemPlayerId,
-        action: TexasHoldemAction,
-        old_street: TexasHoldemStreet,
+        player: PlayerId,
+        action: TexasAction,
+        old_street: TexasStreet,
         old_community: usize,
-    ) -> Result<ActionOutcome, GameError> {
+    ) -> Result<TexasActionOutcome, TexasGameError> {
         if let Some(next) = self.next_needing_action(player) {
             self.current_player = Some(next);
-            return Ok(ActionOutcome::Acted {
+            return Ok(TexasActionOutcome::Acted {
                 player,
                 action,
                 next_player: next,
@@ -268,13 +271,13 @@ impl GameState {
         }
 
         self.finish_betting_round()?;
-        if let Phase::Complete(result) = &self.phase {
-            return Ok(ActionOutcome::HandComplete(result.clone()));
+        if let TexasPhase::Complete(result) = &self.phase {
+            return Ok(TexasActionOutcome::HandComplete(result.clone()));
         }
         let current_player = self
             .current_player
             .expect("new street has an acting player");
-        Ok(ActionOutcome::StreetAdvanced {
+        Ok(TexasActionOutcome::StreetAdvanced {
             street: self.street(),
             current_player,
             community_cards: self.community.len() - old_community,

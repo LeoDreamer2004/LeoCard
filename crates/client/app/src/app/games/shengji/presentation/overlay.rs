@@ -13,9 +13,10 @@ use super::{
 use crate::app::presentation::{ACCENT, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use leocard_protocol::ShengjiSnapshot;
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 pub(crate) fn add_shengji_presentation_overlay(
     commands: &mut UiComposer,
@@ -62,12 +63,12 @@ pub(crate) fn add_shengji_presentation_overlay(
         let own_seat = game
             .players
             .iter()
-            .find(|candidate| candidate.id == game.you)
+            .find(|candidate| candidate.player.id == game.you)
             .map_or(0, |candidate| candidate.seat.0);
         let player_seat = game
             .players
             .iter()
-            .find(|candidate| candidate.id == player)
+            .find(|candidate| candidate.player.id == player)
             .map_or(own_seat, |candidate| candidate.seat.0);
         if game.rules.player_count() == 6 {
             let anchor = super::routes::shengji_player_route_anchor(game, player)

@@ -1,3 +1,3 @@
 mod strategy;
 
-pub use strategy::{PassiveAutoPlay, PassiveAutoPlayRequest};
+pub use strategy::{TexasPassiveAutoPlay, TexasPassiveAutoPlayRequest};

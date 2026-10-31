@@ -7,8 +7,9 @@ use crate::app::games::sync_summary_playback;
 use crate::app::presentation::start_game_intro_finished;
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::UiActionSet;
-use bevy::prelude::*;
 use leocard_ui::UiSceneProperties;
+
+use bevy::prelude::*;
 
 pub(crate) struct BlackjackPlugin;
 

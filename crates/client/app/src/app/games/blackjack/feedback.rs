@@ -3,9 +3,11 @@ use super::playback::SETTLEMENT_CHIP_DURATION;
 use crate::app::presentation::{PokerChipSoundKind, PokerChipSounds, numbered_table_sounds};
 use crate::app::runtime::{ClientResource, ServerNotification};
 use bevy::audio::Volume;
+use leocard_blackjack::{BlackjackAction, BlackjackPhase};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{BlackjackEvent, GameEvent, GameSnapshot, MatchId, ServerEvent};
+
 use bevy::prelude::*;
-use leocard_blackjack::{BlackjackAction, Phase};
-use leocard_protocol::{BlackjackEvent, GameEvent, MatchId, PlayerId, ServerEvent};
 
 #[derive(Resource)]
 pub(super) struct BlackjackSounds {
@@ -18,7 +20,7 @@ pub(super) struct BlackjackSounds {
 pub(super) struct BlackjackFeedback {
     match_id: Option<MatchId>,
     sequence: Option<u128>,
-    turn: Option<(u8, Option<PlayerId>, Option<u8>, Phase)>,
+    turn: Option<(u8, Option<PlayerId>, Option<u8>, BlackjackPhase)>,
     settled_round: Option<u8>,
     chips: Vec<ChipCue>,
 }
@@ -56,10 +58,13 @@ pub(super) fn play_feedback(
     mut feedback: ResMut<BlackjackFeedback>,
     time: Res<Time>,
 ) {
-    let Some(game) = client
-        .as_deref()
-        .and_then(|client| client.0.model().blackjack_game())
-    else {
+    let Some(game) = client.as_deref().and_then(|client| {
+        client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::blackjack)
+    }) else {
         notifications.clear();
         *feedback = BlackjackFeedback::default();
         return;

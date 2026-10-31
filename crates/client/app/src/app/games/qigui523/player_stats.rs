@@ -1,9 +1,10 @@
 use crate::app::presentation::{SeatSide, add_hand_count_score};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::PlayerGameScoreText;
+use leocard_game_common::PlayerId;
 
 use bevy::prelude::*;
-use leocard_protocol::PlayerId;
+
 use leocard_ui::UiComposer;
 
 pub(super) fn add_qigui_player_stats(

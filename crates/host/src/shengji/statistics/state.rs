@@ -1,5 +1,5 @@
-use leocard_protocol::{MatchId, PlayerReferenceChange, ShengjiProfileStats};
-use leocard_shengji::ShengjiMatchStatistics;
+use leocard_protocol::{MatchId, PlayerReferenceChange};
+use leocard_shengji::{ShengjiMatchStatistics, ShengjiProfileStats};
 
 #[derive(Clone, Debug, Default)]
 pub(in crate::shengji) struct SessionStatistics {

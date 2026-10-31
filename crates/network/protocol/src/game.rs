@@ -1,11 +1,12 @@
-use crate::{BlackjackCommand, DoudizhuCommand, PlayerId};
+use crate::{BlackjackCommand, DoudizhuCommand};
 use leocard_blackjack::BlackjackRuleSet;
-use leocard_doudizhu::RuleSet as DoudizhuRuleSet;
+use leocard_doudizhu::DoudizhuRuleSet;
+use leocard_game_common::PlayerId;
 use leocard_mahjong::{MahjongClaim, MahjongRuleSet, MahjongTile, MahjongTileKind};
-use leocard_minecraft_guess::MinecraftGuessRuleSet;
+use leocard_mc_guess::McGuessRuleSet;
 use leocard_qigui523::{QiGuiCard, QiGuiRuleSet};
 use leocard_shengji::{ShengjiCard, ShengjiRuleSet};
-use leocard_texas_holdem::{TexasHoldemAction, TexasHoldemRuleSet};
+use leocard_texas_holdem::{TexasAction, TexasRuleSet};
 use leocard_uno::{UnoCard, UnoColor, UnoRuleSet};
 use serde::{Deserialize, Serialize};
 
@@ -14,11 +15,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum GameKind {
     QiGui523,
-    TexasHoldem,
+    Texas,
     Shengji,
     Uno,
     Mahjong,
-    MinecraftGuess,
+    McGuess,
     Blackjack,
     Doudizhu,
 }
@@ -26,11 +27,11 @@ pub enum GameKind {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GameRules {
     QiGui523(QiGuiRuleSet),
-    TexasHoldem(TexasHoldemRuleSet),
+    Texas(TexasRuleSet),
     Shengji(ShengjiRuleSet),
     Uno(UnoRuleSet),
     Mahjong(MahjongRuleSet),
-    MinecraftGuess(MinecraftGuessRuleSet),
+    McGuess(McGuessRuleSet),
     Blackjack(BlackjackRuleSet),
     Doudizhu(DoudizhuRuleSet),
 }
@@ -52,11 +53,11 @@ impl GameRules {
     pub const fn kind(&self) -> GameKind {
         match self {
             Self::QiGui523(_) => GameKind::QiGui523,
-            Self::TexasHoldem(_) => GameKind::TexasHoldem,
+            Self::Texas(_) => GameKind::Texas,
             Self::Shengji(_) => GameKind::Shengji,
             Self::Uno(_) => GameKind::Uno,
             Self::Mahjong(_) => GameKind::Mahjong,
-            Self::MinecraftGuess(_) => GameKind::MinecraftGuess,
+            Self::McGuess(_) => GameKind::McGuess,
             Self::Blackjack(_) => GameKind::Blackjack,
             Self::Doudizhu(_) => GameKind::Doudizhu,
         }
@@ -64,11 +65,11 @@ impl GameRules {
 
     game_rule_projections! {
         qigui523 => QiGui523(QiGuiRuleSet),
-        texas_holdem => TexasHoldem(TexasHoldemRuleSet),
+        texas => Texas(TexasRuleSet),
         shengji => Shengji(ShengjiRuleSet),
         uno => Uno(UnoRuleSet),
         mahjong => Mahjong(MahjongRuleSet),
-        minecraft_guess => MinecraftGuess(MinecraftGuessRuleSet),
+        mc_guess => McGuess(McGuessRuleSet),
         blackjack => Blackjack(BlackjackRuleSet),
         doudizhu => Doudizhu(DoudizhuRuleSet),
     }
@@ -80,9 +81,9 @@ impl From<QiGuiRuleSet> for GameRules {
     }
 }
 
-impl From<TexasHoldemRuleSet> for GameRules {
-    fn from(value: TexasHoldemRuleSet) -> Self {
-        Self::TexasHoldem(value)
+impl From<TexasRuleSet> for GameRules {
+    fn from(value: TexasRuleSet) -> Self {
+        Self::Texas(value)
     }
 }
 
@@ -108,11 +109,11 @@ impl From<MahjongRuleSet> for GameRules {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GameCommand {
     QiGui523(QiGui523Command),
-    TexasHoldem(TexasHoldemCommand),
+    Texas(TexasCommand),
     Shengji(ShengjiCommand),
     Uno(UnoCommand),
     Mahjong(MahjongCommand),
-    MinecraftGuess(MinecraftGuessCommand),
+    McGuess(McGuessCommand),
     Blackjack(BlackjackCommand),
     Doudizhu(DoudizhuCommand),
 }
@@ -128,11 +129,11 @@ macro_rules! impl_game_command_from {
 }
 
 impl_game_command_from!(QiGui523Command, QiGui523);
-impl_game_command_from!(TexasHoldemCommand, TexasHoldem);
+impl_game_command_from!(TexasCommand, Texas);
 impl_game_command_from!(ShengjiCommand, Shengji);
 impl_game_command_from!(UnoCommand, Uno);
 impl_game_command_from!(MahjongCommand, Mahjong);
-impl_game_command_from!(MinecraftGuessCommand, MinecraftGuess);
+impl_game_command_from!(McGuessCommand, McGuess);
 impl_game_command_from!(BlackjackCommand, Blackjack);
 impl_game_command_from!(DoudizhuCommand, Doudizhu);
 
@@ -140,11 +141,11 @@ impl GameCommand {
     pub const fn kind(&self) -> GameKind {
         match self {
             Self::QiGui523(_) => GameKind::QiGui523,
-            Self::TexasHoldem(_) => GameKind::TexasHoldem,
+            Self::Texas(_) => GameKind::Texas,
             Self::Shengji(_) => GameKind::Shengji,
             Self::Uno(_) => GameKind::Uno,
             Self::Mahjong(_) => GameKind::Mahjong,
-            Self::MinecraftGuess(_) => GameKind::MinecraftGuess,
+            Self::McGuess(_) => GameKind::McGuess,
             Self::Blackjack(_) => GameKind::Blackjack,
             Self::Doudizhu(_) => GameKind::Doudizhu,
         }
@@ -219,11 +220,11 @@ pub enum QiGui523Command {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum TexasHoldemCommand {
+pub enum TexasCommand {
     SetAutoPlay { enabled: bool },
     SetSpectatorWinRates { enabled: bool },
-    UpdateRules { rules: TexasHoldemRuleSet },
-    Act { action: TexasHoldemAction },
+    UpdateRules { rules: TexasRuleSet },
+    Act { action: TexasAction },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -262,26 +263,26 @@ pub enum ShengjiCommand {
     },
 }
 
-impl From<MinecraftGuessRuleSet> for GameRules {
-    fn from(value: MinecraftGuessRuleSet) -> Self {
-        Self::MinecraftGuess(value)
+impl From<McGuessRuleSet> for GameRules {
+    fn from(value: McGuessRuleSet) -> Self {
+        Self::McGuess(value)
     }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum MinecraftGuessCommand {
+pub enum McGuessCommand {
     SelectNode {
         number: u16,
     },
     UpdateRules {
-        rules: MinecraftGuessRuleSet,
+        rules: McGuessRuleSet,
     },
     Guess {
         entry: String,
     },
     Skip,
     /// The authenticated client reports only its own local process presence.
-    ReportMinecraftProcess {
+    ReportMcProcess {
         running: bool,
     },
     DeveloperActivateAll,

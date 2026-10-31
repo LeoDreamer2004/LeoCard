@@ -3,6 +3,7 @@ use crate::app::presentation::PendingDealSound;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiState;
 use bevy::prelude::*;
+use leocard_protocol::GameSnapshot;
 
 pub(super) fn queue_deal_animations(
     client: Option<Res<ClientResource>>,
@@ -11,10 +12,13 @@ pub(super) fn queue_deal_animations(
     mut ui: ResMut<UiState>,
     mut commands: Commands,
 ) {
-    let Some(game) = client
-        .as_deref()
-        .and_then(|client| client.0.model().doudizhu_game())
-    else {
+    let Some(game) = client.as_deref().and_then(|client| {
+        client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::doudizhu)
+    }) else {
         return;
     };
     state.reconcile(game);

@@ -1,5 +1,5 @@
-use super::ParticipantId;
 use crate::AchievementTrigger;
+use leocard_game_common::PlayerId;
 use std::any::Any;
 use std::fmt::{self, Debug};
 use std::sync::Arc;
@@ -23,7 +23,7 @@ impl Debug for GameFacts {
 
 impl AchievementTrigger {
     /// Only the owner of T interprets its payload; unrelated games receive None.
-    pub fn game<T: Any>(&self) -> Option<(ParticipantId, &T)> {
+    pub fn game<T: Any>(&self) -> Option<(PlayerId, &T)> {
         let Self::Game { player, event } = self else {
             return None;
         };

@@ -3,11 +3,17 @@
 use super::super::{PlayerIdentity, config_file};
 use super::migration;
 use bevy::prelude::Resource;
+use leocard_blackjack::BlackjackProfileStats;
+use leocard_doudizhu::DoudizhuProfileStats;
+use leocard_mahjong::MahjongProfileStats;
+use leocard_mc_guess::McGuessProfileStats;
 use leocard_protocol::{
-    BlackjackProfileStats, DoudizhuProfileStats, MahjongProfileStats, MatchId,
-    MinecraftGuessProfileStats, PlayerGameProfiles, PlayerInteractionStats, PlayerReferenceChange,
-    QiGui523ProfileStats, ShengjiProfileStats, TexasHoldemProfileStats, UnoProfileStats,
+    MatchId, PlayerGameProfiles, PlayerInteractionStats, PlayerReferenceChange,
 };
+use leocard_qigui523::QiGui523ProfileStats;
+use leocard_shengji::ShengjiProfileStats;
+use leocard_texas_holdem::TexasProfileStats;
+use leocard_uno::UnoProfileStats;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
@@ -38,12 +44,12 @@ impl StoredPlayerProfile {
 #[derive(Deserialize, Serialize)]
 pub(super) struct StoredGameProfiles {
     pub(super) qigui523: StoredRatingProfile,
-    pub(super) texas_holdem_stats: Option<TexasHoldemProfileStats>,
+    pub(super) texas_stats: Option<TexasProfileStats>,
     pub(super) shengji_stats: Option<ShengjiProfileStats>,
     pub(super) uno_stats: Option<UnoProfileStats>,
     pub(super) interaction_stats: Option<PlayerInteractionStats>,
     pub(super) mahjong_stats: Option<MahjongProfileStats>,
-    pub(super) minecraft_guess_stats: Option<MinecraftGuessProfileStats>,
+    pub(super) mc_guess_stats: Option<McGuessProfileStats>,
     pub(super) blackjack_stats: Option<BlackjackProfileStats>,
     pub(super) doudizhu_stats: Option<DoudizhuProfileStats>,
 }
@@ -89,12 +95,12 @@ impl LocalPlayerProfile {
                     coins: 0,
                     gender: Default::default(),
                     qigui523: stored.games.qigui523.qigui523_stats,
-                    texas_holdem: stored.games.texas_holdem_stats,
+                    texas: stored.games.texas_stats,
                     shengji: stored.games.shengji_stats,
                     uno: stored.games.uno_stats,
                     interactions: stored.games.interaction_stats,
                     mahjong: stored.games.mahjong_stats,
-                    minecraft_guess: stored.games.minecraft_guess_stats,
+                    mc_guess: stored.games.mc_guess_stats,
                     blackjack: stored.games.blackjack_stats,
                     doudizhu: stored.games.doudizhu_stats,
                 },
@@ -135,12 +141,12 @@ impl LocalPlayerProfile {
                     applied_matches: self.rating.applied_matches.iter().copied().collect(),
                     qigui523_stats: self.game_profiles.qigui523.clone(),
                 },
-                texas_holdem_stats: self.game_profiles.texas_holdem.clone(),
+                texas_stats: self.game_profiles.texas.clone(),
                 shengji_stats: self.game_profiles.shengji.clone(),
                 uno_stats: self.game_profiles.uno.clone(),
                 interaction_stats: self.game_profiles.interactions.clone(),
                 mahjong_stats: self.game_profiles.mahjong.clone(),
-                minecraft_guess_stats: self.game_profiles.minecraft_guess.clone(),
+                mc_guess_stats: self.game_profiles.mc_guess.clone(),
                 blackjack_stats: self.game_profiles.blackjack.clone(),
                 doudizhu_stats: self.game_profiles.doudizhu.clone(),
             },

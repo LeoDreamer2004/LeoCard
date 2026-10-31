@@ -7,9 +7,10 @@ use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, SummaryActions, UiAction, add_cozy_button_variant,
     add_cozy_disabled_button, add_summary_actions,
 };
-use bevy::prelude::*;
 use leocard_protocol::DoudizhuSnapshot;
 use leocard_ui::UiComposer;
+
+use bevy::prelude::*;
 
 pub(crate) fn descriptor(game: &DoudizhuSnapshot) -> Option<SummaryDescriptor> {
     let result = game.result.as_ref()?;
@@ -45,8 +46,8 @@ pub(super) fn render(
     let landlord = game
         .players
         .iter()
-        .find(|player| Some(player.id) == game.landlord)
-        .map_or("玩家", |player| player.name.as_str());
+        .find(|player| Some(player.player.id) == game.landlord)
+        .map_or("玩家", |player| player.player.name.as_str());
     let caption = if game.match_complete {
         format!(
             "{} 轮 共 {} 局 按累计得分排名",
@@ -78,13 +79,13 @@ pub(super) fn render(
                 .players
                 .iter()
                 .map(|player| SummaryPlayer {
-                    id: player.id,
+                    id: player.player.id,
                     profile: PlayerMenuProfile {
-                        name: &player.name,
-                        avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
-                        reference_points: player.reference_points,
-                        completed_games: player.completed_games,
-                        game_profiles: &player.game_profiles,
+                        name: &player.player.name,
+                        avatar: player.player.avatar.and_then(|id| avatars.remote.get(&id)),
+                        reference_points: player.player.reference_points,
+                        completed_games: player.player.completed_games,
+                        game_profiles: &player.player.game_profiles,
                     },
                     ready: player.ready,
                 })
@@ -92,7 +93,9 @@ pub(super) fn render(
             scores: game
                 .players
                 .iter()
-                .map(|player| SummaryScore::signed(player.id, scores[usize::from(player.id.0)]))
+                .map(|player| {
+                    SummaryScore::signed(player.player.id, scores[usize::from(player.player.id.0)])
+                })
                 .collect(),
             reference_changes: &game.reference_changes,
             title: if game.match_complete {
@@ -111,7 +114,7 @@ pub(super) fn render(
     let ready = game
         .players
         .iter()
-        .find(|player| player.id == game.you)
+        .find(|player| player.player.id == game.you)
         .map(|player| player.ready);
     if game.match_complete {
         add_summary_actions(

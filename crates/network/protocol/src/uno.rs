@@ -1,6 +1,5 @@
-use crate::{
-    AvatarId, MatchId, PlayerGameProfiles, PlayerId, PlayerReferenceChange, ProfileId, SeatId,
-};
+use crate::{MatchId, PlayerPublicInfo, PlayerReferenceChange, SeatId};
+use leocard_game_common::PlayerId;
 use leocard_uno::{UnoCard, UnoColor, UnoDirection, UnoFlipSide, UnoPendingDrawKind, UnoRuleSet};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -13,7 +12,7 @@ pub struct UnoSnapshot {
     pub you: PlayerId,
     pub host: PlayerId,
     pub rules: UnoRuleSet,
-    pub players: Vec<UnoPlayerState>,
+    pub players: Vec<UnoPlayerView>,
     pub your_hand: Vec<UnoCard>,
     pub draw_pile_len: u16,
     /// FLIP 模式下摸牌堆顶部至多六张牌朝下的一面；其他模式为空。
@@ -53,11 +52,8 @@ pub enum UnoPendingSwapView {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct UnoPlayerState {
-    pub id: PlayerId,
-    pub profile_id: ProfileId,
-    pub name: String,
-    pub avatar: Option<AvatarId>,
+pub struct UnoPlayerView {
+    pub player: PlayerPublicInfo,
     pub seat: SeatId,
     pub hand_len: u8,
     /// FLIP 模式公开的手牌背面，按当前手牌顺序紧密排列。
@@ -65,9 +61,6 @@ pub struct UnoPlayerState {
     pub ready: bool,
     pub connected: bool,
     pub auto_play: bool,
-    pub reference_points: i32,
-    pub completed_games: u32,
-    pub game_profiles: PlayerGameProfiles,
     pub skipped_turns: u16,
     pub eliminated: bool,
 }

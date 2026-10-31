@@ -1,11 +1,11 @@
-use super::{UnoSession, resolve_public_hand_card, shuffled_uno_deck, to_core_player};
+use super::{UnoSession, resolve_public_hand_card, shuffled_uno_deck};
 use crate::{ConnectionId, Delivery, lifecycle::HostedGameLifecycle, new_match_id};
 use leocard_protocol::{
     GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, UnoCommand,
     UnoViolation,
 };
 use leocard_uno::{
-    GameError, GameState, Phase, UnoMatchStatistics, UnoRuleSet, build_deck_for_rules,
+    UnoGameError, UnoGameState, UnoMatchStatistics, UnoPhase, UnoRuleSet, build_deck_for_rules,
 };
 
 impl UnoSession {
@@ -78,7 +78,7 @@ impl UnoSession {
                 },
             ),
             UnoCommand::ChooseSwapOneTarget { target } => {
-                let core_target = to_core_player(target);
+                let core_target = target;
                 self.perform_action(
                     connection,
                     request_id,
@@ -87,86 +87,79 @@ impl UnoSession {
                     move |game, player| {
                         let target_state = game
                             .player(core_target)
-                            .ok_or(GameError::InvalidPlayer(core_target))?;
+                            .ok_or(UnoGameError::InvalidPlayer(core_target))?;
                         if target_state.hand().is_empty() {
-                            return Err(GameError::InvalidSwapTargets);
+                            return Err(UnoGameError::InvalidSwapTargets);
                         }
                         let index = fastrand::usize(..target_state.hand().len());
                         game.choose_swap_one_target(player, core_target, index)
                     },
                 )
             }
-            UnoCommand::ChooseSevenSwapTarget { target } => {
-                let target = to_core_player(target);
-                self.perform_action(
-                    connection,
-                    request_id,
-                    Vec::new(),
-                    false,
-                    move |game, player| game.choose_seven_swap_target(player, target),
-                )
-            }
+            UnoCommand::ChooseSevenSwapTarget { target } => self.perform_action(
+                connection,
+                request_id,
+                Vec::new(),
+                false,
+                move |game, player| game.choose_seven_swap_target(player, target),
+            ),
             UnoCommand::GiveSwapOneCard { card } => {
                 self.perform_action(connection, request_id, Vec::new(), false, |game, player| {
                     let card = resolve_public_hand_card(game, player, card)?;
                     game.give_swap_one_card(player, card)
                 })
             }
-            UnoCommand::ForceTradeHands { first, second } => {
-                let first = to_core_player(first);
-                let second = to_core_player(second);
-                self.perform_action(
-                    connection,
-                    request_id,
-                    Vec::new(),
-                    false,
-                    move |game, player| game.force_trade_hands(player, first, second),
-                )
-            }
+            UnoCommand::ForceTradeHands { first, second } => self.perform_action(
+                connection,
+                request_id,
+                Vec::new(),
+                false,
+                move |game, player| game.force_trade_hands(player, first, second),
+            ),
             UnoCommand::DrawCard => self.perform_action(
                 connection,
                 request_id,
                 Vec::new(),
                 false,
-                GameState::draw_card,
+                UnoGameState::draw_card,
             ),
             UnoCommand::PassAfterDraw => self.perform_action(
                 connection,
                 request_id,
                 Vec::new(),
                 false,
-                GameState::pass_after_draw,
+                UnoGameState::pass_after_draw,
             ),
             UnoCommand::AcceptDrawPenalty => self.perform_action(
                 connection,
                 request_id,
                 Vec::new(),
                 false,
-                GameState::accept_draw_penalty,
+                UnoGameState::accept_draw_penalty,
             ),
             UnoCommand::ChallengeDrawFour => self.perform_action(
                 connection,
                 request_id,
                 Vec::new(),
                 false,
-                GameState::challenge_draw_four,
+                UnoGameState::challenge_draw_four,
             ),
             UnoCommand::ResolveSkip => self.perform_action(
                 connection,
                 request_id,
                 Vec::new(),
                 false,
-                GameState::resolve_skip,
+                UnoGameState::resolve_skip,
             ),
             UnoCommand::CallUno => self.perform_action(
                 connection,
                 request_id,
                 Vec::new(),
                 false,
-                GameState::call_uno,
+                UnoGameState::call_uno,
             ),
             UnoCommand::ReportUno { target } => {
-                let core_target = to_core_player(target);
+                let core_target = target;
                 self.perform_action(
                     connection,
                     request_id,
@@ -243,8 +236,12 @@ impl UnoSession {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         };
-        if matches!(game.phase(), Phase::Finished(_)) {
-            return self.reject_game_error(connection, request_id, &GameError::GameAlreadyFinished);
+        if matches!(game.phase(), UnoPhase::Finished(_)) {
+            return self.reject_game_error(
+                connection,
+                request_id,
+                &UnoGameError::GameAlreadyFinished,
+            );
         }
         let participant = self
             .room
@@ -270,7 +267,7 @@ impl UnoSession {
         }
         let player_count = self.room.players.len() as u8;
         let game =
-            GameState::new_with_deck(self.rules, player_count, shuffled_uno_deck(self.rules))
+            UnoGameState::new_with_deck(self.rules, player_count, shuffled_uno_deck(self.rules))
                 .expect("a freshly built UNO deck is valid");
         self.statistics = Some(UnoMatchStatistics::new(&game));
         self.game = Some(game);

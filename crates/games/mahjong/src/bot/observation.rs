@@ -1,34 +1,35 @@
 use super::MahjongBotAction;
 use super::shanten::Counts;
 use crate::{
-    Discard, GameState, MahjongClaim, MahjongClaimOption, MahjongMeldKind, MahjongPlayerId,
-    MahjongRuleSet, MahjongTile, MahjongTileKind, MahjongWind, Meld, Phase, PublicPlayerState,
-    WinContext, WinSource,
+    MahjongClaim, MahjongClaimOption, MahjongDiscard, MahjongGameState, MahjongMeld,
+    MahjongMeldKind, MahjongPhase, MahjongPublicPlayerState, MahjongRuleSet, MahjongTile,
+    MahjongTileKind, MahjongWinContext, MahjongWinSource, MahjongWind,
 };
+use leocard_game_common::PlayerId;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MahjongBotObservation {
-    pub(super) player: MahjongPlayerId,
+    pub(super) player: PlayerId,
     pub(super) hand: Vec<MahjongTile>,
-    pub(super) melds: Vec<Meld>,
-    pub(super) public: Vec<PublicPlayerState>,
-    pub(super) discards: Vec<Discard>,
+    pub(super) melds: Vec<MahjongMeld>,
+    pub(super) public: Vec<MahjongPublicPlayerState>,
+    pub(super) discards: Vec<MahjongDiscard>,
     pub(super) unseen: Counts,
     pub(super) options: Vec<MahjongBotAction>,
-    pub(super) claim: Option<(MahjongPlayerId, MahjongTileKind)>,
+    pub(super) claim: Option<(PlayerId, MahjongTileKind)>,
     pub(super) rules: MahjongRuleSet,
-    pub(super) context: WinContext,
+    pub(super) context: MahjongWinContext,
     pub(super) wall: usize,
     pub(super) scores: [i32; 4],
 }
 
 impl MahjongBotObservation {
     /// Builds an information boundary: no wall order or opponent concealed tile is retained.
-    pub fn from_game(game: &GameState, player: MahjongPlayerId) -> Option<Self> {
+    pub fn from_game(game: &MahjongGameState, player: PlayerId) -> Option<Self> {
         let own = game.player(player)?;
         let mut options = Vec::new();
         let claim = match game.phase() {
-            Phase::Playing if game.current_player() == player => {
+            MahjongPhase::Playing if game.current_player() == player => {
                 if game.legal_self_draw_available(player).ok()? {
                     options.push(MahjongBotAction::SelfDraw);
                 }
@@ -60,7 +61,7 @@ impl MahjongBotObservation {
                 }
                 None
             }
-            Phase::WaitingForClaims(pending) if pending.response_from(player).is_none() => {
+            MahjongPhase::WaitingForClaims(pending) if pending.response_from(player).is_none() => {
                 options.push(MahjongBotAction::Respond(MahjongClaim::Pass));
                 for option in pending.options_for(player)? {
                     let claim = match option {
@@ -130,8 +131,8 @@ impl MahjongBotObservation {
             options,
             claim,
             rules: *game.rules(),
-            context: WinContext {
-                source: WinSource::SelfDraw,
+            context: MahjongWinContext {
+                source: MahjongWinSource::SelfDraw,
                 seat_wind: game.seat_wind(player).unwrap_or(MahjongWind::East),
                 prevalent_wind: game.prevalent_wind(),
                 last_wall_tile: game.wall_len() == 0,

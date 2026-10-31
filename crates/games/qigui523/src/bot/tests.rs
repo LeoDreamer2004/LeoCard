@@ -1,13 +1,14 @@
 use super::*;
 use crate::{
-    ClassifiedPlay, QiGuiCard, QiGuiRank, QiGuiRuleSet, QiGuiSuit, SameCardPolicy, classify,
+    QiGuiCard, QiGuiClassifiedPlay, QiGuiRank, QiGuiRuleSet, QiGuiSameCardPolicy, QiGuiSuit,
+    classify,
 };
 
 fn card(deck: u8, suit: QiGuiSuit, rank: QiGuiRank) -> QiGuiCard {
     QiGuiCard::suited(deck, suit, rank)
 }
 
-fn single(card: QiGuiCard, rules: &QiGuiRuleSet) -> ClassifiedPlay {
+fn single(card: QiGuiCard, rules: &QiGuiRuleSet) -> QiGuiClassifiedPlay {
     classify(&[card], rules).unwrap()
 }
 
@@ -218,11 +219,11 @@ fn equal_strength_following_obeys_room_rules() {
     ];
     let strict = QiGuiRuleSet {
         deck_count: 2,
-        same_card_policy: SameCardPolicy::MustBeHigher,
+        same_card_policy: QiGuiSameCardPolicy::MustBeHigher,
         ..QiGuiRuleSet::default()
     };
     let following = QiGuiRuleSet {
-        same_card_policy: SameCardPolicy::CanFollow,
+        same_card_policy: QiGuiSameCardPolicy::CanFollow,
         ..strict
     };
     let current = single(current_card, &strict);

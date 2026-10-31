@@ -1,12 +1,14 @@
 use super::super::ShengjiSession;
 use super::{auto_play, bot};
-use leocard_shengji::{ActionOutcome, ShengjiPlayerId};
+use leocard_game_common::PlayerId;
+
+use leocard_shengji::ShengjiActionOutcome;
 
 impl ShengjiSession {
     pub(in super::super) fn play_automatic_action(
         &mut self,
-        player: ShengjiPlayerId,
-    ) -> Option<ActionOutcome> {
+        player: PlayerId,
+    ) -> Option<ShengjiActionOutcome> {
         let is_bot = self.room.players.get(usize::from(player.0))?.is_bot;
         let game = self.game.as_mut()?;
         if is_bot {

@@ -1,19 +1,19 @@
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{
     BlackjackSession, ConnectionId, Delivery, DoudizhuSession, HostError, MahjongSession,
-    MinecraftGuessSession, QiGui523Session, ShengjiSession, TexasHoldemSession, UnoSession,
+    McGuessSession, QiGui523Session, ShengjiSession, TexasSession, UnoSession,
 };
 use leocard_blackjack::{BlackjackCard, BlackjackRuleSet, build_shoe};
-use leocard_doudizhu::{Card as DoudizhuCard, RuleSet as DoudizhuRuleSet};
+use leocard_doudizhu::{DoudizhuCard, DoudizhuRuleSet};
 use leocard_mahjong::{MahjongRuleSet, MahjongTile};
-use leocard_minecraft_guess::MinecraftGuessRuleSet;
+use leocard_mc_guess::McGuessRuleSet;
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameKind, GameRules, PROTOCOL_VERSION, Revision, RoomId,
     RoomInfo, ServerEvent, ServerMessage,
 };
 use leocard_qigui523::{QiGuiCard, QiGuiRuleSet, build_deck};
 use leocard_shengji::{ShengjiCard, ShengjiRuleSet, build_deck_for};
-use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemRuleSet};
+use leocard_texas_holdem::{TexasCard, TexasRuleSet};
 use leocard_uno::{UnoCard, UnoRuleSet, build_deck_for_rules};
 use std::time::Duration;
 
@@ -30,19 +30,19 @@ pub enum GameSetup {
         rules: BlackjackRuleSet,
         shuffled_shoe: Vec<BlackjackCard>,
     },
-    MinecraftGuess {
+    McGuess {
         host_port: u16,
-        rules: MinecraftGuessRuleSet,
+        rules: McGuessRuleSet,
     },
     QiGui523 {
         host_port: u16,
         rules: QiGuiRuleSet,
         shuffled_deck: Vec<QiGuiCard>,
     },
-    TexasHoldem {
+    Texas {
         host_port: u16,
-        rules: TexasHoldemRuleSet,
-        shuffled_deck: Vec<TexasHoldemCard>,
+        rules: TexasRuleSet,
+        shuffled_deck: Vec<TexasCard>,
     },
     Shengji {
         host_port: u16,
@@ -82,7 +82,7 @@ impl GameSetup {
                     shuffled_shoe,
                 }
             }
-            GameRules::MinecraftGuess(rules) => Self::MinecraftGuess { host_port, rules },
+            GameRules::McGuess(rules) => Self::McGuess { host_port, rules },
             GameRules::QiGui523(rules) => {
                 let mut shuffled_deck = build_deck(rules.deck_count);
                 fastrand::shuffle(&mut shuffled_deck);
@@ -92,10 +92,10 @@ impl GameSetup {
                     shuffled_deck,
                 }
             }
-            GameRules::TexasHoldem(rules) => {
+            GameRules::Texas(rules) => {
                 let mut shuffled_deck = leocard_texas_holdem::build_deck(rules.short_deck);
                 fastrand::shuffle(&mut shuffled_deck);
-                Self::TexasHoldem {
+                Self::Texas {
                     host_port,
                     rules,
                     shuffled_deck,
@@ -134,11 +134,11 @@ impl GameSetup {
     pub const fn kind(&self) -> GameKind {
         match self {
             Self::QiGui523 { .. } => GameKind::QiGui523,
-            Self::TexasHoldem { .. } => GameKind::TexasHoldem,
+            Self::Texas { .. } => GameKind::Texas,
             Self::Shengji { .. } => GameKind::Shengji,
             Self::Uno { .. } => GameKind::Uno,
             Self::Mahjong { .. } => GameKind::Mahjong,
-            Self::MinecraftGuess { .. } => GameKind::MinecraftGuess,
+            Self::McGuess { .. } => GameKind::McGuess,
             Self::Blackjack { .. } => GameKind::Blackjack,
             Self::Doudizhu { .. } => GameKind::Doudizhu,
         }
@@ -151,11 +151,11 @@ pub enum HostSession {
     Doudizhu(Box<DoudizhuSession>),
     Blackjack(Box<BlackjackSession>),
     QiGui523(Box<QiGui523Session>),
-    TexasHoldem(Box<TexasHoldemSession>),
+    Texas(Box<TexasSession>),
     Shengji(Box<ShengjiSession>),
     Uno(Box<UnoSession>),
     Mahjong(Box<MahjongSession>),
-    MinecraftGuess(Box<MinecraftGuessSession>),
+    McGuess(Box<McGuessSession>),
 }
 
 trait HostBackend {
@@ -231,11 +231,11 @@ macro_rules! impl_host_backend {
 }
 
 impl_host_backend!(QiGui523Session, QiGui523);
-impl_host_backend!(TexasHoldemSession, TexasHoldem);
+impl_host_backend!(TexasSession, Texas);
 impl_host_backend!(ShengjiSession, Shengji);
 impl_host_backend!(UnoSession, Uno);
 impl_host_backend!(MahjongSession, Mahjong);
-impl_host_backend!(MinecraftGuessSession, MinecraftGuess);
+impl_host_backend!(McGuessSession, McGuess);
 impl_host_backend!(BlackjackSession, Blackjack);
 impl_host_backend!(DoudizhuSession, Doudizhu);
 
@@ -256,8 +256,8 @@ impl HostSession {
             } => BlackjackSession::new(room_id, host_port, rules, shuffled_shoe)
                 .map(Box::new)
                 .map(Self::Blackjack),
-            GameSetup::MinecraftGuess { host_port, rules } => Ok(Self::MinecraftGuess(Box::new(
-                MinecraftGuessSession::new(room_id, host_port, rules),
+            GameSetup::McGuess { host_port, rules } => Ok(Self::McGuess(Box::new(
+                McGuessSession::new(room_id, host_port, rules),
             ))),
             GameSetup::QiGui523 {
                 host_port,
@@ -266,13 +266,13 @@ impl HostSession {
             } => QiGui523Session::new(room_id, host_port, rules, shuffled_deck)
                 .map(Box::new)
                 .map(Self::QiGui523),
-            GameSetup::TexasHoldem {
+            GameSetup::Texas {
                 host_port,
                 rules,
                 shuffled_deck,
-            } => TexasHoldemSession::new(room_id, host_port, rules, shuffled_deck)
+            } => TexasSession::new(room_id, host_port, rules, shuffled_deck)
                 .map(Box::new)
-                .map(Self::TexasHoldem),
+                .map(Self::Texas),
             GameSetup::Shengji {
                 host_port,
                 rules,
@@ -300,11 +300,11 @@ impl HostSession {
     fn backend(&self) -> &dyn HostBackend {
         match self {
             Self::QiGui523(session) => session.as_ref(),
-            Self::TexasHoldem(session) => session.as_ref(),
+            Self::Texas(session) => session.as_ref(),
             Self::Shengji(session) => session.as_ref(),
             Self::Uno(session) => session.as_ref(),
             Self::Mahjong(session) => session.as_ref(),
-            Self::MinecraftGuess(session) => session.as_ref(),
+            Self::McGuess(session) => session.as_ref(),
             Self::Blackjack(session) => session.as_ref(),
             Self::Doudizhu(session) => session.as_ref(),
         }
@@ -313,11 +313,11 @@ impl HostSession {
     fn backend_mut(&mut self) -> &mut dyn HostBackend {
         match self {
             Self::QiGui523(session) => session.as_mut(),
-            Self::TexasHoldem(session) => session.as_mut(),
+            Self::Texas(session) => session.as_mut(),
             Self::Shengji(session) => session.as_mut(),
             Self::Uno(session) => session.as_mut(),
             Self::Mahjong(session) => session.as_mut(),
-            Self::MinecraftGuess(session) => session.as_mut(),
+            Self::McGuess(session) => session.as_mut(),
             Self::Blackjack(session) => session.as_mut(),
             Self::Doudizhu(session) => session.as_mut(),
         }

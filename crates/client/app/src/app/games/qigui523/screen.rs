@@ -1,9 +1,11 @@
 //! This game owns its screen resources, state reconciliation and view assembly.
+use super::{
+    QiGui523Assets, QiGui523UiState, QiGuiClientState, TableVisualContext, render_qigui523_lobby,
+    render_table,
+};
 
 use super::super::{GameLobbyContext, GameScreen, GameTableContext};
-use super::{
-    QiGui523Assets, QiGui523UiState, TableVisualContext, render_qigui523_lobby, render_table,
-};
+
 use crate::app::presentation::PlayEffectState;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{ScoreCaptureEffectState, SocialUiState};
@@ -15,6 +17,7 @@ use leocard_ui::UiComposer;
 
 #[derive(SystemParam)]
 pub(crate) struct QiGui523Screen<'w> {
+    client_state: Res<'w, QiGuiClientState>,
     assets: Res<'w, QiGui523Assets>,
     ui: ResMut<'w, QiGui523UiState>,
     play_effect: Res<'w, PlayEffectState>,
@@ -71,6 +74,7 @@ impl GameScreen for QiGui523Screen<'_> {
             ..
         } = context;
         let mut visuals = TableVisualContext {
+            client_state: &self.client_state,
             assets,
             game_assets: &self.assets,
             avatars,

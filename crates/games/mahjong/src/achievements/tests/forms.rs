@@ -1,12 +1,12 @@
 use super::support::{Progress, win};
-use crate::Fan;
-use leocard_achievements::ParticipantId;
+use crate::MahjongFan;
+use leocard_game_common::PlayerId;
 
 #[test]
 fn actual_self_draws_and_concealed_shapes_count_even_when_the_fans_are_excluded() {
     let mut progress = Progress::default();
     // A high fan suppresses the lower self-draw/concealed-hand fan labels.
-    let fans = [(Fan::FourConcealedPungs, 1)];
+    let fans = [(MahjongFan::FourConcealedPungs, 1)];
     for _ in 0..199 {
         progress.apply(win(&fans, 0, None, true));
     }
@@ -16,14 +16,19 @@ fn actual_self_draws_and_concealed_shapes_count_even_when_the_fans_are_excluded(
     progress.apply(win(&fans, 0, None, true));
     assert!(progress.achieved("leocard:mahjong/two_hundred_self_draws"));
     for _ in 0..99 {
-        progress.apply(win(&fans, 0, Some(ParticipantId(1)), true));
+        progress.apply(win(&fans, 0, Some(PlayerId(1)), true));
     }
     assert!(!progress.achieved("leocard:mahjong/three_hundred_concealed_wins"));
-    progress.apply(win(&[(Fan::AllPungs, 1)], 0, Some(ParticipantId(1)), false));
+    progress.apply(win(
+        &[(MahjongFan::AllPungs, 1)],
+        0,
+        Some(PlayerId(1)),
+        false,
+    ));
     assert_eq!(
         progress.count("leocard:mahjong/three_hundred_concealed_wins"),
         299
     );
-    progress.apply(win(&fans, 0, Some(ParticipantId(1)), true));
+    progress.apply(win(&fans, 0, Some(PlayerId(1)), true));
     assert!(progress.achieved("leocard:mahjong/three_hundred_concealed_wins"));
 }

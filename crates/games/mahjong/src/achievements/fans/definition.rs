@@ -10,7 +10,7 @@ macro_rules! fan {
             $title,
             $tier,
             $description,
-            |event| u64::from(mahjong_fan(event, Fan::$fan)),
+            |event| u64::from(mahjong_fan(event, MahjongFan::$fan)),
             $target,
             Lifetime
         )

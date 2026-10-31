@@ -1,9 +1,10 @@
 use super::*;
 use bevy::prelude::*;
-use leocard_protocol::{PlayerId, ShengjiEvent, ShengjiPublicPlay};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{ShengjiEvent, ShengjiPublicPlay};
 use leocard_shengji::{
-    Category, Component, ShengjiCard, ShengjiClassifiedPlay, ShengjiMode, ShengjiRank, ShengjiSuit,
-    ShengjiThrowPenalty, ShengjiTrump,
+    ShengjiCard, ShengjiCategory, ShengjiClassifiedPlay, ShengjiComponent, ShengjiMode,
+    ShengjiRank, ShengjiSuit, ShengjiThrowPenalty, ShengjiTrump,
 };
 
 #[test]
@@ -68,7 +69,7 @@ fn only_a_structure_matching_winning_trump_play_triggers_the_target_effect() {
         play: ShengjiClassifiedPlay {
             cards: vec![card],
             category,
-            components: vec![Component::Single {
+            components: vec![ShengjiComponent::Single {
                 card,
                 strength: trump.strength(card),
             }],
@@ -78,22 +79,22 @@ fn only_a_structure_matching_winning_trump_play_triggers_the_target_effect() {
     let lead = single(
         0,
         ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Ace),
-        Category::Suit(ShengjiSuit::Spade),
+        ShengjiCategory::Suit(ShengjiSuit::Spade),
     );
     let first_kill = single(
         1,
         ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Three),
-        Category::Trump,
+        ShengjiCategory::Trump,
     );
     let cover_kill = single(
         2,
         ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ace),
-        Category::Trump,
+        ShengjiCategory::Trump,
     );
     let losing_trump = single(
         3,
         ShengjiCard::suited(1, ShengjiSuit::Heart, ShengjiRank::Four),
-        Category::Trump,
+        ShengjiCategory::Trump,
     );
 
     let mut state = ShengjiPresentationState::default();
@@ -121,8 +122,8 @@ fn only_a_structure_matching_winning_trump_play_triggers_the_target_effect() {
         player: PlayerId(0),
         play: ShengjiClassifiedPlay {
             cards: pair_cards.to_vec(),
-            category: Category::Suit(ShengjiSuit::Spade),
-            components: vec![Component::Pair {
+            category: ShengjiCategory::Suit(ShengjiSuit::Spade),
+            components: vec![ShengjiComponent::Pair {
                 cards: pair_cards,
                 strength: trump.strength(pair_cards[0]),
             }],
@@ -137,10 +138,10 @@ fn only_a_structure_matching_winning_trump_play_triggers_the_target_effect() {
         player: PlayerId(1),
         play: ShengjiClassifiedPlay {
             cards: discard_cards.to_vec(),
-            category: Category::Trump,
+            category: ShengjiCategory::Trump,
             components: discard_cards
                 .into_iter()
-                .map(|card| Component::Single {
+                .map(|card| ShengjiComponent::Single {
                     card,
                     strength: trump.strength(card),
                 })
@@ -177,8 +178,8 @@ fn previous_trick_requires_a_complete_round_for_the_configured_player_count() {
                         player: PlayerId(player),
                         play: ShengjiClassifiedPlay {
                             cards: vec![card],
-                            category: Category::Suit(suit),
-                            components: vec![Component::Single { card, strength: 1 }],
+                            category: ShengjiCategory::Suit(suit),
+                            components: vec![ShengjiComponent::Single { card, strength: 1 }],
                         },
                         throw_penalty: 0,
                     },

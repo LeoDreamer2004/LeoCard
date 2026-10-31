@@ -1,12 +1,11 @@
 use super::{
-    ActionOutcome, BottomFlipMatch, BottomFlipReveal, GameError, GameState, Phase,
-    ShengjiRedealReason, next_player,
+    ShengjiActionOutcome, ShengjiBottomFlipMatch, ShengjiBottomFlipReveal, ShengjiGameError,
+    ShengjiGameState, ShengjiPhase, ShengjiRedealReason, next_player,
 };
-use crate::{
-    ShengjiBidTrump, ShengjiCard, ShengjiPlayerId, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
-    ShengjiTrump,
-};
-use leocard_game_common::contains_unique_cards;
+use crate::ShengjiTeamId;
+use crate::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTrump};
+use leocard_game_common::{PlayerId, contains_unique_cards};
+
 use std::{collections::HashMap, error::Error, fmt};
 
 /// 带王亮时，红色花色配大王，黑色花色配小王。
@@ -28,8 +27,8 @@ pub enum ShengjiBidKind {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Declaration {
-    pub player: ShengjiPlayerId,
+pub struct ShengjiDeclaration {
+    pub player: PlayerId,
     pub trump: ShengjiBidTrump,
     pub kind: ShengjiBidKind,
     pub protected: bool,
@@ -37,18 +36,18 @@ pub struct Declaration {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BidState {
+pub struct ShengjiBidState {
     level: ShengjiRank,
     deck_count: u8,
     player_count: u8,
     bid_with_joker: bool,
-    original_bidder: Option<ShengjiPlayerId>,
-    current: Option<Declaration>,
-    exposed: HashMap<ShengjiCard, ShengjiPlayerId>,
+    original_bidder: Option<PlayerId>,
+    current: Option<ShengjiDeclaration>,
+    exposed: HashMap<ShengjiCard, PlayerId>,
     closed: bool,
 }
 
-impl BidState {
+impl ShengjiBidState {
     pub fn new(level: ShengjiRank) -> Self {
         Self::new_with_decks(level, 2)
     }
@@ -82,11 +81,11 @@ impl BidState {
         self.level
     }
 
-    pub const fn original_bidder(&self) -> Option<ShengjiPlayerId> {
+    pub const fn original_bidder(&self) -> Option<PlayerId> {
         self.original_bidder
     }
 
-    pub const fn current(&self) -> Option<&Declaration> {
+    pub const fn current(&self) -> Option<&ShengjiDeclaration> {
         self.current.as_ref()
     }
 
@@ -95,7 +94,7 @@ impl BidState {
     }
 
     /// 返回指定玩家已经公开过的物理牌，仅记录公开信息，不限制再次亮牌。
-    pub fn exposed_cards(&self, player: ShengjiPlayerId) -> Vec<ShengjiCard> {
+    pub fn exposed_cards(&self, player: PlayerId) -> Vec<ShengjiCard> {
         let mut cards = self
             .exposed
             .iter()
@@ -107,15 +106,15 @@ impl BidState {
 
     pub fn declare(
         &mut self,
-        player: ShengjiPlayerId,
+        player: PlayerId,
         cards: &[ShengjiCard],
         hand: &[ShengjiCard],
-    ) -> Result<&Declaration, BidError> {
+    ) -> Result<&ShengjiDeclaration, ShengjiBidError> {
         if self.closed {
-            return Err(BidError::Closed);
+            return Err(ShengjiBidError::Closed);
         }
         if player.0 >= self.player_count {
-            return Err(BidError::InvalidPlayer(player));
+            return Err(ShengjiBidError::InvalidPlayer(player));
         }
         validate_owned(cards, hand)?;
 
@@ -133,24 +132,30 @@ impl BidState {
         Ok(self.current.as_ref().unwrap())
     }
 
-    pub fn close(&mut self) -> Result<ShengjiTrump, BidError> {
+    pub fn close(&mut self) -> Result<ShengjiTrump, ShengjiBidError> {
         self.closed = true;
-        let declaration = self.current.as_ref().ok_or(BidError::NoDeclaration)?;
+        let declaration = self
+            .current
+            .as_ref()
+            .ok_or(ShengjiBidError::NoDeclaration)?;
         Ok(ShengjiTrump::new(self.level, declaration.trump.trump_suit()).unwrap())
     }
 
     /// 亮主窗口关闭后，抄底仍按普通反主强度校验，但不重新开放公开亮主阶段。
     pub fn counter_after_close(
         &mut self,
-        player: ShengjiPlayerId,
+        player: PlayerId,
         cards: &[ShengjiCard],
         hand: &[ShengjiCard],
-    ) -> Result<&Declaration, BidError> {
+    ) -> Result<&ShengjiDeclaration, ShengjiBidError> {
         if !self.closed {
-            return Err(BidError::Closed);
+            return Err(ShengjiBidError::Closed);
         }
         validate_owned(cards, hand)?;
-        let current = self.current.as_ref().ok_or(BidError::NoDeclaration)?;
+        let current = self
+            .current
+            .as_ref()
+            .ok_or(ShengjiBidError::NoDeclaration)?;
         let next = self.next_declaration(player, cards, current)?;
         for card in cards {
             self.exposed.insert(*card, player);
@@ -161,11 +166,7 @@ impl BidState {
 
     /// 返回该玩家当前能够用于反主抄底的候选牌。每种主牌目标只需保留一个
     /// 最小可行候选，客户端可据此绘制与亮主阶段相同的五个按钮。
-    pub fn counter_options(
-        &self,
-        player: ShengjiPlayerId,
-        hand: &[ShengjiCard],
-    ) -> Vec<Vec<ShengjiCard>> {
+    pub fn counter_options(&self, player: PlayerId, hand: &[ShengjiCard]) -> Vec<Vec<ShengjiCard>> {
         if !self.closed
             || self
                 .current
@@ -224,14 +225,14 @@ impl BidState {
 
     fn initial_declaration(
         &self,
-        player: ShengjiPlayerId,
+        player: PlayerId,
         cards: &[ShengjiCard],
-    ) -> Result<Declaration, BidError> {
+    ) -> Result<ShengjiDeclaration, ShengjiBidError> {
         let parsed = parse_bid(cards, self.level, self.deck_count, self.bid_with_joker)?;
         if self.bid_with_joker && !matches!(parsed.trump, ShengjiBidTrump::Suit(_)) {
-            return Err(BidError::NoTrumpCannotOpen);
+            return Err(ShengjiBidError::NoTrumpCannotOpen);
         }
-        Ok(Declaration {
+        Ok(ShengjiDeclaration {
             player,
             trump: parsed.trump,
             kind: ShengjiBidKind::Initial,
@@ -246,10 +247,10 @@ impl BidState {
 
     fn next_declaration(
         &self,
-        player: ShengjiPlayerId,
+        player: PlayerId,
         cards: &[ShengjiCard],
-        current: &Declaration,
-    ) -> Result<Declaration, BidError> {
+        current: &ShengjiDeclaration,
+    ) -> Result<ShengjiDeclaration, ShengjiBidError> {
         let candidate_cards =
             if declaration_extends_current(player, cards, current, self.level, self.bid_with_joker)
             {
@@ -275,7 +276,7 @@ impl BidState {
             && parsed.primary_count > current_parsed.primary_count
             && matches!(parsed.trump, ShengjiBidTrump::Suit(_));
         if protects {
-            return Ok(Declaration {
+            return Ok(ShengjiDeclaration {
                 player,
                 trump: parsed.trump,
                 kind: ShengjiBidKind::Protect,
@@ -285,7 +286,7 @@ impl BidState {
         }
 
         if parsed.primary_count < 2 {
-            return Err(BidError::CounterRequiresPair);
+            return Err(ShengjiBidError::CounterRequiresPair);
         }
         // 自保后忽略花色强弱：同张数的其它花色不能反；无主可以反，更多
         // 级牌也可以反。后一种由张数优先的声明强度继续判定。
@@ -293,20 +294,20 @@ impl BidState {
             && matches!(parsed.trump, ShengjiBidTrump::Suit(_))
             && parsed.primary_count <= current_parsed.primary_count
         {
-            return Err(BidError::ProtectedSuit);
+            return Err(ShengjiBidError::ProtectedSuit);
         }
         let candidate_strength = parsed
             .trump
             .declaration_strength(self.deck_count, parsed.primary_count)
-            .ok_or(BidError::InvalidCards)?;
+            .ok_or(ShengjiBidError::InvalidCards)?;
         let current_strength = current_parsed
             .trump
             .declaration_strength(self.deck_count, current_parsed.primary_count)
-            .ok_or(BidError::InvalidCards)?;
+            .ok_or(ShengjiBidError::InvalidCards)?;
         if candidate_strength <= current_strength {
-            return Err(BidError::NotStronger);
+            return Err(ShengjiBidError::NotStronger);
         }
-        Ok(Declaration {
+        Ok(ShengjiDeclaration {
             player,
             trump: parsed.trump,
             kind: if Some(player) == self.original_bidder {
@@ -332,9 +333,9 @@ fn parse_bid(
     level: ShengjiRank,
     deck_count: u8,
     bid_with_joker: bool,
-) -> Result<ParsedBid, BidError> {
+) -> Result<ParsedBid, ShengjiBidError> {
     if cards.is_empty() {
-        return Err(BidError::InvalidCards);
+        return Err(ShengjiBidError::InvalidCards);
     }
 
     if cards[1..].iter().all(|card| card.same_face(cards[0])) {
@@ -358,7 +359,7 @@ fn parse_bid(
             parsed
                 .trump
                 .declaration_strength(deck_count, parsed.primary_count)
-                .ok_or(BidError::InvalidCards)?;
+                .ok_or(ShengjiBidError::InvalidCards)?;
             return Ok(parsed);
         }
     }
@@ -383,19 +384,19 @@ fn parse_bid(
                 parsed
                     .trump
                     .declaration_strength(deck_count, parsed.primary_count)
-                    .ok_or(BidError::InvalidCards)?;
+                    .ok_or(ShengjiBidError::InvalidCards)?;
                 return Ok(parsed);
             }
         }
-        return Err(BidError::JokerRequired);
+        return Err(ShengjiBidError::JokerRequired);
     }
-    Err(BidError::InvalidCards)
+    Err(ShengjiBidError::InvalidCards)
 }
 
 fn declaration_extends_current(
-    player: ShengjiPlayerId,
+    player: PlayerId,
     cards: &[ShengjiCard],
-    current: &Declaration,
+    current: &ShengjiDeclaration,
     level: ShengjiRank,
     bid_with_joker: bool,
 ) -> bool {
@@ -434,19 +435,19 @@ fn merge_declaration_cards(current: &[ShengjiCard], added: &[ShengjiCard]) -> Ve
     combined
 }
 
-fn validate_owned(cards: &[ShengjiCard], hand: &[ShengjiCard]) -> Result<(), BidError> {
+fn validate_owned(cards: &[ShengjiCard], hand: &[ShengjiCard]) -> Result<(), ShengjiBidError> {
     if cards.is_empty() {
-        return Err(BidError::InvalidCards);
+        return Err(ShengjiBidError::InvalidCards);
     }
     if !contains_unique_cards(hand, cards) {
-        return Err(BidError::CardsNotOwned);
+        return Err(ShengjiBidError::CardsNotOwned);
     }
     Ok(())
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum BidError {
-    InvalidPlayer(ShengjiPlayerId),
+pub enum ShengjiBidError {
+    InvalidPlayer(PlayerId),
     Closed,
     NoDeclaration,
     InvalidCards,
@@ -458,7 +459,7 @@ pub enum BidError {
     NoTrumpCannotOpen,
 }
 
-impl fmt::Display for BidError {
+impl fmt::Display for ShengjiBidError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidPlayer(player) => write!(f, "玩家 {:?} 不存在", player),
@@ -475,38 +476,40 @@ impl fmt::Display for BidError {
     }
 }
 
-impl Error for BidError {}
+impl Error for ShengjiBidError {}
 
-impl GameState {
-    pub fn close_bidding_and_take_kitty(&mut self) -> Result<ActionOutcome, GameError> {
-        if self.phase != Phase::BiddingGrace {
-            return Err(GameError::WrongPhase);
+impl ShengjiGameState {
+    pub fn close_bidding_and_take_kitty(
+        &mut self,
+    ) -> Result<ShengjiActionOutcome, ShengjiGameError> {
+        if self.phase != ShengjiPhase::BiddingGrace {
+            return Err(ShengjiGameError::WrongPhase);
         }
         let trump = match self.bidding.close() {
             Ok(trump) => trump.with_constant_trump(self.rules.constant_trump),
-            Err(BidError::NoDeclaration) => {
+            Err(ShengjiBidError::NoDeclaration) => {
                 if self.rules.power_outage_dealer && !self.power_outage_used {
                     let dealer = next_player(self.bidding_dealer, self.rules.player_count());
                     self.power_outage_used = true;
                     self.fixed_dealer = Some(dealer);
                     self.bidding_dealer = dealer;
                     self.dealer = Some(dealer);
-                    self.bidding = BidState::new_with_rules(
-                        self.teams.level(dealer.team()),
+                    self.bidding = ShengjiBidState::new_with_rules(
+                        self.teams.level(ShengjiTeamId::of(dealer)),
                         self.rules.deck_count,
                         self.rules.bid_with_joker,
                     )
                     .with_player_count(self.rules.player_count());
-                    return Ok(ActionOutcome::PowerOutageDealerChanged { dealer });
+                    return Ok(ShengjiActionOutcome::PowerOutageDealerChanged { dealer });
                 }
                 if self.rules.bottom_flip {
                     self.bottom_flip_index = 0;
                     self.bottom_flip_winner = None;
-                    self.phase = Phase::BottomFlipping;
-                    return Ok(ActionOutcome::BottomFlipStarted);
+                    self.phase = ShengjiPhase::BottomFlipping;
+                    return Ok(ShengjiActionOutcome::BottomFlipStarted);
                 }
-                self.phase = Phase::RedealRequired(ShengjiRedealReason::NoDeclaration);
-                return Err(GameError::RedealRequired);
+                self.phase = ShengjiPhase::RedealRequired(ShengjiRedealReason::NoDeclaration);
+                return Err(ShengjiGameError::RedealRequired);
             }
             Err(error) => return Err(error.into()),
         };
@@ -515,18 +518,18 @@ impl GameState {
             .unwrap_or_else(|| self.bidding.current().unwrap().player);
         self.bidding_dealer = dealer;
         self.take_kitty_for_dealer(dealer, trump);
-        Ok(ActionOutcome::DealerTookKitty { dealer })
+        Ok(ShengjiActionOutcome::DealerTookKitty { dealer })
     }
 
-    pub fn flip_next_bottom_card(&mut self) -> Result<ActionOutcome, GameError> {
-        if self.phase != Phase::BottomFlipping {
-            return Err(GameError::WrongPhase);
+    pub fn flip_next_bottom_card(&mut self) -> Result<ShengjiActionOutcome, ShengjiGameError> {
+        if self.phase != ShengjiPhase::BottomFlipping {
+            return Err(ShengjiGameError::WrongPhase);
         }
         let Some(card) = self.deck.get(self.bottom_flip_index).copied() else {
-            self.phase = Phase::RedealRequired(ShengjiRedealReason::BottomFlipExhausted {
+            self.phase = ShengjiPhase::RedealRequired(ShengjiRedealReason::BottomFlipExhausted {
                 power_outage_used: self.power_outage_used,
             });
-            return Err(GameError::RedealRequired);
+            return Err(ShengjiGameError::RedealRequired);
         };
         self.bottom_flip_index += 1;
         let matches = self
@@ -539,7 +542,7 @@ impl GameState {
                     .copied()
                     .filter(|candidate| candidate.same_face(card))
                     .collect::<Vec<_>>();
-                (!cards.is_empty()).then_some(BottomFlipMatch {
+                (!cards.is_empty()).then_some(ShengjiBottomFlipMatch {
                     player: player.id,
                     cards,
                 })
@@ -548,7 +551,7 @@ impl GameState {
         let dealer =
             select_bottom_flip_dealer(&matches, self.bidding_dealer, self.rules.player_count());
         if let Some(dealer) = dealer {
-            let trump = ShengjiTrump::new(self.teams.level(dealer.team()), card.suit())
+            let trump = ShengjiTrump::new(self.teams.level(ShengjiTeamId::of(dealer)), card.suit())
                 .expect("扳底只会从完整牌堆中翻出合法牌")
                 .with_constant_trump(self.rules.constant_trump);
             self.fixed_dealer = Some(dealer);
@@ -558,29 +561,31 @@ impl GameState {
             self.dealer_from_bottom_flip = true;
             self.bottom_flip_winner = Some((dealer, trump));
         } else if self.bottom_flip_index == self.deck.len() {
-            self.phase = Phase::RedealRequired(ShengjiRedealReason::BottomFlipExhausted {
+            self.phase = ShengjiPhase::RedealRequired(ShengjiRedealReason::BottomFlipExhausted {
                 power_outage_used: self.power_outage_used,
             });
         }
-        Ok(ActionOutcome::BottomCardRevealed(BottomFlipReveal {
-            card,
-            matches,
-            dealer,
-        }))
+        Ok(ShengjiActionOutcome::BottomCardRevealed(
+            ShengjiBottomFlipReveal {
+                card,
+                matches,
+                dealer,
+            },
+        ))
     }
 
-    pub fn complete_bottom_flip(&mut self) -> Result<ActionOutcome, GameError> {
-        if self.phase != Phase::BottomFlipping {
-            return Err(GameError::WrongPhase);
+    pub fn complete_bottom_flip(&mut self) -> Result<ShengjiActionOutcome, ShengjiGameError> {
+        if self.phase != ShengjiPhase::BottomFlipping {
+            return Err(ShengjiGameError::WrongPhase);
         }
         let Some((dealer, trump)) = self.bottom_flip_winner.take() else {
-            return Err(GameError::WrongPhase);
+            return Err(ShengjiGameError::WrongPhase);
         };
         self.take_kitty_for_dealer(dealer, trump);
-        Ok(ActionOutcome::DealerTookKitty { dealer })
+        Ok(ShengjiActionOutcome::DealerTookKitty { dealer })
     }
 
-    fn take_kitty_for_dealer(&mut self, dealer: ShengjiPlayerId, trump: ShengjiTrump) {
+    fn take_kitty_for_dealer(&mut self, dealer: PlayerId, trump: ShengjiTrump) {
         self.kitty = self.deck.drain(..).collect();
         debug_assert_eq!(self.kitty.len(), self.rules.kitty_size());
         self.players[usize::from(dealer.0)]
@@ -588,15 +593,15 @@ impl GameState {
             .extend(self.kitty.iter().copied());
         self.trump = Some(trump);
         self.dealer = Some(dealer);
-        self.phase = Phase::Burying;
+        self.phase = ShengjiPhase::Burying;
     }
 }
 
 pub(super) fn select_bottom_flip_dealer(
-    matches: &[BottomFlipMatch],
-    current_dealer: ShengjiPlayerId,
+    matches: &[ShengjiBottomFlipMatch],
+    current_dealer: PlayerId,
     player_count: u8,
-) -> Option<ShengjiPlayerId> {
+) -> Option<PlayerId> {
     if matches.len() == 1 {
         return Some(matches[0].player);
     }
@@ -605,7 +610,7 @@ pub(super) fn select_bottom_flip_dealer(
     }
     let mut team_totals = [0_usize; 2];
     for matched in matches {
-        team_totals[usize::from(matched.player.team().0)] += matched.cards.len();
+        team_totals[usize::from(ShengjiTeamId::of(matched.player).0)] += matched.cards.len();
     }
     if team_totals[0] == team_totals[1] {
         return None;
@@ -613,13 +618,13 @@ pub(super) fn select_bottom_flip_dealer(
     let winning_team = usize::from(team_totals[1] > team_totals[0]);
     let most_cards = matches
         .iter()
-        .filter(|matched| usize::from(matched.player.team().0) == winning_team)
+        .filter(|matched| usize::from(ShengjiTeamId::of(matched.player).0) == winning_team)
         .map(|matched| matched.cards.len())
         .max()?;
     matches
         .iter()
         .filter(|matched| {
-            usize::from(matched.player.team().0) == winning_team
+            usize::from(ShengjiTeamId::of(matched.player).0) == winning_team
                 && matched.cards.len() == most_cards
         })
         .min_by_key(|matched| (matched.player.0 + player_count - current_dealer.0) % player_count)

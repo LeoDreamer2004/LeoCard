@@ -2,7 +2,7 @@ use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum TexasHoldemRank {
+pub enum TexasRank {
     Two = 2,
     Three = 3,
     Four = 4,
@@ -18,7 +18,7 @@ pub enum TexasHoldemRank {
     Ace = 14,
 }
 
-impl TexasHoldemRank {
+impl TexasRank {
     pub const ALL: [Self; 13] = [
         Self::Two,
         Self::Three,
@@ -52,7 +52,7 @@ impl TexasHoldemRank {
     }
 }
 
-impl fmt::Display for TexasHoldemRank {
+impl fmt::Display for TexasRank {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Two => "2",
@@ -74,18 +74,18 @@ impl fmt::Display for TexasHoldemRank {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum TexasHoldemSuit {
+pub enum TexasSuit {
     Diamond,
     Club,
     Heart,
     Spade,
 }
 
-impl TexasHoldemSuit {
+impl TexasSuit {
     pub const ALL: [Self; 4] = [Self::Diamond, Self::Club, Self::Heart, Self::Spade];
 }
 
-impl fmt::Display for TexasHoldemSuit {
+impl fmt::Display for TexasSuit {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Diamond => "♦",
@@ -98,41 +98,41 @@ impl fmt::Display for TexasHoldemSuit {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TexasHoldemCard {
-    rank: TexasHoldemRank,
-    suit: TexasHoldemSuit,
+pub struct TexasCard {
+    rank: TexasRank,
+    suit: TexasSuit,
 }
 
-impl TexasHoldemCard {
-    pub const fn new(suit: TexasHoldemSuit, rank: TexasHoldemRank) -> Self {
+impl TexasCard {
+    pub const fn new(suit: TexasSuit, rank: TexasRank) -> Self {
         Self { rank, suit }
     }
 
-    pub const fn rank(self) -> TexasHoldemRank {
+    pub const fn rank(self) -> TexasRank {
         self.rank
     }
 
-    pub const fn suit(self) -> TexasHoldemSuit {
+    pub const fn suit(self) -> TexasSuit {
         self.suit
     }
 }
 
-impl fmt::Display for TexasHoldemCard {
+impl fmt::Display for TexasCard {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}{}", self.suit, self.rank)
     }
 }
 
 /// 生成未洗牌的 52 张普通牌，或移除 2、3、4、5 后的 36 张短牌牌堆。
-pub fn build_deck(short_deck: bool) -> Vec<TexasHoldemCard> {
+pub fn build_deck(short_deck: bool) -> Vec<TexasCard> {
     let ranks = if short_deck {
-        TexasHoldemRank::SHORT_DECK.as_slice()
+        TexasRank::SHORT_DECK.as_slice()
     } else {
-        TexasHoldemRank::ALL.as_slice()
+        TexasRank::ALL.as_slice()
     };
     ranks
         .iter()
-        .flat_map(|rank| TexasHoldemSuit::ALL.map(|suit| TexasHoldemCard::new(suit, *rank)))
+        .flat_map(|rank| TexasSuit::ALL.map(|suit| TexasCard::new(suit, *rank)))
         .collect()
 }
 

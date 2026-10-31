@@ -1,9 +1,10 @@
 use super::DoudizhuSession;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, RoomSession};
-use leocard_doudizhu::{Phase, build_deck};
+use leocard_doudizhu::{DoudizhuPhase, build_deck};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    DoudizhuCommand, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
+    DoudizhuCommand, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation,
     PlayerInteraction, PlayerInteractionKind, PlayerViolation, RejectReason, RequestId,
     RoomViolation, ServerEvent,
 };
@@ -41,7 +42,7 @@ impl HostedGameLifecycle for DoudizhuSession {
             && let Some(game) = &self.game
         {
             self.achievements
-                .observe_flower(interaction.source.0, interaction.target.0, game);
+                .observe_flower(interaction.source, interaction.target, game);
         }
     }
 
@@ -92,7 +93,7 @@ impl HostedGameLifecycle for DoudizhuSession {
                 if self
                     .game
                     .as_ref()
-                    .is_none_or(|g| g.phase == Phase::Finished)
+                    .is_none_or(|g| g.phase == DoudizhuPhase::Finished)
                 {
                     Err(RejectReason::Game(GameViolation::GameNotStarted))
                 } else {
@@ -106,7 +107,7 @@ impl HostedGameLifecycle for DoudizhuSession {
                 if self.game.is_none() {
                     Err(RejectReason::Game(GameViolation::GameNotStarted))
                 } else {
-                    return Ok(self.apply_action(player.0, action, Some((connection, request))));
+                    return Ok(self.apply_action(player, action, Some((connection, request))));
                 }
             }
         };
@@ -183,7 +184,7 @@ impl HostedGameLifecycle for DoudizhuSession {
         if self
             .game
             .as_ref()
-            .is_none_or(|g| g.phase != Phase::Finished)
+            .is_none_or(|g| g.phase != DoudizhuPhase::Finished)
         {
             return self.room.reject(
                 connection,

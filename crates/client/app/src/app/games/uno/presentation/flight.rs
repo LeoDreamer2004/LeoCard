@@ -7,7 +7,9 @@ use crate::app::runtime::ClientResource;
 use crate::app::shell::PlayerAvatarAnchor;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_protocol::{PlayerId, UnoEvent};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{GameSnapshot, UnoEvent};
+
 use leocard_ui::UiComposer;
 use leocard_uno::{UnoCard, UnoColor, UnoFace};
 
@@ -202,7 +204,7 @@ pub(crate) fn sync_uno_discard_reveal(
 ) {
     let has_game = client
         .as_deref()
-        .and_then(|client| client.0.model().uno_game())
+        .and_then(|client| client.0.model().game_snapshot().and_then(GameSnapshot::uno))
         .is_some();
     let active_cards = flights
         .iter()

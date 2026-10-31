@@ -1,5 +1,6 @@
 use crate::{
-    ClassifiedPlay, PlayComparison, QiGuiCard, QiGuiRuleSet, can_beat, classify, compare_plays,
+    QiGuiCard, QiGuiClassifiedPlay, QiGuiPlayComparison, QiGuiRuleSet, can_beat, classify,
+    compare_plays,
 };
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -11,7 +12,7 @@ use std::collections::HashSet;
 #[derive(Clone, Copy, Debug)]
 pub struct QiGui523BotRequest<'a> {
     pub hand: &'a [QiGuiCard],
-    pub current_play: &'a ClassifiedPlay,
+    pub current_play: &'a QiGuiClassifiedPlay,
     pub played_cards: &'a [QiGuiCard],
     pub rules: &'a QiGuiRuleSet,
 }
@@ -38,7 +39,7 @@ impl QiGui523Bot {
     }
 
     /// 返回当前上下文中的下一个贪心候选；耗尽时返回 `None`。
-    pub fn choose(&mut self, request: QiGui523BotRequest<'_>) -> Option<ClassifiedPlay> {
+    pub fn choose(&mut self, request: QiGui523BotRequest<'_>) -> Option<QiGuiClassifiedPlay> {
         let key = GreedyContextKey::from_request(request);
         if self.search.as_ref().is_none_or(|search| search.key != key) {
             self.search = Some(GreedySearch {
@@ -70,7 +71,7 @@ impl QiGui523Bot {
 #[derive(Clone, Debug)]
 struct GreedySearch {
     key: GreedyContextKey,
-    candidates: Vec<ClassifiedPlay>,
+    candidates: Vec<QiGuiClassifiedPlay>,
     next_index: usize,
 }
 
@@ -93,7 +94,7 @@ impl GreedyContextKey {
     }
 }
 
-fn legal_responses(request: QiGui523BotRequest<'_>) -> Vec<ClassifiedPlay> {
+fn legal_responses(request: QiGui523BotRequest<'_>) -> Vec<QiGuiClassifiedPlay> {
     let mut candidates = Vec::new();
     let mut semantic_choices = HashSet::new();
     let hand_len = request.hand.len();
@@ -128,20 +129,20 @@ fn legal_responses(request: QiGui523BotRequest<'_>) -> Vec<ClassifiedPlay> {
 }
 
 fn greedy_play_cmp(
-    left: &ClassifiedPlay,
-    right: &ClassifiedPlay,
+    left: &QiGuiClassifiedPlay,
+    right: &QiGuiClassifiedPlay,
     rules: &QiGuiRuleSet,
 ) -> Ordering {
     match compare_plays(left, right, rules) {
-        PlayComparison::Lower => Ordering::Less,
-        PlayComparison::Greater => Ordering::Greater,
-        PlayComparison::Equivalent | PlayComparison::Incompatible => {
+        QiGuiPlayComparison::Lower => Ordering::Less,
+        QiGuiPlayComparison::Greater => Ordering::Greater,
+        QiGuiPlayComparison::Equivalent | QiGuiPlayComparison::Incompatible => {
             physical_cards_cmp(left.cards(), right.cards())
         }
     }
 }
 
-fn semantic_choice_key(play: &ClassifiedPlay) -> Vec<(u8, u8)> {
+fn semantic_choice_key(play: &QiGuiClassifiedPlay) -> Vec<(u8, u8)> {
     let mut key = play
         .cards()
         .iter()

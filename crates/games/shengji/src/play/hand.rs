@@ -1,4 +1,4 @@
-use super::{Category, Component, PlayError, category, classify_cards};
+use super::{ShengjiCategory, ShengjiComponent, ShengjiPlayError, category, classify_cards};
 use crate::{ShengjiCard, ShengjiRank, ShengjiSuit, ShengjiTrump};
 use std::collections::{BTreeMap, HashSet};
 
@@ -8,14 +8,14 @@ use std::collections::{BTreeMap, HashSet};
 pub fn hand_sequences(
     hand: &[ShengjiCard],
     trump: ShengjiTrump,
-) -> Result<Vec<Component>, PlayError> {
+) -> Result<Vec<ShengjiComponent>, ShengjiPlayError> {
     if hand.iter().collect::<HashSet<_>>().len() != hand.len() {
-        return Err(PlayError::DuplicatePhysicalCard);
+        return Err(ShengjiPlayError::DuplicatePhysicalCard);
     }
     let mut sequences = Vec::new();
-    for group in [Category::Trump]
+    for group in [ShengjiCategory::Trump]
         .into_iter()
-        .chain(ShengjiSuit::ALL.map(Category::Suit))
+        .chain(ShengjiSuit::ALL.map(ShengjiCategory::Suit))
     {
         let mut faces = BTreeMap::<(Option<ShengjiSuit>, ShengjiRank), Vec<ShengjiCard>>::new();
         for card in hand.iter().filter(|card| category(**card, trump) == group) {
@@ -39,9 +39,9 @@ pub fn hand_sequences(
             for component in classify_cards(&candidates, trump)?.components {
                 if matches!(
                     component,
-                    Component::Tractor { .. }
-                        | Component::Titanic { .. }
-                        | Component::Spaceship { .. }
+                    ShengjiComponent::Tractor { .. }
+                        | ShengjiComponent::Titanic { .. }
+                        | ShengjiComponent::Spaceship { .. }
                 ) {
                     for card in component.cards() {
                         faces.remove(&(card.suit(), card.rank()));

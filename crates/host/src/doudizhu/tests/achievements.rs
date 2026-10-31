@@ -1,19 +1,22 @@
 use super::{act, assert_accepted, join, send, started};
 use crate::{ConnectionId, DoudizhuSession};
 use leocard_doudizhu::achievements::DoudizhuAchievementFacts;
-use leocard_doudizhu::{Action, Card, Mode, Phase, RuleSet, bot_action, build_deck};
+use leocard_doudizhu::{
+    DoudizhuAction, DoudizhuCard, DoudizhuMode, DoudizhuPhase, DoudizhuRuleSet, bot_action,
+    build_deck,
+};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientCommand, DoudizhuEvent, GameEvent, PlayerId, PlayerInteractionKind, RoomId, SeatId,
-    ServerEvent,
+    ClientCommand, DoudizhuEvent, GameEvent, PlayerInteractionKind, RoomId, SeatId, ServerEvent,
 };
 use std::collections::HashMap;
 
 #[test]
 fn live_analysis_is_private_sequenced_and_only_released_at_the_right_stage() {
-    for mode in [Mode::Three, Mode::Four] {
+    for mode in [DoudizhuMode::Three, DoudizhuMode::Four] {
         let mut session = started(mode, false);
         let first = session.game.as_ref().unwrap().current;
-        let deliveries = act(&mut session, first, Action::Bid(3));
+        let deliveries = act(&mut session, first, DoudizhuAction::Bid(3));
         assert!(deliveries.iter().all(|delivery| !matches!(
             delivery.message.event,
             ServerEvent::GameEvent(GameEvent::Doudizhu(DoudizhuEvent::ActionAnalyzed { .. }))
@@ -21,7 +24,7 @@ fn live_analysis_is_private_sequenced_and_only_released_at_the_right_stage() {
         let mut observed = HashMap::new();
         let mut hand_reports = 0;
         for _ in 0..1500 {
-            if session.game.as_ref().unwrap().phase == Phase::Finished {
+            if session.game.as_ref().unwrap().phase == DoudizhuPhase::Finished {
                 break;
             }
             let game = session.game.as_ref().unwrap();
@@ -44,12 +47,18 @@ fn live_analysis_is_private_sequenced_and_only_released_at_the_right_stage() {
                     assert!(context.sequence > previous);
                 }
                 if matches!(**statistics, DoudizhuAchievementFacts::Hand(_)) {
-                    assert_eq!(session.game.as_ref().unwrap().phase, Phase::Finished);
+                    assert_eq!(
+                        session.game.as_ref().unwrap().phase,
+                        DoudizhuPhase::Finished
+                    );
                     hand_reports += 1;
                 }
             }
         }
-        assert_eq!(session.game.as_ref().unwrap().phase, Phase::Finished);
+        assert_eq!(
+            session.game.as_ref().unwrap().phase,
+            DoudizhuPhase::Finished
+        );
         assert_eq!(hand_reports, mode.players());
         assert_eq!(observed.len(), usize::from(mode.players()));
     }
@@ -57,8 +66,8 @@ fn live_analysis_is_private_sequenced_and_only_released_at_the_right_stage() {
 
 #[test]
 fn a_validated_flower_interaction_reaches_the_game_tracker_and_awards_its_sender() {
-    let reserved: Vec<_> = (4..8).map(Card).collect();
-    let mut rest = build_deck(Mode::Three)
+    let reserved: Vec<_> = (4..8).map(DoudizhuCard).collect();
+    let mut rest = build_deck(DoudizhuMode::Three)
         .into_iter()
         .filter(|card| !reserved.contains(card));
     let mut deck = Vec::new();
@@ -70,7 +79,8 @@ fn a_validated_flower_interaction_reaches_the_game_tracker_and_awards_its_sender
         });
     }
     deck.extend(rest);
-    let mut session = DoudizhuSession::new(RoomId(99), 52300, RuleSet::default(), deck).unwrap();
+    let mut session =
+        DoudizhuSession::new(RoomId(99), 52300, DoudizhuRuleSet::default(), deck).unwrap();
     for connection in 1..=3 {
         assert_accepted(&send(&mut session, connection, join(connection)));
         assert_accepted(&send(
@@ -87,13 +97,17 @@ fn a_validated_flower_interaction_reaches_the_game_tracker_and_awards_its_sender
         ));
     }
     assert_accepted(&send(&mut session, 1, ClientCommand::StartGame));
-    while session.game.as_ref().unwrap().current != 0 {
+    while session.game.as_ref().unwrap().current != PlayerId(0) {
         let player = session.game.as_ref().unwrap().current;
-        assert_accepted(&act(&mut session, player, Action::Bid(0)));
+        assert_accepted(&act(&mut session, player, DoudizhuAction::Bid(0)));
     }
-    assert_accepted(&act(&mut session, 0, Action::Bid(3)));
-    let card = session.game.as_ref().unwrap().hand(0).unwrap()[0];
-    assert_accepted(&act(&mut session, 0, Action::Play(vec![card])));
+    assert_accepted(&act(&mut session, PlayerId(0), DoudizhuAction::Bid(3)));
+    let card = session.game.as_ref().unwrap().hand(PlayerId(0)).unwrap()[0];
+    assert_accepted(&act(
+        &mut session,
+        PlayerId(0),
+        DoudizhuAction::Play(vec![card]),
+    ));
     assert_accepted(&send(
         &mut session,
         3,
@@ -102,7 +116,7 @@ fn a_validated_flower_interaction_reaches_the_game_tracker_and_awards_its_sender
             kind: PlayerInteractionKind::Flower,
         },
     ));
-    let deliveries = act(&mut session, 1, Action::Play(reserved));
+    let deliveries = act(&mut session, PlayerId(1), DoudizhuAction::Play(reserved));
     assert_accepted(&deliveries);
     let flowers: Vec<_> = deliveries.iter().filter(|delivery| matches!(&delivery.message.event, ServerEvent::GameEvent(GameEvent::Doudizhu(DoudizhuEvent::ActionAnalyzed { player: PlayerId(2), statistics })) if **statistics == DoudizhuAchievementFacts::FlowerBomb)).collect();
     assert_eq!(flowers.len(), 1);

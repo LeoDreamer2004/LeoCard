@@ -3424,14 +3424,15 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "leocard-achievements"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
+ "leocard-game-common",
  "serde",
 ]
 
 [[package]]
 name = "leocard-android"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "bevy",
  "jni 0.22.4",
@@ -3440,11 +3441,11 @@ dependencies = [
 
 [[package]]
 name = "leocard-assets"
-version = "0.10.3"
+version = "0.10.4"
 
 [[package]]
 name = "leocard-blackjack"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3452,7 +3453,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-client"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "bevy",
  "bevy_clipboard",
@@ -3466,9 +3467,9 @@ dependencies = [
  "leocard-assets",
  "leocard-blackjack",
  "leocard-doudizhu",
+ "leocard-game-common",
  "leocard-host",
  "leocard-mahjong",
- "leocard-minecraft-guess",
  "leocard-protocol",
  "leocard-qigui523",
  "leocard-sakura-frp",
@@ -3478,6 +3479,7 @@ dependencies = [
  "leocard-ui",
  "leocard-uno",
  "leocard-update",
+ "leocard_mc_guess",
  "postcard",
  "rfd",
  "rustls-platform-verifier",
@@ -3493,7 +3495,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-doudizhu"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3502,11 +3504,14 @@ dependencies = [
 
 [[package]]
 name = "leocard-game-common"
-version = "0.10.3"
+version = "0.10.4"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "leocard-host"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3516,55 +3521,44 @@ dependencies = [
  "leocard-doudizhu",
  "leocard-game-common",
  "leocard-mahjong",
- "leocard-minecraft-guess",
  "leocard-protocol",
  "leocard-qigui523",
  "leocard-shengji",
  "leocard-texas-holdem",
  "leocard-uno",
+ "leocard_mc_guess",
 ]
 
 [[package]]
 name = "leocard-mahjong"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
  "serde",
-]
-
-[[package]]
-name = "leocard-minecraft-guess"
-version = "0.10.3"
-dependencies = [
- "csv",
- "fastrand",
- "leocard-achievements",
- "leocard-game-common",
- "serde",
- "serde_json",
 ]
 
 [[package]]
 name = "leocard-protocol"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "leocard-achievements",
  "leocard-blackjack",
  "leocard-doudizhu",
+ "leocard-game-common",
  "leocard-mahjong",
- "leocard-minecraft-guess",
  "leocard-qigui523",
  "leocard-shengji",
  "leocard-texas-holdem",
  "leocard-uno",
+ "leocard_mc_guess",
  "postcard",
  "serde",
 ]
 
 [[package]]
 name = "leocard-qigui523"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3573,7 +3567,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-sakura-frp"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "md-5",
  "reqwest",
@@ -3583,7 +3577,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-shengji"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3592,10 +3586,12 @@ dependencies = [
 
 [[package]]
 name = "leocard-tcp"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
+ "leocard-achievements",
+ "leocard-game-common",
  "leocard-host",
  "leocard-protocol",
  "leocard-qigui523",
@@ -3609,7 +3605,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-texas-holdem"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "fastrand",
  "leocard-achievements",
@@ -3619,14 +3615,14 @@ dependencies = [
 
 [[package]]
 name = "leocard-ui"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "bevy",
 ]
 
 [[package]]
 name = "leocard-uno"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "fastrand",
  "leocard-achievements",
@@ -3636,7 +3632,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-update"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "fastrand",
  "leocard-protocol",
@@ -3645,6 +3641,18 @@ dependencies = [
  "semver",
  "serde",
  "sha2",
+]
+
+[[package]]
+name = "leocard_mc_guess"
+version = "0.10.4"
+dependencies = [
+ "csv",
+ "fastrand",
+ "leocard-achievements",
+ "leocard-game-common",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

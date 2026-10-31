@@ -12,13 +12,13 @@ mod error;
 mod error_tests;
 mod lifecycle;
 mod mahjong;
-mod minecraft_guess;
+mod mc_guess;
 mod player;
 mod qigui523;
 mod room;
 mod session;
 mod shengji;
-mod texas_holdem;
+mod texas;
 mod uno;
 
 use automation::{AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState};
@@ -30,12 +30,12 @@ use leocard_protocol::{
     AVATAR_DIMENSION, JoinRequest, MAX_AVATAR_BYTES, MatchId, RoomId, ServerMessage,
 };
 pub use mahjong::MahjongSession;
-pub use minecraft_guess::MinecraftGuessSession;
+pub use mc_guess::McGuessSession;
 pub use qigui523::QiGui523Session;
 pub use room::RoomSession;
 pub use session::{GameSetup, HostSession};
 pub use shengji::ShengjiSession;
-pub use texas_holdem::{AdapterError, TablePlayer, TexasHoldemAdapter, TexasHoldemSession};
+pub use texas::{AdapterError, TablePlayer, TexasAdapter, TexasSession};
 pub use uno::UnoSession;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

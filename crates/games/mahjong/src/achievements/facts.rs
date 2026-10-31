@@ -1,14 +1,16 @@
 //! 国标麻将的成就条件；只读取实时游戏事实。
+
 use super::events::{MahjongAchievementEvent, MahjongHandFacts, MahjongWinFacts};
-use crate::{Fan, MahjongMatchLength, MahjongScoreResult};
-use leocard_achievements::{AchievementTrigger, ParticipantId};
+use crate::{MahjongFan, MahjongMatchLength, MahjongScoreResult};
+use leocard_achievements::AchievementTrigger;
+use leocard_game_common::PlayerId;
 
 use std::array;
 use std::cmp::Reverse;
 use std::collections::BTreeSet;
 
 pub(super) struct MahjongFacts<'a> {
-    pub player: ParticipantId,
+    pub player: PlayerId,
     pub result: &'a MahjongHandFacts,
 }
 impl<'a> MahjongFacts<'a> {
@@ -28,7 +30,7 @@ impl<'a> MahjongFacts<'a> {
             .find(|winner| winner.player == self.player)
     }
 
-    pub fn fan_count(&self, predicate: impl Fn(Fan) -> bool) -> u64 {
+    pub fn fan_count(&self, predicate: impl Fn(MahjongFan) -> bool) -> u64 {
         self.win().map_or(0, |win| {
             win.score
                 .fans
@@ -39,7 +41,7 @@ impl<'a> MahjongFacts<'a> {
         })
     }
 
-    pub fn unique_fans(&self, predicate: impl Fn(Fan) -> bool) -> usize {
+    pub fn unique_fans(&self, predicate: impl Fn(MahjongFan) -> bool) -> usize {
         self.win()
             .map_or(0, |win| unique_fans(&win.score, predicate))
     }
@@ -50,7 +52,7 @@ impl<'a> MahjongFacts<'a> {
             && self
                 .result
                 .match_scores
-                .get(usize::from(self.player.0))
+                .get(self.player.index())
                 .is_some_and(|score| *score >= threshold)
     }
 
@@ -64,13 +66,13 @@ impl<'a> MahjongFacts<'a> {
 
     pub fn broad_flush(&self) -> bool {
         self.win().is_some_and(|win| win.wait_kind_count >= 5)
-            && self.fan_count(|fan| fan == Fan::FullFlush) > 0
+            && self.fan_count(|fan| fan == MahjongFan::FullFlush) > 0
     }
 
     pub fn last_hand_comeback(&self) -> bool {
         if !self.result.match_complete
             || self.result.match_length == MahjongMatchLength::SingleHand
-            || self.player.0 >= 4
+            || self.player.index() >= 4
         {
             return false;
         }
@@ -86,24 +88,24 @@ impl<'a> MahjongFacts<'a> {
             && winners.iter().all(|win| win.from == Some(self.player))
             && winners
                 .iter()
-                .map(|win| win.player.0)
+                .map(|win| win.player.index())
                 .collect::<BTreeSet<_>>()
                 .len()
                 == 3
     }
 }
 
-fn placement(scores: &[i32; 4], player: ParticipantId) -> usize {
+fn placement(scores: &[i32; 4], player: PlayerId) -> usize {
     let mut order = [0, 1, 2, 3];
     order.sort_by_key(|index| (Reverse(scores[*index]), *index));
     order
         .iter()
-        .position(|index| *index == usize::from(player.0))
+        .position(|index| *index == player.index())
         .unwrap()
         + 1
 }
 
-fn unique_fans(score: &MahjongScoreResult, predicate: impl Fn(Fan) -> bool) -> usize {
+fn unique_fans(score: &MahjongScoreResult, predicate: impl Fn(MahjongFan) -> bool) -> usize {
     score
         .fans
         .iter()
@@ -113,7 +115,7 @@ fn unique_fans(score: &MahjongScoreResult, predicate: impl Fn(Fan) -> bool) -> u
         .len()
 }
 
-pub(super) fn mahjong_fan(trigger: &AchievementTrigger, fan: Fan) -> bool {
+pub(super) fn mahjong_fan(trigger: &AchievementTrigger, fan: MahjongFan) -> bool {
     MahjongFacts::from_trigger(trigger)
         .is_some_and(|facts| facts.fan_count(|value| value == fan) > 0)
 }
@@ -128,11 +130,11 @@ pub(super) fn mahjong_hands(trigger: &AchievementTrigger) -> u64 {
 
 pub(super) fn mahjong_low_fans(trigger: &AchievementTrigger) -> u64 {
     MahjongFacts::from_trigger(trigger).map_or(0, |facts| {
-        facts.fan_count(|fan| fan != Fan::FlowerTiles && fan.points() <= 2)
+        facts.fan_count(|fan| fan != MahjongFan::FlowerTiles && fan.points() <= 2)
     })
 }
 
-pub(super) fn mahjong_group(trigger: &AchievementTrigger, group: &[Fan]) -> u64 {
+pub(super) fn mahjong_group(trigger: &AchievementTrigger, group: &[MahjongFan]) -> u64 {
     u64::from(
         MahjongFacts::from_trigger(trigger)
             .is_some_and(|facts| facts.fan_count(|fan| group.contains(&fan)) > 0),
@@ -158,9 +160,9 @@ pub(super) fn mahjong_eight_points(trigger: &AchievementTrigger, one_point_only:
             .win()
             .is_some_and(|win| win.score.points_without_flowers == 8)
             && if one_point_only {
-                facts.unique_fans(|fan| fan != Fan::FlowerTiles && fan.points() == 1) == 8
+                facts.unique_fans(|fan| fan != MahjongFan::FlowerTiles && fan.points() == 1) == 8
             } else {
-                facts.unique_fans(|fan| fan != Fan::FlowerTiles) >= 6
+                facts.unique_fans(|fan| fan != MahjongFan::FlowerTiles) >= 6
             }
     }))
 }

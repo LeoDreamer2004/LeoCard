@@ -1,28 +1,26 @@
 use crate::{GameSetup, HostError, HostSession};
-use leocard_blackjack::{BlackjackRuleSet, GameError as BlackjackError};
-use leocard_doudizhu::{GameError as DoudizhuError, RuleSet as DoudizhuRuleSet};
-use leocard_mahjong::{GameError as MahjongError, MahjongRuleSet, RuleError as MahjongRuleError};
-use leocard_minecraft_guess::GameError as MinecraftGuessError;
+use leocard_blackjack::{BlackjackGameError, BlackjackRuleSet};
+use leocard_doudizhu::{DoudizhuGameError, DoudizhuRuleSet};
+use leocard_mahjong::{MahjongGameError, MahjongRuleError, MahjongRuleSet};
+use leocard_mc_guess::McGuessGameError;
 use leocard_protocol::{GameKind, RoomId};
-use leocard_qigui523::{GameError as QiGui523Error, QiGuiRuleSet, RuleError as QiGui523RuleError};
-use leocard_shengji::{GameError as ShengjiError, RuleError as ShengjiRuleError, ShengjiRuleSet};
-use leocard_texas_holdem::{
-    GameError as TexasHoldemError, RuleError as TexasHoldemRuleError, TexasHoldemRuleSet,
-};
-use leocard_uno::{GameError as UnoError, UnoRuleSet};
+use leocard_qigui523::{QiGuiGameError, QiGuiRuleError, QiGuiRuleSet};
+use leocard_shengji::{ShengjiGameError, ShengjiRuleError, ShengjiRuleSet};
+use leocard_texas_holdem::{TexasGameError, TexasRuleError, TexasRuleSet};
+use leocard_uno::{UnoGameError, UnoRuleSet};
 use std::error::Error;
 
 #[test]
 fn every_game_error_retains_its_source_and_display() {
     let errors: [HostError; 8] = [
-        DoudizhuError::InvalidDeck.into(),
-        BlackjackError::InvalidRules.into(),
-        MahjongError::WrongPhase.into(),
-        MinecraftGuessError::GraphUnavailable.into(),
-        QiGui523Error::InvalidDeckContents.into(),
-        ShengjiError::InvalidDeckContents.into(),
-        TexasHoldemError::InvalidDeckContents.into(),
-        UnoError::InvalidDeckContents.into(),
+        DoudizhuGameError::InvalidDeck.into(),
+        BlackjackGameError::InvalidRules.into(),
+        MahjongGameError::WrongPhase.into(),
+        McGuessGameError::GraphUnavailable.into(),
+        QiGuiGameError::InvalidDeckContents.into(),
+        ShengjiGameError::InvalidDeckContents.into(),
+        TexasGameError::InvalidDeckContents.into(),
+        UnoGameError::InvalidDeckContents.into(),
     ];
     for error in errors {
         assert_eq!(error.to_string(), error.source().unwrap().to_string());
@@ -41,7 +39,7 @@ fn session_initialization_keeps_rule_errors_in_their_game() {
                 },
                 shuffled_shoe: Vec::new(),
             },
-            HostError::Blackjack(BlackjackError::InvalidRules),
+            HostError::Blackjack(BlackjackGameError::InvalidRules),
         ),
         (
             GameSetup::Mahjong {
@@ -53,7 +51,7 @@ fn session_initialization_keeps_rule_errors_in_their_game() {
                 },
                 shuffled_deck: Vec::new(),
             },
-            HostError::Mahjong(MahjongError::InvalidRules(
+            HostError::Mahjong(MahjongGameError::InvalidRules(
                 MahjongRuleError::FalseWinRequiresMinimum,
             )),
         ),
@@ -66,7 +64,7 @@ fn session_initialization_keeps_rule_errors_in_their_game() {
                 },
                 shuffled_deck: Vec::new(),
             },
-            HostError::QiGui523(QiGui523Error::InvalidRules(QiGui523RuleError::DeckCount(0))),
+            HostError::QiGui523(QiGuiGameError::InvalidRules(QiGuiRuleError::DeckCount(0))),
         ),
         (
             GameSetup::Shengji {
@@ -77,20 +75,22 @@ fn session_initialization_keeps_rule_errors_in_their_game() {
                 },
                 shuffled_deck: Vec::new(),
             },
-            HostError::Shengji(ShengjiError::Rules(ShengjiRuleError::InvalidDeckCount(0))),
+            HostError::Shengji(ShengjiGameError::Rules(ShengjiRuleError::InvalidDeckCount(
+                0,
+            ))),
         ),
         (
-            GameSetup::TexasHoldem {
+            GameSetup::Texas {
                 host_port: 52300,
-                rules: TexasHoldemRuleSet {
+                rules: TexasRuleSet {
                     starting_chips: 1,
                     ..Default::default()
                 },
                 shuffled_deck: Vec::new(),
             },
-            HostError::TexasHoldem(TexasHoldemError::InvalidRules(
-                TexasHoldemRuleError::StartingChips(1),
-            )),
+            HostError::Texas(TexasGameError::InvalidRules(TexasRuleError::StartingChips(
+                1,
+            ))),
         ),
     ];
     for (setup, expected) in cases {
@@ -106,7 +106,7 @@ fn session_initialization_keeps_bad_decks_in_their_game() {
         MahjongRuleSet::default().into(),
         QiGuiRuleSet::default().into(),
         ShengjiRuleSet::default().into(),
-        TexasHoldemRuleSet::default().into(),
+        TexasRuleSet::default().into(),
         UnoRuleSet::default().into(),
     ];
     for rules in rules {
@@ -117,9 +117,9 @@ fn session_initialization_keeps_bad_decks_in_their_game() {
             GameSetup::Mahjong { shuffled_deck, .. } => shuffled_deck.clear(),
             GameSetup::QiGui523 { shuffled_deck, .. } => shuffled_deck.clear(),
             GameSetup::Shengji { shuffled_deck, .. } => shuffled_deck.clear(),
-            GameSetup::TexasHoldem { shuffled_deck, .. } => shuffled_deck.clear(),
+            GameSetup::Texas { shuffled_deck, .. } => shuffled_deck.clear(),
             GameSetup::Uno { shuffled_deck, .. } => shuffled_deck.clear(),
-            GameSetup::MinecraftGuess { .. } => unreachable!(),
+            GameSetup::McGuess { .. } => unreachable!(),
         }
         let kind = setup.kind();
         let error = HostSession::new(RoomId(1), setup).unwrap_err();
@@ -127,25 +127,25 @@ fn session_initialization_keeps_bad_decks_in_their_game() {
             (kind, error),
             (
                 GameKind::Doudizhu,
-                HostError::Doudizhu(DoudizhuError::InvalidDeck)
+                HostError::Doudizhu(DoudizhuGameError::InvalidDeck)
             ) | (
                 GameKind::Blackjack,
-                HostError::Blackjack(BlackjackError::InvalidShoe)
+                HostError::Blackjack(BlackjackGameError::InvalidShoe)
             ) | (
                 GameKind::Mahjong,
-                HostError::Mahjong(MahjongError::InvalidDeckSize { actual: 0, .. })
+                HostError::Mahjong(MahjongGameError::InvalidDeckSize { actual: 0, .. })
             ) | (
                 GameKind::QiGui523,
-                HostError::QiGui523(QiGui523Error::InvalidDeckSize { actual: 0, .. })
+                HostError::QiGui523(QiGuiGameError::InvalidDeckSize { actual: 0, .. })
             ) | (
                 GameKind::Shengji,
-                HostError::Shengji(ShengjiError::InvalidDeckSize { actual: 0, .. })
+                HostError::Shengji(ShengjiGameError::InvalidDeckSize { actual: 0, .. })
             ) | (
-                GameKind::TexasHoldem,
-                HostError::TexasHoldem(TexasHoldemError::InvalidDeckSize { actual: 0, .. })
+                GameKind::Texas,
+                HostError::Texas(TexasGameError::InvalidDeckSize { actual: 0, .. })
             ) | (
                 GameKind::Uno,
-                HostError::Uno(UnoError::InvalidDeckSize { actual: 0, .. })
+                HostError::Uno(UnoGameError::InvalidDeckSize { actual: 0, .. })
             )
         ));
     }

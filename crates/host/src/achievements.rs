@@ -2,9 +2,10 @@
 //! The host validates publications; it never evaluates local achievement criteria.
 
 use crate::{ConnectionId, Delivery, RoomSession};
+use leocard_achievements::TrophyCounts;
 use leocard_protocol::{
-    ACHIEVEMENT_REGISTRY, AchievementAnnouncement, AchievementCounts, PlayerViolation, ProfileId,
-    RejectReason, RequestId, ServerEvent,
+    ACHIEVEMENT_REGISTRY, AchievementAnnouncement, PlayerViolation, ProfileId, RejectReason,
+    RequestId, ServerEvent,
 };
 use std::collections::HashSet;
 
@@ -18,7 +19,7 @@ impl RoomSession {
         &mut self,
         connection: ConnectionId,
         request_id: RequestId,
-        counts: AchievementCounts,
+        counts: TrophyCounts,
         unlocked: Vec<String>,
     ) -> Result<Vec<Delivery>, RejectReason> {
         let player = self

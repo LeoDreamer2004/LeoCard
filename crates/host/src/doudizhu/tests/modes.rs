@@ -1,9 +1,9 @@
 use super::{assert_accepted, finish_hand, join, ready_players, send};
 use crate::DoudizhuSession;
-use leocard_doudizhu::{Mode, RuleSet, build_deck};
+use leocard_doudizhu::{DoudizhuMode, DoudizhuRuleSet, build_deck};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientCommand, DoudizhuCommand, PlayerId, RejectReason, RoomId, RoomViolation, SeatId,
-    ServerEvent,
+    ClientCommand, DoudizhuCommand, RejectReason, RoomId, RoomViolation, SeatId, ServerEvent,
 };
 use std::collections::HashSet;
 
@@ -11,8 +11,8 @@ fn lobby(seats: &[u8]) -> DoudizhuSession {
     let mut session = DoudizhuSession::new(
         RoomId(99),
         52300,
-        RuleSet::for_mode(Mode::Four),
-        build_deck(Mode::Four),
+        DoudizhuRuleSet::for_mode(DoudizhuMode::Four),
+        build_deck(DoudizhuMode::Four),
     )
     .unwrap();
     for (index, seat) in seats.iter().enumerate() {
@@ -29,13 +29,13 @@ fn lobby(seats: &[u8]) -> DoudizhuSession {
     session
 }
 
-fn switch(session: &mut DoudizhuSession, mode: Mode) -> Vec<crate::Delivery> {
+fn switch(session: &mut DoudizhuSession, mode: DoudizhuMode) -> Vec<crate::Delivery> {
     send(
         session,
         1,
         ClientCommand::Game(
             DoudizhuCommand::UpdateRules {
-                rules: RuleSet::for_mode(mode),
+                rules: DoudizhuRuleSet::for_mode(mode),
             }
             .into(),
         ),
@@ -59,7 +59,7 @@ fn shrinking_with_three_players_reseats_the_fourth_position_and_can_start() {
     for vacant in 0..4 {
         let seats: Vec<_> = (0..4).filter(|seat| *seat != vacant).collect();
         let mut session = lobby(&seats);
-        assert_accepted(&switch(&mut session, Mode::Three));
+        assert_accepted(&switch(&mut session, DoudizhuMode::Three));
         let actual: HashSet<_> = session
             .room
             .players
@@ -72,7 +72,10 @@ fn shrinking_with_three_players_reseats_the_fourth_position_and_can_start() {
             assert_eq!(session.room.players[index].seat, Some(SeatId(*seat)));
         }
         ready_and_start(&mut session, &[1, 2, 3]);
-        assert_eq!(session.game.as_ref().unwrap().rules.mode, Mode::Three);
+        assert_eq!(
+            session.game.as_ref().unwrap().rules.mode,
+            DoudizhuMode::Three
+        );
     }
 }
 
@@ -80,7 +83,7 @@ fn shrinking_with_three_players_reseats_the_fourth_position_and_can_start() {
 fn departed_players_do_not_block_a_shrink_or_change_remaining_player_ids() {
     let mut session = lobby(&[0, 1, 2, 3]);
     assert_accepted(&send(&mut session, 3, ClientCommand::LeaveRoom));
-    assert_accepted(&switch(&mut session, Mode::Three));
+    assert_accepted(&switch(&mut session, DoudizhuMode::Three));
     assert_eq!(
         session.room.player_id(crate::ConnectionId(4)),
         Some(PlayerId(3))
@@ -99,14 +102,14 @@ fn a_full_four_player_room_rejects_shrinking_without_changing_rules_or_seats() {
         .map(|player| player.seat)
         .collect();
     let revision = session.revision();
-    let deliveries = switch(&mut session, Mode::Three);
+    let deliveries = switch(&mut session, DoudizhuMode::Three);
     assert!(deliveries.iter().any(|delivery| matches!(
         delivery.message.event,
         ServerEvent::Rejected {
             reason: RejectReason::Room(RoomViolation::RoomFull)
         }
     )));
-    assert_eq!(session.rules.mode, Mode::Four);
+    assert_eq!(session.rules.mode, DoudizhuMode::Four);
     assert_eq!(session.room.seat_count, 4);
     assert_eq!(session.revision(), revision);
     assert_eq!(
@@ -133,7 +136,7 @@ fn bots_relocated_during_shrinking_do_not_conflict_with_new_bots_after_expanding
             },
         ));
     }
-    assert_accepted(&switch(&mut session, Mode::Three));
+    assert_accepted(&switch(&mut session, DoudizhuMode::Three));
     assert!(
         session
             .room
@@ -141,7 +144,7 @@ fn bots_relocated_during_shrinking_do_not_conflict_with_new_bots_after_expanding
             .iter()
             .all(|player| player.seat.is_some_and(|seat| seat.0 < 3))
     );
-    assert_accepted(&switch(&mut session, Mode::Four));
+    assert_accepted(&switch(&mut session, DoudizhuMode::Four));
     assert_accepted(&send(
         &mut session,
         1,
@@ -166,7 +169,7 @@ fn bots_relocated_during_shrinking_do_not_conflict_with_new_bots_after_expanding
 #[test]
 fn returning_with_bots_keeps_the_hosts_seat_and_game_identity() {
     let mut session = lobby(&[2]);
-    assert_accepted(&switch(&mut session, Mode::Three));
+    assert_accepted(&switch(&mut session, DoudizhuMode::Three));
     for seat in [0, 1] {
         assert_accepted(&send(
             &mut session,
@@ -180,9 +183,9 @@ fn returning_with_bots_keeps_the_hosts_seat_and_game_identity() {
     ready_and_start(&mut session, &[1]);
     let host_id = session.room.player_id(crate::ConnectionId(1)).unwrap();
     assert_eq!(host_id, PlayerId(2));
-    for hand in 0..Mode::Three.players() {
+    for hand in 0..DoudizhuMode::Three.players() {
         finish_hand(&mut session);
-        if hand + 1 < Mode::Three.players() {
+        if hand + 1 < DoudizhuMode::Three.players() {
             ready_players(&mut session);
         }
     }
@@ -201,7 +204,7 @@ fn returning_with_bots_keeps_the_hosts_seat_and_game_identity() {
         "the client still uses its in-game identity"
     );
     assert_eq!(lobby.players.len(), 1);
-    assert_eq!(lobby.players[0].id, host_id);
+    assert_eq!(lobby.players[0].player.id, host_id);
     assert_eq!(lobby.players[0].seat, Some(SeatId(2)));
     assert!(lobby.players[0].ready);
     assert_accepted(&send(&mut session, 2, join(2)));

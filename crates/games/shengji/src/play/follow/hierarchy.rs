@@ -1,4 +1,4 @@
-use super::super::{Component, ShengjiClassifiedPlay};
+use super::super::{ShengjiClassifiedPlay, ShengjiComponent};
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct FollowPattern {
@@ -47,7 +47,7 @@ pub(crate) fn special_follow_hierarchy(
 ) -> Option<Vec<Vec<FollowPattern>>> {
     let p = pattern;
     match lead.components.as_slice() {
-        [Component::Quad { .. }] => Some(vec![
+        [ShengjiComponent::Quad { .. }] => Some(vec![
             vec![p(0, 0, 1, 0, 0, 0)],
             vec![p(2, 2, 0, 0, 0, 0)],
             vec![p(0, 0, 0, 0, 2, 0)],
@@ -55,13 +55,13 @@ pub(crate) fn special_follow_hierarchy(
             vec![p(0, 0, 0, 0, 1, 2)],
             vec![p(0, 0, 0, 0, 0, 4)],
         ]),
-        [Component::Tractor { pair_count: 2, .. }] => Some(vec![
+        [ShengjiComponent::Tractor { pair_count: 2, .. }] => Some(vec![
             vec![p(2, 2, 0, 0, 0, 0), p(0, 0, 1, 0, 0, 0)],
             vec![p(0, 0, 0, 0, 2, 0)],
             vec![p(0, 0, 0, 0, 1, 2)],
             vec![p(0, 0, 0, 0, 0, 4)],
         ]),
-        [Component::Tractor { pair_count: 3, .. }] => Some(vec![
+        [ShengjiComponent::Tractor { pair_count: 3, .. }] => Some(vec![
             vec![p(2, 3, 0, 0, 0, 0), p(3, 2, 0, 0, 0, 0)],
             vec![p(0, 0, 1, 0, 1, 0)],
             vec![p(2, 2, 0, 0, 1, 0)],
@@ -71,7 +71,7 @@ pub(crate) fn special_follow_hierarchy(
             vec![p(0, 0, 0, 0, 0, 6)],
         ]),
         [
-            Component::Titanic {
+            ShengjiComponent::Titanic {
                 triple_count: 2, ..
             },
         ] => Some(vec![
@@ -84,9 +84,11 @@ pub(crate) fn special_follow_hierarchy(
             vec![p(0, 0, 0, 0, 1, 4)],
             vec![p(0, 0, 0, 0, 0, 6)],
         ]),
-        [Component::Tractor { pair_count: 4, .. }] => Some(eight_card_tractor_hierarchy()),
-        [Component::Spaceship { quad_count: 2, .. }]
-        | [Component::Quad { .. }, Component::Quad { .. }] => Some(eight_card_quad_hierarchy()),
+        [ShengjiComponent::Tractor { pair_count: 4, .. }] => Some(eight_card_tractor_hierarchy()),
+        [ShengjiComponent::Spaceship { quad_count: 2, .. }]
+        | [ShengjiComponent::Quad { .. }, ShengjiComponent::Quad { .. }] => {
+            Some(eight_card_quad_hierarchy())
+        }
         _ => None,
     }
 }

@@ -85,6 +85,7 @@ impl Header<'_> {
                 icon,
                 variant,
                 label,
+                GAME_SIDE_CONTROL_SCALE,
             );
         }
         let anchor = spawn_node(

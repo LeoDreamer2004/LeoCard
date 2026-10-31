@@ -2,28 +2,28 @@ use super::{
     UnoActionContext, UnoMatchStatistics,
     state::{DrawChain, FinishCandidate},
 };
-use crate::{ActionOutcome, GameState, PlayedEffect, UnoCard, UnoColor, UnoFace};
+use crate::{UnoActionOutcome, UnoCard, UnoColor, UnoFace, UnoGameState, UnoPlayedEffect};
 
 impl UnoMatchStatistics {
     pub(super) fn record_plays(
         &mut self,
         before: &UnoActionContext,
-        outcome: &ActionOutcome,
+        outcome: &UnoActionOutcome,
         played: &[(UnoCard, Option<UnoColor>)],
         jump_in: bool,
-        game: &GameState,
+        game: &UnoGameState,
     ) {
         let actor = before.player;
-        if let ActionOutcome::ColorChosen { player, color }
-        | ActionOutcome::ColorRouletteResolved { player, color, .. } = outcome
+        if let UnoActionOutcome::ColorChosen { player, color }
+        | UnoActionOutcome::ColorRouletteResolved { player, color, .. } = outcome
         {
             self.color_change = (before.color != Some(*color)).then_some((*player, *color));
         }
         if played.is_empty() {
             return;
         }
-        let tracked = &mut self.players[actor.0];
-        let color_gift = before.hands[actor.0] == 1
+        let tracked = &mut self.players[actor.index()];
+        let color_gift = before.hands[actor.index()] == 1
             && played.len() == 1
             && played[0].0.color().is_some_and(|color| {
                 Some(color) == before.color
@@ -56,7 +56,7 @@ impl UnoMatchStatistics {
         {
             tracked.finish = FinishCandidate {
                 pair: played.len() == 2,
-                forgotten: before.hands[actor.0] == 1 && before.exposed,
+                forgotten: before.hands[actor.index()] == 1 && before.exposed,
                 color_gift,
             };
         }
@@ -66,8 +66,8 @@ impl UnoMatchStatistics {
                 .any(|(card, _)| card.face() == UnoFace::Number(0))
             && matches!(
                 outcome,
-                ActionOutcome::Played {
-                    effect: Some(PlayedEffect::HandsPassed { .. }),
+                UnoActionOutcome::Played {
+                    effect: Some(UnoPlayedEffect::HandsPassed { .. }),
                     ..
                 }
             )
@@ -97,8 +97,8 @@ impl UnoMatchStatistics {
                 .extend(played.iter().map(|(card, _)| card.public_face()));
         } else if matches!(
             outcome,
-            ActionOutcome::Played {
-                effect: Some(PlayedEffect::DrawReflected { .. }),
+            UnoActionOutcome::Played {
+                effect: Some(UnoPlayedEffect::DrawReflected { .. }),
                 ..
             }
         ) {

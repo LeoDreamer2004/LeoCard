@@ -1,11 +1,14 @@
-use crate::{Action, Card, GameState, Phase, Play, PlayKind, RuleSet, classify};
+use crate::{
+    DoudizhuAction, DoudizhuCard, DoudizhuGameState, DoudizhuPhase, DoudizhuPlay, DoudizhuPlayKind,
+    DoudizhuRuleSet, classify,
+};
 use std::collections::HashSet;
 
 /// Uses only the player's hand, public table and public team membership.
-pub fn bot_action(game: &GameState) -> Option<Action> {
+pub fn bot_action(game: &DoudizhuGameState) -> Option<DoudizhuAction> {
     let hand = game.hand(game.current)?;
     match game.phase {
-        Phase::Bidding => {
+        DoudizhuPhase::Bidding => {
             let power: usize = hand
                 .iter()
                 .map(|c| if c.rank() >= 12 { 2 } else { 0 })
@@ -19,40 +22,52 @@ pub fn bot_action(game: &GameState) -> Option<Action> {
             } else {
                 0
             };
-            Some(Action::Bid(if bid > game.highest_bid { bid } else { 0 }))
+            Some(DoudizhuAction::Bid(if bid > game.highest_bid {
+                bid
+            } else {
+                0
+            }))
         }
-        Phase::Playing => {
+        DoudizhuPhase::Playing => {
             let play = hint(hand, game.table.as_ref().map(|(_, p)| p), game.rules);
             if let Some((leader, _)) = &game.table
                 && Some(*leader) != game.landlord
                 && Some(game.current) != game.landlord
                 && play.as_ref().is_none_or(|p| p.cards.len() != hand.len())
             {
-                return Some(Action::Pass);
+                return Some(DoudizhuAction::Pass);
             }
-            Some(play.map_or(Action::Pass, |p| Action::Play(p.cards)))
+            Some(play.map_or(DoudizhuAction::Pass, |p| DoudizhuAction::Play(p.cards)))
         }
-        Phase::Redeal | Phase::Finished => None,
+        DoudizhuPhase::Redeal | DoudizhuPhase::Finished => None,
     }
 }
 
 /// Manual auto-play and disconnected-player takeover currently share the bot strategy.
-pub fn auto_play_action(game: &GameState) -> Option<Action> {
+pub fn auto_play_action(game: &DoudizhuGameState) -> Option<DoudizhuAction> {
     bot_action(game)
 }
 
-pub fn hint(hand: &[Card], table: Option<&Play>, rules: RuleSet) -> Option<Play> {
+pub fn hint(
+    hand: &[DoudizhuCard],
+    table: Option<&DoudizhuPlay>,
+    rules: DoudizhuRuleSet,
+) -> Option<DoudizhuPlay> {
     hint_options(hand, table, rules).into_iter().next()
 }
 
 /// Distinct suggested responses, ordered by the same priorities used by bots.
-pub fn hint_options(hand: &[Card], table: Option<&Play>, rules: RuleSet) -> Vec<Play> {
+pub fn hint_options(
+    hand: &[DoudizhuCard],
+    table: Option<&DoudizhuPlay>,
+    rules: DoudizhuRuleSet,
+) -> Vec<DoudizhuPlay> {
     let mut groups = vec![Vec::new(); 15];
     for &card in hand {
         groups[usize::from(card.rank())].push(card);
     }
     let mut candidates = Vec::new();
-    let mut add = |cards: Vec<Card>| {
+    let mut add = |cards: Vec<DoudizhuCard>| {
         if let Some(play) = classify(&cards, rules)
             && table.is_none_or(|previous| play.beats(previous))
         {
@@ -100,7 +115,7 @@ pub fn hint_options(hand: &[Card], table: Option<&Play>, rules: RuleSet) -> Vec<
     candidates.sort_by_key(|p| {
         (
             p.cards.len() != hand.len(),
-            matches!(p.kind, PlayKind::Bomb | PlayKind::Rocket),
+            matches!(p.kind, DoudizhuPlayKind::Bomb | DoudizhuPlayKind::Rocket),
             if table.is_some() {
                 p.cards.len()
             } else {
@@ -115,13 +130,13 @@ pub fn hint_options(hand: &[Card], table: Option<&Play>, rules: RuleSet) -> Vec<
 }
 
 fn attachments(
-    groups: &[Vec<Card>],
+    groups: &[Vec<DoudizhuCard>],
     start: usize,
     end: usize,
     body: usize,
     wing: usize,
     count: usize,
-    add: &mut impl FnMut(Vec<Card>),
+    add: &mut impl FnMut(Vec<DoudizhuCard>),
 ) {
     let base: Vec<_> = groups[start..end]
         .iter()

@@ -1,8 +1,10 @@
 use super::super::uno_card_is_playable;
 use bevy::picking::pointer::PointerId;
-use bevy::prelude::*;
-use leocard_protocol::{MatchId, PlayerId, UnoPhaseView, UnoSnapshot};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{MatchId, UnoPhaseView, UnoSnapshot};
 use leocard_uno::UnoCard;
+
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub(in super::super) struct UnoDraggableCard(pub UnoCard);
@@ -39,7 +41,10 @@ impl UnoDragGesture {
         matches!(game.phase, UnoPhaseView::Playing)
             && game.your_hand.contains(&card)
             && game.players.iter().any(|player| {
-                player.id == game.you && player.connected && !player.auto_play && !player.eliminated
+                player.player.id == game.you
+                    && player.connected
+                    && !player.auto_play
+                    && !player.eliminated
             })
             && (uno_card_is_playable(game, card) || game.your_jump_in_card == Some(card))
     }

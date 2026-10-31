@@ -1,7 +1,8 @@
-use super::super::{QiGui523Session, duration_ceil_seconds, from_core_player};
+use super::super::{QiGui523Session, duration_ceil_seconds};
 use crate::{AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState};
-use leocard_protocol::{PlayerId, TurnTimerView};
-use leocard_qigui523::Phase;
+use leocard_game_common::PlayerId;
+use leocard_protocol::QiGui523TurnTimerView;
+use leocard_qigui523::QiGuiPhase;
 use std::time::Duration;
 
 #[derive(Clone, Debug)]
@@ -21,10 +22,7 @@ impl QiGui523Session {
             self.turn_timer = None;
             return;
         };
-        let Some(current) = game
-            .trick()
-            .map(|trick| from_core_player(trick.current_player()))
-        else {
+        let Some(current) = game.trick().map(|trick| trick.current_player()) else {
             self.turn_timer = None;
             return;
         };
@@ -46,11 +44,8 @@ impl QiGui523Session {
             return;
         }
         let Some(current) = self.game.as_ref().and_then(|game| {
-            matches!(game.phase(), Phase::Playing)
-                .then(|| {
-                    game.trick()
-                        .map(|trick| from_core_player(trick.current_player()))
-                })
+            matches!(game.phase(), QiGuiPhase::Playing)
+                .then(|| game.trick().map(|trick| trick.current_player()))
                 .flatten()
         }) else {
             self.turn_timer = None;
@@ -66,9 +61,9 @@ impl QiGui523Session {
         }
     }
 
-    pub(in super::super) fn turn_timer_view(&self) -> Option<TurnTimerView> {
+    pub(in super::super) fn turn_timer_view(&self) -> Option<QiGui523TurnTimerView> {
         let timer = self.turn_timer.as_ref()?;
-        Some(TurnTimerView {
+        Some(QiGui523TurnTimerView {
             player: timer.player,
             base_seconds: duration_ceil_seconds(timer.base_remaining),
             reserve_seconds: duration_ceil_seconds(
@@ -79,11 +74,8 @@ impl QiGui523Session {
 
     pub(in super::super) fn current_player(&self) -> Option<PlayerId> {
         self.game.as_ref().and_then(|game| {
-            matches!(game.phase(), Phase::Playing)
-                .then(|| {
-                    game.trick()
-                        .map(|trick| from_core_player(trick.current_player()))
-                })
+            matches!(game.phase(), QiGuiPhase::Playing)
+                .then(|| game.trick().map(|trick| trick.current_player()))
                 .flatten()
         })
     }

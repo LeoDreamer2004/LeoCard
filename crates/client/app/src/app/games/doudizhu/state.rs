@@ -1,6 +1,7 @@
+use super::history::DoudizhuTrickHistory;
 use crate::app::presentation::{CardAnimationState, CardCounterWindowState, Observed};
 use bevy::prelude::*;
-use leocard_doudizhu::Card;
+use leocard_doudizhu::{DoudizhuCard, DoudizhuPhase};
 use leocard_protocol::{DoudizhuSnapshot, MatchId};
 use leocard_ui::{DraggableWindowOwner, DraggableWindowState};
 use std::cmp::Reverse;
@@ -9,12 +10,13 @@ use std::collections::{HashMap, HashSet};
 #[derive(Default, Resource)]
 pub(crate) struct DoudizhuUiState {
     pub mode_menu_open: bool,
-    pub selected: HashSet<Card>,
+    pub selected: HashSet<DoudizhuCard>,
     pub kitty_open: bool,
     pub counter: CardCounterWindowState,
-    pub card_animations: HashMap<Card, CardAnimationState>,
+    pub card_animations: HashMap<DoudizhuCard, CardAnimationState>,
     pub pending_deal: Option<MatchId>,
-    observed_hand: Observed<MatchId, Vec<Card>>,
+    pub(super) history: DoudizhuTrickHistory,
+    observed_hand: Observed<MatchId, Vec<DoudizhuCard>>,
     match_id: Option<MatchId>,
     hand_number: u8,
 }
@@ -29,6 +31,7 @@ impl DoudizhuUiState {
             self.card_animations.clear();
             self.observed_hand.clear();
             self.kitty_open = false;
+            self.history.clear();
             self.match_id = Some(game.match_id);
             self.hand_number = game.progress.hand_number;
         }
@@ -37,6 +40,9 @@ impl DoudizhuUiState {
             .retain(|card, _| game.your_hand.contains(card));
         if game.kitty.is_empty() {
             self.kitty_open = false;
+        }
+        if game.phase != DoudizhuPhase::Playing {
+            self.history.clear();
         }
     }
 
@@ -49,13 +55,14 @@ impl DoudizhuUiState {
         self.pending_deal = None;
         self.observed_hand.clear();
         self.counter.active = false;
+        self.history.clear();
     }
 
     pub(super) fn observe_dealt_hand(
         &mut self,
         match_id: MatchId,
-        hand: &[Card],
-    ) -> Vec<(Card, f32)> {
+        hand: &[DoudizhuCard],
+    ) -> Vec<(DoudizhuCard, f32)> {
         let first_snapshot = self.observed_hand.observe(match_id);
         let full_deal = self.pending_deal == Some(match_id);
         if full_deal {

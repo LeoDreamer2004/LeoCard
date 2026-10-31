@@ -1,10 +1,12 @@
-pub(super) use crate::game::TrickState;
-use crate::game::{PlayerState, StartingCard};
+pub(super) use crate::game::QiGuiTrickState;
+use crate::game::{QiGuiPlayerState, QiGuiStartingCard};
 pub(super) use crate::{
-    GameError, GameState, Phase, QiGuiActionContext, QiGuiActionStatistics, QiGuiCard,
-    QiGuiMatchStatistics, QiGuiPlayerId, QiGuiRank, QiGuiRuleSet, QiGuiSuit, SameCardPolicy,
+    QiGuiActionContext, QiGuiActionStatistics, QiGuiCard, QiGuiGameError, QiGuiGameState,
+    QiGuiMatchStatistics, QiGuiPhase, QiGuiRank, QiGuiRuleSet, QiGuiSameCardPolicy, QiGuiSuit,
     classify,
 };
+use leocard_game_common::PlayerId;
+
 use std::collections::VecDeque;
 
 pub(super) fn card(deck: u8, rank: QiGuiRank) -> QiGuiCard {
@@ -43,13 +45,13 @@ pub(super) fn straight(deck: u8) -> Vec<QiGuiCard> {
 }
 
 pub(super) struct Fixture {
-    pub(super) game: GameState,
+    pub(super) game: QiGuiGameState,
     pub(super) statistics: QiGuiMatchStatistics,
 }
 
 impl Fixture {
     pub(super) fn new(hands: Vec<Vec<QiGuiCard>>, pile: Vec<QiGuiCard>, hand_size: u8) -> Self {
-        let game = GameState {
+        let game = QiGuiGameState {
             rules: QiGuiRuleSet {
                 deck_count: 8,
                 player_count: hands.len() as u8,
@@ -57,23 +59,23 @@ impl Fixture {
                 developer_deck: false,
                 ..Default::default()
             },
-            starting_card: StartingCard {
-                player: QiGuiPlayerId(0),
+            starting_card: QiGuiStartingCard {
+                player: PlayerId(0),
                 card: hands[0][0],
             },
             players: hands
                 .into_iter()
                 .enumerate()
-                .map(|(index, hand)| PlayerState {
-                    id: QiGuiPlayerId(index),
+                .map(|(index, hand)| QiGuiPlayerState {
+                    id: PlayerId::from_index(index),
                     hand,
                     score: 0,
                 })
                 .collect(),
             played_cards: Vec::new(),
             draw_pile: VecDeque::from(pile),
-            trick: Some(TrickState::new(QiGuiPlayerId(0))),
-            phase: Phase::Playing,
+            trick: Some(QiGuiTrickState::new(PlayerId(0))),
+            phase: QiGuiPhase::Playing,
         };
         let statistics = QiGuiMatchStatistics::new(&game);
         Self { game, statistics }
@@ -83,8 +85,8 @@ impl Fixture {
         &mut self,
         player: usize,
         cards: Option<&[QiGuiCard]>,
-    ) -> Result<Vec<QiGuiActionStatistics>, GameError> {
-        let actor = QiGuiPlayerId(player);
+    ) -> Result<Vec<QiGuiActionStatistics>, QiGuiGameError> {
+        let actor = PlayerId::from_index(player);
         let before = QiGuiActionContext::capture(&self.game, actor).unwrap();
         let outcome = match cards {
             Some(cards) => self.game.play_cards(actor, cards)?,

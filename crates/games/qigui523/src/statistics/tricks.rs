@@ -1,17 +1,17 @@
 use super::{QiGuiActionContext, QiGuiActionStatistics, QiGuiMatchStatistics, plays::bomb_rank};
-use crate::{ActionOutcome, ClassifiedPlay, PlayRecord, QiGuiRank};
+use crate::{QiGuiActionOutcome, QiGuiClassifiedPlay, QiGuiPlayRecord, QiGuiRank};
 
 impl QiGuiMatchStatistics {
     pub(super) fn observe_trick(
         &mut self,
         before: &QiGuiActionContext,
-        outcome: &ActionOutcome,
-        play: Option<&ClassifiedPlay>,
+        outcome: &QiGuiActionOutcome,
+        play: Option<&QiGuiClassifiedPlay>,
         reports: &mut [QiGuiActionStatistics],
     ) {
         let winner = match outcome {
-            ActionOutcome::TrickCompleted { winner, .. } => *winner,
-            ActionOutcome::GameFinished(_) => play.map_or_else(
+            QiGuiActionOutcome::TrickCompleted { winner, .. } => *winner,
+            QiGuiActionOutcome::GameFinished(_) => play.map_or_else(
                 || {
                     before
                         .trick
@@ -24,7 +24,7 @@ impl QiGuiMatchStatistics {
         };
         let mut records = before.trick.records().to_vec();
         if let Some(play) = play {
-            records.push(PlayRecord::Played {
+            records.push(QiGuiPlayRecord::Played {
                 player: before.actor,
                 play: play.clone(),
             });
@@ -32,12 +32,12 @@ impl QiGuiMatchStatistics {
         let played = records
             .iter()
             .filter_map(|record| match record {
-                PlayRecord::Played { player, play } => Some((*player, play)),
-                PlayRecord::Passed { .. } => None,
+                QiGuiPlayRecord::Played { player, play } => Some((*player, play)),
+                QiGuiPlayRecord::Passed { .. } => None,
             })
             .collect::<Vec<_>>();
         let points = before.trick.table_points() + play.map_or(0, |play| u32::from(play.score()));
-        let winner_stats = &mut self.players[winner.0];
+        let winner_stats = &mut self.players[winner.index()];
         winner_stats.max_trick_points = winner_stats.max_trick_points.max(points);
         winner_stats.first_trick_with_points |= self.completed_tricks == 0 && points > 0;
         winner_stats.won_scoring_bomb |= played.last().is_some_and(|(_, play)| {
@@ -46,20 +46,20 @@ impl QiGuiMatchStatistics {
                 Some(QiGuiRank::Five | QiGuiRank::Ten | QiGuiRank::King)
             )
         });
-        let winner_report = &mut reports[winner.0];
+        let winner_report = &mut reports[winner.index()];
         for (_, play) in &played {
             winner_report.capture(play.cards());
         }
         winner_report.captured_points += points;
         for (index, (statistics, run)) in self.players.iter_mut().zip(&mut self.runs).enumerate() {
-            run.silent = if played.iter().any(|(player, _)| player.0 == index) {
+            run.silent = if played.iter().any(|(player, _)| player.index() == index) {
                 0
             } else {
                 run.silent + 1
             };
             run.unanswered = if played.len() == 1
-                && played[0].0.0 == index
-                && before.trick.leader().0 == index
+                && played[0].0.index() == index
+                && before.trick.leader().index() == index
             {
                 run.unanswered + 1
             } else {

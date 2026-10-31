@@ -1,4 +1,6 @@
 //! 四人双升与六人拖拉机的牌桌、亮主、埋底、出牌与闲家计分界面。
+mod client;
+pub(crate) use client::{ShengjiClientState, ShengjiScoreCaptureEffect};
 
 pub(crate) mod actions;
 mod assets;

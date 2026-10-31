@@ -5,10 +5,11 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
-use bevy::prelude::*;
-use leocard_doudizhu::{Action, Phase, classify, hint};
+use leocard_doudizhu::{DoudizhuAction, DoudizhuPhase, classify, hint};
 use leocard_protocol::DoudizhuSnapshot;
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 pub(super) fn render(
     commands: &mut UiComposer,
@@ -35,7 +36,7 @@ pub(super) fn render(
         || game
             .players
             .iter()
-            .any(|player| player.id == game.you && player.auto_play)
+            .any(|player| player.player.id == game.you && player.auto_play)
     {
         return;
     }
@@ -48,16 +49,17 @@ pub(super) fn render(
                 .scaled(GAME_SIDE_CONTROL_SCALE),
         );
     };
-    if game.phase == Phase::Bidding {
+    if game.phase == DoudizhuPhase::Bidding {
         button(
             "不叫",
-            Some(DoudizhuUiAction::Act(Action::Bid(0))),
+            Some(DoudizhuUiAction::Act(DoudizhuAction::Bid(0))),
             GameButtonTone::Pass,
         );
         for score in 1..=3 {
             button(
                 &format!("{score} 分"),
-                (score > game.highest_bid).then_some(DoudizhuUiAction::Act(Action::Bid(score))),
+                (score > game.highest_bid)
+                    .then_some(DoudizhuUiAction::Act(DoudizhuAction::Bid(score))),
                 GameButtonTone::Play,
             );
         }
@@ -83,7 +85,7 @@ pub(super) fn render(
             "不出",
             game.table
                 .is_some()
-                .then_some(DoudizhuUiAction::Act(Action::Pass)),
+                .then_some(DoudizhuUiAction::Act(DoudizhuAction::Pass)),
             GameButtonTone::Pass,
         );
         button(

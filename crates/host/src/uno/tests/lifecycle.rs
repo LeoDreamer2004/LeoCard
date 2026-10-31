@@ -1,14 +1,14 @@
 use super::super::*;
 use super::*;
 use crate::ConnectionId;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientCommand, GameCommand, GameKind, GameViolation, PlayerId, PlayerInteractionKind,
-    RejectReason, ServerEvent, UnoCommand,
+    ClientCommand, GameCommand, GameViolation, PlayerInteractionKind, RejectReason, SeatId,
+    ServerEvent, TexasCommand, UnoCommand,
 };
-use leocard_protocol::{SeatId, TexasHoldemCommand};
 #[cfg(test)]
 use leocard_uno::build_deck;
-use leocard_uno::{UnoCard, UnoColor, UnoPlayerId, UnoRuleSet};
+use leocard_uno::{UnoCard, UnoColor, UnoRuleSet};
 use std::time::Duration;
 
 #[test]
@@ -56,24 +56,24 @@ fn human_skip_is_automatic_only_without_stacking_and_keeps_its_penalty() {
         );
         assert_eq!(
             session.game().unwrap().turn().unwrap().current_player,
-            UnoPlayerId(1)
+            PlayerId(1)
         );
         assert!(session.advance_time(Duration::from_millis(999)).is_empty());
         assert_eq!(
             session.game().unwrap().turn().unwrap().current_player,
-            UnoPlayerId(1)
+            PlayerId(1)
         );
         let deliveries = session.advance_time(Duration::from_millis(1));
         let game = session.game().unwrap();
         if stacking {
             assert!(deliveries.is_empty());
             assert_eq!(game.turn().unwrap().pending_skip, 1);
-            assert_eq!(game.turn().unwrap().current_player, UnoPlayerId(1));
+            assert_eq!(game.turn().unwrap().current_player, PlayerId(1));
         } else {
-            assert_eq!(game.turn().unwrap().current_player, UnoPlayerId(2));
+            assert_eq!(game.turn().unwrap().current_player, PlayerId(2));
             assert_eq!(game.turn().unwrap().pending_skip, 0);
             assert_eq!(
-                game.player(UnoPlayerId(1)).unwrap().hand().len(),
+                game.player(PlayerId(1)).unwrap().hand().len(),
                 7 + usize::from(penalty)
             );
             assert!(deliveries.iter().any(|delivery| matches!(
@@ -125,14 +125,14 @@ fn rematch_keeps_auto_play_after_clearing_ready_state() {
 }
 
 #[test]
-fn wrong_game_command_is_rejected_with_uno_as_expected_kind() {
+fn wrong_game_command_is_rejected() {
     let mut session = UnoSession::new(ROOM, 52300, UnoRuleSet::default(), build_deck()).unwrap();
     session.handle(HOST, message(1, join_command("甲", 1)));
     let deliveries = session.handle(
         HOST,
         message(
             2,
-            ClientCommand::Game(GameCommand::TexasHoldem(TexasHoldemCommand::SetAutoPlay {
+            ClientCommand::Game(GameCommand::Texas(TexasCommand::SetAutoPlay {
                 enabled: true,
             })),
         ),
@@ -140,10 +140,7 @@ fn wrong_game_command_is_rejected_with_uno_as_expected_kind() {
     assert!(matches!(
         deliveries[0].message.event,
         ServerEvent::Rejected {
-            reason: RejectReason::Game(GameViolation::WrongGame {
-                expected: GameKind::Uno,
-                received: GameKind::TexasHoldem,
-            })
+            reason: RejectReason::Game(GameViolation::WrongGame)
         }
     ));
 }

@@ -1,6 +1,7 @@
 //! UNO 对局内选牌与目标选择状态。
 
-use leocard_protocol::{PlayerId, UnoPendingSwapView};
+use leocard_game_common::PlayerId;
+use leocard_protocol::UnoPendingSwapView;
 
 pub(crate) fn toggle_uno_swap_target_selection(
     pending: Option<UnoPendingSwapView>,

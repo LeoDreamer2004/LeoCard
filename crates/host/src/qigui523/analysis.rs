@@ -1,17 +1,19 @@
-use super::{QiGui523Session, from_core_player};
+use super::QiGui523Session;
 use crate::Delivery;
-use leocard_protocol::{GameEvent, PublicPlay, QiGui523Event, QiGui523ProfileStats, ServerEvent};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{GameEvent, QiGui523Event, QiGui523PublicPlay, ServerEvent};
 use leocard_qigui523::{
-    GameError, QiGuiActionContext, QiGuiCard, QiGuiPlayerId, QiGuiPlayerStatistics, classify,
+    QiGui523ProfileStats, QiGuiActionContext, QiGuiCard, QiGuiGameError, QiGuiPlayerStatistics,
+    classify,
 };
 
 impl QiGui523Session {
     /// One accepted-action path for manual play, timers, bots and disconnected players.
     pub(super) fn perform_action(
         &mut self,
-        player: QiGuiPlayerId,
+        player: PlayerId,
         cards: Option<&[QiGuiCard]>,
-    ) -> Result<Vec<QiGui523Event>, GameError> {
+    ) -> Result<Vec<QiGui523Event>, QiGuiGameError> {
         let game = self.game.as_mut().expect("actions require an active game");
         let before = QiGuiActionContext::capture(game, player);
         let outcome = match cards {
@@ -23,16 +25,14 @@ impl QiGui523Session {
         let mut events = Vec::new();
         if let Some(play) = &play {
             events.push(QiGui523Event::PlayEffect {
-                player: from_core_player(player),
-                play: PublicPlay {
+                player,
+                play: QiGui523PublicPlay {
                     kind: play.kind().clone(),
                     cards: play.cards().to_vec(),
                 },
             });
         } else {
-            events.push(QiGui523Event::Passed {
-                player: from_core_player(player),
-            });
+            events.push(QiGui523Event::Passed { player });
         }
         let statistics = self
             .statistics
@@ -48,7 +48,7 @@ impl QiGui523Session {
                 )
                 .into_iter()
                 .map(|statistics| QiGui523Event::ActionAnalyzed {
-                    player: from_core_player(statistics.player),
+                    player: statistics.player,
                     statistics: Box::new(statistics),
                 }),
         );

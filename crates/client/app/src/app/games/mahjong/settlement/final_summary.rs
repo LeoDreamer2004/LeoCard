@@ -11,10 +11,11 @@ use crate::app::shell::{
     add_cozy_disabled_button,
 };
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use leocard_mahjong::MahjongMatchLength;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 pub(super) struct FinalSummaryView<'a> {
     pub game: &'a MahjongSnapshot,
@@ -65,8 +66,8 @@ impl FinalSummaryView<'_> {
         );
         let mut ranked = game.players.iter().collect::<Vec<_>>();
         ranked.sort_by(|left, right| {
-            result.match_scores[right.id.0 as usize]
-                .cmp(&result.match_scores[left.id.0 as usize])
+            result.match_scores[right.player.id.0 as usize]
+                .cmp(&result.match_scores[left.player.id.0 as usize])
                 .then_with(|| left.seat.0.cmp(&right.seat.0))
         });
         for (place, player) in ranked.iter().enumerate() {
@@ -101,23 +102,23 @@ impl FinalSummaryView<'_> {
                 ACCENT,
                 assets,
             );
-            let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
-            let image = add_avatar(commands, row, &player.name, avatar, 39.0, assets);
+            let avatar = player.player.avatar.and_then(|id| avatars.remote.get(&id));
+            let image = add_avatar(commands, row, &player.player.name, avatar, 39.0, assets);
             attach_player_interactions(
                 commands,
                 image,
                 image,
-                player.id,
+                player.player.id,
                 PlayerMenuProfile {
-                    name: &player.name,
+                    name: &player.player.name,
                     avatar,
-                    reference_points: player.reference_points,
-                    completed_games: player.completed_games,
-                    game_profiles: &player.game_profiles,
+                    reference_points: player.player.reference_points,
+                    completed_games: player.player.completed_games,
+                    game_profiles: &player.player.game_profiles,
                 },
                 assets,
             );
-            add_text(commands, row, &player.name, 17.0, TEXT, assets);
+            add_text(commands, row, &player.player.name, 17.0, TEXT, assets);
             spawn_node(
                 commands,
                 row,
@@ -130,7 +131,10 @@ impl FinalSummaryView<'_> {
             add_text(
                 commands,
                 row,
-                format!("总分 {:+}", result.match_scores[usize::from(player.id.0)]),
+                format!(
+                    "总分 {:+}",
+                    result.match_scores[usize::from(player.player.id.0)]
+                ),
                 17.0,
                 ACCENT,
                 assets,
@@ -138,7 +142,7 @@ impl FinalSummaryView<'_> {
             if let Some(change) = result
                 .reference_changes
                 .iter()
-                .find(|change| change.player == player.id)
+                .find(|change| change.player == player.player.id)
             {
                 add_text(
                     commands,
@@ -195,9 +199,13 @@ impl FinalSummaryView<'_> {
             let ready = game
                 .players
                 .iter()
-                .find(|player| player.id == game.you)
+                .find(|player| player.player.id == game.you)
                 .is_some_and(|player| player.ready);
-            if !game.players.iter().any(|player| player.id == game.you) {
+            if !game
+                .players
+                .iter()
+                .any(|player| player.player.id == game.you)
+            {
                 add_cozy_disabled_button(commands, actions, "观战中", assets, px(150), 48.0);
             } else if ready {
                 add_cozy_disabled_button(commands, actions, "已准备", assets, px(150), 48.0);
@@ -213,7 +221,11 @@ impl FinalSummaryView<'_> {
                     CozyButtonVariant::Cool,
                 );
             }
-        } else if !game.players.iter().any(|player| player.id == game.you) {
+        } else if !game
+            .players
+            .iter()
+            .any(|player| player.player.id == game.you)
+        {
             add_cozy_disabled_button(commands, actions, "观战中", assets, percent(100), 48.0);
         } else {
             add_cozy_button_variant(

@@ -1,18 +1,19 @@
 use super::{MAHJONG_DEAL_INTERVAL, MahjongSession};
 use crate::ConnectionId;
 use ed25519_dalek::{Signer, SigningKey};
+use leocard_game_common::PlayerId;
 use leocard_mahjong::{
-    Fan, FanValue, MahjongRuleSet, MahjongScoreResult, MahjongSuit, MahjongTile, MahjongTileKind,
-    Phase, build_deck,
+    MahjongFan, MahjongFanValue, MahjongMatchLength, MahjongMatchProgress, MahjongPhase,
+    MahjongRuleSet, MahjongScoreResult, MahjongSuit, MahjongTile, MahjongTileKind,
+    MahjongWinRecord, build_deck,
 };
-use leocard_mahjong::{MahjongMatchLength, MahjongMatchProgress};
+
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameCommand, GameSnapshot, JoinRequest, MahjongCommand,
-    MahjongEvent, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MahjongWinView,
-    PlayerGameProfiles, PlayerId, ProfileId, ReconnectToken, RequestId, RoomId, SeatId,
-    ServerEvent, join_identity_payload,
+    ClientCommand, ClientMessage, GameCommand, GameEvent, GameSnapshot, JoinRequest,
+    MahjongCommand, MahjongEvent, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot,
+    MatchId, PlayerGameProfiles, ProfileId, ReconnectToken, RequestId, RoomId, SeatId, ServerEvent,
+    ServerMessage, decode_frame, encode_frame, join_identity_payload,
 };
-use leocard_protocol::{GameEvent, MatchId, ServerMessage, decode_frame, encode_frame};
 use std::collections::HashSet;
 use std::time::Duration;
 
@@ -41,15 +42,15 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
                     completed_hands: 1,
                     exhaustive_draws: 0,
                 },
-                winners: vec![MahjongWinView {
+                winners: vec![MahjongWinRecord {
                     player: PlayerId(0),
                     from: Some(PlayerId(1)),
                     concealed_hand: true,
                     winning_tile: tile,
                     wait_kind_count: 1,
                     score: MahjongScoreResult {
-                        fans: vec![FanValue {
-                            fan: Fan::BigFourWinds,
+                        fans: vec![MahjongFanValue {
+                            fan: MahjongFan::BigFourWinds,
                             count: 1,
                             points: 88,
                         }],
@@ -235,13 +236,13 @@ fn dealer_winning_deck() -> Vec<MahjongTile> {
 fn finish_server_deal(session: &mut MahjongSession) {
     while matches!(
         session.game().expect("game remains active").phase(),
-        Phase::Dealing { .. }
+        MahjongPhase::Dealing { .. }
     ) {
         assert!(!session.advance_time(MAHJONG_DEAL_INTERVAL).is_empty());
     }
     assert!(matches!(
         session.game().expect("game remains active").phase(),
-        Phase::Playing
+        MahjongPhase::Playing
     ));
 }
 
@@ -299,10 +300,9 @@ fn four_clients_receive_private_views_and_continue_at_the_table() {
             usize::from(snapshot.players[snapshot.you.0 as usize].concealed_count)
         );
         assert!(
-            snapshot
-                .players
-                .iter()
-                .all(|player| { player.id == snapshot.you || player.revealed_hand.is_none() })
+            snapshot.players.iter().all(|player| {
+                player.player.id == snapshot.you || player.revealed_hand.is_none()
+            })
         );
     }
 

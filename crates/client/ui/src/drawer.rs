@@ -182,3 +182,43 @@ pub fn spawn_switch_drawer<A: Component + Clone>(
     });
     drawer
 }
+
+/// Retained motion state; changing the open target never restarts the animation.
+#[derive(Component, Clone, PartialEq)]
+pub struct DrawerSlide {
+    pub expanded: bool,
+    hidden_offset: Vec2,
+    fraction: f32,
+}
+
+impl DrawerSlide {
+    pub fn new(expanded: bool, hidden_offset: Vec2) -> Self {
+        Self {
+            expanded,
+            hidden_offset,
+            fraction: if expanded { 0.0 } else { 1.0 },
+        }
+    }
+
+    pub fn translation(&self) -> Val2 {
+        let offset = self.hidden_offset * self.fraction;
+        Val2::px(offset.x, offset.y)
+    }
+}
+
+pub fn animate_drawers(time: Res<Time>, mut drawers: Query<(&mut DrawerSlide, &mut UiTransform)>) {
+    for (mut slide, mut transform) in &mut drawers {
+        let target = if slide.expanded { 0.0 } else { 1.0 };
+        if slide.fraction != target {
+            let response = 1.0 - (-time.delta_secs() * 12.0).exp();
+            slide.fraction += (target - slide.fraction) * response;
+            if (slide.fraction - target).abs() < 0.001 {
+                slide.fraction = target;
+            }
+        }
+        let translation = slide.translation();
+        if transform.translation != translation {
+            transform.translation = translation;
+        }
+    }
+}

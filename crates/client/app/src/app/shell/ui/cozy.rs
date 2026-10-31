@@ -1,9 +1,7 @@
 //! 首页、顶栏和设置窗口共用的 CozyUI 纹理控件。
 
 use super::super::UiAction;
-use crate::app::presentation::{
-    GAME_SIDE_CONTROL_SCALE, MUTED, PanelSkin, TEXT, decorate_panel_skin, text_scene,
-};
+use crate::app::presentation::{MUTED, PanelSkin, TEXT, decorate_panel_skin, text_scene};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_ui::{TextureButton, UiComposer, sliced_image, spawn_node};
@@ -36,6 +34,7 @@ pub(crate) fn add_cozy_button(
         height,
         None,
         CozyButtonVariant::Neutral,
+        1.0,
     )
 }
 
@@ -64,6 +63,7 @@ pub(crate) fn add_cozy_button_variant(
         height,
         None,
         variant,
+        1.0,
     )
 }
 
@@ -176,6 +176,7 @@ pub(crate) fn add_cozy_button_with_icon(
         height,
         icon,
         CozyButtonVariant::Neutral,
+        1.0,
     )
 }
 
@@ -187,6 +188,7 @@ pub(crate) fn add_cozy_icon_button(
     assets: &UiAssets,
     icon: Handle<Image>,
     variant: CozyButtonVariant,
+    scale: f32,
 ) -> Entity {
     add_cozy_button_styled(
         commands,
@@ -194,10 +196,11 @@ pub(crate) fn add_cozy_icon_button(
         None,
         action,
         assets,
-        px(38.0 * GAME_SIDE_CONTROL_SCALE),
-        38.0 * GAME_SIDE_CONTROL_SCALE,
+        px(38.0 * scale),
+        38.0 * scale,
         Some(icon),
         variant,
+        scale,
     )
 }
 
@@ -216,6 +219,7 @@ fn add_cozy_button_styled(
     height: f32,
     icon: Option<Handle<Image>>,
     variant: CozyButtonVariant,
+    scale: f32,
 ) -> Entity {
     let (base_image, base_tint, hover_image, hover_tint, border) = match variant {
         CozyButtonVariant::Neutral => (
@@ -247,12 +251,7 @@ fn add_cozy_button_styled(
             32.0,
         ),
     };
-    let corner_scale = 0.55
-        * if label.is_none() {
-            GAME_SIDE_CONTROL_SCALE
-        } else {
-            1.0
-        };
+    let corner_scale = 0.55 * scale;
     TextureButton {
         node: button_node(width, height),
         normal: sliced_image(base_image, border, corner_scale).with_color(base_tint),
@@ -261,16 +260,7 @@ fn add_cozy_button_styled(
         label,
         font_size: 14.0,
         color: TEXT,
-        icon: icon.map(|icon| {
-            (
-                icon,
-                if label.is_none() {
-                    30.0 * GAME_SIDE_CONTROL_SCALE
-                } else {
-                    22.0
-                },
-            )
-        }),
+        icon: icon.map(|icon| (icon, if label.is_none() { 30.0 * scale } else { 22.0 })),
     }
     .mount(commands, parent, &assets.font)
     .0
@@ -310,6 +300,10 @@ pub(crate) fn add_cozy_panel_with_skin(
     panel
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "page and in-game headers choose their own icon and label scale"
+)]
 pub(crate) fn add_cozy_labeled_icon_button(
     commands: &mut UiComposer,
     parent: Entity,
@@ -318,20 +312,18 @@ pub(crate) fn add_cozy_labeled_icon_button(
     icon: Handle<Image>,
     variant: CozyButtonVariant,
     label: &str,
+    scale: f32,
 ) {
     let column = commands.mount(
         parent,
         format!("entry:{label}"),
         bsn! {
             Node {
-                width: px(44.0 * GAME_SIDE_CONTROL_SCALE), flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center, row_gap: px(GAME_SIDE_CONTROL_SCALE),
+                width: px(44.0 * scale), flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center, row_gap: px(scale),
             }
         },
     );
-    add_cozy_icon_button(commands, column, action, assets, icon, variant);
-    commands.node(
-        column,
-        text_scene(assets, label, 12.0 * GAME_SIDE_CONTROL_SCALE, TEXT),
-    );
+    add_cozy_icon_button(commands, column, action, assets, icon, variant, scale);
+    commands.node(column, text_scene(assets, label, 12.0 * scale, TEXT));
 }

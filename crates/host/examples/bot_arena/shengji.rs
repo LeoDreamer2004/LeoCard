@@ -1,8 +1,10 @@
 use super::metrics::Metrics;
+use leocard_game_common::PlayerId;
+
 use leocard_shengji::{
-    GameState, Phase, ShengjiBiddingObservation, ShengjiBot, ShengjiBotAction,
-    ShengjiBotObservation, ShengjiGreedyBot, ShengjiGreedyBotRequest, ShengjiPlayerId,
-    ShengjiRuleSet, TeamProgress, build_deck_for,
+    ShengjiBiddingObservation, ShengjiBot, ShengjiBotAction, ShengjiBotObservation,
+    ShengjiGameState, ShengjiGreedyBot, ShengjiGreedyBotRequest, ShengjiPhase, ShengjiRuleSet,
+    ShengjiTeamProgress, build_deck_for,
 };
 use std::time::Duration;
 
@@ -17,17 +19,17 @@ pub fn run(seed: usize, budget: Duration, mixed: bool, metrics: &mut Metrics) {
     };
     let mut deck = build_deck_for(rules.deck_count);
     fastrand::Rng::with_seed(seed as u64).shuffle(&mut deck);
-    let mut game = GameState::new(
+    let mut game = ShengjiGameState::new(
         rules,
-        TeamProgress::for_rules(&rules),
-        Some(ShengjiPlayerId(if mixed { 0 } else { seed as u8 % 4 })),
-        ShengjiPlayerId(0),
+        ShengjiTeamProgress::for_rules(&rules),
+        Some(PlayerId(if mixed { 0 } else { seed as u8 % 4 })),
+        PlayerId(0),
         deck,
     )
     .unwrap();
     game.deal_all().unwrap();
     for index in 0..4 {
-        let player = ShengjiPlayerId(index);
+        let player = PlayerId(index);
         let observation = ShengjiBiddingObservation::from_game(&game, player).unwrap();
         if let Some(cards) = ShengjiBot::declaration(&observation) {
             game.declare(player, &cards).unwrap();
@@ -36,12 +38,14 @@ pub fn run(seed: usize, budget: Duration, mixed: bool, metrics: &mut Metrics) {
     game.close_bidding_and_take_kitty().unwrap();
     for _ in 0..600 {
         let player = match game.phase() {
-            Phase::Burying => game.dealer().unwrap(),
-            Phase::BottomCopying => game.bottom_copy().unwrap().current().unwrap(),
-            Phase::BottomCopyBurying => game.bottom_copy().unwrap().bottom_holder().unwrap(),
-            Phase::FiveTrumpCrossing => game.five_trump_crossing().unwrap().pending_players()[0],
-            Phase::Playing => game.current_player().unwrap(),
-            Phase::Finished(result) => {
+            ShengjiPhase::Burying => game.dealer().unwrap(),
+            ShengjiPhase::BottomCopying => game.bottom_copy().unwrap().current().unwrap(),
+            ShengjiPhase::BottomCopyBurying => game.bottom_copy().unwrap().bottom_holder().unwrap(),
+            ShengjiPhase::FiveTrumpCrossing => {
+                game.five_trump_crossing().unwrap().pending_players()[0]
+            }
+            ShengjiPhase::Playing => game.current_player().unwrap(),
+            ShengjiPhase::Finished(result) => {
                 metrics.wins += usize::from(result.promoted_team.0 == (seed % 2) as u8);
                 metrics.score += if result.collecting_team.0 == (seed % 2) as u8 {
                     i64::from(result.collecting_score)
@@ -58,7 +62,7 @@ pub fn run(seed: usize, budget: Duration, mixed: bool, metrics: &mut Metrics) {
         };
         let observation = ShengjiBotObservation::from_game(&game, player).unwrap();
         let action = if mixed && player.0 % 2 != (seed % 2) as u8 {
-            if game.phase() == &Phase::Playing {
+            if game.phase() == &ShengjiPhase::Playing {
                 let trick = game.current_trick();
                 ShengjiBotAction::Play(
                     ShengjiGreedyBot::choose(ShengjiGreedyBotRequest {

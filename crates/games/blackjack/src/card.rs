@@ -64,12 +64,12 @@ pub struct BlackjackCard {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub struct HandValue {
+pub struct BlackjackHandValue {
     pub total: u16,
     pub soft: bool,
 }
 
-impl HandValue {
+impl BlackjackHandValue {
     pub fn of(cards: &[BlackjackCard]) -> Self {
         let mut total = cards.iter().map(|card| u16::from(card.rank.points())).sum();
         let soft = total <= 11 && cards.iter().any(|card| card.rank == BlackjackRank::Ace);

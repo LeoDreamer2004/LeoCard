@@ -2,7 +2,7 @@ use crate::app::presentation::{CardSize, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_shengji::{Component, ShengjiCard, ShengjiTrump, hand_sequences};
+use leocard_shengji::{ShengjiCard, ShengjiComponent, ShengjiTrump, hand_sequences};
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) fn sequence_labels(
@@ -13,9 +13,9 @@ pub(super) fn sequence_labels(
     let Some(trump) = trump else { return labels };
     for sequence in hand_sequences(cards, trump).unwrap_or_default() {
         let label = match &sequence {
-            Component::Tractor { .. } => "拖拉机",
-            Component::Titanic { .. } => "泰坦尼克",
-            Component::Spaceship { .. } => "宇宙飞船",
+            ShengjiComponent::Tractor { .. } => "拖拉机",
+            ShengjiComponent::Titanic { .. } => "泰坦尼克",
+            ShengjiComponent::Spaceship { .. } => "宇宙飞船",
             _ => continue,
         };
         let group = sequence.cards();

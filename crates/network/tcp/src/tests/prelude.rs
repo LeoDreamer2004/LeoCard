@@ -1,14 +1,15 @@
 pub(super) use super::super::*;
 pub(super) use ed25519_dalek::{Signer, SigningKey};
+use leocard_game_common::PlayerId;
 pub(super) use leocard_host::GameSetup;
 pub(super) use leocard_protocol::{
-    ClientCommand, GameSnapshot, JoinRequest, PlayerGameProfiles, PlayerId, ProfileId,
-    QiGui523Snapshot, ReconnectToken, RequestId, RoomId, SeatId, ServerEvent, ShengjiSnapshot,
-    TexasHoldemSnapshot, UnoSnapshot, join_identity_payload,
+    ClientCommand, GameSnapshot, JoinRequest, PlayerGameProfiles, ProfileId, QiGui523Snapshot,
+    ReconnectToken, RequestId, RoomId, SeatId, ServerEvent, ShengjiSnapshot, TexasSnapshot,
+    UnoSnapshot, join_identity_payload,
 };
 pub(super) use leocard_qigui523::{QiGuiRuleSet, build_deck};
 pub(super) use leocard_shengji::ShengjiRuleSet;
-pub(super) use leocard_texas_holdem::TexasHoldemRuleSet;
+pub(super) use leocard_texas_holdem::TexasRuleSet;
 pub(super) use leocard_uno::UnoRuleSet;
 pub(super) use tokio::time::{Duration, timeout};
 
@@ -31,7 +32,7 @@ pub(super) async fn receive_ready(client: &mut TcpClient, you: PlayerId) {
                 && snapshot
                     .players
                     .iter()
-                    .any(|player| player.id == you && player.ready)
+                    .any(|player| player.player.id == you && player.ready)
             {
                 return;
             }
@@ -53,10 +54,10 @@ pub(super) async fn receive_game(client: &mut TcpClient) -> QiGui523Snapshot {
     .expect("server should send a game snapshot")
 }
 
-pub(super) async fn receive_texas_game(client: &mut TcpClient) -> TexasHoldemSnapshot {
+pub(super) async fn receive_texas_game(client: &mut TcpClient) -> TexasSnapshot {
     timeout(Duration::from_secs(2), async {
         loop {
-            if let ServerEvent::GameSnapshot(GameSnapshot::TexasHoldem(snapshot)) =
+            if let ServerEvent::GameSnapshot(GameSnapshot::Texas(snapshot)) =
                 client.receive().await.unwrap().event
             {
                 return snapshot;

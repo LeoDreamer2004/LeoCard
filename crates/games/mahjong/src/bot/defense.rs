@@ -71,7 +71,7 @@ impl MahjongBotObservation {
         let ahead = self
             .scores
             .iter()
-            .all(|score| *score <= self.scores[self.player.0]);
+            .all(|score| *score <= self.scores[self.player.index()]);
         danger * if self.wall < 20 && ahead { 2.0 } else { 1.0 }
     }
 }

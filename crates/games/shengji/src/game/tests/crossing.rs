@@ -1,19 +1,19 @@
 use super::super::*;
-use crate::{
-    ShengjiCard, ShengjiPlayerId, ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTrump,
-    build_deck,
-};
+use crate::{ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit, ShengjiTrump, build_deck};
+use leocard_game_common::PlayerId;
 
-fn five_trump_crossing_game(trump_suit: Option<ShengjiSuit>) -> (GameState, Vec<ShengjiCard>) {
+fn five_trump_crossing_game(
+    trump_suit: Option<ShengjiSuit>,
+) -> (ShengjiGameState, Vec<ShengjiCard>) {
     let rules = ShengjiRuleSet {
         five_trump_crossing: true,
         ..ShengjiRuleSet::default()
     };
-    let mut game = GameState::new(
+    let mut game = ShengjiGameState::new(
         rules,
-        TeamProgress::default(),
+        ShengjiTeamProgress::default(),
         None,
-        ShengjiPlayerId(0),
+        PlayerId(0),
         build_deck(),
     )
     .unwrap();
@@ -73,25 +73,25 @@ fn five_trump_crossing_game(trump_suit: Option<ShengjiSuit>) -> (GameState, Vec<
         ShengjiCard::big_joker(1),
     ];
     game.trump = Some(ShengjiTrump::new(ShengjiRank::Ten, trump_suit).unwrap());
-    game.dealer = Some(ShengjiPlayerId(0));
-    game.phase = Phase::Burying;
+    game.dealer = Some(PlayerId(0));
+    game.phase = ShengjiPhase::Burying;
     (game, buried)
 }
 
 #[test]
 fn teammates_can_cross_each_other_once_with_both_transfers_applied_simultaneously() {
     let (mut game, buried) = five_trump_crossing_game(Some(ShengjiSuit::Heart));
-    game.bury(ShengjiPlayerId(0), &buried).unwrap();
-    assert_eq!(game.phase(), &Phase::FiveTrumpCrossing);
+    game.bury(PlayerId(0), &buried).unwrap();
+    assert_eq!(game.phase(), &ShengjiPhase::FiveTrumpCrossing);
     assert!(game.statistics.opening.iter().all(Option::is_none));
     let state = game.five_trump_crossing().unwrap();
-    assert!(state.eligible(ShengjiPlayerId(0)));
-    assert!(state.eligible(ShengjiPlayerId(2)));
-    assert!(!state.eligible(ShengjiPlayerId(1)));
-    assert!(!state.eligible(ShengjiPlayerId(3)));
+    assert!(state.eligible(PlayerId(0)));
+    assert!(state.eligible(PlayerId(2)));
+    assert!(!state.eligible(PlayerId(1)));
+    assert!(!state.eligible(PlayerId(3)));
     assert_eq!(
-        game.choose_five_trump_crossing(ShengjiPlayerId(1), None),
-        Err(GameError::CrossingNotEligible)
+        game.choose_five_trump_crossing(PlayerId(1), None),
+        Err(ShengjiGameError::CrossingNotEligible)
     );
 
     let initial_zero = game.players[0].hand.clone();
@@ -111,10 +111,10 @@ fn teammates_can_cross_each_other_once_with_both_transfers_applied_simultaneousl
         ShengjiCard::suited(0, ShengjiSuit::Club, ShengjiRank::Five),
     ];
     assert_eq!(
-        game.choose_five_trump_crossing(ShengjiPlayerId(0), Some(&invalid_zero)),
-        Err(GameError::CrossingMustIncludeAllTrumps)
+        game.choose_five_trump_crossing(PlayerId(0), Some(&invalid_zero)),
+        Err(ShengjiGameError::CrossingMustIncludeAllTrumps)
     );
-    game.choose_five_trump_crossing(ShengjiPlayerId(0), Some(&zero_out))
+    game.choose_five_trump_crossing(PlayerId(0), Some(&zero_out))
         .unwrap();
     assert_eq!(game.players[0].hand, initial_zero, "决定阶段不能提前移动牌");
 
@@ -125,25 +125,25 @@ fn teammates_can_cross_each_other_once_with_both_transfers_applied_simultaneousl
         ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Four),
         ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Five),
     ];
-    game.choose_five_trump_crossing(ShengjiPlayerId(2), Some(&two_out))
+    game.choose_five_trump_crossing(PlayerId(2), Some(&two_out))
         .unwrap();
     assert_eq!(
         game.five_trump_crossing().unwrap().stage(),
-        FiveTrumpCrossingStage::Returning
+        ShengjiFiveTrumpCrossingStage::Returning
     );
     assert_eq!(game.players[0].hand.len(), initial_zero.len());
     assert_eq!(game.players[2].hand.len(), initial_two.len());
 
     let after_outgoing_zero = game.players[0].hand.clone();
-    game.return_five_trump_crossing(ShengjiPlayerId(0), &two_out)
+    game.return_five_trump_crossing(PlayerId(0), &two_out)
         .unwrap();
     assert_eq!(
         game.players[0].hand, after_outgoing_zero,
         "回牌也必须等所有人选定后再同时移动"
     );
-    game.return_five_trump_crossing(ShengjiPlayerId(2), &zero_out)
+    game.return_five_trump_crossing(PlayerId(2), &zero_out)
         .unwrap();
-    assert_eq!(game.phase(), &Phase::Playing);
+    assert_eq!(game.phase(), &ShengjiPhase::Playing);
     let trump = game.trump().unwrap();
     for player in game.players() {
         let opening = game.statistics.opening[usize::from(player.id.0)].unwrap();
@@ -173,8 +173,8 @@ fn teammates_can_cross_each_other_once_with_both_transfers_applied_simultaneousl
     assert_eq!(final_zero, initial_zero);
     assert_eq!(final_two, initial_two);
     assert_eq!(
-        game.choose_five_trump_crossing(ShengjiPlayerId(0), None),
-        Err(GameError::WrongPhase),
+        game.choose_five_trump_crossing(PlayerId(0), None),
+        Err(ShengjiGameError::WrongPhase),
         "一局只能进行一次五主过江"
     );
 }
@@ -182,18 +182,18 @@ fn teammates_can_cross_each_other_once_with_both_transfers_applied_simultaneousl
 #[test]
 fn five_trump_crossing_is_skipped_in_no_trump_and_all_declines_start_play() {
     let (mut no_trump, buried) = five_trump_crossing_game(None);
-    no_trump.bury(ShengjiPlayerId(0), &buried).unwrap();
-    assert_eq!(no_trump.phase(), &Phase::Playing);
+    no_trump.bury(PlayerId(0), &buried).unwrap();
+    assert_eq!(no_trump.phase(), &ShengjiPhase::Playing);
     assert!(no_trump.five_trump_crossing().is_none());
 
     let (mut suited, buried) = five_trump_crossing_game(Some(ShengjiSuit::Heart));
-    suited.bury(ShengjiPlayerId(0), &buried).unwrap();
+    suited.bury(PlayerId(0), &buried).unwrap();
     suited
-        .choose_five_trump_crossing(ShengjiPlayerId(0), None)
+        .choose_five_trump_crossing(PlayerId(0), None)
         .unwrap();
     suited
-        .choose_five_trump_crossing(ShengjiPlayerId(2), None)
+        .choose_five_trump_crossing(PlayerId(2), None)
         .unwrap();
-    assert_eq!(suited.phase(), &Phase::Playing);
+    assert_eq!(suited.phase(), &ShengjiPhase::Playing);
     assert_eq!(suited.current_player(), suited.dealer());
 }

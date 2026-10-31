@@ -1,8 +1,8 @@
 use super::shanten::{Counts, permutations};
-use crate::{MahjongMeldKind, Meld};
+use crate::{MahjongMeld, MahjongMeldKind};
 
 /// A graded preference, not an assumed fan award: terminal positions are scored by the rules.
-pub(super) fn potential(counts: &Counts, melds: &[Meld]) -> f64 {
+pub(super) fn potential(counts: &Counts, melds: &[MahjongMeld]) -> f64 {
     let mut all = *counts;
     for meld in melds {
         for tile in meld.tile_kinds() {

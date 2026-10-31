@@ -35,7 +35,7 @@ fn changing_an_avatar_midgame_broadcasts_the_new_image_and_preserves_it_for_late
         assert!(uploaded.iter().any(|delivery| {
             delivery.recipient == connection
                 && matches!(&delivery.message.event, ServerEvent::LobbySnapshot(lobby)
-                    if lobby.players[0].avatar == Some(old_id))
+                    if lobby.players[0].player.avatar == Some(old_id))
         }));
         send_next(
             &mut session,
@@ -70,7 +70,7 @@ fn changing_an_avatar_midgame_broadcasts_the_new_image_and_preserves_it_for_late
             .position(|delivery| {
                 delivery.recipient == connection
                     && qigui523_snapshot(&delivery.message.event)
-                        .is_some_and(|snapshot| snapshot.players[0].avatar == Some(new_id))
+                        .is_some_and(|snapshot| snapshot.players[0].player.avatar == Some(new_id))
             })
             .expect("every player's snapshot refers to the replacement");
         assert!(image_index < snapshot_index);

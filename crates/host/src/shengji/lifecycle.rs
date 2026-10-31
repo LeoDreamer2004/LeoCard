@@ -2,19 +2,19 @@ use super::{
     AUTOMATIC_ACTION_DELAY, BIDDING_GRACE, BOTTOM_COPY_DECISION_TIMEOUT, BOTTOM_FLIP_HOLD_DURATION,
     BOTTOM_FLIP_START_DELAY, DEAL_INTERVAL, HandFlowState, HeldGamePresentation,
     POWER_OUTAGE_BIDDING_GRACE, REDEAL_DELAY, SessionStatistics, ShengjiSession,
-    THROW_FAILURE_RETURN_DURATION, bottom_flip_reveal_view, from_core_player, shuffled_deck,
-    validate_deck,
+    THROW_FAILURE_RETURN_DURATION, shuffled_deck, validate_deck,
 };
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
-    PlayerViolation, RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
-    ShengjiCommand, ShengjiEvent, ShengjiPublicPlay, ShengjiThrowFailureStage,
+    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerViolation,
+    RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent, ShengjiCommand,
+    ShengjiEvent, ShengjiPublicPlay, ShengjiThrowFailureStage,
 };
 use leocard_shengji::{
-    ActionOutcome, BottomCopyState, GameError, GameState, Phase, ShengjiCard, ShengjiRuleSet,
-    TeamProgress,
+    ShengjiActionOutcome, ShengjiBottomCopyState, ShengjiCard, ShengjiGameError, ShengjiGameState,
+    ShengjiPhase, ShengjiRuleSet, ShengjiTeamProgress,
 };
 use std::time::Duration;
 
@@ -39,7 +39,7 @@ impl ShengjiSession {
             game: None,
             match_id: None,
             hand_number: 0,
-            teams: TeamProgress::default(),
+            teams: ShengjiTeamProgress::default(),
             next_dealer: None,
             flow: HandFlowState::default(),
             presentation: HeldGamePresentation::default(),
@@ -60,7 +60,7 @@ impl ShengjiSession {
         self.room.revision
     }
 
-    pub const fn game(&self) -> Option<&GameState> {
+    pub const fn game(&self) -> Option<&ShengjiGameState> {
         self.game.as_ref()
     }
 
@@ -94,17 +94,17 @@ impl ShengjiSession {
         }
         let phase = self.game.as_ref().map(|game| game.phase().clone());
         match phase {
-            Some(Phase::Dealing) => self.advance_dealing(elapsed),
-            Some(Phase::BiddingGrace) => self.advance_bidding(elapsed),
-            Some(Phase::BottomFlipping) => self.advance_bottom_flip(elapsed),
-            Some(Phase::BottomCopying) => self.advance_bottom_copy(elapsed),
+            Some(ShengjiPhase::Dealing) => self.advance_dealing(elapsed),
+            Some(ShengjiPhase::BiddingGrace) => self.advance_bidding(elapsed),
+            Some(ShengjiPhase::BottomFlipping) => self.advance_bottom_flip(elapsed),
+            Some(ShengjiPhase::BottomCopying) => self.advance_bottom_copy(elapsed),
             Some(
-                Phase::Burying
-                | Phase::BottomCopyBurying
-                | Phase::FiveTrumpCrossing
-                | Phase::Playing,
+                ShengjiPhase::Burying
+                | ShengjiPhase::BottomCopyBurying
+                | ShengjiPhase::FiveTrumpCrossing
+                | ShengjiPhase::Playing,
             ) => self.advance_automatic_action(elapsed),
-            Some(Phase::Finished(_) | Phase::RedealRequired(_)) | None => Vec::new(),
+            Some(ShengjiPhase::Finished(_) | ShengjiPhase::RedealRequired(_)) | None => Vec::new(),
         }
     }
 
@@ -134,7 +134,7 @@ impl ShengjiSession {
         self.room.bump_revision();
         let mut deliveries = self.broadcast_events(vec![ShengjiEvent::CardsPlayed {
             play: ShengjiPublicPlay {
-                player: from_core_player(held.player),
+                player: held.player,
                 play: held.forced,
                 throw_penalty: held.penalty_points,
             },
@@ -171,7 +171,7 @@ impl ShengjiSession {
                 .expect("validated double deck deals completely");
             changed = true;
             match outcome {
-                ActionOutcome::CardDealt { .. } => {
+                ShengjiActionOutcome::CardDealt { .. } => {
                     events.extend(self.open_bot_declarations());
                     let dealt = self
                         .game
@@ -189,7 +189,7 @@ impl ShengjiSession {
                         break;
                     }
                 }
-                ActionOutcome::DealComplete => {
+                ShengjiActionOutcome::DealComplete => {
                     self.flow.bidding_remaining = Some(BIDDING_GRACE);
                     self.reset_bid_pass_confirmations();
                     events.push(ShengjiEvent::DealCompleted);
@@ -247,24 +247,22 @@ impl ShengjiSession {
             .close_bidding_and_take_kitty();
         self.room.bump_revision();
         match outcome {
-            Ok(ActionOutcome::DealerTookKitty { dealer }) => {
+            Ok(ShengjiActionOutcome::DealerTookKitty { dealer }) => {
                 self.reset_automatic_action();
                 let mut deliveries = self.broadcast_events(vec![
                     ShengjiEvent::BiddingLocked {
                         declaration: locked_declaration,
                     },
-                    ShengjiEvent::DealerTookKitty {
-                        dealer: from_core_player(dealer),
-                    },
+                    ShengjiEvent::DealerTookKitty { dealer },
                 ]);
                 deliveries.extend(self.broadcast_game(acknowledgement));
                 deliveries
             }
-            Ok(ActionOutcome::PowerOutageDealerChanged { dealer }) => {
+            Ok(ShengjiActionOutcome::PowerOutageDealerChanged { dealer }) => {
                 self.flow.bidding_remaining = Some(POWER_OUTAGE_BIDDING_GRACE);
                 self.reset_bid_pass_confirmations();
                 let mut events = vec![ShengjiEvent::PowerOutageDealerChanged {
-                    dealer: from_core_player(dealer),
+                    dealer,
                     level: self
                         .game
                         .as_ref()
@@ -277,7 +275,7 @@ impl ShengjiSession {
                 deliveries.extend(self.broadcast_game(acknowledgement));
                 deliveries
             }
-            Ok(ActionOutcome::BottomFlipStarted) => {
+            Ok(ShengjiActionOutcome::BottomFlipStarted) => {
                 self.flow.bottom_flip_reveal = None;
                 self.flow.bottom_flip_remaining = Some(BOTTOM_FLIP_START_DELAY);
                 let mut deliveries =
@@ -285,7 +283,7 @@ impl ShengjiSession {
                 deliveries.extend(self.broadcast_game(acknowledgement));
                 deliveries
             }
-            Err(GameError::RedealRequired) => {
+            Err(ShengjiGameError::RedealRequired) => {
                 self.flow.redeal_remaining = Some(REDEAL_DELAY);
                 let mut deliveries = self.broadcast_events(vec![self.redeal_event()]);
                 deliveries.extend(self.broadcast_game(acknowledgement));
@@ -318,25 +316,24 @@ impl ShengjiSession {
                 .expect("扳底展示期间游戏仍然存在")
                 .complete_bottom_flip();
             self.flow.bottom_flip_reveal = None;
-            if let Ok(ActionOutcome::DealerTookKitty { dealer }) = outcome {
+            if let Ok(ShengjiActionOutcome::DealerTookKitty { dealer }) = outcome {
                 self.reset_automatic_action();
                 self.room.bump_revision();
-                let mut deliveries = self.broadcast_events(vec![ShengjiEvent::DealerTookKitty {
-                    dealer: from_core_player(dealer),
-                }]);
+                let mut deliveries =
+                    self.broadcast_events(vec![ShengjiEvent::DealerTookKitty { dealer }]);
                 deliveries.extend(self.broadcast_game(None));
                 return deliveries;
             }
         }
 
-        match self.game.as_ref().map(GameState::phase) {
-            Some(Phase::Burying) => {
+        match self.game.as_ref().map(ShengjiGameState::phase) {
+            Some(ShengjiPhase::Burying) => {
                 self.flow.bottom_flip_reveal = None;
                 self.reset_automatic_action();
                 self.room.bump_revision();
                 self.broadcast_game(None)
             }
-            Some(Phase::RedealRequired(_)) => {
+            Some(ShengjiPhase::RedealRequired(_)) => {
                 self.flow.bottom_flip_reveal = None;
                 self.flow.redeal_remaining = Some(REDEAL_DELAY);
                 self.room.bump_revision();
@@ -344,25 +341,23 @@ impl ShengjiSession {
                 deliveries.extend(self.broadcast_game(None));
                 deliveries
             }
-            Some(Phase::BottomFlipping) => {
+            Some(ShengjiPhase::BottomFlipping) => {
                 match self
                     .game
                     .as_mut()
                     .expect("checked above")
                     .flip_next_bottom_card()
                 {
-                    Ok(ActionOutcome::BottomCardRevealed(reveal)) => {
+                    Ok(ShengjiActionOutcome::BottomCardRevealed(reveal)) => {
                         self.flow.bottom_flip_reveal = Some(reveal.clone());
                         self.flow.bottom_flip_remaining = Some(BOTTOM_FLIP_HOLD_DURATION);
                         self.room.bump_revision();
-                        let mut deliveries =
-                            self.broadcast_events(vec![ShengjiEvent::BottomCardRevealed {
-                                reveal: bottom_flip_reveal_view(&reveal),
-                            }]);
+                        let mut deliveries = self
+                            .broadcast_events(vec![ShengjiEvent::BottomCardRevealed { reveal }]);
                         deliveries.extend(self.broadcast_game(None));
                         deliveries
                     }
-                    Err(GameError::RedealRequired) => {
+                    Err(ShengjiGameError::RedealRequired) => {
                         self.flow.redeal_remaining = Some(REDEAL_DELAY);
                         self.room.bump_revision();
                         let mut deliveries = self.broadcast_events(vec![self.redeal_event()]);
@@ -397,8 +392,8 @@ impl ShengjiSession {
         let Some(player) = self
             .game
             .as_ref()
-            .and_then(GameState::bottom_copy)
-            .and_then(BottomCopyState::current)
+            .and_then(ShengjiGameState::bottom_copy)
+            .and_then(ShengjiBottomCopyState::current)
         else {
             return Vec::new();
         };
@@ -426,7 +421,7 @@ impl ShengjiSession {
             return Vec::new();
         }
         self.flow.redeal_remaining = None;
-        if self.start_hand(false).is_err() {
+        if self.start_hand().is_err() {
             return Vec::new();
         }
         self.room.bump_revision();
@@ -526,7 +521,7 @@ impl HostedGameLifecycle for ShengjiSession {
         self.rules.into()
     }
 
-    fn game_snapshot(&self, recipient: leocard_protocol::PlayerId) -> GameSnapshot {
+    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
         ShengjiSession::game_snapshot(self, recipient).into()
     }
 
@@ -629,10 +624,10 @@ impl HostedGameLifecycle for ShengjiSession {
         }
         self.match_id = Some(new_match_id());
         self.hand_number = 0;
-        self.teams = TeamProgress::for_rules(&self.rules);
+        self.teams = ShengjiTeamProgress::for_rules(&self.rules);
         self.next_dealer = None;
         self.statistics = SessionStatistics::default();
-        if self.start_hand(true).is_err() {
+        if self.start_hand().is_err() {
             self.room.remove_bots();
             return self.room.reject(
                 connection,
@@ -666,7 +661,7 @@ impl HostedGameLifecycle for ShengjiSession {
         if !self
             .game
             .as_ref()
-            .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
+            .is_some_and(|game| matches!(game.phase(), ShengjiPhase::Finished(_)))
         {
             return self.room.reject(
                 connection,
@@ -698,7 +693,7 @@ impl HostedGameLifecycle for ShengjiSession {
         if !self
             .game
             .as_ref()
-            .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
+            .is_some_and(|game| matches!(game.phase(), ShengjiPhase::Finished(_)))
         {
             return self.room.reject(
                 connection,
@@ -722,7 +717,7 @@ impl HostedGameLifecycle for ShengjiSession {
                 player.ready = false;
             }
             self.shuffled_deck = Some(shuffled_deck(self.rules));
-            if self.start_hand(true).is_err() {
+            if self.start_hand().is_err() {
                 return self.room.reject(
                     connection,
                     request_id,

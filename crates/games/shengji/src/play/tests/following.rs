@@ -1,6 +1,6 @@
 use crate::play::classify_cards;
 use crate::{
-    FollowError, TrickPlay, classify_lead, compare_for_trick, follow_suggestions,
+    ShengjiFollowError, ShengjiTrickPlay, classify_lead, compare_for_trick, follow_suggestions,
     forced_follow_cards, validate_follow,
 };
 
@@ -26,7 +26,7 @@ fn failed_throw_selects_the_shortest_beatable_then_weakest_component() {
         throw_penalty: ShengjiThrowPenalty::TenPerCard,
         ..ShengjiRuleSet::default()
     };
-    let TrickPlay::ThrowFailed(failure) =
+    let ShengjiTrickPlay::ThrowFailed(failure) =
         classify_lead(&attempted, trump(), &rules, &[&opponent]).unwrap()
     else {
         panic!("throw should fail");
@@ -53,7 +53,7 @@ fn pair_and_tractor_follow_obligations_are_enforced() {
             &lead_pair,
             trump()
         ),
-        Err(FollowError::MustFollowStructure)
+        Err(ShengjiFollowError::MustFollowStructure)
     );
 
     let lead_tractor = classify_cards(

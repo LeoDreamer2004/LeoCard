@@ -6,16 +6,19 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{LobbyUiAction, UiAction, add_cozy_button};
-use bevy::prelude::*;
-use leocard_blackjack::{BlackjackAction, Phase};
+use leocard_blackjack::{BlackjackAction, BlackjackPhase};
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 impl BlackjackTable<'_> {
     pub(super) fn controls(&self, commands: &mut UiComposer, table: Entity) {
         if self.game.match_complete || self.playback.busy() {
             return;
         }
-        if self.game.phase != Phase::Complete && self.game.current_player != Some(self.game.you) {
+        if self.game.phase != BlackjackPhase::Complete
+            && self.game.current_player != Some(self.game.you)
+        {
             return;
         }
         let controls = spawn_node(
@@ -55,7 +58,7 @@ impl BlackjackTable<'_> {
             },
             None,
         );
-        if self.game.phase == Phase::Complete {
+        if self.game.phase == BlackjackPhase::Complete {
             let own = self
                 .game
                 .players
@@ -76,12 +79,12 @@ impl BlackjackTable<'_> {
             action_button(
                 commands,
                 row,
-                if own.player.ready {
+                if own.ready {
                     "已准备"
                 } else {
                     "准备下一局"
                 },
-                (!own.player.ready).then_some(UiAction::Lobby(LobbyUiAction::PlayAgain)),
+                (!own.ready).then_some(UiAction::Lobby(LobbyUiAction::PlayAgain)),
                 GameButtonTone::Play,
                 134.0,
                 self.assets,

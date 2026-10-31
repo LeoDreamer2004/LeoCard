@@ -1,10 +1,11 @@
 //! 双升手牌、计分、甩牌反馈与结算演出的状态类型。
+use leocard_game_common::PlayerId;
 
 use super::counter::ShengjiCounterUi;
 use super::missing_suits::MissingSuitsUi;
+use crate::app::games::shengji::ShengjiScoreCaptureEffect;
 use crate::app::presentation::{CardAnimationState, Observed};
 use bevy::prelude::*;
-use leocard_client::ShengjiScoreCaptureEffect;
 use leocard_protocol::{MatchId, ShengjiSnapshot, ShengjiThrowFailureStage};
 use leocard_shengji::ShengjiCard;
 use leocard_ui::{CustomButtonMotion, DraggableWindowOwner, DraggableWindowState};
@@ -40,6 +41,7 @@ impl ShengjiUiState {
 
 #[derive(Resource, Default)]
 pub(crate) struct ShengjiScoreCaptureEffectState {
+    pub view_key: Option<(MatchId, PlayerId)>,
     pub seen_serial: u64,
     pub active: Option<ActiveShengjiScoreCapture>,
 }

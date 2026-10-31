@@ -5,13 +5,14 @@ use super::super::{
     ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation, ShengjiUiAction, ShengjiUiState,
     add_shengji_presentation_overlay,
 };
-use super::add_shengji_bottom_copy_reveal;
 use super::{
-    ShengjiCardSize, add_shengji_actions, add_shengji_bidding_panel, add_shengji_card_row,
-    add_shengji_collecting_tray, add_shengji_hand, add_shengji_own_play, add_shengji_play_area,
-    add_shengji_result, add_shengji_self_panel, add_shengji_throw_penalty_effect,
-    select_forced_shengji_follow_cards, shengji_display_trump,
+    ShengjiCardSize, add_shengji_actions, add_shengji_bidding_panel,
+    add_shengji_bottom_copy_reveal, add_shengji_card_row, add_shengji_collecting_tray,
+    add_shengji_hand, add_shengji_own_play, add_shengji_play_area, add_shengji_result,
+    add_shengji_self_panel, add_shengji_throw_penalty_effect, select_forced_shengji_follow_cards,
+    shengji_display_trump,
 };
+use crate::app::games::shengji::ShengjiClientState;
 use crate::app::presentation::{
     ACCENT, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec, SeatSide,
     StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial, TrickSeatLayout,
@@ -24,18 +25,19 @@ use crate::app::shell::{
     ChatAuxiliaryAction, ChatPanelState, SocialUiState, UiAction, add_chat_panel,
     add_reconnecting_overlay,
 };
-
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use bevy::ui_widgets::Button;
-use leocard_protocol::ShengjiBottomFlipRevealView;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    GameKind, PlayerId, SeatId, ShengjiPhaseView, ShengjiPlayerState, ShengjiPublicPlay,
-    ShengjiSnapshot,
+    GameKind, SeatId, ShengjiPhaseView, ShengjiPlayerView, ShengjiPublicPlay, ShengjiSnapshot,
 };
+use leocard_shengji::ShengjiBottomFlipReveal;
 use leocard_ui::{UiComposer, spawn_node, ui_component};
 
+use bevy::prelude::*;
+
 pub(crate) struct ShengjiTableVisuals<'a> {
+    pub client_state: &'a ShengjiClientState,
     pub assets: &'a UiAssets,
     pub game_assets: &'a ShengjiAssets,
     pub avatars: &'a AvatarImages,
@@ -118,7 +120,10 @@ pub(crate) fn render_shengji_table(
         add_reconnecting_overlay(commands, table, message, visuals.assets);
     }
 
-    let own = game.players.iter().find(|player| player.id == game.you);
+    let own = game
+        .players
+        .iter()
+        .find(|player| player.player.id == game.you);
     let own_seat = own.map_or(SeatId(0), |player| player.seat);
     let finished = matches!(game.phase, ShengjiPhaseView::Finished { .. });
     let local_auto_play = own.filter(|_| !finished).map(|player| player.auto_play);
@@ -193,7 +198,7 @@ pub(crate) fn render_shengji_table(
         commands,
         table,
         game,
-        client.0.model().shengji_collected_score_cards(),
+        visuals.client_state.shengji_collected_score_cards(),
         visuals.score_capture,
         visuals.assets,
     );
@@ -366,7 +371,7 @@ fn add_shengji_bottom_flip(
     commands: &mut UiComposer,
     table: Entity,
     game: &ShengjiSnapshot,
-    reveal: Option<&ShengjiBottomFlipRevealView>,
+    reveal: Option<&ShengjiBottomFlipReveal>,
     assets: &UiAssets,
 ) {
     let panel = spawn_node(
@@ -449,8 +454,8 @@ fn add_shengji_bottom_flip(
             let name = game
                 .players
                 .iter()
-                .find(|player| player.id == matched.player)
-                .map_or("玩家", |player| player.name.as_str());
+                .find(|player| player.player.id == matched.player)
+                .map_or("玩家", |player| player.player.name.as_str());
             add_text(commands, row, name, 15.0, TEXT, assets);
             add_shengji_card_row(
                 commands,
@@ -466,8 +471,8 @@ fn add_shengji_bottom_flip(
         let name = game
             .players
             .iter()
-            .find(|player| player.id == dealer)
-            .map_or("该玩家", |player| player.name.as_str());
+            .find(|player| player.player.id == dealer)
+            .map_or("该玩家", |player| player.player.name.as_str());
         let resolution = add_text(
             commands,
             panel,
@@ -499,7 +504,7 @@ fn add_shengji_opponent(
     commands: &mut UiComposer,
     table: Entity,
     relative: u8,
-    player: &ShengjiPlayerState,
+    player: &ShengjiPlayerView,
     game: &ShengjiSnapshot,
     missing_suits: &MissingSuitsUi,
     assets: &UiAssets,
@@ -521,7 +526,7 @@ fn add_shengji_opponent(
                 commands,
                 slot,
                 game,
-                player.id,
+                player.player.id,
                 side,
                 assets,
                 previous_trick,
@@ -549,7 +554,7 @@ fn add_shengji_opponent(
                 commands,
                 slot,
                 game,
-                player.id,
+                player.player.id,
                 side,
                 assets,
                 previous_trick,
@@ -579,7 +584,7 @@ fn add_shengji_intro_play_placeholder(commands: &mut UiComposer, parent: Entity)
 fn add_shengji_player_panel(
     commands: &mut UiComposer,
     parent: Entity,
-    player: &ShengjiPlayerState,
+    player: &ShengjiPlayerView,
     game: &ShengjiSnapshot,
     side: SeatSide,
     missing_suits: &MissingSuitsUi,
@@ -598,22 +603,27 @@ fn add_shengji_player_panel(
             ..default()
         },
         PlayerPortraitSpec {
-            player: player.id,
+            player: player.player.id,
             profile: PlayerMenuProfile {
-                name: &player.name,
-                avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
-                reference_points: player.reference_points,
-                completed_games: player.completed_games,
-                game_profiles: &player.game_profiles,
+                name: &player.player.name,
+                avatar: player.player.avatar.and_then(|id| avatars.remote.get(&id)),
+                reference_points: player.player.reference_points,
+                completed_games: player.player.completed_games,
+                game_profiles: &player.player.game_profiles,
             },
             avatar_size: 52.0 * 1.17,
             auto_play: player.auto_play,
-            menu_open: interaction_menu_open == Some(player.id),
+            menu_open: interaction_menu_open == Some(player.player.id),
             name_color: TEXT,
         },
         assets,
     );
-    attach_start_game_seat_transition(commands, panel.portrait, player.id, start_transition_active);
+    attach_start_game_seat_transition(
+        commands,
+        panel.portrait,
+        player.player.id,
+        start_transition_active,
+    );
     if !start_transition_active {
         render_missing_suits(
             commands,
@@ -624,17 +634,17 @@ fn add_shengji_player_panel(
             assets,
         );
     }
-    if game.current_player == Some(player.id) {
+    if game.current_player == Some(player.player.id) {
         add_turn_border_trace_with_radius(
             commands,
             panel.avatar_ring,
             turn_border_materials,
-            TurnBorderAnimationKey::new(GameKind::Shengji, game.match_id, player.id),
+            TurnBorderAnimationKey::new(GameKind::Shengji, game.match_id, player.player.id),
             52.0 * 1.17 * 0.2,
             52.0 * 1.17,
         );
     }
-    if game.dealer == Some(player.id) {
+    if game.dealer == Some(player.player.id) {
         add_shengji_dealer_badge(commands, panel.portrait, side, assets);
     }
 }

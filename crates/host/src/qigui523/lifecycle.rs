@@ -4,13 +4,13 @@ use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
     RoomSession, new_match_id,
 };
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerId,
-    PlayerViolation, QiGui523Command, RejectReason, RequestId, Revision, RoomId, RoomViolation,
-    ServerEvent,
+    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerViolation,
+    QiGui523Command, RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
 };
 use leocard_qigui523::{
-    GameState, Phase, QiGuiCard, QiGuiMatchStatistics, QiGuiRuleSet, build_deck,
+    QiGuiCard, QiGuiGameState, QiGuiMatchStatistics, QiGuiPhase, QiGuiRuleSet, build_deck,
 };
 use std::time::Duration;
 
@@ -48,7 +48,7 @@ impl QiGui523Session {
         self.revision
     }
 
-    pub fn game(&self) -> Option<&GameState> {
+    pub fn game(&self) -> Option<&QiGuiGameState> {
         self.game.as_ref()
     }
 
@@ -314,7 +314,7 @@ impl HostedGameLifecycle for QiGui523Session {
             ..self.rules
         };
         #[cfg(not(feature = "developer"))]
-        let game = GameState::new_with_deck(game_rules, deck)
+        let game = QiGuiGameState::new_with_deck(game_rules, deck)
             .expect("host validated rules and deck during construction");
         #[cfg(feature = "developer")]
         let game = {
@@ -323,10 +323,10 @@ impl HostedGameLifecycle for QiGui523Session {
                 deck.truncate(
                     usize::from(game_rules.player_count) * usize::from(game_rules.hand_size),
                 );
-                GameState::new_with_development_deck(game_rules, deck)
+                QiGuiGameState::new_with_development_deck(game_rules, deck)
                     .expect("the development deck is a valid shuffled subset")
             } else {
-                GameState::new_with_deck(game_rules, deck)
+                QiGuiGameState::new_with_deck(game_rules, deck)
                     .expect("host validated rules and deck during construction")
             }
         };
@@ -367,7 +367,7 @@ impl HostedGameLifecycle for QiGui523Session {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         };
-        if !matches!(game.phase(), Phase::Finished(_)) {
+        if !matches!(game.phase(), QiGuiPhase::Finished(_)) {
             return self.reject(
                 connection,
                 request_id,
@@ -404,7 +404,7 @@ impl HostedGameLifecycle for QiGui523Session {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         };
-        if !matches!(game.phase(), Phase::Finished(_)) {
+        if !matches!(game.phase(), QiGuiPhase::Finished(_)) {
             return self.reject(
                 connection,
                 request_id,
@@ -464,7 +464,7 @@ impl HostedGameLifecycle for QiGui523Session {
         let should_start_next = self
             .game
             .as_ref()
-            .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
+            .is_some_and(|game| matches!(game.phase(), QiGuiPhase::Finished(_)))
             && self.players.iter().filter(|player| !player.left).count() >= 2
             && self
                 .players

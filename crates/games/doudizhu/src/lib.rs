@@ -4,14 +4,16 @@ mod card;
 mod game;
 mod match_state;
 mod play;
+mod profile;
 mod rules;
 
 pub use bot::{auto_play_action, bot_action, hint, hint_options};
-pub use card::{Card, build_deck, rank_label};
-pub use game::{Action, GameError, GameState, Phase, ResultView};
-pub use match_state::{MatchProgress, MatchState};
-pub use play::{Play, PlayKind, classify};
-pub use rules::{Mode, RuleSet};
+pub use card::{DoudizhuCard, build_deck, rank_label};
+pub use game::{
+    DoudizhuAction, DoudizhuGameError, DoudizhuGameState, DoudizhuPhase, DoudizhuResultView,
+};
+pub use match_state::{DoudizhuMatchProgress, DoudizhuMatchState};
+pub use play::{DoudizhuPlay, DoudizhuPlayKind, classify};
+pub use rules::{DoudizhuMode, DoudizhuRuleSet};
 
-#[cfg(test)]
-mod tests;
+pub use profile::DoudizhuProfileStats;

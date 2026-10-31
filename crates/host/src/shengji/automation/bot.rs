@@ -1,16 +1,18 @@
 use crate::automation::BotDecision;
+use leocard_game_common::PlayerId;
+
 use leocard_shengji::{
-    ActionOutcome, GameState, ShengjiBot, ShengjiBotAction, ShengjiBotObservation, ShengjiPlayerId,
+    ShengjiActionOutcome, ShengjiBot, ShengjiBotAction, ShengjiBotObservation, ShengjiGameState,
 };
 
 pub(super) struct Policy;
 
 impl Policy {
     pub fn act(
-        game: &mut GameState,
-        player: ShengjiPlayerId,
+        game: &mut ShengjiGameState,
+        player: PlayerId,
         decision: &mut BotDecision<ShengjiBotObservation, ShengjiBotAction>,
-    ) -> Option<ActionOutcome> {
+    ) -> Option<ShengjiActionOutcome> {
         let observation = ShengjiBotObservation::from_game(game, player)?;
         let fallback = observation.fallback();
         let action = decision.poll(observation, fallback, ShengjiBot::choose)?;

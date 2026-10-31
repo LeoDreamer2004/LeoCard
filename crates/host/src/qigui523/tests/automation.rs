@@ -1,8 +1,9 @@
 use super::*;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{ClientCommand, GameCommand, QiGui523Command, ServerEvent};
-use leocard_qigui523::TimeControl;
 use leocard_qigui523::{
-    PlayRecord, QiGui523Bot, QiGui523BotRequest, QiGuiPlayerId, QiGuiRuleSet, build_deck, classify,
+    QiGui523Bot, QiGui523BotRequest, QiGuiPlayRecord, QiGuiRuleSet, QiGuiTimeControl, build_deck,
+    classify,
 };
 
 #[test]
@@ -11,12 +12,12 @@ fn enabling_auto_play_waits_one_second_before_acting_on_own_turn() {
     join_three(&mut session);
     ready_and_start(&mut session);
 
-    let current = from_core_player(session.game().unwrap().trick().unwrap().current_player());
+    let current = session.game().unwrap().trick().unwrap().current_player();
     let connection = connection_for_player(&session, current);
     let hand_len_before = session
         .game()
         .unwrap()
-        .player(to_core_player(current))
+        .player(current)
         .unwrap()
         .hand()
         .len();
@@ -34,7 +35,7 @@ fn enabling_auto_play_waits_one_second_before_acting_on_own_turn() {
         session
             .game()
             .unwrap()
-            .player(to_core_player(current))
+            .player(current)
             .unwrap()
             .hand()
             .len(),
@@ -53,7 +54,7 @@ fn enabling_auto_play_waits_one_second_before_acting_on_own_turn() {
             .all(|snapshot| snapshot
                 .players
                 .iter()
-                .find(|player| player.id == current)
+                .find(|player| player.player.id == current)
                 .is_some_and(|player| player.auto_play))
     );
 
@@ -62,7 +63,7 @@ fn enabling_auto_play_waits_one_second_before_acting_on_own_turn() {
         session
             .game()
             .unwrap()
-            .player(to_core_player(current))
+            .player(current)
             .unwrap()
             .hand()
             .len(),
@@ -76,7 +77,7 @@ fn enabling_auto_play_waits_one_second_before_acting_on_own_turn() {
         session
             .game()
             .unwrap()
-            .player(to_core_player(current))
+            .player(current)
             .unwrap()
             .hand()
             .len(),
@@ -101,7 +102,7 @@ fn enabling_auto_play_waits_one_second_before_acting_on_own_turn() {
             .all(|snapshot| snapshot
                 .players
                 .iter()
-                .find(|player| player.id == current)
+                .find(|player| player.player.id == current)
                 .is_some_and(|player| !player.auto_play))
     );
 }
@@ -115,13 +116,11 @@ fn auto_play_also_waits_one_second_when_its_turn_arrives_later() {
     let (leader, managed, lead_card) = {
         let game = session.game().unwrap();
         let leader = game.trick().unwrap().current_player();
-        let managed = QiGuiPlayerId((leader.0 + game.players().len() - 1) % game.players().len());
+        let managed = PlayerId::from_index(
+            (leader.index() + game.players().len() - 1) % game.players().len(),
+        );
         let lead_card = game.player(leader).unwrap().hand()[0];
-        (
-            from_core_player(leader),
-            from_core_player(managed),
-            lead_card,
-        )
+        (leader, managed, lead_card)
     };
     let managed_connection = connection_for_player(&session, managed);
     send_next(
@@ -140,7 +139,7 @@ fn auto_play_also_waits_one_second_when_its_turn_arrives_later() {
         })),
     );
     assert_eq!(
-        from_core_player(session.game().unwrap().trick().unwrap().current_player()),
+        session.game().unwrap().trick().unwrap().current_player(),
         managed
     );
     assert_eq!(session.game().unwrap().trick().unwrap().records().len(), 1);
@@ -154,7 +153,7 @@ fn auto_play_also_waits_one_second_when_its_turn_arrives_later() {
 #[test]
 fn timeout_follow_uses_the_smallest_greedy_response() {
     let configured_rules = QiGuiRuleSet {
-        time_control: TimeControl::FivePlusTen,
+        time_control: QiGuiTimeControl::FivePlusTen,
         ..rules()
     };
     let mut session = QiGui523Session::new(
@@ -170,7 +169,9 @@ fn timeout_follow_uses_the_smallest_greedy_response() {
     let (leader, lead_card, follower, expected) = {
         let game = session.game().unwrap();
         let leader = game.trick().unwrap().current_player();
-        let follower = QiGuiPlayerId((leader.0 + game.players().len() - 1) % game.players().len());
+        let follower = PlayerId::from_index(
+            (leader.index() + game.players().len() - 1) % game.players().len(),
+        );
         game.player(leader)
             .unwrap()
             .hand()
@@ -189,7 +190,6 @@ fn timeout_follow_uses_the_smallest_greedy_response() {
             .expect("deterministic hands contain a beatable single")
     };
 
-    let leader = from_core_player(leader);
     let connection = connection_for_player(&session, leader);
     send_next(
         &mut session,
@@ -198,10 +198,7 @@ fn timeout_follow_uses_the_smallest_greedy_response() {
             cards: vec![lead_card],
         })),
     );
-    assert_eq!(
-        session.turn_timer.as_ref().unwrap().player,
-        from_core_player(follower)
-    );
+    assert_eq!(session.turn_timer.as_ref().unwrap().player, follower);
 
     session.advance_time(Duration::from_secs(15));
     let last_record = session
@@ -214,7 +211,7 @@ fn timeout_follow_uses_the_smallest_greedy_response() {
         .unwrap();
     assert!(matches!(
         last_record,
-        PlayRecord::Played { player, play }
+        QiGuiPlayRecord::Played { player, play }
             if *player == follower && play.cards() == expected
     ));
 }
@@ -222,7 +219,7 @@ fn timeout_follow_uses_the_smallest_greedy_response() {
 #[test]
 fn disconnected_current_player_is_replaced_immediately_without_spending_time() {
     let configured_rules = QiGuiRuleSet {
-        time_control: TimeControl::FivePlusTen,
+        time_control: QiGuiTimeControl::FivePlusTen,
         ..rules()
     };
     let mut session = QiGui523Session::new(
@@ -253,8 +250,8 @@ fn disconnected_current_player_is_replaced_immediately_without_spending_time() {
     let game = session.game().unwrap();
     assert!(matches!(
         game.trick().unwrap().records().get(records_before),
-        Some(PlayRecord::Played { player, play })
-            if *player == to_core_player(disconnected) && play.cards().len() == 1
+        Some(QiGuiPlayRecord::Played { player, play })
+            if *player == disconnected && play.cards().len() == 1
     ));
     let timer = session.turn_timer_view().unwrap();
     assert_ne!(timer.player, disconnected);

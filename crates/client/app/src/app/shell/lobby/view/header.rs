@@ -1,6 +1,6 @@
 //! 各游戏的规则区共用标题、模式选择与说明，配置项接在同一面板内。
 
-use super::page::{LobbyPage, LobbyPageStyle};
+use super::page::LobbyPageStyle;
 use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::CozyDropdown;
@@ -43,14 +43,16 @@ impl LobbyPageConfig {
         self,
         commands: &mut UiComposer,
         root: Entity,
-        page: &LobbyPage,
+        parent: Entity,
+        can_configure: bool,
         assets: &UiAssets,
     ) {
         let row = spawn_node(
             commands,
-            page.rules,
+            parent,
             Node {
                 width: percent(100),
+                flex_shrink: 0.0,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::SpaceBetween,
                 column_gap: px(12),
@@ -60,10 +62,10 @@ impl LobbyPageConfig {
         );
         add_lobby_rules_heading(commands, row, self.title, assets);
         if let Some((dropdown, open)) = self.mode {
-            dropdown.render(commands, root, row, page.can_configure, open, assets);
+            dropdown.render(commands, root, row, can_configure, open, assets);
         }
         if let Some(description) = self.description {
-            add_text(commands, page.rules, description, 13.0, MUTED, assets);
+            add_text(commands, parent, description, 13.0, MUTED, assets);
         }
     }
 }

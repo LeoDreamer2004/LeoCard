@@ -8,9 +8,7 @@ mod network;
 pub mod platform;
 mod player;
 
-pub use model::{
-    ActiveGameMeta, ClientModel, ClientPhaseRef, ScoreCaptureEffect, ShengjiScoreCaptureEffect,
-};
+pub use model::{ActiveGameMeta, ClientModel, ClientPhaseRef};
 pub use network::{
     LanRoom, LanRoomBrowser, LocalPlayerConnection, NETWORK_ROOM_ID, NetworkStartError,
     NetworkState, TcpGameClient,

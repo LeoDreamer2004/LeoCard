@@ -12,7 +12,8 @@ use crate::app::shell::{
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
-use leocard_protocol::{PlayerGameProfiles, PlayerId, PlayerInteractionKind};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{PlayerGameProfiles, PlayerInteractionKind};
 use leocard_ui::{
     AnchoredPopup, TextureButton, UiComposer, UiSceneKey, sliced_image, spawn_node, ui_component,
 };

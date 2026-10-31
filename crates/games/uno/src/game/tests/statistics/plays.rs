@@ -1,5 +1,6 @@
 use super::support::*;
 use crate::UnoFace;
+use leocard_game_common::PlayerId;
 
 #[test]
 fn pair_finishes_as_one_action_and_does_not_count_as_a_jump_in() {
@@ -146,7 +147,7 @@ fn forgotten_uno_and_color_gifts_use_the_actual_finishing_play() {
 #[test]
 fn only_the_no_mercy_zero_or_seven_initiator_receives_swap_credit() {
     let rules = UnoRuleSet {
-        mode: Mode::NoMercy,
+        mode: UnoMode::NoMercy,
         ..UnoRuleSet::default()
     };
     for value in [0, 7] {
@@ -170,7 +171,7 @@ fn only_the_no_mercy_zero_or_seven_initiator_receives_swap_credit() {
         if value == 7 {
             assert_eq!(progress(&stats, 0).hand_swaps, 0);
             record(&mut game, &mut stats, 0, &[], false, |game, player| {
-                game.choose_seven_swap_target(player, UnoPlayerId(1))
+                game.choose_seven_swap_target(player, PlayerId(1))
             });
         }
         assert_eq!(progress(&stats, 0).hand_swaps, 1);
@@ -201,7 +202,7 @@ fn a_deferred_palette_choice_can_give_the_next_player_the_winning_color() {
         |game, player| game.play_card(player, trade, None),
     );
     record(&mut game, &mut stats, 0, &[], false, |game, player| {
-        game.force_trade_hands(player, player, UnoPlayerId(1))
+        game.force_trade_hands(player, player, PlayerId(1))
     });
     record(&mut game, &mut stats, 0, &[], false, |game, player| {
         game.choose_initial_color(player, UnoColor::Red)

@@ -6,6 +6,7 @@ mod dealing;
 mod feedback;
 mod hand;
 mod hand_interaction;
+mod history;
 mod kitty;
 mod lobby;
 mod play;

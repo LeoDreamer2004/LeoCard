@@ -8,23 +8,26 @@ pub mod achievements;
 mod bot;
 mod card;
 mod game;
+mod profile;
 mod rating;
 mod rules;
 mod statistics;
 
 pub use bot::{UnoBot, UnoBotAction, UnoBotObservation};
 pub use card::{
-    CardSide, UnoCard, UnoColor, UnoFace, UnoFlipSide, build_deck, build_deck_for_rules,
+    UnoCard, UnoCardSide, UnoColor, UnoFace, UnoFlipSide, build_deck, build_deck_for_rules,
     build_flip_dark_sides, build_flip_deck, build_flip_light_sides, build_no_mercy_deck,
     build_reverse_pack, build_stack_pack, build_swap_pack, pair_flip_deck,
 };
 pub use game::{
-    ActionOutcome, GameError, GameResult, GameState, PendingSwap, Phase, PlayedEffect, PlayerState,
-    TurnState, UnoChallengeResult, UnoDirection, UnoPendingDrawKind, UnoPlayerId,
+    UnoActionOutcome, UnoChallengeResult, UnoDirection, UnoGameError, UnoGameResult, UnoGameState,
+    UnoPendingDrawKind, UnoPendingSwap, UnoPhase, UnoPlayedEffect, UnoPlayerState, UnoTurnState,
 };
 pub use rating::reference_point_deltas;
-pub use rules::{FlipRuleSet, Mode, NoMercyRuleSet, RuleError, UnoRuleSet};
+pub use rules::{UnoFlipRuleSet, UnoMode, UnoNoMercyRuleSet, UnoRuleError, UnoRuleSet};
 
 pub use statistics::{
     UnoActionContext, UnoActionStatistics, UnoMatchStatistics, UnoPlayerStatistics,
 };
+
+pub use profile::UnoProfileStats;

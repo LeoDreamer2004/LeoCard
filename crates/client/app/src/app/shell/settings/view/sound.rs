@@ -34,6 +34,8 @@ pub(super) fn render_sound_settings(
             width: percent(100),
             flex_direction: FlexDirection::Row,
             column_gap: px(18),
+            flex_wrap: FlexWrap::Wrap,
+            row_gap: px(8),
             ..default()
         },
         None,
@@ -48,6 +50,11 @@ pub(super) fn render_sound_settings(
             "报番语音",
             form.mahjong_fan_voices,
             SettingsUiAction::ToggleMahjongFanVoices,
+        ),
+        (
+            "报牌语音",
+            form.mahjong_tile_voices,
+            SettingsUiAction::ToggleMahjongTileVoices,
         ),
     ] {
         add_settings_toggle(commands, row, label, selected, action, assets);

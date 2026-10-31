@@ -1,6 +1,6 @@
-use super::super::{CozyModalKind, ModalAnimations, UiState, advance_modal};
 use crate::app::presentation::TEXT;
 use crate::app::runtime::UiAssets;
+use crate::app::shell::{CozyModalKind, ModalAnimations, UiState, advance_modal};
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 

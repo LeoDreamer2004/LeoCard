@@ -1,13 +1,16 @@
 use super::{
-    BombKind, ClassifiedPlay, PlayError, QiGuiPlayKind, is_heaven_bomb, rank_counts,
+    QiGuiBombKind, QiGuiClassifiedPlay, QiGuiPlayError, QiGuiPlayKind, is_heaven_bomb, rank_counts,
     ranks_are_consecutive,
 };
 use crate::{QiGuiCard, QiGuiRuleSet};
 use std::collections::HashSet;
 
-pub fn classify(cards: &[QiGuiCard], rules: &QiGuiRuleSet) -> Result<ClassifiedPlay, PlayError> {
+pub fn classify(
+    cards: &[QiGuiCard],
+    rules: &QiGuiRuleSet,
+) -> Result<QiGuiClassifiedPlay, QiGuiPlayError> {
     if cards.is_empty() {
-        return Err(PlayError::Empty);
+        return Err(QiGuiPlayError::Empty);
     }
     validate_physical_cards(cards, rules)?;
 
@@ -18,7 +21,7 @@ pub fn classify(cards: &[QiGuiCard], rules: &QiGuiRuleSet) -> Result<ClassifiedP
     let kind = if is_heaven_bomb(&rank_counts, card_count) {
         QiGuiPlayKind::HeavenBomb
     } else if rank_counts.len() == 1 && card_count >= 4 {
-        QiGuiPlayKind::Bomb(BombKind::OfAKind {
+        QiGuiPlayKind::Bomb(QiGuiBombKind::OfAKind {
             card_count,
             rank: sorted_cards[0].rank(),
         })
@@ -64,23 +67,26 @@ pub fn classify(cards: &[QiGuiCard], rules: &QiGuiRuleSet) -> Result<ClassifiedP
             pair_count: card_count / 2,
         }
     } else {
-        return Err(PlayError::InvalidPattern);
+        return Err(QiGuiPlayError::InvalidPattern);
     };
-    Ok(ClassifiedPlay {
+    Ok(QiGuiClassifiedPlay {
         cards: sorted_cards,
         kind,
     })
 }
 
-fn validate_physical_cards(cards: &[QiGuiCard], rules: &QiGuiRuleSet) -> Result<(), PlayError> {
+fn validate_physical_cards(
+    cards: &[QiGuiCard],
+    rules: &QiGuiRuleSet,
+) -> Result<(), QiGuiPlayError> {
     let mut physical_cards = HashSet::with_capacity(cards.len());
     for &card in cards {
         #[cfg(not(feature = "developer"))]
         if card.deck() >= rules.deck_count {
-            return Err(PlayError::CardOutsideConfiguredDeck(card));
+            return Err(QiGuiPlayError::CardOutsideConfiguredDeck(card));
         }
         if !physical_cards.insert(card) {
-            return Err(PlayError::DuplicatePhysicalCard(card));
+            return Err(QiGuiPlayError::DuplicatePhysicalCard(card));
         }
     }
     #[cfg(feature = "developer")]

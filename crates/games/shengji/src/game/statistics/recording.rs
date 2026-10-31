@@ -1,7 +1,8 @@
 use super::{ShengjiBurialStatistics, ShengjiHandStatistics, ShengjiOpeningHandStatistics};
-use crate::{Category, GameState, Phase, ShengjiCard, ShengjiPlayerId, ShengjiRank};
+use crate::{ShengjiCard, ShengjiCategory, ShengjiGameState, ShengjiPhase, ShengjiRank};
+use leocard_game_common::PlayerId;
 
-impl GameState {
+impl ShengjiGameState {
     /// Capture the complete hand after every bury/copy/crossing decision has finished.
     pub(in crate::game) fn record_opening_hands(&mut self) {
         let trump = self.trump.expect("playing requires a locked trump");
@@ -25,11 +26,7 @@ impl GameState {
         }
     }
 
-    pub(in crate::game) fn record_burial(
-        &mut self,
-        player: ShengjiPlayerId,
-        cards: &[ShengjiCard],
-    ) {
+    pub(in crate::game) fn record_burial(&mut self, player: PlayerId, cards: &[ShengjiCard]) {
         self.statistics.burial[usize::from(player.0)] = Some(ShengjiBurialStatistics {
             card_count: cards.len() as u8,
             scoring_card_count: cards.iter().filter(|card| card.points() > 0).count() as u8,
@@ -39,8 +36,8 @@ impl GameState {
 
     pub(in crate::game) fn record_first_trick_cut(
         &mut self,
-        player: ShengjiPlayerId,
-        previous_winner: Option<ShengjiPlayerId>,
+        player: PlayerId,
+        previous_winner: Option<PlayerId>,
     ) {
         if !self.history.is_empty() || self.dealer == Some(player) || previous_winner != self.dealer
         {
@@ -51,16 +48,16 @@ impl GameState {
             .as_ref()
             .expect("an accepted play belongs to a trick");
         if Some(trick.leader) == self.dealer
-            && matches!(trick.lead.category, Category::Suit(_))
+            && matches!(trick.lead.category, ShengjiCategory::Suit(_))
             && trick.plays[trick.winner_index].0 == player
-            && trick.plays[trick.winner_index].1.category == Category::Trump
+            && trick.plays[trick.winner_index].1.category == ShengjiCategory::Trump
         {
             self.statistics.first_trick_cut_dealer[usize::from(player.0)] = true;
         }
     }
 
     /// This result is public as soon as the dealer is cut; no private hand facts are exposed.
-    pub fn first_trick_cut_dealer(&self, player: ShengjiPlayerId) -> bool {
+    pub fn first_trick_cut_dealer(&self, player: PlayerId) -> bool {
         self.statistics
             .first_trick_cut_dealer
             .get(usize::from(player.0))
@@ -68,8 +65,8 @@ impl GameState {
             .unwrap_or(false)
     }
 
-    pub fn hand_statistics(&self, player: ShengjiPlayerId) -> Option<ShengjiHandStatistics> {
-        let Phase::Finished(result) = &self.phase else {
+    pub fn hand_statistics(&self, player: PlayerId) -> Option<ShengjiHandStatistics> {
+        let ShengjiPhase::Finished(result) = &self.phase else {
             return None;
         };
         let index = usize::from(player.0);

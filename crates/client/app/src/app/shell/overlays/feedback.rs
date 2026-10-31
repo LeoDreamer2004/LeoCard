@@ -4,7 +4,8 @@ use super::super::UiState;
 use super::{
     PlayErrorPopup, PlayErrorPopupImage, PlayErrorPopupText, PlayErrorToast, WARNING_TOAST_TEXT,
 };
-use crate::app::runtime::{ClientResource, PageErrorState, TableAppearance, UiAssets};
+use crate::app::runtime::{ClientResource, GameNotice, PageErrorState, TableAppearance, UiAssets};
+
 use bevy::prelude::*;
 
 pub(crate) const PLAY_ERROR_TOAST_DURATION: f32 = 2.4;
@@ -13,13 +14,14 @@ pub(crate) const PLAY_ERROR_TOAST_SHAKE_DURATION: f32 = 0.42;
 
 pub(crate) fn sync_play_error_toast(
     client: Option<Res<ClientResource>>,
-    page_error: Res<PageErrorState>,
-    appearance: Res<TableAppearance>,
+    context: (Res<PageErrorState>, Res<TableAppearance>),
+    mut game_notices: MessageReader<GameNotice>,
     mut toast: ResMut<PlayErrorToast>,
     mut ui: ResMut<UiState>,
     assets: Res<UiAssets>,
     mut commands: Commands,
 ) {
+    let (page_error, appearance) = context;
     let mut next_message = None;
     let mut play_error_sound = false;
     if let Some(model) = client.as_deref().map(|client| client.0.model()) {
@@ -35,6 +37,10 @@ pub(crate) fn sync_play_error_toast(
             next_message = model.last_notice().map(str::to_owned);
             play_error_sound = false;
         }
+    }
+    for notice in game_notices.read() {
+        next_message = Some(notice.0.clone());
+        play_error_sound = false;
     }
     if toast.observed_form_error != page_error.error {
         toast.observed_form_error.clone_from(&page_error.error);

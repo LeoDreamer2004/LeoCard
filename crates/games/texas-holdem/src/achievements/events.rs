@@ -1,18 +1,20 @@
-use crate::{SquidAwardStatistics, TexasHoldemActionStatistics, TexasHoldemHandStatistics};
-use leocard_achievements::{GameFacts, ParticipantId};
+use crate::{TexasActionStatistics, TexasHandStatistics, TexasSquidAwardStatistics};
+use leocard_achievements::GameFacts;
+use leocard_game_common::PlayerId;
+
 #[derive(Clone, Debug)]
 pub enum TexasAchievementEvent {
     HandAnalyzed {
-        player: ParticipantId,
-        statistics: Box<TexasHoldemHandStatistics>,
+        player: PlayerId,
+        statistics: Box<TexasHandStatistics>,
     },
     ActionApplied {
-        player: ParticipantId,
-        statistics: TexasHoldemActionStatistics,
+        player: PlayerId,
+        statistics: TexasActionStatistics,
     },
     SquidAwarded {
-        player: ParticipantId,
-        statistics: SquidAwardStatistics,
+        player: PlayerId,
+        statistics: TexasSquidAwardStatistics,
     },
 }
 

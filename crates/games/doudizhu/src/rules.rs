@@ -1,12 +1,12 @@
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Mode {
+pub enum DoudizhuMode {
     #[default]
     Three,
     Four,
 }
 
-impl Mode {
+impl DoudizhuMode {
     pub const fn players(self) -> u8 {
         match self {
             Self::Three => 3,
@@ -38,26 +38,26 @@ impl Mode {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct RuleSet {
-    pub mode: Mode,
+pub struct DoudizhuRuleSet {
+    pub mode: DoudizhuMode,
     pub rounds: u8,
     /// 四人玩法允许三带一及飞机带单张；三人玩法始终允许。
     #[cfg_attr(feature = "serde", serde(default))]
     pub allow_single_wings: bool,
 }
 
-impl Default for RuleSet {
+impl Default for DoudizhuRuleSet {
     fn default() -> Self {
         Self {
-            mode: Mode::Three,
+            mode: DoudizhuMode::Three,
             rounds: 1,
             allow_single_wings: false,
         }
     }
 }
 
-impl RuleSet {
-    pub fn for_mode(mode: Mode) -> Self {
+impl DoudizhuRuleSet {
+    pub fn for_mode(mode: DoudizhuMode) -> Self {
         Self {
             mode,
             ..Self::default()
@@ -65,7 +65,7 @@ impl RuleSet {
     }
 
     pub const fn allows_single_wings(self) -> bool {
-        matches!(self.mode, Mode::Three) || self.allow_single_wings
+        matches!(self.mode, DoudizhuMode::Three) || self.allow_single_wings
     }
 
     pub const fn is_valid(self) -> bool {

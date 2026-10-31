@@ -1,10 +1,11 @@
 use super::DoudizhuAchievementFacts;
-use leocard_achievements::{GameFacts, ParticipantId};
+use leocard_achievements::GameFacts;
+use leocard_game_common::PlayerId;
 
 #[derive(Clone, Debug)]
 pub enum DoudizhuAchievementEvent {
     ActionAnalyzed {
-        player: ParticipantId,
+        player: PlayerId,
         statistics: Box<DoudizhuAchievementFacts>,
     },
 }

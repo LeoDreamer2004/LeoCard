@@ -184,7 +184,7 @@ fn flip_deck_has_complete_unique_light_and_dark_sides() {
     );
     assert!(deck.iter().all(|card| {
         card.opposite()
-            .and_then(CardSide::color)
+            .and_then(UnoCardSide::color)
             .is_none_or(UnoColor::is_dark)
     }));
     assert_eq!(

@@ -3,7 +3,8 @@ use crate::app::runtime::ClientResource;
 use crate::app::shell::{UiState, game_command};
 use bevy::prelude::*;
 use leocard_client::{ItemId, NetworkState, PlayerEconomy};
-use leocard_protocol::{UnoCommand, UnoPhaseView};
+use leocard_protocol::{GameSnapshot, UnoCommand, UnoPhaseView};
+
 use leocard_uno::UnoCard;
 
 pub(in super::super) fn update_jump_in_device(
@@ -14,7 +15,7 @@ pub(in super::super) fn update_jump_in_device(
 ) {
     let game = client
         .as_deref()
-        .and_then(|client| client.0.model().uno_game());
+        .and_then(|client| client.0.model().game_snapshot().and_then(GameSnapshot::uno));
     let available = game.is_some_and(|game| {
         matches!(game.phase, UnoPhaseView::Playing)
             && game.rules.jump_in_enabled()
@@ -53,7 +54,8 @@ pub(in super::super) fn send_jump_in(
     let Some(opportunity) = client
         .0
         .model()
-        .uno_game()
+        .game_snapshot()
+        .and_then(GameSnapshot::uno)
         .and_then(JumpInOpportunity::from_snapshot)
     else {
         return false;

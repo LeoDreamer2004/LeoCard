@@ -4,7 +4,7 @@ use leocard_protocol::{
     ClientCommand, GameCommand, GameEvent, ServerEvent, ServerMessage, ShengjiCommand,
     ShengjiEvent, decode_frame, encode_frame,
 };
-use leocard_shengji::Phase;
+use leocard_shengji::ShengjiPhase;
 
 #[test]
 fn hand_analysis_is_private_sequenced_and_absent_before_settlement() {
@@ -47,7 +47,7 @@ fn hand_analysis_is_private_sequenced_and_absent_before_settlement() {
             {
                 assert!(matches!(
                     session.game().unwrap().phase(),
-                    Phase::Finished(_)
+                    ShengjiPhase::Finished(_)
                 ));
                 assert_eq!(session.room.player_id(delivery.recipient), Some(*player));
                 assert_eq!(player.0, statistics.player.0);
@@ -63,7 +63,7 @@ fn hand_analysis_is_private_sequenced_and_absent_before_settlement() {
                 received[usize::from(player.0)] += 1;
             }
         }
-        if matches!(session.game().unwrap().phase(), Phase::Finished(_)) {
+        if matches!(session.game().unwrap().phase(), ShengjiPhase::Finished(_)) {
             break;
         }
     }

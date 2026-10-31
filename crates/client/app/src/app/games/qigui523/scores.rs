@@ -1,6 +1,7 @@
-use super::sort_cards_high_to_low;
 use super::state::ScoreCardsPopupPlacement;
-use super::{QIGUI_PORTRAIT_HEIGHT, QIGUI_PORTRAIT_WIDTH, qigui_plate_image};
+use super::{
+    QIGUI_PORTRAIT_HEIGHT, QIGUI_PORTRAIT_WIDTH, qigui_plate_image, sort_cards_high_to_low,
+};
 use crate::app::presentation::{
     ACCENT, CardSize, MUTED, add_card_image, add_text, position_opponent_popup,
 };
@@ -8,11 +9,12 @@ use crate::app::runtime::UiAssets;
 use crate::app::shell::{PlayerGameScoreText, ScoreCaptureEffectState, displayed_captured_score};
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
-use bevy::prelude::*;
 use bevy::ui_widgets::Button;
-use leocard_protocol::PlayerPublicState;
+use leocard_protocol::QiGui523PlayerView;
 use leocard_qigui523::QiGuiCard;
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub(super) struct OwnScoreDetail(pub Entity);
@@ -35,13 +37,13 @@ pub(super) fn sync_own_score_detail(
 pub(super) fn add_score_cards_popup(
     commands: &mut UiComposer,
     parent: Entity,
-    player: &PlayerPublicState,
+    player: &QiGui523PlayerView,
     cards: &[QiGuiCard],
     placement: ScoreCardsPopupPlacement,
     score_capture: &ScoreCaptureEffectState,
     assets: &UiAssets,
 ) -> Entity {
-    let displayed_score = displayed_captured_score(score_capture, player.id, player.score);
+    let displayed_score = displayed_captured_score(score_capture, player.player.id, player.score);
     let ScoreCardsPopupPlacement::Opponent { side, above } = placement else {
         return add_own_score_plaque(commands, parent, player, cards, displayed_score, assets);
     };
@@ -81,7 +83,7 @@ pub(super) fn add_score_cards_popup(
 fn add_own_score_plaque(
     commands: &mut UiComposer,
     parent: Entity,
-    player: &PlayerPublicState,
+    player: &QiGui523PlayerView,
     cards: &[QiGuiCard],
     score: u32,
     assets: &UiAssets,
@@ -135,7 +137,7 @@ fn add_own_score_plaque(
     add_text(commands, values, "得分", 11.0, MUTED, assets);
     let value = add_text(commands, values, score.to_string(), 30.0, ACCENT, assets);
     commands.entity(value).insert((
-        PlayerGameScoreText::Own(player.id),
+        PlayerGameScoreText::Own(player.player.id),
         TextShadow {
             offset: Vec2::new(1.5, 2.0),
             color: Color::BLACK.with_alpha(0.82),

@@ -4,7 +4,7 @@ use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Category {
+pub enum ShengjiCategory {
     Trump,
     Suit(ShengjiSuit),
     /// 仅用于缺门后的混合垫牌；首家不能领出混合门类，且这种牌永远不能赢墩。
@@ -13,7 +13,7 @@ pub enum Category {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Component {
+pub enum ShengjiComponent {
     Single {
         card: ShengjiCard,
         strength: u8,
@@ -50,7 +50,7 @@ pub enum Component {
     },
 }
 
-impl Component {
+impl ShengjiComponent {
     pub fn card_count(&self) -> usize {
         match self {
             Self::Single { .. } => 1,
@@ -104,8 +104,8 @@ impl Component {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ShengjiClassifiedPlay {
     pub cards: Vec<ShengjiCard>,
-    pub category: Category,
-    pub components: Vec<Component>,
+    pub category: ShengjiCategory,
+    pub components: Vec<ShengjiComponent>,
 }
 
 impl ShengjiClassifiedPlay {
@@ -113,11 +113,11 @@ impl ShengjiClassifiedPlay {
         self.components.len() > 1
             && !matches!(
                 self.components.as_slice(),
-                [Component::Quad { .. }, Component::Quad { .. }]
+                [ShengjiComponent::Quad { .. }, ShengjiComponent::Quad { .. }]
             )
     }
 
-    pub fn strongest_component(&self) -> &Component {
+    pub fn strongest_component(&self) -> &ShengjiComponent {
         self.components
             .iter()
             .max_by_key(|component| component_priority(component))
@@ -127,26 +127,26 @@ impl ShengjiClassifiedPlay {
     pub fn kitty_multiplier(&self) -> u32 {
         self.components
             .iter()
-            .map(Component::kitty_multiplier)
+            .map(ShengjiComponent::kitty_multiplier)
             .max()
             .unwrap_or(2)
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ThrowFailure {
+pub struct ShengjiThrowFailure {
     pub attempted: ShengjiClassifiedPlay,
     pub forced: ShengjiClassifiedPlay,
     pub penalty_points: u16,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum TrickPlay {
+pub enum ShengjiTrickPlay {
     Accepted(ShengjiClassifiedPlay),
-    ThrowFailed(ThrowFailure),
+    ThrowFailed(ShengjiThrowFailure),
 }
 
-impl TrickPlay {
+impl ShengjiTrickPlay {
     pub fn effective(&self) -> &ShengjiClassifiedPlay {
         match self {
             Self::Accepted(play) => play,
@@ -174,7 +174,7 @@ pub(super) struct QuadUnit {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum PlayError {
+pub enum ShengjiPlayError {
     Empty,
     DuplicatePhysicalCard,
     CardsNotOwned,
@@ -182,7 +182,7 @@ pub enum PlayError {
     ThrowDisabled,
 }
 
-impl fmt::Display for PlayError {
+impl fmt::Display for ShengjiPlayError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Empty => f.write_str("出牌不能为空"),
@@ -194,17 +194,17 @@ impl fmt::Display for PlayError {
     }
 }
 
-impl std::error::Error for PlayError {}
+impl std::error::Error for ShengjiPlayError {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum FollowError {
-    Play(PlayError),
+pub enum ShengjiFollowError {
+    Play(ShengjiPlayError),
     WrongCardCount { expected: usize, actual: usize },
     MustFollowCategory { required: usize, actual: usize },
     MustFollowStructure,
 }
 
-impl fmt::Display for FollowError {
+impl fmt::Display for ShengjiFollowError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Play(error) => error.fmt(f),
@@ -221,4 +221,4 @@ impl fmt::Display for FollowError {
     }
 }
 
-impl std::error::Error for FollowError {}
+impl std::error::Error for ShengjiFollowError {}

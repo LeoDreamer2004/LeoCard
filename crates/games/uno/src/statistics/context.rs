@@ -1,18 +1,19 @@
-use crate::{GameState, PendingSwap, Phase, TurnState, UnoColor, UnoPlayerId};
+use crate::{UnoColor, UnoGameState, UnoPendingSwap, UnoPhase, UnoTurnState};
+use leocard_game_common::PlayerId;
 
 #[derive(Clone, Debug)]
 pub struct UnoActionContext {
-    pub(super) player: UnoPlayerId,
+    pub(super) player: PlayerId,
     pub(super) hands: Vec<usize>,
     pub(super) exposed: bool,
     pub(super) eliminated: Vec<bool>,
-    pub(super) turn: TurnState,
+    pub(super) turn: UnoTurnState,
     pub(super) color: Option<UnoColor>,
 }
 
 impl UnoActionContext {
-    pub fn capture(game: &GameState, player: UnoPlayerId) -> Option<Self> {
-        if !matches!(game.phase(), Phase::Playing) || game.player(player).is_none() {
+    pub fn capture(game: &UnoGameState, player: PlayerId) -> Option<Self> {
+        if !matches!(game.phase(), UnoPhase::Playing) || game.player(player).is_none() {
             return None;
         }
         Some(Self {
@@ -36,6 +37,9 @@ impl UnoActionContext {
     }
 
     pub(super) fn seven_swap(&self) -> bool {
-        matches!(self.turn.pending_swap, Some(PendingSwap::SevenSwap { .. }))
+        matches!(
+            self.turn.pending_swap,
+            Some(UnoPendingSwap::SevenSwap { .. })
+        )
     }
 }

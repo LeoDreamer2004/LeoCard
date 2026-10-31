@@ -7,11 +7,12 @@ use crate::app::presentation::{
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{LobbyUiAction, UiAction, reference_level};
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
-use leocard_protocol::{LobbyPlayer, LobbySnapshot, SeatId};
+use leocard_protocol::{LobbyPlayerView, LobbySnapshot, SeatId};
 use leocard_ui::{SecondaryPressTarget, UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 pub(super) struct LobbySeatSelector<'a> {
     client: &'a ClientResource,
@@ -103,8 +104,8 @@ impl<'a> LobbySeat<'a> {
         if let Some(player) = occupant {
             OccupiedLobbySeat::new(
                 player,
-                self.client.0.model().you() == Some(player.id),
-                self.lobby.host == Some(player.id),
+                self.client.0.model().you() == Some(player.player.id),
+                self.lobby.host == Some(player.player.id),
                 self.assets,
                 self.avatars,
             )
@@ -171,7 +172,7 @@ impl<'a> LobbySeat<'a> {
 }
 
 struct OccupiedLobbySeat<'a> {
-    player: &'a LobbyPlayer,
+    player: &'a LobbyPlayerView,
     is_you: bool,
     is_host: bool,
     assets: &'a UiAssets,
@@ -180,7 +181,7 @@ struct OccupiedLobbySeat<'a> {
 
 impl<'a> OccupiedLobbySeat<'a> {
     fn new(
-        player: &'a LobbyPlayer,
+        player: &'a LobbyPlayerView,
         is_you: bool,
         is_host: bool,
         assets: &'a UiAssets,
@@ -198,16 +199,17 @@ impl<'a> OccupiedLobbySeat<'a> {
     fn render(self, commands: &mut UiComposer, container: Entity, visual: Entity) {
         commands
             .entity(container)
-            .insert(LobbySeatTransitionSource(self.player.id));
+            .insert(LobbySeatTransitionSource(self.player.player.id));
         let avatar_ring = self.spawn_avatar_ring(commands, visual);
         let handle = self
+            .player
             .player
             .avatar
             .and_then(|id| self.avatars.remote.get(&id));
         let avatar = add_avatar(
             commands,
             avatar_ring,
-            &self.player.name,
+            &self.player.player.name,
             handle,
             52.0,
             self.assets,
@@ -216,13 +218,13 @@ impl<'a> OccupiedLobbySeat<'a> {
             commands,
             container,
             avatar_ring,
-            self.player.id,
+            self.player.player.id,
             PlayerMenuProfile {
-                name: &self.player.name,
+                name: &self.player.player.name,
                 avatar: handle,
-                reference_points: self.player.reference_points,
-                completed_games: self.player.completed_games,
-                game_profiles: &self.player.game_profiles,
+                reference_points: self.player.player.reference_points,
+                completed_games: self.player.player.completed_games,
+                game_profiles: &self.player.player.game_profiles,
             },
             self.assets,
         );
@@ -235,7 +237,7 @@ impl<'a> OccupiedLobbySeat<'a> {
         add_text(
             commands,
             visual,
-            &self.player.name,
+            &self.player.player.name,
             14.0,
             if self.is_you { ACCENT } else { TEXT },
             self.assets,
@@ -305,7 +307,7 @@ impl<'a> OccupiedLobbySeat<'a> {
         add_text(
             commands,
             status,
-            reference_level(self.player.reference_points),
+            reference_level(self.player.player.reference_points),
             10.5,
             MUTED,
             self.assets,

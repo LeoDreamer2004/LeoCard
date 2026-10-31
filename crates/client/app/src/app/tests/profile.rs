@@ -1,6 +1,7 @@
 use super::prelude::*;
 use leocard_client::PlayerIdentity;
-use leocard_protocol::{MatchId, PlayerGameProfiles, PlayerId, PlayerReferenceChange};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{MatchId, PlayerGameProfiles, PlayerReferenceChange};
 use std::collections::HashSet;
 
 #[test]

@@ -5,10 +5,11 @@ use super::state::{
 };
 use super::worker::run_network;
 use crate::ClientModel;
+use leocard_game_common::PlayerId;
 use leocard_host::{GameSetup, HostSession};
 use leocard_protocol::{
-    ChatMessage, ClientCommand, GameCommand, GameRules, PlayerId, PlayerInteraction,
-    ReconnectToken, Revision, ServerEvent, ServerMessage,
+    ChatMessage, ClientCommand, GameCommand, GameRules, PlayerInteraction, ReconnectToken,
+    Revision, ServerEvent, ServerMessage,
 };
 use std::collections::VecDeque;
 use std::io;

@@ -1,4 +1,4 @@
-use super::super::{ShengjiSession, to_core_player};
+use super::super::ShengjiSession;
 use leocard_protocol::ShengjiEvent;
 use leocard_shengji::{ShengjiBiddingObservation, ShengjiBot};
 
@@ -9,7 +9,7 @@ impl ShengjiSession {
             .players
             .iter()
             .filter(|participant| participant.is_bot && !participant.left)
-            .map(|participant| to_core_player(participant.id))
+            .map(|participant| participant.id)
             .collect::<Vec<_>>();
         let mut events = Vec::new();
         // Every accepted declaration is stronger, so reactions settle after finitely many bids.

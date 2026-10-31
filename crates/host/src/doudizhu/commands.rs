@@ -2,44 +2,37 @@ use super::DoudizhuSession;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery};
 use leocard_doudizhu::achievements::DoudizhuActionContext;
-use leocard_doudizhu::{Action, Phase};
-use leocard_protocol::{
-    DoudizhuEvent, GameEvent, GameViolation, PlayerId, RejectReason, RequestId, ServerEvent,
-};
+use leocard_doudizhu::{DoudizhuAction, DoudizhuPhase};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{DoudizhuEvent, GameEvent, RejectReason, RequestId, ServerEvent};
 
 impl DoudizhuSession {
     pub(super) fn apply_action(
         &mut self,
-        player: u8,
-        action: Action,
+        player: PlayerId,
+        action: DoudizhuAction,
         origin: Option<(ConnectionId, RequestId)>,
     ) -> Vec<Delivery> {
         let game = self.game.as_mut().expect("action requires a game");
         let before = DoudizhuActionContext::capture(game);
         if let Err(error) = game.act(player, action.clone()) {
             return origin.map_or_else(Vec::new, |(connection, request)| {
-                self.room.reject(
-                    connection,
-                    request,
-                    RejectReason::Game(GameViolation::Doudizhu(error)),
-                )
+                self.room
+                    .reject(connection, request, RejectReason::Game(error.into()))
             });
         }
         self.statistics.observe(player, &action, game);
         let achievements = self
             .achievements
             .observe_action(player, &action, before, game);
-        let mut events = vec![DoudizhuEvent::ActionApplied {
-            player: PlayerId(player),
-            action,
-        }];
+        let mut events = vec![DoudizhuEvent::ActionApplied { player, action }];
         events.extend(achievements.into_iter().map(|(player, statistics)| {
             DoudizhuEvent::ActionAnalyzed {
-                player: PlayerId(player),
+                player,
                 statistics: Box::new(statistics),
             }
         }));
-        if game.phase == Phase::Redeal {
+        if game.phase == DoudizhuPhase::Redeal {
             self.redeal_hand();
             events.push(DoudizhuEvent::Redealt);
         }

@@ -3,8 +3,8 @@ use leocard_game_common::has_unique_cards;
 use std::collections::{BTreeMap, HashSet};
 
 use super::{
-    Category, Component, PairUnit, PlayError, QuadUnit, ShengjiClassifiedPlay, TripleUnit,
-    category, strength,
+    PairUnit, QuadUnit, ShengjiCategory, ShengjiClassifiedPlay, ShengjiComponent, ShengjiPlayError,
+    TripleUnit, category, strength,
 };
 
 #[derive(Clone, Debug)]
@@ -29,17 +29,17 @@ impl StructureDemands {
         let mut singles = 0;
         for component in &play.components {
             match component {
-                Component::Single { .. } => singles += 1,
-                Component::Pair { .. } => pairs += 1,
-                Component::Triple { .. } => triples += 1,
-                Component::Quad { .. } => quads += 1,
-                Component::Tractor { pair_count, .. } => {
+                ShengjiComponent::Single { .. } => singles += 1,
+                ShengjiComponent::Pair { .. } => pairs += 1,
+                ShengjiComponent::Triple { .. } => triples += 1,
+                ShengjiComponent::Quad { .. } => quads += 1,
+                ShengjiComponent::Tractor { pair_count, .. } => {
                     tractors.push(usize::from(*pair_count));
                 }
-                Component::Titanic { triple_count, .. } => {
+                ShengjiComponent::Titanic { triple_count, .. } => {
                     titanics.push(usize::from(*triple_count));
                 }
-                Component::Spaceship { quad_count, .. } => {
+                ShengjiComponent::Spaceship { quad_count, .. } => {
                     spaceships.push(usize::from(*quad_count));
                 }
             }
@@ -72,7 +72,7 @@ pub(super) fn satisfies_follow_structure(
     proposed: &[ShengjiCard],
     demands: &StructureDemands,
     trump: ShengjiTrump,
-    play_category: Category,
+    play_category: ShengjiCategory,
 ) -> bool {
     let mut hand_quads = quad_units(hand, trump);
     let mut required_spaceships = Vec::new();
@@ -154,7 +154,7 @@ pub(super) fn competition_key(
     cards: &[ShengjiCard],
     demands: &StructureDemands,
     trump: ShengjiTrump,
-    play_category: Category,
+    play_category: ShengjiCategory,
 ) -> Option<Vec<u8>> {
     let mut used = HashSet::new();
     let mut key = Vec::new();
@@ -252,11 +252,11 @@ pub(super) fn competition_key(
         .then_some(key)
 }
 
-pub(super) fn category_precedence(lead: Category, candidate: Category) -> u8 {
+pub(super) fn category_precedence(lead: ShengjiCategory, candidate: ShengjiCategory) -> u8 {
     match (lead, candidate) {
-        (Category::Trump, Category::Trump) => 2,
-        (Category::Suit(_), Category::Trump) => 3,
-        (Category::Suit(lead), Category::Suit(candidate)) if lead == candidate => 2,
+        (ShengjiCategory::Trump, ShengjiCategory::Trump) => 2,
+        (ShengjiCategory::Suit(_), ShengjiCategory::Trump) => 3,
+        (ShengjiCategory::Suit(lead), ShengjiCategory::Suit(candidate)) if lead == candidate => 2,
         _ => 0,
     }
 }
@@ -541,33 +541,36 @@ fn remove_quad_indices(quads: &mut Vec<QuadUnit>, indices: &[usize]) {
     }
 }
 
-pub(super) fn validate_owned(cards: &[ShengjiCard], hand: &[ShengjiCard]) -> Result<(), PlayError> {
+pub(super) fn validate_owned(
+    cards: &[ShengjiCard],
+    hand: &[ShengjiCard],
+) -> Result<(), ShengjiPlayError> {
     if !has_unique_cards(cards) {
-        return Err(PlayError::DuplicatePhysicalCard);
+        return Err(ShengjiPlayError::DuplicatePhysicalCard);
     }
     if cards.iter().any(|card| !hand.contains(card)) {
-        return Err(PlayError::CardsNotOwned);
+        return Err(ShengjiPlayError::CardsNotOwned);
     }
     Ok(())
 }
 
-pub(super) fn component_priority(component: &Component) -> (u8, usize, u8) {
+pub(super) fn component_priority(component: &ShengjiComponent) -> (u8, usize, u8) {
     match component {
-        Component::Single { strength, .. } => (0, 1, *strength),
-        Component::Pair { strength, .. } => (1, 1, *strength),
-        Component::Triple { strength, .. } => (2, 1, *strength),
-        Component::Quad { strength, .. } => (3, 1, *strength),
-        Component::Tractor {
+        ShengjiComponent::Single { strength, .. } => (0, 1, *strength),
+        ShengjiComponent::Pair { strength, .. } => (1, 1, *strength),
+        ShengjiComponent::Triple { strength, .. } => (2, 1, *strength),
+        ShengjiComponent::Quad { strength, .. } => (3, 1, *strength),
+        ShengjiComponent::Tractor {
             pair_count,
             top_strength,
             ..
         } => (4, usize::from(*pair_count), *top_strength),
-        Component::Titanic {
+        ShengjiComponent::Titanic {
             triple_count,
             top_strength,
             ..
         } => (5, usize::from(*triple_count), *top_strength),
-        Component::Spaceship {
+        ShengjiComponent::Spaceship {
             quad_count,
             top_strength,
             ..
@@ -575,14 +578,14 @@ pub(super) fn component_priority(component: &Component) -> (u8, usize, u8) {
     }
 }
 
-pub(super) fn component_kind_order(component: &Component) -> u8 {
+pub(super) fn component_kind_order(component: &ShengjiComponent) -> u8 {
     match component {
-        Component::Single { .. } => 0,
-        Component::Pair { .. } => 1,
-        Component::Triple { .. } => 2,
-        Component::Quad { .. } => 3,
-        Component::Tractor { .. } => 4,
-        Component::Titanic { .. } => 5,
-        Component::Spaceship { .. } => 6,
+        ShengjiComponent::Single { .. } => 0,
+        ShengjiComponent::Pair { .. } => 1,
+        ShengjiComponent::Triple { .. } => 2,
+        ShengjiComponent::Quad { .. } => 3,
+        ShengjiComponent::Tractor { .. } => 4,
+        ShengjiComponent::Titanic { .. } => 5,
+        ShengjiComponent::Spaceship { .. } => 6,
     }
 }

@@ -6,12 +6,14 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AppearancePreferences, ClientResource};
 use bevy::audio::Volume;
-use bevy::prelude::*;
-use leocard_mahjong::Fan;
+use leocard_game_common::PlayerId;
+use leocard_mahjong::MahjongFan;
 use leocard_protocol::{
-    GameSnapshot, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MatchId, PlayerId,
+    GameSnapshot, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MatchId,
 };
 use leocard_ui::UiComposer;
+
+use bevy::prelude::*;
 
 pub(super) fn queue_mahjong_action_voice(
     commands: &mut UiComposer,
@@ -24,10 +26,14 @@ pub(super) fn queue_mahjong_action_voice(
     if !preferences.mahjong_action_voices {
         return;
     }
-    let Some(profile) = game.players.iter().find(|profile| profile.id == player) else {
+    let Some(profile) = game
+        .players
+        .iter()
+        .find(|profile| profile.player.id == player)
+    else {
         return;
     };
-    let sound = assets.action_voice(profile.game_profiles.gender, action);
+    let sound = assets.action_voice(profile.player.game_profiles.gender, action);
     commands.effect((
         AudioPlayer::new(sound.clone()),
         PlaybackSettings {
@@ -38,421 +44,421 @@ pub(super) fn queue_mahjong_action_voice(
 }
 
 pub(super) struct MahjongFanVoiceSpec {
-    pub fan: Fan,
+    pub fan: MahjongFan,
     pub duration: f32,
 }
 
 // 与 Fan 枚举对应；时长取男、女两套 Ogg 的较长值，避免结算动画抢在语音前出现。
 pub(super) const FAN_VOICE_SPECS: [MahjongFanVoiceSpec; 81] = [
     MahjongFanVoiceSpec {
-        fan: Fan::BigFourWinds,
+        fan: MahjongFan::BigFourWinds,
         duration: 1.040,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::BigThreeDragons,
+        fan: MahjongFan::BigThreeDragons,
         duration: 0.960,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::AllGreen,
+        fan: MahjongFan::AllGreen,
         duration: 0.960,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::NineGates,
+        fan: MahjongFan::NineGates,
         duration: 1.360,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::FourKongs,
+        fan: MahjongFan::FourKongs,
         duration: 0.880,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::SevenShiftedPairs,
+        fan: MahjongFan::SevenShiftedPairs,
         duration: 0.880,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::ThirteenOrphans,
+        fan: MahjongFan::ThirteenOrphans,
         duration: 0.960,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::AllTerminals,
+        fan: MahjongFan::AllTerminals,
         duration: 1.280,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::LittleFourWinds,
+        fan: MahjongFan::LittleFourWinds,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::LittleThreeDragons,
+        fan: MahjongFan::LittleThreeDragons,
         duration: 0.960,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::AllHonors,
+        fan: MahjongFan::AllHonors,
         duration: 0.880,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::FourConcealedPungs,
+        fan: MahjongFan::FourConcealedPungs,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::PureTerminalChows,
+        fan: MahjongFan::PureTerminalChows,
         duration: 1.280,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::QuadrupleChow,
+        fan: MahjongFan::QuadrupleChow,
         duration: 1.760,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::FourPureShiftedPungs,
+        fan: MahjongFan::FourPureShiftedPungs,
         duration: 1.200,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::FourPureShiftedChows,
+        fan: MahjongFan::FourPureShiftedChows,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::ThreeKongs,
+        fan: MahjongFan::ThreeKongs,
         duration: 1.040,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::AllTerminalsAndHonors,
+        fan: MahjongFan::AllTerminalsAndHonors,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::SevenPairs,
+        fan: MahjongFan::SevenPairs,
         duration: 0.880,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::GreaterHonorsAndKnittedTiles,
+        fan: MahjongFan::GreaterHonorsAndKnittedTiles,
         duration: 1.200,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::AllEvenPungs,
+        fan: MahjongFan::AllEvenPungs,
         duration: 1.280,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::FullFlush,
+        fan: MahjongFan::FullFlush,
         duration: 1.280,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::PureTripleChow,
+        fan: MahjongFan::PureTripleChow,
         duration: 1.680,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::PureShiftedPungs,
+        fan: MahjongFan::PureShiftedPungs,
         duration: 1.520,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::UpperTiles,
+        fan: MahjongFan::UpperTiles,
         duration: 0.880,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::MiddleTiles,
+        fan: MahjongFan::MiddleTiles,
         duration: 0.880,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::LowerTiles,
+        fan: MahjongFan::LowerTiles,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::PureStraight,
+        fan: MahjongFan::PureStraight,
         duration: 1.200,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::ThreeSuitedTerminalChows,
+        fan: MahjongFan::ThreeSuitedTerminalChows,
         duration: 1.680,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::PureShiftedChows,
+        fan: MahjongFan::PureShiftedChows,
         duration: 1.280,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::AllFives,
+        fan: MahjongFan::AllFives,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::TriplePung,
+        fan: MahjongFan::TriplePung,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::ThreeConcealedPungs,
+        fan: MahjongFan::ThreeConcealedPungs,
         duration: 1.200,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::LesserHonorsAndKnittedTiles,
+        fan: MahjongFan::LesserHonorsAndKnittedTiles,
         duration: 1.040,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::KnittedStraight,
+        fan: MahjongFan::KnittedStraight,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::UpperFour,
+        fan: MahjongFan::UpperFour,
         duration: 1.280,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::LowerFour,
+        fan: MahjongFan::LowerFour,
         duration: 1.200,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::BigThreeWinds,
+        fan: MahjongFan::BigThreeWinds,
         duration: 1.200,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::MixedStraight,
+        fan: MahjongFan::MixedStraight,
         duration: 0.960,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::ReversibleTiles,
+        fan: MahjongFan::ReversibleTiles,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::MixedTripleChow,
+        fan: MahjongFan::MixedTripleChow,
         duration: 1.600,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::MixedShiftedPungs,
+        fan: MahjongFan::MixedShiftedPungs,
         duration: 1.520,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::ChickenHand,
+        fan: MahjongFan::ChickenHand,
         duration: 0.960,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::LastTileDraw,
+        fan: MahjongFan::LastTileDraw,
         duration: 1.360,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::LastTileClaim,
+        fan: MahjongFan::LastTileClaim,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::OutWithReplacementTile,
+        fan: MahjongFan::OutWithReplacementTile,
         duration: 1.280,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::RobbingTheKong,
+        fan: MahjongFan::RobbingTheKong,
         duration: 1.040,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::TwoConcealedKongs,
+        fan: MahjongFan::TwoConcealedKongs,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::AllPungs,
+        fan: MahjongFan::AllPungs,
         duration: 1.200,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::HalfFlush,
+        fan: MahjongFan::HalfFlush,
         duration: 1.280,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::MixedShiftedChows,
+        fan: MahjongFan::MixedShiftedChows,
         duration: 2.000,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::AllTypes,
+        fan: MahjongFan::AllTypes,
         duration: 1.280,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::MeldedHand,
+        fan: MahjongFan::MeldedHand,
         duration: 1.040,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::TwoDragonPungs,
+        fan: MahjongFan::TwoDragonPungs,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::OutsideHand,
+        fan: MahjongFan::OutsideHand,
         duration: 1.200,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::FullyConcealedHand,
+        fan: MahjongFan::FullyConcealedHand,
         duration: 1.200,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::TwoMeldedKongs,
+        fan: MahjongFan::TwoMeldedKongs,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::LastTile,
+        fan: MahjongFan::LastTile,
         duration: 0.720,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::DragonPung,
+        fan: MahjongFan::DragonPung,
         duration: 0.960,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::PrevalentWind,
+        fan: MahjongFan::PrevalentWind,
         duration: 1.440,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::SeatWind,
+        fan: MahjongFan::SeatWind,
         duration: 0.880,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::ConcealedHand,
+        fan: MahjongFan::ConcealedHand,
         duration: 0.960,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::AllChows,
+        fan: MahjongFan::AllChows,
         duration: 1.280,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::TileHog,
+        fan: MahjongFan::TileHog,
         duration: 0.960,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::DoublePung,
+        fan: MahjongFan::DoublePung,
         duration: 1.280,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::TwoConcealedPungs,
+        fan: MahjongFan::TwoConcealedPungs,
         duration: 1.440,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::ConcealedKong,
+        fan: MahjongFan::ConcealedKong,
         duration: 1.040,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::AllSimples,
+        fan: MahjongFan::AllSimples,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::PureDoubleChow,
+        fan: MahjongFan::PureDoubleChow,
         duration: 1.200,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::MixedDoubleChow,
+        fan: MahjongFan::MixedDoubleChow,
         duration: 1.360,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::ShortStraight,
+        fan: MahjongFan::ShortStraight,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::TwoTerminalChows,
+        fan: MahjongFan::TwoTerminalChows,
         duration: 1.280,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::PungOfTerminalsOrHonors,
+        fan: MahjongFan::PungOfTerminalsOrHonors,
         duration: 1.360,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::MeldedKong,
+        fan: MahjongFan::MeldedKong,
         duration: 0.960,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::OneVoidedSuit,
+        fan: MahjongFan::OneVoidedSuit,
         duration: 1.280,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::NoHonors,
+        fan: MahjongFan::NoHonors,
         duration: 1.120,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::EdgeWait,
+        fan: MahjongFan::EdgeWait,
         duration: 1.040,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::ClosedWait,
+        fan: MahjongFan::ClosedWait,
         duration: 1.200,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::SingleWait,
+        fan: MahjongFan::SingleWait,
         duration: 0.960,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::SelfDrawn,
+        fan: MahjongFan::SelfDrawn,
         duration: 1.200,
     },
     MahjongFanVoiceSpec {
-        fan: Fan::FlowerTiles,
+        fan: MahjongFan::FlowerTiles,
         duration: 1.040,
     },
 ];
 
-fn fan_voice_spec(fan: Fan) -> &'static MahjongFanVoiceSpec {
+fn fan_voice_spec(fan: MahjongFan) -> &'static MahjongFanVoiceSpec {
     let index = match fan {
-        Fan::BigFourWinds => 0,
-        Fan::BigThreeDragons => 1,
-        Fan::AllGreen => 2,
-        Fan::NineGates => 3,
-        Fan::FourKongs => 4,
-        Fan::SevenShiftedPairs => 5,
-        Fan::ThirteenOrphans => 6,
-        Fan::AllTerminals => 7,
-        Fan::LittleFourWinds => 8,
-        Fan::LittleThreeDragons => 9,
-        Fan::AllHonors => 10,
-        Fan::FourConcealedPungs => 11,
-        Fan::PureTerminalChows => 12,
-        Fan::QuadrupleChow => 13,
-        Fan::FourPureShiftedPungs => 14,
-        Fan::FourPureShiftedChows => 15,
-        Fan::ThreeKongs => 16,
-        Fan::AllTerminalsAndHonors => 17,
-        Fan::SevenPairs => 18,
-        Fan::GreaterHonorsAndKnittedTiles => 19,
-        Fan::AllEvenPungs => 20,
-        Fan::FullFlush => 21,
-        Fan::PureTripleChow => 22,
-        Fan::PureShiftedPungs => 23,
-        Fan::UpperTiles => 24,
-        Fan::MiddleTiles => 25,
-        Fan::LowerTiles => 26,
-        Fan::PureStraight => 27,
-        Fan::ThreeSuitedTerminalChows => 28,
-        Fan::PureShiftedChows => 29,
-        Fan::AllFives => 30,
-        Fan::TriplePung => 31,
-        Fan::ThreeConcealedPungs => 32,
-        Fan::LesserHonorsAndKnittedTiles => 33,
-        Fan::KnittedStraight => 34,
-        Fan::UpperFour => 35,
-        Fan::LowerFour => 36,
-        Fan::BigThreeWinds => 37,
-        Fan::MixedStraight => 38,
-        Fan::ReversibleTiles => 39,
-        Fan::MixedTripleChow => 40,
-        Fan::MixedShiftedPungs => 41,
-        Fan::ChickenHand => 42,
-        Fan::LastTileDraw => 43,
-        Fan::LastTileClaim => 44,
-        Fan::OutWithReplacementTile => 45,
-        Fan::RobbingTheKong => 46,
-        Fan::TwoConcealedKongs => 47,
-        Fan::AllPungs => 48,
-        Fan::HalfFlush => 49,
-        Fan::MixedShiftedChows => 50,
-        Fan::AllTypes => 51,
-        Fan::MeldedHand => 52,
-        Fan::TwoDragonPungs => 53,
-        Fan::OutsideHand => 54,
-        Fan::FullyConcealedHand => 55,
-        Fan::TwoMeldedKongs => 56,
-        Fan::LastTile => 57,
-        Fan::DragonPung => 58,
-        Fan::PrevalentWind => 59,
-        Fan::SeatWind => 60,
-        Fan::ConcealedHand => 61,
-        Fan::AllChows => 62,
-        Fan::TileHog => 63,
-        Fan::DoublePung => 64,
-        Fan::TwoConcealedPungs => 65,
-        Fan::ConcealedKong => 66,
-        Fan::AllSimples => 67,
-        Fan::PureDoubleChow => 68,
-        Fan::MixedDoubleChow => 69,
-        Fan::ShortStraight => 70,
-        Fan::TwoTerminalChows => 71,
-        Fan::PungOfTerminalsOrHonors => 72,
-        Fan::MeldedKong => 73,
-        Fan::OneVoidedSuit => 74,
-        Fan::NoHonors => 75,
-        Fan::EdgeWait => 76,
-        Fan::ClosedWait => 77,
-        Fan::SingleWait => 78,
-        Fan::SelfDrawn => 79,
-        Fan::FlowerTiles => 80,
+        MahjongFan::BigFourWinds => 0,
+        MahjongFan::BigThreeDragons => 1,
+        MahjongFan::AllGreen => 2,
+        MahjongFan::NineGates => 3,
+        MahjongFan::FourKongs => 4,
+        MahjongFan::SevenShiftedPairs => 5,
+        MahjongFan::ThirteenOrphans => 6,
+        MahjongFan::AllTerminals => 7,
+        MahjongFan::LittleFourWinds => 8,
+        MahjongFan::LittleThreeDragons => 9,
+        MahjongFan::AllHonors => 10,
+        MahjongFan::FourConcealedPungs => 11,
+        MahjongFan::PureTerminalChows => 12,
+        MahjongFan::QuadrupleChow => 13,
+        MahjongFan::FourPureShiftedPungs => 14,
+        MahjongFan::FourPureShiftedChows => 15,
+        MahjongFan::ThreeKongs => 16,
+        MahjongFan::AllTerminalsAndHonors => 17,
+        MahjongFan::SevenPairs => 18,
+        MahjongFan::GreaterHonorsAndKnittedTiles => 19,
+        MahjongFan::AllEvenPungs => 20,
+        MahjongFan::FullFlush => 21,
+        MahjongFan::PureTripleChow => 22,
+        MahjongFan::PureShiftedPungs => 23,
+        MahjongFan::UpperTiles => 24,
+        MahjongFan::MiddleTiles => 25,
+        MahjongFan::LowerTiles => 26,
+        MahjongFan::PureStraight => 27,
+        MahjongFan::ThreeSuitedTerminalChows => 28,
+        MahjongFan::PureShiftedChows => 29,
+        MahjongFan::AllFives => 30,
+        MahjongFan::TriplePung => 31,
+        MahjongFan::ThreeConcealedPungs => 32,
+        MahjongFan::LesserHonorsAndKnittedTiles => 33,
+        MahjongFan::KnittedStraight => 34,
+        MahjongFan::UpperFour => 35,
+        MahjongFan::LowerFour => 36,
+        MahjongFan::BigThreeWinds => 37,
+        MahjongFan::MixedStraight => 38,
+        MahjongFan::ReversibleTiles => 39,
+        MahjongFan::MixedTripleChow => 40,
+        MahjongFan::MixedShiftedPungs => 41,
+        MahjongFan::ChickenHand => 42,
+        MahjongFan::LastTileDraw => 43,
+        MahjongFan::LastTileClaim => 44,
+        MahjongFan::OutWithReplacementTile => 45,
+        MahjongFan::RobbingTheKong => 46,
+        MahjongFan::TwoConcealedKongs => 47,
+        MahjongFan::AllPungs => 48,
+        MahjongFan::HalfFlush => 49,
+        MahjongFan::MixedShiftedChows => 50,
+        MahjongFan::AllTypes => 51,
+        MahjongFan::MeldedHand => 52,
+        MahjongFan::TwoDragonPungs => 53,
+        MahjongFan::OutsideHand => 54,
+        MahjongFan::FullyConcealedHand => 55,
+        MahjongFan::TwoMeldedKongs => 56,
+        MahjongFan::LastTile => 57,
+        MahjongFan::DragonPung => 58,
+        MahjongFan::PrevalentWind => 59,
+        MahjongFan::SeatWind => 60,
+        MahjongFan::ConcealedHand => 61,
+        MahjongFan::AllChows => 62,
+        MahjongFan::TileHog => 63,
+        MahjongFan::DoublePung => 64,
+        MahjongFan::TwoConcealedPungs => 65,
+        MahjongFan::ConcealedKong => 66,
+        MahjongFan::AllSimples => 67,
+        MahjongFan::PureDoubleChow => 68,
+        MahjongFan::MixedDoubleChow => 69,
+        MahjongFan::ShortStraight => 70,
+        MahjongFan::TwoTerminalChows => 71,
+        MahjongFan::PungOfTerminalsOrHonors => 72,
+        MahjongFan::MeldedKong => 73,
+        MahjongFan::OneVoidedSuit => 74,
+        MahjongFan::NoHonors => 75,
+        MahjongFan::EdgeWait => 76,
+        MahjongFan::ClosedWait => 77,
+        MahjongFan::SingleWait => 78,
+        MahjongFan::SelfDrawn => 79,
+        MahjongFan::FlowerTiles => 80,
     };
     &FAN_VOICE_SPECS[index]
 }
@@ -557,8 +563,8 @@ pub(crate) fn play_mahjong_fan_voices(
             let gender = game
                 .players
                 .iter()
-                .find(|player| player.id == winner.player)
-                .map(|player| player.game_profiles.gender)
+                .find(|player| player.player.id == winner.player)
+                .map(|player| player.player.game_profiles.gender)
                 .unwrap_or_default();
             winner
                 .score

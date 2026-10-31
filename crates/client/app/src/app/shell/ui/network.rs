@@ -9,9 +9,10 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{ClientResource, PageErrorState};
 use bevy::ecs::system::SystemParam;
-use bevy::prelude::*;
 use leocard_client::{ClientModel, ClientPhaseRef, NetworkState, TcpGameClient};
 use leocard_protocol::LobbySnapshot;
+
+use bevy::prelude::*;
 
 pub(crate) struct NetworkUiSnapshot {
     previous_state: NetworkState,
@@ -157,10 +158,13 @@ fn collect_lobby_seats(
     seats
         .iter()
         .filter_map(|(source, node, transform)| {
-            let player = lobby.players.iter().find(|player| player.id == source.0)?;
+            let player = lobby
+                .players
+                .iter()
+                .find(|player| player.player.id == source.0)?;
             let size = node.size() * node.inverse_scale_factor();
             (size.min_element() > 1.0).then(|| LobbySeatTransitionSnapshot {
-                player: player.id,
+                player: player.player.id,
                 center_global: transform.to_scale_angle_translation().2,
                 size,
             })

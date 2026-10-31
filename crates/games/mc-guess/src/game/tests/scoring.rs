@@ -1,0 +1,184 @@
+use super::super::{McGuessGameState, McGuessMatchState, McGuessResult, reference_point_deltas};
+use crate::{
+    McGuessAttributeFeedback, McGuessCatalogue, McGuessEntryKind, McGuessMatchQuality,
+    McGuessOptions, McGuessRuleSet, McGuessTurnBasedRules,
+};
+use leocard_game_common::PlayerId;
+
+fn result(qualities: &[McGuessMatchQuality]) -> McGuessResult {
+    McGuessResult::Known {
+        entry: McGuessCatalogue::bundled()
+            .find(McGuessEntryKind::Block, "minecraft:stone")
+            .unwrap()
+            .clone(),
+        matches: qualities
+            .iter()
+            .map(|quality| McGuessAttributeFeedback {
+                quality: *quality,
+                direction: None,
+            })
+            .collect(),
+        correct: false,
+    }
+}
+
+#[test]
+fn closeness_and_matching_are_independent_and_unknowns_earn_nothing() {
+    use McGuessMatchQuality::{Exact, Partial, Wrong};
+    let different = result(&[Exact, Partial, Wrong]);
+    assert_eq!(different.closeness(), Some(3));
+    assert_eq!(different.score(None, 0, false).during_guess, 1);
+    assert_eq!(different.score(Some(2), 0, false).during_guess, 1);
+    assert_eq!(different.score(Some(3), 0, false).during_guess, 0);
+    assert_eq!(different.score(Some(4), 0, false).during_guess, 0);
+    assert_eq!(
+        result(&[Exact, Partial, Exact])
+            .score(Some(6), 0, false)
+            .during_guess,
+        1
+    );
+    assert_eq!(
+        result(&[Exact, Exact, Exact])
+            .score(Some(6), 0, false)
+            .during_guess,
+        2
+    );
+    let unknown = McGuessResult::Unknown {
+        name: "不存在的方块".to_owned(),
+    };
+    assert_eq!(unknown.closeness(), None);
+    assert_eq!(unknown.score(None, 0, false).during_guess, 0);
+    assert_eq!(unknown.score(None, 0, false).after_answer, 0);
+}
+
+#[test]
+fn first_all_green_guess_gets_bonus_even_when_it_is_not_the_answer() {
+    let answer = McGuessCatalogue::bundled()
+        .find(McGuessEntryKind::Block, "minecraft:blue_wool")
+        .unwrap()
+        .clone();
+    let mut game = McGuessGameState::new(
+        answer,
+        vec![PlayerId(0), PlayerId(1)],
+        McGuessRuleSet::default(),
+    );
+    game.guess(PlayerId(0), "minecraft:red_wool").unwrap();
+    assert!(game.view().guesses[0].result.all_matching());
+    assert!(!game.finished());
+    assert_eq!(game.take_score_gains(), vec![(PlayerId(0), 6)]);
+
+    assert!(game.guess(PlayerId(1), "minecraft:red_wool").is_err());
+    assert!(game.take_score_gains().is_empty());
+    game.guess(PlayerId(1), "minecraft:green_wool").unwrap();
+    assert_eq!(game.take_score_gains(), vec![(PlayerId(1), 2)]);
+    game.guess(PlayerId(0), "minecraft:blue_wool").unwrap();
+    assert_eq!(game.take_score_gains(), vec![(PlayerId(0), 6)]);
+}
+
+#[test]
+fn correct_guesses_only_earn_answer_and_speed_points() {
+    let answer = McGuessCatalogue::bundled()
+        .find(McGuessEntryKind::Block, "minecraft:stone")
+        .unwrap()
+        .clone();
+    for (turns, win_points) in [(0, 7), (2, 6), (4, 5)] {
+        let mut game = McGuessGameState::new(
+            answer.clone(),
+            vec![PlayerId(0), PlayerId(1)],
+            McGuessRuleSet {
+                turn_based: McGuessTurnBasedRules {
+                    options: McGuessOptions {
+                        allow_unknown_guesses: true,
+                        candidate_hints: false,
+                        ..McGuessRuleSet::default().turn_based.options
+                    },
+                    ..McGuessRuleSet::default().turn_based
+                },
+                ..McGuessRuleSet::default()
+            },
+        );
+        for turn in 0..turns {
+            let player = (turn % 2) as u8;
+            if turn % 2 == 0 {
+                game.guess(PlayerId(player), &format!("未知条目{turn}"))
+                    .unwrap();
+            } else {
+                game.skip(PlayerId(player)).unwrap();
+            }
+        }
+        assert!(game.take_score_gains().is_empty());
+        game.guess(PlayerId(0), &answer.id).unwrap();
+        assert_eq!(game.take_score_gains(), vec![(PlayerId(0), win_points)]);
+        assert!(game.take_score_gains().is_empty());
+        assert!(game.guess(PlayerId(0), &answer.id).is_err());
+        assert!(game.take_score_gains().is_empty());
+    }
+}
+
+#[test]
+fn points_accumulate_across_games_and_rank_awards_scale_with_rounds() {
+    let mut state = McGuessMatchState::new(
+        vec![PlayerId(2), PlayerId(0), PlayerId(1), PlayerId(3)],
+        McGuessRuleSet {
+            turn_based: McGuessTurnBasedRules {
+                rounds: 3,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+    );
+    state.record_gains([(PlayerId(2), 3), (PlayerId(2), 7), (PlayerId(0), 1)]);
+    assert!(state.advance());
+    state.record_gains([(PlayerId(2), 2), (PlayerId(3), 5)]);
+    assert_eq!(
+        state.scores().collect::<Vec<_>>(),
+        vec![
+            (PlayerId(2), 12),
+            (PlayerId(0), 1),
+            (PlayerId(1), 0),
+            (PlayerId(3), 5)
+        ]
+    );
+    assert_eq!((state.gains()[3].before, state.gains()[3].after), (10, 12));
+    let awards: &[&[i16]] = &[
+        &[2, -2],
+        &[2, 0, -2],
+        &[3, 2, -2, -3],
+        &[3, 2, 0, -2, -3],
+        &[5, 3, 1, -1, -3, -5],
+        &[5, 3, 1, 0, -1, -3, -5],
+        &[5, 3, 2, 1, -1, -2, -3, -5],
+    ];
+    for &tiers in awards {
+        let scores: Vec<_> = (1..=tiers.len() as u32).rev().collect();
+        for rounds in 1..=5 {
+            let multiplier = if rounds >= 3 { 2 } else { 1 };
+            let expected: Vec<_> = tiers.iter().map(|tier| tier * multiplier).collect();
+            assert_eq!(reference_point_deltas(&scores, rounds), Some(expected));
+        }
+    }
+    assert_eq!(
+        reference_point_deltas(&[4, 4, 2, 1], 1),
+        Some(vec![3, 3, -2, -3])
+    );
+    assert_eq!(reference_point_deltas(&[1; 9], 1), None);
+}
+
+#[test]
+fn rank_awards_are_zero_sum_without_ties_and_non_negative_with_ties() {
+    for players in 2..=8 {
+        for rounds in 1..=5 {
+            let distinct: Vec<_> = (0..players).collect();
+            let deltas = reference_point_deltas(&distinct, rounds).unwrap();
+            assert_eq!(deltas.iter().sum::<i16>(), 0);
+            for scores in [
+                vec![0; players as usize],
+                (0..players).map(|index| index / 2).collect(),
+                (0..players).map(|index| u32::from(index > 0)).collect(),
+            ] {
+                let deltas = reference_point_deltas(&scores, rounds).unwrap();
+                assert!(deltas.iter().sum::<i16>() >= 0);
+            }
+        }
+    }
+}

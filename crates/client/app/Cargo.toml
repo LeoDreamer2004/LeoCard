@@ -14,7 +14,7 @@ path = "src/main.rs"
 default = []
 developer = [
     "leocard-qigui523/developer",
-    "leocard-minecraft-guess/developer",
+    "leocard_mc_guess/developer",
     "leocard-host/developer",
 ]
 # Debug builds keep loading the workspace `assets` directory by default. This
@@ -34,9 +34,10 @@ leocard-achievements = { path = "../../games/achievements" }
 leocard-assets = { path = "../assets" }
 leocard-blackjack = { path = "../../games/blackjack" }
 leocard-doudizhu = { path = "../../games/doudizhu", features = ["serde"] }
+leocard-game-common = { path = "../../games/common" }
 leocard-host = { path = "../../host" }
 leocard-mahjong = { path = "../../games/mahjong" }
-leocard-minecraft-guess = { path = "../../games/minecraft-guess" }
+leocard_mc_guess = { path = "../../games/mc-guess" }
 leocard-protocol = { path = "../../network/protocol" }
 leocard-qigui523 = { path = "../../games/qigui523" }
 leocard-shengji = { path = "../../games/shengji" }

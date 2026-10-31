@@ -1,16 +1,14 @@
 use super::super::*;
-use super::panel::{add_chat_button_highlight, cozy_chat_button_image};
-use crate::app::presentation::{TEXT, add_text};
+use super::panel::cozy_chat_button_image;
+use crate::app::presentation::TEXT;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
 use bevy::ecs::query::QueryFilter;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
-use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-use bevy::ui_widgets::Button;
 use leocard_protocol::ChatEmoji;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{TextureButton, UiComposer, scroll_viewport_y, spawn_node};
 
 pub(super) fn add_quick_voice_menu(
     commands: &mut UiComposer,
@@ -66,29 +64,29 @@ pub(super) fn add_quick_voice_menu(
         ScrollPosition(Vec2::new(0.0, chat.quick_voice_scroll_y)),
     ));
     for (index, voice) in QUICK_VOICES.iter().enumerate() {
-        let button = commands.child(
-            scroll,
-            (
-                Button,
-                UiAction::Chat(ChatUiAction::SendQuickVoice(index as u8)),
-                Node {
-                    width: px(222),
-                    min_width: px(222),
-                    max_width: px(222),
-                    height: px(25),
-                    min_height: px(25),
-                    max_height: px(25),
-                    flex_shrink: 0.0,
-                    margin: UiRect::left(px(3.5)),
-                    padding: UiRect::left(px(11)),
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                cozy_chat_button_image(assets.home.button.clone()),
-            ),
-        );
-        add_chat_button_highlight(commands, button, assets);
-        add_text(commands, button, *voice, 11.0, TEXT, assets);
+        TextureButton {
+            node: Node {
+                width: px(222),
+                min_width: px(222),
+                max_width: px(222),
+                height: px(25),
+                min_height: px(25),
+                max_height: px(25),
+                flex_shrink: 0.0,
+                margin: UiRect::left(px(3.5)),
+                padding: UiRect::left(px(11)),
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            normal: cozy_chat_button_image(assets.home.button.clone()),
+            hovered: cozy_chat_button_image(assets.home.purple_button_compact.clone()),
+            action: Some(UiAction::Chat(ChatUiAction::SendQuickVoice(index as u8))),
+            label: Some(*voice),
+            font_size: 11.0,
+            color: TEXT,
+            icon: None,
+        }
+        .mount(commands, scroll, &assets.font);
     }
 }
 
@@ -147,38 +145,27 @@ pub(super) fn add_emoji_menu(
         ScrollPosition(Vec2::new(0.0, chat.emoji_scroll_y)),
     ));
     for emoji in ChatEmoji::ALL {
-        let button = commands.child(
-            scroll,
-            (
-                Button,
-                UiAction::Chat(ChatUiAction::SendEmoji(emoji)),
-                Node {
-                    width: px(42),
-                    min_width: px(42),
-                    max_width: px(42),
-                    height: px(42),
-                    min_height: px(42),
-                    max_height: px(42),
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                },
-                cozy_chat_button_image(assets.home.button.clone()),
-            ),
-        );
-        add_chat_button_highlight(commands, button, assets);
-        commands.child(
-            button,
-            (
-                Node {
-                    width: px(38),
-                    height: px(38),
-                    ..default()
-                },
-                ImageNode::new(assets.chat_emoji(emoji)),
-                Pickable::IGNORE,
-            ),
-        );
+        TextureButton {
+            node: Node {
+                width: px(42),
+                min_width: px(42),
+                max_width: px(42),
+                height: px(42),
+                min_height: px(42),
+                max_height: px(42),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            normal: cozy_chat_button_image(assets.home.button.clone()),
+            hovered: cozy_chat_button_image(assets.home.purple_button_compact.clone()),
+            action: Some(UiAction::Chat(ChatUiAction::SendEmoji(emoji))),
+            label: None,
+            font_size: 13.0,
+            color: TEXT,
+            icon: Some((assets.chat_emoji(emoji), 38.0)),
+        }
+        .mount(commands, scroll, &assets.font);
     }
 }
 
@@ -237,10 +224,7 @@ fn scroll_hovered_menu<F: QueryFilter>(
         if !cursor.cursor_over() {
             continue;
         }
-        let maximum =
-            ((node.content_size().y - node.size().y) * node.inverse_scale_factor()).max(0.0);
-        let next = (position.y - delta).clamp(0.0, maximum);
-        position.y = next;
-        *saved_position = next;
+        scroll_viewport_y(&mut position, node, delta);
+        *saved_position = position.y;
     }
 }

@@ -1,15 +1,15 @@
-use super::{BombKind, ClassifiedPlay, PlayComparison, QiGuiPlayKind, rank_counts};
-use crate::{QiGuiCard, QiGuiRuleSet, SameCardPolicy, SuitComparison};
+use super::{QiGuiBombKind, QiGuiClassifiedPlay, QiGuiPlayComparison, QiGuiPlayKind, rank_counts};
+use crate::{QiGuiCard, QiGuiRuleSet, QiGuiSameCardPolicy, QiGuiSuitComparison};
 use std::cmp::Ordering;
 
 pub fn compare_plays(
-    challenger: &ClassifiedPlay,
-    current: &ClassifiedPlay,
+    challenger: &QiGuiClassifiedPlay,
+    current: &QiGuiClassifiedPlay,
     rules: &QiGuiRuleSet,
-) -> PlayComparison {
+) -> QiGuiPlayComparison {
     if rules.advanced_play_types {
         let comparison = advanced_type_comparison(challenger.kind(), current.kind());
-        if comparison != PlayComparison::Incompatible {
+        if comparison != QiGuiPlayComparison::Incompatible {
             return comparison;
         }
     }
@@ -18,30 +18,30 @@ pub fn compare_plays(
         (QiGuiPlayKind::HeavenBomb, QiGuiPlayKind::HeavenBomb) => {
             semantic_comparison(challenger.cards(), current.cards(), rules.suit_comparison)
         }
-        (QiGuiPlayKind::HeavenBomb, _) => PlayComparison::Greater,
-        (_, QiGuiPlayKind::HeavenBomb) => PlayComparison::Lower,
-        (QiGuiPlayKind::Bomb(BombKind::OfAKind { .. }), kind)
+        (QiGuiPlayKind::HeavenBomb, _) => QiGuiPlayComparison::Greater,
+        (_, QiGuiPlayKind::HeavenBomb) => QiGuiPlayComparison::Lower,
+        (QiGuiPlayKind::Bomb(QiGuiBombKind::OfAKind { .. }), kind)
             if !matches!(kind, QiGuiPlayKind::Bomb(_)) =>
         {
-            PlayComparison::Greater
+            QiGuiPlayComparison::Greater
         }
-        (kind, QiGuiPlayKind::Bomb(BombKind::OfAKind { .. }))
+        (kind, QiGuiPlayKind::Bomb(QiGuiBombKind::OfAKind { .. }))
             if !matches!(kind, QiGuiPlayKind::Bomb(_)) =>
         {
-            PlayComparison::Lower
+            QiGuiPlayComparison::Lower
         }
         (
-            QiGuiPlayKind::Bomb(BombKind::OfAKind {
+            QiGuiPlayKind::Bomb(QiGuiBombKind::OfAKind {
                 card_count: challenger_count,
                 ..
             }),
-            QiGuiPlayKind::Bomb(BombKind::OfAKind {
+            QiGuiPlayKind::Bomb(QiGuiBombKind::OfAKind {
                 card_count: current_count,
                 ..
             }),
         ) => match challenger_count.cmp(current_count) {
-            Ordering::Greater => PlayComparison::Greater,
-            Ordering::Less => PlayComparison::Lower,
+            Ordering::Greater => QiGuiPlayComparison::Greater,
+            Ordering::Less => QiGuiPlayComparison::Lower,
             Ordering::Equal => {
                 semantic_comparison(challenger.cards(), current.cards(), rules.suit_comparison)
             }
@@ -53,23 +53,26 @@ pub fn compare_plays(
         (challenger_kind, current_kind) if same_non_bomb_shape(challenger_kind, current_kind) => {
             semantic_comparison(challenger.cards(), current.cards(), rules.suit_comparison)
         }
-        _ => PlayComparison::Incompatible,
+        _ => QiGuiPlayComparison::Incompatible,
     }
 }
 
 pub fn can_beat(
-    challenger: &ClassifiedPlay,
-    current: &ClassifiedPlay,
+    challenger: &QiGuiClassifiedPlay,
+    current: &QiGuiClassifiedPlay,
     rules: &QiGuiRuleSet,
 ) -> bool {
     match compare_plays(challenger, current, rules) {
-        PlayComparison::Greater => true,
-        PlayComparison::Equivalent => rules.same_card_policy == SameCardPolicy::CanFollow,
-        PlayComparison::Lower | PlayComparison::Incompatible => false,
+        QiGuiPlayComparison::Greater => true,
+        QiGuiPlayComparison::Equivalent => rules.same_card_policy == QiGuiSameCardPolicy::CanFollow,
+        QiGuiPlayComparison::Lower | QiGuiPlayComparison::Incompatible => false,
     }
 }
 
-fn advanced_type_comparison(challenger: &QiGuiPlayKind, current: &QiGuiPlayKind) -> PlayComparison {
+fn advanced_type_comparison(
+    challenger: &QiGuiPlayKind,
+    current: &QiGuiPlayKind,
+) -> QiGuiPlayComparison {
     match (challenger, current) {
         (QiGuiPlayKind::Triple, QiGuiPlayKind::Straight { card_count: 3 })
         | (
@@ -79,7 +82,7 @@ fn advanced_type_comparison(challenger: &QiGuiPlayKind, current: &QiGuiPlayKind)
         | (
             QiGuiPlayKind::Airplane { triple_count: 2 },
             QiGuiPlayKind::ConsecutivePairs { pair_count: 3 },
-        ) => PlayComparison::Greater,
+        ) => QiGuiPlayComparison::Greater,
         (QiGuiPlayKind::Straight { card_count: 3 }, QiGuiPlayKind::Triple)
         | (
             QiGuiPlayKind::Straight { card_count: 4 },
@@ -88,16 +91,16 @@ fn advanced_type_comparison(challenger: &QiGuiPlayKind, current: &QiGuiPlayKind)
         | (
             QiGuiPlayKind::ConsecutivePairs { pair_count: 3 },
             QiGuiPlayKind::Airplane { triple_count: 2 },
-        ) => PlayComparison::Lower,
-        _ => PlayComparison::Incompatible,
+        ) => QiGuiPlayComparison::Lower,
+        _ => QiGuiPlayComparison::Incompatible,
     }
 }
 
 fn compare_triple_components(
     challenger: &[QiGuiCard],
     current: &[QiGuiCard],
-    suit_comparison: SuitComparison,
-) -> PlayComparison {
+    suit_comparison: QiGuiSuitComparison,
+) -> QiGuiPlayComparison {
     let challenger = triple_component(challenger);
     let current = triple_component(current);
     semantic_comparison(&challenger, &current, suit_comparison)
@@ -152,8 +155,8 @@ fn same_non_bomb_shape(left: &QiGuiPlayKind, right: &QiGuiPlayKind) -> bool {
 fn semantic_comparison(
     left: &[QiGuiCard],
     right: &[QiGuiCard],
-    suit_comparison: SuitComparison,
-) -> PlayComparison {
+    suit_comparison: QiGuiSuitComparison,
+) -> QiGuiPlayComparison {
     let mut left_ranks: Vec<_> = left.iter().map(|card| card.rank().strength()).collect();
     let mut right_ranks: Vec<_> = right.iter().map(|card| card.rank().strength()).collect();
     left_ranks.sort_unstable_by(|a, b| b.cmp(a));
@@ -162,12 +165,12 @@ fn semantic_comparison(
     let ordering = left_ranks
         .cmp(&right_ranks)
         .then_with(|| match suit_comparison {
-            SuitComparison::HighestCard => left
+            QiGuiSuitComparison::HighestCard => left
                 .iter()
                 .map(|card| card.semantic_strength())
                 .max()
                 .cmp(&right.iter().map(|card| card.semantic_strength()).max()),
-            SuitComparison::Lexicographic => {
+            QiGuiSuitComparison::Lexicographic => {
                 let mut left_strengths: Vec<_> =
                     left.iter().map(|card| card.semantic_strength()).collect();
                 let mut right_strengths: Vec<_> =
@@ -176,15 +179,15 @@ fn semantic_comparison(
                 right_strengths.sort_unstable_by(|a, b| b.cmp(a));
                 left_strengths.cmp(&right_strengths)
             }
-            SuitComparison::SumPoints => left
+            QiGuiSuitComparison::SumPoints => left
                 .iter()
                 .map(|card| card.suit_points())
                 .sum::<u16>()
                 .cmp(&right.iter().map(|card| card.suit_points()).sum::<u16>()),
         });
     match ordering {
-        Ordering::Greater => PlayComparison::Greater,
-        Ordering::Equal => PlayComparison::Equivalent,
-        Ordering::Less => PlayComparison::Lower,
+        Ordering::Greater => QiGuiPlayComparison::Greater,
+        Ordering::Equal => QiGuiPlayComparison::Equivalent,
+        Ordering::Less => QiGuiPlayComparison::Lower,
     }
 }

@@ -1,4 +1,5 @@
 use crate::{UnoCard, UnoColor, UnoFace, UnoRuleSet};
+use leocard_game_common::PlayerId;
 
 use super::super::prelude::*;
 
@@ -22,14 +23,14 @@ fn action_stacking_controls_draw_two_and_draw_four_chains() {
             .unwrap();
         deck.swap(position, current);
     }
-    let mut game = GameState::new_with_deck(UnoRuleSet::default(), 6, deck.clone()).unwrap();
-    game.play_card(UnoPlayerId(0), p0_draw_two, None).unwrap();
+    let mut game = UnoGameState::new_with_deck(UnoRuleSet::default(), 6, deck.clone()).unwrap();
+    game.play_card(PlayerId(0), p0_draw_two, None).unwrap();
     assert_eq!(
-        game.play_card(UnoPlayerId(1), p1_draw_two, None),
-        Err(GameError::CannotStack(p1_draw_two))
+        game.play_card(PlayerId(1), p1_draw_two, None),
+        Err(UnoGameError::CannotStack(p1_draw_two))
     );
 
-    let mut game = GameState::new_with_deck(
+    let mut game = UnoGameState::new_with_deck(
         UnoRuleSet {
             action_stacking: true,
             ..UnoRuleSet::default()
@@ -38,9 +39,9 @@ fn action_stacking_controls_draw_two_and_draw_four_chains() {
         deck,
     )
     .unwrap();
-    game.play_card(UnoPlayerId(0), p0_draw_two, None).unwrap();
-    game.play_card(UnoPlayerId(1), p1_draw_two, None).unwrap();
-    game.play_card(UnoPlayerId(2), p2_draw_four, Some(UnoColor::Blue))
+    game.play_card(PlayerId(0), p0_draw_two, None).unwrap();
+    game.play_card(PlayerId(1), p1_draw_two, None).unwrap();
+    game.play_card(PlayerId(2), p2_draw_four, Some(UnoColor::Blue))
         .unwrap();
     assert_eq!(game.turn().unwrap().pending_draw, 8);
 }
@@ -78,7 +79,7 @@ fn draw_four_after_draw_two_only_considers_matching_draw_two_for_challenge() {
             }
         }
 
-        let mut game = GameState::new_with_deck(
+        let mut game = UnoGameState::new_with_deck(
             UnoRuleSet {
                 action_stacking: true,
                 ..UnoRuleSet::default()
@@ -87,17 +88,17 @@ fn draw_four_after_draw_two_only_considers_matching_draw_two_for_challenge() {
             deck,
         )
         .unwrap();
-        game.play_card(UnoPlayerId(0), draw_two, None).unwrap();
-        game.play_card(UnoPlayerId(1), draw_four, Some(UnoColor::Blue))
+        game.play_card(PlayerId(0), draw_two, None).unwrap();
+        game.play_card(PlayerId(1), draw_four, Some(UnoColor::Blue))
             .unwrap();
-        let outcome = game.challenge_draw_four(UnoPlayerId(2)).unwrap();
+        let outcome = game.challenge_draw_four(PlayerId(2)).unwrap();
         let expected = if alternative == same_color_number {
             UnoChallengeResult::Failed
         } else {
             UnoChallengeResult::Successful
         };
         assert!(
-            matches!(outcome, ActionOutcome::ChallengeResolved { result, .. } if result == expected)
+            matches!(outcome, UnoActionOutcome::ChallengeResolved { result, .. } if result == expected)
         );
     }
 }
@@ -115,25 +116,22 @@ fn successful_challenge_returns_whole_stack_to_first_offender() {
             .unwrap();
         deck.swap(position, current);
     }
-    let mut game = GameState::new_with_deck(UnoRuleSet::default(), 6, deck).unwrap();
-    game.play_card(UnoPlayerId(0), draw_four, Some(UnoColor::Blue))
+    let mut game = UnoGameState::new_with_deck(UnoRuleSet::default(), 6, deck).unwrap();
+    game.play_card(PlayerId(0), draw_four, Some(UnoColor::Blue))
         .unwrap();
-    let before = game.player(UnoPlayerId(0)).unwrap().hand().len();
-    let outcome = game.challenge_draw_four(UnoPlayerId(1)).unwrap();
+    let before = game.player(PlayerId(0)).unwrap().hand().len();
+    let outcome = game.challenge_draw_four(PlayerId(1)).unwrap();
     assert!(matches!(
         outcome,
-        ActionOutcome::ChallengeResolved {
+        UnoActionOutcome::ChallengeResolved {
             result: UnoChallengeResult::Successful,
-            penalized: UnoPlayerId(0),
+            penalized: PlayerId(0),
             ref cards,
-            next_player: UnoPlayerId(1),
+            next_player: PlayerId(1),
             ..
         } if cards.len() == 4
     ));
-    assert_eq!(
-        game.player(UnoPlayerId(0)).unwrap().hand().len(),
-        before + 4
-    );
+    assert_eq!(game.player(PlayerId(0)).unwrap().hand().len(), before + 4);
 }
 
 #[test]
@@ -157,25 +155,22 @@ fn failed_challenge_adds_two_to_the_whole_stack() {
             deck.swap(position, replacement);
         }
     }
-    let mut game = GameState::new_with_deck(UnoRuleSet::default(), 6, deck).unwrap();
-    game.play_card(UnoPlayerId(0), draw_four, Some(UnoColor::Blue))
+    let mut game = UnoGameState::new_with_deck(UnoRuleSet::default(), 6, deck).unwrap();
+    game.play_card(PlayerId(0), draw_four, Some(UnoColor::Blue))
         .unwrap();
-    let before = game.player(UnoPlayerId(1)).unwrap().hand().len();
-    let outcome = game.challenge_draw_four(UnoPlayerId(1)).unwrap();
+    let before = game.player(PlayerId(1)).unwrap().hand().len();
+    let outcome = game.challenge_draw_four(PlayerId(1)).unwrap();
     assert!(matches!(
         outcome,
-        ActionOutcome::ChallengeResolved {
+        UnoActionOutcome::ChallengeResolved {
             result: UnoChallengeResult::Failed,
-            penalized: UnoPlayerId(1),
+            penalized: PlayerId(1),
             ref cards,
-            next_player: UnoPlayerId(2),
+            next_player: PlayerId(2),
             ..
         } if cards.len() == 6
     ));
-    assert_eq!(
-        game.player(UnoPlayerId(1)).unwrap().hand().len(),
-        before + 6
-    );
+    assert_eq!(game.player(PlayerId(1)).unwrap().hand().len(), before + 6);
 }
 
 #[test]
@@ -192,7 +187,7 @@ fn stacked_draw_fours_keep_the_first_player_responsible() {
             .unwrap();
         deck.swap(position, current);
     }
-    let mut game = GameState::new_with_deck(
+    let mut game = UnoGameState::new_with_deck(
         UnoRuleSet {
             action_stacking: true,
             ..UnoRuleSet::default()
@@ -201,17 +196,17 @@ fn stacked_draw_fours_keep_the_first_player_responsible() {
         deck,
     )
     .unwrap();
-    game.play_card(UnoPlayerId(0), first, Some(UnoColor::Blue))
+    game.play_card(PlayerId(0), first, Some(UnoColor::Blue))
         .unwrap();
-    game.play_card(UnoPlayerId(1), second, Some(UnoColor::Green))
+    game.play_card(PlayerId(1), second, Some(UnoColor::Green))
         .unwrap();
-    let outcome = game.challenge_draw_four(UnoPlayerId(2)).unwrap();
+    let outcome = game.challenge_draw_four(PlayerId(2)).unwrap();
     assert!(matches!(
         outcome,
-        ActionOutcome::ChallengeResolved {
-            offender: UnoPlayerId(0),
+        UnoActionOutcome::ChallengeResolved {
+            offender: PlayerId(0),
             result: UnoChallengeResult::Successful,
-            penalized: UnoPlayerId(0),
+            penalized: PlayerId(0),
             ref cards,
             ..
         } if cards.len() == 8

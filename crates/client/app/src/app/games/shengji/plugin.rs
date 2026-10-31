@@ -2,9 +2,9 @@ use super::audio::ShengjiAudioPlugin;
 use super::counter::sync_counter;
 use super::missing_suits::{animate_missing_suits, sync_missing_suits};
 use super::{
-    ShengjiPlayFeedback, ShengjiPresentationState, ShengjiScoreCaptureEffectState,
-    ShengjiSelectionSync, ShengjiSettlementAnimation, ShengjiUiState, actions,
-    advance_shengji_presentation, animate_shengji_bottom_flip_markers,
+    ShengjiClientState, ShengjiPlayFeedback, ShengjiPresentationState,
+    ShengjiScoreCaptureEffectState, ShengjiSelectionSync, ShengjiSettlementAnimation,
+    ShengjiUiState, actions, advance_shengji_presentation, animate_shengji_bottom_flip_markers,
     animate_shengji_failed_throw_cards, animate_shengji_hand_cards,
     animate_shengji_power_outage_markers, animate_shengji_presentation,
     animate_shengji_score_absorbs, animate_shengji_score_capture_score,
@@ -15,8 +15,10 @@ use super::{
     sync_shengji_presentation, sync_shengji_score_capture_effect, sync_shengji_score_tray_hover,
     update_shengji_settlement_animation,
 };
+
 use crate::app::presentation::start_game_intro_finished;
-use crate::app::runtime::ClientUpdateSet;
+use crate::app::runtime::{ClientUpdateSet, GameProjectionPlugin};
+
 use crate::app::shell::UiActionSet;
 use bevy::prelude::*;
 use leocard_ui::drag_draggable_window;
@@ -25,7 +27,8 @@ pub(crate) struct ShengjiPlugin;
 
 impl Plugin for ShengjiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(ShengjiAudioPlugin)
+        app.add_plugins(GameProjectionPlugin::<ShengjiClientState>::default())
+            .add_plugins(ShengjiAudioPlugin)
             .add_message::<ShengjiPlayFeedback>()
             .insert_resource(ShengjiScoreCaptureEffectState::default())
             .insert_resource(ShengjiSettlementAnimation::default())

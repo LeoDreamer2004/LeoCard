@@ -1,4 +1,5 @@
 //! UNO 按钮动作、本地选择状态与网络命令。
+use leocard_protocol::{GameSnapshot, UnoCommand, UnoPendingSwapView};
 
 use super::jump_in_device::send_jump_in;
 use super::{
@@ -12,7 +13,8 @@ use crate::app::shell::{
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_protocol::{PlayerId, UnoCommand, UnoPendingSwapView};
+use leocard_game_common::PlayerId;
+
 use leocard_uno::{UnoCard, UnoColor, UnoFace, UnoRuleSet};
 
 #[derive(Clone)]
@@ -82,17 +84,16 @@ impl UiActionHandler<UnoActionContext<'_>> for UnoUiAction {
                 ui.expansion_settings_open = !ui.expansion_settings_open;
             }
             UnoUiAction::ToggleCard(card) => {
-                let game = client
-                    .as_deref()
-                    .and_then(|client| client.0.model().uno_game());
+                let game = client.as_deref().and_then(|client| {
+                    client.0.model().game_snapshot().and_then(GameSnapshot::uno)
+                });
                 toggle_uno_selection(game, &mut ui.selected, *card);
             }
             UnoUiAction::SubmitCard => submit_selected_cards(client, ui),
             UnoUiAction::DragCard(card) => {
-                let Some(game) = client
-                    .as_deref()
-                    .and_then(|client| client.0.model().uno_game())
-                else {
+                let Some(game) = client.as_deref().and_then(|client| {
+                    client.0.model().game_snapshot().and_then(GameSnapshot::uno)
+                }) else {
                     return;
                 };
                 if game.your_jump_in_card == Some(*card) {
@@ -138,10 +139,9 @@ impl UiActionHandler<UnoActionContext<'_>> for UnoUiAction {
                 context.jump_in_device.drawer_open = !context.jump_in_device.drawer_open;
             }
             UnoUiAction::ToggleSwapTarget(target) => {
-                let Some(game) = client
-                    .as_deref()
-                    .and_then(|client| client.0.model().uno_game())
-                else {
+                let Some(game) = client.as_deref().and_then(|client| {
+                    client.0.model().game_snapshot().and_then(GameSnapshot::uno)
+                }) else {
                     return;
                 };
                 toggle_uno_swap_target_selection(
@@ -173,7 +173,7 @@ impl UiActionHandler<UnoActionContext<'_>> for UnoUiAction {
 fn submit_selected_cards(client: &mut Option<ResMut<ClientResource>>, ui: &mut UnoUiState) {
     let pending_give = client
         .as_deref()
-        .and_then(|client| client.0.model().uno_game())
+        .and_then(|client| client.0.model().game_snapshot().and_then(GameSnapshot::uno))
         .is_some_and(|game| {
             matches!(
                 game.pending_swap,
@@ -234,7 +234,7 @@ fn requires_color_choice(face: UnoFace) -> bool {
 fn confirm_swap_targets(client: &mut Option<ResMut<ClientResource>>, ui: &mut UnoUiState) {
     let Some(game) = client
         .as_deref()
-        .and_then(|client| client.0.model().uno_game())
+        .and_then(|client| client.0.model().game_snapshot().and_then(GameSnapshot::uno))
     else {
         return;
     };

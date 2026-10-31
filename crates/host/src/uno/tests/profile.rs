@@ -4,7 +4,7 @@ use crate::ConnectionId;
 use leocard_protocol::{ClientCommand, RejectReason, RoomViolation, ServerEvent};
 #[cfg(test)]
 use leocard_uno::build_deck;
-use leocard_uno::{Phase, UnoRuleSet};
+use leocard_uno::{UnoPhase, UnoRuleSet};
 
 #[test]
 fn finished_game_merges_uno_profile_statistics_once() {
@@ -40,7 +40,7 @@ fn finished_game_merges_uno_profile_statistics_once() {
             if session
                 .game
                 .as_ref()
-                .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
+                .is_some_and(|game| matches!(game.phase(), UnoPhase::Finished(_)))
             {
                 break;
             }
@@ -49,8 +49,8 @@ fn finished_game_merges_uno_profile_statistics_once() {
                 .expect("an automatic UNO action should remain available");
         }
         let result = match session.game.as_ref().unwrap().phase() {
-            Phase::Finished(result) => result.clone(),
-            Phase::Playing => panic!("automatic play did not finish the game"),
+            UnoPhase::Finished(result) => result.clone(),
+            UnoPhase::Playing => panic!("automatic play did not finish the game"),
         };
 
         session.apply_finished_reference_points();

@@ -2,10 +2,11 @@ use super::super::{UNO_ACTION_AREA_BOTTOM, UNO_ACTION_AREA_HEIGHT, UnoReverseArr
 use super::uno_player_anchor_in_layer;
 use crate::app::shell::PlayerAvatarAnchor;
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use leocard_protocol::UnoSnapshot;
 use leocard_ui::UiComposer;
 use leocard_uno::UnoDirection;
+
+use bevy::prelude::*;
 
 pub(super) fn spawn_uno_reverse_effect(
     commands: &mut UiComposer,
@@ -23,12 +24,12 @@ pub(super) fn spawn_uno_reverse_effect(
         .iter()
         .filter(|player| !player.eliminated)
         .filter_map(|player| {
-            let position = if player.id == game.you {
+            let position = if player.player.id == game.you {
                 own_effect_anchor
             } else {
-                uno_player_anchor_in_layer(player.id, layer_node, layer_transform, anchors)?
+                uno_player_anchor_in_layer(player.player.id, layer_node, layer_transform, anchors)?
             };
-            Some((player.id, position))
+            Some((player.player.id, position))
         })
         .collect::<Vec<_>>();
     let center = layer_size * 0.5;

@@ -1,16 +1,17 @@
-use crate::{ClassifiedPlay, GameState, PlayRecord, QiGuiCard, QiGuiPlayerId, QiGuiRuleSet};
+use crate::{QiGuiCard, QiGuiClassifiedPlay, QiGuiGameState, QiGuiPlayRecord, QiGuiRuleSet};
+use leocard_game_common::PlayerId;
 
 /// Own hand and public trick history; opponents' concealed hands are excluded.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QiGui523BotObservation {
     pub(super) hand: Vec<QiGuiCard>,
-    pub(super) current_play: Option<ClassifiedPlay>,
+    pub(super) current_play: Option<QiGuiClassifiedPlay>,
     pub(super) played_cards: Vec<QiGuiCard>,
     pub(super) rules: QiGuiRuleSet,
 }
 
 impl QiGui523BotObservation {
-    pub fn from_game(game: &GameState, player: QiGuiPlayerId) -> Option<Self> {
+    pub fn from_game(game: &QiGuiGameState, player: PlayerId) -> Option<Self> {
         let trick = game.trick()?;
         if trick.current_player() != player {
             return None;
@@ -22,8 +23,8 @@ impl QiGui523BotObservation {
                 .records()
                 .iter()
                 .flat_map(|record| match record {
-                    PlayRecord::Played { play, .. } => play.cards(),
-                    PlayRecord::Passed { .. } => &[],
+                    QiGuiPlayRecord::Played { play, .. } => play.cards(),
+                    QiGuiPlayRecord::Passed { .. } => &[],
                 })
                 .copied()
                 .collect(),

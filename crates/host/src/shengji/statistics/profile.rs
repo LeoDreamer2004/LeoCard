@@ -1,6 +1,8 @@
 use super::super::{ShengjiSession, record_shengji_component};
+use leocard_game_common::PlayerId;
+
 use leocard_shengji::{
-    ActionOutcome, GameState, ShengjiBidKind, ShengjiClassifiedPlay, ShengjiPlayerId,
+    ShengjiActionOutcome, ShengjiBidKind, ShengjiClassifiedPlay, ShengjiGameState,
 };
 
 impl ShengjiSession {
@@ -23,9 +25,9 @@ impl ShengjiSession {
         }
     }
 
-    pub(in crate::shengji) fn record_profile_outcome(&mut self, outcome: &ActionOutcome) {
+    pub(in crate::shengji) fn record_profile_outcome(&mut self, outcome: &ShengjiActionOutcome) {
         match outcome {
-            ActionOutcome::BottomCopyDecision {
+            ShengjiActionOutcome::BottomCopyDecision {
                 player,
                 copied: true,
                 ..
@@ -34,7 +36,7 @@ impl ShengjiSession {
                     stats.counter_games = 1;
                 }
             }
-            ActionOutcome::FiveTrumpCrossingDecision {
+            ShengjiActionOutcome::FiveTrumpCrossingDecision {
                 player,
                 crossing: true,
                 ..
@@ -43,11 +45,12 @@ impl ShengjiSession {
                     stats.crossing_games = 1;
                 }
             }
-            ActionOutcome::Played { player, .. } | ActionOutcome::ThrowFailed { player, .. } => {
+            ShengjiActionOutcome::Played { player, .. }
+            | ShengjiActionOutcome::ThrowFailed { player, .. } => {
                 let play =
                     self.game
                         .as_ref()
-                        .and_then(GameState::current_trick)
+                        .and_then(ShengjiGameState::current_trick)
                         .and_then(|trick| {
                             trick.plays.last().map(|(_, play)| {
                                 (play.clone(), trick.leader == *player, trick.winner)
@@ -57,7 +60,7 @@ impl ShengjiSession {
                     self.record_profile_play(*player, &play, is_lead, winner == *player);
                 }
             }
-            ActionOutcome::TrickComplete(trick) => {
+            ShengjiActionOutcome::TrickComplete(trick) => {
                 if let Some((player, play)) = trick.plays.last() {
                     self.record_profile_play(
                         *player,
@@ -67,7 +70,7 @@ impl ShengjiSession {
                     );
                 }
             }
-            ActionOutcome::HandComplete(_) => {
+            ShengjiActionOutcome::HandComplete(_) => {
                 let play = self
                     .game
                     .as_ref()
@@ -87,7 +90,7 @@ impl ShengjiSession {
 
     pub(in crate::shengji) fn record_profile_play(
         &mut self,
-        player: ShengjiPlayerId,
+        player: PlayerId,
         play: &ShengjiClassifiedPlay,
         is_lead: bool,
         is_winning: bool,

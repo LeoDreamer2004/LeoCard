@@ -1,10 +1,11 @@
 use crate::{UnoColor, UnoFace, UnoRuleSet};
+use leocard_game_common::PlayerId;
 
 use super::super::prelude::*;
 
 #[test]
 fn uno_may_be_called_before_or_immediately_after_the_penultimate_card() {
-    let mut game = GameState::new_with_deck(UnoRuleSet::default(), 6, build_deck()).unwrap();
+    let mut game = UnoGameState::new_with_deck(UnoRuleSet::default(), 6, build_deck()).unwrap();
     game.players[0].hand.truncate(2);
     let playable = game.players[0]
         .hand
@@ -16,21 +17,21 @@ fn uno_may_be_called_before_or_immediately_after_the_penultimate_card() {
             game.players[0].hand[0] = card;
             card
         });
-    assert!(game.can_call_uno(UnoPlayerId(0)));
-    game.call_uno(UnoPlayerId(0)).unwrap();
-    assert!(!game.can_call_uno(UnoPlayerId(0)));
+    assert!(game.can_call_uno(PlayerId(0)));
+    game.call_uno(PlayerId(0)).unwrap();
+    assert!(!game.can_call_uno(PlayerId(0)));
     assert_eq!(
         game.uno_declared_players().collect::<Vec<_>>(),
-        vec![UnoPlayerId(0)]
+        vec![PlayerId(0)]
     );
     assert_eq!(
-        game.draw_card(UnoPlayerId(0)),
-        Err(GameError::MustPlayAfterUno)
+        game.draw_card(PlayerId(0)),
+        Err(UnoGameError::MustPlayAfterUno)
     );
-    game.play_card(UnoPlayerId(0), playable, None).unwrap();
+    game.play_card(PlayerId(0), playable, None).unwrap();
     assert!(game.uno_exposed_players().next().is_none());
 
-    game.current_player = UnoPlayerId(1);
+    game.current_player = PlayerId(1);
     game.players[1].hand.truncate(2);
     let playable = game.players[1]
         .hand
@@ -42,27 +43,27 @@ fn uno_may_be_called_before_or_immediately_after_the_penultimate_card() {
             game.players[1].hand[0] = card;
             card
         });
-    game.play_card(UnoPlayerId(1), playable, None).unwrap();
+    game.play_card(PlayerId(1), playable, None).unwrap();
     assert_eq!(
         game.uno_exposed_players().collect::<Vec<_>>(),
-        vec![UnoPlayerId(1)]
+        vec![PlayerId(1)]
     );
     assert!(matches!(
-        game.call_uno(UnoPlayerId(1)),
-        Ok(ActionOutcome::UnoCalled {
-            player: UnoPlayerId(1)
+        game.call_uno(PlayerId(1)),
+        Ok(UnoActionOutcome::UnoCalled {
+            player: PlayerId(1)
         })
     ));
     assert!(game.uno_exposed_players().next().is_none());
     assert!(game.uno_declared_players().next().is_none());
 
     // 补喊后不能被重复检举，也不会留下“必须立刻出牌”的预喊状态。
-    let before = game.player(UnoPlayerId(1)).unwrap().hand().len();
+    let before = game.player(PlayerId(1)).unwrap().hand().len();
     assert_eq!(
-        game.report_uno(UnoPlayerId(2), UnoPlayerId(1)),
-        Err(GameError::PlayerNotReportable(UnoPlayerId(1)))
+        game.report_uno(PlayerId(2), PlayerId(1)),
+        Err(UnoGameError::PlayerNotReportable(PlayerId(1)))
     );
-    assert_eq!(game.player(UnoPlayerId(1)).unwrap().hand().len(), before);
+    assert_eq!(game.player(PlayerId(1)).unwrap().hand().len(), before);
 }
 
 #[test]
@@ -72,12 +73,12 @@ fn eliminated_players_cannot_call_or_report_uno() {
     game.uno_exposed[1] = true;
 
     assert_eq!(
-        game.call_uno(UnoPlayerId(2)),
-        Err(GameError::PlayerEliminated(UnoPlayerId(2)))
+        game.call_uno(PlayerId(2)),
+        Err(UnoGameError::PlayerEliminated(PlayerId(2)))
     );
     assert_eq!(
-        game.report_uno(UnoPlayerId(2), UnoPlayerId(1)),
-        Err(GameError::PlayerEliminated(UnoPlayerId(2)))
+        game.report_uno(PlayerId(2), PlayerId(1)),
+        Err(UnoGameError::PlayerEliminated(PlayerId(2)))
     );
 }
 
@@ -93,25 +94,25 @@ fn uno_may_be_called_after_drawing_a_playable_card_from_one_to_two() {
             .unwrap();
         deck.swap(position, current);
     }
-    let mut game = GameState::new_with_deck(UnoRuleSet::default(), 6, deck).unwrap();
+    let mut game = UnoGameState::new_with_deck(UnoRuleSet::default(), 6, deck).unwrap();
     game.players[0].hand.truncate(1);
 
     assert!(matches!(
-        game.draw_card(UnoPlayerId(0)),
-        Ok(ActionOutcome::DrewCards {
+        game.draw_card(PlayerId(0)),
+        Ok(UnoActionOutcome::DrewCards {
             cards,
             playable: Some(card),
             ..
         }) if cards == vec![drawn] && card == drawn
     ));
     assert!(matches!(
-        game.call_uno(UnoPlayerId(0)),
-        Ok(ActionOutcome::UnoCalled {
-            player: UnoPlayerId(0)
+        game.call_uno(PlayerId(0)),
+        Ok(UnoActionOutcome::UnoCalled {
+            player: PlayerId(0)
         })
     ));
-    game.play_card(UnoPlayerId(0), drawn, None).unwrap();
-    assert_eq!(game.player(UnoPlayerId(0)).unwrap().hand().len(), 1);
+    game.play_card(PlayerId(0), drawn, None).unwrap();
+    assert_eq!(game.player(PlayerId(0)).unwrap().hand().len(), 1);
     assert!(game.uno_exposed_players().next().is_none());
     assert!(game.uno_declared_players().next().is_none());
 }

@@ -1,76 +1,13 @@
-use super::super::*;
-use super::*;
-use crate::app::presentation::{TEXT, ease_out_cubic};
+use super::super::{ChatPanel, ChatPanelState, ChatToggleIcon};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{PlayerAvatar, PlayerInteractionLayer, interaction_anchor_in_layer};
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
+use leocard_ui::DrawerSlide;
 
-pub(crate) fn animate_chat_bubbles(
-    time: Res<Time>,
-    mut commands: Commands,
-    layers: Query<(&ComputedNode, &UiGlobalTransform), With<PlayerInteractionLayer>>,
-    avatars: Query<PlayerAvatar>,
-    mut bubbles: Query<(
-        Entity,
-        &mut ActiveChatBubble,
-        &mut Node,
-        &mut UiTransform,
-        &mut ImageNode,
-    )>,
-    mut texts: Query<&mut TextColor, With<ChatBubbleText>>,
-    mut emoji_images: Query<&mut ImageNode, Without<ActiveChatBubble>>,
-) {
-    let Ok((layer_node, layer_transform)) = layers.single() else {
-        return;
-    };
-    let layer_size = layer_node.size() * layer_node.inverse_scale_factor();
-    for (entity, mut bubble, mut node, mut transform, mut background) in &mut bubbles {
-        bubble.elapsed += time.delta_secs();
-        if bubble.elapsed >= bubble.duration {
-            commands.entity(entity).despawn();
-            continue;
-        }
-        if let Some(anchor) =
-            interaction_anchor_in_layer(bubble.player, layer_node, layer_transform, &avatars)
-        {
-            bubble.anchor_missing_secs = 0.0;
-            let position = chat_bubble_position(anchor, layer_size, bubble.width);
-            node.left = px(position.x);
-            node.top = px(position.y);
-        } else {
-            // UI 重建后的头像布局需要一帧才能恢复；期间保持气泡原位置。
-            bubble.anchor_missing_secs += time.delta_secs();
-            if bubble.anchor_missing_secs > 0.5 {
-                commands.entity(entity).despawn();
-                continue;
-            }
-        }
-
-        let enter = ease_out_cubic((bubble.elapsed / 0.18).clamp(0.0, 1.0));
-        let fade = ((bubble.duration - bubble.elapsed) / 0.48).clamp(0.0, 1.0);
-        let alpha = enter * fade;
-        transform.translation = Val2::px(0.0, 9.0 * (1.0 - enter) - bubble.elapsed * 1.4);
-        transform.scale = Vec2::splat(0.88 + enter * 0.12);
-        background.color = Color::WHITE.with_alpha(alpha);
-        if let Some(text) = bubble.text
-            && let Ok(mut color) = texts.get_mut(text)
-        {
-            color.0 = TEXT.with_alpha(alpha);
-        }
-        if let Some(image) = bubble.emoji_image
-            && let Ok(mut image) = emoji_images.get_mut(image)
-        {
-            image.color = Color::WHITE.with_alpha(alpha);
-        }
-    }
-}
-
-pub(crate) fn animate_chat_panel(
-    time: Res<Time>,
+pub(crate) fn sync_chat_panel_controls(
     assets: Res<UiAssets>,
-    mut chat: ResMut<ChatPanelState>,
-    mut panels: Query<&mut UiTransform, With<ChatPanel>>,
+    chat: Res<ChatPanelState>,
+    mut panels: Query<&mut DrawerSlide, With<ChatPanel>>,
     mut icons: Query<(&PickingInteraction, &mut ImageNode), With<ChatToggleIcon>>,
 ) {
     for (interaction, mut icon) in &mut icons {
@@ -84,87 +21,21 @@ pub(crate) fn animate_chat_panel(
             icon.image = expected.clone();
         }
     }
-    let target = if chat.open { 0.0 } else { 1.0 };
-    if (chat.slide - target).abs() < 0.001 {
-        if chat.slide != target {
-            chat.slide = target;
-            for mut transform in &mut panels {
-                transform.translation = chat_panel_translation(target);
-            }
-        } else {
-            let expected = chat_panel_translation(target);
-            for mut transform in &mut panels {
-                if transform.translation != expected {
-                    transform.translation = expected;
-                }
-            }
-        }
-        return;
-    }
-    let response = 1.0 - (-time.delta_secs() * 12.0).exp();
-    chat.slide += (target - chat.slide) * response;
-    if (chat.slide - target).abs() < 0.001 {
-        chat.slide = target;
-    }
-    for mut transform in &mut panels {
-        transform.translation = chat_panel_translation(chat.slide);
+    for mut slide in &mut panels {
+        // Retained outgoing and incoming panels share one continuous motion.
+        slide.clone_from(&chat.drawer);
+        slide.expanded = chat.open;
     }
 }
 
-fn chat_panel_translation(slide: f32) -> Val2 {
-    Val2::px(CHAT_PANEL_HIDDEN_OFFSET * slide, 0.0)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use leocard_protocol::PlayerId;
-    use std::time::Duration;
-
-    #[test]
-    fn bubble_survives_a_temporary_missing_avatar_anchor() {
-        let mut app = App::new();
-        app.insert_resource(Time::<()>::default());
-        app.add_systems(Update, animate_chat_bubbles);
-        app.world_mut().spawn((
-            PlayerInteractionLayer,
-            ComputedNode::default(),
-            UiGlobalTransform::default(),
-        ));
-        let bubble = app
-            .world_mut()
-            .spawn((
-                ActiveChatBubble {
-                    player: PlayerId(0),
-                    text: None,
-                    emoji_image: None,
-                    width: 78.0,
-                    elapsed: 0.0,
-                    duration: 3.4,
-                    anchor_missing_secs: 0.0,
-                },
-                Node::default(),
-                UiTransform::default(),
-                ImageNode::default(),
-            ))
-            .id();
-        app.world_mut()
-            .resource_mut::<Time>()
-            .advance_by(Duration::from_millis(100));
-        app.update();
-        assert!(app.world().get_entity(bubble).is_ok());
-        assert!(
-            app.world()
-                .get::<ActiveChatBubble>(bubble)
-                .unwrap()
-                .anchor_missing_secs
-                > 0.0
-        );
-
-        app.world_mut()
-            .resource_mut::<Time>()
-            .advance_by(Duration::from_millis(600));
-        app.update();
-        assert!(app.world().get_entity(bubble).is_err());
+/// Keep presentation progress when the whole chat subtree is recreated.
+pub(crate) fn retain_chat_drawer_motion(
+    panels: Query<&DrawerSlide, With<ChatPanel>>,
+    mut chat: ResMut<ChatPanelState>,
+) {
+    if let Some(slide) = panels.iter().next()
+        && chat.drawer != *slide
+    {
+        chat.drawer = slide.clone();
     }
 }

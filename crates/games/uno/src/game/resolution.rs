@@ -1,14 +1,15 @@
 use crate::rating::{placements_with_eliminations, reference_point_deltas_for_placements};
 use crate::{UnoCard, UnoFace};
+use leocard_game_common::PlayerId;
 
-use super::{GameResult, GameState, Phase, PlayerState, UnoPlayerId};
+use super::{UnoGameResult, UnoGameState, UnoPhase, UnoPlayerState};
 
-impl GameState {
+impl UnoGameState {
     pub(super) fn finalize_play(
         &mut self,
-        player: UnoPlayerId,
+        player: PlayerId,
         card: UnoCard,
-        next_player: UnoPlayerId,
+        next_player: PlayerId,
         declared_uno: bool,
     ) {
         let deferred_hand_effect = self.rules.is_no_mercy()
@@ -35,7 +36,7 @@ impl GameState {
         self.finish_pending_game();
     }
 
-    pub(super) fn finish(&mut self, winner: UnoPlayerId) -> GameResult {
+    pub(super) fn finish(&mut self, winner: PlayerId) -> UnoGameResult {
         self.clear_pending_draw();
         self.pending_skip = 0;
         self.pending_skip_everyone = false;
@@ -52,24 +53,24 @@ impl GameState {
         let hand_scores = self
             .players
             .iter()
-            .map(PlayerState::hand_score)
+            .map(UnoPlayerState::hand_score)
             .collect::<Vec<_>>();
         let placements =
             placements_with_eliminations(winner, &hand_scores, &self.elimination_order)
                 .expect("the recorded elimination order contains valid players");
-        let result = GameResult {
+        let result = UnoGameResult {
             winner,
             reference_deltas: reference_point_deltas_for_placements(&placements)
                 .expect("validated placements"),
             placements,
             hand_scores,
         };
-        self.phase = Phase::Finished(result.clone());
+        self.phase = UnoPhase::Finished(result.clone());
         result
     }
 
-    pub(super) fn finish_pending_game(&mut self) -> Option<GameResult> {
-        if !matches!(self.phase, Phase::Playing) {
+    pub(super) fn finish_pending_game(&mut self) -> Option<UnoGameResult> {
+        if !matches!(self.phase, UnoPhase::Playing) {
             return None;
         }
         if self.pending_swap.is_some()
@@ -82,7 +83,7 @@ impl GameState {
         let original = self.pending_finisher?;
         let winner = self
             .players
-            .get(original.0)
+            .get(original.index())
             .filter(|player| !player.eliminated && player.hand.is_empty())
             .map(|player| player.id)
             .or_else(|| {

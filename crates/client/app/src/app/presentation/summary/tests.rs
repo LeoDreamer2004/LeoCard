@@ -3,7 +3,8 @@ use super::{
     animated_summary_score, animated_summary_value, sorted_summary_scores,
 };
 use bevy::prelude::*;
-use leocard_protocol::{PlayerId, PlayerScore};
+use leocard_game_common::PlayerId;
+use leocard_protocol::PlayerScore;
 
 #[test]
 fn signed_summary_scores_sort_and_animate_without_losing_negative_values() {

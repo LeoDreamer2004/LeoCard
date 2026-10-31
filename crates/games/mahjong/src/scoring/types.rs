@@ -1,9 +1,11 @@
-use crate::{MahjongKongKind, MahjongPlayerId, MahjongSuit, MahjongTileKind, MahjongWind, Meld};
+use crate::{MahjongKongKind, MahjongMeld, MahjongSuit, MahjongTileKind, MahjongWind};
+use leocard_game_common::PlayerId;
+
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Fan {
+pub enum MahjongFan {
     BigFourWinds,
     BigThreeDragons,
     AllGreen,
@@ -87,7 +89,7 @@ pub enum Fan {
     FlowerTiles,
 }
 
-impl Fan {
+impl MahjongFan {
     pub const fn points(self) -> u16 {
         match self {
             Self::BigFourWinds
@@ -260,23 +262,23 @@ impl Fan {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct FanValue {
-    pub fan: Fan,
+pub struct MahjongFanValue {
+    pub fan: MahjongFan,
     pub count: u8,
     pub points: u16,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum WinSource {
+pub enum MahjongWinSource {
     SelfDraw,
-    Discard(MahjongPlayerId),
+    Discard(PlayerId),
     KongReplacement,
     FlowerReplacement,
-    RobbingKong(MahjongPlayerId),
+    RobbingKong(PlayerId),
 }
 
-impl WinSource {
+impl MahjongWinSource {
     pub const fn is_self_draw(self) -> bool {
         matches!(
             self,
@@ -287,8 +289,8 @@ impl WinSource {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct WinContext {
-    pub source: WinSource,
+pub struct MahjongWinContext {
+    pub source: MahjongWinSource,
     pub seat_wind: MahjongWind,
     pub prevalent_wind: MahjongWind,
     pub last_wall_tile: bool,
@@ -298,18 +300,18 @@ pub struct WinContext {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ScoreInput {
+pub struct MahjongScoreInput {
     /// 包含和牌张的立牌，不包含副露与花牌。
     pub concealed: Vec<MahjongTileKind>,
-    pub melds: Vec<Meld>,
+    pub melds: Vec<MahjongMeld>,
     pub winning_tile: MahjongTileKind,
-    pub context: WinContext,
+    pub context: MahjongWinContext,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MahjongScoreResult {
-    pub fans: Vec<FanValue>,
+    pub fans: Vec<MahjongFanValue>,
     /// 不含花牌的番数，用于判断是否达到 8 番起和。
     pub points_without_flowers: u16,
     pub flower_points: u8,
@@ -317,7 +319,7 @@ pub struct MahjongScoreResult {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ScoreError {
+pub enum MahjongScoreError {
     FlowerInHand,
     InvalidTileCount,
     TooManyCopies(MahjongTileKind),
@@ -325,7 +327,7 @@ pub enum ScoreError {
     NotComplete,
 }
 
-impl fmt::Display for ScoreError {
+impl fmt::Display for MahjongScoreError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::FlowerInHand => f.write_str("花牌必须先补花，不能留在和牌手牌中"),
@@ -337,7 +339,7 @@ impl fmt::Display for ScoreError {
     }
 }
 
-impl std::error::Error for ScoreError {}
+impl std::error::Error for MahjongScoreError {}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum SetKind {

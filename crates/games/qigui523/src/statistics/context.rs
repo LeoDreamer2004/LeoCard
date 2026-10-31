@@ -1,18 +1,19 @@
-use crate::{GameState, Phase, QiGuiCard, QiGuiPlayerId, TrickState};
+use crate::{QiGuiCard, QiGuiGameState, QiGuiPhase, QiGuiTrickState};
+use leocard_game_common::PlayerId;
 
 /// Capture before an action and submit only when that action succeeds.
 /// Hands never leave this component; reports expose only derived facts.
 pub struct QiGuiActionContext {
-    pub(super) actor: QiGuiPlayerId,
+    pub(super) actor: PlayerId,
     pub(super) hands: Vec<Vec<QiGuiCard>>,
     pub(super) scores: Vec<u32>,
     pub(super) draw_pile_empty: bool,
-    pub(super) trick: TrickState,
+    pub(super) trick: QiGuiTrickState,
 }
 
 impl QiGuiActionContext {
-    pub fn capture(game: &GameState, actor: QiGuiPlayerId) -> Option<Self> {
-        if !matches!(game.phase(), Phase::Playing) || game.player(actor).is_none() {
+    pub fn capture(game: &QiGuiGameState, actor: PlayerId) -> Option<Self> {
+        if !matches!(game.phase(), QiGuiPhase::Playing) || game.player(actor).is_none() {
             return None;
         }
         Some(Self {

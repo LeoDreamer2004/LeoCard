@@ -2,12 +2,12 @@ use super::ShengjiBotObservation;
 use super::candidates::{hand_value, plays};
 use super::evaluation::quick_value;
 use super::observation::category_index;
+use crate::ShengjiTeamId;
 use crate::play::category;
 use crate::{
-    ShengjiCard, ShengjiClassifiedPlay, ShengjiPlayerId, ShengjiTrump, TrickRecord,
-    compare_for_trick,
+    ShengjiCard, ShengjiClassifiedPlay, ShengjiTrickRecord, ShengjiTrump, compare_for_trick,
 };
-use leocard_game_common::{SearchBudget, SearchRandom};
+use leocard_game_common::{PlayerId, SearchBudget, SearchRandom};
 use std::cmp::Ordering;
 
 pub(super) fn choose_play(
@@ -159,7 +159,7 @@ fn rollout(
 ) -> Option<f64> {
     let player = observation.player;
     let trump = observation.trump;
-    let mut trick = observation.trick.clone().unwrap_or(TrickRecord {
+    let mut trick = observation.trick.clone().unwrap_or(ShengjiTrickRecord {
         leader: player,
         plays: Vec::new(),
         winner: player,
@@ -173,7 +173,7 @@ fn rollout(
             if budget.exhausted() {
                 return None;
             }
-            let actor = ShengjiPlayerId(
+            let actor = PlayerId(
                 (trick.leader.0 + trick.plays.len() as u8) % observation.rules.player_count(),
             );
             let candidates = plays(
@@ -203,13 +203,13 @@ fn rollout(
                 .expect("legal follow");
             append(&mut trick, actor, selected, &mut hands, trump);
         }
-        let sign = if trick.winner.team() == player.team() {
+        let sign = if ShengjiTeamId::of(trick.winner) == ShengjiTeamId::of(player) {
             1.0
         } else {
             -1.0
         };
         value += sign * (f64::from(trick.points) + 2.0) * 0.85f64.powi(turn);
-        if trick.winner.team() == observation.collecting_team {
+        if ShengjiTeamId::of(trick.winner) == observation.collecting_team {
             collected += u32::from(trick.points);
         }
         if hands.iter().all(Vec::is_empty) {
@@ -219,7 +219,7 @@ fn rollout(
                 .find(|(player, _)| *player == trick.winner)
                 .expect("winner")
                 .1;
-            if trick.winner.team() == observation.collecting_team {
+            if ShengjiTeamId::of(trick.winner) == observation.collecting_team {
                 let award = u32::from(bottom_points) * winner.kitty_multiplier();
                 collected += award;
                 value += sign * f64::from(award);
@@ -236,7 +236,7 @@ fn rollout(
                 )
             })
             .expect("leader cards");
-        trick = TrickRecord {
+        trick = ShengjiTrickRecord {
             leader,
             plays: Vec::new(),
             winner: leader,
@@ -255,7 +255,7 @@ fn rollout(
     let step = observation.rules.score_step();
     let crossed = collected / step - observation.collecting_score / step;
     value += f64::from(crossed)
-        * if player.team() == observation.collecting_team {
+        * if ShengjiTeamId::of(player) == observation.collecting_team {
             15.0
         } else {
             -15.0
@@ -264,8 +264,8 @@ fn rollout(
 }
 
 fn append(
-    trick: &mut TrickRecord,
-    player: ShengjiPlayerId,
+    trick: &mut ShengjiTrickRecord,
+    player: PlayerId,
     play: ShengjiClassifiedPlay,
     hands: &mut [Vec<ShengjiCard>],
     trump: ShengjiTrump,

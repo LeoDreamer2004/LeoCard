@@ -1,21 +1,18 @@
-use super::TexasHoldemBotObservation;
+use super::TexasBotObservation;
 use super::equity::equity;
 use super::preflop::PreflopPolicy;
 use super::ranges::starting_strength;
-use crate::{TexasHoldemAction, TexasHoldemStreet};
+use crate::{TexasAction, TexasStreet};
 use leocard_game_common::{SearchBudget, SearchRandom};
 
-pub struct TexasHoldemBot;
+pub struct TexasBot;
 
-impl TexasHoldemBot {
-    pub fn choose(
-        observation: &TexasHoldemBotObservation,
-        budget: &SearchBudget,
-    ) -> TexasHoldemAction {
+impl TexasBot {
+    pub fn choose(observation: &TexasBotObservation, budget: &SearchBudget) -> TexasAction {
         if let Some(action) = observation.immediate_action() {
             return action;
         }
-        if observation.street == TexasHoldemStreet::PreFlop {
+        if observation.street == TexasStreet::PreFlop {
             return PreflopPolicy::new(observation).choose(budget);
         }
         let strength = starting_strength(&observation.hole, &observation.rules);
@@ -24,18 +21,18 @@ impl TexasHoldemBot {
         let maximum = observation.committed + observation.stack;
         let pot = f64::from(observation.contestable_pot());
         let call = f64::from(observation.call);
-        let realization = if observation.street == TexasHoldemStreet::River {
+        let realization = if observation.street == TexasStreet::River {
             1.0
         } else {
             0.93 + observation.position * 0.05
         };
         let call_ev = equity * realization * (pot + call) - call;
         let mut best = if observation.call == 0 {
-            TexasHoldemAction::Check
+            TexasAction::Check
         } else if call_ev > 0.0 {
-            TexasHoldemAction::Call
+            TexasAction::Call
         } else {
-            TexasHoldemAction::Fold
+            TexasAction::Fold
         };
         let mut best_ev = call_ev.max(0.0);
         if !observation.can_raise || maximum <= observation.current_bet {
@@ -93,9 +90,9 @@ impl TexasHoldemBot {
             if (value_bet || bluff) && ev > best_ev + 0.25 {
                 best_ev = ev;
                 best = if target == maximum {
-                    TexasHoldemAction::AllIn
+                    TexasAction::AllIn
                 } else {
-                    TexasHoldemAction::RaiseTo(target)
+                    TexasAction::RaiseTo(target)
                 };
             }
         }

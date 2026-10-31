@@ -1,6 +1,7 @@
 use super::*;
 use crate::app::games::uno::UNO_PLAY_CARD_DURATION;
-use leocard_protocol::{PlayerId, UnoEvent};
+use leocard_game_common::PlayerId;
+use leocard_protocol::UnoEvent;
 use leocard_uno::{UnoChallengeResult, UnoColor, UnoFace};
 
 pub(super) fn uno_event_sound_plan(event: &UnoEvent, you: PlayerId, seed: u64) -> Vec<UnoAudioCue> {

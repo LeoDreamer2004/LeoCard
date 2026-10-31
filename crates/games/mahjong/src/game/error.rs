@@ -1,5 +1,6 @@
-use crate::{MahjongPlayerId, MahjongTile, MahjongTileKind, RuleError, ScoreError};
-use leocard_game_common::DeckError;
+use crate::{MahjongRuleError, MahjongScoreError, MahjongTile, MahjongTileKind};
+use leocard_game_common::{DeckError, PlayerId};
+
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -43,17 +44,17 @@ impl fmt::Display for MahjongHandReplacementError {
 impl std::error::Error for MahjongHandReplacementError {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum GameError {
-    InvalidRules(RuleError),
+pub enum MahjongGameError {
+    InvalidRules(MahjongRuleError),
     InvalidDeckSize {
         expected: usize,
         actual: usize,
     },
     InvalidDeckContents,
-    InvalidPlayer(MahjongPlayerId),
+    InvalidPlayer(PlayerId),
     NotPlayersTurn {
-        expected: MahjongPlayerId,
-        actual: MahjongPlayerId,
+        expected: PlayerId,
+        actual: PlayerId,
     },
     WrongPhase,
     TileNotInHand(MahjongTile),
@@ -62,10 +63,10 @@ pub enum GameError {
     CannotWin,
     CannotKong,
     InvalidHandReplacement(MahjongHandReplacementError),
-    Score(ScoreError),
+    Score(MahjongScoreError),
 }
 
-impl fmt::Display for GameError {
+impl fmt::Display for MahjongGameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidRules(error) => error.fmt(f),
@@ -91,9 +92,9 @@ impl fmt::Display for GameError {
     }
 }
 
-impl std::error::Error for GameError {}
+impl std::error::Error for MahjongGameError {}
 
-impl From<DeckError> for GameError {
+impl From<DeckError> for MahjongGameError {
     fn from(value: DeckError) -> Self {
         match value {
             DeckError::InvalidSize { expected, actual } => {
@@ -104,14 +105,14 @@ impl From<DeckError> for GameError {
     }
 }
 
-impl From<RuleError> for GameError {
-    fn from(value: RuleError) -> Self {
+impl From<MahjongRuleError> for MahjongGameError {
+    fn from(value: MahjongRuleError) -> Self {
         Self::InvalidRules(value)
     }
 }
 
-impl From<ScoreError> for GameError {
-    fn from(value: ScoreError) -> Self {
+impl From<MahjongScoreError> for MahjongGameError {
+    fn from(value: MahjongScoreError) -> Self {
         Self::Score(value)
     }
 }

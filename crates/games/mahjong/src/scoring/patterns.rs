@@ -1,7 +1,7 @@
-use super::{ScoreInput, Set, SetKind};
+use super::{MahjongScoreInput, Set, SetKind};
 use crate::{MahjongDragon, MahjongSuit, MahjongTileKind};
 
-pub(super) fn all_tile_kinds(input: &ScoreInput) -> Vec<MahjongTileKind> {
+pub(super) fn all_tile_kinds(input: &MahjongScoreInput) -> Vec<MahjongTileKind> {
     let mut tiles = input.concealed.clone();
     for meld in &input.melds {
         tiles.extend(meld.tile_kinds());
@@ -35,7 +35,7 @@ pub(super) fn all_suited_in(tiles: &[MahjongTileKind], minimum: u8, maximum: u8)
     })
 }
 
-pub(super) fn is_nine_gates(input: &ScoreInput) -> bool {
+pub(super) fn is_nine_gates(input: &MahjongScoreInput) -> bool {
     if !input.melds.is_empty() || !matches!(input.winning_tile, MahjongTileKind::Suited { .. }) {
         return false;
     }
@@ -64,7 +64,7 @@ pub(super) fn is_nine_gates(input: &ScoreInput) -> bool {
     ranks == [3, 1, 1, 1, 1, 1, 1, 1, 3]
 }
 
-pub(super) fn concealed_pung_count(input: &ScoreInput, sets: &[Set]) -> usize {
+pub(super) fn concealed_pung_count(input: &MahjongScoreInput, sets: &[Set]) -> usize {
     let mut count = sets
         .iter()
         .filter(|set| matches!(set.kind, SetKind::Pung(_)) && !set.open)

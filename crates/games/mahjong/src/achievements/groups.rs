@@ -1,5 +1,5 @@
 use super::facts::{mahjong_fan, mahjong_group};
-use crate::Fan;
+use crate::MahjongFan;
 use leocard_achievements::{AchievementDefinition, award};
 
 pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
@@ -11,7 +11,8 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         Bronze,
         "一次性和出「圈风刻」「门风刻」",
         |event| u64::from(
-            mahjong_fan(event, Fan::PrevalentWind) && mahjong_fan(event, Fan::SeatWind)
+            mahjong_fan(event, MahjongFan::PrevalentWind)
+                && mahjong_fan(event, MahjongFan::SeatWind)
         ),
         1,
         Lifetime
@@ -26,14 +27,14 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| mahjong_group(
             event,
             &[
-                Fan::MixedShiftedChows,
-                Fan::MixedTripleChow,
-                Fan::MixedStraight,
-                Fan::PureStraight,
-                Fan::HalfFlush,
-                Fan::PureShiftedChows,
-                Fan::AllTypes,
-                Fan::AllPungs,
+                MahjongFan::MixedShiftedChows,
+                MahjongFan::MixedTripleChow,
+                MahjongFan::MixedStraight,
+                MahjongFan::PureStraight,
+                MahjongFan::HalfFlush,
+                MahjongFan::PureShiftedChows,
+                MahjongFan::AllTypes,
+                MahjongFan::AllPungs,
             ]
         ),
         200,
@@ -49,14 +50,14 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| mahjong_group(
             event,
             &[
-                Fan::SevenPairs,
-                Fan::OutsideHand,
-                Fan::KnittedStraight,
-                Fan::LesserHonorsAndKnittedTiles,
-                Fan::UpperFour,
-                Fan::LowerFour,
-                Fan::ChickenHand,
-                Fan::MeldedHand,
+                MahjongFan::SevenPairs,
+                MahjongFan::OutsideHand,
+                MahjongFan::KnittedStraight,
+                MahjongFan::LesserHonorsAndKnittedTiles,
+                MahjongFan::UpperFour,
+                MahjongFan::LowerFour,
+                MahjongFan::ChickenHand,
+                MahjongFan::MeldedHand,
             ]
         ),
         200,
@@ -72,10 +73,10 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| mahjong_group(
             event,
             &[
-                Fan::ThreeConcealedPungs,
-                Fan::ThreeKongs,
-                Fan::AllTerminalsAndHonors,
-                Fan::BigThreeWinds,
+                MahjongFan::ThreeConcealedPungs,
+                MahjongFan::ThreeKongs,
+                MahjongFan::AllTerminalsAndHonors,
+                MahjongFan::BigThreeWinds,
             ]
         ),
         50,
@@ -88,7 +89,10 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         "天江衣在世",
         Silver,
         "和出以下番种之一共30次「海底捞月」「妙手回春」",
-        |event| mahjong_group(event, &[Fan::LastTileClaim, Fan::LastTileDraw]),
+        |event| mahjong_group(
+            event,
+            &[MahjongFan::LastTileClaim, MahjongFan::LastTileDraw]
+        ),
         30,
         Lifetime
     ),
@@ -102,10 +106,10 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| mahjong_group(
             event,
             &[
-                Fan::OutWithReplacementTile,
-                Fan::RobbingTheKong,
-                Fan::ThreeKongs,
-                Fan::FourKongs
+                MahjongFan::OutWithReplacementTile,
+                MahjongFan::RobbingTheKong,
+                MahjongFan::ThreeKongs,
+                MahjongFan::FourKongs
             ]
         ),
         30,
@@ -118,7 +122,14 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         "竹井久式恶听",
         Silver,
         "和出以下番种之一共500次「边张」「坎张」「单调将」",
-        |event| mahjong_group(event, &[Fan::EdgeWait, Fan::ClosedWait, Fan::SingleWait]),
+        |event| mahjong_group(
+            event,
+            &[
+                MahjongFan::EdgeWait,
+                MahjongFan::ClosedWait,
+                MahjongFan::SingleWait
+            ]
+        ),
         500,
         Lifetime
     ),
@@ -132,9 +143,9 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| mahjong_group(
             event,
             &[
-                Fan::MixedTripleChow,
-                Fan::MixedShiftedPungs,
-                Fan::ThreeSuitedTerminalChows
+                MahjongFan::MixedTripleChow,
+                MahjongFan::MixedShiftedPungs,
+                MahjongFan::ThreeSuitedTerminalChows
             ]
         ),
         100,
@@ -150,13 +161,13 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| mahjong_group(
             event,
             &[
-                Fan::FullFlush,
-                Fan::PureShiftedChows,
-                Fan::PureTripleChow,
-                Fan::PureTerminalChows,
-                Fan::QuadrupleChow,
-                Fan::FourPureShiftedPungs,
-                Fan::FourPureShiftedChows
+                MahjongFan::FullFlush,
+                MahjongFan::PureShiftedChows,
+                MahjongFan::PureTripleChow,
+                MahjongFan::PureTerminalChows,
+                MahjongFan::QuadrupleChow,
+                MahjongFan::FourPureShiftedPungs,
+                MahjongFan::FourPureShiftedChows
             ]
         ),
         100,
@@ -169,7 +180,14 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         "挥毫泼墨",
         Silver,
         "和出如下番种之一共200次「箭刻」「圈风刻」「门风刻」",
-        |event| mahjong_group(event, &[Fan::DragonPung, Fan::PrevalentWind, Fan::SeatWind]),
+        |event| mahjong_group(
+            event,
+            &[
+                MahjongFan::DragonPung,
+                MahjongFan::PrevalentWind,
+                MahjongFan::SeatWind
+            ]
+        ),
         200,
         Lifetime
     ),
@@ -183,9 +201,9 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| mahjong_group(
             event,
             &[
-                Fan::KnittedStraight,
-                Fan::LesserHonorsAndKnittedTiles,
-                Fan::GreaterHonorsAndKnittedTiles
+                MahjongFan::KnittedStraight,
+                MahjongFan::LesserHonorsAndKnittedTiles,
+                MahjongFan::GreaterHonorsAndKnittedTiles
             ]
         ),
         100,
@@ -201,11 +219,11 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| mahjong_group(
             event,
             &[
-                Fan::AllPungs,
-                Fan::SevenPairs,
-                Fan::ThreeConcealedPungs,
-                Fan::AllEvenPungs,
-                Fan::AllTerminalsAndHonors
+                MahjongFan::AllPungs,
+                MahjongFan::SevenPairs,
+                MahjongFan::ThreeConcealedPungs,
+                MahjongFan::AllEvenPungs,
+                MahjongFan::AllTerminalsAndHonors
             ]
         ),
         200,
@@ -221,12 +239,12 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| mahjong_group(
             event,
             &[
-                Fan::UpperFour,
-                Fan::LowerFour,
-                Fan::AllFives,
-                Fan::UpperTiles,
-                Fan::MiddleTiles,
-                Fan::LowerTiles
+                MahjongFan::UpperFour,
+                MahjongFan::LowerFour,
+                MahjongFan::AllFives,
+                MahjongFan::UpperTiles,
+                MahjongFan::MiddleTiles,
+                MahjongFan::LowerTiles
             ]
         ),
         100,
@@ -242,10 +260,10 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| mahjong_group(
             event,
             &[
-                Fan::TwoTerminalChows,
-                Fan::PungOfTerminalsOrHonors,
-                Fan::OutsideHand,
-                Fan::AllTerminalsAndHonors
+                MahjongFan::TwoTerminalChows,
+                MahjongFan::PungOfTerminalsOrHonors,
+                MahjongFan::OutsideHand,
+                MahjongFan::AllTerminalsAndHonors
             ]
         ),
         200,

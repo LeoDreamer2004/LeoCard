@@ -1,12 +1,11 @@
 use super::{QiGui523Session, analysis::profile_statistics, merge_qigui523_play_stats};
-use leocard_protocol::QiGui523ProfileStats;
-use leocard_qigui523::{Phase, reference_point_deltas};
+use leocard_qigui523::{QiGui523ProfileStats, QiGuiPhase, reference_point_deltas};
 
 impl QiGui523Session {
     pub(super) fn apply_finished_reference_points(&mut self) {
         let Some(scores) = self.game.as_ref().and_then(|game| match game.phase() {
-            Phase::Finished(result) => Some(result.scores.clone()),
-            Phase::Playing => None,
+            QiGuiPhase::Finished(result) => Some(result.scores.clone()),
+            QiGuiPhase::Playing => None,
         }) else {
             return;
         };

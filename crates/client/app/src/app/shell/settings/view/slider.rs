@@ -1,17 +1,17 @@
 //! Shared settings slider for brightness, vignette and volume.
 
-use super::super::super::{table_appearance_fraction, table_appearance_label};
 use super::super::CozySettingsSlider;
 use crate::app::presentation::{
     TEXT, TableAppearanceIndicator, TableAppearanceLabel, TableAppearanceSetting,
     TableAppearanceSlider, add_text,
 };
 use crate::app::runtime::{AppearancePreferences, UiAssets};
+use crate::app::shell::{table_appearance_fraction, table_appearance_label};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::{RelativeCursorPosition, VisualBox};
 use bevy::ui_widgets::Button;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{TouchDragTarget, UiComposer, spawn_node};
 
 pub(super) struct SettingsSlider<'a> {
     form: &'a AppearancePreferences,
@@ -57,6 +57,7 @@ impl<'a> SettingsSlider<'a> {
             (
                 Button,
                 TableAppearanceSlider(setting),
+                TouchDragTarget,
                 RelativeCursorPosition::default(),
                 Node {
                     width: percent(100),

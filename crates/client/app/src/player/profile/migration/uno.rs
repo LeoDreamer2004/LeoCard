@@ -1,5 +1,5 @@
-use leocard_protocol::UnoProfileStats;
-use leocard_uno::UnoRuleSet;
+use leocard_uno::{UnoProfileStats, UnoRuleSet};
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Deserialize, Serialize)]

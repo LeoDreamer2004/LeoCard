@@ -1,5 +1,6 @@
 use super::*;
-use leocard_protocol::{ClientCommand, GameKind, PlayerId, PlayerInteractionKind, ServerEvent};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{ClientCommand, GameKind, PlayerInteractionKind, ServerEvent};
 use leocard_qigui523::build_deck;
 
 #[test]

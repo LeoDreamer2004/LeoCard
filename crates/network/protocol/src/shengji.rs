@@ -1,10 +1,11 @@
-use crate::{
-    AvatarId, MatchId, PlayerGameProfiles, PlayerId, PlayerReferenceChange, ProfileId, SeatId,
-};
+use crate::{MatchId, PlayerPublicInfo, PlayerReferenceChange, SeatId};
+use leocard_game_common::PlayerId;
 use leocard_shengji::{
-    Category, ShengjiBidKind, ShengjiBidTrump, ShengjiCard, ShengjiClassifiedPlay, ShengjiRank,
-    ShengjiRuleSet, ShengjiTeamId, ShengjiTrump,
+    ShengjiBidKind, ShengjiBidTrump, ShengjiBottomFlipReveal, ShengjiCard, ShengjiCategory,
+    ShengjiClassifiedPlay, ShengjiFiveTrumpCrossingStage, ShengjiRank, ShengjiRuleSet,
+    ShengjiTeamId, ShengjiTrump,
 };
+
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -17,7 +18,7 @@ pub struct ShengjiSnapshot {
     pub you: PlayerId,
     pub host: PlayerId,
     pub rules: ShengjiRuleSet,
-    pub players: Vec<ShengjiPlayerState>,
+    pub players: Vec<ShengjiPlayerView>,
     pub your_hand: Vec<ShengjiCard>,
     /// 仅向接收者公开其本人此前亮过的物理牌；再次亮牌仍以实际手牌为准。
     pub your_exposed_cards: Vec<ShengjiCard>,
@@ -47,21 +48,15 @@ pub struct ShengjiSnapshot {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct ShengjiPlayerState {
-    pub id: PlayerId,
-    pub profile_id: ProfileId,
-    pub name: String,
-    pub avatar: Option<AvatarId>,
+pub struct ShengjiPlayerView {
+    pub player: PlayerPublicInfo,
     pub seat: SeatId,
     pub hand_len: u8,
     /// 按首次公开跟牌证明的顺序记录缺门；不包含隐藏手牌信息。
-    pub missing_suits: Vec<Category>,
+    pub missing_suits: Vec<ShengjiCategory>,
     pub ready: bool,
     pub connected: bool,
     pub auto_play: bool,
-    pub reference_points: i32,
-    pub completed_games: u32,
-    pub game_profiles: PlayerGameProfiles,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -127,7 +122,7 @@ pub enum ShengjiPhaseView {
         you_confirmed: bool,
     },
     BottomFlipping {
-        reveal: Option<ShengjiBottomFlipRevealView>,
+        reveal: Option<ShengjiBottomFlipReveal>,
     },
     Burying,
     BottomCopying {
@@ -151,25 +146,6 @@ pub enum ShengjiPhaseView {
         buried: Vec<ShengjiCard>,
     },
     Redealing,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum ShengjiFiveTrumpCrossingStage {
-    Deciding,
-    Returning,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct ShengjiBottomFlipMatchView {
-    pub player: PlayerId,
-    pub cards: Vec<ShengjiCard>,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct ShengjiBottomFlipRevealView {
-    pub card: ShengjiCard,
-    pub matches: Vec<ShengjiBottomFlipMatchView>,
-    pub dealer: Option<PlayerId>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

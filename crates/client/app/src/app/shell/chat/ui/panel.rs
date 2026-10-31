@@ -4,12 +4,9 @@ use super::menus::{add_emoji_menu, add_quick_voice_menu};
 use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
-use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::VisualBox;
-use bevy::ui_widgets::Button;
 use leocard_protocol::MAX_CHAT_MESSAGE_CHARS;
-use leocard_ui::{ButtonHighlight, TextInput, UiComposer, spawn_node};
+use leocard_ui::{DrawerSlide, TextInput, TextureButton, UiComposer, sliced_image, spawn_node};
 
 pub(crate) struct ChatAuxiliaryAction {
     pub label: &'static str,
@@ -108,11 +105,15 @@ pub(super) fn spawn_chat_panel(
     commands.entity(panel).insert((
         ChatPanel,
         UiTransform {
-            translation: Val2::px(CHAT_PANEL_HIDDEN_OFFSET * chat.slide, 0.0),
+            translation: chat.drawer.translation(),
             ..UiTransform::IDENTITY
         },
         GlobalZIndex(1800),
     ));
+    commands
+        .entity(panel)
+        .entry::<DrawerSlide>()
+        .or_insert(chat.drawer.clone());
     panel
 }
 
@@ -144,17 +145,7 @@ pub(super) fn add_chat_history(
     commands
         .entity(history_box)
         .insert(cozy_chat_history_image(assets));
-    let history = chat
-        .history
-        .iter()
-        .rev()
-        .take(10)
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-        .map(|entry| format!("[{}(玩家)]: {}", entry.player_name, entry.message))
-        .collect::<Vec<_>>()
-        .join("\n");
+    let history = chat.history_text();
     let history_text = add_text(commands, history_box, history, 12.5, TEXT, assets);
     commands.entity(history_text).insert(ChatHistoryText);
 }
@@ -236,89 +227,36 @@ fn add_input_icon_button(
     icon_size: f32,
     assets: &UiAssets,
 ) {
-    let button = commands.child(
-        row,
-        (
-            Button,
-            action,
-            Node {
-                width: px(42),
-                min_width: px(42),
-                max_width: px(42),
-                height: percent(100),
-                min_height: percent(100),
-                max_height: percent(100),
-                flex_shrink: 0.0,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            cozy_chat_button_image(assets.home.button.clone()),
-        ),
-    );
-    add_chat_button_highlight(commands, button, assets);
-    commands.child(
-        button,
-        (
-            Node {
-                width: px(icon_size),
-                height: px(icon_size),
-                ..default()
-            },
-            ImageNode::new(icon.clone()),
-            Pickable::IGNORE,
-        ),
-    );
+    TextureButton {
+        node: Node {
+            width: px(42),
+            min_width: px(42),
+            max_width: px(42),
+            height: percent(100),
+            min_height: percent(100),
+            max_height: percent(100),
+            flex_shrink: 0.0,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        normal: cozy_chat_button_image(assets.home.button.clone()),
+        hovered: cozy_chat_button_image(assets.home.purple_button_compact.clone()),
+        action: Some(action),
+        label: None,
+        font_size: 13.0,
+        color: TEXT,
+        icon: Some((icon.clone(), icon_size)),
+    }
+    .mount(commands, row, &assets.font);
 }
 
 pub(super) fn cozy_chat_button_image(texture: Handle<Image>) -> ImageNode {
-    let mut image = ImageNode::new(texture).with_mode(NodeImageMode::Sliced(TextureSlicer {
-        border: BorderRect::all(32.0),
-        center_scale_mode: SliceScaleMode::Stretch,
-        sides_scale_mode: SliceScaleMode::Stretch,
-        max_corner_scale: 0.40,
-    }));
-    image.visual_box = VisualBox::BorderBox;
-    image
+    sliced_image(texture, 32.0, 0.40)
 }
 
 pub(super) fn cozy_chat_history_image(assets: &UiAssets) -> ImageNode {
-    let mut image =
-        ImageNode::new(assets.home.input.clone()).with_mode(NodeImageMode::Sliced(TextureSlicer {
-            border: BorderRect::all(32.0),
-            center_scale_mode: SliceScaleMode::Stretch,
-            sides_scale_mode: SliceScaleMode::Stretch,
-            max_corner_scale: 0.45,
-        }));
-    image.visual_box = VisualBox::BorderBox;
-    image
-}
-
-pub(super) fn add_chat_button_highlight(
-    commands: &mut UiComposer,
-    button: Entity,
-    assets: &UiAssets,
-) {
-    let overlay = commands.child(
-        button,
-        (
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                right: px(0),
-                top: px(0),
-                bottom: px(0),
-                ..default()
-            },
-            cozy_chat_button_image(assets.home.purple_button_compact.clone()),
-            Visibility::Hidden,
-            Pickable::IGNORE,
-        ),
-    );
-    commands.entity(button).insert(ButtonHighlight {
-        overlay,
-        arrows: None,
-    });
+    sliced_image(assets.home.input.clone(), 32.0, 0.45)
 }
 
 pub(crate) fn sync_chat_panel_text(
@@ -330,17 +268,7 @@ pub(crate) fn sync_chat_panel_text(
     if !chat.is_changed() {
         return;
     }
-    let history = chat
-        .history
-        .iter()
-        .rev()
-        .take(10)
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-        .map(|entry| format!("[{}(玩家)]: {}", entry.player_name, entry.message))
-        .collect::<Vec<_>>()
-        .join("\n");
+    let history = chat.history_text();
     for mut text in &mut history_texts {
         if text.0 != history {
             text.0.clone_from(&history);

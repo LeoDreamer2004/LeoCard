@@ -2,8 +2,8 @@ use super::super::super::UiAction;
 use super::super::{
     ProfileGameColumn, ProfileGameContent, ProfileGameTab, ProfileGameTabButton,
     SelectedProfileGameTab, TAB_IDLE, blackjack_profile_rows, doudizhu_profile_rows,
-    mahjong_profile_rows, minecraft_guess_profile_rows, qigui523_profile_rows,
-    shengji_profile_rows, texas_holdem_profile_rows, uno_profile_rows,
+    mahjong_profile_rows, mc_guess_profile_rows, qigui523_profile_rows, shengji_profile_rows,
+    texas_profile_rows, uno_profile_rows,
 };
 use crate::app::presentation::{MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
@@ -83,15 +83,11 @@ impl<'a> ProfileArchive<'a> {
             }
             ProfileGameTab::Doudizhu => doudizhu_profile_rows(self.game_profiles.doudizhu.as_ref()),
             ProfileGameTab::QiGui523 => qigui523_profile_rows(self.game_profiles.qigui523.as_ref()),
-            ProfileGameTab::TexasHoldem => {
-                texas_holdem_profile_rows(self.game_profiles.texas_holdem.as_ref())
-            }
+            ProfileGameTab::Texas => texas_profile_rows(self.game_profiles.texas.as_ref()),
             ProfileGameTab::Shengji => shengji_profile_rows(self.game_profiles.shengji.as_ref()),
             ProfileGameTab::Uno => uno_profile_rows(self.game_profiles.uno.as_ref()),
             ProfileGameTab::Mahjong => mahjong_profile_rows(self.game_profiles.mahjong.as_ref()),
-            ProfileGameTab::MinecraftGuess => {
-                minecraft_guess_profile_rows(self.game_profiles.minecraft_guess.as_ref())
-            }
+            ProfileGameTab::McGuess => mc_guess_profile_rows(self.game_profiles.mc_guess.as_ref()),
         };
         let rows_per_column = rows.len().div_ceil(4).max(1);
         for column_index in 0..4 {

@@ -1,10 +1,10 @@
-use super::TexasHoldemBotObservation;
+use super::TexasBotObservation;
 use super::ranges::range_weight;
-use crate::{TexasHoldemCard, build_deck, evaluate_player_hand};
+use crate::{TexasCard, build_deck, evaluate_player_hand};
 use leocard_game_common::{SearchBudget, SearchRandom};
 use std::cmp::Ordering;
 
-pub(super) fn equity(observation: &TexasHoldemBotObservation, budget: &SearchBudget) -> f64 {
+pub(super) fn equity(observation: &TexasBotObservation, budget: &SearchBudget) -> f64 {
     let unseen: Vec<_> = build_deck(observation.rules.short_deck)
         .into_iter()
         .filter(|card| !observation.hole.contains(card) && !observation.board.contains(card))
@@ -78,8 +78,8 @@ pub(super) fn equity(observation: &TexasHoldemBotObservation, budget: &SearchBud
 }
 
 fn river_equity(
-    observation: &TexasHoldemBotObservation,
-    unseen: &[TexasHoldemCard],
+    observation: &TexasBotObservation,
+    unseen: &[TexasCard],
     budget: &SearchBudget,
 ) -> f64 {
     let ours = evaluate_player_hand(&observation.hole, &observation.board, &observation.rules)

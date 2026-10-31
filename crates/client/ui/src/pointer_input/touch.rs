@@ -1,7 +1,7 @@
 //! One primary finger drives the existing mouse pointer, so every game shares drag and hover logic.
 //! Scroll gestures defer presses until release, allowing category lists to swipe without selecting tabs.
 
-use crate::{CardDragSelection, SecondaryPressTarget};
+use crate::{CardDragSelection, SecondaryPressTarget, TouchDragTarget};
 use bevy::ecs::system::SystemParam;
 use bevy::input::ButtonState;
 use bevy::input::mouse::MouseButtonInput;
@@ -53,6 +53,16 @@ struct TouchOutput<'w, 's> {
         (&'static ComputedNode, &'static UiGlobalTransform),
         With<SecondaryPressTarget>,
     >,
+    drag_regions: Query<
+        'w,
+        's,
+        (
+            &'static ComputedNode,
+            &'static UiGlobalTransform,
+            &'static CalculatedClip,
+        ),
+        With<TouchDragTarget>,
+    >,
     window_events: MessageWriter<'w, WindowEvent>,
     buttons: MessageWriter<'w, MouseButtonInput>,
     card_drag: ResMut<'w, CardDragSelection>,
@@ -82,6 +92,18 @@ impl TouchOutput<'_, '_> {
     fn scroll_at(&mut self, event: &TouchInput) -> Option<Entity> {
         let scale = self.windows.get(event.window).ok()?.scale_factor();
         let position = event.position * scale;
+        if self.drag_regions.iter().any(|(node, transform, clip)| {
+            clip.contains_point(position)
+                && transform.try_inverse().is_some_and(|inverse| {
+                    inverse
+                        .transform_point2(position)
+                        .abs()
+                        .cmple(node.size() * 0.5)
+                        .all()
+                })
+        }) {
+            return None;
+        }
         self.scrolls
             .iter()
             .find(|(_, style, node, transform, _)| {

@@ -1,5 +1,4 @@
 //! 麻将房间、牌桌、动作按钮和结算视图。
-
 use super::actions::MahjongUiAction;
 use super::layout::MahjongLayout as Layout;
 use super::tiles::queue_mahjong_deal_sound;
@@ -7,38 +6,41 @@ use super::{
     MAHJONG_WIN_PUSH_DURATION, MahjongActionPrompt, MahjongActionVoice, MahjongAssets,
     MahjongDiscardRiverVisuals, MahjongOwnHandVisuals, MahjongPlayerPanelVisuals,
     MahjongPlayerTileVisuals, MahjongSettlementVisuals, MahjongTableRoot, MahjongTileMaterial,
-    MahjongUiState, MahjongWinVisuals, MahjongWinningHandVisual, add_mahjong_ready_hint,
-    mahjong_major_fan_impact_times, observe_discard_animations, queue_mahjong_action_voice,
-    render_action_bar, render_discard_rivers, render_mahjong_auto_drawer,
-    render_mahjong_claim_presentation, render_mahjong_flower_presentations,
-    render_mahjong_player_panel, render_mahjong_player_tiles, render_mahjong_settlement,
-    render_mahjong_wall, render_mahjong_win_effects, render_own_discard_flight, render_own_hand,
-    render_round_status,
+    MahjongTileVoicePlayback, MahjongUiState, MahjongWinVisuals, MahjongWinningHandVisual,
+    add_mahjong_ready_hint, mahjong_major_fan_impact_times, observe_discard_animations,
+    queue_mahjong_action_voice, render_action_bar, render_discard_rivers,
+    render_mahjong_auto_drawer, render_mahjong_claim_presentation,
+    render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
+    render_mahjong_settlement, render_mahjong_wall, render_mahjong_win_effects,
+    render_own_discard_flight, render_own_hand, render_round_status, sync_mahjong_tile_voice,
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition, TableBackground,
     TableBackgroundMaterial, add_auto_play_overlay, table_material_params,
 };
 use crate::app::runtime::{
-    AppearancePreferences, AvatarImages, ClientResource, TableAppearance, UiAssets,
+    AppearancePreferences, AvatarImages, ClientResource, GameEvents, TableAppearance, UiAssets,
 };
-#[cfg(feature = "developer")]
-use crate::app::shell::add_developer_hand_input;
 use crate::app::shell::{
     ChatPanelState, DeveloperHandInput, UiAction, UiState, add_chat_help_button, add_chat_panel,
     add_reconnecting_overlay,
 };
-use bevy::prelude::*;
+use leocard_game_common::PlayerId;
 use leocard_mahjong::{
     MahjongClaim, MahjongDragon, MahjongFlower, MahjongSuit, MahjongTile, MahjongTileKind,
-    MahjongWind,
+    MahjongWinRecord, MahjongWind,
 };
+
 use leocard_protocol::{
-    MahjongEvent, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MahjongWinView,
-    MatchId, PlayerId,
+    GameSnapshot, MahjongEvent, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MatchId,
 };
 use leocard_ui::{CustomButtonMotion, UiComposer, spawn_node, ui_component};
 use std::collections::VecDeque;
+
+#[cfg(feature = "developer")]
+use crate::app::shell::add_developer_hand_input;
+
+use bevy::prelude::*;
 
 pub(super) const MAHJONG_CLAIM_FLIGHT_DELAY: f32 = 0.18;
 pub(super) const MAHJONG_CLAIM_FLIGHT_DURATION: f32 = 0.52;
@@ -243,7 +245,7 @@ impl MahjongWinEffectTier {
     }
 }
 
-pub(super) fn mahjong_win_effect_tier(winner: &MahjongWinView) -> MahjongWinEffectTier {
+pub(super) fn mahjong_win_effect_tier(winner: &MahjongWinRecord) -> MahjongWinEffectTier {
     MahjongWinEffectTier::from_score(
         winner.score.total_points,
         winner.score.fans.iter().any(|fan| fan.fan.points() >= 48),
@@ -369,26 +371,49 @@ pub(crate) struct MahjongTableVisuals<'a> {
 
 pub(super) fn sync_mahjong_claim_presentation(
     mut commands: UiComposer,
-    mut client: Option<ResMut<ClientResource>>,
+    client: Option<Res<ClientResource>>,
+    mut game_client: ResMut<GameEvents<MahjongEvent>>,
     mut presentation: ResMut<MahjongClaimPresentationState>,
     assets: Res<MahjongAssets>,
     preferences: Res<AppearancePreferences>,
+    tile_voices: Query<Entity, With<MahjongTileVoicePlayback>>,
 ) {
-    let Some(client) = client.as_deref_mut() else {
+    let Some(client) = client.as_deref() else {
+        for voice in &tile_voices {
+            commands.entity(voice).despawn();
+        }
         *presentation = MahjongClaimPresentationState::default();
         return;
     };
-    let events = client.0.model_mut().take_mahjong_events();
-    let Some(game) = client.0.model().mahjong_game() else {
+    let events = game_client.take();
+    let Some(game) = client
+        .0
+        .model()
+        .game_snapshot()
+        .and_then(GameSnapshot::mahjong)
+    else {
+        for voice in &tile_voices {
+            commands.entity(voice).despawn();
+        }
         *presentation = MahjongClaimPresentationState::default();
         return;
     };
     let match_id = game.match_id;
-    if presentation.observed_match.observe(match_id) {
+    let new_match = presentation.observed_match.observe(match_id);
+    if new_match {
         presentation.active = None;
         presentation.queued.clear();
         presentation.flowers.clear();
     }
+    sync_mahjong_tile_voice(
+        &mut commands,
+        &assets,
+        &preferences,
+        game,
+        &events,
+        new_match,
+        &tile_voices,
+    );
     for event in events {
         match &event {
             MahjongEvent::ClaimResolved { player, claim, .. } => {
@@ -656,7 +681,7 @@ pub(crate) fn render_mahjong_table(
     let own_seat = game
         .players
         .iter()
-        .find(|player| player.id == game.you)
+        .find(|player| player.player.id == game.you)
         .map(|player| player.seat.0)
         .unwrap_or_default();
     let start_transition_active = start_game_transition.is_active_for(game.match_id);
@@ -691,7 +716,7 @@ pub(crate) fn render_mahjong_table(
     }
     observe_discard_animations(ui, game);
     let received_batch = game.players.iter().any(|player| {
-        let index = player.id.0 as usize;
+        let index = player.player.id.0 as usize;
         player.concealed_count > ui.observed_table.state.counts[index]
             || player.flowers.len() > usize::from(ui.observed_table.state.flowers[index])
     });
@@ -752,7 +777,7 @@ pub(crate) fn render_mahjong_table(
             result
                 .winners
                 .iter()
-                .position(|winner| winner.player == player.id)
+                .position(|winner| winner.player == player.player.id)
                 .map(|index| mahjong_win_hand_start(result, index))
         });
         let winning_hand_start = match (winner_start, all_hands_start) {
@@ -761,25 +786,26 @@ pub(crate) fn render_mahjong_table(
         };
         let winning_hand = winning_hand_start.is_some();
         let flower_replaced = player.flowers.len()
-            > usize::from(ui.observed_table.state.flowers[player.id.0 as usize]);
+            > usize::from(ui.observed_table.state.flowers[player.player.id.0 as usize]);
         let separate_last_concealed = matches!(
             game.phase,
             MahjongPhaseView::Playing | MahjongPhaseView::ReplacingFlower { .. }
-        ) && game.current_player == player.id
+        ) && game.current_player == player.player.id
             && player.concealed_count % 3 == 2;
         let active_claim = claim_presentation
             .active
             .as_ref()
-            .filter(|claim| claim.match_id == game.match_id && claim.player == player.id);
+            .filter(|claim| claim.match_id == game.match_id && claim.player == player.player.id);
         render_mahjong_player_tiles(
             commands,
             table,
             player,
             MahjongPlayerTileVisuals {
-                robbing_tile: action_prompt.and_then(|prompt| prompt.robbing_tile_for(player.id)),
+                robbing_tile: action_prompt
+                    .and_then(|prompt| prompt.robbing_tile_for(player.player.id)),
                 ui_assets: assets,
                 own_seat,
-                observed_count: ui.observed_table.state.counts[player.id.0 as usize],
+                observed_count: ui.observed_table.state.counts[player.player.id.0 as usize],
                 flower_replaced,
                 dealing: dealing || flower_replaced,
                 winning_hand: winning_hand.then_some(MahjongWinningHandVisual {
@@ -788,7 +814,7 @@ pub(crate) fn render_mahjong_table(
                 }),
                 separate_last_concealed,
                 drawn_tile_falling: drawn_tile_falling
-                    && game.current_player == player.id
+                    && game.current_player == player.player.id
                     && !active_claim.is_some_and(|claim| {
                         matches!(claim.claim, MahjongClaim::Chow { .. } | MahjongClaim::Pung)
                     }),
@@ -826,10 +852,10 @@ pub(crate) fn render_mahjong_table(
     let own_flower_replaced = game
         .players
         .iter()
-        .find(|player| player.id == game.you)
+        .find(|player| player.player.id == game.you)
         .is_some_and(|player| {
             player.flowers.len()
-                > usize::from(ui.observed_table.state.flowers[player.id.0 as usize])
+                > usize::from(ui.observed_table.state.flowers[player.player.id.0 as usize])
         });
     let own_winning_hand = finished_result
         .is_some_and(|result| {
@@ -947,7 +973,7 @@ pub(crate) fn render_mahjong_table(
     .then(|| {
         game.players
             .iter()
-            .find(|player| player.id == game.you)
+            .find(|player| player.player.id == game.you)
             .is_some_and(|player| player.auto_play)
     });
     let chat_panel = add_chat_panel(commands, content, chat, assets, local_auto_play, &[]);
@@ -995,8 +1021,8 @@ pub(crate) fn render_mahjong_table(
     }
     ui.observed_table.state.hand.clone_from(&game.your_hand);
     for player in &game.players {
-        ui.observed_table.state.counts[player.id.0 as usize] = player.concealed_count;
-        ui.observed_table.state.flowers[player.id.0 as usize] = player.flowers.len() as u8;
+        ui.observed_table.state.counts[player.player.id.0 as usize] = player.concealed_count;
+        ui.observed_table.state.flowers[player.player.id.0 as usize] = player.flowers.len() as u8;
     }
     ui.observed_table.state.wall_len = Some(game.wall_len);
     ui.observed_table.state.discard_count = Some(game.discards.len());
@@ -1004,7 +1030,7 @@ pub(crate) fn render_mahjong_table(
     ui.observed_table.state.meld_count = game
         .players
         .iter()
-        .find(|player| player.id == game.you)
+        .find(|player| player.player.id == game.you)
         .map_or(0, |player| player.melds.len());
     if let Some(message) = client.0.reconnecting_message() {
         add_reconnecting_overlay(commands, content, message, assets);

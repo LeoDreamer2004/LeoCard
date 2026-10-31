@@ -3,7 +3,7 @@ use leocard_protocol::{
     ClientCommand, GameCommand, GameEvent, QiGui523Command, QiGui523Event, ServerEvent,
     ServerMessage, decode_frame, encode_frame,
 };
-use leocard_qigui523::{Phase, build_deck};
+use leocard_qigui523::{QiGuiPhase, build_deck};
 
 #[test]
 fn private_live_reports_round_trip_and_failed_replayed_or_snapshot_requests_do_not_emit_them() {
@@ -12,14 +12,14 @@ fn private_live_reports_round_trip_and_failed_replayed_or_snapshot_requests_do_n
     ready_and_start(&mut session);
     let game = session.game().unwrap();
     let actor = game.trick().unwrap().current_player();
-    let connection = connection_for_player(&session, from_core_player(actor));
+    let connection = connection_for_player(&session, actor);
     let cards = vec![game.player(actor).unwrap().hand()[0]];
     let command = ClientCommand::Game(GameCommand::QiGui523(QiGui523Command::PlayCards { cards }));
     let wrong = if connection == HOST { SECOND } else { HOST };
     let rejected = send_next(&mut session, wrong, command.clone());
     assert!(rejection(&rejected).is_some());
     assert_eq!(
-        session.statistics.as_ref().unwrap().players()[actor.0].plays,
+        session.statistics.as_ref().unwrap().players()[actor.index()].plays,
         0
     );
     let deliveries = send_next(&mut session, connection, command.clone());
@@ -34,7 +34,7 @@ fn private_live_reports_round_trip_and_failed_replayed_or_snapshot_requests_do_n
         };
         reports += 1;
         assert_eq!(session.player_id(delivery.recipient), Some(*player));
-        assert_eq!(usize::from(player.0), statistics.player.0);
+        assert_eq!(*player, statistics.player);
         assert_eq!(
             statistics.progress.plays,
             u32::from(statistics.player == actor)
@@ -59,7 +59,7 @@ fn private_live_reports_round_trip_and_failed_replayed_or_snapshot_requests_do_n
         )));
     }
     assert_eq!(
-        session.statistics.as_ref().unwrap().players()[actor.0].plays,
+        session.statistics.as_ref().unwrap().players()[actor.index()].plays,
         1
     );
 }
@@ -70,7 +70,7 @@ fn automatic_actions_share_statistics_and_completed_profiles_settle_once() {
     join_three(&mut session);
     ready_and_start(&mut session);
     for _ in 0..1000 {
-        if matches!(session.game().unwrap().phase(), Phase::Finished(_)) {
+        if matches!(session.game().unwrap().phase(), QiGuiPhase::Finished(_)) {
             break;
         }
         let events = session.play_automatic_action();
@@ -85,7 +85,7 @@ fn automatic_actions_share_statistics_and_completed_profiles_settle_once() {
     }
     assert!(matches!(
         session.game().unwrap().phase(),
-        Phase::Finished(_)
+        QiGuiPhase::Finished(_)
     ));
     let progress = session.statistics.as_ref().unwrap().players();
     assert!(progress.iter().map(|p| p.plays).sum::<u32>() > 0);

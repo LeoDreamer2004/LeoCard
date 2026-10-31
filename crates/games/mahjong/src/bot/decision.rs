@@ -1,6 +1,6 @@
 use super::MahjongBotObservation;
 use super::search::{Position, Search};
-use crate::{MahjongClaim, MahjongMeldKind, MahjongTile, MahjongTileKind, Meld};
+use crate::{MahjongClaim, MahjongMeld, MahjongMeldKind, MahjongTile, MahjongTileKind};
 use leocard_game_common::SearchBudget;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -90,7 +90,7 @@ fn after_action(
         }
         MahjongBotAction::ConcealedKong(tile) => {
             position.counts[tile.index34()?] -= 4;
-            position.melds.push(Meld::concealed_kong(tile));
+            position.melds.push(MahjongMeld::concealed_kong(tile));
             position.replacement = true;
         }
         MahjongBotAction::AddedKong(tile) => {
@@ -99,7 +99,7 @@ fn after_action(
                 .melds
                 .iter_mut()
                 .find(|meld| meld.kind() == MahjongMeldKind::Pung && meld.tile() == tile.kind())?;
-            *meld = Meld::melded_kong(tile.kind(), meld.claimed_from()?);
+            *meld = MahjongMeld::melded_kong(tile.kind(), meld.claimed_from()?);
             position.replacement = true;
         }
         MahjongBotAction::Respond(MahjongClaim::Pass) => {}
@@ -109,12 +109,12 @@ fn after_action(
             let meld = match claim {
                 MahjongClaim::Pung => {
                     position.counts[index] -= 2;
-                    Meld::pung(tile, source)
+                    MahjongMeld::pung(tile, source)
                 }
                 MahjongClaim::Kong => {
                     position.counts[index] -= 3;
                     position.replacement = true;
-                    Meld::melded_kong(tile, source)
+                    MahjongMeld::melded_kong(tile, source)
                 }
                 MahjongClaim::Chow { start } => {
                     let MahjongTileKind::Suited { suit, .. } = tile else {
@@ -126,7 +126,7 @@ fn after_action(
                             position.counts[held] -= 1;
                         }
                     }
-                    Meld::chow(suit, start, source)
+                    MahjongMeld::chow(suit, start, source)
                 }
                 _ => return None,
             };

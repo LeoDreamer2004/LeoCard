@@ -21,10 +21,11 @@ pub(crate) enum SettingsUiAction {
     SelectTab(SettingsTab),
     ToggleMahjongActionVoices,
     ToggleMahjongFanVoices,
+    ToggleMahjongTileVoices,
     ToggleTexasActionVoices,
     ToggleQiGuiActionVoices,
     ToggleDoudizhuActionVoices,
-    ToggleMinecraftGuessBackground,
+    ToggleMcGuessBackground,
     ChooseTableFelt,
     UseDefaultTableFelt,
 }
@@ -72,6 +73,12 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
                     warn!("{error}");
                 }
             }
+            SettingsUiAction::ToggleMahjongTileVoices => {
+                appearance.mahjong_tile_voices = !appearance.mahjong_tile_voices;
+                if let Err(error) = save_appearance_preferences(appearance) {
+                    warn!("{error}");
+                }
+            }
             SettingsUiAction::ToggleTexasActionVoices => {
                 appearance.texas_action_voices = !appearance.texas_action_voices;
                 if let Err(error) = save_appearance_preferences(appearance) {
@@ -90,9 +97,9 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
                     warn!("{error}");
                 }
             }
-            SettingsUiAction::ToggleMinecraftGuessBackground => {
-                appearance.games.minecraft_guess_random_background =
-                    !appearance.games.minecraft_guess_random_background;
+            SettingsUiAction::ToggleMcGuessBackground => {
+                appearance.games.mc_guess_random_background =
+                    !appearance.games.mc_guess_random_background;
                 if let Err(error) = appearance.games.save() {
                     warn!("{error}");
                 }

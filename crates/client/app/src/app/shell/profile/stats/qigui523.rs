@@ -1,5 +1,5 @@
 use super::rows::ProfileRowsBuilder;
-use leocard_protocol::QiGui523ProfileStats;
+use leocard_qigui523::QiGui523ProfileStats;
 
 pub(crate) fn qigui523_profile_rows(
     stats: Option<&QiGui523ProfileStats>,

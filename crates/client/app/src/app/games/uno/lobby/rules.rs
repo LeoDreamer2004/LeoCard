@@ -4,7 +4,7 @@ use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use leocard_ui::UiComposer;
-use leocard_uno::{FlipRuleSet, NoMercyRuleSet, UnoRuleSet};
+use leocard_uno::{UnoFlipRuleSet, UnoNoMercyRuleSet, UnoRuleSet};
 
 impl EditableRuleSet for UnoRuleSet {
     const ROW_HEIGHT: f32 = 38.0;
@@ -67,7 +67,7 @@ pub(super) fn render_uno_rule_rows(
         let available = rules.no_mercy.mercy_elimination;
         let toggled = with_no_mercy(
             rules,
-            NoMercyRuleSet {
+            UnoNoMercyRuleSet {
                 sudden_death: !rules.no_mercy.sudden_death,
                 ..rules.no_mercy
             },
@@ -145,7 +145,7 @@ fn no_mercy_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
             help: "无牌可出时持续摸牌，直到摸到一张可出的牌，并必须处理该牌。",
             toggled: with_no_mercy(
                 rules,
-                NoMercyRuleSet {
+                UnoNoMercyRuleSet {
                     draw_until_playable: !mode.draw_until_playable,
                     ..mode
                 },
@@ -157,7 +157,7 @@ fn no_mercy_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
             help: "手牌达到 25 张时立即淘汰；只剩一名未淘汰玩家时结束。",
             toggled: with_no_mercy(
                 rules,
-                NoMercyRuleSet {
+                UnoNoMercyRuleSet {
                     mercy_elimination: !mode.mercy_elimination,
                     sudden_death: mode.mercy_elimination && mode.sudden_death,
                     ..mode
@@ -170,7 +170,7 @@ fn no_mercy_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
             help: "打出 0 时，所有未淘汰玩家按当前方向传递整手牌。",
             toggled: with_no_mercy(
                 rules,
-                NoMercyRuleSet {
+                UnoNoMercyRuleSet {
                     zero_pass: !mode.zero_pass,
                     ..mode
                 },
@@ -182,7 +182,7 @@ fn no_mercy_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
             help: "打出 7 后选择一名未淘汰玩家并与其交换整手牌。",
             toggled: with_no_mercy(
                 rules,
-                NoMercyRuleSet {
+                UnoNoMercyRuleSet {
                     seven_swap: !mode.seven_swap,
                     ..mode
                 },
@@ -194,7 +194,7 @@ fn no_mercy_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
             help: "手里恰好两张且轮到自己时可先喊 UNO，随后本回合必须出到一张；未喊直接出到一张者在下次成功出牌前可被检举并罚摸 2 张。",
             toggled: with_no_mercy(
                 rules,
-                NoMercyRuleSet {
+                UnoNoMercyRuleSet {
                     uno_callout: !mode.uno_callout,
                     ..mode
                 },
@@ -212,7 +212,7 @@ fn flip_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
             help: "关闭时使用固定的正反面组合；开启后每局重新随机配对全部 112 张牌的两面。",
             toggled: with_flip(
                 rules,
-                FlipRuleSet {
+                UnoFlipRuleSet {
                     random_pairing: !mode.random_pairing,
                     ..mode
                 },
@@ -224,7 +224,7 @@ fn flip_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
             help: "允许亮暗两面的禁手与罚牌继续累计；各罚牌链仍按对应牌型规则结算。",
             toggled: with_flip(
                 rules,
-                FlipRuleSet {
+                UnoFlipRuleSet {
                     action_stacking: !mode.action_stacking,
                     ..mode
                 },
@@ -236,7 +236,7 @@ fn flip_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
             help: "玩家每实际跳过一轮时，额外摸一张牌。",
             toggled: with_flip(
                 rules,
-                FlipRuleSet {
+                UnoFlipRuleSet {
                     skip_draw_penalty: !mode.skip_draw_penalty,
                     ..mode
                 },
@@ -248,7 +248,7 @@ fn flip_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
             help: "手里恰好两张且轮到自己时可先喊 UNO；未喊直接出到一张者在下次成功出牌前可被检举并罚摸 2 张。",
             toggled: with_flip(
                 rules,
-                FlipRuleSet {
+                UnoFlipRuleSet {
                     uno_callout: !mode.uno_callout,
                     ..mode
                 },
@@ -260,7 +260,7 @@ fn flip_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
             help: "只比较当前牌面；关闭功能牌堆叠时只可抢数字牌，相同双牌可一次打出。",
             toggled: with_flip(
                 rules,
-                FlipRuleSet {
+                UnoFlipRuleSet {
                     jump_in: !mode.jump_in,
                     ..mode
                 },
@@ -269,10 +269,10 @@ fn flip_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
     ]
 }
 
-fn with_no_mercy(rules: UnoRuleSet, no_mercy: NoMercyRuleSet) -> UnoRuleSet {
+fn with_no_mercy(rules: UnoRuleSet, no_mercy: UnoNoMercyRuleSet) -> UnoRuleSet {
     UnoRuleSet { no_mercy, ..rules }
 }
 
-fn with_flip(rules: UnoRuleSet, flip: FlipRuleSet) -> UnoRuleSet {
+fn with_flip(rules: UnoRuleSet, flip: UnoFlipRuleSet) -> UnoRuleSet {
     UnoRuleSet { flip, ..rules }
 }

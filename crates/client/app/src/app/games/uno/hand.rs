@@ -15,12 +15,13 @@ use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{PlayerInteractionLayer, SocialUiState, UiAction};
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
-use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
-use leocard_protocol::{GameKind, UnoPendingSwapView, UnoPhaseView, UnoPlayerState, UnoSnapshot};
+use leocard_protocol::{GameKind, UnoPendingSwapView, UnoPhaseView, UnoPlayerView, UnoSnapshot};
 use leocard_ui::{ButtonTint, UiComposer, spawn_node};
 use leocard_uno::UnoFace;
+
+use bevy::prelude::*;
 
 #[expect(
     clippy::too_many_arguments,
@@ -30,7 +31,7 @@ pub(super) fn add_uno_own_area(
     commands: &mut UiComposer,
     table: Entity,
     game: &UnoSnapshot,
-    own: &UnoPlayerState,
+    own: &UnoPlayerView,
     ui: &UnoUiState,
     social: &SocialUiState,
     avatars: &AvatarImages,
@@ -54,11 +55,11 @@ pub(super) fn add_uno_own_area(
         PlayerPortraitSpec {
             player: game.you,
             profile: PlayerMenuProfile {
-                name: &own.name,
-                avatar: own.avatar.and_then(|id| avatars.remote.get(&id)),
-                reference_points: own.reference_points,
-                completed_games: own.completed_games,
-                game_profiles: &own.game_profiles,
+                name: &own.player.name,
+                avatar: own.player.avatar.and_then(|id| avatars.remote.get(&id)),
+                reference_points: own.player.reference_points,
+                completed_games: own.player.completed_games,
+                game_profiles: &own.player.game_profiles,
             },
             avatar_size: UNO_AVATAR_SIZE,
             auto_play: own.auto_play,
@@ -69,7 +70,7 @@ pub(super) fn add_uno_own_area(
         assets,
     );
     let info = portrait.portrait;
-    attach_start_game_seat_transition(commands, info, own.id, start_transition_active);
+    attach_start_game_seat_transition(commands, info, own.player.id, start_transition_active);
     if intro_only {
         return;
     }

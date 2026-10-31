@@ -7,6 +7,8 @@
 | 用途 | 入口与参考 |
 |---|---|
 | 场景、纹理按钮、文本、输入、滚动条 | `crates/client/ui/src/`，查 `UiComposer`、`UiSceneKey`、`TextureButton`、`TextInput`、`TexturedScrollbar`、`sliced_image` |
+| 锚定气泡、浮窗边缘避让 | `crates/client/ui/src/bubble/`、`placement.rs`、`anchored_popup.rs`；聊天层将玩家解析为锚点 Entity，UI 层不依赖协议 |
+| 抽屉滑动与滚动范围 | `crates/client/ui/src/drawer.rs` 的 `DrawerSlide`、`animate_drawers`，以及 `scrollbar/scroll.rs` 的 `scroll_viewport_y`；应用保留重建时的进度和滚动位置 |
 | 尺寸、语义色与 Android 倍率 | `crates/client/app/src/app/presentation/ui/constants.rs` |
 | 普通页面皮肤 | `crates/client/app/src/app/shell/ui/cozy.rs` |
 | OreUI 皮肤 | `crates/client/app/src/app/games/mc_guess/assets/skin.rs`，结合 `table/`、`graph/guide/` 调用查看 |

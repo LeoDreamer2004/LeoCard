@@ -22,6 +22,8 @@ pub(crate) fn sync_chat_panel_controls(
         }
     }
     for mut slide in &mut panels {
+        // Retained outgoing and incoming panels share one continuous motion.
+        slide.clone_from(&chat.drawer);
         slide.expanded = chat.open;
     }
 }

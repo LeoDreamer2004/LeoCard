@@ -1,6 +1,4 @@
 use super::gate::{ActionContext, ActionReminder};
-#[cfg(not(target_os = "android"))]
-use super::systems::reminder_body;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{GameKind, MatchId, RoomId};
 use std::time::{Duration, Instant};

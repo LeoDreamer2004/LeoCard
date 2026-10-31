@@ -10,7 +10,7 @@ pub(crate) struct ShopEntry<'a> {
 }
 
 impl ShopEntry<'_> {
-    pub fn render(&self, commands: &mut UiComposer, parent: Entity) {
+    pub fn render(&self, commands: &mut UiComposer, parent: Entity, scale: f32) {
         add_cozy_labeled_icon_button(
             commands,
             parent,
@@ -19,6 +19,7 @@ impl ShopEntry<'_> {
             self.assets.shop.icon.clone(),
             CozyButtonVariant::Neutral,
             "商店",
+            scale,
         );
     }
 }

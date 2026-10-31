@@ -114,10 +114,10 @@ fn marker_position(
             let width = MARKER_SIZE + count.saturating_sub(1) as f32 * step;
             let center = TexasTableLayout::draw_pile_center()
                 .x
-                .max(380.0 + width * 0.5);
+                .max(349.0 + width * 0.5);
             return Vec3::new(
                 center - width * 0.5 + slot as f32 * step + random_x * 3.0,
-                264.0 + random_y * 4.0,
+                278.0 + random_y * 4.0,
                 0.0,
             );
         }

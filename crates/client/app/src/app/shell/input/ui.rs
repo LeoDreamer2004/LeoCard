@@ -3,7 +3,7 @@
 use super::UiZoom;
 use crate::app::presentation::{DESIGN_HEIGHT, DESIGN_WIDTH};
 use crate::app::runtime::ClientResource;
-use crate::app::shell::UiState;
+use crate::app::shell::{LobbyGameMotion, PageMotion, UiState};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use leocard_client::ClientPhaseRef;
@@ -16,6 +16,12 @@ const MIN_AUTO_SCALE: f32 = if cfg!(target_os = "android") {
 const MAX_AUTO_SCALE: f32 = 2.5;
 const MIN_MANUAL_ZOOM: f32 = 0.7;
 const MAX_MANUAL_ZOOM: f32 = 1.5;
+
+pub(crate) fn ui_scale_can_change(page: Res<PageMotion>, lobby_game: Res<LobbyGameMotion>) -> bool {
+    // Android pages use different design heights. Keep outgoing content in its
+    // original coordinate system until composition can replace it with the next page.
+    !cfg!(target_os = "android") || !page.hold_page() && !lobby_game.hold_lobby()
+}
 
 pub(crate) fn update_ui_scale(
     windows: Query<&Window, With<PrimaryWindow>>,

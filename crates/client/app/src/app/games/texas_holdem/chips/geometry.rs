@@ -2,12 +2,12 @@ use super::ChipZoneLayout;
 
 pub(super) fn texas_pot_chip_zone(squid_enabled: bool) -> ChipZoneLayout {
     if cfg!(target_os = "android") {
-        let left = if squid_enabled { 600.0 } else { 380.0 };
+        let left = if squid_enabled { 600.0 } else { 349.0 };
         return ChipZoneLayout {
             left,
-            top: 256.0,
-            width: 900.0 - left,
-            height: 64.0,
+            top: 270.0,
+            width: 931.0 - left,
+            height: 50.0,
         };
     }
     // Reserve the left column below the street label for squid coins.
@@ -44,10 +44,10 @@ pub(super) fn texas_pot_partition_zone(
 pub(super) fn texas_center_zone_panel() -> ChipZoneLayout {
     if cfg!(target_os = "android") {
         return ChipZoneLayout {
-            left: 368.0,
+            left: 334.0,
             top: 140.0,
-            width: 544.0,
-            height: 186.0,
+            width: 612.0,
+            height: 198.0,
         };
     }
     ChipZoneLayout {

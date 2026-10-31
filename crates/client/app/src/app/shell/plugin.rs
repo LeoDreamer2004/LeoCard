@@ -4,7 +4,7 @@ use super::{
     AchievementsPagePlugin, ChatPlugin, ConnectionPlugin, DeveloperToolsPlugin, InputPlugin,
     LobbyPlugin, NavigationPlugin, OverlaysPlugin, ProfilePlugin, SettingsPlugin, ShellUiPlugin,
     ShopPlugin, SocialPlugin, UiActionPlugin, UiActionSet, UiState, UpdatePlugin,
-    close_interaction_menu_on_outside_click, compose_ui,
+    close_interaction_menu_on_outside_click, compose_ui, ui_scale_can_change, update_ui_scale,
 };
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
@@ -38,7 +38,12 @@ impl Plugin for ShellPlugin {
             Update,
             UiActionSet.before(close_interaction_menu_on_outside_click),
         )
-        .add_systems(Update, compose_ui.in_set(ClientUpdateSet::Compose));
+        .add_systems(
+            Update,
+            (update_ui_scale.run_if(ui_scale_can_change), compose_ui)
+                .chain()
+                .in_set(ClientUpdateSet::Compose),
+        );
         #[cfg(not(target_os = "android"))]
         app.add_plugins(SakuraFrpPlugin);
     }

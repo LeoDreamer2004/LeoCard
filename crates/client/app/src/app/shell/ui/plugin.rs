@@ -1,9 +1,10 @@
+use super::configuration::{ConfigurationScroll, clamp_configuration_scroll};
 #[cfg(not(target_os = "android"))]
 use super::switch::{CozySwitchThumb, animate_cozy_switches};
 use super::{
     AmbientBackgroundPlugin, ClickFeedbackPlugin, ConfirmationPlugin, GameHeaderPlugin,
     ModalAnimationSet, ModalAnimations, PageTransitionPlugin, animate_cozy_modals,
-    update_cozy_checkbox_hover,
+    scroll_modal_content, update_cozy_checkbox_hover,
 };
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
@@ -38,7 +39,16 @@ impl Plugin for ShellUiPlugin {
                 .after(animate_cozy_modals)
                 .in_set(ClientUpdateSet::Animate),
         )
-        .add_systems(Update, update_help_tooltips.in_set(ClientUpdateSet::Input));
+        .add_systems(
+            Update,
+            (
+                clamp_configuration_scroll,
+                scroll_modal_content::<ConfigurationScroll>,
+                update_help_tooltips,
+            )
+                .chain()
+                .in_set(ClientUpdateSet::Input),
+        );
         #[cfg(not(target_os = "android"))]
         {
             app.world_mut()

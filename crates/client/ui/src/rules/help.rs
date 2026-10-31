@@ -1,6 +1,7 @@
 use crate::{UiComposer, add_label};
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
+use bevy::ui::OverrideClip;
 use bevy::ui_widgets::Button;
 
 #[derive(Component)]
@@ -53,7 +54,7 @@ pub fn add_help_tooltip(
     );
     commands
         .entity(tooltip)
-        .insert((Visibility::Hidden, GlobalZIndex(1000)));
+        .insert((Visibility::Hidden, GlobalZIndex(1000), OverrideClip));
     add_label(commands, tooltip, help, 12.0, style.text, style.font);
     commands.entity(question).insert(HelpTooltip { tooltip });
 }

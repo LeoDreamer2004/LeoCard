@@ -2,7 +2,7 @@
 
 use super::super::super::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction, SettingsTab, UiAction,
-    UpdateManager, add_cozy_close_button, add_cozy_panel,
+    UpdateManager, add_configuration_scroll, add_cozy_close_button, add_cozy_panel,
 };
 use super::super::{SelectedSettingsTab, SettingsTabButton};
 use super::about::AboutSettings;
@@ -73,6 +73,9 @@ impl<'a> SettingsModal<'a> {
             Node {
                 width: px(680),
                 max_width: percent(92),
+                height: px(590),
+                max_height: percent(92),
+                min_height: px(0),
                 padding: UiRect::all(px(24)),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(12),
@@ -89,6 +92,7 @@ impl<'a> SettingsModal<'a> {
             modal,
             Node {
                 width: percent(100),
+                flex_shrink: 0.0,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::SpaceBetween,
                 ..default()
@@ -108,6 +112,7 @@ impl<'a> SettingsModal<'a> {
             Node {
                 width: px(96),
                 height: px(2),
+                flex_shrink: 0.0,
                 ..default()
             },
             Some(Color::srgb(0.64, 0.59, 0.93)),
@@ -117,6 +122,9 @@ impl<'a> SettingsModal<'a> {
             modal,
             Node {
                 width: percent(100),
+                min_height: px(0),
+                flex_grow: 1.0,
+                flex_basis: px(0),
                 flex_direction: FlexDirection::Row,
                 column_gap: px(14),
                 ..default()
@@ -158,15 +166,20 @@ impl<'a> SettingsModal<'a> {
             (
                 Node {
                     min_width: px(0),
-                    min_height: px(390),
+                    min_height: px(0),
                     flex_grow: 1.0,
                     padding: UiRect::all(px(22)),
                     flex_direction: FlexDirection::Column,
-                    row_gap: px(12),
                     ..default()
                 },
                 content_image,
             ),
+        );
+        let content = add_configuration_scroll(
+            commands,
+            content,
+            format!("settings:{selected_tab:?}"),
+            12.0,
         );
         match selected_tab {
             SettingsTab::Appearance => {

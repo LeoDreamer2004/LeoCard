@@ -4,7 +4,7 @@ use crate::app::presentation::{MUTED, add_text};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
     CozyButtonVariant, LobbyTransitionPanel, LobbyUiAction, PageTransitionElement, UiAction,
-    add_cozy_button_variant, add_cozy_panel,
+    add_configuration_scroll, add_cozy_button_variant, add_cozy_panel,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -61,6 +61,8 @@ impl LobbyPage {
             Node {
                 width: percent(100),
                 flex_grow: 1.0,
+                flex_basis: px(0),
+                min_height: px(0),
                 justify_content: JustifyContent::Center,
                 ..default()
             },
@@ -72,6 +74,8 @@ impl LobbyPage {
             Node {
                 width: percent(100),
                 max_width: px(1180),
+                height: percent(100),
+                min_height: px(0),
                 flex_grow: 1.0,
                 align_self: AlignSelf::Center,
                 padding: UiRect::axes(px(22), px(if cfg!(target_os = "android") { 6 } else { 22 })),
@@ -93,12 +97,11 @@ impl LobbyPage {
             content,
             Node {
                 min_width: px(style.rules_min_width),
+                min_height: px(0),
+                height: percent(100),
                 flex_basis: px(style.rules_basis),
                 flex_grow: 1.0,
-                padding: UiRect::axes(
-                    px(20),
-                    px(if cfg!(target_os = "android") { 12 } else { 20 }),
-                ),
+                padding: UiRect::all(px(20)),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(style.rules_gap.min(8.0)),
                 ..default()
@@ -115,12 +118,11 @@ impl LobbyPage {
             content,
             Node {
                 min_width: px(style.players_min_width),
+                min_height: px(0),
+                height: percent(100),
                 flex_basis: px(style.players_basis),
                 flex_grow: 2.0,
-                padding: UiRect::axes(
-                    px(20),
-                    px(if cfg!(target_os = "android") { 12 } else { 20 }),
-                ),
+                padding: UiRect::all(px(20)),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(style.players_gap),
                 ..default()
@@ -132,13 +134,19 @@ impl LobbyPage {
             PageTransitionElement::right(1),
             UiTransform::IDENTITY,
         ));
+        let can_configure = client.0.model().you() == lobby.host;
+        config.render(commands, root, rules, can_configure, assets);
         let page = Self {
-            rules,
+            rules: add_configuration_scroll(
+                commands,
+                rules,
+                format!("lobby-rules:{:?}", lobby.game),
+                style.rules_gap.min(8.0),
+            ),
             players,
             connected_count: LobbyMetrics::new(lobby).connected_player_count(),
-            can_configure: client.0.model().you() == lobby.host,
+            can_configure,
         };
-        config.render(commands, root, &page, assets);
         page.render_players(commands, client, lobby, assets, avatars);
         page
     }

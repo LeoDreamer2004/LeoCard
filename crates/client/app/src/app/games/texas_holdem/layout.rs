@@ -1,5 +1,5 @@
 use super::{ChipZoneLayout, TEXAS_PORTRAIT_HEIGHT, TEXAS_PORTRAIT_WIDTH};
-use crate::app::presentation::{SeatSide, TableSeatAnchors, TableSeats};
+use crate::app::presentation::{SeatSide, TableSeat, TableSeatAnchors, TableSeats};
 use bevy::prelude::Vec2;
 use leocard_protocol::{PlayerId, SeatId, TexasHoldemSnapshot};
 use leocard_texas_holdem::TexasHoldemRuleSet;
@@ -12,7 +12,7 @@ pub(super) struct TexasTableLayout {
 
 impl TexasTableLayout {
     pub(super) const BOARD_CARD_SIZE: Vec2 = if cfg!(target_os = "android") {
-        Vec2::new(72.0, 98.0)
+        Vec2::new(84.0, 114.0)
     } else {
         Vec2::new(56.0, 76.0)
     };
@@ -22,12 +22,12 @@ impl TexasTableLayout {
         160.0
     };
     pub(super) const BOARD_ROW_HEIGHT: f32 = if cfg!(target_os = "android") {
-        112.0
+        126.0
     } else {
         90.0
     };
     pub(super) const HAND_SCALE: f32 = if cfg!(target_os = "android") {
-        1.5
+        1.4
     } else {
         1.0
     };
@@ -37,7 +37,7 @@ impl TexasTableLayout {
         1.0
     };
     pub(super) const ACTION_BOTTOM: f32 = if cfg!(target_os = "android") {
-        189.0
+        177.0
     } else {
         124.0
     };
@@ -121,18 +121,26 @@ impl TexasTableLayout {
 
     pub(super) fn chip_zone(self, slot: u8) -> ChipZoneLayout {
         let expanded = self.player_count > 6;
-        let position = self.seats().seat(slot).position(TableSeatAnchors {
+        let seat = self.seats().seat(slot);
+        let width = if cfg!(target_os = "android")
+            && matches!(seat, TableSeat::Left(_) | TableSeat::Right(_))
+        {
+            194.0
+        } else {
+            210.0
+        };
+        let position = seat.position(TableSeatAnchors {
             bottom: Vec2::new(
                 640.0,
                 if cfg!(target_os = "android") {
-                    338.0
+                    350.0
                 } else {
                     405.0
                 },
             ),
             top: Vec2::new(640.0, 23.0),
             columns: if cfg!(target_os = "android") {
-                Vec2::new(250.0, 1030.0)
+                Vec2::new(224.0, 1056.0)
             } else if expanded {
                 Vec2::new(258.0, 1022.0)
             } else {
@@ -150,9 +158,9 @@ impl TexasTableLayout {
             },
         });
         ChipZoneLayout {
-            left: position.x - 105.0,
+            left: position.x - width * 0.5,
             top: position.y,
-            width: 210.0,
+            width,
             height: if cfg!(target_os = "android") {
                 96.0
             } else {

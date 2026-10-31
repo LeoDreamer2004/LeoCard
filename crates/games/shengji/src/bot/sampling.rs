@@ -58,10 +58,9 @@ impl<'a> DealSampler<'a> {
         if self.slots.len() != self.observation.unseen.len() {
             return None;
         }
-        for _ in 0..48 {
-            if budget.exhausted() {
-                return None;
-            }
+        // Rejection against past tricks can be rare late in a hand. A failed
+        // batch is not evidence of impossibility; use the caller's time budget.
+        while !budget.exhausted() {
             let mut neighbors = self.allowed.clone();
             for options in &mut neighbors {
                 shuffle(options, random);

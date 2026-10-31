@@ -31,14 +31,30 @@ pub(super) fn category_index(card: ShengjiCard, trump: ShengjiTrump) -> usize {
 /// Values structure separately from rank: a connected pair is useful even when
 /// its individual cards are small. All sizes are relative to the current hand.
 pub(super) fn hand_value(hand: &[ShengjiCard], trump: ShengjiTrump) -> f64 {
-    let counts = counts(hand);
     let mut lengths = [0; 5];
+    for &card in hand {
+        lengths[category_index(card, trump)] += 1;
+    }
+    material_value(hand, trump)
+        + lengths[..4]
+            .iter()
+            .map(|&length| match length {
+                0 if lengths[4] > 0 => 4.5,
+                1 => 1.0,
+                _ => 0.0,
+            })
+            .sum::<f64>()
+}
+
+/// The strength and combinations actually committed to a trick, excluding
+/// void-suit bonuses that only make sense for the remaining hand.
+pub(super) fn material_value(hand: &[ShengjiCard], trump: ShengjiTrump) -> f64 {
+    let counts = counts(hand);
     let mut runs = [[[false; 18]; 5]; 3];
     let mut value = 0.0;
     for &card in hand {
         let strength = f64::from(trump.strength(card));
         let cat = category_index(card, trump);
-        lengths[cat] += 1;
         value += if cat == 4 {
             1.8 + strength * 0.24
         } else {
@@ -65,13 +81,6 @@ pub(super) fn hand_value(hand: &[ShengjiCard], trump: ShengjiTrump) -> f64 {
                 .count() as f64
                 * (3.0 + width as f64 * 1.8);
         }
-    }
-    for &length in &lengths[..4] {
-        value += match length {
-            0 if lengths[4] > 0 => 4.5,
-            1 => 1.0,
-            _ => 0.0,
-        };
     }
     value
 }

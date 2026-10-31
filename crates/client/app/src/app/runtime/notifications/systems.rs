@@ -67,9 +67,14 @@ impl TurnNotifications {
 
 #[cfg(not(target_os = "android"))]
 pub(super) fn reminder_body(name: &str) -> String {
-    let name = PlayerPersona::from(name)
-        .notification_nickname()
-        .unwrap_or(name);
+    let name = match PlayerPersona::from(name) {
+        PlayerPersona::Yang120 => "官儿",
+        PlayerPersona::SnowyWind => "马眼",
+        PlayerPersona::DreamerLeo => "Dev",
+        PlayerPersona::Cnofne => "群主",
+        PlayerPersona::Wpy03 => "盆儿",
+        PlayerPersona::Regular => name,
+    };
     format!("{name}，轮到你行动了！")
 }
 

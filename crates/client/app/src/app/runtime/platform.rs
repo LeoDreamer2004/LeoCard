@@ -21,6 +21,10 @@ use winit::platform::windows::WindowExtWindows;
 #[cfg(not(target_os = "android"))]
 use winit::window::Icon;
 
+#[cfg(not(target_os = "android"))]
+pub(super) const APP_ICON_PNG: &[u8] =
+    include_bytes!("../../../../../../assets/icons/app-icon.png");
+
 fn embedded_asset_dir() -> Dir {
     let directory = Dir::default();
     for &(path, bytes) in leocard_assets::embedded_assets() {
@@ -28,9 +32,6 @@ fn embedded_asset_dir() -> Dir {
     }
     directory
 }
-
-#[cfg(not(target_os = "android"))]
-const APP_ICON_PNG: &[u8] = include_bytes!("../../../../../../assets/icons/app-icon.png");
 
 /// 在构造 `AssetPlugin` 前将编译进程序的目录注册成 Bevy 默认资源源。
 /// 显式指定 `BEVY_ASSET_ROOT` 时仍使用文件系统，便于开发和紧急覆盖。

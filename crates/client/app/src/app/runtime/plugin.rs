@@ -120,5 +120,6 @@ impl Plugin for RuntimePlugin {
 
         #[cfg(not(target_os = "android"))]
         app.add_plugins(super::cursor::CursorPlugin);
+        app.add_plugins(super::notifications::TurnNotificationPlugin);
     }
 }

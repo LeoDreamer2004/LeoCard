@@ -17,6 +17,7 @@ pub struct ShengjiBotObservation {
     pub(super) rules: ShengjiRuleSet,
     pub(super) phase: ShengjiPhase,
     pub(super) trick: Option<ShengjiTrickRecord>,
+    pub(super) history: Vec<ShengjiTrickRecord>,
     pub(super) unseen: Vec<ShengjiCard>,
     pub(super) exposed: Vec<Vec<ShengjiCard>>,
     pub(super) lengths: Vec<usize>,
@@ -85,6 +86,7 @@ impl ShengjiBotObservation {
             rules: *game.rules(),
             phase: game.phase().clone(),
             trick,
+            history: game.history().to_vec(),
             unseen: build_deck_for(game.rules().deck_count)
                 .into_iter()
                 .filter(|card| !known.contains(card))

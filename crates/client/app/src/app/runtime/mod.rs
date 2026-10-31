@@ -7,6 +7,7 @@ mod application;
 mod cursor;
 #[cfg(target_os = "android")]
 mod native_text;
+mod notifications;
 mod platform;
 mod plugin;
 mod preferences;

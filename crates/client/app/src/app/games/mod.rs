@@ -16,7 +16,7 @@ pub(super) mod texas;
 pub(super) mod uno;
 
 pub(super) use catalog::*;
-pub(super) use composition::*;
+pub(super) use composition::GameScreens;
 pub(super) use plugin::*;
 pub(super) use screen::{GameLobbyContext, GameScreen, GameTableContext};
 pub(crate) use screen_change::GameScreenChange;

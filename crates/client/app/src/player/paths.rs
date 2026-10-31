@@ -4,7 +4,7 @@ use crate::platform::data_directory;
 use std::env;
 use std::path::PathBuf;
 
-pub(super) fn config_file(name: &str) -> Option<PathBuf> {
+pub(crate) fn config_file(name: &str) -> Option<PathBuf> {
     #[cfg(target_os = "android")]
     return data_directory().map(|directory| directory.join(name));
 

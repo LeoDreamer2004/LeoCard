@@ -22,6 +22,15 @@ pub(crate) struct McGuessScreen<'w> {
 impl GameScreen for McGuessScreen<'_> {
     type Snapshot = McGuessSnapshot;
 
+    fn requires_action(&self, game: &Self::Snapshot) -> bool {
+        // 连击需要先选相邻节点时也在等待本人操作，不能只检查当前选中的节点。
+        game.round.can_guess(game.you, game.rules.mode)
+            && game
+                .players
+                .iter()
+                .any(|player| player.player.id == game.you)
+    }
+
     fn render_lobby(
         &self,
         commands: &mut UiComposer,

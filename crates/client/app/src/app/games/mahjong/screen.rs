@@ -25,6 +25,28 @@ pub(crate) struct MahjongScreen<'w> {
 impl GameScreen for MahjongScreen<'_> {
     type Snapshot = MahjongSnapshot;
 
+    fn requires_action(&self, game: &Self::Snapshot) -> bool {
+        use leocard_mahjong::MahjongClaimOption;
+        use leocard_protocol::MahjongPhaseView;
+        let no_claim = self.ui.no_claim;
+        if !game
+            .players
+            .iter()
+            .any(|player| player.player.id == game.you && player.connected && !player.auto_play)
+        {
+            return false;
+        }
+        if let Some(claim) = &game.pending_claim {
+            return claim.your_response.is_none()
+                && claim
+                    .your_options
+                    .iter()
+                    .any(|option| !no_claim || *option == MahjongClaimOption::Win);
+        }
+        // 普通摸牌后的出牌同样需要操作，不限于显示吃碰杠／和按钮的时候。
+        matches!(game.phase, MahjongPhaseView::Playing) && game.current_player == game.you
+    }
+
     fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
         match client.map(|client| client.0.model().phase()) {
             Some(ClientPhaseRef::Playing(GameSnapshot::Mahjong(game))) => self.ui.reconcile(game),

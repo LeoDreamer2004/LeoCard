@@ -25,7 +25,7 @@ impl ConnectionScreen<'_> {
                 max_width: px(420),
                 flex_shrink: 0.0,
                 flex_direction: FlexDirection::Column,
-                row_gap: px(14),
+                row_gap: px(if cfg!(target_os = "android") { 10 } else { 14 }),
                 ..default()
             },
             None,
@@ -41,7 +41,10 @@ impl ConnectionScreen<'_> {
             parent,
             Node {
                 width: percent(100),
-                padding: UiRect::all(px(21)),
+                padding: UiRect::axes(
+                    px(21),
+                    px(if cfg!(target_os = "android") { 12 } else { 21 }),
+                ),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(8),
                 ..default()
@@ -162,7 +165,10 @@ impl ConnectionScreen<'_> {
             Node {
                 width: percent(100),
                 min_height: px(0),
-                padding: UiRect::all(px(22)),
+                padding: UiRect::axes(
+                    px(22),
+                    px(if cfg!(target_os = "android") { 12 } else { 22 }),
+                ),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(12),
                 ..default()

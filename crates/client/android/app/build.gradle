@@ -1,6 +1,6 @@
 plugins { id 'com.android.application' }
 
-java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }
 
 def workspaceRoot = rootProject.layout.projectDirectory.dir('../../..')
 def workspaceVersion = (workspaceRoot.file('Cargo.toml').asFile.text =~ /(?m)^version = "(\d+)\.(\d+)\.(\d+)"$/)[0]
@@ -12,6 +12,8 @@ def verifierVersion = providers.fileContents(workspaceRoot.file('Cargo.lock')).a
 }
 
 android {
+    // This module contains Java/JNI glue only; no Kotlin compiler is needed.
+    enableKotlin = false
     namespace = 'com.leodreamer.leocard'
     compileSdk = 36
     buildToolsVersion = '36.0.0'
@@ -40,6 +42,7 @@ android {
     }
     packaging { jniLibs { useLegacyPackaging = false } }
     compileOptions {
+        // Use JDK 25 above while retaining Android-compatible Java 17 bytecode.
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }

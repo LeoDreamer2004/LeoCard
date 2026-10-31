@@ -104,7 +104,11 @@ pub(crate) fn render_shengji_table(
         Node {
             width: percent(100),
             flex_grow: 1.0,
-            min_height: px(410),
+            min_height: px(if cfg!(target_os = "android") {
+                330
+            } else {
+                410
+            }),
             position_type: PositionType::Relative,
             ..default()
         },
@@ -150,7 +154,11 @@ pub(crate) fn render_shengji_table(
             content,
             Node {
                 width: percent(100),
-                height: px(210),
+                height: px(if cfg!(target_os = "android") {
+                    290
+                } else {
+                    210
+                }),
                 flex_shrink: 0.0,
                 position_type: PositionType::Relative,
                 ..default()
@@ -212,7 +220,11 @@ pub(crate) fn render_shengji_table(
             content,
             Node {
                 width: percent(100),
-                height: px(210),
+                height: px(if cfg!(target_os = "android") {
+                    290
+                } else {
+                    210
+                }),
                 flex_shrink: 0.0,
                 position_type: PositionType::Relative,
                 ..default()
@@ -365,7 +377,11 @@ fn add_shengji_bottom_flip(
             left: percent(31),
             right: percent(31),
             top: percent(18),
-            min_height: px(210),
+            min_height: px(if cfg!(target_os = "android") {
+                290
+            } else {
+                210
+            }),
             padding: UiRect::all(px(20)),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,

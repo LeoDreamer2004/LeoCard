@@ -1,5 +1,6 @@
 use super::BlackjackTable;
 use super::cards::{BlackjackCardSpec, add_card};
+use super::layout::BlackjackSeatLayout;
 use super::playback::BlackjackCardSlot;
 use crate::app::presentation::{
     ACCENT, TableStatusEffect, TableStatusSpec, add_playing_card_pile, add_table_play_area,
@@ -18,20 +19,28 @@ impl BlackjackTable<'_> {
             Node {
                 position_type: PositionType::Absolute,
                 left: percent(50),
-                top: px(152),
-                bottom: px(326),
-                width: px(470),
-                padding: UiRect::all(px(10)),
+                top: px(if cfg!(target_os = "android") {
+                    140
+                } else {
+                    152
+                }),
+                bottom: px(if cfg!(target_os = "android") {
+                    366
+                } else {
+                    326
+                }),
+                width: px(BlackjackSeatLayout::DEALER_WIDTH),
+                padding: UiRect::all(px(if cfg!(target_os = "android") { 6 } else { 10 })),
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                row_gap: px(8),
+                row_gap: px(if cfg!(target_os = "android") { 6 } else { 8 }),
                 border_radius: BorderRadius::all(px(12)),
                 ..default()
             },
         );
         commands.entity(center).insert((
-            UiTransform::from_translation(Val2::px(-235.0, 0.0)),
+            UiTransform::from_translation(Val2::px(-BlackjackSeatLayout::DEALER_WIDTH * 0.5, 0.0)),
             Pickable::IGNORE,
         ));
         let title = if self.game.dealer_hidden {
@@ -63,7 +72,8 @@ impl BlackjackTable<'_> {
             center,
             Node {
                 width: percent(100),
-                height: px(86),
+                height: px(if cfg!(target_os = "android") { 110 } else { 86 }),
+                flex_shrink: 0.0,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 column_gap: px(8),
@@ -81,12 +91,19 @@ impl BlackjackTable<'_> {
             + self.game.dealer.len()
             + usize::from(self.game.dealer_hidden);
         let pile = add_playing_card_pile(commands, row, 312usize.saturating_sub(used), self.assets);
+        let size = BlackjackSeatLayout::DEALER_CARD_SIZE;
+        let width = if cfg!(target_os = "android") {
+            438.0
+        } else {
+            358.0
+        };
         let cards = spawn_node(
             commands,
             row,
             Node {
-                width: px(358),
-                height: px(84),
+                width: px(width),
+                height: px(size.y),
+                flex_shrink: 0.0,
                 position_type: PositionType::Relative,
                 ..default()
             },
@@ -94,11 +111,11 @@ impl BlackjackTable<'_> {
         );
         let count = self.game.dealer.len() + usize::from(self.game.dealer_hidden);
         let step = if count <= 5 {
-            65.0
+            size.x + 5.0
         } else {
-            (358.0 - 60.0) / count.saturating_sub(1).max(1) as f32
+            (width - size.x) / count.saturating_sub(1).max(1) as f32
         };
-        let left = (358.0 - 60.0 - step * count.saturating_sub(1) as f32) * 0.5;
+        let left = (width - size.x - step * count.saturating_sub(1) as f32) * 0.5;
         for index in 0..count {
             add_card(
                 commands,
@@ -109,8 +126,8 @@ impl BlackjackTable<'_> {
                     node: Node {
                         position_type: PositionType::Absolute,
                         left: px(left + index as f32 * step),
-                        width: px(60),
-                        height: px(84),
+                        width: px(size.x),
+                        height: px(size.y),
                         ..default()
                     },
                 },

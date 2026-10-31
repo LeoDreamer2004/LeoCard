@@ -1,14 +1,15 @@
+use crate::app::presentation::GAME_SIDE_CONTROL_SCALE;
 use bevy::prelude::*;
 
-pub(super) const HEIGHT: f32 = 66.0;
-pub(super) const AVATAR_SIZE: f32 = 38.0;
+pub(super) const HEIGHT: f32 = 66.0 * GAME_SIDE_CONTROL_SCALE;
+pub(super) const AVATAR_SIZE: f32 = 38.0 * GAME_SIDE_CONTROL_SCALE;
 pub(super) const RIGHT_INSET: f32 = if cfg!(target_os = "android") {
     36.0
 } else {
     12.0
 };
-pub(super) const ITEM_WIDTH: f32 = 44.0;
-pub(super) const ITEM_GAP: f32 = 8.0;
+pub(super) const ITEM_WIDTH: f32 = 44.0 * GAME_SIDE_CONTROL_SCALE;
+pub(super) const ITEM_GAP: f32 = 8.0 * GAME_SIDE_CONTROL_SCALE;
 
 #[derive(Component, Default)]
 pub(super) struct GameHeaderMotion {

@@ -1,6 +1,6 @@
 use super::super::{
-    UNO_DISCARD_OFFSETS, UNO_FLYING_CARD_HEIGHT, UNO_FLYING_CARD_WIDTH, UnoAssets, UnoDiscardCard,
-    UnoFlyingCard, UnoPresentationState, uno_card_handle,
+    UNO_CARD_SCALE, UNO_DISCARD_OFFSETS, UNO_FLYING_CARD_HEIGHT, UNO_FLYING_CARD_WIDTH, UnoAssets,
+    UnoDiscardCard, UnoFlyingCard, UnoPresentationState, uno_card_handle,
 };
 use super::UNO_PLAY_CARD_DURATION;
 use crate::app::runtime::ClientResource;
@@ -286,5 +286,6 @@ pub(crate) fn uno_discard_pose(card: UnoCard) -> (f32, f32, f32) {
         UnoFace::WildDrawColor => 38,
     };
     let key = color * 47 + face * 19 + usize::from(card.copy()) * 31;
-    UNO_DISCARD_OFFSETS[(key ^ (key >> 3)) % UNO_DISCARD_OFFSETS.len()]
+    let (x, y, angle) = UNO_DISCARD_OFFSETS[(key ^ (key >> 3)) % UNO_DISCARD_OFFSETS.len()];
+    (x * UNO_CARD_SCALE, y * UNO_CARD_SCALE, angle)
 }

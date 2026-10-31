@@ -1,7 +1,8 @@
-use super::{
-    BlackjackTable, areas::add_blackjack_hand_areas, chips::add_blackjack_balance,
-    hands::BlackjackHandSpec, layout::BlackjackSeatLayout,
-};
+use super::BlackjackTable;
+use super::areas::add_blackjack_hand_areas;
+use super::chips::add_blackjack_balance;
+use super::hands::BlackjackHandSpec;
+use super::layout::BlackjackSeatLayout;
 use crate::app::presentation::{
     ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
     add_player_portrait, add_poker_chip_value, add_ready_badge, add_turn_border_trace_with_radius,
@@ -136,8 +137,13 @@ impl BlackjackTable<'_> {
                         player: player.id,
                         index,
                         own,
-                        width: ((layout.width - 12.0) / view.hands.len() as f32 - 6.0)
-                            .min(if own { 270.0 } else { 220.0 }),
+                        width: ((layout.width - 12.0) / view.hands.len() as f32 - 6.0).min(
+                            if own {
+                                270.0 * BlackjackSeatLayout::HAND_SCALE
+                            } else {
+                                220.0
+                            },
+                        ),
                         active: active && self.game.current_hand == Some(index as u8),
                         wager_height: layout.wager_height,
                         pile,

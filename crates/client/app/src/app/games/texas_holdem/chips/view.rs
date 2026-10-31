@@ -351,7 +351,14 @@ pub(super) fn add_fold_card_feedback(
                     } else {
                         percent(50)
                     },
-                    top: if own { px(layout.top + 40.0) } else { px(40) },
+                    top: {
+                        let inset = if cfg!(target_os = "android") {
+                            28.0
+                        } else {
+                            40.0
+                        };
+                        px(if own { layout.top + inset } else { inset })
+                    },
                     width: px(44),
                     height: px(62),
                     border_radius: BorderRadius::all(px(3)),
@@ -446,6 +453,8 @@ fn add_revealed_hole_cards(
     let omaha = cards.len() > 2;
     let (width, card_width, card_height, gap) = if omaha {
         (117.0, 36.0, 50.0, -9.0)
+    } else if cfg!(target_os = "android") {
+        (68.0, 38.0, 50.0, -8.0)
     } else {
         (88.0, 48.0, 64.0, -8.0)
     };

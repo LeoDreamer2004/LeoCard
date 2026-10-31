@@ -1,4 +1,6 @@
-use crate::app::presentation::{GameButtonSpec, GameButtonTone, add_textured_game_button};
+use crate::app::presentation::{
+    GAME_SIDE_CONTROL_SCALE, GameButtonSpec, GameButtonTone, add_textured_game_button,
+};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -26,7 +28,8 @@ pub(super) fn add_shengji_button(
             width,
             height,
             ..GameButtonSpec::compact(assets, label, Some(action), tone)
-        },
+        }
+        .scaled(GAME_SIDE_CONTROL_SCALE),
     );
 }
 
@@ -46,6 +49,7 @@ pub(super) fn add_shengji_disabled_button(
             width,
             height,
             ..GameButtonSpec::compact(assets, label, None, GameButtonTone::Play)
-        },
+        }
+        .scaled(GAME_SIDE_CONTROL_SCALE),
     );
 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "LeoCard 游戏 UI"
+  short_description: "沿用 LeoCard 美术与公共组件，实现游戏界面、交互反馈和必要的安卓适配。"
+  default_prompt: "请使用 $leocard-game-ui 实现这次游戏界面调整，复用现有组件并检查 Android 布局。"

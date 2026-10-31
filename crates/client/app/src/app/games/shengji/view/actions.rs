@@ -1,6 +1,6 @@
 use super::super::skin::{add_shengji_button, add_shengji_disabled_button};
 use super::super::{ShengjiUiAction, ShengjiUiState};
-use crate::app::presentation::GameButtonTone;
+use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, GameButtonTone};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -22,10 +22,10 @@ pub(super) fn add_shengji_actions(
         hand_area,
         Node {
             position_type: PositionType::Absolute,
-            left: percent(25),
-            right: percent(25),
+            left: percent(if cfg!(target_os = "android") { 18 } else { 25 }),
+            right: percent(if cfg!(target_os = "android") { 18 } else { 25 }),
             top: px(0),
-            height: px(54),
+            height: px(54.0 * GAME_SIDE_CONTROL_SCALE),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             column_gap: px(10),

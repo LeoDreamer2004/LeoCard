@@ -27,13 +27,9 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         |event| play(event, |s| s.mode == Mode::Three
             && matches!(s.kind, PlayKind::Bomb | PlayKind::Rocket))
     ),
-    doudizhu!(
-        "airplane",
-        "腾空万里",
-        Bronze,
-        "打出飞机",
-        |event| play(event, |s| airplane_groups(s) >= 2)
-    ),
+    doudizhu!("airplane", "腾空万里", Bronze, "打出飞机", |event| {
+        play(event, |s| airplane_groups(s) >= 2)
+    }),
     doudizhu!(
         "higher_airplane",
         "飞的更高",

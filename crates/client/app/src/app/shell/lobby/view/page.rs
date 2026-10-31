@@ -74,14 +74,14 @@ impl LobbyPage {
                 max_width: px(1180),
                 flex_grow: 1.0,
                 align_self: AlignSelf::Center,
-                padding: UiRect::all(px(22)),
+                padding: UiRect::axes(px(22), px(if cfg!(target_os = "android") { 6 } else { 22 })),
                 flex_direction: FlexDirection::Row,
                 flex_wrap: if style.wrap {
                     FlexWrap::Wrap
                 } else {
                     FlexWrap::NoWrap
                 },
-                row_gap: px(18),
+                row_gap: px(if cfg!(target_os = "android") { 10 } else { 18 }),
                 column_gap: px(18),
                 align_items: AlignItems::Stretch,
                 ..default()
@@ -95,7 +95,10 @@ impl LobbyPage {
                 min_width: px(style.rules_min_width),
                 flex_basis: px(style.rules_basis),
                 flex_grow: 1.0,
-                padding: UiRect::all(px(20)),
+                padding: UiRect::axes(
+                    px(20),
+                    px(if cfg!(target_os = "android") { 12 } else { 20 }),
+                ),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(style.rules_gap.min(8.0)),
                 ..default()
@@ -114,7 +117,10 @@ impl LobbyPage {
                 min_width: px(style.players_min_width),
                 flex_basis: px(style.players_basis),
                 flex_grow: 2.0,
-                padding: UiRect::all(px(20)),
+                padding: UiRect::axes(
+                    px(20),
+                    px(if cfg!(target_os = "android") { 12 } else { 20 }),
+                ),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(style.players_gap),
                 ..default()

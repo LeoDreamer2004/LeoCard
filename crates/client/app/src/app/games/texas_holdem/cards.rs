@@ -3,6 +3,7 @@ use crate::app::presentation::{
     CARD_DEAL_INTERVAL, PendingDealSound, PlayingCardFlip, TEXT, TablePieceDeal, ease_out_cubic,
 };
 use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::TexasHoldemSnapshot;
 use leocard_texas_holdem::{TexasHoldemCard, TexasHoldemRuleSet};
@@ -30,6 +31,7 @@ pub(crate) struct TexasBoardCard;
 pub(super) struct TexasInitialDeal {
     pub(super) duration: f32,
     pub(super) own_delays: Vec<f32>,
+    pub(super) source: Entity,
 }
 
 pub(super) fn add_texas_board_back(
@@ -44,8 +46,9 @@ pub(super) fn add_texas_board_back(
         parent,
         (
             Node {
-                width: px(56),
-                height: px(76),
+                width: px(TexasTableLayout::BOARD_CARD_SIZE.x),
+                height: px(TexasTableLayout::BOARD_CARD_SIZE.y),
+                flex_shrink: 0.0,
                 border: UiRect::all(px(1)),
                 border_radius: BorderRadius::all(px(5)),
                 ..default()
@@ -62,7 +65,21 @@ pub(super) fn add_texas_board_back(
         elapsed: if animated { 0.0 } else { 1.0 },
         delay: delay.unwrap_or(0.0),
         start_offset: if animated {
-            Vec2::new(-65.0 - index as f32 * 63.0, 0.0)
+            let x = if cfg!(target_os = "android") {
+                TexasTableLayout::draw_pile_center().x
+                    - TexasTableLayout::board_card_origin(index).x
+                    - TexasTableLayout::BOARD_CARD_SIZE.x * 0.5
+            } else {
+                -65.0 - index as f32 * 63.0
+            };
+            let y = if cfg!(target_os = "android") {
+                TexasTableLayout::draw_pile_center().y
+                    - TexasTableLayout::board_card_origin(index).y
+                    - TexasTableLayout::BOARD_CARD_SIZE.y * 0.5
+            } else {
+                0.0
+            };
+            Vec2::new(x, y)
         } else {
             Vec2::ZERO
         },
@@ -88,8 +105,9 @@ pub(super) fn add_texas_board_face(
         parent,
         (
             Node {
-                width: px(56),
-                height: px(76),
+                width: px(TexasTableLayout::BOARD_CARD_SIZE.x),
+                height: px(TexasTableLayout::BOARD_CARD_SIZE.y),
+                flex_shrink: 0.0,
                 border: UiRect::all(px(1)),
                 border_radius: BorderRadius::all(px(5)),
                 ..default()
@@ -115,7 +133,21 @@ pub(super) fn spawn_texas_initial_deal(
     game: &TexasHoldemSnapshot,
     assets: &UiAssets,
 ) -> TexasInitialDeal {
-    let source = Vec2::new(456.0, 212.0);
+    let source = TexasTableLayout::initial_deal_source();
+    let source_anchor = commands.effect_child(
+        table,
+        (
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(source.x + 18.0),
+                top: px(source.y + 24.5),
+                width: px(0),
+                height: px(0),
+                ..default()
+            },
+            Pickable::IGNORE,
+        ),
+    );
     let dealer_seat = game
         .players
         .iter()
@@ -185,6 +217,7 @@ pub(super) fn spawn_texas_initial_deal(
     TexasInitialDeal {
         duration: dealt as f32 * CARD_DEAL_INTERVAL + 0.30,
         own_delays,
+        source: source_anchor,
     }
 }
 
@@ -201,7 +234,7 @@ pub(super) fn add_texas_card(
     parent: Entity,
     card: TexasHoldemCard,
     size: (f32, f32),
-    animation: Option<(f32, Vec2)>,
+    animation: Option<TablePieceDeal>,
     assets: &UiAssets,
 ) -> Entity {
     let face = assets.playing_cards.face(card);
@@ -218,10 +251,8 @@ pub(super) fn add_texas_card(
             UiTransform::IDENTITY,
         ),
     );
-    if let Some((delay, offset)) = animation {
-        commands
-            .entity(entity)
-            .init(TablePieceDeal::new(delay, offset));
+    if let Some(animation) = animation {
+        commands.entity(entity).init(animation);
     }
     entity
 }

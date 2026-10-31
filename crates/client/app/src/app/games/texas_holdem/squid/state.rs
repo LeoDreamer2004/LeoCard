@@ -107,6 +107,20 @@ fn marker_position(
         // Awarded markers leave gaps until the pool resets for the next round.
         let count = game.squid.markers.len();
         let slot = index;
+        if cfg!(target_os = "android") {
+            // One overlapping row leaves the compressed pot area free for actual wagers.
+            let step = ((208.0 - MARKER_SIZE) / count.saturating_sub(1).max(1) as f32)
+                .min(MARKER_SIZE + 4.0);
+            let width = MARKER_SIZE + count.saturating_sub(1) as f32 * step;
+            let center = TexasTableLayout::draw_pile_center()
+                .x
+                .max(380.0 + width * 0.5);
+            return Vec3::new(
+                center - width * 0.5 + slot as f32 * step + random_x * 3.0,
+                264.0 + random_y * 4.0,
+                0.0,
+            );
+        }
         let columns = count.min(2);
         let row = slot / columns;
         let row_count = (count - row * columns).min(columns);

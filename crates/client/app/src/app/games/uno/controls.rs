@@ -3,8 +3,8 @@ use super::{
     uno_pair_for_selection, uno_ui_color,
 };
 use crate::app::presentation::{
-    ButtonKind, GameButtonImageMode, GameButtonSpec, PanelSkin, add_section_title, add_text,
-    add_textured_game_button,
+    ButtonKind, GAME_SIDE_CONTROL_SCALE, GameButtonImageMode, GameButtonSpec, PanelSkin,
+    add_section_title, add_text, add_textured_game_button,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{UiAction, add_cozy_panel_with_skin};
@@ -78,7 +78,8 @@ fn add_uno_button(
             height,
             font_size,
             image_mode: GameButtonImageMode::Stretch,
-        },
+        }
+        .scaled(GAME_SIDE_CONTROL_SCALE),
     )
     .0
 }
@@ -144,9 +145,17 @@ pub(super) fn add_uno_actions(
                 table,
                 Node {
                     position_type: PositionType::Absolute,
-                    left: px(390),
+                    left: px(if cfg!(target_os = "android") {
+                        240
+                    } else {
+                        390
+                    }),
                     bottom: px(UNO_ACTION_AREA_BOTTOM),
-                    width: px(500),
+                    width: px(if cfg!(target_os = "android") {
+                        800
+                    } else {
+                        500
+                    }),
                     height: px(UNO_ACTION_AREA_HEIGHT),
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
@@ -178,9 +187,17 @@ pub(super) fn add_uno_actions(
         table,
         Node {
             position_type: PositionType::Absolute,
-            left: px(390),
+            left: px(if cfg!(target_os = "android") {
+                240
+            } else {
+                390
+            }),
             bottom: px(UNO_ACTION_AREA_BOTTOM),
-            width: px(500),
+            width: px(if cfg!(target_os = "android") {
+                800
+            } else {
+                500
+            }),
             height: px(UNO_ACTION_AREA_HEIGHT),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -507,7 +524,7 @@ fn add_color_choice_overlay(
         commands,
         overlay,
         Node {
-            width: px(480),
+            width: px(480.0 * GAME_SIDE_CONTROL_SCALE),
             padding: UiRect::all(px(22)),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
@@ -548,8 +565,8 @@ fn add_color_choice_overlay(
                         pressed: uno_ui_color(color).mix(&Color::BLACK, 0.22),
                     },
                     Node {
-                        width: px(78),
-                        height: px(78),
+                        width: px(78.0 * GAME_SIDE_CONTROL_SCALE),
+                        height: px(78.0 * GAME_SIDE_CONTROL_SCALE),
                         align_items: AlignItems::Center,
                         justify_content: JustifyContent::Center,
                         border: UiRect::all(px(3)),

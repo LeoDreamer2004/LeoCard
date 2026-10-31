@@ -1,6 +1,6 @@
 //! 七鬼五二三牌桌的小面板与操作按钮纹理。
 
-use crate::app::presentation::{GameButtonSpec, add_textured_game_button};
+use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, GameButtonSpec, add_textured_game_button};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -34,6 +34,6 @@ pub(super) fn add_qigui_action_button(
         commands,
         parent,
         assets,
-        GameButtonSpec::action(assets, label, Some(action), tone),
+        GameButtonSpec::action(assets, label, Some(action), tone).scaled(GAME_SIDE_CONTROL_SCALE),
     )
 }

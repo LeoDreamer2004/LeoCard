@@ -59,24 +59,22 @@ pub(in super::super) fn add_texas_win_rate(
     {
         return;
     }
+    // The mobile side seats sit close to the edge, so keep their equity labels toward the table.
+    let left_of_avatar = if cfg!(target_os = "android") {
+        matches!(side, SeatSide::Right)
+    } else {
+        matches!(side, SeatSide::Left)
+    };
     let holder = spawn_node(
         commands,
         avatar,
         Node {
             position_type: PositionType::Absolute,
-            left: if matches!(side, SeatSide::Left) {
-                Val::Auto
-            } else {
-                px(70)
-            },
-            right: if matches!(side, SeatSide::Left) {
-                px(70)
-            } else {
-                Val::Auto
-            },
+            left: if left_of_avatar { Val::Auto } else { px(70) },
+            right: if left_of_avatar { px(70) } else { Val::Auto },
             top: px(13),
             width: px(120),
-            justify_content: if matches!(side, SeatSide::Left) {
+            justify_content: if left_of_avatar {
                 JustifyContent::FlexEnd
             } else {
                 JustifyContent::FlexStart

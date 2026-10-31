@@ -1,3 +1,4 @@
+use super::layout::BlackjackSeatLayout;
 use super::{BlackjackTable, BlackjackUiAction};
 use crate::app::presentation::{
     ACCENT, GameButtonImageMode, GameButtonSpec, GameButtonTone, PanelSkin, TEXT, add_text,
@@ -23,30 +24,33 @@ impl BlackjackTable<'_> {
             Node {
                 position_type: PositionType::Absolute,
                 left: percent(50),
-                bottom: px(172),
-                width: px(480),
-                height: px(50),
+                bottom: px(BlackjackSeatLayout::ACTION_BOTTOM),
+                width: px(480.0 * BlackjackSeatLayout::ACTION_SCALE),
+                height: px(50.0 * BlackjackSeatLayout::ACTION_SCALE),
                 flex_direction: FlexDirection::Column,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                row_gap: px(7),
+                row_gap: px(7.0 * BlackjackSeatLayout::ACTION_SCALE),
                 ..default()
             },
             None,
         );
         commands
             .entity(controls)
-            .insert(UiTransform::from_translation(Val2::px(-240.0, 0.0)));
+            .insert(UiTransform::from_translation(Val2::px(
+                -240.0 * BlackjackSeatLayout::ACTION_SCALE,
+                0.0,
+            )));
         let row = spawn_node(
             commands,
             controls,
             Node {
                 width: percent(100),
-                height: px(50),
+                height: px(50.0 * BlackjackSeatLayout::ACTION_SCALE),
                 flex_shrink: 0.0,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                column_gap: px(8),
+                column_gap: px(8.0 * BlackjackSeatLayout::ACTION_SCALE),
                 ..default()
             },
             None,
@@ -65,7 +69,7 @@ impl BlackjackTable<'_> {
                     "本局 {:+}",
                     i64::from(own.stack) - i64::from(own.round_start_stack)
                 ),
-                21.0,
+                21.0 * BlackjackSeatLayout::ACTION_SCALE,
                 ACCENT,
                 self.assets,
             );
@@ -167,9 +171,9 @@ impl BlackjackTable<'_> {
                         .then_some(UiAction::Blackjack(BlackjackUiAction::SetBet(next))),
                     normal,
                     hovered,
-                    width: 44.0,
-                    height: 50.0,
-                    font_size: 17.0,
+                    width: 44.0 * BlackjackSeatLayout::ACTION_SCALE,
+                    height: 50.0 * BlackjackSeatLayout::ACTION_SCALE,
+                    font_size: 17.0 * BlackjackSeatLayout::ACTION_SCALE,
                     image_mode: GameButtonImageMode::Stretch,
                 },
             );
@@ -194,11 +198,11 @@ impl BlackjackTable<'_> {
                 position_type: PositionType::Absolute,
                 left: px(0),
                 right: px(0),
-                top: px(57),
-                height: px(34),
+                top: px(57.0 * BlackjackSeatLayout::ACTION_SCALE),
+                height: px(34.0 * BlackjackSeatLayout::ACTION_SCALE),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                column_gap: px(6),
+                column_gap: px(6.0 * BlackjackSeatLayout::ACTION_SCALE),
                 ..default()
             },
             None,
@@ -222,7 +226,7 @@ impl BlackjackTable<'_> {
             commands
                 .entity(button)
                 .entry::<Node>()
-                .and_modify(|mut node| node.height = px(34));
+                .and_modify(|mut node| node.height = px(34.0 * BlackjackSeatLayout::ACTION_SCALE));
         }
     }
 
@@ -277,12 +281,17 @@ fn action_button(
     assets: &UiAssets,
 ) -> Entity {
     let mut spec = GameButtonSpec::action(assets, label, action, tone);
-    spec.width = width;
-    spec.height = 50.0;
-    spec.font_size = 17.0;
+    spec.width = width * BlackjackSeatLayout::ACTION_SCALE;
+    spec.height = 50.0 * BlackjackSeatLayout::ACTION_SCALE;
+    spec.font_size = 17.0 * BlackjackSeatLayout::ACTION_SCALE;
     spec.image_mode = GameButtonImageMode::Sliced {
         border: 30.0,
-        corner_scale: 0.42,
+        corner_scale: 0.42 * BlackjackSeatLayout::ACTION_SCALE,
     };
-    add_textured_game_button(commands, parent, assets, spec).0
+    let button = add_textured_game_button(commands, parent, assets, spec).0;
+    commands
+        .entity(button)
+        .entry::<Node>()
+        .and_modify(|mut node| node.flex_shrink = 0.0);
+    button
 }

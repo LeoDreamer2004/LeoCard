@@ -10,12 +10,13 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{FinishedHandScoreSource, OpponentBadge, displayed_captured_score};
-
 use bevy::picking::Pickable;
-use bevy::prelude::*;
-use leocard_protocol::{GameKind, GamePhaseView, PlayerId, PlayerPublicState, QiGui523Snapshot};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{GameKind, QiGui523PhaseView, QiGui523PlayerView, QiGui523Snapshot};
 use leocard_qigui523::QiGuiCard;
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 pub(super) const QIGUI_PORTRAIT_WIDTH: f32 = 96.0 * 1.17;
 pub(super) const QIGUI_AVATAR_SIZE: f32 = 52.0 * 1.17;
@@ -25,7 +26,7 @@ pub(super) fn add_opponent_slot(
     commands: &mut UiComposer,
     table: Entity,
     relative_seat: u8,
-    player: Option<&PlayerPublicState>,
+    player: Option<&QiGui523PlayerView>,
     active: bool,
     visuals: &SeatVisuals,
     turn_border_materials: &mut Assets<TurnBorderMaterial>,
@@ -61,10 +62,13 @@ pub(super) fn add_opponent_slot(
         );
     }
     let interaction_menu_open =
-        player.is_some_and(|player| visuals.interaction_menu_open == Some(player.id));
+        player.is_some_and(|player| visuals.interaction_menu_open == Some(player.player.id));
     match player {
         Some(player) => {
-            let avatar = player.avatar.and_then(|id| visuals.avatars.remote.get(&id));
+            let avatar = player
+                .player
+                .avatar
+                .and_then(|id| visuals.avatars.remote.get(&id));
             let portrait = add_player_portrait(
                 commands,
                 slot,
@@ -76,13 +80,13 @@ pub(super) fn add_opponent_slot(
                     ..default()
                 },
                 PlayerPortraitSpec {
-                    player: player.id,
+                    player: player.player.id,
                     profile: PlayerMenuProfile {
-                        name: &player.name,
+                        name: &player.player.name,
                         avatar,
-                        reference_points: player.reference_points,
-                        completed_games: player.completed_games,
-                        game_profiles: &player.game_profiles,
+                        reference_points: player.player.reference_points,
+                        completed_games: player.player.completed_games,
+                        game_profiles: &player.player.game_profiles,
                     },
                     avatar_size: QIGUI_AVATAR_SIZE,
                     auto_play: player.auto_play,
@@ -100,7 +104,7 @@ pub(super) fn add_opponent_slot(
             attach_start_game_seat_transition(
                 commands,
                 portrait.portrait,
-                player.id,
+                player.player.id,
                 visuals.start_transition_active,
             );
             if visuals.intro_only {
@@ -127,29 +131,30 @@ pub(super) fn add_opponent_slot(
                     TurnBorderAnimationKey::new(
                         GameKind::QiGui523,
                         visuals.game.match_id,
-                        player.id,
+                        player.player.id,
                     ),
                     QIGUI_AVATAR_SIZE * 0.2,
                     QIGUI_AVATAR_SIZE,
                 );
             }
-            let score = displayed_captured_score(visuals.score_capture, player.id, player.score);
+            let score =
+                displayed_captured_score(visuals.score_capture, player.player.id, player.score);
             add_qigui_player_stats(
                 commands,
                 portrait.portrait,
-                player.id,
+                player.player.id,
                 side,
                 score,
                 player.hand_len,
                 visuals.ui,
             );
-            if let Some(cards) = finished_remaining_hand(visuals.game, player.id)
+            if let Some(cards) = finished_remaining_hand(visuals.game, player.player.id)
                 && !cards.is_empty()
             {
                 add_finished_remaining_hand(
                     commands,
                     portrait.portrait,
-                    player.id,
+                    player.player.id,
                     cards,
                     matches!(relative_seat, 1 | 5),
                     visuals.ui,
@@ -159,7 +164,7 @@ pub(super) fn add_opponent_slot(
                 commands,
                 portrait.portrait,
                 player,
-                visuals.client.0.model().captured_score_cards(player.id),
+                visuals.client_state.captured_score_cards(player.player.id),
                 ScoreCardsPopupPlacement::Opponent {
                     side,
                     above: matches!(relative_seat, 1 | 5),
@@ -205,7 +210,7 @@ pub(super) fn add_opponent_slot(
 }
 
 fn finished_remaining_hand(game: &QiGui523Snapshot, player: PlayerId) -> Option<&[QiGuiCard]> {
-    let GamePhaseView::Finished {
+    let QiGui523PhaseView::Finished {
         remaining_hands, ..
     } = &game.phase
     else {

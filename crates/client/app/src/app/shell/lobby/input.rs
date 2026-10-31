@@ -105,7 +105,7 @@ pub(crate) fn handle_lobby_bot_seat_right_click(
             .find(|player| player.seat == Some(seat))
         {
             None => true,
-            Some(player) if player.profile_id.0 == [0; 32] => false,
+            Some(player) if player.player.profile_id.0 == [0; 32] => false,
             Some(_) => return,
         }
     };

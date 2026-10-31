@@ -1,9 +1,13 @@
 use super::cards;
-use crate::{Action, GameError, GameState, MatchState, Mode, ResultView, RuleSet, build_deck};
+use crate::{
+    DoudizhuAction, DoudizhuGameError, DoudizhuGameState, DoudizhuMatchState, DoudizhuMode,
+    DoudizhuResultView, DoudizhuRuleSet, build_deck,
+};
+use leocard_game_common::PlayerId;
 
-fn result(scores: Vec<i32>) -> ResultView {
-    ResultView {
-        winner: 0,
+fn result(scores: Vec<i32>) -> DoudizhuResultView {
+    DoudizhuResultView {
+        winner: PlayerId(0),
         landlord_won: true,
         spring: false,
         scores,
@@ -12,20 +16,20 @@ fn result(scores: Vec<i32>) -> ResultView {
 
 #[test]
 fn every_round_rotates_first_bidder_and_counts_each_hand_once() {
-    for mode in [Mode::Three, Mode::Four] {
-        let mut state = MatchState::new(
-            RuleSet {
+    for mode in [DoudizhuMode::Three, DoudizhuMode::Four] {
+        let mut state = DoudizhuMatchState::new(
+            DoudizhuRuleSet {
                 mode,
                 rounds: 5,
-                ..RuleSet::default()
+                ..DoudizhuRuleSet::default()
             },
-            1,
+            PlayerId(1),
         )
         .unwrap();
         assert!(!state.next_hand());
         for hand in 1..=5 * mode.players() {
             assert_eq!(state.progress().hand_number, hand);
-            assert_eq!(state.first_bidder(), hand % mode.players());
+            assert_eq!(state.first_bidder(), PlayerId(hand % mode.players()));
             assert_eq!(state.progress().round(), (hand - 1) / mode.players() + 1);
             assert_eq!(
                 state.progress().hand_in_round(),
@@ -48,14 +52,14 @@ fn every_round_rotates_first_bidder_and_counts_each_hand_once() {
     }
     for rounds in [0, 6] {
         assert!(matches!(
-            MatchState::new(
-                RuleSet {
+            DoudizhuMatchState::new(
+                DoudizhuRuleSet {
                     rounds,
                     ..Default::default()
                 },
-                0
+                PlayerId(0)
             ),
-            Err(GameError::InvalidRules)
+            Err(DoudizhuGameError::InvalidRules)
         ));
     }
 }
@@ -63,17 +67,17 @@ fn every_round_rotates_first_bidder_and_counts_each_hand_once() {
 #[test]
 fn match_awards_use_total_scores_and_configured_round_brackets() {
     for (mode, short, long) in [
-        (Mode::Three, vec![3, 0, -3], vec![5, 0, -5]),
-        (Mode::Four, vec![4, 2, -2, -4], vec![6, 3, -3, -6]),
+        (DoudizhuMode::Three, vec![3, 0, -3], vec![5, 0, -5]),
+        (DoudizhuMode::Four, vec![4, 2, -2, -4], vec![6, 3, -3, -6]),
     ] {
         for rounds in 1..=5 {
-            let mut state = MatchState::new(
-                RuleSet {
+            let mut state = DoudizhuMatchState::new(
+                DoudizhuRuleSet {
                     mode,
                     rounds,
-                    ..RuleSet::default()
+                    ..DoudizhuRuleSet::default()
                 },
-                0,
+                PlayerId(0),
             )
             .unwrap();
             for _ in 0..state.progress().total_hands() {
@@ -92,24 +96,27 @@ fn match_awards_use_total_scores_and_configured_round_brackets() {
             );
         }
     }
-    let mut tied = MatchState::new(RuleSet::default(), 0).unwrap();
+    let mut tied = DoudizhuMatchState::new(DoudizhuRuleSet::default(), PlayerId(0)).unwrap();
     for _ in 0..3 {
         tied.finish_hand(&result(vec![1, 1, -2]));
         tied.next_hand();
     }
-    assert_eq!(tied.reference_deltas(Mode::Three).unwrap(), [3, 3, -3]);
+    assert_eq!(
+        tied.reference_deltas(DoudizhuMode::Three).unwrap(),
+        [3, 3, -3]
+    );
 }
 
 #[test]
 fn four_player_small_bombs_do_not_double_but_six_cards_and_rockets_do() {
     for (mode, ranks, multiplier) in [
-        (Mode::Three, vec![0; 4], 2),
-        (Mode::Three, vec![13, 14], 2),
-        (Mode::Four, vec![0; 4], 1),
-        (Mode::Four, vec![0; 5], 1),
-        (Mode::Four, vec![0; 6], 2),
-        (Mode::Four, vec![0; 8], 2),
-        (Mode::Four, vec![13, 13, 14, 14], 2),
+        (DoudizhuMode::Three, vec![0; 4], 2),
+        (DoudizhuMode::Three, vec![13, 14], 2),
+        (DoudizhuMode::Four, vec![0; 4], 1),
+        (DoudizhuMode::Four, vec![0; 5], 1),
+        (DoudizhuMode::Four, vec![0; 6], 2),
+        (DoudizhuMode::Four, vec![0; 8], 2),
+        (DoudizhuMode::Four, vec![13, 13, 14, 14], 2),
     ] {
         let wanted = cards(&ranks);
         let deck = build_deck(mode);
@@ -124,17 +131,17 @@ fn four_player_small_bombs_do_not_double_but_six_cards_and_rockets_do() {
                 }
             })
             .collect();
-        let mut game = GameState::new(
-            RuleSet {
+        let mut game = DoudizhuGameState::new(
+            DoudizhuRuleSet {
                 mode,
                 ..Default::default()
             },
             arranged,
-            0,
+            PlayerId(0),
         )
         .unwrap();
-        game.act(0, Action::Bid(3)).unwrap();
-        game.act(0, Action::Play(wanted)).unwrap();
+        game.act(PlayerId(0), DoudizhuAction::Bid(3)).unwrap();
+        game.act(PlayerId(0), DoudizhuAction::Play(wanted)).unwrap();
         assert_eq!(game.multiplier, multiplier);
     }
 }

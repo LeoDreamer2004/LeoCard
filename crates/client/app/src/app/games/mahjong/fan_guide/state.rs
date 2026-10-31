@@ -648,7 +648,7 @@ mod tests {
                     }
                 }
             }
-            let expected = if entry.fan == leocard_mahjong::Fan::FlowerTiles {
+            let expected = if entry.fan == leocard_mahjong::MahjongFan::FlowerTiles {
                 8
             } else {
                 14 + kongs

@@ -7,10 +7,12 @@ use super::{
 };
 use crate::app::presentation::ease_out_cubic;
 use bevy::picking::Pickable;
-use bevy::prelude::*;
+use leocard_game_common::PlayerId;
 use leocard_mahjong::MahjongTile;
-use leocard_protocol::{MahjongSnapshot, PlayerId};
+use leocard_protocol::MahjongSnapshot;
 use leocard_ui::UiComposer;
+
+use bevy::prelude::*;
 
 const DISCARD_DURATION: f32 = 0.48;
 const HAND_TILE_ADVANCE: f32 = Layout::OWN_STEP;
@@ -211,7 +213,7 @@ pub(super) fn observe_discard_animations(ui: &mut MahjongUiState, game: &Mahjong
         && game
             .players
             .iter()
-            .any(|player| player.id == discard.player)
+            .any(|player| player.player.id == discard.player)
     {
         ui.remote_discard_animation = Some(MahjongRemoteDiscardAnimation {
             player: discard.player,

@@ -8,7 +8,7 @@ description = "Authoritative in-memory room/session host for LeoCard"
 
 [features]
 default = []
-developer = ["leocard-qigui523/developer", "leocard-minecraft-guess/developer"]
+developer = ["leocard-qigui523/developer", "leocard_mc_guess/developer"]
 
 [dependencies]
 ed25519-dalek.workspace = true
@@ -19,7 +19,7 @@ leocard-blackjack = { path = "../games/blackjack" }
 leocard-game-common = { path = "../games/common" }
 leocard-doudizhu = { path = "../games/doudizhu", features = ["serde"] }
 leocard-mahjong = { path = "../games/mahjong" }
-leocard-minecraft-guess = { path = "../games/minecraft-guess" }
+leocard_mc_guess = { path = "../games/mc-guess" }
 leocard-protocol = { path = "../network/protocol" }
 leocard-qigui523 = { path = "../games/qigui523" }
 leocard-shengji = { path = "../games/shengji" }

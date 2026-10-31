@@ -1,6 +1,8 @@
 use super::{ShengjiGreedyBot, ShengjiGreedyBotRequest};
 use crate::play::{category, classify_cards};
-use crate::{Category, ShengjiCard, ShengjiClassifiedPlay, ShengjiTrump, follow_suggestions};
+use crate::{
+    ShengjiCard, ShengjiCategory, ShengjiClassifiedPlay, ShengjiTrump, follow_suggestions,
+};
 use std::collections::BTreeMap;
 
 pub(super) fn plays(
@@ -42,9 +44,9 @@ pub(super) fn plays(
         for cards in faces.values().filter(|cards| cards.len() >= width) {
             let cat = category(cards[0], trump);
             let index = match cat {
-                Category::Trump => 4,
-                Category::Suit(suit) => suit as usize,
-                Category::Mixed => continue,
+                ShengjiCategory::Trump => 4,
+                ShengjiCategory::Suit(suit) => suit as usize,
+                ShengjiCategory::Mixed => continue,
             };
             groups.insert((index, trump.strength(cards[0])), cards[..width].to_vec());
         }
@@ -80,9 +82,9 @@ pub(super) fn hand_value(hand: &[ShengjiCard], trump: ShengjiTrump) -> f64 {
         *faces.entry((card.suit(), card.rank())).or_insert(0usize) += 1;
         let cat = category(*card, trump);
         suits[match cat {
-            Category::Trump => 4,
-            Category::Suit(suit) => suit as usize,
-            Category::Mixed => unreachable!(),
+            ShengjiCategory::Trump => 4,
+            ShengjiCategory::Suit(suit) => suit as usize,
+            ShengjiCategory::Mixed => unreachable!(),
         }] += 1;
     }
     for (face, count) in faces {

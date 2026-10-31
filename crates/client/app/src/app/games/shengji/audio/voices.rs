@@ -1,8 +1,9 @@
 use super::super::ShengjiPlayFeedback;
 use crate::app::runtime::ClientResource;
 use bevy::prelude::*;
-use leocard_protocol::{MatchId, PlayerGender};
-use leocard_shengji::{Category, Component as PlayComponent, ShengjiClassifiedPlay};
+use leocard_protocol::{GameSnapshot, MatchId, PlayerGender};
+
+use leocard_shengji::{ShengjiCategory, ShengjiClassifiedPlay, ShengjiComponent};
 use std::collections::VecDeque;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -43,7 +44,7 @@ impl ShengjiVoiceKind {
     }
 
     pub(super) fn for_play(play: &ShengjiClassifiedPlay, is_lead: bool) -> Option<Self> {
-        if play.category == Category::Mixed {
+        if play.category == ShengjiCategory::Mixed {
             return None;
         }
         if play.is_throw() {
@@ -51,14 +52,14 @@ impl ShengjiVoiceKind {
             return is_lead.then_some(Self::Throw);
         }
         match play.strongest_component() {
-            PlayComponent::Single { .. } | PlayComponent::Pair { .. } => {
-                (is_lead && play.category == Category::Trump).then_some(Self::TrumpLead)
+            ShengjiComponent::Single { .. } | ShengjiComponent::Pair { .. } => {
+                (is_lead && play.category == ShengjiCategory::Trump).then_some(Self::TrumpLead)
             }
-            PlayComponent::Tractor { .. } => Some(Self::Tractor),
-            PlayComponent::Triple { .. } => Some(Self::Triple),
-            PlayComponent::Titanic { .. } => Some(Self::Titanic),
-            PlayComponent::Quad { .. } => Some(Self::Bomb),
-            PlayComponent::Spaceship { .. } => Some(Self::Spaceship),
+            ShengjiComponent::Tractor { .. } => Some(Self::Tractor),
+            ShengjiComponent::Triple { .. } => Some(Self::Triple),
+            ShengjiComponent::Titanic { .. } => Some(Self::Titanic),
+            ShengjiComponent::Quad { .. } => Some(Self::Bomb),
+            ShengjiComponent::Spaceship { .. } => Some(Self::Spaceship),
         }
     }
 }
@@ -81,10 +82,13 @@ pub(super) fn sync_shengji_voices(
     mut voices: ResMut<ShengjiVoiceState>,
 ) {
     let events = feedback.read();
-    let Some(game) = client
-        .as_ref()
-        .and_then(|client| client.0.model().shengji_game())
-    else {
+    let Some(game) = client.as_ref().and_then(|client| {
+        client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::shengji)
+    }) else {
         events.for_each(|_| {});
         *voices = ShengjiVoiceState::default();
         return;
@@ -101,7 +105,7 @@ pub(super) fn sync_shengji_voices(
         let Some(player) = game
             .players
             .iter()
-            .find(|player| player.id == event.play.player)
+            .find(|player| player.player.id == event.play.player)
         else {
             continue;
         };
@@ -113,7 +117,7 @@ pub(super) fn sync_shengji_voices(
         .flatten()
         {
             voices.pending.push_back(ShengjiVoiceCue {
-                gender: player.game_profiles.gender,
+                gender: player.player.game_profiles.gender,
                 kind,
             });
         }

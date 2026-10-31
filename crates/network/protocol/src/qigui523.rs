@@ -1,4 +1,5 @@
-use crate::{AvatarId, MatchId, PlayerGameProfiles, PlayerId, ProfileId, SeatId};
+use crate::{MatchId, PlayerPublicInfo, PlayerReferenceChange, PlayerScore, SeatId};
+use leocard_game_common::PlayerId;
 use leocard_qigui523::{QiGuiCard, QiGuiPlayKind};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -10,104 +11,79 @@ pub struct QiGui523Snapshot {
     pub host_port: u16,
     pub you: PlayerId,
     pub host: PlayerId,
-    pub players: Vec<PlayerPublicState>,
+    pub players: Vec<QiGui523PlayerView>,
     pub your_hand: Vec<QiGuiCard>,
     /// 本局实际打出的公开牌，含已经结束的轮次。
     pub played_cards: Vec<QiGuiCard>,
     pub draw_pile_len: u16,
-    pub starting_card: StartingCardView,
-    pub trick: Option<TrickView>,
-    pub turn_timer: Option<TurnTimerView>,
-    pub phase: GamePhaseView,
+    pub starting_card: QiGui523StartingCardView,
+    pub trick: Option<QiGui523TrickView>,
+    pub turn_timer: Option<QiGui523TurnTimerView>,
+    pub phase: QiGui523PhaseView,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct TurnTimerView {
+pub struct QiGui523TurnTimerView {
     pub player: PlayerId,
     pub base_seconds: u16,
     pub reserve_seconds: u16,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct PlayerPublicState {
-    pub id: PlayerId,
-    pub profile_id: ProfileId,
-    pub name: String,
-    pub avatar: Option<AvatarId>,
-    pub seat: SeatId,
-    pub hand_len: u16,
-    pub score: u32,
-    pub ready: bool,
-    pub connected: bool,
-    /// 由房主执行贪心策略的托管状态；所有客户端都可见。
-    pub auto_play: bool,
-    pub reference_points: i32,
-    pub completed_games: u32,
-    pub game_profiles: PlayerGameProfiles,
-}
-
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct StartingCardView {
+pub struct QiGui523StartingCardView {
     pub player: PlayerId,
     pub card: QiGuiCard,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct TrickView {
+pub struct QiGui523TrickView {
     pub leader: PlayerId,
     pub current_player: PlayerId,
     pub winning_player: Option<PlayerId>,
-    pub winning_play: Option<PublicPlay>,
-    pub records: Vec<PublicPlayRecord>,
+    pub winning_play: Option<QiGui523PublicPlay>,
+    pub records: Vec<QiGui523PublicPlayRecord>,
     pub table_points: u32,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct PublicPlay {
+pub struct QiGui523PublicPlay {
     pub kind: QiGuiPlayKind,
     pub cards: Vec<QiGuiCard>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum PublicPlayRecord {
-    Played { player: PlayerId, play: PublicPlay },
-    Passed { player: PlayerId },
+pub enum QiGui523PublicPlayRecord {
+    Played {
+        player: PlayerId,
+        play: QiGui523PublicPlay,
+    },
+    Passed {
+        player: PlayerId,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum GamePhaseView {
+pub enum QiGui523PhaseView {
     Playing,
     Finished {
         match_id: MatchId,
         finisher: PlayerId,
         scores: Vec<PlayerScore>,
-        remaining_hands: Vec<RevealedHand>,
+        remaining_hands: Vec<QiGui523RevealedHand>,
         reference_changes: Vec<PlayerReferenceChange>,
         captured_hand_points: u32,
     },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct RevealedHand {
+pub struct QiGui523RevealedHand {
     pub player: PlayerId,
     pub cards: Vec<QiGuiCard>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct PlayerScore {
-    pub player: PlayerId,
-    pub score: u32,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct PlayerReferenceChange {
-    pub player: PlayerId,
-    pub profile_id: ProfileId,
-    pub delta: i16,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum RuleViolation {
+pub enum QiGui523Violation {
+    InvalidDeveloperHand,
     InvalidPlayer,
     NotPlayersTurn,
     GameAlreadyFinished,
@@ -117,9 +93,10 @@ pub enum RuleViolation {
     PlayDoesNotBeatCurrent,
 }
 
-impl fmt::Display for RuleViolation {
+impl fmt::Display for QiGui523Violation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
+            Self::InvalidDeveloperHand => "开发者手牌无效",
             Self::NotPlayersTurn => "还没有轮到你行动",
             Self::MustLeadWithCards => "领出时必须出牌",
             Self::CardNotInHand => "选择的牌不在手中",
@@ -129,4 +106,16 @@ impl fmt::Display for RuleViolation {
             Self::InvalidPlayer => "玩家身份无效",
         })
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct QiGui523PlayerView {
+    pub player: PlayerPublicInfo,
+    pub seat: SeatId,
+    pub hand_len: u16,
+    pub score: u32,
+    pub ready: bool,
+    pub connected: bool,
+    /// 由房主执行的托管状态；所有客户端都可见。
+    pub auto_play: bool,
 }

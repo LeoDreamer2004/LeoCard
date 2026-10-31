@@ -5,14 +5,14 @@ mod catalog;
 mod composition;
 pub(super) mod doudizhu;
 pub(super) mod mahjong;
-pub(super) mod minecraft_guess;
+pub(super) mod mc_guess;
 mod plugin;
 pub(super) mod qigui523;
 mod screen;
 mod screen_change;
 pub(super) mod shengji;
 mod summary_sync;
-pub(super) mod texas_holdem;
+pub(super) mod texas;
 pub(super) mod uno;
 
 pub(super) use catalog::*;

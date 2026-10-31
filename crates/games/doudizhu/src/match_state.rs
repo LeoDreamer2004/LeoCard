@@ -1,15 +1,15 @@
-use crate::{GameError, Mode, ResultView, RuleSet};
-use leocard_game_common::ranked_awards;
+use crate::{DoudizhuGameError, DoudizhuMode, DoudizhuResultView, DoudizhuRuleSet};
+use leocard_game_common::{PlayerId, ranked_awards};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct MatchProgress {
+pub struct DoudizhuMatchProgress {
     pub hand_number: u8,
     pub rounds: u8,
     pub player_count: u8,
 }
 
-impl MatchProgress {
+impl DoudizhuMatchProgress {
     pub const fn round(self) -> u8 {
         (self.hand_number - 1) / self.player_count + 1
     }
@@ -28,23 +28,23 @@ impl MatchProgress {
 }
 
 #[derive(Clone, Debug)]
-pub struct MatchState {
-    progress: MatchProgress,
-    first: u8,
+pub struct DoudizhuMatchState {
+    progress: DoudizhuMatchProgress,
+    first: PlayerId,
     scores: Vec<i32>,
     hand_finished: bool,
 }
 
-impl MatchState {
-    pub fn new(rules: RuleSet, first: u8) -> Result<Self, GameError> {
+impl DoudizhuMatchState {
+    pub fn new(rules: DoudizhuRuleSet, first: PlayerId) -> Result<Self, DoudizhuGameError> {
         if !rules.is_valid() {
-            return Err(GameError::InvalidRules);
+            return Err(DoudizhuGameError::InvalidRules);
         }
-        if first >= rules.mode.players() {
-            return Err(GameError::InvalidPlayer);
+        if first.0 >= rules.mode.players() {
+            return Err(DoudizhuGameError::InvalidPlayer);
         }
         Ok(Self {
-            progress: MatchProgress {
+            progress: DoudizhuMatchProgress {
                 hand_number: 1,
                 rounds: rules.rounds,
                 player_count: rules.mode.players(),
@@ -55,12 +55,12 @@ impl MatchState {
         })
     }
 
-    pub const fn progress(&self) -> MatchProgress {
+    pub const fn progress(&self) -> DoudizhuMatchProgress {
         self.progress
     }
 
-    pub const fn first_bidder(&self) -> u8 {
-        (self.first + self.progress.hand_number - 1) % self.progress.player_count
+    pub const fn first_bidder(&self) -> PlayerId {
+        PlayerId((self.first.0 + self.progress.hand_number - 1) % self.progress.player_count)
     }
 
     pub fn scores(&self) -> &[i32] {
@@ -71,7 +71,7 @@ impl MatchState {
         self.hand_finished && self.progress.is_last_hand()
     }
 
-    pub fn finish_hand(&mut self, result: &ResultView) -> bool {
+    pub fn finish_hand(&mut self, result: &DoudizhuResultView) -> bool {
         if self.hand_finished || result.scores.len() != self.scores.len() {
             return false;
         }
@@ -91,15 +91,15 @@ impl MatchState {
         true
     }
 
-    pub fn reference_deltas(&self, mode: Mode) -> Option<Vec<i16>> {
+    pub fn reference_deltas(&self, mode: DoudizhuMode) -> Option<Vec<i16>> {
         if !self.complete() {
             return None;
         }
         let awards: &[i16] = match (mode, self.progress.rounds >= 3) {
-            (Mode::Three, false) => &[3, 0, -3],
-            (Mode::Four, false) => &[4, 2, -2, -4],
-            (Mode::Three, true) => &[5, 0, -5],
-            (Mode::Four, true) => &[6, 3, -3, -6],
+            (DoudizhuMode::Three, false) => &[3, 0, -3],
+            (DoudizhuMode::Four, false) => &[4, 2, -2, -4],
+            (DoudizhuMode::Three, true) => &[5, 0, -5],
+            (DoudizhuMode::Four, true) => &[6, 3, -3, -6],
         };
         ranked_awards(&self.scores, awards)
     }

@@ -9,7 +9,7 @@ use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{LobbyPage, LobbyPageConfig, LobbyPageStyle, UiAction};
 use bevy::prelude::*;
 use leocard_protocol::LobbySnapshot;
-use leocard_qigui523::{QiGuiRuleSet, SameCardPolicy};
+use leocard_qigui523::{QiGuiRuleSet, QiGuiSameCardPolicy};
 use leocard_ui::UiComposer;
 
 impl EditableRuleSet for QiGuiRuleSet {
@@ -175,8 +175,8 @@ pub(crate) fn render_qigui523_lobby(
 
     let toggled_policy = QiGuiRuleSet {
         same_card_policy: match game_rules.same_card_policy {
-            SameCardPolicy::MustBeHigher => SameCardPolicy::CanFollow,
-            SameCardPolicy::CanFollow => SameCardPolicy::MustBeHigher,
+            QiGuiSameCardPolicy::MustBeHigher => QiGuiSameCardPolicy::CanFollow,
+            QiGuiSameCardPolicy::CanFollow => QiGuiSameCardPolicy::MustBeHigher,
         },
         ..game_rules
     };
@@ -186,8 +186,8 @@ pub(crate) fn render_qigui523_lobby(
         RuleConfigRow {
             label: "同强度跟牌",
             value: match game_rules.same_card_policy {
-                SameCardPolicy::MustBeHigher => "不允许".to_owned(),
-                SameCardPolicy::CanFollow => "允许".to_owned(),
+                QiGuiSameCardPolicy::MustBeHigher => "不允许".to_owned(),
+                QiGuiSameCardPolicy::CanFollow => "允许".to_owned(),
             },
             help: "整手牌比较结果完全相同时，决定后出的玩家是否仍可跟牌。关闭时必须严格更大。",
             editable: can_configure,

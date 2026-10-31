@@ -2,16 +2,23 @@ use super::DoudizhuSession;
 use super::statistics::DoudizhuStatistics;
 use crate::new_match_id;
 use leocard_doudizhu::achievements::DoudizhuAchievementTracker;
-use leocard_doudizhu::{Card, GameState, MatchState, build_deck};
-use leocard_protocol::{DoudizhuEvent, DoudizhuProfileStats, PlayerId};
+use leocard_doudizhu::{
+    DoudizhuCard, DoudizhuGameState, DoudizhuMatchState, DoudizhuProfileStats, build_deck,
+};
+
+use leocard_game_common::PlayerId;
+use leocard_protocol::DoudizhuEvent;
 
 impl DoudizhuSession {
     pub(super) fn begin_match(&mut self) {
         self.statistics = DoudizhuStatistics::new(self.rules.mode.players());
         self.achievements = DoudizhuAchievementTracker::new(self.rules.mode.players());
         self.match_state = Some(
-            MatchState::new(self.rules, fastrand::u8(..self.rules.mode.players()))
-                .expect("validated rules"),
+            DoudizhuMatchState::new(
+                self.rules,
+                PlayerId(fastrand::u8(..self.rules.mode.players())),
+            )
+            .expect("validated rules"),
         );
         let mut deck = self
             .deck
@@ -43,15 +50,16 @@ impl DoudizhuSession {
         self.deal_hand(deck);
     }
 
-    fn deal_hand(&mut self, deck: Vec<Card>) {
+    fn deal_hand(&mut self, deck: Vec<DoudizhuCard>) {
         self.achievements.begin_hand();
         let first = self
             .match_state
             .as_ref()
             .expect("active match")
             .first_bidder();
-        self.game =
-            Some(GameState::new(self.rules, deck, first).expect("validated deck and rules"));
+        self.game = Some(
+            DoudizhuGameState::new(self.rules, deck, first).expect("validated deck and rules"),
+        );
         for player in &mut self.room.players {
             player.ready = player.is_bot;
         }
@@ -90,7 +98,7 @@ impl DoudizhuSession {
                         .game_profiles
                         .doudizhu
                         .get_or_insert_with(DoudizhuProfileStats::default);
-                    self.statistics.merge_into(player.id.0, stats, delta);
+                    self.statistics.merge_into(player.id, stats, delta);
                 },
             );
         }
@@ -98,7 +106,7 @@ impl DoudizhuSession {
         achievements
             .into_iter()
             .map(|(player, statistics)| DoudizhuEvent::ActionAnalyzed {
-                player: PlayerId(player),
+                player,
                 statistics: Box::new(statistics),
             })
             .collect()

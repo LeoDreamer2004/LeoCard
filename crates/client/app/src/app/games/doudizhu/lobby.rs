@@ -3,11 +3,11 @@ use crate::app::presentation::{EditableRuleSet, RuleConfigRow, add_rule_config_r
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{CozyDropdown, CozyDropdownOption, LobbyPage, LobbyPageConfig, UiAction};
 use bevy::prelude::*;
-use leocard_doudizhu::{Mode, RuleSet};
+use leocard_doudizhu::{DoudizhuMode, DoudizhuRuleSet};
 use leocard_protocol::LobbySnapshot;
 use leocard_ui::UiComposer;
 
-impl EditableRuleSet for RuleSet {
+impl EditableRuleSet for DoudizhuRuleSet {
     const ROW_HEIGHT: f32 = 38.0;
     const VALUE_WIDTH: f32 = 110.0;
 
@@ -43,27 +43,27 @@ pub(crate) fn render_doudizhu_lobby(
             label: "游戏轮数",
             value: format!("{} 轮", rules.rounds),
             help: match rules.mode {
-                Mode::Three => {
+                DoudizhuMode::Three => {
                     "每轮三局，所有玩家依次首叫一次。全员不叫时重新发牌，不计入局数。整场按累计分数排名结算积分。"
                 }
-                Mode::Four => {
+                DoudizhuMode::Four => {
                     "每轮四局，所有玩家依次首叫一次。全员不叫时重新发牌，不计入局数。整场按累计分数排名结算积分。"
                 }
             },
             editable: page.can_configure,
-            previous: (page.can_configure && rules.rounds > 1).then(|| RuleSet {
+            previous: (page.can_configure && rules.rounds > 1).then(|| DoudizhuRuleSet {
                 rounds: rules.rounds - 1,
                 ..rules
             }),
-            next: (page.can_configure && rules.rounds < 5).then(|| RuleSet {
+            next: (page.can_configure && rules.rounds < 5).then(|| DoudizhuRuleSet {
                 rounds: rules.rounds + 1,
                 ..rules
             }),
         },
         assets,
     );
-    if rules.mode == Mode::Four {
-        let toggled = RuleSet {
+    if rules.mode == DoudizhuMode::Four {
+        let toggled = DoudizhuRuleSet {
             allow_single_wings: !rules.allow_single_wings,
             ..rules
         };
@@ -88,12 +88,12 @@ pub(crate) fn render_doudizhu_lobby(
     }
 }
 
-fn mode_dropdown(selected: Mode) -> CozyDropdown {
+fn mode_dropdown(selected: DoudizhuMode) -> CozyDropdown {
     CozyDropdown {
         label: selected.label(),
         toggle_action: UiAction::Doudizhu(DoudizhuUiAction::ToggleModeMenu),
         close_action: UiAction::Doudizhu(DoudizhuUiAction::CloseModeMenu),
-        options: [Mode::Three, Mode::Four]
+        options: [DoudizhuMode::Three, DoudizhuMode::Four]
             .into_iter()
             .map(|mode| CozyDropdownOption {
                 label: mode.label(),

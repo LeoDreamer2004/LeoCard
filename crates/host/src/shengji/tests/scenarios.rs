@@ -1,13 +1,16 @@
 use super::*;
-use leocard_protocol::{ClientCommand, GameCommand, ServerEvent};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    GameEvent, GameViolation, PlayerId, RejectReason, ShengjiCommand, ShengjiEvent,
-    ShengjiFiveTrumpCrossingStage, ShengjiPhaseView, ShengjiViolation,
+    ClientCommand, GameCommand, GameEvent, GameViolation, RejectReason, ServerEvent,
+    ShengjiCommand, ShengjiEvent, ShengjiPhaseView, ShengjiViolation,
 };
+
 #[cfg(test)]
 use leocard_shengji::build_deck;
-use leocard_shengji::{Phase, ShengjiCard, ShengjiPlayerId, ShengjiRuleSet};
-use leocard_shengji::{ShengjiRank, ShengjiSuit};
+use leocard_shengji::{
+    ShengjiCard, ShengjiFiveTrumpCrossingStage, ShengjiPhase, ShengjiRank, ShengjiRuleSet,
+    ShengjiSuit,
+};
 
 #[test]
 fn bottom_copy_is_public_keeps_the_dealer_and_times_out_as_a_pass() {
@@ -199,8 +202,8 @@ fn bottom_copy_is_public_keeps_the_dealer_and_times_out_as_a_pass() {
     for _ in 0..3 {
         session.advance_time(BOTTOM_COPY_DECISION_TIMEOUT);
     }
-    assert_eq!(session.game().unwrap().phase(), &Phase::Playing);
-    assert_eq!(session.game().unwrap().dealer(), Some(ShengjiPlayerId(0)));
+    assert_eq!(session.game().unwrap().phase(), &ShengjiPhase::Playing);
+    assert_eq!(session.game().unwrap().dealer(), Some(PlayerId(0)));
 }
 
 #[test]
@@ -269,7 +272,7 @@ fn five_trump_crossing_commands_transfer_privately_and_only_once() {
     );
     assert!(matches!(
         waiting_for_decision.game().unwrap().phase(),
-        Phase::FiveTrumpCrossing
+        ShengjiPhase::FiveTrumpCrossing
     ));
 
     let hand = session.game().unwrap().players()[0].hand.clone();
@@ -334,7 +337,7 @@ fn five_trump_crossing_commands_transfer_privately_and_only_once() {
     );
     assert!(matches!(
         waiting_for_return.game().unwrap().phase(),
-        Phase::FiveTrumpCrossing
+        ShengjiPhase::FiveTrumpCrossing
     ));
 
     let deliveries = session.handle(

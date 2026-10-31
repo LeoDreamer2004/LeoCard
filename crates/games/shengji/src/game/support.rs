@@ -1,13 +1,15 @@
-use super::GameError;
-use crate::{ShengjiCard, ShengjiPlayerId, ShengjiRuleSet, build_deck_for};
-use leocard_game_common::{contains_unique_cards, validate_deck as validate_physical_deck};
+use super::ShengjiGameError;
+use crate::{ShengjiCard, ShengjiRuleSet, build_deck_for};
+use leocard_game_common::{
+    PlayerId, contains_unique_cards, validate_deck as validate_physical_deck,
+};
 
-pub(super) fn next_player(player: ShengjiPlayerId, player_count: u8) -> ShengjiPlayerId {
-    ShengjiPlayerId((player.0 + 1) % player_count)
+pub(super) fn next_player(player: PlayerId, player_count: u8) -> PlayerId {
+    PlayerId((player.0 + 1) % player_count)
 }
 
-pub(super) const fn partner(player: ShengjiPlayerId) -> ShengjiPlayerId {
-    ShengjiPlayerId((player.0 + 2) % ShengjiRuleSet::PLAYER_COUNT)
+pub(super) const fn partner(player: PlayerId) -> PlayerId {
+    PlayerId((player.0 + 2) % ShengjiRuleSet::PLAYER_COUNT)
 }
 
 pub(super) fn remove_cards(hand: &mut Vec<ShengjiCard>, cards: &[ShengjiCard]) {
@@ -23,13 +25,16 @@ pub(super) fn remove_cards(hand: &mut Vec<ShengjiCard>, cards: &[ShengjiCard]) {
 pub(super) fn validate_cards_owned(
     cards: &[ShengjiCard],
     hand: &[ShengjiCard],
-) -> Result<(), GameError> {
+) -> Result<(), ShengjiGameError> {
     if !contains_unique_cards(hand, cards) {
-        return Err(GameError::CardsNotOwned);
+        return Err(ShengjiGameError::CardsNotOwned);
     }
     Ok(())
 }
 
-pub(super) fn validate_deck(deck: &[ShengjiCard], rules: ShengjiRuleSet) -> Result<(), GameError> {
-    validate_physical_deck(deck, &build_deck_for(rules.deck_count)).map_err(GameError::from)
+pub(super) fn validate_deck(
+    deck: &[ShengjiCard],
+    rules: ShengjiRuleSet,
+) -> Result<(), ShengjiGameError> {
+    validate_physical_deck(deck, &build_deck_for(rules.deck_count)).map_err(ShengjiGameError::from)
 }

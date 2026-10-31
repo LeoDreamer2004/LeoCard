@@ -1,14 +1,16 @@
 use crate::{UnoCard, UnoColor, UnoFace, UnoRuleSet, build_deck_for_rules};
+use leocard_game_common::PlayerId;
+
 use std::collections::VecDeque;
 
 use super::super::prelude::*;
 
-fn stack_pack_game() -> GameState {
+fn stack_pack_game() -> UnoGameState {
     let rules = UnoRuleSet {
         stack_pack: true,
         ..UnoRuleSet::default()
     };
-    GameState::new_with_deck(rules, 6, build_deck_for_rules(rules)).unwrap()
+    UnoGameState::new_with_deck(rules, 6, build_deck_for_rules(rules)).unwrap()
 }
 
 #[test]
@@ -23,19 +25,19 @@ fn colored_stack_cards_require_the_current_color_and_accumulate() {
     game.players[1].hand = vec![matching_stack_two, wrong_stack_two, filler];
     game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(7), 0)];
     game.current_color = Some(UnoColor::Red);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
 
-    game.play_card(UnoPlayerId(0), stack_one, None).unwrap();
-    assert!(!game.can_play(UnoPlayerId(1), wrong_stack_two));
-    assert!(game.can_play(UnoPlayerId(1), matching_stack_two));
-    game.play_card(UnoPlayerId(1), matching_stack_two, None)
+    game.play_card(PlayerId(0), stack_one, None).unwrap();
+    assert!(!game.can_play(PlayerId(1), wrong_stack_two));
+    assert!(game.can_play(PlayerId(1), matching_stack_two));
+    game.play_card(PlayerId(1), matching_stack_two, None)
         .unwrap();
 
     let turn = game.turn().unwrap();
     assert_eq!(turn.pending_draw, 3);
     assert_eq!(turn.pending_kind, Some(UnoPendingDrawKind::Stack));
-    assert_eq!(turn.pending_draw_source, Some(UnoPlayerId(1)));
-    assert_eq!(turn.current_player, UnoPlayerId(2));
+    assert_eq!(turn.pending_draw_source, Some(PlayerId(1)));
+    assert_eq!(turn.current_player, PlayerId(2));
 }
 
 #[test]
@@ -46,12 +48,12 @@ fn same_stack_face_does_not_bypass_its_color_requirement() {
     game.players[0].hand = vec![blue_stack, filler];
     game.discard_pile = vec![card(UnoColor::Red, UnoFace::StackOne, 0)];
     game.current_color = Some(UnoColor::Red);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
 
-    assert!(!game.can_play(UnoPlayerId(0), blue_stack));
+    assert!(!game.can_play(PlayerId(0), blue_stack));
     assert_eq!(
-        game.play_card(UnoPlayerId(0), blue_stack, None),
-        Err(GameError::CardDoesNotMatch)
+        game.play_card(PlayerId(0), blue_stack, None),
+        Err(UnoGameError::CardDoesNotMatch)
     );
 }
 
@@ -67,15 +69,15 @@ fn wild_stack_number_reveals_to_a_number_below_the_discard_top() {
     game.discard_pile = vec![old_top];
     game.draw_pile = VecDeque::from([revealed_action, revealed_number, filler]);
     game.current_color = Some(UnoColor::Red);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
 
     let outcome = game
-        .play_card(UnoPlayerId(0), stack_number, Some(UnoColor::Blue))
+        .play_card(PlayerId(0), stack_number, Some(UnoColor::Blue))
         .unwrap();
     assert!(matches!(
         outcome,
-        ActionOutcome::Played {
-            effect: Some(PlayedEffect::StackNumberRevealed { ref cards, value: 6 }),
+        UnoActionOutcome::Played {
+            effect: Some(UnoPlayedEffect::StackNumberRevealed { ref cards, value: 6 }),
             ..
         } if cards == &[revealed_action, revealed_number]
     ));
@@ -99,9 +101,9 @@ fn stack_number_zero_is_still_an_active_penalty_turn() {
     game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(7), 0)];
     game.draw_pile = VecDeque::from([zero, filler]);
     game.current_color = Some(UnoColor::Red);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
 
-    game.play_card(UnoPlayerId(0), stack_number, Some(UnoColor::Yellow))
+    game.play_card(PlayerId(0), stack_number, Some(UnoColor::Yellow))
         .unwrap();
     assert_eq!(game.turn().unwrap().pending_draw, 0);
     assert_eq!(
@@ -109,14 +111,14 @@ fn stack_number_zero_is_still_an_active_penalty_turn() {
         Some(UnoPendingDrawKind::Stack)
     );
     assert_eq!(
-        game.draw_card(UnoPlayerId(1)),
-        Err(GameError::MustResolveDrawPenalty)
+        game.draw_card(PlayerId(1)),
+        Err(UnoGameError::MustResolveDrawPenalty)
     );
     assert!(matches!(
-        game.accept_draw_penalty(UnoPlayerId(1)),
-        Ok(ActionOutcome::PenaltyDrawn {
+        game.accept_draw_penalty(PlayerId(1)),
+        Ok(UnoActionOutcome::PenaltyDrawn {
             ref cards,
-            next_player: UnoPlayerId(2),
+            next_player: PlayerId(2),
             ..
         }) if cards.is_empty()
     ));
@@ -134,18 +136,18 @@ fn stack_cards_preserve_the_first_draw_four_challenge_offender() {
     game.players[1].hand = vec![stack_one, filler];
     game.discard_pile = vec![card(UnoColor::Blue, UnoFace::Number(5), 0)];
     game.current_color = Some(UnoColor::Blue);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
 
-    game.play_card(UnoPlayerId(0), draw_four, Some(UnoColor::Red))
+    game.play_card(PlayerId(0), draw_four, Some(UnoColor::Red))
         .unwrap();
-    game.play_card(UnoPlayerId(1), stack_one, None).unwrap();
-    let outcome = game.challenge_draw_four(UnoPlayerId(2)).unwrap();
+    game.play_card(PlayerId(1), stack_one, None).unwrap();
+    let outcome = game.challenge_draw_four(PlayerId(2)).unwrap();
     assert!(matches!(
         outcome,
-        ActionOutcome::ChallengeResolved {
-            offender: UnoPlayerId(0),
+        UnoActionOutcome::ChallengeResolved {
+            offender: PlayerId(0),
             result: UnoChallengeResult::Successful,
-            penalized: UnoPlayerId(0),
+            penalized: PlayerId(0),
             ref cards,
             ..
         } if cards.len() == 5
@@ -159,23 +161,23 @@ fn last_stack_card_finishes_after_applying_its_penalty() {
     game.players[0].hand = vec![stack_two];
     game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(7), 0)];
     game.current_color = Some(UnoColor::Red);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
 
     assert!(matches!(
-        game.play_card(UnoPlayerId(0), stack_two, None),
-        Ok(ActionOutcome::Played { .. })
+        game.play_card(PlayerId(0), stack_two, None),
+        Ok(UnoActionOutcome::Played { .. })
     ));
     assert_eq!(game.turn().unwrap().pending_draw, 2);
     let before = game.players[1].hand.len();
     assert!(matches!(
-        game.accept_draw_penalty(UnoPlayerId(1)),
-        Ok(ActionOutcome::PenaltyDrawn { ref cards, .. }) if cards.len() == 2
+        game.accept_draw_penalty(PlayerId(1)),
+        Ok(UnoActionOutcome::PenaltyDrawn { ref cards, .. }) if cards.len() == 2
     ));
     assert_eq!(game.players[1].hand.len(), before + 2);
     assert!(matches!(
         game.phase(),
-        Phase::Finished(GameResult {
-            winner: UnoPlayerId(0),
+        UnoPhase::Finished(UnoGameResult {
+            winner: PlayerId(0),
             ..
         })
     ));

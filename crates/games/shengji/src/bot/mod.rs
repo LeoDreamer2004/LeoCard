@@ -9,5 +9,5 @@ mod search;
 
 pub use bidding::ShengjiBiddingObservation;
 pub use decision::{ShengjiBot, ShengjiBotAction};
-pub use greedy::{GreedyBotError, ShengjiGreedyBot, ShengjiGreedyBotRequest};
+pub use greedy::{ShengjiGreedyBot, ShengjiGreedyBotError, ShengjiGreedyBotRequest};
 pub use observation::ShengjiBotObservation;

@@ -1,7 +1,9 @@
 use super::support::{DEAL_INTERVAL, started_session};
+use leocard_game_common::PlayerId;
+
 use leocard_shengji::{
-    GameState, Phase, ShengjiCard, ShengjiPlayerId, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
-    TeamProgress, build_deck,
+    ShengjiCard, ShengjiGameState, ShengjiPhase, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
+    ShengjiTeamProgress, build_deck,
 };
 
 #[test]
@@ -20,11 +22,11 @@ fn dealer_partner_bot_can_bid_when_someone_else_receives_the_final_card() {
         deck.swap(position, index);
     }
     session.game = Some(
-        GameState::new(
+        ShengjiGameState::new(
             rules,
-            TeamProgress::default(),
-            Some(ShengjiPlayerId(0)),
-            ShengjiPlayerId(0),
+            ShengjiTeamProgress::default(),
+            Some(PlayerId(0)),
+            PlayerId(0),
             deck,
         )
         .unwrap(),
@@ -34,6 +36,6 @@ fn dealer_partner_bot_can_bid_when_someone_else_receives_the_final_card() {
     assert!(session.game.as_ref().unwrap().bidding().current().is_none());
     session.advance_time(DEAL_INTERVAL);
     let game = session.game.as_ref().unwrap();
-    assert_eq!(game.phase(), &Phase::BiddingGrace);
-    assert_eq!(game.bidding().current().unwrap().player, ShengjiPlayerId(2));
+    assert_eq!(game.phase(), &ShengjiPhase::BiddingGrace);
+    assert_eq!(game.bidding().current().unwrap().player, PlayerId(2));
 }

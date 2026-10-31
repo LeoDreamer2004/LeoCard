@@ -1,5 +1,5 @@
 use super::rows::{ProfileRowsBuilder, rate_or_placeholder};
-use leocard_protocol::BlackjackProfileStats;
+use leocard_blackjack::BlackjackProfileStats;
 
 pub(crate) fn blackjack_profile_rows(
     stats: Option<&BlackjackProfileStats>,

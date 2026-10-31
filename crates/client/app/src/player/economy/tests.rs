@@ -2,7 +2,8 @@ use super::migration;
 use super::rewards::login_day;
 use super::storage::{EconomyArchive, FORMAT_VERSION};
 use leocard_achievements::AchievementTier;
-use leocard_protocol::{ACHIEVEMENT_REGISTRY, MatchId, PlayerId, PlayerReferenceChange, ProfileId};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{ACHIEVEMENT_REGISTRY, MatchId, PlayerReferenceChange, ProfileId};
 
 fn changes(deltas: &[i16]) -> Vec<PlayerReferenceChange> {
     deltas

@@ -1,27 +1,27 @@
 use crate::{UnoCard, UnoColor, UnoFace, UnoRuleSet};
 
 pub(super) use super::super::*;
-pub(super) use crate::card::{CardSide, build_deck, build_flip_deck, build_no_mercy_deck};
+pub(super) use crate::card::{UnoCardSide, build_deck, build_flip_deck, build_no_mercy_deck};
 
-pub(super) fn no_mercy_game(player_count: u8) -> GameState {
+pub(super) fn no_mercy_game(player_count: u8) -> UnoGameState {
     let rules = UnoRuleSet {
-        mode: crate::Mode::NoMercy,
+        mode: crate::UnoMode::NoMercy,
         ..UnoRuleSet::default()
     };
-    GameState::new_with_deck(rules, player_count, build_no_mercy_deck()).unwrap()
+    UnoGameState::new_with_deck(rules, player_count, build_no_mercy_deck()).unwrap()
 }
 
 pub(super) fn flip_rules() -> UnoRuleSet {
     UnoRuleSet {
-        mode: crate::Mode::Flip,
+        mode: crate::UnoMode::Flip,
         ..UnoRuleSet::default()
     }
 }
 
 pub(super) fn flip_card(color: UnoColor, face: UnoFace) -> UnoCard {
     UnoCard::paired(
-        CardSide::colored(color, face),
-        CardSide::colored(UnoColor::Pink, UnoFace::Number(1)),
+        UnoCardSide::colored(color, face),
+        UnoCardSide::colored(UnoColor::Pink, UnoFace::Number(1)),
         0,
     )
 }

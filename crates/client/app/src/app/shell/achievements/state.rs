@@ -7,10 +7,10 @@ pub(super) const GOLD: Color = Color::srgb(0.91, 0.78, 0.55);
 pub(super) const CATEGORIES: [(AchievementCategory, &str); 8] = [
     (AchievementCategory::Mahjong, "四方争雄"),
     (AchievementCategory::QiGui523, "七擒七纵"),
-    (AchievementCategory::TexasHoldem, "髪国赌神"),
+    (AchievementCategory::Texas, "髪国赌神"),
     (AchievementCategory::Shengji, "步步高升"),
     (AchievementCategory::Uno, "千变万化"),
-    (AchievementCategory::MinecraftGuess, "合成天下"),
+    (AchievementCategory::McGuess, "合成天下"),
     (AchievementCategory::Doudizhu, "翻身做主"),
     (AchievementCategory::Personal, "独善其身"),
 ];

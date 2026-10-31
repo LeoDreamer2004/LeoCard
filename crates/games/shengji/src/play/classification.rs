@@ -10,7 +10,8 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashSet};
 
 use super::{
-    Category, Component, PairUnit, PlayError, QuadUnit, ShengjiClassifiedPlay, TripleUnit,
+    PairUnit, QuadUnit, ShengjiCategory, ShengjiClassifiedPlay, ShengjiComponent, ShengjiPlayError,
+    TripleUnit,
 };
 
 pub(super) fn classify_mixed_discard(
@@ -28,14 +29,14 @@ pub(super) fn classify_mixed_discard(
     });
     let components = cards
         .iter()
-        .map(|card| Component::Single {
+        .map(|card| ShengjiComponent::Single {
             card: *card,
             strength: strength(*card, trump),
         })
         .collect();
     ShengjiClassifiedPlay {
         cards,
-        category: Category::Mixed,
+        category: ShengjiCategory::Mixed,
         components,
     }
 }
@@ -81,14 +82,14 @@ fn special_competition_key(
 ) -> Option<Vec<u16>> {
     let single = candidate.components.as_slice();
     match lead.components.as_slice() {
-        [Component::Quad { .. }] => match single {
-            [Component::Quad { strength, .. }] => Some(vec![1, u16::from(*strength)]),
+        [ShengjiComponent::Quad { .. }] => match single {
+            [ShengjiComponent::Quad { strength, .. }] => Some(vec![1, u16::from(*strength)]),
             _ => None,
         },
-        [Component::Tractor { pair_count: 2, .. }] => match single {
-            [Component::Quad { strength, .. }] => Some(vec![2, u16::from(*strength)]),
+        [ShengjiComponent::Tractor { pair_count: 2, .. }] => match single {
+            [ShengjiComponent::Quad { strength, .. }] => Some(vec![2, u16::from(*strength)]),
             [
-                Component::Tractor {
+                ShengjiComponent::Tractor {
                     pair_count: 2,
                     top_strength,
                     ..
@@ -96,16 +97,16 @@ fn special_competition_key(
             ] => Some(vec![1, u16::from(*top_strength)]),
             _ => None,
         },
-        [Component::Tractor { pair_count: 3, .. }] => match single {
+        [ShengjiComponent::Tractor { pair_count: 3, .. }] => match single {
             [
-                Component::Titanic {
+                ShengjiComponent::Titanic {
                     triple_count: 2,
                     top_strength,
                     ..
                 },
             ] => Some(vec![2, u16::from(*top_strength)]),
             [
-                Component::Tractor {
+                ShengjiComponent::Tractor {
                     pair_count: 3,
                     top_strength,
                     ..
@@ -114,12 +115,12 @@ fn special_competition_key(
             _ => None,
         },
         [
-            Component::Titanic {
+            ShengjiComponent::Titanic {
                 triple_count: 2, ..
             },
         ] => match single {
             [
-                Component::Titanic {
+                ShengjiComponent::Titanic {
                     triple_count: 2,
                     top_strength,
                     ..
@@ -127,16 +128,16 @@ fn special_competition_key(
             ] => Some(vec![1, u16::from(*top_strength)]),
             _ => None,
         },
-        [Component::Tractor { pair_count: 4, .. }] => match single {
+        [ShengjiComponent::Tractor { pair_count: 4, .. }] => match single {
             [
-                Component::Spaceship {
+                ShengjiComponent::Spaceship {
                     quad_count: 2,
                     top_strength,
                     ..
                 },
             ] => Some(vec![2, u16::from(*top_strength)]),
             [
-                Component::Tractor {
+                ShengjiComponent::Tractor {
                     pair_count: 4,
                     top_strength,
                     ..
@@ -144,9 +145,9 @@ fn special_competition_key(
             ] => Some(vec![1, u16::from(*top_strength)]),
             _ => None,
         },
-        [Component::Spaceship { quad_count: 2, .. }] => match single {
+        [ShengjiComponent::Spaceship { quad_count: 2, .. }] => match single {
             [
-                Component::Spaceship {
+                ShengjiComponent::Spaceship {
                     quad_count: 2,
                     top_strength,
                     ..
@@ -154,17 +155,17 @@ fn special_competition_key(
             ] => Some(vec![1, u16::from(*top_strength)]),
             _ => None,
         },
-        [Component::Quad { .. }, Component::Quad { .. }] => match single {
+        [ShengjiComponent::Quad { .. }, ShengjiComponent::Quad { .. }] => match single {
             [
-                Component::Spaceship {
+                ShengjiComponent::Spaceship {
                     quad_count: 2,
                     top_strength,
                     ..
                 },
             ] => Some(vec![2, u16::from(*top_strength)]),
             [
-                Component::Quad { strength: left, .. },
-                Component::Quad {
+                ShengjiComponent::Quad { strength: left, .. },
+                ShengjiComponent::Quad {
                     strength: right, ..
                 },
             ] => {
@@ -181,20 +182,20 @@ fn special_competition_key(
 pub(crate) fn classify_cards(
     cards: &[ShengjiCard],
     trump: ShengjiTrump,
-) -> Result<ShengjiClassifiedPlay, PlayError> {
+) -> Result<ShengjiClassifiedPlay, ShengjiPlayError> {
     if cards.is_empty() {
-        return Err(PlayError::Empty);
+        return Err(ShengjiPlayError::Empty);
     }
     let unique = cards.iter().copied().collect::<HashSet<_>>();
     if unique.len() != cards.len() {
-        return Err(PlayError::DuplicatePhysicalCard);
+        return Err(ShengjiPlayError::DuplicatePhysicalCard);
     }
     let play_category = category(cards[0], trump);
     if cards
         .iter()
         .any(|card| category(*card, trump) != play_category)
     {
-        return Err(PlayError::MixedCategory);
+        return Err(ShengjiPlayError::MixedCategory);
     }
     let mut cards = cards.to_vec();
     cards.sort_by_key(|card| (strength(*card, trump), card.deck()));
@@ -206,11 +207,11 @@ pub(crate) fn classify_cards(
     })
 }
 
-pub(crate) fn category(card: ShengjiCard, trump: ShengjiTrump) -> Category {
+pub(crate) fn category(card: ShengjiCard, trump: ShengjiTrump) -> ShengjiCategory {
     if trump.is_trump(card) {
-        Category::Trump
+        ShengjiCategory::Trump
     } else {
-        Category::Suit(card.suit().expect("non-trump cards are suited"))
+        ShengjiCategory::Suit(card.suit().expect("non-trump cards are suited"))
     }
 }
 
@@ -221,8 +222,8 @@ pub(crate) fn strength(card: ShengjiCard, trump: ShengjiTrump) -> u8 {
 fn decompose(
     cards: &[ShengjiCard],
     trump: ShengjiTrump,
-    play_category: Category,
-) -> Vec<Component> {
+    play_category: ShengjiCategory,
+) -> Vec<ShengjiComponent> {
     let mut faces: BTreeMap<(Option<ShengjiSuit>, ShengjiRank), Vec<ShengjiCard>> = BTreeMap::new();
     for card in cards {
         faces
@@ -269,7 +270,7 @@ fn decompose(
             .flat_map(|index| quads[*index].cards)
             .collect::<Vec<_>>();
         spaceship_cards.sort_by_key(|card| (strength(*card, trump), card.deck()));
-        components.push(Component::Spaceship {
+        components.push(ShengjiComponent::Spaceship {
             cards: spaceship_cards,
             quad_count: indices.len() as u8,
             top_strength,
@@ -294,7 +295,7 @@ fn decompose(
             .flat_map(|index| triples[*index].cards)
             .collect::<Vec<_>>();
         titanic_cards.sort_by_key(|card| (strength(*card, trump), card.deck()));
-        components.push(Component::Titanic {
+        components.push(ShengjiComponent::Titanic {
             cards: titanic_cards,
             triple_count: indices.len() as u8,
             top_strength,
@@ -319,7 +320,7 @@ fn decompose(
             .flat_map(|index| pairs[*index].cards)
             .collect::<Vec<_>>();
         tractor_cards.sort_by_key(|card| (strength(*card, trump), card.deck()));
-        components.push(Component::Tractor {
+        components.push(ShengjiComponent::Tractor {
             cards: tractor_cards,
             pair_count: indices.len() as u8,
             top_strength,
@@ -330,19 +331,19 @@ fn decompose(
             pairs.remove(index);
         }
     }
-    components.extend(pairs.into_iter().map(|pair| Component::Pair {
+    components.extend(pairs.into_iter().map(|pair| ShengjiComponent::Pair {
         cards: pair.cards,
         strength: pair.strength,
     }));
-    components.extend(triples.into_iter().map(|triple| Component::Triple {
+    components.extend(triples.into_iter().map(|triple| ShengjiComponent::Triple {
         cards: triple.cards,
         strength: triple.strength,
     }));
-    components.extend(quads.into_iter().map(|quad| Component::Quad {
+    components.extend(quads.into_iter().map(|quad| ShengjiComponent::Quad {
         cards: quad.cards,
         strength: quad.strength,
     }));
-    components.extend(singles.into_iter().map(|card| Component::Single {
+    components.extend(singles.into_iter().map(|card| ShengjiComponent::Single {
         card,
         strength: strength(card, trump),
     }));
@@ -405,8 +406,8 @@ fn longest_strength_run(strengths: &[u8], maximum: usize) -> Option<Vec<usize>> 
 }
 
 pub(super) fn component_can_be_beaten(
-    component: &Component,
-    play_category: Category,
+    component: &ShengjiComponent,
+    play_category: ShengjiCategory,
     hand: &[ShengjiCard],
     trump: ShengjiTrump,
 ) -> bool {
@@ -416,27 +417,27 @@ pub(super) fn component_can_be_beaten(
         .filter(|card| category(*card, trump) == play_category)
         .collect::<Vec<_>>();
     match component {
-        Component::Single {
+        ShengjiComponent::Single {
             strength: current, ..
         } => same_category
             .iter()
             .any(|card| strength(*card, trump) > *current),
-        Component::Pair {
+        ShengjiComponent::Pair {
             strength: current, ..
         } => pair_units(&same_category, trump)
             .iter()
             .any(|pair| pair.strength > *current),
-        Component::Triple {
+        ShengjiComponent::Triple {
             strength: current, ..
         } => triple_units(&same_category, trump)
             .iter()
             .any(|triple| triple.strength > *current),
-        Component::Quad {
+        ShengjiComponent::Quad {
             strength: current, ..
         } => quad_units(&same_category, trump)
             .iter()
             .any(|quad| quad.strength > *current),
-        Component::Tractor {
+        ShengjiComponent::Tractor {
             pair_count,
             top_strength,
             ..
@@ -451,7 +452,7 @@ pub(super) fn component_can_be_beaten(
                     _ => false,
                 }
         }
-        Component::Titanic {
+        ShengjiComponent::Titanic {
             triple_count,
             top_strength,
             ..
@@ -461,7 +462,7 @@ pub(super) fn component_can_be_beaten(
         )
         .into_iter()
         .any(|top| top > *top_strength),
-        Component::Spaceship {
+        ShengjiComponent::Spaceship {
             quad_count,
             top_strength,
             ..

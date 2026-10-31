@@ -1,7 +1,8 @@
 use crate::{ConnectionId, Delivery, RoomSession};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
     ChatContent, ClientCommand, ClientMessage, GameCommand, GameEventContext, GameKind, GameRules,
-    GameSnapshot, GameViolation, JoinRequest, LobbySnapshot, PlayerId, PlayerInteraction,
+    GameSnapshot, GameViolation, JoinRequest, LobbySnapshot, PlayerInteraction,
     PlayerInteractionKind, PlayerViolation, RejectReason, RequestId, RoomInfo, RoomViolation,
     SeatId, ServerEvent,
 };
@@ -408,21 +409,15 @@ fn dispatch_joined_command<S: HostedGameLifecycle>(
             session.configure_bot_seat(connection, request_id, seat, occupied)
         }
         ClientCommand::SetReady { ready } => session.set_ready(connection, request_id, ready),
-        ClientCommand::Game(command) => {
-            let received = command.kind();
-            session
-                .handle_game_command(connection, request_id, command)
-                .unwrap_or_else(|_| {
-                    session.room().reject(
-                        connection,
-                        request_id,
-                        RejectReason::Game(GameViolation::WrongGame {
-                            expected: S::KIND,
-                            received,
-                        }),
-                    )
-                })
-        }
+        ClientCommand::Game(command) => session
+            .handle_game_command(connection, request_id, command)
+            .unwrap_or_else(|_| {
+                session.room().reject(
+                    connection,
+                    request_id,
+                    RejectReason::Game(GameViolation::WrongGame),
+                )
+            }),
         ClientCommand::StartGame => session.start_game_and_announce(connection, request_id),
         ClientCommand::ReturnToLobby => session.return_to_lobby(connection, request_id),
         ClientCommand::PlayAgain => {

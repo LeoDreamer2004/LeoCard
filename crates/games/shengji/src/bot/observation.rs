@@ -2,32 +2,34 @@ use super::ShengjiBotAction;
 use super::candidates::plays;
 use crate::play::category;
 use crate::{
-    Category, FiveTrumpCrossingStage, GameState, Phase, ShengjiCard, ShengjiPlayerId,
-    ShengjiRuleSet, ShengjiTeamId, ShengjiTrump, TrickRecord, build_deck_for,
+    ShengjiCard, ShengjiCategory, ShengjiFiveTrumpCrossingStage, ShengjiGameState, ShengjiPhase,
+    ShengjiRuleSet, ShengjiTeamId, ShengjiTrickRecord, ShengjiTrump, build_deck_for,
 };
+use leocard_game_common::PlayerId;
+
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShengjiBotObservation {
-    pub(super) player: ShengjiPlayerId,
+    pub(super) player: PlayerId,
     pub(super) hand: Vec<ShengjiCard>,
     pub(super) trump: ShengjiTrump,
     pub(super) rules: ShengjiRuleSet,
-    pub(super) phase: Phase,
-    pub(super) trick: Option<TrickRecord>,
+    pub(super) phase: ShengjiPhase,
+    pub(super) trick: Option<ShengjiTrickRecord>,
     pub(super) unseen: Vec<ShengjiCard>,
     pub(super) exposed: Vec<Vec<ShengjiCard>>,
     pub(super) lengths: Vec<usize>,
     pub(super) voids: Vec<[bool; 5]>,
     pub(super) bottom: Option<Vec<ShengjiCard>>,
     pub(super) counter_options: Vec<Vec<ShengjiCard>>,
-    pub(super) crossing: Option<FiveTrumpCrossingStage>,
+    pub(super) crossing: Option<ShengjiFiveTrumpCrossingStage>,
     pub(super) collecting_team: ShengjiTeamId,
     pub(super) collecting_score: u32,
 }
 
 impl ShengjiBotObservation {
-    pub fn from_game(game: &GameState, player: ShengjiPlayerId) -> Option<Self> {
+    pub fn from_game(game: &ShengjiGameState, player: PlayerId) -> Option<Self> {
         let trump = game.trump()?;
         let hand = game.players().get(usize::from(player.0))?.hand.clone();
         let trick = game.current_trick();
@@ -46,14 +48,14 @@ impl ShengjiBotObservation {
             .map(|index| {
                 // Secret burial/copying or a partner exchange can relocate an exposed physical card.
                 // Only retain ownership when public rules still make it certain.
-                if game.dealer() == Some(ShengjiPlayerId(index as u8))
+                if game.dealer() == Some(PlayerId(index as u8))
                     || game.rules().bottom_copy
                     || game.rules().five_trump_crossing
                 {
                     return Vec::new();
                 }
                 game.bidding()
-                    .exposed_cards(ShengjiPlayerId(index as u8))
+                    .exposed_cards(PlayerId(index as u8))
                     .into_iter()
                     .filter(|card| !played.contains(card))
                     .collect::<Vec<_>>()
@@ -99,23 +101,25 @@ impl ShengjiBotObservation {
                 .bidding()
                 .counter_options(player, &game.players()[usize::from(player.0)].hand),
             crossing: game.five_trump_crossing().map(|state| state.stage()),
-            collecting_team: game.dealer()?.team().other(),
+            collecting_team: ShengjiTeamId::of(game.dealer()?).other(),
             collecting_score: game.collecting_score(),
         })
     }
 
     pub fn fallback(&self) -> ShengjiBotAction {
         match self.phase {
-            Phase::Burying | Phase::BottomCopyBurying => {
+            ShengjiPhase::Burying | ShengjiPhase::BottomCopyBurying => {
                 ShengjiBotAction::Bury(self.hand[..self.rules.kitty_size()].to_vec())
             }
-            Phase::BottomCopying => ShengjiBotAction::Copy(self.counter_options.first().cloned()),
-            Phase::FiveTrumpCrossing
-                if self.crossing == Some(FiveTrumpCrossingStage::Returning) =>
+            ShengjiPhase::BottomCopying => {
+                ShengjiBotAction::Copy(self.counter_options.first().cloned())
+            }
+            ShengjiPhase::FiveTrumpCrossing
+                if self.crossing == Some(ShengjiFiveTrumpCrossingStage::Returning) =>
             {
                 ShengjiBotAction::Return(self.hand[..5].to_vec())
             }
-            Phase::FiveTrumpCrossing => ShengjiBotAction::Cross(None),
+            ShengjiPhase::FiveTrumpCrossing => ShengjiBotAction::Cross(None),
             _ => ShengjiBotAction::Play(
                 plays(
                     &self.hand,
@@ -133,10 +137,10 @@ impl ShengjiBotObservation {
     }
 }
 
-pub(super) fn category_index(category: Category) -> usize {
+pub(super) fn category_index(category: ShengjiCategory) -> usize {
     match category {
-        Category::Trump => 4,
-        Category::Suit(suit) => suit as usize,
-        Category::Mixed => unreachable!("mixed cannot lead"),
+        ShengjiCategory::Trump => 4,
+        ShengjiCategory::Suit(suit) => suit as usize,
+        ShengjiCategory::Mixed => unreachable!("mixed cannot lead"),
     }
 }

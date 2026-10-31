@@ -1,18 +1,21 @@
 use crate::app::presentation::{CardVoice, CardVoices};
 use crate::app::runtime::{ClientResource, ServerNotification};
 use bevy::prelude::*;
-use leocard_doudizhu::{Action, Mode, Play, PlayKind, classify};
-use leocard_protocol::{DoudizhuEvent, GameEvent, ServerEvent};
+use leocard_doudizhu::{DoudizhuAction, DoudizhuMode, DoudizhuPlay, DoudizhuPlayKind, classify};
+use leocard_protocol::{DoudizhuEvent, GameEvent, GameSnapshot, ServerEvent};
 
 pub(super) fn sync_doudizhu_voices(
     client: Option<Res<ClientResource>>,
     mut notifications: MessageReader<ServerNotification>,
     mut voices: ResMut<CardVoices>,
 ) {
-    let Some(game) = client
-        .as_deref()
-        .and_then(|client| client.0.model().doudizhu_game())
-    else {
+    let Some(game) = client.as_deref().and_then(|client| {
+        client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::doudizhu)
+    }) else {
         notifications.clear();
         return;
     };
@@ -28,11 +31,11 @@ pub(super) fn sync_doudizhu_voices(
             continue;
         };
         let voice = match action {
-            Action::Play(cards) => {
+            DoudizhuAction::Play(cards) => {
                 classify(cards, game.rules).and_then(|play| pattern_voice(&play, game.rules.mode))
             }
-            Action::Pass => Some(CardVoice::Pass),
-            Action::Bid(score) => match score {
+            DoudizhuAction::Pass => Some(CardVoice::Pass),
+            DoudizhuAction::Bid(score) => match score {
                 0 => Some(CardVoice::BidZero),
                 1 => Some(CardVoice::BidOne),
                 2 => Some(CardVoice::BidTwo),
@@ -41,33 +44,38 @@ pub(super) fn sync_doudizhu_voices(
             },
         };
         if let Some(pattern) = voice
-            && let Some(profile) = game.players.iter().find(|profile| profile.id == *player)
+            && let Some(profile) = game
+                .players
+                .iter()
+                .find(|profile| profile.player.id == *player)
         {
-            voices.announce(context, profile.game_profiles.gender, pattern);
+            voices.announce(context, profile.player.game_profiles.gender, pattern);
         }
     }
 }
 
-fn pattern_voice(play: &Play, mode: Mode) -> Option<CardVoice> {
+fn pattern_voice(play: &DoudizhuPlay, mode: DoudizhuMode) -> Option<CardVoice> {
     match play.kind {
-        PlayKind::Single => play
+        DoudizhuPlayKind::Single => play
             .cards
             .first()
             .map(|card| CardVoice::Single((*card).into())),
-        PlayKind::Pair => play
+        DoudizhuPlayKind::Pair => play
             .cards
             .first()
             .map(|card| CardVoice::Pair((*card).into())),
-        PlayKind::Triple => Some(CardVoice::Triple),
-        PlayKind::TripleSingle => Some(CardVoice::TripleSingle),
-        PlayKind::TriplePair => Some(CardVoice::TriplePair),
-        PlayKind::FourSingles | PlayKind::FourPairs => Some(CardVoice::FourTwo),
-        PlayKind::Straight => Some(CardVoice::Straight),
-        PlayKind::Pairs => Some(CardVoice::ConsecutivePairs),
-        PlayKind::Airplane => Some(CardVoice::TripleSequence),
-        PlayKind::AirplaneSingles | PlayKind::AirplanePairs => Some(CardVoice::Airplane),
-        PlayKind::Bomb => Some(CardVoice::Bomb),
-        PlayKind::Rocket if mode == Mode::Four => Some(CardVoice::HeavenBomb),
-        PlayKind::Rocket => Some(CardVoice::Rocket),
+        DoudizhuPlayKind::Triple => Some(CardVoice::Triple),
+        DoudizhuPlayKind::TripleSingle => Some(CardVoice::TripleSingle),
+        DoudizhuPlayKind::TriplePair => Some(CardVoice::TriplePair),
+        DoudizhuPlayKind::FourSingles | DoudizhuPlayKind::FourPairs => Some(CardVoice::FourTwo),
+        DoudizhuPlayKind::Straight => Some(CardVoice::Straight),
+        DoudizhuPlayKind::Pairs => Some(CardVoice::ConsecutivePairs),
+        DoudizhuPlayKind::Airplane => Some(CardVoice::TripleSequence),
+        DoudizhuPlayKind::AirplaneSingles | DoudizhuPlayKind::AirplanePairs => {
+            Some(CardVoice::Airplane)
+        }
+        DoudizhuPlayKind::Bomb => Some(CardVoice::Bomb),
+        DoudizhuPlayKind::Rocket if mode == DoudizhuMode::Four => Some(CardVoice::HeavenBomb),
+        DoudizhuPlayKind::Rocket => Some(CardVoice::Rocket),
     }
 }

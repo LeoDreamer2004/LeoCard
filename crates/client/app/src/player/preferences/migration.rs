@@ -37,6 +37,7 @@ impl From<LegacyGlobalPreferences> for GlobalPreferences {
             gender: previous.gender,
             mahjong_action_voices: previous.mahjong_action_voices,
             mahjong_fan_voices: previous.mahjong_fan_voices,
+            mahjong_tile_voices: true,
             texas_action_voices: previous.texas_action_voices,
             qigui_action_voices: true,
             doudizhu_action_voices: true,
@@ -49,27 +50,27 @@ type V4TexasPreferences = ((u8, u16, u8, bool, bool, bool, bool),);
 
 fn decode_games(bytes: &[u8], version: u8) -> Option<GamePreferences> {
     // Legacy binary archives contain exactly six games, independently of new JSON files.
-    let (qigui523, texas_holdem, shengji, uno, mahjong, minecraft_guess) = if version == 5 {
+    let (qigui523, texas, shengji, uno, mahjong, mc_guess) = if version == 5 {
         decode_exact(bytes)?
     } else {
-        let (qigui523, _, shengji, uno, mahjong, minecraft_guess) =
+        let (qigui523, _, shengji, uno, mahjong, mc_guess) =
             decode_exact::<(_, V4TexasPreferences, _, _, _, _)>(bytes)?;
         (
             qigui523,
-            GamePreferences::default().texas_holdem,
+            GamePreferences::default().texas,
             shengji,
             uno,
             mahjong,
-            minecraft_guess,
+            mc_guess,
         )
     };
     Some(GamePreferences {
         qigui523,
-        texas_holdem,
+        texas,
         shengji,
         uno,
         mahjong,
-        minecraft_guess,
+        mc_guess,
         ..GamePreferences::default()
     })
 }

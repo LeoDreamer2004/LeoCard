@@ -10,15 +10,11 @@ use bevy::asset::RenderAssetUsages;
 use bevy::prelude::*;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
 use leocard_client::pick_image;
-use std::{
-    fs,
-    path::PathBuf,
-    sync::{
-        Mutex,
-        mpsc::{self, TryRecvError},
-    },
-    thread,
-};
+use std::fs;
+use std::path::PathBuf;
+use std::sync::Mutex;
+use std::sync::mpsc::{self, TryRecvError};
+use std::thread;
 
 pub(crate) fn start_table_felt_picker() -> Result<TableFeltPickerReceiver, String> {
     let (sender, receiver) = mpsc::channel();

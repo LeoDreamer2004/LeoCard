@@ -5,7 +5,8 @@ use crate::app::runtime::{ClientResource, PageErrorState};
 use crate::app::shell::game_command;
 use bevy::{input_focus::InputFocus, prelude::*, text::EditableText};
 use leocard_mahjong::MahjongHandReplacementError;
-use leocard_protocol::{MahjongCommand, QiGui523Command};
+use leocard_protocol::{GameSnapshot, MahjongCommand, QiGui523Command};
+
 use leocard_ui::{TextInputAction, TextInputEvent};
 
 pub(crate) fn submit_developer_hand(
@@ -21,7 +22,12 @@ pub(crate) fn submit_developer_hand(
     let Some(client) = client else {
         return;
     };
-    let command = if let Some(game) = client.0.model().mahjong_game() {
+    let command = if let Some(game) = client
+        .0
+        .model()
+        .game_snapshot()
+        .and_then(GameSnapshot::mahjong)
+    {
         parse_developer_mahjong_hand(&input).and_then(|tiles| {
             if tiles.len() != game.your_hand.len() {
                 return Err(MahjongHandReplacementError::WrongTileCount {

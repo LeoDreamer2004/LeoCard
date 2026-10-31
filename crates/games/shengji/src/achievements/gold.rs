@@ -1,5 +1,6 @@
 use super::facts::*;
 use super::macros::shengji;
+use crate::ShengjiTeamId;
 use leocard_achievements::{AchievementDefinition, award};
 
 pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
@@ -47,7 +48,8 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         Gold,
         "连续三盘让闲家大光",
         |event| analyzed(event, |facts, game| shutout(facts)
-            && game.consecutive_dealer_shutouts[usize::from(facts.player.team().0)]
+            && game.consecutive_dealer_shutouts
+                [usize::from(ShengjiTeamId::of(facts.player).0)]
                 >= 3),
         1
     ),

@@ -1,6 +1,7 @@
 use super::*;
 use crate::app::games::uno::{UNO_PLAY_CARD_DURATION, uno_should_show_reverse_effect};
-use leocard_protocol::{PlayerId, UnoEvent};
+use leocard_game_common::PlayerId;
+use leocard_protocol::UnoEvent;
 use leocard_uno::{UnoCard, UnoChallengeResult, UnoColor, UnoFace};
 
 fn played(face: UnoFace, count: u8, index: u8) -> UnoEvent {

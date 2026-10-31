@@ -17,6 +17,7 @@ use std::collections::HashSet;
 pub(crate) enum ClientUpdateSet {
     Input,
     Network,
+    Project,
     Sync,
     Compose,
     Animate,
@@ -62,6 +63,8 @@ impl Plugin for RuntimePlugin {
 
         configure_runtime_asset_source(app);
         app.add_message::<super::ServerNotification>()
+            .add_message::<super::GameStateMessage>()
+            .add_message::<super::GameNotice>()
             .insert_resource(ClearColor(TABLE_BG))
             .insert_resource(preferences.connection)
             .insert_resource(preferences.appearance)
@@ -104,6 +107,7 @@ impl Plugin for RuntimePlugin {
                 (
                     ClientUpdateSet::Input,
                     ClientUpdateSet::Network,
+                    ClientUpdateSet::Project,
                     ClientUpdateSet::Sync,
                     ClientUpdateSet::Compose,
                     ClientUpdateSet::Animate,

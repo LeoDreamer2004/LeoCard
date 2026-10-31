@@ -5,11 +5,11 @@ use super::super::structure::{
 };
 use crate::play::structure::StructureDemands;
 
-use super::super::{Component, category, classify_cards};
+use super::super::{ShengjiComponent, category, classify_cards};
 use super::{best_follow_tier, special_follow_hierarchy};
 use crate::{
-    FollowError, PlayError, ShengjiCard, ShengjiClassifiedPlay, ShengjiRank, ShengjiRuleSet,
-    ShengjiSuit, ShengjiTrump, ThrowFailure, TrickPlay,
+    ShengjiCard, ShengjiClassifiedPlay, ShengjiFollowError, ShengjiPlayError, ShengjiRank,
+    ShengjiRuleSet, ShengjiSuit, ShengjiThrowFailure, ShengjiTrickPlay, ShengjiTrump,
 };
 use std::collections::BTreeMap;
 
@@ -18,13 +18,13 @@ pub fn classify_lead(
     trump: ShengjiTrump,
     rules: &ShengjiRuleSet,
     opponent_hands: &[&[ShengjiCard]],
-) -> Result<TrickPlay, PlayError> {
+) -> Result<ShengjiTrickPlay, ShengjiPlayError> {
     let attempted = classify_cards(cards, trump)?;
     if !attempted.is_throw() {
-        return Ok(TrickPlay::Accepted(attempted));
+        return Ok(ShengjiTrickPlay::Accepted(attempted));
     }
     if !rules.allow_throw {
-        return Err(PlayError::ThrowDisabled);
+        return Err(ShengjiPlayError::ThrowDisabled);
     }
 
     let failed = attempted
@@ -43,10 +43,10 @@ pub fn classify_lead(
             )
         });
     let Some(failed) = failed else {
-        return Ok(TrickPlay::Accepted(attempted));
+        return Ok(ShengjiTrickPlay::Accepted(attempted));
     };
     let forced = classify_cards(&failed.cards(), trump)?;
-    Ok(TrickPlay::ThrowFailed(ThrowFailure {
+    Ok(ShengjiTrickPlay::ThrowFailed(ShengjiThrowFailure {
         penalty_points: (cards.len() as u16).saturating_mul(rules.throw_penalty.points_per_card()),
         attempted,
         forced,
@@ -58,14 +58,14 @@ pub fn validate_follow(
     cards: &[ShengjiCard],
     lead: &ShengjiClassifiedPlay,
     trump: ShengjiTrump,
-) -> Result<ShengjiClassifiedPlay, FollowError> {
+) -> Result<ShengjiClassifiedPlay, ShengjiFollowError> {
     if cards.len() != lead.cards.len() {
-        return Err(FollowError::WrongCardCount {
+        return Err(ShengjiFollowError::WrongCardCount {
             expected: lead.cards.len(),
             actual: cards.len(),
         });
     }
-    validate_owned(cards, hand).map_err(FollowError::Play)?;
+    validate_owned(cards, hand).map_err(ShengjiFollowError::Play)?;
     let required_in_hand = hand
         .iter()
         .filter(|card| category(**card, trump) == lead.category)
@@ -76,7 +76,7 @@ pub fn validate_follow(
         .filter(|card| category(**card, trump) == lead.category)
         .count();
     if actual != required {
-        return Err(FollowError::MustFollowCategory { required, actual });
+        return Err(ShengjiFollowError::MustFollowCategory { required, actual });
     }
     if required_in_hand >= cards.len() {
         let hand_cards = hand
@@ -90,10 +90,10 @@ pub fn validate_follow(
                 == best_follow_tier(&hand_cards, trump, &hierarchy, false)
         } else {
             match lead.components.as_slice() {
-                [Component::Triple { .. }] => {
+                [ShengjiComponent::Triple { .. }] => {
                     triple_follow_rank(&proposed) == triple_follow_rank(&hand_cards)
                 }
-                [Component::Titanic { triple_count, .. }] => {
+                [ShengjiComponent::Titanic { triple_count, .. }] => {
                     titanic_follow_rank(&proposed, usize::from(*triple_count), trump)
                         == titanic_follow_rank(&hand_cards, usize::from(*triple_count), trump)
                 }
@@ -110,14 +110,14 @@ pub fn validate_follow(
             }
         };
         if !follows_structure {
-            return Err(FollowError::MustFollowStructure);
+            return Err(ShengjiFollowError::MustFollowStructure);
         }
     }
     if cards
         .iter()
         .all(|card| category(*card, trump) == category(cards[0], trump))
     {
-        classify_cards(cards, trump).map_err(FollowError::Play)
+        classify_cards(cards, trump).map_err(ShengjiFollowError::Play)
     } else {
         Ok(classify_mixed_discard(cards, trump))
     }

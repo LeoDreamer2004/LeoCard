@@ -1,15 +1,18 @@
 use super::candidates::hand_value;
+use crate::ShengjiTeamId;
 use crate::{
-    Category, ShengjiCard, ShengjiClassifiedPlay, ShengjiPlayerId, ShengjiTrump, TrickRecord,
+    ShengjiCard, ShengjiCategory, ShengjiClassifiedPlay, ShengjiTrickRecord, ShengjiTrump,
     compare_for_trick,
 };
+use leocard_game_common::PlayerId;
+
 use std::cmp::Ordering;
 
 pub(super) fn quick_value(
     play: &ShengjiClassifiedPlay,
     hand: &[ShengjiCard],
-    trick: Option<&TrickRecord>,
-    player: ShengjiPlayerId,
+    trick: Option<&ShengjiTrickRecord>,
+    player: PlayerId,
     trump: ShengjiTrump,
 ) -> f64 {
     let remaining: Vec<_> = hand
@@ -31,7 +34,7 @@ pub(super) fn quick_value(
             .expect("winner")
             .1;
         let wins = compare_for_trick(&trick.plays[0].1, current, play, trump) == Ordering::Greater;
-        let friendly = trick.winner.team() == player.team();
+        let friendly = ShengjiTeamId::of(trick.winner) == ShengjiTeamId::of(player);
         let secure = friendly
             && (trick.plays.len() == 3
                 || current.strongest_component().comparison_strength() >= 12);
@@ -49,7 +52,7 @@ pub(super) fn quick_value(
         // 副牌先兑现大牌；吊主则保留控场牌，优先用小主消耗其他人的主牌。
         // 这是搜索先验，确有得分或保底收益时，模拟仍可选择大主。
         let strength_value = f64::from(strength)
-            * if play.category == Category::Trump {
+            * if play.category == ShengjiCategory::Trump {
                 -0.65
             } else {
                 1.3
@@ -68,18 +71,18 @@ mod tests {
         ShengjiTrump::new(ShengjiRank::Ten, Some(ShengjiSuit::Heart)).unwrap()
     }
 
-    fn best(hand: &[ShengjiCard], trick: Option<&TrickRecord>) -> Vec<ShengjiCard> {
+    fn best(hand: &[ShengjiCard], trick: Option<&ShengjiTrickRecord>) -> Vec<ShengjiCard> {
         let lead = trick
             .and_then(|trick| trick.plays.first())
             .map(|(_, play)| play);
         plays(hand, lead, trump(), 64)
             .into_iter()
             .max_by(|left, right| {
-                quick_value(left, hand, trick, ShengjiPlayerId(0), trump()).total_cmp(&quick_value(
+                quick_value(left, hand, trick, PlayerId(0), trump()).total_cmp(&quick_value(
                     right,
                     hand,
                     trick,
-                    ShengjiPlayerId(0),
+                    PlayerId(0),
                     trump(),
                 ))
             })
@@ -109,10 +112,10 @@ mod tests {
     fn following_can_still_spend_a_joker_to_take_opponents_points() {
         let king = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::King);
         let lead = plays(&[king], None, trump(), 1).remove(0);
-        let trick = TrickRecord {
-            leader: ShengjiPlayerId(1),
-            winner: ShengjiPlayerId(1),
-            plays: vec![(ShengjiPlayerId(1), lead)],
+        let trick = ShengjiTrickRecord {
+            leader: PlayerId(1),
+            winner: PlayerId(1),
+            plays: vec![(PlayerId(1), lead)],
             points: 10,
         };
         let joker = ShengjiCard::big_joker(0);

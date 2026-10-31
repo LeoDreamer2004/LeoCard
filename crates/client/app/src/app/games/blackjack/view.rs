@@ -8,10 +8,11 @@ use crate::app::shell::{
     ChatPanelState, SocialUiState, UiAction, add_chat_help_button, add_chat_panel,
     add_reconnecting_overlay,
 };
-use bevy::prelude::*;
-use leocard_blackjack::Phase;
+use leocard_blackjack::BlackjackPhase;
 use leocard_protocol::BlackjackSnapshot;
 use leocard_ui::{UiComposer, spawn_node, ui_component};
+
+use bevy::prelude::*;
 
 pub(crate) struct BlackjackTable<'a> {
     pub client: &'a ClientResource,
@@ -94,7 +95,7 @@ pub(crate) fn render_blackjack_table(
         .players
         .iter()
         .find(|player| player.player.id == game.you);
-    let auto_play = (game.phase != Phase::Complete)
+    let auto_play = (game.phase != BlackjackPhase::Complete)
         .then(|| own.map(|player| player.auto_play))
         .flatten();
     let chat = add_chat_panel(

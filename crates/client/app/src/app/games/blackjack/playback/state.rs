@@ -1,7 +1,8 @@
 use crate::app::presentation::CARD_DEAL_DURATION;
 use bevy::prelude::*;
-use leocard_blackjack::Phase;
-use leocard_protocol::{BlackjackPlayerView, BlackjackSnapshot, PlayerId};
+use leocard_blackjack::BlackjackPhase;
+use leocard_game_common::PlayerId;
+use leocard_protocol::{BlackjackPlayerView, BlackjackSnapshot};
 use std::collections::HashMap;
 
 // Playback completion must use the same durations as the rendered animations.
@@ -51,7 +52,7 @@ impl BlackjackPlayback {
         let settlement = if self
             .observed
             .as_ref()
-            .is_some_and(|game| game.phase == Phase::Complete)
+            .is_some_and(|game| game.phase == BlackjackPhase::Complete)
         {
             SETTLEMENT_CHIP_DURATION
         } else {
@@ -65,7 +66,7 @@ impl BlackjackPlayback {
             && self
                 .observed
                 .as_ref()
-                .is_some_and(|game| game.phase == Phase::Complete)
+                .is_some_and(|game| game.phase == BlackjackPhase::Complete)
     }
 
     pub(in super::super) fn elapsed(&self) -> f32 {
@@ -88,7 +89,7 @@ impl BlackjackPlayback {
             && self
                 .observed
                 .as_ref()
-                .is_some_and(|game| game.phase == Phase::Complete)
+                .is_some_and(|game| game.phase == BlackjackPhase::Complete)
         {
             view.round_start_stack
                 .saturating_sub(view.hands.iter().map(|hand| hand.wager).sum())

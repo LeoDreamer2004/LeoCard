@@ -1,14 +1,15 @@
-use crate::{BidError, FollowError, RuleError, ShengjiPlayerId};
-use leocard_game_common::DeckError;
+use crate::{ShengjiBidError, ShengjiFollowError, ShengjiRuleError};
+use leocard_game_common::{DeckError, PlayerId};
+
 use std::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum GameError {
-    Rules(RuleError),
-    Bid(BidError),
-    Play(crate::PlayError),
-    Follow(FollowError),
-    InvalidPlayer(ShengjiPlayerId),
+pub enum ShengjiGameError {
+    Rules(ShengjiRuleError),
+    Bid(ShengjiBidError),
+    Play(crate::ShengjiPlayError),
+    Follow(ShengjiFollowError),
+    InvalidPlayer(PlayerId),
     InvalidDeckSize {
         expected: usize,
         actual: usize,
@@ -33,12 +34,12 @@ pub enum GameError {
     NotBottomCopyPlayer,
     CardsNotOwned,
     NotPlayersTurn {
-        expected: ShengjiPlayerId,
-        actual: ShengjiPlayerId,
+        expected: PlayerId,
+        actual: PlayerId,
     },
 }
 
-impl fmt::Display for GameError {
+impl fmt::Display for ShengjiGameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Rules(error) => error.fmt(f),
@@ -73,9 +74,9 @@ impl fmt::Display for GameError {
     }
 }
 
-impl std::error::Error for GameError {}
+impl std::error::Error for ShengjiGameError {}
 
-impl From<DeckError> for GameError {
+impl From<DeckError> for ShengjiGameError {
     fn from(value: DeckError) -> Self {
         match value {
             DeckError::InvalidSize { expected, actual } => {
@@ -86,26 +87,26 @@ impl From<DeckError> for GameError {
     }
 }
 
-impl From<RuleError> for GameError {
-    fn from(value: RuleError) -> Self {
+impl From<ShengjiRuleError> for ShengjiGameError {
+    fn from(value: ShengjiRuleError) -> Self {
         Self::Rules(value)
     }
 }
 
-impl From<BidError> for GameError {
-    fn from(value: BidError) -> Self {
+impl From<ShengjiBidError> for ShengjiGameError {
+    fn from(value: ShengjiBidError) -> Self {
         Self::Bid(value)
     }
 }
 
-impl From<crate::PlayError> for GameError {
-    fn from(value: crate::PlayError) -> Self {
+impl From<crate::ShengjiPlayError> for ShengjiGameError {
+    fn from(value: crate::ShengjiPlayError) -> Self {
         Self::Play(value)
     }
 }
 
-impl From<FollowError> for GameError {
-    fn from(value: FollowError) -> Self {
+impl From<ShengjiFollowError> for ShengjiGameError {
+    fn from(value: ShengjiFollowError) -> Self {
         Self::Follow(value)
     }
 }

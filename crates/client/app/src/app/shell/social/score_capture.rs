@@ -1,14 +1,14 @@
 use super::*;
+use crate::app::games::qigui523::{QiGuiClientState, ScoreCaptureEffect};
 use crate::app::presentation::{
     ACCENT, CardSize, SCORE_ROLL_DELAY, SCORE_ROLL_DURATION, TABLE_SCORE_CARD_REVEAL, add_text,
     rolling_score, score_gain_visual,
 };
-use crate::app::runtime::{ClientResource, UiAssets};
+use crate::app::runtime::UiAssets;
 use bevy::ecs::system::SystemParam;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_client::ScoreCaptureEffect;
-use leocard_protocol::PlayerId;
+use leocard_game_common::PlayerId;
 use leocard_ui::{UiComposer, spawn_node};
 use std::{collections::HashMap, f32::consts};
 
@@ -57,19 +57,20 @@ fn score_source_in_layer(
 
 pub(crate) fn sync_score_capture_effect(
     mut commands: UiComposer,
-    client: Option<Res<ClientResource>>,
+    game_client: Res<QiGuiClientState>,
     assets: Res<UiAssets>,
     mut state: ResMut<ScoreCaptureEffectState>,
     layers: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<PlayerInteractionLayer>>,
     score_anchors: Query<(&PlayerGameScoreText, &ComputedNode, &UiGlobalTransform)>,
     source_anchors: Query<(&FinishedHandScoreSource, &ComputedNode, &UiGlobalTransform)>,
 ) {
-    let Some(model) = client.as_deref().map(|client| client.0.model()) else {
-        state.seen_serial = 0;
-        state.active = None;
-        return;
-    };
-    let serial = model.score_capture_serial();
+    if state.view_key != game_client.view_key() {
+        *state = ScoreCaptureEffectState {
+            view_key: game_client.view_key(),
+            ..default()
+        };
+    }
+    let serial = game_client.score_capture_serial();
     if serial == 0 {
         state.seen_serial = 0;
         state.active = None;
@@ -78,7 +79,7 @@ pub(crate) fn sync_score_capture_effect(
     if serial == state.seen_serial {
         return;
     }
-    let Some(capture) = model.last_score_capture().cloned() else {
+    let Some(capture) = game_client.last_score_capture().cloned() else {
         return;
     };
     let Ok((layer, layer_node, layer_transform)) = layers.single() else {

@@ -1,8 +1,8 @@
 use super::MahjongSession;
-use leocard_mahjong::mahjong_reference_deltas;
-use leocard_protocol::{
-    MAHJONG_MAJOR_FANS, MahjongEvent, MahjongHandResultView, MahjongProfileStats, PlayerId,
-};
+use leocard_game_common::PlayerId;
+use leocard_mahjong::{MAHJONG_MAJOR_FANS, MahjongProfileStats, mahjong_reference_deltas};
+
+use leocard_protocol::{MahjongEvent, MahjongHandResultView};
 use std::cmp::Reverse;
 
 impl MahjongSession {

@@ -1,36 +1,39 @@
 use super::prelude::*;
 use crate::app::games::qigui523::{next_time_control, previous_time_control};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    GamePhaseView, MatchId, PlayerGameProfiles, PlayerId, PlayerPublicState, ProfileId,
-    QiGui523Snapshot, SeatId, StartingCardView, TrickView, TurnTimerView,
+    MatchId, PlayerGameProfiles, PlayerPublicInfo, ProfileId, QiGui523PhaseView,
+    QiGui523PlayerView, QiGui523Snapshot, QiGui523StartingCardView, QiGui523TrickView,
+    QiGui523TurnTimerView, SeatId,
 };
-use leocard_qigui523::TimeControl;
-use leocard_qigui523::{QiGui523Bot, QiGuiCard, QiGuiRank, QiGuiRuleSet, QiGuiSuit, classify};
+use leocard_qigui523::{
+    QiGui523Bot, QiGuiCard, QiGuiRank, QiGuiRuleSet, QiGuiSuit, QiGuiTimeControl, classify,
+};
 
 #[test]
 fn time_control_options_follow_the_configured_order() {
-    assert_eq!(previous_time_control(TimeControl::FivePlusTen), None);
+    assert_eq!(previous_time_control(QiGuiTimeControl::FivePlusTen), None);
     assert_eq!(
-        next_time_control(TimeControl::FivePlusTen),
-        Some(TimeControl::FivePlusThirty)
+        next_time_control(QiGuiTimeControl::FivePlusTen),
+        Some(QiGuiTimeControl::FivePlusThirty)
     );
     assert_eq!(
-        next_time_control(TimeControl::FivePlusThirty),
-        Some(TimeControl::FifteenPlusThirty)
+        next_time_control(QiGuiTimeControl::FivePlusThirty),
+        Some(QiGuiTimeControl::FifteenPlusThirty)
     );
     assert_eq!(
-        next_time_control(TimeControl::FifteenPlusThirty),
-        Some(TimeControl::ThirtyPlusSixty)
+        next_time_control(QiGuiTimeControl::FifteenPlusThirty),
+        Some(QiGuiTimeControl::ThirtyPlusSixty)
     );
     assert_eq!(
-        next_time_control(TimeControl::ThirtyPlusSixty),
-        Some(TimeControl::Unlimited)
+        next_time_control(QiGuiTimeControl::ThirtyPlusSixty),
+        Some(QiGuiTimeControl::Unlimited)
     );
     assert_eq!(
-        previous_time_control(TimeControl::Unlimited),
-        Some(TimeControl::ThirtyPlusSixty)
+        previous_time_control(QiGuiTimeControl::Unlimited),
+        Some(QiGuiTimeControl::ThirtyPlusSixty)
     );
-    assert_eq!(next_time_control(TimeControl::Unlimited), None);
+    assert_eq!(next_time_control(QiGuiTimeControl::Unlimited), None);
 }
 
 #[test]
@@ -106,29 +109,31 @@ fn auto_playing_current_player_does_not_show_a_turn_clock() {
         host_port: 52300,
         you: player,
         host: player,
-        players: vec![PlayerPublicState {
-            id: player,
-            profile_id: ProfileId([1; 32]),
-            name: "玩家".to_owned(),
-            avatar: None,
+        players: vec![QiGui523PlayerView {
+            player: PlayerPublicInfo {
+                id: player,
+                profile_id: ProfileId([1; 32]),
+                name: "玩家".to_owned(),
+                avatar: None,
+                reference_points: 0,
+                completed_games: 0,
+                game_profiles: PlayerGameProfiles::default(),
+            },
             seat: SeatId(0),
             hand_len: 1,
             score: 0,
             ready: false,
             connected: true,
             auto_play: false,
-            reference_points: 0,
-            completed_games: 0,
-            game_profiles: PlayerGameProfiles::default(),
         }],
         played_cards: Vec::new(),
         your_hand: Vec::new(),
         draw_pile_len: 0,
-        starting_card: StartingCardView {
+        starting_card: QiGui523StartingCardView {
             player,
             card: QiGuiCard::suited(0, QiGuiSuit::Diamond, QiGuiRank::Four),
         },
-        trick: Some(TrickView {
+        trick: Some(QiGui523TrickView {
             leader: player,
             current_player: player,
             winning_player: None,
@@ -136,12 +141,12 @@ fn auto_playing_current_player_does_not_show_a_turn_clock() {
             records: Vec::new(),
             table_points: 0,
         }),
-        turn_timer: Some(TurnTimerView {
+        turn_timer: Some(QiGui523TurnTimerView {
             player,
             base_seconds: 5,
             reserve_seconds: 30,
         }),
-        phase: GamePhaseView::Playing,
+        phase: QiGui523PhaseView::Playing,
     };
 
     assert!(turn_clock_visible(&game, player));

@@ -18,13 +18,15 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use bevy::picking::Pickable;
-use bevy::prelude::*;
+use leocard_game_common::PlayerId;
 use leocard_mahjong::MahjongTile;
 use leocard_protocol::{
-    MahjongHandResultView, MahjongPhaseView, MahjongPlayerState, MahjongSnapshot, PlayerId,
+    MahjongHandResultView, MahjongPhaseView, MahjongPlayerView, MahjongSnapshot,
 };
 use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
+
+use bevy::prelude::*;
 
 pub(super) struct MahjongPlayerPanelVisuals<'a> {
     pub own_seat: u8,
@@ -37,7 +39,7 @@ pub(super) struct MahjongPlayerPanelVisuals<'a> {
 pub(super) fn render_mahjong_player_panel(
     commands: &mut UiComposer,
     table: Entity,
-    player: &MahjongPlayerState,
+    player: &MahjongPlayerView,
     visuals: MahjongPlayerPanelVisuals<'_>,
 ) {
     let MahjongPlayerPanelVisuals {
@@ -70,17 +72,17 @@ pub(super) fn render_mahjong_player_panel(
             ..default()
         },
         PlayerPortraitSpec {
-            player: player.id,
+            player: player.player.id,
             profile: PlayerMenuProfile {
-                name: &player.name,
-                avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
-                reference_points: player.reference_points,
-                completed_games: player.completed_games,
-                game_profiles: &player.game_profiles,
+                name: &player.player.name,
+                avatar: player.player.avatar.and_then(|id| avatars.remote.get(&id)),
+                reference_points: player.player.reference_points,
+                completed_games: player.player.completed_games,
+                game_profiles: &player.player.game_profiles,
             },
             avatar_size: 52.0 * 1.17,
             auto_play: player.auto_play,
-            menu_open: interaction_menu_open == Some(player.id),
+            menu_open: interaction_menu_open == Some(player.player.id),
             name_color: if player.dead_hand { DANGER } else { TEXT },
         },
         assets,
@@ -88,7 +90,7 @@ pub(super) fn render_mahjong_player_panel(
     attach_start_game_seat_transition(
         commands,
         portrait.portrait,
-        player.id,
+        player.player.id,
         start_transition_active,
     );
     let flower_count = spawn_node(
@@ -248,7 +250,7 @@ pub(super) struct MahjongPlayerTileVisuals<'a> {
 pub(super) fn render_mahjong_player_tiles(
     commands: &mut UiComposer,
     table: Entity,
-    player: &MahjongPlayerState,
+    player: &MahjongPlayerView,
     visuals: MahjongPlayerTileVisuals<'_>,
 ) {
     let MahjongPlayerTileVisuals {
@@ -274,7 +276,7 @@ pub(super) fn render_mahjong_player_tiles(
     let winning_hand = winning_hand.is_some();
     let relative = (player.seat.0 + 4 - own_seat) % 4;
     let remote_discard =
-        remote_discard.filter(|active| active.player == player.id && relative != 0);
+        remote_discard.filter(|active| active.player == player.player.id && relative != 0);
     let separate_last_concealed = robbing_tile.is_some()
         || remote_discard
             .map(|active| active.from_drawn)
@@ -417,7 +419,7 @@ pub(super) fn render_mahjong_player_tiles(
             };
             commands.entity(concealed).insert((
                 MahjongClaimHandShift {
-                    player: player.id,
+                    player: player.player.id,
                     distance,
                 },
                 UiTransform::from_translation(Val2::px(
@@ -441,8 +443,8 @@ pub(super) fn render_mahjong_player_tiles(
                 let cues = result.map(|result| {
                     mahjong_win_tile_cues(result, |winner| {
                         winner.winning_tile == *tile
-                            && (winner.from == Some(player.id)
-                                || (winner.from.is_none() && winner.player == player.id))
+                            && (winner.from == Some(player.player.id)
+                                || (winner.from.is_none() && winner.player == player.player.id))
                     })
                 });
                 let entity = add_mahjong_tile_material(
@@ -697,15 +699,12 @@ pub(super) fn render_discard_rivers(
             UiTransform::from_rotation(Rot2::radians(rotation)),
             ZIndex(5),
         ));
-        for (index, discard) in game
-            .discards
-            .iter()
-            .enumerate()
-            .filter(|(_, discard)| discard.player == player.id && discard.claimed_by.is_none())
-        {
+        for (index, discard) in game.discards.iter().enumerate().filter(|(_, discard)| {
+            discard.player == player.player.id && discard.claimed_by.is_none()
+        }) {
             let cues = result.map(|result| {
                 mahjong_win_tile_cues(result, |winner| {
-                    winner.from == Some(player.id) && winner.winning_tile == discard.tile
+                    winner.from == Some(player.player.id) && winner.winning_tile == discard.tile
                 })
             });
             let entity = add_mahjong_tile_material(

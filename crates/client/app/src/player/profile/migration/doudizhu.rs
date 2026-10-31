@@ -1,11 +1,11 @@
 use super::super::StoredPlayerProfile;
 use super::archive::decode_archive;
-use leocard_protocol::TexasHoldemProfileStats;
+use leocard_texas_holdem::TexasProfileStats;
 
 pub(super) const V5_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v5\0";
 
 pub(super) fn decode_v5(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
-    decode_archive::<TexasHoldemProfileStats>(bytes)
+    decode_archive::<TexasProfileStats>(bytes)
 }
 
 #[cfg(test)]
@@ -13,11 +13,14 @@ mod tests {
     use super::*;
     use crate::player::profile::migration::decode_player_profile;
     use crate::player::profile::{PROFILE_HEADER, StoredRatingProfile};
-    use leocard_protocol::{
-        BlackjackProfileStats, DoudizhuProfileStats, MahjongProfileStats, MatchId,
-        MinecraftGuessProfileStats, PlayerInteractionStats, QiGui523ProfileStats,
-        ShengjiProfileStats, UnoProfileStats,
-    };
+    use leocard_blackjack::BlackjackProfileStats;
+    use leocard_doudizhu::DoudizhuProfileStats;
+    use leocard_mahjong::MahjongProfileStats;
+    use leocard_mc_guess::McGuessProfileStats;
+    use leocard_protocol::{MatchId, PlayerInteractionStats};
+    use leocard_qigui523::QiGui523ProfileStats;
+    use leocard_shengji::ShengjiProfileStats;
+    use leocard_uno::UnoProfileStats;
 
     #[test]
     fn v5_archive_preserves_all_existing_bytes_and_persists_new_statistics() {
@@ -32,7 +35,7 @@ mod tests {
             }),
         };
         let statistics = (
-            Some(TexasHoldemProfileStats {
+            Some(TexasProfileStats {
                 placement_counts: [1, 2, 3, 4, 5, 6, 7, 8],
                 entered_hands: 13,
                 ..Default::default()
@@ -53,7 +56,7 @@ mod tests {
                 wins: 8,
                 ..Default::default()
             }),
-            Some(MinecraftGuessProfileStats {
+            Some(McGuessProfileStats {
                 total_score: 456,
                 ..Default::default()
             }),

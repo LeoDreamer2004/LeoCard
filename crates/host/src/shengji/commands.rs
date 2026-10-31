@@ -1,12 +1,14 @@
-use super::{ShengjiSession, shuffled_deck, to_core_player};
+use super::{ShengjiSession, shuffled_deck};
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
     GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, ShengjiEvent,
     ShengjiViolation,
 };
 use leocard_shengji::{
-    ActionOutcome, GameError, GameState, Phase, ShengjiCard, ShengjiPlayerId, ShengjiRuleSet,
+    ShengjiActionOutcome, ShengjiCard, ShengjiGameError, ShengjiGameState, ShengjiPhase,
+    ShengjiRuleSet,
 };
 use std::time::Duration;
 
@@ -73,25 +75,21 @@ impl ShengjiSession {
         self.broadcast_lobby(Some((connection, request_id)))
     }
 
-    pub(super) fn start_hand(&mut self, count_as_next_hand: bool) -> Result<(), GameError> {
+    pub(super) fn start_hand(&mut self) -> Result<(), ShengjiGameError> {
         let deck = self
             .shuffled_deck
             .take()
             .unwrap_or_else(|| shuffled_deck(self.rules));
         let fixed_dealer = self.next_dealer;
-        self.game = Some(GameState::new(
+        self.game = Some(ShengjiGameState::new(
             self.rules,
             self.teams.clone(),
             fixed_dealer,
-            fixed_dealer.unwrap_or(ShengjiPlayerId(0)),
+            fixed_dealer.unwrap_or(PlayerId(0)),
             deck,
         )?);
-        if count_as_next_hand || self.hand_number == 0 {
-            self.hand_number = self.hand_number.saturating_add(1);
-        } else {
-            // 无人亮主重新发牌也需要让客户端重置逐张发牌动画。
-            self.hand_number = self.hand_number.saturating_add(1);
-        }
+        // 无人亮主重新发牌时也递增，让客户端重置逐张发牌动画。
+        self.hand_number = self.hand_number.saturating_add(1);
         self.flow.deal_elapsed = Duration::ZERO;
         self.flow.bidding_remaining = None;
         self.flow.bid_pass_confirmed = [false; ShengjiRuleSet::MAX_PLAYERS as usize];
@@ -162,7 +160,7 @@ impl ShengjiSession {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         };
-        match game.declare(to_core_player(player), &cards) {
+        match game.declare(player, &cards) {
             Ok(_) => {
                 self.record_current_declaration();
                 self.reset_bid_pass_confirmations();
@@ -193,9 +191,9 @@ impl ShengjiSession {
         if !self
             .game
             .as_ref()
-            .is_some_and(|game| matches!(game.phase(), Phase::BiddingGrace))
+            .is_some_and(|game| matches!(game.phase(), ShengjiPhase::BiddingGrace))
         {
-            return self.reject_game_error(connection, request_id, GameError::WrongPhase);
+            return self.reject_game_error(connection, request_id, ShengjiGameError::WrongPhase);
         }
         let events = self.open_bot_declarations();
         self.flow.bid_pass_confirmed[usize::from(player.0)] = true;
@@ -295,7 +293,10 @@ impl ShengjiSession {
         &mut self,
         connection: ConnectionId,
         request_id: RequestId,
-        action: impl FnOnce(&mut GameState, ShengjiPlayerId) -> Result<ActionOutcome, GameError>,
+        action: impl FnOnce(
+            &mut ShengjiGameState,
+            PlayerId,
+        ) -> Result<ShengjiActionOutcome, ShengjiGameError>,
     ) -> Vec<Delivery> {
         if self.presentation.trick.is_some() || self.presentation.throw_failure.is_some() {
             return self.room.reject(
@@ -318,7 +319,7 @@ impl ShengjiSession {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         };
-        let outcome = match action(game, to_core_player(player)) {
+        let outcome = match action(game, player) {
             Ok(outcome) => outcome,
             Err(error) => return self.reject_game_error(connection, request_id, error),
         };

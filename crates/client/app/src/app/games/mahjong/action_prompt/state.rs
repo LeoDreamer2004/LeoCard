@@ -1,7 +1,8 @@
 use super::super::MahjongUiState;
 use bevy::prelude::*;
+use leocard_game_common::PlayerId;
 use leocard_mahjong::{MahjongClaimOption, MahjongTile};
-use leocard_protocol::{MahjongPhaseView, MahjongSnapshot, MatchId, PlayerId};
+use leocard_protocol::{MahjongPhaseView, MahjongSnapshot, MatchId};
 
 /// 标识一次实际显示操作按钮的机会，保持与界面实体的生命周期独立。
 #[derive(Component, Clone, Copy, Eq, PartialEq)]
@@ -22,7 +23,7 @@ impl MahjongActionPrompt {
         if game
             .players
             .iter()
-            .any(|player| player.id == game.you && player.auto_play)
+            .any(|player| player.player.id == game.you && player.auto_play)
         {
             return None;
         }

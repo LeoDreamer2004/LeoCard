@@ -1,23 +1,22 @@
 use super::{
-    ActionOutcome, CurrentTrick, GameError, GameState, HandResult, Phase, TrickRecord, next_player,
-    remove_cards, validate_cards_owned,
+    CurrentTrick, ShengjiActionOutcome, ShengjiGameError, ShengjiGameState, ShengjiHandResult,
+    ShengjiPhase, ShengjiTrickRecord, next_player, remove_cards, validate_cards_owned,
 };
 use crate::play::compare_for_trick;
-use crate::{
-    ShengjiCard, ShengjiPlayerId, ShengjiTeamId, TrickPlay, classify_lead, validate_follow,
-};
+use crate::{ShengjiCard, ShengjiTeamId, ShengjiTrickPlay, classify_lead, validate_follow};
+use leocard_game_common::PlayerId;
 
-impl GameState {
+impl ShengjiGameState {
     pub fn play_cards(
         &mut self,
-        player: ShengjiPlayerId,
+        player: PlayerId,
         cards: &[ShengjiCard],
-    ) -> Result<ActionOutcome, GameError> {
-        if self.phase != Phase::Playing {
-            return Err(GameError::WrongPhase);
+    ) -> Result<ShengjiActionOutcome, ShengjiGameError> {
+        if self.phase != ShengjiPhase::Playing {
+            return Err(ShengjiGameError::WrongPhase);
         }
         if self.current_player != Some(player) {
-            return Err(GameError::NotPlayersTurn {
+            return Err(ShengjiGameError::NotPlayersTurn {
                 expected: self.current_player.unwrap(),
                 actual: player,
             });
@@ -40,8 +39,8 @@ impl GameState {
                 .map(|candidate| candidate.hand.as_slice())
                 .collect::<Vec<_>>();
             match classify_lead(cards, trump, &self.rules, &opponents)? {
-                TrickPlay::Accepted(play) => (play, None),
-                TrickPlay::ThrowFailed(failure) => {
+                ShengjiTrickPlay::Accepted(play) => (play, None),
+                ShengjiTrickPlay::ThrowFailed(failure) => {
                     let forced = failure.forced.clone();
                     (forced, Some((failure.penalty_points, cards.to_vec())))
                 }
@@ -76,17 +75,17 @@ impl GameState {
         self.record_first_trick_cut(player, previous_winner);
 
         if let Some((penalty, _)) = &failure {
-            self.apply_throw_penalty(player.team(), *penalty);
+            self.apply_throw_penalty(ShengjiTeamId::of(player), *penalty);
         }
         let trick_complete =
             self.trick.as_ref().unwrap().plays.len() == usize::from(self.rules.player_count());
         if trick_complete {
             return self.complete_trick();
         }
-        let next = ShengjiPlayerId((player.0 + 1) % self.rules.player_count());
+        let next = PlayerId((player.0 + 1) % self.rules.player_count());
         self.current_player = Some(next);
         if let Some((penalty_points, attempted)) = failure {
-            Ok(ActionOutcome::ThrowFailed {
+            Ok(ShengjiActionOutcome::ThrowFailed {
                 player,
                 attempted,
                 forced: play,
@@ -94,20 +93,20 @@ impl GameState {
                 next,
             })
         } else {
-            Ok(ActionOutcome::Played { player, next })
+            Ok(ShengjiActionOutcome::Played { player, next })
         }
     }
 
-    fn complete_trick(&mut self) -> Result<ActionOutcome, GameError> {
+    fn complete_trick(&mut self) -> Result<ShengjiActionOutcome, ShengjiGameError> {
         let trick = self.trick.take().unwrap();
         let winner = trick.plays[trick.winner_index].0;
-        if winner.team() == self.dealer.unwrap().team().other() {
+        if ShengjiTeamId::of(winner) == ShengjiTeamId::of(self.dealer.unwrap()).other() {
             self.collecting_score = self
                 .collecting_score
                 .saturating_add(u32::from(trick.points));
             self.trick_points = self.trick_points.saturating_add(u32::from(trick.points));
         }
-        let record = TrickRecord {
+        let record = ShengjiTrickRecord {
             leader: trick.leader,
             plays: trick.plays,
             winner,
@@ -117,15 +116,15 @@ impl GameState {
         self.current_player = Some(winner);
         if self.players.iter().all(|player| player.hand.is_empty()) {
             let result = self.finish_hand(winner, &record);
-            self.phase = Phase::Finished(result.clone());
+            self.phase = ShengjiPhase::Finished(result.clone());
             self.current_player = None;
-            return Ok(ActionOutcome::HandComplete(result));
+            return Ok(ShengjiActionOutcome::HandComplete(result));
         }
-        Ok(ActionOutcome::TrickComplete(record))
+        Ok(ShengjiActionOutcome::TrickComplete(record))
     }
 
     pub(super) fn apply_throw_penalty(&mut self, offender: ShengjiTeamId, points: u16) {
-        let dealer_team = self.dealer.unwrap().team();
+        let dealer_team = ShengjiTeamId::of(self.dealer.unwrap());
         if offender == dealer_team {
             self.collecting_score = self.collecting_score.saturating_add(u32::from(points));
             self.penalty_adjustment = self.penalty_adjustment.saturating_add(i32::from(points));
@@ -140,14 +139,14 @@ impl GameState {
 
     pub(super) fn finish_hand(
         &mut self,
-        last_winner: ShengjiPlayerId,
-        last_trick: &TrickRecord,
-    ) -> HandResult {
+        last_winner: PlayerId,
+        last_trick: &ShengjiTrickRecord,
+    ) -> ShengjiHandResult {
         let dealer = self.dealer.unwrap();
-        let dealer_team = dealer.team();
+        let dealer_team = ShengjiTeamId::of(dealer);
         let collecting_team = dealer_team.other();
         let kitty_points = self.buried.iter().map(|card| card.points()).sum::<u16>();
-        let (kitty_multiplier, kitty_award) = if last_winner.team() == collecting_team {
+        let (kitty_multiplier, kitty_award) = if ShengjiTeamId::of(last_winner) == collecting_team {
             let winner_play = last_trick
                 .plays
                 .iter()
@@ -167,19 +166,19 @@ impl GameState {
             (
                 dealer_team,
                 3,
-                ShengjiPlayerId((dealer.0 + 2) % self.rules.player_count()),
+                PlayerId((dealer.0 + 2) % self.rules.player_count()),
             )
         } else if self.collecting_score < step {
             (
                 dealer_team,
                 2,
-                ShengjiPlayerId((dealer.0 + 2) % self.rules.player_count()),
+                PlayerId((dealer.0 + 2) % self.rules.player_count()),
             )
         } else if self.collecting_score < takeover {
             (
                 dealer_team,
                 1,
-                ShengjiPlayerId((dealer.0 + 2) % self.rules.player_count()),
+                PlayerId((dealer.0 + 2) % self.rules.player_count()),
             )
         } else if self.collecting_score < takeover + step {
             (
@@ -200,7 +199,7 @@ impl GameState {
             promoted_steps,
             self.rules.mandatory_five_ten_king_ace,
         );
-        HandResult {
+        ShengjiHandResult {
             dealer,
             dealer_team,
             collecting_team,

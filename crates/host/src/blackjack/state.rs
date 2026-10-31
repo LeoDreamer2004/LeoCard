@@ -1,9 +1,10 @@
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, HostError, RoomSession};
-use leocard_blackjack::{BlackjackCard, BlackjackRuleSet, GameState, Phase};
+use leocard_blackjack::{BlackjackCard, BlackjackGameState, BlackjackPhase, BlackjackRuleSet};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientMessage, GameViolation, MatchId, PlayerId, PlayerReferenceChange, PlayerViolation,
-    RejectReason, RequestId, Revision, RoomId, ServerEvent,
+    ClientMessage, GameViolation, MatchId, PlayerReferenceChange, PlayerViolation, RejectReason,
+    RequestId, Revision, RoomId, ServerEvent,
 };
 use std::time::Duration;
 
@@ -11,7 +12,7 @@ use std::time::Duration;
 pub struct BlackjackSession {
     pub(super) room: RoomSession,
     pub(super) rules: BlackjackRuleSet,
-    pub(super) game: Option<GameState>,
+    pub(super) game: Option<BlackjackGameState>,
     pub(super) match_id: Option<MatchId>,
     pub(super) order: Vec<PlayerId>,
     pub(super) initial_shoe: Option<Vec<BlackjackCard>>,
@@ -26,7 +27,7 @@ impl BlackjackSession {
         rules: BlackjackRuleSet,
         shoe: Vec<BlackjackCard>,
     ) -> Result<Self, HostError> {
-        GameState::new(rules, 1, shoe.clone())?;
+        BlackjackGameState::new(rules, 1, shoe.clone())?;
         Ok(Self {
             room: RoomSession::new(room_id, host_port, BlackjackRuleSet::MAX_PLAYERS),
             rules,
@@ -81,7 +82,7 @@ impl BlackjackSession {
             .game
             .as_ref()
             .ok_or(RejectReason::Game(GameViolation::GameNotStarted))?;
-        if game.phase() != Phase::Complete {
+        if game.phase() != BlackjackPhase::Complete {
             return Err(RejectReason::Game(GameViolation::GameNotFinished));
         }
         Ok(player)

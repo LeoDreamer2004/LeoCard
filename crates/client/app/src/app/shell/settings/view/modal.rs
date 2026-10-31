@@ -73,7 +73,6 @@ impl<'a> SettingsModal<'a> {
             Node {
                 width: px(680),
                 max_width: percent(92),
-                height: px(590),
                 max_height: percent(92),
                 min_height: px(0),
                 padding: UiRect::all(px(24)),
@@ -123,8 +122,6 @@ impl<'a> SettingsModal<'a> {
             Node {
                 width: percent(100),
                 min_height: px(0),
-                flex_grow: 1.0,
-                flex_basis: px(0),
                 flex_direction: FlexDirection::Row,
                 column_gap: px(14),
                 ..default()

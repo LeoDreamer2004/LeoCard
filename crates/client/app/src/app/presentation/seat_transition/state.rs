@@ -1,7 +1,8 @@
 //! 大厅席位与开局移动演出的状态类型。
 
 use bevy::prelude::*;
-use leocard_protocol::{MatchId, PlayerId};
+use leocard_game_common::PlayerId;
+use leocard_protocol::MatchId;
 
 pub(crate) const START_GAME_SEAT_MOVE_DURATION: f32 = 0.72;
 

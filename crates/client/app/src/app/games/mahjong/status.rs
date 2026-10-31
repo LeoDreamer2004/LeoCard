@@ -3,10 +3,12 @@ use crate::app::presentation::{PlayerSeatValue, add_player_seat_value, add_text}
 use crate::app::runtime::UiAssets;
 use bevy::asset::RenderAssetUsages;
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
-use std::{array, f32::consts};
+use std::array;
+use std::f32::consts;
+
+use bevy::prelude::*;
 
 const STATUS_LEFT: f32 = 570.0;
 const STATUS_TOP: f32 = if cfg!(target_os = "android") {
@@ -176,7 +178,7 @@ pub(super) fn render_round_status_with_scores(
         let current_seat = game
             .players
             .iter()
-            .find(|player| player.id == game.current_player)
+            .find(|player| player.player.id == game.current_player)
             .map(|player| player.seat.0)
             .unwrap_or(own_seat);
         (current_seat + 4 - own_seat) % 4
@@ -244,7 +246,7 @@ pub(super) fn render_round_status_with_scores(
             .map(|player| wind_label(player.seat_wind))
             .unwrap_or("?");
         let score = player
-            .map(|player| scores[usize::from(player.id.0)])
+            .map(|player| scores[usize::from(player.player.id.0)])
             .unwrap_or(0);
         score_texts.push(render_wind_label(
             commands,

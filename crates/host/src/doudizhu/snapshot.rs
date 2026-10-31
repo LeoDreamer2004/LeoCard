@@ -1,5 +1,6 @@
 use super::DoudizhuSession;
-use leocard_protocol::{DoudizhuSnapshot, PlayerId, PlayerPublicState};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{DoudizhuPlayerView, DoudizhuSnapshot};
 
 impl DoudizhuSession {
     pub(super) fn snapshot_for(&self, you: PlayerId) -> DoudizhuSnapshot {
@@ -13,20 +14,16 @@ impl DoudizhuSession {
             .room
             .players
             .iter()
-            .map(|p| PlayerPublicState {
-                id: p.id,
-                profile_id: p.profile_id,
-                name: p.name.clone(),
-                avatar: p.avatar,
-                seat: p.seat.expect("started player has a seat"),
-                hand_len: lengths[usize::from(p.id.0)],
-                score: 0,
-                ready: p.ready,
-                connected: (p.connected || p.is_bot) && !p.left,
-                auto_play: p.auto_play || p.is_bot,
-                reference_points: p.reference_points,
-                completed_games: p.completed_games,
-                game_profiles: p.game_profiles.clone(),
+            .map(|participant| {
+                let public = participant.public_metadata();
+                DoudizhuPlayerView {
+                    player: public.player,
+                    seat: public.seat.expect("started player has a seat"),
+                    hand_len: lengths[participant.id.index()],
+                    ready: public.ready,
+                    connected: public.connected,
+                    auto_play: public.auto_play || participant.is_bot,
+                }
             })
             .collect();
         DoudizhuSnapshot {
@@ -41,14 +38,14 @@ impl DoudizhuSession {
             match_complete: state.complete(),
             reference_changes: self.finished_reference_changes.clone().unwrap_or_default(),
             phase: game.phase,
-            current: PlayerId(game.current),
-            landlord: game.landlord.map(PlayerId),
+            current: game.current,
+            landlord: game.landlord,
             highest_bid: game.highest_bid,
             bids: game.bids.clone(),
-            your_hand: game.hand(you.0).unwrap_or_default().to_vec(),
+            your_hand: game.hand(you).unwrap_or_default().to_vec(),
             kitty: game.public_kitty().to_vec(),
             played: game.played.clone(),
-            table: game.table.clone().map(|(p, play)| (PlayerId(p), play)),
+            table: game.table.clone(),
             last_actions: game.last_actions.clone(),
             multiplier: game.multiplier,
             result: game.result.clone(),

@@ -3,10 +3,10 @@
 use super::blackjack::BlackjackScreen;
 use super::doudizhu::DoudizhuScreen;
 use super::mahjong::MahjongScreen;
-use super::minecraft_guess::MinecraftGuessScreen;
+use super::mc_guess::McGuessScreen;
 use super::qigui523::QiGui523Screen;
 use super::shengji::ShengjiScreen;
-use super::texas_holdem::TexasHoldemScreen;
+use super::texas::TexasScreen;
 use super::uno::UnoScreen;
 use super::{GameLobbyContext, GameScreen, GameTableContext};
 use crate::app::runtime::ClientResource;
@@ -21,9 +21,9 @@ use leocard_ui::UiComposer;
 pub(crate) struct GameScreens<'w> {
     blackjack: BlackjackScreen<'w>,
     doudizhu: DoudizhuScreen<'w>,
-    minecraft_guess: MinecraftGuessScreen<'w>,
+    mc_guess: McGuessScreen<'w>,
     qigui523: QiGui523Screen<'w>,
-    texas_holdem: TexasHoldemScreen<'w>,
+    texas: TexasScreen<'w>,
     shengji: ShengjiScreen<'w>,
     uno: UnoScreen<'w>,
     mahjong: MahjongScreen<'w>,
@@ -37,9 +37,9 @@ impl GameScreens<'_> {
     ) {
         self.blackjack.reconcile(client, &mut shell.social);
         self.doudizhu.reconcile(client, &mut shell.social);
-        self.minecraft_guess.reconcile(client, &mut shell.social);
+        self.mc_guess.reconcile(client, &mut shell.social);
         self.qigui523.reconcile(client, &mut shell.social);
-        self.texas_holdem.reconcile(client, &mut shell.social);
+        self.texas.reconcile(client, &mut shell.social);
         self.shengji.reconcile(client, &mut shell.social);
         self.uno.reconcile(client, &mut shell.social);
         self.mahjong.reconcile(client, &mut shell.social);
@@ -63,13 +63,9 @@ impl GameScreens<'_> {
         match lobby.game {
             GameKind::Doudizhu => self.doudizhu.render_lobby(commands, root, lobby, context),
             GameKind::Blackjack => self.blackjack.render_lobby(commands, root, lobby, context),
-            GameKind::MinecraftGuess => self
-                .minecraft_guess
-                .render_lobby(commands, root, lobby, context),
+            GameKind::McGuess => self.mc_guess.render_lobby(commands, root, lobby, context),
             GameKind::QiGui523 => self.qigui523.render_lobby(commands, root, lobby, context),
-            GameKind::TexasHoldem => self
-                .texas_holdem
-                .render_lobby(commands, root, lobby, context),
+            GameKind::Texas => self.texas.render_lobby(commands, root, lobby, context),
             GameKind::Shengji => self.shengji.render_lobby(commands, root, lobby, context),
             GameKind::Uno => self.uno.render_lobby(commands, root, lobby, context),
             GameKind::Mahjong => self.mahjong.render_lobby(commands, root, lobby, context),
@@ -90,15 +86,13 @@ impl GameScreens<'_> {
             GameSnapshot::Blackjack(game) => {
                 self.blackjack.render_table(commands, root, game, context)
             }
-            GameSnapshot::MinecraftGuess(game) => self
-                .minecraft_guess
-                .render_table(commands, root, game, context),
+            GameSnapshot::McGuess(game) => {
+                self.mc_guess.render_table(commands, root, game, context)
+            }
             GameSnapshot::QiGui523(game) => {
                 self.qigui523.render_table(commands, root, game, context)
             }
-            GameSnapshot::TexasHoldem(game) => self
-                .texas_holdem
-                .render_table(commands, root, game, context),
+            GameSnapshot::Texas(game) => self.texas.render_table(commands, root, game, context),
             GameSnapshot::Shengji(game) => self.shengji.render_table(commands, root, game, context),
             GameSnapshot::Uno(game) => self.uno.render_table(commands, root, game, context),
             GameSnapshot::Mahjong(game) => self.mahjong.render_table(commands, root, game, context),

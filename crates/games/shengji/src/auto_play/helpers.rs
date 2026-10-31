@@ -1,5 +1,5 @@
 use crate::{
-    Component, ShengjiCard, ShengjiClassifiedPlay, ShengjiRank, ShengjiSuit, ShengjiTrump,
+    ShengjiCard, ShengjiClassifiedPlay, ShengjiComponent, ShengjiRank, ShengjiSuit, ShengjiTrump,
 };
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashSet};
@@ -81,21 +81,21 @@ fn structure_demands(lead: &ShengjiClassifiedPlay) -> (Vec<usize>, usize) {
     let mut pair_slots = 0;
     for component in &lead.components {
         match component {
-            Component::Single { .. } => {}
-            Component::Pair { .. } => pair_slots += 1,
-            Component::Triple { .. } => pair_slots += 1,
-            Component::Quad { .. } => pair_slots += 2,
-            Component::Tractor { pair_count, .. } => {
+            ShengjiComponent::Single { .. } => {}
+            ShengjiComponent::Pair { .. } => pair_slots += 1,
+            ShengjiComponent::Triple { .. } => pair_slots += 1,
+            ShengjiComponent::Quad { .. } => pair_slots += 2,
+            ShengjiComponent::Tractor { pair_count, .. } => {
                 let pair_count = usize::from(*pair_count);
                 tractors.push(pair_count);
                 pair_slots += pair_count;
             }
-            Component::Titanic { triple_count, .. } => {
+            ShengjiComponent::Titanic { triple_count, .. } => {
                 let triple_count = usize::from(*triple_count);
                 tractors.push(triple_count);
                 pair_slots += triple_count;
             }
-            Component::Spaceship { quad_count, .. } => {
+            ShengjiComponent::Spaceship { quad_count, .. } => {
                 let pair_count = usize::from(*quad_count) * 2;
                 tractors.push(pair_count);
                 pair_slots += pair_count;

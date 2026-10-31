@@ -1,9 +1,9 @@
 use super::support::*;
 
-fn own_turn(game: &mut GameState, stats: &mut UnoMatchStatistics, call: bool) {
-    record(game, stats, 0, &[], false, GameState::draw_card);
+fn own_turn(game: &mut UnoGameState, stats: &mut UnoMatchStatistics, call: bool) {
+    record(game, stats, 0, &[], false, UnoGameState::draw_card);
     if call {
-        record(game, stats, 0, &[], false, GameState::call_uno);
+        record(game, stats, 0, &[], false, UnoGameState::call_uno);
     }
     let drawn = card(UnoColor::Red, UnoFace::Number(9), 1);
     record(game, stats, 0, &[(drawn, None)], false, |game, player| {
@@ -59,7 +59,7 @@ fn recovering_uno_during_someone_elses_turn_does_not_extend_the_run() {
         false,
         |game, player| game.play_card(player, red, None),
     );
-    record(&mut game, &mut stats, 0, &[], false, GameState::call_uno);
+    record(&mut game, &mut stats, 0, &[], false, UnoGameState::call_uno);
     assert_eq!(progress(&stats, 0).uno_calls, 1);
     assert_eq!(progress(&stats, 0).max_uno_call_run, 0);
 }

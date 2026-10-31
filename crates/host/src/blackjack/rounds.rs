@@ -1,6 +1,6 @@
 use super::BlackjackSession;
 use crate::new_match_id;
-use leocard_blackjack::{BlackjackCard, GameState, build_shoe};
+use leocard_blackjack::{BlackjackCard, BlackjackGameState, build_shoe};
 use std::time::Duration;
 
 impl BlackjackSession {
@@ -10,7 +10,7 @@ impl BlackjackSession {
         self.match_id = Some(new_match_id());
         self.finished_reference_changes = None;
         self.game = Some(
-            GameState::new(
+            BlackjackGameState::new(
                 self.rules,
                 self.order.len() as u8,
                 self.initial_shoe.take().unwrap_or_else(shuffled_shoe),

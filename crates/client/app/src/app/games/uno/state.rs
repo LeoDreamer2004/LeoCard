@@ -2,10 +2,12 @@
 
 use crate::app::presentation::{CardAnimationState, SilentButton};
 use crate::app::shell::SocialUiState;
-use bevy::prelude::*;
-use leocard_protocol::{MatchId, PlayerId, UnoEvent, UnoPendingSwapView, UnoSnapshot};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{MatchId, UnoEvent, UnoPendingSwapView, UnoSnapshot};
 use leocard_uno::UnoCard;
 use std::collections::{HashMap, HashSet, VecDeque};
+
+use bevy::prelude::*;
 
 #[derive(Resource, Default)]
 pub(crate) struct UnoUiState {
@@ -40,7 +42,7 @@ impl UnoUiState {
             self.swap_targets.retain(|target| {
                 game.players
                     .iter()
-                    .any(|player| player.id == *target && !player.eliminated)
+                    .any(|player| player.player.id == *target && !player.eliminated)
             });
         } else {
             self.swap_targets.clear();

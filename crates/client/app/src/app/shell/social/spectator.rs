@@ -4,7 +4,7 @@ use crate::app::shell::{UiAction, UiState, add_cozy_button};
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
-use leocard_protocol::PlayerId;
+use leocard_game_common::PlayerId;
 use leocard_ui::{AnchoredPopup, UiComposer};
 
 #[derive(Component)]

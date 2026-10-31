@@ -1,11 +1,12 @@
 //! This game owns its screen resources, state reconciliation and view assembly.
-
-use super::super::{GameLobbyContext, GameScreen, GameTableContext};
 use super::{
-    ShengjiAssets, ShengjiPresentationState, ShengjiScoreCaptureEffectState,
+    ShengjiAssets, ShengjiClientState, ShengjiPresentationState, ShengjiScoreCaptureEffectState,
     ShengjiSettlementAnimation, ShengjiTableVisuals, ShengjiUiState, render_shengji_lobby,
     render_shengji_table,
 };
+
+use super::super::{GameLobbyContext, GameScreen, GameTableContext};
+
 use crate::app::runtime::ClientResource;
 use crate::app::shell::SocialUiState;
 use bevy::ecs::system::SystemParam;
@@ -16,6 +17,7 @@ use leocard_ui::UiComposer;
 
 #[derive(SystemParam)]
 pub(crate) struct ShengjiScreen<'w> {
+    client_state: Res<'w, ShengjiClientState>,
     assets: Res<'w, ShengjiAssets>,
     ui: ResMut<'w, ShengjiUiState>,
     score_capture: Res<'w, ShengjiScoreCaptureEffectState>,
@@ -84,6 +86,7 @@ impl GameScreen for ShengjiScreen<'_> {
             social,
             chat,
             ShengjiTableVisuals {
+                client_state: &self.client_state,
                 assets,
                 game_assets: &self.assets,
                 avatars,

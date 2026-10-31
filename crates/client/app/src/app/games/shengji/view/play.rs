@@ -12,15 +12,16 @@ use crate::app::presentation::{
     spawn_trick_play_area,
 };
 use crate::app::runtime::UiAssets;
-
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    PlayerId, ShengjiPhaseView, ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureStage,
+    ShengjiPhaseView, ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureStage,
 };
 use leocard_shengji::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiSuit};
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 pub(super) fn add_shengji_play_area(
     commands: &mut UiComposer,
@@ -341,13 +342,16 @@ fn add_shengji_trump_summary(
         .and_then(|declaration| {
             game.players
                 .iter()
-                .find(|player| player.id == declaration.player)
+                .find(|player| player.player.id == declaration.player)
         })
         .or_else(|| {
-            game.dealer
-                .and_then(|dealer| game.players.iter().find(|player| player.id == dealer))
+            game.dealer.and_then(|dealer| {
+                game.players
+                    .iter()
+                    .find(|player| player.player.id == dealer)
+            })
         })
-        .map_or("待亮主", |player| player.name.as_str());
+        .map_or("待亮主", |player| player.player.name.as_str());
     let Some(trump) = trump else {
         add_text(commands, row, "—", 26.0, ACCENT, assets);
         return;

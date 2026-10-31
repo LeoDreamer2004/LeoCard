@@ -1,19 +1,19 @@
-use super::{Form, ScoreError, Set, SetKind, waiting_tile_kinds};
-use crate::{MahjongMeldKind, MahjongSuit, MahjongTileKind, Meld};
+use super::{Form, MahjongScoreError, Set, SetKind, waiting_tile_kinds};
+use crate::{MahjongMeld, MahjongMeldKind, MahjongSuit, MahjongTileKind};
 
 pub(super) fn validated_forms(
     concealed: &[MahjongTileKind],
-    melds: &[Meld],
+    melds: &[MahjongMeld],
     winning_tile: Option<MahjongTileKind>,
-) -> Result<Vec<Form>, ScoreError> {
+) -> Result<Vec<Form>, MahjongScoreError> {
     if concealed.iter().any(|tile| tile.is_flower()) {
-        return Err(ScoreError::FlowerInHand);
+        return Err(MahjongScoreError::FlowerInHand);
     }
     if melds.len() > 4 || concealed.len() + melds.len() * 3 != 14 {
-        return Err(ScoreError::InvalidTileCount);
+        return Err(MahjongScoreError::InvalidTileCount);
     }
     if winning_tile.is_some_and(|tile| !concealed.contains(&tile)) {
-        return Err(ScoreError::WinningTileMissing);
+        return Err(MahjongScoreError::WinningTileMissing);
     }
     let mut physical = [0_u8; 34];
     for tile in concealed {
@@ -26,7 +26,7 @@ pub(super) fn validated_forms(
         }
     }
     if let Some((index, _)) = physical.iter().enumerate().find(|(_, count)| **count > 4) {
-        return Err(ScoreError::TooManyCopies(
+        return Err(MahjongScoreError::TooManyCopies(
             MahjongTileKind::from_index34(index).expect("index is in 0..34"),
         ));
     }
@@ -88,13 +88,13 @@ pub(super) fn validated_forms(
     Ok(forms)
 }
 
-fn set_from_meld(meld: Meld) -> Set {
+fn set_from_meld(meld: MahjongMeld) -> Set {
     let kind = match (meld.kind(), meld.tile()) {
         (MahjongMeldKind::Chow, MahjongTileKind::Suited { suit, rank }) => {
             SetKind::Chow { suit, start: rank }
         }
         (MahjongMeldKind::Pung | MahjongMeldKind::Kong(_), tile) => SetKind::Pung(tile),
-        (MahjongMeldKind::Chow, _) => unreachable!("validated Meld::chow is suited"),
+        (MahjongMeldKind::Chow, _) => unreachable!("validated MahjongMeld::chow is suited"),
     };
     Set {
         kind,
@@ -273,7 +273,7 @@ fn knitted_straight_remainders(
 
 pub(super) fn unique_wait(
     concealed: &[MahjongTileKind],
-    melds: &[Meld],
+    melds: &[MahjongMeld],
     winning: MahjongTileKind,
 ) -> bool {
     let mut before = concealed.to_vec();

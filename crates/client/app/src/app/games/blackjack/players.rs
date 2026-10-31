@@ -8,10 +8,11 @@ use crate::app::presentation::{
     add_player_portrait, add_poker_chip_value, add_ready_badge, add_turn_border_trace_with_radius,
     attach_start_game_seat_transition,
 };
-use bevy::prelude::*;
-use leocard_blackjack::Phase;
+use leocard_blackjack::BlackjackPhase;
 use leocard_protocol::{GameKind, SeatId, TABLE_SEAT_COUNT};
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 impl BlackjackTable<'_> {
     pub(super) fn players(&mut self, commands: &mut UiComposer, table: Entity, pile: Entity) {
@@ -20,26 +21,28 @@ impl BlackjackTable<'_> {
             .players
             .iter()
             .find(|view| view.player.id == self.game.you)
-            .and_then(|view| view.player.seat)
+            .map(|view| view.seat)
             .unwrap_or(SeatId(0));
         let intro = self.transition.is_active_for(self.game.match_id);
         let areas = (!intro).then(|| add_blackjack_hand_areas(commands, table));
         for view in &self.game.players {
-            let player = &view.player;
-            let own = player.id == self.game.you;
-            let relative = (player.seat.expect("seated player").0 + TABLE_SEAT_COUNT - own_seat.0)
-                % TABLE_SEAT_COUNT;
+            let player = view;
+            let own = player.player.id == self.game.you;
+            let relative = (player.seat.0 + TABLE_SEAT_COUNT - own_seat.0) % TABLE_SEAT_COUNT;
             let layout = BlackjackSeatLayout::new(relative);
-            let active = self.game.current_player == Some(player.id);
+            let active = self.game.current_player == Some(player.player.id);
             let seat = commands.keyed_child(
                 table,
-                format!("blackjack-player:{}", player.id.0),
+                format!("blackjack-player:{}", player.player.id.0),
                 (layout.portrait,),
             );
             let avatar = if own {
                 self.avatars.local.as_ref()
             } else {
-                player.avatar.and_then(|id| self.avatars.remote.get(&id))
+                player
+                    .player
+                    .avatar
+                    .and_then(|id| self.avatars.remote.get(&id))
             };
             let portrait = add_player_portrait(
                 commands,
@@ -49,17 +52,17 @@ impl BlackjackTable<'_> {
                     ..default()
                 },
                 PlayerPortraitSpec {
-                    player: player.id,
+                    player: player.player.id,
                     profile: PlayerMenuProfile {
-                        name: &player.name,
+                        name: &player.player.name,
                         avatar,
-                        reference_points: player.reference_points,
-                        completed_games: player.completed_games,
-                        game_profiles: &player.game_profiles,
+                        reference_points: player.player.reference_points,
+                        completed_games: player.player.completed_games,
+                        game_profiles: &player.player.game_profiles,
                     },
                     avatar_size: 62.0,
                     auto_play: view.auto_play,
-                    menu_open: self.social.interaction_menu_open == Some(player.id),
+                    menu_open: self.social.interaction_menu_open == Some(player.player.id),
                     name_color: if active {
                         ACCENT
                     } else if player.connected {
@@ -73,7 +76,7 @@ impl BlackjackTable<'_> {
             attach_start_game_seat_transition(
                 commands,
                 if own { portrait.portrait } else { seat },
-                player.id,
+                player.player.id,
                 intro,
             );
             let stack = if own {
@@ -105,7 +108,7 @@ impl BlackjackTable<'_> {
                 );
                 row
             };
-            if player.ready && self.game.phase == Phase::Complete {
+            if player.ready && self.game.phase == BlackjackPhase::Complete {
                 add_ready_badge(commands, portrait.avatar_ring, 62.0, self.assets);
             }
             if active {
@@ -113,7 +116,11 @@ impl BlackjackTable<'_> {
                     commands,
                     portrait.avatar_ring,
                     self.turn_materials,
-                    TurnBorderAnimationKey::new(GameKind::Blackjack, self.game.match_id, player.id),
+                    TurnBorderAnimationKey::new(
+                        GameKind::Blackjack,
+                        self.game.match_id,
+                        player.player.id,
+                    ),
                     12.4,
                     62.0,
                 );
@@ -134,7 +141,7 @@ impl BlackjackTable<'_> {
                     hands,
                     BlackjackHandSpec {
                         hand,
-                        player: player.id,
+                        player: player.player.id,
                         index,
                         own,
                         width: ((layout.width - 12.0) / view.hands.len() as f32 - 6.0).min(

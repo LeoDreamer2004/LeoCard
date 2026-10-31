@@ -1,4 +1,5 @@
-use crate::{UnoCard, UnoColor, UnoPlayerId, UnoRuleSet};
+use crate::{UnoCard, UnoColor, UnoRuleSet};
+use leocard_game_common::PlayerId;
 use std::collections::HashSet;
 
 /// Game facts only: no achievement IDs, presentation or persistence.
@@ -41,7 +42,7 @@ pub struct UnoPlayerStatistics {
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct UnoActionStatistics {
-    pub player: UnoPlayerId,
+    pub player: PlayerId,
     pub rules: UnoRuleSet,
     pub progress: UnoPlayerStatistics,
     pub wild_cards: u32,
@@ -71,7 +72,7 @@ pub(super) struct FinishCandidate {
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct DrawChain {
-    pub(super) origin: Option<UnoPlayerId>,
+    pub(super) origin: Option<PlayerId>,
     pub(super) links: u16,
     pub(super) cards: HashSet<UnoCard>,
 }
@@ -82,5 +83,5 @@ pub(super) struct DrawChain {
 pub struct UnoMatchStatistics {
     pub(super) players: Vec<TrackedPlayer>,
     pub(super) chain: DrawChain,
-    pub(super) color_change: Option<(UnoPlayerId, UnoColor)>,
+    pub(super) color_change: Option<(PlayerId, UnoColor)>,
 }

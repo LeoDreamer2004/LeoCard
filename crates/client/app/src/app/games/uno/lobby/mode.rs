@@ -1,12 +1,12 @@
 use super::super::UnoUiAction;
 use crate::app::shell::{CozyDropdown, CozyDropdownOption, UiAction};
-use leocard_uno::{Mode, UnoRuleSet};
+use leocard_uno::{UnoMode, UnoRuleSet};
 
 pub(super) fn uno_mode_dropdown(rules: UnoRuleSet) -> CozyDropdown {
     let modes = [
-        (Mode::Classic, "UNO"),
-        (Mode::NoMercy, "No Mercy"),
-        (Mode::Flip, "UNO FLIP"),
+        (UnoMode::Classic, "UNO"),
+        (UnoMode::NoMercy, "No Mercy"),
+        (UnoMode::Flip, "UNO FLIP"),
     ];
     CozyDropdown {
         label: modes

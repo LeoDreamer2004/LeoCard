@@ -2,13 +2,17 @@
 
 mod card;
 mod game;
+mod profile;
 mod rules;
 mod strategy;
 
-pub use card::{BlackjackCard, BlackjackRank, BlackjackSuit, HandValue, build_shoe};
+pub use card::{BlackjackCard, BlackjackHandValue, BlackjackRank, BlackjackSuit, build_shoe};
 pub use game::{
-    AvailableActions, BlackjackAction, GameError, GameState, HandResult, HandState, HandStatus,
-    Phase, PlayerState, PlayerStatistics,
+    BlackjackAction, BlackjackAvailableActions, BlackjackGameError, BlackjackGameState,
+    BlackjackHandResult, BlackjackHandState, BlackjackHandStatus, BlackjackPhase,
+    BlackjackPlayerState, BlackjackPlayerStatistics,
 };
 pub use rules::BlackjackRuleSet;
 pub use strategy::{BlackjackAutoPlay, BlackjackBot, BlackjackObservation};
+
+pub use profile::BlackjackProfileStats;

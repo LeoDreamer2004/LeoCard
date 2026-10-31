@@ -1,8 +1,8 @@
-use crate::{Card, Mode};
+use crate::{DoudizhuCard, DoudizhuMode};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum PlayKind {
+pub enum DoudizhuPlayKind {
     Single,
     Pair,
     Triple,
@@ -19,7 +19,7 @@ pub enum PlayKind {
     Rocket,
 }
 
-impl PlayKind {
+impl DoudizhuPlayKind {
     pub const fn label(self) -> &'static str {
         match self {
             Self::Single => "单张",
@@ -42,32 +42,33 @@ impl PlayKind {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Play {
-    pub cards: Vec<Card>,
-    pub kind: PlayKind,
+pub struct DoudizhuPlay {
+    pub cards: Vec<DoudizhuCard>,
+    pub kind: DoudizhuPlayKind,
     pub rank: u8,
 }
 
-impl Play {
+impl DoudizhuPlay {
     pub fn beats(&self, other: &Self) -> bool {
-        if other.kind == PlayKind::Rocket {
+        if other.kind == DoudizhuPlayKind::Rocket {
             return false;
         }
-        if self.kind == PlayKind::Rocket {
+        if self.kind == DoudizhuPlayKind::Rocket {
             return true;
         }
-        if self.kind == PlayKind::Bomb {
-            return other.kind != PlayKind::Bomb
+        if self.kind == DoudizhuPlayKind::Bomb {
+            return other.kind != DoudizhuPlayKind::Bomb
                 || (self.cards.len(), self.rank) > (other.cards.len(), other.rank);
         }
-        other.kind != PlayKind::Bomb
+        other.kind != DoudizhuPlayKind::Bomb
             && self.kind == other.kind
             && self.cards.len() == other.cards.len()
             && self.rank > other.rank
     }
 
-    pub fn doubles(&self, mode: Mode) -> bool {
-        self.kind == PlayKind::Rocket
-            || (self.kind == PlayKind::Bomb && (mode == Mode::Three || self.cards.len() >= 6))
+    pub fn doubles(&self, mode: DoudizhuMode) -> bool {
+        self.kind == DoudizhuPlayKind::Rocket
+            || (self.kind == DoudizhuPlayKind::Bomb
+                && (mode == DoudizhuMode::Three || self.cards.len() >= 6))
     }
 }

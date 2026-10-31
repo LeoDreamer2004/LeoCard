@@ -3,7 +3,7 @@ use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
 use leocard_client::{ItemId, PlayerEconomy};
-use leocard_protocol::ShengjiPhaseView;
+use leocard_protocol::{GameSnapshot, ShengjiPhaseView};
 
 pub(in super::super) fn sync_counter(
     client: Option<Res<ClientResource>>,
@@ -12,9 +12,13 @@ pub(in super::super) fn sync_counter(
     mut ui: ResMut<UiState>,
 ) {
     let state = &mut game_ui.counter;
-    let game = client
-        .as_deref()
-        .and_then(|client| client.0.model().shengji_game());
+    let game = client.as_deref().and_then(|client| {
+        client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::shengji)
+    });
     let active = game.is_some_and(|game| {
         matches!(game.phase, ShengjiPhaseView::Playing)
             && game.players.iter().any(|player| player.hand_len > 0)

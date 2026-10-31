@@ -1,13 +1,13 @@
 //! 麻将局内的快捷开关与本地自动操作。
-
 use super::{MahjongAutomaticActionKey, MahjongUiAction, MahjongUiState};
 use crate::app::presentation::add_switch_drawer;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{UiAction, game_command};
-use bevy::prelude::*;
 use leocard_mahjong::{MahjongClaim, MahjongClaimOption};
-use leocard_protocol::{MahjongCommand, MahjongPhaseView, MahjongSnapshot};
+use leocard_protocol::{GameSnapshot, MahjongCommand, MahjongPhaseView, MahjongSnapshot};
 use leocard_ui::{DrawerSwitch, SwitchDrawer, UiComposer};
+
+use bevy::prelude::*;
 
 pub(super) fn render_mahjong_auto_drawer(
     commands: &mut UiComposer,
@@ -56,13 +56,19 @@ pub(super) fn apply_automatic_mahjong_action(
         ui.last_automatic_action = None;
         return;
     };
-    if let Some(game) = client.0.model().mahjong_game() {
+    if let Some(game) = client
+        .0
+        .model()
+        .game_snapshot()
+        .and_then(GameSnapshot::mahjong)
+    {
         ui.begin_hand(game.match_id, game.sequence_index);
     }
     let decision = client
         .0
         .model()
-        .mahjong_game()
+        .game_snapshot()
+        .and_then(GameSnapshot::mahjong)
         .and_then(|game| choose_automatic_action(game, &ui));
     let Some((key, command)) = decision else {
         ui.last_automatic_action = None;
@@ -83,7 +89,7 @@ fn choose_automatic_action(
     if game
         .players
         .iter()
-        .find(|player| player.id == game.you)
+        .find(|player| player.player.id == game.you)
         .is_some_and(|player| player.auto_play)
     {
         return None;
@@ -129,8 +135,9 @@ fn choose_automatic_action(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use leocard_game_common::PlayerId;
     use leocard_mahjong::{MahjongRuleSet, MahjongSuit, MahjongTile, MahjongTileKind, MahjongWind};
-    use leocard_protocol::{MahjongPendingClaimView, MatchId, PlayerId};
+    use leocard_protocol::{MahjongPendingClaimView, MatchId};
 
     fn snapshot() -> MahjongSnapshot {
         let you = PlayerId(0);

@@ -12,6 +12,7 @@ developer = ["leocard-host/developer"]
 
 [dependencies]
 fastrand.workspace = true
+leocard-game-common = { path = "../../games/common" }
 leocard-host = { path = "../../host" }
 leocard-protocol = { path = "../protocol" }
 serde.workspace = true
@@ -20,6 +21,7 @@ tokio.workspace = true
 
 [dev-dependencies]
 ed25519-dalek.workspace = true
+leocard-achievements = { path = "../../games/achievements" }
 leocard-qigui523 = { path = "../../games/qigui523" }
 leocard-shengji = { path = "../../games/shengji" }
 leocard-texas-holdem = { path = "../../games/texas-holdem" }

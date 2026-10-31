@@ -1,10 +1,11 @@
-use crate::{LobbyPlayer, MatchId, PlayerId, PlayerReferenceChange};
-pub use leocard_blackjack::GameError as BlackjackViolation;
+use crate::{MatchId, PlayerPublicInfo, PlayerReferenceChange, SeatId};
 use leocard_blackjack::{
-    AvailableActions, BlackjackAction, BlackjackCard, BlackjackRuleSet, HandState, Phase,
-    PlayerStatistics,
+    BlackjackAction, BlackjackAvailableActions, BlackjackCard, BlackjackGameError,
+    BlackjackHandState, BlackjackPhase, BlackjackRuleSet,
 };
+use leocard_game_common::PlayerId;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct BlackjackSnapshot {
@@ -14,13 +15,13 @@ pub struct BlackjackSnapshot {
     pub host: PlayerId,
     pub rules: BlackjackRuleSet,
     pub round: u8,
-    pub phase: Phase,
+    pub phase: BlackjackPhase,
     pub players: Vec<BlackjackPlayerView>,
     pub dealer: Vec<BlackjackCard>,
     pub dealer_hidden: bool,
     pub current_player: Option<PlayerId>,
     pub current_hand: Option<u8>,
-    pub available: AvailableActions,
+    pub available: BlackjackAvailableActions,
     pub seconds_remaining: Option<u16>,
     pub match_complete: bool,
     pub reference_changes: Vec<PlayerReferenceChange>,
@@ -28,10 +29,13 @@ pub struct BlackjackSnapshot {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct BlackjackPlayerView {
-    pub player: LobbyPlayer,
+    pub player: PlayerPublicInfo,
+    pub seat: SeatId,
+    pub ready: bool,
+    pub connected: bool,
     pub stack: u32,
     pub round_start_stack: u32,
-    pub hands: Vec<HandState>,
+    pub hands: Vec<BlackjackHandState>,
     pub auto_play: bool,
 }
 
@@ -53,11 +57,54 @@ pub enum BlackjackEvent {
     },
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-pub struct BlackjackProfileStats {
-    pub completed_games: u32,
-    pub total_reference_delta: i64,
-    pub total_chips_delta: i64,
-    pub placement_counts: [u32; 6],
-    pub statistics: PlayerStatistics,
+/// Client-facing rejection reasons, independent of the rules engine error type.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum BlackjackViolation {
+    InvalidRules,
+    InvalidPlayerCount,
+    InvalidShoe,
+    NotPlayersTurn,
+    WrongPhase,
+    InvalidBet,
+    CannotDouble,
+    CannotSplit,
+    MatchComplete,
+}
+
+impl From<BlackjackGameError> for BlackjackViolation {
+    fn from(value: BlackjackGameError) -> Self {
+        match value {
+            BlackjackGameError::InvalidRules => Self::InvalidRules,
+            BlackjackGameError::InvalidPlayerCount => Self::InvalidPlayerCount,
+            BlackjackGameError::InvalidShoe => Self::InvalidShoe,
+            BlackjackGameError::NotPlayersTurn => Self::NotPlayersTurn,
+            BlackjackGameError::WrongPhase => Self::WrongPhase,
+            BlackjackGameError::InvalidBet => Self::InvalidBet,
+            BlackjackGameError::CannotDouble => Self::CannotDouble,
+            BlackjackGameError::CannotSplit => Self::CannotSplit,
+            BlackjackGameError::MatchComplete => Self::MatchComplete,
+        }
+    }
+}
+
+impl From<BlackjackViolation> for BlackjackGameError {
+    fn from(value: BlackjackViolation) -> Self {
+        match value {
+            BlackjackViolation::InvalidRules => Self::InvalidRules,
+            BlackjackViolation::InvalidPlayerCount => Self::InvalidPlayerCount,
+            BlackjackViolation::InvalidShoe => Self::InvalidShoe,
+            BlackjackViolation::NotPlayersTurn => Self::NotPlayersTurn,
+            BlackjackViolation::WrongPhase => Self::WrongPhase,
+            BlackjackViolation::InvalidBet => Self::InvalidBet,
+            BlackjackViolation::CannotDouble => Self::CannotDouble,
+            BlackjackViolation::CannotSplit => Self::CannotSplit,
+            BlackjackViolation::MatchComplete => Self::MatchComplete,
+        }
+    }
+}
+
+impl fmt::Display for BlackjackViolation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        BlackjackGameError::from(*self).fmt(f)
+    }
 }

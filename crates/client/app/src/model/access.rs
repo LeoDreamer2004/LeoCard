@@ -1,35 +1,11 @@
 use super::ClientModel;
-use leocard_blackjack::BlackjackRuleSet;
-use leocard_doudizhu::RuleSet as DoudizhuRuleSet;
-use leocard_mahjong::MahjongRuleSet;
-use leocard_minecraft_guess::MinecraftGuessRuleSet;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    AvatarId, BlackjackCommand, BlackjackSnapshot, ChatMessage, DoudizhuCommand, DoudizhuSnapshot,
-    GameCommand, GameKind, GameRules, GameSnapshot, LobbySnapshot, MahjongCommand, MahjongSnapshot,
-    MatchId, MinecraftGuessSnapshot, PlayerGameProfiles, PlayerId, PlayerInteraction,
-    PlayerReferenceChange, QiGui523Command, QiGui523Snapshot, RejectReason, Revision, RoomId,
-    ShengjiCommand, ShengjiSnapshot, TexasHoldemCommand, TexasHoldemSnapshot, UnoCommand,
-    UnoSnapshot,
+    AvatarId, ChatMessage, GameCommand, GameKind, GameRules, GameSnapshot, LobbySnapshot, MatchId,
+    PlayerGameProfiles, PlayerInteraction, PlayerPublicInfo, PlayerReferenceChange, RejectReason,
+    Revision, RoomId,
 };
-use leocard_qigui523::QiGuiRuleSet;
-use leocard_shengji::ShengjiRuleSet;
-use leocard_texas_holdem::TexasHoldemRuleSet;
-use leocard_uno::UnoRuleSet;
 use std::collections::HashMap;
-
-macro_rules! game_accessors {
-    ($(($game:ident, $snapshot:ty, $snapshot_projection:ident, $rules:ident, $rule_set:ty, $rules_projection:ident)),+ $(,)?) => {
-        $(
-            pub fn $game(&self) -> Option<&$snapshot> {
-                self.game.as_ref().and_then(GameSnapshot::$snapshot_projection)
-            }
-
-            pub fn $rules(&self) -> Option<&$rule_set> {
-                self.rules.as_ref().and_then(GameRules::$rules_projection)
-            }
-        )+
-    };
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ActiveGameMeta {
@@ -66,7 +42,9 @@ impl ClientModel {
                 .lobby
                 .as_ref()
                 .zip(self.you)
-                .is_some_and(|(lobby, you)| !lobby.players.iter().any(|player| player.id == you))
+                .is_some_and(|(lobby, you)| {
+                    !lobby.players.iter().any(|player| player.player.id == you)
+                })
     }
 
     pub fn phase(&self) -> ClientPhaseRef<'_> {
@@ -106,61 +84,30 @@ impl ClientModel {
     }
 
     pub fn active_game_meta(&self) -> Option<ActiveGameMeta> {
-        macro_rules! meta {
-            ($kind:expr, $game:expr) => {{
-                let game = $game;
-                ActiveGameMeta {
-                    kind: $kind,
-                    match_id: game.match_id,
-                    you: self.you.unwrap_or(game.you),
-                    host: game.host,
-                    players: game.players.iter().map(|player| player.id).collect(),
-                }
-            }};
-        }
-        Some(match self.game.as_ref()? {
-            GameSnapshot::QiGui523(game) => meta!(GameKind::QiGui523, game),
-            GameSnapshot::Doudizhu(game) => meta!(GameKind::Doudizhu, game),
-            GameSnapshot::TexasHoldem(game) => meta!(GameKind::TexasHoldem, game),
-            GameSnapshot::Shengji(game) => meta!(GameKind::Shengji, game),
-            GameSnapshot::Uno(game) => meta!(GameKind::Uno, game),
-            GameSnapshot::Mahjong(game) => meta!(GameKind::Mahjong, game),
-            GameSnapshot::MinecraftGuess(game) => meta!(GameKind::MinecraftGuess, game),
-            GameSnapshot::Blackjack(game) => ActiveGameMeta {
-                kind: GameKind::Blackjack,
-                match_id: game.match_id,
-                you: self.you.unwrap_or(game.you),
-                host: game.host,
-                players: game.players.iter().map(|player| player.player.id).collect(),
-            },
+        let game = self.game.as_ref()?;
+        Some(ActiveGameMeta {
+            kind: game.kind(),
+            match_id: game.match_id(),
+            you: self.you.unwrap_or(game.you()),
+            host: game.host(),
+            players: game.players().map(|player| player.id).collect(),
         })
     }
 
-    pub fn player_name(&self, id: PlayerId) -> Option<&str> {
-        macro_rules! find_name {
-            ($players:expr) => {
-                $players
-                    .iter()
-                    .find(|player| player.id == id)
-                    .map(|player| player.name.as_str())
-            };
-        }
+    pub fn player(&self, id: PlayerId) -> Option<&PlayerPublicInfo> {
         match self.phase() {
-            ClientPhaseRef::Lobby(lobby) => find_name!(lobby.players),
-            ClientPhaseRef::Playing(GameSnapshot::QiGui523(game)) => find_name!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Doudizhu(game)) => find_name!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::TexasHoldem(game)) => find_name!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Shengji(game)) => find_name!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => find_name!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Mahjong(game)) => find_name!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::MinecraftGuess(game)) => find_name!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Blackjack(game)) => game
+            ClientPhaseRef::Lobby(lobby) => lobby
                 .players
                 .iter()
-                .find(|player| player.player.id == id)
-                .map(|player| player.player.name.as_str()),
+                .map(|view| &view.player)
+                .find(|player| player.id == id),
+            ClientPhaseRef::Playing(game) => game.player(id),
             ClientPhaseRef::Idle | ClientPhaseRef::Closed => None,
         }
+    }
+
+    pub fn player_name(&self, id: PlayerId) -> Option<&str> {
+        Some(&self.player(id)?.name)
     }
 
     pub fn has_player(&self, id: PlayerId) -> bool {
@@ -168,56 +115,11 @@ impl ClientModel {
     }
 
     pub fn player_avatar(&self, id: PlayerId) -> Option<AvatarId> {
-        macro_rules! avatar {
-            ($players:expr) => {
-                $players.iter().find(|player| player.id == id)?.avatar
-            };
-        }
-        match self.phase() {
-            ClientPhaseRef::Lobby(lobby) => avatar!(lobby.players),
-            ClientPhaseRef::Playing(GameSnapshot::QiGui523(game)) => avatar!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Doudizhu(game)) => avatar!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::TexasHoldem(game)) => avatar!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Shengji(game)) => avatar!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => avatar!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Mahjong(game)) => avatar!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::MinecraftGuess(game)) => avatar!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Blackjack(game)) => {
-                game.players
-                    .iter()
-                    .find(|player| player.player.id == id)?
-                    .player
-                    .avatar
-            }
-            ClientPhaseRef::Idle | ClientPhaseRef::Closed => None,
-        }
+        self.player(id)?.avatar
     }
 
     pub fn player_game_profiles(&self, id: PlayerId) -> Option<&PlayerGameProfiles> {
-        macro_rules! profiles {
-            ($players:expr) => {
-                $players
-                    .iter()
-                    .find(|player| player.id == id)
-                    .map(|player| &player.game_profiles)
-            };
-        }
-        match self.phase() {
-            ClientPhaseRef::Lobby(lobby) => profiles!(lobby.players),
-            ClientPhaseRef::Playing(GameSnapshot::QiGui523(game)) => profiles!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Doudizhu(game)) => profiles!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::TexasHoldem(game)) => profiles!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Shengji(game)) => profiles!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => profiles!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Mahjong(game)) => profiles!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::MinecraftGuess(game)) => profiles!(game.players),
-            ClientPhaseRef::Playing(GameSnapshot::Blackjack(game)) => game
-                .players
-                .iter()
-                .find(|player| player.player.id == id)
-                .map(|player| &player.player.game_profiles),
-            ClientPhaseRef::Idle | ClientPhaseRef::Closed => None,
-        }
+        Some(&self.player(id)?.game_profiles)
     }
 
     pub fn local_game_profiles(&self) -> Option<&PlayerGameProfiles> {
@@ -229,108 +131,8 @@ impl ClientModel {
     }
 
     pub fn toggle_auto_play_command(&self) -> Option<GameCommand> {
-        macro_rules! toggle {
-            ($snapshot:expr, $command:expr) => {{
-                let game = $snapshot;
-                let enabled = game
-                    .players
-                    .iter()
-                    .find(|player| player.id == game.you)
-                    .is_some_and(|player| player.auto_play);
-                Some($command(!enabled).into())
-            }};
-        }
-
-        match self.game.as_ref()? {
-            GameSnapshot::MinecraftGuess(_) => None,
-            GameSnapshot::Blackjack(game) => {
-                let enabled = game
-                    .players
-                    .iter()
-                    .find(|player| player.player.id == game.you)
-                    .is_some_and(|player| player.auto_play);
-                Some(BlackjackCommand::SetAutoPlay { enabled: !enabled }.into())
-            }
-            GameSnapshot::Doudizhu(game) => {
-                toggle!(game, |enabled| DoudizhuCommand::SetAutoPlay { enabled })
-            }
-            GameSnapshot::QiGui523(game) => {
-                toggle!(game, |enabled| QiGui523Command::SetAutoPlay { enabled })
-            }
-            GameSnapshot::TexasHoldem(game) => {
-                toggle!(game, |enabled| TexasHoldemCommand::SetAutoPlay { enabled })
-            }
-            GameSnapshot::Shengji(game) => {
-                toggle!(game, |enabled| ShengjiCommand::SetAutoPlay { enabled })
-            }
-            GameSnapshot::Uno(game) => {
-                toggle!(game, |enabled| UnoCommand::SetAutoPlay { enabled })
-            }
-            GameSnapshot::Mahjong(game) => {
-                toggle!(game, |enabled| MahjongCommand::SetAutoPlay { enabled })
-            }
-        }
+        self.game.as_ref()?.toggle_auto_play_command()
     }
-
-    game_accessors!(
-        (
-            doudizhu_game,
-            DoudizhuSnapshot,
-            doudizhu,
-            doudizhu_rules,
-            DoudizhuRuleSet,
-            doudizhu
-        ),
-        (
-            blackjack_game,
-            BlackjackSnapshot,
-            blackjack,
-            blackjack_rules,
-            BlackjackRuleSet,
-            blackjack
-        ),
-        (
-            minecraft_guess_game,
-            MinecraftGuessSnapshot,
-            minecraft_guess,
-            minecraft_guess_rules,
-            MinecraftGuessRuleSet,
-            minecraft_guess
-        ),
-        (
-            qigui523_game,
-            QiGui523Snapshot,
-            qigui523,
-            qigui523_rules,
-            QiGuiRuleSet,
-            qigui523
-        ),
-        (
-            texas_holdem_game,
-            TexasHoldemSnapshot,
-            texas_holdem,
-            texas_holdem_rules,
-            TexasHoldemRuleSet,
-            texas_holdem
-        ),
-        (
-            shengji_game,
-            ShengjiSnapshot,
-            shengji,
-            shengji_rules,
-            ShengjiRuleSet,
-            shengji
-        ),
-        (uno_game, UnoSnapshot, uno, uno_rules, UnoRuleSet, uno),
-        (
-            mahjong_game,
-            MahjongSnapshot,
-            mahjong,
-            mahjong_rules,
-            MahjongRuleSet,
-            mahjong
-        ),
-    );
 
     pub fn avatars(&self) -> &HashMap<AvatarId, Vec<u8>> {
         &self.avatars

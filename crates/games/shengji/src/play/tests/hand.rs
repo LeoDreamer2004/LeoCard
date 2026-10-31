@@ -1,5 +1,5 @@
 use super::fixtures::{pair, quad, triple, trump};
-use crate::{Component, ShengjiRank, ShengjiSuit, ShengjiTrump, hand_sequences};
+use crate::{ShengjiComponent, ShengjiRank, ShengjiSuit, ShengjiTrump, hand_sequences};
 
 #[test]
 fn a_triple_can_supply_a_pair_inside_a_longer_tractor() {
@@ -12,7 +12,7 @@ fn a_triple_can_supply_a_pair_inside_a_longer_tractor() {
     let sequences = hand_sequences(&hand, trump()).unwrap();
     assert!(matches!(
         sequences.as_slice(),
-        [Component::Tractor { pair_count: 3, .. }]
+        [ShengjiComponent::Tractor { pair_count: 3, .. }]
     ));
 }
 
@@ -31,12 +31,12 @@ fn larger_runs_are_not_repeated_as_smaller_hints() {
     assert!(matches!(
         sequences.as_slice(),
         [
-            Component::Spaceship { quad_count: 2, .. },
-            Component::Titanic {
+            ShengjiComponent::Spaceship { quad_count: 2, .. },
+            ShengjiComponent::Titanic {
                 triple_count: 2,
                 ..
             },
-            Component::Tractor { pair_count: 2, .. },
+            ShengjiComponent::Tractor { pair_count: 2, .. },
         ]
     ));
 }
@@ -55,7 +55,7 @@ fn sequences_skip_the_level_rank_and_do_not_merge_different_suits() {
     let sequences = hand_sequences(&hand, trump).unwrap();
     assert!(matches!(
         sequences.as_slice(),
-        [Component::Tractor { pair_count: 2, .. }]
+        [ShengjiComponent::Tractor { pair_count: 2, .. }]
     ));
     assert!(
         sequences[0]

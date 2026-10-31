@@ -1,20 +1,18 @@
 use super::super::*;
 use super::*;
 use crate::ConnectionId;
-use leocard_protocol::SeatId;
-use leocard_protocol::{
-    ClientCommand, GameCommand, GameSnapshot, PlayerId, ServerEvent, UnoCommand,
-};
-use leocard_uno::Mode;
+use leocard_game_common::PlayerId;
+use leocard_protocol::{ClientCommand, GameCommand, GameSnapshot, SeatId, ServerEvent, UnoCommand};
+use leocard_uno::{UnoCard, UnoColor, UnoMode, UnoRuleSet, build_deck_for_rules};
+use std::time::Duration;
+
 #[cfg(test)]
 use leocard_uno::build_no_mercy_deck;
-use leocard_uno::{UnoCard, UnoColor, UnoRuleSet, build_deck_for_rules};
-use std::time::Duration;
 
 #[test]
 fn flip_snapshots_hide_your_inactive_faces_but_show_opponents_backs() {
     let rules = UnoRuleSet {
-        mode: Mode::Flip,
+        mode: UnoMode::Flip,
         ..UnoRuleSet::default()
     };
     let mut session = UnoSession::new(ROOM, 52300, rules, build_deck_for_rules(rules)).unwrap();
@@ -31,7 +29,7 @@ fn flip_snapshots_hide_your_inactive_faces_but_show_opponents_backs() {
         let own = snapshot
             .players
             .iter()
-            .find(|player| player.id == snapshot.you)
+            .find(|player| player.player.id == snapshot.you)
             .unwrap();
         assert!(own.inactive_hand.is_empty());
         assert!(
@@ -44,7 +42,7 @@ fn flip_snapshots_hide_your_inactive_faces_but_show_opponents_backs() {
             snapshot
                 .players
                 .iter()
-                .filter(|player| player.id != snapshot.you)
+                .filter(|player| player.player.id != snapshot.you)
                 .all(|player| player.inactive_hand.len() == player.hand_len as usize)
         );
         assert_eq!(snapshot.draw_pile_inactive_cards.len(), 6);
@@ -62,7 +60,7 @@ fn no_mercy_draw_until_playable_reveals_authoritative_cards_one_at_a_time() {
     }
 
     let rules = UnoRuleSet {
-        mode: Mode::NoMercy,
+        mode: UnoMode::NoMercy,
         ..UnoRuleSet::default()
     };
     let mut deck = build_no_mercy_deck();

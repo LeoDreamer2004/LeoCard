@@ -7,10 +7,11 @@ use crate::app::shell::{
     add_configuration_scroll, add_cozy_button_variant, add_cozy_panel,
 };
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use leocard_protocol::LobbySnapshot;
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 #[derive(Clone, Copy)]
 pub(crate) struct LobbyPageStyle {
@@ -87,7 +88,7 @@ impl LobbyPage {
                 },
                 row_gap: px(if cfg!(target_os = "android") { 10 } else { 18 }),
                 column_gap: px(18),
-                align_items: AlignItems::Stretch,
+                align_items: AlignItems::FlexStart,
                 ..default()
             },
             None,
@@ -98,7 +99,7 @@ impl LobbyPage {
             Node {
                 min_width: px(style.rules_min_width),
                 min_height: px(0),
-                height: percent(100),
+                max_height: percent(100),
                 flex_basis: px(style.rules_basis),
                 flex_grow: 1.0,
                 padding: UiRect::all(px(20)),
@@ -119,7 +120,7 @@ impl LobbyPage {
             Node {
                 min_width: px(style.players_min_width),
                 min_height: px(0),
-                height: percent(100),
+                max_height: percent(100),
                 flex_basis: px(style.players_basis),
                 flex_grow: 2.0,
                 padding: UiRect::all(px(20)),
@@ -189,7 +190,7 @@ impl LobbyPage {
             .insert((GlobalZIndex(800), Pickable::IGNORE));
         let you = client.0.model().you();
         let ready = you
-            .and_then(|you| lobby.players.iter().find(|player| player.id == you))
+            .and_then(|you| lobby.players.iter().find(|player| player.player.id == you))
             .is_some_and(|player| player.ready);
         add_cozy_button_variant(
             commands,

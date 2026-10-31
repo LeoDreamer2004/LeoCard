@@ -1,4 +1,5 @@
 use super::support::*;
+use leocard_game_common::PlayerId;
 
 #[test]
 fn failed_actions_do_not_count_and_identical_sevens_require_follow_policy() {
@@ -14,7 +15,7 @@ fn failed_actions_do_not_count_and_identical_sevens_require_follow_policy() {
     assert!(!f.play(0, &[seven])[0].spade_seven_follow);
     assert!(f.action(1, Some(&[other])).is_err());
     assert_eq!(f.statistics.players()[1].plays, 0);
-    f.game.rules.same_card_policy = SameCardPolicy::CanFollow;
+    f.game.rules.same_card_policy = QiGuiSameCardPolicy::CanFollow;
     assert!(f.play(1, &[other])[1].spade_seven_follow);
 }
 
@@ -68,7 +69,7 @@ fn six_own_straight_turns_count_but_an_own_pass_breaks_the_run() {
             f.pass(1);
         }
     }
-    assert!(matches!(f.game.phase(), Phase::Finished(_)));
+    assert!(matches!(f.game.phase(), QiGuiPhase::Finished(_)));
     assert_eq!(f.statistics.players()[0].straight_plays, 6);
     let ranks = [
         QiGuiRank::Six,
@@ -88,7 +89,7 @@ fn six_own_straight_turns_count_but_an_own_pass_breaks_the_run() {
     f.pass(0);
     // A later new straight must start a fresh run after the accepted pass.
     f.game.players[0].hand = straight(1);
-    f.game.trick = Some(TrickState::new(QiGuiPlayerId(0)));
+    f.game.trick = Some(QiGuiTrickState::new(PlayerId(0)));
     assert_eq!(f.play(0, &straight(1))[0].progress.max_straight_run, 1);
 }
 
@@ -121,7 +122,7 @@ fn scoring_bomb_chain_stays_within_one_trick_and_heaven_must_be_strictly_stronge
         vec![card(0, QiGuiRank::Four)],
         5,
     );
-    f.game.rules.same_card_policy = SameCardPolicy::CanFollow;
+    f.game.rules.same_card_policy = QiGuiSameCardPolicy::CanFollow;
     f.play(0, &big);
     let tied = f.game.players[1].hand.clone();
     assert!(!f.play(1, &tied)[1].heaven_over_heaven);

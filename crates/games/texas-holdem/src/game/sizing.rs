@@ -1,43 +1,44 @@
-use super::{GameError, GameState, Phase, TexasHoldemPlayerId};
-use crate::TexasHoldemRuleSet;
+use super::{TexasGameError, TexasGameState, TexasPhase};
+use crate::TexasRuleSet;
+use leocard_game_common::PlayerId;
 
 /// Ordinary raises advance from the current bet in multiples of the last full raise.
 /// An all-in is a separate action and may fall between these steps.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct RaiseSizing {
+pub struct TexasRaiseSizing {
     current: u32,
     increment: u32,
     limit: u32,
 }
 
-impl GameState {
+impl TexasGameState {
     /// 统一提供给规则校验、机器人与客户端的普通加注范围。
-    pub fn raise_sizing(&self, player: TexasHoldemPlayerId) -> Result<RaiseSizing, GameError> {
+    pub fn raise_sizing(&self, player: PlayerId) -> Result<TexasRaiseSizing, TexasGameError> {
         let state = self
             .players
-            .get(player.0)
-            .ok_or(GameError::InvalidPlayer(player))?;
+            .get(player.index())
+            .ok_or(TexasGameError::InvalidPlayer(player))?;
         let mut maximum = state.committed_street.saturating_add(state.stack);
         if !self.raise_allowed(player)? {
             maximum = self.current_bet;
         } else if self.rules.fixed_limit {
             maximum = maximum.min(self.minimum_raise_to());
         }
-        Ok(RaiseSizing::new(
+        Ok(TexasRaiseSizing::new(
             self.current_bet,
             self.minimum_raise,
             maximum,
         ))
     }
 
-    pub fn all_in_allowed(&self, player: TexasHoldemPlayerId) -> Result<bool, GameError> {
+    pub fn all_in_allowed(&self, player: PlayerId) -> Result<bool, TexasGameError> {
         let state = self
             .players
-            .get(player.0)
-            .ok_or(GameError::InvalidPlayer(player))?;
+            .get(player.index())
+            .ok_or(TexasGameError::InvalidPlayer(player))?;
         if !self.can_act(player)
             || self.pending_blind.is_some()
-            || !matches!(self.phase, Phase::Betting(_))
+            || !matches!(self.phase, TexasPhase::Betting(_))
         {
             return Ok(false);
         }
@@ -48,26 +49,23 @@ impl GameState {
     }
 
     pub(super) fn fixed_limit_reached(&self) -> bool {
-        self.rules.fixed_limit && self.full_bets >= TexasHoldemRuleSet::MAX_FIXED_LIMIT_BETS
+        self.rules.fixed_limit && self.full_bets >= TexasRuleSet::MAX_FIXED_LIMIT_BETS
     }
 
-    pub(super) fn validate_raise_rights(
-        &self,
-        player: TexasHoldemPlayerId,
-    ) -> Result<(), GameError> {
+    pub(super) fn validate_raise_rights(&self, player: PlayerId) -> Result<(), TexasGameError> {
         if self.fixed_limit_reached() {
-            return Err(GameError::RaiseLimitReached);
+            return Err(TexasGameError::RaiseLimitReached);
         }
-        if !self.raise_allowed[player.0] {
-            return Err(GameError::RaiseNotReopened);
+        if !self.raise_allowed[player.index()] {
+            return Err(TexasGameError::RaiseNotReopened);
         }
         Ok(())
     }
 
-    pub(super) fn validate_fixed_limit_target(&self, target: u32) -> Result<(), GameError> {
+    pub(super) fn validate_fixed_limit_target(&self, target: u32) -> Result<(), TexasGameError> {
         let maximum_target = self.minimum_raise_to();
         if self.rules.fixed_limit && target > maximum_target {
-            return Err(GameError::RaiseExceedsLimit {
+            return Err(TexasGameError::RaiseExceedsLimit {
                 maximum_target,
                 target,
             });
@@ -84,7 +82,7 @@ impl GameState {
     }
 }
 
-impl RaiseSizing {
+impl TexasRaiseSizing {
     pub fn new(current: u32, increment: u32, limit: u32) -> Self {
         Self {
             current,

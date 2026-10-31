@@ -1,10 +1,8 @@
 use super::{ChatPanelState, ChatTextInput};
 use crate::app::runtime::ClientResource;
-use bevy::{
-    input_focus::{FocusGained, InputFocus},
-    prelude::*,
-    text::EditableText,
-};
+use bevy::input_focus::{FocusGained, InputFocus};
+use bevy::prelude::*;
+use bevy::text::EditableText;
 use leocard_protocol::{ChatContent, ClientCommand};
 use leocard_ui::{TextInputAction, TextInputEvent};
 

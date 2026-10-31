@@ -1,10 +1,11 @@
 //! 网络快照轮询与客户端状态同步。
 
-use super::{HostRulePreferences, PageErrorState, save_host_rule_preferences};
+use super::{GameStateMessage, HostRulePreferences, PageErrorState, save_host_rule_preferences};
 use crate::app::shell::NetworkUiContext;
 use bevy::prelude::*;
 use leocard_client::{ClientModel, LocalPlayerProfile, TcpGameClient};
-use leocard_protocol::{GameEventContext, PlayerId, ServerEvent};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{GameEventContext, ServerEvent};
 
 /// Accepted transient server events; independent readers may consume them.
 #[derive(Message)]
@@ -24,6 +25,7 @@ pub(super) fn poll_network(
     mut profile: ResMut<LocalPlayerProfile>,
     mut ui: NetworkUiContext,
     mut notifications: MessageWriter<ServerNotification>,
+    mut updates: MessageWriter<GameStateMessage>,
 ) {
     let Some(client) = client.as_deref_mut() else {
         return;
@@ -31,6 +33,16 @@ pub(super) fn poll_network(
     let before = ui.before_poll(&client.0);
     if !client.0.poll_with_events(|player, message| {
         let event = &message.event;
+        if matches!(
+            event,
+            ServerEvent::GameSnapshot(_)
+                | ServerEvent::GameEvent(_)
+                | ServerEvent::LobbySnapshot(_)
+                | ServerEvent::LeftRoom
+                | ServerEvent::RoomClosed
+        ) {
+            updates.write(GameStateMessage(event.clone()));
+        }
         if !matches!(
             event,
             ServerEvent::GameSnapshot(_)

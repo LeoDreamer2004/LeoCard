@@ -1,9 +1,10 @@
 //! 双升高频快照的轻量差异判断。
-
 use super::state::ShengjiUiState;
 use crate::app::runtime::ClientResource;
+use leocard_protocol::{GameSnapshot, MatchId, ShengjiPhaseView, ShengjiSnapshot};
+use leocard_shengji::ShengjiFiveTrumpCrossingStage;
+
 use bevy::prelude::*;
-use leocard_protocol::{MatchId, ShengjiFiveTrumpCrossingStage, ShengjiPhaseView, ShengjiSnapshot};
 
 #[derive(Resource, Default)]
 pub(super) struct ShengjiSelectionSync {
@@ -15,9 +16,13 @@ pub(super) fn sync_shengji_phase_selection(
     mut ui: ResMut<ShengjiUiState>,
     mut sync: ResMut<ShengjiSelectionSync>,
 ) {
-    let game = client
-        .as_deref()
-        .and_then(|client| client.0.model().shengji_game());
+    let game = client.as_deref().and_then(|client| {
+        client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::shengji)
+    });
     let current_stage = game.and_then(|game| match &game.phase {
         ShengjiPhaseView::FiveTrumpCrossing { stage, .. } => Some((game.match_id, *stage)),
         _ => None,
@@ -69,7 +74,11 @@ pub(crate) fn only_shengji_transient_progress_changed(
             let mut normalized = before.clone();
             normalized.phase = after.phase.clone();
             for player in &mut normalized.players {
-                if let Some(latest) = after.players.iter().find(|latest| latest.id == player.id) {
+                if let Some(latest) = after
+                    .players
+                    .iter()
+                    .find(|latest| latest.player.id == player.player.id)
+                {
                     player.hand_len = latest.hand_len;
                 }
             }

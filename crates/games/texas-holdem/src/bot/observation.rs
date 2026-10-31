@@ -1,11 +1,12 @@
 use crate::{
-    BettingRecord, GameState, Phase, RaiseSizing, TexasHoldemAction, TexasHoldemCard,
-    TexasHoldemPlayerId, TexasHoldemRuleSet, TexasHoldemStreet,
+    TexasAction, TexasBettingRecord, TexasCard, TexasGameState, TexasPhase, TexasRaiseSizing,
+    TexasRuleSet, TexasStreet,
 };
+use leocard_game_common::PlayerId;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct Opponent {
-    pub id: TexasHoldemPlayerId,
+    pub id: PlayerId,
     pub stack: u32,
     pub committed: u32,
     pub street_commit: u32,
@@ -13,15 +14,15 @@ pub(super) struct Opponent {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TexasHoldemBotObservation {
-    pub(super) rules: TexasHoldemRuleSet,
-    pub(super) player: TexasHoldemPlayerId,
+pub struct TexasBotObservation {
+    pub(super) rules: TexasRuleSet,
+    pub(super) player: PlayerId,
     pub(super) hand_number: u32,
-    pub(super) hole: Vec<TexasHoldemCard>,
-    pub(super) board: Vec<TexasHoldemCard>,
+    pub(super) hole: Vec<TexasCard>,
+    pub(super) board: Vec<TexasCard>,
     pub(super) opponents: Vec<Opponent>,
-    pub(super) history: Vec<BettingRecord>,
-    pub(super) street: TexasHoldemStreet,
+    pub(super) history: Vec<TexasBettingRecord>,
+    pub(super) street: TexasStreet,
     pub(super) position: f64,
     pub(super) stack: u32,
     pub(super) committed: u32,
@@ -32,21 +33,21 @@ pub struct TexasHoldemBotObservation {
     pub(super) current_bet: u32,
     pub(super) can_raise: bool,
     pub(super) can_all_in: bool,
-    sizing: RaiseSizing,
+    sizing: TexasRaiseSizing,
     pub(super) blind: bool,
 }
 
-impl TexasHoldemBotObservation {
-    pub fn from_game(game: &GameState, player: TexasHoldemPlayerId) -> Option<Self> {
+impl TexasBotObservation {
+    pub fn from_game(game: &TexasGameState, player: PlayerId) -> Option<Self> {
         if game.current_player() != Some(player) {
             return None;
         }
-        let Phase::Betting(street) = game.phase() else {
+        let TexasPhase::Betting(street) = game.phase() else {
             return None;
         };
-        let state = game.players().get(player.0)?;
+        let state = game.players().get(player.index())?;
         let count = game.players().len();
-        let distance = (game.dealer().0 + count - player.0) % count;
+        let distance = (game.dealer().index() + count - player.index()) % count;
         Some(Self {
             rules: *game.rules(),
             player,
@@ -82,15 +83,15 @@ impl TexasHoldemBotObservation {
         })
     }
 
-    pub fn immediate_action(&self) -> Option<TexasHoldemAction> {
-        self.blind.then_some(TexasHoldemAction::PostBlind)
+    pub fn immediate_action(&self) -> Option<TexasAction> {
+        self.blind.then_some(TexasAction::PostBlind)
     }
 
-    pub fn fallback(&self) -> TexasHoldemAction {
+    pub fn fallback(&self) -> TexasAction {
         if self.call == 0 {
-            TexasHoldemAction::Check
+            TexasAction::Check
         } else {
-            TexasHoldemAction::Fold
+            TexasAction::Fold
         }
     }
 
@@ -104,7 +105,7 @@ impl TexasHoldemBotObservation {
         )
     }
 
-    pub(super) fn raise_sizing(&self) -> RaiseSizing {
+    pub(super) fn raise_sizing(&self) -> TexasRaiseSizing {
         self.sizing
     }
 

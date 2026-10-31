@@ -1,14 +1,14 @@
 use super::{
     ChatPanelState,
     actions::dispatch_chat_actions,
-    animate_chat_bubbles, animate_chat_panel,
     input::{focus_chat_input, sync_chat_input},
-    scroll_chat_menus, sync_chat_messages, sync_chat_panel_text,
+    retain_chat_drawer_motion, scroll_chat_menus, sync_chat_bubble_anchors, sync_chat_messages,
+    sync_chat_panel_controls, sync_chat_panel_text,
 };
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::UiActionSet;
 use bevy::prelude::*;
-use leocard_ui::TextInputSet;
+use leocard_ui::{TextInputSet, animate_bubbles, animate_drawers};
 
 pub(crate) struct ChatPlugin;
 
@@ -25,7 +25,12 @@ impl Plugin for ChatPlugin {
             )
             .add_systems(
                 Update,
-                (animate_chat_bubbles, animate_chat_panel).in_set(ClientUpdateSet::Animate),
+                (
+                    sync_chat_bubble_anchors.before(animate_bubbles),
+                    sync_chat_panel_controls.before(animate_drawers),
+                    retain_chat_drawer_motion.after(animate_drawers),
+                )
+                    .in_set(ClientUpdateSet::Animate),
             );
     }
 }

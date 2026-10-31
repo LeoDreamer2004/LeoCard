@@ -1,9 +1,9 @@
 use super::{
     FAN_VOICE_SPECS, MahjongStatusImages, create_mahjong_status_images, mahjong_tile_asset_path,
-    mahjong_tile_height_asset_path,
+    mahjong_tile_height_asset_path, mahjong_tile_voice_key,
 };
 use bevy::prelude::*;
-use leocard_mahjong::{Fan, MahjongTileKind, build_deck};
+use leocard_mahjong::{MahjongFan, MahjongTileKind, build_deck};
 use leocard_protocol::PlayerGender;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -14,8 +14,9 @@ pub(crate) struct MahjongAssets {
     pub tile_back: Handle<Image>,
     pub(super) ready_hand: Handle<Image>,
     pub(super) action_prompt: Handle<AudioSource>,
-    fan_voices: BTreeMap<Fan, [Handle<AudioSource>; 2]>,
+    fan_voices: BTreeMap<MahjongFan, [Handle<AudioSource>; 2]>,
     action_voices: [[[Handle<AudioSource>; 2]; 8]; 2],
+    tile_voices: HashMap<MahjongTileKind, [[Handle<AudioSource>; 2]; 2]>,
     pub(super) status: MahjongStatusImages,
 }
 
@@ -106,6 +107,20 @@ impl MahjongAssets {
                 })
             }),
             action_prompt: asset_server.load("vendor/kenney/interface-sounds/Audio/pluck_001.ogg"),
+            tile_voices: (0..34)
+                .filter_map(MahjongTileKind::from_index34)
+                .map(|kind| {
+                    let key =
+                        mahjong_tile_voice_key(kind).expect("standard tiles have voice names");
+                    let voices = ["male", "female"].map(|gender| {
+                        [1, 2].map(|variant| {
+                            asset_server
+                                .load(format!("audio/mahjong/tiles/{gender}/{key}_{variant}.ogg"))
+                        })
+                    });
+                    (kind, voices)
+                })
+                .collect(),
             status: create_mahjong_status_images(images),
         }
     }
@@ -122,12 +137,30 @@ impl MahjongAssets {
         &self.action_voices[voice_set][action.index()][fastrand::usize(..2)]
     }
 
-    pub(super) fn fan_voice(&self, gender: PlayerGender, fan: Fan) -> Option<&Handle<AudioSource>> {
+    pub(super) fn fan_voice(
+        &self,
+        gender: PlayerGender,
+        fan: MahjongFan,
+    ) -> Option<&Handle<AudioSource>> {
         let voice_set = match gender {
             PlayerGender::Male => 0,
             PlayerGender::Female => 1,
         };
         self.fan_voices.get(&fan).map(|voices| &voices[voice_set])
+    }
+
+    pub(super) fn tile_voice(
+        &self,
+        gender: PlayerGender,
+        tile: MahjongTileKind,
+    ) -> Option<&Handle<AudioSource>> {
+        let voice_set = match gender {
+            PlayerGender::Male => 0,
+            PlayerGender::Female => 1,
+        };
+        self.tile_voices
+            .get(&tile)
+            .map(|voices| &voices[voice_set][fastrand::usize(..2)])
     }
 }
 

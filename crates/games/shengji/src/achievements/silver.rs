@@ -1,6 +1,7 @@
 use super::facts::*;
 use super::macros::shengji;
-use crate::{Component, ShengjiRank};
+use crate::ShengjiTeamId;
+use crate::{ShengjiComponent, ShengjiRank};
 use leocard_achievements::{
     AchievementCategory, AchievementCriterion, AchievementDefinition, AchievementScope,
     AchievementTier, award,
@@ -52,7 +53,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] =
             Silver,
             "一场游戏自己方至少打到A",
             |event| hand(event, |facts| facts.result.levels
-                [usize::from(facts.player.team().0)]
+                [usize::from(ShengjiTeamId::of(facts.player).0)]
                 == ShengjiRank::Ace),
             1
         ),
@@ -61,11 +62,9 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] =
             "没见过的孩子呢",
             Silver,
             "在4副牌中打出宇宙飞船",
-            |event| play(event, |facts, _| facts
-                .play
-                .components
-                .iter()
-                .any(|component| matches!(component, Component::Spaceship { .. }))),
+            |event| play(event, |facts, _| facts.play.components.iter().any(
+                |component| matches!(component, ShengjiComponent::Spaceship { .. })
+            )),
             1
         ),
         shengji!(

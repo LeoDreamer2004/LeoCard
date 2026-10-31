@@ -1,16 +1,16 @@
-use super::from_core_player;
+use leocard_game_common::PlayerId;
 use leocard_mahjong::{
-    GameState, MahjongPlayerId, MahjongTile, MahjongWinAvailability, Phase, WinSource,
+    MahjongGameState, MahjongPhase, MahjongTile, MahjongWinAvailability, MahjongWinSource,
 };
 use leocard_protocol::MahjongEvent;
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct MahjongWinFeedback {
-    last_draw: Option<(MahjongPlayerId, MahjongTile)>,
+    last_draw: Option<(PlayerId, MahjongTile)>,
 }
 impl MahjongWinFeedback {
-    pub(super) fn after_action(&mut self, game: &GameState, events: &mut Vec<MahjongEvent>) {
-        let draw = matches!(game.phase(), Phase::Playing)
+    pub(super) fn after_action(&mut self, game: &MahjongGameState, events: &mut Vec<MahjongEvent>) {
+        let draw = matches!(game.phase(), MahjongPhase::Playing)
             .then(|| game.last_drawn().map(|tile| (game.current_player(), tile)))
             .flatten();
         if draw == self.last_draw {
@@ -22,14 +22,14 @@ impl MahjongWinFeedback {
                 game.self_draw_win_availability(player)
         {
             events.push(MahjongEvent::WinUnavailable {
-                player: from_core_player(player),
+                player,
                 points_without_flowers: points,
             });
         }
     }
 
     pub(super) fn before_discard(
-        game: &GameState,
+        game: &MahjongGameState,
         event: Option<&MahjongEvent>,
     ) -> Vec<MahjongEvent> {
         let Some(MahjongEvent::TileDiscarded {
@@ -39,19 +39,18 @@ impl MahjongWinFeedback {
         else {
             return Vec::new();
         };
-        let source = MahjongPlayerId(usize::from(source.0));
         (0..4)
-            .map(MahjongPlayerId)
-            .filter(|player| *player != source)
+            .map(PlayerId)
+            .filter(|player| *player != *source)
             .filter_map(|player| {
                 let MahjongWinAvailability::InsufficientFan { points } = game
-                    .claim_win_availability(player, tile.kind(), WinSource::Discard(source))
+                    .claim_win_availability(player, tile.kind(), MahjongWinSource::Discard(*source))
                     .ok()?
                 else {
                     return None;
                 };
                 Some(MahjongEvent::WinUnavailable {
-                    player: from_core_player(player),
+                    player,
                     points_without_flowers: points,
                 })
             })

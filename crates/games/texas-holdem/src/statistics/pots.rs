@@ -1,4 +1,6 @@
-use crate::{EvaluatedHand, GameState, HandResult, TexasHoldemPlayerId};
+use crate::{TexasEvaluatedHand, TexasGameState, TexasHandResult};
+use leocard_game_common::PlayerId;
+
 use std::collections::HashSet;
 
 #[derive(Default)]
@@ -12,10 +14,10 @@ pub(super) struct PotStatistics {
 
 impl PotStatistics {
     pub(super) fn new(
-        game: &GameState,
-        result: &HandResult,
-        player: TexasHoldemPlayerId,
-        evaluated: &[Option<EvaluatedHand>],
+        game: &TexasGameState,
+        result: &TexasHandResult,
+        player: PlayerId,
+        evaluated: &[Option<TexasEvaluatedHand>],
     ) -> Self {
         let mut pots = Self::default();
         if result.showdown {
@@ -59,10 +61,10 @@ impl PotStatistics {
                     other.id() != player && !other.folded() && other.committed_total() >= level
                 }) {
                     if let (Some(own), Some(opponent)) =
-                        (evaluated[player.0], evaluated[other.id().0])
+                        (evaluated[player.index()], evaluated[other.id().index()])
                         && own.cmp_with_rules(&opponent, game.rules()).is_gt()
                     {
-                        pots.defeated.insert(other.id().0);
+                        pots.defeated.insert(other.id().index());
                     }
                 }
             }
@@ -74,7 +76,7 @@ impl PotStatistics {
                 .collect::<Vec<_>>();
             let mut ordered = invested.clone();
             ordered.sort_unstable_by(|left, right| right.cmp(left));
-            let uncalled = invested[player.0].saturating_sub(ordered[1]);
+            let uncalled = invested[player.index()].saturating_sub(ordered[1]);
             if result
                 .awards
                 .iter()

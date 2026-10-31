@@ -1,37 +1,38 @@
 use crate::UnoCard;
+use leocard_game_common::PlayerId;
 
-use super::{ActionOutcome, GameError, GameState, Phase, UnoChallengeResult, UnoPlayerId};
+use super::{UnoActionOutcome, UnoChallengeResult, UnoGameError, UnoGameState, UnoPhase};
 
-impl GameState {
+impl UnoGameState {
     /// 非下家在窗口关闭前抢出与桌面牌颜色、牌面完全一致的另一张物理牌。
     pub fn jump_in(
         &mut self,
-        player: UnoPlayerId,
+        player: PlayerId,
         card: UnoCard,
-    ) -> Result<ActionOutcome, GameError> {
+    ) -> Result<UnoActionOutcome, UnoGameError> {
         if self.jump_in_card(player) != Some(card) {
-            return Err(GameError::CannotJumpIn);
+            return Err(UnoGameError::CannotJumpIn);
         }
         self.current_player = player;
         self.play_card(player, card, None)
     }
 
-    pub fn draw_card(&mut self, player: UnoPlayerId) -> Result<ActionOutcome, GameError> {
+    pub fn draw_card(&mut self, player: PlayerId) -> Result<UnoActionOutcome, UnoGameError> {
         self.ensure_turn(player)?;
         self.ensure_swap_resolved()?;
         self.ensure_skip_resolved(player)?;
         self.ensure_uno_followup_resolved(player)?;
         if self.current_color.is_none() {
-            return Err(GameError::InitialColorChoiceRequired);
+            return Err(UnoGameError::InitialColorChoiceRequired);
         }
         if self.pending_draw_active() {
-            return Err(GameError::MustResolveDrawPenalty);
+            return Err(UnoGameError::MustResolveDrawPenalty);
         }
         if self.drawn_card.is_some() {
-            return Err(GameError::MustDrawBeforePassing);
+            return Err(UnoGameError::MustDrawBeforePassing);
         }
         if self.sudden_death_free_play() {
-            return Err(GameError::DrawPileExhausted);
+            return Err(UnoGameError::DrawPileExhausted);
         }
         let mut cards = Vec::new();
         while let Some(card) = self.draw_cards_for(player, 1)?.pop() {
@@ -46,7 +47,7 @@ impl GameState {
         }
         // With an exhausted sudden-death pile, drawing also means voluntarily declining.
         self.jump_in_open = false;
-        let playable = if self.players[player.0].eliminated {
+        let playable = if self.players[player.index()].eliminated {
             None
         } else {
             cards
@@ -64,7 +65,7 @@ impl GameState {
             self.next_player(player)
         };
         self.current_player = next_player;
-        Ok(ActionOutcome::DrewCards {
+        Ok(UnoActionOutcome::DrewCards {
             player,
             cards,
             playable,
@@ -72,7 +73,7 @@ impl GameState {
         })
     }
 
-    pub fn pass_after_draw(&mut self, player: UnoPlayerId) -> Result<ActionOutcome, GameError> {
+    pub fn pass_after_draw(&mut self, player: PlayerId) -> Result<UnoActionOutcome, UnoGameError> {
         self.ensure_turn(player)?;
         self.ensure_swap_resolved()?;
         self.ensure_skip_resolved(player)?;
@@ -81,29 +82,32 @@ impl GameState {
             && self.rules.no_mercy.draw_until_playable
             && let Some(card) = self.drawn_card
         {
-            return Err(GameError::MustPlayDrawnCard(card));
+            return Err(UnoGameError::MustPlayDrawnCard(card));
         }
         if self.drawn_card.is_none() {
-            return Err(GameError::MustDrawBeforePassing);
+            return Err(UnoGameError::MustDrawBeforePassing);
         }
         self.drawn_card = None;
         self.jump_in_open = false;
         let next_player = self.next_player(player);
         self.current_player = next_player;
-        Ok(ActionOutcome::PassedAfterDraw {
+        Ok(UnoActionOutcome::PassedAfterDraw {
             player,
             next_player,
         })
     }
 
-    pub fn accept_draw_penalty(&mut self, player: UnoPlayerId) -> Result<ActionOutcome, GameError> {
+    pub fn accept_draw_penalty(
+        &mut self,
+        player: PlayerId,
+    ) -> Result<UnoActionOutcome, UnoGameError> {
         self.ensure_turn(player)?;
         self.ensure_swap_resolved()?;
         self.ensure_uno_followup_resolved(player)?;
         if !self.pending_draw_active() {
-            return Err(GameError::NoDrawPenalty);
+            return Err(UnoGameError::NoDrawPenalty);
         }
-        let must_resolve_skip = self.pending_skip > 0 || self.skip_turns[player.0] > 0;
+        let must_resolve_skip = self.pending_skip > 0 || self.skip_turns[player.index()] > 0;
         let cards = self.draw_pending_penalty(player, 0)?;
         self.check_mercy_elimination(player);
         self.jump_in_open = false;
@@ -119,19 +123,22 @@ impl GameState {
         };
         self.current_player = next_player;
         self.finish_pending_game();
-        Ok(ActionOutcome::PenaltyDrawn {
+        Ok(UnoActionOutcome::PenaltyDrawn {
             player,
             cards,
             next_player,
         })
     }
 
-    pub fn challenge_draw_four(&mut self, player: UnoPlayerId) -> Result<ActionOutcome, GameError> {
+    pub fn challenge_draw_four(
+        &mut self,
+        player: PlayerId,
+    ) -> Result<UnoActionOutcome, UnoGameError> {
         self.ensure_turn(player)?;
         self.ensure_swap_resolved()?;
         self.ensure_uno_followup_resolved(player)?;
-        let challenge = self.challenge.ok_or(GameError::CannotChallenge)?;
-        let must_resolve_skip = self.pending_skip > 0 || self.skip_turns[player.0] > 0;
+        let challenge = self.challenge.ok_or(UnoGameError::CannotChallenge)?;
+        let must_resolve_skip = self.pending_skip > 0 || self.skip_turns[player.index()] > 0;
         let (result, penalized, extra, next_player) = if challenge.was_legal {
             (
                 UnoChallengeResult::Failed,
@@ -157,7 +164,7 @@ impl GameState {
         self.clear_pending_draw();
         self.current_player = next_player;
         self.finish_pending_game();
-        Ok(ActionOutcome::ChallengeResolved {
+        Ok(UnoActionOutcome::ChallengeResolved {
             challenger: player,
             offender: challenge.offender,
             result,
@@ -167,103 +174,107 @@ impl GameState {
         })
     }
 
-    pub fn call_uno(&mut self, player: UnoPlayerId) -> Result<ActionOutcome, GameError> {
+    pub fn call_uno(&mut self, player: PlayerId) -> Result<UnoActionOutcome, UnoGameError> {
         self.ensure_playing()?;
         self.ensure_player(player)?;
-        if self.players[player.0].eliminated {
-            return Err(GameError::PlayerEliminated(player));
+        if self.players[player.index()].eliminated {
+            return Err(UnoGameError::PlayerEliminated(player));
         }
         if !self.rules.uno_callout() {
-            return Err(GameError::UnoCalloutDisabled);
+            return Err(UnoGameError::UnoCalloutDisabled);
         }
-        if self.uno_declared[player.0] {
-            return Err(GameError::CannotCallUno(player));
+        if self.uno_declared[player.index()] {
+            return Err(UnoGameError::CannotCallUno(player));
         }
         let can_recover_after_play = self.can_recover_uno(player);
         let can_declare_before_play = self.can_declare_uno(player);
         if !can_declare_before_play && !can_recover_after_play {
-            return Err(GameError::CannotCallUno(player));
+            return Err(UnoGameError::CannotCallUno(player));
         }
 
         if can_recover_after_play {
-            self.uno_exposed[player.0] = false;
+            self.uno_exposed[player.index()] = false;
         } else {
-            self.uno_declared[player.0] = true;
+            self.uno_declared[player.index()] = true;
         }
         if player == self.current_player {
             self.jump_in_open = false;
         }
-        Ok(ActionOutcome::UnoCalled { player })
+        Ok(UnoActionOutcome::UnoCalled { player })
     }
 
-    pub fn can_call_uno(&self, player: UnoPlayerId) -> bool {
-        matches!(self.phase, Phase::Playing)
+    pub fn can_call_uno(&self, player: PlayerId) -> bool {
+        matches!(self.phase, UnoPhase::Playing)
             && self.rules.uno_callout()
             && self
                 .players
-                .get(player.0)
+                .get(player.index())
                 .is_some_and(|state| !state.eliminated)
-            && !self.uno_declared.get(player.0).copied().unwrap_or(false)
+            && !self
+                .uno_declared
+                .get(player.index())
+                .copied()
+                .unwrap_or(false)
             && (self.can_declare_uno(player) || self.can_recover_uno(player))
     }
 
-    fn can_declare_uno(&self, player: UnoPlayerId) -> bool {
+    fn can_declare_uno(&self, player: PlayerId) -> bool {
         player == self.current_player
             && self.pending_swap.is_none()
-            && self.players[player.0].hand.len() == 2
+            && self.players[player.index()].hand.len() == 2
             && !self.pending_draw_active()
             && self.pending_skip == 0
-            && self.skip_turns[player.0] == 0
-            && self.players[player.0]
+            && self.skip_turns[player.index()] == 0
+            && self.players[player.index()]
                 .hand
                 .iter()
                 .copied()
                 .any(|card| self.can_play(player, card))
     }
 
-    fn can_recover_uno(&self, player: UnoPlayerId) -> bool {
-        self.players[player.0].hand.len() == 1 && self.uno_exposed[player.0]
+    fn can_recover_uno(&self, player: PlayerId) -> bool {
+        self.players[player.index()].hand.len() == 1 && self.uno_exposed[player.index()]
     }
 
     pub fn report_uno(
         &mut self,
-        reporter: UnoPlayerId,
-        target: UnoPlayerId,
-    ) -> Result<ActionOutcome, GameError> {
+        reporter: PlayerId,
+        target: PlayerId,
+    ) -> Result<UnoActionOutcome, UnoGameError> {
         self.ensure_playing()?;
         self.ensure_player(reporter)?;
         self.ensure_player(target)?;
-        if self.players[reporter.0].eliminated {
-            return Err(GameError::PlayerEliminated(reporter));
+        if self.players[reporter.index()].eliminated {
+            return Err(UnoGameError::PlayerEliminated(reporter));
         }
         if !self.rules.uno_callout() {
-            return Err(GameError::UnoCalloutDisabled);
+            return Err(UnoGameError::UnoCalloutDisabled);
         }
         if reporter == target {
-            return Err(GameError::CannotReportSelf);
+            return Err(UnoGameError::CannotReportSelf);
         }
-        if !self.uno_exposed[target.0] {
-            return Err(GameError::PlayerNotReportable(target));
+        if !self.uno_exposed[target.index()] {
+            return Err(UnoGameError::PlayerNotReportable(target));
         }
         let cards = self.draw_cards_for(target, 2)?;
         self.check_mercy_elimination(target);
         if reporter == self.current_player {
             self.jump_in_open = false;
         }
-        self.uno_exposed[target.0] = false;
-        Ok(ActionOutcome::UnoReported {
+        self.uno_exposed[target.index()] = false;
+        Ok(UnoActionOutcome::UnoReported {
             reporter,
             target,
             cards,
         })
     }
 
-    pub fn resolve_skip(&mut self, player: UnoPlayerId) -> Result<ActionOutcome, GameError> {
+    pub fn resolve_skip(&mut self, player: PlayerId) -> Result<UnoActionOutcome, UnoGameError> {
         self.ensure_turn(player)?;
         self.ensure_swap_resolved()?;
         self.ensure_uno_followup_resolved(player)?;
         if self.pending_draw_active() {
-            return Err(GameError::MustResolveDrawPenalty);
+            return Err(UnoGameError::MustResolveDrawPenalty);
         }
         let pending = self.pending_skip;
         if self.pending_skip_everyone {
@@ -272,17 +283,17 @@ impl GameState {
                 .expect("stacked skip-everyone records its latest source");
             for state in &self.players {
                 if !state.eliminated && state.id != source {
-                    self.skip_turns[state.id.0] =
-                        self.skip_turns[state.id.0].saturating_add(pending);
+                    self.skip_turns[state.id.index()] =
+                        self.skip_turns[state.id.index()].saturating_add(pending);
                     if !self.skip_effect_targets.contains(&state.id) {
                         self.skip_effect_targets.push(state.id);
                     }
                 }
             }
         }
-        let existing = self.skip_turns[player.0];
+        let existing = self.skip_turns[player.index()];
         if pending == 0 && existing == 0 {
-            return Err(GameError::NoSkipToResolve);
+            return Err(UnoGameError::NoSkipToResolve);
         }
         let total = if self.pending_skip_everyone {
             existing
@@ -302,7 +313,7 @@ impl GameState {
         self.pending_skip_everyone = false;
         self.pending_skip_source = None;
         let remaining = total.saturating_sub(1);
-        self.skip_turns[player.0] = remaining;
+        self.skip_turns[player.index()] = remaining;
         self.skip_effect_targets.retain(|target| *target != player);
         self.drawn_card = None;
         let next_player = if self.sudden_death_active() && self.draw_pile.is_empty() {
@@ -312,7 +323,7 @@ impl GameState {
         };
         self.current_player = next_player;
         self.finish_pending_game();
-        Ok(ActionOutcome::SkipResolved {
+        Ok(UnoActionOutcome::SkipResolved {
             player,
             cards,
             remaining,

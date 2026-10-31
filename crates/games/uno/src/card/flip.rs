@@ -1,39 +1,39 @@
-use super::{CardSide, UnoCard, UnoColor, UnoFace};
+use super::{UnoCard, UnoCardSide, UnoColor, UnoFace};
 
-fn build_colored_sides(colors: [UnoColor; 4], draw: UnoFace, skip: UnoFace) -> Vec<CardSide> {
+fn build_colored_sides(colors: [UnoColor; 4], draw: UnoFace, skip: UnoFace) -> Vec<UnoCardSide> {
     let mut sides = Vec::with_capacity(104);
     for color in colors {
         for value in 1..=9 {
-            sides.push(CardSide::colored(color, UnoFace::Number(value)));
-            sides.push(CardSide::colored(color, UnoFace::Number(value)));
+            sides.push(UnoCardSide::colored(color, UnoFace::Number(value)));
+            sides.push(UnoCardSide::colored(color, UnoFace::Number(value)));
         }
         for face in [draw, UnoFace::Reverse, skip, UnoFace::Flip] {
-            sides.push(CardSide::colored(color, face));
-            sides.push(CardSide::colored(color, face));
+            sides.push(UnoCardSide::colored(color, face));
+            sides.push(UnoCardSide::colored(color, face));
         }
     }
     sides
 }
 
-pub fn build_flip_light_sides() -> Vec<CardSide> {
+pub fn build_flip_light_sides() -> Vec<UnoCardSide> {
     let mut sides = build_colored_sides(UnoColor::LIGHT, UnoFace::DrawOne, UnoFace::Skip);
     for _ in 0..4 {
-        sides.push(CardSide::wild(UnoFace::Wild));
-        sides.push(CardSide::wild(UnoFace::WildDrawTwo));
+        sides.push(UnoCardSide::wild(UnoFace::Wild));
+        sides.push(UnoCardSide::wild(UnoFace::WildDrawTwo));
     }
     sides
 }
 
-pub fn build_flip_dark_sides() -> Vec<CardSide> {
+pub fn build_flip_dark_sides() -> Vec<UnoCardSide> {
     let mut sides = build_colored_sides(UnoColor::DARK, UnoFace::DrawFive, UnoFace::SkipEveryone);
     for _ in 0..4 {
-        sides.push(CardSide::wild(UnoFace::DarkWild));
-        sides.push(CardSide::wild(UnoFace::WildDrawColor));
+        sides.push(UnoCardSide::wild(UnoFace::DarkWild));
+        sides.push(UnoCardSide::wild(UnoFace::WildDrawColor));
     }
     sides
 }
 
-pub fn pair_flip_deck(dark_sides: Vec<CardSide>) -> Option<Vec<UnoCard>> {
+pub fn pair_flip_deck(dark_sides: Vec<UnoCardSide>) -> Option<Vec<UnoCard>> {
     let light_sides = build_flip_light_sides();
     if dark_sides.len() != light_sides.len() {
         return None;

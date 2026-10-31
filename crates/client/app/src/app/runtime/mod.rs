@@ -10,6 +10,7 @@ mod native_text;
 mod platform;
 mod plugin;
 mod preferences;
+mod projection;
 mod resources;
 mod session;
 
@@ -17,5 +18,6 @@ pub(crate) use application::*;
 use platform::*;
 pub(super) use plugin::*;
 pub(crate) use preferences::*;
+pub(crate) use projection::*;
 pub(crate) use resources::*;
 pub(crate) use session::*;

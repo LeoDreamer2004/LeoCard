@@ -1,35 +1,34 @@
-use super::TexasHoldemBotObservation;
+use super::TexasBotObservation;
 use super::equity::equity;
 use super::ranges::starting_strength;
-use crate::{TexasHoldemAction, TexasHoldemRuleSet, TexasHoldemStreet};
+use crate::{TexasAction, TexasRuleSet, TexasStreet};
 use leocard_game_common::SearchBudget;
 
 pub(super) struct PreflopPolicy<'a> {
-    observation: &'a TexasHoldemBotObservation,
+    observation: &'a TexasBotObservation,
     strength: f64,
     raises: usize,
     callers: u32,
 }
 
 impl<'a> PreflopPolicy<'a> {
-    pub fn new(observation: &'a TexasHoldemBotObservation) -> Self {
+    pub fn new(observation: &'a TexasBotObservation) -> Self {
         let mut raises = 0;
         let mut callers = 0;
         for record in &observation.history {
-            if record.street != TexasHoldemStreet::PreFlop {
+            if record.street != TexasStreet::PreFlop {
                 continue;
             }
             match record.action {
-                TexasHoldemAction::RaiseTo(_) => raises += 1,
-                TexasHoldemAction::AllIn
+                TexasAction::RaiseTo(_) => raises += 1,
+                TexasAction::AllIn
                     if observation.opponents.iter().any(|other| {
-                        other.id == record.player
-                            && other.street_commit > TexasHoldemRuleSet::BIG_BLIND
+                        other.id == record.player && other.street_commit > TexasRuleSet::BIG_BLIND
                     }) =>
                 {
                     raises += 1
                 }
-                TexasHoldemAction::Call => callers += 1,
+                TexasAction::Call => callers += 1,
                 _ => {}
             }
         }
@@ -41,18 +40,18 @@ impl<'a> PreflopPolicy<'a> {
         }
     }
 
-    pub fn choose(&self, budget: &SearchBudget) -> TexasHoldemAction {
-        if self.raises == 0 && self.observation.current_bet <= TexasHoldemRuleSet::BIG_BLIND {
+    pub fn choose(&self, budget: &SearchBudget) -> TexasAction {
+        if self.raises == 0 && self.observation.current_bet <= TexasRuleSet::BIG_BLIND {
             self.opening()
         } else {
             self.facing_raise(budget)
         }
     }
 
-    fn opening(&self) -> TexasHoldemAction {
+    fn opening(&self) -> TexasAction {
         let observation = self.observation;
         let maximum = observation.committed + observation.stack;
-        let short_stack = maximum <= TexasHoldemRuleSet::BIG_BLIND * 6;
+        let short_stack = maximum <= TexasRuleSet::BIG_BLIND * 6;
         let threshold = 0.16 + observation.opponents.len().saturating_sub(1) as f64 * 0.012
             - observation.position * 0.075
             + if short_stack { 0.06 } else { 0.0 }
@@ -62,7 +61,7 @@ impl<'a> PreflopPolicy<'a> {
                 0.0
             };
         if observation.call > 0 && self.strength < threshold {
-            return TexasHoldemAction::Fold;
+            return TexasAction::Fold;
         }
         let raise_threshold =
             0.38 + observation.opponents.len() as f64 * 0.012 - observation.position * 0.07;
@@ -72,19 +71,18 @@ impl<'a> PreflopPolicy<'a> {
                 && maximum > observation.current_bet
                 && observation.can_all_in
             {
-                return TexasHoldemAction::AllIn;
+                return TexasAction::AllIn;
             }
             // Three big blinds plus one per limper. Unacted players are not assumed
             // to call and go to showdown when deciding whether to enter an unopened pot.
-            if let Some(action) = self.raise_to(TexasHoldemRuleSet::BIG_BLIND * (3 + self.callers))
-            {
+            if let Some(action) = self.raise_to(TexasRuleSet::BIG_BLIND * (3 + self.callers)) {
                 return action;
             }
         }
         self.continue_action()
     }
 
-    fn facing_raise(&self, budget: &SearchBudget) -> TexasHoldemAction {
+    fn facing_raise(&self, budget: &SearchBudget) -> TexasAction {
         let observation = self.observation;
         let opponent_stack = observation
             .opponents
@@ -98,7 +96,7 @@ impl<'a> PreflopPolicy<'a> {
         let expense = f64::from(observation.call) / f64::from(effective);
         let price = f64::from(observation.call)
             / f64::from((observation.contestable_pot() + observation.call).max(1));
-        let size = f64::from(observation.current_bet) / f64::from(TexasHoldemRuleSet::BIG_BLIND);
+        let size = f64::from(observation.current_bet) / f64::from(TexasRuleSet::BIG_BLIND);
         let threshold = 0.22
             + ((size - 2.0).max(0.0) * 0.025).min(0.15)
             + self.raises.saturating_sub(1) as f64 * 0.055
@@ -111,14 +109,13 @@ impl<'a> PreflopPolicy<'a> {
             }
             - if observation.rules.omaha { 0.035 } else { 0.0 };
         if observation.call > 0 && self.strength < threshold {
-            return TexasHoldemAction::Fold;
+            return TexasAction::Fold;
         }
         let premium = self.strength
             >= 0.68 + self.raises.saturating_sub(1) as f64 * 0.06
                 - if observation.rules.omaha { 0.06 } else { 0.0 };
-        let affordable = observation.call <= TexasHoldemRuleSet::BIG_BLIND * 3
-            && expense <= 0.20
-            && self.raises <= 1;
+        let affordable =
+            observation.call <= TexasRuleSet::BIG_BLIND * 3 && expense <= 0.20 && self.raises <= 1;
         if affordable && !premium {
             return self.continue_action();
         }
@@ -127,17 +124,17 @@ impl<'a> PreflopPolicy<'a> {
         let mut contest = observation.clone();
         contest
             .opponents
-            .retain(|other| other.street_commit > TexasHoldemRuleSet::BIG_BLIND || other.all_in);
+            .retain(|other| other.street_commit > TexasRuleSet::BIG_BLIND || other.all_in);
         let share = equity(&contest, budget) * (0.90 + observation.position * 0.06);
         if observation.call > 0 && share < price + 0.015 {
-            return TexasHoldemAction::Fold;
+            return TexasAction::Fold;
         }
         if premium && observation.can_raise && share > 0.55 {
-            if (effective <= TexasHoldemRuleSet::BIG_BLIND * 12 || expense >= 0.35)
+            if (effective <= TexasRuleSet::BIG_BLIND * 12 || expense >= 0.35)
                 && observation.can_all_in
                 && observation.committed + observation.stack > observation.current_bet
             {
-                return TexasHoldemAction::AllIn;
+                return TexasAction::AllIn;
             }
             if let Some(action) = self.raise_to(observation.current_bet * 3) {
                 return action;
@@ -146,21 +143,21 @@ impl<'a> PreflopPolicy<'a> {
         self.continue_action()
     }
 
-    fn continue_action(&self) -> TexasHoldemAction {
+    fn continue_action(&self) -> TexasAction {
         if self.observation.call == 0 {
-            TexasHoldemAction::Check
+            TexasAction::Check
         } else {
-            TexasHoldemAction::Call
+            TexasAction::Call
         }
     }
 
-    fn raise_to(&self, desired: u32) -> Option<TexasHoldemAction> {
+    fn raise_to(&self, desired: u32) -> Option<TexasAction> {
         let target = self.observation.raise_sizing().normalize(desired)?;
         Some(
             if target == self.observation.committed + self.observation.stack {
-                TexasHoldemAction::AllIn
+                TexasAction::AllIn
             } else {
-                TexasHoldemAction::RaiseTo(target)
+                TexasAction::RaiseTo(target)
             },
         )
     }

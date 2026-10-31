@@ -9,11 +9,12 @@ use crate::app::presentation::{
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{UiAction, add_cozy_panel_with_skin};
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
 use leocard_ui::{ButtonTint, UiComposer, spawn_node};
 use leocard_uno::{UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoPendingDrawKind};
+
+use bevy::prelude::*;
 
 fn uno_action_width(label: &str) -> f32 {
     match label.chars().count() {
@@ -133,7 +134,7 @@ pub(super) fn add_uno_actions(
         || game
             .players
             .iter()
-            .find(|player| player.id == game.you)
+            .find(|player| player.player.id == game.you)
             .is_some_and(|player| player.eliminated)
     {
         return;
@@ -223,7 +224,7 @@ pub(super) fn add_uno_actions(
     let own_skips = game
         .players
         .iter()
-        .find(|player| player.id == game.you)
+        .find(|player| player.player.id == game.you)
         .map_or(0, |player| player.skipped_turns);
     let selected = match ui.selected.iter().copied().collect::<Vec<_>>().as_slice() {
         [card] if uno_card_is_playable(game, *card) => Some((*card, 1)),
@@ -362,7 +363,7 @@ pub(super) fn add_uno_callout_actions(
     let eliminated = game
         .players
         .iter()
-        .find(|player| player.id == game.you)
+        .find(|player| player.player.id == game.you)
         .is_some_and(|player| player.eliminated);
     let targets = if eliminated
         || !game.rules.uno_callout()
@@ -396,8 +397,8 @@ pub(super) fn add_uno_callout_actions(
         let name = game
             .players
             .iter()
-            .find(|player| player.id == target)
-            .map(|player| player.name.as_str())
+            .find(|player| player.player.id == target)
+            .map(|player| player.player.name.as_str())
             .unwrap_or("玩家");
         add_subtle_uno_button(
             commands,
@@ -443,8 +444,8 @@ pub(super) fn add_initial_color_choice(
         _ => game.current_player,
     };
     let name = choosing_player
-        .and_then(|id| game.players.iter().find(|player| player.id == id))
-        .map(|player| player.name.as_str())
+        .and_then(|id| game.players.iter().find(|player| player.player.id == id))
+        .map(|player| player.player.name.as_str())
         .unwrap_or("玩家");
     let own_turn = choosing_player == Some(game.you);
     let after_swap = matches!(

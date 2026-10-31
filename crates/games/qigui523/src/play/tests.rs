@@ -1,6 +1,6 @@
 use super::*;
 use crate::QiGuiSuit::{Club, Diamond, Heart, Spade};
-use crate::{QiGuiCard, QiGuiRank, QiGuiRuleSet, SameCardPolicy, SuitComparison};
+use crate::{QiGuiCard, QiGuiRank, QiGuiRuleSet, QiGuiSameCardPolicy, QiGuiSuitComparison};
 
 fn card(rank: QiGuiRank) -> QiGuiCard {
     QiGuiCard::suited(0, Diamond, rank)
@@ -38,7 +38,7 @@ fn unusual_rank_order_drives_straights() {
     ));
     assert_eq!(
         classify(&ordinary_456, &rules),
-        Err(PlayError::InvalidPattern)
+        Err(QiGuiPlayError::InvalidPattern)
     );
 }
 
@@ -67,7 +67,7 @@ fn exact_duplicate_strength_obeys_room_setting() {
         ..QiGuiRuleSet::default()
     };
     let following = QiGuiRuleSet {
-        same_card_policy: SameCardPolicy::CanFollow,
+        same_card_policy: QiGuiSameCardPolicy::CanFollow,
         ..strict
     };
     let first = classify(&[QiGuiCard::suited(0, Spade, QiGuiRank::Ace)], &strict).unwrap();
@@ -75,7 +75,7 @@ fn exact_duplicate_strength_obeys_room_setting() {
 
     assert_eq!(
         compare_plays(&duplicate, &first, &strict),
-        PlayComparison::Equivalent
+        QiGuiPlayComparison::Equivalent
     );
     assert!(!can_beat(&duplicate, &first, &strict));
     assert!(can_beat(&duplicate, &first, &following));
@@ -153,7 +153,7 @@ fn advanced_play_types_obey_the_three_fixed_suppression_relations() {
 
     assert_eq!(
         compare_plays(&triple, &straight_three, &disabled),
-        PlayComparison::Incompatible
+        QiGuiPlayComparison::Incompatible
     );
     for (stronger, weaker) in [
         (&triple, &straight_three),
@@ -162,11 +162,11 @@ fn advanced_play_types_obey_the_three_fixed_suppression_relations() {
     ] {
         assert_eq!(
             compare_plays(stronger, weaker, &enabled),
-            PlayComparison::Greater
+            QiGuiPlayComparison::Greater
         );
         assert_eq!(
             compare_plays(weaker, stronger, &enabled),
-            PlayComparison::Lower
+            QiGuiPlayComparison::Lower
         );
         assert!(can_beat(stronger, weaker, &enabled));
         assert!(!can_beat(weaker, stronger, &enabled));
@@ -199,18 +199,18 @@ fn advanced_triple_carries_compare_only_the_triple_component() {
     ];
     assert_eq!(
         classify(&low_kicker_cards, &disabled),
-        Err(PlayError::InvalidPattern)
+        Err(QiGuiPlayError::InvalidPattern)
     );
     let low_kicker = classify(&low_kicker_cards, &enabled).unwrap();
     let high_kicker = classify(&high_kicker_cards, &enabled).unwrap();
     assert_eq!(low_kicker.kind(), &QiGuiPlayKind::TripleWithSingle);
     assert_eq!(
         compare_plays(&high_kicker, &low_kicker, &enabled),
-        PlayComparison::Equivalent
+        QiGuiPlayComparison::Equivalent
     );
     assert!(!can_beat(&high_kicker, &low_kicker, &enabled));
     let following = QiGuiRuleSet {
-        same_card_policy: SameCardPolicy::CanFollow,
+        same_card_policy: QiGuiSameCardPolicy::CanFollow,
         ..enabled
     };
     assert!(can_beat(&high_kicker, &low_kicker, &following));
@@ -243,7 +243,7 @@ fn advanced_triple_carries_compare_only_the_triple_component() {
     );
     assert_eq!(
         compare_plays(&higher_triple_with_pair, &lower_triple_with_pair, &enabled),
-        PlayComparison::Greater
+        QiGuiPlayComparison::Greater
     );
 
     let straight = classify(
@@ -257,7 +257,7 @@ fn advanced_triple_carries_compare_only_the_triple_component() {
     .unwrap();
     assert_eq!(
         compare_plays(&high_kicker, &straight, &enabled),
-        PlayComparison::Incompatible
+        QiGuiPlayComparison::Incompatible
     );
     assert!(!can_beat(&high_kicker, &straight, &enabled));
 }
@@ -270,7 +270,7 @@ fn suit_breaks_a_same_rank_tie() {
 
     assert_eq!(
         compare_plays(&spade, &diamond, &rules),
-        PlayComparison::Greater
+        QiGuiPlayComparison::Greater
     );
 }
 
@@ -278,7 +278,7 @@ fn suit_breaks_a_same_rank_tie() {
 fn all_three_suit_comparison_modes_are_distinct() {
     let highest = QiGuiRuleSet {
         deck_count: 2,
-        suit_comparison: SuitComparison::HighestCard,
+        suit_comparison: QiGuiSuitComparison::HighestCard,
         ..QiGuiRuleSet::default()
     };
     let left = classify(
@@ -300,25 +300,25 @@ fn all_three_suit_comparison_modes_are_distinct() {
 
     assert_eq!(
         compare_plays(&right, &left, &highest),
-        PlayComparison::Equivalent
+        QiGuiPlayComparison::Equivalent
     );
 
     let lexicographic = QiGuiRuleSet {
-        suit_comparison: SuitComparison::Lexicographic,
+        suit_comparison: QiGuiSuitComparison::Lexicographic,
         ..highest
     };
     assert_eq!(
         compare_plays(&right, &left, &lexicographic),
-        PlayComparison::Greater
+        QiGuiPlayComparison::Greater
     );
 
     let sum_points = QiGuiRuleSet {
-        suit_comparison: SuitComparison::SumPoints,
+        suit_comparison: QiGuiSuitComparison::SumPoints,
         ..highest
     };
     assert_eq!(
         compare_plays(&right, &left, &sum_points),
-        PlayComparison::Greater
+        QiGuiPlayComparison::Greater
     );
 
     let spade_diamond = classify(
@@ -339,11 +339,11 @@ fn all_three_suit_comparison_modes_are_distinct() {
     .unwrap();
     assert_eq!(
         compare_plays(&spade_diamond, &heart_club, &lexicographic),
-        PlayComparison::Greater
+        QiGuiPlayComparison::Greater
     );
     assert_eq!(
         compare_plays(&spade_diamond, &heart_club, &sum_points),
-        PlayComparison::Equivalent
+        QiGuiPlayComparison::Equivalent
     );
 }
 
@@ -393,11 +393,11 @@ fn recognizes_airplanes_and_only_allows_matching_airplanes_to_follow() {
     );
     assert_eq!(
         compare_plays(&higher_airplane, &airplane, &rules),
-        PlayComparison::Greater
+        QiGuiPlayComparison::Greater
     );
     assert_eq!(
         compare_plays(&airplane, &straight, &rules),
-        PlayComparison::Incompatible
+        QiGuiPlayComparison::Incompatible
     );
 }
 
@@ -432,19 +432,19 @@ fn heaven_bomb_beats_every_other_shape_and_obeys_same_play_tie_rules() {
     assert_eq!(heaven.kind(), &QiGuiPlayKind::HeavenBomb);
     assert_eq!(
         compare_plays(&heaven, &ordinary_bomb, &strict),
-        PlayComparison::Greater
+        QiGuiPlayComparison::Greater
     );
     assert_eq!(
         compare_plays(&ordinary_bomb, &heaven, &strict),
-        PlayComparison::Lower
+        QiGuiPlayComparison::Lower
     );
     assert_eq!(
         compare_plays(&physical_copy, &heaven, &strict),
-        PlayComparison::Equivalent
+        QiGuiPlayComparison::Equivalent
     );
     assert!(!can_beat(&physical_copy, &heaven, &strict));
     let following = QiGuiRuleSet {
-        same_card_policy: SameCardPolicy::CanFollow,
+        same_card_policy: QiGuiSameCardPolicy::CanFollow,
         ..strict
     };
     assert!(can_beat(&physical_copy, &heaven, &following));
@@ -462,6 +462,6 @@ fn heaven_bomb_beats_every_other_shape_and_obeys_same_play_tie_rules() {
     .unwrap();
     assert_eq!(
         compare_plays(&stronger_suit, &heaven, &strict),
-        PlayComparison::Greater
+        QiGuiPlayComparison::Greater
     );
 }

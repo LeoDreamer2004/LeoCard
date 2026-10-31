@@ -1,18 +1,20 @@
 //! 七鬼五二三出牌特效适配与发牌音效调度。
-
-use super::{QiGui523UiState, sort_cards_high_to_low};
+use super::{QiGui523UiState, QiGuiClientState, sort_cards_high_to_low};
 use crate::app::presentation::{
     CardPlaySoundKind, PendingDealSound, PlayEffectKind, PlayEffectState,
 };
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiState;
-use bevy::prelude::*;
-use leocard_protocol::{PlayerId, QiGui523Snapshot, TABLE_SEAT_COUNT};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{GameSnapshot, QiGui523Snapshot, TABLE_SEAT_COUNT};
 use leocard_qigui523::QiGuiPlayKind;
+
+use bevy::prelude::*;
 
 pub(super) fn sync_play_effect(
     client: Option<Res<ClientResource>>,
     mut effect: ResMut<PlayEffectState>,
+    game_client: Res<QiGuiClientState>,
     mut ui: ResMut<UiState>,
     mut game_ui: ResMut<QiGui523UiState>,
     assets: Res<UiAssets>,
@@ -21,14 +23,15 @@ pub(super) fn sync_play_effect(
     let Some(model) = client.as_deref().map(|client| client.0.model()) else {
         return;
     };
-    let Some(game) = model.qigui523_game() else {
+    let Some(game) = model.game_snapshot().and_then(GameSnapshot::qigui523) else {
         return;
     };
-    if game_ui.play_effect_serial == model.play_effect_serial() {
+    if game_ui.play_effect_key == Some((game.match_id, game.you, game_client.play_effect_serial()))
+    {
         return;
     }
-    game_ui.play_effect_serial = model.play_effect_serial();
-    if let Some((_, play)) = model.last_play_effect() {
+    game_ui.play_effect_key = Some((game.match_id, game.you, game_client.play_effect_serial()));
+    if let Some((_, play)) = game_client.last_play_effect() {
         let sounds = match card_play_sound_kind(&play.kind) {
             CardPlaySoundKind::Place => &assets.audio.place_sounds,
             CardPlaySoundKind::Shove => &assets.audio.shove_sounds,
@@ -39,7 +42,7 @@ pub(super) fn sync_play_effect(
         }
     }
     effect.active = None;
-    if let Some((player, play)) = model.last_play_effect()
+    if let Some((player, play)) = game_client.last_play_effect()
         && let Some(kind) = pattern_effect(&play.kind)
     {
         effect.start(game.match_id, *player, kind, play.cards.len());
@@ -77,12 +80,12 @@ pub(super) fn bomb_effect_source(game: &QiGui523Snapshot, player: PlayerId) -> V
     let own_seat = game
         .players
         .iter()
-        .find(|state| state.id == game.you)
+        .find(|state| state.player.id == game.you)
         .map_or(0, |state| state.seat.0);
     let player_seat = game
         .players
         .iter()
-        .find(|state| state.id == player)
+        .find(|state| state.player.id == player)
         .map_or(own_seat, |state| state.seat.0);
     match (player_seat + TABLE_SEAT_COUNT - own_seat) % TABLE_SEAT_COUNT {
         0 => Vec2::new(0.0, 225.0),
@@ -102,7 +105,13 @@ pub(super) fn queue_deal_animations(
 ) {
     let Some((match_id, mut hand)) = client
         .as_deref()
-        .and_then(|client| client.0.model().qigui523_game())
+        .and_then(|client| {
+            client
+                .0
+                .model()
+                .game_snapshot()
+                .and_then(GameSnapshot::qigui523)
+        })
         .map(|game| (game.match_id, game.your_hand.clone()))
     else {
         if !ui.observed_hand.state.is_empty() {

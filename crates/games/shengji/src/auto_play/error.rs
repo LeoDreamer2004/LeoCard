@@ -1,4 +1,4 @@
-use crate::{FollowError, PlayError};
+use crate::{ShengjiFollowError, ShengjiPlayError};
 use std::error::Error;
 use std::fmt;
 
@@ -6,8 +6,8 @@ use std::fmt;
 pub enum ShengjiAutoPlayError {
     EmptyHand,
     NotEnoughCards { required: usize, actual: usize },
-    InvalidLead(PlayError),
-    InvalidFollow(FollowError),
+    InvalidLead(ShengjiPlayError),
+    InvalidFollow(ShengjiFollowError),
 }
 
 impl fmt::Display for ShengjiAutoPlayError {

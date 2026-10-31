@@ -1,4 +1,5 @@
-use crate::facts::{InteractionFacts, InteractionKind, ParticipantId};
+use crate::facts::{InteractionFacts, InteractionKind};
+use leocard_game_common::PlayerId;
 use std::collections::VecDeque;
 use std::time::Duration;
 
@@ -23,7 +24,7 @@ pub enum PersonalEvent {
 
 #[derive(Default)]
 pub struct PersonalActivity {
-    target: Option<ParticipantId>,
+    target: Option<PlayerId>,
     shoes: VecDeque<Duration>,
 }
 
@@ -31,7 +32,7 @@ impl PersonalActivity {
     /// Only the local sender's accepted actions participate in a consecutive run.
     pub fn observe_interaction(
         &mut self,
-        player: ParticipantId,
+        player: PlayerId,
         event: &InteractionFacts,
     ) -> Option<PersonalEvent> {
         if event.source != player {

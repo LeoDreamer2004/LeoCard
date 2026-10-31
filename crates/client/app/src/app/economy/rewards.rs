@@ -3,8 +3,7 @@ use crate::app::runtime::ClientResource;
 use bevy::prelude::*;
 use leocard_achievements::AchievementDefinition;
 use leocard_client::{LocalPlayerProfile, PlayerAchievements, PlayerEconomy};
-use leocard_protocol::ACHIEVEMENT_REGISTRY;
-use leocard_protocol::{MatchId, PlayerReferenceChange};
+use leocard_protocol::{ACHIEVEMENT_REGISTRY, MatchId, PlayerReferenceChange};
 use std::collections::VecDeque;
 
 enum Reward {

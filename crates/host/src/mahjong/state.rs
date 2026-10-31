@@ -1,8 +1,10 @@
 use super::MahjongWinFeedback;
 use crate::automation::BotDecision;
 use crate::{AutomaticActionDelayState, RoomSession};
-use leocard_mahjong::{GameState, MahjongRuleSet, MahjongTile};
-use leocard_mahjong::{MahjongBotAction, MahjongBotObservation};
+use leocard_mahjong::{
+    MahjongBotAction, MahjongBotObservation, MahjongGameState, MahjongRuleSet, MahjongTile,
+};
+
 use leocard_protocol::{MatchId, PlayerReferenceChange};
 use std::time::Duration;
 
@@ -15,7 +17,7 @@ pub struct MahjongSession {
     pub(super) room: RoomSession,
     pub(super) rules: MahjongRuleSet,
     pub(super) shuffled_deck: Option<Vec<MahjongTile>>,
-    pub(super) game: Option<GameState>,
+    pub(super) game: Option<MahjongGameState>,
     pub(super) match_id: Option<MatchId>,
     pub(super) automatic_action_delay: Option<AutomaticActionDelayState>,
     pub(super) deal_delay: Duration,

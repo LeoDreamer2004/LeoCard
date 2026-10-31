@@ -1,8 +1,9 @@
 use super::QiGuiActionStatistics;
-use crate::{QiGuiCard, QiGuiPlayerId, QiGuiRank, QiGuiRuleSet};
+use crate::{QiGuiCard, QiGuiRank, QiGuiRuleSet};
+use leocard_game_common::PlayerId;
 
 impl QiGuiActionStatistics {
-    pub(super) fn new(player: QiGuiPlayerId, rules: QiGuiRuleSet) -> Self {
+    pub(super) fn new(player: PlayerId, rules: QiGuiRuleSet) -> Self {
         Self {
             player,
             rules,

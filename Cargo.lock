@@ -3426,6 +3426,7 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 name = "leocard-achievements"
 version = "0.10.4"
 dependencies = [
+ "leocard-game-common",
  "serde",
 ]
 
@@ -3466,9 +3467,9 @@ dependencies = [
  "leocard-assets",
  "leocard-blackjack",
  "leocard-doudizhu",
+ "leocard-game-common",
  "leocard-host",
  "leocard-mahjong",
- "leocard-minecraft-guess",
  "leocard-protocol",
  "leocard-qigui523",
  "leocard-sakura-frp",
@@ -3478,6 +3479,7 @@ dependencies = [
  "leocard-ui",
  "leocard-uno",
  "leocard-update",
+ "leocard_mc_guess",
  "postcard",
  "rfd",
  "rustls-platform-verifier",
@@ -3503,6 +3505,9 @@ dependencies = [
 [[package]]
 name = "leocard-game-common"
 version = "0.10.4"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "leocard-host"
@@ -3516,12 +3521,12 @@ dependencies = [
  "leocard-doudizhu",
  "leocard-game-common",
  "leocard-mahjong",
- "leocard-minecraft-guess",
  "leocard-protocol",
  "leocard-qigui523",
  "leocard-shengji",
  "leocard-texas-holdem",
  "leocard-uno",
+ "leocard_mc_guess",
 ]
 
 [[package]]
@@ -3534,30 +3539,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "leocard-minecraft-guess"
-version = "0.10.4"
-dependencies = [
- "csv",
- "fastrand",
- "leocard-achievements",
- "leocard-game-common",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "leocard-protocol"
 version = "0.10.4"
 dependencies = [
  "leocard-achievements",
  "leocard-blackjack",
  "leocard-doudizhu",
+ "leocard-game-common",
  "leocard-mahjong",
- "leocard-minecraft-guess",
  "leocard-qigui523",
  "leocard-shengji",
  "leocard-texas-holdem",
  "leocard-uno",
+ "leocard_mc_guess",
  "postcard",
  "serde",
 ]
@@ -3596,6 +3590,8 @@ version = "0.10.4"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
+ "leocard-achievements",
+ "leocard-game-common",
  "leocard-host",
  "leocard-protocol",
  "leocard-qigui523",
@@ -3645,6 +3641,18 @@ dependencies = [
  "semver",
  "serde",
  "sha2",
+]
+
+[[package]]
+name = "leocard_mc_guess"
+version = "0.10.4"
+dependencies = [
+ "csv",
+ "fastrand",
+ "leocard-achievements",
+ "leocard-game-common",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

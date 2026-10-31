@@ -1,5 +1,5 @@
 use super::state::{HandStatistics, SessionStatistics};
-use leocard_protocol::ShengjiProfileStats;
+use leocard_shengji::ShengjiProfileStats;
 
 impl SessionStatistics {
     pub(in crate::shengji) fn start_hand(&mut self, player_count: u8) {

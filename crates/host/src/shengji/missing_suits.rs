@@ -1,13 +1,13 @@
-use super::from_core_player;
-use leocard_protocol::{PlayerId, ShengjiTrickView};
-use leocard_shengji::{Category, GameState, ShengjiClassifiedPlay, ShengjiTrump};
+use leocard_game_common::PlayerId;
+use leocard_protocol::ShengjiTrickView;
+use leocard_shengji::{ShengjiCategory, ShengjiClassifiedPlay, ShengjiGameState, ShengjiTrump};
 use std::collections::HashMap;
 
 /// 只使用已经公开且实际打出的牌，不读取玩家手牌或甩牌尝试。
 pub(super) fn missing_suits(
-    game: &GameState,
+    game: &ShengjiGameState,
     trick: Option<&ShengjiTrickView>,
-) -> HashMap<PlayerId, Vec<Category>> {
+) -> HashMap<PlayerId, Vec<ShengjiCategory>> {
     let mut result = HashMap::new();
     let Some(trump) = game.trump() else {
         return result;
@@ -16,10 +16,7 @@ pub(super) fn missing_suits(
         record_missing(
             &mut result,
             trump,
-            record
-                .plays
-                .iter()
-                .map(|(player, play)| (from_core_player(*player), play)),
+            record.plays.iter().map(|(player, play)| (*player, play)),
         );
     }
     if let Some(trick) = trick {
@@ -33,7 +30,7 @@ pub(super) fn missing_suits(
 }
 
 fn record_missing<'a>(
-    result: &mut HashMap<PlayerId, Vec<Category>>,
+    result: &mut HashMap<PlayerId, Vec<ShengjiCategory>>,
     trump: ShengjiTrump,
     mut plays: impl Iterator<Item = (PlayerId, &'a ShengjiClassifiedPlay)>,
 ) {
@@ -41,15 +38,15 @@ fn record_missing<'a>(
         return;
     };
     let door = lead.category;
-    if door == Category::Mixed {
+    if door == ShengjiCategory::Mixed {
         return;
     }
     for (player, play) in plays {
         if play.cards.iter().any(|card| {
             let category = if trump.is_trump(*card) {
-                Category::Trump
+                ShengjiCategory::Trump
             } else {
-                Category::Suit(card.suit().expect("非主牌有花色"))
+                ShengjiCategory::Suit(card.suit().expect("非主牌有花色"))
             };
             category != door
         }) {

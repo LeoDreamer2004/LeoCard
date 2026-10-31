@@ -1,7 +1,8 @@
 use crate::{
-    MahjongMatchLength, MahjongMeldKind, MahjongPlayerId, MahjongRuleSet, MahjongScoreResult,
-    MahjongTile, MahjongTileKind, Meld,
+    MahjongMatchLength, MahjongMeld, MahjongMeldKind, MahjongRuleSet, MahjongScoreResult,
+    MahjongTile, MahjongTileKind,
 };
+use leocard_game_common::PlayerId;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -13,17 +14,17 @@ pub enum MahjongDrawOrigin {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct PlayerState {
-    pub(super) id: MahjongPlayerId,
+pub struct MahjongPlayerState {
+    pub(super) id: PlayerId,
     pub(super) hand: Vec<MahjongTile>,
-    pub(super) melds: Vec<Meld>,
+    pub(super) melds: Vec<MahjongMeld>,
     pub(super) flowers: Vec<MahjongTile>,
     pub(super) dead_hand: bool,
     pub(super) hand_revealed: bool,
 }
 
-impl PlayerState {
-    pub const fn id(&self) -> MahjongPlayerId {
+impl MahjongPlayerState {
+    pub const fn id(&self) -> PlayerId {
         self.id
     }
 
@@ -31,7 +32,7 @@ impl PlayerState {
         &self.hand
     }
 
-    pub fn melds(&self) -> &[Meld] {
+    pub fn melds(&self) -> &[MahjongMeld] {
         &self.melds
     }
 
@@ -54,30 +55,30 @@ impl PlayerState {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct PublicPlayerState {
-    pub id: MahjongPlayerId,
+pub struct MahjongPublicPlayerState {
+    pub id: PlayerId,
     pub concealed_count: usize,
     pub revealed_hand: Option<Vec<MahjongTile>>,
-    pub melds: Vec<PublicMeld>,
+    pub melds: Vec<MahjongPublicMeld>,
     pub flowers: Vec<MahjongTile>,
     pub dead_hand: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct PublicMeld {
+pub struct MahjongPublicMeld {
     pub kind: MahjongMeldKind,
     /// 他人的暗杠在本盘结算前只公开为四张牌背。
     pub tile: Option<MahjongTileKind>,
-    pub claimed_from: Option<MahjongPlayerId>,
+    pub claimed_from: Option<PlayerId>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Discard {
-    pub player: MahjongPlayerId,
+pub struct MahjongDiscard {
+    pub player: PlayerId,
     pub tile: MahjongTile,
-    pub claimed_by: Option<MahjongPlayerId>,
+    pub claimed_by: Option<PlayerId>,
     /// 只公开摸打与手打，不公开手牌中的具体位置。
     pub from_drawn: bool,
 }
@@ -124,11 +125,11 @@ pub(super) struct ClaimPriority {
 pub(super) enum ClaimTrigger {
     Discard {
         discard_index: usize,
-        from: MahjongPlayerId,
+        from: PlayerId,
         tile: MahjongTile,
     },
     AddedKong {
-        player: MahjongPlayerId,
+        player: PlayerId,
         tile: MahjongTile,
         meld_index: usize,
     },
@@ -136,14 +137,14 @@ pub(super) enum ClaimTrigger {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct PendingClaim {
+pub struct MahjongPendingClaim {
     pub(super) trigger: ClaimTrigger,
     pub(super) options: [Vec<MahjongClaimOption>; MahjongRuleSet::PLAYER_COUNT as usize],
     pub(super) responses: [Option<MahjongClaim>; MahjongRuleSet::PLAYER_COUNT as usize],
 }
 
-impl PendingClaim {
-    pub const fn source_player(&self) -> MahjongPlayerId {
+impl MahjongPendingClaim {
+    pub const fn source_player(&self) -> PlayerId {
         match self.trigger {
             ClaimTrigger::Discard { from, .. } => from,
             ClaimTrigger::AddedKong { player, .. } => player,
@@ -160,27 +161,27 @@ impl PendingClaim {
         matches!(self.trigger, ClaimTrigger::AddedKong { .. })
     }
 
-    pub fn options_for(&self, player: MahjongPlayerId) -> Option<&[MahjongClaimOption]> {
-        self.options.get(player.0).map(Vec::as_slice)
+    pub fn options_for(&self, player: PlayerId) -> Option<&[MahjongClaimOption]> {
+        self.options.get(player.index()).map(Vec::as_slice)
     }
 
-    pub fn response_from(&self, player: MahjongPlayerId) -> Option<MahjongClaim> {
-        self.responses.get(player.0).copied().flatten()
+    pub fn response_from(&self, player: PlayerId) -> Option<MahjongClaim> {
+        self.responses.get(player.index()).copied().flatten()
     }
 
-    pub fn waiting_for(&self) -> Vec<MahjongPlayerId> {
+    pub fn waiting_for(&self) -> Vec<PlayerId> {
         (0..usize::from(MahjongRuleSet::PLAYER_COUNT))
             .filter(|index| !self.options[*index].is_empty() && self.responses[*index].is_none())
-            .map(MahjongPlayerId)
+            .map(PlayerId::from_index)
             .collect()
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct WinRecord {
-    pub player: MahjongPlayerId,
-    pub from: Option<MahjongPlayerId>,
+pub struct MahjongWinRecord {
+    pub player: PlayerId,
+    pub from: Option<PlayerId>,
     /// No exposed chow, pung or kong; concealed kongs preserve this shape.
     pub concealed_hand: bool,
     pub winning_tile: MahjongTile,
@@ -197,8 +198,8 @@ pub struct MahjongMatchProgress {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct HandResult {
-    pub winners: Vec<WinRecord>,
+pub struct MahjongHandResult {
+    pub winners: Vec<MahjongWinRecord>,
     pub exhaustive_draw: bool,
     pub match_length: MahjongMatchLength,
     pub match_progress: MahjongMatchProgress,
@@ -210,45 +211,45 @@ pub struct HandResult {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Phase {
+pub enum MahjongPhase {
     Dealing { batch: u8 },
-    ReplacingFlower { player: MahjongPlayerId },
+    ReplacingFlower { player: PlayerId },
     Playing,
-    WaitingForClaims(PendingClaim),
-    Finished(HandResult),
+    WaitingForClaims(MahjongPendingClaim),
+    Finished(MahjongHandResult),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum ActionOutcome {
+pub enum MahjongActionOutcome {
     Discarded {
-        player: MahjongPlayerId,
+        player: PlayerId,
         tile: MahjongTile,
     },
     ClaimRecorded {
-        player: MahjongPlayerId,
+        player: PlayerId,
     },
     Claimed {
-        player: MahjongPlayerId,
-        source: MahjongPlayerId,
+        player: PlayerId,
+        source: PlayerId,
         tile: MahjongTile,
         claim: MahjongClaim,
     },
     Drew {
-        player: MahjongPlayerId,
+        player: PlayerId,
         tile: MahjongTile,
         origin: MahjongDrawOrigin,
     },
     KongDeclared {
-        player: MahjongPlayerId,
+        player: PlayerId,
         tile: MahjongTileKind,
         added: bool,
     },
     FalseWin {
-        player: MahjongPlayerId,
+        player: PlayerId,
         deltas: [i32; MahjongRuleSet::PLAYER_COUNT as usize],
     },
-    HandFinished(HandResult),
+    HandFinished(MahjongHandResult),
 }
 
 /// Shape completion and minimum-fan eligibility are separate gameplay facts.

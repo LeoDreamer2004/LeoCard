@@ -1,39 +1,42 @@
 use super::{
-    ActionOutcome, BottomCopyState, FiveTrumpCrossingStage, FiveTrumpCrossingState, GameError,
-    GameState, Phase, next_player, remove_cards, validate_cards_owned,
+    ShengjiActionOutcome, ShengjiBottomCopyState, ShengjiFiveTrumpCrossingStage,
+    ShengjiFiveTrumpCrossingState, ShengjiGameError, ShengjiGameState, ShengjiPhase, next_player,
+    remove_cards, validate_cards_owned,
 };
-use crate::{ShengjiCard, ShengjiPlayerId, ShengjiRuleSet, ShengjiTrump};
+use crate::{ShengjiCard, ShengjiRuleSet, ShengjiTrump};
+use leocard_game_common::PlayerId;
+
 use std::{array, mem};
 
-impl GameState {
+impl ShengjiGameState {
     pub fn bury(
         &mut self,
-        player: ShengjiPlayerId,
+        player: PlayerId,
         cards: &[ShengjiCard],
-    ) -> Result<ActionOutcome, GameError> {
+    ) -> Result<ShengjiActionOutcome, ShengjiGameError> {
         let dealer = self.dealer.unwrap();
         let bottom_copy_bury = match self.phase {
-            Phase::Burying => {
+            ShengjiPhase::Burying => {
                 if player != dealer {
-                    return Err(GameError::NotDealer);
+                    return Err(ShengjiGameError::NotDealer);
                 }
                 false
             }
-            Phase::BottomCopyBurying => {
+            ShengjiPhase::BottomCopyBurying => {
                 if self
                     .bottom_copy
                     .as_ref()
-                    .and_then(BottomCopyState::bottom_holder)
+                    .and_then(ShengjiBottomCopyState::bottom_holder)
                     != Some(player)
                 {
-                    return Err(GameError::NotBottomCopyPlayer);
+                    return Err(ShengjiGameError::NotBottomCopyPlayer);
                 }
                 true
             }
-            _ => return Err(GameError::WrongPhase),
+            _ => return Err(ShengjiGameError::WrongPhase),
         };
         if cards.len() != self.rules.kitty_size() {
-            return Err(GameError::WrongBuryCount {
+            return Err(ShengjiGameError::WrongBuryCount {
                 expected: self.rules.kitty_size(),
                 actual: cards.len(),
             });
@@ -48,7 +51,7 @@ impl GameState {
             state.bottom_holder = None;
             state.last_burier = player;
             let inquiry_complete = !self.advance_bottom_copy_inquiry();
-            return Ok(ActionOutcome::BottomCopyBuryComplete {
+            return Ok(ShengjiActionOutcome::BottomCopyBuryComplete {
                 player,
                 inquiry_complete,
             });
@@ -57,26 +60,26 @@ impl GameState {
             && !self.dealer_from_bottom_flip
             && self.start_bottom_copy_inquiry()
         {
-            return Ok(ActionOutcome::BuryComplete { leader: dealer });
+            return Ok(ShengjiActionOutcome::BuryComplete { leader: dealer });
         }
         self.finish_after_burying();
-        Ok(ActionOutcome::BuryComplete { leader: dealer })
+        Ok(ShengjiActionOutcome::BuryComplete { leader: dealer })
     }
 
     pub fn choose_bottom_copy(
         &mut self,
-        player: ShengjiPlayerId,
+        player: PlayerId,
         cards: Option<&[ShengjiCard]>,
-    ) -> Result<ActionOutcome, GameError> {
-        if self.phase != Phase::BottomCopying {
-            return Err(GameError::WrongPhase);
+    ) -> Result<ShengjiActionOutcome, ShengjiGameError> {
+        if self.phase != ShengjiPhase::BottomCopying {
+            return Err(ShengjiGameError::WrongPhase);
         }
         if self
             .bottom_copy
             .as_ref()
             .is_none_or(|state| state.current != Some(player) || state.last_burier == player)
         {
-            return Err(GameError::NotBottomCopyPlayer);
+            return Err(ShengjiGameError::NotBottomCopyPlayer);
         }
         if let Some(cards) = cards {
             let hand = self.players[usize::from(player.0)].hand.clone();
@@ -96,8 +99,8 @@ impl GameState {
             state.current = None;
             state.bottom_holder = Some(player);
             state.remaining_without_copy = self.rules.player_count();
-            self.phase = Phase::BottomCopyBurying;
-            return Ok(ActionOutcome::BottomCopyDecision {
+            self.phase = ShengjiPhase::BottomCopyBurying;
+            return Ok(ShengjiActionOutcome::BottomCopyDecision {
                 player,
                 copied: true,
                 inquiry_complete: false,
@@ -105,7 +108,7 @@ impl GameState {
         }
         self.bottom_copy.as_mut().unwrap().current = None;
         let inquiry_complete = !self.advance_bottom_copy_inquiry();
-        Ok(ActionOutcome::BottomCopyDecision {
+        Ok(ShengjiActionOutcome::BottomCopyDecision {
             player,
             copied: false,
             inquiry_complete,
@@ -114,7 +117,7 @@ impl GameState {
 
     fn start_bottom_copy_inquiry(&mut self) -> bool {
         let dealer = self.dealer.unwrap();
-        self.bottom_copy = Some(BottomCopyState {
+        self.bottom_copy = Some(ShengjiBottomCopyState {
             next_player: next_player(dealer, self.rules.player_count()),
             remaining_without_copy: self.rules.player_count(),
             current: None,
@@ -154,7 +157,7 @@ impl GameState {
                 continue;
             }
             self.bottom_copy.as_mut().unwrap().current = Some(player);
-            self.phase = Phase::BottomCopying;
+            self.phase = ShengjiPhase::BottomCopying;
             self.current_player = None;
             return true;
         }
@@ -172,14 +175,14 @@ impl GameState {
                     <= 5
             });
             if eligible.iter().any(|eligible| *eligible) {
-                self.five_trump_crossing = Some(FiveTrumpCrossingState {
-                    stage: FiveTrumpCrossingStage::Deciding,
+                self.five_trump_crossing = Some(ShengjiFiveTrumpCrossingState {
+                    stage: ShengjiFiveTrumpCrossingStage::Deciding,
                     eligible,
                     declined: [false; ShengjiRuleSet::PLAYER_COUNT as usize],
                     outgoing: array::from_fn(|_| None),
                     returned: array::from_fn(|_| None),
                 });
-                self.phase = Phase::FiveTrumpCrossing;
+                self.phase = ShengjiPhase::FiveTrumpCrossing;
                 self.current_player = None;
             } else {
                 self.start_playing();

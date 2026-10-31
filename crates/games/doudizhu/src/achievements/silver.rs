@@ -1,6 +1,6 @@
 use super::facts::{airplane_groups, hand, play};
 use super::macros::doudizhu;
-use crate::PlayKind;
+use crate::DoudizhuPlayKind;
 use leocard_achievements::{AchievementDefinition, award};
 
 pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
@@ -16,7 +16,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         "通天顺",
         Silver,
         "打出从3到A的十二张顺子",
-        |event| play(event, |s| s.kind == PlayKind::Straight
+        |event| play(event, |s| s.kind == DoudizhuPlayKind::Straight
             && s.card_count == 12
             && s.rank == 11)
     ),
@@ -25,7 +25,8 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         "姊妹对",
         Silver,
         "打出至少七组的连对",
-        |event| play(event, |s| s.kind == PlayKind::Pairs && s.card_count >= 14)
+        |event| play(event, |s| s.kind == DoudizhuPlayKind::Pairs
+            && s.card_count >= 14)
     ),
     doudizhu!(
         "four_airplane",

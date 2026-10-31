@@ -1,9 +1,10 @@
-use crate::{PotAward, SquidState, TexasHoldemPlayerId, deepseek_squid_marker};
+use crate::{TexasPotAward, TexasSquidState, deepseek_squid_marker};
+use leocard_game_common::PlayerId;
 
-fn pot(winners: &[usize]) -> PotAward {
-    PotAward {
+fn pot(winners: &[usize]) -> TexasPotAward {
+    TexasPotAward {
         amount: 10,
-        winners: winners.iter().copied().map(TexasHoldemPlayerId).collect(),
+        winners: winners.iter().copied().map(PlayerId::from_index).collect(),
         winning_hand: None,
     }
 }
@@ -11,7 +12,7 @@ fn pot(winners: &[usize]) -> PotAward {
 #[test]
 fn squid_awards_count_only_the_recipient_and_reset_with_the_pool() {
     let seed = [17; 16];
-    let mut state = SquidState::new(5, seed, false);
+    let mut state = TexasSquidState::new(5, seed, false);
     let mut stacks = [100; 6];
     assert!(state.award_statistics().is_none());
     for count in 1..=5 {
@@ -26,7 +27,7 @@ fn squid_awards_count_only_the_recipient_and_reset_with_the_pool() {
             .unwrap();
         assert!(previous[drawn].is_none());
         let (player, statistics) = state.award_statistics().unwrap();
-        assert_eq!(player, TexasHoldemPlayerId(0));
+        assert_eq!(player, PlayerId(0));
         assert_eq!(statistics.owned, count as u8);
         assert_eq!(
             statistics.deepseek,
@@ -51,7 +52,7 @@ fn squid_awards_count_only_the_recipient_and_reset_with_the_pool() {
     state.finish_hand(&[pot(&[1])], &mut stacks, 6);
     let drawn = state.markers.iter().position(Option::is_some).unwrap();
     let (player, statistics) = state.award_statistics().unwrap();
-    assert_eq!(player, TexasHoldemPlayerId(1));
+    assert_eq!(player, PlayerId(1));
     assert_eq!(statistics.owned, 1);
     assert_eq!(
         statistics.deepseek_owned,
@@ -62,16 +63,16 @@ fn squid_awards_count_only_the_recipient_and_reset_with_the_pool() {
     state.finish_hand(&[pot(&[0, 1]), pot(&[0])], &mut stacks, 7);
     assert!(state.award_statistics().is_none());
     assert_eq!(state.markers.iter().flatten().count(), 1);
-    let mut disabled = SquidState::new(0, seed, false);
+    let mut disabled = TexasSquidState::new(0, seed, false);
     disabled.finish_hand(&[pot(&[0])], &mut stacks, 8);
     assert!(disabled.award_statistics().is_none());
 }
 
 #[test]
 fn draws_can_select_every_remaining_marker_and_preserve_existing_owners() {
-    let mut pool = SquidState::new(5, [0; 16], false);
-    pool.markers[1] = Some(TexasHoldemPlayerId(1));
-    pool.markers[3] = Some(TexasHoldemPlayerId(2));
+    let mut pool = TexasSquidState::new(5, [0; 16], false);
+    pool.markers[1] = Some(PlayerId(1));
+    pool.markers[3] = Some(PlayerId(2));
     let mut draws = [0; 5];
     for seed in 0..128 {
         let mut state = pool.clone();
@@ -80,7 +81,7 @@ fn draws_can_select_every_remaining_marker_and_preserve_existing_owners() {
         let drawn = state
             .markers
             .iter()
-            .position(|owner| *owner == Some(TexasHoldemPlayerId(0)))
+            .position(|owner| *owner == Some(PlayerId(0)))
             .unwrap();
         draws[drawn] += 1;
         assert_eq!(state.markers[1], pool.markers[1]);

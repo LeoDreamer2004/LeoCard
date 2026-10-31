@@ -16,10 +16,11 @@ use crate::app::presentation::{
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
 use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
 use leocard_ui::{UiComposer, spawn_node, ui_component};
 use leocard_uno::{UnoFlipSide, UnoPendingDrawKind, UnoRuleSet};
+
+use bevy::prelude::*;
 
 pub(super) const UNO_DISCARD_OFFSETS: [(f32, f32, f32); 6] = [
     (-5.0, 4.0, -5.0),
@@ -151,11 +152,14 @@ pub(crate) fn render_uno_table(
         add_reconnecting_overlay(commands, content, message, assets);
     }
 
-    let own = game.players.iter().find(|player| player.id == game.you);
+    let own = game
+        .players
+        .iter()
+        .find(|player| player.player.id == game.you);
     let mut opponents = game
         .players
         .iter()
-        .filter(|player| player.id != game.you)
+        .filter(|player| player.player.id != game.you)
         .collect::<Vec<_>>();
     opponents.sort_by_key(|player| {
         (player.seat.0 + UnoRuleSet::MAX_PLAYERS - own.map_or(0, |player| player.seat.0))
@@ -423,8 +427,8 @@ fn add_uno_center(
     );
     let current_name = game
         .current_player
-        .and_then(|id| game.players.iter().find(|player| player.id == id))
-        .map(|player| player.name.as_str())
+        .and_then(|id| game.players.iter().find(|player| player.player.id == id))
+        .map(|player| player.player.name.as_str())
         .unwrap_or("—");
     let color = game.current_color.map_or("等待选色".to_owned(), |color| {
         format!("当前颜色：{color}")

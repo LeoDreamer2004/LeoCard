@@ -1,8 +1,8 @@
-use super::{Play, PlayKind};
-use crate::{Card, RuleSet};
+use super::{DoudizhuPlay, DoudizhuPlayKind};
+use crate::{DoudizhuCard, DoudizhuRuleSet};
 use std::collections::HashSet;
 
-pub fn classify(cards: &[Card], rules: RuleSet) -> Option<Play> {
+pub fn classify(cards: &[DoudizhuCard], rules: DoudizhuRuleSet) -> Option<DoudizhuPlay> {
     let mode = rules.mode;
     if cards.is_empty()
         || cards.iter().any(|c| c.0 >= mode.deck_count() * 54)
@@ -21,22 +21,22 @@ pub fn classify(cards: &[Card], rules: RuleSet) -> Option<Play> {
         && counts[14] == mode.deck_count()
         && n == usize::from(mode.deck_count()) * 2
     {
-        result = Some((PlayKind::Rocket, 14));
+        result = Some((DoudizhuPlayKind::Rocket, 14));
     } else if ranks.len() == 1 {
         let rank = ranks[0];
         result = match n {
-            1 => Some((PlayKind::Single, rank)),
-            2 => Some((PlayKind::Pair, rank)),
-            3 if rank < 13 => Some((PlayKind::Triple, rank)),
-            4..=8 if rank < 13 => Some((PlayKind::Bomb, rank)),
+            1 => Some((DoudizhuPlayKind::Single, rank)),
+            2 => Some((DoudizhuPlayKind::Pair, rank)),
+            3 if rank < 13 => Some((DoudizhuPlayKind::Triple, rank)),
+            4..=8 if rank < 13 => Some((DoudizhuPlayKind::Bomb, rank)),
             _ => None,
         };
     }
     if result.is_none() {
         for (kind, width, minimum) in [
-            (PlayKind::Straight, 1, 5),
-            (PlayKind::Pairs, 2, 3),
-            (PlayKind::Airplane, 3, 2),
+            (DoudizhuPlayKind::Straight, 1, 5),
+            (DoudizhuPlayKind::Pairs, 2, 3),
+            (DoudizhuPlayKind::Airplane, 3, 2),
         ] {
             if ranks.len() >= minimum
                 && counts.iter().all(|&v| v == 0 || v == width)
@@ -50,10 +50,10 @@ pub fn classify(cards: &[Card], rules: RuleSet) -> Option<Play> {
     }
     if result.is_none() {
         for (kind, wing_width) in [
-            (PlayKind::TripleSingle, 1),
-            (PlayKind::TriplePair, 2),
-            (PlayKind::AirplaneSingles, 1),
-            (PlayKind::AirplanePairs, 2),
+            (DoudizhuPlayKind::TripleSingle, 1),
+            (DoudizhuPlayKind::TriplePair, 2),
+            (DoudizhuPlayKind::AirplaneSingles, 1),
+            (DoudizhuPlayKind::AirplanePairs, 2),
         ] {
             if wing_width == 1 && !rules.allows_single_wings() {
                 continue;
@@ -63,7 +63,10 @@ pub fn classify(cards: &[Card], rules: RuleSet) -> Option<Play> {
                 continue;
             }
             let length = n / group;
-            let single = matches!(kind, PlayKind::TripleSingle | PlayKind::TriplePair);
+            let single = matches!(
+                kind,
+                DoudizhuPlayKind::TripleSingle | DoudizhuPlayKind::TriplePair
+            );
             if (single && length != 1) || (!single && length < 2) || length > 12 {
                 continue;
             }
@@ -101,17 +104,17 @@ pub fn classify(cards: &[Card], rules: RuleSet) -> Option<Play> {
             }
             let rest: Vec<_> = ranks.iter().copied().filter(|&r| r != rank).collect();
             if n == 6 {
-                result = Some((PlayKind::FourSingles, rank));
+                result = Some((DoudizhuPlayKind::FourSingles, rank));
             }
             if n == 8 && rest.len() == 2 && rest.iter().all(|&r| counts[r] == 2) {
-                result = Some((PlayKind::FourPairs, rank));
+                result = Some((DoudizhuPlayKind::FourPairs, rank));
             }
         }
     }
     let (kind, rank) = result?;
     let mut cards = cards.to_vec();
     cards.sort_by_key(|c| (c.rank(), c.0));
-    Some(Play {
+    Some(DoudizhuPlay {
         cards,
         kind,
         rank: rank as u8,

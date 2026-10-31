@@ -12,7 +12,8 @@ use crate::app::runtime::{ClientResource, ClientUpdateSet};
 use crate::app::shell::{UiActionSet, UiState};
 use bevy::prelude::*;
 use leocard_client::{ItemId, PlayerEconomy};
-use leocard_doudizhu::Phase;
+use leocard_doudizhu::DoudizhuPhase;
+use leocard_protocol::GameSnapshot;
 use leocard_ui::drag_draggable_window;
 
 pub(crate) struct DoudizhuPlugin;
@@ -65,8 +66,10 @@ fn sync(
     mut state: ResMut<DoudizhuUiState>,
     mut ui: ResMut<UiState>,
 ) {
-    let game = client.as_deref().and_then(|c| c.0.model().doudizhu_game());
-    let active = game.is_some_and(|g| g.phase == Phase::Playing && !g.your_hand.is_empty())
+    let game = client
+        .as_deref()
+        .and_then(|c| c.0.model().game_snapshot().and_then(GameSnapshot::doudizhu));
+    let active = game.is_some_and(|g| g.phase == DoudizhuPhase::Playing && !g.your_hand.is_empty())
         && economy.active(ItemId::DoudizhuCardCounter);
     if state.counter.active != active {
         state.counter.active = active;

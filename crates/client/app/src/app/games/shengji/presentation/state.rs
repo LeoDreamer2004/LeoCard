@@ -2,8 +2,10 @@
 
 use crate::app::presentation::Observed;
 use bevy::prelude::*;
-use leocard_protocol::{MatchId, PlayerId, ShengjiBottomFlipMatchView, ShengjiPublicPlay};
-use leocard_shengji::{ShengjiCard, ShengjiRank};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{MatchId, ShengjiPublicPlay};
+use leocard_shengji::{ShengjiBottomFlipMatch, ShengjiCard, ShengjiRank};
+
 use std::collections::VecDeque;
 
 pub(super) const SHENGJI_BOTTOM_COPY_REVEAL_DURATION: f32 = 0.9;
@@ -27,7 +29,7 @@ pub(super) enum ShengjiPresentationKind {
     },
     BottomFlip {
         card: ShengjiCard,
-        matches: Vec<ShengjiBottomFlipMatchView>,
+        matches: Vec<ShengjiBottomFlipMatch>,
         dealer: Option<PlayerId>,
     },
     BottomCopy {

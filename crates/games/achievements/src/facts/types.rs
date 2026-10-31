@@ -1,8 +1,6 @@
-/// Participant identity within the caller's current session.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct ParticipantId(pub u8);
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TrophyCounts {
     pub gold: u32,
     pub silver: u32,

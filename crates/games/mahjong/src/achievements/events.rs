@@ -1,10 +1,11 @@
 use crate::{MahjongMatchLength, MahjongMatchProgress, MahjongScoreResult};
-use leocard_achievements::{GameFacts, ParticipantId};
+use leocard_achievements::GameFacts;
+use leocard_game_common::PlayerId;
 
 #[derive(Clone, Debug)]
 pub struct MahjongWinFacts {
-    pub player: ParticipantId,
-    pub from: Option<ParticipantId>,
+    pub player: PlayerId,
+    pub from: Option<PlayerId>,
     pub concealed_hand: bool,
     pub score: MahjongScoreResult,
     pub wait_kind_count: u8,
@@ -23,14 +24,14 @@ pub struct MahjongHandFacts {
 #[derive(Clone, Debug)]
 pub enum MahjongAchievementEvent {
     FlowerReplaced {
-        player: ParticipantId,
+        player: PlayerId,
     },
     WinUnavailable {
-        player: ParticipantId,
+        player: PlayerId,
         points_without_flowers: u16,
     },
     FalseWin {
-        player: ParticipantId,
+        player: PlayerId,
     },
     HandFinished {
         result: MahjongHandFacts,

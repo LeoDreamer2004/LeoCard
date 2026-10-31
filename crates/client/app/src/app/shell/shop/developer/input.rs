@@ -1,10 +1,8 @@
 use super::state::CoinInputField;
 use crate::app::runtime::PageErrorState;
-use bevy::{
-    input_focus::InputFocus,
-    prelude::*,
-    text::{EditableText, TextEdit},
-};
+use bevy::input_focus::InputFocus;
+use bevy::prelude::*;
+use bevy::text::{EditableText, TextEdit};
 use leocard_client::PlayerEconomy;
 use leocard_ui::{TextInputAction, TextInputEvent};
 

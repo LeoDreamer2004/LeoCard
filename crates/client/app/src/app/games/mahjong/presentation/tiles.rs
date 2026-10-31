@@ -6,12 +6,15 @@ use super::super::{
 };
 use super::claim::{MahjongClaimLandingSlot, mahjong_claim_held_tile_visual};
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use leocard_mahjong::{
-    MahjongClaim, MahjongKongKind, MahjongMeldKind, MahjongTileKind, MahjongWind,
+    MahjongClaim, MahjongKongKind, MahjongMeldKind, MahjongPublicMeld, MahjongTileKind,
+    MahjongWinRecord, MahjongWind,
 };
-use leocard_protocol::{MahjongPlayerState, MahjongPublicMeldView, MahjongWinView};
+
+use leocard_protocol::MahjongPlayerView;
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 pub(crate) const MAHJONG_KONG_STACK_LIFT: f32 = 12.0;
 
@@ -189,7 +192,7 @@ pub(crate) fn render_mahjong_staged_meld(
 pub(crate) fn render_mahjong_meld(
     commands: &mut UiComposer,
     parent: Entity,
-    meld: &MahjongPublicMeldView,
+    meld: &MahjongPublicMeld,
     index: &mut usize,
     relative: u8,
     assets: &MahjongAssets,
@@ -499,8 +502,8 @@ pub(crate) struct MahjongWinTileSizes {
 pub(crate) fn render_mahjong_win_tile_row(
     commands: &mut UiComposer,
     row: Entity,
-    player: &MahjongPlayerState,
-    winner: &MahjongWinView,
+    player: &MahjongPlayerView,
+    winner: &MahjongWinRecord,
     sizes: MahjongWinTileSizes,
     assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,

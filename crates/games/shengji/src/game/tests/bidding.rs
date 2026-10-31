@@ -1,6 +1,7 @@
 use super::super::*;
 use crate::ShengjiSuit;
-use crate::{ShengjiBidTrump, ShengjiCard, ShengjiPlayerId, ShengjiRank};
+use crate::{ShengjiBidTrump, ShengjiCard, ShengjiRank};
+use leocard_game_common::PlayerId;
 
 fn pair(suit: crate::ShengjiSuit, rank: ShengjiRank) -> [ShengjiCard; 2] {
     [
@@ -15,14 +16,12 @@ fn suit_counters_follow_diamond_club_heart_spade_order() {
     let heart = pair(ShengjiSuit::Heart, ShengjiRank::Ten);
     let club = pair(ShengjiSuit::Club, ShengjiRank::Ten);
     let hand = [diamond, heart, club].concat();
-    let mut bidding = BidState::new(ShengjiRank::Ten);
-    bidding
-        .declare(ShengjiPlayerId(0), &diamond[..1], &hand)
-        .unwrap();
-    bidding.declare(ShengjiPlayerId(1), &heart, &hand).unwrap();
+    let mut bidding = ShengjiBidState::new(ShengjiRank::Ten);
+    bidding.declare(PlayerId(0), &diamond[..1], &hand).unwrap();
+    bidding.declare(PlayerId(1), &heart, &hand).unwrap();
     assert_eq!(
-        bidding.declare(ShengjiPlayerId(2), &club, &hand),
-        Err(BidError::NotStronger)
+        bidding.declare(PlayerId(2), &club, &hand),
+        Err(ShengjiBidError::NotStronger)
     );
 }
 
@@ -33,19 +32,15 @@ fn self_protection_only_allows_no_trump_and_big_jokers_beat_small() {
     let small = [ShengjiCard::small_joker(0), ShengjiCard::small_joker(1)];
     let big = [ShengjiCard::big_joker(0), ShengjiCard::big_joker(1)];
     let hand = [diamond.as_slice(), spade.as_slice(), &small, &big].concat();
-    let mut bidding = BidState::new(ShengjiRank::Ten);
-    bidding
-        .declare(ShengjiPlayerId(0), &diamond[..1], &hand)
-        .unwrap();
-    bidding
-        .declare(ShengjiPlayerId(0), &diamond[1..], &hand)
-        .unwrap();
+    let mut bidding = ShengjiBidState::new(ShengjiRank::Ten);
+    bidding.declare(PlayerId(0), &diamond[..1], &hand).unwrap();
+    bidding.declare(PlayerId(0), &diamond[1..], &hand).unwrap();
     assert_eq!(
-        bidding.declare(ShengjiPlayerId(1), &spade, &hand),
-        Err(BidError::ProtectedSuit)
+        bidding.declare(PlayerId(1), &spade, &hand),
+        Err(ShengjiBidError::ProtectedSuit)
     );
-    bidding.declare(ShengjiPlayerId(1), &small, &hand).unwrap();
-    bidding.declare(ShengjiPlayerId(2), &big, &hand).unwrap();
+    bidding.declare(PlayerId(1), &small, &hand).unwrap();
+    bidding.declare(PlayerId(2), &big, &hand).unwrap();
     assert_eq!(
         bidding.current().unwrap().trump,
         ShengjiBidTrump::NoTrumpBigJoker
@@ -58,12 +53,10 @@ fn original_bidder_can_self_counter_with_another_suit_pair() {
     let heart = pair(ShengjiSuit::Heart, ShengjiRank::Ten);
     let spade = pair(ShengjiSuit::Spade, ShengjiRank::Ten);
     let hand = [diamond, heart, spade].concat();
-    let mut bidding = BidState::new(ShengjiRank::Ten);
-    bidding
-        .declare(ShengjiPlayerId(0), &diamond[..1], &hand)
-        .unwrap();
-    bidding.declare(ShengjiPlayerId(1), &heart, &hand).unwrap();
-    let declaration = bidding.declare(ShengjiPlayerId(0), &spade, &hand).unwrap();
+    let mut bidding = ShengjiBidState::new(ShengjiRank::Ten);
+    bidding.declare(PlayerId(0), &diamond[..1], &hand).unwrap();
+    bidding.declare(PlayerId(1), &heart, &hand).unwrap();
+    let declaration = bidding.declare(PlayerId(0), &spade, &hand).unwrap();
     assert_eq!(declaration.kind, ShengjiBidKind::SelfCounter);
 }
 
@@ -76,22 +69,16 @@ fn three_deck_single_bids_cannot_counter_and_reinforcement_uses_more_copies() {
     ];
     let heart_single = ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Ten);
     let hand = [diamond.as_slice(), &[heart_single]].concat();
-    let mut bidding = BidState::new_with_decks(ShengjiRank::Ten, 3);
+    let mut bidding = ShengjiBidState::new_with_decks(ShengjiRank::Ten, 3);
 
-    bidding
-        .declare(ShengjiPlayerId(0), &diamond[..1], &hand)
-        .unwrap();
+    bidding.declare(PlayerId(0), &diamond[..1], &hand).unwrap();
     assert_eq!(
-        bidding.declare(ShengjiPlayerId(1), &[heart_single], &hand),
-        Err(BidError::CounterRequiresPair)
+        bidding.declare(PlayerId(1), &[heart_single], &hand),
+        Err(ShengjiBidError::CounterRequiresPair)
     );
-    let pair = bidding
-        .declare(ShengjiPlayerId(0), &diamond[1..2], &hand)
-        .unwrap();
+    let pair = bidding.declare(PlayerId(0), &diamond[1..2], &hand).unwrap();
     assert_eq!(pair.cards, diamond[..2]);
-    let triple = bidding
-        .declare(ShengjiPlayerId(0), &diamond[2..], &hand)
-        .unwrap();
+    let triple = bidding.declare(PlayerId(0), &diamond[2..], &hand).unwrap();
     assert_eq!(triple.cards, diamond);
 }
 
@@ -128,25 +115,17 @@ fn four_deck_bidding_extends_to_quad_level_and_quad_jokers() {
         .collect::<Vec<_>>();
     let big = (0..4).map(ShengjiCard::big_joker).collect::<Vec<_>>();
     let hand = [diamond.as_slice(), spade.as_slice(), big.as_slice()].concat();
-    let mut bidding = BidState::new_with_decks(ShengjiRank::Ten, 4);
+    let mut bidding = ShengjiBidState::new_with_decks(ShengjiRank::Ten, 4);
 
-    bidding
-        .declare(ShengjiPlayerId(0), &diamond[..1], &hand)
-        .unwrap();
+    bidding.declare(PlayerId(0), &diamond[..1], &hand).unwrap();
     assert_eq!(
-        bidding.declare(ShengjiPlayerId(1), &spade[..1], &hand),
-        Err(BidError::CounterRequiresPair)
+        bidding.declare(PlayerId(1), &spade[..1], &hand),
+        Err(ShengjiBidError::CounterRequiresPair)
     );
-    bidding
-        .declare(ShengjiPlayerId(0), &diamond[1..2], &hand)
-        .unwrap();
-    bidding
-        .declare(ShengjiPlayerId(0), &diamond[2..3], &hand)
-        .unwrap();
-    bidding
-        .declare(ShengjiPlayerId(0), &diamond[3..], &hand)
-        .unwrap();
-    let declaration = bidding.declare(ShengjiPlayerId(2), &big, &hand).unwrap();
+    bidding.declare(PlayerId(0), &diamond[1..2], &hand).unwrap();
+    bidding.declare(PlayerId(0), &diamond[2..3], &hand).unwrap();
+    bidding.declare(PlayerId(0), &diamond[3..], &hand).unwrap();
+    let declaration = bidding.declare(PlayerId(2), &big, &hand).unwrap();
     assert_eq!(declaration.trump, ShengjiBidTrump::NoTrumpBigJoker);
     assert_eq!(declaration.cards.len(), 4);
 }
@@ -180,22 +159,22 @@ fn joker_bidding_requires_the_matching_color_and_cannot_open_no_trump() {
     let small = ShengjiCard::small_joker(0);
     let big = [ShengjiCard::big_joker(0), ShengjiCard::big_joker(1)];
     let hand = [heart, small, big[0], big[1]];
-    let mut bidding = BidState::new_with_rules(ShengjiRank::Ten, 2, true);
+    let mut bidding = ShengjiBidState::new_with_rules(ShengjiRank::Ten, 2, true);
 
     assert_eq!(
-        bidding.declare(ShengjiPlayerId(0), &[heart], &hand),
-        Err(BidError::JokerRequired)
+        bidding.declare(PlayerId(0), &[heart], &hand),
+        Err(ShengjiBidError::JokerRequired)
     );
     assert_eq!(
-        bidding.declare(ShengjiPlayerId(0), &[heart, small], &hand),
-        Err(BidError::JokerRequired)
+        bidding.declare(PlayerId(0), &[heart, small], &hand),
+        Err(ShengjiBidError::JokerRequired)
     );
     assert_eq!(
-        bidding.declare(ShengjiPlayerId(0), &big, &hand),
-        Err(BidError::NoTrumpCannotOpen)
+        bidding.declare(PlayerId(0), &big, &hand),
+        Err(ShengjiBidError::NoTrumpCannotOpen)
     );
     let declaration = bidding
-        .declare(ShengjiPlayerId(0), &[heart, big[0]], &hand)
+        .declare(PlayerId(0), &[heart, big[0]], &hand)
         .unwrap();
     assert_eq!(declaration.trump, ShengjiBidTrump::Suit(ShengjiSuit::Heart));
 }
@@ -205,24 +184,22 @@ fn joker_bidding_reuses_the_owners_exposed_joker_for_protection_and_no_trump() {
     let heart = pair(ShengjiSuit::Heart, ShengjiRank::Ten);
     let big = [ShengjiCard::big_joker(0), ShengjiCard::big_joker(1)];
     let hand = [heart.as_slice(), big.as_slice()].concat();
-    let mut bidding = BidState::new_with_rules(ShengjiRank::Ten, 2, true);
+    let mut bidding = ShengjiBidState::new_with_rules(ShengjiRank::Ten, 2, true);
 
     bidding
-        .declare(ShengjiPlayerId(0), &[heart[0], big[0]], &hand)
+        .declare(PlayerId(0), &[heart[0], big[0]], &hand)
         .unwrap();
     assert_eq!(
-        bidding.declare(ShengjiPlayerId(1), &big, &big[1..]),
-        Err(BidError::CardsNotOwned),
+        bidding.declare(PlayerId(1), &big, &big[1..]),
+        Err(ShengjiBidError::CardsNotOwned),
         "其它玩家不能亮出不在自己手中的王"
     );
-    let protected = bidding
-        .declare(ShengjiPlayerId(0), &[heart[1]], &hand)
-        .unwrap();
+    let protected = bidding.declare(PlayerId(0), &[heart[1]], &hand).unwrap();
     assert!(protected.protected);
     assert_eq!(protected.kind, ShengjiBidKind::Protect);
     assert_eq!(protected.cards, vec![heart[0], big[0], heart[1]]);
 
-    let no_trump = bidding.declare(ShengjiPlayerId(0), &big, &hand).unwrap();
+    let no_trump = bidding.declare(PlayerId(0), &big, &hand).unwrap();
     assert_eq!(no_trump.trump, ShengjiBidTrump::NoTrumpBigJoker);
     assert_eq!(no_trump.cards, big);
 }
@@ -245,28 +222,26 @@ fn protected_joker_bid_ignores_suit_order_but_more_level_cards_can_counter() {
     ]
     .concat();
 
-    let mut same_count = BidState::new_with_rules(ShengjiRank::Ten, 3, true);
+    let mut same_count = ShengjiBidState::new_with_rules(ShengjiRank::Ten, 3, true);
     same_count
-        .declare(ShengjiPlayerId(0), &[diamond[0], big[0]], &hand)
+        .declare(PlayerId(0), &[diamond[0], big[0]], &hand)
         .unwrap();
     same_count
-        .declare(ShengjiPlayerId(0), &[diamond[1]], &hand)
+        .declare(PlayerId(0), &[diamond[1]], &hand)
         .unwrap();
     assert_eq!(
-        same_count.declare(ShengjiPlayerId(1), &[spade[0], spade[1], small[0]], &hand),
-        Err(BidError::ProtectedSuit)
+        same_count.declare(PlayerId(1), &[spade[0], spade[1], small[0]], &hand),
+        Err(ShengjiBidError::ProtectedSuit)
     );
 
-    let mut more_cards = BidState::new_with_rules(ShengjiRank::Ten, 3, true);
+    let mut more_cards = ShengjiBidState::new_with_rules(ShengjiRank::Ten, 3, true);
     more_cards
-        .declare(ShengjiPlayerId(0), &[spade[0], small[0]], &hand)
+        .declare(PlayerId(0), &[spade[0], small[0]], &hand)
         .unwrap();
-    more_cards
-        .declare(ShengjiPlayerId(0), &[spade[1]], &hand)
-        .unwrap();
+    more_cards.declare(PlayerId(0), &[spade[1]], &hand).unwrap();
     let counter = more_cards
         .declare(
-            ShengjiPlayerId(1),
+            PlayerId(1),
             &[diamond[0], diamond[1], diamond[2], big[1]],
             &hand,
         )

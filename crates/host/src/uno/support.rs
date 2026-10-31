@@ -1,8 +1,10 @@
-use leocard_protocol::{PlayerId, UnoProfileStats, UnoViolation};
+use leocard_game_common::PlayerId;
+use leocard_protocol::UnoViolation;
 use leocard_uno::{
-    GameError, GameState, UnoCard, UnoPlayerId, UnoRuleSet, build_deck_for_rules,
+    UnoCard, UnoGameError, UnoGameState, UnoProfileStats, UnoRuleSet, build_deck_for_rules,
     build_flip_dark_sides, pair_flip_deck,
 };
+
 use std::collections::HashSet;
 
 pub(super) fn shuffled_uno_deck(rules: UnoRuleSet) -> Vec<UnoCard> {
@@ -17,10 +19,10 @@ pub(super) fn shuffled_uno_deck(rules: UnoRuleSet) -> Vec<UnoCard> {
     deck
 }
 
-pub(super) fn validate_deck(deck: &[UnoCard], rules: UnoRuleSet) -> Result<(), GameError> {
+pub(super) fn validate_deck(deck: &[UnoCard], rules: UnoRuleSet) -> Result<(), UnoGameError> {
     let expected_deck = build_deck_for_rules(rules);
     if deck.len() != expected_deck.len() {
-        return Err(GameError::InvalidDeckSize {
+        return Err(UnoGameError::InvalidDeckSize {
             expected: expected_deck.len(),
             actual: deck.len(),
         });
@@ -50,31 +52,23 @@ pub(super) fn validate_deck(deck: &[UnoCard], rules: UnoRuleSet) -> Result<(), G
             || actual_dark != expected_dark
             || deck.iter().copied().collect::<HashSet<_>>().len() != deck.len()
         {
-            return Err(GameError::InvalidDeckContents);
+            return Err(UnoGameError::InvalidDeckContents);
         }
         return Ok(());
     }
     let expected = expected_deck.into_iter().collect::<HashSet<_>>();
     let actual = deck.iter().copied().collect::<HashSet<_>>();
     if actual.len() != deck.len() || actual != expected {
-        return Err(GameError::InvalidDeckContents);
+        return Err(UnoGameError::InvalidDeckContents);
     }
     Ok(())
 }
 
-pub(super) fn to_core_player(player: PlayerId) -> UnoPlayerId {
-    UnoPlayerId(usize::from(player.0))
-}
-
-pub(super) fn from_core_player(player: UnoPlayerId) -> PlayerId {
-    PlayerId(u8::try_from(player.0).expect("UNO supports at most eight players"))
-}
-
 pub(super) fn resolve_public_hand_card(
-    game: &GameState,
-    player: UnoPlayerId,
+    game: &UnoGameState,
+    player: PlayerId,
     public: UnoCard,
-) -> Result<UnoCard, GameError> {
+) -> Result<UnoCard, UnoGameError> {
     game.player(player)
         .and_then(|state| {
             state
@@ -83,7 +77,7 @@ pub(super) fn resolve_public_hand_card(
                 .copied()
                 .find(|card| card.public_face() == public.public_face())
         })
-        .ok_or(GameError::CardNotInHand(public))
+        .ok_or(UnoGameError::CardNotInHand(public))
 }
 
 pub(super) fn merge_uno_profile_stats(aggregate: &mut UnoProfileStats, current: &UnoProfileStats) {
@@ -112,39 +106,39 @@ pub(super) fn merge_uno_profile_stats(aggregate: &mut UnoProfileStats, current: 
         .saturating_add(current.successful_jump_ins);
 }
 
-pub(super) fn map_game_error(error: &GameError) -> UnoViolation {
+pub(super) fn map_game_error(error: &UnoGameError) -> UnoViolation {
     match error {
-        GameError::InvalidPlayer(_) => UnoViolation::InvalidPlayer,
-        GameError::PlayerEliminated(_) => UnoViolation::PlayerEliminated,
-        GameError::NotPlayersTurn { .. } => UnoViolation::NotPlayersTurn,
-        GameError::GameAlreadyFinished => UnoViolation::GameAlreadyFinished,
-        GameError::InitialColorChoiceRequired => UnoViolation::InitialColorChoiceRequired,
-        GameError::InitialColorAlreadyChosen => UnoViolation::InitialColorAlreadyChosen,
-        GameError::CardNotInHand(_) => UnoViolation::CardNotInHand,
-        GameError::CardDoesNotMatch => UnoViolation::CardDoesNotMatch,
-        GameError::ColorRequired => UnoViolation::ColorRequired,
-        GameError::UnexpectedColor => UnoViolation::UnexpectedColor,
-        GameError::MustPlayDrawnCard(_) => UnoViolation::MustPlayDrawnCard,
-        GameError::MustResolveDrawPenalty => UnoViolation::MustResolveDrawPenalty,
-        GameError::NoDrawPenalty => UnoViolation::NoDrawPenalty,
-        GameError::CannotStack(_) => UnoViolation::CannotStack,
-        GameError::CannotChallenge => UnoViolation::CannotChallenge,
-        GameError::MustDrawBeforePassing => UnoViolation::MustDrawBeforePassing,
-        GameError::MustResolveSkip => UnoViolation::MustResolveSkip,
-        GameError::NoSkipToResolve => UnoViolation::NoSkipToResolve,
-        GameError::UnoCalloutDisabled => UnoViolation::UnoCalloutDisabled,
-        GameError::CannotCallUno(_) => UnoViolation::CannotCallUno,
-        GameError::MustPlayAfterUno => UnoViolation::MustPlayAfterUno,
-        GameError::CannotReportSelf => UnoViolation::CannotReportSelf,
-        GameError::PlayerNotReportable(_) => UnoViolation::PlayerNotReportable,
-        GameError::CannotPlayTogether => UnoViolation::CannotPlayTogether,
-        GameError::CannotJumpIn => UnoViolation::CannotJumpIn,
-        GameError::MustResolveSwapEffect => UnoViolation::MustResolveSwapEffect,
-        GameError::NoSwapEffect => UnoViolation::NoSwapEffect,
-        GameError::InvalidSwapTargets => UnoViolation::InvalidSwapTargets,
-        GameError::DrawPileExhausted => UnoViolation::DrawPileExhausted,
-        GameError::InvalidRules(_)
-        | GameError::InvalidDeckSize { .. }
-        | GameError::InvalidDeckContents => UnoViolation::CardDoesNotMatch,
+        UnoGameError::InvalidPlayer(_) => UnoViolation::InvalidPlayer,
+        UnoGameError::PlayerEliminated(_) => UnoViolation::PlayerEliminated,
+        UnoGameError::NotPlayersTurn { .. } => UnoViolation::NotPlayersTurn,
+        UnoGameError::GameAlreadyFinished => UnoViolation::GameAlreadyFinished,
+        UnoGameError::InitialColorChoiceRequired => UnoViolation::InitialColorChoiceRequired,
+        UnoGameError::InitialColorAlreadyChosen => UnoViolation::InitialColorAlreadyChosen,
+        UnoGameError::CardNotInHand(_) => UnoViolation::CardNotInHand,
+        UnoGameError::CardDoesNotMatch => UnoViolation::CardDoesNotMatch,
+        UnoGameError::ColorRequired => UnoViolation::ColorRequired,
+        UnoGameError::UnexpectedColor => UnoViolation::UnexpectedColor,
+        UnoGameError::MustPlayDrawnCard(_) => UnoViolation::MustPlayDrawnCard,
+        UnoGameError::MustResolveDrawPenalty => UnoViolation::MustResolveDrawPenalty,
+        UnoGameError::NoDrawPenalty => UnoViolation::NoDrawPenalty,
+        UnoGameError::CannotStack(_) => UnoViolation::CannotStack,
+        UnoGameError::CannotChallenge => UnoViolation::CannotChallenge,
+        UnoGameError::MustDrawBeforePassing => UnoViolation::MustDrawBeforePassing,
+        UnoGameError::MustResolveSkip => UnoViolation::MustResolveSkip,
+        UnoGameError::NoSkipToResolve => UnoViolation::NoSkipToResolve,
+        UnoGameError::UnoCalloutDisabled => UnoViolation::UnoCalloutDisabled,
+        UnoGameError::CannotCallUno(_) => UnoViolation::CannotCallUno,
+        UnoGameError::MustPlayAfterUno => UnoViolation::MustPlayAfterUno,
+        UnoGameError::CannotReportSelf => UnoViolation::CannotReportSelf,
+        UnoGameError::PlayerNotReportable(_) => UnoViolation::PlayerNotReportable,
+        UnoGameError::CannotPlayTogether => UnoViolation::CannotPlayTogether,
+        UnoGameError::CannotJumpIn => UnoViolation::CannotJumpIn,
+        UnoGameError::MustResolveSwapEffect => UnoViolation::MustResolveSwapEffect,
+        UnoGameError::NoSwapEffect => UnoViolation::NoSwapEffect,
+        UnoGameError::InvalidSwapTargets => UnoViolation::InvalidSwapTargets,
+        UnoGameError::DrawPileExhausted => UnoViolation::DrawPileExhausted,
+        UnoGameError::InvalidRules(_)
+        | UnoGameError::InvalidDeckSize { .. }
+        | UnoGameError::InvalidDeckContents => UnoViolation::CardDoesNotMatch,
     }
 }

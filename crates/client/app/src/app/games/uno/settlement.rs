@@ -12,11 +12,11 @@ use crate::app::shell::{
     add_cozy_disabled_button,
 };
 use bevy::picking::Pickable;
-use bevy::prelude::*;
-use leocard_protocol::{
-    PlayerId, PlayerReferenceChange, UnoPhaseView, UnoPlayerResult, UnoSnapshot,
-};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{PlayerReferenceChange, UnoPhaseView, UnoPlayerResult, UnoSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 pub(crate) fn uno_summary_descriptor(game: &UnoSnapshot) -> Option<SummaryDescriptor> {
     let UnoPhaseView::Finished {
@@ -88,8 +88,8 @@ pub(super) fn add_uno_summary(
     let winner_name = game
         .players
         .iter()
-        .find(|player| player.id == winner)
-        .map(|player| player.name.as_str())
+        .find(|player| player.player.id == winner)
+        .map(|player| player.player.name.as_str())
         .unwrap_or("玩家");
     add_animated_summary_text(
         commands,
@@ -140,7 +140,7 @@ pub(super) fn add_uno_summary(
         let Some(player) = game
             .players
             .iter()
-            .find(|player| player.id == result.player)
+            .find(|player| player.player.id == result.player)
         else {
             continue;
         };
@@ -168,17 +168,17 @@ pub(super) fn add_uno_summary(
                 Visibility::Hidden
             },
         ));
-        let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
+        let avatar = player.player.avatar.and_then(|id| avatars.remote.get(&id));
         add_ready_avatar(
             commands,
             row,
-            player.id,
+            player.player.id,
             PlayerMenuProfile {
-                name: &player.name,
+                name: &player.player.name,
                 avatar,
-                reference_points: player.reference_points,
-                completed_games: player.completed_games,
-                game_profiles: &player.game_profiles,
+                reference_points: player.player.reference_points,
+                completed_games: player.player.completed_games,
+                game_profiles: &player.player.game_profiles,
             },
             28.0,
             player.ready,
@@ -197,7 +197,7 @@ pub(super) fn add_uno_summary(
         add_animated_summary_text(
             commands,
             name,
-            format!("第 {} 名 · {}", result.placement, player.name),
+            format!("第 {} 名 · {}", result.placement, player.player.name),
             16.0,
             if result.player == game.you {
                 ACCENT
@@ -319,9 +319,13 @@ pub(super) fn add_uno_summary(
     let ready = game
         .players
         .iter()
-        .find(|player| player.id == game.you)
+        .find(|player| player.player.id == game.you)
         .is_some_and(|player| player.ready);
-    if !game.players.iter().any(|player| player.id == game.you) {
+    if !game
+        .players
+        .iter()
+        .any(|player| player.player.id == game.you)
+    {
         add_cozy_disabled_button(commands, actions, "观战中", assets, px(150), 48.0);
     } else if ready {
         add_cozy_disabled_button(commands, actions, "已准备", assets, px(150), 48.0);

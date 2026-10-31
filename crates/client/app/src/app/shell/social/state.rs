@@ -1,11 +1,10 @@
 //! 玩家互动菜单、冷却与飞行道具的状态类型。
-
+use crate::app::games::qigui523::ScoreCaptureEffect;
 use crate::app::presentation::SeatSide;
-
 use bevy::ecs::query::QueryData;
 use bevy::prelude::*;
-use leocard_client::ScoreCaptureEffect;
-use leocard_protocol::{PlayerId, PlayerInteractionKind};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{MatchId, PlayerInteractionKind};
 use std::collections::HashMap;
 
 pub(crate) const INTERACTION_COOLDOWN_MASK_FRAMES: usize = 48;
@@ -18,6 +17,7 @@ pub(crate) struct SocialUiState {
 
 #[derive(Resource, Default)]
 pub(crate) struct ScoreCaptureEffectState {
+    pub view_key: Option<(MatchId, PlayerId)>,
     pub seen_serial: u64,
     pub active: Option<ActiveScoreCapture>,
 }
@@ -138,6 +138,7 @@ pub(crate) struct PlayerAvatarAnchor(pub PlayerId);
 
 #[derive(QueryData)]
 pub(crate) struct PlayerAvatar {
+    pub entity: Entity,
     pub anchor: &'static PlayerAvatarAnchor,
     pub node: &'static ComputedNode,
     pub transform: &'static UiGlobalTransform,

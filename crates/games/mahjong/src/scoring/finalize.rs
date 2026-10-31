@@ -1,31 +1,31 @@
-use super::{Fan, FanValue, Form, MahjongScoreResult, ScoreContext};
+use super::{Form, MahjongFan, MahjongFanValue, MahjongScoreResult, ScoreContext};
 use std::collections::BTreeMap;
 
-pub(super) struct FanValues(BTreeMap<Fan, (u8, u16)>);
+pub(super) struct FanValues(BTreeMap<MahjongFan, (u8, u16)>);
 
 impl FanValues {
     pub(super) fn new() -> Self {
         Self(BTreeMap::new())
     }
 
-    pub(super) fn add(&mut self, fan: Fan, count: impl Into<u8>) {
+    pub(super) fn add(&mut self, fan: MahjongFan, count: impl Into<u8>) {
         let count = count.into();
         if count > 0 {
             self.0.insert(fan, (count, fan.points() * u16::from(count)));
         }
     }
 
-    pub(super) fn insert_points(&mut self, fan: Fan, count: u8, points: u16) {
+    pub(super) fn insert_points(&mut self, fan: MahjongFan, count: u8, points: u16) {
         if count > 0 {
             self.0.insert(fan, (count, points));
         }
     }
 
-    pub(super) fn contains(&self, fan: Fan) -> bool {
+    pub(super) fn contains(&self, fan: MahjongFan) -> bool {
         self.0.contains_key(&fan)
     }
 
-    pub(super) fn remove(&mut self, fan: Fan) {
+    pub(super) fn remove(&mut self, fan: MahjongFan) {
         self.0.remove(&fan);
     }
 
@@ -40,18 +40,22 @@ pub(super) fn finish_score(
 ) -> MahjongScoreResult {
     suppress_implied(&mut values, context);
     if values.is_empty() {
-        values.add(Fan::ChickenHand, 1);
+        values.add(MahjongFan::ChickenHand, 1);
     }
     let flower_points = context.input.context.flower_count;
-    values.insert_points(Fan::FlowerTiles, flower_points, u16::from(flower_points));
+    values.insert_points(
+        MahjongFan::FlowerTiles,
+        flower_points,
+        u16::from(flower_points),
+    );
     let fans = values
         .0
         .into_iter()
-        .map(|(fan, (count, points))| FanValue { fan, count, points })
+        .map(|(fan, (count, points))| MahjongFanValue { fan, count, points })
         .collect::<Vec<_>>();
     let points_without_flowers = fans
         .iter()
-        .filter(|value| value.fan != Fan::FlowerTiles)
+        .filter(|value| value.fan != MahjongFan::FlowerTiles)
         .map(|value| value.points)
         .sum();
     MahjongScoreResult {
@@ -63,7 +67,7 @@ pub(super) fn finish_score(
 }
 
 fn suppress_implied(values: &mut FanValues, context: &ScoreContext<'_>) {
-    let remove = |values: &mut FanValues, fans: &[Fan]| {
+    let remove = |values: &mut FanValues, fans: &[MahjongFan]| {
         for fan in fans {
             values.remove(*fan);
         }
@@ -72,207 +76,228 @@ fn suppress_implied(values: &mut FanValues, context: &ScoreContext<'_>) {
         remove(
             values,
             &[
-                Fan::BigThreeWinds,
-                Fan::AllPungs,
-                Fan::PrevalentWind,
-                Fan::SeatWind,
-                Fan::PungOfTerminalsOrHonors,
+                MahjongFan::BigThreeWinds,
+                MahjongFan::AllPungs,
+                MahjongFan::PrevalentWind,
+                MahjongFan::SeatWind,
+                MahjongFan::PungOfTerminalsOrHonors,
             ],
         );
     }
     if context.big_three_dragons || context.little_three {
-        remove(values, &[Fan::TwoDragonPungs, Fan::DragonPung]);
+        remove(
+            values,
+            &[MahjongFan::TwoDragonPungs, MahjongFan::DragonPung],
+        );
     }
     if context.little_four {
-        remove(values, &[Fan::BigThreeWinds, Fan::PungOfTerminalsOrHonors]);
+        remove(
+            values,
+            &[
+                MahjongFan::BigThreeWinds,
+                MahjongFan::PungOfTerminalsOrHonors,
+            ],
+        );
     }
     if context.all_honors || context.all_terminals || context.terminals_honors {
         remove(
             values,
             &[
-                Fan::AllPungs,
-                Fan::OutsideHand,
-                Fan::PungOfTerminalsOrHonors,
+                MahjongFan::AllPungs,
+                MahjongFan::OutsideHand,
+                MahjongFan::PungOfTerminalsOrHonors,
             ],
         );
     }
     if context.all_terminals {
-        values.remove(Fan::NoHonors);
+        values.remove(MahjongFan::NoHonors);
     }
     if context.all_even_pungs {
-        remove(values, &[Fan::AllPungs, Fan::AllSimples]);
+        remove(values, &[MahjongFan::AllPungs, MahjongFan::AllSimples]);
     }
     if context.fully_concealed {
-        values.remove(Fan::SelfDrawn);
+        values.remove(MahjongFan::SelfDrawn);
     }
     match context.form {
         Form::SevenPairs { shifted: true } => remove(
             values,
             &[
-                Fan::SevenPairs,
-                Fan::FullFlush,
-                Fan::ConcealedHand,
-                Fan::SingleWait,
+                MahjongFan::SevenPairs,
+                MahjongFan::FullFlush,
+                MahjongFan::ConcealedHand,
+                MahjongFan::SingleWait,
             ],
         ),
         Form::SevenPairs { shifted: false } => {
-            remove(values, &[Fan::ConcealedHand, Fan::SingleWait]);
+            remove(values, &[MahjongFan::ConcealedHand, MahjongFan::SingleWait]);
         }
         Form::ThirteenOrphans => remove(
             values,
             &[
-                Fan::AllTerminalsAndHonors,
-                Fan::AllTypes,
-                Fan::ConcealedHand,
-                Fan::SingleWait,
+                MahjongFan::AllTerminalsAndHonors,
+                MahjongFan::AllTypes,
+                MahjongFan::ConcealedHand,
+                MahjongFan::SingleWait,
             ],
         ),
         Form::Knitted { pair: None, .. } => {
-            remove(values, &[Fan::AllTypes, Fan::ConcealedHand]);
+            remove(values, &[MahjongFan::AllTypes, MahjongFan::ConcealedHand]);
         }
         Form::Knitted { pair: Some(_), .. } | Form::Standard { .. } => {}
     }
-    if values.contains(Fan::NineGates) {
+    if values.contains(MahjongFan::NineGates) {
         remove(
             values,
             &[
-                Fan::FullFlush,
-                Fan::ConcealedHand,
-                Fan::PungOfTerminalsOrHonors,
+                MahjongFan::FullFlush,
+                MahjongFan::ConcealedHand,
+                MahjongFan::PungOfTerminalsOrHonors,
             ],
         );
     }
-    if values.contains(Fan::FourKongs) {
+    if values.contains(MahjongFan::FourKongs) {
         remove(
             values,
             &[
-                Fan::ThreeKongs,
-                Fan::TwoMeldedKongs,
-                Fan::MeldedKong,
-                Fan::SingleWait,
+                MahjongFan::ThreeKongs,
+                MahjongFan::TwoMeldedKongs,
+                MahjongFan::MeldedKong,
+                MahjongFan::SingleWait,
             ],
         );
     }
-    if values.contains(Fan::FourConcealedPungs) {
+    if values.contains(MahjongFan::FourConcealedPungs) {
         remove(
             values,
             &[
-                Fan::AllPungs,
-                Fan::ThreeConcealedPungs,
-                Fan::TwoConcealedPungs,
-                Fan::ConcealedHand,
+                MahjongFan::AllPungs,
+                MahjongFan::ThreeConcealedPungs,
+                MahjongFan::TwoConcealedPungs,
+                MahjongFan::ConcealedHand,
             ],
         );
-    } else if values.contains(Fan::ThreeConcealedPungs) {
-        values.remove(Fan::TwoConcealedPungs);
+    } else if values.contains(MahjongFan::ThreeConcealedPungs) {
+        values.remove(MahjongFan::TwoConcealedPungs);
     }
-    if values.contains(Fan::FullFlush) {
-        values.remove(Fan::NoHonors);
+    if values.contains(MahjongFan::FullFlush) {
+        values.remove(MahjongFan::NoHonors);
     }
-    if values.contains(Fan::HalfFlush) || context.all_honors {
-        values.remove(Fan::OneVoidedSuit);
+    if values.contains(MahjongFan::HalfFlush) || context.all_honors {
+        values.remove(MahjongFan::OneVoidedSuit);
     }
-    if values.contains(Fan::AllChows) {
-        values.remove(Fan::NoHonors);
+    if values.contains(MahjongFan::AllChows) {
+        values.remove(MahjongFan::NoHonors);
     }
-    if values.contains(Fan::MeldedHand) {
-        values.remove(Fan::SingleWait);
+    if values.contains(MahjongFan::MeldedHand) {
+        values.remove(MahjongFan::SingleWait);
     }
-    if values.contains(Fan::ReversibleTiles) {
-        values.remove(Fan::OneVoidedSuit);
+    if values.contains(MahjongFan::ReversibleTiles) {
+        values.remove(MahjongFan::OneVoidedSuit);
     }
-    if values.contains(Fan::OutWithReplacementTile) || values.contains(Fan::LastTileDraw) {
-        values.remove(Fan::SelfDrawn);
+    if values.contains(MahjongFan::OutWithReplacementTile)
+        || values.contains(MahjongFan::LastTileDraw)
+    {
+        values.remove(MahjongFan::SelfDrawn);
     }
-    if values.contains(Fan::RobbingTheKong) {
-        values.remove(Fan::LastTile);
+    if values.contains(MahjongFan::RobbingTheKong) {
+        values.remove(MahjongFan::LastTile);
     }
-    if values.contains(Fan::PureTerminalChows) {
+    if values.contains(MahjongFan::PureTerminalChows) {
         remove(
             values,
             &[
-                Fan::SevenPairs,
-                Fan::FullFlush,
-                Fan::AllChows,
-                Fan::NoHonors,
-                Fan::PureDoubleChow,
-                Fan::TwoTerminalChows,
+                MahjongFan::SevenPairs,
+                MahjongFan::FullFlush,
+                MahjongFan::AllChows,
+                MahjongFan::NoHonors,
+                MahjongFan::PureDoubleChow,
+                MahjongFan::TwoTerminalChows,
             ],
         );
     }
-    if values.contains(Fan::QuadrupleChow) {
+    if values.contains(MahjongFan::QuadrupleChow) {
         remove(
             values,
             &[
-                Fan::PureTripleChow,
-                Fan::PureShiftedPungs,
-                Fan::TileHog,
-                Fan::PureDoubleChow,
+                MahjongFan::PureTripleChow,
+                MahjongFan::PureShiftedPungs,
+                MahjongFan::TileHog,
+                MahjongFan::PureDoubleChow,
             ],
         );
     }
-    if values.contains(Fan::FourPureShiftedPungs) {
-        remove(
-            values,
-            &[Fan::PureShiftedPungs, Fan::PureTripleChow, Fan::AllPungs],
-        );
-    }
-    if values.contains(Fan::FourPureShiftedChows) {
+    if values.contains(MahjongFan::FourPureShiftedPungs) {
         remove(
             values,
             &[
-                Fan::PureShiftedChows,
-                Fan::ShortStraight,
-                Fan::TwoTerminalChows,
+                MahjongFan::PureShiftedPungs,
+                MahjongFan::PureTripleChow,
+                MahjongFan::AllPungs,
             ],
         );
     }
-    if values.contains(Fan::PureTripleChow) {
-        remove(values, &[Fan::PureShiftedPungs, Fan::PureDoubleChow]);
-    }
-    if values.contains(Fan::ThreeSuitedTerminalChows) {
+    if values.contains(MahjongFan::FourPureShiftedChows) {
         remove(
             values,
             &[
-                Fan::AllChows,
-                Fan::NoHonors,
-                Fan::MixedDoubleChow,
-                Fan::TwoTerminalChows,
+                MahjongFan::PureShiftedChows,
+                MahjongFan::ShortStraight,
+                MahjongFan::TwoTerminalChows,
             ],
         );
     }
-    if values.contains(Fan::AllFives) {
-        remove(values, &[Fan::AllSimples, Fan::NoHonors]);
+    if values.contains(MahjongFan::PureTripleChow) {
+        remove(
+            values,
+            &[MahjongFan::PureShiftedPungs, MahjongFan::PureDoubleChow],
+        );
     }
-    if values.contains(Fan::UpperTiles) {
-        values.remove(Fan::UpperFour);
+    if values.contains(MahjongFan::ThreeSuitedTerminalChows) {
+        remove(
+            values,
+            &[
+                MahjongFan::AllChows,
+                MahjongFan::NoHonors,
+                MahjongFan::MixedDoubleChow,
+                MahjongFan::TwoTerminalChows,
+            ],
+        );
     }
-    if values.contains(Fan::LowerTiles) {
-        values.remove(Fan::LowerFour);
+    if values.contains(MahjongFan::AllFives) {
+        remove(values, &[MahjongFan::AllSimples, MahjongFan::NoHonors]);
+    }
+    if values.contains(MahjongFan::UpperTiles) {
+        values.remove(MahjongFan::UpperFour);
+    }
+    if values.contains(MahjongFan::LowerTiles) {
+        values.remove(MahjongFan::LowerFour);
     }
     for fan in [
-        Fan::UpperTiles,
-        Fan::LowerTiles,
-        Fan::UpperFour,
-        Fan::LowerFour,
+        MahjongFan::UpperTiles,
+        MahjongFan::LowerTiles,
+        MahjongFan::UpperFour,
+        MahjongFan::LowerFour,
     ] {
         if values.contains(fan) {
-            values.remove(Fan::NoHonors);
+            values.remove(MahjongFan::NoHonors);
         }
     }
-    if values.contains(Fan::MiddleTiles) {
-        remove(values, &[Fan::AllSimples, Fan::NoHonors]);
+    if values.contains(MahjongFan::MiddleTiles) {
+        remove(values, &[MahjongFan::AllSimples, MahjongFan::NoHonors]);
     }
-    if values.contains(Fan::AllSimples) || context.all_even_pungs {
-        values.remove(Fan::NoHonors);
+    if values.contains(MahjongFan::AllSimples) || context.all_even_pungs {
+        values.remove(MahjongFan::NoHonors);
     }
-    if values.contains(Fan::TwoDragonPungs) {
-        values.remove(Fan::DragonPung);
+    if values.contains(MahjongFan::TwoDragonPungs) {
+        values.remove(MahjongFan::DragonPung);
     }
-    if values.contains(Fan::TwoConcealedKongs) {
-        remove(values, &[Fan::ConcealedKong, Fan::TwoConcealedPungs]);
+    if values.contains(MahjongFan::TwoConcealedKongs) {
+        remove(
+            values,
+            &[MahjongFan::ConcealedKong, MahjongFan::TwoConcealedPungs],
+        );
     }
-    if values.contains(Fan::TwoMeldedKongs) {
-        remove(values, &[Fan::MeldedKong, Fan::ConcealedKong]);
+    if values.contains(MahjongFan::TwoMeldedKongs) {
+        remove(values, &[MahjongFan::MeldedKong, MahjongFan::ConcealedKong]);
     }
 }

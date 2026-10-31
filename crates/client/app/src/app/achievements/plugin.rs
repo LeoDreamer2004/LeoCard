@@ -1,7 +1,8 @@
-use super::{
-    AchievementPublication, AchievementSession, messages::*, notifications::*, processing::*,
-    service::*,
-};
+use super::messages::*;
+use super::notifications::*;
+use super::processing::*;
+use super::service::*;
+use super::{AchievementPublication, AchievementSession};
 use crate::app::runtime::ClientUpdateSet;
 use bevy::prelude::*;
 

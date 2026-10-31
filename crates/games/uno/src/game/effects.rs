@@ -1,19 +1,20 @@
 use crate::{UnoCard, UnoColor, UnoFace};
+use leocard_game_common::PlayerId;
 
 use super::{
-    ChallengeState, GameError, GameState, PendingSwapState, PlayedEffect, UnoPendingDrawKind,
-    UnoPlayerId,
+    ChallengeState, PendingSwapState, UnoGameError, UnoGameState, UnoPendingDrawKind,
+    UnoPlayedEffect,
 };
 
-impl GameState {
+impl UnoGameState {
     pub(super) fn resolve_played_effect(
         &mut self,
-        player: UnoPlayerId,
+        player: PlayerId,
         card: UnoCard,
         chosen_color: Option<UnoColor>,
         declared_uno: bool,
         wild_draw_was_legal: bool,
-    ) -> Result<(UnoPlayerId, Option<PlayedEffect>), GameError> {
+    ) -> Result<(PlayerId, Option<UnoPlayedEffect>), UnoGameError> {
         let mut effect = None;
         let next_player = match card.face() {
             UnoFace::DrawOne => {
@@ -101,13 +102,13 @@ impl GameState {
             UnoFace::SkipEveryone => player,
             UnoFace::Flip => {
                 let side = self.flip_everything();
-                effect = Some(PlayedEffect::Flipped { side });
+                effect = Some(UnoPlayedEffect::Flipped { side });
                 self.next_player(player)
             }
             UnoFace::DiscardAll => {
                 let color = card.color().expect("discard-all is colored");
                 let mut discarded = Vec::new();
-                self.players[player.0].hand.retain(|candidate| {
+                self.players[player.index()].hand.retain(|candidate| {
                     if candidate.color() == Some(color) {
                         discarded.push(*candidate);
                         false
@@ -119,9 +120,9 @@ impl GameState {
                     let top = self.discard_pile.pop().expect("played card is on top");
                     self.discard_pile.extend(discarded.iter().copied());
                     self.discard_pile.push(top);
-                    effect = Some(PlayedEffect::CardsDiscarded { cards: discarded });
+                    effect = Some(UnoPlayedEffect::CardsDiscarded { cards: discarded });
                 }
-                if self.players[player.0].hand.is_empty() {
+                if self.players[player.index()].hand.is_empty() {
                     self.pending_finisher.get_or_insert(player);
                 }
                 self.next_player(player)
@@ -159,7 +160,7 @@ impl GameState {
             }
             UnoFace::RefreshHand => {
                 let count = self.refresh_hand(player)?;
-                effect = Some(PlayedEffect::HandRefreshed { count });
+                effect = Some(UnoPlayedEffect::HandRefreshed { count });
                 self.update_uno_after_play(player, declared_uno);
                 self.next_player(player)
             }
@@ -172,7 +173,7 @@ impl GameState {
                 self.uno_exposed.fill(false);
                 self.uno_declared.fill(false);
                 self.pending_swap = Some(PendingSwapState::ChooseColor { player });
-                effect = Some(PlayedEffect::HandsPassed {
+                effect = Some(UnoPlayedEffect::HandsPassed {
                     direction: self.direction,
                 });
                 player
@@ -188,7 +189,7 @@ impl GameState {
                     .expect("a draw penalty records its latest source");
                 let cards = self.draw_cards_for(target, self.pending_draw)?;
                 self.clear_pending_draw();
-                effect = Some(PlayedEffect::DrawReflected {
+                effect = Some(UnoPlayedEffect::DrawReflected {
                     player: target,
                     cards,
                 });
@@ -209,7 +210,7 @@ impl GameState {
                 self.pending_draw = self.pending_draw.saturating_add(u16::from(value));
                 self.pending_kind = Some(UnoPendingDrawKind::Stack);
                 self.pending_draw_source = Some(player);
-                effect = Some(PlayedEffect::StackNumberRevealed { cards, value });
+                effect = Some(UnoPlayedEffect::StackNumberRevealed { cards, value });
                 self.next_player(player)
             }
             UnoFace::WildReverseDrawFour => {
@@ -243,7 +244,7 @@ impl GameState {
                 self.pass_hands();
                 self.uno_exposed.fill(false);
                 self.uno_declared.fill(false);
-                effect = Some(PlayedEffect::HandsPassed {
+                effect = Some(UnoPlayedEffect::HandsPassed {
                     direction: self.direction,
                 });
                 self.next_player(player)
@@ -257,14 +258,14 @@ impl GameState {
         Ok((next_player, effect))
     }
 
-    fn apply_skip_effect(&mut self, player: UnoPlayerId) -> UnoPlayerId {
+    fn apply_skip_effect(&mut self, player: PlayerId) -> PlayerId {
         let target = self.next_player(player);
         self.pending_skip = if self.action_stacking_enabled() {
             self.pending_skip_everyone = false;
             self.pending_skip_source = Some(player);
             self.pending_skip.saturating_add(1)
         } else {
-            self.skip_turns[target.0] = self.skip_turns[target.0].max(1);
+            self.skip_turns[target.index()] = self.skip_turns[target.index()].max(1);
             self.skip_effect_targets = vec![target];
             0
         };

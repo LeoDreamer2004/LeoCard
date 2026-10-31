@@ -1,20 +1,17 @@
-use crate::{ClassifiedPlay, PlayError, QiGuiCard, QiGuiRuleSet, RuleError};
-use leocard_game_common::DeckError;
+use crate::{QiGuiCard, QiGuiClassifiedPlay, QiGuiPlayError, QiGuiRuleError, QiGuiRuleSet};
+use leocard_game_common::{DeckError, PlayerId};
+
 use std::{collections::VecDeque, error::Error, fmt};
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct QiGuiPlayerId(pub usize);
-
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlayerState {
-    pub(super) id: QiGuiPlayerId,
+pub struct QiGuiPlayerState {
+    pub(super) id: PlayerId,
     pub(super) hand: Vec<QiGuiCard>,
     pub(super) score: u32,
 }
 
-impl PlayerState {
-    pub fn id(&self) -> QiGuiPlayerId {
+impl QiGuiPlayerState {
+    pub fn id(&self) -> PlayerId {
         self.id
     }
 
@@ -28,35 +25,35 @@ impl PlayerState {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct StartingCard {
-    pub player: QiGuiPlayerId,
+pub struct QiGuiStartingCard {
+    pub player: PlayerId,
     pub card: QiGuiCard,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum PlayRecord {
+pub enum QiGuiPlayRecord {
     Played {
-        player: QiGuiPlayerId,
-        play: ClassifiedPlay,
+        player: PlayerId,
+        play: QiGuiClassifiedPlay,
     },
     Passed {
-        player: QiGuiPlayerId,
+        player: PlayerId,
     },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct TrickState {
-    pub(super) leader: QiGuiPlayerId,
-    pub(super) current_player: QiGuiPlayerId,
-    pub(super) winning_player: Option<QiGuiPlayerId>,
-    pub(super) winning_play: Option<ClassifiedPlay>,
-    pub(super) records: Vec<PlayRecord>,
+pub struct QiGuiTrickState {
+    pub(super) leader: PlayerId,
+    pub(super) current_player: PlayerId,
+    pub(super) winning_player: Option<PlayerId>,
+    pub(super) winning_play: Option<QiGuiClassifiedPlay>,
+    pub(super) records: Vec<QiGuiPlayRecord>,
     pub(super) table_points: u32,
     pub(super) passes_after_winning_play: usize,
 }
 
-impl TrickState {
-    pub(super) fn new(leader: QiGuiPlayerId) -> Self {
+impl QiGuiTrickState {
+    pub(super) fn new(leader: PlayerId) -> Self {
         Self {
             leader,
             current_player: leader,
@@ -68,23 +65,23 @@ impl TrickState {
         }
     }
 
-    pub fn leader(&self) -> QiGuiPlayerId {
+    pub fn leader(&self) -> PlayerId {
         self.leader
     }
 
-    pub fn current_player(&self) -> QiGuiPlayerId {
+    pub fn current_player(&self) -> PlayerId {
         self.current_player
     }
 
-    pub fn winning_player(&self) -> Option<QiGuiPlayerId> {
+    pub fn winning_player(&self) -> Option<PlayerId> {
         self.winning_player
     }
 
-    pub fn winning_play(&self) -> Option<&ClassifiedPlay> {
+    pub fn winning_play(&self) -> Option<&QiGuiClassifiedPlay> {
         self.winning_play.as_ref()
     }
 
-    pub fn records(&self) -> &[PlayRecord] {
+    pub fn records(&self) -> &[QiGuiPlayRecord] {
         &self.records
     }
 
@@ -94,59 +91,59 @@ impl TrickState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct GameResult {
+pub struct QiGuiGameResult {
     /// 摸牌堆耗尽后，第一个出完手牌的玩家。
-    pub finisher: QiGuiPlayerId,
+    pub finisher: PlayerId,
     pub scores: Vec<u32>,
     pub captured_hand_points: u32,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Phase {
+pub enum QiGuiPhase {
     Playing,
-    Finished(GameResult),
+    Finished(QiGuiGameResult),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ActionOutcome {
+pub enum QiGuiActionOutcome {
     Played {
-        player: QiGuiPlayerId,
-        next_player: QiGuiPlayerId,
+        player: PlayerId,
+        next_player: PlayerId,
     },
     Passed {
-        player: QiGuiPlayerId,
-        next_player: QiGuiPlayerId,
+        player: PlayerId,
+        next_player: PlayerId,
     },
     TrickCompleted {
-        winner: QiGuiPlayerId,
+        winner: PlayerId,
         points: u32,
-        next_player: QiGuiPlayerId,
+        next_player: PlayerId,
         cards_drawn: usize,
     },
-    GameFinished(GameResult),
+    GameFinished(QiGuiGameResult),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum GameError {
-    InvalidRules(RuleError),
+pub enum QiGuiGameError {
+    InvalidRules(QiGuiRuleError),
     InvalidDeckSize {
         expected: usize,
         actual: usize,
     },
     InvalidDeckContents,
-    InvalidPlayer(QiGuiPlayerId),
+    InvalidPlayer(PlayerId),
     NotPlayersTurn {
-        expected: QiGuiPlayerId,
-        actual: QiGuiPlayerId,
+        expected: PlayerId,
+        actual: PlayerId,
     },
     GameAlreadyFinished,
     MustLeadWithCards,
     CardNotInHand(QiGuiCard),
-    InvalidPlay(PlayError),
+    InvalidPlay(QiGuiPlayError),
     PlayDoesNotBeatCurrent,
 }
 
-impl fmt::Display for GameError {
+impl fmt::Display for QiGuiGameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidRules(error) => error.fmt(f),
@@ -167,9 +164,9 @@ impl fmt::Display for GameError {
     }
 }
 
-impl Error for GameError {}
+impl Error for QiGuiGameError {}
 
-impl From<DeckError> for GameError {
+impl From<DeckError> for QiGuiGameError {
     fn from(value: DeckError) -> Self {
         match value {
             DeckError::InvalidSize { expected, actual } => {
@@ -180,42 +177,42 @@ impl From<DeckError> for GameError {
     }
 }
 
-impl From<RuleError> for GameError {
-    fn from(value: RuleError) -> Self {
+impl From<QiGuiRuleError> for QiGuiGameError {
+    fn from(value: QiGuiRuleError) -> Self {
         Self::InvalidRules(value)
     }
 }
 
-impl From<PlayError> for GameError {
-    fn from(value: PlayError) -> Self {
+impl From<QiGuiPlayError> for QiGuiGameError {
+    fn from(value: QiGuiPlayError) -> Self {
         Self::InvalidPlay(value)
     }
 }
 
-/// 权威游戏状态。所有修改都只能通过 [`GameState::play_cards`] 或
-/// [`GameState::pass`] 完成。
+/// 权威游戏状态。所有修改都只能通过 [`QiGuiGameState::play_cards`] 或
+/// [`QiGuiGameState::pass`] 完成。
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct GameState {
+pub struct QiGuiGameState {
     pub(super) rules: QiGuiRuleSet,
-    pub(super) players: Vec<PlayerState>,
+    pub(super) players: Vec<QiGuiPlayerState>,
     pub(super) draw_pile: VecDeque<QiGuiCard>,
     pub(super) played_cards: Vec<QiGuiCard>,
-    pub(super) starting_card: StartingCard,
-    pub(super) trick: Option<TrickState>,
-    pub(super) phase: Phase,
+    pub(super) starting_card: QiGuiStartingCard,
+    pub(super) trick: Option<QiGuiTrickState>,
+    pub(super) phase: QiGuiPhase,
 }
 
-impl GameState {
+impl QiGuiGameState {
     pub fn rules(&self) -> &QiGuiRuleSet {
         &self.rules
     }
 
-    pub fn players(&self) -> &[PlayerState] {
+    pub fn players(&self) -> &[QiGuiPlayerState] {
         &self.players
     }
 
-    pub fn player(&self, id: QiGuiPlayerId) -> Option<&PlayerState> {
-        self.players.get(id.0)
+    pub fn player(&self, id: PlayerId) -> Option<&QiGuiPlayerState> {
+        self.players.get(id.index())
     }
 
     /// 本局实际公开打出的实体牌，包含已经收走的轮次。
@@ -240,15 +237,15 @@ impl GameState {
                 .sum::<u32>()
     }
 
-    pub fn starting_card(&self) -> StartingCard {
+    pub fn starting_card(&self) -> QiGuiStartingCard {
         self.starting_card
     }
 
-    pub fn trick(&self) -> Option<&TrickState> {
+    pub fn trick(&self) -> Option<&QiGuiTrickState> {
         self.trick.as_ref()
     }
 
-    pub fn phase(&self) -> &Phase {
+    pub fn phase(&self) -> &QiGuiPhase {
         &self.phase
     }
 
@@ -256,20 +253,22 @@ impl GameState {
     #[cfg(feature = "developer")]
     pub fn replace_player_hand(
         &mut self,
-        player: QiGuiPlayerId,
+        player: PlayerId,
         cards: Vec<QiGuiCard>,
-    ) -> Result<(), GameError> {
-        if matches!(self.phase, Phase::Finished(_)) {
-            return Err(GameError::GameAlreadyFinished);
+    ) -> Result<(), QiGuiGameError> {
+        if matches!(self.phase, QiGuiPhase::Finished(_)) {
+            return Err(QiGuiGameError::GameAlreadyFinished);
         }
-        if player.0 >= self.players.len() {
-            return Err(GameError::InvalidPlayer(player));
+        if player.index() >= self.players.len() {
+            return Err(QiGuiGameError::InvalidPlayer(player));
         }
         if cards.is_empty() {
-            return Err(GameError::InvalidDeckContents);
+            return Err(QiGuiGameError::InvalidDeckContents);
         }
-        self.players[player.0].hand = cards;
-        self.players[player.0].hand.sort_by(QiGuiCard::display_cmp);
+        self.players[player.index()].hand = cards;
+        self.players[player.index()]
+            .hand
+            .sort_by(QiGuiCard::display_cmp);
         Ok(())
     }
 }

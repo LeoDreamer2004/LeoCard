@@ -4,8 +4,9 @@ mod flow;
 mod settlement;
 mod state;
 
-pub use error::GameError;
+pub use error::BlackjackGameError;
 pub use state::{
-    AvailableActions, BlackjackAction, GameState, HandResult, HandState, HandStatus, Phase,
-    PlayerState, PlayerStatistics,
+    BlackjackAction, BlackjackAvailableActions, BlackjackGameState, BlackjackHandResult,
+    BlackjackHandState, BlackjackHandStatus, BlackjackPhase, BlackjackPlayerState,
+    BlackjackPlayerStatistics,
 };

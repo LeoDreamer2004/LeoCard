@@ -1,11 +1,13 @@
 use crate::{
-    AchievementAnnouncement, AchievementCounts, AvatarId, BlackjackSnapshot, ChatContent,
-    ChatMessage, DoudizhuSnapshot, GameCommand, GameEvent, GameKind, GamePhaseView, GameRules,
-    MahjongPhaseView, MahjongSnapshot, MatchId, MinecraftGuessSnapshot, PROTOCOL_VERSION,
-    PlayerGameProfiles, PlayerId, PlayerInteraction, PlayerInteractionKind, ProfileId,
+    AchievementAnnouncement, AvatarId, BlackjackSnapshot, ChatContent, ChatMessage,
+    DoudizhuSnapshot, GameCommand, GameEvent, GameKind, GameRules, MahjongPhaseView,
+    MahjongSnapshot, MatchId, McGuessSnapshot, PROTOCOL_VERSION, PlayerGameProfiles,
+    PlayerInteraction, PlayerInteractionKind, PlayerPublicInfo, ProfileId, QiGui523PhaseView,
     QiGui523Snapshot, ReconnectToken, RejectReason, RequestId, Revision, RoomId, RoomInfo, SeatId,
-    ShengjiSnapshot, TexasHoldemPhaseView, TexasHoldemSnapshot, UnoPhaseView, UnoSnapshot,
+    ShengjiSnapshot, TexasPhaseView, TexasSnapshot, UnoPhaseView, UnoSnapshot,
 };
+use leocard_achievements::TrophyCounts;
+use leocard_game_common::PlayerId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -88,7 +90,7 @@ pub enum ClientCommand {
     },
     /// Aggregate profile synchronization; IDs announce only newly earned awards.
     PublishAchievements {
-        counts: AchievementCounts,
+        counts: TrophyCounts,
         unlocked: Vec<String>,
     },
     Join(Box<JoinRequest>),
@@ -204,31 +206,25 @@ pub struct LobbySnapshot {
     /// 房主实际监听的 TCP 端口；由房主广播，不能从客户端使用的映射地址推断。
     pub host_port: u16,
     pub host: Option<PlayerId>,
-    pub players: Vec<LobbyPlayer>,
+    pub players: Vec<LobbyPlayerView>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct LobbyPlayer {
-    pub id: PlayerId,
-    pub profile_id: ProfileId,
-    pub name: String,
-    pub avatar: Option<AvatarId>,
+pub struct LobbyPlayerView {
+    pub player: PlayerPublicInfo,
     pub seat: Option<SeatId>,
     pub ready: bool,
     pub connected: bool,
-    pub reference_points: i32,
-    pub completed_games: u32,
-    pub game_profiles: PlayerGameProfiles,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum GameSnapshot {
     QiGui523(QiGui523Snapshot),
-    TexasHoldem(TexasHoldemSnapshot),
+    Texas(TexasSnapshot),
     Shengji(ShengjiSnapshot),
     Uno(UnoSnapshot),
     Mahjong(MahjongSnapshot),
-    MinecraftGuess(MinecraftGuessSnapshot),
+    McGuess(McGuessSnapshot),
     Blackjack(BlackjackSnapshot),
     Doudizhu(DoudizhuSnapshot),
 }
@@ -264,11 +260,11 @@ macro_rules! impl_game_snapshot_from {
 }
 
 impl_game_snapshot_from!(QiGui523Snapshot, QiGui523);
-impl_game_snapshot_from!(TexasHoldemSnapshot, TexasHoldem);
+impl_game_snapshot_from!(TexasSnapshot, Texas);
 impl_game_snapshot_from!(ShengjiSnapshot, Shengji);
 impl_game_snapshot_from!(UnoSnapshot, Uno);
 impl_game_snapshot_from!(MahjongSnapshot, Mahjong);
-impl_game_snapshot_from!(MinecraftGuessSnapshot, MinecraftGuess);
+impl_game_snapshot_from!(McGuessSnapshot, McGuess);
 impl_game_snapshot_from!(BlackjackSnapshot, Blackjack);
 impl_game_snapshot_from!(DoudizhuSnapshot, Doudizhu);
 
@@ -276,10 +272,12 @@ impl GameSnapshot {
     /// A rematch can change the roster only after the whole match, never between hands.
     pub fn match_complete(&self) -> bool {
         match self {
-            Self::QiGui523(snapshot) => matches!(snapshot.phase, GamePhaseView::Finished { .. }),
-            Self::TexasHoldem(snapshot) => matches!(
+            Self::QiGui523(snapshot) => {
+                matches!(snapshot.phase, QiGui523PhaseView::Finished { .. })
+            }
+            Self::Texas(snapshot) => matches!(
                 snapshot.phase,
-                TexasHoldemPhaseView::HandComplete {
+                TexasPhaseView::HandComplete {
                     tournament_complete: true,
                     ..
                 }
@@ -290,7 +288,7 @@ impl GameSnapshot {
             Self::Mahjong(snapshot) => {
                 matches!(&snapshot.phase, MahjongPhaseView::Finished { result } if result.match_complete)
             }
-            Self::MinecraftGuess(snapshot) => {
+            Self::McGuess(snapshot) => {
                 snapshot.progress.is_last_game() && snapshot.round.finished()
             }
             Self::Blackjack(snapshot) => snapshot.match_complete,
@@ -302,11 +300,11 @@ impl GameSnapshot {
     pub const fn you(&self) -> PlayerId {
         match self {
             Self::QiGui523(snapshot) => snapshot.you,
-            Self::TexasHoldem(snapshot) => snapshot.you,
+            Self::Texas(snapshot) => snapshot.you,
             Self::Shengji(snapshot) => snapshot.you,
             Self::Uno(snapshot) => snapshot.you,
             Self::Mahjong(snapshot) => snapshot.you,
-            Self::MinecraftGuess(snapshot) => snapshot.you,
+            Self::McGuess(snapshot) => snapshot.you,
             Self::Blackjack(snapshot) => snapshot.you,
             Self::Doudizhu(snapshot) => snapshot.you,
         }
@@ -315,11 +313,11 @@ impl GameSnapshot {
     pub const fn match_id(&self) -> MatchId {
         match self {
             Self::QiGui523(snapshot) => snapshot.match_id,
-            Self::TexasHoldem(snapshot) => snapshot.match_id,
+            Self::Texas(snapshot) => snapshot.match_id,
             Self::Shengji(snapshot) => snapshot.match_id,
             Self::Uno(snapshot) => snapshot.match_id,
             Self::Mahjong(snapshot) => snapshot.match_id,
-            Self::MinecraftGuess(snapshot) => snapshot.match_id,
+            Self::McGuess(snapshot) => snapshot.match_id,
             Self::Blackjack(snapshot) => snapshot.match_id,
             Self::Doudizhu(snapshot) => snapshot.match_id,
         }
@@ -328,11 +326,11 @@ impl GameSnapshot {
     pub const fn kind(&self) -> GameKind {
         match self {
             Self::QiGui523(_) => GameKind::QiGui523,
-            Self::TexasHoldem(_) => GameKind::TexasHoldem,
+            Self::Texas(_) => GameKind::Texas,
             Self::Shengji(_) => GameKind::Shengji,
             Self::Uno(_) => GameKind::Uno,
             Self::Mahjong(_) => GameKind::Mahjong,
-            Self::MinecraftGuess(_) => GameKind::MinecraftGuess,
+            Self::McGuess(_) => GameKind::McGuess,
             Self::Blackjack(_) => GameKind::Blackjack,
             Self::Doudizhu(_) => GameKind::Doudizhu,
         }
@@ -340,11 +338,11 @@ impl GameSnapshot {
 
     game_snapshot_projections! {
         qigui523, into_qigui523 => QiGui523(QiGui523Snapshot),
-        texas_holdem, into_texas_holdem => TexasHoldem(TexasHoldemSnapshot),
+        texas, into_texas => Texas(TexasSnapshot),
         shengji, into_shengji => Shengji(ShengjiSnapshot),
         uno, into_uno => Uno(UnoSnapshot),
         mahjong, into_mahjong => Mahjong(MahjongSnapshot),
-        minecraft_guess, into_minecraft_guess => MinecraftGuess(MinecraftGuessSnapshot),
+        mc_guess, into_mc_guess => McGuess(McGuessSnapshot),
         blackjack, into_blackjack => Blackjack(BlackjackSnapshot),
         doudizhu, into_doudizhu => Doudizhu(DoudizhuSnapshot),
     }

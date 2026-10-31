@@ -1,6 +1,6 @@
 use super::voices::ShengjiVoiceKind;
 use leocard_shengji::{
-    Category, ShengjiCard, ShengjiClassifiedPlay, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
+    ShengjiCard, ShengjiCategory, ShengjiClassifiedPlay, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
     ShengjiTrump, classify_lead,
 };
 
@@ -64,6 +64,6 @@ fn mixed_follows_do_not_announce_a_throw() {
         Some(ShengjiVoiceKind::Throw)
     );
     assert_eq!(ShengjiVoiceKind::for_play(&cards, false), None);
-    cards.category = Category::Mixed;
+    cards.category = ShengjiCategory::Mixed;
     assert_eq!(ShengjiVoiceKind::for_play(&cards, false), None);
 }

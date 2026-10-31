@@ -1,11 +1,11 @@
 use super::*;
-use crate::{
-    MahjongPlayerId, MahjongRuleSet, MahjongTile, MahjongTileKind, MahjongWind, Meld, build_deck,
-};
+use crate::{MahjongMeld, MahjongRuleSet, MahjongTile, MahjongTileKind, MahjongWind, build_deck};
+use leocard_game_common::PlayerId;
+
 use std::collections::HashSet;
 
-fn finish_dealing(game: &mut GameState) {
-    while matches!(game.phase(), Phase::Dealing { .. }) {
+fn finish_dealing(game: &mut MahjongGameState) {
+    while matches!(game.phase(), MahjongPhase::Dealing { .. }) {
         game.advance_deal().unwrap();
     }
 }
@@ -13,11 +13,11 @@ fn finish_dealing(game: &mut GameState) {
 #[test]
 fn developer_hand_replacement_swaps_only_with_wall_tiles() {
     let mut game =
-        GameState::new_with_deck(MahjongRuleSet::default(), build_deck(), MahjongPlayerId(0))
+        MahjongGameState::new_with_deck(MahjongRuleSet::default(), build_deck(), PlayerId(0))
             .unwrap();
     finish_dealing(&mut game);
-    let player = MahjongPlayerId(1);
-    let old_hand = game.players[player.0].hand.clone();
+    let player = PlayerId(1);
+    let old_hand = game.players[player.index()].hand.clone();
     let target = game
         .wall
         .iter()
@@ -39,17 +39,17 @@ fn developer_hand_replacement_swaps_only_with_wall_tiles() {
 
     assert_eq!(game.wall.len(), wall_len);
     assert_eq!(
-        game.players[player.0]
+        game.players[player.index()]
             .hand
             .iter()
             .map(|tile| tile.kind())
             .collect::<Vec<_>>(),
         kinds
     );
-    assert!(game.players[player.0].hand.contains(&target));
+    assert!(game.players[player.index()].hand.contains(&target));
     assert!(!game.wall.contains(&target));
     assert_eq!(
-        game.players[player.0]
+        game.players[player.index()]
             .hand
             .iter()
             .chain(game.wall.iter())
@@ -62,19 +62,19 @@ fn developer_hand_replacement_swaps_only_with_wall_tiles() {
 #[test]
 fn invalid_developer_hand_replacement_is_atomic() {
     let mut game =
-        GameState::new_with_deck(MahjongRuleSet::default(), build_deck(), MahjongPlayerId(0))
+        MahjongGameState::new_with_deck(MahjongRuleSet::default(), build_deck(), PlayerId(0))
             .unwrap();
     finish_dealing(&mut game);
-    let player = MahjongPlayerId(1);
+    let player = PlayerId(1);
 
     let before = game.clone();
-    let too_short = game.players[player.0].hand[1..]
+    let too_short = game.players[player.index()].hand[1..]
         .iter()
         .map(|tile| tile.kind())
         .collect::<Vec<_>>();
     assert_eq!(
         game.replace_player_hand_from_wall(player, &too_short),
-        Err(GameError::InvalidHandReplacement(
+        Err(MahjongGameError::InvalidHandReplacement(
             MahjongHandReplacementError::WrongTileCount {
                 expected: 13,
                 actual: 12,
@@ -84,10 +84,10 @@ fn invalid_developer_hand_replacement_is_atomic() {
     assert_eq!(game, before);
 
     let unavailable =
-        vec![MahjongTileKind::Wind(MahjongWind::East); game.players[player.0].hand.len()];
+        vec![MahjongTileKind::Wind(MahjongWind::East); game.players[player.index()].hand.len()];
     assert_eq!(
         game.replace_player_hand_from_wall(player, &unavailable),
-        Err(GameError::InvalidHandReplacement(
+        Err(MahjongGameError::InvalidHandReplacement(
             MahjongHandReplacementError::TileUnavailable {
                 tile: MahjongTileKind::Wind(MahjongWind::East),
                 requested: 13,
@@ -101,35 +101,35 @@ fn invalid_developer_hand_replacement_is_atomic() {
 #[test]
 fn single_hand_ready_continues_round_rotation_but_resets_match_score() {
     let mut game =
-        GameState::new_with_deck(MahjongRuleSet::default(), build_deck(), MahjongPlayerId(2))
+        MahjongGameState::new_with_deck(MahjongRuleSet::default(), build_deck(), PlayerId(2))
             .unwrap();
     finish_dealing(&mut game);
     game.finish_exhaustive_draw().unwrap();
     game.start_next_hand(build_deck()).unwrap();
-    assert!(matches!(game.phase(), Phase::Dealing { batch: 0 }));
+    assert!(matches!(game.phase(), MahjongPhase::Dealing { batch: 0 }));
     assert_eq!(game.sequence_index(), 1);
-    assert_eq!(game.dealer(), MahjongPlayerId(3));
+    assert_eq!(game.dealer(), PlayerId(3));
     assert_eq!(game.prevalent_wind(), MahjongWind::East);
     assert_eq!(game.match_scores(), &[0; 4]);
 }
 
 #[test]
 fn false_win_penalty_reveals_and_kills_the_hand() {
-    let mut game = GameState::new_with_deck(
+    let mut game = MahjongGameState::new_with_deck(
         MahjongRuleSet {
             false_win: true,
             ..MahjongRuleSet::default()
         },
         build_deck(),
-        MahjongPlayerId(0),
+        PlayerId(0),
     )
     .unwrap();
     finish_dealing(&mut game);
-    let delta = game.apply_false_win(MahjongPlayerId(1));
+    let delta = game.apply_false_win(PlayerId(1));
     assert_eq!(delta, [10, -30, 10, 10]);
     assert!(game.players[1].dead_hand);
     assert!(
-        game.public_player(MahjongPlayerId(0), MahjongPlayerId(1))
+        game.public_player(PlayerId(0), PlayerId(1))
             .unwrap()
             .revealed_hand
             .is_some()
@@ -139,20 +139,16 @@ fn false_win_penalty_reveals_and_kills_the_hand() {
 #[test]
 fn concealed_kong_kind_is_hidden_from_other_players_until_settlement() {
     let mut game =
-        GameState::new_with_deck(MahjongRuleSet::default(), build_deck(), MahjongPlayerId(0))
+        MahjongGameState::new_with_deck(MahjongRuleSet::default(), build_deck(), PlayerId(0))
             .unwrap();
     finish_dealing(&mut game);
     game.players[0]
         .melds
-        .push(Meld::concealed_kong(MahjongTileKind::Dragon(
+        .push(MahjongMeld::concealed_kong(MahjongTileKind::Dragon(
             crate::MahjongDragon::White,
         )));
-    let owner_view = game
-        .public_player(MahjongPlayerId(0), MahjongPlayerId(0))
-        .unwrap();
-    let other_view = game
-        .public_player(MahjongPlayerId(1), MahjongPlayerId(0))
-        .unwrap();
+    let owner_view = game.public_player(PlayerId(0), PlayerId(0)).unwrap();
+    let other_view = game.public_player(PlayerId(1), PlayerId(0)).unwrap();
     assert_eq!(
         owner_view.melds.last().unwrap().tile,
         Some(MahjongTileKind::Dragon(crate::MahjongDragon::White))
@@ -160,7 +156,7 @@ fn concealed_kong_kind_is_hidden_from_other_players_until_settlement() {
     assert_eq!(other_view.melds.last().unwrap().tile, None);
     game.finish_exhaustive_draw().unwrap();
     assert_eq!(
-        game.public_player(MahjongPlayerId(1), MahjongPlayerId(0))
+        game.public_player(PlayerId(1), PlayerId(0))
             .unwrap()
             .melds
             .last()
@@ -173,7 +169,7 @@ fn concealed_kong_kind_is_hidden_from_other_players_until_settlement() {
 #[test]
 fn a_chow_waits_for_a_possible_higher_priority_pung() {
     let mut game =
-        GameState::new_with_deck(MahjongRuleSet::default(), build_deck(), MahjongPlayerId(0))
+        MahjongGameState::new_with_deck(MahjongRuleSet::default(), build_deck(), PlayerId(0))
             .unwrap();
     finish_dealing(&mut game);
     for player in &mut game.players {
@@ -203,35 +199,30 @@ fn a_chow_waits_for_a_possible_higher_priority_pung() {
         MahjongTileKind::suited(crate::MahjongSuit::Characters, 1),
         0,
     );
-    let pending = game
-        .pending_for_discard(0, MahjongPlayerId(0), discarded)
-        .unwrap();
+    let pending = game.pending_for_discard(0, PlayerId(0), discarded).unwrap();
     assert!(
         pending
-            .options_for(MahjongPlayerId(1))
+            .options_for(PlayerId(1))
             .unwrap()
             .contains(&MahjongClaimOption::Chow { start: 1 })
     );
     assert!(
         pending
-            .options_for(MahjongPlayerId(2))
+            .options_for(PlayerId(2))
             .unwrap()
             .contains(&MahjongClaimOption::Pung)
     );
-    assert_eq!(
-        pending.waiting_for(),
-        vec![MahjongPlayerId(1), MahjongPlayerId(2)]
-    );
+    assert_eq!(pending.waiting_for(), vec![PlayerId(1), PlayerId(2)]);
 }
 
-fn game_waiting_for_win_pung_and_chow() -> GameState {
-    let mut game = GameState::new_with_deck(
+fn game_waiting_for_win_pung_and_chow() -> MahjongGameState {
+    let mut game = MahjongGameState::new_with_deck(
         MahjongRuleSet {
             minimum_eight_points: false,
             ..MahjongRuleSet::default()
         },
         build_deck(),
-        MahjongPlayerId(0),
+        PlayerId(0),
     )
     .unwrap();
     finish_dealing(&mut game);
@@ -263,16 +254,14 @@ fn game_waiting_for_win_pung_and_chow() -> GameState {
         MahjongTile::new(MahjongTileKind::Dragon(crate::MahjongDragon::Red), 1),
     ]);
     let tile = MahjongTile::new(character(1), 0);
-    game.discards.push(Discard {
-        player: MahjongPlayerId(0),
+    game.discards.push(MahjongDiscard {
+        player: PlayerId(0),
         tile,
         claimed_by: None,
         from_drawn: false,
     });
-    game.phase = Phase::WaitingForClaims(
-        game.pending_for_discard(0, MahjongPlayerId(0), tile)
-            .unwrap(),
-    );
+    game.phase =
+        MahjongPhase::WaitingForClaims(game.pending_for_discard(0, PlayerId(0), tile).unwrap());
     game
 }
 
@@ -280,32 +269,32 @@ fn game_waiting_for_win_pung_and_chow() -> GameState {
 fn highest_priority_claim_skips_all_lower_players() {
     let mut game = game_waiting_for_win_pung_and_chow();
     let outcome = game
-        .respond_to_claim(MahjongPlayerId(3), MahjongClaim::Win)
+        .respond_to_claim(PlayerId(3), MahjongClaim::Win)
         .unwrap();
-    let ActionOutcome::HandFinished(result) = outcome else {
+    let MahjongActionOutcome::HandFinished(result) = outcome else {
         panic!("the winning claim should resolve immediately");
     };
     assert_eq!(result.winners.len(), 1);
-    assert_eq!(result.winners[0].player, MahjongPlayerId(3));
+    assert_eq!(result.winners[0].player, PlayerId(3));
 }
 
 #[test]
 fn next_claim_resolves_as_soon_as_higher_player_passes() {
     let mut game = game_waiting_for_win_pung_and_chow();
     assert_eq!(
-        game.respond_to_claim(MahjongPlayerId(3), MahjongClaim::Pass)
+        game.respond_to_claim(PlayerId(3), MahjongClaim::Pass)
             .unwrap(),
-        ActionOutcome::ClaimRecorded {
-            player: MahjongPlayerId(3)
+        MahjongActionOutcome::ClaimRecorded {
+            player: PlayerId(3)
         }
     );
     let outcome = game
-        .respond_to_claim(MahjongPlayerId(2), MahjongClaim::Pung)
+        .respond_to_claim(PlayerId(2), MahjongClaim::Pung)
         .unwrap();
     assert!(matches!(
         outcome,
-        ActionOutcome::Claimed {
-            player: MahjongPlayerId(2),
+        MahjongActionOutcome::Claimed {
+            player: PlayerId(2),
             claim: MahjongClaim::Pung,
             ..
         }
@@ -319,10 +308,10 @@ fn flower_replacement_finishes_draw_when_no_tile_remains() {
             MahjongDrawOrigin::Normal,
             MahjongDrawOrigin::KongReplacement,
         ] {
-            let mut game = GameState::new_with_deck(
+            let mut game = MahjongGameState::new_with_deck(
                 MahjongRuleSet::default(),
                 build_deck(),
-                MahjongPlayerId(0),
+                PlayerId(0),
             )
             .unwrap();
             finish_dealing(&mut game);
@@ -333,7 +322,7 @@ fn flower_replacement_finishes_draw_when_no_tile_remains() {
                 .filter(|tile| tile.kind().is_flower())
                 .take(flower_count)
                 .collect();
-            let player = MahjongPlayerId(1);
+            let player = PlayerId(1);
             if origin == MahjongDrawOrigin::Normal {
                 game.draw_normal(player).unwrap();
             } else {
@@ -342,13 +331,13 @@ fn flower_replacement_finishes_draw_when_no_tile_remains() {
             for _ in 0..flower_count {
                 assert_eq!(game.advance_flower_replacement().unwrap(), player);
             }
-            let Phase::Finished(result) = game.phase() else {
+            let MahjongPhase::Finished(result) = game.phase() else {
                 panic!("expected exhaustive draw");
             };
             assert!(result.exhaustive_draw);
             assert!(result.winners.is_empty());
             assert_eq!(result.match_progress.completed_hands, 1);
-            assert_eq!(game.players[player.0].flowers.len(), flower_count);
+            assert_eq!(game.players[player.index()].flowers.len(), flower_count);
             assert!(game.wall.is_empty());
             assert!(game.last_drawn.is_none());
         }

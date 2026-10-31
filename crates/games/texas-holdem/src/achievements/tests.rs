@@ -1,9 +1,8 @@
 use super::{TexasAchievementEvent, register};
-use crate::{
-    GameState, TexasHoldemAction, TexasHoldemPlayerId, TexasHoldemRank, TexasHoldemRuleSet,
-    TexasHoldemSuit, build_deck,
-};
-use leocard_achievements::{AchievementRegistry, AchievementTrigger, ParticipantId};
+use crate::{TexasAction, TexasGameState, TexasRank, TexasRuleSet, TexasSuit, build_deck};
+use leocard_achievements::{AchievementRegistry, AchievementTrigger};
+use leocard_game_common::PlayerId;
+
 use std::collections::HashSet;
 
 #[test]
@@ -12,13 +11,13 @@ fn tied_pot_achievements_count_shared_winners_and_exclude_folders() {
     register(&mut registry);
     for (count, fold) in [(3, Some(2)), (3, None), (5, None), (5, Some(4))] {
         let board: Vec<_> = [
-            TexasHoldemRank::Ten,
-            TexasHoldemRank::Jack,
-            TexasHoldemRank::Queen,
-            TexasHoldemRank::King,
-            TexasHoldemRank::Ace,
+            TexasRank::Ten,
+            TexasRank::Jack,
+            TexasRank::Queen,
+            TexasRank::King,
+            TexasRank::Ace,
         ]
-        .map(|rank| crate::TexasHoldemCard::new(TexasHoldemSuit::Heart, rank))
+        .map(|rank| crate::TexasCard::new(TexasSuit::Heart, rank))
         .into();
         let holes: Vec<_> = build_deck(false)
             .into_iter()
@@ -33,12 +32,12 @@ fn tied_pot_achievements_count_shared_winners_and_exclude_folders() {
                 .into_iter()
                 .filter(|card| !reserved.contains(card)),
         );
-        let mut game = GameState::new_with_deck(
-            TexasHoldemRuleSet {
+        let mut game = TexasGameState::new_with_deck(
+            TexasRuleSet {
                 player_count: count,
                 ..Default::default()
             },
-            TexasHoldemPlayerId(0),
+            PlayerId(0),
             deck,
         )
         .unwrap();
@@ -47,17 +46,17 @@ fn tied_pot_achievements_count_shared_winners_and_exclude_folders() {
                 break;
             };
             let action = if game.blind_to_post().is_some() {
-                TexasHoldemAction::PostBlind
-            } else if Some(player.0) == fold {
-                TexasHoldemAction::Fold
+                TexasAction::PostBlind
+            } else if Some(player.index()) == fold {
+                TexasAction::Fold
             } else {
-                TexasHoldemAction::AllIn
+                TexasAction::AllIn
             };
             game.act(player, action).unwrap();
         }
         assert!(game.current_player().is_none());
         for index in 0..usize::from(count) {
-            let report = game.hand_statistics(TexasHoldemPlayerId(index)).unwrap();
+            let report = game.hand_statistics(PlayerId::from_index(index)).unwrap();
             let winners = if Some(index) == fold {
                 0
             } else {
@@ -65,9 +64,9 @@ fn tied_pot_achievements_count_shared_winners_and_exclude_folders() {
             };
             assert_eq!(report.tied_winners, winners);
             let trigger = AchievementTrigger::Game {
-                player: ParticipantId(index as u8),
+                player: PlayerId(index as u8),
                 event: TexasAchievementEvent::HandAnalyzed {
-                    player: ParticipantId(index as u8),
+                    player: PlayerId(index as u8),
                     statistics: Box::new(report),
                 }
                 .into(),

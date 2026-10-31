@@ -1,5 +1,5 @@
 use super::{UnoBotAction, UnoBotObservation};
-use crate::PendingSwap;
+use crate::UnoPendingSwap;
 use fastrand::Rng;
 
 pub struct UnoBot;
@@ -16,7 +16,7 @@ impl UnoBot {
             UnoBotAction::ResolveSkip
         } else if let Some(pending) = turn.pending_swap {
             match pending {
-                PendingSwap::SwapOneTarget { .. } => {
+                UnoPendingSwap::SwapOneTarget { .. } => {
                     let target = observation
                         .opponents
                         .iter()
@@ -29,7 +29,7 @@ impl UnoBot {
                         index: rng.usize(..target.hand_len),
                     }
                 }
-                PendingSwap::SwapOneGive { .. } => {
+                UnoPendingSwap::SwapOneGive { .. } => {
                     let card = observation
                         .hand
                         .iter()
@@ -37,7 +37,7 @@ impl UnoBot {
                         .max_by_key(|card| card.score())?;
                     UnoBotAction::GiveSwapOneCard(card)
                 }
-                PendingSwap::ForceTrade { .. } => {
+                UnoPendingSwap::ForceTrade { .. } => {
                     let second = observation
                         .opponents
                         .iter()
@@ -48,13 +48,13 @@ impl UnoBot {
                         second,
                     }
                 }
-                PendingSwap::ChooseColor { .. } | PendingSwap::ColorRoulette { .. } => {
+                UnoPendingSwap::ChooseColor { .. } | UnoPendingSwap::ColorRoulette { .. } => {
                     UnoBotAction::ChooseColor(Self::preferred_color(
                         &observation.hand,
                         observation.flip_side,
                     ))
                 }
-                PendingSwap::SevenSwap { .. } => {
+                UnoPendingSwap::SevenSwap { .. } => {
                     let target = observation
                         .opponents
                         .iter()

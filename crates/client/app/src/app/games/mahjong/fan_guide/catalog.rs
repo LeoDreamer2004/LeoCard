@@ -1,7 +1,7 @@
-use leocard_mahjong::Fan;
+use leocard_mahjong::MahjongFan;
 
 pub(super) struct FanGuideEntry {
-    pub fan: Fan,
+    pub fan: MahjongFan,
     pub requirement: &'static str,
     pub example: &'static str,
 }
@@ -9,7 +9,7 @@ pub(super) struct FanGuideEntry {
 macro_rules! entry {
     ($fan:ident, $requirement:literal, $example:literal) => {
         FanGuideEntry {
-            fan: Fan::$fan,
+            fan: MahjongFan::$fan,
             requirement: $requirement,
             example: $example,
         }

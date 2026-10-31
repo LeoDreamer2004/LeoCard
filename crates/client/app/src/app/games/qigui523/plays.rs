@@ -5,13 +5,15 @@ use crate::app::presentation::{
     add_card_image, add_sequence_play_decoration, add_text,
 };
 use crate::app::runtime::UiAssets;
-
 use bevy::picking::Pickable;
-use bevy::prelude::*;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    GamePhaseView, PlayerId, PlayerPublicState, PublicPlay, PublicPlayRecord, QiGui523Snapshot,
+    QiGui523PhaseView, QiGui523PlayerView, QiGui523PublicPlay, QiGui523PublicPlayRecord,
+    QiGui523Snapshot,
 };
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 #[expect(
     clippy::too_many_arguments,
@@ -22,9 +24,9 @@ pub(super) fn add_round_play_for_optional_player(
     parent: Entity,
     side: SeatSide,
     game: &QiGui523Snapshot,
-    player: Option<&PlayerPublicState>,
+    player: Option<&QiGui523PlayerView>,
     play_effect: Option<&ActivePlayEffect>,
-    last_play: Option<&(PlayerId, PublicPlay)>,
+    last_play: Option<&(PlayerId, QiGui523PublicPlay)>,
     assets: &UiAssets,
     game_assets: &QiGui523Assets,
 ) {
@@ -39,7 +41,7 @@ pub(super) fn add_round_play_for_optional_player(
             commands,
             play,
             game,
-            player.id,
+            player.player.id,
             play_effect,
             last_play,
             assets,
@@ -83,21 +85,21 @@ pub(super) fn add_round_play(
     game: &QiGui523Snapshot,
     player: PlayerId,
     play_effect: Option<&ActivePlayEffect>,
-    last_play: Option<&(PlayerId, PublicPlay)>,
+    last_play: Option<&(PlayerId, QiGui523PublicPlay)>,
     assets: &UiAssets,
     game_assets: &QiGui523Assets,
 ) {
-    if matches!(&game.phase, GamePhaseView::Finished { .. })
+    if matches!(&game.phase, QiGui523PhaseView::Finished { .. })
         && game
             .players
             .iter()
-            .find(|state| state.id == player)
+            .find(|state| state.player.id == player)
             .is_some_and(|state| state.ready)
     {
         add_text(commands, parent, "准备", 24.0, READY, assets);
         return;
     }
-    let is_current_player = matches!(&game.phase, GamePhaseView::Playing)
+    let is_current_player = matches!(&game.phase, QiGui523PhaseView::Playing)
         && game
             .trick
             .as_ref()
@@ -113,18 +115,18 @@ pub(super) fn add_round_play(
     if is_current_player {
         return;
     }
-    let cards = if matches!(&game.phase, GamePhaseView::Finished { .. }) {
+    let cards = if matches!(&game.phase, QiGui523PhaseView::Finished { .. }) {
         last_play.and_then(|(record_player, play)| {
             (*record_player == player).then_some(play.cards.as_slice())
         })
     } else {
         game.trick.as_ref().and_then(|trick| {
             trick.records.iter().rev().find_map(|record| match record {
-                PublicPlayRecord::Played {
+                QiGui523PublicPlayRecord::Played {
                     player: record_player,
                     play,
                 } if *record_player == player => Some(play.cards.as_slice()),
-                PublicPlayRecord::Passed {
+                QiGui523PublicPlayRecord::Passed {
                     player: record_player,
                 } if *record_player == player => Some(&[][..]),
                 _ => None,

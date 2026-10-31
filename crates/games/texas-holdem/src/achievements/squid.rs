@@ -4,7 +4,7 @@ use leocard_achievements::{AchievementDefinition, award};
 pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
     award!(
         "leocard:texas/",
-        TexasHoldem,
+        Texas,
         "first_deepseek_squid",
         "吃白饭的肥鱼",
         Bronze,
@@ -15,7 +15,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
     ),
     award!(
         "leocard:texas/",
-        TexasHoldem,
+        Texas,
         "three_squid_in_round",
         "鱿鱼串串香",
         Bronze,
@@ -26,7 +26,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
     ),
     award!(
         "leocard:texas/",
-        TexasHoldem,
+        Texas,
         "fifty_deepseek_squid",
         "肥鱼的恩惠",
         Silver,
@@ -37,7 +37,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
     ),
     award!(
         "leocard:texas/",
-        TexasHoldem,
+        Texas,
         "five_squid_in_round",
         "水族馆管理员",
         Silver,
@@ -48,7 +48,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
     ),
     award!(
         "leocard:texas/",
-        TexasHoldem,
+        Texas,
         "five_deepseek_squid_in_round",
         "超级哦鲸鲸",
         Gold,

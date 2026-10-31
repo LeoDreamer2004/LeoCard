@@ -1,7 +1,7 @@
-use super::UnoSoundAssets;
-use super::uno_card_asset_path;
+use super::{UnoSoundAssets, uno_card_asset_path};
+
 use bevy::prelude::*;
-use leocard_uno::{Mode, UnoColor, UnoFace, UnoRuleSet, build_deck_for_rules};
+use leocard_uno::{UnoColor, UnoFace, UnoMode, UnoRuleSet, build_deck_for_rules};
 use std::collections::HashMap;
 
 #[derive(Resource, Default)]
@@ -22,11 +22,11 @@ impl UnoAssets {
                 ..UnoRuleSet::default()
             },
             UnoRuleSet {
-                mode: Mode::NoMercy,
+                mode: UnoMode::NoMercy,
                 ..UnoRuleSet::default()
             },
             UnoRuleSet {
-                mode: Mode::Flip,
+                mode: UnoMode::Flip,
                 ..UnoRuleSet::default()
             },
         ] {

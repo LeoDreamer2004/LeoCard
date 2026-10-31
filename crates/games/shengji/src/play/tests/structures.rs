@@ -1,5 +1,7 @@
 use crate::play::classify_cards;
-use crate::{Component, FollowError, PlayError, compare_for_trick, validate_follow};
+use crate::{
+    ShengjiComponent, ShengjiFollowError, ShengjiPlayError, compare_for_trick, validate_follow,
+};
 
 use super::*;
 use crate::{ShengjiCard, ShengjiRank, ShengjiSuit, ShengjiTrump};
@@ -42,7 +44,7 @@ fn three_deck_triples_form_titanics_across_skipped_and_special_levels() {
         let play = classify_cards(&cards, level_five).unwrap();
         assert!(matches!(
             play.components.as_slice(),
-            [Component::Titanic {
+            [ShengjiComponent::Titanic {
                 triple_count: 2,
                 ..
             }]
@@ -57,7 +59,7 @@ fn three_deck_triples_form_titanics_across_skipped_and_special_levels() {
     .concat();
     assert_eq!(
         classify_cards(&split_category, level_five),
-        Err(PlayError::MixedCategory)
+        Err(ShengjiPlayError::MixedCategory)
     );
 
     let no_trump = ShengjiTrump::new(ShengjiRank::Five, None).unwrap();
@@ -70,7 +72,7 @@ fn three_deck_triples_form_titanics_across_skipped_and_special_levels() {
     assert!(
         play.components
             .iter()
-            .all(|component| matches!(component, Component::Triple { .. }))
+            .all(|component| matches!(component, ShengjiComponent::Triple { .. }))
     );
 }
 
@@ -123,7 +125,7 @@ fn bomb_plus_pair_is_below_tractor_and_titanic_for_six_card_following() {
     let hand = [titanic.as_slice(), bomb_plus_pair.as_slice()].concat();
     assert_eq!(
         validate_follow(&hand, &bomb_plus_pair, &lead, trump()),
-        Err(FollowError::MustFollowStructure)
+        Err(ShengjiFollowError::MustFollowStructure)
     );
     assert!(validate_follow(&hand, &titanic, &lead, trump()).is_ok());
 }
@@ -138,7 +140,7 @@ fn triple_and_titanic_follow_priorities_are_enforced() {
     let pair_follow = [twos.as_slice(), &sixes[..1]].concat();
     assert_eq!(
         validate_follow(&triple_hand, &pair_follow, &lead_triple, trump()),
-        Err(FollowError::MustFollowStructure)
+        Err(ShengjiFollowError::MustFollowStructure)
     );
     assert!(validate_follow(&triple_hand, &sixes, &lead_triple, trump()).is_ok());
 
@@ -162,7 +164,7 @@ fn triple_and_titanic_follow_priorities_are_enforced() {
     let two_triples = [two_triple.as_slice(), eight_triple.as_slice()].concat();
     assert_eq!(
         validate_follow(&hand, &two_triples, &lead_titanic, trump()),
-        Err(FollowError::MustFollowStructure)
+        Err(ShengjiFollowError::MustFollowStructure)
     );
     let tractor_and_singles = [
         six_pair.as_slice(),
@@ -184,7 +186,7 @@ fn level_is_skipped_and_special_trump_pairs_form_tractors() {
     let play = classify_cards(&jj99, trump()).unwrap();
     assert!(matches!(
         play.components.as_slice(),
-        [Component::Tractor { pair_count: 2, .. }]
+        [ShengjiComponent::Tractor { pair_count: 2, .. }]
     ));
 
     let special = [
@@ -198,7 +200,7 @@ fn level_is_skipped_and_special_trump_pairs_form_tractors() {
     let play = classify_cards(&special, trump()).unwrap();
     assert!(matches!(
         play.components.as_slice(),
-        [Component::Tractor { pair_count: 5, .. }]
+        [ShengjiComponent::Tractor { pair_count: 5, .. }]
     ));
 }
 
@@ -220,7 +222,7 @@ fn constant_twos_extend_the_special_trump_tractor_chain() {
             .unwrap()
             .components
             .as_slice(),
-        [Component::Tractor { pair_count: 7, .. }]
+        [ShengjiComponent::Tractor { pair_count: 7, .. }]
     ));
 }
 
@@ -238,7 +240,7 @@ fn no_trump_small_jokers_connect_level_pairs_and_big_jokers() {
             .unwrap()
             .components
             .as_slice(),
-        [Component::Tractor { pair_count: 3, .. }]
+        [ShengjiComponent::Tractor { pair_count: 3, .. }]
     ));
 }
 

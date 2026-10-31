@@ -1,11 +1,12 @@
 use super::prelude::*;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    MatchId, PlayerGameProfiles, PlayerId, ProfileId, SeatId, ShengjiDeclarationView,
-    ShengjiPhaseView, ShengjiPlayerState, ShengjiPublicPlay, ShengjiSnapshot, ShengjiTrickView,
+    MatchId, PlayerGameProfiles, PlayerPublicInfo, ProfileId, SeatId, ShengjiDeclarationView,
+    ShengjiPhaseView, ShengjiPlayerView, ShengjiPublicPlay, ShengjiSnapshot, ShengjiTrickView,
 };
 use leocard_shengji::{
     ShengjiBidKind, ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
-    ShengjiTrump, TrickPlay, classify_lead,
+    ShengjiTrickPlay, ShengjiTrump, classify_lead,
 };
 
 fn shengji_ui_snapshot(
@@ -20,20 +21,22 @@ fn shengji_ui_snapshot(
         host: PlayerId(0),
         rules: ShengjiRuleSet::default(),
         players: (0..4)
-            .map(|id| ShengjiPlayerState {
-                id: PlayerId(id),
-                profile_id: ProfileId([id; 32]),
-                name: format!("玩家{id}"),
-                avatar: None,
+            .map(|id| ShengjiPlayerView {
+                player: PlayerPublicInfo {
+                    id: PlayerId(id),
+                    profile_id: ProfileId([id; 32]),
+                    name: format!("玩家{id}"),
+                    avatar: None,
+                    reference_points: 0,
+                    completed_games: 0,
+                    game_profiles: PlayerGameProfiles::default(),
+                },
                 seat: SeatId(id),
                 missing_suits: Vec::new(),
                 hand_len: if id == 0 { hand.len() as u8 } else { 0 },
                 ready: false,
                 connected: true,
                 auto_play: false,
-                reference_points: 0,
-                completed_games: 0,
-                game_profiles: PlayerGameProfiles::default(),
             })
             .collect(),
         your_hand: hand,
@@ -281,7 +284,7 @@ fn shengji_turn_sync_preselects_the_only_required_pair() {
         pair(ShengjiRank::Queen).as_slice(),
     ]
     .concat();
-    let TrickPlay::Accepted(lead) =
+    let ShengjiTrickPlay::Accepted(lead) =
         classify_lead(&lead_cards, trump, &ShengjiRuleSet::default(), &[]).unwrap()
     else {
         unreachable!("a single tractor is not a throw")

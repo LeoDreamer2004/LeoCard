@@ -1,19 +1,15 @@
-use super::BettingRecord;
+use super::TexasBettingRecord;
 use crate::statistics::GameStatistics;
 use crate::{
-    EvaluatedHand, HandError, RuleError, SquidState, TexasHoldemCard, TexasHoldemRuleSet,
+    TexasCard, TexasEvaluatedHand, TexasHandError, TexasRuleError, TexasRuleSet, TexasSquidState,
     build_deck,
 };
-use leocard_game_common::{DeckError, validate_deck as validate_physical_deck};
+use leocard_game_common::{DeckError, PlayerId, validate_deck as validate_physical_deck};
 use std::{collections::VecDeque, fmt};
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TexasHoldemPlayerId(pub usize);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum TexasHoldemStreet {
+pub enum TexasStreet {
     PreFlop,
     Flop,
     Turn,
@@ -22,14 +18,14 @@ pub enum TexasHoldemStreet {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum TexasHoldemBlindKind {
+pub enum TexasBlindKind {
     Small,
     Big,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum TexasHoldemAction {
+pub enum TexasAction {
     PostBlind,
     Fold,
     Check,
@@ -40,18 +36,18 @@ pub enum TexasHoldemAction {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlayerState {
-    pub(super) id: TexasHoldemPlayerId,
+pub struct TexasPlayerState {
+    pub(super) id: PlayerId,
     pub(super) stack: u32,
-    pub(super) hole_cards: Vec<TexasHoldemCard>,
+    pub(super) hole_cards: Vec<TexasCard>,
     pub(super) folded: bool,
     pub(super) all_in: bool,
     pub(super) committed_street: u32,
     pub(super) committed_total: u32,
 }
 
-impl PlayerState {
-    pub const fn id(&self) -> TexasHoldemPlayerId {
+impl TexasPlayerState {
+    pub const fn id(&self) -> PlayerId {
         self.id
     }
 
@@ -59,7 +55,7 @@ impl PlayerState {
         self.stack
     }
 
-    pub fn hole_cards(&self) -> &[TexasHoldemCard] {
+    pub fn hole_cards(&self) -> &[TexasCard] {
         &self.hole_cards
     }
 
@@ -81,53 +77,53 @@ impl PlayerState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PotAward {
+pub struct TexasPotAward {
     pub amount: u32,
-    pub winners: Vec<TexasHoldemPlayerId>,
+    pub winners: Vec<PlayerId>,
     /// 无人跟注、其他玩家全部弃牌时不计算牌型。
-    pub winning_hand: Option<EvaluatedHand>,
+    pub winning_hand: Option<TexasEvaluatedHand>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct HandResult {
-    pub dealer: TexasHoldemPlayerId,
+pub struct TexasHandResult {
+    pub dealer: PlayerId,
     pub showdown: bool,
-    pub community: Vec<TexasHoldemCard>,
-    pub awards: Vec<PotAward>,
+    pub community: Vec<TexasCard>,
+    pub awards: Vec<TexasPotAward>,
     pub final_stacks: Vec<u32>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Phase {
-    Betting(TexasHoldemStreet),
-    Complete(HandResult),
+pub enum TexasPhase {
+    Betting(TexasStreet),
+    Complete(TexasHandResult),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ActionOutcome {
+pub enum TexasActionOutcome {
     BlindPosted {
-        player: TexasHoldemPlayerId,
-        kind: TexasHoldemBlindKind,
+        player: PlayerId,
+        kind: TexasBlindKind,
         amount: u32,
-        next_player: Option<TexasHoldemPlayerId>,
+        next_player: Option<PlayerId>,
     },
     Acted {
-        player: TexasHoldemPlayerId,
-        action: TexasHoldemAction,
-        next_player: TexasHoldemPlayerId,
+        player: PlayerId,
+        action: TexasAction,
+        next_player: PlayerId,
     },
     StreetAdvanced {
-        street: TexasHoldemStreet,
-        current_player: TexasHoldemPlayerId,
+        street: TexasStreet,
+        current_player: PlayerId,
         community_cards: usize,
     },
-    HandComplete(HandResult),
+    HandComplete(TexasHandResult),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum GameError {
-    InvalidRules(RuleError),
-    InvalidDealer(TexasHoldemPlayerId),
+pub enum TexasGameError {
+    InvalidRules(TexasRuleError),
+    InvalidDealer(PlayerId),
     InvalidStacks {
         expected: usize,
         actual: usize,
@@ -138,10 +134,10 @@ pub enum GameError {
         actual: usize,
     },
     InvalidDeckContents,
-    InvalidPlayer(TexasHoldemPlayerId),
+    InvalidPlayer(PlayerId),
     NotPlayersTurn {
-        expected: TexasHoldemPlayerId,
-        actual: TexasHoldemPlayerId,
+        expected: PlayerId,
+        actual: PlayerId,
     },
     HandAlreadyComplete,
     HandStillInProgress,
@@ -171,13 +167,13 @@ pub enum GameError {
         target: u32,
     },
     RaiseLimitReached,
-    PlayerCannotAct(TexasHoldemPlayerId),
+    PlayerCannotAct(PlayerId),
     MustPostBlind,
     NoBlindToPost,
-    HandEvaluation(HandError),
+    HandEvaluation(TexasHandError),
 }
 
-impl fmt::Display for GameError {
+impl fmt::Display for TexasGameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidRules(error) => error.fmt(f),
@@ -237,9 +233,9 @@ impl fmt::Display for GameError {
     }
 }
 
-impl std::error::Error for GameError {}
+impl std::error::Error for TexasGameError {}
 
-impl From<DeckError> for GameError {
+impl From<DeckError> for TexasGameError {
     fn from(value: DeckError) -> Self {
         match value {
             DeckError::InvalidSize { expected, actual } => {
@@ -250,52 +246,52 @@ impl From<DeckError> for GameError {
     }
 }
 
-impl From<RuleError> for GameError {
-    fn from(value: RuleError) -> Self {
+impl From<TexasRuleError> for TexasGameError {
+    fn from(value: TexasRuleError) -> Self {
         Self::InvalidRules(value)
     }
 }
 
-impl From<HandError> for GameError {
-    fn from(value: HandError) -> Self {
+impl From<TexasHandError> for TexasGameError {
+    fn from(value: TexasHandError) -> Self {
         Self::HandEvaluation(value)
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct GameState {
-    pub(super) betting_history: Vec<BettingRecord>,
-    pub(super) rules: TexasHoldemRuleSet,
-    pub(super) players: Vec<PlayerState>,
-    pub(super) dealer: TexasHoldemPlayerId,
-    pub(super) small_blind: TexasHoldemPlayerId,
-    pub(super) big_blind: TexasHoldemPlayerId,
-    pub(super) deck: VecDeque<TexasHoldemCard>,
-    pub(super) community: Vec<TexasHoldemCard>,
-    pub(super) current_player: Option<TexasHoldemPlayerId>,
+pub struct TexasGameState {
+    pub(super) betting_history: Vec<TexasBettingRecord>,
+    pub(super) rules: TexasRuleSet,
+    pub(super) players: Vec<TexasPlayerState>,
+    pub(super) dealer: PlayerId,
+    pub(super) small_blind: PlayerId,
+    pub(super) big_blind: PlayerId,
+    pub(super) deck: VecDeque<TexasCard>,
+    pub(super) community: Vec<TexasCard>,
+    pub(super) current_player: Option<PlayerId>,
     pub(super) current_bet: u32,
     pub(super) minimum_raise: u32,
     pub(super) full_bets: u8,
     pub(super) needs_action: Vec<bool>,
     pub(super) raise_allowed: Vec<bool>,
-    pub(super) phase: Phase,
-    pub(super) pending_blind: Option<TexasHoldemBlindKind>,
+    pub(super) phase: TexasPhase,
+    pub(super) pending_blind: Option<TexasBlindKind>,
     pub(super) hand_number: u32,
     pub(crate) statistics: GameStatistics,
-    pub(super) squid: SquidState,
+    pub(super) squid: TexasSquidState,
 }
 
-impl GameState {
-    pub const fn squid(&self) -> &SquidState {
+impl TexasGameState {
+    pub const fn squid(&self) -> &TexasSquidState {
         &self.squid
     }
 
     /// 创建一桌新游戏；`deck[0]` 是本手最先发出的牌。
     pub fn new_with_deck(
-        rules: TexasHoldemRuleSet,
-        first_dealer: TexasHoldemPlayerId,
-        deck: Vec<TexasHoldemCard>,
-    ) -> Result<Self, GameError> {
+        rules: TexasRuleSet,
+        first_dealer: PlayerId,
+        deck: Vec<TexasCard>,
+    ) -> Result<Self, TexasGameError> {
         let rules = rules.validate()?;
         let stacks = vec![u32::from(rules.starting_chips); usize::from(rules.player_count)];
         Self::new_with_stacks(rules, first_dealer, stacks, deck)
@@ -303,43 +299,43 @@ impl GameState {
 
     /// Use the public match identity for marker appearances and weighted squid payouts.
     pub fn new_with_squid_seed(
-        rules: TexasHoldemRuleSet,
-        first_dealer: TexasHoldemPlayerId,
-        deck: Vec<TexasHoldemCard>,
+        rules: TexasRuleSet,
+        first_dealer: PlayerId,
+        deck: Vec<TexasCard>,
         seed: [u8; 16],
-    ) -> Result<Self, GameError> {
+    ) -> Result<Self, TexasGameError> {
         let mut game = Self::new_with_deck(rules, first_dealer, deck)?;
-        game.squid = SquidState::new(rules.squid_markers, seed, rules.deepseek_squid_double);
+        game.squid = TexasSquidState::new(rules.squid_markers, seed, rules.deepseek_squid_double);
         Ok(game)
     }
 
     /// 用已有筹码开始一手牌，供连续牌局和确定性的边池测试使用。
     pub fn new_with_stacks(
-        rules: TexasHoldemRuleSet,
-        dealer: TexasHoldemPlayerId,
+        rules: TexasRuleSet,
+        dealer: PlayerId,
         stacks: Vec<u32>,
-        deck: Vec<TexasHoldemCard>,
-    ) -> Result<Self, GameError> {
+        deck: Vec<TexasCard>,
+    ) -> Result<Self, TexasGameError> {
         let rules = rules.validate()?;
         let player_count = usize::from(rules.player_count);
-        if dealer.0 >= player_count {
-            return Err(GameError::InvalidDealer(dealer));
+        if dealer.index() >= player_count {
+            return Err(TexasGameError::InvalidDealer(dealer));
         }
         if stacks.len() != player_count {
-            return Err(GameError::InvalidStacks {
+            return Err(TexasGameError::InvalidStacks {
                 expected: player_count,
                 actual: stacks.len(),
             });
         }
         validate_deck(rules.short_deck, &deck)?;
         if stacks.iter().filter(|stack| **stack > 0).count() < 2 {
-            return Err(GameError::NotEnoughFundedPlayers);
+            return Err(TexasGameError::NotEnoughFundedPlayers);
         }
         let players = stacks
             .into_iter()
             .enumerate()
-            .map(|(index, stack)| PlayerState {
-                id: TexasHoldemPlayerId(index),
+            .map(|(index, stack)| TexasPlayerState {
+                id: PlayerId::from_index(index),
                 stack,
                 hole_cards: Vec::with_capacity(rules.hole_card_count()),
                 folded: stack == 0,
@@ -349,7 +345,7 @@ impl GameState {
             })
             .collect::<Vec<_>>();
         let mut state = Self {
-            squid: SquidState::new(rules.squid_markers, [0; 16], rules.deepseek_squid_double),
+            squid: TexasSquidState::new(rules.squid_markers, [0; 16], rules.deepseek_squid_double),
             betting_history: Vec::new(),
             rules,
             players,
@@ -360,11 +356,11 @@ impl GameState {
             community: Vec::with_capacity(5),
             current_player: None,
             current_bet: 0,
-            minimum_raise: TexasHoldemRuleSet::BIG_BLIND,
+            minimum_raise: TexasRuleSet::BIG_BLIND,
             full_bets: 0,
             needs_action: vec![false; player_count],
             raise_allowed: vec![false; player_count],
-            phase: Phase::Betting(TexasHoldemStreet::PreFlop),
+            phase: TexasPhase::Betting(TexasStreet::PreFlop),
             pending_blind: None,
             hand_number: 0,
             statistics: GameStatistics::new(rules.player_count),
@@ -373,31 +369,31 @@ impl GameState {
         Ok(state)
     }
 
-    pub const fn rules(&self) -> &TexasHoldemRuleSet {
+    pub const fn rules(&self) -> &TexasRuleSet {
         &self.rules
     }
 
-    pub fn betting_history(&self) -> &[BettingRecord] {
+    pub fn betting_history(&self) -> &[TexasBettingRecord] {
         &self.betting_history
     }
 
-    pub fn players(&self) -> &[PlayerState] {
+    pub fn players(&self) -> &[TexasPlayerState] {
         &self.players
     }
 
-    pub const fn dealer(&self) -> TexasHoldemPlayerId {
+    pub const fn dealer(&self) -> PlayerId {
         self.dealer
     }
 
-    pub const fn small_blind(&self) -> TexasHoldemPlayerId {
+    pub const fn small_blind(&self) -> PlayerId {
         self.small_blind
     }
 
-    pub const fn big_blind(&self) -> TexasHoldemPlayerId {
+    pub const fn big_blind(&self) -> PlayerId {
         self.big_blind
     }
 
-    pub const fn current_player(&self) -> Option<TexasHoldemPlayerId> {
+    pub const fn current_player(&self) -> Option<PlayerId> {
         self.current_player
     }
 
@@ -416,15 +412,17 @@ impl GameState {
     }
 
     /// 玩家当前是否仍有加注权。是否轮到该玩家行动需另行检查
-    /// [`GameState::current_player`]。
-    pub fn raise_allowed(&self, player: TexasHoldemPlayerId) -> Result<bool, GameError> {
+    /// [`TexasGameState::current_player`]。
+    pub fn raise_allowed(&self, player: PlayerId) -> Result<bool, TexasGameError> {
         self.players
-            .get(player.0)
-            .ok_or(GameError::InvalidPlayer(player))?;
-        Ok(self.raise_allowed[player.0] && self.can_act(player) && !self.fixed_limit_reached())
+            .get(player.index())
+            .ok_or(TexasGameError::InvalidPlayer(player))?;
+        Ok(self.raise_allowed[player.index()]
+            && self.can_act(player)
+            && !self.fixed_limit_reached())
     }
 
-    pub fn community(&self) -> &[TexasHoldemCard] {
+    pub fn community(&self) -> &[TexasCard] {
         &self.community
     }
 
@@ -432,18 +430,22 @@ impl GameState {
         self.deck.len()
     }
 
-    pub const fn phase(&self) -> &Phase {
+    pub const fn phase(&self) -> &TexasPhase {
         &self.phase
     }
 
-    pub fn blind_to_post(&self) -> Option<(TexasHoldemPlayerId, TexasHoldemBlindKind, u32)> {
+    pub fn blind_to_post(&self) -> Option<(PlayerId, TexasBlindKind, u32)> {
         let kind = self.pending_blind?;
         let player = self.current_player?;
         let requested = match kind {
-            TexasHoldemBlindKind::Small => TexasHoldemRuleSet::SMALL_BLIND,
-            TexasHoldemBlindKind::Big => TexasHoldemRuleSet::BIG_BLIND,
+            TexasBlindKind::Small => TexasRuleSet::SMALL_BLIND,
+            TexasBlindKind::Big => TexasRuleSet::BIG_BLIND,
         };
-        Some((player, kind, requested.min(self.players[player.0].stack)))
+        Some((
+            player,
+            kind,
+            requested.min(self.players[player.index()].stack),
+        ))
     }
 
     pub const fn hand_number(&self) -> u32 {
@@ -451,18 +453,21 @@ impl GameState {
     }
 
     pub fn pot(&self) -> u32 {
-        self.players.iter().map(PlayerState::committed_total).sum()
+        self.players
+            .iter()
+            .map(TexasPlayerState::committed_total)
+            .sum()
     }
 
-    pub fn amount_to_call(&self, player: TexasHoldemPlayerId) -> Result<u32, GameError> {
+    pub fn amount_to_call(&self, player: PlayerId) -> Result<u32, TexasGameError> {
         let state = self
             .players
-            .get(player.0)
-            .ok_or(GameError::InvalidPlayer(player))?;
+            .get(player.index())
+            .ok_or(TexasGameError::InvalidPlayer(player))?;
         Ok(self.current_bet.saturating_sub(state.committed_street))
     }
 }
 
-pub(super) fn validate_deck(short_deck: bool, deck: &[TexasHoldemCard]) -> Result<(), GameError> {
-    validate_physical_deck(deck, &build_deck(short_deck)).map_err(GameError::from)
+pub(super) fn validate_deck(short_deck: bool, deck: &[TexasCard]) -> Result<(), TexasGameError> {
+    validate_physical_deck(deck, &build_deck(short_deck)).map_err(TexasGameError::from)
 }

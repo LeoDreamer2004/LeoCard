@@ -57,11 +57,11 @@ impl PreferenceFiles {
 
     game_files! {
         qigui523 => "games/qigui523.json",
-        texas_holdem => "games/texas_holdem.json",
+        texas => "games/texas_holdem.json",
         shengji => "games/shengji.json",
         uno => "games/uno.json",
         mahjong => "games/mahjong.json",
-        minecraft_guess => "games/minecraft_guess.json",
+        mc_guess => "games/mc_guess.json",
         doudizhu => "games/doudizhu.json",
     }
 

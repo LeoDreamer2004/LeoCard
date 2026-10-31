@@ -3,7 +3,7 @@ use std::fmt;
 /// 所选花色比较方式判定两手牌相同后，是否允许后出的整手牌跟牌。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum SameCardPolicy {
+pub enum QiGuiSameCardPolicy {
     MustBeHigher,
     CanFollow,
 }
@@ -11,7 +11,7 @@ pub enum SameCardPolicy {
 /// 同牌型且点数组成相同时，如何比较花色。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum SuitComparison {
+pub enum QiGuiSuitComparison {
     /// 只比较整手牌中最大的牌；最大牌相同即为相同强度。
     HighestCard,
     /// 从最大的牌开始逐张向下比较。
@@ -23,7 +23,7 @@ pub enum SuitComparison {
 /// 每回合固定时间 + 每名玩家整局共享的保留时间。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum TimeControl {
+pub enum QiGuiTimeControl {
     Unlimited,
     FivePlusTen,
     FivePlusThirty,
@@ -31,7 +31,7 @@ pub enum TimeControl {
     ThirtyPlusSixty,
 }
 
-impl TimeControl {
+impl QiGuiTimeControl {
     pub const OPTIONS: [Self; 5] = [
         Self::FivePlusTen,
         Self::FivePlusThirty,
@@ -69,9 +69,9 @@ pub struct QiGuiRuleSet {
     pub deck_count: u8,
     pub player_count: u8,
     pub hand_size: u8,
-    pub same_card_policy: SameCardPolicy,
-    pub suit_comparison: SuitComparison,
-    pub time_control: TimeControl,
+    pub same_card_policy: QiGuiSameCardPolicy,
+    pub suit_comparison: QiGuiSuitComparison,
+    pub time_control: QiGuiTimeControl,
     /// 启用进阶牌型及部分相同张数牌型之间的固定压制关系。
     pub advanced_play_types: bool,
     /// 仅开发构建可启用：摸牌堆只包含所有玩家的初始手牌。
@@ -85,24 +85,24 @@ impl QiGuiRuleSet {
     pub const MAX_HAND_SIZE: u8 = 15;
     pub const MAX_PLAYERS: u8 = 6;
 
-    pub fn validate(self) -> Result<Self, RuleError> {
+    pub fn validate(self) -> Result<Self, QiGuiRuleError> {
         if !(Self::MIN_DECK_COUNT..=Self::MAX_DECK_COUNT).contains(&self.deck_count) {
-            return Err(RuleError::DeckCount(self.deck_count));
+            return Err(QiGuiRuleError::DeckCount(self.deck_count));
         }
         if !(2..=Self::MAX_PLAYERS).contains(&self.player_count) {
-            return Err(RuleError::PlayerCount(self.player_count));
+            return Err(QiGuiRuleError::PlayerCount(self.player_count));
         }
         if !(Self::MIN_HAND_SIZE..=Self::MAX_HAND_SIZE).contains(&self.hand_size) {
-            return Err(RuleError::HandSize(self.hand_size));
+            return Err(QiGuiRuleError::HandSize(self.hand_size));
         }
         if self.developer_deck && !cfg!(feature = "developer") {
-            return Err(RuleError::DeveloperFeatureUnavailable);
+            return Err(QiGuiRuleError::DeveloperFeatureUnavailable);
         }
 
         let available = usize::from(self.deck_count) * 54;
         let required = usize::from(self.player_count) * usize::from(self.hand_size);
         if required > available {
-            return Err(RuleError::NotEnoughCards {
+            return Err(QiGuiRuleError::NotEnoughCards {
                 available,
                 required,
             });
@@ -117,12 +117,12 @@ impl Default for QiGuiRuleSet {
             deck_count: 1,
             player_count: 4,
             hand_size: 5,
-            same_card_policy: SameCardPolicy::MustBeHigher,
-            suit_comparison: SuitComparison::HighestCard,
+            same_card_policy: QiGuiSameCardPolicy::MustBeHigher,
+            suit_comparison: QiGuiSuitComparison::HighestCard,
             time_control: if cfg!(feature = "developer") {
-                TimeControl::Unlimited
+                QiGuiTimeControl::Unlimited
             } else {
-                TimeControl::FifteenPlusThirty
+                QiGuiTimeControl::FifteenPlusThirty
             },
             advanced_play_types: false,
             developer_deck: cfg!(feature = "developer"),
@@ -131,7 +131,7 @@ impl Default for QiGuiRuleSet {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum RuleError {
+pub enum QiGuiRuleError {
     DeckCount(u8),
     PlayerCount(u8),
     HandSize(u8),
@@ -139,7 +139,7 @@ pub enum RuleError {
     NotEnoughCards { available: usize, required: usize },
 }
 
-impl fmt::Display for RuleError {
+impl fmt::Display for QiGuiRuleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::DeckCount(value) => write!(
@@ -167,7 +167,7 @@ impl fmt::Display for RuleError {
     }
 }
 
-impl std::error::Error for RuleError {}
+impl std::error::Error for QiGuiRuleError {}
 
 #[cfg(test)]
 mod tests {
@@ -181,7 +181,7 @@ mod tests {
                 ..QiGuiRuleSet::default()
             }
             .validate(),
-            Err(RuleError::DeckCount(0))
+            Err(QiGuiRuleError::DeckCount(0))
         );
         assert_eq!(
             QiGuiRuleSet {
@@ -189,7 +189,7 @@ mod tests {
                 ..QiGuiRuleSet::default()
             }
             .validate(),
-            Err(RuleError::DeckCount(9))
+            Err(QiGuiRuleError::DeckCount(9))
         );
         assert_eq!(
             QiGuiRuleSet {
@@ -197,7 +197,7 @@ mod tests {
                 ..QiGuiRuleSet::default()
             }
             .validate(),
-            Err(RuleError::PlayerCount(1))
+            Err(QiGuiRuleError::PlayerCount(1))
         );
         assert_eq!(
             QiGuiRuleSet {
@@ -205,7 +205,7 @@ mod tests {
                 ..QiGuiRuleSet::default()
             }
             .validate(),
-            Err(RuleError::PlayerCount(7))
+            Err(QiGuiRuleError::PlayerCount(7))
         );
         assert_eq!(
             QiGuiRuleSet {
@@ -213,7 +213,7 @@ mod tests {
                 ..QiGuiRuleSet::default()
             }
             .validate(),
-            Err(RuleError::HandSize(4))
+            Err(QiGuiRuleError::HandSize(4))
         );
         assert_eq!(
             QiGuiRuleSet {
@@ -221,7 +221,7 @@ mod tests {
                 ..QiGuiRuleSet::default()
             }
             .validate(),
-            Err(RuleError::HandSize(16))
+            Err(QiGuiRuleError::HandSize(16))
         );
         assert!(matches!(
             QiGuiRuleSet {
@@ -230,7 +230,7 @@ mod tests {
                 ..QiGuiRuleSet::default()
             }
             .validate(),
-            Err(RuleError::NotEnoughCards { .. })
+            Err(QiGuiRuleError::NotEnoughCards { .. })
         ));
         assert!(
             QiGuiRuleSet {

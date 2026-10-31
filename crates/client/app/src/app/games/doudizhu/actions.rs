@@ -6,19 +6,19 @@ use crate::app::shell::{
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_doudizhu::{Action, Mode, RuleSet, hint_options};
-use leocard_protocol::DoudizhuCommand;
+use leocard_doudizhu::{DoudizhuAction, DoudizhuMode, DoudizhuRuleSet, hint_options};
+use leocard_protocol::{DoudizhuCommand, GameSnapshot};
 
 #[derive(Clone)]
 pub(crate) enum DoudizhuUiAction {
-    UpdateRules(RuleSet),
-    SelectMode(Mode),
+    UpdateRules(DoudizhuRuleSet),
+    SelectMode(DoudizhuMode),
     ToggleModeMenu,
     CloseModeMenu,
     ToggleCard,
     Hint,
     Play,
-    Act(Action),
+    Act(DoudizhuAction),
     ToggleKitty,
     ShowPreviousTrick,
     ToggleCounter,
@@ -77,13 +77,15 @@ impl UiActionHandler<ActionContext<'_>> for DoudizhuUiAction {
             Self::ToggleCard => {}
             Self::Play => send_game_command(
                 &mut context.client,
-                DoudizhuCommand::Act(Action::Play(context.ui.selected.iter().copied().collect())),
+                DoudizhuCommand::Act(DoudizhuAction::Play(
+                    context.ui.selected.iter().copied().collect(),
+                )),
             ),
             Self::Hint => {
                 if let Some(game) = context
                     .client
                     .as_deref()
-                    .and_then(|c| c.0.model().doudizhu_game())
+                    .and_then(|c| c.0.model().game_snapshot().and_then(GameSnapshot::doudizhu))
                 {
                     let suggestions = hint_options(
                         &game.your_hand,

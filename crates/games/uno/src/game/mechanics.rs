@@ -1,12 +1,12 @@
 use crate::{UnoCard, UnoColor, UnoFace, UnoFlipSide};
+use leocard_game_common::PlayerId;
+
 use std::mem;
 
-use super::{
-    GameError, GameState, Phase, UnoDirection, UnoPendingDrawKind, UnoPlayerId, faces_match,
-};
+use super::{UnoDirection, UnoGameError, UnoGameState, UnoPendingDrawKind, UnoPhase, faces_match};
 
-impl GameState {
-    pub(super) fn apply_starting_card(&mut self) -> Result<(), GameError> {
+impl UnoGameState {
+    pub(super) fn apply_starting_card(&mut self) -> Result<(), UnoGameError> {
         let card = *self.discard_pile.last().expect("starting card exists");
         match card.face() {
             UnoFace::DrawOne => {
@@ -27,7 +27,7 @@ impl GameState {
                 if self.action_stacking_enabled() {
                     self.pending_skip = 1;
                 } else {
-                    self.skip_turns[self.current_player.0] = 1;
+                    self.skip_turns[self.current_player.index()] = 1;
                 }
             }
             UnoFace::ReverseDrawTwo => {
@@ -41,7 +41,7 @@ impl GameState {
                 if self.rules.action_stacking {
                     self.pending_skip = 1;
                 } else {
-                    self.skip_turns[self.current_player.0] = 1;
+                    self.skip_turns[self.current_player.index()] = 1;
                 }
             }
             UnoFace::Flip => {
@@ -83,46 +83,46 @@ impl GameState {
         Ok(())
     }
 
-    pub(super) fn ensure_playing(&self) -> Result<(), GameError> {
-        if matches!(self.phase, Phase::Finished(_)) {
-            Err(GameError::GameAlreadyFinished)
+    pub(super) fn ensure_playing(&self) -> Result<(), UnoGameError> {
+        if matches!(self.phase, UnoPhase::Finished(_)) {
+            Err(UnoGameError::GameAlreadyFinished)
         } else {
             Ok(())
         }
     }
 
-    pub(super) fn ensure_player(&self, player: UnoPlayerId) -> Result<(), GameError> {
-        if player.0 < self.players.len() {
+    pub(super) fn ensure_player(&self, player: PlayerId) -> Result<(), UnoGameError> {
+        if player.index() < self.players.len() {
             Ok(())
         } else {
-            Err(GameError::InvalidPlayer(player))
+            Err(UnoGameError::InvalidPlayer(player))
         }
     }
 
-    pub(super) fn ensure_turn(&self, player: UnoPlayerId) -> Result<(), GameError> {
+    pub(super) fn ensure_turn(&self, player: PlayerId) -> Result<(), UnoGameError> {
         self.ensure_playing()?;
         self.ensure_player(player)?;
-        if player == self.current_player && !self.players[player.0].eliminated {
+        if player == self.current_player && !self.players[player.index()].eliminated {
             Ok(())
         } else {
-            Err(GameError::NotPlayersTurn {
+            Err(UnoGameError::NotPlayersTurn {
                 expected: self.current_player,
                 actual: player,
             })
         }
     }
 
-    pub(super) fn ensure_skip_resolved(&self, player: UnoPlayerId) -> Result<(), GameError> {
-        if self.pending_skip > 0 || self.skip_turns[player.0] > 0 {
-            Err(GameError::MustResolveSkip)
+    pub(super) fn ensure_skip_resolved(&self, player: PlayerId) -> Result<(), UnoGameError> {
+        if self.pending_skip > 0 || self.skip_turns[player.index()] > 0 {
+            Err(UnoGameError::MustResolveSkip)
         } else {
             Ok(())
         }
     }
 
-    pub(super) fn ensure_swap_resolved(&self) -> Result<(), GameError> {
+    pub(super) fn ensure_swap_resolved(&self) -> Result<(), UnoGameError> {
         if self.pending_swap.is_some() {
-            Err(GameError::MustResolveSwapEffect)
+            Err(UnoGameError::MustResolveSwapEffect)
         } else {
             Ok(())
         }
@@ -130,10 +130,10 @@ impl GameState {
 
     pub(super) fn ensure_uno_followup_resolved(
         &self,
-        player: UnoPlayerId,
-    ) -> Result<(), GameError> {
-        if self.uno_declared[player.0] {
-            Err(GameError::MustPlayAfterUno)
+        player: PlayerId,
+    ) -> Result<(), UnoGameError> {
+        if self.uno_declared[player.index()] {
+            Err(UnoGameError::MustPlayAfterUno)
         } else {
             Ok(())
         }
@@ -257,7 +257,7 @@ impl GameState {
     }
 
     pub(super) fn card_allowed_in_current_state(&self, card: UnoCard) -> bool {
-        if self.pending_swap.is_some() || self.skip_turns[self.current_player.0] > 0 {
+        if self.pending_swap.is_some() || self.skip_turns[self.current_player.index()] > 0 {
             false
         } else if self.pending_skip > 0 {
             self.skip_stack_allowed(card)
@@ -282,7 +282,7 @@ impl GameState {
         self.sudden_death_active() && self.sudden_death_misses >= 2
     }
 
-    pub(super) fn sudden_death_missed(&mut self, player: UnoPlayerId) -> UnoPlayerId {
+    pub(super) fn sudden_death_missed(&mut self, player: PlayerId) -> PlayerId {
         self.sudden_death_misses = self.sudden_death_misses.saturating_add(1).min(2);
         if self.sudden_death_free_play() {
             player
@@ -291,15 +291,17 @@ impl GameState {
         }
     }
 
-    pub(super) fn next_player(&self, player: UnoPlayerId) -> UnoPlayerId {
+    pub(super) fn next_player(&self, player: PlayerId) -> PlayerId {
         let count = self.players.len();
         let mut next = player;
         for _ in 0..count {
             next = match self.direction {
-                UnoDirection::Clockwise => UnoPlayerId((next.0 + 1) % count),
-                UnoDirection::CounterClockwise => UnoPlayerId((next.0 + count - 1) % count),
+                UnoDirection::Clockwise => PlayerId::from_index((next.index() + 1) % count),
+                UnoDirection::CounterClockwise => {
+                    PlayerId::from_index((next.index() + count - 1) % count)
+                }
             };
-            if !self.players[next.0].eliminated {
+            if !self.players[next.index()].eliminated {
                 return next;
             }
         }
@@ -308,9 +310,9 @@ impl GameState {
 
     pub(super) fn draw_cards_for(
         &mut self,
-        player: UnoPlayerId,
+        player: PlayerId,
         count: u16,
-    ) -> Result<Vec<UnoCard>, GameError> {
+    ) -> Result<Vec<UnoCard>, UnoGameError> {
         self.ensure_player(player)?;
         let mut cards = Vec::with_capacity(usize::from(count));
         for _ in 0..count {
@@ -319,20 +321,22 @@ impl GameState {
                 if self.sudden_death_active() {
                     break;
                 }
-                return Err(GameError::DrawPileExhausted);
+                return Err(UnoGameError::DrawPileExhausted);
             };
-            self.players[player.0].hand.push(card);
+            self.players[player.index()].hand.push(card);
             cards.push(card);
         }
-        self.players[player.0].hand.sort_by(UnoCard::display_cmp);
+        self.players[player.index()]
+            .hand
+            .sort_by(UnoCard::display_cmp);
         Ok(cards)
     }
 
     pub(super) fn draw_pending_penalty(
         &mut self,
-        player: UnoPlayerId,
+        player: PlayerId,
         extra: u16,
-    ) -> Result<Vec<UnoCard>, GameError> {
+    ) -> Result<Vec<UnoCard>, UnoGameError> {
         if self.pending_kind == Some(UnoPendingDrawKind::FlipWildDrawColor) {
             let colors = self.pending_draw_colors.clone();
             let mut cards = Vec::new();
@@ -376,14 +380,14 @@ impl GameState {
         self.pending_kind.is_some()
     }
 
-    pub(super) fn reveal_stack_number(&mut self) -> Result<(Vec<UnoCard>, u8), GameError> {
+    pub(super) fn reveal_stack_number(&mut self) -> Result<(Vec<UnoCard>, u8), UnoGameError> {
         let mut cards = Vec::new();
         let value = loop {
             self.replenish_draw_pile();
             let card = self
                 .draw_pile
                 .pop_front()
-                .ok_or(GameError::DrawPileExhausted)?;
+                .ok_or(UnoGameError::DrawPileExhausted)?;
             cards.push(card);
             if let UnoFace::Number(value) = card.face() {
                 break value;
@@ -397,9 +401,9 @@ impl GameState {
 
     pub(super) fn draw_until_color(
         &mut self,
-        player: UnoPlayerId,
+        player: PlayerId,
         color: UnoColor,
-    ) -> Result<Vec<UnoCard>, GameError> {
+    ) -> Result<Vec<UnoCard>, UnoGameError> {
         let mut cards = Vec::new();
         loop {
             self.replenish_draw_pile();
@@ -407,33 +411,35 @@ impl GameState {
                 if self.sudden_death_active() {
                     break;
                 }
-                return Err(GameError::DrawPileExhausted);
+                return Err(UnoGameError::DrawPileExhausted);
             };
-            self.players[player.0].hand.push(card);
+            self.players[player.index()].hand.push(card);
             cards.push(card);
             if card.color() == Some(color) || self.check_mercy_elimination(player) {
                 break;
             }
         }
-        self.players[player.0].hand.sort_by(UnoCard::display_cmp);
+        self.players[player.index()]
+            .hand
+            .sort_by(UnoCard::display_cmp);
         Ok(cards)
     }
 
-    pub(super) fn check_mercy_elimination(&mut self, player: UnoPlayerId) -> bool {
+    pub(super) fn check_mercy_elimination(&mut self, player: PlayerId) -> bool {
         if !self.rules.is_no_mercy()
             || !self.rules.no_mercy.mercy_elimination
-            || self.players[player.0].eliminated
-            || self.players[player.0].hand.len() < 25
+            || self.players[player.index()].eliminated
+            || self.players[player.index()].hand.len() < 25
         {
             return false;
         }
-        self.players[player.0].eliminated = true;
+        self.players[player.index()].eliminated = true;
         self.elimination_order.push(player);
         self.set_aside_cards
-            .append(&mut self.players[player.0].hand);
-        self.uno_exposed[player.0] = false;
-        self.uno_declared[player.0] = false;
-        self.skip_turns[player.0] = 0;
+            .append(&mut self.players[player.index()].hand);
+        self.uno_exposed[player.index()] = false;
+        self.uno_declared[player.index()] = false;
+        self.skip_turns[player.index()] = 0;
         if self
             .players
             .iter()
@@ -452,14 +458,15 @@ impl GameState {
         true
     }
 
-    pub(super) fn update_uno_after_play(&mut self, player: UnoPlayerId, declared_uno: bool) {
-        if self.rules.uno_callout() && self.players[player.0].hand.len() == 1 && !declared_uno {
-            self.uno_exposed[player.0] = true;
+    pub(super) fn update_uno_after_play(&mut self, player: PlayerId, declared_uno: bool) {
+        if self.rules.uno_callout() && self.players[player.index()].hand.len() == 1 && !declared_uno
+        {
+            self.uno_exposed[player.index()] = true;
         }
     }
 
-    pub(super) fn refresh_hand(&mut self, player: UnoPlayerId) -> Result<u16, GameError> {
-        let old_hand = mem::take(&mut self.players[player.0].hand);
+    pub(super) fn refresh_hand(&mut self, player: PlayerId) -> Result<u16, UnoGameError> {
+        let old_hand = mem::take(&mut self.players[player.index()].hand);
         let count = u16::try_from(old_hand.len()).unwrap_or(u16::MAX);
         let mut discard = old_hand;
         discard.append(&mut self.discard_pile);
@@ -477,7 +484,7 @@ impl GameState {
             .collect::<Vec<_>>();
         let mut old_hands = active
             .iter()
-            .map(|player| mem::take(&mut self.players[player.0].hand))
+            .map(|player| mem::take(&mut self.players[player.index()].hand))
             .collect::<Vec<_>>();
         let count = active.len();
         for (source, hand) in old_hands.iter_mut().enumerate() {
@@ -485,7 +492,7 @@ impl GameState {
                 UnoDirection::Clockwise => (source + 1) % count,
                 UnoDirection::CounterClockwise => (source + count - 1) % count,
             };
-            self.players[active[target_index].0].hand = mem::take(hand);
+            self.players[active[target_index].index()].hand = mem::take(hand);
         }
     }
 }

@@ -9,6 +9,7 @@ mod bot;
 mod card;
 mod game;
 mod meld;
+mod profile;
 mod rules;
 mod scoring;
 
@@ -18,16 +19,18 @@ pub use card::{
     build_deck,
 };
 pub use game::{
-    ActionOutcome, Discard, GameError, GameState, HandResult, MahjongClaim, MahjongClaimOption,
-    MahjongDrawOrigin, MahjongHandReplacementError, MahjongMatchProgress, MahjongWinAvailability,
-    PendingClaim, Phase, PlayerState, PublicMeld, PublicPlayerState, WinRecord,
+    MahjongActionOutcome, MahjongClaim, MahjongClaimOption, MahjongDiscard, MahjongDrawOrigin,
+    MahjongGameError, MahjongGameState, MahjongHandReplacementError, MahjongHandResult,
+    MahjongMatchProgress, MahjongPendingClaim, MahjongPhase, MahjongPlayerState, MahjongPublicMeld,
+    MahjongPublicPlayerState, MahjongWinAvailability, MahjongWinRecord,
 };
-pub use meld::{MahjongKongKind, MahjongMeldKind, Meld};
+pub use meld::{MahjongKongKind, MahjongMeld, MahjongMeldKind};
 pub use rules::{
-    MahjongMatchLength, MahjongPlayerId, MahjongRuleSet, MahjongUmaStyle, RuleError,
-    mahjong_reference_deltas,
+    MahjongMatchLength, MahjongRuleError, MahjongRuleSet, MahjongUmaStyle, mahjong_reference_deltas,
 };
 pub use scoring::{
-    Fan, FanValue, MahjongScoreResult, ScoreError, ScoreInput, WinContext, WinSource,
-    is_complete_hand, score_hand, waiting_tile_kinds,
+    MahjongFan, MahjongFanValue, MahjongScoreError, MahjongScoreInput, MahjongScoreResult,
+    MahjongWinContext, MahjongWinSource, is_complete_hand, score_hand, waiting_tile_kinds,
 };
+
+pub use profile::{MAHJONG_MAJOR_FANS, MahjongProfileStats};

@@ -2,7 +2,11 @@ use super::statistics::DoudizhuStatistics;
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, HostError, RoomSession};
 use leocard_doudizhu::achievements::DoudizhuAchievementTracker;
-use leocard_doudizhu::{Card, GameState, MatchState, Phase, RuleSet, auto_play_action, bot_action};
+use leocard_doudizhu::{
+    DoudizhuCard, DoudizhuGameState, DoudizhuMatchState, DoudizhuPhase, DoudizhuRuleSet,
+    auto_play_action, bot_action,
+};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
     ClientMessage, MatchId, PlayerReferenceChange, Revision, RoomId, ServerEvent,
 };
@@ -11,11 +15,11 @@ use std::time::Duration;
 #[derive(Clone, Debug)]
 pub struct DoudizhuSession {
     pub(super) room: RoomSession,
-    pub(super) rules: RuleSet,
-    pub(super) deck: Option<Vec<Card>>,
-    pub(super) game: Option<GameState>,
+    pub(super) rules: DoudizhuRuleSet,
+    pub(super) deck: Option<Vec<DoudizhuCard>>,
+    pub(super) game: Option<DoudizhuGameState>,
     pub(super) match_id: Option<MatchId>,
-    pub(super) match_state: Option<MatchState>,
+    pub(super) match_state: Option<DoudizhuMatchState>,
     pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
     pub(super) automatic_elapsed: Duration,
     pub(super) statistics: DoudizhuStatistics,
@@ -26,10 +30,10 @@ impl DoudizhuSession {
     pub fn new(
         room_id: RoomId,
         host_port: u16,
-        rules: RuleSet,
-        deck: Vec<Card>,
+        rules: DoudizhuRuleSet,
+        deck: Vec<DoudizhuCard>,
     ) -> Result<Self, HostError> {
-        GameState::new(rules, deck.clone(), 0)?;
+        DoudizhuGameState::new(rules, deck.clone(), PlayerId(0))?;
         Ok(Self {
             room: RoomSession::new_with_seat_count(
                 room_id,
@@ -84,7 +88,7 @@ impl DoudizhuSession {
         if elapsed.is_zero() {
             return Vec::new();
         }
-        if game.phase == Phase::Finished {
+        if game.phase == DoudizhuPhase::Finished {
             if !self.match_state.as_ref().expect("active match").complete() && self.everyone_ready()
             {
                 self.automatic_elapsed += elapsed;

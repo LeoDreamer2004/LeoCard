@@ -3,7 +3,8 @@ use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
 use leocard_client::{ItemId, PlayerEconomy};
-use leocard_protocol::ShengjiPhaseView;
+use leocard_protocol::{GameSnapshot, ShengjiPhaseView};
+
 use std::collections::hash_map::Entry;
 
 pub(in super::super) fn sync_missing_suits(
@@ -14,9 +15,13 @@ pub(in super::super) fn sync_missing_suits(
     mut ui: ResMut<UiState>,
 ) {
     let state = &mut game_ui.missing_suits;
-    let game = client
-        .as_deref()
-        .and_then(|client| client.0.model().shengji_game());
+    let game = client.as_deref().and_then(|client| {
+        client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::shengji)
+    });
     let active = game.is_some_and(|game| {
         matches!(game.phase, ShengjiPhaseView::Playing)
             && game.players.iter().any(|player| player.hand_len > 0)
@@ -35,9 +40,13 @@ pub(in super::super) fn sync_missing_suits(
         *age = (*age + time.delta_secs()).min(0.24);
     }
     if let Some(game) = game.filter(|_| active) {
-        for player in game.players.iter().filter(|player| player.id != game.you) {
+        for player in game
+            .players
+            .iter()
+            .filter(|player| player.player.id != game.you)
+        {
             for &door in &player.missing_suits {
-                if let Entry::Vacant(entry) = state.ages.entry((player.id, door)) {
+                if let Entry::Vacant(entry) = state.ages.entry((player.player.id, door)) {
                     entry.insert(0.0);
                     ui.dirty = true;
                 }

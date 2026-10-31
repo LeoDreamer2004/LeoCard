@@ -3,7 +3,7 @@ use std::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum BombKind {
+pub enum QiGuiBombKind {
     OfAKind { card_count: usize, rank: QiGuiRank },
 }
 
@@ -18,17 +18,17 @@ pub enum QiGuiPlayKind {
     TripleWithSingle,
     TripleWithPair,
     Airplane { triple_count: usize },
-    Bomb(BombKind),
+    Bomb(QiGuiBombKind),
     HeavenBomb,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ClassifiedPlay {
+pub struct QiGuiClassifiedPlay {
     pub(super) cards: Vec<QiGuiCard>,
     pub(super) kind: QiGuiPlayKind,
 }
 
-impl ClassifiedPlay {
+impl QiGuiClassifiedPlay {
     pub fn cards(&self) -> &[QiGuiCard] {
         &self.cards
     }
@@ -43,7 +43,7 @@ impl ClassifiedPlay {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PlayComparison {
+pub enum QiGuiPlayComparison {
     Greater,
     Equivalent,
     Lower,
@@ -51,14 +51,14 @@ pub enum PlayComparison {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum PlayError {
+pub enum QiGuiPlayError {
     Empty,
     DuplicatePhysicalCard(QiGuiCard),
     CardOutsideConfiguredDeck(QiGuiCard),
     InvalidPattern,
 }
 
-impl fmt::Display for PlayError {
+impl fmt::Display for QiGuiPlayError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Empty => f.write_str("出牌不能为空"),
@@ -69,4 +69,4 @@ impl fmt::Display for PlayError {
     }
 }
 
-impl std::error::Error for PlayError {}
+impl std::error::Error for QiGuiPlayError {}

@@ -4,11 +4,11 @@ use super::patterns::{
     max_matching, pure_shifted_chow_count, pure_shifted_pung_count, same_chow_count,
     set_has_terminal_or_honor, suit_summary,
 };
-use super::{Form, ScoreInput, Set, SetKind, WinSource};
+use super::{Form, MahjongScoreInput, MahjongWinSource, Set, SetKind};
 use crate::{MahjongKongKind, MahjongMeldKind, MahjongSuit, MahjongTileKind};
 
 pub(super) struct ScoreContext<'a> {
-    pub(super) input: &'a ScoreInput,
+    pub(super) input: &'a MahjongScoreInput,
     pub(super) form: &'a Form,
     pub(super) all_tiles: Vec<MahjongTileKind>,
     pub(super) sets_pair: Option<(&'a [Set], MahjongTileKind)>,
@@ -56,7 +56,7 @@ pub(super) struct ScoreContext<'a> {
 }
 
 impl<'a> ScoreContext<'a> {
-    pub(super) fn new(input: &'a ScoreInput, form: &'a Form) -> Self {
+    pub(super) fn new(input: &'a MahjongScoreInput, form: &'a Form) -> Self {
         let all_tiles = all_tile_kinds(input);
         let counts = kind_counts(&all_tiles);
         let sets_pair = match form {
@@ -178,7 +178,7 @@ impl<'a> ScoreContext<'a> {
         let melded_hand = sets_pair.is_some_and(|(sets, _)| {
             sets.len() == 4
                 && sets.iter().all(|set| set.open)
-                && matches!(input.context.source, WinSource::Discard(_))
+                && matches!(input.context.source, MahjongWinSource::Discard(_))
         });
         let outside = sets_pair.is_some_and(|(sets, pair)| {
             is_standard && pair.is_terminal_or_honor() && sets.iter().all(set_has_terminal_or_honor)
@@ -188,7 +188,7 @@ impl<'a> ScoreContext<'a> {
         let concealed_hand = input.melds.iter().all(|meld| !meld.is_open())
             && matches!(
                 input.context.source,
-                WinSource::Discard(_) | WinSource::RobbingKong(_)
+                MahjongWinSource::Discard(_) | MahjongWinSource::RobbingKong(_)
             );
         let all_chows = sets_pair.is_some_and(|(sets, pair)| {
             !pair.is_honor()

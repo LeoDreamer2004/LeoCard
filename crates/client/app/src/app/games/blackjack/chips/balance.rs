@@ -1,7 +1,8 @@
 use crate::app::presentation::{add_poker_balance_panel, poker_chip_counts};
 use crate::app::runtime::UiAssets;
-use bevy::prelude::*;
 use leocard_ui::UiComposer;
+
+use bevy::prelude::*;
 
 pub(in super::super) fn add_blackjack_balance(
     commands: &mut UiComposer,

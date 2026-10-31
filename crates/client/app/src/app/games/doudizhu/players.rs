@@ -5,11 +5,11 @@ use crate::app::presentation::{
     add_player_portrait, add_text, add_turn_border_trace_with_radius,
     attach_start_game_seat_transition,
 };
+use leocard_doudizhu::DoudizhuPhase;
+use leocard_protocol::{DoudizhuPlayerView, GameKind};
+use leocard_ui::{UiComposer, spawn_node};
 
 use bevy::prelude::*;
-use leocard_doudizhu::Phase;
-use leocard_protocol::{GameKind, PlayerPublicState};
-use leocard_ui::{UiComposer, spawn_node};
 
 impl DoudizhuTable<'_> {
     pub(super) fn players(
@@ -20,12 +20,15 @@ impl DoudizhuTable<'_> {
         intro: bool,
     ) {
         let game = self.game;
-        let own = game.players.iter().find(|player| player.id == game.you);
+        let own = game
+            .players
+            .iter()
+            .find(|player| player.player.id == game.you);
         let own_seat = own.map_or(0, |player| player.seat.0);
         let count = game.rules.mode.players();
         for player in &game.players {
             let relative = (player.seat.0 + count - own_seat) % count;
-            if Some(player.id) == own.map(|player| player.id) {
+            if Some(player.player.id) == own.map(|player| player.player.id) {
                 self.portrait(
                     commands,
                     hand_area,
@@ -56,7 +59,7 @@ impl DoudizhuTable<'_> {
                         },
                         None,
                     );
-                    self.play_area(commands, area, player.id, SeatSide::Top, false);
+                    self.play_area(commands, area, player.player.id, SeatSide::Top, false);
                 }
                 continue;
             }
@@ -64,7 +67,7 @@ impl DoudizhuTable<'_> {
             let side = layout.side;
             let slot = layout.spawn(commands, table);
             if matches!(side, SeatSide::Right) {
-                self.play_area(commands, slot, player.id, side, intro);
+                self.play_area(commands, slot, player.player.id, side, intro);
             }
             self.portrait(
                 commands,
@@ -84,7 +87,7 @@ impl DoudizhuTable<'_> {
                 intro,
             );
             if !matches!(side, SeatSide::Right) {
-                self.play_area(commands, slot, player.id, side, intro);
+                self.play_area(commands, slot, player.player.id, side, intro);
             }
         }
     }
@@ -93,7 +96,7 @@ impl DoudizhuTable<'_> {
         &mut self,
         commands: &mut UiComposer,
         parent: Entity,
-        player: &PlayerPublicState,
+        player: &DoudizhuPlayerView,
         node: Node,
         intro: bool,
     ) {
@@ -102,37 +105,44 @@ impl DoudizhuTable<'_> {
             parent,
             node,
             PlayerPortraitSpec {
-                player: player.id,
+                player: player.player.id,
                 profile: PlayerMenuProfile {
-                    name: &player.name,
-                    avatar: player.avatar.and_then(|id| self.avatars.remote.get(&id)),
-                    reference_points: player.reference_points,
-                    completed_games: player.completed_games,
-                    game_profiles: &player.game_profiles,
+                    name: &player.player.name,
+                    avatar: player
+                        .player
+                        .avatar
+                        .and_then(|id| self.avatars.remote.get(&id)),
+                    reference_points: player.player.reference_points,
+                    completed_games: player.player.completed_games,
+                    game_profiles: &player.player.game_profiles,
                 },
                 avatar_size: TRICK_AVATAR_SIZE,
                 auto_play: player.auto_play,
-                menu_open: !intro && self.social.interaction_menu_open == Some(player.id),
+                menu_open: !intro && self.social.interaction_menu_open == Some(player.player.id),
                 name_color: if player.connected { TEXT } else { MUTED },
             },
             self.assets,
         );
-        attach_start_game_seat_transition(commands, portrait.portrait, player.id, intro);
+        attach_start_game_seat_transition(commands, portrait.portrait, player.player.id, intro);
         if intro {
             return;
         }
-        if self.game.current == player.id && self.game.result.is_none() {
+        if self.game.current == player.player.id && self.game.result.is_none() {
             add_turn_border_trace_with_radius(
                 commands,
                 portrait.avatar_ring,
                 self.turn_materials,
-                TurnBorderAnimationKey::new(GameKind::Doudizhu, self.game.match_id, player.id),
+                TurnBorderAnimationKey::new(
+                    GameKind::Doudizhu,
+                    self.game.match_id,
+                    player.player.id,
+                ),
                 TRICK_AVATAR_SIZE * 0.2,
                 TRICK_AVATAR_SIZE,
             );
         }
-        if self.game.phase != Phase::Bidding {
-            let landlord = self.game.landlord == Some(player.id);
+        if self.game.phase != DoudizhuPhase::Bidding {
+            let landlord = self.game.landlord == Some(player.player.id);
             let badge = spawn_node(
                 commands,
                 portrait.portrait,
@@ -159,7 +169,7 @@ impl DoudizhuTable<'_> {
             commands,
             portrait.portrait,
             player.hand_len,
-            i64::from(self.game.scores[usize::from(player.id.0)]),
+            i64::from(self.game.scores[usize::from(player.player.id.0)]),
             self.assets,
         );
     }

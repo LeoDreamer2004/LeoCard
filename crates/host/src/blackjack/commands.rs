@@ -1,10 +1,10 @@
 use super::BlackjackSession;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery};
-use leocard_blackjack::{BlackjackAction, Phase};
+use leocard_blackjack::{BlackjackAction, BlackjackPhase};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    BlackjackCommand, BlackjackEvent, GameViolation, PlayerId, RejectReason, RequestId,
-    RoomViolation,
+    BlackjackCommand, BlackjackEvent, GameViolation, RejectReason, RequestId, RoomViolation,
 };
 use std::time::Duration;
 
@@ -64,7 +64,7 @@ impl BlackjackSession {
                 if self
                     .game
                     .as_ref()
-                    .is_some_and(|game| game.phase() == Phase::Complete)
+                    .is_some_and(|game| game.phase() == BlackjackPhase::Complete)
                 {
                     participant.ready = enabled;
                 }
@@ -87,10 +87,10 @@ impl BlackjackSession {
             .position(|id| *id == player)
             .expect("active match player");
         let game = self.game.as_mut().expect("active game");
-        game.act(index, action)
-            .map_err(|error| RejectReason::Game(GameViolation::Blackjack(error)))?;
+        game.act(PlayerId::from_index(index), action)
+            .map_err(|error| RejectReason::Game(error.into()))?;
         let round = game.round();
-        let finished = game.phase() == Phase::Complete;
+        let finished = game.phase() == BlackjackPhase::Complete;
         self.elapsed = Duration::ZERO;
         let mut events = vec![BlackjackEvent::ActionApplied { player, action }];
         if finished {

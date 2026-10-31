@@ -1,16 +1,17 @@
-use super::{MissingSuitsUi, state::MissingSuitMarker};
+use super::MissingSuitsUi;
+use super::state::MissingSuitMarker;
 use crate::app::presentation::{ACCENT, SeatSide, add_text};
 use crate::app::runtime::UiAssets;
-
-use bevy::{picking::Pickable, prelude::*};
-use leocard_protocol::ShengjiPlayerState;
-use leocard_shengji::Category;
+use bevy::picking::Pickable;
+use bevy::prelude::*;
+use leocard_protocol::ShengjiPlayerView;
+use leocard_shengji::ShengjiCategory;
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(in super::super) fn render_missing_suits(
     commands: &mut UiComposer,
     avatar: Entity,
-    player: &ShengjiPlayerState,
+    player: &ShengjiPlayerView,
     side: SeatSide,
     state: &MissingSuitsUi,
     assets: &UiAssets,
@@ -65,8 +66,8 @@ pub(in super::super) fn render_missing_suits(
     add_text(commands, circle, "缺", 14.0, ACCENT, assets);
     for &door in &player.missing_suits {
         let marker = match door {
-            Category::Trump => add_text(commands, column, "主", 23.0, ACCENT, assets),
-            Category::Suit(suit) => commands.child(
+            ShengjiCategory::Trump => add_text(commands, column, "主", 23.0, ACCENT, assets),
+            ShengjiCategory::Suit(suit) => commands.child(
                 column,
                 (
                     Node {
@@ -77,11 +78,11 @@ pub(in super::super) fn render_missing_suits(
                     ImageNode::new(assets.playing_cards.suit(suit)),
                 ),
             ),
-            Category::Mixed => continue,
+            ShengjiCategory::Mixed => continue,
         };
         commands.entity(marker).insert((
             MissingSuitMarker {
-                player: player.id,
+                player: player.player.id,
                 door,
             },
             UiTransform::IDENTITY,

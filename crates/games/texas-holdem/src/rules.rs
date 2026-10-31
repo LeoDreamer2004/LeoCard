@@ -2,7 +2,7 @@ use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TexasHoldemRuleSet {
+pub struct TexasRuleSet {
     pub player_count: u8,
     pub starting_chips: u16,
     /// Zero disables squid; otherwise at most player_count - 1 markers per round.
@@ -22,7 +22,7 @@ pub struct TexasHoldemRuleSet {
     pub deepseek_squid_double: bool,
 }
 
-impl TexasHoldemRuleSet {
+impl TexasRuleSet {
     pub const MIN_PLAYERS: u8 = 3;
     pub const MAX_PLAYERS: u8 = 8;
     pub const STARTING_CHIP_OPTIONS: [u16; 11] = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
@@ -40,31 +40,31 @@ impl TexasHoldemRuleSet {
             && !(player_count > 6 && self.short_deck && self.omaha)
     }
 
-    pub fn validate(self) -> Result<Self, RuleError> {
+    pub fn validate(self) -> Result<Self, TexasRuleError> {
         self.validate_options()?;
         if !self.supports_player_count(self.player_count) {
-            return Err(RuleError::ShortDeckOmahaPlayerCount(self.player_count));
+            return Err(TexasRuleError::ShortDeckOmahaPlayerCount(self.player_count));
         }
         Ok(self)
     }
 
     /// Validate lobby options independently of the room's seating capacity.
     /// The actual participant count is validated again when starting a hand.
-    pub fn validate_options(self) -> Result<Self, RuleError> {
+    pub fn validate_options(self) -> Result<Self, TexasRuleError> {
         if !(Self::MIN_PLAYERS..=Self::MAX_PLAYERS).contains(&self.player_count) {
-            return Err(RuleError::PlayerCount(self.player_count));
+            return Err(TexasRuleError::PlayerCount(self.player_count));
         }
         if !Self::STARTING_CHIP_OPTIONS.contains(&self.starting_chips) {
-            return Err(RuleError::StartingChips(self.starting_chips));
+            return Err(TexasRuleError::StartingChips(self.starting_chips));
         }
         if self.squid_markers >= self.player_count {
-            return Err(RuleError::SquidMarkers(self.squid_markers));
+            return Err(TexasRuleError::SquidMarkers(self.squid_markers));
         }
         Ok(self)
     }
 }
 
-impl Default for TexasHoldemRuleSet {
+impl Default for TexasRuleSet {
     fn default() -> Self {
         Self {
             player_count: 4,
@@ -80,14 +80,14 @@ impl Default for TexasHoldemRuleSet {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuleError {
+pub enum TexasRuleError {
     PlayerCount(u8),
     ShortDeckOmahaPlayerCount(u8),
     StartingChips(u16),
     SquidMarkers(u8),
 }
 
-impl fmt::Display for RuleError {
+impl fmt::Display for TexasRuleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::SquidMarkers(value) => write!(f, "鱿鱼标记数必须少于玩家人数，实际为 {value}"),
@@ -102,7 +102,7 @@ impl fmt::Display for RuleError {
     }
 }
 
-impl std::error::Error for RuleError {}
+impl std::error::Error for TexasRuleError {}
 
 #[cfg(test)]
 mod tests {
@@ -110,52 +110,52 @@ mod tests {
 
     #[test]
     fn validates_player_and_starting_chip_options() {
-        assert!(!TexasHoldemRuleSet::default().ignore_kickers);
-        assert!(!TexasHoldemRuleSet::default().omaha);
-        assert_eq!(TexasHoldemRuleSet::default().hole_card_count(), 2);
+        assert!(!TexasRuleSet::default().ignore_kickers);
+        assert!(!TexasRuleSet::default().omaha);
+        assert_eq!(TexasRuleSet::default().hole_card_count(), 2);
         assert_eq!(
-            TexasHoldemRuleSet {
+            TexasRuleSet {
                 omaha: true,
-                ..TexasHoldemRuleSet::default()
+                ..TexasRuleSet::default()
             }
             .hole_card_count(),
             4
         );
-        assert_eq!(TexasHoldemRuleSet::default().starting_chips, 20);
-        assert_eq!(TexasHoldemRuleSet::STARTING_CHIP_OPTIONS.last(), Some(&100));
-        for starting_chips in TexasHoldemRuleSet::STARTING_CHIP_OPTIONS {
+        assert_eq!(TexasRuleSet::default().starting_chips, 20);
+        assert_eq!(TexasRuleSet::STARTING_CHIP_OPTIONS.last(), Some(&100));
+        for starting_chips in TexasRuleSet::STARTING_CHIP_OPTIONS {
             assert!(
-                TexasHoldemRuleSet {
+                TexasRuleSet {
                     starting_chips,
-                    ..TexasHoldemRuleSet::default()
+                    ..TexasRuleSet::default()
                 }
                 .validate()
                 .is_ok()
             );
         }
         assert_eq!(
-            TexasHoldemRuleSet {
+            TexasRuleSet {
                 player_count: 2,
-                ..TexasHoldemRuleSet::default()
+                ..TexasRuleSet::default()
             }
             .validate(),
-            Err(RuleError::PlayerCount(2))
+            Err(TexasRuleError::PlayerCount(2))
         );
         assert_eq!(
-            TexasHoldemRuleSet {
+            TexasRuleSet {
                 starting_chips: 15,
-                ..TexasHoldemRuleSet::default()
+                ..TexasRuleSet::default()
             }
             .validate(),
-            Err(RuleError::StartingChips(15))
+            Err(TexasRuleError::StartingChips(15))
         );
         assert_eq!(
-            TexasHoldemRuleSet {
+            TexasRuleSet {
                 starting_chips: 110,
-                ..TexasHoldemRuleSet::default()
+                ..TexasRuleSet::default()
             }
             .validate(),
-            Err(RuleError::StartingChips(110))
+            Err(TexasRuleError::StartingChips(110))
         );
     }
 }

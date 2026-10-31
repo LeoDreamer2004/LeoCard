@@ -1,5 +1,5 @@
 use super::rows::{ProfileRowsBuilder, average_or_placeholder, rate_or_placeholder};
-use leocard_protocol::DoudizhuProfileStats;
+use leocard_doudizhu::DoudizhuProfileStats;
 
 pub(crate) fn doudizhu_profile_rows(
     stats: Option<&DoudizhuProfileStats>,

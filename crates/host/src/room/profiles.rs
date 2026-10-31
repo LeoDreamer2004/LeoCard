@@ -1,5 +1,6 @@
 use super::{Participant, RoomSession};
-use leocard_protocol::{PlayerId, PlayerReferenceChange};
+use leocard_game_common::PlayerId;
+use leocard_protocol::PlayerReferenceChange;
 
 impl RoomSession {
     /// 开发者模式始终记录；其他构建仅在机器人不足未离开玩家的三分之一时记录。

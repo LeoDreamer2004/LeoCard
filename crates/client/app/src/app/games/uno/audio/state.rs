@@ -1,6 +1,7 @@
 use super::*;
 use bevy::prelude::*;
-use leocard_protocol::{PlayerId, UnoEvent};
+use leocard_game_common::PlayerId;
+use leocard_protocol::UnoEvent;
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct UnoAudioCue {

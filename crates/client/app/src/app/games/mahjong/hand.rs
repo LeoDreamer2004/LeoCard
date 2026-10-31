@@ -13,10 +13,11 @@ use crate::app::presentation::GameSummaryAnimation;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use leocard_mahjong::MahjongTile;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 #[derive(Clone, Copy)]
 pub(super) struct MahjongWinningHandVisual {
@@ -66,7 +67,7 @@ pub(super) fn render_own_hand(
     let meld_count = game
         .players
         .iter()
-        .find(|player| player.id == game.you)
+        .find(|player| player.player.id == game.you)
         .map_or(0, |player| player.melds.len());
     let can_discard =
         matches!(game.phase, MahjongPhaseView::Playing) && game.current_player == game.you;

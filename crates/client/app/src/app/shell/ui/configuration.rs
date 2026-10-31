@@ -20,8 +20,6 @@ pub(crate) fn add_configuration_scroll(
         Node {
             width: percent(100),
             min_height: px(0),
-            flex_grow: 1.0,
-            flex_basis: px(0),
             ..default()
         },
     );

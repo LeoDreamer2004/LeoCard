@@ -11,6 +11,7 @@ use bevy::picking::events::PointerPress;
 use bevy::picking::pointer::{PointerAction, PointerButton, PointerInput};
 use bevy::prelude::*;
 use leocard_client::NetworkState;
+use leocard_protocol::GameSnapshot;
 
 #[derive(SystemParam)]
 pub(in super::super) struct UnoDragInput<'w, 's> {
@@ -63,7 +64,7 @@ pub(in super::super) fn update_uno_drag(
     }
     let game = context.client.as_deref().and_then(|client| {
         matches!(client.0.state(), NetworkState::Connected(_))
-            .then(|| client.0.model().uno_game())
+            .then(|| client.0.model().game_snapshot().and_then(GameSnapshot::uno))
             .flatten()
     });
     let Some(game) = game else {

@@ -7,14 +7,14 @@ use crate::app::presentation::{DESIGN_WIDTH, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_protocol::MahjongWinView;
+use leocard_mahjong::MahjongWinRecord;
 use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
 
 pub(super) fn add_major_stage_decorations(
     commands: &mut UiComposer,
     table: Entity,
-    winner: &MahjongWinView,
+    winner: &MahjongWinRecord,
     reveal_duration: f32,
     start: f32,
     duration: f32,

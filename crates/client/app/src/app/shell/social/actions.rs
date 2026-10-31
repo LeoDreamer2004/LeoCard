@@ -8,7 +8,8 @@ use super::PlayerInteractionCooldown;
 use crate::app::runtime::ClientResource;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_protocol::{ClientCommand, PlayerId, PlayerInteractionKind};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{ClientCommand, PlayerInteractionKind};
 
 #[derive(Clone)]
 pub(crate) enum SocialUiAction {

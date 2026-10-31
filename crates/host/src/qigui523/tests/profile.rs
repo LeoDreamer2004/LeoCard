@@ -1,10 +1,12 @@
 use super::*;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientCommand, GameCommand, GamePhaseView, MAX_PLAYER_NAME_CHARS, PlayerId, PlayerViolation,
-    QiGui523Command, ReconnectToken, RejectReason, RoomViolation, ServerEvent,
+    ClientCommand, GameCommand, MAX_PLAYER_NAME_CHARS, PlayerViolation, QiGui523Command,
+    QiGui523PhaseView, ReconnectToken, RejectReason, RoomViolation, ServerEvent,
 };
-use leocard_qigui523::TimeControl;
-use leocard_qigui523::{Phase, PlayRecord, QiGuiRuleSet, build_deck, reference_point_deltas};
+use leocard_qigui523::{
+    QiGuiPhase, QiGuiPlayRecord, QiGuiRuleSet, QiGuiTimeControl, build_deck, reference_point_deltas,
+};
 
 #[test]
 fn player_name_limit_counts_unicode_characters() {
@@ -53,8 +55,8 @@ fn finished_match_applies_reference_points_exactly_once() {
     ready_and_start(&mut session);
     finish_game(&mut session);
     let scores = match session.game().unwrap().phase() {
-        Phase::Finished(result) => result.scores.clone(),
-        Phase::Playing => unreachable!(),
+        QiGuiPhase::Finished(result) => result.scores.clone(),
+        QiGuiPhase::Playing => unreachable!(),
     };
     let expected = reference_point_deltas(&scores).unwrap();
     let expected_remaining_hands = session
@@ -103,7 +105,7 @@ fn finished_match_applies_reference_points_exactly_once() {
         qigui523_snapshot(&delivery.message.event).is_some_and(|snapshot| {
             matches!(
                 &snapshot.phase,
-                GamePhaseView::Finished {
+                QiGui523PhaseView::Finished {
                     reference_changes,
                     remaining_hands,
                     ..
@@ -168,7 +170,7 @@ fn only_host_can_close_room_and_every_connected_player_is_notified() {
 #[test]
 fn unlimited_time_control_never_creates_or_advances_a_turn_timer() {
     let configured_rules = QiGuiRuleSet {
-        time_control: TimeControl::Unlimited,
+        time_control: QiGuiTimeControl::Unlimited,
         ..rules()
     };
     let mut session = QiGui523Session::new(
@@ -193,7 +195,7 @@ fn unlimited_time_control_never_creates_or_advances_a_turn_timer() {
 #[test]
 fn turn_timer_spends_base_before_persistent_player_reserve() {
     let configured_rules = QiGuiRuleSet {
-        time_control: TimeControl::FivePlusTen,
+        time_control: QiGuiTimeControl::FivePlusTen,
         ..rules()
     };
     let mut session = QiGui523Session::new(
@@ -216,12 +218,7 @@ fn turn_timer_spends_base_before_persistent_player_reserve() {
     session.advance_time(Duration::from_secs(3));
     assert_eq!(session.turn_timer_view().unwrap().reserve_seconds, 7);
 
-    let card = session
-        .game()
-        .unwrap()
-        .player(to_core_player(timed_player))
-        .unwrap()
-        .hand()[0];
+    let card = session.game().unwrap().player(timed_player).unwrap().hand()[0];
     let connection = connection_for_player(&session, timed_player);
     send_next(
         &mut session,
@@ -242,7 +239,7 @@ fn turn_timer_spends_base_before_persistent_player_reserve() {
 #[test]
 fn timeout_lead_plays_exactly_the_smallest_single_card() {
     let configured_rules = QiGuiRuleSet {
-        time_control: TimeControl::FivePlusTen,
+        time_control: QiGuiTimeControl::FivePlusTen,
         ..rules()
     };
     let mut session = QiGui523Session::new(
@@ -259,7 +256,7 @@ fn timeout_lead_plays_exactly_the_smallest_single_card() {
     let expected = session
         .game()
         .unwrap()
-        .player(to_core_player(player))
+        .player(player)
         .unwrap()
         .hand()
         .iter()
@@ -272,8 +269,8 @@ fn timeout_lead_plays_exactly_the_smallest_single_card() {
     let game = session.game().unwrap();
     assert!(matches!(
         &game.trick().unwrap().records()[0],
-        PlayRecord::Played { player: record_player, play }
-            if *record_player == to_core_player(player) && play.cards() == [expected]
+        QiGuiPlayRecord::Played { player: record_player, play }
+            if *record_player == player && play.cards() == [expected]
     ));
     assert_eq!(session.turn_timer_view().unwrap().base_seconds, 5);
     assert_eq!(session.turn_timer_view().unwrap().reserve_seconds, 10);

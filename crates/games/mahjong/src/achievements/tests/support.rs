@@ -1,8 +1,12 @@
 use super::super::{MahjongAchievementEvent, MahjongHandFacts, MahjongWinFacts, register};
-use crate::{Fan, FanValue, MahjongMatchLength, MahjongMatchProgress, MahjongScoreResult};
-use leocard_achievements::{
-    AchievementBook, AchievementContext, AchievementRegistry, AchievementTrigger, ParticipantId,
+use crate::{
+    MahjongFan, MahjongFanValue, MahjongMatchLength, MahjongMatchProgress, MahjongScoreResult,
 };
+use leocard_achievements::{
+    AchievementBook, AchievementContext, AchievementRegistry, AchievementTrigger,
+};
+use leocard_game_common::PlayerId;
+
 use std::sync::LazyLock;
 
 pub(super) static REGISTRY: LazyLock<AchievementRegistry> = LazyLock::new(|| {
@@ -19,10 +23,10 @@ pub(super) struct Progress {
 
 impl Progress {
     pub(super) fn apply(&mut self, event: MahjongAchievementEvent) {
-        self.apply_for(ParticipantId(0), event);
+        self.apply_for(PlayerId(0), event);
     }
 
-    pub(super) fn apply_for(&mut self, player: ParticipantId, event: MahjongAchievementEvent) {
+    pub(super) fn apply_for(&mut self, player: PlayerId, event: MahjongAchievementEvent) {
         self.sequence += 1;
         self.book.trigger_with_registry(
             &AchievementTrigger::Game {
@@ -50,9 +54,9 @@ impl Progress {
 }
 
 pub(super) fn win(
-    fans: &[(Fan, u8)],
+    fans: &[(MahjongFan, u8)],
     flowers: u8,
-    from: Option<ParticipantId>,
+    from: Option<PlayerId>,
     concealed_hand: bool,
 ) -> MahjongAchievementEvent {
     let points = fans
@@ -62,13 +66,13 @@ pub(super) fn win(
     MahjongAchievementEvent::HandFinished {
         result: MahjongHandFacts {
             winners: vec![MahjongWinFacts {
-                player: ParticipantId(0),
+                player: PlayerId(0),
                 from,
                 concealed_hand,
                 score: MahjongScoreResult {
                     fans: fans
                         .iter()
-                        .map(|&(fan, count)| FanValue {
+                        .map(|&(fan, count)| MahjongFanValue {
                             fan,
                             count,
                             points: fan.points() * u16::from(count),

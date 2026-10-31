@@ -1,12 +1,14 @@
 use crate::achievements::{
-    DoudizhuAchievementEvent, DoudizhuAchievementFacts as Facts, DoudizhuHandFacts,
-    DoudizhuMatchFacts, DoudizhuPlayFacts, register,
+    DoudizhuAchievementEvent, DoudizhuAchievementFacts, DoudizhuHandFacts, DoudizhuMatchFacts,
+    DoudizhuPlayFacts, register,
 };
-use crate::{Mode, PlayKind};
+use crate::{DoudizhuMode, DoudizhuPlayKind};
 use leocard_achievements::{
     AchievementBook, AchievementCategory, AchievementContext, AchievementRegistry,
-    AchievementTrigger, ParticipantId,
+    AchievementTrigger,
 };
+use leocard_game_common::PlayerId;
+
 use std::collections::HashSet;
 use std::sync::LazyLock;
 
@@ -16,9 +18,9 @@ static REGISTRY: LazyLock<AchievementRegistry> = LazyLock::new(|| {
     registry
 });
 
-fn play(kind: PlayKind, card_count: u8) -> Facts {
-    Facts::Play(DoudizhuPlayFacts {
-        mode: Mode::Three,
+fn play(kind: DoudizhuPlayKind, card_count: u8) -> DoudizhuAchievementFacts {
+    DoudizhuAchievementFacts::Play(DoudizhuPlayFacts {
+        mode: DoudizhuMode::Three,
         kind,
         card_count,
         rank: 11,
@@ -29,11 +31,11 @@ fn play(kind: PlayKind, card_count: u8) -> Facts {
     })
 }
 
-fn trigger(player: u8, facts: Facts) -> AchievementTrigger {
+fn trigger(player: PlayerId, facts: DoudizhuAchievementFacts) -> AchievementTrigger {
     AchievementTrigger::Game {
-        player: ParticipantId(player),
+        player,
         event: DoudizhuAchievementEvent::ActionAnalyzed {
-            player: ParticipantId(0),
+            player: PlayerId(0),
             statistics: Box::new(facts),
         }
         .into(),
@@ -53,50 +55,50 @@ fn all_documented_achievements_register_and_unlock_for_the_right_recipient() {
         play_count: 2,
         score: 50,
     };
-    let whole = Facts::Match(DoudizhuMatchFacts {
+    let whole = DoudizhuAchievementFacts::Match(DoudizhuMatchFacts {
         score: 500,
         perfect_spring: true,
         first_to_last: true,
     });
-    let mut six = play(PlayKind::Single, 1);
-    if let Facts::Play(facts) = &mut six {
+    let mut six = play(DoudizhuPlayKind::Single, 1);
+    if let DoudizhuAchievementFacts::Play(facts) = &mut six {
         facts.rank = 3;
     }
     let cases = [
-        ("landlord_win", Facts::Hand(hand)),
+        ("landlord_win", DoudizhuAchievementFacts::Hand(hand)),
         (
             "farmer_win",
-            Facts::Hand(DoudizhuHandFacts {
+            DoudizhuAchievementFacts::Hand(DoudizhuHandFacts {
                 landlord: false,
                 ..hand
             }),
         ),
-        ("three_player_bomb", play(PlayKind::Bomb, 4)),
-        ("airplane", play(PlayKind::AirplaneSingles, 8)),
-        ("higher_airplane", play(PlayKind::AirplanePairs, 10)),
-        ("landlord_spring", Facts::Hand(hand)),
+        ("three_player_bomb", play(DoudizhuPlayKind::Bomb, 4)),
+        ("airplane", play(DoudizhuPlayKind::AirplaneSingles, 8)),
+        ("higher_airplane", play(DoudizhuPlayKind::AirplanePairs, 10)),
+        ("landlord_spring", DoudizhuAchievementFacts::Hand(hand)),
         (
             "farmer_spring",
-            Facts::Hand(DoudizhuHandFacts {
+            DoudizhuAchievementFacts::Hand(DoudizhuHandFacts {
                 landlord: false,
                 ..hand
             }),
         ),
         ("lead_six", six),
-        ("bomb_finish", Facts::Hand(hand)),
-        ("unavailable_exchange", Facts::Hand(hand)),
-        ("flower_bomb", Facts::FlowerBomb),
+        ("bomb_finish", DoudizhuAchievementFacts::Hand(hand)),
+        ("unavailable_exchange", DoudizhuAchievementFacts::Hand(hand)),
+        ("flower_bomb", DoudizhuAchievementFacts::FlowerBomb),
         ("first_to_last", whole),
-        ("three_bombs_in_trick", play(PlayKind::Bomb, 4)),
-        ("full_straight", play(PlayKind::Straight, 12)),
-        ("seven_pairs", play(PlayKind::Pairs, 14)),
-        ("four_airplane", play(PlayKind::Airplane, 12)),
-        ("fifty_points", Facts::Hand(hand)),
-        ("three_consecutive_bombs", play(PlayKind::Bomb, 4)),
+        ("three_bombs_in_trick", play(DoudizhuPlayKind::Bomb, 4)),
+        ("full_straight", play(DoudizhuPlayKind::Straight, 12)),
+        ("seven_pairs", play(DoudizhuPlayKind::Pairs, 14)),
+        ("four_airplane", play(DoudizhuPlayKind::Airplane, 12)),
+        ("fifty_points", DoudizhuAchievementFacts::Hand(hand)),
+        ("three_consecutive_bombs", play(DoudizhuPlayKind::Bomb, 4)),
         ("perfect_spring", whole),
-        ("all_bomb_hand", Facts::Hand(hand)),
+        ("all_bomb_hand", DoudizhuAchievementFacts::Hand(hand)),
         ("five_hundred_points", whole),
-        ("two_plays", Facts::Hand(hand)),
+        ("two_plays", DoudizhuAchievementFacts::Hand(hand)),
     ];
     let ids = cases
         .iter()
@@ -115,11 +117,11 @@ fn all_documented_achievements_register_and_unlock_for_the_right_recipient() {
         let definition = REGISTRY.by_id(&format!("leocard:doudizhu/{id}")).unwrap();
         let mut book = AchievementBook::default();
         assert!(
-            book.trigger_with_registry(&trigger(1, facts), None, 1, &REGISTRY)
+            book.trigger_with_registry(&trigger(PlayerId(1), facts), None, 1, &REGISTRY)
                 .unlocked
                 .is_empty()
         );
-        let event = trigger(0, facts);
+        let event = trigger(PlayerId(0), facts);
         let context = Some(AchievementContext {
             match_id: [1; 16],
             hand_index: Some(1),
@@ -137,38 +139,38 @@ fn all_documented_achievements_register_and_unlock_for_the_right_recipient() {
 
 #[test]
 fn thresholds_distinguish_bomb_modes_wings_team_wins_and_net_scores() {
-    let mut four_bomb = play(PlayKind::Bomb, 4);
-    if let Facts::Play(facts) = &mut four_bomb {
-        facts.mode = Mode::Four;
+    let mut four_bomb = play(DoudizhuPlayKind::Bomb, 4);
+    if let DoudizhuAchievementFacts::Play(facts) = &mut four_bomb {
+        facts.mode = DoudizhuMode::Four;
     }
-    let mut following_six = play(PlayKind::Single, 1);
-    if let Facts::Play(facts) = &mut following_six {
+    let mut following_six = play(DoudizhuPlayKind::Single, 1);
+    if let DoudizhuAchievementFacts::Play(facts) = &mut following_six {
         facts.rank = 3;
         facts.is_lead = false;
     }
     let cases = [
         ("three_player_bomb", four_bomb),
         ("lead_six", following_six),
-        ("four_airplane", play(PlayKind::AirplanePairs, 15)),
-        ("seven_pairs", play(PlayKind::Pairs, 12)),
-        ("full_straight", play(PlayKind::Straight, 11)),
+        ("four_airplane", play(DoudizhuPlayKind::AirplanePairs, 15)),
+        ("seven_pairs", play(DoudizhuPlayKind::Pairs, 12)),
+        ("full_straight", play(DoudizhuPlayKind::Straight, 11)),
         (
             "fifty_points",
-            Facts::Hand(DoudizhuHandFacts {
+            DoudizhuAchievementFacts::Hand(DoudizhuHandFacts {
                 score: 49,
                 ..Default::default()
             }),
         ),
         (
             "five_hundred_points",
-            Facts::Match(DoudizhuMatchFacts {
+            DoudizhuAchievementFacts::Match(DoudizhuMatchFacts {
                 score: 499,
                 ..Default::default()
             }),
         ),
         (
             "two_plays",
-            Facts::Hand(DoudizhuHandFacts {
+            DoudizhuAchievementFacts::Hand(DoudizhuHandFacts {
                 won: true,
                 play_count: 1,
                 ..Default::default()
@@ -176,7 +178,7 @@ fn thresholds_distinguish_bomb_modes_wings_team_wins_and_net_scores() {
         ),
         (
             "two_plays",
-            Facts::Hand(DoudizhuHandFacts {
+            DoudizhuAchievementFacts::Hand(DoudizhuHandFacts {
                 won: true,
                 finished_cards: true,
                 play_count: 3,
@@ -187,7 +189,7 @@ fn thresholds_distinguish_bomb_modes_wings_team_wins_and_net_scores() {
     for (id, facts) in cases {
         let definition = REGISTRY.by_id(&format!("leocard:doudizhu/{id}")).unwrap();
         let mut book = AchievementBook::default();
-        book.trigger_with_registry(&trigger(0, facts), None, 1, &REGISTRY);
+        book.trigger_with_registry(&trigger(PlayerId(0), facts), None, 1, &REGISTRY);
         assert!(!book.achieved(definition), "{id}");
     }
 }
@@ -205,7 +207,7 @@ fn landlord_and_farmer_wins_accumulate_separately_across_matches_and_deduplicate
             won: true,
             ..Default::default()
         };
-        let event = trigger(0, Facts::Hand(facts));
+        let event = trigger(PlayerId(0), DoudizhuAchievementFacts::Hand(facts));
         for sequence in 1..5000 {
             let context = Some(AchievementContext {
                 match_id: [u8::from(sequence > 2500); 16],
@@ -226,7 +228,12 @@ fn landlord_and_farmer_wins_accumulate_separately_across_matches_and_deduplicate
                 ..facts
             },
         ] {
-            book.trigger_with_registry(&trigger(0, Facts::Hand(invalid)), None, 5000, &REGISTRY);
+            book.trigger_with_registry(
+                &trigger(PlayerId(0), DoudizhuAchievementFacts::Hand(invalid)),
+                None,
+                5000,
+                &REGISTRY,
+            );
         }
         assert_eq!(book.criterion_count(definition, "progress"), 4999);
         let context = Some(AchievementContext {

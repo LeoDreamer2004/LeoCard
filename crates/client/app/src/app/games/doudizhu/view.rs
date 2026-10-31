@@ -11,10 +11,11 @@ use crate::app::shell::{
     ChatAuxiliaryAction, ChatPanelState, SocialUiState, UiAction, add_chat_panel,
     add_reconnecting_overlay,
 };
-use bevy::prelude::*;
-use leocard_doudizhu::Phase;
+use leocard_doudizhu::DoudizhuPhase;
 use leocard_protocol::DoudizhuSnapshot;
 use leocard_ui::{UiComposer, spawn_node, ui_component};
+
+use bevy::prelude::*;
 
 pub(crate) struct DoudizhuTable<'a> {
     pub client: &'a ClientResource,
@@ -149,7 +150,7 @@ pub(crate) fn render_doudizhu_table(
     let auto = game
         .players
         .iter()
-        .find(|p| p.id == game.you)
+        .find(|p| p.player.id == game.you)
         .map(|p| p.auto_play);
     add_chat_panel(
         commands,
@@ -160,7 +161,7 @@ pub(crate) fn render_doudizhu_table(
         &[
             ChatAuxiliaryAction {
                 label: "上轮",
-                action: (game.phase == Phase::Playing && context.ui.history.has_previous())
+                action: (game.phase == DoudizhuPhase::Playing && context.ui.history.has_previous())
                     .then_some(UiAction::Doudizhu(DoudizhuUiAction::ShowPreviousTrick)),
                 highlighted: false,
             },
@@ -185,12 +186,12 @@ pub(crate) fn render_doudizhu_table(
         let own_seat = game
             .players
             .iter()
-            .find(|player| player.id == game.you)
+            .find(|player| player.player.id == game.you)
             .map_or(0, |player| player.seat.0);
         let player_seat = game
             .players
             .iter()
-            .find(|player| player.id == effect.player)
+            .find(|player| player.player.id == effect.player)
             .map_or(own_seat, |player| player.seat.0);
         let count = game.rules.mode.players();
         let relative = (player_seat + count - own_seat) % count;

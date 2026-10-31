@@ -1,25 +1,27 @@
 use crate::{UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoRuleSet};
+use leocard_game_common::PlayerId;
+
 use std::collections::VecDeque;
 
 use super::{
-    ActionOutcome, GameError, GameState, PendingSwap, PendingSwapState, Phase, PlayerState,
-    TurnState, UnoDirection, UnoPlayerId, validate_deck,
+    PendingSwapState, UnoActionOutcome, UnoDirection, UnoGameError, UnoGameState, UnoPendingSwap,
+    UnoPhase, UnoPlayerState, UnoTurnState, validate_deck,
 };
 
-impl GameState {
+impl UnoGameState {
     /// `deck[0]` 是第一张发出的牌。
     pub fn new_with_deck(
         rules: UnoRuleSet,
         player_count: u8,
         deck: Vec<UnoCard>,
-    ) -> Result<Self, GameError> {
+    ) -> Result<Self, UnoGameError> {
         let rules = rules.validate()?;
         let player_count = UnoRuleSet::validate_player_count(player_count)?;
         validate_deck(&deck, rules)?;
         let mut draw_pile = VecDeque::from(deck);
         let mut players = (0..player_count)
-            .map(|index| PlayerState {
-                id: UnoPlayerId(usize::from(index)),
+            .map(|index| UnoPlayerState {
+                id: PlayerId::from_index(usize::from(index)),
                 hand: Vec::with_capacity(usize::from(UnoRuleSet::HAND_SIZE)),
                 eliminated: false,
             })
@@ -56,7 +58,7 @@ impl GameState {
             players,
             draw_pile,
             discard_pile: vec![top_card],
-            current_player: UnoPlayerId(0),
+            current_player: PlayerId(0),
             direction: UnoDirection::Clockwise,
             current_color: top_card.color(),
             pending_draw: 0,
@@ -79,7 +81,7 @@ impl GameState {
             elimination_order: Vec::new(),
             sudden_death_misses: 0,
             flip_side: rules.is_flip().then_some(UnoFlipSide::Light),
-            phase: Phase::Playing,
+            phase: UnoPhase::Playing,
         };
         if rules.is_classic() || rules.is_flip() {
             state.apply_starting_card()?;
@@ -91,20 +93,20 @@ impl GameState {
         &self.rules
     }
 
-    pub fn players(&self) -> &[PlayerState] {
+    pub fn players(&self) -> &[UnoPlayerState] {
         &self.players
     }
 
-    pub fn player(&self, player: UnoPlayerId) -> Option<&PlayerState> {
-        self.players.get(player.0)
+    pub fn player(&self, player: PlayerId) -> Option<&UnoPlayerState> {
+        self.players.get(player.index())
     }
 
-    pub const fn phase(&self) -> &Phase {
+    pub const fn phase(&self) -> &UnoPhase {
         &self.phase
     }
 
-    pub fn turn(&self) -> Option<TurnState> {
-        matches!(self.phase, Phase::Playing).then(|| TurnState {
+    pub fn turn(&self) -> Option<UnoTurnState> {
+        matches!(self.phase, UnoPhase::Playing).then(|| UnoTurnState {
             current_player: self.current_player,
             direction: self.direction,
             current_color: self.current_color,
@@ -115,13 +117,13 @@ impl GameState {
             challenge_offender: self.challenge.map(|challenge| challenge.offender),
             drawn_card: self.drawn_card,
             pending_skip: self.pending_skip,
-            skipped_turns_remaining: self.skip_turns[self.current_player.0],
+            skipped_turns_remaining: self.skip_turns[self.current_player.index()],
             pending_swap: self.pending_swap.map(PendingSwapState::public),
             sudden_death_free_play: self.sudden_death_free_play(),
         })
     }
 
-    pub fn pending_swap(&self) -> Option<PendingSwap> {
+    pub fn pending_swap(&self) -> Option<UnoPendingSwap> {
         self.pending_swap.map(PendingSwapState::public)
     }
 
@@ -153,33 +155,33 @@ impl GameState {
         self.draw_pile.iter().copied()
     }
 
-    pub fn skipped_turns(&self, player: UnoPlayerId) -> Option<u16> {
-        self.skip_turns.get(player.0).copied()
+    pub fn skipped_turns(&self, player: PlayerId) -> Option<u16> {
+        self.skip_turns.get(player.index()).copied()
     }
 
-    pub fn uno_exposed_players(&self) -> impl Iterator<Item = UnoPlayerId> + '_ {
+    pub fn uno_exposed_players(&self) -> impl Iterator<Item = PlayerId> + '_ {
         self.uno_exposed
             .iter()
             .enumerate()
-            .filter_map(|(index, exposed)| exposed.then_some(UnoPlayerId(index)))
+            .filter_map(|(index, exposed)| exposed.then_some(PlayerId::from_index(index)))
     }
 
-    pub fn uno_declared_players(&self) -> impl Iterator<Item = UnoPlayerId> + '_ {
+    pub fn uno_declared_players(&self) -> impl Iterator<Item = PlayerId> + '_ {
         self.uno_declared
             .iter()
             .enumerate()
-            .filter_map(|(index, declared)| declared.then_some(UnoPlayerId(index)))
+            .filter_map(|(index, declared)| declared.then_some(PlayerId::from_index(index)))
     }
 
     /// 返回该玩家当前唯一可抢出的物理牌。经典 108 张牌中每种彩色牌面至多
     /// 两张，桌面已经有一张，因此至多只会找到一张候选牌。
-    pub fn jump_in_card(&self, player: UnoPlayerId) -> Option<UnoCard> {
-        if !matches!(self.phase, Phase::Playing)
+    pub fn jump_in_card(&self, player: PlayerId) -> Option<UnoCard> {
+        if !matches!(self.phase, UnoPhase::Playing)
             || !self.jump_in_enabled()
             || !self.jump_in_open
             || self.pending_swap.is_some()
             || player == self.current_player
-            || self.skip_turns.get(player.0).copied().unwrap_or(0) > 0
+            || self.skip_turns.get(player.index()).copied().unwrap_or(0) > 0
         {
             return None;
         }
@@ -191,7 +193,7 @@ impl GameState {
             return None;
         }
         self.players
-            .get(player.0)?
+            .get(player.index())?
             .hand
             .iter()
             .copied()
@@ -200,17 +202,17 @@ impl GameState {
 
     pub fn choose_initial_color(
         &mut self,
-        player: UnoPlayerId,
+        player: PlayerId,
         color: UnoColor,
-    ) -> Result<ActionOutcome, GameError> {
+    ) -> Result<UnoActionOutcome, UnoGameError> {
         self.ensure_playing()?;
         self.ensure_player(player)?;
         if !self.color_allowed(color) {
-            return Err(GameError::UnexpectedColor);
+            return Err(UnoGameError::UnexpectedColor);
         }
         if let Some(PendingSwapState::ChooseColor { player: expected }) = self.pending_swap {
             if player != expected {
-                return Err(GameError::NotPlayersTurn {
+                return Err(UnoGameError::NotPlayersTurn {
                     expected,
                     actual: player,
                 });
@@ -219,11 +221,11 @@ impl GameState {
             self.pending_swap = None;
             self.current_player = self.next_player(player);
             self.finish_pending_game();
-            return Ok(ActionOutcome::ColorChosen { player, color });
+            return Ok(UnoActionOutcome::ColorChosen { player, color });
         }
         if let Some(PendingSwapState::ColorRoulette { player: expected }) = self.pending_swap {
             if player != expected {
-                return Err(GameError::NotPlayersTurn {
+                return Err(UnoGameError::NotPlayersTurn {
                     expected,
                     actual: player,
                 });
@@ -235,7 +237,7 @@ impl GameState {
             let next_player = self.next_player(player);
             self.current_player = next_player;
             self.finish_pending_game();
-            return Ok(ActionOutcome::ColorRouletteResolved {
+            return Ok(UnoActionOutcome::ColorRouletteResolved {
                 player,
                 color,
                 cards,
@@ -243,7 +245,7 @@ impl GameState {
             });
         }
         if self.pending_swap.is_some() {
-            return Err(GameError::MustResolveSwapEffect);
+            return Err(UnoGameError::MustResolveSwapEffect);
         }
         if self.current_color.is_some()
             || !self
@@ -251,10 +253,10 @@ impl GameState {
                 .last()
                 .is_some_and(|card| card.face().is_wild())
         {
-            return Err(GameError::InitialColorAlreadyChosen);
+            return Err(UnoGameError::InitialColorAlreadyChosen);
         }
         self.ensure_turn(player)?;
         self.current_color = Some(color);
-        Ok(ActionOutcome::ColorChosen { player, color })
+        Ok(UnoActionOutcome::ColorChosen { player, color })
     }
 }

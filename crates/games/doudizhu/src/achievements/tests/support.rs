@@ -1,22 +1,27 @@
 use crate::achievements::{
     DoudizhuAchievementFacts, DoudizhuAchievementTracker, DoudizhuActionContext,
 };
-use crate::{Action, Card, GameState, Mode, RuleSet, build_deck};
+use crate::{
+    DoudizhuAction, DoudizhuCard, DoudizhuGameState, DoudizhuMode, DoudizhuRuleSet, build_deck,
+};
+use leocard_game_common::PlayerId;
 use std::collections::HashSet;
 
-pub(super) fn bomb(rank: u8) -> Vec<Card> {
-    (0..4).map(|suit| Card(rank * 4 + suit)).collect()
+pub(super) fn bomb(rank: u8) -> Vec<DoudizhuCard> {
+    (0..4).map(|suit| DoudizhuCard(rank * 4 + suit)).collect()
 }
 
-pub(super) fn game(prefixes: [Vec<Card>; 3]) -> (GameState, DoudizhuAchievementTracker) {
-    game_with_kitty(Mode::Three, &prefixes, &[])
+pub(super) fn game(
+    prefixes: [Vec<DoudizhuCard>; 3],
+) -> (DoudizhuGameState, DoudizhuAchievementTracker) {
+    game_with_kitty(DoudizhuMode::Three, &prefixes, &[])
 }
 
 pub(super) fn game_with_kitty(
-    mode: Mode,
-    prefixes: &[Vec<Card>],
-    kitty: &[Card],
-) -> (GameState, DoudizhuAchievementTracker) {
+    mode: DoudizhuMode,
+    prefixes: &[Vec<DoudizhuCard>],
+    kitty: &[DoudizhuCard],
+) -> (DoudizhuGameState, DoudizhuAchievementTracker) {
     let count = usize::from(mode.players());
     assert_eq!(prefixes.len(), count);
     assert!(kitty.is_empty() || kitty.len() == mode.kitty_len());
@@ -40,18 +45,19 @@ pub(super) fn game_with_kitty(
     }
     deck.extend_from_slice(kitty);
     deck.extend(rest);
-    let mut game = GameState::new(RuleSet::for_mode(mode), deck, 0).unwrap();
+    let mut game =
+        DoudizhuGameState::new(DoudizhuRuleSet::for_mode(mode), deck, PlayerId(0)).unwrap();
     let mut tracker = DoudizhuAchievementTracker::new(mode.players());
-    accepted(&mut game, &mut tracker, 0, Action::Bid(3));
+    accepted(&mut game, &mut tracker, PlayerId(0), DoudizhuAction::Bid(3));
     (game, tracker)
 }
 
 pub(super) fn accepted(
-    game: &mut GameState,
+    game: &mut DoudizhuGameState,
     tracker: &mut DoudizhuAchievementTracker,
-    player: u8,
-    action: Action,
-) -> Vec<(u8, DoudizhuAchievementFacts)> {
+    player: PlayerId,
+    action: DoudizhuAction,
+) -> Vec<(PlayerId, DoudizhuAchievementFacts)> {
     let before = DoudizhuActionContext::capture(game);
     game.act(player, action.clone()).unwrap();
     tracker.observe_action(player, &action, before, game)

@@ -1,8 +1,10 @@
-use crate::SquidAwardStatistics;
+use crate::TexasSquidAwardStatistics;
 use crate::achievements::{TexasAchievementEvent, register};
 use leocard_achievements::{
-    AchievementBook, AchievementContext, AchievementRegistry, AchievementTrigger, ParticipantId,
+    AchievementBook, AchievementContext, AchievementRegistry, AchievementTrigger,
 };
+use leocard_game_common::PlayerId;
+
 use std::sync::LazyLock;
 
 static REGISTRY: LazyLock<AchievementRegistry> = LazyLock::new(|| {
@@ -11,12 +13,12 @@ static REGISTRY: LazyLock<AchievementRegistry> = LazyLock::new(|| {
     registry
 });
 
-fn award(book: &mut AchievementBook, sequence: u128, statistics: SquidAwardStatistics) {
+fn award(book: &mut AchievementBook, sequence: u128, statistics: TexasSquidAwardStatistics) {
     book.trigger_with_registry(
         &AchievementTrigger::Game {
-            player: ParticipantId(0),
+            player: PlayerId(0),
             event: TexasAchievementEvent::SquidAwarded {
-                player: ParticipantId(0),
+                player: PlayerId(0),
                 statistics,
             }
             .into(),
@@ -38,7 +40,7 @@ fn achieved(book: &AchievementBook, id: &str) -> bool {
 #[test]
 fn squid_achievement_thresholds_use_current_round_holdings_and_ignore_other_players() {
     let mut book = AchievementBook::default();
-    let mut statistics = SquidAwardStatistics {
+    let mut statistics = TexasSquidAwardStatistics {
         deepseek: false,
         owned: 2,
         deepseek_owned: 0,
@@ -65,13 +67,13 @@ fn squid_achievement_thresholds_use_current_round_holdings_and_ignore_other_play
     ));
     statistics.deepseek_owned = 5;
     let event = TexasAchievementEvent::SquidAwarded {
-        player: ParticipantId(0),
+        player: PlayerId(0),
         statistics,
     };
     let mut other = AchievementBook::default();
     let result = other.trigger_with_registry(
         &AchievementTrigger::Game {
-            player: ParticipantId(1),
+            player: PlayerId(1),
             event: event.into(),
         },
         None,
@@ -89,7 +91,7 @@ fn squid_achievement_thresholds_use_current_round_holdings_and_ignore_other_play
 #[test]
 fn fifty_deepseek_squid_accumulate_across_rounds_with_live_event_deduplication() {
     let mut book = AchievementBook::default();
-    let statistics = SquidAwardStatistics {
+    let statistics = TexasSquidAwardStatistics {
         deepseek: true,
         owned: 1,
         deepseek_owned: 1,

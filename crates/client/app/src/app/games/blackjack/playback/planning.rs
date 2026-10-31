@@ -2,7 +2,7 @@ use super::state::{
     BlackjackCardSlot, BlackjackCardTiming, BlackjackPlayback, DEALER_FLIP_DURATION,
 };
 use crate::app::presentation::CARD_DEAL_INTERVAL;
-use leocard_blackjack::{BlackjackCard, Phase};
+use leocard_blackjack::{BlackjackCard, BlackjackPhase};
 use leocard_protocol::BlackjackSnapshot;
 use std::slice;
 
@@ -33,10 +33,10 @@ impl BlackjackPlayback {
         } else if let Some(before) = &previous {
             self.player_draws(before, game, &mut sounds);
         }
-        if game.phase == Phase::Complete
+        if game.phase == BlackjackPhase::Complete
             && previous
                 .as_ref()
-                .is_none_or(|before| before.phase != Phase::Complete)
+                .is_none_or(|before| before.phase != BlackjackPhase::Complete)
         {
             self.reveal_dealer(game, &mut sounds);
         }
@@ -56,7 +56,7 @@ impl BlackjackPlayback {
 
     fn initial_deal(&mut self, game: &BlackjackSnapshot, sounds: &mut Vec<f32>) {
         let mut players: Vec<_> = game.players.iter().collect();
-        players.sort_by_key(|view| view.player.seat.map(|seat| seat.0));
+        players.sort_by_key(|view| view.seat.0);
         let mut at = self.elapsed;
         for index in 0..2 {
             for player in &players {
@@ -107,7 +107,7 @@ impl BlackjackPlayback {
             };
             let mut old_hands: Vec<&[BlackjackCard]> =
                 old.hands.iter().map(|hand| hand.cards.as_slice()).collect();
-            if before.phase == Phase::Playing
+            if before.phase == BlackjackPhase::Playing
                 && before.current_player == Some(player.player.id)
                 && player.hands.len() == old_hands.len() + 1
                 && let Some(index) = before.current_hand.map(usize::from)

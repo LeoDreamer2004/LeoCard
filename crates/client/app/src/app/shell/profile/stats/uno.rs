@@ -1,5 +1,5 @@
 use super::rows::{ProfileRowsBuilder, rate_or_placeholder};
-use leocard_protocol::UnoProfileStats;
+use leocard_uno::UnoProfileStats;
 
 pub(crate) fn uno_profile_rows(stats: Option<&UnoProfileStats>) -> Vec<(&'static str, String)> {
     const LABELS: [&str; 23] = [

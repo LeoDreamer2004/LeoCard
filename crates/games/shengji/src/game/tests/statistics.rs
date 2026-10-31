@@ -1,12 +1,13 @@
 use super::dealt_game;
 use crate::{
-    ActionOutcome, GameState, Phase, ShengjiCard as Card, ShengjiGreedyBot,
-    ShengjiGreedyBotRequest, ShengjiPlayerId as Player, ShengjiRank as Rank, ShengjiRedealReason,
-    ShengjiRuleSet, ShengjiSuit as Suit, ShengjiTrump, TeamProgress, build_deck,
+    ShengjiActionOutcome, ShengjiCard, ShengjiGameState, ShengjiGreedyBot, ShengjiGreedyBotRequest,
+    ShengjiPhase, ShengjiRank, ShengjiRedealReason, ShengjiRuleSet, ShengjiSuit,
+    ShengjiTeamProgress, ShengjiTrump, build_deck,
 };
+use leocard_game_common::PlayerId;
 
-fn finish(game: &mut GameState) {
-    while game.phase() == &Phase::Playing {
+fn finish(game: &mut ShengjiGameState) {
+    while game.phase() == &ShengjiPhase::Playing {
         let player = game.current_player().unwrap();
         let trick = game.current_trick();
         let play = ShengjiGreedyBot::choose(ShengjiGreedyBotRequest {
@@ -44,7 +45,9 @@ fn complete_opening_and_burial_facts_are_released_only_after_settlement() {
                 player
                     .hand
                     .iter()
-                    .filter(|card| matches!(card.rank(), Rank::SmallJoker | Rank::BigJoker))
+                    .filter(|card| {
+                        matches!(card.rank(), ShengjiRank::SmallJoker | ShengjiRank::BigJoker)
+                    })
                     .count() as u8,
             )
         })
@@ -68,40 +71,45 @@ fn complete_opening_and_burial_facts_are_released_only_after_settlement() {
             assert!(facts.burial.is_none());
         }
     }
-    assert!(game.hand_statistics(Player(4)).is_none());
+    assert!(game.hand_statistics(PlayerId(4)).is_none());
 }
 
 #[test]
 fn first_trick_cut_records_the_actual_cutter_even_if_overtrumped_later() {
-    let mut game = GameState::standard(build_deck()).unwrap();
-    game.dealer = Some(Player(0));
-    game.trump = Some(ShengjiTrump::new(Rank::Two, Some(Suit::Heart)).unwrap());
+    let mut game = ShengjiGameState::standard(build_deck()).unwrap();
+    game.dealer = Some(PlayerId(0));
+    game.trump = Some(ShengjiTrump::new(ShengjiRank::Two, Some(ShengjiSuit::Heart)).unwrap());
     let first = [
-        Card::suited(0, Suit::Diamond, Rank::Ten),
-        Card::suited(0, Suit::Heart, Rank::Three),
-        Card::suited(0, Suit::Heart, Rank::Four),
-        Card::suited(0, Suit::Club, Rank::Ten),
+        ShengjiCard::suited(0, ShengjiSuit::Diamond, ShengjiRank::Ten),
+        ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Three),
+        ShengjiCard::suited(0, ShengjiSuit::Heart, ShengjiRank::Four),
+        ShengjiCard::suited(0, ShengjiSuit::Club, ShengjiRank::Ten),
     ];
     for (index, player) in game.players.iter_mut().enumerate() {
         player.hand = vec![
             first[index],
-            Card::suited(
+            ShengjiCard::suited(
                 1,
-                Suit::Spade,
-                [Rank::Three, Rank::Four, Rank::Five, Rank::Six][index],
+                ShengjiSuit::Spade,
+                [
+                    ShengjiRank::Three,
+                    ShengjiRank::Four,
+                    ShengjiRank::Five,
+                    ShengjiRank::Six,
+                ][index],
             ),
         ];
     }
     game.start_playing();
     for (index, card) in first.into_iter().enumerate() {
-        game.play_cards(Player(index as u8), &[card]).unwrap();
+        game.play_cards(PlayerId(index as u8), &[card]).unwrap();
     }
-    assert_eq!(game.history()[0].winner, Player(2));
-    assert!(game.hand_statistics(Player(1)).is_none());
+    assert_eq!(game.history()[0].winner, PlayerId(2));
+    assert!(game.hand_statistics(PlayerId(1)).is_none());
     finish(&mut game);
     for player in 0..4 {
         assert_eq!(
-            game.hand_statistics(Player(player))
+            game.hand_statistics(PlayerId(player))
                 .unwrap()
                 .first_trick_cut_dealer,
             player == 1
@@ -118,28 +126,42 @@ fn exhausted_bottom_redeal_retains_the_actual_power_outage_reason() {
             ..ShengjiRuleSet::default()
         };
         // All copies of these four faces stay in the kitty, so nobody can match a reveal.
-        let kitty = [Rank::Three, Rank::Four, Rank::Six, Rank::Seven]
-            .into_iter()
-            .flat_map(|rank| (0..2).map(move |deck| Card::suited(deck, Suit::Diamond, rank)))
-            .collect::<Vec<_>>();
+        let kitty = [
+            ShengjiRank::Three,
+            ShengjiRank::Four,
+            ShengjiRank::Six,
+            ShengjiRank::Seven,
+        ]
+        .into_iter()
+        .flat_map(|rank| {
+            (0..2).map(move |deck| ShengjiCard::suited(deck, ShengjiSuit::Diamond, rank))
+        })
+        .collect::<Vec<_>>();
         let mut deck = build_deck();
         deck.retain(|card| !kitty.contains(card));
         deck.extend(kitty);
-        let mut game =
-            GameState::new(rules, TeamProgress::default(), None, Player(0), deck).unwrap();
+        let mut game = ShengjiGameState::new(
+            rules,
+            ShengjiTeamProgress::default(),
+            None,
+            PlayerId(0),
+            deck,
+        )
+        .unwrap();
         game.deal_all().unwrap();
         if power_outage_dealer {
             assert!(matches!(
                 game.close_bidding_and_take_kitty().unwrap(),
-                ActionOutcome::PowerOutageDealerChanged { .. }
+                ShengjiActionOutcome::PowerOutageDealerChanged { .. }
             ));
         }
         assert_eq!(
             game.close_bidding_and_take_kitty().unwrap(),
-            ActionOutcome::BottomFlipStarted
+            ShengjiActionOutcome::BottomFlipStarted
         );
         for _ in 0..8 {
-            let ActionOutcome::BottomCardRevealed(reveal) = game.flip_next_bottom_card().unwrap()
+            let ShengjiActionOutcome::BottomCardRevealed(reveal) =
+                game.flip_next_bottom_card().unwrap()
             else {
                 panic!("bottom reveal");
             };
@@ -147,10 +169,10 @@ fn exhausted_bottom_redeal_retains_the_actual_power_outage_reason() {
         }
         assert_eq!(
             game.phase(),
-            &Phase::RedealRequired(ShengjiRedealReason::BottomFlipExhausted {
+            &ShengjiPhase::RedealRequired(ShengjiRedealReason::BottomFlipExhausted {
                 power_outage_used: power_outage_dealer
             })
         );
-        assert!(game.hand_statistics(Player(0)).is_none());
+        assert!(game.hand_statistics(PlayerId(0)).is_none());
     }
 }

@@ -1,11 +1,12 @@
 use super::super::UnoSession;
 use super::*;
 use crate::ConnectionId;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientCommand, GameCommand, GameEvent, PlayerId, ServerEvent, ServerMessage, UnoCommand,
-    UnoEvent, decode_frame, encode_frame,
+    ClientCommand, GameCommand, GameEvent, ServerEvent, ServerMessage, UnoCommand, UnoEvent,
+    decode_frame, encode_frame,
 };
-use leocard_uno::{Phase, UnoBot, UnoRuleSet, build_deck};
+use leocard_uno::{UnoBot, UnoPhase, UnoRuleSet, build_deck};
 
 fn session() -> UnoSession {
     let mut session = UnoSession::new(ROOM, 52300, UnoRuleSet::default(), build_deck()).unwrap();
@@ -46,7 +47,7 @@ fn analysis_is_private_sequenced_and_only_emitted_for_accepted_actions() {
         .face()
         .is_wild()
         .then(|| UnoBot::preferred_color(game.player(player).unwrap().hand(), game.flip_side()));
-    let connection = session.room.players[player.0].connection;
+    let connection = session.room.players[player.index()].connection;
     let request = session.room.last_requests[&connection].0 + 1;
     let command = ClientCommand::Game(GameCommand::Uno(UnoCommand::PlayCard {
         card,
@@ -79,7 +80,7 @@ fn automatic_actions_emit_one_completion_per_player_and_snapshots_do_not_replay_
     let mut session = session();
     let mut completions = [0; 2];
     for _ in 0..5_000 {
-        if matches!(session.game().unwrap().phase(), Phase::Finished(_)) {
+        if matches!(session.game().unwrap().phase(), UnoPhase::Finished(_)) {
             break;
         }
         let (events, _) = session.play_automatic_action().unwrap();
@@ -91,7 +92,7 @@ fn automatic_actions_emit_one_completion_per_player_and_snapshots_do_not_replay_
             })) = delivery.message.event
             {
                 assert_eq!(session.room.player_id(delivery.recipient), Some(player));
-                assert_eq!(player, PlayerId(statistics.player.0 as u8));
+                assert_eq!(player, PlayerId(statistics.player.0));
                 assert!(delivery.message.game_context.is_some());
                 if statistics.completed_game {
                     completions[usize::from(player.0)] += 1;

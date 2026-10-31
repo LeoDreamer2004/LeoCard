@@ -3,10 +3,11 @@ use super::cards::{CardRowStyle, card_row_aligned};
 use crate::app::presentation::{
     ACCENT, CardSize, MUTED, SeatSide, add_text, spawn_trick_play_area,
 };
+use leocard_game_common::PlayerId;
 
 use bevy::prelude::*;
-use leocard_doudizhu::{Action, Phase};
-use leocard_protocol::PlayerId;
+use leocard_doudizhu::{DoudizhuAction, DoudizhuPhase};
+
 use leocard_ui::{UiComposer, spawn_node};
 
 impl DoudizhuTable<'_> {
@@ -22,7 +23,7 @@ impl DoudizhuTable<'_> {
         if intro {
             return;
         }
-        if self.game.phase == Phase::Bidding {
+        if self.game.phase == DoudizhuPhase::Bidding {
             if let Some(bid) = self.game.bids.get(usize::from(player.0)).copied().flatten() {
                 add_text(
                     commands,
@@ -52,7 +53,7 @@ impl DoudizhuTable<'_> {
         let cards = revealed
             .map(|hand| (hand.as_slice(), CardSize::FinishedHand))
             .or(match action {
-                Some(Action::Play(cards)) => Some((cards.as_slice(), CardSize::TrickSeat)),
+                Some(DoudizhuAction::Play(cards)) => Some((cards.as_slice(), CardSize::TrickSeat)),
                 _ => None,
             });
         if let Some((cards, size)) = cards {
@@ -106,7 +107,7 @@ impl DoudizhuTable<'_> {
                 },
                 self.assets,
             );
-        } else if matches!(action, Some(Action::Pass)) {
+        } else if matches!(action, Some(DoudizhuAction::Pass)) {
             add_text(commands, area, "不出", 28.0, MUTED, self.assets);
         }
     }

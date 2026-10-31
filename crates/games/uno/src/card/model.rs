@@ -249,12 +249,12 @@ impl fmt::Display for UnoFace {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CardSide {
+pub struct UnoCardSide {
     color: Option<UnoColor>,
     face: UnoFace,
 }
 
-impl CardSide {
+impl UnoCardSide {
     pub const fn colored(color: UnoColor, face: UnoFace) -> Self {
         Self {
             color: Some(color),
@@ -289,7 +289,7 @@ pub struct UnoCard {
     color: Option<UnoColor>,
     face: UnoFace,
     copy: u8,
-    opposite: Option<CardSide>,
+    opposite: Option<UnoCardSide>,
 }
 
 impl UnoCard {
@@ -376,7 +376,7 @@ impl UnoCard {
         }
     }
 
-    pub const fn paired(active: CardSide, opposite: CardSide, copy: u8) -> Self {
+    pub const fn paired(active: UnoCardSide, opposite: UnoCardSide, copy: u8) -> Self {
         Self {
             color: active.color,
             face: active.face,
@@ -397,7 +397,7 @@ impl UnoCard {
         self.copy
     }
 
-    pub const fn opposite(self) -> Option<CardSide> {
+    pub const fn opposite(self) -> Option<UnoCardSide> {
         self.opposite
     }
 
@@ -411,7 +411,7 @@ impl UnoCard {
                 color: opposite.color,
                 face: opposite.face,
                 copy: self.copy,
-                opposite: Some(CardSide {
+                opposite: Some(UnoCardSide {
                     color: self.color,
                     face: self.face,
                 }),

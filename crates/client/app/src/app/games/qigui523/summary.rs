@@ -4,12 +4,13 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SummaryActions, add_summary_actions};
-use bevy::prelude::*;
-use leocard_protocol::{GamePhaseView, QiGui523Snapshot};
+use leocard_protocol::{QiGui523PhaseView, QiGui523Snapshot};
 use leocard_ui::UiComposer;
 
+use bevy::prelude::*;
+
 pub(crate) fn qigui523_summary_descriptor(game: &QiGui523Snapshot) -> Option<SummaryDescriptor> {
-    let GamePhaseView::Finished {
+    let QiGui523PhaseView::Finished {
         match_id,
         scores,
         reference_changes,
@@ -38,7 +39,7 @@ pub(super) fn add_game_summary_modal(
     avatars: &AvatarImages,
     animation: &GameSummaryAnimation,
 ) {
-    let GamePhaseView::Finished {
+    let QiGui523PhaseView::Finished {
         finisher,
         scores,
         reference_changes,
@@ -50,8 +51,8 @@ pub(super) fn add_game_summary_modal(
     let finisher_name = game
         .players
         .iter()
-        .find(|player| player.id == *finisher)
-        .map_or("玩家", |player| player.name.as_str());
+        .find(|player| player.player.id == *finisher)
+        .map_or("玩家", |player| player.player.name.as_str());
     let caption = format!("{finisher_name} 率先出完手牌");
     let actions = add_ranked_summary(
         commands,
@@ -61,13 +62,13 @@ pub(super) fn add_game_summary_modal(
                 .players
                 .iter()
                 .map(|player| SummaryPlayer {
-                    id: player.id,
+                    id: player.player.id,
                     profile: PlayerMenuProfile {
-                        name: &player.name,
-                        avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
-                        reference_points: player.reference_points,
-                        completed_games: player.completed_games,
-                        game_profiles: &player.game_profiles,
+                        name: &player.player.name,
+                        avatar: player.player.avatar.and_then(|id| avatars.remote.get(&id)),
+                        reference_points: player.player.reference_points,
+                        completed_games: player.player.completed_games,
+                        game_profiles: &player.player.game_profiles,
                     },
                     ready: player.ready,
                 })
@@ -89,7 +90,7 @@ pub(super) fn add_game_summary_modal(
             ready: game
                 .players
                 .iter()
-                .find(|player| player.id == game.you)
+                .find(|player| player.player.id == game.you)
                 .map(|player| player.ready),
             again: "再来一局",
         },

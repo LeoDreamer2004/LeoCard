@@ -4,7 +4,7 @@ use super::super::structure::{
 use crate::play::structure::StructureDemands;
 use crate::{ShengjiCard, ShengjiSuit, ShengjiTrump};
 
-use super::super::{Component, PairUnit, ShengjiClassifiedPlay, category, strength};
+use super::super::{PairUnit, ShengjiClassifiedPlay, ShengjiComponent, category, strength};
 use super::{
     forced_cards_for_hierarchy, special_follow_card_sets, special_follow_hierarchy,
     triple_follow_rank, validate_follow,
@@ -36,7 +36,10 @@ pub fn forced_follow_cards(
         return forced_cards_for_hierarchy(hand, &same_category, trump, &hierarchy);
     }
 
-    if matches!(lead.components.as_slice(), [Component::Triple { .. }]) {
+    if matches!(
+        lead.components.as_slice(),
+        [ShengjiComponent::Triple { .. }]
+    ) {
         match triple_follow_rank(&same_category) {
             2 => {
                 let triples = triple_units(&same_category, trump);
@@ -53,7 +56,7 @@ pub fn forced_follow_cards(
             _ => {}
         }
     }
-    if let [Component::Titanic { triple_count, .. }] = lead.components.as_slice() {
+    if let [ShengjiComponent::Titanic { triple_count, .. }] = lead.components.as_slice() {
         let titanics = titanic_card_sets(&same_category, trump, usize::from(*triple_count));
         if let Some(first) = titanics.first() {
             let mut intersection = first.iter().copied().collect::<HashSet<_>>();

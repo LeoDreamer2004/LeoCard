@@ -1,22 +1,27 @@
 use super::ShengjiBot;
+use crate::ShengjiTeamId;
 use crate::{
-    BidState, Declaration, GameState, Phase, ShengjiCard, ShengjiPlayerId, ShengjiRank,
+    ShengjiBidState, ShengjiCard, ShengjiDeclaration, ShengjiGameState, ShengjiPhase, ShengjiRank,
     ShengjiRuleSet, ShengjiSuit, ShengjiTrump, bid_joker_for_suit,
 };
+use leocard_game_common::PlayerId;
 
 /// Only the bot's own hand and public bidding information are needed for declarations.
 pub struct ShengjiBiddingObservation<'a> {
-    bidding: &'a BidState,
-    player: ShengjiPlayerId,
+    bidding: &'a ShengjiBidState,
+    player: PlayerId,
     hand: &'a [ShengjiCard],
     rules: ShengjiRuleSet,
-    dealer: Option<ShengjiPlayerId>,
+    dealer: Option<PlayerId>,
     dealt: usize,
 }
 
 impl<'a> ShengjiBiddingObservation<'a> {
-    pub fn from_game(game: &'a GameState, player: ShengjiPlayerId) -> Option<Self> {
-        if !matches!(game.phase(), Phase::Dealing | Phase::BiddingGrace) {
+    pub fn from_game(game: &'a ShengjiGameState, player: PlayerId) -> Option<Self> {
+        if !matches!(
+            game.phase(),
+            ShengjiPhase::Dealing | ShengjiPhase::BiddingGrace
+        ) {
             return None;
         }
         Some(Self {
@@ -41,7 +46,7 @@ impl<'a> ShengjiBiddingObservation<'a> {
         })
     }
 
-    fn permits(&self, declaration: &Declaration) -> bool {
+    fn permits(&self, declaration: &ShengjiDeclaration) -> bool {
         let Some(dealer) = self.dealer else {
             return true;
         };
@@ -77,7 +82,7 @@ impl<'a> ShengjiBiddingObservation<'a> {
         if self.player == dealer {
             return self.dealt * 2 >= total && (current.is_none() || protecting || enough_suit(80));
         }
-        if self.player.team() == dealer.team() {
+        if ShengjiTeamId::of(self.player) == ShengjiTeamId::of(dealer) {
             return complete
                 && current.is_none_or(|current| current.player != dealer)
                 && (current.is_none() || protecting || enough_suit(70));
@@ -213,31 +218,29 @@ mod tests {
     }
 
     fn observation<'a>(
-        bidding: &'a BidState,
+        bidding: &'a ShengjiBidState,
         hand: &'a [ShengjiCard],
     ) -> ShengjiBiddingObservation<'a> {
         ShengjiBiddingObservation {
             bidding,
-            player: ShengjiPlayerId(0),
+            player: PlayerId(0),
             hand,
             rules: ShengjiRuleSet::default(),
-            dealer: Some(ShengjiPlayerId(0)),
+            dealer: Some(PlayerId(0)),
             dealt: 100,
         }
     }
 
     #[test]
     fn opening_bids_immediately_and_protects_with_only_new_cards() {
-        let mut bidding = BidState::new(ShengjiRank::Two);
+        let mut bidding = ShengjiBidState::new(ShengjiRank::Two);
         let hand = make_hand(8, 10);
         let first = hand[0];
         let mut request = observation(&bidding, &hand[..1]);
         request.dealer = None;
         request.dealt = 1;
         assert_eq!(ShengjiBot::declaration(&request), Some(vec![first]));
-        bidding
-            .declare(ShengjiPlayerId(0), &[first], &hand)
-            .unwrap();
+        bidding.declare(PlayerId(0), &[first], &hand).unwrap();
         let mut request = observation(&bidding, &hand);
         request.dealer = None;
         let cards = ShengjiBot::declaration(&request).unwrap();
@@ -254,13 +257,11 @@ mod tests {
 
     #[test]
     fn no_trump_can_also_be_strengthened_without_self_countering_to_another_suit() {
-        let mut bidding = BidState::new_with_decks(ShengjiRank::Two, 4);
+        let mut bidding = ShengjiBidState::new_with_decks(ShengjiRank::Two, 4);
         let hand: Vec<_> = (0..4).map(ShengjiCard::big_joker).collect();
-        bidding
-            .declare(ShengjiPlayerId(1), &hand[..2], &hand)
-            .unwrap();
+        bidding.declare(PlayerId(1), &hand[..2], &hand).unwrap();
         let mut request = observation(&bidding, &hand);
-        request.player = ShengjiPlayerId(1);
+        request.player = PlayerId(1);
         request.rules.deck_count = 4;
         request.dealt = 208;
         assert_eq!(ShengjiBot::declaration(&request), Some(hand[2..].to_vec()));
@@ -268,41 +269,37 @@ mod tests {
 
     #[test]
     fn dealer_and_partner_wait_and_respect_counter_thresholds() {
-        let mut bidding = BidState::new(ShengjiRank::Two);
+        let mut bidding = ShengjiBidState::new(ShengjiRank::Two);
         let hand = make_hand(8, 10);
         let mut request = observation(&bidding, &hand);
         request.dealt = 49;
         assert!(ShengjiBot::declaration(&request).is_none());
         request.dealt = 50;
         assert_eq!(ShengjiBot::declaration(&request).unwrap().len(), 2);
-        request.player = ShengjiPlayerId(2);
+        request.player = PlayerId(2);
         request.dealt = 99;
         assert!(ShengjiBot::declaration(&request).is_none());
         request.dealt = 100;
         assert!(ShengjiBot::declaration(&request).is_some());
         let card = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Two);
-        bidding
-            .declare(ShengjiPlayerId(1), &[card], &[card])
-            .unwrap();
+        bidding.declare(PlayerId(1), &[card], &[card]).unwrap();
         for (player, hearts, expected) in [(0, 7, false), (0, 8, true), (2, 6, false), (2, 7, true)]
         {
             let hand = make_hand(hearts, 10);
             let mut request = observation(&bidding, &hand);
-            request.player = ShengjiPlayerId(player);
+            request.player = PlayerId(player);
             assert_eq!(ShengjiBot::declaration(&request).is_some(), expected);
         }
-        let mut dealer_bid = BidState::new(ShengjiRank::Two);
-        dealer_bid
-            .declare(ShengjiPlayerId(0), &[card], &[card])
-            .unwrap();
+        let mut dealer_bid = ShengjiBidState::new(ShengjiRank::Two);
+        dealer_bid.declare(PlayerId(0), &[card], &[card]).unwrap();
         let mut request = observation(&dealer_bid, &hand);
-        request.player = ShengjiPlayerId(2);
+        request.player = PlayerId(2);
         assert!(ShengjiBot::declaration(&request).is_none());
     }
 
     #[test]
     fn opponents_observe_all_four_rule_combinations() {
-        let bidding = BidState::new(ShengjiRank::Two);
+        let bidding = ShengjiBidState::new(ShengjiRank::Two);
         for (power, copy, dealt, hearts, expected) in [
             (true, true, 100, 12, false),
             (false, true, 99, 12, false),
@@ -315,7 +312,7 @@ mod tests {
         ] {
             let hand = make_hand(hearts, 0);
             let mut request = observation(&bidding, &hand);
-            request.player = ShengjiPlayerId(1);
+            request.player = PlayerId(1);
             request.rules.power_outage_dealer = power;
             request.rules.bottom_copy = copy;
             request.dealt = dealt;
@@ -327,9 +324,7 @@ mod tests {
         }
         let mut bidding = bidding;
         let card = ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Two);
-        bidding
-            .declare(ShengjiPlayerId(0), &[card], &[card])
-            .unwrap();
+        bidding.declare(PlayerId(0), &[card], &[card]).unwrap();
         for (power, copy, dealt, hearts, expected) in [
             (true, true, 100, 12, false),
             (false, true, 100, 12, false),
@@ -342,7 +337,7 @@ mod tests {
         ] {
             let hand = make_hand(hearts, 10);
             let mut request = observation(&bidding, &hand);
-            request.player = ShengjiPlayerId(1);
+            request.player = PlayerId(1);
             request.rules.power_outage_dealer = power;
             request.rules.bottom_copy = copy;
             request.dealt = dealt;
@@ -356,7 +351,7 @@ mod tests {
 
     #[test]
     fn longest_suit_is_chosen_and_own_bid_is_only_strengthened_without_copy() {
-        let mut bidding = BidState::new(ShengjiRank::Two);
+        let mut bidding = ShengjiBidState::new(ShengjiRank::Two);
         let mut hand = make_hand(8, 9);
         hand.push(ShengjiCard::suited(0, ShengjiSuit::Spade, ShengjiRank::Two));
         hand.push(ShengjiCard::suited(1, ShengjiSuit::Spade, ShengjiRank::Two));
@@ -368,11 +363,9 @@ mod tests {
                 .all(|card| card.suit() == Some(ShengjiSuit::Spade))
         );
         let first = hand[0];
-        bidding
-            .declare(ShengjiPlayerId(1), &[first], &hand)
-            .unwrap();
+        bidding.declare(PlayerId(1), &[first], &hand).unwrap();
         let mut request = observation(&bidding, &hand);
-        request.player = ShengjiPlayerId(1);
+        request.player = PlayerId(1);
         assert_eq!(ShengjiBot::declaration(&request), Some(vec![hand[1]]));
     }
 }

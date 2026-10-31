@@ -1,6 +1,8 @@
 use super::events::{ShengjiAchievementEvent, ShengjiDeclarationFacts, ShengjiPlayFacts};
+use crate::ShengjiTeamId;
 use crate::{
-    Component, ShengjiBidKind, ShengjiHandStatistics, ShengjiMatchStatistics, ShengjiRedealReason,
+    ShengjiBidKind, ShengjiComponent, ShengjiHandStatistics, ShengjiMatchStatistics,
+    ShengjiRedealReason,
 };
 use leocard_achievements::AchievementTrigger;
 
@@ -94,11 +96,11 @@ pub(super) fn first_cut(trigger: &AchievementTrigger) -> u64 {
 }
 
 pub(super) fn attacking(facts: &ShengjiHandStatistics) -> bool {
-    facts.player.team() == facts.result.collecting_team
+    ShengjiTeamId::of(facts.player) == facts.result.collecting_team
 }
 
 pub(super) fn defending(facts: &ShengjiHandStatistics) -> bool {
-    facts.player.team() == facts.result.dealer_team
+    ShengjiTeamId::of(facts.player) == facts.result.dealer_team
 }
 
 pub(super) fn attack_promotes(facts: &ShengjiHandStatistics, steps: u8) -> bool {
@@ -119,10 +121,10 @@ pub(super) fn captured_with_structure(facts: &ShengjiHandStatistics) -> bool {
         && facts.last_winning_play.components.iter().any(|component| {
             matches!(
                 component,
-                Component::Quad { .. }
-                    | Component::Tractor { .. }
-                    | Component::Titanic { .. }
-                    | Component::Spaceship { .. }
+                ShengjiComponent::Quad { .. }
+                    | ShengjiComponent::Tractor { .. }
+                    | ShengjiComponent::Titanic { .. }
+                    | ShengjiComponent::Spaceship { .. }
             )
         })
 }

@@ -1,6 +1,6 @@
-use super::super::{UnoSession, from_core_player};
+use super::super::UnoSession;
 use crate::{AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState};
-use leocard_protocol::PlayerId;
+use leocard_game_common::PlayerId;
 
 impl UnoSession {
     pub(in super::super) fn automatically_resolves_skip(&self) -> bool {
@@ -18,11 +18,7 @@ impl UnoSession {
     }
 
     pub(in super::super) fn current_automatic_player(&self) -> Option<PlayerId> {
-        let current = self
-            .game
-            .as_ref()?
-            .turn()
-            .map(|turn| from_core_player(turn.current_player))?;
+        let current = self.game.as_ref()?.turn().map(|turn| turn.current_player)?;
         self.room
             .players
             .iter()

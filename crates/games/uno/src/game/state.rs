@@ -1,20 +1,20 @@
-use crate::{RuleError, UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoRuleSet, build_deck_for_rules};
-use leocard_game_common::{DeckError, has_unique_cards, validate_deck as validate_physical_deck};
+use crate::{
+    UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoRuleError, UnoRuleSet, build_deck_for_rules,
+};
+use leocard_game_common::{
+    DeckError, PlayerId, has_unique_cards, validate_deck as validate_physical_deck,
+};
 use std::{collections::VecDeque, fmt};
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct UnoPlayerId(pub usize);
-
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlayerState {
-    pub(super) id: UnoPlayerId,
+pub struct UnoPlayerState {
+    pub(super) id: PlayerId,
     pub(super) hand: Vec<UnoCard>,
     pub(super) eliminated: bool,
 }
 
-impl PlayerState {
-    pub const fn id(&self) -> UnoPlayerId {
+impl UnoPlayerState {
+    pub const fn id(&self) -> PlayerId {
         self.id
     }
 
@@ -61,85 +61,74 @@ pub enum UnoPendingDrawKind {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct TurnState {
-    pub current_player: UnoPlayerId,
+pub struct UnoTurnState {
+    pub current_player: PlayerId,
     pub direction: UnoDirection,
     pub current_color: Option<UnoColor>,
     pub top_card: UnoCard,
     pub pending_draw: u16,
     pub pending_kind: Option<UnoPendingDrawKind>,
-    pub pending_draw_source: Option<UnoPlayerId>,
-    pub challenge_offender: Option<UnoPlayerId>,
+    pub pending_draw_source: Option<PlayerId>,
+    pub challenge_offender: Option<PlayerId>,
     pub drawn_card: Option<UnoCard>,
     pub pending_skip: u16,
     pub skipped_turns_remaining: u16,
-    pub pending_swap: Option<PendingSwap>,
+    pub pending_swap: Option<UnoPendingSwap>,
     pub sudden_death_free_play: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PendingSwap {
-    SwapOneTarget {
-        player: UnoPlayerId,
-    },
-    SwapOneGive {
-        player: UnoPlayerId,
-        target: UnoPlayerId,
-    },
-    ForceTrade {
-        player: UnoPlayerId,
-    },
-    ChooseColor {
-        player: UnoPlayerId,
-    },
-    SevenSwap {
-        player: UnoPlayerId,
-    },
-    ColorRoulette {
-        player: UnoPlayerId,
-    },
+pub enum UnoPendingSwap {
+    SwapOneTarget { player: PlayerId },
+    SwapOneGive { player: PlayerId, target: PlayerId },
+    ForceTrade { player: PlayerId },
+    ChooseColor { player: PlayerId },
+    SevenSwap { player: PlayerId },
+    ColorRoulette { player: PlayerId },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum PendingSwapState {
     SwapOneTarget {
-        player: UnoPlayerId,
+        player: PlayerId,
         declared_uno: bool,
     },
     SwapOneGive {
-        player: UnoPlayerId,
-        target: UnoPlayerId,
+        player: PlayerId,
+        target: PlayerId,
         declared_uno: bool,
     },
     ForceTrade {
-        player: UnoPlayerId,
+        player: PlayerId,
     },
     ChooseColor {
-        player: UnoPlayerId,
+        player: PlayerId,
     },
     SevenSwap {
-        player: UnoPlayerId,
+        player: PlayerId,
     },
     ColorRoulette {
-        player: UnoPlayerId,
+        player: PlayerId,
     },
 }
 
 impl PendingSwapState {
-    pub(super) const fn public(self) -> PendingSwap {
+    pub(super) const fn public(self) -> UnoPendingSwap {
         match self {
-            Self::SwapOneTarget { player, .. } => PendingSwap::SwapOneTarget { player },
-            Self::SwapOneGive { player, target, .. } => PendingSwap::SwapOneGive { player, target },
-            Self::ForceTrade { player } => PendingSwap::ForceTrade { player },
-            Self::ChooseColor { player } => PendingSwap::ChooseColor { player },
-            Self::SevenSwap { player } => PendingSwap::SevenSwap { player },
-            Self::ColorRoulette { player } => PendingSwap::ColorRoulette { player },
+            Self::SwapOneTarget { player, .. } => UnoPendingSwap::SwapOneTarget { player },
+            Self::SwapOneGive { player, target, .. } => {
+                UnoPendingSwap::SwapOneGive { player, target }
+            }
+            Self::ForceTrade { player } => UnoPendingSwap::ForceTrade { player },
+            Self::ChooseColor { player } => UnoPendingSwap::ChooseColor { player },
+            Self::SevenSwap { player } => UnoPendingSwap::SevenSwap { player },
+            Self::ColorRoulette { player } => UnoPendingSwap::ColorRoulette { player },
         }
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum PlayedEffect {
+pub enum UnoPlayedEffect {
     HandRefreshed {
         count: u16,
     },
@@ -147,7 +136,7 @@ pub enum PlayedEffect {
         direction: UnoDirection,
     },
     DrawReflected {
-        player: UnoPlayerId,
+        player: PlayerId,
         cards: Vec<UnoCard>,
     },
     StackNumberRevealed {
@@ -163,17 +152,17 @@ pub enum PlayedEffect {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct GameResult {
-    pub winner: UnoPlayerId,
+pub struct UnoGameResult {
+    pub winner: PlayerId,
     pub hand_scores: Vec<u16>,
     pub placements: Vec<u8>,
     pub reference_deltas: Vec<i16>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Phase {
+pub enum UnoPhase {
     Playing,
-    Finished(GameResult),
+    Finished(UnoGameResult),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -184,89 +173,89 @@ pub enum UnoChallengeResult {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ActionOutcome {
+pub enum UnoActionOutcome {
     ColorChosen {
-        player: UnoPlayerId,
+        player: PlayerId,
         color: UnoColor,
     },
     Played {
-        player: UnoPlayerId,
+        player: PlayerId,
         card: UnoCard,
-        next_player: UnoPlayerId,
-        effect: Option<PlayedEffect>,
+        next_player: PlayerId,
+        effect: Option<UnoPlayedEffect>,
     },
     SwapOneCardTaken {
-        player: UnoPlayerId,
-        target: UnoPlayerId,
+        player: PlayerId,
+        target: PlayerId,
     },
     SwapOneCompleted {
-        player: UnoPlayerId,
-        target: UnoPlayerId,
-        next_player: UnoPlayerId,
+        player: PlayerId,
+        target: PlayerId,
+        next_player: PlayerId,
     },
     HandsTraded {
-        player: UnoPlayerId,
-        first: UnoPlayerId,
-        second: UnoPlayerId,
+        player: PlayerId,
+        first: PlayerId,
+        second: PlayerId,
     },
     DrewCards {
-        player: UnoPlayerId,
+        player: PlayerId,
         cards: Vec<UnoCard>,
         playable: Option<UnoCard>,
-        next_player: UnoPlayerId,
+        next_player: PlayerId,
     },
     PassedAfterDraw {
-        player: UnoPlayerId,
-        next_player: UnoPlayerId,
+        player: PlayerId,
+        next_player: PlayerId,
     },
     PenaltyDrawn {
-        player: UnoPlayerId,
+        player: PlayerId,
         cards: Vec<UnoCard>,
-        next_player: UnoPlayerId,
+        next_player: PlayerId,
     },
     ChallengeResolved {
-        challenger: UnoPlayerId,
-        offender: UnoPlayerId,
+        challenger: PlayerId,
+        offender: PlayerId,
         result: UnoChallengeResult,
-        penalized: UnoPlayerId,
+        penalized: PlayerId,
         cards: Vec<UnoCard>,
-        next_player: UnoPlayerId,
+        next_player: PlayerId,
     },
     UnoCalled {
-        player: UnoPlayerId,
+        player: PlayerId,
     },
     UnoReported {
-        reporter: UnoPlayerId,
-        target: UnoPlayerId,
+        reporter: PlayerId,
+        target: PlayerId,
         cards: Vec<UnoCard>,
     },
     SkipResolved {
-        player: UnoPlayerId,
+        player: PlayerId,
         cards: Vec<UnoCard>,
         remaining: u16,
-        next_player: UnoPlayerId,
+        next_player: PlayerId,
     },
     ColorRouletteResolved {
-        player: UnoPlayerId,
+        player: PlayerId,
         color: UnoColor,
         cards: Vec<UnoCard>,
-        next_player: UnoPlayerId,
+        next_player: PlayerId,
     },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum GameError {
-    InvalidRules(RuleError),
+pub enum UnoGameError {
+    InvalidRules(UnoRuleError),
     InvalidDeckSize {
         expected: usize,
         actual: usize,
     },
     InvalidDeckContents,
-    InvalidPlayer(UnoPlayerId),
-    PlayerEliminated(UnoPlayerId),
+    InvalidPlayer(PlayerId),
+    PlayerEliminated(PlayerId),
     NotPlayersTurn {
-        expected: UnoPlayerId,
-        actual: UnoPlayerId,
+        expected: PlayerId,
+        actual: PlayerId,
     },
     GameAlreadyFinished,
     InitialColorChoiceRequired,
@@ -284,10 +273,10 @@ pub enum GameError {
     MustResolveSkip,
     NoSkipToResolve,
     UnoCalloutDisabled,
-    CannotCallUno(UnoPlayerId),
+    CannotCallUno(PlayerId),
     MustPlayAfterUno,
     CannotReportSelf,
-    PlayerNotReportable(UnoPlayerId),
+    PlayerNotReportable(PlayerId),
     CannotPlayTogether,
     CannotJumpIn,
     MustResolveSwapEffect,
@@ -296,7 +285,7 @@ pub enum GameError {
     DrawPileExhausted,
 }
 
-impl fmt::Display for GameError {
+impl fmt::Display for UnoGameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidRules(error) => error.fmt(f),
@@ -339,9 +328,9 @@ impl fmt::Display for GameError {
     }
 }
 
-impl std::error::Error for GameError {}
+impl std::error::Error for UnoGameError {}
 
-impl From<DeckError> for GameError {
+impl From<DeckError> for UnoGameError {
     fn from(value: DeckError) -> Self {
         match value {
             DeckError::InvalidSize { expected, actual } => {
@@ -352,49 +341,49 @@ impl From<DeckError> for GameError {
     }
 }
 
-impl From<RuleError> for GameError {
-    fn from(value: RuleError) -> Self {
+impl From<UnoRuleError> for UnoGameError {
+    fn from(value: UnoRuleError) -> Self {
         Self::InvalidRules(value)
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct ChallengeState {
-    pub(super) offender: UnoPlayerId,
+    pub(super) offender: PlayerId,
     pub(super) was_legal: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct GameState {
+pub struct UnoGameState {
     pub(super) rules: UnoRuleSet,
-    pub(super) players: Vec<PlayerState>,
+    pub(super) players: Vec<UnoPlayerState>,
     pub(super) draw_pile: VecDeque<UnoCard>,
     pub(super) discard_pile: Vec<UnoCard>,
-    pub(super) current_player: UnoPlayerId,
+    pub(super) current_player: PlayerId,
     pub(super) direction: UnoDirection,
     pub(super) current_color: Option<UnoColor>,
     pub(super) pending_draw: u16,
     pub(super) pending_kind: Option<UnoPendingDrawKind>,
-    pub(super) pending_draw_source: Option<UnoPlayerId>,
+    pub(super) pending_draw_source: Option<PlayerId>,
     pub(super) pending_draw_colors: Vec<UnoColor>,
     pub(super) challenge: Option<ChallengeState>,
     pub(super) drawn_card: Option<UnoCard>,
     pub(super) pending_skip: u16,
     pub(super) pending_skip_everyone: bool,
-    pub(super) pending_skip_source: Option<UnoPlayerId>,
+    pub(super) pending_skip_source: Option<PlayerId>,
     /// Recipients that must still accept the current skip effect, before a pending win.
-    pub(super) skip_effect_targets: Vec<UnoPlayerId>,
+    pub(super) skip_effect_targets: Vec<PlayerId>,
     pub(super) skip_turns: Vec<u16>,
     pub(super) uno_exposed: Vec<bool>,
     pub(super) uno_declared: Vec<bool>,
     pub(super) jump_in_open: bool,
     pub(super) pending_swap: Option<PendingSwapState>,
-    pub(super) pending_finisher: Option<UnoPlayerId>,
+    pub(super) pending_finisher: Option<PlayerId>,
     pub(super) set_aside_cards: Vec<UnoCard>,
-    pub(super) elimination_order: Vec<UnoPlayerId>,
+    pub(super) elimination_order: Vec<PlayerId>,
     pub(super) sudden_death_misses: u8,
     pub(super) flip_side: Option<UnoFlipSide>,
-    pub(super) phase: Phase,
+    pub(super) phase: UnoPhase,
 }
 
 pub(super) fn remove_card(hand: &mut Vec<UnoCard>, card: UnoCard) {
@@ -418,13 +407,13 @@ pub(super) fn faces_match(left: UnoFace, right: UnoFace) -> bool {
     )
 }
 
-pub(super) fn validate_deck(deck: &[UnoCard], rules: UnoRuleSet) -> Result<(), GameError> {
+pub(super) fn validate_deck(deck: &[UnoCard], rules: UnoRuleSet) -> Result<(), UnoGameError> {
     let expected = build_deck_for_rules(rules);
     if !rules.is_flip() {
-        return validate_physical_deck(deck, &expected).map_err(GameError::from);
+        return validate_physical_deck(deck, &expected).map_err(UnoGameError::from);
     }
     if deck.len() != expected.len() {
-        return Err(GameError::InvalidDeckSize {
+        return Err(UnoGameError::InvalidDeckSize {
             expected: expected.len(),
             actual: deck.len(),
         });
@@ -450,20 +439,16 @@ pub(super) fn validate_deck(deck: &[UnoCard], rules: UnoRuleSet) -> Result<(), G
     actual_dark.sort_unstable();
     expected_dark.sort_unstable();
     if actual_light != expected_light || actual_dark != expected_dark || !has_unique_cards(deck) {
-        return Err(GameError::InvalidDeckContents);
+        return Err(UnoGameError::InvalidDeckContents);
     }
     Ok(())
 }
 
-pub(super) fn swap_player_hands(
-    players: &mut [PlayerState],
-    first: UnoPlayerId,
-    second: UnoPlayerId,
-) {
-    let (low, high) = if first.0 < second.0 {
-        (first.0, second.0)
+pub(super) fn swap_player_hands(players: &mut [UnoPlayerState], first: PlayerId, second: PlayerId) {
+    let (low, high) = if first.index() < second.index() {
+        (first.index(), second.index())
     } else {
-        (second.0, first.0)
+        (second.index(), first.index())
     };
     let (left, right) = players.split_at_mut(high);
     std::mem::swap(&mut left[low].hand, &mut right[0].hand);

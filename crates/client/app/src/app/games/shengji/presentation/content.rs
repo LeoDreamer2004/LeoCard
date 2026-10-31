@@ -1,8 +1,10 @@
 use super::ShengjiPresentationKind;
 use super::routes::shengji_partner_player;
-use bevy::prelude::*;
-use leocard_protocol::{PlayerId, ShengjiSnapshot};
+use leocard_game_common::PlayerId;
+use leocard_protocol::ShengjiSnapshot;
 use leocard_shengji::{ShengjiCard, ShengjiRank, ShengjiSuit};
+
+use bevy::prelude::*;
 
 pub(super) fn presentation_text(
     kind: &ShengjiPresentationKind,
@@ -11,10 +13,10 @@ pub(super) fn presentation_text(
     let player_name = |player: PlayerId| {
         game.players
             .iter()
-            .find(|candidate| candidate.id == player)
+            .find(|candidate| candidate.player.id == player)
             .map_or_else(
                 || format!("玩家{}", player.0 + 1),
-                |player| player.name.clone(),
+                |player| player.player.name.clone(),
             )
     };
     Some(match kind {

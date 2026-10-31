@@ -1,14 +1,14 @@
-use super::{QiGui523Session, map_game_error, to_core_player};
+use super::{QiGui523Session, map_game_error};
 use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery,
     lifecycle::HostedGameLifecycle, new_match_id,
 };
 use leocard_protocol::{
-    GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, RuleViolation,
+    GameViolation, PlayerViolation, QiGui523Violation, RejectReason, RequestId, RoomViolation,
     TABLE_SEAT_COUNT,
 };
 use leocard_qigui523::{
-    GameState, Phase, QiGuiCard, QiGuiMatchStatistics, QiGuiRuleSet, build_deck,
+    QiGuiCard, QiGuiGameState, QiGuiMatchStatistics, QiGuiPhase, QiGuiRuleSet, build_deck,
 };
 
 impl QiGui523Session {
@@ -33,15 +33,11 @@ impl QiGui523Session {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         };
-        if cards.is_empty()
-            || game
-                .replace_player_hand(to_core_player(player), cards)
-                .is_err()
-        {
+        if cards.is_empty() || game.replace_player_hand(player, cards).is_err() {
             return self.reject(
                 connection,
                 request_id,
-                RejectReason::Game(GameViolation::InvalidDeveloperHand),
+                RejectReason::Game(QiGui523Violation::InvalidDeveloperHand.into()),
             );
         }
         self.bump_revision();
@@ -82,11 +78,13 @@ impl QiGui523Session {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         };
-        if !matches!(game.phase(), Phase::Playing) {
+        if !matches!(game.phase(), QiGuiPhase::Playing) {
             return self.reject(
                 connection,
                 request_id,
-                RejectReason::Game(GameViolation::QiGui523(RuleViolation::GameAlreadyFinished)),
+                RejectReason::Game(GameViolation::QiGui523(
+                    QiGui523Violation::GameAlreadyFinished,
+                )),
             );
         }
 
@@ -180,7 +178,7 @@ impl QiGui523Session {
             ..self.rules
         };
         #[cfg(not(feature = "developer"))]
-        let game = GameState::new_with_deck(game_rules, deck)
+        let game = QiGuiGameState::new_with_deck(game_rules, deck)
             .expect("a freshly built deck always matches the configured rules");
         #[cfg(feature = "developer")]
         let game = {
@@ -189,10 +187,10 @@ impl QiGui523Session {
                 deck.truncate(
                     usize::from(game_rules.player_count) * usize::from(game_rules.hand_size),
                 );
-                GameState::new_with_development_deck(game_rules, deck)
+                QiGuiGameState::new_with_development_deck(game_rules, deck)
                     .expect("the development deck is a valid shuffled subset")
             } else {
-                GameState::new_with_deck(game_rules, deck)
+                QiGuiGameState::new_with_deck(game_rules, deck)
                     .expect("a freshly built deck always matches the configured rules")
             }
         };
@@ -227,7 +225,7 @@ impl QiGui523Session {
             );
         };
 
-        match self.perform_action(to_core_player(player), Some(cards)) {
+        match self.perform_action(player, Some(cards)) {
             Ok(events) => {
                 self.reset_timer_for_current_turn();
                 self.bump_revision();
@@ -261,7 +259,7 @@ impl QiGui523Session {
             );
         };
 
-        match self.perform_action(to_core_player(player), None) {
+        match self.perform_action(player, None) {
             Ok(events) => {
                 self.reset_timer_for_current_turn();
                 self.bump_revision();

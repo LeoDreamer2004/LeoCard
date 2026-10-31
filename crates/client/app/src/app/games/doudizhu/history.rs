@@ -3,29 +3,30 @@
 use super::DoudizhuUiState;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
-use leocard_doudizhu::Action;
-use leocard_protocol::PlayerId;
+use leocard_doudizhu::DoudizhuAction;
+use leocard_game_common::PlayerId;
+
 use std::mem;
 
 #[derive(Default)]
 pub(super) struct DoudizhuTrickHistory {
-    current: Vec<Option<Action>>,
-    previous: Vec<Option<Action>>,
+    current: Vec<Option<DoudizhuAction>>,
+    previous: Vec<Option<DoudizhuAction>>,
     passes: u8,
     reveal_remaining: f32,
 }
 
 impl DoudizhuTrickHistory {
-    pub(super) fn observe(&mut self, player: PlayerId, action: &Action, player_count: u8) {
-        if matches!(action, Action::Bid(_)) {
+    pub(super) fn observe(&mut self, player: PlayerId, action: &DoudizhuAction, player_count: u8) {
+        if matches!(action, DoudizhuAction::Bid(_)) {
             return;
         }
         self.current.resize_with(usize::from(player_count), || None);
         self.current[usize::from(player.0)] = Some(action.clone());
         match action {
-            Action::Play(_) => self.passes = 0,
-            Action::Pass => self.passes += 1,
-            Action::Bid(_) => unreachable!("bids do not belong to a trick"),
+            DoudizhuAction::Play(_) => self.passes = 0,
+            DoudizhuAction::Pass => self.passes += 1,
+            DoudizhuAction::Bid(_) => unreachable!("bids do not belong to a trick"),
         }
         if self.passes == player_count - 1 {
             // A midgame join may have missed the lead; don't offer an empty history.
@@ -33,7 +34,7 @@ impl DoudizhuTrickHistory {
                 .current
                 .iter()
                 .flatten()
-                .any(|a| matches!(a, Action::Play(_)))
+                .any(|a| matches!(a, DoudizhuAction::Play(_)))
             {
                 self.previous = mem::take(&mut self.current);
             } else {
@@ -54,7 +55,7 @@ impl DoudizhuTrickHistory {
         }
     }
 
-    pub(super) fn revealed_actions(&self) -> Option<&[Option<Action>]> {
+    pub(super) fn revealed_actions(&self) -> Option<&[Option<DoudizhuAction>]> {
         (self.reveal_remaining > 0.0).then_some(self.previous.as_slice())
     }
 

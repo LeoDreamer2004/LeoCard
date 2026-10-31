@@ -1,22 +1,23 @@
 use super::history::{ActionRecord, HandHistory};
-use super::{TexasHoldemHandStatistics, TexasHoldemMatchStatistics};
-use crate::{GameState, Phase, PlayerState, TexasHoldemAction, TexasHoldemPlayerId};
+use super::{TexasHandStatistics, TexasMatchStatistics};
+use crate::{TexasAction, TexasGameState, TexasPhase, TexasPlayerState};
+use leocard_game_common::PlayerId;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct GameStatistics {
     pub(super) history: HandHistory,
-    pub(super) players: Vec<TexasHoldemMatchStatistics>,
+    pub(super) players: Vec<TexasMatchStatistics>,
 }
 
 impl GameStatistics {
     pub(crate) fn new(players: u8) -> Self {
         Self {
             history: HandHistory::default(),
-            players: vec![TexasHoldemMatchStatistics::default(); usize::from(players)],
+            players: vec![TexasMatchStatistics::default(); usize::from(players)],
         }
     }
 
-    pub(crate) fn start_hand(&mut self, players: &[PlayerState]) {
+    pub(crate) fn start_hand(&mut self, players: &[TexasPlayerState]) {
         self.history = HandHistory::default();
         for (player, statistics) in players.iter().zip(&mut self.players) {
             statistics.lowest_starting_stack = if statistics.hands == 0 {
@@ -28,22 +29,22 @@ impl GameStatistics {
     }
 }
 
-impl GameState {
+impl TexasGameState {
     pub(crate) fn record_action_statistics(
         &mut self,
         before: &Self,
-        player: TexasHoldemPlayerId,
-        action: TexasHoldemAction,
+        player: PlayerId,
+        action: TexasAction,
     ) {
         self.statistics.history = HandHistory::record(before, self, player, action);
-        if matches!(self.phase(), Phase::Complete(_)) {
+        if matches!(self.phase(), TexasPhase::Complete(_)) {
             self.record_hand_statistics();
         }
     }
 
     fn record_hand_statistics(&mut self) {
         let reports = (0..self.players().len())
-            .map(|index| self.hand_statistics(TexasHoldemPlayerId(index)).unwrap())
+            .map(|index| self.hand_statistics(PlayerId::from_index(index)).unwrap())
             .collect::<Vec<_>>();
         let folded = self
             .players()
@@ -60,19 +61,19 @@ impl GameState {
                 &report,
                 folded[index],
                 &self.statistics.history.actions,
-                TexasHoldemPlayerId(index),
+                PlayerId::from_index(index),
             );
         }
     }
 }
 
-impl TexasHoldemMatchStatistics {
+impl TexasMatchStatistics {
     fn record(
         &mut self,
-        report: &TexasHoldemHandStatistics,
+        report: &TexasHandStatistics,
         folded: bool,
         actions: &[ActionRecord],
-        player: TexasHoldemPlayerId,
+        player: PlayerId,
     ) {
         self.hands = self.hands.saturating_add(1);
         self.won_hands = self

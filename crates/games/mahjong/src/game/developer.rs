@@ -1,20 +1,24 @@
-use super::{GameError, GameState, MahjongHandReplacementError, Phase, validate_player};
-use crate::{MahjongPlayerId, MahjongTileKind};
+use super::{
+    MahjongGameError, MahjongGameState, MahjongHandReplacementError, MahjongPhase, validate_player,
+};
+use crate::MahjongTileKind;
+use leocard_game_common::PlayerId;
+
 use std::collections::HashSet;
 
-impl GameState {
+impl MahjongGameState {
     pub fn replace_player_hand_from_wall(
         &mut self,
-        player: MahjongPlayerId,
+        player: PlayerId,
         kinds: &[MahjongTileKind],
-    ) -> Result<(), GameError> {
+    ) -> Result<(), MahjongGameError> {
         validate_player(player)?;
-        if !matches!(self.phase, Phase::Playing) {
-            return Err(GameError::WrongPhase);
+        if !matches!(self.phase, MahjongPhase::Playing) {
+            return Err(MahjongGameError::WrongPhase);
         }
-        let old_hand = &self.players[player.0].hand;
+        let old_hand = &self.players[player.index()].hand;
         if kinds.len() != old_hand.len() {
-            return Err(GameError::InvalidHandReplacement(
+            return Err(MahjongGameError::InvalidHandReplacement(
                 MahjongHandReplacementError::WrongTileCount {
                     expected: old_hand.len() as u16,
                     actual: kinds.len() as u16,
@@ -22,7 +26,7 @@ impl GameState {
             ));
         }
         if let Some(tile) = kinds.iter().copied().find(|kind| kind.is_flower()) {
-            return Err(GameError::InvalidHandReplacement(
+            return Err(MahjongGameError::InvalidHandReplacement(
                 MahjongHandReplacementError::FlowerNotAllowed { tile },
             ));
         }
@@ -38,7 +42,7 @@ impl GameState {
                 .filter(|candidate| candidate.kind() == tile)
                 .count();
             if requested > available {
-                return Err(GameError::InvalidHandReplacement(
+                return Err(MahjongGameError::InvalidHandReplacement(
                     MahjongHandReplacementError::TileUnavailable {
                         tile,
                         requested: requested as u16,
@@ -83,7 +87,7 @@ impl GameState {
                 .enumerate()
                 .find(|(index, tile)| !wall_used[*index] && tile.kind() == kind)
             else {
-                return Err(GameError::InvalidHandReplacement(
+                return Err(MahjongGameError::InvalidHandReplacement(
                     MahjongHandReplacementError::TileUnavailable {
                         tile: kind,
                         requested: kinds.iter().filter(|candidate| **candidate == kind).count()
@@ -111,7 +115,7 @@ impl GameState {
         if player == self.current_player && self.last_drawn.is_some() {
             self.last_drawn = new_hand.last().copied();
         }
-        self.players[player.0].hand = new_hand;
+        self.players[player.index()].hand = new_hand;
         Ok(())
     }
 }

@@ -1,21 +1,21 @@
-use leocard_doudizhu::{Mode as DoudizhuMode, RuleSet as DoudizhuRuleSet};
+use leocard_doudizhu::{DoudizhuMode, DoudizhuRuleSet};
 use leocard_mahjong::MahjongRuleSet;
-use leocard_minecraft_guess::MinecraftGuessRuleSet;
+use leocard_mc_guess::McGuessRuleSet;
 use leocard_protocol::TABLE_SEAT_COUNT;
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_shengji::{ShengjiMode, ShengjiRuleSet};
-use leocard_texas_holdem::TexasHoldemRuleSet;
+use leocard_texas_holdem::TexasRuleSet;
 use leocard_uno::UnoRuleSet;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
 pub struct GamePreferences {
     pub qigui523: QiGui523Preferences,
-    pub texas_holdem: TexasHoldemPreferences,
+    pub texas: TexasPreferences,
     pub shengji: ShengjiPreferences,
     pub uno: UnoPreferences,
     pub mahjong: MahjongPreferences,
-    pub minecraft_guess: MinecraftGuessPreferences,
+    pub mc_guess: McGuessPreferences,
     pub doudizhu: DoudizhuPreferences,
 }
 
@@ -25,8 +25,8 @@ pub struct QiGui523Preferences {
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct TexasHoldemPreferences {
-    pub host_rules: TexasHoldemRuleSet,
+pub struct TexasPreferences {
+    pub host_rules: TexasRuleSet,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -70,8 +70,8 @@ pub struct MahjongPreferences {
 }
 
 #[derive(Default, Deserialize, Serialize)]
-pub struct MinecraftGuessPreferences {
-    pub host_rules: MinecraftGuessRuleSet,
+pub struct McGuessPreferences {
+    pub host_rules: McGuessRuleSet,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -110,16 +110,16 @@ impl Default for GamePreferences {
                     ..QiGuiRuleSet::default()
                 },
             },
-            texas_holdem: TexasHoldemPreferences {
-                host_rules: TexasHoldemRuleSet {
-                    player_count: TexasHoldemRuleSet::MAX_PLAYERS,
-                    ..TexasHoldemRuleSet::default()
+            texas: TexasPreferences {
+                host_rules: TexasRuleSet {
+                    player_count: TexasRuleSet::MAX_PLAYERS,
+                    ..TexasRuleSet::default()
                 },
             },
             shengji: ShengjiPreferences::default(),
             uno: UnoPreferences::default(),
             mahjong: MahjongPreferences::default(),
-            minecraft_guess: MinecraftGuessPreferences::default(),
+            mc_guess: McGuessPreferences::default(),
             doudizhu: DoudizhuPreferences::default(),
         }
     }

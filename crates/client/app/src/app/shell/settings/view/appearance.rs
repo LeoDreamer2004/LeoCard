@@ -104,8 +104,8 @@ impl<'a> TableAppearanceSettings<'a> {
             commands,
             parent,
             "随机背景",
-            form.games.minecraft_guess_random_background,
-            SettingsUiAction::ToggleMinecraftGuessBackground,
+            form.games.mc_guess_random_background,
+            SettingsUiAction::ToggleMcGuessBackground,
             assets,
         );
     }

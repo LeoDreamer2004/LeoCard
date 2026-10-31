@@ -6,13 +6,14 @@ use super::playback::BlackjackCardSlot;
 use crate::app::presentation::{
     ACCENT, DANGER, MUTED, TEXT, TableStatusEffect, TableStatusSpec, add_table_status,
 };
-use bevy::prelude::*;
-use leocard_blackjack::{HandState, HandStatus};
-use leocard_protocol::PlayerId;
+use leocard_blackjack::{BlackjackHandState, BlackjackHandStatus};
+use leocard_game_common::PlayerId;
 use leocard_ui::{UiComposer, spawn_node};
 
+use bevy::prelude::*;
+
 pub(super) struct BlackjackHandSpec<'a> {
-    pub hand: &'a HandState,
+    pub hand: &'a BlackjackHandState,
     pub player: PlayerId,
     pub index: usize,
     pub own: bool,
@@ -75,9 +76,9 @@ impl BlackjackTable<'_> {
         let value = hand.value();
         let label = if !ready {
             "发牌中".to_owned()
-        } else if hand.status == HandStatus::Blackjack {
+        } else if hand.status == BlackjackHandStatus::Blackjack {
             "黑杰克".to_owned()
-        } else if hand.status == HandStatus::Bust {
+        } else if hand.status == BlackjackHandStatus::Bust {
             "爆牌".to_owned()
         } else if hand.cards.is_empty() {
             "已下注".to_owned()
@@ -103,16 +104,16 @@ impl BlackjackTable<'_> {
             TableStatusSpec {
                 text: &label,
                 font_size: (spec.width * 0.25).clamp(12.0, if spec.own { 20.0 } else { 18.0 }),
-                color: if ready && hand.status == HandStatus::Bust {
+                color: if ready && hand.status == BlackjackHandStatus::Bust {
                     DANGER
                 } else if spec.active {
                     ACCENT
                 } else {
                     TEXT
                 },
-                effect: if ready && hand.status == HandStatus::Bust {
+                effect: if ready && hand.status == BlackjackHandStatus::Bust {
                     TableStatusEffect::Impact
-                } else if ready && hand.status == HandStatus::Blackjack {
+                } else if ready && hand.status == BlackjackHandStatus::Blackjack {
                     TableStatusEffect::Bounce
                 } else {
                     TableStatusEffect::Pulse

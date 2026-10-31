@@ -1,18 +1,19 @@
-use crate::{Card, Play, RuleSet, build_deck};
+use crate::{DoudizhuCard, DoudizhuPlay, DoudizhuRuleSet, build_deck};
+use leocard_game_common::PlayerId;
 use std::error::Error;
 use std::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Action {
+pub enum DoudizhuAction {
     Bid(u8),
-    Play(Vec<Card>),
+    Play(Vec<DoudizhuCard>),
     Pass,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Phase {
+pub enum DoudizhuPhase {
     Bidding,
     Playing,
     Redeal,
@@ -21,8 +22,8 @@ pub enum Phase {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ResultView {
-    pub winner: u8,
+pub struct DoudizhuResultView {
+    pub winner: PlayerId,
     pub landlord_won: bool,
     pub spring: bool,
     pub scores: Vec<i32>,
@@ -30,7 +31,7 @@ pub struct ResultView {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum GameError {
+pub enum DoudizhuGameError {
     InvalidRules,
     InvalidDeck,
     InvalidPlayer,
@@ -43,7 +44,7 @@ pub enum GameError {
     CannotBeat,
 }
 
-impl fmt::Display for GameError {
+impl fmt::Display for DoudizhuGameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::InvalidRules => "游戏轮数必须为 1 至 5 轮",
@@ -60,40 +61,44 @@ impl fmt::Display for GameError {
     }
 }
 
-impl Error for GameError {}
+impl Error for DoudizhuGameError {}
 
 #[derive(Clone, Debug)]
-pub struct GameState {
-    pub rules: RuleSet,
-    pub phase: Phase,
-    pub current: u8,
-    pub landlord: Option<u8>,
+pub struct DoudizhuGameState {
+    pub rules: DoudizhuRuleSet,
+    pub phase: DoudizhuPhase,
+    pub current: PlayerId,
+    pub landlord: Option<PlayerId>,
     pub highest_bid: u8,
     pub bids: Vec<Option<u8>>,
-    pub table: Option<(u8, Play)>,
-    pub played: Vec<Card>,
-    pub last_actions: Vec<Option<Action>>,
+    pub table: Option<(PlayerId, DoudizhuPlay)>,
+    pub played: Vec<DoudizhuCard>,
+    pub last_actions: Vec<Option<DoudizhuAction>>,
     pub multiplier: u32,
-    pub result: Option<ResultView>,
-    pub(super) hands: Vec<Vec<Card>>,
-    pub(super) kitty: Vec<Card>,
+    pub result: Option<DoudizhuResultView>,
+    pub(super) hands: Vec<Vec<DoudizhuCard>>,
+    pub(super) kitty: Vec<DoudizhuCard>,
     pub(super) passes: u8,
     pub(super) play_counts: Vec<u32>,
 }
 
-impl GameState {
-    pub fn new(rules: RuleSet, deck: Vec<Card>, first: u8) -> Result<Self, GameError> {
+impl DoudizhuGameState {
+    pub fn new(
+        rules: DoudizhuRuleSet,
+        deck: Vec<DoudizhuCard>,
+        first: PlayerId,
+    ) -> Result<Self, DoudizhuGameError> {
         if !rules.is_valid() {
-            return Err(GameError::InvalidRules);
+            return Err(DoudizhuGameError::InvalidRules);
         }
         let mut sorted = deck.clone();
         sorted.sort();
         if sorted != build_deck(rules.mode) {
-            return Err(GameError::InvalidDeck);
+            return Err(DoudizhuGameError::InvalidDeck);
         }
         let n = usize::from(rules.mode.players());
         if usize::from(first) >= n {
-            return Err(GameError::InvalidPlayer);
+            return Err(DoudizhuGameError::InvalidPlayer);
         }
         let hand_end = deck.len() - rules.mode.kitty_len();
         let mut hands = vec![Vec::new(); n];
@@ -105,7 +110,7 @@ impl GameState {
         }
         Ok(Self {
             rules,
-            phase: Phase::Bidding,
+            phase: DoudizhuPhase::Bidding,
             current: first,
             landlord: None,
             highest_bid: 0,
@@ -122,7 +127,7 @@ impl GameState {
         })
     }
 
-    pub fn hand(&self, player: u8) -> Option<&[Card]> {
+    pub fn hand(&self, player: PlayerId) -> Option<&[DoudizhuCard]> {
         self.hands.get(usize::from(player)).map(Vec::as_slice)
     }
 
@@ -130,16 +135,16 @@ impl GameState {
         self.hands.iter().map(|h| h.len() as u16).collect()
     }
 
-    pub fn public_kitty(&self) -> &[Card] {
-        if matches!(self.phase, Phase::Playing | Phase::Finished) {
+    pub fn public_kitty(&self) -> &[DoudizhuCard] {
+        if matches!(self.phase, DoudizhuPhase::Playing | DoudizhuPhase::Finished) {
             &self.kitty
         } else {
             &[]
         }
     }
 
-    pub fn revealed_hands(&self) -> Vec<Vec<Card>> {
-        if self.phase == Phase::Finished {
+    pub fn revealed_hands(&self) -> Vec<Vec<DoudizhuCard>> {
+        if self.phase == DoudizhuPhase::Finished {
             self.hands.clone()
         } else {
             Vec::new()

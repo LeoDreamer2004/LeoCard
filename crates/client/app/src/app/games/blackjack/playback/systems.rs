@@ -2,6 +2,8 @@ use super::BlackjackPlayback;
 use crate::app::presentation::PendingDealSound;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiState;
+use leocard_protocol::GameSnapshot;
+
 use bevy::prelude::*;
 
 pub(crate) fn sync_blackjack_playback(
@@ -12,10 +14,13 @@ pub(crate) fn sync_blackjack_playback(
     mut playback: ResMut<BlackjackPlayback>,
     mut shell: ResMut<UiState>,
 ) {
-    let Some(game) = client
-        .as_deref()
-        .and_then(|client| client.0.model().blackjack_game())
-    else {
+    let Some(game) = client.as_deref().and_then(|client| {
+        client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::blackjack)
+    }) else {
         *playback = BlackjackPlayback::default();
         return;
     };

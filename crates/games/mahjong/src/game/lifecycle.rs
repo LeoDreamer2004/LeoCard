@@ -1,13 +1,18 @@
 use super::MahjongMatchProgress;
-use super::{ActionOutcome, GameError, GameState, MahjongDrawOrigin, Phase, validate_deck};
-use crate::{MahjongMatchLength, MahjongPlayerId, MahjongRuleSet, MahjongTile, MahjongWind};
+use super::{
+    MahjongActionOutcome, MahjongDrawOrigin, MahjongGameError, MahjongGameState, MahjongPhase,
+    validate_deck,
+};
+use crate::{MahjongMatchLength, MahjongRuleSet, MahjongTile, MahjongWind};
+use leocard_game_common::PlayerId;
+
 use std::collections::VecDeque;
 
-impl GameState {
+impl MahjongGameState {
     /// 结算界面内全员准备后开始下一盘。单局模式重置累计分，但继续轮庄和轮圈风。
-    pub fn start_next_hand(&mut self, deck: Vec<MahjongTile>) -> Result<(), GameError> {
-        let Phase::Finished(result) = &self.phase else {
-            return Err(GameError::WrongPhase);
+    pub fn start_next_hand(&mut self, deck: Vec<MahjongTile>) -> Result<(), MahjongGameError> {
+        let MahjongPhase::Finished(result) = &self.phase else {
+            return Err(MahjongGameError::WrongPhase);
         };
         validate_deck(&deck)?;
         let completed_match = result.match_complete;
@@ -22,8 +27,8 @@ impl GameState {
         } else {
             self.sequence_index += 1;
         }
-        self.dealer = MahjongPlayerId(
-            (self.initial_dealer.0 + usize::from(self.sequence_index))
+        self.dealer = PlayerId::from_index(
+            (self.initial_dealer.index() + usize::from(self.sequence_index))
                 % usize::from(MahjongRuleSet::PLAYER_COUNT),
         );
         self.prevalent_wind = MahjongWind::ALL[usize::from(self.sequence_index / 4)];
@@ -33,7 +38,7 @@ impl GameState {
         self.current_player = self.dealer;
         self.last_drawn = None;
         self.draw_origin = MahjongDrawOrigin::Normal;
-        self.phase = Phase::Dealing { batch: 0 };
+        self.phase = MahjongPhase::Dealing { batch: 0 };
         for player in &mut self.players {
             player.hand.clear();
             player.melds.clear();
@@ -46,16 +51,16 @@ impl GameState {
 
     /// 推进一次真实发牌：前三轮依次给一家四张，随后每家一张，最后庄家跳一张。
     /// 返回 `true` 表示本次发完后已经进入出牌阶段。
-    pub fn advance_deal(&mut self) -> Result<bool, GameError> {
-        let Phase::Dealing { batch } = self.phase else {
-            return Err(GameError::WrongPhase);
+    pub fn advance_deal(&mut self) -> Result<bool, MahjongGameError> {
+        let MahjongPhase::Dealing { batch } = self.phase else {
+            return Err(MahjongGameError::WrongPhase);
         };
         let (player, count) = match batch {
             0..=11 => {
                 let offset = usize::from(batch % MahjongRuleSet::PLAYER_COUNT);
                 (
-                    MahjongPlayerId(
-                        (self.dealer.0 + offset) % usize::from(MahjongRuleSet::PLAYER_COUNT),
+                    PlayerId::from_index(
+                        (self.dealer.index() + offset) % usize::from(MahjongRuleSet::PLAYER_COUNT),
                     ),
                     4,
                 )
@@ -63,23 +68,23 @@ impl GameState {
             12..=15 => {
                 let offset = usize::from(batch - 12);
                 (
-                    MahjongPlayerId(
-                        (self.dealer.0 + offset) % usize::from(MahjongRuleSet::PLAYER_COUNT),
+                    PlayerId::from_index(
+                        (self.dealer.index() + offset) % usize::from(MahjongRuleSet::PLAYER_COUNT),
                     ),
                     1,
                 )
             }
             16 => (self.dealer, 1),
             17 => return self.advance_initial_flower_replacement(),
-            _ => return Err(GameError::WrongPhase),
+            _ => return Err(MahjongGameError::WrongPhase),
         };
         let mut last = None;
         for _ in 0..count {
             let tile = self
                 .wall
                 .pop_front()
-                .ok_or(GameError::InvalidDeckContents)?;
-            self.players[player.0].hand.push(tile);
+                .ok_or(MahjongGameError::InvalidDeckContents)?;
+            self.players[player.index()].hand.push(tile);
             last = Some(tile);
         }
         if batch == 16 {
@@ -88,26 +93,29 @@ impl GameState {
             self.last_drawn = Some(drawn);
             self.draw_origin = MahjongDrawOrigin::Normal;
         }
-        self.phase = Phase::Dealing { batch: batch + 1 };
+        self.phase = MahjongPhase::Dealing { batch: batch + 1 };
         Ok(false)
     }
 
-    fn advance_initial_flower_replacement(&mut self) -> Result<bool, GameError> {
+    fn advance_initial_flower_replacement(&mut self) -> Result<bool, MahjongGameError> {
         for offset in 0..usize::from(MahjongRuleSet::PLAYER_COUNT) {
-            let player = MahjongPlayerId(
-                (self.dealer.0 + offset) % usize::from(MahjongRuleSet::PLAYER_COUNT),
+            let player = PlayerId::from_index(
+                (self.dealer.index() + offset) % usize::from(MahjongRuleSet::PLAYER_COUNT),
             );
-            let Some(position) = self.players[player.0]
+            let Some(position) = self.players[player.index()]
                 .hand
                 .iter()
                 .position(|tile| tile.kind().is_flower())
             else {
                 continue;
             };
-            let flower = self.players[player.0].hand.remove(position);
-            self.players[player.0].flowers.push(flower);
-            let replacement = self.wall.pop_back().ok_or(GameError::InvalidDeckContents)?;
-            self.players[player.0].hand.push(replacement);
+            let flower = self.players[player.index()].hand.remove(position);
+            self.players[player.index()].flowers.push(flower);
+            let replacement = self
+                .wall
+                .pop_back()
+                .ok_or(MahjongGameError::InvalidDeckContents)?;
+            self.players[player.index()].hand.push(replacement);
             if self.last_drawn == Some(flower) {
                 self.last_drawn = Some(replacement);
                 self.draw_origin = MahjongDrawOrigin::FlowerReplacement;
@@ -115,37 +123,39 @@ impl GameState {
             return Ok(false);
         }
         self.sort_hands();
-        self.phase = Phase::Playing;
+        self.phase = MahjongPhase::Playing;
         Ok(true)
     }
 
-    pub fn advance_flower_replacement(&mut self) -> Result<MahjongPlayerId, GameError> {
-        let Phase::ReplacingFlower { player } = self.phase else {
-            return Err(GameError::WrongPhase);
+    pub fn advance_flower_replacement(&mut self) -> Result<PlayerId, MahjongGameError> {
+        let MahjongPhase::ReplacingFlower { player } = self.phase else {
+            return Err(MahjongGameError::WrongPhase);
         };
-        let flower = self.last_drawn.ok_or(GameError::InvalidDeckContents)?;
+        let flower = self
+            .last_drawn
+            .ok_or(MahjongGameError::InvalidDeckContents)?;
         if !flower.kind().is_flower() {
-            return Err(GameError::InvalidDeckContents);
+            return Err(MahjongGameError::InvalidDeckContents);
         }
-        let position = self.players[player.0]
+        let position = self.players[player.index()]
             .hand
             .iter()
             .position(|tile| *tile == flower)
-            .ok_or(GameError::InvalidDeckContents)?;
-        self.players[player.0].hand.remove(position);
-        self.players[player.0].flowers.push(flower);
+            .ok_or(MahjongGameError::InvalidDeckContents)?;
+        self.players[player.index()].hand.remove(position);
+        self.players[player.index()].flowers.push(flower);
         let Some(replacement) = self.wall.pop_back() else {
             self.last_drawn = None;
             self.finish_exhaustive_draw()?;
             return Ok(player);
         };
-        self.players[player.0].hand.push(replacement);
+        self.players[player.index()].hand.push(replacement);
         self.last_drawn = Some(replacement);
         self.draw_origin = MahjongDrawOrigin::FlowerReplacement;
         if replacement.kind().is_flower() {
-            self.phase = Phase::ReplacingFlower { player };
+            self.phase = MahjongPhase::ReplacingFlower { player };
         } else {
-            self.phase = Phase::Playing;
+            self.phase = MahjongPhase::Playing;
             self.sort_hands();
         }
         Ok(player)
@@ -153,18 +163,18 @@ impl GameState {
 
     pub(super) fn draw_replacement(
         &mut self,
-        player: MahjongPlayerId,
+        player: PlayerId,
         origin: MahjongDrawOrigin,
-    ) -> Result<(MahjongTile, MahjongDrawOrigin), GameError> {
-        let tile = self.wall.pop_back().ok_or(GameError::CannotKong)?;
-        self.players[player.0].hand.push(tile);
+    ) -> Result<(MahjongTile, MahjongDrawOrigin), MahjongGameError> {
+        let tile = self.wall.pop_back().ok_or(MahjongGameError::CannotKong)?;
+        self.players[player.index()].hand.push(tile);
         self.current_player = player;
         self.last_drawn = Some(tile);
         self.draw_origin = origin;
         if tile.kind().is_flower() {
-            self.phase = Phase::ReplacingFlower { player };
+            self.phase = MahjongPhase::ReplacingFlower { player };
         } else {
-            self.phase = Phase::Playing;
+            self.phase = MahjongPhase::Playing;
             self.sort_hands();
         }
         Ok((tile, origin))
@@ -172,22 +182,22 @@ impl GameState {
 
     pub(super) fn draw_normal(
         &mut self,
-        player: MahjongPlayerId,
-    ) -> Result<ActionOutcome, GameError> {
+        player: PlayerId,
+    ) -> Result<MahjongActionOutcome, MahjongGameError> {
         let Some(tile) = self.wall.pop_front() else {
             return self.finish_exhaustive_draw();
         };
-        self.players[player.0].hand.push(tile);
+        self.players[player.index()].hand.push(tile);
         self.current_player = player;
         self.last_drawn = Some(tile);
         self.draw_origin = MahjongDrawOrigin::Normal;
         if tile.kind().is_flower() {
-            self.phase = Phase::ReplacingFlower { player };
+            self.phase = MahjongPhase::ReplacingFlower { player };
         } else {
-            self.phase = Phase::Playing;
+            self.phase = MahjongPhase::Playing;
             self.sort_hands();
         }
-        Ok(ActionOutcome::Drew {
+        Ok(MahjongActionOutcome::Drew {
             player,
             tile,
             origin: MahjongDrawOrigin::Normal,

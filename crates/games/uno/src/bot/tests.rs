@@ -1,15 +1,16 @@
 use super::{UnoBot, UnoBotObservation};
-use crate::{GameState, UnoPlayerId, UnoRuleSet, build_deck};
+use crate::{UnoGameState, UnoRuleSet, build_deck};
 use fastrand::Rng;
+use leocard_game_common::PlayerId;
 
 #[test]
 fn changing_concealed_opponent_cards_does_not_change_the_bot_decision() {
     let mut deck = build_deck();
-    let first = GameState::new_with_deck(UnoRuleSet::default(), 4, deck.clone()).unwrap();
+    let first = UnoGameState::new_with_deck(UnoRuleSet::default(), 4, deck.clone()).unwrap();
     let player = first.turn().unwrap().current_player;
-    let opponent = UnoPlayerId((player.0 + 1) % 4);
-    deck.swap(opponent.0, 60);
-    let mut second = GameState::new_with_deck(UnoRuleSet::default(), 4, deck).unwrap();
+    let opponent = PlayerId::from_index((player.index() + 1) % 4);
+    deck.swap(opponent.index(), 60);
+    let mut second = UnoGameState::new_with_deck(UnoRuleSet::default(), 4, deck).unwrap();
     assert_ne!(
         first.player(opponent).unwrap().hand(),
         second.player(opponent).unwrap().hand()

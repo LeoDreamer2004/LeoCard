@@ -1,67 +1,64 @@
 use super::{
     BOTTOM_COPY_DECISION_TIMEOUT, HeldThrowFailure, ShengjiSession, THROW_FAILURE_SHOW_DURATION,
     TRICK_HOLD_DURATION, completed_trick_events, finished_reference_point_magnitude,
-    from_core_player, game_violation, merge_shengji_profile_stats, pre_kitty_collecting_score,
-    to_core_player,
+    game_violation, merge_shengji_profile_stats, pre_kitty_collecting_score,
 };
 use crate::{ConnectionId, Delivery, new_match_id};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    GameViolation, RejectReason, RequestId, ShengjiEvent, ShengjiHandResultView,
-    ShengjiProfileStats, ShengjiPublicPlay, ShengjiThrowFailureStage,
+    GameViolation, RejectReason, RequestId, ShengjiEvent, ShengjiHandResultView, ShengjiPublicPlay,
+    ShengjiThrowFailureStage,
 };
 use leocard_shengji::{
-    ActionOutcome, FiveTrumpCrossingStage, GameError, GameState, HandResult, Phase,
-    ShengjiPlayerId, ShengjiTeamId,
+    ShengjiActionOutcome, ShengjiFiveTrumpCrossingStage, ShengjiGameError, ShengjiGameState,
+    ShengjiHandResult, ShengjiPhase, ShengjiProfileStats, ShengjiTeamId,
 };
 
 impl ShengjiSession {
-    pub(super) fn events_for_outcome(&self, outcome: &ActionOutcome) -> Vec<ShengjiEvent> {
+    pub(super) fn events_for_outcome(&self, outcome: &ShengjiActionOutcome) -> Vec<ShengjiEvent> {
         let mut events = match outcome {
-            ActionOutcome::BuryComplete { leader } => vec![ShengjiEvent::CardsBuried {
-                dealer: from_core_player(*leader),
-            }],
-            ActionOutcome::BottomCopyDecision { copied: true, .. } => self
+            ShengjiActionOutcome::BuryComplete { leader } => {
+                vec![ShengjiEvent::CardsBuried { dealer: *leader }]
+            }
+            ShengjiActionOutcome::BottomCopyDecision { copied: true, .. } => self
                 .declaration_view()
                 .map(|declaration| vec![ShengjiEvent::BottomCopied { declaration }])
                 .unwrap_or_default(),
-            ActionOutcome::BottomCopyBuryComplete { player, .. } => {
-                vec![ShengjiEvent::CardsBuried {
-                    dealer: from_core_player(*player),
-                }]
+            ShengjiActionOutcome::BottomCopyBuryComplete { player, .. } => {
+                vec![ShengjiEvent::CardsBuried { dealer: *player }]
             }
-            ActionOutcome::FiveTrumpCrossingDecision {
+            ShengjiActionOutcome::FiveTrumpCrossingDecision {
                 decisions_complete: true,
                 ..
             } => self
                 .game
                 .as_ref()
-                .and_then(GameState::five_trump_crossing)
-                .filter(|state| state.stage() == FiveTrumpCrossingStage::Returning)
+                .and_then(ShengjiGameState::five_trump_crossing)
+                .filter(|state| state.stage() == ShengjiFiveTrumpCrossingStage::Returning)
                 .map(|state| ShengjiEvent::FiveTrumpCrossingStarted {
                     players: (0..self.rules.player_count())
-                        .map(ShengjiPlayerId)
+                        .map(PlayerId)
                         .filter(|player| state.crossing(*player))
-                        .map(from_core_player)
                         .collect(),
                 })
                 .into_iter()
                 .collect(),
-            ActionOutcome::FiveTrumpCrossingReturn {
+            ShengjiActionOutcome::FiveTrumpCrossingReturn {
                 player,
                 crossing_complete,
             } => vec![ShengjiEvent::FiveTrumpCrossingReturned {
-                player: from_core_player(*player),
+                player: *player,
                 complete: *crossing_complete,
             }],
-            ActionOutcome::Played { player, .. } => self
+            ShengjiActionOutcome::Played { player, .. } => self
                 .current_public_play(*player, 0)
                 .map(|(play, is_lead)| vec![ShengjiEvent::CardsPlayed { play, is_lead }])
                 .unwrap_or_default(),
-            ActionOutcome::ThrowFailed { .. } => Vec::new(),
-            ActionOutcome::TrickComplete(trick) => {
+            ShengjiActionOutcome::ThrowFailed { .. } => Vec::new(),
+            ShengjiActionOutcome::TrickComplete(trick) => {
                 completed_trick_events(trick, self.game.as_ref().unwrap().collecting_score())
             }
-            ActionOutcome::HandComplete(result) => {
+            ShengjiActionOutcome::HandComplete(result) => {
                 let game = self.game.as_ref().unwrap();
                 let mut events = game
                     .history()
@@ -83,7 +80,7 @@ impl ShengjiSession {
 
     fn current_public_play(
         &self,
-        player: ShengjiPlayerId,
+        player: PlayerId,
         throw_penalty: u16,
     ) -> Option<(ShengjiPublicPlay, bool)> {
         let trick = self.game.as_ref()?.current_trick()?;
@@ -91,7 +88,7 @@ impl ShengjiSession {
         let is_lead = trick.plays.len() == 1;
         Some((
             ShengjiPublicPlay {
-                player: from_core_player(player),
+                player,
                 play,
                 throw_penalty,
             },
@@ -99,13 +96,14 @@ impl ShengjiSession {
         ))
     }
 
-    pub(super) fn after_game_outcome(&mut self, outcome: &ActionOutcome) {
+    pub(super) fn after_game_outcome(&mut self, outcome: &ShengjiActionOutcome) {
         match outcome {
-            ActionOutcome::BuryComplete { .. } | ActionOutcome::BottomCopyBuryComplete { .. } => {
+            ShengjiActionOutcome::BuryComplete { .. }
+            | ShengjiActionOutcome::BottomCopyBuryComplete { .. } => {
                 self.flow.bottom_copy_remaining = self
                     .game
                     .as_ref()
-                    .is_some_and(|game| matches!(game.phase(), Phase::BottomCopying))
+                    .is_some_and(|game| matches!(game.phase(), ShengjiPhase::BottomCopying))
                     .then_some(BOTTOM_COPY_DECISION_TIMEOUT);
                 if self.flow.bottom_copy_remaining.is_some() {
                     let game = self.game.as_ref().expect("埋底完成时对局存在");
@@ -118,13 +116,12 @@ impl ShengjiSession {
                     .into_iter()
                     .flatten()
                     {
-                        self.presentation
-                            .record_bottom_copy_decision(from_core_player(player), None);
+                        self.presentation.record_bottom_copy_decision(player, None);
                     }
                 }
             }
-            ActionOutcome::BottomCopyDecision { player, copied, .. } => {
-                let player = from_core_player(*player);
+            ShengjiActionOutcome::BottomCopyDecision { player, copied, .. } => {
+                let player = *player;
                 let cards = copied.then(|| {
                     self.declaration_view()
                         .expect("成功抄底已经更新公开声明")
@@ -135,10 +132,10 @@ impl ShengjiSession {
                     && self
                         .game
                         .as_ref()
-                        .is_some_and(|game| matches!(game.phase(), Phase::BottomCopying)))
+                        .is_some_and(|game| matches!(game.phase(), ShengjiPhase::BottomCopying)))
                 .then_some(BOTTOM_COPY_DECISION_TIMEOUT);
             }
-            ActionOutcome::ThrowFailed {
+            ShengjiActionOutcome::ThrowFailed {
                 player,
                 attempted,
                 forced,
@@ -156,11 +153,11 @@ impl ShengjiSession {
                     remaining: THROW_FAILURE_SHOW_DURATION,
                 });
             }
-            ActionOutcome::TrickComplete(trick) => {
+            ShengjiActionOutcome::TrickComplete(trick) => {
                 self.presentation.bottom_copy_decisions.clear();
                 self.presentation.trick = Some((trick.clone(), TRICK_HOLD_DURATION));
             }
-            ActionOutcome::HandComplete(result) => {
+            ShengjiActionOutcome::HandComplete(result) => {
                 self.presentation.bottom_copy_decisions.clear();
                 self.presentation.trick = self
                     .game
@@ -172,15 +169,15 @@ impl ShengjiSession {
                 self.apply_finished_reference_points(result);
                 self.room.prepare_rematch();
             }
-            ActionOutcome::Played { .. } => self.presentation.bottom_copy_decisions.clear(),
+            ShengjiActionOutcome::Played { .. } => self.presentation.bottom_copy_decisions.clear(),
             _ => {}
         }
     }
 
-    pub(super) fn apply_finished_reference_points(&mut self, result: &HandResult) {
+    pub(super) fn apply_finished_reference_points(&mut self, result: &ShengjiHandResult) {
         let magnitude = finished_reference_point_magnitude(result);
         let hand_profile_stats = self.statistics.hand.profiles.clone();
-        let bottom_burier = self.game.as_ref().and_then(GameState::bottom_burier);
+        let bottom_burier = self.game.as_ref().and_then(ShengjiGameState::bottom_burier);
         let settlements = self
             .room
             .players
@@ -231,10 +228,10 @@ impl ShengjiSession {
                             aggregate.captured_kitty_games.saturating_add(1);
                     }
                 }
-                if to_core_player(participant.id) == result.dealer {
+                if participant.id == result.dealer {
                     aggregate.dealer_games = aggregate.dealer_games.saturating_add(1);
                 }
-                if bottom_burier == Some(to_core_player(participant.id)) {
+                if bottom_burier == Some(participant.id) {
                     aggregate.buried_games = aggregate.buried_games.saturating_add(1);
                     aggregate.buried_points = aggregate
                         .buried_points
@@ -251,14 +248,14 @@ impl ShengjiSession {
         }
     }
 
-    pub(super) fn hand_result_view(&self, result: &HandResult) -> ShengjiHandResultView {
+    pub(super) fn hand_result_view(&self, result: &ShengjiHandResult) -> ShengjiHandResultView {
         ShengjiHandResultView {
             settlement_id: self
                 .statistics
                 .hand
                 .finished_settlement_id
                 .expect("完成的小局已经生成独立结算标识"),
-            dealer: from_core_player(result.dealer),
+            dealer: result.dealer,
             dealer_team: result.dealer_team,
             collecting_team: result.collecting_team,
             trick_points: result.trick_points,
@@ -268,7 +265,7 @@ impl ShengjiSession {
             collecting_score: result.collecting_score,
             promoted_team: result.promoted_team,
             promoted_steps: result.promoted_steps,
-            next_dealer: from_core_player(result.next_dealer),
+            next_dealer: result.next_dealer,
             levels: result.levels,
             reference_changes: self
                 .statistics
@@ -283,7 +280,7 @@ impl ShengjiSession {
         &self,
         connection: ConnectionId,
         request_id: RequestId,
-        error: GameError,
+        error: ShengjiGameError,
     ) -> Vec<Delivery> {
         self.room.reject(
             connection,

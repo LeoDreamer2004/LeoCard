@@ -7,13 +7,13 @@ use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
     RoomSession, new_match_id,
 };
+use leocard_game_common::PlayerId;
 use leocard_mahjong::{
-    ActionOutcome, GameState, MahjongPlayerId, MahjongRuleSet, MahjongTile, Phase,
+    MahjongActionOutcome, MahjongGameState, MahjongPhase, MahjongRuleSet, MahjongTile,
 };
 use leocard_protocol::{
     ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, MahjongEvent,
-    PlayerId, PlayerViolation, RejectReason, RequestId, Revision, RoomId, RoomViolation,
-    ServerEvent,
+    PlayerViolation, RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
 };
 use std::time::Duration;
 
@@ -57,7 +57,7 @@ impl MahjongSession {
         self.room.revision
     }
 
-    pub const fn game(&self) -> Option<&GameState> {
+    pub const fn game(&self) -> Option<&MahjongGameState> {
         self.game.as_ref()
     }
 
@@ -80,7 +80,7 @@ impl MahjongSession {
         if self.game.as_ref().is_some_and(|game| {
             matches!(
                 game.phase(),
-                Phase::Dealing { .. } | Phase::ReplacingFlower { .. }
+                MahjongPhase::Dealing { .. } | MahjongPhase::ReplacingFlower { .. }
             )
         }) {
             if elapsed < self.deal_delay {
@@ -95,8 +95,10 @@ impl MahjongSession {
                 .map(|player| player.flowers().len())
                 .collect::<Vec<_>>();
             let advanced = match game.phase() {
-                Phase::Dealing { .. } => game.advance_deal().map(|_| ()),
-                Phase::ReplacingFlower { .. } => game.advance_flower_replacement().map(|_| ()),
+                MahjongPhase::Dealing { .. } => game.advance_deal().map(|_| ()),
+                MahjongPhase::ReplacingFlower { .. } => {
+                    game.advance_flower_replacement().map(|_| ())
+                }
                 _ => unreachable!("checked timed Mahjong phase"),
             };
             if advanced.is_err() {
@@ -112,8 +114,8 @@ impl MahjongSession {
                 .map(|player| MahjongEvent::FlowerReplaced { player })
                 .into_iter()
                 .collect::<Vec<_>>();
-            if let Phase::Finished(result) = game.phase() {
-                events.extend(events_for_outcome(&ActionOutcome::HandFinished(
+            if let MahjongPhase::Finished(result) = game.phase() {
+                events.extend(events_for_outcome(&MahjongActionOutcome::HandFinished(
                     result.clone(),
                 )));
                 self.room.prepare_rematch();
@@ -151,14 +153,14 @@ impl MahjongSession {
         };
         self.automatic_action_delay = None;
         if matches!(
-            self.game.as_ref().map(GameState::phase),
-            Some(Phase::Finished(_))
+            self.game.as_ref().map(MahjongGameState::phase),
+            Some(MahjongPhase::Finished(_))
         ) {
             self.room.prepare_rematch();
         }
         if matches!(
-            self.game.as_ref().map(GameState::phase),
-            Some(Phase::ReplacingFlower { .. })
+            self.game.as_ref().map(MahjongGameState::phase),
+            Some(MahjongPhase::ReplacingFlower { .. })
         ) {
             self.deal_delay = MAHJONG_DEAL_INTERVAL;
         }
@@ -322,7 +324,7 @@ impl HostedGameLifecycle for MahjongSession {
             player.ready = false;
         }
         let deck = self.shuffled_deck.take().unwrap_or_else(shuffled_deck);
-        match GameState::new_with_deck(self.rules, deck, MahjongPlayerId(0)) {
+        match MahjongGameState::new_with_deck(self.rules, deck, PlayerId(0)) {
             Ok(game) => {
                 self.game = Some(game);
                 self.match_id = Some(new_match_id());
@@ -348,7 +350,7 @@ impl HostedGameLifecycle for MahjongSession {
             );
         }
         let match_complete = self.game.as_ref().is_some_and(
-            |game| matches!(game.phase(), Phase::Finished(result) if result.match_complete),
+            |game| matches!(game.phase(), MahjongPhase::Finished(result) if result.match_complete),
         );
         if self.room.host_connection != Some(connection) && !match_complete {
             return self.room.reject(
@@ -360,7 +362,7 @@ impl HostedGameLifecycle for MahjongSession {
         if !self
             .game
             .as_ref()
-            .is_some_and(|game| matches!(game.phase(), Phase::Finished(_)))
+            .is_some_and(|game| matches!(game.phase(), MahjongPhase::Finished(_)))
         {
             return self.room.reject(
                 connection,
@@ -391,7 +393,7 @@ impl HostedGameLifecycle for MahjongSession {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         };
-        if !matches!(game.phase(), Phase::Finished(_)) {
+        if !matches!(game.phase(), MahjongPhase::Finished(_)) {
             return self.room.reject(
                 connection,
                 request_id,

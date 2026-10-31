@@ -5,7 +5,7 @@ use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub enum GameError {
+pub enum BlackjackGameError {
     InvalidRules,
     InvalidPlayerCount,
     InvalidShoe,
@@ -17,7 +17,7 @@ pub enum GameError {
     MatchComplete,
 }
 
-impl fmt::Display for GameError {
+impl fmt::Display for BlackjackGameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::NotPlayersTurn => "还没有轮到你行动",
@@ -33,4 +33,4 @@ impl fmt::Display for GameError {
     }
 }
 
-impl Error for GameError {}
+impl Error for BlackjackGameError {}

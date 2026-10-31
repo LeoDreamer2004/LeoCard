@@ -1,5 +1,4 @@
 //! 七鬼五二三牌桌、座位、手牌、出牌区、得分与计时布局。
-
 use super::cards::{HandCardSpec, add_card_button};
 use super::counter::render_counter;
 use super::state::{ScoreCardsPopupPlacement, SeatVisuals};
@@ -10,6 +9,7 @@ use super::{
     bomb_effect_source, game_has_legal_response, sort_cards_high_to_low,
     spawn_round_play_container,
 };
+use crate::app::games::qigui523::QiGuiClientState;
 use crate::app::presentation::{
     GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation, PlayEffectKind, PlayEffectState,
     PlayerMenuProfile, PlayerPortraitSpec, StartGameSeatTransition, TEXT, TableBackground,
@@ -18,17 +18,22 @@ use crate::app::presentation::{
     add_turn_border_trace_with_radius, attach_start_game_seat_transition, table_material_params,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
-#[cfg(feature = "developer")]
-use crate::app::shell::add_developer_hand_input;
 use crate::app::shell::{
     ChatPanelState, DeveloperHandInput, FinishedHandScoreSource, ScoreCaptureEffectState,
     SocialUiState, UiAction, add_chat_panel, add_reconnecting_overlay,
 };
-use bevy::prelude::*;
-use leocard_protocol::{GameKind, GamePhaseView, QiGui523Snapshot, SeatId, TABLE_SEAT_COUNT};
+use leocard_protocol::{
+    GameKind, GameRules, QiGui523PhaseView, QiGui523Snapshot, SeatId, TABLE_SEAT_COUNT,
+};
 use leocard_ui::{UiComposer, spawn_node, ui_component};
 
+#[cfg(feature = "developer")]
+use crate::app::shell::add_developer_hand_input;
+
+use bevy::prelude::*;
+
 pub(crate) struct TableVisualContext<'a> {
+    pub client_state: &'a QiGuiClientState,
     pub assets: &'a UiAssets,
     pub game_assets: &'a QiGui523Assets,
     pub avatars: &'a AvatarImages,
@@ -61,6 +66,7 @@ pub(crate) fn render_table(
     #[cfg(not(feature = "developer"))]
     let _ = developer_hand;
     let TableVisualContext {
+        client_state,
         assets,
         game_assets,
         avatars,
@@ -128,17 +134,17 @@ pub(crate) fn render_table(
     let own_seat = game
         .players
         .iter()
-        .find(|player| player.id == game.you)
+        .find(|player| player.player.id == game.you)
         .map_or(SeatId(0), |player| player.seat);
     let seat_visuals = SeatVisuals {
         game,
-        client,
         ui: assets,
         assets: game_assets,
         avatars,
         interaction_menu_open: social.interaction_menu_open,
         play_effect: play_effect.active.as_ref(),
-        last_play: client.0.model().last_play_effect(),
+        client_state,
+        last_play: client_state.last_play_effect(),
         score_capture,
         start_transition_active,
         intro_only: start_transition_active,
@@ -154,7 +160,7 @@ pub(crate) fn render_table(
             table,
             relative_seat,
             player,
-            player.is_some_and(|player| current == Some(player.id)),
+            player.is_some_and(|player| current == Some(player.player.id)),
             &seat_visuals,
             turn_border_materials,
         );
@@ -190,7 +196,11 @@ pub(crate) fn render_table(
             },
             None,
         );
-        if let Some(player) = game.players.iter().find(|player| player.id == game.you) {
+        if let Some(player) = game
+            .players
+            .iter()
+            .find(|player| player.player.id == game.you)
+        {
             let portrait = add_player_portrait(
                 commands,
                 own_seat,
@@ -200,13 +210,13 @@ pub(crate) fn render_table(
                     ..default()
                 },
                 PlayerPortraitSpec {
-                    player: player.id,
+                    player: player.player.id,
                     profile: PlayerMenuProfile {
-                        name: &player.name,
-                        avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
-                        reference_points: player.reference_points,
-                        completed_games: player.completed_games,
-                        game_profiles: &player.game_profiles,
+                        name: &player.player.name,
+                        avatar: player.player.avatar.and_then(|id| avatars.remote.get(&id)),
+                        reference_points: player.player.reference_points,
+                        completed_games: player.player.completed_games,
+                        game_profiles: &player.player.game_profiles,
                     },
                     avatar_size: QIGUI_AVATAR_SIZE,
                     auto_play: player.auto_play,
@@ -275,7 +285,7 @@ pub(crate) fn render_table(
         game,
         game.you,
         play_effect.active.as_ref(),
-        client.0.model().last_play_effect(),
+        client_state.last_play_effect(),
         assets,
         game_assets,
     );
@@ -297,7 +307,10 @@ pub(crate) fn render_table(
         },
         None,
     );
-    let self_state = game.players.iter().find(|player| player.id == game.you);
+    let self_state = game
+        .players
+        .iter()
+        .find(|player| player.player.id == game.you);
 
     let actions = spawn_node(
         commands,
@@ -316,7 +329,7 @@ pub(crate) fn render_table(
         None,
     );
     match &game.phase {
-        GamePhaseView::Playing if current == Some(game.you) => {
+        QiGui523PhaseView::Playing if current == Some(game.you) => {
             let is_leading = game
                 .trick
                 .as_ref()
@@ -325,7 +338,8 @@ pub(crate) fn render_table(
                 || client
                     .0
                     .model()
-                    .qigui523_rules()
+                    .game_rules()
+                    .and_then(GameRules::qigui523)
                     .is_some_and(|rules| game_has_legal_response(game, rules));
             if can_follow {
                 let (_, selection_label) = add_qigui_action_button(
@@ -367,8 +381,8 @@ pub(crate) fn render_table(
                 );
             }
         }
-        GamePhaseView::Playing => {}
-        GamePhaseView::Finished { .. } => {}
+        QiGui523PhaseView::Playing => {}
+        QiGui523PhaseView::Finished { .. } => {}
     }
 
     let hand = spawn_node(
@@ -388,7 +402,7 @@ pub(crate) fn render_table(
         },
         None,
     );
-    if matches!(game.phase, GamePhaseView::Finished { .. }) {
+    if matches!(game.phase, QiGui523PhaseView::Finished { .. }) {
         commands
             .entity(hand)
             .insert(FinishedHandScoreSource(game.you));
@@ -437,17 +451,17 @@ pub(crate) fn render_table(
                 ..default()
             },
             PlayerPortraitSpec {
-                player: player.id,
+                player: player.player.id,
                 profile: PlayerMenuProfile {
-                    name: &player.name,
-                    avatar: player.avatar.and_then(|id| avatars.remote.get(&id)),
-                    reference_points: player.reference_points,
-                    completed_games: player.completed_games,
-                    game_profiles: &player.game_profiles,
+                    name: &player.player.name,
+                    avatar: player.player.avatar.and_then(|id| avatars.remote.get(&id)),
+                    reference_points: player.player.reference_points,
+                    completed_games: player.player.completed_games,
+                    game_profiles: &player.player.game_profiles,
                 },
                 avatar_size: QIGUI_AVATAR_SIZE,
                 auto_play: player.auto_play,
-                menu_open: social.interaction_menu_open == Some(player.id),
+                menu_open: social.interaction_menu_open == Some(player.player.id),
                 name_color: TEXT,
             },
             assets,
@@ -472,7 +486,7 @@ pub(crate) fn render_table(
         add_text(commands, own_seat, "你", 13.0, TEXT, assets);
     }
     #[cfg(feature = "developer")]
-    if matches!(game.phase, GamePhaseView::Playing) {
+    if matches!(game.phase, QiGui523PhaseView::Playing) {
         add_developer_hand_input(
             commands,
             hand_area,
@@ -482,7 +496,7 @@ pub(crate) fn render_table(
             assets,
         );
     }
-    let local_auto_play = matches!(game.phase, GamePhaseView::Playing)
+    let local_auto_play = matches!(game.phase, QiGui523PhaseView::Playing)
         .then(|| self_state.map(|player| player.auto_play))
         .flatten();
     add_chat_panel(commands, content, chat, assets, local_auto_play, &[]);
@@ -494,13 +508,13 @@ pub(crate) fn render_table(
             commands,
             hand_area,
             player,
-            client.0.model().captured_score_cards(player.id),
+            client_state.captured_score_cards(player.player.id),
             ScoreCardsPopupPlacement::Own,
             score_capture,
             assets,
         );
     }
-    if matches!(game.phase, GamePhaseView::Finished { .. }) {
+    if matches!(game.phase, QiGui523PhaseView::Finished { .. }) {
         add_game_summary_modal(commands, table, game, assets, avatars, game_summary);
     }
     if let Some(effect) = play_effect.active.as_ref().filter(|effect| {

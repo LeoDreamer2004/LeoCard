@@ -5,11 +5,11 @@ use super::shengji_current_level;
 use crate::app::presentation::{ACCENT, GAME_SIDE_CONTROL_SCALE, GameButtonTone, add_text};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiAction;
-use bevy::prelude::*;
-use leocard_protocol::{ShengjiDeclarationView, ShengjiPhaseView, ShengjiSnapshot};
-use leocard_shengji::bid_joker_for_suit;
-use leocard_shengji::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiSuit};
+use leocard_protocol::{GameSnapshot, ShengjiDeclarationView, ShengjiPhaseView, ShengjiSnapshot};
+use leocard_shengji::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiSuit, bid_joker_for_suit};
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub(crate) struct ShengjiBiddingCountdown;
@@ -24,7 +24,13 @@ pub(crate) fn sync_shengji_bidding_countdown(
 ) {
     let Some(milliseconds) = client
         .as_deref()
-        .and_then(|client| client.0.model().shengji_game())
+        .and_then(|client| {
+            client
+                .0
+                .model()
+                .game_snapshot()
+                .and_then(GameSnapshot::shengji)
+        })
         .and_then(|game| match game.phase {
             ShengjiPhaseView::BiddingGrace {
                 milliseconds_remaining,
@@ -57,7 +63,7 @@ pub(super) fn add_shengji_bidding_panel(
                 && !game
                     .players
                     .iter()
-                    .any(|player| player.id == game.you && player.auto_play) =>
+                    .any(|player| player.player.id == game.you && player.auto_play) =>
         {
             true
         }

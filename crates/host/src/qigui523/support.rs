@@ -1,12 +1,15 @@
-use leocard_protocol::{PlayerId, QiGui523ProfileStats, RuleViolation};
-use leocard_qigui523::{GameError, PlayError, QiGuiCard, QiGuiPlayerId, build_deck};
+use leocard_protocol::QiGui523Violation;
+use leocard_qigui523::{
+    QiGui523ProfileStats, QiGuiCard, QiGuiGameError, QiGuiPlayError, build_deck,
+};
+
 use std::collections::HashSet;
 use std::time::Duration;
 
-pub(super) fn validate_deck(deck_count: u8, deck: &[QiGuiCard]) -> Result<(), GameError> {
+pub(super) fn validate_deck(deck_count: u8, deck: &[QiGuiCard]) -> Result<(), QiGuiGameError> {
     let expected_deck = build_deck(deck_count);
     if deck.len() != expected_deck.len() {
-        return Err(GameError::InvalidDeckSize {
+        return Err(QiGuiGameError::InvalidDeckSize {
             expected: expected_deck.len(),
             actual: deck.len(),
         });
@@ -14,7 +17,7 @@ pub(super) fn validate_deck(deck_count: u8, deck: &[QiGuiCard]) -> Result<(), Ga
     let expected: HashSet<_> = expected_deck.into_iter().collect();
     let actual: HashSet<_> = deck.iter().copied().collect();
     if actual.len() != deck.len() || actual != expected {
-        return Err(GameError::InvalidDeckContents);
+        return Err(QiGuiGameError::InvalidDeckContents);
     }
     Ok(())
 }
@@ -43,31 +46,23 @@ pub(super) fn merge_qigui523_play_stats(
     aggregate.longest_airplane = aggregate.longest_airplane.max(current.longest_airplane);
 }
 
-pub(super) fn to_core_player(player: PlayerId) -> QiGuiPlayerId {
-    QiGuiPlayerId(usize::from(player.0))
-}
-
-pub(super) fn from_core_player(player: QiGuiPlayerId) -> PlayerId {
-    PlayerId(u8::try_from(player.0).expect("core supports at most six players"))
-}
-
-pub(super) fn map_game_error(error: &GameError) -> RuleViolation {
+pub(super) fn map_game_error(error: &QiGuiGameError) -> QiGui523Violation {
     match error {
-        GameError::InvalidPlayer(_) => RuleViolation::InvalidPlayer,
-        GameError::NotPlayersTurn { .. } => RuleViolation::NotPlayersTurn,
-        GameError::GameAlreadyFinished => RuleViolation::GameAlreadyFinished,
-        GameError::MustLeadWithCards => RuleViolation::MustLeadWithCards,
-        GameError::CardNotInHand(_) => RuleViolation::CardNotInHand,
-        GameError::InvalidPlay(
-            PlayError::Empty
-            | PlayError::DuplicatePhysicalCard(_)
-            | PlayError::CardOutsideConfiguredDeck(_)
-            | PlayError::InvalidPattern,
+        QiGuiGameError::InvalidPlayer(_) => QiGui523Violation::InvalidPlayer,
+        QiGuiGameError::NotPlayersTurn { .. } => QiGui523Violation::NotPlayersTurn,
+        QiGuiGameError::GameAlreadyFinished => QiGui523Violation::GameAlreadyFinished,
+        QiGuiGameError::MustLeadWithCards => QiGui523Violation::MustLeadWithCards,
+        QiGuiGameError::CardNotInHand(_) => QiGui523Violation::CardNotInHand,
+        QiGuiGameError::InvalidPlay(
+            QiGuiPlayError::Empty
+            | QiGuiPlayError::DuplicatePhysicalCard(_)
+            | QiGuiPlayError::CardOutsideConfiguredDeck(_)
+            | QiGuiPlayError::InvalidPattern,
         )
-        | GameError::InvalidRules(_)
-        | GameError::InvalidDeckSize { .. }
-        | GameError::InvalidDeckContents => RuleViolation::InvalidPattern,
-        GameError::PlayDoesNotBeatCurrent => RuleViolation::PlayDoesNotBeatCurrent,
+        | QiGuiGameError::InvalidRules(_)
+        | QiGuiGameError::InvalidDeckSize { .. }
+        | QiGuiGameError::InvalidDeckContents => QiGui523Violation::InvalidPattern,
+        QiGuiGameError::PlayDoesNotBeatCurrent => QiGui523Violation::PlayDoesNotBeatCurrent,
     }
 }
 

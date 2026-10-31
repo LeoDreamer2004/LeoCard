@@ -2,10 +2,13 @@ use super::{
     QiGuiActionContext, QiGuiActionStatistics, QiGuiMatchStatistics, QiGuiPlayerStatistics,
     state::PlayerRuns,
 };
-use crate::{ActionOutcome, ClassifiedPlay, GameState, Phase, QiGuiCard, QiGuiPlayerId, QiGuiRank};
+use crate::{
+    QiGuiActionOutcome, QiGuiCard, QiGuiClassifiedPlay, QiGuiGameState, QiGuiPhase, QiGuiRank,
+};
+use leocard_game_common::PlayerId;
 
 impl QiGuiMatchStatistics {
-    pub fn new(game: &GameState) -> Self {
+    pub fn new(game: &QiGuiGameState) -> Self {
         let mut statistics = Self {
             players: vec![Default::default(); game.players().len()],
             runs: vec![PlayerRuns::default(); game.players().len()],
@@ -24,9 +27,9 @@ impl QiGuiMatchStatistics {
     pub fn observe(
         &mut self,
         before: QiGuiActionContext,
-        outcome: &ActionOutcome,
-        play: Option<&ClassifiedPlay>,
-        game: &GameState,
+        outcome: &QiGuiActionOutcome,
+        play: Option<&QiGuiClassifiedPlay>,
+        game: &QiGuiGameState,
     ) -> Vec<QiGuiActionStatistics> {
         if self.finished {
             return Vec::new();
@@ -35,15 +38,17 @@ impl QiGuiMatchStatistics {
             .players
             .iter()
             .enumerate()
-            .map(|(index, _)| QiGuiActionStatistics::new(QiGuiPlayerId(index), *game.rules()))
+            .map(|(index, _)| {
+                QiGuiActionStatistics::new(PlayerId::from_index(index), *game.rules())
+            })
             .collect::<Vec<_>>();
         for (progress, hand) in self.players.iter_mut().zip(&before.hands) {
             progress.observe_hand(hand, game.rules().hand_size);
         }
-        self.observe_play(&before, play, &mut reports[before.actor.0]);
+        self.observe_play(&before, play, &mut reports[before.actor.index()]);
         self.observe_trick(&before, outcome, play, &mut reports);
         self.observe_hands(game);
-        if let Phase::Finished(result) = game.phase() {
+        if let QiGuiPhase::Finished(result) = game.phase() {
             self.observe_finish(&before, result, game, &mut reports);
         }
         for (report, progress) in reports.iter_mut().zip(&self.players) {
@@ -52,7 +57,7 @@ impl QiGuiMatchStatistics {
         reports
     }
 
-    fn observe_hands(&mut self, game: &GameState) {
+    fn observe_hands(&mut self, game: &QiGuiGameState) {
         for (statistics, player) in self.players.iter_mut().zip(game.players()) {
             statistics.observe_hand(player.hand(), game.rules().hand_size);
         }

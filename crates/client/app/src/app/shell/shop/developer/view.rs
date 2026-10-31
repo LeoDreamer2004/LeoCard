@@ -1,6 +1,7 @@
 use super::state::CoinInputField;
 use crate::app::runtime::UiAssets;
-use bevy::{prelude::*, ui_widgets::SelectAllOnFocus};
+use bevy::prelude::*;
+use bevy::ui_widgets::SelectAllOnFocus;
 use leocard_ui::{TextInput, UiComposer};
 
 pub(crate) fn add_coin_input(

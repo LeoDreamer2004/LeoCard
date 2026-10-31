@@ -1,23 +1,25 @@
 use crate::{
-    AvailableActions, BlackjackAction, BlackjackCard, BlackjackRank, GameState, HandValue, Phase,
+    BlackjackAction, BlackjackAvailableActions, BlackjackCard, BlackjackGameState,
+    BlackjackHandValue, BlackjackPhase, BlackjackRank,
 };
+use leocard_game_common::PlayerId;
 
 /// 仅含行动者自己的牌及庄家明牌，策略不能读取庄家暗牌或牌堆。
 #[derive(Clone, Debug)]
 pub struct BlackjackObservation {
     pub cards: Vec<BlackjackCard>,
     pub dealer: Option<BlackjackCard>,
-    pub available: AvailableActions,
+    pub available: BlackjackAvailableActions,
 }
 
 impl BlackjackObservation {
-    pub fn for_player(game: &GameState, player: usize) -> Option<Self> {
+    pub fn for_player(game: &BlackjackGameState, player: PlayerId) -> Option<Self> {
         if game.current_player() != Some(player) {
             return None;
         }
         Some(Self {
             cards: game.current_hand().map_or_else(Vec::new, |hand| {
-                game.players()[player].hands[hand].cards.clone()
+                game.players()[player.index()].hands[hand].cards.clone()
             }),
             dealer: game.visible_dealer().first().copied(),
             available: game.available_actions(player),
@@ -35,7 +37,7 @@ impl BlackjackBot {
                 amount: allowed.minimum_bet,
             };
         }
-        let value = HandValue::of(&observation.cards);
+        let value = BlackjackHandValue::of(&observation.cards);
         let dealer = observation.dealer.map_or(10, |card| {
             if card.rank == BlackjackRank::Ace {
                 11
@@ -99,8 +101,8 @@ impl BlackjackAutoPlay {
         BlackjackBot::choose(observation)
     }
 
-    pub fn timeout(phase: Phase, minimum_bet: u32) -> BlackjackAction {
-        if phase == Phase::Betting {
+    pub fn timeout(phase: BlackjackPhase, minimum_bet: u32) -> BlackjackAction {
+        if phase == BlackjackPhase::Betting {
             BlackjackAction::Bet {
                 amount: minimum_bet,
             }

@@ -1,12 +1,11 @@
-use super::from_core_player;
-use leocard_protocol::{UnoEvent, UnoProfileStats};
-use leocard_uno::{UnoActionStatistics, UnoPlayerStatistics};
+use leocard_protocol::UnoEvent;
+use leocard_uno::{UnoActionStatistics, UnoPlayerStatistics, UnoProfileStats};
 
 pub(super) fn analysis_events(statistics: Vec<UnoActionStatistics>) -> Vec<UnoEvent> {
     statistics
         .into_iter()
         .map(|statistics| UnoEvent::ActionAnalyzed {
-            player: from_core_player(statistics.player),
+            player: statistics.player,
             statistics: Box::new(statistics),
         })
         .collect()

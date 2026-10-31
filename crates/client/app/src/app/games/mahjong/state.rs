@@ -3,8 +3,9 @@
 use super::{MahjongOwnDiscardAnimation, MahjongRemoteDiscardAnimation};
 use crate::app::presentation::Observed;
 use bevy::prelude::*;
+use leocard_game_common::PlayerId;
 use leocard_mahjong::{MahjongClaim, MahjongTile};
-use leocard_protocol::{MahjongPhaseView, MahjongSnapshot, MatchId, PlayerId};
+use leocard_protocol::{MahjongPhaseView, MahjongSnapshot, MatchId};
 
 #[derive(Resource, Default)]
 pub(crate) struct MahjongUiState {

@@ -1,7 +1,8 @@
 //! 跨游戏结算演出的运行时状态与 UI 标记组件。
 
 use bevy::prelude::*;
-use leocard_protocol::{MatchId, PlayerId, PlayerScore};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{MatchId, PlayerScore};
 
 pub(crate) const SUMMARY_MODAL_ENTRY_DURATION: f32 = 0.55;
 pub(crate) const SUMMARY_ROW_START_DELAY: f32 = 0.38;

@@ -1,4 +1,6 @@
 //! 升级收分与终局结算演出。
+use crate::app::games::shengji::ShengjiClientState;
+use leocard_protocol::{GameSnapshot, ShengjiPhaseView};
 
 use super::state::{ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation};
 use super::{
@@ -8,6 +10,7 @@ use super::{
     ShengjiSettlementPanelTexture, ShengjiSettlementRow, ShengjiSettlementTotalAnchor,
     ShengjiSettlementTotalText, ShengjiTimedReveal,
 };
+use crate::app::games::shengji::ShengjiScoreCaptureEffect;
 use crate::app::presentation::{
     ACCENT, PANEL_ALT, READY, SCORE_ROLL_DELAY, SCORE_ROLL_DURATION, SUMMARY_MODAL_ENTRY_DURATION,
     SUMMARY_ROW_ENTRY_DURATION, TABLE_SCORE_CARD_REVEAL, add_text, ease_out_cubic,
@@ -19,8 +22,7 @@ use crate::app::shell::{
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_client::ShengjiScoreCaptureEffect;
-use leocard_protocol::ShengjiPhaseView;
+
 use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
 
@@ -34,20 +36,27 @@ const SHENGJI_TOTAL_ABSORB_DURATION: f32 = 0.78;
 pub(super) fn sync_shengji_score_capture_effect(
     mut commands: UiComposer,
     client: Option<Res<ClientResource>>,
+    game_client: Res<ShengjiClientState>,
     assets: Res<UiAssets>,
     mut state: ResMut<ShengjiScoreCaptureEffectState>,
     layers: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<PlayerInteractionLayer>>,
     anchors: Query<(&ComputedNode, &UiGlobalTransform), With<ShengjiScoreTrayAnchor>>,
 ) {
-    let Some(model) = client.as_deref().map(|client| client.0.model()) else {
+    let Some(_) = client.as_deref() else {
         *state = ShengjiScoreCaptureEffectState::default();
         return;
     };
-    let serial = model.shengji_score_capture_serial();
+    if state.view_key != game_client.view_key() {
+        *state = ShengjiScoreCaptureEffectState {
+            view_key: game_client.view_key(),
+            ..default()
+        };
+    }
+    let serial = game_client.shengji_score_capture_serial();
     if serial == 0 || serial == state.seen_serial {
         return;
     }
-    let Some(capture) = model.last_shengji_score_capture().cloned() else {
+    let Some(capture) = game_client.last_shengji_score_capture().cloned() else {
         return;
     };
     let Ok((layer, layer_node, layer_transform)) = layers.single() else {
@@ -231,7 +240,11 @@ pub(super) fn update_shengji_settlement_animation(
     mut animation: ResMut<ShengjiSettlementAnimation>,
 ) {
     let finished = client.as_deref().and_then(|client| {
-        let game = client.0.model().shengji_game()?;
+        let game = client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::shengji)?;
         let ShengjiPhaseView::Finished { result, .. } = &game.phase else {
             return None;
         };
@@ -443,10 +456,13 @@ pub(crate) fn spawn_shengji_settlement_absorption(
     if animation.absorption_spawned || animation.elapsed < SHENGJI_TOTAL_ABSORB_DELAY {
         return;
     }
-    let Some(game) = client
-        .as_deref()
-        .and_then(|client| client.0.model().shengji_game())
-    else {
+    let Some(game) = client.as_deref().and_then(|client| {
+        client
+            .0
+            .model()
+            .game_snapshot()
+            .and_then(GameSnapshot::shengji)
+    }) else {
         return;
     };
     let ShengjiPhaseView::Finished { result, .. } = &game.phase else {

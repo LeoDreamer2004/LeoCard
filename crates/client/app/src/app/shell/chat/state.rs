@@ -1,7 +1,9 @@
 //! 聊天抽屉、历史记录与气泡实体的状态类型。
 
 use bevy::prelude::*;
-use leocard_protocol::{PlayerId, QUICK_VOICE_COUNT};
+use leocard_game_common::PlayerId;
+use leocard_protocol::QUICK_VOICE_COUNT;
+use leocard_ui::DrawerSlide;
 use std::collections::VecDeque;
 
 pub(super) const CHAT_PANEL_WIDTH: f32 = 350.0;
@@ -45,7 +47,7 @@ pub(crate) struct ChatHistoryEntry {
 pub(crate) struct ChatPanelState {
     pub read_only: bool,
     pub open: bool,
-    pub slide: f32,
+    pub drawer: DrawerSlide,
     pub quick_voice_open: bool,
     pub emoji_open: bool,
     pub quick_voice_scroll_y: f32,
@@ -59,7 +61,7 @@ impl Default for ChatPanelState {
         Self {
             read_only: false,
             open: false,
-            slide: 1.0,
+            drawer: DrawerSlide::new(false, Vec2::new(CHAT_PANEL_HIDDEN_OFFSET, 0.0)),
             quick_voice_open: false,
             emoji_open: false,
             quick_voice_scroll_y: 0.0,
@@ -67,6 +69,18 @@ impl Default for ChatPanelState {
             input: String::new(),
             history: VecDeque::new(),
         }
+    }
+}
+
+impl ChatPanelState {
+    pub(super) fn history_text(&self) -> String {
+        let start = self.history.len().saturating_sub(10);
+        self.history
+            .iter()
+            .skip(start)
+            .map(|entry| format!("[{}(玩家)]: {}", entry.player_name, entry.message))
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }
 
@@ -95,15 +109,4 @@ pub(crate) struct QuickVoiceMenu;
 pub(crate) struct QuickVoiceScroll;
 
 #[derive(Component)]
-pub(crate) struct ActiveChatBubble {
-    pub player: PlayerId,
-    pub text: Option<Entity>,
-    pub emoji_image: Option<Entity>,
-    pub width: f32,
-    pub elapsed: f32,
-    pub duration: f32,
-    pub anchor_missing_secs: f32,
-}
-
-#[derive(Component)]
-pub(crate) struct ChatBubbleText;
+pub(crate) struct ChatBubbleOwner(pub PlayerId);

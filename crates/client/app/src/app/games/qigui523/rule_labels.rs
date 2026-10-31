@@ -1,55 +1,55 @@
-use leocard_qigui523::{SuitComparison, TimeControl};
+use leocard_qigui523::{QiGuiSuitComparison, QiGuiTimeControl};
 
-pub(crate) fn suit_comparison_label(comparison: SuitComparison) -> &'static str {
+pub(crate) fn suit_comparison_label(comparison: QiGuiSuitComparison) -> &'static str {
     match comparison {
-        SuitComparison::HighestCard => "极大法",
-        SuitComparison::Lexicographic => "逐项法",
-        SuitComparison::SumPoints => "记点法",
+        QiGuiSuitComparison::HighestCard => "极大法",
+        QiGuiSuitComparison::Lexicographic => "逐项法",
+        QiGuiSuitComparison::SumPoints => "记点法",
     }
 }
 
-pub(crate) fn time_control_label(control: TimeControl) -> &'static str {
+pub(crate) fn time_control_label(control: QiGuiTimeControl) -> &'static str {
     match control {
-        TimeControl::Unlimited => "不限时",
-        TimeControl::FivePlusTen => "5 + 10",
-        TimeControl::FivePlusThirty => "5 + 30",
-        TimeControl::FifteenPlusThirty => "15 + 30",
-        TimeControl::ThirtyPlusSixty => "30 + 60",
+        QiGuiTimeControl::Unlimited => "不限时",
+        QiGuiTimeControl::FivePlusTen => "5 + 10",
+        QiGuiTimeControl::FivePlusThirty => "5 + 30",
+        QiGuiTimeControl::FifteenPlusThirty => "15 + 30",
+        QiGuiTimeControl::ThirtyPlusSixty => "30 + 60",
     }
 }
 
-pub(crate) fn previous_time_control(control: TimeControl) -> Option<TimeControl> {
+pub(crate) fn previous_time_control(control: QiGuiTimeControl) -> Option<QiGuiTimeControl> {
     match control {
-        TimeControl::FivePlusTen => None,
-        TimeControl::FivePlusThirty => Some(TimeControl::FivePlusTen),
-        TimeControl::FifteenPlusThirty => Some(TimeControl::FivePlusThirty),
-        TimeControl::ThirtyPlusSixty => Some(TimeControl::FifteenPlusThirty),
-        TimeControl::Unlimited => Some(TimeControl::ThirtyPlusSixty),
+        QiGuiTimeControl::FivePlusTen => None,
+        QiGuiTimeControl::FivePlusThirty => Some(QiGuiTimeControl::FivePlusTen),
+        QiGuiTimeControl::FifteenPlusThirty => Some(QiGuiTimeControl::FivePlusThirty),
+        QiGuiTimeControl::ThirtyPlusSixty => Some(QiGuiTimeControl::FifteenPlusThirty),
+        QiGuiTimeControl::Unlimited => Some(QiGuiTimeControl::ThirtyPlusSixty),
     }
 }
 
-pub(crate) fn next_time_control(control: TimeControl) -> Option<TimeControl> {
+pub(crate) fn next_time_control(control: QiGuiTimeControl) -> Option<QiGuiTimeControl> {
     match control {
-        TimeControl::FivePlusTen => Some(TimeControl::FivePlusThirty),
-        TimeControl::FivePlusThirty => Some(TimeControl::FifteenPlusThirty),
-        TimeControl::FifteenPlusThirty => Some(TimeControl::ThirtyPlusSixty),
-        TimeControl::ThirtyPlusSixty => Some(TimeControl::Unlimited),
-        TimeControl::Unlimited => None,
+        QiGuiTimeControl::FivePlusTen => Some(QiGuiTimeControl::FivePlusThirty),
+        QiGuiTimeControl::FivePlusThirty => Some(QiGuiTimeControl::FifteenPlusThirty),
+        QiGuiTimeControl::FifteenPlusThirty => Some(QiGuiTimeControl::ThirtyPlusSixty),
+        QiGuiTimeControl::ThirtyPlusSixty => Some(QiGuiTimeControl::Unlimited),
+        QiGuiTimeControl::Unlimited => None,
     }
 }
 
-pub(crate) fn previous_suit_comparison(comparison: SuitComparison) -> SuitComparison {
+pub(crate) fn previous_suit_comparison(comparison: QiGuiSuitComparison) -> QiGuiSuitComparison {
     match comparison {
-        SuitComparison::HighestCard => SuitComparison::SumPoints,
-        SuitComparison::Lexicographic => SuitComparison::HighestCard,
-        SuitComparison::SumPoints => SuitComparison::Lexicographic,
+        QiGuiSuitComparison::HighestCard => QiGuiSuitComparison::SumPoints,
+        QiGuiSuitComparison::Lexicographic => QiGuiSuitComparison::HighestCard,
+        QiGuiSuitComparison::SumPoints => QiGuiSuitComparison::Lexicographic,
     }
 }
 
-pub(crate) fn next_suit_comparison(comparison: SuitComparison) -> SuitComparison {
+pub(crate) fn next_suit_comparison(comparison: QiGuiSuitComparison) -> QiGuiSuitComparison {
     match comparison {
-        SuitComparison::HighestCard => SuitComparison::Lexicographic,
-        SuitComparison::Lexicographic => SuitComparison::SumPoints,
-        SuitComparison::SumPoints => SuitComparison::HighestCard,
+        QiGuiSuitComparison::HighestCard => QiGuiSuitComparison::Lexicographic,
+        QiGuiSuitComparison::Lexicographic => QiGuiSuitComparison::SumPoints,
+        QiGuiSuitComparison::SumPoints => QiGuiSuitComparison::HighestCard,
     }
 }

@@ -1,8 +1,9 @@
 use super::{Participant, RoomSession};
 use crate::ConnectionId;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    GameViolation, PlayerGameProfiles, PlayerId, PlayerViolation, ProfileId, ReconnectToken,
-    RejectReason, RoomViolation, SeatId,
+    GameViolation, PlayerGameProfiles, PlayerViolation, ProfileId, ReconnectToken, RejectReason,
+    RoomViolation, SeatId,
 };
 
 impl RoomSession {

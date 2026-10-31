@@ -1,20 +1,21 @@
 use super::support::{Progress, REGISTRY, win};
-use crate::Fan;
-use leocard_achievements::{AchievementTier, ParticipantId};
+use crate::MahjongFan;
+use leocard_achievements::AchievementTier;
+use leocard_game_common::PlayerId;
 
 #[test]
 fn repeated_fans_count_winning_hands_instead_of_copies_and_ignore_other_winners() {
     for (id, fan, target, copies) in [
         (
             "leocard:mahjong/fully_concealed_hand",
-            Fan::FullyConcealedHand,
+            MahjongFan::FullyConcealedHand,
             20,
             1,
         ),
-        ("leocard:mahjong/tile_hog", Fan::TileHog, 50, 2),
+        ("leocard:mahjong/tile_hog", MahjongFan::TileHog, 50, 2),
         (
             "leocard:mahjong/pure_double_chow",
-            Fan::PureDoubleChow,
+            MahjongFan::PureDoubleChow,
             100,
             2,
         ),
@@ -25,7 +26,7 @@ fn repeated_fans_count_winning_hands_instead_of_copies_and_ignore_other_winners(
         }
         assert_eq!(progress.count(id), target - 1);
         assert!(!progress.achieved(id));
-        progress.apply_for(ParticipantId(1), win(&[(fan, copies)], 0, None, true));
+        progress.apply_for(PlayerId(1), win(&[(fan, copies)], 0, None, true));
         assert_eq!(progress.count(id), target - 1);
         progress.apply(win(&[(fan, copies)], 0, None, true));
         assert!(progress.achieved(id));
@@ -37,37 +38,37 @@ fn grouped_fans_share_one_increment_per_hand_and_follow_the_updated_targets() {
     for (id, fans, target) in [
         (
             "leocard:mahjong/big_eight_collector",
-            &[Fan::AllPungs, Fan::HalfFlush][..],
+            &[MahjongFan::AllPungs, MahjongFan::HalfFlush][..],
             200,
         ),
         (
             "leocard:mahjong/small_eight_collector",
-            &[Fan::SevenPairs][..],
+            &[MahjongFan::SevenPairs][..],
             200,
         ),
         (
             "leocard:mahjong/almost_major_collector",
-            &[Fan::BigThreeWinds][..],
+            &[MahjongFan::BigThreeWinds][..],
             50,
         ),
         (
             "leocard:mahjong/last_wall_collector",
-            &[Fan::LastTileDraw][..],
+            &[MahjongFan::LastTileDraw][..],
             30,
         ),
         (
             "leocard:mahjong/kong_win_collector",
-            &[Fan::ThreeKongs, Fan::OutWithReplacementTile][..],
+            &[MahjongFan::ThreeKongs, MahjongFan::OutWithReplacementTile][..],
             30,
         ),
         (
             "leocard:mahjong/tight_wait_collector",
-            &[Fan::SingleWait][..],
+            &[MahjongFan::SingleWait][..],
             500,
         ),
         (
             "leocard:mahjong/pure_color_collector",
-            &[Fan::FullFlush, Fan::PureShiftedChows][..],
+            &[MahjongFan::FullFlush, MahjongFan::PureShiftedChows][..],
             100,
         ),
     ] {
@@ -86,11 +87,11 @@ fn grouped_fans_share_one_increment_per_hand_and_follow_the_updated_targets() {
     }
 
     let mut progress = Progress::default();
-    progress.apply(win(&[(Fan::PrevalentWind, 1)], 0, None, true));
-    progress.apply(win(&[(Fan::SeatWind, 1)], 0, None, true));
+    progress.apply(win(&[(MahjongFan::PrevalentWind, 1)], 0, None, true));
+    progress.apply(win(&[(MahjongFan::SeatWind, 1)], 0, None, true));
     assert!(!progress.achieved("leocard:mahjong/prevalent_seat_wind_win"));
     progress.apply(win(
-        &[(Fan::PrevalentWind, 1), (Fan::SeatWind, 1)],
+        &[(MahjongFan::PrevalentWind, 1), (MahjongFan::SeatWind, 1)],
         0,
         None,
         true,

@@ -4,11 +4,10 @@ use super::super::{
     MahjongAssets, MahjongTileMaterial, MahjongTileSize, MahjongUiAction, MahjongWinTileSizes,
     mahjong_settlement_timing, render_mahjong_win_tile_row,
 };
+use super::continuation::render_settlement_continue;
+use super::final_summary::FinalSummaryView;
+use super::scores::ScoreStageView;
 use super::*;
-use super::{
-    continuation::render_settlement_continue, final_summary::FinalSummaryView,
-    scores::ScoreStageView,
-};
 use crate::app::presentation::{
     ACCENT, GameSummaryAnimation, MUTED, PanelSkin, PlayerMenuProfile, READY, TEXT, add_avatar,
     add_text, attach_player_interactions, decorate_panel_skin, summary_row_progress,
@@ -16,9 +15,10 @@ use crate::app::presentation::{
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{LobbyUiAction, UiAction};
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 pub(super) fn settlement_row_texture(assets: &UiAssets) -> ImageNode {
     let mut texture = ImageNode::new(assets.home.game_card.clone()).with_mode(
@@ -101,8 +101,8 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
         let player = game
             .players
             .iter()
-            .find(|player| player.id == winner.player);
-        let name = player.map_or("玩家", |player| player.name.as_str());
+            .find(|player| player.player.id == winner.player);
+        let name = player.map_or("玩家", |player| player.player.name.as_str());
         let panel = spawn_node(
             commands,
             table,
@@ -146,19 +146,19 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
             None,
         );
         if let Some(player) = player {
-            let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
+            let avatar = player.player.avatar.and_then(|id| avatars.remote.get(&id));
             let image = add_avatar(commands, heading, name, avatar, 62.0, assets);
             attach_player_interactions(
                 commands,
                 image,
                 image,
-                player.id,
+                player.player.id,
                 PlayerMenuProfile {
                     name,
                     avatar,
-                    reference_points: player.reference_points,
-                    completed_games: player.completed_games,
-                    game_profiles: &player.game_profiles,
+                    reference_points: player.player.reference_points,
+                    completed_games: player.player.completed_games,
+                    game_profiles: &player.player.game_profiles,
                 },
                 assets,
             );
@@ -180,8 +180,8 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
                 let source = game
                     .players
                     .iter()
-                    .find(|player| player.id == from)
-                    .map_or("玩家", |player| player.name.as_str());
+                    .find(|player| player.player.id == from)
+                    .map_or("玩家", |player| player.player.name.as_str());
                 format!("{source} 放炮")
             },
         );
@@ -419,7 +419,7 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
         let ready = game
             .players
             .iter()
-            .find(|player| player.id == game.you)
+            .find(|player| player.player.id == game.you)
             .is_some_and(|player| player.ready);
         render_settlement_continue(
             commands,
@@ -428,7 +428,12 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
             animation.elapsed,
             timeline.continue_at,
             f32::INFINITY,
-            if !game.players.iter().any(|player| player.id == game.you) && !final_standings {
+            if !game
+                .players
+                .iter()
+                .any(|player| player.player.id == game.you)
+                && !final_standings
+            {
                 "观战中，等待下一局"
             } else if !final_standings && ready {
                 "等待其他玩家"
@@ -437,7 +442,12 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
             },
             if final_standings {
                 Some(UiAction::Mahjong(MahjongUiAction::ShowFinalSummary))
-            } else if ready || !game.players.iter().any(|player| player.id == game.you) {
+            } else if ready
+                || !game
+                    .players
+                    .iter()
+                    .any(|player| player.player.id == game.you)
+            {
                 None
             } else {
                 Some(UiAction::Lobby(LobbyUiAction::PlayAgain))

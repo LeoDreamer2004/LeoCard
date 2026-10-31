@@ -2,18 +2,19 @@ use crate::{
     ShengjiBidKind, ShengjiBidTrump, ShengjiClassifiedPlay, ShengjiHandStatistics,
     ShengjiMatchStatistics, ShengjiRedealReason,
 };
-use leocard_achievements::{GameFacts, ParticipantId};
+use leocard_achievements::GameFacts;
+use leocard_game_common::PlayerId;
 
 #[derive(Clone, Debug)]
 pub struct ShengjiDeclarationFacts {
-    pub player: ParticipantId,
+    pub player: PlayerId,
     pub trump: ShengjiBidTrump,
     pub kind: ShengjiBidKind,
 }
 
 #[derive(Clone, Debug)]
 pub struct ShengjiPlayFacts {
-    pub player: ParticipantId,
+    pub player: PlayerId,
     pub play: ShengjiClassifiedPlay,
 }
 
@@ -30,7 +31,7 @@ pub enum ShengjiAchievementEvent {
         is_lead: bool,
     },
     HandAnalyzed {
-        player: ParticipantId,
+        player: PlayerId,
         statistics: Box<ShengjiHandStatistics>,
         match_statistics: ShengjiMatchStatistics,
     },
@@ -38,7 +39,7 @@ pub enum ShengjiAchievementEvent {
         reason: ShengjiRedealReason,
     },
     FirstTrickDealerCut {
-        player: ParticipantId,
+        player: PlayerId,
     },
 }
 

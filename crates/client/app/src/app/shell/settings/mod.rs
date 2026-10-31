@@ -9,11 +9,10 @@ mod plugin;
 mod state;
 mod view;
 
+pub(crate) use actions::SettingsUiAction;
 pub(crate) use animation::*;
 pub(crate) use files::*;
 pub(crate) use input::*;
 pub(super) use plugin::*;
 pub(crate) use state::*;
 pub(super) use view::*;
-
-pub(crate) use actions::SettingsUiAction;

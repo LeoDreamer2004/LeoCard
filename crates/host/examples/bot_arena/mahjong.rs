@@ -1,39 +1,45 @@
 use super::metrics::Metrics;
+use leocard_game_common::PlayerId;
 use leocard_mahjong::{
-    GameState, MahjongBot, MahjongBotAction, MahjongBotObservation, MahjongClaim,
-    MahjongClaimOption, MahjongMeldKind, MahjongPlayerId, MahjongRuleSet, Phase, build_deck,
+    MahjongBot, MahjongBotAction, MahjongBotObservation, MahjongClaim, MahjongClaimOption,
+    MahjongGameState, MahjongMeldKind, MahjongPhase, MahjongRuleSet, build_deck,
 };
+
 use std::time::Duration;
 
 pub fn run(seed: usize, budget: Duration, mixed: bool, metrics: &mut Metrics) {
     let mut deck = build_deck();
     fastrand::Rng::with_seed(seed as u64).shuffle(&mut deck);
-    let mut game = GameState::new_with_deck(
+    let mut game = MahjongGameState::new_with_deck(
         MahjongRuleSet {
             minimum_eight_points: seed % 4 != 3,
             multiple_winners: seed.is_multiple_of(3),
             ..MahjongRuleSet::default()
         },
         deck,
-        MahjongPlayerId(if mixed { 0 } else { seed % 4 }),
+        PlayerId::from_index(if mixed { 0 } else { seed % 4 }),
     )
     .unwrap();
     for _ in 0..1000 {
         let player = match game.phase() {
-            Phase::Dealing { .. } => {
+            MahjongPhase::Dealing { .. } => {
                 game.advance_deal().unwrap();
                 continue;
             }
-            Phase::ReplacingFlower { .. } => {
+            MahjongPhase::ReplacingFlower { .. } => {
                 game.advance_flower_replacement().unwrap();
                 continue;
             }
-            Phase::Playing => game.current_player(),
-            Phase::WaitingForClaims(pending) => pending.waiting_for()[0],
-            Phase::Finished(result) => {
+            MahjongPhase::Playing => game.current_player(),
+            MahjongPhase::WaitingForClaims(pending) => pending.waiting_for()[0],
+            MahjongPhase::Finished(result) => {
                 metrics.draws += usize::from(result.exhaustive_draw);
-                metrics.wins +=
-                    usize::from(result.winners.iter().any(|win| win.player.0 == seed % 4));
+                metrics.wins += usize::from(
+                    result
+                        .winners
+                        .iter()
+                        .any(|win| win.player.index() == seed % 4),
+                );
                 metrics.score += i64::from(result.deltas[seed % 4]);
                 println!(
                     "mahjong seed={seed}: winners={:?}, draw={}",
@@ -47,7 +53,7 @@ pub fn run(seed: usize, budget: Duration, mixed: bool, metrics: &mut Metrics) {
                 return;
             }
         };
-        let action = if mixed && player.0 != seed % 4 {
+        let action = if mixed && player.index() != seed % 4 {
             baseline(&game, player)
         } else {
             let observation = MahjongBotObservation::from_game(&game, player).unwrap();
@@ -67,12 +73,12 @@ pub fn run(seed: usize, budget: Duration, mixed: bool, metrics: &mut Metrics) {
     panic!("mahjong did not finish");
 }
 
-fn baseline(game: &GameState, player: MahjongPlayerId) -> MahjongBotAction {
+fn baseline(game: &MahjongGameState, player: PlayerId) -> MahjongBotAction {
     let observation = MahjongBotObservation::from_game(game, player).unwrap();
     if let Some(action) = observation.immediate_action() {
         return action;
     }
-    if let Phase::WaitingForClaims(pending) = game.phase() {
+    if let MahjongPhase::WaitingForClaims(pending) = game.phase() {
         let options = pending.options_for(player).unwrap();
         let claim = if options.contains(&MahjongClaimOption::Kong) {
             MahjongClaim::Kong

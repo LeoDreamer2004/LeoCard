@@ -1,4 +1,5 @@
-use crate::{HandResult, ShengjiClassifiedPlay, ShengjiPlayerId, ShengjiRuleSet};
+use crate::{ShengjiClassifiedPlay, ShengjiHandResult, ShengjiRuleSet};
+use leocard_game_common::PlayerId;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -20,14 +21,14 @@ pub struct ShengjiBurialStatistics {
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ShengjiHandStatistics {
-    pub player: ShengjiPlayerId,
+    pub player: PlayerId,
     pub deck_count: u8,
     pub opening_hand: ShengjiOpeningHandStatistics,
     pub burial: Option<ShengjiBurialStatistics>,
-    pub bottom_burier: Option<ShengjiPlayerId>,
+    pub bottom_burier: Option<PlayerId>,
     pub first_trick_cut_dealer: bool,
-    pub result: HandResult,
-    pub last_trick_winner: ShengjiPlayerId,
+    pub result: ShengjiHandResult,
+    pub last_trick_winner: PlayerId,
     pub last_winning_play: ShengjiClassifiedPlay,
 }
 
@@ -38,7 +39,7 @@ pub struct ShengjiMatchStatistics {
 }
 
 impl ShengjiMatchStatistics {
-    pub fn record_hand(&mut self, result: &HandResult) {
+    pub fn record_hand(&mut self, result: &ShengjiHandResult) {
         let team = usize::from(result.dealer_team.0);
         let previous = self.consecutive_dealer_shutouts[team];
         self.consecutive_dealer_shutouts = [0; 2];

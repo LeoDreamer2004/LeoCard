@@ -8,6 +8,6 @@ mod state;
 #[cfg(test)]
 mod tests;
 
-pub use history::BettingRecord;
-pub use sizing::RaiseSizing;
+pub use history::TexasBettingRecord;
+pub use sizing::TexasRaiseSizing;
 pub use state::*;

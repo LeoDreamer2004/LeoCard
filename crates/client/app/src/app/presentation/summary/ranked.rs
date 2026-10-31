@@ -11,7 +11,8 @@ use crate::app::presentation::{
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_protocol::{PlayerId, PlayerReferenceChange};
+use leocard_game_common::PlayerId;
+use leocard_protocol::PlayerReferenceChange;
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) struct SummaryPlayer<'a> {

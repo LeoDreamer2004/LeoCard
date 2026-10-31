@@ -8,7 +8,8 @@ use crate::app::shell::{OpponentBadge, PlayerAvatarAnchor, SocialUiAction, UiAct
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
-use leocard_protocol::PlayerId;
+use leocard_game_common::PlayerId;
+
 use leocard_ui::{UiComposer, UiSceneKey, spawn_node, ui_component};
 
 pub(crate) struct PlayerPortraitSpec<'a> {

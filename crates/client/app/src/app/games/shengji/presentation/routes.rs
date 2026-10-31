@@ -1,19 +1,21 @@
 use super::{ShengjiPresentationKind, ShengjiPresentationRoute};
 use crate::app::presentation::{TableSeatAnchors, TableSeats};
+use leocard_game_common::PlayerId;
+use leocard_protocol::ShengjiSnapshot;
+
 use bevy::prelude::*;
-use leocard_protocol::{PlayerId, ShengjiSnapshot};
 
 fn shengji_relative_seat(game: &ShengjiSnapshot, player: PlayerId) -> Option<u8> {
     let seat_count = game.rules.player_count();
     let own_seat = game
         .players
         .iter()
-        .find(|candidate| candidate.id == game.you)
+        .find(|candidate| candidate.player.id == game.you)
         .map_or(0, |player| player.seat.0);
     let player_seat = game
         .players
         .iter()
-        .find(|candidate| candidate.id == player)?
+        .find(|candidate| candidate.player.id == player)?
         .seat
         .0;
     Some(TableSeats::new(seat_count).relative(own_seat, player_seat))
@@ -80,13 +82,13 @@ pub(super) fn shengji_partner_player(game: &ShengjiSnapshot, player: PlayerId) -
     let seat = game
         .players
         .iter()
-        .find(|candidate| candidate.id == player)?
+        .find(|candidate| candidate.player.id == player)?
         .seat
         .0;
     game.players
         .iter()
         .find(|candidate| candidate.seat.0 == (seat + 2) % 4)
-        .map(|candidate| candidate.id)
+        .map(|candidate| candidate.player.id)
 }
 
 pub(super) fn shengji_presentation_routes(

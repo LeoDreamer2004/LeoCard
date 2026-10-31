@@ -1,9 +1,9 @@
 //! 游戏内容是否需要重建页面，由各游戏的比较规则决定。
 use super::blackjack::only_blackjack_timer_changed;
-use super::minecraft_guess::only_guess_timer_changed;
+use super::mc_guess::only_guess_timer_changed;
 use super::qigui523::only_turn_timer_changed;
 use super::shengji::only_shengji_transient_progress_changed;
-use super::texas_holdem::only_texas_equities_changed;
+use super::texas::only_texas_equities_changed;
 use leocard_protocol::GameSnapshot;
 
 pub(crate) struct GameScreenChange {
@@ -18,8 +18,8 @@ impl GameScreenChange {
                         game,
                         GameSnapshot::QiGui523(_)
                             | GameSnapshot::Shengji(_)
-                            | GameSnapshot::TexasHoldem(_)
-                            | GameSnapshot::MinecraftGuess(_)
+                            | GameSnapshot::Texas(_)
+                            | GameSnapshot::McGuess(_)
                             | GameSnapshot::Blackjack(_)
                     )
                 })
@@ -32,11 +32,10 @@ impl GameScreenChange {
             (Some(GameSnapshot::Blackjack(before)), Some(GameSnapshot::Blackjack(after))) => {
                 only_blackjack_timer_changed(before, after)
             }
-            (
-                Some(GameSnapshot::MinecraftGuess(before)),
-                Some(GameSnapshot::MinecraftGuess(after)),
-            ) => only_guess_timer_changed(before, after),
-            (Some(GameSnapshot::TexasHoldem(before)), Some(GameSnapshot::TexasHoldem(after))) => {
+            (Some(GameSnapshot::McGuess(before)), Some(GameSnapshot::McGuess(after))) => {
+                only_guess_timer_changed(before, after)
+            }
+            (Some(GameSnapshot::Texas(before)), Some(GameSnapshot::Texas(after))) => {
                 only_texas_equities_changed(before, after)
             }
             (Some(GameSnapshot::QiGui523(before)), Some(GameSnapshot::QiGui523(after))) => {

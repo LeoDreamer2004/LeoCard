@@ -1,8 +1,10 @@
 use super::super::{PROFILE_HEADER, StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
-use super::minecraft_guess::{PreviousMinecraftGuessStats, SixSeatMinecraftGuessStats};
-use super::texas_holdem::V3TexasHoldemStats;
+use super::mc_guess::{PreviousMcGuessStats, SixSeatMcGuessStats};
+use super::texas::V3TexasStats;
 use super::uno::SixSeatUnoStats;
-use leocard_protocol::{MahjongProfileStats, MatchId, PlayerInteractionStats, ShengjiProfileStats};
+use leocard_mahjong::MahjongProfileStats;
+use leocard_protocol::{MatchId, PlayerInteractionStats};
+use leocard_shengji::ShengjiProfileStats;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 macro_rules! stored_profile_compatibility_types {
@@ -25,26 +27,26 @@ macro_rules! stored_profile_compatibility_types {
 stored_profile_compatibility_types!(
     (SixSeatUnoStoredPlayerProfile, SixSeatUnoStoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<V3TexasHoldemStats>,
+        texas_stats: Option<V3TexasStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
         interaction_stats: Option<PlayerInteractionStats>,
         mahjong_stats: Option<MahjongProfileStats>,
-        minecraft_guess_stats: Option<PreviousMinecraftGuessStats>,
+        mc_guess_stats: Option<PreviousMcGuessStats>,
     }),
     (SixSeatStoredPlayerProfile, SixSeatStoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<V3TexasHoldemStats>,
+        texas_stats: Option<V3TexasStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
         interaction_stats: Option<PlayerInteractionStats>,
         mahjong_stats: Option<MahjongProfileStats>,
-        minecraft_guess_stats: Option<SixSeatMinecraftGuessStats>,
+        mc_guess_stats: Option<SixSeatMcGuessStats>,
     }),
     // Through 0.8.0: MC guessing contributed only to the overall rating.
     (V080StoredPlayerProfile, V080StoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<V3TexasHoldemStats>,
+        texas_stats: Option<V3TexasStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
         interaction_stats: Option<PlayerInteractionStats>,
@@ -53,25 +55,25 @@ stored_profile_compatibility_types!(
     // 0.3.2：已有互动统计，尚无麻将统计。
     (V032StoredPlayerProfile, V032StoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<V3TexasHoldemStats>,
+        texas_stats: Option<V3TexasStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
         interaction_stats: Option<PlayerInteractionStats>,
     }),
     (PreInteractionStoredPlayerProfile, PreInteractionStoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<V3TexasHoldemStats>,
+        texas_stats: Option<V3TexasStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
     }),
     (PreUnoStoredPlayerProfile, PreUnoStoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<V3TexasHoldemStats>,
+        texas_stats: Option<V3TexasStats>,
         shengji_stats: Option<ShengjiProfileStats>,
     }),
     (PreShengjiStoredPlayerProfile, PreShengjiStoredGameProfiles, {
         qigui523: StoredRatingProfile,
-        texas_holdem_stats: Option<V3TexasHoldemStats>,
+        texas_stats: Option<V3TexasStats>,
     }),
     (PreTexasStoredPlayerProfile, PreTexasStoredGameProfiles, {
         qigui523: StoredRatingProfile,
@@ -107,11 +109,11 @@ pub(in crate::player::profile) fn decode_player_profile(
     if let Some(previous) = bytes.strip_prefix(super::doudizhu::V5_PROFILE_HEADER) {
         return super::doudizhu::decode_v5(previous);
     }
-    if let Some(previous) = bytes.strip_prefix(super::texas_holdem::V4_PROFILE_HEADER) {
-        return super::texas_holdem::decode_v4(previous);
+    if let Some(previous) = bytes.strip_prefix(super::texas::V4_PROFILE_HEADER) {
+        return super::texas::decode_v4(previous);
     }
-    if let Some(previous) = bytes.strip_prefix(super::texas_holdem::V3_PROFILE_HEADER) {
-        return super::texas_holdem::decode_v3(previous);
+    if let Some(previous) = bytes.strip_prefix(super::texas::V3_PROFILE_HEADER) {
+        return super::texas::decode_v3(previous);
     }
     if let Some(previous) = bytes.strip_prefix(super::graph::V2_PROFILE_HEADER) {
         return super::graph::decode_v2(previous);
@@ -126,12 +128,12 @@ pub(in crate::player::profile) fn decode_player_profile(
                 doudizhu_stats: None,
                 blackjack_stats: None,
                 qigui523: previous.games.qigui523,
-                texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
+                texas_stats: previous.games.texas_stats.map(Into::into),
                 shengji_stats: previous.games.shengji_stats,
                 uno_stats: previous.games.uno_stats.map(Into::into),
                 interaction_stats: previous.games.interaction_stats,
                 mahjong_stats: previous.games.mahjong_stats,
-                minecraft_guess_stats: previous.games.minecraft_guess_stats.map(Into::into),
+                mc_guess_stats: previous.games.mc_guess_stats.map(Into::into),
             },
         }),
         Err(current_error) => {
@@ -142,12 +144,12 @@ pub(in crate::player::profile) fn decode_player_profile(
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
-                        texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
+                        texas_stats: previous.games.texas_stats.map(Into::into),
                         shengji_stats: previous.games.shengji_stats,
                         uno_stats: previous.games.uno_stats.map(Into::into),
                         interaction_stats: previous.games.interaction_stats,
                         mahjong_stats: previous.games.mahjong_stats,
-                        minecraft_guess_stats: previous.games.minecraft_guess_stats.map(Into::into),
+                        mc_guess_stats: previous.games.mc_guess_stats.map(Into::into),
                     },
                 });
             }
@@ -158,12 +160,12 @@ pub(in crate::player::profile) fn decode_player_profile(
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
-                        texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
+                        texas_stats: previous.games.texas_stats.map(Into::into),
                         shengji_stats: previous.games.shengji_stats,
                         uno_stats: previous.games.uno_stats.map(Into::into),
                         interaction_stats: previous.games.interaction_stats,
                         mahjong_stats: previous.games.mahjong_stats,
-                        minecraft_guess_stats: None,
+                        mc_guess_stats: None,
                     },
                 });
             }
@@ -174,12 +176,12 @@ pub(in crate::player::profile) fn decode_player_profile(
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
-                        texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
+                        texas_stats: previous.games.texas_stats.map(Into::into),
                         shengji_stats: previous.games.shengji_stats,
                         uno_stats: previous.games.uno_stats.map(Into::into),
                         interaction_stats: previous.games.interaction_stats,
                         mahjong_stats: None,
-                        minecraft_guess_stats: None,
+                        mc_guess_stats: None,
                     },
                 });
             }
@@ -190,12 +192,12 @@ pub(in crate::player::profile) fn decode_player_profile(
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
-                        texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
+                        texas_stats: previous.games.texas_stats.map(Into::into),
                         shengji_stats: previous.games.shengji_stats,
                         uno_stats: previous.games.uno_stats.map(Into::into),
                         interaction_stats: None,
                         mahjong_stats: None,
-                        minecraft_guess_stats: None,
+                        mc_guess_stats: None,
                     },
                 });
             }
@@ -206,12 +208,12 @@ pub(in crate::player::profile) fn decode_player_profile(
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
-                        texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
+                        texas_stats: previous.games.texas_stats.map(Into::into),
                         shengji_stats: previous.games.shengji_stats,
                         uno_stats: None,
                         interaction_stats: None,
                         mahjong_stats: None,
-                        minecraft_guess_stats: None,
+                        mc_guess_stats: None,
                     },
                 });
             }
@@ -222,12 +224,12 @@ pub(in crate::player::profile) fn decode_player_profile(
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
-                        texas_holdem_stats: previous.games.texas_holdem_stats.map(Into::into),
+                        texas_stats: previous.games.texas_stats.map(Into::into),
                         shengji_stats: None,
                         uno_stats: None,
                         interaction_stats: None,
                         mahjong_stats: None,
-                        minecraft_guess_stats: None,
+                        mc_guess_stats: None,
                     },
                 });
             }
@@ -238,12 +240,12 @@ pub(in crate::player::profile) fn decode_player_profile(
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
-                        texas_holdem_stats: None,
+                        texas_stats: None,
                         shengji_stats: None,
                         uno_stats: None,
                         interaction_stats: None,
                         mahjong_stats: None,
-                        minecraft_guess_stats: None,
+                        mc_guess_stats: None,
                     },
                 });
             }
@@ -260,12 +262,12 @@ pub(in crate::player::profile) fn decode_player_profile(
                         applied_matches: previous.games.qigui523.applied_matches,
                         qigui523_stats: None,
                     },
-                    texas_holdem_stats: None,
+                    texas_stats: None,
                     shengji_stats: None,
                     uno_stats: None,
                     interaction_stats: None,
                     mahjong_stats: None,
-                    minecraft_guess_stats: None,
+                    mc_guess_stats: None,
                 },
             })
         }

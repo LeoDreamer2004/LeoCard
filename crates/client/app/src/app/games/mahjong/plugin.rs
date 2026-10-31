@@ -13,17 +13,20 @@ use super::{
     sync_mahjong_hover_hints,
 };
 use crate::app::presentation::start_game_intro_finished;
-use crate::app::runtime::ClientUpdateSet;
+use crate::app::runtime::{ClientUpdateSet, GameEventSource, GameEvents, GameProjectionPlugin};
+
 use crate::app::shell::{
     ModalAnimationSet, UiActionSet, animate_cozy_modals, scroll_modal_content,
 };
 use bevy::prelude::*;
+use leocard_protocol::{GameEvent, GameKind, MahjongEvent};
 
 pub(crate) struct MahjongPlugin;
 
 impl Plugin for MahjongPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(UiMaterialPlugin::<MahjongTileMaterial>::default())
+        app.add_plugins(GameProjectionPlugin::<GameEvents<MahjongEvent>>::default())
+            .add_plugins(UiMaterialPlugin::<MahjongTileMaterial>::default())
             .insert_resource(MahjongClaimPresentationState::default())
             .init_resource::<MahjongFanVoicePlayback>()
             .init_resource::<MahjongUiState>()
@@ -107,5 +110,15 @@ impl Plugin for MahjongPlugin {
                     .run_if(start_game_intro_finished)
                     .in_set(ClientUpdateSet::Animate),
             );
+    }
+}
+
+impl GameEventSource for MahjongEvent {
+    const KIND: GameKind = GameKind::Mahjong;
+    fn select(event: &GameEvent) -> Option<&Self> {
+        match event {
+            GameEvent::Mahjong(event) => Some(event),
+            _ => None,
+        }
     }
 }

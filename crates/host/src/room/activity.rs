@@ -1,4 +1,5 @@
-use leocard_protocol::{PlayerId, PlayerInteraction, PlayerInteractionKind};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{PlayerInteraction, PlayerInteractionKind};
 use std::time::Instant;
 
 #[derive(Clone, Debug)]

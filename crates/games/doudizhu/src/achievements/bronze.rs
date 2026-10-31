@@ -1,7 +1,7 @@
 use super::DoudizhuAchievementFacts;
 use super::facts::{airplane_groups, facts, hand, play, whole_match};
 use super::macros::doudizhu;
-use crate::{Mode, PlayKind};
+use crate::{DoudizhuMode, DoudizhuPlayKind};
 use leocard_achievements::{AchievementDefinition, award};
 
 pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
@@ -24,8 +24,11 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         "请温柔一点",
         Bronze,
         "在三人斗地主中打出炸弹或王炸",
-        |event| play(event, |s| s.mode == Mode::Three
-            && matches!(s.kind, PlayKind::Bomb | PlayKind::Rocket))
+        |event| play(event, |s| s.mode == DoudizhuMode::Three
+            && matches!(
+                s.kind,
+                DoudizhuPlayKind::Bomb | DoudizhuPlayKind::Rocket
+            ))
     ),
     doudizhu!("airplane", "腾空万里", Bronze, "打出飞机", |event| {
         play(event, |s| airplane_groups(s) >= 2)
@@ -57,7 +60,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         Bronze,
         "领牌时打出单张6",
         |event| play(event, |s| s.is_lead
-            && s.kind == PlayKind::Single
+            && s.kind == DoudizhuPlayKind::Single
             && s.rank == 3)
     ),
     doudizhu!(

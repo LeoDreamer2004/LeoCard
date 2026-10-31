@@ -1,10 +1,11 @@
 use super::RoomActivity;
 use crate::achievements::RoomAchievements;
 use crate::{ConnectionId, Delivery, valid_avatar_png};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
     AvatarId, ChatContent, ChatMessage, ClientMessage, GameEvent, GameEventContext, GameKind,
     GameRules, GameViolation, LobbySnapshot, MAX_CHAT_MESSAGE_CHARS, MatchId, PROTOCOL_VERSION,
-    PlayerGameProfiles, PlayerId, PlayerInteraction, PlayerInteractionKind, PlayerInteractionStats,
+    PlayerGameProfiles, PlayerInteraction, PlayerInteractionKind, PlayerInteractionStats,
     PlayerViolation, ProfileId, QUICK_VOICE_COUNT, ReconnectToken, RejectReason, RequestId,
     RequestViolation, Revision, RoomId, RoomViolation, SeatId, ServerEvent, ServerMessage,
     TABLE_SEAT_COUNT,

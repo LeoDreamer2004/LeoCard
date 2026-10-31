@@ -9,13 +9,13 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use bevy::ui_widgets::Button;
-use leocard_doudizhu::Card;
+use leocard_doudizhu::DoudizhuCard;
 use leocard_ui::{CustomButtonMotion, UiComposer};
 
 #[derive(Component)]
 #[require(CustomButtonMotion, SilentButton)]
 pub(super) struct HandCardSlot {
-    pub card: Card,
+    pub card: DoudizhuCard,
     pub index: usize,
 }
 
@@ -26,7 +26,7 @@ pub(super) struct HandCardSelectionOverlay {
 
 #[derive(Component)]
 pub(super) struct HandCardVisual {
-    pub card: Card,
+    pub card: DoudizhuCard,
     pub index: usize,
     pub hand_len: usize,
     pub button: Entity,
@@ -45,7 +45,7 @@ pub(super) fn hand_layout(index: usize, hand_len: usize) -> HandCardLayout {
 pub(super) fn render_hand(
     commands: &mut UiComposer,
     parent: Entity,
-    cards: &[Card],
+    cards: &[DoudizhuCard],
     ui: &DoudizhuUiState,
     assets: &UiAssets,
 ) {

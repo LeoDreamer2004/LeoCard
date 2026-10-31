@@ -2,8 +2,8 @@ use super::DoudizhuUiState;
 use crate::app::presentation::{PlayEffectKind, PlayEffectState};
 use crate::app::runtime::{ClientResource, ServerNotification, UiAssets};
 use bevy::prelude::*;
-use leocard_doudizhu::{Action, PlayKind, classify};
-use leocard_protocol::{DoudizhuEvent, GameEvent, MatchId, ServerEvent};
+use leocard_doudizhu::{DoudizhuAction, DoudizhuPlayKind, classify};
+use leocard_protocol::{DoudizhuEvent, GameEvent, GameSnapshot, MatchId, ServerEvent};
 
 #[derive(Resource, Default)]
 pub(super) struct DoudizhuFeedback {
@@ -20,7 +20,10 @@ pub(super) fn play_feedback(
     mut ui: ResMut<DoudizhuUiState>,
     mut effects: ResMut<PlayEffectState>,
 ) {
-    let Some(game) = client.as_deref().and_then(|c| c.0.model().doudizhu_game()) else {
+    let Some(game) = client
+        .as_deref()
+        .and_then(|c| c.0.model().game_snapshot().and_then(GameSnapshot::doudizhu))
+    else {
         notifications.clear();
         *feedback = DoudizhuFeedback::default();
         return;
@@ -51,7 +54,7 @@ pub(super) fn play_feedback(
                 ui.history
                     .observe(*player, action, game.rules.mode.players());
                 match action {
-                    Action::Play(cards) => {
+                    DoudizhuAction::Play(cards) => {
                         let kind =
                             classify(cards, game.rules).and_then(|play| pattern_effect(play.kind));
                         effects.active = None;
@@ -64,7 +67,7 @@ pub(super) fn play_feedback(
                             &assets.audio.place_sounds
                         }
                     }
-                    Action::Bid(_) | Action::Pass => continue,
+                    DoudizhuAction::Bid(_) | DoudizhuAction::Pass => continue,
                 }
             }
             DoudizhuEvent::Redealt => {
@@ -80,14 +83,14 @@ pub(super) fn play_feedback(
     }
 }
 
-fn pattern_effect(kind: PlayKind) -> Option<PlayEffectKind> {
+fn pattern_effect(kind: DoudizhuPlayKind) -> Option<PlayEffectKind> {
     match kind {
-        PlayKind::Straight => Some(PlayEffectKind::Straight),
-        PlayKind::Pairs => Some(PlayEffectKind::ConsecutivePairs),
-        PlayKind::Airplane | PlayKind::AirplaneSingles | PlayKind::AirplanePairs => {
-            Some(PlayEffectKind::Airplane)
-        }
-        PlayKind::Bomb | PlayKind::Rocket => Some(PlayEffectKind::Bomb),
+        DoudizhuPlayKind::Straight => Some(PlayEffectKind::Straight),
+        DoudizhuPlayKind::Pairs => Some(PlayEffectKind::ConsecutivePairs),
+        DoudizhuPlayKind::Airplane
+        | DoudizhuPlayKind::AirplaneSingles
+        | DoudizhuPlayKind::AirplanePairs => Some(PlayEffectKind::Airplane),
+        DoudizhuPlayKind::Bomb | DoudizhuPlayKind::Rocket => Some(PlayEffectKind::Bomb),
         _ => None,
     }
 }

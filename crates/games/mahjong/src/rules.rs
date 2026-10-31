@@ -1,9 +1,5 @@
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct MahjongPlayerId(pub usize);
-
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum MahjongMatchLength {
@@ -94,20 +90,20 @@ impl Default for MahjongRuleSet {
 impl MahjongRuleSet {
     pub const PLAYER_COUNT: u8 = 4;
 
-    pub const fn validate(self) -> Result<Self, RuleError> {
+    pub const fn validate(self) -> Result<Self, MahjongRuleError> {
         if self.false_win && !self.minimum_eight_points {
-            return Err(RuleError::FalseWinRequiresMinimum);
+            return Err(MahjongRuleError::FalseWinRequiresMinimum);
         }
         Ok(self)
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuleError {
+pub enum MahjongRuleError {
     FalseWinRequiresMinimum,
 }
 
-impl fmt::Display for RuleError {
+impl fmt::Display for MahjongRuleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::FalseWinRequiresMinimum => f.write_str("允许错和依赖 8 番起和"),
@@ -115,7 +111,7 @@ impl fmt::Display for RuleError {
     }
 }
 
-impl std::error::Error for RuleError {}
+impl std::error::Error for MahjongRuleError {}
 
 #[cfg(test)]
 mod tests {
@@ -137,7 +133,10 @@ mod tests {
             false_win: true,
             ..MahjongRuleSet::default()
         };
-        assert_eq!(rules.validate(), Err(RuleError::FalseWinRequiresMinimum));
+        assert_eq!(
+            rules.validate(),
+            Err(MahjongRuleError::FalseWinRequiresMinimum)
+        );
     }
 
     #[test]

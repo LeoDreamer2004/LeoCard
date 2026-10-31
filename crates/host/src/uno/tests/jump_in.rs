@@ -1,16 +1,16 @@
 use super::super::*;
 use super::*;
 use crate::{ConnectionId, Delivery};
-use leocard_protocol::SeatId;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientCommand, GameCommand, GameSnapshot, GameViolation, PlayerId, RejectReason, RequestId,
+    ClientCommand, GameCommand, GameSnapshot, GameViolation, RejectReason, RequestId, SeatId,
     ServerEvent, UnoCommand, UnoSnapshot, UnoViolation,
 };
-use leocard_uno::Mode;
+
 #[cfg(test)]
 use leocard_uno::build_deck;
 use leocard_uno::{
-    ActionOutcome, GameState, UnoCard, UnoColor, UnoPlayerId, UnoRuleSet, build_deck_for_rules,
+    UnoActionOutcome, UnoCard, UnoColor, UnoGameState, UnoMode, UnoRuleSet, build_deck_for_rules,
 };
 
 fn jump_in_session() -> (UnoSession, ConnectionId, ConnectionId, UnoCard, UnoCard) {
@@ -157,7 +157,7 @@ fn non_play_actions_do_not_count_the_same_jump_in_window_twice() {
     assert_eq!(statistics(&session, 2).jump_in_opportunities, 1);
 
     session.perform_action(third, RequestId(4), Vec::new(), false, |_, player| {
-        Ok(ActionOutcome::UnoCalled { player })
+        Ok(UnoActionOutcome::UnoCalled { player })
     });
 
     assert_eq!(statistics(&session, 2).jump_in_opportunities, 1);
@@ -166,14 +166,14 @@ fn non_play_actions_do_not_count_the_same_jump_in_window_twice() {
 #[test]
 fn public_flip_card_command_resolves_to_the_private_physical_card() {
     let rules = UnoRuleSet {
-        mode: Mode::Flip,
+        mode: UnoMode::Flip,
         ..UnoRuleSet::default()
     };
-    let game = GameState::new_with_deck(rules, 2, build_deck_for_rules(rules)).unwrap();
-    let actual = game.player(UnoPlayerId(0)).unwrap().hand()[0];
+    let game = UnoGameState::new_with_deck(rules, 2, build_deck_for_rules(rules)).unwrap();
+    let actual = game.player(PlayerId(0)).unwrap().hand()[0];
 
     assert_eq!(
-        resolve_public_hand_card(&game, UnoPlayerId(0), actual.public_face()),
+        resolve_public_hand_card(&game, PlayerId(0), actual.public_face()),
         Ok(actual)
     );
 }

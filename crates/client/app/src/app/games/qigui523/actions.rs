@@ -1,4 +1,5 @@
 //! 七鬼五二三规则、提示与出牌按钮动作。
+use leocard_protocol::{GameRules, GameSnapshot, QiGui523Command, QiGui523PublicPlayRecord};
 
 use super::{HintDecision, QiGui523UiState, next_greedy_hint};
 use crate::app::presentation::NoLegalResponseHint;
@@ -10,7 +11,7 @@ use crate::app::shell::{
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::{ItemId, PlayerEconomy};
-use leocard_protocol::{PublicPlayRecord, QiGui523Command};
+
 use leocard_qigui523::{QiGuiRuleSet, classify};
 
 #[derive(Clone)]
@@ -88,10 +89,10 @@ fn select_hint(client: &mut Option<ResMut<ClientResource>>, ui: &mut QiGui523UiS
     };
     let decision = {
         let model = client.0.model();
-        let Some(game) = model.qigui523_game() else {
+        let Some(game) = model.game_snapshot().and_then(GameSnapshot::qigui523) else {
             return;
         };
-        let Some(rules) = model.qigui523_rules() else {
+        let Some(rules) = model.game_rules().and_then(GameRules::qigui523) else {
             return;
         };
         let Some(current) = game
@@ -110,8 +111,8 @@ fn select_hint(client: &mut Option<ResMut<ClientResource>>, ui: &mut QiGui523UiS
             .into_iter()
             .flat_map(|trick| &trick.records)
             .flat_map(|record| match record {
-                PublicPlayRecord::Played { play, .. } => play.cards.as_slice(),
-                PublicPlayRecord::Passed { .. } => &[],
+                QiGui523PublicPlayRecord::Played { play, .. } => play.cards.as_slice(),
+                QiGui523PublicPlayRecord::Passed { .. } => &[],
             })
             .copied()
             .collect::<Vec<_>>();
@@ -139,7 +140,12 @@ fn play_selected(client: &mut Option<ResMut<ClientResource>>, ui: &mut QiGui523U
     let Some(client) = client.as_deref_mut() else {
         return;
     };
-    let Some(snapshot) = client.0.model().qigui523_game() else {
+    let Some(snapshot) = client
+        .0
+        .model()
+        .game_snapshot()
+        .and_then(GameSnapshot::qigui523)
+    else {
         return;
     };
     let cards = ui

@@ -2,15 +2,16 @@ use super::MahjongBotObservation;
 use super::shanten::{Counts, Shanten};
 use super::targets::potential;
 use crate::{
-    MahjongMeldKind, MahjongPlayerId, MahjongTileKind, Meld, ScoreInput, WinSource, score_hand,
+    MahjongMeld, MahjongMeldKind, MahjongScoreInput, MahjongTileKind, MahjongWinSource, score_hand,
 };
-use leocard_game_common::SearchBudget;
+use leocard_game_common::{PlayerId, SearchBudget};
+
 use std::collections::HashMap;
 
 #[derive(Clone)]
 pub(super) struct Position {
     pub counts: Counts,
-    pub melds: Vec<Meld>,
+    pub melds: Vec<MahjongMeld>,
     pub replacement: bool,
 }
 
@@ -198,13 +199,13 @@ impl<'a> Search<'a> {
             .collect();
         let mut context = self.observation.context;
         context.source = if position.replacement {
-            WinSource::KongReplacement
+            MahjongWinSource::KongReplacement
         } else {
-            WinSource::SelfDraw
+            MahjongWinSource::SelfDraw
         };
         context.last_wall_tile = self.observation.wall == 1;
         context.last_of_kind = self.observation.unseen[index] <= 1;
-        let mut input = ScoreInput {
+        let mut input = MahjongScoreInput {
             concealed,
             melds: position.melds.clone(),
             winning_tile: tile,
@@ -215,8 +216,9 @@ impl<'a> Search<'a> {
         if !legal(self_draw.points_without_flowers) {
             return None;
         }
-        input.context.source =
-            WinSource::Discard(MahjongPlayerId((self.observation.player.0 + 1) % 4));
+        input.context.source = MahjongWinSource::Discard(PlayerId::from_index(
+            (self.observation.player.index() + 1) % 4,
+        ));
         let claim = score_hand(&input)
             .ok()
             .filter(|score| legal(score.points_without_flowers));

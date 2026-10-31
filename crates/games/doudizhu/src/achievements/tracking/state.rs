@@ -1,4 +1,5 @@
-use crate::{GameState, Phase, Play, PlayKind};
+use crate::{DoudizhuGameState, DoudizhuPhase, DoudizhuPlay, DoudizhuPlayKind};
+use leocard_game_common::PlayerId;
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct HandProgress {
@@ -18,17 +19,17 @@ pub(super) struct PlayerProgress {
 #[derive(Clone, Debug, Default)]
 pub struct DoudizhuAchievementTracker {
     pub(super) players: Vec<PlayerProgress>,
-    pub(super) flower_senders: Vec<u8>,
+    pub(super) flower_senders: Vec<PlayerId>,
 }
 
 #[derive(Clone, Debug)]
 pub struct DoudizhuActionContext {
-    pub(super) phase: Phase,
-    pub(super) previous: Option<(u8, Play)>,
+    pub(super) phase: DoudizhuPhase,
+    pub(super) previous: Option<(PlayerId, DoudizhuPlay)>,
 }
 
 impl DoudizhuActionContext {
-    pub fn capture(game: &GameState) -> Self {
+    pub fn capture(game: &DoudizhuGameState) -> Self {
         Self {
             phase: game.phase,
             previous: game.table.clone(),
@@ -57,8 +58,8 @@ impl DoudizhuAchievementTracker {
         self.flower_senders.clear();
     }
 
-    pub fn observe_flower(&mut self, source: u8, target: u8, game: &GameState) {
-        if game.phase == Phase::Playing
+    pub fn observe_flower(&mut self, source: PlayerId, target: PlayerId, game: &DoudizhuGameState) {
+        if game.phase == DoudizhuPhase::Playing
             && game.current == target
             && source != target
             && game
@@ -72,13 +73,15 @@ impl DoudizhuAchievementTracker {
     }
 }
 
-pub(super) fn is_airplane(kind: PlayKind) -> bool {
+pub(super) fn is_airplane(kind: DoudizhuPlayKind) -> bool {
     matches!(
         kind,
-        PlayKind::Airplane | PlayKind::AirplaneSingles | PlayKind::AirplanePairs
+        DoudizhuPlayKind::Airplane
+            | DoudizhuPlayKind::AirplaneSingles
+            | DoudizhuPlayKind::AirplanePairs
     )
 }
 
-pub(super) fn is_bomb(kind: PlayKind) -> bool {
-    matches!(kind, PlayKind::Bomb | PlayKind::Rocket)
+pub(super) fn is_bomb(kind: DoudizhuPlayKind) -> bool {
+    matches!(kind, DoudizhuPlayKind::Bomb | DoudizhuPlayKind::Rocket)
 }

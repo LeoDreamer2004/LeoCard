@@ -1,16 +1,17 @@
 use bevy::prelude::*;
-use leocard_protocol::{PlayerGameProfiles, PlayerId};
+use leocard_game_common::PlayerId;
+use leocard_protocol::PlayerGameProfiles;
 use leocard_ui::CustomButtonMotion;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) enum ProfileGameTab {
     #[default]
     QiGui523,
-    TexasHoldem,
+    Texas,
     Shengji,
     Uno,
     Mahjong,
-    MinecraftGuess,
+    McGuess,
     Blackjack,
     Doudizhu,
 }
@@ -18,11 +19,11 @@ pub(crate) enum ProfileGameTab {
 impl ProfileGameTab {
     pub(crate) const ALL: [(Self, &'static str); 8] = [
         (Self::QiGui523, "七鬼五二三"),
-        (Self::TexasHoldem, "德州扑克"),
+        (Self::Texas, "德州扑克"),
         (Self::Shengji, "升级"),
         (Self::Uno, "UNO"),
         (Self::Mahjong, "麻将"),
-        (Self::MinecraftGuess, "MC竞猜"),
+        (Self::McGuess, "MC竞猜"),
         (Self::Blackjack, "21 点"),
         (Self::Doudizhu, "斗地主"),
     ];

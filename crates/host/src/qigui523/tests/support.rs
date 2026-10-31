@@ -1,14 +1,13 @@
-pub(super) use super::super::{
-    QiGui523Session, duration_ceil_seconds, from_core_player, to_core_player,
-};
+pub(super) use super::super::{QiGui523Session, duration_ceil_seconds};
 pub(super) use crate::{ConnectionId, Delivery};
 use ed25519_dalek::{Signer, SigningKey};
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameEvent, JoinRequest, PlayerGameProfiles, PlayerId, ProfileId,
-    PublicPlay, QiGui523Event, QiGui523Snapshot, ReconnectToken, RejectReason, RequestId, RoomId,
-    SeatId, ServerEvent, join_identity_payload,
+    ClientCommand, ClientMessage, GameEvent, JoinRequest, PlayerGameProfiles, ProfileId,
+    QiGui523Event, QiGui523PublicPlay, QiGui523Snapshot, ReconnectToken, RejectReason, RequestId,
+    RoomId, SeatId, ServerEvent, join_identity_payload,
 };
-use leocard_qigui523::{Phase, QiGuiRuleSet, can_beat, classify};
+use leocard_qigui523::{QiGuiPhase, QiGuiRuleSet, can_beat, classify};
 pub(super) use std::time::Duration;
 
 pub(super) const ROOM: RoomId = RoomId(523);
@@ -23,7 +22,7 @@ pub(super) fn qigui523_snapshot(event: &ServerEvent) -> Option<&QiGui523Snapshot
     snapshot.qigui523()
 }
 
-pub(super) fn qigui523_play_effect(event: &ServerEvent) -> Option<(PlayerId, &PublicPlay)> {
+pub(super) fn qigui523_play_effect(event: &ServerEvent) -> Option<(PlayerId, &QiGui523PublicPlay)> {
     let ServerEvent::GameEvent(GameEvent::QiGui523(QiGui523Event::PlayEffect { player, play })) =
         event
     else {
@@ -124,7 +123,7 @@ pub(super) fn rejection(deliveries: &[Delivery]) -> Option<&RejectReason> {
 
 pub(super) fn finish_game(session: &mut QiGui523Session) {
     for _ in 0..1_000 {
-        if matches!(session.game().unwrap().phase(), Phase::Finished(_)) {
+        if matches!(session.game().unwrap().phase(), QiGuiPhase::Finished(_)) {
             return;
         }
         let (current, playable) = {

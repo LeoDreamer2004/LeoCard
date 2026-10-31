@@ -1,7 +1,7 @@
 use crate::play::classify_cards;
 use crate::{
-    Component, FollowError, PlayError, ShengjiCard, ShengjiClassifiedPlay, ShengjiRank,
-    ShengjiTrump,
+    ShengjiCard, ShengjiClassifiedPlay, ShengjiComponent, ShengjiFollowError, ShengjiPlayError,
+    ShengjiRank, ShengjiTrump,
 };
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashSet};
@@ -24,20 +24,21 @@ pub struct ShengjiGreedyBot;
 impl ShengjiGreedyBot {
     pub fn choose(
         request: ShengjiGreedyBotRequest<'_>,
-    ) -> Result<ShengjiClassifiedPlay, GreedyBotError> {
+    ) -> Result<ShengjiClassifiedPlay, ShengjiGreedyBotError> {
         let Some(lead) = request.lead else {
             let card = request
                 .hand
                 .iter()
                 .copied()
                 .min_by(|left, right| card_cmp(*left, *right, request.trump))
-                .ok_or(GreedyBotError::EmptyHand)?;
-            return classify_cards(&[card], request.trump).map_err(GreedyBotError::InvalidLead);
+                .ok_or(ShengjiGreedyBotError::EmptyHand)?;
+            return classify_cards(&[card], request.trump)
+                .map_err(ShengjiGreedyBotError::InvalidLead);
         };
 
         let required = lead.cards.len();
         if request.hand.len() < required {
-            return Err(GreedyBotError::NotEnoughCards {
+            return Err(ShengjiGreedyBotError::NotEnoughCards {
                 required,
                 actual: request.hand.len(),
             });
@@ -63,7 +64,7 @@ impl ShengjiGreedyBot {
             choose_structured_follow(&same_category, lead, request.trump)
         };
         crate::validate_follow(request.hand, &cards, lead, request.trump)
-            .map_err(GreedyBotError::InvalidFollow)
+            .map_err(ShengjiGreedyBotError::InvalidFollow)
     }
 }
 
@@ -144,21 +145,21 @@ fn structure_demands(lead: &ShengjiClassifiedPlay) -> (Vec<usize>, usize) {
     let mut pair_slots = 0;
     for component in &lead.components {
         match component {
-            Component::Single { .. } => {}
-            Component::Pair { .. } => pair_slots += 1,
-            Component::Triple { .. } => pair_slots += 1,
-            Component::Quad { .. } => pair_slots += 2,
-            Component::Tractor { pair_count, .. } => {
+            ShengjiComponent::Single { .. } => {}
+            ShengjiComponent::Pair { .. } => pair_slots += 1,
+            ShengjiComponent::Triple { .. } => pair_slots += 1,
+            ShengjiComponent::Quad { .. } => pair_slots += 2,
+            ShengjiComponent::Tractor { pair_count, .. } => {
                 let pair_count = usize::from(*pair_count);
                 tractors.push(pair_count);
                 pair_slots += pair_count;
             }
-            Component::Titanic { triple_count, .. } => {
+            ShengjiComponent::Titanic { triple_count, .. } => {
                 let triple_count = usize::from(*triple_count);
                 tractors.push(triple_count);
                 pair_slots += triple_count;
             }
-            Component::Spaceship { quad_count, .. } => {
+            ShengjiComponent::Spaceship { quad_count, .. } => {
                 let pair_count = usize::from(*quad_count) * 2;
                 tractors.push(pair_count);
                 pair_slots += pair_count;
@@ -261,14 +262,14 @@ fn card_key(card: ShengjiCard, trump: ShengjiTrump) -> (bool, u8, u8, u8) {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum GreedyBotError {
+pub enum ShengjiGreedyBotError {
     EmptyHand,
     NotEnoughCards { required: usize, actual: usize },
-    InvalidLead(PlayError),
-    InvalidFollow(FollowError),
+    InvalidLead(ShengjiPlayError),
+    InvalidFollow(ShengjiFollowError),
 }
 
-impl fmt::Display for GreedyBotError {
+impl fmt::Display for ShengjiGreedyBotError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyHand => f.write_str("机器人没有可出的牌"),
@@ -281,7 +282,7 @@ impl fmt::Display for GreedyBotError {
     }
 }
 
-impl std::error::Error for GreedyBotError {}
+impl std::error::Error for ShengjiGreedyBotError {}
 
 #[cfg(test)]
 mod tests {
@@ -301,7 +302,7 @@ mod tests {
     }
 
     fn lead(cards: &[ShengjiCard]) -> ShengjiClassifiedPlay {
-        let crate::TrickPlay::Accepted(play) =
+        let crate::ShengjiTrickPlay::Accepted(play) =
             classify_lead(cards, trump(), &crate::ShengjiRuleSet::default(), &[]).unwrap()
         else {
             unreachable!("test leads do not throw")
@@ -406,7 +407,7 @@ mod tests {
         })
         .unwrap();
 
-        assert_eq!(play.category, crate::Category::Mixed);
+        assert_eq!(play.category, crate::ShengjiCategory::Mixed);
         assert_eq!(play.cards, expected);
     }
 

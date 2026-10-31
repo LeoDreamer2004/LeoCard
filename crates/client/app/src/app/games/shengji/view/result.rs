@@ -15,10 +15,11 @@ use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
 };
 use bevy::picking::Pickable;
-use bevy::prelude::*;
 use leocard_protocol::{ShengjiHandResultView, ShengjiSnapshot};
 use leocard_shengji::ShengjiCard;
 use leocard_ui::{UiComposer, spawn_node};
+
+use bevy::prelude::*;
 
 #[expect(
     clippy::too_many_arguments,
@@ -320,17 +321,17 @@ fn add_shengji_settlement_modal(
             },
             Visibility::Hidden,
         ));
-        let avatar = player.avatar.and_then(|id| avatars.remote.get(&id));
+        let avatar = player.player.avatar.and_then(|id| avatars.remote.get(&id));
         add_ready_avatar(
             commands,
             row,
-            player.id,
+            player.player.id,
             PlayerMenuProfile {
-                name: &player.name,
+                name: &player.player.name,
                 avatar,
-                reference_points: player.reference_points,
-                completed_games: player.completed_games,
-                game_profiles: &player.game_profiles,
+                reference_points: player.player.reference_points,
+                completed_games: player.player.completed_games,
+                game_profiles: &player.player.game_profiles,
             },
             28.0,
             player.ready,
@@ -347,11 +348,11 @@ fn add_shengji_settlement_modal(
             },
             None,
         );
-        add_text(commands, name, &player.name, 15.0, TEXT, assets);
+        add_text(commands, name, &player.player.name, 15.0, TEXT, assets);
         add_text(
             commands,
             name,
-            format!("平台积分 {}", player.reference_points),
+            format!("平台积分 {}", player.player.reference_points),
             10.0,
             MUTED,
             assets,
@@ -359,7 +360,7 @@ fn add_shengji_settlement_modal(
         let delta = result
             .reference_changes
             .iter()
-            .find(|change| change.player == player.id)
+            .find(|change| change.player == player.player.id)
             .map_or(0, |change| change.delta);
         add_text(
             commands,
@@ -397,9 +398,13 @@ fn add_shengji_settlement_modal(
     let ready = game
         .players
         .iter()
-        .find(|player| player.id == game.you)
+        .find(|player| player.player.id == game.you)
         .is_some_and(|player| player.ready);
-    if !game.players.iter().any(|player| player.id == game.you) {
+    if !game
+        .players
+        .iter()
+        .any(|player| player.player.id == game.you)
+    {
         add_cozy_disabled_button(commands, actions, "观战中", assets, px(150), 47.0);
     } else if ready {
         add_cozy_disabled_button(commands, actions, "已准备", assets, px(150), 47.0);

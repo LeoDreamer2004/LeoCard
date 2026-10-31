@@ -13,6 +13,7 @@ mod jump_in_device;
 mod lobby;
 mod material;
 mod modal;
+mod notices;
 mod players;
 mod plugin;
 mod presentation;

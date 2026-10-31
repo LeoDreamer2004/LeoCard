@@ -1,13 +1,13 @@
 use super::BlackjackSession;
 use crate::Delivery;
 use crate::lifecycle::HostedGameLifecycle;
-use leocard_blackjack::{BlackjackAutoPlay, BlackjackBot, BlackjackObservation, Phase};
+use leocard_blackjack::{BlackjackAutoPlay, BlackjackBot, BlackjackObservation, BlackjackPhase};
 use std::time::Duration;
 
 impl BlackjackSession {
     pub(super) fn seconds_remaining(&self) -> Option<u16> {
         let game = self.game.as_ref()?;
-        if game.phase() == Phase::Complete || self.rules.turn_seconds == 0 {
+        if game.phase() == BlackjackPhase::Complete || self.rules.turn_seconds == 0 {
             return None;
         }
         Some(
@@ -24,7 +24,7 @@ impl BlackjackSession {
         let Some(game) = self.game.as_ref() else {
             return Vec::new();
         };
-        if game.phase() == Phase::Complete {
+        if game.phase() == BlackjackPhase::Complete {
             if !self.everyone_ready() {
                 self.elapsed = Duration::ZERO;
                 return Vec::new();
@@ -39,7 +39,7 @@ impl BlackjackSession {
             return self.broadcast_game(None);
         }
         let index = game.current_player().expect("live round has a turn");
-        let player = self.order[index];
+        let player = self.order[index.index()];
         let participant = self
             .room
             .players

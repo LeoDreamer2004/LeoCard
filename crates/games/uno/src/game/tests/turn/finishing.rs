@@ -1,4 +1,5 @@
 use crate::{UnoCard, UnoColor, UnoFace, UnoRuleSet, build_deck_for_rules};
+use leocard_game_common::PlayerId;
 
 use super::super::prelude::*;
 
@@ -14,67 +15,67 @@ fn last_draw_four_finishes_after_the_penalty_is_resolved() {
             .unwrap();
         deck.swap(position, current);
     }
-    let mut game = GameState::new_with_deck(UnoRuleSet::default(), 6, deck).unwrap();
+    let mut game = UnoGameState::new_with_deck(UnoRuleSet::default(), 6, deck).unwrap();
     game.players[0].hand = vec![wild_draw_four];
     let target_hand = game.players[1].hand.len();
     let outcome = game
-        .play_card(UnoPlayerId(0), wild_draw_four, Some(UnoColor::Blue))
+        .play_card(PlayerId(0), wild_draw_four, Some(UnoColor::Blue))
         .unwrap();
-    assert!(matches!(outcome, ActionOutcome::Played { .. }));
+    assert!(matches!(outcome, UnoActionOutcome::Played { .. }));
     let turn = game
         .turn()
         .expect("the final draw penalty still needs resolving");
     assert_eq!(turn.current_color, Some(UnoColor::Blue));
-    assert_eq!(turn.current_player, UnoPlayerId(1));
+    assert_eq!(turn.current_player, PlayerId(1));
     assert_eq!(turn.pending_draw, 4);
-    assert_eq!(turn.challenge_offender, Some(UnoPlayerId(0)));
+    assert_eq!(turn.challenge_offender, Some(PlayerId(0)));
 
     assert!(matches!(
-        game.accept_draw_penalty(UnoPlayerId(1)),
-        Ok(ActionOutcome::PenaltyDrawn { ref cards, .. }) if cards.len() == 4
+        game.accept_draw_penalty(PlayerId(1)),
+        Ok(UnoActionOutcome::PenaltyDrawn { ref cards, .. }) if cards.len() == 4
     ));
     assert_eq!(game.players[1].hand.len(), target_hand + 4);
     assert!(matches!(
         game.phase(),
-        Phase::Finished(GameResult {
-            winner: UnoPlayerId(0),
+        UnoPhase::Finished(UnoGameResult {
+            winner: PlayerId(0),
             ..
         })
     ));
     assert_eq!(
-        game.challenge_draw_four(UnoPlayerId(1)),
-        Err(GameError::GameAlreadyFinished)
+        game.challenge_draw_four(PlayerId(1)),
+        Err(UnoGameError::GameAlreadyFinished)
     );
 }
 
 #[test]
 fn last_skip_finishes_after_the_target_loses_their_turn() {
     let skip = card(UnoColor::Red, UnoFace::Skip, 0);
-    let mut game = GameState::new_with_deck(UnoRuleSet::default(), 6, build_deck()).unwrap();
+    let mut game = UnoGameState::new_with_deck(UnoRuleSet::default(), 6, build_deck()).unwrap();
     game.players[0].hand = vec![skip];
     game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(5), 0)];
     game.current_color = Some(UnoColor::Red);
-    game.current_player = UnoPlayerId(0);
+    game.current_player = PlayerId(0);
 
     assert!(matches!(
-        game.play_card(UnoPlayerId(0), skip, None),
-        Ok(ActionOutcome::Played { .. })
+        game.play_card(PlayerId(0), skip, None),
+        Ok(UnoActionOutcome::Played { .. })
     ));
-    assert_eq!(game.skipped_turns(UnoPlayerId(1)), Some(1));
-    assert!(matches!(game.phase(), Phase::Playing));
+    assert_eq!(game.skipped_turns(PlayerId(1)), Some(1));
+    assert!(matches!(game.phase(), UnoPhase::Playing));
 
     assert!(matches!(
-        game.resolve_skip(UnoPlayerId(1)),
-        Ok(ActionOutcome::SkipResolved {
-            player: UnoPlayerId(1),
+        game.resolve_skip(PlayerId(1)),
+        Ok(UnoActionOutcome::SkipResolved {
+            player: PlayerId(1),
             remaining: 0,
             ..
         })
     ));
     assert!(matches!(
         game.phase(),
-        Phase::Finished(GameResult {
-            winner: UnoPlayerId(0),
+        UnoPhase::Finished(UnoGameResult {
+            winner: PlayerId(0),
             ..
         })
     ));
@@ -91,27 +92,28 @@ fn final_skip_chain_finishes_after_acceptance_without_waiting_for_future_turns()
                 uno_callout: false,
                 ..UnoRuleSet::default()
             };
-            let mut game = GameState::new_with_deck(rules, 3, build_deck_for_rules(rules)).unwrap();
+            let mut game =
+                UnoGameState::new_with_deck(rules, 3, build_deck_for_rules(rules)).unwrap();
             let first = card(UnoColor::Red, face, 0);
             let following = card(UnoColor::Yellow, UnoFace::Skip, 0);
             game.players[0].hand = vec![first];
             game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(5), 0)];
             game.current_color = Some(UnoColor::Red);
-            game.current_player = UnoPlayerId(0);
+            game.current_player = PlayerId(0);
             game.direction = UnoDirection::Clockwise;
-            game.play_card(UnoPlayerId(0), first, None).unwrap();
+            game.play_card(PlayerId(0), first, None).unwrap();
             let follower = game.turn().unwrap().current_player;
-            game.players[follower.0].hand =
+            game.players[follower.index()].hand =
                 vec![following, card(UnoColor::Blue, UnoFace::Number(3), 0)];
             game.play_card(follower, following, None).unwrap();
             let target = game.turn().unwrap().current_player;
-            assert_ne!(target, UnoPlayerId(0));
+            assert_ne!(target, PlayerId(0));
             assert_eq!(game.turn().unwrap().pending_skip, 2);
             let before = game.player(target).unwrap().hand().len();
             let outcome = game.resolve_skip(target).unwrap();
             assert!(matches!(
                 outcome,
-                ActionOutcome::SkipResolved { remaining: 1, .. }
+                UnoActionOutcome::SkipResolved { remaining: 1, .. }
             ));
             assert_eq!(
                 game.player(target).unwrap().hand().len(),
@@ -119,8 +121,8 @@ fn final_skip_chain_finishes_after_acceptance_without_waiting_for_future_turns()
             );
             assert!(matches!(
                 game.phase(),
-                Phase::Finished(GameResult {
-                    winner: UnoPlayerId(0),
+                UnoPhase::Finished(UnoGameResult {
+                    winner: PlayerId(0),
                     ..
                 })
             ));
@@ -129,7 +131,10 @@ fn final_skip_chain_finishes_after_acceptance_without_waiting_for_future_turns()
                     .iter()
                     .all(|player| game.skipped_turns(player.id) == Some(0))
             );
-            assert_eq!(game.draw_card(target), Err(GameError::GameAlreadyFinished));
+            assert_eq!(
+                game.draw_card(target),
+                Err(UnoGameError::GameAlreadyFinished)
+            );
         }
     }
 }
@@ -142,17 +147,17 @@ fn returning_skip_penalty_refills_the_finisher_instead_of_awarding_a_win() {
         uno_callout: false,
         ..UnoRuleSet::default()
     };
-    let mut game = GameState::new_with_deck(rules, 2, build_deck()).unwrap();
+    let mut game = UnoGameState::new_with_deck(rules, 2, build_deck()).unwrap();
     let first = card(UnoColor::Red, UnoFace::Skip, 0);
     let following = card(UnoColor::Yellow, UnoFace::Skip, 0);
     game.players[0].hand = vec![first];
     game.players[1].hand = vec![following, card(UnoColor::Blue, UnoFace::Number(3), 0)];
     game.discard_pile = vec![card(UnoColor::Red, UnoFace::Number(5), 0)];
     game.current_color = Some(UnoColor::Red);
-    game.current_player = UnoPlayerId(0);
-    game.play_card(UnoPlayerId(0), first, None).unwrap();
-    game.play_card(UnoPlayerId(1), following, None).unwrap();
-    game.resolve_skip(UnoPlayerId(0)).unwrap();
-    assert_eq!(game.player(UnoPlayerId(0)).unwrap().hand().len(), 1);
-    assert!(matches!(game.phase(), Phase::Playing));
+    game.current_player = PlayerId(0);
+    game.play_card(PlayerId(0), first, None).unwrap();
+    game.play_card(PlayerId(1), following, None).unwrap();
+    game.resolve_skip(PlayerId(0)).unwrap();
+    assert_eq!(game.player(PlayerId(0)).unwrap().hand().len(), 1);
+    assert!(matches!(game.phase(), UnoPhase::Playing));
 }

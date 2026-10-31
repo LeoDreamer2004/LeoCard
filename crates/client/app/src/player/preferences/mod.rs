@@ -1,3 +1,4 @@
+mod appearance;
 mod files;
 mod games;
 mod global;
@@ -5,9 +6,10 @@ mod migration;
 mod state;
 mod storage;
 
+pub use appearance::GameAppearancePreferences;
 pub use games::{
-    DoudizhuPreferences, GamePreferences, MahjongPreferences, MinecraftGuessPreferences,
-    QiGui523Preferences, ShengjiPreferences, TexasHoldemPreferences, UnoPreferences,
+    DoudizhuPreferences, GamePreferences, MahjongPreferences, McGuessPreferences,
+    QiGui523Preferences, ShengjiPreferences, TexasPreferences, UnoPreferences,
 };
 pub use global::GlobalPreferences;
 pub use state::SavedPreferences;

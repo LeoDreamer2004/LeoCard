@@ -10,12 +10,14 @@ use std::sync::Mutex;
 use std::sync::mpsc::Receiver;
 
 pub(crate) const UI_FONT_ASSET: &str = "fonts/ChillRoundGothic-Medium.ttf";
+pub(crate) const TITLE_FONT_ASSET: &str = "fonts/DouyinSansBold.ttf";
 pub(crate) const TABLE_FELT_ASSET: &str =
     "vendor/opengameart/green-textile/table_felt_dark_green.png";
 
 #[derive(Resource, Default)]
 pub(crate) struct UiAssets {
     pub font: Handle<Font>,
+    pub title_font: Handle<Font>,
     pub playing_cards: PlayingCardAssets,
     pub poker_chips: PokerChipAssets,
     pub controls: ControlAssets,

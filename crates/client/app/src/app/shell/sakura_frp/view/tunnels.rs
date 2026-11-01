@@ -2,7 +2,7 @@ use super::super::actions::SakuraUiAction;
 use super::super::input::SakuraScroll;
 use super::page::SakuraPage;
 use super::widgets::{panel, row, scroll_list};
-use crate::app::presentation::{MUTED, TEXT, add_text, card_background_image};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title, card_background_image};
 use crate::app::shell::{PageTransitionElement, UiAction, add_cozy_button, add_cozy_switch};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -63,7 +63,7 @@ impl SakuraPage<'_> {
             ),
         );
         let heading = row(commands, card, 12.0);
-        let title = add_text(commands, heading, &tunnel.name, 22.0, TEXT, self.assets);
+        let title = add_title(commands, heading, &tunnel.name, 22.0, TEXT, self.assets);
         commands.entity(title).insert(Node {
             flex_grow: 1.0,
             flex_basis: px(0),

@@ -4,7 +4,7 @@ use super::super::{SelectedSettingsTab, SettingsTabButton};
 use super::about::AboutSettings;
 use super::appearance::TableAppearanceSettings;
 use super::sound::render_sound_settings;
-use crate::app::presentation::{TEXT, add_text, card_background_image};
+use crate::app::presentation::{TEXT, add_text, add_title, card_background_image};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction, SettingsTab,
@@ -98,7 +98,7 @@ impl<'a> SettingsModal<'a> {
             },
             None,
         );
-        add_text(commands, heading, "游戏设置", 28.0, TEXT, assets);
+        add_title(commands, heading, "游戏设置", 28.0, TEXT, assets);
         add_cozy_close_button(
             commands,
             heading,

@@ -7,8 +7,8 @@ use crate::app::presentation::{
     ACCENT, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider, GameSummaryModal,
     GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, PlayerMenuProfile, READY,
     SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
-    TEXT, add_animated_summary_text, add_avatar, add_ready_avatar, add_text, decorate_panel_skin,
-    summary_modal_visual, summary_row_progress,
+    TEXT, add_animated_summary_text, add_avatar, add_ready_avatar, add_title, decorate_panel_skin,
+    summary_modal_visual, summary_row_progress, title_font,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -224,7 +224,7 @@ pub(super) fn add_texas_showdown_reveal(
         .map(|player| player.player.name.as_str())
         .collect::<Vec<_>>()
         .join("、");
-    let title = add_text(
+    let title = add_title(
         commands,
         title_area,
         format!("{winner_names} · {}", texas_category_label(best.category())),
@@ -309,7 +309,7 @@ pub(super) fn add_texas_hand_result(
     ));
     let texture = decorate_panel_skin(commands, panel, PanelSkin::Window, assets);
     commands.entity(texture).insert(GameSummaryPanelTexture);
-    add_animated_summary_text(
+    let title = add_animated_summary_text(
         commands,
         panel,
         "本手结算",
@@ -319,6 +319,7 @@ pub(super) fn add_texas_hand_result(
         animation.elapsed,
         assets,
     );
+    commands.entity(title).insert(title_font(assets, 25.0));
     spawn_node(
         commands,
         panel,

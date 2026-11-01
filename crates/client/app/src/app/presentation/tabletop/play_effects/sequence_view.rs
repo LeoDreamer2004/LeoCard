@@ -3,6 +3,7 @@ use super::state::{
     SequenceEffectLabelPart, SequenceEffectMotif, SequenceFlowerPart, SequenceGuideSegment,
     SequenceWindStreak,
 };
+use crate::app::presentation::title_font;
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -71,7 +72,7 @@ pub(crate) fn add_sequence_play_decoration(
             },
         ));
     }
-    let mut font = TextFont::from_font_size(27.0).with_font(assets.font.clone());
+    let mut font = title_font(assets, 27.0);
     font.style = FontStyle::Oblique(Some(14.0));
     font.weight = FontWeight::BOLD;
     font.width = FontWidth::SEMI_EXPANDED;

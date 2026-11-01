@@ -4,7 +4,7 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, ButtonKind, DANGER, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec, TEXT,
-    TurnBorderAnimationKey, TurnBorderMaterial, add_host_crown, add_player_portrait, add_text,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait, add_text, add_title,
     add_turn_border_trace_with_radius, attach_start_game_seat_transition,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
@@ -50,7 +50,7 @@ pub(super) fn add_uno_eliminated_own_overlay(
     commands
         .entity(overlay)
         .insert((GlobalZIndex(1700), Pickable::default()));
-    let title = add_text(commands, overlay, "您已被淘汰", 27.0, DANGER, assets);
+    let title = add_title(commands, overlay, "您已被淘汰", 27.0, DANGER, assets);
     commands.entity(title).insert((
         Pickable::IGNORE,
         TextShadow {
@@ -124,12 +124,6 @@ pub(super) fn add_uno_player_panel(
     if intro_only {
         return;
     }
-    commands
-        .entity(portrait.avatar_ring)
-        .entry::<Node>()
-        .and_modify(|mut node| {
-            node.border_radius = BorderRadius::all(px(UNO_AVATAR_SIZE * 0.2));
-        });
     if selecting {
         commands
             .entity(panel)
@@ -155,9 +149,6 @@ pub(super) fn add_uno_player_panel(
             UNO_AVATAR_SIZE * 0.2,
             UNO_AVATAR_SIZE,
         );
-    }
-    if player.player.id == game.host {
-        add_host_crown(commands, portrait.avatar_ring, assets);
     }
     add_uno_card_count(
         commands,
@@ -466,7 +457,7 @@ fn add_uno_swap_prompt_panel(
         assets,
     );
     commands.entity(panel).insert(GlobalZIndex(45));
-    add_text(commands, panel, title, 14.0, TEXT, assets);
+    add_title(commands, panel, title, 14.0, TEXT, assets);
     if required.is_some() {
         if ready {
             add_uno_action_button(

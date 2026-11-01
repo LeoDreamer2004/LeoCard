@@ -1,7 +1,7 @@
 use super::super::{PageTransitionElement, add_cozy_panel};
 use super::page::AchievementsPage;
 use super::state::*;
-use crate::app::presentation::{MUTED, TEXT, add_text, card_background_image};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title, card_background_image};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
@@ -34,7 +34,7 @@ impl AchievementsPage<'_> {
         commands
             .entity(panel)
             .insert((PageTransitionElement::right(2), UiTransform::IDENTITY));
-        add_text(commands, panel, idiom, 25.0, GOLD, self.assets);
+        add_title(commands, panel, idiom, 25.0, GOLD, self.assets);
         spawn_node(
             commands,
             panel,
@@ -152,7 +152,7 @@ impl AchievementsPage<'_> {
             },
             None,
         );
-        add_text(commands, text, achievement.title, 23.0, TEXT, self.assets);
+        add_title(commands, text, achievement.title, 23.0, TEXT, self.assets);
         add_text(
             commands,
             text,

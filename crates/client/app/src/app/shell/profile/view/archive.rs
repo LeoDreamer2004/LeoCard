@@ -5,7 +5,7 @@ use super::super::{
     mahjong_profile_rows, mc_guess_profile_rows, qigui523_profile_rows, shengji_profile_rows,
     texas_profile_rows, uno_profile_rows,
 };
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::ProfileUiAction;
 use bevy::prelude::*;
@@ -33,7 +33,7 @@ impl<'a> ProfileArchive<'a> {
     }
 
     pub(super) fn render(self, commands: &mut UiComposer, parent: Entity) {
-        add_text(commands, parent, "游戏档案", 20.0, TEXT, self.assets);
+        add_title(commands, parent, "游戏档案", 20.0, TEXT, self.assets);
         let archive_body = spawn_node(
             commands,
             parent,

@@ -1,6 +1,6 @@
 use super::super::theme::HOME_SOFT;
 use super::{ENTRY_DESIGNS, EntryGlow, EntryMotion, GlowKind};
-use crate::app::presentation::{TEXT, add_text};
+use crate::app::presentation::{TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ConnectionUiAction, PageTransitionElement, UiAction};
 use bevy::picking::Pickable;
@@ -133,7 +133,7 @@ impl<'a> GameGallery<'a> {
         );
         commands.entity(caption).insert(Pickable::IGNORE);
         let underline = EntryGlow::spawn(commands, caption, index, GlowKind::Underline);
-        let title = add_text(
+        let title = add_title(
             commands,
             caption,
             design.game.title,

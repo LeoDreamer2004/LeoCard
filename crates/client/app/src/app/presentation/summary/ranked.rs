@@ -6,7 +6,7 @@ use crate::app::presentation::{
     PlayerMenuProfile, READY, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL,
     SUMMARY_ROW_START_DELAY, SummaryScore, TEXT, add_animated_summary_text, add_ready_avatar,
     animated_summary_value, decorate_panel_skin, sorted_summary_scores, summary_modal_visual,
-    summary_row_progress,
+    summary_row_progress, title_font,
 };
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
@@ -71,7 +71,7 @@ pub(crate) fn add_ranked_summary(
     ));
     let texture = decorate_panel_skin(commands, modal, PanelSkin::Window, assets);
     commands.entity(texture).insert(GameSummaryPanelTexture);
-    add_animated_summary_text(
+    let title = add_animated_summary_text(
         commands,
         modal,
         game.title,
@@ -81,6 +81,7 @@ pub(crate) fn add_ranked_summary(
         animation.elapsed,
         assets,
     );
+    commands.entity(title).insert(title_font(assets, 26.0));
     spawn_node(
         commands,
         modal,

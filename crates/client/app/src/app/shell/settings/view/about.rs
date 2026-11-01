@@ -4,7 +4,7 @@ use super::super::super::{
     CozyButtonVariant, UiAction, UpdateManager, UpdateState, add_cozy_button_variant,
     add_cozy_button_with_icon, settings_update_label,
 };
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UpdateUiAction;
 use bevy::prelude::*;
@@ -37,7 +37,7 @@ impl<'a> AboutSettings<'a> {
             },
             None,
         );
-        add_text(
+        add_title(
             commands,
             identity,
             "LeoCard",

@@ -1,6 +1,6 @@
 use super::{LanDiscovery, LanUiState};
 use crate::app::games::SUPPORTED_GAMES;
-use crate::app::presentation::{MUTED, TEXT, add_avatar, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_avatar, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     ConnectionUiAction, UiAction, add_cozy_button, add_cozy_close_button, add_cozy_panel,
@@ -82,7 +82,7 @@ pub(crate) fn render_lan_rooms(
         },
         None,
     );
-    let title = add_text(commands, heading, "局域网联机", 24.0, TEXT, assets);
+    let title = add_title(commands, heading, "局域网联机", 24.0, TEXT, assets);
     commands.entity(title).insert(Node {
         flex_grow: 1.0,
         ..default()

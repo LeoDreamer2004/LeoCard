@@ -5,6 +5,7 @@ use crate::app::presentation::{
     PlayerMenuProfile, READY, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL,
     SUMMARY_ROW_START_DELAY, SummaryDescriptor, TEXT, add_animated_summary_text, add_ready_avatar,
     animated_summary_score, decorate_panel_skin, summary_modal_visual, summary_row_progress,
+    title_font,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -91,7 +92,7 @@ pub(super) fn add_uno_summary(
         .find(|player| player.player.id == winner)
         .map(|player| player.player.name.as_str())
         .unwrap_or("玩家");
-    add_animated_summary_text(
+    let title = add_animated_summary_text(
         commands,
         modal,
         "本局结算",
@@ -101,6 +102,7 @@ pub(super) fn add_uno_summary(
         animation.elapsed,
         assets,
     );
+    commands.entity(title).insert(title_font(assets, 26.0));
     spawn_node(
         commands,
         modal,

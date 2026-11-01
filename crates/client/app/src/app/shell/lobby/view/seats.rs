@@ -210,12 +210,18 @@ impl<'a> OccupiedLobbySeat<'a> {
             avatar_ring,
             &self.player.player.name,
             handle,
-            52.0,
+            54.0,
             self.assets,
         );
         commands
             .entity(avatar)
-            .insert(LobbySeatedAvatar(self.player.player.id));
+            .insert(LobbySeatedAvatar(self.player.player.id))
+            .entry::<Node>()
+            .and_modify(|mut node| {
+                node.border = UiRect::ZERO;
+                node.border_radius = BorderRadius::all(px(58.0 * 0.2 - 2.0));
+                node.overflow = Overflow::clip();
+            });
         attach_player_interactions(
             commands,
             container,
@@ -231,7 +237,7 @@ impl<'a> OccupiedLobbySeat<'a> {
             self.assets,
         );
         if self.is_host {
-            add_host_crown(commands, avatar, self.assets);
+            add_host_crown(commands, avatar_ring, self.assets);
         }
         if self.player.ready {
             self.add_ready_badge(commands, avatar_ring);
@@ -259,7 +265,7 @@ impl<'a> OccupiedLobbySeat<'a> {
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 border: UiRect::all(px(2)),
-                border_radius: BorderRadius::all(percent(50)),
+                border_radius: BorderRadius::all(px(58.0 * 0.2)),
                 ..default()
             },
             Some(Color::srgba(0.03, 0.07, 0.06, 0.88)),

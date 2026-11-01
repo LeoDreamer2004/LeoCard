@@ -5,7 +5,7 @@ use super::super::{
     MahjongTileSize, MahjongTileVisual, MahjongUiState, add_mahjong_tile_material,
 };
 use super::*;
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
@@ -217,7 +217,7 @@ pub(super) fn render_fan_guide(
         },
         None,
     );
-    add_text(
+    add_title(
         commands,
         heading,
         format!("{selected_tier} 番"),
@@ -280,7 +280,7 @@ pub(super) fn render_header(commands: &mut UiComposer, parent: Entity, assets: &
         },
         None,
     );
-    add_text(commands, header, "国标麻将番种", 27.0, TEXT, assets);
+    add_title(commands, header, "国标麻将番种", 27.0, TEXT, assets);
     add_cozy_close_button(
         commands,
         header,
@@ -420,7 +420,7 @@ pub(super) fn render_fan_entry(
         },
         None,
     );
-    add_text(commands, heading, entry.fan.name(), 19.0, color, assets);
+    add_title(commands, heading, entry.fan.name(), 19.0, color, assets);
     add_text(commands, card, entry.requirement, 14.0, TEXT, assets);
     render_example(commands, card, entry.example, game_assets, materials);
     spawn_node(

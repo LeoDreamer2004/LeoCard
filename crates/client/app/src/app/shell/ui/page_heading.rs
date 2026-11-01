@@ -1,5 +1,5 @@
 use super::super::UiAction;
-use crate::app::presentation::{TEXT, add_text};
+use crate::app::presentation::{TEXT, add_title};
 use crate::app::runtime::UiAssets;
 use bevy::ui_widgets::Button;
 use bevy::{picking::Pickable, prelude::*};
@@ -37,5 +37,5 @@ pub(crate) fn add_page_back_title(
             Pickable::IGNORE,
         ),
     );
-    add_text(commands, title, label, 31.0, TEXT, assets);
+    add_title(commands, title, label, 31.0, TEXT, assets);
 }

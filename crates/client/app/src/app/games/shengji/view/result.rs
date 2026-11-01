@@ -8,7 +8,7 @@ use super::super::{
 use super::{ShengjiCardSize, add_shengji_trump_stars, shengji_display_trump};
 use crate::app::presentation::{
     ACCENT, DANGER, MUTED, PanelSkin, PlayerMenuProfile, READY, TEXT, add_ready_avatar, add_text,
-    decorate_panel_skin,
+    add_title, decorate_panel_skin,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -65,7 +65,7 @@ pub(super) fn add_shengji_result(
     ));
     decorate_panel_skin(commands, stage, PanelSkin::Window, assets);
 
-    let kitty_title = add_text(commands, stage, "底牌", 17.0, ACCENT, assets);
+    let kitty_title = add_title(commands, stage, "底牌", 17.0, ACCENT, assets);
     commands
         .entity(kitty_title)
         .insert(ShengjiTimedReveal { delay: 0.0 });
@@ -257,7 +257,7 @@ fn add_shengji_settlement_modal(
     commands
         .entity(texture)
         .insert(ShengjiSettlementPanelTexture);
-    add_text(commands, modal, "本局结算", 24.0, ACCENT, assets);
+    add_title(commands, modal, "本局结算", 24.0, ACCENT, assets);
     spawn_node(
         commands,
         modal,
@@ -268,7 +268,7 @@ fn add_shengji_settlement_modal(
         },
         Some(Color::srgb(0.64, 0.59, 0.93)),
     );
-    let outcome = add_text(
+    let outcome = add_title(
         commands,
         modal,
         shengji_settlement_outcome(result, game.rules.deck_count),

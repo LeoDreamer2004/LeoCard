@@ -6,7 +6,7 @@ use super::{
     page::ConnectionScreen,
     theme::HOME_SOFT,
 };
-use crate::app::presentation::{TEXT, add_avatar, add_text};
+use crate::app::presentation::{TEXT, add_avatar, add_text, add_title};
 use crate::app::shell::{ConnectionUiAction, InputField, PageTransitionElement, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -172,7 +172,7 @@ impl ConnectionScreen<'_> {
         commands
             .entity(panel)
             .insert((PageTransitionElement::right(order), UiTransform::IDENTITY));
-        add_text(commands, panel, title, 24.0, TEXT, self.assets);
+        add_title(commands, panel, title, 24.0, TEXT, self.assets);
         panel
     }
 

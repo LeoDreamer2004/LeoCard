@@ -4,7 +4,9 @@ use super::{
     PlayErrorPopup, PlayErrorPopupImage, PlayErrorPopupText, PlayErrorToast,
     play_error_toast_visual,
 };
-use crate::app::presentation::{ACCENT, GAME_SIDE_CONTROL_SCALE, MUTED, PanelSkin, TEXT, add_text};
+use crate::app::presentation::{
+    ACCENT, GAME_SIDE_CONTROL_SCALE, MUTED, PanelSkin, TEXT, add_text, add_title,
+};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::add_cozy_panel_with_skin;
 use bevy::picking::Pickable;
@@ -147,7 +149,7 @@ pub(crate) fn add_reconnecting_overlay(
         PanelSkin::Popup,
         assets,
     );
-    add_text(commands, panel, "正在重新连接房主", 24.0, ACCENT, assets);
+    add_title(commands, panel, "正在重新连接房主", 24.0, ACCENT, assets);
     add_text(commands, panel, status, 15.0, TEXT, assets);
     add_text(
         commands,

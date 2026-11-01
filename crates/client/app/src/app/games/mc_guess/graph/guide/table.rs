@@ -1,7 +1,7 @@
 use super::super::super::McGuessAssets;
 use super::super::art::relation_color;
 use super::state::GraphGuideScroll;
-use crate::app::presentation::{TEXT, add_text};
+use crate::app::presentation::{TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
@@ -171,7 +171,8 @@ fn render_row(
             },
             BorderColor::all(Color::srgb_u8(83, 85, 101)),
         ));
-        add_text(
+        let add_label = if content.heading { add_title } else { add_text };
+        add_label(
             commands,
             cell,
             text,

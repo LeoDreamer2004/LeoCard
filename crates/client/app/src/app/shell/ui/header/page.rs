@@ -1,6 +1,6 @@
 //! 顶栏及其连接状态、设置和个人资料入口。
 
-use crate::app::presentation::{BORDER, MUTED, add_text};
+use crate::app::presentation::{BORDER, MUTED, add_text, add_title};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
 #[cfg(not(target_os = "android"))]
 use crate::app::shell::SakuraUiAction;
@@ -91,7 +91,7 @@ impl<'a> Header<'a> {
             },
             None,
         );
-        add_text(
+        add_title(
             commands,
             left,
             "LeoCard",

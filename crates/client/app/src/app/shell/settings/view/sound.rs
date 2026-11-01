@@ -2,7 +2,7 @@
 
 use super::slider::SettingsSlider;
 use super::toggle::add_settings_toggle;
-use crate::app::presentation::{TEXT, TableAppearanceSetting, add_text};
+use crate::app::presentation::{TEXT, TableAppearanceSetting, add_text, add_title};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use crate::app::shell::SettingsUiAction;
 use bevy::prelude::*;
@@ -76,7 +76,7 @@ pub(super) fn render_sound_settings(
             SettingsUiAction::ToggleDoudizhuActionVoices,
         ),
     ] {
-        add_text(commands, parent, title, 20.0, TEXT, assets);
+        add_title(commands, parent, title, 20.0, TEXT, assets);
         let row = spawn_node(
             commands,
             parent,

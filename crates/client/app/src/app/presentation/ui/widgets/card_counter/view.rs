@@ -1,5 +1,5 @@
 use super::CardCounterWindowState;
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::add_cozy_panel;
 use bevy::picking::Pickable;
@@ -56,7 +56,7 @@ pub(crate) fn add_card_counter_window<T: DraggableWindowOwner>(
         WindowDragHandle::<T>(PhantomData),
         RelativeCursorPosition::default(),
     ));
-    let title = add_text(commands, handle, "记牌器", 13.0, TEXT, assets);
+    let title = add_title(commands, handle, "记牌器", 13.0, TEXT, assets);
     commands.entity(title).insert(Pickable::IGNORE);
     for cells in rows {
         let row = spawn_node(

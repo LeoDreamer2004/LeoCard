@@ -2,7 +2,7 @@ use super::state::{
     HeavenBombBackdrop, HeavenBombFlash, HeavenBombParticle, HeavenBombRay, HeavenBombShockRing,
     HeavenBombTitle, HeavenBombTitleText, PlayEffectKind, PlayEffectState,
 };
-use crate::app::presentation::{add_text, ease_out_cubic};
+use crate::app::presentation::{add_title, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_ui::{UiComposer, spawn_node};
@@ -252,7 +252,7 @@ pub(super) fn add_heaven_bomb_effect(commands: &mut UiComposer, root: Entity, as
         UiTransform::IDENTITY,
         BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(0)),
     ));
-    let text = add_text(commands, title, "天  炸", 58.0, Color::NONE, assets);
+    let text = add_title(commands, title, "天  炸", 58.0, Color::NONE, assets);
     commands.entity(text).insert((
         HeavenBombTitleText,
         TextShadow {

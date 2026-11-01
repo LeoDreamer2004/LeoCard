@@ -10,7 +10,7 @@ use super::{
     ShengjiPresentationText, ShengjiPresentationVeil, ShengjiTrumpKillVisual,
     ShengjiTrumpKillVisualKind,
 };
-use crate::app::presentation::{ACCENT, TEXT, add_text};
+use crate::app::presentation::{ACCENT, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use leocard_protocol::ShengjiSnapshot;
@@ -431,7 +431,7 @@ pub(crate) fn add_shengji_presentation_overlay(
         return;
     };
     let title_color = presentation_color(&active.kind);
-    let title = add_text(
+    let title = add_title(
         commands,
         root,
         title,

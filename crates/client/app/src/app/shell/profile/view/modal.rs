@@ -7,7 +7,7 @@ use super::super::super::{
 use super::super::{ProfileGameTab, ProfileUiState};
 use super::archive::ProfileArchive;
 use super::identity::ProfileIdentity;
-use crate::app::presentation::{TEXT, add_text};
+use crate::app::presentation::{TEXT, add_title};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -149,7 +149,7 @@ impl<'a> ProfileModal<'a> {
             },
             None,
         );
-        add_text(commands, heading, "个人资料", 28.0, TEXT, assets);
+        add_title(commands, heading, "个人资料", 28.0, TEXT, assets);
         add_cozy_close_button(
             commands,
             heading,

@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::app::presentation::{
-    ACCENT, DANGER, PanelSkin, PlayerMenuProfile, READY, TEXT, add_avatar, add_text,
+    ACCENT, DANGER, PanelSkin, PlayerMenuProfile, READY, TEXT, add_avatar, add_text, add_title,
     attach_player_interactions, decorate_panel_skin,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
@@ -53,7 +53,7 @@ impl FinalSummaryView<'_> {
             .entity(summary)
             .insert((GlobalZIndex(1201), Pickable::IGNORE));
         decorate_panel_skin(commands, summary, PanelSkin::Window, assets);
-        add_text(commands, summary, "整局结算", 26.0, ACCENT, assets);
+        add_title(commands, summary, "整局结算", 26.0, ACCENT, assets);
         spawn_node(
             commands,
             summary,

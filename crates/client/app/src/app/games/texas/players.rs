@@ -86,10 +86,6 @@ pub(super) fn add_texas_opponent(
     );
     let base_border =
         texas_player_border_color(player, game.current_player == Some(player.player.id));
-    commands
-        .entity(portrait.avatar_ring)
-        .entry::<Node>()
-        .and_modify(|mut node| node.border_radius = BorderRadius::all(px(52.0 * 1.17 * 0.2)));
     commands.entity(portrait.avatar_ring).insert((
         TexasPlayerPanel {
             player: player.player.id,

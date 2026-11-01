@@ -1,6 +1,6 @@
 use super::*;
 use crate::app::games::lobby_rule_labels;
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -100,7 +100,7 @@ impl<'a> LobbyTable<'a> {
         );
 
         let metrics = LobbyMetrics::new(self.lobby);
-        add_text(
+        add_title(
             commands,
             table,
             format!(

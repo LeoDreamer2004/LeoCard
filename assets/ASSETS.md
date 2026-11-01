@@ -105,8 +105,18 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 - 来源：<https://github.com/Warren2060/ChillRoundGothic>
 - 字体文件 SHA-256：`7aaf168681f168b9f550734d9e25058ffe73213db07d7a50152d5446dd9e7094`
 
-程序使用该字体显示中文界面。任何再分发均应同时提供 OFL 许可证；修改字体时还应遵守
+程序使用该字体显示正文、按钮与数值。任何再分发均应同时提供 OFL 许可证；修改字体时还应遵守
 OFL 关于保留名称与再分发的条件。
+
+### 抖音美好体（SIL Open Font License 1.1）
+
+- 运行时文件：`fonts/DouyinSansBold.ttf`
+- 许可证副本：`fonts/OFL-DouyinSans.txt`
+- 来源：<https://github.com/bytedance/fonts/tree/main/DouyinSans>
+- 字体文件 SHA-256：`fbecfacdfac33982774e301073a8d357a09c698cd3134bb6ddec0f5bfc268fa1`
+
+程序使用该字体显示页面、内容分区及游戏结算标题；未覆盖的字符回退到寒蝉圆黑体。
+字体文件保持原样，再分发时同时提供其版权声明与 OFL 许可证。
 
 ### I.Mahjong-HK 香港麻将牌字形（M+ 字体许可证）
 

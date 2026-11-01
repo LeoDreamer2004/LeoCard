@@ -2,7 +2,7 @@ use super::super::actions::SakuraUiAction;
 use super::super::input::{SakuraInput, SakuraScroll};
 use super::page::SakuraPage;
 use super::widgets::{panel, row, scroll_list};
-use crate::app::presentation::{MUTED, TEXT, add_text, rule_help_style};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title, rule_help_style};
 use crate::app::shell::{
     CozyButtonVariant, CozyDropdown, CozyDropdownOption, PageTransitionElement, UiAction,
     add_cozy_button_variant, add_cozy_checkbox,
@@ -63,7 +63,7 @@ impl SakuraPage<'_> {
             },
             None,
         );
-        add_text(commands, heading, "选择节点", 16.0, TEXT, self.assets);
+        add_title(commands, heading, "选择节点", 16.0, TEXT, self.assets);
         let public_game = spawn_node(
             commands,
             heading,

@@ -1,5 +1,5 @@
 use super::super::view::GuessTable;
-use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text};
+use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text, add_title};
 use bevy::prelude::*;
 use leocard_mc_guess::McGuessGraphNodeView;
 use leocard_ui::{UiComposer, spawn_node};
@@ -56,7 +56,7 @@ impl GuessTable<'_> {
         } else {
             "_____".to_owned()
         };
-        let label = add_text(
+        let label = add_title(
             commands,
             heading,
             format!("{kind}：{value}"),

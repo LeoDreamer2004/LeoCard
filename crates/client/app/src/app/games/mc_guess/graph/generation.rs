@@ -1,4 +1,4 @@
-use crate::app::presentation::{TEXT, add_text};
+use crate::app::presentation::{TEXT, add_title};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -45,7 +45,7 @@ pub(super) fn render_generation_notice(commands: &mut UiComposer, pane: Entity, 
             left: Color::srgba(0.4, 0.55, 0.43, 0.3),
         },
     ));
-    add_text(commands, content, "图谱生成中…", 21.0, TEXT, assets);
+    add_title(commands, content, "图谱生成中…", 21.0, TEXT, assets);
 }
 
 pub(in super::super) fn animate_generation_notice(

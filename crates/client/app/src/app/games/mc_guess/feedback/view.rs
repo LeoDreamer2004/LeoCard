@@ -1,7 +1,7 @@
 use super::super::assets::EntryIcons;
 use super::super::view::GuessTable;
 use super::visuals::{RevealPanel, RevealPixel};
-use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text};
+use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text, add_title};
 use bevy::picking::Pickable;
 use leocard_mc_guess::McGuessMode;
 use leocard_ui::{UiComposer, spawn_node};
@@ -56,7 +56,7 @@ impl GuessTable<'_> {
         commands
             .entity(placeholder)
             .insert(RevealPanel::Placeholder);
-        add_text(
+        add_title(
             commands,
             placeholder,
             format!(
@@ -93,7 +93,7 @@ impl GuessTable<'_> {
         );
         commands.entity(revealed).insert(RevealPanel::Heading);
         EntryIcons::spawn(commands, revealed, self.game_assets.icon(answer), 36.0);
-        add_text(
+        add_title(
             commands,
             revealed,
             format!("{}：{}", answer.kind.label(), answer.name),
@@ -141,7 +141,7 @@ impl GuessTable<'_> {
             },
             None,
         );
-        add_text(commands, labels, &answer.name, 30.0, ACCENT, self.assets);
+        add_title(commands, labels, &answer.name, 30.0, ACCENT, self.assets);
         let winner = self.game.round.winner.and_then(|id| {
             self.game
                 .players

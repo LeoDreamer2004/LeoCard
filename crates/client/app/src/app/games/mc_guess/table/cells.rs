@@ -4,7 +4,7 @@ use super::super::feedback::GuessCellReveal;
 use super::details::AttributeHint;
 use super::names::GuessName;
 use super::style::{SEPARATOR_COLOR, SEPARATOR_WIDTH};
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -34,6 +34,7 @@ pub(super) struct TableCell {
     content: Entity,
     color: Color,
     compact: bool,
+    heading: bool,
 }
 
 impl TableCell {
@@ -95,6 +96,7 @@ impl TableCell {
             content,
             color: skin.color(),
             compact,
+            heading: matches!(skin, CellSkin::Heading),
         }
     }
 
@@ -202,7 +204,11 @@ impl TableCell {
         color: Color,
         assets: &UiAssets,
     ) {
-        let text = add_text(commands, self.content, text, size, color, assets);
+        let text = if self.heading {
+            add_title(commands, self.content, text, size, color, assets)
+        } else {
+            add_text(commands, self.content, text, size, color, assets)
+        };
         commands.entity(text).insert((
             Pickable::IGNORE,
             TextLayout::justify(Justify::Center),

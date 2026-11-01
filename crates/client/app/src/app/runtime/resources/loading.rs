@@ -3,8 +3,8 @@
 use super::quick_voices::QuickVoiceAssets;
 use super::{
     AchievementAssets, CHAT_EMOJI_ASSET_PATHS, CommonAudioAssets, ControlAssets, HomeAssets,
-    PlayingCardAssets, PokerChipAssets, ShopAssets, SocialAssets, TABLE_FELT_ASSET, UI_FONT_ASSET,
-    UiAssets, interaction_cooldown_mask_image,
+    PlayingCardAssets, PokerChipAssets, ShopAssets, SocialAssets, TABLE_FELT_ASSET,
+    TITLE_FONT_ASSET, UI_FONT_ASSET, UiAssets, interaction_cooldown_mask_image,
 };
 use crate::app::shell::{INTERACTION_COOLDOWN_MASK_FRAMES, PlayerInteractionLayer};
 use bevy::picking::Pickable;
@@ -81,6 +81,7 @@ pub(crate) fn load_ui_assets(
         .to_vec();
     commands.insert_resource(UiAssets {
         font: asset_server.load(UI_FONT_ASSET),
+        title_font: asset_server.load(TITLE_FONT_ASSET),
         playing_cards: PlayingCardAssets::load(&asset_server),
         poker_chips: PokerChipAssets::load(&asset_server),
         controls: ControlAssets {

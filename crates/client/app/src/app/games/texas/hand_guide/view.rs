@@ -2,7 +2,7 @@ use super::super::{TexasUiAction, texas_category_label};
 use super::catalog::{HandGuideEntry, ordered_entries};
 use super::probabilities::HandGuideProbabilities;
 use super::state::TexasHandGuideScroll;
-use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text};
+use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
@@ -121,7 +121,7 @@ fn render_header(
         "德州扑克"
     };
     let mode = if rules.short_deck { "短牌" } else { "标准" };
-    add_text(
+    add_title(
         commands,
         header,
         format!("{mode}{variant}牌型介绍"),
@@ -204,7 +204,7 @@ fn render_entry(
         },
         None,
     );
-    let title = add_text(
+    let title = add_title(
         commands,
         description,
         texas_category_label(entry.category),

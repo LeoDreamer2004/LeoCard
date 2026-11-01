@@ -1,7 +1,7 @@
 //! Nonblocking achievement presentation. Awards arrive after persistence.
 
 use super::{AchievementRecipient, AchievementUnlocked};
-use crate::app::presentation::{TEXT, ease_out_cubic, text_scene};
+use crate::app::presentation::{TEXT, ease_out_cubic, text_scene, title_scene};
 use crate::app::runtime::UiAssets;
 use bevy::audio::Volume;
 use bevy::picking::Pickable;
@@ -204,7 +204,7 @@ fn spawn_notification(
             max_corner_scale: 0.7,
         }));
     background.visual_box = VisualBox::BorderBox;
-    let heading = text_scene(assets, &notice.text, 21.0, TEXT);
+    let heading = title_scene(assets, &notice.text, 21.0, TEXT);
     let description = text_scene(
         assets,
         notice.definition.description,

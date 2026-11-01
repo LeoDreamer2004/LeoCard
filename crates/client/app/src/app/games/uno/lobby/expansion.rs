@@ -1,5 +1,5 @@
 use super::super::{UnoExpansionStatus, UnoExpansionStatusFrame, UnoUiAction};
-use crate::app::presentation::{TEXT, add_text};
+use crate::app::presentation::{TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
@@ -67,7 +67,7 @@ pub(crate) fn render_uno_expansion_settings(
         },
         None,
     );
-    add_text(commands, heading, "扩展包设置", 24.0, TEXT, assets);
+    add_title(commands, heading, "扩展包设置", 24.0, TEXT, assets);
     add_cozy_close_button(
         commands,
         heading,

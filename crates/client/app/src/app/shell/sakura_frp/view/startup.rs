@@ -1,6 +1,6 @@
 use super::super::actions::SakuraUiAction;
 use super::super::state::SakuraState;
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, ModalAnimations, UiAction, UiState,
@@ -111,7 +111,7 @@ pub(crate) fn render_startup_dialog(
         CozyModalPanel(CozyModalKind::SakuraStartup),
         cozy_panel_transform(startup.animation),
     ));
-    add_text(commands, panel, "隧道启动", 25.0, TEXT, assets);
+    add_title(commands, panel, "隧道启动", 25.0, TEXT, assets);
     add_text(commands, panel, &startup.name, 18.0, MUTED, assets);
     let (status, detail, fraction) = startup_display(&startup.stage);
     let status = add_text(commands, panel, status, 18.0, TEXT, assets);

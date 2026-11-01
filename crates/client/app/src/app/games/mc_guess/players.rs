@@ -134,12 +134,6 @@ impl GuessTable<'_> {
             if self.game.round.finished() && player.ready {
                 add_ready_badge(commands, portrait.avatar_ring, avatar_size, self.assets);
             }
-            commands
-                .entity(portrait.avatar_ring)
-                .entry::<Node>()
-                .and_modify(move |mut node| {
-                    node.border_radius = BorderRadius::all(px(avatar_size * 0.2))
-                });
             if mc_running {
                 commands
                     .entity(portrait.avatar_ring)

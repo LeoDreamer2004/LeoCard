@@ -1,5 +1,6 @@
 use super::material::EntranceVeil;
 use super::state::{EntranceAnimation, LobbyEntranceState};
+use crate::app::presentation::title_font;
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -114,7 +115,7 @@ fn spawn_entrance(
                 .spawn((
                     EntranceText,
                     Text::new("恭迎大官入场"),
-                    TextFont::from_font_size(54.0).with_font(assets.font.clone()),
+                    title_font(assets, 54.0),
                     TextColor(Color::srgb(1.0, 0.78, 0.22)),
                     TextShadow {
                         offset: Vec2::new(0.0, 3.0),

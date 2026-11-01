@@ -1,5 +1,5 @@
 use super::{UpdateEvent, UpdateManager, UpdateState};
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, UiState, UpdateUiAction,
@@ -155,7 +155,7 @@ pub(crate) fn render_update_dialog(
     } else {
         "LeoCard 自动更新"
     };
-    add_text(commands, modal, title, 26.0, TEXT, assets);
+    add_title(commands, modal, title, 26.0, TEXT, assets);
     spawn_node(
         commands,
         modal,

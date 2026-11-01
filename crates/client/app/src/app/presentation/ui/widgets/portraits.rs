@@ -93,7 +93,10 @@ pub(crate) fn add_player_portrait(
         Button
         Children [
             UiSceneKey("ring")
-            Node { width: px(size), height: px(size), position_type: PositionType::Relative }
+            Node {
+                width: px(size), height: px(size), position_type: PositionType::Relative,
+                border_radius: BorderRadius::all(px(size * 0.2)),
+            }
             Pickable::IGNORE
             Children [
                 UiSceneKey("avatar")

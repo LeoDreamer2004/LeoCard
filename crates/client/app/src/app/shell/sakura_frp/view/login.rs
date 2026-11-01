@@ -1,7 +1,7 @@
 use super::super::actions::SakuraUiAction;
 use super::super::input::SakuraInput;
 use super::page::SakuraPage;
-use crate::app::presentation::{TEXT, add_avatar, add_text};
+use crate::app::presentation::{TEXT, add_avatar, add_text, add_title};
 use crate::app::shell::{PageTransitionElement, UiAction, add_cozy_checkbox, add_cozy_panel};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -75,7 +75,7 @@ impl SakuraPage<'_> {
                 self.assets,
             );
         } else {
-            add_text(commands, identity, "访问密钥登录", 26.0, TEXT, self.assets);
+            add_title(commands, identity, "访问密钥登录", 26.0, TEXT, self.assets);
         }
         self.field(commands, panel, SakuraInput::Token);
         let options = spawn_node(

@@ -1,5 +1,5 @@
 use super::{ConfirmationDialog, ConfirmationUiAction};
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_button,
@@ -54,7 +54,7 @@ pub(crate) fn render_confirmation(
         CozyModalPanel(CozyModalKind::Confirmation),
         cozy_panel_transform(dialog.progress),
     ));
-    add_text(commands, panel, &request.title, 25.0, TEXT, assets);
+    add_title(commands, panel, &request.title, 25.0, TEXT, assets);
     add_text(commands, panel, &request.message, 18.0, MUTED, assets);
     let buttons = spawn_node(
         commands,

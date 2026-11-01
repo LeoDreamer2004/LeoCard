@@ -3,13 +3,14 @@
 use super::super::{
     ACCENT, AutoPlayOverlay, PanelSkin, TABLE_CARD_REVEAL, TABLE_SCORE_CARD_REVEAL, TEXT,
 };
+use super::{add_text, add_title};
 use crate::app::presentation::CardSize;
 use crate::app::runtime::{CardFace, UiAssets};
 use crate::app::shell::{SocialUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
-use leocard_ui::{UiComposer, decorate_panel, label_scene, sliced_image};
+use leocard_ui::{UiComposer, decorate_panel, sliced_image};
 
 const SCORE_CARD_REVEAL: f32 = 12.0;
 const FINISHED_HAND_CARD_REVEAL: f32 = 14.4;
@@ -83,7 +84,7 @@ pub(crate) fn add_auto_play_overlay(commands: &mut UiComposer, parent: Entity, a
             AutoPlayOverlay,
         ),
     );
-    let title = add_text(commands, overlay, "您已托管", 27.0, ACCENT, assets);
+    let title = add_title(commands, overlay, "您已托管", 27.0, ACCENT, assets);
     commands.entity(title).insert((
         Pickable::IGNORE,
         TextShadow {
@@ -115,34 +116,4 @@ pub(crate) fn decorate_panel_skin(
     };
     let image = sliced_image(assets.home.panel.clone(), 80.0, corner_scale);
     decorate_panel(commands, panel, image)
-}
-
-pub(crate) fn add_section_title(
-    commands: &mut UiComposer,
-    parent: Entity,
-    text: impl Into<String>,
-    assets: &UiAssets,
-) {
-    add_text(commands, parent, text, 21.0, ACCENT, assets);
-}
-
-#[track_caller]
-pub(crate) fn add_text(
-    commands: &mut UiComposer,
-    parent: Entity,
-    text: impl Into<String>,
-    size: f32,
-    color: Color,
-    assets: &UiAssets,
-) -> Entity {
-    commands.node(parent, text_scene(assets, text, size, color))
-}
-
-pub(crate) fn text_scene(
-    assets: &UiAssets,
-    text: impl Into<String>,
-    size: f32,
-    color: Color,
-) -> impl Scene {
-    label_scene(assets.font.clone(), text, size, color)
 }

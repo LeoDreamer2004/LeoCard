@@ -1,5 +1,5 @@
 use super::super::McGuessAssets;
-use crate::app::presentation::{TEXT, add_text};
+use crate::app::presentation::{TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
@@ -58,7 +58,7 @@ impl AttributeHint {
             Pickable::IGNORE,
         ));
         let heading = format!("{}（{} 项）", attribute.label, values.len());
-        let heading = add_text(commands, popup, heading, 16.0, TEXT, assets);
+        let heading = add_title(commands, popup, heading, 16.0, TEXT, assets);
         commands.entity(heading).insert(Pickable::IGNORE);
         let text = add_text(commands, popup, values.join("、"), 14.0, TEXT, assets);
         commands.entity(text).insert((

@@ -1,7 +1,7 @@
 //! 各游戏的规则区共用标题、模式选择与说明，配置项接在同一面板内。
 
 use super::page::LobbyPageStyle;
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::CozyDropdown;
 use bevy::prelude::*;
@@ -86,7 +86,7 @@ pub(super) fn add_lobby_rules_heading(
         },
         None,
     );
-    add_text(commands, heading, title, 21.0, TEXT, assets);
+    add_title(commands, heading, title, 21.0, TEXT, assets);
     spawn_node(
         commands,
         heading,

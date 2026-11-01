@@ -11,6 +11,7 @@ mod primitives;
 mod readiness;
 mod response_hint;
 mod rules;
+mod typography;
 
 pub(crate) use card_counter::*;
 pub(crate) use currency::*;
@@ -23,3 +24,4 @@ pub(crate) use primitives::*;
 pub(crate) use readiness::*;
 pub(crate) use response_hint::*;
 pub(crate) use rules::*;
+pub(crate) use typography::*;

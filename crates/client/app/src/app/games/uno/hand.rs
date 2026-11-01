@@ -8,7 +8,7 @@ use super::{
 };
 use crate::app::presentation::{
     ACCENT, CardAnimationState, MUTED, PANEL, PlayerMenuProfile, PlayerPortraitSpec, TEXT,
-    TurnBorderAnimationKey, TurnBorderMaterial, add_host_crown, add_player_portrait, add_text,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_player_portrait, add_text, add_title,
     add_turn_border_trace_with_radius, attach_start_game_seat_transition,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
@@ -73,15 +73,6 @@ pub(super) fn add_uno_own_area(
     attach_start_game_seat_transition(commands, info, own.player.id, start_transition_active);
     if intro_only {
         return;
-    }
-    commands
-        .entity(portrait.avatar_ring)
-        .entry::<Node>()
-        .and_modify(|mut node| {
-            node.border_radius = BorderRadius::all(px(UNO_AVATAR_SIZE * 0.2));
-        });
-    if game.host == game.you {
-        add_host_crown(commands, portrait.avatar_ring, assets);
     }
     let selecting_self = matches!(
         game.pending_swap,
@@ -377,7 +368,7 @@ fn spawn_uno_extension_card_tooltip(
         GlobalZIndex(1900),
         Pickable::IGNORE,
     ));
-    let title = add_text(commands, tooltip, "", 13.0, TEXT.with_alpha(0.90), assets);
+    let title = add_title(commands, tooltip, "", 13.0, TEXT.with_alpha(0.90), assets);
     let description = add_text(commands, tooltip, "", 11.5, MUTED.with_alpha(0.88), assets);
     commands
         .entity(tooltip)

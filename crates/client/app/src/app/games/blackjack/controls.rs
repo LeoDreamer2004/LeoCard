@@ -2,7 +2,7 @@ use super::layout::BlackjackSeatLayout;
 use super::{BlackjackTable, BlackjackUiAction};
 use crate::app::presentation::{
     ACCENT, GameButtonImageMode, GameButtonSpec, GameButtonTone, PanelSkin, TEXT, add_text,
-    add_textured_game_button, decorate_panel_skin,
+    add_textured_game_button, add_title, decorate_panel_skin,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{LobbyUiAction, UiAction, add_cozy_button};
@@ -251,7 +251,7 @@ impl BlackjackTable<'_> {
         );
         commands.entity(panel).insert(GlobalZIndex(1900));
         decorate_panel_skin(commands, panel, PanelSkin::Window, self.assets);
-        add_text(commands, panel, "21 点", 25.0, ACCENT, self.assets);
+        add_title(commands, panel, "21 点", 25.0, ACCENT, self.assets);
         for text in [
             "A 计为 1 或 11；J、Q、K 计为 10。超过 21 点即爆牌。",
             "每人分别与系统庄家比较；庄家不足 17 点要牌，软 17 停牌。同点退还下注。",

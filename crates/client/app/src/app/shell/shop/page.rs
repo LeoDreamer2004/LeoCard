@@ -3,7 +3,7 @@ use super::developer::add_coin_input;
 use super::{ShopUiAction, ShopUiState};
 use crate::app::games::SUPPORTED_GAMES;
 use crate::app::presentation::{
-    ACCENT, MUTED, PanelSkin, TEXT, add_coin_balance, add_text, decorate_panel_skin,
+    ACCENT, MUTED, PanelSkin, TEXT, add_coin_balance, add_text, add_title, decorate_panel_skin,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
@@ -219,7 +219,7 @@ impl ShopPage<'_> {
             },
             64.0,
         );
-        add_text(commands, identity, item.name, 21.0, TEXT, self.assets);
+        add_title(commands, identity, item.name, 21.0, TEXT, self.assets);
         let description = spawn_node(
             commands,
             row,

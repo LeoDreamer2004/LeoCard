@@ -2,7 +2,7 @@ use super::super::{PageTransitionElement, UiAction};
 use super::input::category_tint;
 use super::page::AchievementsPage;
 use super::state::*;
-use crate::app::presentation::{MUTED, add_text};
+use crate::app::presentation::{MUTED, add_title};
 use crate::app::shell::AchievementUiAction;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -92,7 +92,7 @@ impl AchievementsPage<'_> {
                 selected,
                 emblem: art,
             });
-            add_text(
+            add_title(
                 commands,
                 button,
                 idiom,

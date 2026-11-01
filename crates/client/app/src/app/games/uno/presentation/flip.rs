@@ -1,6 +1,6 @@
 use super::super::{UnoAssets, UnoFlipCard, UnoFlipOverlay, UnoFlipTarget, uno_card_handle};
 use super::UNO_PLAY_CARD_DURATION;
-use crate::app::presentation::add_text;
+use crate::app::presentation::add_title;
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use leocard_protocol::UnoSnapshot;
@@ -63,7 +63,7 @@ pub(super) fn spawn_uno_flip_effect(
         GlobalZIndex(1492),
         Pickable::IGNORE,
     ));
-    add_text(
+    add_title(
         commands,
         title,
         match side {

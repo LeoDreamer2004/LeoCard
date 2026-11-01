@@ -1,6 +1,6 @@
 use super::super::super::{McGuessAssets, McGuessUiAction};
 use super::table::render_table;
-use crate::app::presentation::{MUTED, TEXT, add_text};
+use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, cozy_backdrop_color,
@@ -73,7 +73,7 @@ pub(super) fn render_guide(
         },
         None,
     );
-    add_text(commands, header, "关系提示", 27.0, TEXT, assets);
+    add_title(commands, header, "关系提示", 27.0, TEXT, assets);
     TextureButton {
         node: Node {
             width: px(36),

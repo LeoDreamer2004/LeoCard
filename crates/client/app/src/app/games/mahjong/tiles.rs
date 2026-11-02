@@ -1,7 +1,8 @@
 use super::layout::MahjongLayout as Layout;
 use super::{
     MahjongAssets, MahjongDealSpec, MahjongDealTile, MahjongDiscardHandShift, MahjongHandTile,
-    MahjongHoverHandKind, MahjongTileMaterial, MahjongUiState, mahjong_local_light,
+    MahjongHoverHandKind, MahjongTileMaterial, MahjongTileSurface, MahjongUiState,
+    attach_mahjong_tile_surface, mahjong_local_light,
 };
 use crate::app::presentation::{PendingDealSound, ease_out_cubic};
 use crate::app::runtime::UiAssets;
@@ -101,7 +102,6 @@ pub(super) fn add_mahjong_hand_tile(
                 overflow: Overflow::visible(),
                 ..default()
             },
-            BoxShadow::new(Color::BLACK.with_alpha(0.0), px(1), px(7), px(0), px(3)),
             ZIndex(index as i32),
             UiTransform::from_rotation(Rot2::radians(base_rotation)),
         ),
@@ -111,14 +111,18 @@ pub(super) fn add_mahjong_hand_tile(
         entity,
         materials,
         MahjongTileMaterial {
-            params: Vec4::new(0.0, 0.0, if deal.is_some() { 0.0 } else { 1.0 }, -1.0),
+            table_projection: false,
+            overlay_projection: false,
+            params: Vec4::new(0.0, 0.0, if deal.is_some() { 0.0 } else { 1.0 }, -6.0),
             lighting: mahjong_local_light(0),
             highlight: Vec4::ZERO,
+            elevation: 0.0,
             glyph,
             height,
+            ..default()
         },
     );
-    commands.entity(entity).insert(MaterialNode(material));
+    attach_mahjong_tile_surface(commands, entity, material, false);
     commands
         .entity(entity)
         .entry::<MahjongHandTile>()
@@ -146,7 +150,6 @@ pub(super) fn add_mahjong_hand_tile(
             start_rotation: deal.start_rotation,
             final_offset: Vec2::ZERO,
             final_rotation: base_rotation,
-            final_shadow_alpha: 0.0,
         });
     }
     entity
@@ -164,17 +167,15 @@ pub(super) fn sync_mahjong_hand_tile_materials(
         (
             &mut MahjongHandTile,
             Option<&PickingInteraction>,
-            &MaterialNode<MahjongTileMaterial>,
+            &MahjongTileSurface,
             &mut UiTransform,
-            &mut BoxShadow,
             &mut ZIndex,
         ),
         (Without<MahjongDealTile>, Without<MahjongDiscardHandShift>),
     >,
 ) {
     let smoothing = 1.0 - (-18.0 * time.delta_secs()).exp();
-    for (mut tile, interaction, material_node, mut transform, mut shadow, mut z_index) in &mut tiles
-    {
+    for (mut tile, interaction, material_node, mut transform, mut z_index) in &mut tiles {
         let interaction = if cfg!(target_os = "android") {
             if ui.selected_discard == Some(tile.tile) {
                 PickingInteraction::Hovered
@@ -198,16 +199,10 @@ pub(super) fn sync_mahjong_hand_tile_materials(
         } else {
             tile.index
         });
-        *shadow = BoxShadow::new(
-            Color::BLACK.with_alpha(tile.lift * 0.22),
-            px(1),
-            px(7.0 + tile.lift * 6.0),
-            px(0),
-            px(3.0 + tile.lift * 4.0),
-        );
         let Some(mut material) = materials.get_mut(&material_node.0) else {
             continue;
         };
+        material.elevation = tile.lift * 8.0;
         material.params.x = match interaction {
             PickingInteraction::None => 0.0,
             PickingInteraction::Hovered => 1.0,
@@ -223,12 +218,11 @@ pub(super) fn animate_mahjong_deal_tiles(
     mut tiles: Query<(
         Entity,
         &mut MahjongDealTile,
-        &MaterialNode<MahjongTileMaterial>,
+        &MahjongTileSurface,
         &mut UiTransform,
-        &mut BoxShadow,
     )>,
 ) {
-    for (entity, mut deal, material_node, mut transform, mut shadow) in &mut tiles {
+    for (entity, mut deal, material_node, mut transform) in &mut tiles {
         deal.elapsed += time.delta_secs();
         let duration = if deal.falling { 0.42 } else { 0.28 };
         let raw = (deal.elapsed / duration).clamp(0.0, 1.0);
@@ -249,9 +243,7 @@ pub(super) fn animate_mahjong_deal_tiles(
         });
         if let Some(mut material) = materials.get_mut(&material_node.0) {
             material.params.z = (raw * 4.0).min(1.0);
-        }
-        if let Some(style) = shadow.0.first_mut() {
-            style.color = Color::BLACK.with_alpha(deal.final_shadow_alpha * raw);
+            material.elevation = lift;
         }
         if raw >= 1.0 {
             commands.entity(entity).remove::<MahjongDealTile>();

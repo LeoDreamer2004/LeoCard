@@ -1,4 +1,4 @@
-use super::super::MahjongTileMaterial;
+use super::super::{MahjongTileMaterial, MahjongTileSurface};
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use leocard_mahjong::MahjongTileKind;
@@ -18,7 +18,7 @@ pub(in super::super) struct MahjongReadyHint;
 pub(in super::super) fn sync_mahjong_hover_hints(
     hands: Query<(&PickingInteraction, &MahjongHoverHandKind)>,
     popups: Query<(&PickingInteraction, &MahjongWaitPopupLink)>,
-    matching_tiles: Query<(&MahjongMatchingTileKind, &MaterialNode<MahjongTileMaterial>)>,
+    matching_tiles: Query<(&MahjongMatchingTileKind, &MahjongTileSurface)>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
     mut visibility: Query<&mut Visibility>,
 ) {

@@ -20,11 +20,9 @@
 | Kenney Interface Sounds 1.0 | 通用界面提示和德州、UNO、升级操作音效 | `vendor/kenney/interface-sounds/` | CC0 1.0；<https://kenney.nl/assets/interface-sounds> |
 | Kenney Casino Audio 1.1 | 发牌、出牌、推牌、筹码和结算音效 | `vendor/kenney/casino-audio/` | CC0 1.0；<https://kenney.nl/assets/casino-audio> |
 | VerzatileDev 4 Colour Cards | UNO 牌面、选色状态和 UNO 牌背 | `cards/uno/` | CC0 1.0；<https://verzatiledev.itch.io/4colour>，许可声明见 <https://verzatiledev.itch.io/4colour/devlog/1447489/now-cc0-license> |
-| n4 / OpenGameArt | 内置深绿色桌布纹理 | `vendor/opengameart/green-textile/table_felt_dark_green.png` | CC0；<https://opengameart.org/content/seamless-pattern-pack-greentextilepng> |
 | BigSoundBank / Joseph SARDIN | 升级游戏的断电、通电音效 | `audio/shengji/power-off.ogg`、`power-on.ogg` | CC0 / public-domain equivalent；<https://bigsoundbank.com/electric-switch-s0026.html> |
 
-`table_felt_dark_green.png` 是 OpenGameArt 原纹理的项目内衍生版本，降低了亮度和饱和度；
-其来源与加工说明见同目录的 `SOURCE.md`。`power-off.ogg` 与 `power-on.ogg` 由
+`power-off.ogg` 与 `power-on.ogg` 由
 Electric switch #0026 的瞬态片段裁剪并做响度规范化而成；原始文件校验值与加工记录见
 `vendor/bigsoundbank/electric-switch/SOURCE.md`。
 

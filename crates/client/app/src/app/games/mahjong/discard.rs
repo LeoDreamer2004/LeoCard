@@ -1,18 +1,20 @@
 //! 自己弃牌后，牌河飞行与手牌补位共用一段动画进度。
-
 use super::layout::MahjongLayout as Layout;
+use super::projection::{
+    MahjongProjectionViewport, REFERENCE_DESIGN_HEIGHT, camera_canvas, ground_from_layout,
+    overlay_tile_scale, world_layout,
+};
 use super::{
     MahjongAssets, MahjongHandTile, MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize,
     MahjongTileVisual, MahjongUiState, add_mahjong_tile_material, mahjong_own_row_left,
 };
 use crate::app::presentation::ease_out_cubic;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_mahjong::MahjongTile;
 use leocard_protocol::MahjongSnapshot;
 use leocard_ui::UiComposer;
-
-use bevy::prelude::*;
 
 const DISCARD_DURATION: f32 = 0.48;
 const HAND_TILE_ADVANCE: f32 = Layout::OWN_STEP;
@@ -30,6 +32,7 @@ pub(crate) struct MahjongOwnDiscardAnimation {
     pub river_slot: usize,
     pub elapsed: f32,
     table_height: Option<f32>,
+    table_viewport: Vec2,
 }
 
 #[derive(Clone, Debug)]
@@ -51,20 +54,30 @@ impl MahjongOwnDiscardAnimation {
         UiTransform::from_translation(Val2::px(start_x * (1.0 - self.movement()), 0.0))
     }
 
-    fn flight_transform(&self, source_x: f32, target: Vec2, table_height: f32) -> UiTransform {
+    fn flight_transform(&self, source_x: f32, target: Vec2) -> UiTransform {
         let source_center = Vec2::new(
             source_x + Layout::OWN_WIDTH / 2.0,
-            table_height - 8.0 - Layout::OWN_HEIGHT / 2.0,
+            REFERENCE_DESIGN_HEIGHT
+                - Layout::OWN_BOTTOM
+                - Layout::OWN_HAND_LIFT
+                - Layout::OWN_HEIGHT / 2.0,
         );
         let target_center =
             target + Vec2::new(Layout::RIVER_WIDTH / 2.0, Layout::RIVER_HEIGHT / 2.0);
-        let offset = (source_center - target_center) * (1.0 - self.movement());
+        let (canvas_scale, mut canvas_origin) = camera_canvas(self.table_viewport);
+        canvas_origin.y += self.table_viewport.y - REFERENCE_DESIGN_HEIGHT * canvas_scale;
+        let source_center = canvas_origin + source_center * canvas_scale;
+        let source_layout = world_layout(ground_from_layout(source_center, self.table_viewport));
+        let scale = overlay_tile_scale(
+            source_center,
+            self.table_viewport,
+            Layout::OWN_WIDTH * canvas_scale,
+        );
+        let offset = (source_layout - target_center) * (1.0 - self.movement());
         UiTransform {
             translation: Val2::px(offset.x, offset.y),
-            scale: Vec2::splat(
-                1.0 + (Layout::OWN_WIDTH / Layout::RIVER_WIDTH - 1.0) * (1.0 - self.movement()),
-            ),
-            ..default()
+            rotation: Rot2::radians(Layout::river_tile_rotation(self.tile, 0) * self.movement()),
+            scale: Vec2::splat(1.0 + (scale - 1.0) * (1.0 - self.movement())),
         }
     }
 
@@ -197,6 +210,7 @@ pub(super) fn observe_discard_animations(ui: &mut MahjongUiState, game: &Mahjong
             river_slot,
             elapsed: 0.0,
             table_height: ui.last_table_height,
+            table_viewport: Vec2::new(1280.0, REFERENCE_DESIGN_HEIGHT),
         });
     } else if ui.discard_animation.as_ref().is_some_and(|active| {
         game.discards
@@ -248,6 +262,7 @@ pub(super) fn render_own_discard_flight(
         commands,
         table,
         MahjongTileVisual {
+            elevation: 0.0,
             kind: Some(animation.tile.kind()),
             size: MahjongTileSize::River,
             index: 0,
@@ -269,14 +284,14 @@ pub(super) fn render_own_discard_flight(
         });
     let transform = animation
         .table_height
-        .map(|height| animation.flight_transform(source_x, target, height));
+        .map(|_| animation.flight_transform(source_x, target));
     commands.entity(flight).insert((
         MahjongDiscardFlight {
             table,
             source_x,
             target,
         },
-        ZIndex(900),
+        ZIndex(5),
         if transform.is_some() {
             Visibility::Visible
         } else {
@@ -291,11 +306,13 @@ pub(super) fn render_own_discard_flight(
 
 #[expect(
     clippy::type_complexity,
-    reason = "the three visual groups share one discard progress"
+    clippy::too_many_arguments,
+    reason = "the disjoint visual groups share discard progress and the table camera"
 )]
 pub(super) fn animate_own_discard(
     mut commands: UiComposer,
     time: Res<Time>,
+    viewport: Res<MahjongProjectionViewport>,
     mut ui: ResMut<MahjongUiState>,
     tables: Query<&ComputedNode, With<MahjongTableRoot>>,
     mut shifts: Query<
@@ -321,13 +338,14 @@ pub(super) fn animate_own_discard(
 ) {
     for table in &tables {
         if table.size().y > 0.0 {
-            ui.last_table_height = Some(table.size().y);
+            ui.last_table_height = Some(table.size().y * table.inverse_scale_factor());
         }
     }
     let Some(animation) = ui.discard_animation.as_mut() else {
         return;
     };
     animation.elapsed += time.delta_secs();
+    animation.table_viewport = viewport.size;
     let raw = (animation.elapsed / DISCARD_DURATION).clamp(0.0, 1.0);
     let movement = animation.movement();
     for (entity, shift, tile, mut transform, mut z_index) in &mut shifts {
@@ -345,9 +363,9 @@ pub(super) fn animate_own_discard(
         if table.size().y <= 0.0 {
             continue;
         }
-        animation.table_height = Some(table.size().y);
+        animation.table_height = Some(table.size().y * table.inverse_scale_factor());
         *visibility = Visibility::Visible;
-        *transform = animation.flight_transform(flight.source_x, flight.target, table.size().y);
+        *transform = animation.flight_transform(flight.source_x, flight.target);
         if raw >= 1.0 {
             commands.entity(entity).despawn();
         }

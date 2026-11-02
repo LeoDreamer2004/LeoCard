@@ -1,14 +1,14 @@
 use super::TexasTableLayout;
 use crate::app::presentation::{
-    CARD_DEAL_INTERVAL, PendingDealSound, PlayingCardFlip, TEXT, TablePieceDeal, ease_out_cubic,
+    CARD_DEAL_INTERVAL, PendingDealSound, PlayingCardFlip, TableCard, TableCardMaterial,
+    TablePieceDeal, ease_out_cubic,
 };
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_protocol::TexasSnapshot;
 use leocard_texas_holdem::{TexasCard, TexasRuleSet};
 use leocard_ui::UiComposer;
-
-use bevy::prelude::*;
 
 #[derive(Component)]
 pub(crate) struct TexasFlyingCardBack {
@@ -23,7 +23,6 @@ pub(crate) struct TexasBoardCardBack {
     elapsed: f32,
     delay: f32,
     start_offset: Vec2,
-    phase: f32,
 }
 
 #[derive(Component)]
@@ -41,50 +40,25 @@ pub(super) fn add_texas_board_back(
     index: usize,
     delay: Option<f32>,
     assets: &UiAssets,
+    materials: &mut Assets<TableCardMaterial>,
 ) {
     let animated = delay.is_some();
-    let card = commands.child(
-        parent,
-        (
-            Node {
-                width: px(TexasTableLayout::BOARD_CARD_SIZE.x),
-                height: px(TexasTableLayout::BOARD_CARD_SIZE.y),
-                flex_shrink: 0.0,
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(5)),
-                ..default()
-            },
-            ImageNode::new(assets.playing_cards.card_back.clone()).with_color(if animated {
-                Color::WHITE.with_alpha(0.0)
-            } else {
-                Color::WHITE
-            }),
-            UiTransform::IDENTITY,
-        ),
-    );
+    let card = TableCard {
+        texture: assets.playing_cards.card_back.clone(),
+        size: TexasTableLayout::BOARD_CARD_SIZE,
+        opacity: if animated { 0.0 } else { 1.0 },
+    }
+    .spawn(commands, parent, Node::default(), materials);
     commands.entity(card).init(TexasBoardCardBack {
         elapsed: if animated { 0.0 } else { 1.0 },
         delay: delay.unwrap_or(0.0),
         start_offset: if animated {
-            let x = if cfg!(target_os = "android") {
-                TexasTableLayout::draw_pile_center().x
-                    - TexasTableLayout::board_card_origin(index).x
-                    - TexasTableLayout::BOARD_CARD_SIZE.x * 0.5
-            } else {
-                -65.0 - index as f32 * 63.0
-            };
-            let y = if cfg!(target_os = "android") {
-                TexasTableLayout::draw_pile_center().y
-                    - TexasTableLayout::board_card_origin(index).y
-                    - TexasTableLayout::BOARD_CARD_SIZE.y * 0.5
-            } else {
-                0.0
-            };
-            Vec2::new(x, y)
+            TexasTableLayout::draw_pile_center()
+                - TexasTableLayout::board_card_origin(index)
+                - TexasTableLayout::BOARD_CARD_SIZE * 0.5
         } else {
             Vec2::ZERO
         },
-        phase: index as f32 * 0.9,
     });
     if let Some(delay) = delay {
         commands.effect(PendingDealSound {
@@ -100,24 +74,15 @@ pub(super) fn add_texas_board_face(
     card: TexasCard,
     flip_delay: Option<f32>,
     assets: &UiAssets,
+    materials: &mut Assets<TableCardMaterial>,
 ) {
     let face = assets.playing_cards.face(card);
-    let entity = commands.child(
-        parent,
-        (
-            Node {
-                width: px(TexasTableLayout::BOARD_CARD_SIZE.x),
-                height: px(TexasTableLayout::BOARD_CARD_SIZE.y),
-                flex_shrink: 0.0,
-                border: UiRect::all(px(1)),
-                border_radius: BorderRadius::all(px(5)),
-                ..default()
-            },
-            ImageNode::new(face.clone()),
-            BorderColor::all(TEXT.with_alpha(0.42)),
-            UiTransform::IDENTITY,
-        ),
-    );
+    let entity = TableCard {
+        texture: face.clone(),
+        size: TexasTableLayout::BOARD_CARD_SIZE,
+        opacity: 1.0,
+    }
+    .spawn(commands, parent, Node::default(), materials);
     commands.entity(entity).insert(TexasBoardCard);
     if let Some(delay) = flip_delay {
         commands.entity(entity).init(PlayingCardFlip::new(
@@ -290,24 +255,34 @@ pub(super) fn animate_texas_flying_card_backs(
 
 pub(super) fn animate_texas_board_card_backs(
     time: Res<Time>,
-    mut cards: Query<(&mut TexasBoardCardBack, &mut UiTransform, &mut ImageNode)>,
+    mut materials: ResMut<Assets<TableCardMaterial>>,
+    mut cards: Query<(
+        &mut TexasBoardCardBack,
+        &mut UiTransform,
+        &MaterialNode<TableCardMaterial>,
+    )>,
 ) {
-    for (mut animation, mut transform, mut image) in &mut cards {
+    for (mut animation, mut transform, material) in &mut cards {
+        if animation.elapsed >= animation.delay + 0.25 {
+            continue;
+        }
+        let Some(mut material) = materials.get_mut(&material.0) else {
+            continue;
+        };
         animation.elapsed += time.delta_secs();
         let raw = ((animation.elapsed - animation.delay) / 0.25).clamp(0.0, 1.0);
         if animation.elapsed < animation.delay {
-            image.color = Color::WHITE.with_alpha(0.0);
+            material.tint.alpha = 0.0;
             transform.translation = Val2::px(animation.start_offset.x, animation.start_offset.y);
             continue;
         }
         let movement = ease_out_cubic(raw);
-        let idle = (time.elapsed_secs() * 1.7 + animation.phase).sin();
         transform.translation = Val2::px(
             animation.start_offset.x * (1.0 - movement),
-            animation.start_offset.y * (1.0 - movement) + idle * 0.8,
+            animation.start_offset.y * (1.0 - movement),
         );
-        transform.rotation = Rot2::radians(idle * 0.006);
+        transform.rotation = Rot2::radians(0.025 * (1.0 - movement));
         transform.scale = Vec2::splat(0.90 + movement * 0.10);
-        image.color = Color::WHITE.with_alpha(raw);
+        material.tint.alpha = raw;
     }
 }

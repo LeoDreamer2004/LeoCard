@@ -15,13 +15,12 @@ use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{PlayerInteractionLayer, SocialUiState, UiAction};
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
+use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
 use leocard_protocol::{GameKind, UnoPendingSwapView, UnoPhaseView, UnoPlayerView, UnoSnapshot};
 use leocard_ui::{ButtonTint, UiComposer, spawn_node};
 use leocard_uno::UnoFace;
-
-use bevy::prelude::*;
 
 #[expect(
     clippy::too_many_arguments,

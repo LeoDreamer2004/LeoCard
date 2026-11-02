@@ -4,19 +4,18 @@ use super::{
     sort_cards_high_to_low,
 };
 use crate::app::presentation::{
-    ACCENT, CardSize, MUTED, PlayerMenuProfile, PlayerPortraitSpec, SeatSide, TEXT,
-    TrickSeatLayout, TurnBorderAnimationKey, TurnBorderMaterial, add_card_image,
-    add_player_portrait, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
+    CardSize, PlayerMenuProfile, PlayerPortraitSpec, SeatSide, TEXT, TrickSeatLayout,
+    TurnBorderAnimationKey, TurnBorderMaterial, add_card_image, add_player_portrait,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{FinishedHandScoreSource, OpponentBadge, displayed_captured_score};
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{GameKind, QiGui523PhaseView, QiGui523PlayerView, QiGui523Snapshot};
 use leocard_qigui523::QiGuiCard;
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 pub(super) const QIGUI_PORTRAIT_WIDTH: f32 = 96.0 * 1.17;
 pub(super) const QIGUI_AVATAR_SIZE: f32 = 52.0 * 1.17;
@@ -91,13 +90,7 @@ pub(super) fn add_opponent_slot(
                     avatar_size: QIGUI_AVATAR_SIZE,
                     auto_play: player.auto_play,
                     menu_open: interaction_menu_open,
-                    name_color: if !player.connected {
-                        MUTED
-                    } else if active {
-                        ACCENT
-                    } else {
-                        TEXT
-                    },
+                    name_color: TEXT,
                 },
                 visuals.ui,
             );

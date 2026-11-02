@@ -4,15 +4,14 @@ use super::chips::add_blackjack_balance;
 use super::hands::BlackjackHandSpec;
 use super::layout::BlackjackSeatLayout;
 use crate::app::presentation::{
-    ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey,
-    add_player_portrait, add_poker_chip_value, add_ready_badge, add_turn_border_trace_with_radius,
+    PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, add_player_portrait,
+    add_poker_chip_value, add_ready_badge, add_turn_border_trace_with_radius,
     attach_start_game_seat_transition,
 };
+use bevy::prelude::*;
 use leocard_blackjack::BlackjackPhase;
 use leocard_protocol::{GameKind, SeatId, TABLE_SEAT_COUNT};
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 impl BlackjackTable<'_> {
     pub(super) fn players(&mut self, commands: &mut UiComposer, table: Entity, pile: Entity) {
@@ -63,13 +62,7 @@ impl BlackjackTable<'_> {
                     avatar_size: 62.0,
                     auto_play: view.auto_play,
                     menu_open: self.social.interaction_menu_open == Some(player.player.id),
-                    name_color: if active {
-                        ACCENT
-                    } else if player.connected {
-                        TEXT
-                    } else {
-                        MUTED
-                    },
+                    name_color: TEXT,
                 },
                 self.assets,
             );

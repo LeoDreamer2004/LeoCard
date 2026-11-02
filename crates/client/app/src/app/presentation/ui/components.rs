@@ -19,7 +19,6 @@ pub(crate) struct TableAppearanceSlider(pub TableAppearanceSetting);
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum TableAppearanceSetting {
     Brightness,
-    Vignette,
     Volume,
 }
 

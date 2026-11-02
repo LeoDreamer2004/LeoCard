@@ -149,7 +149,7 @@ pub(super) fn add_texas_showdown_reveal(
                     winner_zone.top + 34.0,
                 ),
                 0.12 + hole_index as f32 * 0.10,
-                0.55,
+                Vec2::splat(0.55),
             )
         } else {
             let board_index = game
@@ -160,7 +160,7 @@ pub(super) fn add_texas_showdown_reveal(
             (
                 TexasTableLayout::board_card_origin(board_index),
                 0.68 + board_index as f32 * 0.055,
-                0.80,
+                TexasTableLayout::BOARD_CARD_SIZE / Vec2::new(70.0, 96.0),
             )
         };
         let target = Vec2::new(444.0 + index as f32 * 78.0, 238.0);
@@ -182,7 +182,7 @@ pub(super) fn add_texas_showdown_reveal(
                 BorderColor::all(Color::srgb(0.88, 0.75, 0.35).with_alpha(0.0)),
                 UiTransform {
                     translation: Val2::px(source.x - target.x, source.y - target.y),
-                    scale: Vec2::splat(start_scale),
+                    scale: start_scale,
                     ..UiTransform::IDENTITY
                 },
                 TexasShowdownBestCard {

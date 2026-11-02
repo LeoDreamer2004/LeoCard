@@ -1,16 +1,17 @@
 //! Score deltas and rolling totals for matches with multiple hands.
-
-use super::super::{MahjongAssets, render_round_status_with_scores};
+use super::super::projection::projected_overlay;
+use super::super::{
+    MahjongAssets, mahjong_status_score_angle, mahjong_status_score_position,
+    render_round_status_with_scores,
+};
 use super::*;
 use crate::app::presentation::{DANGER, MUTED, READY, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
 use std::array;
-use std::f32::consts;
-
-use bevy::prelude::*;
 
 pub(super) struct ScoreStageView<'a> {
     pub(super) game: &'a MahjongSnapshot,
@@ -85,6 +86,7 @@ impl ScoreStageView<'_> {
             assets,
             game_assets,
         );
+        let overlay = projected_overlay(commands, score_stage);
         for (relative, score_text) in score_texts.into_iter().enumerate() {
             let Some(player) = game
                 .players
@@ -106,17 +108,14 @@ impl ScoreStageView<'_> {
                 },
                 TextColor(TEXT),
             ));
-            let (left, top, origin, rotation) = match relative {
-                0 => (637.0, 359.0, Vec2::new(0.0, 38.0), 0.0),
-                1 => (692.0, 317.0, Vec2::new(38.0, 0.0), -consts::FRAC_PI_2),
-                2 => (637.0, 281.0, Vec2::new(0.0, -38.0), consts::PI),
-                _ => (575.0, 317.0, Vec2::new(-38.0, 0.0), consts::FRAC_PI_2),
+            let position = mahjong_status_score_position(relative as u8) - Vec2::new(7.0, 9.0);
+            let origin = match relative {
+                0 => Vec2::new(0.0, 38.0),
+                1 => Vec2::new(38.0, 0.0),
+                2 => Vec2::new(0.0, -38.0),
+                _ => Vec2::new(-38.0, 0.0),
             };
-            let top = if cfg!(target_os = "android") {
-                top - 36.0
-            } else {
-                top
-            };
+            let rotation = mahjong_status_score_angle(relative as u8);
             let color = if delta > 0 {
                 READY
             } else if delta < 0 {
@@ -127,7 +126,7 @@ impl ScoreStageView<'_> {
             let flight_progress = delta_progress(elapsed, timing.flight);
             let flying = add_text(
                 commands,
-                score_stage,
+                overlay,
                 format!("{delta:+}"),
                 18.0,
                 color.with_alpha(1.0 - flight_progress.powi(3)),
@@ -136,8 +135,8 @@ impl ScoreStageView<'_> {
             commands.entity(flying).insert((
                 Node {
                     position_type: PositionType::Absolute,
-                    left: px(left),
-                    top: px(top),
+                    left: px(position.x),
+                    top: px(position.y),
                     ..default()
                 },
                 MahjongFlyingDelta {

@@ -1,126 +1,50 @@
-use super::{MahjongAssets, MahjongTurnSector, wind_label};
-use crate::app::presentation::{PlayerSeatValue, add_player_seat_value, add_text};
+use super::{
+    MahjongAssets, MahjongProjectionFrame, MahjongTurnSector, central_screen_offset, wind_label,
+};
+use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
-use bevy::asset::RenderAssetUsages;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
+use bevy::render::render_resource::AsBindGroup;
+use bevy::shader::ShaderRef;
+use leocard_mahjong::MahjongWind;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
-use std::array;
 use std::f32::consts;
 
-use bevy::prelude::*;
+const REFERENCE_SCALE: f32 = 1280.0 / 2204.0;
+const STATUS_LEFT: f32 = 900.0 * REFERENCE_SCALE;
+const STATUS_TOP: f32 = 349.5 * REFERENCE_SCALE;
+const STATUS_WIDTH: f32 = 390.0 * REFERENCE_SCALE;
+const STATUS_HEIGHT: f32 = 254.5 * REFERENCE_SCALE;
+const TOP_RATIO: f32 = 352.0 / 390.0;
 
-const STATUS_LEFT: f32 = 570.0;
-const STATUS_TOP: f32 = if cfg!(target_os = "android") {
-    240.0
-} else {
-    276.0
-};
-const STATUS_WIDTH: u32 = 140;
-const STATUS_HEIGHT: u32 = 104;
-const INNER_LEFT: f32 = 24.0;
-const INNER_TOP: f32 = 20.0;
-const INNER_WIDTH: f32 = 92.0;
-const INNER_HEIGHT: f32 = 64.0;
-const FRAME_COLOR: Color = Color::srgba(0.004, 0.035, 0.040, 0.55);
-
-pub(super) struct MahjongStatusImages {
-    pub outline: Handle<Image>,
-    pub sectors: [Handle<Image>; 4],
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone, PartialEq)]
+pub(super) struct MahjongTurnLightMaterial {
+    /// x: bottom/right/top/left; y: breathing intensity.
+    #[uniform(0)]
+    pub(super) params: Vec4,
+    #[uniform(0)]
+    color: LinearRgba,
+    #[texture(1)]
+    #[sampler(2)]
+    texture: Handle<Image>,
 }
 
-pub(super) fn create_mahjong_status_images(images: &mut Assets<Image>) -> MahjongStatusImages {
-    const SCALE: u32 = 4;
-    let width = STATUS_WIDTH * SCALE;
-    let height = STATUS_HEIGHT * SCALE;
-    let mut outline = image::RgbaImage::new(width, height);
-    let mut sectors = array::from_fn(|_| image::RgbaImage::new(width, height));
-    let corners = [
-        (Vec2::new(0.0, 0.0), Vec2::new(INNER_LEFT, INNER_TOP)),
-        (
-            Vec2::new(STATUS_WIDTH as f32, 0.0),
-            Vec2::new(INNER_LEFT + INNER_WIDTH, INNER_TOP),
-        ),
-        (
-            Vec2::new(0.0, STATUS_HEIGHT as f32),
-            Vec2::new(INNER_LEFT, INNER_TOP + INNER_HEIGHT),
-        ),
-        (
-            Vec2::new(STATUS_WIDTH as f32, STATUS_HEIGHT as f32),
-            Vec2::new(INNER_LEFT + INNER_WIDTH, INNER_TOP + INNER_HEIGHT),
-        ),
-    ];
-    for y in 0..height {
-        for x in 0..width {
-            let point = Vec2::new(
-                (x as f32 + 0.5) / SCALE as f32,
-                (y as f32 + 0.5) / SCALE as f32,
-            );
-            if let Some(relative) = status_sector_at(point) {
-                sectors[relative as usize].put_pixel(x, y, image::Rgba([255, 255, 255, 255]));
-                if corners
-                    .iter()
-                    .any(|&(start, end)| point_segment_distance(point, start, end) < 0.65)
-                {
-                    outline.put_pixel(x, y, image::Rgba([2, 14, 16, 180]));
-                }
-            }
+impl UiMaterial for MahjongTurnLightMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/mahjong_turn_light.wesl".into()
+    }
+}
+
+impl MahjongTurnLightMaterial {
+    pub(super) fn new(relative: u8, texture: Handle<Image>) -> Self {
+        Self {
+            params: Vec4::new(f32::from(relative), 0.7, 0.0, 0.0),
+            color: Color::srgb(1.0, 0.55, 0.12).to_linear(),
+            texture,
         }
     }
-    MahjongStatusImages {
-        outline: add_status_image(images, outline),
-        sectors: sectors.map(|mask| add_status_image(images, mask)),
-    }
-}
-
-fn add_status_image(images: &mut Assets<Image>, pixels: image::RgbaImage) -> Handle<Image> {
-    let pixels = image::imageops::resize(
-        &pixels,
-        STATUS_WIDTH,
-        STATUS_HEIGHT,
-        image::imageops::FilterType::Triangle,
-    );
-    images.add(Image::from_dynamic(
-        image::DynamicImage::ImageRgba8(pixels),
-        true,
-        RenderAssetUsages::default(),
-    ))
-}
-
-fn status_sector_at(point: Vec2) -> Option<u8> {
-    let x = point.x;
-    let y = point.y;
-    let width = STATUS_WIDTH as f32;
-    let height = STATUS_HEIGHT as f32;
-    let nearest_x = x.clamp(12.0, width - 12.0);
-    let nearest_y = y.clamp(12.0, height - 12.0);
-    if (point - Vec2::new(nearest_x, nearest_y)).length_squared() > 12.0 * 12.0
-        || x < 1.0
-        || y < 1.0
-        || x >= width - 1.0
-        || y >= height - 1.0
-        || ((INNER_LEFT..INNER_LEFT + INNER_WIDTH).contains(&x)
-            && (INNER_TOP..INNER_TOP + INNER_HEIGHT).contains(&y))
-    {
-        return None;
-    }
-    let distances = [
-        (height - y) / INNER_TOP,
-        (width - x) / INNER_LEFT,
-        y / INNER_TOP,
-        x / INNER_LEFT,
-    ];
-    distances
-        .iter()
-        .enumerate()
-        .min_by(|left, right| left.1.total_cmp(right.1))
-        .map(|(relative, _)| relative as u8)
-}
-
-fn point_segment_distance(point: Vec2, start: Vec2, end: Vec2) -> f32 {
-    let segment = end - start;
-    let fraction = ((point - start).dot(segment) / segment.length_squared()).clamp(0.0, 1.0);
-    (point - (start + segment * fraction)).length()
 }
 
 pub(super) fn render_round_status(
@@ -151,70 +75,107 @@ pub(super) fn render_round_status_with_scores(
     assets: &UiAssets,
     game_assets: &MahjongAssets,
 ) -> Vec<Entity> {
+    let origin = status_origin();
+    let size = Vec2::new(STATUS_WIDTH, STATUS_HEIGHT);
+    let background_origin = origin - size * Vec2::new(0.06, 0.08);
+    let background_size = size * Vec2::new(1.12, 1.28);
+    let background = spawn_node(
+        commands,
+        table,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(background_origin.x),
+            top: px(background_origin.y),
+            width: px(background_size.x),
+            height: px(background_size.y),
+            ..default()
+        },
+        None,
+    );
+    commands.entity(background).insert((
+        MaterialNode(game_assets.status.clone()),
+        MahjongProjectionFrame {
+            anchor_bottom: false,
+            center: background_origin + background_size * 0.5,
+        },
+        UiTransform::default(),
+        Pickable::IGNORE,
+        ZIndex(3),
+    ));
     let status = spawn_node(
         commands,
         table,
         Node {
             position_type: PositionType::Absolute,
-            left: px(STATUS_LEFT),
-            top: px(STATUS_TOP),
+            left: px(origin.x),
+            top: px(origin.y),
             width: px(STATUS_WIDTH),
             height: px(STATUS_HEIGHT),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(12)),
-            overflow: Overflow::clip(),
             ..default()
         },
-        Some(Color::srgba(0.016, 0.114, 0.125, 0.97)),
+        None,
     );
     commands.entity(status).insert((
-        BorderColor::all(FRAME_COLOR),
-        BoxShadow::new(Color::BLACK.with_alpha(0.46), px(0), px(4), px(0), px(9)),
+        MahjongProjectionFrame {
+            anchor_bottom: false,
+            center: Vec2::new(
+                origin.x + STATUS_WIDTH * 0.5,
+                origin.y + STATUS_HEIGHT * 0.5,
+            ),
+        },
+        UiTransform::default(),
         Pickable::IGNORE,
-        ZIndex(20),
+        ZIndex(4),
     ));
-
     let current_relative = matches!(game.phase, MahjongPhaseView::Playing).then(|| {
         let current_seat = game
             .players
             .iter()
             .find(|player| player.player.id == game.current_player)
-            .map(|player| player.seat.0)
-            .unwrap_or(own_seat);
+            .map_or(own_seat, |player| player.seat.0);
         (current_seat + 4 - own_seat) % 4
     });
     if let Some(relative) = current_relative {
-        let highlight = spawn_status_image(
-            commands,
+        // The phase comes from global elapsed time, so rebuilding the UI cannot restart the pulse.
+        let light = commands.child(
             status,
-            &game_assets.status.sectors[relative as usize],
-            Color::srgba(0.12, 0.42, 0.42, 0.18),
+            (
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(0),
+                    right: px(0),
+                    top: px(0),
+                    bottom: px(0),
+                    ..default()
+                },
+                MahjongTurnSector,
+                Pickable::IGNORE,
+            ),
         );
-        commands.entity(highlight).insert(MahjongTurnSector);
+        commands.entity(light).insert(MaterialNode(
+            game_assets.status_lights[usize::from(relative)].clone(),
+        ));
     }
-    spawn_status_image(commands, status, &game_assets.status.outline, Color::WHITE);
-
     let center = spawn_node(
         commands,
         status,
         Node {
             position_type: PositionType::Absolute,
-            left: px(INNER_LEFT),
-            top: px(INNER_TOP),
-            width: px(INNER_WIDTH),
-            height: px(INNER_HEIGHT),
-            border: UiRect::all(px(1)),
+            left: percent(28),
+            top: percent(29),
+            width: percent(44),
+            height: percent(42),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             flex_direction: FlexDirection::Column,
-            row_gap: px(1),
             ..default()
         },
-        Some(Color::srgba(0.020, 0.149, 0.161, 0.97)),
+        None,
     );
-    commands
-        .entity(center)
-        .insert((BorderColor::all(FRAME_COLOR), Pickable::IGNORE));
+    commands.entity(center).insert((
+        Pickable::IGNORE,
+        status_text_transform(0, Vec2::new(0.5, 0.49)),
+    ));
     add_text(
         commands,
         center,
@@ -223,36 +184,32 @@ pub(super) fn render_round_status_with_scores(
             wind_label(game.prevalent_wind),
             game.sequence_index % 4 + 1
         ),
-        18.0,
-        Color::srgb(0.92, 0.79, 0.43),
+        28.0,
+        Color::srgb(0.96, 0.78, 0.35),
         assets,
     );
     add_text(
         commands,
         center,
         game.wall_len.to_string(),
-        22.0,
+        28.0,
         Color::srgb(0.95, 0.96, 0.89),
         assets,
     );
-
     let mut score_texts = Vec::with_capacity(4);
     for relative in 0..4 {
         let player = game
             .players
             .iter()
             .find(|player| (player.seat.0 + 4 - own_seat) % 4 == relative);
-        let wind = player
-            .map(|player| wind_label(player.seat_wind))
-            .unwrap_or("?");
-        let score = player
-            .map(|player| scores[usize::from(player.player.id.0)])
-            .unwrap_or(0);
-        score_texts.push(render_wind_label(
+        let wind = player.map(|player| player.seat_wind);
+        let score = player.map_or(0, |player| scores[usize::from(player.player.id.0)]);
+        render_corner_wind(commands, status, relative, wind, game_assets);
+        score_texts.push(render_score(
             commands,
             status,
             relative,
-            (wind, score),
+            score,
             current_relative == Some(relative),
             assets,
         ));
@@ -260,57 +217,74 @@ pub(super) fn render_round_status_with_scores(
     score_texts
 }
 
-fn spawn_status_image(
-    commands: &mut UiComposer,
-    status: Entity,
-    image: &Handle<Image>,
-    tint: Color,
-) -> Entity {
-    commands.child(
-        status,
-        (
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                top: px(0),
-                width: px(STATUS_WIDTH),
-                height: px(STATUS_HEIGHT),
-                ..default()
-            },
-            ImageNode::new(image.clone()).with_color(tint),
-            Pickable::IGNORE,
-        ),
-    )
-}
-
-fn render_wind_label(
+fn render_corner_wind(
     commands: &mut UiComposer,
     status: Entity,
     relative: u8,
-    (wind, score): (&str, i32),
+    wind: Option<MahjongWind>,
+    assets: &MahjongAssets,
+) {
+    let Some(wind) = wind else { return };
+    let uv = match relative {
+        0 => Vec2::new(0.1603, 0.8234),
+        1 => Vec2::new(0.8389, 0.8234),
+        2 => Vec2::new(0.8393, 0.1611),
+        _ => Vec2::new(0.1603, 0.1611),
+    };
+    let position = status_point(uv);
+    let badge = spawn_node(
+        commands,
+        status,
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(position.x - 24.0),
+            top: px(position.y - 24.0),
+            width: px(48.0),
+            height: px(48.0),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        None,
+    );
+    commands
+        .entity(badge)
+        .insert((status_text_transform(relative, uv), Pickable::IGNORE));
+    // Center the actual ink rather than a font line box, including when a wind rotates to another corner.
+    commands.child(
+        badge,
+        (
+            Node {
+                width: px(38),
+                height: px(38),
+                ..default()
+            },
+            MaterialNode(assets.wind_labels.get(wind).clone()),
+            Pickable::IGNORE,
+        ),
+    );
+}
+
+fn render_score(
+    commands: &mut UiComposer,
+    status: Entity,
+    relative: u8,
+    score: i32,
     active: bool,
     assets: &UiAssets,
 ) -> Entity {
-    let (left, top, width, height) = match relative {
-        0 => (INNER_LEFT, INNER_TOP + INNER_HEIGHT, INNER_WIDTH, INNER_TOP),
-        1 => (
-            INNER_LEFT + INNER_WIDTH,
-            INNER_TOP,
-            INNER_LEFT,
-            INNER_HEIGHT,
-        ),
-        2 => (INNER_LEFT, 0.0, INNER_WIDTH, INNER_TOP),
-        _ => (0.0, INNER_TOP, INNER_LEFT, INNER_HEIGHT),
-    };
+    // These bounds follow the recessed windows in center-panel.png.
+    let uv = score_window(relative).center() / 100.0;
+    let position = status_point(uv);
     let label = spawn_node(
         commands,
         status,
         Node {
             position_type: PositionType::Absolute,
-            left: px(left),
-            top: px(top),
-            width: px(width),
-            height: px(height),
+            left: px(position.x - 55.0),
+            top: px(position.y - 18.0),
+            width: px(110.0),
+            height: px(36.0),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             ..default()
@@ -318,31 +292,83 @@ fn render_wind_label(
         None,
     );
     commands.entity(label).insert(Pickable::IGNORE);
-    add_player_seat_value(
-        commands,
-        label,
-        PlayerSeatValue {
-            label: wind,
-            value: score,
-            width: if relative.is_multiple_of(2) {
-                width
-            } else {
-                height
-            },
-            rotation: -(relative as f32) * consts::FRAC_PI_2,
-            active,
-        },
-        assets,
-    )
+    let color = if active {
+        TEXT
+    } else {
+        Color::srgb(0.83, 0.85, 0.83)
+    };
+    let digits = score.to_string();
+    let font_size = (23.0 - digits.len().saturating_sub(6) as f32 * 1.2).max(14.0);
+    let text = add_text(commands, label, digits, font_size, color, assets);
+    commands.entity(text).insert((
+        status_text_transform(relative, uv),
+        TextLayout::no_wrap(),
+        Pickable::IGNORE,
+    ));
+    text
+}
+
+fn score_window(relative: u8) -> Rect {
+    match relative {
+        0 => Rect::new(30.0, 75.0, 70.0, 85.0),
+        1 => Rect::new(76.0, 30.0, 86.0, 68.0),
+        2 => Rect::new(30.0, 14.0, 70.0, 24.0),
+        _ => Rect::new(14.0, 30.0, 24.0, 68.0),
+    }
+}
+
+pub(super) fn mahjong_status_score_position(relative: u8) -> Vec2 {
+    status_origin() + status_point(score_window(relative).center() / 100.0)
+}
+
+fn status_origin() -> Vec2 {
+    Vec2::new(STATUS_LEFT, STATUS_TOP) + central_screen_offset()
+}
+
+fn status_point(asset_uv: Vec2) -> Vec2 {
+    let uv = asset_uv;
+    let denominator = 1.0 - (1.0 - TOP_RATIO) * uv.y;
+    Vec2::new(
+        0.5 + (uv.x - 0.5) * TOP_RATIO / denominator,
+        uv.y * TOP_RATIO / denominator,
+    ) * Vec2::new(STATUS_WIDTH, STATUS_HEIGHT)
+}
+
+fn status_text_transform(relative: u8, asset_uv: Vec2) -> UiTransform {
+    let uv = asset_uv;
+    let q = 1.0 - TOP_RATIO;
+    let denominator = 1.0 - q * uv.y;
+    let unit = STATUS_WIDTH * TOP_RATIO / (1.0 - q * 0.5);
+    let x = Vec2::new(STATUS_WIDTH * TOP_RATIO / denominator, 0.0) / unit;
+    let y = Vec2::new(
+        STATUS_WIDTH * (uv.x - 0.5) * TOP_RATIO * q,
+        STATUS_HEIGHT * TOP_RATIO,
+    ) / (denominator * denominator * unit);
+    let (sine, cosine) = (-f32::from(relative) * consts::FRAC_PI_2).sin_cos();
+    let along = x * cosine + y * sine;
+    let across = -x * sine + y * cosine;
+    UiTransform {
+        rotation: Rot2::radians(along.y.atan2(along.x)),
+        scale: Vec2::new(along.length(), across.length()),
+        ..default()
+    }
+}
+
+pub(super) fn mahjong_status_score_angle(relative: u8) -> f32 {
+    status_text_transform(relative, score_window(relative).center() / 100.0)
+        .rotation
+        .as_radians()
 }
 
 pub(super) fn animate_mahjong_turn_sector(
     time: Res<Time>,
-    mut sectors: Query<&mut ImageNode, With<MahjongTurnSector>>,
+    mut materials: ResMut<Assets<MahjongTurnLightMaterial>>,
+    sectors: Query<&MaterialNode<MahjongTurnLightMaterial>, With<MahjongTurnSector>>,
 ) {
-    let breath = (time.elapsed_secs() * consts::PI * 0.9).sin() * 0.5 + 0.5;
-    let alpha = 0.12 + breath * 0.24;
-    for mut sector in &mut sectors {
-        sector.color = Color::srgba(0.12, 0.42, 0.42, alpha);
+    let breath = (time.elapsed_secs() * consts::TAU / 2.4).sin() * 0.5 + 0.5;
+    for material in &sectors {
+        if let Some(mut material) = materials.get_mut(&material.0) {
+            material.params.y = 0.35 + breath * 0.65;
+        }
     }
 }

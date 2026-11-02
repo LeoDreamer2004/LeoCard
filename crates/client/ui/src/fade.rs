@@ -29,6 +29,8 @@ pub struct TransitionFadeBase {
     text: Option<Color>,
     background: Option<Color>,
     border: Option<BorderColor>,
+    outline: Option<Color>,
+    shadow: Option<BoxShadow>,
     gradient: Option<BackgroundGradient>,
 }
 
@@ -40,6 +42,8 @@ pub type TransitionVisuals<'w, 's, Filter = ()> = Query<
         Option<&'static mut TextColor>,
         Option<&'static mut BackgroundColor>,
         Option<&'static mut BorderColor>,
+        Option<&'static mut Outline>,
+        Option<&'static mut BoxShadow>,
         Option<&'static mut BackgroundGradient>,
         Option<&'static TransitionFadeBase>,
         Option<&'static mut TransitionOpacity>,
@@ -56,8 +60,17 @@ pub fn fade_panel<Filter: QueryFilter>(
 ) {
     let mut pending = vec![root];
     while let Some(entity) = pending.pop() {
-        let Ok((mut image, mut text, mut background, mut border, mut gradient, cached, transition)) =
-            visuals.get_mut(entity)
+        let Ok((
+            mut image,
+            mut text,
+            mut background,
+            mut border,
+            mut outline,
+            mut shadow,
+            mut gradient,
+            cached,
+            transition,
+        )) = visuals.get_mut(entity)
         else {
             if let Ok(child_entities) = children.get(entity) {
                 pending.extend(child_entities.iter());
@@ -76,6 +89,8 @@ pub fn fade_panel<Filter: QueryFilter>(
             text: text.as_ref().map(|text| text.0),
             background: background.as_ref().map(|background| background.0),
             border: border.as_ref().map(|border| **border),
+            outline: outline.as_ref().map(|outline| outline.color),
+            shadow: shadow.as_ref().map(|shadow| (**shadow).clone()),
             gradient: gradient.as_ref().map(|gradient| (**gradient).clone()),
         });
         // Authored colors can change while the entity survives a page refresh.
@@ -91,6 +106,12 @@ pub fn fade_panel<Filter: QueryFilter>(
         }
         if let Some(border) = commands.declared::<BorderColor>(entity) {
             base.border = Some(*border);
+        }
+        if let Some(outline) = commands.declared::<Outline>(entity) {
+            base.outline = Some(outline.color);
+        }
+        if let Some(shadow) = commands.declared::<BoxShadow>(entity) {
+            base.shadow = Some(shadow.clone());
         }
         if let Some(gradient) = commands.declared::<BackgroundGradient>(entity) {
             base.gradient = Some(gradient.clone());
@@ -112,6 +133,15 @@ pub fn fade_panel<Filter: QueryFilter>(
             border.right = colors.right.with_alpha(colors.right.alpha() * opacity);
             border.bottom = colors.bottom.with_alpha(colors.bottom.alpha() * opacity);
             border.left = colors.left.with_alpha(colors.left.alpha() * opacity);
+        }
+        if let (Some(outline), Some(color)) = (outline.as_mut(), base.outline) {
+            outline.color = color.with_alpha(color.alpha() * opacity);
+        }
+        if let (Some(shadow), Some(original)) = (shadow.as_mut(), base.shadow) {
+            **shadow = original;
+            for shadow in &mut shadow.0 {
+                shadow.color = shadow.color.with_alpha(shadow.color.alpha() * opacity);
+            }
         }
         if let (Some(gradient), Some(original)) = (gradient.as_mut(), base.gradient) {
             **gradient = original;

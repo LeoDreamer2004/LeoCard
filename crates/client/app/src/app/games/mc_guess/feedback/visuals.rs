@@ -97,7 +97,7 @@ pub(in super::super) fn animate_reveal(
     scores: Res<GuessScorePlayback>,
     panels: Query<(Entity, &RevealPanel)>,
     children: Query<&Children>,
-    mut visuals: TransitionVisuals<Without<RevealPixel>>,
+    mut visuals: TransitionVisuals<(Without<RevealPixel>, Without<GuessWinner>)>,
     mut transforms: Query<&mut UiTransform>,
     mut ready: Query<&mut Visibility, With<GuessReadyControls>>,
     mut winners: Query<&mut Outline, With<GuessWinner>>,

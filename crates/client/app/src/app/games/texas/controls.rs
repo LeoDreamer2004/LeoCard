@@ -1,11 +1,10 @@
 use super::{
-    TEXAS_PORTRAIT_WIDTH, TexasChipTableState, TexasInitialDeal, TexasPlayerPanel,
-    TexasPlayerShake, TexasRaiseAdjustButton, TexasTableLayout, TexasUiAction, TexasUiState,
-    add_role_tokens, add_texas_card, add_texas_chip_popup, add_texas_win_rate,
-    texas_player_border_color,
+    TEXAS_PORTRAIT_WIDTH, TexasChipTableState, TexasInitialDeal, TexasRaiseAdjustButton,
+    TexasTableLayout, TexasUiAction, TexasUiState, add_role_tokens, add_texas_card,
+    add_texas_chip_popup, add_texas_win_rate,
 };
 use crate::app::presentation::{
-    ButtonKind, GameButtonImageMode, GameButtonSpec, MUTED, PendingDealSound, PlayerMenuProfile,
+    ButtonKind, GameButtonImageMode, GameButtonSpec, PendingDealSound, PlayerMenuProfile,
     PlayerPortraitSpec, SeatSide, TEXT, TablePieceDeal, TurnBorderAnimationKey, TurnBorderMaterial,
     add_player_portrait, add_textured_game_button, add_turn_border_trace_with_radius,
     attach_start_game_seat_transition,
@@ -13,14 +12,13 @@ use crate::app::presentation::{
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{GameKind, TexasPhaseView, TexasPlayerView, TexasSnapshot};
 use leocard_texas_holdem::{TexasAction, TexasRaiseSizing};
 use leocard_ui::{ButtonHighlight, UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 #[expect(
     clippy::too_many_arguments,
@@ -55,9 +53,6 @@ pub(super) fn add_texas_own_area(
         },
         None,
     );
-    commands
-        .entity(own_seat)
-        .insert(TexasPlayerShake(own.player.id));
     let portrait = add_player_portrait(
         commands,
         own_seat,
@@ -78,7 +73,7 @@ pub(super) fn add_texas_own_area(
             avatar_size: 52.0 * 1.17,
             auto_play: own.auto_play,
             menu_open: interaction_menu_open == Some(own.player.id),
-            name_color: if own.folded { MUTED } else { TEXT },
+            name_color: TEXT,
         },
         assets,
     );
@@ -88,15 +83,6 @@ pub(super) fn add_texas_own_area(
         own.player.id,
         start_transition_active,
     );
-    let base_border = texas_player_border_color(own, game.current_player == Some(own.player.id));
-    commands.entity(portrait.avatar_ring).insert((
-        TexasPlayerPanel {
-            player: own.player.id,
-            base_border,
-        },
-        Outline::new(px(3.0), px(0), base_border),
-        BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(0)),
-    ));
     if !own.folded && game.current_player == Some(own.player.id) {
         add_turn_border_trace_with_radius(
             commands,
@@ -179,13 +165,9 @@ pub(super) fn add_texas_own_area(
                             .or_else(|| deal.own_delays.last())
                     })
                     .copied();
-                let animation = initial_deal.zip(delay).map(|(deal, delay)| {
-                    if cfg!(target_os = "android") {
-                        TablePieceDeal::from_anchor(deal.source, delay)
-                    } else {
-                        TablePieceDeal::new(delay, Vec2::new(-280.0, -257.0))
-                    }
-                });
+                let animation = initial_deal
+                    .zip(delay)
+                    .map(|(deal, delay)| TablePieceDeal::from_anchor(deal.source, delay));
                 add_texas_card(
                     commands,
                     hole_cards,

@@ -1,7 +1,8 @@
 use super::hover::sync_fan_calculator;
 use super::{
     MahjongClaimPresentationState, MahjongFanCalculator, MahjongFanGuideScroll,
-    MahjongFanVoicePlayback, MahjongPromptPlayback, MahjongTileMaterial, MahjongUiState, actions,
+    MahjongFanVoicePlayback, MahjongProjectionViewport, MahjongPromptPlayback, MahjongTileMaterial,
+    MahjongTurnLightMaterial, MahjongUiState, MahjongWindLabelMaterial, actions,
     advance_mahjong_claim_presentation, advance_mahjong_modal, animate_mahjong_claim_presentation,
     animate_mahjong_deal_tiles, animate_mahjong_fan_guide_tiles, animate_mahjong_final_summary,
     animate_mahjong_flower_presentations, animate_mahjong_response_indicators,
@@ -10,15 +11,17 @@ use super::{
     animate_mahjong_winning_hands, animate_own_discard, animate_remote_discard,
     apply_automatic_mahjong_action, assets, play_mahjong_action_prompt, play_mahjong_fan_voices,
     sync_mahjong_claim_presentation, sync_mahjong_fan_guide, sync_mahjong_hand_tile_materials,
-    sync_mahjong_hover_hints,
+    sync_mahjong_hover_hints, sync_mahjong_projection_frames, sync_mahjong_projection_viewport,
+    sync_mahjong_tile_orientation, sync_mahjong_tile_projection, sync_mahjong_tile_surfaces,
 };
 use crate::app::presentation::start_game_intro_finished;
 use crate::app::runtime::{ClientUpdateSet, GameEventSource, GameEvents, GameProjectionPlugin};
-
 use crate::app::shell::{
     ModalAnimationSet, UiActionSet, animate_cozy_modals, scroll_modal_content,
 };
+use bevy::camera::visibility::VisibilitySystems;
 use bevy::prelude::*;
+use bevy::ui::UiSystems;
 use leocard_protocol::{GameEvent, GameKind, MahjongEvent};
 
 pub(crate) struct MahjongPlugin;
@@ -27,6 +30,9 @@ impl Plugin for MahjongPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(GameProjectionPlugin::<GameEvents<MahjongEvent>>::default())
             .add_plugins(UiMaterialPlugin::<MahjongTileMaterial>::default())
+            .add_plugins(UiMaterialPlugin::<MahjongTurnLightMaterial>::default())
+            .add_plugins(UiMaterialPlugin::<MahjongWindLabelMaterial>::default())
+            .init_resource::<MahjongProjectionViewport>()
             .insert_resource(MahjongClaimPresentationState::default())
             .init_resource::<MahjongFanVoicePlayback>()
             .init_resource::<MahjongUiState>()
@@ -37,6 +43,21 @@ impl Plugin for MahjongPlugin {
                 advance_mahjong_modal.in_set(ModalAnimationSet::Progress),
             )
             .add_systems(Startup, assets::load_mahjong_assets)
+            .add_systems(
+                PostUpdate,
+                (
+                    sync_mahjong_projection_viewport,
+                    sync_mahjong_tile_orientation,
+                    sync_mahjong_tile_projection,
+                    sync_mahjong_tile_surfaces,
+                    sync_mahjong_projection_frames,
+                )
+                    .chain()
+                    .after(UiSystems::Layout)
+                    .before(UiSystems::PostLayout)
+                    .before(UiSystems::Stack)
+                    .before(VisibilitySystems::VisibilityPropagate),
+            )
             .add_systems(
                 Update,
                 actions::dispatch_mahjong_actions.in_set(UiActionSet),

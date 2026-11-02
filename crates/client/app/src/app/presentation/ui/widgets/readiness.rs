@@ -28,7 +28,9 @@ pub(crate) fn add_ready_badge(
         },
         Some(READY),
     );
-    commands.entity(check).insert(Pickable::IGNORE);
+    commands
+        .entity(check)
+        .insert((ZIndex(40), Pickable::IGNORE));
     let label = add_text(commands, check, "✓", size * 2.0 / 3.0, Color::WHITE, assets);
     commands.entity(label).insert(Pickable::IGNORE);
 }

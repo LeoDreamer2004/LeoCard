@@ -18,20 +18,6 @@ pub(crate) struct TablePieceDeal {
 }
 
 impl TablePieceDeal {
-    pub(crate) fn new(delay: f32, offset: Vec2) -> Self {
-        Self {
-            elapsed: 0.0,
-            delay,
-            offset: Some(offset),
-            source: None,
-            duration: CARD_DEAL_DURATION,
-            fade_in: None,
-            transient: false,
-            rotation: None,
-            finished: false,
-        }
-    }
-
     pub(crate) fn from_anchor(source: Entity, delay: f32) -> Self {
         Self {
             elapsed: 0.0,

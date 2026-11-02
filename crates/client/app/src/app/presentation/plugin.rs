@@ -1,11 +1,12 @@
 use super::{
     CardVoices, GameSummaryAnimation, PlayEffectState, StartGameSeatTransition,
-    SummaryAnimationSet, SummaryPlayback, TableBackgroundMaterial, TableStatusAnimation,
-    TurnBorderAnimationState, TurnBorderMaterial, advance_play_effect, animate_bomb_play_effect,
-    animate_button_arrows, animate_game_summary_visuals, animate_heaven_bomb_play_effect,
-    animate_no_legal_response_hint, animate_playing_card_flips, animate_sequence_play_effect,
-    animate_start_game_seat_transition, animate_summary_scores, animate_table_piece_deals,
-    animate_table_statuses, animate_turn_border_traces, play_card_voices, play_ui_click_sounds,
+    SummaryAnimationSet, SummaryPlayback, TableBackgroundMaterial, TableCardMaterial,
+    TableStatusAnimation, TurnBorderAnimationState, TurnBorderMaterial, advance_play_effect,
+    animate_bomb_play_effect, animate_button_arrows, animate_game_summary_visuals,
+    animate_heaven_bomb_play_effect, animate_no_legal_response_hint, animate_playing_card_flips,
+    animate_sequence_play_effect, animate_start_game_seat_transition, animate_summary_scores,
+    animate_table_card_flips, animate_table_piece_deals, animate_table_statuses,
+    animate_turn_border_traces, play_card_voices, play_ui_click_sounds,
     resolve_table_piece_origins, start_game_intro_finished, sync_card_voices,
     update_summary_animation,
 };
@@ -36,6 +37,8 @@ impl Plugin for PresentationPlugin {
         properties.preserve::<TableStatusAnimation>();
         properties.preserve::<BackgroundColor>();
         properties.preserve::<BorderColor>();
+        properties.preserve::<Outline>();
+        properties.preserve::<BoxShadow>();
         properties.preserve::<BackgroundGradient>();
         properties.preserve::<Visibility>();
         properties.preserve::<ZIndex>();
@@ -50,6 +53,7 @@ impl Plugin for PresentationPlugin {
         .insert_resource(properties)
         .add_plugins(TextInputPlugin)
         .add_plugins(UiMaterialPlugin::<TableBackgroundMaterial>::default())
+        .add_plugins(UiMaterialPlugin::<TableCardMaterial>::default())
         .add_plugins(UiMaterialPlugin::<TurnBorderMaterial>::default())
         .init_resource::<SummaryPlayback>()
         .init_resource::<CardVoices>()
@@ -83,6 +87,7 @@ impl Plugin for PresentationPlugin {
             (
                 animate_table_piece_deals,
                 animate_playing_card_flips,
+                animate_table_card_flips,
                 animate_no_legal_response_hint,
                 animate_table_statuses,
             )

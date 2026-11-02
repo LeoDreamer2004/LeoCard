@@ -6,28 +6,26 @@ use super::{
     spawn_texas_initial_deal, street_label,
 };
 use crate::app::presentation::{
-    DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT, TableBackground,
-    TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay, add_playing_card_pile,
-    add_text, table_material_params,
+    CardTableSurface, DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT,
+    TableBackgroundMaterial, TableCardMaterial, TurnBorderMaterial, add_auto_play_overlay,
+    add_table_card_pile, add_text,
 };
-use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
+use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
-    ChatPanelState, SocialUiState, UiAction, add_chat_help_button, add_chat_panel,
-    add_reconnecting_overlay,
+    ChatPanelOptions, ChatPanelState, SocialUiState, UiAction, add_reconnecting_overlay,
 };
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_protocol::{GameRules, TexasPhaseView, TexasSnapshot};
 use leocard_ui::{UiComposer, spawn_node, ui_component};
-
-use bevy::prelude::*;
 
 pub(crate) struct TexasTableVisuals<'a> {
     pub assets: &'a UiAssets,
     pub avatars: &'a AvatarImages,
-    pub appearance: &'a TableAppearance,
     pub brightness: f32,
-    pub vignette: f32,
+    pub custom_felt: Option<&'a Handle<Image>>,
     pub table_materials: &'a mut Assets<TableBackgroundMaterial>,
+    pub card_materials: &'a mut Assets<TableCardMaterial>,
     pub turn_border_materials: &'a mut Assets<TurnBorderMaterial>,
     pub start_game_transition: &'a StartGameSeatTransition,
     pub chip_state: &'a TexasChipTableState,
@@ -51,10 +49,10 @@ pub(crate) fn render_texas_table(
     let TexasTableVisuals {
         assets,
         avatars,
-        appearance,
         brightness,
-        vignette,
+        custom_felt,
         table_materials,
+        card_materials,
         turn_border_materials,
         start_game_transition,
         chip_state,
@@ -71,24 +69,11 @@ pub(crate) fn render_texas_table(
             ..default()
         }) },
     );
-    let felt = appearance
-        .custom_felt
-        .as_ref()
-        .unwrap_or(&assets.table_felt)
-        .clone();
-    let background_params =
-        table_material_params(brightness, vignette, appearance.custom_felt.is_none());
-    let material = commands.material(
-        content,
-        table_materials,
-        TableBackgroundMaterial {
-            params: background_params,
-            texture: felt,
-        },
-    );
-    commands
-        .entity(content)
-        .insert((MaterialNode(material), TableBackground));
+    CardTableSurface {
+        brightness,
+        custom_felt,
+    }
+    .apply(commands, content, assets, table_materials);
 
     let table = spawn_node(
         commands,
@@ -192,6 +177,7 @@ pub(crate) fn render_texas_table(
         new_community_from,
         initial_deal.as_ref().map(|deal| deal.duration),
         assets,
+        card_materials,
     );
     if let Some(own) = own {
         add_texas_own_area(
@@ -217,13 +203,11 @@ pub(crate) fn render_texas_table(
     let local_auto_play = matches!(game.phase, TexasPhaseView::Betting { .. })
         .then(|| own.map(|player| player.auto_play))
         .flatten();
-    let chat_panel = add_chat_panel(commands, content, chat, assets, local_auto_play, &[]);
-    add_chat_help_button(
-        commands,
-        chat_panel,
-        UiAction::Texas(TexasUiAction::ToggleHandGuide),
-        assets,
-    );
+    ChatPanelOptions {
+        help: Some(UiAction::Texas(TexasUiAction::ToggleHandGuide)),
+        ..ChatPanelOptions::new(local_auto_play, &[])
+    }
+    .spawn(commands, content, chat, assets);
     if local_auto_play == Some(true) {
         add_auto_play_overlay(commands, content, assets);
     }
@@ -238,6 +222,7 @@ fn add_community_area(
     new_from: usize,
     initial_deal_duration: Option<f32>,
     assets: &UiAssets,
+    card_materials: &mut Assets<TableCardMaterial>,
 ) {
     let center = spawn_node(
         commands,
@@ -246,7 +231,7 @@ fn add_community_area(
             position_type: PositionType::Absolute,
             left: percent(50),
             top: px(TexasTableLayout::BOARD_TOP),
-            width: px(560),
+            width: px(TexasTableLayout::board_width()),
             height: px(TexasTableLayout::BOARD_ROW_HEIGHT),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
@@ -255,7 +240,7 @@ fn add_community_area(
         None,
     );
     commands.entity(center).insert((
-        UiTransform::from_translation(Val2::px(-280.0, 0.0)),
+        UiTransform::from_translation(Val2::px(-TexasTableLayout::board_width() * 0.5, 0.0)),
         // 公共牌始终绘制在筹码区背景框之上。
         ZIndex(10),
     ));
@@ -279,7 +264,7 @@ fn add_community_area(
         commands,
         cards,
         Node {
-            width: px(46),
+            width: px(54),
             height: px(TexasTableLayout::BOARD_ROW_HEIGHT),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
@@ -290,8 +275,22 @@ fn add_community_area(
         },
         None,
     );
-    add_playing_card_pile(commands, pile_column, visual_draw_pile, assets);
-    add_text(
+    let pile = add_table_card_pile(
+        commands,
+        pile_column,
+        visual_draw_pile,
+        assets,
+        card_materials,
+    );
+    commands
+        .entity(pile)
+        .entry::<Node>()
+        .and_modify(|mut node| {
+            node.position_type = PositionType::Absolute;
+            node.left = px(2);
+            node.top = px(8);
+        });
+    let label = add_text(
         commands,
         pile_column,
         street_label(&game.phase),
@@ -299,6 +298,18 @@ fn add_community_area(
         TEXT,
         assets,
     );
+    commands
+        .entity(label)
+        .entry::<Node>()
+        .and_modify(|mut node| {
+            node.position_type = PositionType::Absolute;
+            node.left = px(0);
+            node.top = px(80);
+            node.width = percent(100);
+        });
+    commands
+        .entity(label)
+        .insert(TextLayout::justify(Justify::Center));
     let gap = spawn_node(
         commands,
         cards,
@@ -319,6 +330,7 @@ fn add_community_area(
                 card,
                 animate.then_some(index.saturating_sub(new_from) as f32 * 0.08),
                 assets,
+                card_materials,
             );
         } else {
             add_texas_board_back(
@@ -327,6 +339,7 @@ fn add_community_area(
                 index,
                 initial_deal_duration.map(|duration| duration + index as f32 * 0.065),
                 assets,
+                card_materials,
             );
         }
     }

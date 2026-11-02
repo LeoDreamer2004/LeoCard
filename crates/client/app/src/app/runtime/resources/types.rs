@@ -1,7 +1,7 @@
 //! 已加载 UI 资源、头像缓存与文件选择器状态。
 
 use super::quick_voices::QuickVoiceAssets;
-use super::{PlayingCardAssets, PokerChipAssets};
+use super::{PlayingCardAssets, PokerChipAssets, TabletopAssets};
 use bevy::prelude::*;
 use leocard_protocol::{AvatarId, ChatEmoji, PlayerInteractionKind};
 use std::collections::HashMap;
@@ -11,8 +11,6 @@ use std::sync::mpsc::Receiver;
 
 pub(crate) const UI_FONT_ASSET: &str = "fonts/ChillRoundGothic-Medium.ttf";
 pub(crate) const TITLE_FONT_ASSET: &str = "fonts/DouyinSansBold.ttf";
-pub(crate) const TABLE_FELT_ASSET: &str =
-    "vendor/opengameart/green-textile/table_felt_dark_green.png";
 
 #[derive(Resource, Default)]
 pub(crate) struct UiAssets {
@@ -27,7 +25,7 @@ pub(crate) struct UiAssets {
     pub social: SocialAssets,
     pub audio: CommonAudioAssets,
     pub sequence_airplane: Handle<Image>,
-    pub table_felt: Handle<Image>,
+    pub tabletop: TabletopAssets,
 }
 
 #[derive(Default)]

@@ -9,18 +9,19 @@ use super::{
     uno_discard_pose, uno_ui_color,
 };
 use crate::app::presentation::{
-    ACCENT, ArcSeatLayout, DANGER, DESIGN_WIDTH, GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation,
-    StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial, TurnBorderMaterial,
-    add_auto_play_overlay, add_text, table_material_params,
+    ACCENT, ArcSeatLayout, CardTableSurface, DANGER, DESIGN_WIDTH, GAME_SIDE_CONTROL_SCALE,
+    GameSummaryAnimation, StartGameSeatTransition, TEXT, TableBackgroundMaterial,
+    TurnBorderMaterial, add_auto_play_overlay, add_text,
 };
-use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
-use crate::app::shell::{ChatPanelState, SocialUiState, add_chat_panel, add_reconnecting_overlay};
+use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
+use crate::app::shell::{
+    ChatPanelOptions, ChatPanelState, SocialUiState, add_reconnecting_overlay,
+};
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
 use leocard_ui::{UiComposer, spawn_node, ui_component};
 use leocard_uno::{UnoFlipSide, UnoPendingDrawKind, UnoRuleSet};
-
-use bevy::prelude::*;
 
 pub(super) const UNO_DISCARD_OFFSETS: [(f32, f32, f32); 6] = [
     (-5.0, 4.0, -5.0),
@@ -48,9 +49,8 @@ pub(crate) struct UnoTableVisuals<'a> {
     pub assets: &'a UiAssets,
     pub game_assets: &'a UnoAssets,
     pub avatars: &'a AvatarImages,
-    pub appearance: &'a TableAppearance,
     pub brightness: f32,
-    pub vignette: f32,
+    pub custom_felt: Option<&'a Handle<Image>>,
     pub table_materials: &'a mut Assets<TableBackgroundMaterial>,
     pub turn_border_materials: &'a mut Assets<TurnBorderMaterial>,
     pub start_game_transition: &'a StartGameSeatTransition,
@@ -76,9 +76,8 @@ pub(crate) fn render_uno_table(
         assets,
         game_assets,
         avatars,
-        appearance,
         brightness,
-        vignette,
+        custom_felt,
         table_materials,
         turn_border_materials,
         start_game_transition,
@@ -96,22 +95,11 @@ pub(crate) fn render_uno_table(
             ..default()
         }) },
     );
-    let felt = appearance
-        .custom_felt
-        .as_ref()
-        .unwrap_or(&assets.table_felt)
-        .clone();
-    let material = commands.material(
-        content,
-        table_materials,
-        TableBackgroundMaterial {
-            params: table_material_params(brightness, vignette, appearance.custom_felt.is_none()),
-            texture: felt,
-        },
-    );
-    commands
-        .entity(content)
-        .insert((MaterialNode(material), TableBackground));
+    CardTableSurface {
+        brightness,
+        custom_felt,
+    }
+    .apply(commands, content, assets, table_materials);
     if game.flip_side == Some(UnoFlipSide::Dark) {
         let tint = spawn_node(
             commands,
@@ -262,7 +250,7 @@ pub(crate) fn render_uno_table(
     }
 
     let auto_play = own.map(|player| player.auto_play);
-    add_chat_panel(commands, content, chat, assets, auto_play, &[]);
+    ChatPanelOptions::new(auto_play, &[]).spawn(commands, content, chat, assets);
     if own.is_some_and(|player| player.eliminated) && matches!(game.phase, UnoPhaseView::Playing) {
         add_uno_eliminated_own_overlay(commands, content, assets);
     } else if auto_play == Some(true) && matches!(game.phase, UnoPhaseView::Playing) {

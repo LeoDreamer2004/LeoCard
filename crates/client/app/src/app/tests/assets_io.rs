@@ -40,7 +40,10 @@ fn every_card_maps_to_an_existing_asset() {
             path.display()
         );
     }
-    assert!(asset_root.join(TABLE_FELT_ASSET).is_file());
+    assert!(asset_root.join("ui/tabletop/table-felt.png").is_file());
+    assert!(asset_root.join("ui/tabletop/table-rail.png").is_file());
+    assert!(asset_root.join("ui/mahjong/table-felt.png").is_file());
+    assert!(asset_root.join("ui/mahjong/table-rail.png").is_file());
     assert!(asset_root.join(UI_FONT_ASSET).is_file());
     assert!(asset_root.join("fonts/OFL-ChillRoundGothic.txt").is_file());
     assert!(asset_root.join("icons/list-menu.png").is_file());

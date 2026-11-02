@@ -1,5 +1,6 @@
 mod audio;
 mod balance;
+mod card;
 mod chips;
 mod deal;
 mod flip;
@@ -8,16 +9,19 @@ mod pile;
 mod play_effects;
 mod scatter;
 mod status;
+mod surface;
 mod voices;
 
 pub(crate) use audio::*;
-pub(crate) use balance::add_poker_balance_panel;
+pub(crate) use balance::add_tabletop_balance_panel;
+pub(crate) use card::{TableCard, TableCardMaterial, animate_table_card_flips};
 pub(crate) use chips::*;
 pub(crate) use deal::*;
 pub(crate) use flip::*;
 pub(crate) use panel::add_table_play_area;
-pub(crate) use pile::add_playing_card_pile;
+pub(crate) use pile::{add_playing_card_pile, add_table_card_pile, table_card_pile_top_center};
 pub(crate) use play_effects::*;
 pub(crate) use scatter::*;
 pub(crate) use status::*;
+pub(crate) use surface::CardTableSurface;
 pub(crate) use voices::{CardVoice, CardVoices, play_card_voices, sync_card_voices};

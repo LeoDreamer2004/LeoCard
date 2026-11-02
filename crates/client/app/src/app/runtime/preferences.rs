@@ -1,10 +1,7 @@
 //! 持久化玩家偏好与 Bevy 连接表单之间的适配。
 
 use super::normalize_avatar_bytes;
-use crate::app::presentation::{
-    DEFAULT_TABLE_VIGNETTE, MAX_TABLE_BRIGHTNESS, MAX_TABLE_VIGNETTE, MIN_TABLE_BRIGHTNESS,
-    MIN_TABLE_VIGNETTE,
-};
+use crate::app::presentation::{MAX_TABLE_BRIGHTNESS, MIN_TABLE_BRIGHTNESS};
 use bevy::prelude::*;
 use leocard_blackjack::BlackjackRuleSet;
 pub(crate) use leocard_client::{
@@ -41,7 +38,6 @@ pub(crate) struct AppearancePreferences {
     pub avatar_png: Option<Vec<u8>>,
     pub table_felt_path: Option<PathBuf>,
     pub table_brightness: f32,
-    pub table_vignette: f32,
     pub audio_volume: f32,
     pub mahjong_action_voices: bool,
     pub mahjong_fan_voices: bool,
@@ -140,12 +136,6 @@ impl PreferenceResources {
                     .and_then(|png| normalize_avatar_bytes(&png).ok()),
                 table_felt_path: saved.global.table_felt_path,
                 table_brightness: normalize_table_brightness(saved.global.table_brightness),
-                table_vignette: normalize_range(
-                    saved.global.table_vignette,
-                    MIN_TABLE_VIGNETTE,
-                    MAX_TABLE_VIGNETTE,
-                    DEFAULT_TABLE_VIGNETTE,
-                ),
                 audio_volume: normalize_range(
                     saved.global.audio_volume,
                     0.0,
@@ -333,7 +323,6 @@ pub(crate) fn save_appearance_preferences(
         .table_felt_path
         .clone_from(&appearance.table_felt_path);
     saved.global.table_brightness = appearance.table_brightness;
-    saved.global.table_vignette = appearance.table_vignette;
     saved.global.audio_volume = appearance.audio_volume;
     saved.global.mahjong_action_voices = appearance.mahjong_action_voices;
     saved.global.mahjong_fan_voices = appearance.mahjong_fan_voices;

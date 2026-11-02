@@ -1,11 +1,10 @@
 use super::super::{
-    TexasFoldCard, TexasOwnFoldCardHover, TexasOwnFoldTooltip, TexasPlayerPanel, TexasPotDivider,
-    TexasPotHover, TexasTableLayout, add_squid_markers, fold_card_visual,
+    TexasFoldCard, TexasOwnFoldCardHover, TexasOwnFoldTooltip, TexasPotDivider, TexasTableLayout,
+    add_squid_markers, fold_card_visual,
 };
 use super::{
     ActionFeedbackKind, ActionLabel, CHIP_SIZE, ChipZone, ChipZoneLayout, TableChip,
-    TexasChipSprite, TexasChipTableState, texas_center_zone_panel, texas_pot_chip_zone,
-    texas_pot_partition_zone,
+    TexasChipSprite, TexasChipTableState, texas_pot_chip_zone,
 };
 use crate::app::presentation::{
     HEADER_BG, MUTED, PokerChipVisual, TableStatusSpec, add_poker_chip, add_table_play_area,
@@ -13,13 +12,11 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_protocol::{TexasPhaseView, TexasSnapshot};
 use leocard_texas_holdem::TexasCard;
 use leocard_ui::{UiComposer, spawn_node};
-use std::f32::consts;
-
-use bevy::prelude::*;
 
 pub(crate) fn add_texas_chip_areas(
     commands: &mut UiComposer,
@@ -60,11 +57,7 @@ pub(crate) fn add_texas_chip_areas(
         }
     }
 
-    // One continuous dark filter frames the complete centre: draw pile, five
-    // community cards, and the chips below them. There is no separate pot title.
-    add_chip_zone_panel(commands, table, texas_center_zone_panel());
     add_pot_divisions(commands, table, state);
-    add_pot_hover_regions(commands, table, state);
     add_squid_markers(commands, table, &state.squid, assets);
 
     let layer = spawn_node(
@@ -164,34 +157,6 @@ fn spawn_pot_divider_set(
     }
 }
 
-fn add_pot_hover_regions(commands: &mut UiComposer, table: Entity, state: &TexasChipTableState) {
-    if state.pots.len() <= 1 {
-        return;
-    }
-    for (index, pot) in state.pots.iter().enumerate() {
-        let layout = texas_pot_partition_zone(index, state.pots.len(), state.squid.is_enabled());
-        commands.child(
-            table,
-            (
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(layout.left),
-                    top: px(layout.top),
-                    width: px(layout.width),
-                    height: px(layout.height),
-                    ..default()
-                },
-                RelativeCursorPosition::default(),
-                TexasPotHover {
-                    eligible: pot.eligible.clone(),
-                },
-                ZIndex(34),
-                Pickable::IGNORE,
-            ),
-        );
-    }
-}
-
 pub(super) fn pot_divider_visual(old_layout: bool, elapsed: f32) -> (f32, f32) {
     if old_layout {
         (1.0 - (elapsed / 0.16).clamp(0.0, 1.0), 1.0)
@@ -212,46 +177,6 @@ pub(crate) fn animate_texas_pot_dividers(
         transform.scale.y = scale;
         background.0 = Color::srgb(0.68, 0.72, 0.70).with_alpha(alpha * 0.42);
     }
-}
-
-pub(crate) fn highlight_texas_pot_eligible_players(
-    time: Res<Time>,
-    hovers: Query<(&RelativeCursorPosition, &TexasPotHover)>,
-    mut panels: Query<(&TexasPlayerPanel, &mut Outline, &mut BoxShadow)>,
-) {
-    let hovered = hovers
-        .iter()
-        .find(|(cursor, _)| cursor.cursor_over())
-        .map(|(_, pot)| pot);
-    let breath = pot_eligibility_breath(time.elapsed_secs());
-    for (panel, mut outline, mut shadow) in &mut panels {
-        if hovered.is_some_and(|pot| pot.eligible.contains(&panel.player)) {
-            let green = Color::srgb(
-                0.28 + breath * 0.12,
-                0.82 + breath * 0.18,
-                0.48 + breath * 0.16,
-            );
-            outline.color = green.with_alpha(0.76 + breath * 0.24);
-            outline.width = px(3.0 + breath * 0.6);
-            *shadow = BoxShadow::new(
-                green.with_alpha(0.20 + breath * 0.34),
-                px(0),
-                px(0),
-                px(1.0 + breath * 2.0),
-                px(6.0 + breath * 10.0),
-            );
-        } else {
-            outline.color = panel.base_border;
-            outline.width = px(3.0);
-            *shadow = BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(0));
-        }
-    }
-}
-
-pub(super) fn pot_eligibility_breath(elapsed: f32) -> f32 {
-    let phase = elapsed.rem_euclid(1.7) / 1.7;
-    let wave = 0.5 - 0.5 * (phase * consts::TAU).cos();
-    wave * wave * (3.0 - 2.0 * wave)
 }
 
 pub(super) fn add_chip_zone_panel(

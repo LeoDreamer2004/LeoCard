@@ -1,5 +1,6 @@
 use super::super::*;
 use super::controls::{add_auto_play_toggle, add_auxiliary_actions, add_chat_toggle};
+use super::help::add_chat_help_button;
 use super::menus::{add_emoji_menu, add_quick_voice_menu};
 use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, MUTED, TEXT, add_text};
 use crate::app::runtime::UiAssets;
@@ -14,6 +15,53 @@ pub(crate) struct ChatAuxiliaryAction {
     pub highlighted: bool,
 }
 
+pub(crate) struct ChatPanelOptions<'a> {
+    pub auto_play: Option<bool>,
+    pub auxiliary_actions: &'a [ChatAuxiliaryAction],
+    pub help: Option<UiAction>,
+}
+
+impl<'a> ChatPanelOptions<'a> {
+    pub(crate) fn new(
+        auto_play: Option<bool>,
+        auxiliary_actions: &'a [ChatAuxiliaryAction],
+    ) -> Self {
+        Self {
+            auto_play,
+            auxiliary_actions,
+            help: None,
+        }
+    }
+
+    pub(crate) fn spawn(
+        self,
+        commands: &mut UiComposer,
+        parent: Entity,
+        chat: &ChatPanelState,
+        assets: &UiAssets,
+    ) -> Entity {
+        let panel = spawn_chat_panel(commands, parent, chat, assets);
+        let controls = spawn_side_controls(commands, panel);
+        add_chat_toggle(commands, controls, chat, assets);
+        if let Some(enabled) = self.auto_play {
+            add_auto_play_toggle(commands, controls, enabled, assets);
+        }
+        add_auxiliary_actions(commands, controls, self.auxiliary_actions, assets);
+        if let Some(action) = self.help {
+            add_chat_help_button(commands, controls, action, assets);
+        }
+        add_chat_history(commands, panel, chat, assets);
+        if chat.read_only {
+            add_text(commands, panel, "观战中，仅查看聊天", 13.0, MUTED, assets);
+        } else {
+            add_chat_input_row(commands, panel, chat, assets);
+            add_quick_voice_menu(commands, panel, chat, assets);
+            add_emoji_menu(commands, panel, chat, assets);
+        }
+        controls
+    }
+}
+
 /// Returns the side-control anchor, including its slide and platform-specific scale.
 pub(crate) fn add_chat_panel(
     commands: &mut UiComposer,
@@ -23,22 +71,7 @@ pub(crate) fn add_chat_panel(
     auto_play: Option<bool>,
     auxiliary_actions: &[ChatAuxiliaryAction],
 ) -> Entity {
-    let panel = spawn_chat_panel(commands, parent, chat, assets);
-    let controls = spawn_side_controls(commands, panel);
-    add_chat_toggle(commands, controls, chat, assets);
-    if let Some(enabled) = auto_play {
-        add_auto_play_toggle(commands, controls, enabled, assets);
-    }
-    add_auxiliary_actions(commands, controls, auxiliary_actions, assets);
-    add_chat_history(commands, panel, chat, assets);
-    if chat.read_only {
-        add_text(commands, panel, "观战中，仅查看聊天", 13.0, MUTED, assets);
-    } else {
-        add_chat_input_row(commands, panel, chat, assets);
-        add_quick_voice_menu(commands, panel, chat, assets);
-        add_emoji_menu(commands, panel, chat, assets);
-    }
-    controls
+    ChatPanelOptions::new(auto_play, auxiliary_actions).spawn(commands, parent, chat, assets)
 }
 
 fn spawn_side_controls(commands: &mut UiComposer, panel: Entity) -> Entity {

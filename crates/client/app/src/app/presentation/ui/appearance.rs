@@ -1,21 +1,33 @@
 //! GPU table-background treatment.
 
-use super::{DEFAULT_TABLE_VIGNETTE, MAX_TABLE_VIGNETTE, MIN_TABLE_VIGNETTE};
-use crate::app::runtime::{normalize_range, normalize_table_brightness};
+use crate::app::runtime::{TableSurfaceAssets, normalize_table_brightness};
 use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
 
 pub(crate) const TABLE_BACKGROUND_SHADER: &str = "shaders/table_background.wesl";
 
+#[derive(Clone, Copy)]
+pub(crate) enum TableSurfaceKind {
+    Cards,
+    Mahjong,
+}
+
 #[derive(AsBindGroup, Asset, TypePath, Debug, Clone, PartialEq)]
 pub(crate) struct TableBackgroundMaterial {
-    /// x: vignette strength, y: brightness, z: tiled flag, w: unused.
+    /// x: brightness; y: 0 centered ellipse, 1 measured rectangular mahjong table.
     #[uniform(0)]
     pub params: Vec4,
+    #[uniform(0)]
+    felt_bounds: Vec4,
+    #[uniform(0)]
+    frame_bounds: Vec4,
     #[texture(1)]
     #[sampler(2)]
     pub texture: Handle<Image>,
+    #[texture(3)]
+    #[sampler(4)]
+    rail: Handle<Image>,
 }
 
 impl UiMaterial for TableBackgroundMaterial {
@@ -24,16 +36,27 @@ impl UiMaterial for TableBackgroundMaterial {
     }
 }
 
-pub(crate) fn table_material_params(brightness: f32, vignette: f32, tiled: bool) -> Vec4 {
-    Vec4::new(
-        normalize_range(
-            vignette,
-            MIN_TABLE_VIGNETTE,
-            MAX_TABLE_VIGNETTE,
-            DEFAULT_TABLE_VIGNETTE,
-        ),
-        normalize_table_brightness(brightness),
-        if tiled { 1.0 } else { 0.0 },
-        0.0,
-    )
+impl TableBackgroundMaterial {
+    pub(crate) fn new(
+        kind: TableSurfaceKind,
+        brightness: f32,
+        assets: &TableSurfaceAssets,
+        custom_felt: Option<&Handle<Image>>,
+    ) -> Self {
+        Self {
+            params: Vec4::new(
+                normalize_table_brightness(brightness),
+                match kind {
+                    TableSurfaceKind::Cards => 0.0,
+                    TableSurfaceKind::Mahjong => 1.0,
+                },
+                0.0,
+                0.0,
+            ),
+            felt_bounds: assets.felt_bounds,
+            frame_bounds: assets.frame_bounds,
+            texture: custom_felt.unwrap_or(&assets.felt).clone(),
+            rail: assets.rail.clone(),
+        }
+    }
 }

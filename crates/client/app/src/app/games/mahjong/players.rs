@@ -1,16 +1,17 @@
 use super::layout::MahjongLayout as Layout;
+use super::projection::{own_overlay, world_layout};
 use super::tiles::{mahjong_deal_spec, mahjong_draw_spec};
 use super::{
     ActiveMahjongClaimPresentation, MAHJONG_REMOTE_DRAW_GAP, MAHJONG_REMOTE_MELD_WIDTH,
-    MahjongAssets, MahjongClaimHandShift, MahjongDiscardRiverTile, MahjongOwnDiscardAnimation,
-    MahjongRemoteDiscardAnimation, MahjongRemoteDiscardRiverTile, MahjongRemoteHandShift,
-    MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual,
+    MahjongAssets, MahjongClaimHandShift, MahjongDiscardRiverTile, MahjongDisplayedHand,
+    MahjongMeldPresentation, MahjongOwnDiscardAnimation, MahjongRemoteDiscardAnimation,
+    MahjongRemoteDiscardRiverTile, MahjongRemoteHandShift, MahjongTileHighlight,
+    MahjongTileMaterial, MahjongTileRestRotation, MahjongTileSize, MahjongTileVisual,
     MahjongWinningHand, MahjongWinningHandVisual, add_mahjong_response_indicator,
-    add_mahjong_tile_material, apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x,
-    mahjong_claim_landing_time, mahjong_local_light, mahjong_local_shadow, mahjong_own_row_left,
-    mahjong_remote_tile_advance, mahjong_remote_tile_overhang, mahjong_win_tile_cues,
-    mahjong_winning_hand_progress, mark_mahjong_win_tile, render_mahjong_meld,
-    render_mahjong_staged_meld,
+    add_mahjong_tile_material, apply_mahjong_winning_hand_visual, attach_mahjong_tile_surface,
+    mahjong_claim_hand_shift_x, mahjong_local_light, mahjong_own_row_left,
+    mahjong_remote_tile_advance, mahjong_win_tile_cues, mahjong_winning_hand_progress,
+    mark_mahjong_win_tile, render_mahjong_meld,
 };
 use crate::app::presentation::{
     DANGER, GameSummaryAnimation, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TableSeat,
@@ -18,6 +19,7 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_mahjong::MahjongTile;
 use leocard_protocol::{
@@ -25,8 +27,6 @@ use leocard_protocol::{
 };
 use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
-
-use bevy::prelude::*;
 
 pub(super) struct MahjongPlayerPanelVisuals<'a> {
     pub own_seat: u8,
@@ -56,7 +56,7 @@ pub(super) fn render_mahjong_player_panel(
         bottom: Vec2::new(20.0, 0.0),
         top: Vec2::new(920.0, 8.0),
         columns: Vec2::new(20.0, 1280.0 - 96.0 * 1.17 - 20.0),
-        rows: &[284.0],
+        rows: &[184.0],
     });
     let own = matches!(seat, TableSeat::Bottom);
     let portrait = add_player_portrait(
@@ -66,7 +66,15 @@ pub(super) fn render_mahjong_player_panel(
             position_type: PositionType::Absolute,
             left: px(position.x),
             top: if own { Val::Auto } else { px(position.y) },
-            bottom: if own { px(8) } else { Val::Auto },
+            bottom: if own {
+                px(if cfg!(target_os = "android") {
+                    Layout::OWN_ROW_HEIGHT + 30.0
+                } else {
+                    8.0
+                })
+            } else {
+                Val::Auto
+            },
             width: px(96.0 * 1.17),
             height: px(76.0 * 1.17 + 20.0),
             ..default()
@@ -87,6 +95,7 @@ pub(super) fn render_mahjong_player_panel(
         },
         assets,
     );
+    commands.entity(portrait.portrait).insert(ZIndex(40));
     attach_start_game_seat_transition(
         commands,
         portrait.portrait,
@@ -130,12 +139,17 @@ pub(super) fn render_mahjong_wall(
     let stack_count = usize::from(wall_len).div_ceil(2).min(72);
     for side in 0..4 {
         let count = stack_count.saturating_sub(side * 18).min(18);
-        let (left, top, rotation) = match side {
-            0 => (460.0, 105.0, 0.0),
-            1 => (820.0, 302.0, consts::FRAC_PI_2),
-            2 => (460.0, 500.0, consts::PI),
-            _ => (100.0, 302.0, -consts::FRAC_PI_2),
-        };
+        let center = world_layout(match side {
+            0 => Vec2::new(0.0, Layout::OPPOSITE_WALL_DISTANCE),
+            1 => Vec2::new(Layout::WALL_DISTANCE, 0.0),
+            2 => Vec2::new(0.0, -Layout::WALL_DISTANCE),
+            _ => Vec2::new(-Layout::WALL_DISTANCE, 0.0),
+        });
+        let (left, top, rotation) = (
+            center.x - 148.5,
+            center.y - Layout::MINI_HEIGHT * 0.5,
+            side as f32 * consts::FRAC_PI_2,
+        );
         let segment = spawn_node(
             commands,
             table,
@@ -143,8 +157,8 @@ pub(super) fn render_mahjong_wall(
                 position_type: PositionType::Absolute,
                 left: px(left),
                 top: px(top),
-                width: px(360),
-                height: px(46),
+                width: px(297),
+                height: px(Layout::MINI_HEIGHT),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::FlexStart,
                 flex_direction: FlexDirection::Row,
@@ -153,7 +167,11 @@ pub(super) fn render_mahjong_wall(
             None,
         );
         commands.entity(segment).insert((
-            UiTransform::from_rotation(Rot2::radians(rotation)),
+            UiTransform {
+                rotation: Rot2::radians(rotation),
+                scale: Vec2::splat(Layout::WALL_SCALE),
+                ..default()
+            },
             ZIndex(1),
         ));
         for index in 0..count {
@@ -164,19 +182,25 @@ pub(super) fn render_mahjong_wall(
                 commands,
                 segment,
                 Node {
-                    width: px(20),
-                    min_width: px(20),
-                    height: px(44),
+                    width: px(16.5),
+                    min_width: px(16.5),
+                    height: px(Layout::MINI_HEIGHT),
                     ..default()
                 },
                 None,
             );
-            commands.entity(stack).insert(ZIndex(index as i32));
             let orientation = match side {
                 1 => 3,
                 3 => 1,
                 _ => side as u8,
             };
+            commands
+                .entity(stack)
+                .insert(ZIndex(if matches!(orientation, 1 | 2) {
+                    -(index as i32)
+                } else {
+                    index as i32
+                }));
             add_mahjong_wall_stack(commands, stack, layers, orientation, assets, materials);
         }
     }
@@ -190,7 +214,6 @@ fn add_mahjong_wall_stack(
     assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
-    let shadow = mahjong_local_shadow(orientation);
     let entity = commands.child(
         stack,
         (
@@ -198,19 +221,12 @@ fn add_mahjong_wall_stack(
                 position_type: PositionType::Absolute,
                 left: px(0),
                 top: px(0),
-                width: px(26),
-                height: px(46),
+                width: px(16),
+                height: px(Layout::MINI_HEIGHT),
                 border_radius: BorderRadius::all(px(3)),
                 overflow: Overflow::visible(),
                 ..default()
             },
-            BoxShadow::new(
-                Color::BLACK.with_alpha(0.10),
-                px(shadow.x),
-                px(shadow.y),
-                px(0),
-                px(2),
-            ),
             ZIndex(1),
             Pickable::IGNORE,
         ),
@@ -219,19 +235,23 @@ fn add_mahjong_wall_stack(
         entity,
         materials,
         MahjongTileMaterial {
+            table_projection: true,
+            overlay_projection: false,
             params: Vec4::new(0.0, 1.0, 1.0, if layers == 2 { 2.0 } else { 3.0 }),
             lighting: mahjong_local_light(orientation),
             highlight: Vec4::ZERO,
+            elevation: 0.0,
             glyph: assets.tile_back.clone(),
             height: assets.tile_back.clone(),
+            ..default()
         },
     );
-    commands.entity(entity).insert(MaterialNode(material));
+    attach_mahjong_tile_surface(commands, entity, material, true);
 }
 
 pub(super) struct MahjongPlayerTileVisuals<'a> {
-    pub robbing_tile: Option<MahjongTile>,
     pub ui_assets: &'a UiAssets,
+    pub robbing_tile: Option<MahjongTile>,
     pub own_seat: u8,
     pub observed_count: u8,
     pub flower_replaced: bool,
@@ -254,8 +274,8 @@ pub(super) fn render_mahjong_player_tiles(
     visuals: MahjongPlayerTileVisuals<'_>,
 ) {
     let MahjongPlayerTileVisuals {
-        robbing_tile,
         ui_assets,
+        robbing_tile,
         own_seat,
         observed_count,
         flower_replaced,
@@ -284,33 +304,48 @@ pub(super) fn render_mahjong_player_tiles(
     if relative == 0 && player.melds.is_empty() {
         return;
     }
-    let (left, top, bottom, width, height, rotation) = match relative {
-        0 => (
+    let (left, top, bottom, width, height, rotation) = if relative == 0 {
+        (
             mahjong_own_row_left(
                 player.melds.len(),
                 usize::from(player.concealed_count)
                     .saturating_sub(usize::from(separate_last_concealed)),
             ),
             None,
-            Some(8.0),
+            Some(Layout::OWN_BOTTOM),
             Layout::OWN_ROW_WIDTH,
             Layout::OWN_ROW_HEIGHT,
             0.0,
-        ),
-        1 if cfg!(target_os = "android") => {
-            (810.0, Some(284.0), None, 600.0, 72.0, -consts::FRAC_PI_2)
-        }
-        1 => (840.0, Some(302.0), None, 450.0, 54.0, -consts::FRAC_PI_2),
-        2 if cfg!(target_os = "android") => (340.0, Some(12.0), None, 600.0, 72.0, consts::PI),
-        2 => (415.0, Some(56.0), None, 450.0, 54.0, consts::PI),
-        _ if cfg!(target_os = "android") => {
-            (-130.0, Some(284.0), None, 600.0, 72.0, consts::FRAC_PI_2)
-        }
-        _ => (-10.0, Some(302.0), None, 450.0, 54.0, consts::FRAC_PI_2),
+        )
+    } else {
+        let world = match relative {
+            1 => Vec2::new(12.625, -2.2402),
+            2 => Vec2::new(1.61, 11.395),
+            _ => Vec2::new(-12.627, 2.0753),
+        };
+        let width = 450.0;
+        let height = Layout::REMOTE_HEIGHT;
+        let rotation = -f32::from(relative) * consts::FRAC_PI_2;
+        let footprint_height = if relative == 2 { 8.96 } else { 10.4 };
+        let center = world_layout(world)
+            - Rot2::radians(rotation) * Vec2::new(0.0, (height - footprint_height) * 0.5);
+        (
+            center.x - width * 0.5,
+            Some(center.y - height * 0.5),
+            None,
+            width,
+            height,
+            rotation,
+        )
+    };
+    let parent = if relative == 0 {
+        own_overlay(commands, table)
+    } else {
+        table
     };
     let group = spawn_node(
         commands,
-        table,
+        parent,
         Node {
             position_type: PositionType::Absolute,
             left: px(left),
@@ -353,42 +388,29 @@ pub(super) fn render_mahjong_player_tiles(
         .entity(group)
         .insert((transform, ZIndex(if winning_hand { 100 } else { 8 })));
 
-    let staged_claim = active_claim
-        .filter(|claim| claim.source.is_some() && claim.elapsed < mahjong_claim_landing_time());
+    let staged_claim = active_claim.filter(|claim| claim.source.is_some());
     let mut meld_index = 20;
-    let visible_meld_count = player
-        .melds
-        .len()
-        .saturating_sub(usize::from(staged_claim.is_some()));
-    for meld in player.melds.iter().take(visible_meld_count) {
+    for (number, meld) in player.melds.iter().enumerate() {
         render_mahjong_meld(
             commands,
             group,
             meld,
             &mut meld_index,
-            relative,
+            MahjongMeldPresentation {
+                relative,
+                claim: staged_claim.filter(|_| number + 1 == player.melds.len()),
+            },
             game_assets,
             materials,
         );
     }
-    if let Some(claim) = staged_claim {
-        render_mahjong_staged_meld(
-            commands,
-            group,
-            claim,
-            &mut meld_index,
-            relative,
-            game_assets,
-            materials,
-        );
-    }
-    if relative != 0 && (visible_meld_count > 0 || staged_claim.is_some()) {
+    if relative != 0 && !player.melds.is_empty() {
         let gap = spawn_node(
             commands,
             group,
             Node {
-                width: px(10),
-                min_width: px(10),
+                width: px(Layout::REMOTE_HAND_GAP),
+                min_width: px(Layout::REMOTE_HAND_GAP),
                 height: px(1),
                 ..default()
             },
@@ -413,7 +435,7 @@ pub(super) fn render_mahjong_player_tiles(
         );
         if let Some(claim) = active_claim.filter(|claim| claim.shift_hand) {
             let distance = if player.melds.len() == 1 {
-                MAHJONG_REMOTE_MELD_WIDTH + 10.0
+                MAHJONG_REMOTE_MELD_WIDTH + Layout::REMOTE_HAND_GAP
             } else {
                 MAHJONG_REMOTE_MELD_WIDTH
             };
@@ -439,10 +461,37 @@ pub(super) fn render_mahjong_player_tiles(
             _ => MahjongTileSize::HiddenOpposite,
         };
         if let Some(revealed) = &player.revealed_hand {
-            for (index, tile) in revealed.iter().enumerate() {
+            let winner = result.and_then(|result| {
+                result
+                    .winners
+                    .iter()
+                    .find(|winner| winner.player == player.player.id)
+            });
+            let displayed = MahjongDisplayedHand::new(revealed, winner);
+            let regular_len = displayed.regular.len();
+            for (index, tile) in displayed
+                .regular
+                .iter()
+                .copied()
+                .chain(displayed.drawn)
+                .enumerate()
+            {
+                if index == regular_len {
+                    spawn_node(
+                        commands,
+                        concealed,
+                        Node {
+                            width: px(MAHJONG_REMOTE_DRAW_GAP),
+                            min_width: px(MAHJONG_REMOTE_DRAW_GAP),
+                            height: px(1),
+                            ..default()
+                        },
+                        None,
+                    );
+                }
                 let cues = result.map(|result| {
                     mahjong_win_tile_cues(result, |winner| {
-                        winner.winning_tile == *tile
+                        winner.winning_tile == tile
                             && (winner.from == Some(player.player.id)
                                 || (winner.from.is_none() && winner.player == player.player.id))
                     })
@@ -451,6 +500,7 @@ pub(super) fn render_mahjong_player_tiles(
                     commands,
                     concealed,
                     MahjongTileVisual {
+                        elevation: 0.0,
                         kind: Some(tile.kind()),
                         size: if winning_hand {
                             MahjongTileSize::Mini
@@ -479,7 +529,7 @@ pub(super) fn render_mahjong_player_tiles(
                     game_assets,
                     materials,
                 );
-                if robbing_tile == Some(*tile) {
+                if robbing_tile == Some(tile) {
                     add_mahjong_response_indicator(
                         commands,
                         entity,
@@ -497,6 +547,7 @@ pub(super) fn render_mahjong_player_tiles(
                             }
                         },
                         rotation,
+                        true,
                         ui_assets,
                     );
                 }
@@ -518,6 +569,7 @@ pub(super) fn render_mahjong_player_tiles(
                     commands,
                     concealed,
                     MahjongTileVisual {
+                        elevation: 0.0,
                         kind: None,
                         size: hidden_size,
                         index,
@@ -573,6 +625,7 @@ pub(super) fn render_mahjong_player_tiles(
                     commands,
                     concealed,
                     MahjongTileVisual {
+                        elevation: 0.0,
                         kind: ghost
                             .map(|active| active.tile.kind())
                             .or(robbing_tile.map(|tile| tile.kind())),
@@ -609,41 +662,22 @@ pub(super) fn render_mahjong_player_tiles(
                         entity,
                         Vec2::new(Layout::RIVER_WIDTH, Layout::RIVER_HEIGHT),
                         rotation,
+                        true,
                         ui_assets,
                     );
                 }
                 if let Some(active) = ghost {
                     let (ghost, transform) = active.ghost_visual(0.0);
-                    commands
-                        .entity(entity)
-                        .insert((ghost, transform, GlobalZIndex(900)));
+                    commands.entity(entity).insert((ghost, transform));
                 }
             }
-        }
-        if regular_count > 0 {
-            let overhang = mahjong_remote_tile_overhang(
-                relative,
-                player.revealed_hand.is_some() && winning_hand,
-            );
-            let spacer = spawn_node(
-                commands,
-                concealed,
-                Node {
-                    width: px(overhang),
-                    min_width: px(overhang),
-                    height: px(1),
-                    ..default()
-                },
-                None,
-            );
-            commands.entity(spacer).insert(Pickable::IGNORE);
         }
     }
 }
 
 pub(super) struct MahjongDiscardRiverVisuals<'a> {
-    pub response_tile: Option<MahjongTile>,
     pub ui_assets: &'a UiAssets,
+    pub response_tile: Option<MahjongTile>,
     pub discard_animation: Option<&'a MahjongOwnDiscardAnimation>,
     pub remote_discard: Option<&'a MahjongRemoteDiscardAnimation>,
 }
@@ -658,8 +692,8 @@ pub(super) fn render_discard_rivers(
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
     let MahjongDiscardRiverVisuals {
-        response_tile,
         ui_assets,
+        response_tile,
         discard_animation,
         remote_discard,
     } = animations;
@@ -699,9 +733,15 @@ pub(super) fn render_discard_rivers(
             UiTransform::from_rotation(Rot2::radians(rotation)),
             ZIndex(5),
         ));
-        for (index, discard) in game.discards.iter().enumerate().filter(|(_, discard)| {
-            discard.player == player.player.id && discard.claimed_by.is_none()
-        }) {
+        for (river_index, (index, discard)) in game
+            .discards
+            .iter()
+            .enumerate()
+            .filter(|(_, discard)| {
+                discard.player == player.player.id && discard.claimed_by.is_none()
+            })
+            .enumerate()
+        {
             let cues = result.map(|result| {
                 mahjong_win_tile_cues(result, |winner| {
                     winner.from == Some(player.player.id) && winner.winning_tile == discard.tile
@@ -711,9 +751,10 @@ pub(super) fn render_discard_rivers(
                 commands,
                 river,
                 MahjongTileVisual {
+                    elevation: 0.0,
                     kind: Some(discard.tile.kind()),
                     size: MahjongTileSize::River,
-                    index,
+                    index: river_index,
                     highlight: if cues.as_ref().is_some_and(|cues| !cues.is_empty()) {
                         MahjongTileHighlight::Red
                     } else {
@@ -725,12 +766,18 @@ pub(super) fn render_discard_rivers(
                 assets,
                 materials,
             );
+            let rest_rotation = Layout::river_tile_rotation(discard.tile, relative);
+            commands.entity(entity).insert((
+                UiTransform::from_rotation(Rot2::radians(rest_rotation)),
+                MahjongTileRestRotation(rest_rotation),
+            ));
             if response_tile == Some(discard.tile) {
                 add_mahjong_response_indicator(
                     commands,
                     entity,
                     Vec2::new(Layout::RIVER_WIDTH, Layout::RIVER_HEIGHT),
                     rotation,
+                    true,
                     ui_assets,
                 );
             }

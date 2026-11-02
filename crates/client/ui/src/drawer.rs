@@ -9,10 +9,8 @@ pub struct SwitchDrawerStyle<'a> {
     pub background: ImageNode,
     pub checkbox: Handle<Image>,
     pub checkbox_selected: Handle<Image>,
-    pub left: Handle<Image>,
-    pub left_hovered: Handle<Image>,
-    pub right: Handle<Image>,
-    pub right_hovered: Handle<Image>,
+    pub toggle: ImageNode,
+    pub toggle_hovered: ImageNode,
     pub active: Color,
     pub muted: Color,
 }
@@ -99,7 +97,7 @@ pub fn spawn_switch_drawer<A: Component + Clone>(
                 BackgroundColor(Color::NONE),
             ),
         );
-        add_label(
+        let label = add_label(
             commands,
             row,
             if expanded { *label } else { *short },
@@ -107,6 +105,10 @@ pub fn spawn_switch_drawer<A: Component + Clone>(
             if *enabled { style.active } else { style.muted },
             style.font,
         );
+        commands.entity(label).insert(TextShadow {
+            offset: Vec2::new(0.7, 1.0),
+            color: Color::BLACK.with_alpha(0.85),
+        });
         if expanded {
             commands.child(
                 row,
@@ -145,15 +147,11 @@ pub fn spawn_switch_drawer<A: Component + Clone>(
             Button,
             spec.toggle_action,
             Node {
-                width: px(20),
+                width: px(26),
                 height: px(28),
                 ..default()
             },
-            ImageNode::new(if expanded {
-                style.left.clone()
-            } else {
-                style.right.clone()
-            }),
+            style.toggle.clone(),
         ),
     );
     let hover = commands.child(
@@ -167,11 +165,7 @@ pub fn spawn_switch_drawer<A: Component + Clone>(
                 bottom: px(0),
                 ..default()
             },
-            ImageNode::new(if expanded {
-                style.left_hovered.clone()
-            } else {
-                style.right_hovered.clone()
-            }),
+            style.toggle_hovered.clone(),
             Visibility::Hidden,
             Pickable::IGNORE,
         ),

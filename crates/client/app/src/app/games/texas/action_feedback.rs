@@ -1,6 +1,6 @@
 //! 德州扑克下注动作的短促视觉反馈，与筹码账本和牌桌构建解耦。
 
-use super::{ActionFeedbackKind, TexasChipTableState, TexasPlayerShake};
+use super::ActionFeedbackKind;
 use crate::app::presentation::TableStatusEffect;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
@@ -91,19 +91,11 @@ pub(super) fn fold_card_visual(
     }
 }
 
-#[expect(
-    clippy::type_complexity,
-    reason = "the ParamSet keeps overlapping Bevy feedback queries disjoint"
-)]
 pub(super) fn animate_texas_action_feedback(
     time: Res<Time>,
-    state: Res<TexasChipTableState>,
-    mut visuals: ParamSet<(
-        Query<(&mut TexasFoldCard, &mut UiTransform, &mut ImageNode)>,
-        Query<(&TexasPlayerShake, &mut UiTransform)>,
-    )>,
+    mut cards: Query<(&mut TexasFoldCard, &mut UiTransform, &mut ImageNode)>,
 ) {
-    for (mut card, mut transform, mut image) in &mut visuals.p0() {
+    for (mut card, mut transform, mut image) in &mut cards {
         card.elapsed += time.delta_secs();
         let visual = fold_card_visual(card.index, card.total, card.elapsed, card.own);
         *transform = visual.transform;
@@ -113,19 +105,6 @@ pub(super) fn animate_texas_action_feedback(
             card.back.clone()
         };
         image.color = Color::WHITE;
-    }
-    for (panel, mut transform) in &mut visuals.p1() {
-        let shake_x = state
-            .actions
-            .get(&panel.0)
-            .filter(|label| label.kind == ActionFeedbackKind::AllIn)
-            .map_or(0.0, |label| {
-                TableStatusEffect::from(label.kind)
-                    .visual(label.elapsed)
-                    .translation
-                    .x
-            });
-        transform.translation.x = px(shake_x);
     }
 }
 

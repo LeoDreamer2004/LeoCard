@@ -1,22 +1,25 @@
 use super::super::layout::MahjongLayout as Layout;
+use super::super::projection::{
+    MahjongProjectionViewport, WORLD_ORIGIN, camera_canvas, ground_from_layout, overlay_tile_scale,
+    project_logical, projected_overlay, world_layout,
+};
 use super::super::{
     MAHJONG_CLAIM_FLIGHT_DELAY, MAHJONG_CLAIM_FLIGHT_DURATION, MAHJONG_CLAIM_HAND_SHIFT_DURATION,
     MAHJONG_CLAIM_PRESENTATION_DURATION, MAHJONG_FLOWER_PRESENTATION_DURATION, MahjongAssets,
     MahjongClaimFlight, MahjongClaimHandShift, MahjongClaimHeldTile, MahjongClaimLabel,
     MahjongClaimPresentationState, MahjongFlowerLabel, MahjongTableRoot, MahjongTileHighlight,
-    MahjongTileMaterial, mahjong_claim_landing_time,
+    MahjongTileMaterial, MahjongTileSurface, mahjong_claim_landing_time,
 };
 use super::{MahjongTileSize, MahjongTileVisual, add_mahjong_tile_material};
 use crate::app::presentation::{ACCENT, TEXT, add_text, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_mahjong::MahjongClaim;
 use leocard_protocol::MahjongSnapshot;
 use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
-
-use bevy::prelude::*;
 
 #[derive(Component)]
 pub(crate) struct MahjongClaimLandingSlot {
@@ -49,20 +52,12 @@ impl MahjongSeatGeometry {
             .map(|candidate| (candidate.seat.0 + 4 - self.own_seat) % 4)
     }
 
+    pub(super) fn river_layout_anchor(relative: u8) -> Vec2 {
+        (Layout::river_tile_center(relative, 2) + Layout::river_tile_center(relative, 3)) * 0.5
+    }
+
     pub(super) fn river_anchor(relative: u8) -> Vec2 {
-        if cfg!(target_os = "android") {
-            return Layout::river_origin(relative)
-                + Vec2::new(
-                    Layout::RIVER_ROWS_WIDTH / 2.0,
-                    Layout::RIVER_ROWS_HEIGHT / 2.0,
-                );
-        }
-        match relative {
-            0 => Vec2::new(640.0, 430.0),
-            1 => Vec2::new(805.0, 335.0),
-            2 => Vec2::new(640.0, 215.0),
-            _ => Vec2::new(475.0, 335.0),
-        }
+        project_logical(Self::river_layout_anchor(relative))
     }
 
     const fn angle(relative: u8) -> f32 {
@@ -151,14 +146,32 @@ pub(crate) fn render_mahjong_claim_presentation(
         let Some(source_relative) = geometry.relative_player(game, source) else {
             return;
         };
-        let start = MahjongSeatGeometry::river_anchor(source_relative);
+        let start = active
+            .tile
+            .and_then(|tile| {
+                let source = active.source?;
+                game.discards
+                    .iter()
+                    .position(|discard| discard.tile == tile)
+                    .map(|global| {
+                        let index = game.discards[..global]
+                            .iter()
+                            .filter(|discard| {
+                                discard.player == source && discard.claimed_by.is_none()
+                            })
+                            .count();
+                        Layout::river_tile_center(source_relative, index)
+                    })
+            })
+            .unwrap_or_else(|| MahjongSeatGeometry::river_layout_anchor(source_relative));
         let flight = MahjongClaimFlight {
             player: active.player,
             tile,
             start,
             control: start,
             target: start,
-            start_angle: MahjongSeatGeometry::angle(source_relative),
+            start_angle: MahjongSeatGeometry::angle(source_relative)
+                + Layout::river_tile_rotation(tile, source_relative),
             target_angle: MahjongSeatGeometry::angle(target_relative),
             target_scale: if target_relative == 0 {
                 Layout::OWN_WIDTH / Layout::RIVER_WIDTH
@@ -170,6 +183,7 @@ pub(crate) fn render_mahjong_claim_presentation(
             commands,
             table,
             MahjongTileVisual {
+                elevation: 0.0,
                 kind: Some(tile.kind()),
                 size: MahjongTileSize::River,
                 index: 0,
@@ -184,11 +198,11 @@ pub(crate) fn render_mahjong_claim_presentation(
             flight,
             Node {
                 position_type: PositionType::Absolute,
-                left: px(start.x - 16.5),
-                top: px(start.y - 22.5),
-                width: px(33),
-                min_width: px(33),
-                height: px(45),
+                left: px(start.x - Layout::RIVER_WIDTH * 0.5),
+                top: px(start.y - Layout::RIVER_HEIGHT * 0.5),
+                width: px(Layout::RIVER_WIDTH),
+                min_width: px(Layout::RIVER_WIDTH),
+                height: px(Layout::RIVER_HEIGHT),
                 overflow: Overflow::visible(),
                 ..default()
             },
@@ -196,17 +210,17 @@ pub(crate) fn render_mahjong_claim_presentation(
                 rotation: Rot2::radians(MahjongSeatGeometry::angle(source_relative)),
                 ..default()
             },
-            BoxShadow::new(Color::BLACK.with_alpha(0.38), px(2), px(6), px(0), px(7)),
-            ZIndex(90),
+            ZIndex(5),
             Visibility::Hidden,
         ));
     }
 
+    let overlay = projected_overlay(commands, table);
     let label_position = MahjongSeatGeometry::river_anchor(target_relative);
     let (scale, alpha, offset_y) = mahjong_claim_label_visual(active.elapsed);
     let holder = spawn_node(
         commands,
-        table,
+        overlay,
         Node {
             position_type: PositionType::Absolute,
             left: px(label_position.x - 55.0),
@@ -264,10 +278,11 @@ pub(crate) fn render_mahjong_flower_presentations(
             continue;
         };
         let position = MahjongSeatGeometry::river_anchor(relative);
+        let overlay = projected_overlay(commands, table);
         let (scale, alpha, offset_y) = mahjong_flower_label_visual(active.elapsed);
         let holder = spawn_node(
             commands,
-            table,
+            overlay,
             Node {
                 position_type: PositionType::Absolute,
                 left: px(position.x - 60.0),
@@ -347,6 +362,7 @@ pub(crate) fn animate_mahjong_flower_presentations(
 )]
 pub(crate) fn animate_mahjong_claim_presentation(
     presentation: Res<MahjongClaimPresentationState>,
+    viewport: Res<MahjongProjectionViewport>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
     tables: Query<(&ComputedNode, &UiGlobalTransform), With<MahjongTableRoot>>,
     slots: Query<(&MahjongClaimLandingSlot, &ComputedNode, &UiGlobalTransform)>,
@@ -355,7 +371,7 @@ pub(crate) fn animate_mahjong_claim_presentation(
             &mut MahjongClaimFlight,
             &mut Node,
             &mut UiTransform,
-            &MaterialNode<MahjongTileMaterial>,
+            &MahjongTileSurface,
             &mut Visibility,
         ),
         (
@@ -416,8 +432,19 @@ pub(crate) fn animate_mahjong_claim_presentation(
                     .transform_point2(slot_transform.to_scale_angle_translation().2)
                     + table_node.size() * 0.5)
                     * table_node.inverse_scale_factor();
-                let center = table_node.size() * 0.5 * table_node.inverse_scale_factor();
-                Some((target, center))
+
+                let target = if flight.target_angle.abs() < 0.01 {
+                    flight.target_scale = overlay_tile_scale(
+                        target,
+                        viewport.size,
+                        Layout::OWN_WIDTH * camera_canvas(viewport.size).0,
+                    );
+                    world_layout(ground_from_layout(target, viewport.size))
+                } else {
+                    flight.target_scale = 1.0;
+                    target
+                };
+                Some((target, WORLD_ORIGIN))
             });
         let Some((target, center)) = target else {
             *visibility = Visibility::Hidden;
@@ -428,12 +455,19 @@ pub(crate) fn animate_mahjong_claim_presentation(
         flight.control = midpoint + (center - midpoint).normalize_or_zero() * 52.0;
         let flight_elapsed = active.elapsed - MAHJONG_CLAIM_FLIGHT_DELAY;
         let (position, angle, scale, alpha) = mahjong_claim_flight_pose(flight_elapsed, &flight);
-        node.left = px(position.x - 16.5);
-        node.top = px(position.y - 22.5);
+        node.left = px(position.x - Layout::RIVER_WIDTH * 0.5);
+        node.top = px(position.y - Layout::RIVER_HEIGHT * 0.5);
         transform.rotation = Rot2::radians(angle);
         transform.scale = Vec2::splat(scale);
         if let Some(mut material) = materials.get_mut(&material_node.0) {
             material.params.z = alpha;
+            let progress = (flight_elapsed / MAHJONG_CLAIM_FLIGHT_DURATION).clamp(0.0, 1.0);
+            let landing = if matches!(active.claim, MahjongClaim::Kong) {
+                super::tiles::MAHJONG_KONG_STACK_LIFT
+            } else {
+                0.0
+            };
+            material.elevation = (progress * consts::PI).sin() * 15.0 + landing * progress;
         }
         *visibility = Visibility::Visible;
     }
@@ -462,17 +496,25 @@ pub(crate) fn animate_mahjong_claim_presentation(
         transform.translation = Val2::px(mahjong_claim_hand_shift_x(elapsed, hand.distance), 0.0);
     }
     for (tile, mut transform, mut visibility) in &mut held_tiles {
-        let Some(active) = active.filter(|active| {
-            active.player == tile.player
-                && active.source.is_some()
-                && active.elapsed < mahjong_claim_landing_time()
-        }) else {
-            *visibility = Visibility::Hidden;
+        let Some(active) =
+            active.filter(|active| active.player == tile.player && active.source.is_some())
+        else {
+            *visibility = Visibility::Inherited;
+            *transform = UiTransform::IDENTITY;
             continue;
         };
+        if tile.landing {
+            *visibility = if active.elapsed < mahjong_claim_landing_time() {
+                Visibility::Hidden
+            } else {
+                Visibility::Inherited
+            };
+            *transform = UiTransform::IDENTITY;
+            continue;
+        }
         let (scale_x, offset_y) = mahjong_claim_held_tile_visual(active.elapsed);
         transform.translation = Val2::px(0.0, offset_y);
         transform.scale = Vec2::new(scale_x, 1.0);
-        *visibility = Visibility::Visible;
+        *visibility = Visibility::Inherited;
     }
 }

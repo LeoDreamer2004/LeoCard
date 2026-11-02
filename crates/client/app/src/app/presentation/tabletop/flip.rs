@@ -13,6 +13,11 @@ pub(crate) struct PlayingCardFlip {
     finished: bool,
 }
 
+pub(crate) struct PlayingCardFlipFrame {
+    pub texture: Handle<Image>,
+    pub scale: Vec2,
+}
+
 impl PlayingCardFlip {
     pub(crate) fn new(face: Handle<Image>, back: Handle<Image>, delay: f32) -> Self {
         Self {
@@ -34,6 +39,36 @@ impl PlayingCardFlip {
     pub(crate) fn has_revealed(&self) -> bool {
         self.face_visible
     }
+
+    pub(crate) fn advance(
+        &mut self,
+        delta: f32,
+        deal: Option<&TablePieceDeal>,
+    ) -> Option<PlayingCardFlipFrame> {
+        if self.finished || deal.is_some_and(|deal| !deal.ready()) {
+            return None;
+        }
+        self.elapsed += delta;
+        let progress = ((self.elapsed - self.delay) / self.duration).clamp(0.0, 1.0);
+        self.face_visible = progress >= 0.5;
+        let texture = if self.face_visible {
+            &self.face
+        } else {
+            &self.back
+        }
+        .clone();
+        let horizontal = if progress < 0.5 {
+            1.0 - ease_out_cubic(progress * 2.0)
+        } else {
+            ease_out_cubic((progress - 0.5) * 2.0)
+        };
+        let scale = deal.map_or(1.0, TablePieceDeal::scale);
+        self.finished = progress >= 1.0;
+        Some(PlayingCardFlipFrame {
+            texture,
+            scale: Vec2::new(horizontal.max(0.025), 1.0 + (1.0 - horizontal) * 0.04) * scale,
+        })
+    }
 }
 
 pub(crate) fn animate_playing_card_flips(
@@ -46,24 +81,9 @@ pub(crate) fn animate_playing_card_flips(
     )>,
 ) {
     for (mut flip, deal, mut transform, mut image) in &mut cards {
-        if flip.finished || deal.is_some_and(|deal| !deal.ready()) {
-            continue;
+        if let Some(frame) = flip.advance(time.delta_secs(), deal) {
+            image.image = frame.texture;
+            transform.scale = frame.scale;
         }
-        flip.elapsed += time.delta_secs();
-        let progress = ((flip.elapsed - flip.delay) / flip.duration).clamp(0.0, 1.0);
-        flip.face_visible = progress >= 0.5;
-        image.image = if flip.face_visible {
-            flip.face.clone()
-        } else {
-            flip.back.clone()
-        };
-        let horizontal = if progress < 0.5 {
-            1.0 - ease_out_cubic(progress * 2.0)
-        } else {
-            ease_out_cubic((progress - 0.5) * 2.0)
-        };
-        let scale = deal.map_or(1.0, TablePieceDeal::scale);
-        transform.scale = Vec2::new(horizontal.max(0.025), 1.0 + (1.0 - horizontal) * 0.04) * scale;
-        flip.finished = progress >= 1.0;
     }
 }

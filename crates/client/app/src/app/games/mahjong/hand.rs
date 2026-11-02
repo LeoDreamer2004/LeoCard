@@ -1,23 +1,23 @@
 use super::layout::MahjongLayout as Layout;
+use super::projection::own_overlay;
 use super::tiles::{add_mahjong_hand_tile, mahjong_deal_spec, mahjong_draw_spec};
 use super::{
     ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MahjongAssets, MahjongClaimHandShift,
-    MahjongDiscardHandShift, MahjongOwnDiscardAnimation, MahjongTileHighlight, MahjongTileMaterial,
-    MahjongTileSize, MahjongTileVisual, MahjongUiAction, MahjongWinningHand,
-    add_mahjong_response_indicator, add_mahjong_tile_material, add_mahjong_wait_popup,
-    apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x, mahjong_discard_waits,
-    mahjong_own_row_left, mahjong_win_tile_cues, mahjong_winning_hand_progress,
-    mark_mahjong_win_tile,
+    MahjongDiscardHandShift, MahjongDisplayedHand, MahjongOwnDiscardAnimation,
+    MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongUiAction,
+    MahjongWinningHand, add_mahjong_response_indicator, add_mahjong_tile_material,
+    add_mahjong_wait_popup, apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x,
+    mahjong_discard_waits, mahjong_own_row_left, mahjong_win_tile_cues,
+    mahjong_winning_hand_progress, mark_mahjong_win_tile,
 };
 use crate::app::presentation::GameSummaryAnimation;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_mahjong::MahjongTile;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 #[derive(Clone, Copy)]
 pub(super) struct MahjongWinningHandVisual {
@@ -69,33 +69,55 @@ pub(super) fn render_own_hand(
         .iter()
         .find(|player| player.player.id == game.you)
         .map_or(0, |player| player.melds.len());
+    let result = match &game.phase {
+        MahjongPhaseView::Finished { result } => Some(result),
+        _ => None,
+    };
+    let winner = result.and_then(|result| {
+        result
+            .winners
+            .iter()
+            .find(|winner| winner.player == game.you)
+    });
+    let displayed = MahjongDisplayedHand::new(&game.your_hand, winner);
+    let winning_drawn = displayed.drawn;
+    let mut hand_tiles = displayed.regular;
+    hand_tiles.extend(winning_drawn);
     let can_discard =
         matches!(game.phase, MahjongPhaseView::Playing) && game.current_player == game.you;
     let discard_waits = can_discard.then(|| mahjong_discard_waits(game, show_wait_fans));
-    let separated_tile = if dealing {
+    let separated_tile = if winner.is_some() {
+        winning_drawn
+    } else if dealing {
         game.your_drawn_tile
     } else if can_discard {
         game.your_drawn_tile.or_else(|| {
-            (game.your_hand.len() % 3 == 2)
-                .then(|| game.your_hand.last().copied())
+            (hand_tiles.len() % 3 == 2)
+                .then(|| hand_tiles.last().copied())
                 .flatten()
         })
     } else {
         None
     };
-    let separated_index = separated_tile
-        .and_then(|separated| game.your_hand.iter().position(|tile| *tile == separated));
-    let regular_tile_count = game.your_hand.len() - usize::from(separated_index.is_some());
+    let separated_index =
+        separated_tile.and_then(|separated| hand_tiles.iter().position(|tile| *tile == separated));
+    let regular_tile_count = hand_tiles.len() - usize::from(separated_index.is_some());
     let left = mahjong_own_row_left(meld_count, regular_tile_count)
         + meld_count as f32 * MAHJONG_OWN_MELD_WIDTH;
+    let overlay = own_overlay(commands, table);
     let hand = spawn_node(
         commands,
-        table,
+        overlay,
         Node {
             position_type: PositionType::Absolute,
             left: px(left),
             width: px(Layout::OWN_ROW_WIDTH),
-            bottom: px(8),
+            bottom: px(Layout::OWN_BOTTOM
+                + if winning_hand {
+                    0.0
+                } else {
+                    Layout::OWN_HAND_LIFT
+                }),
             height: px(Layout::OWN_ROW_HEIGHT),
             align_items: AlignItems::FlexEnd,
             justify_content: JustifyContent::FlexStart,
@@ -136,16 +158,12 @@ pub(super) fn render_own_hand(
         ));
     }
     let mut regular_slot = 0;
-    for (index, tile) in game.your_hand.iter().copied().enumerate() {
+    for (index, tile) in hand_tiles.iter().copied().enumerate() {
         if separated_index == Some(index) {
             continue;
         }
         let new_x = left + regular_slot as f32 * Layout::OWN_STEP;
         regular_slot += 1;
-        let result = match &game.phase {
-            MahjongPhaseView::Finished { result } => Some(result),
-            _ => None,
-        };
         let cues = result.map(|result| {
             mahjong_win_tile_cues(result, |winner| {
                 winner.winning_tile == tile
@@ -158,6 +176,7 @@ pub(super) fn render_own_hand(
                 commands,
                 hand,
                 MahjongTileVisual {
+                    elevation: 0.0,
                     kind: Some(tile.kind()),
                     size: MahjongTileSize::OwnMeld,
                     index,
@@ -179,7 +198,7 @@ pub(super) fn render_own_hand(
                 can_discard.then_some(UiAction::Mahjong(MahjongUiAction::Discard(tile))),
                 index,
                 (dealing && !observed_hand.contains(&tile))
-                    .then(|| mahjong_deal_spec(0, index, game.your_hand.len(), Layout::OWN_STEP)),
+                    .then(|| mahjong_deal_spec(0, index, hand_tiles.len(), Layout::OWN_STEP)),
                 assets,
                 materials,
             );
@@ -189,6 +208,7 @@ pub(super) fn render_own_hand(
                     entity,
                     Vec2::new(Layout::OWN_WIDTH, Layout::OWN_HEIGHT),
                     0.0,
+                    false,
                     ui_assets,
                 );
             }
@@ -228,34 +248,65 @@ pub(super) fn render_own_hand(
             None,
         );
         commands.entity(gap).insert(Pickable::IGNORE);
-        let tile = game.your_hand[index];
-        let entity = add_mahjong_hand_tile(
-            commands,
-            hand,
-            tile,
-            can_discard.then_some(UiAction::Mahjong(MahjongUiAction::Discard(tile))),
-            game.your_hand.len(),
-            if drawn_tile_falling && game.your_drawn_tile == Some(tile) {
-                Some(mahjong_draw_spec(0))
-            } else {
-                (dealing && !observed_hand.contains(&tile)).then(|| {
-                    mahjong_deal_spec(
-                        0,
-                        game.your_hand.len().saturating_sub(1),
-                        game.your_hand.len(),
-                        Layout::OWN_STEP,
-                    )
-                })
-            },
-            assets,
-            materials,
-        );
+        let tile = hand_tiles[index];
+        let entity = if winning_hand {
+            add_mahjong_tile_material(
+                commands,
+                hand,
+                MahjongTileVisual {
+                    elevation: 0.0,
+                    kind: Some(tile.kind()),
+                    size: MahjongTileSize::OwnMeld,
+                    index: hand_tiles.len(),
+                    highlight: MahjongTileHighlight::None,
+                    deal: None,
+                    relative: 0,
+                },
+                assets,
+                materials,
+            )
+        } else {
+            add_mahjong_hand_tile(
+                commands,
+                hand,
+                tile,
+                can_discard.then_some(UiAction::Mahjong(MahjongUiAction::Discard(tile))),
+                hand_tiles.len(),
+                if drawn_tile_falling && game.your_drawn_tile == Some(tile) {
+                    Some(mahjong_draw_spec(0))
+                } else {
+                    (dealing && !observed_hand.contains(&tile)).then(|| {
+                        mahjong_deal_spec(
+                            0,
+                            hand_tiles.len().saturating_sub(1),
+                            hand_tiles.len(),
+                            Layout::OWN_STEP,
+                        )
+                    })
+                },
+                assets,
+                materials,
+            )
+        };
+        if let Some(result) = result {
+            let cues = mahjong_win_tile_cues(result, |winner| {
+                winner.player == game.you && winner.from.is_none() && winner.winning_tile == tile
+            });
+            mark_mahjong_win_tile(
+                commands,
+                entity,
+                result,
+                cues,
+                winning_hand.then_some(winning_hand_start),
+            );
+        }
         if response_tile == Some(tile) {
             add_mahjong_response_indicator(
                 commands,
                 entity,
                 Vec2::new(Layout::OWN_WIDTH, Layout::OWN_HEIGHT),
                 0.0,
+                false,
                 ui_assets,
             );
         }

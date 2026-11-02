@@ -134,8 +134,9 @@ fn add_wait_popup(
             commands,
             cell,
             MahjongTileVisual {
+                elevation: 0.0,
                 kind: Some(wait.kind),
-                size: MahjongTileSize::Mini,
+                size: MahjongTileSize::Hint,
                 index,
                 highlight: MahjongTileHighlight::None,
                 deal: None,
@@ -163,7 +164,13 @@ fn add_wait_popup(
 
 fn popup_dimensions(waits: &[MahjongWait]) -> (f32, f32) {
     let show_fans = waits.iter().any(|wait| wait.scores.is_some());
-    let cell_width = if show_fans { 96.0 } else { 31.0 };
+    let cell_width = if show_fans {
+        96.0
+    } else if cfg!(target_os = "android") {
+        40.0
+    } else {
+        31.0
+    };
     let columns = waits.len().min(if show_fans { 6 } else { 10 });
     (cell_width, columns as f32 * cell_width + 14.0)
 }

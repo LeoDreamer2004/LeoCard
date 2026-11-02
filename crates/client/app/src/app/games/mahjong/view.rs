@@ -16,7 +16,7 @@ use super::{
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition, TableBackground,
-    TableBackgroundMaterial, add_auto_play_overlay, table_material_params,
+    TableBackgroundMaterial, TableSurfaceKind, add_auto_play_overlay,
 };
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, ClientResource, GameEvents, TableAppearance, UiAssets,
@@ -30,7 +30,6 @@ use leocard_mahjong::{
     MahjongClaim, MahjongDragon, MahjongFlower, MahjongSuit, MahjongTile, MahjongTileKind,
     MahjongWinRecord, MahjongWind,
 };
-
 use leocard_protocol::{
     GameSnapshot, MahjongEvent, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MatchId,
 };
@@ -39,7 +38,6 @@ use std::collections::VecDeque;
 
 #[cfg(feature = "developer")]
 use crate::app::shell::add_developer_hand_input;
-
 use bevy::prelude::*;
 
 pub(super) const MAHJONG_CLAIM_FLIGHT_DELAY: f32 = 0.18;
@@ -47,21 +45,9 @@ pub(super) const MAHJONG_CLAIM_FLIGHT_DURATION: f32 = 0.52;
 pub(super) const MAHJONG_CLAIM_HAND_SHIFT_DURATION: f32 = 0.34;
 pub(super) const MAHJONG_CLAIM_PRESENTATION_DURATION: f32 = 1.42;
 pub(super) const MAHJONG_FLOWER_PRESENTATION_DURATION: f32 = 1.18;
-pub(super) const MAHJONG_OWN_MELD_WIDTH: f32 = if cfg!(target_os = "android") {
-    218.0
-} else {
-    158.0
-};
-pub(super) const MAHJONG_REMOTE_MELD_WIDTH: f32 = if cfg!(target_os = "android") {
-    104.0
-} else {
-    78.0
-};
-pub(super) const MAHJONG_REMOTE_DRAW_GAP: f32 = if cfg!(target_os = "android") {
-    20.0
-} else {
-    14.0
-};
+pub(super) const MAHJONG_OWN_MELD_WIDTH: f32 = Layout::OWN_STEP * 3.0 + Layout::OWN_MELD_GAP;
+pub(super) const MAHJONG_REMOTE_MELD_WIDTH: f32 = Layout::MINI_STEP * 3.0 + Layout::REMOTE_MELD_GAP;
+pub(super) const MAHJONG_REMOTE_DRAW_GAP: f32 = 5.0;
 
 pub(super) fn mahjong_own_row_left(meld_count: usize, regular_tile_count: usize) -> f32 {
     let tile_width = if regular_tile_count == 0 {
@@ -69,42 +55,16 @@ pub(super) fn mahjong_own_row_left(meld_count: usize, regular_tile_count: usize)
     } else {
         regular_tile_count as f32 * Layout::OWN_STEP + Layout::OWN_WIDTH - Layout::OWN_STEP
     };
-    (DESIGN_WIDTH - meld_count as f32 * MAHJONG_OWN_MELD_WIDTH - tile_width) / 2.0
+    (Layout::OWN_CENTER * 2.0 - meld_count as f32 * MAHJONG_OWN_MELD_WIDTH - tile_width) / 2.0
 }
 
 pub(super) const fn mahjong_remote_tile_advance(relative: u8, revealed: bool) -> f32 {
     if revealed {
         Layout::MINI_STEP
     } else if relative == 2 {
-        if cfg!(target_os = "android") {
-            36.0
-        } else {
-            27.0
-        }
+        16.1
     } else {
-        if cfg!(target_os = "android") {
-            39.0
-        } else {
-            29.0
-        }
-    }
-}
-
-pub(super) const fn mahjong_remote_tile_overhang(relative: u8, mini: bool) -> f32 {
-    if mini {
-        Layout::MINI_WIDTH - Layout::MINI_STEP
-    } else if relative == 2 {
-        if cfg!(target_os = "android") {
-            6.0
-        } else {
-            4.0
-        }
-    } else {
-        if cfg!(target_os = "android") {
-            7.0
-        } else {
-            5.0
-        }
+        16.3
     }
 }
 
@@ -129,7 +89,6 @@ pub(super) struct MahjongDealTile {
     pub start_rotation: f32,
     pub final_offset: Vec2,
     pub final_rotation: f32,
-    pub final_shadow_alpha: f32,
 }
 
 #[derive(Component)]
@@ -202,6 +161,7 @@ pub(crate) struct MahjongClaimHandShift {
 #[derive(Component)]
 pub(crate) struct MahjongClaimHeldTile {
     pub player: PlayerId,
+    pub landing: bool,
 }
 
 #[derive(Component)]
@@ -360,7 +320,6 @@ pub(crate) struct MahjongTableVisuals<'a> {
     pub developer_hand: &'a DeveloperHandInput,
     pub appearance: &'a TableAppearance,
     pub brightness: f32,
-    pub vignette: f32,
     pub table_materials: &'a mut Assets<TableBackgroundMaterial>,
     pub tile_materials: &'a mut Assets<MahjongTileMaterial>,
     pub start_game_transition: &'a StartGameSeatTransition,
@@ -621,7 +580,6 @@ pub(crate) fn render_mahjong_table(
         developer_hand,
         appearance,
         brightness,
-        vignette,
         table_materials,
         tile_materials,
         start_game_transition,
@@ -640,18 +598,15 @@ pub(crate) fn render_mahjong_table(
             ..default()
         }) },
     );
-    let felt = appearance
-        .custom_felt
-        .as_ref()
-        .unwrap_or(&assets.table_felt)
-        .clone();
     let material = commands.material(
         content,
         table_materials,
-        TableBackgroundMaterial {
-            params: table_material_params(brightness, vignette, appearance.custom_felt.is_none()),
-            texture: felt,
-        },
+        TableBackgroundMaterial::new(
+            TableSurfaceKind::Mahjong,
+            brightness,
+            &game_assets.table,
+            appearance.custom_felt.as_ref(),
+        ),
     );
     commands
         .entity(content)
@@ -753,9 +708,7 @@ pub(crate) fn render_mahjong_table(
             .position(|winner| mahjong_win_effect_tier(winner) == MahjongWinEffectTier::MajorFan)
             .map(|index| mahjong_win_stage_start(result, index) + 0.78)
     });
-    if !cfg!(target_os = "android") {
-        render_mahjong_wall(commands, table, game.wall_len, game_assets, tile_materials);
-    }
+    render_mahjong_wall(commands, table, game.wall_len, game_assets, tile_materials);
     let action_prompt = MahjongActionPrompt::from_snapshot(game, ui);
     let response_tile = action_prompt.and_then(MahjongActionPrompt::response_tile);
     render_discard_rivers(
@@ -764,8 +717,8 @@ pub(crate) fn render_mahjong_table(
         game,
         own_seat,
         MahjongDiscardRiverVisuals {
-            response_tile,
             ui_assets: assets,
+            response_tile,
             discard_animation: ui.discard_animation.as_ref(),
             remote_discard: ui.remote_discard_animation.as_ref(),
         },
@@ -801,9 +754,9 @@ pub(crate) fn render_mahjong_table(
             table,
             player,
             MahjongPlayerTileVisuals {
+                ui_assets: assets,
                 robbing_tile: action_prompt
                     .and_then(|prompt| prompt.robbing_tile_for(player.player.id)),
-                ui_assets: assets,
                 own_seat,
                 observed_count: ui.observed_table.state.counts[player.player.id.0 as usize],
                 flower_replaced,
@@ -885,6 +838,7 @@ pub(crate) fn render_mahjong_table(
         table,
         game,
         MahjongOwnHandVisuals {
+            ui_assets: assets,
             response_tile,
             show_wait_fans,
             observed_hand: &ui.observed_table.state.hand,
@@ -897,7 +851,6 @@ pub(crate) fn render_mahjong_table(
             }),
             discard_animation: ui.discard_animation.as_ref(),
             assets: game_assets,
-            ui_assets: assets,
             materials: tile_materials,
         },
     );
@@ -915,7 +868,18 @@ pub(crate) fn render_mahjong_table(
             table,
             developer_hand,
             "编辑手牌，如 123M456P789S1234Z",
-            Vec2::new(8.0, 8.0),
+            Vec2::new(
+                if cfg!(target_os = "android") {
+                    144.0
+                } else {
+                    8.0
+                },
+                if cfg!(target_os = "android") {
+                    240.0
+                } else {
+                    Layout::OWN_ROW_HEIGHT + 12.0
+                },
+            ),
             assets,
         );
     }

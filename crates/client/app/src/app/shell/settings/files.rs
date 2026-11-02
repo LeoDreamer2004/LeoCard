@@ -7,6 +7,7 @@ use crate::app::runtime::{
 };
 use crate::app::shell::UiState;
 use bevy::asset::RenderAssetUsages;
+use bevy::image::ImageSampler;
 use bevy::prelude::*;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
 use leocard_client::pick_image;
@@ -71,6 +72,10 @@ pub(crate) fn poll_table_felt_picker(
                     PersonalEvent::TableBackgroundChanged,
                 )));
             }
+            if result.is_ok() {
+                // Choosing the same file again also reloads edits made to that image.
+                appearance.loaded_path = None;
+            }
             appearance.error = result.err();
         }
         Ok(None) => {}
@@ -99,11 +104,9 @@ pub(crate) fn sync_table_appearance(
             .and_then(|bytes| decode_table_felt_image(&bytes));
         match result {
             Ok(image) => {
-                appearance.custom_felt = Some(images.add(Image::from_dynamic(
-                    image,
-                    true,
-                    RenderAssetUsages::default(),
-                )));
+                let mut image = Image::from_dynamic(image, true, RenderAssetUsages::default());
+                image.sampler = ImageSampler::linear();
+                appearance.custom_felt = Some(images.add(image));
             }
             Err(error) => appearance.error = Some(error),
         }

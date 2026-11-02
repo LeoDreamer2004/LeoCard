@@ -9,14 +9,15 @@ use super::{
 };
 use crate::app::presentation::{
     CardAnimationState, CardSize, GAME_SIDE_CONTROL_SCALE, HandCardHighlight, PendingDealSound,
-    PlayerMenuProfile, PlayerPortraitSpec, SeatSide, TEXT, TurnBorderAnimationKey,
-    TurnBorderMaterial, add_player_portrait, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, hand_card_pose, shengji_hand_card_reveal,
+    PlayerMenuProfile, PlayerPortraitSpec, TEXT, TurnBorderAnimationKey, TurnBorderMaterial,
+    add_player_portrait, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
+    hand_card_pose, shengji_hand_card_reveal,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
+use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use bevy::ui_widgets::Button;
 use leocard_game_common::PlayerId;
@@ -25,8 +26,6 @@ use leocard_protocol::{
 };
 use leocard_shengji::{ShengjiCard, ShengjiTrump};
 use leocard_ui::{CardDragSelection, UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 pub(super) fn add_shengji_hand(
     commands: &mut UiComposer,
@@ -423,6 +422,6 @@ pub(super) fn add_shengji_self_panel(
         );
     }
     if game.dealer == Some(player.player.id) {
-        add_shengji_dealer_badge(commands, panel.portrait, SeatSide::Left, assets);
+        add_shengji_dealer_badge(commands, panel.avatar_ring, assets);
     }
 }

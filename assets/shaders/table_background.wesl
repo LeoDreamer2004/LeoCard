@@ -1,6 +1,6 @@
 import bevy_ui_render::ui_vertex_output::UiVertexOutput;
 
-const CARD_TABLE_CLOSEUP: f32 = 1.5;
+const CARD_TABLE_CLOSEUP: f32 = 1.45;
 
 struct TableBackgroundMaterial {
     // x: brightness, y: 0 centered oval card table, 1 measured rectangular mahjong table.

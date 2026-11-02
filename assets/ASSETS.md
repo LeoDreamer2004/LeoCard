@@ -31,19 +31,6 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 
 ## 需保留署名或许可证的素材
 
-### 牌桌布料和木框
-
-- 运行时文件：`ui/tabletop/table-{felt,rail}.png` 与 `ui/mahjong/table-{felt,rail}.png`。
-- 通过内置 `image_gen` 从原牌桌图分离布料与木框。布料移除烘焙高光与暗角；木框保留木纹、倒角和接触边，内外透明。
-- 扑克采用居中放大的椭圆近景，覆盖视口后再放大 1.5 倍并裁切，只在角落附近保留部分桌边；麻将采用既有透视下的矩形木框。桌布按原比例覆盖并居中裁剪，木框独立采样，避免随自定义图片拉伸。
-- `shaders/table_background.wesl` 为内置和玩家图片统一计算布料光照，扑克灯光位于中央，麻将灯光来自左上角；外观设置仅保留亮度。
-
-### 中央风位刻字
-
-- 运行时文件：`ui/mahjong/wind-label-{east,south,west,north}.png`，分别为「東 南 西 北」。
-- 使用内置 `image_gen` 生成方笔魏碑风格字形，强调硬朗转折和刀刻收笔；南、西按正确笔画结构修订，不沿用正文印刷字体。
-- 图片为黑底白字覆盖率蒙版，`shaders/mahjong_wind_label.wesl` 将亮度作为透明度，统一可见字形的大小与中心，并保留东位金色和其余风位浅色。
-
 ### Qwen3-TTS 生成语音
 
 生成模型：[Qwen3-TTS VoiceDesign](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign) 与 [Qwen3-TTS Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base)，模型卡标注 Apache-2.0。参考音保存在 `audio/reference`，不进入运行时资源包。

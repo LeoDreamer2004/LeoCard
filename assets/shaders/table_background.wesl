@@ -1,5 +1,7 @@
 import bevy_ui_render::ui_vertex_output::UiVertexOutput;
 
+const CARD_TABLE_CLOSEUP: f32 = 1.5;
+
 struct TableBackgroundMaterial {
     // x: brightness, y: 0 centered oval card table, 1 measured rectangular mahjong table.
     params: vec4<f32>,
@@ -33,8 +35,8 @@ fn cover_uv(
 
 fn table_uv(pixel: vec2<f32>, size: vec2<f32>, rail_size: vec2<f32>) -> vec2<f32> {
     if material.params.y < 0.5 {
-        // One uniform scale keeps the complete ellipse and its wood grain undistorted.
-        let fit = min(size.x / rail_size.x, size.y / rail_size.y);
+        // Center-crop an oversized ellipse; the wooden rim keeps one scale on both axes.
+        let fit = max(size.x / rail_size.x, size.y / rail_size.y) * CARD_TABLE_CLOSEUP;
         let extent = rail_size * fit;
         return (pixel - (size - extent) * 0.5) / extent;
     }

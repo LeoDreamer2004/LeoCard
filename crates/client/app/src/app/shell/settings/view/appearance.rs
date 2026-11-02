@@ -92,14 +92,6 @@ impl<'a> TableAppearanceSettings<'a> {
                 38.0,
             );
         }
-        add_text(
-            commands,
-            parent,
-            "图片按原比例居中裁剪，仅替换桌布，保留桌边和桌面光照",
-            13.0,
-            MUTED,
-            assets,
-        );
         SettingsSlider::new(form, assets).render(
             commands,
             parent,

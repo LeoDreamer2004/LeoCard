@@ -12,6 +12,15 @@ pub(crate) enum GameButtonImageMode {
     Sliced { border: f32, corner_scale: f32 },
 }
 
+impl Default for GameButtonImageMode {
+    fn default() -> Self {
+        Self::Sliced {
+            border: 30.0,
+            corner_scale: 0.42,
+        }
+    }
+}
+
 pub(crate) struct GameButtonSpec<'a> {
     pub label: &'a str,
     pub action: Option<UiAction>,
@@ -35,6 +44,9 @@ impl<'a> GameButtonSpec<'a> {
         self.width *= scale;
         self.height *= scale;
         self.font_size *= scale;
+        if let GameButtonImageMode::Sliced { corner_scale, .. } = &mut self.image_mode {
+            *corner_scale *= scale;
+        }
         self
     }
 
@@ -79,7 +91,7 @@ impl<'a> GameButtonSpec<'a> {
             width: 164.0,
             height: 54.0,
             font_size: 18.0,
-            image_mode: GameButtonImageMode::Stretch,
+            image_mode: GameButtonImageMode::default(),
         }
     }
 }
@@ -103,6 +115,7 @@ pub(crate) fn add_textured_game_button(
         node: Node {
             width: px(spec.width),
             height: px(spec.height),
+            flex_shrink: 0.0,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             ..default()

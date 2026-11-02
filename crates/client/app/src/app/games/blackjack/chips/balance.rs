@@ -1,8 +1,7 @@
-use crate::app::presentation::{add_poker_balance_panel, poker_chip_counts};
+use crate::app::presentation::{add_tabletop_balance_panel, poker_chip_counts};
 use crate::app::runtime::UiAssets;
-use leocard_ui::UiComposer;
-
 use bevy::prelude::*;
+use leocard_ui::UiComposer;
 
 pub(in super::super) fn add_blackjack_balance(
     commands: &mut UiComposer,
@@ -10,7 +9,7 @@ pub(in super::super) fn add_blackjack_balance(
     balance: u32,
     assets: &UiAssets,
 ) -> Entity {
-    add_poker_balance_panel(
+    add_tabletop_balance_panel(
         commands,
         portrait,
         Vec2::new(112.0, 90.0),

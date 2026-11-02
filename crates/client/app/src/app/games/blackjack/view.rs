@@ -1,18 +1,16 @@
 use super::{BlackjackPlayback, BlackjackUiState};
 use crate::app::presentation::{
-    DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TableBackground,
-    TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay, table_material_params,
+    CardTableSurface, DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition,
+    TableBackgroundMaterial, TurnBorderMaterial, add_auto_play_overlay,
 };
-use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
+use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
-    ChatPanelState, SocialUiState, UiAction, add_chat_help_button, add_chat_panel,
-    add_reconnecting_overlay,
+    ChatPanelOptions, ChatPanelState, SocialUiState, UiAction, add_reconnecting_overlay,
 };
+use bevy::prelude::*;
 use leocard_blackjack::BlackjackPhase;
 use leocard_protocol::BlackjackSnapshot;
 use leocard_ui::{UiComposer, spawn_node, ui_component};
-
-use bevy::prelude::*;
 
 pub(crate) struct BlackjackTable<'a> {
     pub client: &'a ClientResource,
@@ -23,9 +21,8 @@ pub(crate) struct BlackjackTable<'a> {
     pub chat: &'a ChatPanelState,
     pub assets: &'a UiAssets,
     pub avatars: &'a AvatarImages,
-    pub appearance: &'a TableAppearance,
     pub brightness: f32,
-    pub vignette: f32,
+    pub custom_felt: Option<&'a Handle<Image>>,
     pub table_materials: &'a mut Assets<TableBackgroundMaterial>,
     pub turn_materials: &'a mut Assets<TurnBorderMaterial>,
     pub transition: &'a StartGameSeatTransition,
@@ -41,26 +38,11 @@ pub(crate) fn render_blackjack_table(
     let content = commands.mount(root, format!("blackjack:{:?}:{}", game.match_id, game.round), bsn! { @ui_component(Node {
         width: percent(100), flex_grow: 1.0, min_height: px(0), position_type: PositionType::Relative, ..default()
     }) });
-    let material = commands.material(
-        content,
-        context.table_materials,
-        TableBackgroundMaterial {
-            params: table_material_params(
-                context.brightness,
-                context.vignette,
-                context.appearance.custom_felt.is_none(),
-            ),
-            texture: context
-                .appearance
-                .custom_felt
-                .as_ref()
-                .unwrap_or(&context.assets.table_felt)
-                .clone(),
-        },
-    );
-    commands
-        .entity(content)
-        .insert((MaterialNode(material), TableBackground));
+    CardTableSurface {
+        brightness: context.brightness,
+        custom_felt: context.custom_felt,
+    }
+    .apply(commands, content, context.assets, context.table_materials);
     let table = spawn_node(
         commands,
         content,
@@ -98,20 +80,11 @@ pub(crate) fn render_blackjack_table(
     let auto_play = (game.phase != BlackjackPhase::Complete)
         .then(|| own.map(|player| player.auto_play))
         .flatten();
-    let chat = add_chat_panel(
-        commands,
-        content,
-        context.chat,
-        context.assets,
-        auto_play,
-        &[],
-    );
-    add_chat_help_button(
-        commands,
-        chat,
-        UiAction::Blackjack(super::BlackjackUiAction::ToggleGuide),
-        context.assets,
-    );
+    ChatPanelOptions {
+        help: Some(UiAction::Blackjack(super::BlackjackUiAction::ToggleGuide)),
+        ..ChatPanelOptions::new(auto_play, &[])
+    }
+    .spawn(commands, content, context.chat, context.assets);
     if auto_play == Some(true) {
         add_auto_play_overlay(commands, content, context.assets);
     }

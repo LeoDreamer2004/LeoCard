@@ -81,24 +81,6 @@ impl<'a> LobbyTable<'a> {
             BorderColor::all(Color::srgba(0.62, 0.58, 0.78, 0.36)),
             Pickable::IGNORE,
         ));
-        commands.child(
-            table,
-            (
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(0),
-                    right: px(0),
-                    top: px(0),
-                    bottom: px(0),
-                    ..default()
-                },
-                ImageNode::new(self.assets.table_felt.clone())
-                    .with_mode(NodeImageMode::Stretch)
-                    .with_color(Color::srgba(0.47, 0.43, 0.70, 0.10)),
-                Pickable::IGNORE,
-            ),
-        );
-
         let metrics = LobbyMetrics::new(self.lobby);
         add_title(
             commands,

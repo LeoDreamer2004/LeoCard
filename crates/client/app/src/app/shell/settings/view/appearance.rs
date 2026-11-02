@@ -61,7 +61,7 @@ impl<'a> TableAppearanceSettings<'a> {
             commands,
             path_text,
             form.table_felt_path.as_ref().map_or_else(
-                || "当前使用内置深绿色桌布".to_owned(),
+                || "当前使用默认牌桌背景".to_owned(),
                 |path| format!("图片路径：{}", path.display()),
             ),
             13.0,
@@ -92,12 +92,19 @@ impl<'a> TableAppearanceSettings<'a> {
                 38.0,
             );
         }
-        for setting in [
+        add_text(
+            commands,
+            parent,
+            "图片按原比例居中裁剪，仅替换桌布，保留桌边和桌面光照",
+            13.0,
+            MUTED,
+            assets,
+        );
+        SettingsSlider::new(form, assets).render(
+            commands,
+            parent,
             TableAppearanceSetting::Brightness,
-            TableAppearanceSetting::Vignette,
-        ] {
-            SettingsSlider::new(form, assets).render(commands, parent, setting);
-        }
+        );
         add_text(commands, parent, "MC 竞猜", 20.0, TEXT, assets);
         add_settings_toggle(
             commands,

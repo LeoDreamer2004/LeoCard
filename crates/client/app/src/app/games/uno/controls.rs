@@ -9,12 +9,11 @@ use crate::app::presentation::{
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{UiAction, add_cozy_panel_with_skin};
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
 use leocard_ui::{ButtonTint, UiComposer, spawn_node};
 use leocard_uno::{UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoPendingDrawKind};
-
-use bevy::prelude::*;
 
 fn uno_action_width(label: &str) -> f32 {
     match label.chars().count() {
@@ -78,7 +77,7 @@ fn add_uno_button(
             width,
             height,
             font_size,
-            image_mode: GameButtonImageMode::Stretch,
+            image_mode: GameButtonImageMode::default(),
         }
         .scaled(GAME_SIDE_CONTROL_SCALE),
     )

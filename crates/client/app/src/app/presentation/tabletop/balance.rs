@@ -1,11 +1,11 @@
 use super::add_horizontal_chip_group;
-use crate::app::presentation::{ACCENT, MUTED, add_text, card_background_image};
+use crate::app::presentation::{ACCENT, MUTED, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_ui::{UiComposer, spawn_node};
 
-pub(crate) fn add_poker_balance_panel(
+pub(crate) fn add_tabletop_balance_panel(
     commands: &mut UiComposer,
     parent: Entity,
     portrait_size: Vec2,
@@ -37,7 +37,7 @@ pub(crate) fn add_poker_balance_panel(
         None,
     );
     commands.entity(panel).insert((
-        card_background_image(assets.home.game_card.clone(), 1.0),
+        assets.tabletop.balance_image(),
         GlobalZIndex(1000),
         Pickable::IGNORE,
     ));

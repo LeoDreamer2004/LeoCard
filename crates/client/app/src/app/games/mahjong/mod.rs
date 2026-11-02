@@ -16,15 +16,17 @@ mod modal;
 mod players;
 mod plugin;
 mod presentation;
+mod projection;
 mod screen;
 pub(super) mod settlement;
 mod state;
 mod status;
+mod surfaces;
 mod tile_voices;
 mod tiles;
 mod view;
 mod voices;
-
+mod wind_labels;
 use action_prompt::*;
 pub(crate) use actions::*;
 pub(crate) use assets::*;
@@ -41,12 +43,19 @@ use modal::advance_mahjong_modal;
 use players::*;
 pub(crate) use plugin::*;
 pub(crate) use presentation::*;
+use projection::*;
 use settlement::*;
 pub(crate) use state::*;
 use status::*;
+use surfaces::*;
 use tile_voices::*;
 use tiles::*;
 pub(crate) use view::*;
 use voices::*;
+use wind_labels::*;
 
 pub(super) use screen::MahjongScreen;
+
+#[cfg(test)]
+#[path = "/tmp/mahjong-meld-check.rs"]
+mod meld_check;

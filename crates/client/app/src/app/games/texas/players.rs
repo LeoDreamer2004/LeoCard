@@ -1,21 +1,18 @@
-use super::{
-    TexasChipTableState, TexasPlayerPanel, TexasPlayerShake, TexasSpectatorUiState,
-    TexasTableLayout, add_texas_win_rate, texas_player_border_color,
-};
+use super::{TexasChipTableState, TexasSpectatorUiState, TexasTableLayout, add_texas_win_rate};
 use crate::app::presentation::{
-    ACCENT, HEADER_BG, MUTED, PlayerMenuProfile, PlayerPortraitSpec, SeatSide, TEXT,
-    TurnBorderAnimationKey, TurnBorderMaterial, add_horizontal_chip_group, add_player_portrait,
-    add_poker_balance_panel, add_poker_chip_value, add_text, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, card_background_image, position_opponent_popup,
+    PlayerMenuProfile, PlayerPortraitSpec, SeatSide, TEXT, TurnBorderAnimationKey,
+    TurnBorderMaterial, add_horizontal_chip_group, add_player_portrait, add_player_role_badge,
+    add_player_role_badge_row, add_poker_chip_value, add_tabletop_balance_panel,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition, card_background_image,
+    position_opponent_popup,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::OpponentBadge;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{GameKind, TexasPlayerView, TexasSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 pub(super) const TEXAS_PORTRAIT_WIDTH: f32 = 96.0 * 1.17;
 pub(super) const TEXAS_PORTRAIT_HEIGHT: f32 = 76.0 * 1.17 + 34.0;
@@ -56,9 +53,6 @@ pub(super) fn add_texas_opponent(
         },
         None,
     );
-    commands
-        .entity(seat)
-        .insert(TexasPlayerShake(player.player.id));
     attach_start_game_seat_transition(commands, seat, player.player.id, start_transition_active);
     let portrait = add_player_portrait(
         commands,
@@ -80,20 +74,10 @@ pub(super) fn add_texas_opponent(
             avatar_size: 52.0 * 1.17,
             auto_play: player.auto_play,
             menu_open: interaction_menu_open == Some(player.player.id),
-            name_color: if player.folded { MUTED } else { TEXT },
+            name_color: TEXT,
         },
         assets,
     );
-    let base_border =
-        texas_player_border_color(player, game.current_player == Some(player.player.id));
-    commands.entity(portrait.avatar_ring).insert((
-        TexasPlayerPanel {
-            player: player.player.id,
-            base_border,
-        },
-        Outline::new(px(3.0), px(0), base_border),
-        BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(0)),
-    ));
     if !player.folded && game.current_player == Some(player.player.id) {
         add_turn_border_trace_with_radius(
             commands,
@@ -185,41 +169,13 @@ pub(super) fn add_role_tokens(
     if labels.is_empty() {
         return;
     }
-    let row = spawn_node(
-        commands,
-        avatar,
-        Node {
-            position_type: PositionType::Absolute,
-            right: px(-9),
-            bottom: px(-7),
-            flex_direction: FlexDirection::Row,
-            column_gap: px(2),
-            ..default()
-        },
-        None,
-    );
-    commands.entity(row).insert((ZIndex(45), Pickable::IGNORE));
+    let row = add_player_role_badge_row(commands, avatar);
     for label in labels {
-        let chip = spawn_node(
-            commands,
-            row,
-            Node {
-                min_width: px(18),
-                height: px(18),
-                padding: UiRect::horizontal(px(3)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                border_radius: BorderRadius::all(percent(50)),
-                ..default()
-            },
-            Some(ACCENT),
-        );
-        commands.entity(chip).insert(Pickable::IGNORE);
-        add_text(commands, chip, label, 8.0, HEADER_BG, assets);
+        add_player_role_badge(commands, row, label, assets);
     }
 }
 
-/// 自己与其他玩家的筹码面板共用首页游戏卡片纹理，显示账本中的实际筹码。
+/// 账本中的实际筹码；自己的面板使用木质筹码框，对手悬停面板保持原样。
 pub(super) fn add_texas_chip_popup(
     commands: &mut UiComposer,
     parent: Entity,
@@ -229,7 +185,7 @@ pub(super) fn add_texas_chip_popup(
     stack_counts: &[(u16, usize)],
 ) -> Entity {
     let Some(side) = opponent_side else {
-        return add_poker_balance_panel(
+        return add_tabletop_balance_panel(
             commands,
             parent,
             Vec2::new(TEXAS_PORTRAIT_WIDTH, 76.0 * 1.17),

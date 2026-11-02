@@ -3,7 +3,6 @@
 use super::TexasSpectatorUiState;
 use crate::app::presentation::Observed;
 use bevy::prelude::*;
-use leocard_game_common::PlayerId;
 use leocard_protocol::{MatchId, TexasSnapshot};
 
 #[derive(Resource, Default)]
@@ -45,17 +44,3 @@ pub(crate) struct TexasPotDivider {
     pub old_layout: bool,
     pub elapsed: f32,
 }
-
-#[derive(Component)]
-pub(crate) struct TexasPotHover {
-    pub eligible: Vec<PlayerId>,
-}
-
-#[derive(Component, Clone, Copy)]
-pub(crate) struct TexasPlayerPanel {
-    pub player: PlayerId,
-    pub base_border: Color,
-}
-
-#[derive(Component, Clone, Copy)]
-pub(crate) struct TexasPlayerShake(pub PlayerId);

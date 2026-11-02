@@ -12,11 +12,11 @@ pub(super) struct ActionContext {
     pub player: PlayerId,
 }
 
-/// 冷却跨回合、对局和房间保留；同一个持续等待的操作只通知一次。
+/// 仅在开始等待响应时判断焦点和冷却，不在切屏或冷却结束后补发。
+/// 冷却跨回合、对局和房间保留。
 #[derive(Default)]
 pub(super) struct ActionReminder {
     context: Option<ActionContext>,
-    notified: bool,
     last_attempt: Option<Instant>,
 }
 
@@ -27,20 +27,18 @@ impl ActionReminder {
         focused: bool,
         now: Instant,
     ) -> bool {
-        if self.context != context {
-            self.context = context;
-            self.notified = false;
+        if self.context == context {
+            return false;
         }
+        self.context = context;
         if context.is_none()
             || focused
-            || self.notified
             || self
                 .last_attempt
                 .is_some_and(|last| now.duration_since(last) < REMINDER_COOLDOWN)
         {
             return false;
         }
-        self.notified = true;
         self.last_attempt = Some(now);
         true
     }

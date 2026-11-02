@@ -1,17 +1,5 @@
-use crate::app::presentation::READY;
-use bevy::prelude::*;
-use leocard_protocol::{TexasPhaseView, TexasPlayerView};
+use leocard_protocol::TexasPhaseView;
 use leocard_texas_holdem::{TexasHandCategory, TexasStreet};
-
-pub(super) fn texas_player_border_color(player: &TexasPlayerView, current: bool) -> Color {
-    if player.folded {
-        Color::srgb(0.48, 0.52, 0.50)
-    } else if current {
-        Color::NONE
-    } else {
-        READY
-    }
-}
 
 pub(super) fn street_label(phase: &TexasPhaseView) -> &'static str {
     match phase {

@@ -1,9 +1,8 @@
 //! 桌面外观滑块输入。
 
 use crate::app::presentation::{
-    MAX_TABLE_BRIGHTNESS, MAX_TABLE_VIGNETTE, MIN_TABLE_BRIGHTNESS, MIN_TABLE_VIGNETTE,
-    TableAppearanceIndicator, TableAppearanceLabel, TableAppearanceSetting, TableAppearanceSlider,
-    TableBackground, TableBackgroundMaterial,
+    MAX_TABLE_BRIGHTNESS, MIN_TABLE_BRIGHTNESS, TableAppearanceIndicator, TableAppearanceLabel,
+    TableAppearanceSetting, TableAppearanceSlider, TableBackground, TableBackgroundMaterial,
 };
 use crate::app::runtime::{
     AppearancePreferences, normalize_table_brightness, save_appearance_preferences,
@@ -30,9 +29,6 @@ pub(crate) fn table_appearance_fraction(
 ) -> f32 {
     match setting {
         TableAppearanceSetting::Brightness => table_brightness_fraction(form.table_brightness),
-        TableAppearanceSetting::Vignette => ((form.table_vignette - MIN_TABLE_VIGNETTE)
-            / (MAX_TABLE_VIGNETTE - MIN_TABLE_VIGNETTE))
-            .clamp(0.0, 1.0),
         TableAppearanceSetting::Volume => form.audio_volume,
     }
 }
@@ -44,9 +40,6 @@ pub(crate) fn table_appearance_label(
     match setting {
         TableAppearanceSetting::Brightness => {
             format!("亮度  {:.0}%", form.table_brightness * 100.0)
-        }
-        TableAppearanceSetting::Vignette => {
-            format!("四周视角阴影  {:.0}%", form.table_vignette * 100.0)
         }
         TableAppearanceSetting::Volume => {
             format!("游戏音量  {:.0}%", form.audio_volume * 100.0)
@@ -63,10 +56,6 @@ fn set_table_appearance_from_fraction(
         TableAppearanceSetting::Brightness => {
             form.table_brightness =
                 MIN_TABLE_BRIGHTNESS + fraction * (MAX_TABLE_BRIGHTNESS - MIN_TABLE_BRIGHTNESS);
-        }
-        TableAppearanceSetting::Vignette => {
-            form.table_vignette =
-                MIN_TABLE_VIGNETTE + fraction * (MAX_TABLE_VIGNETTE - MIN_TABLE_VIGNETTE);
         }
         TableAppearanceSetting::Volume => form.audio_volume = fraction,
     }
@@ -121,8 +110,7 @@ pub(crate) fn handle_table_appearance_sliders(
             }
             for background in &backgrounds {
                 if let Some(mut material) = materials.get_mut(background) {
-                    material.params.x = form.table_vignette;
-                    material.params.y = form.table_brightness;
+                    material.params.x = form.table_brightness;
                 }
             }
             global_volume.volume = Volume::Linear(form.audio_volume);

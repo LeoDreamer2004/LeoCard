@@ -1,10 +1,13 @@
 use super::{
-    FAN_VOICE_SPECS, MahjongStatusImages, create_mahjong_status_images, mahjong_tile_asset_path,
-    mahjong_tile_height_asset_path, mahjong_tile_voice_key,
+    FAN_VOICE_SPECS, MahjongTurnLightMaterial, MahjongWindLabelMaterial, MahjongWindLabels,
+    mahjong_tile_asset_path, mahjong_tile_height_asset_path, mahjong_tile_voice_key,
 };
+use crate::app::runtime::TableSurfaceAssets;
+use bevy::image::{ImageLoaderSettings, ImageSampler};
 use bevy::prelude::*;
 use leocard_mahjong::{MahjongFan, MahjongTileKind, build_deck};
 use leocard_protocol::PlayerGender;
+use std::array;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 #[derive(Resource)]
@@ -12,12 +15,15 @@ pub(crate) struct MahjongAssets {
     pub tiles: HashMap<MahjongTileKind, Handle<Image>>,
     pub tile_heights: HashMap<MahjongTileKind, Handle<Image>>,
     pub tile_back: Handle<Image>,
+    pub(super) wind_labels: MahjongWindLabels,
     pub(super) ready_hand: Handle<Image>,
     pub(super) action_prompt: Handle<AudioSource>,
     fan_voices: BTreeMap<MahjongFan, [Handle<AudioSource>; 2]>,
     action_voices: [[[Handle<AudioSource>; 2]; 8]; 2],
     tile_voices: HashMap<MahjongTileKind, [[Handle<AudioSource>; 2]; 2]>,
-    pub(super) status: MahjongStatusImages,
+    pub(super) table: TableSurfaceAssets,
+    pub(super) status: Handle<MahjongTurnLightMaterial>,
+    pub(super) status_lights: [Handle<MahjongTurnLightMaterial>; 4],
 }
 
 #[derive(Clone, Copy)]
@@ -59,7 +65,19 @@ impl MahjongActionVoice {
 }
 
 impl MahjongAssets {
-    pub(super) fn load(asset_server: &AssetServer, images: &mut Assets<Image>) -> Self {
+    pub(super) fn load(
+        asset_server: &AssetServer,
+        lights: &mut Assets<MahjongTurnLightMaterial>,
+        labels: &mut Assets<MahjongWindLabelMaterial>,
+    ) -> Self {
+        let load_image = |name| {
+            asset_server
+                .load_builder()
+                .with_settings(|settings: &mut ImageLoaderSettings| {
+                    settings.sampler = ImageSampler::linear();
+                })
+                .load(format!("ui/mahjong/{name}.png"))
+        };
         let kinds = build_deck()
             .into_iter()
             .map(|tile| tile.kind())
@@ -78,6 +96,10 @@ impl MahjongAssets {
                 )
             })
             .collect();
+        let status_texture = load_image("center-panel");
+        let mut panel = MahjongTurnLightMaterial::new(0, status_texture.clone());
+        panel.params.w = 1.0;
+        let status = lights.add(panel);
         Self {
             tiles,
             tile_heights,
@@ -121,7 +143,20 @@ impl MahjongAssets {
                     (kind, voices)
                 })
                 .collect(),
-            status: create_mahjong_status_images(images),
+            table: TableSurfaceAssets::load(
+                asset_server,
+                "ui/mahjong",
+                Vec4::new(83.0, 83.0, 1172.0, 1164.0) / 1254.0,
+                Vec4::new(10.0, 8.0, 1244.0, 1245.0) / 1254.0,
+            ),
+            wind_labels: MahjongWindLabels::load(asset_server, labels),
+            status,
+            status_lights: array::from_fn(|relative| {
+                lights.add(MahjongTurnLightMaterial::new(
+                    relative as u8,
+                    status_texture.clone(),
+                ))
+            }),
         }
     }
 
@@ -167,7 +202,8 @@ impl MahjongAssets {
 pub(super) fn load_mahjong_assets(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut images: ResMut<Assets<Image>>,
+    mut lights: ResMut<Assets<MahjongTurnLightMaterial>>,
+    mut labels: ResMut<Assets<MahjongWindLabelMaterial>>,
 ) {
-    commands.insert_resource(MahjongAssets::load(&asset_server, &mut images));
+    commands.insert_resource(MahjongAssets::load(&asset_server, &mut lights, &mut labels));
 }

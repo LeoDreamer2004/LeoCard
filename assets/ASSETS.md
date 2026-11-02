@@ -20,11 +20,9 @@
 | Kenney Interface Sounds 1.0 | 通用界面提示和德州、UNO、升级操作音效 | `vendor/kenney/interface-sounds/` | CC0 1.0；<https://kenney.nl/assets/interface-sounds> |
 | Kenney Casino Audio 1.1 | 发牌、出牌、推牌、筹码和结算音效 | `vendor/kenney/casino-audio/` | CC0 1.0；<https://kenney.nl/assets/casino-audio> |
 | VerzatileDev 4 Colour Cards | UNO 牌面、选色状态和 UNO 牌背 | `cards/uno/` | CC0 1.0；<https://verzatiledev.itch.io/4colour>，许可声明见 <https://verzatiledev.itch.io/4colour/devlog/1447489/now-cc0-license> |
-| n4 / OpenGameArt | 内置深绿色桌布纹理 | `vendor/opengameart/green-textile/table_felt_dark_green.png` | CC0；<https://opengameart.org/content/seamless-pattern-pack-greentextilepng> |
 | BigSoundBank / Joseph SARDIN | 升级游戏的断电、通电音效 | `audio/shengji/power-off.ogg`、`power-on.ogg` | CC0 / public-domain equivalent；<https://bigsoundbank.com/electric-switch-s0026.html> |
 
-`table_felt_dark_green.png` 是 OpenGameArt 原纹理的项目内衍生版本，降低了亮度和饱和度；
-其来源与加工说明见同目录的 `SOURCE.md`。`power-off.ogg` 与 `power-on.ogg` 由
+`power-off.ogg` 与 `power-on.ogg` 由
 Electric switch #0026 的瞬态片段裁剪并做响度规范化而成；原始文件校验值与加工记录见
 `vendor/bigsoundbank/electric-switch/SOURCE.md`。
 
@@ -32,6 +30,19 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 日期和 SHA-256 记录在 `vendor/verzatiledev/4-colour-cards/SOURCE.md`。
 
 ## 需保留署名或许可证的素材
+
+### 牌桌布料和木框
+
+- 运行时文件：`ui/tabletop/table-{felt,rail}.png` 与 `ui/mahjong/table-{felt,rail}.png`。
+- 通过内置 `image_gen` 从原牌桌图分离布料与木框。布料移除烘焙高光与暗角；木框保留木纹、倒角和接触边，内外透明。
+- 扑克采用居中的完整椭圆木框，麻将采用既有透视下的矩形木框。桌布按原比例覆盖并居中裁剪，木框独立采样，避免随自定义图片拉伸。
+- `shaders/table_background.wesl` 为内置和玩家图片统一计算布料光照，扑克灯光位于中央，麻将灯光来自左上角；外观设置仅保留亮度。
+
+### 中央风位刻字
+
+- 运行时文件：`ui/mahjong/wind-label-{east,south,west,north}.png`，分别为「東 南 西 北」。
+- 使用内置 `image_gen` 生成方笔魏碑风格字形，强调硬朗转折和刀刻收笔；南、西按正确笔画结构修订，不沿用正文印刷字体。
+- 图片为黑底白字覆盖率蒙版，`shaders/mahjong_wind_label.wesl` 将亮度作为透明度，统一可见字形的大小与中心，并保留东位金色和其余风位浅色。
 
 ### Qwen3-TTS 生成语音
 

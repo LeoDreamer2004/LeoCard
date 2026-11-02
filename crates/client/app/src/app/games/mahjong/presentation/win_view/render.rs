@@ -1,3 +1,4 @@
+use super::super::super::projection::projected_overlay;
 use super::super::super::{
     MahjongAssets, MahjongTileMaterial, MahjongWinEffect, MahjongWinEffectText,
     MahjongWinEffectTier, mahjong_win_effect_tier, mahjong_win_reveal_duration,
@@ -60,9 +61,10 @@ pub(crate) fn render_mahjong_win_effects(
             continue;
         };
         let position = MahjongSeatGeometry::river_anchor(relative);
+        let overlay = projected_overlay(commands, table);
         let holder = spawn_node(
             commands,
-            table,
+            overlay,
             Node {
                 position_type: PositionType::Absolute,
                 left: px(position.x - 55.0),

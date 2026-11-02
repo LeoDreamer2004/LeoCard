@@ -2,7 +2,8 @@ use self::catalog::{ENTRIES, FanGuideEntry};
 use super::super::actions::MahjongUiAction;
 use super::super::{
     MAHJONG_KONG_STACK_LIFT, MahjongAssets, MahjongTileHighlight, MahjongTileMaterial,
-    MahjongTileSize, MahjongTileVisual, MahjongUiState, add_mahjong_tile_material,
+    MahjongTileSize, MahjongTileSurface, MahjongTileVisual, MahjongUiState,
+    add_mahjong_tile_material,
 };
 use super::*;
 use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
@@ -80,10 +81,7 @@ pub(in super::super) fn sync_mahjong_fan_guide(
 
 pub(in super::super) fn animate_mahjong_fan_guide_tiles(
     ui: Res<MahjongUiState>,
-    mut tiles: Query<
-        (&MaterialNode<MahjongTileMaterial>, Option<&mut BoxShadow>),
-        With<MahjongFanGuideTile>,
-    >,
+    mut tiles: Query<(&MahjongTileSurface, Option<&mut BoxShadow>), With<MahjongFanGuideTile>>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
 ) {
     let progress = ui.fan_guide_progress;
@@ -496,6 +494,7 @@ pub(super) fn render_example(
                 commands,
                 tiles,
                 MahjongTileVisual {
+                    elevation: 0.0,
                     kind: guide_base_kind(kind, kong, exposed),
                     size: if kong {
                         guide_kong_size(exposed)
@@ -531,6 +530,7 @@ pub(super) fn render_example(
                 commands,
                 top,
                 MahjongTileVisual {
+                    elevation: 0.0,
                     kind: Some(kinds[3]),
                     size: guide_kong_size(exposed),
                     index: 3,

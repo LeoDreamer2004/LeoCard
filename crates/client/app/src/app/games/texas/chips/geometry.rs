@@ -5,9 +5,9 @@ pub(super) fn texas_pot_chip_zone(squid_enabled: bool) -> ChipZoneLayout {
         let left = if squid_enabled { 600.0 } else { 349.0 };
         return ChipZoneLayout {
             left,
-            top: 270.0,
+            top: 304.0,
             width: 931.0 - left,
-            height: 50.0,
+            height: 40.0,
         };
     }
     // Reserve the left column below the street label for squid coins.
@@ -16,9 +16,9 @@ pub(super) fn texas_pot_chip_zone(squid_enabled: bool) -> ChipZoneLayout {
         left,
         // Keep pot chips below the board cards, but reclaim the space that used
         // to be reserved for the "底池" title.
-        top: 260.0,
+        top: 278.0,
         width: 840.0 - left,
-        height: 128.0,
+        height: 110.0,
     }
 }
 
@@ -36,26 +36,5 @@ pub(super) fn texas_pot_partition_zone(
         top: whole.top,
         width,
         height: whole.height,
-    }
-}
-
-/// The visual centre zone contains both the board cards and the physical pot.
-/// Chip scattering still uses `texas_pot_chip_zone`, so chips cannot cover cards.
-pub(super) fn texas_center_zone_panel() -> ChipZoneLayout {
-    if cfg!(target_os = "android") {
-        return ChipZoneLayout {
-            left: 334.0,
-            top: 140.0,
-            width: 612.0,
-            height: 198.0,
-        };
-    }
-    ChipZoneLayout {
-        // Keep the board and pot in one frame while leaving a gap to the
-        // player chip zones above, below, and on both sides.
-        left: 420.0,
-        top: 158.0,
-        width: 440.0,
-        height: 240.0,
     }
 }

@@ -1,3 +1,4 @@
+use super::controls::{side_button_tint, side_control_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -15,18 +16,10 @@ pub(crate) fn add_chat_help_button(
         (
             Button,
             action,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(-32),
-                top: px(234),
-                width: px(32),
-                height: px(32),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
+            side_control_node(234.0),
             GlobalZIndex(2000),
-            ImageNode::new(assets.home.help_question.clone()),
+            assets.tabletop.help_image(),
+            side_button_tint(),
         ),
     );
 }

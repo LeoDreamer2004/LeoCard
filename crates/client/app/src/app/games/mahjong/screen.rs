@@ -108,7 +108,6 @@ impl GameScreen for MahjongScreen<'_> {
                 developer_hand,
                 appearance,
                 brightness: form.table_brightness,
-                vignette: form.table_vignette,
                 table_materials,
                 tile_materials: &mut self.tile_materials,
                 start_game_transition: transition,

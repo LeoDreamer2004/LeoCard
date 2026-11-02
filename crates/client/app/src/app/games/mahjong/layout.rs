@@ -1,17 +1,32 @@
-//! Android 使用无牌山的大牌布局，桌面端保留原来的尺寸和坐标。
-
+//! 共用标定后的桌面坐标，Android 扩大前景手牌和操作区。
+use super::projection::world_layout;
 use bevy::prelude::*;
+use leocard_mahjong::MahjongTile;
+use std::f32::consts;
 
 pub(super) struct MahjongLayout;
 
 impl MahjongLayout {
+    // The source glyphs are 600 × 800. The upper rim is additional depth, not part of the face.
+    pub const FACE_ASPECT_RATIO: f32 = 3.0 / 4.0;
+    pub const OWN_RIM_RATIO: f32 = 0.115;
+    pub const TABLE_TILE_THICKNESS: f32 = 0.6;
+    pub const OWN_MELD_GAP: f32 = 8.0;
+    pub const REMOTE_MELD_GAP: f32 = 12.0;
+    pub const REMOTE_HAND_GAP: f32 = 18.0;
+    pub const WALL_SCALE: f32 = 0.62;
+    pub const WALL_DISTANCE: f32 = 9.8;
+    pub const OPPOSITE_WALL_DISTANCE: f32 = 8.8;
+    pub const CENTER_FORWARD: f32 = 0.6;
+    pub const OWN_HAND_LIFT: f32 = 12.0;
+
     pub const BUTTON_WIDTH: f32 = if cfg!(target_os = "android") {
         212.0
     } else {
         164.0
     };
     pub const BUTTON_HEIGHT: f32 = if cfg!(target_os = "android") {
-        74.0
+        64.0
     } else {
         54.0
     };
@@ -21,99 +36,95 @@ impl MahjongLayout {
         20.0
     };
 
+    pub const OWN_CENTER: f32 = if cfg!(target_os = "android") {
+        574.12
+    } else {
+        556.3
+    };
+    pub const OWN_BOTTOM: f32 = if cfg!(target_os = "android") {
+        8.4
+    } else {
+        7.5
+    };
     pub const OWN_WIDTH: f32 = if cfg!(target_os = "android") {
+        76.56
+    } else {
+        60.9
+    };
+    pub const OWN_HEIGHT: f32 =
+        Self::OWN_WIDTH * (1.0 / Self::FACE_ASPECT_RATIO + Self::OWN_RIM_RATIO);
+    pub const OWN_STEP: f32 = if cfg!(target_os = "android") {
         78.0
     } else {
-        56.0
+        62.0
     };
-    pub const OWN_HEIGHT: f32 = if cfg!(target_os = "android") {
-        106.0
-    } else {
-        76.0
-    };
-    pub const OWN_STEP: f32 = if cfg!(target_os = "android") {
-        70.0
-    } else {
-        50.0
-    };
-    pub const OWN_ROW_HEIGHT: f32 = if cfg!(target_os = "android") {
-        118.0
-    } else {
-        88.0
-    };
+    pub const OWN_ROW_HEIGHT: f32 = Self::OWN_HEIGHT + 18.0;
     pub const OWN_ROW_WIDTH: f32 = if cfg!(target_os = "android") {
-        1060.0
+        1150.0
     } else {
-        760.0
+        1000.0
     };
     pub const DRAW_GAP: f32 = if cfg!(target_os = "android") {
-        30.0
-    } else {
-        22.0
-    };
-    pub const MINI_WIDTH: f32 = if cfg!(target_os = "android") {
-        36.0
-    } else {
-        27.0
-    };
-    pub const MINI_HEIGHT: f32 = if cfg!(target_os = "android") {
-        50.0
-    } else {
-        37.0
-    };
-    pub const MINI_STEP: f32 = if cfg!(target_os = "android") {
-        32.0
-    } else {
         24.0
-    };
-    pub const REMOTE_HEIGHT: f32 = if cfg!(target_os = "android") {
-        72.0
     } else {
-        54.0
-    };
-    pub const RIVER_WIDTH: f32 = if cfg!(target_os = "android") {
-        44.0
-    } else {
-        33.0
-    };
-    pub const RIVER_HEIGHT: f32 = if cfg!(target_os = "android") {
-        60.0
-    } else {
-        45.0
-    };
-    pub const RIVER_STEP: f32 = if cfg!(target_os = "android") {
-        40.0
-    } else {
-        30.0
-    };
-    pub const RIVER_COLUMNS: usize = if cfg!(target_os = "android") { 12 } else { 6 };
-    pub const RIVER_ROWS_HEIGHT: f32 = if cfg!(target_os = "android") {
-        112.0
-    } else {
-        126.0
-    };
-    pub const RIVER_ROWS_WIDTH: f32 = if cfg!(target_os = "android") {
-        484.0
-    } else {
-        182.0
+        18.7
     };
 
+    pub const MINI_WIDTH: f32 = 16.0;
+    pub const MINI_HEIGHT: f32 = Self::MINI_WIDTH / Self::FACE_ASPECT_RATIO;
+    pub const MINI_STEP: f32 = 16.5;
+    pub const REMOTE_HEIGHT: f32 = 30.0;
+    pub const RIVER_WIDTH: f32 = 16.0;
+    pub const RIVER_HEIGHT: f32 = Self::RIVER_WIDTH / Self::FACE_ASPECT_RATIO;
+    pub const RIVER_STEP: f32 = 16.5;
+    pub const RIVER_COLUMNS: usize = 6;
+    pub const RIVER_ROWS_HEIGHT: f32 = Self::RIVER_HEIGHT * 3.0 + 1.5;
+    pub const RIVER_ROWS_WIDTH: f32 = 99.0;
+
+    pub fn river_tile_rotation(tile: MahjongTile, relative: u8) -> f32 {
+        // Physical tile identity keeps the small variation stable across snapshots and claimed discards.
+        let identity = tile.kind().index34().unwrap_or(34) as u32 * 4 + u32::from(tile.copy());
+        let hash = (identity + u32::from(relative) * 149 + 1).wrapping_mul(2_654_435_761);
+        ((hash >> 16) % 2001) as f32 / 1000.0 * 0.014 - 0.014
+    }
+
+    pub const fn river_tile_layer(relative: u8, index: usize) -> i32 {
+        let row = (index / Self::RIVER_COLUMNS) as i32;
+        let column = (index % Self::RIVER_COLUMNS) as i32;
+        // Sort by screen depth after rotating the river, then by its horizontal position.
+        match relative {
+            0 => row * 32 + column,
+            1 => -column * 32 + row,
+            2 => -row * 32 - column,
+            _ => column * 32 - row,
+        }
+    }
+
     pub fn river_origin(relative: u8) -> Vec2 {
-        let (x, y) = if cfg!(target_os = "android") {
-            match relative {
-                0 => (398.0, 350.0),
-                1 => (768.0, 264.0),
-                2 => (398.0, 110.0),
-                _ => (28.0, 264.0),
-            }
-        } else {
-            match relative {
-                0 => (549.0, 382.0),
-                1 => (735.0, 245.0),
-                2 => (533.0, 150.0),
-                _ => (331.0, 245.0),
-            }
+        let mut first = match relative {
+            0 => Vec2::new(-2.7078, -4.1388),
+            1 => Vec2::new(4.0517, -2.7940),
+            2 => Vec2::new(2.6217, 3.9348),
+            _ => Vec2::new(-4.1415, 2.8361),
         };
-        Vec2::new(x, y)
+        first.y -= Self::CENTER_FORWARD;
+        let half = Vec2::new(Self::RIVER_ROWS_WIDTH, Self::RIVER_ROWS_HEIGHT) * 0.5;
+        let tile_center = Vec2::new(Self::RIVER_WIDTH, Self::RIVER_HEIGHT) * 0.5;
+        world_layout(first)
+            - half
+            - Rot2::radians(-f32::from(relative) * consts::FRAC_PI_2) * (tile_center - half)
+    }
+
+    pub fn river_tile_center(relative: u8, index: usize) -> Vec2 {
+        let half = Vec2::new(Self::RIVER_ROWS_WIDTH, Self::RIVER_ROWS_HEIGHT) * 0.5;
+        let local = Vec2::new(Self::RIVER_WIDTH, Self::RIVER_HEIGHT) * 0.5
+            + Vec2::new(
+                (index % Self::RIVER_COLUMNS) as f32 * Self::RIVER_STEP,
+                (index / Self::RIVER_COLUMNS) as f32
+                    * (Self::RIVER_HEIGHT + Self::RIVER_STEP - Self::RIVER_WIDTH),
+            );
+        Self::river_origin(relative)
+            + half
+            + Rot2::radians(-f32::from(relative) * consts::FRAC_PI_2) * (local - half)
     }
 }

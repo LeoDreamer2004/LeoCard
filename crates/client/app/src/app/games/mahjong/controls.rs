@@ -1,8 +1,9 @@
 use super::layout::MahjongLayout as Layout;
+use super::projection::own_overlay;
 use super::{
-    MahjongActionPrompt, MahjongAssets, MahjongChoiceMenu, MahjongTileHighlight,
-    MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongUiAction, MahjongUiState,
-    add_mahjong_tile_material,
+    MAHJONG_KONG_STACK_LIFT, MahjongActionPrompt, MahjongAssets, MahjongChoiceMenu,
+    MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongUiAction,
+    MahjongUiState, add_mahjong_tile_material,
 };
 use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
@@ -11,7 +12,7 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
-use leocard_mahjong::{MahjongClaim, MahjongClaimOption, MahjongTileKind};
+use leocard_mahjong::{MahjongClaim, MahjongClaimOption, MahjongMeldKind, MahjongTileKind};
 use leocard_protocol::MahjongSnapshot;
 use leocard_ui::{BackgroundButtonTint, ButtonHighlight, ButtonTint, UiComposer, spawn_node};
 
@@ -41,18 +42,33 @@ pub(super) fn render_action_bar(
     let Some(prompt) = MahjongActionPrompt::from_snapshot(game, ui) else {
         return;
     };
+    let overlay = own_overlay(commands, table);
+    let stack_clearance = if game
+        .players
+        .iter()
+        .find(|player| player.player.id == game.you)
+        .is_some_and(|player| {
+            player
+                .melds
+                .iter()
+                .any(|meld| matches!(meld.kind, MahjongMeldKind::Kong(_)))
+        }) {
+        MAHJONG_KONG_STACK_LIFT
+    } else {
+        0.0
+    };
     let bar = spawn_node(
         commands,
-        table,
+        overlay,
         Node {
             position_type: PositionType::Absolute,
             left: px(if cfg!(target_os = "android") { 80 } else { 240 }),
             right: px(if cfg!(target_os = "android") { 80 } else { 240 }),
-            bottom: px(if cfg!(target_os = "android") {
-                138
-            } else {
-                104
-            }),
+            bottom: px(Layout::OWN_BOTTOM
+                + Layout::OWN_HAND_LIFT
+                + Layout::OWN_HEIGHT
+                + 12.0
+                + stack_clearance),
             min_height: px(Layout::BUTTON_HEIGHT),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -242,7 +258,7 @@ fn add_choice_button(
         Node {
             position_type: PositionType::Absolute,
             left: px(-38),
-            bottom: px(62),
+            bottom: px(Layout::BUTTON_HEIGHT + 8.0),
             width: px(if cfg!(target_os = "android") {
                 320
             } else {
@@ -295,6 +311,7 @@ fn add_choice_button(
                 commands,
                 tiles,
                 MahjongTileVisual {
+                    elevation: 0.0,
                     kind: Some(choice.tiles[index]),
                     size: MahjongTileSize::GuideHand,
                     index,

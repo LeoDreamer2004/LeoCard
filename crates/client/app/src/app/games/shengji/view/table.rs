@@ -14,18 +14,19 @@ use super::{
 };
 use crate::app::games::shengji::ShengjiClientState;
 use crate::app::presentation::{
-    ACCENT, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec, SeatSide,
-    StartGameSeatTransition, TEXT, TableBackground, TableBackgroundMaterial, TrickSeatLayout,
+    ACCENT, CardTableSurface, HEADER_BG, MUTED, PanelSkin, PlayerMenuProfile, PlayerPortraitSpec,
+    SeatSide, StartGameSeatTransition, TEXT, TableBackgroundMaterial, TrickSeatLayout,
     TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay, add_player_portrait,
-    add_text, add_turn_border_trace_with_radius, attach_start_game_seat_transition,
-    decorate_panel_skin, table_material_params,
+    add_player_role_badge, add_player_role_badge_row, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, decorate_panel_skin,
 };
-use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
+use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
-    ChatAuxiliaryAction, ChatPanelState, SocialUiState, UiAction, add_chat_panel,
+    ChatAuxiliaryAction, ChatPanelOptions, ChatPanelState, SocialUiState, UiAction,
     add_reconnecting_overlay,
 };
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
@@ -34,16 +35,13 @@ use leocard_protocol::{
 use leocard_shengji::ShengjiBottomFlipReveal;
 use leocard_ui::{UiComposer, spawn_node, ui_component};
 
-use bevy::prelude::*;
-
 pub(crate) struct ShengjiTableVisuals<'a> {
     pub client_state: &'a ShengjiClientState,
     pub assets: &'a UiAssets,
     pub game_assets: &'a ShengjiAssets,
     pub avatars: &'a AvatarImages,
-    pub appearance: &'a TableAppearance,
     pub brightness: f32,
-    pub vignette: f32,
+    pub custom_felt: Option<&'a Handle<Image>>,
     pub table_materials: &'a mut Assets<TableBackgroundMaterial>,
     pub turn_border_materials: &'a mut Assets<TurnBorderMaterial>,
     pub start_game_transition: &'a StartGameSeatTransition,
@@ -78,27 +76,11 @@ pub(crate) fn render_shengji_table(
             ..default()
         }) },
     );
-    let felt = visuals
-        .appearance
-        .custom_felt
-        .as_ref()
-        .unwrap_or(&visuals.assets.table_felt)
-        .clone();
-    let material = commands.material(
-        content,
-        visuals.table_materials,
-        TableBackgroundMaterial {
-            params: table_material_params(
-                visuals.brightness,
-                visuals.vignette,
-                visuals.appearance.custom_felt.is_none(),
-            ),
-            texture: felt,
-        },
-    );
-    commands
-        .entity(content)
-        .insert((MaterialNode(material), TableBackground));
+    CardTableSurface {
+        brightness: visuals.brightness,
+        custom_felt: visuals.custom_felt,
+    }
+    .apply(commands, content, visuals.assets, visuals.table_materials);
 
     let table = spawn_node(
         commands,
@@ -262,25 +244,23 @@ pub(crate) fn render_shengji_table(
     let buried_cards = !game.your_buried.is_empty() && !finished;
     let auxiliary_actions = [
         ChatAuxiliaryAction {
-            label: "上轮",
+            label: "上",
             action: previous_trick
                 .filter(|available| *available)
                 .map(|_| UiAction::Shengji(ShengjiUiAction::ShowPreviousTrick)),
             highlighted: false,
         },
         ChatAuxiliaryAction {
-            label: "底牌",
+            label: "底",
             action: buried_cards.then_some(UiAction::Shengji(ShengjiUiAction::ToggleBuried)),
             highlighted: false,
         },
     ];
-    add_chat_panel(
+    ChatPanelOptions::new(local_auto_play, &auxiliary_actions).spawn(
         commands,
         content,
         chat,
         visuals.assets,
-        local_auto_play,
-        &auxiliary_actions,
     );
     if let ShengjiPhaseView::Finished { result, buried } = &game.phase {
         add_shengji_result(
@@ -645,41 +625,16 @@ fn add_shengji_player_panel(
         );
     }
     if game.dealer == Some(player.player.id) {
-        add_shengji_dealer_badge(commands, panel.portrait, side, assets);
+        add_shengji_dealer_badge(commands, panel.avatar_ring, assets);
     }
 }
 
 pub(super) fn add_shengji_dealer_badge(
     commands: &mut UiComposer,
-    portrait: Entity,
-    side: SeatSide,
+    avatar: Entity,
     assets: &UiAssets,
 ) {
-    let badge = spawn_node(
-        commands,
-        portrait,
-        Node {
-            position_type: PositionType::Absolute,
-            right: if matches!(side, SeatSide::Right) {
-                Val::Auto
-            } else {
-                px(6)
-            },
-            left: if matches!(side, SeatSide::Right) {
-                px(6)
-            } else {
-                Val::Auto
-            },
-            top: px(0),
-            width: px(21),
-            height: px(21),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            border_radius: BorderRadius::all(percent(50)),
-            ..default()
-        },
-        Some(ACCENT),
-    );
+    let row = add_player_role_badge_row(commands, avatar);
+    let badge = add_player_role_badge(commands, row, "庄", assets);
     commands.entity(badge).insert(ShengjiDealerBadge);
-    add_text(commands, badge, "庄", 11.0, Color::BLACK, assets);
 }

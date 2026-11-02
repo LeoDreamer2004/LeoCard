@@ -1,22 +1,15 @@
 use super::super::layout::MahjongLayout as Layout;
 use super::super::{
-    ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MAHJONG_REMOTE_MELD_WIDTH,
-    MahjongAssets, MahjongClaimHeldTile, MahjongDealSpec, MahjongDealTile, MahjongMatchingTileKind,
-    MahjongTileHighlight, MahjongTileMaterial, mahjong_local_light, mahjong_local_shadow,
+    MahjongAssets, MahjongDealSpec, MahjongDealTile, MahjongDisplayedHand, MahjongMatchingTileKind,
+    MahjongTileHighlight, MahjongTileMaterial, attach_mahjong_tile_surface, mahjong_local_light,
 };
-use super::claim::{MahjongClaimLandingSlot, mahjong_claim_held_tile_visual};
 use bevy::picking::Pickable;
-use leocard_mahjong::{
-    MahjongClaim, MahjongKongKind, MahjongMeldKind, MahjongPublicMeld, MahjongTileKind,
-    MahjongWinRecord, MahjongWind,
-};
-
+use bevy::prelude::*;
+use leocard_mahjong::{MahjongMeldKind, MahjongTileKind, MahjongWinRecord, MahjongWind};
 use leocard_protocol::MahjongPlayerView;
 use leocard_ui::{UiComposer, spawn_node};
 
-use bevy::prelude::*;
-
-pub(crate) const MAHJONG_KONG_STACK_LIFT: f32 = 12.0;
+pub(crate) const MAHJONG_KONG_STACK_LIFT: f32 = Layout::TABLE_TILE_THICKNESS * 30.0;
 
 #[derive(Clone, Copy)]
 pub(crate) enum MahjongTileSize {
@@ -26,297 +19,24 @@ pub(crate) enum MahjongTileSize {
     GuideConcealedMeld,
     SettlementHand,
     Mini,
+    Hint,
     MiniConcealedMeld,
     WinUpright,
     OwnMeld,
     OwnConcealedMeld,
+    ShowcaseMeld,
     HiddenSide,
     HiddenOpposite,
 }
 
 pub(crate) struct MahjongTileVisual {
+    pub elevation: f32,
     pub kind: Option<MahjongTileKind>,
     pub size: MahjongTileSize,
     pub index: usize,
     pub highlight: MahjongTileHighlight,
     pub deal: Option<MahjongDealSpec>,
     pub relative: u8,
-}
-
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn render_mahjong_staged_meld(
-    commands: &mut UiComposer,
-    parent: Entity,
-    claim: &ActiveMahjongClaimPresentation,
-    index: &mut usize,
-    relative: u8,
-    assets: &MahjongAssets,
-    materials: &mut Assets<MahjongTileMaterial>,
-) {
-    let Some(claimed_tile) = claim.tile else {
-        return;
-    };
-    let claimed_kind = claimed_tile.kind();
-    let base = match claim.claim {
-        MahjongClaim::Chow { start } => {
-            let MahjongTileKind::Suited { suit, rank } = claimed_kind else {
-                return;
-            };
-            let mut base = [
-                Some(MahjongTileKind::suited(suit, start)),
-                Some(MahjongTileKind::suited(suit, start + 1)),
-                Some(MahjongTileKind::suited(suit, start + 2)),
-            ];
-            base[usize::from(rank - start)] = None;
-            base
-        }
-        MahjongClaim::Pung => [Some(claimed_kind), None, Some(claimed_kind)],
-        MahjongClaim::Kong => [Some(claimed_kind); 3],
-        MahjongClaim::Pass | MahjongClaim::Win => return,
-    };
-    let own_meld = relative == 0;
-    let tile_size = if own_meld {
-        MahjongTileSize::OwnMeld
-    } else {
-        MahjongTileSize::Mini
-    };
-    let (group_width, group_height, tile_width, tile_height, tile_overlap) = if own_meld {
-        (
-            MAHJONG_OWN_MELD_WIDTH,
-            Layout::OWN_ROW_HEIGHT,
-            Layout::OWN_WIDTH,
-            Layout::OWN_HEIGHT,
-            Layout::OWN_STEP - Layout::OWN_WIDTH,
-        )
-    } else {
-        (
-            MAHJONG_REMOTE_MELD_WIDTH,
-            Layout::REMOTE_HEIGHT,
-            Layout::MINI_WIDTH,
-            Layout::MINI_HEIGHT,
-            Layout::MINI_STEP - Layout::MINI_WIDTH,
-        )
-    };
-    let group = spawn_node(
-        commands,
-        parent,
-        Node {
-            position_type: PositionType::Relative,
-            width: px(group_width),
-            min_width: px(group_width),
-            height: px(group_height),
-            align_items: AlignItems::FlexEnd,
-            flex_direction: FlexDirection::Row,
-            overflow: Overflow::visible(),
-            ..default()
-        },
-        None,
-    );
-    let (scale_x, offset_y) = mahjong_claim_held_tile_visual(claim.elapsed);
-    for kind in base {
-        if let Some(kind) = kind {
-            let tile = add_mahjong_tile_material(
-                commands,
-                group,
-                MahjongTileVisual {
-                    kind: Some(kind),
-                    size: tile_size,
-                    index: *index,
-                    highlight: MahjongTileHighlight::None,
-                    deal: None,
-                    relative,
-                },
-                assets,
-                materials,
-            );
-            commands.entity(tile).insert((
-                MahjongClaimHeldTile {
-                    player: claim.player,
-                },
-                UiTransform {
-                    translation: Val2::px(0.0, offset_y),
-                    scale: Vec2::new(scale_x, 1.0),
-                    ..default()
-                },
-            ));
-        } else {
-            let slot = spawn_node(
-                commands,
-                group,
-                Node {
-                    width: px(tile_width),
-                    min_width: px(tile_width),
-                    height: px(tile_height),
-                    margin: UiRect::right(px(tile_overlap)),
-                    ..default()
-                },
-                None,
-            );
-            commands.entity(slot).insert((
-                MahjongClaimLandingSlot {
-                    player: claim.player,
-                },
-                Pickable::IGNORE,
-            ));
-        }
-        *index += 1;
-    }
-    if matches!(claim.claim, MahjongClaim::Kong) {
-        let (left, width, height) = if own_meld {
-            (Layout::OWN_STEP, Layout::OWN_WIDTH, Layout::OWN_HEIGHT)
-        } else {
-            (Layout::MINI_STEP, Layout::MINI_WIDTH, Layout::MINI_HEIGHT)
-        };
-        let slot = spawn_node(
-            commands,
-            group,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(left),
-                top: px(group_height - height - MAHJONG_KONG_STACK_LIFT),
-                width: px(width),
-                height: px(height),
-                ..default()
-            },
-            None,
-        );
-        commands.entity(slot).insert((
-            MahjongClaimLandingSlot {
-                player: claim.player,
-            },
-            Pickable::IGNORE,
-        ));
-    }
-}
-
-pub(crate) fn render_mahjong_meld(
-    commands: &mut UiComposer,
-    parent: Entity,
-    meld: &MahjongPublicMeld,
-    index: &mut usize,
-    relative: u8,
-    assets: &MahjongAssets,
-    materials: &mut Assets<MahjongTileMaterial>,
-) {
-    let (base, stacked) = match (meld.kind, meld.tile) {
-        (MahjongMeldKind::Chow, Some(MahjongTileKind::Suited { suit, rank })) => (
-            vec![
-                Some(MahjongTileKind::suited(suit, rank)),
-                Some(MahjongTileKind::suited(suit, rank + 1)),
-                Some(MahjongTileKind::suited(suit, rank + 2)),
-            ],
-            None,
-        ),
-        (MahjongMeldKind::Pung, Some(kind)) => (vec![Some(kind); 3], None),
-        (MahjongMeldKind::Kong(MahjongKongKind::Concealed), Some(kind)) => {
-            (vec![None; 3], Some(Some(kind)))
-        }
-        (MahjongMeldKind::Kong(MahjongKongKind::Concealed), None) => (vec![None; 3], Some(None)),
-        (MahjongMeldKind::Kong(MahjongKongKind::Melded), Some(kind)) => {
-            (vec![Some(kind); 3], Some(Some(kind)))
-        }
-        _ => return,
-    };
-    let own_meld = relative == 0;
-    let concealed_kong = matches!(meld.kind, MahjongMeldKind::Kong(MahjongKongKind::Concealed));
-    let tile_size = if concealed_kong && own_meld {
-        MahjongTileSize::OwnConcealedMeld
-    } else if concealed_kong {
-        MahjongTileSize::MiniConcealedMeld
-    } else if own_meld {
-        MahjongTileSize::OwnMeld
-    } else {
-        MahjongTileSize::Mini
-    };
-    let (group_width, group_height, stack_left, stack_width, stack_height) = if own_meld {
-        (
-            MAHJONG_OWN_MELD_WIDTH,
-            Layout::OWN_ROW_HEIGHT,
-            Layout::OWN_STEP,
-            Layout::OWN_WIDTH,
-            Layout::OWN_HEIGHT,
-        )
-    } else {
-        (
-            MAHJONG_REMOTE_MELD_WIDTH,
-            Layout::REMOTE_HEIGHT,
-            Layout::MINI_STEP,
-            Layout::MINI_WIDTH,
-            Layout::MINI_HEIGHT,
-        )
-    };
-    let group = spawn_node(
-        commands,
-        parent,
-        Node {
-            position_type: PositionType::Relative,
-            width: px(group_width),
-            min_width: px(group_width),
-            height: px(group_height),
-            align_items: AlignItems::FlexEnd,
-            flex_direction: FlexDirection::Row,
-            overflow: Overflow::visible(),
-            ..default()
-        },
-        None,
-    );
-    for kind in base {
-        add_mahjong_tile_material(
-            commands,
-            group,
-            MahjongTileVisual {
-                kind,
-                size: tile_size,
-                index: *index,
-                highlight: MahjongTileHighlight::None,
-                deal: None,
-                relative,
-            },
-            assets,
-            materials,
-        );
-        *index += 1;
-    }
-    if let Some(kind) = stacked {
-        let holder = spawn_node(
-            commands,
-            group,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(stack_left),
-                top: px(group_height - stack_height - MAHJONG_KONG_STACK_LIFT),
-                width: px(stack_width),
-                height: px(stack_height),
-                overflow: Overflow::visible(),
-                ..default()
-            },
-            None,
-        );
-        commands.entity(holder).insert(ZIndex(100 + *index as i32));
-        let stacked_tile = add_mahjong_tile_material(
-            commands,
-            holder,
-            MahjongTileVisual {
-                kind,
-                size: tile_size,
-                index: *index,
-                highlight: MahjongTileHighlight::None,
-                deal: None,
-                relative,
-            },
-            assets,
-            materials,
-        );
-        let shadow = mahjong_local_shadow(relative) * 1.4;
-        commands.entity(stacked_tile).insert(BoxShadow::new(
-            Color::BLACK.with_alpha(0.24),
-            px(shadow.x),
-            px(shadow.y),
-            px(0),
-            px(4),
-        ));
-        *index += 1;
-    }
 }
 
 pub(crate) fn add_mahjong_tile_material(
@@ -327,6 +47,7 @@ pub(crate) fn add_mahjong_tile_material(
     materials: &mut Assets<MahjongTileMaterial>,
 ) -> Entity {
     let MahjongTileVisual {
+        elevation,
         kind,
         size,
         index,
@@ -349,26 +70,22 @@ pub(crate) fn add_mahjong_tile_material(
             Layout::MINI_HEIGHT,
             Layout::MINI_STEP - Layout::MINI_WIDTH,
         ),
+        MahjongTileSize::Hint => {
+            if cfg!(target_os = "android") {
+                (36.0, 50.0, -4.0)
+            } else {
+                (27.0, 37.0, -3.0)
+            }
+        }
         MahjongTileSize::WinUpright => (56.0, 76.0, -6.0),
+        MahjongTileSize::ShowcaseMeld => (56.0, 76.0, -6.0),
         MahjongTileSize::OwnMeld | MahjongTileSize::OwnConcealedMeld => (
             Layout::OWN_WIDTH,
             Layout::OWN_HEIGHT,
             Layout::OWN_STEP - Layout::OWN_WIDTH,
         ),
-        MahjongTileSize::HiddenSide => {
-            if cfg!(target_os = "android") {
-                (46.0, 62.0, -7.0)
-            } else {
-                (34.0, 46.0, -5.0)
-            }
-        }
-        MahjongTileSize::HiddenOpposite => {
-            if cfg!(target_os = "android") {
-                (42.0, 57.0, -6.0)
-            } else {
-                (31.0, 42.0, -4.0)
-            }
-        }
+        MahjongTileSize::HiddenSide => (16.0, 10.4, 0.3),
+        MahjongTileSize::HiddenOpposite => (16.0, 8.96, 0.1),
     };
     let back = kind.is_none();
     let glyph = kind.map_or_else(
@@ -402,34 +119,19 @@ pub(crate) fn add_mahjong_tile_material(
     };
     let final_rotation = 0.0;
     let final_offset = Vec2::ZERO;
-    let final_shadow_alpha = match size {
-        MahjongTileSize::GuideHand | MahjongTileSize::SettlementHand => 0.0,
-        MahjongTileSize::River
-        | MahjongTileSize::GuideMeld
-        | MahjongTileSize::GuideConcealedMeld => 0.12,
-        MahjongTileSize::Mini | MahjongTileSize::MiniConcealedMeld => 0.08,
-        MahjongTileSize::WinUpright
-        | MahjongTileSize::OwnMeld
-        | MahjongTileSize::OwnConcealedMeld => 0.12,
-        MahjongTileSize::HiddenSide | MahjongTileSize::HiddenOpposite => 0.14,
-    };
-    let shadow = mahjong_local_shadow(relative);
     let entity = commands.child(
         parent,
         (
             node,
-            BoxShadow::new(
-                Color::BLACK.with_alpha(if deal.is_some() {
-                    0.0
-                } else {
-                    final_shadow_alpha
-                }),
-                px(shadow.x),
-                px(shadow.y),
-                px(0),
-                px(2),
-            ),
-            ZIndex(index as i32),
+            Pickable::IGNORE,
+            // Farther rows must be painted first, so their shadows cannot cover the nearer faces.
+            ZIndex(if matches!(size, MahjongTileSize::River) {
+                Layout::river_tile_layer(relative, index)
+            } else if matches!(relative, 1 | 2) {
+                -(index as i32)
+            } else {
+                index as i32
+            }),
             UiTransform {
                 translation: Val2::px(final_offset.x, final_offset.y),
                 rotation: Rot2::radians(final_rotation),
@@ -438,10 +140,25 @@ pub(crate) fn add_mahjong_tile_material(
         ),
     );
 
+    let table_projection = matches!(
+        size,
+        MahjongTileSize::River
+            | MahjongTileSize::Mini
+            | MahjongTileSize::MiniConcealedMeld
+            | MahjongTileSize::HiddenSide
+            | MahjongTileSize::HiddenOpposite
+            | MahjongTileSize::OwnMeld
+            | MahjongTileSize::OwnConcealedMeld
+    );
     let material = commands.material(
         entity,
         materials,
         MahjongTileMaterial {
+            table_projection,
+            overlay_projection: matches!(
+                size,
+                MahjongTileSize::OwnMeld | MahjongTileSize::OwnConcealedMeld
+            ),
             params: Vec4::new(
                 0.0,
                 if back { 1.0 } else { 0.0 },
@@ -452,21 +169,23 @@ pub(crate) fn add_mahjong_tile_material(
                     MahjongTileSize::GuideHand
                     | MahjongTileSize::SettlementHand
                     | MahjongTileSize::WinUpright => -1.0,
-                    MahjongTileSize::OwnMeld => -4.0,
+                    MahjongTileSize::OwnMeld | MahjongTileSize::ShowcaseMeld => -4.0,
                     MahjongTileSize::GuideMeld => -4.0,
                     MahjongTileSize::OwnConcealedMeld
                     | MahjongTileSize::MiniConcealedMeld
                     | MahjongTileSize::GuideConcealedMeld => -5.0,
-                    MahjongTileSize::River | MahjongTileSize::Mini => 0.0,
+                    MahjongTileSize::River | MahjongTileSize::Mini | MahjongTileSize::Hint => 0.0,
                 },
             ),
             lighting: mahjong_local_light(relative),
             highlight: highlight.overlay(),
+            elevation,
             glyph,
             height: height_texture,
+            ..default()
         },
     );
-    commands.entity(entity).insert(MaterialNode(material));
+    attach_mahjong_tile_surface(commands, entity, material, table_projection);
     if let Some(kind) = kind
         && !matches!(
             size,
@@ -474,6 +193,8 @@ pub(crate) fn add_mahjong_tile_material(
                 | MahjongTileSize::SettlementHand
                 | MahjongTileSize::GuideMeld
                 | MahjongTileSize::GuideConcealedMeld
+                | MahjongTileSize::ShowcaseMeld
+                | MahjongTileSize::Hint
         )
     {
         commands
@@ -488,7 +209,6 @@ pub(crate) fn add_mahjong_tile_material(
             start_rotation: deal.start_rotation,
             final_offset,
             final_rotation,
-            final_shadow_alpha,
         });
     }
     entity
@@ -534,6 +254,7 @@ pub(crate) fn render_mahjong_win_tile_row(
                 commands,
                 group,
                 MahjongTileVisual {
+                    elevation: 0.0,
                     kind,
                     size: sizes.meld,
                     index,
@@ -567,59 +288,60 @@ pub(crate) fn render_mahjong_win_tile_row(
         },
         None,
     );
-    let mut omitted_winning_tile = false;
-    if let Some(revealed) = &player.revealed_hand {
-        for tile in revealed {
-            if !omitted_winning_tile && *tile == winner.winning_tile {
-                omitted_winning_tile = true;
-                continue;
-            }
-            add_mahjong_tile_material(
-                commands,
-                concealed,
-                MahjongTileVisual {
-                    kind: Some(tile.kind()),
-                    size: sizes.hand,
-                    index,
-                    highlight: MahjongTileHighlight::None,
-                    deal: None,
-                    relative: 0,
-                },
-                assets,
-                materials,
-            );
-            index += 1;
-        }
+    let displayed = MahjongDisplayedHand::new(
+        player.revealed_hand.as_deref().unwrap_or_default(),
+        Some(winner),
+    );
+    for tile in displayed.regular {
+        add_mahjong_tile_material(
+            commands,
+            concealed,
+            MahjongTileVisual {
+                elevation: 0.0,
+                kind: Some(tile.kind()),
+                size: sizes.hand,
+                index,
+                highlight: MahjongTileHighlight::None,
+                deal: None,
+                relative: 0,
+            },
+            assets,
+            materials,
+        );
+        index += 1;
     }
-    let winning = spawn_node(
-        commands,
-        hand,
-        Node {
-            margin: UiRect::left(px(14)),
-            ..default()
-        },
-        None,
-    );
-    add_mahjong_tile_material(
-        commands,
-        winning,
-        MahjongTileVisual {
-            kind: Some(winner.winning_tile.kind()),
-            size: sizes.hand,
-            index,
-            highlight: MahjongTileHighlight::None,
-            deal: None,
-            relative: 0,
-        },
-        assets,
-        materials,
-    );
+    if let Some(drawn) = displayed.drawn {
+        let winning = spawn_node(
+            commands,
+            hand,
+            Node {
+                margin: UiRect::left(px(14)),
+                ..default()
+            },
+            None,
+        );
+        add_mahjong_tile_material(
+            commands,
+            winning,
+            MahjongTileVisual {
+                elevation: 0.0,
+                kind: Some(drawn.kind()),
+                size: sizes.hand,
+                index,
+                highlight: MahjongTileHighlight::None,
+                deal: None,
+                relative: 0,
+            },
+            assets,
+            materials,
+        );
+    }
     hand
 }
 
 pub(crate) fn wind_label(wind: MahjongWind) -> &'static str {
     match wind {
-        MahjongWind::East => "东",
+        MahjongWind::East => "東",
         MahjongWind::South => "南",
         MahjongWind::West => "西",
         MahjongWind::North => "北",

@@ -1,15 +1,14 @@
 use super::DoudizhuTable;
 use crate::app::presentation::{
-    ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, SeatSide, TEXT, TRICK_AVATAR_SIZE,
+    ACCENT, PlayerMenuProfile, PlayerPortraitSpec, SeatSide, TEXT, TRICK_AVATAR_SIZE,
     TRICK_PORTRAIT_WIDTH, TrickSeatLayout, TurnBorderAnimationKey, add_hand_count_score,
     add_player_portrait, add_text, add_turn_border_trace_with_radius,
     attach_start_game_seat_transition,
 };
+use bevy::prelude::*;
 use leocard_doudizhu::DoudizhuPhase;
 use leocard_protocol::{DoudizhuPlayerView, GameKind};
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 impl DoudizhuTable<'_> {
     pub(super) fn players(
@@ -119,7 +118,7 @@ impl DoudizhuTable<'_> {
                 avatar_size: TRICK_AVATAR_SIZE,
                 auto_play: player.auto_play,
                 menu_open: !intro && self.social.interaction_menu_open == Some(player.player.id),
-                name_color: if player.connected { TEXT } else { MUTED },
+                name_color: TEXT,
             },
             self.assets,
         );

@@ -18,7 +18,7 @@ default-members = [
 resolver = "3"
 
 [workspace.package]
-version = "0.10.4"
+version = "0.11.0"
 edition = "2024"
 license = "GPL-3.0-only"
 rust-version = "1.99.1"
@@ -88,7 +88,7 @@ tokio = { version = "1.53", features = [
 ] }
 winit = { version = "0.30", default-features = false }
 winresource = "0.1"
-winreg = "0.55"
+winreg = "0.56"
 
 [profile.release]
 opt-level = 3

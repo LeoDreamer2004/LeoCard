@@ -1,8 +1,8 @@
 use super::*;
 use crate::app::presentation::{
     ACCENT, LobbyEmptySeatLabel, LobbyEmptySeatRing, LobbySeatHover, LobbySeatLayout,
-    LobbySeatTransitionSource, LobbySeatVisual, MUTED, PlayerMenuProfile, READY, TEXT, add_avatar,
-    add_host_crown, add_text, attach_player_interactions,
+    LobbySeatTransitionSource, LobbySeatVisual, MUTED, PlayerMenuProfile, READY, TEXT,
+    add_framed_avatar, add_host_crown, add_text, attach_player_interactions,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{LobbySeatedAvatar, LobbyUiAction, UiAction, reference_level};
@@ -199,29 +199,31 @@ impl<'a> OccupiedLobbySeat<'a> {
         commands
             .entity(container)
             .insert(LobbySeatTransitionSource(self.player.player.id));
-        let avatar_ring = self.spawn_avatar_ring(commands, visual);
         let handle = self
             .player
             .player
             .avatar
             .and_then(|id| self.avatars.remote.get(&id));
-        let avatar = add_avatar(
+        let framed = add_framed_avatar(
             commands,
-            avatar_ring,
+            visual,
+            "avatar",
             &self.player.player.name,
             handle,
-            54.0,
+            58.0,
             self.assets,
         );
+        let avatar_ring = framed.frame;
         commands
-            .entity(avatar)
-            .insert(LobbySeatedAvatar(self.player.player.id))
-            .entry::<Node>()
-            .and_modify(|mut node| {
-                node.border = UiRect::ZERO;
-                node.border_radius = BorderRadius::all(px(58.0 * 0.2 - 2.0));
-                node.overflow = Overflow::clip();
-            });
+            .entity(framed.avatar)
+            .insert(LobbySeatedAvatar(self.player.player.id));
+        if self.is_you {
+            commands
+                .entity(avatar_ring)
+                .insert(Outline::new(px(2), px(0), ACCENT));
+        } else {
+            commands.entity(avatar_ring).remove::<Outline>();
+        }
         attach_player_interactions(
             commands,
             container,
@@ -253,35 +255,6 @@ impl<'a> OccupiedLobbySeat<'a> {
         self.add_status(commands, visual);
     }
 
-    fn spawn_avatar_ring(&self, commands: &mut UiComposer, parent: Entity) -> Entity {
-        let ring = spawn_node(
-            commands,
-            parent,
-            Node {
-                width: px(58),
-                height: px(58),
-                min_width: px(58),
-                position_type: PositionType::Relative,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                border: UiRect::all(px(2)),
-                border_radius: BorderRadius::all(px(58.0 * 0.2)),
-                ..default()
-            },
-            Some(Color::srgba(0.03, 0.07, 0.06, 0.88)),
-        );
-        commands
-            .entity(ring)
-            .insert(BorderColor::all(if self.is_you {
-                ACCENT
-            } else if self.player.ready {
-                READY
-            } else {
-                MUTED.with_alpha(0.7)
-            }));
-        ring
-    }
-
     fn add_ready_badge(&self, commands: &mut UiComposer, parent: Entity) {
         commands.child(
             parent,
@@ -295,6 +268,7 @@ impl<'a> OccupiedLobbySeat<'a> {
                     ..default()
                 },
                 ImageNode::new(self.assets.home.checkbox_selected.clone()),
+                ZIndex(40),
                 Pickable::IGNORE,
             ),
         );

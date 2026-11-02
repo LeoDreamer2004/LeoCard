@@ -10,12 +10,11 @@ use crate::app::presentation::{
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SocialUiState, UiAction, add_cozy_panel_with_skin};
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{GameKind, UnoPendingSwapView, UnoPhaseView, UnoPlayerView, UnoSnapshot};
 use leocard_ui::{UiComposer, add_avatar_status_overlay, spawn_node};
 use leocard_uno::UnoCard;
-
-use bevy::prelude::*;
 
 const UNO_OPPONENT_HAND_WIDTH: f32 = 172.0;
 const UNO_OPPONENT_CARD_WIDTH: f32 = 44.0;
@@ -115,7 +114,7 @@ pub(super) fn add_uno_player_panel(
             avatar_size: UNO_AVATAR_SIZE,
             auto_play: player.auto_play,
             menu_open: !selecting && social.interaction_menu_open == Some(player.player.id),
-            name_color: if player.connected { TEXT } else { MUTED },
+            name_color: TEXT,
         },
         assets,
     );

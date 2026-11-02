@@ -1,4 +1,4 @@
-//! Shared settings slider for brightness, vignette and volume.
+//! Shared settings slider for brightness and volume.
 
 use super::super::CozySettingsSlider;
 use crate::app::presentation::{

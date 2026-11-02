@@ -4,6 +4,7 @@ use super::super::{GameLobbyContext, GameScreen, GameTableContext};
 use super::{
     TexasChipTableState, TexasTableVisuals, TexasUiState, render_texas_lobby, render_texas_table,
 };
+use crate::app::presentation::TableCardMaterial;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::SocialUiState;
 use bevy::ecs::system::SystemParam;
@@ -16,6 +17,7 @@ use leocard_ui::UiComposer;
 pub(crate) struct TexasScreen<'w> {
     ui: ResMut<'w, TexasUiState>,
     chips: Res<'w, TexasChipTableState>,
+    card_materials: ResMut<'w, Assets<TableCardMaterial>>,
 }
 
 impl GameScreen for TexasScreen<'_> {
@@ -94,9 +96,9 @@ impl GameScreen for TexasScreen<'_> {
             TexasTableVisuals {
                 assets,
                 avatars,
-                appearance,
+                card_materials: &mut self.card_materials,
                 brightness: form.table_brightness,
-                vignette: form.table_vignette,
+                custom_felt: appearance.custom_felt.as_ref(),
                 table_materials,
                 turn_border_materials,
                 start_game_transition: transition,

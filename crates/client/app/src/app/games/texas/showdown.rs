@@ -17,7 +17,7 @@ pub(super) struct TexasShowdownBestCard {
     pub source: Vec2,
     pub target: Vec2,
     pub delay: f32,
-    pub start_scale: f32,
+    pub start_scale: Vec2,
 }
 
 #[derive(Component)]
@@ -75,8 +75,7 @@ pub(super) fn animate_texas_showdown_reveal(
         transform.translation = Val2::px(position.x - card.target.x, position.y - card.target.y);
         let settle = ((elapsed - 1.42) / 0.48).clamp(0.0, 1.0);
         let pulse = (settle * consts::PI).sin() * 0.045;
-        transform.scale =
-            Vec2::splat(card.start_scale + (1.0 - card.start_scale) * movement + pulse);
+        transform.scale = card.start_scale.lerp(Vec2::ONE, movement) + Vec2::splat(pulse);
         let alpha = ((elapsed - card.delay) / 0.10).clamp(0.0, 1.0) * (1.0 - exit);
         image.color = Color::WHITE.with_alpha(alpha);
         border.set_all(Color::srgb(0.90, 0.73, 0.28).with_alpha(alpha * (0.48 + settle * 0.42)));

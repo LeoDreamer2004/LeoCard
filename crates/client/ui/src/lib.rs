@@ -1,6 +1,7 @@
 //! Reusable Bevy scene composition, input and interface primitives.
 
 mod anchored_popup;
+mod avatar_frame;
 mod avatar_overlay;
 mod bubble;
 mod button;
@@ -20,6 +21,7 @@ mod text;
 mod text_input;
 
 pub use anchored_popup::*;
+pub use avatar_frame::*;
 pub use avatar_overlay::*;
 pub use bubble::*;
 pub use button::*;

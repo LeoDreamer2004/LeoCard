@@ -11,35 +11,32 @@ use super::{
 };
 use crate::app::games::qigui523::QiGuiClientState;
 use crate::app::presentation::{
-    GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation, PlayEffectKind, PlayEffectState,
-    PlayerMenuProfile, PlayerPortraitSpec, StartGameSeatTransition, TEXT, TableBackground,
+    CardTableSurface, GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation, PlayEffectKind,
+    PlayEffectState, PlayerMenuProfile, PlayerPortraitSpec, StartGameSeatTransition, TEXT,
     TableBackgroundMaterial, TurnBorderAnimationKey, TurnBorderMaterial, add_auto_play_overlay,
     add_no_legal_response_hint, add_play_effect_overlay, add_player_portrait, add_text,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition, table_material_params,
+    add_turn_border_trace_with_radius, attach_start_game_seat_transition,
 };
-use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
+use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
+#[cfg(feature = "developer")]
+use crate::app::shell::add_developer_hand_input;
 use crate::app::shell::{
-    ChatPanelState, DeveloperHandInput, FinishedHandScoreSource, ScoreCaptureEffectState,
-    SocialUiState, UiAction, add_chat_panel, add_reconnecting_overlay,
+    ChatPanelOptions, ChatPanelState, DeveloperHandInput, FinishedHandScoreSource,
+    ScoreCaptureEffectState, SocialUiState, UiAction, add_reconnecting_overlay,
 };
+use bevy::prelude::*;
 use leocard_protocol::{
     GameKind, GameRules, QiGui523PhaseView, QiGui523Snapshot, SeatId, TABLE_SEAT_COUNT,
 };
 use leocard_ui::{UiComposer, spawn_node, ui_component};
-
-#[cfg(feature = "developer")]
-use crate::app::shell::add_developer_hand_input;
-
-use bevy::prelude::*;
 
 pub(crate) struct TableVisualContext<'a> {
     pub client_state: &'a QiGuiClientState,
     pub assets: &'a UiAssets,
     pub game_assets: &'a QiGui523Assets,
     pub avatars: &'a AvatarImages,
-    pub appearance: &'a TableAppearance,
     pub brightness: f32,
-    pub vignette: f32,
+    pub custom_felt: Option<&'a Handle<Image>>,
     pub table_materials: &'a mut Assets<TableBackgroundMaterial>,
     pub game_summary: &'a GameSummaryAnimation,
     pub play_effect: &'a PlayEffectState,
@@ -70,9 +67,8 @@ pub(crate) fn render_table(
         assets,
         game_assets,
         avatars,
-        appearance,
         brightness,
-        vignette,
+        custom_felt,
         table_materials,
         game_summary,
         play_effect,
@@ -92,22 +88,11 @@ pub(crate) fn render_table(
             ..default()
         }) },
     );
-    let felt = appearance
-        .custom_felt
-        .as_ref()
-        .unwrap_or(&assets.table_felt)
-        .clone();
-    let material = commands.material(
-        content,
-        table_materials,
-        TableBackgroundMaterial {
-            params: table_material_params(*brightness, *vignette, appearance.custom_felt.is_none()),
-            texture: felt,
-        },
-    );
-    commands
-        .entity(content)
-        .insert((MaterialNode(material), TableBackground));
+    CardTableSurface {
+        brightness: *brightness,
+        custom_felt: *custom_felt,
+    }
+    .apply(commands, content, assets, table_materials);
     let current = game.trick.as_ref().map(|trick| trick.current_player);
     let start_transition_active = start_game_transition.is_active_for(game.match_id);
     let table = spawn_node(
@@ -499,7 +484,7 @@ pub(crate) fn render_table(
     let local_auto_play = matches!(game.phase, QiGui523PhaseView::Playing)
         .then(|| self_state.map(|player| player.auto_play))
         .flatten();
-    add_chat_panel(commands, content, chat, assets, local_auto_play, &[]);
+    ChatPanelOptions::new(local_auto_play, &[]).spawn(commands, content, chat, assets);
     if local_auto_play == Some(true) {
         add_auto_play_overlay(commands, content, assets);
     }

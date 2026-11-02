@@ -1,8 +1,9 @@
 use super::super::{
-    MahjongTileHighlight, MahjongTileMaterial, MahjongWinDecoration, MahjongWinDecorationKind,
-    MahjongWinEffect, MahjongWinEffectText, MahjongWinEffectTier, MahjongWinFanGlyph,
-    MahjongWinScreenShake, MahjongWinStageKind, MahjongWinStagePart, MahjongWinningHand,
-    mahjong_win_effect_tier, mahjong_win_reveal_duration, mahjong_win_stage_start,
+    MahjongTileHighlight, MahjongTileMaterial, MahjongTileRestRotation, MahjongTileSurface,
+    MahjongWinDecoration, MahjongWinDecorationKind, MahjongWinEffect, MahjongWinEffectText,
+    MahjongWinEffectTier, MahjongWinFanGlyph, MahjongWinScreenShake, MahjongWinStageKind,
+    MahjongWinStagePart, MahjongWinningHand, mahjong_win_effect_tier, mahjong_win_reveal_duration,
+    mahjong_win_stage_start,
 };
 use super::MAHJONG_WIN_PUSH_DURATION;
 use super::win_view::{
@@ -66,27 +67,32 @@ pub(crate) fn mark_mahjong_win_tile(
     if cues.is_empty() {
         return;
     }
-    commands.entity(entity).insert((
-        MahjongWinTileShake {
-            reveal_duration: mahjong_win_reveal_duration(result),
-            cues,
-            hand_reveal_start,
-        },
-        GlobalZIndex(0),
-    ));
+    commands.entity(entity).insert(MahjongWinTileShake {
+        reveal_duration: mahjong_win_reveal_duration(result),
+        cues,
+        hand_reveal_start,
+    });
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "the animation preserves each tile's local pose and only temporarily promotes its UI layer"
+)]
 pub(crate) fn animate_mahjong_win_tile_shakes(
+    mut commands: Commands,
     animation: Res<GameSummaryAnimation>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
     mut tiles: Query<(
+        Entity,
         &MahjongWinTileShake,
-        &MaterialNode<MahjongTileMaterial>,
+        &MahjongTileSurface,
         &mut UiTransform,
-        &mut GlobalZIndex,
+        Option<&mut GlobalZIndex>,
+        Option<&MahjongTileRestRotation>,
     )>,
 ) {
-    for (shake, material_node, mut transform, mut z_index) in &mut tiles {
+    for (entity, shake, material_node, mut transform, z_index, rest) in &mut tiles {
+        let rest_rotation = rest.map_or(0.0, |rest| rest.0);
         let time = animation.elapsed + shake.reveal_duration;
         let highlight = if shake.hand_reveal_start.is_some_and(|start| time >= start) {
             MahjongTileHighlight::None
@@ -104,12 +110,18 @@ pub(crate) fn animate_mahjong_win_tile_shakes(
         if let Some((cue, local)) = active {
             let (rotation, scale) = mahjong_win_tile_pose(cue, local);
             transform.translation = Val2::ZERO;
-            transform.rotation = Rot2::radians(rotation);
+            transform.rotation = Rot2::radians(rest_rotation + rotation);
             transform.scale = Vec2::splat(scale);
-            *z_index = GlobalZIndex(1010);
+            if let Some(mut z_index) = z_index {
+                *z_index = GlobalZIndex(1010);
+            } else {
+                commands.entity(entity).insert(GlobalZIndex(1010));
+            }
         } else {
-            *transform = UiTransform::IDENTITY;
-            *z_index = GlobalZIndex(0);
+            *transform = UiTransform::from_rotation(Rot2::radians(rest_rotation));
+            if z_index.is_some() {
+                commands.entity(entity).remove::<GlobalZIndex>();
+            }
         }
     }
 }

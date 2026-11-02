@@ -1,21 +1,19 @@
 use super::hand::render_hand;
 use super::{DoudizhuUiAction, DoudizhuUiState, controls, counter, summary};
 use crate::app::presentation::{
-    GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation, MUTED, PlayEffectKind, PlayEffectState,
-    StartGameSeatTransition, TableBackground, TableBackgroundMaterial, TableSeat, TableSeats,
+    CardTableSurface, GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation, MUTED, PlayEffectKind,
+    PlayEffectState, StartGameSeatTransition, TableBackgroundMaterial, TableSeat, TableSeats,
     TurnBorderMaterial, add_auto_play_overlay, add_play_effect_overlay, add_text,
-    table_material_params,
 };
-use crate::app::runtime::{AvatarImages, ClientResource, TableAppearance, UiAssets};
+use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
-    ChatAuxiliaryAction, ChatPanelState, SocialUiState, UiAction, add_chat_panel,
+    ChatAuxiliaryAction, ChatPanelOptions, ChatPanelState, SocialUiState, UiAction,
     add_reconnecting_overlay,
 };
+use bevy::prelude::*;
 use leocard_doudizhu::DoudizhuPhase;
 use leocard_protocol::DoudizhuSnapshot;
 use leocard_ui::{UiComposer, spawn_node, ui_component};
-
-use bevy::prelude::*;
 
 pub(crate) struct DoudizhuTable<'a> {
     pub client: &'a ClientResource,
@@ -25,9 +23,8 @@ pub(crate) struct DoudizhuTable<'a> {
     pub chat: &'a ChatPanelState,
     pub assets: &'a UiAssets,
     pub avatars: &'a AvatarImages,
-    pub appearance: &'a TableAppearance,
     pub brightness: f32,
-    pub vignette: f32,
+    pub custom_felt: Option<&'a Handle<Image>>,
     pub table_materials: &'a mut Assets<TableBackgroundMaterial>,
     pub turn_materials: &'a mut Assets<TurnBorderMaterial>,
     pub summary: &'a GameSummaryAnimation,
@@ -46,26 +43,11 @@ pub(crate) fn render_doudizhu_table(
         width: percent(100), flex_grow: 1.0, min_height: px(0), position_type: PositionType::Relative,
         flex_direction: FlexDirection::Column, ..default()
     }) });
-    let material = commands.material(
-        content,
-        context.table_materials,
-        TableBackgroundMaterial {
-            params: table_material_params(
-                context.brightness,
-                context.vignette,
-                context.appearance.custom_felt.is_none(),
-            ),
-            texture: context
-                .appearance
-                .custom_felt
-                .as_ref()
-                .unwrap_or(&assets.table_felt)
-                .clone(),
-        },
-    );
-    commands
-        .entity(content)
-        .insert((MaterialNode(material), TableBackground));
+    CardTableSurface {
+        brightness: context.brightness,
+        custom_felt: context.custom_felt,
+    }
+    .apply(commands, content, context.assets, context.table_materials);
     let table = spawn_node(
         commands,
         content,
@@ -152,27 +134,24 @@ pub(crate) fn render_doudizhu_table(
         .iter()
         .find(|p| p.player.id == game.you)
         .map(|p| p.auto_play);
-    add_chat_panel(
-        commands,
-        content,
-        context.chat,
-        assets,
+    ChatPanelOptions::new(
         game.result.is_none().then_some(auto).flatten(),
         &[
             ChatAuxiliaryAction {
-                label: "上轮",
+                label: "上",
                 action: (game.phase == DoudizhuPhase::Playing && context.ui.history.has_previous())
                     .then_some(UiAction::Doudizhu(DoudizhuUiAction::ShowPreviousTrick)),
                 highlighted: false,
             },
             ChatAuxiliaryAction {
-                label: "底牌",
+                label: "底",
                 action: (!game.kitty.is_empty())
                     .then_some(UiAction::Doudizhu(DoudizhuUiAction::ToggleKitty)),
                 highlighted: context.ui.kitty_open,
             },
         ],
-    );
+    )
+    .spawn(commands, content, context.chat, assets);
     if auto == Some(true) && game.result.is_none() {
         add_auto_play_overlay(commands, content, assets);
     }

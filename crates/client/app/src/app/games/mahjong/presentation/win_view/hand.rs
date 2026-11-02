@@ -6,11 +6,10 @@ use super::{WinStagePartSpec, add_win_stage_component, mahjong_win_effect_color}
 use crate::app::presentation::add_text;
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_mahjong::MahjongWinRecord;
 use leocard_protocol::MahjongSnapshot;
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 pub(super) struct CenterWinHandContext<'a, 'w, 's> {
     pub commands: &'a mut UiComposer<'w, 's>,
@@ -130,7 +129,7 @@ pub(super) fn render_center_win_hand(context: CenterWinHandContext<'_, '_, '_>) 
         winner,
         MahjongWinTileSizes {
             meld: MahjongTileSize::WinUpright,
-            hand: MahjongTileSize::OwnMeld,
+            hand: MahjongTileSize::ShowcaseMeld,
         },
         game_assets,
         materials,

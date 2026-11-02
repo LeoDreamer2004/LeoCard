@@ -2245,9 +2245,9 @@ dependencies = [
 
 [[package]]
 name = "crc32fast"
-version = "1.5.3"
+version = "1.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ba106e844045ddc02c20768ac4b0b7cb45f2cc2ecbd833ac9f5dacb183c2055"
+checksum = "5f97d3416d5337d15c4b0d78c8c91df922ca143f57ec20e2d1c188333047ef04"
 dependencies = [
  "cfg-if",
 ]
@@ -3527,7 +3527,7 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "leocard-achievements"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3535,7 +3535,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-android"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "bevy",
  "jni 0.22.4",
@@ -3544,11 +3544,11 @@ dependencies = [
 
 [[package]]
 name = "leocard-assets"
-version = "0.10.4"
+version = "0.11.0"
 
 [[package]]
 name = "leocard-blackjack"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3556,7 +3556,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-client"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "bevy",
  "bevy_clipboard",
@@ -3602,7 +3602,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-doudizhu"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3611,14 +3611,14 @@ dependencies = [
 
 [[package]]
 name = "leocard-game-common"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "leocard-host"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3638,7 +3638,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-mahjong"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3647,7 +3647,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-protocol"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "leocard-achievements",
  "leocard-blackjack",
@@ -3665,7 +3665,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-qigui523"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3674,7 +3674,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-sakura-frp"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "md-5",
  "reqwest",
@@ -3684,7 +3684,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-shengji"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3693,7 +3693,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-tcp"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3712,7 +3712,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-texas-holdem"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "fastrand",
  "leocard-achievements",
@@ -3722,14 +3722,14 @@ dependencies = [
 
 [[package]]
 name = "leocard-ui"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "bevy",
 ]
 
 [[package]]
 name = "leocard-uno"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "fastrand",
  "leocard-achievements",
@@ -3739,7 +3739,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-update"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "fastrand",
  "leocard-protocol",
@@ -3752,7 +3752,7 @@ dependencies = [
 
 [[package]]
 name = "leocard_mc_guess"
-version = "0.10.4"
+version = "0.11.0"
 dependencies = [
  "csv",
  "fastrand",
@@ -7319,12 +7319,12 @@ dependencies = [
 
 [[package]]
 name = "winreg"
-version = "0.55.0"
+version = "0.56.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb5a765337c50e9ec252c2069be9bf91c7df47afb103b642ba3a53bf8101be97"
+checksum = "7d6f32a0ff4a9f6f01231eb2059cc85479330739333e0e58cadf03b6af2cca10"
 dependencies = [
  "cfg-if",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7435,9 +7435,9 @@ checksum = "b9cc00251562a284751c9973bace760d86c0276c471b4be569fe6b068ee97a56"
 
 [[package]]
 name = "yazi"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e01738255b5a16e78bbb83e7fbba0a1e7dd506905cfc53f4622d89015a03fbb5"
+checksum = "ac366ea532fa8ee6a992cec9dea525b1dc284e69702f36c2ab5fbebadc81ec86"
 
 [[package]]
 name = "yoke"

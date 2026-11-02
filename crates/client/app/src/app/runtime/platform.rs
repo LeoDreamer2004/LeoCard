@@ -1,7 +1,7 @@
 //! 内嵌资源源与操作系统窗口集成。
 
 #[cfg(test)]
-use super::{TABLE_FELT_ASSET, UI_FONT_ASSET};
+use super::UI_FONT_ASSET;
 #[cfg(test)]
 use crate::app::presentation::TABLE_BACKGROUND_SHADER;
 use bevy::asset::AssetApp;
@@ -89,7 +89,10 @@ mod tests {
         let directory = embedded_asset_dir();
         for path in [
             UI_FONT_ASSET,
-            TABLE_FELT_ASSET,
+            "ui/tabletop/table-felt.png",
+            "ui/tabletop/table-rail.png",
+            "ui/mahjong/table-felt.png",
+            "ui/mahjong/table-rail.png",
             TABLE_BACKGROUND_SHADER,
             "shaders/uno_palette.wesl",
             "cards/uno/card_back.png",

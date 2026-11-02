@@ -44,6 +44,7 @@ use players::*;
 pub(crate) use plugin::*;
 pub(crate) use presentation::*;
 use projection::*;
+pub(super) use screen::MahjongScreen;
 use settlement::*;
 pub(crate) use state::*;
 use status::*;
@@ -53,9 +54,3 @@ use tiles::*;
 pub(crate) use view::*;
 use voices::*;
 use wind_labels::*;
-
-pub(super) use screen::MahjongScreen;
-
-#[cfg(test)]
-#[path = "/tmp/mahjong-meld-check.rs"]
-mod meld_check;

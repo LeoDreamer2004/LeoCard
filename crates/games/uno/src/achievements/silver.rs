@@ -48,7 +48,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         "lucky_elimination",
         "某种程度上很幸运",
         Silver,
-        "No Mercy 中手牌不多于 5 张时，非罚牌摸牌直接被淘汰",
+        "No Mercy 中手牌不多于 5 张时，因非罚牌摸牌或颜色轮盘罚牌直接被淘汰",
         |event| matches(event, |s| s.rules.is_no_mercy()
             && s.progress.lucky_elimination),
         1

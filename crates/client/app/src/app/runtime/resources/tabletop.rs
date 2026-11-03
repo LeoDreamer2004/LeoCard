@@ -2,6 +2,7 @@
 
 use bevy::image::{ImageLoaderSettings, ImageSampler};
 use bevy::prelude::*;
+use bevy::ui::VisualBox;
 use leocard_ui::sliced_image;
 
 #[derive(Default)]
@@ -40,7 +41,8 @@ impl TableSurfaceAssets {
 #[derive(Default)]
 pub(crate) struct TabletopAssets {
     pub surface: TableSurfaceAssets,
-    balance_frame: Handle<Image>,
+    side_frame: Handle<Image>,
+    hanging_sign: Handle<Image>,
     side_fold: Handle<Image>,
     side_robot: Handle<Image>,
     side_help: Handle<Image>,
@@ -64,7 +66,8 @@ impl TabletopAssets {
                 Vec4::new(108.0, 102.0, 1647.0, 791.0) / Vec4::new(1774.0, 887.0, 1774.0, 887.0),
                 Vec4::new(49.0, 39.0, 1707.0, 858.0) / Vec4::new(1774.0, 887.0, 1774.0, 887.0),
             ),
-            balance_frame: load("balance-frame"),
+            side_frame: load("side-frame"),
+            hanging_sign: load("hanging-sign"),
             side_fold: load("side-fold"),
             side_robot: load("side-robot"),
             side_help: load("side-help"),
@@ -72,8 +75,25 @@ impl TabletopAssets {
         }
     }
 
-    pub(crate) fn balance_image(&self) -> ImageNode {
-        sliced_image(self.balance_frame.clone(), 28.0, 0.5)
+    pub(crate) fn side_frame_image(&self) -> ImageNode {
+        sliced_image(self.side_frame.clone(), 28.0, 0.5)
+    }
+
+    pub(crate) fn hanging_sign_image(&self, scale: f32) -> ImageNode {
+        let mut image = ImageNode::new(self.hanging_sign.clone()).with_mode(NodeImageMode::Sliced(
+            TextureSlicer {
+                // The two suspension cords stay inside the fixed upper corner patches.
+                border: BorderRect {
+                    min_inset: Vec2::new(120.0, 70.0),
+                    max_inset: Vec2::new(120.0, 24.0),
+                },
+                center_scale_mode: SliceScaleMode::Stretch,
+                sides_scale_mode: SliceScaleMode::Stretch,
+                max_corner_scale: 0.55 * scale,
+            },
+        ));
+        image.visual_box = VisualBox::BorderBox;
+        image
     }
 
     pub(crate) fn fold_image(&self, expanded: bool) -> ImageNode {

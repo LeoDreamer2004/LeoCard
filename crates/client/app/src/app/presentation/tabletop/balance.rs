@@ -37,7 +37,7 @@ pub(crate) fn add_tabletop_balance_panel(
         None,
     );
     commands.entity(panel).insert((
-        assets.tabletop.balance_image(),
+        assets.tabletop.side_frame_image(),
         GlobalZIndex(1000),
         Pickable::IGNORE,
     ));

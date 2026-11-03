@@ -73,48 +73,62 @@ fn a_large_penalty_without_the_full_chain_does_not_unlock_the_grand_slam() {
 }
 
 #[test]
-fn a_normal_draw_from_five_cards_can_eliminate_but_is_not_a_penalty() {
-    let rules = UnoRuleSet {
-        mode: UnoMode::NoMercy,
-        ..UnoRuleSet::default()
-    };
-    let (mut game, mut stats) = table(
-        rules,
-        vec![
-            vec![number(UnoColor::Blue, 1); 5],
-            vec![number(UnoColor::Yellow, 2)],
-        ],
-        number(UnoColor::Red, 9),
-    );
-    game.draw_pile = build_deck_for_rules(rules)
-        .into_iter()
-        .filter(|card| {
-            !card.face().is_wild()
-                && card.color() != Some(UnoColor::Red)
-                && card.face() != UnoFace::Number(9)
-        })
-        .collect();
-    let facts = record(
-        &mut game,
-        &mut stats,
-        0,
-        &[],
-        false,
-        UnoGameState::draw_card,
-    );
-    assert!(game.player(PlayerId(0)).unwrap().eliminated());
-    assert!(progress(&stats, 0).lucky_elimination);
-    assert!(progress(&stats, 0).has_drawn);
-    assert!(!progress(&stats, 0).has_penalty);
-    assert_eq!(progress(&stats, 0).peak_hand, 25);
-    assert!(!progress(&stats, 0).reached_twenty_four);
-    assert!(
-        facts
-            .iter()
-            .find(|facts| facts.player == PlayerId(1))
-            .unwrap()
-            .all_opponents_eliminated
-    );
+fn lucky_elimination_accepts_normal_draws_and_roulette_but_not_other_penalties() {
+    for scenario in 0..3 {
+        let rules = UnoRuleSet {
+            mode: UnoMode::NoMercy,
+            ..UnoRuleSet::default()
+        };
+        let (mut game, mut stats) = table(
+            rules,
+            vec![
+                vec![number(UnoColor::Blue, 1); 5],
+                vec![number(UnoColor::Yellow, 2)],
+            ],
+            number(UnoColor::Red, 9),
+        );
+        game.draw_pile = build_deck_for_rules(rules)
+            .into_iter()
+            .filter(|card| {
+                !card.face().is_wild()
+                    && card.color() != Some(UnoColor::Red)
+                    && card.face() != UnoFace::Number(9)
+            })
+            .collect();
+        if scenario == 1 {
+            game.pending_swap = Some(PendingSwapState::ColorRoulette {
+                player: PlayerId(0),
+            });
+        } else if scenario == 2 {
+            game.pending_kind = Some(UnoPendingDrawKind::NoMercy(20));
+            game.pending_draw = 20;
+        }
+        let facts = record(
+            &mut game,
+            &mut stats,
+            0,
+            &[],
+            false,
+            |game, player| match scenario {
+                0 => game.draw_card(player),
+                1 => game.choose_initial_color(player, UnoColor::Red),
+                _ => game.accept_draw_penalty(player),
+            },
+        );
+        assert!(game.player(PlayerId(0)).unwrap().eliminated());
+        assert_eq!(progress(&stats, 0).lucky_elimination, scenario != 2);
+        assert!(progress(&stats, 0).has_drawn);
+        assert_eq!(progress(&stats, 0).has_penalty, scenario != 0);
+        assert_eq!(progress(&stats, 0).peak_hand, 25);
+        assert!(!progress(&stats, 0).reached_twenty_four);
+        assert!(
+            facts
+                .iter()
+                .find(|facts| facts.player == PlayerId(1))
+                .unwrap()
+                .all_opponents_eliminated
+        );
+    }
 }
 
 #[test]

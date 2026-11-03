@@ -9,8 +9,10 @@ use crate::app::shell::UiState;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
+use leocard_doudizhu::{DoudizhuCard, DoudizhuRuleSet, classify};
 use leocard_protocol::GameSnapshot;
 use leocard_ui::CardDragSelection;
+use std::collections::HashSet;
 
 pub(super) fn handle_card_drag_selection(
     mouse: Res<ButtonInput<MouseButton>>,
@@ -45,7 +47,11 @@ pub(super) fn handle_card_drag_selection(
         .filter(|(_, cursor, _)| cursor.cursor_over())
         .map(|(_, _, slot)| slot.index)
         .max();
-    ui.dirty |= update_drag_selection(
+    let multi_card_select = mouse.just_released(MouseButton::Left)
+        && drag.active
+        && drag.select
+        && drag.anchor != drag.current;
+    let changed = update_drag_selection(
         &mouse,
         &mut drag,
         &mut game_ui.selected,
@@ -53,6 +59,57 @@ pub(super) fn handle_card_drag_selection(
         hovered,
         cards.iter().map(|(_, _, slot)| (slot.index, slot.card)),
     );
+    if multi_card_select && changed {
+        refine_drag_selection(&mut game_ui.selected, game.rules);
+    }
+    ui.dirty |= changed;
+}
+
+pub(super) fn refine_drag_selection(selected: &mut HashSet<DoudizhuCard>, rules: DoudizhuRuleSet) {
+    let cards: Vec<_> = selected.iter().copied().collect();
+    if classify(&cards, rules).is_some() {
+        return;
+    }
+    retain_largest_straight(selected);
+}
+
+pub(super) fn retain_largest_straight(selected: &mut HashSet<DoudizhuCard>) {
+    let mut by_rank: [Option<DoudizhuCard>; 12] = [None; 12];
+    for &card in selected.iter() {
+        let rank = usize::from(card.rank());
+        if rank < by_rank.len() {
+            by_rank[rank] = Some(by_rank[rank].map_or(card, |current| current.min(card)));
+        }
+    }
+
+    let mut best = None;
+    let mut start = 0;
+    while start < by_rank.len() {
+        if by_rank[start].is_none() {
+            start += 1;
+            continue;
+        }
+        let mut end = start + 1;
+        while end < by_rank.len() && by_rank[end].is_some() {
+            end += 1;
+        }
+        if end - start >= 5
+            && best.is_none_or(|(best_start, best_end)| {
+                (end - start, end) > (best_end - best_start, best_end)
+            })
+        {
+            best = Some((start, end));
+        }
+        start = end;
+    }
+
+    let Some((start, end)) = best else {
+        return;
+    };
+    selected.retain(|card| {
+        let rank = usize::from(card.rank());
+        (start..end).contains(&rank) && by_rank[rank] == Some(*card)
+    });
 }
 
 pub(super) fn sync_card_drag_preview(

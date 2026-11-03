@@ -1,8 +1,100 @@
 use super::DoudizhuUiState;
+use super::hand_interaction::{refine_drag_selection, retain_largest_straight};
 use super::history::DoudizhuTrickHistory;
-use leocard_doudizhu::{DoudizhuAction, DoudizhuCard};
+use leocard_doudizhu::{
+    DoudizhuAction, DoudizhuCard, DoudizhuMode, DoudizhuPlayKind, DoudizhuRuleSet, classify,
+};
 use leocard_game_common::PlayerId;
 use leocard_protocol::MatchId;
+use std::collections::HashSet;
+
+#[test]
+fn drag_selection_preserves_consecutive_pairs_in_both_modes() {
+    for (mode, second_card_offset) in [(DoudizhuMode::Three, 1), (DoudizhuMode::Four, 54)] {
+        let rules = DoudizhuRuleSet::for_mode(mode);
+        let mut selected: HashSet<_> = (0..5)
+            .flat_map(|rank| {
+                [
+                    DoudizhuCard(rank * 4),
+                    DoudizhuCard(second_card_offset + rank * 4),
+                ]
+            })
+            .collect();
+        let original = selected.clone();
+        refine_drag_selection(&mut selected, rules);
+        assert_eq!(selected, original);
+        assert_eq!(
+            classify(&selected.iter().copied().collect::<Vec<_>>(), rules).map(|play| play.kind),
+            Some(DoudizhuPlayKind::Pairs)
+        );
+    }
+}
+
+#[test]
+fn drag_selection_preserves_airplane_instead_of_reducing_it_to_a_straight() {
+    let rules = DoudizhuRuleSet::for_mode(DoudizhuMode::Three);
+    let mut selected: HashSet<_> = (0..5)
+        .flat_map(|rank| (0..3).map(move |suit| DoudizhuCard(rank * 4 + suit)))
+        .collect();
+    let original = selected.clone();
+    refine_drag_selection(&mut selected, rules);
+    assert_eq!(selected, original);
+    assert_eq!(
+        classify(&selected.iter().copied().collect::<Vec<_>>(), rules).map(|play| play.kind),
+        Some(DoudizhuPlayKind::Airplane)
+    );
+}
+
+#[test]
+fn largest_straight_prefers_length_then_highest_rank() {
+    let mut selected: HashSet<_> = (0..=5)
+        .chain(7..=11)
+        .map(|rank| DoudizhuCard(rank * 4))
+        .collect();
+    retain_largest_straight(&mut selected);
+    assert_eq!(
+        selected,
+        (0..=5).map(|rank| DoudizhuCard(rank * 4)).collect()
+    );
+
+    let mut selected: HashSet<_> = (0..=4)
+        .chain(6..=10)
+        .map(|rank| DoudizhuCard(rank * 4))
+        .collect();
+    retain_largest_straight(&mut selected);
+    assert_eq!(
+        selected,
+        (6..=10).map(|rank| DoudizhuCard(rank * 4)).collect()
+    );
+}
+
+#[test]
+fn largest_straight_discards_duplicate_ranks_and_cards_above_ace() {
+    let rules = DoudizhuRuleSet::for_mode(DoudizhuMode::Four);
+    let mut selected: HashSet<_> = (3..=7)
+        .map(|rank| DoudizhuCard(rank * 4))
+        .chain([DoudizhuCard(54 + 5 * 4), DoudizhuCard(48), DoudizhuCard(52)])
+        .collect();
+    refine_drag_selection(&mut selected, rules);
+    assert_eq!(
+        selected,
+        (3..=7).map(|rank| DoudizhuCard(rank * 4)).collect()
+    );
+    let play = classify(&selected.iter().copied().collect::<Vec<_>>(), rules)
+        .expect("selected cards form a valid straight");
+    assert_eq!(play.kind, DoudizhuPlayKind::Straight);
+}
+
+#[test]
+fn largest_straight_preserves_cards_without_a_straight() {
+    let mut selected: HashSet<_> = [9, 10, 11, 12, 13]
+        .into_iter()
+        .map(|rank| DoudizhuCard(rank * 4))
+        .collect();
+    let original = selected.clone();
+    retain_largest_straight(&mut selected);
+    assert_eq!(selected, original);
+}
 
 #[test]
 fn initial_and_redealt_hands_animate_once_without_restart_on_refresh() {

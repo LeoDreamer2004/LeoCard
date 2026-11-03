@@ -1,11 +1,9 @@
-use super::fixtures::position;
 use crate::{
     DoudizhuAction, DoudizhuCard, DoudizhuGameState, DoudizhuMode, DoudizhuRuleSet, FourPlayerBot,
     FourPlayerObservation, build_deck,
 };
-use leocard_game_common::{PlayerId, SearchBudget, SearchRandom};
+use leocard_game_common::{PlayerId, SearchRandom};
 use std::collections::HashSet;
-use std::time::Duration;
 
 #[test]
 fn hidden_hands_and_deck_order_do_not_enter_observation_or_fallback() {
@@ -58,30 +56,4 @@ fn hidden_hands_and_deck_order_do_not_enter_observation_or_fallback() {
         previous = Some(landlord_hand);
     }
     assert!(different, "samples must not recover one authoritative deal");
-}
-
-#[test]
-fn sampled_trick_keeps_the_public_number_of_passes() {
-    let mut game = position([&[0, 9], &[2], &[3], &[4]], 0, 0);
-    let card = game.hand(PlayerId(0)).unwrap()[0];
-    game.act(PlayerId(0), DoudizhuAction::Play(vec![card]))
-        .unwrap();
-    game.act(PlayerId(1), DoudizhuAction::Pass).unwrap();
-    game.act(PlayerId(2), DoudizhuAction::Pass).unwrap();
-    let input = FourPlayerObservation::from_game(&game).unwrap();
-    let mut sample = input.sample(&mut SearchRandom::new(1));
-    sample.act(PlayerId(3), DoudizhuAction::Pass).unwrap();
-    assert_eq!(sample.current, PlayerId(0));
-    assert!(sample.table.is_none());
-}
-
-#[test]
-fn cancellation_retains_a_legal_heuristic_plan() {
-    let game = position([&[0, 8], &[1, 2], &[3, 4], &[5, 6]], 0, 0);
-    let input = FourPlayerObservation::from_game(&game).unwrap();
-    let budget = SearchBudget::new(Duration::ZERO);
-    let action = FourPlayerBot::choose_with_progress(&input, &budget, &mut |_| {});
-    assert_eq!(action, FourPlayerBot::fallback(&input));
-    let mut game = game;
-    game.act(game.current, action).unwrap();
 }

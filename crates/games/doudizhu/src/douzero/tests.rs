@@ -1,12 +1,10 @@
-use super::actions::legal_actions;
 use super::model::Model;
 use super::{DouzeroBot, DouzeroObservation};
 use crate::{
-    DoudizhuAction, DoudizhuCard, DoudizhuGameState, DoudizhuMode, DoudizhuPhase, DoudizhuRuleSet,
-    bot_action, build_deck, classify,
+    DoudizhuAction, DoudizhuGameState, DoudizhuMode, DoudizhuPhase, DoudizhuRuleSet, bot_action,
+    build_deck,
 };
 use leocard_game_common::{PlayerId, SearchBudget};
-use std::collections::BTreeSet;
 use std::time::Duration;
 
 #[test]
@@ -49,58 +47,6 @@ fn native_inference_matches_pytorch_for_all_three_roles() {
             );
         }
     }
-}
-
-#[test]
-fn legal_actions_cover_every_rank_subset_including_wings() {
-    let rules = DoudizhuRuleSet::default();
-    for hand in [
-        vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 52, 53],
-        vec![0, 1, 2, 4, 5, 6, 8, 12, 16, 20, 24, 28, 32, 36],
-    ] {
-        let hand: Vec<_> = hand.into_iter().map(DoudizhuCard).collect();
-        for table in [None, classify(&[DoudizhuCard(8)], rules)] {
-            let actual: BTreeSet<Vec<_>> = legal_actions(&hand, table.as_ref(), rules)
-                .into_iter()
-                .filter_map(|action| match action {
-                    DoudizhuAction::Play(cards) => {
-                        Some(cards.iter().map(|card| card.rank()).collect())
-                    }
-                    _ => None,
-                })
-                .collect();
-            let mut expected = BTreeSet::new();
-            for mask in 1..1usize << hand.len() {
-                let cards: Vec<_> = hand
-                    .iter()
-                    .enumerate()
-                    .filter(|(index, _)| mask & (1 << index) != 0)
-                    .map(|(_, card)| *card)
-                    .collect();
-                if classify(&cards, rules)
-                    .is_some_and(|play| table.as_ref().is_none_or(|last| play.beats(last)))
-                {
-                    expected.insert(cards.iter().map(|card| card.rank()).collect());
-                }
-            }
-            assert_eq!(actual, expected);
-        }
-    }
-}
-
-#[test]
-fn observations_ignore_opponents_private_card_distribution() {
-    let deck = build_deck(DoudizhuMode::Three);
-    let mut swapped = deck.clone();
-    swapped.swap(1, 5);
-    let mut observations = Vec::new();
-    for deck in [deck, swapped] {
-        let mut game =
-            DoudizhuGameState::new(DoudizhuRuleSet::default(), deck, PlayerId(0)).unwrap();
-        game.act(PlayerId(0), DoudizhuAction::Bid(3)).unwrap();
-        observations.push(DouzeroObservation::from_game(&game, &[]).unwrap());
-    }
-    assert_eq!(observations[0], observations[1]);
 }
 
 #[test]

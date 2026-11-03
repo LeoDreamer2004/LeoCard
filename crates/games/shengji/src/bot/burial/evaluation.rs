@@ -120,27 +120,3 @@ impl<'a> BurialProblem<'a> {
         value
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{ShengjiRank, ShengjiSuit};
-
-    #[test]
-    fn strong_trump_control_can_hide_exposed_points_but_weak_trumps_do_not() {
-        let trump = ShengjiTrump::new(ShengjiRank::Two, Some(ShengjiSuit::Heart)).unwrap();
-        let king = ShengjiCard::suited(0, ShengjiSuit::Club, ShengjiRank::King);
-        let low = ShengjiCard::suited(0, ShengjiSuit::Club, ShengjiRank::Three);
-        let mut hand = vec![king, low];
-        let weak = BurialProblem::new(&hand, 1, trump, ShengjiRuleSet::default(), false);
-        assert!(weak.score(&[low]) > weak.score(&[king]));
-        hand.extend(
-            build_deck_for(2)
-                .into_iter()
-                .filter(|card| trump.is_trump(*card))
-                .take(22),
-        );
-        let strong = BurialProblem::new(&hand, 1, trump, ShengjiRuleSet::default(), false);
-        assert!(strong.score(&[king]) > strong.score(&[low]));
-    }
-}

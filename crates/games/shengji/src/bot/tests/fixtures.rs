@@ -1,74 +1,9 @@
-use super::super::evaluation::{Evaluation, PositionView};
-use super::super::hand::counts;
-use super::super::knowledge::PublicKnowledge;
-use crate::play::classify_cards;
 use crate::{
-    ShengjiBiddingObservation, ShengjiBot, ShengjiBotAction, ShengjiBotObservation, ShengjiCard,
-    ShengjiClassifiedPlay, ShengjiGameState, ShengjiMode, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
-    ShengjiTeamProgress, ShengjiTrickRecord, ShengjiTrump, build_deck_for,
+    ShengjiBiddingObservation, ShengjiBot, ShengjiBotAction, ShengjiBotObservation,
+    ShengjiGameState, ShengjiMode, ShengjiRuleSet, ShengjiTeamProgress, build_deck_for,
 };
 use leocard_game_common::{PlayerId, SearchBudget, SearchRandom};
 use std::time::Duration;
-
-pub(super) fn card(suit: ShengjiSuit, rank: ShengjiRank) -> ShengjiCard {
-    ShengjiCard::suited(0, suit, rank)
-}
-
-pub(super) fn trump() -> ShengjiTrump {
-    ShengjiTrump::new(ShengjiRank::Ten, Some(ShengjiSuit::Heart)).unwrap()
-}
-
-pub(super) fn play(cards: &[ShengjiCard]) -> ShengjiClassifiedPlay {
-    classify_cards(cards, trump()).unwrap()
-}
-
-pub(super) struct Table {
-    pub hands: Vec<Vec<ShengjiCard>>,
-    pub public: PublicKnowledge,
-    pub rules: ShengjiRuleSet,
-    pub trick: Option<ShengjiTrickRecord>,
-    pub trump: ShengjiTrump,
-}
-
-impl Table {
-    pub fn new(hands: Vec<Vec<ShengjiCard>>) -> Self {
-        let rules = ShengjiRuleSet::for_mode(if hands.len() == 6 {
-            ShengjiMode::SixPlayer
-        } else {
-            ShengjiMode::Classic
-        });
-        let public = PublicKnowledge {
-            remaining: counts(&hands.iter().flatten().copied().collect::<Vec<_>>()),
-            voids: vec![[false; 5]; hands.len()],
-            multiplicity: vec![[rules.deck_count; 5]; hands.len()],
-        };
-        Self {
-            hands,
-            public,
-            rules,
-            trick: None,
-            trump: trump(),
-        }
-    }
-
-    pub fn best(&self, player: u8) -> ShengjiClassifiedPlay {
-        let lengths: Vec<_> = self.hands.iter().map(Vec::len).collect();
-        Evaluation::new(PositionView {
-            player: PlayerId(player),
-            hand: &self.hands[usize::from(player)],
-            trump: self.trump,
-            rules: self.rules,
-            trick: self.trick.as_ref(),
-            public: &self.public,
-            lengths: &lengths,
-            collecting_score: 0,
-            bottom: None,
-        })
-        .ranked(16)
-        .remove(0)
-        .0
-    }
-}
 
 pub(super) fn before_burial(mode: ShengjiMode, seed: u64) -> ShengjiGameState {
     let rules = ShengjiRuleSet::for_mode(mode);

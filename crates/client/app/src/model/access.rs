@@ -4,7 +4,7 @@ use leocard_game_common::PlayerId;
 use leocard_protocol::{
     AvatarId, ChatMessage, GameCommand, GameKind, GameRules, GameSnapshot, LobbySnapshot, MatchId,
     PlayerGameProfiles, PlayerInteraction, PlayerPublicInfo, PlayerReferenceChange, RejectReason,
-    Revision, RoomId,
+    Revision, RoomId, UnoPhaseView,
 };
 use std::collections::HashMap;
 
@@ -36,6 +36,15 @@ impl ActiveGameMeta {
 }
 
 impl ClientModel {
+    pub fn can_change_spectator_view(&self) -> bool {
+        self.is_spectating()
+            || matches!(self.game_snapshot(), Some(GameSnapshot::Uno(game))
+                if game.rules.is_no_mercy()
+                    && matches!(game.phase, UnoPhaseView::Playing)
+                    && game.players.iter().any(|player| Some(player.player.id) == self.you()
+                        && player.eliminated))
+    }
+
     pub fn is_spectating(&self) -> bool {
         self.active_game_meta()
             .is_some_and(|game| game.is_spectating())

@@ -15,11 +15,15 @@ impl DoudizhuSession {
     ) -> Vec<Delivery> {
         let game = self.game.as_mut().expect("action requires a game");
         let before = DoudizhuActionContext::capture(game);
+        let playing = game.phase == DoudizhuPhase::Playing;
         if let Err(error) = game.act(player, action.clone()) {
             return origin.map_or_else(Vec::new, |(connection, request)| {
                 self.room
                     .reject(connection, request, RejectReason::Game(error.into()))
             });
+        }
+        if playing {
+            self.bot_history.push((player, action.clone()));
         }
         self.statistics.observe(player, &action, game);
         let achievements = self

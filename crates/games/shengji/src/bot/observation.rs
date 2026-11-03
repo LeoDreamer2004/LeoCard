@@ -1,4 +1,5 @@
 use super::ShengjiBotAction;
+use super::burial::quick_bury;
 use super::candidates::plays;
 use crate::play::category;
 use crate::{
@@ -12,6 +13,7 @@ use std::collections::HashSet;
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShengjiBotObservation {
     pub(super) player: PlayerId,
+    pub(super) dealer: PlayerId,
     pub(super) hand: Vec<ShengjiCard>,
     pub(super) trump: ShengjiTrump,
     pub(super) rules: ShengjiRuleSet,
@@ -81,6 +83,7 @@ impl ShengjiBotObservation {
         }
         Some(Self {
             player,
+            dealer: game.dealer()?,
             hand,
             trump,
             rules: *game.rules(),
@@ -111,7 +114,13 @@ impl ShengjiBotObservation {
     pub fn fallback(&self) -> ShengjiBotAction {
         match self.phase {
             ShengjiPhase::Burying | ShengjiPhase::BottomCopyBurying => {
-                ShengjiBotAction::Bury(self.hand[..self.rules.kitty_size()].to_vec())
+                ShengjiBotAction::Bury(quick_bury(
+                    &self.hand,
+                    self.rules.kitty_size(),
+                    self.trump,
+                    self.rules,
+                    ShengjiTeamId::of(self.player) == self.collecting_team,
+                ))
             }
             ShengjiPhase::BottomCopying => {
                 ShengjiBotAction::Copy(self.counter_options.first().cloned())
@@ -119,7 +128,7 @@ impl ShengjiBotObservation {
             ShengjiPhase::FiveTrumpCrossing
                 if self.crossing == Some(ShengjiFiveTrumpCrossingStage::Returning) =>
             {
-                ShengjiBotAction::Return(self.hand[..5].to_vec())
+                ShengjiBotAction::Return(quick_bury(&self.hand, 5, self.trump, self.rules, false))
             }
             ShengjiPhase::FiveTrumpCrossing => ShengjiBotAction::Cross(None),
             _ => ShengjiBotAction::Play(

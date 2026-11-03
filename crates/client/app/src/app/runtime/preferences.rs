@@ -1,14 +1,14 @@
 //! 持久化玩家偏好与 Bevy 连接表单之间的适配。
 
-use super::normalize_avatar_bytes;
+use super::{TableSurfaceKind, normalize_avatar_bytes};
 use crate::app::presentation::{MAX_TABLE_BRIGHTNESS, MIN_TABLE_BRIGHTNESS};
 use bevy::prelude::*;
 use leocard_blackjack::BlackjackRuleSet;
 pub(crate) use leocard_client::{
-    DoudizhuPreferences, GameAppearancePreferences, GamePreferences, MahjongPreferences,
-    McGuessPreferences, QiGui523Preferences, SavedPreferences, ShengjiPreferences,
-    TexasPreferences, UnoPreferences, load_player_preferences, save_game_preferences,
-    save_global_preferences,
+    DoudizhuPreferences, GameAppearancePreferences, GamePreferences, GlobalPreferences,
+    MahjongPreferences, McGuessPreferences, QiGui523Preferences, SavedPreferences,
+    ShengjiPreferences, TexasPreferences, UnoPreferences, load_player_preferences,
+    save_game_preferences, save_global_preferences,
 };
 use leocard_doudizhu::DoudizhuRuleSet;
 use leocard_mahjong::MahjongRuleSet;
@@ -38,6 +38,8 @@ pub(crate) struct AppearancePreferences {
     pub avatar_png: Option<Vec<u8>>,
     pub table_felt_path: Option<PathBuf>,
     pub table_brightness: f32,
+    pub mahjong_table_felt_path: Option<PathBuf>,
+    pub mahjong_table_brightness: f32,
     pub audio_volume: f32,
     pub mahjong_action_voices: bool,
     pub mahjong_fan_voices: bool,
@@ -45,6 +47,36 @@ pub(crate) struct AppearancePreferences {
     pub texas_action_voices: bool,
     pub qigui_action_voices: bool,
     pub doudizhu_action_voices: bool,
+}
+
+impl AppearancePreferences {
+    pub(crate) fn felt_path(&self, kind: TableSurfaceKind) -> &Option<PathBuf> {
+        match kind {
+            TableSurfaceKind::Cards => &self.table_felt_path,
+            TableSurfaceKind::Mahjong => &self.mahjong_table_felt_path,
+        }
+    }
+
+    pub(crate) fn felt_path_mut(&mut self, kind: TableSurfaceKind) -> &mut Option<PathBuf> {
+        match kind {
+            TableSurfaceKind::Cards => &mut self.table_felt_path,
+            TableSurfaceKind::Mahjong => &mut self.mahjong_table_felt_path,
+        }
+    }
+
+    pub(crate) fn brightness(&self, kind: TableSurfaceKind) -> f32 {
+        match kind {
+            TableSurfaceKind::Cards => self.table_brightness,
+            TableSurfaceKind::Mahjong => self.mahjong_table_brightness,
+        }
+    }
+
+    pub(crate) fn set_brightness(&mut self, kind: TableSurfaceKind, brightness: f32) {
+        match kind {
+            TableSurfaceKind::Cards => self.table_brightness = brightness,
+            TableSurfaceKind::Mahjong => self.mahjong_table_brightness = brightness,
+        }
+    }
 }
 
 #[derive(Resource)]
@@ -79,7 +111,7 @@ pub(crate) fn normalize_table_brightness(value: f32) -> f32 {
     if value.is_finite() && (MIN_TABLE_BRIGHTNESS..=MAX_TABLE_BRIGHTNESS).contains(&value) {
         value
     } else {
-        1.0
+        GlobalPreferences::default().table_brightness
     }
 }
 
@@ -136,6 +168,10 @@ impl PreferenceResources {
                     .and_then(|png| normalize_avatar_bytes(&png).ok()),
                 table_felt_path: saved.global.table_felt_path,
                 table_brightness: normalize_table_brightness(saved.global.table_brightness),
+                mahjong_table_felt_path: saved.global.mahjong_table_felt_path,
+                mahjong_table_brightness: normalize_table_brightness(
+                    saved.global.mahjong_table_brightness,
+                ),
                 audio_volume: normalize_range(
                     saved.global.audio_volume,
                     0.0,
@@ -323,6 +359,11 @@ pub(crate) fn save_appearance_preferences(
         .table_felt_path
         .clone_from(&appearance.table_felt_path);
     saved.global.table_brightness = appearance.table_brightness;
+    saved
+        .global
+        .mahjong_table_felt_path
+        .clone_from(&appearance.mahjong_table_felt_path);
+    saved.global.mahjong_table_brightness = appearance.mahjong_table_brightness;
     saved.global.audio_volume = appearance.audio_volume;
     saved.global.mahjong_action_voices = appearance.mahjong_action_voices;
     saved.global.mahjong_fan_voices = appearance.mahjong_fan_voices;

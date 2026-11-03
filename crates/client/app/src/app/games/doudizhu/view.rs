@@ -1,9 +1,10 @@
 use super::hand::render_hand;
 use super::{DoudizhuUiAction, DoudizhuUiState, controls, counter, summary};
 use crate::app::presentation::{
-    CardTableSurface, GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation, MUTED, PlayEffectKind,
-    PlayEffectState, StartGameSeatTransition, TableBackgroundMaterial, TableSeat, TableSeats,
-    TurnBorderMaterial, add_auto_play_overlay, add_play_effect_overlay, add_text,
+    ACCENT, CardTableSurface, GAME_SIDE_CONTROL_SCALE, GameSummaryAnimation, PlayEffectKind,
+    PlayEffectState, StartGameSeatTransition, TEXT, TableBackgroundMaterial, TableSeat, TableSeats,
+    TurnBorderMaterial, add_auto_play_overlay, add_hanging_table_sign, add_play_effect_overlay,
+    add_text,
 };
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
@@ -90,31 +91,43 @@ pub(crate) fn render_doudizhu_table(
         context.ui.pending_deal = Some(game.match_id);
         return;
     }
-    let status = spawn_node(
+    let sign = add_hanging_table_sign(
         commands,
         table,
-        Node {
-            position_type: PositionType::Absolute,
-            top: px(10),
-            left: px(18),
-            ..default()
-        },
-        None,
+        assets,
+        GAME_SIDE_CONTROL_SCALE,
+        false,
+        326.0,
     );
+    let status = sign.content;
+    commands
+        .entity(status)
+        .entry::<Node>()
+        .and_modify(|mut node| {
+            node.flex_direction = FlexDirection::Column;
+            node.justify_content = JustifyContent::Center;
+            node.row_gap = px(3);
+        });
     add_text(
         commands,
         status,
         format!(
-            "第 {}/{} 轮 第 {}/{} 局 底分 {} 倍数 ×{}",
+            "第 {}/{} 轮 第 {}/{} 局",
             game.progress.round(),
             game.rules.rounds,
             game.progress.hand_in_round(),
             game.rules.mode.players(),
-            game.highest_bid,
-            game.multiplier
         ),
-        15.0,
-        MUTED,
+        16.0,
+        TEXT,
+        assets,
+    );
+    add_text(
+        commands,
+        status,
+        format!("底分 {}   倍数 ×{}", game.highest_bid, game.multiplier),
+        22.0,
+        ACCENT,
         assets,
     );
     controls::render(commands, hand_area, game, context.ui, assets);

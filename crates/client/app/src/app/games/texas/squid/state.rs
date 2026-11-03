@@ -113,7 +113,7 @@ fn marker_position(game: &TexasSnapshot, index: usize, owner: Option<PlayerId>, 
                 .max(349.0 + width * 0.5);
             return Vec3::new(
                 center - width * 0.5 + slot as f32 * step + random_x * 3.0,
-                278.0 + random_y * 4.0,
+                TexasTableLayout::POT_TOP - 26.0 + random_y * 4.0,
                 0.0,
             );
         }
@@ -125,7 +125,7 @@ fn marker_position(game: &TexasSnapshot, index: usize, owner: Option<PlayerId>, 
             475.0 - MARKER_SIZE * 0.5 + (slot % columns) as f32 * (MARKER_SIZE + 4.0)
                 - row_count.saturating_sub(1) as f32 * (MARKER_SIZE + 4.0) * 0.5
                 + random_x * 3.0,
-            254.0 + row as f32 * (MARKER_SIZE + 4.0) + random_y * 4.0,
+            TexasTableLayout::POT_TOP - 24.0 + row as f32 * (MARKER_SIZE + 4.0) + random_y * 4.0,
             0.0,
         );
     };

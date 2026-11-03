@@ -120,6 +120,7 @@ pub(super) struct ShengjiFailedThrowCard {
 pub(super) struct ShengjiThrowPenaltyFloat {
     pub source: Vec2,
     pub target: Vec2,
+    pub to_score: bool,
     pub elapsed: f32,
 }
 

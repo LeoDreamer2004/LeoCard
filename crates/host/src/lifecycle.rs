@@ -22,6 +22,18 @@ pub(super) trait HostedGameLifecycle: Sized {
 
     fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot;
 
+    fn viewing_player(&self, recipient: PlayerId) -> PlayerId {
+        self.room().viewing_player(recipient)
+    }
+
+    fn set_spectator_view(
+        &mut self,
+        connection: ConnectionId,
+        target: PlayerId,
+    ) -> Result<(), RejectReason> {
+        self.room_mut().set_spectator_view(connection, target)
+    }
+
     fn room_info(&self) -> Option<RoomInfo> {
         let room = self.room();
         let host = room
@@ -288,7 +300,7 @@ pub(super) trait HostedGameLifecycle: Sized {
             "game broadcast requires an active game"
         );
         self.room().broadcast_private(origin, |player| {
-            ServerEvent::GameSnapshot(self.game_snapshot(self.room().viewing_player(player.id)))
+            ServerEvent::GameSnapshot(self.game_snapshot(self.viewing_player(player.id)))
         })
     }
 
@@ -301,7 +313,7 @@ pub(super) trait HostedGameLifecycle: Sized {
             );
         };
         let event = if self.game_started() {
-            ServerEvent::GameSnapshot(self.game_snapshot(self.room().viewing_player(player)))
+            ServerEvent::GameSnapshot(self.game_snapshot(self.viewing_player(player)))
         } else {
             ServerEvent::LobbySnapshot(self.lobby_snapshot())
         };
@@ -369,7 +381,7 @@ fn dispatch_joined_command<S: HostedGameLifecycle>(
     let request_id = message.request_id;
     match message.command {
         ClientCommand::SpectatePlayer { player } => {
-            match session.room_mut().set_spectator_view(connection, player) {
+            match session.set_spectator_view(connection, player) {
                 Ok(()) => session.snapshot(connection, request_id),
                 Err(reason) => session.room().reject(connection, request_id, reason),
             }

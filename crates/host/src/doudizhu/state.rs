@@ -1,10 +1,12 @@
+use super::automation::DoudizhuBotObservation;
 use super::statistics::DoudizhuStatistics;
+use crate::automation::BotDecision;
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, HostError, RoomSession};
 use leocard_doudizhu::achievements::DoudizhuAchievementTracker;
 use leocard_doudizhu::{
-    DoudizhuCard, DoudizhuGameState, DoudizhuMatchState, DoudizhuPhase, DoudizhuRuleSet,
-    auto_play_action, bot_action,
+    DoudizhuAction, DoudizhuCard, DoudizhuGameState, DoudizhuMatchState, DoudizhuPhase,
+    DoudizhuRuleSet,
 };
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
@@ -24,6 +26,8 @@ pub struct DoudizhuSession {
     pub(super) automatic_elapsed: Duration,
     pub(super) statistics: DoudizhuStatistics,
     pub(super) achievements: DoudizhuAchievementTracker,
+    pub(super) bot_history: Vec<(PlayerId, DoudizhuAction)>,
+    pub(super) bot_decision: BotDecision<DoudizhuBotObservation, DoudizhuAction>,
 }
 
 impl DoudizhuSession {
@@ -50,6 +54,8 @@ impl DoudizhuSession {
             automatic_elapsed: Duration::ZERO,
             statistics: DoudizhuStatistics::default(),
             achievements: DoudizhuAchievementTracker::default(),
+            bot_history: Vec::new(),
+            bot_decision: BotDecision::default(),
         })
     }
 
@@ -79,6 +85,7 @@ impl DoudizhuSession {
 
     pub(super) fn reset_automatic_delay(&mut self) {
         self.automatic_elapsed = Duration::ZERO;
+        self.bot_decision.clear();
     }
 
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
@@ -107,19 +114,16 @@ impl DoudizhuSession {
             || participant.left;
         if !automatic {
             self.automatic_elapsed = Duration::ZERO;
+            self.bot_decision.clear();
             return Vec::new();
         }
         self.automatic_elapsed += elapsed;
         if self.automatic_elapsed >= Duration::from_millis(800) {
-            let action = if participant.is_bot {
-                bot_action(game)
-            } else {
-                auto_play_action(game)
-            };
+            let player = game.current;
+            let action = self.choose_automatic_action();
             let Some(action) = action else {
                 return Vec::new();
             };
-            let player = game.current;
             return self.apply_action(player, action, None);
         }
         Vec::new()

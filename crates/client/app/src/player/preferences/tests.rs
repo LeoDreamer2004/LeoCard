@@ -45,26 +45,28 @@ fn saved_preferences() -> SavedPreferences {
     preferences
 }
 
+fn legacy_global_bytes(preferences: &SavedPreferences) -> Vec<u8> {
+    let global = &preferences.global;
+    postcard::to_allocvec(&(
+        &global.player_name,
+        &global.avatar_png,
+        &global.host_port,
+        &global.join_address,
+        &global.table_felt_path,
+        global.table_brightness,
+        global.table_vignette,
+        global.audio_volume,
+        global.gender,
+        global.mahjong_action_voices,
+        global.mahjong_fan_voices,
+        global.texas_action_voices,
+    ))
+    .unwrap()
+}
+
 fn legacy_bytes(version: u8, preferences: &SavedPreferences) -> Vec<u8> {
     let mut bytes = format!("LeoCard/prefs/v{version}\0").into_bytes();
-    let global = &preferences.global;
-    bytes.extend(
-        postcard::to_allocvec(&(
-            &global.player_name,
-            &global.avatar_png,
-            &global.host_port,
-            &global.join_address,
-            &global.table_felt_path,
-            global.table_brightness,
-            global.table_vignette,
-            global.audio_volume,
-            global.gender,
-            global.mahjong_action_voices,
-            global.mahjong_fan_voices,
-            global.texas_action_voices,
-        ))
-        .unwrap(),
-    );
+    bytes.extend(legacy_global_bytes(preferences));
     if version == 4 {
         let rules = preferences.games.texas.host_rules;
         bytes.extend(
@@ -215,7 +217,7 @@ fn undecodable_legacy_rules_still_migrate_avatar_and_global_settings() {
     let directory = TestFiles::new();
     let saved = saved_preferences();
     let mut bytes = b"LeoCard/prefs/v4\0".to_vec();
-    bytes.extend(postcard::to_allocvec(&saved.global).unwrap());
+    bytes.extend(legacy_global_bytes(&saved));
     bytes.extend([255, 255]);
     fs::write(directory.files.legacy_path(), bytes).unwrap();
     migration::migrate(&directory.files).unwrap();
@@ -265,4 +267,37 @@ fn tile_voice_switch_preserves_old_global_settings_and_persists_independently() 
         saved.global.mahjong_action_voices
     );
     assert_eq!(restored.mahjong_fan_voices, saved.global.mahjong_fan_voices);
+}
+
+#[test]
+fn card_and_mahjong_table_settings_persist_and_reset_independently() {
+    let directory = TestFiles::new();
+    let mut global = GlobalPreferences {
+        table_felt_path: Some(PathBuf::from("cards.png")),
+        table_brightness: 0.7,
+        mahjong_table_felt_path: Some(PathBuf::from("mahjong.png")),
+        mahjong_table_brightness: 0.55,
+        ..GlobalPreferences::default()
+    };
+    directory.files.save_global(&global).unwrap();
+    let loaded = directory.files.load().unwrap().global;
+    assert_eq!(loaded.table_felt_path, global.table_felt_path);
+    assert_eq!(loaded.table_brightness, 0.7);
+    assert_eq!(
+        loaded.mahjong_table_felt_path,
+        global.mahjong_table_felt_path
+    );
+    assert_eq!(loaded.mahjong_table_brightness, 0.55);
+
+    global.mahjong_table_felt_path = None;
+    global.mahjong_table_brightness = GlobalPreferences::default().mahjong_table_brightness;
+    directory.files.save_global(&global).unwrap();
+    let loaded = directory.files.load().unwrap().global;
+    assert_eq!(loaded.table_felt_path, global.table_felt_path);
+    assert_eq!(loaded.table_brightness, 0.7);
+    assert!(loaded.mahjong_table_felt_path.is_none());
+    assert_eq!(
+        loaded.mahjong_table_brightness,
+        GlobalPreferences::default().mahjong_table_brightness
+    );
 }

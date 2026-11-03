@@ -184,6 +184,14 @@ impl TcpGameClient {
         if !matches!(self.state, NetworkState::Connected(_)) {
             return false;
         }
+        if matches!(command, ClientCommand::Game(_))
+            && self
+                .model
+                .game_snapshot()
+                .is_some_and(|game| self.model.you() != Some(game.you()))
+        {
+            return false;
+        }
         if self.model.is_spectating()
             && !matches!(
                 command,

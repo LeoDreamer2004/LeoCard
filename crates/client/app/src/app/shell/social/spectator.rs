@@ -53,7 +53,7 @@ pub(crate) fn sync_spectator_view_menu(
 ) {
     let model = client.as_deref().map(|client| client.0.model());
     let spectating = model.is_some_and(|model| {
-        matches!(model.phase(), ClientPhaseRef::Playing(_)) && model.is_spectating()
+        matches!(model.phase(), ClientPhaseRef::Playing(_)) && model.can_change_spectator_view()
     });
     let right_click = mouse.just_pressed(MouseButton::Right);
     if spectating && !right_click && !mouse.just_pressed(MouseButton::Left) {

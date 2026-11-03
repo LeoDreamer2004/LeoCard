@@ -41,6 +41,7 @@ impl From<LegacyGlobalPreferences> for GlobalPreferences {
             texas_action_voices: previous.texas_action_voices,
             qigui_action_voices: true,
             doudizhu_action_voices: true,
+            ..Self::default()
         }
     }
 }

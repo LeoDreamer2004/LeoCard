@@ -14,8 +14,11 @@ impl Policy {
         decision: &mut BotDecision<ShengjiBotObservation, ShengjiBotAction>,
     ) -> Option<ShengjiActionOutcome> {
         let observation = ShengjiBotObservation::from_game(game, player)?;
-        let fallback = observation.fallback();
-        let action = decision.poll(observation, fallback, ShengjiBot::choose)?;
+        let action = decision.poll_with_progress(
+            observation,
+            ShengjiBotObservation::fallback,
+            |input, budget, report| ShengjiBot::choose_with_progress(input, budget, report),
+        )?;
         match action {
             ShengjiBotAction::Play(cards) => game.play_cards(player, &cards),
             ShengjiBotAction::Bury(cards) => game.bury(player, &cards),

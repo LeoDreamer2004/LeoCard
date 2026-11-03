@@ -34,14 +34,11 @@ pub(crate) fn add_framed_avatar(
     key: &str,
     name: &str,
     image: Option<&Handle<Image>>,
-    size: f32,
+    frame: AvatarFrame,
     assets: &UiAssets,
 ) -> AvatarFrameEntities {
-    AvatarFrame {
-        texture: assets.tabletop.avatar_frame.clone(),
-        size,
-    }
-    .mount(
+    let size = frame.size;
+    frame.mount(
         commands,
         parent,
         key,

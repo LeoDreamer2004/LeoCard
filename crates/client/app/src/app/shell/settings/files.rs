@@ -3,7 +3,7 @@
 use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::{
     AppearancePreferences, TableAppearance, TableFeltPicker, TableFeltPickerReceiver,
-    save_appearance_preferences,
+    TableSurfaceKind, save_appearance_preferences,
 };
 use crate::app::shell::UiState;
 use bevy::asset::RenderAssetUsages;
@@ -44,9 +44,10 @@ pub(crate) fn poll_table_felt_picker(
     mut ui: ResMut<UiState>,
     mut achievements: MessageWriter<LocalAchievementTrigger>,
 ) {
-    let Some(receiver) = picker.pending.as_ref() else {
+    let Some((kind, receiver)) = picker.pending.as_ref() else {
         return;
     };
+    let kind = *kind;
     let result = receiver
         .lock()
         .expect("table felt picker mutex poisoned")
@@ -59,12 +60,12 @@ pub(crate) fn poll_table_felt_picker(
     picker.pending = None;
     match result {
         Ok(Some(path)) => {
-            let changed = preferences.table_felt_path.as_ref() != Some(&path);
+            let changed = preferences.felt_path(kind).as_ref() != Some(&path);
             let result = fs::read(&path)
                 .map_err(|error| format!("无法读取桌布图片：{error}"))
                 .and_then(|bytes| decode_table_felt_image(&bytes))
                 .and_then(|_| {
-                    preferences.table_felt_path = Some(path);
+                    *preferences.felt_path_mut(kind) = Some(path);
                     save_appearance_preferences(&preferences)
                 });
             if changed && result.is_ok() {
@@ -74,7 +75,7 @@ pub(crate) fn poll_table_felt_picker(
             }
             if result.is_ok() {
                 // Choosing the same file again also reloads edits made to that image.
-                appearance.loaded_path = None;
+                appearance.felt_mut(kind).loaded_path = None;
             }
             appearance.error = result.err();
         }
@@ -90,26 +91,27 @@ pub(crate) fn sync_table_appearance(
     mut images: ResMut<Assets<Image>>,
     mut ui: ResMut<UiState>,
 ) {
-    if appearance.loaded_path == preferences.table_felt_path {
-        return;
-    }
-    appearance
-        .loaded_path
-        .clone_from(&preferences.table_felt_path);
-    appearance.custom_felt = None;
-    appearance.error = None;
-    if let Some(path) = &preferences.table_felt_path {
-        let result = fs::read(path)
-            .map_err(|error| format!("无法读取桌布图片：{error}"))
-            .and_then(|bytes| decode_table_felt_image(&bytes));
-        match result {
-            Ok(image) => {
-                let mut image = Image::from_dynamic(image, true, RenderAssetUsages::default());
-                image.sampler = ImageSampler::linear();
-                appearance.custom_felt = Some(images.add(image));
-            }
-            Err(error) => appearance.error = Some(error),
+    for kind in [TableSurfaceKind::Cards, TableSurfaceKind::Mahjong] {
+        let path = preferences.felt_path(kind);
+        let felt = appearance.felt_mut(kind);
+        if &felt.loaded_path == path {
+            continue;
         }
+        felt.loaded_path.clone_from(path);
+        felt.custom_felt = None;
+        if let Some(path) = path {
+            let result = fs::read(path)
+                .map_err(|error| format!("无法读取桌布图片：{error}"))
+                .and_then(|bytes| decode_table_felt_image(&bytes));
+            match result {
+                Ok(image) => {
+                    let mut image = Image::from_dynamic(image, true, RenderAssetUsages::default());
+                    image.sampler = ImageSampler::linear();
+                    felt.custom_felt = Some(images.add(image));
+                }
+                Err(error) => appearance.error = Some(error),
+            }
+        }
+        ui.dirty = true;
     }
-    ui.dirty = true;
 }

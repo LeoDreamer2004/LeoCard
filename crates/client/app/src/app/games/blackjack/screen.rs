@@ -96,7 +96,7 @@ impl GameScreen for BlackjackScreen<'_> {
                 assets,
                 avatars,
                 brightness: form.table_brightness,
-                custom_felt: appearance.custom_felt.as_ref(),
+                custom_felt: appearance.cards.custom_felt.as_ref(),
                 table_materials,
                 turn_materials: turn_border_materials,
                 transition,

@@ -3527,7 +3527,7 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "leocard-achievements"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3535,7 +3535,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-android"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "bevy",
  "jni 0.22.4",
@@ -3544,11 +3544,11 @@ dependencies = [
 
 [[package]]
 name = "leocard-assets"
-version = "0.11.0"
+version = "0.11.1"
 
 [[package]]
 name = "leocard-blackjack"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3556,7 +3556,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-client"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "bevy",
  "bevy_clipboard",
@@ -3602,23 +3602,25 @@ dependencies = [
 
 [[package]]
 name = "leocard-doudizhu"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
+ "half",
  "leocard-achievements",
  "leocard-game-common",
+ "ndarray",
  "serde",
 ]
 
 [[package]]
 name = "leocard-game-common"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "leocard-host"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3638,7 +3640,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-mahjong"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3647,7 +3649,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-protocol"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "leocard-achievements",
  "leocard-blackjack",
@@ -3665,7 +3667,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-qigui523"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3674,7 +3676,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-sakura-frp"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "md-5",
  "reqwest",
@@ -3684,7 +3686,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-shengji"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3693,7 +3695,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-tcp"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3712,7 +3714,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-texas-holdem"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "fastrand",
  "leocard-achievements",
@@ -3722,14 +3724,14 @@ dependencies = [
 
 [[package]]
 name = "leocard-ui"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "bevy",
 ]
 
 [[package]]
 name = "leocard-uno"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "fastrand",
  "leocard-achievements",
@@ -3739,7 +3741,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-update"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "fastrand",
  "leocard-protocol",
@@ -3752,7 +3754,7 @@ dependencies = [
 
 [[package]]
 name = "leocard_mc_guess"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "csv",
  "fastrand",
@@ -4007,6 +4009,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "matrixmultiply"
+version = "0.3.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f607c237553f086e7043417a51df26b2eb899d3caff94e6a67592ff992fedc7"
+dependencies = [
+ "autocfg",
+ "rawpointer",
+]
+
+[[package]]
 name = "md-5"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4133,6 +4145,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ndarray"
+version = "0.17.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "520080814a7a6b4a6e9070823bb24b4531daac8c4627e08ba5de8c5ef2f2752d"
+dependencies = [
+ "matrixmultiply",
+ "num-complex",
+ "num-integer",
+ "num-traits",
+ "portable-atomic",
+ "portable-atomic-util",
+ "rawpointer",
+]
+
+[[package]]
 name = "ndk"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4228,6 +4255,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c89e69e7e0f03bea5ef08013795c25018e101932225a656383bd384495ecc367"
 dependencies = [
  "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-complex"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
+dependencies = [
  "num-traits",
 ]
 
@@ -5169,6 +5205,12 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "objc2-quartz-core 0.3.2",
 ]
+
+[[package]]
+name = "rawpointer"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60a357793950651c4ed0f3f52338f53b2f809f32d83a07f72909fa13e4c6c1e3"
 
 [[package]]
 name = "read-fonts"

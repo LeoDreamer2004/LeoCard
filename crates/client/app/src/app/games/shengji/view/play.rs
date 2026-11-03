@@ -8,8 +8,8 @@ use super::{
     add_shengji_failed_throw_card_row, shengji_display_trump, shengji_rank_label,
 };
 use crate::app::presentation::{
-    ACCENT, DANGER, GAME_SIDE_CONTROL_SCALE, HEADER_BG, MUTED, SeatSide, TEXT, add_text,
-    spawn_trick_play_area,
+    ACCENT, DANGER, GAME_SIDE_CONTROL_SCALE, HEADER_BG, MUTED, SeatSide, TEXT,
+    add_hanging_table_sign, add_text, spawn_trick_play_area,
 };
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
@@ -156,37 +156,18 @@ pub(super) fn add_shengji_collecting_tray(
     score_capture: &ShengjiScoreCaptureEffectState,
     assets: &UiAssets,
 ) {
-    let tray = spawn_node(
-        commands,
-        table,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(0),
-            top: px(0),
-            width: px(366),
-            height: px(66),
-            padding: UiRect::axes(px(10), px(5)),
-            flex_direction: FlexDirection::Row,
-            align_items: AlignItems::Center,
-            column_gap: px(8),
-            border_radius: BorderRadius::all(px(8)),
-            overflow: Overflow::visible(),
-            ..default()
-        },
-        Some(Color::BLACK.with_alpha(0.30)),
-    );
-    commands.entity(tray).insert((
-        RelativeCursorPosition::default(),
-        GlobalZIndex(30),
-        UiTransform {
-            translation: Val2::px(
-                183.0 * (GAME_SIDE_CONTROL_SCALE - 1.0),
-                33.0 * (GAME_SIDE_CONTROL_SCALE - 1.0),
-            ),
-            scale: Vec2::splat(GAME_SIDE_CONTROL_SCALE),
-            ..default()
-        },
-    ));
+    let compact = game.rules.player_count() > 4;
+    let scale = if compact {
+        GAME_SIDE_CONTROL_SCALE.min(1.2)
+    } else {
+        GAME_SIDE_CONTROL_SCALE
+    };
+    let sign = add_hanging_table_sign(commands, table, assets, scale, compact, 390.0);
+    let tray = sign.panel;
+    commands
+        .entity(tray)
+        .insert(RelativeCursorPosition::default());
+    let content = sign.content;
 
     let dealer_team = game.dealer.map(|dealer| usize::from(dealer.0 % 2));
     for (label, level, color) in [
@@ -201,7 +182,7 @@ pub(super) fn add_shengji_collecting_tray(
             TEXT,
         ),
     ] {
-        let cell = add_shengji_score_cell(commands, tray, label, 66.0, assets);
+        let cell = add_shengji_score_cell(commands, content, label, 66.0, assets);
         let value = add_text(
             commands,
             cell,
@@ -215,10 +196,10 @@ pub(super) fn add_shengji_collecting_tray(
             .insert(ShengjiLevelIndicator { base_color: color });
     }
 
-    let trump_cell = add_shengji_score_cell(commands, tray, "亮主", 120.0, assets);
+    let trump_cell = add_shengji_score_cell(commands, content, "亮主", 120.0, assets);
     add_shengji_trump_summary(commands, trump_cell, game, assets);
 
-    let score = add_shengji_score_cell(commands, tray, "闲家得分", 70.0, assets);
+    let score = add_shengji_score_cell(commands, content, "闲家得分", 70.0, assets);
     let score_text = add_text(
         commands,
         score,
@@ -501,8 +482,8 @@ pub(super) fn add_shengji_throw_penalty_effect(
     };
     let offender_anchor =
         shengji_player_route_anchor(game, failure.player).unwrap_or(Vec2::new(50.0, 50.0));
-    // 左上四栏得分框的最后一栏是闲家得分。
-    let score_anchor = Vec2::new(26.0, 6.0);
+    // The animation resolves the score text's actual layout position before it becomes visible.
+    let score_anchor = Vec2::ZERO;
     let dealer_side_penalty = game
         .dealer
         .is_some_and(|dealer| dealer.0 % 2 == failure.player.0 % 2);
@@ -533,6 +514,7 @@ pub(super) fn add_shengji_throw_penalty_effect(
         ShengjiThrowPenaltyFloat {
             source,
             target,
+            to_score: dealer_side_penalty,
             elapsed: 0.0,
         },
         UiTransform::IDENTITY,

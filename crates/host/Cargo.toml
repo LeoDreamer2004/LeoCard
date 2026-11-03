@@ -16,8 +16,8 @@ fastrand.workspace = true
 image.workspace = true
 leocard-achievements = { path = "../games/achievements" }
 leocard-blackjack = { path = "../games/blackjack" }
-leocard-game-common = { path = "../games/common" }
 leocard-doudizhu = { path = "../games/doudizhu", features = ["serde"] }
+leocard-game-common = { path = "../games/common" }
 leocard-mahjong = { path = "../games/mahjong" }
 leocard_mc_guess = { path = "../games/mc-guess" }
 leocard-protocol = { path = "../network/protocol" }

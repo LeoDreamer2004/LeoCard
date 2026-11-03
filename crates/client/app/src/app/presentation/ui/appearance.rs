@@ -7,11 +7,7 @@ use bevy::shader::ShaderRef;
 
 pub(crate) const TABLE_BACKGROUND_SHADER: &str = "shaders/table_background.wesl";
 
-#[derive(Clone, Copy)]
-pub(crate) enum TableSurfaceKind {
-    Cards,
-    Mahjong,
-}
+pub(crate) use crate::app::runtime::TableSurfaceKind;
 
 #[derive(AsBindGroup, Asset, TypePath, Debug, Clone, PartialEq)]
 pub(crate) struct TableBackgroundMaterial {

@@ -2,6 +2,7 @@ use crate::{AutomaticActionDelayState, RoomSession};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{MatchId, PlayerReferenceChange};
 use leocard_uno::{UnoCard, UnoGameState, UnoMatchStatistics, UnoRuleSet};
+use std::collections::HashMap;
 use std::time::Duration;
 
 pub(super) const DRAW_REVEAL_START_DELAY: Duration = Duration::from_millis(780);
@@ -27,4 +28,5 @@ pub struct UnoSession {
     pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
     pub(super) automatic_action_delay: Option<AutomaticActionDelayState>,
     pub(super) pending_draw_reveal: Option<PendingDrawReveal>,
+    pub(super) eliminated_views: HashMap<PlayerId, PlayerId>,
 }

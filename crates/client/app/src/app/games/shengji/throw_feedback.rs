@@ -1,6 +1,9 @@
 //! 甩牌失败、退牌与罚分演出。
 
-use super::{ShengjiFailedThrowCard, ShengjiThrowPenaltyFloat, ShengjiThrowPenaltyScorePulse};
+use super::{
+    ShengjiFailedThrowCard, ShengjiScoreTrayAnchor, ShengjiThrowPenaltyFloat,
+    ShengjiThrowPenaltyScorePulse,
+};
 use crate::app::presentation::{DANGER, ease_out_cubic};
 use bevy::prelude::*;
 use leocard_protocol::ShengjiThrowFailureStage;
@@ -90,7 +93,10 @@ pub(super) fn animate_shengji_failed_throw_cards(
 
 pub(super) fn animate_shengji_throw_penalty_floats(
     time: Res<Time>,
+    scores: Query<&UiGlobalTransform, With<ShengjiScoreTrayAnchor>>,
+    tables: Query<(&ComputedNode, &UiGlobalTransform)>,
     mut penalties: Query<(
+        &ChildOf,
         &mut ShengjiThrowPenaltyFloat,
         &mut Node,
         &mut UiTransform,
@@ -98,7 +104,26 @@ pub(super) fn animate_shengji_throw_penalty_floats(
         &mut Visibility,
     )>,
 ) {
-    for (mut animation, mut node, mut transform, mut color, mut visibility) in &mut penalties {
+    for (parent, mut animation, mut node, mut transform, mut color, mut visibility) in
+        &mut penalties
+    {
+        let score_position = scores.single().ok().and_then(|score| {
+            let (table_node, table_transform) = tables.get(parent.parent()).ok()?;
+            let inverse = table_transform.try_inverse()?;
+            let size = table_node.size();
+            (size.x > 0.0 && size.y > 0.0).then(|| {
+                (inverse.transform_point2(score.translation) / size + Vec2::splat(0.5)) * 100.0
+            })
+        });
+        let Some(score_position) = score_position else {
+            *visibility = Visibility::Hidden;
+            continue;
+        };
+        if animation.to_score {
+            animation.target = score_position;
+        } else {
+            animation.source = score_position;
+        }
         animation.elapsed += time.delta_secs();
         let raw = ((animation.elapsed - SHENGJI_THROW_PENALTY_DELAY)
             / SHENGJI_THROW_PENALTY_DURATION)

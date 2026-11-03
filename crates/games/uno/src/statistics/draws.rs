@@ -10,8 +10,10 @@ impl UnoMatchStatistics {
         game: &UnoGameState,
     ) {
         match outcome {
-            UnoActionOutcome::DrewCards { player, cards, .. } => {
-                self.received(*player, cards.len(), false, before);
+            UnoActionOutcome::DrewCards { player, cards, .. }
+            | UnoActionOutcome::ColorRouletteResolved { player, cards, .. } => {
+                let penalty = matches!(outcome, UnoActionOutcome::ColorRouletteResolved { .. });
+                self.received(*player, cards.len(), penalty, before);
                 self.players[player.index()].progress.lucky_elimination |=
                     before.hands[player.index()] <= 5
                         && game.player(*player).is_some_and(|state| state.eliminated());
@@ -45,9 +47,6 @@ impl UnoMatchStatistics {
                 .progress
                 .max_skipped_turns
                 .max(remaining.saturating_add(1));
-            }
-            UnoActionOutcome::ColorRouletteResolved { player, cards, .. } => {
-                self.received(*player, cards.len(), true, before)
             }
             UnoActionOutcome::Played {
                 effect: Some(UnoPlayedEffect::DrawReflected { player, cards }),

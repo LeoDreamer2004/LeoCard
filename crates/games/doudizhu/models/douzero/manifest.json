@@ -1,0 +1,23 @@
+{
+  "landlord": {
+    "checkpoint_bytes": 5835434,
+    "checkpoint_sha256": "132e26479fcb69f457ddbf1ad32a7bdc3aa73cde80a28cc91f29a62c6075955a",
+    "stored_bytes": 2915338,
+    "stored_sha256": "6133e179e6abd3779a909d5740dbaa80f8baf5b868b3481e1184e1fcdafb5d8e",
+    "max_fp16_score_error": 0.005173444747924805
+  },
+  "landlord_down": {
+    "checkpoint_bytes": 6062768,
+    "checkpoint_sha256": "964720faf583f4905662c94aaf73b1a97352b76ae3686fcc949beabbacdd95d1",
+    "stored_bytes": 3029002,
+    "stored_sha256": "4a1d83c72bf1aa3be97e8ff1c83ba8ea03767e4855e691d116cd2a28851fa277",
+    "max_fp16_score_error": 0.004510283470153809
+  },
+  "landlord_up": {
+    "checkpoint_bytes": 6062768,
+    "checkpoint_sha256": "b849ea518e66f088d635d3a29956da880f7b5ca89fabc5f70fc356c106ca6a15",
+    "stored_bytes": 3029002,
+    "stored_sha256": "9e32459c2f37ab05e794013f8b5dd451d192460aa83a59a35ca9a43cf84ef219",
+    "max_fp16_score_error": 0.008023977279663086
+  }
+}

@@ -1,5 +1,5 @@
 use super::ShengjiBotObservation;
-use super::burial::bury;
+use super::burial::{bury, return_cards};
 use super::hand::trump_value;
 use super::search::choose_play;
 use crate::{ShengjiCard, ShengjiFiveTrumpCrossingStage, ShengjiPhase, ShengjiTrump};
@@ -19,15 +19,20 @@ pub struct ShengjiBot;
 
 impl ShengjiBot {
     pub fn choose(observation: &ShengjiBotObservation, budget: &SearchBudget) -> ShengjiBotAction {
-        match observation.phase {
+        Self::choose_with_progress(observation, budget, |_| {})
+    }
+
+    /// Publish complete legal decisions so a host deadline retains search progress.
+    pub fn choose_with_progress(
+        observation: &ShengjiBotObservation,
+        budget: &SearchBudget,
+        mut report: impl FnMut(ShengjiBotAction),
+    ) -> ShengjiBotAction {
+        let action = match observation.phase {
             ShengjiPhase::Burying | ShengjiPhase::BottomCopyBurying => {
-                ShengjiBotAction::Bury(bury(
-                    &observation.hand,
-                    observation.rules.kitty_size(),
-                    observation.trump,
-                    observation.rules,
-                    budget,
-                ))
+                ShengjiBotAction::Bury(bury(observation, budget, &mut |cards| {
+                    report(ShengjiBotAction::Bury(cards));
+                }))
             }
             ShengjiPhase::BottomCopying => {
                 let mut best = None;
@@ -48,7 +53,7 @@ impl ShengjiBot {
             ShengjiPhase::FiveTrumpCrossing
                 if observation.crossing == Some(ShengjiFiveTrumpCrossingStage::Returning) =>
             {
-                ShengjiBotAction::Return(bury(
+                ShengjiBotAction::Return(return_cards(
                     &observation.hand,
                     5,
                     observation.trump,
@@ -67,7 +72,9 @@ impl ShengjiBot {
             }
             ShengjiPhase::Playing => ShengjiBotAction::Play(choose_play(observation, budget)),
             _ => observation.fallback(),
-        }
+        };
+        report(action.clone());
+        action
     }
 }
 
@@ -87,6 +94,7 @@ mod tests {
         );
         let observation = ShengjiBotObservation {
             player: PlayerId(1),
+            dealer: PlayerId(0),
             hand,
             trump: ShengjiTrump::new(ShengjiRank::Two, Some(ShengjiSuit::Heart)).unwrap(),
             rules: ShengjiRuleSet {

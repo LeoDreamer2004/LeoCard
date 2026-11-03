@@ -144,6 +144,7 @@ pub(crate) fn render_uno_table(
         .players
         .iter()
         .find(|player| player.player.id == game.you);
+    let controlling_view = client.0.model().you() == Some(game.you);
     let mut opponents = game
         .players
         .iter()
@@ -207,10 +208,12 @@ pub(crate) fn render_uno_table(
             start_transition_active,
             false,
         );
-        add_uno_actions(commands, table, game, ui, assets);
-        add_uno_callout_actions(commands, table, game, assets);
-        add_uno_swap_selection_prompt(commands, table, game, ui, assets);
-        render_jump_in_device(commands, content, jump_in_device, assets);
+        if controlling_view {
+            add_uno_actions(commands, table, game, ui, assets);
+            add_uno_callout_actions(commands, table, game, assets);
+            add_uno_swap_selection_prompt(commands, table, game, ui, assets);
+            render_jump_in_device(commands, content, jump_in_device, assets);
+        }
     }
 
     let needs_color_choice = game.current_color.is_none()
@@ -223,10 +226,13 @@ pub(crate) fn render_uno_table(
                         | UnoPendingSwapView::ColorRoulette { .. }
                 )
             ));
-    if needs_color_choice && own.is_some() {
+    if controlling_view && needs_color_choice && own.is_some() {
         add_initial_color_choice(commands, content, game, assets);
     }
-    if let Some(card) = ui.color_choice.filter(|_| own.is_some()) {
+    if let Some(card) = ui
+        .color_choice
+        .filter(|_| controlling_view && own.is_some())
+    {
         add_play_color_choice(commands, content, game.flip_side, card, assets);
     }
     if let UnoPhaseView::Finished {
@@ -249,9 +255,14 @@ pub(crate) fn render_uno_table(
         );
     }
 
-    let auto_play = own.map(|player| player.auto_play);
+    let auto_play = own
+        .filter(|_| controlling_view)
+        .map(|player| player.auto_play);
     ChatPanelOptions::new(auto_play, &[]).spawn(commands, content, chat, assets);
-    if own.is_some_and(|player| player.eliminated) && matches!(game.phase, UnoPhaseView::Playing) {
+    if controlling_view
+        && own.is_some_and(|player| player.eliminated)
+        && matches!(game.phase, UnoPhaseView::Playing)
+    {
         add_uno_eliminated_own_overlay(commands, content, assets);
     } else if auto_play == Some(true) && matches!(game.phase, UnoPhaseView::Playing) {
         add_auto_play_overlay(commands, content, assets);

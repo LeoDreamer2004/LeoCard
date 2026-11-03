@@ -57,7 +57,14 @@ pub(super) fn add_uno_eliminated_own_overlay(
             color: Color::BLACK.with_alpha(0.92),
         },
     ));
-    let detail = add_text(commands, overlay, "等待本局结束", 14.0, MUTED, assets);
+    let detail = add_text(
+        commands,
+        overlay,
+        "等待本局结束，可右键玩家头像切换观战视角",
+        14.0,
+        MUTED,
+        assets,
+    );
     commands.entity(detail).insert(Pickable::IGNORE);
 }
 

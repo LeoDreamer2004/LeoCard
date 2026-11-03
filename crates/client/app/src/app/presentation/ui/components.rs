@@ -1,5 +1,6 @@
 //! 跨页面共用的 UI 标记、皮肤与桌面外观控件类型。
 
+use crate::app::runtime::TableSurfaceKind;
 use bevy::prelude::*;
 use leocard_ui::CustomButtonMotion;
 
@@ -18,7 +19,7 @@ pub(crate) struct TableAppearanceSlider(pub TableAppearanceSetting);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum TableAppearanceSetting {
-    Brightness,
+    Brightness(TableSurfaceKind),
     Volume,
 }
 

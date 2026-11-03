@@ -40,7 +40,6 @@ impl TableSurfaceAssets {
 #[derive(Default)]
 pub(crate) struct TabletopAssets {
     pub surface: TableSurfaceAssets,
-    pub avatar_frame: Handle<Image>,
     balance_frame: Handle<Image>,
     side_fold: Handle<Image>,
     side_robot: Handle<Image>,
@@ -65,7 +64,6 @@ impl TabletopAssets {
                 Vec4::new(108.0, 102.0, 1647.0, 791.0) / Vec4::new(1774.0, 887.0, 1774.0, 887.0),
                 Vec4::new(49.0, 39.0, 1707.0, 858.0) / Vec4::new(1774.0, 887.0, 1774.0, 887.0),
             ),
-            avatar_frame: load("avatar-frame"),
             balance_frame: load("balance-frame"),
             side_fold: load("side-fold"),
             side_robot: load("side-robot"),

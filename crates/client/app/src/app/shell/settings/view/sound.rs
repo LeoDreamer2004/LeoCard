@@ -2,7 +2,7 @@
 
 use super::slider::SettingsSlider;
 use super::toggle::add_settings_toggle;
-use crate::app::presentation::{TEXT, TableAppearanceSetting, add_text, add_title};
+use crate::app::presentation::{TEXT, TableAppearanceSetting, add_title};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use crate::app::shell::SettingsUiAction;
 use bevy::prelude::*;
@@ -26,7 +26,7 @@ pub(super) fn render_sound_settings(
         },
         Some(Color::srgba(0.70, 0.68, 0.78, 0.36)),
     );
-    add_text(commands, parent, "麻将", 20.0, TEXT, assets);
+    add_title(commands, parent, "麻将", 20.0, TEXT, assets);
     let row = spawn_node(
         commands,
         parent,

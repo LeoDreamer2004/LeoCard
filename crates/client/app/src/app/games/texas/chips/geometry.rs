@@ -1,3 +1,4 @@
+use super::super::TexasTableLayout;
 use super::ChipZoneLayout;
 
 pub(super) fn texas_pot_chip_zone(squid_enabled: bool) -> ChipZoneLayout {
@@ -5,7 +6,7 @@ pub(super) fn texas_pot_chip_zone(squid_enabled: bool) -> ChipZoneLayout {
         let left = if squid_enabled { 600.0 } else { 349.0 };
         return ChipZoneLayout {
             left,
-            top: 304.0,
+            top: TexasTableLayout::POT_TOP,
             width: 931.0 - left,
             height: 40.0,
         };
@@ -14,9 +15,7 @@ pub(super) fn texas_pot_chip_zone(squid_enabled: bool) -> ChipZoneLayout {
     let left = if squid_enabled { 560.0 } else { 440.0 };
     ChipZoneLayout {
         left,
-        // Keep pot chips below the board cards, but reclaim the space that used
-        // to be reserved for the "底池" title.
-        top: 278.0,
+        top: TexasTableLayout::POT_TOP,
         width: 840.0 - left,
         height: 110.0,
     }

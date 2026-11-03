@@ -271,6 +271,7 @@ impl UnoSession {
                 .expect("a freshly built UNO deck is valid");
         self.statistics = Some(UnoMatchStatistics::new(&game));
         self.game = Some(game);
+        self.eliminated_views.clear();
         self.pending_draw_reveal = None;
         self.match_id = Some(new_match_id());
         self.finished_reference_changes = None;

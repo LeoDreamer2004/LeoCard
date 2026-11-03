@@ -70,7 +70,7 @@ impl Table {
     }
 }
 
-pub(super) fn game(mode: ShengjiMode, seed: u64) -> ShengjiGameState {
+pub(super) fn before_burial(mode: ShengjiMode, seed: u64) -> ShengjiGameState {
     let rules = ShengjiRuleSet::for_mode(mode);
     let mut deck = build_deck_for(rules.deck_count);
     let mut random = SearchRandom::new(seed);
@@ -95,6 +95,11 @@ pub(super) fn game(mode: ShengjiMode, seed: u64) -> ShengjiGameState {
         }
     }
     game.close_bidding_and_take_kitty().unwrap();
+    game
+}
+
+pub(super) fn game(mode: ShengjiMode, seed: u64) -> ShengjiGameState {
+    let mut game = before_burial(mode, seed);
     let player = game.dealer().unwrap();
     let ShengjiBotAction::Bury(cards) = ShengjiBot::choose(
         &ShengjiBotObservation::from_game(&game, player).unwrap(),

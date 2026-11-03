@@ -98,7 +98,7 @@ impl GameScreen for TexasScreen<'_> {
                 avatars,
                 card_materials: &mut self.card_materials,
                 brightness: form.table_brightness,
-                custom_felt: appearance.custom_felt.as_ref(),
+                custom_felt: appearance.cards.custom_felt.as_ref(),
                 table_materials,
                 turn_border_materials,
                 start_game_transition: transition,

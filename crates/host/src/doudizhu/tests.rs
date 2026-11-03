@@ -1,5 +1,6 @@
 use leocard_game_common::PlayerId;
 mod achievements;
+mod automation;
 mod modes;
 
 use super::DoudizhuSession;

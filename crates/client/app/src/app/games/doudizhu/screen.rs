@@ -79,7 +79,7 @@ impl GameScreen for DoudizhuScreen<'_> {
                 assets: context.assets,
                 avatars: context.avatars,
                 brightness: context.form.table_brightness,
-                custom_felt: context.appearance.custom_felt.as_ref(),
+                custom_felt: context.appearance.cards.custom_felt.as_ref(),
                 table_materials: context.table_materials,
                 turn_materials: context.turn_border_materials,
                 summary: context.game_summary,

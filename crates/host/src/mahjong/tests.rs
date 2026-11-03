@@ -449,8 +449,13 @@ fn player_can_toggle_mahjong_auto_play_and_cancel_a_pending_action() {
 
     session.handle(connections[0], message(13, set_auto_play(true)));
     let before_action = session.revision();
+    let drawn = session.game().unwrap().last_drawn().unwrap();
     assert!(!session.advance_time(Duration::from_secs(1)).is_empty());
     assert_ne!(session.revision(), before_action);
+    assert_eq!(
+        session.game().unwrap().discards().last().unwrap().tile,
+        drawn
+    );
 }
 
 #[test]

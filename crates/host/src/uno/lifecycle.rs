@@ -13,6 +13,16 @@ use leocard_uno::{UnoCard, UnoFlipSide, UnoGameState, UnoMatchStatistics, UnoPha
 use std::time::Duration;
 
 impl UnoSession {
+    fn can_spectate_after_elimination(&self, player: PlayerId) -> bool {
+        self.rules.is_no_mercy()
+            && self.game.as_ref().is_some_and(|game| {
+                matches!(game.phase(), UnoPhase::Playing)
+                    && game
+                        .player(player)
+                        .is_some_and(|player| player.eliminated())
+            })
+    }
+
     pub fn new(
         room_id: RoomId,
         host_port: u16,
@@ -36,6 +46,7 @@ impl UnoSession {
             finished_reference_changes: None,
             automatic_action_delay: None,
             pending_draw_reveal: None,
+            eliminated_views: Default::default(),
         })
     }
 
@@ -187,6 +198,45 @@ impl HostedGameLifecycle for UnoSession {
         UnoSession::game_snapshot(self, recipient).into()
     }
 
+    fn viewing_player(&self, recipient: PlayerId) -> PlayerId {
+        if self.can_spectate_after_elimination(recipient) {
+            self.eliminated_views
+                .get(&recipient)
+                .copied()
+                .filter(|target| {
+                    self.room
+                        .players
+                        .iter()
+                        .any(|player| player.id == *target && !player.left)
+                })
+                .unwrap_or(recipient)
+        } else {
+            self.room.viewing_player(recipient)
+        }
+    }
+
+    fn set_spectator_view(
+        &mut self,
+        connection: ConnectionId,
+        target: PlayerId,
+    ) -> Result<(), RejectReason> {
+        let recipient = self.room.player_id(connection);
+        if let Some(recipient) = recipient
+            && self.can_spectate_after_elimination(recipient)
+            && self
+                .room
+                .players
+                .iter()
+                .any(|player| player.id == target && !player.left)
+        {
+            self.eliminated_views.insert(recipient, target);
+            self.room.bump_revision();
+            Ok(())
+        } else {
+            self.room.set_spectator_view(connection, target)
+        }
+    }
+
     fn handle_game_command(
         &mut self,
         connection: ConnectionId,
@@ -284,6 +334,7 @@ impl HostedGameLifecycle for UnoSession {
                 let started_on_dark = game.flip_side() == Some(UnoFlipSide::Dark);
                 self.statistics = Some(UnoMatchStatistics::new(&game));
                 self.game = Some(game);
+                self.eliminated_views.clear();
                 self.pending_draw_reveal = None;
                 self.match_id = Some(new_match_id());
                 self.finished_reference_changes = None;

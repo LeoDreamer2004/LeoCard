@@ -92,7 +92,7 @@ impl GameScreen for QiGui523Screen<'_> {
             game_assets: &self.assets,
             avatars,
             brightness: form.table_brightness,
-            custom_felt: appearance.custom_felt.as_ref(),
+            custom_felt: appearance.cards.custom_felt.as_ref(),
             table_materials,
             game_summary,
             play_effect: &self.play_effect,

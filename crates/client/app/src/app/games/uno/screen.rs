@@ -116,7 +116,7 @@ impl GameScreen for UnoScreen<'_> {
                 game_assets: &self.assets,
                 avatars,
                 brightness: form.table_brightness,
-                custom_felt: appearance.custom_felt.as_ref(),
+                custom_felt: appearance.cards.custom_felt.as_ref(),
                 table_materials,
                 turn_border_materials,
                 start_game_transition: transition,

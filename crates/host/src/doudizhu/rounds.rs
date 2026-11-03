@@ -51,6 +51,7 @@ impl DoudizhuSession {
     }
 
     fn deal_hand(&mut self, deck: Vec<DoudizhuCard>) {
+        self.bot_history.clear();
         self.achievements.begin_hand();
         let first = self
             .match_state

@@ -1,8 +1,8 @@
 use leocard_protocol::{ShengjiEvent, ShengjiPublicPlay, ShengjiViolation};
 use leocard_shengji::{
     ShengjiBidError, ShengjiCard, ShengjiComponent, ShengjiFollowError, ShengjiGameError,
-    ShengjiHandResult, ShengjiPlayError, ShengjiProfileStats, ShengjiRuleSet, ShengjiSuit,
-    ShengjiTrickRecord, ShengjiTrump, build_deck_for,
+    ShengjiHandResult, ShengjiPlayError, ShengjiProfileStats, ShengjiRuleSet, ShengjiTrickRecord,
+    build_deck_for,
 };
 
 use std::collections::HashSet;
@@ -168,15 +168,6 @@ fn play_violation(error: ShengjiPlayError) -> ShengjiViolation {
         ShengjiPlayError::MixedCategory => ShengjiViolation::InvalidPattern,
         ShengjiPlayError::ThrowDisabled => ShengjiViolation::ThrowDisabled,
     }
-}
-
-pub(super) fn card_sort_key(card: ShengjiCard, trump: ShengjiTrump) -> (bool, u8, u8, u8) {
-    (
-        trump.is_trump(card),
-        trump.strength(card),
-        card.suit().map_or(4, ShengjiSuit::bid_strength),
-        card.deck(),
-    )
 }
 
 pub(super) fn validate_deck(

@@ -1,7 +1,8 @@
 use super::{SettingsTab, start_table_felt_picker};
 use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::{
-    AppearancePreferences, TableAppearance, TableFeltPicker, save_appearance_preferences,
+    AppearancePreferences, GlobalPreferences, TableAppearance, TableFeltPicker, TableSurfaceKind,
+    save_appearance_preferences,
 };
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState, dispatch_domain_actions,
@@ -26,8 +27,8 @@ pub(crate) enum SettingsUiAction {
     ToggleQiGuiActionVoices,
     ToggleDoudizhuActionVoices,
     ToggleMcGuessBackground,
-    ChooseTableFelt,
-    UseDefaultTableFelt,
+    ChooseTableFelt(TableSurfaceKind),
+    UseDefaultTableFelt(TableSurfaceKind),
 }
 
 impl DomainUiAction for SettingsUiAction {
@@ -104,20 +105,25 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
                     warn!("{error}");
                 }
             }
-            SettingsUiAction::ChooseTableFelt => {
+            SettingsUiAction::ChooseTableFelt(kind) => {
                 if local.table_felt_picker.pending.is_none() {
                     match start_table_felt_picker() {
                         Ok(receiver) => {
-                            local.table_felt_picker.pending = Some(receiver);
+                            local.table_felt_picker.pending = Some((*kind, receiver));
                             local.table_appearance.error = None;
                         }
                         Err(error) => local.table_appearance.error = Some(error),
                     }
                 }
             }
-            SettingsUiAction::UseDefaultTableFelt => {
-                let changed = appearance.table_felt_path.take().is_some();
-                appearance.table_brightness = 1.0;
+            SettingsUiAction::UseDefaultTableFelt(kind) => {
+                let changed = appearance.felt_path_mut(*kind).take().is_some();
+                let defaults = GlobalPreferences::default();
+                let brightness = match kind {
+                    TableSurfaceKind::Cards => defaults.table_brightness,
+                    TableSurfaceKind::Mahjong => defaults.mahjong_table_brightness,
+                };
+                appearance.set_brightness(*kind, brightness);
                 local.table_appearance.error = save_appearance_preferences(appearance).err();
                 if changed && local.table_appearance.error.is_none() {
                     context.achievements.write(LocalAchievementTrigger(

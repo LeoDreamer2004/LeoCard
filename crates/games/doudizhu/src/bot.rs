@@ -43,7 +43,8 @@ pub fn bot_action(game: &DoudizhuGameState) -> Option<DoudizhuAction> {
     }
 }
 
-/// Manual auto-play and disconnected-player takeover currently share the bot strategy.
+/// Conservative policy for human auto-play and disconnected-player takeover.
+/// The host selects DouZero or the four-player simulation policy only for room robots.
 pub fn auto_play_action(game: &DoudizhuGameState) -> Option<DoudizhuAction> {
     bot_action(game)
 }
@@ -56,7 +57,7 @@ pub fn hint(
     hint_options(hand, table, rules).into_iter().next()
 }
 
-/// Distinct suggested responses, ordered by the same priorities used by bots.
+/// Distinct suggested responses, ordered by the conservative heuristic policy.
 pub fn hint_options(
     hand: &[DoudizhuCard],
     table: Option<&DoudizhuPlay>,

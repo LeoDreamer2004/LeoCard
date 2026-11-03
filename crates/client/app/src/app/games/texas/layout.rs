@@ -29,6 +29,12 @@ impl TexasTableLayout {
     } else {
         100.0
     };
+    // The central chips and squid pool share an origin below the street label.
+    pub(super) const POT_TOP: f32 = if cfg!(target_os = "android") {
+        304.0
+    } else {
+        318.0
+    };
     pub(super) const HAND_SCALE: f32 = if cfg!(target_os = "android") {
         1.4
     } else {

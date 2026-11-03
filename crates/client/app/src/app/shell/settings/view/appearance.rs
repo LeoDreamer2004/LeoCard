@@ -2,8 +2,8 @@
 
 use super::slider::SettingsSlider;
 use super::toggle::add_settings_toggle;
-use crate::app::presentation::{MUTED, TEXT, TableAppearanceSetting, add_text};
-use crate::app::runtime::{AppearancePreferences, UiAssets};
+use crate::app::presentation::{MUTED, TEXT, TableAppearanceSetting, add_text, add_title};
+use crate::app::runtime::{AppearancePreferences, TableSurfaceKind, UiAssets};
 use crate::app::shell::{SettingsUiAction, UiAction, add_cozy_button};
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
@@ -22,7 +22,28 @@ impl<'a> TableAppearanceSettings<'a> {
     pub(super) fn render(&self, commands: &mut UiComposer, parent: Entity) {
         let form = self.form;
         let assets = self.assets;
-        add_text(commands, parent, "桌面外观", 20.0, TEXT, assets);
+        for (kind, title) in [
+            (TableSurfaceKind::Cards, "扑克牌桌面"),
+            (TableSurfaceKind::Mahjong, "麻将桌面"),
+        ] {
+            add_title(commands, parent, title, 20.0, TEXT, assets);
+            self.render_table(commands, parent, kind);
+        }
+        add_title(commands, parent, "MC 竞猜", 20.0, TEXT, assets);
+        add_settings_toggle(
+            commands,
+            parent,
+            "随机背景",
+            form.games.mc_guess_random_background,
+            SettingsUiAction::ToggleMcGuessBackground,
+            assets,
+        );
+    }
+
+    fn render_table(&self, commands: &mut UiComposer, parent: Entity, kind: TableSurfaceKind) {
+        let form = self.form;
+        let assets = self.assets;
+        let path = form.felt_path(kind);
         add_text(commands, parent, "桌布背景", 15.0, MUTED, assets);
         let mut path_image = ImageNode::new(assets.home.input.clone()).with_mode(
             NodeImageMode::Sliced(TextureSlicer {
@@ -60,51 +81,36 @@ impl<'a> TableAppearanceSettings<'a> {
         add_text(
             commands,
             path_text,
-            form.table_felt_path.as_ref().map_or_else(
+            path.as_ref().map_or_else(
                 || "当前使用默认牌桌背景".to_owned(),
                 |path| format!("图片路径：{}", path.display()),
             ),
             13.0,
-            if form.table_felt_path.is_some() {
-                TEXT
-            } else {
-                MUTED
-            },
+            if path.is_some() { TEXT } else { MUTED },
             assets,
         );
         add_cozy_button(
             commands,
             path_box,
             "选择图片",
-            UiAction::Settings(SettingsUiAction::ChooseTableFelt),
+            UiAction::Settings(SettingsUiAction::ChooseTableFelt(kind)),
             assets,
             px(110),
             38.0,
         );
-        if form.table_felt_path.is_some() {
-            add_cozy_button(
-                commands,
-                path_box,
-                "恢复默认",
-                UiAction::Settings(SettingsUiAction::UseDefaultTableFelt),
-                assets,
-                px(110),
-                38.0,
-            );
-        }
+        add_cozy_button(
+            commands,
+            path_box,
+            "恢复默认",
+            UiAction::Settings(SettingsUiAction::UseDefaultTableFelt(kind)),
+            assets,
+            px(110),
+            38.0,
+        );
         SettingsSlider::new(form, assets).render(
             commands,
             parent,
-            TableAppearanceSetting::Brightness,
-        );
-        add_text(commands, parent, "MC 竞猜", 20.0, TEXT, assets);
-        add_settings_toggle(
-            commands,
-            parent,
-            "随机背景",
-            form.games.mc_guess_random_background,
-            SettingsUiAction::ToggleMcGuessBackground,
-            assets,
+            TableAppearanceSetting::Brightness(kind),
         );
     }
 }

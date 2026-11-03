@@ -1,7 +1,7 @@
 //! 已加载 UI 资源、头像缓存与文件选择器状态。
 
 use super::quick_voices::QuickVoiceAssets;
-use super::{PlayingCardAssets, PokerChipAssets, TabletopAssets};
+use super::{AvatarFrameAssets, PlayingCardAssets, PokerChipAssets, TabletopAssets};
 use bevy::prelude::*;
 use leocard_protocol::{AvatarId, ChatEmoji, PlayerInteractionKind};
 use std::collections::HashMap;
@@ -16,6 +16,7 @@ pub(crate) const TITLE_FONT_ASSET: &str = "fonts/DouyinSansBold.ttf";
 pub(crate) struct UiAssets {
     pub font: Handle<Font>,
     pub title_font: Handle<Font>,
+    pub avatar_frames: AvatarFrameAssets,
     pub playing_cards: PlayingCardAssets,
     pub poker_chips: PokerChipAssets,
     pub controls: ControlAssets,
@@ -241,14 +242,35 @@ pub(crate) struct AvatarPicker {
 
 #[derive(Resource, Default)]
 pub(crate) struct TableFeltPicker {
-    pub pending: Option<TableFeltPickerReceiver>,
+    pub pending: Option<(TableSurfaceKind, TableFeltPickerReceiver)>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum TableSurfaceKind {
+    Cards,
+    Mahjong,
+}
+
+#[derive(Default)]
+pub(crate) struct TableFeltAppearance {
+    pub loaded_path: Option<PathBuf>,
+    pub custom_felt: Option<Handle<Image>>,
 }
 
 #[derive(Resource, Default)]
 pub(crate) struct TableAppearance {
-    pub loaded_path: Option<PathBuf>,
-    pub custom_felt: Option<Handle<Image>>,
+    pub cards: TableFeltAppearance,
+    pub mahjong: TableFeltAppearance,
     pub error: Option<String>,
+}
+
+impl TableAppearance {
+    pub(crate) fn felt_mut(&mut self, kind: TableSurfaceKind) -> &mut TableFeltAppearance {
+        match kind {
+            TableSurfaceKind::Cards => &mut self.cards,
+            TableSurfaceKind::Mahjong => &mut self.mahjong,
+        }
+    }
 }
 
 type AvatarPickerResult = Result<Option<PathBuf>, String>;

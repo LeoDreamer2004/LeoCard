@@ -28,7 +28,9 @@ pub(crate) fn table_appearance_fraction(
     form: &AppearancePreferences,
 ) -> f32 {
     match setting {
-        TableAppearanceSetting::Brightness => table_brightness_fraction(form.table_brightness),
+        TableAppearanceSetting::Brightness(kind) => {
+            table_brightness_fraction(form.brightness(kind))
+        }
         TableAppearanceSetting::Volume => form.audio_volume,
     }
 }
@@ -38,8 +40,8 @@ pub(crate) fn table_appearance_label(
     form: &AppearancePreferences,
 ) -> String {
     match setting {
-        TableAppearanceSetting::Brightness => {
-            format!("亮度  {:.0}%", form.table_brightness * 100.0)
+        TableAppearanceSetting::Brightness(kind) => {
+            format!("亮度  {:.0}%", form.brightness(kind) * 100.0)
         }
         TableAppearanceSetting::Volume => {
             format!("游戏音量  {:.0}%", form.audio_volume * 100.0)
@@ -53,9 +55,11 @@ fn set_table_appearance_from_fraction(
     form: &mut AppearancePreferences,
 ) {
     match setting {
-        TableAppearanceSetting::Brightness => {
-            form.table_brightness =
-                MIN_TABLE_BRIGHTNESS + fraction * (MAX_TABLE_BRIGHTNESS - MIN_TABLE_BRIGHTNESS);
+        TableAppearanceSetting::Brightness(kind) => {
+            form.set_brightness(
+                kind,
+                MIN_TABLE_BRIGHTNESS + fraction * (MAX_TABLE_BRIGHTNESS - MIN_TABLE_BRIGHTNESS),
+            );
         }
         TableAppearanceSetting::Volume => form.audio_volume = fraction,
     }
@@ -110,7 +114,11 @@ pub(crate) fn handle_table_appearance_sliders(
             }
             for background in &backgrounds {
                 if let Some(mut material) = materials.get_mut(background) {
-                    material.params.x = form.table_brightness;
+                    material.params.x = if material.params.y == 0.0 {
+                        form.table_brightness
+                    } else {
+                        form.mahjong_table_brightness
+                    };
                 }
             }
             global_volume.volume = Volume::Linear(form.audio_volume);

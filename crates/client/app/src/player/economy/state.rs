@@ -1,11 +1,10 @@
 use super::rewards::login_day;
-use super::storage::EconomyArchive;
+use super::storage::{EconomyArchive, unix_seconds};
 use super::{PropId, ShopAvatarFrame};
 use bevy::prelude::Resource;
 use leocard_achievements::AchievementDefinition;
 use leocard_protocol::{AvatarFrameId, MatchId, PlayerReferenceChange, ProfileId};
 use std::mem;
-use std::time::{self, SystemTime};
 
 #[derive(Resource)]
 pub struct PlayerEconomy {
@@ -178,7 +177,7 @@ impl PlayerEconomy {
         self.archive
             .ledger
             .active_props
-            .get(&prop)
+            .get(&prop.canonical())
             .copied()
             .unwrap_or(0)
             .saturating_sub(unix_seconds())
@@ -189,6 +188,7 @@ impl PlayerEconomy {
     }
 
     pub fn buy_prop(&mut self, prop: PropId) -> Result<(), String> {
+        let prop = prop.canonical();
         if self.active(prop) {
             return Err("道具已生效，到期后可再次购买".to_owned());
         }
@@ -199,6 +199,7 @@ impl PlayerEconomy {
     }
 
     pub fn extend_prop(&mut self, prop: PropId) -> Result<(), String> {
+        let prop = prop.canonical();
         if !self.active(prop) {
             return Err("道具已到期，请重新购买".to_owned());
         }
@@ -211,7 +212,10 @@ impl PlayerEconomy {
     fn purchase_until(&mut self, prop: PropId, expires: u64) -> Result<(), String> {
         self.transact(|archive| {
             archive.ledger.spend(prop.definition().price)?;
-            archive.ledger.active_props.insert(prop, expires);
+            archive
+                .ledger
+                .active_props
+                .insert(prop.canonical(), expires);
             Ok(())
         })
     }
@@ -233,11 +237,4 @@ impl PlayerEconomy {
         }
         Ok(result)
     }
-}
-
-fn unix_seconds() -> u64 {
-    SystemTime::now()
-        .duration_since(time::UNIX_EPOCH)
-        .expect("系统时间早于 Unix 纪元")
-        .as_secs()
 }

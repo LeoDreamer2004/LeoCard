@@ -70,7 +70,7 @@ fn sync(
         .as_deref()
         .and_then(|c| c.0.model().game_snapshot().and_then(GameSnapshot::doudizhu));
     let active = game.is_some_and(|g| g.phase == DoudizhuPhase::Playing && !g.your_hand.is_empty())
-        && economy.active(PropId::DoudizhuCardCounter);
+        && economy.active(PropId::CardCounter);
     if state.counter.active != active {
         state.counter.active = active;
         state.counter.drag.grab = None;

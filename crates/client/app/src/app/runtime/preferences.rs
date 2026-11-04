@@ -7,11 +7,12 @@ use leocard_blackjack::BlackjackRuleSet;
 use leocard_client::PlayerEconomy;
 pub(crate) use leocard_client::{
     DoudizhuPreferences, GameAppearancePreferences, GamePreferences, GlobalPreferences,
-    MahjongPreferences, McGuessPreferences, QiGui523Preferences, SavedPreferences,
-    ShengjiPreferences, TexasPreferences, UnoPreferences, load_player_preferences,
-    save_game_preferences, save_global_preferences,
+    GuandanPreferences, MahjongPreferences, McGuessPreferences, QiGui523Preferences,
+    SavedPreferences, ShengjiPreferences, TexasPreferences, UnoPreferences,
+    load_player_preferences, save_game_preferences, save_global_preferences,
 };
 use leocard_doudizhu::DoudizhuRuleSet;
+use leocard_guandan::GuandanRuleSet;
 use leocard_mahjong::MahjongRuleSet;
 use leocard_mc_guess::McGuessRuleSet;
 use leocard_protocol::{
@@ -92,6 +93,7 @@ pub(crate) struct HostRulePreferences {
     pub mc_guess_rules: McGuessRuleSet,
     pub doudizhu_rules: DoudizhuRuleSet,
     pub doudizhu_modes: [DoudizhuRuleSet; 2],
+    pub guandan_rules: GuandanRuleSet,
 }
 
 #[derive(Resource, Default)]
@@ -198,6 +200,7 @@ impl PreferenceResources {
                 mc_guess_rules: normalize_rules(saved.games.mc_guess.host_rules),
                 doudizhu_rules: normalize_rules(saved.games.doudizhu.host_rules),
                 doudizhu_modes: saved.games.doudizhu.remembered_modes().map(normalize_rules),
+                guandan_rules: normalize_rules(saved.games.guandan.host_rules),
             },
         }
     }
@@ -289,10 +292,21 @@ impl NormalizeRuleSet for DoudizhuRuleSet {
     }
 }
 
+impl NormalizeRuleSet for GuandanRuleSet {
+    fn normalized(self) -> Self {
+        if self.is_valid() {
+            self
+        } else {
+            Self::default()
+        }
+    }
+}
+
 impl HostRulePreferences {
     pub(crate) fn game_rules(&self, kind: GameKind) -> GameRules {
         match kind {
             GameKind::Doudizhu => normalize_rules(self.doudizhu_rules).into(),
+            GameKind::Guandan => normalize_rules(self.guandan_rules).into(),
             GameKind::Blackjack => BlackjackRuleSet::default().into(),
             GameKind::McGuess => normalize_rules(self.mc_guess_rules).into(),
             GameKind::QiGui523 => normalize_rules(self.host_rules).into(),
@@ -310,6 +324,9 @@ impl HostRulePreferences {
                 let rules = normalize_rules(*rules);
                 replace_if_changed(&mut self.doudizhu_rules, rules)
                     | replace_if_changed(&mut self.doudizhu_modes[rules.mode as usize], rules)
+            }
+            GameRules::Guandan(rules) => {
+                replace_if_changed(&mut self.guandan_rules, normalize_rules(*rules))
             }
             GameRules::McGuess(rules) => {
                 replace_if_changed(&mut self.mc_guess_rules, normalize_rules(*rules))
@@ -406,6 +423,9 @@ pub(super) fn save_host_rule_preferences(rules: &HostRulePreferences) -> Result<
         doudizhu: DoudizhuPreferences {
             host_rules: normalize_rules(rules.doudizhu_rules),
             mode_rules: rules.doudizhu_modes,
+        },
+        guandan: GuandanPreferences {
+            host_rules: normalize_rules(rules.guandan_rules),
         },
     };
     save_game_preferences(&games)

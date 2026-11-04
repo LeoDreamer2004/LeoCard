@@ -1,6 +1,5 @@
 use super::ShopUiAction;
 use super::skin::{add_price, add_product_card, add_product_icon, add_product_preview};
-use crate::app::games::SUPPORTED_GAMES;
 use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text, add_title, rule_help_style};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
@@ -53,11 +52,7 @@ pub(super) fn render_prop(
         None,
     );
     add_title(commands, identity, prop.name, 21.0, TEXT, assets);
-    let game = SUPPORTED_GAMES
-        .iter()
-        .find(|game| game.kind == prop.game)
-        .unwrap();
-    add_text(commands, identity, game.title, 13.0, MUTED, assets);
+    add_text(commands, identity, prop.game_label, 13.0, MUTED, assets);
     add_help_tooltip(commands, header, prop.description, rule_help_style(assets));
     let artwork = add_product_preview(commands, card, assets, prop.rarity);
     add_product_icon(
@@ -65,7 +60,8 @@ pub(super) fn render_prop(
         artwork,
         match id {
             PropId::ObservationLens => assets.props.observation_lens.clone(),
-            PropId::ShengjiCardCounter
+            PropId::CardCounter
+            | PropId::ShengjiCardCounter
             | PropId::QiGui523CardCounter
             | PropId::DoudizhuCardCounter => assets.props.card_counter.clone(),
             PropId::ShengjiMissingSuitCard => assets.props.missing_suit_card.clone(),

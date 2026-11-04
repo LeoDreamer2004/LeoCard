@@ -63,6 +63,7 @@ impl PreferenceFiles {
         mahjong => "games/mahjong.json",
         mc_guess => "games/mc_guess.json",
         doudizhu => "games/doudizhu.json",
+        guandan => "games/guandan.json",
     }
 
     fn read<T: DeserializeOwned>(&self, name: &str) -> Result<Option<T>, String> {

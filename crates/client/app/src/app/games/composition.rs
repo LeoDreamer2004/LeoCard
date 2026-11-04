@@ -2,6 +2,7 @@
 
 use super::blackjack::BlackjackScreen;
 use super::doudizhu::DoudizhuScreen;
+use super::guandan::GuandanScreen;
 use super::mahjong::MahjongScreen;
 use super::mc_guess::McGuessScreen;
 use super::qigui523::QiGui523Screen;
@@ -21,6 +22,7 @@ use leocard_ui::UiComposer;
 pub(crate) struct GameScreens<'w> {
     blackjack: BlackjackScreen<'w>,
     doudizhu: DoudizhuScreen<'w>,
+    guandan: GuandanScreen<'w>,
     mc_guess: McGuessScreen<'w>,
     qigui523: QiGui523Screen<'w>,
     texas: TexasScreen<'w>,
@@ -34,6 +36,7 @@ impl GameScreens<'_> {
         match game {
             GameSnapshot::Blackjack(game) => self.blackjack.requires_action(game),
             GameSnapshot::Doudizhu(game) => self.doudizhu.requires_action(game),
+            GameSnapshot::Guandan(game) => self.guandan.requires_action(game),
             GameSnapshot::McGuess(game) => self.mc_guess.requires_action(game),
             GameSnapshot::QiGui523(game) => self.qigui523.requires_action(game),
             GameSnapshot::Texas(game) => self.texas.requires_action(game),
@@ -50,6 +53,7 @@ impl GameScreens<'_> {
     ) {
         self.blackjack.reconcile(client, &mut shell.social);
         self.doudizhu.reconcile(client, &mut shell.social);
+        self.guandan.reconcile(client, &mut shell.social);
         self.mc_guess.reconcile(client, &mut shell.social);
         self.qigui523.reconcile(client, &mut shell.social);
         self.texas.reconcile(client, &mut shell.social);
@@ -75,6 +79,7 @@ impl GameScreens<'_> {
     ) {
         match lobby.game {
             GameKind::Doudizhu => self.doudizhu.render_lobby(commands, root, lobby, context),
+            GameKind::Guandan => self.guandan.render_lobby(commands, root, lobby, context),
             GameKind::Blackjack => self.blackjack.render_lobby(commands, root, lobby, context),
             GameKind::McGuess => self.mc_guess.render_lobby(commands, root, lobby, context),
             GameKind::QiGui523 => self.qigui523.render_lobby(commands, root, lobby, context),
@@ -96,6 +101,7 @@ impl GameScreens<'_> {
             GameSnapshot::Doudizhu(game) => {
                 self.doudizhu.render_table(commands, root, game, context)
             }
+            GameSnapshot::Guandan(game) => self.guandan.render_table(commands, root, game, context),
             GameSnapshot::Blackjack(game) => {
                 self.blackjack.render_table(commands, root, game, context)
             }

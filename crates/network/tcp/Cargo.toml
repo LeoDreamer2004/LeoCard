@@ -22,6 +22,7 @@ tokio.workspace = true
 [dev-dependencies]
 ed25519-dalek.workspace = true
 leocard-achievements = { path = "../../games/achievements" }
+leocard-guandan = { path = "../../games/guandan" }
 leocard-qigui523 = { path = "../../games/qigui523" }
 leocard-shengji = { path = "../../games/shengji" }
 leocard-texas-holdem = { path = "../../games/texas-holdem" }

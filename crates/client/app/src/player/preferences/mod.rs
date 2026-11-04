@@ -8,8 +8,8 @@ mod storage;
 
 pub use appearance::GameAppearancePreferences;
 pub use games::{
-    DoudizhuPreferences, GamePreferences, MahjongPreferences, McGuessPreferences,
-    QiGui523Preferences, ShengjiPreferences, TexasPreferences, UnoPreferences,
+    DoudizhuPreferences, GamePreferences, GuandanPreferences, MahjongPreferences,
+    McGuessPreferences, QiGui523Preferences, ShengjiPreferences, TexasPreferences, UnoPreferences,
 };
 pub use global::GlobalPreferences;
 pub use state::SavedPreferences;

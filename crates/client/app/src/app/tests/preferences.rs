@@ -86,6 +86,7 @@ fn preferences_round_trip_including_avatar() {
             },
             mc_guess: Default::default(),
             doudizhu: Default::default(),
+            guandan: Default::default(),
         },
     };
     let encoded = postcard::to_allocvec(&saved).unwrap();

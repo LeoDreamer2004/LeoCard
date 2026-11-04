@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 #[derive(Resource)]
 pub(super) struct GalleryAssets {
-    images: [Handle<Image>; ENTRY_DESIGNS.len()],
+    images: [Option<Handle<Image>>; ENTRY_DESIGNS.len()],
 }
 
 impl FromWorld for GalleryAssets {
@@ -12,7 +12,7 @@ impl FromWorld for GalleryAssets {
         Self {
             images: ENTRY_DESIGNS
                 .each_ref()
-                .map(|entry| server.load(entry.image)),
+                .map(|entry| entry.image.map(|image| server.load(image))),
         }
     }
 }
@@ -22,6 +22,8 @@ pub(super) fn load_entry_art(
     mut entries: Query<(&EntryArt, &mut ImageNode), Changed<EntryArt>>,
 ) {
     for (art, mut image) in &mut entries {
-        image.image = assets.images[art.0].clone();
+        if let Some(handle) = &assets.images[art.0] {
+            image.image = handle.clone();
+        }
     }
 }

@@ -3571,6 +3571,7 @@ dependencies = [
  "leocard-blackjack",
  "leocard-doudizhu",
  "leocard-game-common",
+ "leocard-guandan",
  "leocard-host",
  "leocard-mahjong",
  "leocard-protocol",
@@ -3619,6 +3620,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "leocard-guandan"
+version = "0.11.1"
+dependencies = [
+ "leocard-game-common",
+ "serde",
+]
+
+[[package]]
 name = "leocard-host"
 version = "0.11.1"
 dependencies = [
@@ -3629,6 +3638,7 @@ dependencies = [
  "leocard-blackjack",
  "leocard-doudizhu",
  "leocard-game-common",
+ "leocard-guandan",
  "leocard-mahjong",
  "leocard-protocol",
  "leocard-qigui523",
@@ -3655,6 +3665,7 @@ dependencies = [
  "leocard-blackjack",
  "leocard-doudizhu",
  "leocard-game-common",
+ "leocard-guandan",
  "leocard-mahjong",
  "leocard-qigui523",
  "leocard-shengji",
@@ -3701,6 +3712,7 @@ dependencies = [
  "fastrand",
  "leocard-achievements",
  "leocard-game-common",
+ "leocard-guandan",
  "leocard-host",
  "leocard-protocol",
  "leocard-qigui523",

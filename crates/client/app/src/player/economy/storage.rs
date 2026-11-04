@@ -5,9 +5,17 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fs;
 use std::io::ErrorKind;
+use std::time::{self, SystemTime};
 
 const FILE_MAGIC: &[u8] = b"LEOCARD-ECONOMY\n";
-pub(super) const FORMAT_VERSION: u16 = 5;
+pub(super) const FORMAT_VERSION: u16 = 6;
+
+pub(super) fn unix_seconds() -> u64 {
+    SystemTime::now()
+        .duration_since(time::UNIX_EPOCH)
+        .expect("系统时间早于 Unix 纪元")
+        .as_secs()
+}
 
 #[derive(Clone, Deserialize, Serialize)]
 pub(super) struct EconomyArchive {
@@ -96,7 +104,8 @@ impl EconomyArchive {
             .ok_or("无法识别钱包格式，原存档已保留")?;
         let (version, payload) = body.split_first_chunk::<2>().ok_or("钱包格式版本不完整")?;
         let version = u16::from_be_bytes(*version);
-        let mut archive = migration::decode(version, payload, profile_id, exclusive)?;
+        let mut archive =
+            migration::decode(version, payload, profile_id, exclusive, unix_seconds())?;
         let changed = archive.update_exclusive_frame(exclusive);
         if version != FORMAT_VERSION || changed {
             archive.save()?;

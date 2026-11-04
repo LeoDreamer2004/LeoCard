@@ -1,3 +1,4 @@
+use super::PropId;
 use super::storage::{EconomyArchive, EconomyLedger, FORMAT_VERSION};
 use leocard_protocol::{AvatarFrameId, ProfileId};
 use serde::Deserialize;
@@ -15,6 +16,7 @@ pub(super) fn decode(
     payload: &[u8],
     profile_id: ProfileId,
     exclusive: Option<AvatarFrameId>,
+    now: u64,
 ) -> Result<EconomyArchive, String> {
     let mut archive: EconomyArchive = match version {
         1 | 2 => Ok(EconomyArchive::new(profile_id)),
@@ -25,7 +27,7 @@ pub(super) fn decode(
             equipped_frame: previous.equipped_frame,
             exclusive_frame: exclusive,
         }),
-        FORMAT_VERSION => postcard::from_bytes(payload),
+        5 | FORMAT_VERSION => postcard::from_bytes(payload),
         _ => return Err("不支持此钱包版本，原存档已保留".to_owned()),
     }
     .map_err(|error| format!("无法解析钱包：{error}"))?;
@@ -35,5 +37,26 @@ pub(super) fn decode(
     if version < 4 {
         archive.update_exclusive_frame(exclusive);
     }
+    if (3..FORMAT_VERSION).contains(&version) {
+        merge_card_counter_time(&mut archive.ledger, now);
+    }
     Ok(archive)
+}
+
+fn merge_card_counter_time(ledger: &mut EconomyLedger, now: u64) {
+    let remaining = [
+        PropId::ShengjiCardCounter,
+        PropId::QiGui523CardCounter,
+        PropId::DoudizhuCardCounter,
+    ]
+    .into_iter()
+    .filter_map(|id| ledger.active_props.remove(&id))
+    .fold(0_u64, |total, expires| {
+        total.saturating_add(expires.saturating_sub(now))
+    });
+    if remaining > 0 {
+        ledger
+            .active_props
+            .insert(PropId::CardCounter, now.saturating_add(remaining));
+    }
 }

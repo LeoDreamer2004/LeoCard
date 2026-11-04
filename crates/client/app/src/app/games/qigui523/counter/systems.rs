@@ -15,7 +15,7 @@ pub(in super::super) fn sync_counter(
     let model = client.as_deref().map(|client| client.0.model());
     let game = model.and_then(|model| model.game_snapshot().and_then(GameSnapshot::qigui523));
     let active = game.is_some_and(|game| matches!(game.phase, QiGui523PhaseView::Playing))
-        && economy.active(PropId::QiGui523CardCounter);
+        && economy.active(PropId::CardCounter);
     if state.window.active != active {
         state.window.active = active;
         state.window.drag.grab = None;

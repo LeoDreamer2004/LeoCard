@@ -22,7 +22,7 @@ pub(in super::super) fn sync_counter(
     let active = game.is_some_and(|game| {
         matches!(game.phase, ShengjiPhaseView::Playing)
             && game.players.iter().any(|player| player.hand_len > 0)
-            && economy.active(PropId::ShengjiCardCounter)
+            && economy.active(PropId::CardCounter)
     });
     if state.window.active != active {
         state.window.active = active;

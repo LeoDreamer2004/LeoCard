@@ -6,5 +6,5 @@ mod storage;
 #[cfg(test)]
 mod tests;
 
-pub use catalog::{ShopProp, PropId, ShopAvatarFrame, ShopRarity};
+pub use catalog::{PropId, ShopAvatarFrame, ShopProp, ShopRarity};
 pub use state::PlayerEconomy;

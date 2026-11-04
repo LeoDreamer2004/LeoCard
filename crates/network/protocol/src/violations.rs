@@ -1,12 +1,13 @@
 //! 联机请求的通用拒绝原因与对应说明。
 
 use crate::{
-    BlackjackViolation, DoudizhuViolation, MahjongViolation, McGuessViolation, QiGui523Violation,
-    RequestId, ShengjiViolation, TexasViolation, UnoViolation,
+    BlackjackViolation, DoudizhuViolation, GuandanViolation, MahjongViolation, McGuessViolation,
+    QiGui523Violation, RequestId, ShengjiViolation, TexasViolation, UnoViolation,
 };
 use leocard_blackjack::BlackjackGameError;
 use leocard_doudizhu::DoudizhuGameError;
 use leocard_game_common::PlayerId;
+use leocard_guandan::GuandanGameError;
 use leocard_mc_guess::McGuessGameError;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -141,6 +142,7 @@ pub enum GameViolation {
     McGuess(McGuessViolation),
     Blackjack(BlackjackViolation),
     Doudizhu(DoudizhuViolation),
+    Guandan(GuandanViolation),
 }
 
 impl fmt::Display for GameViolation {
@@ -160,6 +162,7 @@ impl fmt::Display for GameViolation {
             Self::McGuess(reason) => reason.fmt(f),
             Self::Blackjack(reason) => reason.fmt(f),
             Self::Doudizhu(reason) => reason.fmt(f),
+            Self::Guandan(reason) => reason.fmt(f),
         }
     }
 }
@@ -209,6 +212,18 @@ impl From<BlackjackViolation> for GameViolation {
 impl From<DoudizhuViolation> for GameViolation {
     fn from(value: DoudizhuViolation) -> Self {
         Self::Doudizhu(value)
+    }
+}
+
+impl From<GuandanViolation> for GameViolation {
+    fn from(value: GuandanViolation) -> Self {
+        Self::Guandan(value)
+    }
+}
+
+impl From<GuandanGameError> for GameViolation {
+    fn from(value: GuandanGameError) -> Self {
+        Self::Guandan(value.into())
     }
 }
 

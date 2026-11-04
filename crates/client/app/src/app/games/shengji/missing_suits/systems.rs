@@ -2,7 +2,7 @@ use super::{super::ShengjiUiState, state::MissingSuitMarker};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
-use leocard_client::{ItemId, PlayerEconomy};
+use leocard_client::{PlayerEconomy, PropId};
 use leocard_protocol::{GameSnapshot, ShengjiPhaseView};
 
 use std::collections::hash_map::Entry;
@@ -25,7 +25,7 @@ pub(in super::super) fn sync_missing_suits(
     let active = game.is_some_and(|game| {
         matches!(game.phase, ShengjiPhaseView::Playing)
             && game.players.iter().any(|player| player.hand_len > 0)
-            && economy.active(ItemId::ShengjiMissingSuitCard)
+            && economy.active(PropId::ShengjiMissingSuitCard)
     });
     if state.active != active {
         state.active = active;

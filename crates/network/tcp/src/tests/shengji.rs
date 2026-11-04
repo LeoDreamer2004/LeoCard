@@ -50,6 +50,7 @@ async fn shengji_room_slow_deals_private_hands_over_the_shared_tcp_transport() {
                     completed_games: 0,
                     game_profiles,
                     identity_signature: signature,
+                    avatar_png: None,
                 }),
             ))
             .await

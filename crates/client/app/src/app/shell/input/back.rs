@@ -13,6 +13,10 @@ pub(super) fn back_action(ui: &UiState, confirmation: &ConfirmationDialog) -> Op
         Some(UiAction::Navigation(NavigationUiAction::ToggleSettings))
     } else if ui.profile.open {
         Some(UiAction::Navigation(NavigationUiAction::ToggleProfile))
+    } else if ui.home.identity_open {
+        Some(UiAction::Connection(ConnectionUiAction::ToggleIdentity))
+    } else if ui.home.join_open {
+        Some(UiAction::Connection(ConnectionUiAction::ToggleJoin))
     } else if ui.shop.open {
         Some(UiAction::Navigation(NavigationUiAction::ToggleShop))
     } else if ui.achievements.open {
@@ -31,7 +35,12 @@ pub(super) fn handle_escape(
 ) {
     if !keyboard.just_pressed(KeyCode::Escape)
         || page_motion.active()
-        || !(confirmation.is_open() || ui.shop.open || ui.achievements.open || ui.lan.open)
+        || !(confirmation.is_open()
+            || ui.shop.open
+            || ui.achievements.open
+            || ui.lan.open
+            || ui.home.identity_open
+            || ui.home.join_open)
     {
         return;
     }

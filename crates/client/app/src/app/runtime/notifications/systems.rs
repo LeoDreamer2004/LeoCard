@@ -4,7 +4,7 @@ use super::gate::{ActionContext, ActionReminder};
 use crate::app::games::GameScreens;
 #[cfg(not(target_os = "android"))]
 use crate::app::runtime::APP_ICON_PNG;
-use crate::app::runtime::ClientResource;
+use crate::app::runtime::{AppearancePreferences, ClientResource};
 #[cfg(not(target_os = "android"))]
 use crate::platform::notifications::{
     DesktopNotification, DesktopNotifications, NotificationTicket,
@@ -94,6 +94,7 @@ pub(super) fn update_turn_notifications(
     client: Option<Res<ClientResource>>,
     windows: Query<&Window, With<PrimaryWindow>>,
     screens: GameScreens,
+    appearance: Res<AppearancePreferences>,
     mut state: ResMut<TurnNotifications>,
 ) {
     state.report_errors();
@@ -121,13 +122,15 @@ pub(super) fn update_turn_notifications(
         ))
     });
     let focused = windows.single().map_or(true, |window| window.focused);
-    if focused || action.is_none() {
+    let suppressed = focused || !appearance.turn_notifications;
+    if suppressed || action.is_none() {
         state.cancel_pending();
     }
-    if state
-        .reminder
-        .observe(action.map(|(context, _)| context), focused, Instant::now())
-        && let Some((_, name)) = action
+    if state.reminder.observe(
+        action.map(|(context, _)| context),
+        suppressed,
+        Instant::now(),
+    ) && let Some((_, name)) = action
     {
         state.cancel_pending();
         state.show(name);

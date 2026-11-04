@@ -22,6 +22,7 @@ fn preferences_round_trip_including_avatar() {
             mahjong_table_felt_path: Some(PathBuf::from("/tmp/mahjong-felt.png")),
             mahjong_table_brightness: 0.6,
             audio_volume: 0.63,
+            turn_notifications: false,
             gender: PlayerGender::Female,
             mahjong_action_voices: false,
             mahjong_fan_voices: true,
@@ -101,6 +102,7 @@ fn preferences_round_trip_including_avatar() {
     );
     assert_eq!(decoded.global.table_vignette, saved.global.table_vignette);
     assert_eq!(decoded.global.audio_volume, saved.global.audio_volume);
+    assert!(!decoded.global.turn_notifications);
     assert_eq!(decoded.global.gender, PlayerGender::Female);
     assert_eq!(
         decoded.global.mahjong_table_felt_path,

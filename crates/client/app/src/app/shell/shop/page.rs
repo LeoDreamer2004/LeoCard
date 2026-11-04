@@ -1,29 +1,19 @@
+use super::avatar_frames::render_frame;
 #[cfg(feature = "developer")]
 use super::developer::add_coin_input;
-use super::{ShopUiAction, ShopUiState};
-use crate::app::games::SUPPORTED_GAMES;
-use crate::app::presentation::{
-    ACCENT, MUTED, PanelSkin, TEXT, add_coin_balance, add_text, add_title, decorate_panel_skin,
-};
+use super::props::render_prop;
+use super::skin::{PRODUCT_CARD_WIDTH, add_categories};
+use super::{ShopCategory, ShopUiState};
+use crate::app::presentation::{MUTED, add_coin_balance, add_title, page_frame_skin};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{
-    CozyButtonVariant, NavigationUiAction, PageTransitionElement, UiAction,
-    add_cozy_button_variant, add_cozy_disabled_button, add_page_back_title,
-};
-use bevy::picking::Pickable;
+use crate::app::shell::{NavigationUiAction, PageTransitionElement, UiAction, add_page_back_title};
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-use leocard_client::{ItemId, PlayerEconomy};
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_client::{PlayerEconomy, PropId, ShopAvatarFrame};
+use leocard_ui::{PageFrame, Scrollbar, ScrollbarSkin, UiComposer, spawn_node};
 
 #[derive(Component)]
 pub(super) struct ShopList;
-
-#[derive(Component)]
-pub(super) struct ItemRemaining {
-    pub item: ItemId,
-    pub active: bool,
-}
 
 pub(crate) struct ShopPage<'a> {
     pub assets: &'a UiAssets,
@@ -52,10 +42,10 @@ impl ShopPage<'_> {
             canvas,
             Node {
                 width: percent(100),
-                max_width: px(1180),
-                padding: UiRect::all(px(24)),
+                max_width: px(1320),
+                padding: UiRect::all(px(if cfg!(target_os = "android") { 12 } else { 20 })),
                 flex_direction: FlexDirection::Column,
-                row_gap: px(20),
+                row_gap: px(12),
                 ..default()
             },
             None,
@@ -107,220 +97,80 @@ impl ShopPage<'_> {
                 width: percent(100),
                 min_height: px(0),
                 flex_grow: 1.0,
-                column_gap: px(20),
                 ..default()
             },
             None,
         );
-        let categories = spawn_node(
-            commands,
-            body,
-            Node {
-                width: px(160),
-                flex_shrink: 0.0,
-                flex_direction: FlexDirection::Column,
-                row_gap: px(10),
-                ..default()
-            },
-            None,
-        );
+        add_categories(commands, body, self.assets, self.state);
+        let mut frame = PageFrame::new(page_frame_skin(self.assets));
+        frame.node.flex_basis = px(0);
+        frame.node.flex_grow = 1.0;
+        frame.node.margin = UiRect::left(px(-8));
+        let frame = frame.mount(commands, body);
         commands
-            .entity(categories)
-            .insert((PageTransitionElement::left(1), UiTransform::IDENTITY));
-        for game in SUPPORTED_GAMES {
-            add_cozy_button_variant(
-                commands,
-                categories,
-                game.title,
-                UiAction::Shop(ShopUiAction::SelectCategory(game.kind)),
-                self.assets,
-                percent(100),
-                48.0,
-                if self.state.category == game.kind {
-                    CozyButtonVariant::Primary
-                } else {
-                    CozyButtonVariant::Neutral
-                },
-            );
-        }
-        let list = spawn_node(
+            .entity(frame.panel)
+            .insert((PageTransitionElement::right(2), UiTransform::IDENTITY));
+        add_title(
             commands,
-            body,
+            frame.heading,
+            self.state.category.title(),
+            21.0,
+            Color::srgb(0.13, 0.14, 0.17),
+            self.assets,
+        );
+        let viewport = spawn_node(
+            commands,
+            frame.content,
+            Node {
+                height: px(0),
+                min_height: px(0),
+                flex_grow: 1.0,
+                column_gap: px(10),
+                ..default()
+            },
+            None,
+        );
+        let list = commands.keyed_child(
+            viewport,
+            self.state.category.title(),
             Node {
                 min_width: px(0),
+                min_height: px(0),
                 flex_basis: px(0),
                 flex_grow: 1.0,
-                flex_direction: FlexDirection::Column,
-                row_gap: px(14),
+                display: Display::Grid,
+                grid_template_columns: RepeatedGridTrack::px(
+                    GridTrackRepetition::AutoFit,
+                    PRODUCT_CARD_WIDTH,
+                ),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::FlexStart,
+                align_content: AlignContent::FlexStart,
+                row_gap: px(18),
+                column_gap: px(18),
                 overflow: Overflow::scroll_y(),
+                padding: UiRect::all(px(4)),
                 ..default()
             },
-            None,
         );
-        commands.entity(list).insert((
-            PageTransitionElement::right(2),
-            UiTransform::IDENTITY,
-            ShopList,
-            ScrollPosition(Vec2::ZERO),
-            RelativeCursorPosition::default(),
-        ));
-        let mut empty = true;
-        for item in ItemId::ALL {
-            if item.definition().game == self.state.category {
-                self.render_item(commands, list, item);
-                empty = false;
+        commands
+            .entity(list)
+            .insert((ShopList, RelativeCursorPosition::default()));
+        commands.entity(list).init(ScrollPosition::default());
+        Scrollbar::spawn(commands, viewport, list, ScrollbarSkin::Colored(MUTED));
+        match self.state.category {
+            ShopCategory::Props => {
+                for prop in PropId::ALL {
+                    render_prop(commands, list, prop, self.economy, self.assets);
+                }
+            }
+            ShopCategory::AvatarFrames => {
+                let mut frames = ShopAvatarFrame::ALL;
+                frames.sort_by_key(|frame| frame.rarity);
+                for frame in frames {
+                    render_frame(commands, list, frame, self.economy, self.assets);
+                }
             }
         }
-        if empty {
-            add_text(commands, list, "暂无道具", 18.0, MUTED, self.assets);
-        }
-    }
-
-    fn render_item(&self, commands: &mut UiComposer, parent: Entity, id: ItemId) {
-        let item = id.definition();
-        let row = spawn_node(
-            commands,
-            parent,
-            Node {
-                width: percent(100),
-                flex_shrink: 0.0,
-                padding: UiRect::axes(px(22), px(20)),
-                align_items: AlignItems::Center,
-                column_gap: px(20),
-                ..default()
-            },
-            None,
-        );
-        decorate_panel_skin(commands, row, PanelSkin::Section, self.assets);
-        let identity = spawn_node(
-            commands,
-            row,
-            Node {
-                width: px(110),
-                flex_shrink: 0.0,
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                row_gap: px(6),
-                ..default()
-            },
-            None,
-        );
-        self.icon(
-            commands,
-            identity,
-            match id {
-                ItemId::ObservationLens => self.assets.shop.observation_lens.clone(),
-                ItemId::ShengjiCardCounter
-                | ItemId::QiGui523CardCounter
-                | ItemId::DoudizhuCardCounter => self.assets.shop.card_counter.clone(),
-                ItemId::ShengjiMissingSuitCard => self.assets.shop.missing_suit_card.clone(),
-                ItemId::UnoJumpInDevice => self.assets.shop.uno_jump_in_device.clone(),
-                ItemId::MahjongFanCalculator => self.assets.shop.mahjong_fan_calculator.clone(),
-            },
-            64.0,
-        );
-        add_title(commands, identity, item.name, 21.0, TEXT, self.assets);
-        let description = spawn_node(
-            commands,
-            row,
-            Node {
-                min_width: px(0),
-                flex_basis: px(0),
-                flex_grow: 1.0,
-                ..default()
-            },
-            None,
-        );
-        add_text(
-            commands,
-            description,
-            item.description,
-            16.0,
-            MUTED,
-            self.assets,
-        );
-        let purchase = spawn_node(
-            commands,
-            row,
-            Node {
-                width: px(160),
-                flex_shrink: 0.0,
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                row_gap: px(10),
-                ..default()
-            },
-            None,
-        );
-        let active = self.economy.active(id);
-        let label = format!("{} {}", if active { "延期" } else { "购买" }, item.price);
-        let button = if self.economy.error().is_some() || self.economy.coins() < item.price {
-            add_cozy_disabled_button(commands, purchase, &label, self.assets, percent(100), 44.0)
-        } else {
-            add_cozy_button_variant(
-                commands,
-                purchase,
-                &label,
-                UiAction::Shop(ShopUiAction::Buy(id)),
-                self.assets,
-                percent(100),
-                44.0,
-                CozyButtonVariant::Cool,
-            )
-        };
-        commands.entity(button).insert(Node {
-            width: percent(100),
-            height: px(44),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            column_gap: px(5),
-            ..default()
-        });
-        self.icon(commands, button, self.assets.shop.coin.clone(), 22.0);
-        let remaining = add_text(
-            commands,
-            purchase,
-            remaining_label(self.economy, id),
-            14.0,
-            if active { ACCENT } else { MUTED },
-            self.assets,
-        );
-        commands
-            .entity(remaining)
-            .insert(ItemRemaining { item: id, active });
-    }
-
-    fn icon(&self, commands: &mut UiComposer, parent: Entity, image: Handle<Image>, size: f32) {
-        commands.child(
-            parent,
-            (
-                Node {
-                    width: px(size),
-                    height: px(size),
-                    flex_shrink: 0.0,
-                    ..default()
-                },
-                ImageNode::new(image),
-                Pickable::IGNORE,
-            ),
-        );
-    }
-}
-
-pub(super) fn remaining_label(economy: &PlayerEconomy, item: ItemId) -> String {
-    let remaining = economy.remaining_seconds(item);
-    if remaining > 0 {
-        format!(
-            "剩余 {:02}:{:02}:{:02}",
-            remaining / 3600,
-            remaining / 60 % 60,
-            remaining % 60
-        )
-    } else if economy.error().is_some() {
-        "钱包暂不可用".to_owned()
-    } else if economy.coins() < item.definition().price {
-        "金币不足".to_owned()
-    } else {
-        "有效期一小时".to_owned()
     }
 }

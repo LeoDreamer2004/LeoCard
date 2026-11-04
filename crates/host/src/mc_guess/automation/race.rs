@@ -16,7 +16,7 @@ impl McGuessSession {
                 .expect("active race")
                 .expire()
                 .expect("active race can expire");
-            let mut deliveries = self.after_action();
+            let mut deliveries = self.after_action(None);
             deliveries.extend(self.broadcast_game(None));
             return deliveries;
         }
@@ -34,9 +34,9 @@ impl McGuessSession {
             // Avoid giving the lowest seat the first chance at every shared bot tick.
             fastrand::shuffle(&mut bots);
             for player in bots {
-                if self.play_bot_action(player) {
+                if self.play_bot_action(player).is_some() {
                     changed = true;
-                    deliveries.extend(self.after_action());
+                    deliveries.extend(self.after_action(None));
                 }
                 if self.game.as_ref().expect("active race").finished() {
                     break;

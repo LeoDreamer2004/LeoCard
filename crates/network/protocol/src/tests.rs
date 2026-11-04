@@ -99,6 +99,7 @@ fn client_message_round_trips_through_tcp_frame() {
                     ..Default::default()
                 }),
                 gender: PlayerGender::Female,
+                avatar_frame: AvatarFrameId::QqAdmin,
                 qigui523: Some(QiGui523ProfileStats {
                     completed_games: 2,
                     total_score: 180,
@@ -142,6 +143,7 @@ fn client_message_round_trips_through_tcp_frame() {
                 }),
             },
             identity_signature: vec![9; 64],
+            avatar_png: None,
         }),
     );
     let frame = encode_frame(&message).unwrap();

@@ -7,7 +7,7 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_game_common::PlayerId;
-use leocard_ui::{AvatarFrame, UiComposer, UiSceneKey, ui_component};
+use leocard_ui::{UiComposer, UiSceneKey, ui_component};
 
 pub(crate) struct PlayerPortraitSpec<'a> {
     pub player: PlayerId,
@@ -47,10 +47,9 @@ pub(crate) fn add_player_portrait(
         "ring",
         spec.profile.name,
         spec.profile.avatar,
-        AvatarFrame {
-            texture: assets.avatar_frames.default.clone(),
-            size,
-        },
+        assets
+            .avatar_frames
+            .frame(spec.profile.game_profiles.avatar_frame, size),
         assets,
     );
     let avatar_ring = framed.frame;

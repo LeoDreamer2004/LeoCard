@@ -19,7 +19,7 @@ impl FromWorld for GalleryAssets {
 
 pub(super) fn load_entry_art(
     assets: Res<GalleryAssets>,
-    mut entries: Query<(&EntryArt, &mut ImageNode), Added<EntryArt>>,
+    mut entries: Query<(&EntryArt, &mut ImageNode), Changed<EntryArt>>,
 ) {
     for (art, mut image) in &mut entries {
         image.image = assets.images[art.0].clone();

@@ -95,22 +95,20 @@ impl<'a> SoftwareUpdateSettings<'a> {
             parent,
             Node {
                 width: percent(100),
-                min_height: px(54),
+                min_height: px(48),
                 flex_shrink: 0.0,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::SpaceBetween,
-                flex_wrap: FlexWrap::Wrap,
                 column_gap: px(12),
-                row_gap: px(8),
                 ..default()
             },
             None,
         );
-        let version_text = spawn_node(
+        let update_text = spawn_node(
             commands,
             update_row,
             Node {
-                min_width: px(180),
+                min_width: px(0),
                 flex_grow: 1.0,
                 flex_direction: FlexDirection::Column,
                 row_gap: px(3),
@@ -118,20 +116,24 @@ impl<'a> SoftwareUpdateSettings<'a> {
             },
             None,
         );
-        add_text(commands, version_text, "软件更新", 20.0, TEXT, assets);
-        add_text(
+        add_text(commands, update_text, "软件更新", 20.0, TEXT, assets);
+        let star = add_text(
             commands,
-            version_text,
+            update_text,
             "可以给一个小小的Star吗? 谢谢辽~",
             13.0,
             MUTED,
             assets,
         );
+        commands
+            .entity(star)
+            .insert(TextLayout::default().with_no_wrap());
         let update_actions = spawn_node(
             commands,
             update_row,
             Node {
                 flex_direction: FlexDirection::Row,
+                flex_shrink: 0.0,
                 align_items: AlignItems::Center,
                 column_gap: px(10),
                 ..default()

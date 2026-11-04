@@ -1,9 +1,8 @@
-use super::feedback::GuessWinner;
 use super::process_presence::add_process_presence_overlay;
 use crate::app::presentation::{
-    ACCENT, DANGER, MUTED, PlayerMenuProfile, PlayerPortraitSpec, READY, SeatRows, TEXT,
-    TurnBorderAnimationKey, add_player_portrait, add_ready_badge, add_text,
-    add_turn_border_trace_with_radius, attach_start_game_seat_transition, score_gain_visual,
+    ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, SeatRows, TEXT, TurnBorderAnimationKey,
+    add_player_portrait, add_ready_badge, add_text, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition, score_gain_visual,
 };
 use leocard_protocol::GameKind;
 use leocard_ui::{UiComposer, spawn_node};
@@ -127,33 +126,16 @@ impl GuessTable<'_> {
                 },
             ));
             let mc_running = self.game.mc_process_players.contains(&player.player.id);
-            if self.game.round.winner == Some(player.player.id) && !mc_running {
-                commands.entity(portrait.avatar_ring).insert(GuessWinner);
-            }
-            let skipped = self.game.round.skipped_players.contains(&player.player.id);
             if self.game.round.finished() && player.ready {
                 add_ready_badge(commands, portrait.avatar_ring, avatar_size, self.assets);
             }
             if mc_running {
-                commands
-                    .entity(portrait.avatar_ring)
-                    .insert(Outline::new(px(3), px(0), DANGER));
                 add_process_presence_overlay(
                     commands,
                     portrait.avatar_ring,
                     avatar_size,
                     self.assets,
                 );
-            } else if !active {
-                commands.entity(portrait.avatar_ring).insert(Outline::new(
-                    px(3),
-                    px(0),
-                    if skipped {
-                        Color::srgb(0.48, 0.49, 0.53)
-                    } else {
-                        READY
-                    },
-                ));
             }
             if active && !self.transition.is_active_for(self.game.match_id) {
                 add_turn_border_trace_with_radius(

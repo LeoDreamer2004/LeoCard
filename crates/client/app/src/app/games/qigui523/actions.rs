@@ -10,7 +10,7 @@ use crate::app::shell::{
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_client::{ItemId, PlayerEconomy};
+use leocard_client::{PlayerEconomy, PropId};
 
 use leocard_qigui523::{QiGuiRuleSet, classify};
 
@@ -63,7 +63,7 @@ impl UiActionHandler<QiGui523ActionContext<'_, '_>> for QiGui523UiAction {
                 ui.counter.window.drawer_open = !ui.counter.window.drawer_open
             }
             Self::ToggleCounter => {
-                if context.economy.active(ItemId::QiGui523CardCounter) {
+                if context.economy.active(PropId::QiGui523CardCounter) {
                     ui.counter.window.enabled = !ui.counter.window.enabled;
                 }
             }

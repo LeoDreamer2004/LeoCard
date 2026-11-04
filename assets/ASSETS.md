@@ -79,14 +79,14 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 - 两张红色 `compact` 按钮图分别从灰色常态和紫色高亮按钮的颜色层次转换而来；悬停态保留普通高亮贴图的原始白边，仅将彩色部分转为较暗的红色，两张图的透明轮廓一致。
 - 两张冷绿色 `compact` 按钮图同样由灰色常态和紫色高亮按钮变色而来；悬停态保留普通高亮贴图的原始白边，两张图的透明轮廓一致。
 - `cozy-game-card.png` 与 `cozy-game-card-hover.png` 分别取自 `hud/effect_background.png` 和 `hud/effect_background_ambient.png`，用于设置标签等卡片的常态与悬停态；只清除了全透明区域的白色 RGB，可见像素未改动。
-- `cozy-settings-page.png` 取自 `recipe_book/slot_craftable.png`，用于设置窗口右侧内容页；左侧标签复用 `cozy-game-card.png` 与其高亮变种。
+- `cozy-settings-page.png` 取自 `recipe_book/slot_craftable.png`，用于设置窗口右侧内容页，外层窗口使用共用 PageFrame；左侧标签复用 `cozy-game-card.png` 与其高亮变种。
 - 两张输入框 `compact` 图使用同样的切片方式，保留原版 `text_field.png` 和 `text_field_highlighted.png` 的边框与底色。
 - 四张 `rule-*.png` 箭头图保留原版箭头，将与画面不协调的连通灰色背景转为透明像素。
 - `cozy-help-question.png` 清除了透明区域残留的白色底色，避免缩放时在问号边缘出现白边；可见像素未改动。
 - 许可证副本：`vendor/cozyui-plus/LICENSE.txt`
 - 成就通知使用 `ui/achievements/toast-normal.png` 和 `toast-gold.png`：提取自同版本 `assets/minecraft/textures/gui/advancements/widgets.png` 的蓝色与橙色横条，裁掉周围空白，将白色底转为透明；运行时保留边角，按九宫格拉伸。
-
-这些纹理用于首页、顶栏、设置、资料页、游戏内聊天抽屉和警示提示；按钮与滑块轨道按原纹理的九宫格边距绘制，箭头和滑块柄使用原比例动画帧；其余资源包内容未加入发布物。
+- `ui/shop/page-frame.png` 和 `item-frame.png` 分别裁取同版本 `advancements/window.png` 与 `sprites/advancements/title_box.png` 的透明留白。
+- 商店选中页签 `ui/shop/tab-bottom.png` 和 `ui/shop/tab-middle-selected.png` 使用同版本  `sprites/advancements/tab_left_bottom.png` 和 `sprites/advancements/tab_above_middle_selected.png`，界面绘制时沿用 84% 灰色调色。
 
 ### Microsoft Fluent Emoji（MIT）
 

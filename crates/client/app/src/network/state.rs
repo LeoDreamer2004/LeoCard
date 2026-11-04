@@ -1,6 +1,8 @@
 use crate::{LocalPlayerProfile, PlayerIdentity};
 use leocard_host::HostSession;
-use leocard_protocol::{ClientMessage, PlayerGameProfiles, PlayerGender, RoomId, ServerMessage};
+use leocard_protocol::{
+    AvatarFrameId, ClientMessage, PlayerGameProfiles, PlayerGender, RoomId, ServerMessage,
+};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -84,9 +86,11 @@ impl LocalPlayerConnection {
         avatar_png: Option<Vec<u8>>,
         profile: &LocalPlayerProfile,
         gender: PlayerGender,
+        avatar_frame: AvatarFrameId,
     ) -> Self {
         let mut game_profiles = profile.game_profiles().clone();
         game_profiles.gender = gender;
+        game_profiles.avatar_frame = avatar_frame;
         Self {
             name: name.into(),
             avatar_png,

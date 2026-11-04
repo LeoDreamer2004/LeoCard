@@ -30,6 +30,7 @@ pub(crate) fn add_poker_chip(
                 top: px(chip.position.y),
                 width: px(chip.size),
                 height: px(chip.size),
+                border_radius: BorderRadius::MAX,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 ..default()

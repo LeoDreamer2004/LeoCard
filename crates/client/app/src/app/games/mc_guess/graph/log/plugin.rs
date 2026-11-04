@@ -1,6 +1,7 @@
 use super::super::guide::GraphGuideState;
 use super::state::{GraphLog, GraphLogScroll};
-use super::systems::{animate_panel, remember_scroll, settle_scroll, sync_messages, sync_view};
+use super::sync::sync_messages;
+use super::systems::{animate_panel, remember_scroll, settle_scroll, sync_view};
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::{UiState, scroll_modal_content};
 use bevy::prelude::*;

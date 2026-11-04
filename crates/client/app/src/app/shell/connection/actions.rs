@@ -4,6 +4,7 @@ use super::super::{
     ChatPanelState, DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState,
     dispatch_domain_actions, start_avatar_picker,
 };
+use super::can_edit_identity;
 use super::lan::LanDiscovery;
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, AvatarPicker, ClientResource, ConnectionDraft,
@@ -14,12 +15,15 @@ use bevy::log::warn;
 #[cfg(test)]
 use bevy::prelude::default;
 use bevy::prelude::*;
-use leocard_client::{LocalPlayerConnection, LocalPlayerProfile, TcpGameClient};
+use leocard_client::{LocalPlayerConnection, LocalPlayerProfile, PlayerEconomy, TcpGameClient};
 use leocard_protocol::{GameKind, MAX_PLAYER_NAME_CHARS, PlayerGender};
 use leocard_ui::UiComposer;
 
 #[derive(Clone)]
 pub(crate) enum ConnectionUiAction {
+    SelectCategory(super::HomeCategory),
+    ToggleIdentity,
+    ToggleJoin,
     CreateRoom(GameKind),
     JoinRoom,
     OpenLan,
@@ -49,11 +53,13 @@ struct AvatarUiResources<'w> {
 #[derive(SystemParam)]
 pub(crate) struct ConnectionActionContext<'w, 's> {
     connection: ResMut<'w, ConnectionDraft>,
+    client: Option<Res<'w, ClientResource>>,
     appearance: ResMut<'w, AppearancePreferences>,
     host_rules: Res<'w, HostRulePreferences>,
     lan: Res<'w, LanDiscovery>,
     page_error: ResMut<'w, PageErrorState>,
     profile: Res<'w, LocalPlayerProfile>,
+    economy: ResMut<'w, PlayerEconomy>,
     ui: ResMut<'w, UiState>,
     chat: ResMut<'w, ChatPanelState>,
     local: AvatarUiResources<'w>,
@@ -69,8 +75,32 @@ pub(crate) fn dispatch_connection_actions(
 
 impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
     fn handle(&self, context: &mut ConnectionActionContext<'_, '_>) {
+        if !can_edit_identity(context.client.as_deref())
+            && matches!(
+                self,
+                Self::ChooseAvatar | Self::ClearAvatar | Self::ToggleGender | Self::ToggleIdentity
+            )
+        {
+            return;
+        }
         context.ui.dirty = true;
         match self {
+            Self::SelectCategory(category) => context.ui.home.category = *category,
+            Self::ToggleIdentity => {
+                context.ui.home.identity_open = !context.ui.home.identity_open;
+                context.ui.home.join_open = false;
+                if !context.ui.home.identity_open {
+                    context.page_error.error =
+                        save_connection_draft(&context.connection, &mut context.economy).err();
+                }
+            }
+            Self::ToggleJoin => {
+                context.ui.home.join_open = !context.ui.home.join_open;
+                context.ui.home.identity_open = false;
+                context.page_error.error =
+                    save_connection_draft(&context.connection, &mut context.economy).err();
+            }
+
             ConnectionUiAction::CreateRoom(game_kind) => create_room(*game_kind, context),
             ConnectionUiAction::JoinRoom => join_room(context),
             ConnectionUiAction::OpenLan => {
@@ -116,7 +146,8 @@ impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
                     PlayerGender::Male => PlayerGender::Female,
                     PlayerGender::Female => PlayerGender::Male,
                 };
-                context.page_error.error = save_connection_draft(&context.connection).err();
+                context.page_error.error =
+                    save_connection_draft(&context.connection, &mut context.economy).err();
             }
         }
     }
@@ -147,19 +178,12 @@ fn create_room(game_kind: GameKind, context: &mut ConnectionActionContext<'_, '_
             context.appearance.avatar_png.clone(),
             &context.profile,
             context.connection.gender,
+            context.economy.frame_for_name(&name),
         );
         TcpGameClient::host_with_profile(port, context.host_rules.game_rules(game_kind), player)
             .map_err(|error| error.to_string())
     });
-    finish_connection(
-        result,
-        &context.connection,
-        &mut context.page_error,
-        &mut context.ui,
-        &mut context.chat,
-        &mut context.local.avatar_images,
-        &mut context.commands,
-    );
+    finish_connection(result, context);
 }
 
 fn join_room(context: &mut ConnectionActionContext<'_, '_>) {
@@ -174,43 +198,31 @@ fn join_room(context: &mut ConnectionActionContext<'_, '_>) {
             context.appearance.avatar_png.clone(),
             &context.profile,
             context.connection.gender,
+            context.economy.frame_for_name(&name),
         );
         TcpGameClient::join_with_profile(context.connection.join_address.trim(), player)
             .map_err(|error| error.to_string())
     };
-    finish_connection(
-        result,
-        &context.connection,
-        &mut context.page_error,
-        &mut context.ui,
-        &mut context.chat,
-        &mut context.local.avatar_images,
-        &mut context.commands,
-    );
+    finish_connection(result, context);
 }
 
 fn finish_connection(
     result: Result<TcpGameClient, String>,
-    connection: &ConnectionDraft,
-    page_error: &mut PageErrorState,
-    ui: &mut UiState,
-    chat: &mut ChatPanelState,
-    avatars: &mut AvatarImages,
-    commands: &mut UiComposer,
+    context: &mut ConnectionActionContext<'_, '_>,
 ) {
     match result {
         Ok(network) => {
-            *chat = ChatPanelState::default();
-            if let Err(error) = save_connection_draft(connection) {
+            *context.chat = ChatPanelState::default();
+            if let Err(error) = save_connection_draft(&context.connection, &mut context.economy) {
                 warn!("{error}");
             }
-            avatars.remote.clear();
-            commands.insert_resource(ClientResource(network));
-            ui.leaving_room = false;
-            ui.lan.open = false;
-            page_error.error = None;
+            context.local.avatar_images.remote.clear();
+            context.commands.insert_resource(ClientResource(network));
+            context.ui.leaving_room = false;
+            context.ui.lan.open = false;
+            context.page_error.error = None;
         }
-        Err(error) => page_error.error = Some(error),
+        Err(error) => context.page_error.error = Some(error),
     }
 }
 

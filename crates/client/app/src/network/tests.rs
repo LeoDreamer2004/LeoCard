@@ -8,8 +8,8 @@ use crate::ClientModel;
 use image::{DynamicImage, ImageFormat, Rgba, RgbaImage};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    AVATAR_DIMENSION, ClientCommand, ClientMessage, GameRules, GameSnapshot, LobbySnapshot,
-    PROTOCOL_VERSION, RequestId, Revision, SeatId, ServerEvent, ServerMessage,
+    AVATAR_DIMENSION, AvatarFrameId, ClientCommand, ClientMessage, GameRules, GameSnapshot,
+    LobbySnapshot, PROTOCOL_VERSION, RequestId, Revision, SeatId, ServerEvent, ServerMessage,
 };
 
 use leocard_qigui523::QiGuiRuleSet;
@@ -126,7 +126,15 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
     });
 
     let address = format!("127.0.0.1:{port}");
-    let mut guest_a = TcpGameClient::join("甲", &address).unwrap();
+    let image = RgbaImage::from_pixel(AVATAR_DIMENSION, AVATAR_DIMENSION, Rgba([40, 80, 160, 255]));
+    let mut encoded = Cursor::new(Vec::new());
+    DynamicImage::ImageRgba8(image)
+        .write_to(&mut encoded, ImageFormat::Png)
+        .unwrap();
+    let avatar = encoded.into_inner();
+    let mut profile = LocalPlayerConnection::temporary("甲", Some(avatar.clone())).unwrap();
+    profile.game_profiles.avatar_frame = AvatarFrameId::QqAdmin;
+    let mut guest_a = TcpGameClient::join_with_profile(&address, profile).unwrap();
     wait_for(&mut guest_a, |model| {
         model.lobby().is_some_and(|lobby| lobby.players.len() == 2)
     });
@@ -153,6 +161,13 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
     assert_eq!(host.model().host_port(), Some(port));
     assert_eq!(guest_a.model().host_port(), Some(port));
     assert_eq!(guest_b.model().host_port(), Some(port));
+    assert_eq!(
+        host.model()
+            .player_game_profiles(PlayerId(1))
+            .unwrap()
+            .avatar_frame,
+        AvatarFrameId::QqAdmin,
+    );
 
     // Seats reverse join order to exercise the player ID remapping at game start.
     guest_b.send(ClientCommand::SelectSeat { seat: SeatId(2) });
@@ -206,6 +221,23 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
     assert_eq!(viewed.your_hand.len(), usize::from(rules.hand_size));
     assert!(!observer.model().active_game_meta().unwrap().is_host());
     let target = guest_a.model().you().unwrap();
+    assert_eq!(
+        observer
+            .model()
+            .player_game_profiles(target)
+            .unwrap()
+            .avatar_frame,
+        AvatarFrameId::QqAdmin,
+    );
+    assert!(guest_a.send(ClientCommand::PublishEconomy {
+        coins: 0,
+        avatar_frame: AvatarFrameId::Study,
+    }));
+    wait_for(&mut observer, |model| {
+        model
+            .player_game_profiles(target)
+            .is_some_and(|profile| profile.avatar_frame == AvatarFrameId::Study)
+    });
     assert!(observer.send(ClientCommand::SpectatePlayer { player: target }));
     wait_for(&mut observer, |model| {
         model
@@ -257,29 +289,15 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
             .len(),
         usize::from(rules.hand_size)
     );
-
-    // Replacing an uploaded image must reach the uploader, peers and spectators.
+    // Initial room-entry avatars survive seat remapping and reach later spectators.
     let player = guest_a.model().you().unwrap();
-    for shade in [40, 200] {
-        let image = RgbaImage::from_pixel(
-            AVATAR_DIMENSION,
-            AVATAR_DIMENSION,
-            Rgba([shade, 80, 160, 255]),
-        );
-        let mut png = Cursor::new(Vec::new());
-        DynamicImage::ImageRgba8(image)
-            .write_to(&mut png, ImageFormat::Png)
-            .unwrap();
-        let png = png.into_inner();
-        assert!(guest_a.send(ClientCommand::SetAvatar { png: png.clone() }));
-        for viewer in [&mut host, &mut guest_a, &mut guest_b, &mut observer] {
-            wait_for(viewer, |model| {
-                model
-                    .player_avatar(player)
-                    .and_then(|id| model.avatars().get(&id))
-                    == Some(&png)
-            });
-        }
+    for viewer in [&mut host, &mut guest_a, &mut guest_b, &mut observer] {
+        wait_for(viewer, |model| {
+            model
+                .player_avatar(player)
+                .and_then(|id| model.avatars().get(&id))
+                == Some(&avatar)
+        });
     }
 }
 

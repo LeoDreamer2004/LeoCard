@@ -1,4 +1,6 @@
+use super::easter_eggs::interaction_notice;
 use super::*;
+use crate::app::presentation::CornerNotifications;
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -132,6 +134,7 @@ pub(crate) fn sync_player_interactions(
     mut commands: UiComposer,
     mut client: Option<ResMut<ClientResource>>,
     assets: Res<UiAssets>,
+    mut notices: ResMut<CornerNotifications>,
     layers: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<PlayerInteractionLayer>>,
     avatars: Query<PlayerAvatar>,
 ) {
@@ -148,6 +151,14 @@ pub(crate) fn sync_player_interactions(
         return;
     }
     for interaction in interactions {
+        let model = client.0.model();
+        if let Some(message) = model
+            .player_name(interaction.source)
+            .zip(model.player_name(interaction.target))
+            .and_then(|(source, target)| interaction_notice(interaction.kind, source, target))
+        {
+            notices.message(message);
+        }
         let source = if players
             .as_ref()
             .is_some_and(|players| !players.contains(&interaction.source))

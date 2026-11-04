@@ -4,18 +4,19 @@ use super::super::{SelectedSettingsTab, SettingsTabButton};
 use super::about::AboutSettings;
 use super::appearance::TableAppearanceSettings;
 use super::sound::render_sound_settings;
-use crate::app::presentation::{TEXT, add_text, add_title, card_background_image};
+use crate::app::presentation::{
+    PAGE_FRAME_TITLE, TEXT, add_text, add_title, card_background_image, page_frame_skin,
+};
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction, SettingsTab,
     SettingsUiAction, UiAction, UpdateManager, add_configuration_scroll, add_cozy_close_button,
-    add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
+    cozy_backdrop_color, cozy_panel_transform,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{PageFrame, UiComposer, decorate_panel, sliced_image, spawn_node};
 
 pub(crate) struct SettingsModal<'a> {
     form: &'a AppearancePreferences,
@@ -66,59 +67,35 @@ impl<'a> SettingsModal<'a> {
             Pickable::default(),
             CozyModalBackdrop(CozyModalKind::Settings),
         ));
-        let modal = add_cozy_panel(
-            commands,
-            overlay,
-            Node {
-                width: px(680),
-                height: px(620),
-                max_width: percent(92),
-                max_height: percent(92),
-                min_height: px(0),
-                padding: UiRect::all(px(24)),
-                flex_direction: FlexDirection::Column,
-                row_gap: px(12),
-                ..default()
-            },
-            assets,
-        );
-        commands.entity(modal).insert((
+        let mut frame = PageFrame::new(page_frame_skin(assets));
+        frame.node.width = px(680);
+        frame.node.height = px(520);
+        frame.node.max_width = percent(92);
+        frame.node.max_height = percent(92);
+        frame.heading.height = px(48);
+        let frame = frame.mount(commands, overlay);
+        commands.entity(frame.panel).insert((
             CozyModalPanel(CozyModalKind::Settings),
             cozy_panel_transform(progress),
         ));
-        let heading = spawn_node(
+        let heading = frame.heading;
+        add_title(
             commands,
-            modal,
-            Node {
-                width: percent(100),
-                flex_shrink: 0.0,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::SpaceBetween,
-                ..default()
-            },
-            None,
+            heading,
+            "游戏设置",
+            28.0,
+            PAGE_FRAME_TITLE,
+            assets,
         );
-        add_title(commands, heading, "游戏设置", 28.0, TEXT, assets);
         add_cozy_close_button(
             commands,
             heading,
             UiAction::Navigation(NavigationUiAction::ToggleSettings),
             assets,
         );
-        spawn_node(
-            commands,
-            modal,
-            Node {
-                width: px(96),
-                height: px(2),
-                flex_shrink: 0.0,
-                ..default()
-            },
-            Some(Color::srgb(0.64, 0.59, 0.93)),
-        );
         let tabbed = spawn_node(
             commands,
-            modal,
+            frame.content,
             Node {
                 width: percent(100),
                 min_height: px(0),
@@ -150,30 +127,26 @@ impl<'a> SettingsModal<'a> {
         ] {
             add_settings_tab(commands, tabs, tab, label, selected_tab, assets);
         }
-        let mut content_image = ImageNode::new(assets.home.settings_page.clone()).with_mode(
-            NodeImageMode::Sliced(TextureSlicer {
-                border: BorderRect::all(20.0),
-                center_scale_mode: SliceScaleMode::Stretch,
-                sides_scale_mode: SliceScaleMode::Stretch,
-                max_corner_scale: 1.0,
-            }),
-        );
-        content_image.visual_box = VisualBox::BorderBox;
-        content_image.color = Color::srgb(0.55, 0.54, 0.63);
-        let content = commands.child(
+        let content = spawn_node(
+            commands,
             tabbed,
-            (
-                Node {
-                    min_width: px(0),
-                    min_height: px(0),
-                    flex_grow: 1.0,
-                    padding: UiRect::all(px(22)),
-                    flex_direction: FlexDirection::Column,
-                    row_gap: px(12),
-                    ..default()
-                },
-                content_image,
-            ),
+            Node {
+                min_width: px(0),
+                min_height: px(0),
+                flex_basis: px(0),
+                flex_grow: 1.0,
+                padding: UiRect::all(px(28)),
+                flex_direction: FlexDirection::Column,
+                row_gap: px(12),
+                ..default()
+            },
+            None,
+        );
+        decorate_panel(
+            commands,
+            content,
+            sliced_image(assets.home.settings_page.clone(), 20.0, 1.0)
+                .with_color(Color::srgb(0.55, 0.54, 0.63)),
         );
         // About owns a full-height column so its update controls remain at the bottom.
         // Configuration lists scroll only when necessary and do not draw a scrollbar.

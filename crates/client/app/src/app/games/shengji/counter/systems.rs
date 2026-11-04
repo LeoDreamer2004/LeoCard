@@ -2,7 +2,7 @@ use super::super::ShengjiUiState;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
-use leocard_client::{ItemId, PlayerEconomy};
+use leocard_client::{PlayerEconomy, PropId};
 use leocard_protocol::{GameSnapshot, ShengjiPhaseView};
 
 pub(in super::super) fn sync_counter(
@@ -22,7 +22,7 @@ pub(in super::super) fn sync_counter(
     let active = game.is_some_and(|game| {
         matches!(game.phase, ShengjiPhaseView::Playing)
             && game.players.iter().any(|player| player.hand_len > 0)
-            && economy.active(ItemId::ShengjiCardCounter)
+            && economy.active(PropId::ShengjiCardCounter)
     });
     if state.window.active != active {
         state.window.active = active;

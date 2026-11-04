@@ -5,8 +5,8 @@ use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_game_common::PlayerId;
 use leocard_mc_guess::{McGuessGameState, McGuessMatchState, McGuessMode, McGuessRuleSet};
 use leocard_protocol::{
-    ClientMessage, MatchId, PlayerReferenceChange, PlayerViolation, RejectReason, Revision, RoomId,
-    ServerEvent,
+    ClientMessage, MatchId, McGuessEvent, PlayerReferenceChange, PlayerViolation, RejectReason,
+    Revision, RoomId, ServerEvent,
 };
 use std::ops::{Deref, DerefMut};
 
@@ -81,7 +81,7 @@ impl McGuessSession {
         dispatch_client_command(self, connection, message)
     }
 
-    pub(super) fn after_action(&mut self) -> Vec<Delivery> {
+    pub(super) fn after_action(&mut self, skipped: Option<PlayerId>) -> Vec<Delivery> {
         if self.rules.mode != McGuessMode::Race {
             self.clock = GuessClock::default();
         }
@@ -90,7 +90,10 @@ impl McGuessSession {
             .as_mut()
             .expect("active match")
             .record_gains(gains);
-        let events = self.analyze_action();
+        let mut events = self.analyze_action();
+        if let Some(player) = skipped {
+            events.insert(0, McGuessEvent::GuessSkipped { player });
+        }
         self.settle_match();
         if self.game.as_ref().is_some_and(|game| game.finished()) {
             self.room.prepare_rematch();

@@ -10,7 +10,7 @@ use crate::app::shell::{
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_client::{ItemId, PlayerEconomy};
+use leocard_client::{PlayerEconomy, PropId};
 
 #[derive(Clone)]
 pub(crate) enum ShengjiUiAction {
@@ -81,7 +81,7 @@ impl UiActionHandler<ShengjiActionContext<'_>> for ShengjiUiAction {
                 ui.counter.window.drawer_open = !ui.counter.window.drawer_open
             }
             Self::ToggleCounter => {
-                if context.economy.active(ItemId::ShengjiCardCounter) {
+                if context.economy.active(PropId::ShengjiCardCounter) {
                     ui.counter.window.enabled = !ui.counter.window.enabled;
                 }
             }

@@ -4,6 +4,7 @@ use bevy::prelude::*;
 pub(crate) enum CozyModalKind {
     Settings,
     Profile,
+    JoinRoom,
     MahjongFanGuide,
     TexasHandGuide,
     McGraphGuide,
@@ -19,7 +20,12 @@ impl CozyModalKind {
 }
 
 #[derive(Component)]
+#[require(ModalWheelBlocker)]
 pub(crate) struct CozyModalBackdrop(pub CozyModalKind);
+
+/// A full-screen layer that reserves wheel input for its own subtree.
+#[derive(Component, Default)]
+pub(crate) struct ModalWheelBlocker;
 
 #[derive(Component)]
 pub(crate) struct CozyModalPanel(pub CozyModalKind);

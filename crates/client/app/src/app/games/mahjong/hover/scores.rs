@@ -1,6 +1,6 @@
 use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
-use leocard_client::{ItemId, PlayerEconomy};
+use leocard_client::{PlayerEconomy, PropId};
 use leocard_game_common::PlayerId;
 use leocard_mahjong::{
     MahjongMeld, MahjongScoreInput, MahjongScoreResult, MahjongTileKind, MahjongWinContext,
@@ -21,7 +21,7 @@ pub(in super::super) fn sync_fan_calculator(
     client: Option<Res<ClientResource>>,
     mut ui: ResMut<UiState>,
 ) {
-    let active = economy.active(ItemId::MahjongFanCalculator);
+    let active = economy.active(PropId::MahjongFanCalculator);
     if calculator.active != active {
         calculator.active = active;
         if client.is_some_and(|client| {

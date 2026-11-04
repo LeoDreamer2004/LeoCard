@@ -47,6 +47,7 @@ pub(crate) struct TabletopAssets {
     side_robot: Handle<Image>,
     side_help: Handle<Image>,
     side_button: Handle<Image>,
+    sequence_airplane: Handle<Image>,
 }
 
 impl TabletopAssets {
@@ -72,6 +73,7 @@ impl TabletopAssets {
             side_robot: load("side-robot"),
             side_help: load("side-help"),
             side_button: load("side-button"),
+            sequence_airplane: server.load("ui/effects/sequence_airplane.png"),
         }
     }
 
@@ -116,5 +118,9 @@ impl TabletopAssets {
 
     pub(crate) fn drawer_image(&self) -> ImageNode {
         sliced_image(self.side_button.clone(), 12.0, 0.75)
+    }
+
+    pub(crate) fn sequence_airplane_image(&self) -> ImageNode {
+        ImageNode::new(self.sequence_airplane.clone())
     }
 }

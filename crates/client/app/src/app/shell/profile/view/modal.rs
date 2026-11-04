@@ -2,18 +2,18 @@
 
 use super::super::super::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction, UiAction,
-    add_cozy_close_button, add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
+    add_cozy_close_button, cozy_backdrop_color, cozy_panel_transform,
 };
 use super::super::{ProfileGameTab, ProfileUiState};
 use super::archive::ProfileArchive;
 use super::identity::ProfileIdentity;
-use crate::app::presentation::{TEXT, add_title};
+use crate::app::presentation::{PAGE_FRAME_TITLE, add_title, page_frame_skin};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_client::LocalPlayerProfile;
 use leocard_protocol::{PlayerGameProfiles, PlayerGender};
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{PageFrame, UiComposer, spawn_node};
 
 pub(crate) struct ProfileModal<'a> {
     player_name: &'a str,
@@ -22,7 +22,6 @@ pub(crate) struct ProfileModal<'a> {
     reference_points: i32,
     completed_games: u32,
     game_profiles: &'a PlayerGameProfiles,
-    editable_avatar: bool,
     selected_game: ProfileGameTab,
     assets: &'a UiAssets,
 }
@@ -36,7 +35,7 @@ impl<'a> ProfileModal<'a> {
         profile: &'a LocalPlayerProfile,
         assets: &'a UiAssets,
     ) -> Self {
-        let editable_avatar = selection.player.as_ref().is_none_or(|player| {
+        let local_profile = selection.player.as_ref().is_none_or(|player| {
             client.is_some_and(|client| client.0.model().you() == Some(player.id))
         });
         let (name, gender, avatar, reference_points, completed_games, game_profiles) =
@@ -44,7 +43,7 @@ impl<'a> ProfileModal<'a> {
                 (
                     player.name.as_str(),
                     player.game_profiles.gender,
-                    if editable_avatar {
+                    if local_profile {
                         avatars.local.as_ref()
                     } else {
                         client
@@ -81,7 +80,6 @@ impl<'a> ProfileModal<'a> {
             reference_points,
             completed_games,
             game_profiles,
-            editable_avatar,
             selected_game: selection.game_tab,
             assets,
         }
@@ -95,7 +93,6 @@ impl<'a> ProfileModal<'a> {
             reference_points,
             completed_games,
             game_profiles,
-            editable_avatar,
             selected_game,
             assets,
         } = self;
@@ -120,52 +117,33 @@ impl<'a> ProfileModal<'a> {
             CozyModalBackdrop(CozyModalKind::Profile),
         ));
 
-        let modal = add_cozy_panel(
-            commands,
-            overlay,
-            Node {
-                width: px(820),
-                max_width: percent(90),
-                min_height: px(520),
-                padding: UiRect::all(px(24)),
-                flex_direction: FlexDirection::Column,
-                row_gap: px(12),
-                ..default()
-            },
-            assets,
-        );
-        commands.entity(modal).insert((
+        let mut frame = PageFrame::new(page_frame_skin(assets));
+        frame.node.width = px(820);
+        frame.node.max_width = percent(90);
+        frame.node.max_height = percent(92);
+        frame.heading.height = px(48);
+        frame.content.row_gap = px(10);
+        let frame = frame.mount(commands, overlay);
+        commands.entity(frame.panel).insert((
             CozyModalPanel(CozyModalKind::Profile),
             cozy_panel_transform(progress),
         ));
-        let heading = spawn_node(
+        let heading = frame.heading;
+        add_title(
             commands,
-            modal,
-            Node {
-                width: percent(100),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::SpaceBetween,
-                ..default()
-            },
-            None,
+            heading,
+            "个人资料",
+            28.0,
+            PAGE_FRAME_TITLE,
+            assets,
         );
-        add_title(commands, heading, "个人资料", 28.0, TEXT, assets);
         add_cozy_close_button(
             commands,
             heading,
             UiAction::Navigation(NavigationUiAction::ToggleProfile),
             assets,
         );
-        spawn_node(
-            commands,
-            modal,
-            Node {
-                width: px(96),
-                height: px(2),
-                ..default()
-            },
-            Some(Color::srgb(0.64, 0.59, 0.93)),
-        );
+        let content = frame.content;
         ProfileIdentity::new(
             player_name,
             gender,
@@ -175,10 +153,10 @@ impl<'a> ProfileModal<'a> {
             game_profiles,
             assets,
         )
-        .render(commands, modal, editable_avatar);
+        .render(commands, content);
         spawn_node(
             commands,
-            modal,
+            content,
             Node {
                 width: percent(100),
                 height: px(1),
@@ -186,6 +164,6 @@ impl<'a> ProfileModal<'a> {
             },
             Some(Color::srgba(0.70, 0.68, 0.78, 0.36)),
         );
-        ProfileArchive::new(game_profiles, selected_game, assets).render(commands, modal);
+        ProfileArchive::new(game_profiles, selected_game, assets).render(commands, content);
     }
 }

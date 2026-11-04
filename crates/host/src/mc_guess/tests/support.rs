@@ -33,6 +33,7 @@ pub(super) fn join(session: &mut McGuessSession, connection: u64) {
         completed_games: 0,
         game_profiles: PlayerGameProfiles::default(),
         identity_signature: Vec::new(),
+        avatar_png: None,
     };
     request.identity_signature = key
         .sign(&request.identity_payload(RoomId(99)))

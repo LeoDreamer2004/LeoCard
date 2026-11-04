@@ -2,6 +2,7 @@
 
 use super::gallery::GameGallery;
 use crate::app::runtime::{AppearancePreferences, AvatarImages, ConnectionDraft, UiAssets};
+use crate::app::shell::HomeUiState;
 use bevy::prelude::*;
 use leocard_ui::{UiComposer, UiSceneKey};
 
@@ -10,6 +11,7 @@ pub(crate) struct ConnectionScreen<'a> {
     pub(super) appearance: &'a AppearancePreferences,
     pub(super) assets: &'a UiAssets,
     pub(super) avatars: &'a AvatarImages,
+    pub(super) home: &'a HomeUiState,
 }
 
 impl<'a> ConnectionScreen<'a> {
@@ -18,12 +20,14 @@ impl<'a> ConnectionScreen<'a> {
         appearance: &'a AppearancePreferences,
         assets: &'a UiAssets,
         avatars: &'a AvatarImages,
+        home: &'a HomeUiState,
     ) -> Self {
         Self {
             connection,
             appearance,
             assets,
             avatars,
+            home,
         }
     }
 
@@ -34,20 +38,21 @@ impl<'a> ConnectionScreen<'a> {
             bsn! {
                 Node {
                     width: percent(100), flex_grow: 1.0,
-                    align_items: AlignItems::Center, justify_content: JustifyContent::Center,
+                    min_height: px(0), justify_content: JustifyContent::Center,
                 }
                 Children [
                     UiSceneKey("content")
                     Node {
                         width: percent(100), max_width: px(1370),
-                        padding: UiRect::axes(px(20), px(if cfg!(target_os = "android") { 4 } else { 20 })), flex_direction: FlexDirection::Row,
+                        min_height: px(0), flex_grow: 1.0,
+                        padding: UiRect::axes(px(24), px(12)), flex_direction: FlexDirection::Column,
                         align_items: AlignItems::FlexStart, column_gap: px(16),
                     }
                 ]
             },
         );
         let content = commands.entity_for(canvas, "content");
-        GameGallery::new(self.assets).render(commands, content);
-        self.render_sidebar(commands, content);
+        GameGallery::new(self.assets, self.home, &self.connection.host_port)
+            .render(commands, content);
     }
 }

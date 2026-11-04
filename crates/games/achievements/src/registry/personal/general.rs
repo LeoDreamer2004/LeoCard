@@ -15,6 +15,17 @@ pub(in crate::registry) const DEFINITIONS: &[AchievementDefinition] = &[
         1
     ),
     personal!(
+        "avatar_frame",
+        "光彩夺目",
+        Bronze,
+        "更换一个头像框",
+        |event| personal(event, |event| matches!(
+            event,
+            PersonalEvent::AvatarFrameChanged
+        )),
+        1
+    ),
+    personal!(
         "update",
         "追踪实事",
         Bronze,

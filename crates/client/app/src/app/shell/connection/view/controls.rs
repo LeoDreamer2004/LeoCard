@@ -1,48 +1,34 @@
 use super::super::super::{ConnectionUiAction, UiAction};
-use crate::app::presentation::{ButtonArrows, TEXT, add_text};
+use crate::app::presentation::{ButtonArrows, TEXT, add_text, add_title, page_frame_skin};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
-use leocard_ui::{ButtonHighlight, UiComposer};
-
-pub(super) fn home_panel_image(assets: &UiAssets) -> ImageNode {
-    let mut image =
-        ImageNode::new(assets.home.panel.clone()).with_mode(NodeImageMode::Sliced(TextureSlicer {
-            border: BorderRect::all(80.0),
-            center_scale_mode: SliceScaleMode::Stretch,
-            sides_scale_mode: SliceScaleMode::Stretch,
-            max_corner_scale: 0.42,
-        }));
-    image.visual_box = VisualBox::BorderBox;
-    image
-}
+use leocard_ui::{ButtonHighlight, PageFrame, PageFrameEntities, UiComposer};
 
 pub(super) fn home_panel(
     commands: &mut UiComposer,
     parent: Entity,
-    node: Node,
+    title: &str,
     assets: &UiAssets,
-) -> Entity {
-    let entity = commands.child(parent, node);
-    commands.child(
-        entity,
-        (
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                right: px(0),
-                top: px(0),
-                bottom: px(0),
-                ..default()
-            },
-            home_panel_image(assets),
-            ZIndex(-1),
-            Pickable::IGNORE,
-        ),
+) -> PageFrameEntities {
+    let mut frame = PageFrame::new(page_frame_skin(assets));
+    frame.node.width = percent(100);
+    frame.heading.height = px(38);
+    frame.content.flex_grow = 0.0;
+    frame.content.padding = UiRect::all(px(12));
+    frame.content.row_gap = px(12);
+    let frame = frame.mount(commands, parent);
+    add_title(
+        commands,
+        frame.heading,
+        title,
+        22.0,
+        Color::srgb(0.13, 0.14, 0.17),
+        assets,
     );
-    entity
+    frame
 }
 
 pub(super) fn home_button_image(assets: &UiAssets) -> ImageNode {
@@ -173,7 +159,15 @@ pub(super) fn home_button(
             Vec2::new(64.0, 40.0),
         )
     });
-    add_text(commands, entity, label, 14.0, TEXT, assets);
+    let label = add_text(commands, entity, label, 14.0, TEXT, assets);
+    commands.entity(label).insert((
+        TextLayout::no_wrap(),
+        Node {
+            flex_shrink: 0.0,
+            ..default()
+        },
+        Pickable::IGNORE,
+    ));
     let right_arrow = primary.then(|| {
         add_home_animated_arrow(
             commands,

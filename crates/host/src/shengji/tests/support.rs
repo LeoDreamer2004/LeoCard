@@ -45,6 +45,7 @@ pub(super) fn join_command(index: u8) -> ClientCommand {
         completed_games: 0,
         game_profiles,
         identity_signature: signature,
+        avatar_png: None,
     })
 }
 

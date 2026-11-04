@@ -1,4 +1,4 @@
-use super::storage::EconomyArchive;
+use super::storage::EconomyLedger;
 use leocard_achievements::{AchievementDefinition, AchievementTier};
 use leocard_protocol::{MatchId, PlayerReferenceChange};
 
@@ -10,7 +10,12 @@ pub(super) fn login_day(unix_seconds: u64) -> u64 {
     unix_seconds.saturating_add(8 * 3600) / 86400
 }
 
-impl EconomyArchive {
+impl EconomyLedger {
+    pub(super) fn spend(&mut self, price: u32) -> Result<(), String> {
+        self.coins = self.coins.checked_sub(price).ok_or("金币不足")?;
+        Ok(())
+    }
+
     pub(super) fn change_coins(&mut self, delta: i64) {
         self.coins = (i64::from(self.coins) + delta).clamp(0, i64::from(u32::MAX)) as u32;
     }

@@ -2,6 +2,7 @@
 
 mod button_feedback;
 mod card_audio;
+mod corner_notices;
 mod hand;
 mod hand_style;
 mod motion;
@@ -17,6 +18,7 @@ pub(super) mod ui;
 
 pub(crate) use button_feedback::*;
 pub(crate) use card_audio::*;
+pub(crate) use corner_notices::CornerNotifications;
 pub(crate) use hand::*;
 pub(crate) use hand_style::*;
 pub(crate) use motion::*;

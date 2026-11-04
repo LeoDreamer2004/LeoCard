@@ -2,7 +2,7 @@ use super::super::*;
 use super::panel::cozy_chat_button_image;
 use crate::app::presentation::TEXT;
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
+use crate::app::shell::{ChatUiAction, ModalWheelScope, UiAction, add_cozy_panel};
 use bevy::ecs::query::QueryFilter;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
@@ -183,13 +183,24 @@ fn menu_visibility(open: bool) -> Visibility {
 )]
 pub(crate) fn scroll_chat_menus(
     mut wheels: MessageReader<MouseWheel>,
+    scope: ModalWheelScope,
     mut chat: ResMut<ChatPanelState>,
     mut quick_voice_scrolls: Query<
-        (&RelativeCursorPosition, &mut ScrollPosition, &ComputedNode),
+        (
+            Entity,
+            &RelativeCursorPosition,
+            &mut ScrollPosition,
+            &ComputedNode,
+        ),
         (With<QuickVoiceScroll>, Without<EmojiScroll>),
     >,
     mut emoji_scrolls: Query<
-        (&RelativeCursorPosition, &mut ScrollPosition, &ComputedNode),
+        (
+            Entity,
+            &RelativeCursorPosition,
+            &mut ScrollPosition,
+            &ComputedNode,
+        ),
         (With<EmojiScroll>, Without<QuickVoiceScroll>),
     >,
 ) {
@@ -206,22 +217,32 @@ pub(crate) fn scroll_chat_menus(
     if chat.quick_voice_open {
         scroll_hovered_menu(
             delta,
+            &scope,
             &mut quick_voice_scrolls,
             &mut chat.quick_voice_scroll_y,
         );
     }
     if chat.emoji_open {
-        scroll_hovered_menu(delta, &mut emoji_scrolls, &mut chat.emoji_scroll_y);
+        scroll_hovered_menu(delta, &scope, &mut emoji_scrolls, &mut chat.emoji_scroll_y);
     }
 }
 
 fn scroll_hovered_menu<F: QueryFilter>(
     delta: f32,
-    scrolls: &mut Query<(&RelativeCursorPosition, &mut ScrollPosition, &ComputedNode), F>,
+    scope: &ModalWheelScope,
+    scrolls: &mut Query<
+        (
+            Entity,
+            &RelativeCursorPosition,
+            &mut ScrollPosition,
+            &ComputedNode,
+        ),
+        F,
+    >,
     saved_position: &mut f32,
 ) {
-    for (cursor, mut position, node) in scrolls {
-        if !cursor.cursor_over() {
+    for (entity, cursor, mut position, node) in scrolls {
+        if !cursor.cursor_over() || !scope.allows(entity) {
             continue;
         }
         scroll_viewport_y(&mut position, node, delta);

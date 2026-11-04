@@ -1,11 +1,11 @@
 //! 各游戏的规则区共用标题、模式选择与说明，配置项接在同一面板内。
 
 use super::page::LobbyPageStyle;
-use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
+use crate::app::presentation::{MUTED, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::CozyDropdown;
 use bevy::prelude::*;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{PageFrameEntities, UiComposer};
 
 pub(crate) struct LobbyPageConfig {
     pub(super) style: LobbyPageStyle,
@@ -43,29 +43,16 @@ impl LobbyPageConfig {
         self,
         commands: &mut UiComposer,
         root: Entity,
-        parent: Entity,
+        frame: &PageFrameEntities,
         can_configure: bool,
         assets: &UiAssets,
     ) {
-        let row = spawn_node(
-            commands,
-            parent,
-            Node {
-                width: percent(100),
-                flex_shrink: 0.0,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::SpaceBetween,
-                column_gap: px(12),
-                ..default()
-            },
-            None,
-        );
-        add_lobby_rules_heading(commands, row, self.title, assets);
+        add_lobby_rules_heading(commands, frame.heading, self.title, assets);
         if let Some((dropdown, open)) = self.mode {
-            dropdown.render(commands, root, row, can_configure, open, assets);
+            dropdown.render(commands, root, frame.heading, can_configure, open, assets);
         }
         if let Some(description) = self.description {
-            add_text(commands, parent, description, 13.0, MUTED, assets);
+            add_text(commands, frame.content, description, 13.0, MUTED, assets);
         }
     }
 }
@@ -76,25 +63,12 @@ pub(super) fn add_lobby_rules_heading(
     title: impl Into<String>,
     assets: &UiAssets,
 ) {
-    let heading = spawn_node(
+    add_title(
         commands,
         parent,
-        Node {
-            flex_direction: FlexDirection::Column,
-            row_gap: px(3),
-            ..default()
-        },
-        None,
-    );
-    add_title(commands, heading, title, 21.0, TEXT, assets);
-    spawn_node(
-        commands,
-        heading,
-        Node {
-            width: px(76),
-            height: px(2),
-            ..default()
-        },
-        Some(Color::srgb(0.64, 0.59, 0.93)),
+        title,
+        21.0,
+        Color::srgb(0.13, 0.14, 0.17),
+        assets,
     );
 }

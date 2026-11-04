@@ -3,7 +3,9 @@
 use super::super::UiAction;
 use crate::app::presentation::{MUTED, PanelSkin, TEXT, decorate_panel_skin, text_scene};
 use crate::app::runtime::UiAssets;
+use bevy::picking::Pickable;
 use bevy::prelude::*;
+use bevy::ui_widgets::Button;
 use leocard_ui::{TextureButton, UiComposer, sliced_image, spawn_node};
 
 #[derive(Clone, Copy)]
@@ -326,4 +328,46 @@ pub(crate) fn add_cozy_labeled_icon_button(
     );
     add_cozy_icon_button(commands, column, action, assets, icon, variant, scale);
     commands.node(column, text_scene(assets, label, 12.0 * scale, TEXT));
+}
+
+/// Page navigation is a plain icon and caption; in-game controls keep their textured frames.
+pub(crate) fn add_page_icon_button(
+    commands: &mut UiComposer,
+    parent: Entity,
+    action: UiAction,
+    assets: &UiAssets,
+    icon: Handle<Image>,
+    label: &str,
+    scale: f32,
+) {
+    let button = commands.child(
+        parent,
+        (
+            Button,
+            action,
+            Node {
+                width: px(52.0 * scale),
+                height: px(62.0 * scale),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                row_gap: px(0.0),
+                ..default()
+            },
+        ),
+    );
+    commands.child(
+        button,
+        (
+            Node {
+                width: px(40.0 * scale),
+                height: px(40.0 * scale),
+                ..default()
+            },
+            ImageNode::new(icon),
+            Pickable::IGNORE,
+        ),
+    );
+    let text = commands.node(button, text_scene(assets, label, 12.0 * scale, TEXT));
+    commands.entity(text).insert(Pickable::IGNORE);
 }

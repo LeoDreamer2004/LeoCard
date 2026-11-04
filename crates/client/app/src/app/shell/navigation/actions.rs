@@ -6,10 +6,10 @@ use super::super::{
     AchievementCategory, DomainUiAction, PageMotion, PlayerProfilePage, PressedUiAction,
     ProfileMotion, SettingsMotion, UiAction, UiActionHandler, UiState, dispatch_domain_actions,
 };
-use crate::app::runtime::ClientResource;
+use crate::app::runtime::{ConnectionDraft, PageErrorState, save_connection_draft};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_client::ClientPhaseRef;
+use leocard_client::PlayerEconomy;
 
 #[derive(Clone)]
 pub(crate) enum NavigationUiAction {
@@ -32,10 +32,12 @@ impl DomainUiAction for NavigationUiAction {
 #[derive(SystemParam)]
 pub(crate) struct NavigationActionContext<'w> {
     ui: ResMut<'w, UiState>,
-    client: Option<Res<'w, ClientResource>>,
     settings_motion: ResMut<'w, SettingsMotion>,
     profile_motion: ResMut<'w, ProfileMotion>,
     page_motion: ResMut<'w, PageMotion>,
+    connection: Res<'w, ConnectionDraft>,
+    economy: ResMut<'w, PlayerEconomy>,
+    page_error: ResMut<'w, PageErrorState>,
     #[cfg(not(target_os = "android"))]
     sakura: ResMut<'w, SakuraState>,
 }
@@ -50,6 +52,12 @@ pub(crate) fn dispatch_navigation_actions(
 impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
     fn handle(&self, context: &mut NavigationActionContext<'_>) {
         let ui = &mut *context.ui;
+        if ui.home.identity_open {
+            context.page_error.error =
+                save_connection_draft(&context.connection, &mut context.economy).err();
+        }
+        ui.home.identity_open = false;
+        ui.home.join_open = false;
         match self {
             NavigationUiAction::ToggleProfile => {
                 context.profile_motion.toggle(ui);
@@ -97,12 +105,6 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
                 context.page_motion.begin();
                 ui.shop.open = !ui.shop.open;
                 if ui.shop.open {
-                    if let Some(client) = context.client.as_deref()
-                        && matches!(client.0.model().phase(), ClientPhaseRef::Playing(_))
-                        && let Some(rules) = client.0.model().game_rules()
-                    {
-                        ui.shop.category = rules.kind();
-                    }
                     ui.achievements.open = false;
                     ui.settings.open = false;
                     ui.profile.open = false;

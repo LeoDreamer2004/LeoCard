@@ -37,6 +37,7 @@ fn eight_players_take_every_first_turn_and_record_all_eight_placements() {
         completed_games: 0,
         game_profiles: PlayerGameProfiles::default(),
         identity_signature: Vec::new(),
+        avatar_png: None,
     };
     request.identity_signature = key
         .sign(&request.identity_payload(RoomId(99)))

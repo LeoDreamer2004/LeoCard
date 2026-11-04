@@ -10,7 +10,6 @@ use leocard_ui::{TransitionOpacity, UiComposer};
 pub(super) enum GlowKind {
     Aura,
     Orbit,
-    Ripple,
     Underline,
 }
 
@@ -25,13 +24,6 @@ impl GlowKind {
                 (78.0, 0.32),
                 (82.0, 0.10),
                 (90.0, 0.0),
-                (100.0, 0.0),
-            ],
-            Self::Ripple => &[
-                (0.0, 0.0),
-                (71.0, 0.0),
-                (80.0, 0.48),
-                (88.0, 0.0),
                 (100.0, 0.0),
             ],
             Self::Underline => &[(0.0, 0.65), (16.0, 0.34), (48.0, 0.10), (100.0, 0.0)],
@@ -53,15 +45,12 @@ impl EntryGlow {
         kind: GlowKind,
     ) -> Entity {
         let (width, height, top) = match kind {
-            GlowKind::Aura | GlowKind::Ripple => (112.0, 200.0, -2.0),
-            GlowKind::Orbit => (100.0, 65.0, 135.0),
-            GlowKind::Underline => (70.0, 10.0, 28.0),
+            GlowKind::Aura => (108.0, 132.0, -2.0),
+            GlowKind::Orbit => (90.0, 43.0, 86.0),
+            GlowKind::Underline => (64.0, 7.0, 24.0),
         };
         let glow = Self { index, kind };
-        let mut gradient = glow.gradient();
-        if matches!(kind, GlowKind::Ripple) {
-            glow.animate(&mut gradient, 0.0);
-        }
+        let gradient = glow.gradient();
         commands.child(
             parent,
             (

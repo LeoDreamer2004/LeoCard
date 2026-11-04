@@ -18,6 +18,7 @@ fn fresh_hosts_receive_a_valid_seat_and_can_start_every_game_without_selecting_a
         completed_games: 0,
         game_profiles: PlayerGameProfiles::default(),
         identity_signature: Vec::new(),
+        avatar_png: None,
     };
     join.identity_signature = key.sign(&join.identity_payload(room)).to_bytes().to_vec();
     for (rules, seats) in [

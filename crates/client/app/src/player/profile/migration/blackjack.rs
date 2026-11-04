@@ -1,4 +1,4 @@
-use super::super::{StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
+use super::archive::{LegacyRatingProfile, V6GameProfiles, V6PlayerProfile};
 use super::mc_guess::PreviousMcGuessStats;
 use super::profile::decode_exact;
 use super::texas::V3TexasStats;
@@ -18,7 +18,7 @@ struct V1PlayerProfile {
 
 #[derive(Deserialize, Serialize)]
 struct V1GameProfiles {
-    qigui523: StoredRatingProfile,
+    qigui523: LegacyRatingProfile,
     texas_stats: Option<V3TexasStats>,
     shengji_stats: Option<ShengjiProfileStats>,
     uno_stats: Option<UnoProfileStats>,
@@ -27,12 +27,12 @@ struct V1GameProfiles {
     mc_guess_stats: Option<PreviousMcGuessStats>,
 }
 
-pub(super) fn decode_v1(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
+pub(super) fn decode_v1(bytes: &[u8]) -> Result<V6PlayerProfile, String> {
     let previous: V1PlayerProfile =
         decode_exact(bytes).map_err(|error| format!("玩家档案已损坏：{error}"))?;
-    Ok(StoredPlayerProfile {
+    Ok(V6PlayerProfile {
         secret_key: previous.secret_key,
-        games: StoredGameProfiles {
+        games: V6GameProfiles {
             doudizhu_stats: None,
             qigui523: previous.games.qigui523,
             texas_stats: previous.games.texas_stats.map(Into::into),

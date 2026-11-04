@@ -1,9 +1,9 @@
-use super::ItemId;
 use super::rewards::login_day;
 use super::storage::EconomyArchive;
+use super::{PropId, ShopAvatarFrame};
 use bevy::prelude::Resource;
 use leocard_achievements::AchievementDefinition;
-use leocard_protocol::{MatchId, PlayerReferenceChange, ProfileId};
+use leocard_protocol::{AvatarFrameId, MatchId, PlayerReferenceChange, ProfileId};
 use std::mem;
 use std::time::{self, SystemTime};
 
@@ -15,9 +15,12 @@ pub struct PlayerEconomy {
 }
 
 impl PlayerEconomy {
-    pub fn load(profile_id: ProfileId) -> Result<Self, String> {
+    pub fn load(profile_id: ProfileId, player_name: &str) -> Result<Self, String> {
         Ok(Self {
-            archive: EconomyArchive::load(profile_id)?,
+            archive: EconomyArchive::load(
+                profile_id,
+                ShopAvatarFrame::exclusive_for_name(player_name),
+            )?,
             load_error: None,
             changes: Vec::new(),
         })
@@ -36,7 +39,65 @@ impl PlayerEconomy {
     }
 
     pub fn coins(&self) -> u32 {
-        self.archive.coins
+        self.archive.ledger.coins
+    }
+
+    pub fn owns_frame(&self, frame: AvatarFrameId) -> bool {
+        self.archive.owns_frame(frame)
+    }
+
+    pub fn is_exclusive_frame(&self, frame: AvatarFrameId) -> bool {
+        self.archive.exclusive_frame == Some(frame)
+    }
+
+    pub fn equipped_frame(&self) -> AvatarFrameId {
+        self.archive
+            .frame_for_exclusive(self.archive.exclusive_frame)
+    }
+
+    pub fn frame_for_name(&self, player_name: &str) -> AvatarFrameId {
+        if self.load_error.is_some() {
+            return self.equipped_frame();
+        }
+        self.archive
+            .frame_for_exclusive(ShopAvatarFrame::exclusive_for_name(player_name))
+    }
+
+    pub fn sync_exclusive_frame(&mut self, player_name: &str) -> Result<(), String> {
+        let exclusive = ShopAvatarFrame::exclusive_for_name(player_name);
+        if self.archive.exclusive_frame == exclusive {
+            return Ok(());
+        }
+        self.transact(|archive| {
+            archive.update_exclusive_frame(exclusive);
+            Ok(())
+        })
+    }
+
+    pub fn buy_frame(&mut self, frame: AvatarFrameId) -> Result<(), String> {
+        self.transact(|archive| {
+            if archive.can_use_frame(frame) {
+                return Err("已可使用这个头像框".to_owned());
+            }
+            archive
+                .ledger
+                .spend(ShopAvatarFrame::definition(frame).price)?;
+            archive.owned_frames.insert(frame);
+            Ok(())
+        })
+    }
+
+    pub fn equip_frame(&mut self, frame: AvatarFrameId) -> Result<bool, String> {
+        if !self.archive.can_use_frame(frame) {
+            return Err("尚未拥有这个头像框".to_owned());
+        }
+        if self.equipped_frame() == frame {
+            return Ok(false);
+        }
+        self.transact(|archive| {
+            archive.equipped_frame = frame;
+            Ok(true)
+        })
     }
 
     /// 只有成功保存的实际余额变化会产生提示，包括购买道具和开发者修改。
@@ -45,13 +106,16 @@ impl PlayerEconomy {
     }
 
     pub fn initialize_achievement_rewards(&mut self, earned: &[String]) -> Result<(), String> {
-        if self.archive.rewards_initialized {
+        if self.archive.ledger.rewards_initialized {
             return Ok(());
         }
         self.transact(|archive| {
             // 新钱包不补发启用金币奖励之前已经获得的成就。
-            archive.rewarded_achievements.extend(earned.iter().cloned());
-            archive.rewards_initialized = true;
+            archive
+                .ledger
+                .rewarded_achievements
+                .extend(earned.iter().cloned());
+            archive.ledger.rewards_initialized = true;
             Ok(())
         })
     }
@@ -60,22 +124,28 @@ impl PlayerEconomy {
         let day = login_day(unix_seconds());
         if self
             .archive
+            .ledger
             .last_login_day
             .is_some_and(|previous| previous >= day)
         {
             return Ok(false);
         }
-        self.transact(|archive| Ok(archive.reward_daily(day)))
+        self.transact(|archive| Ok(archive.ledger.reward_daily(day)))
     }
 
     pub fn reward_achievement(
         &mut self,
         definition: &AchievementDefinition,
     ) -> Result<bool, String> {
-        if self.archive.rewarded_achievements.contains(definition.id) {
+        if self
+            .archive
+            .ledger
+            .rewarded_achievements
+            .contains(definition.id)
+        {
             return Ok(false);
         }
-        self.transact(|archive| Ok(archive.reward_achievement(definition)))
+        self.transact(|archive| Ok(archive.ledger.reward_achievement(definition)))
     }
 
     pub fn settle_match(
@@ -83,67 +153,65 @@ impl PlayerEconomy {
         match_id: MatchId,
         changes: &[PlayerReferenceChange],
     ) -> Result<bool, String> {
-        if self.archive.settled_matches.contains(&match_id)
+        if self.archive.ledger.settled_matches.contains(&match_id)
             || !changes
                 .iter()
-                .any(|change| change.profile_id == self.archive.profile_id)
+                .any(|change| change.profile_id == self.archive.ledger.profile_id)
         {
             return Ok(false);
         }
-        self.transact(|archive| Ok(archive.settle_match(match_id, changes)))
+        self.transact(|archive| Ok(archive.ledger.settle_match(match_id, changes)))
     }
 
     #[cfg(feature = "developer")]
     pub fn set_developer_coins(&mut self, coins: u32) -> Result<(), String> {
         self.transact(|archive| {
-            archive.coins = coins;
+            archive.ledger.coins = coins;
             Ok(())
         })
     }
 
-    pub fn remaining_seconds(&self, item: ItemId) -> u64 {
+    pub fn remaining_seconds(&self, prop: PropId) -> u64 {
         if self.load_error.is_some() {
             return 0;
         }
         self.archive
-            .active_items
-            .get(&item)
+            .ledger
+            .active_props
+            .get(&prop)
             .copied()
             .unwrap_or(0)
             .saturating_sub(unix_seconds())
     }
 
-    pub fn active(&self, item: ItemId) -> bool {
-        self.remaining_seconds(item) > 0
+    pub fn active(&self, prop: PropId) -> bool {
+        self.remaining_seconds(prop) > 0
     }
 
-    pub fn buy(&mut self, item: ItemId) -> Result<(), String> {
-        if self.active(item) {
+    pub fn buy_prop(&mut self, prop: PropId) -> Result<(), String> {
+        if self.active(prop) {
             return Err("道具已生效，到期后可再次购买".to_owned());
         }
         let expires = unix_seconds()
-            .checked_add(item.definition().duration_seconds)
+            .checked_add(prop.definition().duration_seconds)
             .ok_or("道具到期时间超出范围")?;
-        self.purchase_until(item, expires)
+        self.purchase_until(prop, expires)
     }
 
-    pub fn extend(&mut self, item: ItemId) -> Result<(), String> {
-        if !self.active(item) {
+    pub fn extend_prop(&mut self, prop: PropId) -> Result<(), String> {
+        if !self.active(prop) {
             return Err("道具已到期，请重新购买".to_owned());
         }
-        let expires = self.archive.active_items[&item]
-            .checked_add(item.definition().duration_seconds)
+        let expires = self.archive.ledger.active_props[&prop]
+            .checked_add(prop.definition().duration_seconds)
             .ok_or("道具到期时间超出范围")?;
-        self.purchase_until(item, expires)
+        self.purchase_until(prop, expires)
     }
 
-    fn purchase_until(&mut self, item: ItemId, expires: u64) -> Result<(), String> {
+    fn purchase_until(&mut self, prop: PropId, expires: u64) -> Result<(), String> {
         self.transact(|archive| {
-            archive.coins = archive
-                .coins
-                .checked_sub(item.definition().price)
-                .ok_or("金币不足")?;
-            archive.active_items.insert(item, expires);
+            archive.ledger.spend(prop.definition().price)?;
+            archive.ledger.active_props.insert(prop, expires);
             Ok(())
         })
     }
@@ -158,7 +226,7 @@ impl PlayerEconomy {
         let mut updated = self.archive.clone();
         let result = change(&mut updated)?;
         updated.save()?;
-        let delta = i64::from(updated.coins) - i64::from(self.archive.coins);
+        let delta = i64::from(updated.ledger.coins) - i64::from(self.archive.ledger.coins);
         self.archive = updated;
         if delta != 0 {
             self.changes.push(delta);

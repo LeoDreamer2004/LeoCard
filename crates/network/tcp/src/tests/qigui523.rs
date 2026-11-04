@@ -54,6 +54,7 @@ async fn three_clients_join_ready_and_start_over_real_tcp() {
                     completed_games: 0,
                     game_profiles,
                     identity_signature: signature,
+                    avatar_png: None,
                 }),
             ))
             .await

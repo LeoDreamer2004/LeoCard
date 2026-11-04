@@ -1,6 +1,7 @@
 mod message;
 mod plugin;
 mod state;
+mod sync;
 mod systems;
 mod view;
 

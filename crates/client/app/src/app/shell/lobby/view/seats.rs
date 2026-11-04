@@ -11,7 +11,7 @@ use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
 use leocard_protocol::{LobbyPlayerView, LobbySnapshot, SeatId};
-use leocard_ui::{AvatarFrame, SecondaryPressTarget, UiComposer, spawn_node};
+use leocard_ui::{SecondaryPressTarget, UiComposer, spawn_node};
 
 pub(super) struct LobbySeatSelector<'a> {
     client: &'a ClientResource,
@@ -210,10 +210,9 @@ impl<'a> OccupiedLobbySeat<'a> {
             "avatar",
             &self.player.player.name,
             handle,
-            AvatarFrame {
-                texture: self.assets.avatar_frames.default.clone(),
-                size: 58.0,
-            },
+            self.assets
+                .avatar_frames
+                .frame(self.player.player.game_profiles.avatar_frame, 58.0),
             self.assets,
         );
         let avatar_ring = framed.frame;
@@ -221,11 +220,24 @@ impl<'a> OccupiedLobbySeat<'a> {
             .entity(framed.avatar)
             .insert(LobbySeatedAvatar(self.player.player.id));
         if self.is_you {
-            commands
-                .entity(avatar_ring)
-                .insert(Outline::new(px(2), px(0), ACCENT));
-        } else {
-            commands.entity(avatar_ring).remove::<Outline>();
+            commands.child(
+                avatar_ring,
+                (
+                    Node {
+                        position_type: PositionType::Absolute,
+                        left: px(1),
+                        right: px(1),
+                        top: px(1),
+                        bottom: px(1),
+                        border: UiRect::all(px(2)),
+                        border_radius: BorderRadius::all(percent(20)),
+                        ..default()
+                    },
+                    BorderColor::all(ACCENT),
+                    ZIndex(3),
+                    Pickable::IGNORE,
+                ),
+            );
         }
         attach_player_interactions(
             commands,

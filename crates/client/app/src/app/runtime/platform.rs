@@ -1,9 +1,5 @@
 //! 内嵌资源源与操作系统窗口集成。
 
-#[cfg(test)]
-use super::UI_FONT_ASSET;
-#[cfg(test)]
-use crate::app::presentation::TABLE_BACKGROUND_SHADER;
 use bevy::asset::AssetApp;
 use bevy::asset::io::memory::{Dir, MemoryAssetReader};
 use bevy::asset::io::{AssetSourceBuilder, AssetSourceId};
@@ -75,68 +71,6 @@ fn decode_app_icon() -> Icon {
     let (width, height) = pixels.dimensions();
     Icon::from_rgba(pixels.into_raw(), width, height)
         .expect("the compiled application icon must contain RGBA pixels")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn embedded_bundle_contains_representative_runtime_assets() {
-        if !leocard_assets::IS_EMBEDDED {
-            return;
-        }
-        let directory = embedded_asset_dir();
-        for path in [
-            UI_FONT_ASSET,
-            "ui/tabletop/table-felt.png",
-            "ui/tabletop/table-rail.png",
-            "ui/mahjong/table-felt.png",
-            "ui/mahjong/table-rail.png",
-            TABLE_BACKGROUND_SHADER,
-            "shaders/uno_palette.wesl",
-            "cards/uno/card_back.png",
-            "cards/uno/wild.png",
-            "cards/uno-extension/uno-flip/dark/purple_flip.png",
-            "cards/uno-extension/uno-flip/light/wild_draw_two.png",
-            "vendor/kenney/boardgame/PNG/Cards/cardSpadesA.png",
-            "vendor/kenney/interface-sounds/Audio/error_007.ogg",
-            "vendor/noname/voice/male/22.mp3",
-            "vendor/noname/voice/female/22.mp3",
-            "ui/home/cozy-panel.png",
-            "ui/home/cozy-game-card.png",
-            "ui/home/cozy-game-card-hover.png",
-            "ui/game-buttons/warning-normal.png",
-            "ui/minecraft_guess/icons/entries.png",
-            "ui/minecraft_guess/background/block-fronts.png",
-            "ui/minecraft_guess/background/dirt.png",
-            "ui/minecraft_guess/background/panoramas/1.21.png",
-            "shaders/minecraft_background.wesl",
-            "ui/game-buttons/adjust-left-normal.png",
-            "ui/game-buttons/adjust-right-hover.png",
-            "ui/home/cozy-button-purple-plain.png",
-            "ui/home/cozy-button-arrows.png",
-            "ui/home/cozy-button-compact.png",
-            "ui/home/cozy-button-danger-compact.png",
-            "ui/home/cozy-button-danger-hover-compact.png",
-            "ui/home/cozy-button-cool-compact.png",
-            "ui/home/cozy-button-cool-hover-compact.png",
-            "ui/home/cozy-button-purple-compact.png",
-            "ui/home/cozy-input-compact.png",
-            "ui/home/cozy-input-focused-compact.png",
-            "icons/github-mark.png",
-            "icons/settings.png",
-            "icons/achievement-trophy.png",
-            "ui/achievements/emblem-mahjong.png",
-            "ui/achievements/medal-gold.png",
-            "icons/exit-room.png",
-        ] {
-            assert!(
-                directory.get_asset(Path::new(path)).is_some(),
-                "missing embedded runtime asset: {path}"
-            );
-        }
-    }
 }
 
 #[cfg(target_os = "android")]

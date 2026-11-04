@@ -4,16 +4,24 @@ use leocard_protocol::MatchId;
 pub(super) struct LogMessage {
     pub name: String,
     pub avatar: Option<Handle<Image>>,
-    pub node: u16,
-    pub guess: String,
-    pub correct: bool,
-    pub combo: u16,
+    pub action: LogAction,
+}
+
+pub(super) enum LogAction {
+    Guess {
+        node: u16,
+        guess: String,
+        correct: bool,
+        combo: u16,
+    },
+    Skip,
 }
 
 #[derive(Resource)]
 pub(in super::super::super) struct GraphLog {
     pub(super) key: Option<(MatchId, u8)>,
     pub(super) messages: Vec<LogMessage>,
+    pub(super) guesses: usize,
     pub(super) expanded: bool,
     pub(super) version: usize,
     pub(super) scroll_y: f32,
@@ -26,6 +34,7 @@ impl Default for GraphLog {
         Self {
             key: None,
             messages: Vec::new(),
+            guesses: 0,
             expanded: false,
             version: 0,
             scroll_y: 0.0,

@@ -35,6 +35,7 @@ pub(super) fn join_command(name: &str, token: u64) -> ClientCommand {
         completed_games: 0,
         game_profiles,
         identity_signature: key.sign(&payload).to_bytes().to_vec(),
+        avatar_png: None,
     })
 }
 

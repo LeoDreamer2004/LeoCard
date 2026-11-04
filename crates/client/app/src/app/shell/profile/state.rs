@@ -50,9 +50,6 @@ pub(crate) struct ProfileGameContent;
 pub(crate) struct ProfileGameTabButton;
 
 #[derive(Component)]
-pub(crate) struct ProfileGameColumn;
-
-#[derive(Component)]
 pub(crate) struct ProfileStat;
 
 #[derive(Default)]

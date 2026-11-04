@@ -81,7 +81,7 @@ fn completed_graph_merges_node_statistics_into_existing_archives_once() {
     )));
     // Finish the fixture without relying on the debug-only activation command.
     session.game.as_mut().unwrap().reveal_graph().unwrap();
-    session.after_action();
+    session.after_action(None);
     let archive = session
         .room
         .players

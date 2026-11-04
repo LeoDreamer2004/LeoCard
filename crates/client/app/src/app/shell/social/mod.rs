@@ -2,6 +2,7 @@
 
 mod actions;
 mod animation;
+mod easter_eggs;
 mod interaction;
 mod menu;
 mod plugin;

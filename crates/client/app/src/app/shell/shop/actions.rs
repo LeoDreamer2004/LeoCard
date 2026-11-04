@@ -1,3 +1,4 @@
+use super::ShopCategory;
 use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::PageErrorState;
 use crate::app::shell::{
@@ -7,14 +8,17 @@ use crate::app::shell::{
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
-use leocard_client::{ItemId, PlayerEconomy};
-use leocard_protocol::GameKind;
+use leocard_client::{PlayerEconomy, PropId, ShopAvatarFrame};
+use leocard_protocol::AvatarFrameId;
 
 #[derive(Clone)]
 pub(crate) enum ShopUiAction {
-    SelectCategory(GameKind),
-    Buy(ItemId),
-    ConfirmPurchase { item: ItemId, extend: bool },
+    SelectCategory(ShopCategory),
+    BuyProp(PropId),
+    ConfirmPropPurchase { prop: PropId, extend: bool },
+    BuyFrame(AvatarFrameId),
+    ConfirmFramePurchase(AvatarFrameId),
+    EquipFrame(AvatarFrameId),
 }
 
 impl DomainUiAction for ShopUiAction {
@@ -46,9 +50,9 @@ impl UiActionHandler<ShopActionContext<'_>> for ShopUiAction {
     fn handle(&self, context: &mut ShopActionContext<'_>) {
         match self {
             Self::SelectCategory(category) => context.ui.shop.category = *category,
-            Self::Buy(item) => {
-                let definition = item.definition();
-                let extend = context.economy.active(*item);
+            Self::BuyProp(prop) => {
+                let definition = prop.definition();
+                let extend = context.economy.active(*prop);
                 let verb = if extend { "延期" } else { "购买" };
                 let detail = if extend {
                     "确认后在原截止时间上追加一小时。"
@@ -61,26 +65,55 @@ impl UiActionHandler<ShopActionContext<'_>> for ShopUiAction {
                         "花费 {} 金币{verb}{}？\n{detail}",
                         definition.price, definition.name
                     ),
-                    UiAction::Shop(Self::ConfirmPurchase {
-                        item: *item,
+                    UiAction::Shop(Self::ConfirmPropPurchase {
+                        prop: *prop,
                         extend,
                     }),
                 );
             }
-            Self::ConfirmPurchase { item, extend } => {
+            Self::ConfirmPropPurchase { prop, extend } => {
                 context.ui.dirty = true;
                 let result = if *extend {
-                    context.economy.extend(*item)
+                    context.economy.extend_prop(*prop)
                 } else {
-                    context.economy.buy(*item)
+                    context.economy.buy_prop(*prop)
                 };
                 match result {
                     Ok(()) => {
                         context.achievements.write(LocalAchievementTrigger(
-                            AchievementTrigger::Personal(PersonalEvent::ItemPurchased {
-                                price: item.definition().price,
+                            AchievementTrigger::Personal(PersonalEvent::PropPurchased {
+                                price: prop.definition().price,
                             }),
                         ));
+                    }
+                    Err(error) => context.error.error = Some(error),
+                }
+            }
+            Self::BuyFrame(frame) => {
+                let listing = ShopAvatarFrame::definition(*frame);
+                context.confirmation.show(
+                    "确认购买".to_owned(),
+                    format!(
+                        "花费 {} 金币购买{}？\n购买后永久拥有，可随时选用。",
+                        listing.price, listing.name
+                    ),
+                    UiAction::Shop(Self::ConfirmFramePurchase(*frame)),
+                );
+            }
+            Self::ConfirmFramePurchase(frame) => {
+                context.ui.dirty = true;
+                context.error.error = context.economy.buy_frame(*frame).err();
+            }
+            Self::EquipFrame(frame) => {
+                context.ui.dirty = true;
+                match context.economy.equip_frame(*frame) {
+                    Ok(changed) => {
+                        context.error.error = None;
+                        if changed {
+                            context.achievements.write(LocalAchievementTrigger(
+                                AchievementTrigger::Personal(PersonalEvent::AvatarFrameChanged),
+                            ));
+                        }
                     }
                     Err(error) => context.error.error = Some(error),
                 }

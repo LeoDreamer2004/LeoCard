@@ -2,8 +2,8 @@ use super::{Participant, RoomSession};
 use crate::{ConnectionId, Delivery};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    JoinRequest, MAX_PLAYER_NAME_CHARS, PlayerViolation, RejectReason, RequestId, RoomViolation,
-    ServerEvent,
+    AvatarId, JoinRequest, MAX_PLAYER_NAME_CHARS, PlayerViolation, RejectReason, RequestId,
+    RoomViolation, ServerEvent,
 };
 
 impl RoomSession {
@@ -30,6 +30,13 @@ impl RoomSession {
         if !crate::valid_identity_proof(self.room_id, &request) {
             return Err(RejectReason::Player(PlayerViolation::InvalidIdentityProof));
         }
+        if request
+            .avatar_png
+            .as_ref()
+            .is_some_and(|png| !crate::valid_avatar_png(png))
+        {
+            return Err(RejectReason::Player(PlayerViolation::InvalidAvatar));
+        }
         let validated_request = request.clone();
         let JoinRequest {
             name,
@@ -39,6 +46,7 @@ impl RoomSession {
             completed_games,
             game_profiles,
             identity_signature: _,
+            avatar_png,
         } = request;
         let name = name.trim();
         if let Some(index) = self
@@ -102,13 +110,18 @@ impl RoomSession {
         let seat = self
             .random_available_seat()
             .expect("a non-full room always has an available seat");
+        let avatar = avatar_png.as_ref().map(|_| {
+            let id = AvatarId(self.next_avatar_id);
+            self.next_avatar_id += 1;
+            id
+        });
         let participant = Participant {
             id: player,
             profile_id,
             connection,
             name: name.to_owned(),
-            avatar: None,
-            avatar_png: None,
+            avatar,
+            avatar_png,
             reconnect_token,
             seat: Some(seat),
             ready: joining_as_host,
@@ -127,7 +140,7 @@ impl RoomSession {
         }
         self.bump_revision();
         self.welcome_new_player(player);
-        Ok(self.join_deliveries(connection, request_id, player))
+        Ok(self.new_join_deliveries(connection, request_id, player))
     }
 
     fn reconnect(
@@ -161,6 +174,33 @@ impl RoomSession {
         }
         self.bump_revision();
         self.join_deliveries(connection, request_id, player)
+    }
+
+    pub(super) fn new_join_deliveries(
+        &self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        player: PlayerId,
+    ) -> Vec<Delivery> {
+        let mut deliveries = self.join_deliveries(connection, request_id, player);
+        if let Some(participant) = self
+            .participants()
+            .find(|participant| participant.id == player)
+            && let (Some(id), Some(png)) = (participant.avatar, participant.avatar_png.as_ref())
+        {
+            deliveries.extend(
+                self.broadcast_event(
+                    None,
+                    ServerEvent::AvatarData {
+                        id,
+                        png: png.clone(),
+                    },
+                )
+                .into_iter()
+                .filter(|delivery| delivery.recipient != connection),
+            );
+        }
+        deliveries
     }
 
     pub(super) fn join_deliveries(

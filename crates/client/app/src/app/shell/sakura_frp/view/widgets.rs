@@ -1,14 +1,16 @@
 use super::super::actions::SakuraUiAction;
 use super::super::input::{SakuraInput, SakuraScroll};
 use super::page::SakuraPage;
-use crate::app::presentation::{MUTED, add_text};
+use crate::app::presentation::{MUTED, add_text, page_frame_skin};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    CozyButtonVariant, UiAction, add_cozy_button_variant, add_cozy_disabled_button, add_cozy_panel,
+    CozyButtonVariant, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
 };
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-use leocard_ui::{Scrollbar, ScrollbarSkin, TextInput, UiComposer, spawn_node};
+use leocard_ui::{
+    PageFrame, PageFrameEntities, Scrollbar, ScrollbarSkin, TextInput, UiComposer, spawn_node,
+};
 
 impl SakuraPage<'_> {
     #[expect(clippy::too_many_arguments, reason = "button styling stays explicit")]
@@ -99,22 +101,14 @@ pub(super) fn panel(
     parent: Entity,
     grow: f32,
     assets: &UiAssets,
-) -> Entity {
-    add_cozy_panel(
-        commands,
-        parent,
-        Node {
-            min_width: px(0),
-            min_height: px(0),
-            flex_basis: px(0),
-            flex_grow: grow,
-            padding: UiRect::all(px(16)),
-            flex_direction: FlexDirection::Column,
-            row_gap: px(10),
-            ..default()
-        },
-        assets,
-    )
+) -> PageFrameEntities {
+    let mut frame = PageFrame::new(page_frame_skin(assets));
+    frame.node.flex_basis = px(0);
+    frame.node.flex_grow = grow;
+    frame.heading.height = px(42);
+    frame.content.padding = UiRect::all(px(10));
+    frame.content.row_gap = px(10);
+    frame.mount(commands, parent)
 }
 
 pub(super) fn row(commands: &mut UiComposer, parent: Entity, gap: f32) -> Entity {

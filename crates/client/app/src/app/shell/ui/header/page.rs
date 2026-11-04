@@ -5,13 +5,15 @@ use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAsset
 #[cfg(not(target_os = "android"))]
 use crate::app::shell::SakuraUiAction;
 use crate::app::shell::{
-    AchievementEntry, CozyButtonVariant, LobbyGameHeader, NavigationUiAction,
-    PageTransitionElement, ProfileEntry, ShopEntry, UiAction, add_cozy_labeled_icon_button,
+    AchievementEntry, ConnectionUiAction, LiquidKind, LiquidSurface, LobbyGameHeader,
+    NavigationUiAction, PageTransitionElement, ProfileEntry, ShopEntry, UiAction,
+    add_page_icon_button, can_edit_identity,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use bevy::ui_widgets::Button;
 use leocard_client::ClientPhaseRef;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{CustomButtonMotion, UiComposer, spawn_node};
 
 const PAGE_HEADER_SCALE: f32 = if cfg!(target_os = "android") {
     1.2
@@ -41,7 +43,12 @@ impl<'a> Header<'a> {
         }
     }
 
-    pub(in crate::app::shell) fn render(self, commands: &mut UiComposer, root: Entity) {
+    pub(in crate::app::shell) fn render(
+        self,
+        commands: &mut UiComposer,
+        root: Entity,
+        home_page: bool,
+    ) {
         if self
             .client
             .is_some_and(|client| matches!(client.0.model().phase(), ClientPhaseRef::Playing(_)))
@@ -126,11 +133,37 @@ impl<'a> Header<'a> {
             Node {
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
-                column_gap: px(14.0 * PAGE_HEADER_SCALE),
+                column_gap: px(6.0 * PAGE_HEADER_SCALE),
                 ..default()
             },
             None,
         );
+        let editable_identity = can_edit_identity(self.client);
+        let is_home = home_page && editable_identity;
+        if is_home {
+            let join = commands.child(
+                right,
+                (
+                    Button,
+                    UiAction::Connection(ConnectionUiAction::ToggleJoin),
+                    Node {
+                        width: px(146.0 * PAGE_HEADER_SCALE),
+                        height: px(48.0 * PAGE_HEADER_SCALE),
+                        ..default()
+                    },
+                    CustomButtonMotion,
+                ),
+            );
+            LiquidSurface::mount(
+                commands,
+                join,
+                join,
+                self.assets.home.join_room.clone(),
+                Color::WHITE,
+                LiquidKind::JoinSweep,
+                0.0,
+            );
+        }
         if self.client.is_none_or(|client| {
             matches!(
                 client.0.model().phase(),
@@ -138,13 +171,12 @@ impl<'a> Header<'a> {
             )
         }) {
             #[cfg(not(target_os = "android"))]
-            add_cozy_labeled_icon_button(
+            add_page_icon_button(
                 commands,
                 right,
                 UiAction::Sakura(SakuraUiAction::Show),
                 self.assets,
                 self.assets.home.network_icon.clone(),
-                CozyButtonVariant::Cool,
                 "联机",
                 PAGE_HEADER_SCALE,
             );
@@ -157,13 +189,12 @@ impl<'a> Header<'a> {
             }
             .render(commands, right, PAGE_HEADER_SCALE);
         }
-        add_cozy_labeled_icon_button(
+        add_page_icon_button(
             commands,
             right,
             UiAction::Navigation(NavigationUiAction::ToggleSettings),
             self.assets,
             self.assets.home.settings_icon.clone(),
-            CozyButtonVariant::Neutral,
             "设置",
             PAGE_HEADER_SCALE,
         );
@@ -178,5 +209,53 @@ impl<'a> Header<'a> {
             44.0 * PAGE_HEADER_SCALE,
             17.5 * PAGE_HEADER_SCALE,
         );
+        if editable_identity {
+            let menu = commands.child(
+                right,
+                (
+                    Button,
+                    UiAction::Connection(ConnectionUiAction::ToggleIdentity),
+                    Node {
+                        max_width: px(180),
+                        min_width: px(0),
+                        align_items: AlignItems::Center,
+                        column_gap: px(8),
+                        padding: UiRect::axes(px(6), px(10)),
+                        ..default()
+                    },
+                ),
+            );
+            let name = add_text(
+                commands,
+                menu,
+                &self.form.player_name,
+                16.0 * PAGE_HEADER_SCALE,
+                Color::srgb(0.88, 0.84, 1.0),
+                self.assets,
+            );
+            commands
+                .entity(name)
+                .insert((Pickable::IGNORE, TextLayout::default().with_no_wrap()));
+            commands.entity(name).insert(Node {
+                min_width: px(0),
+                overflow: Overflow::clip(),
+                ..default()
+            });
+            let mut arrow = ImageNode::new(self.assets.achievements.scroll_arrow.clone());
+            arrow.flip_y = true;
+            commands.child(
+                menu,
+                (
+                    Node {
+                        width: px(13),
+                        height: px(8),
+                        flex_shrink: 0.0,
+                        ..default()
+                    },
+                    arrow,
+                    Pickable::IGNORE,
+                ),
+            );
+        }
     }
 }

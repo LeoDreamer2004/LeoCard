@@ -1,5 +1,6 @@
 //! Sound volume and game voice switches.
 
+use super::section::add_settings_separator;
 use super::slider::SettingsSlider;
 use super::toggle::add_settings_toggle;
 use crate::app::presentation::{TEXT, TableAppearanceSetting, add_title};
@@ -15,17 +16,7 @@ pub(super) fn render_sound_settings(
     assets: &UiAssets,
 ) {
     SettingsSlider::new(form, assets).render(commands, parent, TableAppearanceSetting::Volume);
-    spawn_node(
-        commands,
-        parent,
-        Node {
-            width: percent(100),
-            height: px(1),
-            margin: UiRect::vertical(px(8)),
-            ..default()
-        },
-        Some(Color::srgba(0.70, 0.68, 0.78, 0.36)),
-    );
+    add_settings_separator(commands, parent);
     add_title(commands, parent, "麻将", 20.0, TEXT, assets);
     let row = spawn_node(
         commands,
@@ -76,6 +67,7 @@ pub(super) fn render_sound_settings(
             SettingsUiAction::ToggleDoudizhuActionVoices,
         ),
     ] {
+        add_settings_separator(commands, parent);
         add_title(commands, parent, title, 20.0, TEXT, assets);
         let row = spawn_node(
             commands,

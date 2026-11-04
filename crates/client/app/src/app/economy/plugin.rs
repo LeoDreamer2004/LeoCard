@@ -8,21 +8,17 @@ pub(crate) struct EconomyPlugin;
 impl Plugin for EconomyPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PendingRewards>()
-            .init_resource::<CoinNotifications>()
-            .add_systems(Startup, setup_coin_notifications)
             .add_systems(PostStartup, setup_rewards)
             .add_systems(
                 Update,
-                (process_rewards, sync_coins, publish_coins)
+                (process_rewards, sync_economy, publish_economy)
                     .chain()
                     .after(AchievementUpdateSet)
                     .in_set(ClientUpdateSet::Sync),
             )
             .add_systems(
                 Update,
-                (queue_coin_notifications, animate_coin_notifications)
-                    .chain()
-                    .in_set(ClientUpdateSet::Animate),
+                queue_coin_notifications.in_set(ClientUpdateSet::Sync),
             );
     }
 }

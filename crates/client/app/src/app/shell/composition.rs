@@ -6,7 +6,7 @@ use super::{
     ConnectionScreen, DeveloperHandInput, Header, LobbyGameMotion, PageMotion, PlayErrorToast,
     ProfileModal, ProfileMotion, SettingsModal, SettingsMotion, ShopPage, UiState, UpdateManager,
     add_lobby_game_shade, add_page_background, add_page_transition_shade, add_play_error_popup,
-    render_confirmation, render_update_dialog,
+    can_edit_identity, render_confirmation, render_update_dialog,
 };
 #[cfg(not(target_os = "android"))]
 use super::{SakuraPage, SakuraState, render_startup_dialog};
@@ -169,7 +169,11 @@ impl ScreenRenderer<'_, '_, '_> {
             &self.visuals.ui,
             &self.visuals.avatars,
         )
-        .render(self.commands, root);
+        .render(
+            self.commands,
+            root,
+            !self.ui.shop.open && !self.ui.achievements.open && !self.sakura_open(),
+        );
         self.render_primary_screen(root);
         self.render_overlays(root);
     }
@@ -212,6 +216,7 @@ impl ScreenRenderer<'_, '_, '_> {
                 self.appearance,
                 &self.visuals.ui,
                 &self.visuals.avatars,
+                &self.ui.home,
             )
             .render(self.commands, root);
             return;
@@ -251,6 +256,7 @@ impl ScreenRenderer<'_, '_, '_> {
                 self.appearance,
                 &self.visuals.ui,
                 &self.visuals.avatars,
+                &self.ui.home,
             )
             .render(self.commands, root),
         }
@@ -268,6 +274,16 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn render_overlays(&mut self, root: Entity) {
+        if can_edit_identity(self.client) {
+            ConnectionScreen::new(
+                self.connection,
+                self.appearance,
+                &self.visuals.ui,
+                &self.visuals.avatars,
+                &self.ui.home,
+            )
+            .render_home_overlays(self.commands, root);
+        }
         #[cfg(not(target_os = "android"))]
         render_startup_dialog(self.commands, root, &self.visuals.sakura, &self.visuals.ui);
         if self.ui.lan.open {

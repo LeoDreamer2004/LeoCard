@@ -1,5 +1,5 @@
 use crate::{
-    AchievementAnnouncement, AvatarId, BlackjackSnapshot, ChatContent, ChatMessage,
+    AchievementAnnouncement, AvatarFrameId, AvatarId, BlackjackSnapshot, ChatContent, ChatMessage,
     DoudizhuSnapshot, GameCommand, GameEvent, GameKind, GameRules, MahjongPhaseView,
     MahjongSnapshot, MatchId, McGuessSnapshot, PROTOCOL_VERSION, PlayerGameProfiles,
     PlayerInteraction, PlayerInteractionKind, PlayerPublicInfo, ProfileId, QiGui523PhaseView,
@@ -65,6 +65,8 @@ pub struct JoinRequest {
     pub completed_games: u32,
     pub game_profiles: PlayerGameProfiles,
     pub identity_signature: Vec<u8>,
+    /// Avatar fixed at room entry; reconnects retain the room identity.
+    pub avatar_png: Option<Vec<u8>>,
 }
 
 impl JoinRequest {
@@ -85,8 +87,9 @@ pub enum ClientCommand {
     SpectatePlayer {
         player: PlayerId,
     },
-    PublishCoins {
+    PublishEconomy {
         coins: u32,
+        avatar_frame: AvatarFrameId,
     },
     /// Aggregate profile synchronization; IDs announce only newly earned awards.
     PublishAchievements {
@@ -94,9 +97,6 @@ pub enum ClientCommand {
         unlocked: Vec<String>,
     },
     Join(Box<JoinRequest>),
-    SetAvatar {
-        png: Vec<u8>,
-    },
     SelectSeat {
         seat: SeatId,
     },

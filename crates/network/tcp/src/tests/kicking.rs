@@ -23,6 +23,7 @@ async fn kicked_client_receives_the_final_notice_before_the_socket_closes() {
             completed_games: 0,
             game_profiles: PlayerGameProfiles::default(),
             identity_signature: Vec::new(),
+            avatar_png: None,
         };
         join.identity_signature = key.sign(&join.identity_payload(room)).to_bytes().to_vec();
         client

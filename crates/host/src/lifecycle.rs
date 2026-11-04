@@ -189,26 +189,6 @@ pub(super) trait HostedGameLifecycle: Sized {
         }
     }
 
-    fn set_avatar(
-        &mut self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        png: Vec<u8>,
-    ) -> Vec<Delivery> {
-        let game_started = self.game_started();
-        match self.room_mut().set_avatar(connection, png) {
-            Ok(mut deliveries) => {
-                deliveries.extend(if game_started {
-                    self.broadcast_game(Some((connection, request_id)))
-                } else {
-                    self.broadcast_lobby(Some((connection, request_id)))
-                });
-                deliveries
-            }
-            Err(reason) => self.room().reject(connection, request_id, reason),
-        }
-    }
-
     fn select_seat(
         &mut self,
         connection: ConnectionId,
@@ -336,8 +316,7 @@ pub(super) fn dispatch_client_command<S: HostedGameLifecycle>(
                 | ClientCommand::SpectatePlayer { .. }
                 | ClientCommand::Interact { .. }
                 | ClientCommand::LeaveRoom
-                | ClientCommand::SetAvatar { .. }
-                | ClientCommand::PublishCoins { .. }
+                | ClientCommand::PublishEconomy { .. }
                 | ClientCommand::PublishAchievements { .. }
         )
     {
@@ -386,8 +365,14 @@ fn dispatch_joined_command<S: HostedGameLifecycle>(
                 Err(reason) => session.room().reject(connection, request_id, reason),
             }
         }
-        ClientCommand::PublishCoins { coins } => {
-            match session.room_mut().publish_coins(connection, coins) {
+        ClientCommand::PublishEconomy {
+            coins,
+            avatar_frame,
+        } => {
+            match session
+                .room_mut()
+                .publish_economy(connection, coins, avatar_frame)
+            {
                 Ok(()) => {
                     if session.game_started() {
                         session.broadcast_game(Some((connection, request_id)))
@@ -415,7 +400,6 @@ fn dispatch_joined_command<S: HostedGameLifecycle>(
             }
         }
         ClientCommand::Join(request) => session.join(connection, request_id, *request),
-        ClientCommand::SetAvatar { png } => session.set_avatar(connection, request_id, png),
         ClientCommand::SelectSeat { seat } => session.select_seat(connection, request_id, seat),
         ClientCommand::ConfigureBotSeat { seat, occupied } => {
             session.configure_bot_seat(connection, request_id, seat, occupied)

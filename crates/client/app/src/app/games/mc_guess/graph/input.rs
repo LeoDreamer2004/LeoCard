@@ -4,7 +4,9 @@ use super::guide::GraphGuideState;
 use super::log::GraphLogRoot;
 use super::state::{Gesture, GraphCanvas, GraphDragTarget, GraphWorkspace};
 use crate::app::runtime::ClientResource;
-use crate::app::shell::{ConfirmationDialog, PageMotion, PlayErrorToast, UiState, game_command};
+use crate::app::shell::{
+    ConfirmationDialog, ModalWheelScope, PageMotion, PlayErrorToast, UiState, game_command,
+};
 use bevy::camera::NormalizedRenderTarget;
 use bevy::ecs::system::SystemParam;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
@@ -25,6 +27,7 @@ pub(in super::super) struct GraphPointerContext<'w, 's> {
     sounds: MessageWriter<'w, FeedbackSound>,
     confirmation: Res<'w, ConfirmationDialog>,
     motion: Res<'w, PageMotion>,
+    wheel_scope: ModalWheelScope<'w, 's>,
     guide: Res<'w, GraphGuideState>,
     logs: Query<'w, 's, &'static RelativeCursorPosition, With<GraphLogRoot>>,
     targets: Query<'w, 's, &'static GraphDragTarget>,
@@ -32,6 +35,7 @@ pub(in super::super) struct GraphPointerContext<'w, 's> {
         'w,
         's,
         (
+            Entity,
             &'static ComputedNode,
             &'static UiGlobalTransform,
             &'static RelativeCursorPosition,
@@ -102,7 +106,7 @@ impl GraphPointerContext<'_, '_> {
         let (node, transform) = match target {
             GraphDragTarget::Divider => self.workspace.single().ok()?,
             _ => {
-                let (node, transform, _) = self.canvas.single().ok()?;
+                let (_, node, transform, _) = self.canvas.single().ok()?;
                 (node, transform)
             }
         };
@@ -192,8 +196,9 @@ pub(in super::super) fn graph_pointer_input(
         .sum();
     if delta != 0.0
         && context.state.graph.gesture.is_none()
-        && let Ok((node, _, cursor)) = context.canvas.single()
+        && let Ok((entity, node, _, cursor)) = context.canvas.single()
         && cursor.cursor_over()
+        && context.wheel_scope.allows(entity)
         && let Some(normalized) = cursor.normalized
     {
         let size = node.size() * node.inverse_scale_factor();

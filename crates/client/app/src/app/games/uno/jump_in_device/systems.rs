@@ -2,7 +2,7 @@ use super::{UnoJumpInDevice, state::JumpInOpportunity};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{UiState, game_command};
 use bevy::prelude::*;
-use leocard_client::{ItemId, NetworkState, PlayerEconomy};
+use leocard_client::{NetworkState, PlayerEconomy, PropId};
 use leocard_protocol::{GameSnapshot, UnoCommand, UnoPhaseView};
 
 use leocard_uno::UnoCard;
@@ -19,7 +19,7 @@ pub(in super::super) fn update_jump_in_device(
     let available = game.is_some_and(|game| {
         matches!(game.phase, UnoPhaseView::Playing)
             && game.rules.jump_in_enabled()
-            && economy.active(ItemId::UnoJumpInDevice)
+            && economy.active(PropId::UnoJumpInDevice)
     });
     if device.available != available {
         device.available = available;

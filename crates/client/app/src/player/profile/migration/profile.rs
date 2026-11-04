@@ -1,4 +1,5 @@
-use super::super::{PROFILE_HEADER, StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
+use super::super::{PROFILE_HEADER, StoredPlayerProfile};
+use super::archive::{LegacyRatingProfile, V6_PROFILE_HEADER, V6GameProfiles, V6PlayerProfile};
 use super::mc_guess::{PreviousMcGuessStats, SixSeatMcGuessStats};
 use super::texas::V3TexasStats;
 use super::uno::SixSeatUnoStats;
@@ -26,7 +27,7 @@ macro_rules! stored_profile_compatibility_types {
 
 stored_profile_compatibility_types!(
     (SixSeatUnoStoredPlayerProfile, SixSeatUnoStoredGameProfiles, {
-        qigui523: StoredRatingProfile,
+        qigui523: LegacyRatingProfile,
         texas_stats: Option<V3TexasStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
@@ -35,7 +36,7 @@ stored_profile_compatibility_types!(
         mc_guess_stats: Option<PreviousMcGuessStats>,
     }),
     (SixSeatStoredPlayerProfile, SixSeatStoredGameProfiles, {
-        qigui523: StoredRatingProfile,
+        qigui523: LegacyRatingProfile,
         texas_stats: Option<V3TexasStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
@@ -45,7 +46,7 @@ stored_profile_compatibility_types!(
     }),
     // Through 0.8.0: MC guessing contributed only to the overall rating.
     (V080StoredPlayerProfile, V080StoredGameProfiles, {
-        qigui523: StoredRatingProfile,
+        qigui523: LegacyRatingProfile,
         texas_stats: Option<V3TexasStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
@@ -54,29 +55,29 @@ stored_profile_compatibility_types!(
     }),
     // 0.3.2：已有互动统计，尚无麻将统计。
     (V032StoredPlayerProfile, V032StoredGameProfiles, {
-        qigui523: StoredRatingProfile,
+        qigui523: LegacyRatingProfile,
         texas_stats: Option<V3TexasStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
         interaction_stats: Option<PlayerInteractionStats>,
     }),
     (PreInteractionStoredPlayerProfile, PreInteractionStoredGameProfiles, {
-        qigui523: StoredRatingProfile,
+        qigui523: LegacyRatingProfile,
         texas_stats: Option<V3TexasStats>,
         shengji_stats: Option<ShengjiProfileStats>,
         uno_stats: Option<SixSeatUnoStats>,
     }),
     (PreUnoStoredPlayerProfile, PreUnoStoredGameProfiles, {
-        qigui523: StoredRatingProfile,
+        qigui523: LegacyRatingProfile,
         texas_stats: Option<V3TexasStats>,
         shengji_stats: Option<ShengjiProfileStats>,
     }),
     (PreShengjiStoredPlayerProfile, PreShengjiStoredGameProfiles, {
-        qigui523: StoredRatingProfile,
+        qigui523: LegacyRatingProfile,
         texas_stats: Option<V3TexasStats>,
     }),
     (PreTexasStoredPlayerProfile, PreTexasStoredGameProfiles, {
-        qigui523: StoredRatingProfile,
+        qigui523: LegacyRatingProfile,
     }),
     (PreDetailedStoredPlayerProfile, PreDetailedStoredGameProfiles, {
         qigui523: PreDetailedStoredRatingProfile,
@@ -106,6 +107,13 @@ pub(in crate::player::profile) fn decode_player_profile(
     if let Some(current) = bytes.strip_prefix(PROFILE_HEADER) {
         return decode_exact(current).map_err(|error| format!("玩家档案已损坏：{error}"));
     }
+    decode_legacy_profile(bytes).map(Into::into)
+}
+
+fn decode_legacy_profile(bytes: &[u8]) -> Result<V6PlayerProfile, String> {
+    if let Some(previous) = bytes.strip_prefix(V6_PROFILE_HEADER) {
+        return decode_exact(previous).map_err(|error| format!("玩家档案已损坏：{error}"));
+    }
     if let Some(previous) = bytes.strip_prefix(super::doudizhu::V5_PROFILE_HEADER) {
         return super::doudizhu::decode_v5(previous);
     }
@@ -121,10 +129,13 @@ pub(in crate::player::profile) fn decode_player_profile(
     if let Some(previous) = bytes.strip_prefix(super::blackjack::V1_PROFILE_HEADER) {
         return super::blackjack::decode_v1(previous);
     }
+    if bytes.starts_with(b"LeoCard/profile/") {
+        return Err("不支持此玩家档案版本，原文件已保留".to_owned());
+    }
     match decode_exact::<SixSeatUnoStoredPlayerProfile>(bytes) {
-        Ok(previous) => Ok(StoredPlayerProfile {
+        Ok(previous) => Ok(V6PlayerProfile {
             secret_key: previous.secret_key,
-            games: StoredGameProfiles {
+            games: V6GameProfiles {
                 doudizhu_stats: None,
                 blackjack_stats: None,
                 qigui523: previous.games.qigui523,
@@ -138,9 +149,9 @@ pub(in crate::player::profile) fn decode_player_profile(
         }),
         Err(current_error) => {
             if let Ok(previous) = decode_exact::<SixSeatStoredPlayerProfile>(bytes) {
-                return Ok(StoredPlayerProfile {
+                return Ok(V6PlayerProfile {
                     secret_key: previous.secret_key,
-                    games: StoredGameProfiles {
+                    games: V6GameProfiles {
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
@@ -154,9 +165,9 @@ pub(in crate::player::profile) fn decode_player_profile(
                 });
             }
             if let Ok(previous) = decode_exact::<V080StoredPlayerProfile>(bytes) {
-                return Ok(StoredPlayerProfile {
+                return Ok(V6PlayerProfile {
                     secret_key: previous.secret_key,
-                    games: StoredGameProfiles {
+                    games: V6GameProfiles {
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
@@ -170,9 +181,9 @@ pub(in crate::player::profile) fn decode_player_profile(
                 });
             }
             if let Ok(previous) = decode_exact::<V032StoredPlayerProfile>(bytes) {
-                return Ok(StoredPlayerProfile {
+                return Ok(V6PlayerProfile {
                     secret_key: previous.secret_key,
-                    games: StoredGameProfiles {
+                    games: V6GameProfiles {
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
@@ -186,9 +197,9 @@ pub(in crate::player::profile) fn decode_player_profile(
                 });
             }
             if let Ok(previous) = decode_exact::<PreInteractionStoredPlayerProfile>(bytes) {
-                return Ok(StoredPlayerProfile {
+                return Ok(V6PlayerProfile {
                     secret_key: previous.secret_key,
-                    games: StoredGameProfiles {
+                    games: V6GameProfiles {
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
@@ -202,9 +213,9 @@ pub(in crate::player::profile) fn decode_player_profile(
                 });
             }
             if let Ok(previous) = decode_exact::<PreUnoStoredPlayerProfile>(bytes) {
-                return Ok(StoredPlayerProfile {
+                return Ok(V6PlayerProfile {
                     secret_key: previous.secret_key,
-                    games: StoredGameProfiles {
+                    games: V6GameProfiles {
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
@@ -218,9 +229,9 @@ pub(in crate::player::profile) fn decode_player_profile(
                 });
             }
             if let Ok(previous) = decode_exact::<PreShengjiStoredPlayerProfile>(bytes) {
-                return Ok(StoredPlayerProfile {
+                return Ok(V6PlayerProfile {
                     secret_key: previous.secret_key,
-                    games: StoredGameProfiles {
+                    games: V6GameProfiles {
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
@@ -234,9 +245,9 @@ pub(in crate::player::profile) fn decode_player_profile(
                 });
             }
             if let Ok(previous) = decode_exact::<PreTexasStoredPlayerProfile>(bytes) {
-                return Ok(StoredPlayerProfile {
+                return Ok(V6PlayerProfile {
                     secret_key: previous.secret_key,
-                    games: StoredGameProfiles {
+                    games: V6GameProfiles {
                         doudizhu_stats: None,
                         blackjack_stats: None,
                         qigui523: previous.games.qigui523,
@@ -251,12 +262,12 @@ pub(in crate::player::profile) fn decode_player_profile(
             }
             let previous: PreDetailedStoredPlayerProfile =
                 decode_exact(bytes).map_err(|_| format!("玩家档案已损坏：{current_error}"))?;
-            Ok(StoredPlayerProfile {
+            Ok(V6PlayerProfile {
                 secret_key: previous.secret_key,
-                games: StoredGameProfiles {
+                games: V6GameProfiles {
                     doudizhu_stats: None,
                     blackjack_stats: None,
-                    qigui523: StoredRatingProfile {
+                    qigui523: LegacyRatingProfile {
                         reference_points: previous.games.qigui523.reference_points,
                         completed_games: previous.games.qigui523.completed_games,
                         applied_matches: previous.games.qigui523.applied_matches,

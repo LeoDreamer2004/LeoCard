@@ -1,5 +1,5 @@
 use super::definition::personal;
-use super::facts::{personal, purchased};
+use super::facts::{personal, prop_purchased};
 use crate::{AchievementDefinition, PersonalEvent};
 
 pub(in crate::registry) const DEFINITIONS: &[AchievementDefinition] = &[
@@ -8,7 +8,7 @@ pub(in crate::registry) const DEFINITIONS: &[AchievementDefinition] = &[
         "偷打小抄",
         Bronze,
         "购买一次道具",
-        purchased,
+        prop_purchased,
         1
     ),
     personal!(
@@ -18,7 +18,7 @@ pub(in crate::registry) const DEFINITIONS: &[AchievementDefinition] = &[
         "购买一个价格不低于200金币的道具",
         |event| personal(event, |event| matches!(
             event,
-            PersonalEvent::ItemPurchased { price } if *price >= 200
+            PersonalEvent::PropPurchased { price } if *price >= 200
         )),
         1
     ),
@@ -49,7 +49,7 @@ pub(in crate::registry) const DEFINITIONS: &[AchievementDefinition] = &[
         "作弊惯犯",
         Silver,
         "购买至少100次道具",
-        purchased,
+        prop_purchased,
         100
     ),
     personal!(
@@ -68,7 +68,7 @@ pub(in crate::registry) const DEFINITIONS: &[AchievementDefinition] = &[
         "法外狂徒",
         Gold,
         "购买至少1000次道具",
-        purchased,
+        prop_purchased,
         1000
     ),
 ];

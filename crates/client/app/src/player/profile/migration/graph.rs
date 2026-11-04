@@ -1,4 +1,4 @@
-use super::super::{StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
+use super::archive::{LegacyRatingProfile, V6GameProfiles, V6PlayerProfile};
 use super::mc_guess::PreviousMcGuessStats;
 use super::profile::decode_exact;
 use super::texas::V3TexasStats;
@@ -19,7 +19,7 @@ struct V2PlayerProfile {
 
 #[derive(Deserialize, Serialize)]
 struct V2GameProfiles {
-    qigui523: StoredRatingProfile,
+    qigui523: LegacyRatingProfile,
     texas_stats: Option<V3TexasStats>,
     shengji_stats: Option<ShengjiProfileStats>,
     uno_stats: Option<UnoProfileStats>,
@@ -29,12 +29,12 @@ struct V2GameProfiles {
     blackjack_stats: Option<BlackjackProfileStats>,
 }
 
-pub(super) fn decode_v2(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
+pub(super) fn decode_v2(bytes: &[u8]) -> Result<V6PlayerProfile, String> {
     let previous: V2PlayerProfile =
         decode_exact(bytes).map_err(|error| format!("玩家档案已损坏：{error}"))?;
-    Ok(StoredPlayerProfile {
+    Ok(V6PlayerProfile {
         secret_key: previous.secret_key,
-        games: StoredGameProfiles {
+        games: V6GameProfiles {
             doudizhu_stats: None,
             qigui523: previous.games.qigui523,
             texas_stats: previous.games.texas_stats.map(Into::into),
@@ -61,7 +61,7 @@ mod tests {
         let previous = V2PlayerProfile {
             secret_key: [23; 32],
             games: V2GameProfiles {
-                qigui523: StoredRatingProfile {
+                qigui523: LegacyRatingProfile {
                     reference_points: 120,
                     completed_games: 11,
                     applied_matches: vec![MatchId([7; 16])],
@@ -116,11 +116,8 @@ mod tests {
         bytes.extend(postcard::to_allocvec(&previous).unwrap());
         let migrated = decode_player_profile(&bytes).unwrap();
         assert_eq!(migrated.secret_key, [23; 32]);
-        assert_eq!(migrated.games.qigui523.reference_points, 120);
-        assert_eq!(
-            migrated.games.qigui523.applied_matches,
-            vec![MatchId([7; 16])]
-        );
+        assert_eq!(migrated.rating.reference_points, 120);
+        assert_eq!(migrated.rating.applied_matches, vec![MatchId([7; 16])]);
         assert_eq!(migrated.games.mc_guess_stats.as_ref(), Some(&expected));
         assert_eq!(expected.categories.total().games, 32);
         assert_eq!(expected.categories.mob.games, 0);
@@ -143,10 +140,7 @@ mod tests {
         );
         assert_eq!(migrated.games.shengji_stats, previous.games.shengji_stats);
         assert_eq!(migrated.games.uno_stats, previous.games.uno_stats);
-        assert_eq!(
-            migrated.games.interaction_stats,
-            previous.games.interaction_stats
-        );
+        assert_eq!(migrated.interaction_stats, previous.games.interaction_stats);
         assert_eq!(migrated.games.mahjong_stats, previous.games.mahjong_stats);
         assert_eq!(
             migrated.games.blackjack_stats,

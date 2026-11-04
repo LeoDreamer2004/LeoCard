@@ -23,6 +23,19 @@ impl<'a> TableAppearanceSettings<'a> {
     pub(super) fn render(&self, commands: &mut UiComposer, parent: Entity) {
         let form = self.form;
         let assets = self.assets;
+        #[cfg(not(target_os = "android"))]
+        {
+            add_title(commands, parent, "通知", 20.0, TEXT, assets);
+            add_settings_toggle(
+                commands,
+                parent,
+                "轮到我时弹窗提醒",
+                form.turn_notifications,
+                SettingsUiAction::ToggleTurnNotifications,
+                assets,
+            );
+            add_settings_separator(commands, parent);
+        }
         for (index, (kind, title)) in [
             (TableSurfaceKind::Cards, "扑克牌桌面"),
             (TableSurfaceKind::Mahjong, "麻将桌面"),

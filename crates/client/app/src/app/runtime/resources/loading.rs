@@ -3,8 +3,8 @@
 use super::quick_voices::QuickVoiceAssets;
 use super::{
     AchievementAssets, AvatarFrameAssets, CHAT_EMOJI_ASSET_PATHS, CommonAudioAssets, ControlAssets,
-    HomeAssets, PlayingCardAssets, PokerChipAssets, ShopAssets, SocialAssets, TITLE_FONT_ASSET,
-    TabletopAssets, UI_FONT_ASSET, UiAssets, interaction_cooldown_mask_image,
+    HomeAssets, PlayingCardAssets, PokerChipAssets, PropAssets, ShopAssets, SocialAssets,
+    TITLE_FONT_ASSET, TabletopAssets, UI_FONT_ASSET, UiAssets, interaction_cooldown_mask_image,
 };
 use crate::app::shell::{INTERACTION_COOLDOWN_MASK_FRAMES, PlayerInteractionLayer};
 use bevy::image::{ImageLoaderSettings, ImageSampler};
@@ -173,16 +173,21 @@ pub(crate) fn load_ui_assets(
             ],
         },
         shop: ShopAssets {
-            item_frame: asset_server.load("ui/shop/item-frame.png"),
-            tabs: ["top", "middle", "bottom"].map(load_shop_tab),
+            product_card: asset_server.load("ui/shop/item-frame.png"),
+            product_preview_common: asset_server.load("ui/shop/product-preview-common.png"),
+            product_preview_fine: asset_server.load("ui/shop/product-preview-fine.png"),
+            product_preview_epic: asset_server.load("ui/shop/product-preview-epic.png"),
+            tab_unselected: load_shop_tab("bottom"),
             tab_selected: load_shop_tab("middle-selected"),
             coin: asset_server.load("ui/shop/coin.png"),
             icon: asset_server.load("ui/shop/shop.png"),
-            observation_lens: asset_server.load("ui/shop/observation-lens.png"),
-            card_counter: asset_server.load("ui/shop/card-counter.png"),
-            missing_suit_card: asset_server.load("ui/shop/missing-suit-card.png"),
-            uno_jump_in_device: asset_server.load("ui/shop/uno-jump-in-device.png"),
-            mahjong_fan_calculator: asset_server.load("ui/shop/mahjong-fan-calculator.png"),
+        },
+        props: PropAssets {
+            observation_lens: asset_server.load("ui/props/observation-lens.png"),
+            card_counter: asset_server.load("ui/props/card-counter.png"),
+            missing_suit_card: asset_server.load("ui/props/missing-suit-card.png"),
+            uno_jump_in_device: asset_server.load("ui/props/uno-jump-in-device.png"),
+            mahjong_fan_calculator: asset_server.load("ui/props/mahjong-fan-calculator.png"),
         },
         achievements: AchievementAssets {
             icon: asset_server.load("icons/achievement-trophy.png"),
@@ -232,7 +237,6 @@ pub(crate) fn load_ui_assets(
             summary_die_sound: asset_server.load("vendor/noname/audio/effect/flappybird_die.ogg"),
             quick_voices: QuickVoiceAssets::load(&asset_server),
         },
-        sequence_airplane: asset_server.load("ui/effects/sequence_airplane.png"),
         tabletop: TabletopAssets::load(&asset_server),
     });
 }

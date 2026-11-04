@@ -20,6 +20,8 @@ struct AppearanceUiResources<'w> {
 #[derive(Clone)]
 pub(crate) enum SettingsUiAction {
     SelectTab(SettingsTab),
+    #[cfg(not(target_os = "android"))]
+    ToggleTurnNotifications,
     ToggleMahjongActionVoices,
     ToggleMahjongFanVoices,
     ToggleMahjongTileVoices,
@@ -62,6 +64,13 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
         let local = &mut context.local;
         match self {
             SettingsUiAction::SelectTab(tab) => ui.settings.tab = *tab,
+            #[cfg(not(target_os = "android"))]
+            SettingsUiAction::ToggleTurnNotifications => {
+                appearance.turn_notifications = !appearance.turn_notifications;
+                if let Err(error) = save_appearance_preferences(appearance) {
+                    warn!("{error}");
+                }
+            }
             SettingsUiAction::ToggleMahjongActionVoices => {
                 appearance.mahjong_action_voices = !appearance.mahjong_action_voices;
                 if let Err(error) = save_appearance_preferences(appearance) {

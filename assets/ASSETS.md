@@ -86,7 +86,7 @@ UNO 运行时牌面由 64 张 PNG 组成；实体牌的重复副本共用相同�
 - 许可证副本：`vendor/cozyui-plus/LICENSE.txt`
 - 成就通知使用 `ui/achievements/toast-normal.png` 和 `toast-gold.png`：提取自同版本 `assets/minecraft/textures/gui/advancements/widgets.png` 的蓝色与橙色横条，裁掉周围空白，将白色底转为透明；运行时保留边角，按九宫格拉伸。
 - `ui/shop/page-frame.png` 和 `item-frame.png` 分别裁取同版本 `advancements/window.png` 与 `sprites/advancements/title_box.png` 的透明留白。
-- 商店选中页签 `ui/shop/tab-middle-selected.png` 使用同版本 `sprites/advancements/tab_above_middle_selected.png`，整图逆时针旋转 90°，RGB 亮度统一调至原图的 84%，透明通道保持不变，保留对称连接尾部，不裁剪；各位置共用此选中贴图。
+- 商店选中页签 `ui/shop/tab-bottom.png` 和 `ui/shop/tab-middle-selected.png` 使用同版本  `sprites/advancements/tab_left_bottom.png` 和 `sprites/advancements/tab_above_middle_selected.png`，界面绘制时沿用 84% 灰色调色。
 
 ### Microsoft Fluent Emoji（MIT）
 

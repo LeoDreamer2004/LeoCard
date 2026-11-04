@@ -269,7 +269,10 @@ fn add_sequence_airplane(
         parent,
         (
             SequenceAirplane,
-            ImageNode::new(assets.sequence_airplane.clone()).with_color(Color::NONE),
+            assets
+                .tabletop
+                .sequence_airplane_image()
+                .with_color(Color::NONE),
             Node {
                 width: px(62.0),
                 height: px(42.0),

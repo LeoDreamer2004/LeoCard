@@ -1,15 +1,17 @@
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) enum ShopCategory {
     #[default]
-    Items,
+    Props,
+    AvatarFrames,
 }
 
 impl ShopCategory {
-    pub const ALL: [Self; 1] = [Self::Items];
+    pub const ALL: [Self; 2] = [Self::Props, Self::AvatarFrames];
 
     pub const fn title(self) -> &'static str {
         match self {
-            Self::Items => "道具",
+            Self::Props => "道具",
+            Self::AvatarFrames => "头像框",
         }
     }
 }

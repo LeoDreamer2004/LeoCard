@@ -36,7 +36,7 @@ impl Plugin for RuntimePlugin {
         app.add_systems(PreUpdate, super::native_text::edit_native_text);
         let preferences = PreferenceResources::load();
         let mut page_error = PageErrorState::default();
-        let profile = LocalPlayerProfile::load_or_create().unwrap_or_else(|error| {
+        let mut profile = LocalPlayerProfile::load_or_create().unwrap_or_else(|error| {
             page_error.error = Some(error);
             LocalPlayerProfile {
                 identity: PlayerIdentity::generate()
@@ -52,10 +52,13 @@ impl Plugin for RuntimePlugin {
         });
         let audio_volume = preferences.appearance.audio_volume;
         let profile_id = profile.identity.profile_id();
-        let economy = PlayerEconomy::load(profile_id).unwrap_or_else(|error| {
-            page_error.error = Some(error.clone());
-            PlayerEconomy::unavailable(profile_id, error)
-        });
+        let economy = PlayerEconomy::load(profile_id, &preferences.connection.player_name)
+            .unwrap_or_else(|error| {
+                page_error.error = Some(error.clone());
+                PlayerEconomy::unavailable(profile_id, error)
+            });
+        profile.game_profiles.coins = economy.coins();
+        profile.game_profiles.avatar_frame = economy.equipped_frame();
 
         let plugins = DefaultPlugins;
         #[cfg(target_os = "android")]

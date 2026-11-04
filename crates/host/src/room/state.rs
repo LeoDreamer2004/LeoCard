@@ -172,7 +172,7 @@ impl RoomSession {
             && !matches!(
                 message.command,
                 ClientCommand::Join(_)
-                    | ClientCommand::PublishCoins { .. }
+                    | ClientCommand::PublishEconomy { .. }
                     | ClientCommand::PublishAchievements { .. }
                     | ClientCommand::Ping
                     | ClientCommand::RequestSnapshot

@@ -316,7 +316,7 @@ pub(super) fn dispatch_client_command<S: HostedGameLifecycle>(
                 | ClientCommand::SpectatePlayer { .. }
                 | ClientCommand::Interact { .. }
                 | ClientCommand::LeaveRoom
-                | ClientCommand::PublishCoins { .. }
+                | ClientCommand::PublishEconomy { .. }
                 | ClientCommand::PublishAchievements { .. }
         )
     {
@@ -365,8 +365,14 @@ fn dispatch_joined_command<S: HostedGameLifecycle>(
                 Err(reason) => session.room().reject(connection, request_id, reason),
             }
         }
-        ClientCommand::PublishCoins { coins } => {
-            match session.room_mut().publish_coins(connection, coins) {
+        ClientCommand::PublishEconomy {
+            coins,
+            avatar_frame,
+        } => {
+            match session
+                .room_mut()
+                .publish_economy(connection, coins, avatar_frame)
+            {
                 Ok(()) => {
                     if session.game_started() {
                         session.broadcast_game(Some((connection, request_id)))

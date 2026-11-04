@@ -1,10 +1,12 @@
 mod actions;
+mod avatar_frames;
 #[cfg(feature = "developer")]
 mod developer;
 mod entry;
-mod items;
 mod page;
 mod plugin;
+mod props;
+mod rarity;
 mod skin;
 mod state;
 

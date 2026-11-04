@@ -1,5 +1,4 @@
-use super::super::StoredPlayerProfile;
-use super::archive::decode_archive;
+use super::archive::{V6PlayerProfile, decode_archive};
 use leocard_texas_holdem::TexasProfileStats;
 use serde::{Deserialize, Serialize};
 
@@ -46,7 +45,7 @@ impl From<V3TexasStats> for TexasProfileStats {
     }
 }
 
-pub(super) fn decode_v3(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
+pub(super) fn decode_v3(bytes: &[u8]) -> Result<V6PlayerProfile, String> {
     decode_archive::<V3TexasStats>(bytes)
 }
 
@@ -71,6 +70,6 @@ impl From<V4TexasStats> for TexasProfileStats {
 
 pub(in crate::player::profile::migration) fn decode_v4(
     bytes: &[u8],
-) -> Result<StoredPlayerProfile, String> {
+) -> Result<V6PlayerProfile, String> {
     decode_archive::<V4TexasStats>(bytes)
 }

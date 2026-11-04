@@ -23,19 +23,26 @@ pub(crate) struct UiAssets {
     pub home: HomeAssets,
     pub achievements: AchievementAssets,
     pub shop: ShopAssets,
+    pub props: PropAssets,
     pub social: SocialAssets,
     pub audio: CommonAudioAssets,
-    pub sequence_airplane: Handle<Image>,
     pub tabletop: TabletopAssets,
 }
 
 #[derive(Default)]
 pub(crate) struct ShopAssets {
-    pub item_frame: Handle<Image>,
-    pub tabs: [Handle<Image>; 3],
+    pub product_card: Handle<Image>,
+    pub product_preview_common: Handle<Image>,
+    pub product_preview_fine: Handle<Image>,
+    pub product_preview_epic: Handle<Image>,
+    pub tab_unselected: Handle<Image>,
     pub tab_selected: Handle<Image>,
     pub coin: Handle<Image>,
     pub icon: Handle<Image>,
+}
+
+#[derive(Default)]
+pub(crate) struct PropAssets {
     pub observation_lens: Handle<Image>,
     pub card_counter: Handle<Image>,
     pub missing_suit_card: Handle<Image>,

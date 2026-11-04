@@ -11,7 +11,7 @@ use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
 use leocard_protocol::{LobbyPlayerView, LobbySnapshot, SeatId};
-use leocard_ui::{AvatarFrame, SecondaryPressTarget, UiComposer, spawn_node};
+use leocard_ui::{SecondaryPressTarget, UiComposer, spawn_node};
 
 pub(super) struct LobbySeatSelector<'a> {
     client: &'a ClientResource,
@@ -210,10 +210,9 @@ impl<'a> OccupiedLobbySeat<'a> {
             "avatar",
             &self.player.player.name,
             handle,
-            AvatarFrame {
-                texture: self.assets.avatar_frames.default.clone(),
-                size: 58.0,
-            },
+            self.assets
+                .avatar_frames
+                .frame(self.player.player.game_profiles.avatar_frame, 58.0),
             self.assets,
         );
         let avatar_ring = framed.frame;

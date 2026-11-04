@@ -8,7 +8,7 @@ pub enum PersonalEvent {
     AvatarSaved,
     TableBackgroundChanged,
     ClientUpdated,
-    ItemPurchased {
+    PropPurchased {
         price: u32,
     },
     CoinBalance {

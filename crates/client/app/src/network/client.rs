@@ -195,7 +195,7 @@ impl TcpGameClient {
                 command,
                 ClientCommand::RequestSnapshot
                     | ClientCommand::LeaveRoom
-                    | ClientCommand::PublishCoins { .. }
+                    | ClientCommand::PublishEconomy { .. }
                     | ClientCommand::PublishAchievements { .. }
                     | ClientCommand::Interact { .. }
                     | ClientCommand::SpectatePlayer { .. }

@@ -12,7 +12,7 @@ pub(super) struct ActionContext {
     pub player: PlayerId,
 }
 
-/// 仅在开始等待响应时判断焦点和冷却，不在切屏或冷却结束后补发。
+/// 仅在开始等待响应时检查能否提醒，之后不补发。
 /// 冷却跨回合、对局和房间保留。
 #[derive(Default)]
 pub(super) struct ActionReminder {
@@ -24,7 +24,7 @@ impl ActionReminder {
     pub(super) fn observe(
         &mut self,
         context: Option<ActionContext>,
-        focused: bool,
+        suppressed: bool,
         now: Instant,
     ) -> bool {
         if self.context == context {
@@ -32,7 +32,7 @@ impl ActionReminder {
         }
         self.context = context;
         if context.is_none()
-            || focused
+            || suppressed
             || self
                 .last_attempt
                 .is_some_and(|last| now.duration_since(last) < REMINDER_COOLDOWN)

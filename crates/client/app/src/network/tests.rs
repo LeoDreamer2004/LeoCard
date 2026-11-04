@@ -8,8 +8,8 @@ use crate::ClientModel;
 use image::{DynamicImage, ImageFormat, Rgba, RgbaImage};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    AVATAR_DIMENSION, ClientCommand, ClientMessage, GameRules, GameSnapshot, LobbySnapshot,
-    PROTOCOL_VERSION, RequestId, Revision, SeatId, ServerEvent, ServerMessage,
+    AVATAR_DIMENSION, AvatarFrameId, ClientCommand, ClientMessage, GameRules, GameSnapshot,
+    LobbySnapshot, PROTOCOL_VERSION, RequestId, Revision, SeatId, ServerEvent, ServerMessage,
 };
 
 use leocard_qigui523::QiGuiRuleSet;
@@ -132,8 +132,9 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
         .write_to(&mut encoded, ImageFormat::Png)
         .unwrap();
     let avatar = encoded.into_inner();
-    let mut guest_a =
-        TcpGameClient::join_with_avatar("甲", &address, Some(avatar.clone())).unwrap();
+    let mut profile = LocalPlayerConnection::temporary("甲", Some(avatar.clone())).unwrap();
+    profile.game_profiles.avatar_frame = AvatarFrameId::QqAdmin;
+    let mut guest_a = TcpGameClient::join_with_profile(&address, profile).unwrap();
     wait_for(&mut guest_a, |model| {
         model.lobby().is_some_and(|lobby| lobby.players.len() == 2)
     });
@@ -160,6 +161,13 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
     assert_eq!(host.model().host_port(), Some(port));
     assert_eq!(guest_a.model().host_port(), Some(port));
     assert_eq!(guest_b.model().host_port(), Some(port));
+    assert_eq!(
+        host.model()
+            .player_game_profiles(PlayerId(1))
+            .unwrap()
+            .avatar_frame,
+        AvatarFrameId::QqAdmin,
+    );
 
     // Seats reverse join order to exercise the player ID remapping at game start.
     guest_b.send(ClientCommand::SelectSeat { seat: SeatId(2) });
@@ -213,6 +221,23 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
     assert_eq!(viewed.your_hand.len(), usize::from(rules.hand_size));
     assert!(!observer.model().active_game_meta().unwrap().is_host());
     let target = guest_a.model().you().unwrap();
+    assert_eq!(
+        observer
+            .model()
+            .player_game_profiles(target)
+            .unwrap()
+            .avatar_frame,
+        AvatarFrameId::QqAdmin,
+    );
+    assert!(guest_a.send(ClientCommand::PublishEconomy {
+        coins: 0,
+        avatar_frame: AvatarFrameId::Study,
+    }));
+    wait_for(&mut observer, |model| {
+        model
+            .player_game_profiles(target)
+            .is_some_and(|profile| profile.avatar_frame == AvatarFrameId::Study)
+    });
     assert!(observer.send(ClientCommand::SpectatePlayer { player: target }));
     wait_for(&mut observer, |model| {
         model

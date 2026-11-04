@@ -19,7 +19,7 @@ fn achieved(book: &AchievementBook, id: &str) -> bool {
 fn purchases_count_transactions_and_check_the_single_item_price() {
     let mut book = AchievementBook::default();
     for count in 1..=1000 {
-        apply(&mut book, PersonalEvent::ItemPurchased { price: 199 });
+        apply(&mut book, PersonalEvent::PropPurchased { price: 199 });
         assert!(achieved(&book, "leocard:personal/first_purchase"));
         assert!(!achieved(&book, "leocard:personal/expensive_purchase"));
         assert_eq!(
@@ -32,10 +32,10 @@ fn purchases_count_transactions_and_check_the_single_item_price() {
         );
     }
     assert_eq!(
-        apply(&mut book, PersonalEvent::ItemPurchased { price: 200 }),
+        apply(&mut book, PersonalEvent::PropPurchased { price: 200 }),
         ["leocard:personal/expensive_purchase"]
     );
-    assert!(apply(&mut book, PersonalEvent::ItemPurchased { price: 300 }).is_empty());
+    assert!(apply(&mut book, PersonalEvent::PropPurchased { price: 300 }).is_empty());
     assert!(!achieved(&book, "leocard:personal/ten_thousand_coins"));
 }
 

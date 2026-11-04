@@ -16,12 +16,13 @@ use leocard_texas_holdem::TexasProfileStats;
 use leocard_uno::UnoProfileStats;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 #[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
+use std::os::unix::fs::OpenOptionsExt;
+use std::path::{Path, PathBuf};
 
-pub(super) const PROFILE_HEADER: &[u8] = b"LeoCard/profile/v6\0";
+pub(super) const PROFILE_HEADER: &[u8] = b"LeoCard/profile/v7\0";
 
 fn player_profile_path() -> Option<PathBuf> {
     config_file("profile.dat")
@@ -30,6 +31,8 @@ fn player_profile_path() -> Option<PathBuf> {
 #[derive(Deserialize, Serialize)]
 pub(super) struct StoredPlayerProfile {
     pub(super) secret_key: [u8; 32],
+    pub(super) rating: StoredRatingProfile,
+    pub(super) interaction_stats: Option<PlayerInteractionStats>,
     pub(super) games: StoredGameProfiles,
 }
 
@@ -39,15 +42,38 @@ impl StoredPlayerProfile {
         bytes.extend_from_slice(&postcard::to_allocvec(self)?);
         Ok(bytes)
     }
+
+    fn write(&self, path: &Path) -> Result<(), String> {
+        let bytes = self
+            .encode()
+            .map_err(|error| format!("玩家档案编码失败：{error}"))?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|error| format!("无法创建档案目录：{error}"))?;
+        }
+        let temporary = path.with_extension(format!("dat.{:016x}.tmp", fastrand::u64(..)));
+        let mut options = OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        options.mode(0o600);
+        let mut file = options
+            .open(&temporary)
+            .map_err(|error| format!("无法创建临时玩家档案：{error}"))?;
+        let result = file.write_all(&bytes).and_then(|()| file.sync_all());
+        drop(file);
+        let result = result.and_then(|()| fs::rename(&temporary, path));
+        if result.is_err() {
+            let _ = fs::remove_file(&temporary);
+        }
+        result.map_err(|error| format!("无法保存玩家档案：{error}"))
+    }
 }
 
 #[derive(Deserialize, Serialize)]
 pub(super) struct StoredGameProfiles {
-    pub(super) qigui523: StoredRatingProfile,
+    pub(super) qigui523_stats: Option<QiGui523ProfileStats>,
     pub(super) texas_stats: Option<TexasProfileStats>,
     pub(super) shengji_stats: Option<ShengjiProfileStats>,
     pub(super) uno_stats: Option<UnoProfileStats>,
-    pub(super) interaction_stats: Option<PlayerInteractionStats>,
     pub(super) mahjong_stats: Option<MahjongProfileStats>,
     pub(super) mc_guess_stats: Option<McGuessProfileStats>,
     pub(super) blackjack_stats: Option<BlackjackProfileStats>,
@@ -59,7 +85,6 @@ pub(super) struct StoredRatingProfile {
     pub(super) reference_points: i32,
     pub(super) completed_games: u32,
     pub(super) applied_matches: Vec<MatchId>,
-    pub(super) qigui523_stats: Option<QiGui523ProfileStats>,
 }
 
 #[derive(Resource)]
@@ -79,36 +104,40 @@ pub struct PlayerRatingProfile {
 impl LocalPlayerProfile {
     pub fn load_or_create() -> Result<Self, String> {
         let path = player_profile_path().ok_or_else(|| "无法确定玩家档案目录".to_owned())?;
+        Self::load_or_create_at(&path)
+    }
+
+    pub(super) fn load_or_create_at(path: &Path) -> Result<Self, String> {
         if path.is_file() {
-            let bytes = fs::read(&path).map_err(|error| format!("无法读取玩家档案：{error}"))?;
+            let bytes = fs::read(path).map_err(|error| format!("无法读取玩家档案：{error}"))?;
             let stored = migration::decode_player_profile(&bytes)?;
-            let profile = Self {
+            if !bytes.starts_with(PROFILE_HEADER) {
+                stored.write(path)?;
+            }
+            return Ok(Self {
                 identity: PlayerIdentity::from_secret_bytes(stored.secret_key),
                 rating: PlayerRatingProfile {
-                    reference_points: stored.games.qigui523.reference_points,
-                    completed_games: stored.games.qigui523.completed_games,
-                    applied_matches: stored.games.qigui523.applied_matches.into_iter().collect(),
+                    reference_points: stored.rating.reference_points,
+                    completed_games: stored.rating.completed_games,
+                    applied_matches: stored.rating.applied_matches.into_iter().collect(),
                     last_change: None,
                 },
                 game_profiles: PlayerGameProfiles {
                     achievements: Default::default(),
                     coins: 0,
                     gender: Default::default(),
-                    qigui523: stored.games.qigui523.qigui523_stats,
+                    avatar_frame: Default::default(),
+                    qigui523: stored.games.qigui523_stats,
                     texas: stored.games.texas_stats,
                     shengji: stored.games.shengji_stats,
                     uno: stored.games.uno_stats,
-                    interactions: stored.games.interaction_stats,
+                    interactions: stored.interaction_stats,
                     mahjong: stored.games.mahjong_stats,
                     mc_guess: stored.games.mc_guess_stats,
                     blackjack: stored.games.blackjack_stats,
                     doudizhu: stored.games.doudizhu_stats,
                 },
-            };
-            if !bytes.starts_with(PROFILE_HEADER) {
-                profile.save()?;
-            }
-            return Ok(profile);
+            });
         }
 
         let identity =
@@ -123,44 +152,35 @@ impl LocalPlayerProfile {
             },
             game_profiles: PlayerGameProfiles::default(),
         };
-        profile.save()?;
+        profile.store().write(path)?;
         Ok(profile)
     }
 
     pub fn save(&self) -> Result<(), String> {
         let path = player_profile_path().ok_or_else(|| "无法确定玩家档案目录".to_owned())?;
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).map_err(|error| format!("无法创建档案目录：{error}"))?;
-        }
-        let stored = StoredPlayerProfile {
+        self.store().write(&path)
+    }
+
+    fn store(&self) -> StoredPlayerProfile {
+        StoredPlayerProfile {
             secret_key: self.identity.secret_bytes(),
+            rating: StoredRatingProfile {
+                reference_points: self.rating.reference_points,
+                completed_games: self.rating.completed_games,
+                applied_matches: self.rating.applied_matches.iter().copied().collect(),
+            },
+            interaction_stats: self.game_profiles.interactions.clone(),
             games: StoredGameProfiles {
-                qigui523: StoredRatingProfile {
-                    reference_points: self.rating.reference_points,
-                    completed_games: self.rating.completed_games,
-                    applied_matches: self.rating.applied_matches.iter().copied().collect(),
-                    qigui523_stats: self.game_profiles.qigui523.clone(),
-                },
+                qigui523_stats: self.game_profiles.qigui523.clone(),
                 texas_stats: self.game_profiles.texas.clone(),
                 shengji_stats: self.game_profiles.shengji.clone(),
                 uno_stats: self.game_profiles.uno.clone(),
-                interaction_stats: self.game_profiles.interactions.clone(),
                 mahjong_stats: self.game_profiles.mahjong.clone(),
                 mc_guess_stats: self.game_profiles.mc_guess.clone(),
                 blackjack_stats: self.game_profiles.blackjack.clone(),
                 doudizhu_stats: self.game_profiles.doudizhu.clone(),
             },
-        };
-        let bytes = stored
-            .encode()
-            .map_err(|error| format!("玩家档案编码失败：{error}"))?;
-        fs::write(&path, bytes).map_err(|error| format!("无法保存玩家档案：{error}"))?;
-        #[cfg(unix)]
-        {
-            fs::set_permissions(&path, fs::Permissions::from_mode(0o600))
-                .map_err(|error| format!("无法保护玩家档案权限：{error}"))?;
         }
-        Ok(())
     }
 
     pub fn apply_finished_match(
@@ -206,6 +226,7 @@ impl LocalPlayerProfile {
         let mut next = profiles.clone();
         next.achievements = self.game_profiles.achievements;
         next.coins = self.game_profiles.coins;
+        next.avatar_frame = self.game_profiles.avatar_frame;
         if self.game_profiles == next {
             return false;
         }

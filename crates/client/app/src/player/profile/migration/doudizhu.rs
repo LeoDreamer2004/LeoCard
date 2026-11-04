@@ -1,18 +1,18 @@
-use super::super::StoredPlayerProfile;
-use super::archive::decode_archive;
+use super::archive::{V6PlayerProfile, decode_archive};
 use leocard_texas_holdem::TexasProfileStats;
 
 pub(super) const V5_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v5\0";
 
-pub(super) fn decode_v5(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
+pub(super) fn decode_v5(bytes: &[u8]) -> Result<V6PlayerProfile, String> {
     decode_archive::<TexasProfileStats>(bytes)
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::archive::LegacyRatingProfile;
     use super::*;
+    use crate::player::profile::PROFILE_HEADER;
     use crate::player::profile::migration::decode_player_profile;
-    use crate::player::profile::{PROFILE_HEADER, StoredRatingProfile};
     use leocard_blackjack::BlackjackProfileStats;
     use leocard_doudizhu::DoudizhuProfileStats;
     use leocard_mahjong::MahjongProfileStats;
@@ -25,7 +25,7 @@ mod tests {
     #[test]
     fn v5_archive_preserves_all_existing_bytes_and_persists_new_statistics() {
         let key = [37u8; 32];
-        let rating = StoredRatingProfile {
+        let rating = LegacyRatingProfile {
             reference_points: -123,
             completed_games: 47,
             applied_matches: vec![MatchId([9; 16])],
@@ -72,7 +72,7 @@ mod tests {
         let mut migrated = decode_player_profile(&old).unwrap();
         assert_eq!(migrated.secret_key, key);
         assert!(migrated.games.doudizhu_stats.is_none());
-        let current = postcard::to_allocvec(&migrated).unwrap();
+        let current = postcard::to_allocvec(&decode_v5(&payload).unwrap()).unwrap();
         assert_eq!(&current[..payload.len()], payload);
         assert_eq!(&current[payload.len()..], &[0]);
         let expected = DoudizhuProfileStats {

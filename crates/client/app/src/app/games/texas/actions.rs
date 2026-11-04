@@ -8,7 +8,7 @@ use crate::app::shell::{
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_client::{ItemId, PlayerEconomy};
+use leocard_client::{PlayerEconomy, PropId};
 use leocard_protocol::TexasCommand;
 use leocard_texas_holdem::{TexasAction, TexasRuleSet};
 
@@ -59,7 +59,7 @@ impl UiActionHandler<TexasActionContext<'_>> for TexasUiAction {
                 context.ui.spectator.drawer_open = !context.ui.spectator.drawer_open
             }
             Self::ToggleWinRates => {
-                if !context.economy.active(ItemId::ObservationLens) {
+                if !context.economy.active(PropId::ObservationLens) {
                     return;
                 }
                 let preferences = &mut context.ui.spectator.preferences;

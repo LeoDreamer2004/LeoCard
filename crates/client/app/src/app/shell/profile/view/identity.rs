@@ -1,9 +1,11 @@
 use super::super::{ProfileStat, reference_level, reference_level_index};
-use crate::app::presentation::{MUTED, TEXT, add_avatar, add_coin_balance, add_text};
+use crate::app::presentation::{
+    MUTED, TEXT, add_avatar, add_coin_balance, add_framed_avatar, add_text,
+};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_protocol::{PlayerGameProfiles, PlayerGender, PlayerInteractionKind};
+use leocard_protocol::{AvatarFrameId, PlayerGameProfiles, PlayerGender, PlayerInteractionKind};
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(super) struct ProfileIdentity<'a> {
@@ -67,14 +69,27 @@ impl<'a> ProfileIdentity<'a> {
             },
             None,
         );
-        add_avatar(
-            commands,
-            avatar_area,
-            self.player_name,
-            self.avatar,
-            86.0,
-            self.assets,
-        );
+        let frame = self.game_profiles.avatar_frame;
+        if frame == AvatarFrameId::Default {
+            add_avatar(
+                commands,
+                avatar_area,
+                self.player_name,
+                self.avatar,
+                86.0,
+                self.assets,
+            );
+        } else {
+            add_framed_avatar(
+                commands,
+                avatar_area,
+                "avatar",
+                self.player_name,
+                self.avatar,
+                self.assets.avatar_frames.frame(frame, 86.0),
+                self.assets,
+            );
+        }
         let identity_text = spawn_node(
             commands,
             identity,

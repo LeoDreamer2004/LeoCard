@@ -11,7 +11,7 @@ impl Plugin for EconomyPlugin {
             .add_systems(PostStartup, setup_rewards)
             .add_systems(
                 Update,
-                (process_rewards, sync_coins, publish_coins)
+                (process_rewards, sync_economy, publish_economy)
                     .chain()
                     .after(AchievementUpdateSet)
                     .in_set(ClientUpdateSet::Sync),

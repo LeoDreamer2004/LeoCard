@@ -6,8 +6,10 @@ use super::super::{
     AchievementCategory, DomainUiAction, PageMotion, PlayerProfilePage, PressedUiAction,
     ProfileMotion, SettingsMotion, UiAction, UiActionHandler, UiState, dispatch_domain_actions,
 };
+use crate::app::runtime::{ConnectionDraft, PageErrorState, save_connection_draft};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use leocard_client::PlayerEconomy;
 
 #[derive(Clone)]
 pub(crate) enum NavigationUiAction {
@@ -33,6 +35,9 @@ pub(crate) struct NavigationActionContext<'w> {
     settings_motion: ResMut<'w, SettingsMotion>,
     profile_motion: ResMut<'w, ProfileMotion>,
     page_motion: ResMut<'w, PageMotion>,
+    connection: Res<'w, ConnectionDraft>,
+    economy: ResMut<'w, PlayerEconomy>,
+    page_error: ResMut<'w, PageErrorState>,
     #[cfg(not(target_os = "android"))]
     sakura: ResMut<'w, SakuraState>,
 }
@@ -47,6 +52,10 @@ pub(crate) fn dispatch_navigation_actions(
 impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
     fn handle(&self, context: &mut NavigationActionContext<'_>) {
         let ui = &mut *context.ui;
+        if ui.home.identity_open {
+            context.page_error.error =
+                save_connection_draft(&context.connection, &mut context.economy).err();
+        }
         ui.home.identity_open = false;
         ui.home.join_open = false;
         match self {

@@ -27,6 +27,24 @@ pub enum PlayerGender {
     Female,
 }
 
+/// IDs are serialized in declaration order. Append new frames to preserve saved ownership.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+pub enum AvatarFrameId {
+    #[default]
+    Default,
+    QqAdmin,
+    IronBasin,
+    ChinaRose,
+    Cattail,
+    Study,
+    Create,
+    GregTech,
+    Orange,
+    Horse,
+    Host,
+    WhaleGirl,
+}
+
 /// 可随玩家身份公开的各游戏长期档案。`None` 表示旧版本没有采集过该游戏的
 /// 明细，展示层必须与真实的零次记录区分开来。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -37,6 +55,8 @@ pub struct PlayerGameProfiles {
     pub coins: u32,
     /// Public profile attribute shared with other players and future voice lines.
     pub gender: PlayerGender,
+    /// The equipped cosmetic; ownership stays in the local wallet.
+    pub avatar_frame: AvatarFrameId,
     pub qigui523: Option<QiGui523ProfileStats>,
     pub texas: Option<TexasProfileStats>,
     pub shengji: Option<ShengjiProfileStats>,

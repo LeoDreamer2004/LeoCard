@@ -1,14 +1,15 @@
-use super::ShopUiState;
+use super::avatar_frames::render_frame;
 #[cfg(feature = "developer")]
 use super::developer::add_coin_input;
-use super::items::{ITEM_CARD_WIDTH, render_item};
-use super::skin::add_categories;
+use super::props::render_prop;
+use super::skin::{PRODUCT_CARD_WIDTH, add_categories};
+use super::{ShopCategory, ShopUiState};
 use crate::app::presentation::{MUTED, add_coin_balance, add_title, page_frame_skin};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{NavigationUiAction, PageTransitionElement, UiAction, add_page_back_title};
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-use leocard_client::{ItemId, PlayerEconomy};
+use leocard_client::{PlayerEconomy, PropId, ShopAvatarFrame};
 use leocard_ui::{PageFrame, Scrollbar, ScrollbarSkin, UiComposer, spawn_node};
 
 #[derive(Component)]
@@ -129,9 +130,9 @@ impl ShopPage<'_> {
             },
             None,
         );
-        let list = spawn_node(
-            commands,
+        let list = commands.keyed_child(
             viewport,
+            self.state.category.title(),
             Node {
                 min_width: px(0),
                 min_height: px(0),
@@ -140,7 +141,7 @@ impl ShopPage<'_> {
                 display: Display::Grid,
                 grid_template_columns: RepeatedGridTrack::px(
                     GridTrackRepetition::AutoFit,
-                    ITEM_CARD_WIDTH,
+                    PRODUCT_CARD_WIDTH,
                 ),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::FlexStart,
@@ -151,16 +152,25 @@ impl ShopPage<'_> {
                 padding: UiRect::all(px(4)),
                 ..default()
             },
-            None,
         );
-        commands.entity(list).insert((
-            ShopList,
-            ScrollPosition(Vec2::ZERO),
-            RelativeCursorPosition::default(),
-        ));
+        commands
+            .entity(list)
+            .insert((ShopList, RelativeCursorPosition::default()));
+        commands.entity(list).init(ScrollPosition::default());
         Scrollbar::spawn(commands, viewport, list, ScrollbarSkin::Colored(MUTED));
-        for item in ItemId::ALL {
-            render_item(commands, list, item, self.economy, self.assets);
+        match self.state.category {
+            ShopCategory::Props => {
+                for prop in PropId::ALL {
+                    render_prop(commands, list, prop, self.economy, self.assets);
+                }
+            }
+            ShopCategory::AvatarFrames => {
+                let mut frames = ShopAvatarFrame::ALL;
+                frames.sort_by_key(|frame| frame.rarity);
+                for frame in frames {
+                    render_frame(commands, list, frame, self.economy, self.assets);
+                }
+            }
         }
     }
 }

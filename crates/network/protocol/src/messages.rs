@@ -1,5 +1,5 @@
 use crate::{
-    AchievementAnnouncement, AvatarId, BlackjackSnapshot, ChatContent, ChatMessage,
+    AchievementAnnouncement, AvatarFrameId, AvatarId, BlackjackSnapshot, ChatContent, ChatMessage,
     DoudizhuSnapshot, GameCommand, GameEvent, GameKind, GameRules, MahjongPhaseView,
     MahjongSnapshot, MatchId, McGuessSnapshot, PROTOCOL_VERSION, PlayerGameProfiles,
     PlayerInteraction, PlayerInteractionKind, PlayerPublicInfo, ProfileId, QiGui523PhaseView,
@@ -87,8 +87,9 @@ pub enum ClientCommand {
     SpectatePlayer {
         player: PlayerId,
     },
-    PublishCoins {
+    PublishEconomy {
         coins: u32,
+        avatar_frame: AvatarFrameId,
     },
     /// Aggregate profile synchronization; IDs announce only newly earned awards.
     PublishAchievements {

@@ -6,8 +6,8 @@ use leocard_achievements::{AchievementTrigger, PersonalEvent};
 use leocard_client::{LocalPlayerProfile, PlayerEconomy};
 use leocard_protocol::ClientCommand;
 
-/// 钱包是余额的唯一来源，公开档案仅用于联网展示。
-pub(super) fn sync_coins(
+/// 钱包提供余额和已选头像框，公开档案用于展示。
+pub(super) fn sync_economy(
     economy: Res<PlayerEconomy>,
     mut profile: ResMut<LocalPlayerProfile>,
     mut ui: ResMut<UiState>,
@@ -21,13 +21,15 @@ pub(super) fn sync_coins(
             PersonalEvent::CoinBalance { coins },
         )));
     }
-    if profile.game_profiles.coins != coins {
+    let avatar_frame = economy.equipped_frame();
+    if profile.game_profiles.coins != coins || profile.game_profiles.avatar_frame != avatar_frame {
         profile.game_profiles.coins = coins;
+        profile.game_profiles.avatar_frame = avatar_frame;
         ui.dirty = true;
     }
 }
 
-pub(super) fn publish_coins(
+pub(super) fn publish_economy(
     economy: Res<PlayerEconomy>,
     mut client: Option<ResMut<ClientResource>>,
     time: Res<Time>,
@@ -40,10 +42,13 @@ pub(super) fn publish_coins(
     let Some(profiles) = client.0.model().local_game_profiles() else {
         return;
     };
-    if profiles.coins != economy.coins()
+    let coins = economy.coins();
+    let avatar_frame = economy.equipped_frame();
+    if (profiles.coins != coins || profiles.avatar_frame != avatar_frame)
         && *since_send >= 0.5
-        && client.0.send(ClientCommand::PublishCoins {
-            coins: economy.coins(),
+        && client.0.send(ClientCommand::PublishEconomy {
+            coins,
+            avatar_frame,
         })
     {
         *since_send = 0.0;

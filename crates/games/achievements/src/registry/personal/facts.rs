@@ -26,9 +26,9 @@ pub(super) fn received(trigger: &AchievementTrigger, kind: InteractionKind) -> u
     })
 }
 
-pub(super) fn purchased(trigger: &AchievementTrigger) -> u64 {
+pub(super) fn prop_purchased(trigger: &AchievementTrigger) -> u64 {
     personal(trigger, |event| {
-        matches!(event, PersonalEvent::ItemPurchased { .. })
+        matches!(event, PersonalEvent::PropPurchased { .. })
     })
 }
 

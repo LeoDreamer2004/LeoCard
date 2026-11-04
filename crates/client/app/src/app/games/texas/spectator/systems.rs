@@ -4,7 +4,7 @@ use crate::app::presentation::PlayingCardFlip;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{UiState, game_command};
 use bevy::prelude::*;
-use leocard_client::{ItemId, PlayerEconomy};
+use leocard_client::{PlayerEconomy, PropId};
 use leocard_protocol::{GameSnapshot, TexasCommand};
 
 pub(in super::super) fn sync_texas_spectator(
@@ -29,7 +29,7 @@ pub(in super::super) fn sync_texas_spectator(
             flips.iter().all(PlayingCardFlip::has_revealed),
         );
         let state = &mut ui.spectator;
-        state.item_active = economy.active(ItemId::ObservationLens);
+        state.item_active = economy.active(PropId::ObservationLens);
         if was_active != state.item_active {
             shell.dirty = true;
         }

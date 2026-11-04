@@ -4,6 +4,7 @@ use super::{TableSurfaceKind, normalize_avatar_bytes};
 use crate::app::presentation::{MAX_TABLE_BRIGHTNESS, MIN_TABLE_BRIGHTNESS};
 use bevy::prelude::*;
 use leocard_blackjack::BlackjackRuleSet;
+use leocard_client::PlayerEconomy;
 pub(crate) use leocard_client::{
     DoudizhuPreferences, GameAppearancePreferences, GamePreferences, GlobalPreferences,
     MahjongPreferences, McGuessPreferences, QiGui523Preferences, SavedPreferences,
@@ -41,6 +42,7 @@ pub(crate) struct AppearancePreferences {
     pub mahjong_table_felt_path: Option<PathBuf>,
     pub mahjong_table_brightness: f32,
     pub audio_volume: f32,
+    pub turn_notifications: bool,
     pub mahjong_action_voices: bool,
     pub mahjong_fan_voices: bool,
     pub mahjong_tile_voices: bool,
@@ -178,6 +180,7 @@ impl PreferenceResources {
                     1.0,
                     DEFAULT_AUDIO_VOLUME,
                 ),
+                turn_notifications: saved.global.turn_notifications,
                 mahjong_action_voices: saved.global.mahjong_action_voices,
                 mahjong_fan_voices: saved.global.mahjong_fan_voices,
                 mahjong_tile_voices: saved.global.mahjong_tile_voices,
@@ -340,13 +343,17 @@ fn replace_if_changed<T: PartialEq>(slot: &mut T, value: T) -> bool {
     true
 }
 
-pub(crate) fn save_connection_draft(draft: &ConnectionDraft) -> Result<(), String> {
+pub(crate) fn save_connection_draft(
+    draft: &ConnectionDraft,
+    economy: &mut PlayerEconomy,
+) -> Result<(), String> {
     let mut saved = load_player_preferences()?;
     saved.global.player_name.clone_from(&draft.player_name);
     saved.global.gender = draft.gender;
     saved.global.host_port.clone_from(&draft.host_port);
     saved.global.join_address.clone_from(&draft.join_address);
-    save_global_preferences(&saved.global)
+    save_global_preferences(&saved.global)?;
+    economy.sync_exclusive_frame(&draft.player_name)
 }
 
 pub(crate) fn save_appearance_preferences(
@@ -365,6 +372,7 @@ pub(crate) fn save_appearance_preferences(
         .clone_from(&appearance.mahjong_table_felt_path);
     saved.global.mahjong_table_brightness = appearance.mahjong_table_brightness;
     saved.global.audio_volume = appearance.audio_volume;
+    saved.global.turn_notifications = appearance.turn_notifications;
     saved.global.mahjong_action_voices = appearance.mahjong_action_voices;
     saved.global.mahjong_fan_voices = appearance.mahjong_fan_voices;
     saved.global.mahjong_tile_voices = appearance.mahjong_tile_voices;

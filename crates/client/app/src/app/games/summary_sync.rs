@@ -1,6 +1,6 @@
 //! 将当前游戏快照投影为公共结算演出描述。
 
-use super::{blackjack, doudizhu, mahjong, mc_guess, qigui523, texas, uno};
+use super::{blackjack, doudizhu, guandan, mahjong, mc_guess, qigui523, texas, uno};
 use crate::app::presentation::{SummaryDescriptor, SummaryPlayback};
 use crate::app::runtime::ClientResource;
 use bevy::prelude::*;
@@ -9,6 +9,7 @@ use leocard_protocol::GameSnapshot;
 fn game_summary_descriptor(game: &GameSnapshot) -> Option<SummaryDescriptor> {
     match game {
         GameSnapshot::Doudizhu(game) => doudizhu::summary::descriptor(game),
+        GameSnapshot::Guandan(game) => guandan::summary::descriptor(game),
         GameSnapshot::Blackjack(game) => blackjack::blackjack_summary_descriptor(game),
         GameSnapshot::QiGui523(game) => qigui523::summary::qigui523_summary_descriptor(game),
         GameSnapshot::Texas(game) => texas::settlement::texas_summary_descriptor(game),

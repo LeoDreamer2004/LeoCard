@@ -81,7 +81,7 @@ impl UiActionHandler<ShengjiActionContext<'_>> for ShengjiUiAction {
                 ui.counter.window.drawer_open = !ui.counter.window.drawer_open
             }
             Self::ToggleCounter => {
-                if context.economy.active(PropId::ShengjiCardCounter) {
+                if context.economy.active(PropId::CardCounter) {
                     ui.counter.window.enabled = !ui.counter.window.enabled;
                 }
             }

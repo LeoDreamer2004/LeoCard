@@ -90,6 +90,7 @@ fn reloading_preserves_reward_and_settlement_receipts() {
         &postcard::to_allocvec(&wallet).unwrap(),
         wallet.ledger.profile_id,
         None,
+        0,
     )
     .unwrap();
     assert!(!reloaded.ledger.reward_daily(12));
@@ -109,14 +110,15 @@ fn adding_avatar_frames_preserves_the_v3_wallet_ledger() {
     old.rewards_initialized = true;
     old.coins = 5233;
     let payload = postcard::to_allocvec(&old).unwrap();
-    let migrated = migration::decode(3, &payload, profile_id, Some(AvatarFrameId::Host)).unwrap();
+    let migrated =
+        migration::decode(3, &payload, profile_id, Some(AvatarFrameId::Host), 0).unwrap();
     assert_eq!(postcard::to_allocvec(&migrated.ledger).unwrap(), payload);
     assert!(migrated.owns_frame(AvatarFrameId::Default));
     assert!(migrated.owned_frames.is_empty());
     assert_eq!(migrated.equipped_frame, AvatarFrameId::Host);
     assert!(migrated.can_use_frame(AvatarFrameId::Host));
     assert!(!migrated.owns_frame(AvatarFrameId::Host));
-    assert!(migration::decode(3, &payload, ProfileId([2; 32]), None).is_err());
+    assert!(migration::decode(3, &payload, ProfileId([2; 32]), None, 0).is_err());
 }
 
 #[test]
@@ -127,7 +129,7 @@ fn upgrading_a_wallet_with_a_frame_preserves_the_equipped_choice() {
     let payload =
         postcard::to_allocvec(&(&old.ledger, &old.owned_frames, AvatarFrameId::Study)).unwrap();
     let mut migrated =
-        migration::decode(4, &payload, profile_id, Some(AvatarFrameId::Cattail)).unwrap();
+        migration::decode(4, &payload, profile_id, Some(AvatarFrameId::Cattail), 0).unwrap();
     assert!(!migrated.update_exclusive_frame(Some(AvatarFrameId::Cattail)));
     assert_eq!(migrated.equipped_frame, AvatarFrameId::Study);
     assert!(migrated.can_use_frame(AvatarFrameId::Cattail));
@@ -169,12 +171,12 @@ fn persona_changes_equip_the_new_frame_and_only_keep_departed_frames_if_owned() 
 fn old_wallets_restart_and_unknown_or_wrong_identity_archives_are_rejected() {
     let profile_id = ProfileId([1; 32]);
     for version in [1, 2] {
-        let wallet = migration::decode(version, &[], profile_id, None).unwrap();
+        let wallet = migration::decode(version, &[], profile_id, None, 0).unwrap();
         assert_eq!(wallet.ledger.coins, 0);
         assert!(wallet.ledger.active_props.is_empty());
         assert_eq!(wallet.ledger.last_login_day, None);
     }
-    assert!(migration::decode(FORMAT_VERSION + 1, &[], profile_id, None).is_err());
+    assert!(migration::decode(FORMAT_VERSION + 1, &[], profile_id, None, 0).is_err());
     let wallet = EconomyArchive::new(ProfileId([2; 32]));
     assert!(
         migration::decode(
@@ -182,7 +184,78 @@ fn old_wallets_restart_and_unknown_or_wrong_identity_archives_are_rejected() {
             &postcard::to_allocvec(&wallet).unwrap(),
             profile_id,
             None,
+            0,
         )
         .is_err()
     );
+}
+
+#[test]
+fn old_card_counters_merge_paid_time_into_one_shared_entitlement() {
+    let profile_id = ProfileId([1; 32]);
+    let now = 10_000;
+    let mut old = EconomyArchive::new(profile_id);
+    old.ledger
+        .active_props
+        .insert(PropId::ShengjiCardCounter, now + 1_200);
+    old.ledger
+        .active_props
+        .insert(PropId::QiGui523CardCounter, now - 1);
+    old.ledger
+        .active_props
+        .insert(PropId::DoudizhuCardCounter, now + 1_800);
+    old.ledger
+        .active_props
+        .insert(PropId::ObservationLens, now + 500);
+    let payload = postcard::to_allocvec(&old).unwrap();
+    let migrated = migration::decode(5, &payload, profile_id, None, now).unwrap();
+    assert_eq!(
+        migrated.ledger.active_props[&PropId::CardCounter],
+        now + 3_000
+    );
+    assert_eq!(
+        migrated.ledger.active_props[&PropId::ObservationLens],
+        now + 500
+    );
+    for legacy in [
+        PropId::ShengjiCardCounter,
+        PropId::QiGui523CardCounter,
+        PropId::DoudizhuCardCounter,
+    ] {
+        assert!(!migrated.ledger.active_props.contains_key(&legacy));
+    }
+    let reloaded = migration::decode(
+        FORMAT_VERSION,
+        &postcard::to_allocvec(&migrated).unwrap(),
+        profile_id,
+        None,
+        now + 100,
+    )
+    .unwrap();
+    assert_eq!(
+        reloaded.ledger.active_props, migrated.ledger.active_props,
+        "a current wallet must not add inherited time a second time"
+    );
+}
+
+#[test]
+fn merging_card_counters_saturates_at_the_latest_representable_expiry() {
+    let profile_id = ProfileId([1; 32]);
+    let now = u64::MAX - 100;
+    let mut old = EconomyArchive::new(profile_id);
+    old.ledger
+        .active_props
+        .insert(PropId::ShengjiCardCounter, u64::MAX);
+    old.ledger
+        .active_props
+        .insert(PropId::DoudizhuCardCounter, u64::MAX);
+    let migrated = migration::decode(
+        5,
+        &postcard::to_allocvec(&old).unwrap(),
+        profile_id,
+        None,
+        now,
+    )
+    .unwrap();
+    assert_eq!(migrated.ledger.active_props[&PropId::CardCounter], u64::MAX);
 }

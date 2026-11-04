@@ -18,6 +18,7 @@ leocard-achievements = { path = "../games/achievements" }
 leocard-blackjack = { path = "../games/blackjack" }
 leocard-doudizhu = { path = "../games/doudizhu", features = ["serde"] }
 leocard-game-common = { path = "../games/common" }
+leocard-guandan = { path = "../games/guandan", features = ["serde"] }
 leocard-mahjong = { path = "../games/mahjong" }
 leocard_mc_guess = { path = "../games/mc-guess" }
 leocard-protocol = { path = "../network/protocol" }

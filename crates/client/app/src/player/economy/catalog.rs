@@ -1,17 +1,22 @@
 use self::ShopRarity::{Common, Epic, Fine};
 use leocard_game_common::PlayerPersona;
-use leocard_protocol::{AvatarFrameId, GameKind};
+use leocard_protocol::AvatarFrameId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum PropId {
     ObservationLens,
+    /// 旧钱包中的道具 ID，保留枚举顺序以读取历史存档。
+    #[doc(hidden)]
     ShengjiCardCounter,
     ShengjiMissingSuitCard,
+    #[doc(hidden)]
     QiGui523CardCounter,
     UnoJumpInDevice,
     MahjongFanCalculator,
+    #[doc(hidden)]
     DoudizhuCardCounter,
+    CardCounter,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -23,7 +28,7 @@ pub enum ShopRarity {
 
 pub struct ShopProp {
     pub id: PropId,
-    pub game: GameKind,
+    pub game_label: &'static str,
     pub name: &'static str,
     pub description: &'static str,
     pub rarity: ShopRarity,
@@ -98,30 +103,40 @@ impl ShopAvatarFrame {
 }
 
 impl PropId {
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 5] = [
         Self::ObservationLens,
-        Self::ShengjiCardCounter,
+        Self::CardCounter,
         Self::ShengjiMissingSuitCard,
-        Self::QiGui523CardCounter,
         Self::UnoJumpInDevice,
         Self::MahjongFanCalculator,
-        Self::DoudizhuCardCounter,
     ];
+
+    pub(crate) const fn canonical(self) -> Self {
+        match self {
+            Self::ShengjiCardCounter | Self::QiGui523CardCounter | Self::DoudizhuCardCounter => {
+                Self::CardCounter
+            }
+            _ => self,
+        }
+    }
 
     pub const fn definition(self) -> ShopProp {
         match self {
-            Self::DoudizhuCardCounter => ShopProp {
-                id: self,
-                game: GameKind::Doudizhu,
+            Self::CardCounter
+            | Self::ShengjiCardCounter
+            | Self::QiGui523CardCounter
+            | Self::DoudizhuCardCounter => ShopProp {
+                id: Self::CardCounter,
+                game_label: "升级 七鬼五二三\n斗地主 掼蛋",
                 name: "记牌器",
-                description: "适用于三人和四人斗地主。记录除自己手牌和公开出牌之外的剩余牌。",
+                description: "适用于升级、七鬼五二三、斗地主和掼蛋。购买一次即可在四款游戏中使用，共享一小时有效期；各游戏按自己的规则统计剩余牌。",
                 rarity: Common,
                 price: 150,
                 duration_seconds: 3600,
             },
             Self::MahjongFanCalculator => ShopProp {
                 id: self,
-                game: GameKind::Mahjong,
+                game_label: "麻将合集",
                 name: "算番卡",
                 description: "在听牌提示中显示当前牌型自摸与和牌的番数。\n不足八番也会显示，花牌不计入八番起和门槛。",
                 rarity: Common,
@@ -130,25 +145,16 @@ impl PropId {
             },
             Self::UnoJumpInDevice => ShopProp {
                 id: self,
-                game: GameKind::Uno,
+                game_label: "UNO",
                 name: "抢出器",
                 description: "开启后，在符合抢出规则时自动出牌。\n抢出结果受网络延迟影响，有效期内可随时开关。",
                 rarity: Fine,
                 price: 300,
                 duration_seconds: 3600,
             },
-            Self::QiGui523CardCounter => ShopProp {
-                id: self,
-                game: GameKind::QiGui523,
-                name: "记牌器",
-                description: "按黑、红、梅、方记录除自己手牌和已出牌外的剩余牌，标亮分牌数量。",
-                rarity: Common,
-                price: 120,
-                duration_seconds: 3600,
-            },
             Self::ObservationLens => ShopProp {
                 id: self,
-                game: GameKind::Texas,
+                game_label: "德州扑克",
                 name: "观局镜",
                 description: "弃牌后，查看仍在对局的玩家胜率。\n仅在弃牌所在下注轮结束后可用，不显示其他玩家的底牌。",
                 rarity: Common,
@@ -157,20 +163,11 @@ impl PropId {
             },
             Self::ShengjiMissingSuitCard => ShopProp {
                 id: self,
-                game: GameKind::Shengji,
+                game_label: "升级",
                 name: "缺门卡",
                 description: "根据公开跟牌，标记其他玩家已经缺少的副牌花色或主牌。",
                 rarity: Common,
                 price: 60,
-                duration_seconds: 3600,
-            },
-            Self::ShengjiCardCounter => ShopProp {
-                id: self,
-                game: GameKind::Shengji,
-                name: "记牌器",
-                description: "记录除自己手牌、已出牌和自己最终埋底以外的剩余牌。",
-                rarity: Common,
-                price: 150,
                 duration_seconds: 3600,
             },
         }

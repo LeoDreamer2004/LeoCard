@@ -8,6 +8,7 @@ mod automation;
 mod blackjack;
 mod doudizhu;
 mod error;
+mod guandan;
 mod lifecycle;
 mod mahjong;
 mod mc_guess;
@@ -24,6 +25,7 @@ pub use blackjack::BlackjackSession;
 pub use doudizhu::DoudizhuSession;
 use ed25519_dalek::{Signature, VerifyingKey};
 pub use error::HostError;
+pub use guandan::GuandanSession;
 use leocard_protocol::{
     AVATAR_DIMENSION, JoinRequest, MAX_AVATAR_BYTES, MatchId, RoomId, ServerMessage,
 };

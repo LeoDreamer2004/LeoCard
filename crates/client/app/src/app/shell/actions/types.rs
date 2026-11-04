@@ -7,6 +7,7 @@ use super::super::{
 };
 use crate::app::games::blackjack::BlackjackUiAction;
 use crate::app::games::doudizhu::DoudizhuUiAction;
+use crate::app::games::guandan::GuandanUiAction;
 use crate::app::games::mahjong::actions::MahjongUiAction;
 use crate::app::games::mc_guess::McGuessUiAction;
 use crate::app::games::qigui523::actions::QiGui523UiAction;
@@ -22,6 +23,7 @@ pub(super) type ButtonActions<'w, 's> = Query<'w, 's, &'static UiAction, With<Bu
 pub(crate) enum UiAction {
     Blackjack(BlackjackUiAction),
     Doudizhu(DoudizhuUiAction),
+    Guandan(GuandanUiAction),
     Mahjong(MahjongUiAction),
     McGuess(McGuessUiAction),
     Texas(TexasUiAction),
@@ -63,6 +65,7 @@ impl UiAction {
         match self {
             Self::Blackjack(action) => action.rebuilds_ui(),
             Self::Doudizhu(action) => action.rebuilds_ui(),
+            Self::Guandan(action) => action.rebuilds_ui(),
             Self::Mahjong(action) => action.rebuilds_ui(),
             Self::McGuess(action) => action.rebuilds_ui(),
             Self::Texas(action) => action.rebuilds_ui(),

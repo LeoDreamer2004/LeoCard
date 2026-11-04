@@ -1,4 +1,5 @@
 use leocard_doudizhu::{DoudizhuMode, DoudizhuRuleSet};
+use leocard_guandan::GuandanRuleSet;
 use leocard_mahjong::MahjongRuleSet;
 use leocard_mc_guess::McGuessRuleSet;
 use leocard_protocol::TABLE_SEAT_COUNT;
@@ -17,6 +18,8 @@ pub struct GamePreferences {
     pub mahjong: MahjongPreferences,
     pub mc_guess: McGuessPreferences,
     pub doudizhu: DoudizhuPreferences,
+    #[serde(default)]
+    pub guandan: GuandanPreferences,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -81,6 +84,11 @@ pub struct DoudizhuPreferences {
     pub mode_rules: [DoudizhuRuleSet; 2],
 }
 
+#[derive(Default, Deserialize, Serialize)]
+pub struct GuandanPreferences {
+    pub host_rules: GuandanRuleSet,
+}
+
 impl DoudizhuPreferences {
     pub fn remembered_modes(&self) -> [DoudizhuRuleSet; 2] {
         let mut modes = self.mode_rules;
@@ -121,6 +129,7 @@ impl Default for GamePreferences {
             mahjong: MahjongPreferences::default(),
             mc_guess: McGuessPreferences::default(),
             doudizhu: DoudizhuPreferences::default(),
+            guandan: GuandanPreferences::default(),
         }
     }
 }

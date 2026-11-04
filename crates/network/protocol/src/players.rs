@@ -1,9 +1,9 @@
 //! 各游戏共用的玩家公开状态与结算数据。
 
 use crate::{
-    AvatarId, BlackjackPlayerView, DoudizhuPlayerView, LobbyPlayerView, MahjongPlayerView,
-    McGuessPlayerView, PlayerGameProfiles, ProfileId, QiGui523PlayerView, ShengjiPlayerView,
-    TexasPlayerView, UnoPlayerView,
+    AvatarId, BlackjackPlayerView, DoudizhuPlayerView, GuandanPlayerView, LobbyPlayerView,
+    MahjongPlayerView, McGuessPlayerView, PlayerGameProfiles, ProfileId, QiGui523PlayerView,
+    ShengjiPlayerView, TexasPlayerView, UnoPlayerView,
 };
 use leocard_game_common::PlayerId;
 use serde::{Deserialize, Serialize};
@@ -49,6 +49,7 @@ player_views!(
     LobbyPlayerView,
     QiGui523PlayerView,
     DoudizhuPlayerView,
+    GuandanPlayerView,
     TexasPlayerView,
     ShengjiPlayerView,
     UnoPlayerView,

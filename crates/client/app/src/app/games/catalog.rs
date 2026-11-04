@@ -2,6 +2,7 @@
 
 use super::qigui523::time_control_label;
 use leocard_blackjack::BlackjackRuleSet;
+use leocard_guandan::rank_label;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
 use leocard_mc_guess::{McGuessMode, McGuessRuleSet};
 use leocard_protocol::{GameKind, GameRules};
@@ -16,7 +17,7 @@ pub(crate) struct GameDescriptor {
     pub description: &'static str,
 }
 
-pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 8] = [
+pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 9] = [
     GameDescriptor {
         kind: GameKind::QiGui523,
         title: "七鬼五二三",
@@ -57,11 +58,17 @@ pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 8] = [
         title: "斗地主",
         description: "17张牌你能秒我?",
     },
+    GameDescriptor {
+        kind: GameKind::Guandan,
+        title: "掼蛋",
+        description: "两两搭档 从二打到 A",
+    },
 ];
 
 pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
     match rules {
         GameRules::Doudizhu(rules) => rules.mode.players(),
+        GameRules::Guandan(_) => 4,
         GameRules::Blackjack(_) => BlackjackRuleSet::MAX_PLAYERS,
         GameRules::Shengji(rules) => rules.player_count(),
         GameRules::Uno(_) => UnoRuleSet::MAX_PLAYERS,
@@ -79,6 +86,7 @@ pub(crate) fn game_accepts_player_count(rules: &GameRules, count: u8) -> bool {
             (BlackjackRuleSet::MIN_PLAYERS..=BlackjackRuleSet::MAX_PLAYERS).contains(&count)
         }
         GameRules::Doudizhu(rules) => count == rules.mode.players(),
+        GameRules::Guandan(_) => count == 4,
         GameRules::Mahjong(_) => count == MahjongRuleSet::PLAYER_COUNT,
         GameRules::Shengji(rules) => count == rules.player_count(),
         GameRules::Uno(_) => (UnoRuleSet::MIN_PLAYERS..=UnoRuleSet::MAX_PLAYERS).contains(&count),
@@ -96,6 +104,11 @@ pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
             rules.mode.label().to_owned(),
             format!("{} 副牌", rules.mode.deck_count()),
             format!("{} 轮", rules.rounds),
+        ],
+        GameRules::Guandan(rules) => [
+            "四人两队".to_owned(),
+            "两副牌".to_owned(),
+            format!("从 {} 开始", rank_label(rules.starting_level)),
         ],
         GameRules::Blackjack(rules) => [
             format!("{} 筹码", rules.initial_chips),

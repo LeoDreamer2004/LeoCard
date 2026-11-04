@@ -1,5 +1,5 @@
 use crate::{
-    BlackjackEvent, DoudizhuEvent, GameKind, MahjongHandResultView, McGuessEvent,
+    BlackjackEvent, DoudizhuEvent, GameKind, GuandanEvent, MahjongHandResultView, McGuessEvent,
     QiGui523PublicPlay, ShengjiDeclarationView, ShengjiHandResultView, ShengjiPublicPlay,
 };
 use leocard_game_common::PlayerId;
@@ -29,6 +29,7 @@ pub enum GameEvent {
     McGuess(McGuessEvent),
     Blackjack(BlackjackEvent),
     Doudizhu(DoudizhuEvent),
+    Guandan(GuandanEvent),
 }
 
 macro_rules! impl_game_event_from {
@@ -49,6 +50,7 @@ impl_game_event_from!(MahjongEvent, Mahjong);
 impl_game_event_from!(McGuessEvent, McGuess);
 impl_game_event_from!(BlackjackEvent, Blackjack);
 impl_game_event_from!(DoudizhuEvent, Doudizhu);
+impl_game_event_from!(GuandanEvent, Guandan);
 
 impl GameEvent {
     pub const fn kind(&self) -> GameKind {
@@ -61,6 +63,7 @@ impl GameEvent {
             Self::McGuess(_) => GameKind::McGuess,
             Self::Blackjack(_) => GameKind::Blackjack,
             Self::Doudizhu(_) => GameKind::Doudizhu,
+            Self::Guandan(_) => GameKind::Guandan,
         }
     }
 }

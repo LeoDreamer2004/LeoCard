@@ -1,16 +1,16 @@
 use super::header::{LobbyPageConfig, add_lobby_rules_heading};
 use super::*;
-use crate::app::presentation::{MUTED, add_text};
+use crate::app::presentation::{MUTED, add_text, page_frame_skin};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
     CozyButtonVariant, LobbyTransitionPanel, LobbyUiAction, PageTransitionElement, UiAction,
-    add_configuration_scroll, add_cozy_button_variant, add_cozy_panel,
+    add_configuration_scroll, add_cozy_button_variant,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use leocard_protocol::LobbySnapshot;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{PageFrame, UiComposer, spawn_node};
 
 #[derive(Clone, Copy)]
 pub(crate) struct LobbyPageStyle {
@@ -98,60 +98,57 @@ impl LobbyPage {
             },
             None,
         );
-        let rules = add_cozy_panel(
-            commands,
-            content,
-            Node {
-                min_width: px(style.rules_min_width),
-                height: px(panel_height),
-                min_height: px(0),
-                max_height: percent(100),
-                flex_basis: px(style.rules_basis),
-                flex_grow: 1.0,
-                padding: UiRect::all(px(20)),
-                flex_direction: FlexDirection::Column,
-                row_gap: px(style.rules_gap.min(8.0)),
-                ..default()
-            },
-            assets,
-        );
-        commands.entity(rules).insert((
+        let mut rules_frame = PageFrame::new(page_frame_skin(assets));
+        rules_frame.node.min_width = px(style.rules_min_width);
+        rules_frame.node.height = px(panel_height);
+        rules_frame.node.max_height = percent(100);
+        rules_frame.node.flex_basis = px(style.rules_basis);
+        rules_frame.node.flex_grow = 1.0;
+        rules_frame.heading.height = px(38);
+        rules_frame.content.padding = UiRect::all(px(12));
+        rules_frame.content.row_gap = px(style.rules_gap.min(8.0));
+        let rules = rules_frame.mount(commands, content);
+        commands.entity(rules.panel).insert((
             LobbyTransitionPanel(0),
             PageTransitionElement::left(0),
             UiTransform::IDENTITY,
         ));
-        let players = add_cozy_panel(
-            commands,
-            content,
-            Node {
-                min_width: px(style.players_min_width),
-                height: px(panel_height),
-                min_height: px(0),
-                max_height: percent(100),
-                flex_basis: px(style.players_basis),
-                flex_grow: 2.0,
-                padding: UiRect::all(px(20)),
-                flex_direction: FlexDirection::Column,
-                row_gap: px(style.players_gap),
-                ..default()
-            },
-            assets,
-        );
-        commands.entity(players).insert((
+        let mut players_frame = PageFrame::new(page_frame_skin(assets));
+        players_frame.node.min_width = px(style.players_min_width);
+        players_frame.node.height = px(panel_height);
+        players_frame.node.max_height = percent(100);
+        players_frame.node.flex_basis = px(style.players_basis);
+        players_frame.node.flex_grow = 2.0;
+        players_frame.heading.height = px(38);
+        players_frame.content.padding = UiRect::all(px(12));
+        players_frame.content.row_gap = px(style.players_gap);
+        let players = players_frame.mount(commands, content);
+        commands.entity(players.panel).insert((
             LobbyTransitionPanel(1),
             PageTransitionElement::right(1),
             UiTransform::IDENTITY,
         ));
+        let metrics = LobbyMetrics::new(lobby);
+        add_lobby_rules_heading(
+            commands,
+            players.heading,
+            format!(
+                "玩家席位  {}/{}",
+                metrics.connected_player_count(),
+                metrics.seat_count()
+            ),
+            assets,
+        );
         let can_configure = client.0.model().you() == lobby.host;
-        config.render(commands, root, rules, can_configure, assets);
+        config.render(commands, root, &rules, can_configure, assets);
         let page = Self {
             rules: add_configuration_scroll(
                 commands,
-                rules,
+                rules.content,
                 format!("lobby-rules:{:?}", lobby.game),
                 style.rules_gap.min(8.0),
             ),
-            players,
+            players: players.content,
             connected_count: LobbyMetrics::new(lobby).connected_player_count(),
             can_configure,
         };
@@ -168,14 +165,7 @@ impl LobbyPage {
         avatars: &AvatarImages,
     ) {
         let metrics = LobbyMetrics::new(lobby);
-        let capacity = metrics.seat_count();
         let can_start = metrics.can_start();
-        add_lobby_rules_heading(
-            commands,
-            self.players,
-            format!("玩家席位  {}/{}", self.connected_count, capacity),
-            assets,
-        );
         LobbySeatSelector::new(client, lobby, assets, avatars).render(commands, self.players);
         let actions = spawn_node(
             commands,

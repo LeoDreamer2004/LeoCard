@@ -1,4 +1,4 @@
-use super::state::{GraphLogMessage, LogMessage};
+use super::state::{GraphLogMessage, LogAction, LogMessage};
 use crate::app::presentation::{ACCENT, add_avatar, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
@@ -72,16 +72,33 @@ pub(super) fn render_message(
         },
     ));
     let muted = Color::srgb(0.78, 0.78, 0.78);
+    let LogAction::Guess {
+        node,
+        guess,
+        correct,
+        combo,
+    } = &message.action
+    else {
+        commands.child(
+            text,
+            (
+                TextSpan::new(" 跳过了猜测"),
+                TextFont::from_font_size(14.0).with_font(assets.font.clone()),
+                TextColor(muted),
+            ),
+        );
+        return;
+    };
     let mut spans = vec![
         (" 猜测 ".to_owned(), muted),
-        (message.node.to_string(), ACCENT),
+        (node.to_string(), ACCENT),
         (" 号节点是".to_owned(), muted),
-        (format!("「{}」", message.guess), ACCENT),
+        (format!("「{guess}」"), ACCENT),
     ];
-    if message.correct {
+    if *correct {
         spans.extend([
             ("，猜测正确！".to_owned(), Color::srgb(0.5, 0.95, 0.58)),
-            (format!("连击 x{}！", message.combo), ACCENT),
+            (format!("连击 x{combo}！"), ACCENT),
         ]);
     } else {
         spans.extend([

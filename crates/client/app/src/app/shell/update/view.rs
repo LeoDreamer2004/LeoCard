@@ -268,7 +268,7 @@ pub(crate) fn open_github_repository() -> Result<(), String> {
 
 pub(crate) fn settings_update_label(state: &UpdateState) -> &'static str {
     match state {
-        UpdateState::Idle | UpdateState::UpToDate { .. } | UpdateState::Failed(_) => "检查并更新",
+        UpdateState::Idle | UpdateState::UpToDate { .. } | UpdateState::Failed(_) => "检查更新",
         UpdateState::Checking | UpdateState::Downloading { .. } => "查看更新进度",
         UpdateState::Ready { .. } => {
             if cfg!(target_os = "android") {

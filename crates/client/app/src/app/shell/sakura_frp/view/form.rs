@@ -2,7 +2,9 @@ use super::super::actions::SakuraUiAction;
 use super::super::input::{SakuraInput, SakuraScroll};
 use super::page::SakuraPage;
 use super::widgets::{panel, row, scroll_list};
-use crate::app::presentation::{MUTED, TEXT, add_text, add_title, rule_help_style};
+use crate::app::presentation::{
+    MUTED, PAGE_FRAME_TITLE, TEXT, add_text, add_title, rule_help_style,
+};
 use crate::app::shell::{
     CozyButtonVariant, CozyDropdown, CozyDropdownOption, PageTransitionElement, UiAction,
     add_cozy_button_variant, add_cozy_checkbox,
@@ -13,11 +15,19 @@ use leocard_ui::{UiComposer, add_help_tooltip, spawn_node};
 
 impl SakuraPage<'_> {
     pub(super) fn render_form(&self, commands: &mut UiComposer, root: Entity, body: Entity) {
-        let form = panel(commands, body, 0.6, self.assets);
+        let frame = panel(commands, body, 0.6, self.assets);
+        let form = frame.content;
         commands
-            .entity(form)
+            .entity(frame.panel)
             .insert((PageTransitionElement::right(2), UiTransform::IDENTITY));
-        add_text(commands, form, "创建隧道", 22.0, TEXT, self.assets);
+        add_title(
+            commands,
+            frame.heading,
+            "创建隧道",
+            22.0,
+            PAGE_FRAME_TITLE,
+            self.assets,
+        );
         let (name, protocol) = split_fields(commands, form, 190.0);
         self.field(commands, name, SakuraInput::Name);
         add_text(commands, protocol, "协议", 14.0, MUTED, self.assets);

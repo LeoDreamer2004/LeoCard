@@ -1,6 +1,7 @@
 //! 头像拖放、文件选择与图片同步。
 
 use super::super::UiState;
+use super::can_edit_identity;
 use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, AvatarPicker, AvatarPickerReceiver, ClientResource,
@@ -9,8 +10,7 @@ use crate::app::runtime::{
 use bevy::prelude::*;
 use bevy::window::FileDragAndDrop;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
-use leocard_client::{NetworkState, pick_image};
-use leocard_protocol::ClientCommand;
+use leocard_client::pick_image;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::mpsc::{self, TryRecvError};
@@ -28,7 +28,7 @@ pub(crate) fn handle_avatar_drop(
         let FileDragAndDrop::DroppedFile { path_buf, .. } = event else {
             continue;
         };
-        if client.is_some() {
+        if !can_edit_identity(client.as_deref()) || !ui.home.identity_open {
             continue;
         }
         match normalize_avatar(path_buf) {
@@ -54,6 +54,7 @@ pub(crate) fn start_avatar_picker() -> Result<AvatarPickerReceiver, String> {
 
 pub(crate) fn poll_avatar_picker(
     mut picker: ResMut<AvatarPicker>,
+    client: Option<Res<ClientResource>>,
     mut appearance: ResMut<AppearancePreferences>,
     mut page_error: ResMut<PageErrorState>,
     mut ui: ResMut<UiState>,
@@ -73,6 +74,7 @@ pub(crate) fn poll_avatar_picker(
     };
     picker.pending = None;
     match result {
+        Ok(Some(_)) if !can_edit_identity(client.as_deref()) => {}
         Ok(Some(path)) => match normalize_avatar(&path) {
             Ok(png) => {
                 page_error.error = save_avatar(png, &mut appearance, &mut achievements).err();
@@ -128,26 +130,5 @@ pub(crate) fn sync_avatar_images(
             avatar_images.remote.insert(*id, handle);
             ui.dirty = true;
         }
-    }
-}
-
-/// Retry a saved change once connected, including after a lost connection.
-pub(crate) fn publish_avatar(
-    mut client: Option<ResMut<ClientResource>>,
-    appearance: Res<AppearancePreferences>,
-    mut sent: Local<Option<Vec<u8>>>,
-) {
-    let Some(client) = client.as_mut() else {
-        *sent = None;
-        return;
-    };
-    if client.is_added() || !matches!(client.0.state(), NetworkState::Connected(_)) {
-        *sent = None;
-    }
-    if let Some(png) = appearance.avatar_png.as_ref()
-        && sent.as_ref() != Some(png)
-        && client.0.send(ClientCommand::SetAvatar { png: png.clone() })
-    {
-        *sent = Some(png.clone());
     }
 }

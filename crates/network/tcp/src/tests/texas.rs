@@ -51,6 +51,7 @@ async fn texas_room_uses_the_same_tcp_lobby_and_private_snapshots() {
                     completed_games: 0,
                     game_profiles,
                     identity_signature: signature,
+                    avatar_png: None,
                 }),
             ))
             .await

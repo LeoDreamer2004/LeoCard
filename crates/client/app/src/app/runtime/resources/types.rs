@@ -31,6 +31,9 @@ pub(crate) struct UiAssets {
 
 #[derive(Default)]
 pub(crate) struct ShopAssets {
+    pub item_frame: Handle<Image>,
+    pub tabs: [Handle<Image>; 3],
+    pub tab_selected: Handle<Image>,
     pub coin: Handle<Image>,
     pub icon: Handle<Image>,
     pub observation_lens: Handle<Image>,
@@ -42,8 +45,13 @@ pub(crate) struct ShopAssets {
 
 #[derive(Default)]
 pub(crate) struct HomeAssets {
-    pub panel: Handle<Image>,
+    pub join_room: Handle<Image>,
+    pub play_table: Handle<Image>,
+    pub recent_cards: [Handle<Image>; 3],
     pub settings_page: Handle<Image>,
+    pub page_frame: Handle<Image>,
+    pub page_inset: Handle<Image>,
+    pub panel: Handle<Image>,
     pub game_card: Handle<Image>,
     pub game_card_hover: Handle<Image>,
     pub warning_toast: Handle<Image>,

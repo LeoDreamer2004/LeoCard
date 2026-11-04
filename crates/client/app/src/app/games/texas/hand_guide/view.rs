@@ -2,17 +2,19 @@ use super::super::{TexasUiAction, texas_category_label};
 use super::catalog::{HandGuideEntry, ordered_entries};
 use super::probabilities::HandGuideProbabilities;
 use super::state::TexasHandGuideScroll;
-use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text, add_title};
+use crate::app::presentation::{
+    ACCENT, MUTED, PAGE_FRAME_TITLE, TEXT, add_text, add_title, page_frame_skin,
+};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_close_button,
-    add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
+    cozy_backdrop_color, cozy_panel_transform,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_texas_holdem::TexasRuleSet;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{PageFrame, UiComposer, spawn_node};
 
 pub(super) fn render_hand_guide(
     commands: &mut UiComposer,
@@ -41,32 +43,25 @@ pub(super) fn render_hand_guide(
         Pickable::default(),
         CozyModalBackdrop(CozyModalKind::TexasHandGuide),
     ));
-    let panel = add_cozy_panel(
-        commands,
-        backdrop,
-        Node {
-            width: px(980),
-            max_width: percent(92),
-            height: percent(88),
-            max_height: px(880),
-            min_height: px(480),
-            padding: UiRect::all(px(24)),
-            flex_direction: FlexDirection::Column,
-            row_gap: px(12),
-            ..default()
-        },
-        assets,
-    );
-    commands.entity(panel).insert((
+    let mut frame = PageFrame::new(page_frame_skin(assets));
+    frame.node.width = px(980);
+    frame.node.max_width = percent(92);
+    frame.node.height = percent(88);
+    frame.node.max_height = px(880);
+    frame.node.min_height = px(480);
+    frame.heading.height = px(56);
+    frame.content.padding = UiRect::all(px(20));
+    let frame = frame.mount(commands, backdrop);
+    commands.entity(frame.panel).insert((
         GlobalZIndex(2201),
         Pickable::default(),
         CozyModalPanel(CozyModalKind::TexasHandGuide),
         cozy_panel_transform(progress),
     ));
-    render_header(commands, panel, rules, assets);
+    render_header(commands, frame.heading, rules, assets);
     let content = spawn_node(
         commands,
-        panel,
+        frame.content,
         Node {
             width: percent(100),
             height: px(0),
@@ -103,18 +98,6 @@ fn render_header(
     rules: TexasRuleSet,
     assets: &UiAssets,
 ) {
-    let header = spawn_node(
-        commands,
-        parent,
-        Node {
-            width: percent(100),
-            min_height: px(40),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::SpaceBetween,
-            ..default()
-        },
-        None,
-    );
     let variant = if rules.omaha {
         "奥马哈"
     } else {
@@ -123,27 +106,17 @@ fn render_header(
     let mode = if rules.short_deck { "短牌" } else { "标准" };
     add_title(
         commands,
-        header,
+        parent,
         format!("{mode}{variant}牌型介绍"),
         27.0,
-        TEXT,
+        PAGE_FRAME_TITLE,
         assets,
     );
     add_cozy_close_button(
         commands,
-        header,
+        parent,
         UiAction::Texas(TexasUiAction::CloseHandGuide),
         assets,
-    );
-    spawn_node(
-        commands,
-        parent,
-        Node {
-            width: px(164),
-            height: px(2),
-            ..default()
-        },
-        Some(ACCENT),
     );
 }
 

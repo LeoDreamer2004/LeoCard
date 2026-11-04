@@ -48,7 +48,8 @@ impl McGuessSession {
                     let player = match event {
                         McGuessEvent::ActionAnalyzed { player, .. }
                         | McGuessEvent::HandAnalyzed { player, .. } => *player,
-                        McGuessEvent::ProcessPresenceChanged { .. } => return true,
+                        McGuessEvent::ProcessPresenceChanged { .. }
+                        | McGuessEvent::GuessSkipped { .. } => return true,
                     };
                     self.room.player_id(delivery.recipient) == Some(player)
                 }

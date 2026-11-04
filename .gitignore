@@ -33,6 +33,7 @@ profile.dat
 
 # Editor and operating-system metadata
 /.codex/
+/output/
 .idea/
 .vscode/
 .DS_Store

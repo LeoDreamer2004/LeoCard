@@ -17,7 +17,8 @@ pub(super) fn texas_pot_chip_zone(squid_enabled: bool) -> ChipZoneLayout {
         left,
         top: TexasTableLayout::POT_TOP,
         width: 840.0 - left,
-        height: 110.0,
+        // Keep the pool above the local betting area, which starts at y = 405.
+        height: 80.0,
     }
 }
 

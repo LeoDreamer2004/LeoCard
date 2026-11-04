@@ -4,6 +4,7 @@ use super::super::{
     ChatPanelState, DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState,
     dispatch_domain_actions, start_avatar_picker,
 };
+use super::can_edit_identity;
 use super::lan::LanDiscovery;
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, AvatarPicker, ClientResource, ConnectionDraft,
@@ -20,6 +21,9 @@ use leocard_ui::UiComposer;
 
 #[derive(Clone)]
 pub(crate) enum ConnectionUiAction {
+    SelectCategory(super::HomeCategory),
+    ToggleIdentity,
+    ToggleJoin,
     CreateRoom(GameKind),
     JoinRoom,
     OpenLan,
@@ -49,6 +53,7 @@ struct AvatarUiResources<'w> {
 #[derive(SystemParam)]
 pub(crate) struct ConnectionActionContext<'w, 's> {
     connection: ResMut<'w, ConnectionDraft>,
+    client: Option<Res<'w, ClientResource>>,
     appearance: ResMut<'w, AppearancePreferences>,
     host_rules: Res<'w, HostRulePreferences>,
     lan: Res<'w, LanDiscovery>,
@@ -69,8 +74,30 @@ pub(crate) fn dispatch_connection_actions(
 
 impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
     fn handle(&self, context: &mut ConnectionActionContext<'_, '_>) {
+        if !can_edit_identity(context.client.as_deref())
+            && matches!(
+                self,
+                Self::ChooseAvatar | Self::ClearAvatar | Self::ToggleGender | Self::ToggleIdentity
+            )
+        {
+            return;
+        }
         context.ui.dirty = true;
         match self {
+            Self::SelectCategory(category) => context.ui.home.category = *category,
+            Self::ToggleIdentity => {
+                context.ui.home.identity_open = !context.ui.home.identity_open;
+                context.ui.home.join_open = false;
+                if !context.ui.home.identity_open {
+                    context.page_error.error = save_connection_draft(&context.connection).err();
+                }
+            }
+            Self::ToggleJoin => {
+                context.ui.home.join_open = !context.ui.home.join_open;
+                context.ui.home.identity_open = false;
+                context.page_error.error = save_connection_draft(&context.connection).err();
+            }
+
             ConnectionUiAction::CreateRoom(game_kind) => create_room(*game_kind, context),
             ConnectionUiAction::JoinRoom => join_room(context),
             ConnectionUiAction::OpenLan => {

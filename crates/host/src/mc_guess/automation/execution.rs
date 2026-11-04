@@ -38,25 +38,21 @@ impl McGuessSession {
         }
     }
 
-    pub(super) fn play_bot_action(&mut self, player: PlayerId) -> bool {
+    pub(super) fn play_bot_action(&mut self, player: PlayerId) -> Option<McGuessBotAction> {
         let game = self.game.as_mut().expect("an automatic action has a game");
-        let Some(observation) = McGuessBotObservation::from_game(game, player) else {
-            return false;
-        };
-        let Some(action) = McGuessBot::choose(&observation, &mut Rng::new()) else {
-            return false;
-        };
+        let observation = McGuessBotObservation::from_game(game, player)?;
+        let action = McGuessBot::choose(&observation, &mut Rng::new())?;
         if let Some(node) = action.target_node()
             && game.select_node(player, node).is_err()
         {
-            return false;
+            return None;
         }
-        match action {
-            McGuessBotAction::Guess { entry_id, .. } => game.guess(player, &entry_id),
+        match &action {
+            McGuessBotAction::Guess { entry_id, .. } => game.guess(player, entry_id),
             McGuessBotAction::Skip { .. } => game.skip(player),
         }
         .expect("a public bot candidate is a legal action");
-        true
+        Some(action)
     }
 
     fn advance_turn(&mut self, elapsed: Duration) -> Vec<Delivery> {
@@ -69,15 +65,18 @@ impl McGuessSession {
         self.clock.advance(elapsed, automatic);
         let expired = self.guess_seconds_remaining() == Some(0);
         if expired || (automatic && self.clock.automatic_ready(AUTOMATIC_ACTION_DELAY)) {
-            if player.is_bot && !player.left {
-                self.play_bot_action(current);
+            let skipped = if player.is_bot && !player.left {
+                self.play_bot_action(current)
+                    .filter(|action| matches!(action, McGuessBotAction::Skip { .. }))
+                    .map(|_| current)
             } else {
                 fallback::Policy::act(
                     self.game.as_mut().expect("an active turn has a game"),
                     current,
                 );
-            }
-            let mut deliveries = self.after_action();
+                Some(current)
+            };
+            let mut deliveries = self.after_action(skipped);
             deliveries.extend(self.broadcast_game(None));
             return deliveries;
         }

@@ -67,6 +67,7 @@ impl McGuessSession {
             self.bump_revision();
             return Ok(Vec::new());
         }
+        let skipped = matches!(command, McGuessCommand::Skip).then_some(player);
         match command {
             McGuessCommand::SelectNode { .. } => unreachable!("handled separately"),
             McGuessCommand::Guess { entry } => game.guess(player, &entry),
@@ -78,6 +79,6 @@ impl McGuessSession {
             }
         }
         .map_err(|error| RejectReason::Game(error.into()))?;
-        Ok(self.after_action())
+        Ok(self.after_action(skipped))
     }
 }

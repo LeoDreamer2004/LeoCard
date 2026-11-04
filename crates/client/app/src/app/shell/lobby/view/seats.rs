@@ -221,11 +221,24 @@ impl<'a> OccupiedLobbySeat<'a> {
             .entity(framed.avatar)
             .insert(LobbySeatedAvatar(self.player.player.id));
         if self.is_you {
-            commands
-                .entity(avatar_ring)
-                .insert(Outline::new(px(2), px(0), ACCENT));
-        } else {
-            commands.entity(avatar_ring).remove::<Outline>();
+            commands.child(
+                avatar_ring,
+                (
+                    Node {
+                        position_type: PositionType::Absolute,
+                        left: px(1),
+                        right: px(1),
+                        top: px(1),
+                        bottom: px(1),
+                        border: UiRect::all(px(2)),
+                        border_radius: BorderRadius::all(percent(20)),
+                        ..default()
+                    },
+                    BorderColor::all(ACCENT),
+                    ZIndex(3),
+                    Pickable::IGNORE,
+                ),
+            );
         }
         attach_player_interactions(
             commands,

@@ -35,10 +35,11 @@ fn cover_uv(
 
 fn table_uv(pixel: vec2<f32>, size: vec2<f32>, rail_size: vec2<f32>) -> vec2<f32> {
     if material.params.y < 0.5 {
-        // Center-crop an oversized ellipse; the wooden rim keeps one scale on both axes.
+        // Center the felt opening, rather than the source canvas's uneven side margins.
         let fit = max(size.x / rail_size.x, size.y / rail_size.y) * CARD_TABLE_CLOSEUP;
         let extent = rail_size * fit;
-        return (pixel - (size - extent) * 0.5) / extent;
+        let center = vec2<f32>((material.felt_bounds.x + material.felt_bounds.z) * 0.5, 0.5);
+        return (pixel - size * 0.5) / extent + center;
     }
     // Match the tile camera; replacing the fabric never changes this rectangular table plane.
     let fit = min(size.x / 2204.0, size.y / 1217.0);

@@ -1,6 +1,6 @@
 use super::super::GuessScorePlayback;
 use super::state::GuessFeedback;
-use crate::app::presentation::{ACCENT, READY, ease_out_cubic};
+use crate::app::presentation::{ACCENT, ease_out_cubic};
 use bevy::prelude::*;
 use leocard_ui::{TransitionOpacity, TransitionVisuals, UiComposer, fade_panel};
 
@@ -34,9 +34,6 @@ pub(in super::super) enum RevealPanel {
 
 #[derive(Component)]
 pub(in super::super) struct GuessReadyControls;
-
-#[derive(Component)]
-pub(in super::super) struct GuessWinner;
 
 #[derive(Component)]
 pub(in super::super) struct RevealPixel {
@@ -97,10 +94,9 @@ pub(in super::super) fn animate_reveal(
     scores: Res<GuessScorePlayback>,
     panels: Query<(Entity, &RevealPanel)>,
     children: Query<&Children>,
-    mut visuals: TransitionVisuals<(Without<RevealPixel>, Without<GuessWinner>)>,
+    mut visuals: TransitionVisuals<Without<RevealPixel>>,
     mut transforms: Query<&mut UiTransform>,
     mut ready: Query<&mut Visibility, With<GuessReadyControls>>,
-    mut winners: Query<&mut Outline, With<GuessWinner>>,
     mut pixels: Query<(Entity, &RevealPixel, &mut BackgroundColor)>,
 ) {
     let progress = ease_out_cubic(playback.answer_progress());
@@ -132,15 +128,6 @@ pub(in super::super) fn animate_reveal(
         };
     }
     let elapsed = playback.answer_elapsed().unwrap_or(-1.0);
-    let glow = if (0.0..1.25).contains(&elapsed) {
-        (elapsed / 0.15).min(1.0) * ((1.25 - elapsed) / 0.45).min(1.0)
-    } else {
-        0.0
-    };
-    for mut outline in &mut winners {
-        outline.width = px(3.0 + 3.0 * glow);
-        outline.color = READY.mix(&ACCENT, glow);
-    }
     for (entity, pixel, mut background) in &mut pixels {
         let local = elapsed - pixel.delay;
         if let Ok(mut transform) = transforms.get_mut(entity) {

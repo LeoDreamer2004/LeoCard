@@ -7,6 +7,7 @@ use super::{
     TabletopAssets, UI_FONT_ASSET, UiAssets, interaction_cooldown_mask_image,
 };
 use crate::app::shell::{INTERACTION_COOLDOWN_MASK_FRAMES, PlayerInteractionLayer};
+use bevy::image::{ImageLoaderSettings, ImageSampler};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::PlayerInteractionKind;
@@ -34,6 +35,15 @@ pub(crate) fn load_ui_assets(
     asset_server: Res<AssetServer>,
     mut images: ResMut<Assets<Image>>,
 ) {
+    // Native advancement tabs have light RGB in transparent texels; filtering bleeds it outside.
+    let load_shop_tab = |name| {
+        asset_server
+            .load_builder()
+            .with_settings(|settings: &mut ImageLoaderSettings| {
+                settings.sampler = ImageSampler::nearest();
+            })
+            .load(format!("ui/shop/tab-{name}.png"))
+    };
     let mut interaction_images = HashMap::new();
     let mut interaction_sounds = HashMap::new();
     for (kind, name) in [
@@ -103,8 +113,14 @@ pub(crate) fn load_ui_assets(
             github_mark: asset_server.load("icons/github-mark.png"),
         },
         home: HomeAssets {
-            panel: asset_server.load("ui/home/cozy-panel.png"),
+            join_room: asset_server.load("ui/home/join-room.png"),
+            play_table: asset_server.load("ui/home/play-table.png"),
+            recent_cards: ["clouds", "suits", "ribbons"]
+                .map(|surface| asset_server.load(format!("ui/home/recent-{surface}-luma.png"))),
             settings_page: asset_server.load("ui/home/cozy-settings-page.png"),
+            page_frame: asset_server.load("ui/home/page-shell.png"),
+            page_inset: asset_server.load("ui/home/page-inset.png"),
+            panel: asset_server.load("ui/home/cozy-panel.png"),
             game_card: asset_server.load("ui/home/cozy-game-card.png"),
             game_card_hover: asset_server.load("ui/home/cozy-game-card-hover.png"),
             warning_toast: asset_server.load("ui/home/cozy-toasts-atlas.png"),
@@ -157,6 +173,9 @@ pub(crate) fn load_ui_assets(
             ],
         },
         shop: ShopAssets {
+            item_frame: asset_server.load("ui/shop/item-frame.png"),
+            tabs: ["top", "middle", "bottom"].map(load_shop_tab),
+            tab_selected: load_shop_tab("middle-selected"),
             coin: asset_server.load("ui/shop/coin.png"),
             icon: asset_server.load("ui/shop/shop.png"),
             observation_lens: asset_server.load("ui/shop/observation-lens.png"),

@@ -1,3 +1,6 @@
+use super::corner_notices::{
+    CornerNotifications, animate_corner_notifications, setup_corner_notifications,
+};
 use super::{
     CardVoices, GameSummaryAnimation, PlayEffectState, StartGameSeatTransition,
     SummaryAnimationSet, SummaryPlayback, TableBackgroundMaterial, TableCardMaterial,
@@ -50,6 +53,12 @@ impl Plugin for PresentationPlugin {
         )
         .add_plugins(PointerInputPlugin)
         .init_resource::<UiSceneRegistry>()
+        .init_resource::<CornerNotifications>()
+        .add_systems(Startup, setup_corner_notifications)
+        .add_systems(
+            Update,
+            animate_corner_notifications.in_set(ClientUpdateSet::Animate),
+        )
         .insert_resource(properties)
         .add_plugins(TextInputPlugin)
         .add_plugins(UiMaterialPlugin::<TableBackgroundMaterial>::default())

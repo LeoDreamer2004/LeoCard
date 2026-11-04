@@ -1,7 +1,9 @@
 use super::actions::dispatch_shop_actions;
 #[cfg(feature = "developer")]
 use super::developer::DeveloperCoinsPlugin;
-use super::page::{ItemRemaining, ShopList, remaining_label};
+use super::items::{ItemRemaining, remaining_label};
+use super::page::ShopList;
+use super::skin::ShopCategories;
 use crate::app::shell::{UiActionSet, UiState, scroll_modal_content};
 use bevy::prelude::*;
 use leocard_client::PlayerEconomy;
@@ -18,6 +20,7 @@ impl Plugin for ShopPlugin {
                 dispatch_shop_actions.in_set(UiActionSet),
                 update_remaining,
                 scroll_modal_content::<ShopList>,
+                scroll_modal_content::<ShopCategories>,
             ),
         );
     }

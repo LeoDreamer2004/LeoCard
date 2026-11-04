@@ -57,6 +57,7 @@ impl PlayerIdentity {
             completed_games,
             game_profiles,
             identity_signature: self.signing_key.sign(&payload).to_bytes().to_vec(),
+            avatar_png: None,
         })
     }
 }

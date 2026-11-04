@@ -5,6 +5,7 @@ mod actions;
 mod animation;
 mod plugin;
 mod rating;
+mod scroll;
 mod state;
 mod stats;
 mod view;

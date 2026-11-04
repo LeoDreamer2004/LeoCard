@@ -1,12 +1,12 @@
-//! Player identity, room creation settings and room joining beside the gallery.
+//! 首页入房设置与离线页面共用的个人信息编辑浮层。
 
 use super::{
     controls::{home_button, home_panel},
     input::ConnectionInput,
+    overlay::HomeIdentityPanel,
     page::ConnectionScreen,
-    theme::HOME_SOFT,
 };
-use crate::app::presentation::{TEXT, add_avatar, add_text, add_title};
+use crate::app::presentation::{add_avatar, add_text};
 use crate::app::shell::{ConnectionUiAction, InputField, PageTransitionElement, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -15,48 +15,80 @@ use leocard_protocol::PlayerGender;
 use leocard_ui::{UiComposer, spawn_node};
 
 impl ConnectionScreen<'_> {
-    pub(super) fn render_sidebar(&self, commands: &mut UiComposer, parent: Entity) {
-        let rail = spawn_node(
+    pub(crate) fn render_home_overlays(&self, commands: &mut UiComposer, root: Entity) {
+        let joining = self.home.join_open || self.home.join_progress > 0.0;
+        if joining {
+            self.render_join_modal(commands, root);
+            return;
+        }
+        if !self.home.identity_open && self.home.identity_progress == 0.0 {
+            return;
+        }
+        let layer = commands.child(
+            root,
+            (
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(0),
+                    right: px(0),
+                    top: px(0),
+                    bottom: px(0),
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                },
+                GlobalZIndex(1400),
+            ),
+        );
+        commands.child(
+            layer,
+            (
+                Button,
+                UiAction::Connection(ConnectionUiAction::ToggleIdentity),
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: px(0),
+                    right: px(0),
+                    top: px(0),
+                    bottom: px(0),
+                    ..default()
+                },
+            ),
+        );
+        let panel = spawn_node(
             commands,
-            parent,
+            layer,
             Node {
-                width: percent(32),
-                min_width: px(300),
-                max_width: px(420),
-                flex_shrink: 0.0,
+                position_type: PositionType::Absolute,
+                right: px(24),
+                top: px(86),
+                width: px(460),
+                max_width: percent(94),
+                max_height: percent(90),
                 flex_direction: FlexDirection::Column,
-                row_gap: px(if cfg!(target_os = "android") { 10 } else { 14 }),
+                row_gap: px(10),
                 ..default()
             },
             None,
         );
-        self.render_identity(commands, rail);
-        self.render_create(commands, rail);
-        self.render_join(commands, rail);
+        commands
+            .entity(panel)
+            .insert((HomeIdentityPanel, UiTransform::IDENTITY));
+        self.render_identity(commands, panel);
     }
 
     fn render_identity(&self, commands: &mut UiComposer, parent: Entity) {
-        let panel = home_panel(
-            commands,
-            parent,
-            Node {
-                width: percent(100),
-                padding: UiRect::all(px(21)),
-                flex_direction: FlexDirection::Column,
-                row_gap: px(8),
-                ..default()
-            },
-            self.assets,
-        );
+        let frame = home_panel(commands, parent, "玩家身份", self.assets);
         commands
-            .entity(panel)
+            .entity(frame.panel)
             .insert((PageTransitionElement::right(1), UiTransform::IDENTITY));
-        add_text(commands, panel, "玩家身份", 19.0, TEXT, self.assets);
         let row = spawn_node(
             commands,
-            panel,
+            frame.content,
             Node {
                 width: percent(100),
+                flex_wrap: FlexWrap::Wrap,
+                row_gap: px(8),
                 align_items: AlignItems::FlexEnd,
                 column_gap: px(10),
                 ..default()
@@ -91,8 +123,9 @@ impl ConnectionScreen<'_> {
             commands,
             row,
             Node {
-                width: px(170),
-                min_width: px(0),
+                min_width: px(100),
+                flex_basis: px(0),
+                flex_grow: 1.0,
                 flex_direction: FlexDirection::Column,
                 ..default()
             },
@@ -147,146 +180,5 @@ impl ConnectionScreen<'_> {
                 percent(100),
             );
         }
-    }
-
-    fn room_panel(
-        &self,
-        commands: &mut UiComposer,
-        parent: Entity,
-        title: &str,
-        order: u8,
-    ) -> Entity {
-        let panel = home_panel(
-            commands,
-            parent,
-            Node {
-                width: percent(100),
-                min_height: px(0),
-                padding: UiRect::all(px(22)),
-                flex_direction: FlexDirection::Column,
-                row_gap: px(12),
-                ..default()
-            },
-            self.assets,
-        );
-        commands
-            .entity(panel)
-            .insert((PageTransitionElement::right(order), UiTransform::IDENTITY));
-        add_title(commands, panel, title, 24.0, TEXT, self.assets);
-        panel
-    }
-
-    fn render_create(&self, commands: &mut UiComposer, parent: Entity) {
-        let panel = self.room_panel(commands, parent, "创建房间", 2);
-        let row = spawn_node(
-            commands,
-            panel,
-            Node {
-                width: percent(100),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::SpaceBetween,
-                column_gap: px(12),
-                ..default()
-            },
-            None,
-        );
-        add_text(commands, row, "创建端口", 12.0, HOME_SOFT, self.assets);
-        let input = spawn_node(
-            commands,
-            row,
-            Node {
-                min_width: px(0),
-                flex_basis: px(0),
-                flex_grow: 1.0,
-                ..default()
-            },
-            None,
-        );
-        ConnectionInput::new(
-            &self.connection.host_port,
-            InputField::HostPort,
-            self.assets,
-        )
-        .render(commands, input);
-    }
-
-    fn render_join(&self, commands: &mut UiComposer, parent: Entity) {
-        let panel = self.room_panel(commands, parent, "加入房间", 3);
-        let heading = spawn_node(
-            commands,
-            panel,
-            Node {
-                width: percent(100),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::SpaceBetween,
-                column_gap: px(8),
-                ..default()
-            },
-            None,
-        );
-        add_text(commands, heading, "房间地址", 12.0, HOME_SOFT, self.assets);
-        add_text(
-            commands,
-            heading,
-            "示例：192.168.1.20:52300",
-            11.0,
-            HOME_SOFT,
-            self.assets,
-        );
-        ConnectionInput::new(
-            &self.connection.join_address,
-            InputField::JoinAddress,
-            self.assets,
-        )
-        .render(commands, panel);
-        let row = spawn_node(
-            commands,
-            panel,
-            Node {
-                width: percent(100),
-                column_gap: px(8),
-                ..default()
-            },
-            None,
-        );
-        let lan = spawn_node(
-            commands,
-            row,
-            Node {
-                width: percent(42),
-                flex_shrink: 0.0,
-                ..default()
-            },
-            None,
-        );
-        home_button(
-            commands,
-            lan,
-            "局域网联机",
-            ConnectionUiAction::OpenLan,
-            self.assets,
-            false,
-            percent(100),
-        );
-        let join = spawn_node(
-            commands,
-            row,
-            Node {
-                min_width: px(0),
-                flex_basis: px(0),
-                flex_grow: 1.0,
-                ..default()
-            },
-            None,
-        );
-        home_button(
-            commands,
-            join,
-            "加入房间",
-            ConnectionUiAction::JoinRoom,
-            self.assets,
-            true,
-            percent(100),
-        );
     }
 }

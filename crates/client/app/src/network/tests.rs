@@ -126,7 +126,14 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
     });
 
     let address = format!("127.0.0.1:{port}");
-    let mut guest_a = TcpGameClient::join("甲", &address).unwrap();
+    let image = RgbaImage::from_pixel(AVATAR_DIMENSION, AVATAR_DIMENSION, Rgba([40, 80, 160, 255]));
+    let mut encoded = Cursor::new(Vec::new());
+    DynamicImage::ImageRgba8(image)
+        .write_to(&mut encoded, ImageFormat::Png)
+        .unwrap();
+    let avatar = encoded.into_inner();
+    let mut guest_a =
+        TcpGameClient::join_with_avatar("甲", &address, Some(avatar.clone())).unwrap();
     wait_for(&mut guest_a, |model| {
         model.lobby().is_some_and(|lobby| lobby.players.len() == 2)
     });
@@ -257,29 +264,15 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
             .len(),
         usize::from(rules.hand_size)
     );
-
-    // Replacing an uploaded image must reach the uploader, peers and spectators.
+    // Initial room-entry avatars survive seat remapping and reach later spectators.
     let player = guest_a.model().you().unwrap();
-    for shade in [40, 200] {
-        let image = RgbaImage::from_pixel(
-            AVATAR_DIMENSION,
-            AVATAR_DIMENSION,
-            Rgba([shade, 80, 160, 255]),
-        );
-        let mut png = Cursor::new(Vec::new());
-        DynamicImage::ImageRgba8(image)
-            .write_to(&mut png, ImageFormat::Png)
-            .unwrap();
-        let png = png.into_inner();
-        assert!(guest_a.send(ClientCommand::SetAvatar { png: png.clone() }));
-        for viewer in [&mut host, &mut guest_a, &mut guest_b, &mut observer] {
-            wait_for(viewer, |model| {
-                model
-                    .player_avatar(player)
-                    .and_then(|id| model.avatars().get(&id))
-                    == Some(&png)
-            });
-        }
+    for viewer in [&mut host, &mut guest_a, &mut guest_b, &mut observer] {
+        wait_for(viewer, |model| {
+            model
+                .player_avatar(player)
+                .and_then(|id| model.avatars().get(&id))
+                == Some(&avatar)
+        });
     }
 }
 

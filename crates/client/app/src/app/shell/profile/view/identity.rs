@@ -1,10 +1,8 @@
 use super::super::{ProfileStat, reference_level, reference_level_index};
 use crate::app::presentation::{MUTED, TEXT, add_avatar, add_coin_balance, add_text};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{ConnectionUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use bevy::ui_widgets::Button;
 use leocard_protocol::{PlayerGameProfiles, PlayerGender, PlayerInteractionKind};
 use leocard_ui::{UiComposer, spawn_node};
 
@@ -39,7 +37,7 @@ impl<'a> ProfileIdentity<'a> {
         }
     }
 
-    pub(super) fn render(self, commands: &mut UiComposer, parent: Entity, editable_avatar: bool) {
+    pub(super) fn render(self, commands: &mut UiComposer, parent: Entity) {
         let identity = spawn_node(
             commands,
             parent,
@@ -69,7 +67,7 @@ impl<'a> ProfileIdentity<'a> {
             },
             None,
         );
-        let avatar = add_avatar(
+        add_avatar(
             commands,
             avatar_area,
             self.player_name,
@@ -77,14 +75,6 @@ impl<'a> ProfileIdentity<'a> {
             86.0,
             self.assets,
         );
-        if editable_avatar {
-            commands.entity(avatar).insert((
-                Button,
-                UiAction::Connection(ConnectionUiAction::ChooseAvatar),
-                UiTransform::IDENTITY,
-            ));
-        }
-
         let identity_text = spawn_node(
             commands,
             identity,

@@ -5,36 +5,18 @@ use bevy::prelude::*;
 use bevy::ui::BackgroundGradient;
 use leocard_ui::TransitionOpacity;
 
-#[derive(Clone, Copy, Component)]
+#[derive(Clone, Copy, Component, Default)]
 pub(super) struct EntryMotion {
     hover: f32,
     press: f32,
-    ripple: f32,
-    was_pressed: bool,
-}
-
-impl Default for EntryMotion {
-    fn default() -> Self {
-        Self {
-            hover: 0.0,
-            press: 0.0,
-            ripple: 1.0,
-            was_pressed: false,
-        }
-    }
 }
 
 impl EntryMotion {
-    fn advance(&mut self, interaction: PickingInteraction, delta: f32, fresh_press: bool) {
+    fn advance(&mut self, interaction: PickingInteraction, delta: f32) {
         let hovered = f32::from(interaction != PickingInteraction::None);
         let pressed = interaction == PickingInteraction::Pressed;
         self.hover += (hovered - self.hover) * (1.0 - (-delta * 12.0).exp());
         self.press += (f32::from(pressed) - self.press) * (1.0 - (-delta * 25.0).exp());
-        if pressed && !self.was_pressed && fresh_press {
-            self.ripple = 0.0;
-        }
-        self.ripple = (self.ripple + delta / 0.65).min(1.0);
-        self.was_pressed = pressed;
     }
 
     fn art(&self, phase: f32) -> UiTransform {
@@ -63,7 +45,6 @@ impl EntryMotion {
                 0.65 + self.hover * 0.75,
                 -8.0 + 2.0 * (phase * 0.5).sin(),
             ),
-            GlowKind::Ripple => (0.65 + self.ripple * 0.65, (1.0 - self.ripple).powi(2), 0.0),
             GlowKind::Underline => (1.0 + self.hover * 0.2, 0.75 + self.hover * 0.6, 0.0),
         };
         (
@@ -79,7 +60,6 @@ impl EntryMotion {
 
 pub(super) fn animate_entries(
     time: Res<Time>,
-    mouse: Res<ButtonInput<MouseButton>>,
     page: Res<PageMotion>,
     mut entries: Query<(&PickingInteraction, &GameEntry, &mut EntryMotion)>,
     mut transforms: Query<&mut UiTransform>,
@@ -97,7 +77,6 @@ pub(super) fn animate_entries(
                 *interaction
             },
             time.delta_secs(),
-            !mouse.pressed(MouseButton::Left) || mouse.just_pressed(MouseButton::Left),
         );
         let phase = time.elapsed_secs() * 0.65 + entry.index as f32 * 1.37;
         if let Ok(mut transform) = transforms.get_mut(entry.art) {

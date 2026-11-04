@@ -59,6 +59,7 @@ async fn uno_room_uses_the_shared_tcp_transport_and_private_hands() {
                     completed_games: 0,
                     game_profiles,
                     identity_signature: signature,
+                    avatar_png: None,
                 }),
             ))
             .await

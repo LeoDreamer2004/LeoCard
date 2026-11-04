@@ -1,8 +1,12 @@
 use super::super::McGuessSession;
+use super::graph;
 use super::support::{join, send, snapshot};
+use crate::ConnectionId;
 use leocard_game_common::PlayerId;
 use leocard_mc_guess::{McGuessRuleSet, McGuessTurnBasedRules};
-use leocard_protocol::{ClientCommand, McGuessCommand, RoomId, SeatId};
+use leocard_protocol::{
+    ClientCommand, GameEvent, McGuessCommand, McGuessEvent, RoomId, SeatId, ServerEvent,
+};
 use std::time::Duration;
 
 fn started_session(guess_seconds: u16) -> McGuessSession {
@@ -87,4 +91,46 @@ fn unlimited_turns_do_not_expire() {
         session.game.as_ref().unwrap().current_player(),
         Some(PlayerId(0))
     );
+}
+
+#[test]
+fn graph_manual_and_final_timeout_skips_are_broadcast_even_on_tag_nodes() {
+    let mut session = graph::started_session(30);
+    let tag = session
+        .game
+        .as_ref()
+        .unwrap()
+        .graph_view()
+        .unwrap()
+        .nodes
+        .iter()
+        .find(|node| node.kind.is_none())
+        .unwrap()
+        .number;
+    send(
+        &mut session,
+        1,
+        ClientCommand::Game(McGuessCommand::SelectNode { number: tag }.into()),
+    );
+    let manual = send(
+        &mut session,
+        1,
+        ClientCommand::Game(McGuessCommand::Skip.into()),
+    );
+    let finished = session.advance_time(Duration::from_secs(30));
+    assert!(snapshot(&finished, 1).round.finished());
+    assert!(snapshot(&finished, 1).round.skipped_players.is_empty());
+    for (deliveries, actor) in [(&manual, PlayerId(0)), (&finished, PlayerId(1))] {
+        for recipient in [ConnectionId(1), ConnectionId(2)] {
+            let notices: Vec<_> = deliveries.iter().filter(|delivery| {
+                delivery.recipient == recipient && matches!(
+                    delivery.message.event,
+                    ServerEvent::GameEvent(GameEvent::McGuess(McGuessEvent::GuessSkipped { player })) if player == actor
+                )
+            }).collect();
+            assert_eq!(notices.len(), 1);
+            assert!(notices[0].message.game_context.is_some());
+        }
+    }
+    assert!(session.advance_time(Duration::from_secs(30)).is_empty());
 }

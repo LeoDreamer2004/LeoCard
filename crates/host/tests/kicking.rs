@@ -33,6 +33,7 @@ fn joined_room(rules: GameRules) -> HostSession {
             completed_games: 10,
             game_profiles: PlayerGameProfiles::default(),
             identity_signature: Vec::new(),
+            avatar_png: None,
         };
         request.identity_signature = key
             .sign(&request.identity_payload(ROOM))

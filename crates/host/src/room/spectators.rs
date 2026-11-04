@@ -2,7 +2,7 @@ use super::{Participant, RoomSession};
 use crate::{ConnectionId, Delivery};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    JoinRequest, PlayerViolation, RejectReason, RequestId, RoomViolation, ServerEvent,
+    AvatarId, JoinRequest, PlayerViolation, RejectReason, RequestId, RoomViolation, ServerEvent,
 };
 
 const MAX_SPECTATORS: usize = 8;
@@ -84,11 +84,6 @@ impl RoomSession {
         self.players.iter_mut().chain(&mut self.spectators)
     }
 
-    pub(super) fn participant_mut(&mut self, id: PlayerId) -> Option<&mut Participant> {
-        self.participants_mut()
-            .find(|player| player.id == id && !player.left)
-    }
-
     pub(crate) fn is_spectator(&self, connection: ConnectionId) -> bool {
         self.spectators
             .iter()
@@ -114,13 +109,18 @@ impl RoomSession {
         }
         let id = PlayerId(FIRST_SPECTATOR_ID + index as u8);
         self.spectator_views.remove(&id);
+        let avatar = request.avatar_png.as_ref().map(|_| {
+            let id = AvatarId(self.next_avatar_id);
+            self.next_avatar_id += 1;
+            id
+        });
         let participant = Participant {
             id,
             profile_id: request.profile_id,
             connection,
             name: request.name.trim().to_owned(),
-            avatar: None,
-            avatar_png: None,
+            avatar,
+            avatar_png: request.avatar_png,
             reconnect_token: request.reconnect_token,
             seat: None,
             ready: false,
@@ -138,7 +138,7 @@ impl RoomSession {
             self.spectators.push(participant);
         }
         self.bump_revision();
-        Ok(self.join_deliveries(connection, request_id, id))
+        Ok(self.new_join_deliveries(connection, request_id, id))
     }
 
     pub(crate) fn disconnect_spectator(&mut self, connection: ConnectionId) -> bool {

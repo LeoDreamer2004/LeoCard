@@ -142,6 +142,7 @@ fn client_message_round_trips_through_tcp_frame() {
                 }),
             },
             identity_signature: vec![9; 64],
+            avatar_png: None,
         }),
     );
     let frame = encode_frame(&message).unwrap();

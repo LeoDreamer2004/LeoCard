@@ -102,6 +102,7 @@ fn join(room: RoomId, index: u8) -> ClientCommand {
         completed_games: 0,
         game_profiles: PlayerGameProfiles::default(),
         identity_signature: Vec::new(),
+        avatar_png: None,
     };
     request.identity_signature = key
         .sign(&join_identity_payload(

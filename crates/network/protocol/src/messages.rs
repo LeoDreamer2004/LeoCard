@@ -65,6 +65,8 @@ pub struct JoinRequest {
     pub completed_games: u32,
     pub game_profiles: PlayerGameProfiles,
     pub identity_signature: Vec<u8>,
+    /// Avatar fixed at room entry; reconnects retain the room identity.
+    pub avatar_png: Option<Vec<u8>>,
 }
 
 impl JoinRequest {
@@ -94,9 +96,6 @@ pub enum ClientCommand {
         unlocked: Vec<String>,
     },
     Join(Box<JoinRequest>),
-    SetAvatar {
-        png: Vec<u8>,
-    },
     SelectSeat {
         seat: SeatId,
     },

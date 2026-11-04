@@ -107,17 +107,18 @@ impl TcpGameClient {
                 break token;
             }
         });
-        let join = model.command(player.identity.join_command(
+        let mut command = player.identity.join_command(
             NETWORK_ROOM_ID,
             player.name.trim(),
             reconnect_token,
             player.reference_points,
             player.completed_games,
             player.game_profiles,
-        ));
-        let avatar = player
-            .avatar_png
-            .map(|png| model.command(ClientCommand::SetAvatar { png }));
+        );
+        if let ClientCommand::Join(request) = &mut command {
+            request.avatar_png = player.avatar_png;
+        }
+        let join = model.command(command);
         let reconnect_join = join.clone();
         let worker_events = Arc::clone(&events);
         let worker = thread::Builder::new()
@@ -154,9 +155,6 @@ impl TcpGameClient {
             reconnect_notice: false,
             _worker: worker,
         };
-        if let Some(avatar) = avatar {
-            let _ = client.commands.try_send(avatar);
-        }
         Ok(client)
     }
 
@@ -197,7 +195,6 @@ impl TcpGameClient {
                 command,
                 ClientCommand::RequestSnapshot
                     | ClientCommand::LeaveRoom
-                    | ClientCommand::SetAvatar { .. }
                     | ClientCommand::PublishCoins { .. }
                     | ClientCommand::PublishAchievements { .. }
                     | ClientCommand::Interact { .. }

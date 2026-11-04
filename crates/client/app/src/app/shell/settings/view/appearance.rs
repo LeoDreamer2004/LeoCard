@@ -1,5 +1,6 @@
 //! Table and game appearance settings.
 
+use super::section::add_settings_separator;
 use super::slider::SettingsSlider;
 use super::toggle::add_settings_toggle;
 use crate::app::presentation::{MUTED, TEXT, TableAppearanceSetting, add_text, add_title};
@@ -22,13 +23,20 @@ impl<'a> TableAppearanceSettings<'a> {
     pub(super) fn render(&self, commands: &mut UiComposer, parent: Entity) {
         let form = self.form;
         let assets = self.assets;
-        for (kind, title) in [
+        for (index, (kind, title)) in [
             (TableSurfaceKind::Cards, "扑克牌桌面"),
             (TableSurfaceKind::Mahjong, "麻将桌面"),
-        ] {
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            if index > 0 {
+                add_settings_separator(commands, parent);
+            }
             add_title(commands, parent, title, 20.0, TEXT, assets);
             self.render_table(commands, parent, kind);
         }
+        add_settings_separator(commands, parent);
         add_title(commands, parent, "MC 竞猜", 20.0, TEXT, assets);
         add_settings_toggle(
             commands,

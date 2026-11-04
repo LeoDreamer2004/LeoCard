@@ -1,6 +1,6 @@
 use super::{RoomActivity, RoomEntrance};
 use crate::achievements::RoomAchievements;
-use crate::{ConnectionId, Delivery, valid_avatar_png};
+use crate::{ConnectionId, Delivery};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
     AvatarId, ChatContent, ChatMessage, ClientCommand, ClientMessage, GameEvent, GameEventContext,
@@ -172,7 +172,6 @@ impl RoomSession {
             && !matches!(
                 message.command,
                 ClientCommand::Join(_)
-                    | ClientCommand::SetAvatar { .. }
                     | ClientCommand::PublishCoins { .. }
                     | ClientCommand::PublishAchievements { .. }
                     | ClientCommand::Ping
@@ -185,30 +184,6 @@ impl RoomSession {
             return Err(Vec::new());
         }
         Ok(())
-    }
-
-    pub(crate) fn set_avatar(
-        &mut self,
-        connection: ConnectionId,
-        png: Vec<u8>,
-    ) -> Result<Vec<Delivery>, RejectReason> {
-        let player = self
-            .player_id(connection)
-            .ok_or(RejectReason::Player(PlayerViolation::NotJoined))?;
-        let participant = self.participant_mut(player).expect("joined participant");
-        if participant.avatar_png.as_deref() == Some(png.as_slice()) {
-            return Ok(Vec::new());
-        }
-        if !valid_avatar_png(&png) {
-            return Err(RejectReason::Player(PlayerViolation::InvalidAvatar));
-        }
-        let avatar = AvatarId(self.next_avatar_id);
-        self.next_avatar_id += 1;
-        let participant = self.participant_mut(player).expect("joined participant");
-        participant.avatar = Some(avatar);
-        participant.avatar_png = Some(png.clone());
-        self.bump_revision();
-        Ok(self.broadcast_event(None, ServerEvent::AvatarData { id: avatar, png }))
     }
 
     pub(crate) fn set_ready(

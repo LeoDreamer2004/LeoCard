@@ -1,3 +1,4 @@
+use super::ShopCategory;
 use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::PageErrorState;
 use crate::app::shell::{
@@ -8,11 +9,10 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
 use leocard_client::{ItemId, PlayerEconomy};
-use leocard_protocol::GameKind;
 
 #[derive(Clone)]
 pub(crate) enum ShopUiAction {
-    SelectCategory(GameKind),
+    SelectCategory(ShopCategory),
     Buy(ItemId),
     ConfirmPurchase { item: ItemId, extend: bool },
 }

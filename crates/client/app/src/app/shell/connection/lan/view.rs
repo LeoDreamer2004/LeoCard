@@ -1,16 +1,17 @@
 use super::{LanDiscovery, LanUiState};
 use crate::app::games::SUPPORTED_GAMES;
-use crate::app::presentation::{MUTED, TEXT, add_avatar, add_text, add_title};
+use crate::app::presentation::{
+    MUTED, PAGE_FRAME_TITLE, TEXT, add_avatar, add_text, add_title, page_frame_skin,
+};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    ConnectionUiAction, UiAction, add_cozy_button, add_cozy_close_button, add_cozy_panel,
-    add_cozy_refresh_button,
+    ConnectionUiAction, UiAction, add_cozy_button, add_cozy_close_button, add_cozy_refresh_button,
 };
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use bevy::ui_widgets::Button;
 use leocard_client::LanRoom;
-use leocard_ui::{UiComposer, UiSceneKey, spawn_node};
+use leocard_ui::{PageFrame, UiComposer, UiSceneKey, spawn_node};
 
 #[derive(Component)]
 pub(crate) struct LanRoomList;
@@ -54,35 +55,24 @@ pub(crate) fn render_lan_rooms(
             BackgroundColor(Color::BLACK.with_alpha(0.55)),
         ),
     );
-    let panel = add_cozy_panel(
+    let mut frame = PageFrame::new(page_frame_skin(assets));
+    frame.node.width = px(640);
+    frame.node.max_width = percent(92);
+    frame.node.height = px(480);
+    frame.node.max_height = percent(85);
+    frame.heading.height = px(48);
+    frame.heading.column_gap = px(10);
+    let frame = frame.mount(commands, overlay);
+    commands.entity(frame.panel).insert(ZIndex(1));
+    let heading = frame.heading;
+    let title = add_title(
         commands,
-        overlay,
-        Node {
-            width: px(640),
-            max_width: percent(92),
-            height: px(480),
-            max_height: percent(85),
-            padding: UiRect::all(px(24)),
-            flex_direction: FlexDirection::Column,
-            row_gap: px(16),
-            ..default()
-        },
+        heading,
+        "局域网联机",
+        24.0,
+        PAGE_FRAME_TITLE,
         assets,
     );
-    commands.entity(panel).insert(ZIndex(1));
-    let heading = spawn_node(
-        commands,
-        panel,
-        Node {
-            width: percent(100),
-            align_items: AlignItems::Center,
-            column_gap: px(10),
-            flex_shrink: 0.0,
-            ..default()
-        },
-        None,
-    );
-    let title = add_title(commands, heading, "局域网联机", 24.0, TEXT, assets);
     commands.entity(title).insert(Node {
         flex_grow: 1.0,
         ..default()
@@ -100,7 +90,7 @@ pub(crate) fn render_lan_rooms(
         assets,
     );
     let list = commands.child(
-        panel,
+        frame.content,
         (
             LanRoomList,
             ScrollPosition(Vec2::new(0.0, state.scroll_y)),

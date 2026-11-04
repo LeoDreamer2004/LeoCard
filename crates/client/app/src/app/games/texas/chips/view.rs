@@ -435,5 +435,8 @@ fn add_chip_sprite(commands: &mut UiComposer, layer: Entity, chip: &TableChip, a
         },
         assets,
     );
-    commands.entity(entity).insert(TexasChipSprite(chip.id));
+    commands.entity(entity).insert((
+        TexasChipSprite(chip.id),
+        BoxShadow::new(Color::BLACK.with_alpha(0.28), px(1), px(2), px(0), px(3.5)),
+    ));
 }

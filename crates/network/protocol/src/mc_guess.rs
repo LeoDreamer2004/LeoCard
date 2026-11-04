@@ -67,6 +67,9 @@ pub enum McGuessEvent {
         name: String,
         running: bool,
     },
+    GuessSkipped {
+        player: PlayerId,
+    },
 }
 
 /// Client-facing rejection reasons, independent of the rules engine error type.

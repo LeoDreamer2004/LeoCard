@@ -7,6 +7,7 @@ pub(super) struct ConnectionInput<'a> {
     value: &'a str,
     field: InputField,
     assets: &'a UiAssets,
+    compact: bool,
 }
 
 impl<'a> ConnectionInput<'a> {
@@ -15,7 +16,13 @@ impl<'a> ConnectionInput<'a> {
             value,
             field,
             assets,
+            compact: false,
         }
+    }
+
+    pub(super) fn compact(mut self) -> Self {
+        self.compact = true;
+        self
     }
 
     pub(super) fn render(self, commands: &mut UiComposer, parent: Entity) {
@@ -28,8 +35,8 @@ impl<'a> ConnectionInput<'a> {
             parent,
             Node {
                 width: percent(100),
-                height: px(45),
-                padding: UiRect::axes(px(13), px(9)),
+                height: px(if self.compact { 34 } else { 45 }),
+                padding: UiRect::axes(px(13), px(if self.compact { 4 } else { 9 })),
                 ..default()
             },
             self.assets.text_input_style(),

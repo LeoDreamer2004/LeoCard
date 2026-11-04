@@ -2,7 +2,9 @@ use super::super::actions::SakuraUiAction;
 use super::super::input::SakuraScroll;
 use super::page::SakuraPage;
 use super::widgets::{panel, row, scroll_list};
-use crate::app::presentation::{MUTED, TEXT, add_text, add_title, card_background_image};
+use crate::app::presentation::{
+    MUTED, PAGE_FRAME_TITLE, TEXT, add_text, add_title, card_background_image,
+};
 use crate::app::shell::{PageTransitionElement, UiAction, add_cozy_button, add_cozy_switch};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -12,21 +14,21 @@ use leocard_ui::UiComposer;
 
 impl SakuraPage<'_> {
     pub(super) fn render_tunnels(&self, commands: &mut UiComposer, body: Entity) {
-        let panel = panel(commands, body, 0.4, self.assets);
+        let frame = panel(commands, body, 0.4, self.assets);
         commands
-            .entity(panel)
+            .entity(frame.panel)
             .insert((PageTransitionElement::left(2), UiTransform::IDENTITY));
-        add_text(
+        add_title(
             commands,
-            panel,
+            frame.heading,
             format!("我的隧道  {}", self.state.tunnels.len()),
             22.0,
-            TEXT,
+            PAGE_FRAME_TITLE,
             self.assets,
         );
         let list = scroll_list(
             commands,
-            panel,
+            frame.content,
             "sakura-tunnels",
             SakuraScroll::Tunnels,
             self.state.tunnel_scroll_y,

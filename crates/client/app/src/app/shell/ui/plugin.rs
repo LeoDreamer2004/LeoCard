@@ -3,7 +3,7 @@ use super::configuration::{ConfigurationScroll, clamp_configuration_scroll};
 use super::switch::{CozySwitchThumb, animate_cozy_switches};
 use super::{
     AmbientBackgroundPlugin, ClickFeedbackPlugin, ConfirmationPlugin, GameHeaderPlugin,
-    ModalAnimationSet, ModalAnimations, PageTransitionPlugin, animate_cozy_modals,
+    LiquidUiPlugin, ModalAnimationSet, ModalAnimations, PageTransitionPlugin, animate_cozy_modals,
     scroll_modal_content, update_cozy_checkbox_hover,
 };
 use crate::app::runtime::ClientUpdateSet;
@@ -17,6 +17,7 @@ impl Plugin for ShellUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             AmbientBackgroundPlugin,
+            LiquidUiPlugin,
             ClickFeedbackPlugin,
             GameHeaderPlugin,
             PageTransitionPlugin,

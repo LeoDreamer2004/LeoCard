@@ -87,16 +87,16 @@ impl PlayerEconomy {
         })
     }
 
-    pub fn equip_frame(&mut self, frame: AvatarFrameId) -> Result<(), String> {
+    pub fn equip_frame(&mut self, frame: AvatarFrameId) -> Result<bool, String> {
         if !self.archive.can_use_frame(frame) {
             return Err("尚未拥有这个头像框".to_owned());
         }
         if self.equipped_frame() == frame {
-            return Ok(());
+            return Ok(false);
         }
         self.transact(|archive| {
             archive.equipped_frame = frame;
-            Ok(())
+            Ok(true)
         })
     }
 

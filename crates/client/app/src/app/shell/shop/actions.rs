@@ -106,7 +106,17 @@ impl UiActionHandler<ShopActionContext<'_>> for ShopUiAction {
             }
             Self::EquipFrame(frame) => {
                 context.ui.dirty = true;
-                context.error.error = context.economy.equip_frame(*frame).err();
+                match context.economy.equip_frame(*frame) {
+                    Ok(changed) => {
+                        context.error.error = None;
+                        if changed {
+                            context.achievements.write(LocalAchievementTrigger(
+                                AchievementTrigger::Personal(PersonalEvent::AvatarFrameChanged),
+                            ));
+                        }
+                    }
+                    Err(error) => context.error.error = Some(error),
+                }
             }
         }
     }

@@ -6,6 +6,7 @@ use std::time::Duration;
 #[derive(Clone, Copy, Debug)]
 pub enum PersonalEvent {
     AvatarSaved,
+    AvatarFrameChanged,
     TableBackgroundChanged,
     ClientUpdated,
     PropPurchased {

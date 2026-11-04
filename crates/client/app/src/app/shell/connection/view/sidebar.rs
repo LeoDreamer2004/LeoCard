@@ -7,7 +7,9 @@ use super::{
     page::ConnectionScreen,
 };
 use crate::app::presentation::{add_avatar, add_text};
-use crate::app::shell::{ConnectionUiAction, InputField, PageTransitionElement, UiAction};
+use crate::app::shell::{
+    ConnectionUiAction, InputField, ModalWheelBlocker, PageTransitionElement, UiAction,
+};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
@@ -38,6 +40,7 @@ impl ConnectionScreen<'_> {
                     ..default()
                 },
                 GlobalZIndex(1400),
+                ModalWheelBlocker,
             ),
         );
         commands.child(

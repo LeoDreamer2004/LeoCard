@@ -120,7 +120,6 @@ impl<'a> ProfileModal<'a> {
         let mut frame = PageFrame::new(page_frame_skin(assets));
         frame.node.width = px(820);
         frame.node.max_width = percent(90);
-        frame.node.height = px(560);
         frame.node.max_height = percent(92);
         frame.heading.height = px(48);
         frame.content.row_gap = px(10);

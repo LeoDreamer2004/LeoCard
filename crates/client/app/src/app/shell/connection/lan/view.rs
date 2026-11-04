@@ -5,7 +5,8 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    ConnectionUiAction, UiAction, add_cozy_button, add_cozy_close_button, add_cozy_refresh_button,
+    ConnectionUiAction, ModalWheelBlocker, UiAction, add_cozy_button, add_cozy_close_button,
+    add_cozy_refresh_button,
 };
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
@@ -37,6 +38,7 @@ pub(crate) fn render_lan_rooms(
                 ..default()
             },
             GlobalZIndex(1250),
+            ModalWheelBlocker,
         ),
     );
     commands.child(

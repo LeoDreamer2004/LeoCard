@@ -1,13 +1,11 @@
 use super::account::cache_account;
 use super::actions::{dispatch_sakura_actions, refresh};
-use super::input::{
-    remember_sakura_scroll, scroll_sakura_lists, submit_sakura_login, sync_sakura_inputs,
-};
+use super::input::{SakuraScroll, remember_sakura_scroll, submit_sakura_login, sync_sakura_inputs};
 use super::state::{SakuraState, TaskMessage, TaskOutcome};
 use super::view::{advance_startup_modal, sync_account_menu, sync_startup_dialog};
 use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::{ClientUpdateSet, PageErrorState};
-use crate::app::shell::{ModalAnimationSet, UiActionSet, UiState};
+use crate::app::shell::{ModalAnimationSet, UiActionSet, UiState, scroll_modal_content};
 use bevy::prelude::*;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
 use leocard_ui::TextInputSet;
@@ -25,7 +23,10 @@ impl Plugin for SakuraFrpPlugin {
                     .chain()
                     .in_set(UiActionSet),
             )
-            .add_systems(Update, scroll_sakura_lists.in_set(ClientUpdateSet::Input))
+            .add_systems(
+                Update,
+                scroll_modal_content::<SakuraScroll>.in_set(ClientUpdateSet::Input),
+            )
             .add_systems(Update, sync_account_menu.in_set(ClientUpdateSet::Input))
             .add_systems(
                 Update,

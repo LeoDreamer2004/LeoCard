@@ -1,15 +1,25 @@
 //! Horizontal archive browsing by wheel or pointer drag, including touch mouse input.
 
 use super::ProfileGameContent;
+use crate::app::shell::ModalWheelScope;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 
 #[derive(Component)]
-pub(super) struct ProfileArchiveEdge(pub Entity);
+pub(super) struct ProfileArchiveEdge {
+    pub viewport: Entity,
+    pub side: ArchiveEdgeSide,
+}
+
+pub(super) enum ArchiveEdgeSide {
+    Left,
+    Right,
+}
 
 pub(super) fn scroll_archive(
     mut wheels: MessageReader<MouseWheel>,
+    scope: ModalWheelScope,
     mouse: Res<ButtonInput<MouseButton>>,
     mut drag: Local<Option<(Entity, f32)>>,
     mut scrolls: Query<
@@ -42,6 +52,12 @@ pub(super) fn scroll_archive(
         *drag = None;
     }
     for (entity, cursor, node, mut position) in &mut scrolls {
+        if !scope.allows(entity) {
+            if drag.is_some_and(|(owner, _)| owner == entity) {
+                *drag = None;
+            }
+            continue;
+        }
         let maximum =
             ((node.content_size().x - node.size().x) * node.inverse_scale_factor()).max(0.0);
         let mut offset = position.x;
@@ -75,9 +91,12 @@ pub(super) fn update_archive_edge(
     mut edges: Query<(&ProfileArchiveEdge, &mut Visibility)>,
 ) {
     for (edge, mut visible) in &mut edges {
-        let more = scrolls.get(edge.0).is_ok_and(|(node, position)| {
+        let more = scrolls.get(edge.viewport).is_ok_and(|(node, position)| {
             let maximum = (node.content_size().x - node.size().x) * node.inverse_scale_factor();
-            maximum - position.x > 1.0
+            match edge.side {
+                ArchiveEdgeSide::Left => position.x > 1.0,
+                ArchiveEdgeSide::Right => maximum - position.x > 1.0,
+            }
         });
         visible.set_if_neq(if more {
             Visibility::Inherited

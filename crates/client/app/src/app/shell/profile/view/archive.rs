@@ -1,5 +1,5 @@
 use super::super::super::UiAction;
-use super::super::scroll::ProfileArchiveEdge;
+use super::super::scroll::{ArchiveEdgeSide, ProfileArchiveEdge};
 use super::super::{
     ProfileGameContent, ProfileGameTab, ProfileGameTabButton, SelectedProfileGameTab, TAB_IDLE,
     blackjack_profile_rows, doudizhu_profile_rows, mahjong_profile_rows, mc_guess_profile_rows,
@@ -16,12 +16,12 @@ use leocard_protocol::PlayerGameProfiles;
 use leocard_ui::{TouchDragTarget, UiComposer, spawn_node};
 
 const TAB_HEIGHT: f32 = 44.0;
-const CONTENT_HEIGHT: f32 = 230.0;
 const CONTENT_PADDING: f32 = 16.0;
 const ROW_HEIGHT: f32 = 24.0;
 const ROW_GAP: f32 = 8.0;
-const ROWS_PER_COLUMN: u16 =
-    ((CONTENT_HEIGHT - 2.0 * CONTENT_PADDING + ROW_GAP) / (ROW_HEIGHT + ROW_GAP)) as u16;
+const ROWS_PER_COLUMN: u16 = 6;
+const CONTENT_HEIGHT: f32 =
+    2.0 * CONTENT_PADDING + ROWS_PER_COLUMN as f32 * (ROW_HEIGHT + ROW_GAP) - ROW_GAP;
 
 pub(super) struct ProfileArchive<'a> {
     game_profiles: &'a PlayerGameProfiles,
@@ -111,27 +111,43 @@ impl<'a> ProfileArchive<'a> {
             ),
         );
         commands.entity(content).init(ScrollPosition::default());
-        commands.child(
-            viewport,
-            (
-                Node {
-                    position_type: PositionType::Absolute,
-                    right: px(0),
-                    top: px(0),
-                    bottom: px(0),
-                    width: px(40),
-                    ..default()
-                },
-                BackgroundGradient::from(LinearGradient::to_right(vec![
-                    ColorStop::percent(background.with_alpha(0.0), 0.0),
-                    ColorStop::percent(background, 100.0),
-                ])),
-                ProfileArchiveEdge(content),
-                Visibility::Hidden,
-                ZIndex(2),
-                Pickable::IGNORE,
-            ),
-        );
+        for side in [ArchiveEdgeSide::Left, ArchiveEdgeSide::Right] {
+            let mut node = Node {
+                position_type: PositionType::Absolute,
+                top: px(0),
+                bottom: px(0),
+                width: px(40),
+                ..default()
+            };
+            let stops = vec![
+                ColorStop::percent(background.with_alpha(0.0), 0.0),
+                ColorStop::percent(background, 100.0),
+            ];
+            let gradient = match side {
+                ArchiveEdgeSide::Left => {
+                    node.left = px(0);
+                    LinearGradient::to_left(stops)
+                }
+                ArchiveEdgeSide::Right => {
+                    node.right = px(0);
+                    LinearGradient::to_right(stops)
+                }
+            };
+            commands.child(
+                viewport,
+                (
+                    node,
+                    BackgroundGradient::from(gradient),
+                    ProfileArchiveEdge {
+                        viewport: content,
+                        side,
+                    },
+                    Visibility::Hidden,
+                    ZIndex(2),
+                    Pickable::IGNORE,
+                ),
+            );
+        }
         let rows = match self.selected_game {
             ProfileGameTab::Blackjack => {
                 blackjack_profile_rows(self.game_profiles.blackjack.as_ref())

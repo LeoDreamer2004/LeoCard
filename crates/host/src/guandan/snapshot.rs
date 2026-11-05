@@ -56,15 +56,22 @@ impl GuandanSession {
                 .winning_player()
                 .zip(game.winning_play())
                 .map(|(player, play)| (player, play.clone())),
-            last_actions: std::array::from_fn(|index| match &game.last_actions()[index] {
-                Some(GuandanAction::Play(cards)) => Some(GuandanPublicAction::Play(cards.clone())),
-                Some(GuandanAction::Pass) => Some(GuandanPublicAction::Pass),
-                _ => None,
-            }),
+            last_actions: public_actions(game.last_actions()),
+            previous_trick: game.previous_trick().map(public_actions),
+            finishing_order: game.finishing_order().to_vec(),
+            level_advance: state.level_advance(),
             result: match game.phase() {
                 GuandanPhase::Finished(result) => Some(result.clone()),
                 _ => None,
             },
         }
     }
+}
+
+fn public_actions(actions: &[Option<GuandanAction>; 4]) -> [Option<GuandanPublicAction>; 4] {
+    std::array::from_fn(|index| match &actions[index] {
+        Some(GuandanAction::Play(cards)) => Some(GuandanPublicAction::Play(cards.clone())),
+        Some(GuandanAction::Pass) => Some(GuandanPublicAction::Pass),
+        _ => None,
+    })
 }

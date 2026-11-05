@@ -12,6 +12,10 @@ pub(crate) enum CardVoice {
     TripleSequence,
     Straight,
     ConsecutivePairs,
+    ThreePairs,
+    SteelPlate,
+    StraightFlush,
+    FourJokers,
     Airplane,
     Bomb,
     HeavenBomb,
@@ -45,11 +49,15 @@ impl CardVoice {
         "big_joker",
     ];
 
-    const FILES: [&str; 16] = [
+    const FILES: [&str; 20] = [
         "triple",
         "triple_sequence",
         "straight",
         "consecutive_pairs",
+        "three_pairs",
+        "steel_plate",
+        "straight_flush",
+        "four_jokers",
         "airplane",
         "bomb",
         "heaven_bomb",
@@ -72,6 +80,10 @@ impl CardVoice {
             Self::TripleSequence => "triple_sequence",
             Self::Straight => "straight",
             Self::ConsecutivePairs => "consecutive_pairs",
+            Self::ThreePairs => "three_pairs",
+            Self::SteelPlate => "steel_plate",
+            Self::StraightFlush => "straight_flush",
+            Self::FourJokers => "four_jokers",
             Self::Airplane => "airplane",
             Self::Bomb => "bomb",
             Self::HeavenBomb => "heaven_bomb",
@@ -200,6 +212,7 @@ pub(crate) fn play_card_voices(
         .is_some_and(|game| match game.kind() {
             GameKind::QiGui523 => preferences.qigui_action_voices,
             GameKind::Doudizhu => preferences.doudizhu_action_voices,
+            GameKind::Guandan => preferences.guandan_action_voices,
             _ => false,
         });
     let sound = voices.pending.take().filter(|_| enabled);

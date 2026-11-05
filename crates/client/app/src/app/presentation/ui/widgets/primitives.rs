@@ -58,6 +58,42 @@ pub(crate) fn add_card_image(
     )
 }
 
+/// 牌面左下角的金色星标，双星竖排以适配手牌重叠。
+pub(crate) fn add_card_stars(
+    commands: &mut UiComposer,
+    card: Entity,
+    count: u8,
+    font_size: f32,
+    inset: f32,
+    assets: &UiAssets,
+) {
+    if count == 0 {
+        return;
+    }
+    let marker = add_text(
+        commands,
+        card,
+        if count == 2 { "★\n★" } else { "★" },
+        font_size,
+        Color::srgb(1.0, 0.76, 0.08),
+        assets,
+    );
+    commands.entity(marker).insert((
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(inset),
+            bottom: px(inset),
+            ..default()
+        },
+        TextShadow {
+            offset: Vec2::new(1.0, 1.0),
+            color: Color::BLACK.with_alpha(0.92),
+        },
+        ZIndex(5),
+        Pickable::IGNORE,
+    ));
+}
+
 /// 托管时覆盖整条手牌与操作区。蒙版本身是唯一可点击目标，因此其后的牌、
 /// 操作按钮和聊天抽屉在这个区域内都不会收到指针事件。
 pub(crate) fn add_auto_play_overlay(commands: &mut UiComposer, parent: Entity, assets: &UiAssets) {

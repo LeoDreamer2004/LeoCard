@@ -1,14 +1,14 @@
-use super::cards::render_card_row;
+use super::cards::PLAY_AREA_WIDTH;
+use super::summary::placement_label;
 use super::table::GuandanTable;
 use crate::app::presentation::{
-    ACCENT, MUTED, PlayerMenuProfile, PlayerPortraitSpec, SeatSide, TEXT, TRICK_AVATAR_SIZE,
-    TRICK_PORTRAIT_WIDTH, TrickSeatLayout, TurnBorderAnimationKey, add_hand_count,
-    add_player_portrait, add_text, add_turn_border_trace_with_radius,
-    attach_start_game_seat_transition, spawn_trick_play_area,
+    PlayerMenuProfile, PlayerPortraitSpec, SeatSide, TEXT, TRICK_AVATAR_SIZE, TRICK_PORTRAIT_WIDTH,
+    TrickSeatLayout, TurnBorderAnimationKey, add_hand_count, add_player_portrait,
+    add_player_role_badge, add_player_role_badge_row, add_turn_border_trace_with_radius,
+    attach_start_game_seat_transition,
 };
 use bevy::prelude::*;
-use leocard_game_common::PlayerId;
-use leocard_protocol::{GameKind, GuandanPlayerView, GuandanPublicAction};
+use leocard_protocol::{GameKind, GuandanPlayerView};
 use leocard_ui::{UiComposer, spawn_node};
 
 impl GuandanTable<'_> {
@@ -18,7 +18,8 @@ impl GuandanTable<'_> {
         table: Entity,
         hand_area: Entity,
         intro: bool,
-    ) {
+    ) -> [Option<Entity>; 4] {
+        let mut portraits = [None; 4];
         let own_seat = self
             .game
             .players
@@ -28,7 +29,7 @@ impl GuandanTable<'_> {
         for player in &self.game.players {
             let relative = (player.seat.0 + 4 - own_seat) % 4;
             if player.player.id == self.game.you {
-                self.portrait(
+                portraits[player.player.id.index()] = Some(self.portrait(
                     commands,
                     hand_area,
                     player,
@@ -41,7 +42,7 @@ impl GuandanTable<'_> {
                         ..default()
                     },
                     intro,
-                );
+                ));
                 if !intro {
                     let area = spawn_node(
                         commands,
@@ -51,7 +52,6 @@ impl GuandanTable<'_> {
                             left: percent(35),
                             right: percent(35),
                             bottom: px(8),
-                            min_height: px(100),
                             align_items: AlignItems::Center,
                             justify_content: JustifyContent::Center,
                             ..default()
@@ -62,13 +62,13 @@ impl GuandanTable<'_> {
                 }
                 continue;
             }
-            let layout = TrickSeatLayout::new(relative, 4, 190.0);
+            let layout = TrickSeatLayout::new(relative, 4, PLAY_AREA_WIDTH);
             let side = layout.side;
             let slot = layout.spawn(commands, table);
             if matches!(side, SeatSide::Right) && !intro {
                 self.play_area(commands, slot, player.player.id, side);
             }
-            self.portrait(
+            portraits[player.player.id.index()] = Some(self.portrait(
                 commands,
                 slot,
                 player,
@@ -83,11 +83,12 @@ impl GuandanTable<'_> {
                     ..default()
                 },
                 intro,
-            );
+            ));
             if !matches!(side, SeatSide::Right) && !intro {
                 self.play_area(commands, slot, player.player.id, side);
             }
         }
+        portraits
     }
 
     fn portrait(
@@ -97,7 +98,7 @@ impl GuandanTable<'_> {
         player: &GuandanPlayerView,
         node: Node,
         intro: bool,
-    ) {
+    ) -> Entity {
         let portrait = add_player_portrait(
             commands,
             parent,
@@ -123,7 +124,7 @@ impl GuandanTable<'_> {
         );
         attach_start_game_seat_transition(commands, portrait.portrait, player.player.id, intro);
         if intro {
-            return;
+            return portrait.avatar_ring;
         }
         if self.game.current == Some(player.player.id) && self.game.result.is_none() {
             add_turn_border_trace_with_radius(
@@ -139,41 +140,15 @@ impl GuandanTable<'_> {
                 TRICK_AVATAR_SIZE,
             );
         }
-        let own_team = self
+        if let Some(place) = self
             .game
-            .players
+            .finishing_order
             .iter()
-            .find(|own| own.player.id == self.game.you)
-            .map(|own| own.seat.0 % 2);
-        let team = player.seat.0 % 2;
-        let badge_label = match own_team {
-            Some(_) if player.player.id == self.game.you => "我方",
-            Some(own) if team == own => "搭档",
-            Some(_) => "对手",
-            None if team == 0 => "一队",
-            None => "二队",
-        };
-        let badge = spawn_node(
-            commands,
-            portrait.portrait,
-            Node {
-                position_type: PositionType::Absolute,
-                right: px(-12),
-                top: px(-6),
-                padding: UiRect::axes(px(5), px(2)),
-                border_radius: BorderRadius::all(px(4)),
-                ..default()
-            },
-            Some(Color::BLACK.with_alpha(0.55)),
-        );
-        add_text(
-            commands,
-            badge,
-            badge_label,
-            13.0,
-            if own_team == Some(team) { ACCENT } else { TEXT },
-            self.assets,
-        );
+            .position(|id| *id == player.player.id)
+        {
+            let row = add_player_role_badge_row(commands, portrait.avatar_ring);
+            add_player_role_badge(commands, row, placement_label(place), self.assets);
+        }
         let count = spawn_node(
             commands,
             portrait.portrait,
@@ -190,29 +165,6 @@ impl GuandanTable<'_> {
             None,
         );
         add_hand_count(commands, count, player.hand_len, self.assets);
-    }
-
-    fn play_area(
-        &self,
-        commands: &mut UiComposer,
-        parent: Entity,
-        player: PlayerId,
-        side: SeatSide,
-    ) {
-        let area = spawn_trick_play_area(commands, parent, side);
-        let action = self
-            .game
-            .last_actions
-            .get(player.index())
-            .and_then(Option::as_ref);
-        match action {
-            Some(GuandanPublicAction::Play(cards)) => {
-                render_card_row(commands, area, cards, self.assets);
-            }
-            Some(GuandanPublicAction::Pass) => {
-                add_text(commands, area, "不出", 28.0, MUTED, self.assets);
-            }
-            None => {}
-        }
+        portrait.avatar_ring
     }
 }

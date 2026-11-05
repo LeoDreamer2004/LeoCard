@@ -1,8 +1,8 @@
 use super::actions::GuandanUiAction;
-use super::state::GuandanUiState;
+use super::state::{GuandanUiState, local_turn, tribute_choice};
 use crate::app::presentation::{
-    GAME_SIDE_CONTROL_SCALE, GameButtonSpec, GameButtonTone, MUTED, add_text,
-    add_textured_game_button,
+    GAME_SIDE_CONTROL_SCALE, GameButtonSpec, GameButtonTone, MUTED, add_no_legal_response_hint,
+    add_text, add_textured_game_button,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -30,13 +30,7 @@ pub(super) fn render(
         },
         None,
     );
-    let active = game.current == Some(game.you)
-        && game.result.is_none()
-        && game
-            .players
-            .iter()
-            .any(|player| player.player.id == game.you && !player.auto_play);
-    if !active {
+    if !local_turn(game) || ui.is_dealing() {
         return;
     }
     let mut button = |label: &str, action: Option<GuandanUiAction>, tone| {
@@ -50,14 +44,11 @@ pub(super) fn render(
     };
     if matches!(game.phase, GuandanPhase::Tribute) {
         let action = game.tribute_action;
-        let selected = ui.selected.len() == 1;
-        let allowed = selected
-            && action.is_some()
-            && (action != Some(GuandanTributeAction::ReturnTribute)
-                || ui
-                    .selected
-                    .iter()
-                    .all(|card| Some(*card) != game.received_tribute));
+        let allowed = ui.selected.len() == 1
+            && ui
+                .selected
+                .iter()
+                .any(|card| tribute_choice(game, *card).is_some());
         button(
             if action == Some(GuandanTributeAction::ReturnTribute) {
                 "还贡"
@@ -71,9 +62,9 @@ pub(super) fn render(
             commands,
             row,
             if action == Some(GuandanTributeAction::ReturnTribute) {
-                "贡牌不可原样还回 优先还 10 以下"
+                "有 10 或以下须从中还牌 否则还最小牌"
             } else {
-                "选择手中最大的牌"
+                "从高亮牌中选择进贡"
             },
             14.0 * GAME_SIDE_CONTROL_SCALE,
             MUTED,
@@ -96,5 +87,13 @@ pub(super) fn render(
             game.table.is_some().then_some(GuandanUiAction::Pass),
             GameButtonTone::Pass,
         );
+        button(
+            "提示",
+            (!ui.hints.is_empty()).then_some(GuandanUiAction::Hint),
+            GameButtonTone::Hint,
+        );
+        if game.table.is_some() && ui.hints.is_empty() {
+            add_no_legal_response_hint(commands, row, "没有牌能压过桌面牌", assets);
+        }
     }
 }

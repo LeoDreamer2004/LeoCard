@@ -1,6 +1,7 @@
 use super::BlackjackTable;
 use crate::app::presentation::{
-    PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, add_ranked_summary,
+    PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, SummaryRows,
+    add_ranked_summary,
 };
 use crate::app::shell::{SummaryActions, add_summary_actions};
 use leocard_blackjack::BlackjackPhase;
@@ -60,11 +61,10 @@ impl BlackjackTable<'_> {
                         ready: view.ready,
                     })
                     .collect(),
-                scores: scores.into_iter().map(Into::into).collect(),
+                rows: SummaryRows::Scores(scores.into_iter().map(Into::into).collect(), "筹码"),
                 reference_changes: &self.game.reference_changes,
                 title: "整场结算",
                 caption: &format!("21 点 · 共 {} 局", self.game.round),
-                score_unit: "筹码",
             },
             self.assets,
             self.summary,

@@ -1,6 +1,6 @@
 use super::state::{
     HeavenBombBackdrop, HeavenBombFlash, HeavenBombParticle, HeavenBombRay, HeavenBombShockRing,
-    HeavenBombTitle, HeavenBombTitleText, PlayEffectKind, PlayEffectState,
+    HeavenBombTitle, HeavenBombTitleText, PlayEffectState,
 };
 use crate::app::presentation::{add_title, ease_out_cubic};
 use crate::app::runtime::UiAssets;
@@ -35,7 +35,7 @@ pub(crate) fn animate_heaven_bomb_play_effect(
     let Some(active) = effect
         .active
         .as_ref()
-        .filter(|active| matches!(active.kind, PlayEffectKind::HeavenBomb))
+        .filter(|active| active.kind.is_heaven_bomb())
     else {
         return;
     };
@@ -114,7 +114,12 @@ pub(crate) fn animate_heaven_bomb_play_effect(
     }
 }
 
-pub(super) fn add_heaven_bomb_effect(commands: &mut UiComposer, root: Entity, assets: &UiAssets) {
+pub(super) fn add_heaven_bomb_effect(
+    commands: &mut UiComposer,
+    root: Entity,
+    label: &str,
+    assets: &UiAssets,
+) {
     let backdrop = spawn_node(
         commands,
         root,
@@ -252,7 +257,7 @@ pub(super) fn add_heaven_bomb_effect(commands: &mut UiComposer, root: Entity, as
         UiTransform::IDENTITY,
         BoxShadow::new(Color::NONE, px(0), px(0), px(0), px(0)),
     ));
-    let text = add_title(commands, title, "天  炸", 58.0, Color::NONE, assets);
+    let text = add_title(commands, title, label, 58.0, Color::NONE, assets);
     commands.entity(text).insert((
         HeavenBombTitleText,
         TextShadow {

@@ -1,6 +1,6 @@
 use super::state::{
     BombEffectBody, BombExplosionFlash, BombExplosionParticle, BombExplosionRing, BombFuseSpark,
-    PlayEffectKind, PlayEffectState,
+    PlayEffectState,
 };
 use crate::app::presentation::{ACCENT, ease_out_cubic};
 use crate::app::runtime::UiAssets;
@@ -33,21 +33,16 @@ pub(crate) fn animate_bomb_play_effect(
         return;
     };
     let elapsed = active.elapsed;
-    let explosion_at = if matches!(active.kind, PlayEffectKind::HeavenBomb) {
+    let explosion_at = if active.kind.is_heaven_bomb() {
         0.44
     } else {
         0.52
     };
-    if matches!(
-        active.kind,
-        PlayEffectKind::Bomb | PlayEffectKind::HeavenBomb
-    ) && elapsed >= explosion_at
-        && !active.bomb_sound_played
-    {
+    if active.kind.is_bomb() && elapsed >= explosion_at && !active.bomb_sound_played {
         commands.spawn((
             AudioPlayer::new(assets.audio.bomb_explosion_sound.clone()),
             PlaybackSettings {
-                volume: Volume::Linear(if matches!(active.kind, PlayEffectKind::HeavenBomb) {
+                volume: Volume::Linear(if active.kind.is_heaven_bomb() {
                     0.78
                 } else {
                     0.5

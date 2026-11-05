@@ -32,7 +32,7 @@ pub(super) fn render_lobby(
         lobby,
         assets,
         avatars,
-        LobbyPageConfig::new("掼蛋规则"),
+        LobbyPageConfig::new("掼蛋配置"),
     );
     add_rule_config_row(
         commands,

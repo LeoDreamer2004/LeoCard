@@ -4,6 +4,7 @@ use leocard_game_common::PlayerId;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GuandanMatchState {
     levels: [u8; 2],
+    level_advance: u8,
     hand_number: u32,
     next_starter: PlayerId,
     dealer_team: u8,
@@ -22,6 +23,7 @@ impl GuandanMatchState {
         }
         Ok(Self {
             levels: [starting_level; 2],
+            level_advance: 0,
             hand_number: 1,
             next_starter: first_starter,
             dealer_team: first_starter.0 % 2,
@@ -33,6 +35,10 @@ impl GuandanMatchState {
 
     pub const fn levels(&self) -> [u8; 2] {
         self.levels
+    }
+
+    pub const fn level_advance(&self) -> u8 {
+        self.level_advance
     }
 
     pub const fn hand_number(&self) -> u32 {
@@ -66,7 +72,9 @@ impl GuandanMatchState {
             return false;
         }
         let was_at_ace = self.levels[team] == 14;
-        self.levels[team] = self.levels[team].saturating_add(result.level_gain).min(14);
+        let next = self.levels[team].saturating_add(result.level_gain).min(14);
+        self.level_advance = next - self.levels[team];
+        self.levels[team] = next;
         self.complete = was_at_ace && result.level_gain == 3;
         self.previous_result = Some(result.clone());
         self.next_starter = result.finishing_order[0];
@@ -80,6 +88,7 @@ impl GuandanMatchState {
             return false;
         }
         self.hand_number = self.hand_number.saturating_add(1);
+        self.level_advance = 0;
         self.hand_finished = false;
         true
     }
@@ -106,6 +115,7 @@ mod tests {
         };
         assert!(match_state.finish_hand(&result));
         assert_eq!(match_state.levels(), [14, 13]);
+        assert_eq!(match_state.level_advance(), 1);
         assert!(!match_state.complete());
         assert!(!match_state.finish_hand(&result));
         assert!(match_state.next_hand());

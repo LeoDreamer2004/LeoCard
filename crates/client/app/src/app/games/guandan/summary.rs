@@ -1,6 +1,6 @@
 use crate::app::presentation::{
     GameSummaryAnimation, PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer,
-    SummaryScore, add_ranked_summary,
+    SummaryRows, add_ranked_summary,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -51,28 +51,28 @@ pub(super) fn render(
     } else {
         &spectator_animation
     };
-    let first = game
-        .players
-        .iter()
-        .find(|player| player.player.id == result.finishing_order[0])
-        .map_or("玩家", |player| player.player.name.as_str());
     let winning_team = if result.winning_team == 0 {
         "一队"
     } else {
         "二队"
     };
+    let next_level = game.team_levels[usize::from(result.winning_team)];
     let caption = if game.match_complete {
+        format!("第 {} 局  {} 双上过 A", game.hand_number, winning_team)
+    } else if game.level_advance == 0 {
         format!(
-            "第 {} 局 {} 双上过 A  {} 头游",
-            game.hand_number, winning_team, first
+            "第 {} 局  {} 获胜  下局仍打 {}",
+            game.hand_number,
+            winning_team,
+            rank_label(next_level),
         )
     } else {
         format!(
-            "第 {} 局 {} 头游  {}当前打 {}",
+            "第 {} 局  {} 升 {} 级  下局打 {}",
             game.hand_number,
-            first,
             winning_team,
-            rank_label(game.team_levels[usize::from(result.winning_team)])
+            game.level_advance,
+            rank_label(next_level),
         )
     };
     let actions = add_ranked_summary(
@@ -94,15 +94,18 @@ pub(super) fn render(
                     ready: player.ready,
                 })
                 .collect(),
-            scores: game
-                .players
-                .iter()
-                .map(|player| SummaryScore {
-                    player: player.player.id,
-                    score: i64::from(game.team_levels[usize::from(player.seat.0 % 2)]),
-                    signed: false,
-                })
-                .collect(),
+            rows: SummaryRows::Placements(
+                result
+                    .finishing_order
+                    .iter()
+                    .enumerate()
+                    .map(|(index, &player)| {
+                        let label = (index < usize::from(result.known_positions))
+                            .then(|| placement_label(index));
+                        (player, label)
+                    })
+                    .collect(),
+            ),
             reference_changes: &game.reference_changes,
             title: if game.match_complete {
                 "整场结算"
@@ -110,7 +113,6 @@ pub(super) fn render(
                 "本局结算"
             },
             caption: &caption,
-            score_unit: "级",
         },
         assets,
         animation,
@@ -157,4 +159,8 @@ pub(super) fn render(
             }
         }
     }
+}
+
+pub(super) fn placement_label(index: usize) -> &'static str {
+    ["头游", "二游", "三游", "末游"][index]
 }

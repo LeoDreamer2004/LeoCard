@@ -3,8 +3,9 @@ use crate::{ConnectionId, Delivery};
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_game_common::PlayerId;
 use leocard_guandan::{
-    GuandanAction, GuandanGameResult, GuandanGameState, GuandanMatchState, GuandanPhase,
-    GuandanRuleSet, auto_play_action, build_deck,
+    GuandanAction, GuandanCard, GuandanGameResult, GuandanGameState, GuandanMatchState,
+    GuandanPhase, GuandanProfileStats, GuandanRuleSet, GuandanSuit, auto_play_action, build_deck,
+    classify,
 };
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameEvent, GameSnapshot, GameViolation, GuandanCommand,
@@ -237,4 +238,69 @@ fn tribute_card_is_visible_only_to_receiver() {
         );
     }
     assert_eq!(session.snapshot_for(PlayerId(128)).received_tribute, None);
+}
+
+#[test]
+fn complete_match_merges_all_hands_and_unknown_places_once() {
+    let mut session = started();
+    let prior = GuandanProfileStats {
+        completed_games: 2,
+        hands_played: 5,
+        ..Default::default()
+    };
+    session.room.players[0].game_profiles.guandan = Some(prior.clone());
+    session.match_state = Some(GuandanMatchState::new(13, PlayerId(0)).unwrap());
+    let double = GuandanGameResult {
+        known_positions: 2,
+        finishing_order: [PlayerId(0), PlayerId(2), PlayerId(1), PlayerId(3)],
+        winning_team: 0,
+        level_gain: 3,
+    };
+    let state = session.match_state.as_mut().unwrap();
+    assert!(state.finish_hand(&double));
+    session
+        .statistics
+        .finish_hand(&double, state.level_advance());
+    assert!(state.next_hand());
+    assert!(state.finish_hand(&double));
+    session
+        .statistics
+        .finish_hand(&double, state.level_advance());
+    let cards = (3..=7)
+        .map(|rank| GuandanCard {
+            deck: 0,
+            suit: GuandanSuit::Spades,
+            rank,
+        })
+        .collect::<Vec<_>>();
+    let play = classify(&cards, 14).unwrap();
+    session.statistics.observe_play(PlayerId(0), &play);
+    session.settle_match();
+    let saved = session.room.players[0]
+        .game_profiles
+        .guandan
+        .clone()
+        .unwrap();
+    assert_eq!(saved.completed_games, prior.completed_games + 1);
+    assert_eq!(saved.hands_played, prior.hands_played + 2);
+    assert_eq!(saved.hands_won, 2);
+    assert_eq!(saved.match_wins, 1);
+    assert_eq!(saved.placement_counts, [2, 0, 0, 0]);
+    assert_eq!(saved.levels_advanced, 1);
+    assert_eq!(saved.double_finish_hands, 2);
+    assert_eq!(saved.straight_flush_plays, 1);
+    let loser = session.room.players[1]
+        .game_profiles
+        .guandan
+        .as_ref()
+        .unwrap();
+    assert_eq!(loser.placement_counts, [0; 4]);
+    assert_eq!(loser.unranked_hands, 2);
+    let completed_games = session.room.players[0].completed_games;
+    session.settle_match();
+    assert_eq!(
+        session.room.players[0].game_profiles.guandan.as_ref(),
+        Some(&saved)
+    );
+    assert_eq!(session.room.players[0].completed_games, completed_games);
 }

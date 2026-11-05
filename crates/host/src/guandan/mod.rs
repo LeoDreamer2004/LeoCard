@@ -1,6 +1,7 @@
 mod lifecycle;
 mod snapshot;
 mod state;
+mod statistics;
 
 pub use state::GuandanSession;
 

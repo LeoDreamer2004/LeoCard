@@ -2,7 +2,7 @@
 
 use crate::app::presentation::{
     ACCENT, AnimatedSummaryScore, DANGER, GameSummaryActions, GameSummaryAnimation,
-    GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, PANEL_ALT, PanelSkin,
+    GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin,
     PlayerMenuProfile, READY, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL,
     SUMMARY_ROW_START_DELAY, SummaryScore, TEXT, add_animated_summary_text, add_ready_avatar,
     animated_summary_value, decorate_panel_skin, sorted_summary_scores, summary_modal_visual,
@@ -23,11 +23,20 @@ pub(crate) struct SummaryPlayer<'a> {
 
 pub(crate) struct RankedSummary<'a> {
     pub players: Vec<SummaryPlayer<'a>>,
-    pub scores: Vec<SummaryScore>,
+    pub rows: SummaryRows,
     pub reference_changes: &'a [PlayerReferenceChange],
     pub title: &'a str,
     pub caption: &'a str,
-    pub score_unit: &'static str,
+}
+
+pub(crate) enum SummaryRows {
+    Scores(Vec<SummaryScore>, &'static str),
+    Placements(Vec<(PlayerId, Option<&'static str>)>),
+}
+
+enum RowValue {
+    Score(SummaryScore, &'static str),
+    Placement(Option<&'static str>),
 }
 
 /// 返回随结算演出显现的操作区，具体按钮由调用方提供。
@@ -38,7 +47,6 @@ pub(crate) fn add_ranked_summary(
     assets: &UiAssets,
     animation: &GameSummaryAnimation,
 ) -> Entity {
-    let scores = &game.scores;
     let reference_changes = game.reference_changes;
     let modal_visual = summary_modal_visual(animation.elapsed);
     let modal = spawn_node(
@@ -115,9 +123,18 @@ pub(crate) fn add_ranked_summary(
         },
         None,
     );
-    let ranked_scores = sorted_summary_scores(scores);
-    for (index, score) in ranked_scores.iter().enumerate() {
-        let Some(player) = game.players.iter().find(|player| player.id == score.player) else {
+    let rows: Vec<_> = match &game.rows {
+        SummaryRows::Scores(scores, unit) => sorted_summary_scores(scores)
+            .into_iter()
+            .map(|score| (score.player, RowValue::Score(score, unit)))
+            .collect(),
+        SummaryRows::Placements(placements) => placements
+            .iter()
+            .map(|(player, label)| (*player, RowValue::Placement(*label)))
+            .collect(),
+    };
+    for (index, (id, value)) in rows.iter().enumerate() {
+        let Some(player) = game.players.iter().find(|player| player.id == *id) else {
             continue;
         };
         let delay = SUMMARY_ROW_START_DELAY + index as f32 * SUMMARY_ROW_INTERVAL;
@@ -173,31 +190,47 @@ pub(crate) fn add_ranked_summary(
             animation.elapsed,
             assets,
         );
-        let displayed = animated_summary_value(animation.elapsed, score.score, delay);
-        let score_text = add_animated_summary_text(
-            commands,
-            row,
-            if score.signed {
-                format!("{displayed:+} {}", game.score_unit)
-            } else {
-                format!("{displayed} {}", game.score_unit)
-            },
-            19.0,
-            if score.signed {
-                if score.score >= 0 { READY } else { DANGER }
-            } else {
-                ACCENT
-            },
-            delay,
-            animation.elapsed,
-            assets,
-        );
-        commands.entity(score_text).insert(AnimatedSummaryScore {
-            target: score.score,
-            signed: score.signed,
-            delay,
-            unit: game.score_unit,
-        });
+        match value {
+            RowValue::Score(score, unit) => {
+                let displayed = animated_summary_value(animation.elapsed, score.score, delay);
+                let score_text = add_animated_summary_text(
+                    commands,
+                    row,
+                    if score.signed {
+                        format!("{displayed:+} {}", unit)
+                    } else {
+                        format!("{displayed} {}", unit)
+                    },
+                    19.0,
+                    if score.signed {
+                        if score.score >= 0 { READY } else { DANGER }
+                    } else {
+                        ACCENT
+                    },
+                    delay,
+                    animation.elapsed,
+                    assets,
+                );
+                commands.entity(score_text).insert(AnimatedSummaryScore {
+                    target: score.score,
+                    signed: score.signed,
+                    delay,
+                    unit,
+                });
+            }
+            RowValue::Placement(label) => {
+                add_animated_summary_text(
+                    commands,
+                    row,
+                    label.unwrap_or("—"),
+                    19.0,
+                    if label.is_some() { ACCENT } else { MUTED },
+                    delay,
+                    animation.elapsed,
+                    assets,
+                );
+            }
+        }
         if let Some(change) = reference_changes
             .iter()
             .find(|change| change.player == player.id)
@@ -216,7 +249,7 @@ pub(crate) fn add_ranked_summary(
     }
 
     let actions_delay = SUMMARY_ROW_START_DELAY
-        + ranked_scores.len() as f32 * SUMMARY_ROW_INTERVAL
+        + rows.len() as f32 * SUMMARY_ROW_INTERVAL
         + SUMMARY_ACTIONS_EXTRA_DELAY;
     let actions = spawn_node(
         commands,

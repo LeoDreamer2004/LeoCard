@@ -4,6 +4,7 @@ use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text, add_title, rule_he
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyButtonVariant, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
+    add_egg_thrower_icon,
 };
 use bevy::prelude::*;
 use leocard_client::{PlayerEconomy, PropId};
@@ -55,10 +56,10 @@ pub(super) fn render_prop(
     add_text(commands, identity, prop.game_label, 13.0, MUTED, assets);
     add_help_tooltip(commands, header, prop.description, rule_help_style(assets));
     let artwork = add_product_preview(commands, card, assets, prop.rarity);
-    add_product_icon(
-        commands,
-        artwork,
-        match id {
+    if id == PropId::AutoEggThrower {
+        add_egg_thrower_icon(commands, artwork, 120.0, assets);
+    } else {
+        let image = match id {
             PropId::ObservationLens => assets.props.observation_lens.clone(),
             PropId::CardCounter
             | PropId::ShengjiCardCounter
@@ -67,9 +68,10 @@ pub(super) fn render_prop(
             PropId::ShengjiMissingSuitCard => assets.props.missing_suit_card.clone(),
             PropId::UnoJumpInDevice => assets.props.uno_jump_in_device.clone(),
             PropId::MahjongFanCalculator => assets.props.mahjong_fan_calculator.clone(),
-        },
-        120.0,
-    );
+            PropId::AutoEggThrower => unreachable!("consumable artwork is composed above"),
+        };
+        add_product_icon(commands, artwork, image, 120.0);
+    }
     let active = economy.active(id);
     let remaining = add_text(
         commands,
@@ -109,6 +111,9 @@ pub(super) fn render_prop(
 }
 
 pub(super) fn remaining_label(economy: &PlayerEconomy, prop: PropId) -> String {
+    if prop.is_consumable() {
+        return format!("已拥有 {} 个", economy.prop_count(prop));
+    }
     let remaining = economy.remaining_seconds(prop);
     if remaining > 0 {
         format!(

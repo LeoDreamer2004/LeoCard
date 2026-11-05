@@ -1,8 +1,8 @@
 use super::{
-    OpponentBadge, PlayerInteractionCooldown, animate_player_interactions,
-    close_interaction_menu_on_outside_click, dispatch_social_actions,
+    AutoEggThrower, OpponentBadge, PlayerInteractionCooldown, animate_player_interactions,
+    close_interaction_menu_on_outside_click, dispatch_social_actions, sync_egg_thrower_counts,
     sync_interaction_cooldown_masks, sync_opponent_badge_popups, sync_player_interactions,
-    sync_spectator_view_menu, tick_player_interaction_cooldown,
+    sync_spectator_view_menu, tick_auto_egg_thrower, tick_player_interaction_cooldown,
 };
 use crate::app::runtime::ClientUpdateSet;
 use crate::app::shell::UiActionSet;
@@ -14,6 +14,7 @@ pub(crate) struct SocialPlugin;
 impl Plugin for SocialPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(PlayerInteractionCooldown::default())
+            .init_resource::<AutoEggThrower>()
             .register_required_components_with::<OpponentBadge, SecondaryPressTarget>(|| {
                 SecondaryPressTarget
             })
@@ -22,6 +23,7 @@ impl Plugin for SocialPlugin {
                 Update,
                 (
                     tick_player_interaction_cooldown,
+                    (tick_auto_egg_thrower, sync_egg_thrower_counts).chain(),
                     close_interaction_menu_on_outside_click,
                     sync_interaction_cooldown_masks,
                     sync_player_interactions,

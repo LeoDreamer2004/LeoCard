@@ -4,10 +4,11 @@ use super::super::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState, dispatch_domain_actions,
     game_command,
 };
-use super::PlayerInteractionCooldown;
-use crate::app::runtime::ClientResource;
+use super::{AutoEggThrower, PlayerInteractionCooldown};
+use crate::app::runtime::{ClientResource, PageErrorState};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use leocard_client::PlayerEconomy;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{ClientCommand, PlayerInteractionKind};
 
@@ -19,6 +20,7 @@ pub(crate) enum SocialUiAction {
         anchor: Entity,
     },
     ToggleAutoPlay,
+    UseAutoEggThrower(PlayerId),
     SendInteraction {
         target: PlayerId,
         kind: PlayerInteractionKind,
@@ -43,6 +45,10 @@ pub(crate) struct SocialActionContext<'w> {
     client: Option<ResMut<'w, ClientResource>>,
     ui: ResMut<'w, UiState>,
     cooldown: ResMut<'w, PlayerInteractionCooldown>,
+    thrower: ResMut<'w, AutoEggThrower>,
+    economy: ResMut<'w, PlayerEconomy>,
+    error: ResMut<'w, PageErrorState>,
+    time: Res<'w, Time<Real>>,
 }
 
 pub(crate) fn dispatch_social_actions(
@@ -71,6 +77,22 @@ impl UiActionHandler<SocialActionContext<'_>> for SocialUiAction {
                     || ui.social.interaction_menu_anchor != Some(*anchor))
                 .then_some(*player);
                 ui.social.interaction_menu_anchor = Some(*anchor);
+            }
+            Self::UseAutoEggThrower(target) => {
+                let result = if let Some(client) = client.as_deref() {
+                    context.thrower.activate(
+                        &client.0,
+                        *target,
+                        context.time.elapsed(),
+                        &mut context.economy,
+                    )
+                } else {
+                    Err("尚未连接房间，无法使用自动砸蛋器".to_owned())
+                };
+                match result {
+                    Ok(()) => ui.social.interaction_menu_open = None,
+                    Err(error) => context.error.error = Some(error),
+                }
             }
             SocialUiAction::SendInteraction { target, kind } => {
                 if cooldown.is_active(*kind) {

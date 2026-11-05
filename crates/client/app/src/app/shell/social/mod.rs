@@ -3,6 +3,7 @@
 mod actions;
 mod animation;
 mod easter_eggs;
+mod egg_thrower;
 mod interaction;
 mod menu;
 mod plugin;
@@ -12,6 +13,7 @@ mod state;
 
 pub(crate) use actions::*;
 pub(crate) use animation::*;
+pub(crate) use egg_thrower::*;
 pub(crate) use interaction::*;
 pub(crate) use menu::*;
 pub(super) use plugin::*;

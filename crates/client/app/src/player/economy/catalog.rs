@@ -17,6 +17,7 @@ pub enum PropId {
     #[doc(hidden)]
     DoudizhuCardCounter,
     CardCounter,
+    AutoEggThrower,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -103,13 +104,18 @@ impl ShopAvatarFrame {
 }
 
 impl PropId {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::ObservationLens,
         Self::CardCounter,
         Self::ShengjiMissingSuitCard,
         Self::UnoJumpInDevice,
         Self::MahjongFanCalculator,
+        Self::AutoEggThrower,
     ];
+
+    pub const fn is_consumable(self) -> bool {
+        matches!(self, Self::AutoEggThrower)
+    }
 
     pub(crate) const fn canonical(self) -> Self {
         match self {
@@ -122,6 +128,15 @@ impl PropId {
 
     pub const fn definition(self) -> ShopProp {
         match self {
+            Self::AutoEggThrower => ShopProp {
+                id: self,
+                game_label: "通用消耗品",
+                name: "自动砸蛋器",
+                description: "消耗一个，向选中的玩家在10秒内连续砸出100个鸡蛋。\n在头像互动菜单中使用，可重复购买并永久保存数量。",
+                rarity: Fine,
+                price: 100,
+                duration_seconds: 0,
+            },
             Self::CardCounter
             | Self::ShengjiCardCounter
             | Self::QiGui523CardCounter

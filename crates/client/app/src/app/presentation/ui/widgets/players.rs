@@ -7,7 +7,7 @@ use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction, OpponentBadge,
     PlayerAvatarAnchor, PlayerProfilePage, SocialUiAction, UiAction, add_cozy_button,
-    add_cozy_panel, reference_level,
+    add_cozy_panel, add_egg_thrower_button, reference_level,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -144,7 +144,7 @@ pub(crate) fn add_interaction_menu(
         position_type: PositionType::Absolute,
         left: percent(50),
         top: percent(100),
-        width: px(304),
+        width: px(376),
         min_height: px(145),
         padding: UiRect {
             left: px(12),
@@ -305,6 +305,7 @@ pub(crate) fn add_interaction_menu(
             );
         }
     }
+    add_egg_thrower_button(commands, actions, target, assets);
     menu
 }
 

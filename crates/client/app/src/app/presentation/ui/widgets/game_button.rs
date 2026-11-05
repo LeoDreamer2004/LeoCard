@@ -8,7 +8,6 @@ use leocard_ui::{TextureButton, UiComposer, sliced_image};
 
 #[derive(Clone, Copy)]
 pub(crate) enum GameButtonImageMode {
-    Stretch,
     Sliced { border: f32, corner_scale: f32 },
 }
 
@@ -44,9 +43,8 @@ impl<'a> GameButtonSpec<'a> {
         self.width *= scale;
         self.height *= scale;
         self.font_size *= scale;
-        if let GameButtonImageMode::Sliced { corner_scale, .. } = &mut self.image_mode {
-            *corner_scale *= scale;
-        }
+        let GameButtonImageMode::Sliced { corner_scale, .. } = &mut self.image_mode;
+        *corner_scale *= scale;
         self
     }
 
@@ -104,7 +102,6 @@ pub(crate) fn add_textured_game_button(
     spec: GameButtonSpec<'_>,
 ) -> (Entity, Entity) {
     let image = |texture: &Handle<Image>| match spec.image_mode {
-        GameButtonImageMode::Stretch => ImageNode::new(texture.clone()),
         GameButtonImageMode::Sliced {
             border,
             corner_scale,

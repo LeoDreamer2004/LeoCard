@@ -80,6 +80,7 @@ impl TexasGameState {
         report.won_pot = pots.won_pot;
         report.won_side_pot_chips = pots.won_side_pot_chips;
         report.tied_winners = pots.tied_winners;
+        report.lost_to_lower_unpaired_hand = pots.lost_to_lower_unpaired_hand;
         for index in pots.defeated {
             let other = &self.players()[index];
             report

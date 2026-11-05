@@ -1,6 +1,5 @@
-use crate::{TexasEvaluatedHand, TexasGameState, TexasHandResult};
+use crate::{TexasEvaluatedHand, TexasGameState, TexasHandResult, TexasRank};
 use leocard_game_common::PlayerId;
-
 use std::collections::HashSet;
 
 #[derive(Default)]
@@ -10,6 +9,7 @@ pub(super) struct PotStatistics {
     pub won_side_pot_chips: u32,
     pub tied_winners: u8,
     pub defeated: HashSet<usize>,
+    pub lost_to_lower_unpaired_hand: bool,
 }
 
 impl PotStatistics {
@@ -39,6 +39,23 @@ impl PotStatistics {
                     < 2
                 {
                     continue;
+                }
+                let own = &game.players()[player.index()];
+                if !own.folded() && own.committed_total() >= level {
+                    pots.lost_to_lower_unpaired_hand |= award.winners.iter().any(|winner| {
+                        let other = &game.players()[winner.index()];
+                        let [first, second] = other.hole_cards() else {
+                            return false;
+                        };
+                        first.rank() != second.rank()
+                            && first.rank() < TexasRank::Ace
+                            && second.rank() < TexasRank::Ace
+                            && evaluated[player.index()]
+                                .zip(evaluated[winner.index()])
+                                .is_some_and(|(own, opponent)| {
+                                    own.cmp_with_rules(&opponent, game.rules()).is_lt()
+                                })
+                    });
                 }
                 let Some(winner_index) = award.winners.iter().position(|winner| *winner == player)
                 else {

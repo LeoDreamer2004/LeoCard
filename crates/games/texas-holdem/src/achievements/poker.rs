@@ -191,6 +191,17 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         1
     ),
     texas!(
+        "aces_cracked_by_unpaired",
+        "现在谁才是冤家？",
+        Silver,
+        "持口袋AA翻前全下，在摊牌的同一底池中输给两张均低于A且点数不同的底牌",
+        |event| hand(event, |facts| facts.showdown
+            && pair(facts, TexasRank::Ace)
+            && facts.preflop_all_in
+            && facts.lost_to_lower_unpaired_hand),
+        1
+    ),
+    texas!(
         "river_value",
         "河牌收租",
         Silver,

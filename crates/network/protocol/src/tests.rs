@@ -12,8 +12,23 @@ use leocard_qigui523::{QiGui523ProfileStats, QiGuiRuleSet};
 use leocard_shengji::{
     ShengjiCard, ShengjiComponent, ShengjiProfileStats, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
 };
-use leocard_texas_holdem::{TexasProfileStats, TexasRuleSet};
+use leocard_texas_holdem::{TexasHandStatistics, TexasProfileStats, TexasRuleSet};
 use leocard_uno::UnoProfileStats;
+
+#[test]
+fn private_texas_aces_cracked_statistic_round_trips_through_protocol_codec() {
+    for lost_to_lower_unpaired_hand in [false, true] {
+        let event = TexasEvent::HandAnalyzed {
+            player: PlayerId(0),
+            statistics: Box::new(TexasHandStatistics {
+                lost_to_lower_unpaired_hand,
+                ..Default::default()
+            }),
+        };
+        let decoded: TexasEvent = decode_frame(&encode_frame(&event).unwrap()).unwrap();
+        assert_eq!(decoded, event);
+    }
+}
 
 #[test]
 fn graph_combo_targets_and_success_counts_round_trip_through_protocol_codec() {

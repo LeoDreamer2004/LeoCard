@@ -54,6 +54,8 @@ pub struct TexasHandStatistics {
     pub defeated_pocket_pairs: u32,
     pub defeated_preflop_all_in_pairs: u32,
     pub preflop_all_in: bool,
+    /// Lost a contested pot to a strictly stronger two-card, unpaired hand below ace.
+    pub lost_to_lower_unpaired_hand: bool,
     /// Categories folded after this player's final river all-in raise.
     pub river_all_in_folded_categories: Vec<TexasHandCategory>,
     pub final_stack: u32,

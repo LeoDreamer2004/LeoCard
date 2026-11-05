@@ -145,6 +145,7 @@ pub(crate) fn load_ui_assets(
             #[cfg(not(target_os = "android"))]
             network_icon: asset_server.load("icons/network.png"),
             settings_icon: asset_server.load("icons/settings.png"),
+            music_icon: asset_server.load("icons/music.png"),
             exit_icon: asset_server.load("icons/exit-room.png"),
             slider: asset_server.load("ui/home/slider.png"),
             slider_highlighted: asset_server.load("ui/home/slider_highlighted.png"),

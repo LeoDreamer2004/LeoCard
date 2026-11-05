@@ -86,6 +86,7 @@ pub(crate) struct HomeAssets {
     #[cfg(not(target_os = "android"))]
     pub network_icon: Handle<Image>,
     pub settings_icon: Handle<Image>,
+    pub music_icon: Handle<Image>,
     pub exit_icon: Handle<Image>,
     pub slider: Handle<Image>,
     pub slider_highlighted: Handle<Image>,

@@ -93,7 +93,7 @@ fn animate_items(
         let Ok(motion) = headers.get(parent.parent()) else {
             continue;
         };
-        let progress = (motion.progress * 1.24 - item.slot as f32 * 0.12).clamp(0.0, 1.0);
+        let progress = (motion.progress * 1.36 - item.slot as f32 * 0.12).clamp(0.0, 1.0);
         if item.applied == Some(progress) {
             continue;
         }

@@ -3,7 +3,7 @@ use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::add_cozy_panel;
 use bevy::picking::Pickable;
-use bevy::{prelude::*, ui::RelativeCursorPosition};
+use bevy::prelude::*;
 use leocard_ui::{DraggableWindow, DraggableWindowOwner, UiComposer, WindowDragHandle, spawn_node};
 use std::marker::PhantomData;
 
@@ -52,10 +52,9 @@ pub(crate) fn add_card_counter_window<T: DraggableWindowOwner>(
         },
         None,
     );
-    commands.entity(handle).insert((
-        WindowDragHandle::<T>(PhantomData),
-        RelativeCursorPosition::default(),
-    ));
+    commands
+        .entity(handle)
+        .insert(WindowDragHandle::<T>(PhantomData));
     let title = add_title(commands, handle, "记牌器", 13.0, TEXT, assets);
     commands.entity(title).insert(Pickable::IGNORE);
     for cells in rows {

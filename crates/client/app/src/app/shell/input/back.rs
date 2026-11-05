@@ -1,6 +1,6 @@
 use crate::app::shell::{
-    ConfirmationDialog, ConfirmationUiAction, ConnectionUiAction, NavigationUiAction, PageMotion,
-    PressedUiAction, UiAction, UiState,
+    ConfirmationDialog, ConfirmationUiAction, ConnectionUiAction, MusicMotion, NavigationUiAction,
+    PageMotion, PressedUiAction, UiAction, UiState,
 };
 use bevy::prelude::*;
 
@@ -32,6 +32,7 @@ pub(super) fn handle_escape(
     confirmation: Res<ConfirmationDialog>,
     page_motion: Res<PageMotion>,
     mut actions: MessageWriter<PressedUiAction>,
+    music: Res<MusicMotion>,
 ) {
     if !keyboard.just_pressed(KeyCode::Escape)
         || page_motion.active()
@@ -40,11 +41,17 @@ pub(super) fn handle_escape(
             || ui.achievements.open
             || ui.lan.open
             || ui.home.identity_open
-            || ui.home.join_open)
+            || ui.home.join_open
+            || music.target_open)
     {
         return;
     }
-    if let Some(action) = back_action(&ui, &confirmation) {
+    let action = if music.target_open && !confirmation.is_open() {
+        Some(UiAction::Navigation(NavigationUiAction::ToggleMusic))
+    } else {
+        back_action(&ui, &confirmation)
+    };
+    if let Some(action) = action {
         if matches!(&action, UiAction::Navigation(_)) {
             ui.dirty = true;
         }

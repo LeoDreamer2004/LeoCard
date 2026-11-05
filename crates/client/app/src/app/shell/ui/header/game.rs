@@ -45,6 +45,12 @@ impl Header<'_> {
                 CozyButtonVariant::Neutral,
             ),
             (
+                "音乐",
+                UiAction::Navigation(NavigationUiAction::ToggleMusic),
+                self.assets.home.music_icon.clone(),
+                CozyButtonVariant::Neutral,
+            ),
+            (
                 "商店",
                 UiAction::Navigation(NavigationUiAction::ToggleShop),
                 self.assets.shop.icon.clone(),

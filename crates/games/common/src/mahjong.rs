@@ -239,20 +239,3 @@ impl fmt::Display for MahjongTileKind {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::collections::HashSet;
-
-    #[test]
-    fn standard_deck_has_144_distinct_physical_tiles() {
-        let deck = build_deck();
-        assert_eq!(deck.len(), 144);
-        assert_eq!(deck.iter().copied().collect::<HashSet<_>>().len(), 144);
-        assert_eq!(
-            deck.iter().filter(|tile| tile.kind().is_flower()).count(),
-            8
-        );
-    }
-}

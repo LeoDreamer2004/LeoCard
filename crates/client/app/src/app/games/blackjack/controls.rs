@@ -153,31 +153,23 @@ impl BlackjackTable<'_> {
             ),
             (true, amount.saturating_add(step).min(available.maximum_bet)),
         ] {
-            let (normal, hovered) = if increase {
-                (
-                    &self.assets.controls.adjust_right,
-                    &self.assets.controls.adjust_right_hover,
-                )
-            } else {
-                (
-                    &self.assets.controls.adjust_left,
-                    &self.assets.controls.adjust_left_hover,
-                )
-            };
             add_textured_game_button(
                 commands,
                 row,
                 self.assets,
                 GameButtonSpec {
-                    label: "",
+                    label: if increase { "+" } else { "−" },
                     action: (next != amount)
                         .then_some(UiAction::Blackjack(BlackjackUiAction::SetBet(next))),
-                    normal,
-                    hovered,
+                    normal: &self.assets.controls.game_play_button,
+                    hovered: &self.assets.controls.game_play_button_hover,
                     width: 44.0 * BlackjackSeatLayout::ACTION_SCALE,
                     height: 50.0 * BlackjackSeatLayout::ACTION_SCALE,
                     font_size: 17.0 * BlackjackSeatLayout::ACTION_SCALE,
-                    image_mode: GameButtonImageMode::Stretch,
+                    image_mode: GameButtonImageMode::Sliced {
+                        border: 30.0,
+                        corner_scale: 0.42 * BlackjackSeatLayout::ACTION_SCALE,
+                    },
                 },
             );
             if !increase {

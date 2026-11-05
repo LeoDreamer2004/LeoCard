@@ -43,8 +43,16 @@ impl GameScreen for TexasScreen<'_> {
     }
 
     fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
-        match client.map(|client| client.0.model().phase()) {
-            Some(ClientPhaseRef::Playing(GameSnapshot::Texas(game))) => self.ui.reconcile(game),
+        let Some(client) = client else {
+            self.ui.clear();
+            return;
+        };
+        let model = client.0.model();
+        match model.phase() {
+            ClientPhaseRef::Playing(GameSnapshot::Texas(game)) => {
+                self.ui
+                    .reconcile(game, model.latest_revision(), model.rejection_serial())
+            }
             _ => self.ui.clear(),
         }
     }

@@ -1,7 +1,6 @@
 //! 德州下注按钮的持续按压输入。
 
 use super::{TexasRaiseAdjustButton, TexasRaiseHoldState, TexasUiState};
-use crate::app::shell::UiState;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
@@ -19,7 +18,6 @@ pub(crate) fn handle_texas_raise_button_hold(
     >,
     mut hold: ResMut<TexasRaiseHoldState>,
     mut game_ui: ResMut<TexasUiState>,
-    mut ui: ResMut<UiState>,
 ) {
     if mouse.just_pressed(MouseButton::Left) {
         if let Some((_, button)) = changed
@@ -60,7 +58,7 @@ pub(crate) fn handle_texas_raise_button_hold(
             break;
         }
         game_ui.raise_to = next;
-        ui.dirty = true;
+        game_ui.raise_input_valid = true;
         hold.next_repeat += if hold.elapsed >= 1.35 { 0.065 } else { 0.11 };
     }
 }

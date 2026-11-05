@@ -59,6 +59,9 @@ pub struct GuandanSnapshot {
     pub played_cards: Vec<GuandanCard>,
     pub table: Option<(PlayerId, GuandanPlay)>,
     pub last_actions: [Option<GuandanPublicAction>; 4],
+    pub previous_trick: Option<[Option<GuandanPublicAction>; 4]>,
+    pub finishing_order: Vec<PlayerId>,
+    pub level_advance: u8,
     pub result: Option<GuandanGameResult>,
 }
 
@@ -113,7 +116,7 @@ impl From<GuandanGameError> for GuandanViolation {
 impl fmt::Display for GuandanViolation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidRules => f.write_str("掼蛋规则配置无效"),
+            Self::InvalidRules => f.write_str("掼蛋配置无效"),
             Self::InvalidDeck => f.write_str("掼蛋牌堆无效"),
             Self::InvalidPlayer => f.write_str("玩家无效"),
             Self::NotYourTurn => f.write_str("还没轮到你"),

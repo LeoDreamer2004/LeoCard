@@ -3,6 +3,7 @@ use leocard_achievements::TrophyCounts;
 use leocard_blackjack::BlackjackProfileStats;
 use leocard_doudizhu::DoudizhuProfileStats;
 use leocard_game_common::PlayerId;
+use leocard_guandan::GuandanProfileStats;
 use leocard_mc_guess::{
     McGuessCategoryCount, McGuessCategoryStatistics, McGuessGameState, McGuessGraphView,
     McGuessMode, McGuessProfileStats, McGuessRuleSet,
@@ -133,6 +134,11 @@ fn client_message_round_trips_through_tcp_frame() {
                     eggs_received: 23,
                 }),
                 mahjong: None,
+                guandan: Some(GuandanProfileStats {
+                    completed_games: 3,
+                    hands_played: 12,
+                    ..Default::default()
+                }),
                 doudizhu: Some(DoudizhuProfileStats {
                     completed_games: 4,
                     total_match_score: -12,

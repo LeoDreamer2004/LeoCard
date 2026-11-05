@@ -50,6 +50,7 @@ pub(crate) struct AppearancePreferences {
     pub texas_action_voices: bool,
     pub qigui_action_voices: bool,
     pub doudizhu_action_voices: bool,
+    pub guandan_action_voices: bool,
 }
 
 impl AppearancePreferences {
@@ -189,6 +190,7 @@ impl PreferenceResources {
                 texas_action_voices: saved.global.texas_action_voices,
                 qigui_action_voices: saved.global.qigui_action_voices,
                 doudizhu_action_voices: saved.global.doudizhu_action_voices,
+                guandan_action_voices: saved.global.guandan_action_voices,
             },
             host_rules: HostRulePreferences {
                 host_rules: normalize_rules(saved.games.qigui523.host_rules),
@@ -397,6 +399,7 @@ pub(crate) fn save_appearance_preferences(
     saved.global.texas_action_voices = appearance.texas_action_voices;
     saved.global.qigui_action_voices = appearance.qigui_action_voices;
     saved.global.doudizhu_action_voices = appearance.doudizhu_action_voices;
+    saved.global.guandan_action_voices = appearance.guandan_action_voices;
     save_global_preferences(&saved.global)
 }
 

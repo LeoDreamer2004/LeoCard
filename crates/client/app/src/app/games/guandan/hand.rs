@@ -1,5 +1,6 @@
 use super::actions::GuandanUiAction;
-use super::state::GuandanUiState;
+use super::cards::add_level_marker;
+use super::state::{GuandanUiState, local_turn, tribute_choice};
 use crate::app::presentation::{
     ACCENT, CardAnimationState, CardSize, GAME_SIDE_CONTROL_SCALE, HandCardHighlight,
     HandCardLayout, SilentButton, add_text, hand_card_pose_for_layout,
@@ -10,8 +11,10 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use bevy::ui_widgets::Button;
-use leocard_guandan::GuandanCard;
+use leocard_guandan::{GuandanCard, rank_strength};
+use leocard_protocol::GuandanSnapshot;
 use leocard_ui::{CustomButtonMotion, UiComposer};
+use std::cmp::Reverse;
 
 #[derive(Component)]
 #[require(CustomButtonMotion, SilentButton)]
@@ -46,15 +49,12 @@ pub(super) fn hand_layout(index: usize, hand_len: usize) -> HandCardLayout {
 pub(super) fn render_hand(
     commands: &mut UiComposer,
     parent: Entity,
-    cards: &[GuandanCard],
-    level: u8,
-    received_tribute: Option<GuandanCard>,
+    game: &GuandanSnapshot,
     ui: &GuandanUiState,
     assets: &UiAssets,
 ) {
-    let mut cards = cards.to_vec();
-    cards.sort_by_key(|card| (card.rank == level, card.rank, card.suit, card.deck));
-    cards.reverse();
+    let cards = sorted_hand(game);
+    let choosing_tribute = local_turn(game) && game.tribute_action.is_some();
     let (width, height) = CardSize::ShengjiHand.dimensions();
     let reveal = hand_layout(0, cards.len()).reveal;
     for (index, card) in cards.iter().enumerate() {
@@ -115,18 +115,35 @@ pub(super) fn render_hand(
                 },
                 highlight.outline(),
                 highlight.shadow(),
+                if animation.dealing && animation.deal_elapsed < 0.0 {
+                    Visibility::Hidden
+                } else {
+                    Visibility::Inherited
+                },
                 ZIndex(index as i32),
                 Pickable::IGNORE,
             ),
         );
-        if received_tribute == Some(*card) {
-            let tag = add_text(commands, face, "贡", 14.0, ACCENT, assets);
+        add_level_marker(commands, face, *card, game.level, assets);
+        let tribute_label = if game.received_tribute == Some(*card) {
+            Some("贡")
+        } else if choosing_tribute && tribute_choice(game, *card).is_some() {
+            Some("可选")
+        } else {
+            None
+        };
+        if let Some(label) = tribute_label {
+            let tag = add_text(commands, face, label, 12.0, ACCENT, assets);
             commands.entity(tag).entry::<Node>().and_modify(|mut node| {
                 node.position_type = PositionType::Absolute;
-                node.right = px(3);
-                node.top = px(1);
+                node.left = px(3);
+                node.bottom = px(24);
             });
-            commands.entity(tag).insert(Pickable::IGNORE);
+            commands.entity(tag).insert((
+                TextLayout::no_wrap(),
+                BackgroundColor(Color::BLACK.with_alpha(0.86)),
+                Pickable::IGNORE,
+            ));
         }
         commands.child(
             face,
@@ -146,4 +163,17 @@ pub(super) fn render_hand(
             ),
         );
     }
+}
+
+pub(super) fn sorted_hand(game: &GuandanSnapshot) -> Vec<GuandanCard> {
+    let mut cards = game.your_hand.clone();
+    cards.sort_by_key(|card| {
+        Reverse((
+            rank_strength(card.rank, game.level),
+            card.is_wild(game.level),
+            card.suit,
+            card.deck,
+        ))
+    });
+    cards
 }

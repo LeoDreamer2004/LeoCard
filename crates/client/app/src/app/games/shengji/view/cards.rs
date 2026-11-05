@@ -1,7 +1,8 @@
 use super::super::ShengjiFailedThrowCard;
-use crate::app::presentation::{CardSize, GAME_SIDE_CONTROL_SCALE, HAND_CARD_REVEAL, add_text};
+use crate::app::presentation::{
+    CardSize, GAME_SIDE_CONTROL_SCALE, HAND_CARD_REVEAL, add_card_stars,
+};
 use crate::app::runtime::UiAssets;
-use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{ShengjiSnapshot, ShengjiThrowFailureStage};
 use leocard_shengji::{ShengjiCard, ShengjiRank, ShengjiSuit, ShengjiTrump};
@@ -133,36 +134,11 @@ pub(super) fn add_shengji_trump_stars(
     assets: &UiAssets,
 ) {
     let count = shengji_trump_star_count(card, trump);
-    if count == 0 {
-        return;
-    }
-    let (left, bottom, font_size) = match size {
-        ShengjiCardSize::Hand => (4.0, 4.0, 14.0),
-        ShengjiCardSize::Seat => (4.0, 4.0, 14.0),
-        ShengjiCardSize::Score => (2.0, 2.0, 8.0),
+    let (inset, font_size) = match size {
+        ShengjiCardSize::Hand | ShengjiCardSize::Seat => (4.0, 14.0),
+        ShengjiCardSize::Score => (2.0, 8.0),
     };
-    let marker = add_text(
-        commands,
-        card_entity,
-        if count == 2 { "★\n★" } else { "★" }.to_owned(),
-        font_size,
-        Color::srgb(1.0, 0.76, 0.08),
-        assets,
-    );
-    commands.entity(marker).insert((
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(left),
-            bottom: px(bottom),
-            ..default()
-        },
-        TextShadow {
-            offset: Vec2::new(1.0, 1.0),
-            color: Color::BLACK.with_alpha(0.92),
-        },
-        ZIndex(5),
-        Pickable::IGNORE,
-    ));
+    add_card_stars(commands, card_entity, count, font_size, inset, assets);
 }
 
 pub(crate) fn shengji_trump_star_count(card: ShengjiCard, trump: Option<ShengjiTrump>) -> u8 {

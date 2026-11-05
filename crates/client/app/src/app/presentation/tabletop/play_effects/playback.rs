@@ -33,7 +33,7 @@ pub(crate) fn advance_play_effect(
     active.elapsed += time.delta_secs();
     let elapsed = active.elapsed;
     let duration: f32 = match active.kind {
-        PlayEffectKind::HeavenBomb => 2.25,
+        PlayEffectKind::HeavenBomb | PlayEffectKind::FourJokers => 2.25,
         PlayEffectKind::Bomb => 1.35,
         PlayEffectKind::Airplane => 1.38,
         _ => 1.18,

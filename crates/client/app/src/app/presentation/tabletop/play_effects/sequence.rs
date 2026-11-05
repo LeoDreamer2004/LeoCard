@@ -14,7 +14,12 @@ use std::f32::consts;
 pub(crate) fn animate_sequence_play_effect(
     effect: Res<PlayEffectState>,
     mut visuals: ParamSet<(
-        Query<(&SequenceEffectCard, &mut UiTransform, &mut ImageNode)>,
+        Query<(
+            &SequenceEffectCard,
+            &mut UiTransform,
+            &mut ImageNode,
+            &mut Visibility,
+        )>,
         Query<(
             &SequenceGuideSegment,
             &mut UiTransform,
@@ -44,7 +49,7 @@ pub(crate) fn animate_sequence_play_effect(
     } else {
         ((elapsed - 0.68) / 0.36).clamp(0.0, 1.0)
     };
-    for (card, mut transform, mut image) in &mut visuals.p0() {
+    for (card, mut transform, mut image, mut visibility) in &mut visuals.p0() {
         let progress = ((elapsed - card.index as f32 * 0.055) / 0.24).clamp(0.0, 1.0);
         let reveal = ease_out_cubic(progress);
         transform.translation = Val2::px(-34.0 * (1.0 - reveal), -5.0 * (1.0 - reveal));
@@ -52,6 +57,11 @@ pub(crate) fn animate_sequence_play_effect(
         // These are the real cards in the player's play area, so they stay visible
         // after the sweep instead of fading like the old table-centre duplicate did.
         image.color = Color::srgba(1.0, 1.0, 1.0, reveal);
+        visibility.set_if_neq(if reveal > 0.0 {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        });
     }
     for (segment, mut transform, mut background) in &mut visuals.p1() {
         let sweep = ((elapsed - 0.08) / 0.40).clamp(0.0, 1.0);

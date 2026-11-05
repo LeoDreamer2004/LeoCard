@@ -1,6 +1,6 @@
 use crate::app::presentation::{
     GameSummaryAnimation, PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer,
-    SummaryScore, add_ranked_summary,
+    SummaryRows, SummaryScore, add_ranked_summary,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -90,13 +90,18 @@ pub(super) fn render(
                     ready: player.ready,
                 })
                 .collect(),
-            scores: game
-                .players
-                .iter()
-                .map(|player| {
-                    SummaryScore::signed(player.player.id, scores[usize::from(player.player.id.0)])
-                })
-                .collect(),
+            rows: SummaryRows::Scores(
+                game.players
+                    .iter()
+                    .map(|player| {
+                        SummaryScore::signed(
+                            player.player.id,
+                            scores[usize::from(player.player.id.0)],
+                        )
+                    })
+                    .collect(),
+                "分",
+            ),
             reference_changes: &game.reference_changes,
             title: if game.match_complete {
                 "整场结算"
@@ -106,7 +111,6 @@ pub(super) fn render(
                 "农民获胜"
             },
             caption: &caption,
-            score_unit: "分",
         },
         assets,
         animation,

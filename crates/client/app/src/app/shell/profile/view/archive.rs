@@ -1,13 +1,12 @@
-use super::super::super::UiAction;
 use super::super::scroll::{ArchiveEdgeSide, ProfileArchiveEdge};
 use super::super::{
-    ProfileGameContent, ProfileGameTab, ProfileGameTabButton, SelectedProfileGameTab, TAB_IDLE,
-    blackjack_profile_rows, doudizhu_profile_rows, mahjong_profile_rows, mc_guess_profile_rows,
-    qigui523_profile_rows, shengji_profile_rows, texas_profile_rows, uno_profile_rows,
+    ProfileArchiveScroll, ProfileGameTab, ProfileGameTabButton, SelectedProfileGameTab, TAB_IDLE,
+    blackjack_profile_rows, doudizhu_profile_rows, guandan_profile_rows, mahjong_profile_rows,
+    mc_guess_profile_rows, qigui523_profile_rows, shengji_profile_rows, texas_profile_rows,
+    uno_profile_rows,
 };
 use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::ProfileUiAction;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::{BackgroundGradient, ColorStop, LinearGradient, RelativeCursorPosition};
@@ -16,6 +15,8 @@ use leocard_protocol::PlayerGameProfiles;
 use leocard_ui::{TouchDragTarget, UiComposer, spawn_node};
 
 const TAB_HEIGHT: f32 = 44.0;
+const TAB_WIDTH: f32 = 136.0;
+const TAB_GAP: f32 = 6.0;
 const CONTENT_PADDING: f32 = 16.0;
 const ROW_HEIGHT: f32 = 24.0;
 const ROW_GAP: f32 = 8.0;
@@ -65,11 +66,27 @@ impl<'a> ProfileArchive<'a> {
                 height: px(TAB_HEIGHT),
                 flex_shrink: 0.0,
                 flex_direction: FlexDirection::Row,
-                column_gap: px(6),
+                column_gap: px(TAB_GAP),
+                overflow: Overflow::scroll_x(),
                 ..default()
             },
             None,
         );
+        let selected_index = ProfileGameTab::ALL
+            .iter()
+            .position(|(tab, _)| *tab == self.selected_game)
+            .unwrap_or_default();
+        commands
+            .entity(tabs)
+            .insert((
+                ProfileArchiveScroll,
+                TouchDragTarget,
+                RelativeCursorPosition::default(),
+            ))
+            .init(ScrollPosition(Vec2::new(
+                selected_index as f32 * (TAB_WIDTH + TAB_GAP),
+                0.0,
+            )));
         for (game, label) in ProfileGameTab::ALL {
             self.add_tab(commands, tabs, game, label);
         }
@@ -105,7 +122,7 @@ impl<'a> ProfileArchive<'a> {
                     overflow: Overflow::scroll_x(),
                     ..default()
                 },
-                ProfileGameContent,
+                ProfileArchiveScroll,
                 TouchDragTarget,
                 RelativeCursorPosition::default(),
             ),
@@ -153,6 +170,7 @@ impl<'a> ProfileArchive<'a> {
                 blackjack_profile_rows(self.game_profiles.blackjack.as_ref())
             }
             ProfileGameTab::Doudizhu => doudizhu_profile_rows(self.game_profiles.doudizhu.as_ref()),
+            ProfileGameTab::Guandan => guandan_profile_rows(self.game_profiles.guandan.as_ref()),
             ProfileGameTab::QiGui523 => qigui523_profile_rows(self.game_profiles.qigui523.as_ref()),
             ProfileGameTab::Texas => texas_profile_rows(self.game_profiles.texas.as_ref()),
             ProfileGameTab::Shengji => shengji_profile_rows(self.game_profiles.shengji.as_ref()),
@@ -197,12 +215,11 @@ impl<'a> ProfileArchive<'a> {
             parent,
             (
                 Button,
-                UiAction::Profile(ProfileUiAction::SelectGameTab(game)),
                 Node {
-                    min_width: px(0),
+                    width: px(TAB_WIDTH),
+                    min_width: px(TAB_WIDTH),
                     height: percent(100),
-                    flex_basis: px(0),
-                    flex_grow: 1.0,
+                    flex_shrink: 0.0,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
                     ..default()
@@ -212,13 +229,13 @@ impl<'a> ProfileArchive<'a> {
                 } else {
                     TAB_IDLE
                 }),
-                ProfileGameTabButton,
+                ProfileGameTabButton(game),
             ),
         );
         if selected {
             commands.entity(button).insert(SelectedProfileGameTab);
         }
-        add_text(
+        let label = add_text(
             commands,
             button,
             label,
@@ -230,5 +247,8 @@ impl<'a> ProfileArchive<'a> {
             },
             self.assets,
         );
+        commands
+            .entity(label)
+            .insert((TextLayout::no_wrap(), Pickable::IGNORE));
     }
 }

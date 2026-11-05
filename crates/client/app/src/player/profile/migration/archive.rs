@@ -62,6 +62,7 @@ impl From<V6PlayerProfile> for StoredPlayerProfile {
                 mc_guess_stats: games.mc_guess_stats,
                 blackjack_stats: games.blackjack_stats,
                 doudizhu_stats: games.doudizhu_stats,
+                guandan_stats: None,
             },
         }
     }
@@ -110,6 +111,7 @@ pub(super) fn decode_archive<T: DeserializeOwned + Into<TexasProfileStats>>(
 mod tests {
     use super::*;
     use crate::player::profile::{LocalPlayerProfile, PROFILE_HEADER};
+    use leocard_guandan::GuandanProfileStats;
     use std::env::temp_dir;
     use std::fs;
 
@@ -171,6 +173,7 @@ mod tests {
                 &mc_guess,
                 &blackjack,
                 &doudizhu,
+                &None::<GuandanProfileStats>,
             ))
             .unwrap(),
         );

@@ -3,7 +3,7 @@ use super::{
     GuandanActionOutcome, GuandanGameError, GuandanGameResult, GuandanGameState, GuandanPhase,
     GuandanPlayerState,
 };
-use crate::{GuandanCard, GuandanRuleSet, build_deck};
+use crate::{GuandanCard, GuandanRuleSet, build_deck, rank_strength};
 use leocard_game_common::{DeckError, PlayerId, validate_deck};
 use std::array;
 
@@ -131,6 +131,7 @@ impl GuandanGameState {
             exchanges,
             tribute_resisted,
             last_actions: array::from_fn(|_| None),
+            previous_trick: None,
         })
     }
 
@@ -158,9 +159,11 @@ impl GuandanGameState {
             });
         }
         self.ensure_card_in_hand(player, card)?;
-        if crate::play::rank_strength(card.rank, self.rules.starting_level)
-            != highest_strength(&self.players[giver.index()].hand, self.rules.starting_level)
-        {
+        if !can_offer_tribute(
+            &self.players[giver.index()].hand,
+            card,
+            self.rules.starting_level,
+        ) {
             return Err(GuandanGameError::NotHighestTribute);
         }
         self.transfer_card(giver, receiver, card);
@@ -197,21 +200,12 @@ impl GuandanGameState {
             });
         }
         self.ensure_card_in_hand(player, card)?;
-        let eligible = self.players[receiver.index()]
-            .hand
-            .iter()
-            .filter(|candidate| **candidate != offered)
-            .any(|candidate| candidate.rank <= 10);
-        if card == offered
-            || (eligible && card.rank > 10)
-            || (!eligible
-                && crate::play::rank_strength(card.rank, self.rules.starting_level)
-                    != lowest_return_strength(
-                        &self.players[receiver.index()].hand,
-                        offered,
-                        self.rules.starting_level,
-                    ))
-        {
+        if !can_return_tribute(
+            &self.players[receiver.index()].hand,
+            card,
+            offered,
+            self.rules.starting_level,
+        ) {
             return Err(GuandanGameError::InvalidReturnTribute);
         }
         self.transfer_card(receiver, giver, card);
@@ -256,9 +250,31 @@ impl GuandanGameState {
     }
 }
 
+pub fn can_offer_tribute(hand: &[GuandanCard], card: GuandanCard, level: u8) -> bool {
+    hand.contains(&card) && rank_strength(card.rank, level) == highest_strength(hand, level)
+}
+
+pub fn can_return_tribute(
+    hand: &[GuandanCard],
+    card: GuandanCard,
+    offered: GuandanCard,
+    level: u8,
+) -> bool {
+    card != offered
+        && hand.contains(&card)
+        && if hand
+            .iter()
+            .any(|candidate| *candidate != offered && candidate.rank <= 10)
+        {
+            card.rank <= 10
+        } else {
+            rank_strength(card.rank, level) == lowest_return_strength(hand, offered, level)
+        }
+}
+
 pub(super) fn highest_strength(hand: &[GuandanCard], level: u8) -> u8 {
     hand.iter()
-        .map(|card| crate::play::rank_strength(card.rank, level))
+        .map(|card| rank_strength(card.rank, level))
         .max()
         .unwrap_or(0)
 }
@@ -266,7 +282,7 @@ pub(super) fn highest_strength(hand: &[GuandanCard], level: u8) -> u8 {
 fn lowest_return_strength(hand: &[GuandanCard], offered: GuandanCard, level: u8) -> u8 {
     hand.iter()
         .filter(|card| **card != offered)
-        .map(|card| crate::play::rank_strength(card.rank, level))
+        .map(|card| rank_strength(card.rank, level))
         .min()
         .unwrap_or(0)
 }

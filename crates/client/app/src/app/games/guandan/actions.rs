@@ -1,4 +1,4 @@
-use super::state::GuandanUiState;
+use super::state::{GuandanUiState, local_turn, tribute_choice};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, dispatch_domain_actions,
@@ -7,7 +7,7 @@ use crate::app::shell::{
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::{PlayerEconomy, PropId};
-use leocard_guandan::{GuandanAction, GuandanRuleSet, GuandanTributeAction};
+use leocard_guandan::{GuandanAction, GuandanRuleSet};
 use leocard_protocol::{GameSnapshot, GuandanCommand};
 
 #[derive(Clone)]
@@ -16,6 +16,8 @@ pub(crate) enum GuandanUiAction {
     ToggleCard,
     Play,
     Pass,
+    Hint,
+    ShowPreviousTrick,
     SubmitTribute,
     ToggleCounter,
     ToggleCounterDrawer,
@@ -56,6 +58,13 @@ impl UiActionHandler<GuandanActionContext<'_>> for GuandanUiAction {
                 GuandanCommand::UpdateRules { rules: *rules },
             ),
             Self::ToggleCard => {}
+            Self::Hint => {
+                let ui = &mut context.ui;
+                if let Some(cards) = ui.hints.next_cards() {
+                    ui.selected = cards.iter().copied().collect();
+                }
+            }
+            Self::ShowPreviousTrick => context.ui.previous_reveal = 2.0,
             Self::ToggleCounter => {
                 if context.economy.active(PropId::CardCounter) {
                     context.ui.counter.enabled = !context.ui.counter.enabled;
@@ -108,13 +117,8 @@ impl UiActionHandler<GuandanActionContext<'_>> for GuandanUiAction {
                 let Some(card) = context.ui.selected.iter().copied().next() else {
                     return;
                 };
-                if game.received_tribute == Some(card) {
+                let Some(action) = tribute_choice(game, card).filter(|_| local_turn(game)) else {
                     return;
-                }
-                let action = match game.tribute_action {
-                    Some(GuandanTributeAction::Tribute) => GuandanAction::Tribute(card),
-                    Some(GuandanTributeAction::ReturnTribute) => GuandanAction::ReturnTribute(card),
-                    None => return,
                 };
                 send_game_command(&mut context.client, GuandanCommand::Act(action));
                 context.ui.selected.clear();

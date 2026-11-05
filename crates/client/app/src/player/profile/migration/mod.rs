@@ -2,6 +2,7 @@ mod archive;
 mod blackjack;
 mod doudizhu;
 mod graph;
+mod guandan;
 mod mc_guess;
 mod profile;
 mod texas;

@@ -1,6 +1,7 @@
 use crate::app::games::GameTableContext;
 use crate::app::presentation::{
-    PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, add_ranked_summary,
+    PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, SummaryRows,
+    add_ranked_summary,
 };
 use crate::app::shell::{SummaryActions, add_summary_actions};
 use bevy::prelude::*;
@@ -55,17 +56,19 @@ pub(super) fn render(
                     ready: view.ready,
                 })
                 .collect(),
-            scores: game
-                .players
-                .iter()
-                .map(|view| {
-                    PlayerScore {
-                        player: view.player.id,
-                        score: u32::from(view.score),
-                    }
-                    .into()
-                })
-                .collect(),
+            rows: SummaryRows::Scores(
+                game.players
+                    .iter()
+                    .map(|view| {
+                        PlayerScore {
+                            player: view.player.id,
+                            score: u32::from(view.score),
+                        }
+                        .into()
+                    })
+                    .collect(),
+                "分",
+            ),
             reference_changes: &game.reference_changes,
             title: "本局结算",
             caption: if game.board.remaining() == 0 {
@@ -73,7 +76,6 @@ pub(super) fn render(
             } else {
                 "全员连续跳过 按当前分数排名"
             },
-            score_unit: "分",
         },
         context.assets,
         context.game_summary,

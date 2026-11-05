@@ -61,7 +61,7 @@ pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 10] = [
     GameDescriptor {
         kind: GameKind::Guandan,
         title: "掼蛋",
-        description: "两两搭档 从二打到 A",
+        description: "丐版升级",
     },
     GameDescriptor {
         kind: GameKind::MahjongLink,

@@ -94,7 +94,7 @@ pub(super) fn render(
             GameButtonTone::Hint,
         );
         if game.table.is_some() && !can_hint {
-            add_no_legal_response_hint(commands, row, assets);
+            add_no_legal_response_hint(commands, row, "没有牌能大过上家", assets);
         }
     }
 }

@@ -18,7 +18,11 @@ pub(super) fn handle_card_drag_selection(
     mut drag: ResMut<CardDragSelection>,
     mut game_ui: ResMut<GuandanUiState>,
     mut ui: ResMut<UiState>,
-    cards: Query<(&PickingInteraction, &RelativeCursorPosition, &HandCardSlot)>,
+    cards: Query<(
+        Option<&PickingInteraction>,
+        &RelativeCursorPosition,
+        &HandCardSlot,
+    )>,
 ) {
     let Some(game) = client.as_deref().and_then(|client| {
         client
@@ -30,6 +34,7 @@ pub(super) fn handle_card_drag_selection(
         return;
     };
     if game.result.is_some()
+        || game_ui.is_dealing()
         || game
             .players
             .iter()
@@ -40,7 +45,7 @@ pub(super) fn handle_card_drag_selection(
     }
     let pressed = cards
         .iter()
-        .find(|(interaction, _, _)| **interaction == PickingInteraction::Pressed)
+        .find(|(interaction, _, _)| *interaction == Some(&PickingInteraction::Pressed))
         .map(|(_, _, slot)| (slot.index, slot.card));
     let hovered = cards
         .iter()
@@ -74,6 +79,7 @@ pub(super) fn animate_hand_cards(
     time: Res<Time>,
     drag: Res<CardDragSelection>,
     mut ui: ResMut<GuandanUiState>,
+    mut shell_ui: ResMut<UiState>,
     slots: Query<&PickingInteraction, With<HandCardSlot>>,
     mut cards: Query<(
         &mut HandCardVisual,
@@ -82,20 +88,28 @@ pub(super) fn animate_hand_cards(
         &mut Outline,
         &mut BoxShadow,
         &mut ImageNode,
+        &mut Visibility,
     )>,
 ) {
+    let was_dealing = ui.is_dealing();
     let response = 1.0 - (-14.0 * time.delta_secs()).exp();
     let pulse = 0.72 + 0.28 * (time.elapsed_secs() * 7.0).sin();
-    for (mut visual, mut transform, mut border, mut outline, mut shadow, mut image) in &mut cards {
-        let Ok(interaction) = slots.get(visual.button) else {
-            continue;
-        };
+    for (
+        mut visual,
+        mut transform,
+        mut border,
+        mut outline,
+        mut shadow,
+        mut image,
+        mut visibility,
+    ) in &mut cards
+    {
         let hovered = if drag.active {
             visual.index == drag.current
         } else {
             matches!(
-                *interaction,
-                PickingInteraction::Hovered | PickingInteraction::Pressed
+                slots.get(visual.button),
+                Ok(PickingInteraction::Hovered | PickingInteraction::Pressed)
             )
         };
         let selected = ui.selected.contains(&visual.card);
@@ -107,6 +121,15 @@ pub(super) fn animate_hand_cards(
             advance_towards(animation.face_hover_amount, f32::from(hovered), response);
         animation.selected_amount =
             advance_towards(animation.selected_amount, f32::from(selected), response);
+        if animation.dealing {
+            animation.deal_elapsed += time.delta_secs();
+            animation.dealing = animation.deal_elapsed < 0.20;
+            *visibility = if animation.deal_elapsed < 0.0 {
+                Visibility::Hidden
+            } else {
+                Visibility::Inherited
+            };
+        }
         let pose = hand_card_pose_for_layout(hand_layout(index, hand_len), *animation);
         transform.translation = pose.translation;
         transform.rotation = pose.rotation;
@@ -120,5 +143,8 @@ pub(super) fn animate_hand_cards(
         if ui.card_animations.get(&card) != Some(animation) {
             ui.card_animations.insert(card, *animation);
         }
+    }
+    if was_dealing && !ui.is_dealing() {
+        shell_ui.dirty = true;
     }
 }

@@ -28,6 +28,7 @@ pub(crate) enum SettingsUiAction {
     ToggleTexasActionVoices,
     ToggleQiGuiActionVoices,
     ToggleDoudizhuActionVoices,
+    ToggleGuandanActionVoices,
     ToggleMcGuessBackground,
     ChooseTableFelt(TableSurfaceKind),
     UseDefaultTableFelt(TableSurfaceKind),
@@ -103,6 +104,12 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
             }
             SettingsUiAction::ToggleDoudizhuActionVoices => {
                 appearance.doudizhu_action_voices = !appearance.doudizhu_action_voices;
+                if let Err(error) = save_appearance_preferences(appearance) {
+                    warn!("{error}");
+                }
+            }
+            SettingsUiAction::ToggleGuandanActionVoices => {
+                appearance.guandan_action_voices = !appearance.guandan_action_voices;
                 if let Err(error) = save_appearance_preferences(appearance) {
                     warn!("{error}");
                 }

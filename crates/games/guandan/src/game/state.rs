@@ -106,7 +106,7 @@ pub enum GuandanGameError {
 impl fmt::Display for GuandanGameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidRules => f.write_str("掼蛋规则配置无效"),
+            Self::InvalidRules => f.write_str("掼蛋配置无效"),
             Self::InvalidDeckSize { expected, actual } => {
                 write!(f, "牌堆应为 {expected} 张，实际为 {actual} 张")
             }
@@ -159,6 +159,7 @@ pub struct GuandanGameState {
     pub(super) exchanges: Vec<TributeExchange>,
     pub(super) tribute_resisted: bool,
     pub(super) last_actions: [Option<GuandanAction>; 4],
+    pub(super) previous_trick: Option<[Option<GuandanAction>; 4]>,
 }
 
 impl GuandanGameState {
@@ -243,5 +244,9 @@ impl GuandanGameState {
 
     pub const fn last_actions(&self) -> &[Option<GuandanAction>; 4] {
         &self.last_actions
+    }
+
+    pub const fn previous_trick(&self) -> Option<&[Option<GuandanAction>; 4]> {
+        self.previous_trick.as_ref()
     }
 }

@@ -23,6 +23,7 @@ pub struct GlobalPreferences {
     pub texas_action_voices: bool,
     pub qigui_action_voices: bool,
     pub doudizhu_action_voices: bool,
+    pub guandan_action_voices: bool,
 }
 
 impl Default for GlobalPreferences {
@@ -46,6 +47,7 @@ impl Default for GlobalPreferences {
             texas_action_voices: true,
             qigui_action_voices: true,
             doudizhu_action_voices: true,
+            guandan_action_voices: true,
         }
     }
 }

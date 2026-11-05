@@ -6,6 +6,6 @@ mod systems;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use ranked::{RankedSummary, SummaryPlayer, add_ranked_summary};
+pub(crate) use ranked::{RankedSummary, SummaryPlayer, SummaryRows, add_ranked_summary};
 pub(crate) use state::*;
 pub(crate) use systems::*;

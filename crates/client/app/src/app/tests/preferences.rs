@@ -30,6 +30,7 @@ fn preferences_round_trip_including_avatar() {
             texas_action_voices: false,
             qigui_action_voices: false,
             doudizhu_action_voices: true,
+            guandan_action_voices: false,
         },
         games: GamePreferences {
             qigui523: QiGui523Preferences {
@@ -104,6 +105,7 @@ fn preferences_round_trip_including_avatar() {
     assert_eq!(decoded.global.table_vignette, saved.global.table_vignette);
     assert_eq!(decoded.global.audio_volume, saved.global.audio_volume);
     assert!(!decoded.global.turn_notifications);
+    assert!(!decoded.global.guandan_action_voices);
     assert_eq!(decoded.global.gender, PlayerGender::Female);
     assert_eq!(
         decoded.global.mahjong_table_felt_path,

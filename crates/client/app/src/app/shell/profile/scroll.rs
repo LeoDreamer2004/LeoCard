@@ -1,6 +1,6 @@
 //! Horizontal archive browsing by wheel or pointer drag, including touch mouse input.
 
-use super::ProfileGameContent;
+use super::ProfileArchiveScroll;
 use crate::app::shell::ModalWheelScope;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
@@ -17,11 +17,17 @@ pub(super) enum ArchiveEdgeSide {
     Right,
 }
 
+#[derive(Resource, Default)]
+pub(super) struct ProfileArchiveDrag {
+    active: Option<(Entity, f32, f32)>,
+    pub moved: bool,
+}
+
 pub(super) fn scroll_archive(
     mut wheels: MessageReader<MouseWheel>,
     scope: ModalWheelScope,
     mouse: Res<ButtonInput<MouseButton>>,
-    mut drag: Local<Option<(Entity, f32)>>,
+    mut drag: ResMut<ProfileArchiveDrag>,
     mut scrolls: Query<
         (
             Entity,
@@ -29,7 +35,7 @@ pub(super) fn scroll_archive(
             &ComputedNode,
             &mut ScrollPosition,
         ),
-        With<ProfileGameContent>,
+        With<ProfileArchiveScroll>,
     >,
 ) {
     let delta = wheels
@@ -49,12 +55,12 @@ pub(super) fn scroll_archive(
         })
         .sum::<f32>();
     if !mouse.pressed(MouseButton::Left) {
-        *drag = None;
+        *drag = ProfileArchiveDrag::default();
     }
     for (entity, cursor, node, mut position) in &mut scrolls {
         if !scope.allows(entity) {
-            if drag.is_some_and(|(owner, _)| owner == entity) {
-                *drag = None;
+            if drag.active.is_some_and(|(owner, _, _)| owner == entity) {
+                *drag = ProfileArchiveDrag::default();
             }
             continue;
         }
@@ -67,13 +73,17 @@ pub(super) fn scroll_archive(
         if let Some(point) = cursor.normalized {
             let x = point.x * node.size().x * node.inverse_scale_factor();
             if mouse.just_pressed(MouseButton::Left) && cursor.cursor_over() {
-                *drag = Some((entity, x));
+                drag.active = Some((entity, x, x));
+                drag.moved = false;
             }
-            if let Some((owner, previous)) = *drag
+            if let Some((owner, origin, previous)) = drag.active
                 && owner == entity
             {
-                offset += previous - x;
-                *drag = Some((entity, x));
+                drag.moved |= (origin - x).abs() > 8.0;
+                if drag.moved {
+                    offset += previous - x;
+                    drag.active = Some((entity, origin, x));
+                }
             }
         }
         offset = offset.clamp(0.0, maximum);
@@ -81,13 +91,16 @@ pub(super) fn scroll_archive(
             position.x = offset;
         }
     }
-    if drag.is_some_and(|(entity, _)| scrolls.get(entity).is_err()) {
-        *drag = None;
+    if drag
+        .active
+        .is_some_and(|(entity, _, _)| scrolls.get(entity).is_err())
+    {
+        *drag = ProfileArchiveDrag::default();
     }
 }
 
 pub(super) fn update_archive_edge(
-    scrolls: Query<(&ComputedNode, &ScrollPosition), With<ProfileGameContent>>,
+    scrolls: Query<(&ComputedNode, &ScrollPosition), With<ProfileArchiveScroll>>,
     mut edges: Query<(&ProfileArchiveEdge, &mut Visibility)>,
 ) {
     for (edge, mut visible) in &mut edges {

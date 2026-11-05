@@ -66,6 +66,11 @@ pub(super) fn render_sound_settings(
             form.doudizhu_action_voices,
             SettingsUiAction::ToggleDoudizhuActionVoices,
         ),
+        (
+            "掼蛋",
+            form.guandan_action_voices,
+            SettingsUiAction::ToggleGuandanActionVoices,
+        ),
     ] {
         add_settings_separator(commands, parent);
         add_title(commands, parent, title, 20.0, TEXT, assets);

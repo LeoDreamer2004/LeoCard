@@ -13,6 +13,7 @@ pub(crate) struct NoLegalResponseHint;
 pub(crate) fn add_no_legal_response_hint(
     commands: &mut UiComposer,
     parent: Entity,
+    message: &str,
     assets: &UiAssets,
 ) -> Entity {
     let hint = spawn_node(
@@ -51,7 +52,7 @@ pub(crate) fn add_no_legal_response_hint(
     let mut image = sliced_image(assets.home.game_card.clone(), 22.0, 0.42);
     image.visual_box = VisualBox::BorderBox;
     commands.entity(plate).insert((image, Pickable::IGNORE));
-    let label = add_text(commands, plate, "没有牌能大过上家", 15.0, TEXT, assets);
+    let label = add_text(commands, plate, message, 15.0, TEXT, assets);
     commands.entity(label).insert(Pickable::IGNORE);
     hint
 }

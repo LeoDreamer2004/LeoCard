@@ -3527,7 +3527,7 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "leocard-achievements"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3535,7 +3535,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-android"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "bevy",
  "jni 0.22.4",
@@ -3544,11 +3544,11 @@ dependencies = [
 
 [[package]]
 name = "leocard-assets"
-version = "0.11.1"
+version = "0.12.0"
 
 [[package]]
 name = "leocard-blackjack"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3556,7 +3556,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-client"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "bevy",
  "bevy_clipboard",
@@ -3604,7 +3604,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-doudizhu"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "half",
  "leocard-achievements",
@@ -3615,14 +3615,14 @@ dependencies = [
 
 [[package]]
 name = "leocard-game-common"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "leocard-guandan"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "leocard-game-common",
  "serde",
@@ -3630,7 +3630,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-host"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3652,7 +3652,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-mahjong"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3661,7 +3661,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-mahjong-link"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "leocard-mahjong",
  "serde",
@@ -3669,7 +3669,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-protocol"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "leocard-achievements",
  "leocard-blackjack",
@@ -3689,7 +3689,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-qigui523"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3698,7 +3698,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-sakura-frp"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "md-5",
  "reqwest",
@@ -3708,7 +3708,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-shengji"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "leocard-achievements",
  "leocard-game-common",
@@ -3717,7 +3717,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-tcp"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "ed25519-dalek",
  "fastrand",
@@ -3737,7 +3737,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-texas-holdem"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "fastrand",
  "leocard-achievements",
@@ -3747,14 +3747,14 @@ dependencies = [
 
 [[package]]
 name = "leocard-ui"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "bevy",
 ]
 
 [[package]]
 name = "leocard-uno"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "fastrand",
  "leocard-achievements",
@@ -3764,7 +3764,7 @@ dependencies = [
 
 [[package]]
 name = "leocard-update"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "fastrand",
  "leocard-protocol",
@@ -3777,7 +3777,7 @@ dependencies = [
 
 [[package]]
 name = "leocard_mc_guess"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "csv",
  "fastrand",

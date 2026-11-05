@@ -32,6 +32,17 @@ fn partners_finishing_first_and_second_ends_early_after_contact() {
             next_player: PlayerId(2),
         }
     );
+    assert!(game.last_actions().iter().all(Option::is_none));
+    assert_eq!(
+        game.previous_trick(),
+        Some(&[
+            Some(GuandanAction::Play(vec![card(2)])),
+            Some(GuandanAction::Pass),
+            Some(GuandanAction::Pass),
+            Some(GuandanAction::Pass),
+        ])
+    );
+    assert_eq!(game.finishing_order(), &[PlayerId(0)]);
     let outcome = game
         .act(PlayerId(2), GuandanAction::Play(vec![card(4)]))
         .unwrap();

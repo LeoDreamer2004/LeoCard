@@ -14,10 +14,11 @@ pub(crate) enum ProfileGameTab {
     McGuess,
     Blackjack,
     Doudizhu,
+    Guandan,
 }
 
 impl ProfileGameTab {
-    pub(crate) const ALL: [(Self, &'static str); 8] = [
+    pub(crate) const ALL: [(Self, &'static str); 9] = [
         (Self::QiGui523, "七鬼五二三"),
         (Self::Texas, "德州扑克"),
         (Self::Shengji, "升级"),
@@ -26,6 +27,7 @@ impl ProfileGameTab {
         (Self::McGuess, "MC竞猜"),
         (Self::Blackjack, "21 点"),
         (Self::Doudizhu, "斗地主"),
+        (Self::Guandan, "掼蛋"),
     ];
 }
 
@@ -43,11 +45,11 @@ pub(crate) struct PlayerProfilePage {
 pub(crate) struct SelectedProfileGameTab;
 
 #[derive(Component)]
-pub(crate) struct ProfileGameContent;
+pub(crate) struct ProfileArchiveScroll;
 
 #[derive(Component)]
 #[require(CustomButtonMotion)]
-pub(crate) struct ProfileGameTabButton;
+pub(crate) struct ProfileGameTabButton(pub ProfileGameTab);
 
 #[derive(Component)]
 pub(crate) struct ProfileStat;

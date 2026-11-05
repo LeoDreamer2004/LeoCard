@@ -1,5 +1,4 @@
 use super::super::input::ConnectionInput;
-use super::art::add_guandan_art;
 use super::{ENTRY_DESIGNS, EntryGlow, EntryMotion, GlowKind};
 use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
@@ -10,7 +9,6 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use bevy::ui_widgets::Button;
-use leocard_protocol::GameKind;
 use leocard_ui::{CustomButtonMotion, Scrollbar, ScrollbarSkin, UiComposer, spawn_node};
 
 #[derive(Component)]
@@ -236,7 +234,7 @@ impl<'a> GameGallery<'a> {
         index: usize,
         size: f32,
     ) -> Entity {
-        let art = commands.child(
+        commands.child(
             parent,
             (
                 Node {
@@ -248,16 +246,10 @@ impl<'a> GameGallery<'a> {
                 },
                 UiTransform::IDENTITY,
                 Pickable::IGNORE,
+                EntryArt(index),
+                ImageNode::default(),
             ),
-        );
-        if ENTRY_DESIGNS[index].game.kind == GameKind::Guandan {
-            add_guandan_art(commands, art, size, self.assets);
-        } else {
-            commands
-                .entity(art)
-                .insert((EntryArt(index), ImageNode::default()));
-        }
-        art
+        )
     }
 
     fn entry(&self, commands: &mut UiComposer, parent: Entity, index: usize) {

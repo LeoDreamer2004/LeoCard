@@ -30,6 +30,7 @@ pub(in super::super) fn add_texas_actions(
         table,
         "betting-controls",
         (
+            ZIndex(80),
             Node {
                 position_type: PositionType::Absolute,
                 left: percent(50),
@@ -178,7 +179,7 @@ fn add_raise_editor(
         commands,
         row,
         Node {
-            width: px(128.0 * scale),
+            width: px(64.0 * scale),
             flex_shrink: 0.0,
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,

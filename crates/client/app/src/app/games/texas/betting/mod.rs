@@ -13,6 +13,3 @@ pub(super) use view::*;
 
 #[cfg(test)]
 mod tests;
-
-#[cfg(test)]
-mod preview;

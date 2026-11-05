@@ -270,6 +270,24 @@ fn raise_editor_only_appears_after_opening_and_can_be_cancelled() {
             .count(),
         1
     );
+    let game = app.world().resource::<Table>().game.clone();
+    {
+        let mut ui = app.world_mut().resource_mut::<TexasUiState>();
+        ui.raise_pending = Some((leocard_protocol::Revision(1), 0));
+        ui.reconcile(&game, leocard_protocol::Revision(1), 0);
+        assert!(ui.raise_pending.is_some());
+    }
+    app.update();
+    assert!(labels(app.world_mut()).is_empty());
+    // A server rejection restores the editor; an acknowledgement closes it.
+    {
+        let mut ui = app.world_mut().resource_mut::<TexasUiState>();
+        ui.reconcile(&game, leocard_protocol::Revision(1), 1);
+        assert!(ui.raise_pending.is_none() && ui.raise_editor_open);
+        ui.raise_pending = Some((leocard_protocol::Revision(1), 1));
+        ui.reconcile(&game, leocard_protocol::Revision(2), 1);
+        assert!(ui.raise_pending.is_none() && !ui.raise_editor_open);
+    }
     app.world_mut()
         .resource_mut::<TexasUiState>()
         .raise_editor_open = false;

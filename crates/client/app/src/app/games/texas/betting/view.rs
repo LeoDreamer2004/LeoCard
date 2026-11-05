@@ -21,6 +21,7 @@ pub(in super::super) fn add_texas_actions(
     if !matches!(game.phase, TexasPhaseView::Betting { .. })
         || game.blind_to_post.is_some()
         || game.current_player != Some(game.you)
+        || ui.raise_pending.is_some()
     {
         return;
     }

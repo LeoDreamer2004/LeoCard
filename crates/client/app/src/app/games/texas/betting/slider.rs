@@ -41,8 +41,8 @@ pub(super) fn add_raise_slider(
                 position_type: PositionType::Absolute,
                 left: px(0),
                 right: px(0),
-                top: px(6.0 * scale),
-                height: px(26.0 * scale),
+                top: px(0),
+                height: px(38.0 * scale),
                 ..default()
             },
             sliced_image(assets.home.slider.clone(), 32.0, 0.375 * scale),
@@ -56,8 +56,10 @@ pub(super) fn add_raise_slider(
                 position_type: PositionType::Absolute,
                 left: px(3.0 * scale),
                 right: px(3.0 * scale),
-                top: px(3.0 * scale),
-                bottom: px(3.0 * scale),
+                // The source texture has transparent vertical margins; the inset follows
+                // its visible inner rim at the slicer's 0.375 corner scale.
+                top: px(7.5 * scale),
+                bottom: px(7.5 * scale),
                 border_radius: BorderRadius::all(px(8.0 * scale)),
                 overflow: Overflow::clip(),
                 ..default()

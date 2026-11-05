@@ -5,7 +5,7 @@ use super::{TexasHandGuideState, TexasUiState};
 use crate::app::runtime::{ClientResource, PageErrorState};
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, dispatch_domain_actions,
-    send_game_command,
+    game_command, send_game_command,
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
@@ -91,6 +91,9 @@ impl UiActionHandler<TexasActionContext<'_>> for TexasUiAction {
             TexasUiAction::BeginRaise => context.ui.raise_editor_open = true,
             TexasUiAction::CancelRaise => context.ui.raise_editor_open = false,
             TexasUiAction::Raise => {
+                if context.ui.raise_pending.is_some() {
+                    return;
+                }
                 let Some(sizing) = context.client.as_deref().and_then(|client| {
                     match client.0.model().game_snapshot()? {
                         GameSnapshot::Texas(game) => raise_sizing(game),
@@ -105,13 +108,18 @@ impl UiActionHandler<TexasActionContext<'_>> for TexasUiAction {
                 let Some(target) = sizing.normalize(context.ui.raise_to) else {
                     return;
                 };
-                send_game_command(
-                    &mut context.client,
-                    TexasCommand::Act {
-                        action: TexasAction::RaiseTo(target),
-                    },
+                let Some(client) = context.client.as_deref_mut() else {
+                    return;
+                };
+                let pending = (
+                    client.0.model().latest_revision(),
+                    client.0.model().rejection_serial(),
                 );
-                context.ui.raise_editor_open = false;
+                if client.0.send(game_command(TexasCommand::Act {
+                    action: TexasAction::RaiseTo(target),
+                })) {
+                    context.ui.raise_pending = Some(pending);
+                }
             }
             TexasUiAction::Act(action) => {
                 send_game_command(&mut context.client, TexasCommand::Act { action: *action });

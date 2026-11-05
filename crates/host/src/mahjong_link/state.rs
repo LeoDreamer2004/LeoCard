@@ -1,7 +1,7 @@
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
 use leocard_game_common::PlayerId;
-use leocard_mahjong_common::MahjongTileKind;
+use leocard_game_common::mahjong::MahjongTileKind;
 use leocard_mahjong_link::{
     MahjongLinkBoard, MahjongLinkGameState, MahjongLinkRuleSet, build_deck,
 };

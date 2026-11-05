@@ -19,7 +19,7 @@ pub use game::{
     MahjongMatchProgress, MahjongPendingClaim, MahjongPhase, MahjongPlayerState, MahjongPublicMeld,
     MahjongPublicPlayerState, MahjongWinAvailability, MahjongWinRecord,
 };
-pub use leocard_mahjong_common::{
+pub use leocard_game_common::mahjong::{
     MahjongDragon, MahjongFlower, MahjongSuit, MahjongTile, MahjongTileKind, MahjongWind,
     build_deck,
 };

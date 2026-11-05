@@ -2,7 +2,7 @@ use crate::{
     BOARD_ROWS, MahjongLinkAction, MahjongLinkBoard, MahjongLinkError, MahjongLinkOutcome,
     MahjongLinkRuleSet, PushSide,
 };
-use leocard_mahjong_common::MahjongTileKind;
+use leocard_game_common::mahjong::MahjongTileKind;
 
 #[derive(Clone, Debug)]
 pub struct MahjongLinkGameState {

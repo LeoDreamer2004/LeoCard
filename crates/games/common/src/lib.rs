@@ -1,8 +1,9 @@
-//! 不依赖具体游戏的玩家编号、物理牌校验、排名与搜索工具。
+//! 游戏共用的玩家编号、牌型、物理牌校验、排名与搜索工具。
 //!
 //! 游戏提供合法牌堆和积分档位，并自行解释规则及校验错误。
 
 mod cards;
+pub mod mahjong;
 mod persona;
 mod player;
 mod ranking;

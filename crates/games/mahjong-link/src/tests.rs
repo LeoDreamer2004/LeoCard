@@ -1,5 +1,5 @@
 use super::*;
-use leocard_mahjong_common::{MahjongSuit, MahjongTileKind, MahjongWind};
+use leocard_game_common::mahjong::{MahjongSuit, MahjongTileKind, MahjongWind};
 
 mod exposed;
 mod turns;

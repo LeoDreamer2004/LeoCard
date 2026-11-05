@@ -13,7 +13,7 @@ fn every_card_maps_to_an_existing_asset() {
         let path = asset_root.join(face.asset_path());
         assert!(path.is_file(), "missing card asset: {}", path.display());
     }
-    let mahjong_kinds = leocard_mahjong_common::build_deck()
+    let mahjong_kinds = leocard_game_common::mahjong::build_deck()
         .into_iter()
         .map(|tile| tile.kind())
         .collect::<HashSet<_>>();

@@ -1,6 +1,6 @@
 use crate::app::runtime::TableSurfaceAssets;
 use bevy::prelude::*;
-use leocard_mahjong_common::{
+use leocard_game_common::mahjong::{
     MahjongDragon, MahjongFlower, MahjongSuit, MahjongTileKind, MahjongWind, build_deck,
 };
 use std::collections::{HashMap, HashSet};

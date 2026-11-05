@@ -1,5 +1,5 @@
 use crate::{LinkCell, LinkMovement, LinkPoint, MahjongLinkError, PushSide};
-use leocard_mahjong_common::{MahjongTileKind, build_deck as build_mahjong_deck};
+use leocard_game_common::mahjong::{MahjongTileKind, build_deck as build_mahjong_deck};
 use std::collections::VecDeque;
 use std::ops::Range;
 

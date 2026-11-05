@@ -264,7 +264,7 @@ fn bomb_tier(kind: GuandanPlayKind) -> Option<u8> {
     }
 }
 
-pub(crate) const fn rank_strength(rank: u8, level: u8) -> u8 {
+pub const fn rank_strength(rank: u8, level: u8) -> u8 {
     match rank {
         16 | 17 => rank + 1,
         _ if rank == level => 16,

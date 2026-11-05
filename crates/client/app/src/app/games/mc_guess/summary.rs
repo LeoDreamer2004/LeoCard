@@ -1,6 +1,7 @@
 use super::view::GuessTable;
 use crate::app::presentation::{
-    PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, add_ranked_summary,
+    PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, SummaryRows,
+    add_ranked_summary,
 };
 use crate::app::shell::{SummaryActions, add_summary_actions};
 use leocard_protocol::McGuessSnapshot;
@@ -58,11 +59,13 @@ impl GuessTable<'_> {
                         ready: player.ready,
                     })
                     .collect(),
-                scores: self.game.scores.iter().copied().map(Into::into).collect(),
+                rows: SummaryRows::Scores(
+                    self.game.scores.iter().copied().map(Into::into).collect(),
+                    "分",
+                ),
                 reference_changes: &self.game.reference_changes,
                 title: "整场结算",
                 caption: &caption,
-                score_unit: "分",
             },
             self.assets,
             self.summary,

@@ -14,7 +14,7 @@ pub(crate) fn add_play_effect_overlay(
     source: Vec2,
     assets: &UiAssets,
 ) {
-    let parent = if matches!(kind, PlayEffectKind::HeavenBomb) {
+    let parent = if kind.is_heaven_bomb() {
         full_screen_parent
     } else {
         table
@@ -35,15 +35,20 @@ pub(crate) fn add_play_effect_overlay(
     commands.entity(root).insert((
         PlayEffectRoot,
         Visibility::Hidden,
-        GlobalZIndex(if matches!(kind, PlayEffectKind::HeavenBomb) {
-            1900
-        } else {
-            1100
-        }),
+        GlobalZIndex(if kind.is_heaven_bomb() { 1900 } else { 1100 }),
         Pickable::IGNORE,
     ));
     match kind {
-        PlayEffectKind::HeavenBomb => add_heaven_bomb_effect(commands, root, assets),
+        PlayEffectKind::HeavenBomb | PlayEffectKind::FourJokers => add_heaven_bomb_effect(
+            commands,
+            root,
+            if kind == PlayEffectKind::FourJokers {
+                "四王炸"
+            } else {
+                "天  炸"
+            },
+            assets,
+        ),
         PlayEffectKind::Bomb => {
             add_bomb_play_effect(commands, root, source);
         }

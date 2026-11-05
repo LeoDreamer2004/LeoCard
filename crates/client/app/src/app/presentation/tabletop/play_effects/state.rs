@@ -8,14 +8,26 @@ use leocard_protocol::MatchId;
 pub(crate) enum PlayEffectKind {
     Straight,
     ConsecutivePairs,
+    ThreePairs,
+    ConsecutiveTriples,
+    StraightFlush,
     Airplane,
     Bomb,
     HeavenBomb,
+    FourJokers,
 }
 
 impl PlayEffectKind {
     pub(crate) fn is_sequence(self) -> bool {
         self.sequence_style().is_some()
+    }
+
+    pub(super) fn is_heaven_bomb(self) -> bool {
+        matches!(self, Self::HeavenBomb | Self::FourJokers)
+    }
+
+    pub(crate) fn is_bomb(self) -> bool {
+        self == Self::Bomb || self.is_heaven_bomb()
     }
 
     pub(super) fn sequence_style(self) -> Option<(&'static str, Color, SequenceEffectMotif)> {
@@ -25,8 +37,12 @@ impl PlayEffectKind {
                 Color::srgb(0.25, 0.78, 0.96),
                 SequenceEffectMotif::Wind,
             )),
-            Self::ConsecutivePairs => Some((
-                "连对",
+            Self::ConsecutivePairs | Self::ThreePairs => Some((
+                if self == Self::ThreePairs {
+                    "三连对"
+                } else {
+                    "连对"
+                },
                 Color::srgb(0.76, 0.46, 0.98),
                 SequenceEffectMotif::Flower,
             )),
@@ -35,7 +51,17 @@ impl PlayEffectKind {
                 Color::srgb(0.98, 0.36, 0.50),
                 SequenceEffectMotif::Airplane,
             )),
-            Self::Bomb | Self::HeavenBomb => None,
+            Self::ConsecutiveTriples => Some((
+                "钢板",
+                Color::srgb(0.62, 0.86, 1.0),
+                SequenceEffectMotif::Wind,
+            )),
+            Self::StraightFlush => Some((
+                "同花顺",
+                Color::srgb(1.0, 0.74, 0.23),
+                SequenceEffectMotif::Flower,
+            )),
+            Self::Bomb | Self::HeavenBomb | Self::FourJokers => None,
         }
     }
 }

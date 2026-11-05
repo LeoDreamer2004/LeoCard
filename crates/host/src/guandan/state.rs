@@ -1,9 +1,10 @@
+use super::statistics::GuandanStatistics;
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
 use leocard_game_common::PlayerId;
 use leocard_guandan::{
-    GuandanAction, GuandanCard, GuandanGameState, GuandanMatchState, GuandanPhase, GuandanRuleSet,
-    auto_play_action, build_deck,
+    GuandanAction, GuandanCard, GuandanGameState, GuandanMatchState, GuandanPhase,
+    GuandanProfileStats, GuandanRuleSet, auto_play_action, build_deck,
 };
 use leocard_protocol::{
     ClientMessage, GuandanEvent, GuandanPublicAction, MatchId, PlayerReferenceChange, RejectReason,
@@ -21,6 +22,7 @@ pub struct GuandanSession {
     pub(super) match_state: Option<GuandanMatchState>,
     pub(super) finished_reference_changes: Option<Vec<PlayerReferenceChange>>,
     pub(super) automatic_elapsed: Duration,
+    pub(super) statistics: GuandanStatistics,
 }
 
 impl GuandanSession {
@@ -40,6 +42,7 @@ impl GuandanSession {
             match_state: None,
             finished_reference_changes: None,
             automatic_elapsed: Duration::ZERO,
+            statistics: GuandanStatistics::default(),
         })
     }
 
@@ -138,6 +141,7 @@ impl GuandanSession {
     }
 
     pub(super) fn begin_match(&mut self) {
+        self.statistics = GuandanStatistics::default();
         self.match_state = Some(
             GuandanMatchState::new(self.rules.starting_level, PlayerId(fastrand::u8(..4)))
                 .expect("validated rules"),
@@ -207,6 +211,10 @@ impl GuandanSession {
             });
         }
         self.automatic_elapsed = Duration::ZERO;
+        if matches!(action, GuandanAction::Play(_)) {
+            self.statistics
+                .observe_play(player, game.winning_play().expect("accepted play"));
+        }
         let event = match action {
             GuandanAction::Play(cards) => {
                 let public = GuandanPublicAction::Play(cards);
@@ -229,10 +237,9 @@ impl GuandanSession {
         let mut events = vec![event];
         if let GuandanPhase::Finished(result) = game.phase() {
             let result = result.clone();
-            self.match_state
-                .as_mut()
-                .expect("active match")
-                .finish_hand(&result);
+            let state = self.match_state.as_mut().expect("active match");
+            assert!(state.finish_hand(&result));
+            self.statistics.finish_hand(&result, state.level_advance());
             self.room.prepare_rematch();
             events.push(GuandanEvent::HandFinished { result });
             if self.match_state.as_ref().expect("active match").complete() {
@@ -252,11 +259,25 @@ impl GuandanSession {
         deliveries
     }
 
-    fn settle_match(&mut self) {
+    pub(super) fn settle_match(&mut self) {
+        let winner = self
+            .match_state
+            .as_ref()
+            .expect("active match")
+            .previous_result()
+            .expect("completed match")
+            .winning_team;
         self.room.settle_completed_match_profiles_once(
             &mut self.finished_reference_changes,
             (0..4).map(|index| (PlayerId(index), 0)),
-            |_, _| {},
+            |player, delta| {
+                let aggregate = player
+                    .game_profiles
+                    .guandan
+                    .get_or_insert_with(GuandanProfileStats::default);
+                self.statistics
+                    .merge_into(player.id, aggregate, player.id.0 % 2 == winner, delta);
+            },
         );
     }
 }

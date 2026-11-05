@@ -145,8 +145,8 @@ fn every_runtime_ui_and_card_sound_decodes_with_enabled_bevy_formats() {
         ("audio/mahjong/fans/male", 81),
         ("audio/mahjong/tiles/female", 68),
         ("audio/mahjong/tiles/male", 68),
-        ("audio/card_patterns/female", 66),
-        ("audio/card_patterns/male", 66),
+        ("audio/card_patterns/female", 74),
+        ("audio/card_patterns/male", 74),
     ] {
         let voices = std::fs::read_dir(asset_root.join(directory))
             .unwrap()

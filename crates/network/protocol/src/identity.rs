@@ -2,6 +2,7 @@ use leocard_achievements::TrophyCounts;
 use leocard_blackjack::BlackjackProfileStats;
 use leocard_doudizhu::DoudizhuProfileStats;
 use leocard_game_common::PlayerId;
+use leocard_guandan::GuandanProfileStats;
 use leocard_mahjong::MahjongProfileStats;
 use leocard_mc_guess::McGuessProfileStats;
 use leocard_qigui523::QiGui523ProfileStats;
@@ -67,6 +68,7 @@ pub struct PlayerGameProfiles {
     pub mc_guess: Option<McGuessProfileStats>,
     pub blackjack: Option<BlackjackProfileStats>,
     pub doudizhu: Option<DoudizhuProfileStats>,
+    pub guandan: Option<GuandanProfileStats>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

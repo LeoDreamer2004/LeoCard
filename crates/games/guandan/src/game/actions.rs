@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{GuandanCard, can_beat, classify};
 use leocard_game_common::PlayerId;
-use std::array;
+use std::mem;
 
 impl GuandanGameState {
     pub fn act(
@@ -105,7 +105,7 @@ impl GuandanGameState {
             self.winning_player = None;
             self.winning_play = None;
             self.passes = 0;
-            self.last_actions = array::from_fn(|_| None);
+            self.previous_trick = Some(mem::take(&mut self.last_actions));
             return Ok(GuandanActionOutcome::TrickCompleted {
                 winner,
                 next_player: leader,

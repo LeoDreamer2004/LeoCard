@@ -1,6 +1,6 @@
 use crate::app::presentation::{
     GameSummaryAnimation, PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer,
-    add_ranked_summary,
+    SummaryRows, add_ranked_summary,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SummaryActions, add_summary_actions};
@@ -73,11 +73,10 @@ pub(super) fn add_game_summary_modal(
                     ready: player.ready,
                 })
                 .collect(),
-            scores: scores.iter().copied().map(Into::into).collect(),
+            rows: SummaryRows::Scores(scores.iter().copied().map(Into::into).collect(), "分"),
             reference_changes,
             title: "本局结算",
             caption: &caption,
-            score_unit: "分",
         },
         assets,
         animation,

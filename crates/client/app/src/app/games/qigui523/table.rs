@@ -355,7 +355,7 @@ pub(crate) fn render_table(
                     assets,
                 );
             } else if !is_leading {
-                add_no_legal_response_hint(commands, actions, assets);
+                add_no_legal_response_hint(commands, actions, "没有牌能大过上家", assets);
                 add_qigui_action_button(
                     commands,
                     actions,

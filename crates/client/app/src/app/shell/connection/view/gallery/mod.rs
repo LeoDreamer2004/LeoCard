@@ -1,4 +1,3 @@
-mod art;
 mod assets;
 mod design;
 mod glow;

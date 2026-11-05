@@ -2,6 +2,7 @@ use super::MahjongLinkSession;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_game_common::PlayerId;
+use leocard_mahjong_link::MahjongLinkRuleSet;
 use leocard_protocol::{
     GameCommand, GameKind, GameRules, GameSnapshot, RejectReason, RequestId, RoomViolation,
     ServerEvent,
@@ -23,7 +24,7 @@ impl HostedGameLifecycle for MahjongLinkSession {
     }
 
     fn capacity(&self) -> u8 {
-        self.rules.player_count()
+        MahjongLinkRuleSet::MAX_PLAYERS
     }
 
     fn game_rules(&self) -> GameRules {
@@ -52,10 +53,11 @@ impl HostedGameLifecycle for MahjongLinkSession {
     }
 
     fn start_game(&mut self, connection: ConnectionId, request: RequestId) -> Vec<Delivery> {
-        if let Err(reason) =
-            self.room
-                .validate_start(connection, self.rules.player_count(), self.game.is_some())
-        {
+        if let Err(reason) = self.room.validate_start(
+            connection,
+            MahjongLinkRuleSet::MIN_PLAYERS,
+            self.game.is_some(),
+        ) {
             return self.reject(connection, request, reason);
         }
         self.begin_match();

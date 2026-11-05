@@ -1,8 +1,8 @@
 use super::playback::LinkPlayback;
 use super::state::MahjongLinkUiState;
 use super::{actions, lobby, table};
-use crate::app::games::mahjong::MahjongAssets;
 use crate::app::games::{GameLobbyContext, GameScreen, GameTableContext};
+use crate::app::presentation::mahjong::MahjongTileAssets;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{SocialUiState, UiActionSet};
 use bevy::ecs::system::SystemParam;
@@ -23,7 +23,7 @@ impl Plugin for MahjongLinkPlugin {
 #[derive(SystemParam)]
 pub(crate) struct MahjongLinkScreen<'w> {
     ui: ResMut<'w, MahjongLinkUiState>,
-    assets: Res<'w, MahjongAssets>,
+    assets: Res<'w, MahjongTileAssets>,
     playback: Res<'w, LinkPlayback>,
 }
 
@@ -57,7 +57,7 @@ impl GameScreen for MahjongLinkScreen<'_> {
         lobby: &LobbySnapshot,
         context: GameLobbyContext<'_>,
     ) {
-        lobby::render(commands, root, lobby, &self.ui, context);
+        lobby::render(commands, root, lobby, context);
     }
 
     fn render_table(

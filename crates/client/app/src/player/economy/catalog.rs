@@ -127,11 +127,11 @@ impl PropId {
             | Self::QiGui523CardCounter
             | Self::DoudizhuCardCounter => ShopProp {
                 id: Self::CardCounter,
-                game_label: "升级 七鬼五二三\n斗地主 掼蛋",
+                game_label: "升级 七鬼五二三 斗地主 掼蛋",
                 name: "记牌器",
                 description: "适用于升级、七鬼五二三、斗地主和掼蛋。购买一次即可在四款游戏中使用，共享一小时有效期；各游戏按自己的规则统计剩余牌。",
                 rarity: Common,
-                price: 150,
+                price: 180,
                 duration_seconds: 3600,
             },
             Self::MahjongFanCalculator => ShopProp {

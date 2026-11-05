@@ -4,7 +4,7 @@ use crate::{ConnectionId, Delivery};
 use leocard_game_common::PlayerId;
 use leocard_mahjong_link::{MahjongLinkAction, MahjongLinkError};
 use leocard_protocol::{
-    GameViolation, MahjongLinkCommand, MahjongLinkEvent, RejectReason, RequestId, RoomViolation,
+    GameViolation, MahjongLinkCommand, MahjongLinkEvent, RejectReason, RequestId,
 };
 use std::time::Duration;
 
@@ -34,19 +34,6 @@ impl MahjongLinkSession {
         command: MahjongLinkCommand,
     ) -> Result<Vec<Delivery>, RejectReason> {
         let player = self.require_player(connection)?;
-        if let MahjongLinkCommand::UpdateRules { rules } = command {
-            if self.game.is_some() {
-                return Err(RejectReason::Game(GameViolation::GameAlreadyStarted));
-            }
-            if self.room.host_connection != Some(connection) {
-                return Err(RejectReason::Room(RoomViolation::OnlyHostCanConfigure));
-            }
-            self.room.resize_seats(rules.player_count())?;
-            self.rules = rules;
-            self.room.reset_ready_after_rules_change();
-            self.room.bump_revision();
-            return Ok(Vec::new());
-        }
         if self.game.is_none() {
             return Err(RejectReason::Game(GameViolation::GameNotStarted));
         }
@@ -66,7 +53,6 @@ impl MahjongLinkSession {
                 Ok(Vec::new())
             }
             MahjongLinkCommand::Act { action } => self.apply_action(player, action),
-            MahjongLinkCommand::UpdateRules { .. } => unreachable!("handled above"),
         }
     }
 

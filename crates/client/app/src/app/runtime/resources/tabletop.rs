@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use leocard_ui::sliced_image;
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(crate) struct TableSurfaceAssets {
     pub felt: Handle<Image>,
     pub rail: Handle<Image>,

@@ -2,10 +2,8 @@ use super::super::{
     MahjongLinkUiAction, actions, playback::LinkPlayback, state::MahjongLinkUiState, table,
 };
 use super::{TestRoot, host_client, ui_assets};
-use crate::app::games::{
-    GameTableContext,
-    mahjong::{MahjongAssets, setup_mahjong_asset_test},
-};
+use crate::app::games::GameTableContext;
+use crate::app::presentation::mahjong::{MahjongPresentationPlugin, MahjongTileAssets};
 use crate::app::presentation::{
     GameSummaryAnimation, MahjongTileMaterial, StartGameSeatTransition, TableBackgroundMaterial,
     TurnBorderMaterial,
@@ -18,11 +16,11 @@ use bevy::asset::AssetPlugin;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::scene::ScenePatch;
+use bevy::shader::Shader;
 use bevy::ui_widgets::Button;
 use leocard_game_common::PlayerId;
 use leocard_mahjong_link::{
-    LinkCell, MahjongLinkAction, MahjongLinkGameState, MahjongLinkMode, MahjongLinkRuleSet,
-    PushSide, build_deck,
+    LinkCell, MahjongLinkAction, MahjongLinkGameState, MahjongLinkRuleSet, PushSide, build_deck,
 };
 use leocard_protocol::{
     GameSnapshot, MahjongLinkPlayerView, MahjongLinkSnapshot, MatchId, PROTOCOL_VERSION, Revision,
@@ -37,7 +35,7 @@ use leocard_ui::{PointerInputPlugin, UiComposer, UiSceneProperties, UiSceneRegis
 fn render_table(
     mut commands: UiComposer,
     client: Res<ClientResource>,
-    tiles: Res<MahjongAssets>,
+    tiles: Res<MahjongTileAssets>,
     mut ui: ResMut<MahjongLinkUiState>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
     mut table_materials: ResMut<Assets<TableBackgroundMaterial>>,
@@ -94,17 +92,17 @@ fn apply_snapshot(app: &mut App, snapshot: MahjongLinkSnapshot) {
 
 #[test]
 fn tiles_can_be_selected_again_after_a_complete_round() {
-    for mode in [MahjongLinkMode::TwoPlayers, MahjongLinkMode::FourPlayers] {
-        verify_turn_selection(mode);
+    for count in 1..=MahjongLinkRuleSet::MAX_PLAYERS {
+        verify_turn_selection(count);
     }
 }
 
-fn verify_turn_selection(mode: MahjongLinkMode) {
+fn verify_turn_selection(count: u8) {
     let client = host_client();
     let lobby = client.model().lobby().unwrap();
     let you = client.model().you().unwrap();
-    let rules = MahjongLinkRuleSet { mode };
-    let mut game = MahjongLinkGameState::new(rules, build_deck()).unwrap();
+    let rules = MahjongLinkRuleSet::default();
+    let mut game = MahjongLinkGameState::new(count, build_deck()).unwrap();
     let mut snapshot = MahjongLinkSnapshot {
         match_id: MatchId([1; 16]),
         host_port: lobby.host_port,
@@ -112,7 +110,7 @@ fn verify_turn_selection(mode: MahjongLinkMode) {
         host: you,
         rules,
         board: game.board().clone(),
-        players: (0..rules.player_count())
+        players: (0..count)
             .map(|index| {
                 let mut player = lobby.players[0].player.clone();
                 player.id = PlayerId(you.0 + index);
@@ -137,7 +135,9 @@ fn verify_turn_selection(mode: MahjongLinkMode) {
     let mut app = App::new();
     app.add_plugins((MinimalPlugins, AssetPlugin::default(), PointerInputPlugin))
         .init_resource::<Assets<ScenePatch>>()
-        .init_resource::<Assets<MahjongTileMaterial>>()
+        .init_asset::<Image>()
+        .init_asset::<Shader>()
+        .add_plugins(MahjongPresentationPlugin)
         .init_resource::<Assets<TableBackgroundMaterial>>()
         .init_resource::<Assets<TurnBorderMaterial>>()
         .init_resource::<UiSceneRegistry>()
@@ -146,11 +146,11 @@ fn verify_turn_selection(mode: MahjongLinkMode) {
         .add_message::<PressedUiAction>()
         .insert_resource(ClientResource(client))
         .add_systems(Update, (actions::dispatch_actions, render_table).chain());
-    setup_mahjong_asset_test(&mut app);
     app.world_mut().spawn((TestRoot, Node::default()));
     let cell = LinkCell { row: 7, column: 16 };
     let mut retained_tile = None;
-    let rounds = rules.player_count() * 2;
+    // Keep the fixture's matches inside its first row while covering a full round.
+    let rounds = (count * 2).min(8);
     for turn in 0..=rounds {
         snapshot.board = game.board().clone();
         snapshot.turn = game.turn();
@@ -165,7 +165,7 @@ fn verify_turn_selection(mode: MahjongLinkMode) {
         let entity = app.world().entity(tile);
         let pickable = entity.get::<Pickable>().copied().unwrap_or_default();
         let button = entity.contains::<Button>();
-        if turn % rules.player_count() == 0 {
+        if turn % count == 0 {
             assert!(button, "turn {turn} must restore the tile button");
             assert!(
                 pickable.is_hoverable,
@@ -181,7 +181,7 @@ fn verify_turn_selection(mode: MahjongLinkMode) {
                 app.world().resource::<MahjongLinkUiState>().selected,
                 Some(cell)
             );
-            if turn == rules.player_count() {
+            if turn == count {
                 game.act(
                     0,
                     MahjongLinkAction::Push {
@@ -234,9 +234,9 @@ fn verify_turn_selection(mode: MahjongLinkMode) {
             assert!(!pickable.is_hoverable);
         }
         if turn < rounds {
-            let pair = turn * 2 - u8::from(turn >= rules.player_count());
+            let pair = turn * 2 - u8::from(turn >= count);
             game.act(
-                turn % rules.player_count(),
+                turn % count,
                 MahjongLinkAction::Match {
                     first: LinkCell {
                         row: 0,

@@ -1,10 +1,10 @@
 use super::{MahjongLinkUiAction, state::MahjongLinkUiState, table::can_act};
 use crate::app::presentation::{
-    ACCENT, GAME_SIDE_CONTROL_SCALE, GameButtonSpec, GameButtonTone, MUTED, PanelSkin, TEXT,
-    add_text, add_textured_game_button, add_title, decorate_panel_skin,
+    GAME_SIDE_CONTROL_SCALE, GameButtonSpec, GameButtonTone, MUTED, TEXT, add_text,
+    add_textured_game_button,
 };
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{UiAction, add_cozy_button};
+use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use leocard_mahjong_link::{BOARD_COLUMNS, LinkCell, MahjongLinkAction, PushSide};
 use leocard_protocol::MahjongLinkSnapshot;
@@ -49,9 +49,9 @@ pub(super) fn render(
         table,
         Node {
             position_type: PositionType::Absolute,
-            left: px(260),
-            right: px(35),
-            top: px(532),
+            left: px(220),
+            right: px(220),
+            bottom: px(18),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
             row_gap: px(7),
@@ -59,6 +59,7 @@ pub(super) fn render(
         },
         None,
     );
+    commands.entity(controls).insert(ZIndex(100));
     let row = spawn_node(
         commands,
         controls,
@@ -178,72 +179,5 @@ pub(super) fn render(
         },
         MUTED,
         assets,
-    );
-    if game.consecutive_passes > 0 {
-        add_text(
-            commands,
-            controls,
-            format!(
-                "已有 {} 人连续跳过  全员连续跳过将结算",
-                game.consecutive_passes
-            ),
-            16.0,
-            ACCENT,
-            assets,
-        );
-    }
-}
-
-pub(super) fn guide(commands: &mut UiComposer, content: Entity, assets: &UiAssets) {
-    let panel = spawn_node(
-        commands,
-        content,
-        Node {
-            position_type: PositionType::Absolute,
-            right: px(75),
-            bottom: px(70),
-            width: px(if cfg!(target_os = "android") {
-                620
-            } else {
-                500
-            }),
-            padding: UiRect::all(px(24)),
-            flex_direction: FlexDirection::Column,
-            row_gap: px(12),
-            ..default()
-        },
-        None,
-    );
-    commands.entity(panel).insert(GlobalZIndex(1900));
-    decorate_panel_skin(commands, panel, PanelSkin::Window, assets);
-    add_title(commands, panel, "麻将连连看", 26.0, ACCENT, assets);
-    for text in [
-        "136 张麻将铺满 8 行 17 列。按座位轮流，每回合可直接消一对，或先推一次再消一对；消除或跳过后换人。",
-        "两张相同牌以最多两次转弯的连线相连即可消除，连线可绕外沿，不能穿牌。分别向上、向下露出的相同牌也可直接配对。",
-        "推牌从该行最左端向右，或最右端向左。先选择端点牌，再调格数，最后按方向按钮。碰上其他牌会连带推动，不能越界。",
-        "每对只记一次牌面分：字牌 10 分，其他牌按数字得 1 至 9 分。",
-        "牌消完或全员连续跳过后结算，分数最高者胜出，同分并列。",
-    ] {
-        add_text(
-            commands,
-            panel,
-            text,
-            if cfg!(target_os = "android") {
-                22.0
-            } else {
-                18.0
-            },
-            TEXT,
-            assets,
-        );
-    }
-    add_cozy_button(
-        commands,
-        panel,
-        "关闭",
-        action(MahjongLinkUiAction::ToggleGuide),
-        assets,
-        percent(100),
-        46.0 * GAME_SIDE_CONTROL_SCALE,
     );
 }

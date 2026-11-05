@@ -5,7 +5,7 @@ mod card_audio;
 mod corner_notices;
 mod hand;
 mod hand_style;
-mod mahjong_tile;
+pub(crate) mod mahjong;
 mod motion;
 mod plugin;
 mod score_motion;
@@ -22,7 +22,10 @@ pub(crate) use card_audio::*;
 pub(crate) use corner_notices::CornerNotifications;
 pub(crate) use hand::*;
 pub(crate) use hand_style::*;
-pub(crate) use mahjong_tile::*;
+pub(crate) use mahjong::{
+    MahjongTileHighlight, MahjongTileMaterial, MahjongTileRestRotation, MahjongTileSurface,
+    attach_mahjong_tile_surface, mahjong_local_light,
+};
 pub(crate) use motion::*;
 pub(super) use plugin::*;
 pub(crate) use score_motion::*;

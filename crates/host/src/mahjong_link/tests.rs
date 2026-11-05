@@ -2,8 +2,7 @@ use super::MahjongLinkSession;
 use crate::{ConnectionId, Delivery};
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_mahjong_link::{
-    LinkCell, MahjongLinkAction, MahjongLinkError, MahjongLinkMode, MahjongLinkRuleSet, PushSide,
-    build_deck,
+    LinkCell, MahjongLinkAction, MahjongLinkError, MahjongLinkRuleSet, PushSide, build_deck,
 };
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameSnapshot, GameViolation, JoinRequest, MahjongLinkCommand,
@@ -72,13 +71,19 @@ fn act(
     )
 }
 
-fn lobby(mode: MahjongLinkMode) -> MahjongLinkSession {
-    MahjongLinkSession::new(RoomId(99), 52300, MahjongLinkRuleSet { mode }, build_deck()).unwrap()
+fn lobby() -> MahjongLinkSession {
+    MahjongLinkSession::new(
+        RoomId(99),
+        52300,
+        MahjongLinkRuleSet::default(),
+        build_deck(),
+    )
+    .unwrap()
 }
 
 #[test]
 fn host_rejects_other_turns_and_out_of_bounds_without_changing_board() {
-    let mut session = lobby(MahjongLinkMode::TwoPlayers);
+    let mut session = lobby();
     join(&mut session, 1);
     join(&mut session, 2);
     send(&mut session, 1, ClientCommand::StartGame);
@@ -194,7 +199,7 @@ fn snapshots_message(session: &MahjongLinkSession) -> leocard_protocol::ServerMe
 
 #[test]
 fn pushing_phase_survives_reconnect_and_rejects_another_push() {
-    let mut session = lobby(MahjongLinkMode::TwoPlayers);
+    let mut session = lobby();
     join(&mut session, 1);
     join(&mut session, 2);
     send(&mut session, 1, ClientCommand::StartGame);
@@ -253,68 +258,60 @@ fn pushing_phase_survives_reconnect_and_rejects_another_push() {
 }
 
 #[test]
-fn switching_modes_resizes_seats_and_enforces_host_and_capacity() {
-    let mut session = lobby(MahjongLinkMode::TwoPlayers);
-    join(&mut session, 1);
-    join(&mut session, 2);
-    let four = MahjongLinkRuleSet {
-        mode: MahjongLinkMode::FourPlayers,
-    };
-    let replies = send(
-        &mut session,
-        2,
-        ClientCommand::Game(MahjongLinkCommand::UpdateRules { rules: four }.into()),
-    );
-    assert!(replies.iter().any(|delivery| matches!(
-        delivery.message.event,
-        ServerEvent::Rejected {
-            reason: RejectReason::Room(RoomViolation::OnlyHostCanConfigure)
+fn actual_seated_count_controls_turns_and_rematches_up_to_eight() {
+    for count in MahjongLinkRuleSet::MIN_PLAYERS..=MahjongLinkRuleSet::MAX_PLAYERS {
+        let mut session = lobby();
+        assert_eq!(session.room.seat_count, MahjongLinkRuleSet::MAX_PLAYERS);
+        for connection in 1..=u64::from(count) {
+            join(&mut session, connection);
         }
-    )));
-    send(
-        &mut session,
-        1,
-        ClientCommand::Game(MahjongLinkCommand::UpdateRules { rules: four }.into()),
-    );
-    assert_eq!(session.room.seat_count, 4);
-    assert!(!session.room.players[1].ready);
-    join(&mut session, 3);
-    join(&mut session, 4);
-    let two = MahjongLinkRuleSet::default();
-    let replies = send(
-        &mut session,
-        1,
-        ClientCommand::Game(MahjongLinkCommand::UpdateRules { rules: two }.into()),
-    );
-    assert!(replies.iter().any(|delivery| matches!(
-        delivery.message.event,
-        ServerEvent::Rejected {
-            reason: RejectReason::Room(RoomViolation::RoomFull)
+        let started = send(&mut session, 1, ClientCommand::StartGame);
+        assert!(
+            started
+                .iter()
+                .all(|delivery| !matches!(delivery.message.event, ServerEvent::Rejected { .. }))
+        );
+        let match_id = session.match_id;
+        assert_eq!(session.order.len(), usize::from(count));
+        assert_eq!(
+            session.game.as_ref().unwrap().scores(),
+            vec![0; usize::from(count)]
+        );
+        for connection in 1..=u64::from(count) {
+            act(&mut session, connection, MahjongLinkAction::Pass);
         }
-    )));
-    assert_eq!(session.rules, four);
-    send(&mut session, 2, ClientCommand::SetReady { ready: true });
-    send(&mut session, 1, ClientCommand::StartGame);
-    assert!(session.game.is_some());
-    for connection in 1..=4 {
-        act(&mut session, connection, MahjongLinkAction::Pass);
+        assert!(session.game.as_ref().unwrap().complete());
+        let next_count = if count > 1 {
+            send(&mut session, u64::from(count), ClientCommand::LeaveRoom);
+            count - 1
+        } else {
+            count
+        };
+        for connection in 1..=u64::from(next_count) {
+            send(&mut session, connection, ClientCommand::PlayAgain);
+        }
+        assert_ne!(session.match_id, match_id);
+        assert_eq!(session.order.len(), usize::from(next_count));
+        assert_eq!(session.game.as_ref().unwrap().player_count(), next_count);
+        assert_eq!(session.game.as_ref().unwrap().board().remaining(), 136);
     }
-    assert!(session.game.as_ref().unwrap().complete());
-    send(&mut session, 1, ClientCommand::ReturnToLobby);
-    send(&mut session, 3, ClientCommand::LeaveRoom);
-    send(&mut session, 4, ClientCommand::LeaveRoom);
-    send(
-        &mut session,
-        1,
-        ClientCommand::Game(MahjongLinkCommand::UpdateRules { rules: two }.into()),
+    let mut full = lobby();
+    for connection in 1..=9 {
+        join(&mut full, connection);
+    }
+    assert_eq!(
+        full.room
+            .players
+            .iter()
+            .filter(|player| !player.left)
+            .count(),
+        8
     );
-    assert_eq!(session.room.seat_count, 2);
-    assert_eq!(session.rules, two);
 }
 
 #[test]
 fn disconnected_turn_is_automated_and_rematch_starts_fresh() {
-    let mut session = lobby(MahjongLinkMode::TwoPlayers);
+    let mut session = lobby();
     join(&mut session, 1);
     join(&mut session, 2);
     send(&mut session, 1, ClientCommand::StartGame);

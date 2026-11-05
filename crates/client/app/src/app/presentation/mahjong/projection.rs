@@ -1,36 +1,35 @@
 //! The measured table camera is projected directly into UI quads.
 //! Calibration and pixel measurements: docs/mahjong-perspective.md.
 
-use super::layout::MahjongLayout as Layout;
-use super::{MahjongResponseTile, MahjongTableRoot, MahjongTileMaterial, MahjongTileSurface};
+use super::{MahjongTileGeometry, MahjongTileMaterial, MahjongTileSurface};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_ui::{UiComposer, spawn_node};
 
-pub(super) const WORLD_SCALE: f32 = 16.0;
-pub(super) const WORLD_ORIGIN: Vec2 = Vec2::new(640.0, 355.0);
-pub(super) const REFERENCE_SIZE: Vec2 = Vec2::new(2204.0, 1217.0);
+#[derive(Component)]
+pub(crate) struct MahjongTableRoot;
+
+#[derive(Component)]
+pub(crate) struct MahjongTileIndicator;
+
+pub(crate) const WORLD_SCALE: f32 = 16.0;
+pub(crate) const WORLD_ORIGIN: Vec2 = Vec2::new(640.0, 355.0);
+pub(crate) const REFERENCE_SIZE: Vec2 = Vec2::new(2204.0, 1217.0);
 const CAMERA_POSITION: Vec3 = Vec3::new(0.0, 27.708_225, -29.475_252);
 const CAMERA_PITCH: f32 = 0.809_956_25;
 const FOCAL_LENGTH: f32 = 2_491.018_3;
 const PRINCIPAL_POINT: Vec2 = Vec2::new(1095.0, 608.5);
 
-pub(super) fn world_layout(position: Vec2) -> Vec2 {
+pub(crate) fn world_layout(position: Vec2) -> Vec2 {
     WORLD_ORIGIN + Vec2::new(position.x, -position.y) * WORLD_SCALE
 }
 
-pub(super) fn project_reference(position: Vec3) -> Vec2 {
+pub(crate) fn project_reference(position: Vec3) -> Vec2 {
     let relative = position - CAMERA_POSITION;
     let (sine, cosine) = CAMERA_PITCH.sin_cos();
     let depth = -relative.y * sine + relative.z * cosine;
     PRINCIPAL_POINT
         + Vec2::new(relative.x, -relative.y * cosine - relative.z * sine) * (FOCAL_LENGTH / depth)
-}
-
-pub(super) fn central_screen_offset() -> Vec2 {
-    (project_reference(Vec3::new(0.0, 0.0, -Layout::CENTER_FORWARD))
-        - project_reference(Vec3::ZERO))
-        * (1280.0 / REFERENCE_SIZE.x)
 }
 
 fn local_vector(vector: Vec3, angle: f32) -> Vec3 {
@@ -52,7 +51,7 @@ pub(super) fn sync_mahjong_tile_projection(
         &ComputedNode,
         &UiGlobalTransform,
         &MahjongTileSurface,
-        Option<&MahjongResponseTile>,
+        Option<&MahjongTileIndicator>,
     )>,
     parents: Query<&ChildOf>,
     tables: Query<(&ComputedNode, &UiGlobalTransform), With<MahjongTableRoot>>,
@@ -126,20 +125,16 @@ pub(super) fn sync_mahjong_tile_projection(
         } else if wall {
             Vec3::new(
                 0.5,
-                Layout::TABLE_TILE_THICKNESS
+                MahjongTileGeometry::THICKNESS
                     * if (material.params.w - 2.0).abs() < 0.1 {
                         1.0
                     } else {
                         0.5
                     },
-                0.5 / Layout::FACE_ASPECT_RATIO,
+                0.5 / MahjongTileGeometry::FACE_ASPECT_RATIO,
             )
         } else {
-            Vec3::new(
-                0.5,
-                Layout::TABLE_TILE_THICKNESS * 0.5,
-                0.5 / Layout::FACE_ASPECT_RATIO,
-            )
+            MahjongTileGeometry::flat_half_size(1.0)
         } * tile_scale;
         let elevation = material.elevation / 30.0 * tile_scale;
         let center = Vec3::new(world.x, half.y + elevation, -world.y);
@@ -222,19 +217,19 @@ pub(super) fn sync_mahjong_tile_projection(
     }
 }
 
-pub(super) const REFERENCE_DESIGN_HEIGHT: f32 = 1217.0 * 1280.0 / 2204.0;
+pub(crate) const REFERENCE_DESIGN_HEIGHT: f32 = 1217.0 * 1280.0 / 2204.0;
 
-pub(super) fn camera_canvas(viewport: Vec2) -> (f32, Vec2) {
+pub(crate) fn camera_canvas(viewport: Vec2) -> (f32, Vec2) {
     let scale = (viewport.y / REFERENCE_DESIGN_HEIGHT).min(viewport.x / 1280.0);
     (scale, Vec2::new(640.0 * (1.0 - scale), 0.0))
 }
 
-pub(super) fn project_layout(position: Vec3, viewport: Vec2) -> Vec2 {
+pub(crate) fn project_layout(position: Vec3, viewport: Vec2) -> Vec2 {
     let (scale, origin) = camera_canvas(viewport);
     origin + project_reference(position) * (1280.0 / REFERENCE_SIZE.x * scale)
 }
 
-pub(super) fn project_logical(position: Vec2) -> Vec2 {
+pub(crate) fn project_logical(position: Vec2) -> Vec2 {
     let point = (position - WORLD_ORIGIN) / WORLD_SCALE;
     project_layout(
         Vec3::new(point.x, 0.0, -point.y),
@@ -242,7 +237,7 @@ pub(super) fn project_logical(position: Vec2) -> Vec2 {
     )
 }
 
-pub(super) fn ground_from_layout(position: Vec2, viewport: Vec2) -> Vec2 {
+pub(crate) fn ground_from_layout(position: Vec2, viewport: Vec2) -> Vec2 {
     let (scale, origin) = camera_canvas(viewport);
     let pixel = (position - origin) / (1280.0 / REFERENCE_SIZE.x * scale);
     let image = (pixel - PRINCIPAL_POINT) / FOCAL_LENGTH;
@@ -252,7 +247,7 @@ pub(super) fn ground_from_layout(position: Vec2, viewport: Vec2) -> Vec2 {
     Vec2::new(ground.x, ground.z)
 }
 
-pub(super) fn overlay_tile_scale(position: Vec2, viewport: Vec2, width: f32) -> f32 {
+pub(crate) fn overlay_tile_scale(position: Vec2, viewport: Vec2, width: f32) -> f32 {
     let ground = ground_from_layout(position, viewport);
     let unit = project_layout(Vec3::new(ground.x + 0.5, 0.0, ground.y), viewport).x
         - project_layout(Vec3::new(ground.x - 0.5, 0.0, ground.y), viewport).x;
@@ -260,16 +255,16 @@ pub(super) fn overlay_tile_scale(position: Vec2, viewport: Vec2, width: f32) -> 
 }
 
 #[derive(Component)]
-pub(super) struct MahjongProjectionFrame {
+pub(crate) struct MahjongProjectionFrame {
     pub center: Vec2,
     pub anchor_bottom: bool,
 }
 
-pub(super) fn projected_overlay(commands: &mut UiComposer, parent: Entity) -> Entity {
+pub(crate) fn projected_overlay(commands: &mut UiComposer, parent: Entity) -> Entity {
     canvas_overlay(commands, parent, false)
 }
 
-pub(super) fn own_overlay(commands: &mut UiComposer, parent: Entity) -> Entity {
+pub(crate) fn own_overlay(commands: &mut UiComposer, parent: Entity) -> Entity {
     canvas_overlay(commands, parent, true)
 }
 

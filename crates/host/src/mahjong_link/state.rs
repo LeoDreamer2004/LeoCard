@@ -1,7 +1,7 @@
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
 use leocard_game_common::PlayerId;
-use leocard_mahjong::MahjongTileKind;
+use leocard_mahjong_common::MahjongTileKind;
 use leocard_mahjong_link::{
     MahjongLinkBoard, MahjongLinkGameState, MahjongLinkRuleSet, build_deck,
 };
@@ -35,8 +35,8 @@ impl MahjongLinkSession {
             room: RoomSession::new_with_seat_count(
                 room_id,
                 host_port,
-                rules.player_count(),
-                rules.player_count(),
+                MahjongLinkRuleSet::MAX_PLAYERS,
+                MahjongLinkRuleSet::MAX_PLAYERS,
             ),
             rules,
             game: None,
@@ -105,7 +105,8 @@ impl MahjongLinkSession {
             fastrand::shuffle(&mut deck);
             deck
         });
-        self.game = Some(MahjongLinkGameState::new(self.rules, deck).expect("validated deck"));
+        self.game =
+            Some(MahjongLinkGameState::new(self.order.len() as u8, deck).expect("validated deck"));
         self.last_action = None;
         self.elapsed = Duration::ZERO;
         for player in &mut self.room.players {
@@ -121,7 +122,7 @@ impl MahjongLinkSession {
             .iter()
             .filter(|player| !player.left && (player.connected || player.is_bot))
             .collect();
-        active.len() == usize::from(self.rules.player_count())
+        active.len() >= usize::from(MahjongLinkRuleSet::MIN_PLAYERS)
             && active.iter().all(|player| player.ready)
     }
 

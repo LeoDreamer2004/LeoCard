@@ -1,8 +1,4 @@
 use super::super::layout::MahjongLayout as Layout;
-use super::super::projection::{
-    MahjongProjectionViewport, WORLD_ORIGIN, camera_canvas, ground_from_layout, overlay_tile_scale,
-    project_logical, projected_overlay, world_layout,
-};
 use super::super::{
     MAHJONG_CLAIM_FLIGHT_DELAY, MAHJONG_CLAIM_FLIGHT_DURATION, MAHJONG_CLAIM_HAND_SHIFT_DURATION,
     MAHJONG_CLAIM_PRESENTATION_DURATION, MAHJONG_FLOWER_PRESENTATION_DURATION, MahjongAssets,
@@ -11,6 +7,10 @@ use super::super::{
     MahjongTileMaterial, MahjongTileSurface, mahjong_claim_landing_time,
 };
 use super::{MahjongTileSize, MahjongTileVisual, add_mahjong_tile_material};
+use crate::app::presentation::mahjong::{
+    MahjongProjectionViewport, WORLD_ORIGIN, camera_canvas, ground_from_layout, overlay_tile_scale,
+    project_logical, projected_overlay, world_layout,
+};
 use crate::app::presentation::{ACCENT, TEXT, add_text, ease_out_cubic};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;

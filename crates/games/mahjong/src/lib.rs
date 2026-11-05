@@ -6,7 +6,6 @@
 pub mod achievements;
 
 mod bot;
-mod card;
 mod game;
 mod meld;
 mod profile;
@@ -14,15 +13,15 @@ mod rules;
 mod scoring;
 
 pub use bot::{MahjongBot, MahjongBotAction, MahjongBotObservation};
-pub use card::{
-    MahjongDragon, MahjongFlower, MahjongSuit, MahjongTile, MahjongTileKind, MahjongWind,
-    build_deck,
-};
 pub use game::{
     MahjongActionOutcome, MahjongClaim, MahjongClaimOption, MahjongDiscard, MahjongDrawOrigin,
     MahjongGameError, MahjongGameState, MahjongHandReplacementError, MahjongHandResult,
     MahjongMatchProgress, MahjongPendingClaim, MahjongPhase, MahjongPlayerState, MahjongPublicMeld,
     MahjongPublicPlayerState, MahjongWinAvailability, MahjongWinRecord,
+};
+pub use leocard_mahjong_common::{
+    MahjongDragon, MahjongFlower, MahjongSuit, MahjongTile, MahjongTileKind, MahjongWind,
+    build_deck,
 };
 pub use meld::{MahjongKongKind, MahjongMeld, MahjongMeldKind};
 pub use rules::{

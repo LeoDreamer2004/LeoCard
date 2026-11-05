@@ -1,4 +1,6 @@
-use super::table::{STEP_X, STEP_Y, TILE_HEIGHT, TILE_WIDTH};
+use super::layout;
+use super::table::LinkTileHitbox;
+use crate::app::presentation::mahjong::MahjongProjectionViewport;
 use crate::app::presentation::{
     ACCENT, MahjongTileMaterial, MahjongTileSurface, ease_out_cubic, rolling_score,
     score_gain_visual,
@@ -37,10 +39,7 @@ impl LinkPlayback {
                     .find(|movement| movement.to == cell)
             })
             .map_or(Vec2::ZERO, |movement| {
-                Vec2::new(
-                    (f32::from(movement.from.column) - f32::from(cell.column)) * STEP_X,
-                    0.0,
-                )
+                layout::cell_world(movement.from) - layout::cell_world(cell)
             })
     }
 
@@ -54,6 +53,8 @@ impl LinkPlayback {
 
 #[derive(Component)]
 pub(super) struct LinkTileVisual {
+    pub cell: LinkCell,
+    pub hitbox: Entity,
     pub offset: Vec2,
     pub started: f64,
     pub selected: bool,
@@ -70,7 +71,11 @@ pub(super) struct LinkScoreVisual {
 pub(super) struct LinkGainVisual(pub f64);
 
 #[derive(Component)]
-struct LinkPathVisual(f64);
+struct LinkPathVisual {
+    started: f64,
+    first: Vec2,
+    second: Vec2,
+}
 
 pub(super) fn register(app: &mut App) {
     app.init_resource::<LinkPlayback>()
@@ -139,33 +144,41 @@ fn sync(
 
 fn animate_tiles(
     time: Res<Time>,
-    mut tiles: Query<(
-        &LinkTileVisual,
-        &MahjongTileSurface,
-        Option<&PickingInteraction>,
-        &mut UiTransform,
-    )>,
+    viewport: Res<MahjongProjectionViewport>,
+    mut tiles: Query<(&LinkTileVisual, &MahjongTileSurface, &mut UiTransform)>,
+    mut hitboxes: Query<(&mut Node, Option<&PickingInteraction>), With<LinkTileHitbox>>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
 ) {
-    for (visual, surface, interaction, mut transform) in &mut tiles {
+    for (visual, surface, mut transform) in &mut tiles {
         let elapsed = (time.elapsed_secs_f64() - visual.started) as f32;
         let offset =
             visual.offset * (1.0 - ease_out_cubic((elapsed / PUSH_SECONDS).clamp(0.0, 1.0)));
+        let Ok((mut hitbox, interaction)) = hitboxes.get_mut(visual.hitbox) else {
+            continue;
+        };
         let hovered =
             interaction.is_some_and(|interaction| *interaction != PickingInteraction::None);
-        transform.translation = Val2::px(
-            offset.x,
-            offset.y
-                - if visual.selected {
-                    4.0
-                } else if hovered {
-                    2.0
-                } else {
-                    0.0
-                },
-        );
+        let elevation = if visual.selected {
+            4.0
+        } else if hovered {
+            2.0
+        } else {
+            0.0
+        };
+        let translated = layout::layout_offset(offset);
+        transform.translation = Val2::px(translated.x, translated.y);
+        let next = layout::hitbox_node(layout::tile_bounds(
+            visual.cell,
+            offset,
+            elevation,
+            viewport.size,
+        ));
+        if *hitbox != next {
+            *hitbox = next;
+        }
         if let Some(mut material) = materials.get_mut(&surface.0) {
             material.params.x = if visual.selected || hovered { 1.0 } else { 0.0 };
+            material.elevation = elevation;
         }
     }
 }
@@ -186,10 +199,25 @@ fn animate_scores(
     }
 }
 
-fn animate_paths(time: Res<Time>, mut paths: Query<(&LinkPathVisual, &mut BackgroundColor)>) {
-    for (visual, mut color) in &mut paths {
-        let progress = ((time.elapsed_secs_f64() - visual.0) as f32 / LINK_SECONDS).clamp(0.0, 1.0);
+fn animate_paths(
+    time: Res<Time>,
+    viewport: Res<MahjongProjectionViewport>,
+    mut paths: Query<(
+        &LinkPathVisual,
+        &mut Node,
+        &mut UiTransform,
+        &mut BackgroundColor,
+    )>,
+) {
+    for (visual, mut node, mut transform, mut color) in &mut paths {
+        let progress =
+            ((time.elapsed_secs_f64() - visual.started) as f32 / LINK_SECONDS).clamp(0.0, 1.0);
         color.0 = ACCENT.with_alpha(1.0 - progress);
+        let (next_node, next_transform) = path_segment(visual.first, visual.second, viewport.size);
+        if *node != next_node {
+            *node = next_node;
+        }
+        *transform = next_transform;
     }
 }
 
@@ -201,31 +229,39 @@ pub(super) fn path(commands: &mut UiComposer, board: Entity, playback: &LinkPlay
         return;
     }
     for segment in event.outcome.path.windows(2) {
-        let first = Vec2::new(
-            f32::from(segment[0].column) * STEP_X + TILE_WIDTH * 0.5,
-            f32::from(segment[0].row) * STEP_Y + TILE_HEIGHT * 0.5,
-        );
-        let second = Vec2::new(
-            f32::from(segment[1].column) * STEP_X + TILE_WIDTH * 0.5,
-            f32::from(segment[1].row) * STEP_Y + TILE_HEIGHT * 0.5,
-        );
-        let node = spawn_node(
-            commands,
-            board,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(first.x.min(second.x) - 2.0),
-                top: px(first.y.min(second.y) - 2.0),
-                width: px((second.x - first.x).abs().max(4.0)),
-                height: px((second.y - first.y).abs().max(4.0)),
-                ..default()
-            },
-            Some(ACCENT),
-        );
+        let first = Vec2::new(f32::from(segment[0].row), f32::from(segment[0].column));
+        let second = Vec2::new(f32::from(segment[1].row), f32::from(segment[1].column));
+        let (geometry, transform) =
+            path_segment(first, second, MahjongProjectionViewport::default().size);
+        let node = spawn_node(commands, board, geometry, Some(ACCENT));
         commands.entity(node).insert((
             Pickable::IGNORE,
-            ZIndex(20),
-            LinkPathVisual(playback.started),
+            ZIndex(10),
+            transform,
+            LinkPathVisual {
+                started: playback.started,
+                first,
+                second,
+            },
         ));
     }
+}
+
+fn path_segment(first: Vec2, second: Vec2, viewport: Vec2) -> (Node, UiTransform) {
+    let first = layout::project_point(first.x, first.y, viewport);
+    let second = layout::project_point(second.x, second.y, viewport);
+    let center = (first + second) * 0.5;
+    let delta = second - first;
+    (
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(center.x - delta.length() * 0.5),
+            top: px(center.y - 2.0),
+            width: px(delta.length()),
+            height: px(4),
+            border_radius: BorderRadius::all(px(2)),
+            ..default()
+        },
+        UiTransform::from_rotation(Rot2::radians(delta.y.atan2(delta.x))),
+    )
 }

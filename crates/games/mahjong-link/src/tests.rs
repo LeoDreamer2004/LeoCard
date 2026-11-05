@@ -1,5 +1,5 @@
 use super::*;
-use leocard_mahjong::{MahjongSuit, MahjongTileKind, MahjongWind};
+use leocard_mahjong_common::{MahjongSuit, MahjongTileKind, MahjongWind};
 
 mod exposed;
 mod turns;
@@ -126,12 +126,15 @@ fn scores_are_awarded_once_per_pair() {
 
 #[test]
 fn turns_reject_other_players_without_advancing_and_all_passes_finish() {
-    for mode in [MahjongLinkMode::TwoPlayers, MahjongLinkMode::FourPlayers] {
-        let rules = MahjongLinkRuleSet { mode };
-        let mut game = MahjongLinkGameState::new(rules, build_deck()).unwrap();
+    for count in MahjongLinkRuleSet::MIN_PLAYERS..=MahjongLinkRuleSet::MAX_PLAYERS {
+        let mut game = MahjongLinkGameState::new(count, build_deck()).unwrap();
         assert_eq!(
             game.act(1, MahjongLinkAction::Pass),
-            Err(MahjongLinkError::NotPlayersTurn)
+            Err(if count == 1 {
+                MahjongLinkError::InvalidPlayer
+            } else {
+                MahjongLinkError::NotPlayersTurn
+            })
         );
         assert_eq!(game.turn(), 0);
         let pair = MahjongLinkAction::Match {
@@ -140,9 +143,9 @@ fn turns_reject_other_players_without_advancing_and_all_passes_finish() {
         };
         assert_eq!(game.act(0, pair).unwrap().points, 1);
         assert_eq!(game.scores()[0], 1);
-        assert_eq!(game.current_player(), Some(1));
-        for index in 0..rules.player_count() {
-            let player = (index + 1) % rules.player_count();
+        assert_eq!(game.current_player(), Some(1 % count));
+        for index in 0..count {
+            let player = (index + 1) % count;
             game.act(player, MahjongLinkAction::Pass).unwrap();
         }
         assert!(game.complete());
@@ -156,7 +159,7 @@ fn turns_reject_other_players_without_advancing_and_all_passes_finish() {
 
 #[test]
 fn clearing_a_full_board_finishes_and_preserves_the_total_pair_score() {
-    let mut game = MahjongLinkGameState::new(MahjongLinkRuleSet::default(), build_deck()).unwrap();
+    let mut game = MahjongLinkGameState::new(2, build_deck()).unwrap();
     for _ in 0..68 {
         let (first, second) = game
             .board()
@@ -170,4 +173,14 @@ fn clearing_a_full_board_finishes_and_preserves_the_total_pair_score() {
     assert_eq!(game.board().remaining(), 0);
     assert_eq!(game.scores().iter().sum::<u16>(), 410);
     assert_eq!(game.turn(), 68);
+}
+
+#[test]
+fn player_count_must_fit_the_table() {
+    for count in [0, 9, u8::MAX] {
+        assert!(matches!(
+            MahjongLinkGameState::new(count, build_deck()),
+            Err(MahjongLinkError::InvalidPlayerCount)
+        ));
+    }
 }

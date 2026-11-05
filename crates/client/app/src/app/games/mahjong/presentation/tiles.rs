@@ -3,13 +3,14 @@ use super::super::{
     MahjongAssets, MahjongDealSpec, MahjongDealTile, MahjongDisplayedHand, MahjongMatchingTileKind,
     MahjongTileHighlight, MahjongTileMaterial, attach_mahjong_tile_surface, mahjong_local_light,
 };
+use crate::app::presentation::mahjong::MahjongTileGeometry;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_mahjong::{MahjongMeldKind, MahjongTileKind, MahjongWinRecord, MahjongWind};
 use leocard_protocol::MahjongPlayerView;
 use leocard_ui::{UiComposer, spawn_node};
 
-pub(crate) const MAHJONG_KONG_STACK_LIFT: f32 = Layout::TABLE_TILE_THICKNESS * 30.0;
+pub(crate) const MAHJONG_KONG_STACK_LIFT: f32 = MahjongTileGeometry::THICKNESS * 30.0;
 
 #[derive(Clone, Copy)]
 pub(crate) enum MahjongTileSize {
@@ -89,9 +90,10 @@ pub(crate) fn add_mahjong_tile_material(
     };
     let back = kind.is_none();
     let glyph = kind.map_or_else(
-        || game_assets.tile_back.clone(),
+        || game_assets.visuals.tile_back.clone(),
         |kind| {
             game_assets
+                .visuals
                 .tiles
                 .get(&kind)
                 .cloned()
@@ -99,9 +101,10 @@ pub(crate) fn add_mahjong_tile_material(
         },
     );
     let height_texture = kind.map_or_else(
-        || game_assets.tile_back.clone(),
+        || game_assets.visuals.tile_back.clone(),
         |kind| {
             game_assets
+                .visuals
                 .tile_heights
                 .get(&kind)
                 .cloned()

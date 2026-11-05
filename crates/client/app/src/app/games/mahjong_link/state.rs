@@ -6,8 +6,6 @@ use leocard_protocol::{MahjongLinkSnapshot, MatchId};
 pub(super) struct MahjongLinkUiState {
     pub selected: Option<LinkCell>,
     pub distance: u8,
-    pub mode_menu_open: bool,
-    pub guide_open: bool,
     observed: Option<(MatchId, u32, bool)>,
 }
 

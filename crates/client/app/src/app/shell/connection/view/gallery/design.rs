@@ -74,7 +74,7 @@ pub(super) const ENTRY_DESIGNS: [EntryDesign; 10] = [
     },
     EntryDesign {
         game: SUPPORTED_GAMES[9],
-        image: "ui/home/entries/mahjong.png",
+        image: "ui/home/entries/mahjong-link.png",
         surface: CardSurface::Clouds,
         accent: Color::srgb(0.96, 0.72, 0.20),
     },

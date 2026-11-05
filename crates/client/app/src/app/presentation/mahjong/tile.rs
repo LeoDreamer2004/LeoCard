@@ -88,7 +88,7 @@ pub(crate) fn attach_mahjong_tile_surface(
     clippy::type_complexity,
     reason = "synchronize changed transforms and retained material bindings"
 )]
-pub(crate) fn sync_mahjong_tile_orientation(
+pub(super) fn sync_mahjong_tile_orientation(
     tiles: Query<
         (&UiGlobalTransform, &MahjongTileSurface),
         Or<(Changed<UiGlobalTransform>, Changed<MahjongTileSurface>)>,

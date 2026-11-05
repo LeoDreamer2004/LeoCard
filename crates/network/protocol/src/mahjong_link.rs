@@ -36,7 +36,6 @@ pub struct MahjongLinkPlayerView {
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongLinkCommand {
-    UpdateRules { rules: MahjongLinkRuleSet },
     SetAutoPlay { enabled: bool },
     Act { action: MahjongLinkAction },
 }

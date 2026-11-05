@@ -2,11 +2,10 @@ use crate::{
     BOARD_ROWS, MahjongLinkAction, MahjongLinkBoard, MahjongLinkError, MahjongLinkOutcome,
     MahjongLinkRuleSet, PushSide,
 };
-use leocard_mahjong::MahjongTileKind;
+use leocard_mahjong_common::MahjongTileKind;
 
 #[derive(Clone, Debug)]
 pub struct MahjongLinkGameState {
-    rules: MahjongLinkRuleSet,
     board: MahjongLinkBoard,
     scores: Vec<u16>,
     current_player: u8,
@@ -17,20 +16,25 @@ pub struct MahjongLinkGameState {
 }
 
 impl MahjongLinkGameState {
-    pub fn new(
-        rules: MahjongLinkRuleSet,
-        deck: Vec<MahjongTileKind>,
-    ) -> Result<Self, MahjongLinkError> {
+    pub fn new(player_count: u8, deck: Vec<MahjongTileKind>) -> Result<Self, MahjongLinkError> {
+        if !(MahjongLinkRuleSet::MIN_PLAYERS..=MahjongLinkRuleSet::MAX_PLAYERS)
+            .contains(&player_count)
+        {
+            return Err(MahjongLinkError::InvalidPlayerCount);
+        }
         Ok(Self {
-            rules,
             board: MahjongLinkBoard::new(deck)?,
-            scores: vec![0; usize::from(rules.player_count())],
+            scores: vec![0; usize::from(player_count)],
             current_player: 0,
             turn: 0,
             push_used: false,
             consecutive_passes: 0,
             complete: false,
         })
+    }
+
+    pub fn player_count(&self) -> u8 {
+        self.scores.len() as u8
     }
 
     pub fn board(&self) -> &MahjongLinkBoard {
@@ -66,7 +70,7 @@ impl MahjongLinkGameState {
         player: u8,
         action: MahjongLinkAction,
     ) -> Result<MahjongLinkOutcome, MahjongLinkError> {
-        if player >= self.rules.player_count() {
+        if player >= self.player_count() {
             return Err(MahjongLinkError::InvalidPlayer);
         }
         if self.complete {
@@ -101,10 +105,10 @@ impl MahjongLinkGameState {
             0
         };
         self.complete =
-            self.board.remaining() == 0 || self.consecutive_passes == self.rules.player_count();
+            self.board.remaining() == 0 || self.consecutive_passes == self.player_count();
         if !matches!(action, MahjongLinkAction::Push { .. }) {
             self.turn += 1;
-            self.current_player = (self.current_player + 1) % self.rules.player_count();
+            self.current_player = (self.current_player + 1) % self.player_count();
             self.push_used = false;
         }
         Ok(MahjongLinkOutcome {

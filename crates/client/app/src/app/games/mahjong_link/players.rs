@@ -16,26 +16,48 @@ pub(super) fn render(
     playback: &LinkPlayback,
     context: &mut GameTableContext<'_>,
 ) {
-    let avatar_size = if cfg!(target_os = "android") {
-        74.0
-    } else {
-        58.0
+    let dense = game.players.len() > 4;
+    let avatar_size = match (dense, cfg!(target_os = "android")) {
+        (true, true) => 52.0,
+        (true, false) => 48.0,
+        (false, true) => 74.0,
+        (false, false) => 58.0,
     };
+    let score_size = if dense {
+        18.0
+    } else if cfg!(target_os = "android") {
+        24.0
+    } else {
+        21.0
+    };
+    let own_index = game
+        .players
+        .iter()
+        .position(|player| player.player.id == game.you)
+        .unwrap_or(0);
     for (index, player) in game.players.iter().enumerate() {
+        let relative = (index + game.players.len() - own_index) % game.players.len();
+        let (left, top) = seat_position(relative, game.players.len());
         let own = player.player.id == game.you;
         let seat = commands.keyed_child(
             table,
             format!("player:{}", player.player.id.0),
-            (Node {
-                position_type: PositionType::Absolute,
-                left: px(28),
-                top: px(12.0 + index as f32 * 150.0),
-                width: px(210),
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                row_gap: px(4),
-                ..default()
-            },),
+            (
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: if left { px(12) } else { Val::Auto },
+                    right: if left { Val::Auto } else { px(12) },
+                    top: percent(top),
+                    width: px(210),
+                    height: if dense { px(106) } else { Val::Auto },
+                    margin: UiRect::top(px(if dense { -53.0 } else { 0.0 })),
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    row_gap: px(4),
+                    ..default()
+                },
+                ZIndex(100),
+            ),
         );
         let avatar = if own {
             context.avatars.local.as_ref()
@@ -78,11 +100,7 @@ pub(super) fn render(
             commands,
             seat,
             format!("{} 分", player.score),
-            if cfg!(target_os = "android") {
-                24.0
-            } else {
-                21.0
-            },
+            score_size,
             if player.connected { TEXT } else { MUTED },
             context.assets,
         );
@@ -126,4 +144,30 @@ pub(super) fn render(
             );
         }
     }
+}
+
+fn seat_position(relative: usize, count: usize) -> (bool, f32) {
+    if count <= 2 {
+        return (relative == 0, 38.0);
+    }
+    if count <= 4 {
+        return (
+            matches!(relative, 0 | 3),
+            if matches!(relative, 2 | 3) {
+                20.0
+            } else {
+                58.0
+            },
+        );
+    }
+    let right_count = count / 2;
+    let left = relative == 0 || relative > right_count;
+    let (row, rows) = if relative == 0 {
+        (count - right_count - 1, count - right_count)
+    } else if left {
+        (relative - right_count - 1, count - right_count)
+    } else {
+        (right_count - relative, right_count)
+    };
+    (left, 12.5 + 75.0 * row as f32 / (rows - 1) as f32)
 }

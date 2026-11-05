@@ -3,31 +3,11 @@ use std::fmt;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum MahjongLinkMode {
-    #[default]
-    TwoPlayers,
-    FourPlayers,
-}
-
-impl MahjongLinkMode {
-    pub const fn player_count(self) -> u8 {
-        match self {
-            Self::TwoPlayers => 2,
-            Self::FourPlayers => 4,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct MahjongLinkRuleSet {
-    pub mode: MahjongLinkMode,
-}
+pub struct MahjongLinkRuleSet {}
 
 impl MahjongLinkRuleSet {
-    pub const fn player_count(self) -> u8 {
-        self.mode.player_count()
-    }
+    pub const MIN_PLAYERS: u8 = 1;
+    pub const MAX_PLAYERS: u8 = 8;
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -96,11 +76,13 @@ pub enum MahjongLinkError {
     InvalidPush,
     PushOutOfBounds,
     PushAlreadyUsed,
+    InvalidPlayerCount,
 }
 
 impl fmt::Display for MahjongLinkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
+            Self::InvalidPlayerCount => "麻将连连看支持 1 至 8 人",
             Self::InvalidDeck => "需要万、筒、条及字牌各四张，共 136 张",
             Self::InvalidPlayer => "玩家不在本局中",
             Self::NotPlayersTurn => "还没有轮到你操作",

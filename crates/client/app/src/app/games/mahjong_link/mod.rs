@@ -1,5 +1,6 @@
 mod actions;
 mod controls;
+mod layout;
 mod lobby;
 mod playback;
 mod players;

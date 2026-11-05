@@ -2,9 +2,8 @@ use super::*;
 
 #[test]
 fn one_push_preserves_the_turn_until_matching_or_passing() {
-    for mode in [MahjongLinkMode::TwoPlayers, MahjongLinkMode::FourPlayers] {
-        let mut game =
-            MahjongLinkGameState::new(MahjongLinkRuleSet { mode }, build_deck()).unwrap();
+    for count in 2..=MahjongLinkRuleSet::MAX_PLAYERS {
+        let mut game = MahjongLinkGameState::new(count, build_deck()).unwrap();
         let push = MahjongLinkAction::Push {
             row: 0,
             from: PushSide::Right,
@@ -58,7 +57,7 @@ fn one_push_preserves_the_turn_until_matching_or_passing() {
         assert_eq!(game.scores()[1], 1);
         assert_eq!(game.turn(), 2);
         assert!(!game.push_used());
-        let next = 2 % mode.player_count();
+        let next = 2 % count;
         assert_eq!(game.current_player(), Some(next));
         game.act(next, push).unwrap();
         let automatic = game.automatic_action();

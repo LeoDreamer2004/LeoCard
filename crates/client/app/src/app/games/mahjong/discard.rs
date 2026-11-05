@@ -1,14 +1,15 @@
 //! 自己弃牌后，牌河飞行与手牌补位共用一段动画进度。
 use super::layout::MahjongLayout as Layout;
-use super::projection::{
+use super::{
+    MahjongAssets, MahjongHandTile, MahjongTableRoot, MahjongTileHighlight, MahjongTileMaterial,
+    MahjongTileSize, MahjongTileVisual, MahjongUiState, add_mahjong_tile_material,
+    mahjong_own_row_left,
+};
+use crate::app::presentation::ease_out_cubic;
+use crate::app::presentation::mahjong::{
     MahjongProjectionViewport, REFERENCE_DESIGN_HEIGHT, camera_canvas, ground_from_layout,
     overlay_tile_scale, world_layout,
 };
-use super::{
-    MahjongAssets, MahjongHandTile, MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize,
-    MahjongTileVisual, MahjongUiState, add_mahjong_tile_material, mahjong_own_row_left,
-};
-use crate::app::presentation::ease_out_cubic;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
@@ -18,9 +19,6 @@ use leocard_ui::UiComposer;
 
 const DISCARD_DURATION: f32 = 0.48;
 const HAND_TILE_ADVANCE: f32 = Layout::OWN_STEP;
-
-#[derive(Component)]
-pub(crate) struct MahjongTableRoot;
 
 #[derive(Clone, Debug)]
 pub(crate) struct MahjongOwnDiscardAnimation {

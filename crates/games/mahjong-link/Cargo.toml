@@ -7,9 +7,9 @@ rust-version.workspace = true
 description = "Turn based mahjong linking rules for LeoCard"
 
 [dependencies]
-leocard-mahjong = { path = "../mahjong" }
+leocard-mahjong-common = { path = "../mahjong-common" }
 serde = { workspace = true, optional = true }
 
 [features]
 default = []
-serde = ["dep:serde", "leocard-mahjong/serde"]
+serde = ["dep:serde", "leocard-mahjong-common/serde"]

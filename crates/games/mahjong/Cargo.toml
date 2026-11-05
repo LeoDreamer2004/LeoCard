@@ -9,8 +9,9 @@ description = "Pure 2014 MCR mahjong rules for LeoCard"
 [dependencies]
 leocard-achievements = { path = "../achievements" }
 leocard-game-common = { path = "../common" }
+leocard-mahjong-common = { path = "../mahjong-common" }
 serde = { workspace = true, optional = true }
 
 [features]
 default = []
-serde = ["dep:serde"]
+serde = ["dep:serde", "leocard-mahjong-common/serde"]

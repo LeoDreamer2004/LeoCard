@@ -1,5 +1,5 @@
 use crate::{LinkCell, LinkMovement, LinkPoint, MahjongLinkError, PushSide};
-use leocard_mahjong::MahjongTileKind;
+use leocard_mahjong_common::{MahjongTileKind, build_deck as build_mahjong_deck};
 use std::collections::VecDeque;
 use std::ops::Range;
 
@@ -10,7 +10,7 @@ const PATH_ROWS: usize = BOARD_ROWS + 2;
 const DIRECTIONS: [(i8, i8); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
 
 pub fn build_deck() -> Vec<MahjongTileKind> {
-    leocard_mahjong::build_deck()
+    build_mahjong_deck()
         .into_iter()
         .filter_map(|tile| (!tile.kind().is_flower()).then_some(tile.kind()))
         .collect()

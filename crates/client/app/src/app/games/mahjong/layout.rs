@@ -1,5 +1,5 @@
 //! 共用标定后的桌面坐标，Android 扩大前景手牌和操作区。
-use super::projection::world_layout;
+use crate::app::presentation::mahjong::{MahjongTileGeometry, world_layout};
 use bevy::prelude::*;
 use leocard_mahjong::MahjongTile;
 use std::f32::consts;
@@ -7,10 +7,7 @@ use std::f32::consts;
 pub(super) struct MahjongLayout;
 
 impl MahjongLayout {
-    // The source glyphs are 600 × 800. The upper rim is additional depth, not part of the face.
-    pub const FACE_ASPECT_RATIO: f32 = 3.0 / 4.0;
     pub const OWN_RIM_RATIO: f32 = 0.115;
-    pub const TABLE_TILE_THICKNESS: f32 = 0.6;
     pub const OWN_MELD_GAP: f32 = 8.0;
     pub const REMOTE_MELD_GAP: f32 = 12.0;
     pub const REMOTE_HAND_GAP: f32 = 18.0;
@@ -52,7 +49,7 @@ impl MahjongLayout {
         60.9
     };
     pub const OWN_HEIGHT: f32 =
-        Self::OWN_WIDTH * (1.0 / Self::FACE_ASPECT_RATIO + Self::OWN_RIM_RATIO);
+        Self::OWN_WIDTH * (1.0 / MahjongTileGeometry::FACE_ASPECT_RATIO + Self::OWN_RIM_RATIO);
     pub const OWN_STEP: f32 = if cfg!(target_os = "android") {
         78.0
     } else {
@@ -71,11 +68,11 @@ impl MahjongLayout {
     };
 
     pub const MINI_WIDTH: f32 = 16.0;
-    pub const MINI_HEIGHT: f32 = Self::MINI_WIDTH / Self::FACE_ASPECT_RATIO;
+    pub const MINI_HEIGHT: f32 = Self::MINI_WIDTH / MahjongTileGeometry::FACE_ASPECT_RATIO;
     pub const MINI_STEP: f32 = 16.5;
     pub const REMOTE_HEIGHT: f32 = 30.0;
     pub const RIVER_WIDTH: f32 = 16.0;
-    pub const RIVER_HEIGHT: f32 = Self::RIVER_WIDTH / Self::FACE_ASPECT_RATIO;
+    pub const RIVER_HEIGHT: f32 = Self::RIVER_WIDTH / MahjongTileGeometry::FACE_ASPECT_RATIO;
     pub const RIVER_STEP: f32 = 16.5;
     pub const RIVER_COLUMNS: usize = 6;
     pub const RIVER_ROWS_HEIGHT: f32 = Self::RIVER_HEIGHT * 3.0 + 1.5;

@@ -1,6 +1,6 @@
 mod turns;
 
-use super::{lobby, state::MahjongLinkUiState};
+use super::lobby;
 use crate::app::games::GameLobbyContext;
 use crate::app::presentation::LobbySeatHover;
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
@@ -10,8 +10,8 @@ use bevy::scene::ScenePatch;
 use leocard_client::{
     LocalPlayerConnection, LocalPlayerProfile, PlayerIdentity, PlayerRatingProfile, TcpGameClient,
 };
-use leocard_mahjong_link::{MahjongLinkMode, MahjongLinkRuleSet};
-use leocard_protocol::{ClientCommand, MahjongLinkCommand, PlayerInteractionKind, SeatId};
+use leocard_mahjong_link::MahjongLinkRuleSet;
+use leocard_protocol::{ClientCommand, PlayerInteractionKind, SeatId};
 use leocard_ui::{UiComposer, UiSceneProperties, UiSceneRegistry};
 use std::net::TcpListener;
 use std::thread;
@@ -36,7 +36,6 @@ fn render_lobby(
         &mut commands,
         root,
         client.0.model().lobby().expect("joined lobby"),
-        &MahjongLinkUiState::default(),
         GameLobbyContext {
             client: &client,
             assets: &assets,
@@ -116,37 +115,11 @@ fn clicking_mahjong_link_creates_and_renders_a_room() {
             .iter(app.world())
             .any(|text| text.0 == "麻将连连看")
     );
-    for mode in [
-        MahjongLinkMode::TwoPlayers,
-        MahjongLinkMode::FourPlayers,
-        MahjongLinkMode::TwoPlayers,
-    ] {
-        let rules = MahjongLinkRuleSet { mode };
-        {
-            let mut client = app.world_mut().resource_mut::<ClientResource>();
-            client.0.send(ClientCommand::Game(
-                MahjongLinkCommand::UpdateRules { rules }.into(),
-            ));
-            let deadline = Instant::now() + Duration::from_secs(3);
-            loop {
-                client.0.poll();
-                let lobby = client.0.model().lobby().unwrap();
-                if lobby.rules.mahjong_link() == Some(&rules)
-                    && lobby.players[0].seat == Some(SeatId(0))
-                {
-                    break;
-                }
-                assert!(Instant::now() < deadline, "mode change timed out");
-                thread::sleep(Duration::from_millis(10));
-            }
-        }
-        app.update();
-        assert_eq!(
-            app.world_mut()
-                .query::<&LobbySeatHover>()
-                .iter(app.world())
-                .count(),
-            usize::from(rules.player_count())
-        );
-    }
+    assert_eq!(
+        app.world_mut()
+            .query::<&LobbySeatHover>()
+            .iter(app.world())
+            .count(),
+        usize::from(MahjongLinkRuleSet::MAX_PLAYERS),
+    );
 }

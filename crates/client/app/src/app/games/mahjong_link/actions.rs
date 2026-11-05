@@ -6,15 +6,11 @@ use crate::app::shell::{
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use leocard_mahjong_link::{LinkCell, MahjongLinkAction, MahjongLinkRuleSet};
+use leocard_mahjong_link::{LinkCell, MahjongLinkAction};
 use leocard_protocol::{GameSnapshot, MahjongLinkCommand};
 
 #[derive(Clone)]
 pub(crate) enum MahjongLinkUiAction {
-    UpdateRules(MahjongLinkRuleSet),
-    ToggleModeMenu,
-    CloseModeMenu,
-    ToggleGuide,
     Select(LinkCell),
     Clear,
     SetDistance(u8),
@@ -46,16 +42,6 @@ pub(super) fn dispatch_actions(
 impl UiActionHandler<ActionContext<'_>> for MahjongLinkUiAction {
     fn handle(&self, context: &mut ActionContext<'_>) {
         match self {
-            Self::UpdateRules(rules) => {
-                context.ui.mode_menu_open = false;
-                send_game_command(
-                    &mut context.client,
-                    MahjongLinkCommand::UpdateRules { rules: *rules },
-                );
-            }
-            Self::ToggleModeMenu => context.ui.mode_menu_open = !context.ui.mode_menu_open,
-            Self::CloseModeMenu => context.ui.mode_menu_open = false,
-            Self::ToggleGuide => context.ui.guide_open = !context.ui.guide_open,
             Self::Clear => context.ui.selected = None,
             Self::SetDistance(distance) => context.ui.distance = *distance,
             Self::Act(action) => send_game_command(

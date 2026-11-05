@@ -1,6 +1,6 @@
 //! 将当前游戏快照投影为公共结算演出描述。
 
-use super::{blackjack, doudizhu, guandan, mahjong, mc_guess, qigui523, texas, uno};
+use super::{blackjack, doudizhu, guandan, mahjong, mahjong_link, mc_guess, qigui523, texas, uno};
 use crate::app::presentation::{SummaryDescriptor, SummaryPlayback};
 use crate::app::runtime::ClientResource;
 use bevy::prelude::*;
@@ -17,6 +17,7 @@ fn game_summary_descriptor(game: &GameSnapshot) -> Option<SummaryDescriptor> {
         GameSnapshot::McGuess(game) => mc_guess::summary::guess_summary_descriptor(game),
         GameSnapshot::Uno(game) => uno::settlement::uno_summary_descriptor(game),
         GameSnapshot::Mahjong(game) => mahjong::settlement::mahjong_summary_descriptor(game),
+        GameSnapshot::MahjongLink(game) => mahjong_link::summary::descriptor(game),
     }
 }
 

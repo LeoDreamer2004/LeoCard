@@ -6,6 +6,7 @@ mod composition;
 pub(super) mod doudizhu;
 pub(super) mod guandan;
 pub(super) mod mahjong;
+pub(super) mod mahjong_link;
 pub(super) mod mc_guess;
 mod plugin;
 pub(super) mod qigui523;

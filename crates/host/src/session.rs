@@ -1,12 +1,14 @@
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{
     BlackjackSession, ConnectionId, Delivery, DoudizhuSession, GuandanSession, HostError,
-    MahjongSession, McGuessSession, QiGui523Session, ShengjiSession, TexasSession, UnoSession,
+    MahjongLinkSession, MahjongSession, McGuessSession, QiGui523Session, ShengjiSession,
+    TexasSession, UnoSession,
 };
 use leocard_blackjack::{BlackjackCard, BlackjackRuleSet, build_shoe};
 use leocard_doudizhu::{DoudizhuCard, DoudizhuRuleSet};
 use leocard_guandan::{GuandanCard, GuandanRuleSet};
 use leocard_mahjong::{MahjongRuleSet, MahjongTile};
+use leocard_mahjong_link::MahjongLinkRuleSet;
 use leocard_mc_guess::McGuessRuleSet;
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameKind, GameRules, PROTOCOL_VERSION, Revision, RoomId,
@@ -35,6 +37,10 @@ pub enum GameSetup {
         host_port: u16,
         rules: BlackjackRuleSet,
         shuffled_shoe: Vec<BlackjackCard>,
+    },
+    MahjongLink {
+        host_port: u16,
+        rules: MahjongLinkRuleSet,
     },
     McGuess {
         host_port: u16,
@@ -97,6 +103,7 @@ impl GameSetup {
                     shuffled_shoe,
                 }
             }
+            GameRules::MahjongLink(rules) => Self::MahjongLink { host_port, rules },
             GameRules::McGuess(rules) => Self::McGuess { host_port, rules },
             GameRules::QiGui523(rules) => {
                 let mut shuffled_deck = build_deck(rules.deck_count);
@@ -157,6 +164,7 @@ impl GameSetup {
             Self::Blackjack { .. } => GameKind::Blackjack,
             Self::Doudizhu { .. } => GameKind::Doudizhu,
             Self::Guandan { .. } => GameKind::Guandan,
+            Self::MahjongLink { .. } => GameKind::MahjongLink,
         }
     }
 }
@@ -173,6 +181,7 @@ pub enum HostSession {
     Uno(Box<UnoSession>),
     Mahjong(Box<MahjongSession>),
     McGuess(Box<McGuessSession>),
+    MahjongLink(Box<MahjongLinkSession>),
 }
 
 trait HostBackend {
@@ -256,6 +265,7 @@ impl_host_backend!(McGuessSession, McGuess);
 impl_host_backend!(BlackjackSession, Blackjack);
 impl_host_backend!(DoudizhuSession, Doudizhu);
 impl_host_backend!(GuandanSession, Guandan);
+impl_host_backend!(MahjongLinkSession, MahjongLink);
 
 impl HostSession {
     pub fn new(room_id: RoomId, setup: GameSetup) -> Result<Self, HostError> {
@@ -281,6 +291,13 @@ impl HostSession {
             } => BlackjackSession::new(room_id, host_port, rules, shuffled_shoe)
                 .map(Box::new)
                 .map(Self::Blackjack),
+            GameSetup::MahjongLink { host_port, rules } => {
+                let mut deck = leocard_mahjong_link::build_deck();
+                fastrand::shuffle(&mut deck);
+                MahjongLinkSession::new(room_id, host_port, rules, deck)
+                    .map(Box::new)
+                    .map(Self::MahjongLink)
+            }
             GameSetup::McGuess { host_port, rules } => Ok(Self::McGuess(Box::new(
                 McGuessSession::new(room_id, host_port, rules),
             ))),
@@ -333,6 +350,7 @@ impl HostSession {
             Self::Blackjack(session) => session.as_ref(),
             Self::Doudizhu(session) => session.as_ref(),
             Self::Guandan(session) => session.as_ref(),
+            Self::MahjongLink(session) => session.as_ref(),
         }
     }
 
@@ -347,6 +365,7 @@ impl HostSession {
             Self::Blackjack(session) => session.as_mut(),
             Self::Doudizhu(session) => session.as_mut(),
             Self::Guandan(session) => session.as_mut(),
+            Self::MahjongLink(session) => session.as_mut(),
         }
     }
 

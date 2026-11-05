@@ -3,7 +3,7 @@
 use super::super::{GameLobbyContext, GameScreen, GameTableContext};
 use super::{
     MahjongAssets, MahjongClaimPresentationState, MahjongFanCalculator, MahjongTableVisuals,
-    MahjongTileMaterial, MahjongUiState, render_mahjong_lobby, render_mahjong_table,
+    MahjongUiState, render_mahjong_lobby, render_mahjong_table,
 };
 use crate::app::runtime::ClientResource;
 use crate::app::shell::SocialUiState;
@@ -19,7 +19,6 @@ pub(crate) struct MahjongScreen<'w> {
     ui: ResMut<'w, MahjongUiState>,
     fan_calculator: Res<'w, MahjongFanCalculator>,
     claim_presentation: Res<'w, MahjongClaimPresentationState>,
-    tile_materials: ResMut<'w, Assets<MahjongTileMaterial>>,
 }
 
 impl GameScreen for MahjongScreen<'_> {
@@ -90,6 +89,7 @@ impl GameScreen for MahjongScreen<'_> {
             game_summary,
             transition,
             table_materials,
+            mahjong_tile_materials,
             ..
         } = context;
         let interaction_menu_open = social.interaction_menu_open;
@@ -109,7 +109,7 @@ impl GameScreen for MahjongScreen<'_> {
                 appearance,
                 brightness: form.mahjong_table_brightness,
                 table_materials,
-                tile_materials: &mut self.tile_materials,
+                tile_materials: mahjong_tile_materials,
                 start_game_transition: transition,
                 game_summary,
                 claim_presentation: &self.claim_presentation,

@@ -207,3 +207,12 @@ pub(super) fn load_mahjong_assets(
 ) {
     commands.insert_resource(MahjongAssets::load(&asset_server, &mut lights, &mut labels));
 }
+
+#[cfg(test)]
+pub(crate) fn setup_mahjong_asset_test(app: &mut App) {
+    app.init_asset::<Image>()
+        .init_asset::<AudioSource>()
+        .init_asset::<MahjongTurnLightMaterial>()
+        .init_asset::<MahjongWindLabelMaterial>()
+        .add_systems(Startup, load_mahjong_assets);
+}

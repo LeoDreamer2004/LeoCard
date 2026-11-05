@@ -57,7 +57,7 @@ pub(crate) struct MahjongTileSurface(pub Handle<MahjongTileMaterial>);
 #[derive(Component)]
 pub(crate) struct MahjongTileRestRotation(pub f32);
 
-pub(super) fn attach_mahjong_tile_surface(
+pub(crate) fn attach_mahjong_tile_surface(
     commands: &mut UiComposer,
     tile: Entity,
     material: Handle<MahjongTileMaterial>,
@@ -88,7 +88,7 @@ pub(super) fn attach_mahjong_tile_surface(
     clippy::type_complexity,
     reason = "synchronize changed transforms and retained material bindings"
 )]
-pub(super) fn sync_mahjong_tile_orientation(
+pub(crate) fn sync_mahjong_tile_orientation(
     tiles: Query<
         (&UiGlobalTransform, &MahjongTileSurface),
         Or<(Changed<UiGlobalTransform>, Changed<MahjongTileSurface>)>,
@@ -115,7 +115,7 @@ pub(crate) enum MahjongTileHighlight {
 }
 
 impl MahjongTileHighlight {
-    pub(super) fn overlay(self) -> Vec4 {
+    pub(crate) fn overlay(self) -> Vec4 {
         match self {
             Self::None => Vec4::ZERO,
             Self::Red => Vec4::new(1.0, 0.18, 0.16, 0.52),
@@ -133,7 +133,7 @@ impl UiMaterial for MahjongTileMaterial {
     }
 }
 
-pub(super) fn mahjong_local_light(orientation: u8) -> Vec4 {
+pub(crate) fn mahjong_local_light(orientation: u8) -> Vec4 {
     let direction = match orientation {
         0 => Vec2::new(-0.50, -0.72),
         1 => Vec2::new(0.72, -0.50),

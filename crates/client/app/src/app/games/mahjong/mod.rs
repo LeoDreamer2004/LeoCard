@@ -11,7 +11,6 @@ mod hand;
 mod hover;
 mod layout;
 mod lobby;
-mod material;
 mod modal;
 mod players;
 mod plugin;
@@ -27,6 +26,10 @@ mod tiles;
 mod view;
 mod voices;
 mod wind_labels;
+pub(crate) use crate::app::presentation::{
+    MahjongTileHighlight, MahjongTileMaterial, MahjongTileRestRotation, MahjongTileSurface,
+    attach_mahjong_tile_surface, mahjong_local_light, sync_mahjong_tile_orientation,
+};
 use action_prompt::*;
 pub(crate) use actions::*;
 pub(crate) use assets::*;
@@ -38,7 +41,6 @@ use hand::*;
 pub(crate) use hover::MahjongFanCalculator;
 use hover::*;
 pub(crate) use lobby::*;
-pub(crate) use material::*;
 use modal::advance_mahjong_modal;
 use players::*;
 pub(crate) use plugin::*;

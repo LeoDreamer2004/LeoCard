@@ -1,10 +1,11 @@
 use crate::{
     AchievementAnnouncement, AvatarFrameId, AvatarId, BlackjackSnapshot, ChatContent, ChatMessage,
     DoudizhuSnapshot, GameCommand, GameEvent, GameKind, GameRules, GuandanSnapshot,
-    MahjongPhaseView, MahjongSnapshot, MatchId, McGuessSnapshot, PROTOCOL_VERSION,
-    PlayerGameProfiles, PlayerInteraction, PlayerInteractionKind, PlayerPublicInfo, ProfileId,
-    QiGui523PhaseView, QiGui523Snapshot, ReconnectToken, RejectReason, RequestId, Revision, RoomId,
-    RoomInfo, SeatId, ShengjiSnapshot, TexasPhaseView, TexasSnapshot, UnoPhaseView, UnoSnapshot,
+    MahjongLinkSnapshot, MahjongPhaseView, MahjongSnapshot, MatchId, McGuessSnapshot,
+    PROTOCOL_VERSION, PlayerGameProfiles, PlayerInteraction, PlayerInteractionKind,
+    PlayerPublicInfo, ProfileId, QiGui523PhaseView, QiGui523Snapshot, ReconnectToken, RejectReason,
+    RequestId, Revision, RoomId, RoomInfo, SeatId, ShengjiSnapshot, TexasPhaseView, TexasSnapshot,
+    UnoPhaseView, UnoSnapshot,
 };
 use leocard_achievements::TrophyCounts;
 use leocard_game_common::PlayerId;
@@ -251,6 +252,7 @@ pub enum GameSnapshot {
     Blackjack(BlackjackSnapshot),
     Doudizhu(DoudizhuSnapshot),
     Guandan(GuandanSnapshot),
+    MahjongLink(MahjongLinkSnapshot),
 }
 
 macro_rules! game_snapshot_projections {
@@ -292,6 +294,7 @@ impl_game_snapshot_from!(McGuessSnapshot, McGuess);
 impl_game_snapshot_from!(BlackjackSnapshot, Blackjack);
 impl_game_snapshot_from!(DoudizhuSnapshot, Doudizhu);
 impl_game_snapshot_from!(GuandanSnapshot, Guandan);
+impl_game_snapshot_from!(MahjongLinkSnapshot, MahjongLink);
 
 impl GameSnapshot {
     /// A rematch can change the roster only after the whole match, never between hands.
@@ -319,6 +322,7 @@ impl GameSnapshot {
             Self::Blackjack(snapshot) => snapshot.match_complete,
             Self::Doudizhu(snapshot) => snapshot.match_complete,
             Self::Guandan(snapshot) => snapshot.match_complete,
+            Self::MahjongLink(snapshot) => snapshot.match_complete,
         }
     }
 
@@ -334,6 +338,7 @@ impl GameSnapshot {
             Self::Blackjack(snapshot) => snapshot.you,
             Self::Doudizhu(snapshot) => snapshot.you,
             Self::Guandan(snapshot) => snapshot.you,
+            Self::MahjongLink(snapshot) => snapshot.you,
         }
     }
 
@@ -348,6 +353,7 @@ impl GameSnapshot {
             Self::Blackjack(snapshot) => snapshot.match_id,
             Self::Doudizhu(snapshot) => snapshot.match_id,
             Self::Guandan(snapshot) => snapshot.match_id,
+            Self::MahjongLink(snapshot) => snapshot.match_id,
         }
     }
 
@@ -362,6 +368,7 @@ impl GameSnapshot {
             Self::Blackjack(_) => GameKind::Blackjack,
             Self::Doudizhu(_) => GameKind::Doudizhu,
             Self::Guandan(_) => GameKind::Guandan,
+            Self::MahjongLink(_) => GameKind::MahjongLink,
         }
     }
 
@@ -375,5 +382,6 @@ impl GameSnapshot {
         blackjack, into_blackjack => Blackjack(BlackjackSnapshot),
         doudizhu, into_doudizhu => Doudizhu(DoudizhuSnapshot),
         guandan, into_guandan => Guandan(GuandanSnapshot),
+        mahjong_link, into_mahjong_link => MahjongLink(MahjongLinkSnapshot),
     }
 }

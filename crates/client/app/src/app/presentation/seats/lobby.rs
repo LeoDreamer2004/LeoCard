@@ -7,6 +7,7 @@ pub(crate) struct LobbySeatLayout {
 impl LobbySeatLayout {
     pub(crate) fn new(seat_count: u8) -> Self {
         let positions: &[_] = match seat_count {
+            2 => &[(239.0, 290.0), (239.0, 0.0)],
             3 | 4 => &[(239.0, 290.0), (0.0, 145.0), (239.0, 0.0), (478.0, 145.0)],
             8 => &[
                 (239.0, 290.0),
@@ -26,7 +27,7 @@ impl LobbySeatLayout {
                 (478.0, 145.0),
                 (328.0, 290.0),
             ],
-            _ => unreachable!("supported lobby seat counts are three, four, six or eight"),
+            _ => unreachable!("supported lobby seat counts are two, three, four, six or eight"),
         };
         Self { positions }
     }

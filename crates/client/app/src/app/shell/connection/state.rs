@@ -31,9 +31,12 @@ impl HomeCategory {
     pub(crate) fn includes(self, game: GameKind) -> bool {
         match self {
             Self::All => true,
-            Self::Mahjong => game == GameKind::Mahjong,
+            Self::Mahjong => matches!(game, GameKind::Mahjong | GameKind::MahjongLink),
             Self::Other => game == GameKind::McGuess,
-            Self::Cards => !matches!(game, GameKind::Mahjong | GameKind::McGuess),
+            Self::Cards => !matches!(
+                game,
+                GameKind::Mahjong | GameKind::MahjongLink | GameKind::McGuess
+            ),
         }
     }
 }

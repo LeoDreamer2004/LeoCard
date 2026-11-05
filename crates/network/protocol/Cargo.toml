@@ -13,6 +13,7 @@ leocard-doudizhu = { path = "../../games/doudizhu", features = ["serde"] }
 leocard-game-common = { path = "../../games/common" }
 leocard-guandan = { path = "../../games/guandan", features = ["serde"] }
 leocard-mahjong = { path = "../../games/mahjong", features = ["serde"] }
+leocard-mahjong-link = { path = "../../games/mahjong-link", features = ["serde"] }
 leocard_mc_guess = { path = "../../games/mc-guess" }
 leocard-qigui523 = { path = "../../games/qigui523", features = ["serde"] }
 leocard-shengji = { path = "../../games/shengji", features = ["serde"] }

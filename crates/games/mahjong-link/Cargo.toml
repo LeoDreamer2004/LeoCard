@@ -1,0 +1,15 @@
+[package]
+name = "leocard-mahjong-link"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Turn based mahjong linking rules for LeoCard"
+
+[dependencies]
+leocard-mahjong = { path = "../mahjong" }
+serde = { workspace = true, optional = true }
+
+[features]
+default = []
+serde = ["dep:serde", "leocard-mahjong/serde"]

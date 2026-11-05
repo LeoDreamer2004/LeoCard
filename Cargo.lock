@@ -3743,6 +3743,7 @@ dependencies = [
  "leocard-achievements",
  "leocard-game-common",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

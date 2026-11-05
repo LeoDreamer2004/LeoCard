@@ -10,7 +10,7 @@ use crate::app::shell::SocialUiState;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
-use leocard_protocol::{GameSnapshot, LobbySnapshot, TexasSnapshot};
+use leocard_protocol::{GameSnapshot, LobbySnapshot, TexasPhaseView, TexasSnapshot};
 use leocard_ui::UiComposer;
 
 #[derive(SystemParam)]
@@ -24,19 +24,21 @@ impl GameScreen for TexasScreen<'_> {
     type Snapshot = TexasSnapshot;
 
     fn requires_action(&self, game: &Self::Snapshot) -> bool {
-        use leocard_protocol::TexasPhaseView;
-        matches!(game.phase, TexasPhaseView::Betting { .. })
-            && game
-                .blind_to_post
-                .map_or(game.current_player == Some(game.you), |blind| {
-                    blind.player == game.you
-                })
+        let choosing = matches!(game.phase, TexasPhaseView::ChoosingRunout);
+        matches!(
+            game.phase,
+            TexasPhaseView::Betting { .. } | TexasPhaseView::ChoosingRunout
+        ) && game
+            .blind_to_post
+            .map_or(game.current_player == Some(game.you), |blind| {
+                blind.player == game.you
+            })
             && game.players.iter().any(|player| {
                 player.player.id == game.you
                     && player.connected
                     && !player.auto_play
                     && !player.folded
-                    && !player.all_in
+                    && (choosing || !player.all_in)
             })
     }
 

@@ -147,6 +147,45 @@ pub(crate) fn render_texas_lobby(
         },
         assets,
     );
+    let side_pots_toggled = TexasRuleSet {
+        side_pots: !rules_value.side_pots,
+        run_it_twice: false,
+        ..rules_value
+    };
+    let runout_toggled = TexasRuleSet {
+        run_it_twice: !rules_value.run_it_twice,
+        ..rules_value
+    };
+    for (label, enabled, help, editable, toggled) in [
+        (
+            "边池",
+            rules_value.side_pots,
+            "关闭时首次全下锁定本街跟注目标，不能再加注；短筹码仍可全下。所有人响应后，未弃牌者按存活全下者的最低累计投入退回超额，弃牌筹码留池，之后不再下注。",
+            can_configure,
+            side_pots_toggled,
+        ),
+        (
+            "发两次",
+            rules_value.run_it_twice,
+            "仅无边池时可开。锁池且还有公共牌未发时，所有未弃牌者依次选择；全员选两次才发两次，否则一次。已有公共牌共享，只补发余牌，底池两半分配，奇数筹码归第一次。",
+            can_configure && !rules_value.side_pots,
+            runout_toggled,
+        ),
+    ] {
+        add_rule_config_row(
+            commands,
+            rules_panel,
+            TexasRuleConfigRow {
+                label,
+                value: if enabled { "开启" } else { "关闭" }.to_owned(),
+                help,
+                editable,
+                previous: editable.then_some(toggled),
+                next: editable.then_some(toggled),
+            },
+            assets,
+        );
+    }
     let short_deck_toggled = TexasRuleSet {
         short_deck: !rules_value.short_deck,
         ..rules_value

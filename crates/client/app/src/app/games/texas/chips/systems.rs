@@ -1,32 +1,48 @@
-use super::{ChipZone, TexasChipSprite, TexasChipTableState};
-use crate::app::runtime::{ClientResource, GameEvents};
-
+use super::{ChipZone, TexasChipSprite, TexasChipTableState, TexasChipUpdates};
+use crate::app::runtime::ClientResource;
 use bevy::prelude::*;
-use leocard_protocol::{GameSnapshot, TexasEvent};
+use leocard_protocol::{GameRules, GameSnapshot};
 
 pub(crate) fn sync_texas_chip_state(
     client: Option<Res<ClientResource>>,
-    mut game_client: ResMut<GameEvents<TexasEvent>>,
+    mut updates: ResMut<TexasChipUpdates>,
     mut state: ResMut<TexasChipTableState>,
 ) {
     let Some(client) = client.as_deref() else {
         state.reset();
+        *updates = TexasChipUpdates::default();
         return;
     };
-    let events = game_client.take();
     let snapshot = client
         .0
         .model()
         .game_snapshot()
-        .and_then(GameSnapshot::texas)
-        .cloned();
+        .and_then(GameSnapshot::texas);
     let Some(snapshot) = snapshot else {
         if state.match_id.is_some() {
             state.reset();
         }
         return;
     };
-    state.observe(&snapshot, events);
+    let side_pots = client
+        .0
+        .model()
+        .game_rules()
+        .and_then(GameRules::texas)
+        .is_none_or(|rules| rules.side_pots);
+    let ready = updates.take();
+    if state.match_id != Some(snapshot.match_id)
+        || state.hand_number != snapshot.hand_number
+        || state.you != Some(snapshot.you)
+    {
+        // Do not replay queued intro/previous-hand history on first displaying
+        // this hand. Events newer than this snapshot remain pending in updates.
+        state.initialize(snapshot, side_pots);
+        return;
+    }
+    for (snapshot, events) in ready {
+        state.observe(&snapshot, events, side_pots);
+    }
 }
 
 pub(crate) fn animate_texas_chip_sprites(

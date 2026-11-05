@@ -196,7 +196,11 @@ fn add_texas_actions(
     ui: &mut TexasUiState,
     assets: &UiAssets,
 ) {
-    if !matches!(game.phase, TexasPhaseView::Betting { .. })
+    if !matches!(
+        game.phase,
+        TexasPhaseView::Betting { .. } | TexasPhaseView::ChoosingRunout
+    ) || own.folded
+        || own.auto_play
         || game.blind_to_post.is_some()
         || game.current_player != Some(game.you)
     {
@@ -244,11 +248,24 @@ fn add_texas_actions(
         },
         None,
     );
+    if matches!(game.phase, TexasPhaseView::ChoosingRunout) {
+        for (label, twice) in [("发一次", false), ("发两次", true)] {
+            add_texas_action_button(
+                commands,
+                row,
+                label,
+                TexasUiAction::ChooseRunout(twice),
+                ButtonKind::Primary,
+                assets,
+            );
+        }
+        return;
+    }
     add_texas_action_button(
         commands,
         row,
         "弃牌",
-        TexasAction::Fold,
+        TexasUiAction::Act(TexasAction::Fold),
         ButtonKind::Pass,
         assets,
     );
@@ -257,7 +274,7 @@ fn add_texas_actions(
             commands,
             row,
             "过牌",
-            TexasAction::Check,
+            TexasUiAction::Act(TexasAction::Check),
             ButtonKind::Secondary,
             assets,
         );
@@ -266,7 +283,7 @@ fn add_texas_actions(
             commands,
             row,
             &format!("跟注 {}", game.amount_to_call.min(own.stack)),
-            TexasAction::Call,
+            TexasUiAction::Act(TexasAction::Call),
             ButtonKind::Secondary,
             assets,
         );
@@ -297,7 +314,7 @@ fn add_texas_actions(
             commands,
             row,
             &format!("加注到 {}", ui.raise_to),
-            TexasAction::RaiseTo(ui.raise_to),
+            TexasUiAction::Act(TexasAction::RaiseTo(ui.raise_to)),
             ButtonKind::Primary,
             assets,
         );
@@ -322,7 +339,7 @@ fn add_texas_actions(
             commands,
             row,
             "全下",
-            TexasAction::AllIn,
+            TexasUiAction::Act(TexasAction::AllIn),
             ButtonKind::Warning,
             assets,
         );
@@ -405,7 +422,7 @@ fn add_texas_action_button(
     commands: &mut UiComposer,
     parent: Entity,
     label: &str,
-    action: TexasAction,
+    action: TexasUiAction,
     kind: ButtonKind,
     assets: &UiAssets,
 ) -> Entity {
@@ -433,7 +450,7 @@ fn add_texas_action_button(
         assets,
         GameButtonSpec {
             label,
-            action: Some(UiAction::Texas(TexasUiAction::Act(action))),
+            action: Some(UiAction::Texas(action)),
             normal,
             hovered,
             width: 118.0 * TexasTableLayout::ACTION_SCALE,

@@ -20,6 +20,10 @@ pub struct TexasSnapshot {
     pub your_hole_cards: Vec<TexasCard>,
     pub revealed_hands: Vec<TexasRevealedHand>,
     pub community: Vec<TexasCard>,
+    /// 发两次时的完整第二套公共牌，包含两次共用的已开牌；否则为空。
+    pub second_community: Vec<TexasCard>,
+    /// 按选择顺序记录，不包含弃牌玩家。
+    pub runout_votes: Vec<TexasRunoutVoteView>,
     /// 接收者弃牌所在下注轮已结束，且仍有至少两名玩家继续对局。
     pub spectator_available: bool,
     /// 接收者请求的胜率开关状态；其他玩家的设置不公开。
@@ -44,6 +48,12 @@ pub struct TexasSnapshot {
     pub pot: u32,
     pub phase: TexasPhaseView,
     pub squid: TexasSquidView,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct TexasRunoutVoteView {
+    pub player: PlayerId,
+    pub twice: bool,
 }
 
 /// Marker order gives every physical marker a stable identity across hands.
@@ -94,10 +104,12 @@ pub struct TexasRevealedHand {
     pub cards: Vec<TexasCard>,
     /// 未发满五张公共牌便因其他玩家弃牌结束时，可能不足以组成五张牌型。
     pub best: Option<TexasEvaluatedHand>,
+    pub second_best: Option<TexasEvaluatedHand>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum TexasPhaseView {
+    ChoosingRunout,
     Betting {
         street: TexasStreet,
     },
@@ -114,6 +126,8 @@ pub enum TexasPhaseView {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TexasPotAwardView {
+    /// 1 为普通结算或第一次，2 为第二次。
+    pub run: u8,
     pub amount: u32,
     pub winners: Vec<PlayerId>,
     pub winning_category: Option<TexasHandCategory>,
@@ -127,6 +141,9 @@ pub enum TexasViolation {
     PlayerCannotAct,
     MustPostBlind,
     NoBlindToPost,
+    NotChoosingRunout,
+    MustChooseRunout,
+    RunoutAlreadyChosen,
     CannotCheckWhileFacingBet { amount_to_call: u32 },
     NothingToCall,
     RaiseMustExceedCurrentBet { current_bet: u32, target: u32 },
@@ -146,6 +163,9 @@ impl fmt::Display for TexasViolation {
             Self::PlayerCannotAct => "弃牌、全下或离线玩家不能继续行动",
             Self::MustPostBlind => "当前只能下盲注",
             Self::NoBlindToPost => "当前没有需要下的盲注",
+            Self::NotChoosingRunout => "当前不在发牌次数选择阶段",
+            Self::MustChooseRunout => "请先选择发一次或发两次",
+            Self::RunoutAlreadyChosen => "你已经选择过发牌次数",
             Self::CannotCheckWhileFacingBet { .. } => "面对下注时不能过牌",
             Self::NothingToCall => "当前没有需要跟注的筹码",
             Self::RaiseMustExceedCurrentBet { .. } => "加注必须超过当前最高注",

@@ -85,17 +85,28 @@ pub struct TexasPotAward {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TexasRunResult {
+    /// Complete second board, including the identical already-public prefix.
+    pub community: Vec<TexasCard>,
+    pub awards: Vec<TexasPotAward>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TexasHandResult {
     pub dealer: PlayerId,
     pub showdown: bool,
     pub community: Vec<TexasCard>,
     pub awards: Vec<TexasPotAward>,
+    /// Aggregates both runouts, refunds and the single squid settlement.
     pub final_stacks: Vec<u32>,
+    /// Present only after unanimous twice votes; community/awards above remain the first run.
+    pub second_run: Option<TexasRunResult>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TexasPhase {
     Betting(TexasStreet),
+    ChoosingRunout,
     Complete(TexasHandResult),
 }
 
@@ -116,6 +127,14 @@ pub enum TexasActionOutcome {
         street: TexasStreet,
         current_player: PlayerId,
         community_cards: usize,
+    },
+    RunoutVoteStarted {
+        current_player: PlayerId,
+    },
+    RunoutChosen {
+        player: PlayerId,
+        twice: bool,
+        next_player: PlayerId,
     },
     HandComplete(TexasHandResult),
 }
@@ -140,6 +159,9 @@ pub enum TexasGameError {
         actual: PlayerId,
     },
     HandAlreadyComplete,
+    NotChoosingRunout,
+    MustChooseRunout,
+    RunoutAlreadyChosen(PlayerId),
     HandStillInProgress,
     CannotCheckWhileFacingBet {
         amount_to_call: u32,
@@ -190,6 +212,9 @@ impl fmt::Display for TexasGameError {
             Self::NotPlayersTurn { expected, actual } => {
                 write!(f, "尚未轮到 {:?}；当前应由 {:?} 操作", actual, expected)
             }
+            Self::NotChoosingRunout => f.write_str("当前不在发牌次数选择阶段"),
+            Self::MustChooseRunout => f.write_str("当前必须选择发牌次数"),
+            Self::RunoutAlreadyChosen(player) => write!(f, "玩家 {:?} 已选择发牌次数", player),
             Self::HandAlreadyComplete => f.write_str("本手牌已经结束"),
             Self::HandStillInProgress => f.write_str("当前手牌尚未结束"),
             Self::CannotCheckWhileFacingBet { amount_to_call } => {
@@ -276,6 +301,12 @@ pub struct TexasGameState {
     pub(super) raise_allowed: Vec<bool>,
     pub(super) phase: TexasPhase,
     pub(super) pending_blind: Option<TexasBlindKind>,
+    /// First all-in locks the street target, independently of later refund caps.
+    pub(super) all_in_lock: Option<u32>,
+    pub(super) runout_voters: Vec<PlayerId>,
+    pub(super) runout_votes: Vec<(PlayerId, bool)>,
+    /// Cumulative actual payments, never decreased by refunds or awards.
+    pub(super) paid: Vec<u32>,
     pub(super) hand_number: u32,
     pub(crate) statistics: GameStatistics,
     pub(super) squid: TexasSquidState,
@@ -362,6 +393,10 @@ impl TexasGameState {
             raise_allowed: vec![false; player_count],
             phase: TexasPhase::Betting(TexasStreet::PreFlop),
             pending_blind: None,
+            all_in_lock: None,
+            runout_voters: Vec::new(),
+            runout_votes: Vec::new(),
+            paid: vec![0; player_count],
             hand_number: 0,
             statistics: GameStatistics::new(rules.player_count),
         };
@@ -371,6 +406,15 @@ impl TexasGameState {
 
     pub const fn rules(&self) -> &TexasRuleSet {
         &self.rules
+    }
+
+    /// Accepted choices in voting order. Retained through completion, cleared on the next hand.
+    pub fn runout_votes(&self) -> &[(PlayerId, bool)] {
+        &self.runout_votes
+    }
+
+    pub(crate) fn paid_by(&self, player: PlayerId) -> u32 {
+        self.paid[player.index()]
     }
 
     pub fn betting_history(&self) -> &[TexasBettingRecord] {
@@ -418,6 +462,8 @@ impl TexasGameState {
             .get(player.index())
             .ok_or(TexasGameError::InvalidPlayer(player))?;
         Ok(self.raise_allowed[player.index()]
+            && self.all_in_lock.is_none()
+            && matches!(self.phase, TexasPhase::Betting(_))
             && self.can_act(player)
             && !self.fixed_limit_reached())
     }
@@ -441,6 +487,9 @@ impl TexasGameState {
             TexasBlindKind::Small => TexasRuleSet::SMALL_BLIND,
             TexasBlindKind::Big => TexasRuleSet::BIG_BLIND,
         };
+        let requested = self.all_in_lock.map_or(requested, |target| {
+            requested.min(target.saturating_sub(self.players[player.index()].committed_street))
+        });
         Some((
             player,
             kind,

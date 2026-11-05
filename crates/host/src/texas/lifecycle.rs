@@ -144,7 +144,7 @@ impl TexasSession {
             .game
             .as_ref()
             .is_some_and(|game| matches!(game.game().phase(), TexasPhase::Complete(_)));
-        let events = self.fold_disconnected_players();
+        let events = self.resolve_disconnected_turns();
         self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
         self.reset_automatic_action_delay_for_current_turn();
@@ -254,6 +254,9 @@ impl HostedGameLifecycle for TexasSession {
             }
             TexasCommand::UpdateRules { rules } => self.update_rules(connection, request_id, rules),
             TexasCommand::Act { action } => self.act(connection, request_id, action),
+            TexasCommand::ChooseRunout { twice } => {
+                self.choose_runout(connection, request_id, twice)
+            }
         })
     }
 
@@ -435,7 +438,7 @@ impl HostedGameLifecycle for TexasSession {
                     RejectReason::Game(GameViolation::InvalidRuleConfiguration),
                 );
             }
-            let events = self.fold_disconnected_players();
+            let events = self.resolve_disconnected_turns();
             self.record_hand_started();
             self.record_profile_events(&events);
             self.finish_hand_if_needed(false);
@@ -478,7 +481,7 @@ impl HostedGameLifecycle for TexasSession {
             .game
             .as_ref()
             .is_some_and(|game| matches!(game.game().phase(), TexasPhase::Complete(_)));
-        let events = self.fold_disconnected_players();
+        let events = self.resolve_disconnected_turns();
         self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
         self.reset_automatic_action_delay_for_current_turn();

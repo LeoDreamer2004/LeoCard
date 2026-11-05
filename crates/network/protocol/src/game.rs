@@ -241,6 +241,7 @@ pub enum TexasCommand {
     SetSpectatorWinRates { enabled: bool },
     UpdateRules { rules: TexasRuleSet },
     Act { action: TexasAction },
+    ChooseRunout { twice: bool },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

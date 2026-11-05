@@ -17,6 +17,7 @@ pub(crate) enum TexasUiAction {
     UpdateRules(TexasRuleSet),
     SetRaiseTo(u32),
     Act(TexasAction),
+    ChooseRunout(bool),
     ToggleHandGuide,
     CloseHandGuide,
     ToggleSpectatorDrawer,
@@ -75,6 +76,12 @@ impl UiActionHandler<TexasActionContext<'_>> for TexasUiAction {
                 send_game_command(
                     &mut context.client,
                     TexasCommand::UpdateRules { rules: *rules },
+                );
+            }
+            TexasUiAction::ChooseRunout(twice) => {
+                send_game_command(
+                    &mut context.client,
+                    TexasCommand::ChooseRunout { twice: *twice },
                 );
             }
             TexasUiAction::SetRaiseTo(target) => context.ui.raise_to = *target,

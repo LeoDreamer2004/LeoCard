@@ -1,0 +1,285 @@
+use super::super::{TexasUiAction, TexasUiState};
+use super::input::{focus_texas_raise_input, sync_texas_raise_input};
+use super::{TexasRaiseInput, raise_fraction, raise_from_fraction};
+use crate::app::shell::{PressedUiAction, UiAction, UiState};
+use bevy::ecs::message::Messages;
+use bevy::input_focus::{FocusCause, InputFocus};
+use bevy::prelude::*;
+use bevy::text::EditableText;
+use leocard_texas_holdem::TexasRaiseSizing;
+use leocard_ui::{TextInputAction, TextInputEvent};
+
+#[test]
+fn slider_covers_legal_raise_steps_and_fixed_limit() {
+    let sizing = TexasRaiseSizing::new(10, 6, 63);
+    assert_eq!(raise_from_fraction(sizing, -0.5), 16);
+    assert_eq!(raise_from_fraction(sizing, 1.5), 58);
+    let mut previous = 0;
+    for i in 0..=100 {
+        let target = raise_from_fraction(sizing, i as f32 / 100.0);
+        assert!(sizing.contains(target));
+        assert!(target >= previous);
+        previous = target;
+    }
+    assert_eq!(raise_fraction(sizing, 16), 0.0);
+    assert_eq!(raise_fraction(sizing, 58), 1.0);
+    let fixed = TexasRaiseSizing::new(10, 6, 16);
+    assert_eq!(raise_from_fraction(fixed, 0.8), 16);
+    assert_eq!(raise_fraction(fixed, 16), 0.0);
+}
+
+#[test]
+fn raise_input_autofocuses_once_preserves_edits_and_submits_on_enter() {
+    let mut app = App::new();
+    app.init_resource::<InputFocus>()
+        .init_resource::<TexasUiState>()
+        .init_resource::<UiState>()
+        .add_message::<TextInputEvent>()
+        .add_message::<PressedUiAction>()
+        .add_systems(
+            Update,
+            (focus_texas_raise_input, sync_texas_raise_input).chain(),
+        );
+    let sizing = TexasRaiseSizing::new(10, 6, 63);
+    let editor = app
+        .world_mut()
+        .spawn((TexasRaiseInput(sizing), EditableText::new("16")))
+        .id();
+    app.update();
+    assert_eq!(app.world().resource::<InputFocus>().get(), Some(editor));
+    // A composition refresh updates bounds, retaining both the editor and raw typed value.
+    app.world_mut()
+        .entity_mut(editor)
+        .insert((TexasRaiseInput(sizing), EditableText::new("29")));
+    app.update();
+    assert_eq!(
+        app.world().get::<EditableText>(editor).unwrap().value(),
+        "29"
+    );
+    assert_eq!(app.world().resource::<TexasUiState>().raise_to, 34);
+    assert!(!app.world().resource::<UiState>().dirty);
+    for _ in 0..2 {
+        app.world_mut().write_message(TextInputEvent {
+            entity: editor,
+            action: TextInputAction::Submit,
+        });
+    }
+    app.update();
+    let actions: Vec<_> = app
+        .world_mut()
+        .resource_mut::<Messages<PressedUiAction>>()
+        .drain()
+        .collect();
+    assert_eq!(actions.len(), 1);
+    assert!(matches!(
+        actions[0].0,
+        UiAction::Texas(TexasUiAction::Raise)
+    ));
+    assert_eq!(app.world().resource::<InputFocus>().get(), None);
+
+    // Unrelated UI refreshes must not grab focus again, nor may invalid amounts submit.
+    let other = app.world_mut().spawn_empty().id();
+    app.world_mut()
+        .resource_mut::<InputFocus>()
+        .set(other, FocusCause::Pressed);
+    app.update();
+    assert_eq!(app.world().resource::<InputFocus>().get(), Some(other));
+    app.world_mut()
+        .entity_mut(editor)
+        .insert(EditableText::new(""));
+    app.world_mut()
+        .resource_mut::<InputFocus>()
+        .set(editor, FocusCause::Pressed);
+    app.world_mut().write_message(TextInputEvent {
+        entity: editor,
+        action: TextInputAction::Submit,
+    });
+    app.update();
+    assert!(!app.world().resource::<TexasUiState>().raise_input_valid);
+    assert_eq!(
+        app.world_mut()
+            .resource_mut::<Messages<PressedUiAction>>()
+            .drain()
+            .count(),
+        0
+    );
+}
+
+#[test]
+fn dragging_updates_the_fill_and_adjustments_without_rebuilding_the_table() {
+    use super::super::TexasRaiseAdjustButton;
+    use super::input::{handle_texas_raise_slider, sync_texas_raise_value};
+    use super::sync::sync_texas_raise_controls;
+    use super::{TexasRaiseFill, TexasRaiseSlider};
+    use bevy::picking::hover::PickingInteraction;
+    use bevy::ui::{BackgroundGradient, RelativeCursorPosition};
+    let mut app = App::new();
+    app.init_resource::<TexasUiState>()
+        .init_resource::<UiState>()
+        .init_resource::<InputFocus>()
+        .init_resource::<ButtonInput<MouseButton>>()
+        .add_systems(
+            Update,
+            (
+                handle_texas_raise_slider,
+                sync_texas_raise_controls,
+                sync_texas_raise_value,
+            )
+                .chain(),
+        );
+    let sizing = TexasRaiseSizing::new(10, 6, 63);
+    let editor = app
+        .world_mut()
+        .spawn((TexasRaiseInput(sizing), EditableText::new("16")))
+        .id();
+    let slider = app
+        .world_mut()
+        .spawn((
+            TexasRaiseSlider(sizing),
+            PickingInteraction::Pressed,
+            RelativeCursorPosition {
+                normalized: Some(Vec2::ZERO),
+                ..default()
+            },
+        ))
+        .id();
+    let fill = app
+        .world_mut()
+        .spawn((
+            TexasRaiseFill { sizing, target: 16 },
+            Node::default(),
+            BackgroundGradient::default(),
+        ))
+        .id();
+    let plus = app
+        .world_mut()
+        .spawn((
+            TexasRaiseAdjustButton {
+                direction: 1,
+                step: 6,
+                minimum: 16,
+                maximum: 58,
+            },
+            UiAction::Texas(TexasUiAction::SetRaiseTo(22)),
+        ))
+        .id();
+    app.world_mut()
+        .resource_mut::<ButtonInput<MouseButton>>()
+        .press(MouseButton::Left);
+    app.update();
+    assert_eq!(app.world().resource::<TexasUiState>().raise_to, 40);
+    assert_eq!(
+        app.world().get::<EditableText>(editor).unwrap().value(),
+        "40"
+    );
+    assert!(matches!(
+        app.world().get::<UiAction>(plus),
+        Some(UiAction::Texas(TexasUiAction::SetRaiseTo(46)))
+    ));
+    assert!(!app.world().resource::<UiState>().dirty);
+    app.world_mut()
+        .resource_mut::<ButtonInput<MouseButton>>()
+        .clear();
+    app.world_mut()
+        .get_mut::<RelativeCursorPosition>(slider)
+        .unwrap()
+        .normalized = Some(Vec2::new(0.5, 0.0));
+    app.update();
+    assert_eq!(app.world().resource::<TexasUiState>().raise_to, 58);
+    assert_eq!(
+        app.world().get::<EditableText>(editor).unwrap().value(),
+        "58"
+    );
+    assert_eq!(app.world().get::<Node>(fill).unwrap().width, percent(100));
+    assert!(!app.world().resource::<UiState>().dirty);
+}
+
+#[test]
+fn raise_editor_only_appears_after_opening_and_can_be_cancelled() {
+    use super::super::chips::tests::pot_test_snapshot;
+    use super::view::add_texas_actions;
+    use crate::app::runtime::UiAssets;
+    use bevy::asset::AssetPlugin;
+    use bevy::scene::ScenePatch;
+    use leocard_protocol::TexasSnapshot;
+    use leocard_ui::{UiComposer, UiSceneProperties, UiSceneRegistry};
+    #[derive(Resource)]
+    struct Table {
+        root: Entity,
+        game: TexasSnapshot,
+    }
+    fn compose(
+        mut commands: UiComposer,
+        table: Res<Table>,
+        assets: Res<UiAssets>,
+        mut ui: ResMut<TexasUiState>,
+    ) {
+        commands.begin(table.root);
+        add_texas_actions(
+            &mut commands,
+            table.root,
+            &table.game,
+            &table.game.players[0],
+            &mut ui,
+            &assets,
+        );
+        commands.finish();
+    }
+    fn labels(world: &mut World) -> Vec<String> {
+        world
+            .query::<&Text>()
+            .iter(world)
+            .map(|text| text.0.clone())
+            .collect()
+    }
+    let mut app = App::new();
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()))
+        .init_resource::<Assets<ScenePatch>>()
+        .init_resource::<UiSceneRegistry>()
+        .init_resource::<UiSceneProperties>()
+        .init_resource::<UiAssets>()
+        .init_resource::<TexasUiState>()
+        .add_systems(Update, compose);
+    let root = app.world_mut().spawn(Node::default()).id();
+    let game = pot_test_snapshot(&[(0, false, false), (2, false, false)]);
+    app.insert_resource(Table { root, game });
+    app.update();
+    assert!(labels(app.world_mut()).contains(&"加注".to_owned()));
+    assert_eq!(
+        app.world_mut()
+            .query::<&TexasRaiseInput>()
+            .iter(app.world())
+            .count(),
+        0
+    );
+    app.world_mut()
+        .resource_mut::<TexasUiState>()
+        .raise_editor_open = true;
+    app.update();
+    let texts = labels(app.world_mut());
+    assert!(texts.contains(&"确认".to_owned()) && texts.contains(&"取消".to_owned()));
+    assert!(
+        !texts
+            .iter()
+            .any(|text| text == "弃牌" || text == "加注" || text.starts_with("本次投入"))
+    );
+    assert_eq!(
+        app.world_mut()
+            .query::<&TexasRaiseInput>()
+            .iter(app.world())
+            .count(),
+        1
+    );
+    app.world_mut()
+        .resource_mut::<TexasUiState>()
+        .raise_editor_open = false;
+    app.update();
+    assert!(labels(app.world_mut()).contains(&"加注".to_owned()));
+    assert_eq!(
+        app.world_mut()
+            .query::<&TexasRaiseInput>()
+            .iter(app.world())
+            .count(),
+        0
+    );
+}

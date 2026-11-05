@@ -1,6 +1,7 @@
 //! 德州扑克下注输入与牌桌组件状态。
 
 use super::TexasSpectatorUiState;
+use super::betting::raise_sizing;
 use crate::app::presentation::Observed;
 use bevy::prelude::*;
 use leocard_protocol::{MatchId, TexasSnapshot};
@@ -8,14 +9,21 @@ use leocard_protocol::{MatchId, TexasSnapshot};
 #[derive(Resource, Default)]
 pub(crate) struct TexasUiState {
     pub raise_to: u32,
+    pub raise_input_valid: bool,
+    pub raise_editor_open: bool,
     pub spectator: TexasSpectatorUiState,
     pub observed_table: Observed<(MatchId, u32), usize>,
 }
 
 impl TexasUiState {
-    pub(crate) fn reconcile(&mut self, _game: &TexasSnapshot) {}
+    pub(crate) fn reconcile(&mut self, game: &TexasSnapshot) {
+        if raise_sizing(game).is_none() {
+            self.raise_editor_open = false;
+        }
+    }
 
     pub(crate) fn clear(&mut self) {
+        self.raise_editor_open = false;
         self.observed_table.clear();
         self.spectator.clear();
     }

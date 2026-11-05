@@ -6,6 +6,7 @@
 mod action_feedback;
 pub(crate) mod actions;
 mod audio;
+mod betting;
 mod card_face;
 mod cards;
 mod chips;
@@ -28,6 +29,7 @@ mod view;
 pub(crate) use action_feedback::*;
 pub(crate) use actions::*;
 use audio::*;
+use betting::*;
 pub(crate) use cards::*;
 pub(crate) use chips::*;
 use controls::*;

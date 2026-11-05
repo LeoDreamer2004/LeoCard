@@ -1,5 +1,6 @@
 //! 德州扑克按钮动作到本地状态或网络命令的转换。
 
+use super::betting::raise_sizing;
 use super::{TexasHandGuideState, TexasUiState};
 use crate::app::runtime::{ClientResource, PageErrorState};
 use crate::app::shell::{
@@ -9,13 +10,16 @@ use crate::app::shell::{
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::{PlayerEconomy, PropId};
-use leocard_protocol::TexasCommand;
+use leocard_protocol::{GameSnapshot, TexasCommand};
 use leocard_texas_holdem::{TexasAction, TexasRuleSet};
 
 #[derive(Clone)]
 pub(crate) enum TexasUiAction {
     UpdateRules(TexasRuleSet),
     SetRaiseTo(u32),
+    BeginRaise,
+    CancelRaise,
+    Raise,
     Act(TexasAction),
     ToggleHandGuide,
     CloseHandGuide,
@@ -25,7 +29,10 @@ pub(crate) enum TexasUiAction {
 
 impl DomainUiAction for TexasUiAction {
     fn rebuilds_ui(&self) -> bool {
-        !matches!(self, Self::ToggleHandGuide | Self::CloseHandGuide)
+        !matches!(
+            self,
+            Self::ToggleHandGuide | Self::CloseHandGuide | Self::SetRaiseTo(_)
+        )
     }
 
     fn extract(action: &UiAction) -> Option<&Self> {
@@ -77,7 +84,35 @@ impl UiActionHandler<TexasActionContext<'_>> for TexasUiAction {
                     TexasCommand::UpdateRules { rules: *rules },
                 );
             }
-            TexasUiAction::SetRaiseTo(target) => context.ui.raise_to = *target,
+            TexasUiAction::SetRaiseTo(target) => {
+                context.ui.raise_to = *target;
+                context.ui.raise_input_valid = true;
+            }
+            TexasUiAction::BeginRaise => context.ui.raise_editor_open = true,
+            TexasUiAction::CancelRaise => context.ui.raise_editor_open = false,
+            TexasUiAction::Raise => {
+                let Some(sizing) = context.client.as_deref().and_then(|client| {
+                    match client.0.model().game_snapshot()? {
+                        GameSnapshot::Texas(game) => raise_sizing(game),
+                        _ => None,
+                    }
+                }) else {
+                    return;
+                };
+                if !context.ui.raise_input_valid {
+                    return;
+                }
+                let Some(target) = sizing.normalize(context.ui.raise_to) else {
+                    return;
+                };
+                send_game_command(
+                    &mut context.client,
+                    TexasCommand::Act {
+                        action: TexasAction::RaiseTo(target),
+                    },
+                );
+                context.ui.raise_editor_open = false;
+            }
             TexasUiAction::Act(action) => {
                 send_game_command(&mut context.client, TexasCommand::Act { action: *action });
             }

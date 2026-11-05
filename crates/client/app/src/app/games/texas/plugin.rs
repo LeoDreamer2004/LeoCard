@@ -1,3 +1,7 @@
+use super::betting::{
+    focus_texas_raise_input, handle_texas_raise_slider, sync_texas_raise_controls,
+    sync_texas_raise_input, sync_texas_raise_value,
+};
 use super::{
     TexasChipTableState, TexasHandGuidePlugin, TexasRaiseHoldState, TexasUiState, TexasVoiceState,
     actions, animate_squid_markers, animate_texas_action_feedback, animate_texas_board_card_backs,
@@ -10,7 +14,9 @@ use crate::app::presentation::start_game_intro_finished;
 use crate::app::runtime::{ClientUpdateSet, GameEventSource, GameEvents, GameProjectionPlugin};
 use crate::app::shell::UiActionSet;
 use bevy::prelude::*;
+use bevy::ui::UiSystems;
 use leocard_protocol::{GameEvent, GameKind, TexasEvent};
+use leocard_ui::TextInputSet;
 
 pub(crate) struct TexasPlugin;
 
@@ -35,7 +41,24 @@ impl Plugin for TexasPlugin {
             .add_systems(Update, actions::dispatch_texas_actions.in_set(UiActionSet))
             .add_systems(
                 Update,
-                handle_texas_raise_button_hold.in_set(ClientUpdateSet::Input),
+                (handle_texas_raise_button_hold, handle_texas_raise_slider)
+                    .in_set(ClientUpdateSet::Input),
+            )
+            .add_systems(
+                Update,
+                focus_texas_raise_input.after(ClientUpdateSet::Compose),
+            )
+            .add_systems(
+                Update,
+                (sync_texas_raise_controls, sync_texas_raise_value)
+                    .after(ClientUpdateSet::Compose)
+                    .after(UiActionSet),
+            )
+            .add_systems(
+                PostUpdate,
+                sync_texas_raise_input
+                    .after(TextInputSet::Publish)
+                    .before(UiSystems::PostLayout),
             )
             .add_systems(
                 Update,

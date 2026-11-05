@@ -4,9 +4,10 @@ use super::{
 };
 use crate::app::runtime::ServerNotification;
 use bevy::prelude::*;
-use leocard_achievements::{AchievementTrigger, PersonalActivity};
+use leocard_achievements::{AchievementTrigger, PersonalActivity, PersonalEvent};
 use leocard_client::{LocalPlayerProfile, PlayerAchievements};
 use leocard_protocol::{ACHIEVEMENT_REGISTRY, ServerEvent};
+use std::time::Duration;
 
 #[derive(Resource, Default)]
 pub(super) struct ActivityObserver {
@@ -20,6 +21,34 @@ pub(super) struct TriggerResources<'w> {
     book: ResMut<'w, PlayerAchievements>,
     session: ResMut<'w, AchievementSession>,
     observer: ResMut<'w, ActivityObserver>,
+}
+
+/// The local profile is populated by accepted own-player snapshots and persisted by runtime.
+/// Replaying its maximum also unlocks retained records on load/reconnect; the ledger, not
+/// this observation cache, guarantees that duplicate facts cannot award a trophy twice.
+/// Never use the interpolated action clock: it does not prove an operation was accepted.
+pub(super) fn process_action_record(
+    profile: Res<LocalPlayerProfile>,
+    mut book: ResMut<PlayerAchievements>,
+    mut session: ResMut<AchievementSession>,
+    mut observed: Local<Option<u64>>,
+) {
+    if !session.enabled {
+        return;
+    }
+    let millis = profile.game_profiles.action_times.longest_millis();
+    if *observed == Some(millis) {
+        return;
+    }
+    *observed = Some(millis);
+    session.record(
+        book.trigger(&AchievementTrigger::Personal(
+            PersonalEvent::ActionCompleted {
+                elapsed: Duration::from_millis(millis),
+            },
+        )),
+        None,
+    );
 }
 
 pub(super) fn process_triggers(

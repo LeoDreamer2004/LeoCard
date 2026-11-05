@@ -16,6 +16,10 @@ pub enum PersonalEvent {
         coins: u32,
     },
     SakuraTunnelStarted,
+    /// One required manual operation accepted by the host, not a running clock or total.
+    ActionCompleted {
+        elapsed: Duration,
+    },
     InteractionRun {
         kind: InteractionKind,
         count: u8,

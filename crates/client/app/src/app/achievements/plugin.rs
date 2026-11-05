@@ -25,6 +25,7 @@ impl Plugin for AchievementPlugin {
                 (
                     reconcile_connection,
                     process_triggers,
+                    process_action_record,
                     commit_progress,
                     publish_progress,
                     queue_achievement_notifications,

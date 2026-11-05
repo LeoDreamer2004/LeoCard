@@ -5,6 +5,8 @@ mod plugin;
 mod processing;
 mod service;
 mod session;
+#[cfg(test)]
+mod tests;
 
 use messages::AchievementRecipient;
 pub(crate) use messages::{AchievementUnlocked, LocalAchievementTrigger};

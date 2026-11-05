@@ -1,10 +1,11 @@
-//! 可复用的无底板玩家头像：姓名、静态托管遮罩和原有社交交互。
+//! 可复用的无底板玩家头像：姓名、行动耗时、静态托管遮罩和社交交互。
 
 use super::{PlayerMenuProfile, add_framed_avatar, add_interaction_menu, text_scene};
-use crate::app::runtime::UiAssets;
+use crate::app::runtime::{ActionTimingLabel, UiAssets};
 use crate::app::shell::{OpponentBadge, PlayerAvatarAnchor, SocialUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use bevy::text::LineHeight;
 use bevy::ui_widgets::Button;
 use leocard_game_common::PlayerId;
 use leocard_ui::{UiComposer, UiSceneKey, ui_component};
@@ -35,7 +36,7 @@ pub(crate) fn add_player_portrait(
     node.align_items = AlignItems::Center;
     node.row_gap = px(4.0 * 1.17);
     let size = spec.avatar_size;
-    let name = text_scene(assets, spec.profile.name, 14.0 * 1.17, spec.name_color);
+    let name = text_scene(assets, spec.profile.name, 12.0, spec.name_color);
     let portrait = commands.mount(
         parent,
         format!("portrait:{}", spec.player.0),
@@ -62,24 +63,27 @@ pub(crate) fn add_player_portrait(
         "name-area",
         bsn! {
             Node {
+                // Keep both rows inside the original 23.4px name area.
                 width: px(96.0 * 1.17), height: px(20.0 * 1.17),
+                flex_shrink: 0.0, flex_direction: FlexDirection::Column,
                 border_radius: BorderRadius::all(px(5)),
-                align_items: AlignItems::Center, justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
                 overflow: Overflow::clip(),
             }
             BackgroundColor({Color::BLACK.with_alpha(0.48)})
-            UiTransform::from_translation(Val2::px(0.0, 2.0))
             Pickable::IGNORE
             Children [
                 UiSceneKey("name")
+                Node { width: percent(100), height: px(13), flex_shrink: 0.0 }
                 @name
-                TextLayout::no_wrap()
-                TextShadow { offset: Vec2::new(1.0, 1.0), color: {Color::BLACK.with_alpha(0.8)} }
+                TextLayout::justify(Justify::Center).with_no_wrap()
+                LineHeight::Px(13.0)
                 Pickable::IGNORE
             ]
         },
     );
     let name = commands.entity_for(name_area, "name");
+    add_portrait_action_timing(commands, name_area, &spec, assets);
     if spec.auto_play {
         add_avatar_auto_play_overlay(commands, avatar, size, assets);
     }
@@ -105,6 +109,48 @@ pub(crate) fn add_player_portrait(
         avatar_ring,
         name,
     }
+}
+
+/// Reserve the second name-area row even when the runtime hides the timer.
+fn add_portrait_action_timing(
+    commands: &mut UiComposer,
+    name_area: Entity,
+    spec: &PlayerPortraitSpec<'_>,
+    assets: &UiAssets,
+) {
+    // Retain the runtime-owned Text/Visibility across page reconciliation.
+    let (row, cached) = commands.cached_child(
+        name_area,
+        "action-timing",
+        (spec.player, spec.name_color, assets.font.clone()),
+        (
+            Node {
+                width: percent(100),
+                height: px(20.0 * 1.17 - 13.0),
+                flex_shrink: 0.0,
+                ..default()
+            },
+            Pickable::IGNORE,
+        ),
+    );
+    if cached {
+        return;
+    }
+    let text = text_scene(assets, "", 10.0, spec.name_color);
+    let layout = TextLayout::justify(Justify::Center).with_no_wrap();
+    let label = commands.mount(
+        row,
+        "label",
+        bsn! {
+            Node { width: percent(100), height: percent(100) }
+            @text @ui_component(layout)
+            LineHeight::Px(10.4)
+            Visibility::Hidden Pickable::IGNORE
+        },
+    );
+    commands
+        .entity(label)
+        .insert(ActionTimingLabel(spec.player));
 }
 
 /// 托管图标直接覆盖头像，保持与头像相同的圆角。

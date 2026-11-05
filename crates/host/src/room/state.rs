@@ -1,5 +1,6 @@
 use super::{RoomActivity, RoomEntrance};
 use crate::achievements::RoomAchievements;
+use crate::action_timing::ActionTimingState;
 use crate::{ConnectionId, Delivery};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
@@ -41,6 +42,7 @@ pub(crate) struct Participant {
 #[derive(Clone, Debug)]
 pub struct RoomSession {
     pub(crate) achievements: RoomAchievements,
+    pub(crate) action_timing: ActionTimingState,
     activity: RoomActivity,
     pub(super) entrance: Option<RoomEntrance>,
     pub(crate) room_id: RoomId,
@@ -79,6 +81,7 @@ impl RoomSession {
         assert!(seat_count > 0 && capacity <= seat_count);
         Self {
             achievements: RoomAchievements::default(),
+            action_timing: ActionTimingState::default(),
             activity: RoomActivity::default(),
             entrance: None,
             room_id,
@@ -301,6 +304,7 @@ impl RoomSession {
         Delivery {
             recipient,
             message: ServerMessage {
+                action_timing: self.action_timing.snapshot(),
                 game_context: None,
                 protocol_version: PROTOCOL_VERSION,
                 room_id: self.room_id,

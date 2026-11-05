@@ -107,6 +107,9 @@ pub(in crate::player::profile) fn decode_player_profile(
     if let Some(current) = bytes.strip_prefix(PROFILE_HEADER) {
         return decode_exact(current).map_err(|error| format!("玩家档案已损坏：{error}"));
     }
+    if let Some(previous) = bytes.strip_prefix(super::v8::V8_PROFILE_HEADER) {
+        return super::v8::decode_v8(previous);
+    }
     if let Some(previous) = bytes.strip_prefix(super::guandan::V7_PROFILE_HEADER) {
         return super::guandan::decode_v7(previous);
     }

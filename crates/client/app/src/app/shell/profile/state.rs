@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
-use leocard_protocol::PlayerGameProfiles;
+use leocard_protocol::{GameKind, PlayerGameProfiles};
 use leocard_ui::CustomButtonMotion;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -15,10 +15,11 @@ pub(crate) enum ProfileGameTab {
     Blackjack,
     Doudizhu,
     Guandan,
+    MahjongLink,
 }
 
 impl ProfileGameTab {
-    pub(crate) const ALL: [(Self, &'static str); 9] = [
+    pub(crate) const ALL: [(Self, &'static str); 10] = [
         (Self::QiGui523, "七鬼五二三"),
         (Self::Texas, "德州扑克"),
         (Self::Shengji, "升级"),
@@ -28,7 +29,23 @@ impl ProfileGameTab {
         (Self::Blackjack, "21 点"),
         (Self::Doudizhu, "斗地主"),
         (Self::Guandan, "掼蛋"),
+        (Self::MahjongLink, "麻将连连看"),
     ];
+
+    pub(crate) const fn kind(self) -> GameKind {
+        match self {
+            Self::QiGui523 => GameKind::QiGui523,
+            Self::Texas => GameKind::Texas,
+            Self::Shengji => GameKind::Shengji,
+            Self::Uno => GameKind::Uno,
+            Self::Mahjong => GameKind::Mahjong,
+            Self::McGuess => GameKind::McGuess,
+            Self::Blackjack => GameKind::Blackjack,
+            Self::Doudizhu => GameKind::Doudizhu,
+            Self::Guandan => GameKind::Guandan,
+            Self::MahjongLink => GameKind::MahjongLink,
+        }
+    }
 }
 
 #[derive(Clone)]

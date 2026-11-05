@@ -1,11 +1,11 @@
 use crate::{
-    AchievementAnnouncement, AvatarFrameId, AvatarId, BlackjackSnapshot, ChatContent, ChatMessage,
-    DoudizhuSnapshot, GameCommand, GameEvent, GameKind, GameRules, GuandanSnapshot,
-    MahjongLinkSnapshot, MahjongPhaseView, MahjongSnapshot, MatchId, McGuessSnapshot,
-    PROTOCOL_VERSION, PlayerGameProfiles, PlayerInteraction, PlayerInteractionKind,
-    PlayerPublicInfo, ProfileId, QiGui523PhaseView, QiGui523Snapshot, ReconnectToken, RejectReason,
-    RequestId, Revision, RoomId, RoomInfo, SeatId, ShengjiSnapshot, TexasPhaseView, TexasSnapshot,
-    UnoPhaseView, UnoSnapshot,
+    AchievementAnnouncement, ActionTimingSnapshot, AvatarFrameId, AvatarId, BlackjackSnapshot,
+    ChatContent, ChatMessage, DoudizhuSnapshot, GameCommand, GameEvent, GameKind, GameRules,
+    GuandanSnapshot, MahjongLinkSnapshot, MahjongPhaseView, MahjongSnapshot, MatchId,
+    McGuessSnapshot, PROTOCOL_VERSION, PlayerGameProfiles, PlayerInteraction,
+    PlayerInteractionKind, PlayerPublicInfo, ProfileId, QiGui523PhaseView, QiGui523Snapshot,
+    ReconnectToken, RejectReason, RequestId, Revision, RoomId, RoomInfo, SeatId, ShengjiSnapshot,
+    TexasPhaseView, TexasSnapshot, UnoPhaseView, UnoSnapshot,
 };
 use leocard_achievements::TrophyCounts;
 use leocard_game_common::PlayerId;
@@ -151,6 +151,7 @@ pub struct GameEventContext {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ServerMessage {
+    pub action_timing: Option<ActionTimingSnapshot>,
     pub protocol_version: u16,
     pub room_id: RoomId,
     pub revision: Revision,

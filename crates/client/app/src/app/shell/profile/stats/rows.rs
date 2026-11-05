@@ -1,4 +1,18 @@
+use leocard_protocol::ActionTimeStats;
+
 pub(super) type ProfileRow = (&'static str, String);
+
+pub(crate) fn append_action_time_row(rows: &mut Vec<ProfileRow>, stats: ActionTimeStats) {
+    let value = if stats.completed_actions == 0 {
+        "暂无记录".to_owned()
+    } else {
+        format!(
+            "{:.1} 秒",
+            stats.total_millis as f64 / stats.completed_actions as f64 / 1000.0
+        )
+    };
+    rows.push(("平均每手用时", value));
+}
 
 pub(super) fn average_reference_delta(total: i64, completed_games: u32) -> String {
     format!("{:+.3}", total as f64 / f64::from(completed_games))
@@ -88,5 +102,32 @@ pub(super) fn rate_or_placeholder(count: u32, total: u32) -> String {
             "{:.1}%",
             f64::from(count.min(total)) * 100.0 / f64::from(total)
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn action_time_row_uses_weighted_seconds_and_distinguishes_missing_data() {
+        for (total_millis, completed_actions, expected) in [
+            (0, 0, "暂无记录"),
+            (0, 5, "0.0 秒"),
+            (23_000, 10, "2.3 秒"),
+            (10_000, 3, "3.3 秒"),
+        ] {
+            let mut rows = vec![("对局数", "100".to_owned())];
+            append_action_time_row(
+                &mut rows,
+                ActionTimeStats {
+                    total_millis,
+                    completed_actions,
+                    ..Default::default()
+                },
+            );
+            assert_eq!(rows[0], ("对局数", "100".to_owned()));
+            assert_eq!(rows[1], ("平均每手用时", expected.to_owned()));
+        }
     }
 }

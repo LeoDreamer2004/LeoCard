@@ -1,4 +1,5 @@
 use super::{QiGui523Session, validate_deck};
+use crate::action_timing::advance_with_timing;
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
@@ -67,6 +68,10 @@ impl QiGui523Session {
 
     /// 推进权威出牌计时。TCP 层传入真实经过时间；测试和其他宿主也可确定性调用。
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        advance_with_timing(self, elapsed, Self::advance_game_time)
+    }
+
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         if elapsed.is_zero() || self.game.is_none() {
             return Vec::new();
         }

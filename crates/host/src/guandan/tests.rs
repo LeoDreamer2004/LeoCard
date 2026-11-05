@@ -1,3 +1,6 @@
+#[path = "tests/timing.rs"]
+mod timing;
+
 use super::GuandanSession;
 use crate::{ConnectionId, Delivery};
 use ed25519_dalek::{Signer, SigningKey};

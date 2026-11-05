@@ -78,6 +78,7 @@ fn client_message_round_trips_through_tcp_frame() {
             reference_points: 12,
             completed_games: 8,
             game_profiles: PlayerGameProfiles {
+                action_times: Default::default(),
                 blackjack: Some(BlackjackProfileStats {
                     completed_games: 3,
                     total_chips_delta: 42,
@@ -164,6 +165,7 @@ fn client_message_round_trips_through_tcp_frame() {
 #[test]
 fn interaction_event_round_trips_with_its_shared_animation_seed() {
     let message = ServerMessage {
+        action_timing: None,
         game_context: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(42),
@@ -191,6 +193,7 @@ fn chat_events_round_trip_for_text_quick_voice_and_emoji() {
         ChatContent::Emoji(ChatEmoji::Laugh),
     ] {
         let message = ServerMessage {
+            action_timing: None,
             game_context: None,
             protocol_version: PROTOCOL_VERSION,
             room_id: RoomId(42),

@@ -1,4 +1,5 @@
 use super::{TexasAdapter, TexasSession, validate_deck};
+use crate::action_timing::advance_with_timing;
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{AutomaticActionDelayState, ConnectionId, Delivery, HostError, RoomSession};
 use leocard_game_common::PlayerId;
@@ -69,6 +70,10 @@ impl TexasSession {
 
     /// 推进自动盲注及托管机器人的行动延迟。
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        advance_with_timing(self, elapsed, Self::advance_game_time)
+    }
+
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         let mut deliveries = self.advance_automatic_turn(elapsed);
         if self
             .game

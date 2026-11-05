@@ -71,6 +71,10 @@ impl GuandanSession {
     }
 
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        crate::action_timing::advance_with_timing(self, elapsed, Self::advance_game_time)
+    }
+
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         let Some(game) = &self.game else {
             return Vec::new();
         };

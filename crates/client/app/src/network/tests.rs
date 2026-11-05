@@ -328,6 +328,7 @@ fn host_close_room_event_stops_guests_without_reconnecting() {
 
 fn message(event: ServerEvent) -> ServerMessage {
     ServerMessage {
+        action_timing: None,
         protocol_version: PROTOCOL_VERSION,
         room_id: NETWORK_ROOM_ID,
         revision: Revision(1),

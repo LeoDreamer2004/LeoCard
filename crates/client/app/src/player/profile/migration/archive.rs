@@ -64,6 +64,7 @@ impl From<V6PlayerProfile> for StoredPlayerProfile {
                 doudizhu_stats: games.doudizhu_stats,
                 guandan_stats: None,
             },
+            action_times: Default::default(),
         }
     }
 }
@@ -174,6 +175,7 @@ mod tests {
                 &blackjack,
                 &doudizhu,
                 &None::<GuandanProfileStats>,
+                leocard_protocol::GameActionTimes::default(),
             ))
             .unwrap(),
         );

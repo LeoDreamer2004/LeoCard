@@ -54,6 +54,7 @@ pub(super) fn decode_v7(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
             doudizhu_stats: games.doudizhu_stats,
             guandan_stats: None,
         },
+        action_times: Default::default(),
     })
 }
 
@@ -120,6 +121,8 @@ mod tests {
         let mut expected = PROFILE_HEADER.to_vec();
         expected.extend(payload);
         expected.push(0); // New optional statistics follow the complete v7 payload.
+        expected
+            .extend(postcard::to_allocvec(&leocard_protocol::GameActionTimes::default()).unwrap());
         assert_eq!(fs::read(&path).unwrap(), expected);
 
         let mut stored = decode_player_profile(&expected).unwrap();

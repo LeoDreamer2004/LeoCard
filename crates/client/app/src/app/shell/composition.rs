@@ -12,8 +12,8 @@ use super::{
 use super::{SakuraPage, SakuraState, render_startup_dialog};
 use crate::app::games::{GameLobbyContext, GameScreens, GameTableContext};
 use crate::app::presentation::{
-    GameSummaryAnimation, StartGameSeatTransition, TableBackgroundMaterial, TurnBorderMaterial,
-    UiRoot,
+    GameSummaryAnimation, MahjongTileMaterial, StartGameSeatTransition, TableBackgroundMaterial,
+    TurnBorderMaterial, UiRoot,
 };
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, ClientResource, ConnectionDraft, TableAppearance, UiAssets,
@@ -34,6 +34,7 @@ struct VisualAssets<'w> {
     game_summary: Res<'w, GameSummaryAnimation>,
     start_game_transition: Res<'w, StartGameSeatTransition>,
     table_materials: ResMut<'w, Assets<TableBackgroundMaterial>>,
+    mahjong_tile_materials: ResMut<'w, Assets<MahjongTileMaterial>>,
     turn_border_materials: ResMut<'w, Assets<TurnBorderMaterial>>,
     updater: Res<'w, UpdateManager>,
     confirmation: Res<'w, ConfirmationDialog>,
@@ -248,6 +249,7 @@ impl ScreenRenderer<'_, '_, '_> {
                     game_summary: &self.visuals.game_summary,
                     transition: &self.visuals.start_game_transition,
                     table_materials: &mut self.visuals.table_materials,
+                    mahjong_tile_materials: &mut self.visuals.mahjong_tile_materials,
                     turn_border_materials: &mut self.visuals.turn_border_materials,
                 },
             ),

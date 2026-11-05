@@ -78,11 +78,13 @@ pub(super) fn add_mahjong_hand_tile(
 ) -> Entity {
     let kind = tile.kind();
     let glyph = game_assets
+        .visuals
         .tiles
         .get(&kind)
         .cloned()
         .expect("所有麻将牌面都应预加载");
     let height = game_assets
+        .visuals
         .tile_heights
         .get(&kind)
         .cloned()

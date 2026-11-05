@@ -1,4 +1,3 @@
-use super::super::super::projection::projected_overlay;
 use super::super::super::{
     MahjongAssets, MahjongTileMaterial, MahjongWinEffect, MahjongWinEffectText,
     MahjongWinEffectTier, mahjong_win_effect_tier, mahjong_win_reveal_duration,
@@ -8,6 +7,7 @@ use super::{
     WinStageContext, add_win_aura, mahjong_win_effect_color, mahjong_win_effect_visual,
     render_win_stage,
 };
+use crate::app::presentation::mahjong::projected_overlay;
 use crate::app::presentation::{GameSummaryAnimation, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;

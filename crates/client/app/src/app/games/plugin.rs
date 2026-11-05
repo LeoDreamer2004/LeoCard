@@ -2,7 +2,8 @@
 
 use super::doudizhu::DoudizhuPlugin;
 use super::{
-    blackjack, guandan, mahjong, mc_guess, qigui523, shengji, sync_summary_playback, texas, uno,
+    blackjack, guandan, mahjong, mahjong_link, mc_guess, qigui523, shengji, sync_summary_playback,
+    texas, uno,
 };
 use crate::app::presentation::update_summary_animation;
 use crate::app::runtime::ClientUpdateSet;
@@ -22,6 +23,7 @@ impl Plugin for GamesPlugin {
             shengji::ShengjiPlugin,
             uno::UnoPlugin,
             mahjong::MahjongPlugin,
+            mahjong_link::MahjongLinkPlugin,
         ))
         .add_systems(
             Update,

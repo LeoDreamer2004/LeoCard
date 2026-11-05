@@ -309,6 +309,7 @@ impl HostRulePreferences {
         match kind {
             GameKind::Doudizhu => normalize_rules(self.doudizhu_rules).into(),
             GameKind::Guandan => normalize_rules(self.guandan_rules).into(),
+            GameKind::MahjongLink => leocard_mahjong_link::MahjongLinkRuleSet::default().into(),
             GameKind::Blackjack => BlackjackRuleSet::default().into(),
             GameKind::McGuess => normalize_rules(self.mc_guess_rules).into(),
             GameKind::QiGui523 => normalize_rules(self.host_rules).into(),
@@ -321,7 +322,7 @@ impl HostRulePreferences {
 
     pub(super) fn accept_game_rules(&mut self, rules: &GameRules) -> bool {
         match rules {
-            GameRules::Blackjack(_) => false,
+            GameRules::Blackjack(_) | GameRules::MahjongLink(_) => false,
             GameRules::Doudizhu(rules) => {
                 let rules = normalize_rules(*rules);
                 replace_if_changed(&mut self.doudizhu_rules, rules)

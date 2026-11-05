@@ -1,10 +1,10 @@
 //! Score deltas and rolling totals for matches with multiple hands.
-use super::super::projection::projected_overlay;
 use super::super::{
     MahjongAssets, mahjong_status_score_angle, mahjong_status_score_position,
     render_round_status_with_scores,
 };
 use super::*;
+use crate::app::presentation::mahjong::projected_overlay;
 use crate::app::presentation::{DANGER, MUTED, READY, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;

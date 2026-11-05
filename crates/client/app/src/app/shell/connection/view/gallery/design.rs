@@ -17,7 +17,7 @@ pub(super) struct EntryDesign {
     pub surface: CardSurface,
 }
 
-pub(super) const ENTRY_DESIGNS: [EntryDesign; 9] = [
+pub(super) const ENTRY_DESIGNS: [EntryDesign; 10] = [
     EntryDesign {
         game: SUPPORTED_GAMES[4],
         image: "ui/home/entries/mahjong.png",
@@ -71,5 +71,11 @@ pub(super) const ENTRY_DESIGNS: [EntryDesign; 9] = [
         image: "ui/home/entries/guandan.png",
         surface: CardSurface::Suits,
         accent: Color::srgb(0.95, 0.55, 0.76),
+    },
+    EntryDesign {
+        game: SUPPORTED_GAMES[9],
+        image: "ui/home/entries/mahjong-link.png",
+        surface: CardSurface::Clouds,
+        accent: Color::srgb(0.96, 0.72, 0.20),
     },
 ];

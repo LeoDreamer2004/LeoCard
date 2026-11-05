@@ -26,10 +26,7 @@ use crate::app::shell::{
     add_reconnecting_overlay,
 };
 use leocard_game_common::PlayerId;
-use leocard_mahjong::{
-    MahjongClaim, MahjongDragon, MahjongFlower, MahjongSuit, MahjongTile, MahjongTileKind,
-    MahjongWinRecord, MahjongWind,
-};
+use leocard_mahjong::{MahjongClaim, MahjongTile, MahjongWinRecord};
 use leocard_protocol::{
     GameSnapshot, MahjongEvent, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MatchId,
 };
@@ -522,43 +519,6 @@ pub(super) fn advance_mahjong_claim_presentation(
     }
 }
 
-pub(crate) fn mahjong_tile_asset_path(kind: MahjongTileKind) -> String {
-    let name = match kind {
-        MahjongTileKind::Suited {
-            suit: MahjongSuit::Characters,
-            rank,
-        } => format!("characters-{rank}"),
-        MahjongTileKind::Suited {
-            suit: MahjongSuit::Bamboo,
-            rank,
-        } => format!("bamboo-{rank}"),
-        MahjongTileKind::Suited {
-            suit: MahjongSuit::Dots,
-            rank,
-        } => format!("dots-{rank}"),
-        MahjongTileKind::Wind(MahjongWind::East) => "wind-east".to_owned(),
-        MahjongTileKind::Wind(MahjongWind::South) => "wind-south".to_owned(),
-        MahjongTileKind::Wind(MahjongWind::West) => "wind-west".to_owned(),
-        MahjongTileKind::Wind(MahjongWind::North) => "wind-north".to_owned(),
-        MahjongTileKind::Dragon(MahjongDragon::Red) => "dragon-red".to_owned(),
-        MahjongTileKind::Dragon(MahjongDragon::Green) => "dragon-green".to_owned(),
-        MahjongTileKind::Dragon(MahjongDragon::White) => "dragon-white".to_owned(),
-        MahjongTileKind::Flower(MahjongFlower::Spring) => "season-spring".to_owned(),
-        MahjongTileKind::Flower(MahjongFlower::Summer) => "season-summer".to_owned(),
-        MahjongTileKind::Flower(MahjongFlower::Autumn) => "season-autumn".to_owned(),
-        MahjongTileKind::Flower(MahjongFlower::Winter) => "season-winter".to_owned(),
-        MahjongTileKind::Flower(MahjongFlower::Plum) => "flower-plum".to_owned(),
-        MahjongTileKind::Flower(MahjongFlower::Orchid) => "flower-orchid".to_owned(),
-        MahjongTileKind::Flower(MahjongFlower::Bamboo) => "flower-bamboo".to_owned(),
-        MahjongTileKind::Flower(MahjongFlower::Chrysanthemum) => "flower-chrysanthemum".to_owned(),
-    };
-    format!("cards/mahjong/hong-kong/{name}.png")
-}
-
-pub(crate) fn mahjong_tile_height_asset_path(kind: MahjongTileKind) -> String {
-    mahjong_tile_asset_path(kind).replace("/hong-kong/", "/hong-kong-height/")
-}
-
 #[expect(
     clippy::too_many_arguments,
     reason = "the game-screen adapter passes common screen state plus grouped visuals"
@@ -604,7 +564,7 @@ pub(crate) fn render_mahjong_table(
         TableBackgroundMaterial::new(
             TableSurfaceKind::Mahjong,
             brightness,
-            &game_assets.table,
+            &game_assets.visuals.table,
             appearance.mahjong.custom_felt.as_ref(),
         ),
     );

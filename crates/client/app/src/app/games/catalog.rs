@@ -2,8 +2,9 @@
 
 use super::qigui523::time_control_label;
 use leocard_blackjack::BlackjackRuleSet;
-use leocard_guandan::rank_label;
+use leocard_guandan::{GuandanRuleSet, rank_label};
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
+use leocard_mahjong_link::MahjongLinkRuleSet;
 use leocard_mc_guess::{McGuessMode, McGuessRuleSet};
 use leocard_protocol::{GameKind, GameRules};
 use leocard_qigui523::QiGuiRuleSet;
@@ -17,7 +18,7 @@ pub(crate) struct GameDescriptor {
     pub description: &'static str,
 }
 
-pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 9] = [
+pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 10] = [
     GameDescriptor {
         kind: GameKind::QiGui523,
         title: "七鬼五二三",
@@ -63,12 +64,18 @@ pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 9] = [
         title: "掼蛋",
         description: "丐版升级",
     },
+    GameDescriptor {
+        kind: GameKind::MahjongLink,
+        title: "麻将连连看",
+        description: "小孩子不懂推着玩的",
+    },
 ];
 
 pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
     match rules {
         GameRules::Doudizhu(rules) => rules.mode.players(),
-        GameRules::Guandan(_) => 4,
+        GameRules::Guandan(_) => GuandanRuleSet::PLAYER_COUNT,
+        GameRules::MahjongLink(_) => MahjongLinkRuleSet::MAX_PLAYERS,
         GameRules::Blackjack(_) => BlackjackRuleSet::MAX_PLAYERS,
         GameRules::Shengji(rules) => rules.player_count(),
         GameRules::Uno(_) => UnoRuleSet::MAX_PLAYERS,
@@ -86,7 +93,10 @@ pub(crate) fn game_accepts_player_count(rules: &GameRules, count: u8) -> bool {
             (BlackjackRuleSet::MIN_PLAYERS..=BlackjackRuleSet::MAX_PLAYERS).contains(&count)
         }
         GameRules::Doudizhu(rules) => count == rules.mode.players(),
-        GameRules::Guandan(_) => count == 4,
+        GameRules::Guandan(_) => count == GuandanRuleSet::PLAYER_COUNT,
+        GameRules::MahjongLink(_) => {
+            (MahjongLinkRuleSet::MIN_PLAYERS..=MahjongLinkRuleSet::MAX_PLAYERS).contains(&count)
+        }
         GameRules::Mahjong(_) => count == MahjongRuleSet::PLAYER_COUNT,
         GameRules::Shengji(rules) => count == rules.player_count(),
         GameRules::Uno(_) => (UnoRuleSet::MIN_PLAYERS..=UnoRuleSet::MAX_PLAYERS).contains(&count),
@@ -104,6 +114,15 @@ pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
             rules.mode.label().to_owned(),
             format!("{} 副牌", rules.mode.deck_count()),
             format!("{} 轮", rules.rounds),
+        ],
+        GameRules::MahjongLink(_) => [
+            format!(
+                "{}～{} 人轮流",
+                MahjongLinkRuleSet::MIN_PLAYERS,
+                MahjongLinkRuleSet::MAX_PLAYERS
+            ),
+            "136 张麻将".to_owned(),
+            "行端推牌".to_owned(),
         ],
         GameRules::Guandan(rules) => [
             "四人两队".to_owned(),

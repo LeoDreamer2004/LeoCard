@@ -1,6 +1,7 @@
 use super::corner_notices::{
     CornerNotifications, animate_corner_notifications, setup_corner_notifications,
 };
+use super::mahjong::MahjongPresentationPlugin;
 use super::{
     CardVoices, GameSummaryAnimation, PlayEffectState, StartGameSeatTransition,
     SummaryAnimationSet, SummaryPlayback, TableBackgroundMaterial, TableCardMaterial,
@@ -61,6 +62,7 @@ impl Plugin for PresentationPlugin {
         )
         .insert_resource(properties)
         .add_plugins(TextInputPlugin)
+        .add_plugins(MahjongPresentationPlugin)
         .add_plugins(UiMaterialPlugin::<TableBackgroundMaterial>::default())
         .add_plugins(UiMaterialPlugin::<TableCardMaterial>::default())
         .add_plugins(UiMaterialPlugin::<TurnBorderMaterial>::default())

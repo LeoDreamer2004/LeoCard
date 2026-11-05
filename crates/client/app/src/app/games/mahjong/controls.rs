@@ -1,10 +1,10 @@
 use super::layout::MahjongLayout as Layout;
-use super::projection::own_overlay;
 use super::{
     MAHJONG_KONG_STACK_LIFT, MahjongActionPrompt, MahjongAssets, MahjongChoiceMenu,
     MahjongTileHighlight, MahjongTileMaterial, MahjongTileSize, MahjongTileVisual, MahjongUiAction,
     MahjongUiState, add_mahjong_tile_material,
 };
+use crate::app::presentation::mahjong::own_overlay;
 use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;

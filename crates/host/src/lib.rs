@@ -11,6 +11,7 @@ mod error;
 mod guandan;
 mod lifecycle;
 mod mahjong;
+mod mahjong_link;
 mod mc_guess;
 mod player;
 mod qigui523;
@@ -30,6 +31,7 @@ use leocard_protocol::{
     AVATAR_DIMENSION, JoinRequest, MAX_AVATAR_BYTES, MatchId, RoomId, ServerMessage,
 };
 pub use mahjong::MahjongSession;
+pub use mahjong_link::MahjongLinkSession;
 pub use mc_guess::McGuessSession;
 pub use qigui523::QiGui523Session;
 pub use room::RoomSession;

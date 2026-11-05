@@ -1,6 +1,6 @@
-use super::{
-    MahjongAssets, MahjongProjectionFrame, MahjongTurnSector, central_screen_offset, wind_label,
-};
+use super::layout::MahjongLayout as Layout;
+use super::{MahjongAssets, MahjongProjectionFrame, MahjongTurnSector, wind_label};
+use crate::app::presentation::mahjong::{REFERENCE_SIZE, project_reference};
 use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
@@ -371,4 +371,10 @@ pub(super) fn animate_mahjong_turn_sector(
             material.params.y = 0.35 + breath * 0.65;
         }
     }
+}
+
+pub(super) fn central_screen_offset() -> Vec2 {
+    (project_reference(Vec3::new(0.0, 0.0, -Layout::CENTER_FORWARD))
+        - project_reference(Vec3::ZERO))
+        * (1280.0 / REFERENCE_SIZE.x)
 }

@@ -9,6 +9,7 @@ use crate::app::games::blackjack::BlackjackUiAction;
 use crate::app::games::doudizhu::DoudizhuUiAction;
 use crate::app::games::guandan::GuandanUiAction;
 use crate::app::games::mahjong::actions::MahjongUiAction;
+use crate::app::games::mahjong_link::MahjongLinkUiAction;
 use crate::app::games::mc_guess::McGuessUiAction;
 use crate::app::games::qigui523::actions::QiGui523UiAction;
 use crate::app::games::shengji::actions::ShengjiUiAction;
@@ -25,6 +26,7 @@ pub(crate) enum UiAction {
     Doudizhu(DoudizhuUiAction),
     Guandan(GuandanUiAction),
     Mahjong(MahjongUiAction),
+    MahjongLink(MahjongLinkUiAction),
     McGuess(McGuessUiAction),
     Texas(TexasUiAction),
     Uno(UnoUiAction),
@@ -67,6 +69,7 @@ impl UiAction {
             Self::Doudizhu(action) => action.rebuilds_ui(),
             Self::Guandan(action) => action.rebuilds_ui(),
             Self::Mahjong(action) => action.rebuilds_ui(),
+            Self::MahjongLink(action) => action.rebuilds_ui(),
             Self::McGuess(action) => action.rebuilds_ui(),
             Self::Texas(action) => action.rebuilds_ui(),
             Self::Uno(action) => action.rebuilds_ui(),

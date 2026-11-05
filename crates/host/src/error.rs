@@ -4,6 +4,7 @@ use leocard_blackjack::BlackjackGameError;
 use leocard_doudizhu::DoudizhuGameError;
 use leocard_guandan::GuandanGameError;
 use leocard_mahjong::{MahjongGameError, MahjongRuleError};
+use leocard_mahjong_link::MahjongLinkError;
 use leocard_mc_guess::McGuessGameError;
 use leocard_qigui523::{QiGuiGameError, QiGuiRuleError};
 use leocard_shengji::{ShengjiGameError, ShengjiRuleError};
@@ -18,6 +19,7 @@ pub enum HostError {
     Guandan(GuandanGameError),
     Blackjack(BlackjackGameError),
     Mahjong(MahjongGameError),
+    MahjongLink(MahjongLinkError),
     McGuess(McGuessGameError),
     QiGui523(QiGuiGameError),
     Shengji(ShengjiGameError),
@@ -32,6 +34,7 @@ impl fmt::Display for HostError {
             Self::Guandan(error) => error.fmt(f),
             Self::Blackjack(error) => error.fmt(f),
             Self::Mahjong(error) => error.fmt(f),
+            Self::MahjongLink(error) => error.fmt(f),
             Self::McGuess(error) => error.fmt(f),
             Self::QiGui523(error) => error.fmt(f),
             Self::Shengji(error) => error.fmt(f),
@@ -48,6 +51,7 @@ impl Error for HostError {
             Self::Guandan(error) => Some(error),
             Self::Blackjack(error) => Some(error),
             Self::Mahjong(error) => Some(error),
+            Self::MahjongLink(error) => Some(error),
             Self::McGuess(error) => Some(error),
             Self::QiGui523(error) => Some(error),
             Self::Shengji(error) => Some(error),
@@ -60,6 +64,12 @@ impl Error for HostError {
 impl From<BlackjackGameError> for HostError {
     fn from(error: BlackjackGameError) -> Self {
         Self::Blackjack(error)
+    }
+}
+
+impl From<MahjongLinkError> for HostError {
+    fn from(error: MahjongLinkError) -> Self {
+        Self::MahjongLink(error)
     }
 }
 

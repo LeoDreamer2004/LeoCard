@@ -1,9 +1,9 @@
 use crate::players::PlayerRoster;
 use crate::{
     BlackjackCommand, DoudizhuCommand, GameCommand, GameRules, GameSnapshot, GuandanCommand,
-    MahjongCommand, MahjongPhaseView, MatchId, PlayerPublicInfo, PlayerReferenceChange,
-    QiGui523Command, QiGui523PhaseView, ShengjiCommand, ShengjiPhaseView, TexasCommand,
-    TexasPhaseView, UnoCommand, UnoPhaseView,
+    MahjongCommand, MahjongLinkCommand, MahjongPhaseView, MatchId, PlayerPublicInfo,
+    PlayerReferenceChange, QiGui523Command, QiGui523PhaseView, ShengjiCommand, ShengjiPhaseView,
+    TexasCommand, TexasPhaseView, UnoCommand, UnoPhaseView,
 };
 use leocard_game_common::PlayerId;
 
@@ -19,6 +19,7 @@ macro_rules! snapshot_field {
             GameSnapshot::Blackjack($game) => $body,
             GameSnapshot::Doudizhu($game) => $body,
             GameSnapshot::Guandan($game) => $body,
+            GameSnapshot::MahjongLink($game) => $body,
         }
     };
 }
@@ -29,6 +30,7 @@ impl GameSnapshot {
             Self::QiGui523(snapshot) => &snapshot.players,
             Self::Doudizhu(snapshot) => &snapshot.players,
             Self::Guandan(snapshot) => &snapshot.players,
+            Self::MahjongLink(snapshot) => &snapshot.players,
             Self::Texas(snapshot) => &snapshot.players,
             Self::Shengji(snapshot) => &snapshot.players,
             Self::Uno(snapshot) => &snapshot.players,
@@ -52,6 +54,7 @@ impl GameSnapshot {
             Self::QiGui523(snapshot) => snapshot.host,
             Self::Doudizhu(snapshot) => snapshot.host,
             Self::Guandan(snapshot) => snapshot.host,
+            Self::MahjongLink(snapshot) => snapshot.host,
             Self::Texas(snapshot) => snapshot.host,
             Self::Shengji(snapshot) => snapshot.host,
             Self::Uno(snapshot) => snapshot.host,
@@ -86,6 +89,7 @@ impl GameSnapshot {
             Self::Uno(snapshot) => toggle!(snapshot, UnoCommand),
             Self::Mahjong(snapshot) => toggle!(snapshot, MahjongCommand),
             Self::Blackjack(snapshot) => toggle!(snapshot, BlackjackCommand),
+            Self::MahjongLink(snapshot) => toggle!(snapshot, MahjongLinkCommand),
             Self::McGuess(_) => None,
         }
     }
@@ -104,6 +108,7 @@ impl GameSnapshot {
             Self::Blackjack(game) => GameRules::Blackjack(game.rules),
             Self::Doudizhu(game) => GameRules::Doudizhu(game.rules),
             Self::Guandan(game) => GameRules::Guandan(game.rules),
+            Self::MahjongLink(game) => GameRules::MahjongLink(game.rules),
         })
     }
 
@@ -150,6 +155,9 @@ impl GameSnapshot {
                 (game.match_id, &game.reference_changes)
             }
             Self::Doudizhu(game) if self.match_complete() => {
+                (game.match_id, &game.reference_changes)
+            }
+            Self::MahjongLink(game) if self.match_complete() => {
                 (game.match_id, &game.reference_changes)
             }
             Self::Guandan(game) if self.match_complete() => {

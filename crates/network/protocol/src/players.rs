@@ -2,8 +2,8 @@
 
 use crate::{
     AvatarId, BlackjackPlayerView, DoudizhuPlayerView, GuandanPlayerView, LobbyPlayerView,
-    MahjongPlayerView, McGuessPlayerView, PlayerGameProfiles, ProfileId, QiGui523PlayerView,
-    ShengjiPlayerView, TexasPlayerView, UnoPlayerView,
+    MahjongLinkPlayerView, MahjongPlayerView, McGuessPlayerView, PlayerGameProfiles, ProfileId,
+    QiGui523PlayerView, ShengjiPlayerView, TexasPlayerView, UnoPlayerView,
 };
 use leocard_game_common::PlayerId;
 use serde::{Deserialize, Serialize};
@@ -54,6 +54,7 @@ player_views!(
     ShengjiPlayerView,
     UnoPlayerView,
     MahjongPlayerView,
+    MahjongLinkPlayerView,
     McGuessPlayerView,
     BlackjackPlayerView,
 );

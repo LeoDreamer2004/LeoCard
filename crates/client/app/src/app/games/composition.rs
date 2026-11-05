@@ -4,6 +4,7 @@ use super::blackjack::BlackjackScreen;
 use super::doudizhu::DoudizhuScreen;
 use super::guandan::GuandanScreen;
 use super::mahjong::MahjongScreen;
+use super::mahjong_link::MahjongLinkScreen;
 use super::mc_guess::McGuessScreen;
 use super::qigui523::QiGui523Screen;
 use super::shengji::ShengjiScreen;
@@ -29,6 +30,7 @@ pub(crate) struct GameScreens<'w> {
     shengji: ShengjiScreen<'w>,
     uno: UnoScreen<'w>,
     mahjong: MahjongScreen<'w>,
+    mahjong_link: MahjongLinkScreen<'w>,
 }
 
 impl GameScreens<'_> {
@@ -43,6 +45,7 @@ impl GameScreens<'_> {
             GameSnapshot::Shengji(game) => self.shengji.requires_action(game),
             GameSnapshot::Uno(game) => self.uno.requires_action(game),
             GameSnapshot::Mahjong(game) => self.mahjong.requires_action(game),
+            GameSnapshot::MahjongLink(game) => self.mahjong_link.requires_action(game),
         }
     }
 
@@ -60,6 +63,7 @@ impl GameScreens<'_> {
         self.shengji.reconcile(client, &mut shell.social);
         self.uno.reconcile(client, &mut shell.social);
         self.mahjong.reconcile(client, &mut shell.social);
+        self.mahjong_link.reconcile(client, &mut shell.social);
         if !client
             .is_some_and(|client| matches!(client.0.model().phase(), ClientPhaseRef::Playing(_)))
             || shell.social.interaction_menu_open.is_some_and(|target| {
@@ -87,6 +91,9 @@ impl GameScreens<'_> {
             GameKind::Shengji => self.shengji.render_lobby(commands, root, lobby, context),
             GameKind::Uno => self.uno.render_lobby(commands, root, lobby, context),
             GameKind::Mahjong => self.mahjong.render_lobby(commands, root, lobby, context),
+            GameKind::MahjongLink => self
+                .mahjong_link
+                .render_lobby(commands, root, lobby, context),
         }
     }
 
@@ -115,6 +122,22 @@ impl GameScreens<'_> {
             GameSnapshot::Shengji(game) => self.shengji.render_table(commands, root, game, context),
             GameSnapshot::Uno(game) => self.uno.render_table(commands, root, game, context),
             GameSnapshot::Mahjong(game) => self.mahjong.render_table(commands, root, game, context),
+            GameSnapshot::MahjongLink(game) => self
+                .mahjong_link
+                .render_table(commands, root, game, context),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::GameScreens;
+    use bevy::ecs::system::SystemState;
+    use bevy::prelude::World;
+
+    #[test]
+    fn game_screens_share_rendering_resources_without_conflicting_mutable_access() {
+        let mut world = World::new();
+        let _screens = SystemState::<GameScreens>::new(&mut world);
     }
 }

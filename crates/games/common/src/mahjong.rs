@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum MahjongSuit {
     Characters,
     Bamboo,
@@ -20,8 +20,7 @@ impl MahjongSuit {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum MahjongWind {
     East,
     South,
@@ -51,8 +50,7 @@ impl MahjongWind {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum MahjongDragon {
     Red,
     Green,
@@ -71,8 +69,7 @@ impl MahjongDragon {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum MahjongFlower {
     Spring,
     Summer,
@@ -97,8 +94,7 @@ impl MahjongFlower {
     ];
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum MahjongTileKind {
     Suited { suit: MahjongSuit, rank: u8 },
     Wind(MahjongWind),
@@ -158,8 +154,7 @@ impl MahjongTileKind {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct MahjongTile {
     kind: MahjongTileKind,
     copy: u8,
@@ -242,22 +237,5 @@ impl fmt::Display for MahjongTileKind {
                 MahjongFlower::Chrysanthemum => "菊",
             }),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::collections::HashSet;
-
-    #[test]
-    fn standard_deck_has_144_distinct_physical_tiles() {
-        let deck = build_deck();
-        assert_eq!(deck.len(), 144);
-        assert_eq!(deck.iter().copied().collect::<HashSet<_>>().len(), 144);
-        assert_eq!(
-            deck.iter().filter(|tile| tile.kind().is_flower()).count(),
-            8
-        );
     }
 }

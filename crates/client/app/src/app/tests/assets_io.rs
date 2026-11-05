@@ -1,4 +1,5 @@
 use super::prelude::*;
+use crate::app::presentation::mahjong::{mahjong_tile_asset_path, mahjong_tile_height_asset_path};
 use bevy::audio::Decodable;
 use leocard_protocol::{AVATAR_DIMENSION, MAX_AVATAR_BYTES, QUICK_VOICE_COUNT};
 use leocard_uno::{UnoMode, UnoRuleSet, build_deck_for_rules};
@@ -12,7 +13,7 @@ fn every_card_maps_to_an_existing_asset() {
         let path = asset_root.join(face.asset_path());
         assert!(path.is_file(), "missing card asset: {}", path.display());
     }
-    let mahjong_kinds = leocard_mahjong::build_deck()
+    let mahjong_kinds = leocard_game_common::mahjong::build_deck()
         .into_iter()
         .map(|tile| tile.kind())
         .collect::<HashSet<_>>();

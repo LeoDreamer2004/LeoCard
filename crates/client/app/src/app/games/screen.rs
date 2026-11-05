@@ -1,7 +1,8 @@
 //! Game-independent inputs supplied by the application screen compositor.
 
 use crate::app::presentation::{
-    GameSummaryAnimation, StartGameSeatTransition, TableBackgroundMaterial, TurnBorderMaterial,
+    GameSummaryAnimation, MahjongTileMaterial, StartGameSeatTransition, TableBackgroundMaterial,
+    TurnBorderMaterial,
 };
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, ClientResource, TableAppearance, UiAssets,
@@ -29,6 +30,7 @@ pub(crate) struct GameTableContext<'a> {
     pub game_summary: &'a GameSummaryAnimation,
     pub transition: &'a StartGameSeatTransition,
     pub table_materials: &'a mut Assets<TableBackgroundMaterial>,
+    pub mahjong_tile_materials: &'a mut Assets<MahjongTileMaterial>,
     pub turn_border_materials: &'a mut Assets<TurnBorderMaterial>,
 }
 

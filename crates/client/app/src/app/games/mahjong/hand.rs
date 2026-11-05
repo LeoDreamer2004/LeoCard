@@ -1,5 +1,4 @@
 use super::layout::MahjongLayout as Layout;
-use super::projection::own_overlay;
 use super::tiles::{add_mahjong_hand_tile, mahjong_deal_spec, mahjong_draw_spec};
 use super::{
     ActiveMahjongClaimPresentation, MAHJONG_OWN_MELD_WIDTH, MahjongAssets, MahjongClaimHandShift,
@@ -11,6 +10,7 @@ use super::{
     mahjong_winning_hand_progress, mark_mahjong_win_tile,
 };
 use crate::app::presentation::GameSummaryAnimation;
+use crate::app::presentation::mahjong::own_overlay;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;

@@ -1,11 +1,9 @@
 use crate::app::presentation::add_text;
+use crate::app::presentation::mahjong::MahjongTileIndicator;
 use crate::app::runtime::UiAssets;
 use bevy::{picking::Pickable, prelude::*};
 use leocard_ui::UiComposer;
 use std::f32::consts;
-
-#[derive(Component)]
-pub(in super::super) struct MahjongResponseTile;
 
 #[derive(Component)]
 pub(in super::super) struct ResponseArrow {
@@ -22,7 +20,7 @@ pub(in super::super) fn add_mahjong_response_indicator(
     assets: &UiAssets,
 ) {
     if projected {
-        commands.entity(tile).insert(MahjongResponseTile);
+        commands.entity(tile).insert(MahjongTileIndicator);
         return;
     }
     // 抵消牌河朝向，箭头始终在屏幕上方并指向牌张。

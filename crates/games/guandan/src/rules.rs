@@ -6,6 +6,8 @@ pub struct GuandanRuleSet {
 }
 
 impl GuandanRuleSet {
+    pub const PLAYER_COUNT: u8 = 4;
+
     pub const fn is_valid(self) -> bool {
         self.starting_level >= 2 && self.starting_level <= 14
     }

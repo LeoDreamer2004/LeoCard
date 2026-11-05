@@ -1,5 +1,4 @@
 use super::layout::MahjongLayout as Layout;
-use super::projection::{own_overlay, world_layout};
 use super::tiles::{mahjong_deal_spec, mahjong_draw_spec};
 use super::{
     ActiveMahjongClaimPresentation, MAHJONG_REMOTE_DRAW_GAP, MAHJONG_REMOTE_MELD_WIDTH,
@@ -13,6 +12,7 @@ use super::{
     mahjong_remote_tile_advance, mahjong_win_tile_cues, mahjong_winning_hand_progress,
     mark_mahjong_win_tile, render_mahjong_meld,
 };
+use crate::app::presentation::mahjong::{own_overlay, world_layout};
 use crate::app::presentation::{
     DANGER, GameSummaryAnimation, MUTED, PlayerMenuProfile, PlayerPortraitSpec, TEXT, TableSeat,
     TableSeatAnchors, TableSeats, add_player_portrait, add_text, attach_start_game_seat_transition,
@@ -241,8 +241,8 @@ fn add_mahjong_wall_stack(
             lighting: mahjong_local_light(orientation),
             highlight: Vec4::ZERO,
             elevation: 0.0,
-            glyph: assets.tile_back.clone(),
-            height: assets.tile_back.clone(),
+            glyph: assets.visuals.tile_back.clone(),
+            height: assets.visuals.tile_back.clone(),
             ..default()
         },
     );

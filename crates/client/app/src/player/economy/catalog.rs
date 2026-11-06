@@ -29,6 +29,7 @@ pub enum ShopRarity {
 
 pub struct ShopProp {
     pub id: PropId,
+    /// An empty list denotes a prop available in every game.
     pub games: &'static [GameKind],
     pub name: &'static str,
     pub description: &'static str,
@@ -130,7 +131,7 @@ impl PropId {
         match self {
             Self::AutoEggThrower => ShopProp {
                 id: self,
-                game_label: "通用消耗品",
+                games: &[],
                 name: "自动砸蛋器",
                 description: "消耗一个，向选中的玩家在10秒内连续砸出100个鸡蛋。\n在头像互动菜单中使用，可重复购买并永久保存数量。",
                 rarity: Fine,

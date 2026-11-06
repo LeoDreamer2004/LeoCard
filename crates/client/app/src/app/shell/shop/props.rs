@@ -57,18 +57,21 @@ pub(super) fn render_prop(
         None,
     );
     add_title(commands, identity, prop.name, 21.0, TEXT, assets);
-    let games = prop
-        .games
-        .iter()
-        .map(|kind| {
-            SUPPORTED_GAMES
-                .iter()
-                .find(|game| game.kind == *kind)
-                .expect("prop games belong to the game catalogue")
-                .title
-        })
-        .collect::<Vec<_>>()
-        .join(" ");
+    let games = if prop.games.is_empty() {
+        "通用消耗品".to_owned()
+    } else {
+        prop.games
+            .iter()
+            .map(|kind| {
+                SUPPORTED_GAMES
+                    .iter()
+                    .find(|game| game.kind == *kind)
+                    .expect("prop games belong to the game catalogue")
+                    .title
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
     EllipsizedLabel {
         text: &games,
         font_size: 13.0,

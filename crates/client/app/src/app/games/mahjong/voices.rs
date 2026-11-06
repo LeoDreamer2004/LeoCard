@@ -48,7 +48,7 @@ pub(super) struct MahjongFanVoiceSpec {
     pub duration: f32,
 }
 
-// 与 Fan 枚举对应；时长取男、女两套 Ogg 的较长值，避免结算动画抢在语音前出现。
+// 与 Fan 枚举对应。时长取男、女两套 Ogg 的较长值，避免结算动画抢在语音前出现。
 pub(super) const FAN_VOICE_SPECS: [MahjongFanVoiceSpec; 81] = [
     MahjongFanVoiceSpec {
         fan: MahjongFan::BigFourWinds,

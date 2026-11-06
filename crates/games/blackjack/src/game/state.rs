@@ -127,7 +127,7 @@ impl BlackjackGameState {
         (self.phase == BlackjackPhase::Playing).then_some(self.hand)
     }
 
-    /// 行动阶段仅公开庄家明牌；暗牌及牌堆不通过此接口泄露。
+    /// 行动阶段仅公开庄家明牌，暗牌及牌堆不通过此接口泄露。
     pub fn visible_dealer(&self) -> &[BlackjackCard] {
         if self.phase == BlackjackPhase::Complete {
             &self.dealer

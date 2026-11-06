@@ -80,7 +80,7 @@ impl BlackjackHandValue {
     }
 }
 
-/// 六副完整牌；`shoe[0]` 是第一张发出的牌，每小局重新洗牌。
+/// 六副完整牌。`shoe[0]` 是第一张发出的牌，每小局重新洗牌。
 pub fn build_shoe() -> Vec<BlackjackCard> {
     (0..6)
         .flat_map(|_| {

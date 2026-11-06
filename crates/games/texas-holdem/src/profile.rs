@@ -10,7 +10,7 @@ pub struct TexasProfileStats {
     pub total_reference_delta: i64,
     pub total_final_chips: u64,
     pub placement_counts: [u32; TexasRuleSet::MAX_PLAYERS as usize],
-    /// 跟注、加注和全下实际投入的筹码总和；不含盲注。
+    /// 跟注、加注和全下实际投入的筹码总和，不含盲注。
     pub wagered_chips: u64,
     pub wager_actions: u32,
     /// 不含盲注的弃牌、过牌、跟注、加注及全下动作总数。

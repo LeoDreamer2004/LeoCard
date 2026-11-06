@@ -20,7 +20,7 @@ pub(super) fn setup_book(
         Err(error) => {
             // Keep the existing file intact. An empty fallback may be displayed,
             // but must never overwrite or publish over an unreadable archive.
-            warn!("{error}；本次会话暂停成就记录");
+            warn!("{error}，本次会话暂停成就记录");
             PlayerAchievements::new(profile.identity.profile_id())
         }
     };
@@ -65,7 +65,7 @@ pub(super) fn commit_progress(
     session.since_save = 0.0;
     if let Err(error) = book.save() {
         if !session.save_failed {
-            warn!("{error}；稍后重试");
+            warn!("{error}，稍后重试");
         }
         session.save_failed = true;
         return;

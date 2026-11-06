@@ -22,7 +22,7 @@ pub(super) fn received(trigger: &AchievementTrigger, kind: InteractionKind) -> u
         InteractionKind::Flower => event.kind.flower_count(),
         InteractionKind::Egg => event.kind.egg_count(),
         InteractionKind::Wine => u32::from(event.kind == kind),
-        InteractionKind::Shoe => u32::from(event.kind == kind),
+        InteractionKind::Shoe | InteractionKind::EggBarrage => u32::from(event.kind == kind),
     })
 }
 

@@ -136,7 +136,7 @@ impl TexasSession {
         } else {
             self.room.players[index].seat = None;
             self.room.players[index].ready = false;
-            // 大厅断线无需保留牌局状态；释放参与者槽位，避免离线记录继续占用
+            // 大厅断线无需保留牌局状态，释放参与者槽位，避免离线记录继续占用
             // 人数和房间容量。牌局中的断线玩家仍保留，以支持恢复底牌和筹码。
             self.room.players[index].left = true;
         }

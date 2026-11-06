@@ -170,8 +170,19 @@ impl PlayerEconomy {
         })
     }
 
-    pub fn remaining_seconds(&self, prop: PropId) -> u64 {
+    pub fn prop_count(&self, prop: PropId) -> u32 {
         if self.load_error.is_some() {
+            return 0;
+        }
+        self.archive.consumables.get(&prop).copied().unwrap_or(0)
+    }
+
+    pub fn consume_prop(&mut self, prop: PropId) -> Result<(), String> {
+        self.transact(|archive| archive.consume_prop(prop))
+    }
+
+    pub fn remaining_seconds(&self, prop: PropId) -> u64 {
+        if self.load_error.is_some() || prop.is_consumable() {
             return 0;
         }
         self.archive
@@ -188,6 +199,9 @@ impl PlayerEconomy {
     }
 
     pub fn buy_prop(&mut self, prop: PropId) -> Result<(), String> {
+        if prop.is_consumable() {
+            return self.transact(|archive| archive.buy_consumable(prop));
+        }
         let prop = prop.canonical();
         if self.active(prop) {
             return Err("道具已生效，到期后可再次购买".to_owned());

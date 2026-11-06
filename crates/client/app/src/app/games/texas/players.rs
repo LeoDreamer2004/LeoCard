@@ -175,7 +175,7 @@ pub(super) fn add_role_tokens(
     }
 }
 
-/// 账本中的实际筹码；自己的面板使用木质筹码框，对手悬停面板保持原样。
+/// 账本中的实际筹码，自己的面板使用木质筹码框，对手悬停面板保持原样。
 pub(super) fn add_texas_chip_popup(
     commands: &mut UiComposer,
     parent: Entity,

@@ -6,7 +6,7 @@ use crate::ShengjiCard;
 use leocard_game_common::PlayerId;
 
 impl ShengjiGameState {
-    /// 符合资格的玩家提交五张过江牌；`None` 表示明确放弃。本阶段的资格
+    /// 符合资格的玩家提交五张过江牌，`None` 表示明确放弃。本阶段的资格
     /// 固定取自埋底后的原始手牌，交换产生的新主牌数量不会再次触发过江。
     pub fn choose_five_trump_crossing(
         &mut self,

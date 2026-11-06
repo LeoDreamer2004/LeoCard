@@ -75,7 +75,7 @@ pub(super) struct ShengjiVoiceState {
     pub(super) pending: VecDeque<ShengjiVoiceCue>,
 }
 
-/// 只消费已接受的实时事件；快照重建和上一墩回看不重复报牌。
+/// 只消费已接受的实时事件，快照重建和上一墩回看不重复报牌。
 pub(super) fn sync_shengji_voices(
     client: Option<Res<ClientResource>>,
     mut feedback: MessageReader<ShengjiPlayFeedback>,

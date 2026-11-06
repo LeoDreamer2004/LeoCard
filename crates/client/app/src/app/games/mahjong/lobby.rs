@@ -137,7 +137,7 @@ pub(crate) fn render_mahjong_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "开启时严格按 2014 国标要求至少 8 番（花牌不计入起和）；关闭后只按实际番数结算，不另加 8 分。",
+            help: "开启时严格按 2014 国标要求至少 8 番（花牌不计入起和），关闭后只按实际番数结算，不另加 8 分。",
             previous: can_configure.then_some(minimum_toggled),
             next: can_configure.then_some(minimum_toggled),
         },
@@ -158,7 +158,7 @@ pub(crate) fn render_mahjong_lobby(
                 "截和"
             }
             .to_owned(),
-            help: "关闭时按出牌者之后的座次由最近一家截和；开启时所有合法和牌同时结算。",
+            help: "关闭时按出牌者之后的座次由最近一家截和，开启时所有合法和牌同时结算。",
             previous: can_configure.then_some(winners_toggled),
             next: can_configure.then_some(winners_toggled),
         },
@@ -181,7 +181,7 @@ pub(crate) fn render_mahjong_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "开启后牌型已经完整便显示和牌按钮；不足 8 番属于错和，向其余三家各付 10 分并公开手牌，本盘继续。",
+            help: "开启后牌型已经完整便显示和牌按钮，不足 8 番属于错和，向其余三家各付 10 分并公开手牌，本盘继续。",
             previous: (can_configure && rules.minimum_eight_points).then_some(false_win_toggled),
             next: (can_configure && rules.minimum_eight_points).then_some(false_win_toggled),
         },

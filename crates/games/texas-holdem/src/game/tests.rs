@@ -177,7 +177,7 @@ fn all_in_side_pots_are_awarded_independently() {
 
 #[test]
 fn ignore_kickers_splits_a_showdown_between_equal_made_hands() {
-    // 三位玩家分别组成 AAQQK、AAQQJ、AAQQT；开启规则后踢脚牌不参与比较。
+    // 三位玩家分别组成 AAQQK、AAQQJ、AAQQT，开启规则后踢脚牌不参与比较。
     let prefix = [
         c(TexasRank::King, Spade),
         c(TexasRank::Jack, Spade),
@@ -389,7 +389,7 @@ fn checking_keeps_raise_right_against_a_short_all_in_opening_bet() {
     state.act(PlayerId(1), TexasAction::Call).unwrap();
     state.act(PlayerId(2), TexasAction::Check).unwrap();
 
-    // 翻牌圈最低完整下注为 2；玩家 2 只剩 1，因此这是不足额的首次下注。
+    // 翻牌圈最低完整下注为 2，玩家 2 只剩 1，因此这是不足额的首次下注。
     state.act(PlayerId(1), TexasAction::Check).unwrap();
     state.act(PlayerId(2), TexasAction::AllIn).unwrap();
     state.act(PlayerId(0), TexasAction::Call).unwrap();

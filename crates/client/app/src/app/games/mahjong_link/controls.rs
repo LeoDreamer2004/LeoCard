@@ -154,7 +154,7 @@ pub(super) fn render(
         "本回合已推动一次  可继续选择两张相同牌消除，或跳过结束回合".to_owned()
     } else {
         selected.map_or_else(
-            || "点两张相同牌尝试消除；推牌先点该行最左端或最右端的牌".to_owned(),
+            || "点两张相同牌尝试消除。推牌先点该行最左端或最右端的牌".to_owned(),
             |cell| {
                 format!(
                     "第 {} 排 {}  已选中  推动距离 {} 格",

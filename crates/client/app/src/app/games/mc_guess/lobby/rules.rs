@@ -128,7 +128,7 @@ impl RulesEditor<'_, '_, '_> {
         self.choice(
             RuleChoice {
                 label: "图谱温度",
-                help: "低温偏向均衡度数与短环；高温允许子图内出现枢纽、叶子、长环及交错连边，同时降低原图热门节点的入选权重，偏向低度数冷门节点。",
+                help: "低温偏向均衡度数与短环。高温允许子图内出现枢纽、叶子、长环及交错连边，同时降低原图热门节点的入选权重，偏向低度数冷门节点。",
                 values: &McGuessGraphRules::TEMPERATURE_OPTIONS,
                 current: self.rules.graph.temperature,
             },
@@ -151,7 +151,7 @@ impl RulesEditor<'_, '_, '_> {
             ),
             (
                 "未知关系方向",
-                "开启后显示未知关系的方向箭头；关闭时，仅在关系两端节点均揭晓后显示。",
+                "开启后显示未知关系的方向箭头。关闭时，仅在关系两端节点均揭晓后显示。",
                 self.rules.graph.show_directions,
                 1,
             ),
@@ -220,7 +220,7 @@ impl RulesEditor<'_, '_, '_> {
         self.choice(
             RuleChoice {
                 label: "游戏局数",
-                help: "所有玩家同时猜测同一答案，猜中加 5 分；首个未猜中的全绿条目加 3 分。",
+                help: "所有玩家同时猜测同一答案，猜中加 5 分，首个未猜中的全绿条目加 3 分。",
                 values: &McGuessRaceRules::GAMES_OPTIONS,
                 current: self.rules.race.games,
             },
@@ -230,7 +230,7 @@ impl RulesEditor<'_, '_, '_> {
         self.choice(
             RuleChoice {
                 label: "公共倒计时",
-                help: "每题共用倒计时，提交不会重置；超时公布答案。机器人每 8 秒猜测一次。",
+                help: "每题共用倒计时，提交不会重置。超时公布答案。机器人每 8 秒猜测一次。",
                 values: &McGuessRaceRules::SECONDS_OPTIONS,
                 current: self.rules.race.seconds,
             },

@@ -322,9 +322,9 @@ pub(super) fn update_display(state: &UpdateState) -> (String, String, f32) {
         UpdateState::Ready { version, .. } => (
             format!("LeoCard v{version} 已下载并通过校验"),
             if cfg!(target_os = "android") {
-                "点击“安装更新”打开系统安装器；也可以稍后从游戏设置中安装。"
+                "点击“安装更新”打开系统安装器，也可以稍后从游戏设置中安装。"
             } else {
-                "点击“重启游戏并更新”完成安装；也可以稍后从游戏设置中重启。"
+                "点击“重启游戏并更新”完成安装，也可以稍后从游戏设置中重启。"
             }
             .to_owned(),
             1.0,

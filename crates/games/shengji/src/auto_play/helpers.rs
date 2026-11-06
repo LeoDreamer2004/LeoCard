@@ -17,7 +17,7 @@ pub(super) fn choose_short_category_fill(
         .copied()
         .filter(|card| !selected_set.contains(card))
         .collect::<Vec<_>>();
-    // 缺门时先垫任意最小副牌；副牌不足或只剩主牌时再从最小主牌开始补足。
+    // 缺门时先垫任意最小副牌。副牌不足或只剩主牌时再从最小主牌开始补足。
     fillers.sort_by(|left, right| card_cmp(*left, *right, trump));
     selected.extend(fillers.into_iter().take(required - selected.len()));
     selected

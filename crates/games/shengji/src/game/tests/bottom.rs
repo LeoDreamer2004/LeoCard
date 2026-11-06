@@ -67,7 +67,7 @@ fn first_hand_final_counter_becomes_dealer_but_later_hands_keep_fixed_dealer() {
 #[test]
 fn sequential_bottom_copies_change_trump_but_never_the_first_hands_dealer() {
     let rules = ShengjiRuleSet {
-        // 配置开启不等于实际通过扳底定庄；正常亮主仍应允许抄底。
+        // 配置开启不等于实际通过扳底定庄，正常亮主仍应允许抄底。
         bottom_flip: true,
         bottom_copy: true,
         ..ShengjiRuleSet::default()

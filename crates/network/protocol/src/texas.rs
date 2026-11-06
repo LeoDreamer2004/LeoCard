@@ -20,18 +20,18 @@ pub struct TexasSnapshot {
     pub your_hole_cards: Vec<TexasCard>,
     pub revealed_hands: Vec<TexasRevealedHand>,
     pub community: Vec<TexasCard>,
-    /// 发两次时的完整第二套公共牌，包含两次共用的已开牌；否则为空。
+    /// 发两次时的完整第二套公共牌，包含两次共用的已开牌，否则为空。
     pub second_community: Vec<TexasCard>,
     /// 按选择顺序记录，不包含弃牌玩家。
     pub runout_votes: Vec<TexasRunoutVoteView>,
     /// 接收者弃牌所在下注轮已结束，且仍有至少两名玩家继续对局。
     pub spectator_available: bool,
-    /// 接收者请求的胜率开关状态；其他玩家的设置不公开。
+    /// 接收者请求的胜率开关状态，其他玩家的设置不公开。
     pub spectator_win_rates_enabled: bool,
     /// 仅弃牌所在下注轮已结束、且仍有至少两名玩家继续对局的接收者可见。
-    /// Some([]) 表示正在精确计算；不包含其他玩家底牌或未来牌堆顺序。
+    /// Some([]) 表示正在精确计算，不包含其他玩家底牌或未来牌堆顺序。
     pub spectator_equities: Option<Vec<TexasEquity>>,
-    /// 尚未从权威牌堆发出的牌数；客户端可扣除仍扣置在桌面的公共牌数量来绘制牌堆。
+    /// 尚未从权威牌堆发出的牌数，客户端可扣除仍扣置在桌面的公共牌数量来绘制牌堆。
     pub draw_pile_len: u16,
     pub dealer: PlayerId,
     pub small_blind: PlayerId,
@@ -40,7 +40,7 @@ pub struct TexasSnapshot {
     pub blind_to_post: Option<TexasBlindView>,
     pub current_bet: u32,
     pub minimum_raise_to: u32,
-    /// 接收方本次能执行的最高普通加注；None 表示不能完整加注。
+    /// 接收方本次能执行的最高普通加注，None 表示不能完整加注。
     pub maximum_raise_to: Option<u32>,
     pub amount_to_call: u32,
     pub raise_allowed: bool,
@@ -68,7 +68,7 @@ pub struct TexasSquidView {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TexasEquity {
     pub player: PlayerId,
-    /// 万分比；平局按获胜人数均分，弃牌玩家为零。
+    /// 万分比，平局按获胜人数均分，弃牌玩家为零。
     pub basis_points: u16,
 }
 
@@ -91,9 +91,9 @@ pub struct TexasPlayerView {
     pub folded: bool,
     pub all_in: bool,
     pub connected: bool,
-    /// 由房主执行保守策略的托管状态；开发者模式补入的机器人始终为 `true`。
+    /// 由房主执行保守策略的托管状态，开发者模式补入的机器人始终为 `true`。
     pub auto_play: bool,
-    /// 本手结算窗口中的下一手准备状态；房主不享有默认准备。
+    /// 本手结算窗口中的下一手准备状态，房主不享有默认准备。
     pub ready: bool,
 }
 

@@ -49,7 +49,7 @@ impl TexasEvaluatedHand {
 
     /// 按房间规则比较两副已评估的牌。
     ///
-    /// 标准规则使用完整的德州排序键；忽略踢脚牌时，只保留构成牌型的点数。
+    /// 标准规则使用完整的德州排序键，忽略踢脚牌时，只保留构成牌型的点数。
     pub fn cmp_with_rules(&self, other: &Self, rules: &TexasRuleSet) -> Ordering {
         if !rules.ignore_kickers {
             return self.cmp(other);

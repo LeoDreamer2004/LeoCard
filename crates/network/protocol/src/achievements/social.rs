@@ -12,6 +12,7 @@ impl From<&PlayerInteraction> for InteractionFacts {
                 PlayerInteractionKind::Egg => InteractionKind::Egg,
                 PlayerInteractionKind::Wine => InteractionKind::Wine,
                 PlayerInteractionKind::Shoe => InteractionKind::Shoe,
+                PlayerInteractionKind::EggBarrage => InteractionKind::EggBarrage,
             },
         }
     }

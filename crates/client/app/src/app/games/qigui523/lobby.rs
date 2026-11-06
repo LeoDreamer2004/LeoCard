@@ -89,7 +89,7 @@ pub(crate) fn render_qigui523_lobby(
                 } else {
                     "关闭".to_owned()
                 },
-                help: "开启后摸牌堆只生成所有玩家的初始手牌；关闭则使用完整牌堆。",
+                help: "开启后摸牌堆只生成所有玩家的初始手牌，关闭则使用完整牌堆。",
                 previous: can_configure.then_some(toggled_developer_deck),
                 next: can_configure.then_some(toggled_developer_deck),
             },
@@ -128,7 +128,7 @@ pub(crate) fn render_qigui523_lobby(
         RuleConfigRow {
             label: "出牌计时",
             value: time_control_label(game_rules.time_control).to_owned(),
-            help: "不限时不会倒计时；X+Y 表示每次轮到玩家时重置 X 秒，之后扣除该玩家本局共享的 Y 秒，全部耗尽后自动出牌。",
+            help: "不限时不会倒计时。X+Y 表示每次轮到玩家时重置 X 秒，之后扣除该玩家本局共享的 Y 秒，全部耗尽后自动出牌。",
             previous: can_configure
                 .then(|| previous_time_control(game_rules.time_control))
                 .flatten()

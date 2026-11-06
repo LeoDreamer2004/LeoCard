@@ -129,7 +129,7 @@ pub(crate) fn render_shengji_lobby(
                 ShengjiThrowPenalty::TenPerCard => "每张 10 分",
             }
             .to_owned(),
-            help: "庄家方罚分会给闲家加分；闲家方罚分从闲家总分扣除，最低为零。",
+            help: "庄家方罚分会给闲家加分，闲家方罚分从闲家总分扣除，最低为零。",
             previous: can_configure.then_some(ShengjiRuleSet {
                 throw_penalty: previous_penalty,
                 ..rules_value
@@ -219,7 +219,7 @@ pub(crate) fn render_shengji_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "最终无人亮主时逐张翻开底牌，公开各玩家持有的同牌并按两队总数、队内数量和座次确定庄家；王定无主，其他牌定其花色。",
+            help: "最终无人亮主时逐张翻开底牌，公开各玩家持有的同牌并按两队总数、队内数量和座次确定庄家。王定无主，其他牌定其花色。",
             previous: can_configure.then_some(bottom_flip_toggled),
             next: can_configure.then_some(bottom_flip_toggled),
         },
@@ -241,7 +241,7 @@ pub(crate) fn render_shengji_lobby(
                     "关闭"
                 }
                 .to_owned(),
-                help: "有主局埋底后，主牌不多于五张的玩家可将全部主牌补足五张交给对家，再由对家任选五张归还；每人每局仅可进行一次。",
+                help: "有主局埋底后，主牌不多于五张的玩家可将全部主牌补足五张交给对家，再由对家任选五张归还。每人每局仅可进行一次。",
                 previous: can_configure.then_some(five_trump_crossing_toggled),
                 next: can_configure.then_some(five_trump_crossing_toggled),
             },

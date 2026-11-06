@@ -141,7 +141,7 @@ fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
     let own_back_rim = smoothstep(0.42,0.70,body_depth)*own_hand_mode;
     color = mix(color,vec3<f32>(0.40,0.54,0.26)*roof_shading,own_back_rim);
 
-    // 双层牌墙只绘制一次顶面；侧壁中央的暗线表示两张白瓷牌的接缝。
+    // 双层牌墙只绘制一次顶面，侧壁中央的暗线表示两张白瓷牌的接缝。
     let bottom = face_center.y + face_half_size.y;
     let right = face_center.x + face_half_size.x;
     let front_layer_seam = side_only * depth_weight

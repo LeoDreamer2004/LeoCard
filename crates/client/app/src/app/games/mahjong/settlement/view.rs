@@ -1,4 +1,4 @@
-//! 国标麻将报番与结算；多局模式另播放牌桌分数演出。
+//! 国标麻将报番与结算，多局模式另播放牌桌分数演出。
 
 use super::super::{
     MahjongAssets, MahjongTileMaterial, MahjongTileSize, MahjongUiAction, MahjongWinTileSizes,
@@ -64,7 +64,7 @@ pub(in crate::app::games::mahjong) fn render_mahjong_settlement(
     let timeline = SettlementTimeline::new(result);
     let final_standings = result.match_complete;
     let final_summary_open = final_standings && final_summary_opened_at.is_some();
-    // 牌桌和右侧抽屉一同压暗；胜家页面和头像舞台另绘在遮罩之上。
+    // 牌桌和右侧抽屉一同压暗，胜家页面和头像舞台另绘在遮罩之上。
     let shade = spawn_node(
         commands,
         content,

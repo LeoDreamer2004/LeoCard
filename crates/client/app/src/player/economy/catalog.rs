@@ -17,6 +17,7 @@ pub enum PropId {
     #[doc(hidden)]
     DoudizhuCardCounter,
     CardCounter,
+    AutoEggThrower,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -28,6 +29,7 @@ pub enum ShopRarity {
 
 pub struct ShopProp {
     pub id: PropId,
+    /// An empty list denotes a prop available in every game.
     pub games: &'static [GameKind],
     pub name: &'static str,
     pub description: &'static str,
@@ -103,13 +105,18 @@ impl ShopAvatarFrame {
 }
 
 impl PropId {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::ObservationLens,
         Self::CardCounter,
         Self::ShengjiMissingSuitCard,
         Self::UnoJumpInDevice,
         Self::MahjongFanCalculator,
+        Self::AutoEggThrower,
     ];
+
+    pub const fn is_consumable(self) -> bool {
+        matches!(self, Self::AutoEggThrower)
+    }
 
     pub(crate) const fn canonical(self) -> Self {
         match self {
@@ -122,6 +129,15 @@ impl PropId {
 
     pub const fn definition(self) -> ShopProp {
         match self {
+            Self::AutoEggThrower => ShopProp {
+                id: self,
+                games: &[],
+                name: "自动砸蛋器",
+                description: "消耗一个，向选中的玩家按节奏连发100个鸡蛋，最后以巨型拖鞋收尾。\n长按头像互动菜单中的拖鞋展开砸蛋器后使用。",
+                rarity: Fine,
+                price: 40,
+                duration_seconds: 0,
+            },
             Self::CardCounter
             | Self::ShengjiCardCounter
             | Self::QiGui523CardCounter
@@ -134,7 +150,7 @@ impl PropId {
                     GameKind::Guandan,
                 ],
                 name: "记牌器",
-                description: "适用于升级、七鬼五二三、斗地主和掼蛋。购买一次即可在四款游戏中使用，共享一小时有效期；各游戏按自己的规则统计剩余牌。",
+                description: "购买一次即可在四款游戏中使用，共享一小时有效期，各游戏按自己的规则统计剩余牌。",
                 rarity: Common,
                 price: 180,
                 duration_seconds: 3600,
@@ -152,7 +168,7 @@ impl PropId {
                 id: self,
                 games: &[GameKind::Uno],
                 name: "抢出器",
-                description: "开启后，在符合抢出规则时自动出牌。\n抢出结果受网络延迟影响，有效期内可随时开关。",
+                description: "开启后，在符合抢出规则时自动出牌。\n抢出结果可能受网络延迟影响。",
                 rarity: Fine,
                 price: 300,
                 duration_seconds: 3600,

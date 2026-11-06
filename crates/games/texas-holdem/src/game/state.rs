@@ -210,7 +210,7 @@ impl fmt::Display for TexasGameError {
             Self::InvalidDeckContents => f.write_str("牌堆有缺牌、重复牌或包含当前模式禁牌"),
             Self::InvalidPlayer(player) => write!(f, "玩家 {:?} 不存在", player),
             Self::NotPlayersTurn { expected, actual } => {
-                write!(f, "尚未轮到 {:?}；当前应由 {:?} 操作", actual, expected)
+                write!(f, "尚未轮到 {:?}，当前应由 {:?} 操作", actual, expected)
             }
             Self::NotChoosingRunout => f.write_str("当前不在发牌次数选择阶段"),
             Self::MustChooseRunout => f.write_str("当前必须选择发牌次数"),
@@ -317,7 +317,7 @@ impl TexasGameState {
         &self.squid
     }
 
-    /// 创建一桌新游戏；`deck[0]` 是本手最先发出的牌。
+    /// 创建一桌新游戏。`deck[0]` 是本手最先发出的牌。
     pub fn new_with_deck(
         rules: TexasRuleSet,
         first_dealer: PlayerId,

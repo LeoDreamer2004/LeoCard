@@ -162,6 +162,7 @@ pub(crate) struct ActivePlayerInteraction {
     pub kind: PlayerInteractionKind,
     pub sound_variant: u8,
     pub play_sound: bool,
+    pub sound_gain: f32,
     pub elapsed: f32,
     pub appear_duration: f32,
     pub travel_duration: f32,

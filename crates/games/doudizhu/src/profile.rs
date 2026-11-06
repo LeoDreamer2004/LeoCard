@@ -9,7 +9,7 @@ pub struct DoudizhuProfileStats {
     pub total_match_score: i64,
     pub hands_played: u32,
     pub landlord_hands: u32,
-    /// 仅统计实际发生的叫分，不叫计零；含流局重发前的叫分。
+    /// 仅统计实际发生的叫分，不叫计零，含流局重发前的叫分。
     pub bid_actions: u32,
     pub total_bid_score: u64,
     pub straight_plays: u32,

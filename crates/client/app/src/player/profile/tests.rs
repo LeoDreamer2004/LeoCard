@@ -1,5 +1,5 @@
+use super::super::migration::legacy;
 use super::*;
-use leocard_protocol::GameKind;
 use std::env::temp_dir;
 
 fn complete_game_profiles() -> PlayerGameProfiles {
@@ -69,15 +69,27 @@ fn loading_v8_rewrites_to_v9_without_losing_any_profile_data() {
         rating,
         &games.interactions,
         (
-            &games.qigui523,
-            &games.texas,
-            &games.shengji,
-            &games.uno,
-            &games.mahjong,
-            &games.mc_guess,
-            &games.blackjack,
-            &games.doudizhu,
-            &games.guandan,
+            games
+                .qigui523
+                .clone()
+                .map(legacy::QiGui523ProfileStats::from),
+            games.texas.clone().map(legacy::TexasProfileStats::from),
+            games.shengji.clone().map(legacy::ShengjiProfileStats::from),
+            games.uno.clone().map(legacy::UnoProfileStats::from),
+            games.mahjong.clone().map(legacy::MahjongProfileStats::from),
+            games
+                .mc_guess
+                .clone()
+                .map(legacy::McGuessProfileStats::from),
+            games
+                .blackjack
+                .clone()
+                .map(legacy::BlackjackProfileStats::from),
+            games
+                .doudizhu
+                .clone()
+                .map(legacy::DoudizhuProfileStats::from),
+            games.guandan.clone().map(legacy::GuandanProfileStats::from),
         ),
     ))
     .unwrap();
@@ -110,15 +122,16 @@ fn loading_v8_rewrites_to_v9_without_losing_any_profile_data() {
 }
 
 #[test]
-fn synced_action_times_and_maxima_survive_v9_save_and_reload() {
+fn game_profile_timing_survives_save_and_reload() {
     let directory = temp_dir().join(format!("leocard-profile-v9-{:016x}", fastrand::u64(..)));
     fs::create_dir(&directory).unwrap();
     let path = directory.join("profile.dat");
     let mut profile = LocalPlayerProfile::load_or_create_at(&path).unwrap();
     let key = profile.identity.secret_bytes();
     let mut games = complete_game_profiles();
-    games.action_times.record(GameKind::Guandan, 60_250);
-    games.action_times.record(GameKind::Guandan, 750);
+    let timing = &mut games.guandan.as_mut().unwrap().action_time;
+    timing.record(60_250);
+    timing.record(750);
     assert!(profile.sync_game_profiles(&games));
     profile.store().write(&path).unwrap();
 

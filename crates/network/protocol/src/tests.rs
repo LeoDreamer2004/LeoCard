@@ -78,7 +78,7 @@ fn client_message_round_trips_through_tcp_frame() {
             reference_points: 12,
             completed_games: 8,
             game_profiles: PlayerGameProfiles {
-                action_times: Default::default(),
+                mahjong_link: None,
                 blackjack: Some(BlackjackProfileStats {
                     completed_games: 3,
                     total_chips_delta: 42,

@@ -1,5 +1,4 @@
 use super::*;
-use leocard_protocol::GameKind;
 use std::time::Duration;
 
 #[test]
@@ -32,8 +31,10 @@ fn tribute_return_and_play_are_separate_private_safe_human_decisions() {
         let action = auto_play_action(game, actor).unwrap();
         let before = session.room.players[actor.index()]
             .game_profiles
-            .action_times
-            .get(GameKind::Guandan);
+            .guandan
+            .as_ref()
+            .map(|stats| stats.action_time)
+            .unwrap_or_default();
         session.advance_time(Duration::from_secs(61));
         let public = session.room.action_timing.snapshot().unwrap();
         assert_eq!(public.clocks.len(), 1);
@@ -58,8 +59,10 @@ fn tribute_return_and_play_are_separate_private_safe_human_decisions() {
                     .player(actor)
                     .unwrap()
                     .game_profiles
-                    .action_times
-                    .get(GameKind::Guandan);
+                    .guandan
+                    .as_ref()
+                    .unwrap()
+                    .action_time;
                 assert_eq!(stats.completed_actions, before.completed_actions + 1);
                 assert_eq!(stats.total_millis, before.total_millis + 61_000);
                 assert_eq!(stats.longest_millis, 61_000);

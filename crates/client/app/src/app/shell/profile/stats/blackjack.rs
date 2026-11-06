@@ -1,4 +1,4 @@
-use super::rows::{ProfileRowsBuilder, rate_or_placeholder};
+use super::rows::{ProfileRowsBuilder, rate_or_placeholder, seconds_or_placeholder};
 use leocard_blackjack::BlackjackProfileStats;
 
 pub(crate) fn blackjack_profile_rows(
@@ -24,8 +24,12 @@ pub(crate) fn blackjack_profile_rows(
         "分牌次数",
         "获胜手牌",
     ];
+    let action_time = (
+        "平均每手用时",
+        seconds_or_placeholder(stats.and_then(|stats| stats.action_time.average_seconds())),
+    );
     let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
-        return ProfileRowsBuilder::unavailable(&LABELS);
+        return ProfileRowsBuilder::unavailable(&LABELS, [action_time]);
     };
     let mut rows = ProfileRowsBuilder::ranked(
         stats.completed_games,
@@ -46,5 +50,6 @@ pub(crate) fn blackjack_profile_rows(
         ("分牌次数", counts.splits.to_string()),
         ("获胜手牌", counts.wins.to_string()),
     ]);
+    rows.extend([action_time]);
     rows.finish()
 }

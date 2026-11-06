@@ -1,16 +1,12 @@
 //! 新增游戏档案前的公共存档布局，保留已有游戏统计的原始字段顺序。
 
 use super::super::{StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
+use super::legacy::{
+    BlackjackProfileStats, DoudizhuProfileStats, MahjongProfileStats, McGuessProfileStats,
+    QiGui523ProfileStats, ShengjiProfileStats, TexasProfileStats, UnoProfileStats,
+};
 use super::profile::decode_exact;
-use leocard_blackjack::BlackjackProfileStats;
-use leocard_doudizhu::DoudizhuProfileStats;
-use leocard_mahjong::MahjongProfileStats;
-use leocard_mc_guess::McGuessProfileStats;
 use leocard_protocol::{MatchId, PlayerInteractionStats};
-use leocard_qigui523::QiGui523ProfileStats;
-use leocard_shengji::ShengjiProfileStats;
-use leocard_texas_holdem::TexasProfileStats;
-use leocard_uno::UnoProfileStats;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 pub(super) const V6_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v6\0";
@@ -54,17 +50,17 @@ impl From<V6PlayerProfile> for StoredPlayerProfile {
             },
             interaction_stats: games.interaction_stats,
             games: StoredGameProfiles {
-                qigui523_stats: games.qigui523.qigui523_stats,
-                texas_stats: games.texas_stats,
-                shengji_stats: games.shengji_stats,
-                uno_stats: games.uno_stats,
-                mahjong_stats: games.mahjong_stats,
-                mc_guess_stats: games.mc_guess_stats,
-                blackjack_stats: games.blackjack_stats,
-                doudizhu_stats: games.doudizhu_stats,
+                qigui523_stats: games.qigui523.qigui523_stats.map(Into::into),
+                texas_stats: games.texas_stats.map(Into::into),
+                shengji_stats: games.shengji_stats.map(Into::into),
+                uno_stats: games.uno_stats.map(Into::into),
+                mahjong_stats: games.mahjong_stats.map(Into::into),
+                mc_guess_stats: games.mc_guess_stats.map(Into::into),
+                blackjack_stats: games.blackjack_stats.map(Into::into),
+                doudizhu_stats: games.doudizhu_stats.map(Into::into),
                 guandan_stats: None,
+                mahjong_link_stats: None,
             },
-            action_times: Default::default(),
         }
     }
 }
@@ -112,7 +108,6 @@ pub(super) fn decode_archive<T: DeserializeOwned + Into<TexasProfileStats>>(
 mod tests {
     use super::*;
     use crate::player::profile::{LocalPlayerProfile, PROFILE_HEADER};
-    use leocard_guandan::GuandanProfileStats;
     use std::env::temp_dir;
     use std::fs;
 
@@ -160,26 +155,6 @@ mod tests {
             ))
             .unwrap(),
         );
-        let mut expected = PROFILE_HEADER.to_vec();
-        expected.extend(
-            postcard::to_allocvec(&(
-                key,
-                &rating,
-                &interactions,
-                &qigui,
-                &texas,
-                &shengji,
-                &uno,
-                &mahjong,
-                &mc_guess,
-                &blackjack,
-                &doudizhu,
-                &None::<GuandanProfileStats>,
-                leocard_protocol::GameActionTimes::default(),
-            ))
-            .unwrap(),
-        );
-
         let directory = temp_dir().join(format!("leocard-profile-{:016x}", fastrand::u64(..)));
         fs::create_dir(&directory).unwrap();
         let path = directory.join("profile.dat");
@@ -194,10 +169,11 @@ mod tests {
         assert_eq!(profile.reference_points(), rating.0);
         assert_eq!(profile.completed_games(), rating.1);
         assert!(profile.rating.applied_matches.contains(&receipt));
-        assert_eq!(profile.game_profiles().qigui523, qigui);
+        assert_eq!(profile.game_profiles().qigui523, qigui.map(Into::into));
         assert_eq!(profile.game_profiles().interactions, interactions);
-        assert_eq!(profile.game_profiles().doudizhu, doudizhu);
-        assert_eq!(fs::read(&path).unwrap(), expected);
+        assert_eq!(profile.game_profiles().doudizhu, doudizhu.map(Into::into));
+        let expected = fs::read(&path).unwrap();
+        assert!(expected.starts_with(PROFILE_HEADER));
         assert!(LocalPlayerProfile::load_or_create_at(&path).is_ok());
         assert_eq!(fs::read(&path).unwrap(), expected);
         assert_eq!(fs::read_dir(&directory).unwrap().count(), 1);

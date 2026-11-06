@@ -1,11 +1,10 @@
 use super::super::{PROFILE_HEADER, StoredPlayerProfile};
 use super::archive::{LegacyRatingProfile, V6_PROFILE_HEADER, V6GameProfiles, V6PlayerProfile};
+use super::legacy::{MahjongProfileStats, ShengjiProfileStats};
 use super::mc_guess::{PreviousMcGuessStats, SixSeatMcGuessStats};
 use super::texas::V3TexasStats;
 use super::uno::SixSeatUnoStats;
-use leocard_mahjong::MahjongProfileStats;
 use leocard_protocol::{MatchId, PlayerInteractionStats};
-use leocard_shengji::ShengjiProfileStats;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 macro_rules! stored_profile_compatibility_types {

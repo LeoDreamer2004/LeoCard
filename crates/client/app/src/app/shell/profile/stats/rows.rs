@@ -1,18 +1,4 @@
-use leocard_protocol::ActionTimeStats;
-
 pub(super) type ProfileRow = (&'static str, String);
-
-pub(crate) fn append_action_time_row(rows: &mut Vec<ProfileRow>, stats: ActionTimeStats) {
-    let value = if stats.completed_actions == 0 {
-        "暂无记录".to_owned()
-    } else {
-        format!(
-            "{:.1} 秒",
-            stats.total_millis as f64 / stats.completed_actions as f64 / 1000.0
-        )
-    };
-    rows.push(("平均每手用时", value));
-}
 
 pub(super) fn average_reference_delta(total: i64, completed_games: u32) -> String {
     format!("{:+.3}", total as f64 / f64::from(completed_games))
@@ -23,10 +9,14 @@ pub(super) struct ProfileRowsBuilder {
 }
 
 impl ProfileRowsBuilder {
-    pub(super) fn unavailable(labels: &[&'static str]) -> Vec<ProfileRow> {
+    pub(super) fn unavailable(
+        labels: &[&'static str],
+        extra: impl IntoIterator<Item = ProfileRow>,
+    ) -> Vec<ProfileRow> {
         labels
             .iter()
             .map(|label| (*label, "--".to_owned()))
+            .chain(extra)
             .collect()
     }
 
@@ -103,4 +93,8 @@ pub(super) fn rate_or_placeholder(count: u32, total: u32) -> String {
             f64::from(count.min(total)) * 100.0 / f64::from(total)
         )
     }
+}
+
+pub(super) fn seconds_or_placeholder(seconds: Option<f64>) -> String {
+    seconds.map_or_else(|| "暂无记录".to_owned(), |value| format!("{value:.1} 秒"))
 }

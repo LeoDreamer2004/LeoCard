@@ -1,4 +1,3 @@
-pub(super) use crate::action_timing::dispatch_client_command;
 use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
@@ -302,7 +301,7 @@ pub(super) trait HostedGameLifecycle: Sized {
     }
 }
 
-pub(crate) fn dispatch_client_command_without_timing<S: HostedGameLifecycle>(
+pub(crate) fn dispatch_client_command<S: HostedGameLifecycle>(
     session: &mut S,
     connection: ConnectionId,
     message: ClientMessage,

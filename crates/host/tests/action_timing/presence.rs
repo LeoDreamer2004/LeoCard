@@ -82,8 +82,7 @@ fn reconnect_restarts_the_human_window_and_preserves_host_owned_samples() {
             .player(actor)
             .unwrap()
             .game_profiles
-            .action_times
-            .get(GameKind::Guandan);
+            .action_time(GameKind::Guandan);
         assert_eq!(
             (
                 stats.total_millis,
@@ -111,8 +110,7 @@ fn reconnect_restarts_the_human_window_and_preserves_host_owned_samples() {
                 .player(actor)
                 .unwrap()
                 .game_profiles
-                .action_times
-                .get(GameKind::Guandan),
+                .action_time(GameKind::Guandan),
             stats
         );
     }

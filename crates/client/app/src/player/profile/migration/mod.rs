@@ -3,6 +3,7 @@ mod blackjack;
 mod doudizhu;
 mod graph;
 mod guandan;
+pub(in crate::player::profile) mod legacy;
 mod mc_guess;
 mod profile;
 mod texas;

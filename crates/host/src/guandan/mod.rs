@@ -2,6 +2,7 @@ mod lifecycle;
 mod snapshot;
 mod state;
 mod statistics;
+mod timing;
 
 pub use state::GuandanSession;
 

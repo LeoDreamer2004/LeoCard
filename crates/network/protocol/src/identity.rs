@@ -1,10 +1,10 @@
-use crate::GameActionTimes;
 use leocard_achievements::TrophyCounts;
 use leocard_blackjack::BlackjackProfileStats;
 use leocard_doudizhu::DoudizhuProfileStats;
 use leocard_game_common::PlayerId;
 use leocard_guandan::GuandanProfileStats;
 use leocard_mahjong::MahjongProfileStats;
+use leocard_mahjong_link::MahjongLinkProfileStats;
 use leocard_mc_guess::McGuessProfileStats;
 use leocard_qigui523::QiGui523ProfileStats;
 use leocard_shengji::ShengjiProfileStats;
@@ -51,7 +51,6 @@ pub enum AvatarFrameId {
 /// 明细，展示层必须与真实的零次记录区分开来。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PlayerGameProfiles {
-    pub action_times: GameActionTimes,
     /// 仅公开各等级已解锁成就数量，不公开成就条目及日期。
     pub achievements: TrophyCounts,
     /// 由本地钱包公开的金币余额，不随游戏档案存档。
@@ -71,6 +70,7 @@ pub struct PlayerGameProfiles {
     pub blackjack: Option<BlackjackProfileStats>,
     pub doudizhu: Option<DoudizhuProfileStats>,
     pub guandan: Option<GuandanProfileStats>,
+    pub mahjong_link: Option<MahjongLinkProfileStats>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

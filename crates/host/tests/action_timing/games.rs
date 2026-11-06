@@ -121,8 +121,11 @@ fn all_ten_dispatchers_record_only_the_required_human_and_publish_committed_stat
         // This must already be in the command's own snapshots, not just a later poll.
         for delivery in &accepted {
             if let ServerEvent::GameSnapshot(snapshot) = &delivery.message.event {
-                let times = snapshot.player(actor).unwrap().game_profiles.action_times;
-                let stats = times.get(kind);
+                let stats = snapshot
+                    .player(actor)
+                    .unwrap()
+                    .game_profiles
+                    .action_time(kind);
                 assert_eq!(
                     (
                         stats.total_millis,
@@ -132,12 +135,11 @@ fn all_ten_dispatchers_record_only_the_required_human_and_publish_committed_stat
                     (before + 750, 1, before + 750),
                     "{kind:?}"
                 );
-                assert_eq!(times.longest_millis(), before + 750);
             }
         }
         let (snapshot, clocks) = table.view();
         for player in snapshot.players() {
-            let stats = player.game_profiles.action_times.get(kind);
+            let stats = player.game_profiles.action_time(kind);
             assert_eq!(
                 stats.completed_actions,
                 u64::from(player.id == actor),
@@ -192,8 +194,7 @@ fn simultaneous_shengji_confirmations_keep_other_players_elapsed_windows() {
         .player(second.player)
         .unwrap()
         .game_profiles
-        .action_times
-        .get(GameKind::Shengji);
+        .action_time(GameKind::Shengji);
     assert_eq!(
         (stats.total_millis, stats.completed_actions),
         (second.elapsed_millis + 1250, 1)

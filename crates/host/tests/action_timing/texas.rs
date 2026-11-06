@@ -62,8 +62,7 @@ fn all_in_players_get_separate_human_decision_times_for_runout_votes() {
             .unwrap()
             .player
             .game_profiles
-            .action_times
-            .get(GameKind::Texas);
+            .action_time(GameKind::Texas);
         table.session.advance_time(Duration::from_millis(750));
         let deliveries = table.send(
             u64::from(actor.0) + 1,
@@ -79,8 +78,7 @@ fn all_in_players_get_separate_human_decision_times_for_runout_votes() {
             .player(actor)
             .unwrap()
             .game_profiles
-            .action_times
-            .get(GameKind::Texas);
+            .action_time(GameKind::Texas);
         assert_eq!(after.completed_actions, before.completed_actions + 1);
         assert_eq!(after.total_millis, before.total_millis + 750);
     }

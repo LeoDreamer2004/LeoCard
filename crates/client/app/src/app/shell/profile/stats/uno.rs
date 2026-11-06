@@ -1,4 +1,4 @@
-use super::rows::{ProfileRowsBuilder, rate_or_placeholder};
+use super::rows::{ProfileRowsBuilder, rate_or_placeholder, seconds_or_placeholder};
 use leocard_uno::UnoProfileStats;
 
 pub(crate) fn uno_profile_rows(stats: Option<&UnoProfileStats>) -> Vec<(&'static str, String)> {
@@ -27,8 +27,12 @@ pub(crate) fn uno_profile_rows(stats: Option<&UnoProfileStats>) -> Vec<(&'static
         "抢出次数",
         "抢出成功率",
     ];
+    let action_time = (
+        "平均每手用时",
+        seconds_or_placeholder(stats.and_then(|stats| stats.action_time.average_seconds())),
+    );
     let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
-        return ProfileRowsBuilder::unavailable(&LABELS);
+        return ProfileRowsBuilder::unavailable(&LABELS, [action_time]);
     };
     let mut rows = ProfileRowsBuilder::ranked(
         stats.completed_games,
@@ -63,5 +67,6 @@ pub(crate) fn uno_profile_rows(stats: Option<&UnoProfileStats>) -> Vec<(&'static
             rate_or_placeholder(stats.successful_jump_ins, stats.jump_in_opportunities),
         ),
     ]);
+    rows.extend([action_time]);
     rows.finish()
 }

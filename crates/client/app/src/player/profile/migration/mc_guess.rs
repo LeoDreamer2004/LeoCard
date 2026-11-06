@@ -1,4 +1,5 @@
-use leocard_mc_guess::{McGuessCategoryCount, McGuessCategoryStatistics, McGuessProfileStats};
+use super::legacy::McGuessProfileStats;
+use leocard_mc_guess::{McGuessCategoryCount, McGuessCategoryStatistics};
 use serde::{Deserialize, Serialize};
 
 // Freeze both historical layouts; new categories must never alter old decoders.

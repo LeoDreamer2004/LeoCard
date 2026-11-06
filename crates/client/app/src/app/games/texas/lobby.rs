@@ -64,7 +64,6 @@ pub(crate) fn render_texas_lobby(
             label: "初始筹码",
             value: rules_value.starting_chips.to_string(),
             help: "每位玩家入桌时拥有的筹码。大盲固定为 2，小盲固定为 1。",
-            editable: can_configure,
             previous: previous.filter(|_| can_configure),
             next: next.filter(|_| can_configure),
         },
@@ -82,7 +81,6 @@ pub(crate) fn render_texas_lobby(
                 rules_value.squid_markers.to_string()
             },
             help: "每手独赢主池获得一枚标记，可重复获得；平分主池或仅赢边池不发放。标记发完后，零标记者向持有者每枚支付 1BB（2 筹码），筹码不足则按比例支付。下一手重置标记；若有人出局，提前结算已发标记。数量最多为当前玩家数减一，0 为关闭。",
-            editable: can_configure,
             previous: rules_value
                 .squid_markers
                 .checked_sub(1)
@@ -119,7 +117,6 @@ pub(crate) fn render_texas_lobby(
             }
             .to_owned(),
             help: "仅在开启鱿鱼时生效。DeepSeek 鱿鱼币每枚按 2BB（4 筹码）结算，普通鱿鱼币仍为 1BB（2 筹码）；筹码不足时按上述权重分配。",
-            editable: can_configure,
             previous: can_double.then_some(deepseek_toggled),
             next: can_double.then_some(deepseek_toggled),
         },
@@ -141,7 +138,6 @@ pub(crate) fn render_texas_lobby(
             }
             .to_owned(),
             help: "有限注：翻前和翻牌每次下注或加注 2，转牌和河牌每次 4；每街最多一次下注加三次加注，大盲视为翻前的首次下注。全下也须遵守限额。无限注可加注至全部筹码。",
-            editable: can_configure,
             previous: can_configure.then_some(betting_toggled),
             next: can_configure.then_some(betting_toggled),
         },
@@ -156,7 +152,7 @@ pub(crate) fn render_texas_lobby(
         run_it_twice: !rules_value.run_it_twice,
         ..rules_value
     };
-    for (label, enabled, help, editable, toggled) in [
+    for (label, enabled, help, can_change, toggled) in [
         (
             "边池",
             rules_value.side_pots,
@@ -179,9 +175,8 @@ pub(crate) fn render_texas_lobby(
                 label,
                 value: if enabled { "开启" } else { "关闭" }.to_owned(),
                 help,
-                editable,
-                previous: editable.then_some(toggled),
-                next: editable.then_some(toggled),
+                previous: can_change.then_some(toggled),
+                next: can_change.then_some(toggled),
             },
             assets,
         );
@@ -205,7 +200,6 @@ pub(crate) fn render_texas_lobby(
                 "关闭".to_owned()
             },
             help: "开启后每人发四张底牌；最终牌型必须恰好使用两张底牌和三张公共牌。短牌奥马哈最多支持 6 人。",
-            editable: can_configure,
             previous: can_configure.then_some(omaha_toggled),
             next: can_configure.then_some(omaha_toggled),
         },
@@ -222,7 +216,6 @@ pub(crate) fn render_texas_lobby(
                 "关闭".to_owned()
             },
             help: "开启后移除 2、3、4、5。短牌中同花高于葫芦，三条高于顺子；短牌奥马哈最多支持 6 人。",
-            editable: can_configure,
             previous: can_configure.then_some(short_deck_toggled),
             next: can_configure.then_some(short_deck_toggled),
         },
@@ -243,7 +236,6 @@ pub(crate) fn render_texas_lobby(
                 "关闭".to_owned()
             },
             help: "开启后忽略踢脚牌；高牌和同花只比较最大的一张牌。",
-            editable: can_configure,
             previous: can_configure.then_some(ignore_kickers_toggled),
             next: can_configure.then_some(ignore_kickers_toggled),
         },

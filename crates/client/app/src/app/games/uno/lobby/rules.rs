@@ -37,7 +37,6 @@ impl UnoRuleRow {
                 label: self.label,
                 value: if self.enabled { "开启" } else { "关闭" }.to_owned(),
                 help: self.help,
-                editable: can_configure,
                 previous: can_configure.then_some(self.toggled),
                 next: can_configure.then_some(self.toggled),
             },
@@ -86,7 +85,6 @@ pub(super) fn render_uno_rule_rows(
                 }
                 .to_owned(),
                 help: "仅慈悲淘汰生效时可用。剩两人后不再回收弃牌；牌堆耗尽时，双方依次无法接牌后可任选一张打出。",
-                editable: can_configure,
                 previous: (can_configure && available).then_some(toggled),
                 next: (can_configure && available).then_some(toggled),
             },

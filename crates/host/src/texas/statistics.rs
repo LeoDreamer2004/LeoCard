@@ -87,8 +87,17 @@ impl TexasSession {
             .zip(game.game().players())
             .filter(|(_, state)| !state.folded())
             .filter_map(|(participant, state)| {
-                evaluate_player_hand(state.hole_cards(), game.game().community(), game.rules())
-                    .ok()
+                std::iter::once(game.game().community())
+                    .chain(
+                        result
+                            .second_run
+                            .as_ref()
+                            .map(|run| run.community.as_slice()),
+                    )
+                    .filter_map(|community| {
+                        evaluate_player_hand(state.hole_cards(), community, game.rules()).ok()
+                    })
+                    .max_by(|left, right| left.cmp_with_rules(right, game.rules()))
                     .map(|hand| (participant.id, hand.category()))
             })
             .collect::<Vec<_>>();

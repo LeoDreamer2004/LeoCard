@@ -4,7 +4,7 @@ use super::super::{
     ACCENT, AutoPlayOverlay, PanelSkin, TABLE_CARD_REVEAL, TABLE_SCORE_CARD_REVEAL, TEXT,
 };
 use super::{add_text, add_title};
-use crate::app::presentation::CardSize;
+use crate::app::presentation::{CardSize, TrickCardLayout};
 use crate::app::runtime::{CardFace, UiAssets};
 use crate::app::shell::{SocialUiAction, UiAction};
 use bevy::picking::Pickable;
@@ -34,7 +34,7 @@ pub(crate) fn add_card_image(
         CardSize::Score => SCORE_CARD_REVEAL,
         CardSize::TableScore => TABLE_SCORE_CARD_REVEAL,
         CardSize::FinishedHand => FINISHED_HAND_CARD_REVEAL,
-        CardSize::TrickSeat => 27.0,
+        CardSize::TrickSeat => TrickCardLayout::default().reveal,
         CardSize::ShengjiHand | CardSize::QiGuiHand | CardSize::QiGuiSeat => TABLE_CARD_REVEAL,
     };
     let image = assets.playing_cards.face(card);

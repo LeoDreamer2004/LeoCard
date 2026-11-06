@@ -1,5 +1,6 @@
 use super::ShopUiAction;
 use super::skin::{add_price, add_product_card, add_product_icon, add_product_preview};
+use crate::app::games::SUPPORTED_GAMES;
 use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text, add_title, rule_help_style};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
@@ -8,7 +9,7 @@ use crate::app::shell::{
 };
 use bevy::prelude::*;
 use leocard_client::{PlayerEconomy, PropId};
-use leocard_ui::{UiComposer, add_help_tooltip, spawn_node};
+use leocard_ui::{EllipsizedLabel, UiComposer, add_help_tooltip, spawn_node};
 
 #[derive(Component)]
 pub(super) struct PropRemaining {
@@ -33,6 +34,7 @@ pub(super) fn render_prop(
             height: px(58),
             justify_content: JustifyContent::SpaceBetween,
             align_items: AlignItems::FlexStart,
+            column_gap: px(8),
             border: UiRect::bottom(px(1)),
             ..default()
         },
@@ -46,6 +48,8 @@ pub(super) fn render_prop(
         header,
         Node {
             min_width: px(0),
+            flex_grow: 1.0,
+            flex_basis: px(0),
             flex_direction: FlexDirection::Column,
             row_gap: px(3),
             ..default()
@@ -53,7 +57,25 @@ pub(super) fn render_prop(
         None,
     );
     add_title(commands, identity, prop.name, 21.0, TEXT, assets);
-    add_text(commands, identity, prop.game_label, 13.0, MUTED, assets);
+    let games = prop
+        .games
+        .iter()
+        .map(|kind| {
+            SUPPORTED_GAMES
+                .iter()
+                .find(|game| game.kind == *kind)
+                .expect("prop games belong to the game catalogue")
+                .title
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    EllipsizedLabel {
+        text: &games,
+        font_size: 13.0,
+        color: MUTED,
+        tooltip: rule_help_style(assets),
+    }
+    .mount(commands, identity);
     add_help_tooltip(commands, header, prop.description, rule_help_style(assets));
     let artwork = add_product_preview(commands, card, assets, prop.rarity);
     if id == PropId::AutoEggThrower {

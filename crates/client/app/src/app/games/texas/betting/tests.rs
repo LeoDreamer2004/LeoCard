@@ -195,7 +195,7 @@ fn dragging_updates_the_fill_and_adjustments_without_rebuilding_the_table() {
 }
 
 #[test]
-fn raise_editor_only_appears_after_opening_and_can_be_cancelled() {
+fn raise_editor_lifecycle_and_transition_to_runout_voting() {
     use super::super::chips::tests::pot_test_snapshot;
     use super::view::add_texas_actions;
     use crate::app::runtime::UiAssets;
@@ -300,4 +300,59 @@ fn raise_editor_only_appears_after_opening_and_can_be_cancelled() {
             .count(),
         0
     );
+
+    // An all-in voter must see only runout choices, even with stale editor state.
+    {
+        let mut table = app.world_mut().resource_mut::<Table>();
+        table.game.phase = leocard_protocol::TexasPhaseView::ChoosingRunout;
+        table.game.players[0].all_in = true;
+        table.game.players[0].stack = 0;
+        table.game.raise_allowed = false;
+        table.game.maximum_raise_to = None;
+        table.game.all_in_allowed = false;
+    }
+    {
+        let mut ui = app.world_mut().resource_mut::<TexasUiState>();
+        ui.raise_editor_open = true;
+        ui.raise_pending = Some((leocard_protocol::Revision(2), 1));
+    }
+    app.update();
+    let mut texts = labels(app.world_mut());
+    texts.sort();
+    assert_eq!(texts, ["发一次", "发两次"]);
+    let mut votes = app
+        .world_mut()
+        .query::<&UiAction>()
+        .iter(app.world())
+        .filter_map(|action| match action {
+            UiAction::Texas(TexasUiAction::ChooseRunout(twice)) => Some(*twice),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    votes.sort();
+    assert_eq!(votes, [false, true]);
+    assert_eq!(
+        app.world_mut()
+            .query::<&TexasRaiseInput>()
+            .iter(app.world())
+            .count(),
+        0
+    );
+    assert!(super::raise_sizing(&app.world().resource::<Table>().game).is_none());
+    let game = app.world().resource::<Table>().game.clone();
+    {
+        let mut ui = app.world_mut().resource_mut::<TexasUiState>();
+        ui.reconcile(&game, leocard_protocol::Revision(2), 1);
+        assert!(!ui.raise_editor_open && ui.raise_pending.is_none());
+    }
+    for excluded in 0..3 {
+        {
+            let mut table = app.world_mut().resource_mut::<Table>();
+            table.game.players[0].auto_play = excluded == 0;
+            table.game.players[0].folded = excluded == 1;
+            table.game.current_player = (excluded != 2).then_some(table.game.you);
+        }
+        app.update();
+        assert!(labels(app.world_mut()).is_empty());
+    }
 }

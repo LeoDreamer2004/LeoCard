@@ -2,11 +2,10 @@ use super::BlackjackUiAction;
 use crate::app::presentation::{EditableRuleSet, RuleConfigRow, add_rule_config_row};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{LobbyPage, LobbyPageConfig, UiAction};
+use bevy::prelude::*;
 use leocard_blackjack::BlackjackRuleSet;
 use leocard_protocol::LobbySnapshot;
 use leocard_ui::UiComposer;
-
-use bevy::prelude::*;
 
 impl EditableRuleSet for BlackjackRuleSet {
     const ROW_HEIGHT: f32 = 38.0;
@@ -97,7 +96,6 @@ pub(crate) fn render_blackjack_lobby(
                 label,
                 value,
                 help,
-                editable: page.can_configure,
                 previous: previous.filter(|_| page.can_configure),
                 next: next.filter(|_| page.can_configure),
             },

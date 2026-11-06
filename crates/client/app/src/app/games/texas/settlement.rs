@@ -1,7 +1,7 @@
 use super::{
     TEXAS_SHOWDOWN_REVEAL_DURATION, TexasShowdownBackdrop, TexasShowdownBestCard,
     TexasShowdownRevealRoot, TexasShowdownTitle, TexasShowdownTitleText, TexasShowdownUnderline,
-    TexasTableLayout, add_texas_card, texas_category_label,
+    TexasTableLayout, add_summary_hands, texas_category_label,
 };
 use crate::app::presentation::{
     ACCENT, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider, GameSummaryModal,
@@ -15,10 +15,9 @@ use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
 };
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_protocol::{TexasPhaseView, TexasPlayerView, TexasSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 pub(crate) fn texas_summary_descriptor(game: &TexasSnapshot) -> Option<SummaryDescriptor> {
     let TexasPhaseView::HandComplete {
@@ -158,9 +157,17 @@ pub(super) fn add_texas_showdown_reveal(
                 .position(|community| *community == card)
                 .unwrap_or(index);
             (
-                TexasTableLayout::board_card_origin(board_index),
+                if game.second_community.is_empty() {
+                    TexasTableLayout::board_card_origin(board_index)
+                } else {
+                    TexasTableLayout::runout_board_card_origin(board_index)
+                },
                 0.68 + board_index as f32 * 0.055,
-                TexasTableLayout::BOARD_CARD_SIZE / Vec2::new(70.0, 96.0),
+                if game.second_community.is_empty() {
+                    TexasTableLayout::BOARD_CARD_SIZE
+                } else {
+                    TexasTableLayout::RUNOUT_CARD_SIZE
+                } / Vec2::new(70.0, 96.0),
             )
         };
         let target = Vec2::new(444.0 + index as f32 * 78.0, 238.0);
@@ -227,7 +234,15 @@ pub(super) fn add_texas_showdown_reveal(
     let title = add_title(
         commands,
         title_area,
-        format!("{winner_names} · {}", texas_category_label(best.category())),
+        format!(
+            "{} {winner_names} {}",
+            if game.second_community.is_empty() {
+                ""
+            } else {
+                "第一次"
+            },
+            texas_category_label(best.category())
+        ),
         30.0,
         Color::NONE,
         assets,
@@ -331,6 +346,38 @@ pub(super) fn add_texas_hand_result(
         Some(Color::srgb(0.64, 0.59, 0.93)),
     );
 
+    if !game.second_community.is_empty() {
+        for run in [1, 2] {
+            let run_awards = awards
+                .iter()
+                .filter(|award| award.run == run)
+                .map(|award| {
+                    let names = award
+                        .winners
+                        .iter()
+                        .filter_map(|id| game.players.iter().find(|player| player.player.id == *id))
+                        .map(|player| player.player.name.as_str())
+                        .collect::<Vec<_>>()
+                        .join("、");
+                    format!("{names} 分得 {}", award.amount)
+                })
+                .collect::<Vec<_>>()
+                .join("  ");
+            add_animated_summary_text(
+                commands,
+                panel,
+                format!(
+                    "{} {run_awards}",
+                    if run == 1 { "第一次" } else { "第二次" }
+                ),
+                14.0,
+                ACCENT,
+                0.0,
+                animation.elapsed,
+                assets,
+            );
+        }
+    }
     let mut hand_players = game.players.iter().collect::<Vec<_>>();
     hand_players.sort_by(|left, right| {
         right
@@ -434,25 +481,20 @@ pub(super) fn add_texas_hand_result(
                 animation.elapsed,
                 assets,
             );
-        } else if let Some(best) = game
+        } else if let Some(hand) = game
             .revealed_hands
             .iter()
             .find(|revealed| revealed.player == player.player.id)
-            .and_then(|revealed| revealed.best)
         {
-            add_animated_summary_text(
+            add_summary_hands(
                 commands,
                 result,
-                texas_category_label(best.category()),
-                14.0,
-                READY,
+                hand,
+                !game.second_community.is_empty(),
                 delay,
                 animation.elapsed,
                 assets,
             );
-            for card in best.cards() {
-                add_texas_card(commands, result, card, (28.0, 40.0), None, assets);
-            }
         }
         let delta = i64::from(player.stack) - i64::from(player.hand_start_stack);
         add_animated_summary_text(

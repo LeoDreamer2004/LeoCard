@@ -18,10 +18,15 @@ pub(in super::super) fn add_texas_actions(
     ui: &mut TexasUiState,
     assets: &UiAssets,
 ) {
-    if !matches!(game.phase, TexasPhaseView::Betting { .. })
+    let choosing = matches!(game.phase, TexasPhaseView::ChoosingRunout);
+    if !matches!(
+        game.phase,
+        TexasPhaseView::Betting { .. } | TexasPhaseView::ChoosingRunout
+    ) || own.folded
+        || own.auto_play
         || game.blind_to_post.is_some()
         || game.current_player != Some(game.you)
-        || ui.raise_pending.is_some()
+        || (!choosing && ui.raise_pending.is_some())
     {
         return;
     }
@@ -63,6 +68,20 @@ pub(in super::super) fn add_texas_actions(
         None,
     );
     let size = Vec2::new(118.0, 50.0);
+    if choosing {
+        for (label, twice) in [("发一次", false), ("发两次", true)] {
+            add_texas_action_button(
+                commands,
+                row,
+                label,
+                TexasUiAction::ChooseRunout(twice),
+                ButtonKind::Primary,
+                size,
+                assets,
+            );
+        }
+        return;
+    }
     if ui.raise_editor_open && sizing.is_some() {
         for (label, action, kind) in [
             ("确认", TexasUiAction::Raise, ButtonKind::Primary),

@@ -10,14 +10,28 @@ use super::{
     VisualPot,
 };
 use crate::app::presentation::{ACCENT, CHIP_BET_DURATION, CHIP_BET_INTERVAL, DANGER, READY, TEXT};
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{TexasEvent, TexasPhaseView, TexasSnapshot};
 use leocard_texas_holdem::TexasAction;
+use std::cmp::Reverse;
 use std::mem;
 
-use bevy::prelude::*;
-
-pub(super) fn visual_pots(game: &TexasSnapshot) -> Vec<VisualPot> {
+pub(super) fn visual_pots(game: &TexasSnapshot, side_pots: bool) -> Vec<VisualPot> {
+    if !side_pots {
+        return (game.pot > 0)
+            .then(|| VisualPot {
+                amount: game.pot,
+                eligible: game
+                    .players
+                    .iter()
+                    .filter(|player| !player.folded)
+                    .map(|player| player.player.id)
+                    .collect(),
+            })
+            .into_iter()
+            .collect();
+    }
     let maximum = game
         .players
         .iter()
@@ -76,12 +90,17 @@ impl TexasChipTableState {
         *self = Self::default();
     }
 
-    pub(crate) fn observe(&mut self, game: &TexasSnapshot, events: Vec<TexasEvent>) {
+    pub(crate) fn observe(
+        &mut self,
+        game: &TexasSnapshot,
+        events: Vec<TexasEvent>,
+        side_pots: bool,
+    ) {
         let new_hand = self.match_id != Some(game.match_id)
             || self.hand_number != game.hand_number
             || self.you != Some(game.you);
         if new_hand {
-            self.initialize(game);
+            self.initialize(game, side_pots);
             return;
         }
         self.squid.observe(game);
@@ -92,8 +111,12 @@ impl TexasChipTableState {
             .collect();
         let previous_player = self.current_player;
         let mut swept = false;
-        let mut hand_finished = false;
         for event in events {
+            // Late/repeated events must not replay money already present in a
+            // complete snapshot (including one received during reconnect).
+            if self.settlement_applied {
+                continue;
+            }
             self.event_serial = self.event_serial.saturating_add(1);
             let sound_seed = self.event_serial.wrapping_mul(17);
             match event {
@@ -113,17 +136,27 @@ impl TexasChipTableState {
                     self.sweep_bets_to_pot();
                     swept = true;
                 }
-                TexasEvent::HandAnalyzed { .. } | TexasEvent::SquidAwarded { .. } => {}
-                TexasEvent::HandFinished { showdown } => {
+                TexasEvent::ChipsReturned { player, amount } => {
+                    self.return_chips(player, amount);
+                }
+                TexasEvent::RunoutVoteStarted { .. } => {
+                    self.sweep_bets_to_pot();
+                    swept = true;
+                }
+                TexasEvent::RunoutChosen { .. }
+                | TexasEvent::HandAnalyzed { .. }
+                | TexasEvent::SquidAwarded { .. } => {}
+                TexasEvent::HandFinished { showdown } if !self.finish_observed => {
+                    self.finish_observed = true;
                     self.audio_cues
                         .extend(texas_hand_finish_sound_plan(showdown, sound_seed));
                     self.sweep_bets_to_pot();
                     swept = true;
-                    hand_finished = true;
                 }
+                TexasEvent::HandFinished { .. } => {}
             }
         }
-        let next_pots = visual_pots(game);
+        let next_pots = visual_pots(game, side_pots);
         let old_count = self.pots.len().max(1);
         let new_count = next_pots.len().max(1);
         let divisions_changed = old_count != new_count;
@@ -141,20 +174,31 @@ impl TexasChipTableState {
         if swept || divisions_changed {
             self.repartition_pot_chips(if divisions_changed { 0.24 } else { 0.0 });
         }
-        if hand_finished {
-            self.award_finished_pots(game);
-            for (index, transfer) in game.squid.transfers.iter().enumerate() {
-                let chips = self.take_exact_from_stack(transfer.from, transfer.amount);
-                for (offset, id) in chips.into_iter().enumerate() {
-                    self.move_chip(
-                        id,
-                        ChipZone::Stack(transfer.to),
-                        self.stack_anchor(transfer.to),
-                        1.65 + index as f32 * 0.08 + offset as f32 * 0.025,
-                        0.56,
-                    );
+        let complete = matches!(game.phase, TexasPhaseView::HandComplete { .. });
+        if complete && !self.settlement_applied {
+            if self.finish_observed {
+                self.sweep_bets_to_pot();
+                self.award_finished_pots(game);
+                for (index, transfer) in game.squid.transfers.iter().enumerate() {
+                    let chips = self.take_exact_from_stack(transfer.from, transfer.amount);
+                    for (offset, id) in chips.into_iter().enumerate() {
+                        self.move_chip(
+                            id,
+                            ChipZone::Stack(transfer.to),
+                            self.stack_anchor(transfer.to),
+                            1.65 + index as f32 * 0.08 + offset as f32 * 0.025,
+                            0.56,
+                        );
+                    }
                 }
             }
+            self.settlement_applied = true;
+        }
+        // The ordered projection supplies events with their following snapshot,
+        // never against the stale frame-level model. A finish observed early is
+        // kept pending until the authoritative awards/transfers are available.
+        if !self.finish_observed || self.settlement_applied {
+            self.reconcile_balances(game);
         }
         for player in &game.players {
             if player.folded {
@@ -174,7 +218,7 @@ impl TexasChipTableState {
         self.current_player = game.current_player;
     }
 
-    pub(super) fn initialize(&mut self, game: &TexasSnapshot) {
+    pub(super) fn initialize(&mut self, game: &TexasSnapshot, side_pots: bool) {
         let squid = mem::take(&mut self.squid);
         self.reset();
         self.squid = squid;
@@ -188,8 +232,10 @@ impl TexasChipTableState {
             .iter()
             .map(|player| (player.player.id, player.seat))
             .collect();
-        self.pots = visual_pots(game);
+        self.pots = visual_pots(game, side_pots);
         let complete = matches!(game.phase, TexasPhaseView::HandComplete { .. });
+        self.settlement_applied = complete;
+        let betting = matches!(game.phase, TexasPhaseView::Betting { .. });
         for player in &game.players {
             for denomination in initial_chip_denominations(player.stack) {
                 self.spawn_chip(
@@ -199,11 +245,12 @@ impl TexasChipTableState {
                 );
             }
             if !complete {
-                let in_pot = player
-                    .committed_total
-                    .saturating_sub(player.committed_street);
-                self.spawn_value_in_zone(in_pot, ChipZone::Pot(0));
-                self.spawn_value_in_zone(player.committed_street, ChipZone::Bet(player.player.id));
+                let in_bet = if betting { player.committed_street } else { 0 };
+                self.spawn_value_in_zone(
+                    player.committed_total.saturating_sub(in_bet),
+                    ChipZone::Pot(0),
+                );
+                self.spawn_value_in_zone(in_bet, ChipZone::Bet(player.player.id));
             }
             if player.folded {
                 self.actions.insert(
@@ -301,6 +348,41 @@ impl TexasChipTableState {
         }
     }
 
+    fn return_chips(&mut self, player: PlayerId, amount: u32) {
+        // Refund this street first, then earlier streets already swept into the
+        // pot. Folded contributions are never independently refunded.
+        let bet = ChipZone::Bet(player);
+        let in_bet = self
+            .chips
+            .iter()
+            .filter(|chip| chip.zone == bet)
+            .map(|chip| u32::from(chip.denomination))
+            .sum::<u32>();
+        let from_bet = amount.min(in_bet);
+        if amount > from_bet {
+            for chip in &mut self.chips {
+                if matches!(chip.zone, ChipZone::Pot(_)) {
+                    chip.zone = ChipZone::Pot(0);
+                }
+            }
+        }
+        for (zone, value) in [(bet, from_bet), (ChipZone::Pot(0), amount - from_bet)] {
+            // Move each selection immediately: subsequent change-making may use
+            // the previous source zone as a provider of smaller denominations.
+            let ids = self.take_exact_from_zone(zone, value);
+            for (index, id) in ids.into_iter().enumerate() {
+                self.move_chip(
+                    id,
+                    ChipZone::Stack(player),
+                    self.stack_anchor(player),
+                    index as f32 * CHIP_BET_INTERVAL,
+                    CHIP_BET_DURATION,
+                );
+            }
+        }
+        self.actions.remove(&player);
+    }
+
     fn sweep_bets_to_pot(&mut self) {
         self.actions.retain(|_, label| label.folded);
         let ids = self
@@ -314,7 +396,7 @@ impl TexasChipTableState {
         }
     }
 
-    fn repartition_pot_chips(&mut self, base_delay: f32) {
+    pub(super) fn repartition_pot_chips(&mut self, base_delay: f32) {
         let pot_count = self.pots.len().max(1);
         let mut chips = self
             .chips
@@ -325,7 +407,7 @@ impl TexasChipTableState {
         if chips.is_empty() {
             return;
         }
-        chips.sort_unstable_by_key(|(_, denomination)| std::cmp::Reverse(*denomination));
+        chips.sort_unstable_by_key(|(_, denomination)| Reverse(*denomination));
         let central_total = chips
             .iter()
             .map(|(_, denomination)| f32::from(*denomination))
@@ -357,9 +439,9 @@ impl TexasChipTableState {
         let TexasPhaseView::HandComplete { awards, .. } = &game.phase else {
             return;
         };
-        // Exact settlement still comes from the authority. Consolidating the
-        // visual zones only affects chip selection; positions remain where the
-        // side-pot animation placed them until they fly to each winner.
+        // Awards are authoritative and flattened across both runs. Every award
+        // draws from the same remaining pool, never from an award-indexed pot.
+        // Consolidating zones preserves positions until chips fly to each winner.
         for chip in &mut self.chips {
             if matches!(chip.zone, ChipZone::Pot(_)) {
                 chip.zone = ChipZone::Pot(0);

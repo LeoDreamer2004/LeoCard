@@ -67,7 +67,6 @@ pub(crate) fn render_qigui523_lobby(
             label: "牌副数",
             value: format!("{} 副", game_rules.deck_count),
             help: "使用几副完整扑克牌，可设置 1–8 副。多副牌会出现同花色同点数的重复牌。",
-            editable: can_configure,
             previous: deck_previous.filter(|_| can_configure),
             next: deck_next.filter(|_| can_configure),
         },
@@ -91,7 +90,6 @@ pub(crate) fn render_qigui523_lobby(
                     "关闭".to_owned()
                 },
                 help: "开启后摸牌堆只生成所有玩家的初始手牌；关闭则使用完整牌堆。",
-                editable: can_configure,
                 previous: can_configure.then_some(toggled_developer_deck),
                 next: can_configure.then_some(toggled_developer_deck),
             },
@@ -118,7 +116,6 @@ pub(crate) fn render_qigui523_lobby(
             label: "手牌张数",
             value: format!("{} 张", game_rules.hand_size),
             help: "每轮结束后，仍有摸牌时所有玩家会把手牌补到该数量，可设置 5–15 张。",
-            editable: can_configure,
             previous: hand_previous.filter(|_| can_configure),
             next: hand_next.filter(|_| can_configure),
         },
@@ -132,7 +129,6 @@ pub(crate) fn render_qigui523_lobby(
             label: "出牌计时",
             value: time_control_label(game_rules.time_control).to_owned(),
             help: "不限时不会倒计时；X+Y 表示每次轮到玩家时重置 X 秒，之后扣除该玩家本局共享的 Y 秒，全部耗尽后自动出牌。",
-            editable: can_configure,
             previous: can_configure
                 .then(|| previous_time_control(game_rules.time_control))
                 .flatten()
@@ -166,7 +162,6 @@ pub(crate) fn render_qigui523_lobby(
             label: "花色比较",
             value: suit_comparison_label(game_rules.suit_comparison).to_owned(),
             help: "点数组成相同时：极大法只比最大牌；逐项法从最大牌依次比较；记点法按黑桃/红桃/梅花/方块 4/3/2/1 点求和。",
-            editable: can_configure,
             previous: can_configure.then_some(suit_previous),
             next: can_configure.then_some(suit_next),
         },
@@ -190,7 +185,6 @@ pub(crate) fn render_qigui523_lobby(
                 QiGuiSameCardPolicy::CanFollow => "允许".to_owned(),
             },
             help: "整手牌比较结果完全相同时，决定后出的玩家是否仍可跟牌。关闭时必须严格更大。",
-            editable: can_configure,
             previous: can_configure.then_some(toggled_policy),
             next: can_configure.then_some(toggled_policy),
         },
@@ -212,7 +206,6 @@ pub(crate) fn render_qigui523_lobby(
                 "关闭".to_owned()
             },
             help: "开启后允许三带一和三带一对；纯三张压任意三张顺子；两连对压任意四张顺子；两连飞机压任意三连对。三带牌不能压顺子，其他关系也不能反向压制。",
-            editable: can_configure,
             previous: can_configure.then_some(toggled_advanced_play_types),
             next: can_configure.then_some(toggled_advanced_play_types),
         },

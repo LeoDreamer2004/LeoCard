@@ -32,7 +32,9 @@ pub struct TexasMatchStatistics {
 pub struct TexasHandStatistics {
     pub hole_cards: Vec<TexasCard>,
     pub category: Option<TexasHandCategory>,
-    /// Actual received chips from pots with at least two contributors; refunds excluded.
+    /// Single run: actual receipts from contested pots, excluding refunds.
+    /// Two runs: positive net poker gain across BOTH boards, after the retained investment.
+    /// This keeps hand-win achievements from counting a split-run overall loss or break-even.
     pub won_chips: u32,
     /// Total size of contested pots won, before splitting tied pots.
     pub won_pot: u32,

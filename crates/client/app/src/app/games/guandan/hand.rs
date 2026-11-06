@@ -51,6 +51,7 @@ pub(super) fn render_hand(
     parent: Entity,
     game: &GuandanSnapshot,
     ui: &GuandanUiState,
+    can_control: bool,
     assets: &UiAssets,
 ) {
     let cards = sorted_hand(game);
@@ -70,8 +71,6 @@ pub(super) fn render_hand(
             parent,
             format!("hand:{}:{}:{}", card.deck, card.rank, card.suit as u8),
             (
-                Button,
-                UiAction::Guandan(GuandanUiAction::ToggleCard),
                 HandCardSlot { card: *card, index },
                 RelativeCursorPosition::default(),
                 Node {
@@ -87,6 +86,13 @@ pub(super) fn render_hand(
                 },
             ),
         );
+        if can_control {
+            commands
+                .entity(slot)
+                .insert((Button, UiAction::Guandan(GuandanUiAction::ToggleCard)));
+        } else {
+            commands.entity(slot).insert(Pickable::IGNORE);
+        }
         let face = commands.child(
             slot,
             (

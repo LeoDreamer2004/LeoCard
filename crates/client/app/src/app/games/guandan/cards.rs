@@ -1,5 +1,5 @@
 use crate::app::presentation::{
-    CardSize, PlayEffectKind, SeatSide, SequenceEffectCard, add_card_stars,
+    PlayEffectKind, SeatSide, SequenceEffectCard, TrickCardLayout, add_card_stars,
     add_sequence_play_decoration,
 };
 use crate::app::runtime::{CardFace, CardRank, CardSuit, UiAssets};
@@ -39,8 +39,13 @@ impl From<GuandanCard> for CardFace {
     }
 }
 
-pub(super) const PLAY_AREA_WIDTH: f32 = 190.0;
-pub(super) const CENTER_PLAY_WIDTH: f32 = 310.0;
+pub(super) fn play_area_width(side: SeatSide) -> f32 {
+    TrickCardLayout::default().row_width(cards_per_row(side))
+}
+
+fn cards_per_row(side: SeatSide) -> usize {
+    if matches!(side, SeatSide::Top) { 10 } else { 6 }
+}
 
 pub(super) fn render_card_row(
     commands: &mut UiComposer,
@@ -53,44 +58,11 @@ pub(super) fn render_card_row(
 ) {
     let mut sorted = cards.to_vec();
     sorted.sort_by_key(|card| Reverse((card.rank, card.suit, card.deck)));
-    let (mut width, mut height) = CardSize::TrickSeat.dimensions();
-    let center = matches!(side, SeatSide::Top);
-    let area_width = if center {
-        CENTER_PLAY_WIDTH
-    } else {
-        PLAY_AREA_WIDTH
-    };
-    let per_row = if center {
-        if cfg!(target_os = "android") {
-            // The top and bottom seats share one vertical lane on phones.
-            width *= 86.0 / height;
-            height = 86.0;
-        }
-        10
-    } else if sorted.len() > 6 {
-        let compact = if cfg!(target_os = "android") {
-            0.64
-        } else {
-            0.78
-        };
-        width *= compact;
-        height *= compact;
-        5
-    } else {
-        if sorted.len() == 6 && cfg!(target_os = "android") {
-            width *= 0.82;
-            height *= 0.82;
-        }
-        6
-    };
+    let layout = TrickCardLayout::default();
+    let (width, height, reveal) = (layout.width, layout.height, layout.reveal);
+    let per_row = cards_per_row(side);
     for (row_index, chunk) in sorted.chunks(per_row).enumerate() {
-        let gaps = chunk.len().saturating_sub(1) as f32;
-        let reveal = if gaps > 0.0 {
-            ((area_width - width) / gaps).min(width * 0.48)
-        } else {
-            width
-        };
-        let row_width = width + reveal * gaps;
+        let row_width = layout.row_width(chunk.len());
         let row = spawn_node(
             commands,
             parent,

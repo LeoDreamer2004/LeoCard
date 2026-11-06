@@ -36,10 +36,6 @@ impl HostedGameLifecycle for GuandanSession {
         self.snapshot_for(recipient).into()
     }
 
-    fn viewing_player(&self, recipient: PlayerId) -> PlayerId {
-        recipient
-    }
-
     fn handle_game_command(
         &mut self,
         connection: ConnectionId,

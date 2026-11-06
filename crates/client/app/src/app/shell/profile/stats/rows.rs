@@ -96,5 +96,5 @@ pub(super) fn rate_or_placeholder(count: u32, total: u32) -> String {
 }
 
 pub(super) fn seconds_or_placeholder(seconds: Option<f64>) -> String {
-    seconds.map_or_else(|| "暂无记录".to_owned(), |value| format!("{value:.1} 秒"))
+    seconds.map_or_else(|| "--".to_owned(), |value| format!("{value:.1} 秒"))
 }

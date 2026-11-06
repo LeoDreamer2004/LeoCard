@@ -226,6 +226,18 @@ pub enum QiGui523Event {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum TexasEvent {
+    ChipsReturned {
+        player: PlayerId,
+        amount: u32,
+    },
+    RunoutVoteStarted {
+        current_player: PlayerId,
+    },
+    RunoutChosen {
+        player: PlayerId,
+        twice: bool,
+        next_player: Option<PlayerId>,
+    },
     /// Private settlement statistics, delivered only to the named player.
     HandAnalyzed {
         player: PlayerId,

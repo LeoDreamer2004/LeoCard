@@ -98,6 +98,10 @@ pub(crate) struct TexasChipTableState {
     pub actions: HashMap<PlayerId, ActionLabel>,
     pub audio_cues: Vec<TexasAudioCue>,
     pub(super) current_player: Option<PlayerId>,
+    /// A finish event can precede the snapshot containing awards and squid transfers.
+    pub(super) finish_observed: bool,
+    /// Also true when reconnecting to an already settled authoritative snapshot.
+    pub(super) settlement_applied: bool,
     pub(super) pots: Vec<VisualPot>,
     pub(super) division: Option<PotDivisionTransition>,
     pub(super) next_id: u64,

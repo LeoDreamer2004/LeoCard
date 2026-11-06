@@ -7,8 +7,8 @@ use super::{
     TexasChipSprite, TexasChipTableState, texas_pot_chip_zone,
 };
 use crate::app::presentation::{
-    HEADER_BG, MUTED, PokerChipVisual, TableStatusSpec, add_poker_chip, add_table_play_area,
-    add_table_status,
+    ACCENT, HEADER_BG, MUTED, PokerChipVisual, TableStatusSpec, add_poker_chip,
+    add_table_play_area, add_table_status,
 };
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
@@ -31,7 +31,31 @@ pub(crate) fn add_texas_chip_areas(
         let relative = table_layout.player_slot(game, player.player.id);
         let layout = table_layout.chip_zone(relative);
         let zone = add_chip_zone_panel(commands, table, layout);
-        if let Some(label) = state.actions.get(&player.player.id) {
+        if matches!(game.phase, TexasPhaseView::ChoosingRunout) && !player.folded {
+            let vote = game
+                .runout_votes
+                .iter()
+                .find(|vote| vote.player == player.player.id);
+            let text = match vote {
+                Some(vote) if vote.twice => "已选两次",
+                Some(_) => "已选一次",
+                None if game.current_player == Some(player.player.id) => "选择发牌次数",
+                None => "等待选择",
+            };
+            add_chip_zone_title(
+                commands,
+                zone,
+                &ActionLabel {
+                    text,
+                    font_size: 16.0,
+                    color: ACCENT,
+                    folded: false,
+                    kind: ActionFeedbackKind::Check,
+                    elapsed: 0.0,
+                },
+                assets,
+            );
+        } else if let Some(label) = state.actions.get(&player.player.id) {
             add_chip_zone_title(commands, zone, label, assets);
             if label.kind == ActionFeedbackKind::Fold {
                 let own_cards =

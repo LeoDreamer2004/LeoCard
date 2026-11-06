@@ -1,9 +1,9 @@
 //! 德州扑克牌桌视图。房间、聊天、头像、桌布和按钮资源均复用公共客户端层。
 use super::{
-    TexasChipTableState, TexasTableLayout, TexasUiAction, TexasUiState, add_texas_board_back,
-    add_texas_board_face, add_texas_chip_areas, add_texas_hand_result, add_texas_opponent,
-    add_texas_own_area, add_texas_showdown_reveal, render_texas_spectator_drawer,
-    spawn_texas_initial_deal, street_label,
+    TexasChipTableState, TexasTableLayout, TexasUiAction, TexasUiState, add_runout_status,
+    add_second_board, add_texas_board_back, add_texas_board_face, add_texas_chip_areas,
+    add_texas_hand_result, add_texas_opponent, add_texas_own_area, add_texas_showdown_reveal,
+    render_texas_spectator_drawer, spawn_texas_initial_deal, street_label,
 };
 use crate::app::presentation::{
     CardTableSurface, DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT,
@@ -196,13 +196,17 @@ pub(crate) fn render_texas_table(
             false,
         );
     }
+    add_runout_status(commands, table, game, assets);
     render_texas_spectator_drawer(commands, content, game, ui, assets);
     add_texas_showdown_reveal(commands, table, game, assets, game_summary);
     add_texas_hand_result(commands, table, game, assets, avatars, game_summary);
 
-    let local_auto_play = matches!(game.phase, TexasPhaseView::Betting { .. })
-        .then(|| own.map(|player| player.auto_play))
-        .flatten();
+    let local_auto_play = matches!(
+        game.phase,
+        TexasPhaseView::Betting { .. } | TexasPhaseView::ChoosingRunout
+    )
+    .then(|| own.map(|player| player.auto_play))
+    .flatten();
     ChatPanelOptions {
         help: Some(UiAction::Texas(TexasUiAction::ToggleHandGuide)),
         ..ChatPanelOptions::new(local_auto_play, &[])
@@ -224,6 +228,10 @@ fn add_community_area(
     assets: &UiAssets,
     card_materials: &mut Assets<TableCardMaterial>,
 ) {
+    if !game.second_community.is_empty() {
+        add_second_board(commands, table, game, assets);
+        return;
+    }
     let center = spawn_node(
         commands,
         table,

@@ -28,7 +28,7 @@ pub use card::{TexasCard, TexasRank, TexasSuit, build_deck};
 pub use game::{
     TexasAction, TexasActionOutcome, TexasBettingRecord, TexasBlindKind, TexasGameError,
     TexasGameState, TexasHandResult, TexasPhase, TexasPlayerState, TexasPotAward, TexasRaiseSizing,
-    TexasStreet,
+    TexasRunResult, TexasStreet,
 };
 pub use hand::{
     TexasEvaluatedHand, TexasHandCategory, TexasHandError, evaluate_best, evaluate_omaha,

@@ -41,7 +41,6 @@ pub(super) fn render_lobby(
             label: "起始级牌",
             value: rank_label(rules.starting_level).to_owned(),
             help: "四人两队，对家为搭档。两副牌每人 27 张，从设定级牌打到 A。红桃级牌可以百搭，双大王可以抗贡。",
-            editable: page.can_configure,
             previous: (page.can_configure && rules.starting_level > 2).then_some(GuandanRuleSet {
                 starting_level: rules.starting_level.saturating_sub(1),
             }),

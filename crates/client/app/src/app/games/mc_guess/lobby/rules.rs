@@ -253,7 +253,6 @@ impl RulesEditor<'_, '_, '_> {
                 label,
                 value: value.to_owned(),
                 help,
-                editable: self.editable,
                 previous: toggled,
                 next: toggled,
             },
@@ -283,7 +282,6 @@ impl RulesEditor<'_, '_, '_> {
                 label: choice.label,
                 value: display(choice.current),
                 help: choice.help,
-                editable: self.editable,
                 previous: index
                     .and_then(|index| index.checked_sub(1))
                     .filter(|_| self.editable)

@@ -31,7 +31,7 @@ impl TexasPassiveAutoPlay {
     /// 从权威规则状态生成请求并作出决定。不是该玩家的行动回合或牌局已经结束时
     /// 返回 `None`，且绝不修改传入状态。
     pub fn choose_for_game(game: &TexasGameState, player: PlayerId) -> Option<TexasAction> {
-        if game.current_player() != Some(player) || matches!(game.phase(), TexasPhase::Complete(_))
+        if game.current_player() != Some(player) || !matches!(game.phase(), TexasPhase::Betting(_))
         {
             return None;
         }

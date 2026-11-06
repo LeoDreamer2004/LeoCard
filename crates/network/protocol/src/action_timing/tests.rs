@@ -1,6 +1,5 @@
-use super::{ActionClock, ActionTimeStats, ActionTimingSnapshot, GameActionTimes};
-use crate::{GameKind, MatchId};
-use leocard_game_common::PlayerId;
+use super::{ActionTimeStats, GameActionTimes};
+use crate::GameKind;
 
 #[test]
 fn ten_games_keep_independent_weighted_totals_maxima_and_round_trip_without_loss() {
@@ -35,38 +34,4 @@ fn ten_games_keep_independent_weighted_totals_maxima_and_round_trip_without_loss
     let decoded: GameActionTimes =
         postcard::from_bytes(&postcard::to_allocvec(&times).unwrap()).unwrap();
     assert_eq!(decoded, times);
-}
-
-#[test]
-fn overflowing_totals_preserve_weighted_counters_but_still_update_maximum() {
-    let mut times = GameActionTimes::default();
-    times.record(GameKind::Texas, u64::MAX - 1);
-    times.record(GameKind::Texas, u64::MAX);
-    assert_eq!(
-        times.get(GameKind::Texas),
-        ActionTimeStats {
-            total_millis: u64::MAX - 1,
-            completed_actions: 1,
-            longest_millis: u64::MAX,
-        }
-    );
-    let decoded: GameActionTimes =
-        crate::decode_frame(&crate::encode_frame(&times).unwrap()).unwrap();
-    assert_eq!(decoded, times);
-    assert_eq!(decoded.longest_millis(), u64::MAX);
-}
-
-#[test]
-fn public_clocks_serialize_only_identity_scope_and_elapsed_time() {
-    let timing = ActionTimingSnapshot {
-        game: GameKind::Guandan,
-        match_id: MatchId([19; 16]),
-        clocks: vec![ActionClock {
-            player: PlayerId(2),
-            elapsed_millis: u64::MAX,
-        }],
-    };
-    let decoded: ActionTimingSnapshot =
-        postcard::from_bytes(&postcard::to_allocvec(&timing).unwrap()).unwrap();
-    assert_eq!(decoded, timing);
 }

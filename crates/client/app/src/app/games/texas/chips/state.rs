@@ -1,6 +1,6 @@
 //! 德州扑克的客户端筹码账本、找零算法和牌桌筹码动画。
 //!
-//! 规则核心仍以整数结算；这里把整数映射为有独立身份的实体筹码。每枚筹码在
+//! 规则核心仍以整数结算。这里把整数映射为有独立身份的实体筹码。每枚筹码在
 //! 玩家余额区、玩家下注区和中央底池之间转移，UI 重建时也能从资源恢复位置。
 
 use super::super::{SquidTableState, TexasAudioCue};
@@ -98,6 +98,10 @@ pub(crate) struct TexasChipTableState {
     pub actions: HashMap<PlayerId, ActionLabel>,
     pub audio_cues: Vec<TexasAudioCue>,
     pub(super) current_player: Option<PlayerId>,
+    /// A finish event can precede the snapshot containing awards and squid transfers.
+    pub(super) finish_observed: bool,
+    /// Also true when reconnecting to an already settled authoritative snapshot.
+    pub(super) settlement_applied: bool,
     pub(super) pots: Vec<VisualPot>,
     pub(super) division: Option<PotDivisionTransition>,
     pub(super) next_id: u64,

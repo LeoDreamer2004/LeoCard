@@ -62,7 +62,7 @@ impl ShengjiMode {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ShengjiRuleSet {
     pub mode: ShengjiMode,
-    /// 使用两至四副牌；三副加入泰坦尼克，四副再加入炸弹和宇宙飞船。
+    /// 使用两至四副牌，三副加入泰坦尼克，四副再加入炸弹和宇宙飞船。
     pub deck_count: u8,
     pub allow_throw: bool,
     pub throw_penalty: ShengjiThrowPenalty,
@@ -89,9 +89,9 @@ pub struct ShengjiRuleSet {
 impl ShengjiRuleSet {
     pub const PLAYER_COUNT: u8 = 4;
     pub const MAX_PLAYERS: u8 = 6;
-    /// 两副牌模式的兼容常量；规则计算应优先使用 [`Self::kitty_size`]。
+    /// 两副牌模式的兼容常量。规则计算应优先使用 [`Self::kitty_size`]。
     pub const KITTY_SIZE: usize = 8;
-    /// 两副牌模式的兼容常量；规则计算应优先使用 [`Self::hand_size`]。
+    /// 两副牌模式的兼容常量。规则计算应优先使用 [`Self::hand_size`]。
     pub const HAND_SIZE: usize = 25;
 
     pub fn for_mode(mode: ShengjiMode) -> Self {

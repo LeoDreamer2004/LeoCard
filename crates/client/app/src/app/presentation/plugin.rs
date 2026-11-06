@@ -22,7 +22,7 @@ use leocard_ui::{
     CardDragSelection, PointerInputPlugin, ScrollbarDrag, TextInputPlugin, UiSceneProperties,
     UiSceneRegistry, animate_bubbles, animate_button_presses, animate_drawers,
     animate_progress_bars, drag_scrollbar, image_node_eq, position_anchored_popups,
-    update_button_highlights, update_button_tints, update_scrollbar,
+    update_button_highlights, update_button_tints, update_ellipsized_labels, update_scrollbar,
 };
 
 pub(crate) struct PresentationPlugin;
@@ -118,6 +118,12 @@ impl Plugin for PresentationPlugin {
             animate_progress_bars.in_set(ClientUpdateSet::Animate),
         )
         .add_systems(PostUpdate, update_scrollbar.after(UiSystems::Layout))
+        .add_systems(
+            PostUpdate,
+            update_ellipsized_labels
+                .after(UiSystems::Layout)
+                .before(UiSystems::PostLayout),
+        )
         .add_systems(
             PostUpdate,
             position_anchored_popups

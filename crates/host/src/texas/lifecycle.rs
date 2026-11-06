@@ -141,7 +141,7 @@ impl TexasSession {
         } else {
             self.room.players[index].seat = None;
             self.room.players[index].ready = false;
-            // 大厅断线无需保留牌局状态；释放参与者槽位，避免离线记录继续占用
+            // 大厅断线无需保留牌局状态，释放参与者槽位，避免离线记录继续占用
             // 人数和房间容量。牌局中的断线玩家仍保留，以支持恢复底牌和筹码。
             self.room.players[index].left = true;
         }
@@ -149,7 +149,7 @@ impl TexasSession {
             .game
             .as_ref()
             .is_some_and(|game| matches!(game.game().phase(), TexasPhase::Complete(_)));
-        let events = self.fold_disconnected_players();
+        let events = self.resolve_disconnected_turns();
         self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
         self.reset_automatic_action_delay_for_current_turn();
@@ -259,6 +259,9 @@ impl HostedGameLifecycle for TexasSession {
             }
             TexasCommand::UpdateRules { rules } => self.update_rules(connection, request_id, rules),
             TexasCommand::Act { action } => self.act(connection, request_id, action),
+            TexasCommand::ChooseRunout { twice } => {
+                self.choose_runout(connection, request_id, twice)
+            }
         })
     }
 
@@ -440,7 +443,7 @@ impl HostedGameLifecycle for TexasSession {
                     RejectReason::Game(GameViolation::InvalidRuleConfiguration),
                 );
             }
-            let events = self.fold_disconnected_players();
+            let events = self.resolve_disconnected_turns();
             self.record_hand_started();
             self.record_profile_events(&events);
             self.finish_hand_if_needed(false);
@@ -483,7 +486,7 @@ impl HostedGameLifecycle for TexasSession {
             .game
             .as_ref()
             .is_some_and(|game| matches!(game.game().phase(), TexasPhase::Complete(_)));
-        let events = self.fold_disconnected_players();
+        let events = self.resolve_disconnected_turns();
         self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
         self.reset_automatic_action_delay_for_current_turn();

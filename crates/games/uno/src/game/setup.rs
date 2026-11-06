@@ -39,7 +39,7 @@ impl UnoGameState {
             player.hand.sort_by(UnoCard::display_cmp);
         }
 
-        // 经典模式轮换万能摸四，FLIP 轮换万能摸二；No Mercy 不执行起始功能牌。
+        // 经典模式轮换万能摸四；FLIP 轮换万能摸二；No Mercy 不执行起始功能牌。
         let top_card = loop {
             let card = draw_pile
                 .pop_front()

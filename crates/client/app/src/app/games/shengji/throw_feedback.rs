@@ -30,7 +30,7 @@ pub(crate) fn shengji_failed_throw_card_visual(
     let spread = index as f32 - count.saturating_sub(1) as f32 * 0.5;
     match stage {
         ShengjiThrowFailureStage::Showing => {
-            // 先由一叠牌完整展开；停顿片刻后向两边裂开，并弹回原位。
+            // 先由一叠牌完整展开，停顿片刻后向两边裂开，并弹回原位。
             let reveal = ease_out_cubic((elapsed / 0.20).clamp(0.0, 1.0));
             let crack_progress = ((elapsed - 0.30) / 0.48).clamp(0.0, 1.0);
             let crack = (crack_progress * consts::PI).sin();

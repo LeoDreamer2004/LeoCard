@@ -207,7 +207,13 @@ fn old_card_counters_merge_paid_time_into_one_shared_entitlement() {
     old.ledger
         .active_props
         .insert(PropId::ObservationLens, now + 500);
-    let payload = postcard::to_allocvec(&old).unwrap();
+    let payload = postcard::to_allocvec(&(
+        &old.ledger,
+        &old.owned_frames,
+        old.equipped_frame,
+        old.exclusive_frame,
+    ))
+    .unwrap();
     let migrated = migration::decode(5, &payload, profile_id, None, now).unwrap();
     assert_eq!(
         migrated.ledger.active_props[&PropId::CardCounter],
@@ -251,7 +257,13 @@ fn merging_card_counters_saturates_at_the_latest_representable_expiry() {
         .insert(PropId::DoudizhuCardCounter, u64::MAX);
     let migrated = migration::decode(
         5,
-        &postcard::to_allocvec(&old).unwrap(),
+        &postcard::to_allocvec(&(
+            &old.ledger,
+            &old.owned_frames,
+            old.equipped_frame,
+            old.exclusive_frame,
+        ))
+        .unwrap(),
         profile_id,
         None,
         now,

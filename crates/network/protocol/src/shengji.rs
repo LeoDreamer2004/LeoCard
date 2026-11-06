@@ -20,26 +20,26 @@ pub struct ShengjiSnapshot {
     pub rules: ShengjiRuleSet,
     pub players: Vec<ShengjiPlayerView>,
     pub your_hand: Vec<ShengjiCard>,
-    /// 仅向接收者公开其本人此前亮过的物理牌；再次亮牌仍以实际手牌为准。
+    /// 仅向接收者公开其本人此前亮过的物理牌，再次亮牌仍以实际手牌为准。
     pub your_exposed_cards: Vec<ShengjiCard>,
     pub levels: [ShengjiRank; 2],
-    /// 本局抢亮所使用的级牌。首局无人亮主前庄家尚未公开；首局亮主后随当前
+    /// 本局抢亮所使用的级牌。首局无人亮主前庄家尚未公开，首局亮主后随当前
     /// 最高声明实时转移，后续小局则从发牌开始公开上一局已经确定的庄家。
     pub bidding_level: ShengjiRank,
     pub dealer: Option<PlayerId>,
     pub trump: Option<ShengjiTrump>,
     pub declaration: Option<ShengjiDeclarationView>,
-    /// 抄底询问中各玩家最近一次的公开选择；首次出牌后清空。
+    /// 抄底询问中各玩家最近一次的公开选择，首次出牌后清空。
     pub bottom_copy_decisions: Vec<ShengjiBottomCopyDecisionView>,
     pub current_player: Option<PlayerId>,
     pub trick: Option<ShengjiTrickView>,
     /// 本局已经公开打出的实体牌，含当前轮，供记牌及重连恢复使用。
     pub played_cards: Vec<ShengjiCard>,
-    /// 甩牌失败的公开演示状态；存在时先展示原甩牌，再收回并显示强制小牌。
+    /// 甩牌失败的公开演示状态，存在时先展示原甩牌，再收回并显示强制小牌。
     pub throw_failure: Option<ShengjiThrowFailureView>,
     /// 闲家当前总得分，已计入甩牌罚分，但尚未计入未发生的抠底。
     pub collecting_score: u32,
-    /// 已埋底的张数；进行中只公开数量，不公开牌面。
+    /// 已埋底的张数，进行中只公开数量，不公开牌面。
     pub buried_count: u8,
     /// 仅最后一位埋底者可见的当前底牌。成功抄底取走旧底后，
     /// 该字段会在新的埋底操作完成前变回空。
@@ -52,7 +52,7 @@ pub struct ShengjiPlayerView {
     pub player: PlayerPublicInfo,
     pub seat: SeatId,
     pub hand_len: u8,
-    /// 按首次公开跟牌证明的顺序记录缺门；不包含隐藏手牌信息。
+    /// 按首次公开跟牌证明的顺序记录缺门，不包含隐藏手牌信息。
     pub missing_suits: Vec<ShengjiCategory>,
     pub ready: bool,
     pub connected: bool,
@@ -65,14 +65,14 @@ pub struct ShengjiDeclarationView {
     pub trump: ShengjiBidTrump,
     pub kind: ShengjiBidKind,
     pub protected: bool,
-    /// 亮出的实体牌；同牌面的不同副牌仍具有不同的牌标识。
+    /// 亮出的实体牌，同牌面的不同副牌仍具有不同的牌标识。
     pub cards: Vec<ShengjiCard>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShengjiBottomCopyDecisionView {
     pub player: PlayerId,
-    /// 抄底时公开使用的牌；`None` 表示不抄底。
+    /// 抄底时公开使用的牌，`None` 表示不抄底。
     pub cards: Option<Vec<ShengjiCard>>,
 }
 
@@ -150,7 +150,7 @@ pub enum ShengjiPhaseView {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShengjiHandResultView {
-    /// 每小局独立的结算标识；同一场升级可连续进行多小局。
+    /// 每小局独立的结算标识。同一场升级可连续进行多小局。
     pub settlement_id: MatchId,
     pub dealer: PlayerId,
     pub dealer_team: ShengjiTeamId,

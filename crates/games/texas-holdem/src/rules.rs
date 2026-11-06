@@ -18,6 +18,12 @@ pub struct TexasRuleSet {
     /// 固定限注：前两街每次 2，后两街每次 4，每街最多四次完整下注。
     #[cfg_attr(feature = "serde", serde(default))]
     pub fixed_limit: bool,
+    /// Layer contributions into side pots. Disabled games freeze betting at the first all-in.
+    #[cfg_attr(feature = "serde", serde(default = "default_side_pots"))]
+    pub side_pots: bool,
+    /// Offer unanimous runout voting after betting closes before the river.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub run_it_twice: bool,
     /// DeepSeek squid markers cost 2BB instead of 1BB when squid is enabled.
     pub deepseek_squid_double: bool,
 }
@@ -57,11 +63,19 @@ impl TexasRuleSet {
         if !Self::STARTING_CHIP_OPTIONS.contains(&self.starting_chips) {
             return Err(TexasRuleError::StartingChips(self.starting_chips));
         }
+        if self.side_pots && self.run_it_twice {
+            return Err(TexasRuleError::RunItTwiceWithSidePots);
+        }
         if self.squid_markers >= self.player_count {
             return Err(TexasRuleError::SquidMarkers(self.squid_markers));
         }
         Ok(self)
     }
+}
+
+#[cfg(feature = "serde")]
+const fn default_side_pots() -> bool {
+    true
 }
 
 impl Default for TexasRuleSet {
@@ -74,6 +88,8 @@ impl Default for TexasRuleSet {
             ignore_kickers: false,
             omaha: false,
             fixed_limit: false,
+            side_pots: true,
+            run_it_twice: false,
             deepseek_squid_double: false,
         }
     }
@@ -85,11 +101,13 @@ pub enum TexasRuleError {
     ShortDeckOmahaPlayerCount(u8),
     StartingChips(u16),
     SquidMarkers(u8),
+    RunItTwiceWithSidePots,
 }
 
 impl fmt::Display for TexasRuleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::RunItTwiceWithSidePots => f.write_str("两次发牌不能与边池同时启用"),
             Self::SquidMarkers(value) => write!(f, "鱿鱼标记数必须少于玩家人数，实际为 {value}"),
             Self::PlayerCount(value) => write!(f, "玩家数必须为 3..=8，实际为 {value}"),
             Self::ShortDeckOmahaPlayerCount(value) => {
@@ -107,6 +125,53 @@ impl std::error::Error for TexasRuleError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn validates_side_pot_and_runout_options() {
+        let default = TexasRuleSet::default();
+        assert!(default.side_pots);
+        assert!(!default.run_it_twice);
+        assert_eq!(
+            TexasRuleSet {
+                run_it_twice: true,
+                ..default
+            }
+            .validate_options(),
+            Err(TexasRuleError::RunItTwiceWithSidePots)
+        );
+        for run_it_twice in [false, true] {
+            assert!(
+                TexasRuleSet {
+                    side_pots: false,
+                    run_it_twice,
+                    ..default
+                }
+                .validate()
+                .is_ok()
+            );
+        }
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn missing_serde_options_use_true_for_side_pots_and_false_for_runout() {
+        let mut value = serde_json::to_value(TexasRuleSet::default()).unwrap();
+        let options = value.as_object_mut().unwrap();
+        options.remove("side_pots");
+        options.remove("run_it_twice");
+        let rules: TexasRuleSet = serde_json::from_value(value).unwrap();
+        assert!(rules.side_pots);
+        assert!(!rules.run_it_twice);
+        let rules = TexasRuleSet {
+            side_pots: false,
+            run_it_twice: true,
+            ..rules
+        };
+        assert_eq!(
+            serde_json::from_str::<TexasRuleSet>(&serde_json::to_string(&rules).unwrap()).unwrap(),
+            rules
+        );
+    }
 
     #[test]
     fn validates_player_and_starting_chip_options() {

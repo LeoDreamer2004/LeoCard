@@ -1,4 +1,4 @@
-//! 国标麻将的成就条件；只读取实时游戏事实。
+//! 国标麻将的成就条件。只读取实时游戏事实。
 
 use super::events::{MahjongAchievementEvent, MahjongHandFacts, MahjongWinFacts};
 use crate::{MahjongFan, MahjongMatchLength, MahjongScoreResult};

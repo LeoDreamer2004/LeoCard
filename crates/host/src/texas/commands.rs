@@ -3,8 +3,10 @@ use crate::lifecycle::HostedGameLifecycle;
 use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, new_match_id,
 };
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, TexasViolation,
+    GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, TexasEvent,
+    TexasViolation,
 };
 use leocard_texas_holdem::{
     TexasAction, TexasPhase, TexasProfileStats, TexasRuleSet, build_deck, reference_point_deltas,
@@ -124,7 +126,7 @@ impl TexasSession {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         };
-        if !matches!(game.game().phase(), TexasPhase::Betting(_)) {
+        if matches!(game.game().phase(), TexasPhase::Complete(_)) {
             return self.room.reject(
                 connection,
                 request_id,
@@ -212,6 +214,28 @@ impl TexasSession {
         request_id: RequestId,
         action: TexasAction,
     ) -> Vec<Delivery> {
+        self.perform_action(connection, request_id, |game, player| {
+            game.act(player, action)
+        })
+    }
+
+    pub(super) fn choose_runout(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        twice: bool,
+    ) -> Vec<Delivery> {
+        self.perform_action(connection, request_id, |game, player| {
+            game.choose_runout(player, twice)
+        })
+    }
+
+    fn perform_action(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        apply: impl FnOnce(&mut TexasAdapter, PlayerId) -> Result<Vec<TexasEvent>, AdapterError>,
+    ) -> Vec<Delivery> {
         let Some(player) = self.room.player_id(connection) else {
             return self.room.reject(
                 connection,
@@ -219,6 +243,15 @@ impl TexasSession {
                 RejectReason::Player(PlayerViolation::NotJoined),
             );
         };
+        if self.room.players.iter().any(|participant| {
+            participant.id == player && (participant.auto_play || participant.is_bot)
+        }) {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::Texas(TexasViolation::PlayerCannotAct)),
+            );
+        }
         let was_complete = self
             .game
             .as_ref()
@@ -230,7 +263,7 @@ impl TexasSession {
                 RejectReason::Game(GameViolation::GameNotStarted),
             );
         };
-        let mut events = match game.act(player, action) {
+        let mut events = match apply(game, player) {
             Ok(events) => events,
             Err(AdapterError::Violation(violation)) => {
                 return self.room.reject(
@@ -247,7 +280,7 @@ impl TexasSession {
                 );
             }
         };
-        events.extend(self.fold_disconnected_players());
+        events.extend(self.resolve_disconnected_turns());
         self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
         self.reset_automatic_action_delay_for_current_turn();

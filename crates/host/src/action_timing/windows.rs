@@ -37,6 +37,10 @@ pub(super) fn pending_actions(snapshot: &GameSnapshot) -> Vec<PendingAction> {
                 ("qigui523", s.match_id, progress),
             )
         }
+        GameSnapshot::Texas(s) if matches!(s.phase, TexasPhaseView::ChoosingRunout) => windows(
+            s.current_player,
+            ("texas-runout", s.match_id, s.hand_number),
+        ),
         GameSnapshot::Texas(s)
             if matches!(s.phase, TexasPhaseView::Betting { .. }) && s.blind_to_post.is_none() =>
         {

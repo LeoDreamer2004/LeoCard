@@ -29,7 +29,7 @@ pub struct MahjongGameState {
 }
 
 impl MahjongGameState {
-    /// `deck[0]` 是牌墙前端第一张牌；补花和杠牌从牌墙尾端取牌。
+    /// `deck[0]` 是牌墙前端第一张牌，补花和杠牌从牌墙尾端取牌。
     pub fn new_with_deck(
         rules: MahjongRuleSet,
         deck: Vec<MahjongTile>,

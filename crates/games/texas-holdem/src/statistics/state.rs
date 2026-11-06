@@ -42,7 +42,7 @@ impl TexasGameState {
         }
     }
 
-    fn record_hand_statistics(&mut self) {
+    pub(crate) fn record_hand_statistics(&mut self) {
         let reports = (0..self.players().len())
             .map(|index| self.hand_statistics(PlayerId::from_index(index)).unwrap())
             .collect::<Vec<_>>();

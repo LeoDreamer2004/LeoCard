@@ -1,6 +1,5 @@
-use crate::{TexasEvaluatedHand, TexasGameState, TexasHandResult};
+use crate::{TexasEvaluatedHand, TexasGameState, TexasHandResult, evaluate_player_hand};
 use leocard_game_common::PlayerId;
-
 use std::collections::HashSet;
 
 #[derive(Default)]
@@ -13,12 +12,85 @@ pub(super) struct PotStatistics {
 }
 
 impl PotStatistics {
+    fn single_pot(game: &TexasGameState, result: &TexasHandResult, player: PlayerId) -> Self {
+        let mut pots = Self::default();
+        let mut received = vec![0; game.players().len()];
+        let mut not_defeated_on_both = HashSet::new();
+        let runs = [(result.community.as_slice(), result.awards.as_slice())]
+            .into_iter()
+            .chain(
+                result
+                    .second_run
+                    .iter()
+                    .map(|run| (run.community.as_slice(), run.awards.as_slice())),
+            );
+        for (community, awards) in runs {
+            let evaluated = game
+                .players()
+                .iter()
+                .map(|other| evaluate_player_hand(other.hole_cards(), community, game.rules()).ok())
+                .collect::<Vec<_>>();
+            for award in awards {
+                for (index, winner) in award.winners.iter().enumerate() {
+                    let share = award.amount / award.winners.len() as u32
+                        + u32::from((index as u32) < award.amount % award.winners.len() as u32);
+                    received[winner.index()] += share;
+                    if *winner == player && share > 0 {
+                        pots.won_pot += award.amount;
+                        if award.winners.len() > 1 {
+                            pots.tied_winners = pots.tied_winners.max(award.winners.len() as u8);
+                        }
+                    }
+                }
+                if game.players()[player.index()].folded() {
+                    continue;
+                }
+                for other in game
+                    .players()
+                    .iter()
+                    .filter(|other| !other.folded() && other.id() != player)
+                {
+                    let Some((own, opponent)) =
+                        evaluated[player.index()].zip(evaluated[other.id().index()])
+                    else {
+                        continue;
+                    };
+                    if !own.cmp_with_rules(&opponent, game.rules()).is_gt() {
+                        not_defeated_on_both.insert(other.id().index());
+                    }
+                    if award.winners.contains(&player)
+                        && own.cmp_with_rules(&opponent, game.rules()).is_gt()
+                    {
+                        pots.defeated.insert(other.id().index());
+                    }
+                }
+            }
+        }
+        pots.won_chips = received[player.index()];
+        if result.second_run.is_some() {
+            // Multi-run wins/loss achievements use the net aggregate poker result, not one board.
+            // Refunds are already excluded from committed_total; squid transfers are separate.
+            let invested = game.players()[player.index()].committed_total();
+            pots.won_chips = pots.won_chips.saturating_sub(invested);
+            pots.defeated.retain(|&index| {
+                // Defeated-category achievements require beating this opponent on both boards.
+                pots.won_chips > 0
+                    && received[index] < game.players()[index].committed_total()
+                    && !not_defeated_on_both.contains(&index)
+            });
+        }
+        pots
+    }
+
     pub(super) fn new(
         game: &TexasGameState,
         result: &TexasHandResult,
         player: PlayerId,
         evaluated: &[Option<TexasEvaluatedHand>],
     ) -> Self {
+        if result.showdown && !game.rules().side_pots {
+            return Self::single_pot(game, result, player);
+        }
         let mut pots = Self::default();
         if result.showdown {
             let mut levels = game

@@ -10,7 +10,10 @@ pub(super) fn is_decision(command: &GameCommand) -> bool {
             command,
             QiGui523Command::PlayCards { .. } | QiGui523Command::Pass
         ),
-        GameCommand::Texas(command) => matches!(command, TexasCommand::Act { .. }),
+        GameCommand::Texas(command) => matches!(
+            command,
+            TexasCommand::Act { .. } | TexasCommand::ChooseRunout { .. }
+        ),
         GameCommand::Shengji(command) => !matches!(
             command,
             ShengjiCommand::SetAutoPlay { .. } | ShengjiCommand::UpdateRules { .. }

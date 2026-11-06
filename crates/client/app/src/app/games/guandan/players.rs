@@ -1,4 +1,4 @@
-use super::cards::PLAY_AREA_WIDTH;
+use super::cards::play_area_width;
 use super::summary::placement_label;
 use super::table::GuandanTable;
 use crate::app::presentation::{
@@ -62,7 +62,7 @@ impl GuandanTable<'_> {
                 }
                 continue;
             }
-            let layout = TrickSeatLayout::new(relative, 4, PLAY_AREA_WIDTH);
+            let layout = TrickSeatLayout::new(relative, 4, play_area_width(SeatSide::Left));
             let side = layout.side;
             let slot = layout.spawn(commands, table);
             if matches!(side, SeatSide::Right) && !intro {

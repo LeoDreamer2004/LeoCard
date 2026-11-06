@@ -1,6 +1,6 @@
 //! 德州扑克客户端表现层。
 //!
-//! 房间、网络、聊天、个人资料与通用控件由 `app` 公共层提供；本模块只包含
+//! 房间、网络、聊天、个人资料与通用控件由 `app` 公共层提供。本模块只包含
 //! 德州特有的牌桌、筹码、行动反馈、摊牌和音效编排。
 
 mod action_feedback;
@@ -18,12 +18,14 @@ mod layout;
 mod lobby;
 mod players;
 mod plugin;
+mod runout;
 mod screen;
 pub(super) mod settlement;
 mod showdown;
 mod spectator;
 mod squid;
 mod state;
+mod summary_hands;
 mod view;
 
 pub(crate) use action_feedback::*;
@@ -40,12 +42,14 @@ use layout::TexasTableLayout;
 pub(crate) use lobby::*;
 use players::*;
 pub(crate) use plugin::*;
+use runout::*;
 use settlement::*;
 use showdown::*;
 pub(crate) use spectator::only_texas_equities_changed;
 use spectator::*;
 use squid::*;
 pub(crate) use state::*;
+use summary_hands::*;
 pub(crate) use view::*;
 
 pub(super) use screen::TexasScreen;

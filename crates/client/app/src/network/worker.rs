@@ -29,7 +29,7 @@ pub(super) async fn run_network(
                 push_event(
                     events,
                     NetworkEvent::Connected(format!(
-                        "已监听端口 {port}；请分享 房主局域网IP:{port}"
+                        "已监听端口 {port}。请分享 房主局域网IP:{port}"
                     )),
                 );
                 run_connected(client, &mut commands, events).await
@@ -78,7 +78,7 @@ async fn run_joined_network(
                 let attempt = failures;
                 let delay = reconnect_delay(attempt);
                 let status = format!(
-                    "连接已断开；{} 秒后进行第 {attempt}/{RECONNECT_ATTEMPTS} 次重连",
+                    "连接已断开，{} 秒后进行第 {attempt}/{RECONNECT_ATTEMPTS} 次重连",
                     delay.as_secs()
                 );
                 push_event(events, NetworkEvent::Reconnecting(status));

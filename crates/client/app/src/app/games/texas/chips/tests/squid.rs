@@ -11,7 +11,7 @@ fn squid_payments_preserve_visual_balances_on_settlement_refresh_and_reconnect()
     snapshot.squid.round = 1;
     snapshot.squid.markers = vec![None];
     let mut state = TexasChipTableState::default();
-    state.initialize(&snapshot);
+    state.initialize(&snapshot, true);
     snapshot.squid.markers[0] = Some(PlayerId(2));
     snapshot.squid.settled = true;
     snapshot.squid.transfers = vec![
@@ -33,6 +33,7 @@ fn squid_payments_preserve_visual_balances_on_settlement_refresh_and_reconnect()
     snapshot.phase = TexasPhaseView::HandComplete {
         showdown: false,
         awards: vec![TexasPotAwardView {
+            run: 1,
             amount: 3,
             winners: vec![PlayerId(2)],
             winning_category: None,
@@ -44,14 +45,15 @@ fn squid_payments_preserve_visual_balances_on_settlement_refresh_and_reconnect()
     state.observe(
         &snapshot,
         vec![TexasEvent::HandFinished { showdown: false }],
+        true,
     );
     for refresh in 0..3 {
         if refresh == 1 {
-            state.observe(&snapshot, Vec::new());
+            state.observe(&snapshot, Vec::new(), true);
         }
         if refresh == 2 {
             state = TexasChipTableState::default();
-            state.initialize(&snapshot);
+            state.initialize(&snapshot, true);
         }
         for player in &snapshot.players {
             let visual: u32 = state

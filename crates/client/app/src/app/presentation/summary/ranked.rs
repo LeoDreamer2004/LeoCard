@@ -1,4 +1,4 @@
-//! 共用排名结算面板；各游戏只提供展示数据。
+//! 共用排名结算面板。各游戏只提供展示数据。
 
 use crate::app::presentation::{
     ACCENT, AnimatedSummaryScore, DANGER, GameSummaryActions, GameSummaryAnimation,

@@ -175,7 +175,7 @@ fn three_deck_joker_bidding_strength_ignores_the_companion_joker_count() {
     game.rules.deck_count = 3;
     game.rules.bid_with_joker = true;
 
-    // 当前声明虽展示两张牌，强度仍只是一张级牌；反主应使用两张级牌加王。
+    // 当前声明虽展示两张牌，强度仍只是一张级牌。反主应使用两张级牌加王。
     assert_eq!(
         shengji_declaration_candidate(&game, Some(ShengjiSuit::Heart)),
         Some(vec![heart[0], heart[1], own_big])

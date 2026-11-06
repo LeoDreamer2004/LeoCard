@@ -195,7 +195,7 @@ pub(super) fn spawn_uno_transfer_cards(
 }
 
 /// 权威快照会在出牌动画结束前把新牌放进弃牌堆。动画等待布局或正在飞行时，
-/// 暂时隐藏对应实体牌；双牌会同时隐藏，落地后再一起恢复。
+/// 暂时隐藏对应实体牌，双牌会同时隐藏，落地后再一起恢复。
 pub(crate) fn sync_uno_discard_reveal(
     client: Option<Res<ClientResource>>,
     presentation: Res<UnoPresentationState>,
@@ -240,7 +240,7 @@ pub(crate) fn uno_discard_should_be_hidden(
         || active_cards.any(|card| card == Some(top))
 }
 
-/// 弃牌堆只同步末尾六张牌；第七张加入时窗口会整体向前滑动，因此不能用数组
+/// 弃牌堆只同步末尾六张牌，第七张加入时窗口会整体向前滑动，因此不能用数组
 /// 下标决定姿态。物理牌标识在整局内稳定，用它分配偏移可让仍在堆中的旧牌原地不动。
 pub(crate) fn uno_discard_pose(card: UnoCard) -> (f32, f32, f32) {
     let color = match card.color() {

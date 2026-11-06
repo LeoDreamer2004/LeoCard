@@ -142,7 +142,7 @@ pub(super) fn normalize_server_address(address: &str) -> Result<String, NetworkS
     if port == 0 || host.is_empty() {
         return Err(invalid());
     }
-    // 含冒号的 IPv6 地址必须使用标准的 `[地址]:端口` 形式；域名和 IPv4 可直接使用。
+    // 含冒号的 IPv6 地址必须使用标准的 `[地址]:端口` 形式，域名和 IPv4 可直接使用。
     if host.contains(':') && !(host.starts_with('[') && host.ends_with(']')) {
         return Err(invalid());
     }

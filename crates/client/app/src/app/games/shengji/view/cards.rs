@@ -1,7 +1,5 @@
 use super::super::ShengjiFailedThrowCard;
-use crate::app::presentation::{
-    CardSize, GAME_SIDE_CONTROL_SCALE, HAND_CARD_REVEAL, add_card_stars,
-};
+use crate::app::presentation::{CardSize, HAND_CARD_REVEAL, TrickCardLayout, add_card_stars};
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use leocard_protocol::{ShengjiSnapshot, ShengjiThrowFailureStage};
@@ -67,8 +65,8 @@ fn add_shengji_card_row_internal(
             (width, height, HAND_CARD_REVEAL)
         }
         ShengjiCardSize::Seat => {
-            let (width, height) = CardSize::TrickSeat.dimensions();
-            (width, height, 27.0 * GAME_SIDE_CONTROL_SCALE)
+            let layout = TrickCardLayout::default();
+            (layout.width, layout.height, layout.reveal)
         }
         ShengjiCardSize::Score => (36.0, 49.0, 14.0),
     };
@@ -99,6 +97,7 @@ fn add_shengji_card_row_internal(
                 Node {
                     width: px(width),
                     height: px(height),
+                    flex_shrink: 0.0,
                     margin: UiRect::right(px(if index == last { 0.0 } else { reveal - width })),
                     border_radius: BorderRadius::all(px(4)),
                     ..default()
@@ -182,7 +181,7 @@ fn shengji_display_key(card: ShengjiCard, trump: Option<ShengjiTrump>) -> (u8, u
     } else {
         card.suit().map_or(4, ShengjiSuit::bid_strength)
     };
-    // 所有主牌共用同一个 category；副级牌的 strength 也完全相同，因此必须
+    // 所有主牌共用同一个 category，副级牌的 strength 也完全相同，因此必须
     // 在牌副编号之前再按黑、红、梅、方分组，否则两副实体牌会交错成乱序。
     let suit_order = card.suit().map_or(4, ShengjiSuit::bid_strength);
     (u8::from(is_trump), category, strength, suit_order)

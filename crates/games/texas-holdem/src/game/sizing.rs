@@ -53,6 +53,9 @@ impl TexasGameState {
     }
 
     pub(super) fn validate_raise_rights(&self, player: PlayerId) -> Result<(), TexasGameError> {
+        if self.all_in_lock.is_some() {
+            return Err(TexasGameError::RaiseNotReopened);
+        }
         if self.fixed_limit_reached() {
             return Err(TexasGameError::RaiseLimitReached);
         }

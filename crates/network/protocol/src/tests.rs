@@ -163,26 +163,35 @@ fn client_message_round_trips_through_tcp_frame() {
 }
 
 #[test]
-fn interaction_event_round_trips_with_its_shared_animation_seed() {
-    let message = ServerMessage {
-        action_timing: None,
-        game_context: None,
-        protocol_version: PROTOCOL_VERSION,
-        room_id: RoomId(42),
-        revision: Revision(9),
-        in_reply_to: Some(RequestId(7)),
-        event: ServerEvent::PlayerInteraction(PlayerInteraction {
-            source: PlayerId(1),
-            target: PlayerId(3),
-            kind: PlayerInteractionKind::Wine,
-            seed: 523,
-            elapsed_millis: 100,
-        }),
-    };
-
-    let frame = encode_frame(&message).unwrap();
-    let decoded: ServerMessage = decode_frame(&frame).unwrap();
-    assert_eq!(decoded, message);
+fn interaction_events_preserve_shared_animation_seeds_and_count_each_batch_once() {
+    for (kind, flowers, eggs) in [
+        (PlayerInteractionKind::Flower, 1, 0),
+        (PlayerInteractionKind::Egg, 0, 1),
+        (PlayerInteractionKind::Wine, 10, 0),
+        (PlayerInteractionKind::Shoe, 0, 10),
+        (PlayerInteractionKind::EggBarrage, 0, 100),
+    ] {
+        assert_eq!(kind.flower_count(), flowers);
+        assert_eq!(kind.egg_count(), eggs);
+        let message = ServerMessage {
+            action_timing: None,
+            game_context: None,
+            protocol_version: PROTOCOL_VERSION,
+            room_id: RoomId(42),
+            revision: Revision(9),
+            in_reply_to: Some(RequestId(7)),
+            event: ServerEvent::PlayerInteraction(PlayerInteraction {
+                source: PlayerId(1),
+                target: PlayerId(3),
+                kind,
+                seed: 523,
+                elapsed_millis: 100,
+            }),
+        };
+        let frame = encode_frame(&message).unwrap();
+        let decoded: ServerMessage = decode_frame(&frame).unwrap();
+        assert_eq!(decoded, message);
+    }
 }
 
 #[test]

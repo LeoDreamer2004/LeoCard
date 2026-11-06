@@ -66,7 +66,7 @@ impl QiGui523Session {
         self.room.heartbeat()
     }
 
-    /// 推进权威出牌计时。TCP 层传入真实经过时间；测试和其他宿主也可确定性调用。
+    /// 推进权威出牌计时。TCP 层传入真实经过时间，测试和其他宿主也可确定性调用。
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         advance_with_timing(self, elapsed, Self::advance_game_time)
     }
@@ -295,7 +295,7 @@ impl HostedGameLifecycle for QiGui523Session {
             );
         }
 
-        // PlayerId 在大厅内必须保持稳定；只在确定能够开局、且即将给每位玩家
+        // PlayerId 在大厅内必须保持稳定。只在确定能够开局、且即将给每位玩家
         // 下发包含新 `you` 的私有牌局快照时，才压缩并按座位重排参与者。
         self.remove_departed_players();
 

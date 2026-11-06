@@ -14,7 +14,7 @@ use std::collections::HashMap;
 pub(crate) struct ScoreCaptureEffect {
     pub player: PlayerId,
     pub cards: Vec<QiGuiCard>,
-    /// 每张牌在终局时所属的玩家；`None` 表示牌来自桌面中央。
+    /// 每张牌在终局时所属的玩家，`None` 表示牌来自桌面中央。
     pub source_players: Vec<Option<PlayerId>>,
     pub score_before: u32,
     pub score_after: u32,

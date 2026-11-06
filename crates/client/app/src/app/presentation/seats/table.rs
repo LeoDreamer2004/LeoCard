@@ -1,6 +1,6 @@
 use bevy::prelude::Vec2;
 
-/// 头像旁的弹层与出牌区朝向；本人的横向出牌区也使用 Top。
+/// 头像旁的弹层与出牌区朝向，本人的横向出牌区也使用 Top。
 #[derive(Clone, Copy)]
 pub(crate) enum SeatSide {
     Left,
@@ -54,7 +54,7 @@ impl TableSeat {
     }
 }
 
-/// 坐标可用设计像素或百分比；具体游戏提供内容区的尺寸和间距。
+/// 坐标可用设计像素或百分比，具体游戏提供内容区的尺寸和间距。
 pub(crate) struct TableSeatAnchors<'a> {
     pub bottom: Vec2,
     pub top: Vec2,

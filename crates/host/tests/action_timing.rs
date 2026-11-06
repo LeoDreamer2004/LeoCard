@@ -14,6 +14,8 @@ use std::time::Duration;
 mod games;
 #[path = "action_timing/presence.rs"]
 mod presence;
+#[path = "action_timing/texas.rs"]
+mod texas;
 
 const ROOM: RoomId = RoomId(411);
 

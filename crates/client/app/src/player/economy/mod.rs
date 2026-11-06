@@ -1,4 +1,5 @@
 mod catalog;
+mod consumables;
 mod migration;
 mod rewards;
 mod state;

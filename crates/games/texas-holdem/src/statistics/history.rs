@@ -26,7 +26,7 @@ impl HandHistory {
         let mut history = before.statistics.history.clone();
         let old = &before.players()[player.index()];
         let new = &after.players()[player.index()];
-        let amount = new.committed_total() - old.committed_total();
+        let amount = after.paid_by(player) - before.paid_by(player);
         let target = old.committed_street() + amount;
         let voluntary = action != TexasAction::PostBlind;
         let raised = voluntary && target > before.current_bet();
@@ -65,7 +65,10 @@ impl HandHistory {
                 && before.current_bet() > TexasRuleSet::BIG_BLIND
                 && target >= before.current_bet()
                 && amount > 0,
-            side_pot_raise: raised && all_in_players >= 2 && actionable >= 2,
+            side_pot_raise: before.rules().side_pots
+                && raised
+                && all_in_players >= 2
+                && actionable >= 2,
         });
         history
     }

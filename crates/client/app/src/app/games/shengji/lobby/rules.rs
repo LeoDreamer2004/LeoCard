@@ -59,7 +59,6 @@ pub(crate) fn render_shengji_lobby(
                 label: "牌副数",
                 value: format!("{} 副", rules_value.deck_count),
                 help: "两副牌：25 张手牌、8 张底牌；三副牌：39 张手牌、6 张底牌，加入三同张和泰坦尼克；四副牌：52 张手牌、8 张底牌，再加入炸弹和宇宙飞船。",
-                editable: can_configure,
                 previous: previous_deck_count.filter(|_| can_configure),
                 next: next_deck_count.filter(|_| can_configure),
             },
@@ -82,7 +81,6 @@ pub(crate) fn render_shengji_lobby(
             }
             .to_owned(),
             help: "开启后首家可以甩出同门组合牌型，甩牌失败会被强制改出最小可失败牌型。",
-            editable: can_configure,
             previous: can_configure.then_some(throw_toggled),
             next: can_configure.then_some(throw_toggled),
         },
@@ -104,7 +102,6 @@ pub(crate) fn render_shengji_lobby(
             }
             .to_owned(),
             help: "庄家埋底后，从庄家下家开始按座次依次询问其他玩家。每次抄底取得当前底牌并重新埋底，然后继续询问，直到一整轮无人再抄底。抄底不改变庄家，但扳底定庄的对局不允许抄底。",
-            editable: can_configure,
             previous: can_configure.then_some(bottom_copy_toggled),
             next: can_configure.then_some(bottom_copy_toggled),
         },
@@ -132,8 +129,7 @@ pub(crate) fn render_shengji_lobby(
                 ShengjiThrowPenalty::TenPerCard => "每张 10 分",
             }
             .to_owned(),
-            help: "庄家方罚分会给闲家加分；闲家方罚分从闲家总分扣除，最低为零。",
-            editable: can_configure,
+            help: "庄家方罚分会给闲家加分，闲家方罚分从闲家总分扣除，最低为零。",
             previous: can_configure.then_some(ShengjiRuleSet {
                 throw_penalty: previous_penalty,
                 ..rules_value
@@ -161,7 +157,6 @@ pub(crate) fn render_shengji_lobby(
             }
             .to_owned(),
             help: "开启后升级跨过 5、10、K、A 时必须先停在对应等级。",
-            editable: can_configure,
             previous: can_configure.then_some(mandatory_toggled),
             next: can_configure.then_some(mandatory_toggled),
         },
@@ -183,7 +178,6 @@ pub(crate) fn render_shengji_lobby(
             }
             .to_owned(),
             help: "开启后红桃/方块必须带一张大王，梅花/黑桃必须带一张小王。无主不能首亮，只能用于反主。",
-            editable: can_configure,
             previous: can_configure.then_some(bid_with_joker_toggled),
             next: can_configure.then_some(bid_with_joker_toggled),
         },
@@ -205,7 +199,6 @@ pub(crate) fn render_shengji_lobby(
             }
             .to_owned(),
             help: "第一次无人亮主时保持手牌不动，由当前庄家的下家直接接庄，改打新庄家一方的级牌并重新亮主。",
-            editable: can_configure,
             previous: can_configure.then_some(power_outage_dealer_toggled),
             next: can_configure.then_some(power_outage_dealer_toggled),
         },
@@ -226,8 +219,7 @@ pub(crate) fn render_shengji_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "最终无人亮主时逐张翻开底牌，公开各玩家持有的同牌并按两队总数、队内数量和座次确定庄家；王定无主，其他牌定其花色。",
-            editable: can_configure,
+            help: "最终无人亮主时逐张翻开底牌，公开各玩家持有的同牌并按两队总数、队内数量和座次确定庄家。王定无主，其他牌定其花色。",
             previous: can_configure.then_some(bottom_flip_toggled),
             next: can_configure.then_some(bottom_flip_toggled),
         },
@@ -249,8 +241,7 @@ pub(crate) fn render_shengji_lobby(
                     "关闭"
                 }
                 .to_owned(),
-                help: "有主局埋底后，主牌不多于五张的玩家可将全部主牌补足五张交给对家，再由对家任选五张归还；每人每局仅可进行一次。",
-                editable: can_configure,
+                help: "有主局埋底后，主牌不多于五张的玩家可将全部主牌补足五张交给对家，再由对家任选五张归还。每人每局仅可进行一次。",
                 previous: can_configure.then_some(five_trump_crossing_toggled),
                 next: can_configure.then_some(five_trump_crossing_toggled),
             },
@@ -273,7 +264,6 @@ pub(crate) fn render_shengji_lobby(
             }
             .to_owned(),
             help: "开启后双方从 3 开始，2 永远为主牌，牌力位于本局级牌和主牌 A 之间。",
-            editable: can_configure,
             previous: can_configure.then_some(constant_trump_toggled),
             next: can_configure.then_some(constant_trump_toggled),
         },

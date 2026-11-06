@@ -40,7 +40,7 @@ pub(super) struct CornerNotice {
 }
 
 pub(super) fn setup_corner_notifications(mut commands: UiComposer) {
-    // 独立于页面重建，所有页面复用；装饰层不参与鼠标拾取。
+    // 独立于页面重建，所有页面复用。装饰层不参与鼠标拾取。
     commands.spawn((
         CornerNoticeLayer,
         Node {

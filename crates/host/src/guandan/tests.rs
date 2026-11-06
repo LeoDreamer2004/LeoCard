@@ -12,8 +12,8 @@ use leocard_guandan::{
 };
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameEvent, GameSnapshot, GameViolation, GuandanCommand,
-    GuandanEvent, GuandanViolation, JoinRequest, PlayerGameProfiles, ProfileId, ReconnectToken,
-    RejectReason, RequestId, RoomId, SeatId, ServerEvent,
+    GuandanEvent, GuandanSnapshot, GuandanViolation, JoinRequest, PlayerGameProfiles, ProfileId,
+    ReconnectToken, RejectReason, RequestId, RoomId, SeatId, ServerEvent,
 };
 
 fn send(session: &mut GuandanSession, connection: u64, command: ClientCommand) -> Vec<Delivery> {
@@ -102,11 +102,8 @@ fn rejects_out_of_turn_action_without_changing_private_hands() {
     }
 }
 
-#[test]
-fn spectator_cannot_receive_a_players_private_hand() {
-    let mut session = started();
-    let deliveries = send(&mut session, 5, join(5));
-    let snapshot = deliveries
+fn spectator_snapshot(deliveries: &[Delivery]) -> &GuandanSnapshot {
+    deliveries
         .iter()
         .find_map(|delivery| match &delivery.message.event {
             ServerEvent::GameSnapshot(GameSnapshot::Guandan(snapshot))
@@ -116,9 +113,49 @@ fn spectator_cannot_receive_a_players_private_hand() {
             }
             _ => None,
         })
-        .expect("spectator receives a game snapshot");
-    assert!(snapshot.your_hand.is_empty());
-    assert_eq!(snapshot.tribute_action, None);
+        .expect("spectator receives its selected player view")
+}
+
+#[test]
+fn spectator_follows_private_hands_without_controlling_the_viewed_player() {
+    let mut session = started();
+    let deliveries = send(&mut session, 5, join(5));
+    let initial = spectator_snapshot(&deliveries);
+    assert_eq!(initial.you, PlayerId(0));
+    assert_eq!(
+        initial.your_hand,
+        session.snapshot_for(PlayerId(0)).your_hand
+    );
+    let deliveries = send(
+        &mut session,
+        5,
+        ClientCommand::SpectatePlayer {
+            player: PlayerId(1),
+        },
+    );
+    assert_eq!(
+        spectator_snapshot(&deliveries),
+        &session.snapshot_for(PlayerId(1))
+    );
+    let deliveries = send(&mut session, 5, ClientCommand::RequestSnapshot);
+    assert_eq!(
+        spectator_snapshot(&deliveries),
+        &session.snapshot_for(PlayerId(1))
+    );
+    let before = session.snapshot_for(PlayerId(1));
+    let rejected = send(
+        &mut session,
+        5,
+        ClientCommand::Game(GuandanCommand::SetAutoPlay { enabled: true }.into()),
+    );
+    assert!(
+        rejected
+            .iter()
+            .any(|delivery| matches!(delivery.message.event, ServerEvent::Rejected { .. }))
+    );
+    assert_eq!(session.snapshot_for(PlayerId(1)), before);
+    // A raw observer ID still has no private hand; only the selected view is remapped.
+    assert!(session.snapshot_for(PlayerId(128)).your_hand.is_empty());
 }
 
 #[test]
@@ -158,9 +195,12 @@ fn played_cards_are_public_in_every_recipients_snapshot() {
             }
             _ => None,
         })
-        .expect("spectator receives the public game snapshot");
+        .expect("spectator receives the selected game view");
     assert_eq!(spectator.played_cards, vec![card]);
-    assert!(spectator.your_hand.is_empty());
+    assert_eq!(
+        spectator.your_hand,
+        session.snapshot_for(spectator.you).your_hand
+    );
 }
 
 #[test]

@@ -50,7 +50,6 @@ pub(crate) fn render_doudizhu_lobby(
                     "每轮四局，所有玩家依次首叫一次。全员不叫时重新发牌，不计入局数。整场按累计分数排名结算积分。"
                 }
             },
-            editable: page.can_configure,
             previous: (page.can_configure && rules.rounds > 1).then(|| DoudizhuRuleSet {
                 rounds: rules.rounds - 1,
                 ..rules
@@ -78,8 +77,7 @@ pub(crate) fn render_doudizhu_lobby(
                     "关闭"
                 }
                 .to_owned(),
-                help: "关闭时三张只能不带或带一对，飞机只能不带或带对应数量的对子；开启后也允许三带一和飞机带单张。",
-                editable: page.can_configure,
+                help: "关闭时三张只能不带或带一对，飞机只能不带或带对应数量的对子。开启后也允许三带一和飞机带单张。",
                 previous: page.can_configure.then_some(toggled),
                 next: page.can_configure.then_some(toggled),
             },

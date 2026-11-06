@@ -288,7 +288,7 @@ impl ShengjiBidState {
         if parsed.primary_count < 2 {
             return Err(ShengjiBidError::CounterRequiresPair);
         }
-        // 自保后忽略花色强弱：同张数的其它花色不能反；无主可以反，更多
+        // 自保后忽略花色强弱：同张数的其它花色不能反，无主可以反，更多
         // 级牌也可以反。后一种由张数优先的声明强度继续判定。
         if current.protected
             && matches!(parsed.trump, ShengjiBidTrump::Suit(_))

@@ -80,7 +80,7 @@ pub(super) fn process_rewards(
         Ok(()) => pending.last_error = None,
         Err(error) => {
             if pending.last_error.as_deref() != Some(&error) {
-                warn!("{error}；金币结算稍后重试");
+                warn!("{error}，金币结算稍后重试");
             }
             pending.last_error = Some(error);
             pending.retry_after = 0.5;

@@ -1,6 +1,6 @@
 //! 与传输方式无关的联机协议。
 //!
-//! TCP 层只需读取 4 字节大端长度，再读取对应的 Postcard 负载；业务层始终处理
+//! TCP 层只需读取 4 字节大端长度，再读取对应的 Postcard 负载。业务层始终处理
 //! [`ClientMessage`] 和 [`ServerMessage`]。
 
 pub mod achievements;
@@ -48,7 +48,7 @@ pub use texas::*;
 pub use uno::*;
 pub use violations::*;
 
-pub const PROTOCOL_VERSION: u16 = 106;
+pub const PROTOCOL_VERSION: u16 = 109;
 pub const MAX_FRAME_PAYLOAD: usize = 1024 * 1024;
 pub const MAX_PLAYER_NAME_CHARS: usize = 7;
 pub const AVATAR_DIMENSION: u32 = 64;

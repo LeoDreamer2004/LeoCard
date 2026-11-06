@@ -4,7 +4,7 @@ use super::super::{
     ACCENT, AutoPlayOverlay, PanelSkin, TABLE_CARD_REVEAL, TABLE_SCORE_CARD_REVEAL, TEXT,
 };
 use super::{add_text, add_title};
-use crate::app::presentation::CardSize;
+use crate::app::presentation::{CardSize, TrickCardLayout};
 use crate::app::runtime::{CardFace, UiAssets};
 use crate::app::shell::{SocialUiAction, UiAction};
 use bevy::picking::Pickable;
@@ -34,7 +34,7 @@ pub(crate) fn add_card_image(
         CardSize::Score => SCORE_CARD_REVEAL,
         CardSize::TableScore => TABLE_SCORE_CARD_REVEAL,
         CardSize::FinishedHand => FINISHED_HAND_CARD_REVEAL,
-        CardSize::TrickSeat => 27.0,
+        CardSize::TrickSeat => TrickCardLayout::default().reveal,
         CardSize::ShengjiHand | CardSize::QiGuiHand | CardSize::QiGuiSeat => TABLE_CARD_REVEAL,
     };
     let image = assets.playing_cards.face(card);
@@ -137,7 +137,7 @@ pub(crate) fn card_background_image(texture: Handle<Image>, corner_scale: f32) -
     sliced_image(texture, 16.0, corner_scale)
 }
 
-/// 给任意布局节点叠加独立的九宫格面板皮肤。玩家框仍使用专用贴图；这里仅
+/// 给任意布局节点叠加独立的九宫格面板皮肤。玩家框仍使用专用贴图。这里仅
 /// 服务于主窗口、内容分区和小型提示框，避免随尺寸拉伸边角与描边。
 pub(crate) fn decorate_panel_skin(
     commands: &mut UiComposer,

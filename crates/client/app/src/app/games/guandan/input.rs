@@ -33,7 +33,10 @@ pub(super) fn handle_card_drag_selection(
     }) else {
         return;
     };
-    if game.result.is_some()
+    if client
+        .as_deref()
+        .is_none_or(|client| client.0.model().you() != Some(game.you))
+        || game.result.is_some()
         || game_ui.is_dealing()
         || game
             .players

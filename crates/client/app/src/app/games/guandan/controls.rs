@@ -16,6 +16,7 @@ pub(super) fn render(
     parent: Entity,
     game: &GuandanSnapshot,
     ui: &GuandanUiState,
+    can_control: bool,
     assets: &UiAssets,
 ) {
     let row = spawn_node(
@@ -30,7 +31,7 @@ pub(super) fn render(
         },
         None,
     );
-    if !local_turn(game) || ui.is_dealing() {
+    if !can_control || !local_turn(game) || ui.is_dealing() {
         return;
     }
     let mut button = |label: &str, action: Option<GuandanUiAction>, tone| {

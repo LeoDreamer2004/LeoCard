@@ -1,5 +1,4 @@
 //! Bounded configuration lists share scrolling and preserve their offset during composition.
-
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_ui::{UiComposer, spawn_node};

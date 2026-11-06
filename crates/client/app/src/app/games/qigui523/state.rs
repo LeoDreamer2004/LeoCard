@@ -2,14 +2,14 @@
 
 use super::counter::QiGuiCounterUi;
 use super::{QiGui523Assets, QiGuiClientState};
+use crate::app::games::HandSelection;
 use crate::app::presentation::{
     ActivePlayEffect, CardAnimationState, Observed, SeatSide, SilentButton,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::ScoreCaptureEffectState;
-use leocard_game_common::PlayerId;
-
 use bevy::prelude::*;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{MatchId, QiGui523PublicPlay, QiGui523Snapshot};
 use leocard_qigui523::{QiGui523Bot, QiGuiCard};
 use leocard_ui::{CustomButtonMotion, DraggableWindowOwner, DraggableWindowState};
@@ -87,5 +87,17 @@ pub(crate) struct HandCardSlot {
 impl DraggableWindowOwner for QiGui523UiState {
     fn window_state(&mut self) -> &mut DraggableWindowState {
         &mut self.counter.window.drag
+    }
+}
+
+impl HandSelection for QiGui523UiState {
+    type Card = QiGuiCard;
+
+    fn selected_cards(&self) -> &HashSet<Self::Card> {
+        &self.selected
+    }
+
+    fn selected_cards_mut(&mut self) -> &mut HashSet<Self::Card> {
+        &mut self.selected
     }
 }

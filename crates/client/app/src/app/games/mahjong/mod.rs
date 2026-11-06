@@ -4,6 +4,7 @@ mod action_prompt;
 pub(crate) mod actions;
 mod assets;
 mod auto;
+mod catalog;
 mod controls;
 mod discard;
 mod fan_guide;
@@ -24,6 +25,7 @@ mod tiles;
 mod view;
 mod voices;
 mod wind_labels;
+
 use crate::app::presentation::mahjong::{MahjongProjectionFrame, MahjongTableRoot};
 use crate::app::presentation::{
     MahjongTileHighlight, MahjongTileMaterial, MahjongTileRestRotation, MahjongTileSurface,

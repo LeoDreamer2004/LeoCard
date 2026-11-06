@@ -9,7 +9,6 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{GameSnapshot, UnoEvent};
-
 use leocard_ui::UiComposer;
 use leocard_uno::{UnoCard, UnoColor, UnoFace};
 

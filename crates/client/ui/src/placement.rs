@@ -1,5 +1,4 @@
 //! Geometry shared by anchored overlays, in the caller's coordinate space.
-
 use bevy::prelude::*;
 
 pub(crate) fn clamp_overlay_origin(origin: Vec2, size: Vec2, bounds: Rect) -> Vec2 {

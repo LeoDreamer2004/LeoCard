@@ -11,7 +11,6 @@ use super::{
     scores::{GuessScoreDelta, GuessScoreValue},
     view::GuessTable,
 };
-
 use bevy::prelude::*;
 
 impl GuessTable<'_> {

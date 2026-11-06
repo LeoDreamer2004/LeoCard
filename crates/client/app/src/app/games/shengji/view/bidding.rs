@@ -5,11 +5,10 @@ use super::shengji_current_level;
 use crate::app::presentation::{ACCENT, GAME_SIDE_CONTROL_SCALE, GameButtonTone, add_text};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiAction;
+use bevy::prelude::*;
 use leocard_protocol::{GameSnapshot, ShengjiDeclarationView, ShengjiPhaseView, ShengjiSnapshot};
 use leocard_shengji::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiSuit, bid_joker_for_suit};
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 #[derive(Component)]
 pub(crate) struct ShengjiBiddingCountdown;

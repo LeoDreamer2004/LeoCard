@@ -5,14 +5,13 @@ use super::details::AttributeHint;
 use super::rows::GuessEmptyRows;
 use super::style::ROW_HEIGHT;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_mc_guess::{
     McGuessCatalogue, McGuessMatchQuality, McGuessRecord, McGuessResult, McGuessRoundView,
     McGuessValueDirection,
 };
 use leocard_ui::{Scrollbar, UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 pub(in super::super) struct TableHistory<'a> {
     pub round: &'a McGuessRoundView,

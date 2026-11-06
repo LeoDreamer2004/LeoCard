@@ -1,4 +1,5 @@
 use super::{MahjongSession, hand_result_view};
+use crate::features::GameSnapshotView;
 use crate::{ConnectionId, Delivery};
 use leocard_game_common::PlayerId;
 use leocard_mahjong::{MahjongGameError, MahjongMeldKind, MahjongPhase};
@@ -36,7 +37,47 @@ impl MahjongSession {
             .collect()
     }
 
-    pub(super) fn game_snapshot(&self, recipient: PlayerId) -> MahjongSnapshot {
+    pub(super) fn reject_game_error(
+        &self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        error: &MahjongGameError,
+    ) -> Vec<Delivery> {
+        let violation = match error {
+            MahjongGameError::InvalidPlayer(_) => MahjongViolation::InvalidPlayer,
+            MahjongGameError::NotPlayersTurn { .. } => MahjongViolation::NotPlayersTurn,
+            MahjongGameError::WrongPhase => MahjongViolation::WrongPhase,
+            MahjongGameError::TileNotInHand(_) => MahjongViolation::TileNotInHand,
+            MahjongGameError::InvalidClaim => MahjongViolation::InvalidClaim,
+            MahjongGameError::AlreadyResponded => MahjongViolation::AlreadyResponded,
+            MahjongGameError::CannotWin => MahjongViolation::CannotWin,
+            MahjongGameError::CannotKong => MahjongViolation::CannotKong,
+            MahjongGameError::InvalidHandReplacement(reason) => {
+                MahjongViolation::InvalidDeveloperHand(*reason)
+            }
+            MahjongGameError::InvalidRules(_)
+            | MahjongGameError::InvalidDeckSize { .. }
+            | MahjongGameError::InvalidDeckContents
+            | MahjongGameError::Score(_) => {
+                return self.room.reject(
+                    connection,
+                    request_id,
+                    RejectReason::Game(GameViolation::InvalidRuleConfiguration),
+                );
+            }
+        };
+        self.room.reject(
+            connection,
+            request_id,
+            RejectReason::Game(GameViolation::Mahjong(violation)),
+        )
+    }
+}
+
+impl GameSnapshotView for MahjongSession {
+    type Snapshot = MahjongSnapshot;
+
+    fn game_view(&self, recipient: PlayerId) -> Self::Snapshot {
         let game = self
             .game
             .as_ref()
@@ -175,41 +216,5 @@ impl MahjongSession {
             added_kong_options,
             phase,
         }
-    }
-
-    pub(super) fn reject_game_error(
-        &self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        error: &MahjongGameError,
-    ) -> Vec<Delivery> {
-        let violation = match error {
-            MahjongGameError::InvalidPlayer(_) => MahjongViolation::InvalidPlayer,
-            MahjongGameError::NotPlayersTurn { .. } => MahjongViolation::NotPlayersTurn,
-            MahjongGameError::WrongPhase => MahjongViolation::WrongPhase,
-            MahjongGameError::TileNotInHand(_) => MahjongViolation::TileNotInHand,
-            MahjongGameError::InvalidClaim => MahjongViolation::InvalidClaim,
-            MahjongGameError::AlreadyResponded => MahjongViolation::AlreadyResponded,
-            MahjongGameError::CannotWin => MahjongViolation::CannotWin,
-            MahjongGameError::CannotKong => MahjongViolation::CannotKong,
-            MahjongGameError::InvalidHandReplacement(reason) => {
-                MahjongViolation::InvalidDeveloperHand(*reason)
-            }
-            MahjongGameError::InvalidRules(_)
-            | MahjongGameError::InvalidDeckSize { .. }
-            | MahjongGameError::InvalidDeckContents
-            | MahjongGameError::Score(_) => {
-                return self.room.reject(
-                    connection,
-                    request_id,
-                    RejectReason::Game(GameViolation::InvalidRuleConfiguration),
-                );
-            }
-        };
-        self.room.reject(
-            connection,
-            request_id,
-            RejectReason::Game(GameViolation::Mahjong(violation)),
-        )
     }
 }

@@ -2,11 +2,7 @@ use super::BlackjackSession;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_blackjack::BlackjackRuleSet;
-use leocard_game_common::PlayerId;
-use leocard_protocol::{
-    GameCommand, GameKind, GameRules, GameSnapshot, RejectReason, RequestId, RoomViolation,
-    ServerEvent,
-};
+use leocard_protocol::{GameKind, GameRules, RejectReason, RequestId, RoomViolation, ServerEvent};
 
 impl HostedGameLifecycle for BlackjackSession {
     const KIND: GameKind = GameKind::Blackjack;
@@ -29,22 +25,6 @@ impl HostedGameLifecycle for BlackjackSession {
 
     fn game_rules(&self) -> GameRules {
         self.rules.into()
-    }
-
-    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
-        self.snapshot_for(recipient).into()
-    }
-
-    fn handle_game_command(
-        &mut self,
-        connection: ConnectionId,
-        request: RequestId,
-        command: GameCommand,
-    ) -> Result<Vec<Delivery>, GameKind> {
-        let GameCommand::Blackjack(command) = command else {
-            return Err(command.kind());
-        };
-        Ok(self.command(connection, request, command))
     }
 
     fn start_game(&mut self, connection: ConnectionId, request: RequestId) -> Vec<Delivery> {

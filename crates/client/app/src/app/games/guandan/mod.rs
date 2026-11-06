@@ -2,6 +2,7 @@
 
 mod actions;
 mod cards;
+mod catalog;
 mod controls;
 mod counter;
 mod feedback;

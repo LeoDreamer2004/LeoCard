@@ -2,6 +2,7 @@ use super::super::McGuessSession;
 use super::fallback;
 use crate::Delivery;
 use crate::action_timing::attach_action_timing;
+use crate::features::GameAutomation;
 use crate::lifecycle::HostedGameLifecycle;
 use fastrand::Rng;
 use leocard_game_common::PlayerId;
@@ -27,23 +28,6 @@ impl McGuessSession {
         let deliveries = self.advance_game_time(elapsed);
         self.refresh_action_timing();
         attach_action_timing(self, deliveries)
-    }
-
-    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
-        if self.generation.is_some() {
-            return self.advance_generation();
-        }
-        if !self.game.as_ref().is_some_and(|game| !game.finished()) {
-            return Vec::new();
-        }
-        self.game
-            .as_mut()
-            .expect("active game")
-            .advance_selection_time(elapsed);
-        match self.rules.mode {
-            McGuessMode::TurnBased | McGuessMode::Graph => self.advance_turn(elapsed),
-            McGuessMode::Race => self.advance_race(elapsed),
-        }
     }
 
     pub(super) fn play_bot_action(&mut self, player: PlayerId) -> Option<McGuessBotAction> {
@@ -93,6 +77,25 @@ impl McGuessSession {
             self.broadcast_game(None)
         } else {
             Vec::new()
+        }
+    }
+}
+
+impl GameAutomation for McGuessSession {
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        if self.generation.is_some() {
+            return self.advance_generation();
+        }
+        if !self.game.as_ref().is_some_and(|game| !game.finished()) {
+            return Vec::new();
+        }
+        self.game
+            .as_mut()
+            .expect("active game")
+            .advance_selection_time(elapsed);
+        match self.rules.mode {
+            McGuessMode::TurnBased | McGuessMode::Graph => self.advance_turn(elapsed),
+            McGuessMode::Race => self.advance_race(elapsed),
         }
     }
 }

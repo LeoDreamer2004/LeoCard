@@ -1,3 +1,4 @@
+use crate::app::games::GameScreenChange;
 use crate::app::presentation::{SCORE_ROLL_DURATION, ease_out_cubic};
 use leocard_client::TexasSpectatorPreferences;
 use leocard_game_common::PlayerId;
@@ -75,13 +76,14 @@ impl TexasSpectatorUiState {
     }
 }
 
-/// 胜率异步送达时只更新数字，保留正在播放的翻牌与筹码动画。
-pub(crate) fn only_texas_equities_changed(before: &TexasSnapshot, after: &TexasSnapshot) -> bool {
-    let mut before = before.clone();
-    before
-        .spectator_equities
-        .clone_from(&after.spectator_equities);
-    before == *after
+impl GameScreenChange for TexasSnapshot {
+    fn is_transient_change(&self, after: &Self) -> bool {
+        let mut normalized = self.clone();
+        normalized
+            .spectator_equities
+            .clone_from(&after.spectator_equities);
+        normalized == *after
+    }
 }
 
 struct WinRateRoll {

@@ -1,6 +1,6 @@
 use super::*;
+use crate::features::HandSettlement;
 use leocard_game_common::PlayerId;
-
 use leocard_shengji::{
     ShengjiCategory, ShengjiClassifiedPlay, ShengjiComponent, ShengjiHandResult, ShengjiRank,
     ShengjiSuit, ShengjiTeamId,
@@ -64,7 +64,7 @@ fn hand_rating_is_applied_once_and_updates_every_player() {
     session.statistics.hand.profiles[0].plays = 4;
     session.statistics.hand.profiles[0].winning_plays = 2;
     let result = result_for_reference_points(false, 1, 120);
-    session.apply_finished_reference_points(&result);
+    session.commit_hand(&result);
     let settlement_id = session.statistics.hand.finished_settlement_id;
     let changes = session
         .statistics
@@ -111,7 +111,7 @@ fn hand_rating_is_applied_once_and_updates_every_player() {
     assert_eq!(dealer_stats.plays, 4);
     assert_eq!(dealer_stats.winning_plays, 2);
 
-    session.apply_finished_reference_points(&result);
+    session.commit_hand(&result);
     assert_eq!(
         session.statistics.hand.finished_settlement_id,
         settlement_id

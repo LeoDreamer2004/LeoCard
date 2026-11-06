@@ -1,16 +1,21 @@
 //! This game owns its screen resources, state reconciliation and view assembly.
+
 use super::super::{GameLobbyContext, GameScreen, GameTableContext};
+use super::view::shengji_declaration_candidate;
 use super::{
     ShengjiAssets, ShengjiClientState, ShengjiPresentationState, ShengjiScoreCaptureEffectState,
     ShengjiSettlementAnimation, ShengjiTableVisuals, ShengjiUiState, render_shengji_lobby,
     render_shengji_table,
 };
+use crate::app::games::{GameActionPrompt, GameUiLifecycle};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::SocialUiState;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
-use leocard_protocol::{GameKind, GameSnapshot, LobbySnapshot, ShengjiSnapshot};
+use leocard_game_common::PlayerId;
+use leocard_protocol::{GameKind, GameSnapshot, LobbySnapshot, ShengjiPhaseView, ShengjiSnapshot};
+use leocard_shengji::{ShengjiFiveTrumpCrossingStage, ShengjiSuit};
 use leocard_ui::UiComposer;
 
 #[derive(SystemParam)]
@@ -25,73 +30,6 @@ pub(crate) struct ShengjiScreen<'w> {
 
 impl GameScreen for ShengjiScreen<'_> {
     type Snapshot = ShengjiSnapshot;
-
-    fn requires_action(&self, game: &Self::Snapshot) -> bool {
-        use super::view::shengji_declaration_candidate;
-        use leocard_game_common::PlayerId;
-        use leocard_protocol::ShengjiPhaseView;
-        use leocard_shengji::{ShengjiFiveTrumpCrossingStage, ShengjiSuit};
-        if !game
-            .players
-            .iter()
-            .any(|player| player.player.id == game.you && player.connected && !player.auto_play)
-        {
-            return false;
-        }
-        match &game.phase {
-            ShengjiPhaseView::Dealing { .. } | ShengjiPhaseView::BiddingGrace { .. } => {
-                matches!(
-                    game.phase,
-                    ShengjiPhaseView::BiddingGrace {
-                        you_confirmed: false,
-                        ..
-                    }
-                ) || [
-                    Some(ShengjiSuit::Spade),
-                    Some(ShengjiSuit::Heart),
-                    Some(ShengjiSuit::Club),
-                    Some(ShengjiSuit::Diamond),
-                    None,
-                ]
-                .into_iter()
-                .any(|suit| shengji_declaration_candidate(game, suit).is_some())
-            }
-            ShengjiPhaseView::Burying => game.dealer == Some(game.you),
-            ShengjiPhaseView::BottomCopying { player, .. }
-            | ShengjiPhaseView::BottomCopyBurying { player } => *player == game.you,
-            ShengjiPhaseView::FiveTrumpCrossing {
-                stage: ShengjiFiveTrumpCrossingStage::Deciding,
-                eligible,
-                decided,
-                ..
-            } => eligible.contains(&game.you) && !decided.contains(&game.you),
-            ShengjiPhaseView::FiveTrumpCrossing {
-                stage: ShengjiFiveTrumpCrossingStage::Returning,
-                crossing,
-                returned,
-                ..
-            } => {
-                crossing.contains(&PlayerId((game.you.0 + 2) % 4)) && !returned.contains(&game.you)
-            }
-            ShengjiPhaseView::Playing => {
-                game.current_player == Some(game.you) && game.throw_failure.is_none()
-            }
-            ShengjiPhaseView::BottomFlipping { .. }
-            | ShengjiPhaseView::Finished { .. }
-            | ShengjiPhaseView::Redealing => false,
-        }
-    }
-
-    fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
-        let phase = client.map(|client| client.0.model().phase());
-        if !matches!(phase, Some(ClientPhaseRef::Lobby(lobby)) if lobby.game == GameKind::Shengji) {
-            self.ui.mode_menu_open = false;
-        }
-        match phase {
-            Some(ClientPhaseRef::Playing(GameSnapshot::Shengji(game))) => self.ui.reconcile(game),
-            _ => self.ui.clear(),
-        }
-    }
 
     fn render_lobby(
         &self,
@@ -154,5 +92,72 @@ impl GameScreen for ShengjiScreen<'_> {
                 presentation: &self.presentation,
             },
         );
+    }
+}
+
+impl GameActionPrompt for ShengjiScreen<'_> {
+    fn requires_action(&self, game: &Self::Snapshot) -> bool {
+        if !game
+            .players
+            .iter()
+            .any(|player| player.player.id == game.you && player.connected && !player.auto_play)
+        {
+            return false;
+        }
+        match &game.phase {
+            ShengjiPhaseView::Dealing { .. } | ShengjiPhaseView::BiddingGrace { .. } => {
+                matches!(
+                    game.phase,
+                    ShengjiPhaseView::BiddingGrace {
+                        you_confirmed: false,
+                        ..
+                    }
+                ) || [
+                    Some(ShengjiSuit::Spade),
+                    Some(ShengjiSuit::Heart),
+                    Some(ShengjiSuit::Club),
+                    Some(ShengjiSuit::Diamond),
+                    None,
+                ]
+                .into_iter()
+                .any(|suit| shengji_declaration_candidate(game, suit).is_some())
+            }
+            ShengjiPhaseView::Burying => game.dealer == Some(game.you),
+            ShengjiPhaseView::BottomCopying { player, .. }
+            | ShengjiPhaseView::BottomCopyBurying { player } => *player == game.you,
+            ShengjiPhaseView::FiveTrumpCrossing {
+                stage: ShengjiFiveTrumpCrossingStage::Deciding,
+                eligible,
+                decided,
+                ..
+            } => eligible.contains(&game.you) && !decided.contains(&game.you),
+            ShengjiPhaseView::FiveTrumpCrossing {
+                stage: ShengjiFiveTrumpCrossingStage::Returning,
+                crossing,
+                returned,
+                ..
+            } => {
+                crossing.contains(&PlayerId((game.you.0 + 2) % 4)) && !returned.contains(&game.you)
+            }
+            ShengjiPhaseView::Playing => {
+                game.current_player == Some(game.you) && game.throw_failure.is_none()
+            }
+            ShengjiPhaseView::BottomFlipping { .. }
+            | ShengjiPhaseView::Finished { .. }
+            | ShengjiPhaseView::Redealing => false,
+        }
+    }
+}
+
+impl GameUiLifecycle for ShengjiScreen<'_> {
+    fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
+        let phase = client.map(|client| client.0.model().phase());
+        if !matches!(phase, Some(ClientPhaseRef::Lobby(lobby)) if lobby.game == GameKind::Shengji) {
+            self.ui.mode_menu_open = false;
+        }
+        match phase {
+            Some(ClientPhaseRef::Playing(GameSnapshot::Shengji(game))) => self.ui.reconcile(game),
+            _ => self.ui.clear(),
+        }
     }
 }

@@ -1,6 +1,8 @@
 use super::super::{QiGui523UiAction, QiGui523UiState};
+use crate::app::games::{CardCounter, CounterRows};
 use crate::app::presentation::{
-    ACCENT, CardCounterCell, TEXT, add_card_counter_window, add_switch_drawer,
+    ACCENT, CardCounterCell, CardCounterWindowState, TEXT, add_card_counter_window,
+    add_switch_drawer,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -35,14 +37,27 @@ pub(in super::super) fn render_counter(
     if !state.window.enabled {
         return;
     }
-    let rows = state.counts.rows().map(|row| {
-        row.map(|cell| {
-            cell.map(|cell| CardCounterCell {
-                image: assets.playing_cards.face(cell.card),
-                remaining: cell.remaining,
-                color: if cell.card.score() > 0 { ACCENT } else { TEXT },
+    let rows = ui.counter_rows(&(), assets);
+    add_card_counter_window::<QiGui523UiState>(commands, table, ui.counter_window(), rows, assets);
+}
+
+impl CardCounter for QiGui523UiState {
+    type Context = ();
+
+    fn counter_window(&self) -> &CardCounterWindowState {
+        &self.counter.window
+    }
+
+    fn counter_rows(&self, _context: &Self::Context, assets: &UiAssets) -> CounterRows {
+        let state = &self.counter;
+        state.counts.rows().map(|row| {
+            row.map(|cell| {
+                cell.map(|cell| CardCounterCell {
+                    image: assets.playing_cards.face(cell.card),
+                    remaining: cell.remaining,
+                    color: if cell.card.score() > 0 { ACCENT } else { TEXT },
+                })
             })
         })
-    });
-    add_card_counter_window::<QiGui523UiState>(commands, table, &state.window, rows, assets);
+    }
 }

@@ -1,3 +1,4 @@
+use crate::features::{GameCommandHandler, GameSnapshotView};
 use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
@@ -7,7 +8,7 @@ use leocard_protocol::{
     SeatId, ServerEvent,
 };
 
-pub(super) trait HostedGameLifecycle: Sized {
+pub(super) trait HostedGameLifecycle: Sized + GameCommandHandler + GameSnapshotView {
     const KIND: GameKind;
 
     fn room(&self) -> &RoomSession;
@@ -20,7 +21,9 @@ pub(super) trait HostedGameLifecycle: Sized {
 
     fn game_rules(&self) -> GameRules;
 
-    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot;
+    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
+        self.game_view(recipient).into()
+    }
 
     fn viewing_player(&self, recipient: PlayerId) -> PlayerId {
         self.room().viewing_player(recipient)
@@ -52,9 +55,11 @@ pub(super) trait HostedGameLifecycle: Sized {
     fn handle_game_command(
         &mut self,
         connection: ConnectionId,
-        request_id: RequestId,
+        request: RequestId,
         command: GameCommand,
-    ) -> Result<Vec<Delivery>, GameKind>;
+    ) -> Result<Vec<Delivery>, GameKind> {
+        Ok(self.handle_command(connection, request, Self::parse_command(command)?))
+    }
 
     fn start_game(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery>;
 

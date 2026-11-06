@@ -1,8 +1,11 @@
+use super::analysis::profile_statistics;
 use super::{
-    UnoSession, analysis::profile_statistics, analysis_events, append_finished_event,
-    events_for_outcome, merge_uno_profile_stats, pending_draw_reveal_for_outcome,
+    UnoSession, analysis_events, append_finished_event, events_for_outcome,
+    merge_uno_profile_stats, pending_draw_reveal_for_outcome,
 };
-use crate::{ConnectionId, Delivery, lifecycle::HostedGameLifecycle};
+use crate::features::MatchSettlement;
+use crate::lifecycle::HostedGameLifecycle;
+use crate::{ConnectionId, Delivery};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{GameViolation, PlayerViolation, RejectReason, RequestId};
 use leocard_uno::{
@@ -49,7 +52,7 @@ impl UnoSession {
                         .expect("active UNO games have a recorder")
                         .observe(before, &outcome, &played, jump_in_was_available, game),
                 ));
-                self.apply_finished_reference_points();
+                self.commit_match(&());
                 self.reset_automatic_action_delay();
                 self.room.bump_revision();
                 let draw_reveal = pending_draw_reveal_for_outcome(
@@ -68,8 +71,12 @@ impl UnoSession {
             Err(error) => self.reject_game_error(connection, request_id, &error),
         }
     }
+}
 
-    pub(super) fn apply_finished_reference_points(&mut self) {
+impl MatchSettlement for UnoSession {
+    type Outcome = ();
+
+    fn commit_match(&mut self, _outcome: &Self::Outcome) {
         let result = match self.game.as_ref().map(UnoGameState::phase) {
             Some(UnoPhase::Finished(result)) => result.clone(),
             _ => return,

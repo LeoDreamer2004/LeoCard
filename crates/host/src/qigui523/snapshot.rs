@@ -1,4 +1,5 @@
 use super::QiGui523Session;
+use crate::features::GameSnapshotView;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
     PlayerScore, QiGui523PhaseView, QiGui523PlayerView, QiGui523PublicPlay,
@@ -7,8 +8,10 @@ use leocard_protocol::{
 };
 use leocard_qigui523::{QiGuiPhase, QiGuiPlayRecord};
 
-impl QiGui523Session {
-    pub(super) fn game_snapshot(&self, recipient: PlayerId) -> QiGui523Snapshot {
+impl GameSnapshotView for QiGui523Session {
+    type Snapshot = QiGui523Snapshot;
+
+    fn game_view(&self, recipient: PlayerId) -> Self::Snapshot {
         let game = self.game.as_ref().expect("game snapshot requires a game");
         let recipient_index = usize::from(recipient.0);
         let players = game

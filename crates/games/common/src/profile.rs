@@ -25,3 +25,42 @@ impl ActionTimeStats {
             .then(|| self.total_millis as f64 / self.completed_actions as f64 / 1000.0)
     }
 }
+
+/// The period represented by a result counter is part of its public contract.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ResultScope {
+    Hand,
+    Match,
+}
+
+pub trait GameCountStats {
+    const COMPLETION_SCOPE: ResultScope;
+
+    fn completed_games(&self) -> u32;
+
+    fn completed_games_mut(&mut self) -> &mut u32;
+}
+
+pub trait ReferenceStats {
+    fn total_reference_delta(&self) -> i64;
+
+    fn total_reference_delta_mut(&mut self) -> &mut i64;
+}
+
+pub trait PlacementStats {
+    const PLACEMENT_SCOPE: ResultScope;
+
+    fn placement_counts(&self) -> &[u32];
+
+    fn placement_counts_mut(&mut self) -> &mut [u32];
+}
+
+pub trait ActionTimeProfile {
+    fn action_time_stats(&self) -> &ActionTimeStats;
+
+    fn action_time_stats_mut(&mut self) -> &mut ActionTimeStats;
+
+    fn record_action_time(&mut self, millis: u64) {
+        self.action_time_stats_mut().record(millis);
+    }
+}

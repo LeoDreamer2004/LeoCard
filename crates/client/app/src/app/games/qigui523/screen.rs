@@ -1,16 +1,18 @@
 //! This game owns its screen resources, state reconciliation and view assembly.
+
 use super::super::{GameLobbyContext, GameScreen, GameTableContext};
 use super::{
     QiGui523Assets, QiGui523UiState, QiGuiClientState, TableVisualContext, render_qigui523_lobby,
     render_table,
 };
+use crate::app::games::{GameActionPrompt, GameUiLifecycle};
 use crate::app::presentation::PlayEffectState;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{ScoreCaptureEffectState, SocialUiState};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
-use leocard_protocol::{GameSnapshot, LobbySnapshot, QiGui523Snapshot};
+use leocard_protocol::{GameSnapshot, LobbySnapshot, QiGui523PhaseView, QiGui523Snapshot};
 use leocard_ui::UiComposer;
 
 #[derive(SystemParam)]
@@ -24,28 +26,6 @@ pub(crate) struct QiGui523Screen<'w> {
 
 impl GameScreen for QiGui523Screen<'_> {
     type Snapshot = QiGui523Snapshot;
-
-    fn requires_action(&self, game: &Self::Snapshot) -> bool {
-        use leocard_protocol::QiGui523PhaseView;
-        matches!(game.phase, QiGui523PhaseView::Playing)
-            && game
-                .trick
-                .as_ref()
-                .is_some_and(|trick| trick.current_player == game.you)
-            && game.players.iter().any(|player| {
-                player.player.id == game.you
-                    && player.connected
-                    && !player.auto_play
-                    && player.hand_len > 0
-            })
-    }
-
-    fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
-        match client.map(|client| client.0.model().phase()) {
-            Some(ClientPhaseRef::Playing(GameSnapshot::QiGui523(game))) => self.ui.reconcile(game),
-            _ => self.ui.clear(),
-        }
-    }
 
     fn render_lobby(
         &self,
@@ -111,5 +91,30 @@ impl GameScreen for QiGui523Screen<'_> {
             developer_hand,
             &mut visuals,
         );
+    }
+}
+
+impl GameActionPrompt for QiGui523Screen<'_> {
+    fn requires_action(&self, game: &Self::Snapshot) -> bool {
+        matches!(game.phase, QiGui523PhaseView::Playing)
+            && game
+                .trick
+                .as_ref()
+                .is_some_and(|trick| trick.current_player == game.you)
+            && game.players.iter().any(|player| {
+                player.player.id == game.you
+                    && player.connected
+                    && !player.auto_play
+                    && player.hand_len > 0
+            })
+    }
+}
+
+impl GameUiLifecycle for QiGui523Screen<'_> {
+    fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
+        match client.map(|client| client.0.model().phase()) {
+            Some(ClientPhaseRef::Playing(GameSnapshot::QiGui523(game))) => self.ui.reconcile(game),
+            _ => self.ui.clear(),
+        }
     }
 }

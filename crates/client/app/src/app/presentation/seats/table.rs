@@ -1,3 +1,4 @@
+use TableSeat::{Bottom, Left, Right, Top};
 use bevy::prelude::Vec2;
 
 /// 头像旁的弹层与出牌区朝向，本人的横向出牌区也使用 Top。
@@ -73,7 +74,6 @@ impl TableSeats {
     }
 
     pub(crate) fn seat(self, relative: u8) -> TableSeat {
-        use TableSeat::{Bottom, Left, Right, Top};
         let seats: &[_] = match self.count {
             1 => &[Bottom],
             2 => &[Bottom, Top],

@@ -1,3 +1,4 @@
+use crate::app::games::GameScreenChange;
 use bevy::prelude::*;
 use leocard_protocol::BlackjackSnapshot;
 
@@ -29,14 +30,13 @@ impl BlackjackUiState {
     }
 }
 
-pub(crate) fn only_blackjack_timer_changed(
-    before: &BlackjackSnapshot,
-    after: &BlackjackSnapshot,
-) -> bool {
-    if before.seconds_remaining == after.seconds_remaining {
-        return false;
+impl GameScreenChange for BlackjackSnapshot {
+    fn is_transient_change(&self, after: &Self) -> bool {
+        if self.seconds_remaining == after.seconds_remaining {
+            return false;
+        }
+        let mut normalized = self.clone();
+        normalized.seconds_remaining = after.seconds_remaining;
+        normalized == *after
     }
-    let mut normalized = before.clone();
-    normalized.seconds_remaining = after.seconds_remaining;
-    normalized == *after
 }

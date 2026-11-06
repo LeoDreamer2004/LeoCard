@@ -1,5 +1,6 @@
 use super::settlement::result_for_reference_points;
 use super::support::*;
+use crate::features::HandSettlement;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{ClientCommand, GameCommand, SeatId, ShengjiCommand, ShengjiPhaseView};
 use leocard_shengji::{
@@ -101,7 +102,7 @@ fn six_player_lobby_deals_private_hands_and_settles_every_participant() {
             PlayerId(index as u8)
         );
     }
-    session.apply_finished_reference_points(&result_for_reference_points(false, 1, 120));
+    session.commit_hand(&result_for_reference_points(false, 1, 120));
     let changes = session
         .statistics
         .hand

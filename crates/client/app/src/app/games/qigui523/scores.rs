@@ -9,12 +9,11 @@ use crate::app::runtime::UiAssets;
 use crate::app::shell::{PlayerGameScoreText, ScoreCaptureEffectState, displayed_captured_score};
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
+use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_protocol::QiGui523PlayerView;
 use leocard_qigui523::QiGuiCard;
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 #[derive(Component)]
 pub(super) struct OwnScoreDetail(pub Entity);

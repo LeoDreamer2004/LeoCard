@@ -1,5 +1,6 @@
 use super::graph::started_session_with_graph;
 use super::support::send;
+use crate::features::MatchSettlement;
 use leocard_mc_guess::McGuessGraphRules;
 use leocard_protocol::{ClientCommand, GameEvent, McGuessCommand, McGuessEvent, ServerEvent};
 
@@ -109,7 +110,7 @@ fn completed_graph_merges_node_statistics_into_existing_archives_once() {
         old.categories.get(answer.kind).wins + 1
     );
     let settled = archive.clone();
-    session.settle_match();
+    session.commit_match(&());
     assert_eq!(
         session
             .room

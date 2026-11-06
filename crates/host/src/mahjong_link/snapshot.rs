@@ -1,9 +1,12 @@
 use super::MahjongLinkSession;
+use crate::features::GameSnapshotView;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{MahjongLinkPlayerView, MahjongLinkSnapshot};
 
-impl MahjongLinkSession {
-    pub(super) fn snapshot_for(&self, recipient: PlayerId) -> MahjongLinkSnapshot {
+impl GameSnapshotView for MahjongLinkSession {
+    type Snapshot = MahjongLinkSnapshot;
+
+    fn game_view(&self, recipient: PlayerId) -> Self::Snapshot {
         let game = self.game.as_ref().expect("active mahjong link game");
         MahjongLinkSnapshot {
             match_id: self.match_id.expect("active match"),

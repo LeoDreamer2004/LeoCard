@@ -5,6 +5,7 @@ mod assets;
 mod audio;
 mod card_paths;
 mod cards;
+mod catalog;
 mod controls;
 mod drag;
 mod hand;
@@ -32,14 +33,13 @@ pub(crate) use interaction::*;
 pub(crate) use jump_in_device::UnoJumpInDevice;
 pub(crate) use lobby::*;
 pub(crate) use material::*;
+use modal::advance_uno_modal;
 use players::*;
 pub(crate) use plugin::*;
 pub(crate) use presentation::*;
 use settlement::*;
 pub(crate) use state::*;
 pub(crate) use view::*;
-
-use modal::advance_uno_modal;
 
 pub(crate) use card_paths::uno_card_asset_path;
 

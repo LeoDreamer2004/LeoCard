@@ -1,9 +1,8 @@
 use super::{ShengjiPresentationKind, ShengjiPresentationRoute};
 use crate::app::presentation::{TableSeatAnchors, TableSeats};
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::ShengjiSnapshot;
-
-use bevy::prelude::*;
 
 fn shengji_relative_seat(game: &ShengjiSnapshot, player: PlayerId) -> Option<u8> {
     let seat_count = game.rules.player_count();

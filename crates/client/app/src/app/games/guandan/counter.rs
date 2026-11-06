@@ -1,7 +1,9 @@
 use super::actions::GuandanUiAction;
 use super::state::GuandanUiState;
+use crate::app::games::{CardCounter, CounterRows};
 use crate::app::presentation::{
-    ACCENT, CardCounterCell, TEXT, add_card_counter_window, add_switch_drawer,
+    ACCENT, CardCounterCell, CardCounterWindowState, TEXT, add_card_counter_window,
+    add_switch_drawer,
 };
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{UiAction, UiState};
@@ -42,7 +44,7 @@ pub(super) fn render(
     ui: &GuandanUiState,
     assets: &UiAssets,
 ) {
-    if !ui.counter.active {
+    if !ui.counter_window().active {
         return;
     }
     let drawer = add_switch_drawer(
@@ -77,61 +79,69 @@ pub(super) fn render(
     add_card_counter_window::<GuandanUiState>(
         commands,
         viewport,
-        &ui.counter,
-        rows(game, assets),
+        ui.counter_window(),
+        ui.counter_rows(game, assets),
         assets,
     );
 }
 
-fn rows(game: &GuandanSnapshot, assets: &UiAssets) -> [[Option<CardCounterCell>; 14]; 4] {
-    let known: HashSet<_> = game
-        .your_hand
-        .iter()
-        .chain(&game.played_cards)
-        .copied()
-        .collect();
-    [
-        GuandanSuit::Spades,
-        GuandanSuit::Hearts,
-        GuandanSuit::Clubs,
-        GuandanSuit::Diamonds,
-    ]
-    .map(|suit| {
-        array::from_fn(|column| {
-            let card = if column == 0 {
-                match suit {
-                    GuandanSuit::Spades => GuandanCard {
-                        deck: 0,
-                        suit: GuandanSuit::Joker,
-                        rank: 17,
-                    },
-                    GuandanSuit::Hearts => GuandanCard {
-                        deck: 0,
-                        suit: GuandanSuit::Joker,
-                        rank: 16,
-                    },
-                    _ => return None,
-                }
-            } else {
-                GuandanCard {
-                    deck: 0,
-                    suit,
-                    rank: 15 - column as u8,
-                }
-            };
-            let count = known
-                .iter()
-                .filter(|known| known.suit == card.suit && known.rank == card.rank)
-                .count() as u8;
-            Some(CardCounterCell {
-                image: assets.playing_cards.face(card),
-                remaining: 2_u8.saturating_sub(count),
-                color: if card.rank == game.level {
-                    ACCENT
+impl CardCounter for GuandanUiState {
+    type Context = GuandanSnapshot;
+
+    fn counter_window(&self) -> &CardCounterWindowState {
+        &self.counter
+    }
+
+    fn counter_rows(&self, game: &Self::Context, assets: &UiAssets) -> CounterRows {
+        let known: HashSet<_> = game
+            .your_hand
+            .iter()
+            .chain(&game.played_cards)
+            .copied()
+            .collect();
+        [
+            GuandanSuit::Spades,
+            GuandanSuit::Hearts,
+            GuandanSuit::Clubs,
+            GuandanSuit::Diamonds,
+        ]
+        .map(|suit| {
+            array::from_fn(|column| {
+                let card = if column == 0 {
+                    match suit {
+                        GuandanSuit::Spades => GuandanCard {
+                            deck: 0,
+                            suit: GuandanSuit::Joker,
+                            rank: 17,
+                        },
+                        GuandanSuit::Hearts => GuandanCard {
+                            deck: 0,
+                            suit: GuandanSuit::Joker,
+                            rank: 16,
+                        },
+                        _ => return None,
+                    }
                 } else {
-                    TEXT
-                },
+                    GuandanCard {
+                        deck: 0,
+                        suit,
+                        rank: 15 - column as u8,
+                    }
+                };
+                let count = known
+                    .iter()
+                    .filter(|known| known.suit == card.suit && known.rank == card.rank)
+                    .count() as u8;
+                Some(CardCounterCell {
+                    image: assets.playing_cards.face(card),
+                    remaining: 2_u8.saturating_sub(count),
+                    color: if card.rank == game.level {
+                        ACCENT
+                    } else {
+                        TEXT
+                    },
+                })
             })
         })
-    })
+    }
 }

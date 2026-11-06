@@ -1,4 +1,5 @@
 use crate::action_timing::attach_action_timing;
+use crate::features::GameAutomation;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
 use leocard_game_common::PlayerId;
@@ -134,6 +135,46 @@ impl MahjongLinkSession {
         attach_action_timing(self, deliveries)
     }
 
+    pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
+        if self.room.disconnect_spectator(connection) {
+            return Vec::new();
+        }
+        let Some(player) = self
+            .room
+            .players
+            .iter_mut()
+            .find(|player| player.connection == connection && !player.left)
+        else {
+            return Vec::new();
+        };
+        player.connected = false;
+        if self.game.is_none() {
+            player.left = true;
+            player.seat = None;
+        }
+        self.room.bump_revision();
+        if self.room.host_connection == Some(connection) {
+            self.room.closed = true;
+            return self.room.broadcast_event(None, ServerEvent::RoomClosed);
+        }
+        if self.game.is_some() {
+            self.broadcast_game(None)
+        } else {
+            self.broadcast_lobby(None)
+        }
+    }
+
+    pub(super) fn reject(
+        &self,
+        connection: ConnectionId,
+        request: RequestId,
+        reason: RejectReason,
+    ) -> Vec<Delivery> {
+        self.room.reject(connection, request, reason)
+    }
+}
+
+impl GameAutomation for MahjongLinkSession {
     fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         if elapsed.is_zero() || self.room.closed {
             return Vec::new();
@@ -178,43 +219,5 @@ impl MahjongLinkSession {
             .expect("legal automatic action");
         deliveries.extend(self.broadcast_game(None));
         deliveries
-    }
-
-    pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
-        if self.room.disconnect_spectator(connection) {
-            return Vec::new();
-        }
-        let Some(player) = self
-            .room
-            .players
-            .iter_mut()
-            .find(|player| player.connection == connection && !player.left)
-        else {
-            return Vec::new();
-        };
-        player.connected = false;
-        if self.game.is_none() {
-            player.left = true;
-            player.seat = None;
-        }
-        self.room.bump_revision();
-        if self.room.host_connection == Some(connection) {
-            self.room.closed = true;
-            return self.room.broadcast_event(None, ServerEvent::RoomClosed);
-        }
-        if self.game.is_some() {
-            self.broadcast_game(None)
-        } else {
-            self.broadcast_lobby(None)
-        }
-    }
-
-    pub(super) fn reject(
-        &self,
-        connection: ConnectionId,
-        request: RequestId,
-        reason: RejectReason,
-    ) -> Vec<Delivery> {
-        self.room.reject(connection, request, reason)
     }
 }

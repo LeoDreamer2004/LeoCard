@@ -4,11 +4,10 @@ use super::{MahjongAutomaticActionKey, MahjongUiAction, MahjongUiState};
 use crate::app::presentation::add_switch_drawer;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{UiAction, game_command};
+use bevy::prelude::*;
 use leocard_mahjong::{MahjongClaim, MahjongClaimOption};
 use leocard_protocol::{GameSnapshot, MahjongCommand, MahjongPhaseView, MahjongSnapshot};
 use leocard_ui::{DrawerSwitch, SwitchDrawer, UiComposer};
-
-use bevy::prelude::*;
 
 pub(super) fn render_mahjong_auto_drawer(
     commands: &mut UiComposer,

@@ -1,6 +1,7 @@
 use super::super::*;
 use super::*;
 use crate::ConnectionId;
+use crate::features::MatchSettlement;
 use leocard_protocol::{ClientCommand, RejectReason, RoomViolation, ServerEvent};
 #[cfg(test)]
 use leocard_uno::build_deck;
@@ -53,8 +54,8 @@ fn finished_game_merges_uno_profile_statistics_once() {
             UnoPhase::Playing => panic!("automatic play did not finish the game"),
         };
 
-        session.apply_finished_reference_points();
-        session.apply_finished_reference_points();
+        session.commit_match(&());
+        session.commit_match(&());
 
         for (index, participant) in session.room.players.iter().enumerate() {
             let stats = participant.game_profiles.uno.as_ref().unwrap();

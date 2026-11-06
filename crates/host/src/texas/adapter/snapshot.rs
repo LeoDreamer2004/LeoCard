@@ -31,14 +31,14 @@ impl TexasAdapter {
 
     pub fn snapshot(&self, recipient: PlayerId) -> Result<TexasSnapshot, AdapterError> {
         let index = self.player_index(recipient)?;
-        Ok(self.snapshot_for(recipient, Some(index)))
+        Ok(self.build_snapshot(recipient, Some(index)))
     }
 
     pub(in super::super) fn spectator_snapshot(&self, recipient: PlayerId) -> TexasSnapshot {
-        self.snapshot_for(recipient, None)
+        self.build_snapshot(recipient, None)
     }
 
-    fn snapshot_for(&self, recipient: PlayerId, recipient_index: Option<usize>) -> TexasSnapshot {
+    fn build_snapshot(&self, recipient: PlayerId, recipient_index: Option<usize>) -> TexasSnapshot {
         let recipient_core = recipient_index.map(PlayerId::from_index);
         let revealed_hands = self.revealed_hands();
         let players = self

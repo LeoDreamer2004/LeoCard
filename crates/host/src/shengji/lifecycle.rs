@@ -5,13 +5,14 @@ use super::{
     THROW_FAILURE_RETURN_DURATION, shuffled_deck, validate_deck,
 };
 use crate::action_timing::attach_action_timing;
+use crate::features::GameAutomation;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerViolation,
-    RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent, ShengjiCommand,
-    ShengjiEvent, ShengjiPublicPlay, ShengjiThrowFailureStage,
+    ClientMessage, GameKind, GameRules, GameViolation, PlayerViolation, RejectReason, RequestId,
+    Revision, RoomId, RoomViolation, ServerEvent, ShengjiEvent, ShengjiPublicPlay,
+    ShengjiThrowFailureStage,
 };
 use leocard_shengji::{
     ShengjiActionOutcome, ShengjiBottomCopyState, ShengjiCard, ShengjiGameError, ShengjiGameState,
@@ -82,38 +83,6 @@ impl ShengjiSession {
         let deliveries = self.advance_game_time(elapsed);
         self.refresh_action_timing();
         attach_action_timing(self, deliveries)
-    }
-
-    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
-        if elapsed.is_zero() || self.game.is_none() {
-            return Vec::new();
-        }
-        if self.flow.redeal_remaining.is_some() {
-            return self.advance_redeal(elapsed);
-        }
-        if self.flow.bottom_flip_remaining.is_some() {
-            return self.advance_bottom_flip(elapsed);
-        }
-        if self.presentation.throw_failure.is_some() {
-            return self.advance_throw_failure(elapsed);
-        }
-        if self.presentation.trick.is_some() {
-            return self.advance_trick_hold(elapsed);
-        }
-        let phase = self.game.as_ref().map(|game| game.phase().clone());
-        match phase {
-            Some(ShengjiPhase::Dealing) => self.advance_dealing(elapsed),
-            Some(ShengjiPhase::BiddingGrace) => self.advance_bidding(elapsed),
-            Some(ShengjiPhase::BottomFlipping) => self.advance_bottom_flip(elapsed),
-            Some(ShengjiPhase::BottomCopying) => self.advance_bottom_copy(elapsed),
-            Some(
-                ShengjiPhase::Burying
-                | ShengjiPhase::BottomCopyBurying
-                | ShengjiPhase::FiveTrumpCrossing
-                | ShengjiPhase::Playing,
-            ) => self.advance_automatic_action(elapsed),
-            Some(ShengjiPhase::Finished(_) | ShengjiPhase::RedealRequired(_)) | None => Vec::new(),
-        }
     }
 
     fn advance_throw_failure(&mut self, elapsed: Duration) -> Vec<Delivery> {
@@ -529,42 +498,6 @@ impl HostedGameLifecycle for ShengjiSession {
         self.rules.into()
     }
 
-    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
-        ShengjiSession::game_snapshot(self, recipient).into()
-    }
-
-    fn handle_game_command(
-        &mut self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        command: GameCommand,
-    ) -> Result<Vec<Delivery>, GameKind> {
-        let GameCommand::Shengji(command) = command else {
-            return Err(command.kind());
-        };
-        Ok(match command {
-            ShengjiCommand::SetAutoPlay { enabled } => {
-                self.set_auto_play(connection, request_id, enabled)
-            }
-            ShengjiCommand::UpdateRules { rules } => {
-                self.update_rules(connection, request_id, rules)
-            }
-            ShengjiCommand::Declare { cards } => self.declare(connection, request_id, cards),
-            ShengjiCommand::ConfirmBidPass => self.confirm_bid_pass(connection, request_id),
-            ShengjiCommand::Bury { cards } => self.bury(connection, request_id, cards),
-            ShengjiCommand::ChooseBottomCopy { cards } => {
-                self.choose_bottom_copy(connection, request_id, cards)
-            }
-            ShengjiCommand::ChooseFiveTrumpCrossing { cards } => {
-                self.choose_five_trump_crossing(connection, request_id, cards)
-            }
-            ShengjiCommand::ReturnFiveTrumpCrossing { cards } => {
-                self.return_five_trump_crossing(connection, request_id, cards)
-            }
-            ShengjiCommand::PlayCards { cards } => self.play_cards(connection, request_id, cards),
-        })
-    }
-
     fn start_game(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
         if self.room.player_id(connection).is_none() {
             return self.room.reject(
@@ -777,5 +710,39 @@ impl HostedGameLifecycle for ShengjiSession {
             self.broadcast_lobby(None)
         });
         deliveries
+    }
+}
+
+impl GameAutomation for ShengjiSession {
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        if elapsed.is_zero() || self.game.is_none() {
+            return Vec::new();
+        }
+        if self.flow.redeal_remaining.is_some() {
+            return self.advance_redeal(elapsed);
+        }
+        if self.flow.bottom_flip_remaining.is_some() {
+            return self.advance_bottom_flip(elapsed);
+        }
+        if self.presentation.throw_failure.is_some() {
+            return self.advance_throw_failure(elapsed);
+        }
+        if self.presentation.trick.is_some() {
+            return self.advance_trick_hold(elapsed);
+        }
+        let phase = self.game.as_ref().map(|game| game.phase().clone());
+        match phase {
+            Some(ShengjiPhase::Dealing) => self.advance_dealing(elapsed),
+            Some(ShengjiPhase::BiddingGrace) => self.advance_bidding(elapsed),
+            Some(ShengjiPhase::BottomFlipping) => self.advance_bottom_flip(elapsed),
+            Some(ShengjiPhase::BottomCopying) => self.advance_bottom_copy(elapsed),
+            Some(
+                ShengjiPhase::Burying
+                | ShengjiPhase::BottomCopyBurying
+                | ShengjiPhase::FiveTrumpCrossing
+                | ShengjiPhase::Playing,
+            ) => self.advance_automatic_action(elapsed),
+            Some(ShengjiPhase::Finished(_) | ShengjiPhase::RedealRequired(_)) | None => Vec::new(),
+        }
     }
 }

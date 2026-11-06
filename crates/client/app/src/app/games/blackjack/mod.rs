@@ -2,6 +2,7 @@ mod actions;
 mod areas;
 mod card_face;
 mod cards;
+mod catalog;
 mod chips;
 mod controls;
 mod dealer;
@@ -21,8 +22,6 @@ pub(crate) use actions::BlackjackUiAction;
 pub(crate) use lobby::render_blackjack_lobby;
 pub(crate) use playback::BlackjackPlayback;
 pub(crate) use plugin::BlackjackPlugin;
-pub(crate) use state::{BlackjackUiState, only_blackjack_timer_changed};
-pub(crate) use summary::blackjack_summary_descriptor;
-pub(crate) use view::{BlackjackTable, render_blackjack_table};
-
 pub(super) use screen::BlackjackScreen;
+pub(crate) use state::BlackjackUiState;
+pub(crate) use view::{BlackjackTable, render_blackjack_table};

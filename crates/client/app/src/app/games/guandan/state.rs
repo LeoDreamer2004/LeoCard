@@ -1,3 +1,4 @@
+use crate::app::games::HandSelection;
 use crate::app::presentation::{CardAnimationState, CardCounterWindowState};
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
@@ -160,5 +161,17 @@ pub(super) fn tribute_choice(game: &GuandanSnapshot, card: GuandanCard) -> Optio
             can_return_tribute(&game.your_hand, card, game.received_tribute?, game.level)
                 .then_some(GuandanAction::ReturnTribute(card))
         }
+    }
+}
+
+impl HandSelection for GuandanUiState {
+    type Card = GuandanCard;
+
+    fn selected_cards(&self) -> &HashSet<Self::Card> {
+        &self.selected
+    }
+
+    fn selected_cards_mut(&mut self) -> &mut HashSet<Self::Card> {
+        &mut self.selected
     }
 }

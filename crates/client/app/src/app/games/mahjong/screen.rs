@@ -5,53 +5,26 @@ use super::{
     MahjongAssets, MahjongClaimPresentationState, MahjongFanCalculator, MahjongTableVisuals,
     MahjongUiState, render_mahjong_lobby, render_mahjong_table,
 };
+use crate::app::games::{GameActionPrompt, GameUiLifecycle};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::SocialUiState;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
-use leocard_protocol::{GameSnapshot, LobbySnapshot, MahjongSnapshot};
+use leocard_mahjong::MahjongClaimOption;
+use leocard_protocol::{GameSnapshot, LobbySnapshot, MahjongPhaseView, MahjongSnapshot};
 use leocard_ui::UiComposer;
 
 #[derive(SystemParam)]
 pub(crate) struct MahjongScreen<'w> {
     assets: Res<'w, MahjongAssets>,
-    ui: ResMut<'w, MahjongUiState>,
+    pub(super) ui: ResMut<'w, MahjongUiState>,
     fan_calculator: Res<'w, MahjongFanCalculator>,
     claim_presentation: Res<'w, MahjongClaimPresentationState>,
 }
 
 impl GameScreen for MahjongScreen<'_> {
     type Snapshot = MahjongSnapshot;
-
-    fn requires_action(&self, game: &Self::Snapshot) -> bool {
-        use leocard_mahjong::MahjongClaimOption;
-        use leocard_protocol::MahjongPhaseView;
-        let no_claim = self.ui.no_claim;
-        if !game
-            .players
-            .iter()
-            .any(|player| player.player.id == game.you && player.connected && !player.auto_play)
-        {
-            return false;
-        }
-        if let Some(claim) = &game.pending_claim {
-            return claim.your_response.is_none()
-                && claim
-                    .your_options
-                    .iter()
-                    .any(|option| !no_claim || *option == MahjongClaimOption::Win);
-        }
-        // 普通摸牌后的出牌同样需要操作，不限于显示吃碰杠／和按钮的时候。
-        matches!(game.phase, MahjongPhaseView::Playing) && game.current_player == game.you
-    }
-
-    fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
-        match client.map(|client| client.0.model().phase()) {
-            Some(ClientPhaseRef::Playing(GameSnapshot::Mahjong(game))) => self.ui.reconcile(game),
-            _ => self.ui.clear(),
-        }
-    }
 
     fn render_lobby(
         &self,
@@ -116,5 +89,36 @@ impl GameScreen for MahjongScreen<'_> {
                 show_wait_fans: self.fan_calculator.active,
             },
         );
+    }
+}
+
+impl GameActionPrompt for MahjongScreen<'_> {
+    fn requires_action(&self, game: &Self::Snapshot) -> bool {
+        let no_claim = self.ui.no_claim;
+        if !game
+            .players
+            .iter()
+            .any(|player| player.player.id == game.you && player.connected && !player.auto_play)
+        {
+            return false;
+        }
+        if let Some(claim) = &game.pending_claim {
+            return claim.your_response.is_none()
+                && claim
+                    .your_options
+                    .iter()
+                    .any(|option| !no_claim || *option == MahjongClaimOption::Win);
+        }
+        // 普通摸牌后的出牌同样需要操作，不限于显示吃碰杠／和按钮的时候。
+        matches!(game.phase, MahjongPhaseView::Playing) && game.current_player == game.you
+    }
+}
+
+impl GameUiLifecycle for MahjongScreen<'_> {
+    fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
+        match client.map(|client| client.0.model().phase()) {
+            Some(ClientPhaseRef::Playing(GameSnapshot::Mahjong(game))) => self.ui.reconcile(game),
+            _ => self.ui.clear(),
+        }
     }
 }

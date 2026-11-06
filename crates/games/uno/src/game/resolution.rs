@@ -1,8 +1,7 @@
+use super::{UnoGameResult, UnoGameState, UnoPhase, UnoPlayerState};
 use crate::rating::{placements_with_eliminations, reference_point_deltas_for_placements};
 use crate::{UnoCard, UnoFace};
 use leocard_game_common::PlayerId;
-
-use super::{UnoGameResult, UnoGameState, UnoPhase, UnoPlayerState};
 
 impl UnoGameState {
     pub(super) fn finalize_play(

@@ -15,10 +15,9 @@ use crate::app::presentation::{
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{LobbyUiAction, UiAction};
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 pub(super) fn settlement_row_texture(assets: &UiAssets) -> ImageNode {
     let mut texture = ImageNode::new(assets.home.game_card.clone()).with_mode(

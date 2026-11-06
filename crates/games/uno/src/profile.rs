@@ -1,7 +1,9 @@
 //! Long-term statistics owned by this game. Field order is part of the saved profile format.
 
 use crate::UnoRuleSet;
-use leocard_game_common::ActionTimeStats;
+use leocard_game_common::{
+    ActionTimeProfile, ActionTimeStats, GameCountStats, PlacementStats, ReferenceStats, ResultScope,
+};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
@@ -25,4 +27,48 @@ pub struct UnoProfileStats {
     pub jump_in_opportunities: u32,
     pub successful_jump_ins: u32,
     pub action_time: ActionTimeStats,
+}
+
+impl ActionTimeProfile for UnoProfileStats {
+    fn action_time_stats(&self) -> &ActionTimeStats {
+        &self.action_time
+    }
+
+    fn action_time_stats_mut(&mut self) -> &mut ActionTimeStats {
+        &mut self.action_time
+    }
+}
+
+impl GameCountStats for UnoProfileStats {
+    const COMPLETION_SCOPE: ResultScope = ResultScope::Match;
+
+    fn completed_games(&self) -> u32 {
+        self.completed_games
+    }
+
+    fn completed_games_mut(&mut self) -> &mut u32 {
+        &mut self.completed_games
+    }
+}
+
+impl ReferenceStats for UnoProfileStats {
+    fn total_reference_delta(&self) -> i64 {
+        self.total_reference_delta
+    }
+
+    fn total_reference_delta_mut(&mut self) -> &mut i64 {
+        &mut self.total_reference_delta
+    }
+}
+
+impl PlacementStats for UnoProfileStats {
+    const PLACEMENT_SCOPE: ResultScope = ResultScope::Match;
+
+    fn placement_counts(&self) -> &[u32] {
+        &self.placement_counts
+    }
+
+    fn placement_counts_mut(&mut self) -> &mut [u32] {
+        &mut self.placement_counts
+    }
 }

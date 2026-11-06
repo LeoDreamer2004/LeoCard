@@ -3,6 +3,7 @@ use super::{
     validate_deck,
 };
 use crate::action_timing::attach_action_timing;
+use crate::features::GameAutomation;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
@@ -13,8 +14,8 @@ use leocard_mahjong::{
     MahjongActionOutcome, MahjongGameState, MahjongPhase, MahjongRuleSet, MahjongTile,
 };
 use leocard_protocol::{
-    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, MahjongEvent,
-    PlayerViolation, RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
+    ClientMessage, GameKind, GameRules, GameViolation, MahjongEvent, PlayerViolation, RejectReason,
+    RequestId, Revision, RoomId, RoomViolation, ServerEvent,
 };
 use std::time::Duration;
 
@@ -81,105 +82,6 @@ impl MahjongSession {
         attach_action_timing(self, deliveries)
     }
 
-    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
-        if elapsed.is_zero() || self.game.is_none() {
-            return Vec::new();
-        }
-        if self.game.as_ref().is_some_and(|game| {
-            matches!(
-                game.phase(),
-                MahjongPhase::Dealing { .. } | MahjongPhase::ReplacingFlower { .. }
-            )
-        }) {
-            if elapsed < self.deal_delay {
-                self.deal_delay -= elapsed;
-                return Vec::new();
-            }
-            self.deal_delay = MAHJONG_DEAL_INTERVAL;
-            let game = self.game.as_mut().expect("checked Mahjong game exists");
-            let flower_counts = game
-                .players()
-                .iter()
-                .map(|player| player.flowers().len())
-                .collect::<Vec<_>>();
-            let advanced = match game.phase() {
-                MahjongPhase::Dealing { .. } => game.advance_deal().map(|_| ()),
-                MahjongPhase::ReplacingFlower { .. } => {
-                    game.advance_flower_replacement().map(|_| ())
-                }
-                _ => unreachable!("checked timed Mahjong phase"),
-            };
-            if advanced.is_err() {
-                return Vec::new();
-            }
-            let replaced = game
-                .players()
-                .iter()
-                .enumerate()
-                .find(|(index, player)| player.flowers().len() > flower_counts[*index])
-                .map(|(index, _)| PlayerId(index as u8));
-            let mut events = replaced
-                .map(|player| MahjongEvent::FlowerReplaced { player })
-                .into_iter()
-                .collect::<Vec<_>>();
-            if let MahjongPhase::Finished(result) = game.phase() {
-                events.extend(events_for_outcome(&MahjongActionOutcome::HandFinished(
-                    result.clone(),
-                )));
-                self.room.prepare_rematch();
-            }
-            self.record_statistics(&events);
-            self.room.bump_revision();
-            let mut deliveries = self.broadcast_events(events);
-            deliveries.extend(self.broadcast_game(None));
-            return deliveries;
-        }
-        let Some(player) = self.current_automatic_player() else {
-            self.automatic_action_delay = None;
-            self.bot_decision.clear();
-            return Vec::new();
-        };
-        let delay = self
-            .automatic_action_delay
-            .get_or_insert(AutomaticActionDelayState {
-                player,
-                remaining: AUTOMATIC_ACTION_DELAY,
-            });
-        if delay.player != player {
-            *delay = AutomaticActionDelayState {
-                player,
-                remaining: AUTOMATIC_ACTION_DELAY,
-            };
-        }
-        if elapsed < delay.remaining {
-            delay.remaining -= elapsed;
-            return Vec::new();
-        }
-        delay.remaining = Duration::ZERO;
-        let Some((mut events, outcome)) = self.play_automatic_action(player) else {
-            return Vec::new();
-        };
-        self.automatic_action_delay = None;
-        if matches!(
-            self.game.as_ref().map(MahjongGameState::phase),
-            Some(MahjongPhase::Finished(_))
-        ) {
-            self.room.prepare_rematch();
-        }
-        if matches!(
-            self.game.as_ref().map(MahjongGameState::phase),
-            Some(MahjongPhase::ReplacingFlower { .. })
-        ) {
-            self.deal_delay = MAHJONG_DEAL_INTERVAL;
-        }
-        self.room.bump_revision();
-        events.extend(events_for_outcome(&outcome));
-        self.record_statistics(&events);
-        let mut deliveries = self.broadcast_events(events);
-        deliveries.extend(self.broadcast_game(None));
-        deliveries
-    }
-
     pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
         if self.room.disconnect_spectator(connection) {
             return Vec::new();
@@ -236,24 +138,6 @@ impl HostedGameLifecycle for MahjongSession {
 
     fn game_rules(&self) -> GameRules {
         self.rules.into()
-    }
-
-    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
-        MahjongSession::game_snapshot(self, recipient).into()
-    }
-
-    fn handle_game_command(
-        &mut self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        command: GameCommand,
-    ) -> Result<Vec<Delivery>, GameKind> {
-        let GameCommand::Mahjong(command) = command else {
-            return Err(command.kind());
-        };
-        Ok(MahjongSession::handle_game_command(
-            self, connection, request_id, command,
-        ))
     }
 
     fn start_game(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
@@ -459,6 +343,107 @@ impl HostedGameLifecycle for MahjongSession {
         } else {
             self.broadcast_lobby(None)
         });
+        deliveries
+    }
+}
+
+impl GameAutomation for MahjongSession {
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        if elapsed.is_zero() || self.game.is_none() {
+            return Vec::new();
+        }
+        if self.game.as_ref().is_some_and(|game| {
+            matches!(
+                game.phase(),
+                MahjongPhase::Dealing { .. } | MahjongPhase::ReplacingFlower { .. }
+            )
+        }) {
+            if elapsed < self.deal_delay {
+                self.deal_delay -= elapsed;
+                return Vec::new();
+            }
+            self.deal_delay = MAHJONG_DEAL_INTERVAL;
+            let game = self.game.as_mut().expect("checked Mahjong game exists");
+            let flower_counts = game
+                .players()
+                .iter()
+                .map(|player| player.flowers().len())
+                .collect::<Vec<_>>();
+            let advanced = match game.phase() {
+                MahjongPhase::Dealing { .. } => game.advance_deal().map(|_| ()),
+                MahjongPhase::ReplacingFlower { .. } => {
+                    game.advance_flower_replacement().map(|_| ())
+                }
+                _ => unreachable!("checked timed Mahjong phase"),
+            };
+            if advanced.is_err() {
+                return Vec::new();
+            }
+            let replaced = game
+                .players()
+                .iter()
+                .enumerate()
+                .find(|(index, player)| player.flowers().len() > flower_counts[*index])
+                .map(|(index, _)| PlayerId(index as u8));
+            let mut events = replaced
+                .map(|player| MahjongEvent::FlowerReplaced { player })
+                .into_iter()
+                .collect::<Vec<_>>();
+            if let MahjongPhase::Finished(result) = game.phase() {
+                events.extend(events_for_outcome(&MahjongActionOutcome::HandFinished(
+                    result.clone(),
+                )));
+                self.room.prepare_rematch();
+            }
+            self.record_statistics(&events);
+            self.room.bump_revision();
+            let mut deliveries = self.broadcast_events(events);
+            deliveries.extend(self.broadcast_game(None));
+            return deliveries;
+        }
+        let Some(player) = self.current_automatic_player() else {
+            self.automatic_action_delay = None;
+            self.bot_decision.clear();
+            return Vec::new();
+        };
+        let delay = self
+            .automatic_action_delay
+            .get_or_insert(AutomaticActionDelayState {
+                player,
+                remaining: AUTOMATIC_ACTION_DELAY,
+            });
+        if delay.player != player {
+            *delay = AutomaticActionDelayState {
+                player,
+                remaining: AUTOMATIC_ACTION_DELAY,
+            };
+        }
+        if elapsed < delay.remaining {
+            delay.remaining -= elapsed;
+            return Vec::new();
+        }
+        delay.remaining = Duration::ZERO;
+        let Some((mut events, outcome)) = self.play_automatic_action(player) else {
+            return Vec::new();
+        };
+        self.automatic_action_delay = None;
+        if matches!(
+            self.game.as_ref().map(MahjongGameState::phase),
+            Some(MahjongPhase::Finished(_))
+        ) {
+            self.room.prepare_rematch();
+        }
+        if matches!(
+            self.game.as_ref().map(MahjongGameState::phase),
+            Some(MahjongPhase::ReplacingFlower { .. })
+        ) {
+            self.deal_delay = MAHJONG_DEAL_INTERVAL;
+        }
+        self.room.bump_revision();
+        events.extend(events_for_outcome(&outcome));
+        self.record_statistics(&events);
+        let mut deliveries = self.broadcast_events(events);
+        deliveries.extend(self.broadcast_game(None));
         deliveries
     }
 }

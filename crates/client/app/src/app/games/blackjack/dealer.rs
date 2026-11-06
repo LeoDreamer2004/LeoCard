@@ -7,10 +7,9 @@ use crate::app::presentation::{
     add_table_status,
 };
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_blackjack::BlackjackHandValue;
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 impl BlackjackTable<'_> {
     pub(super) fn dealer(&self, commands: &mut UiComposer, table: Entity) -> Entity {

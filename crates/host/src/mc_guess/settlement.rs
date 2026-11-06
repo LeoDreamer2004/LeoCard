@@ -1,8 +1,11 @@
 use super::McGuessSession;
+use crate::features::MatchSettlement;
 use leocard_mc_guess::{McGuessMode, McGuessProfileStats, reference_point_deltas};
 
-impl McGuessSession {
-    pub(super) fn settle_match(&mut self) {
+impl MatchSettlement for McGuessSession {
+    type Outcome = ();
+
+    fn commit_match(&mut self, _outcome: &Self::Outcome) {
         let state = self.match_state.as_ref().expect("active match");
         if !state.progress().is_last_game()
             || !self.game.as_ref().is_some_and(|game| game.finished())

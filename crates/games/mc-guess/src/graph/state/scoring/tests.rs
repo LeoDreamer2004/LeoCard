@@ -5,6 +5,7 @@ use crate::{
     McGuessAttributeFeedback, McGuessCatalogue, McGuessEntryKind, McGuessGraphGuessRecord,
     McGuessGraphRelation, McGuessGraphRules, McGuessMatchQuality, McGuessRecord, McGuessResult,
 };
+use McGuessMatchQuality::{Exact, Partial, Wrong};
 use leocard_game_common::PlayerId;
 use std::collections::HashSet;
 
@@ -51,8 +52,6 @@ fn combo_discount_recovers_at_six_and_caps_at_eight() {
 
 #[test]
 fn participation_counts_only_exact_attributes_and_handles_empty_or_unknown_entries() {
-    use McGuessMatchQuality::{Exact, Partial, Wrong};
-
     let game =
         McGuessGraphGame::pending(vec![PlayerId(0), PlayerId(1)], McGuessGraphRules::default());
     for (qualities, expected) in [

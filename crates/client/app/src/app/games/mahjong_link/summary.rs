@@ -1,4 +1,5 @@
-use crate::app::games::GameTableContext;
+use super::screen::MahjongLinkScreen;
+use crate::app::games::{GameSummary, GameTableContext};
 use crate::app::presentation::{
     PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, SummaryRows,
     add_ranked_summary,
@@ -7,20 +8,6 @@ use crate::app::shell::{SummaryActions, add_summary_actions};
 use bevy::prelude::*;
 use leocard_protocol::{MahjongLinkSnapshot, PlayerScore};
 use leocard_ui::UiComposer;
-
-pub(crate) fn descriptor(game: &MahjongLinkSnapshot) -> Option<SummaryDescriptor> {
-    game.match_complete.then(|| SummaryDescriptor {
-        match_id: game.match_id,
-        settlement_index: None,
-        entry_count: game.players.len(),
-        nonnegative_outcome: game
-            .players
-            .iter()
-            .find(|player| player.player.id == game.you)
-            .is_none_or(|own| game.players.iter().all(|player| player.score <= own.score)),
-        reveal_duration: 1.2,
-    })
-}
 
 pub(super) fn render(
     commands: &mut UiComposer,
@@ -94,4 +81,24 @@ pub(super) fn render(
         },
         context.assets,
     );
+}
+
+impl GameSummary for MahjongLinkScreen<'_> {
+    fn summary_descriptor(&self, game: &Self::Snapshot) -> Option<SummaryDescriptor> {
+        game.match_complete.then(|| SummaryDescriptor {
+            match_id: game.match_id,
+            settlement_index: None,
+            entry_count: game.players.len(),
+            nonnegative_outcome: game
+                .players
+                .iter()
+                .find(|player| player.player.id == game.you)
+                .is_none_or(|own| game.players.iter().all(|player| player.score <= own.score)),
+            reveal_duration: 1.2,
+        })
+    }
+
+    fn summary_pause(&self, _game: &Self::Snapshot) -> Option<f32> {
+        None
+    }
 }

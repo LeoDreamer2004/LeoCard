@@ -9,7 +9,6 @@ use leocard_protocol::{
 use leocard_texas_holdem::{TexasAction, TexasActionStatistics, TexasStreet};
 
 use super::*;
-
 use bevy::prelude::*;
 
 pub(in crate::app::games::texas) fn pot_test_snapshot(

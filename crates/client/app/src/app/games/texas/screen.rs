@@ -4,6 +4,7 @@ use super::super::{GameLobbyContext, GameScreen, GameTableContext};
 use super::{
     TexasChipTableState, TexasTableVisuals, TexasUiState, render_texas_lobby, render_texas_table,
 };
+use crate::app::games::{GameActionPrompt, GameUiLifecycle};
 use crate::app::presentation::TableCardMaterial;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::SocialUiState;
@@ -22,40 +23,6 @@ pub(crate) struct TexasScreen<'w> {
 
 impl GameScreen for TexasScreen<'_> {
     type Snapshot = TexasSnapshot;
-
-    fn requires_action(&self, game: &Self::Snapshot) -> bool {
-        let choosing = matches!(game.phase, TexasPhaseView::ChoosingRunout);
-        matches!(
-            game.phase,
-            TexasPhaseView::Betting { .. } | TexasPhaseView::ChoosingRunout
-        ) && game
-            .blind_to_post
-            .map_or(game.current_player == Some(game.you), |blind| {
-                blind.player == game.you
-            })
-            && game.players.iter().any(|player| {
-                player.player.id == game.you
-                    && player.connected
-                    && !player.auto_play
-                    && !player.folded
-                    && (choosing || !player.all_in)
-            })
-    }
-
-    fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
-        let Some(client) = client else {
-            self.ui.clear();
-            return;
-        };
-        let model = client.0.model();
-        match model.phase() {
-            ClientPhaseRef::Playing(GameSnapshot::Texas(game)) => {
-                self.ui
-                    .reconcile(game, model.latest_revision(), model.rejection_serial())
-            }
-            _ => self.ui.clear(),
-        }
-    }
 
     fn render_lobby(
         &self,
@@ -116,5 +83,43 @@ impl GameScreen for TexasScreen<'_> {
                 game_summary,
             },
         );
+    }
+}
+
+impl GameActionPrompt for TexasScreen<'_> {
+    fn requires_action(&self, game: &Self::Snapshot) -> bool {
+        let choosing = matches!(game.phase, TexasPhaseView::ChoosingRunout);
+        matches!(
+            game.phase,
+            TexasPhaseView::Betting { .. } | TexasPhaseView::ChoosingRunout
+        ) && game
+            .blind_to_post
+            .map_or(game.current_player == Some(game.you), |blind| {
+                blind.player == game.you
+            })
+            && game.players.iter().any(|player| {
+                player.player.id == game.you
+                    && player.connected
+                    && !player.auto_play
+                    && !player.folded
+                    && (choosing || !player.all_in)
+            })
+    }
+}
+
+impl GameUiLifecycle for TexasScreen<'_> {
+    fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
+        let Some(client) = client else {
+            self.ui.clear();
+            return;
+        };
+        let model = client.0.model();
+        match model.phase() {
+            ClientPhaseRef::Playing(GameSnapshot::Texas(game)) => {
+                self.ui
+                    .reconcile(game, model.latest_revision(), model.rejection_serial())
+            }
+            _ => self.ui.clear(),
+        }
     }
 }

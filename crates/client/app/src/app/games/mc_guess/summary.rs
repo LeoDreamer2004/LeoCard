@@ -1,31 +1,17 @@
+use super::screen::McGuessScreen;
 use super::view::GuessTable;
+use crate::app::games::GameSummary;
 use crate::app::presentation::{
     PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, SummaryRows,
     add_ranked_summary,
 };
 use crate::app::shell::{SummaryActions, add_summary_actions};
-use leocard_protocol::McGuessSnapshot;
-use leocard_ui::UiComposer;
-
 use bevy::prelude::*;
-
-pub(crate) fn guess_summary_descriptor(game: &McGuessSnapshot) -> Option<SummaryDescriptor> {
-    (game.round.finished() && game.progress.is_last_game()).then(|| SummaryDescriptor {
-        match_id: game.match_id,
-        settlement_index: None,
-        entry_count: game.scores.len(),
-        nonnegative_outcome: game
-            .reference_changes
-            .iter()
-            .find(|change| change.player == game.you)
-            .is_none_or(|change| change.delta >= 0),
-        reveal_duration: 1.5,
-    })
-}
+use leocard_ui::UiComposer;
 
 impl GuessTable<'_> {
     pub(super) fn summary(&self, commands: &mut UiComposer, page: Entity) {
-        if guess_summary_descriptor(self.game).is_none() {
+        if !self.game.round.finished() || !self.game.progress.is_last_game() {
             return;
         }
         let progress = self.game.progress;
@@ -85,5 +71,25 @@ impl GuessTable<'_> {
             },
             self.assets,
         );
+    }
+}
+
+impl GameSummary for McGuessScreen<'_> {
+    fn summary_descriptor(&self, game: &Self::Snapshot) -> Option<SummaryDescriptor> {
+        (game.round.finished() && game.progress.is_last_game()).then(|| SummaryDescriptor {
+            match_id: game.match_id,
+            settlement_index: None,
+            entry_count: game.scores.len(),
+            nonnegative_outcome: game
+                .reference_changes
+                .iter()
+                .find(|change| change.player == game.you)
+                .is_none_or(|change| change.delta >= 0),
+            reveal_duration: 1.5,
+        })
+    }
+
+    fn summary_pause(&self, _game: &Self::Snapshot) -> Option<f32> {
+        (self.scores.busy() || self.feedback.busy()).then_some(-0.01)
     }
 }

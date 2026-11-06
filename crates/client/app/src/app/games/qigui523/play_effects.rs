@@ -5,11 +5,10 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiState;
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{GameSnapshot, QiGui523Snapshot, TABLE_SEAT_COUNT};
 use leocard_qigui523::QiGuiPlayKind;
-
-use bevy::prelude::*;
 
 pub(super) fn sync_play_effect(
     client: Option<Res<ClientResource>>,

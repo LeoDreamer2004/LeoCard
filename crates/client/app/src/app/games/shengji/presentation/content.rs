@@ -1,10 +1,9 @@
 use super::ShengjiPresentationKind;
 use super::routes::shengji_partner_player;
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::ShengjiSnapshot;
 use leocard_shengji::{ShengjiCard, ShengjiRank, ShengjiSuit};
-
-use bevy::prelude::*;
 
 pub(super) fn presentation_text(
     kind: &ShengjiPresentationKind,

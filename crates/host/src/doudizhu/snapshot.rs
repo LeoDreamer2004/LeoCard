@@ -1,9 +1,12 @@
 use super::DoudizhuSession;
+use crate::features::GameSnapshotView;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{DoudizhuPlayerView, DoudizhuSnapshot};
 
-impl DoudizhuSession {
-    pub(super) fn snapshot_for(&self, you: PlayerId) -> DoudizhuSnapshot {
+impl GameSnapshotView for DoudizhuSession {
+    type Snapshot = DoudizhuSnapshot;
+
+    fn game_view(&self, you: PlayerId) -> Self::Snapshot {
         let game = self
             .game
             .as_ref()

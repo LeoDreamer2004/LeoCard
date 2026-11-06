@@ -1,4 +1,5 @@
 use super::BlackjackSession;
+use crate::features::{GameSnapshotView, MatchSettlement};
 use crate::{ConnectionId, Delivery};
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_blackjack::{
@@ -147,7 +148,7 @@ fn host_rejects_out_of_turn_actions_without_resetting_time_and_keeps_hole_card_p
         session.game.as_ref().unwrap().phase(),
         BlackjackPhase::Complete
     );
-    let finished = session.snapshot_for(session.order[0]);
+    let finished = session.game_view(session.order[0]);
     assert!(!finished.dealer_hidden);
     assert_eq!(finished.dealer.len(), 3);
     assert!(finished.match_complete);
@@ -161,7 +162,7 @@ fn host_rejects_out_of_turn_actions_without_resetting_time_and_keeps_hole_card_p
             .hands
             == 1
     }));
-    session.settle_match();
+    session.commit_match(&());
     send(&mut session, 1, ClientCommand::RequestSnapshot);
     assert!(
         session

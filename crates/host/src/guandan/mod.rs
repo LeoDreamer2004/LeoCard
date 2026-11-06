@@ -1,4 +1,6 @@
+mod commands;
 mod lifecycle;
+mod settlement;
 mod snapshot;
 mod state;
 mod statistics;

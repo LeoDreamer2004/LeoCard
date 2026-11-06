@@ -1,11 +1,12 @@
 //! 双升手牌、计分、甩牌反馈与结算演出的状态类型。
-use leocard_game_common::PlayerId;
 
 use super::counter::ShengjiCounterUi;
 use super::missing_suits::MissingSuitsUi;
+use crate::app::games::HandSelection;
 use crate::app::games::shengji::ShengjiScoreCaptureEffect;
 use crate::app::presentation::{CardAnimationState, Observed};
 use bevy::prelude::*;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{MatchId, ShengjiSnapshot, ShengjiThrowFailureStage};
 use leocard_shengji::ShengjiCard;
 use leocard_ui::{CustomButtonMotion, DraggableWindowOwner, DraggableWindowState};
@@ -187,5 +188,17 @@ pub(crate) struct ShengjiSettlementPanelTexture;
 impl DraggableWindowOwner for ShengjiUiState {
     fn window_state(&mut self) -> &mut DraggableWindowState {
         &mut self.counter.window.drag
+    }
+}
+
+impl HandSelection for ShengjiUiState {
+    type Card = ShengjiCard;
+
+    fn selected_cards(&self) -> &HashSet<Self::Card> {
+        &self.selected
+    }
+
+    fn selected_cards_mut(&mut self) -> &mut HashSet<Self::Card> {
+        &mut self.selected
     }
 }

@@ -1,10 +1,11 @@
 use super::{ShengjiSession, shuffled_deck};
+use crate::features::GameCommandHandler;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, ShengjiEvent,
-    ShengjiViolation,
+    GameCommand, GameKind, GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation,
+    ShengjiCommand, ShengjiEvent, ShengjiViolation,
 };
 use leocard_shengji::{
     ShengjiActionOutcome, ShengjiCard, ShengjiGameError, ShengjiGameState, ShengjiPhase,
@@ -331,5 +332,45 @@ impl ShengjiSession {
         let mut deliveries = self.broadcast_events(events);
         deliveries.extend(self.broadcast_game(Some((connection, request_id))));
         deliveries
+    }
+}
+
+impl GameCommandHandler for ShengjiSession {
+    type Command = ShengjiCommand;
+
+    fn parse_command(command: GameCommand) -> Result<Self::Command, GameKind> {
+        let GameCommand::Shengji(command) = command else {
+            return Err(command.kind());
+        };
+        Ok(command)
+    }
+
+    fn handle_command(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        command: Self::Command,
+    ) -> Vec<Delivery> {
+        match command {
+            ShengjiCommand::SetAutoPlay { enabled } => {
+                self.set_auto_play(connection, request_id, enabled)
+            }
+            ShengjiCommand::UpdateRules { rules } => {
+                self.update_rules(connection, request_id, rules)
+            }
+            ShengjiCommand::Declare { cards } => self.declare(connection, request_id, cards),
+            ShengjiCommand::ConfirmBidPass => self.confirm_bid_pass(connection, request_id),
+            ShengjiCommand::Bury { cards } => self.bury(connection, request_id, cards),
+            ShengjiCommand::ChooseBottomCopy { cards } => {
+                self.choose_bottom_copy(connection, request_id, cards)
+            }
+            ShengjiCommand::ChooseFiveTrumpCrossing { cards } => {
+                self.choose_five_trump_crossing(connection, request_id, cards)
+            }
+            ShengjiCommand::ReturnFiveTrumpCrossing { cards } => {
+                self.return_five_trump_crossing(connection, request_id, cards)
+            }
+            ShengjiCommand::PlayCards { cards } => self.play_cards(connection, request_id, cards),
+        }
     }
 }

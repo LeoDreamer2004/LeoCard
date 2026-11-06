@@ -6,11 +6,10 @@ use super::playback::BlackjackCardSlot;
 use crate::app::presentation::{
     ACCENT, DANGER, MUTED, TEXT, TableStatusEffect, TableStatusSpec, add_table_status,
 };
+use bevy::prelude::*;
 use leocard_blackjack::{BlackjackHandState, BlackjackHandStatus};
 use leocard_game_common::PlayerId;
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 pub(super) struct BlackjackHandSpec<'a> {
     pub hand: &'a BlackjackHandState,

@@ -1,8 +1,11 @@
 use super::BlackjackSession;
+use crate::features::MatchSettlement;
 use leocard_game_common::ranked_awards;
 
-impl BlackjackSession {
-    pub(super) fn settle_match(&mut self) {
+impl MatchSettlement for BlackjackSession {
+    type Outcome = ();
+
+    fn commit_match(&mut self, _outcome: &Self::Outcome) {
         let game = self.game.as_ref().expect("active game");
         if !game.match_complete() {
             return;

@@ -37,11 +37,6 @@ pub(crate) struct GameTableContext<'a> {
 pub(crate) trait GameScreen {
     type Snapshot;
 
-    /// 当前接收者是否需要作出游戏决策。不包含聊天、商店等常驻操作。
-    fn requires_action(&self, game: &Self::Snapshot) -> bool;
-
-    fn reconcile(&mut self, _client: Option<&ClientResource>, _social: &mut SocialUiState) {}
-
     fn render_lobby(
         &self,
         commands: &mut UiComposer,

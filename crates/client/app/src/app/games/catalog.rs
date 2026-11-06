@@ -1,238 +1,26 @@
-//! 客户端支持的游戏目录与大厅摘要。
+//! 客户端支持的游戏顺序，名称和简介由各游戏提供。
 
-use super::qigui523::time_control_label;
+use super::{GameDescriptor, GameMetadata};
 use leocard_blackjack::BlackjackRuleSet;
-use leocard_guandan::{GuandanRuleSet, rank_label};
-use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
+use leocard_doudizhu::DoudizhuRuleSet;
+use leocard_guandan::GuandanRuleSet;
+use leocard_mahjong::MahjongRuleSet;
 use leocard_mahjong_link::MahjongLinkRuleSet;
-use leocard_mc_guess::{McGuessMode, McGuessRuleSet};
-use leocard_protocol::{GameKind, GameRules};
+use leocard_mc_guess::McGuessRuleSet;
 use leocard_qigui523::QiGuiRuleSet;
+use leocard_shengji::ShengjiRuleSet;
 use leocard_texas_holdem::TexasRuleSet;
 use leocard_uno::UnoRuleSet;
 
-#[derive(Clone, Copy)]
-pub(crate) struct GameDescriptor {
-    pub kind: GameKind,
-    pub title: &'static str,
-    pub description: &'static str,
-}
-
 pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 10] = [
-    GameDescriptor {
-        kind: GameKind::QiGui523,
-        title: "七鬼五二三",
-        description: "放空大脑, 有牌就出",
-    },
-    GameDescriptor {
-        kind: GameKind::Texas,
-        title: "德州扑克",
-        description: "窝要验牌!",
-    },
-    GameDescriptor {
-        kind: GameKind::Shengji,
-        title: "升级",
-        description: "神对手 or 猪队友",
-    },
-    GameDescriptor {
-        kind: GameKind::Uno,
-        title: "UNO",
-        description: "最后一张，记得喊 UNO!",
-    },
-    GameDescriptor {
-        kind: GameKind::Mahjong,
-        title: "麻将合集",
-        description: "八番起和，方城之战",
-    },
-    GameDescriptor {
-        kind: GameKind::McGuess,
-        title: "MC竞猜",
-        description: "就你是 MC 高玩啊?",
-    },
-    GameDescriptor {
-        kind: GameKind::Blackjack,
-        title: "21 点",
-        description: "再来一张，还是见好就收?",
-    },
-    GameDescriptor {
-        kind: GameKind::Doudizhu,
-        title: "斗地主",
-        description: "17张牌你能秒我?",
-    },
-    GameDescriptor {
-        kind: GameKind::Guandan,
-        title: "掼蛋",
-        description: "丐版升级",
-    },
-    GameDescriptor {
-        kind: GameKind::MahjongLink,
-        title: "麻将连连看",
-        description: "小孩子不懂推着玩的",
-    },
+    QiGuiRuleSet::DESCRIPTOR,
+    TexasRuleSet::DESCRIPTOR,
+    ShengjiRuleSet::DESCRIPTOR,
+    UnoRuleSet::DESCRIPTOR,
+    MahjongRuleSet::DESCRIPTOR,
+    McGuessRuleSet::DESCRIPTOR,
+    BlackjackRuleSet::DESCRIPTOR,
+    DoudizhuRuleSet::DESCRIPTOR,
+    GuandanRuleSet::DESCRIPTOR,
+    MahjongLinkRuleSet::DESCRIPTOR,
 ];
-
-pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
-    match rules {
-        GameRules::Doudizhu(rules) => rules.mode.players(),
-        GameRules::Guandan(_) => GuandanRuleSet::PLAYER_COUNT,
-        GameRules::MahjongLink(_) => MahjongLinkRuleSet::MAX_PLAYERS,
-        GameRules::Blackjack(_) => BlackjackRuleSet::MAX_PLAYERS,
-        GameRules::Shengji(rules) => rules.player_count(),
-        GameRules::Uno(_) => UnoRuleSet::MAX_PLAYERS,
-        GameRules::Mahjong(_) => MahjongRuleSet::PLAYER_COUNT,
-        GameRules::McGuess(_) => McGuessRuleSet::MAX_PLAYERS,
-        GameRules::QiGui523(_) => QiGuiRuleSet::MAX_PLAYERS,
-        GameRules::Texas(_) => TexasRuleSet::MAX_PLAYERS,
-    }
-}
-
-/// 大厅与游戏开始按钮共用的人数约束，规则仍由房主最终校验。
-pub(crate) fn game_accepts_player_count(rules: &GameRules, count: u8) -> bool {
-    match rules {
-        GameRules::Blackjack(_) => {
-            (BlackjackRuleSet::MIN_PLAYERS..=BlackjackRuleSet::MAX_PLAYERS).contains(&count)
-        }
-        GameRules::Doudizhu(rules) => count == rules.mode.players(),
-        GameRules::Guandan(_) => count == GuandanRuleSet::PLAYER_COUNT,
-        GameRules::MahjongLink(_) => {
-            (MahjongLinkRuleSet::MIN_PLAYERS..=MahjongLinkRuleSet::MAX_PLAYERS).contains(&count)
-        }
-        GameRules::Mahjong(_) => count == MahjongRuleSet::PLAYER_COUNT,
-        GameRules::Shengji(rules) => count == rules.player_count(),
-        GameRules::Uno(_) => (UnoRuleSet::MIN_PLAYERS..=UnoRuleSet::MAX_PLAYERS).contains(&count),
-        GameRules::McGuess(_) => {
-            (McGuessRuleSet::MIN_PLAYERS..=McGuessRuleSet::MAX_PLAYERS).contains(&count)
-        }
-        GameRules::QiGui523(_) => (2..=QiGuiRuleSet::MAX_PLAYERS).contains(&count),
-        GameRules::Texas(rules) => rules.supports_player_count(count),
-    }
-}
-
-pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
-    match rules {
-        GameRules::Doudizhu(rules) => [
-            rules.mode.label().to_owned(),
-            format!("{} 副牌", rules.mode.deck_count()),
-            format!("{} 轮", rules.rounds),
-        ],
-        GameRules::MahjongLink(_) => [
-            format!(
-                "{}～{} 人轮流",
-                MahjongLinkRuleSet::MIN_PLAYERS,
-                MahjongLinkRuleSet::MAX_PLAYERS
-            ),
-            "136 张麻将".to_owned(),
-            "行端推牌".to_owned(),
-        ],
-        GameRules::Guandan(rules) => [
-            "四人两队".to_owned(),
-            "两副牌".to_owned(),
-            format!("从 {} 开始", rank_label(rules.starting_level)),
-        ],
-        GameRules::Blackjack(rules) => [
-            format!("{} 筹码", rules.initial_chips),
-            format!("{} 局", rules.rounds),
-            "系统庄家".to_owned(),
-        ],
-        GameRules::McGuess(rules) => [
-            rules.options().pool.label().to_owned(),
-            rules.mode.label().to_owned(),
-            match rules.mode {
-                McGuessMode::TurnBased => "允许跳过".to_owned(),
-                McGuessMode::Graph => format!("{} 个节点", rules.graph.nodes),
-                McGuessMode::Race => format!("{} 秒 / {} 局", rules.race.seconds, rules.race.games),
-            },
-        ],
-        GameRules::QiGui523(rules) => [
-            format!("{}副", rules.deck_count),
-            format!("{}张", rules.hand_size),
-            time_control_label(rules.time_control).to_owned(),
-        ],
-        GameRules::Texas(rules) => [
-            format!("{}筹码", rules.starting_chips),
-            match (rules.omaha, rules.short_deck) {
-                (true, true) => "短牌奥马哈".to_owned(),
-                (true, false) => "奥马哈".to_owned(),
-                (false, true) => "短牌德州".to_owned(),
-                (false, false) => "标准德州".to_owned(),
-            },
-            if rules.ignore_kickers {
-                "只比较最大牌型".to_owned()
-            } else {
-                "标准比牌".to_owned()
-            },
-        ],
-        GameRules::Shengji(rules) => [
-            format!("{}副牌", rules.deck_count),
-            if rules.bottom_copy {
-                "允许抄底".to_owned()
-            } else {
-                "不抄底".to_owned()
-            },
-            if rules.player_count() == 6 {
-                "3v3".to_owned()
-            } else if rules.five_trump_crossing {
-                "五主过江".to_owned()
-            } else {
-                "不过江".to_owned()
-            },
-        ],
-        GameRules::Uno(rules) if rules.is_no_mercy() => [
-            "No Mercy".to_owned(),
-            "+2 至 +10 递增堆叠".to_owned(),
-            if rules.no_mercy.mercy_elimination {
-                "25 张淘汰".to_owned()
-            } else {
-                "不启用慈悲淘汰".to_owned()
-            },
-        ],
-        GameRules::Uno(rules) if rules.is_flip() => [
-            "UNO FLIP".to_owned(),
-            if rules.flip.random_pairing {
-                "随机双面配对".to_owned()
-            } else {
-                "固定双面配对".to_owned()
-            },
-            if rules.flip.action_stacking {
-                "功能牌可堆叠".to_owned()
-            } else {
-                "功能牌不堆叠".to_owned()
-            },
-        ],
-        GameRules::Uno(rules) => [
-            if rules.action_stacking {
-                "功能牌可堆叠".to_owned()
-            } else {
-                "功能牌不堆叠".to_owned()
-            },
-            if rules.jump_in {
-                "允许抢出".to_owned()
-            } else {
-                "不抢出".to_owned()
-            },
-            if rules.uno_callout {
-                "UNO 检举".to_owned()
-            } else {
-                "不检举".to_owned()
-            },
-        ],
-        GameRules::Mahjong(rules) => [
-            match rules.match_length {
-                MahjongMatchLength::SingleHand => "单局结算".to_owned(),
-                MahjongMatchLength::EastRound => "东风场".to_owned(),
-                MahjongMatchLength::HalfGame => "半庄场".to_owned(),
-                MahjongMatchLength::FullGame => "全庄场".to_owned(),
-            },
-            if rules.minimum_eight_points {
-                "8 番起和".to_owned()
-            } else {
-                "不限起和番数".to_owned()
-            },
-            if rules.multiple_winners {
-                "允许一炮多响".to_owned()
-            } else {
-                "截和".to_owned()
-            },
-        ],
-    }
-}

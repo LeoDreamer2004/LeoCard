@@ -1,10 +1,8 @@
-use crate::app::{
-    presentation::{ACCENT, DANGER, add_text},
-    runtime::{ClientResource, UiAssets},
-};
+use crate::app::games::GameScreenChange;
+use crate::app::presentation::{ACCENT, DANGER, add_text};
+use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::prelude::*;
 use leocard_protocol::{GameSnapshot, McGuessSnapshot};
-
 use leocard_ui::UiComposer;
 
 #[derive(Component)]
@@ -49,13 +47,15 @@ pub(super) fn add_guess_clock(
     ));
 }
 
-pub(crate) fn only_guess_timer_changed(before: &McGuessSnapshot, after: &McGuessSnapshot) -> bool {
-    if before.guess_seconds_remaining == after.guess_seconds_remaining {
-        return false;
+impl GameScreenChange for McGuessSnapshot {
+    fn is_transient_change(&self, after: &Self) -> bool {
+        if self.guess_seconds_remaining == after.guess_seconds_remaining {
+            return false;
+        }
+        let mut normalized = self.clone();
+        normalized.guess_seconds_remaining = after.guess_seconds_remaining;
+        normalized == *after
     }
-    let mut normalized = before.clone();
-    normalized.guess_seconds_remaining = after.guess_seconds_remaining;
-    normalized == *after
 }
 
 pub(super) fn sync_guess_clock(

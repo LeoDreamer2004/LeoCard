@@ -3,6 +3,7 @@ mod automation;
 mod commands;
 mod equity;
 mod lifecycle;
+mod settlement;
 mod snapshot;
 mod spectator;
 mod state;

@@ -3,10 +3,7 @@ use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_game_common::PlayerId;
 use leocard_mahjong_link::MahjongLinkRuleSet;
-use leocard_protocol::{
-    GameCommand, GameKind, GameRules, GameSnapshot, RejectReason, RequestId, RoomViolation,
-    ServerEvent,
-};
+use leocard_protocol::{GameKind, GameRules, RejectReason, RequestId, RoomViolation, ServerEvent};
 
 impl HostedGameLifecycle for MahjongLinkSession {
     const KIND: GameKind = GameKind::MahjongLink;
@@ -31,25 +28,9 @@ impl HostedGameLifecycle for MahjongLinkSession {
         self.rules.into()
     }
 
-    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
-        self.snapshot_for(recipient).into()
-    }
-
     fn viewing_player(&self, recipient: PlayerId) -> PlayerId {
         // Every tile is public; preserve a spectator's own identity and permissions.
         recipient
-    }
-
-    fn handle_game_command(
-        &mut self,
-        connection: ConnectionId,
-        request: RequestId,
-        command: GameCommand,
-    ) -> Result<Vec<Delivery>, GameKind> {
-        let GameCommand::MahjongLink(command) = command else {
-            return Err(command.kind());
-        };
-        Ok(self.command(connection, request, command))
     }
 
     fn start_game(&mut self, connection: ConnectionId, request: RequestId) -> Vec<Delivery> {

@@ -1,15 +1,16 @@
 use super::*;
+use crate::app::games::GameFeedback;
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::UnoEvent;
 
 #[derive(Clone, Copy, Debug)]
-pub(super) struct UnoAudioCue {
-    pub kind: UnoSoundKind,
-    pub remaining: f32,
-    pub volume: f32,
-    pub speed: f32,
-    pub seed: u64,
+pub(crate) struct UnoAudioCue {
+    pub(super) kind: UnoSoundKind,
+    pub(super) remaining: f32,
+    pub(super) volume: f32,
+    pub(super) speed: f32,
+    pub(super) seed: u64,
 }
 
 impl UnoAudioCue {
@@ -39,10 +40,7 @@ pub(crate) struct UnoAudioState {
 impl UnoAudioState {
     pub(crate) fn queue_event(&mut self, event: &UnoEvent, you: PlayerId) {
         self.serial = self.serial.wrapping_add(1);
-        self.cues.extend(uno_event_sound_plan(
-            event,
-            you,
-            self.serial.wrapping_mul(37),
-        ));
+        self.cues
+            .extend(event.feedback((you, self.serial.wrapping_mul(37))));
     }
 }

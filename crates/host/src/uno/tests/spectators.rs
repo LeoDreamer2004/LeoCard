@@ -1,5 +1,6 @@
 use super::super::UnoSession;
 use super::*;
+use crate::features::GameSnapshotView;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery};
 use leocard_game_common::PlayerId;
@@ -74,7 +75,7 @@ fn only_eliminated_no_mercy_players_can_switch_private_views() {
             .unwrap()
             .eliminated()
     );
-    let expected = session.game_snapshot(target).your_hand;
+    let expected = session.game_view(target).your_hand;
     let deliveries = session.handle(
         HOST,
         message(5, ClientCommand::SpectatePlayer { player: target }),

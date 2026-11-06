@@ -1,9 +1,14 @@
+use super::super::equity::EquityCache;
 use super::super::*;
 use super::*;
 use crate::ConnectionId;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{ClientCommand, GameCommand, SeatId, ServerEvent, TexasCommand};
-use leocard_texas_holdem::{TexasRuleSet, build_deck};
+use leocard_texas_holdem::{
+    TexasAction, TexasCard, TexasGameState, TexasRank, TexasRuleSet, TexasSuit, build_deck,
+};
+use std::thread;
+use std::time::{Duration, Instant};
 
 fn joined_session(count: u8, rules: TexasRuleSet) -> TexasSession {
     let mut session = TexasSession::new(ROOM, 52300, rules, build_deck(rules.short_deck)).unwrap();
@@ -143,11 +148,6 @@ fn changing_rules_or_adding_a_bot_also_corrects_short_deck_omaha() {
 
 #[test]
 fn exact_equity_handles_seven_and_eight_way_split_pots() {
-    use super::super::equity::EquityCache;
-    use leocard_texas_holdem::{TexasAction, TexasCard, TexasGameState, TexasRank, TexasSuit};
-    use std::thread;
-    use std::time::{Duration, Instant};
-
     for player_count in [7, 8] {
         let mut deck = build_deck(false);
         let dealt = usize::from(player_count) * 2;

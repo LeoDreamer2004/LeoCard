@@ -6,10 +6,9 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{LobbyUiAction, UiAction, add_cozy_button};
+use bevy::prelude::*;
 use leocard_blackjack::{BlackjackAction, BlackjackPhase};
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 impl BlackjackTable<'_> {
     pub(super) fn controls(&self, commands: &mut UiComposer, table: Entity) {

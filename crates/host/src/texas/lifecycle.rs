@@ -1,11 +1,12 @@
 use super::{TexasAdapter, TexasSession, validate_deck};
 use crate::action_timing::attach_action_timing;
+use crate::features::{GameAutomation, HandSettlement};
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{AutomaticActionDelayState, ConnectionId, Delivery, HostError, RoomSession};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerViolation,
-    RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent, TexasCommand,
+    ClientMessage, GameKind, GameRules, GameViolation, PlayerViolation, RejectReason, RequestId,
+    Revision, RoomId, RoomViolation, ServerEvent,
 };
 use leocard_texas_holdem::{TexasCard, TexasPhase, TexasRuleSet, build_deck};
 use std::time::Duration;
@@ -76,19 +77,6 @@ impl TexasSession {
         attach_action_timing(self, deliveries)
     }
 
-    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
-        let mut deliveries = self.advance_automatic_turn(elapsed);
-        if self
-            .game
-            .as_ref()
-            .is_some_and(TexasAdapter::poll_spectator_equities)
-        {
-            self.room.bump_revision();
-            deliveries.extend(self.broadcast_game(None));
-        }
-        deliveries
-    }
-
     fn advance_automatic_turn(&mut self, elapsed: Duration) -> Vec<Delivery> {
         if elapsed.is_zero() || self.game.is_none() {
             return Vec::new();
@@ -154,7 +142,7 @@ impl TexasSession {
             .is_some_and(|game| matches!(game.game().phase(), TexasPhase::Complete(_)));
         let events = self.resolve_disconnected_turns();
         self.record_profile_events(&events);
-        self.finish_hand_if_needed(was_complete);
+        self.commit_hand(&was_complete);
         self.reset_automatic_action_delay_for_current_turn();
         self.room.bump_revision();
         if self.game.is_some() {
@@ -238,34 +226,6 @@ impl HostedGameLifecycle for TexasSession {
             ..self.rules
         }
         .into()
-    }
-
-    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
-        TexasSession::game_snapshot(self, recipient).into()
-    }
-
-    fn handle_game_command(
-        &mut self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        command: GameCommand,
-    ) -> Result<Vec<Delivery>, GameKind> {
-        let GameCommand::Texas(command) = command else {
-            return Err(command.kind());
-        };
-        Ok(match command {
-            TexasCommand::SetAutoPlay { enabled } => {
-                self.set_auto_play(connection, request_id, enabled)
-            }
-            TexasCommand::SetSpectatorWinRates { enabled } => {
-                self.set_spectator_win_rates(connection, request_id, enabled)
-            }
-            TexasCommand::UpdateRules { rules } => self.update_rules(connection, request_id, rules),
-            TexasCommand::Act { action } => self.act(connection, request_id, action),
-            TexasCommand::ChooseRunout { twice } => {
-                self.choose_runout(connection, request_id, twice)
-            }
-        })
     }
 
     fn start_game(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
@@ -449,7 +409,7 @@ impl HostedGameLifecycle for TexasSession {
             let events = self.resolve_disconnected_turns();
             self.record_hand_started();
             self.record_profile_events(&events);
-            self.finish_hand_if_needed(false);
+            self.commit_hand(&false);
             self.reset_automatic_action_delay_for_current_turn();
             self.room.bump_revision();
             let mut deliveries = self.broadcast_events(events);
@@ -491,7 +451,7 @@ impl HostedGameLifecycle for TexasSession {
             .is_some_and(|game| matches!(game.game().phase(), TexasPhase::Complete(_)));
         let events = self.resolve_disconnected_turns();
         self.record_profile_events(&events);
-        self.finish_hand_if_needed(was_complete);
+        self.commit_hand(&was_complete);
         self.reset_automatic_action_delay_for_current_turn();
         self.room.bump_revision();
         let mut deliveries =
@@ -516,5 +476,20 @@ impl HostedGameLifecycle for TexasSession {
         if let Some(game) = self.game.as_mut() {
             let _ = game.set_connected(player, true);
         }
+    }
+}
+
+impl GameAutomation for TexasSession {
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        let mut deliveries = self.advance_automatic_turn(elapsed);
+        if self
+            .game
+            .as_ref()
+            .is_some_and(TexasAdapter::poll_spectator_equities)
+        {
+            self.room.bump_revision();
+            deliveries.extend(self.broadcast_game(None));
+        }
+        deliveries
     }
 }

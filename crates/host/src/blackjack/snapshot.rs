@@ -1,9 +1,12 @@
 use super::BlackjackSession;
+use crate::features::GameSnapshotView;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{BlackjackPlayerView, BlackjackSnapshot};
 
-impl BlackjackSession {
-    pub(super) fn snapshot_for(&self, recipient: PlayerId) -> BlackjackSnapshot {
+impl GameSnapshotView for BlackjackSession {
+    type Snapshot = BlackjackSnapshot;
+
+    fn game_view(&self, recipient: PlayerId) -> Self::Snapshot {
         let game = self.game.as_ref().expect("active blackjack game");
         let index = self.order.iter().position(|player| *player == recipient);
         BlackjackSnapshot {

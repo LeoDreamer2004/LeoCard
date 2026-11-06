@@ -1,35 +1,14 @@
+use super::screen::QiGui523Screen;
+use crate::app::games::GameSummary;
 use crate::app::presentation::{
     GameSummaryAnimation, PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer,
     SummaryRows, add_ranked_summary,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{SummaryActions, add_summary_actions};
+use bevy::prelude::*;
 use leocard_protocol::{QiGui523PhaseView, QiGui523Snapshot};
 use leocard_ui::UiComposer;
-
-use bevy::prelude::*;
-
-pub(crate) fn qigui523_summary_descriptor(game: &QiGui523Snapshot) -> Option<SummaryDescriptor> {
-    let QiGui523PhaseView::Finished {
-        match_id,
-        scores,
-        reference_changes,
-        ..
-    } = &game.phase
-    else {
-        return None;
-    };
-    Some(SummaryDescriptor {
-        match_id: *match_id,
-        settlement_index: None,
-        entry_count: scores.len(),
-        nonnegative_outcome: reference_changes
-            .iter()
-            .find(|change| change.player == game.you)
-            .is_none_or(|change| change.delta >= 0),
-        reveal_duration: 1.5,
-    })
-}
 
 pub(super) fn add_game_summary_modal(
     commands: &mut UiComposer,
@@ -95,4 +74,32 @@ pub(super) fn add_game_summary_modal(
         },
         assets,
     );
+}
+
+impl GameSummary for QiGui523Screen<'_> {
+    fn summary_descriptor(&self, game: &Self::Snapshot) -> Option<SummaryDescriptor> {
+        let QiGui523PhaseView::Finished {
+            match_id,
+            scores,
+            reference_changes,
+            ..
+        } = &game.phase
+        else {
+            return None;
+        };
+        Some(SummaryDescriptor {
+            match_id: *match_id,
+            settlement_index: None,
+            entry_count: scores.len(),
+            nonnegative_outcome: reference_changes
+                .iter()
+                .find(|change| change.player == game.you)
+                .is_none_or(|change| change.delta >= 0),
+            reveal_duration: 1.5,
+        })
+    }
+
+    fn summary_pause(&self, _game: &Self::Snapshot) -> Option<f32> {
+        None
+    }
 }

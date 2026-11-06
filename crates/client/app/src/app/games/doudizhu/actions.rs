@@ -1,4 +1,5 @@
 use super::DoudizhuUiState;
+use crate::app::games::HandSelection;
 use crate::app::runtime::{ClientResource, HostRulePreferences};
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, dispatch_domain_actions,
@@ -78,7 +79,7 @@ impl UiActionHandler<ActionContext<'_>> for DoudizhuUiAction {
             Self::Play => send_game_command(
                 &mut context.client,
                 DoudizhuCommand::Act(DoudizhuAction::Play(
-                    context.ui.selected.iter().copied().collect(),
+                    context.ui.selected_cards().iter().copied().collect(),
                 )),
             ),
             Self::Hint => {
@@ -95,17 +96,19 @@ impl UiActionHandler<ActionContext<'_>> for DoudizhuUiAction {
                     let next = suggestions
                         .iter()
                         .position(|play| {
-                            play.cards.len() == context.ui.selected.len()
+                            play.cards.len() == context.ui.selected_cards().len()
                                 && play
                                     .cards
                                     .iter()
                                     .all(|card| context.ui.selected.contains(card))
                         })
                         .map_or(0, |index| (index + 1) % suggestions.len());
-                    context.ui.selected = suggestions
-                        .get(next)
-                        .map(|play| play.cards.iter().copied().collect())
-                        .unwrap_or_default();
+                    context.ui.replace_selection(
+                        suggestions
+                            .get(next)
+                            .into_iter()
+                            .flat_map(|play| play.cards.iter().copied()),
+                    );
                 }
             }
             Self::ToggleKitty => context.ui.kitty_open = !context.ui.kitty_open,

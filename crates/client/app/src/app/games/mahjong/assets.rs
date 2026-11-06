@@ -2,6 +2,7 @@ use super::{
     FAN_VOICE_SPECS, MahjongTurnLightMaterial, MahjongWindLabelMaterial, MahjongWindLabels,
     mahjong_tile_voice_key,
 };
+use crate::app::games::GameFeedback;
 use crate::app::presentation::mahjong::MahjongTileAssets;
 use bevy::image::{ImageLoaderSettings, ImageSampler};
 use bevy::prelude::*;
@@ -132,18 +133,6 @@ impl MahjongAssets {
         }
     }
 
-    pub(super) fn action_voice(
-        &self,
-        gender: PlayerGender,
-        action: MahjongActionVoice,
-    ) -> &Handle<AudioSource> {
-        let voice_set = match gender {
-            PlayerGender::Male => 0,
-            PlayerGender::Female => 1,
-        };
-        &self.action_voices[voice_set][action.index()][fastrand::usize(..2)]
-    }
-
     pub(super) fn fan_voice(
         &self,
         gender: PlayerGender,
@@ -184,4 +173,16 @@ pub(super) fn load_mahjong_assets(
         &mut lights,
         &mut labels,
     ));
+}
+
+impl<'a> GameFeedback<(&'a MahjongAssets, PlayerGender)> for MahjongActionVoice {
+    type Cue = &'a Handle<AudioSource>;
+
+    fn feedback(&self, (assets, gender): (&'a MahjongAssets, PlayerGender)) -> Self::Cue {
+        let voice_set = match gender {
+            PlayerGender::Male => 0,
+            PlayerGender::Female => 1,
+        };
+        &assets.action_voices[voice_set][self.index()][fastrand::usize(..2)]
+    }
 }

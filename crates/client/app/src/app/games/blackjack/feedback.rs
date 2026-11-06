@@ -1,13 +1,14 @@
 use super::BlackjackPlayback;
 use super::playback::SETTLEMENT_CHIP_DURATION;
+use crate::app::games::GameFeedback;
 use crate::app::presentation::{PokerChipSoundKind, PokerChipSounds, numbered_table_sounds};
 use crate::app::runtime::{ClientResource, ServerNotification};
+use BlackjackActionCue::{Chip, Stand};
 use bevy::audio::Volume;
+use bevy::prelude::*;
 use leocard_blackjack::{BlackjackAction, BlackjackPhase};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{BlackjackEvent, GameEvent, GameSnapshot, MatchId, ServerEvent};
-
-use bevy::prelude::*;
 
 #[derive(Resource)]
 pub(super) struct BlackjackSounds {
@@ -94,22 +95,18 @@ pub(super) fn play_feedback(
             continue;
         }
         feedback.sequence = Some(context.sequence);
-        match action {
-            BlackjackAction::Hit => {}
-            BlackjackAction::Bet { .. } => {
-                feedback.queue_chip(PokerChipSoundKind::Lay, 0.10, 0.52);
-            }
-            BlackjackAction::DoubleDown | BlackjackAction::Split => {
-                feedback.queue_chip(PokerChipSoundKind::Handle, 0.0, 0.42);
-                feedback.queue_chip(PokerChipSoundKind::Lay, 0.15, 0.54);
-                feedback.queue_chip(PokerChipSoundKind::Collide, 0.28, 0.40);
-            }
-            BlackjackAction::Stand => {
-                if let Some(sound) = sounds
-                    .stand
-                    .get(fastrand::usize(..sounds.stand.len().max(1)))
-                {
-                    play(&mut commands, sound.clone(), 0.55);
+        for cue in action.feedback(()) {
+            match *cue {
+                BlackjackActionCue::Chip(kind, delay, volume) => {
+                    feedback.queue_chip(kind, delay, volume)
+                }
+                BlackjackActionCue::Stand => {
+                    if let Some(sound) = sounds
+                        .stand
+                        .get(fastrand::usize(..sounds.stand.len().max(1)))
+                    {
+                        play(&mut commands, sound.clone(), 0.55);
+                    }
                 }
             }
         }
@@ -153,4 +150,27 @@ fn play(commands: &mut Commands, sound: Handle<AudioSource>, volume: f32) {
             ..PlaybackSettings::DESPAWN
         },
     ));
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum BlackjackActionCue {
+    Chip(PokerChipSoundKind, f32, f32),
+    Stand,
+}
+
+impl GameFeedback for BlackjackAction {
+    type Cue = &'static [BlackjackActionCue];
+
+    fn feedback(&self, _context: ()) -> Self::Cue {
+        match self {
+            Self::Hit => &[],
+            Self::Bet { .. } => &[Chip(PokerChipSoundKind::Lay, 0.10, 0.52)],
+            Self::DoubleDown | Self::Split => &[
+                Chip(PokerChipSoundKind::Handle, 0.0, 0.42),
+                Chip(PokerChipSoundKind::Lay, 0.15, 0.54),
+                Chip(PokerChipSoundKind::Collide, 0.28, 0.40),
+            ],
+            Self::Stand => &[Stand],
+        }
+    }
 }

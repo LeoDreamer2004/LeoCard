@@ -1,19 +1,19 @@
 //! 国标麻将番种报读音频及结算时间轴。
 
 use super::{MahjongActionVoice, MahjongAssets};
+use crate::app::games::GameFeedback;
 use crate::app::presentation::{
     GameSummaryAnimation, SUMMARY_ROW_ENTRY_DURATION, SUMMARY_ROW_START_DELAY,
 };
 use crate::app::runtime::{AppearancePreferences, ClientResource};
 use bevy::audio::Volume;
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_mahjong::MahjongFan;
 use leocard_protocol::{
     GameSnapshot, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot, MatchId,
 };
 use leocard_ui::UiComposer;
-
-use bevy::prelude::*;
 
 pub(super) fn queue_mahjong_action_voice(
     commands: &mut UiComposer,
@@ -33,7 +33,7 @@ pub(super) fn queue_mahjong_action_voice(
     else {
         return;
     };
-    let sound = assets.action_voice(profile.player.game_profiles.gender, action);
+    let sound = action.feedback((assets, profile.player.game_profiles.gender));
     commands.effect((
         AudioPlayer::new(sound.clone()),
         PlaybackSettings {

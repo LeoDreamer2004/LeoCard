@@ -1,3 +1,5 @@
+use super::screen::DoudizhuScreen;
+use crate::app::games::GameSummary;
 use crate::app::presentation::{
     GameSummaryAnimation, PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer,
     SummaryRows, SummaryScore, add_ranked_summary,
@@ -7,30 +9,9 @@ use crate::app::shell::{
     CozyButtonVariant, LobbyUiAction, SummaryActions, UiAction, add_cozy_button_variant,
     add_cozy_disabled_button, add_summary_actions,
 };
+use bevy::prelude::*;
 use leocard_protocol::DoudizhuSnapshot;
 use leocard_ui::UiComposer;
-
-use bevy::prelude::*;
-
-pub(crate) fn descriptor(game: &DoudizhuSnapshot) -> Option<SummaryDescriptor> {
-    let result = game.result.as_ref()?;
-    Some(SummaryDescriptor {
-        match_id: game.match_id,
-        settlement_index: Some(u32::from(game.progress.hand_number)),
-        entry_count: game.players.len(),
-        nonnegative_outcome: if game.match_complete {
-            game.scores
-                .get(usize::from(game.you.0))
-                .is_none_or(|score| *score >= 0)
-        } else {
-            result
-                .scores
-                .get(usize::from(game.you.0))
-                .is_none_or(|score| *score >= 0)
-        },
-        reveal_duration: 0.4,
-    })
-}
 
 pub(super) fn render(
     commands: &mut UiComposer,
@@ -156,5 +137,31 @@ pub(super) fn render(
                 add_cozy_disabled_button(commands, actions, "观战中", assets, px(150), 48.0);
             }
         }
+    }
+}
+
+impl GameSummary for DoudizhuScreen<'_> {
+    fn summary_descriptor(&self, game: &Self::Snapshot) -> Option<SummaryDescriptor> {
+        let result = game.result.as_ref()?;
+        Some(SummaryDescriptor {
+            match_id: game.match_id,
+            settlement_index: Some(u32::from(game.progress.hand_number)),
+            entry_count: game.players.len(),
+            nonnegative_outcome: if game.match_complete {
+                game.scores
+                    .get(usize::from(game.you.0))
+                    .is_none_or(|score| *score >= 0)
+            } else {
+                result
+                    .scores
+                    .get(usize::from(game.you.0))
+                    .is_none_or(|score| *score >= 0)
+            },
+            reveal_duration: 0.4,
+        })
+    }
+
+    fn summary_pause(&self, _game: &Self::Snapshot) -> Option<f32> {
+        None
     }
 }

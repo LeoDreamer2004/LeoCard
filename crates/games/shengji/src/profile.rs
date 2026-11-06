@@ -1,6 +1,8 @@
 //! Long-term statistics owned by this game. Field order is part of the saved profile format.
 
-use leocard_game_common::ActionTimeStats;
+use leocard_game_common::{
+    ActionTimeProfile, ActionTimeStats, GameCountStats, ReferenceStats, ResultScope,
+};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
@@ -28,4 +30,36 @@ pub struct ShengjiProfileStats {
     pub longest_spaceship: u16,
     pub longest_throw: u16,
     pub action_time: ActionTimeStats,
+}
+
+impl ActionTimeProfile for ShengjiProfileStats {
+    fn action_time_stats(&self) -> &ActionTimeStats {
+        &self.action_time
+    }
+
+    fn action_time_stats_mut(&mut self) -> &mut ActionTimeStats {
+        &mut self.action_time
+    }
+}
+
+impl GameCountStats for ShengjiProfileStats {
+    const COMPLETION_SCOPE: ResultScope = ResultScope::Hand;
+
+    fn completed_games(&self) -> u32 {
+        self.completed_games
+    }
+
+    fn completed_games_mut(&mut self) -> &mut u32 {
+        &mut self.completed_games
+    }
+}
+
+impl ReferenceStats for ShengjiProfileStats {
+    fn total_reference_delta(&self) -> i64 {
+        self.total_reference_delta
+    }
+
+    fn total_reference_delta_mut(&mut self) -> &mut i64 {
+        &mut self.total_reference_delta
+    }
 }

@@ -1,5 +1,6 @@
 use super::super::{TexasAdapter, TexasSession};
 use super::{auto_play, bot};
+use crate::features::HandSettlement;
 use leocard_protocol::TexasEvent;
 use leocard_texas_holdem::{TexasAction, TexasPhase};
 
@@ -40,7 +41,7 @@ impl TexasSession {
         };
         events.extend(self.resolve_disconnected_turns());
         self.record_profile_events(&events);
-        self.finish_hand_if_needed(was_complete);
+        self.commit_hand(&was_complete);
         self.reset_automatic_action_delay_for_current_turn();
         Some(events)
     }

@@ -2,9 +2,11 @@ use super::BlackjackSession;
 use crate::action_timing::{
     ActionTimingRequest, PendingAction, attach_action_timing, sync_action_timing,
 };
+use crate::features::DecisionTiming;
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery};
 use leocard_blackjack::BlackjackPhase;
+use leocard_game_common::ActionTimeProfile;
 use leocard_protocol::{BlackjackCommand, ClientCommand, ClientMessage, GameCommand, GameSnapshot};
 
 impl BlackjackSession {
@@ -21,8 +23,7 @@ impl BlackjackSession {
             profiles
                 .blackjack
                 .get_or_insert_with(Default::default)
-                .action_time
-                .record(millis);
+                .record_action_time(millis);
         }
         self.refresh_action_timing();
         attach_action_timing(self, deliveries)
@@ -41,7 +42,9 @@ impl BlackjackSession {
         let windows = self.pending_actions(&snapshot);
         sync_action_timing(&mut self.room, Self::KIND, snapshot.match_id(), windows);
     }
+}
 
+impl DecisionTiming for BlackjackSession {
     fn pending_actions(&self, snapshot: &GameSnapshot) -> Vec<PendingAction> {
         match snapshot {
             GameSnapshot::Blackjack(s)

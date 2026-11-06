@@ -1,5 +1,7 @@
-use super::MahjongWinFeedback;
-use super::{MAHJONG_DEAL_INTERVAL, MahjongSession, events_for_outcome, shuffled_deck};
+use super::{
+    MAHJONG_DEAL_INTERVAL, MahjongSession, MahjongWinFeedback, events_for_outcome, shuffled_deck,
+};
+use crate::features::GameCommandHandler;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, new_match_id,
@@ -10,8 +12,8 @@ use leocard_mahjong::{
     MahjongTileKind,
 };
 use leocard_protocol::{
-    GameViolation, MahjongCommand, MahjongEvent, PlayerViolation, RejectReason, RequestId,
-    RoomViolation,
+    GameCommand, GameKind, GameViolation, MahjongCommand, MahjongEvent, PlayerViolation,
+    RejectReason, RequestId, RoomViolation,
 };
 use std::time::Duration;
 
@@ -289,5 +291,25 @@ impl MahjongSession {
             }
             Err(error) => self.reject_game_error(connection, request_id, &error),
         }
+    }
+}
+
+impl GameCommandHandler for MahjongSession {
+    type Command = MahjongCommand;
+
+    fn parse_command(command: GameCommand) -> Result<Self::Command, GameKind> {
+        let GameCommand::Mahjong(command) = command else {
+            return Err(command.kind());
+        };
+        Ok(command)
+    }
+
+    fn handle_command(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        command: Self::Command,
+    ) -> Vec<Delivery> {
+        MahjongSession::handle_game_command(self, connection, request_id, command)
     }
 }

@@ -1,13 +1,27 @@
-use super::super::{TexasUiAction, TexasUiState};
-use super::input::{focus_texas_raise_input, sync_texas_raise_input};
-use super::{TexasRaiseInput, raise_fraction, raise_from_fraction};
+use super::super::chips::tests::pot_test_snapshot;
+use super::super::{TexasRaiseAdjustButton, TexasUiAction, TexasUiState};
+use super::input::{
+    focus_texas_raise_input, handle_texas_raise_slider, sync_texas_raise_input,
+    sync_texas_raise_value,
+};
+use super::sync::sync_texas_raise_controls;
+use super::view::add_texas_actions;
+use super::{
+    TexasRaiseFill, TexasRaiseInput, TexasRaiseSlider, raise_fraction, raise_from_fraction,
+};
+use crate::app::runtime::UiAssets;
 use crate::app::shell::{PressedUiAction, UiAction, UiState};
+use bevy::asset::AssetPlugin;
 use bevy::ecs::message::Messages;
 use bevy::input_focus::{FocusCause, InputFocus};
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
+use bevy::scene::ScenePatch;
 use bevy::text::EditableText;
+use bevy::ui::{BackgroundGradient, RelativeCursorPosition};
+use leocard_protocol::TexasSnapshot;
 use leocard_texas_holdem::TexasRaiseSizing;
-use leocard_ui::{TextInputAction, TextInputEvent};
+use leocard_ui::{TextInputAction, TextInputEvent, UiComposer, UiSceneProperties, UiSceneRegistry};
 
 #[test]
 fn slider_covers_legal_raise_steps_and_fixed_limit() {
@@ -107,12 +121,6 @@ fn raise_input_autofocuses_once_preserves_edits_and_submits_on_enter() {
 
 #[test]
 fn dragging_updates_the_fill_and_adjustments_without_rebuilding_the_table() {
-    use super::super::TexasRaiseAdjustButton;
-    use super::input::{handle_texas_raise_slider, sync_texas_raise_value};
-    use super::sync::sync_texas_raise_controls;
-    use super::{TexasRaiseFill, TexasRaiseSlider};
-    use bevy::picking::hover::PickingInteraction;
-    use bevy::ui::{BackgroundGradient, RelativeCursorPosition};
     let mut app = App::new();
     app.init_resource::<TexasUiState>()
         .init_resource::<UiState>()
@@ -196,13 +204,6 @@ fn dragging_updates_the_fill_and_adjustments_without_rebuilding_the_table() {
 
 #[test]
 fn raise_editor_lifecycle_and_transition_to_runout_voting() {
-    use super::super::chips::tests::pot_test_snapshot;
-    use super::view::add_texas_actions;
-    use crate::app::runtime::UiAssets;
-    use bevy::asset::AssetPlugin;
-    use bevy::scene::ScenePatch;
-    use leocard_protocol::TexasSnapshot;
-    use leocard_ui::{UiComposer, UiSceneProperties, UiSceneRegistry};
     #[derive(Resource)]
     struct Table {
         root: Entity,

@@ -1,3 +1,4 @@
+use crate::app::games::GameFeedback;
 use crate::app::runtime::{ClientResource, ServerNotification};
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
@@ -18,28 +19,10 @@ pub(super) enum TexasVoiceKind {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(super) struct TexasVoiceCue {
+pub(crate) struct TexasVoiceCue {
     pub(super) gender: PlayerGender,
     pub(super) kind: TexasVoiceKind,
     pub(super) variant: usize,
-}
-
-pub(super) fn texas_action_voice_plan(
-    action: TexasAction,
-    gender: PlayerGender,
-    seed: u64,
-) -> Option<TexasVoiceCue> {
-    let (kind, variant) = match action {
-        TexasAction::RaiseTo(target) => (TexasVoiceKind::Raise, usize::from(target >= 10)),
-        TexasAction::AllIn => (TexasVoiceKind::AllIn, 2 + seed as usize % 3),
-        TexasAction::Call => (TexasVoiceKind::Call, 5 + seed as usize % 2),
-        _ => return None,
-    };
-    Some(TexasVoiceCue {
-        gender,
-        kind,
-        variant,
-    })
 }
 
 #[derive(Resource, Default)]
@@ -117,11 +100,10 @@ pub(crate) fn sync_texas_voices(
                         .players
                         .iter()
                         .find(|profile| profile.player.id == player)
-                    && let Some(cue) = texas_action_voice_plan(
-                        action,
+                    && let Some(cue) = action.feedback((
                         profile.player.game_profiles.gender,
                         voices.serial.wrapping_mul(17),
-                    )
+                    ))
                 {
                     voices.pending.push_back(cue);
                 }
@@ -151,4 +133,22 @@ pub(crate) fn sync_texas_voices(
         .map(|player| (player.player.id, player.committed_street))
         .collect();
     voices.bet = game.current_bet;
+}
+
+impl GameFeedback<(PlayerGender, u64)> for TexasAction {
+    type Cue = Option<TexasVoiceCue>;
+
+    fn feedback(&self, (gender, seed): (PlayerGender, u64)) -> Self::Cue {
+        let (kind, variant) = match *self {
+            TexasAction::RaiseTo(target) => (TexasVoiceKind::Raise, usize::from(target >= 10)),
+            TexasAction::AllIn => (TexasVoiceKind::AllIn, 2 + seed as usize % 3),
+            TexasAction::Call => (TexasVoiceKind::Call, 5 + seed as usize % 2),
+            _ => return None,
+        };
+        Some(TexasVoiceCue {
+            gender,
+            kind,
+            variant,
+        })
+    }
 }

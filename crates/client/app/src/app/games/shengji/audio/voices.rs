@@ -1,13 +1,13 @@
 use super::super::ShengjiPlayFeedback;
+use crate::app::games::GameFeedback;
 use crate::app::runtime::ClientResource;
 use bevy::prelude::*;
 use leocard_protocol::{GameSnapshot, MatchId, PlayerGender};
-
 use leocard_shengji::{ShengjiCategory, ShengjiClassifiedPlay, ShengjiComponent};
 use std::collections::VecDeque;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum ShengjiVoiceKind {
+pub(crate) enum ShengjiVoiceKind {
     Tractor,
     Triple,
     Titanic,
@@ -40,26 +40,6 @@ impl ShengjiVoiceKind {
             Self::Throw => "throw",
             Self::TrumpLead => "trump_lead",
             Self::TrumpKill => "trump_kill",
-        }
-    }
-
-    pub(super) fn for_play(play: &ShengjiClassifiedPlay, is_lead: bool) -> Option<Self> {
-        if play.category == ShengjiCategory::Mixed {
-            return None;
-        }
-        if play.is_throw() {
-            // 跟牌时凑出的多个结构只是垫牌，不能作为甩牌报出。
-            return is_lead.then_some(Self::Throw);
-        }
-        match play.strongest_component() {
-            ShengjiComponent::Single { .. } | ShengjiComponent::Pair { .. } => {
-                (is_lead && play.category == ShengjiCategory::Trump).then_some(Self::TrumpLead)
-            }
-            ShengjiComponent::Tractor { .. } => Some(Self::Tractor),
-            ShengjiComponent::Triple { .. } => Some(Self::Triple),
-            ShengjiComponent::Titanic { .. } => Some(Self::Titanic),
-            ShengjiComponent::Quad { .. } => Some(Self::Bomb),
-            ShengjiComponent::Spaceship { .. } => Some(Self::Spaceship),
         }
     }
 }
@@ -110,7 +90,7 @@ pub(super) fn sync_shengji_voices(
             continue;
         };
         for kind in [
-            ShengjiVoiceKind::for_play(&event.play.play, event.is_lead),
+            event.play.play.feedback(event.is_lead),
             event.trump_kill.then_some(ShengjiVoiceKind::TrumpKill),
         ]
         .into_iter()
@@ -120,6 +100,30 @@ pub(super) fn sync_shengji_voices(
                 gender: player.player.game_profiles.gender,
                 kind,
             });
+        }
+    }
+}
+
+impl GameFeedback<bool> for ShengjiClassifiedPlay {
+    type Cue = Option<ShengjiVoiceKind>;
+
+    fn feedback(&self, is_lead: bool) -> Self::Cue {
+        if self.category == ShengjiCategory::Mixed {
+            return None;
+        }
+        if self.is_throw() {
+            // 跟牌时凑出的多个结构只是垫牌，不能作为甩牌报出。
+            return is_lead.then_some(ShengjiVoiceKind::Throw);
+        }
+        match self.strongest_component() {
+            ShengjiComponent::Single { .. } | ShengjiComponent::Pair { .. } => (is_lead
+                && self.category == ShengjiCategory::Trump)
+                .then_some(ShengjiVoiceKind::TrumpLead),
+            ShengjiComponent::Tractor { .. } => Some(ShengjiVoiceKind::Tractor),
+            ShengjiComponent::Triple { .. } => Some(ShengjiVoiceKind::Triple),
+            ShengjiComponent::Titanic { .. } => Some(ShengjiVoiceKind::Titanic),
+            ShengjiComponent::Quad { .. } => Some(ShengjiVoiceKind::Bomb),
+            ShengjiComponent::Spaceship { .. } => Some(ShengjiVoiceKind::Spaceship),
         }
     }
 }

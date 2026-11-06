@@ -1,5 +1,6 @@
 use super::generation::GraphGeneration;
 use super::{GuessClock, McProcessPresence};
+use crate::features::MatchSettlement;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_game_common::PlayerId;
@@ -94,7 +95,7 @@ impl McGuessSession {
         if let Some(player) = skipped {
             events.insert(0, McGuessEvent::GuessSkipped { player });
         }
-        self.settle_match();
+        self.commit_match(&());
         if self.game.as_ref().is_some_and(|game| game.finished()) {
             self.room.prepare_rematch();
         }

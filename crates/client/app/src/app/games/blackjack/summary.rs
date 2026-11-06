@@ -1,28 +1,15 @@
 use super::BlackjackTable;
+use super::screen::BlackjackScreen;
+use crate::app::games::GameSummary;
 use crate::app::presentation::{
     PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer, SummaryRows,
     add_ranked_summary,
 };
 use crate::app::shell::{SummaryActions, add_summary_actions};
-use leocard_blackjack::BlackjackPhase;
-use leocard_protocol::{BlackjackSnapshot, PlayerScore};
-use leocard_ui::UiComposer;
-
 use bevy::prelude::*;
-
-pub(crate) fn blackjack_summary_descriptor(game: &BlackjackSnapshot) -> Option<SummaryDescriptor> {
-    (game.phase == BlackjackPhase::Complete).then(|| SummaryDescriptor {
-        match_id: game.match_id,
-        settlement_index: Some(u32::from(game.round)),
-        entry_count: game.players.len(),
-        nonnegative_outcome: game
-            .players
-            .iter()
-            .find(|player| player.player.id == game.you)
-            .is_none_or(|player| player.stack >= player.round_start_stack),
-        reveal_duration: 1.2,
-    })
-}
+use leocard_blackjack::BlackjackPhase;
+use leocard_protocol::PlayerScore;
+use leocard_ui::UiComposer;
 
 impl BlackjackTable<'_> {
     pub(super) fn summary(&self, commands: &mut UiComposer, table: Entity) {
@@ -84,5 +71,25 @@ impl BlackjackTable<'_> {
             },
             self.assets,
         );
+    }
+}
+
+impl GameSummary for BlackjackScreen<'_> {
+    fn summary_descriptor(&self, game: &Self::Snapshot) -> Option<SummaryDescriptor> {
+        (game.phase == BlackjackPhase::Complete).then(|| SummaryDescriptor {
+            match_id: game.match_id,
+            settlement_index: Some(u32::from(game.round)),
+            entry_count: game.players.len(),
+            nonnegative_outcome: game
+                .players
+                .iter()
+                .find(|player| player.player.id == game.you)
+                .is_none_or(|player| player.stack >= player.round_start_stack),
+            reveal_duration: 1.2,
+        })
+    }
+
+    fn summary_pause(&self, _game: &Self::Snapshot) -> Option<f32> {
+        self.playback.busy().then_some(-0.01)
     }
 }

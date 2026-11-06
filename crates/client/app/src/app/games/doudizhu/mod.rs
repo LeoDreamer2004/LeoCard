@@ -1,5 +1,6 @@
 mod actions;
 mod cards;
+mod catalog;
 mod controls;
 mod counter;
 mod dealing;
@@ -23,7 +24,6 @@ mod voices;
 pub(crate) use actions::DoudizhuUiAction;
 pub(crate) use lobby::render_doudizhu_lobby;
 pub(crate) use plugin::DoudizhuPlugin;
+pub(super) use screen::DoudizhuScreen;
 pub(crate) use state::DoudizhuUiState;
 pub(crate) use view::{DoudizhuTable, render_doudizhu_table};
-
-pub(super) use screen::DoudizhuScreen;

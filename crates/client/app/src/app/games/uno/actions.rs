@@ -1,11 +1,11 @@
 //! UNO 按钮动作、本地选择状态与网络命令。
-use leocard_protocol::{GameSnapshot, UnoCommand, UnoPendingSwapView};
 
 use super::jump_in_device::send_jump_in;
 use super::{
     UnoJumpInDevice, UnoUiState, toggle_uno_selection, toggle_uno_swap_target_selection,
     uno_card_is_playable,
 };
+use crate::app::games::HandSelection;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState, dispatch_domain_actions,
@@ -14,7 +14,7 @@ use crate::app::shell::{
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
-
+use leocard_protocol::{GameSnapshot, UnoCommand, UnoPendingSwapView};
 use leocard_uno::{UnoCard, UnoColor, UnoFace, UnoRuleSet};
 
 #[derive(Clone)]
@@ -100,10 +100,10 @@ impl UiActionHandler<UnoActionContext<'_>> for UnoUiAction {
                     if let Some(client) = client.as_deref_mut()
                         && send_jump_in(client, &mut context.jump_in_device, *card)
                     {
-                        ui.selected.clear();
+                        ui.clear_selection();
                     }
                 } else if game.your_hand.contains(card) && uno_card_is_playable(game, *card) {
-                    ui.selected.clear();
+                    ui.clear_selection();
                     ui.selected.insert(*card);
                     submit_selected_cards(client, ui);
                 }
@@ -121,13 +121,13 @@ impl UiActionHandler<UnoActionContext<'_>> for UnoUiAction {
                     },
                 );
                 ui.color_choice = None;
-                ui.selected.clear();
+                ui.clear_selection();
             }
             UnoUiAction::JumpIn(card) => {
                 if let Some(client) = client.as_deref_mut()
                     && send_jump_in(client, &mut context.jump_in_device, *card)
                 {
-                    ui.selected.clear();
+                    ui.clear_selection();
                 }
             }
             UnoUiAction::ToggleJumpInDevice => {
@@ -180,14 +180,14 @@ fn submit_selected_cards(client: &mut Option<ResMut<ClientResource>>, ui: &mut U
                 Some(UnoPendingSwapView::SwapOneGive { player, .. }) if player == game.you
             )
         });
-    if pending_give && ui.selected.len() == 1 {
-        let card = *ui.selected.iter().next().unwrap();
+    if pending_give && ui.selected_cards().len() == 1 {
+        let card = *ui.selected_cards().iter().next().unwrap();
         send_game_command(client, UnoCommand::GiveSwapOneCard { card });
-        ui.selected.clear();
+        ui.clear_selection();
         return;
     }
-    if ui.selected.len() == 1 {
-        let card = *ui.selected.iter().next().unwrap();
+    if ui.selected_cards().len() == 1 {
+        let card = *ui.selected_cards().iter().next().unwrap();
         if requires_color_choice(card.face()) {
             ui.color_choice = Some(card);
         } else {
@@ -198,10 +198,10 @@ fn submit_selected_cards(client: &mut Option<ResMut<ClientResource>>, ui: &mut U
                     chosen_color: None,
                 },
             );
-            ui.selected.clear();
+            ui.clear_selection();
         }
-    } else if ui.selected.len() == 2 {
-        let cards = ui.selected.iter().copied().collect();
+    } else if ui.selected_cards().len() == 2 {
+        let cards = ui.selected_cards().iter().copied().collect();
         send_game_command(
             client,
             UnoCommand::PlayCards {
@@ -209,7 +209,7 @@ fn submit_selected_cards(client: &mut Option<ResMut<ClientResource>>, ui: &mut U
                 chosen_color: None,
             },
         );
-        ui.selected.clear();
+        ui.clear_selection();
     }
 }
 

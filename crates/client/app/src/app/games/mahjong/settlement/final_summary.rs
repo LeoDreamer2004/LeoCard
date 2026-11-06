@@ -11,11 +11,10 @@ use crate::app::shell::{
     add_cozy_disabled_button,
 };
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_mahjong::MahjongMatchLength;
 use leocard_protocol::{MahjongHandResultView, MahjongSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 pub(super) struct FinalSummaryView<'a> {
     pub game: &'a MahjongSnapshot,

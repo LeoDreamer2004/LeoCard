@@ -16,7 +16,6 @@ use super::flip::*;
 use super::palette::*;
 use super::reverse::*;
 use super::*;
-
 use bevy::prelude::*;
 
 /// UNO 最后一张牌的飞行动画结束后，完整公开牌桌两秒再进入结算。

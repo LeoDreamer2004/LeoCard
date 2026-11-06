@@ -6,7 +6,6 @@ use crate::app::shell::game_command;
 use bevy::{input_focus::InputFocus, prelude::*, text::EditableText};
 use leocard_mahjong::MahjongHandReplacementError;
 use leocard_protocol::{GameSnapshot, MahjongCommand, QiGui523Command};
-
 use leocard_ui::{TextInputAction, TextInputEvent};
 
 pub(crate) fn submit_developer_hand(

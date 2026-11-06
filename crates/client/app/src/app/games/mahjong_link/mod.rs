@@ -1,4 +1,5 @@
 mod actions;
+mod catalog;
 mod controls;
 mod layout;
 mod lobby;

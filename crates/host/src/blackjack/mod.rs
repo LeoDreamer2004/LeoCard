@@ -5,6 +5,7 @@ mod rounds;
 mod settlement;
 mod snapshot;
 mod state;
+mod timing;
 
 pub use state::BlackjackSession;
 

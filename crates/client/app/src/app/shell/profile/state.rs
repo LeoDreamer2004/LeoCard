@@ -15,10 +15,11 @@ pub(crate) enum ProfileGameTab {
     Blackjack,
     Doudizhu,
     Guandan,
+    MahjongLink,
 }
 
 impl ProfileGameTab {
-    pub(crate) const ALL: [(Self, &'static str); 9] = [
+    pub(crate) const ALL: [(Self, &'static str); 10] = [
         (Self::QiGui523, "七鬼五二三"),
         (Self::Texas, "德州扑克"),
         (Self::Shengji, "升级"),
@@ -28,6 +29,7 @@ impl ProfileGameTab {
         (Self::Blackjack, "21 点"),
         (Self::Doudizhu, "斗地主"),
         (Self::Guandan, "掼蛋"),
+        (Self::MahjongLink, "麻将连连看"),
     ];
 }
 

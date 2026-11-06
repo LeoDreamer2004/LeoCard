@@ -4,6 +4,7 @@ use leocard_doudizhu::DoudizhuProfileStats;
 use leocard_game_common::PlayerId;
 use leocard_guandan::GuandanProfileStats;
 use leocard_mahjong::MahjongProfileStats;
+use leocard_mahjong_link::MahjongLinkProfileStats;
 use leocard_mc_guess::McGuessProfileStats;
 use leocard_qigui523::QiGui523ProfileStats;
 use leocard_shengji::ShengjiProfileStats;
@@ -69,6 +70,7 @@ pub struct PlayerGameProfiles {
     pub blackjack: Option<BlackjackProfileStats>,
     pub doudizhu: Option<DoudizhuProfileStats>,
     pub guandan: Option<GuandanProfileStats>,
+    pub mahjong_link: Option<MahjongLinkProfileStats>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

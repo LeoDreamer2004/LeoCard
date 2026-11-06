@@ -301,7 +301,7 @@ pub(super) trait HostedGameLifecycle: Sized {
     }
 }
 
-pub(super) fn dispatch_client_command<S: HostedGameLifecycle>(
+pub(crate) fn dispatch_client_command<S: HostedGameLifecycle>(
     session: &mut S,
     connection: ConnectionId,
     message: ClientMessage,

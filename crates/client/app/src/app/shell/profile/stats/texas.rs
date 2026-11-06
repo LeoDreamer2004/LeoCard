@@ -1,4 +1,6 @@
-use super::rows::{ProfileRowsBuilder, average_or_placeholder, rate_or_placeholder};
+use super::rows::{
+    ProfileRowsBuilder, average_or_placeholder, rate_or_placeholder, seconds_or_placeholder,
+};
 use leocard_texas_holdem::TexasProfileStats;
 
 pub(crate) fn texas_profile_rows(stats: Option<&TexasProfileStats>) -> Vec<(&'static str, String)> {
@@ -32,8 +34,12 @@ pub(crate) fn texas_profile_rows(stats: Option<&TexasProfileStats>) -> Vec<(&'st
         "同花顺次数",
         "皇家同花顺次数",
     ];
+    let action_time = (
+        "平均每手用时",
+        seconds_or_placeholder(stats.and_then(|stats| stats.action_time.average_seconds())),
+    );
     let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
-        return ProfileRowsBuilder::unavailable(&LABELS);
+        return ProfileRowsBuilder::unavailable(&LABELS, [action_time]);
     };
     let mut rows = ProfileRowsBuilder::ranked(
         stats.completed_games,
@@ -76,5 +82,6 @@ pub(crate) fn texas_profile_rows(stats: Option<&TexasProfileStats>) -> Vec<(&'st
             .zip(stats.hand_category_counts)
             .map(|(label, count)| (label, count.to_string())),
     );
+    rows.extend([action_time]);
     rows.finish()
 }

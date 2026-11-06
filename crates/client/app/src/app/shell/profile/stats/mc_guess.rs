@@ -1,4 +1,4 @@
-use super::rows::{ProfileRowsBuilder, rate_or_placeholder};
+use super::rows::{ProfileRowsBuilder, rate_or_placeholder, seconds_or_placeholder};
 use leocard_mc_guess::{McGuessEntryKind, McGuessProfileStats};
 
 pub(crate) fn mc_guess_profile_rows(
@@ -31,8 +31,12 @@ pub(crate) fn mc_guess_profile_rows(
         "错猜率",
         "猜测更优率",
     ];
+    let action_time = (
+        "平均每手用时",
+        seconds_or_placeholder(stats.and_then(|stats| stats.action_time.average_seconds())),
+    );
     let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
-        return ProfileRowsBuilder::unavailable(&LABELS);
+        return ProfileRowsBuilder::unavailable(&LABELS, [action_time]);
     };
     let mut rows = ProfileRowsBuilder::ranked(
         stats.completed_games,
@@ -79,5 +83,6 @@ pub(crate) fn mc_guess_profile_rows(
             rate_or_placeholder(stats.non_worse_guesses, stats.known_guesses),
         ),
     ]);
+    rows.extend([action_time]);
     rows.finish()
 }

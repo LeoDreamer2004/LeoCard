@@ -1,5 +1,7 @@
 //! Long-term statistics owned by this game. Field order is part of the saved profile format.
 
+use leocard_game_common::ActionTimeStats;
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct ShengjiProfileStats {
@@ -25,4 +27,5 @@ pub struct ShengjiProfileStats {
     pub longest_titanic: u16,
     pub longest_spaceship: u16,
     pub longest_throw: u16,
+    pub action_time: ActionTimeStats,
 }

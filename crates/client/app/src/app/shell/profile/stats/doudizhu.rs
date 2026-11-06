@@ -1,4 +1,6 @@
-use super::rows::{ProfileRowsBuilder, average_or_placeholder, rate_or_placeholder};
+use super::rows::{
+    ProfileRowsBuilder, average_or_placeholder, rate_or_placeholder, seconds_or_placeholder,
+};
 use leocard_doudizhu::DoudizhuProfileStats;
 
 pub(crate) fn doudizhu_profile_rows(
@@ -18,8 +20,12 @@ pub(crate) fn doudizhu_profile_rows(
         "连对最长长度",
         "飞机最长长度",
     ];
+    let action_time = (
+        "平均每手用时",
+        seconds_or_placeholder(stats.and_then(|stats| stats.action_time.average_seconds())),
+    );
     let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
-        return ProfileRowsBuilder::unavailable(&LABELS);
+        return ProfileRowsBuilder::unavailable(&LABELS, [action_time]);
     };
     let mut rows = ProfileRowsBuilder::plain(stats.completed_games, stats.total_reference_delta);
     rows.extend([
@@ -46,5 +52,6 @@ pub(crate) fn doudizhu_profile_rows(
         ("连对最长长度", stats.longest_consecutive_pairs.to_string()),
         ("飞机最长长度", stats.longest_airplane.to_string()),
     ]);
+    rows.extend([action_time]);
     rows.finish()
 }

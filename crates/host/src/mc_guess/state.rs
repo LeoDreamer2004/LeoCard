@@ -1,6 +1,6 @@
 use super::generation::GraphGeneration;
 use super::{GuessClock, McProcessPresence};
-use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
+use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_game_common::PlayerId;
 use leocard_mc_guess::{McGuessGameState, McGuessMatchState, McGuessMode, McGuessRuleSet};
@@ -78,7 +78,7 @@ impl McGuessSession {
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
-        dispatch_client_command(self, connection, message)
+        self.dispatch_with_action_timing(connection, message)
     }
 
     pub(super) fn after_action(&mut self, skipped: Option<PlayerId>) -> Vec<Delivery> {

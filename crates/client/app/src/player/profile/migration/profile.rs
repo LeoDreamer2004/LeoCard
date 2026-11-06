@@ -1,11 +1,10 @@
 use super::super::{PROFILE_HEADER, StoredPlayerProfile};
 use super::archive::{LegacyRatingProfile, V6_PROFILE_HEADER, V6GameProfiles, V6PlayerProfile};
+use super::legacy::{MahjongProfileStats, ShengjiProfileStats};
 use super::mc_guess::{PreviousMcGuessStats, SixSeatMcGuessStats};
 use super::texas::V3TexasStats;
 use super::uno::SixSeatUnoStats;
-use leocard_mahjong::MahjongProfileStats;
 use leocard_protocol::{MatchId, PlayerInteractionStats};
-use leocard_shengji::ShengjiProfileStats;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 macro_rules! stored_profile_compatibility_types {
@@ -106,6 +105,9 @@ pub(in crate::player::profile) fn decode_player_profile(
     // as eight placements merely because the following counters happen to fit.
     if let Some(current) = bytes.strip_prefix(PROFILE_HEADER) {
         return decode_exact(current).map_err(|error| format!("玩家档案已损坏：{error}"));
+    }
+    if let Some(previous) = bytes.strip_prefix(super::v8::V8_PROFILE_HEADER) {
+        return super::v8::decode_v8(previous);
     }
     if let Some(previous) = bytes.strip_prefix(super::guandan::V7_PROFILE_HEADER) {
         return super::guandan::decode_v7(previous);

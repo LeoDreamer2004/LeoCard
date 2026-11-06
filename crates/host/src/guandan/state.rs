@@ -1,5 +1,6 @@
 use super::statistics::GuandanStatistics;
-use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
+use crate::action_timing::attach_action_timing;
+use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
 use leocard_game_common::PlayerId;
 use leocard_guandan::{
@@ -67,10 +68,17 @@ impl GuandanSession {
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
-        dispatch_client_command(self, connection, message)
+        self.dispatch_with_action_timing(connection, message)
     }
 
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        self.room.action_timing.advance(elapsed);
+        let deliveries = self.advance_game_time(elapsed);
+        self.refresh_action_timing();
+        attach_action_timing(self, deliveries)
+    }
+
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         let Some(game) = &self.game else {
             return Vec::new();
         };

@@ -6,11 +6,13 @@ mod cards;
 pub mod mahjong;
 mod persona;
 mod player;
+mod profile;
 mod ranking;
 mod search;
 
 pub use cards::{DeckError, contains_unique_cards, has_unique_cards, validate_deck};
 pub use persona::PlayerPersona;
 pub use player::PlayerId;
+pub use profile::ActionTimeStats;
 pub use ranking::ranked_awards;
 pub use search::{SearchBudget, SearchRandom};

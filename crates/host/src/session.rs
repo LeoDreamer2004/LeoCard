@@ -11,8 +11,8 @@ use leocard_mahjong::{MahjongRuleSet, MahjongTile};
 use leocard_mahjong_link::MahjongLinkRuleSet;
 use leocard_mc_guess::McGuessRuleSet;
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameKind, GameRules, PROTOCOL_VERSION, Revision, RoomId,
-    RoomInfo, ServerEvent, ServerMessage,
+    ActionTimingSnapshot, ClientCommand, ClientMessage, GameKind, GameRules, PROTOCOL_VERSION,
+    Revision, RoomId, RoomInfo, ServerEvent, ServerMessage,
 };
 use leocard_qigui523::{QiGuiCard, QiGuiRuleSet, build_deck};
 use leocard_shengji::{ShengjiCard, ShengjiRuleSet, build_deck_for};
@@ -197,6 +197,8 @@ trait HostBackend {
 
     fn heartbeat(&self) -> Vec<Delivery>;
 
+    fn action_timing(&self) -> Option<ActionTimingSnapshot>;
+
     fn room_info(&self) -> Option<RoomInfo>;
 
     fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery>;
@@ -231,6 +233,10 @@ macro_rules! impl_host_backend {
 
             fn heartbeat(&self) -> Vec<Delivery> {
                 <$session>::heartbeat(self)
+            }
+
+            fn action_timing(&self) -> Option<ActionTimingSnapshot> {
+                HostedGameLifecycle::room(self).action_timing.snapshot()
             }
 
             fn room_info(&self) -> Option<RoomInfo> {
@@ -409,6 +415,7 @@ impl HostSession {
             return vec![Delivery {
                 recipient: connection,
                 message: ServerMessage {
+                    action_timing: None,
                     protocol_version: PROTOCOL_VERSION,
                     room_id: self.room_id(),
                     revision: self.revision(),
@@ -422,6 +429,7 @@ impl HostSession {
             return vec![Delivery {
                 recipient: connection,
                 message: ServerMessage {
+                    action_timing: self.backend().action_timing(),
                     game_context: None,
                     protocol_version: PROTOCOL_VERSION,
                     room_id: self.room_id(),

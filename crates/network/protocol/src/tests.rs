@@ -78,6 +78,7 @@ fn client_message_round_trips_through_tcp_frame() {
             reference_points: 12,
             completed_games: 8,
             game_profiles: PlayerGameProfiles {
+                mahjong_link: None,
                 blackjack: Some(BlackjackProfileStats {
                     completed_games: 3,
                     total_chips_delta: 42,
@@ -173,6 +174,7 @@ fn interaction_events_preserve_shared_animation_seeds_and_count_each_batch_once(
         assert_eq!(kind.flower_count(), flowers);
         assert_eq!(kind.egg_count(), eggs);
         let message = ServerMessage {
+            action_timing: None,
             game_context: None,
             protocol_version: PROTOCOL_VERSION,
             room_id: RoomId(42),
@@ -200,6 +202,7 @@ fn chat_events_round_trip_for_text_quick_voice_and_emoji() {
         ChatContent::Emoji(ChatEmoji::Laugh),
     ] {
         let message = ServerMessage {
+            action_timing: None,
             game_context: None,
             protocol_version: PROTOCOL_VERSION,
             room_id: RoomId(42),

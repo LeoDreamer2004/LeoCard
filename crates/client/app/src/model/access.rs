@@ -2,9 +2,9 @@ use super::ClientModel;
 use super::core::RoomExitReason;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    AvatarId, ChatMessage, GameCommand, GameKind, GameRules, GameSnapshot, LobbySnapshot, MatchId,
-    PlayerGameProfiles, PlayerInteraction, PlayerPublicInfo, PlayerReferenceChange, RejectReason,
-    Revision, RoomId, UnoPhaseView,
+    ActionTimingSnapshot, AvatarId, ChatMessage, GameCommand, GameKind, GameRules, GameSnapshot,
+    LobbySnapshot, MatchId, PlayerGameProfiles, PlayerInteraction, PlayerPublicInfo,
+    PlayerReferenceChange, RejectReason, Revision, RoomId, UnoPhaseView,
 };
 use std::collections::HashMap;
 
@@ -91,6 +91,15 @@ impl ClientModel {
 
     pub fn game_snapshot(&self) -> Option<&GameSnapshot> {
         self.game.as_ref()
+    }
+
+    pub fn action_timing(&self) -> Option<&ActionTimingSnapshot> {
+        self.action_timing.as_ref()
+    }
+
+    /// Receipt sequence, including same-revision authoritative heartbeats.
+    pub fn action_timing_serial(&self) -> u64 {
+        self.action_timing_serial
     }
 
     pub fn active_game_meta(&self) -> Option<ActiveGameMeta> {

@@ -1,6 +1,7 @@
 //! Long-term statistics owned by this game. Field order is part of the saved profile format.
 
 use crate::TexasRuleSet;
+use leocard_game_common::ActionTimeStats;
 
 /// 普通德州扑克与奥马哈共用的长期档案。
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -27,4 +28,5 @@ pub struct TexasProfileStats {
     pub entry_tracked_hands: u32,
     /// 进入翻牌或翻前直接获胜的小局数。
     pub entered_hands: u32,
+    pub action_time: ActionTimeStats,
 }

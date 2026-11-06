@@ -1,5 +1,6 @@
 use super::{TexasAdapter, TexasSession, validate_deck};
-use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
+use crate::action_timing::attach_action_timing;
+use crate::lifecycle::HostedGameLifecycle;
 use crate::{AutomaticActionDelayState, ConnectionId, Delivery, HostError, RoomSession};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
@@ -69,6 +70,13 @@ impl TexasSession {
 
     /// 推进自动盲注及托管机器人的行动延迟。
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        self.room.action_timing.advance(elapsed);
+        let deliveries = self.advance_game_time(elapsed);
+        self.refresh_action_timing();
+        attach_action_timing(self, deliveries)
+    }
+
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         let mut deliveries = self.advance_automatic_turn(elapsed);
         if self
             .game
@@ -160,7 +168,7 @@ impl TexasSession {
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
         let request_id = message.request_id;
-        let mut deliveries = dispatch_client_command(self, connection, message);
+        let mut deliveries = self.dispatch_with_action_timing(connection, message);
         if !self.room.closed
             && self.game.is_none()
             && self.rules.short_deck

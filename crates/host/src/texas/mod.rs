@@ -10,6 +10,7 @@ mod statistics;
 mod support;
 #[cfg(test)]
 mod tests;
+mod timing;
 
 pub use adapter::*;
 pub use state::*;

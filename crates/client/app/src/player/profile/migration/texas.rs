@@ -1,5 +1,5 @@
 use super::archive::{V6PlayerProfile, decode_archive};
-use leocard_texas_holdem::TexasProfileStats;
+use super::legacy::TexasProfileStats;
 use serde::{Deserialize, Serialize};
 
 pub(in crate::player::profile::migration) const V3_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v3\0";

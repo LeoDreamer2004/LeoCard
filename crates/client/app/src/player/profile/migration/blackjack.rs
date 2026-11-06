@@ -1,11 +1,9 @@
 use super::archive::{LegacyRatingProfile, V6GameProfiles, V6PlayerProfile};
+use super::legacy::{MahjongProfileStats, ShengjiProfileStats, UnoProfileStats};
 use super::mc_guess::PreviousMcGuessStats;
 use super::profile::decode_exact;
 use super::texas::V3TexasStats;
-use leocard_mahjong::MahjongProfileStats;
 use leocard_protocol::PlayerInteractionStats;
-use leocard_shengji::ShengjiProfileStats;
-use leocard_uno::UnoProfileStats;
 use serde::{Deserialize, Serialize};
 
 pub(super) const V1_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v1\0";

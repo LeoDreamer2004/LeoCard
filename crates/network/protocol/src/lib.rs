@@ -4,6 +4,7 @@
 //! [`ClientMessage`] 和 [`ServerMessage`]。
 
 pub mod achievements;
+mod action_timing;
 pub mod blackjack;
 pub mod discovery;
 pub mod doudizhu;
@@ -27,6 +28,7 @@ pub mod uno;
 pub mod violations;
 
 pub use achievements::*;
+pub use action_timing::*;
 pub use blackjack::*;
 pub use discovery::*;
 pub use doudizhu::*;
@@ -46,7 +48,7 @@ pub use texas::*;
 pub use uno::*;
 pub use violations::*;
 
-pub const PROTOCOL_VERSION: u16 = 108;
+pub const PROTOCOL_VERSION: u16 = 109;
 pub const MAX_FRAME_PAYLOAD: usize = 1024 * 1024;
 pub const MAX_PLAYER_NAME_CHARS: usize = 7;
 pub const AVATAR_DIMENSION: u32 = 64;

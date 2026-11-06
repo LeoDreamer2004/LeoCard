@@ -1,6 +1,7 @@
 //! Long-term statistics owned by this game. Field order is part of the saved profile format.
 
 use crate::UnoRuleSet;
+use leocard_game_common::ActionTimeStats;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
@@ -23,4 +24,5 @@ pub struct UnoProfileStats {
     #[cfg_attr(feature = "serde", serde(alias = "jump_in_attempts"))]
     pub jump_in_opportunities: u32,
     pub successful_jump_ins: u32,
+    pub action_time: ActionTimeStats,
 }

@@ -139,7 +139,7 @@ pub(crate) fn spawn_uno_presentation_effects(
     let Ok((discard_node, discard_transform)) = discards.single() else {
         return;
     };
-    // 新出现的锚点仍需经过布局阶段；既有锚点在快照更新后保持实体与坐标。
+    // 新出现的锚点仍需经过布局阶段，既有锚点在快照更新后保持实体与坐标。
     // 等到所有锚点拥有真实尺寸后再消费事件，避免将动画绘制在 (0, 0)。
     let Some(scene) = UnoPresentationScene::resolve(
         layer,

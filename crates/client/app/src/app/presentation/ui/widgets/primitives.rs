@@ -137,7 +137,7 @@ pub(crate) fn card_background_image(texture: Handle<Image>, corner_scale: f32) -
     sliced_image(texture, 16.0, corner_scale)
 }
 
-/// 给任意布局节点叠加独立的九宫格面板皮肤。玩家框仍使用专用贴图；这里仅
+/// 给任意布局节点叠加独立的九宫格面板皮肤。玩家框仍使用专用贴图。这里仅
 /// 服务于主窗口、内容分区和小型提示框，避免随尺寸拉伸边角与描边。
 pub(crate) fn decorate_panel_skin(
     commands: &mut UiComposer,

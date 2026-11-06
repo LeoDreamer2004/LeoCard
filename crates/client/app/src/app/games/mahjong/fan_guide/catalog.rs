@@ -16,7 +16,7 @@ macro_rules! entry {
     };
 }
 
-// 示例中的每组牌用空格分开；! 表示该组已经副露。情境番的牌面仅作示意。
+// 示例中的每组牌用空格分开。! 表示该组已经副露。情境番的牌面仅作示意。
 pub(super) const ENTRIES: &[FanGuideEntry] = &[
     entry!(
         BigFourWinds,
@@ -115,7 +115,7 @@ pub(super) const ENTRIES: &[FanGuideEntry] = &[
     ),
     entry!(
         GreaterHonorsAndKnittedTiles,
-        "七种字牌各一张，另有七张来自三色错位的 147、258、369 序数牌；不得重复。",
+        "七种字牌各一张，另有七张来自三色错位的 147、258、369 序数牌，不得重复。",
         "147m 258p 3s ESWNRGH"
     ),
     entry!(
@@ -230,7 +230,7 @@ pub(super) const ENTRIES: &[FanGuideEntry] = &[
     ),
     entry!(
         ChickenHand,
-        "和牌不符合其他任何番种（花牌另计）；仍须以实际计分结果为准。",
+        "和牌不符合其他任何番种（花牌另计），仍须以实际计分结果为准。",
         "!234m 456p 678s 222s EE"
     ),
     entry!(
@@ -245,7 +245,7 @@ pub(super) const ENTRIES: &[FanGuideEntry] = &[
     ),
     entry!(
         OutWithReplacementTile,
-        "开杠后，用杠上补得的牌自摸和牌；补花所得不算。",
+        "开杠后，用杠上补得的牌自摸和牌，补花所得不算。",
         "!1111m 234p 567s 789m 22p"
     ),
     entry!(
@@ -305,7 +305,7 @@ pub(super) const ENTRIES: &[FanGuideEntry] = &[
     ),
     entry!(
         LastTile,
-        "和某种牌的第四张；前三张已在弃牌或副露中亮明。",
+        "和某种牌的第四张，前三张已在弃牌或副露中亮明。",
         "111m 234p 567s 789m 22p"
     ),
     entry!(
@@ -315,12 +315,12 @@ pub(super) const ENTRIES: &[FanGuideEntry] = &[
     ),
     entry!(
         PrevalentWind,
-        "本圈的圈风牌组成刻子（或杠）；示例假设东风圈。",
+        "本圈的圈风牌组成刻子（或杠），示例假设东风圈。",
         "EEE 123m 456p 789s 22m"
     ),
     entry!(
         SeatWind,
-        "本人的门风牌组成刻子（或杠）；示例假设东家。",
+        "本人的门风牌组成刻子（或杠），示例假设东家。",
         "EEE 123m 456p 789s 22m"
     ),
     entry!(
@@ -400,27 +400,27 @@ pub(super) const ENTRIES: &[FanGuideEntry] = &[
     ),
     entry!(
         EdgeWait,
-        "以 12 等 3，或以 89 等 7 的唯一和牌张；示例为等 3 万。",
+        "以 12 等 3，或以 89 等 7 的唯一和牌张，示例为等 3 万。",
         "123m 456p 789s 111m 22p"
     ),
     entry!(
         ClosedWait,
-        "顺子中间缺一张的唯一和牌张；示例为 24 万等 3 万。",
+        "顺子中间缺一张的唯一和牌张，示例为 24 万等 3 万。",
         "234m 456p 789s 111m 22p"
     ),
     entry!(
         SingleWait,
-        "单张等将牌的唯一和牌张；示例为等 2 饼。",
+        "单张等将牌的唯一和牌张，示例为等 2 饼。",
         "123m 456p 789s 111m 22p"
     ),
     entry!(
         SelfDrawn,
-        "自己从牌墙摸到和牌张；不包括和他人打出的牌。",
+        "自己从牌墙摸到和牌张，不包括和他人打出的牌。",
         "123m 456p 789s 111m 22p"
     ),
     entry!(
         FlowerTiles,
-        "每张春、夏、秋、冬、梅、兰、竹、菊花牌各计一番；花牌不计入起和番数。",
+        "每张春、夏、秋、冬、梅、兰、竹、菊花牌各计一番，花牌不计入起和番数。",
         "a b c d e f g h"
     ),
 ];

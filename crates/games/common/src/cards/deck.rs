@@ -19,7 +19,7 @@ impl fmt::Display for DeckError {
 
 impl Error for DeckError {}
 
-/// 按物理牌身份校验完整牌堆；顺序可以不同，每张物理牌必须恰好出现一次。
+/// 按物理牌身份校验完整牌堆，顺序可以不同，每张物理牌必须恰好出现一次。
 /// 多副牌或同牌面的副本应由调用方的牌类型区分。
 pub fn validate_deck<Card: Eq + Hash>(deck: &[Card], expected: &[Card]) -> Result<(), DeckError> {
     if deck.len() != expected.len() {

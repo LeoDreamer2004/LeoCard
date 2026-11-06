@@ -97,7 +97,7 @@ fn apply_update(staged: &Path, target: &Path, receipt: &Path) -> io::Result<()> 
     }
 
     let working_directory = target.parent().unwrap_or_else(|| Path::new("."));
-    // 新版本已经安装；若启动失败，保留它供用户稍后手动启动并报告错误。
+    // 新版本已经安装，若启动失败，保留它供用户稍后手动启动并报告错误。
     Command::new(target)
         .current_dir(working_directory)
         .spawn()?;

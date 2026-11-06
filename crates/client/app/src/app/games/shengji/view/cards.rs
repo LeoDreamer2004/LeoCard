@@ -181,7 +181,7 @@ fn shengji_display_key(card: ShengjiCard, trump: Option<ShengjiTrump>) -> (u8, u
     } else {
         card.suit().map_or(4, ShengjiSuit::bid_strength)
     };
-    // 所有主牌共用同一个 category；副级牌的 strength 也完全相同，因此必须
+    // 所有主牌共用同一个 category，副级牌的 strength 也完全相同，因此必须
     // 在牌副编号之前再按黑、红、梅、方分组，否则两副实体牌会交错成乱序。
     let suit_order = card.suit().map_or(4, ShengjiSuit::bid_strength);
     (u8::from(is_trump), category, strength, suit_order)

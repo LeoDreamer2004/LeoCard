@@ -43,7 +43,7 @@ pub(crate) struct TurnBorderTrace {
 }
 
 /// 描边进度不能挂在人物框实体上：手牌选择等操作会重建整棵 UI，实体随之销毁。
-/// 使用“游戏 + 对局 + 当前玩家”作为稳定键，可在同一回合的 UI 重建后继续播放；
+/// 使用“游戏 + 对局 + 当前玩家”作为稳定键，可在同一回合的 UI 重建后继续播放。
 /// 真正换人或换局时则自然从头开始。
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct TurnBorderAnimationKey {

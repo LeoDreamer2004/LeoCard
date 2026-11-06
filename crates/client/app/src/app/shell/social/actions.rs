@@ -79,9 +79,9 @@ impl UiActionHandler<SocialActionContext<'_>> for SocialUiAction {
                 ui.social.interaction_menu_anchor = Some(*anchor);
             }
             Self::UseAutoEggThrower(target) => {
-                let result = if let Some(client) = client.as_deref() {
+                let result = if let Some(client) = client.as_deref_mut() {
                     context.thrower.activate(
-                        &client.0,
+                        &mut client.0,
                         *target,
                         context.time.elapsed(),
                         &mut context.economy,
@@ -106,7 +106,9 @@ impl UiActionHandler<SocialActionContext<'_>> for SocialUiAction {
                 {
                     let duration = match kind {
                         PlayerInteractionKind::Flower | PlayerInteractionKind::Egg => 0.5,
-                        PlayerInteractionKind::Wine | PlayerInteractionKind::Shoe => 5.0,
+                        PlayerInteractionKind::Wine
+                        | PlayerInteractionKind::Shoe
+                        | PlayerInteractionKind::EggBarrage => 5.0,
                     };
                     cooldown.start(*kind, duration);
                     if matches!(

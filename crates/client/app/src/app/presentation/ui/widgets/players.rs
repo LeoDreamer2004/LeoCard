@@ -1,20 +1,20 @@
 //! 玩家框、头像、准备标记和房主标记。
 
-use super::super::{MUTED, READY, TEXT};
+use super::super::{GAME_SIDE_CONTROL_SCALE, MUTED, READY, TEXT};
 use super::{add_avatar, add_ready_badge, add_text};
 use crate::app::presentation::SeatSide;
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    InteractionCooldownMask, InteractionMenuPanel, NavigationUiAction, OpponentBadge,
-    PlayerAvatarAnchor, PlayerProfilePage, SocialUiAction, UiAction, add_cozy_button,
-    add_cozy_panel, add_egg_thrower_button, reference_level,
+    InteractionMenuPanel, NavigationUiAction, OpponentBadge, PlayerAvatarAnchor, PlayerProfilePage,
+    SocialUiAction, UiAction, add_cozy_button, add_cozy_panel, add_interaction_buttons,
+    reference_level,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_game_common::PlayerId;
-use leocard_protocol::{PlayerGameProfiles, PlayerInteractionKind};
-use leocard_ui::{AnchoredPopup, TextureButton, UiComposer, sliced_image, spawn_node};
+use leocard_protocol::PlayerGameProfiles;
+use leocard_ui::{AnchoredPopup, UiComposer, spawn_node};
 
 /// 结算窗口中的下一局准备状态。保持德州扑克原有的绿色头像环和右下角对钩，
 /// 让所有游戏都能在玩家点击“再来一局”后直接看到彼此的准备进度。
@@ -144,7 +144,7 @@ pub(crate) fn add_interaction_menu(
         position_type: PositionType::Absolute,
         left: percent(50),
         top: percent(100),
-        width: px(376),
+        width: px(300.0 * GAME_SIDE_CONTROL_SCALE),
         min_height: px(145),
         padding: UiRect {
             left: px(12),
@@ -223,89 +223,7 @@ pub(crate) fn add_interaction_menu(
         px(78),
         30.0,
     );
-    let actions = spawn_node(
-        commands,
-        menu,
-        Node {
-            width: percent(100),
-            height: px(64),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            column_gap: px(0),
-            ..default()
-        },
-        None,
-    );
-    for (kind, label) in [
-        (PlayerInteractionKind::Flower, "鲜花"),
-        (PlayerInteractionKind::Egg, "鸡蛋"),
-        (PlayerInteractionKind::Wine, "酒杯"),
-        (PlayerInteractionKind::Shoe, "拖鞋"),
-    ] {
-        let icon = assets
-            .social
-            .interaction_images
-            .get(&(kind, false))
-            .expect("every interaction has a flight image")
-            .clone();
-        let button = TextureButton {
-            node: Node {
-                width: px(69),
-                height: px(64),
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                row_gap: px(2),
-                ..default()
-            },
-            normal: sliced_image(assets.home.button.clone(), 32.0, 0.5),
-            hovered: sliced_image(assets.home.purple_button_compact.clone(), 32.0, 0.5),
-            action: Some(UiAction::Social(SocialUiAction::SendInteraction {
-                target,
-                kind,
-            })),
-            label: Some(label),
-            font_size: 12.0,
-            color: TEXT,
-            icon: Some((icon, 36.0)),
-        }
-        .mount(commands, actions, &assets.font)
-        .0;
-        if matches!(
-            kind,
-            PlayerInteractionKind::Wine | PlayerInteractionKind::Shoe
-        ) {
-            commands.child(
-                button,
-                (
-                    Node {
-                        position_type: PositionType::Absolute,
-                        left: px(0),
-                        right: px(0),
-                        top: px(0),
-                        bottom: px(0),
-                        ..default()
-                    },
-                    ImageNode::new(
-                        assets
-                            .social
-                            .interaction_cooldown_masks
-                            .last()
-                            .cloned()
-                            .unwrap_or_default(),
-                    ),
-                    InteractionCooldownMask {
-                        player: target,
-                        kind,
-                    },
-                    Visibility::Hidden,
-                    ZIndex(10),
-                    Pickable::IGNORE,
-                ),
-            );
-        }
-    }
-    add_egg_thrower_button(commands, actions, target, assets);
+    add_interaction_buttons(commands, menu, target, assets);
     menu
 }
 

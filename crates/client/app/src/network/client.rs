@@ -235,7 +235,7 @@ impl TcpGameClient {
         self.model.take_chat_messages()
     }
 
-    /// 把后台线程已经收到的消息应用到模型；返回是否有可见状态变化。
+    /// 把后台线程已经收到的消息应用到模型，返回是否有可见状态变化。
     pub fn poll(&mut self) -> bool {
         self.poll_with_events(|_, _| {})
     }

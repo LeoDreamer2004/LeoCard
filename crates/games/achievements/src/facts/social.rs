@@ -5,6 +5,7 @@ pub enum InteractionKind {
     Egg,
     Wine,
     Shoe,
+    EggBarrage,
 }
 
 impl InteractionKind {
@@ -20,6 +21,7 @@ impl InteractionKind {
         match self {
             Self::Egg => 1,
             Self::Shoe => 10,
+            Self::EggBarrage => 100,
             _ => 0,
         }
     }

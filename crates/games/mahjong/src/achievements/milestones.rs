@@ -127,7 +127,7 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         "ten_thousand_hands",
         "万里挑一",
         Gold,
-        "累计完成10000局，包含流局；多局游戏中的每局分别计数",
+        "累计完成10000局，包含流局。多局游戏中的每局分别计数",
         mahjong_hands,
         10000,
         Lifetime

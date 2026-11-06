@@ -125,9 +125,9 @@ pub enum UnoEvent {
         player: PlayerId,
         card: UnoCard,
         chosen_color: Option<UnoColor>,
-        /// 同一次原子出牌中的零基下标；一次打出对子时依次为 0、1。
+        /// 同一次原子出牌中的零基下标，一次打出对子时依次为 0、1。
         play_index: u8,
-        /// 同一次原子出牌包含的牌数；客户端据此只播放一次组合音效。
+        /// 同一次原子出牌包含的牌数，客户端据此只播放一次组合音效。
         play_count: u8,
     },
     CardsDrawn {
@@ -246,7 +246,7 @@ pub enum TexasEvent {
     ActionApplied {
         player: PlayerId,
         action: TexasAction,
-        /// 此动作实际从玩家剩余筹码中投入的数量；过牌和弃牌为 0。
+        /// 此动作实际从玩家剩余筹码中投入的数量，过牌和弃牌为 0。
         amount: u32,
         statistics: TexasActionStatistics,
     },
@@ -276,7 +276,7 @@ pub enum ShengjiEvent {
     DeclarationChanged {
         declaration: ShengjiDeclarationView,
     },
-    /// 当前亮主结果已经锁定；无声明表示无人亮主并进入相应特殊规则。
+    /// 当前亮主结果已经锁定。无声明表示无人亮主并进入相应特殊规则。
     BiddingLocked {
         declaration: Option<ShengjiDeclarationView>,
     },
@@ -306,7 +306,7 @@ pub enum ShengjiEvent {
     },
     CardsPlayed {
         play: ShengjiPublicPlay,
-        /// 是否为本墩首家出牌；跟牌的混合结构不能据此冒充甩牌。
+        /// 是否为本墩首家出牌，跟牌的混合结构不能据此冒充甩牌。
         is_lead: bool,
     },
     TrickFinished {

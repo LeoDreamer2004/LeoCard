@@ -12,7 +12,7 @@ use leocard_texas_holdem::{TexasAction, TexasRuleSet};
 use leocard_uno::{UnoCard, UnoColor, UnoRuleSet};
 use serde::{Deserialize, Serialize};
 
-/// LeoCard 支持的游戏。房间、身份与聊天协议不依赖具体游戏；新增游戏时在这里
+/// LeoCard 支持的游戏。房间、身份与聊天协议不依赖具体游戏。新增游戏时在这里
 /// 注册对应的规则、命令、快照和事件后端。
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum GameKind {
@@ -257,17 +257,17 @@ pub enum ShengjiCommand {
         cards: Vec<ShengjiCard>,
     },
     /// 发牌完成后确认在当前亮主结果下不再亮主、反主或自保。任何新的声明
-    /// 都会清空全桌确认；四人全部确认后可立即结束亮主阶段。
+    /// 都会清空全桌确认，四人全部确认后可立即结束亮主阶段。
     ConfirmBidPass,
     /// 庄家拿到底牌后重新埋下规则要求的牌数（两/四副牌八张、三副牌六张）。
     Bury {
         cards: Vec<ShengjiCard>,
     },
-    /// 当前被询问者提交更强的反主牌抄底；`None` 表示放弃本次机会。
+    /// 当前被询问者提交更强的反主牌抄底，`None` 表示放弃本次机会。
     ChooseBottomCopy {
         cards: Option<Vec<ShengjiCard>>,
     },
-    /// 符合资格者提交五张过江牌；`None` 表示明确不过江。
+    /// 符合资格者提交五张过江牌，`None` 表示明确不过江。
     ChooseFiveTrumpCrossing {
         cards: Option<Vec<ShengjiCard>>,
     },

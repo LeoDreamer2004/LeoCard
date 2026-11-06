@@ -1,11 +1,10 @@
 use bevy::prelude::*;
 use leocard_client::{NetworkState, PlayerEconomy, PropId, TcpGameClient};
 use leocard_game_common::PlayerId;
-use leocard_protocol::{ProfileId, RoomId};
+use leocard_protocol::{ClientCommand, PlayerInteractionKind, ProfileId, RoomId};
 use std::time::Duration;
 
-const EGG_COUNT: u16 = 100;
-const EGG_INTERVAL: Duration = Duration::from_millis(100);
+const BUSY_DURATION: Duration = Duration::from_secs(16);
 
 #[derive(Component)]
 pub(crate) struct EggThrowerCount;
@@ -20,14 +19,13 @@ pub(super) struct EggBurst {
     pub source: PlayerId,
     pub target: PlayerId,
     pub target_profile: ProfileId,
-    pub last_sent_at: Duration,
-    pub sent: u16,
+    pub started_at: Duration,
 }
 
 impl AutoEggThrower {
     pub(crate) fn activate(
         &mut self,
-        client: &TcpGameClient,
+        client: &mut TcpGameClient,
         target: PlayerId,
         now: Duration,
         economy: &mut PlayerEconomy,
@@ -44,31 +42,28 @@ impl AutoEggThrower {
             return Err("不能对自己使用自动砸蛋器".to_owned());
         }
         let target_profile = model.player(target).ok_or("目标玩家已离开房间")?.profile_id;
-        economy.consume_prop(PropId::AutoEggThrower)?;
-        self.active = Some(EggBurst {
+        let active = EggBurst {
             room: model.room_id(),
             source,
             target,
             target_profile,
-            last_sent_at: now,
-            sent: 0,
-        });
+            started_at: now,
+        };
+        economy.consume_prop(PropId::AutoEggThrower)?;
+        if !client.send(ClientCommand::Interact {
+            target,
+            kind: PlayerInteractionKind::EggBarrage,
+        }) {
+            return Err("无法发送自动砸蛋消息".to_owned());
+        }
+        self.active = Some(active);
         Ok(())
     }
 }
 
 impl EggBurst {
-    pub(super) fn ready(&self, now: Duration) -> bool {
-        !self.finished() && now.saturating_sub(self.last_sent_at) >= EGG_INTERVAL
-    }
-
-    pub(super) fn record_sent(&mut self, now: Duration) {
-        self.sent += 1;
-        self.last_sent_at = now;
-    }
-
-    pub(super) fn finished(&self) -> bool {
-        self.sent == EGG_COUNT
+    pub(super) fn finished(&self, now: Duration) -> bool {
+        now.saturating_sub(self.started_at) >= BUSY_DURATION
     }
 
     pub(super) fn still_valid(&self, client: &TcpGameClient) -> bool {

@@ -7,7 +7,7 @@ use std::fmt;
 pub enum ShengjiCategory {
     Trump,
     Suit(ShengjiSuit),
-    /// 仅用于缺门后的混合垫牌；首家不能领出混合门类，且这种牌永远不能赢墩。
+    /// 仅用于缺门后的混合垫牌。首家不能领出混合门类，且这种牌永远不能赢墩。
     Mixed,
 }
 

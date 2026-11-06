@@ -77,7 +77,7 @@ pub(crate) fn render_doudizhu_lobby(
                     "关闭"
                 }
                 .to_owned(),
-                help: "关闭时三张只能不带或带一对，飞机只能不带或带对应数量的对子；开启后也允许三带一和飞机带单张。",
+                help: "关闭时三张只能不带或带一对，飞机只能不带或带对应数量的对子。开启后也允许三带一和飞机带单张。",
                 previous: page.can_configure.then_some(toggled),
                 next: page.can_configure.then_some(toggled),
             },

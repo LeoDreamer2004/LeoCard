@@ -1,42 +1,41 @@
+use super::super::buttons::interaction_button;
 use super::EggThrowerCount;
-use crate::app::presentation::{TEXT, add_text};
+use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{SocialUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::PlayerInteractionKind;
-use leocard_ui::{TextureButton, UiComposer, sliced_image};
+use leocard_ui::UiComposer;
 
 pub(crate) fn add_egg_thrower_button(
     commands: &mut UiComposer,
     parent: Entity,
     target: PlayerId,
     assets: &UiAssets,
-) {
-    let button = TextureButton {
-        node: Node {
-            width: px(69),
-            height: px(64),
-            flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            row_gap: px(2),
-            ..default()
-        },
-        normal: sliced_image(assets.home.button.clone(), 32.0, 0.5),
-        hovered: sliced_image(assets.home.purple_button_compact.clone(), 32.0, 0.5),
-        action: Some(UiAction::Social(SocialUiAction::UseAutoEggThrower(target))),
-        label: None,
-        font_size: 12.0,
-        color: TEXT,
-        icon: None,
-    }
-    .mount(commands, parent, &assets.font)
-    .0;
-    add_egg_thrower_icon(commands, button, 36.0, assets);
-    let count = add_text(commands, button, "砸蛋×0", 12.0, TEXT, assets);
+) -> Entity {
+    let mut spec = interaction_button(
+        assets,
+        UiAction::Social(SocialUiAction::UseAutoEggThrower(target)),
+        None,
+        None,
+    );
+    spec.node.position_type = PositionType::Absolute;
+    spec.node.top = percent(100);
+    spec.node.margin = UiRect::top(px(6.0 * GAME_SIDE_CONTROL_SCALE));
+    let button = spec.mount(commands, parent, &assets.font).0;
+    add_egg_thrower_icon(commands, button, 36.0 * GAME_SIDE_CONTROL_SCALE, assets);
+    let count = add_text(
+        commands,
+        button,
+        "砸蛋×0",
+        12.0 * GAME_SIDE_CONTROL_SCALE,
+        TEXT,
+        assets,
+    );
     commands.entity(count).insert(EggThrowerCount);
+    button
 }
 
 pub(crate) fn add_egg_thrower_icon(

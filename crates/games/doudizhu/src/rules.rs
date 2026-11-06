@@ -41,7 +41,7 @@ impl DoudizhuMode {
 pub struct DoudizhuRuleSet {
     pub mode: DoudizhuMode,
     pub rounds: u8,
-    /// 四人玩法允许三带一及飞机带单张；三人玩法始终允许。
+    /// 四人玩法允许三带一及飞机带单张，三人玩法始终允许。
     #[cfg_attr(feature = "serde", serde(default))]
     pub allow_single_wings: bool,
 }

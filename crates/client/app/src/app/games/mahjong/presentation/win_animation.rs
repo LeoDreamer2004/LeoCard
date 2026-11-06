@@ -29,7 +29,7 @@ pub(crate) struct MahjongWinTileCue {
 pub(crate) struct MahjongWinTileShake {
     reveal_duration: f32,
     cues: Vec<MahjongWinTileCue>,
-    /// 手牌进入胡牌展示时恢复原色；牌河中的和牌张保持红色。
+    /// 手牌进入胡牌展示时恢复原色，牌河中的和牌张保持红色。
     hand_reveal_start: Option<f32>,
 }
 

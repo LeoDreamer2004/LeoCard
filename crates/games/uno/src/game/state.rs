@@ -296,7 +296,7 @@ impl fmt::Display for UnoGameError {
             Self::InvalidPlayer(player) => write!(f, "玩家 {:?} 不存在", player),
             Self::PlayerEliminated(player) => write!(f, "玩家 {:?} 已被淘汰", player),
             Self::NotPlayersTurn { expected, actual } => {
-                write!(f, "尚未轮到 {:?}；当前应由 {:?} 操作", actual, expected)
+                write!(f, "尚未轮到 {:?}，当前应由 {:?} 操作", actual, expected)
             }
             Self::GameAlreadyFinished => f.write_str("本局已经结束"),
             Self::InitialColorChoiceRequired => f.write_str("先手必须先为万能牌选择颜色"),

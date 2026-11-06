@@ -15,7 +15,7 @@ pub struct UnoSnapshot {
     pub players: Vec<UnoPlayerView>,
     pub your_hand: Vec<UnoCard>,
     pub draw_pile_len: u16,
-    /// FLIP 模式下摸牌堆顶部至多六张牌朝下的一面；其他模式为空。
+    /// FLIP 模式下摸牌堆顶部至多六张牌朝下的一面，其他模式为空。
     pub draw_pile_inactive_cards: Vec<UnoCard>,
     pub discard_top: UnoCard,
     /// 从旧到新排列的弃牌堆末尾，用于客户端绘制有轻微错位的牌堆。

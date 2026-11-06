@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt;
 
-/// 点数按真实牌面命名；游戏中的大小由 [`QiGuiRank::strength`] 决定。
+/// 点数按真实牌面命名，游戏中的大小由 [`QiGuiRank::strength`] 决定。
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum QiGuiRank {
@@ -17,7 +17,7 @@ pub enum QiGuiRank {
     Three,
     Two,
     Five,
-    /// 大小王共享同一个点数；大王用黑桃、小王用梅花表示。
+    /// 大小王共享同一个点数，大王用黑桃、小王用梅花表示。
     Joker,
     Seven,
 }
@@ -163,7 +163,7 @@ impl QiGuiCard {
         self.rank.score()
     }
 
-    /// 不包含 `deck`；同花色同点数的不同副牌具有相同的玩法强度。
+    /// 不包含 `deck`。同花色同点数的不同副牌具有相同的玩法强度。
     pub(crate) const fn semantic_strength(self) -> (u8, u8) {
         (self.rank.strength(), self.suit.strength())
     }

@@ -28,9 +28,9 @@ fn interaction_impact_sound_variant(kind: PlayerInteractionKind, random_variant:
     }
 }
 
-fn interaction_playback_settings() -> PlaybackSettings {
+fn interaction_playback_settings(gain: f32) -> PlaybackSettings {
     PlaybackSettings {
-        volume: Volume::Linear(INTERACTION_SOUND_VOLUME),
+        volume: Volume::Linear(INTERACTION_SOUND_VOLUME * gain),
         ..PlaybackSettings::DESPAWN
     }
 }
@@ -55,7 +55,7 @@ pub(crate) fn animate_player_interactions(
             {
                 commands.spawn((
                     AudioPlayer::new(sound.clone()),
-                    interaction_playback_settings(),
+                    interaction_playback_settings(effect.sound_gain),
                 ));
             }
             effect.launched = true;
@@ -90,7 +90,7 @@ pub(crate) fn animate_player_interactions(
                 if let Some(sound) = assets.audio.interaction_sounds.get(&(effect.kind, variant)) {
                     commands.spawn((
                         AudioPlayer::new(sound.clone()),
-                        interaction_playback_settings(),
+                        interaction_playback_settings(effect.sound_gain),
                     ));
                 }
             }

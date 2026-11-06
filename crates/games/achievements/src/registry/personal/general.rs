@@ -45,6 +45,17 @@ pub(in crate::registry) const DEFINITIONS: &[AchievementDefinition] = &[
         1
     ),
     personal!(
+        "slow_action",
+        "我等的花都谢了",
+        Bronze,
+        "单次手动操作用时达到60秒",
+        |event| personal(event, |event| matches!(
+            event,
+            PersonalEvent::ActionCompleted { elapsed } if *elapsed >= Duration::from_secs(60)
+        )),
+        1
+    ),
+    personal!(
         "first_egg",
         "一点小小的失误",
         Bronze,

@@ -228,6 +228,28 @@ impl LocalPlayerProfile {
         &self.game_profiles
     }
 
+    /// Longest accepted manual action across this player's game profiles.
+    pub fn longest_action_millis(&self) -> u64 {
+        let games = self.game_profiles();
+        [
+            games.qigui523.as_ref().map(|stats| &stats.action_time),
+            games.texas.as_ref().map(|stats| &stats.action_time),
+            games.shengji.as_ref().map(|stats| &stats.action_time),
+            games.uno.as_ref().map(|stats| &stats.action_time),
+            games.mahjong.as_ref().map(|stats| &stats.action_time),
+            games.mc_guess.as_ref().map(|stats| &stats.action_time),
+            games.blackjack.as_ref().map(|stats| &stats.action_time),
+            games.doudizhu.as_ref().map(|stats| &stats.action_time),
+            games.guandan.as_ref().map(|stats| &stats.action_time),
+            games.mahjong_link.as_ref().map(|stats| &stats.action_time),
+        ]
+        .into_iter()
+        .flatten()
+        .map(|stats| stats.longest_millis)
+        .max()
+        .unwrap_or(0)
+    }
+
     pub fn sync_game_profiles(&mut self, profiles: &PlayerGameProfiles) -> bool {
         // Achievement totals are a projection of the local achievement book.
         // Room snapshots own game statistics, including action-time totals,

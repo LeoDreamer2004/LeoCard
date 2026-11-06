@@ -4,9 +4,10 @@ use super::{
 };
 use crate::app::runtime::ServerNotification;
 use bevy::prelude::*;
-use leocard_achievements::{AchievementTrigger, PersonalActivity};
+use leocard_achievements::{AchievementTrigger, PersonalActivity, PersonalEvent};
 use leocard_client::{LocalPlayerProfile, PlayerAchievements};
 use leocard_protocol::{ACHIEVEMENT_REGISTRY, ServerEvent};
+use std::time::Duration;
 
 #[derive(Resource, Default)]
 pub(super) struct ActivityObserver {
@@ -20,6 +21,33 @@ pub(super) struct TriggerResources<'w> {
     book: ResMut<'w, PlayerAchievements>,
     session: ResMut<'w, AchievementSession>,
     observer: ResMut<'w, ActivityObserver>,
+}
+
+/// Runtime synchronizes only the local player's accepted profile snapshots.
+/// Replaying the saved maximum handles startup and reconnect. The achievement
+/// ledger deduplicates unlocks even if a later snapshot repeats an earlier maximum.
+pub(super) fn process_action_record(
+    profile: Res<LocalPlayerProfile>,
+    mut book: ResMut<PlayerAchievements>,
+    mut session: ResMut<AchievementSession>,
+    mut observed: Local<Option<u64>>,
+) {
+    if !session.enabled {
+        return;
+    }
+    let millis = profile.longest_action_millis();
+    if *observed == Some(millis) {
+        return;
+    }
+    *observed = Some(millis);
+    session.record(
+        book.trigger(&AchievementTrigger::Personal(
+            PersonalEvent::ActionCompleted {
+                elapsed: Duration::from_millis(millis),
+            },
+        )),
+        None,
+    );
 }
 
 pub(super) fn process_triggers(

@@ -29,13 +29,6 @@ impl TexasTableLayout {
     } else {
         100.0
     };
-    pub(super) const RUNOUT_TOP: f32 = 156.0;
-    pub(super) const RUNOUT_CARD_SIZE: Vec2 = if cfg!(target_os = "android") {
-        Vec2::new(48.0, 62.0)
-    } else {
-        Vec2::new(42.0, 56.0)
-    };
-    pub(super) const RUNOUT_LABEL_WIDTH: f32 = 48.0;
     // The central chips and squid pool share an origin below the street label.
     pub(super) const POT_TOP: f32 = if cfg!(target_os = "android") {
         304.0
@@ -70,17 +63,6 @@ impl TexasTableLayout {
                 + 14.0
                 + index as f32 * (Self::BOARD_CARD_SIZE.x + 7.0),
             Self::BOARD_TOP + (Self::BOARD_ROW_HEIGHT - Self::BOARD_CARD_SIZE.y) * 0.5,
-        )
-    }
-
-    pub(super) fn runout_board_card_origin(index: usize) -> Vec2 {
-        let width = Self::RUNOUT_LABEL_WIDTH + 25.0 + 5.0 * Self::RUNOUT_CARD_SIZE.x;
-        Vec2::new(
-            640.0 - width * 0.5
-                + Self::RUNOUT_LABEL_WIDTH
-                + 5.0
-                + index as f32 * (Self::RUNOUT_CARD_SIZE.x + 5.0),
-            Self::RUNOUT_TOP + 18.0,
         )
     }
 

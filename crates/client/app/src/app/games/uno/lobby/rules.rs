@@ -63,7 +63,6 @@ pub(super) fn render_uno_rule_rows(
         row.render(commands, parent, can_configure, assets);
     }
     if rules.is_no_mercy() {
-        let available = rules.no_mercy.mercy_elimination;
         let toggled = with_no_mercy(
             rules,
             UnoNoMercyRuleSet {
@@ -76,18 +75,17 @@ pub(super) fn render_uno_rule_rows(
             parent,
             RuleConfigRow {
                 label: "突然死亡",
-                value: if !available {
-                    "不适用"
-                } else if rules.no_mercy.sudden_death {
+                value: if rules.no_mercy.sudden_death {
                     "开启"
                 } else {
                     "关闭"
                 }
                 .to_owned(),
                 help: "仅慈悲淘汰生效时可用。剩两人后不再回收弃牌。牌堆耗尽时，双方依次无法接牌后可任选一张打出。",
-                previous: (can_configure && available).then_some(toggled),
-                next: (can_configure && available).then_some(toggled),
-            },
+                previous: can_configure.then_some(toggled),
+                next: can_configure.then_some(toggled),
+            }
+            .applicable(rules.no_mercy.mercy_elimination),
             assets,
         );
     }

@@ -138,7 +138,8 @@ pub(crate) fn render_shengji_lobby(
                 throw_penalty: next_penalty,
                 ..rules_value
             }),
-        },
+        }
+        .applicable(rules_value.allow_throw),
         assets,
     );
     let mandatory_toggled = ShengjiRuleSet {

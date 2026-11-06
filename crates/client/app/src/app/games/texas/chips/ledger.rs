@@ -1,7 +1,8 @@
 //! Snapshot reconciliation, action feedback and pot transfers.
 
 use super::super::{
-    queue_texas_turn_sound, texas_hand_finish_sound_plan, texas_side_pot_sound_plan,
+    TEXAS_RUNOUT_REVEAL_DURATION, TexasShowdownSequence, queue_texas_turn_sound,
+    texas_hand_finish_sound_plan, texas_second_run_sound_plan, texas_side_pot_sound_plan,
     texas_street_sound_plan,
 };
 use super::denominations::initial_chip_denominations;
@@ -104,6 +105,16 @@ impl TexasChipTableState {
             self.initialize(game, side_pots);
             return;
         }
+        if !self.settlement_applied
+            && self.community_len < game.community.len()
+            && matches!(
+                game.phase,
+                TexasPhaseView::HandComplete { showdown: true, .. }
+            )
+        {
+            self.runout_reveal_duration = TEXAS_RUNOUT_REVEAL_DURATION;
+        }
+        self.community_len = game.community.len();
         self.squid.observe(game);
         self.seats = game
             .players
@@ -149,8 +160,18 @@ impl TexasChipTableState {
                 | TexasEvent::SquidAwarded { .. } => {}
                 TexasEvent::HandFinished { showdown } if !self.finish_observed => {
                     self.finish_observed = true;
-                    self.audio_cues
-                        .extend(texas_hand_finish_sound_plan(showdown, sound_seed));
+                    if self.runout_reveal_duration > 0.0 {
+                        self.audio_cues
+                            .extend(texas_street_sound_plan(1, sound_seed));
+                    }
+                    self.audio_cues.extend(
+                        texas_hand_finish_sound_plan(showdown, sound_seed)
+                            .into_iter()
+                            .map(|mut cue| {
+                                cue.remaining += self.runout_reveal_duration;
+                                cue
+                            }),
+                    );
                     self.sweep_bets_to_pot();
                     swept = true;
                 }
@@ -178,8 +199,20 @@ impl TexasChipTableState {
         let complete = matches!(game.phase, TexasPhaseView::HandComplete { .. });
         if complete && !self.settlement_applied {
             if self.finish_observed {
+                if !game.second_community.is_empty() {
+                    self.audio_cues.extend(
+                        texas_second_run_sound_plan(self.event_serial.wrapping_mul(53))
+                            .into_iter()
+                            .map(|mut cue| {
+                                cue.remaining += self.runout_reveal_duration;
+                                cue
+                            }),
+                    );
+                }
                 self.sweep_bets_to_pot();
                 self.award_finished_pots(game);
+                let payout_delay =
+                    TexasShowdownSequence::new(game, self.runout_reveal_duration).payout_delay();
                 for (index, transfer) in game.squid.transfers.iter().enumerate() {
                     let chips = self.take_exact_from_stack(transfer.from, transfer.amount);
                     for (offset, id) in chips.into_iter().enumerate() {
@@ -187,7 +220,7 @@ impl TexasChipTableState {
                             id,
                             ChipZone::Stack(transfer.to),
                             self.stack_anchor(transfer.to),
-                            1.65 + index as f32 * 0.08 + offset as f32 * 0.025,
+                            payout_delay + 1.65 + index as f32 * 0.08 + offset as f32 * 0.025,
                             0.56,
                         );
                     }
@@ -228,6 +261,7 @@ impl TexasChipTableState {
         self.hand_number = game.hand_number;
         self.you = Some(game.you);
         self.current_player = game.current_player;
+        self.community_len = game.community.len();
         self.seats = game
             .players
             .iter()
@@ -448,7 +482,8 @@ impl TexasChipTableState {
                 chip.zone = ChipZone::Pot(0);
             }
         }
-        let mut delay = 0.86;
+        let mut delay =
+            TexasShowdownSequence::new(game, self.runout_reveal_duration).payout_delay() + 0.86;
         for award in awards {
             if award.winners.is_empty() {
                 continue;

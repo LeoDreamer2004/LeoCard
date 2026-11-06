@@ -43,7 +43,7 @@ impl TexasGameState {
         self.settle_showdown(None).map(|_| ())
     }
 
-    /// Every live contender votes clockwise after the dealer, even after a vote for once.
+    /// Live contenders vote clockwise after the dealer. A vote for once settles immediately.
     /// No voting action is added to betting history or action statistics.
     pub fn choose_runout(
         &mut self,
@@ -82,7 +82,7 @@ impl TexasGameState {
             });
         }
         self.runout_votes.push((player, twice));
-        if let Some(&next_player) = self.runout_voters.get(self.runout_votes.len()) {
+        if twice && let Some(&next_player) = self.runout_voters.get(self.runout_votes.len()) {
             self.current_player = Some(next_player);
             return Ok(TexasActionOutcome::RunoutChosen {
                 player,
@@ -92,7 +92,7 @@ impl TexasGameState {
         }
         let prefix = self.community.clone();
         self.draw_runout();
-        let second_board = if self.runout_votes.iter().all(|(_, vote)| *vote) {
+        let second_board = if twice {
             let first_board = self.community.clone();
             self.community = prefix;
             self.draw_runout();

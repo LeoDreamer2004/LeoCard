@@ -1,9 +1,10 @@
 //! 德州扑克牌桌视图。房间、聊天、头像、桌布和按钮资源均复用公共客户端层。
 use super::{
-    TexasChipTableState, TexasTableLayout, TexasUiAction, TexasUiState, add_runout_status,
-    add_second_board, add_texas_board_back, add_texas_board_face, add_texas_chip_areas,
-    add_texas_hand_result, add_texas_opponent, add_texas_own_area, add_texas_showdown_reveal,
-    render_texas_spectator_drawer, spawn_texas_initial_deal, street_label,
+    TexasBoardReveal, TexasChipTableState, TexasShowdownSequence, TexasTableLayout, TexasUiAction,
+    TexasUiState, add_second_board, add_texas_board_back, add_texas_board_face,
+    add_texas_chip_areas, add_texas_hand_result, add_texas_opponent, add_texas_own_area,
+    add_texas_showdown_reveal, render_texas_spectator_drawer, spawn_texas_initial_deal,
+    street_label,
 };
 use crate::app::presentation::{
     CardTableSurface, DESIGN_WIDTH, GameSummaryAnimation, StartGameSeatTransition, TEXT,
@@ -147,6 +148,7 @@ pub(crate) fn render_texas_table(
         return;
     }
 
+    let sequence = TexasShowdownSequence::new(game, chip_state.runout_reveal_duration);
     let new_hand = ui.observed_table.observe((game.match_id, game.hand_number));
     let new_community_from = if new_hand {
         0
@@ -174,8 +176,14 @@ pub(crate) fn render_texas_table(
         commands,
         table,
         game,
-        new_community_from,
-        initial_deal.as_ref().map(|deal| deal.duration),
+        TexasCommunityAnimation {
+            reveal: TexasBoardReveal {
+                first_new: new_community_from,
+                batch: chip_state.runout_reveal_duration > 0.0,
+            },
+            initial_deal_duration: initial_deal.as_ref().map(|deal| deal.duration),
+            sequence,
+        },
         assets,
         card_materials,
     );
@@ -196,9 +204,8 @@ pub(crate) fn render_texas_table(
             false,
         );
     }
-    add_runout_status(commands, table, game, assets);
     render_texas_spectator_drawer(commands, content, game, ui, assets);
-    add_texas_showdown_reveal(commands, table, game, assets, game_summary);
+    add_texas_showdown_reveal(commands, table, game, assets, game_summary, sequence);
     add_texas_hand_result(commands, table, game, assets, avatars, game_summary);
 
     let local_auto_play = matches!(
@@ -219,17 +226,35 @@ pub(crate) fn render_texas_table(
     ui.observed_table.state = game.community.len();
 }
 
+struct TexasCommunityAnimation {
+    reveal: TexasBoardReveal,
+    initial_deal_duration: Option<f32>,
+    sequence: TexasShowdownSequence,
+}
+
 fn add_community_area(
     commands: &mut UiComposer,
     table: Entity,
     game: &TexasSnapshot,
-    new_from: usize,
-    initial_deal_duration: Option<f32>,
+    animation: TexasCommunityAnimation,
     assets: &UiAssets,
     card_materials: &mut Assets<TableCardMaterial>,
 ) {
+    let TexasCommunityAnimation {
+        reveal,
+        initial_deal_duration,
+        sequence,
+    } = animation;
     if !game.second_community.is_empty() {
-        add_second_board(commands, table, game, assets);
+        add_second_board(
+            commands,
+            table,
+            game,
+            reveal,
+            sequence,
+            assets,
+            card_materials,
+        );
         return;
     }
     let center = spawn_node(
@@ -331,12 +356,11 @@ fn add_community_area(
     commands.entity(gap).insert(Pickable::IGNORE);
     for index in 0..5 {
         if let Some(card) = game.community.get(index).copied() {
-            let animate = index >= new_from;
             add_texas_board_face(
                 commands,
                 cards,
                 card,
-                animate.then_some(index.saturating_sub(new_from) as f32 * 0.08),
+                reveal.flip_delay(index),
                 assets,
                 card_materials,
             );

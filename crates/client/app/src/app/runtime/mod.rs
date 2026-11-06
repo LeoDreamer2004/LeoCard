@@ -1,6 +1,5 @@
 //! 应用启动、平台集成、持久化、资源与网络会话。
 
-mod action_timing;
 #[cfg(target_os = "android")]
 mod android;
 mod application;
@@ -16,7 +15,6 @@ mod projection;
 mod resources;
 mod session;
 
-pub(crate) use action_timing::ActionTimingLabel;
 pub(crate) use application::*;
 use platform::*;
 pub(super) use plugin::*;

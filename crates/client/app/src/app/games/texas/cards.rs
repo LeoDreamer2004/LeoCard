@@ -270,19 +270,22 @@ pub(super) fn animate_texas_board_card_backs(
             continue;
         };
         animation.elapsed += time.delta_secs();
-        let raw = ((animation.elapsed - animation.delay) / 0.25).clamp(0.0, 1.0);
-        if animation.elapsed < animation.delay {
-            material.tint.alpha = 0.0;
-            transform.translation = Val2::px(animation.start_offset.x, animation.start_offset.y);
-            continue;
-        }
-        let movement = ease_out_cubic(raw);
-        transform.translation = Val2::px(
-            animation.start_offset.x * (1.0 - movement),
-            animation.start_offset.y * (1.0 - movement),
-        );
-        transform.rotation = Rot2::radians(0.025 * (1.0 - movement));
-        transform.scale = Vec2::splat(0.90 + movement * 0.10);
-        material.tint.alpha = raw;
+        let (frame, alpha) =
+            texas_board_deal_visual(animation.start_offset, animation.elapsed - animation.delay);
+        *transform = frame;
+        material.tint.alpha = alpha;
     }
+}
+
+pub(super) fn texas_board_deal_visual(offset: Vec2, elapsed: f32) -> (UiTransform, f32) {
+    let raw = (elapsed / 0.25).clamp(0.0, 1.0);
+    let movement = ease_out_cubic(raw);
+    (
+        UiTransform {
+            translation: Val2::px(offset.x * (1.0 - movement), offset.y * (1.0 - movement)),
+            rotation: Rot2::radians(0.025 * (1.0 - movement)),
+            scale: Vec2::splat(0.90 + movement * 0.10),
+        },
+        raw,
+    )
 }

@@ -1,5 +1,6 @@
 use crate::{
-    TexasEvaluatedHand, TexasGameState, TexasHandResult, TexasPotAward, TexasRank, evaluate_player_hand,
+    TexasEvaluatedHand, TexasGameState, TexasHandResult, TexasPotAward, TexasRank,
+    evaluate_player_hand,
 };
 use leocard_game_common::PlayerId;
 use std::collections::HashSet;

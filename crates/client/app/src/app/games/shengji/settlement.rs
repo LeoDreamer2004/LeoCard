@@ -1,7 +1,6 @@
 //! 升级收分与终局结算演出。
-use crate::app::games::shengji::ShengjiClientState;
-use leocard_protocol::{GameSnapshot, ShengjiPhaseView};
 
+use super::screen::ShengjiScreen;
 use super::state::{ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation};
 use super::{
     ActiveShengjiScoreAbsorb, ActiveShengjiScoreCapture, ShengjiCollectingScoreText,
@@ -10,10 +9,12 @@ use super::{
     ShengjiSettlementPanelTexture, ShengjiSettlementRow, ShengjiSettlementTotalAnchor,
     ShengjiSettlementTotalText, ShengjiTimedReveal,
 };
-use crate::app::games::shengji::ShengjiScoreCaptureEffect;
+use crate::app::games::GameSummary;
+use crate::app::games::shengji::{ShengjiClientState, ShengjiScoreCaptureEffect};
 use crate::app::presentation::{
     ACCENT, PANEL_ALT, READY, SCORE_ROLL_DELAY, SCORE_ROLL_DURATION, SUMMARY_MODAL_ENTRY_DURATION,
-    SUMMARY_ROW_ENTRY_DURATION, TABLE_SCORE_CARD_REVEAL, add_text, ease_out_cubic,
+    SUMMARY_ROW_ENTRY_DURATION, SummaryDescriptor, TABLE_SCORE_CARD_REVEAL, add_text,
+    ease_out_cubic,
 };
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{
@@ -22,7 +23,7 @@ use crate::app::shell::{
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-
+use leocard_protocol::{GameSnapshot, ShengjiPhaseView};
 use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
 
@@ -611,5 +612,15 @@ pub(crate) fn animate_shengji_score_absorbs(
         if progress >= 1.0 {
             commands.entity(entity).despawn();
         }
+    }
+}
+
+impl GameSummary for ShengjiScreen<'_> {
+    fn summary_descriptor(&self, _game: &Self::Snapshot) -> Option<SummaryDescriptor> {
+        None
+    }
+
+    fn summary_pause(&self, _game: &Self::Snapshot) -> Option<f32> {
+        None
     }
 }

@@ -2,8 +2,10 @@ use super::UnoSession;
 use crate::action_timing::{
     ActionTimingRequest, PendingAction, attach_action_timing, sync_action_timing,
 };
+use crate::features::DecisionTiming;
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery};
+use leocard_game_common::ActionTimeProfile;
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameCommand, GameSnapshot, UnoCommand, UnoPendingSwapView,
     UnoPhaseView,
@@ -23,8 +25,7 @@ impl UnoSession {
             profiles
                 .uno
                 .get_or_insert_with(Default::default)
-                .action_time
-                .record(millis);
+                .record_action_time(millis);
         }
         self.refresh_action_timing();
         attach_action_timing(self, deliveries)
@@ -43,7 +44,9 @@ impl UnoSession {
         let windows = self.pending_actions(&snapshot);
         sync_action_timing(&mut self.room, Self::KIND, snapshot.match_id(), windows);
     }
+}
 
+impl DecisionTiming for UnoSession {
     fn pending_actions(&self, snapshot: &GameSnapshot) -> Vec<PendingAction> {
         match snapshot {
             GameSnapshot::Uno(s) if matches!(s.phase, UnoPhaseView::Playing) => {

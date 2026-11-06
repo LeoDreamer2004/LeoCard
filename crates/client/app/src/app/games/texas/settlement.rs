@@ -1,8 +1,10 @@
+use super::screen::TexasScreen;
 use super::{
     TEXAS_SHOWDOWN_REVEAL_DURATION, TexasShowdownBackdrop, TexasShowdownBestCard,
     TexasShowdownRevealRoot, TexasShowdownTitle, TexasShowdownTitleText, TexasShowdownUnderline,
     TexasTableLayout, add_summary_hands, texas_category_label,
 };
+use crate::app::games::GameSummary;
 use crate::app::presentation::{
     ACCENT, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider, GameSummaryModal,
     GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, PlayerMenuProfile, READY,
@@ -18,41 +20,6 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{TexasPhaseView, TexasPlayerView, TexasSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
-
-pub(crate) fn texas_summary_descriptor(game: &TexasSnapshot) -> Option<SummaryDescriptor> {
-    let TexasPhaseView::HandComplete {
-        showdown,
-        tournament_complete,
-        reference_changes,
-        ..
-    } = &game.phase
-    else {
-        return None;
-    };
-    let own = game
-        .players
-        .iter()
-        .find(|player| player.player.id == game.you);
-    let nonnegative_outcome = if *tournament_complete {
-        reference_changes
-            .iter()
-            .find(|change| change.player == game.you)
-            .is_none_or(|change| change.delta >= 0)
-    } else {
-        own.is_none_or(|player| player.stack >= player.hand_start_stack)
-    };
-    Some(SummaryDescriptor {
-        match_id: game.match_id,
-        settlement_index: Some(game.hand_number),
-        entry_count: game.players.len() * usize::from(*tournament_complete) + game.players.len(),
-        nonnegative_outcome,
-        reveal_duration: if *showdown {
-            TEXAS_SHOWDOWN_REVEAL_DURATION
-        } else {
-            0.8
-        },
-    })
-}
 
 pub(super) fn add_texas_showdown_reveal(
     commands: &mut UiComposer,
@@ -723,4 +690,46 @@ fn add_texas_summary_avatar(
         player.ready,
         assets,
     );
+}
+
+impl GameSummary for TexasScreen<'_> {
+    fn summary_descriptor(&self, game: &Self::Snapshot) -> Option<SummaryDescriptor> {
+        let TexasPhaseView::HandComplete {
+            showdown,
+            tournament_complete,
+            reference_changes,
+            ..
+        } = &game.phase
+        else {
+            return None;
+        };
+        let own = game
+            .players
+            .iter()
+            .find(|player| player.player.id == game.you);
+        let nonnegative_outcome = if *tournament_complete {
+            reference_changes
+                .iter()
+                .find(|change| change.player == game.you)
+                .is_none_or(|change| change.delta >= 0)
+        } else {
+            own.is_none_or(|player| player.stack >= player.hand_start_stack)
+        };
+        Some(SummaryDescriptor {
+            match_id: game.match_id,
+            settlement_index: Some(game.hand_number),
+            entry_count: game.players.len() * usize::from(*tournament_complete)
+                + game.players.len(),
+            nonnegative_outcome,
+            reveal_duration: if *showdown {
+                TEXAS_SHOWDOWN_REVEAL_DURATION
+            } else {
+                0.8
+            },
+        })
+    }
+
+    fn summary_pause(&self, _game: &Self::Snapshot) -> Option<f32> {
+        None
+    }
 }

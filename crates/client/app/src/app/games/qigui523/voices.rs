@@ -1,8 +1,8 @@
+use crate::app::games::GameFeedback;
 use crate::app::presentation::{CardVoice, CardVoices};
 use crate::app::runtime::{ClientResource, ServerNotification};
 use bevy::prelude::*;
 use leocard_protocol::{GameEvent, GameSnapshot, QiGui523Event, ServerEvent};
-
 use leocard_qigui523::{QiGuiBombKind, QiGuiPlayKind, QiGuiRank};
 
 pub(super) fn sync_qigui_voices(
@@ -26,7 +26,7 @@ pub(super) fn sync_qigui_voices(
             ServerEvent::GameEvent(GameEvent::QiGui523(QiGui523Event::PlayEffect {
                 player,
                 play,
-            })) => (*player, pattern_voice(&play.kind)),
+            })) => (*player, play.kind.feedback(())),
             ServerEvent::GameEvent(GameEvent::QiGui523(QiGui523Event::Passed { player })) => {
                 (*player, Some(CardVoice::Pass))
             }
@@ -46,17 +46,21 @@ pub(super) fn sync_qigui_voices(
     }
 }
 
-fn pattern_voice(kind: &QiGuiPlayKind) -> Option<CardVoice> {
-    match kind {
-        QiGuiPlayKind::Straight { .. } => Some(CardVoice::Straight),
-        QiGuiPlayKind::ConsecutivePairs { .. } => Some(CardVoice::ConsecutivePairs),
-        QiGuiPlayKind::Airplane { .. } => Some(CardVoice::Airplane),
-        QiGuiPlayKind::Bomb(QiGuiBombKind::OfAKind {
-            rank: QiGuiRank::Joker,
-            ..
-        }) => Some(CardVoice::Rocket),
-        QiGuiPlayKind::Bomb(_) => Some(CardVoice::Bomb),
-        QiGuiPlayKind::HeavenBomb => Some(CardVoice::HeavenBomb),
-        _ => None,
+impl GameFeedback<()> for QiGuiPlayKind {
+    type Cue = Option<CardVoice>;
+
+    fn feedback(&self, _context: ()) -> Self::Cue {
+        match self {
+            QiGuiPlayKind::Straight { .. } => Some(CardVoice::Straight),
+            QiGuiPlayKind::ConsecutivePairs { .. } => Some(CardVoice::ConsecutivePairs),
+            QiGuiPlayKind::Airplane { .. } => Some(CardVoice::Airplane),
+            QiGuiPlayKind::Bomb(QiGuiBombKind::OfAKind {
+                rank: QiGuiRank::Joker,
+                ..
+            }) => Some(CardVoice::Rocket),
+            QiGuiPlayKind::Bomb(_) => Some(CardVoice::Bomb),
+            QiGuiPlayKind::HeavenBomb => Some(CardVoice::HeavenBomb),
+            _ => None,
+        }
     }
 }

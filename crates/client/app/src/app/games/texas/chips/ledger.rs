@@ -1,14 +1,15 @@
 //! Snapshot reconciliation, action feedback and pot transfers.
 
 use super::super::{
-    queue_texas_turn_sound, texas_action_sound_plan, texas_hand_finish_sound_plan,
-    texas_side_pot_sound_plan, texas_street_sound_plan,
+    queue_texas_turn_sound, texas_hand_finish_sound_plan, texas_side_pot_sound_plan,
+    texas_street_sound_plan,
 };
 use super::denominations::initial_chip_denominations;
 use super::{
     ActionFeedbackKind, ActionLabel, ChipZone, PotDivisionTransition, TexasChipTableState,
     VisualPot,
 };
+use crate::app::games::GameFeedback;
 use crate::app::presentation::{ACCENT, CHIP_BET_DURATION, CHIP_BET_INTERVAL, DANGER, READY, TEXT};
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
@@ -127,7 +128,7 @@ impl TexasChipTableState {
                     ..
                 } => {
                     self.audio_cues
-                        .extend(texas_action_sound_plan(action, amount, sound_seed));
+                        .extend(action.feedback((amount, sound_seed)));
                     self.apply_action(game, player, action, amount);
                 }
                 TexasEvent::StreetAdvanced { dealt, .. } => {

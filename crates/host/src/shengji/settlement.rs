@@ -3,6 +3,7 @@ use super::{
     TRICK_HOLD_DURATION, completed_trick_events, finished_reference_point_magnitude,
     game_violation, merge_shengji_profile_stats, pre_kitty_collecting_score,
 };
+use crate::features::HandSettlement;
 use crate::{ConnectionId, Delivery, new_match_id};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
@@ -166,7 +167,7 @@ impl ShengjiSession {
                     .map(|trick| (trick, TRICK_HOLD_DURATION));
                 self.teams.levels = result.levels;
                 self.next_dealer = Some(result.next_dealer);
-                self.apply_finished_reference_points(result);
+                self.commit_hand(result);
                 self.room.prepare_rematch();
             }
             ShengjiActionOutcome::Played { .. } => self.presentation.bottom_copy_decisions.clear(),
@@ -174,7 +175,53 @@ impl ShengjiSession {
         }
     }
 
-    pub(super) fn apply_finished_reference_points(&mut self, result: &ShengjiHandResult) {
+    pub(super) fn hand_result_view(&self, result: &ShengjiHandResult) -> ShengjiHandResultView {
+        ShengjiHandResultView {
+            settlement_id: self
+                .statistics
+                .hand
+                .finished_settlement_id
+                .expect("完成的小局已经生成独立结算标识"),
+            dealer: result.dealer,
+            dealer_team: result.dealer_team,
+            collecting_team: result.collecting_team,
+            trick_points: result.trick_points,
+            penalty_adjustment: result.penalty_adjustment,
+            kitty_points: result.kitty_points,
+            kitty_multiplier: result.kitty_multiplier,
+            collecting_score: result.collecting_score,
+            promoted_team: result.promoted_team,
+            promoted_steps: result.promoted_steps,
+            next_dealer: result.next_dealer,
+            levels: result.levels,
+            reference_changes: self
+                .statistics
+                .hand
+                .finished_reference_changes
+                .clone()
+                .expect("完成的小局已经计算平台积分变化"),
+        }
+    }
+
+    pub(super) fn reject_game_error(
+        &self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        error: ShengjiGameError,
+    ) -> Vec<Delivery> {
+        self.room.reject(
+            connection,
+            request_id,
+            RejectReason::Game(GameViolation::Shengji(game_violation(error))),
+        )
+    }
+}
+
+impl HandSettlement for ShengjiSession {
+    type Outcome = ShengjiHandResult;
+    type Output = ();
+
+    fn commit_hand(&mut self, result: &Self::Outcome) {
         let magnitude = finished_reference_point_magnitude(result);
         let hand_profile_stats = self.statistics.hand.profiles.clone();
         let bottom_burier = self.game.as_ref().and_then(ShengjiGameState::bottom_burier);
@@ -246,46 +293,5 @@ impl ShengjiSession {
             self.statistics.hand.finished_settlement_id = Some(new_match_id());
             self.statistics.match_statistics.record_hand(result);
         }
-    }
-
-    pub(super) fn hand_result_view(&self, result: &ShengjiHandResult) -> ShengjiHandResultView {
-        ShengjiHandResultView {
-            settlement_id: self
-                .statistics
-                .hand
-                .finished_settlement_id
-                .expect("完成的小局已经生成独立结算标识"),
-            dealer: result.dealer,
-            dealer_team: result.dealer_team,
-            collecting_team: result.collecting_team,
-            trick_points: result.trick_points,
-            penalty_adjustment: result.penalty_adjustment,
-            kitty_points: result.kitty_points,
-            kitty_multiplier: result.kitty_multiplier,
-            collecting_score: result.collecting_score,
-            promoted_team: result.promoted_team,
-            promoted_steps: result.promoted_steps,
-            next_dealer: result.next_dealer,
-            levels: result.levels,
-            reference_changes: self
-                .statistics
-                .hand
-                .finished_reference_changes
-                .clone()
-                .expect("完成的小局已经计算平台积分变化"),
-        }
-    }
-
-    pub(super) fn reject_game_error(
-        &self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        error: ShengjiGameError,
-    ) -> Vec<Delivery> {
-        self.room.reject(
-            connection,
-            request_id,
-            RejectReason::Game(GameViolation::Shengji(game_violation(error))),
-        )
     }
 }

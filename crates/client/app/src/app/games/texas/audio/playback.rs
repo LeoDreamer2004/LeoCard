@@ -5,6 +5,7 @@
 
 use super::super::TexasChipTableState;
 use super::*;
+use crate::app::games::GameFeedback;
 use crate::app::presentation::{PokerChipSoundKind, PokerChipSounds, numbered_table_sounds};
 use crate::app::runtime::AppearancePreferences;
 use bevy::audio::Volume;
@@ -123,46 +124,6 @@ impl TexasAudioCue {
             remaining,
             volume,
             seed,
-        }
-    }
-}
-
-pub(in crate::app::games::texas) fn texas_action_sound_plan(
-    action: TexasAction,
-    amount: u32,
-    seed: u64,
-) -> Vec<TexasAudioCue> {
-    match action {
-        TexasAction::PostBlind | TexasAction::Call => vec![TexasAudioCue::new(
-            TexasSoundKind::ChipLay,
-            0.10,
-            0.52,
-            seed,
-        )],
-        TexasAction::Check => {
-            vec![TexasAudioCue::new(TexasSoundKind::Check, 0.0, 0.34, seed)]
-        }
-        TexasAction::Fold => vec![TexasAudioCue::new(TexasSoundKind::Fold, 0.03, 0.50, seed)],
-        TexasAction::RaiseTo(_) => vec![
-            TexasAudioCue::new(TexasSoundKind::ChipHandle, 0.0, 0.42, seed),
-            TexasAudioCue::new(TexasSoundKind::ChipLay, 0.15, 0.54, seed + 1),
-            TexasAudioCue::new(TexasSoundKind::ChipCollide, 0.28, 0.40, seed + 2),
-        ],
-        TexasAction::AllIn => {
-            let density = if amount >= 20 { 3 } else { 2 };
-            let mut cues = vec![
-                TexasAudioCue::new(TexasSoundKind::AllIn, 0.0, 0.46, seed),
-                TexasAudioCue::new(TexasSoundKind::ChipHandle, 0.04, 0.48, seed + 1),
-            ];
-            for index in 0..density {
-                cues.push(TexasAudioCue::new(
-                    TexasSoundKind::ChipCollide,
-                    0.20 + index as f32 * 0.085,
-                    0.42 - index as f32 * 0.035,
-                    seed + 2 + index as u64,
-                ));
-            }
-            cues
         }
     }
 }
@@ -308,16 +269,56 @@ pub(in crate::app::games::texas) fn load_texas_sounds(
     commands.insert_resource(TexasSoundAssets::load(&server));
 }
 
+impl GameFeedback<(u32, u64)> for TexasAction {
+    type Cue = Vec<TexasAudioCue>;
+
+    fn feedback(&self, (amount, seed): (u32, u64)) -> Self::Cue {
+        match *self {
+            TexasAction::PostBlind | TexasAction::Call => vec![TexasAudioCue::new(
+                TexasSoundKind::ChipLay,
+                0.10,
+                0.52,
+                seed,
+            )],
+            TexasAction::Check => {
+                vec![TexasAudioCue::new(TexasSoundKind::Check, 0.0, 0.34, seed)]
+            }
+            TexasAction::Fold => vec![TexasAudioCue::new(TexasSoundKind::Fold, 0.03, 0.50, seed)],
+            TexasAction::RaiseTo(_) => vec![
+                TexasAudioCue::new(TexasSoundKind::ChipHandle, 0.0, 0.42, seed),
+                TexasAudioCue::new(TexasSoundKind::ChipLay, 0.15, 0.54, seed + 1),
+                TexasAudioCue::new(TexasSoundKind::ChipCollide, 0.28, 0.40, seed + 2),
+            ],
+            TexasAction::AllIn => {
+                let density = if amount >= 20 { 3 } else { 2 };
+                let mut cues = vec![
+                    TexasAudioCue::new(TexasSoundKind::AllIn, 0.0, 0.46, seed),
+                    TexasAudioCue::new(TexasSoundKind::ChipHandle, 0.04, 0.48, seed + 1),
+                ];
+                for index in 0..density {
+                    cues.push(TexasAudioCue::new(
+                        TexasSoundKind::ChipCollide,
+                        0.20 + index as f32 * 0.085,
+                        0.42 - index as f32 * 0.035,
+                        seed + 2 + index as u64,
+                    ));
+                }
+                cues
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn actions_have_distinct_and_bounded_sound_plans() {
-        let check = texas_action_sound_plan(TexasAction::Check, 0, 1);
-        let fold = texas_action_sound_plan(TexasAction::Fold, 0, 1);
-        let raise = texas_action_sound_plan(TexasAction::RaiseTo(10), 10, 1);
-        let all_in = texas_action_sound_plan(TexasAction::AllIn, 20, 1);
+        let check = TexasAction::Check.feedback((0, 1));
+        let fold = TexasAction::Fold.feedback((0, 1));
+        let raise = TexasAction::RaiseTo(10).feedback((10, 1));
+        let all_in = TexasAction::AllIn.feedback((20, 1));
         assert_eq!(
             check.iter().map(|cue| cue.kind).collect::<Vec<_>>(),
             [TexasSoundKind::Check]

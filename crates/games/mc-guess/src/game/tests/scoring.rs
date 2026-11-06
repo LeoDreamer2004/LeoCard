@@ -3,6 +3,7 @@ use crate::{
     McGuessAttributeFeedback, McGuessCatalogue, McGuessEntryKind, McGuessMatchQuality,
     McGuessOptions, McGuessRuleSet, McGuessTurnBasedRules,
 };
+use McGuessMatchQuality::{Exact, Partial, Wrong};
 use leocard_game_common::PlayerId;
 
 fn result(qualities: &[McGuessMatchQuality]) -> McGuessResult {
@@ -24,7 +25,6 @@ fn result(qualities: &[McGuessMatchQuality]) -> McGuessResult {
 
 #[test]
 fn closeness_and_matching_are_independent_and_unknowns_earn_nothing() {
-    use McGuessMatchQuality::{Exact, Partial, Wrong};
     let different = result(&[Exact, Partial, Wrong]);
     assert_eq!(different.closeness(), Some(3));
     assert_eq!(different.score(None, 0, false).during_guess, 1);

@@ -1,5 +1,6 @@
 use super::{QiGui523Session, validate_deck};
 use crate::action_timing::attach_action_timing;
+use crate::features::{GameAutomation, MatchSettlement};
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
@@ -7,8 +8,8 @@ use crate::{
 };
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerViolation,
-    QiGui523Command, RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent,
+    ClientMessage, GameKind, GameRules, GameViolation, PlayerViolation, RejectReason, RequestId,
+    Revision, RoomId, RoomViolation, ServerEvent,
 };
 use leocard_qigui523::{
     QiGuiCard, QiGuiGameState, QiGuiMatchStatistics, QiGuiPhase, QiGuiRuleSet, build_deck,
@@ -72,71 +73,6 @@ impl QiGui523Session {
         let deliveries = self.advance_game_time(elapsed);
         self.refresh_action_timing();
         attach_action_timing(self, deliveries)
-    }
-
-    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
-        if elapsed.is_zero() || self.game.is_none() {
-            return Vec::new();
-        }
-        if self.current_player_is_disconnected() {
-            self.automatic_action_delay = None;
-            let events = self.play_automatic_action();
-            self.reset_timer_for_current_turn();
-            self.bump_revision();
-            return self.broadcast_game_after_action(None, events);
-        }
-        if let Some(player) = self.current_automatic_player() {
-            let delay = self
-                .automatic_action_delay
-                .get_or_insert(AutomaticActionDelayState {
-                    player,
-                    remaining: AUTOMATIC_ACTION_DELAY,
-                });
-            if delay.player != player {
-                *delay = AutomaticActionDelayState {
-                    player,
-                    remaining: AUTOMATIC_ACTION_DELAY,
-                };
-            }
-            if elapsed < delay.remaining {
-                delay.remaining -= elapsed;
-                return Vec::new();
-            }
-            self.automatic_action_delay = None;
-            let events = self.play_automatic_action();
-            self.reset_timer_for_current_turn();
-            self.bump_revision();
-            return self.broadcast_game_after_action(None, events);
-        }
-        self.automatic_action_delay = None;
-        if self.turn_timer.is_none() {
-            return Vec::new();
-        }
-
-        let before = self.turn_timer_view();
-        let expired = {
-            let timer = self.turn_timer.as_mut().expect("checked above");
-            let player_index = usize::from(timer.player.0);
-            let base_used = elapsed.min(timer.base_remaining);
-            timer.base_remaining -= base_used;
-            let reserve_used = (elapsed - base_used).min(timer.reserve_remaining[player_index]);
-            timer.reserve_remaining[player_index] -= reserve_used;
-            timer.base_remaining.is_zero() && timer.reserve_remaining[player_index].is_zero()
-        };
-
-        if expired {
-            let events = self.play_automatic_action();
-            self.reset_timer_for_current_turn();
-            self.bump_revision();
-            return self.broadcast_game_after_action(None, events);
-        }
-
-        if self.turn_timer_view() != before {
-            self.bump_revision();
-            self.broadcast_game_after_update(None)
-        } else {
-            Vec::new()
-        }
     }
 
     /// 标记连接离线并向仍在线的玩家广播新快照。
@@ -206,34 +142,6 @@ impl HostedGameLifecycle for QiGui523Session {
 
     fn game_rules(&self) -> GameRules {
         self.rules.into()
-    }
-
-    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
-        QiGui523Session::game_snapshot(self, recipient).into()
-    }
-
-    fn handle_game_command(
-        &mut self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        command: GameCommand,
-    ) -> Result<Vec<Delivery>, GameKind> {
-        let GameCommand::QiGui523(command) = command else {
-            return Err(command.kind());
-        };
-        Ok(match command {
-            QiGui523Command::SetAutoPlay { enabled } => {
-                self.set_auto_play(connection, request_id, enabled)
-            }
-            QiGui523Command::UpdateRules { rules } => {
-                self.update_rules(connection, request_id, rules)
-            }
-            QiGui523Command::PlayCards { cards } => self.play_cards(connection, request_id, &cards),
-            QiGui523Command::SetDeveloperHand { cards } => {
-                self.set_developer_hand(connection, request_id, cards)
-            }
-            QiGui523Command::Pass => self.pass(connection, request_id),
-        })
     }
 
     fn start_game(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
@@ -490,6 +398,73 @@ impl HostedGameLifecycle for QiGui523Session {
     }
 
     fn before_dispatch(&mut self) {
-        self.apply_finished_reference_points();
+        self.commit_match(&());
+    }
+}
+
+impl GameAutomation for QiGui523Session {
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        if elapsed.is_zero() || self.game.is_none() {
+            return Vec::new();
+        }
+        if self.current_player_is_disconnected() {
+            self.automatic_action_delay = None;
+            let events = self.play_automatic_action();
+            self.reset_timer_for_current_turn();
+            self.bump_revision();
+            return self.broadcast_game_after_action(None, events);
+        }
+        if let Some(player) = self.current_automatic_player() {
+            let delay = self
+                .automatic_action_delay
+                .get_or_insert(AutomaticActionDelayState {
+                    player,
+                    remaining: AUTOMATIC_ACTION_DELAY,
+                });
+            if delay.player != player {
+                *delay = AutomaticActionDelayState {
+                    player,
+                    remaining: AUTOMATIC_ACTION_DELAY,
+                };
+            }
+            if elapsed < delay.remaining {
+                delay.remaining -= elapsed;
+                return Vec::new();
+            }
+            self.automatic_action_delay = None;
+            let events = self.play_automatic_action();
+            self.reset_timer_for_current_turn();
+            self.bump_revision();
+            return self.broadcast_game_after_action(None, events);
+        }
+        self.automatic_action_delay = None;
+        if self.turn_timer.is_none() {
+            return Vec::new();
+        }
+
+        let before = self.turn_timer_view();
+        let expired = {
+            let timer = self.turn_timer.as_mut().expect("checked above");
+            let player_index = usize::from(timer.player.0);
+            let base_used = elapsed.min(timer.base_remaining);
+            timer.base_remaining -= base_used;
+            let reserve_used = (elapsed - base_used).min(timer.reserve_remaining[player_index]);
+            timer.reserve_remaining[player_index] -= reserve_used;
+            timer.base_remaining.is_zero() && timer.reserve_remaining[player_index].is_zero()
+        };
+
+        if expired {
+            let events = self.play_automatic_action();
+            self.reset_timer_for_current_turn();
+            self.bump_revision();
+            return self.broadcast_game_after_action(None, events);
+        }
+
+        if self.turn_timer_view() != before {
+            self.bump_revision();
+            self.broadcast_game_after_update(None)
+        } else {
+            Vec::new()
+        }
     }
 }

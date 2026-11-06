@@ -1,14 +1,18 @@
 use super::{QiGui523Session, map_game_error};
+use crate::features::GameCommandHandler;
+use crate::lifecycle::HostedGameLifecycle;
 use crate::{
-    AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery,
-    lifecycle::HostedGameLifecycle, new_match_id,
+    AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, new_match_id,
 };
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    GameViolation, PlayerViolation, QiGui523Violation, RejectReason, RequestId, RoomViolation,
+    GameCommand, GameKind, GameViolation, PlayerViolation, QiGui523Command, QiGui523Event,
+    QiGui523PublicPlay, QiGui523Violation, RejectReason, RequestId, RoomViolation,
     TABLE_SEAT_COUNT,
 };
 use leocard_qigui523::{
-    QiGuiCard, QiGuiGameState, QiGuiMatchStatistics, QiGuiPhase, QiGuiRuleSet, build_deck,
+    QiGuiActionContext, QiGuiCard, QiGuiGameError, QiGuiGameState, QiGuiMatchStatistics,
+    QiGuiPhase, QiGuiRuleSet, build_deck, classify,
 };
 
 impl QiGui523Session {
@@ -271,5 +275,85 @@ impl QiGui523Session {
                 RejectReason::Game(GameViolation::QiGui523(map_game_error(&error))),
             ),
         }
+    }
+}
+
+impl GameCommandHandler for QiGui523Session {
+    type Command = QiGui523Command;
+
+    fn parse_command(command: GameCommand) -> Result<Self::Command, GameKind> {
+        let GameCommand::QiGui523(command) = command else {
+            return Err(command.kind());
+        };
+        Ok(command)
+    }
+
+    fn handle_command(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        command: Self::Command,
+    ) -> Vec<Delivery> {
+        match command {
+            QiGui523Command::SetAutoPlay { enabled } => {
+                self.set_auto_play(connection, request_id, enabled)
+            }
+            QiGui523Command::UpdateRules { rules } => {
+                self.update_rules(connection, request_id, rules)
+            }
+            QiGui523Command::PlayCards { cards } => self.play_cards(connection, request_id, &cards),
+            QiGui523Command::SetDeveloperHand { cards } => {
+                self.set_developer_hand(connection, request_id, cards)
+            }
+            QiGui523Command::Pass => self.pass(connection, request_id),
+        }
+    }
+}
+
+impl QiGui523Session {
+    pub(super) fn perform_action(
+        &mut self,
+        player: PlayerId,
+        cards: Option<&[QiGuiCard]>,
+    ) -> Result<Vec<QiGui523Event>, QiGuiGameError> {
+        let game = self.game.as_mut().expect("actions require an active game");
+        let before = QiGuiActionContext::capture(game, player);
+        let outcome = match cards {
+            Some(cards) => game.play_cards(player, cards)?,
+            None => game.pass(player)?,
+        };
+        let play =
+            cards.map(|cards| classify(cards, game.rules()).expect("accepted play is valid"));
+        let mut events = Vec::new();
+        if let Some(play) = &play {
+            events.push(QiGui523Event::PlayEffect {
+                player,
+                play: QiGui523PublicPlay {
+                    kind: play.kind().clone(),
+                    cards: play.cards().to_vec(),
+                },
+            });
+        } else {
+            events.push(QiGui523Event::Passed { player });
+        }
+        let statistics = self
+            .statistics
+            .as_mut()
+            .expect("an active game has statistics");
+        events.extend(
+            statistics
+                .observe(
+                    before.expect("an accepted action has a playing context"),
+                    &outcome,
+                    play.as_ref(),
+                    game,
+                )
+                .into_iter()
+                .map(|statistics| QiGui523Event::ActionAnalyzed {
+                    player: statistics.player,
+                    statistics: Box::new(statistics),
+                }),
+        );
+        Ok(events)
     }
 }

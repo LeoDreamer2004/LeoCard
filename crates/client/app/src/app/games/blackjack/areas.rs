@@ -1,10 +1,9 @@
 use super::layout::BlackjackSeatLayout;
 use crate::app::presentation::add_table_play_area;
+use bevy::prelude::*;
 use leocard_protocol::TABLE_SEAT_COUNT;
 use leocard_ui::UiComposer;
 use std::array;
-
-use bevy::prelude::*;
 
 pub(super) fn add_blackjack_hand_areas(
     commands: &mut UiComposer,

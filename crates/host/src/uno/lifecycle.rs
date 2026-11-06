@@ -1,5 +1,6 @@
 use super::{DRAW_REVEAL_INTERVAL, UnoSession, shuffled_uno_deck, validate_deck};
 use crate::action_timing::attach_action_timing;
+use crate::features::{GameAutomation, MatchSettlement};
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
@@ -7,8 +8,8 @@ use crate::{
 };
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    ClientMessage, GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, PlayerViolation,
-    RejectReason, RequestId, Revision, RoomId, RoomViolation, ServerEvent, UnoEvent,
+    ClientMessage, GameKind, GameRules, GameViolation, PlayerViolation, RejectReason, RequestId,
+    Revision, RoomId, RoomViolation, ServerEvent, UnoEvent,
 };
 use leocard_uno::{UnoCard, UnoFlipSide, UnoGameState, UnoMatchStatistics, UnoPhase, UnoRuleSet};
 use std::time::Duration;
@@ -86,63 +87,6 @@ impl UnoSession {
         attach_action_timing(self, deliveries)
     }
 
-    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
-        if elapsed.is_zero() || self.game.is_none() {
-            return Vec::new();
-        }
-        if let Some(reveal) = self.pending_draw_reveal.as_mut() {
-            if elapsed < reveal.remaining {
-                reveal.remaining -= elapsed;
-                return Vec::new();
-            }
-            reveal.revealed = reveal.revealed.saturating_add(1).min(reveal.cards.len());
-            reveal.remaining = DRAW_REVEAL_INTERVAL;
-            if reveal.revealed == reveal.cards.len() {
-                self.pending_draw_reveal = None;
-            }
-            return self.broadcast_game(None);
-        }
-        let Some(player) = self.current_automatic_player() else {
-            self.automatic_action_delay = None;
-            return Vec::new();
-        };
-        let disconnected = self
-            .room
-            .players
-            .iter()
-            .find(|participant| participant.id == player)
-            .is_some_and(|participant| !participant.connected && !participant.is_bot);
-        if !disconnected || self.automatically_resolves_skip() {
-            let delay = self
-                .automatic_action_delay
-                .get_or_insert(AutomaticActionDelayState {
-                    player,
-                    remaining: AUTOMATIC_ACTION_DELAY,
-                });
-            if delay.player != player {
-                *delay = AutomaticActionDelayState {
-                    player,
-                    remaining: AUTOMATIC_ACTION_DELAY,
-                };
-            }
-            if elapsed < delay.remaining {
-                delay.remaining -= elapsed;
-                return Vec::new();
-            }
-        }
-        self.automatic_action_delay = None;
-        let Some((events, draw_reveal)) = self.play_automatic_action() else {
-            return Vec::new();
-        };
-        self.apply_finished_reference_points();
-        self.reset_automatic_action_delay();
-        self.room.bump_revision();
-        let mut deliveries = self.broadcast_events(events);
-        self.pending_draw_reveal = draw_reveal;
-        deliveries.extend(self.broadcast_game(None));
-        deliveries
-    }
-
     pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
         if self.room.disconnect_spectator(connection) {
             return Vec::new();
@@ -202,10 +146,6 @@ impl HostedGameLifecycle for UnoSession {
         self.rules.into()
     }
 
-    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
-        UnoSession::game_snapshot(self, recipient).into()
-    }
-
     fn viewing_player(&self, recipient: PlayerId) -> PlayerId {
         if self.can_spectate_after_elimination(recipient) {
             self.eliminated_views
@@ -243,18 +183,6 @@ impl HostedGameLifecycle for UnoSession {
         } else {
             self.room.set_spectator_view(connection, target)
         }
-    }
-
-    fn handle_game_command(
-        &mut self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        command: GameCommand,
-    ) -> Result<Vec<Delivery>, GameKind> {
-        let GameCommand::Uno(command) = command else {
-            return Err(command.kind());
-        };
-        Ok(self.handle_uno_command(connection, request_id, command))
     }
 
     fn start_game(&mut self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
@@ -481,6 +409,65 @@ impl HostedGameLifecycle for UnoSession {
     }
 
     fn before_dispatch(&mut self) {
-        self.apply_finished_reference_points();
+        self.commit_match(&());
+    }
+}
+
+impl GameAutomation for UnoSession {
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        if elapsed.is_zero() || self.game.is_none() {
+            return Vec::new();
+        }
+        if let Some(reveal) = self.pending_draw_reveal.as_mut() {
+            if elapsed < reveal.remaining {
+                reveal.remaining -= elapsed;
+                return Vec::new();
+            }
+            reveal.revealed = reveal.revealed.saturating_add(1).min(reveal.cards.len());
+            reveal.remaining = DRAW_REVEAL_INTERVAL;
+            if reveal.revealed == reveal.cards.len() {
+                self.pending_draw_reveal = None;
+            }
+            return self.broadcast_game(None);
+        }
+        let Some(player) = self.current_automatic_player() else {
+            self.automatic_action_delay = None;
+            return Vec::new();
+        };
+        let disconnected = self
+            .room
+            .players
+            .iter()
+            .find(|participant| participant.id == player)
+            .is_some_and(|participant| !participant.connected && !participant.is_bot);
+        if !disconnected || self.automatically_resolves_skip() {
+            let delay = self
+                .automatic_action_delay
+                .get_or_insert(AutomaticActionDelayState {
+                    player,
+                    remaining: AUTOMATIC_ACTION_DELAY,
+                });
+            if delay.player != player {
+                *delay = AutomaticActionDelayState {
+                    player,
+                    remaining: AUTOMATIC_ACTION_DELAY,
+                };
+            }
+            if elapsed < delay.remaining {
+                delay.remaining -= elapsed;
+                return Vec::new();
+            }
+        }
+        self.automatic_action_delay = None;
+        let Some((events, draw_reveal)) = self.play_automatic_action() else {
+            return Vec::new();
+        };
+        self.commit_match(&());
+        self.reset_automatic_action_delay();
+        self.room.bump_revision();
+        let mut deliveries = self.broadcast_events(events);
+        self.pending_draw_reveal = draw_reveal;
+        deliveries.extend(self.broadcast_game(None));
+        deliveries
     }
 }

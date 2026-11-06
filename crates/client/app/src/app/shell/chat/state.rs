@@ -1,5 +1,4 @@
 //! 聊天抽屉、历史记录与气泡实体的状态类型。
-
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::QUICK_VOICE_COUNT;

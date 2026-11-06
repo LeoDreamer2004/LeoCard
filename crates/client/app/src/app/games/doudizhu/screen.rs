@@ -2,12 +2,14 @@
 
 use super::super::{GameLobbyContext, GameScreen, GameTableContext};
 use super::{DoudizhuTable, DoudizhuUiState, render_doudizhu_lobby, render_doudizhu_table};
+use crate::app::games::{GameActionPrompt, GameUiLifecycle};
 use crate::app::presentation::PlayEffectState;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::SocialUiState;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
+use leocard_doudizhu::DoudizhuPhase;
 use leocard_protocol::{DoudizhuSnapshot, GameKind, GameSnapshot, LobbySnapshot};
 use leocard_ui::UiComposer;
 
@@ -19,28 +21,6 @@ pub(crate) struct DoudizhuScreen<'w> {
 
 impl GameScreen for DoudizhuScreen<'_> {
     type Snapshot = DoudizhuSnapshot;
-
-    fn requires_action(&self, game: &Self::Snapshot) -> bool {
-        use leocard_doudizhu::DoudizhuPhase;
-        matches!(game.phase, DoudizhuPhase::Bidding | DoudizhuPhase::Playing)
-            && game.current == game.you
-            && game
-                .players
-                .iter()
-                .any(|player| player.player.id == game.you && player.connected && !player.auto_play)
-    }
-
-    fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
-        let phase = client.map(|client| client.0.model().phase());
-        if !matches!(phase, Some(ClientPhaseRef::Lobby(lobby)) if lobby.game == GameKind::Doudizhu)
-        {
-            self.ui.mode_menu_open = false;
-        }
-        match phase {
-            Some(ClientPhaseRef::Playing(GameSnapshot::Doudizhu(game))) => self.ui.reconcile(game),
-            _ => self.ui.clear(),
-        }
-    }
 
     fn render_lobby(
         &self,
@@ -87,5 +67,30 @@ impl GameScreen for DoudizhuScreen<'_> {
                 play_effect: &self.play_effect,
             },
         );
+    }
+}
+
+impl GameActionPrompt for DoudizhuScreen<'_> {
+    fn requires_action(&self, game: &Self::Snapshot) -> bool {
+        matches!(game.phase, DoudizhuPhase::Bidding | DoudizhuPhase::Playing)
+            && game.current == game.you
+            && game
+                .players
+                .iter()
+                .any(|player| player.player.id == game.you && player.connected && !player.auto_play)
+    }
+}
+
+impl GameUiLifecycle for DoudizhuScreen<'_> {
+    fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
+        let phase = client.map(|client| client.0.model().phase());
+        if !matches!(phase, Some(ClientPhaseRef::Lobby(lobby)) if lobby.game == GameKind::Doudizhu)
+        {
+            self.ui.mode_menu_open = false;
+        }
+        match phase {
+            Some(ClientPhaseRef::Playing(GameSnapshot::Doudizhu(game))) => self.ui.reconcile(game),
+            _ => self.ui.clear(),
+        }
     }
 }

@@ -1,5 +1,4 @@
 //! One full-screen material for the base, light ribbons and vignette.
-
 use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;

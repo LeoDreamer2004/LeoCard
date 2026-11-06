@@ -1,7 +1,10 @@
 use super::state::FeedbackSound;
+use crate::app::games::GameFeedback;
+use std::iter::Copied;
+use std::slice::Iter;
 
 #[derive(Clone, Copy)]
-pub(super) enum Instrument {
+pub(crate) enum Instrument {
     Guitar,
     Harp,
     Pling,
@@ -10,7 +13,7 @@ pub(super) enum Instrument {
 }
 
 #[derive(Clone, Copy)]
-pub(super) struct Note {
+pub(crate) struct Note {
     pub instrument: Instrument,
     pub delay: f32,
     pub pitch: u8,
@@ -33,8 +36,10 @@ impl Note {
     }
 }
 
-impl FeedbackSound {
-    pub(super) fn notes(self) -> impl Iterator<Item = Note> {
+impl GameFeedback for FeedbackSound {
+    type Cue = FeedbackNotes;
+
+    fn feedback(&self, _context: ()) -> Self::Cue {
         let notes: &'static [Note] = match self {
             Self::Submit => const { &[Note::new(Instrument::Guitar, 0.0, 6, 0.50)] },
             Self::Reveal => const { &[Note::new(Instrument::Harp, 0.0, 13, 0.32)] },
@@ -79,9 +84,24 @@ impl FeedbackSound {
             Self::Combo(count) => count.saturating_sub(1).min(5) as u8 * 2,
             _ => 0,
         };
-        notes.iter().copied().map(move |mut note| {
-            note.pitch += shift;
-            note
-        })
+        FeedbackNotes {
+            notes: notes.iter().copied(),
+            shift,
+        }
+    }
+}
+
+pub(crate) struct FeedbackNotes {
+    notes: Copied<Iter<'static, Note>>,
+    shift: u8,
+}
+
+impl Iterator for FeedbackNotes {
+    type Item = Note;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut note = self.notes.next()?;
+        note.pitch += self.shift;
+        Some(note)
     }
 }

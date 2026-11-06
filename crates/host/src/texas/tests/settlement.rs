@@ -1,6 +1,7 @@
 use super::super::*;
 use super::*;
 use crate::ConnectionId;
+use crate::features::{GameSnapshotView, MatchSettlement};
 use leocard_protocol::{
     ClientCommand, GameCommand, GameSnapshot, ServerEvent, TexasCommand, TexasPhaseView,
 };
@@ -48,7 +49,7 @@ fn all_players_ready_start_the_next_hand_with_stacks_and_rotated_dealer_preserve
         *request += 1;
         session.handle(connection, message(*request, ClientCommand::PlayAgain));
         if index < 2 {
-            let snapshot = session.game_snapshot(session.room.players[0].id);
+            let snapshot = session.game_view(session.room.players[0].id);
             assert!(matches!(
                 snapshot.phase,
                 TexasPhaseView::HandComplete { .. }
@@ -148,7 +149,7 @@ fn first_busted_player_finishes_the_tournament_and_applies_shared_rating_once() 
         );
         request += 1;
     }
-    let snapshot = session.game_snapshot(session.room.players[0].id);
+    let snapshot = session.game_view(session.room.players[0].id);
     let TexasPhaseView::HandComplete {
         tournament_complete,
         reference_changes,
@@ -198,7 +199,7 @@ fn first_busted_player_finishes_the_tournament_and_applies_shared_rating_once() 
         .iter()
         .map(|player| player.reference_points)
         .collect::<Vec<_>>();
-    session.apply_finished_reference_points();
+    session.commit_match(&());
     assert_eq!(
         session
             .room

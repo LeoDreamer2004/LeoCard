@@ -2,6 +2,7 @@ use super::automation::DoudizhuBotObservation;
 use super::statistics::DoudizhuStatistics;
 use crate::action_timing::attach_action_timing;
 use crate::automation::BotDecision;
+use crate::features::GameAutomation;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, HostError, RoomSession};
 use leocard_doudizhu::achievements::DoudizhuAchievementTracker;
@@ -96,6 +97,37 @@ impl DoudizhuSession {
         attach_action_timing(self, deliveries)
     }
 
+    pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
+        if self.room.disconnect_spectator(connection) {
+            return Vec::new();
+        }
+        let Some(player) = self
+            .room
+            .players
+            .iter_mut()
+            .find(|p| p.connection == connection && p.connected)
+        else {
+            return Vec::new();
+        };
+        player.connected = false;
+        if self.game.is_none() {
+            player.left = true;
+            player.seat = None;
+            player.ready = false;
+        }
+        self.room.bump_revision();
+        if self.room.host_connection == Some(connection) {
+            self.room.closed = true;
+            self.room.broadcast_event(None, ServerEvent::RoomClosed)
+        } else if self.game.is_some() {
+            self.broadcast_game(None)
+        } else {
+            self.broadcast_lobby(None)
+        }
+    }
+}
+
+impl GameAutomation for DoudizhuSession {
     fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         let Some(game) = &self.game else {
             return Vec::new();
@@ -135,34 +167,5 @@ impl DoudizhuSession {
             return self.apply_action(player, action, None);
         }
         Vec::new()
-    }
-
-    pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
-        if self.room.disconnect_spectator(connection) {
-            return Vec::new();
-        }
-        let Some(player) = self
-            .room
-            .players
-            .iter_mut()
-            .find(|p| p.connection == connection && p.connected)
-        else {
-            return Vec::new();
-        };
-        player.connected = false;
-        if self.game.is_none() {
-            player.left = true;
-            player.seat = None;
-            player.ready = false;
-        }
-        self.room.bump_revision();
-        if self.room.host_connection == Some(connection) {
-            self.room.closed = true;
-            self.room.broadcast_event(None, ServerEvent::RoomClosed)
-        } else if self.game.is_some() {
-            self.broadcast_game(None)
-        } else {
-            self.broadcast_lobby(None)
-        }
     }
 }

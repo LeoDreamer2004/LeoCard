@@ -4,10 +4,9 @@ use crate::{ConnectionId, Delivery, RoomSession};
 use leocard_game_common::PlayerId;
 use leocard_guandan::{GuandanPhase, build_deck};
 use leocard_protocol::{
-    GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, GuandanCommand, PlayerViolation,
-    RejectReason, RequestId, RoomViolation, ServerEvent,
+    GameKind, GameRules, GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation,
+    ServerEvent,
 };
-use std::time::Duration;
 
 impl HostedGameLifecycle for GuandanSession {
     const KIND: GameKind = GameKind::Guandan;
@@ -30,71 +29,6 @@ impl HostedGameLifecycle for GuandanSession {
 
     fn game_rules(&self) -> GameRules {
         self.rules.into()
-    }
-
-    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
-        self.snapshot_for(recipient).into()
-    }
-
-    fn handle_game_command(
-        &mut self,
-        connection: ConnectionId,
-        request: RequestId,
-        command: GameCommand,
-    ) -> Result<Vec<Delivery>, GameKind> {
-        let GameCommand::Guandan(command) = command else {
-            return Err(command.kind());
-        };
-        let Some(player) = self.room.player_id(connection) else {
-            return Ok(self.room.reject(
-                connection,
-                request,
-                RejectReason::Player(PlayerViolation::NotJoined),
-            ));
-        };
-        let reason = match command {
-            GuandanCommand::UpdateRules { rules } => {
-                if self.game.is_some() {
-                    RejectReason::Game(GameViolation::GameAlreadyStarted)
-                } else if self.room.host_connection != Some(connection) {
-                    RejectReason::Room(RoomViolation::OnlyHostCanConfigure)
-                } else if !rules.is_valid() {
-                    RejectReason::Game(GameViolation::InvalidRuleConfiguration)
-                } else {
-                    if rules != self.rules {
-                        self.rules = rules;
-                        self.room.reset_ready_after_rules_change();
-                        let mut deck = build_deck();
-                        fastrand::shuffle(&mut deck);
-                        self.deck = Some(deck);
-                        self.room.bump_revision();
-                    }
-                    return Ok(self.broadcast_lobby(Some((connection, request))));
-                }
-            }
-            GuandanCommand::SetAutoPlay { enabled } => {
-                if self
-                    .game
-                    .as_ref()
-                    .is_none_or(|game| matches!(game.phase(), GuandanPhase::Finished(_)))
-                {
-                    RejectReason::Game(GameViolation::GameNotStarted)
-                } else {
-                    self.room.players[player.index()].auto_play = enabled;
-                    self.automatic_elapsed = Duration::ZERO;
-                    self.room.bump_revision();
-                    return Ok(self.broadcast_game(Some((connection, request))));
-                }
-            }
-            GuandanCommand::Act(action) => {
-                if self.game.is_none() {
-                    RejectReason::Game(GameViolation::GameNotStarted)
-                } else {
-                    return Ok(self.apply_action(player, action, Some((connection, request))));
-                }
-            }
-        };
-        Ok(self.room.reject(connection, request, reason))
     }
 
     fn start_game(&mut self, connection: ConnectionId, request: RequestId) -> Vec<Delivery> {

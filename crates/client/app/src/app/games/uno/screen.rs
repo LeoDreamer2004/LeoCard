@@ -4,12 +4,15 @@ use super::super::{GameLobbyContext, GameScreen, GameTableContext};
 use super::{
     UnoAssets, UnoJumpInDevice, UnoTableVisuals, UnoUiState, render_uno_lobby, render_uno_table,
 };
+use crate::app::games::{GameActionPrompt, GameUiLifecycle};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::SocialUiState;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::ClientPhaseRef;
-use leocard_protocol::{GameKind, GameSnapshot, LobbySnapshot, UnoSnapshot};
+use leocard_protocol::{
+    GameKind, GameSnapshot, LobbySnapshot, UnoPendingSwapView, UnoPhaseView, UnoSnapshot,
+};
 use leocard_ui::UiComposer;
 
 #[derive(SystemParam)]
@@ -21,48 +24,6 @@ pub(crate) struct UnoScreen<'w> {
 
 impl GameScreen for UnoScreen<'_> {
     type Snapshot = UnoSnapshot;
-
-    fn requires_action(&self, game: &Self::Snapshot) -> bool {
-        use leocard_protocol::{UnoPendingSwapView, UnoPhaseView};
-        if !matches!(game.phase, UnoPhaseView::Playing)
-            || !game.players.iter().any(|player| {
-                player.player.id == game.you
-                    && player.connected
-                    && !player.auto_play
-                    && !player.eliminated
-            })
-        {
-            return false;
-        }
-        match game.pending_swap {
-            Some(
-                UnoPendingSwapView::SwapOneTarget { player }
-                | UnoPendingSwapView::SwapOneGive { player, .. }
-                | UnoPendingSwapView::ForceTrade { player }
-                | UnoPendingSwapView::ChooseColor { player }
-                | UnoPendingSwapView::SevenSwap { player }
-                | UnoPendingSwapView::ColorRoulette { player },
-            ) => player == game.you,
-            // 抢出、喊 UNO 和检举都是可选动作，不能据此通知回合外的玩家。
-            None => game.current_player == Some(game.you),
-        }
-    }
-
-    fn reconcile(&mut self, client: Option<&ClientResource>, social: &mut SocialUiState) {
-        let phase = client
-            .map(|client| client.0.model().phase())
-            .unwrap_or(ClientPhaseRef::Idle);
-        if !matches!(phase, ClientPhaseRef::Lobby(lobby) if lobby.game == GameKind::Uno) {
-            self.ui.mode_menu_open = false;
-            self.ui.expansion_settings_open = false;
-            self.ui.expansion_settings_progress = 0.0;
-        }
-        match phase {
-            ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => self.ui.reconcile(game, social),
-            ClientPhaseRef::Playing(_) => self.ui.clear(),
-            _ => self.ui.clear_table(),
-        }
-    }
 
     fn render_lobby(
         &self,
@@ -124,5 +85,50 @@ impl GameScreen for UnoScreen<'_> {
                 jump_in_device: &self.jump_in_device,
             },
         );
+    }
+}
+
+impl GameActionPrompt for UnoScreen<'_> {
+    fn requires_action(&self, game: &Self::Snapshot) -> bool {
+        if !matches!(game.phase, UnoPhaseView::Playing)
+            || !game.players.iter().any(|player| {
+                player.player.id == game.you
+                    && player.connected
+                    && !player.auto_play
+                    && !player.eliminated
+            })
+        {
+            return false;
+        }
+        match game.pending_swap {
+            Some(
+                UnoPendingSwapView::SwapOneTarget { player }
+                | UnoPendingSwapView::SwapOneGive { player, .. }
+                | UnoPendingSwapView::ForceTrade { player }
+                | UnoPendingSwapView::ChooseColor { player }
+                | UnoPendingSwapView::SevenSwap { player }
+                | UnoPendingSwapView::ColorRoulette { player },
+            ) => player == game.you,
+            // 抢出、喊 UNO 和检举都是可选动作，不能据此通知回合外的玩家。
+            None => game.current_player == Some(game.you),
+        }
+    }
+}
+
+impl GameUiLifecycle for UnoScreen<'_> {
+    fn reconcile(&mut self, client: Option<&ClientResource>, social: &mut SocialUiState) {
+        let phase = client
+            .map(|client| client.0.model().phase())
+            .unwrap_or(ClientPhaseRef::Idle);
+        if !matches!(phase, ClientPhaseRef::Lobby(lobby) if lobby.game == GameKind::Uno) {
+            self.ui.mode_menu_open = false;
+            self.ui.expansion_settings_open = false;
+            self.ui.expansion_settings_progress = 0.0;
+        }
+        match phase {
+            ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => self.ui.reconcile(game, social),
+            ClientPhaseRef::Playing(_) => self.ui.clear(),
+            _ => self.ui.clear_table(),
+        }
     }
 }

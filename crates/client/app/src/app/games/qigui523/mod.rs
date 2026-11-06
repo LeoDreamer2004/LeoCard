@@ -2,6 +2,8 @@
 //!
 //! 纯规则位于独立游戏 crate。这里仅维护七鬼五二三特有的牌桌、出牌演出与
 //! 结算界面。
+
+mod catalog;
 mod client;
 pub(crate) use client::{QiGuiClientState, ScoreCaptureEffect};
 
@@ -48,6 +50,6 @@ use scores::*;
 pub(super) use screen::*;
 use skin::*;
 pub(crate) use state::*;
-pub(crate) use summary::*;
+use summary::add_game_summary_modal;
 pub(crate) use table::*;
-pub(crate) use turn_timer::*;
+use turn_timer::*;

@@ -1,7 +1,6 @@
+use super::{UnoActionOutcome, UnoGameError, UnoGameState, remove_card};
 use crate::{UnoCard, UnoColor};
 use leocard_game_common::PlayerId;
-
-use super::{UnoActionOutcome, UnoGameError, UnoGameState, remove_card};
 
 impl UnoGameState {
     pub fn play_card(

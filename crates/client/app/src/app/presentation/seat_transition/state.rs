@@ -1,5 +1,4 @@
 //! 大厅席位与开局移动演出的状态类型。
-
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::MatchId;

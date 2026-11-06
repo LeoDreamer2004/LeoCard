@@ -1,5 +1,5 @@
 use super::LobbyUiAction;
-use crate::app::games::game_seat_count;
+use crate::app::games::GameLobbyRules;
 use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, LobbySeatHover, LobbySeatLayout, TEXT};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::{UiAction, UiState};
@@ -72,8 +72,7 @@ pub(crate) fn handle_lobby_seat_right_click(
         Some(player) if player.player.profile_id.0 != [0; 32] => {
             ui.social.interaction_menu_open = None;
             let size = Vec2::new(80.0, 36.0) * GAME_SIDE_CONTROL_SCALE;
-            let offset =
-                LobbySeatLayout::new(game_seat_count(&lobby.rules)).outward_popup(seat.0, size);
+            let offset = LobbySeatLayout::new(lobby.rules.seat_count()).outward_popup(seat.0, size);
             let button = TextureButton {
                 node: Node {
                     position_type: PositionType::Absolute,

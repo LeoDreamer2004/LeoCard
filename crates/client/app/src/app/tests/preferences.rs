@@ -3,7 +3,7 @@ use leocard_client::GlobalPreferences;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
 use leocard_protocol::{PlayerGender, TABLE_SEAT_COUNT};
 use leocard_qigui523::{QiGuiRuleSet, QiGuiTimeControl};
-use leocard_shengji::ShengjiRuleSet;
+use leocard_shengji::{ShengjiMode, ShengjiRuleSet};
 use leocard_texas_holdem::TexasRuleSet;
 use leocard_uno::UnoRuleSet;
 use std::path::PathBuf;
@@ -155,7 +155,6 @@ fn remembered_host_rules_keep_valid_preferences_and_fixed_room_capacity() {
 
 #[test]
 fn shengji_modes_keep_separate_rule_preferences() {
-    use leocard_shengji::ShengjiMode;
     let classic = ShengjiRuleSet {
         deck_count: 4,
         five_trump_crossing: true,

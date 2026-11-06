@@ -1,6 +1,8 @@
 use super::QiGui523Session;
-use crate::{ConnectionId, Delivery, lifecycle::HostedGameLifecycle};
-use leocard_protocol::{QiGui523Event, RequestId, ServerEvent};
+use crate::features::MatchSettlement;
+use crate::lifecycle::HostedGameLifecycle;
+use crate::{ConnectionId, Delivery};
+use leocard_protocol::{GameEvent, QiGui523Event, RequestId, ServerEvent};
 use leocard_qigui523::QiGuiPhase;
 
 impl QiGui523Session {
@@ -8,7 +10,7 @@ impl QiGui523Session {
         &mut self,
         origin: Option<(ConnectionId, RequestId)>,
     ) -> Vec<Delivery> {
-        self.apply_finished_reference_points();
+        self.commit_match(&());
         let finished = self
             .game
             .as_ref()
@@ -60,5 +62,21 @@ impl QiGui523Session {
         let mut deliveries = self.broadcast_action_events(events);
         deliveries.extend(self.broadcast_game_after_update(origin));
         deliveries
+    }
+}
+
+impl QiGui523Session {
+    pub(super) fn broadcast_action_events(&self, events: Vec<QiGui523Event>) -> Vec<Delivery> {
+        self.room
+            .broadcast_game_events(events, self.match_id.map(|id| (id, None)))
+            .into_iter()
+            .filter(|delivery| match &delivery.message.event {
+                ServerEvent::GameEvent(GameEvent::QiGui523(QiGui523Event::ActionAnalyzed {
+                    player,
+                    ..
+                })) => self.room.player_id(delivery.recipient) == Some(*player),
+                _ => true,
+            })
+            .collect()
     }
 }

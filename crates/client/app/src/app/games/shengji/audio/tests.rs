@@ -1,4 +1,5 @@
 use super::voices::ShengjiVoiceKind;
+use crate::app::games::GameFeedback;
 use leocard_shengji::{
     ShengjiCard, ShengjiCategory, ShengjiClassifiedPlay, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
     ShengjiTrump, classify_lead,
@@ -22,13 +23,10 @@ fn play(suit: ShengjiSuit, ranks: &[(ShengjiRank, u8)]) -> ShengjiClassifiedPlay
 fn trump_lead_voice_requires_a_leading_single_or_pair() {
     for copies in [1, 2] {
         let trump = play(ShengjiSuit::Heart, &[(ShengjiRank::Ace, copies)]);
-        assert_eq!(
-            ShengjiVoiceKind::for_play(&trump, true),
-            Some(ShengjiVoiceKind::TrumpLead)
-        );
-        assert_eq!(ShengjiVoiceKind::for_play(&trump, false), None);
+        assert_eq!(trump.feedback(true), Some(ShengjiVoiceKind::TrumpLead));
+        assert_eq!(trump.feedback(false), None);
         let plain = play(ShengjiSuit::Spade, &[(ShengjiRank::Ace, copies)]);
-        assert_eq!(ShengjiVoiceKind::for_play(&plain, true), None);
+        assert_eq!(plain.feedback(true), None);
     }
     for (ranks, expected) in [
         (vec![(ShengjiRank::Ace, 3)], ShengjiVoiceKind::Triple),
@@ -48,7 +46,7 @@ fn trump_lead_voice_requires_a_leading_single_or_pair() {
     ] {
         let trump = play(ShengjiSuit::Heart, &ranks);
         for is_lead in [true, false] {
-            assert_eq!(ShengjiVoiceKind::for_play(&trump, is_lead), Some(expected));
+            assert_eq!(trump.feedback(is_lead), Some(expected));
         }
     }
 }
@@ -59,11 +57,8 @@ fn mixed_follows_do_not_announce_a_throw() {
         ShengjiSuit::Heart,
         &[(ShengjiRank::Queen, 1), (ShengjiRank::Ace, 1)],
     );
-    assert_eq!(
-        ShengjiVoiceKind::for_play(&cards, true),
-        Some(ShengjiVoiceKind::Throw)
-    );
-    assert_eq!(ShengjiVoiceKind::for_play(&cards, false), None);
+    assert_eq!(cards.feedback(true), Some(ShengjiVoiceKind::Throw));
+    assert_eq!(cards.feedback(false), None);
     cards.category = ShengjiCategory::Mixed;
-    assert_eq!(ShengjiVoiceKind::for_play(&cards, false), None);
+    assert_eq!(cards.feedback(false), None);
 }

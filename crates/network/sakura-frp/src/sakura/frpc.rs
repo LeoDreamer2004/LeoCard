@@ -3,8 +3,13 @@ use super::paths::data_root;
 use md5::{Digest, Md5};
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::fs::{self, File, OpenOptions};
+use std::fs;
+use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
+#[cfg(unix)]
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
@@ -134,7 +139,6 @@ impl SakuraClient {
             .stderr(Stdio::from(errors));
         #[cfg(target_os = "windows")]
         {
-            use std::os::windows::process::CommandExt;
             command.creation_flags(0x0800_0000);
         }
         progress(FrpcProgress::Starting);
@@ -215,7 +219,6 @@ impl SakuraClient {
             fs::rename(&temporary, target).map_err(|error| error.to_string())?;
             #[cfg(unix)]
             {
-                use std::os::unix::fs::PermissionsExt;
                 fs::set_permissions(target, fs::Permissions::from_mode(0o700))
                     .map_err(|error| error.to_string())?;
             }
@@ -259,7 +262,6 @@ fn write_private(path: &Path, contents: &[u8]) -> Result<(), String> {
     options.write(true).create(true).truncate(true);
     #[cfg(unix)]
     {
-        use std::os::unix::fs::OpenOptionsExt;
         options.mode(0o600);
     }
     let mut file = options.open(path).map_err(|error| error.to_string())?;

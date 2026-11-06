@@ -1,3 +1,5 @@
+use super::screen::GuandanScreen;
+use crate::app::games::GameSummary;
 use crate::app::presentation::{
     GameSummaryAnimation, PlayerMenuProfile, RankedSummary, SummaryDescriptor, SummaryPlayer,
     SummaryRows, add_ranked_summary,
@@ -11,21 +13,6 @@ use bevy::prelude::*;
 use leocard_guandan::rank_label;
 use leocard_protocol::GuandanSnapshot;
 use leocard_ui::UiComposer;
-
-pub(crate) fn descriptor(game: &GuandanSnapshot) -> Option<SummaryDescriptor> {
-    let result = game.result.as_ref()?;
-    let own = game
-        .players
-        .iter()
-        .find(|player| player.player.id == game.you)?;
-    Some(SummaryDescriptor {
-        match_id: game.match_id,
-        settlement_index: Some(game.hand_number),
-        entry_count: game.players.len(),
-        nonnegative_outcome: own.seat.0 % 2 == result.winning_team,
-        reveal_duration: 0.4,
-    })
-}
 
 pub(super) fn render(
     commands: &mut UiComposer,
@@ -163,4 +150,25 @@ pub(super) fn render(
 
 pub(super) fn placement_label(index: usize) -> &'static str {
     ["头游", "二游", "三游", "末游"][index]
+}
+
+impl GameSummary for GuandanScreen<'_> {
+    fn summary_descriptor(&self, game: &Self::Snapshot) -> Option<SummaryDescriptor> {
+        let result = game.result.as_ref()?;
+        let own = game
+            .players
+            .iter()
+            .find(|player| player.player.id == game.you)?;
+        Some(SummaryDescriptor {
+            match_id: game.match_id,
+            settlement_index: Some(game.hand_number),
+            entry_count: game.players.len(),
+            nonnegative_outcome: own.seat.0 % 2 == result.winning_team,
+            reveal_duration: 0.4,
+        })
+    }
+
+    fn summary_pause(&self, _game: &Self::Snapshot) -> Option<f32> {
+        None
+    }
 }

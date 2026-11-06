@@ -1,4 +1,3 @@
-mod analysis;
 mod automation;
 mod commands;
 mod lifecycle;
@@ -6,6 +5,7 @@ mod publication;
 mod settlement;
 mod snapshot;
 mod state;
+mod statistics;
 mod support;
 #[cfg(test)]
 mod tests;

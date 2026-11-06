@@ -1,4 +1,5 @@
 use super::*;
+use crate::features::HandSettlement;
 use crate::lifecycle::HostedGameLifecycle;
 use leocard_protocol::{
     ClientCommand, GameCommand, GameEvent, ServerEvent, ServerMessage, ShengjiCommand,
@@ -94,8 +95,8 @@ fn match_shutout_counter_updates_once_per_hand_and_survives_rematch() {
     let (mut session, _, _) = started_session();
     let result = super::settlement::result_for_reference_points(true, 3, 0);
     for count in 1..=3 {
-        session.apply_finished_reference_points(&result);
-        session.apply_finished_reference_points(&result);
+        session.commit_hand(&result);
+        session.commit_hand(&result);
         assert_eq!(
             session
                 .statistics
@@ -105,9 +106,7 @@ fn match_shutout_counter_updates_once_per_hand_and_survives_rematch() {
         );
         session.statistics.start_hand(session.rules.player_count());
     }
-    session.apply_finished_reference_points(&super::settlement::result_for_reference_points(
-        true, 1, 40,
-    ));
+    session.commit_hand(&super::settlement::result_for_reference_points(true, 1, 40));
     assert_eq!(
         session
             .statistics

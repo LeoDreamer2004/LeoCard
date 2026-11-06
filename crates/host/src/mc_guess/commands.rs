@@ -1,8 +1,10 @@
 use super::McGuessSession;
+use crate::features::GameCommandHandler;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery};
 use leocard_protocol::{
-    GameViolation, McGuessCommand, McGuessViolation, RejectReason, RequestId, RoomViolation,
+    GameCommand, GameKind, GameViolation, McGuessCommand, McGuessViolation, RejectReason,
+    RequestId, RoomViolation,
 };
 
 impl McGuessSession {
@@ -80,5 +82,25 @@ impl McGuessSession {
         }
         .map_err(|error| RejectReason::Game(error.into()))?;
         Ok(self.after_action(skipped))
+    }
+}
+
+impl GameCommandHandler for McGuessSession {
+    type Command = McGuessCommand;
+
+    fn parse_command(command: GameCommand) -> Result<Self::Command, GameKind> {
+        let GameCommand::McGuess(command) = command else {
+            return Err(command.kind());
+        };
+        Ok(command)
+    }
+
+    fn handle_command(
+        &mut self,
+        connection: ConnectionId,
+        request: RequestId,
+        command: Self::Command,
+    ) -> Vec<Delivery> {
+        self.command(connection, request, command)
     }
 }

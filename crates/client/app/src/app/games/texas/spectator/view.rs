@@ -4,11 +4,10 @@ use crate::app::presentation::{ACCENT, SeatSide, add_switch_drawer, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::TexasSnapshot;
 use leocard_ui::{DrawerSwitch, SwitchDrawer, UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 #[derive(Component)]
 pub(in super::super) struct TexasWinRateLabel(pub PlayerId);

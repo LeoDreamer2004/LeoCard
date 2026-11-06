@@ -1,4 +1,6 @@
 use super::UNO_FINISH_REVEAL_DURATION;
+use super::screen::UnoScreen;
+use crate::app::games::GameSummary;
 use crate::app::presentation::{
     ACCENT, AnimatedSummaryScore, DANGER, GameSummaryActions, GameSummaryAnimation,
     GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin,
@@ -13,32 +15,10 @@ use crate::app::shell::{
     add_cozy_disabled_button,
 };
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{PlayerReferenceChange, UnoPhaseView, UnoPlayerResult, UnoSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
-
-pub(crate) fn uno_summary_descriptor(game: &UnoSnapshot) -> Option<SummaryDescriptor> {
-    let UnoPhaseView::Finished {
-        results,
-        reference_changes,
-        ..
-    } = &game.phase
-    else {
-        return None;
-    };
-    Some(SummaryDescriptor {
-        match_id: game.match_id,
-        settlement_index: None,
-        entry_count: results.len(),
-        nonnegative_outcome: reference_changes
-            .iter()
-            .find(|change| change.player == game.you)
-            .is_none_or(|change| change.delta >= 0),
-        reveal_duration: UNO_FINISH_REVEAL_DURATION,
-    })
-}
 
 #[expect(
     clippy::too_many_arguments,
@@ -342,5 +322,32 @@ pub(super) fn add_uno_summary(
             48.0,
             CozyButtonVariant::Cool,
         );
+    }
+}
+
+impl GameSummary for UnoScreen<'_> {
+    fn summary_descriptor(&self, game: &Self::Snapshot) -> Option<SummaryDescriptor> {
+        let UnoPhaseView::Finished {
+            results,
+            reference_changes,
+            ..
+        } = &game.phase
+        else {
+            return None;
+        };
+        Some(SummaryDescriptor {
+            match_id: game.match_id,
+            settlement_index: None,
+            entry_count: results.len(),
+            nonnegative_outcome: reference_changes
+                .iter()
+                .find(|change| change.player == game.you)
+                .is_none_or(|change| change.delta >= 0),
+            reveal_duration: UNO_FINISH_REVEAL_DURATION,
+        })
+    }
+
+    fn summary_pause(&self, _game: &Self::Snapshot) -> Option<f32> {
+        None
     }
 }

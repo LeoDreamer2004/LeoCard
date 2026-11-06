@@ -3,10 +3,9 @@ use super::super::view::GuessTable;
 use super::visuals::{RevealPanel, RevealPixel};
 use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text, add_title};
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_mc_guess::McGuessMode;
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 impl GuessTable<'_> {
     pub(in super::super) fn answer(

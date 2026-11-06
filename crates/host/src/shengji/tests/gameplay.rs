@@ -1,4 +1,5 @@
 use super::*;
+use crate::features::GameSnapshotView;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
     ClientCommand, GameCommand, GameEvent, GameViolation, RejectReason, ServerEvent,
@@ -7,9 +8,8 @@ use leocard_protocol::{
 };
 
 #[cfg(test)]
-use leocard_shengji::build_deck;
 use leocard_shengji::{
-    ShengjiActionOutcome, ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
+    ShengjiActionOutcome, ShengjiCard, ShengjiRank, ShengjiRuleSet, ShengjiSuit, build_deck,
 };
 
 #[test]
@@ -203,7 +203,7 @@ fn later_hand_snapshot_exposes_the_fixed_dealer_while_dealing() {
     session.next_dealer = Some(PlayerId(2));
     session.start_hand().unwrap();
 
-    let snapshot = session.game_snapshot(PlayerId(0));
+    let snapshot = session.game_view(PlayerId(0));
     assert!(matches!(snapshot.phase, ShengjiPhaseView::Dealing { .. }));
     assert_eq!(snapshot.dealer, Some(PlayerId(2)));
 }
@@ -260,7 +260,7 @@ fn failed_throw_is_shown_then_returned_before_the_forced_play_is_revealed() {
         next: PlayerId(1),
     });
 
-    let showing = session.game_snapshot(PlayerId(0));
+    let showing = session.game_view(PlayerId(0));
     assert_eq!(showing.current_player, None);
     assert_eq!(
         showing.throw_failure,

@@ -1,5 +1,5 @@
 use super::*;
-use crate::app::games::lobby_rule_labels;
+use crate::app::games::GameLobbyRules;
 use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::picking::Pickable;
@@ -144,7 +144,7 @@ impl<'a> LobbyRuleSummary<'a> {
             },
             None,
         );
-        for label in lobby_rule_labels(self.rules) {
+        for label in self.rules.lobby_rule_labels() {
             self.add_chip(commands, chips, label);
         }
     }

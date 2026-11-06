@@ -2,9 +2,11 @@ use super::DoudizhuSession;
 use crate::action_timing::{
     ActionTimingRequest, PendingAction, attach_action_timing, sync_action_timing,
 };
+use crate::features::DecisionTiming;
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery};
 use leocard_doudizhu::DoudizhuPhase;
+use leocard_game_common::ActionTimeProfile;
 use leocard_protocol::{ClientCommand, ClientMessage, DoudizhuCommand, GameCommand, GameSnapshot};
 
 impl DoudizhuSession {
@@ -21,8 +23,7 @@ impl DoudizhuSession {
             profiles
                 .doudizhu
                 .get_or_insert_with(Default::default)
-                .action_time
-                .record(millis);
+                .record_action_time(millis);
         }
         self.refresh_action_timing();
         attach_action_timing(self, deliveries)
@@ -41,7 +42,9 @@ impl DoudizhuSession {
         let windows = self.pending_actions(&snapshot);
         sync_action_timing(&mut self.room, Self::KIND, snapshot.match_id(), windows);
     }
+}
 
+impl DecisionTiming for DoudizhuSession {
     fn pending_actions(&self, snapshot: &GameSnapshot) -> Vec<PendingAction> {
         match snapshot {
             GameSnapshot::Doudizhu(s)

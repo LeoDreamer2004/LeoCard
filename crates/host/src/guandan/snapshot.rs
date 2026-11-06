@@ -1,10 +1,21 @@
 use super::GuandanSession;
+use crate::features::GameSnapshotView;
 use leocard_game_common::PlayerId;
 use leocard_guandan::{GuandanAction, GuandanPhase};
 use leocard_protocol::{GuandanPlayerView, GuandanPublicAction, GuandanSnapshot};
 
-impl GuandanSession {
-    pub(super) fn snapshot_for(&self, you: PlayerId) -> GuandanSnapshot {
+fn public_actions(actions: &[Option<GuandanAction>; 4]) -> [Option<GuandanPublicAction>; 4] {
+    std::array::from_fn(|index| match &actions[index] {
+        Some(GuandanAction::Play(cards)) => Some(GuandanPublicAction::Play(cards.clone())),
+        Some(GuandanAction::Pass) => Some(GuandanPublicAction::Pass),
+        _ => None,
+    })
+}
+
+impl GameSnapshotView for GuandanSession {
+    type Snapshot = GuandanSnapshot;
+
+    fn game_view(&self, you: PlayerId) -> Self::Snapshot {
         let game = self
             .game
             .as_ref()
@@ -66,12 +77,4 @@ impl GuandanSession {
             },
         }
     }
-}
-
-fn public_actions(actions: &[Option<GuandanAction>; 4]) -> [Option<GuandanPublicAction>; 4] {
-    std::array::from_fn(|index| match &actions[index] {
-        Some(GuandanAction::Play(cards)) => Some(GuandanPublicAction::Play(cards.clone())),
-        Some(GuandanAction::Pass) => Some(GuandanPublicAction::Pass),
-        _ => None,
-    })
 }

@@ -1,8 +1,10 @@
 use super::{UnoSession, resolve_public_hand_card, shuffled_uno_deck};
-use crate::{ConnectionId, Delivery, lifecycle::HostedGameLifecycle, new_match_id};
+use crate::features::GameCommandHandler;
+use crate::lifecycle::HostedGameLifecycle;
+use crate::{ConnectionId, Delivery, new_match_id};
 use leocard_protocol::{
-    GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation, UnoCommand,
-    UnoViolation,
+    GameCommand, GameKind, GameViolation, PlayerViolation, RejectReason, RequestId, RoomViolation,
+    UnoCommand, UnoViolation,
 };
 use leocard_uno::{
     UnoGameError, UnoGameState, UnoMatchStatistics, UnoPhase, UnoRuleSet, build_deck_for_rules,
@@ -278,5 +280,25 @@ impl UnoSession {
         self.reset_automatic_action_delay();
         self.room.bump_revision();
         self.broadcast_game(origin)
+    }
+}
+
+impl GameCommandHandler for UnoSession {
+    type Command = UnoCommand;
+
+    fn parse_command(command: GameCommand) -> Result<Self::Command, GameKind> {
+        let GameCommand::Uno(command) = command else {
+            return Err(command.kind());
+        };
+        Ok(command)
+    }
+
+    fn handle_command(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        command: Self::Command,
+    ) -> Vec<Delivery> {
+        self.handle_uno_command(connection, request_id, command)
     }
 }

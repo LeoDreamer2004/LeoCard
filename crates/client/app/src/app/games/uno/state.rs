@@ -1,13 +1,13 @@
 //! UNO 牌桌交互、飞牌与规则特效的状态类型。
 
+use crate::app::games::HandSelection;
 use crate::app::presentation::{CardAnimationState, SilentButton};
 use crate::app::shell::SocialUiState;
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{MatchId, UnoEvent, UnoPendingSwapView, UnoSnapshot};
 use leocard_uno::UnoCard;
 use std::collections::{HashMap, HashSet, VecDeque};
-
-use bevy::prelude::*;
 
 #[derive(Resource, Default)]
 pub(crate) struct UnoUiState {
@@ -199,4 +199,16 @@ pub(crate) struct UnoReverseArrow {
     pub color: Color,
     pub max_alpha: f32,
     pub shadow_alpha: f32,
+}
+
+impl HandSelection for UnoUiState {
+    type Card = UnoCard;
+
+    fn selected_cards(&self) -> &HashSet<Self::Card> {
+        &self.selected
+    }
+
+    fn selected_cards_mut(&mut self) -> &mut HashSet<Self::Card> {
+        &mut self.selected
+    }
 }

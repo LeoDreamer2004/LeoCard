@@ -1,6 +1,7 @@
 use super::rewards::login_day;
 use super::storage::{EconomyArchive, FORMAT_VERSION};
 use super::{PropId, ShopAvatarFrame, migration};
+use AvatarFrameId::{Cattail, Default as DefaultFrame, Horse, Host, IronBasin, Orange};
 use leocard_achievements::AchievementTier;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
@@ -138,8 +139,6 @@ fn upgrading_a_wallet_with_a_frame_preserves_the_equipped_choice() {
 
 #[test]
 fn persona_changes_equip_the_new_frame_and_only_keep_departed_frames_if_owned() {
-    use AvatarFrameId::{Cattail, Default, Horse, Host, IronBasin, Orange};
-
     let mut wallet = EconomyArchive::new(ProfileId([1; 32]));
     for (name, frame) in [
         ("Yang120", Orange),
@@ -158,7 +157,7 @@ fn persona_changes_equip_the_new_frame_and_only_keep_departed_frames_if_owned() 
     let regular = ShopAvatarFrame::exclusive_for_name("玩家");
     assert_eq!(regular, None);
     assert!(wallet.update_exclusive_frame(regular));
-    assert_eq!(wallet.equipped_frame, Default);
+    assert_eq!(wallet.equipped_frame, DefaultFrame);
     assert!(!wallet.can_use_frame(Host));
 
     wallet.owned_frames.insert(Host);

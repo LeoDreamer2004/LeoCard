@@ -10,7 +10,10 @@ use super::qigui523::QiGui523Screen;
 use super::shengji::ShengjiScreen;
 use super::texas::TexasScreen;
 use super::uno::UnoScreen;
-use super::{GameLobbyContext, GameScreen, GameTableContext};
+use super::{
+    GameActionPrompt, GameLobbyContext, GameScreen, GameSummary, GameTableContext, GameUiLifecycle,
+};
+use crate::app::presentation::SummaryPlayback;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
 use bevy::ecs::system::SystemParam;
@@ -34,6 +37,29 @@ pub(crate) struct GameScreens<'w> {
 }
 
 impl GameScreens<'_> {
+    pub(crate) fn summary_playback(&self, game: &GameSnapshot) -> SummaryPlayback {
+        macro_rules! project {
+            ($screen:ident, $game:expr) => {
+                SummaryPlayback {
+                    descriptor: self.$screen.summary_descriptor($game),
+                    pause_at: self.$screen.summary_pause($game),
+                }
+            };
+        }
+        match game {
+            GameSnapshot::Blackjack(game) => project!(blackjack, game),
+            GameSnapshot::Doudizhu(game) => project!(doudizhu, game),
+            GameSnapshot::Guandan(game) => project!(guandan, game),
+            GameSnapshot::Mahjong(game) => project!(mahjong, game),
+            GameSnapshot::MahjongLink(game) => project!(mahjong_link, game),
+            GameSnapshot::McGuess(game) => project!(mc_guess, game),
+            GameSnapshot::QiGui523(game) => project!(qigui523, game),
+            GameSnapshot::Shengji(game) => project!(shengji, game),
+            GameSnapshot::Texas(game) => project!(texas, game),
+            GameSnapshot::Uno(game) => project!(uno, game),
+        }
+    }
+
     pub(crate) fn requires_action(&self, game: &GameSnapshot) -> bool {
         match game {
             GameSnapshot::Blackjack(game) => self.blackjack.requires_action(game),

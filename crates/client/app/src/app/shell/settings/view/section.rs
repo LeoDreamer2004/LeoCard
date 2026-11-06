@@ -1,5 +1,4 @@
 //! Consistent separators between game-specific groups in settings.
-
 use bevy::prelude::*;
 use leocard_ui::{UiComposer, spawn_node};
 

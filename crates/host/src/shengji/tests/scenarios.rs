@@ -1,4 +1,5 @@
 use super::*;
+use crate::features::GameSnapshotView;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
     ClientCommand, GameCommand, GameEvent, GameViolation, RejectReason, ServerEvent,
@@ -6,10 +7,9 @@ use leocard_protocol::{
 };
 
 #[cfg(test)]
-use leocard_shengji::build_deck;
 use leocard_shengji::{
     ShengjiCard, ShengjiFiveTrumpCrossingStage, ShengjiPhase, ShengjiRank, ShengjiRuleSet,
-    ShengjiSuit,
+    ShengjiSuit, build_deck,
 };
 
 #[test]
@@ -452,7 +452,7 @@ fn power_outage_opens_ten_second_round_then_bottom_flip_is_publicly_held() {
     // 现在到这个时点仍必须保持公开。
     session.advance_time(Duration::from_millis(1400));
     assert!(matches!(
-        session.game_snapshot(PlayerId(0)).phase,
+        session.game_view(PlayerId(0)).phase,
         ShengjiPhaseView::BottomFlipping { reveal: Some(_) }
     ));
 

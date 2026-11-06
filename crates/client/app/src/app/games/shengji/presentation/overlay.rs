@@ -13,10 +13,9 @@ use super::{
 use crate::app::presentation::{ACCENT, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use leocard_protocol::ShengjiSnapshot;
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 pub(crate) fn add_shengji_presentation_overlay(
     commands: &mut UiComposer,

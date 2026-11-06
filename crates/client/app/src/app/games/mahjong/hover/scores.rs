@@ -1,5 +1,6 @@
 use crate::app::runtime::ClientResource;
 use crate::app::shell::UiState;
+use bevy::prelude::*;
 use leocard_client::{PlayerEconomy, PropId};
 use leocard_game_common::PlayerId;
 use leocard_mahjong::{
@@ -7,8 +8,6 @@ use leocard_mahjong::{
     MahjongWinSource, score_hand,
 };
 use leocard_protocol::{GameSnapshot, MahjongSnapshot};
-
-use bevy::prelude::*;
 
 #[derive(Resource, Default)]
 pub(crate) struct MahjongFanCalculator {

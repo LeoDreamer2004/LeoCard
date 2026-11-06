@@ -6,6 +6,7 @@ mod lifecycle;
 mod process_presence;
 mod rounds;
 mod settlement;
+mod snapshot;
 mod state;
 mod timing;
 

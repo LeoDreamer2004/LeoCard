@@ -1,9 +1,8 @@
 //! 棋牌游戏客户端插件组合。
 
-use super::doudizhu::DoudizhuPlugin;
 use super::{
-    blackjack, guandan, mahjong, mahjong_link, mc_guess, qigui523, shengji, sync_summary_playback,
-    texas, uno,
+    blackjack, doudizhu, guandan, mahjong, mahjong_link, mc_guess, qigui523, shengji,
+    sync_summary_playback, texas, uno,
 };
 use crate::app::presentation::update_summary_animation;
 use crate::app::runtime::ClientUpdateSet;
@@ -15,7 +14,7 @@ impl Plugin for GamesPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             blackjack::BlackjackPlugin,
-            DoudizhuPlugin,
+            doudizhu::DoudizhuPlugin,
             guandan::GuandanPlugin,
             mc_guess::McGuessPlugin,
             qigui523::QiGui523Plugin,

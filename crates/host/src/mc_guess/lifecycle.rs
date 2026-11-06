@@ -1,11 +1,9 @@
 use super::McGuessSession;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, RoomSession};
-use leocard_game_common::PlayerId;
 use leocard_mc_guess::McGuessRuleSet;
 use leocard_protocol::{
-    GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, McGuessSnapshot, PlayerScore,
-    RejectReason, RequestId, RoomViolation, ServerEvent,
+    GameKind, GameRules, GameViolation, RejectReason, RequestId, RoomViolation, ServerEvent,
 };
 
 impl HostedGameLifecycle for McGuessSession {
@@ -29,52 +27,6 @@ impl HostedGameLifecycle for McGuessSession {
 
     fn game_rules(&self) -> GameRules {
         self.rules.into()
-    }
-
-    fn game_snapshot(&self, recipient: PlayerId) -> GameSnapshot {
-        let state = self.match_state.as_ref().expect("active match");
-        McGuessSnapshot {
-            match_id: self.match_id.expect("active match"),
-            host_port: self.host_port,
-            you: recipient,
-            host: self.host_player_id().expect("room host"),
-            players: state
-                .scores()
-                .map(|(id, _)| {
-                    self.players
-                        .iter()
-                        .find(|player| player.id == id)
-                        .expect("match participant belongs to its room")
-                })
-                .filter(|player| !player.left)
-                .map(|player| player.public_metadata().into())
-                .collect(),
-            rules: self.rules,
-            progress: state.progress(),
-            round: self.game.as_ref().expect("active game").view(),
-            graph: self.game.as_ref().expect("active game").graph_view(),
-            guess_seconds_remaining: self.guess_seconds_remaining(),
-            scores: state
-                .scores()
-                .map(|(player, score)| PlayerScore { player, score })
-                .collect(),
-            score_gains: state.gains().to_vec(),
-            reference_changes: self.finished_reference_changes.clone().unwrap_or_default(),
-            mc_process_players: self.process_presence.players(),
-        }
-        .into()
-    }
-
-    fn handle_game_command(
-        &mut self,
-        connection: ConnectionId,
-        request: RequestId,
-        command: GameCommand,
-    ) -> Result<Vec<Delivery>, GameKind> {
-        let GameCommand::McGuess(command) = command else {
-            return Err(command.kind());
-        };
-        Ok(self.command(connection, request, command))
     }
 
     fn start_game(&mut self, connection: ConnectionId, request: RequestId) -> Vec<Delivery> {

@@ -1,18 +1,18 @@
 //! 网络会话变化驱动的页面、弹窗和开局演出协调。
+
 use super::super::{
     ChatPanelState, ConnectionEndFeedback, LobbyGameMotion, PageMotion, ProfileMotion,
     SettingsMotion, UiState,
 };
-use crate::app::games::GameScreenChange;
+use crate::app::games::ScreenChangeCapture;
 use crate::app::presentation::{
     LobbySeatTransitionSnapshot, LobbySeatTransitionSource, StartGameSeatTransition,
 };
 use crate::app::runtime::{ClientResource, PageErrorState};
 use bevy::ecs::system::SystemParam;
+use bevy::prelude::*;
 use leocard_client::{ClientModel, ClientPhaseRef, NetworkState, TcpGameClient};
 use leocard_protocol::LobbySnapshot;
-
-use bevy::prelude::*;
 
 pub(crate) struct NetworkUiSnapshot {
     previous_state: NetworkState,
@@ -22,7 +22,7 @@ pub(crate) struct NetworkUiSnapshot {
     was_game: bool,
     was_host: bool,
     lobby_seat_snapshots: Vec<LobbySeatTransitionSnapshot>,
-    game_change: GameScreenChange,
+    game_change: ScreenChangeCapture,
 }
 #[derive(SystemParam)]
 pub(crate) struct NetworkUiContext<'w, 's> {
@@ -57,7 +57,7 @@ impl NetworkUiContext<'_, '_> {
             was_host: local_player_is_host(client.model()),
             was_game: client.model().active_game_meta().is_some(),
             lobby_seat_snapshots: collect_lobby_seats(client.model().lobby(), &self.lobby_seats),
-            game_change: GameScreenChange::capture(client.model().game_snapshot()),
+            game_change: ScreenChangeCapture::capture(client.model().game_snapshot()),
         }
     }
 

@@ -1,4 +1,5 @@
 use super::{UnoSession, map_game_error};
+use crate::features::GameSnapshotView;
 use crate::{ConnectionId, Delivery};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
@@ -21,7 +22,24 @@ impl UnoSession {
             .collect()
     }
 
-    pub(super) fn game_snapshot(&self, recipient: PlayerId) -> UnoSnapshot {
+    pub(super) fn reject_game_error(
+        &self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        error: &UnoGameError,
+    ) -> Vec<Delivery> {
+        self.room.reject(
+            connection,
+            request_id,
+            RejectReason::Game(GameViolation::Uno(map_game_error(error))),
+        )
+    }
+}
+
+impl GameSnapshotView for UnoSession {
+    type Snapshot = UnoSnapshot;
+
+    fn game_view(&self, recipient: PlayerId) -> Self::Snapshot {
         let game = self.game.as_ref().expect("an UNO snapshot requires a game");
         let turn = game.turn();
         let players = self
@@ -212,18 +230,5 @@ impl UnoSession {
                 snapshot.your_hand.len() == 1 && snapshot.uno_exposed.contains(&snapshot.you);
         }
         snapshot
-    }
-
-    pub(super) fn reject_game_error(
-        &self,
-        connection: ConnectionId,
-        request_id: RequestId,
-        error: &UnoGameError,
-    ) -> Vec<Delivery> {
-        self.room.reject(
-            connection,
-            request_id,
-            RejectReason::Game(GameViolation::Uno(map_game_error(error))),
-        )
     }
 }

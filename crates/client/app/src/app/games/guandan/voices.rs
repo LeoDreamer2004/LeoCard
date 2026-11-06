@@ -1,3 +1,4 @@
+use crate::app::games::GameFeedback;
 use crate::app::presentation::{CardVoice, CardVoices};
 use crate::app::runtime::{ClientResource, ServerNotification};
 use bevy::prelude::*;
@@ -36,7 +37,7 @@ pub(super) fn sync_guandan_voices(
         let voice = match action {
             GuandanPublicAction::Play(cards) => classify(cards, game.level)
                 .ok()
-                .and_then(|play| pattern_voice(&play)),
+                .and_then(|play| play.feedback(())),
             GuandanPublicAction::Pass => Some(CardVoice::Pass),
         };
         if let Some(pattern) = voice
@@ -50,24 +51,28 @@ pub(super) fn sync_guandan_voices(
     }
 }
 
-fn pattern_voice(play: &GuandanPlay) -> Option<CardVoice> {
-    match play.kind {
-        GuandanPlayKind::Single | GuandanPlayKind::Pair => {
-            // The classified rank may differ from a heart-level wildcard's printed rank.
-            let face = play.cards.iter().find(|card| card.rank == play.value)?;
-            Some(if play.kind == GuandanPlayKind::Single {
-                CardVoice::Single((*face).into())
-            } else {
-                CardVoice::Pair((*face).into())
-            })
+impl GameFeedback<()> for GuandanPlay {
+    type Cue = Option<CardVoice>;
+
+    fn feedback(&self, _context: ()) -> Self::Cue {
+        match self.kind {
+            GuandanPlayKind::Single | GuandanPlayKind::Pair => {
+                // The classified rank may differ from a heart-level wildcard's printed rank.
+                let face = self.cards.iter().find(|card| card.rank == self.value)?;
+                Some(if self.kind == GuandanPlayKind::Single {
+                    CardVoice::Single((*face).into())
+                } else {
+                    CardVoice::Pair((*face).into())
+                })
+            }
+            GuandanPlayKind::Triple => Some(CardVoice::Triple),
+            GuandanPlayKind::FullHouse => Some(CardVoice::TriplePair),
+            GuandanPlayKind::Straight => Some(CardVoice::Straight),
+            GuandanPlayKind::ConsecutivePairs => Some(CardVoice::ThreePairs),
+            GuandanPlayKind::ConsecutiveTriples => Some(CardVoice::SteelPlate),
+            GuandanPlayKind::Bomb(_) => Some(CardVoice::Bomb),
+            GuandanPlayKind::StraightFlush => Some(CardVoice::StraightFlush),
+            GuandanPlayKind::JokerBomb => Some(CardVoice::FourJokers),
         }
-        GuandanPlayKind::Triple => Some(CardVoice::Triple),
-        GuandanPlayKind::FullHouse => Some(CardVoice::TriplePair),
-        GuandanPlayKind::Straight => Some(CardVoice::Straight),
-        GuandanPlayKind::ConsecutivePairs => Some(CardVoice::ThreePairs),
-        GuandanPlayKind::ConsecutiveTriples => Some(CardVoice::SteelPlate),
-        GuandanPlayKind::Bomb(_) => Some(CardVoice::Bomb),
-        GuandanPlayKind::StraightFlush => Some(CardVoice::StraightFlush),
-        GuandanPlayKind::JokerBomb => Some(CardVoice::FourJokers),
     }
 }

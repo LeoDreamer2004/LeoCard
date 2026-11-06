@@ -2,6 +2,7 @@
 mod timing;
 
 use super::GuandanSession;
+use crate::features::{GameSnapshotView, MatchSettlement};
 use crate::{ConnectionId, Delivery};
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_game_common::PlayerId;
@@ -80,7 +81,7 @@ fn rejects_out_of_turn_action_without_changing_private_hands() {
     let mut session = started();
     let current = session.game.as_ref().unwrap().current_player().unwrap();
     let other = PlayerId((current.0 + 1) % 4);
-    let before = session.snapshot_for(other);
+    let before = session.game_view(other);
     let connection = session.room.players[other.index()].connection.0;
     let rejected = send(
         &mut session,
@@ -93,10 +94,10 @@ fn rejects_out_of_turn_action_without_changing_private_hands() {
             reason: RejectReason::Game(GameViolation::Guandan(GuandanViolation::NotYourTurn))
         }
     )));
-    assert_eq!(session.snapshot_for(other).your_hand, before.your_hand);
-    assert_eq!(session.snapshot_for(other).current, Some(current));
+    assert_eq!(session.game_view(other).your_hand, before.your_hand);
+    assert_eq!(session.game_view(other).current, Some(current));
     for player in (0..4).map(PlayerId) {
-        let snapshot = session.snapshot_for(player);
+        let snapshot = session.game_view(player);
         assert_eq!(snapshot.your_hand.len(), 27);
         assert!(snapshot.players.iter().all(|view| view.hand_len == 27));
     }
@@ -122,10 +123,7 @@ fn spectator_follows_private_hands_without_controlling_the_viewed_player() {
     let deliveries = send(&mut session, 5, join(5));
     let initial = spectator_snapshot(&deliveries);
     assert_eq!(initial.you, PlayerId(0));
-    assert_eq!(
-        initial.your_hand,
-        session.snapshot_for(PlayerId(0)).your_hand
-    );
+    assert_eq!(initial.your_hand, session.game_view(PlayerId(0)).your_hand);
     let deliveries = send(
         &mut session,
         5,
@@ -135,14 +133,14 @@ fn spectator_follows_private_hands_without_controlling_the_viewed_player() {
     );
     assert_eq!(
         spectator_snapshot(&deliveries),
-        &session.snapshot_for(PlayerId(1))
+        &session.game_view(PlayerId(1))
     );
     let deliveries = send(&mut session, 5, ClientCommand::RequestSnapshot);
     assert_eq!(
         spectator_snapshot(&deliveries),
-        &session.snapshot_for(PlayerId(1))
+        &session.game_view(PlayerId(1))
     );
-    let before = session.snapshot_for(PlayerId(1));
+    let before = session.game_view(PlayerId(1));
     let rejected = send(
         &mut session,
         5,
@@ -153,9 +151,9 @@ fn spectator_follows_private_hands_without_controlling_the_viewed_player() {
             .iter()
             .any(|delivery| matches!(delivery.message.event, ServerEvent::Rejected { .. }))
     );
-    assert_eq!(session.snapshot_for(PlayerId(1)), before);
+    assert_eq!(session.game_view(PlayerId(1)), before);
     // A raw observer ID still has no private hand; only the selected view is remapped.
-    assert!(session.snapshot_for(PlayerId(128)).your_hand.is_empty());
+    assert!(session.game_view(PlayerId(128)).your_hand.is_empty());
 }
 
 #[test]
@@ -181,7 +179,7 @@ fn played_cards_are_public_in_every_recipients_snapshot() {
             .all(|delivery| !matches!(delivery.message.event, ServerEvent::Rejected { .. }))
     );
     for player in (0..4).map(PlayerId) {
-        let snapshot = session.snapshot_for(player);
+        let snapshot = session.game_view(player);
         assert_eq!(snapshot.played_cards, vec![card]);
     }
     let deliveries = send(&mut session, 5, join(5));
@@ -199,7 +197,7 @@ fn played_cards_are_public_in_every_recipients_snapshot() {
     assert_eq!(spectator.played_cards, vec![card]);
     assert_eq!(
         spectator.your_hand,
-        session.snapshot_for(spectator.you).your_hand
+        session.game_view(spectator.you).your_hand
     );
 }
 
@@ -209,7 +207,7 @@ fn completed_hand_continues_with_tribute_and_preserves_match_id() {
     session.match_state = Some(GuandanMatchState::new(2, PlayerId(0)).unwrap());
     session.game =
         Some(GuandanGameState::new(GuandanRuleSet::default(), build_deck(), PlayerId(0)).unwrap());
-    let match_id = session.snapshot_for(PlayerId(0)).match_id;
+    let match_id = session.game_view(PlayerId(0)).match_id;
     for _ in 0..500 {
         let game = session.game.as_ref().unwrap();
         if matches!(game.phase(), GuandanPhase::Finished(_)) {
@@ -226,7 +224,7 @@ fn completed_hand_continues_with_tribute_and_preserves_match_id() {
     for connection in 1..=4 {
         send(&mut session, connection, ClientCommand::PlayAgain);
     }
-    let snapshot = session.snapshot_for(PlayerId(0));
+    let snapshot = session.game_view(PlayerId(0));
     assert_eq!(snapshot.match_id, match_id);
     assert_eq!(snapshot.hand_number, 2);
     assert!(!snapshot.tribute_pairs.is_empty());
@@ -274,13 +272,13 @@ fn tribute_card_is_visible_only_to_receiver() {
         }))
     )));
     for player in (0..4).map(PlayerId) {
-        let snapshot = session.snapshot_for(player);
+        let snapshot = session.game_view(player);
         assert_eq!(
             snapshot.received_tribute,
             (player == PlayerId(0)).then_some(card)
         );
     }
-    assert_eq!(session.snapshot_for(PlayerId(128)).received_tribute, None);
+    assert_eq!(session.game_view(PlayerId(128)).received_tribute, None);
 }
 
 #[test]
@@ -318,7 +316,7 @@ fn complete_match_merges_all_hands_and_unknown_places_once() {
         .collect::<Vec<_>>();
     let play = classify(&cards, 14).unwrap();
     session.statistics.observe_play(PlayerId(0), &play);
-    session.settle_match();
+    session.commit_match(&());
     let saved = session.room.players[0]
         .game_profiles
         .guandan
@@ -340,7 +338,7 @@ fn complete_match_merges_all_hands_and_unknown_places_once() {
     assert_eq!(loser.placement_counts, [0; 4]);
     assert_eq!(loser.unranked_hands, 2);
     let completed_games = session.room.players[0].completed_games;
-    session.settle_match();
+    session.commit_match(&());
     assert_eq!(
         session.room.players[0].game_profiles.guandan.as_ref(),
         Some(&saved)

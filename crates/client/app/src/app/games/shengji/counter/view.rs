@@ -1,11 +1,14 @@
 use super::super::{ShengjiUiAction, ShengjiUiState};
+use crate::app::games::{CardCounter, CounterRows};
 use crate::app::presentation::{
-    ACCENT, CardCounterCell, TEXT, add_card_counter_window, add_switch_drawer,
+    ACCENT, CardCounterCell, CardCounterWindowState, TEXT, add_card_counter_window,
+    add_switch_drawer,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use leocard_protocol::ShengjiSnapshot;
+use leocard_shengji::ShengjiTrump;
 use leocard_ui::{DrawerSwitch, SwitchDrawer, UiComposer};
 
 pub(in super::super) fn render_counter(
@@ -48,18 +51,32 @@ pub(in super::super) fn render_counter(
     let Some(trump) = game.trump else {
         return;
     };
-    let rows = state.counts.rows(trump).map(|row| {
-        row.map(|cell| {
-            cell.map(|cell| CardCounterCell {
-                image: assets.playing_cards.face(cell.card),
-                remaining: cell.remaining,
-                color: if trump.is_trump(cell.card) {
-                    ACCENT
-                } else {
-                    TEXT
-                },
+    let rows = ui.counter_rows(&trump, assets);
+    add_card_counter_window::<ShengjiUiState>(commands, table, ui.counter_window(), rows, assets);
+}
+
+impl CardCounter for ShengjiUiState {
+    type Context = ShengjiTrump;
+
+    fn counter_window(&self) -> &CardCounterWindowState {
+        &self.counter.window
+    }
+
+    fn counter_rows(&self, trump: &Self::Context, assets: &UiAssets) -> CounterRows {
+        let state = &self.counter;
+        let trump = *trump;
+        state.counts.rows(trump).map(|row| {
+            row.map(|cell| {
+                cell.map(|cell| CardCounterCell {
+                    image: assets.playing_cards.face(cell.card),
+                    remaining: cell.remaining,
+                    color: if trump.is_trump(cell.card) {
+                        ACCENT
+                    } else {
+                        TEXT
+                    },
+                })
             })
         })
-    });
-    add_card_counter_window::<ShengjiUiState>(commands, table, &state.window, rows, assets);
+    }
 }

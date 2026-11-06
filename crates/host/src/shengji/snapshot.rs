@@ -1,6 +1,7 @@
 use super::{
     BIDDING_GRACE, BOTTOM_COPY_DECISION_TIMEOUT, ShengjiSession, pre_kitty_collecting_score,
 };
+use crate::features::GameSnapshotView;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
     ShengjiDeclarationView, ShengjiPhaseView, ShengjiPlayerView, ShengjiPublicPlay,
@@ -12,126 +13,6 @@ use leocard_shengji::{
 };
 
 impl ShengjiSession {
-    pub(super) fn game_snapshot(&self, recipient: PlayerId) -> ShengjiSnapshot {
-        let game = self.game.as_ref().expect("game snapshot requires a game");
-
-        let your_hand = game
-            .players()
-            .get(usize::from(recipient.0))
-            .map(|player| player.hand.clone())
-            .unwrap_or_default();
-        let visible_trick = game.current_trick().or_else(|| {
-            self.presentation
-                .trick
-                .as_ref()
-                .map(|(trick, _)| trick.clone())
-        });
-        let trick = visible_trick.map(|trick| ShengjiTrickView {
-            leader: trick.leader,
-            current_player: game.current_player().unwrap_or(trick.leader),
-            winning_player: trick.winner,
-            plays: trick
-                .plays
-                .into_iter()
-                .map(|(player, play)| ShengjiPublicPlay {
-                    player,
-                    play,
-                    throw_penalty: self.presentation.throw_penalties[usize::from(player.0)],
-                })
-                .collect(),
-            table_points: trick.points,
-        });
-        let missing = super::missing_suits::missing_suits(game, trick.as_ref());
-        let mut played_cards: Vec<_> = game
-            .history()
-            .iter()
-            .flat_map(|trick| {
-                trick
-                    .plays
-                    .iter()
-                    .flat_map(|(_, play)| play.cards.iter().copied())
-            })
-            .chain(trick.as_ref().into_iter().flat_map(|trick| {
-                trick
-                    .plays
-                    .iter()
-                    .flat_map(|play| play.play.cards.iter().copied())
-            }))
-            .collect();
-        played_cards.sort_by(ShengjiCard::identity_cmp);
-        played_cards.dedup();
-        ShengjiSnapshot {
-            match_id: self.match_id.expect("started game has a match id"),
-            hand_number: self.hand_number,
-            host_port: self.room.host_port,
-            you: recipient,
-            host: self.room.host_player_id().expect("started room has a host"),
-            rules: self.rules,
-            players: self
-                .room
-                .players
-                .iter()
-                .filter(|player| {
-                    !player.left || game.players().get(usize::from(player.id.0)).is_some()
-                })
-                .map(|player| {
-                    let public = player.public_metadata();
-                    ShengjiPlayerView {
-                        seat: public.seat.expect("started player has a seat"),
-                        missing_suits: missing.get(&public.player.id).cloned().unwrap_or_default(),
-                        hand_len: game
-                            .players()
-                            .get(usize::from(public.player.id.0))
-                            .map_or(0, |state| state.hand.len() as u8),
-                        ready: public.ready,
-                        connected: public.connected,
-                        auto_play: public.auto_play,
-                        player: public.player,
-                    }
-                })
-                .collect(),
-            your_hand,
-            your_exposed_cards: game.bidding().exposed_cards(recipient),
-            levels: game.teams().levels,
-            bidding_level: game.bidding().level(),
-            dealer: game.dealer(),
-            trump: game.trump(),
-            declaration: self.declaration_view(),
-            bottom_copy_decisions: self.presentation.bottom_copy_decisions.clone(),
-            current_player: (self.presentation.trick.is_none()
-                && self.presentation.throw_failure.is_none()
-                && self.flow.bottom_flip_remaining.is_none())
-            .then(|| game.current_player())
-            .flatten(),
-            trick,
-            played_cards,
-            throw_failure: self.presentation.throw_failure.as_ref().map(|failure| {
-                ShengjiThrowFailureView {
-                    player: failure.player,
-                    attempted: failure.attempted.clone(),
-                    forced: failure.forced.clone(),
-                    penalty_points: failure.penalty_points,
-                    stage: failure.stage,
-                }
-            }),
-            collecting_score: if self.presentation.trick.is_some() {
-                match game.phase() {
-                    ShengjiPhase::Finished(result) => pre_kitty_collecting_score(result),
-                    _ => game.collecting_score(),
-                }
-            } else {
-                game.collecting_score()
-            },
-            buried_count: game.buried().len() as u8,
-            your_buried: if game.bottom_burier() == Some(recipient) {
-                game.buried().to_vec()
-            } else {
-                Vec::new()
-            },
-            phase: self.phase_view(game, recipient),
-        }
-    }
-
     fn phase_view(&self, game: &ShengjiGameState, recipient: PlayerId) -> ShengjiPhaseView {
         if self.flow.bottom_flip_remaining.is_some() {
             return self.bottom_flip_phase_view();
@@ -252,5 +133,129 @@ impl ShengjiSession {
             protected: declaration.protected,
             cards: declaration.cards.clone(),
         })
+    }
+}
+
+impl GameSnapshotView for ShengjiSession {
+    type Snapshot = ShengjiSnapshot;
+
+    fn game_view(&self, recipient: PlayerId) -> Self::Snapshot {
+        let game = self.game.as_ref().expect("game snapshot requires a game");
+
+        let your_hand = game
+            .players()
+            .get(usize::from(recipient.0))
+            .map(|player| player.hand.clone())
+            .unwrap_or_default();
+        let visible_trick = game.current_trick().or_else(|| {
+            self.presentation
+                .trick
+                .as_ref()
+                .map(|(trick, _)| trick.clone())
+        });
+        let trick = visible_trick.map(|trick| ShengjiTrickView {
+            leader: trick.leader,
+            current_player: game.current_player().unwrap_or(trick.leader),
+            winning_player: trick.winner,
+            plays: trick
+                .plays
+                .into_iter()
+                .map(|(player, play)| ShengjiPublicPlay {
+                    player,
+                    play,
+                    throw_penalty: self.presentation.throw_penalties[usize::from(player.0)],
+                })
+                .collect(),
+            table_points: trick.points,
+        });
+        let missing = super::missing_suits::missing_suits(game, trick.as_ref());
+        let mut played_cards: Vec<_> = game
+            .history()
+            .iter()
+            .flat_map(|trick| {
+                trick
+                    .plays
+                    .iter()
+                    .flat_map(|(_, play)| play.cards.iter().copied())
+            })
+            .chain(trick.as_ref().into_iter().flat_map(|trick| {
+                trick
+                    .plays
+                    .iter()
+                    .flat_map(|play| play.play.cards.iter().copied())
+            }))
+            .collect();
+        played_cards.sort_by(ShengjiCard::identity_cmp);
+        played_cards.dedup();
+        ShengjiSnapshot {
+            match_id: self.match_id.expect("started game has a match id"),
+            hand_number: self.hand_number,
+            host_port: self.room.host_port,
+            you: recipient,
+            host: self.room.host_player_id().expect("started room has a host"),
+            rules: self.rules,
+            players: self
+                .room
+                .players
+                .iter()
+                .filter(|player| {
+                    !player.left || game.players().get(usize::from(player.id.0)).is_some()
+                })
+                .map(|player| {
+                    let public = player.public_metadata();
+                    ShengjiPlayerView {
+                        seat: public.seat.expect("started player has a seat"),
+                        missing_suits: missing.get(&public.player.id).cloned().unwrap_or_default(),
+                        hand_len: game
+                            .players()
+                            .get(usize::from(public.player.id.0))
+                            .map_or(0, |state| state.hand.len() as u8),
+                        ready: public.ready,
+                        connected: public.connected,
+                        auto_play: public.auto_play,
+                        player: public.player,
+                    }
+                })
+                .collect(),
+            your_hand,
+            your_exposed_cards: game.bidding().exposed_cards(recipient),
+            levels: game.teams().levels,
+            bidding_level: game.bidding().level(),
+            dealer: game.dealer(),
+            trump: game.trump(),
+            declaration: self.declaration_view(),
+            bottom_copy_decisions: self.presentation.bottom_copy_decisions.clone(),
+            current_player: (self.presentation.trick.is_none()
+                && self.presentation.throw_failure.is_none()
+                && self.flow.bottom_flip_remaining.is_none())
+            .then(|| game.current_player())
+            .flatten(),
+            trick,
+            played_cards,
+            throw_failure: self.presentation.throw_failure.as_ref().map(|failure| {
+                ShengjiThrowFailureView {
+                    player: failure.player,
+                    attempted: failure.attempted.clone(),
+                    forced: failure.forced.clone(),
+                    penalty_points: failure.penalty_points,
+                    stage: failure.stage,
+                }
+            }),
+            collecting_score: if self.presentation.trick.is_some() {
+                match game.phase() {
+                    ShengjiPhase::Finished(result) => pre_kitty_collecting_score(result),
+                    _ => game.collecting_score(),
+                }
+            } else {
+                game.collecting_score()
+            },
+            buried_count: game.buried().len() as u8,
+            your_buried: if game.bottom_burier() == Some(recipient) {
+                game.buried().to_vec()
+            } else {
+                Vec::new()
+            },
+            phase: self.phase_view(game, recipient),
+        }
     }
 }

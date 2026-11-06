@@ -1,4 +1,5 @@
 use super::history::DoudizhuTrickHistory;
+use crate::app::games::HandSelection;
 use crate::app::presentation::{CardAnimationState, CardCounterWindowState, Observed};
 use bevy::prelude::*;
 use leocard_doudizhu::{DoudizhuCard, DoudizhuPhase};
@@ -108,5 +109,17 @@ impl DoudizhuUiState {
 impl DraggableWindowOwner for DoudizhuUiState {
     fn window_state(&mut self) -> &mut DraggableWindowState {
         &mut self.counter.drag
+    }
+}
+
+impl HandSelection for DoudizhuUiState {
+    type Card = DoudizhuCard;
+
+    fn selected_cards(&self) -> &HashSet<Self::Card> {
+        &self.selected
+    }
+
+    fn selected_cards_mut(&mut self) -> &mut HashSet<Self::Card> {
+        &mut self.selected
     }
 }

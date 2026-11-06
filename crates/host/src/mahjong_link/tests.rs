@@ -1,4 +1,5 @@
 use super::MahjongLinkSession;
+use crate::features::GameSnapshotView;
 use crate::{ConnectionId, Delivery};
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_mahjong_link::{
@@ -192,7 +193,7 @@ fn snapshots_message(session: &MahjongLinkSession) -> leocard_protocol::ServerMe
         .delivery(
             ConnectionId(1),
             None,
-            ServerEvent::GameSnapshot(session.snapshot_for(session.order[0]).into()),
+            ServerEvent::GameSnapshot(session.game_view(session.order[0]).into()),
         )
         .message
 }
@@ -218,13 +219,13 @@ fn pushing_phase_survives_reconnect_and_rejects_another_push() {
     };
     act(&mut session, 2, push);
     let player = session.order[1];
-    let before = session.snapshot_for(player);
+    let before = session.game_view(player);
     assert!(before.push_used);
     assert_eq!(before.current_player, Some(player));
     assert_eq!(before.turn, 1);
     session.disconnect(ConnectionId(2));
     join_as(&mut session, 20, 2);
-    let after = session.snapshot_for(player);
+    let after = session.game_view(player);
     assert!(after.push_used);
     assert_eq!(after.board, before.board);
     let message = snapshots_message(&session);
@@ -250,7 +251,7 @@ fn pushing_phase_survives_reconnect_and_rejects_another_push() {
             second: LinkCell { row: 0, column: 2 },
         },
     );
-    let next = session.snapshot_for(player);
+    let next = session.game_view(player);
     assert!(!next.push_used);
     assert_eq!(next.turn, 2);
     assert_eq!(next.players[1].score, 1);

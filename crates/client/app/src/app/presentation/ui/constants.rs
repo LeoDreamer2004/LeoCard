@@ -1,5 +1,4 @@
 //! 客户端布局、动画节奏、资源路径与配色常量。
-
 use bevy::prelude::*;
 
 pub(crate) const DESIGN_WIDTH: f32 = 1280.0;

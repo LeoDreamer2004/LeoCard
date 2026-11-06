@@ -8,7 +8,6 @@ use crate::app::presentation::smootherstep;
 use crate::app::shell::UiState;
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
-
 use leocard_ui::UiComposer;
 
 #[derive(Clone, Copy, Debug)]

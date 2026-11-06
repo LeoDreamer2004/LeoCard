@@ -5,7 +5,12 @@ use leocard_protocol::{
     GameSnapshot, MatchId, PROTOCOL_VERSION, ProfileId, Revision, RoomId, SeatId, ServerEvent,
     ServerMessage, TexasEvent, TexasPhaseView, TexasViolation, decode_frame, encode_frame,
 };
-use leocard_texas_holdem::{TexasAction, TexasBlindKind, TexasRuleSet, TexasStreet, build_deck};
+use leocard_texas_holdem::{
+    TexasAction, TexasBlindKind, TexasCard, TexasRank, TexasRuleSet, TexasStreet, TexasSuit,
+    build_deck,
+};
+use std::thread;
+use std::time::{Duration, Instant};
 
 const HOST: PlayerId = PlayerId(20);
 const LEFT: PlayerId = PlayerId(30);
@@ -297,12 +302,6 @@ fn private_snapshot_round_trips_through_the_wire_frame() {
 
 #[test]
 fn spectator_equity_is_exact_and_waits_for_the_folded_betting_round() {
-    use leocard_texas_holdem::{TexasCard, TexasRank, TexasSuit};
-    use std::{
-        thread,
-        time::{Duration, Instant},
-    };
-
     // LEFT holds A♠K♠; the flop is Q♠J♠T♠. No possible turn/river can beat this hand.
     let prefix = [
         TexasCard::new(TexasSuit::Spade, TexasRank::Ace),

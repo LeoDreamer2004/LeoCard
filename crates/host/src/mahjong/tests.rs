@@ -1,5 +1,6 @@
 use super::{MAHJONG_DEAL_INTERVAL, MahjongSession};
 use crate::ConnectionId;
+use crate::features::GameSnapshotView;
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_game_common::PlayerId;
 use leocard_mahjong::{
@@ -7,7 +8,6 @@ use leocard_mahjong::{
     MahjongRuleSet, MahjongScoreResult, MahjongSuit, MahjongTile, MahjongTileKind,
     MahjongWinRecord, build_deck,
 };
-
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameCommand, GameEvent, GameSnapshot, JoinRequest,
     MahjongCommand, MahjongEvent, MahjongHandResultView, MahjongPhaseView, MahjongSnapshot,
@@ -345,7 +345,7 @@ fn four_clients_receive_private_views_and_continue_at_the_table() {
             ..
         }))
     )));
-    let MahjongPhaseView::Finished { result } = &session.game_snapshot(PlayerId(0)).phase else {
+    let MahjongPhaseView::Finished { result } = &session.game_view(PlayerId(0)).phase else {
         panic!("self draw finishes the single-hand match");
     };
     assert!(result.match_complete);

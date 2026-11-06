@@ -1,13 +1,15 @@
 //! Settlement timing and visual animation components.
 
-use super::super::{MahjongUiState, mahjong_win_reveal_duration};
+use super::super::mahjong_win_reveal_duration;
+use super::super::screen::MahjongScreen;
 use super::*;
+use crate::app::games::GameSummary;
 use crate::app::presentation::{
     GameSummaryAnimation, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL,
     SUMMARY_ROW_START_DELAY, SummaryDescriptor, summary_row_progress,
 };
 use bevy::prelude::*;
-use leocard_protocol::{MahjongHandResultView, MahjongPhaseView, MahjongSnapshot};
+use leocard_protocol::{MahjongHandResultView, MahjongPhaseView};
 
 pub(crate) fn mahjong_fan_pause_at(result: &MahjongHandResultView) -> Option<f32> {
     (!result.winners.is_empty())
@@ -202,45 +204,47 @@ pub(in crate::app::games::mahjong) fn animate_mahjong_settlement(
     }
 }
 
-pub(crate) fn mahjong_summary_descriptor(game: &MahjongSnapshot) -> Option<SummaryDescriptor> {
-    let MahjongPhaseView::Finished { result } = &game.phase else {
-        return None;
-    };
-    let continue_delay = SettlementTimeline::new(result).continue_at;
-    let entry_count =
-        ((continue_delay + 0.05 - SUMMARY_ROW_START_DELAY - SUMMARY_ACTIONS_EXTRA_DELAY)
-            / SUMMARY_ROW_INTERVAL)
-            .ceil() as usize;
-    Some(SummaryDescriptor {
-        match_id: game.match_id,
-        settlement_index: Some(u32::from(result.sequence_index)),
-        entry_count: entry_count.max(game.players.len()),
-        nonnegative_outcome: if result.match_complete {
-            result
-                .reference_changes
-                .iter()
-                .find(|change| change.player == game.you)
-                .is_none_or(|change| change.delta >= 0)
-        } else {
-            result
-                .deltas
-                .get(usize::from(game.you.0))
-                .is_none_or(|delta| *delta >= 0)
-        },
-        reveal_duration: if result.winners.is_empty() {
-            0.0
-        } else {
-            mahjong_win_reveal_duration(result)
-        },
-    })
-}
-
-pub(crate) fn mahjong_summary_pause(game: &MahjongSnapshot, ui: &MahjongUiState) -> Option<f32> {
-    let MahjongPhaseView::Finished { result } = &game.phase else {
-        return None;
-    };
-    if ui.fan_summary_continued == Some((game.match_id, result.sequence_index)) {
-        return None;
+impl GameSummary for MahjongScreen<'_> {
+    fn summary_descriptor(&self, game: &Self::Snapshot) -> Option<SummaryDescriptor> {
+        let MahjongPhaseView::Finished { result } = &game.phase else {
+            return None;
+        };
+        let continue_delay = SettlementTimeline::new(result).continue_at;
+        let entry_count =
+            ((continue_delay + 0.05 - SUMMARY_ROW_START_DELAY - SUMMARY_ACTIONS_EXTRA_DELAY)
+                / SUMMARY_ROW_INTERVAL)
+                .ceil() as usize;
+        Some(SummaryDescriptor {
+            match_id: game.match_id,
+            settlement_index: Some(u32::from(result.sequence_index)),
+            entry_count: entry_count.max(game.players.len()),
+            nonnegative_outcome: if result.match_complete {
+                result
+                    .reference_changes
+                    .iter()
+                    .find(|change| change.player == game.you)
+                    .is_none_or(|change| change.delta >= 0)
+            } else {
+                result
+                    .deltas
+                    .get(usize::from(game.you.0))
+                    .is_none_or(|delta| *delta >= 0)
+            },
+            reveal_duration: if result.winners.is_empty() {
+                0.0
+            } else {
+                mahjong_win_reveal_duration(result)
+            },
+        })
     }
-    mahjong_fan_pause_at(result)
+
+    fn summary_pause(&self, game: &Self::Snapshot) -> Option<f32> {
+        let MahjongPhaseView::Finished { result } = &game.phase else {
+            return None;
+        };
+        if self.ui.fan_summary_continued == Some((game.match_id, result.sequence_index)) {
+            return None;
+        }
+        mahjong_fan_pause_at(result)
+    }
 }

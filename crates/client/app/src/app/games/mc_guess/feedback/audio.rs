@@ -1,5 +1,6 @@
 use super::notes::{Instrument, Note};
 use super::state::{FeedbackSound, GuessFeedback};
+use crate::app::games::GameFeedback;
 use crate::app::presentation::StartGameSeatTransition;
 use bevy::audio::Volume;
 use bevy::prelude::*;
@@ -50,7 +51,7 @@ impl NotePlayback {
             }
             self.last_interaction = Some(at);
         }
-        for note in sound.notes() {
+        for note in sound.feedback(()) {
             let at = at + note.delay;
             let index = self.pending.partition_point(|pending| pending.at <= at);
             self.pending.insert(index, ScheduledNote { at, note });

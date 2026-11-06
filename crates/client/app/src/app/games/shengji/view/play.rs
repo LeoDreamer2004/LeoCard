@@ -13,6 +13,7 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
+use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
@@ -20,8 +21,6 @@ use leocard_protocol::{
 };
 use leocard_shengji::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiSuit};
 use leocard_ui::{UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 pub(super) fn add_shengji_play_area(
     commands: &mut UiComposer,

@@ -1,5 +1,4 @@
 //! 跨游戏结算演出的运行时状态与 UI 标记组件。
-
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{MatchId, PlayerScore};

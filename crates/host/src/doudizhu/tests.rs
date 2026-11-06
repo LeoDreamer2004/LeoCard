@@ -1,20 +1,20 @@
-use leocard_game_common::PlayerId;
-mod achievements;
-mod automation;
-mod modes;
-
 use super::DoudizhuSession;
+use crate::features::GameSnapshotView;
 use crate::{ConnectionId, Delivery};
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_doudizhu::{
     DoudizhuAction, DoudizhuMode, DoudizhuPhase, DoudizhuRuleSet, bot_action, build_deck,
 };
+use leocard_game_common::PlayerId;
 use leocard_protocol::{
     ClientCommand, ClientMessage, DoudizhuCommand, DoudizhuViolation, GameViolation, JoinRequest,
     PlayerGameProfiles, ProfileId, ReconnectToken, RejectReason, RequestId, RoomId, SeatId,
     ServerEvent,
 };
 use std::time::Duration;
+mod achievements;
+mod automation;
+mod modes;
 
 fn send(session: &mut DoudizhuSession, connection: u64, command: ClientCommand) -> Vec<Delivery> {
     let connection = ConnectionId(connection);
@@ -121,7 +121,7 @@ fn manual_turns_never_expire_and_snapshots_keep_hands_private() {
         assert_eq!(session.game.as_ref().unwrap().current, current);
         assert_accepted(&act(&mut session, current, DoudizhuAction::Bid(1)));
         for player in (0..mode.players()).map(PlayerId) {
-            let snapshot = session.snapshot_for(player);
+            let snapshot = session.game_view(player);
             assert_eq!(
                 snapshot.your_hand,
                 session.game.as_ref().unwrap().hand(player).unwrap()
@@ -132,7 +132,7 @@ fn manual_turns_never_expire_and_snapshots_keep_hands_private() {
         let current = session.game.as_ref().unwrap().current;
         assert_accepted(&act(&mut session, current, DoudizhuAction::Bid(3)));
         assert_eq!(session.game.as_ref().unwrap().phase, DoudizhuPhase::Playing);
-        assert_eq!(session.snapshot_for(current).kitty.len(), mode.kitty_len());
+        assert_eq!(session.game_view(current).kitty.len(), mode.kitty_len());
         assert!(session.advance_time(Duration::from_secs(86400)).is_empty());
         assert!(session.game.as_ref().unwrap().played.is_empty());
         let other = PlayerId((current.0 + 1) % mode.players());
@@ -146,7 +146,7 @@ fn manual_turns_never_expire_and_snapshots_keep_hands_private() {
         assert!(session.game.as_ref().unwrap().played.is_empty());
         assert_accepted(&send(&mut session, 9, join(9)));
         let spectator = session.room.player_id(ConnectionId(9)).unwrap();
-        assert!(session.snapshot_for(spectator).your_hand.is_empty());
+        assert!(session.game_view(spectator).your_hand.is_empty());
     }
 }
 
@@ -186,11 +186,11 @@ fn all_passes_redeal_without_advancing_and_profiles_settle_only_at_match_end() {
             assert_accepted(&act(&mut session, player, DoudizhuAction::Bid(0)));
         }
         assert_eq!(session.game.as_ref().unwrap().current, first);
-        assert_eq!(session.snapshot_for(PlayerId(0)).progress.hand_number, 1);
+        assert_eq!(session.game_view(PlayerId(0)).progress.hand_number, 1);
         let mut totals = vec![0; usize::from(mode.players())];
         for hand in 0..mode.players() {
             finish_hand(&mut session);
-            let snapshot = session.snapshot_for(PlayerId(0));
+            let snapshot = session.game_view(PlayerId(0));
             for (total, score) in totals.iter_mut().zip(&snapshot.result.unwrap().scores) {
                 *total += score;
             }
@@ -207,7 +207,7 @@ fn all_passes_redeal_without_advancing_and_profiles_settle_only_at_match_end() {
                 ready_players(&mut session);
             }
         }
-        let snapshot = session.snapshot_for(PlayerId(0));
+        let snapshot = session.game_view(PlayerId(0));
         let changes = snapshot.reference_changes;
         assert_eq!(changes.len(), usize::from(mode.players()));
         assert!(session.room.players.iter().all(|p| p.completed_games == 1));
@@ -247,7 +247,7 @@ fn all_passes_redeal_without_advancing_and_profiles_settle_only_at_match_end() {
                 .collect::<Vec<_>>(),
             archived
         );
-        assert_eq!(session.snapshot_for(PlayerId(0)).reference_changes, changes);
+        assert_eq!(session.game_view(PlayerId(0)).reference_changes, changes);
         assert!(session.room.players.iter().all(|p| p.completed_games == 1));
     }
 }

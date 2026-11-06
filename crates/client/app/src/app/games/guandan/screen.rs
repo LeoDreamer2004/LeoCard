@@ -1,7 +1,9 @@
 use super::lobby::render_lobby;
 use super::state::{GuandanUiState, local_turn};
 use super::table::{GuandanTable, render_table};
-use crate::app::games::{GameLobbyContext, GameScreen, GameTableContext};
+use crate::app::games::{
+    GameActionPrompt, GameLobbyContext, GameScreen, GameTableContext, GameUiLifecycle,
+};
 use crate::app::presentation::PlayEffectState;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
@@ -16,10 +18,6 @@ pub(crate) struct GuandanScreen<'w> {
 
 impl GameScreen for GuandanScreen<'_> {
     type Snapshot = GuandanSnapshot;
-
-    fn requires_action(&self, game: &Self::Snapshot) -> bool {
-        local_turn(game)
-    }
 
     fn render_lobby(
         &self,
@@ -65,5 +63,21 @@ impl GameScreen for GuandanScreen<'_> {
                 play_effect: &self.play_effect,
             },
         );
+    }
+}
+
+impl GameActionPrompt for GuandanScreen<'_> {
+    fn requires_action(&self, game: &Self::Snapshot) -> bool {
+        local_turn(game)
+    }
+}
+
+impl GameUiLifecycle for GuandanScreen<'_> {
+    fn reconcile(
+        &mut self,
+        _client: Option<&crate::app::runtime::ClientResource>,
+        _social: &mut crate::app::shell::SocialUiState,
+    ) {
+        // EditableText and graph-node transitions are synchronized by this game's input systems.
     }
 }

@@ -1,4 +1,5 @@
 use super::state::{GuandanUiState, local_turn, tribute_choice};
+use crate::app::games::HandSelection;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{
     DomainUiAction, PressedUiAction, UiAction, UiActionHandler, dispatch_domain_actions,
@@ -61,7 +62,8 @@ impl UiActionHandler<GuandanActionContext<'_>> for GuandanUiAction {
             Self::Hint => {
                 let ui = &mut context.ui;
                 if let Some(cards) = ui.hints.next_cards() {
-                    ui.selected = cards.iter().copied().collect();
+                    let selected = cards.iter().copied().collect();
+                    *ui.selected_cards_mut() = selected;
                 }
             }
             Self::ShowPreviousTrick => context.ui.previous_reveal = 2.0,
@@ -98,7 +100,7 @@ impl UiActionHandler<GuandanActionContext<'_>> for GuandanUiAction {
                         &mut context.client,
                         GuandanCommand::Act(GuandanAction::Play(cards)),
                     );
-                    context.ui.selected.clear();
+                    context.ui.clear_selection();
                 }
             }
             Self::SubmitTribute => {
@@ -111,17 +113,17 @@ impl UiActionHandler<GuandanActionContext<'_>> for GuandanUiAction {
                 }) else {
                     return;
                 };
-                if context.ui.selected.len() != 1 {
+                if context.ui.selected_cards().len() != 1 {
                     return;
                 }
-                let Some(card) = context.ui.selected.iter().copied().next() else {
+                let Some(card) = context.ui.selected_cards().iter().copied().next() else {
                     return;
                 };
                 let Some(action) = tribute_choice(game, card).filter(|_| local_turn(game)) else {
                     return;
                 };
                 send_game_command(&mut context.client, GuandanCommand::Act(action));
-                context.ui.selected.clear();
+                context.ui.clear_selection();
             }
         }
     }

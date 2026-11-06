@@ -1,8 +1,12 @@
-use super::{QiGui523Session, analysis::profile_statistics, merge_qigui523_play_stats};
+use super::statistics::profile_statistics;
+use super::{QiGui523Session, merge_qigui523_play_stats};
+use crate::features::MatchSettlement;
 use leocard_qigui523::{QiGui523ProfileStats, QiGuiPhase, reference_point_deltas};
 
-impl QiGui523Session {
-    pub(super) fn apply_finished_reference_points(&mut self) {
+impl MatchSettlement for QiGui523Session {
+    type Outcome = ();
+
+    fn commit_match(&mut self, _outcome: &Self::Outcome) {
         let Some(scores) = self.game.as_ref().and_then(|game| match game.phase() {
             QiGuiPhase::Finished(result) => Some(result.scores.clone()),
             QiGuiPhase::Playing => None,

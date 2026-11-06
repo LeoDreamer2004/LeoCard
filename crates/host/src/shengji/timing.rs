@@ -2,9 +2,10 @@ use super::ShengjiSession;
 use crate::action_timing::{
     ActionTimingRequest, PendingAction, attach_action_timing, sync_action_timing,
 };
+use crate::features::DecisionTiming;
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery};
-use leocard_game_common::PlayerId;
+use leocard_game_common::{ActionTimeProfile, PlayerId};
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameCommand, GameSnapshot, ShengjiCommand, ShengjiPhaseView,
 };
@@ -24,8 +25,7 @@ impl ShengjiSession {
             profiles
                 .shengji
                 .get_or_insert_with(Default::default)
-                .action_time
-                .record(millis);
+                .record_action_time(millis);
         }
         self.refresh_action_timing();
         attach_action_timing(self, deliveries)
@@ -43,36 +43,6 @@ impl ShengjiSession {
         let snapshot = HostedGameLifecycle::game_snapshot(self, recipient);
         let windows = self.pending_actions(&snapshot);
         sync_action_timing(&mut self.room, Self::KIND, snapshot.match_id(), windows);
-    }
-
-    fn pending_actions(&self, snapshot: &GameSnapshot) -> Vec<PendingAction> {
-        let mut windows = snapshot_windows(snapshot);
-        // Confirmation eligibility is private, so merge every recipient's view here.
-        if let GameSnapshot::Shengji(game) = snapshot
-            && matches!(
-                game.phase,
-                ShengjiPhaseView::Dealing { .. } | ShengjiPhaseView::BiddingGrace { .. }
-            )
-        {
-            for player in &self.room.players {
-                if player.id != game.you {
-                    windows.extend(snapshot_windows(&HostedGameLifecycle::game_snapshot(
-                        self, player.id,
-                    )));
-                }
-            }
-        }
-        windows
-    }
-
-    fn is_decision(command: &GameCommand) -> bool {
-        let GameCommand::Shengji(command) = command else {
-            return false;
-        };
-        !matches!(
-            command,
-            ShengjiCommand::SetAutoPlay { .. } | ShengjiCommand::UpdateRules { .. }
-        )
     }
 }
 
@@ -119,5 +89,37 @@ fn snapshot_windows(snapshot: &GameSnapshot) -> Vec<PendingAction> {
             PendingAction::for_players(players, ("shengji", s.match_id, state))
         }
         _ => Vec::new(),
+    }
+}
+
+impl DecisionTiming for ShengjiSession {
+    fn pending_actions(&self, snapshot: &GameSnapshot) -> Vec<PendingAction> {
+        let mut windows = snapshot_windows(snapshot);
+        // Confirmation eligibility is private, so merge every recipient's view here.
+        if let GameSnapshot::Shengji(game) = snapshot
+            && matches!(
+                game.phase,
+                ShengjiPhaseView::Dealing { .. } | ShengjiPhaseView::BiddingGrace { .. }
+            )
+        {
+            for player in &self.room.players {
+                if player.id != game.you {
+                    windows.extend(snapshot_windows(&HostedGameLifecycle::game_snapshot(
+                        self, player.id,
+                    )));
+                }
+            }
+        }
+        windows
+    }
+
+    fn is_decision(command: &GameCommand) -> bool {
+        let GameCommand::Shengji(command) = command else {
+            return false;
+        };
+        !matches!(
+            command,
+            ShengjiCommand::SetAutoPlay { .. } | ShengjiCommand::UpdateRules { .. }
+        )
     }
 }

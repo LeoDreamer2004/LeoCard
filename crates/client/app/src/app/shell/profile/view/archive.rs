@@ -1,9 +1,7 @@
 use super::super::scroll::{ArchiveEdgeSide, ProfileArchiveEdge};
 use super::super::{
-    ProfileArchiveScroll, ProfileGameTab, ProfileGameTabButton, SelectedProfileGameTab, TAB_IDLE,
-    blackjack_profile_rows, doudizhu_profile_rows, guandan_profile_rows, mahjong_link_profile_rows,
-    mahjong_profile_rows, mc_guess_profile_rows, qigui523_profile_rows, shengji_profile_rows,
-    texas_profile_rows, uno_profile_rows,
+    GameProfileRows, ProfileArchiveScroll, ProfileGameTab, ProfileGameTabButton,
+    SelectedProfileGameTab, TAB_IDLE,
 };
 use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
@@ -11,8 +9,18 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::{BackgroundGradient, ColorStop, LinearGradient, RelativeCursorPosition};
 use bevy::ui_widgets::Button;
+use leocard_blackjack::BlackjackProfileStats;
+use leocard_doudizhu::DoudizhuProfileStats;
+use leocard_guandan::GuandanProfileStats;
+use leocard_mahjong::MahjongProfileStats;
+use leocard_mahjong_link::MahjongLinkProfileStats;
+use leocard_mc_guess::McGuessProfileStats;
 use leocard_protocol::PlayerGameProfiles;
+use leocard_qigui523::QiGui523ProfileStats;
+use leocard_shengji::ShengjiProfileStats;
+use leocard_texas_holdem::TexasProfileStats;
 use leocard_ui::{TouchDragTarget, UiComposer, spawn_node};
+use leocard_uno::UnoProfileStats;
 
 const TAB_HEIGHT: f32 = 44.0;
 const TAB_WIDTH: f32 = 136.0;
@@ -167,18 +175,30 @@ impl<'a> ProfileArchive<'a> {
         }
         let rows = match self.selected_game {
             ProfileGameTab::Blackjack => {
-                blackjack_profile_rows(self.game_profiles.blackjack.as_ref())
+                BlackjackProfileStats::rows(self.game_profiles.blackjack.as_ref())
             }
-            ProfileGameTab::Doudizhu => doudizhu_profile_rows(self.game_profiles.doudizhu.as_ref()),
-            ProfileGameTab::Guandan => guandan_profile_rows(self.game_profiles.guandan.as_ref()),
-            ProfileGameTab::QiGui523 => qigui523_profile_rows(self.game_profiles.qigui523.as_ref()),
-            ProfileGameTab::Texas => texas_profile_rows(self.game_profiles.texas.as_ref()),
-            ProfileGameTab::Shengji => shengji_profile_rows(self.game_profiles.shengji.as_ref()),
-            ProfileGameTab::Uno => uno_profile_rows(self.game_profiles.uno.as_ref()),
-            ProfileGameTab::Mahjong => mahjong_profile_rows(self.game_profiles.mahjong.as_ref()),
-            ProfileGameTab::McGuess => mc_guess_profile_rows(self.game_profiles.mc_guess.as_ref()),
+            ProfileGameTab::Doudizhu => {
+                DoudizhuProfileStats::rows(self.game_profiles.doudizhu.as_ref())
+            }
+            ProfileGameTab::Guandan => {
+                GuandanProfileStats::rows(self.game_profiles.guandan.as_ref())
+            }
+            ProfileGameTab::QiGui523 => {
+                QiGui523ProfileStats::rows(self.game_profiles.qigui523.as_ref())
+            }
+            ProfileGameTab::Texas => TexasProfileStats::rows(self.game_profiles.texas.as_ref()),
+            ProfileGameTab::Shengji => {
+                ShengjiProfileStats::rows(self.game_profiles.shengji.as_ref())
+            }
+            ProfileGameTab::Uno => UnoProfileStats::rows(self.game_profiles.uno.as_ref()),
+            ProfileGameTab::Mahjong => {
+                MahjongProfileStats::rows(self.game_profiles.mahjong.as_ref())
+            }
+            ProfileGameTab::McGuess => {
+                McGuessProfileStats::rows(self.game_profiles.mc_guess.as_ref())
+            }
             ProfileGameTab::MahjongLink => {
-                mahjong_link_profile_rows(self.game_profiles.mahjong_link.as_ref())
+                MahjongLinkProfileStats::rows(self.game_profiles.mahjong_link.as_ref())
             }
         };
         for (label, value) in rows {

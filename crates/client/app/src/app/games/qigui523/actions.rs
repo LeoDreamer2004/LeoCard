@@ -1,7 +1,7 @@
 //! 七鬼五二三规则、提示与出牌按钮动作。
-use leocard_protocol::{GameRules, GameSnapshot, QiGui523Command, QiGui523PublicPlayRecord};
 
 use super::{HintDecision, QiGui523UiState, next_greedy_hint};
+use crate::app::games::HandSelection;
 use crate::app::presentation::NoLegalResponseHint;
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{
@@ -11,7 +11,7 @@ use crate::app::shell::{
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::{PlayerEconomy, PropId};
-
+use leocard_protocol::{GameRules, GameSnapshot, QiGui523Command, QiGui523PublicPlayRecord};
 use leocard_qigui523::{QiGuiRuleSet, classify};
 
 #[derive(Clone)]
@@ -126,11 +126,11 @@ fn select_hint(client: &mut Option<ResMut<ClientResource>>, ui: &mut QiGui523UiS
     };
     match decision {
         HintDecision::Select(cards) => {
-            ui.selected.clear();
+            ui.clear_selection();
             ui.selected.extend(cards);
         }
         HintDecision::Pass => {
-            ui.selected.clear();
+            ui.clear_selection();
             client.0.send(game_command(QiGui523Command::Pass));
         }
     }
@@ -160,5 +160,5 @@ fn play_selected(client: &mut Option<ResMut<ClientResource>>, ui: &mut QiGui523U
     client
         .0
         .send(game_command(QiGui523Command::PlayCards { cards }));
-    ui.selected.clear();
+    ui.clear_selection();
 }

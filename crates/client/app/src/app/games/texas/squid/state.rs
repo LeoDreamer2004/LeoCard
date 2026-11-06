@@ -1,8 +1,7 @@
 use super::super::TexasTableLayout;
 use crate::app::presentation::{DESIGN_WIDTH, SeatSide, table_random_signed};
-use leocard_game_common::PlayerId;
-
 use bevy::prelude::*;
+use leocard_game_common::PlayerId;
 use leocard_protocol::{MatchId, TexasSnapshot};
 use leocard_texas_holdem::deepseek_squid_marker;
 

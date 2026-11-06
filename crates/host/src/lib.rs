@@ -9,6 +9,7 @@ mod automation;
 mod blackjack;
 mod doudizhu;
 mod error;
+mod features;
 mod guandan;
 mod lifecycle;
 mod mahjong;

@@ -6,10 +6,9 @@ use super::super::view::GuessTable;
 use super::buttons::{GuessButtonSpec, GuessSubmit, add_guess_button};
 use super::candidates::GuessCandidates;
 use crate::app::presentation::{ACCENT, add_text};
+use bevy::prelude::*;
 use leocard_mc_guess::{MAX_GUESS_CHARACTERS, McGuessMode};
 use leocard_ui::{TextInput, UiComposer, spawn_node};
-
-use bevy::prelude::*;
 
 impl GuessTable<'_> {
     pub(in super::super) fn controls(&self, commands: &mut UiComposer, page: Entity) {

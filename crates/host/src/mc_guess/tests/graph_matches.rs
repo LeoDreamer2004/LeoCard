@@ -1,5 +1,6 @@
 use super::super::McGuessSession;
 use super::support::{join, send, snapshot};
+use crate::features::MatchSettlement;
 use leocard_game_common::PlayerId;
 use leocard_mc_guess::{McGuessGameState, McGuessGraphRules, McGuessMode, McGuessRuleSet};
 use leocard_protocol::{ClientCommand, RoomId, SeatId};
@@ -70,7 +71,7 @@ fn single_graph_shuffles_visible_seats_and_the_authoritative_turn_order_together
     }
     let match_id = snapshot(&updates, 1).match_id;
     session.game.as_mut().unwrap().reveal_graph().unwrap();
-    session.settle_match();
+    session.commit_match(&());
     for connection in 1..=4 {
         send(&mut session, connection, ClientCommand::PlayAgain);
     }
@@ -97,14 +98,14 @@ fn rotation_finishes_after_every_opener_and_settles_exactly_three_times_single_g
                 let state = session.match_state.as_ref().unwrap();
                 assert_eq!(state.turn_order()[0], PlayerId(opener));
                 assert_eq!(state.progress().total_games(), 4);
-                session.settle_match();
+                session.commit_match(&());
                 if opener < 3 {
                     assert!(session.finished_reference_changes.is_none());
                     assert!(session.match_state.as_mut().unwrap().advance());
                 }
             }
         } else {
-            session.settle_match();
+            session.commit_match(&());
         }
         assert!(!session.match_state.as_mut().unwrap().advance());
         let changes = session.finished_reference_changes.as_ref().unwrap();
@@ -122,7 +123,7 @@ fn rotation_finishes_after_every_opener_and_settles_exactly_three_times_single_g
             );
             assert_eq!(session.room.players[index].completed_games, 1);
         }
-        session.settle_match();
+        session.commit_match(&());
         assert!(
             session
                 .room

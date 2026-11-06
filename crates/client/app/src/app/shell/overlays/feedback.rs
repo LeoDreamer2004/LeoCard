@@ -6,7 +6,6 @@ use super::{
 };
 use crate::app::presentation::GAME_SIDE_CONTROL_SCALE;
 use crate::app::runtime::{ClientResource, GameNotice, PageErrorState, TableAppearance, UiAssets};
-
 use bevy::prelude::*;
 
 pub(crate) const PLAY_ERROR_TOAST_DURATION: f32 = 2.4;

@@ -2,8 +2,10 @@ use super::GuandanSession;
 use crate::action_timing::{
     ActionTimingRequest, PendingAction, attach_action_timing, sync_action_timing,
 };
+use crate::features::DecisionTiming;
 use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
 use crate::{ConnectionId, Delivery};
+use leocard_game_common::ActionTimeProfile;
 use leocard_guandan::GuandanPhase;
 use leocard_protocol::{ClientCommand, ClientMessage, GameCommand, GameSnapshot, GuandanCommand};
 
@@ -21,8 +23,7 @@ impl GuandanSession {
             profiles
                 .guandan
                 .get_or_insert_with(Default::default)
-                .action_time
-                .record(millis);
+                .record_action_time(millis);
         }
         self.refresh_action_timing();
         attach_action_timing(self, deliveries)
@@ -41,7 +42,9 @@ impl GuandanSession {
         let windows = self.pending_actions(&snapshot);
         sync_action_timing(&mut self.room, Self::KIND, snapshot.match_id(), windows);
     }
+}
 
+impl DecisionTiming for GuandanSession {
     fn pending_actions(&self, snapshot: &GameSnapshot) -> Vec<PendingAction> {
         match snapshot {
             GameSnapshot::Guandan(s)

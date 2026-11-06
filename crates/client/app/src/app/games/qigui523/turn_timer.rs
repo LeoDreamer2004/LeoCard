@@ -1,26 +1,23 @@
 //! 七鬼五二三行动时钟的快照同步与文本刷新。
-use leocard_protocol::{GameSnapshot, QiGui523Snapshot};
 
 use super::turn_timer_label;
+use crate::app::games::GameScreenChange;
 use crate::app::runtime::ClientResource;
 use bevy::prelude::*;
+use leocard_protocol::{GameSnapshot, QiGui523Snapshot};
 
 #[derive(Component)]
 pub(super) struct TurnClockLabel;
 
-pub(crate) fn only_turn_timer_changed(
-    before: Option<&QiGui523Snapshot>,
-    after: Option<&QiGui523Snapshot>,
-) -> bool {
-    let (Some(before), Some(after)) = (before, after) else {
-        return false;
-    };
-    if before.turn_timer == after.turn_timer {
-        return false;
+impl GameScreenChange for QiGui523Snapshot {
+    fn is_transient_change(&self, after: &Self) -> bool {
+        if self.turn_timer == after.turn_timer {
+            return false;
+        }
+        let mut normalized = self.clone();
+        normalized.turn_timer = after.turn_timer;
+        normalized == *after
     }
-    let mut normalized = before.clone();
-    normalized.turn_timer = after.turn_timer;
-    normalized == *after
 }
 
 pub(super) fn sync_turn_timer_label(

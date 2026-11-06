@@ -1,11 +1,12 @@
 use super::statistics::GuandanStatistics;
 use crate::action_timing::attach_action_timing;
+use crate::features::{GameAutomation, MatchSettlement};
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, HostError, RoomSession, new_match_id};
 use leocard_game_common::PlayerId;
 use leocard_guandan::{
-    GuandanAction, GuandanCard, GuandanGameState, GuandanMatchState, GuandanPhase,
-    GuandanProfileStats, GuandanRuleSet, auto_play_action, build_deck,
+    GuandanAction, GuandanCard, GuandanGameState, GuandanMatchState, GuandanPhase, GuandanRuleSet,
+    auto_play_action, build_deck,
 };
 use leocard_protocol::{
     ClientMessage, GuandanEvent, GuandanPublicAction, MatchId, PlayerReferenceChange, RejectReason,
@@ -76,47 +77,6 @@ impl GuandanSession {
         let deliveries = self.advance_game_time(elapsed);
         self.refresh_action_timing();
         attach_action_timing(self, deliveries)
-    }
-
-    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
-        let Some(game) = &self.game else {
-            return Vec::new();
-        };
-        if elapsed.is_zero() {
-            return Vec::new();
-        }
-        if matches!(game.phase(), GuandanPhase::Finished(_)) {
-            if !self.match_state.as_ref().expect("active match").complete() && self.everyone_ready()
-            {
-                self.automatic_elapsed += elapsed;
-                if self.automatic_elapsed >= Duration::from_secs(3) {
-                    self.continue_match();
-                    self.room.bump_revision();
-                    return self.broadcast_game(None);
-                }
-            }
-            return Vec::new();
-        }
-        let Some(player) = game.current_player() else {
-            return Vec::new();
-        };
-        let participant = &self.room.players[player.index()];
-        if !(participant.is_bot
-            || participant.auto_play
-            || !participant.connected
-            || participant.left)
-        {
-            self.automatic_elapsed = Duration::ZERO;
-            return Vec::new();
-        }
-        self.automatic_elapsed += elapsed;
-        if self.automatic_elapsed < Duration::from_millis(800) {
-            return Vec::new();
-        }
-        let Some(action) = auto_play_action(game, player) else {
-            return Vec::new();
-        };
-        self.apply_action(player, action, None)
     }
 
     pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
@@ -251,7 +211,7 @@ impl GuandanSession {
             self.room.prepare_rematch();
             events.push(GuandanEvent::HandFinished { result });
             if self.match_state.as_ref().expect("active match").complete() {
-                self.settle_match();
+                self.commit_match(&());
             }
         }
         self.room.bump_revision();
@@ -266,26 +226,47 @@ impl GuandanSession {
         deliveries.extend(self.broadcast_game(origin));
         deliveries
     }
+}
 
-    pub(super) fn settle_match(&mut self) {
-        let winner = self
-            .match_state
-            .as_ref()
-            .expect("active match")
-            .previous_result()
-            .expect("completed match")
-            .winning_team;
-        self.room.settle_completed_match_profiles_once(
-            &mut self.finished_reference_changes,
-            (0..4).map(|index| (PlayerId(index), 0)),
-            |player, delta| {
-                let aggregate = player
-                    .game_profiles
-                    .guandan
-                    .get_or_insert_with(GuandanProfileStats::default);
-                self.statistics
-                    .merge_into(player.id, aggregate, player.id.0 % 2 == winner, delta);
-            },
-        );
+impl GameAutomation for GuandanSession {
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        let Some(game) = &self.game else {
+            return Vec::new();
+        };
+        if elapsed.is_zero() {
+            return Vec::new();
+        }
+        if matches!(game.phase(), GuandanPhase::Finished(_)) {
+            if !self.match_state.as_ref().expect("active match").complete() && self.everyone_ready()
+            {
+                self.automatic_elapsed += elapsed;
+                if self.automatic_elapsed >= Duration::from_secs(3) {
+                    self.continue_match();
+                    self.room.bump_revision();
+                    return self.broadcast_game(None);
+                }
+            }
+            return Vec::new();
+        }
+        let Some(player) = game.current_player() else {
+            return Vec::new();
+        };
+        let participant = &self.room.players[player.index()];
+        if !(participant.is_bot
+            || participant.auto_play
+            || !participant.connected
+            || participant.left)
+        {
+            self.automatic_elapsed = Duration::ZERO;
+            return Vec::new();
+        }
+        self.automatic_elapsed += elapsed;
+        if self.automatic_elapsed < Duration::from_millis(800) {
+            return Vec::new();
+        }
+        let Some(action) = auto_play_action(game, player) else {
+            return Vec::new();
+        };
+        self.apply_action(player, action, None)
     }
 }

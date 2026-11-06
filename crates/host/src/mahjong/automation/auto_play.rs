@@ -28,7 +28,7 @@ impl Policy {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use leocard_mahjong::{MahjongRuleSet, build_deck};
+    use leocard_mahjong::{MahjongClaimOption, MahjongRuleSet, build_deck};
 
     #[test]
     fn auto_play_discards_every_draw_and_passes_every_claim_until_the_wall_is_empty() {
@@ -79,7 +79,6 @@ mod tests {
 
     #[test]
     fn enabling_after_pung_discards_a_held_tile_without_getting_stuck() {
-        use leocard_mahjong::MahjongClaimOption;
         let mut deck = build_deck();
         fastrand::Rng::with_seed(401).shuffle(&mut deck);
         let mut game =

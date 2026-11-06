@@ -2,9 +2,8 @@ use super::BlackjackPlayback;
 use crate::app::presentation::PendingDealSound;
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiState;
-use leocard_protocol::GameSnapshot;
-
 use bevy::prelude::*;
+use leocard_protocol::GameSnapshot;
 
 pub(crate) fn sync_blackjack_playback(
     mut commands: Commands,

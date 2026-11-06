@@ -3,11 +3,9 @@ use super::cards::{CardRowStyle, card_row_aligned};
 use crate::app::presentation::{
     ACCENT, CardSize, MUTED, SeatSide, add_text, spawn_trick_play_area,
 };
-use leocard_game_common::PlayerId;
-
 use bevy::prelude::*;
 use leocard_doudizhu::{DoudizhuAction, DoudizhuPhase};
-
+use leocard_game_common::PlayerId;
 use leocard_ui::{UiComposer, spawn_node};
 
 impl DoudizhuTable<'_> {

@@ -1,11 +1,10 @@
 use super::TurnClockLabel;
 use crate::app::presentation::add_text;
 use crate::app::runtime::UiAssets;
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{QiGui523PhaseView, QiGui523Snapshot, QiGui523TurnTimerView};
 use leocard_ui::UiComposer;
-
-use bevy::prelude::*;
 
 const CLOCK_COLOR: Color = Color::srgb(0.73, 0.69, 0.94);
 

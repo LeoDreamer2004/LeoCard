@@ -1,10 +1,12 @@
 use super::MahjongLinkSession;
+use crate::features::GameCommandHandler;
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery};
 use leocard_game_common::PlayerId;
 use leocard_mahjong_link::{MahjongLinkAction, MahjongLinkError};
 use leocard_protocol::{
-    GameViolation, MahjongLinkCommand, MahjongLinkEvent, RejectReason, RequestId,
+    GameCommand, GameKind, GameViolation, MahjongLinkCommand, MahjongLinkEvent, RejectReason,
+    RequestId,
 };
 use std::time::Duration;
 
@@ -84,5 +86,25 @@ impl MahjongLinkSession {
         Ok(self
             .room
             .broadcast_game_events([event], self.match_id.map(|id| (id, None))))
+    }
+}
+
+impl GameCommandHandler for MahjongLinkSession {
+    type Command = MahjongLinkCommand;
+
+    fn parse_command(command: GameCommand) -> Result<Self::Command, GameKind> {
+        let GameCommand::MahjongLink(command) = command else {
+            return Err(command.kind());
+        };
+        Ok(command)
+    }
+
+    fn handle_command(
+        &mut self,
+        connection: ConnectionId,
+        request: RequestId,
+        command: Self::Command,
+    ) -> Vec<Delivery> {
+        self.command(connection, request, command)
     }
 }

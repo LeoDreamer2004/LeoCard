@@ -6,7 +6,6 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_mc_guess::{McGuessCatalogue, McGuessEntryKind, McGuessRecord, McGuessRoundView};
 use leocard_protocol::{GameSnapshot, MatchId, McGuessSnapshot};
-
 use leocard_ui::UiComposer;
 
 #[cfg(test)]

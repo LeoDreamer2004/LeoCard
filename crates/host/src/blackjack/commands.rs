@@ -1,10 +1,12 @@
 use super::BlackjackSession;
+use crate::features::{GameCommandHandler, MatchSettlement};
 use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery};
 use leocard_blackjack::{BlackjackAction, BlackjackPhase};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    BlackjackCommand, BlackjackEvent, GameViolation, RejectReason, RequestId, RoomViolation,
+    BlackjackCommand, BlackjackEvent, GameCommand, GameKind, GameViolation, RejectReason,
+    RequestId, RoomViolation,
 };
 use std::time::Duration;
 
@@ -94,7 +96,7 @@ impl BlackjackSession {
         self.elapsed = Duration::ZERO;
         let mut events = vec![BlackjackEvent::ActionApplied { player, action }];
         if finished {
-            self.settle_match();
+            self.commit_match(&());
             self.room.prepare_rematch();
             events.push(BlackjackEvent::RoundFinished { round });
         }
@@ -102,5 +104,25 @@ impl BlackjackSession {
         Ok(self
             .room
             .broadcast_game_events(events, self.match_id.map(|id| (id, Some(u32::from(round))))))
+    }
+}
+
+impl GameCommandHandler for BlackjackSession {
+    type Command = BlackjackCommand;
+
+    fn parse_command(command: GameCommand) -> Result<Self::Command, GameKind> {
+        let GameCommand::Blackjack(command) = command else {
+            return Err(command.kind());
+        };
+        Ok(command)
+    }
+
+    fn handle_command(
+        &mut self,
+        connection: ConnectionId,
+        request: RequestId,
+        command: Self::Command,
+    ) -> Vec<Delivery> {
+        self.command(connection, request, command)
     }
 }

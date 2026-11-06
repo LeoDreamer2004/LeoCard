@@ -293,7 +293,8 @@ fn scoring_settles_profiles_once_at_match_end_and_resets_for_next_match() {
     );
     assert!(first.reference_changes.is_empty());
     assert_eq!(session.players[0].completed_games, 0);
-    assert!(session.players[0].game_profiles.mc_guess.is_none());
+    let profile = session.players[0].game_profiles.mc_guess.as_ref().unwrap();
+    assert_eq!((profile.completed_games, profile.total_score), (0, 0));
     send(&mut session, 1, ClientCommand::PlayAgain);
     send(&mut session, 2, ClientCommand::PlayAgain);
     session.game = Some(McGuessGameState::new(

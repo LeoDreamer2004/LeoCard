@@ -128,6 +128,7 @@ fn midgame_spectators_share_selected_player_views_but_cannot_play_in_all_games()
             player_count: 4,
             ..Default::default()
         }),
+        GameRules::Guandan(Default::default()),
         GameRules::Texas(Default::default()),
         GameRules::Shengji(Default::default()),
         GameRules::Uno(Default::default()),

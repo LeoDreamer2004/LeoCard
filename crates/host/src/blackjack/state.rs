@@ -1,4 +1,4 @@
-use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
+use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, HostError, RoomSession};
 use leocard_blackjack::{BlackjackCard, BlackjackGameState, BlackjackPhase, BlackjackRuleSet};
 use leocard_game_common::PlayerId;
@@ -61,7 +61,7 @@ impl BlackjackSession {
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
-        dispatch_client_command(self, connection, message)
+        self.dispatch_with_action_timing(connection, message)
     }
 
     pub(super) fn require_player(

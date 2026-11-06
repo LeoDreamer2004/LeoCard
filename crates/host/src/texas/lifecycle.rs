@@ -1,6 +1,6 @@
 use super::{TexasAdapter, TexasSession, validate_deck};
-use crate::action_timing::advance_with_timing;
-use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
+use crate::action_timing::attach_action_timing;
+use crate::lifecycle::HostedGameLifecycle;
 use crate::{AutomaticActionDelayState, ConnectionId, Delivery, HostError, RoomSession};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
@@ -70,7 +70,10 @@ impl TexasSession {
 
     /// 推进自动盲注及托管机器人的行动延迟。
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
-        advance_with_timing(self, elapsed, Self::advance_game_time)
+        self.room.action_timing.advance(elapsed);
+        let deliveries = self.advance_game_time(elapsed);
+        self.refresh_action_timing();
+        attach_action_timing(self, deliveries)
     }
 
     fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
@@ -141,7 +144,7 @@ impl TexasSession {
         } else {
             self.room.players[index].seat = None;
             self.room.players[index].ready = false;
-            // 大厅断线无需保留牌局状态；释放参与者槽位，避免离线记录继续占用
+            // 大厅断线无需保留牌局状态，释放参与者槽位，避免离线记录继续占用
             // 人数和房间容量。牌局中的断线玩家仍保留，以支持恢复底牌和筹码。
             self.room.players[index].left = true;
         }
@@ -149,7 +152,7 @@ impl TexasSession {
             .game
             .as_ref()
             .is_some_and(|game| matches!(game.game().phase(), TexasPhase::Complete(_)));
-        let events = self.fold_disconnected_players();
+        let events = self.resolve_disconnected_turns();
         self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
         self.reset_automatic_action_delay_for_current_turn();
@@ -165,7 +168,7 @@ impl TexasSession {
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
         let request_id = message.request_id;
-        let mut deliveries = dispatch_client_command(self, connection, message);
+        let mut deliveries = self.dispatch_with_action_timing(connection, message);
         if !self.room.closed
             && self.game.is_none()
             && self.rules.short_deck
@@ -259,6 +262,9 @@ impl HostedGameLifecycle for TexasSession {
             }
             TexasCommand::UpdateRules { rules } => self.update_rules(connection, request_id, rules),
             TexasCommand::Act { action } => self.act(connection, request_id, action),
+            TexasCommand::ChooseRunout { twice } => {
+                self.choose_runout(connection, request_id, twice)
+            }
         })
     }
 
@@ -440,7 +446,7 @@ impl HostedGameLifecycle for TexasSession {
                     RejectReason::Game(GameViolation::InvalidRuleConfiguration),
                 );
             }
-            let events = self.fold_disconnected_players();
+            let events = self.resolve_disconnected_turns();
             self.record_hand_started();
             self.record_profile_events(&events);
             self.finish_hand_if_needed(false);
@@ -483,7 +489,7 @@ impl HostedGameLifecycle for TexasSession {
             .game
             .as_ref()
             .is_some_and(|game| matches!(game.game().phase(), TexasPhase::Complete(_)));
-        let events = self.fold_disconnected_players();
+        let events = self.resolve_disconnected_turns();
         self.record_profile_events(&events);
         self.finish_hand_if_needed(was_complete);
         self.reset_automatic_action_delay_for_current_turn();

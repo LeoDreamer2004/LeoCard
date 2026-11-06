@@ -1,4 +1,6 @@
-use super::rows::{ProfileRowsBuilder, average_or_placeholder, rate_or_placeholder};
+use super::rows::{
+    ProfileRowsBuilder, average_or_placeholder, rate_or_placeholder, seconds_or_placeholder,
+};
 use leocard_shengji::ShengjiProfileStats;
 
 pub(crate) fn shengji_profile_rows(
@@ -27,8 +29,12 @@ pub(crate) fn shengji_profile_rows(
         "最长宇宙飞船长度",
         "最长甩牌长度",
     ];
+    let action_time = (
+        "平均每手用时",
+        seconds_or_placeholder(stats.and_then(|stats| stats.action_time.average_seconds())),
+    );
     let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
-        return ProfileRowsBuilder::unavailable(&LABELS);
+        return ProfileRowsBuilder::unavailable(&LABELS, [action_time]);
     };
     let mut rows = ProfileRowsBuilder::plain(stats.completed_games, stats.total_reference_delta);
     rows.extend([
@@ -86,5 +92,6 @@ pub(crate) fn shengji_profile_rows(
         ("最长宇宙飞船长度", stats.longest_spaceship.to_string()),
         ("最长甩牌长度", stats.longest_throw.to_string()),
     ]);
+    rows.extend([action_time]);
     rows.finish()
 }

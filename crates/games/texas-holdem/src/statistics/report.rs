@@ -21,10 +21,39 @@ impl TexasGameState {
             .players()
             .iter()
             .map(|other| {
-                evaluate_player_hand(other.hole_cards(), self.community(), self.rules()).ok()
+                let first =
+                    evaluate_player_hand(other.hole_cards(), self.community(), self.rules()).ok();
+                let second = result.second_run.as_ref().and_then(|run| {
+                    evaluate_player_hand(other.hole_cards(), &run.community, self.rules()).ok()
+                });
+                // A hand-level category is the strongest category across the runouts.
+                first
+                    .into_iter()
+                    .chain(second)
+                    .max_by(|left, right| left.cmp_with_rules(right, self.rules()))
             })
             .collect::<Vec<_>>();
-        let category = evaluated[player.index()].map(|hand| hand.category());
+        let category = if let Some(second) = &result.second_run {
+            // Category-win achievements use the strongest board actually won, never a losing run.
+            [
+                (&result.community, &result.awards),
+                (&second.community, &second.awards),
+            ]
+            .into_iter()
+            .filter(|(_, awards)| {
+                awards
+                    .iter()
+                    .any(|award| award.amount > 0 && award.winners.contains(&player))
+            })
+            .filter_map(|(community, _)| {
+                evaluate_player_hand(state.hole_cards(), community, self.rules()).ok()
+            })
+            .max_by(|left, right| left.cmp_with_rules(right, self.rules()))
+            .or(evaluated[player.index()])
+            .map(|hand| hand.category())
+        } else {
+            evaluated[player.index()].map(|hand| hand.category())
+        };
         let mut report = TexasHandStatistics {
             hole_cards: state.hole_cards().to_vec(),
             category,
@@ -80,6 +109,7 @@ impl TexasGameState {
         report.won_pot = pots.won_pot;
         report.won_side_pot_chips = pots.won_side_pot_chips;
         report.tied_winners = pots.tied_winners;
+        report.lost_to_lower_unpaired_hand = pots.lost_to_lower_unpaired_hand;
         for index in pots.defeated {
             let other = &self.players()[index];
             report

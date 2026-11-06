@@ -197,7 +197,7 @@ pub const DEFINITIONS: &[AchievementDefinition] = &[
         "consistent_five",
         "稳健型选手",
         Gold,
-        "连续五个小局中，自己的每次有效猜测匹配度都不低于上一个猜测；每局至少猜测一次且不猜不存在的词条",
+        "连续五个小局中，自己的每次有效猜测匹配度都不低于上一个猜测。每局至少猜测一次且不猜不存在的词条",
         |e| match e {
             AchievementTrigger::Streak { id, qualifies } if *id == CONSISTENT_STREAK =>
                 u64::from(*qualifies),

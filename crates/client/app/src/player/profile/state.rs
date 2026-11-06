@@ -7,9 +7,10 @@ use leocard_blackjack::BlackjackProfileStats;
 use leocard_doudizhu::DoudizhuProfileStats;
 use leocard_guandan::GuandanProfileStats;
 use leocard_mahjong::MahjongProfileStats;
+use leocard_mahjong_link::MahjongLinkProfileStats;
 use leocard_mc_guess::McGuessProfileStats;
 use leocard_protocol::{
-    GameActionTimes, MatchId, PlayerGameProfiles, PlayerInteractionStats, PlayerReferenceChange,
+    MatchId, PlayerGameProfiles, PlayerInteractionStats, PlayerReferenceChange,
 };
 use leocard_qigui523::QiGui523ProfileStats;
 use leocard_shengji::ShengjiProfileStats;
@@ -35,7 +36,6 @@ pub(super) struct StoredPlayerProfile {
     pub(super) rating: StoredRatingProfile,
     pub(super) interaction_stats: Option<PlayerInteractionStats>,
     pub(super) games: StoredGameProfiles,
-    pub(super) action_times: GameActionTimes,
 }
 
 impl StoredPlayerProfile {
@@ -81,6 +81,7 @@ pub(super) struct StoredGameProfiles {
     pub(super) blackjack_stats: Option<BlackjackProfileStats>,
     pub(super) doudizhu_stats: Option<DoudizhuProfileStats>,
     pub(super) guandan_stats: Option<GuandanProfileStats>,
+    pub(super) mahjong_link_stats: Option<MahjongLinkProfileStats>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -140,7 +141,7 @@ impl LocalPlayerProfile {
                     blackjack: stored.games.blackjack_stats,
                     doudizhu: stored.games.doudizhu_stats,
                     guandan: stored.games.guandan_stats,
-                    action_times: stored.action_times,
+                    mahjong_link: stored.games.mahjong_link_stats,
                 },
             });
         }
@@ -185,8 +186,8 @@ impl LocalPlayerProfile {
                 blackjack_stats: self.game_profiles.blackjack.clone(),
                 doudizhu_stats: self.game_profiles.doudizhu.clone(),
                 guandan_stats: self.game_profiles.guandan.clone(),
+                mahjong_link_stats: self.game_profiles.mahjong_link.clone(),
             },
-            action_times: self.game_profiles.action_times,
         }
     }
 
@@ -225,6 +226,28 @@ impl LocalPlayerProfile {
 
     pub const fn game_profiles(&self) -> &PlayerGameProfiles {
         &self.game_profiles
+    }
+
+    /// Longest accepted manual action across this player's game profiles.
+    pub fn longest_action_millis(&self) -> u64 {
+        let games = self.game_profiles();
+        [
+            games.qigui523.as_ref().map(|stats| &stats.action_time),
+            games.texas.as_ref().map(|stats| &stats.action_time),
+            games.shengji.as_ref().map(|stats| &stats.action_time),
+            games.uno.as_ref().map(|stats| &stats.action_time),
+            games.mahjong.as_ref().map(|stats| &stats.action_time),
+            games.mc_guess.as_ref().map(|stats| &stats.action_time),
+            games.blackjack.as_ref().map(|stats| &stats.action_time),
+            games.doudizhu.as_ref().map(|stats| &stats.action_time),
+            games.guandan.as_ref().map(|stats| &stats.action_time),
+            games.mahjong_link.as_ref().map(|stats| &stats.action_time),
+        ]
+        .into_iter()
+        .flatten()
+        .map(|stats| stats.longest_millis)
+        .max()
+        .unwrap_or(0)
     }
 
     pub fn sync_game_profiles(&mut self, profiles: &PlayerGameProfiles) -> bool {

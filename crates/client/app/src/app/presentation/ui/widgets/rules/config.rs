@@ -16,7 +16,7 @@ pub(crate) struct RuleConfigRow<'a, R> {
     pub label: &'a str,
     pub value: String,
     pub help: &'a str,
-    pub editable: bool,
+    /// Unavailable changes use `None`; both arrows always remain visible.
     pub previous: Option<R>,
     pub next: Option<R>,
 }
@@ -34,7 +34,6 @@ pub(crate) fn add_rule_config_row<R: EditableRuleSet>(
             label: spec.label,
             value: spec.value,
             help: spec.help,
-            editable: spec.editable,
             previous: spec.previous.map(EditableRuleSet::update_action),
             next: spec.next.map(EditableRuleSet::update_action),
         },

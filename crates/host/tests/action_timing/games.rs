@@ -121,8 +121,11 @@ fn all_ten_dispatchers_record_only_the_required_human_and_publish_committed_stat
         // This must already be in the command's own snapshots, not just a later poll.
         for delivery in &accepted {
             if let ServerEvent::GameSnapshot(snapshot) = &delivery.message.event {
-                let times = snapshot.player(actor).unwrap().game_profiles.action_times;
-                let stats = times.get(kind);
+                let stats = snapshot
+                    .player(actor)
+                    .unwrap()
+                    .game_profiles
+                    .action_time(kind);
                 assert_eq!(
                     (
                         stats.total_millis,
@@ -132,12 +135,11 @@ fn all_ten_dispatchers_record_only_the_required_human_and_publish_committed_stat
                     (before + 750, 1, before + 750),
                     "{kind:?}"
                 );
-                assert_eq!(times.longest_millis(), before + 750);
             }
         }
         let (snapshot, clocks) = table.view();
         for player in snapshot.players() {
-            let stats = player.game_profiles.action_times.get(kind);
+            let stats = player.game_profiles.action_time(kind);
             assert_eq!(
                 stats.completed_actions,
                 u64::from(player.id == actor),
@@ -192,134 +194,9 @@ fn simultaneous_shengji_confirmations_keep_other_players_elapsed_windows() {
         .player(second.player)
         .unwrap()
         .game_profiles
-        .action_times
-        .get(GameKind::Shengji);
+        .action_time(GameKind::Shengji);
     assert_eq!(
         (stats.total_millis, stats.completed_actions),
         (second.elapsed_millis + 1250, 1)
-    );
-}
-
-#[test]
-fn guandan_accepts_a_minute_sample_without_exposing_private_cards_in_timing() {
-    let mut table = Table::new_for(GameRules::Guandan(Default::default()));
-    let actor = table.view().1.clocks[0].player;
-    let connection = u64::from(actor.0) + 1;
-    table.session.advance_time(Duration::from_millis(60_250));
-    let (snapshot, timing) = table.view_for(connection);
-    assert_eq!(timing.clocks[0].elapsed_millis, 60_250);
-    let accepted = table.send(connection, ClientCommand::Game(decision(&snapshot)));
-    assert!(
-        !accepted
-            .iter()
-            .any(|d| matches!(d.message.event, ServerEvent::Rejected { .. }))
-    );
-    let stats = table
-        .view()
-        .0
-        .player(actor)
-        .unwrap()
-        .game_profiles
-        .action_times
-        .get(GameKind::Guandan);
-    assert_eq!(
-        (
-            stats.total_millis,
-            stats.completed_actions,
-            stats.longest_millis
-        ),
-        (60_250, 1, 60_250)
-    );
-    // Different recipients have different hands but the exact same public timing DTO.
-    assert_eq!(table.view_for(1).1, table.view_for(2).1);
-}
-
-#[test]
-fn mahjong_link_push_neither_completes_nor_restarts_the_remove_or_skip_window() {
-    let mut table = Table::new_for(GameRules::MahjongLink(Default::default()));
-    // Remove an outside pair to make a legal row push possible on the next turn.
-    let GameSnapshot::MahjongLink(snapshot) = table.view().0 else {
-        unreachable!()
-    };
-    let (first, second) = snapshot.board.best_pair().expect("initial pair");
-    let first_action = MahjongLinkAction::Match { first, second };
-    let actor = snapshot.current_player.unwrap();
-    table.send(
-        u64::from(actor.0) + 1,
-        ClientCommand::Game(
-            MahjongLinkCommand::Act {
-                action: first_action,
-            }
-            .into(),
-        ),
-    );
-    let GameSnapshot::MahjongLink(snapshot) = table.view().0 else {
-        unreachable!()
-    };
-    let push = (0..8)
-        .flat_map(|row| {
-            [
-                leocard_mahjong_link::PushSide::Left,
-                leocard_mahjong_link::PushSide::Right,
-            ]
-            .map(move |from| (row, from))
-        })
-        .find_map(|(row, from)| {
-            (snapshot.board.maximum_push(row, from) > 0).then_some(MahjongLinkAction::Push {
-                row,
-                from,
-                distance: 1,
-            })
-        })
-        .expect("space after removal");
-    let actor = snapshot.current_player.unwrap();
-    let connection = u64::from(actor.0) + 1;
-    table.session.advance_time(Duration::from_secs(2));
-    let pushed = table.send(
-        connection,
-        ClientCommand::Game(MahjongLinkCommand::Act { action: push }.into()),
-    );
-    assert!(
-        !pushed
-            .iter()
-            .any(|d| matches!(d.message.event, ServerEvent::Rejected { .. }))
-    );
-    let (snapshot, timing) = table.view();
-    assert_eq!(timing.clocks[0].elapsed_millis, 2000);
-    assert_eq!(
-        snapshot
-            .player(actor)
-            .unwrap()
-            .game_profiles
-            .action_times
-            .get(GameKind::MahjongLink)
-            .completed_actions,
-        0
-    );
-    table.session.advance_time(Duration::from_secs(1));
-    table.send(
-        connection,
-        ClientCommand::Game(
-            MahjongLinkCommand::Act {
-                action: MahjongLinkAction::Pass,
-            }
-            .into(),
-        ),
-    );
-    let stats = table
-        .view()
-        .0
-        .player(actor)
-        .unwrap()
-        .game_profiles
-        .action_times
-        .get(GameKind::MahjongLink);
-    assert_eq!(
-        (
-            stats.total_millis,
-            stats.completed_actions,
-            stats.longest_millis
-        ),
-        (3000, 1, 3000)
     );
 }

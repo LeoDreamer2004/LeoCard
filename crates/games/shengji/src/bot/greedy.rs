@@ -9,7 +9,7 @@ use std::fmt;
 
 /// 双升最小贪心机器人作出一次出牌决定所需的信息。
 ///
-/// `lead` 为 `None` 时机器人领出最小单张；否则严格履行跟门、对子和拖拉机义务。
+/// `lead` 为 `None` 时机器人领出最小单张，否则严格履行跟门、对子和拖拉机义务。
 #[derive(Clone, Copy, Debug)]
 pub struct ShengjiGreedyBotRequest<'a> {
     pub hand: &'a [ShengjiCard],
@@ -81,7 +81,7 @@ fn choose_short_category_fill(
         .copied()
         .filter(|card| !selected_set.contains(card))
         .collect::<Vec<_>>();
-    // 缺门时先垫任意最小副牌；副牌不足或只剩主牌时再从最小主牌开始补足。
+    // 缺门时先垫任意最小副牌。副牌不足或只剩主牌时再从最小主牌开始补足。
     fillers.sort_by(|left, right| card_cmp(*left, *right, trump));
     selected.extend(fillers.into_iter().take(required - selected.len()));
     selected

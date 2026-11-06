@@ -4,7 +4,6 @@ use leocard_game_common::PlayerId;
 use leocard_protocol::{
     GameEvent, GameSnapshot, MatchId, PlayerGender, ServerEvent, TexasEvent, TexasPhaseView,
 };
-
 use leocard_texas_holdem::{TexasAction, TexasRuleSet, TexasStreet};
 use std::collections::{HashMap, VecDeque};
 
@@ -92,7 +91,7 @@ pub(crate) fn sync_texas_voices(
                 street: TexasStreet::PreFlop,
             } => game.current_bet > TexasRuleSet::BIG_BLIND,
             TexasPhaseView::Betting { .. } => game.current_bet > 0,
-            TexasPhaseView::HandComplete { .. } => false,
+            TexasPhaseView::ChoosingRunout | TexasPhaseView::HandComplete { .. } => false,
         };
         return;
     }
@@ -129,6 +128,14 @@ pub(crate) fn sync_texas_voices(
                 voices.committed.insert(player, committed);
                 voices.bet = voices.bet.max(committed);
                 voices.raised |= raises;
+            }
+            TexasEvent::ChipsReturned { player, amount } => {
+                if let Some(committed) = voices.committed.get_mut(&player) {
+                    *committed = committed.saturating_sub(amount);
+                }
+            }
+            TexasEvent::RunoutVoteStarted { .. } | TexasEvent::RunoutChosen { .. } => {
+                voices.raised = false;
             }
             TexasEvent::StreetAdvanced { .. } => {
                 voices.committed.clear();

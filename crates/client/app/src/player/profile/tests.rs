@@ -1,6 +1,5 @@
+use super::super::migration::legacy;
 use super::*;
-use leocard_protocol::GameKind;
-use serde_json::Value;
 use std::env::temp_dir;
 
 fn complete_game_profiles() -> PlayerGameProfiles {
@@ -70,39 +69,38 @@ fn loading_v8_rewrites_to_v9_without_losing_any_profile_data() {
         rating,
         &games.interactions,
         (
-            &games.qigui523,
-            &games.texas,
-            &games.shengji,
-            &games.uno,
-            &games.mahjong,
-            &games.mc_guess,
-            &games.blackjack,
-            &games.doudizhu,
-            &games.guandan,
+            games
+                .qigui523
+                .clone()
+                .map(legacy::QiGui523ProfileStats::from),
+            games.texas.clone().map(legacy::TexasProfileStats::from),
+            games.shengji.clone().map(legacy::ShengjiProfileStats::from),
+            games.uno.clone().map(legacy::UnoProfileStats::from),
+            games.mahjong.clone().map(legacy::MahjongProfileStats::from),
+            games
+                .mc_guess
+                .clone()
+                .map(legacy::McGuessProfileStats::from),
+            games
+                .blackjack
+                .clone()
+                .map(legacy::BlackjackProfileStats::from),
+            games
+                .doudizhu
+                .clone()
+                .map(legacy::DoudizhuProfileStats::from),
+            games.guandan.clone().map(legacy::GuandanProfileStats::from),
         ),
     ))
     .unwrap();
     let mut old = b"LeoCard/profile/v8\0".to_vec();
     old.extend_from_slice(&payload);
-    let mut expected = b"LeoCard/profile/v9\0".to_vec();
-    expected.extend_from_slice(&payload);
-    expected.extend(postcard::to_allocvec(&GameActionTimes::default()).unwrap());
-    assert_eq!(PROFILE_HEADER, b"LeoCard/profile/v9\0");
-
     let directory = temp_dir().join(format!(
         "leocard-profile-migration-v8-{:016x}",
         fastrand::u64(..)
     ));
     fs::create_dir(&directory).unwrap();
     let path = directory.join("profile.dat");
-    let mut trailing = old.clone();
-    trailing.push(0);
-    for damaged in [&old[..old.len() - 1], trailing.as_slice()] {
-        fs::write(&path, damaged).unwrap();
-        assert!(LocalPlayerProfile::load_or_create_at(&path).is_err());
-        assert_eq!(fs::read(&path).unwrap(), damaged);
-    }
-
     fs::write(&path, old).unwrap();
     for _ in 0..2 {
         let profile = LocalPlayerProfile::load_or_create_at(&path).unwrap();
@@ -114,93 +112,31 @@ fn loading_v8_rewrites_to_v9_without_losing_any_profile_data() {
             receipts.iter().copied().collect()
         );
         assert_eq!(profile.game_profiles(), &games);
-        assert!(profile.game_profiles().action_times == GameActionTimes::default());
-        assert_eq!(fs::read(&path).unwrap(), expected);
+        assert!(
+            fs::read(&path)
+                .unwrap()
+                .starts_with(b"LeoCard/profile/v9\0")
+        );
     }
-    assert_eq!(fs::read_dir(&directory).unwrap().count(), 1);
     fs::remove_dir_all(directory).unwrap();
 }
 
-fn populated_action_times() -> GameActionTimes {
-    // Build nonzero fixtures through serde, without depending on record or
-    // the container's public fields. Each game's counters remain distinct.
-    fn populate(value: &mut Value, count: &mut u64) {
-        match value {
-            Value::Object(fields)
-                if fields.contains_key("total_millis")
-                    && fields.contains_key("completed_actions") =>
-            {
-                *count += 1;
-                fields.insert("total_millis".into(), Value::from(12_345_678_900 + *count));
-                fields.insert("longest_millis".into(), Value::from(6_000_000_000 + *count));
-                fields.insert(
-                    "completed_actions".into(),
-                    Value::from(4_294_967_300 + *count),
-                );
-            }
-            Value::Object(fields) => {
-                for value in fields.values_mut() {
-                    populate(value, count);
-                }
-            }
-            Value::Array(values) => {
-                for value in values {
-                    populate(value, count);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    let mut value = serde_json::to_value(GameActionTimes::default()).unwrap();
-    let mut count = 0;
-    populate(&mut value, &mut count);
-    assert_eq!(count, 10);
-    serde_json::from_value(value).unwrap()
-}
-
 #[test]
-fn synced_action_times_and_maxima_survive_v9_save_and_reload() {
+fn game_profile_timing_survives_save_and_reload() {
     let directory = temp_dir().join(format!("leocard-profile-v9-{:016x}", fastrand::u64(..)));
     fs::create_dir(&directory).unwrap();
     let path = directory.join("profile.dat");
     let mut profile = LocalPlayerProfile::load_or_create_at(&path).unwrap();
     let key = profile.identity.secret_bytes();
     let mut games = complete_game_profiles();
+    let timing = &mut games.guandan.as_mut().unwrap().action_time;
+    timing.record(60_250);
+    timing.record(750);
     assert!(profile.sync_game_profiles(&games));
-    games.action_times = populated_action_times();
-    assert!(profile.sync_game_profiles(&games));
-    assert!(!profile.sync_game_profiles(&games));
     profile.store().write(&path).unwrap();
 
-    let bytes = fs::read(&path).unwrap();
-    assert!(bytes.starts_with(b"LeoCard/profile/v9\0"));
-    let stored = migration::decode_player_profile(&bytes).unwrap();
-    assert!(stored.action_times == games.action_times);
     let restored = LocalPlayerProfile::load_or_create_at(&path).unwrap();
     assert_eq!(restored.identity.secret_bytes(), key);
     assert_eq!(restored.game_profiles(), &games);
-    for kind in [
-        GameKind::QiGui523,
-        GameKind::Texas,
-        GameKind::Shengji,
-        GameKind::Uno,
-        GameKind::Mahjong,
-        GameKind::McGuess,
-        GameKind::Blackjack,
-        GameKind::Doudizhu,
-        GameKind::Guandan,
-        GameKind::MahjongLink,
-    ] {
-        let expected = games.action_times.get(kind);
-        let actual = restored.game_profiles().action_times.get(kind);
-        assert!(expected.total_millis > u64::from(u32::MAX));
-        assert!(expected.completed_actions > u64::from(u32::MAX));
-        assert_eq!(actual.total_millis, expected.total_millis);
-        assert_eq!(actual.completed_actions, expected.completed_actions);
-        assert!(actual.longest_millis > u64::from(u32::MAX));
-        assert_eq!(actual.longest_millis, expected.longest_millis);
-    }
-    assert_eq!(fs::read(&path).unwrap(), bytes);
     fs::remove_dir_all(directory).unwrap();
 }

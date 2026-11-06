@@ -1,6 +1,7 @@
 //! Long-term statistics owned by this game. Field order is part of the saved profile format.
 
 use crate::{McGuessCategoryStatistics, McGuessRuleSet};
+use leocard_game_common::ActionTimeStats;
 use serde::{Deserialize, Serialize};
 
 /// Long-term records from completed MC guessing matches.
@@ -19,6 +20,7 @@ pub struct McGuessProfileStats {
     /// Accepted guesses only in games where unknown guesses are enabled; skips excluded.
     pub unknown_enabled_guesses: u32,
     pub skips: u32,
+    pub action_time: ActionTimeStats,
 }
 
 impl McGuessProfileStats {

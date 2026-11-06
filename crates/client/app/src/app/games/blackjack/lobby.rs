@@ -2,11 +2,10 @@ use super::BlackjackUiAction;
 use crate::app::presentation::{EditableRuleSet, RuleConfigRow, add_rule_config_row};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{LobbyPage, LobbyPageConfig, UiAction};
+use bevy::prelude::*;
 use leocard_blackjack::BlackjackRuleSet;
 use leocard_protocol::LobbySnapshot;
 use leocard_ui::UiComposer;
-
-use bevy::prelude::*;
 
 impl EditableRuleSet for BlackjackRuleSet {
     const ROW_HEIGHT: f32 = 38.0;
@@ -41,7 +40,7 @@ pub(crate) fn render_blackjack_lobby(
         (
             "初始筹码",
             rules.initial_chips.to_string(),
-            "每位玩家的房间筹码；每手下注上限等于初始筹码。",
+            "每位玩家的房间筹码，每手下注上限等于初始筹码。",
             [100, 200, 500, 1000]
                 .map(|initial_chips| BlackjackRuleSet {
                     initial_chips,
@@ -52,7 +51,7 @@ pub(crate) fn render_blackjack_lobby(
         (
             "游戏局数",
             rules.rounds.to_string(),
-            "完成指定局数后按剩余筹码排名；筹码不足最低下注者退出后续小局。",
+            "完成指定局数后按剩余筹码排名，筹码不足最低下注者退出后续小局。",
             [3, 5, 10, 20]
                 .map(|rounds| BlackjackRuleSet { rounds, ..rules })
                 .to_vec(),
@@ -97,7 +96,6 @@ pub(crate) fn render_blackjack_lobby(
                 label,
                 value,
                 help,
-                editable: page.can_configure,
                 previous: previous.filter(|_| page.can_configure),
                 next: next.filter(|_| page.can_configure),
             },

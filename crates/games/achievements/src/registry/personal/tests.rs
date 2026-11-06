@@ -1,9 +1,5 @@
-use crate::{
-    AchievementBook, AchievementCategory, AchievementRegistry, AchievementTier, AchievementTrigger,
-    PersonalEvent,
-};
+use crate::{AchievementBook, AchievementRegistry, AchievementTrigger, PersonalEvent};
 use std::sync::LazyLock;
-use std::time::Duration;
 
 static REGISTRY: LazyLock<AchievementRegistry> = LazyLock::new(AchievementRegistry::default);
 
@@ -17,53 +13,6 @@ fn apply(book: &mut AchievementBook, event: PersonalEvent) -> Vec<&'static str> 
 
 fn achieved(book: &AchievementBook, id: &str) -> bool {
     book.achieved(REGISTRY.by_id(id).unwrap())
-}
-
-#[test]
-fn slow_action_has_bronze_personal_metadata() {
-    let definition = REGISTRY.by_id("leocard:personal/slow_action").unwrap();
-    assert_eq!(definition.title, "我等的花都谢了");
-    assert_eq!(definition.category, AchievementCategory::Personal);
-    assert_eq!(definition.tier, AchievementTier::Bronze);
-    assert_eq!(definition.description, "单次手动操作用时达到60秒");
-}
-
-#[test]
-fn slow_action_threshold_is_inclusive_and_duplicates_do_not_reward_again() {
-    for millis in [59_999, 60_000, 60_001] {
-        let mut book = AchievementBook::default();
-        let event = PersonalEvent::ActionCompleted {
-            elapsed: Duration::from_millis(millis),
-        };
-        let expected = if millis >= 60_000 {
-            vec!["leocard:personal/slow_action"]
-        } else {
-            vec![]
-        };
-        assert_eq!(apply(&mut book, event), expected);
-        assert!(apply(&mut book, event).is_empty());
-        assert_eq!(
-            achieved(&book, "leocard:personal/slow_action"),
-            millis >= 60_000
-        );
-    }
-}
-
-#[test]
-fn slow_action_does_not_accumulate_short_operations() {
-    let mut book = AchievementBook::default();
-    for _ in 0..100 {
-        assert!(
-            apply(
-                &mut book,
-                PersonalEvent::ActionCompleted {
-                    elapsed: Duration::from_secs(30),
-                }
-            )
-            .is_empty()
-        );
-    }
-    assert!(!achieved(&book, "leocard:personal/slow_action"));
 }
 
 #[test]

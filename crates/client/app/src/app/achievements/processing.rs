@@ -23,10 +23,9 @@ pub(super) struct TriggerResources<'w> {
     observer: ResMut<'w, ActivityObserver>,
 }
 
-/// The local profile is populated by accepted own-player snapshots and persisted by runtime.
-/// Replaying its maximum also unlocks retained records on load/reconnect; the ledger, not
-/// this observation cache, guarantees that duplicate facts cannot award a trophy twice.
-/// Never use the interpolated action clock: it does not prove an operation was accepted.
+/// Runtime synchronizes only the local player's accepted profile snapshots.
+/// Replaying the saved maximum handles startup and reconnect. The achievement
+/// ledger deduplicates unlocks even if a later snapshot repeats an earlier maximum.
 pub(super) fn process_action_record(
     profile: Res<LocalPlayerProfile>,
     mut book: ResMut<PlayerAchievements>,
@@ -36,7 +35,7 @@ pub(super) fn process_action_record(
     if !session.enabled {
         return;
     }
-    let millis = profile.game_profiles.action_times.longest_millis();
+    let millis = profile.longest_action_millis();
     if *observed == Some(millis) {
         return;
     }

@@ -1,7 +1,7 @@
 use leocard_texas_holdem::{TexasHandCategory, TexasRuleSet};
 
 /// 五张公共牌全部发出后，一名随机玩家的最终最佳牌型分布。
-/// 不以底牌、下注或未弃牌为条件；忽略踢脚牌不改变牌型分布。
+/// 不以底牌、下注或未弃牌为条件。忽略踢脚牌不改变牌型分布。
 pub(super) struct HandGuideProbabilities {
     counts: [u64; 10],
     total: u64,
@@ -64,7 +64,7 @@ const SHORT_HOLDEM: HandGuideProbabilities = HandGuideProbabilities {
 };
 
 // 奥马哈的样本空间为 C(N, 4) * C(N - 4, 5)，严格使用两张底牌加三张公共牌。
-// 按底牌/公共牌的点数重数枚举，以各点数的花色选择数加权；
+// 按底牌/公共牌的点数重数枚举，以各点数的花色选择数加权。
 // 固定一种花色计数同花后乘四，以容斥扣除重叠的同花顺，再单独提取皇家同花顺。
 const STANDARD_OMAHA: HandGuideProbabilities = HandGuideProbabilities {
     counts: [

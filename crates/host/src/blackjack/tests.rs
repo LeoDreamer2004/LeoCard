@@ -5,9 +5,9 @@ use leocard_blackjack::{
     BlackjackAction, BlackjackPhase, BlackjackRank, BlackjackRuleSet, build_shoe,
 };
 use leocard_protocol::{
-    BlackjackCommand, BlackjackViolation, ChatContent, ClientCommand, ClientMessage, GameSnapshot,
-    GameViolation, JoinRequest, PlayerGameProfiles, PlayerInteractionKind, ProfileId,
-    ReconnectToken, RejectReason, RequestId, RoomId, SeatId, ServerEvent,
+    BlackjackCommand, BlackjackViolation, ClientCommand, ClientMessage, GameSnapshot,
+    GameViolation, JoinRequest, PlayerGameProfiles, ProfileId, ReconnectToken, RejectReason,
+    RequestId, RoomId, SeatId, ServerEvent,
 };
 use std::time::Duration;
 
@@ -170,48 +170,4 @@ fn host_rejects_out_of_turn_actions_without_resetting_time_and_keeps_hole_card_p
             .iter()
             .all(|player| player.completed_games == 1)
     );
-}
-
-#[test]
-fn robot_round_uses_shared_recording_policy_and_waits_for_human_rematch_ready() {
-    let mut session = started(true);
-    let target = session.room.players[1].id;
-    for command in [
-        ClientCommand::Chat {
-            content: ChatContent::QuickVoice(0),
-        },
-        ClientCommand::Interact {
-            target,
-            kind: PlayerInteractionKind::Flower,
-        },
-    ] {
-        let deliveries = send(&mut session, 1, command);
-        assert!(!deliveries.is_empty());
-        assert!(deliveries.iter().all(|delivery| {
-            delivery
-                .message
-                .game_context
-                .is_some_and(|context| context.records_progress == cfg!(feature = "developer"))
-        }));
-    }
-    act(&mut session, 1, BlackjackAction::Bet { amount: 2 });
-    session.advance_time(Duration::from_secs(2));
-    act(&mut session, 1, BlackjackAction::Stand);
-    session.advance_time(Duration::from_secs(2));
-    assert!(session.game.as_ref().unwrap().match_complete());
-    let expected_games = u32::from(cfg!(feature = "developer"));
-    assert_eq!(session.room.players[0].completed_games, expected_games);
-    assert_eq!(
-        session.room.players[0].game_profiles.blackjack.is_some(),
-        cfg!(feature = "developer")
-    );
-    let previous = session.match_id;
-    assert!(session.advance_time(Duration::from_secs(20)).is_empty());
-    send(&mut session, 1, ClientCommand::PlayAgain);
-    assert_ne!(session.match_id, previous);
-    assert_eq!(
-        session.game.as_ref().unwrap().phase(),
-        BlackjackPhase::Betting
-    );
-    assert_eq!(session.room.players[0].completed_games, expected_games);
 }

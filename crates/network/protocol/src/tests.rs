@@ -12,8 +12,23 @@ use leocard_qigui523::{QiGui523ProfileStats, QiGuiRuleSet};
 use leocard_shengji::{
     ShengjiCard, ShengjiComponent, ShengjiProfileStats, ShengjiRank, ShengjiRuleSet, ShengjiSuit,
 };
-use leocard_texas_holdem::{TexasProfileStats, TexasRuleSet};
+use leocard_texas_holdem::{TexasHandStatistics, TexasProfileStats, TexasRuleSet};
 use leocard_uno::UnoProfileStats;
+
+#[test]
+fn private_texas_aces_cracked_statistic_round_trips_through_protocol_codec() {
+    for lost_to_lower_unpaired_hand in [false, true] {
+        let event = TexasEvent::HandAnalyzed {
+            player: PlayerId(0),
+            statistics: Box::new(TexasHandStatistics {
+                lost_to_lower_unpaired_hand,
+                ..Default::default()
+            }),
+        };
+        let decoded: TexasEvent = decode_frame(&encode_frame(&event).unwrap()).unwrap();
+        assert_eq!(decoded, event);
+    }
+}
 
 #[test]
 fn graph_combo_targets_and_success_counts_round_trip_through_protocol_codec() {
@@ -78,7 +93,7 @@ fn client_message_round_trips_through_tcp_frame() {
             reference_points: 12,
             completed_games: 8,
             game_profiles: PlayerGameProfiles {
-                action_times: Default::default(),
+                mahjong_link: None,
                 blackjack: Some(BlackjackProfileStats {
                     completed_games: 3,
                     total_chips_delta: 42,
@@ -163,26 +178,35 @@ fn client_message_round_trips_through_tcp_frame() {
 }
 
 #[test]
-fn interaction_event_round_trips_with_its_shared_animation_seed() {
-    let message = ServerMessage {
-        action_timing: None,
-        game_context: None,
-        protocol_version: PROTOCOL_VERSION,
-        room_id: RoomId(42),
-        revision: Revision(9),
-        in_reply_to: Some(RequestId(7)),
-        event: ServerEvent::PlayerInteraction(PlayerInteraction {
-            source: PlayerId(1),
-            target: PlayerId(3),
-            kind: PlayerInteractionKind::Wine,
-            seed: 523,
-            elapsed_millis: 100,
-        }),
-    };
-
-    let frame = encode_frame(&message).unwrap();
-    let decoded: ServerMessage = decode_frame(&frame).unwrap();
-    assert_eq!(decoded, message);
+fn interaction_events_preserve_shared_animation_seeds_and_count_each_batch_once() {
+    for (kind, flowers, eggs) in [
+        (PlayerInteractionKind::Flower, 1, 0),
+        (PlayerInteractionKind::Egg, 0, 1),
+        (PlayerInteractionKind::Wine, 10, 0),
+        (PlayerInteractionKind::Shoe, 0, 10),
+        (PlayerInteractionKind::EggBarrage, 0, 100),
+    ] {
+        assert_eq!(kind.flower_count(), flowers);
+        assert_eq!(kind.egg_count(), eggs);
+        let message = ServerMessage {
+            action_timing: None,
+            game_context: None,
+            protocol_version: PROTOCOL_VERSION,
+            room_id: RoomId(42),
+            revision: Revision(9),
+            in_reply_to: Some(RequestId(7)),
+            event: ServerEvent::PlayerInteraction(PlayerInteraction {
+                source: PlayerId(1),
+                target: PlayerId(3),
+                kind,
+                seed: 523,
+                elapsed_millis: 100,
+            }),
+        };
+        let frame = encode_frame(&message).unwrap();
+        let decoded: ServerMessage = decode_frame(&frame).unwrap();
+        assert_eq!(decoded, message);
+    }
 }
 
 #[test]

@@ -1,9 +1,7 @@
-mod commands;
 mod lifecycle;
+mod request;
 mod state;
-#[cfg(test)]
-mod tests;
-mod windows;
 
-pub(crate) use lifecycle::{advance_with_timing, dispatch_client_command};
-pub(crate) use state::ActionTimingState;
+pub(crate) use lifecycle::{attach_action_timing, sync_action_timing};
+pub(crate) use request::ActionTimingRequest;
+pub(crate) use state::{ActionTimingState, PendingAction};

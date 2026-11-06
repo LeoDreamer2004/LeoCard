@@ -7,6 +7,7 @@ mod process_presence;
 mod rounds;
 mod settlement;
 mod state;
+mod timing;
 
 use automation::GuessClock;
 use process_presence::McProcessPresence;

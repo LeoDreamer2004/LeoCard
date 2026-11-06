@@ -107,7 +107,7 @@ async fn shengji_room_slow_deals_private_hands_over_the_shared_tcp_transport() {
             .iter()
             .map(|player| player.hand_len)
             .sum::<u8>();
-        // 四个客户端是逐个读取的，定时发牌可在相邻读取之间继续推进；这里
+        // 四个客户端是逐个读取的，定时发牌可在相邻读取之间继续推进。这里
         // 验证收到的是该玩家第一轮的私有手牌，而不把全桌时钟钉死在某一拍。
         assert!((expected.0 + 1..=expected.0 + 4).contains(&dealt));
     }

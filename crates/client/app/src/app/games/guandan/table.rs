@@ -42,6 +42,7 @@ pub(super) struct GuandanTable<'a> {
 pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context: GuandanTable<'_>) {
     let game = context.game;
     let assets = context.assets;
+    let can_control = context.client.0.model().you() == Some(game.you);
     let content = commands.mount(root, format!("guandan:{:?}", game.match_id), bsn! { @ui_component(Node {
         width: percent(100), flex_grow: 1.0, min_height: px(0), position_type: PositionType::Relative,
         flex_direction: FlexDirection::Column, ..default()
@@ -149,7 +150,7 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
     } else if context.ui.previous_reveal > 0.0 {
         add_text(commands, status, "上一圈回看", 14.0, ACCENT, assets);
     }
-    controls::render(commands, hand_area, game, context.ui, assets);
+    controls::render(commands, hand_area, game, context.ui, can_control, assets);
     let hand_row = spawn_node(
         commands,
         hand_area,
@@ -160,7 +161,7 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
         },
         None,
     );
-    render_hand(commands, hand_row, game, context.ui, assets);
+    render_hand(commands, hand_row, game, context.ui, can_control, assets);
     let auto = game
         .players
         .iter()
@@ -176,7 +177,7 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
         }],
     )
     .spawn(commands, content, context.chat, assets);
-    if auto == Some(true) && game.result.is_none() {
+    if can_control && auto == Some(true) && game.result.is_none() {
         add_auto_play_overlay(commands, content, assets);
     }
     counter::render(commands, content, game, context.ui, assets);

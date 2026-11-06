@@ -54,7 +54,9 @@ impl UiActionHandler<ShopActionContext<'_>> for ShopUiAction {
                 let definition = prop.definition();
                 let extend = context.economy.active(*prop);
                 let verb = if extend { "延期" } else { "购买" };
-                let detail = if extend {
+                let detail = if prop.is_consumable() {
+                    "购买后数量增加1个，使用时消耗，不会过期。"
+                } else if extend {
                     "确认后在原截止时间上追加一小时。"
                 } else {
                     "购买后立即生效，有效期一小时。"

@@ -1,6 +1,6 @@
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_blackjack::{BlackjackAction, BlackjackRuleSet};
-use leocard_game_common::PlayerId;
+use leocard_game_common::{ActionTimeStats, PlayerId};
 use leocard_host::{ConnectionId, Delivery, GameSetup, HostSession};
 use leocard_protocol::{
     ActionTimingSnapshot, BlackjackCommand, ClientCommand, ClientMessage, GameKind, GameRules,
@@ -14,6 +14,8 @@ use std::time::Duration;
 mod games;
 #[path = "action_timing/presence.rs"]
 mod presence;
+#[path = "action_timing/texas.rs"]
+mod texas;
 
 const ROOM: RoomId = RoomId(411);
 
@@ -95,6 +97,28 @@ impl Table {
     }
 }
 
+trait ProfileTiming {
+    fn action_time(&self, game: GameKind) -> ActionTimeStats;
+}
+
+impl ProfileTiming for PlayerGameProfiles {
+    fn action_time(&self, game: GameKind) -> ActionTimeStats {
+        match game {
+            GameKind::QiGui523 => self.qigui523.as_ref().map(|stats| stats.action_time),
+            GameKind::Texas => self.texas.as_ref().map(|stats| stats.action_time),
+            GameKind::Shengji => self.shengji.as_ref().map(|stats| stats.action_time),
+            GameKind::Uno => self.uno.as_ref().map(|stats| stats.action_time),
+            GameKind::Mahjong => self.mahjong.as_ref().map(|stats| stats.action_time),
+            GameKind::McGuess => self.mc_guess.as_ref().map(|stats| stats.action_time),
+            GameKind::Blackjack => self.blackjack.as_ref().map(|stats| stats.action_time),
+            GameKind::Doudizhu => self.doudizhu.as_ref().map(|stats| stats.action_time),
+            GameKind::Guandan => self.guandan.as_ref().map(|stats| stats.action_time),
+            GameKind::MahjongLink => self.mahjong_link.as_ref().map(|stats| stats.action_time),
+        }
+        .unwrap_or_default()
+    }
+}
+
 fn bet(amount: u32) -> ClientCommand {
     ClientCommand::Game(
         BlackjackCommand::Act {
@@ -143,16 +167,14 @@ fn only_an_accepted_human_decision_records_elapsed_time_and_replays_do_not_dupli
         .player(player)
         .unwrap()
         .game_profiles
-        .action_times
-        .get(GameKind::Blackjack);
+        .action_time(GameKind::Blackjack);
     assert_eq!((stats.total_millis, stats.completed_actions), (2000, 1));
     assert_eq!(
         snapshot
             .player(player)
             .unwrap()
             .game_profiles
-            .action_times
-            .get(GameKind::Texas)
+            .action_time(GameKind::Texas)
             .completed_actions,
         0
     );
@@ -173,8 +195,7 @@ fn only_an_accepted_human_decision_records_elapsed_time_and_replays_do_not_dupli
             .player(player)
             .unwrap()
             .game_profiles
-            .action_times
-            .get(GameKind::Blackjack),
+            .action_time(GameKind::Blackjack),
         stats
     );
 }
@@ -195,7 +216,11 @@ fn auto_play_and_timeout_do_not_count_as_human_thinking_samples() {
             .advance_time(Duration::from_secs(if auto_play { 1 } else { 15 }));
         let (snapshot, _) = table.view();
         assert_eq!(
-            snapshot.player(player).unwrap().game_profiles.action_times,
+            snapshot
+                .player(player)
+                .unwrap()
+                .game_profiles
+                .action_time(GameKind::Blackjack),
             Default::default()
         );
     }

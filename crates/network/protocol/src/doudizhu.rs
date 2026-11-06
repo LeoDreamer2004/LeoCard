@@ -121,6 +121,6 @@ pub struct DoudizhuPlayerView {
     pub hand_len: u16,
     pub ready: bool,
     pub connected: bool,
-    /// 由房主执行的托管状态；所有客户端都可见。
+    /// 由房主执行的托管状态，所有客户端都可见。
     pub auto_play: bool,
 }

@@ -168,7 +168,7 @@ impl GuessTable<'_> {
         );
         commands
             .entity(candidates)
-            // 输入同步统一持有候选按钮；页面重建不重置缓存，也不再创建第二套。
+            // 输入同步统一持有候选按钮，页面重建不重置缓存，也不再创建第二套。
             .init(GuessCandidates::default());
     }
 

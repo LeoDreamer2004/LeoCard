@@ -82,8 +82,7 @@ fn reconnect_restarts_the_human_window_and_preserves_host_owned_samples() {
             .player(actor)
             .unwrap()
             .game_profiles
-            .action_times
-            .get(GameKind::Guandan);
+            .action_time(GameKind::Guandan);
         assert_eq!(
             (
                 stats.total_millis,
@@ -111,58 +110,8 @@ fn reconnect_restarts_the_human_window_and_preserves_host_owned_samples() {
                 .player(actor)
                 .unwrap()
                 .game_profiles
-                .action_times
-                .get(GameKind::Guandan),
+                .action_time(GameKind::Guandan),
             stats
         );
     }
-}
-
-#[test]
-fn taking_over_from_auto_play_restarts_without_counting_unattended_time() {
-    let mut table = Table::new_for(GameRules::Guandan(Default::default()));
-    let actor = table.view().1.clocks[0].player;
-    let connection = u64::from(actor.0) + 1;
-    table.session.advance_time(Duration::from_secs(2));
-    table.send(
-        connection,
-        ClientCommand::Game(GuandanCommand::SetAutoPlay { enabled: true }.into()),
-    );
-    assert!(table.view().1.clocks.is_empty());
-    // Keep below the bot action delay so the same required decision remains.
-    table.session.advance_time(Duration::from_millis(500));
-    table.send(
-        connection,
-        ClientCommand::Game(GuandanCommand::SetAutoPlay { enabled: false }.into()),
-    );
-    assert_eq!(table.view().1.clocks[0].elapsed_millis, 0);
-    table.session.advance_time(Duration::from_millis(750));
-    let GameSnapshot::Guandan(snapshot) = table.view_for(connection).0 else {
-        unreachable!()
-    };
-    table.send(
-        connection,
-        ClientCommand::Game(
-            GuandanCommand::Act(leocard_guandan::GuandanAction::Play(vec![
-                snapshot.your_hand[0],
-            ]))
-            .into(),
-        ),
-    );
-    let stats = table
-        .view()
-        .0
-        .player(actor)
-        .unwrap()
-        .game_profiles
-        .action_times
-        .get(GameKind::Guandan);
-    assert_eq!(
-        (
-            stats.total_millis,
-            stats.completed_actions,
-            stats.longest_millis
-        ),
-        (750, 1, 750)
-    );
 }

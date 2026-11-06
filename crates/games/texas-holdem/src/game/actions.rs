@@ -20,9 +20,7 @@ impl TexasGameState {
                     player,
                     street: previous.street(),
                     action,
-                    payment: self.players[player.index()]
-                        .committed_total
-                        .saturating_sub(previous.players[player.index()].committed_total),
+                    payment: self.paid_by(player) - previous.paid_by(player),
                     pot_before: previous.pot(),
                 });
                 Ok(outcome)
@@ -53,6 +51,11 @@ impl TexasGameState {
         let old_street = self.street();
         let old_community = self.community.len();
         let full_raise = self.apply_betting_action(player, action)?;
+        // Preserve the old bet for full-raise detection, then cap later calls at
+        // the first all-in's own investment, even when it was an undercall.
+        if let Some(target) = self.all_in_lock {
+            self.current_bet = target;
+        }
 
         if self.contenders().len() == 1 {
             let result = self.settle_uncontested();
@@ -66,6 +69,12 @@ impl TexasGameState {
     fn validate_actor(&self, player: PlayerId) -> Result<(), TexasGameError> {
         if matches!(self.phase, TexasPhase::Complete(_)) {
             return Err(TexasGameError::HandAlreadyComplete);
+        }
+        if matches!(self.phase, TexasPhase::ChoosingRunout) {
+            return Err(TexasGameError::MustChooseRunout);
+        }
+        if player.index() >= self.players.len() {
+            return Err(TexasGameError::InvalidPlayer(player));
         }
         let expected = self
             .current_player
@@ -93,6 +102,9 @@ impl TexasGameState {
             TexasBlindKind::Small => TexasRuleSet::SMALL_BLIND,
             TexasBlindKind::Big => TexasRuleSet::BIG_BLIND,
         };
+        let requested = self.all_in_lock.map_or(requested, |target| {
+            requested.min(target.saturating_sub(self.players[player.index()].committed_street))
+        });
         let amount = requested.min(self.players[player.index()].stack);
         self.commit(player, amount);
 
@@ -107,6 +119,11 @@ impl TexasGameState {
         if let TexasPhase::Complete(result) = &self.phase {
             return Ok(TexasActionOutcome::HandComplete(result.clone()));
         }
+        if matches!(self.phase, TexasPhase::ChoosingRunout) {
+            return Ok(TexasActionOutcome::RunoutVoteStarted {
+                current_player: self.current_player.expect("runout voter"),
+            });
+        }
         Ok(TexasActionOutcome::BlindPosted {
             player,
             kind,
@@ -118,12 +135,13 @@ impl TexasGameState {
     fn open_preflop_betting(&mut self) -> Result<(), TexasGameError> {
         // 大盲是翻前的首次下注，之后最多再加注三次。
         self.full_bets = 1;
-        self.current_bet = self
-            .players
-            .iter()
-            .map(TexasPlayerState::committed_street)
-            .max()
-            .unwrap_or(0);
+        self.current_bet = self.all_in_lock.unwrap_or_else(|| {
+            self.players
+                .iter()
+                .map(TexasPlayerState::committed_street)
+                .max()
+                .unwrap_or(0)
+        });
         self.needs_action.fill(false);
         self.raise_allowed.fill(false);
         for index in 0..self.players.len() {
@@ -134,7 +152,7 @@ impl TexasGameState {
         }
         self.current_player = self.next_needing_action(self.big_blind);
         if self.current_player.is_none() {
-            self.run_out_and_showdown()?;
+            self.finish_betting_round()?;
         }
         Ok(())
     }
@@ -276,7 +294,10 @@ impl TexasGameState {
         }
         let current_player = self
             .current_player
-            .expect("new street has an acting player");
+            .expect("new street or vote has an acting player");
+        if matches!(self.phase, TexasPhase::ChoosingRunout) {
+            return Ok(TexasActionOutcome::RunoutVoteStarted { current_player });
+        }
         Ok(TexasActionOutcome::StreetAdvanced {
             street: self.street(),
             current_player,

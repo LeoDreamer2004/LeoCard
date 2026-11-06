@@ -1,4 +1,7 @@
-use super::rows::{ProfileRow, ProfileRowsBuilder, average_reference_delta, rate_or_placeholder};
+use super::rows::{
+    ProfileRow, ProfileRowsBuilder, average_reference_delta, rate_or_placeholder,
+    seconds_or_placeholder,
+};
 use leocard_mahjong::{MAHJONG_MAJOR_FANS, MahjongProfileStats};
 
 pub(crate) fn mahjong_profile_rows(stats: Option<&MahjongProfileStats>) -> Vec<ProfileRow> {
@@ -20,8 +23,12 @@ pub(crate) fn mahjong_profile_rows(stats: Option<&MahjongProfileStats>) -> Vec<P
     ];
     let mut labels = LABELS.to_vec();
     labels.extend(MAHJONG_MAJOR_FANS.iter().map(|fan| fan.name()));
+    let action_time = (
+        "平均每手用时",
+        seconds_or_placeholder(stats.and_then(|stats| stats.action_time.average_seconds())),
+    );
     let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
-        return ProfileRowsBuilder::unavailable(&labels);
+        return ProfileRowsBuilder::unavailable(&labels, [action_time]);
     };
     let games = f64::from(stats.completed_games);
     let hands = stats.hands_played;
@@ -75,5 +82,6 @@ pub(crate) fn mahjong_profile_rows(stats: Option<&MahjongProfileStats>) -> Vec<P
             .zip(stats.major_fan_counts)
             .map(|(fan, count)| (fan.name(), count.to_string())),
     );
+    rows.push(action_time);
     rows
 }

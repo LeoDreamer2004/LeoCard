@@ -1,4 +1,4 @@
-use super::rows::{ProfileRowsBuilder, rate_or_placeholder};
+use super::rows::{ProfileRowsBuilder, rate_or_placeholder, seconds_or_placeholder};
 use leocard_guandan::GuandanProfileStats;
 
 pub(crate) fn guandan_profile_rows(
@@ -24,8 +24,12 @@ pub(crate) fn guandan_profile_rows(
         "同花顺次数",
         "四王炸次数",
     ];
+    let action_time = (
+        "平均每手用时",
+        seconds_or_placeholder(stats.and_then(|stats| stats.action_time.average_seconds())),
+    );
     let Some(stats) = stats.filter(|stats| stats.completed_games > 0) else {
-        return ProfileRowsBuilder::unavailable(&LABELS);
+        return ProfileRowsBuilder::unavailable(&LABELS, [action_time]);
     };
     let mut rows = ProfileRowsBuilder::plain(stats.completed_games, stats.total_reference_delta);
     rows.extend([
@@ -63,5 +67,6 @@ pub(crate) fn guandan_profile_rows(
         ("同花顺次数", stats.straight_flush_plays.to_string()),
         ("四王炸次数", stats.joker_bomb_plays.to_string()),
     ]);
+    rows.extend([action_time]);
     rows.finish()
 }

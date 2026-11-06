@@ -448,7 +448,7 @@ fn power_outage_opens_ten_second_round_then_bottom_flip_is_publicly_held() {
     assert_eq!(reveal.dealer, Some(PlayerId(2)));
     assert_eq!(reveal.trump.unwrap().suit, Some(ShengjiSuit::Spade));
 
-    // 旧的 1.4 秒节奏会在玩家交互演出完成前收起翻牌；
+    // 旧的 1.4 秒节奏会在玩家交互演出完成前收起翻牌，
     // 现在到这个时点仍必须保持公开。
     session.advance_time(Duration::from_millis(1400));
     assert!(matches!(

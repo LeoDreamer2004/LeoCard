@@ -252,6 +252,7 @@ impl NormalizeRuleSet for TexasRuleSet {
     fn normalized(self) -> Self {
         let rules = Self {
             player_count: Self::MAX_PLAYERS,
+            run_it_twice: self.run_it_twice && !self.side_pots,
             ..self
         };
         rules.validate_options().unwrap_or_else(|_| Self {

@@ -16,7 +16,7 @@ pub enum PersonalEvent {
         coins: u32,
     },
     SakuraTunnelStarted,
-    /// One required manual operation accepted by the host, not a running clock or total.
+    /// A required manual action accepted by the host, independent of running clocks or totals.
     ActionCompleted {
         elapsed: Duration,
     },

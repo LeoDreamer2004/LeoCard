@@ -61,23 +61,25 @@ pub(super) fn poll_network(
     }) {
         return;
     }
-    if sync_local_profile(client.0.model(), &mut profile)
-        && let Err(error) = profile.save()
-    {
-        page_error.error = Some(error);
-    }
+    sync_local_profile(client.0.model(), &mut profile, &mut page_error);
     sync_host_rule_preferences(client.0.model(), &mut host_rules, &mut page_error);
     ui.after_poll(&client.0, before, &mut page_error);
 }
 
-pub(crate) fn sync_local_profile(model: &ClientModel, profile: &mut LocalPlayerProfile) -> bool {
+fn sync_local_profile(
+    model: &ClientModel,
+    profile: &mut LocalPlayerProfile,
+    page_error: &mut PageErrorState,
+) {
     let mut changed = model
         .last_finished_match()
         .is_some_and(|(match_id, changes)| profile.apply_finished_match(match_id, changes));
     if let Some(profiles) = model.local_game_profiles() {
         changed |= profile.sync_game_profiles(profiles);
     }
-    changed
+    if changed && let Err(error) = profile.save() {
+        page_error.error = Some(error);
+    }
 }
 
 fn sync_host_rule_preferences(

@@ -106,7 +106,7 @@ pub(super) fn update_turn_notifications(
         let ClientPhaseRef::Playing(game) = model.phase() else {
             return None;
         };
-        // 观战快照沿用被观察者的 you；真实本地身份必须另行核对。
+        // 观战快照沿用被观察者的 you。真实本地身份必须另行核对。
         if model.you() != Some(game.you()) || !screens.requires_action(game) {
             return None;
         }

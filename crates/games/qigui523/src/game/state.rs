@@ -153,7 +153,7 @@ impl fmt::Display for QiGuiGameError {
             Self::InvalidDeckContents => f.write_str("牌堆有缺牌、重复牌或不属于当前副数的牌"),
             Self::InvalidPlayer(player) => write!(f, "玩家 {:?} 不存在", player),
             Self::NotPlayersTurn { expected, actual } => {
-                write!(f, "尚未轮到 {:?}；当前应由 {:?} 操作", actual, expected)
+                write!(f, "尚未轮到 {:?}，当前应由 {:?} 操作", actual, expected)
             }
             Self::GameAlreadyFinished => f.write_str("本局已经结束"),
             Self::MustLeadWithCards => f.write_str("本轮首家不能跳过，必须出牌"),

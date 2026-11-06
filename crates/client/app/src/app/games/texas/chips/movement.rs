@@ -74,7 +74,7 @@ impl TexasChipTableState {
             }
         }
 
-        // 没有可换筹码时由桌面钱箱拆分；旧筹码退场，小筹码从同一点散开。
+        // 没有可换筹码时由桌面钱箱拆分，旧筹码退场，小筹码从同一点散开。
         let exchange_point = player
             .map(|owner| self.zone_layout(ChipZone::Bet(owner)).center())
             .unwrap_or_else(|| self.zone_layout(ChipZone::Pot(0)).center());

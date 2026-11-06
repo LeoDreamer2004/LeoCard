@@ -1,6 +1,6 @@
 use std::{collections::HashSet, hash::Hash};
 
-/// 依据物理牌身份判断是否重复；不同副本的同牌面牌可以同时出现。
+/// 依据物理牌身份判断是否重复，不同副本的同牌面牌可以同时出现。
 pub fn has_unique_cards<Card: Eq + Hash>(cards: &[Card]) -> bool {
     let mut seen = HashSet::with_capacity(cards.len());
     cards.iter().all(|card| seen.insert(card))

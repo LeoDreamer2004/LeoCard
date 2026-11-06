@@ -1,7 +1,29 @@
-use super::windows::PendingAction;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{ActionClock, ActionTimingSnapshot, GameKind, MatchId};
+use std::fmt::Debug;
 use std::time::Duration;
+
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) struct PendingAction {
+    pub player: PlayerId,
+    /// Process-local equality token, never serialized or persisted.
+    key: Vec<u8>,
+}
+
+impl PendingAction {
+    pub(crate) fn for_players(
+        players: impl IntoIterator<Item = PlayerId>,
+        context: impl Debug,
+    ) -> Vec<Self> {
+        players
+            .into_iter()
+            .map(|player| Self {
+                player,
+                key: format!("{:?}", (player, &context)).into_bytes(),
+            })
+            .collect()
+    }
+}
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ActionTimingState {
@@ -18,11 +40,11 @@ struct ActiveWindow {
 }
 
 impl ActionTimingState {
-    pub(super) fn advance(&mut self, elapsed: Duration) {
+    pub(crate) fn advance(&mut self, elapsed: Duration) {
         self.now = self.now.saturating_add(elapsed);
     }
 
-    pub(super) fn sync(&mut self, game: GameKind, match_id: MatchId, windows: Vec<PendingAction>) {
+    pub(crate) fn sync(&mut self, game: GameKind, match_id: MatchId, windows: Vec<PendingAction>) {
         if self.scope != Some((game, match_id)) {
             self.active.clear();
             self.scope = Some((game, match_id));
@@ -49,7 +71,7 @@ impl ActionTimingState {
         self.active = active;
     }
 
-    pub(super) fn complete(&mut self, player: PlayerId) -> Option<u64> {
+    pub(crate) fn complete(&mut self, player: PlayerId) -> Option<u64> {
         let index = self
             .active
             .iter()
@@ -63,7 +85,7 @@ impl ActionTimingState {
         )
     }
 
-    pub(super) fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         self.scope = None;
         self.active.clear();
     }

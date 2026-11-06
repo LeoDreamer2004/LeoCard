@@ -277,15 +277,15 @@ pub(crate) const fn uno_extension_card_help(face: UnoFace) -> Option<(&'static s
         )),
         UnoFace::WildNoU => Some((
             "罚牌反弹",
-            "受到摸牌惩罚时将累计罚牌退给上一名罚牌者；平时作为万能反转牌使用。",
+            "受到摸牌惩罚时将累计罚牌退给上一名罚牌者，平时作为万能反转牌使用。",
         )),
         UnoFace::StackOne => Some((
             "堆叠 +1",
-            "按当前颜色打出，使下家累计摸一张；罚牌链中也必须匹配当前颜色。",
+            "按当前颜色打出，使下家累计摸一张。罚牌链中也必须匹配当前颜色。",
         )),
         UnoFace::StackTwo => Some((
             "堆叠 +2",
-            "按当前颜色打出，使下家累计摸两张；罚牌链中也必须匹配当前颜色。",
+            "按当前颜色打出，使下家累计摸两张。罚牌链中也必须匹配当前颜色。",
         )),
         UnoFace::WildStackThree => {
             Some(("万能堆叠 +3", "可随时打出并选择颜色，使下家累计摸三张。"))
@@ -294,10 +294,10 @@ pub(crate) const fn uno_extension_card_help(face: UnoFace) -> Option<(&'static s
             "万能随机堆叠",
             "选择颜色后从摸牌堆翻牌，直到出现数字牌，并将该数字加入累计罚牌。",
         )),
-        UnoFace::DrawFour => Some(("摸四", "使下一名玩家累计摸四张；可压在 +2 或 +4 上。")),
+        UnoFace::DrawFour => Some(("摸四", "使下一名玩家累计摸四张，可压在 +2 或 +4 上。")),
         UnoFace::DrawFive => Some((
             "摸五",
-            "使下一名玩家累计摸五张；启用功能牌堆叠时可继续累计。",
+            "使下一名玩家累计摸五张，启用功能牌堆叠时可继续累计。",
         )),
         UnoFace::SkipEveryone => Some(("跳过所有人", "跳过所有其他玩家，由你立即再行动一次。")),
         UnoFace::Flip => Some((
@@ -306,7 +306,7 @@ pub(crate) const fn uno_extension_card_help(face: UnoFace) -> Option<(&'static s
         )),
         UnoFace::WildDrawColor => Some((
             "指定颜色摸牌",
-            "选择一种颜色；下一名玩家持续摸牌，直到摸到该颜色。",
+            "选择一种颜色，下一名玩家持续摸牌，直到摸到该颜色。",
         )),
         UnoFace::DiscardAll => Some(("全部弃牌", "同时弃掉手中所有与此牌同色的牌。")),
         UnoFace::WildReverseDrawFour => Some((

@@ -1,16 +1,12 @@
 //! Frozen v8 archive: preserve all nine game profiles before adding ten-game timing.
 use super::super::{StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
+use super::legacy::{
+    BlackjackProfileStats, DoudizhuProfileStats, GuandanProfileStats, MahjongProfileStats,
+    McGuessProfileStats, QiGui523ProfileStats, ShengjiProfileStats, TexasProfileStats,
+    UnoProfileStats,
+};
 use super::profile::decode_exact;
-use leocard_blackjack::BlackjackProfileStats;
-use leocard_doudizhu::DoudizhuProfileStats;
-use leocard_guandan::GuandanProfileStats;
-use leocard_mahjong::MahjongProfileStats;
-use leocard_mc_guess::McGuessProfileStats;
 use leocard_protocol::PlayerInteractionStats;
-use leocard_qigui523::QiGui523ProfileStats;
-use leocard_shengji::ShengjiProfileStats;
-use leocard_texas_holdem::TexasProfileStats;
-use leocard_uno::UnoProfileStats;
 use serde::Deserialize;
 
 pub(super) const V8_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v8\0";
@@ -45,16 +41,16 @@ pub(super) fn decode_v8(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
         rating: previous.rating,
         interaction_stats: previous.interaction_stats,
         games: StoredGameProfiles {
-            qigui523_stats: games.qigui523_stats,
-            texas_stats: games.texas_stats,
-            shengji_stats: games.shengji_stats,
-            uno_stats: games.uno_stats,
-            mahjong_stats: games.mahjong_stats,
-            mc_guess_stats: games.mc_guess_stats,
-            blackjack_stats: games.blackjack_stats,
-            doudizhu_stats: games.doudizhu_stats,
-            guandan_stats: games.guandan_stats,
+            qigui523_stats: games.qigui523_stats.map(Into::into),
+            texas_stats: games.texas_stats.map(Into::into),
+            shengji_stats: games.shengji_stats.map(Into::into),
+            uno_stats: games.uno_stats.map(Into::into),
+            mahjong_stats: games.mahjong_stats.map(Into::into),
+            mc_guess_stats: games.mc_guess_stats.map(Into::into),
+            blackjack_stats: games.blackjack_stats.map(Into::into),
+            doudizhu_stats: games.doudizhu_stats.map(Into::into),
+            guandan_stats: games.guandan_stats.map(Into::into),
+            mahjong_link_stats: None,
         },
-        action_times: Default::default(),
     })
 }

@@ -1,10 +1,9 @@
 use super::super::scroll::{ArchiveEdgeSide, ProfileArchiveEdge};
-use super::super::stats::append_action_time_row;
 use super::super::{
     ProfileArchiveScroll, ProfileGameTab, ProfileGameTabButton, SelectedProfileGameTab, TAB_IDLE,
-    blackjack_profile_rows, doudizhu_profile_rows, guandan_profile_rows, mahjong_profile_rows,
-    mc_guess_profile_rows, qigui523_profile_rows, shengji_profile_rows, texas_profile_rows,
-    uno_profile_rows,
+    blackjack_profile_rows, doudizhu_profile_rows, guandan_profile_rows, mahjong_link_profile_rows,
+    mahjong_profile_rows, mc_guess_profile_rows, qigui523_profile_rows, shengji_profile_rows,
+    texas_profile_rows, uno_profile_rows,
 };
 use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
@@ -166,7 +165,7 @@ impl<'a> ProfileArchive<'a> {
                 ),
             );
         }
-        let mut rows = match self.selected_game {
+        let rows = match self.selected_game {
             ProfileGameTab::Blackjack => {
                 blackjack_profile_rows(self.game_profiles.blackjack.as_ref())
             }
@@ -178,14 +177,10 @@ impl<'a> ProfileArchive<'a> {
             ProfileGameTab::Uno => uno_profile_rows(self.game_profiles.uno.as_ref()),
             ProfileGameTab::Mahjong => mahjong_profile_rows(self.game_profiles.mahjong.as_ref()),
             ProfileGameTab::McGuess => mc_guess_profile_rows(self.game_profiles.mc_guess.as_ref()),
-            ProfileGameTab::MahjongLink => Vec::new(),
+            ProfileGameTab::MahjongLink => {
+                mahjong_link_profile_rows(self.game_profiles.mahjong_link.as_ref())
+            }
         };
-        append_action_time_row(
-            &mut rows,
-            self.game_profiles
-                .action_times
-                .get(self.selected_game.kind()),
-        );
         for (label, value) in rows {
             self.add_row(commands, content, label, &value);
         }

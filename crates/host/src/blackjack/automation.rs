@@ -1,5 +1,6 @@
 use super::BlackjackSession;
 use crate::Delivery;
+use crate::action_timing::attach_action_timing;
 use crate::lifecycle::HostedGameLifecycle;
 use leocard_blackjack::{BlackjackAutoPlay, BlackjackBot, BlackjackObservation, BlackjackPhase};
 use std::time::Duration;
@@ -18,6 +19,13 @@ impl BlackjackSession {
     }
 
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        self.room.action_timing.advance(elapsed);
+        let deliveries = self.advance_game_time(elapsed);
+        self.refresh_action_timing();
+        attach_action_timing(self, deliveries)
+    }
+
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         if elapsed.is_zero() || self.room.closed {
             return Vec::new();
         }

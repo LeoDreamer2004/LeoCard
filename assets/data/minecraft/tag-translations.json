@@ -1,5 +1,5 @@
 {
-  "description": "项目自定义中文译名；非 Minecraft 官方汉化。键为稳定的类型化标签 ID，可单独编辑。",
+  "description": "项目自定义中文译名，非 Minecraft 官方汉化。键为稳定的类型化标签 ID，可单独编辑。",
   "registry_types": {
     "block": "方块标签",
     "item": "物品标签",

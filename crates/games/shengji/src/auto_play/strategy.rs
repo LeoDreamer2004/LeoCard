@@ -7,7 +7,7 @@ use crate::{
 
 /// 双升最小贪心托管策略作出一次出牌决定所需的信息。
 ///
-/// `lead` 为 `None` 时托管策略领出最小单张；否则严格履行跟门、对子和拖拉机义务。
+/// `lead` 为 `None` 时托管策略领出最小单张，否则严格履行跟门、对子和拖拉机义务。
 #[derive(Clone, Copy, Debug)]
 pub struct ShengjiAutoPlayRequest<'a> {
     pub hand: &'a [ShengjiCard],

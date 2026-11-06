@@ -1,7 +1,8 @@
 use super::automation::DoudizhuBotObservation;
 use super::statistics::DoudizhuStatistics;
+use crate::action_timing::attach_action_timing;
 use crate::automation::BotDecision;
-use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
+use crate::lifecycle::HostedGameLifecycle;
 use crate::{ConnectionId, Delivery, HostError, RoomSession};
 use leocard_doudizhu::achievements::DoudizhuAchievementTracker;
 use leocard_doudizhu::{
@@ -80,7 +81,7 @@ impl DoudizhuSession {
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
-        dispatch_client_command(self, connection, message)
+        self.dispatch_with_action_timing(connection, message)
     }
 
     pub(super) fn reset_automatic_delay(&mut self) {
@@ -89,6 +90,13 @@ impl DoudizhuSession {
     }
 
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        self.room.action_timing.advance(elapsed);
+        let deliveries = self.advance_game_time(elapsed);
+        self.refresh_action_timing();
+        attach_action_timing(self, deliveries)
+    }
+
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         let Some(game) = &self.game else {
             return Vec::new();
         };

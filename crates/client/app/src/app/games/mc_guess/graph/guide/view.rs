@@ -95,7 +95,7 @@ pub(super) fn render_guide(
     let explanation = add_text(
         commands,
         panel,
-        "未激活的连边只显示分组名称；两端节点均揭晓后，显示具体关系。方向箭头是否提前显示取决于房间设置。",
+        "未激活的连边只显示分组名称。两端节点均揭晓后，显示具体关系。方向箭头是否提前显示取决于房间设置。",
         16.0,
         MUTED,
         assets,

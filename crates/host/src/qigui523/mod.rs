@@ -9,6 +9,7 @@ mod state;
 mod support;
 #[cfg(test)]
 mod tests;
+mod timing;
 
 pub use state::*;
 use support::*;

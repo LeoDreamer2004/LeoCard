@@ -1,9 +1,9 @@
 use super::event::{EventSequence, PendingEvents};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    AvatarId, ClientCommand, ClientMessage, GameRules, GameSnapshot, LobbySnapshot, MatchId,
-    PROTOCOL_VERSION, PlayerReferenceChange, RejectReason, RequestId, Revision, RoomId,
-    ServerEvent, ServerMessage,
+    ActionTimingSnapshot, AvatarId, ClientCommand, ClientMessage, GameRules, GameSnapshot,
+    LobbySnapshot, MatchId, PROTOCOL_VERSION, PlayerReferenceChange, RejectReason, RequestId,
+    Revision, RoomId, ServerEvent, ServerMessage,
 };
 use std::collections::HashMap;
 
@@ -23,6 +23,8 @@ pub struct ClientModel {
     pub(super) you: Option<PlayerId>,
     pub(super) lobby: Option<LobbySnapshot>,
     pub(super) game: Option<GameSnapshot>,
+    pub(super) action_timing: Option<ActionTimingSnapshot>,
+    pub(super) action_timing_serial: u64,
     pub(super) rules: Option<GameRules>,
     pub(super) avatars: HashMap<AvatarId, Vec<u8>>,
     pub(super) room_exit: Option<RoomExitReason>,
@@ -42,6 +44,8 @@ impl ClientModel {
             you: None,
             lobby: None,
             game: None,
+            action_timing: None,
+            action_timing_serial: 0,
             rules: None,
             avatars: HashMap::new(),
             room_exit: None,
@@ -100,6 +104,9 @@ impl ClientModel {
         }
         self.latest_revision = message.revision;
         observe(self.you, &message);
+        self.action_timing = message.action_timing;
+        // Heartbeats may share a revision and even identical elapsed values.
+        self.action_timing_serial = self.action_timing_serial.wrapping_add(1);
         match message.event {
             ServerEvent::RulesSnapshot(rules) => self.rules = Some(rules),
             ServerEvent::AchievementUnlocked(_)
@@ -154,6 +161,9 @@ impl ClientModel {
                 self.rejection.publish(reason);
             }
             ServerEvent::Heartbeat => {}
+        }
+        if self.lobby.is_some() || self.room_exit.is_some() {
+            self.action_timing = None;
         }
         true
     }

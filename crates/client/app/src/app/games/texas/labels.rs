@@ -15,6 +15,7 @@ pub(super) fn street_label(phase: &TexasPhaseView) -> &'static str {
         TexasPhaseView::Betting {
             street: TexasStreet::River,
         } => "河牌圈",
+        TexasPhaseView::ChoosingRunout => "选择发牌次数",
         TexasPhaseView::HandComplete { .. } => "结算",
     }
 }

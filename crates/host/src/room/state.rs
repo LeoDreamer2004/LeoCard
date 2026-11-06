@@ -1,5 +1,6 @@
 use super::{RoomActivity, RoomEntrance};
 use crate::achievements::RoomAchievements;
+use crate::action_timing::ActionTimingState;
 use crate::{ConnectionId, Delivery};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
@@ -26,7 +27,7 @@ pub(crate) struct Participant {
     pub connected: bool,
     /// 房主使用此字段执行游戏对应的托管策略。
     pub auto_play: bool,
-    /// 房主添加的托管座位；机器人没有真实网络连接。
+    /// 房主添加的托管座位，机器人没有真实网络连接。
     pub is_bot: bool,
     pub left: bool,
     pub reference_points: i32,
@@ -36,11 +37,12 @@ pub(crate) struct Participant {
 
 /// 不理解具体棋牌游戏规则的房间状态。
 ///
-/// 游戏后端持有本类型；TCP 连接、身份、头像、座位、准备、修订号和投递格式只在
+/// 游戏后端持有本类型。TCP 连接、身份、头像、座位、准备、修订号和投递格式只在
 /// 这里保存一份。具体游戏仍决定何时允许加入、何时广播大厅或私有牌局快照。
 #[derive(Clone, Debug)]
 pub struct RoomSession {
     pub(crate) achievements: RoomAchievements,
+    pub(crate) action_timing: ActionTimingState,
     activity: RoomActivity,
     pub(super) entrance: Option<RoomEntrance>,
     pub(crate) room_id: RoomId,
@@ -79,6 +81,7 @@ impl RoomSession {
         assert!(seat_count > 0 && capacity <= seat_count);
         Self {
             achievements: RoomAchievements::default(),
+            action_timing: ActionTimingState::default(),
             activity: RoomActivity::default(),
             entrance: None,
             room_id,
@@ -167,7 +170,7 @@ impl RoomSession {
             }
         }
         self.last_requests.insert(connection, message.request_id);
-        // 心跳、身份及头像同步继续流动；冻结期间的大厅交互静默丢弃，不积压补发。
+        // 心跳、身份及头像同步继续流动，冻结期间的大厅交互静默丢弃，不积压补发。
         if self.lobby_entrance().is_some()
             && !matches!(
                 message.command,
@@ -301,6 +304,7 @@ impl RoomSession {
         Delivery {
             recipient,
             message: ServerMessage {
+                action_timing: self.action_timing.snapshot(),
                 game_context: None,
                 protocol_version: PROTOCOL_VERSION,
                 room_id: self.room_id,

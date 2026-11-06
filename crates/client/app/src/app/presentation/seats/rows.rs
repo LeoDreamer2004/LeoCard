@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-/// 横排或折行的玩家列表；与牌桌环形布局共享人数入口。
+/// 横排或折行的玩家列表，与牌桌环形布局共享人数入口。
 pub(crate) struct SeatRows {
     count: u8,
     columns: u8,

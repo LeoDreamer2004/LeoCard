@@ -7,6 +7,7 @@ use leocard_blackjack::BlackjackProfileStats;
 use leocard_doudizhu::DoudizhuProfileStats;
 use leocard_guandan::GuandanProfileStats;
 use leocard_mahjong::MahjongProfileStats;
+use leocard_mahjong_link::MahjongLinkProfileStats;
 use leocard_mc_guess::McGuessProfileStats;
 use leocard_protocol::{
     MatchId, PlayerGameProfiles, PlayerInteractionStats, PlayerReferenceChange,
@@ -23,7 +24,7 @@ use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 
-pub(super) const PROFILE_HEADER: &[u8] = b"LeoCard/profile/v8\0";
+pub(super) const PROFILE_HEADER: &[u8] = b"LeoCard/profile/v9\0";
 
 fn player_profile_path() -> Option<PathBuf> {
     config_file("profile.dat")
@@ -80,6 +81,7 @@ pub(super) struct StoredGameProfiles {
     pub(super) blackjack_stats: Option<BlackjackProfileStats>,
     pub(super) doudizhu_stats: Option<DoudizhuProfileStats>,
     pub(super) guandan_stats: Option<GuandanProfileStats>,
+    pub(super) mahjong_link_stats: Option<MahjongLinkProfileStats>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -139,6 +141,7 @@ impl LocalPlayerProfile {
                     blackjack: stored.games.blackjack_stats,
                     doudizhu: stored.games.doudizhu_stats,
                     guandan: stored.games.guandan_stats,
+                    mahjong_link: stored.games.mahjong_link_stats,
                 },
             });
         }
@@ -183,6 +186,7 @@ impl LocalPlayerProfile {
                 blackjack_stats: self.game_profiles.blackjack.clone(),
                 doudizhu_stats: self.game_profiles.doudizhu.clone(),
                 guandan_stats: self.game_profiles.guandan.clone(),
+                mahjong_link_stats: self.game_profiles.mahjong_link.clone(),
             },
         }
     }
@@ -226,7 +230,8 @@ impl LocalPlayerProfile {
 
     pub fn sync_game_profiles(&mut self, profiles: &PlayerGameProfiles) -> bool {
         // Achievement totals are a projection of the local achievement book.
-        // Room snapshots own game statistics, never local achievement progress.
+        // Room snapshots own game statistics, including action-time totals,
+        // never local achievement progress.
         let mut next = profiles.clone();
         next.achievements = self.game_profiles.achievements;
         next.coins = self.game_profiles.coins;
@@ -238,3 +243,7 @@ impl LocalPlayerProfile {
         true
     }
 }
+
+#[cfg(test)]
+#[path = "tests.rs"]
+mod tests;

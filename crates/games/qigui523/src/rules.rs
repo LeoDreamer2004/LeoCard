@@ -12,7 +12,7 @@ pub enum QiGuiSameCardPolicy {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum QiGuiSuitComparison {
-    /// 只比较整手牌中最大的牌；最大牌相同即为相同强度。
+    /// 只比较整手牌中最大的牌，最大牌相同即为相同强度。
     HighestCard,
     /// 从最大的牌开始逐张向下比较。
     Lexicographic,

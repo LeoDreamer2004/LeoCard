@@ -4,6 +4,7 @@ use leocard_doudizhu::DoudizhuProfileStats;
 use leocard_game_common::PlayerId;
 use leocard_guandan::GuandanProfileStats;
 use leocard_mahjong::MahjongProfileStats;
+use leocard_mahjong_link::MahjongLinkProfileStats;
 use leocard_mc_guess::McGuessProfileStats;
 use leocard_qigui523::QiGui523ProfileStats;
 use leocard_shengji::ShengjiProfileStats;
@@ -14,7 +15,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct RoomId(pub u64);
 
-/// 跨房间稳定的本地玩家身份；其字节同时是 Ed25519 验证公钥。
+/// 跨房间稳定的本地玩家身份，其字节同时是 Ed25519 验证公钥。
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct ProfileId(pub [u8; 32]);
 
@@ -69,6 +70,7 @@ pub struct PlayerGameProfiles {
     pub blackjack: Option<BlackjackProfileStats>,
     pub doudizhu: Option<DoudizhuProfileStats>,
     pub guandan: Option<GuandanProfileStats>,
+    pub mahjong_link: Option<MahjongLinkProfileStats>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -86,6 +88,8 @@ pub enum PlayerInteractionKind {
     Egg,
     Wine,
     Shoe,
+    /// One consumable use: count 100 eggs once and play the barrage locally.
+    EggBarrage,
 }
 
 impl PlayerInteractionKind {
@@ -101,6 +105,7 @@ impl PlayerInteractionKind {
         match self {
             Self::Egg => 1,
             Self::Shoe => 10,
+            Self::EggBarrage => 100,
             _ => 0,
         }
     }
@@ -113,7 +118,7 @@ pub struct PlayerInteraction {
     pub kind: PlayerInteractionKind,
     /// 由房主生成，使所有客户端选择相同音效和命中偏移。
     pub seed: u32,
-    /// 房主记录的房间存续时间；互动窗口不依赖客户端收包时间。
+    /// 房主记录的房间存续时间，互动窗口不依赖客户端收包时间。
     pub elapsed_millis: u64,
 }
 

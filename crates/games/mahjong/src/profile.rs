@@ -1,6 +1,7 @@
 //! Long-term statistics owned by this game. Field order is part of the saved profile format.
 
 use crate::MahjongFan;
+use leocard_game_common::ActionTimeStats;
 
 pub const MAHJONG_MAJOR_FANS: [MahjongFan; 15] = [
     MahjongFan::BigFourWinds,
@@ -36,4 +37,5 @@ pub struct MahjongProfileStats {
     pub total_win_fan: u64,
     /// 按麻将规则库中 88、64、48 番番种的顺序排列。
     pub major_fan_counts: [u32; MAHJONG_MAJOR_FANS.len()],
+    pub action_time: ActionTimeStats,
 }

@@ -58,6 +58,8 @@ pub(in crate::app::games::texas) fn pot_test_snapshot(
         your_hole_cards: Vec::new(),
         revealed_hands: Vec::new(),
         community: Vec::new(),
+        second_community: Vec::new(),
+        runout_votes: Vec::new(),
         draw_pile_len: 52,
         dealer: PlayerId(0),
         small_blind: PlayerId(1),
@@ -113,19 +115,17 @@ fn every_supported_chip_can_be_changed_exactly() {
 
 #[test]
 fn side_pots_only_split_at_all_in_caps_and_keep_correct_eligibility() {
-    let no_all_in = visual_pots(&pot_test_snapshot(&[
-        (5, false, false),
-        (10, false, false),
-        (20, false, false),
-    ]));
+    let no_all_in = visual_pots(
+        &pot_test_snapshot(&[(5, false, false), (10, false, false), (20, false, false)]),
+        true,
+    );
     assert_eq!(no_all_in.len(), 1);
     assert_eq!(no_all_in[0].amount, 35);
 
-    let split = visual_pots(&pot_test_snapshot(&[
-        (5, true, false),
-        (10, true, false),
-        (20, false, false),
-    ]));
+    let split = visual_pots(
+        &pot_test_snapshot(&[(5, true, false), (10, true, false), (20, false, false)]),
+        true,
+    );
     assert_eq!(
         split.iter().map(|pot| pot.amount).collect::<Vec<_>>(),
         vec![15, 10, 10]
@@ -142,7 +142,7 @@ fn side_pots_only_split_at_all_in_caps_and_keep_correct_eligibility() {
 fn authoritative_action_audio_is_not_requeued_by_an_empty_ui_refresh() {
     let snapshot = pot_test_snapshot(&[(0, false, false), (0, false, false), (0, false, false)]);
     let mut state = TexasChipTableState::default();
-    state.initialize(&snapshot);
+    state.initialize(&snapshot, true);
     state.observe(
         &snapshot,
         vec![TexasEvent::ActionApplied {
@@ -157,13 +157,17 @@ fn authoritative_action_audio_is_not_requeued_by_an_empty_ui_refresh() {
                 bet_level: 1,
             },
         }],
+        true,
     );
     assert_eq!(state.audio_cues.len(), 1);
     assert_eq!(state.audio_cues[0].kind, TexasSoundKind::Check);
 
     state.audio_cues.clear();
-    state.observe(&snapshot, Vec::new());
+    state.observe(&snapshot, Vec::new(), true);
     assert!(state.audio_cues.is_empty());
 }
 
+mod delivery;
+mod reconciliation;
+mod runout;
 mod squid;

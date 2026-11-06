@@ -1,5 +1,5 @@
 use super::archive::{V6PlayerProfile, decode_archive};
-use leocard_texas_holdem::TexasProfileStats;
+use super::legacy::TexasProfileStats;
 
 pub(super) const V5_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v5\0";
 
@@ -10,17 +10,15 @@ pub(super) fn decode_v5(bytes: &[u8]) -> Result<V6PlayerProfile, String> {
 #[cfg(test)]
 mod tests {
     use super::super::archive::LegacyRatingProfile;
+    use super::super::legacy::{
+        BlackjackProfileStats, MahjongProfileStats, McGuessProfileStats, QiGui523ProfileStats,
+        ShengjiProfileStats, UnoProfileStats,
+    };
     use super::*;
     use crate::player::profile::PROFILE_HEADER;
     use crate::player::profile::migration::decode_player_profile;
-    use leocard_blackjack::BlackjackProfileStats;
     use leocard_doudizhu::DoudizhuProfileStats;
-    use leocard_mahjong::MahjongProfileStats;
-    use leocard_mc_guess::McGuessProfileStats;
     use leocard_protocol::{MatchId, PlayerInteractionStats};
-    use leocard_qigui523::QiGui523ProfileStats;
-    use leocard_shengji::ShengjiProfileStats;
-    use leocard_uno::UnoProfileStats;
 
     #[test]
     fn v5_archive_preserves_all_existing_bytes_and_persists_new_statistics() {

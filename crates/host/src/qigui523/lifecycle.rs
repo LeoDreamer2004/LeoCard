@@ -1,5 +1,6 @@
 use super::{QiGui523Session, validate_deck};
-use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
+use crate::action_timing::attach_action_timing;
+use crate::lifecycle::HostedGameLifecycle;
 use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
     RoomSession, new_match_id,
@@ -65,8 +66,15 @@ impl QiGui523Session {
         self.room.heartbeat()
     }
 
-    /// 推进权威出牌计时。TCP 层传入真实经过时间；测试和其他宿主也可确定性调用。
+    /// 推进权威出牌计时。TCP 层传入真实经过时间，测试和其他宿主也可确定性调用。
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        self.room.action_timing.advance(elapsed);
+        let deliveries = self.advance_game_time(elapsed);
+        self.refresh_action_timing();
+        attach_action_timing(self, deliveries)
+    }
+
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         if elapsed.is_zero() || self.game.is_none() {
             return Vec::new();
         }
@@ -173,7 +181,7 @@ impl QiGui523Session {
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
-        dispatch_client_command(self, connection, message)
+        self.dispatch_with_action_timing(connection, message)
     }
 }
 
@@ -290,7 +298,7 @@ impl HostedGameLifecycle for QiGui523Session {
             );
         }
 
-        // PlayerId 在大厅内必须保持稳定；只在确定能够开局、且即将给每位玩家
+        // PlayerId 在大厅内必须保持稳定。只在确定能够开局、且即将给每位玩家
         // 下发包含新 `you` 的私有牌局快照时，才压缩并按座位重排参与者。
         self.remove_departed_players();
 

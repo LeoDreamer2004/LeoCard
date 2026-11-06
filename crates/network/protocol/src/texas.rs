@@ -20,14 +20,18 @@ pub struct TexasSnapshot {
     pub your_hole_cards: Vec<TexasCard>,
     pub revealed_hands: Vec<TexasRevealedHand>,
     pub community: Vec<TexasCard>,
+    /// 发两次时的完整第二套公共牌，包含两次共用的已开牌，否则为空。
+    pub second_community: Vec<TexasCard>,
+    /// 按选择顺序记录，不包含弃牌玩家。
+    pub runout_votes: Vec<TexasRunoutVoteView>,
     /// 接收者弃牌所在下注轮已结束，且仍有至少两名玩家继续对局。
     pub spectator_available: bool,
-    /// 接收者请求的胜率开关状态；其他玩家的设置不公开。
+    /// 接收者请求的胜率开关状态，其他玩家的设置不公开。
     pub spectator_win_rates_enabled: bool,
     /// 仅弃牌所在下注轮已结束、且仍有至少两名玩家继续对局的接收者可见。
-    /// Some([]) 表示正在精确计算；不包含其他玩家底牌或未来牌堆顺序。
+    /// Some([]) 表示正在精确计算，不包含其他玩家底牌或未来牌堆顺序。
     pub spectator_equities: Option<Vec<TexasEquity>>,
-    /// 尚未从权威牌堆发出的牌数；客户端可扣除仍扣置在桌面的公共牌数量来绘制牌堆。
+    /// 尚未从权威牌堆发出的牌数，客户端可扣除仍扣置在桌面的公共牌数量来绘制牌堆。
     pub draw_pile_len: u16,
     pub dealer: PlayerId,
     pub small_blind: PlayerId,
@@ -36,7 +40,7 @@ pub struct TexasSnapshot {
     pub blind_to_post: Option<TexasBlindView>,
     pub current_bet: u32,
     pub minimum_raise_to: u32,
-    /// 接收方本次能执行的最高普通加注；None 表示不能完整加注。
+    /// 接收方本次能执行的最高普通加注，None 表示不能完整加注。
     pub maximum_raise_to: Option<u32>,
     pub amount_to_call: u32,
     pub raise_allowed: bool,
@@ -44,6 +48,12 @@ pub struct TexasSnapshot {
     pub pot: u32,
     pub phase: TexasPhaseView,
     pub squid: TexasSquidView,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct TexasRunoutVoteView {
+    pub player: PlayerId,
+    pub twice: bool,
 }
 
 /// Marker order gives every physical marker a stable identity across hands.
@@ -58,7 +68,7 @@ pub struct TexasSquidView {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TexasEquity {
     pub player: PlayerId,
-    /// 万分比；平局按获胜人数均分，弃牌玩家为零。
+    /// 万分比，平局按获胜人数均分，弃牌玩家为零。
     pub basis_points: u16,
 }
 
@@ -81,9 +91,9 @@ pub struct TexasPlayerView {
     pub folded: bool,
     pub all_in: bool,
     pub connected: bool,
-    /// 由房主执行保守策略的托管状态；开发者模式补入的机器人始终为 `true`。
+    /// 由房主执行保守策略的托管状态，开发者模式补入的机器人始终为 `true`。
     pub auto_play: bool,
-    /// 本手结算窗口中的下一手准备状态；房主不享有默认准备。
+    /// 本手结算窗口中的下一手准备状态，房主不享有默认准备。
     pub ready: bool,
 }
 
@@ -94,10 +104,12 @@ pub struct TexasRevealedHand {
     pub cards: Vec<TexasCard>,
     /// 未发满五张公共牌便因其他玩家弃牌结束时，可能不足以组成五张牌型。
     pub best: Option<TexasEvaluatedHand>,
+    pub second_best: Option<TexasEvaluatedHand>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum TexasPhaseView {
+    ChoosingRunout,
     Betting {
         street: TexasStreet,
     },
@@ -114,6 +126,8 @@ pub enum TexasPhaseView {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TexasPotAwardView {
+    /// 1 为普通结算或第一次，2 为第二次。
+    pub run: u8,
     pub amount: u32,
     pub winners: Vec<PlayerId>,
     pub winning_category: Option<TexasHandCategory>,
@@ -127,6 +141,9 @@ pub enum TexasViolation {
     PlayerCannotAct,
     MustPostBlind,
     NoBlindToPost,
+    NotChoosingRunout,
+    MustChooseRunout,
+    RunoutAlreadyChosen,
     CannotCheckWhileFacingBet { amount_to_call: u32 },
     NothingToCall,
     RaiseMustExceedCurrentBet { current_bet: u32, target: u32 },
@@ -146,6 +163,9 @@ impl fmt::Display for TexasViolation {
             Self::PlayerCannotAct => "弃牌、全下或离线玩家不能继续行动",
             Self::MustPostBlind => "当前只能下盲注",
             Self::NoBlindToPost => "当前没有需要下的盲注",
+            Self::NotChoosingRunout => "当前不在发牌次数选择阶段",
+            Self::MustChooseRunout => "请先选择发一次或发两次",
+            Self::RunoutAlreadyChosen => "你已经选择过发牌次数",
             Self::CannotCheckWhileFacingBet { .. } => "面对下注时不能过牌",
             Self::NothingToCall => "当前没有需要跟注的筹码",
             Self::RaiseMustExceedCurrentBet { .. } => "加注必须超过当前最高注",

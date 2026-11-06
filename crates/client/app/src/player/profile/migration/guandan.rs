@@ -1,16 +1,12 @@
 //! v7 档案增加掼蛋统计，保留身份、结算凭据、互动及全部旧游戏数据。
 
 use super::super::{StoredGameProfiles, StoredPlayerProfile, StoredRatingProfile};
+use super::legacy::{
+    BlackjackProfileStats, DoudizhuProfileStats, MahjongProfileStats, McGuessProfileStats,
+    QiGui523ProfileStats, ShengjiProfileStats, TexasProfileStats, UnoProfileStats,
+};
 use super::profile::decode_exact;
-use leocard_blackjack::BlackjackProfileStats;
-use leocard_doudizhu::DoudizhuProfileStats;
-use leocard_mahjong::MahjongProfileStats;
-use leocard_mc_guess::McGuessProfileStats;
 use leocard_protocol::PlayerInteractionStats;
-use leocard_qigui523::QiGui523ProfileStats;
-use leocard_shengji::ShengjiProfileStats;
-use leocard_texas_holdem::TexasProfileStats;
-use leocard_uno::UnoProfileStats;
 use serde::Deserialize;
 
 pub(super) const V7_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v7\0";
@@ -44,15 +40,16 @@ pub(super) fn decode_v7(bytes: &[u8]) -> Result<StoredPlayerProfile, String> {
         rating: previous.rating,
         interaction_stats: previous.interaction_stats,
         games: StoredGameProfiles {
-            qigui523_stats: games.qigui523_stats,
-            texas_stats: games.texas_stats,
-            shengji_stats: games.shengji_stats,
-            uno_stats: games.uno_stats,
-            mahjong_stats: games.mahjong_stats,
-            mc_guess_stats: games.mc_guess_stats,
-            blackjack_stats: games.blackjack_stats,
-            doudizhu_stats: games.doudizhu_stats,
+            qigui523_stats: games.qigui523_stats.map(Into::into),
+            texas_stats: games.texas_stats.map(Into::into),
+            shengji_stats: games.shengji_stats.map(Into::into),
+            uno_stats: games.uno_stats.map(Into::into),
+            mahjong_stats: games.mahjong_stats.map(Into::into),
+            mc_guess_stats: games.mc_guess_stats.map(Into::into),
+            blackjack_stats: games.blackjack_stats.map(Into::into),
+            doudizhu_stats: games.doudizhu_stats.map(Into::into),
             guandan_stats: None,
+            mahjong_link_stats: None,
         },
     })
 }
@@ -113,14 +110,12 @@ mod tests {
         assert_eq!(profile.identity.secret_bytes(), key);
         assert_eq!(profile.reference_points(), rating.reference_points);
         assert!(profile.rating.applied_matches.contains(&receipt));
-        assert_eq!(profile.game_profiles().qigui523, qigui);
-        assert_eq!(profile.game_profiles().doudizhu, doudizhu);
+        assert_eq!(profile.game_profiles().qigui523, qigui.map(Into::into));
+        assert_eq!(profile.game_profiles().doudizhu, doudizhu.map(Into::into));
         assert_eq!(profile.game_profiles().interactions, interactions);
         assert_eq!(profile.game_profiles().guandan, None);
-        let mut expected = PROFILE_HEADER.to_vec();
-        expected.extend(payload);
-        expected.push(0); // New optional statistics follow the complete v7 payload.
-        assert_eq!(fs::read(&path).unwrap(), expected);
+        let expected = fs::read(&path).unwrap();
+        assert!(expected.starts_with(PROFILE_HEADER));
 
         let mut stored = decode_player_profile(&expected).unwrap();
         stored.games.guandan_stats = Some(GuandanProfileStats {

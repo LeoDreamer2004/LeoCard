@@ -1,13 +1,15 @@
 use super::ShopUiAction;
 use super::skin::{add_price, add_product_card, add_product_icon, add_product_preview};
+use crate::app::games::SUPPORTED_GAMES;
 use crate::app::presentation::{ACCENT, MUTED, TEXT, add_text, add_title, rule_help_style};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     CozyButtonVariant, UiAction, add_cozy_button_variant, add_cozy_disabled_button,
+    add_egg_thrower_icon,
 };
 use bevy::prelude::*;
 use leocard_client::{PlayerEconomy, PropId};
-use leocard_ui::{UiComposer, add_help_tooltip, spawn_node};
+use leocard_ui::{EllipsizedLabel, UiComposer, add_help_tooltip, spawn_node};
 
 #[derive(Component)]
 pub(super) struct PropRemaining {
@@ -32,6 +34,7 @@ pub(super) fn render_prop(
             height: px(58),
             justify_content: JustifyContent::SpaceBetween,
             align_items: AlignItems::FlexStart,
+            column_gap: px(8),
             border: UiRect::bottom(px(1)),
             ..default()
         },
@@ -45,6 +48,8 @@ pub(super) fn render_prop(
         header,
         Node {
             min_width: px(0),
+            flex_grow: 1.0,
+            flex_basis: px(0),
             flex_direction: FlexDirection::Column,
             row_gap: px(3),
             ..default()
@@ -52,13 +57,34 @@ pub(super) fn render_prop(
         None,
     );
     add_title(commands, identity, prop.name, 21.0, TEXT, assets);
-    add_text(commands, identity, prop.game_label, 13.0, MUTED, assets);
+    let games = if prop.games.is_empty() {
+        "通用消耗品".to_owned()
+    } else {
+        prop.games
+            .iter()
+            .map(|kind| {
+                SUPPORTED_GAMES
+                    .iter()
+                    .find(|game| game.kind == *kind)
+                    .expect("prop games belong to the game catalogue")
+                    .title
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
+    EllipsizedLabel {
+        text: &games,
+        font_size: 13.0,
+        color: MUTED,
+        tooltip: rule_help_style(assets),
+    }
+    .mount(commands, identity);
     add_help_tooltip(commands, header, prop.description, rule_help_style(assets));
     let artwork = add_product_preview(commands, card, assets, prop.rarity);
-    add_product_icon(
-        commands,
-        artwork,
-        match id {
+    if id == PropId::AutoEggThrower {
+        add_egg_thrower_icon(commands, artwork, 120.0, assets);
+    } else {
+        let image = match id {
             PropId::ObservationLens => assets.props.observation_lens.clone(),
             PropId::CardCounter
             | PropId::ShengjiCardCounter
@@ -67,9 +93,10 @@ pub(super) fn render_prop(
             PropId::ShengjiMissingSuitCard => assets.props.missing_suit_card.clone(),
             PropId::UnoJumpInDevice => assets.props.uno_jump_in_device.clone(),
             PropId::MahjongFanCalculator => assets.props.mahjong_fan_calculator.clone(),
-        },
-        120.0,
-    );
+            PropId::AutoEggThrower => unreachable!("consumable artwork is composed above"),
+        };
+        add_product_icon(commands, artwork, image, 120.0);
+    }
     let active = economy.active(id);
     let remaining = add_text(
         commands,
@@ -109,6 +136,9 @@ pub(super) fn render_prop(
 }
 
 pub(super) fn remaining_label(economy: &PlayerEconomy, prop: PropId) -> String {
+    if prop.is_consumable() {
+        return format!("已拥有 {} 个", economy.prop_count(prop));
+    }
     let remaining = economy.remaining_seconds(prop);
     if remaining > 0 {
         format!(

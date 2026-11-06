@@ -8,7 +8,7 @@ use std::collections::HashSet;
 /// 一次贪心跟牌请求所需的公开信息。
 ///
 /// `played_cards` 应包含调用方目前已经观察到的公开出牌。它既不会泄露暗牌，
-/// 也不会直接改变合法性；当公开历史发生变化时，它会让有状态策略开始一轮新的搜索。
+/// 也不会直接改变合法性。当公开历史发生变化时，它会让有状态策略开始一轮新的搜索。
 #[derive(Clone, Copy, Debug)]
 pub struct QiGui523BotRequest<'a> {
     pub hand: &'a [QiGuiCard],
@@ -38,7 +38,7 @@ impl QiGui523Bot {
         Self::default()
     }
 
-    /// 返回当前上下文中的下一个贪心候选；耗尽时返回 `None`。
+    /// 返回当前上下文中的下一个贪心候选。耗尽时返回 `None`。
     pub fn choose(&mut self, request: QiGui523BotRequest<'_>) -> Option<QiGuiClassifiedPlay> {
         let key = GreedyContextKey::from_request(request);
         if self.search.as_ref().is_none_or(|search| search.key != key) {

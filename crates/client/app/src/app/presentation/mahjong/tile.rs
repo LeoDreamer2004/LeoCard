@@ -22,7 +22,7 @@ pub(crate) struct MahjongTileMaterial {
     /// rgb: 状态蒙版颜色；w: 强度，优先于同牌提示。
     #[uniform(0)]
     pub highlight: Vec4,
-    /// 牌体离桌高度，用于牌体投影与落地阴影；不叠加矩形 UI 阴影。
+    /// 牌体离桌高度，用于牌体投影与落地阴影，不叠加矩形 UI 阴影。
     #[uniform(0)]
     pub elevation: f32,
     /// Projected ground shadows are painted below every solid tile in a shared table layer.

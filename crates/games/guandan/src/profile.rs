@@ -1,5 +1,7 @@
 //! 掼蛋长期档案，整场结束后合并，小局游次仅统计已确定的名次。
 
+use leocard_game_common::ActionTimeStats;
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct GuandanProfileStats {
@@ -18,4 +20,5 @@ pub struct GuandanProfileStats {
     pub bomb_plays: u32,
     pub straight_flush_plays: u32,
     pub joker_bomb_plays: u32,
+    pub action_time: ActionTimeStats,
 }

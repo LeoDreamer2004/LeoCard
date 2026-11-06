@@ -9,6 +9,7 @@ mod state;
 mod support;
 #[cfg(test)]
 mod tests;
+mod timing;
 
 use analysis::analysis_events;
 use outcome::*;

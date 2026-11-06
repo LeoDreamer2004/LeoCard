@@ -1,12 +1,11 @@
 use super::archive::{LegacyRatingProfile, V6GameProfiles, V6PlayerProfile};
+use super::legacy::{
+    BlackjackProfileStats, MahjongProfileStats, ShengjiProfileStats, UnoProfileStats,
+};
 use super::mc_guess::PreviousMcGuessStats;
 use super::profile::decode_exact;
 use super::texas::V3TexasStats;
-use leocard_blackjack::BlackjackProfileStats;
-use leocard_mahjong::MahjongProfileStats;
 use leocard_protocol::PlayerInteractionStats;
-use leocard_shengji::ShengjiProfileStats;
-use leocard_uno::UnoProfileStats;
 use serde::{Deserialize, Serialize};
 
 pub(super) const V2_PROFILE_HEADER: &[u8] = b"LeoCard/profile/v2\0";
@@ -50,6 +49,7 @@ pub(super) fn decode_v2(bytes: &[u8]) -> Result<V6PlayerProfile, String> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::legacy::TexasProfileStats;
     use super::super::profile::decode_player_profile;
     use super::*;
     use leocard_mc_guess::McGuessProfileStats;
@@ -111,6 +111,7 @@ mod tests {
             unknown_guesses: 8,
             unknown_enabled_guesses: 28,
             skips: 9,
+            ..Default::default()
         };
         let mut bytes = V2_PROFILE_HEADER.to_vec();
         bytes.extend(postcard::to_allocvec(&previous).unwrap());
@@ -136,15 +137,27 @@ mod tests {
         );
         assert_eq!(
             migrated.games.texas_stats,
-            previous.games.texas_stats.map(Into::into)
+            previous
+                .games
+                .texas_stats
+                .map(|previous| TexasProfileStats::from(previous).into())
         );
-        assert_eq!(migrated.games.shengji_stats, previous.games.shengji_stats);
-        assert_eq!(migrated.games.uno_stats, previous.games.uno_stats);
+        assert_eq!(
+            migrated.games.shengji_stats,
+            previous.games.shengji_stats.map(Into::into)
+        );
+        assert_eq!(
+            migrated.games.uno_stats,
+            previous.games.uno_stats.map(Into::into)
+        );
         assert_eq!(migrated.interaction_stats, previous.games.interaction_stats);
-        assert_eq!(migrated.games.mahjong_stats, previous.games.mahjong_stats);
+        assert_eq!(
+            migrated.games.mahjong_stats,
+            previous.games.mahjong_stats.map(Into::into)
+        );
         assert_eq!(
             migrated.games.blackjack_stats,
-            previous.games.blackjack_stats
+            previous.games.blackjack_stats.map(Into::into)
         );
         let encoded = migrated.encode().unwrap();
         let reloaded = decode_player_profile(&encoded).unwrap();

@@ -94,7 +94,7 @@ impl WaitScoreCalculator {
     ) -> WaitScores {
         let index = winning_tile.index34().expect("听牌候选不包含花牌");
         let mut context = self.context;
-        // 悬停提示模拟打出该牌后听牌；自己的弃牌同样属于公开牌。
+        // 悬停提示模拟打出该牌后听牌，自己的弃牌同样属于公开牌。
         context.last_of_kind = self.exposed[index] + u8::from(discarded == Some(winning_tile)) >= 3;
         let mut input = MahjongScoreInput {
             concealed: concealed.iter().copied().chain([winning_tile]).collect(),

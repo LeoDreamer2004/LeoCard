@@ -2,7 +2,8 @@ use super::{
     MAHJONG_DEAL_INTERVAL, MahjongSession, MahjongWinFeedback, events_for_outcome, shuffled_deck,
     validate_deck,
 };
-use crate::lifecycle::{HostedGameLifecycle, dispatch_client_command};
+use crate::action_timing::attach_action_timing;
+use crate::lifecycle::HostedGameLifecycle;
 use crate::{
     AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState, ConnectionId, Delivery, HostError,
     RoomSession, new_match_id,
@@ -74,6 +75,13 @@ impl MahjongSession {
     }
 
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        self.room.action_timing.advance(elapsed);
+        let deliveries = self.advance_game_time(elapsed);
+        self.refresh_action_timing();
+        attach_action_timing(self, deliveries)
+    }
+
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         if elapsed.is_zero() || self.game.is_none() {
             return Vec::new();
         }
@@ -203,7 +211,7 @@ impl MahjongSession {
     }
 
     pub fn handle(&mut self, connection: ConnectionId, message: ClientMessage) -> Vec<Delivery> {
-        dispatch_client_command(self, connection, message)
+        self.dispatch_with_action_timing(connection, message)
     }
 }
 

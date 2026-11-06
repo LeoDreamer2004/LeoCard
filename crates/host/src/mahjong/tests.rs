@@ -68,7 +68,7 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
             },
         },
     ];
-    // 四人中一名机器人仍可记录；非开发者模式下两名机器人时禁止记录。
+    // 四人中一名机器人仍可记录，非开发者模式下两名机器人时禁止记录。
     session.room.players[3].is_bot = true;
     assert!(session.room.records_game_progress());
     let broadcasts = session
@@ -83,7 +83,7 @@ fn match_profile_counts_major_fan_draw_and_false_win_once() {
     }));
     {
         let mut with_bot = session.clone();
-        // 两名真人、一名机器人恰好达到三分之一；开发者模式仍应记录。
+        // 两名真人、一名机器人恰好达到三分之一，开发者模式仍应记录。
         with_bot.room.players[2].left = true;
         assert_eq!(
             with_bot.room.records_game_progress(),

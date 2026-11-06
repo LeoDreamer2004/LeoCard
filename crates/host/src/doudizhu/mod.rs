@@ -5,6 +5,7 @@ mod rounds;
 mod snapshot;
 mod state;
 mod statistics;
+mod timing;
 
 pub use state::DoudizhuSession;
 

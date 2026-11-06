@@ -8,7 +8,7 @@ use std::io::ErrorKind;
 use std::time::{self, SystemTime};
 
 const FILE_MAGIC: &[u8] = b"LEOCARD-ECONOMY\n";
-pub(super) const FORMAT_VERSION: u16 = 6;
+pub(super) const FORMAT_VERSION: u16 = 7;
 
 pub(super) fn unix_seconds() -> u64 {
     SystemTime::now()
@@ -23,6 +23,7 @@ pub(super) struct EconomyArchive {
     pub owned_frames: BTreeSet<AvatarFrameId>,
     pub equipped_frame: AvatarFrameId,
     pub exclusive_frame: Option<AvatarFrameId>,
+    pub consumables: BTreeMap<PropId, u32>,
 }
 
 /// The original v3 wallet payload, reused by later formats.
@@ -56,6 +57,7 @@ impl EconomyArchive {
             owned_frames: BTreeSet::new(),
             equipped_frame: AvatarFrameId::Default,
             exclusive_frame: None,
+            consumables: BTreeMap::new(),
         }
     }
 

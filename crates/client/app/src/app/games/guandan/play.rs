@@ -1,4 +1,4 @@
-use super::cards::{CENTER_PLAY_WIDTH, render_card_row};
+use super::cards::{play_area_width, render_card_row};
 use super::table::GuandanTable;
 use crate::app::presentation::{MUTED, SeatSide, add_text, spawn_trick_play_area};
 use bevy::picking::Pickable;
@@ -16,17 +16,13 @@ impl GuandanTable<'_> {
         side: SeatSide,
     ) {
         let area = spawn_trick_play_area(commands, parent, side);
-        if matches!(side, SeatSide::Top) {
-            commands
-                .entity(area)
-                .entry::<Node>()
-                .and_modify(|mut node| {
-                    node.width = px(CENTER_PLAY_WIDTH);
-                    if cfg!(target_os = "android") {
-                        node.min_height = px(94);
-                    }
-                });
-        }
+        commands
+            .entity(area)
+            .entry::<Node>()
+            .and_modify(move |mut node| {
+                node.width = px(play_area_width(side));
+                node.min_width = node.width;
+            });
         let previous = self.ui.previous_reveal > 0.0;
         let actions = if previous {
             self.game

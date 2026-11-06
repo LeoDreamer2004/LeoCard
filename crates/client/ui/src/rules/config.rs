@@ -19,7 +19,7 @@ pub struct RuleRow<'a, A> {
     pub label: &'a str,
     pub value: String,
     pub help: &'a str,
-    pub editable: bool,
+    /// A missing action keeps the corresponding arrow visible and disabled.
     pub previous: Option<A>,
     pub next: Option<A>,
 }
@@ -60,9 +60,7 @@ pub fn add_rule_row<A: Component + Clone>(
         },
         None,
     );
-    if spec.editable {
-        add_rule_step_button(commands, controls, true, spec.previous, style);
-    }
+    add_rule_step_button(commands, controls, true, spec.previous, style);
     let value_box = commands.child(
         controls,
         (
@@ -81,9 +79,7 @@ pub fn add_rule_row<A: Component + Clone>(
     add_label(
         commands, value_box, spec.value, 15.0, style.text, style.font,
     );
-    if spec.editable {
-        add_rule_step_button(commands, controls, false, spec.next, style);
-    }
+    add_rule_step_button(commands, controls, false, spec.next, style);
     add_help_tooltip(commands, controls, spec.help, style.help.clone());
 }
 

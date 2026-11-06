@@ -37,7 +37,6 @@ impl UnoRuleRow {
                 label: self.label,
                 value: if self.enabled { "开启" } else { "关闭" }.to_owned(),
                 help: self.help,
-                editable: can_configure,
                 previous: can_configure.then_some(self.toggled),
                 next: can_configure.then_some(self.toggled),
             },
@@ -85,8 +84,7 @@ pub(super) fn render_uno_rule_rows(
                     "关闭"
                 }
                 .to_owned(),
-                help: "仅慈悲淘汰生效时可用。剩两人后不再回收弃牌；牌堆耗尽时，双方依次无法接牌后可任选一张打出。",
-                editable: can_configure,
+                help: "仅慈悲淘汰生效时可用。剩两人后不再回收弃牌。牌堆耗尽时，双方依次无法接牌后可任选一张打出。",
                 previous: (can_configure && available).then_some(toggled),
                 next: (can_configure && available).then_some(toggled),
             },
@@ -100,7 +98,7 @@ fn classic_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
         UnoRuleRow {
             label: "功能牌堆叠",
             enabled: rules.action_stacking,
-            help: "允许禁手、+2、万能 +4 及兼容的扩展功能牌继续累计；+4 可压在 +2 上，+2 不能反压 +4。",
+            help: "允许禁手、+2、万能 +4 及兼容的扩展功能牌继续累计。+4 可压在 +2 上，+2 不能反压 +4。",
             toggled: UnoRuleSet {
                 action_stacking: !rules.action_stacking,
                 ..rules
@@ -127,7 +125,7 @@ fn classic_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
         UnoRuleRow {
             label: "UNO 宣告与检举",
             enabled: rules.uno_callout,
-            help: "手里恰好两张且轮到自己时可先喊 UNO，随后本回合必须出到一张；未喊直接出到一张者在下次成功出牌前可被检举并罚摸 2 张。",
+            help: "手里恰好两张且轮到自己时可先喊 UNO，随后本回合必须出到一张。未喊直接出到一张者在下次成功出牌前可被检举并罚摸 2 张。",
             toggled: UnoRuleSet {
                 uno_callout: !rules.uno_callout,
                 ..rules
@@ -154,7 +152,7 @@ fn no_mercy_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
         UnoRuleRow {
             label: "慈悲淘汰",
             enabled: mode.mercy_elimination,
-            help: "手牌达到 25 张时立即淘汰；只剩一名未淘汰玩家时结束。",
+            help: "手牌达到 25 张时立即淘汰，只剩一名未淘汰玩家时结束。",
             toggled: with_no_mercy(
                 rules,
                 UnoNoMercyRuleSet {
@@ -191,7 +189,7 @@ fn no_mercy_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
         UnoRuleRow {
             label: "UNO 宣告与检举",
             enabled: mode.uno_callout,
-            help: "手里恰好两张且轮到自己时可先喊 UNO，随后本回合必须出到一张；未喊直接出到一张者在下次成功出牌前可被检举并罚摸 2 张。",
+            help: "手里恰好两张且轮到自己时可先喊 UNO，随后本回合必须出到一张。未喊直接出到一张者在下次成功出牌前可被检举并罚摸 2 张。",
             toggled: with_no_mercy(
                 rules,
                 UnoNoMercyRuleSet {
@@ -209,7 +207,7 @@ fn flip_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
         UnoRuleRow {
             label: "随机正反配对",
             enabled: mode.random_pairing,
-            help: "关闭时使用固定的正反面组合；开启后每局重新随机配对全部 112 张牌的两面。",
+            help: "关闭时使用固定的正反面组合，开启后每局重新随机配对全部 112 张牌的两面。",
             toggled: with_flip(
                 rules,
                 UnoFlipRuleSet {
@@ -221,7 +219,7 @@ fn flip_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
         UnoRuleRow {
             label: "功能牌堆叠",
             enabled: mode.action_stacking,
-            help: "允许亮暗两面的禁手与罚牌继续累计；各罚牌链仍按对应牌型规则结算。",
+            help: "允许亮暗两面的禁手与罚牌继续累计。各罚牌链仍按对应牌型规则结算。",
             toggled: with_flip(
                 rules,
                 UnoFlipRuleSet {
@@ -245,7 +243,7 @@ fn flip_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
         UnoRuleRow {
             label: "UNO 宣告与检举",
             enabled: mode.uno_callout,
-            help: "手里恰好两张且轮到自己时可先喊 UNO；未喊直接出到一张者在下次成功出牌前可被检举并罚摸 2 张。",
+            help: "手里恰好两张且轮到自己时可先喊 UNO。未喊直接出到一张者在下次成功出牌前可被检举并罚摸 2 张。",
             toggled: with_flip(
                 rules,
                 UnoFlipRuleSet {
@@ -257,7 +255,7 @@ fn flip_rows(rules: UnoRuleSet) -> Vec<UnoRuleRow> {
         UnoRuleRow {
             label: "抢出",
             enabled: mode.jump_in,
-            help: "只比较当前牌面；关闭功能牌堆叠时只可抢数字牌，相同双牌可一次打出。",
+            help: "只比较当前牌面，关闭功能牌堆叠时只可抢数字牌，相同双牌可一次打出。",
             toggled: with_flip(
                 rules,
                 UnoFlipRuleSet {

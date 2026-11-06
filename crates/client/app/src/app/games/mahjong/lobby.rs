@@ -72,7 +72,6 @@ pub(crate) fn render_mahjong_lobby(
             }
             .to_owned(),
             help: "每盘结算后全员可直接准备下一盘，不会返回大厅。单局模式仍会继续轮庄。",
-            editable: can_configure,
             previous: can_configure.then_some(MahjongRuleSet {
                 match_length: lengths[(index + lengths.len() - 1) % lengths.len()],
                 ..rules
@@ -109,7 +108,6 @@ pub(crate) fn render_mahjong_lobby(
             }
             .to_owned(),
             help: "均衡：一/四位、二/三位对等；争一：提高第一名奖励；避四：加重第四名惩罚。",
-            editable: can_configure,
             previous: (can_configure && rules.match_length != MahjongMatchLength::SingleHand)
                 .then_some(MahjongRuleSet {
                     uma_style: styles[(style_index + styles.len() - 1) % styles.len()],
@@ -139,8 +137,7 @@ pub(crate) fn render_mahjong_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "开启时严格按 2014 国标要求至少 8 番（花牌不计入起和）；关闭后只按实际番数结算，不另加 8 分。",
-            editable: can_configure,
+            help: "开启时严格按 2014 国标要求至少 8 番（花牌不计入起和），关闭后只按实际番数结算，不另加 8 分。",
             previous: can_configure.then_some(minimum_toggled),
             next: can_configure.then_some(minimum_toggled),
         },
@@ -161,8 +158,7 @@ pub(crate) fn render_mahjong_lobby(
                 "截和"
             }
             .to_owned(),
-            help: "关闭时按出牌者之后的座次由最近一家截和；开启时所有合法和牌同时结算。",
-            editable: can_configure,
+            help: "关闭时按出牌者之后的座次由最近一家截和，开启时所有合法和牌同时结算。",
             previous: can_configure.then_some(winners_toggled),
             next: can_configure.then_some(winners_toggled),
         },
@@ -185,8 +181,7 @@ pub(crate) fn render_mahjong_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "开启后牌型已经完整便显示和牌按钮；不足 8 番属于错和，向其余三家各付 10 分并公开手牌，本盘继续。",
-            editable: can_configure,
+            help: "开启后牌型已经完整便显示和牌按钮，不足 8 番属于错和，向其余三家各付 10 分并公开手牌，本盘继续。",
             previous: (can_configure && rules.minimum_eight_points).then_some(false_win_toggled),
             next: (can_configure && rules.minimum_eight_points).then_some(false_win_toggled),
         },

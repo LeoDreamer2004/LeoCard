@@ -1,5 +1,7 @@
 //! Long-term statistics owned by this game. Field order is part of the saved profile format.
 
+use leocard_game_common::ActionTimeStats;
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct QiGui523ProfileStats {
@@ -15,4 +17,5 @@ pub struct QiGui523ProfileStats {
     pub longest_straight: u16,
     pub longest_consecutive_pairs: u16,
     pub longest_airplane: u16,
+    pub action_time: ActionTimeStats,
 }

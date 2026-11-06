@@ -15,7 +15,9 @@ pub(in super::super) fn focus_texas_raise_input(
     mut game_ui: ResMut<TexasUiState>,
 ) {
     for editor in &inputs {
-        focus.set(editor, FocusCause::Auto);
+        if !cfg!(target_os = "android") {
+            focus.set(editor, FocusCause::Auto);
+        }
         game_ui.raise_input_valid = true;
     }
 }

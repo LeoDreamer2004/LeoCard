@@ -162,6 +162,7 @@ fn omaha_snapshots_deal_and_reveal_four_cards_with_an_evaluated_hand() {
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(523),
         revision: Revision(9),
+        action_timing: None,
         in_reply_to: None,
         event: ServerEvent::GameSnapshot(GameSnapshot::Texas(snapshot)),
     };
@@ -281,6 +282,7 @@ fn private_snapshot_round_trips_through_the_wire_frame() {
         protocol_version: PROTOCOL_VERSION,
         room_id: RoomId(523),
         revision: Revision(8),
+        action_timing: None,
         in_reply_to: None,
         event: ServerEvent::GameSnapshot(GameSnapshot::Texas(snapshot.clone())),
     };

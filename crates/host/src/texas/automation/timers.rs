@@ -1,8 +1,7 @@
 use super::super::TexasSession;
 use crate::{AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState};
 use leocard_game_common::PlayerId;
-
-use leocard_texas_holdem::TexasBlindKind;
+use leocard_texas_holdem::{TexasBlindKind, TexasPhase};
 use std::time::Duration;
 
 const FIRST_SMALL_BLIND_POST_DELAY: Duration = Duration::from_millis(1800);
@@ -20,7 +19,9 @@ impl TexasSession {
             .iter()
             .find(|player| player.id == current)
             .is_some_and(|player| {
-                !player.left && (player.is_bot || (player.connected && player.auto_play))
+                (!player.left && (player.is_bot || (player.connected && player.auto_play)))
+                    || (matches!(game.game().phase(), TexasPhase::ChoosingRunout)
+                        && (!player.connected || player.left))
             })
             .then_some(current)
     }

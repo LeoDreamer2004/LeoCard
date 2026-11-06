@@ -47,7 +47,7 @@ impl UpdateManager {
         }
         if cfg!(debug_assertions) {
             self.state = UpdateState::Failed(
-                "开发构建不会覆盖自身；请使用 GitHub Release 版本测试自动更新。".to_owned(),
+                "开发构建不会覆盖自身。请使用 GitHub Release 版本测试自动更新。".to_owned(),
             );
             return;
         }

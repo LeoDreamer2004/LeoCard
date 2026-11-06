@@ -47,6 +47,30 @@ impl CardSize {
     }
 }
 
+/// Shared card geometry for trick-taking games, independent of the seat's direction.
+pub(crate) struct TrickCardLayout {
+    pub width: f32,
+    pub height: f32,
+    pub reveal: f32,
+}
+
+impl Default for TrickCardLayout {
+    fn default() -> Self {
+        let (width, height) = CardSize::TrickSeat.dimensions();
+        Self {
+            width,
+            height,
+            reveal: 27.0 * GAME_SIDE_CONTROL_SCALE,
+        }
+    }
+}
+
+impl TrickCardLayout {
+    pub fn row_width(&self, count: usize) -> f32 {
+        self.width + self.reveal * count.saturating_sub(1) as f32
+    }
+}
+
 #[derive(Clone, Copy)]
 pub(crate) struct HandCardPose {
     pub translation: Val2,

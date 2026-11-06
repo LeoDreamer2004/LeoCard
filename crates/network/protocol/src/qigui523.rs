@@ -116,6 +116,6 @@ pub struct QiGui523PlayerView {
     pub score: u32,
     pub ready: bool,
     pub connected: bool,
-    /// 由房主执行的托管状态；所有客户端都可见。
+    /// 由房主执行的托管状态，所有客户端都可见。
     pub auto_play: bool,
 }

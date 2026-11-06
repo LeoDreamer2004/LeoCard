@@ -1,11 +1,11 @@
 use crate::{
-    AchievementAnnouncement, AvatarFrameId, AvatarId, BlackjackSnapshot, ChatContent, ChatMessage,
-    DoudizhuSnapshot, GameCommand, GameEvent, GameKind, GameRules, GuandanSnapshot,
-    MahjongLinkSnapshot, MahjongPhaseView, MahjongSnapshot, MatchId, McGuessSnapshot,
-    PROTOCOL_VERSION, PlayerGameProfiles, PlayerInteraction, PlayerInteractionKind,
-    PlayerPublicInfo, ProfileId, QiGui523PhaseView, QiGui523Snapshot, ReconnectToken, RejectReason,
-    RequestId, Revision, RoomId, RoomInfo, SeatId, ShengjiSnapshot, TexasPhaseView, TexasSnapshot,
-    UnoPhaseView, UnoSnapshot,
+    AchievementAnnouncement, ActionTimingSnapshot, AvatarFrameId, AvatarId, BlackjackSnapshot,
+    ChatContent, ChatMessage, DoudizhuSnapshot, GameCommand, GameEvent, GameKind, GameRules,
+    GuandanSnapshot, MahjongLinkSnapshot, MahjongPhaseView, MahjongSnapshot, MatchId,
+    McGuessSnapshot, PROTOCOL_VERSION, PlayerGameProfiles, PlayerInteraction,
+    PlayerInteractionKind, PlayerPublicInfo, ProfileId, QiGui523PhaseView, QiGui523Snapshot,
+    ReconnectToken, RejectReason, RequestId, Revision, RoomId, RoomInfo, SeatId, ShengjiSnapshot,
+    TexasPhaseView, TexasSnapshot, UnoPhaseView, UnoSnapshot,
 };
 use leocard_achievements::TrophyCounts;
 use leocard_game_common::PlayerId;
@@ -151,18 +151,19 @@ pub struct GameEventContext {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ServerMessage {
+    pub action_timing: Option<ActionTimingSnapshot>,
     pub protocol_version: u16,
     pub room_id: RoomId,
     pub revision: Revision,
     /// Present only on live game/session events, never on snapshots.
     pub game_context: Option<GameEventContext>,
-    /// 对主动请求者设置；其他客户端收到同一次广播时为 `None`。
+    /// 对主动请求者设置，其他客户端收到同一次广播时为 `None`。
     pub in_reply_to: Option<RequestId>,
     pub event: ServerEvent,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-// 快照是高频协议主体；保持内联可避免为单个大游戏改变既有线协议形状。
+// 快照是高频协议主体，保持内联可避免为单个大游戏改变既有线协议形状。
 #[allow(clippy::large_enum_variant)]
 pub enum ServerEvent {
     AchievementUnlocked(AchievementAnnouncement),
@@ -213,7 +214,7 @@ pub enum ServerEvent {
 pub struct LobbySnapshot {
     pub game: GameKind,
     pub rules: GameRules,
-    /// 房主实际监听的 TCP 端口；由房主广播，不能从客户端使用的映射地址推断。
+    /// 房主实际监听的 TCP 端口，由房主广播，不能从客户端使用的映射地址推断。
     pub host_port: u16,
     pub host: Option<PlayerId>,
     pub players: Vec<LobbyPlayerView>,

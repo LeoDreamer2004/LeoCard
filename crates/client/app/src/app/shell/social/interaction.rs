@@ -1,4 +1,5 @@
 use super::easter_eggs::interaction_notice;
+use super::egg_thrower::add_egg_barrage;
 use super::*;
 use crate::app::presentation::CornerNotifications;
 use crate::app::runtime::{ClientResource, UiAssets};
@@ -54,29 +55,31 @@ pub(super) fn interaction_rotates(kind: PlayerInteractionKind) -> bool {
     matches!(kind, PlayerInteractionKind::Shoe)
 }
 
-struct InteractionProjectile {
-    source: Vec2,
-    target: Vec2,
-    kind: PlayerInteractionKind,
-    sound_variant: u8,
-    play_sound: bool,
-    delay: f32,
-    appear_duration: f32,
-    travel_duration: f32,
-    impact_duration: f32,
+pub(super) struct InteractionProjectile {
+    pub(super) source: Vec2,
+    pub(super) target: Vec2,
+    pub(super) kind: PlayerInteractionKind,
+    pub(super) sound_variant: u8,
+    pub(super) play_sound: bool,
+    pub(super) sound_gain: f32,
+    pub(super) delay: f32,
+    pub(super) appear_duration: f32,
+    pub(super) travel_duration: f32,
+    pub(super) impact_duration: f32,
+    pub(super) size: f32,
 }
 
 impl InteractionProjectile {
-    fn spawn(self, commands: &mut UiComposer, layer: Entity, assets: &UiAssets) {
-        commands.child(
+    pub(super) fn spawn(self, commands: &mut UiComposer, layer: Entity, assets: &UiAssets) {
+        commands.effect_child(
             layer,
             (
                 Node {
                     position_type: PositionType::Absolute,
-                    left: px(self.source.x - 30.0),
-                    top: px(self.source.y - 30.0),
-                    width: px(60),
-                    height: px(60),
+                    left: px(self.source.x - self.size * 0.5),
+                    top: px(self.source.y - self.size * 0.5),
+                    width: px(self.size),
+                    height: px(self.size),
                     ..default()
                 },
                 ImageNode::new(
@@ -95,6 +98,7 @@ impl InteractionProjectile {
                     kind: self.kind,
                     sound_variant: self.sound_variant,
                     play_sound: self.play_sound,
+                    sound_gain: self.sound_gain,
                     elapsed: -self.delay,
                     appear_duration: self.appear_duration,
                     travel_duration: self.travel_duration,
@@ -109,16 +113,18 @@ impl InteractionProjectile {
     }
 }
 
-fn interaction_volley_lane(index: usize) -> f32 {
+pub(super) fn interaction_volley_lane(index: usize) -> f32 {
     const LANES: [f32; 10] = [-2.0, 2.0, -1.0, 1.0, 0.0, -1.5, 1.5, -0.5, 0.5, 0.0];
-    LANES[index] * 9.0
+    LANES[index % LANES.len()] * 9.0
 }
 
 fn interaction_volley_kind(kind: PlayerInteractionKind) -> Option<PlayerInteractionKind> {
     match kind {
         PlayerInteractionKind::Wine => Some(PlayerInteractionKind::Flower),
         PlayerInteractionKind::Shoe => Some(PlayerInteractionKind::Egg),
-        PlayerInteractionKind::Flower | PlayerInteractionKind::Egg => None,
+        PlayerInteractionKind::Flower
+        | PlayerInteractionKind::Egg
+        | PlayerInteractionKind::EggBarrage => None,
     }
 }
 
@@ -126,7 +132,9 @@ fn interaction_volley_interval(kind: PlayerInteractionKind) -> f32 {
     match kind {
         PlayerInteractionKind::Egg => 0.09,
         PlayerInteractionKind::Flower => 0.055,
-        PlayerInteractionKind::Wine | PlayerInteractionKind::Shoe => 0.0,
+        PlayerInteractionKind::Wine
+        | PlayerInteractionKind::Shoe
+        | PlayerInteractionKind::EggBarrage => 0.0,
     }
 }
 
@@ -137,6 +145,7 @@ pub(crate) fn sync_player_interactions(
     mut notices: ResMut<CornerNotifications>,
     layers: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<PlayerInteractionLayer>>,
     avatars: Query<PlayerAvatar>,
+    time: Res<Time<Real>>,
 ) {
     let Ok((layer, layer_node, layer_transform)) = layers.single() else {
         return;
@@ -184,6 +193,24 @@ pub(crate) fn sync_player_interactions(
             continue;
         };
         let target = target + interaction_target_offset(interaction.kind, interaction.seed);
+        if interaction.kind == PlayerInteractionKind::EggBarrage {
+            let Some(target_profile) = model
+                .player(interaction.target)
+                .map(|player| player.profile_id)
+            else {
+                continue;
+            };
+            add_egg_barrage(
+                &mut commands,
+                layer,
+                interaction,
+                target_profile,
+                (source, target),
+                model.room_id(),
+                time.elapsed(),
+            );
+            continue;
+        }
         let sound_variant = (interaction.seed & 1) as u8;
         if let Some(volley_kind) = interaction_volley_kind(interaction.kind) {
             let volley_interval = interaction_volley_interval(volley_kind);
@@ -198,10 +225,12 @@ pub(crate) fn sync_player_interactions(
                     sound_variant: ((interaction.seed >> (index % 16)) & 1) as u8,
                     play_sound: !matches!(interaction.kind, PlayerInteractionKind::Wine)
                         || index == 0,
+                    sound_gain: 1.0,
                     delay: index as f32 * volley_interval,
                     appear_duration: 0.07,
                     travel_duration: 0.40,
                     impact_duration: 0.42,
+                    size: 60.0,
                 }
                 .spawn(&mut commands, layer, &assets);
             }
@@ -211,23 +240,35 @@ pub(crate) fn sync_player_interactions(
                 kind: interaction.kind,
                 sound_variant,
                 play_sound: true,
+                sound_gain: 1.0,
                 delay: 9.0 * volley_interval + 0.55,
                 appear_duration: 0.16,
                 travel_duration: 0.68,
                 impact_duration: 1.20,
+                size: 60.0,
             }
             .spawn(&mut commands, layer, &assets);
         } else {
+            let egg = interaction.kind == PlayerInteractionKind::Egg;
+            let direction = (target - source).normalize_or_zero();
+            let perpendicular = Vec2::new(-direction.y, direction.x);
+            let lane = if egg {
+                (((interaction.seed >> 16) % 9) as f32 - 4.0) * 9.0
+            } else {
+                0.0
+            };
             InteractionProjectile {
-                source,
-                target,
+                source: source + perpendicular * lane,
+                target: target + perpendicular * lane * 0.72,
                 kind: interaction.kind,
                 sound_variant,
                 play_sound: true,
+                sound_gain: 1.0,
                 delay: 0.0,
-                appear_duration: 0.32,
-                travel_duration: 0.60,
-                impact_duration: 1.20,
+                appear_duration: if egg { 0.07 } else { 0.32 },
+                travel_duration: if egg { 0.40 } else { 0.60 },
+                impact_duration: if egg { 0.48 } else { 1.20 },
+                size: 60.0,
             }
             .spawn(&mut commands, layer, &assets);
         }

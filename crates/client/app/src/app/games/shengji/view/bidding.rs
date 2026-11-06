@@ -262,7 +262,7 @@ fn joker_bid_declaration_candidate(
             let extends_current = current.is_some_and(|declaration| {
                 declaration.player == game.you && declaration.trump == trump
             });
-            // 加固只提交新增级牌；此前被反掉的声明不限制这些牌再次使用。
+            // 加固只提交新增级牌，此前被反掉的声明不限制这些牌再次使用。
             let matching = game
                 .your_hand
                 .iter()

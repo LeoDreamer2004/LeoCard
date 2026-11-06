@@ -270,7 +270,7 @@ pub struct ShengjiGameState {
     pub(super) dealer: Option<PlayerId>,
     pub(super) kitty: Vec<ShengjiCard>,
     pub(super) buried: Vec<ShengjiCard>,
-    /// 当前这批底牌的实际埋底者。普通流程为庄家；每次成功
+    /// 当前这批底牌的实际埋底者。普通流程为庄家，每次成功
     /// 抄底取走旧底后暂时为空，待抄底者重埋后转移给该玩家。
     pub(super) bottom_burier: Option<PlayerId>,
     pub(super) bottom_copy: Option<ShengjiBottomCopyState>,
@@ -331,7 +331,7 @@ impl ShengjiGameState {
             bidding: ShengjiBidState::new_with_rules(level, rules.deck_count, rules.bid_with_joker)
                 .with_player_count(rules.player_count()),
             trump: None,
-            // 后续小局的庄家已由上一局结算确定，发牌开始就应公开；首局则
+            // 后续小局的庄家已由上一局结算确定，发牌开始就应公开，首局则
             // 等第一位玩家亮主后再随当前最高声明实时转移。
             dealer: fixed_dealer,
             kitty: Vec::new(),

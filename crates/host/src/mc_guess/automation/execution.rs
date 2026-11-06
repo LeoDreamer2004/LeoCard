@@ -1,6 +1,7 @@
 use super::super::McGuessSession;
 use super::fallback;
 use crate::Delivery;
+use crate::action_timing::attach_action_timing;
 use crate::lifecycle::HostedGameLifecycle;
 use fastrand::Rng;
 use leocard_game_common::PlayerId;
@@ -22,6 +23,13 @@ impl McGuessSession {
     }
 
     pub fn advance_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        self.room.action_timing.advance(elapsed);
+        let deliveries = self.advance_game_time(elapsed);
+        self.refresh_action_timing();
+        attach_action_timing(self, deliveries)
+    }
+
+    fn advance_game_time(&mut self, elapsed: Duration) -> Vec<Delivery> {
         if self.generation.is_some() {
             return self.advance_generation();
         }

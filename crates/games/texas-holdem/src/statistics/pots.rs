@@ -1,4 +1,7 @@
-use crate::{TexasEvaluatedHand, TexasGameState, TexasHandResult, evaluate_player_hand};
+use crate::{
+    TexasEvaluatedHand, TexasGameState, TexasHandResult, TexasPotAward, TexasRank,
+    evaluate_player_hand,
+};
 use leocard_game_common::PlayerId;
 use std::collections::HashSet;
 
@@ -9,6 +12,7 @@ pub(super) struct PotStatistics {
     pub won_side_pot_chips: u32,
     pub tied_winners: u8,
     pub defeated: HashSet<usize>,
+    pub lost_to_lower_unpaired_hand: bool,
 }
 
 impl PotStatistics {
@@ -45,6 +49,8 @@ impl PotStatistics {
                 if game.players()[player.index()].folded() {
                     continue;
                 }
+                pots.lost_to_lower_unpaired_hand |=
+                    Self::lost_to_unpaired_winner(game, award, player, &evaluated);
                 for other in game
                     .players()
                     .iter()
@@ -71,6 +77,7 @@ impl PotStatistics {
             // Multi-run wins/loss achievements use the net aggregate poker result, not one board.
             // Refunds are already excluded from committed_total; squid transfers are separate.
             let invested = game.players()[player.index()].committed_total();
+            pots.lost_to_lower_unpaired_hand &= received[player.index()] < invested;
             pots.won_chips = pots.won_chips.saturating_sub(invested);
             pots.defeated.retain(|&index| {
                 // Defeated-category achievements require beating this opponent on both boards.
@@ -80,6 +87,28 @@ impl PotStatistics {
             });
         }
         pots
+    }
+
+    fn lost_to_unpaired_winner(
+        game: &TexasGameState,
+        award: &TexasPotAward,
+        player: PlayerId,
+        evaluated: &[Option<TexasEvaluatedHand>],
+    ) -> bool {
+        award.winners.iter().any(|winner| {
+            let other = &game.players()[winner.index()];
+            let [first, second] = other.hole_cards() else {
+                return false;
+            };
+            first.rank() != second.rank()
+                && first.rank() < TexasRank::Ace
+                && second.rank() < TexasRank::Ace
+                && evaluated[player.index()]
+                    .zip(evaluated[winner.index()])
+                    .is_some_and(|(own, opponent)| {
+                        own.cmp_with_rules(&opponent, game.rules()).is_lt()
+                    })
+        })
     }
 
     pub(super) fn new(
@@ -111,6 +140,11 @@ impl PotStatistics {
                     < 2
                 {
                     continue;
+                }
+                let own = &game.players()[player.index()];
+                if !own.folded() && own.committed_total() >= level {
+                    pots.lost_to_lower_unpaired_hand |=
+                        Self::lost_to_unpaired_winner(game, award, player, evaluated);
                 }
                 let Some(winner_index) = award.winners.iter().position(|winner| *winner == player)
                 else {

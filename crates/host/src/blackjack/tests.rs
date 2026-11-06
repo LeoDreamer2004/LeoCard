@@ -5,9 +5,9 @@ use leocard_blackjack::{
     BlackjackAction, BlackjackPhase, BlackjackRank, BlackjackRuleSet, build_shoe,
 };
 use leocard_protocol::{
-    BlackjackCommand, BlackjackViolation, ChatContent, ClientCommand, ClientMessage, GameSnapshot,
-    GameViolation, JoinRequest, PlayerGameProfiles, PlayerInteractionKind, ProfileId,
-    ReconnectToken, RejectReason, RequestId, RoomId, SeatId, ServerEvent,
+    BlackjackCommand, BlackjackViolation, ClientCommand, ClientMessage, GameSnapshot,
+    GameViolation, JoinRequest, PlayerGameProfiles, ProfileId, ReconnectToken, RejectReason,
+    RequestId, RoomId, SeatId, ServerEvent,
 };
 use std::time::Duration;
 

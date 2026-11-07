@@ -2,10 +2,10 @@ use super::{ConfirmationDialog, ConfirmationUiAction};
 use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, add_cozy_button,
-    add_cozy_button_variant, add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
+    CozyModalKind, CozyModalPanel, ShellOverlayLayer, UiAction, add_centered_modal,
+    add_cozy_button, add_cozy_button_variant, add_cozy_panel, cozy_panel_transform,
 };
-use bevy::{picking::Pickable, prelude::*};
+use bevy::prelude::*;
 use leocard_ui::{UiComposer, spawn_node};
 
 pub(crate) fn render_confirmation(
@@ -17,26 +17,15 @@ pub(crate) fn render_confirmation(
     let Some(request) = &dialog.request else {
         return;
     };
-    let overlay = spawn_node(
+    let cancel = UiAction::Confirmation(ConfirmationUiAction::Cancel);
+    let overlay = add_centered_modal(
         commands,
         root,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(0),
-            right: px(0),
-            top: px(0),
-            bottom: px(0),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            ..default()
-        },
-        Some(cozy_backdrop_color(dialog.progress)),
+        ShellOverlayLayer::Confirmation,
+        CozyModalKind::Confirmation,
+        dialog.progress,
+        dialog.is_open().then(|| cancel.clone()),
     );
-    commands.entity(overlay).insert((
-        GlobalZIndex(2400),
-        Pickable::default(),
-        CozyModalBackdrop(CozyModalKind::Confirmation),
-    ));
     let panel = add_cozy_panel(
         commands,
         overlay,
@@ -67,15 +56,7 @@ pub(crate) fn render_confirmation(
         None,
     );
     if request.accept.is_some() {
-        add_cozy_button(
-            commands,
-            buttons,
-            "取消",
-            UiAction::Confirmation(ConfirmationUiAction::Cancel),
-            assets,
-            px(130),
-            44.0,
-        );
+        add_cozy_button(commands, buttons, "取消", cancel, assets, px(130), 44.0);
     }
     add_cozy_button_variant(
         commands,

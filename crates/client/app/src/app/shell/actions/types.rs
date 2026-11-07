@@ -63,7 +63,7 @@ pub(crate) trait UiActionHandler<Context>: DomainUiAction {
 }
 
 impl UiAction {
-    pub(super) fn rebuilds_ui(&self) -> bool {
+    pub(in crate::app::shell) fn rebuilds_ui(&self) -> bool {
         match self {
             Self::Blackjack(action) => action.rebuilds_ui(),
             Self::Doudizhu(action) => action.rebuilds_ui(),

@@ -5,58 +5,23 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    ConnectionUiAction, ModalWheelBlocker, UiAction, add_cozy_button, add_cozy_close_button,
-    add_cozy_refresh_button,
+    ConnectionUiAction, UiAction, add_cozy_button, add_cozy_close_button, add_cozy_refresh_button,
 };
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-use bevy::ui_widgets::Button;
 use leocard_client::LanRoom;
 use leocard_ui::{PageFrame, UiComposer, UiSceneKey, spawn_node};
 
 #[derive(Component)]
 pub(crate) struct LanRoomList;
 
-pub(crate) fn render_lan_rooms(
+pub(in crate::app::shell::connection) fn render_lan_rooms(
     commands: &mut UiComposer,
-    root: Entity,
+    parent: Entity,
     discovery: &LanDiscovery,
     state: &LanUiState,
     assets: &UiAssets,
-) {
-    let overlay = commands.child(
-        root,
-        (
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                right: px(0),
-                top: px(0),
-                bottom: px(0),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            GlobalZIndex(1250),
-            ModalWheelBlocker,
-        ),
-    );
-    commands.child(
-        overlay,
-        (
-            Button,
-            UiAction::Connection(ConnectionUiAction::CloseLan),
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                right: px(0),
-                top: px(0),
-                bottom: px(0),
-                ..default()
-            },
-            BackgroundColor(Color::BLACK.with_alpha(0.55)),
-        ),
-    );
+) -> Entity {
     let mut frame = PageFrame::new(page_frame_skin(assets));
     frame.node.width = px(640);
     frame.node.max_width = percent(92);
@@ -64,8 +29,7 @@ pub(crate) fn render_lan_rooms(
     frame.node.max_height = percent(85);
     frame.heading.height = px(48);
     frame.heading.column_gap = px(10);
-    let frame = frame.mount(commands, overlay);
-    commands.entity(frame.panel).insert(ZIndex(1));
+    let frame = frame.mount(commands, parent);
     let heading = frame.heading;
     let title = add_title(
         commands,
@@ -134,6 +98,7 @@ pub(crate) fn render_lan_rooms(
             render_room(commands, list, room, discovery, assets);
         }
     }
+    frame.panel
 }
 
 fn render_room(

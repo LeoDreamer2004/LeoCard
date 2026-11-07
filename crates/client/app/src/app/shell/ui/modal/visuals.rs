@@ -1,9 +1,45 @@
-use super::{CozyModalBackdrop, CozyModalPanel, ModalAnimations};
+use super::{CozyModalBackdrop, CozyModalKind, CozyModalPanel, ModalAnimations, ModalDismiss};
 use crate::app::presentation::ease_out_cubic;
+use crate::app::shell::{ShellOverlayLayer, UiAction};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_ui::{TransitionVisuals, UiComposer, fade_panel};
 
 const BACKDROP_ALPHA: f32 = 0.76;
+
+#[track_caller]
+pub(crate) fn add_centered_modal(
+    commands: &mut UiComposer,
+    parent: Entity,
+    layer: ShellOverlayLayer,
+    kind: CozyModalKind,
+    progress: f32,
+    dismiss: Option<UiAction>,
+) -> Entity {
+    let overlay = commands.child(
+        parent,
+        (
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                right: px(0),
+                top: px(0),
+                bottom: px(0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            BackgroundColor(cozy_backdrop_color(progress)),
+            layer.z_index(),
+            Pickable::default(),
+            CozyModalBackdrop(kind),
+        ),
+    );
+    if let Some(action) = dismiss {
+        commands.entity(overlay).insert(ModalDismiss(action));
+    }
+    overlay
+}
 
 pub(crate) fn cozy_backdrop_color(progress: f32) -> Color {
     Color::srgba(

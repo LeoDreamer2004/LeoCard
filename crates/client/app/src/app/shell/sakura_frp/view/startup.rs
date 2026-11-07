@@ -3,13 +3,12 @@ use super::super::state::SakuraState;
 use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    CozyModalBackdrop, CozyModalKind, CozyModalPanel, ModalAnimations, UiAction, UiState,
-    add_cozy_button, add_cozy_panel, advance_modal, cozy_backdrop_color, cozy_panel_transform,
+    CozyModalKind, CozyModalPanel, ModalAnimations, ShellOverlayLayer, UiAction, UiState,
+    add_centered_modal, add_cozy_button, add_cozy_panel, advance_modal, cozy_panel_transform,
 };
-use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_sakura_frp::FrpcProgress;
-use leocard_ui::{ProgressBar, UiComposer, spawn_node};
+use leocard_ui::{ProgressBar, UiComposer};
 
 #[derive(Component)]
 pub(in super::super) struct StartupStatusText;
@@ -74,26 +73,16 @@ pub(crate) fn render_startup_dialog(
     let Some(startup) = &state.startup else {
         return;
     };
-    let overlay = spawn_node(
+    let complete = startup.stage == FrpcProgress::Started;
+    let close = UiAction::Sakura(SakuraUiAction::CloseStartup);
+    let overlay = add_centered_modal(
         commands,
         root,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(0),
-            right: px(0),
-            top: px(0),
-            bottom: px(0),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            ..default()
-        },
-        Some(cozy_backdrop_color(startup.animation)),
+        ShellOverlayLayer::ConnectionProgress,
+        CozyModalKind::SakuraStartup,
+        startup.animation,
+        (startup.open && complete).then(|| close.clone()),
     );
-    commands.entity(overlay).insert((
-        GlobalZIndex(2200),
-        Pickable::default(),
-        CozyModalBackdrop(CozyModalKind::SakuraStartup),
-    ));
     let panel = add_cozy_panel(
         commands,
         overlay,
@@ -120,16 +109,8 @@ pub(crate) fn render_startup_dialog(
     commands.entity(fill).insert(StartupProgressFill);
     let detail = add_text(commands, panel, detail, 14.0, MUTED, assets);
     commands.entity(detail).insert(StartupDetailText);
-    if startup.stage == FrpcProgress::Started {
-        add_cozy_button(
-            commands,
-            panel,
-            "完成",
-            UiAction::Sakura(SakuraUiAction::CloseStartup),
-            assets,
-            percent(100),
-            42.0,
-        );
+    if complete {
+        add_cozy_button(commands, panel, "完成", close, assets, percent(100), 42.0);
     }
 }
 

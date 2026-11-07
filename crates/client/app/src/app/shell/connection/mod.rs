@@ -11,7 +11,7 @@ mod view;
 pub(crate) use actions::*;
 pub(crate) use files::*;
 pub(crate) use form::InputField;
-pub(crate) use lan::{LanDiscovery, LanUiState, render_lan_rooms};
+pub(crate) use lan::{LanDiscovery, LanUiState};
 pub(super) use plugin::*;
 pub(crate) use state::{HomeCategory, HomeUiState, can_edit_identity};
 pub(crate) use view::*;

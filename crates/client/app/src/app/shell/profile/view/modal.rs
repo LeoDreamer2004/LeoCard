@@ -1,15 +1,14 @@
 //! 玩家档案弹窗、游戏标签和互动统计视图。
 
 use super::super::super::{
-    CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction, UiAction,
-    add_cozy_close_button, cozy_backdrop_color, cozy_panel_transform,
+    CozyModalKind, CozyModalPanel, NavigationUiAction, ShellOverlayLayer, UiAction,
+    add_centered_modal, add_cozy_close_button, cozy_panel_transform,
 };
-use super::super::{ProfileGameTab, ProfileUiState};
+use super::super::{ProfileGameTab, ProfileMotion, ProfileUiState};
 use super::archive::ProfileArchive;
 use super::identity::ProfileIdentity;
 use crate::app::presentation::{PAGE_FRAME_TITLE, add_title, page_frame_skin};
 use crate::app::runtime::{AvatarImages, ClientResource, ConnectionDraft, UiAssets};
-use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_client::LocalPlayerProfile;
 use leocard_protocol::{PlayerGameProfiles, PlayerGender};
@@ -85,7 +84,7 @@ impl<'a> ProfileModal<'a> {
         }
     }
 
-    pub(crate) fn render(self, commands: &mut UiComposer, root: Entity, progress: f32) {
+    pub(crate) fn render(self, commands: &mut UiComposer, root: Entity, motion: &ProfileMotion) {
         let Self {
             player_name,
             gender,
@@ -96,26 +95,16 @@ impl<'a> ProfileModal<'a> {
             selected_game,
             assets,
         } = self;
-        let overlay = spawn_node(
+        let progress = motion.progress;
+        let close = UiAction::Navigation(NavigationUiAction::ToggleProfile);
+        let overlay = add_centered_modal(
             commands,
             root,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                right: px(0),
-                top: px(0),
-                bottom: px(0),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            Some(cozy_backdrop_color(progress)),
+            ShellOverlayLayer::Dialog,
+            CozyModalKind::Profile,
+            progress,
+            motion.target_open.then(|| close.clone()),
         );
-        commands.entity(overlay).insert((
-            GlobalZIndex(2000),
-            Pickable::default(),
-            CozyModalBackdrop(CozyModalKind::Profile),
-        ));
 
         let mut frame = PageFrame::new(page_frame_skin(assets));
         frame.node.width = px(820);
@@ -137,12 +126,7 @@ impl<'a> ProfileModal<'a> {
             PAGE_FRAME_TITLE,
             assets,
         );
-        add_cozy_close_button(
-            commands,
-            heading,
-            UiAction::Navigation(NavigationUiAction::ToggleProfile),
-            assets,
-        );
+        add_cozy_close_button(commands, heading, close, assets);
         let content = frame.content;
         ProfileIdentity::new(
             player_name,

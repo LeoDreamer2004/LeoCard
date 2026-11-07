@@ -1,53 +1,38 @@
 use crate::app::shell::{
-    ConfirmationDialog, ConfirmationUiAction, ConnectionUiAction, NavigationUiAction, PageMotion,
-    PressedUiAction, UiAction, UiState,
+    ModalInputScope, NavigationUiAction, PageMotion, PressedUiAction, UiAction, UiState,
 };
 use bevy::prelude::*;
 
-pub(super) fn back_action(ui: &UiState, confirmation: &ConfirmationDialog) -> Option<UiAction> {
-    if confirmation.is_open() {
-        Some(UiAction::Confirmation(ConfirmationUiAction::Cancel))
-    } else if ui.lan.open {
-        Some(UiAction::Connection(ConnectionUiAction::CloseLan))
-    } else if ui.settings.open {
-        Some(UiAction::Navigation(NavigationUiAction::ToggleSettings))
-    } else if ui.profile.open {
-        Some(UiAction::Navigation(NavigationUiAction::ToggleProfile))
-    } else if ui.home.identity_open {
-        Some(UiAction::Connection(ConnectionUiAction::ToggleIdentity))
-    } else if ui.home.join_open {
-        Some(UiAction::Connection(ConnectionUiAction::ToggleJoin))
+pub(super) fn dispatch_back(
+    ui: &mut UiState,
+    scope: &ModalInputScope,
+    actions: &mut MessageWriter<PressedUiAction>,
+) -> bool {
+    let action = if let Some((_, dismiss)) = scope.top() {
+        let Some(dismiss) = dismiss else {
+            return true;
+        };
+        dismiss.0.clone()
     } else if ui.shop.open {
-        Some(UiAction::Navigation(NavigationUiAction::ToggleShop))
+        UiAction::Navigation(NavigationUiAction::ToggleShop)
     } else if ui.achievements.open {
-        Some(UiAction::Navigation(NavigationUiAction::ToggleAchievements))
+        UiAction::Navigation(NavigationUiAction::ToggleAchievements)
     } else {
-        None
-    }
+        return false;
+    };
+    ui.dirty |= action.rebuilds_ui();
+    actions.write(PressedUiAction(action));
+    true
 }
 
 pub(super) fn handle_escape(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut ui: ResMut<UiState>,
-    confirmation: Res<ConfirmationDialog>,
+    scope: ModalInputScope,
     page_motion: Res<PageMotion>,
     mut actions: MessageWriter<PressedUiAction>,
 ) {
-    if !keyboard.just_pressed(KeyCode::Escape)
-        || page_motion.active()
-        || !(confirmation.is_open()
-            || ui.shop.open
-            || ui.achievements.open
-            || ui.lan.open
-            || ui.home.identity_open
-            || ui.home.join_open)
-    {
-        return;
-    }
-    if let Some(action) = back_action(&ui, &confirmation) {
-        if matches!(&action, UiAction::Navigation(_)) {
-            ui.dirty = true;
-        }
-        actions.write(PressedUiAction(action));
+    if keyboard.just_pressed(KeyCode::Escape) && !page_motion.active() {
+        dispatch_back(&mut ui, &scope, &mut actions);
     }
 }

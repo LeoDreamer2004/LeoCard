@@ -1,9 +1,9 @@
 use super::{LanDiscovery, LanRoomList};
 use crate::app::runtime::{ClientResource, image_handle_from_png};
-use crate::app::shell::UiState;
+use crate::app::shell::{UiState, can_edit_identity};
 use bevy::prelude::*;
 use image::{ImageFormat, ImageReader};
-use leocard_client::{ClientPhaseRef, LanRoomBrowser};
+use leocard_client::LanRoomBrowser;
 use leocard_protocol::AVATAR_DIMENSION;
 use std::io::Cursor;
 
@@ -14,13 +14,9 @@ pub(crate) fn sync_lan_discovery(
     mut images: ResMut<Assets<Image>>,
     scrolls: Query<&ScrollPosition, With<LanRoomList>>,
 ) {
-    if client.is_some_and(|client| {
-        !matches!(
-            client.0.model().phase(),
-            ClientPhaseRef::Idle | ClientPhaseRef::Closed
-        )
-    }) {
+    if ui.lan.open && (!ui.home.join_open || !can_edit_identity(client.as_deref())) {
         ui.lan.open = false;
+        ui.dirty = true;
     }
     if !ui.lan.open {
         if discovery.generation.is_some() {

@@ -1,0 +1,17 @@
+[package]
+name = "leocard-music"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "NetEase Cloud Music account, playlists and authorized audio for LeoCard"
+
+[dependencies]
+aes = "0.8"
+ecb = { version = "0.1", features = ["alloc"] }
+fastrand.workspace = true
+md-5.workspace = true
+qrcode = { version = "0.14", default-features = false }
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true

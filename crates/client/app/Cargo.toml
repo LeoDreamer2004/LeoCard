@@ -40,6 +40,7 @@ leocard-host = { path = "../../host" }
 leocard-mahjong = { path = "../../games/mahjong" }
 leocard-mahjong-link = { path = "../../games/mahjong-link", features = ["serde"] }
 leocard_mc_guess = { path = "../../games/mc-guess" }
+leocard-music = { path = "../music" }
 leocard-protocol = { path = "../../network/protocol" }
 leocard-qigui523 = { path = "../../games/qigui523" }
 leocard-shengji = { path = "../../games/shengji" }
@@ -49,6 +50,7 @@ leocard-ui = { path = "../ui" }
 leocard-uno = { path = "../../games/uno" }
 leocard-update = { path = "../update" }
 postcard.workspace = true
+rodio = { version = "0.22", default-features = false, features = ["mp3"] }
 semver.workspace = true
 serde.workspace = true
 serde_json.workspace = true

@@ -2,8 +2,8 @@
 use super::super::SakuraUiAction;
 use super::super::{
     AchievementUiAction, ChatUiAction, ConfirmationUiAction, ConnectionUiAction, LobbyUiAction,
-    NavigationUiAction, ProfileUiAction, SettingsUiAction, ShopUiAction, SocialUiAction,
-    UpdateUiAction,
+    MusicUiAction, NavigationUiAction, ProfileUiAction, SettingsUiAction, ShopUiAction,
+    SocialUiAction, UpdateUiAction,
 };
 use crate::app::games::blackjack::BlackjackUiAction;
 use crate::app::games::doudizhu::DoudizhuUiAction;
@@ -41,6 +41,7 @@ pub(crate) enum UiAction {
     Confirmation(ConfirmationUiAction),
     Profile(ProfileUiAction),
     Settings(SettingsUiAction),
+    Music(MusicUiAction),
     Update(UpdateUiAction),
     Lobby(LobbyUiAction),
     #[cfg(not(target_os = "android"))]
@@ -83,6 +84,7 @@ impl UiAction {
             Self::Confirmation(_) => false,
             Self::Profile(action) => action.rebuilds_ui(),
             Self::Settings(action) => action.rebuilds_ui(),
+            Self::Music(action) => action.rebuilds_ui(),
             Self::Update(action) => action.rebuilds_ui(),
             Self::Connection(action) => action.rebuilds_ui(),
             Self::Lobby(action) => action.rebuilds_ui(),

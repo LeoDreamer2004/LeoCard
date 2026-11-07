@@ -3,8 +3,9 @@
 #[cfg(not(target_os = "android"))]
 use super::super::SakuraState;
 use super::super::{
-    AchievementCategory, DomainUiAction, PageMotion, PlayerProfilePage, PressedUiAction,
-    ProfileMotion, SettingsMotion, UiAction, UiActionHandler, UiState, dispatch_domain_actions,
+    AchievementCategory, DomainUiAction, MusicMotion, PageMotion, PlayerProfilePage,
+    PressedUiAction, ProfileMotion, SettingsMotion, UiAction, UiActionHandler, UiState,
+    dispatch_domain_actions,
 };
 use crate::app::runtime::{ConnectionDraft, PageErrorState, save_connection_draft};
 use bevy::ecs::system::SystemParam;
@@ -16,6 +17,7 @@ pub(crate) enum NavigationUiAction {
     ToggleProfile,
     OpenPlayerProfile(Box<PlayerProfilePage>),
     ToggleSettings,
+    ToggleMusic,
     ToggleAchievements,
     ToggleShop,
 }
@@ -33,6 +35,7 @@ impl DomainUiAction for NavigationUiAction {
 pub(crate) struct NavigationActionContext<'w> {
     ui: ResMut<'w, UiState>,
     settings_motion: ResMut<'w, SettingsMotion>,
+    music_motion: ResMut<'w, MusicMotion>,
     profile_motion: ResMut<'w, ProfileMotion>,
     page_motion: ResMut<'w, PageMotion>,
     connection: Res<'w, ConnectionDraft>,
@@ -58,7 +61,21 @@ impl UiActionHandler<NavigationActionContext<'_>> for NavigationUiAction {
         }
         ui.home.identity_open = false;
         ui.home.join_open = false;
+        if !matches!(self, NavigationUiAction::ToggleMusic) {
+            context.music_motion.close();
+        }
         match self {
+            NavigationUiAction::ToggleMusic => {
+                context.music_motion.toggle();
+                if context.music_motion.target_open {
+                    ui.settings.open = false;
+                    context.settings_motion.target_open = false;
+                    ui.profile.open = false;
+                    context.profile_motion.target_open = false;
+                    ui.home.identity_open = false;
+                    ui.home.join_open = false;
+                }
+            }
             NavigationUiAction::ToggleProfile => {
                 context.profile_motion.toggle(ui);
                 if context.profile_motion.target_open {

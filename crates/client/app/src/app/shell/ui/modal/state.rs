@@ -3,6 +3,7 @@ use bevy::prelude::*;
 #[derive(Clone, Copy, Component, Eq, PartialEq)]
 pub(crate) enum CozyModalKind {
     Settings,
+    Music,
     Profile,
     JoinRoom,
     MahjongFanGuide,

@@ -3,10 +3,11 @@
 use super::connection::{LanDiscovery, render_lan_rooms};
 use super::{
     AchievementPageViewport, AchievementsPage, ChatPanelState, ConfirmationDialog,
-    ConnectionScreen, DeveloperHandInput, Header, LobbyGameMotion, PageMotion, PlayErrorToast,
-    ProfileModal, ProfileMotion, SettingsModal, SettingsMotion, ShopPage, UiState, UpdateManager,
-    add_lobby_game_shade, add_page_background, add_page_transition_shade, add_play_error_popup,
-    can_edit_identity, render_confirmation, render_update_dialog,
+    ConnectionScreen, DeveloperHandInput, Header, LobbyGameMotion, MusicMotion, MusicState,
+    PageMotion, PlayErrorToast, ProfileModal, ProfileMotion, SettingsModal, SettingsMotion,
+    ShopPage, UiState, UpdateManager, add_lobby_game_shade, add_page_background,
+    add_page_transition_shade, add_play_error_popup, can_edit_identity, render_confirmation,
+    render_mini_player, render_music_modal, render_update_dialog,
 };
 #[cfg(not(target_os = "android"))]
 use super::{SakuraPage, SakuraState, render_startup_dialog};
@@ -37,6 +38,8 @@ struct VisualAssets<'w> {
     mahjong_tile_materials: ResMut<'w, Assets<MahjongTileMaterial>>,
     turn_border_materials: ResMut<'w, Assets<TurnBorderMaterial>>,
     updater: Res<'w, UpdateManager>,
+    music: Res<'w, MusicState>,
+    music_motion: Res<'w, MusicMotion>,
     confirmation: Res<'w, ConfirmationDialog>,
     settings_motion: Res<'w, SettingsMotion>,
     profile_motion: Res<'w, ProfileMotion>,
@@ -276,6 +279,15 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn render_overlays(&mut self, root: Entity) {
+        if !self.ui.shop.open
+            && !self.ui.achievements.open
+            && !self.sakura_open()
+            && self.client.is_some_and(|client| {
+                matches!(client.0.model().phase(), ClientPhaseRef::Playing(_))
+            })
+        {
+            render_mini_player(self.commands, root, &self.visuals.music, &self.visuals.ui);
+        }
         if can_edit_identity(self.client) {
             ConnectionScreen::new(
                 self.connection,
@@ -308,7 +320,13 @@ impl ScreenRenderer<'_, '_, '_> {
             add_lobby_game_shade(self.commands, root, &self.visuals.lobby_game_motion);
         }
         if self.ui.settings.open {
-            SettingsModal::new(self.appearance, &self.visuals.updater, &self.visuals.ui).render(
+            SettingsModal::new(
+                self.appearance,
+                &self.visuals.updater,
+                &self.visuals.music,
+                &self.visuals.ui,
+            )
+            .render(
                 self.commands,
                 root,
                 self.visuals.settings_motion.progress,
@@ -318,6 +336,13 @@ impl ScreenRenderer<'_, '_, '_> {
         if self.ui.profile.open {
             self.render_profile(root);
         }
+        render_music_modal(
+            self.commands,
+            root,
+            &self.visuals.music,
+            &self.visuals.music_motion,
+            &self.visuals.ui,
+        );
         if self.visuals.updater.dialog_open || self.visuals.updater.dialog_progress > 0.0 {
             render_update_dialog(
                 self.commands,

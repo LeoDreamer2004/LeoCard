@@ -2,8 +2,8 @@
 use super::SakuraFrpPlugin;
 use super::{
     AchievementsPagePlugin, ChatPlugin, ConnectionPlugin, DeveloperToolsPlugin, InputPlugin,
-    LobbyPlugin, NavigationPlugin, OverlaysPlugin, ProfilePlugin, SettingsPlugin, ShellUiPlugin,
-    ShopPlugin, SocialPlugin, UiActionPlugin, UiActionSet, UiState, UpdatePlugin,
+    LobbyPlugin, MusicPlugin, NavigationPlugin, OverlaysPlugin, ProfilePlugin, SettingsPlugin,
+    ShellUiPlugin, ShopPlugin, SocialPlugin, UiActionPlugin, UiActionSet, UiState, UpdatePlugin,
     close_interaction_menu_on_outside_click, compose_ui, ui_scale_can_change, update_ui_scale,
 };
 use crate::app::runtime::ClientUpdateSet;
@@ -44,6 +44,7 @@ impl Plugin for ShellPlugin {
                 .chain()
                 .in_set(ClientUpdateSet::Compose),
         );
+        app.add_plugins(MusicPlugin);
         #[cfg(not(target_os = "android"))]
         app.add_plugins(SakuraFrpPlugin);
     }

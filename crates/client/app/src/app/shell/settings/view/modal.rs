@@ -9,9 +9,9 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use crate::app::shell::{
-    CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction, SettingsTab,
+    CozyModalBackdrop, CozyModalKind, CozyModalPanel, MusicState, NavigationUiAction, SettingsTab,
     SettingsUiAction, UiAction, UpdateManager, add_configuration_scroll, add_cozy_close_button,
-    cozy_backdrop_color, cozy_panel_transform,
+    cozy_backdrop_color, cozy_panel_transform, render_music_settings,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -21,6 +21,7 @@ use leocard_ui::{PageFrame, UiComposer, decorate_panel, sliced_image, spawn_node
 pub(crate) struct SettingsModal<'a> {
     form: &'a AppearancePreferences,
     updater: &'a UpdateManager,
+    music: &'a MusicState,
     assets: &'a UiAssets,
 }
 
@@ -28,11 +29,13 @@ impl<'a> SettingsModal<'a> {
     pub(crate) fn new(
         form: &'a AppearancePreferences,
         updater: &'a UpdateManager,
+        music: &'a MusicState,
         assets: &'a UiAssets,
     ) -> Self {
         Self {
             form,
             updater,
+            music,
             assets,
         }
     }
@@ -123,6 +126,7 @@ impl<'a> SettingsModal<'a> {
         for (tab, label) in [
             (SettingsTab::Appearance, "外观"),
             (SettingsTab::Sound, "声音"),
+            (SettingsTab::Music, "音乐"),
             (SettingsTab::About, "关于"),
         ] {
             add_settings_tab(commands, tabs, tab, label, selected_tab, assets);
@@ -167,6 +171,7 @@ impl<'a> SettingsModal<'a> {
             SettingsTab::Sound => {
                 render_sound_settings(commands, content, form, assets);
             }
+            SettingsTab::Music => render_music_settings(commands, content, self.music, assets),
             SettingsTab::About => {
                 AboutSettings::new(updater, assets).render(commands, content);
             }

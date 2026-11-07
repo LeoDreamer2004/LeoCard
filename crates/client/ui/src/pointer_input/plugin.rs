@@ -21,7 +21,7 @@ pub struct UiPressTarget;
 pub struct SecondaryPressTarget;
 
 /// Touch drags belong to this control instead of scrolling its parent viewport.
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct TouchDragTarget;
 
 pub struct PointerInputPlugin;

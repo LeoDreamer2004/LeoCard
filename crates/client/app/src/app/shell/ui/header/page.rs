@@ -192,6 +192,15 @@ impl<'a> Header<'a> {
         add_page_icon_button(
             commands,
             right,
+            UiAction::Navigation(NavigationUiAction::ToggleMusic),
+            self.assets,
+            self.assets.home.music_icon.clone(),
+            "音乐",
+            PAGE_HEADER_SCALE,
+        );
+        add_page_icon_button(
+            commands,
+            right,
             UiAction::Navigation(NavigationUiAction::ToggleSettings),
             self.assets,
             self.assets.home.settings_icon.clone(),

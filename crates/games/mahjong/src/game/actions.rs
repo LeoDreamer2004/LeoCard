@@ -34,6 +34,9 @@ impl MahjongGameState {
             claimed_by: None,
             from_drawn,
         });
+        if tile.kind().is_flower() {
+            return self.advance_after_unclaimed_discard(player);
+        }
         let pending = self.pending_for_discard(discard_index, player, tile)?;
         if pending.waiting_for().is_empty() {
             return self.advance_after_unclaimed_discard(player);
@@ -136,7 +139,7 @@ impl MahjongGameState {
         player: PlayerId,
     ) -> Result<MahjongActionOutcome, MahjongGameError> {
         self.ensure_playing_turn(player)?;
-        if self.players[player.index()].dead_hand {
+        if self.players[player.index()].dead_hand || self.flower_position(player).is_some() {
             return Err(MahjongGameError::CannotWin);
         }
         let winning = self.last_drawn.ok_or(MahjongGameError::CannotWin)?;

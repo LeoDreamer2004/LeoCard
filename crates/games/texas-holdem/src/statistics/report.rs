@@ -110,6 +110,16 @@ impl TexasGameState {
         report.won_side_pot_chips = pots.won_side_pot_chips;
         report.tied_winners = pots.tied_winners;
         report.lost_to_lower_unpaired_hand = pots.lost_to_lower_unpaired_hand;
+        // The last betting action keeps the street before the remaining board was dealt.
+        report.won_all_in_runout = pots.won_each_board
+            && self
+                .last_action_statistics()
+                .is_some_and(|stats| stats.street != TexasStreet::River)
+            && own_actions
+                .iter()
+                .any(|record| record.statistics.all_in_amount > 0);
+        report.runout_twice_comeback =
+            pots.lost_first_won_second && self.runout_votes().contains(&(player, true));
         for index in pots.defeated {
             let other = &self.players()[index];
             report

@@ -202,6 +202,7 @@ impl GameSnapshotView for MahjongSession {
             your_drawn_tile: (game.current_player() == recipient)
                 .then(|| game.last_drawn())
                 .flatten(),
+            your_auto_flower: game.auto_flower_enabled(recipient),
             discards: game.discards().to_vec(),
             dealer: game.dealer(),
             prevalent_wind: game.prevalent_wind(),

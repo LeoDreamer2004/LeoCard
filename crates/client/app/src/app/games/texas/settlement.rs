@@ -231,12 +231,11 @@ pub(super) fn add_texas_hand_result(
         );
         commands.entity(delta_label).insert((
             Node {
-                width: px(76),
-                min_width: px(76),
+                margin: UiRect::left(Val::Auto),
                 flex_shrink: 0.0,
                 ..default()
             },
-            TextLayout::new(Justify::Right, LineBreak::NoWrap),
+            TextLayout::no_wrap(),
         ));
     }
 

@@ -1,41 +1,30 @@
+use super::input::{LinkPushRange, LinkTileHitbox};
 use super::layout::{self, TILE_SCALE};
 use super::playback::{self, LinkPlayback, LinkTileVisual};
-use super::state::MahjongLinkUiState;
-use super::{MahjongLinkUiAction, controls, players, summary};
+use super::state::can_act;
+use super::{MahjongLinkUiAction, players, summary};
 use crate::app::games::GameTableContext;
 use crate::app::presentation::mahjong::{
     MahjongProjectionViewport, MahjongTableRoot, MahjongTileAssets, MahjongTileGeometry,
     MahjongTileMaterial, WORLD_SCALE, attach_mahjong_tile_surface, mahjong_local_light,
 };
 use crate::app::presentation::{
-    ACCENT, DESIGN_WIDTH, MUTED, TEXT, TableBackground, TableBackgroundMaterial, TableSurfaceKind,
-    add_auto_play_overlay, add_text,
+    DESIGN_WIDTH, TableBackground, TableBackgroundMaterial, TableSurfaceKind, add_auto_play_overlay,
 };
-use crate::app::shell::{ChatPanelOptions, UiAction, add_reconnecting_overlay};
+use crate::app::shell::{
+    ChatAuxiliaryAction, ChatPanelOptions, UiAction, add_reconnecting_overlay,
+};
 use bevy::picking::Pickable;
+use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
-use bevy::ui_widgets::Button;
 use leocard_mahjong_link::{BOARD_COLUMNS, LinkCell};
 use leocard_protocol::MahjongLinkSnapshot;
-use leocard_ui::{UiComposer, spawn_node};
-
-#[derive(Component)]
-pub(super) struct LinkTileHitbox;
-
-pub(super) fn can_act(game: &MahjongLinkSnapshot) -> bool {
-    !game.match_complete
-        && game.current_player == Some(game.you)
-        && game
-            .players
-            .iter()
-            .any(|player| player.player.id == game.you && !player.auto_play)
-}
+use leocard_ui::{TouchDragTarget, UiComposer, spawn_node};
 
 pub(super) fn render(
     commands: &mut UiComposer,
     root: Entity,
     game: &MahjongLinkSnapshot,
-    ui: &MahjongLinkUiState,
     tiles: &MahjongTileAssets,
     playback: &LinkPlayback,
     mut context: GameTableContext<'_>,
@@ -84,62 +73,7 @@ pub(super) fn render(
     ));
     players::render(commands, table, game, playback, &mut context);
 
-    let status = spawn_node(
-        commands,
-        table,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(220),
-            right: px(220),
-            top: px(22),
-            height: px(36),
-            justify_content: JustifyContent::SpaceBetween,
-            align_items: AlignItems::Center,
-            ..default()
-        },
-        None,
-    );
-    commands.entity(status).insert(ZIndex(100));
-    let current_name = game
-        .current_player
-        .and_then(|id| game.players.iter().find(|player| player.player.id == id))
-        .map(|player| player.player.name.as_str())
-        .unwrap_or("");
-    add_text(
-        commands,
-        status,
-        if game.match_complete {
-            "本局结束".to_owned()
-        } else if can_act(game) {
-            if game.push_used {
-                "已推动一次  请消除一对牌或跳过".to_owned()
-            } else {
-                "轮到你了  可直接消除或先推一次".to_owned()
-            }
-        } else {
-            format!("等待 {current_name} 操作")
-        },
-        22.0,
-        if can_act(game) { ACCENT } else { TEXT },
-        context.assets,
-    );
-    add_text(
-        commands,
-        status,
-        if game.consecutive_passes > 0 {
-            format!(
-                "剩余 {} 张  连续跳过 {} 人",
-                game.board.remaining(),
-                game.consecutive_passes
-            )
-        } else {
-            format!("剩余 {} 张", game.board.remaining())
-        },
-        18.0,
-        MUTED,
-        context.assets,
-    );
-
+    let enabled = can_act(game);
     let viewport = MahjongProjectionViewport::default().size;
     for (index, tile) in game.board.cells().iter().enumerate() {
         let Some(kind) = tile else {
@@ -149,21 +83,21 @@ pub(super) fn render(
             row: (index / BOARD_COLUMNS) as u8,
             column: (index % BOARD_COLUMNS) as u8,
         };
-        let selected = ui.selected == Some(cell);
+        let movable = enabled && !game.push_used && LinkPushRange::at(&game.board, cell).is_some();
         let hitbox = commands.keyed_child(
             table,
             format!("hitbox:{index}"),
             (
                 layout::hitbox_node(layout::tile_bounds(cell, Vec2::ZERO, 0.0, viewport)),
-                LinkTileHitbox,
+                LinkTileHitbox(cell),
                 ZIndex(20 + i32::from(cell.row) * 32 + 8 - (i32::from(cell.column) - 8).abs()),
             ),
         );
-        if can_act(game) {
+        if enabled {
             commands.entity(hitbox).insert((
-                Button,
                 Pickable::default(),
-                UiAction::MahjongLink(MahjongLinkUiAction::Select(cell)),
+                PickingInteraction::default(),
+                TouchDragTarget,
             ));
         } else {
             commands.entity(hitbox).insert(Pickable::IGNORE);
@@ -191,7 +125,7 @@ pub(super) fn render(
                 hitbox,
                 offset: playback.tile_offset(cell),
                 started: playback.started,
-                selected,
+                movable,
             },
         ));
         let material = commands.material(
@@ -199,13 +133,8 @@ pub(super) fn render(
             context.mahjong_tile_materials,
             MahjongTileMaterial {
                 table_projection: true,
-                params: Vec4::new(if selected { 1.0 } else { 0.0 }, 0.0, 1.0, 0.0),
+                params: Vec4::Z,
                 lighting: mahjong_local_light(0),
-                highlight: if selected {
-                    Vec4::new(1.0, 0.75, 0.15, 0.46)
-                } else {
-                    Vec4::ZERO
-                },
                 glyph: tiles.tiles[kind].clone(),
                 height: tiles.tile_heights[kind].clone(),
                 ..default()
@@ -214,7 +143,6 @@ pub(super) fn render(
         attach_mahjong_tile_surface(commands, node, material, true);
     }
     playback::path(commands, table, playback);
-    controls::render(commands, table, game, ui, context.assets);
     summary::render(commands, table, game, &context);
     let own = game
         .players
@@ -223,7 +151,18 @@ pub(super) fn render(
     let auto_play = (!game.match_complete)
         .then(|| own.map(|player| player.auto_play))
         .flatten();
-    ChatPanelOptions::new(auto_play, &[]).spawn(commands, content, context.chat, context.assets);
+    let pass = [ChatAuxiliaryAction {
+        label: "过",
+        action: enabled.then_some(UiAction::MahjongLink(MahjongLinkUiAction::Pass)),
+        highlighted: false,
+    }];
+    let auxiliary = if game.match_complete { &[][..] } else { &pass };
+    ChatPanelOptions::new(auto_play, auxiliary).spawn(
+        commands,
+        content,
+        context.chat,
+        context.assets,
+    );
     if auto_play == Some(true) {
         add_auto_play_overlay(commands, content, context.assets);
     }

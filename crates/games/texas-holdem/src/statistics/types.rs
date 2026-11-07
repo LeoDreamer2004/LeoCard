@@ -65,4 +65,8 @@ pub struct TexasHandStatistics {
     pub match_complete: bool,
     pub first_place: bool,
     pub match_statistics: TexasMatchStatistics,
+    /// Went all-in voluntarily before an unfinished board ran out and won on every board.
+    pub won_all_in_runout: bool,
+    /// Voted to run twice, lost the first board and won the second outright.
+    pub runout_twice_comeback: bool,
 }

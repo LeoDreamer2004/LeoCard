@@ -31,6 +31,11 @@ pub(super) fn project_point(row: f32, column: f32, viewport: Vec2) -> Vec2 {
     project_layout(Vec3::new(ground.x, 0.76, ground.y), viewport)
 }
 
+pub(super) fn column_width(row: u8, viewport: Vec2) -> f32 {
+    let row = f32::from(row);
+    project_point(row, 1.0, viewport).x - project_point(row, 0.0, viewport).x
+}
+
 pub(super) fn tile_bounds(cell: LinkCell, offset: Vec2, elevation: f32, viewport: Vec2) -> Rect {
     let ground = cell_world(cell) + offset;
     let half = MahjongTileGeometry::flat_half_size(TILE_SCALE);

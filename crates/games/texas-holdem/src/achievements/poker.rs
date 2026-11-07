@@ -173,6 +173,32 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
         1
     ),
     texas!(
+        "all_in_runout_win",
+        "你跑不过我你信吗？",
+        Bronze,
+        "在自己全下的跑码中独赢一次。翻两次时必须两轮都独赢",
+        |event| hand(event, |facts| facts.won_all_in_runout),
+        1
+    ),
+    texas!(
+        "runout_twice_comeback",
+        "理智的决策",
+        Bronze,
+        "选择翻两次，第一轮输掉，第二轮独赢",
+        |event| hand(event, |facts| facts.runout_twice_comeback),
+        1
+    ),
+    texas!(
+        "river_value",
+        "河牌收租",
+        Bronze,
+        "河牌下注或加注被跟注，并在摊牌中赢下底池",
+        |event| hand(event, |facts| facts.won_chips > 0
+            && facts.showdown
+            && facts.river_bet_called),
+        1
+    ),
+    texas!(
         "five_hundred_wins",
         "五百胜场",
         Silver,
@@ -199,16 +225,6 @@ pub(super) const DEFINITIONS: &[AchievementDefinition] = &[
             && pair(facts, TexasRank::Ace)
             && facts.preflop_all_in
             && facts.lost_to_lower_unpaired_hand),
-        1
-    ),
-    texas!(
-        "river_value",
-        "河牌收租",
-        Silver,
-        "河牌下注或加注被跟注，并在摊牌中赢下底池",
-        |event| hand(event, |facts| facts.won_chips > 0
-            && facts.showdown
-            && facts.river_bet_called),
         1
     ),
     texas!(

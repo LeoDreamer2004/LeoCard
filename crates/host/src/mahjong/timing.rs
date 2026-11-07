@@ -87,6 +87,7 @@ impl DecisionTiming for MahjongSession {
         !matches!(
             command,
             MahjongCommand::SetAutoPlay { .. }
+                | MahjongCommand::SetAutoFlower { .. }
                 | MahjongCommand::UpdateRules { .. }
                 | MahjongCommand::SetDeveloperHand { .. }
         )

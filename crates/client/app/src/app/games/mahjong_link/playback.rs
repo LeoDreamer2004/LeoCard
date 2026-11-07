@@ -1,5 +1,6 @@
+use super::input::LinkTileHitbox;
 use super::layout;
-use super::table::LinkTileHitbox;
+use super::state::MahjongLinkUiState;
 use crate::app::presentation::mahjong::MahjongProjectionViewport;
 use crate::app::presentation::{
     ACCENT, MahjongTileMaterial, MahjongTileSurface, ease_out_cubic, rolling_score,
@@ -11,7 +12,7 @@ use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
 use leocard_game_common::PlayerId;
-use leocard_mahjong_link::LinkCell;
+use leocard_mahjong_link::{LinkCell, MahjongLinkAction};
 use leocard_protocol::{GameEvent, GameSnapshot, MahjongLinkEvent, MatchId, ServerEvent};
 use leocard_ui::{UiComposer, spawn_node};
 
@@ -25,6 +26,7 @@ pub(super) struct LinkPlayback {
     pub event: Option<MahjongLinkEvent>,
     pub started: f64,
     pub now: f64,
+    pub previewed_push: Option<(MatchId, u32, MahjongLinkAction)>,
 }
 
 impl LinkPlayback {
@@ -57,7 +59,7 @@ pub(super) struct LinkTileVisual {
     pub hitbox: Entity,
     pub offset: Vec2,
     pub started: f64,
-    pub selected: bool,
+    pub movable: bool,
 }
 
 #[derive(Component)]
@@ -132,7 +134,15 @@ fn sync(
             continue;
         }
         playback.sequence = Some(context.sequence);
-        playback.event = Some(event.clone());
+        let mut event = event.clone();
+        if event.player == game.you
+            && playback.previewed_push == Some((game.match_id, event.turn, event.outcome.action))
+        {
+            // Locally dragged tiles have already reached the server-confirmed positions.
+            event.outcome.movements.clear();
+            playback.previewed_push = None;
+        }
+        playback.event = Some(event);
         playback.started = playback.now;
         ui.dirty = true;
     }
@@ -145,20 +155,31 @@ fn sync(
 fn animate_tiles(
     time: Res<Time>,
     viewport: Res<MahjongProjectionViewport>,
+    ui: Res<MahjongLinkUiState>,
     mut tiles: Query<(&LinkTileVisual, &MahjongTileSurface, &mut UiTransform)>,
     mut hitboxes: Query<(&mut Node, Option<&PickingInteraction>), With<LinkTileHitbox>>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
 ) {
+    let preview = ui.preview();
     for (visual, surface, mut transform) in &mut tiles {
         let elapsed = (time.elapsed_secs_f64() - visual.started) as f32;
-        let offset =
-            visual.offset * (1.0 - ease_out_cubic((elapsed / PUSH_SECONDS).clamp(0.0, 1.0)));
+        let destination = preview.and_then(|preview| {
+            preview
+                .movements
+                .iter()
+                .find(|movement| movement.from == visual.cell)
+        });
+        let offset = destination.map_or_else(
+            || visual.offset * (1.0 - ease_out_cubic((elapsed / PUSH_SECONDS).clamp(0.0, 1.0))),
+            |movement| layout::cell_world(movement.to) - layout::cell_world(movement.from),
+        );
         let Ok((mut hitbox, interaction)) = hitboxes.get_mut(visual.hitbox) else {
             continue;
         };
         let hovered =
             interaction.is_some_and(|interaction| *interaction != PickingInteraction::None);
-        let elevation = if visual.selected {
+        let selected = ui.selected == Some(visual.cell);
+        let elevation = if selected {
             4.0
         } else if hovered {
             2.0
@@ -177,7 +198,14 @@ fn animate_tiles(
             *hitbox = next;
         }
         if let Some(mut material) = materials.get_mut(&surface.0) {
-            material.params.x = if visual.selected || hovered { 1.0 } else { 0.0 };
+            material.params.x = if selected || hovered { 1.0 } else { 0.0 };
+            material.highlight = if selected || destination.is_some() {
+                Vec4::new(1.0, 0.75, 0.15, 0.46)
+            } else if visual.movable && preview.is_none() {
+                Vec4::new(0.42, 0.83, 0.9, 0.2)
+            } else {
+                Vec4::ZERO
+            };
             material.elevation = elevation;
         }
     }

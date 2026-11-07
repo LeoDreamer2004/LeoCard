@@ -13,11 +13,28 @@ pub(super) struct PotStatistics {
     pub tied_winners: u8,
     pub defeated: HashSet<usize>,
     pub lost_to_lower_unpaired_hand: bool,
+    pub won_each_board: bool,
+    pub lost_first_won_second: bool,
 }
 
 impl PotStatistics {
     fn single_pot(game: &TexasGameState, result: &TexasHandResult, player: PlayerId) -> Self {
         let mut pots = Self::default();
+        let won_board = |awards: &[TexasPotAward]| {
+            awards
+                .iter()
+                .any(|award| award.amount > 0 && award.winners == [player])
+        };
+        pots.won_each_board = won_board(&result.awards);
+        if let Some(second) = &result.second_run {
+            let won_second = won_board(&second.awards);
+            pots.won_each_board &= won_second;
+            pots.lost_first_won_second = won_second
+                && !result
+                    .awards
+                    .iter()
+                    .any(|award| award.winners.contains(&player));
+        }
         let mut received = vec![0; game.players().len()];
         let mut not_defeated_on_both = HashSet::new();
         let runs = [(result.community.as_slice(), result.awards.as_slice())]
@@ -171,6 +188,7 @@ impl PotStatistics {
                         && own.cmp_with_rules(&opponent, game.rules()).is_gt()
                     {
                         pots.defeated.insert(other.id().index());
+                        pots.won_each_board |= award.winners.len() == 1;
                     }
                 }
             }

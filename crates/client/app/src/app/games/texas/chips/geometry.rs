@@ -2,23 +2,18 @@ use super::super::TexasTableLayout;
 use super::ChipZoneLayout;
 
 pub(super) fn texas_pot_chip_zone(squid_enabled: bool) -> ChipZoneLayout {
-    if cfg!(target_os = "android") {
-        let left = if squid_enabled { 600.0 } else { 349.0 };
-        return ChipZoneLayout {
-            left,
-            top: TexasTableLayout::POT_TOP,
-            width: 931.0 - left,
-            height: 40.0,
-        };
-    }
-    // Reserve the left column below the street label for squid coins.
-    let left = if squid_enabled { 560.0 } else { 440.0 };
+    // Reserve the left column for squid coins and use the gap beneath the board.
+    let (left, right) = if cfg!(target_os = "android") {
+        (if squid_enabled { 600.0 } else { 349.0 }, 931.0)
+    } else {
+        (if squid_enabled { 560.0 } else { 440.0 }, 840.0)
+    };
+    let top = TexasTableLayout::board_card_origin(0).y + TexasTableLayout::BOARD_CARD_SIZE.y + 3.0;
     ChipZoneLayout {
         left,
-        top: TexasTableLayout::POT_TOP,
-        width: 840.0 - left,
-        // Keep the pool above the local betting area, which starts at y = 405.
-        height: 80.0,
+        top,
+        width: right - left,
+        height: TexasTableLayout::LOCAL_BET_TOP - top - 7.0,
     }
 }
 

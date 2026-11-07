@@ -1,6 +1,6 @@
 mod actions;
 mod catalog;
-mod controls;
+mod input;
 mod layout;
 mod lobby;
 mod playback;

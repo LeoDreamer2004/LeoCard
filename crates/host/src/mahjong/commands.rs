@@ -28,6 +28,9 @@ impl MahjongSession {
             MahjongCommand::SetAutoPlay { enabled } => {
                 self.set_auto_play(connection, request_id, enabled)
             }
+            MahjongCommand::SetAutoFlower { enabled } => {
+                self.set_auto_flower(connection, request_id, enabled)
+            }
             MahjongCommand::UpdateRules { rules } => {
                 self.update_rules(connection, request_id, rules)
             }
@@ -64,6 +67,43 @@ impl MahjongSession {
                     game.declare_added_kong(player, tile)
                 })
             }
+        }
+    }
+
+    fn set_auto_flower(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        enabled: bool,
+    ) -> Vec<Delivery> {
+        let Some(player) = self.room.player_id(connection) else {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Player(PlayerViolation::NotJoined),
+            );
+        };
+        let Some(game) = self.game.as_mut() else {
+            return self.room.reject(
+                connection,
+                request_id,
+                RejectReason::Game(GameViolation::GameNotStarted),
+            );
+        };
+        let was_replacing = matches!(game.phase(), MahjongPhase::ReplacingFlower { .. });
+        match game.set_auto_flower(player, enabled) {
+            Ok(changed) => {
+                if changed {
+                    if !was_replacing
+                        && matches!(game.phase(), MahjongPhase::ReplacingFlower { .. })
+                    {
+                        self.deal_delay = MAHJONG_DEAL_INTERVAL;
+                    }
+                    self.room.bump_revision();
+                }
+                self.broadcast_game(Some((connection, request_id)))
+            }
+            Err(error) => self.reject_game_error(connection, request_id, &error),
         }
     }
 

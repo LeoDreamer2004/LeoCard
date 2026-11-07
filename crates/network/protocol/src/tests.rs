@@ -16,12 +16,14 @@ use leocard_texas_holdem::{TexasHandStatistics, TexasProfileStats, TexasRuleSet}
 use leocard_uno::UnoProfileStats;
 
 #[test]
-fn private_texas_aces_cracked_statistic_round_trips_through_protocol_codec() {
+fn private_texas_hand_statistics_round_trip_through_protocol_codec() {
     for lost_to_lower_unpaired_hand in [false, true] {
         let event = TexasEvent::HandAnalyzed {
             player: PlayerId(0),
             statistics: Box::new(TexasHandStatistics {
                 lost_to_lower_unpaired_hand,
+                won_all_in_runout: !lost_to_lower_unpaired_hand,
+                runout_twice_comeback: lost_to_lower_unpaired_hand,
                 ..Default::default()
             }),
         };

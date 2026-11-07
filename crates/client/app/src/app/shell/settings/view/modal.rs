@@ -1,6 +1,6 @@
 //! 全局设置窗口与页签组合。
 
-use super::super::{SelectedSettingsTab, SettingsTabButton};
+use super::super::{SelectedSettingsTab, SettingsMotion, SettingsTabButton};
 use super::about::AboutSettings;
 use super::appearance::TableAppearanceSettings;
 use super::sound::render_sound_settings;
@@ -9,11 +9,10 @@ use crate::app::presentation::{
 };
 use crate::app::runtime::{AppearancePreferences, UiAssets};
 use crate::app::shell::{
-    CozyModalBackdrop, CozyModalKind, CozyModalPanel, NavigationUiAction, SettingsTab,
-    SettingsUiAction, UiAction, UpdateManager, add_configuration_scroll, add_cozy_close_button,
-    cozy_backdrop_color, cozy_panel_transform,
+    CozyModalKind, CozyModalPanel, NavigationUiAction, SettingsTab, SettingsUiAction,
+    ShellOverlayLayer, UiAction, UpdateManager, add_centered_modal, add_configuration_scroll,
+    add_cozy_close_button, cozy_panel_transform,
 };
-use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_ui::{PageFrame, UiComposer, decorate_panel, sliced_image, spawn_node};
@@ -41,32 +40,22 @@ impl<'a> SettingsModal<'a> {
         &self,
         commands: &mut UiComposer,
         root: Entity,
-        progress: f32,
+        motion: &SettingsMotion,
         selected_tab: SettingsTab,
     ) {
         let form = self.form;
         let updater = self.updater;
         let assets = self.assets;
-        let overlay = spawn_node(
+        let progress = motion.progress;
+        let close = UiAction::Navigation(NavigationUiAction::ToggleSettings);
+        let overlay = add_centered_modal(
             commands,
             root,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                right: px(0),
-                top: px(0),
-                bottom: px(0),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            Some(cozy_backdrop_color(progress)),
+            ShellOverlayLayer::Dialog,
+            CozyModalKind::Settings,
+            progress,
+            motion.target_open.then(|| close.clone()),
         );
-        commands.entity(overlay).insert((
-            GlobalZIndex(2000),
-            Pickable::default(),
-            CozyModalBackdrop(CozyModalKind::Settings),
-        ));
         let mut frame = PageFrame::new(page_frame_skin(assets));
         frame.node.width = px(680);
         frame.node.height = px(520);
@@ -87,12 +76,7 @@ impl<'a> SettingsModal<'a> {
             PAGE_FRAME_TITLE,
             assets,
         );
-        add_cozy_close_button(
-            commands,
-            heading,
-            UiAction::Navigation(NavigationUiAction::ToggleSettings),
-            assets,
-        );
+        add_cozy_close_button(commands, heading, close, assets);
         let tabbed = spawn_node(
             commands,
             frame.content,

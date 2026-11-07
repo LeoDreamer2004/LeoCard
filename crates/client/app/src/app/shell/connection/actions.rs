@@ -5,6 +5,7 @@ use super::super::{
     dispatch_domain_actions, start_avatar_picker,
 };
 use super::can_edit_identity;
+use super::form::{ConnectionField, InputField};
 use super::lan::LanDiscovery;
 use crate::app::runtime::{
     AppearancePreferences, AvatarImages, AvatarPicker, ClientResource, ConnectionDraft,
@@ -15,6 +16,7 @@ use bevy::log::warn;
 #[cfg(test)]
 use bevy::prelude::default;
 use bevy::prelude::*;
+use bevy::text::EditableText;
 use leocard_client::{LocalPlayerConnection, LocalPlayerProfile, PlayerEconomy, TcpGameClient};
 use leocard_protocol::{GameKind, MAX_PLAYER_NAME_CHARS, PlayerGender};
 use leocard_ui::UiComposer;
@@ -53,6 +55,7 @@ struct AvatarUiResources<'w> {
 #[derive(SystemParam)]
 pub(crate) struct ConnectionActionContext<'w, 's> {
     connection: ResMut<'w, ConnectionDraft>,
+    fields: Query<'w, 's, (&'static ConnectionField, &'static EditableText)>,
     client: Option<Res<'w, ClientResource>>,
     appearance: ResMut<'w, AppearancePreferences>,
     host_rules: Res<'w, HostRulePreferences>,
@@ -104,6 +107,17 @@ impl UiActionHandler<ConnectionActionContext<'_, '_>> for ConnectionUiAction {
             ConnectionUiAction::CreateRoom(game_kind) => create_room(*game_kind, context),
             ConnectionUiAction::JoinRoom => join_room(context),
             ConnectionUiAction::OpenLan => {
+                if !context.ui.home.join_open {
+                    return;
+                }
+                // Switching panes retires the editor before its next PostUpdate publish.
+                if let Some((_, editor)) = context
+                    .fields
+                    .iter()
+                    .find(|(field, _)| matches!(field.0, InputField::JoinAddress))
+                {
+                    context.connection.join_address = editor.value().to_string();
+                }
                 context.ui.lan.open = true;
                 context.ui.lan.scroll_y = 0.0;
                 context.ui.lan.generation = context.ui.lan.generation.wrapping_add(1);

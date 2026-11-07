@@ -86,15 +86,13 @@ impl RulesEditor<'_, '_, '_> {
                 "关闭"
             },
             "输入名称时显示未猜过的匹配条目，可点击或用方向键选择。",
-            self.editable.then_some(hints),
+            Some(hints),
         );
         let mut unknown = rules;
         unknown.options_mut().allow_unknown_guesses = !options.allow_unknown_guesses;
         self.toggle(
             "允许错猜",
-            if options.candidate_hints {
-                "不适用"
-            } else if options.allow_unknown_guesses {
+            if options.allow_unknown_guesses {
                 "开启"
             } else {
                 "关闭"
@@ -102,7 +100,7 @@ impl RulesEditor<'_, '_, '_> {
             &format!(
                 "仅在关闭候选提示时可用。最多输入 {MAX_GUESS_CHARACTERS} 个字，不存在的词也会记录。"
             ),
-            (self.editable && !options.candidate_hints).then_some(unknown),
+            (!options.candidate_hints).then_some(unknown),
         );
     }
 
@@ -113,7 +111,7 @@ impl RulesEditor<'_, '_, '_> {
             "对局方式",
             if self.rules.graph.round_robin { "轮流首位" } else { "单局" },
             "轮流首位：每人依次先手一局，整场档案分数增减为单局的 3 倍。单局：开场随机打乱座次，只玩一局。两种方式均按节点数量缩放档案分数。",
-            self.editable.then_some(next),
+            Some(next),
         );
         self.choice(
             RuleChoice {
@@ -172,7 +170,7 @@ impl RulesEditor<'_, '_, '_> {
                 label,
                 if enabled { "开启" } else { "关闭" },
                 help,
-                self.editable.then_some(next),
+                Some(next),
             );
         }
     }
@@ -246,6 +244,7 @@ impl RulesEditor<'_, '_, '_> {
         help: &str,
         toggled: Option<McGuessRuleSet>,
     ) {
+        let applicable = toggled.is_some();
         add_rule_config_row(
             self.commands,
             self.parent,
@@ -253,9 +252,10 @@ impl RulesEditor<'_, '_, '_> {
                 label,
                 value: value.to_owned(),
                 help,
-                previous: toggled,
-                next: toggled,
-            },
+                previous: toggled.filter(|_| self.editable),
+                next: toggled.filter(|_| self.editable),
+            }
+            .applicable(applicable),
             self.assets,
         );
     }

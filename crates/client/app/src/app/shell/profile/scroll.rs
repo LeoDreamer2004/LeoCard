@@ -1,7 +1,7 @@
 //! Horizontal archive browsing by wheel or pointer drag, including touch mouse input.
 
 use super::ProfileArchiveScroll;
-use crate::app::shell::ModalWheelScope;
+use crate::app::shell::ModalInputScope;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
@@ -25,7 +25,7 @@ pub(super) struct ProfileArchiveDrag {
 
 pub(super) fn scroll_archive(
     mut wheels: MessageReader<MouseWheel>,
-    scope: ModalWheelScope,
+    scope: ModalInputScope,
     mouse: Res<ButtonInput<MouseButton>>,
     mut drag: ResMut<ProfileArchiveDrag>,
     mut scrolls: Query<

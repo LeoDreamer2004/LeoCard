@@ -1,15 +1,11 @@
 use super::screen::TexasScreen;
-use super::{
-    TEXAS_SHOWDOWN_REVEAL_DURATION, TexasShowdownBackdrop, TexasShowdownBestCard,
-    TexasShowdownRevealRoot, TexasShowdownTitle, TexasShowdownTitleText, TexasShowdownUnderline,
-    TexasTableLayout, add_summary_hands, texas_category_label,
-};
+use super::{TexasShowdownSequence, add_summary_hands};
 use crate::app::games::GameSummary;
 use crate::app::presentation::{
     ACCENT, DANGER, GameSummaryActions, GameSummaryAnimation, GameSummaryDivider, GameSummaryModal,
     GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, PlayerMenuProfile, READY,
     SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
-    TEXT, add_animated_summary_text, add_avatar, add_ready_avatar, add_title, decorate_panel_skin,
+    TEXT, add_animated_summary_text, add_avatar, add_ready_avatar, decorate_panel_skin,
     summary_modal_visual, summary_row_progress, title_font,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
@@ -20,228 +16,6 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{TexasPhaseView, TexasPlayerView, TexasSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
-
-pub(super) fn add_texas_showdown_reveal(
-    commands: &mut UiComposer,
-    table: Entity,
-    game: &TexasSnapshot,
-    assets: &UiAssets,
-    animation: &GameSummaryAnimation,
-) {
-    let TexasPhaseView::HandComplete {
-        showdown: true,
-        awards,
-        ..
-    } = &game.phase
-    else {
-        return;
-    };
-    if animation.elapsed >= 0.0 {
-        return;
-    }
-    let Some(main_award) = awards.first() else {
-        return;
-    };
-    let Some(winner_id) = main_award.winners.first().copied() else {
-        return;
-    };
-    let Some(winner) = game
-        .players
-        .iter()
-        .find(|player| player.player.id == winner_id)
-    else {
-        return;
-    };
-    let Some(revealed) = game
-        .revealed_hands
-        .iter()
-        .find(|hand| hand.player == winner_id)
-    else {
-        return;
-    };
-    let Some(best) = revealed.best else {
-        return;
-    };
-
-    let root = spawn_node(
-        commands,
-        table,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(0),
-            right: px(0),
-            top: px(0),
-            bottom: px(0),
-            ..default()
-        },
-        None,
-    );
-    commands.entity(root).insert((
-        TexasShowdownRevealRoot,
-        GlobalZIndex(1080),
-        Pickable::IGNORE,
-    ));
-    let backdrop = spawn_node(
-        commands,
-        root,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(0),
-            right: px(0),
-            top: px(0),
-            bottom: px(0),
-            ..default()
-        },
-        Some(Color::BLACK.with_alpha(0.0)),
-    );
-    commands
-        .entity(backdrop)
-        .insert((TexasShowdownBackdrop, Pickable::IGNORE));
-
-    let layout = TexasTableLayout::for_game(game);
-    let relative = layout.player_slot(game, winner.player.id);
-    let winner_zone = layout.chip_zone(relative);
-    let hole_spacing = if revealed.cards.len() > 2 { 18.0 } else { 31.0 };
-    let first_hole_offset = -hole_spacing * (revealed.cards.len().saturating_sub(1) as f32) / 2.0;
-    for (index, card) in best.cards().into_iter().enumerate() {
-        let hole_index = revealed.cards.iter().position(|hole| *hole == card);
-        let (source, delay, start_scale) = if let Some(hole_index) = hole_index {
-            (
-                Vec2::new(
-                    winner_zone.left
-                        + winner_zone.width * 0.5
-                        + first_hole_offset
-                        + hole_index as f32 * hole_spacing,
-                    winner_zone.top + 34.0,
-                ),
-                0.12 + hole_index as f32 * 0.10,
-                Vec2::splat(0.55),
-            )
-        } else {
-            let board_index = game
-                .community
-                .iter()
-                .position(|community| *community == card)
-                .unwrap_or(index);
-            (
-                if game.second_community.is_empty() {
-                    TexasTableLayout::board_card_origin(board_index)
-                } else {
-                    TexasTableLayout::runout_board_card_origin(board_index)
-                },
-                0.68 + board_index as f32 * 0.055,
-                if game.second_community.is_empty() {
-                    TexasTableLayout::BOARD_CARD_SIZE
-                } else {
-                    TexasTableLayout::RUNOUT_CARD_SIZE
-                } / Vec2::new(70.0, 96.0),
-            )
-        };
-        let target = Vec2::new(444.0 + index as f32 * 78.0, 238.0);
-        commands.child(
-            root,
-            (
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(target.x),
-                    top: px(target.y),
-                    width: px(70),
-                    height: px(96),
-                    border: UiRect::all(px(1)),
-                    border_radius: BorderRadius::all(px(6)),
-                    ..default()
-                },
-                ImageNode::new(assets.playing_cards.face(card))
-                    .with_color(Color::WHITE.with_alpha(0.0)),
-                BorderColor::all(Color::srgb(0.88, 0.75, 0.35).with_alpha(0.0)),
-                UiTransform {
-                    translation: Val2::px(source.x - target.x, source.y - target.y),
-                    scale: start_scale,
-                    ..UiTransform::IDENTITY
-                },
-                TexasShowdownBestCard {
-                    source,
-                    target,
-                    delay,
-                    start_scale,
-                },
-                ZIndex(index as i32 + 5),
-                Pickable::IGNORE,
-            ),
-        );
-    }
-
-    let title_area = spawn_node(
-        commands,
-        root,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(360),
-            top: px(350),
-            width: px(560),
-            height: px(42),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            ..default()
-        },
-        None,
-    );
-    commands.entity(title_area).insert((
-        TexasShowdownTitle,
-        UiTransform::from_translation(Val2::px(0.0, 16.0)),
-        Pickable::IGNORE,
-    ));
-    let winner_names = main_award
-        .winners
-        .iter()
-        .filter_map(|id| game.players.iter().find(|player| player.player.id == *id))
-        .map(|player| player.player.name.as_str())
-        .collect::<Vec<_>>()
-        .join("、");
-    let title = add_title(
-        commands,
-        title_area,
-        format!(
-            "{} {winner_names} {}",
-            if game.second_community.is_empty() {
-                ""
-            } else {
-                "第一次"
-            },
-            texas_category_label(best.category())
-        ),
-        30.0,
-        Color::NONE,
-        assets,
-    );
-    commands.entity(title).insert(TextShadow {
-        offset: Vec2::new(1.2, 1.8),
-        color: Color::BLACK.with_alpha(0.72),
-    });
-    commands.entity(title).insert(TexasShowdownTitleText);
-    let underline = spawn_node(
-        commands,
-        root,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(470),
-            top: px(394),
-            width: px(340),
-            height: px(2),
-            border_radius: BorderRadius::all(px(2)),
-            ..default()
-        },
-        Some(Color::srgb(0.90, 0.72, 0.27).with_alpha(0.0)),
-    );
-    commands.entity(underline).insert((
-        TexasShowdownUnderline,
-        UiTransform {
-            scale: Vec2::new(0.0, 1.0),
-            ..UiTransform::IDENTITY
-        },
-        Pickable::IGNORE,
-    ));
-}
 
 pub(super) fn add_texas_hand_result(
     commands: &mut UiComposer,
@@ -261,6 +35,7 @@ pub(super) fn add_texas_hand_result(
     else {
         return;
     };
+    let twice = !game.second_community.is_empty();
     let modal_visual = summary_modal_visual(animation.elapsed);
     let panel = spawn_node(
         commands,
@@ -313,38 +88,6 @@ pub(super) fn add_texas_hand_result(
         Some(Color::srgb(0.64, 0.59, 0.93)),
     );
 
-    if !game.second_community.is_empty() {
-        for run in [1, 2] {
-            let run_awards = awards
-                .iter()
-                .filter(|award| award.run == run)
-                .map(|award| {
-                    let names = award
-                        .winners
-                        .iter()
-                        .filter_map(|id| game.players.iter().find(|player| player.player.id == *id))
-                        .map(|player| player.player.name.as_str())
-                        .collect::<Vec<_>>()
-                        .join("、");
-                    format!("{names} 分得 {}", award.amount)
-                })
-                .collect::<Vec<_>>()
-                .join("  ");
-            add_animated_summary_text(
-                commands,
-                panel,
-                format!(
-                    "{} {run_awards}",
-                    if run == 1 { "第一次" } else { "第二次" }
-                ),
-                14.0,
-                ACCENT,
-                0.0,
-                animation.elapsed,
-                assets,
-            );
-        }
-    }
     let mut hand_players = game.players.iter().collect::<Vec<_>>();
     hand_players.sort_by(|left, right| {
         right
@@ -414,6 +157,12 @@ pub(super) fn add_texas_hand_result(
             commands,
             row,
             Node {
+                display: if twice { Display::Grid } else { Display::Flex },
+                grid_template_columns: if twice {
+                    vec![GridTrack::px(200.0), GridTrack::flex(1.0)]
+                } else {
+                    Vec::new()
+                },
                 flex_grow: 1.0,
                 min_width: px(0),
                 align_items: AlignItems::Center,
@@ -457,14 +206,14 @@ pub(super) fn add_texas_hand_result(
                 commands,
                 result,
                 hand,
-                !game.second_community.is_empty(),
+                twice,
                 delay,
                 animation.elapsed,
                 assets,
             );
         }
         let delta = i64::from(player.stack) - i64::from(player.hand_start_stack);
-        add_animated_summary_text(
+        let delta_label = add_animated_summary_text(
             commands,
             row,
             format!("{delta:+}"),
@@ -480,6 +229,15 @@ pub(super) fn add_texas_hand_result(
             animation.elapsed,
             assets,
         );
+        commands.entity(delta_label).insert((
+            Node {
+                width: px(76),
+                min_width: px(76),
+                flex_shrink: 0.0,
+                ..default()
+            },
+            TextLayout::new(Justify::Right, LineBreak::NoWrap),
+        ));
     }
 
     let mut row_count = hand_players.len();
@@ -722,7 +480,7 @@ impl GameSummary for TexasScreen<'_> {
                 + game.players.len(),
             nonnegative_outcome,
             reveal_duration: if *showdown {
-                TEXAS_SHOWDOWN_REVEAL_DURATION
+                TexasShowdownSequence::new(game, self.chips.runout_reveal_duration).duration()
             } else {
                 0.8
             },

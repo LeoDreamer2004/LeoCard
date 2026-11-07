@@ -98,6 +98,9 @@ pub(crate) struct TexasChipTableState {
     pub actions: HashMap<PlayerId, ActionLabel>,
     pub audio_cues: Vec<TexasAudioCue>,
     pub(super) current_player: Option<PlayerId>,
+    pub(super) community_len: usize,
+    /// Live runouts flip together, then remain unobscured before showdown and awards.
+    pub(crate) runout_reveal_duration: f32,
     /// A finish event can precede the snapshot containing awards and squid transfers.
     pub(super) finish_observed: bool,
     /// Also true when reconnecting to an already settled authoritative snapshot.

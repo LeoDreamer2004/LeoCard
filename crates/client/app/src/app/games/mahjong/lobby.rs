@@ -97,28 +97,23 @@ pub(crate) fn render_mahjong_lobby(
         rules_panel,
         MahjongRuleConfigRow {
             label: "马点",
-            value: if rules.match_length == MahjongMatchLength::SingleHand {
-                "不适用"
-            } else {
-                match rules.uma_style {
-                    MahjongUmaStyle::Balanced => "均衡",
-                    MahjongUmaStyle::FirstPlace => "争一",
-                    MahjongUmaStyle::AvoidFourth => "避四",
-                }
+            value: match rules.uma_style {
+                MahjongUmaStyle::Balanced => "均衡",
+                MahjongUmaStyle::FirstPlace => "争一",
+                MahjongUmaStyle::AvoidFourth => "避四",
             }
             .to_owned(),
             help: "均衡：一/四位、二/三位对等；争一：提高第一名奖励；避四：加重第四名惩罚。",
-            previous: (can_configure && rules.match_length != MahjongMatchLength::SingleHand)
-                .then_some(MahjongRuleSet {
-                    uma_style: styles[(style_index + styles.len() - 1) % styles.len()],
-                    ..rules
-                }),
-            next: (can_configure && rules.match_length != MahjongMatchLength::SingleHand)
-                .then_some(MahjongRuleSet {
-                    uma_style: styles[(style_index + 1) % styles.len()],
-                    ..rules
-                }),
-        },
+            previous: can_configure.then_some(MahjongRuleSet {
+                uma_style: styles[(style_index + styles.len() - 1) % styles.len()],
+                ..rules
+            }),
+            next: can_configure.then_some(MahjongRuleSet {
+                uma_style: styles[(style_index + 1) % styles.len()],
+                ..rules
+            }),
+        }
+        .applicable(rules.match_length != MahjongMatchLength::SingleHand),
         assets,
     );
     let minimum_toggled = MahjongRuleSet {
@@ -173,18 +168,17 @@ pub(crate) fn render_mahjong_lobby(
         rules_panel,
         MahjongRuleConfigRow {
             label: "允许错和",
-            value: if !rules.minimum_eight_points {
-                "不适用"
-            } else if rules.false_win {
+            value: if rules.false_win {
                 "开启"
             } else {
                 "关闭"
             }
             .to_owned(),
             help: "开启后牌型已经完整便显示和牌按钮，不足 8 番属于错和，向其余三家各付 10 分并公开手牌，本盘继续。",
-            previous: (can_configure && rules.minimum_eight_points).then_some(false_win_toggled),
-            next: (can_configure && rules.minimum_eight_points).then_some(false_win_toggled),
-        },
+            previous: can_configure.then_some(false_win_toggled),
+            next: can_configure.then_some(false_win_toggled),
+        }
+        .applicable(rules.minimum_eight_points),
         assets,
     );
 }

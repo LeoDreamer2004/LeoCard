@@ -1,5 +1,6 @@
 //! 首页入房设置与离线页面共用的个人信息编辑浮层。
 
+use super::super::lan::{LanDiscovery, LanUiState};
 use super::{
     controls::{home_button, home_panel},
     input::ConnectionInput,
@@ -8,7 +9,8 @@ use super::{
 };
 use crate::app::presentation::{add_avatar, add_text};
 use crate::app::shell::{
-    ConnectionUiAction, InputField, ModalWheelBlocker, PageTransitionElement, UiAction,
+    ConnectionUiAction, InputField, ModalDismiss, ModalInputBlocker, PageTransitionElement,
+    UiAction,
 };
 use bevy::picking::Pickable;
 use bevy::prelude::*;
@@ -17,10 +19,16 @@ use leocard_protocol::PlayerGender;
 use leocard_ui::{UiComposer, spawn_node};
 
 impl ConnectionScreen<'_> {
-    pub(crate) fn render_home_overlays(&self, commands: &mut UiComposer, root: Entity) {
+    pub(crate) fn render_home_overlays(
+        &self,
+        commands: &mut UiComposer,
+        root: Entity,
+        lan: &LanUiState,
+        discovery: &LanDiscovery,
+    ) {
         let joining = self.home.join_open || self.home.join_progress > 0.0;
         if joining {
-            self.render_join_modal(commands, root);
+            self.render_join_modal(commands, root, lan, discovery);
             return;
         }
         if !self.home.identity_open && self.home.identity_progress == 0.0 {
@@ -40,14 +48,18 @@ impl ConnectionScreen<'_> {
                     ..default()
                 },
                 GlobalZIndex(1400),
-                ModalWheelBlocker,
+                ModalInputBlocker,
             ),
         );
+        let close = UiAction::Connection(ConnectionUiAction::ToggleIdentity);
+        if self.home.identity_open {
+            commands.entity(layer).insert(ModalDismiss(close.clone()));
+        }
         commands.child(
             layer,
             (
                 Button,
-                UiAction::Connection(ConnectionUiAction::ToggleIdentity),
+                close,
                 Node {
                     position_type: PositionType::Absolute,
                     left: px(0),

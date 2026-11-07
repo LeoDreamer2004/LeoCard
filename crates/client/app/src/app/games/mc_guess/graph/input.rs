@@ -5,7 +5,7 @@ use super::log::GraphLogRoot;
 use super::state::{Gesture, GraphCanvas, GraphDragTarget, GraphWorkspace};
 use crate::app::runtime::ClientResource;
 use crate::app::shell::{
-    ConfirmationDialog, ModalWheelScope, PageMotion, PlayErrorToast, UiState, game_command,
+    ConfirmationDialog, ModalInputScope, PageMotion, PlayErrorToast, UiState, game_command,
 };
 use bevy::camera::NormalizedRenderTarget;
 use bevy::ecs::system::SystemParam;
@@ -27,7 +27,7 @@ pub(in super::super) struct GraphPointerContext<'w, 's> {
     sounds: MessageWriter<'w, FeedbackSound>,
     confirmation: Res<'w, ConfirmationDialog>,
     motion: Res<'w, PageMotion>,
-    wheel_scope: ModalWheelScope<'w, 's>,
+    wheel_scope: ModalInputScope<'w, 's>,
     guide: Res<'w, GraphGuideState>,
     logs: Query<'w, 's, &'static RelativeCursorPosition, With<GraphLogRoot>>,
     targets: Query<'w, 's, &'static GraphDragTarget>,

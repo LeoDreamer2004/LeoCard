@@ -17,7 +17,7 @@ use leocard_ui::UiComposer;
 #[derive(SystemParam)]
 pub(crate) struct TexasScreen<'w> {
     ui: ResMut<'w, TexasUiState>,
-    chips: Res<'w, TexasChipTableState>,
+    pub(super) chips: Res<'w, TexasChipTableState>,
     card_materials: ResMut<'w, Assets<TableCardMaterial>>,
 }
 

@@ -2,10 +2,9 @@ use super::{UpdateEvent, UpdateManager, UpdateState};
 use crate::app::presentation::{MUTED, TEXT, add_text, add_title};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, UiState, UpdateUiAction,
-    add_cozy_button, add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
+    CozyModalKind, CozyModalPanel, ShellOverlayLayer, UiAction, UiState, UpdateUiAction,
+    add_centered_modal, add_cozy_button, add_cozy_panel, cozy_panel_transform,
 };
-use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_client::open_url;
 use leocard_ui::{ProgressBar, UiComposer, spawn_node};
@@ -112,26 +111,16 @@ pub(crate) fn render_update_dialog(
     progress: f32,
     assets: &UiAssets,
 ) {
-    let overlay = spawn_node(
+    let overlay = add_centered_modal(
         commands,
         root,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(0),
-            right: px(0),
-            top: px(0),
-            bottom: px(0),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            ..default()
-        },
-        Some(cozy_backdrop_color(progress)),
+        ShellOverlayLayer::Update,
+        CozyModalKind::UpdateDialog,
+        progress,
+        updater
+            .dialog_open
+            .then_some(UiAction::Update(UpdateUiAction::HideUpdateDialog)),
     );
-    commands.entity(overlay).insert((
-        GlobalZIndex(2300),
-        Pickable::default(),
-        CozyModalBackdrop(CozyModalKind::UpdateDialog),
-    ));
     let modal = add_cozy_panel(
         commands,
         overlay,

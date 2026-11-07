@@ -1,3 +1,4 @@
+use crate::app::shell::UiAction;
 use bevy::prelude::*;
 
 #[derive(Clone, Copy, Component, Eq, PartialEq)]
@@ -20,12 +21,16 @@ impl CozyModalKind {
 }
 
 #[derive(Component)]
-#[require(ModalWheelBlocker)]
+#[require(ModalInputBlocker)]
 pub(crate) struct CozyModalBackdrop(pub CozyModalKind);
 
-/// A full-screen layer that reserves wheel input for its own subtree.
+/// A full-screen layer that reserves wheel input and handles back navigation.
 #[derive(Component, Default)]
-pub(crate) struct ModalWheelBlocker;
+pub(crate) struct ModalInputBlocker;
+
+#[derive(Component)]
+#[require(ModalInputBlocker)]
+pub(crate) struct ModalDismiss(pub UiAction);
 
 #[derive(Component)]
 pub(crate) struct CozyModalPanel(pub CozyModalKind);

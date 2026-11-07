@@ -19,11 +19,13 @@ pub(crate) struct PlayingCardFlipFrame {
 }
 
 impl PlayingCardFlip {
+    pub(crate) const DEFAULT_DURATION: f32 = 0.34;
+
     pub(crate) fn new(face: Handle<Image>, back: Handle<Image>, delay: f32) -> Self {
         Self {
             elapsed: 0.0,
             delay,
-            duration: 0.34,
+            duration: Self::DEFAULT_DURATION,
             face,
             back,
             face_visible: false,
@@ -51,7 +53,15 @@ impl PlayingCardFlip {
         self.elapsed += delta;
         let progress = ((self.elapsed - self.delay) / self.duration).clamp(0.0, 1.0);
         self.face_visible = progress >= 0.5;
-        let texture = if self.face_visible {
+        self.finished = progress >= 1.0;
+        let mut frame = self.frame_at(self.elapsed);
+        frame.scale *= deal.map_or(1.0, TablePieceDeal::scale);
+        Some(frame)
+    }
+
+    pub(crate) fn frame_at(&self, elapsed: f32) -> PlayingCardFlipFrame {
+        let progress = ((elapsed - self.delay) / self.duration).clamp(0.0, 1.0);
+        let texture = if progress >= 0.5 {
             &self.face
         } else {
             &self.back
@@ -62,12 +72,10 @@ impl PlayingCardFlip {
         } else {
             ease_out_cubic((progress - 0.5) * 2.0)
         };
-        let scale = deal.map_or(1.0, TablePieceDeal::scale);
-        self.finished = progress >= 1.0;
-        Some(PlayingCardFlipFrame {
+        PlayingCardFlipFrame {
             texture,
-            scale: Vec2::new(horizontal.max(0.025), 1.0 + (1.0 - horizontal) * 0.04) * scale,
-        })
+            scale: Vec2::new(horizontal.max(0.025), 1.0 + (1.0 - horizontal) * 0.04),
+        }
     }
 }
 

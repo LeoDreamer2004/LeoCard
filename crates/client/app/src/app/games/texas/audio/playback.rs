@@ -3,7 +3,7 @@
 //! 音效只由服务器事件入队，与可重复重建的 UI 实体解耦，避免一次动作因界面刷新
 //! 被反复播放。密集筹码动作按“动作”聚合成少量错开的采样，不逐枚筹码发声。
 
-use super::super::TexasChipTableState;
+use super::super::{TexasChipTableState, TexasShowdownSequence};
 use super::*;
 use crate::app::games::GameFeedback;
 use crate::app::presentation::{PokerChipSoundKind, PokerChipSounds, numbered_table_sounds};
@@ -177,6 +177,43 @@ pub(in crate::app::games::texas) fn texas_hand_finish_sound_plan(
             seed + 8,
         ));
     }
+    cues
+}
+
+pub(in crate::app::games::texas) fn texas_second_run_sound_plan(seed: u64) -> Vec<TexasAudioCue> {
+    let mut cues = texas_hand_finish_sound_plan(true, seed)
+        .into_iter()
+        .filter(|cue| {
+            matches!(
+                cue.kind,
+                TexasSoundKind::ShowdownFan | TexasSoundKind::CardPlace | TexasSoundKind::Confirm
+            )
+        })
+        .map(|mut cue| {
+            cue.remaining += TexasShowdownSequence::SECOND_REVEAL_START;
+            cue
+        })
+        .collect::<Vec<_>>();
+    cues.extend((0..5).map(|index| {
+        TexasAudioCue::new(
+            TexasSoundKind::CardPlace,
+            TexasShowdownSequence::DEAL_START + index as f32 * TexasShowdownSequence::DEAL_INTERVAL,
+            0.43,
+            seed + 32 + index,
+        )
+    }));
+    cues.push(TexasAudioCue::new(
+        TexasSoundKind::ShowdownFan,
+        TexasShowdownSequence::FLIP_START + 0.17,
+        0.40,
+        seed + 40,
+    ));
+    cues.push(TexasAudioCue::new(
+        TexasSoundKind::ChipStack,
+        TexasShowdownSequence::PAYOUT_START + 0.62,
+        0.54,
+        seed + 41,
+    ));
     cues
 }
 

@@ -16,9 +16,21 @@ pub(crate) struct RuleConfigRow<'a, R> {
     pub label: &'a str,
     pub value: String,
     pub help: &'a str,
-    /// Unavailable changes use `None`; both arrows always remain visible.
+    /// Read-only rows and value limits use `None`; both arrows remain visible.
     pub previous: Option<R>,
     pub next: Option<R>,
+}
+
+impl<R> RuleConfigRow<'_, R> {
+    /// Inapplicable rules show one shared label and cannot change in either direction.
+    pub(crate) fn applicable(mut self, applicable: bool) -> Self {
+        if !applicable {
+            self.value = "不适用".to_owned();
+            self.previous = None;
+            self.next = None;
+        }
+        self
+    }
 }
 
 pub(crate) fn add_rule_config_row<R: EditableRuleSet>(

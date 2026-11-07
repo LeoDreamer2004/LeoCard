@@ -15,12 +15,12 @@ pub(super) fn add_summary_hands(
     elapsed: f32,
     assets: &UiAssets,
 ) {
-    for (run, best) in [("第一次", hand.best), ("第二次", hand.second_best)] {
-        let Some(best) = best else { continue };
+    for best in [hand.best, hand.second_best].into_iter().flatten() {
         let group = spawn_node(
             commands,
             parent,
             Node {
+                min_width: px(0),
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
                 column_gap: px(if twice { 3.0 } else { 7.0 }),
@@ -28,15 +28,10 @@ pub(super) fn add_summary_hands(
             },
             None,
         );
-        let category = texas_category_label(best.category());
         add_animated_summary_text(
             commands,
             group,
-            if twice {
-                format!("{run}\n{category}")
-            } else {
-                category.to_owned()
-            },
+            texas_category_label(best.category()),
             if twice { 12.0 } else { 14.0 },
             READY,
             delay,

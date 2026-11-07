@@ -2,7 +2,7 @@ use super::super::*;
 use super::panel::cozy_chat_button_image;
 use crate::app::presentation::TEXT;
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{ChatUiAction, ModalWheelScope, UiAction, add_cozy_panel};
+use crate::app::shell::{ChatUiAction, ModalInputScope, UiAction, add_cozy_panel};
 use bevy::ecs::query::QueryFilter;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
@@ -183,7 +183,7 @@ fn menu_visibility(open: bool) -> Visibility {
 )]
 pub(crate) fn scroll_chat_menus(
     mut wheels: MessageReader<MouseWheel>,
-    scope: ModalWheelScope,
+    scope: ModalInputScope,
     mut chat: ResMut<ChatPanelState>,
     mut quick_voice_scrolls: Query<
         (
@@ -229,7 +229,7 @@ pub(crate) fn scroll_chat_menus(
 
 fn scroll_hovered_menu<F: QueryFilter>(
     delta: f32,
-    scope: &ModalWheelScope,
+    scope: &ModalInputScope,
     scrolls: &mut Query<
         (
             Entity,

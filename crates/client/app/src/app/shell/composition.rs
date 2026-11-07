@@ -1,6 +1,6 @@
 //! 根据网络模型与页面状态装配当前的顶层界面。
 
-use super::connection::{LanDiscovery, render_lan_rooms};
+use super::connection::LanDiscovery;
 use super::{
     AchievementPageViewport, AchievementsPage, ChatPanelState, ConfirmationDialog,
     ConnectionScreen, DeveloperHandInput, Header, LobbyGameMotion, PageMotion, PlayErrorToast,
@@ -284,19 +284,10 @@ impl ScreenRenderer<'_, '_, '_> {
                 &self.visuals.avatars,
                 &self.ui.home,
             )
-            .render_home_overlays(self.commands, root);
+            .render_home_overlays(self.commands, root, &self.ui.lan, &self.visuals.lan);
         }
         #[cfg(not(target_os = "android"))]
         render_startup_dialog(self.commands, root, &self.visuals.sakura, &self.visuals.ui);
-        if self.ui.lan.open {
-            render_lan_rooms(
-                self.commands,
-                root,
-                &self.visuals.lan,
-                &self.ui.lan,
-                &self.visuals.ui,
-            );
-        }
         render_confirmation(
             self.commands,
             root,
@@ -311,7 +302,7 @@ impl ScreenRenderer<'_, '_, '_> {
             SettingsModal::new(self.appearance, &self.visuals.updater, &self.visuals.ui).render(
                 self.commands,
                 root,
-                self.visuals.settings_motion.progress,
+                &self.visuals.settings_motion,
                 self.ui.settings.tab,
             );
         }
@@ -349,7 +340,7 @@ impl ScreenRenderer<'_, '_, '_> {
             self.profile,
             &self.visuals.ui,
         )
-        .render(self.commands, root, self.visuals.profile_motion.progress);
+        .render(self.commands, root, &self.visuals.profile_motion);
     }
 }
 

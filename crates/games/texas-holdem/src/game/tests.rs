@@ -1,9 +1,7 @@
 use super::*;
-use crate::{TexasCard, TexasRuleSet, build_deck};
-use crate::{TexasRank, TexasSuit};
+use crate::{TexasCard, TexasRank, TexasRuleSet, TexasSuit, build_deck};
 use TexasSuit::{Club, Diamond, Heart, Spade};
 use leocard_game_common::PlayerId;
-
 use std::collections::HashSet;
 
 fn ordered_deck(prefix: &[TexasCard], short_deck: bool) -> Vec<TexasCard> {

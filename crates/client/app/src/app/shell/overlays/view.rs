@@ -8,7 +8,7 @@ use crate::app::presentation::{
     ACCENT, GAME_SIDE_CONTROL_SCALE, MUTED, PanelSkin, TEXT, add_text, add_title,
 };
 use crate::app::runtime::UiAssets;
-use crate::app::shell::add_cozy_panel_with_skin;
+use crate::app::shell::{ShellOverlayLayer, add_cozy_panel_with_skin};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
@@ -60,7 +60,7 @@ pub(crate) fn add_play_error_popup(
     commands.entity(popup).insert((
         PlayErrorPopup,
         UiTransform::from_translation(Val2::px(visual.x, visual.y)),
-        GlobalZIndex(1500),
+        ShellOverlayLayer::Feedback.z_index(),
         Pickable::IGNORE,
     ));
     let mut image = ImageNode::new(assets.home.warning_toast.clone()).with_mode(
@@ -105,7 +105,9 @@ pub(crate) fn add_play_error_popup(
         WARNING_TOAST_TEXT.with_alpha(visual.opacity),
         assets,
     );
-    commands.entity(text).insert(PlayErrorPopupText);
+    commands
+        .entity(text)
+        .insert((PlayErrorPopupText, Pickable::IGNORE));
 }
 
 pub(crate) fn add_reconnecting_overlay(

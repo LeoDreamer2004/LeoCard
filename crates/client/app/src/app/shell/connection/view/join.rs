@@ -1,53 +1,68 @@
+use super::super::lan::{LanDiscovery, LanUiState, render_lan_rooms};
 use super::controls::home_button;
 use super::input::ConnectionInput;
 use super::page::ConnectionScreen;
 use super::theme::HOME_SOFT;
 use crate::app::presentation::{PAGE_FRAME_TITLE, add_text, add_title, page_frame_skin};
 use crate::app::shell::{
-    ConnectionUiAction, CozyModalBackdrop, CozyModalKind, CozyModalPanel, InputField, UiAction,
-    add_cozy_close_button, cozy_backdrop_color, cozy_panel_transform,
+    ConnectionUiAction, CozyModalKind, CozyModalPanel, InputField, ShellOverlayLayer, UiAction,
+    add_centered_modal, add_cozy_close_button, cozy_panel_transform,
 };
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
 use leocard_ui::{PageFrame, UiComposer, spawn_node};
 
 impl ConnectionScreen<'_> {
-    pub(super) fn render_join_modal(&self, commands: &mut UiComposer, root: Entity) {
+    pub(super) fn render_join_modal(
+        &self,
+        commands: &mut UiComposer,
+        root: Entity,
+        lan: &LanUiState,
+        discovery: &LanDiscovery,
+    ) {
         let progress = self.home.join_progress;
-        let overlay = spawn_node(
+        let close = UiAction::Connection(if lan.open {
+            ConnectionUiAction::CloseLan
+        } else {
+            ConnectionUiAction::ToggleJoin
+        });
+        let overlay = add_centered_modal(
             commands,
             root,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                right: px(0),
-                top: px(0),
-                bottom: px(0),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            Some(cozy_backdrop_color(progress)),
+            ShellOverlayLayer::Dialog,
+            CozyModalKind::JoinRoom,
+            progress,
+            self.home.join_open.then(|| close.clone()),
         );
-        commands.entity(overlay).insert((
-            GlobalZIndex(2000),
-            CozyModalBackdrop(CozyModalKind::JoinRoom),
+        if self.home.join_open {
+            commands.child(
+                overlay,
+                (
+                    Button,
+                    close,
+                    Node {
+                        position_type: PositionType::Absolute,
+                        left: px(0),
+                        right: px(0),
+                        top: px(0),
+                        bottom: px(0),
+                        ..default()
+                    },
+                ),
+            );
+        }
+        let panel = if lan.open {
+            render_lan_rooms(commands, overlay, discovery, lan, self.assets)
+        } else {
+            self.render_join_form(commands, overlay)
+        };
+        commands.entity(panel).insert((
+            CozyModalPanel(CozyModalKind::JoinRoom),
+            cozy_panel_transform(progress),
         ));
-        commands.child(
-            overlay,
-            (
-                Button,
-                UiAction::Connection(ConnectionUiAction::ToggleJoin),
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(0),
-                    right: px(0),
-                    top: px(0),
-                    bottom: px(0),
-                    ..default()
-                },
-            ),
-        );
+    }
+
+    fn render_join_form(&self, commands: &mut UiComposer, overlay: Entity) -> Entity {
         let mut frame = PageFrame::new(page_frame_skin(self.assets));
         frame.node.width = px(480);
         frame.node.max_width = percent(92);
@@ -57,10 +72,6 @@ impl ConnectionScreen<'_> {
         frame.content.padding = UiRect::all(px(16));
         frame.content.row_gap = px(12);
         let frame = frame.mount(commands, overlay);
-        commands.entity(frame.panel).insert((
-            CozyModalPanel(CozyModalKind::JoinRoom),
-            cozy_panel_transform(progress),
-        ));
         add_title(
             commands,
             frame.heading,
@@ -138,5 +149,6 @@ impl ConnectionScreen<'_> {
                 percent(100),
             );
         }
+        frame.panel
     }
 }

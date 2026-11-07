@@ -1,19 +1,20 @@
-use super::back::back_action;
-use crate::app::shell::{ConfirmationDialog, PressedUiAction, UiState};
+use super::back::dispatch_back;
+use crate::app::shell::{ModalInputScope, PageMotion, PressedUiAction, UiState};
 use bevy::prelude::*;
 use leocard_client::platform::{background_app, take_back_request};
 
 pub(super) fn handle_back(
-    ui: Res<UiState>,
-    confirmation: Res<ConfirmationDialog>,
+    mut ui: ResMut<UiState>,
+    scope: ModalInputScope,
+    page_motion: Res<PageMotion>,
     mut actions: MessageWriter<PressedUiAction>,
 ) {
-    if !take_back_request() {
+    if !take_back_request() || page_motion.active() {
         return;
     }
-    if let Some(action) = back_action(&ui, &confirmation) {
-        actions.write(PressedUiAction(action));
-    } else if let Err(error) = background_app() {
+    if !dispatch_back(&mut ui, &scope, &mut actions)
+        && let Err(error) = background_app()
+    {
         warn!("{error}");
     }
 }

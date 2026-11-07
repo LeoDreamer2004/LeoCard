@@ -67,9 +67,11 @@ impl NetworkUiContext<'_, '_> {
         before: NetworkUiSnapshot,
         page_error: &mut PageErrorState,
     ) {
-        let read_only = client.model().is_spectating();
-        if self.chat.read_only != read_only {
-            self.chat.read_only = read_only;
+        let text_only = client.model().is_spectating();
+        if self.chat.text_only != text_only {
+            self.chat.text_only = text_only;
+            self.chat.quick_voice_open = false;
+            self.chat.emoji_open = false;
             self.ui.dirty = true;
         }
         let NetworkUiSnapshot {

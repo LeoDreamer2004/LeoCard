@@ -320,6 +320,7 @@ pub(crate) fn dispatch_client_command<S: HostedGameLifecycle>(
             ClientCommand::RequestSnapshot
                 | ClientCommand::SpectatePlayer { .. }
                 | ClientCommand::Interact { .. }
+                | ClientCommand::Chat { .. }
                 | ClientCommand::LeaveRoom
                 | ClientCommand::PublishEconomy { .. }
                 | ClientCommand::PublishAchievements { .. }

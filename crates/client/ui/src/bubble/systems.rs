@@ -1,4 +1,4 @@
-use super::AnchoredBubble;
+use super::{AnchoredBubble, BubblePlacement};
 use crate::anchor_position_in_layer;
 use crate::placement::clamp_overlay_origin;
 use bevy::prelude::*;
@@ -11,9 +11,13 @@ fn bubble_origin(anchor: Vec2, layer_size: Vec2, size: Vec2) -> Vec2 {
     } else {
         anchor.x - size.x * 0.5
     };
+    clamp_bubble_origin(Vec2::new(x, anchor.y - 69.0), layer_size, size)
+}
+
+fn clamp_bubble_origin(origin: Vec2, layer_size: Vec2, size: Vec2) -> Vec2 {
     let margin = Vec2::splat(8.0).min(layer_size * 0.5);
     clamp_overlay_origin(
-        Vec2::new(x, anchor.y - 69.0),
+        origin,
         size,
         Rect::from_corners(margin, layer_size - margin),
     )
@@ -43,29 +47,41 @@ pub fn animate_bubbles(
             commands.entity(entity).despawn();
             continue;
         }
-        let anchor = geometry
+        let position = geometry
             .get(parent.parent())
             .ok()
             .and_then(|(layer, layer_transform)| {
-                let (anchor, anchor_transform) = geometry.get(bubble.anchor?).ok()?;
-                let position = anchor_position_in_layer(
-                    layer,
-                    layer_transform,
-                    anchor,
-                    anchor_transform,
-                    bubble.anchor_offset,
-                )?;
-                Some((position, layer.size() * layer.inverse_scale_factor()))
+                let layer_size = layer.size() * layer.inverse_scale_factor();
+                let size = geometry
+                    .get(entity)
+                    .ok()
+                    .map(|(node, _)| node.size() * node.inverse_scale_factor())
+                    .filter(|size| size.min_element() > 1.0)
+                    .unwrap_or(bubble.size);
+                match bubble.placement {
+                    BubblePlacement::Anchor(anchor) => {
+                        let (anchor, anchor_transform) = geometry.get(anchor?).ok()?;
+                        let position = anchor_position_in_layer(
+                            layer,
+                            layer_transform,
+                            anchor,
+                            anchor_transform,
+                            bubble.anchor_offset,
+                        )?;
+                        Some(bubble_origin(position, layer_size, size))
+                    }
+                    BubblePlacement::TopLeft(inset) => {
+                        Some(clamp_bubble_origin(inset, layer_size, size))
+                    }
+                    BubblePlacement::BottomRight(inset) => Some(clamp_bubble_origin(
+                        layer_size - size - inset,
+                        layer_size,
+                        size,
+                    )),
+                }
             });
-        if let Some((anchor, layer_size)) = anchor {
+        if let Some(position) = position {
             bubble.missing_secs = 0.0;
-            let size = geometry
-                .get(entity)
-                .ok()
-                .map(|(node, _)| node.size() * node.inverse_scale_factor())
-                .filter(|size| size.min_element() > 1.0)
-                .unwrap_or(bubble.size);
-            let position = bubble_origin(anchor, layer_size, size);
             node.left = px(position.x);
             node.top = px(position.y);
             *visibility = Visibility::Inherited;

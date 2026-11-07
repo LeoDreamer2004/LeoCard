@@ -153,7 +153,6 @@ pub(crate) fn sync_player_interactions(
     let Some(client) = client.as_deref_mut() else {
         return;
     };
-    let local_player = client.0.model().you();
     let players = client.0.model().active_game_meta().map(|game| game.players);
     let interactions = client.0.take_player_interactions();
     if interactions.is_empty() {
@@ -172,15 +171,7 @@ pub(crate) fn sync_player_interactions(
             .as_ref()
             .is_some_and(|players| !players.contains(&interaction.source))
         {
-            let size = layer_node.size() * layer_node.inverse_scale_factor();
-            Some(Vec2::new(
-                size.x - 36.0,
-                if local_player == Some(interaction.source) {
-                    size.y - 36.0
-                } else {
-                    36.0
-                },
-            ))
+            Some(Vec2::splat(36.0))
         } else {
             interaction_anchor_in_layer(interaction.source, layer_node, layer_transform, &avatars)
         };

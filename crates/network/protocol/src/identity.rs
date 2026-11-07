@@ -307,6 +307,8 @@ impl ChatEmoji {
 pub struct ChatMessage {
     pub source: PlayerId,
     pub content: ChatContent,
+    /// Spectators are not listed in the game snapshot, so the host includes their name.
+    pub spectator_name: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]

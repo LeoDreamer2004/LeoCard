@@ -1,10 +1,10 @@
-use super::{AnchoredBubble, BubbleContent, BubbleStyle};
+use super::{AnchoredBubble, BubbleContent, BubblePlacement, BubbleStyle};
 use crate::{UiComposer, add_label};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 
 pub struct Bubble<'a> {
-    pub anchor: Entity,
+    pub placement: BubblePlacement,
     pub content: BubbleContent<'a>,
     pub duration: f32,
 }
@@ -13,7 +13,13 @@ impl Bubble<'_> {
     pub fn spawn(self, commands: &mut UiComposer, layer: Entity, style: &BubbleStyle) -> Entity {
         let (width, height, padding) = match &self.content {
             BubbleContent::Text(text) => (
-                (text.chars().count() as f32 * style.font_size + 26.0)
+                (text
+                    .lines()
+                    .map(|line| line.chars().count())
+                    .max()
+                    .unwrap_or(0) as f32
+                    * style.font_size
+                    + 26.0)
                     .clamp(76.0, style.max_width.max(76.0)),
                 38.0,
                 UiRect::axes(px(11), px(7)),
@@ -81,7 +87,7 @@ impl Bubble<'_> {
             }
         };
         commands.entity(entity).insert(AnchoredBubble {
-            anchor: Some(self.anchor),
+            placement: self.placement,
             anchor_offset: style.anchor_offset,
             text,
             image,

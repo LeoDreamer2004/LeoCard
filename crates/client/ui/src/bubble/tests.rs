@@ -1,5 +1,5 @@
-use super::AnchoredBubble;
 use super::systems::animate_bubbles;
+use super::{AnchoredBubble, BubblePlacement};
 use bevy::prelude::*;
 use std::time::Duration;
 
@@ -42,7 +42,7 @@ fn bubble_tracks_a_replacement_anchor_and_tolerates_a_brief_rebuild_gap() {
         .spawn((
             ChildOf(layer),
             AnchoredBubble {
-                anchor: Some(anchor),
+                placement: BubblePlacement::Anchor(Some(anchor)),
                 anchor_offset: Vec2::ZERO,
                 text: None,
                 image: None,
@@ -86,7 +86,7 @@ fn bubble_tracks_a_replacement_anchor_and_tolerates_a_brief_rebuild_gap() {
     app.world_mut()
         .get_mut::<AnchoredBubble>(bubble)
         .unwrap()
-        .anchor = Some(replacement);
+        .placement = BubblePlacement::Anchor(Some(replacement));
     advance(&mut app, 0.1);
     assert_ne!(app.world().get::<Node>(bubble).unwrap().left, previous);
     assert_eq!(

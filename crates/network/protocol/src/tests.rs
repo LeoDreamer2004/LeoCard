@@ -212,11 +212,15 @@ fn interaction_events_preserve_shared_animation_seeds_and_count_each_batch_once(
 }
 
 #[test]
-fn chat_events_round_trip_for_text_quick_voice_and_emoji() {
-    for content in [
-        ChatContent::Text("大家好".to_owned()),
-        ChatContent::QuickVoice(7),
-        ChatContent::Emoji(ChatEmoji::Laugh),
+fn chat_events_round_trip_for_text_quick_voice_emoji_and_spectator_names() {
+    for (content, spectator_name) in [
+        (ChatContent::Text("大家好".to_owned()), None),
+        (ChatContent::QuickVoice(7), None),
+        (ChatContent::Emoji(ChatEmoji::Laugh), None),
+        (
+            ChatContent::Text("好牌".to_owned()),
+            Some("观众".to_owned()),
+        ),
     ] {
         let message = ServerMessage {
             action_timing: None,
@@ -228,6 +232,7 @@ fn chat_events_round_trip_for_text_quick_voice_and_emoji() {
             event: ServerEvent::ChatMessage(ChatMessage {
                 source: PlayerId(1),
                 content,
+                spectator_name,
             }),
         };
         let frame = encode_frame(&message).unwrap();

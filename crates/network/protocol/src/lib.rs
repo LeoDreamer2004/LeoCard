@@ -48,7 +48,7 @@ pub use texas::*;
 pub use uno::*;
 pub use violations::*;
 
-pub const PROTOCOL_VERSION: u16 = 111;
+pub const PROTOCOL_VERSION: u16 = 112;
 pub const MAX_FRAME_PAYLOAD: usize = 1024 * 1024;
 pub const MAX_PLAYER_NAME_CHARS: usize = 7;
 pub const AVATAR_DIMENSION: u32 = 64;

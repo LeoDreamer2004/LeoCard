@@ -4,9 +4,10 @@ use leocard_doudizhu::{DoudizhuMode, DoudizhuRuleSet};
 use leocard_game_common::PlayerId;
 use leocard_host::{ConnectionId, Delivery, GameSetup, HostSession};
 use leocard_protocol::{
-    BlackjackCommand, ClientCommand, ClientMessage, GameRules, GameSnapshot, JoinRequest,
-    PlayerGameProfiles, PlayerInteractionKind, ProfileId, QiGui523Command, ReconnectToken,
-    RejectReason, RequestId, RoomId, RoomViolation, SeatId, ServerEvent,
+    BlackjackCommand, ChatContent, ChatEmoji, ClientCommand, ClientMessage, GameRules,
+    GameSnapshot, JoinRequest, PlayerGameProfiles, PlayerInteractionKind, ProfileId,
+    QiGui523Command, ReconnectToken, RejectReason, RequestId, RoomId, RoomViolation, SeatId,
+    ServerEvent,
 };
 use leocard_qigui523::QiGuiRuleSet;
 use std::collections::HashMap;
@@ -224,6 +225,55 @@ fn midgame_spectators_share_selected_player_views_but_cannot_play_in_all_games()
                 .any(|delivery| matches!(delivery.message.event, ServerEvent::LeftRoom))
         );
         assert!(!room.session.is_current_connection(ConnectionId(OBSERVER)));
+    }
+}
+
+#[test]
+fn spectators_can_broadcast_attributed_text_but_not_emoji_or_quick_voice() {
+    let mut room = Room::started(GameRules::QiGui523(QiGuiRuleSet {
+        player_count: 4,
+        ..Default::default()
+    }));
+    let spectator = room
+        .send(OBSERVER, join(99, OBSERVER))
+        .into_iter()
+        .find_map(|delivery| match delivery.message.event {
+            ServerEvent::Joined { you } if delivery.recipient == ConnectionId(OBSERVER) => {
+                Some(you)
+            }
+            _ => None,
+        })
+        .unwrap();
+    let deliveries = room.send(
+        OBSERVER,
+        ClientCommand::Chat {
+            content: ChatContent::Text("  好牌  ".to_owned()),
+        },
+    );
+    assert_eq!(deliveries.len(), 5);
+    for connection in [1, 2, 3, 4, OBSERVER] {
+        let delivery = deliveries
+            .iter()
+            .find(|delivery| delivery.recipient == ConnectionId(connection))
+            .unwrap();
+        let ServerEvent::ChatMessage(message) = &delivery.message.event else {
+            panic!("expected a broadcast chat message");
+        };
+        assert_eq!(message.source, spectator);
+        assert_eq!(message.spectator_name.as_deref(), Some("玩家99"));
+        assert_eq!(message.content, ChatContent::Text("好牌".to_owned()));
+    }
+    for content in [
+        ChatContent::Emoji(ChatEmoji::Laugh),
+        ChatContent::QuickVoice(0),
+    ] {
+        let rejected = room.send(OBSERVER, ClientCommand::Chat { content });
+        assert!(
+            matches!(rejected.as_slice(), [delivery] if delivery.recipient == ConnectionId(OBSERVER)
+            && matches!(&delivery.message.event, ServerEvent::Rejected {
+                reason: RejectReason::Room(RoomViolation::SpectatorTextChatOnly),
+            }))
+        );
     }
 }
 

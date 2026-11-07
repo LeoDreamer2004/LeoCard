@@ -49,6 +49,7 @@ pub(super) fn poll_network(
             ServerEvent::GameSnapshot(_)
                 | ServerEvent::LobbySnapshot(_)
                 | ServerEvent::RulesSnapshot(_)
+                | ServerEvent::RoomModerationSnapshot(_)
                 | ServerEvent::AvatarData { .. }
                 | ServerEvent::Heartbeat
         ) {

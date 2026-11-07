@@ -12,12 +12,13 @@ use crate::app::runtime::{ClientResource, PageErrorState};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_client::{ClientModel, ClientPhaseRef, NetworkState, TcpGameClient};
-use leocard_protocol::LobbySnapshot;
+use leocard_protocol::{LobbySnapshot, RoomModerationSnapshot};
 
 pub(crate) struct NetworkUiSnapshot {
     previous_state: NetworkState,
     reconnect_notice: bool,
     previous_lobby: Option<LobbySnapshot>,
+    previous_moderation: Option<RoomModerationSnapshot>,
     was_home: bool,
     was_game: bool,
     was_host: bool,
@@ -50,6 +51,7 @@ impl NetworkUiContext<'_, '_> {
             previous_state: client.state().clone(),
             reconnect_notice: client.reconnecting_message().is_some(),
             previous_lobby: client.model().lobby().cloned(),
+            previous_moderation: client.model().room_moderation().cloned(),
             was_home: matches!(
                 client.model().phase(),
                 ClientPhaseRef::Idle | ClientPhaseRef::Closed
@@ -78,6 +80,7 @@ impl NetworkUiContext<'_, '_> {
             previous_state,
             reconnect_notice,
             previous_lobby,
+            previous_moderation,
             was_home,
             was_game,
             was_host,
@@ -127,7 +130,8 @@ impl NetworkUiContext<'_, '_> {
             self.ui.leaving_room = false;
             self.commands.remove_resource::<ClientResource>();
         }
-        if reconnect_notice != client.reconnecting_message().is_some()
+        if previous_moderation.as_ref() != client.model().room_moderation()
+            || reconnect_notice != client.reconnecting_message().is_some()
             || previous_state != *client.state()
             || !game_change.is_transient(client.model().game_snapshot())
         {

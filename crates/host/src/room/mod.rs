@@ -4,6 +4,7 @@ mod economy;
 mod entrance;
 mod joining;
 mod kicking;
+mod moderation;
 mod profiles;
 mod readiness;
 mod seating;

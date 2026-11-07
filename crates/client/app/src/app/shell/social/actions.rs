@@ -99,6 +99,7 @@ impl UiActionHandler<SocialActionContext<'_>> for SocialUiAction {
                     return;
                 }
                 if let Some(client) = client.as_deref_mut()
+                    && client.0.model().can_send_interactions()
                     && client.0.send(ClientCommand::Interact {
                         target: *target,
                         kind: *kind,

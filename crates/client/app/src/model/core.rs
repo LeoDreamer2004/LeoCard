@@ -3,7 +3,7 @@ use leocard_game_common::PlayerId;
 use leocard_protocol::{
     ActionTimingSnapshot, AvatarId, ClientCommand, ClientMessage, GameRules, GameSnapshot,
     LobbySnapshot, MatchId, PROTOCOL_VERSION, PlayerReferenceChange, RejectReason, RequestId,
-    Revision, RoomId, ServerEvent, ServerMessage,
+    Revision, RoomId, RoomModerationSnapshot, ServerEvent, ServerMessage,
 };
 use std::collections::HashMap;
 
@@ -26,6 +26,7 @@ pub struct ClientModel {
     pub(super) action_timing: Option<ActionTimingSnapshot>,
     pub(super) action_timing_serial: u64,
     pub(super) rules: Option<GameRules>,
+    pub(super) moderation: Option<RoomModerationSnapshot>,
     pub(super) avatars: HashMap<AvatarId, Vec<u8>>,
     pub(super) room_exit: Option<RoomExitReason>,
     pub(super) rejection: EventSequence<RejectReason>,
@@ -47,6 +48,7 @@ impl ClientModel {
             action_timing: None,
             action_timing_serial: 0,
             rules: None,
+            moderation: None,
             avatars: HashMap::new(),
             room_exit: None,
             rejection: EventSequence::default(),
@@ -108,6 +110,7 @@ impl ClientModel {
         // Heartbeats may share a revision and even identical elapsed values.
         self.action_timing_serial = self.action_timing_serial.wrapping_add(1);
         match message.event {
+            ServerEvent::RoomModerationSnapshot(snapshot) => self.moderation = Some(snapshot),
             ServerEvent::RulesSnapshot(rules) => self.rules = Some(rules),
             ServerEvent::AchievementUnlocked(_)
             | ServerEvent::GameStarted { .. }

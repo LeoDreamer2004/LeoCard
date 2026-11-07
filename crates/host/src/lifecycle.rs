@@ -102,6 +102,46 @@ pub(super) trait HostedGameLifecycle: Sized + GameCommandHandler + GameSnapshotV
             .unwrap_or_else(|reason| self.room().reject(connection, request_id, reason))
     }
 
+    fn kick_player(
+        &mut self,
+        connection: ConnectionId,
+        request_id: RequestId,
+        player: PlayerId,
+    ) -> Vec<Delivery> {
+        let (target, name) = match self.room().kick_target(connection, player) {
+            Ok(target) => target,
+            Err(reason) => return self.room().reject(connection, request_id, reason),
+        };
+        let mut deliveries = if self.room().is_spectator(target) {
+            self.room_mut().remove_spectator(target);
+            let mut deliveries = vec![self.room().delivery(target, None, ServerEvent::LeftRoom)];
+            deliveries.extend(
+                self.room()
+                    .broadcast_event(None, ServerEvent::PlayerLeft { name }),
+            );
+            deliveries.extend(self.room().broadcast_moderation(None));
+            deliveries
+        } else {
+            // Use the game's normal departure path, including its automatic turn handling.
+            self.leave_room(target, request_id)
+        };
+        for delivery in &mut deliveries {
+            match &delivery.message.event {
+                ServerEvent::LeftRoom if delivery.recipient == target => {
+                    delivery.message.event = ServerEvent::KickedFromRoom;
+                    delivery.message.in_reply_to = None;
+                }
+                ServerEvent::PlayerLeft { name } => {
+                    delivery.message.event = ServerEvent::PlayerKicked { name: name.clone() };
+                    delivery.message.in_reply_to =
+                        (delivery.recipient == connection).then_some(request_id);
+                }
+                _ => {}
+            }
+        }
+        deliveries
+    }
+
     fn interact(
         &mut self,
         connection: ConnectionId,
@@ -109,6 +149,9 @@ pub(super) trait HostedGameLifecycle: Sized + GameCommandHandler + GameSnapshotV
         target: PlayerId,
         kind: PlayerInteractionKind,
     ) -> Vec<Delivery> {
+        if let Err(reason) = self.room().check_interaction_permission(connection) {
+            return self.room().reject(connection, request_id, reason);
+        }
         let result = self
             .room()
             .player_id(connection)
@@ -271,8 +314,12 @@ pub(super) trait HostedGameLifecycle: Sized + GameCommandHandler + GameSnapshotV
     }
 
     fn broadcast_lobby(&self, origin: Option<(ConnectionId, RequestId)>) -> Vec<Delivery> {
-        self.room()
-            .broadcast_lobby(Self::KIND, self.game_rules(), origin)
+        let mut deliveries = self.room().broadcast_moderation(None);
+        deliveries.extend(
+            self.room()
+                .broadcast_lobby(Self::KIND, self.game_rules(), origin),
+        );
+        deliveries
     }
 
     fn lobby_snapshot(&self) -> LobbySnapshot {
@@ -284,9 +331,11 @@ pub(super) trait HostedGameLifecycle: Sized + GameCommandHandler + GameSnapshotV
             self.game_started(),
             "game broadcast requires an active game"
         );
-        self.room().broadcast_private(origin, |player| {
+        let mut deliveries = self.room().broadcast_moderation(None);
+        deliveries.extend(self.room().broadcast_private(origin, |player| {
             ServerEvent::GameSnapshot(self.game_snapshot(self.viewing_player(player.id)))
-        })
+        }));
+        deliveries
     }
 
     fn snapshot(&self, connection: ConnectionId, request_id: RequestId) -> Vec<Delivery> {
@@ -302,7 +351,14 @@ pub(super) trait HostedGameLifecycle: Sized + GameCommandHandler + GameSnapshotV
         } else {
             ServerEvent::LobbySnapshot(self.lobby_snapshot())
         };
-        vec![self.room().delivery(connection, Some(request_id), event)]
+        vec![
+            self.room().delivery(
+                connection,
+                None,
+                ServerEvent::RoomModerationSnapshot(self.room().moderation_snapshot()),
+            ),
+            self.room().delivery(connection, Some(request_id), event),
+        ]
     }
 }
 
@@ -356,11 +412,13 @@ fn dispatch_joined_command<S: HostedGameLifecycle>(
         && matches!(message.command, ClientCommand::LeaveRoom)
     {
         session.room_mut().remove_spectator(connection);
-        return vec![session.room().delivery(
+        let mut deliveries = vec![session.room().delivery(
             connection,
             Some(message.request_id),
             ServerEvent::LeftRoom,
         )];
+        deliveries.extend(session.room().broadcast_moderation(None));
+        return deliveries;
     }
     session.before_dispatch();
     let request_id = message.request_id;
@@ -410,16 +468,15 @@ fn dispatch_joined_command<S: HostedGameLifecycle>(
         ClientCommand::ConfigureBotSeat { seat, occupied } => {
             session.configure_bot_seat(connection, request_id, seat, occupied)
         }
-        ClientCommand::KickPlayer { player } => {
-            let game_started = session.game_started();
+        ClientCommand::KickPlayer { player } => session.kick_player(connection, request_id, player),
+        ClientCommand::SetSpectatorInteractionsBlocked { blocked } => {
             match session
                 .room_mut()
-                .kick_player(connection, request_id, player, game_started)
+                .set_spectator_interactions_blocked(connection, blocked)
             {
-                Ok(mut deliveries) => {
-                    deliveries.extend(session.broadcast_lobby(None));
-                    deliveries
-                }
+                Ok(()) => session
+                    .room()
+                    .broadcast_moderation(Some((connection, request_id))),
                 Err(reason) => session.room().reject(connection, request_id, reason),
             }
         }

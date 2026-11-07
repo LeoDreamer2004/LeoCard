@@ -2,9 +2,9 @@ use ed25519_dalek::{Signer, SigningKey};
 use leocard_game_common::PlayerId;
 use leocard_host::{ConnectionId, Delivery, GameSetup, HostSession};
 use leocard_protocol::{
-    ClientCommand, ClientMessage, GameRules, GameViolation, JoinRequest, LobbySnapshot,
-    PlayerGameProfiles, PlayerViolation, ProfileId, ReconnectToken, RejectReason, RequestId,
-    RoomId, RoomViolation, SeatId, ServerEvent,
+    ClientCommand, ClientMessage, GameRules, JoinRequest, LobbySnapshot, PlayerGameProfiles,
+    PlayerViolation, ProfileId, ReconnectToken, RejectReason, RequestId, RoomId, RoomViolation,
+    SeatId, ServerEvent,
 };
 
 const ROOM: RoomId = RoomId(314);
@@ -210,29 +210,4 @@ fn kicking_requires_the_host_and_cannot_target_the_host_or_a_bot() {
     );
     let after = send(&mut session, 1, 6, ClientCommand::RequestSnapshot);
     assert_eq!(lobby(&after).players.len(), 4);
-}
-
-#[test]
-fn kicking_is_rejected_once_the_game_has_started() {
-    let mut session = joined_room(GameRules::Uno(Default::default()));
-    for connection in [2, 3] {
-        accepted(&send(
-            &mut session,
-            connection,
-            2,
-            ClientCommand::SetReady { ready: true },
-        ));
-    }
-    accepted(&send(&mut session, 1, 2, ClientCommand::StartGame));
-    rejection(
-        &send(
-            &mut session,
-            1,
-            3,
-            ClientCommand::KickPlayer {
-                player: PlayerId(1),
-            },
-        ),
-        RejectReason::Game(GameViolation::GameAlreadyStarted),
-    );
 }

@@ -9,8 +9,13 @@ impl MahjongSession {
             self.room
                 .players
                 .iter()
-                .find(|participant| participant.id == player && !participant.left)
-                .is_some_and(|participant| participant.is_bot || participant.auto_play)
+                .find(|participant| participant.id == player)
+                .is_some_and(|participant| {
+                    participant.is_bot
+                        || participant.auto_play
+                        || !participant.connected
+                        || participant.left
+                })
                 .then_some(player)
         };
         match game.phase() {

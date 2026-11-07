@@ -109,7 +109,7 @@ impl TexasSession {
 
     pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
         if self.room.disconnect_spectator(connection) {
-            return Vec::new();
+            return self.room.broadcast_moderation(None);
         }
         let Some(index) =
             self.room.players.iter().position(|player| {

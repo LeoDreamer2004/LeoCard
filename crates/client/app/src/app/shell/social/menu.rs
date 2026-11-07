@@ -1,5 +1,5 @@
 use super::*;
-use crate::app::runtime::UiAssets;
+use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiState;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
@@ -81,11 +81,15 @@ pub(crate) fn sync_interaction_cooldown_masks(
 
 pub(crate) fn sync_opponent_badge_popups(
     ui: Res<UiState>,
+    client: Option<Res<ClientResource>>,
     badges: Query<(Entity, &PickingInteraction, &OpponentBadge)>,
     mut visibility: Query<&mut Visibility>,
 ) {
     for (entity, interaction, badge) in &badges {
-        let menu_open = ui.social.interaction_menu_open == Some(badge.player)
+        let menu_open = client
+            .as_deref()
+            .is_some_and(|client| client.0.model().can_send_interactions())
+            && ui.social.interaction_menu_open == Some(badge.player)
             && ui.social.interaction_menu_anchor == Some(entity);
         if let Some(score_popup) = badge.score_popup
             && let Ok(mut popup) = visibility.get_mut(score_popup)

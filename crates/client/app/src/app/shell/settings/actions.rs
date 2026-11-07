@@ -1,15 +1,18 @@
 use super::{SettingsTab, start_table_felt_picker};
 use crate::app::achievements::LocalAchievementTrigger;
 use crate::app::runtime::{
-    AppearancePreferences, GlobalPreferences, TableAppearance, TableFeltPicker, TableSurfaceKind,
-    save_appearance_preferences,
+    AppearancePreferences, ClientResource, GlobalPreferences, TableAppearance, TableFeltPicker,
+    TableSurfaceKind, save_appearance_preferences,
 };
 use crate::app::shell::{
-    DomainUiAction, PressedUiAction, UiAction, UiActionHandler, UiState, dispatch_domain_actions,
+    ConfirmationDialog, CozyButtonVariant, DomainUiAction, PressedUiAction, UiAction,
+    UiActionHandler, UiState, dispatch_domain_actions,
 };
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use leocard_achievements::{AchievementTrigger, PersonalEvent};
+use leocard_game_common::PlayerId;
+use leocard_protocol::ClientCommand;
 
 #[derive(SystemParam)]
 struct AppearanceUiResources<'w> {
@@ -20,6 +23,9 @@ struct AppearanceUiResources<'w> {
 #[derive(Clone)]
 pub(crate) enum SettingsUiAction {
     SelectTab(SettingsTab),
+    ToggleSpectatorInteractions,
+    RequestKickPlayer(PlayerId),
+    KickPlayer(PlayerId),
     #[cfg(not(target_os = "android"))]
     ToggleTurnNotifications,
     ToggleMahjongActionVoices,
@@ -49,6 +55,8 @@ pub(super) struct SettingsUiActionContext<'w> {
     appearance: ResMut<'w, AppearancePreferences>,
     local: AppearanceUiResources<'w>,
     achievements: MessageWriter<'w, LocalAchievementTrigger>,
+    client: Option<ResMut<'w, ClientResource>>,
+    confirmation: ResMut<'w, ConfirmationDialog>,
 }
 
 pub(super) fn dispatch_settings_actions(
@@ -65,6 +73,41 @@ impl UiActionHandler<SettingsUiActionContext<'_>> for SettingsUiAction {
         let local = &mut context.local;
         match self {
             SettingsUiAction::SelectTab(tab) => ui.settings.tab = *tab,
+            SettingsUiAction::ToggleSpectatorInteractions => {
+                if let Some(client) = context.client.as_deref_mut()
+                    && client.0.model().is_host()
+                    && let Some(room) = client.0.model().room_moderation()
+                {
+                    let blocked = !room.spectator_interactions_blocked;
+                    client
+                        .0
+                        .send(ClientCommand::SetSpectatorInteractionsBlocked { blocked });
+                }
+            }
+            SettingsUiAction::RequestKickPlayer(player) => {
+                if let Some(client) = context.client.as_deref()
+                    && client.0.model().is_host()
+                    && let Some(room) = client.0.model().room_moderation()
+                    && let Some(target) = room.participants.iter().find(|target| {
+                        target.id == *player && !target.is_bot && Some(target.id) != room.host
+                    })
+                {
+                    context.confirmation.show_with_button(
+                        "踢出玩家".to_owned(),
+                        format!("确定将 {} 踢出房间吗？", target.name),
+                        UiAction::Settings(Self::KickPlayer(*player)),
+                        "踢出",
+                        CozyButtonVariant::Danger,
+                    );
+                }
+            }
+            SettingsUiAction::KickPlayer(player) => {
+                if let Some(client) = context.client.as_deref_mut()
+                    && client.0.model().is_host()
+                {
+                    client.0.send(ClientCommand::KickPlayer { player: *player });
+                }
+            }
             #[cfg(not(target_os = "android"))]
             SettingsUiAction::ToggleTurnNotifications => {
                 appearance.turn_notifications = !appearance.turn_notifications;

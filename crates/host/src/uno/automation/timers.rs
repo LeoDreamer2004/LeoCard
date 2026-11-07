@@ -22,7 +22,7 @@ impl UnoSession {
         self.room
             .players
             .iter()
-            .find(|player| player.id == current && !player.left)
+            .find(|player| player.id == current)
             .is_some_and(|player| {
                 self.automatically_resolves_skip()
                     || player.auto_play

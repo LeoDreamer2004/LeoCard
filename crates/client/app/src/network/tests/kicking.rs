@@ -1,5 +1,48 @@
 use super::*;
 use crate::ClientPhaseRef;
+use leocard_protocol::{LobbyPlayerView, PlayerPublicInfo, ProfileId, RoomModerationSnapshot};
+
+#[test]
+fn spectator_interaction_controls_follow_authoritative_room_updates() {
+    let mut model = ClientModel::new(NETWORK_ROOM_ID);
+    let mut lobby = snapshot();
+    if let ServerEvent::LobbySnapshot(snapshot) = &mut lobby.event {
+        snapshot.players.push(LobbyPlayerView {
+            player: PlayerPublicInfo {
+                id: PlayerId(0),
+                profile_id: ProfileId([1; 32]),
+                name: "房主".to_owned(),
+                avatar: None,
+                reference_points: 0,
+                completed_games: 0,
+                game_profiles: Default::default(),
+            },
+            seat: Some(SeatId(0)),
+            ready: true,
+            connected: true,
+        });
+    }
+    model.apply(message(ServerEvent::Joined { you: PlayerId(128) }));
+    model.apply(lobby.clone());
+    let mut room = RoomModerationSnapshot {
+        host: Some(PlayerId(0)),
+        spectator_interactions_blocked: true,
+        participants: Vec::new(),
+    };
+    model.apply(message(ServerEvent::RoomModerationSnapshot(room.clone())));
+    assert!(!model.is_host());
+    assert!(!model.can_send_interactions());
+    model.apply(lobby);
+    assert!(!model.can_send_interactions());
+    room.spectator_interactions_blocked = false;
+    model.apply(message(ServerEvent::RoomModerationSnapshot(room.clone())));
+    assert!(model.can_send_interactions());
+    room.spectator_interactions_blocked = true;
+    model.apply(message(ServerEvent::RoomModerationSnapshot(room)));
+    model.apply(message(ServerEvent::Joined { you: PlayerId(0) }));
+    assert!(model.is_host());
+    assert!(model.can_send_interactions());
+}
 
 #[tokio::test]
 async fn being_kicked_ends_the_connection_without_reconnecting() {

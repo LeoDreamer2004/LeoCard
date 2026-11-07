@@ -4,8 +4,8 @@ use crate::{
     GuandanSnapshot, MahjongLinkSnapshot, MahjongPhaseView, MahjongSnapshot, MatchId,
     McGuessSnapshot, PROTOCOL_VERSION, PlayerGameProfiles, PlayerInteraction,
     PlayerInteractionKind, PlayerPublicInfo, ProfileId, QiGui523PhaseView, QiGui523Snapshot,
-    ReconnectToken, RejectReason, RequestId, Revision, RoomId, RoomInfo, SeatId, ShengjiSnapshot,
-    TexasPhaseView, TexasSnapshot, UnoPhaseView, UnoSnapshot,
+    ReconnectToken, RejectReason, RequestId, Revision, RoomId, RoomInfo, RoomModerationSnapshot,
+    SeatId, ShengjiSnapshot, TexasPhaseView, TexasSnapshot, UnoPhaseView, UnoSnapshot,
 };
 use leocard_achievements::TrophyCounts;
 use leocard_game_common::PlayerId;
@@ -127,9 +127,12 @@ pub enum ClientCommand {
     RequestSnapshot,
     /// Read-only public metadata; does not require a Join request.
     RequestRoomInfo,
-    /// 房主仅可在准备大厅踢出其他真人玩家。
+    /// 房主可踢出其他真人玩家及旁观玩家。
     KickPlayer {
         player: PlayerId,
+    },
+    SetSpectatorInteractionsBlocked {
+        blocked: bool,
     },
 }
 
@@ -208,6 +211,7 @@ pub enum ServerEvent {
     },
     /// 仅发给被踢出的客户端，收到后停止重连并退出房间。
     KickedFromRoom,
+    RoomModerationSnapshot(RoomModerationSnapshot),
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

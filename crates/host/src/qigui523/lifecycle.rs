@@ -78,7 +78,7 @@ impl QiGui523Session {
     /// 标记连接离线并向仍在线的玩家广播新快照。
     pub fn disconnect(&mut self, connection: ConnectionId) -> Vec<Delivery> {
         if self.room.disconnect_spectator(connection) {
-            return Vec::new();
+            return self.room.broadcast_moderation(None);
         }
         let Some(index) = self
             .players

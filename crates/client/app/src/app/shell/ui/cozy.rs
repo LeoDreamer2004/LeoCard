@@ -55,6 +55,27 @@ pub(crate) fn add_cozy_button_variant(
     height: f32,
     variant: CozyButtonVariant,
 ) -> Entity {
+    add_cozy_button_variant_scaled(
+        commands, parent, label, action, assets, width, height, variant, 1.0,
+    )
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the scaled button keeps its action, geometry and palette explicit"
+)]
+#[track_caller]
+pub(crate) fn add_cozy_button_variant_scaled(
+    commands: &mut UiComposer,
+    parent: Entity,
+    label: &str,
+    action: UiAction,
+    assets: &UiAssets,
+    width: Val,
+    height: f32,
+    variant: CozyButtonVariant,
+    scale: f32,
+) -> Entity {
     add_cozy_button_styled(
         commands,
         parent,
@@ -65,7 +86,7 @@ pub(crate) fn add_cozy_button_variant(
         height,
         None,
         variant,
-        1.0,
+        scale,
     )
 }
 
@@ -260,7 +281,7 @@ fn add_cozy_button_styled(
         hovered: sliced_image(hover_image, border, corner_scale).with_color(hover_tint),
         action: Some(action),
         label,
-        font_size: 14.0,
+        font_size: 14.0 * scale,
         color: TEXT,
         icon: icon.map(|icon| (icon, if label.is_none() { 30.0 * scale } else { 22.0 })),
     }

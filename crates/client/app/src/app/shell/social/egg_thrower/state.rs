@@ -37,6 +37,9 @@ impl AutoEggThrower {
             return Err("尚未连接房间，无法使用自动砸蛋器".to_owned());
         }
         let model = client.model();
+        if !model.can_send_interactions() {
+            return Err("房主已禁止旁观玩家互动".to_owned());
+        }
         let source = model.you().ok_or("尚未加入房间")?;
         if source == target {
             return Err("不能对自己使用自动砸蛋器".to_owned());

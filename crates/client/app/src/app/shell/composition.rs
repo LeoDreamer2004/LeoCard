@@ -299,7 +299,13 @@ impl ScreenRenderer<'_, '_, '_> {
             add_lobby_game_shade(self.commands, root, &self.visuals.lobby_game_motion);
         }
         if self.ui.settings.open {
-            SettingsModal::new(self.appearance, &self.visuals.updater, &self.visuals.ui).render(
+            SettingsModal::new(
+                self.appearance,
+                &self.visuals.updater,
+                &self.visuals.ui,
+                self.client.map(|client| client.0.model()),
+            )
+            .render(
                 self.commands,
                 root,
                 &self.visuals.settings_motion,

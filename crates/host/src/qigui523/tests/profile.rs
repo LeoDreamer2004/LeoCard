@@ -102,6 +102,12 @@ fn finished_match_applies_reference_points_exactly_once() {
         assert_eq!(stats.placement_counts[placement - 1], 1);
     }
     assert!(deliveries.iter().all(|delivery| {
+        if matches!(
+            delivery.message.event,
+            ServerEvent::RoomModerationSnapshot(_)
+        ) {
+            return true;
+        }
         qigui523_snapshot(&delivery.message.event).is_some_and(|snapshot| {
             matches!(
                 &snapshot.phase,

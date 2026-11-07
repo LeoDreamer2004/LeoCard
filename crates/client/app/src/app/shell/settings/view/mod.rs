@@ -1,6 +1,7 @@
 mod about;
 mod appearance;
 mod modal;
+mod room;
 mod section;
 mod slider;
 mod sound;

@@ -29,11 +29,15 @@ impl TexasTableLayout {
     } else {
         100.0
     };
-    // The central chips and squid pool share an origin below the street label.
-    pub(super) const POT_TOP: f32 = if cfg!(target_os = "android") {
+    pub(super) const SQUID_POOL_ANCHOR_Y: f32 = if cfg!(target_os = "android") {
         304.0
     } else {
         318.0
+    };
+    pub(super) const LOCAL_BET_TOP: f32 = if cfg!(target_os = "android") {
+        350.0
+    } else {
+        405.0
     };
     pub(super) const HAND_SCALE: f32 = if cfg!(target_os = "android") {
         1.4
@@ -138,14 +142,7 @@ impl TexasTableLayout {
             210.0
         };
         let position = seat.position(TableSeatAnchors {
-            bottom: Vec2::new(
-                640.0,
-                if cfg!(target_os = "android") {
-                    350.0
-                } else {
-                    405.0
-                },
-            ),
+            bottom: Vec2::new(640.0, Self::LOCAL_BET_TOP),
             top: Vec2::new(640.0, 23.0),
             columns: if cfg!(target_os = "android") {
                 Vec2::new(224.0, 1056.0)

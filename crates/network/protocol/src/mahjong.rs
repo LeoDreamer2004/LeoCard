@@ -19,6 +19,7 @@ pub struct MahjongSnapshot {
     pub players: Vec<MahjongPlayerView>,
     pub your_hand: Vec<MahjongTile>,
     pub your_drawn_tile: Option<MahjongTile>,
+    pub your_auto_flower: bool,
     pub discards: Vec<MahjongDiscard>,
     pub dealer: PlayerId,
     pub prevalent_wind: MahjongWind,

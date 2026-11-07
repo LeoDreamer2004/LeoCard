@@ -35,7 +35,10 @@ impl MahjongBotObservation {
                 }
                 let mut added = [false; 34];
                 for &tile in own.hand() {
-                    let index = tile.kind().index34()?;
+                    let Some(index) = tile.kind().index34() else {
+                        options.push(MahjongBotAction::Discard(tile));
+                        continue;
+                    };
                     if added[index] {
                         continue;
                     }
@@ -87,8 +90,8 @@ impl MahjongBotObservation {
             .filter_map(|state| game.public_player(player, state.id()))
             .collect();
         let mut seen = [0u8; 34];
-        for tile in own.hand() {
-            seen[tile.kind().index34()?] += 1;
+        for index in own.hand().iter().filter_map(|tile| tile.kind().index34()) {
+            seen[index] += 1;
         }
         for state in &public {
             for meld in &state.melds {
@@ -109,17 +112,18 @@ impl MahjongBotObservation {
             if state.id != player
                 && let Some(hand) = &state.revealed_hand
             {
-                for tile in hand {
-                    seen[tile.kind().index34()?] += 1;
+                for index in hand.iter().filter_map(|tile| tile.kind().index34()) {
+                    seen[index] += 1;
                 }
             }
         }
-        for discard in game
+        for index in game
             .discards()
             .iter()
             .filter(|discard| discard.claimed_by.is_none())
+            .filter_map(|discard| discard.tile.kind().index34())
         {
-            seen[discard.tile.kind().index34()?] += 1;
+            seen[index] += 1;
         }
         Some(Self {
             player,
@@ -149,7 +153,7 @@ impl MahjongBotObservation {
             matches!(
                 action,
                 MahjongBotAction::SelfDraw | MahjongBotAction::Respond(MahjongClaim::Win)
-            )
+            ) || matches!(action, MahjongBotAction::Discard(tile) if tile.kind().is_flower())
         })
     }
 

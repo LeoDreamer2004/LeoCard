@@ -1,3 +1,5 @@
+mod runout_achievements;
+
 use super::*;
 use crate::{TexasCard, TexasRank, TexasRuleSet, TexasSuit, build_deck};
 use TexasSuit::{Club, Diamond, Heart, Spade};

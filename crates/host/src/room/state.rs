@@ -229,6 +229,13 @@ impl RoomSession {
         if !game_started {
             return Err(RejectReason::Game(GameViolation::GameNotStarted));
         }
+        let spectator = self
+            .spectators
+            .iter()
+            .find(|player| player.id == source && !player.left);
+        if spectator.is_some() && !matches!(&content, ChatContent::Text(_)) {
+            return Err(RejectReason::Room(RoomViolation::SpectatorTextChatOnly));
+        }
         let content = match content {
             ChatContent::Text(text) => {
                 let text = text.trim();
@@ -245,7 +252,11 @@ impl RoomSession {
             }
             ChatContent::Emoji(emoji) => ChatContent::Emoji(emoji),
         };
-        let chat = ChatMessage { source, content };
+        let chat = ChatMessage {
+            source,
+            content,
+            spectator_name: spectator.map(|player| player.name.clone()),
+        };
         Ok(self.broadcast_event(
             Some((connection, request_id)),
             ServerEvent::ChatMessage(chat),

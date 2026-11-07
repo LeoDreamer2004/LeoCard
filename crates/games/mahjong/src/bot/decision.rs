@@ -25,8 +25,12 @@ impl MahjongBot {
             melds: observation.melds.clone(),
             replacement: false,
         };
-        for tile in &observation.hand {
-            root.counts[tile.kind().index34().expect("concealed tile")] += 1;
+        for index in observation
+            .hand
+            .iter()
+            .filter_map(|tile| tile.kind().index34())
+        {
+            root.counts[index] += 1;
         }
         let mut candidates = Vec::new();
         for &action in &observation.options {

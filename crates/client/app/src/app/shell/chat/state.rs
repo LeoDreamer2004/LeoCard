@@ -38,13 +38,13 @@ pub(crate) const QUICK_VOICES: [&str; QUICK_VOICE_COUNT as usize] = [
 
 #[derive(Clone, Debug)]
 pub(crate) struct ChatHistoryEntry {
-    pub player_name: String,
+    pub sender_label: String,
     pub message: String,
 }
 
 #[derive(Resource)]
 pub(crate) struct ChatPanelState {
-    pub read_only: bool,
+    pub text_only: bool,
     pub open: bool,
     pub drawer: DrawerSlide,
     pub quick_voice_open: bool,
@@ -58,7 +58,7 @@ pub(crate) struct ChatPanelState {
 impl Default for ChatPanelState {
     fn default() -> Self {
         Self {
-            read_only: false,
+            text_only: false,
             open: false,
             drawer: DrawerSlide::new(false, Vec2::new(CHAT_PANEL_HIDDEN_OFFSET, 0.0)),
             quick_voice_open: false,
@@ -77,7 +77,7 @@ impl ChatPanelState {
         self.history
             .iter()
             .skip(start)
-            .map(|entry| format!("[{}(玩家)]: {}", entry.player_name, entry.message))
+            .map(|entry| format!("{} {}", entry.sender_label, entry.message))
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -107,5 +107,9 @@ pub(crate) struct QuickVoiceMenu;
 #[derive(Component)]
 pub(crate) struct QuickVoiceScroll;
 
-#[derive(Component)]
-pub(crate) struct ChatBubbleOwner(pub PlayerId);
+#[derive(Component, Clone, Copy, Eq, Hash, PartialEq)]
+pub(crate) enum ChatBubbleSlot {
+    Player(PlayerId),
+    SpectatorIncoming,
+    SpectatorLocal,
+}

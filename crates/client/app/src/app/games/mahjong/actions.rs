@@ -19,6 +19,7 @@ pub(crate) enum MahjongUiAction {
     ToggleAutoWin,
     ToggleNoClaim,
     ToggleAutoDrawDiscard,
+    SetAutoFlower(bool),
     ToggleFanGuide,
     CloseFanGuide,
     SelectFanGuideTier(u16),
@@ -48,6 +49,7 @@ impl DomainUiAction for MahjongUiAction {
                 | Self::CloseFanGuide
                 | Self::SelectFanGuideTier(_)
                 | Self::Discard(_)
+                | Self::SetAutoFlower(_)
         )
     }
 }
@@ -101,6 +103,13 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
             Self::ToggleAutoDrawDiscard => {
                 context.ui.auto_draw_discard = !context.ui.auto_draw_discard;
                 context.ui.last_automatic_action = None;
+                return;
+            }
+            Self::SetAutoFlower(enabled) => {
+                send_game_command(
+                    &mut context.client,
+                    MahjongCommand::SetAutoFlower { enabled: *enabled },
+                );
                 return;
             }
             Self::ToggleFanGuide => {
@@ -201,7 +210,8 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
             | MahjongUiAction::ToggleAutoDrawer
             | MahjongUiAction::ToggleAutoWin
             | MahjongUiAction::ToggleNoClaim
-            | MahjongUiAction::ToggleAutoDrawDiscard => unreachable!(),
+            | MahjongUiAction::ToggleAutoDrawDiscard
+            | MahjongUiAction::SetAutoFlower(_) => unreachable!(),
             MahjongUiAction::ToggleChoiceMenu(_)
             | MahjongUiAction::ContinueFanSummary
             | MahjongUiAction::ShowFinalSummary => unreachable!(),

@@ -1,9 +1,16 @@
 use bevy::prelude::*;
 
+#[derive(Clone, Copy)]
+pub enum BubblePlacement {
+    Anchor(Option<Entity>),
+    TopLeft(Vec2),
+    BottomRight(Vec2),
+}
+
 /// Applications may retarget a live bubble after replacing its anchor entity.
 #[derive(Component)]
 pub struct AnchoredBubble {
-    pub anchor: Option<Entity>,
+    pub placement: BubblePlacement,
     pub(super) anchor_offset: Vec2,
     pub(super) text: Option<Entity>,
     pub(super) image: Option<Entity>,

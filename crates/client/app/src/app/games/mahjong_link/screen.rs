@@ -1,11 +1,11 @@
 use super::playback::LinkPlayback;
-use super::state::MahjongLinkUiState;
-use super::{actions, lobby, table};
+use super::state::{MahjongLinkUiState, can_act};
+use super::{actions, input, lobby, table};
 use crate::app::games::{
     GameActionPrompt, GameLobbyContext, GameScreen, GameTableContext, GameUiLifecycle,
 };
 use crate::app::presentation::mahjong::MahjongTileAssets;
-use crate::app::runtime::ClientResource;
+use crate::app::runtime::{ClientResource, ClientUpdateSet};
 use crate::app::shell::{SocialUiState, UiActionSet};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
@@ -18,6 +18,12 @@ impl Plugin for MahjongLinkPlugin {
     fn build(&self, app: &mut App) {
         super::playback::register(app);
         app.init_resource::<MahjongLinkUiState>()
+            .add_systems(
+                Update,
+                input::update_board_input
+                    .in_set(ClientUpdateSet::Input)
+                    .before(UiActionSet),
+            )
             .add_systems(Update, actions::dispatch_actions.in_set(UiActionSet));
     }
 }
@@ -49,26 +55,13 @@ impl GameScreen for MahjongLinkScreen<'_> {
         game: &Self::Snapshot,
         context: GameTableContext<'_>,
     ) {
-        table::render(
-            commands,
-            root,
-            game,
-            &self.ui,
-            &self.assets,
-            &self.playback,
-            context,
-        );
+        table::render(commands, root, game, &self.assets, &self.playback, context);
     }
 }
 
 impl GameActionPrompt for MahjongLinkScreen<'_> {
     fn requires_action(&self, game: &Self::Snapshot) -> bool {
-        !game.match_complete
-            && game.current_player == Some(game.you)
-            && game
-                .players
-                .iter()
-                .any(|player| player.player.id == game.you && player.connected && !player.auto_play)
+        can_act(game)
     }
 }
 

@@ -226,14 +226,11 @@ impl TexasChipTableState {
         let area = self.zone_layout(zone);
         let horizontal = table_random_unit(id, self.event_serial.wrapping_add(17));
         let vertical = table_random_unit(id, self.event_serial.wrapping_add(43));
-        let (top, bottom) = if cfg!(target_os = "android") {
-            if matches!(zone, ChipZone::Bet(_)) {
-                (40.0, 6.0)
-            } else {
-                (6.0, 6.0)
-            }
-        } else {
-            (30.0, 5.0)
+        let (top, bottom) = match zone {
+            ChipZone::Pot(_) => (4.0, 4.0),
+            ChipZone::Bet(_) if cfg!(target_os = "android") => (40.0, 6.0),
+            _ if cfg!(target_os = "android") => (6.0, 6.0),
+            _ => (30.0, 5.0),
         };
         Vec2::new(
             area.left + 9.0 + horizontal * (area.width - CHIP_SIZE - 18.0).max(1.0),

@@ -166,9 +166,8 @@ impl MahjongGameState {
                 self.players[player.index()]
                     .melds
                     .push(MahjongMeld::pung(tile.kind(), from));
-                self.current_player = player;
                 self.last_drawn = None;
-                self.phase = MahjongPhase::Playing;
+                self.prepare_player_turn(player);
             }
             MahjongClaim::Kong => {
                 self.remove_kind_from_hand(player, tile.kind(), 3)?;
@@ -195,14 +194,10 @@ impl MahjongGameState {
                 self.players[player.index()]
                     .melds
                     .push(MahjongMeld::chow(suit, start, from));
-                self.current_player = player;
                 self.last_drawn = None;
-                self.phase = MahjongPhase::Playing;
+                self.prepare_player_turn(player);
             }
             MahjongClaim::Pass | MahjongClaim::Win => return Err(MahjongGameError::InvalidClaim),
-        }
-        if !matches!(self.phase, MahjongPhase::ReplacingFlower { .. }) {
-            self.sort_hands();
         }
         Ok(MahjongActionOutcome::Claimed {
             player,

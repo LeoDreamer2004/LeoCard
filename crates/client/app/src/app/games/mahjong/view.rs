@@ -753,14 +753,19 @@ pub(crate) fn render_mahjong_table(
         );
     }
     render_round_status(commands, table, game, own_seat, assets, game_assets);
-    if matches!(
-        game.phase,
-        MahjongPhaseView::Dealing { .. }
-            | MahjongPhaseView::ReplacingFlower { .. }
-            | MahjongPhaseView::Playing
-            | MahjongPhaseView::WaitingForClaims
-    ) {
-        render_mahjong_auto_drawer(commands, content, ui, game.rules.false_win, assets);
+    if game
+        .players
+        .iter()
+        .any(|player| player.player.id == game.you)
+        && matches!(
+            game.phase,
+            MahjongPhaseView::Dealing { .. }
+                | MahjongPhaseView::ReplacingFlower { .. }
+                | MahjongPhaseView::Playing
+                | MahjongPhaseView::WaitingForClaims
+        )
+    {
+        render_mahjong_auto_drawer(commands, content, ui, game, assets);
     }
     let own_flower_replaced = game
         .players

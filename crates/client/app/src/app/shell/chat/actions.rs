@@ -53,6 +53,9 @@ impl UiActionHandler<ChatActionContext<'_>> for ChatUiAction {
     fn handle(&self, context: &mut ChatActionContext<'_>) {
         let client = &mut context.client;
         let chat = &mut *context.chat;
+        if chat.text_only && !matches!(self, Self::TogglePanel) {
+            return;
+        }
         match self {
             ChatUiAction::TogglePanel => {
                 chat.open = !chat.open;

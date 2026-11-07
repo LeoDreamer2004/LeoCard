@@ -13,6 +13,7 @@ use std::{array, collections::VecDeque};
 pub struct MahjongGameState {
     pub(super) rules: MahjongRuleSet,
     pub(super) players: [MahjongPlayerState; MahjongRuleSet::PLAYER_COUNT as usize],
+    pub(super) auto_flower: [bool; MahjongRuleSet::PLAYER_COUNT as usize],
     pub(super) wall: VecDeque<MahjongTile>,
     pub(super) discards: Vec<MahjongDiscard>,
     pub(super) initial_dealer: PlayerId,
@@ -49,6 +50,7 @@ impl MahjongGameState {
         let game = Self {
             rules,
             players,
+            auto_flower: [true; MahjongRuleSet::PLAYER_COUNT as usize],
             wall: VecDeque::from(deck),
             discards: Vec::new(),
             initial_dealer,

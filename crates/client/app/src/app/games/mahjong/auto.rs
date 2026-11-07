@@ -13,7 +13,7 @@ pub(super) fn render_mahjong_auto_drawer(
     commands: &mut UiComposer,
     table: Entity,
     ui: &MahjongUiState,
-    false_win_allowed: bool,
+    game: &MahjongSnapshot,
     assets: &UiAssets,
 ) {
     let switches = [
@@ -35,6 +35,12 @@ pub(super) fn render_mahjong_auto_drawer(
             enabled: ui.auto_draw_discard,
             action: UiAction::Mahjong(MahjongUiAction::ToggleAutoDrawDiscard),
         },
+        DrawerSwitch {
+            short: "花",
+            label: "自动补花",
+            enabled: game.your_auto_flower,
+            action: UiAction::Mahjong(MahjongUiAction::SetAutoFlower(!game.your_auto_flower)),
+        },
     ];
     add_switch_drawer(
         commands,
@@ -42,7 +48,7 @@ pub(super) fn render_mahjong_auto_drawer(
         SwitchDrawer {
             expanded: ui.auto_drawer_open,
             toggle_action: UiAction::Mahjong(MahjongUiAction::ToggleAutoDrawer),
-            switches: &switches[usize::from(false_win_allowed)..],
+            switches: &switches[usize::from(game.rules.false_win)..],
         },
         assets,
     );
@@ -158,6 +164,7 @@ mod tests {
             players: Vec::new(),
             your_hand: vec![drawn],
             your_drawn_tile: Some(drawn),
+            your_auto_flower: true,
             discards: Vec::new(),
             dealer: you,
             prevalent_wind: MahjongWind::East,

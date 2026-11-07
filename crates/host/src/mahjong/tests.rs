@@ -4,8 +4,8 @@ use crate::features::GameSnapshotView;
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_game_common::PlayerId;
 use leocard_mahjong::{
-    MahjongFan, MahjongFanValue, MahjongMatchLength, MahjongMatchProgress, MahjongPhase,
-    MahjongRuleSet, MahjongScoreResult, MahjongSuit, MahjongTile, MahjongTileKind,
+    MahjongBotObservation, MahjongFan, MahjongFanValue, MahjongMatchLength, MahjongMatchProgress,
+    MahjongPhase, MahjongRuleSet, MahjongScoreResult, MahjongSuit, MahjongTile, MahjongTileKind,
     MahjongWinRecord, build_deck,
 };
 use leocard_protocol::{
@@ -392,6 +392,69 @@ fn four_clients_receive_private_views_and_continue_at_the_table() {
         session.game().expect("next hand started").sequence_index(),
         1
     );
+}
+
+#[test]
+fn auto_flower_is_individual_and_retained_flowers_can_be_discarded_safely() {
+    let mut deck = build_deck();
+    for index in [0, 4] {
+        let flower = deck
+            .iter()
+            .rposition(|tile| tile.kind().is_flower())
+            .unwrap();
+        deck.swap(index, flower);
+    }
+    let flower = deck[0];
+    let other_flower = deck[4];
+    let mut session = MahjongSession::new(ROOM, 52300, MahjongRuleSet::default(), deck).unwrap();
+    let dealer = ConnectionId(1);
+    for index in 0..4 {
+        session.handle(
+            ConnectionId(index + 1),
+            message(1, join_command(&format!("玩家{index}"), index + 1)),
+        );
+    }
+    for (index, player) in session.room.players.iter_mut().enumerate() {
+        player.seat = Some(SeatId(index as u8));
+        player.ready = true;
+    }
+    session.handle(dealer, message(2, ClientCommand::StartGame));
+    assert!(session.game_view(PlayerId(0)).your_auto_flower);
+
+    let set_auto_flower = |enabled| {
+        ClientCommand::Game(GameCommand::Mahjong(MahjongCommand::SetAutoFlower {
+            enabled,
+        }))
+    };
+    session.handle(dealer, message(3, set_auto_flower(false)));
+    finish_server_deal(&mut session);
+    let own = session.game_view(PlayerId(0));
+    assert!(!own.your_auto_flower && own.your_hand.contains(&flower));
+    let other = session.game_view(PlayerId(1));
+    assert!(other.your_auto_flower && other.players[1].flowers.contains(&other_flower));
+
+    session.handle(dealer, message(4, set_auto_flower(true)));
+    assert!(matches!(
+        session.game().unwrap().phase(),
+        MahjongPhase::ReplacingFlower {
+            player: PlayerId(0)
+        }
+    ));
+    session.handle(dealer, message(5, set_auto_flower(false)));
+    session.handle(
+        dealer,
+        message(
+            6,
+            ClientCommand::Game(GameCommand::Mahjong(MahjongCommand::Discard {
+                tile: flower,
+            })),
+        ),
+    );
+    let game = session.game().unwrap();
+    assert_eq!(game.discards().last().unwrap().tile, flower);
+    assert_eq!(game.current_player(), PlayerId(1));
+    assert!(matches!(game.phase(), MahjongPhase::Playing));
+    assert!(MahjongBotObservation::from_game(game, PlayerId(1)).is_some());
 }
 
 #[test]

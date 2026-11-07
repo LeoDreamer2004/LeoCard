@@ -2,7 +2,7 @@ use super::super::*;
 use super::controls::{add_auto_play_toggle, add_auxiliary_actions, add_chat_toggle};
 use super::help::add_chat_help_button;
 use super::menus::{add_emoji_menu, add_quick_voice_menu};
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, MUTED, TEXT, add_text};
+use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{ChatUiAction, UiAction, add_cozy_panel};
 use bevy::prelude::*;
@@ -51,10 +51,8 @@ impl<'a> ChatPanelOptions<'a> {
             add_chat_help_button(commands, controls, action, assets);
         }
         add_chat_history(commands, panel, chat, assets);
-        if chat.read_only {
-            add_text(commands, panel, "观战中，仅查看聊天", 13.0, MUTED, assets);
-        } else {
-            add_chat_input_row(commands, panel, chat, assets);
+        add_chat_input_row(commands, panel, chat, assets);
+        if !chat.text_only {
             add_quick_voice_menu(commands, panel, chat, assets);
             add_emoji_menu(commands, panel, chat, assets);
         }
@@ -210,7 +208,7 @@ pub(super) fn add_chat_input_row(
     add_input_icon_button(
         commands,
         row,
-        UiAction::Chat(ChatUiAction::ToggleEmojiMenu),
+        (!chat.text_only).then_some(UiAction::Chat(ChatUiAction::ToggleEmojiMenu)),
         &assets.social.chat_emoji_icon,
         24.0,
         assets,
@@ -218,7 +216,7 @@ pub(super) fn add_chat_input_row(
     add_input_icon_button(
         commands,
         row,
-        UiAction::Chat(ChatUiAction::ToggleQuickVoiceMenu),
+        (!chat.text_only).then_some(UiAction::Chat(ChatUiAction::ToggleQuickVoiceMenu)),
         &assets.social.quick_voice_icon,
         23.0,
         assets,
@@ -255,12 +253,13 @@ fn add_text_input(
 fn add_input_icon_button(
     commands: &mut UiComposer,
     row: Entity,
-    action: UiAction,
+    action: Option<UiAction>,
     icon: &Handle<Image>,
     icon_size: f32,
     assets: &UiAssets,
 ) {
-    TextureButton {
+    let tint = Color::WHITE.with_alpha(if action.is_some() { 1.0 } else { 0.45 });
+    let (button, _) = TextureButton {
         node: Node {
             width: px(42),
             min_width: px(42),
@@ -273,15 +272,19 @@ fn add_input_icon_button(
             justify_content: JustifyContent::Center,
             ..default()
         },
-        normal: cozy_chat_button_image(assets.home.button.clone()),
+        normal: cozy_chat_button_image(assets.home.button.clone()).with_color(tint),
         hovered: cozy_chat_button_image(assets.home.purple_button_compact.clone()),
-        action: Some(action),
+        action,
         label: None,
         font_size: 13.0,
         color: TEXT,
         icon: Some((icon.clone(), icon_size)),
     }
     .mount(commands, row, &assets.font);
+    let icon_entity = commands.entity_for(button, "icon");
+    commands
+        .entity(icon_entity)
+        .insert(ImageNode::new(icon.clone()).with_color(tint));
 }
 
 pub(super) fn cozy_chat_button_image(texture: Handle<Image>) -> ImageNode {

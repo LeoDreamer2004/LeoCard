@@ -62,11 +62,35 @@ async fn midgame_kicked_players_and_spectators_receive_the_final_notice_before_t
     for index in 0..3_u8 {
         let (mut client, player) = join(&server, room, index).await;
         assert_eq!(player, PlayerId(index));
+        // Rotate join order so game-start IDs always differ from lobby IDs.
+        let seat = SeatId((index + 1) % 3);
+        client
+            .send(&ClientMessage::new(
+                room,
+                RequestId(2),
+                ClientCommand::SelectSeat { seat },
+            ))
+            .await
+            .unwrap();
+        timeout(Duration::from_secs(2), async {
+            loop {
+                if let ServerEvent::LobbySnapshot(snapshot) = client.receive().await.unwrap().event
+                    && snapshot
+                        .players
+                        .iter()
+                        .any(|entry| entry.player.id == player && entry.seat == Some(seat))
+                {
+                    break;
+                }
+            }
+        })
+        .await
+        .expect("server should confirm the selected seat");
         if index > 0 {
             client
                 .send(&ClientMessage::new(
                     room,
-                    RequestId(2),
+                    RequestId(3),
                     ClientCommand::SetReady { ready: true },
                 ))
                 .await
@@ -78,31 +102,22 @@ async fn midgame_kicked_players_and_spectators_receive_the_final_notice_before_t
     clients[0]
         .send(&ClientMessage::new(
             room,
-            RequestId(2),
+            RequestId(3),
             ClientCommand::StartGame,
         ))
         .await
         .unwrap();
+    let mut game_players = Vec::new();
     for client in &mut clients {
-        timeout(Duration::from_secs(2), async {
-            loop {
-                if matches!(
-                    client.receive().await.unwrap().event,
-                    ServerEvent::GameSnapshot(_)
-                ) {
-                    break;
-                }
-            }
-        })
-        .await
-        .unwrap();
+        game_players.push(receive_game(client).await.you);
     }
+    assert_eq!(game_players, [PlayerId(1), PlayerId(2), PlayerId(0)]);
     let (mut observer, observer_id) = join(&server, room, 3).await;
     assert_eq!(observer_id, PlayerId(128));
     clients[0]
         .send(&ClientMessage::new(
             room,
-            RequestId(3),
+            RequestId(4),
             ClientCommand::KickPlayer {
                 player: observer_id,
             },
@@ -113,9 +128,9 @@ async fn midgame_kicked_players_and_spectators_receive_the_final_notice_before_t
     clients[0]
         .send(&ClientMessage::new(
             room,
-            RequestId(4),
+            RequestId(5),
             ClientCommand::KickPlayer {
-                player: PlayerId(1),
+                player: game_players[1],
             },
         ))
         .await

@@ -1,6 +1,6 @@
 use super::{
-    MAHJONG_DEAL_INTERVAL, MahjongSession, MahjongWinFeedback, events_for_outcome, shuffled_deck,
-    validate_deck,
+    MAHJONG_DEAL_INTERVAL, MAHJONG_DICE_INTERVAL, MahjongSession, MahjongWinFeedback,
+    events_for_outcome, roll_opening_dice, shuffled_deck, validate_deck,
 };
 use crate::action_timing::attach_action_timing;
 use crate::features::GameAutomation;
@@ -38,6 +38,7 @@ impl MahjongSession {
             ),
             rules,
             shuffled_deck: Some(shuffled_deck),
+            opening_dice: roll_opening_dice(),
             game: None,
             match_id: None,
             automatic_action_delay: None,
@@ -221,7 +222,7 @@ impl HostedGameLifecycle for MahjongSession {
                 self.game = Some(game);
                 self.match_id = Some(new_match_id());
                 self.finished_reference_changes = None;
-                self.deal_delay = Duration::ZERO;
+                self.deal_delay = MAHJONG_DICE_INTERVAL;
                 self.room.bump_revision();
                 self.broadcast_game(Some((connection, request_id)))
             }
@@ -266,6 +267,7 @@ impl HostedGameLifecycle for MahjongSession {
         self.match_id = None;
         self.room.prepare_lobby();
         self.shuffled_deck = Some(shuffled_deck());
+        self.opening_dice = roll_opening_dice();
         self.room.bump_revision();
         self.broadcast_lobby(Some((connection, request_id)))
     }
@@ -364,6 +366,14 @@ impl GameAutomation for MahjongSession {
             }
             self.deal_delay = MAHJONG_DEAL_INTERVAL;
             let game = self.game.as_mut().expect("checked Mahjong game exists");
+            if matches!(game.phase(), MahjongPhase::Dealing { batch: 0 })
+                && game.wall_break().is_none()
+            {
+                game.break_wall(self.opening_dice)
+                    .expect("the opening wall has not dealt any tiles");
+                self.room.bump_revision();
+                return self.broadcast_game(None);
+            }
             let flower_counts = game
                 .players()
                 .iter()

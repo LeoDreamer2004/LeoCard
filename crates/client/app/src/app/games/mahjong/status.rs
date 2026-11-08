@@ -1,6 +1,5 @@
 use super::layout::MahjongLayout as Layout;
 use super::{MahjongAssets, MahjongProjectionFrame, MahjongTurnSector, wind_label};
-use crate::app::presentation::mahjong::{REFERENCE_SIZE, project_reference};
 use crate::app::presentation::{TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
@@ -11,13 +10,6 @@ use leocard_mahjong::MahjongWind;
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 use leocard_ui::{UiComposer, spawn_node};
 use std::f32::consts;
-
-const REFERENCE_SCALE: f32 = 1280.0 / 2204.0;
-const STATUS_LEFT: f32 = 900.0 * REFERENCE_SCALE;
-const STATUS_TOP: f32 = 349.5 * REFERENCE_SCALE;
-const STATUS_WIDTH: f32 = 390.0 * REFERENCE_SCALE;
-const STATUS_HEIGHT: f32 = 254.5 * REFERENCE_SCALE;
-const TOP_RATIO: f32 = 352.0 / 390.0;
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone, PartialEq)]
 pub(super) struct MahjongTurnLightMaterial {
@@ -75,8 +67,8 @@ pub(super) fn render_round_status_with_scores(
     assets: &UiAssets,
     game_assets: &MahjongAssets,
 ) -> Vec<Entity> {
-    let origin = status_origin();
-    let size = Vec2::new(STATUS_WIDTH, STATUS_HEIGHT);
+    let origin = Layout::status_origin();
+    let size = Layout::STATUS_SIZE;
     let background_origin = origin - size * Vec2::new(0.06, 0.08);
     let background_size = size * Vec2::new(1.12, 1.28);
     let background = spawn_node(
@@ -109,8 +101,8 @@ pub(super) fn render_round_status_with_scores(
             position_type: PositionType::Absolute,
             left: px(origin.x),
             top: px(origin.y),
-            width: px(STATUS_WIDTH),
-            height: px(STATUS_HEIGHT),
+            width: px(size.x),
+            height: px(size.y),
             ..default()
         },
         None,
@@ -118,10 +110,7 @@ pub(super) fn render_round_status_with_scores(
     commands.entity(status).insert((
         MahjongProjectionFrame {
             anchor_bottom: false,
-            center: Vec2::new(
-                origin.x + STATUS_WIDTH * 0.5,
-                origin.y + STATUS_HEIGHT * 0.5,
-            ),
+            center: origin + size * 0.5,
         },
         UiTransform::default(),
         Pickable::IGNORE,
@@ -231,7 +220,7 @@ fn render_corner_wind(
         2 => Vec2::new(0.8393, 0.1611),
         _ => Vec2::new(0.1603, 0.1611),
     };
-    let position = status_point(uv);
+    let position = Layout::status_point(uv);
     let badge = spawn_node(
         commands,
         status,
@@ -275,7 +264,7 @@ fn render_score(
 ) -> Entity {
     // These bounds follow the recessed windows in center-panel.png.
     let uv = score_window(relative).center() / 100.0;
-    let position = status_point(uv);
+    let position = Layout::status_point(uv);
     let label = spawn_node(
         commands,
         status,
@@ -318,32 +307,19 @@ fn score_window(relative: u8) -> Rect {
 }
 
 pub(super) fn mahjong_status_score_position(relative: u8) -> Vec2 {
-    status_origin() + status_point(score_window(relative).center() / 100.0)
-}
-
-fn status_origin() -> Vec2 {
-    Vec2::new(STATUS_LEFT, STATUS_TOP) + central_screen_offset()
-}
-
-fn status_point(asset_uv: Vec2) -> Vec2 {
-    let uv = asset_uv;
-    let denominator = 1.0 - (1.0 - TOP_RATIO) * uv.y;
-    Vec2::new(
-        0.5 + (uv.x - 0.5) * TOP_RATIO / denominator,
-        uv.y * TOP_RATIO / denominator,
-    ) * Vec2::new(STATUS_WIDTH, STATUS_HEIGHT)
+    Layout::status_origin() + Layout::status_point(score_window(relative).center() / 100.0)
 }
 
 fn status_text_transform(relative: u8, asset_uv: Vec2) -> UiTransform {
     let uv = asset_uv;
-    let q = 1.0 - TOP_RATIO;
+    let size = Layout::STATUS_SIZE;
+    let top_ratio = Layout::STATUS_TOP_RATIO;
+    let q = 1.0 - top_ratio;
     let denominator = 1.0 - q * uv.y;
-    let unit = STATUS_WIDTH * TOP_RATIO / (1.0 - q * 0.5);
-    let x = Vec2::new(STATUS_WIDTH * TOP_RATIO / denominator, 0.0) / unit;
-    let y = Vec2::new(
-        STATUS_WIDTH * (uv.x - 0.5) * TOP_RATIO * q,
-        STATUS_HEIGHT * TOP_RATIO,
-    ) / (denominator * denominator * unit);
+    let unit = size.x * top_ratio / (1.0 - q * 0.5);
+    let x = Vec2::new(size.x * top_ratio / denominator, 0.0) / unit;
+    let y = Vec2::new(size.x * (uv.x - 0.5) * top_ratio * q, size.y * top_ratio)
+        / (denominator * denominator * unit);
     let (sine, cosine) = (-f32::from(relative) * consts::FRAC_PI_2).sin_cos();
     let along = x * cosine + y * sine;
     let across = -x * sine + y * cosine;
@@ -371,10 +347,4 @@ pub(super) fn animate_mahjong_turn_sector(
             material.params.y = 0.35 + breath * 0.65;
         }
     }
-}
-
-pub(super) fn central_screen_offset() -> Vec2 {
-    (project_reference(Vec3::new(0.0, 0.0, -Layout::CENTER_FORWARD))
-        - project_reference(Vec3::ZERO))
-        * (1280.0 / REFERENCE_SIZE.x)
 }

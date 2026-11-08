@@ -3,7 +3,7 @@ use leocard_game_common::PlayerId;
 use leocard_mahjong::{
     MahjongClaim, MahjongClaimOption, MahjongDiscard, MahjongHandReplacementError,
     MahjongMatchLength, MahjongMatchProgress, MahjongPublicMeld, MahjongRuleSet, MahjongTile,
-    MahjongTileKind, MahjongWinRecord, MahjongWind,
+    MahjongTileKind, MahjongWallBreak, MahjongWinRecord, MahjongWind,
 };
 
 use serde::{Deserialize, Serialize};
@@ -26,6 +26,8 @@ pub struct MahjongSnapshot {
     pub sequence_index: u8,
     pub current_player: PlayerId,
     pub wall_len: u16,
+    pub wall_break: MahjongWallBreak,
+    pub wall_tail_drawn: u8,
     pub match_scores: [i32; 4],
     pub pending_claim: Option<MahjongPendingClaimView>,
     pub can_self_draw: bool,
@@ -76,6 +78,7 @@ pub struct MahjongHandResultView {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum MahjongPhaseView {
+    RollingDice,
     Dealing { batch: u8 },
     ReplacingFlower { player: PlayerId },
     Playing,

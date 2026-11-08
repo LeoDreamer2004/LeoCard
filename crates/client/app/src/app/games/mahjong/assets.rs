@@ -17,6 +17,7 @@ pub(crate) struct MahjongAssets {
     pub(super) wind_labels: MahjongWindLabels,
     pub(super) ready_hand: Handle<Image>,
     pub(super) action_prompt: Handle<AudioSource>,
+    pub(super) dice_throw: Handle<AudioSource>,
     fan_voices: BTreeMap<MahjongFan, [Handle<AudioSource>; 2]>,
     action_voices: [[[Handle<AudioSource>; 2]; 8]; 2],
     tile_voices: HashMap<MahjongTileKind, [[Handle<AudioSource>; 2]; 2]>,
@@ -108,6 +109,7 @@ impl MahjongAssets {
                 })
             }),
             action_prompt: asset_server.load("vendor/kenney/interface-sounds/Audio/pluck_001.ogg"),
+            dice_throw: asset_server.load("vendor/kenney/casino-audio/Audio/dice-throw-1.ogg"),
             tile_voices: (0..34)
                 .filter_map(MahjongTileKind::from_index34)
                 .map(|kind| {

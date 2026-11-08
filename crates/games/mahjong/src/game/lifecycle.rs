@@ -6,6 +6,20 @@ use crate::{MahjongMatchLength, MahjongRuleSet, MahjongTile, MahjongWind};
 use leocard_game_common::PlayerId;
 use std::collections::VecDeque;
 
+const PACK_SIZE: usize = 4;
+const PACK_BATCHES: u8 = 3 * MahjongRuleSet::PLAYER_COUNT;
+const DEAL_BATCHES: u8 = PACK_BATCHES + MahjongRuleSet::PLAYER_COUNT;
+const JUMP_OFFSET: usize = 4;
+
+/// Index from the original wall head of the jumped tile while it leaves a hole ahead of the draw.
+pub const fn mahjong_deal_wall_gap(next_batch: u8) -> Option<usize> {
+    if next_batch > PACK_BATCHES && next_batch < DEAL_BATCHES {
+        Some(PACK_BATCHES as usize * PACK_SIZE + JUMP_OFFSET)
+    } else {
+        None
+    }
+}
+
 impl MahjongGameState {
     /// 结算界面内全员准备后开始下一盘。单局模式重置累计分，但继续轮庄和轮圈风。
     pub fn start_next_hand(&mut self, deck: Vec<MahjongTile>) -> Result<(), MahjongGameError> {
@@ -31,6 +45,8 @@ impl MahjongGameState {
         );
         self.prevalent_wind = MahjongWind::ALL[usize::from(self.sequence_index / 4)];
         self.wall = VecDeque::from(deck);
+        self.wall_break = None;
+        self.wall_tail_drawn = 0;
         self.discards.clear();
         self.hand_deltas = [0; MahjongRuleSet::PLAYER_COUNT as usize];
         self.current_player = self.dealer;
@@ -47,48 +63,40 @@ impl MahjongGameState {
         Ok(())
     }
 
-    /// 推进一次真实发牌：前三轮依次给一家四张，随后每家一张，最后庄家跳一张。
+    /// 前三轮每家四张，之后庄家同时摸第一、第三垛的上层，另外三家依次摸墙头一张。
     /// 返回 `true` 表示本次发完后已经进入出牌阶段。
     pub fn advance_deal(&mut self) -> Result<bool, MahjongGameError> {
         let MahjongPhase::Dealing { batch } = self.phase else {
             return Err(MahjongGameError::WrongPhase);
         };
-        let (player, count) = match batch {
-            0..=11 => {
-                let offset = usize::from(batch % MahjongRuleSet::PLAYER_COUNT);
-                (
-                    PlayerId::from_index(
-                        (self.dealer.index() + offset) % usize::from(MahjongRuleSet::PLAYER_COUNT),
-                    ),
-                    4,
-                )
-            }
-            12..=15 => {
-                let offset = usize::from(batch - 12);
-                (
-                    PlayerId::from_index(
-                        (self.dealer.index() + offset) % usize::from(MahjongRuleSet::PLAYER_COUNT),
-                    ),
-                    1,
-                )
-            }
-            16 => (self.dealer, 1),
-            17 => return self.advance_initial_flower_replacement(),
+        let (offset, count) = match batch {
+            0..PACK_BATCHES => (batch % MahjongRuleSet::PLAYER_COUNT, PACK_SIZE),
+            PACK_BATCHES..DEAL_BATCHES => (batch - PACK_BATCHES, 1),
+            DEAL_BATCHES => return self.advance_initial_flower_replacement(),
             _ => return Err(MahjongGameError::WrongPhase),
         };
-        let mut last = None;
+        let player = PlayerId((self.dealer.0 + offset) % MahjongRuleSet::PLAYER_COUNT);
+        let jumped = if batch == PACK_BATCHES {
+            // The lower tile in the first stack and both tiles in the second stay at the front.
+            Some(
+                self.wall
+                    .remove(JUMP_OFFSET)
+                    .ok_or(MahjongGameError::InvalidDeckContents)?,
+            )
+        } else {
+            None
+        };
+        let hand = &mut self.players[player.index()].hand;
         for _ in 0..count {
             let tile = self
                 .wall
                 .pop_front()
                 .ok_or(MahjongGameError::InvalidDeckContents)?;
-            self.players[player.index()].hand.push(tile);
-            last = Some(tile);
+            hand.push(tile);
         }
-        if batch == 16 {
-            let drawn = last.expect("庄家跳张批次必定发出一张牌");
-            self.current_player = self.dealer;
-            self.last_drawn = Some(drawn);
+        if let Some(tile) = jumped {
+            hand.push(tile);
+            self.last_drawn = Some(tile);
             self.draw_origin = MahjongDrawOrigin::Normal;
         }
         self.phase = MahjongPhase::Dealing { batch: batch + 1 };
@@ -109,8 +117,7 @@ impl MahjongGameState {
             let flower = self.players[player.index()].hand.remove(position);
             self.players[player.index()].flowers.push(flower);
             let replacement = self
-                .wall
-                .pop_back()
+                .pop_wall_tail()
                 .ok_or(MahjongGameError::InvalidDeckContents)?;
             self.players[player.index()].hand.push(replacement);
             if self.last_drawn == Some(flower) {
@@ -181,7 +188,7 @@ impl MahjongGameState {
             .ok_or(MahjongGameError::InvalidDeckContents)?;
         let flower = self.players[player.index()].hand.remove(position);
         self.players[player.index()].flowers.push(flower);
-        let Some(replacement) = self.wall.pop_back() else {
+        let Some(replacement) = self.pop_wall_tail() else {
             self.last_drawn = None;
             self.finish_exhaustive_draw()?;
             return Ok(player);
@@ -198,7 +205,7 @@ impl MahjongGameState {
         player: PlayerId,
         origin: MahjongDrawOrigin,
     ) -> Result<(MahjongTile, MahjongDrawOrigin), MahjongGameError> {
-        let tile = self.wall.pop_back().ok_or(MahjongGameError::CannotKong)?;
+        let tile = self.pop_wall_tail().ok_or(MahjongGameError::CannotKong)?;
         self.players[player.index()].hand.push(tile);
         self.last_drawn = Some(tile);
         self.draw_origin = origin;

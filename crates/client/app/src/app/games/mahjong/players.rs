@@ -7,10 +7,9 @@ use super::{
     MahjongRemoteDiscardRiverTile, MahjongRemoteHandShift, MahjongTileHighlight,
     MahjongTileMaterial, MahjongTileRestRotation, MahjongTileSize, MahjongTileVisual,
     MahjongWinningHand, MahjongWinningHandVisual, add_mahjong_response_indicator,
-    add_mahjong_tile_material, apply_mahjong_winning_hand_visual, attach_mahjong_tile_surface,
-    mahjong_claim_hand_shift_x, mahjong_local_light, mahjong_own_row_left,
-    mahjong_remote_tile_advance, mahjong_win_tile_cues, mahjong_winning_hand_progress,
-    mark_mahjong_win_tile, render_mahjong_meld,
+    add_mahjong_tile_material, apply_mahjong_winning_hand_visual, mahjong_claim_hand_shift_x,
+    mahjong_own_row_left, mahjong_remote_tile_advance, mahjong_win_tile_cues,
+    mahjong_winning_hand_progress, mark_mahjong_win_tile, render_mahjong_meld,
 };
 use crate::app::presentation::mahjong::{own_overlay, world_layout};
 use crate::app::presentation::{
@@ -127,126 +126,6 @@ pub(super) fn render_mahjong_player_panel(
     commands
         .entity(label)
         .insert((TextLayout::default().with_no_wrap(), Pickable::IGNORE));
-}
-
-pub(super) fn render_mahjong_wall(
-    commands: &mut UiComposer,
-    table: Entity,
-    wall_len: u16,
-    assets: &MahjongAssets,
-    materials: &mut Assets<MahjongTileMaterial>,
-) {
-    let stack_count = usize::from(wall_len).div_ceil(2).min(72);
-    for side in 0..4 {
-        let count = stack_count.saturating_sub(side * 18).min(18);
-        let center = world_layout(match side {
-            0 => Vec2::new(0.0, Layout::OPPOSITE_WALL_DISTANCE),
-            1 => Vec2::new(Layout::WALL_DISTANCE, 0.0),
-            2 => Vec2::new(0.0, -Layout::WALL_DISTANCE),
-            _ => Vec2::new(-Layout::WALL_DISTANCE, 0.0),
-        });
-        let (left, top, rotation) = (
-            center.x - 148.5,
-            center.y - Layout::MINI_HEIGHT * 0.5,
-            side as f32 * consts::FRAC_PI_2,
-        );
-        let segment = spawn_node(
-            commands,
-            table,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(left),
-                top: px(top),
-                width: px(297),
-                height: px(Layout::MINI_HEIGHT),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::FlexStart,
-                flex_direction: FlexDirection::Row,
-                ..default()
-            },
-            None,
-        );
-        commands.entity(segment).insert((
-            UiTransform {
-                rotation: Rot2::radians(rotation),
-                scale: Vec2::splat(Layout::WALL_SCALE),
-                ..default()
-            },
-            ZIndex(1),
-        ));
-        for index in 0..count {
-            let wall_stack_index = side * 18 + index;
-            let double = wall_stack_index * 2 + 1 < usize::from(wall_len);
-            let layers = if double { 2 } else { 1 };
-            let stack = spawn_node(
-                commands,
-                segment,
-                Node {
-                    width: px(16.5),
-                    min_width: px(16.5),
-                    height: px(Layout::MINI_HEIGHT),
-                    ..default()
-                },
-                None,
-            );
-            let orientation = match side {
-                1 => 3,
-                3 => 1,
-                _ => side as u8,
-            };
-            commands
-                .entity(stack)
-                .insert(ZIndex(if matches!(orientation, 1 | 2) {
-                    -(index as i32)
-                } else {
-                    index as i32
-                }));
-            add_mahjong_wall_stack(commands, stack, layers, orientation, assets, materials);
-        }
-    }
-}
-
-fn add_mahjong_wall_stack(
-    commands: &mut UiComposer,
-    stack: Entity,
-    layers: u8,
-    orientation: u8,
-    assets: &MahjongAssets,
-    materials: &mut Assets<MahjongTileMaterial>,
-) {
-    let entity = commands.child(
-        stack,
-        (
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                top: px(0),
-                width: px(16),
-                height: px(Layout::MINI_HEIGHT),
-                border_radius: BorderRadius::all(px(3)),
-                overflow: Overflow::visible(),
-                ..default()
-            },
-            ZIndex(1),
-            Pickable::IGNORE,
-        ),
-    );
-    let material = commands.material(
-        entity,
-        materials,
-        MahjongTileMaterial {
-            table_projection: true,
-            overlay_projection: false,
-            params: Vec4::new(0.0, 1.0, 1.0, if layers == 2 { 2.0 } else { 3.0 }),
-            lighting: mahjong_local_light(orientation),
-            highlight: Vec4::ZERO,
-            elevation: 0.0,
-            glyph: assets.visuals.tile_back.clone(),
-            height: assets.visuals.tile_back.clone(),
-            ..default()
-        },
-    );
-    attach_mahjong_tile_surface(commands, entity, material, true);
 }
 
 pub(super) struct MahjongPlayerTileVisuals<'a> {

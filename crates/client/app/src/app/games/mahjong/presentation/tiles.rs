@@ -313,32 +313,30 @@ pub(crate) fn render_mahjong_win_tile_row(
         );
         index += 1;
     }
-    if let Some(drawn) = displayed.drawn {
-        let winning = spawn_node(
-            commands,
-            hand,
-            Node {
-                margin: UiRect::left(px(14)),
-                ..default()
-            },
-            None,
-        );
-        add_mahjong_tile_material(
-            commands,
-            winning,
-            MahjongTileVisual {
-                elevation: 0.0,
-                kind: Some(drawn.kind()),
-                size: sizes.hand,
-                index,
-                highlight: MahjongTileHighlight::None,
-                deal: None,
-                relative: 0,
-            },
-            assets,
-            materials,
-        );
-    }
+    let winning = spawn_node(
+        commands,
+        hand,
+        Node {
+            margin: UiRect::left(px(14)),
+            ..default()
+        },
+        None,
+    );
+    add_mahjong_tile_material(
+        commands,
+        winning,
+        MahjongTileVisual {
+            elevation: 0.0,
+            kind: Some(winner.winning_tile.kind()),
+            size: sizes.hand,
+            index,
+            highlight: MahjongTileHighlight::None,
+            deal: None,
+            relative: 0,
+        },
+        assets,
+        materials,
+    );
     hand
 }
 

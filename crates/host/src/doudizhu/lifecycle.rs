@@ -48,20 +48,22 @@ impl HostedGameLifecycle for DoudizhuSession {
             return self.room.reject(connection, request, reason);
         }
         let count = self.room.players.iter().filter(|p| !p.left).count();
-        if count != usize::from(self.rules.mode.players()) {
+        let seats = self.rules.mode.players();
+        if count != usize::from(seats) {
             return self.room.reject(
                 connection,
                 request,
                 RejectReason::Room(RoomViolation::WaitingForPlayers {
-                    expected: self.rules.mode.players(),
+                    expected: seats,
                     actual: count as u8,
                 }),
             );
         }
         self.room.remove_departed_players();
+        // Seat numbers run clockwise while the rules advance through player IDs.
         self.room
             .players
-            .sort_by_key(|p| p.seat.expect("all seated").0);
+            .sort_by_key(|p| (seats - p.seat.expect("all seated").0) % seats);
         for (i, p) in self.room.players.iter_mut().enumerate() {
             p.id = PlayerId(i as u8);
         }

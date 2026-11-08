@@ -6,6 +6,7 @@ mod assets;
 mod auto;
 mod catalog;
 mod controls;
+mod dice;
 mod discard;
 mod fan_guide;
 mod hand;
@@ -24,6 +25,7 @@ mod tile_voices;
 mod tiles;
 mod view;
 mod voices;
+mod wall;
 mod wind_labels;
 
 use crate::app::presentation::mahjong::{MahjongProjectionFrame, MahjongTableRoot};

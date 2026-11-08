@@ -17,7 +17,8 @@ pub use game::{
     MahjongActionOutcome, MahjongClaim, MahjongClaimOption, MahjongDiscard, MahjongDrawOrigin,
     MahjongGameError, MahjongGameState, MahjongHandReplacementError, MahjongHandResult,
     MahjongMatchProgress, MahjongPendingClaim, MahjongPhase, MahjongPlayerState, MahjongPublicMeld,
-    MahjongPublicPlayerState, MahjongWinAvailability, MahjongWinRecord,
+    MahjongPublicPlayerState, MahjongWallBreak, MahjongWinAvailability, MahjongWinRecord,
+    mahjong_deal_wall_gap,
 };
 pub use leocard_game_common::mahjong::{
     MahjongDragon, MahjongFlower, MahjongSuit, MahjongTile, MahjongTileKind, MahjongWind,

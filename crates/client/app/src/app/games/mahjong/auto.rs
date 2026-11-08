@@ -149,7 +149,9 @@ fn choose_automatic_action(
 mod tests {
     use super::*;
     use leocard_game_common::PlayerId;
-    use leocard_mahjong::{MahjongRuleSet, MahjongSuit, MahjongTile, MahjongTileKind, MahjongWind};
+    use leocard_mahjong::{
+        MahjongRuleSet, MahjongSuit, MahjongTile, MahjongTileKind, MahjongWallBreak, MahjongWind,
+    };
     use leocard_protocol::{MahjongPendingClaimView, MatchId};
 
     fn snapshot() -> MahjongSnapshot {
@@ -171,6 +173,8 @@ mod tests {
             sequence_index: 0,
             current_player: you,
             wall_len: 60,
+            wall_break: MahjongWallBreak::new([1, 2]).unwrap(),
+            wall_tail_drawn: 0,
             match_scores: [0; 4],
             pending_claim: None,
             can_self_draw: false,

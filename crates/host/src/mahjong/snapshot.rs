@@ -172,7 +172,11 @@ impl GameSnapshotView for MahjongSession {
         } else {
             Vec::new()
         };
+        let wall_break = game.wall_break();
         let phase = match game.phase() {
+            MahjongPhase::Dealing { batch: 0 } if wall_break.is_none() => {
+                MahjongPhaseView::RollingDice
+            }
             MahjongPhase::Dealing { batch } => MahjongPhaseView::Dealing { batch: *batch },
             MahjongPhase::ReplacingFlower { player } => {
                 MahjongPhaseView::ReplacingFlower { player: *player }
@@ -209,6 +213,8 @@ impl GameSnapshotView for MahjongSession {
             sequence_index: game.sequence_index(),
             current_player: game.current_player(),
             wall_len: game.wall_len() as u16,
+            wall_break: wall_break.unwrap_or(self.opening_dice),
+            wall_tail_drawn: game.wall_tail_drawn(),
             match_scores: *game.match_scores(),
             pending_claim,
             can_self_draw: game.self_draw_available(recipient).unwrap_or(false),

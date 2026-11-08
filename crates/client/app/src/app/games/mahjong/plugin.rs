@@ -1,3 +1,4 @@
+use super::dice::MahjongDicePlugin;
 use super::hover::sync_fan_calculator;
 use super::{
     MahjongClaimPresentationState, MahjongFanCalculator, MahjongFanGuideScroll,
@@ -27,6 +28,7 @@ pub(crate) struct MahjongPlugin;
 impl Plugin for MahjongPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(GameProjectionPlugin::<GameEvents<MahjongEvent>>::default())
+            .add_plugins(MahjongDicePlugin)
             .add_plugins(UiMaterialPlugin::<MahjongTurnLightMaterial>::default())
             .add_plugins(UiMaterialPlugin::<MahjongWindLabelMaterial>::default())
             .insert_resource(MahjongClaimPresentationState::default())

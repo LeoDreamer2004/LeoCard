@@ -1,5 +1,8 @@
 //! 共用标定后的桌面坐标，Android 扩大前景手牌和操作区。
-use crate::app::presentation::mahjong::{MahjongTileGeometry, world_layout};
+use crate::app::presentation::DESIGN_WIDTH;
+use crate::app::presentation::mahjong::{
+    MahjongTileGeometry, REFERENCE_SIZE, project_reference, world_layout,
+};
 use bevy::prelude::*;
 use leocard_mahjong::MahjongTile;
 use std::f32::consts;
@@ -16,6 +19,10 @@ impl MahjongLayout {
     pub const OPPOSITE_WALL_DISTANCE: f32 = 8.8;
     pub const CENTER_FORWARD: f32 = 0.6;
     pub const OWN_HAND_LIFT: f32 = 12.0;
+    const REFERENCE_SCALE: f32 = DESIGN_WIDTH / REFERENCE_SIZE.x;
+    pub const STATUS_SIZE: Vec2 =
+        Vec2::new(390.0 * Self::REFERENCE_SCALE, 254.5 * Self::REFERENCE_SCALE);
+    pub const STATUS_TOP_RATIO: f32 = 352.0 / 390.0;
 
     pub const BUTTON_WIDTH: f32 = if cfg!(target_os = "android") {
         212.0
@@ -77,6 +84,25 @@ impl MahjongLayout {
     pub const RIVER_COLUMNS: usize = 6;
     pub const RIVER_ROWS_HEIGHT: f32 = Self::RIVER_HEIGHT * 3.0 + 1.5;
     pub const RIVER_ROWS_WIDTH: f32 = 99.0;
+
+    pub fn status_origin() -> Vec2 {
+        let offset = project_reference(Vec3::new(0.0, 0.0, -Self::CENTER_FORWARD))
+            - project_reference(Vec3::ZERO);
+        (Vec2::new(900.0, 349.5) + offset) * Self::REFERENCE_SCALE
+    }
+
+    pub fn status_point(uv: Vec2) -> Vec2 {
+        let top_ratio = Self::STATUS_TOP_RATIO;
+        let denominator = 1.0 - (1.0 - top_ratio) * uv.y;
+        Vec2::new(
+            0.5 + (uv.x - 0.5) * top_ratio / denominator,
+            uv.y * top_ratio / denominator,
+        ) * Self::STATUS_SIZE
+    }
+
+    pub fn table_center() -> Vec2 {
+        Self::status_origin() + Self::status_point(Vec2::splat(0.5))
+    }
 
     pub fn river_tile_rotation(tile: MahjongTile, relative: u8) -> f32 {
         // Physical tile identity keeps the small variation stable across snapshots and claimed discards.

@@ -1,5 +1,6 @@
 use super::{
-    MAHJONG_DEAL_INTERVAL, MahjongSession, MahjongWinFeedback, events_for_outcome, shuffled_deck,
+    MAHJONG_DEAL_INTERVAL, MAHJONG_DICE_INTERVAL, MahjongSession, MahjongWinFeedback,
+    events_for_outcome, roll_opening_dice, shuffled_deck,
 };
 use crate::features::GameCommandHandler;
 use crate::lifecycle::HostedGameLifecycle;
@@ -15,7 +16,6 @@ use leocard_protocol::{
     GameCommand, GameKind, GameViolation, MahjongCommand, MahjongEvent, PlayerViolation,
     RejectReason, RequestId, RoomViolation,
 };
-use std::time::Duration;
 
 impl MahjongSession {
     pub(super) fn handle_game_command(
@@ -250,7 +250,8 @@ impl MahjongSession {
         let game = self.game.as_mut().expect("rematch requires an active game");
         game.start_next_hand(shuffled_deck())
             .expect("a freshly built Mahjong wall is valid");
-        self.deal_delay = Duration::ZERO;
+        self.opening_dice = roll_opening_dice();
+        self.deal_delay = MAHJONG_DICE_INTERVAL;
         if completed_match {
             self.match_id = Some(new_match_id());
             self.finished_reference_changes = None;

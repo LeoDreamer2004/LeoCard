@@ -1,6 +1,6 @@
 use leocard_mahjong::{MahjongTile, MahjongWinRecord};
 
-/// Keep the concealed hand intact; only a self-drawn winning tile occupies the separate right slot.
+/// Separate the winning tile from the concealed hand. On the table, only a self-draw occupies the drawn slot.
 pub(crate) struct MahjongDisplayedHand {
     pub regular: Vec<MahjongTile>,
     pub drawn: Option<MahjongTile>,

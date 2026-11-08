@@ -4,7 +4,7 @@
 use super::{MahjongTileGeometry, MahjongTileMaterial, MahjongTileSurface};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::UiComposer;
 
 #[derive(Component)]
 pub(crate) struct MahjongTableRoot;
@@ -15,7 +15,7 @@ pub(crate) struct MahjongTileIndicator;
 pub(crate) const WORLD_SCALE: f32 = 16.0;
 pub(crate) const WORLD_ORIGIN: Vec2 = Vec2::new(640.0, 355.0);
 pub(crate) const REFERENCE_SIZE: Vec2 = Vec2::new(2204.0, 1217.0);
-const CAMERA_POSITION: Vec3 = Vec3::new(0.0, 27.708_225, -29.475_252);
+pub(crate) const CAMERA_POSITION: Vec3 = Vec3::new(0.0, 27.708_225, -29.475_252);
 const CAMERA_PITCH: f32 = 0.809_956_25;
 const FOCAL_LENGTH: f32 = 2_491.018_3;
 const PRINCIPAL_POINT: Vec2 = Vec2::new(1095.0, 608.5);
@@ -30,6 +30,12 @@ pub(crate) fn project_reference(position: Vec3) -> Vec2 {
     let depth = -relative.y * sine + relative.z * cosine;
     PRINCIPAL_POINT
         + Vec2::new(relative.x, -relative.y * cosine - relative.z * sine) * (FOCAL_LENGTH / depth)
+}
+
+pub(crate) fn reference_ray(pixel: Vec2) -> Vec3 {
+    let image = (pixel - PRINCIPAL_POINT) / FOCAL_LENGTH;
+    let (sine, cosine) = CAMERA_PITCH.sin_cos();
+    Vec3::new(image.x, -sine - image.y * cosine, cosine - image.y * sine)
 }
 
 fn local_vector(vector: Vec3, angle: f32) -> Vec3 {
@@ -240,9 +246,7 @@ pub(crate) fn project_logical(position: Vec2) -> Vec2 {
 pub(crate) fn ground_from_layout(position: Vec2, viewport: Vec2) -> Vec2 {
     let (scale, origin) = camera_canvas(viewport);
     let pixel = (position - origin) / (1280.0 / REFERENCE_SIZE.x * scale);
-    let image = (pixel - PRINCIPAL_POINT) / FOCAL_LENGTH;
-    let (sine, cosine) = CAMERA_PITCH.sin_cos();
-    let ray = Vec3::new(image.x, -sine - image.y * cosine, cosine - image.y * sine);
+    let ray = reference_ray(pixel);
     let ground = CAMERA_POSITION + ray * (-CAMERA_POSITION.y / ray.y);
     Vec2::new(ground.x, ground.z)
 }
@@ -260,38 +264,34 @@ pub(crate) struct MahjongProjectionFrame {
     pub anchor_bottom: bool,
 }
 
+impl MahjongProjectionFrame {
+    pub(crate) fn canvas(anchor_bottom: bool) -> impl Bundle {
+        (
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                top: px(0),
+                width: px(1280),
+                height: px(REFERENCE_DESIGN_HEIGHT),
+                ..default()
+            },
+            Self {
+                center: Vec2::new(640.0, REFERENCE_DESIGN_HEIGHT * 0.5),
+                anchor_bottom,
+            },
+            UiTransform::default(),
+            ZIndex(95),
+            Pickable::IGNORE,
+        )
+    }
+}
+
 pub(crate) fn projected_overlay(commands: &mut UiComposer, parent: Entity) -> Entity {
-    canvas_overlay(commands, parent, false)
+    commands.child(parent, MahjongProjectionFrame::canvas(false))
 }
 
 pub(crate) fn own_overlay(commands: &mut UiComposer, parent: Entity) -> Entity {
-    canvas_overlay(commands, parent, true)
-}
-
-fn canvas_overlay(commands: &mut UiComposer, parent: Entity, anchor_bottom: bool) -> Entity {
-    let overlay = spawn_node(
-        commands,
-        parent,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(0),
-            top: px(0),
-            width: px(1280),
-            height: px(REFERENCE_DESIGN_HEIGHT),
-            ..default()
-        },
-        None,
-    );
-    commands.entity(overlay).insert((
-        MahjongProjectionFrame {
-            center: Vec2::new(640.0, REFERENCE_DESIGN_HEIGHT * 0.5),
-            anchor_bottom,
-        },
-        UiTransform::default(),
-        ZIndex(95),
-        Pickable::IGNORE,
-    ));
-    overlay
+    commands.child(parent, MahjongProjectionFrame::canvas(true))
 }
 
 pub(super) fn sync_mahjong_projection_frames(

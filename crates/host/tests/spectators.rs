@@ -152,7 +152,8 @@ fn every_game_allows_the_host_to_kick_players_and_spectators_during_play() {
                 reason: RejectReason::Room(RoomViolation::OnlyHostCanKick)
             }
         ));
-        for (target, connection) in [(observer, OBSERVER), (PlayerId(1), 2)] {
+        let seated = room.snapshot(2).you();
+        for (target, connection) in [(observer, OBSERVER), (seated, 2)] {
             let match_id = room.snapshot(1).match_id();
             let kicked = room.send(1, ClientCommand::KickPlayer { player: target });
             assert!(

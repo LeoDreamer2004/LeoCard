@@ -2,6 +2,7 @@
 use super::actions::MahjongUiAction;
 use super::layout::MahjongLayout as Layout;
 use super::tiles::queue_mahjong_deal_sound;
+use super::wall::render_mahjong_wall;
 use super::{
     MAHJONG_WIN_PUSH_DURATION, MahjongActionPrompt, MahjongActionVoice, MahjongAssets,
     MahjongDiscardRiverVisuals, MahjongOwnHandVisuals, MahjongPlayerPanelVisuals,
@@ -11,8 +12,8 @@ use super::{
     queue_mahjong_action_voice, render_action_bar, render_discard_rivers,
     render_mahjong_auto_drawer, render_mahjong_claim_presentation,
     render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
-    render_mahjong_settlement, render_mahjong_wall, render_mahjong_win_effects,
-    render_own_discard_flight, render_own_hand, render_round_status, sync_mahjong_tile_voice,
+    render_mahjong_settlement, render_mahjong_win_effects, render_own_discard_flight,
+    render_own_hand, render_round_status, sync_mahjong_tile_voice,
 };
 use crate::app::presentation::{
     DESIGN_WIDTH, GameSummaryAnimation, Observed, StartGameSeatTransition, TableBackground,
@@ -668,7 +669,7 @@ pub(crate) fn render_mahjong_table(
             .position(|winner| mahjong_win_effect_tier(winner) == MahjongWinEffectTier::MajorFan)
             .map(|index| mahjong_win_stage_start(result, index) + 0.78)
     });
-    render_mahjong_wall(commands, table, game.wall_len, game_assets, tile_materials);
+    render_mahjong_wall(commands, table, game, own_seat, game_assets, tile_materials);
     let action_prompt = MahjongActionPrompt::from_snapshot(game, ui);
     let response_tile = action_prompt.and_then(MahjongActionPrompt::response_tile);
     render_discard_rivers(
@@ -759,7 +760,8 @@ pub(crate) fn render_mahjong_table(
         .any(|player| player.player.id == game.you)
         && matches!(
             game.phase,
-            MahjongPhaseView::Dealing { .. }
+            MahjongPhaseView::RollingDice
+                | MahjongPhaseView::Dealing { .. }
                 | MahjongPhaseView::ReplacingFlower { .. }
                 | MahjongPhaseView::Playing
                 | MahjongPhaseView::WaitingForClaims
@@ -894,7 +896,8 @@ pub(crate) fn render_mahjong_table(
     );
     let local_auto_play = matches!(
         game.phase,
-        MahjongPhaseView::Dealing { .. }
+        MahjongPhaseView::RollingDice
+            | MahjongPhaseView::Dealing { .. }
             | MahjongPhaseView::ReplacingFlower { .. }
             | MahjongPhaseView::Playing
             | MahjongPhaseView::WaitingForClaims

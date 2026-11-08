@@ -1,40 +1,8 @@
 import bevy_render::globals::Globals;
 import bevy_ui_render::ui_vertex_output::UiVertexOutput;
 import super::mahjong_tile_bindings::{material, sample_glyph, height_at, height_texture};
-import super::mahjong_tile_geometry::{swept_rounded_box_distance};
+import super::mahjong_tile_geometry::{box_intersection, swept_rounded_box_distance};
 @group(0) @binding(1) var<uniform> globals: Globals;
-
-struct BoxInterval { near: f32, far: f32, normal: vec3<f32> }
-
-fn clip_bevel(normal: vec3<f32>, limit: f32, origin: vec3<f32>, ray: vec3<f32>, hit: ptr<function, BoxInterval>) {
-    let denominator = dot(ray, normal);
-    let safe = select(-1.0, 1.0, denominator >= 0.0) * max(abs(denominator), 0.000001);
-    let distance = (limit - dot(origin, normal)) / safe;
-    if denominator < 0.0 {
-        if distance > (*hit).near { (*hit).near = distance; (*hit).normal = normal; }
-    } else { (*hit).far = min((*hit).far, distance); }
-}
-
-fn box_intersection(origin: vec3<f32>, ray: vec3<f32>, half: vec3<f32>, bevel: f32) -> BoxInterval {
-    let safe_ray = select(vec3<f32>(-1.0), vec3<f32>(1.0), ray >= vec3<f32>(0.0)) * max(abs(ray), vec3<f32>(0.000001));
-    let a = (-half - origin) / safe_ray;
-    let b = (half - origin) / safe_ray;
-    let near = min(a, b); let far = max(a, b);
-    var hit: BoxInterval;
-    hit.near = max(max(near.x, near.y), near.z);
-    hit.far = min(min(far.x, far.y), far.z);
-    hit.normal = vec3<f32>(-sign(ray.x), 0.0, 0.0);
-    if near.y > near.x && near.y >= near.z { hit.normal = vec3<f32>(0.0, -sign(ray.y), 0.0); }
-    if near.z > near.x && near.z > near.y { hit.normal = vec3<f32>(0.0, 0.0, -sign(ray.z)); }
-    for (var i = 0u; i < 4u; i += 1u) {
-        let x = select(-1.0, 1.0, (i & 1u) != 0u);
-        let y = select(-1.0, 1.0, (i & 2u) != 0u);
-        clip_bevel(vec3<f32>(x,y,0.0) * 0.70710678, (half.x+half.y-bevel)*0.70710678, origin, ray, &hit);
-        clip_bevel(vec3<f32>(x,0.0,y) * 0.70710678, (half.x+half.z-bevel)*0.70710678, origin, ray, &hit);
-        clip_bevel(vec3<f32>(0.0,x,y) * 0.70710678, (half.y+half.z-bevel)*0.70710678, origin, ray, &hit);
-    }
-    return hit;
-}
 
 fn projected_ground_shadow(origin: vec3<f32>, ray: vec3<f32>, half: vec3<f32>) -> vec4<f32> {
     let ground_distance = (-material.ray_origin.w - origin.y) / ray.y;

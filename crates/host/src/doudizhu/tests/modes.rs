@@ -52,6 +52,10 @@ fn ready_and_start(session: &mut DoudizhuSession, connections: &[u64]) {
     }
     assert_accepted(&send(session, 1, ClientCommand::StartGame));
     assert!(session.game.is_some());
+    let seats = session.rules.mode.players();
+    for player in &session.room.players {
+        assert_eq!(player.seat, Some(SeatId((seats - player.id.0) % seats)));
+    }
 }
 
 #[test]
@@ -182,7 +186,7 @@ fn returning_with_bots_keeps_the_hosts_seat_and_game_identity() {
     }
     ready_and_start(&mut session, &[1]);
     let host_id = session.room.player_id(crate::ConnectionId(1)).unwrap();
-    assert_eq!(host_id, PlayerId(2));
+    assert_eq!(host_id, PlayerId(1));
     for hand in 0..DoudizhuMode::Three.players() {
         finish_hand(&mut session);
         if hand + 1 < DoudizhuMode::Three.players() {

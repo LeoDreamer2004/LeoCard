@@ -110,7 +110,7 @@ fn a_validated_flower_interaction_reaches_the_game_tracker_and_awards_its_sender
     ));
     assert_accepted(&send(
         &mut session,
-        3,
+        2,
         ClientCommand::Interact {
             target: PlayerId(1),
             kind: PlayerInteractionKind::Flower,
@@ -120,5 +120,5 @@ fn a_validated_flower_interaction_reaches_the_game_tracker_and_awards_its_sender
     assert_accepted(&deliveries);
     let flowers: Vec<_> = deliveries.iter().filter(|delivery| matches!(&delivery.message.event, ServerEvent::GameEvent(GameEvent::Doudizhu(DoudizhuEvent::ActionAnalyzed { player: PlayerId(2), statistics })) if **statistics == DoudizhuAchievementFacts::FlowerBomb)).collect();
     assert_eq!(flowers.len(), 1);
-    assert_eq!(flowers[0].recipient, ConnectionId(3));
+    assert_eq!(flowers[0].recipient, ConnectionId(2));
 }

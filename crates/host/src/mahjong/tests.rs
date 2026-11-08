@@ -1,4 +1,4 @@
-use super::{MAHJONG_DEAL_INTERVAL, MahjongSession};
+use super::{MAHJONG_DEAL_INTERVAL, MAHJONG_DICE_INTERVAL, MahjongSession};
 use crate::ConnectionId;
 use crate::features::GameSnapshotView;
 use ed25519_dalek::{Signer, SigningKey};
@@ -6,7 +6,7 @@ use leocard_game_common::PlayerId;
 use leocard_mahjong::{
     MahjongBotObservation, MahjongFan, MahjongFanValue, MahjongMatchLength, MahjongMatchProgress,
     MahjongPhase, MahjongRuleSet, MahjongScoreResult, MahjongSuit, MahjongTile, MahjongTileKind,
-    MahjongWinRecord, build_deck,
+    MahjongWallBreak, MahjongWinRecord, build_deck,
 };
 use leocard_protocol::{
     ClientCommand, ClientMessage, GameCommand, GameEvent, GameSnapshot, JoinRequest,
@@ -235,6 +235,12 @@ fn dealer_winning_deck() -> Vec<MahjongTile> {
 }
 
 fn finish_server_deal(session: &mut MahjongSession) {
+    if matches!(
+        session.game_view(PlayerId(0)).phase,
+        MahjongPhaseView::RollingDice
+    ) {
+        assert!(!session.advance_time(MAHJONG_DICE_INTERVAL).is_empty());
+    }
     while matches!(
         session.game().expect("game remains active").phase(),
         MahjongPhase::Dealing { .. }
@@ -247,15 +253,17 @@ fn finish_server_deal(session: &mut MahjongSession) {
     ));
 }
 
+fn session_with_deal_order(mut deck: Vec<MahjongTile>) -> MahjongSession {
+    let dice = MahjongWallBreak::new([1, 2]).unwrap();
+    deck.rotate_right(dice.first_tile_index(PlayerId(0)));
+    let mut session = MahjongSession::new(ROOM, 52300, MahjongRuleSet::default(), deck).unwrap();
+    session.opening_dice = dice;
+    session
+}
+
 #[test]
 fn four_clients_receive_private_views_and_continue_at_the_table() {
-    let mut session = MahjongSession::new(
-        ROOM,
-        52300,
-        MahjongRuleSet::default(),
-        dealer_winning_deck(),
-    )
-    .expect("test wall is valid");
+    let mut session = session_with_deal_order(dealer_winning_deck());
     let connections = [
         ConnectionId(10),
         ConnectionId(20),
@@ -290,10 +298,8 @@ fn four_clients_receive_private_views_and_continue_at_the_table() {
     assert_eq!(snapshots.len(), 4);
     for (_, snapshot) in &snapshots {
         assert_eq!(snapshot.players.len(), 4);
-        assert!(matches!(
-            snapshot.phase,
-            MahjongPhaseView::Dealing { batch: 0 }
-        ));
+        assert!(matches!(snapshot.phase, MahjongPhaseView::RollingDice));
+        assert_eq!(snapshot.wall_break.dice(), [1, 2]);
         assert_eq!(snapshot.wall_len, 144);
         assert!(snapshot.your_hand.is_empty());
         assert_eq!(
@@ -311,6 +317,14 @@ fn four_clients_receive_private_views_and_continue_at_the_table() {
         .iter()
         .find_map(|(connection, snapshot)| (snapshot.you == PlayerId(0)).then_some(*connection))
         .expect("one connection owns the dealer seat");
+    assert!(session.advance_time(MAHJONG_DEAL_INTERVAL).is_empty());
+    session.advance_time(MAHJONG_DICE_INTERVAL - MAHJONG_DEAL_INTERVAL);
+    let opened = session.game_view(PlayerId(0));
+    assert!(matches!(
+        opened.phase,
+        MahjongPhaseView::Dealing { batch: 0 }
+    ));
+    assert!(opened.your_hand.is_empty());
     let first_batch = session.advance_time(MAHJONG_DEAL_INTERVAL);
     let dealer_snapshot = first_batch
         .iter()
@@ -384,7 +398,7 @@ fn four_clients_receive_private_views_and_continue_at_the_table() {
     assert!(last.iter().any(|delivery| matches!(
         &delivery.message.event,
         ServerEvent::GameSnapshot(GameSnapshot::Mahjong(MahjongSnapshot {
-            phase: MahjongPhaseView::Dealing { batch: 0 },
+            phase: MahjongPhaseView::RollingDice,
             ..
         }))
     )));
@@ -406,7 +420,7 @@ fn auto_flower_is_individual_and_retained_flowers_can_be_discarded_safely() {
     }
     let flower = deck[0];
     let other_flower = deck[4];
-    let mut session = MahjongSession::new(ROOM, 52300, MahjongRuleSet::default(), deck).unwrap();
+    let mut session = session_with_deal_order(deck);
     let dealer = ConnectionId(1);
     for index in 0..4 {
         session.handle(

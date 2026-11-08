@@ -100,11 +100,12 @@ fn all_ten_dispatchers_record_only_the_required_human_and_publish_committed_stat
         );
         let kind = view.0.kind();
         let actor = view.1.clocks[0].player;
-        let connection = u64::from(actor.0) + 1;
-        let command = decision(&table.view_for(connection).0);
-        let before = table
-            .view_for(connection)
-            .1
+        let (connection, (snapshot, timing)) = (1..=4)
+            .map(|connection| (connection, table.view_for(connection)))
+            .find(|(_, (snapshot, _))| snapshot.you() == actor)
+            .unwrap();
+        let command = decision(&snapshot);
+        let before = timing
             .clocks
             .into_iter()
             .find(|c| c.player == actor)

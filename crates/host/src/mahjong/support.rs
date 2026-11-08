@@ -1,5 +1,6 @@
 use leocard_mahjong::{
-    MahjongActionOutcome, MahjongGameError, MahjongHandResult, MahjongTile, build_deck,
+    MahjongActionOutcome, MahjongGameError, MahjongHandResult, MahjongTile, MahjongWallBreak,
+    build_deck,
 };
 use leocard_protocol::{MahjongEvent, MahjongHandResultView};
 
@@ -57,9 +58,9 @@ pub(super) fn hand_result_view(result: &MahjongHandResult) -> MahjongHandResultV
 }
 
 pub(super) fn validate_deck(deck: &[MahjongTile]) -> Result<(), MahjongGameError> {
-    if deck.len() != 144 {
+    if deck.len() != MahjongWallBreak::TILE_COUNT {
         return Err(MahjongGameError::InvalidDeckSize {
-            expected: 144,
+            expected: MahjongWallBreak::TILE_COUNT,
             actual: deck.len(),
         });
     }
@@ -77,4 +78,9 @@ pub(super) fn shuffled_deck() -> Vec<MahjongTile> {
     let mut deck = build_deck();
     fastrand::shuffle(&mut deck);
     deck
+}
+
+pub(super) fn roll_opening_dice() -> MahjongWallBreak {
+    MahjongWallBreak::new([fastrand::u8(1..=6), fastrand::u8(1..=6)])
+        .expect("both dice have faces from one to six")
 }

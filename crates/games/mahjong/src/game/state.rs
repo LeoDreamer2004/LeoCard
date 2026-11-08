@@ -1,7 +1,7 @@
 use super::{
     ClaimPriority, MahjongClaim, MahjongClaimOption, MahjongDiscard, MahjongDrawOrigin,
     MahjongGameError, MahjongMatchProgress, MahjongPhase, MahjongPlayerState, MahjongPublicMeld,
-    MahjongPublicPlayerState,
+    MahjongPublicPlayerState, MahjongWallBreak,
 };
 use crate::{MahjongMeldKind, MahjongRuleSet, MahjongTile, MahjongWind, build_deck};
 use leocard_game_common::PlayerId;
@@ -15,6 +15,8 @@ pub struct MahjongGameState {
     pub(super) players: [MahjongPlayerState; MahjongRuleSet::PLAYER_COUNT as usize],
     pub(super) auto_flower: [bool; MahjongRuleSet::PLAYER_COUNT as usize],
     pub(super) wall: VecDeque<MahjongTile>,
+    pub(super) wall_break: Option<MahjongWallBreak>,
+    pub(super) wall_tail_drawn: u8,
     pub(super) discards: Vec<MahjongDiscard>,
     pub(super) initial_dealer: PlayerId,
     pub(super) dealer: PlayerId,
@@ -30,7 +32,7 @@ pub struct MahjongGameState {
 }
 
 impl MahjongGameState {
-    /// `deck[0]` 是牌墙前端第一张牌，补花和杠牌从牌墙尾端取牌。
+    /// 未切牌时从 `deck[0]` 开始发牌。切牌后普通摸牌走墙头，补花和补杠走墙尾。
     pub fn new_with_deck(
         rules: MahjongRuleSet,
         deck: Vec<MahjongTile>,
@@ -52,6 +54,8 @@ impl MahjongGameState {
             players,
             auto_flower: [true; MahjongRuleSet::PLAYER_COUNT as usize],
             wall: VecDeque::from(deck),
+            wall_break: None,
+            wall_tail_drawn: 0,
             discards: Vec::new(),
             initial_dealer,
             dealer: initial_dealer,

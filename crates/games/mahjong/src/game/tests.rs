@@ -1,13 +1,73 @@
 use super::*;
 use crate::{MahjongMeld, MahjongRuleSet, MahjongTile, MahjongTileKind, MahjongWind, build_deck};
 use leocard_game_common::PlayerId;
-
 use std::collections::HashSet;
 
 fn finish_dealing(game: &mut MahjongGameState) {
     while matches!(game.phase(), MahjongPhase::Dealing { .. }) {
         game.advance_deal().unwrap();
     }
+}
+
+#[test]
+fn three_opens_the_opposite_wall_after_three_stacks() {
+    let dealer = PlayerId(1);
+    let dice = MahjongWallBreak::new([1, 2]).unwrap();
+    let deck = build_deck();
+    let mut game =
+        MahjongGameState::new_with_deck(MahjongRuleSet::default(), deck.clone(), dealer).unwrap();
+    assert_eq!(dice.side(dealer), PlayerId(3));
+    let first = MahjongWallBreak::STACKS_PER_SIDE * 2 + 6;
+    assert_eq!(dice.first_tile_index(dealer), first);
+    game.break_wall(dice).unwrap();
+    game.advance_deal().unwrap();
+    game.advance_deal().unwrap();
+    assert_eq!(game.players[1].hand(), &deck[first..first + 4]);
+    assert_eq!(game.players[2].hand(), &deck[first + 4..first + 8]);
+    assert_eq!(game.pop_wall_tail(), Some(deck[first - 1]));
+    assert_eq!(game.wall_tail_drawn(), 1);
+    assert_eq!(game.wall_len(), deck.len() - 9);
+}
+
+#[test]
+fn dealer_jumps_two_stack_tops_and_next_turn_draws_the_third_stack_bottom() {
+    let deck = build_deck();
+    let dealer = PlayerId(0);
+    let mut game =
+        MahjongGameState::new_with_deck(MahjongRuleSet::default(), deck.clone(), dealer).unwrap();
+    for player in 0..MahjongRuleSet::PLAYER_COUNT {
+        game.set_auto_flower(PlayerId(player), false).unwrap();
+    }
+    // Eleven puts the last three stacks across the end of the physical wall.
+    game.break_wall(MahjongWallBreak::new([5, 6]).unwrap())
+        .unwrap();
+    for _ in 0..12 {
+        game.advance_deal().unwrap();
+    }
+    let [a_top, a_bottom, b_top, b_bottom, c_top, c_bottom] =
+        [142, 143, 0, 1, 2, 3].map(|index| deck[index]);
+
+    game.advance_deal().unwrap();
+    assert_eq!(&game.players[0].hand()[12..], &[a_top, c_top]);
+    assert_eq!(game.last_drawn(), Some(c_top));
+    for (index, tile) in [a_bottom, b_top, b_bottom].into_iter().enumerate() {
+        let MahjongPhase::Dealing { batch } = *game.phase() else {
+            panic!("expected an opening deal");
+        };
+        assert_eq!(mahjong_deal_wall_gap(batch), Some(52));
+        game.advance_deal().unwrap();
+        assert_eq!(&game.players[index + 1].hand()[12..], &[tile]);
+    }
+    assert_eq!(mahjong_deal_wall_gap(16), None);
+    finish_dealing(&mut game);
+    assert_eq!(
+        game.discard(dealer, a_top).unwrap(),
+        MahjongActionOutcome::Drew {
+            player: PlayerId(1),
+            tile: c_bottom,
+            origin: MahjongDrawOrigin::Normal,
+        }
+    );
 }
 
 #[test]

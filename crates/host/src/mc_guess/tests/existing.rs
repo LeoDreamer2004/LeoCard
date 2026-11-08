@@ -167,11 +167,10 @@ fn all_players_receive_feedback_then_can_rematch_and_return_to_lobby() {
         ClientCommand::Game(McGuessCommand::Skip.into()),
     );
     let lobby = send(&mut session, 1, ClientCommand::ReturnToLobby);
-    assert!(
-        lobby
-            .iter()
-            .all(|delivery| matches!(delivery.message.event, ServerEvent::LobbySnapshot(_)))
-    );
+    assert!(lobby.iter().all(|delivery| matches!(
+        delivery.message.event,
+        ServerEvent::LobbySnapshot(_) | ServerEvent::RoomModerationSnapshot(_)
+    )));
 }
 
 #[test]

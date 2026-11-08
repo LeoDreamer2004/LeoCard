@@ -14,6 +14,18 @@ pub(super) fn add_settings_toggle(
     action: SettingsUiAction,
     assets: &UiAssets,
 ) {
+    add_settings_toggle_scaled(commands, parent, label, selected, action, assets, 1.0);
+}
+
+pub(super) fn add_settings_toggle_scaled(
+    commands: &mut UiComposer,
+    parent: Entity,
+    label: &str,
+    selected: bool,
+    action: SettingsUiAction,
+    assets: &UiAssets,
+    scale: f32,
+) {
     let button = commands.child(
         parent,
         (
@@ -22,9 +34,10 @@ pub(super) fn add_settings_toggle(
             Node {
                 flex_grow: 1.0,
                 min_width: px(0),
-                height: px(48),
+                height: px(48.0 * scale),
+                flex_shrink: 0.0,
                 align_items: AlignItems::Center,
-                column_gap: px(8),
+                column_gap: px(8.0 * scale),
                 ..default()
             },
         ),
@@ -33,8 +46,8 @@ pub(super) fn add_settings_toggle(
         button,
         (
             Node {
-                width: px(34),
-                height: px(34),
+                width: px(34.0 * scale),
+                height: px(34.0 * scale),
                 ..default()
             },
             ImageNode::new(if selected {
@@ -48,5 +61,5 @@ pub(super) fn add_settings_toggle(
     commands
         .entity(button)
         .insert(CozyCheckbox { icon, selected });
-    add_text(commands, button, label, 16.0, TEXT, assets);
+    add_text(commands, button, label, 16.0 * scale, TEXT, assets);
 }

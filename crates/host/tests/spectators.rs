@@ -4,10 +4,10 @@ use leocard_doudizhu::{DoudizhuMode, DoudizhuRuleSet};
 use leocard_game_common::PlayerId;
 use leocard_host::{ConnectionId, Delivery, GameSetup, HostSession};
 use leocard_protocol::{
-    BlackjackCommand, ChatContent, ChatEmoji, ClientCommand, ClientMessage, GameRules,
-    GameSnapshot, JoinRequest, PlayerGameProfiles, PlayerInteractionKind, ProfileId,
-    QiGui523Command, ReconnectToken, RejectReason, RequestId, RoomId, RoomViolation, SeatId,
-    ServerEvent,
+    BlackjackCommand, ChatContent, ChatEmoji, ClientCommand, ClientMessage, GameKind, GameRules,
+    GameSnapshot, JoinRequest, MahjongCommand, PlayerGameProfiles, PlayerInteractionKind,
+    ProfileId, QiGui523Command, ReconnectToken, RejectReason, RequestId, RoomId,
+    RoomModerationSnapshot, RoomViolation, SeatId, ServerEvent, UnoCommand,
 };
 use leocard_qigui523::QiGuiRuleSet;
 use std::collections::HashMap;
@@ -15,6 +15,213 @@ use std::time::Duration;
 
 const ROOM: RoomId = RoomId(91);
 const OBSERVER: u64 = 99;
+
+fn moderation_rules() -> [GameRules; 10] {
+    [
+        GameRules::QiGui523(QiGuiRuleSet {
+            player_count: 4,
+            ..Default::default()
+        }),
+        GameRules::Texas(Default::default()),
+        GameRules::Shengji(Default::default()),
+        GameRules::Uno(Default::default()),
+        GameRules::Mahjong(Default::default()),
+        GameRules::McGuess(Default::default()),
+        GameRules::Blackjack(Default::default()),
+        GameRules::Doudizhu(DoudizhuRuleSet {
+            mode: DoudizhuMode::Four,
+            ..Default::default()
+        }),
+        GameRules::Guandan(Default::default()),
+        GameRules::MahjongLink(Default::default()),
+    ]
+}
+
+fn moderation(deliveries: &[Delivery]) -> &RoomModerationSnapshot {
+    deliveries
+        .iter()
+        .find_map(|delivery| match &delivery.message.event {
+            ServerEvent::RoomModerationSnapshot(room) => Some(room),
+            _ => None,
+        })
+        .expect("authoritative room controls and roster")
+}
+
+#[test]
+fn host_controls_spectator_interactions_and_late_joiners_receive_the_policy_in_every_game() {
+    for rules in moderation_rules() {
+        let mut room = Room::started(rules);
+        let forbidden = room.send(
+            2,
+            ClientCommand::SetSpectatorInteractionsBlocked { blocked: true },
+        );
+        assert!(matches!(
+            forbidden[0].message.event,
+            ServerEvent::Rejected {
+                reason: RejectReason::Room(RoomViolation::OnlyHostCanConfigure)
+            }
+        ));
+        let changed = room.send(
+            1,
+            ClientCommand::SetSpectatorInteractionsBlocked { blocked: true },
+        );
+        assert!(moderation(&changed).spectator_interactions_blocked);
+        let joined = room.send(OBSERVER, join(99, OBSERVER));
+        assert!(moderation(&joined).spectator_interactions_blocked);
+        assert!(
+            moderation(&joined)
+                .participants
+                .iter()
+                .any(|player| player.spectating && player.name == "玩家99")
+        );
+        let interact = ClientCommand::Interact {
+            target: PlayerId(0),
+            kind: PlayerInteractionKind::Egg,
+        };
+        for kind in [
+            PlayerInteractionKind::Egg,
+            PlayerInteractionKind::EggBarrage,
+        ] {
+            let rejected = room.send(
+                OBSERVER,
+                ClientCommand::Interact {
+                    target: PlayerId(0),
+                    kind,
+                },
+            );
+            assert!(matches!(
+                rejected[0].message.event,
+                ServerEvent::Rejected {
+                    reason: RejectReason::Room(RoomViolation::SpectatorInteractionsBlocked)
+                }
+            ));
+        }
+        let chat = room.send(
+            OBSERVER,
+            ClientCommand::Chat {
+                content: ChatContent::Text("好牌".to_owned()),
+            },
+        );
+        assert!(
+            chat.iter()
+                .any(|delivery| matches!(delivery.message.event, ServerEvent::ChatMessage(_)))
+        );
+        let allowed = room.send(2, interact.clone());
+        assert!(
+            allowed.iter().any(|delivery| matches!(
+                delivery.message.event,
+                ServerEvent::PlayerInteraction(_)
+            ))
+        );
+        room.send(
+            1,
+            ClientCommand::SetSpectatorInteractionsBlocked { blocked: false },
+        );
+        let allowed = room.send(OBSERVER, interact);
+        assert!(
+            allowed.iter().any(|delivery| matches!(
+                delivery.message.event,
+                ServerEvent::PlayerInteraction(_)
+            ))
+        );
+        let disconnected = room.session.disconnect(ConnectionId(OBSERVER));
+        assert!(
+            moderation(&disconnected)
+                .participants
+                .iter()
+                .any(|player| player.spectating && !player.connected)
+        );
+    }
+}
+
+#[test]
+fn every_game_allows_the_host_to_kick_players_and_spectators_during_play() {
+    for rules in moderation_rules() {
+        let mut room = Room::started(rules);
+        let joined = room.send(OBSERVER, join(99, OBSERVER));
+        let observer = moderation(&joined)
+            .participants
+            .iter()
+            .find(|player| player.spectating)
+            .unwrap()
+            .id;
+        let forbidden = room.send(2, ClientCommand::KickPlayer { player: observer });
+        assert!(matches!(
+            forbidden[0].message.event,
+            ServerEvent::Rejected {
+                reason: RejectReason::Room(RoomViolation::OnlyHostCanKick)
+            }
+        ));
+        for (target, connection) in [(observer, OBSERVER), (PlayerId(1), 2)] {
+            let match_id = room.snapshot(1).match_id();
+            let kicked = room.send(1, ClientCommand::KickPlayer { player: target });
+            assert!(
+                kicked
+                    .iter()
+                    .any(|delivery| delivery.recipient == ConnectionId(connection)
+                        && matches!(delivery.message.event, ServerEvent::KickedFromRoom))
+            );
+            assert!(!room.session.is_current_connection(ConnectionId(connection)));
+            assert!(
+                !moderation(&kicked)
+                    .participants
+                    .iter()
+                    .any(|player| player.id == target)
+            );
+            assert!(!kicked.iter().any(|delivery| matches!(
+                delivery.message.event,
+                ServerEvent::LobbySnapshot(_)
+                    | ServerEvent::Rejected { .. }
+                    | ServerEvent::PlayerLeft { .. }
+            )));
+            let rejected = room.send(connection, ClientCommand::RequestSnapshot);
+            assert!(matches!(
+                rejected[0].message.event,
+                ServerEvent::Rejected { .. }
+            ));
+            assert!(!room.session.is_closed());
+            assert_eq!(
+                room.snapshot(1).match_id(),
+                match_id,
+                "kicking must not restart the match"
+            );
+        }
+    }
+}
+
+#[test]
+fn uno_and_mahjong_finish_with_kicked_seats_under_automatic_control() {
+    for rules in [
+        GameRules::Uno(Default::default()),
+        GameRules::Mahjong(Default::default()),
+    ] {
+        let kind = rules.kind();
+        let mut room = Room::started(rules);
+        for player in 1..4 {
+            room.send(
+                1,
+                ClientCommand::KickPlayer {
+                    player: PlayerId(player),
+                },
+            );
+        }
+        let command = match kind {
+            GameKind::Uno => UnoCommand::SetAutoPlay { enabled: true }.into(),
+            _ => MahjongCommand::SetAutoPlay { enabled: true }.into(),
+        };
+        room.send(1, ClientCommand::Game(command));
+        for _ in 0..2000 {
+            room.session.advance_time(Duration::from_secs(5));
+            if room.snapshot(1).match_complete() {
+                break;
+            }
+        }
+        assert!(
+            room.snapshot(1).match_complete(),
+            "{kind:?} stalled after a kick"
+        );
+    }
+}
 
 struct Room {
     session: HostSession,

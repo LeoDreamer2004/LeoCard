@@ -3,6 +3,7 @@
 use super::super::{SelectedSettingsTab, SettingsMotion, SettingsTabButton};
 use super::about::AboutSettings;
 use super::appearance::TableAppearanceSettings;
+use super::room::render_room_settings;
 use super::sound::render_sound_settings;
 use crate::app::presentation::{
     PAGE_FRAME_TITLE, TEXT, add_text, add_title, card_background_image, page_frame_skin,
@@ -15,12 +16,14 @@ use crate::app::shell::{
 };
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
+use leocard_client::ClientModel;
 use leocard_ui::{PageFrame, UiComposer, decorate_panel, sliced_image, spawn_node};
 
 pub(crate) struct SettingsModal<'a> {
     form: &'a AppearancePreferences,
     updater: &'a UpdateManager,
     assets: &'a UiAssets,
+    client: Option<&'a ClientModel>,
 }
 
 impl<'a> SettingsModal<'a> {
@@ -28,11 +31,13 @@ impl<'a> SettingsModal<'a> {
         form: &'a AppearancePreferences,
         updater: &'a UpdateManager,
         assets: &'a UiAssets,
+        client: Option<&'a ClientModel>,
     ) -> Self {
         Self {
             form,
             updater,
             assets,
+            client,
         }
     }
 
@@ -43,6 +48,13 @@ impl<'a> SettingsModal<'a> {
         motion: &SettingsMotion,
         selected_tab: SettingsTab,
     ) {
+        let selected_tab = if selected_tab == SettingsTab::Room
+            && self.client.and_then(ClientModel::room_moderation).is_none()
+        {
+            SettingsTab::Appearance
+        } else {
+            selected_tab
+        };
         let form = self.form;
         let updater = self.updater;
         let assets = self.assets;
@@ -107,8 +119,14 @@ impl<'a> SettingsModal<'a> {
         for (tab, label) in [
             (SettingsTab::Appearance, "外观"),
             (SettingsTab::Sound, "声音"),
+            (SettingsTab::Room, "房间"),
             (SettingsTab::About, "关于"),
         ] {
+            if tab == SettingsTab::Room
+                && self.client.and_then(ClientModel::room_moderation).is_none()
+            {
+                continue;
+            }
             add_settings_tab(commands, tabs, tab, label, selected_tab, assets);
         }
         let content = spawn_node(
@@ -151,6 +169,7 @@ impl<'a> SettingsModal<'a> {
             SettingsTab::Sound => {
                 render_sound_settings(commands, content, form, assets);
             }
+            SettingsTab::Room => render_room_settings(commands, content, self.client, assets),
             SettingsTab::About => {
                 AboutSettings::new(updater, assets).render(commands, content);
             }

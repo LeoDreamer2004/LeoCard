@@ -4,7 +4,7 @@ use leocard_game_common::PlayerId;
 use leocard_protocol::{
     ActionTimingSnapshot, AvatarId, ChatMessage, GameCommand, GameKind, GameRules, GameSnapshot,
     LobbySnapshot, MatchId, PlayerGameProfiles, PlayerInteraction, PlayerPublicInfo,
-    PlayerReferenceChange, RejectReason, Revision, RoomId, UnoPhaseView,
+    PlayerReferenceChange, RejectReason, Revision, RoomId, RoomModerationSnapshot, UnoPhaseView,
 };
 use std::collections::HashMap;
 
@@ -36,6 +36,22 @@ impl ActiveGameMeta {
 }
 
 impl ClientModel {
+    pub fn room_moderation(&self) -> Option<&RoomModerationSnapshot> {
+        self.moderation.as_ref()
+    }
+
+    pub fn is_host(&self) -> bool {
+        self.you.is_some() && self.you == self.moderation.as_ref().and_then(|room| room.host)
+    }
+
+    pub fn can_send_interactions(&self) -> bool {
+        !(self.is_spectating()
+            && self
+                .moderation
+                .as_ref()
+                .is_some_and(|room| room.spectator_interactions_blocked))
+    }
+
     pub fn can_change_spectator_view(&self) -> bool {
         self.is_spectating()
             || matches!(self.game_snapshot(), Some(GameSnapshot::Uno(game))

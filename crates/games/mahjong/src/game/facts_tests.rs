@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    MahjongMatchLength, MahjongMeld, MahjongRuleSet, MahjongSuit, MahjongTile, MahjongTileKind,
-    MahjongWinSource, MahjongWind, build_deck,
+    MahjongFan, MahjongMatchLength, MahjongMeld, MahjongRuleSet, MahjongSuit, MahjongTile,
+    MahjongTileKind, MahjongWinSource, MahjongWind, build_deck,
 };
 use leocard_game_common::PlayerId;
 use std::collections::BTreeMap;
@@ -96,6 +96,48 @@ fn settlement_records_nine_gates_waits_before_adding_the_winning_tile() {
     assert_eq!(result.match_length, MahjongMatchLength::SingleHand);
     assert_eq!(result.match_progress.completed_hands, 1);
     assert_eq!(result.match_progress.exhaustive_draws, 0);
+}
+
+#[test]
+fn balanced_self_draw_scores_seven_pairs_and_uses_the_configured_base() {
+    for (balanced_scoring, minimum_eight_points, seven_pairs, base) in [
+        (false, true, 24, 8),
+        (true, true, 16, 4),
+        (true, false, 16, 0),
+    ] {
+        let rules = MahjongRuleSet {
+            balanced_scoring,
+            minimum_eight_points,
+            ..MahjongRuleSet::default()
+        };
+        let player = PlayerId(0);
+        let mut game = MahjongGameState::new_with_deck(rules, build_deck(), player).unwrap();
+        let pairs = [
+            MahjongTileKind::suited(MahjongSuit::Characters, 1),
+            MahjongTileKind::suited(MahjongSuit::Characters, 2),
+            MahjongTileKind::suited(MahjongSuit::Dots, 3),
+            MahjongTileKind::suited(MahjongSuit::Dots, 4),
+            MahjongTileKind::suited(MahjongSuit::Bamboo, 5),
+            MahjongTileKind::suited(MahjongSuit::Bamboo, 6),
+            MahjongTileKind::Wind(MahjongWind::East),
+        ];
+        game.players[player.index()].hand = tiles(pairs.into_iter().flat_map(|tile| [tile; 2]));
+        game.last_drawn = game.players[player.index()].hand.last().copied();
+        game.phase = MahjongPhase::Playing;
+        let MahjongActionOutcome::HandFinished(result) = game.declare_self_draw(player).unwrap()
+        else {
+            panic!("seven pairs must win");
+        };
+        let score = &result.winners[0].score;
+        assert!(
+            score
+                .fans
+                .iter()
+                .any(|fan| { fan.fan == MahjongFan::SevenPairs && fan.points == seven_pairs })
+        );
+        let payment = i32::from(score.total_points) + base;
+        assert_eq!(result.deltas, [payment * 3, -payment, -payment, -payment]);
+    }
 }
 
 #[test]

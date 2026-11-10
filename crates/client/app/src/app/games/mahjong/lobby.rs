@@ -132,9 +132,30 @@ pub(crate) fn render_mahjong_lobby(
                 "关闭"
             }
             .to_owned(),
-            help: "开启时严格按 2014 国标要求至少 8 番（花牌不计入起和），关闭后只按实际番数结算，不另加 8 分。",
+            help: "开启时至少 8 番才能和牌（花牌不计入起和），关闭后只按实际番数结算。",
             previous: can_configure.then_some(minimum_toggled),
             next: can_configure.then_some(minimum_toggled),
+        },
+        assets,
+    );
+    let balanced_toggled = MahjongRuleSet {
+        balanced_scoring: !rules.balanced_scoring,
+        ..rules
+    };
+    add_rule_config_row(
+        commands,
+        rules_panel,
+        MahjongRuleConfigRow {
+            label: "平衡规则",
+            value: if rules.balanced_scoring {
+                "开启"
+            } else {
+                "关闭"
+            }
+            .to_owned(),
+            help: "主要平衡国标麻将常见痛点，调整部分番种计番，稍削弱自摸得分",
+            previous: can_configure.then_some(balanced_toggled),
+            next: can_configure.then_some(balanced_toggled),
         },
         assets,
     );

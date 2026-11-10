@@ -4,7 +4,7 @@ use super::finalize::{FanValues, finish_score};
 use super::forms::{unique_wait, validated_forms};
 use super::special::collect_special_fans;
 use super::{Form, MahjongScoreError, MahjongScoreInput, MahjongScoreResult};
-use crate::{MahjongMeld, MahjongTileKind};
+use crate::{MahjongMeld, MahjongRuleSet, MahjongTileKind};
 
 pub fn is_complete_hand(concealed: &[MahjongTileKind], melds: &[MahjongMeld]) -> bool {
     validated_forms(concealed, melds, None).is_ok_and(|forms| !forms.is_empty())
@@ -37,21 +37,35 @@ pub fn waiting_tile_kinds(
 }
 
 pub fn score_hand(input: &MahjongScoreInput) -> Result<MahjongScoreResult, MahjongScoreError> {
-    let forms = validated_forms(&input.concealed, &input.melds, Some(input.winning_tile))?;
-    if forms.is_empty() {
-        return Err(MahjongScoreError::NotComplete);
-    }
-    let unique_wait = unique_wait(&input.concealed, &input.melds, input.winning_tile);
-    forms
-        .iter()
-        .map(|form| score_form(input, form, unique_wait))
-        .max_by_key(|result| result.total_points)
-        .ok_or(MahjongScoreError::NotComplete)
+    MahjongRuleSet::default().score_hand(input)
 }
 
-fn score_form(input: &MahjongScoreInput, form: &Form, unique_wait: bool) -> MahjongScoreResult {
+impl MahjongRuleSet {
+    pub fn score_hand(
+        self,
+        input: &MahjongScoreInput,
+    ) -> Result<MahjongScoreResult, MahjongScoreError> {
+        let forms = validated_forms(&input.concealed, &input.melds, Some(input.winning_tile))?;
+        if forms.is_empty() {
+            return Err(MahjongScoreError::NotComplete);
+        }
+        let unique_wait = unique_wait(&input.concealed, &input.melds, input.winning_tile);
+        forms
+            .iter()
+            .map(|form| score_form(input, form, unique_wait, self))
+            .max_by_key(|result| result.total_points)
+            .ok_or(MahjongScoreError::NotComplete)
+    }
+}
+
+fn score_form(
+    input: &MahjongScoreInput,
+    form: &Form,
+    unique_wait: bool,
+    rules: MahjongRuleSet,
+) -> MahjongScoreResult {
     let context = ScoreContext::new(input, form);
-    let mut values = FanValues::new();
+    let mut values = FanValues::new(rules);
     collect_special_fans(&mut values, &context);
     collect_combination_fans(&mut values, &context, unique_wait);
     finish_score(values, &context)

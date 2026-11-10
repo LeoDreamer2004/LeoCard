@@ -8,8 +8,8 @@ use crate::ClientModel;
 use leocard_game_common::PlayerId;
 use leocard_host::{GameSetup, HostSession};
 use leocard_protocol::{
-    ChatMessage, ClientCommand, GameCommand, GameRules, PlayerInteraction, ReconnectToken,
-    Revision, ServerEvent, ServerMessage,
+    ChatContent, ChatMessage, ClientCommand, GameCommand, GameRules, PlayerInteraction,
+    ReconnectToken, Revision, ServerEvent, ServerMessage,
 };
 use std::collections::VecDeque;
 use std::io;
@@ -199,6 +199,9 @@ impl TcpGameClient {
                     | ClientCommand::PublishAchievements { .. }
                     | ClientCommand::Interact { .. }
                     | ClientCommand::SpectatePlayer { .. }
+                    | ClientCommand::Chat {
+                        content: ChatContent::Text(_)
+                    }
             )
         {
             return false;

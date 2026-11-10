@@ -79,6 +79,7 @@ fn preferences_round_trip_including_avatar() {
             mahjong: MahjongPreferences {
                 host_rules: MahjongRuleSet {
                     match_length: MahjongMatchLength::FullGame,
+                    balanced_scoring: true,
                     minimum_eight_points: false,
                     multiple_winners: true,
                     false_win: false,

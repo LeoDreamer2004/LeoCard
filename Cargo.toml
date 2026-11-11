@@ -63,7 +63,7 @@ jni = { version = "0.22.4", default-features = false }
 mac-usernotifications = "0.3"
 md-5 = "0.11"
 ndarray = "0.17"
-notify-rust = { version = "4.18", default-features = false, features = ["z"] }
+notify-rust = { version = "4.19", default-features = false, features = ["z"] }
 postcard = { version = "1.1", features = ["alloc"] }
 reqwest = { version = "0.13", default-features = false, features = [
     "blocking",
@@ -71,7 +71,7 @@ reqwest = { version = "0.13", default-features = false, features = [
     "json",
     "rustls",
 ] }
-rfd = "0.17"
+rfd = "0.18"
 rustls-platform-verifier = "0.7"
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }

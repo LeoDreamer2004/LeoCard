@@ -192,15 +192,6 @@ pub(crate) struct UnoPaletteParticle {
     pub rotation: f32,
 }
 
-#[derive(Component)]
-pub(crate) struct UnoReverseArrow {
-    pub elapsed: f32,
-    pub delay: f32,
-    pub color: Color,
-    pub max_alpha: f32,
-    pub shadow_alpha: f32,
-}
-
 impl HandSelection for UnoUiState {
     type Card = UnoCard;
 

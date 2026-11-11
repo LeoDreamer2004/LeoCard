@@ -1,19 +1,19 @@
 use super::drag::{UnoDragGuideMaterial, UnoDragState, render_uno_drag, update_uno_drag};
 use super::jump_in_device::update_jump_in_device;
 use super::{
-    UnoAudioState, UnoJumpInDevice, UnoPaletteMaterial, UnoPresentationState, UnoUiState, actions,
-    advance_uno_modal, animate_uno_flip_effects, animate_uno_flying_cards, animate_uno_hand_cards,
+    UnoAudioState, UnoDirectionMaterial, UnoDirectionState, UnoJumpInDevice, UnoPaletteMaterial,
+    UnoPresentationState, UnoUiState, actions, advance_uno_modal, animate_uno_direction_loop,
+    animate_uno_flip_effects, animate_uno_flying_cards, animate_uno_hand_cards,
     animate_uno_palette_color_rings, animate_uno_palette_effects, animate_uno_palette_particles,
-    animate_uno_palette_selected_sectors, animate_uno_reverse_effects,
-    animate_uno_swap_target_panels, assets, play_uno_audio_cues, play_uno_card_selection_sounds,
-    spawn_uno_presentation_effects, sync_uno_discard_reveal, sync_uno_extension_card_help,
-    sync_uno_presentation,
+    animate_uno_palette_selected_sectors, animate_uno_swap_target_panels, assets,
+    play_uno_audio_cues, play_uno_card_selection_sounds, spawn_uno_presentation_effects,
+    sync_uno_discard_reveal, sync_uno_extension_card_help, sync_uno_presentation,
 };
 use crate::app::presentation::start_game_intro_finished;
 use crate::app::runtime::{ClientUpdateSet, GameEventSource, GameEvents, GameProjectionPlugin};
-
 use crate::app::shell::{ModalAnimationSet, UiActionSet};
 use bevy::prelude::*;
+use bevy::ui::UiSystems;
 use leocard_protocol::{GameEvent, GameKind, UnoEvent};
 
 pub(crate) struct UnoPlugin;
@@ -28,6 +28,8 @@ impl Plugin for UnoPlugin {
         .init_asset::<UnoPaletteMaterial>()
         .add_plugins(UiMaterialPlugin::<UnoPaletteMaterial>::default())
         .add_plugins(UiMaterialPlugin::<UnoDragGuideMaterial>::default())
+        .add_plugins(UiMaterialPlugin::<UnoDirectionMaterial>::default())
+        .init_resource::<UnoDirectionState>()
         .init_resource::<UnoDragState>()
         .insert_resource(UnoPresentationState::default())
         .insert_resource(UnoAudioState::default())
@@ -75,13 +77,16 @@ impl Plugin for UnoPlugin {
                     animate_uno_palette_selected_sectors,
                     animate_uno_palette_color_rings,
                     animate_uno_palette_particles,
-                    animate_uno_reverse_effects,
                     animate_uno_flip_effects,
                 ),
             )
                 .chain()
                 .run_if(start_game_intro_finished)
                 .in_set(ClientUpdateSet::Animate),
+        )
+        .add_systems(
+            PostUpdate,
+            animate_uno_direction_loop.after(UiSystems::PostLayout),
         );
     }
 }

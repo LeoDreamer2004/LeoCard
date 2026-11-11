@@ -14,13 +14,14 @@ use crate::app::presentation::{
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use bevy::text::FontSource;
 use bevy::ui::RelativeCursorPosition;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
     ShengjiPhaseView, ShengjiPublicPlay, ShengjiSnapshot, ShengjiThrowFailureStage,
 };
 use leocard_shengji::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiSuit};
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{TextOutline, UiComposer, spawn_node};
 
 pub(super) fn add_shengji_play_area(
     commands: &mut UiComposer,
@@ -426,28 +427,32 @@ pub(super) fn add_shengji_outlined_mark(
     size: f32,
     assets: &UiAssets,
 ) {
-    for (dx, dy) in [(0.0, 1.0), (2.0, 1.0), (1.0, 0.0), (1.0, 2.0)] {
-        let text = add_text(commands, parent, mark, size, Color::BLACK, assets);
-        commands.entity(text).insert((
+    let label = commands.child(
+        parent,
+        (
             Node {
                 position_type: PositionType::Absolute,
-                left: px(dx),
-                top: px(dy),
+                left: px(1),
+                top: px(1),
                 ..default()
             },
             Pickable::IGNORE,
-        ));
+        ),
+    );
+    TextOutline {
+        color: Color::BLACK,
+        width: 1.0,
     }
-    let text = add_text(commands, parent, mark, size, color, assets);
-    commands.entity(text).insert((
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(1),
-            top: px(1),
-            ..default()
+    .mount(
+        commands,
+        label,
+        mark,
+        TextFont {
+            font: FontSource::list([assets.font.clone()]),
+            ..TextFont::from_font_size(size)
         },
-        Pickable::IGNORE,
-    ));
+        color,
+    );
 }
 
 pub(crate) fn sync_shengji_score_tray_hover(

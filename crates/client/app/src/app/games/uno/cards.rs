@@ -157,23 +157,6 @@ pub(super) fn uno_ui_color(color: UnoColor) -> Color {
     }
 }
 
-pub(super) fn uno_should_show_reverse_effect(
-    card: UnoCard,
-    play_index: u8,
-    play_count: u8,
-) -> bool {
-    play_index == 0
-        && match card.face() {
-            UnoFace::Reverse => play_count % 2 == 1,
-            UnoFace::ReverseDrawTwo
-            | UnoFace::ReverseSkip
-            | UnoFace::WildPowerReverse
-            | UnoFace::WildNoU
-            | UnoFace::WildReverseDrawFour => true,
-            _ => false,
-        }
-}
-
 /// UNO 手牌沿用其他游戏的柔和抬升、渐变描边与阴影，不用突兀的离散跳变。
 pub(crate) fn animate_uno_hand_cards(
     time: Res<Time>,

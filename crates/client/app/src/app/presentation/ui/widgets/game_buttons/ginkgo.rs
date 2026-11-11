@@ -3,7 +3,7 @@ use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use bevy::text::{FontSource, FontWeight};
-use leocard_ui::{TextureButton, UiComposer, sliced_image};
+use leocard_ui::{TextOutline, TextureButton, UiComposer, sliced_image};
 
 #[derive(Clone, Copy)]
 pub(crate) enum GinkgoButtonTone {
@@ -73,7 +73,7 @@ impl GinkgoButton<'_> {
             normal: image.clone().with_color(base),
             hovered: image.with_color(base.mix(&Color::WHITE, 0.14)),
             action: Some(self.action),
-            label: Some(self.label),
+            label: None,
             font_size,
             color: text,
             icon: None,
@@ -81,22 +81,31 @@ impl GinkgoButton<'_> {
         let (button, label) =
             mount_game_button(skin, commands, parent, &assets.controls.ginkgo_font);
         commands.entity(label).insert((
-            TextFont {
-                font: FontSource::list([assets.controls.ginkgo_font.clone(), assets.font.clone()]),
-                weight: FontWeight::BOLD,
-                ..TextFont::from_font_size(font_size)
-            },
-            TextLayout::no_wrap().with_justify(Justify::Center),
             Node {
                 flex_shrink: 0.0,
                 ..default()
             },
             UiTransform::from_translation(Val2::px(0.0, -0.10 * self.size.y)),
-            TextShadow {
-                offset: Vec2::new(0.8, 1.5),
-                color: Color::BLACK.with_alpha(0.72),
-            },
         ));
+        let lettering = TextOutline {
+            color: base.mix(&Color::BLACK, 0.72).with_alpha(0.95),
+            width: font_size / 34.0,
+        }
+        .mount(
+            commands,
+            label,
+            self.label,
+            TextFont {
+                font: FontSource::list([assets.controls.ginkgo_font.clone(), assets.font.clone()]),
+                weight: FontWeight::BOLD,
+                ..TextFont::from_font_size(font_size)
+            },
+            text,
+        );
+        commands.entity(lettering.fill).insert(TextShadow {
+            offset: Vec2::new(0.8, 1.5),
+            color: Color::BLACK.with_alpha(0.72),
+        });
         button
     }
 }

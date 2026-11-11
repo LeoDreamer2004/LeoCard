@@ -1,7 +1,5 @@
 use super::super::{TexasTableLayout, TexasUiAction};
-use crate::app::presentation::{
-    ButtonKind, GameButtonImageMode, GameButtonSpec, add_textured_game_button,
-};
+use crate::app::presentation::{CasinoButtonTone, TableActionButton, TableButtonSkin};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -12,71 +10,40 @@ pub(super) fn add_texas_action_button(
     parent: Entity,
     label: &str,
     action: TexasUiAction,
-    kind: ButtonKind,
-    size: Vec2,
+    tone: CasinoButtonTone,
     assets: &UiAssets,
 ) -> Entity {
-    let Vec2 {
-        x: width,
-        y: height,
-    } = size;
-    let (normal, hovered) = match kind {
-        ButtonKind::Primary => (
-            &assets.controls.game_play_button,
-            &assets.controls.game_play_button_hover,
-        ),
-        ButtonKind::Secondary => (
-            &assets.controls.game_hint_button,
-            &assets.controls.game_hint_button_hover,
-        ),
-        ButtonKind::Warning => (
-            &assets.controls.game_warning_button,
-            &assets.controls.game_warning_button_hover,
-        ),
-        ButtonKind::Pass => (
-            &assets.controls.game_pass_button,
-            &assets.controls.game_pass_button_hover,
-        ),
-    };
-    let (button, label_entity) = add_textured_game_button(
-        commands,
-        parent,
-        assets,
-        GameButtonSpec {
+    let scale = TexasTableLayout::ACTION_SCALE;
+    TableActionButton {
+        size: Vec2::new(118.0, 50.0) * scale,
+        font_size: 26.0 * scale,
+        ..TableActionButton::new(
             label,
-            action: Some(UiAction::Texas(action)),
-            normal,
-            hovered,
-            width: width * TexasTableLayout::ACTION_SCALE,
-            height: height * TexasTableLayout::ACTION_SCALE,
-            font_size: 17.0 * TexasTableLayout::ACTION_SCALE,
-            image_mode: GameButtonImageMode::Sliced {
-                border: 30.0,
-                corner_scale: 0.42 * TexasTableLayout::ACTION_SCALE,
-            },
-        },
-    );
-    commands.entity(button).insert(Node {
-        width: px(width * TexasTableLayout::ACTION_SCALE),
-        min_width: px(width * TexasTableLayout::ACTION_SCALE),
-        height: px(height * TexasTableLayout::ACTION_SCALE),
-        min_height: px(height * TexasTableLayout::ACTION_SCALE),
-        flex_shrink: 0.0,
-        padding: UiRect::axes(
-            px(9.0 * TexasTableLayout::ACTION_SCALE),
-            px(4.0 * TexasTableLayout::ACTION_SCALE),
-        ),
-        align_items: AlignItems::Center,
-        justify_content: JustifyContent::Center,
-        ..default()
-    });
-    commands.entity(label_entity).insert((
-        Node {
-            margin: UiRect::ZERO,
-            align_self: AlignSelf::Center,
-            ..default()
-        },
-        TextColor(Color::WHITE),
-    ));
-    button
+            Some(UiAction::Texas(action)),
+            TableButtonSkin::Casino(tone),
+        )
+    }
+    .mount(commands, parent, assets)
+    .0
+}
+
+pub(super) fn add_texas_raise_adjust_button(
+    commands: &mut UiComposer,
+    parent: Entity,
+    label: &str,
+    action: TexasUiAction,
+    assets: &UiAssets,
+) -> Entity {
+    TableActionButton {
+        size: Vec2::splat(38.0),
+        font_size: 17.0,
+        ..TableActionButton::new(
+            label,
+            Some(UiAction::Texas(action)),
+            TableButtonSkin::Casino(CasinoButtonTone::Call),
+        )
+    }
+    .scaled(TexasTableLayout::ACTION_SCALE)
+    .mount(commands, parent, assets)
+    .0
 }

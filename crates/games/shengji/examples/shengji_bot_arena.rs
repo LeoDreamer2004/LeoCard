@@ -1,5 +1,5 @@
 //! Paired deals, rotated dealers/levels, and equal observations for both teams.
-//! Usage: cargo run -r -p leocard-shengji --example bot_arena -- 6 32 40 rules 1000
+//! Usage: cargo run -r -p leocard-shengji --example shengji_bot_arena -- 6 32 40 rules 1000
 use leocard_game_common::{PlayerId, SearchBudget, SearchRandom};
 use leocard_shengji::{
     ShengjiBiddingObservation, ShengjiBot, ShengjiBotAction, ShengjiBotObservation,

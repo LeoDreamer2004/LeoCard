@@ -166,13 +166,21 @@ impl CardVoices {
             return;
         }
         self.sequence = Some(context.sequence);
+        // 出牌播报紧跟最新动作，快速操作或批量收到事件时不积压旧语音。
+        self.pending = Some(self.random_clip(gender, pattern));
+    }
+
+    pub(crate) fn random_clip(
+        &self,
+        gender: PlayerGender,
+        pattern: CardVoice,
+    ) -> Handle<AudioSource> {
         let gender = match gender {
             PlayerGender::Male => 0,
             PlayerGender::Female => 1,
         };
         let variants = &self.variants[&pattern.file_name()][gender];
-        // 出牌播报紧跟最新动作，快速操作或批量收到事件时不积压旧语音。
-        self.pending = Some(variants[fastrand::usize(..variants.len())].clone());
+        variants[fastrand::usize(..variants.len())].clone()
     }
 }
 

@@ -2,7 +2,7 @@ use super::super::actions::MahjongUiAction;
 use super::super::{MahjongAssets, MahjongTileMaterial};
 use super::catalog::{ENTRIES, FanGuideEntry};
 use super::example::render_example;
-use super::state::MahjongFanGuideScroll;
+use super::state::{MahjongFanGuideRoot, MahjongFanGuideScroll};
 use crate::app::presentation::{
     MUTED, PAGE_FRAME_TITLE, TEXT, add_text, add_title, page_frame_skin,
 };
@@ -22,12 +22,16 @@ pub(super) const TIERS: [u16; 12] = [88, 64, 48, 32, 24, 16, 12, 8, 6, 4, 2, 1];
 pub(super) fn render_fan_guide(
     commands: &mut UiComposer,
     parent: Entity,
-    selected_tier: u16,
+    selection: MahjongFanGuideRoot,
     progress: f32,
     assets: &UiAssets,
     game_assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
 ) {
+    let MahjongFanGuideRoot {
+        tier: selected_tier,
+        rules,
+    } = selection;
     let backdrop = spawn_node(
         commands,
         parent,
@@ -123,14 +127,13 @@ pub(super) fn render_fan_guide(
         fan_color(selected_tier),
         assets,
     );
-    let count = ENTRIES
+    let entries = ENTRIES
         .iter()
-        .filter(|entry| entry.fan.points() == selected_tier)
-        .count();
+        .filter(|entry| rules.fan_points(entry.fan) == selected_tier);
     add_text(
         commands,
         heading,
-        format!("共 {count} 种"),
+        format!("共 {} 种", entries.clone().count()),
         13.0,
         MUTED,
         assets,
@@ -157,11 +160,16 @@ pub(super) fn render_fan_guide(
         RelativeCursorPosition::default(),
         ScrollPosition(Vec2::ZERO),
     ));
-    for entry in ENTRIES
-        .iter()
-        .filter(|entry| entry.fan.points() == selected_tier)
-    {
-        render_fan_entry(commands, content, entry, assets, game_assets, materials);
+    for entry in entries {
+        render_fan_entry(
+            commands,
+            content,
+            entry,
+            selected_tier,
+            assets,
+            game_assets,
+            materials,
+        );
     }
 }
 
@@ -279,6 +287,7 @@ pub(super) fn render_fan_entry(
     commands: &mut UiComposer,
     parent: Entity,
     entry: &FanGuideEntry,
+    points: u16,
     assets: &UiAssets,
     game_assets: &MahjongAssets,
     materials: &mut Assets<MahjongTileMaterial>,
@@ -301,7 +310,7 @@ pub(super) fn render_fan_entry(
         },
         None,
     );
-    let color = fan_color(entry.fan.points());
+    let color = fan_color(points);
     let heading = spawn_node(
         commands,
         card,
@@ -313,7 +322,14 @@ pub(super) fn render_fan_entry(
         },
         None,
     );
-    add_title(commands, heading, entry.fan.name(), 19.0, color, assets);
+    let name = entry.fan.name();
+    let original = entry.fan.points();
+    let title = if original != points {
+        format!("{name}（原{original}番）")
+    } else {
+        name.to_owned()
+    };
+    add_title(commands, heading, title, 19.0, color, assets);
     add_text(commands, card, entry.requirement, 14.0, TEXT, assets);
     render_example(commands, card, entry.example, game_assets, materials);
     spawn_node(

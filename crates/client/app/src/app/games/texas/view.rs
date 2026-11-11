@@ -72,9 +72,10 @@ pub(crate) fn render_texas_table(
     );
     CardTableSurface {
         brightness,
+        default_felt: &assets.tables.felts.casino,
         custom_felt,
     }
-    .apply(commands, content, assets, table_materials);
+    .apply(commands, content, &assets.tables, table_materials);
 
     let table = spawn_node(
         commands,

@@ -8,10 +8,10 @@ use crate::ClientModel;
 use image::{DynamicImage, ImageFormat, Rgba, RgbaImage};
 use leocard_game_common::PlayerId;
 use leocard_protocol::{
-    AVATAR_DIMENSION, AvatarFrameId, ClientCommand, ClientMessage, GameRules, GameSnapshot,
-    LobbySnapshot, PROTOCOL_VERSION, RequestId, Revision, SeatId, ServerEvent, ServerMessage,
+    AVATAR_DIMENSION, AvatarFrameId, ChatContent, ChatEmoji, ClientCommand, ClientMessage,
+    GameRules, GameSnapshot, LobbySnapshot, PROTOCOL_VERSION, RequestId, Revision, SeatId,
+    ServerEvent, ServerMessage,
 };
-
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_tcp::{TcpClient, read_message, write_message};
 use std::io::Cursor;
@@ -271,6 +271,31 @@ fn real_tcp_host_and_two_joiners_reach_the_same_three_player_game() {
         3
     );
     assert!(!observer.send(ClientCommand::SetReady { ready: true }));
+    for content in [
+        ChatContent::Emoji(ChatEmoji::Smile),
+        ChatContent::QuickVoice(0),
+    ] {
+        assert!(!observer.send(ClientCommand::Chat { content }));
+    }
+    let content = ChatContent::Text("好牌".to_owned());
+    assert!(observer.send(ClientCommand::Chat {
+        content: content.clone(),
+    }));
+    let deadline = Instant::now() + Duration::from_secs(3);
+    let chat = loop {
+        host.poll();
+        if let Some(chat) = host.take_chat_messages().into_iter().next() {
+            break chat;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "host did not receive spectator chat"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert_eq!(Some(chat.source), observer.model().you());
+    assert_eq!(chat.content, content);
+    assert_eq!(chat.spectator_name.as_deref(), Some("观战"));
     assert_eq!(
         guest_a
             .model()

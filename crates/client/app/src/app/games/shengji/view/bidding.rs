@@ -1,8 +1,8 @@
-use super::super::skin::{add_shengji_button, add_shengji_disabled_button};
+use super::super::skin::add_shengji_button;
 use super::super::{ShengjiAssets, ShengjiUiAction};
 use super::bid_strip::add_shengji_bid_strip;
 use super::shengji_current_level;
-use crate::app::presentation::{ACCENT, GAME_SIDE_CONTROL_SCALE, GameButtonTone, add_text};
+use crate::app::presentation::{ACCENT, GAME_SIDE_CONTROL_SCALE, PaperCardButtonTone, add_text};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -92,11 +92,11 @@ pub(super) fn add_shengji_bidding_panel(
             commands,
             panel,
             "不抄底",
-            UiAction::Shengji(ShengjiUiAction::DeclineBottomCopy),
+            Some(UiAction::Shengji(ShengjiUiAction::DeclineBottomCopy)),
             assets,
             116.0,
             42.0,
-            GameButtonTone::Pass,
+            PaperCardButtonTone::Stone,
         );
     } else if let ShengjiPhaseView::BiddingGrace {
         milliseconds_remaining,
@@ -133,20 +133,16 @@ fn add_shengji_bid_pass_button(
     confirmed: bool,
     assets: &UiAssets,
 ) {
-    if confirmed {
-        add_shengji_disabled_button(commands, parent, label, assets, 116.0, 42.0);
-    } else {
-        add_shengji_button(
-            commands,
-            parent,
-            label,
-            UiAction::Shengji(ShengjiUiAction::ConfirmBidPass),
-            assets,
-            116.0,
-            42.0,
-            GameButtonTone::Pass,
-        );
-    }
+    add_shengji_button(
+        commands,
+        parent,
+        label,
+        (!confirmed).then_some(UiAction::Shengji(ShengjiUiAction::ConfirmBidPass)),
+        assets,
+        116.0,
+        42.0,
+        PaperCardButtonTone::Stone,
+    );
 }
 
 pub(crate) fn shengji_declaration_candidate(

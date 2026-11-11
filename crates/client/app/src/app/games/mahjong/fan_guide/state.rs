@@ -1,15 +1,20 @@
 use super::super::{MahjongAssets, MahjongTileMaterial, MahjongTileSurface, MahjongUiState};
 use super::view::render_fan_guide;
-use crate::app::runtime::UiAssets;
+use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_mahjong::MahjongRuleSet;
+use leocard_protocol::GameRules;
 use leocard_ui::UiComposer;
 
 #[derive(Component)]
 pub(in super::super) struct MahjongFanGuideScroll;
 
-#[derive(Component)]
-pub(in super::super) struct MahjongFanGuideRoot(pub(super) u16);
+#[derive(Clone, Copy, Component, Eq, PartialEq)]
+pub(in super::super) struct MahjongFanGuideRoot {
+    pub tier: u16,
+    pub rules: MahjongRuleSet,
+}
 
 #[derive(Component)]
 pub(in super::super) struct MahjongFanGuideTile;
@@ -17,21 +22,31 @@ pub(in super::super) struct MahjongFanGuideTile;
 pub(in super::super) fn sync_mahjong_fan_guide(
     mut commands: UiComposer,
     ui: Res<MahjongUiState>,
+    client: Option<Res<ClientResource>>,
     roots: Query<(Entity, &MahjongFanGuideRoot)>,
     assets: Res<UiAssets>,
     game_assets: Res<MahjongAssets>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
 ) {
-    let tier = (ui.fan_guide_open || ui.fan_guide_progress > 0.0).then_some(ui.fan_guide_tier);
+    let selection =
+        (ui.fan_guide_open || ui.fan_guide_progress > 0.0).then(|| MahjongFanGuideRoot {
+            tier: ui.fan_guide_tier,
+            rules: client
+                .as_deref()
+                .and_then(|client| client.0.model().game_rules())
+                .and_then(GameRules::mahjong)
+                .copied()
+                .unwrap_or_default(),
+        });
     let mut current = None;
     for (entity, root) in &roots {
-        if Some(root.0) == tier {
+        if Some(*root) == selection {
             current = Some(entity);
         } else {
             commands.entity(entity).despawn();
         }
     }
-    let Some(tier) = tier else {
+    let Some(selection) = selection else {
         return;
     };
     if current.is_some() {
@@ -39,7 +54,7 @@ pub(in super::super) fn sync_mahjong_fan_guide(
     }
     let root = commands
         .spawn((
-            MahjongFanGuideRoot(tier),
+            selection,
             Node {
                 position_type: PositionType::Absolute,
                 left: px(0),
@@ -55,7 +70,7 @@ pub(in super::super) fn sync_mahjong_fan_guide(
     render_fan_guide(
         &mut commands,
         root,
-        tier,
+        selection,
         ui.fan_guide_progress,
         &assets,
         &game_assets,

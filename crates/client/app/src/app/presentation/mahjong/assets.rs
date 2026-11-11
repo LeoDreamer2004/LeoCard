@@ -1,4 +1,3 @@
-use crate::app::runtime::TableSurfaceAssets;
 use bevy::prelude::*;
 use leocard_game_common::mahjong::{
     MahjongDragon, MahjongFlower, MahjongSuit, MahjongTileKind, MahjongWind, build_deck,
@@ -10,7 +9,6 @@ pub(crate) struct MahjongTileAssets {
     pub tiles: HashMap<MahjongTileKind, Handle<Image>>,
     pub tile_heights: HashMap<MahjongTileKind, Handle<Image>>,
     pub tile_back: Handle<Image>,
-    pub table: TableSurfaceAssets,
 }
 
 impl MahjongTileAssets {
@@ -35,12 +33,6 @@ impl MahjongTileAssets {
                 })
                 .collect(),
             tile_back: asset_server.load("cards/mahjong/hong-kong/back.png"),
-            table: TableSurfaceAssets::load(
-                asset_server,
-                "ui/mahjong",
-                Vec4::new(83.0, 83.0, 1172.0, 1164.0) / 1254.0,
-                Vec4::new(10.0, 8.0, 1244.0, 1245.0) / 1254.0,
-            ),
         }
     }
 }

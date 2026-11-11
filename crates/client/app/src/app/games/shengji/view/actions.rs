@@ -1,6 +1,6 @@
-use super::super::skin::{add_shengji_button, add_shengji_disabled_button};
+use super::super::skin::add_shengji_button;
 use super::super::{ShengjiUiAction, ShengjiUiState};
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, GameButtonTone};
+use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, PaperCardButtonTone};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
@@ -36,42 +36,34 @@ pub(super) fn add_shengji_actions(
         ShengjiPhaseView::Burying if game.dealer == Some(game.you) => {
             let count = ui.selected.len();
             let kitty_size = game.rules.kitty_size();
-            let label = format!("埋底 ({count}/{kitty_size})");
-            if count == kitty_size {
-                add_shengji_button(
-                    commands,
-                    actions,
-                    &label,
-                    UiAction::Shengji(ShengjiUiAction::SubmitCards),
-                    assets,
-                    142.0,
-                    48.0,
-                    GameButtonTone::Play,
-                );
-            } else {
-                add_shengji_disabled_button(commands, actions, &label, assets, 142.0, 48.0);
-            }
+            let label = format!("埋底 {count}/{kitty_size}");
+            add_shengji_button(
+                commands,
+                actions,
+                &label,
+                (count == kitty_size).then_some(UiAction::Shengji(ShengjiUiAction::SubmitCards)),
+                assets,
+                142.0,
+                48.0,
+                PaperCardButtonTone::Amber,
+            );
         }
         ShengjiPhaseView::Burying => {}
         ShengjiPhaseView::BottomCopying { .. } => {}
         ShengjiPhaseView::BottomCopyBurying { player } if *player == game.you => {
             let count = ui.selected.len();
             let kitty_size = game.rules.kitty_size();
-            let label = format!("再埋底 ({count}/{kitty_size})");
-            if count == kitty_size {
-                add_shengji_button(
-                    commands,
-                    actions,
-                    &label,
-                    UiAction::Shengji(ShengjiUiAction::SubmitCards),
-                    assets,
-                    142.0,
-                    48.0,
-                    GameButtonTone::Play,
-                );
-            } else {
-                add_shengji_disabled_button(commands, actions, &label, assets, 142.0, 48.0);
-            }
+            let label = format!("埋底 {count}/{kitty_size}");
+            add_shengji_button(
+                commands,
+                actions,
+                &label,
+                (count == kitty_size).then_some(UiAction::Shengji(ShengjiUiAction::SubmitCards)),
+                assets,
+                142.0,
+                48.0,
+                PaperCardButtonTone::Amber,
+            );
         }
         ShengjiPhaseView::BottomCopyBurying { .. } => {}
         ShengjiPhaseView::FiveTrumpCrossing {
@@ -93,30 +85,27 @@ pub(super) fn add_shengji_actions(
                         .filter(|card| trump.is_trump(**card))
                         .all(|card| selected.contains(card))
                 });
-                let label = format!("过江 ({}/5)", selected.len());
-                if selected.len() == 5 && includes_all_trumps {
-                    add_shengji_button(
-                        commands,
-                        actions,
-                        &label,
-                        UiAction::Shengji(ShengjiUiAction::SubmitCards),
-                        assets,
-                        142.0,
-                        48.0,
-                        GameButtonTone::Play,
-                    );
-                } else {
-                    add_shengji_disabled_button(commands, actions, &label, assets, 142.0, 48.0);
-                }
+                let label = format!("过江 {}/5", selected.len());
+                add_shengji_button(
+                    commands,
+                    actions,
+                    &label,
+                    (selected.len() == 5 && includes_all_trumps)
+                        .then_some(UiAction::Shengji(ShengjiUiAction::SubmitCards)),
+                    assets,
+                    142.0,
+                    48.0,
+                    PaperCardButtonTone::Indigo,
+                );
                 add_shengji_button(
                     commands,
                     actions,
                     "不过江",
-                    UiAction::Shengji(ShengjiUiAction::DeclineFiveTrumpCrossing),
+                    Some(UiAction::Shengji(ShengjiUiAction::DeclineFiveTrumpCrossing)),
                     assets,
                     120.0,
                     48.0,
-                    GameButtonTone::Pass,
+                    PaperCardButtonTone::Stone,
                 );
             }
         }
@@ -134,21 +123,18 @@ pub(super) fn add_shengji_actions(
                     .iter()
                     .filter(|card| ui.selected.contains(card))
                     .count();
-                let label = format!("归还 ({selected_count}/5)");
-                if selected_count == 5 {
-                    add_shengji_button(
-                        commands,
-                        actions,
-                        &label,
-                        UiAction::Shengji(ShengjiUiAction::SubmitCards),
-                        assets,
-                        142.0,
-                        48.0,
-                        GameButtonTone::Play,
-                    );
-                } else {
-                    add_shengji_disabled_button(commands, actions, &label, assets, 142.0, 48.0);
-                }
+                let label = format!("归还 {selected_count}/5");
+                add_shengji_button(
+                    commands,
+                    actions,
+                    &label,
+                    (selected_count == 5)
+                        .then_some(UiAction::Shengji(ShengjiUiAction::SubmitCards)),
+                    assets,
+                    142.0,
+                    48.0,
+                    PaperCardButtonTone::Indigo,
+                );
             }
         }
         ShengjiPhaseView::Playing if game.current_player == Some(game.you) => {
@@ -161,29 +147,25 @@ pub(super) fn add_shengji_actions(
                 || !ui.selected.is_empty(),
                 |required| ui.selected.len() == required,
             );
-            if !selection_ready {
-                add_shengji_disabled_button(commands, actions, "出牌", assets, 142.0, 48.0);
-            } else {
-                add_shengji_button(
-                    commands,
-                    actions,
-                    "出牌",
-                    UiAction::Shengji(ShengjiUiAction::SubmitCards),
-                    assets,
-                    142.0,
-                    48.0,
-                    GameButtonTone::Play,
-                );
-            }
+            add_shengji_button(
+                commands,
+                actions,
+                "出牌",
+                selection_ready.then_some(UiAction::Shengji(ShengjiUiAction::SubmitCards)),
+                assets,
+                142.0,
+                48.0,
+                PaperCardButtonTone::Indigo,
+            );
             add_shengji_button(
                 commands,
                 actions,
                 "提示",
-                UiAction::Shengji(ShengjiUiAction::Hint),
+                Some(UiAction::Shengji(ShengjiUiAction::Hint)),
                 assets,
                 142.0,
                 48.0,
-                GameButtonTone::Hint,
+                PaperCardButtonTone::Jade,
             );
         }
         ShengjiPhaseView::Playing => {}

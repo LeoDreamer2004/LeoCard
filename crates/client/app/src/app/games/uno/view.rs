@@ -97,9 +97,10 @@ pub(crate) fn render_uno_table(
     );
     CardTableSurface {
         brightness,
+        default_felt: &assets.tables.felts.color_card,
         custom_felt,
     }
-    .apply(commands, content, assets, table_materials);
+    .apply(commands, content, &assets.tables, table_materials);
     if game.flip_side == Some(UnoFlipSide::Dark) {
         let tint = spawn_node(
             commands,

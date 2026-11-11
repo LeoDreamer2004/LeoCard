@@ -25,9 +25,9 @@ impl MahjongLayout {
     pub const STATUS_TOP_RATIO: f32 = 352.0 / 390.0;
 
     pub const BUTTON_WIDTH: f32 = if cfg!(target_os = "android") {
-        212.0
+        120.0
     } else {
-        164.0
+        96.0
     };
     pub const BUTTON_HEIGHT: f32 = if cfg!(target_os = "android") {
         64.0
@@ -35,9 +35,9 @@ impl MahjongLayout {
         54.0
     };
     pub const BUTTON_FONT: f32 = if cfg!(target_os = "android") {
-        26.0
+        42.0
     } else {
-        20.0
+        34.0
     };
 
     pub const OWN_CENTER: f32 = if cfg!(target_os = "android") {

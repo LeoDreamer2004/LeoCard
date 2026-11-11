@@ -5,7 +5,7 @@ use super::{
     MahjongUiState, add_mahjong_tile_material,
 };
 use crate::app::presentation::mahjong::own_overlay;
-use crate::app::presentation::{TEXT, add_text};
+use crate::app::presentation::{GinkgoButton, GinkgoButtonTone, TEXT, add_text};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::picking::Pickable;
@@ -14,14 +14,7 @@ use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
 use leocard_mahjong::{MahjongClaim, MahjongClaimOption, MahjongMeldKind, MahjongTileKind};
 use leocard_protocol::MahjongSnapshot;
-use leocard_ui::{BackgroundButtonTint, ButtonHighlight, ButtonTint, UiComposer, spawn_node};
-
-#[derive(Clone, Copy)]
-enum ActionTone {
-    Normal,
-    Pass,
-    Win,
-}
+use leocard_ui::{BackgroundButtonTint, ButtonTint, UiComposer, spawn_node};
 
 struct TileChoice {
     action: MahjongUiAction,
@@ -57,13 +50,13 @@ pub(super) fn render_action_bar(
     } else {
         0.0
     };
-    let bar = spawn_node(
-        commands,
+    let bar = commands.keyed_child(
         overlay,
+        format!("mahjong-actions:{prompt:?}"),
         Node {
             position_type: PositionType::Absolute,
-            left: px(if cfg!(target_os = "android") { 80 } else { 240 }),
-            right: px(if cfg!(target_os = "android") { 80 } else { 240 }),
+            left: px(if cfg!(target_os = "android") { 80 } else { 200 }),
+            right: px(if cfg!(target_os = "android") { 80 } else { 200 }),
             bottom: px(Layout::OWN_BOTTOM
                 + Layout::OWN_HAND_LIFT
                 + Layout::OWN_HEIGHT
@@ -76,7 +69,6 @@ pub(super) fn render_action_bar(
             overflow: Overflow::visible(),
             ..default()
         },
-        None,
     );
     commands.entity(bar).insert(prompt);
     if let Some(pending) = &game.pending_claim {
@@ -128,19 +120,19 @@ pub(super) fn render_action_bar(
                 MahjongClaimOption::Pung,
                 "碰",
                 MahjongClaim::Pung,
-                ActionTone::Normal,
+                GinkgoButtonTone::Blue,
             ),
             (
                 MahjongClaimOption::Kong,
                 "杠",
                 MahjongClaim::Kong,
-                ActionTone::Normal,
+                GinkgoButtonTone::Plum,
             ),
             (
                 MahjongClaimOption::Win,
                 "和",
                 MahjongClaim::Win,
-                ActionTone::Win,
+                GinkgoButtonTone::Cinnabar,
             ),
         ] {
             if pending.your_options.contains(&option)
@@ -161,7 +153,7 @@ pub(super) fn render_action_bar(
             bar,
             "过",
             MahjongUiAction::Respond(MahjongClaim::Pass),
-            ActionTone::Pass,
+            GinkgoButtonTone::Ash,
             assets,
         );
         return;
@@ -172,7 +164,7 @@ pub(super) fn render_action_bar(
             bar,
             "自摸",
             MahjongUiAction::SelfDraw,
-            ActionTone::Win,
+            GinkgoButtonTone::Cinnabar,
             assets,
         );
     }
@@ -239,7 +231,11 @@ fn add_choice_button(
     } else {
         MahjongUiAction::ToggleChoiceMenu(menu)
     };
-    let anchor = add_mahjong_button(commands, bar, label, action, ActionTone::Normal, assets);
+    let tone = match menu {
+        MahjongChoiceMenu::Chow { .. } => GinkgoButtonTone::Moss,
+        MahjongChoiceMenu::Kong { .. } => GinkgoButtonTone::Plum,
+    };
+    let anchor = add_mahjong_button(commands, bar, label, action, tone, assets);
     if choices.len() < 2 || ui.choice_menu != Some(menu) {
         return;
     }
@@ -257,7 +253,7 @@ fn add_choice_button(
         anchor,
         Node {
             position_type: PositionType::Absolute,
-            left: px(-38),
+            left: percent(50),
             bottom: px(Layout::BUTTON_HEIGHT + 8.0),
             width: px(if cfg!(target_os = "android") {
                 320
@@ -271,7 +267,11 @@ fn add_choice_button(
         },
         None,
     );
-    commands.entity(popup).insert((image, GlobalZIndex(1500)));
+    commands.entity(popup).insert((
+        image,
+        GlobalZIndex(1500),
+        UiTransform::from_translation(Val2::percent(-50.0, 0.0)),
+    ));
     for choice in choices {
         let row = commands.child(
             popup,
@@ -334,70 +334,28 @@ fn add_mahjong_button(
     bar: Entity,
     label: &str,
     action: MahjongUiAction,
-    tone: ActionTone,
+    tone: GinkgoButtonTone,
     assets: &UiAssets,
 ) -> Entity {
     let anchor = spawn_node(
         commands,
         bar,
         Node {
-            width: px(Layout::BUTTON_WIDTH),
+            min_width: px(Layout::BUTTON_WIDTH),
             height: px(Layout::BUTTON_HEIGHT),
+            flex_shrink: 0.0,
             overflow: Overflow::visible(),
             ..default()
         },
         None,
     );
-    let (normal, hovered) = match tone {
-        ActionTone::Normal => (
-            &assets.controls.game_play_button,
-            &assets.controls.game_play_button_hover,
-        ),
-        ActionTone::Pass => (
-            &assets.controls.game_pass_button,
-            &assets.controls.game_pass_button_hover,
-        ),
-        ActionTone::Win => (
-            &assets.controls.game_warning_button,
-            &assets.controls.game_warning_button_hover,
-        ),
-    };
-    let button = commands.child(
-        anchor,
-        (
-            Button,
-            UiAction::Mahjong(action),
-            Node {
-                width: px(Layout::BUTTON_WIDTH),
-                height: px(Layout::BUTTON_HEIGHT),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            ImageNode::new(normal.clone()).with_mode(NodeImageMode::Stretch),
-        ),
-    );
-    let overlay = commands.child(
-        button,
-        (
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                right: px(0),
-                top: px(0),
-                bottom: px(0),
-                ..default()
-            },
-            ImageNode::new(hovered.clone()).with_mode(NodeImageMode::Stretch),
-            Visibility::Hidden,
-            Pickable::IGNORE,
-        ),
-    );
-    let text = add_text(commands, button, label, Layout::BUTTON_FONT, TEXT, assets);
-    commands.entity(text).insert(Pickable::IGNORE);
-    commands.entity(button).insert(ButtonHighlight {
-        overlay,
-        arrows: None,
-    });
+    GinkgoButton {
+        label,
+        action: UiAction::Mahjong(action),
+        tone,
+        size: Vec2::new(Layout::BUTTON_WIDTH, Layout::BUTTON_HEIGHT),
+        font_size: Layout::BUTTON_FONT,
+    }
+    .mount(commands, anchor, assets);
     anchor
 }

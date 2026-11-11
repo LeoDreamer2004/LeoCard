@@ -5,7 +5,7 @@ use leocard_mahjong::{MahjongClaimOption, MahjongTile};
 use leocard_protocol::{MahjongPhaseView, MahjongSnapshot, MatchId};
 
 /// 标识一次实际显示操作按钮的机会，保持与界面实体的生命周期独立。
-#[derive(Component, Clone, Copy, Eq, PartialEq)]
+#[derive(Component, Clone, Copy, Debug, Eq, PartialEq)]
 pub(in super::super) struct MahjongActionPrompt {
     match_id: MatchId,
     sequence_index: u8,

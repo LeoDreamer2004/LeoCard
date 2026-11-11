@@ -1,12 +1,13 @@
 //! A full-window card table, independent of the game's fixed-width playing area.
 
 use crate::app::presentation::{TableBackground, TableBackgroundMaterial, TableSurfaceKind};
-use crate::app::runtime::UiAssets;
+use crate::app::runtime::TableAssets;
 use bevy::prelude::*;
 use leocard_ui::UiComposer;
 
 pub(crate) struct CardTableSurface<'a> {
     pub brightness: f32,
+    pub default_felt: &'a Handle<Image>,
     pub custom_felt: Option<&'a Handle<Image>>,
 }
 
@@ -15,7 +16,7 @@ impl CardTableSurface<'_> {
         self,
         commands: &mut UiComposer,
         surface: Entity,
-        assets: &UiAssets,
+        tables: &TableAssets,
         materials: &mut Assets<TableBackgroundMaterial>,
     ) {
         let material = commands.material(
@@ -24,7 +25,8 @@ impl CardTableSurface<'_> {
             TableBackgroundMaterial::new(
                 TableSurfaceKind::Cards,
                 self.brightness,
-                &assets.tabletop.surface,
+                tables,
+                self.default_felt,
                 self.custom_felt,
             ),
         );

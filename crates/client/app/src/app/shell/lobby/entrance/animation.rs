@@ -78,18 +78,22 @@ pub(super) fn sync_spotlight(
     let Some(active) = state.active else { return };
     let entrance = ease_out_cubic((active.elapsed / 0.2).clamp(0.0, 1.0));
     let fade = fade(active.elapsed);
-    let mut circle = Vec4::new(-10_000.0, -10_000.0, 0.0, 0.72 * entrance * fade);
+    let mut veil = EntranceVeil {
+        opacity: 0.72 * entrance * fade,
+        ..default()
+    };
     if let Some((_, node, transform, _)) = avatars.iter().find(|(avatar, node, _, visible)| {
         avatar.0 == active.player && visible.get() && node.size().min_element() > 1.0
-    }) {
-        let (scale, _, center) = transform.to_scale_angle_translation();
-        circle.x = center.x;
-        circle.y = center.y;
-        circle.z = node.size().min_element() * scale.abs().min_element() * 0.5;
+    }) && let Some(inverse) = transform.try_inverse()
+    {
+        veil.screen_to_avatar = Vec4::from_array(inverse.matrix2.to_cols_array());
+        veil.center = transform.translation;
+        veil.half_size = node.size() * 0.5;
+        veil.corner_radius = node.border_radius().top_left.x;
     }
     for overlay in &overlays {
         if let Some(mut material) = materials.get_mut(&overlay.veil) {
-            material.spotlight = circle;
+            *material = veil.clone();
         }
     }
 }

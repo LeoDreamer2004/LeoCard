@@ -1,36 +1,44 @@
 use super::{Form, MahjongFan, MahjongFanValue, MahjongScoreResult, ScoreContext};
+use crate::MahjongRuleSet;
 use std::collections::BTreeMap;
 
-pub(super) struct FanValues(BTreeMap<MahjongFan, (u8, u16)>);
+pub(super) struct FanValues {
+    entries: BTreeMap<MahjongFan, (u8, u16)>,
+    rules: MahjongRuleSet,
+}
 
 impl FanValues {
-    pub(super) fn new() -> Self {
-        Self(BTreeMap::new())
+    pub(super) fn new(rules: MahjongRuleSet) -> Self {
+        Self {
+            entries: BTreeMap::new(),
+            rules,
+        }
     }
 
     pub(super) fn add(&mut self, fan: MahjongFan, count: impl Into<u8>) {
         let count = count.into();
         if count > 0 {
-            self.0.insert(fan, (count, fan.points() * u16::from(count)));
+            let points = self.rules.fan_points(fan) * u16::from(count);
+            self.entries.insert(fan, (count, points));
         }
     }
 
     pub(super) fn insert_points(&mut self, fan: MahjongFan, count: u8, points: u16) {
         if count > 0 {
-            self.0.insert(fan, (count, points));
+            self.entries.insert(fan, (count, points));
         }
     }
 
     pub(super) fn contains(&self, fan: MahjongFan) -> bool {
-        self.0.contains_key(&fan)
+        self.entries.contains_key(&fan)
     }
 
     pub(super) fn remove(&mut self, fan: MahjongFan) {
-        self.0.remove(&fan);
+        self.entries.remove(&fan);
     }
 
     pub(super) fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        self.entries.is_empty()
     }
 }
 
@@ -49,7 +57,7 @@ pub(super) fn finish_score(
         u16::from(flower_points),
     );
     let fans = values
-        .0
+        .entries
         .into_iter()
         .map(|(fan, (count, points))| MahjongFanValue { fan, count, points })
         .collect::<Vec<_>>();

@@ -1,7 +1,7 @@
 //! 已加载 UI 资源、头像缓存与文件选择器状态。
 
 use super::quick_voices::QuickVoiceAssets;
-use super::{AvatarFrameAssets, PlayingCardAssets, PokerChipAssets, TabletopAssets};
+use super::{AvatarFrameAssets, PlayingCardAssets, PokerChipAssets, TableAssets, TabletopAssets};
 use bevy::prelude::*;
 use leocard_protocol::{AvatarId, ChatEmoji, PlayerInteractionKind};
 use std::collections::HashMap;
@@ -26,6 +26,7 @@ pub(crate) struct UiAssets {
     pub props: PropAssets,
     pub social: SocialAssets,
     pub audio: CommonAudioAssets,
+    pub tables: TableAssets,
     pub tabletop: TabletopAssets,
 }
 
@@ -110,17 +111,50 @@ pub(crate) struct AchievementAssets {
 
 #[derive(Default)]
 pub(crate) struct ControlAssets {
+    pub ginkgo_button: Handle<Image>,
+    pub ginkgo_font: Handle<Font>,
+    pub casino_buttons: CasinoButtonAssets,
+    pub color_card_buttons: ColorCardButtonAssets,
+    pub paper_card_buttons: PaperCardButtonAssets,
     pub game_play_button: Handle<Image>,
     pub game_play_button_hover: Handle<Image>,
     pub game_pass_button: Handle<Image>,
     pub game_pass_button_hover: Handle<Image>,
     pub game_hint_button: Handle<Image>,
     pub game_hint_button_hover: Handle<Image>,
-    pub game_warning_button: Handle<Image>,
-    pub game_warning_button_hover: Handle<Image>,
     pub robot_icon: Handle<Image>,
     pub host_crown: Handle<Image>,
     pub github_mark: Handle<Image>,
+}
+
+#[derive(Default)]
+pub(crate) struct CasinoButtonAssets {
+    pub charcoal: Handle<Image>,
+    pub petrol: Handle<Image>,
+    pub bronze: Handle<Image>,
+    pub oxblood: Handle<Image>,
+}
+
+#[derive(Default)]
+pub(crate) struct ColorCardButtonAssets {
+    pub red: Handle<Image>,
+    pub blue: Handle<Image>,
+    pub yellow: Handle<Image>,
+    pub teal: Handle<Image>,
+    pub orange: Handle<Image>,
+    pub gray: Handle<Image>,
+    pub font: Handle<Font>,
+}
+
+#[derive(Default)]
+pub(crate) struct PaperCardButtonAssets {
+    pub rust: Handle<Image>,
+    pub stone: Handle<Image>,
+    pub jade: Handle<Image>,
+    pub indigo: Handle<Image>,
+    pub pine: Handle<Image>,
+    pub amber: Handle<Image>,
+    pub font: Handle<Font>,
 }
 
 #[derive(Default)]

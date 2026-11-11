@@ -1,8 +1,8 @@
 use super::layout::BlackjackSeatLayout;
 use super::{BlackjackTable, BlackjackUiAction};
 use crate::app::presentation::{
-    ACCENT, GameButtonImageMode, GameButtonSpec, GameButtonTone, PanelSkin, TEXT, add_text,
-    add_textured_game_button, add_title, decorate_panel_skin,
+    ACCENT, FramedButton, FramedButtonTone, PanelSkin, TEXT, add_text, add_title,
+    decorate_panel_skin,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{LobbyUiAction, UiAction, add_cozy_button};
@@ -84,7 +84,7 @@ impl BlackjackTable<'_> {
                     "准备下一局"
                 },
                 (!own.ready).then_some(UiAction::Lobby(LobbyUiAction::PlayAgain)),
-                GameButtonTone::Play,
+                FramedButtonTone::Play,
                 134.0,
                 self.assets,
             );
@@ -94,7 +94,7 @@ impl BlackjackTable<'_> {
                     row,
                     "返回房间",
                     Some(UiAction::Lobby(LobbyUiAction::ReturnToLobby)),
-                    GameButtonTone::Hint,
+                    FramedButtonTone::Hint,
                     120.0,
                     self.assets,
                 );
@@ -107,25 +107,25 @@ impl BlackjackTable<'_> {
                     "要牌",
                     BlackjackAction::Hit,
                     self.game.available.hit,
-                    GameButtonTone::Play,
+                    FramedButtonTone::Play,
                 ),
                 (
                     "停牌",
                     BlackjackAction::Stand,
                     self.game.available.stand,
-                    GameButtonTone::Pass,
+                    FramedButtonTone::Pass,
                 ),
                 (
                     "加倍",
                     BlackjackAction::DoubleDown,
                     self.game.available.double_down,
-                    GameButtonTone::Hint,
+                    FramedButtonTone::Hint,
                 ),
                 (
                     "分牌",
                     BlackjackAction::Split,
                     self.game.available.split,
-                    GameButtonTone::Hint,
+                    FramedButtonTone::Hint,
                 ),
             ] {
                 action_button(
@@ -152,25 +152,19 @@ impl BlackjackTable<'_> {
             ),
             (true, amount.saturating_add(step).min(available.maximum_bet)),
         ] {
-            add_textured_game_button(
-                commands,
-                row,
-                self.assets,
-                GameButtonSpec {
-                    label: if increase { "+" } else { "−" },
-                    action: (next != amount)
+            FramedButton {
+                width: 44.0,
+                height: 50.0,
+                font_size: 17.0,
+                ..FramedButton::action(
+                    if increase { "+" } else { "−" },
+                    (next != amount)
                         .then_some(UiAction::Blackjack(BlackjackUiAction::SetBet(next))),
-                    normal: &self.assets.controls.game_play_button,
-                    hovered: &self.assets.controls.game_play_button_hover,
-                    width: 44.0 * BlackjackSeatLayout::ACTION_SCALE,
-                    height: 50.0 * BlackjackSeatLayout::ACTION_SCALE,
-                    font_size: 17.0 * BlackjackSeatLayout::ACTION_SCALE,
-                    image_mode: GameButtonImageMode::Sliced {
-                        border: 30.0,
-                        corner_scale: 0.42 * BlackjackSeatLayout::ACTION_SCALE,
-                    },
-                },
-            );
+                    FramedButtonTone::Play,
+                )
+            }
+            .scaled(BlackjackSeatLayout::ACTION_SCALE)
+            .mount(commands, row, self.assets);
             if !increase {
                 action_button(
                     commands,
@@ -179,7 +173,7 @@ impl BlackjackTable<'_> {
                     Some(UiAction::Blackjack(BlackjackUiAction::Act(
                         BlackjackAction::Bet { amount },
                     ))),
-                    GameButtonTone::Play,
+                    FramedButtonTone::Play,
                     170.0,
                     self.assets,
                 );
@@ -213,7 +207,7 @@ impl BlackjackTable<'_> {
                 shortcuts,
                 &bet.to_string(),
                 Some(UiAction::Blackjack(BlackjackUiAction::SetBet(bet))),
-                GameButtonTone::Hint,
+                FramedButtonTone::Hint,
                 64.0,
                 self.assets,
             );
@@ -270,22 +264,17 @@ fn action_button(
     parent: Entity,
     label: &str,
     action: Option<UiAction>,
-    tone: GameButtonTone,
+    tone: FramedButtonTone,
     width: f32,
     assets: &UiAssets,
 ) -> Entity {
-    let mut spec = GameButtonSpec::action(assets, label, action, tone);
-    spec.width = width * BlackjackSeatLayout::ACTION_SCALE;
-    spec.height = 50.0 * BlackjackSeatLayout::ACTION_SCALE;
-    spec.font_size = 17.0 * BlackjackSeatLayout::ACTION_SCALE;
-    spec.image_mode = GameButtonImageMode::Sliced {
-        border: 30.0,
-        corner_scale: 0.42 * BlackjackSeatLayout::ACTION_SCALE,
-    };
-    let button = add_textured_game_button(commands, parent, assets, spec).0;
-    commands
-        .entity(button)
-        .entry::<Node>()
-        .and_modify(|mut node| node.flex_shrink = 0.0);
-    button
+    FramedButton {
+        width,
+        height: 50.0,
+        font_size: 17.0,
+        ..FramedButton::action(label, action, tone)
+    }
+    .scaled(BlackjackSeatLayout::ACTION_SCALE)
+    .mount(commands, parent, assets)
+    .0
 }

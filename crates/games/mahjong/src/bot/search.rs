@@ -1,11 +1,8 @@
 use super::MahjongBotObservation;
 use super::shanten::{Counts, Shanten};
 use super::targets::potential;
-use crate::{
-    MahjongMeld, MahjongMeldKind, MahjongScoreInput, MahjongTileKind, MahjongWinSource, score_hand,
-};
+use crate::{MahjongMeld, MahjongMeldKind, MahjongScoreInput, MahjongTileKind, MahjongWinSource};
 use leocard_game_common::{PlayerId, SearchBudget};
-
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -211,15 +208,17 @@ impl<'a> Search<'a> {
             winning_tile: tile,
             context,
         };
-        let self_draw = score_hand(&input).ok()?;
-        let legal = |points| !self.observation.rules.minimum_eight_points || points >= 8;
+        let rules = self.observation.rules;
+        let self_draw = rules.score_hand(&input).ok()?;
+        let legal = |points| !rules.minimum_eight_points || points >= 8;
         if !legal(self_draw.points_without_flowers) {
             return None;
         }
         input.context.source = MahjongWinSource::Discard(PlayerId::from_index(
             (self.observation.player.index() + 1) % 4,
         ));
-        let claim = score_hand(&input)
+        let claim = rules
+            .score_hand(&input)
             .ok()
             .filter(|score| legal(score.points_without_flowers));
         Some(

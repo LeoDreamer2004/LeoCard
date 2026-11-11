@@ -40,9 +40,15 @@ pub(crate) fn render_blackjack_table(
     }) });
     CardTableSurface {
         brightness: context.brightness,
+        default_felt: &context.assets.tables.felts.casino,
         custom_felt: context.custom_felt,
     }
-    .apply(commands, content, context.assets, context.table_materials);
+    .apply(
+        commands,
+        content,
+        &context.assets.tables,
+        context.table_materials,
+    );
     let table = spawn_node(
         commands,
         content,

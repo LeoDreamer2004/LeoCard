@@ -2,9 +2,10 @@
 
 use super::quick_voices::QuickVoiceAssets;
 use super::{
-    AchievementAssets, AvatarFrameAssets, CHAT_EMOJI_ASSET_PATHS, CommonAudioAssets, ControlAssets,
-    HomeAssets, PlayingCardAssets, PokerChipAssets, PropAssets, ShopAssets, SocialAssets,
-    TITLE_FONT_ASSET, TabletopAssets, UI_FONT_ASSET, UiAssets, interaction_cooldown_mask_image,
+    AchievementAssets, AvatarFrameAssets, CHAT_EMOJI_ASSET_PATHS, CasinoButtonAssets,
+    ColorCardButtonAssets, CommonAudioAssets, ControlAssets, HomeAssets, PaperCardButtonAssets,
+    PlayingCardAssets, PokerChipAssets, PropAssets, ShopAssets, SocialAssets, TITLE_FONT_ASSET,
+    TableAssets, TabletopAssets, UI_FONT_ASSET, UiAssets, interaction_cooldown_mask_image,
 };
 use crate::app::shell::{INTERACTION_COOLDOWN_MASK_FRAMES, PlayerInteractionLayer};
 use bevy::image::{ImageLoaderSettings, ImageSampler};
@@ -96,14 +97,38 @@ pub(crate) fn load_ui_assets(
         playing_cards: PlayingCardAssets::load(&asset_server),
         poker_chips: PokerChipAssets::load(&asset_server),
         controls: ControlAssets {
+            ginkgo_button: asset_server.load("ui/game-buttons/ginkgo.png"),
+            ginkgo_font: asset_server.load("fonts/LeoCardTableBrush-Bold.ttf"),
+            casino_buttons: CasinoButtonAssets {
+                charcoal: asset_server.load("ui/game-buttons/casino/charcoal.png"),
+                petrol: asset_server.load("ui/game-buttons/casino/petrol.png"),
+                bronze: asset_server.load("ui/game-buttons/casino/bronze.png"),
+                oxblood: asset_server.load("ui/game-buttons/casino/oxblood.png"),
+            },
+            color_card_buttons: ColorCardButtonAssets {
+                red: asset_server.load("ui/game-buttons/color-card/red.png"),
+                blue: asset_server.load("ui/game-buttons/color-card/blue.png"),
+                yellow: asset_server.load("ui/game-buttons/color-card/yellow.png"),
+                teal: asset_server.load("ui/game-buttons/color-card/teal.png"),
+                orange: asset_server.load("ui/game-buttons/color-card/orange.png"),
+                gray: asset_server.load("ui/game-buttons/color-card/gray.png"),
+                font: asset_server.load("fonts/ZCOOLKuaiLe-Regular.ttf"),
+            },
+            paper_card_buttons: PaperCardButtonAssets {
+                rust: asset_server.load("ui/game-buttons/paper-card/rust.png"),
+                stone: asset_server.load("ui/game-buttons/paper-card/stone.png"),
+                jade: asset_server.load("ui/game-buttons/paper-card/jade.png"),
+                indigo: asset_server.load("ui/game-buttons/paper-card/indigo.png"),
+                pine: asset_server.load("ui/game-buttons/paper-card/pine.png"),
+                amber: asset_server.load("ui/game-buttons/paper-card/amber.png"),
+                font: asset_server.load("fonts/ZCOOLKuaiLe-Regular.ttf"),
+            },
             game_play_button: asset_server.load("ui/game-buttons/play-normal.png"),
             game_play_button_hover: asset_server.load("ui/game-buttons/play-hover.png"),
             game_pass_button: asset_server.load("ui/game-buttons/pass-normal.png"),
             game_pass_button_hover: asset_server.load("ui/game-buttons/pass-hover.png"),
             game_hint_button: asset_server.load("ui/game-buttons/hint-normal.png"),
             game_hint_button_hover: asset_server.load("ui/game-buttons/hint-hover.png"),
-            game_warning_button: asset_server.load("ui/game-buttons/warning-normal.png"),
-            game_warning_button_hover: asset_server.load("ui/game-buttons/warning-hover.png"),
             robot_icon: asset_server.load("icons/robot-2-fill.png"),
             host_crown: asset_server.load("ui/home/cozy-host-crown.png"),
             github_mark: asset_server.load("icons/github-mark.png"),
@@ -233,6 +258,7 @@ pub(crate) fn load_ui_assets(
             summary_die_sound: asset_server.load("vendor/noname/audio/effect/flappybird_die.ogg"),
             quick_voices: QuickVoiceAssets::load(&asset_server),
         },
+        tables: TableAssets::load(&asset_server),
         tabletop: TabletopAssets::load(&asset_server),
     });
 }

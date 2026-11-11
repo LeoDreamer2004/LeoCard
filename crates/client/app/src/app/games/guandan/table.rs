@@ -49,9 +49,10 @@ pub(super) fn render_table(commands: &mut UiComposer, root: Entity, mut context:
     }) });
     CardTableSurface {
         brightness: context.brightness,
+        default_felt: &assets.tables.felts.paper_card,
         custom_felt: context.custom_felt,
     }
-    .apply(commands, content, assets, context.table_materials);
+    .apply(commands, content, &assets.tables, context.table_materials);
     let table = spawn_node(
         commands,
         content,

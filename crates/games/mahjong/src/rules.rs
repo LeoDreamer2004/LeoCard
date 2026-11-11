@@ -1,3 +1,4 @@
+use crate::MahjongFan;
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -73,6 +74,8 @@ pub struct MahjongRuleSet {
     pub minimum_eight_points: bool,
     pub multiple_winners: bool,
     pub false_win: bool,
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub balanced_scoring: bool,
 }
 
 impl Default for MahjongRuleSet {
@@ -83,12 +86,26 @@ impl Default for MahjongRuleSet {
             minimum_eight_points: true,
             multiple_winners: false,
             false_win: false,
+            balanced_scoring: false,
         }
     }
 }
 
 impl MahjongRuleSet {
     pub const PLAYER_COUNT: u8 = 4;
+
+    pub const fn fan_points(self, fan: MahjongFan) -> u16 {
+        match (self.balanced_scoring, fan) {
+            (
+                true,
+                MahjongFan::SevenPairs | MahjongFan::ReversibleTiles | MahjongFan::BigThreeWinds,
+            ) => 16,
+            (true, MahjongFan::LittleThreeDragons) => 32,
+            (true, MahjongFan::BigThreeDragons) => 64,
+            (true, MahjongFan::ThreeSuitedTerminalChows) => 24,
+            _ => fan.points(),
+        }
+    }
 
     pub const fn validate(self) -> Result<Self, MahjongRuleError> {
         if self.false_win && !self.minimum_eight_points {
@@ -124,6 +141,26 @@ mod tests {
         assert!(rules.minimum_eight_points);
         assert!(!rules.multiple_winners);
         assert!(!rules.false_win);
+    }
+
+    #[test]
+    fn balance_changes_the_six_fan_values() {
+        let standard = MahjongRuleSet::default();
+        let balanced = MahjongRuleSet {
+            balanced_scoring: true,
+            ..standard
+        };
+        for (fan, original, adjusted) in [
+            (MahjongFan::SevenPairs, 24, 16),
+            (MahjongFan::LittleThreeDragons, 64, 32),
+            (MahjongFan::BigThreeDragons, 88, 64),
+            (MahjongFan::ThreeSuitedTerminalChows, 16, 24),
+            (MahjongFan::ReversibleTiles, 8, 16),
+            (MahjongFan::BigThreeWinds, 12, 16),
+        ] {
+            assert_eq!(standard.fan_points(fan), original);
+            assert_eq!(balanced.fan_points(fan), adjusted);
+        }
     }
 
     #[test]

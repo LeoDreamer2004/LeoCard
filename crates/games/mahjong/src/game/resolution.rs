@@ -7,10 +7,8 @@ use crate::waiting_tile_kinds;
 use crate::{
     MahjongMatchLength, MahjongMeld, MahjongRuleSet, MahjongScoreInput, MahjongScoreResult,
     MahjongTile, MahjongTileKind, MahjongWinContext, MahjongWinSource, is_complete_hand,
-    score_hand,
 };
 use leocard_game_common::PlayerId;
-
 use std::array;
 use std::collections::HashSet;
 
@@ -308,7 +306,7 @@ impl MahjongGameState {
         source: MahjongWinSource,
         concealed: Vec<MahjongTileKind>,
     ) -> Result<MahjongScoreResult, MahjongGameError> {
-        let score = score_hand(&MahjongScoreInput {
+        let score = self.rules.score_hand(&MahjongScoreInput {
             concealed,
             melds: self.players[player.index()].melds.clone(),
             winning_tile,
@@ -397,7 +395,8 @@ impl MahjongGameState {
             let points = i32::from(winner.score.total_points);
             match winner.from {
                 None => {
-                    let payment = points + i32::from(self.rules.minimum_eight_points) * 8;
+                    let base = if self.rules.balanced_scoring { 4 } else { 8 };
+                    let payment = points + i32::from(self.rules.minimum_eight_points) * base;
                     for payer in 0..usize::from(MahjongRuleSet::PLAYER_COUNT) {
                         if payer != winner.player.index() {
                             self.hand_deltas[payer] -= payment;

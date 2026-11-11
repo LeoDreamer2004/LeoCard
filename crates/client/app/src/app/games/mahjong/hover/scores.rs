@@ -4,8 +4,8 @@ use bevy::prelude::*;
 use leocard_client::{PlayerEconomy, PropId};
 use leocard_game_common::PlayerId;
 use leocard_mahjong::{
-    MahjongMeld, MahjongScoreInput, MahjongScoreResult, MahjongTileKind, MahjongWinContext,
-    MahjongWinSource, score_hand,
+    MahjongMeld, MahjongRuleSet, MahjongScoreInput, MahjongScoreResult, MahjongTileKind,
+    MahjongWinContext, MahjongWinSource,
 };
 use leocard_protocol::{GameSnapshot, MahjongSnapshot};
 
@@ -42,6 +42,7 @@ pub(super) struct WaitScores {
 }
 
 pub(super) struct WaitScoreCalculator {
+    rules: MahjongRuleSet,
     context: MahjongWinContext,
     exposed: [u8; 34],
 }
@@ -71,6 +72,7 @@ impl WaitScoreCalculator {
             }
         }
         Self {
+            rules: game.rules,
             context: MahjongWinContext {
                 source: MahjongWinSource::SelfDraw,
                 seat_wind: own.seat_wind,
@@ -101,9 +103,9 @@ impl WaitScoreCalculator {
             winning_tile,
             context,
         };
-        let self_draw = score_hand(&input).expect("结构听牌必须能够算番");
+        let self_draw = self.rules.score_hand(&input).expect("结构听牌必须能够算番");
         input.context.source = MahjongWinSource::Discard(PlayerId(0));
-        let discard = score_hand(&input).expect("结构听牌必须能够算番");
+        let discard = self.rules.score_hand(&input).expect("结构听牌必须能够算番");
         WaitScores { self_draw, discard }
     }
 }

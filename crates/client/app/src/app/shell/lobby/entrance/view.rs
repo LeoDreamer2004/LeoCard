@@ -63,9 +63,7 @@ fn spawn_entrance(
     assets: &UiAssets,
     materials: &mut Assets<EntranceVeil>,
 ) {
-    let veil = materials.add(EntranceVeil {
-        spotlight: Vec4::new(-10_000.0, -10_000.0, 0.0, 0.0),
-    });
+    let veil = materials.add(EntranceVeil::default());
     let root = commands
         .spawn((
             EntranceOverlay {

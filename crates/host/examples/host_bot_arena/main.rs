@@ -1,3 +1,5 @@
+//! Usage: cargo run -r -p leocard-host --example host_bot_arena -- all 8 100
+
 mod hosted;
 mod mahjong;
 mod metrics;

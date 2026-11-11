@@ -1,6 +1,6 @@
 use super::*;
 use crate::app::games::GameFeedback;
-use crate::app::games::uno::{UNO_PLAY_CARD_DURATION, uno_should_show_reverse_effect};
+use crate::app::games::uno::UNO_PLAY_CARD_DURATION;
 use leocard_game_common::PlayerId;
 use leocard_protocol::UnoEvent;
 use leocard_uno::{UnoCard, UnoChallengeResult, UnoColor, UnoFace};
@@ -110,11 +110,6 @@ fn simultaneous_pairs_share_audio_and_cancel_double_reverse_feedback() {
         [UnoSoundKind::CardThrow, UnoSoundKind::CardLand]
     );
     assert!(second.feedback((PlayerId(0), 2)).is_empty());
-    assert!(!uno_should_show_reverse_effect(
-        UnoCard::action(UnoColor::Red, UnoFace::Reverse, 0),
-        0,
-        2,
-    ));
 
     for (face, semantic) in [
         (UnoFace::DrawTwo, UnoSoundKind::Penalty),

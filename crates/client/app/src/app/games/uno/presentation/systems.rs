@@ -1,22 +1,19 @@
-//! UNO 出牌、摸牌、换牌、翻面、调色与转向演出。
+//! UNO 出牌、摸牌、换牌、翻面与调色演出。
 use super::super::{
     UnoAssets, UnoAudioState, UnoDiscardPileAnchor, UnoDrawPileAnchor, UnoFlipTarget,
-    UnoPaletteMaterial, UnoPresentationState, uno_card_handle, uno_should_show_reverse_effect,
-    uno_ui_color,
+    UnoPaletteMaterial, UnoPresentationState, uno_card_handle,
 };
+use super::flip::*;
+use super::palette::*;
+use super::*;
 use crate::app::runtime::{ClientResource, GameEvents, UiAssets};
 use crate::app::shell::{PlayerAvatarAnchor, PlayerInteractionLayer};
+use bevy::prelude::*;
 use leocard_game_common::PlayerId;
 use leocard_protocol::{GameSnapshot, UnoEvent, UnoSnapshot};
 use leocard_ui::UiComposer;
 use leocard_uno::{UnoCard, UnoDirection};
 use std::collections::HashMap;
-
-use super::flip::*;
-use super::palette::*;
-use super::reverse::*;
-use super::*;
-use bevy::prelude::*;
 
 /// UNO 最后一张牌的飞行动画结束后，完整公开牌桌两秒再进入结算。
 pub(in crate::app::games::uno) const UNO_PLAY_CARD_DURATION: f32 = 0.58;
@@ -160,7 +157,7 @@ pub(crate) fn spawn_uno_presentation_effects(
                 card,
                 chosen_color,
                 play_index,
-                play_count,
+                ..
             } => {
                 let source = scene.player(player);
                 let card_pose = uno_discard_pose(card);
@@ -177,20 +174,6 @@ pub(crate) fn spawn_uno_presentation_effects(
                     card.copy() as usize,
                     card_pose.2,
                 );
-                if uno_should_show_reverse_effect(card, play_index, play_count) {
-                    spawn_uno_reverse_effect(
-                        &mut commands,
-                        scene.layer,
-                        layer_node,
-                        layer_transform,
-                        game,
-                        &players,
-                        card.color()
-                            .or(chosen_color)
-                            .map(uno_ui_color)
-                            .expect("反转牌应带有牌色或已选择的后续颜色"),
-                    );
-                }
                 if play_index == 0
                     && let Some(color) = chosen_color
                 {

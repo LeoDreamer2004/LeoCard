@@ -5,8 +5,8 @@ use super::{
     UnoAssets, UnoDiscardCard, UnoDiscardPileAnchor, UnoDrawPileAnchor, UnoFlipTarget,
     UnoJumpInDevice, UnoUiState, add_initial_color_choice, add_play_color_choice, add_uno_actions,
     add_uno_callout_actions, add_uno_eliminated_own_overlay, add_uno_own_area,
-    add_uno_player_panel, add_uno_summary, add_uno_swap_selection_prompt, uno_card_handle,
-    uno_discard_pose, uno_ui_color,
+    add_uno_player_panel, add_uno_summary, add_uno_swap_selection_prompt, mount_uno_direction_loop,
+    uno_card_handle, uno_discard_pose, uno_ui_color,
 };
 use crate::app::presentation::{
     ACCENT, ArcSeatLayout, CardTableSurface, DANGER, DESIGN_WIDTH, GAME_SIDE_CONTROL_SCALE,
@@ -157,6 +157,9 @@ pub(crate) fn render_uno_table(
     });
     let opponent_count = opponents.len();
     let start_transition_active = start_game_transition.is_active_for(game.match_id);
+    if !start_transition_active && matches!(game.phase, UnoPhaseView::Playing) {
+        mount_uno_direction_loop(commands, table);
+    }
     for (index, player) in opponents.into_iter().enumerate() {
         add_uno_player_panel(
             commands,

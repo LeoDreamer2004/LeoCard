@@ -1,9 +1,8 @@
 use super::super::{
     UNO_FLYING_CARD_HEIGHT, UNO_FLYING_CARD_WIDTH, UNO_PALETTE_EFFECT_DURATION, UnoFlipCard,
     UnoFlipOverlay, UnoFlyingCard, UnoPaletteColorRing, UnoPaletteEffect, UnoPaletteMaterial,
-    UnoPaletteParticle, UnoPaletteSelectedSector, UnoReverseArrow,
+    UnoPaletteParticle, UnoPaletteSelectedSector,
 };
-use super::reverse::quadratic_bezier;
 use crate::app::presentation::ease_out_cubic;
 use bevy::prelude::*;
 use std::f32::consts;
@@ -234,35 +233,8 @@ pub(crate) fn uno_palette_selected_scale(progress: f32) -> f32 {
     }
 }
 
-pub(crate) fn animate_uno_reverse_effects(
-    time: Res<Time>,
-    mut commands: Commands,
-    mut arrows: Query<(
-        Entity,
-        &mut UnoReverseArrow,
-        &mut BackgroundColor,
-        &mut BoxShadow,
-        &mut UiTransform,
-    )>,
-) {
-    for (entity, mut arrow, mut background, mut shadow, mut transform) in &mut arrows {
-        arrow.elapsed += time.delta_secs();
-        let local = arrow.elapsed - arrow.delay;
-        if local < 0.0 {
-            continue;
-        }
-        let entry = ease_out_back((local / 0.16).clamp(0.0, 1.0));
-        let fade = smoothstep(((1.65 - arrow.elapsed) / 0.30).clamp(0.0, 1.0));
-        let opacity = entry.clamp(0.0, 1.0) * fade;
-        background.0 = arrow.color.with_alpha(opacity * arrow.max_alpha);
-        if let Some(style) = shadow.0.first_mut() {
-            style.color = Color::BLACK.with_alpha(opacity * arrow.shadow_alpha);
-        }
-        transform.scale = Vec2::splat(0.68 + entry * 0.32);
-        if arrow.elapsed >= 1.65 {
-            commands.entity(entity).despawn();
-        }
-    }
+fn quadratic_bezier(start: Vec2, control: Vec2, end: Vec2, t: f32) -> Vec2 {
+    start * (1.0 - t).powi(2) + control * (2.0 * (1.0 - t) * t) + end * t.powi(2)
 }
 
 fn ease_out_back(value: f32) -> f32 {

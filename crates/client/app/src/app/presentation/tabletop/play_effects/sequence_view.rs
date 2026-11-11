@@ -7,7 +7,7 @@ use crate::app::presentation::title_font;
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_ui::{UiComposer, spawn_node};
+use leocard_ui::{TextOutline, UiComposer, spawn_node};
 
 pub(crate) fn add_sequence_play_decoration(
     commands: &mut UiComposer,
@@ -99,55 +99,19 @@ pub(crate) fn add_sequence_play_decoration(
         ),
     );
 
-    // Bevy UI text has a single drop shadow but no native glyph stroke.  Eight
-    // tightly packed copies form a stable, even outline; they share the animated
-    // parent above, so only their opacity changes per frame.
-    const OUTLINE_OFFSETS: [Vec2; 8] = [
-        Vec2::new(-0.42, -0.42),
-        Vec2::new(0.0, -0.6),
-        Vec2::new(0.42, -0.42),
-        Vec2::new(0.6, 0.0),
-        Vec2::new(0.42, 0.42),
-        Vec2::new(0.0, 0.6),
-        Vec2::new(-0.42, 0.42),
-        Vec2::new(-0.6, 0.0),
-    ];
-    for offset in OUTLINE_OFFSETS {
-        commands.child(
-            label_root,
-            (
-                Text::new(label),
-                font.clone(),
-                TextLayout::no_wrap(),
-                TextColor(Color::NONE),
-                SequenceEffectLabelPart { outline: true },
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: px(offset.x),
-                    top: px(offset.y),
-                    ..default()
-                },
-                Pickable::IGNORE,
-            ),
-        );
+    let lettering = TextOutline {
+        color: Color::NONE,
+        width: 0.6,
     }
-    commands.child(
-        label_root,
-        (
-            Text::new(label),
-            font,
-            TextLayout::no_wrap(),
-            TextColor(Color::NONE),
-            SequenceEffectLabelPart { outline: false },
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(0),
-                top: px(0),
-                ..default()
-            },
-            Pickable::IGNORE,
-        ),
-    );
+    .mount(commands, label_root, label, font, Color::NONE);
+    for stroke in lettering.strokes {
+        commands
+            .entity(stroke)
+            .insert(SequenceEffectLabelPart { outline: true });
+    }
+    commands
+        .entity(lettering.fill)
+        .insert(SequenceEffectLabelPart { outline: false });
 
     match motif {
         SequenceEffectMotif::Wind => add_sequence_wind(commands, play_area, cards_width, color),

@@ -7,6 +7,7 @@ mod loading;
 mod playing_cards;
 mod poker_chips;
 mod quick_voices;
+mod tables;
 mod tabletop;
 mod types;
 
@@ -16,5 +17,6 @@ pub(crate) use leocard_assets::asset_file_path;
 pub(crate) use loading::*;
 pub(crate) use playing_cards::*;
 pub(crate) use poker_chips::*;
-pub(crate) use tabletop::{TableSurfaceAssets, TabletopAssets};
+pub(crate) use tables::TableAssets;
+pub(crate) use tabletop::TabletopAssets;
 pub(crate) use types::*;

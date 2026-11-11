@@ -3,7 +3,7 @@ import bevy_ui_render::ui_vertex_output::UiVertexOutput;
 const CARD_TABLE_CLOSEUP: f32 = 1.45;
 
 struct TableBackgroundMaterial {
-    // x: brightness, y: 0 centered oval card table, 1 measured rectangular mahjong table.
+    // x: brightness, y: 0 oval card table or 1 projected mahjong table.
     params: vec4<f32>,
     felt_bounds: vec4<f32>,
     frame_bounds: vec4<f32>,
@@ -68,10 +68,10 @@ fn shape_coverage(uv: vec2<f32>, bounds: vec4<f32>, rounded: bool) -> f32 {
 }
 
 fn illuminate_fabric(color: vec3<f32>, uv: vec2<f32>, aspect: f32) -> vec3<f32> {
-    var lamp = vec3<f32>(0.0, 0.0, 0.85);
-    if material.params.y > 0.5 {
-        lamp = vec3<f32>(-0.7, -0.7, 0.9);
+    if material.params.y < 0.5 {
+        return color;
     }
+    let lamp = vec3<f32>(-0.7, -0.7, 0.9);
     let point = vec3<f32>((uv - 0.5) * vec2<f32>(aspect, 1.0), 0.0);
     let light = normalize(lamp - point);
     let halfway = normalize(light + vec3<f32>(0.0, 0.0, 1.0));
@@ -90,7 +90,11 @@ fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
     let felt_extent = material.felt_bounds.zw - material.felt_bounds.xy;
     let felt_uv = (uv - material.felt_bounds.xy) / felt_extent;
     let fabric_size = rail_size * felt_extent;
-    let sample_uv = cover_uv(felt_uv, fabric_size, dimensions);
+    // Each table shape has one mapping for both default and custom felt textures.
+    var sample_uv = cover_uv(in.uv, in.size, dimensions);
+    if rounded {
+        sample_uv = cover_uv(felt_uv, fabric_size, dimensions);
+    }
     let fabric = textureSample(table_texture, table_sampler, clamp(sample_uv, vec2<f32>(0.0), vec2<f32>(1.0)));
     let lit = illuminate_fabric(fabric.rgb, felt_uv, fabric_size.x / fabric_size.y);
     // Tuck the fabric under the opaque inner trim to prevent a one-pixel seam.

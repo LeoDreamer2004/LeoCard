@@ -46,7 +46,8 @@ pub(super) fn render(
         TableBackgroundMaterial::new(
             TableSurfaceKind::Mahjong,
             context.form.mahjong_table_brightness,
-            &tiles.table,
+            &context.assets.tables,
+            &context.assets.tables.felts.mahjong,
             context.appearance.mahjong.custom_felt.as_ref(),
         ),
     );

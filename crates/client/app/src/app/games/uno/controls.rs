@@ -3,8 +3,8 @@ use super::{
     uno_pair_for_selection, uno_ui_color,
 };
 use crate::app::presentation::{
-    ButtonKind, GAME_SIDE_CONTROL_SCALE, GameButtonImageMode, GameButtonSpec, PanelSkin,
-    add_section_title, add_text, add_textured_game_button,
+    ButtonKind, ColorCardButtonTone, GAME_SIDE_CONTROL_SCALE, PanelSkin, TableActionButton,
+    TableButtonSkin, add_section_title, add_text,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{UiAction, add_cozy_panel_with_skin};
@@ -15,32 +15,12 @@ use leocard_protocol::{UnoPendingSwapView, UnoPhaseView, UnoSnapshot};
 use leocard_ui::{ButtonTint, UiComposer, spawn_node};
 use leocard_uno::{UnoCard, UnoColor, UnoFace, UnoFlipSide, UnoPendingDrawKind};
 
-fn uno_action_width(label: &str) -> f32 {
-    match label.chars().count() {
-        0..=6 => 164.0,
-        7..=9 => 190.0,
-        _ => 216.0,
-    }
-}
-
-fn uno_button_texture(assets: &UiAssets, kind: ButtonKind) -> (&Handle<Image>, &Handle<Image>) {
+fn uno_action_tone(kind: ButtonKind) -> ColorCardButtonTone {
     match kind {
-        ButtonKind::Primary => (
-            &assets.controls.game_play_button,
-            &assets.controls.game_play_button_hover,
-        ),
-        ButtonKind::Warning => (
-            &assets.controls.game_warning_button,
-            &assets.controls.game_warning_button_hover,
-        ),
-        ButtonKind::Secondary => (
-            &assets.controls.game_pass_button,
-            &assets.controls.game_pass_button_hover,
-        ),
-        ButtonKind::Pass => (
-            &assets.controls.game_hint_button,
-            &assets.controls.game_hint_button_hover,
-        ),
+        ButtonKind::Primary => ColorCardButtonTone::Red,
+        ButtonKind::Secondary => ColorCardButtonTone::Blue,
+        ButtonKind::Pass => ColorCardButtonTone::Orange,
+        ButtonKind::Warning => ColorCardButtonTone::Teal,
     }
 }
 
@@ -53,34 +33,18 @@ fn add_uno_button(
     parent: Entity,
     label: &str,
     action: Option<UiAction>,
-    kind: ButtonKind,
+    tone: ColorCardButtonTone,
     assets: &UiAssets,
     height: f32,
     min_width: f32,
 ) -> Entity {
-    let (normal, hovered) = uno_button_texture(assets, kind);
-    let width = (uno_action_width(label) * height / 52.0).max(min_width);
-    let font_size = if label.chars().count() >= 10 {
-        15.0
-    } else {
-        18.0
-    };
-    add_textured_game_button(
-        commands,
-        parent,
-        assets,
-        GameButtonSpec {
-            label,
-            action,
-            normal,
-            hovered,
-            width,
-            height,
-            font_size,
-            image_mode: GameButtonImageMode::default(),
-        }
-        .scaled(GAME_SIDE_CONTROL_SCALE),
-    )
+    TableActionButton {
+        size: Vec2::new(min_width, height),
+        font_size: 26.0,
+        ..TableActionButton::new(label, action, TableButtonSkin::ColorCard(tone))
+    }
+    .scaled(GAME_SIDE_CONTROL_SCALE)
+    .mount(commands, parent, assets)
     .0
 }
 
@@ -97,7 +61,7 @@ pub(super) fn add_uno_action_button(
         parent,
         label,
         Some(action),
-        kind,
+        uno_action_tone(kind),
         assets,
         52.0,
         164.0,
@@ -115,7 +79,7 @@ pub(super) fn add_uno_disabled_action_button(
         parent,
         label,
         None,
-        ButtonKind::Secondary,
+        ColorCardButtonTone::Gray,
         assets,
         52.0,
         164.0,
@@ -167,13 +131,13 @@ pub(super) fn add_uno_actions(
                 add_uno_action_button(
                     commands,
                     actions,
-                    "交出选中的牌",
+                    "交牌",
                     UiAction::Uno(UnoUiAction::SubmitCard),
                     ButtonKind::Primary,
                     assets,
                 );
             } else {
-                add_uno_disabled_action_button(commands, actions, "请选择一张要交出的牌", assets);
+                add_uno_disabled_action_button(commands, actions, "选择交牌", assets);
             }
         }
         return;
@@ -257,9 +221,9 @@ pub(super) fn add_uno_actions(
                     | UnoFace::WildDrawSix
                     | UnoFace::WildDrawTen
             ) {
-                "出牌并选色"
+                "出牌选色"
             } else if card_count == 2 {
-                "一次打出 ×2"
+                "出牌 ×2"
             } else {
                 "出牌"
             },
@@ -272,7 +236,7 @@ pub(super) fn add_uno_actions(
             commands,
             actions,
             &if game.pending_kind == Some(UnoPendingDrawKind::FlipWildDrawColor) {
-                "接受指定颜色摸牌".to_owned()
+                "接受摸牌".to_owned()
             } else {
                 format!("接受 +{}", game.pending_draw)
             },
@@ -285,9 +249,9 @@ pub(super) fn add_uno_actions(
                 commands,
                 actions,
                 if game.pending_kind == Some(UnoPendingDrawKind::FlipWildDrawColor) {
-                    "质疑指定颜色摸牌"
+                    "质疑"
                 } else if game.pending_kind == Some(UnoPendingDrawKind::FlipWildDrawTwo) {
-                    "质疑万能 +2"
+                    "质疑 +2"
                 } else {
                     "质疑 +4"
                 },
@@ -301,7 +265,7 @@ pub(super) fn add_uno_actions(
             add_uno_action_button(
                 commands,
                 actions,
-                &format!("接受禁手 ×{}", game.pending_skip + own_skips),
+                &format!("禁手 ×{}", game.pending_skip + own_skips),
                 UiAction::Uno(UnoUiAction::ResolveSkip),
                 ButtonKind::Pass,
                 assets,
@@ -318,11 +282,11 @@ pub(super) fn add_uno_actions(
                 assets,
             );
         } else {
-            add_uno_disabled_action_button(commands, actions, "必须打出摸到的牌", assets);
+            add_uno_disabled_action_button(commands, actions, "必须打出", assets);
         }
     } else {
         if game.sudden_death_free_play {
-            add_uno_disabled_action_button(commands, actions, "任选一张出牌", assets);
+            add_uno_disabled_action_button(commands, actions, "任选出牌", assets);
         } else if game.rules.sudden_death_enabled()
             && game
                 .players
@@ -404,7 +368,7 @@ pub(super) fn add_uno_callout_actions(
             callouts,
             &format!("检举 {name}"),
             Some(UiAction::Uno(UnoUiAction::Report(target))),
-            ButtonKind::Warning,
+            ColorCardButtonTone::Orange,
             assets,
         );
     }
@@ -413,7 +377,7 @@ pub(super) fn add_uno_callout_actions(
         callouts,
         "UNO!",
         can_call.then_some(UiAction::Uno(UnoUiAction::Call)),
-        ButtonKind::Primary,
+        ColorCardButtonTone::Yellow,
         assets,
     );
 }
@@ -423,10 +387,10 @@ fn add_subtle_uno_button(
     parent: Entity,
     label: &str,
     action: Option<UiAction>,
-    kind: ButtonKind,
+    tone: ColorCardButtonTone,
     assets: &UiAssets,
 ) {
-    add_uno_button(commands, parent, label, action, kind, assets, 42.0, 128.0);
+    add_uno_button(commands, parent, label, action, tone, assets, 42.0, 128.0);
 }
 
 pub(super) fn add_initial_color_choice(

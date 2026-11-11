@@ -78,9 +78,15 @@ pub(crate) fn render_shengji_table(
     );
     CardTableSurface {
         brightness: visuals.brightness,
+        default_felt: &visuals.assets.tables.felts.paper_card,
         custom_felt: visuals.custom_felt,
     }
-    .apply(commands, content, visuals.assets, visuals.table_materials);
+    .apply(
+        commands,
+        content,
+        &visuals.assets.tables,
+        visuals.table_materials,
+    );
 
     let table = spawn_node(
         commands,

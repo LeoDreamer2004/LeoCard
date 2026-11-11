@@ -1,46 +1,12 @@
-//! Shared card-table artwork and the visible bounds of its generated textures.
+//! Shared tabletop controls, signs and decorative effects.
 
 use bevy::image::{ImageLoaderSettings, ImageSampler};
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use leocard_ui::sliced_image;
 
-#[derive(Clone, Default)]
-pub(crate) struct TableSurfaceAssets {
-    pub felt: Handle<Image>,
-    pub rail: Handle<Image>,
-    /// Inner opening and clean outer silhouette in normalized source coordinates.
-    pub felt_bounds: Vec4,
-    pub frame_bounds: Vec4,
-}
-
-impl TableSurfaceAssets {
-    pub(crate) fn load(
-        server: &AssetServer,
-        directory: &str,
-        felt_bounds: Vec4,
-        frame_bounds: Vec4,
-    ) -> Self {
-        let load = |layer| {
-            server
-                .load_builder()
-                .with_settings(|settings: &mut ImageLoaderSettings| {
-                    settings.sampler = ImageSampler::linear();
-                })
-                .load(format!("{directory}/table-{layer}.png"))
-        };
-        Self {
-            felt: load("felt"),
-            rail: load("rail"),
-            felt_bounds,
-            frame_bounds,
-        }
-    }
-}
-
 #[derive(Default)]
 pub(crate) struct TabletopAssets {
-    pub surface: TableSurfaceAssets,
     side_frame: Handle<Image>,
     hanging_sign: Handle<Image>,
     side_fold: Handle<Image>,
@@ -61,12 +27,6 @@ impl TabletopAssets {
                 .load(format!("ui/tabletop/{name}.png"))
         };
         Self {
-            surface: TableSurfaceAssets::load(
-                server,
-                "ui/tabletop",
-                Vec4::new(108.0, 102.0, 1647.0, 791.0) / Vec4::new(1774.0, 887.0, 1774.0, 887.0),
-                Vec4::new(49.0, 39.0, 1707.0, 858.0) / Vec4::new(1774.0, 887.0, 1774.0, 887.0),
-            ),
             side_frame: load("side-frame"),
             hanging_sign: load("hanging-sign"),
             side_fold: load("side-fold"),

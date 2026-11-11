@@ -27,6 +27,7 @@ impl TransitionOpacity {
 pub struct TransitionFadeBase {
     image: Option<Color>,
     text: Option<Color>,
+    text_shadow: Option<Color>,
     background: Option<Color>,
     border: Option<BorderColor>,
     outline: Option<Color>,
@@ -40,6 +41,7 @@ pub type TransitionVisuals<'w, 's, Filter = ()> = Query<
     (
         Option<&'static mut ImageNode>,
         Option<&'static mut TextColor>,
+        Option<&'static mut TextShadow>,
         Option<&'static mut BackgroundColor>,
         Option<&'static mut BorderColor>,
         Option<&'static mut Outline>,
@@ -63,6 +65,7 @@ pub fn fade_panel<Filter: QueryFilter>(
         let Ok((
             mut image,
             mut text,
+            mut text_shadow,
             mut background,
             mut border,
             mut outline,
@@ -87,6 +90,7 @@ pub fn fade_panel<Filter: QueryFilter>(
         let mut base = cached.cloned().unwrap_or_else(|| TransitionFadeBase {
             image: image.as_ref().map(|image| image.color),
             text: text.as_ref().map(|text| text.0),
+            text_shadow: text_shadow.as_ref().map(|shadow| shadow.color),
             background: background.as_ref().map(|background| background.0),
             border: border.as_ref().map(|border| **border),
             outline: outline.as_ref().map(|outline| outline.color),
@@ -100,6 +104,9 @@ pub fn fade_panel<Filter: QueryFilter>(
         }
         if let Some(text) = commands.declared::<TextColor>(entity) {
             base.text = Some(text.0);
+        }
+        if let Some(shadow) = commands.declared::<TextShadow>(entity) {
+            base.text_shadow = Some(shadow.color);
         }
         if let Some(background) = commands.declared::<BackgroundColor>(entity) {
             base.background = Some(background.0);
@@ -124,6 +131,9 @@ pub fn fade_panel<Filter: QueryFilter>(
         }
         if let (Some(text), Some(color)) = (text.as_mut(), base.text) {
             text.0 = color.with_alpha(color.alpha() * opacity);
+        }
+        if let (Some(shadow), Some(color)) = (text_shadow.as_mut(), base.text_shadow) {
+            shadow.color = color.with_alpha(color.alpha() * opacity);
         }
         if let (Some(background), Some(color)) = (background.as_mut(), base.background) {
             background.0 = color.with_alpha(color.alpha() * opacity);

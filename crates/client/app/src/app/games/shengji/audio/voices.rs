@@ -1,8 +1,10 @@
 use super::super::ShengjiPlayFeedback;
+use super::assets::ShengjiVoiceAssets;
 use crate::app::games::GameFeedback;
+use crate::app::presentation::{CardVoice, CardVoices};
 use crate::app::runtime::ClientResource;
 use bevy::prelude::*;
-use leocard_protocol::{GameSnapshot, MatchId, PlayerGender};
+use leocard_protocol::{GameSnapshot, MatchId};
 use leocard_shengji::{ShengjiCategory, ShengjiClassifiedPlay, ShengjiComponent};
 use std::collections::VecDeque;
 
@@ -44,15 +46,10 @@ impl ShengjiVoiceKind {
     }
 }
 
-pub(super) struct ShengjiVoiceCue {
-    pub(super) gender: PlayerGender,
-    pub(super) kind: ShengjiVoiceKind,
-}
-
 #[derive(Resource, Default)]
 pub(super) struct ShengjiVoiceState {
     pub(super) observed: Option<(MatchId, u32)>,
-    pub(super) pending: VecDeque<ShengjiVoiceCue>,
+    pub(super) pending: VecDeque<Handle<AudioSource>>,
 }
 
 /// 只消费已接受的实时事件，快照重建和上一墩回看不重复报牌。
@@ -60,6 +57,8 @@ pub(super) fn sync_shengji_voices(
     client: Option<Res<ClientResource>>,
     mut feedback: MessageReader<ShengjiPlayFeedback>,
     mut voices: ResMut<ShengjiVoiceState>,
+    assets: Res<ShengjiVoiceAssets>,
+    card_voices: Res<CardVoices>,
 ) {
     let events = feedback.read();
     let Some(game) = client.as_ref().and_then(|client| {
@@ -89,17 +88,33 @@ pub(super) fn sync_shengji_voices(
         else {
             continue;
         };
-        for kind in [
+        let gender = player.player.game_profiles.gender;
+        let kinds = [
             event.play.play.feedback(event.is_lead),
             event.trump_kill.then_some(ShengjiVoiceKind::TrumpKill),
-        ]
-        .into_iter()
-        .flatten()
+        ];
+        // 吊主、毙牌等特殊播报优先，不再叠加单牌或对子的点数语音。
+        if kinds.iter().all(Option::is_none)
+            && let Some(pattern) = event.play.play.feedback(())
         {
-            voices.pending.push_back(ShengjiVoiceCue {
-                gender: player.player.game_profiles.gender,
-                kind,
-            });
+            voices
+                .pending
+                .push_back(card_voices.random_clip(gender, pattern));
+        }
+        for kind in kinds.into_iter().flatten() {
+            voices.pending.push_back(assets.random_clip(gender, kind));
+        }
+    }
+}
+
+impl GameFeedback<()> for ShengjiClassifiedPlay {
+    type Cue = Option<CardVoice>;
+
+    fn feedback(&self, _context: ()) -> Self::Cue {
+        match self.components.as_slice() {
+            [ShengjiComponent::Single { card, .. }] => Some(CardVoice::Single((*card).into())),
+            [ShengjiComponent::Pair { cards, .. }] => Some(CardVoice::Pair(cards[0].into())),
+            _ => None,
         }
     }
 }

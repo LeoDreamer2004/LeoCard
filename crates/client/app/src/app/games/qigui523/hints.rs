@@ -1,7 +1,5 @@
 //! 七鬼五二三的提示策略与无牌可压反馈。
 
-use super::QiGui523UiState;
-use bevy::prelude::*;
 use leocard_protocol::{QiGui523PublicPlayRecord, QiGui523Snapshot};
 use leocard_qigui523::{
     QiGui523Bot, QiGui523BotRequest, QiGuiCard, QiGuiClassifiedPlay, QiGuiRuleSet, classify,
@@ -13,9 +11,6 @@ pub(crate) enum HintDecision {
     Select(Vec<QiGuiCard>),
     Pass,
 }
-
-#[derive(Component)]
-pub(crate) struct PlaySelectionCount;
 
 pub(crate) fn next_greedy_hint(
     strategy: &mut QiGui523Bot,
@@ -65,16 +60,4 @@ pub(super) fn game_has_legal_response(game: &QiGui523Snapshot, rules: &QiGuiRule
         played_cards: &played_cards,
         rules,
     })
-}
-
-pub(crate) fn sync_selection_label(
-    ui: Res<QiGui523UiState>,
-    mut labels: Query<&mut Text, With<PlaySelectionCount>>,
-) {
-    let expected = format!("出牌 ({})", ui.selected.len());
-    for mut label in &mut labels {
-        if label.0 != expected {
-            label.0.clone_from(&expected);
-        }
-    }
 }

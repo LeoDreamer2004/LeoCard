@@ -113,8 +113,23 @@ OFL 关于保留名称与再分发的条件。
 - 来源：<https://github.com/bytedance/fonts/tree/main/DouyinSans>
 - 字体文件 SHA-256：`fbecfacdfac33982774e301073a8d357a09c698cd3134bb6ddec0f5bfc268fa1`
 
-程序使用该字体显示页面、内容分区及游戏结算标题；未覆盖的字符回退到寒蝉圆黑体。
+程序使用该字体显示页面、内容分区、游戏结算标题和德州按钮。未覆盖的字符回退到寒蝉圆黑体。
 字体文件保持原样，再分发时同时提供其版权声明与 OFL 许可证。
+
+### 站酷快乐体（SIL Open Font License 1.1）
+
+- 运行时文件：`fonts/ZCOOLKuaiLe-Regular.ttf`
+- 许可证副本：`fonts/OFL-ZCOOLKuaiLe.txt`
+- 来源：<https://github.com/google/fonts/tree/main/ofl/zcoolkuaile>
+- 字体文件 SHA-256：`812a6fc1fe54b6d73a419245c32dfeba8aa33104d5be90d1cf6af082007cb71d`
+- 用途：UNO、七鬼五二三、升级和掼蛋操作按钮
+
+### LeoCard Table Brush Bold（SIL Open Font License 1.1）
+
+- 运行时文件：`fonts/LeoCardTableBrush-Bold.ttf`
+- 许可证副本：`fonts/OFL-MaShanZheng.txt`
+- 原字体：马善政毛笔楷书 2.002，<https://github.com/google/fonts/tree/8737a6c78acf74560334813e12c44c99616270fc/ofl/mashanzheng>
+- 运行时字体 SHA-256：`9a67123b02fc741fbf2915a51ca3fccadd31bf22eade63408e65bba9ab460c6b`
 
 ### I.Mahjong-HK 香港麻将牌字形（M+ 字体许可证）
 

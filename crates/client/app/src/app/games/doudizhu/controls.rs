@@ -1,7 +1,7 @@
 use super::{DoudizhuUiAction, DoudizhuUiState};
 use crate::app::presentation::{
-    GAME_SIDE_CONTROL_SCALE, GameButtonSpec, GameButtonTone, add_no_legal_response_hint,
-    add_textured_game_button,
+    GAME_SIDE_CONTROL_SCALE, PaperCardButtonTone, TableActionButton, TableButtonSkin,
+    add_no_legal_response_hint,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -21,7 +21,7 @@ pub(super) fn render(
         commands,
         parent,
         Node {
-            height: px(54.0 * GAME_SIDE_CONTROL_SCALE),
+            min_height: px(54.0 * GAME_SIDE_CONTROL_SCALE),
             column_gap: px(10),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
@@ -40,26 +40,29 @@ pub(super) fn render(
         return;
     }
     let mut button = |label: &str, action: Option<DoudizhuUiAction>, tone| {
-        add_textured_game_button(
-            commands,
-            row,
-            assets,
-            GameButtonSpec::compact(assets, label, action.map(UiAction::Doudizhu), tone)
-                .scaled(GAME_SIDE_CONTROL_SCALE),
-        );
+        TableActionButton {
+            size: Vec2::new(142.0, 48.0),
+            ..TableActionButton::new(
+                label,
+                action.map(UiAction::Doudizhu),
+                TableButtonSkin::PaperCard(tone),
+            )
+        }
+        .scaled(GAME_SIDE_CONTROL_SCALE)
+        .mount(commands, row, assets);
     };
     if game.phase == DoudizhuPhase::Bidding {
         button(
             "不叫",
             Some(DoudizhuUiAction::Act(DoudizhuAction::Bid(0))),
-            GameButtonTone::Pass,
+            PaperCardButtonTone::Stone,
         );
         for score in 1..=3 {
             button(
                 &format!("{score} 分"),
                 (score > game.highest_bid)
                     .then_some(DoudizhuUiAction::Act(DoudizhuAction::Bid(score))),
-                GameButtonTone::Play,
+                PaperCardButtonTone::Rust,
             );
         }
     } else {
@@ -78,19 +81,19 @@ pub(super) fn render(
         button(
             "出牌",
             legal.then_some(DoudizhuUiAction::Play),
-            GameButtonTone::Play,
+            PaperCardButtonTone::Rust,
         );
         button(
             "不出",
             game.table
                 .is_some()
                 .then_some(DoudizhuUiAction::Act(DoudizhuAction::Pass)),
-            GameButtonTone::Pass,
+            PaperCardButtonTone::Stone,
         );
         button(
             "提示",
             can_hint.then_some(DoudizhuUiAction::Hint),
-            GameButtonTone::Hint,
+            PaperCardButtonTone::Jade,
         );
         if game.table.is_some() && !can_hint {
             add_no_legal_response_hint(commands, row, "没有牌能大过上家", assets);

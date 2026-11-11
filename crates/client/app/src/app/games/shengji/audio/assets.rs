@@ -1,4 +1,4 @@
-use super::voices::{ShengjiVoiceCue, ShengjiVoiceKind};
+use super::voices::ShengjiVoiceKind;
 use bevy::prelude::*;
 use leocard_protocol::PlayerGender;
 
@@ -23,12 +23,16 @@ impl ShengjiVoiceAssets {
         }
     }
 
-    pub(super) fn random_clip(&self, cue: ShengjiVoiceCue) -> Handle<AudioSource> {
-        let gender = match cue.gender {
+    pub(super) fn random_clip(
+        &self,
+        gender: PlayerGender,
+        kind: ShengjiVoiceKind,
+    ) -> Handle<AudioSource> {
+        let gender = match gender {
             PlayerGender::Male => 0,
             PlayerGender::Female => 1,
         };
-        let variants = &self.clips[gender][cue.kind as usize];
+        let variants = &self.clips[gender][kind as usize];
         variants[fastrand::usize(..variants.len())].clone()
     }
 }

@@ -1,8 +1,8 @@
 use super::super::{TexasRaiseAdjustButton, TexasTableLayout, TexasUiAction, TexasUiState};
-use super::buttons::add_texas_action_button;
+use super::buttons::{add_texas_action_button, add_texas_raise_adjust_button};
 use super::slider::add_raise_slider;
 use super::{TexasRaiseInput, raise_sizing};
-use crate::app::presentation::ButtonKind;
+use crate::app::presentation::CasinoButtonTone;
 use crate::app::runtime::UiAssets;
 use bevy::prelude::*;
 use bevy::ui_widgets::SelectAllOnFocus;
@@ -18,11 +18,13 @@ pub(in super::super) fn add_texas_actions(
     ui: &mut TexasUiState,
     assets: &UiAssets,
 ) {
-    let choosing = matches!(game.phase, TexasPhaseView::ChoosingRunout);
-    if !matches!(
-        game.phase,
-        TexasPhaseView::Betting { .. } | TexasPhaseView::ChoosingRunout
-    ) || own.folded
+    let street = match game.phase {
+        TexasPhaseView::Betting { street } => Some(street),
+        TexasPhaseView::ChoosingRunout => None,
+        TexasPhaseView::HandComplete { .. } => return,
+    };
+    let choosing = street.is_none();
+    if own.folded
         || own.auto_play
         || game.blind_to_post.is_some()
         || game.current_player != Some(game.you)
@@ -40,12 +42,12 @@ pub(in super::super) fn add_texas_actions(
                 position_type: PositionType::Absolute,
                 left: percent(50),
                 bottom: px(TexasTableLayout::ACTION_BOTTOM),
-                width: px(496.0 * scale),
+                min_width: px(496.0 * scale),
                 flex_direction: FlexDirection::Column,
                 row_gap: px(6.0 * scale),
                 ..default()
             },
-            UiTransform::from_translation(Val2::px(-248.0 * scale, 0.0)),
+            UiTransform::from_translation(Val2::percent(-50.0, 0.0)),
         ),
     );
     let sizing = raise_sizing(game);
@@ -55,9 +57,15 @@ pub(in super::super) fn add_texas_actions(
             add_raise_editor(commands, actions, game, sizing, ui.raise_to, assets);
         }
     }
-    let row = spawn_node(
-        commands,
+    let editing_raise = ui.raise_editor_open && sizing.is_some();
+    let row_key = match (street, editing_raise) {
+        (None, _) => "runout-choices".into(),
+        (Some(street), true) => format!("raise-confirmation:{street:?}"),
+        (Some(street), false) => format!("betting-actions:{street:?}"),
+    };
+    let row = commands.keyed_child(
         actions,
+        row_key,
         Node {
             width: percent(100),
             justify_content: JustifyContent::Center,
@@ -65,29 +73,29 @@ pub(in super::super) fn add_texas_actions(
             column_gap: px(8.0 * scale),
             ..default()
         },
-        None,
     );
-    let size = Vec2::new(118.0, 50.0);
     if choosing {
-        for (label, twice) in [("发一次", false), ("发两次", true)] {
+        for (label, twice, tone) in [
+            ("发一次", false, CasinoButtonTone::Call),
+            ("发两次", true, CasinoButtonTone::Raise),
+        ] {
             add_texas_action_button(
                 commands,
                 row,
                 label,
                 TexasUiAction::ChooseRunout(twice),
-                ButtonKind::Primary,
-                size,
+                tone,
                 assets,
             );
         }
         return;
     }
-    if ui.raise_editor_open && sizing.is_some() {
+    if editing_raise {
         for (label, action, kind) in [
-            ("确认", TexasUiAction::Raise, ButtonKind::Primary),
-            ("取消", TexasUiAction::CancelRaise, ButtonKind::Pass),
+            ("确认", TexasUiAction::Raise, CasinoButtonTone::Raise),
+            ("取消", TexasUiAction::CancelRaise, CasinoButtonTone::Fold),
         ] {
-            add_texas_action_button(commands, row, label, action, kind, size, assets);
+            add_texas_action_button(commands, row, label, action, kind, assets);
         }
         return;
     }
@@ -96,8 +104,7 @@ pub(in super::super) fn add_texas_actions(
         row,
         "弃牌",
         TexasUiAction::Act(TexasAction::Fold),
-        ButtonKind::Pass,
-        size,
+        CasinoButtonTone::Fold,
         assets,
     );
     let call = if game.amount_to_call == 0 {
@@ -114,8 +121,7 @@ pub(in super::super) fn add_texas_actions(
         } else {
             TexasAction::Call
         }),
-        ButtonKind::Secondary,
-        size,
+        CasinoButtonTone::Call,
         assets,
     );
     if sizing.is_some() {
@@ -124,8 +130,7 @@ pub(in super::super) fn add_texas_actions(
             row,
             "加注",
             TexasUiAction::BeginRaise,
-            ButtonKind::Primary,
-            size,
+            CasinoButtonTone::Raise,
             assets,
         );
     }
@@ -135,8 +140,7 @@ pub(in super::super) fn add_texas_actions(
             row,
             "全下",
             TexasUiAction::Act(TexasAction::AllIn),
-            ButtonKind::Warning,
-            size,
+            CasinoButtonTone::AllIn,
             assets,
         );
     }
@@ -178,13 +182,11 @@ fn add_raise_editor(
         } else {
             target.saturating_add(step).min(maximum)
         };
-        let button = add_texas_action_button(
+        let button = add_texas_raise_adjust_button(
             commands,
             row,
             if direction < 0 { "−" } else { "+" },
             TexasUiAction::SetRaiseTo(next),
-            ButtonKind::Primary,
-            Vec2::new(38.0, 38.0),
             assets,
         );
         commands.entity(button).insert(TexasRaiseAdjustButton {

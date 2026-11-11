@@ -565,7 +565,8 @@ pub(crate) fn render_mahjong_table(
         TableBackgroundMaterial::new(
             TableSurfaceKind::Mahjong,
             brightness,
-            &game_assets.visuals.table,
+            &assets.tables,
+            &assets.tables.felts.mahjong,
             appearance.mahjong.custom_felt.as_ref(),
         ),
     );

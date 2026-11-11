@@ -1,13 +1,13 @@
 //! 七鬼五二三牌桌的小面板与操作按钮纹理。
 
-use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, GameButtonSpec, add_textured_game_button};
+use crate::app::presentation::{GAME_SIDE_CONTROL_SCALE, TableActionButton, TableButtonSkin};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use leocard_ui::UiComposer;
 
-pub(super) use crate::app::presentation::GameButtonTone as QiGuiButtonTone;
+pub(super) use crate::app::presentation::PaperCardButtonTone as QiGuiButtonTone;
 
 pub(super) fn qigui_plate_image(assets: &UiAssets) -> ImageNode {
     let mut image = ImageNode::new(assets.home.game_card.clone()).with_mode(NodeImageMode::Sliced(
@@ -30,10 +30,7 @@ pub(super) fn add_qigui_action_button(
     tone: QiGuiButtonTone,
     assets: &UiAssets,
 ) -> (Entity, Entity) {
-    add_textured_game_button(
-        commands,
-        parent,
-        assets,
-        GameButtonSpec::action(assets, label, Some(action), tone).scaled(GAME_SIDE_CONTROL_SCALE),
-    )
+    TableActionButton::new(label, Some(action), TableButtonSkin::PaperCard(tone))
+        .scaled(GAME_SIDE_CONTROL_SCALE)
+        .mount(commands, parent, assets)
 }

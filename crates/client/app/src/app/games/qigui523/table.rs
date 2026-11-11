@@ -3,8 +3,8 @@ use super::cards::{HandCardSpec, add_card_button};
 use super::counter::render_counter;
 use super::state::{ScoreCardsPopupPlacement, SeatVisuals};
 use super::{
-    PlaySelectionCount, QIGUI_AVATAR_SIZE, QIGUI_PORTRAIT_WIDTH, QiGui523Assets, QiGui523UiAction,
-    QiGui523UiState, QiGuiButtonTone, add_draw_pile, add_game_summary_modal, add_opponent_slot,
+    QIGUI_AVATAR_SIZE, QIGUI_PORTRAIT_WIDTH, QiGui523Assets, QiGui523UiAction, QiGui523UiState,
+    QiGuiButtonTone, add_draw_pile, add_game_summary_modal, add_opponent_slot,
     add_qigui_action_button, add_round_play, add_score_cards_popup, add_table_score_cards,
     bomb_effect_source, game_has_legal_response, sort_cards_high_to_low,
     spawn_round_play_container,
@@ -90,9 +90,10 @@ pub(crate) fn render_table(
     );
     CardTableSurface {
         brightness: *brightness,
+        default_felt: &assets.tables.felts.paper_card,
         custom_felt: *custom_felt,
     }
-    .apply(commands, content, assets, table_materials);
+    .apply(commands, content, &assets.tables, table_materials);
     let current = game.trick.as_ref().map(|trick| trick.current_player);
     let start_transition_active = start_game_transition.is_active_for(game.match_id);
     let table = spawn_node(
@@ -327,15 +328,14 @@ pub(crate) fn render_table(
                     .and_then(GameRules::qigui523)
                     .is_some_and(|rules| game_has_legal_response(game, rules));
             if can_follow {
-                let (_, selection_label) = add_qigui_action_button(
+                add_qigui_action_button(
                     commands,
                     actions,
-                    &format!("出牌 ({})", ui.selected.len()),
+                    "出牌",
                     UiAction::QiGui523(QiGui523UiAction::Play),
-                    QiGuiButtonTone::Play,
+                    QiGuiButtonTone::Rust,
                     assets,
                 );
-                commands.entity(selection_label).insert(PlaySelectionCount);
             }
             if !is_leading && can_follow {
                 add_qigui_action_button(
@@ -343,7 +343,7 @@ pub(crate) fn render_table(
                     actions,
                     "不要",
                     UiAction::QiGui523(QiGui523UiAction::Pass),
-                    QiGuiButtonTone::Pass,
+                    QiGuiButtonTone::Stone,
                     assets,
                 );
                 add_qigui_action_button(
@@ -351,7 +351,7 @@ pub(crate) fn render_table(
                     actions,
                     "提示",
                     UiAction::QiGui523(QiGui523UiAction::Hint),
-                    QiGuiButtonTone::Hint,
+                    QiGuiButtonTone::Jade,
                     assets,
                 );
             } else if !is_leading {
@@ -361,7 +361,7 @@ pub(crate) fn render_table(
                     actions,
                     "不要",
                     UiAction::QiGui523(QiGui523UiAction::Pass),
-                    QiGuiButtonTone::Pass,
+                    QiGuiButtonTone::Stone,
                     assets,
                 );
             }

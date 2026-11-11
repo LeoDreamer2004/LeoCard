@@ -6,11 +6,11 @@ use super::{
     CardVoices, GameSummaryAnimation, PlayEffectState, StartGameSeatTransition,
     SummaryAnimationSet, SummaryPlayback, TableBackgroundMaterial, TableCardMaterial,
     TableStatusAnimation, TurnBorderAnimationState, TurnBorderMaterial, advance_play_effect,
-    animate_bomb_play_effect, animate_button_arrows, animate_game_summary_visuals,
-    animate_heaven_bomb_play_effect, animate_no_legal_response_hint, animate_playing_card_flips,
-    animate_sequence_play_effect, animate_start_game_seat_transition, animate_summary_scores,
-    animate_table_card_flips, animate_table_piece_deals, animate_table_statuses,
-    animate_turn_border_traces, play_card_voices, play_ui_click_sounds,
+    animate_bomb_play_effect, animate_button_arrows, animate_game_button_entrances,
+    animate_game_summary_visuals, animate_heaven_bomb_play_effect, animate_no_legal_response_hint,
+    animate_playing_card_flips, animate_sequence_play_effect, animate_start_game_seat_transition,
+    animate_summary_scores, animate_table_card_flips, animate_table_piece_deals,
+    animate_table_statuses, animate_turn_border_traces, play_card_voices, play_ui_click_sounds,
     resolve_table_piece_origins, start_game_intro_finished, sync_card_voices,
     update_summary_animation,
 };
@@ -38,6 +38,7 @@ impl Plugin for PresentationPlugin {
             left.justify == right.justify && left.linebreak == right.linebreak
         });
         properties.preserve::<TextColor>();
+        properties.preserve::<TextShadow>();
         properties.preserve::<TableStatusAnimation>();
         properties.preserve::<BackgroundColor>();
         properties.preserve::<BorderColor>();
@@ -132,7 +133,12 @@ impl Plugin for PresentationPlugin {
         )
         .add_systems(
             Update,
-            (update_button_highlights, animate_button_arrows).in_set(ClientUpdateSet::Animate),
+            (
+                update_button_highlights,
+                animate_button_arrows,
+                animate_game_button_entrances,
+            )
+                .in_set(ClientUpdateSet::Animate),
         )
         .add_systems(
             Update,

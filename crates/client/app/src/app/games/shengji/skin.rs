@@ -1,5 +1,5 @@
 use crate::app::presentation::{
-    GAME_SIDE_CONTROL_SCALE, GameButtonSpec, GameButtonTone, add_textured_game_button,
+    GAME_SIDE_CONTROL_SCALE, PaperCardButtonTone, TableActionButton, TableButtonSkin,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -14,42 +14,16 @@ pub(super) fn add_shengji_button(
     commands: &mut UiComposer,
     parent: Entity,
     label: &str,
-    action: UiAction,
+    action: Option<UiAction>,
     assets: &UiAssets,
     width: f32,
     height: f32,
-    tone: GameButtonTone,
+    tone: PaperCardButtonTone,
 ) {
-    add_textured_game_button(
-        commands,
-        parent,
-        assets,
-        GameButtonSpec {
-            width,
-            height,
-            ..GameButtonSpec::compact(assets, label, Some(action), tone)
-        }
-        .scaled(GAME_SIDE_CONTROL_SCALE),
-    );
-}
-
-pub(super) fn add_shengji_disabled_button(
-    commands: &mut UiComposer,
-    parent: Entity,
-    label: &str,
-    assets: &UiAssets,
-    width: f32,
-    height: f32,
-) {
-    add_textured_game_button(
-        commands,
-        parent,
-        assets,
-        GameButtonSpec {
-            width,
-            height,
-            ..GameButtonSpec::compact(assets, label, None, GameButtonTone::Play)
-        }
-        .scaled(GAME_SIDE_CONTROL_SCALE),
-    );
+    TableActionButton {
+        size: Vec2::new(width, height),
+        ..TableActionButton::new(label, action, TableButtonSkin::PaperCard(tone))
+    }
+    .scaled(GAME_SIDE_CONTROL_SCALE)
+    .mount(commands, parent, assets);
 }

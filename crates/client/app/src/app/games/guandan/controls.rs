@@ -1,8 +1,8 @@
 use super::actions::GuandanUiAction;
 use super::state::{GuandanUiState, local_turn, tribute_choice};
 use crate::app::presentation::{
-    GAME_SIDE_CONTROL_SCALE, GameButtonSpec, GameButtonTone, MUTED, add_no_legal_response_hint,
-    add_text, add_textured_game_button,
+    GAME_SIDE_CONTROL_SCALE, MUTED, PaperCardButtonTone, TableActionButton, TableButtonSkin,
+    add_no_legal_response_hint, add_text,
 };
 use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
@@ -35,13 +35,16 @@ pub(super) fn render(
         return;
     }
     let mut button = |label: &str, action: Option<GuandanUiAction>, tone| {
-        add_textured_game_button(
-            commands,
-            row,
-            assets,
-            GameButtonSpec::compact(assets, label, action.map(UiAction::Guandan), tone)
-                .scaled(GAME_SIDE_CONTROL_SCALE),
-        );
+        TableActionButton {
+            size: Vec2::new(142.0, 48.0),
+            ..TableActionButton::new(
+                label,
+                action.map(UiAction::Guandan),
+                TableButtonSkin::PaperCard(tone),
+            )
+        }
+        .scaled(GAME_SIDE_CONTROL_SCALE)
+        .mount(commands, row, assets);
     };
     if matches!(game.phase, GuandanPhase::Tribute) {
         let action = game.tribute_action;
@@ -57,7 +60,7 @@ pub(super) fn render(
                 "进贡"
             },
             allowed.then_some(GuandanUiAction::SubmitTribute),
-            GameButtonTone::Play,
+            PaperCardButtonTone::Pine,
         );
         add_text(
             commands,
@@ -81,17 +84,17 @@ pub(super) fn render(
         button(
             "出牌",
             legal.then_some(GuandanUiAction::Play),
-            GameButtonTone::Play,
+            PaperCardButtonTone::Pine,
         );
         button(
             "不出",
             game.table.is_some().then_some(GuandanUiAction::Pass),
-            GameButtonTone::Pass,
+            PaperCardButtonTone::Stone,
         );
         button(
             "提示",
             (!ui.hints.is_empty()).then_some(GuandanUiAction::Hint),
-            GameButtonTone::Hint,
+            PaperCardButtonTone::Jade,
         );
         if game.table.is_some() && ui.hints.is_empty() {
             add_no_legal_response_hint(commands, row, "没有牌能压过桌面牌", assets);

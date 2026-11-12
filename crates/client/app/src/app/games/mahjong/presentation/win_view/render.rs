@@ -1,6 +1,7 @@
 use super::super::super::{
-    MahjongAssets, MahjongCalligraphyKind, MahjongTileMaterial, MahjongWinEffect,
-    mahjong_win_effect_tier, mahjong_win_reveal_duration,
+    MahjongAssets, MahjongCalligraphyKind, MahjongMajorFanAssets, MahjongTileMaterial,
+    MahjongWinArtMaterial, MahjongWinEffect, MahjongWinInkMaterial, mahjong_win_effect_tier,
+    mahjong_win_reveal_duration,
 };
 use super::super::claim::MahjongSeatGeometry;
 use super::{WinStageContext, mahjong_win_effect_visual, render_win_stage};
@@ -13,9 +14,13 @@ use leocard_protocol::{MahjongPhaseView, MahjongSnapshot};
 use leocard_ui::UiComposer;
 
 pub(crate) struct MahjongWinVisuals<'a> {
+    pub viewport: Entity,
     pub assets: &'a UiAssets,
     pub game_assets: &'a MahjongAssets,
     pub materials: &'a mut Assets<MahjongTileMaterial>,
+    pub ink_materials: &'a mut Assets<MahjongWinInkMaterial>,
+    pub major_assets: &'a MahjongMajorFanAssets,
+    pub art_materials: &'a mut Assets<MahjongWinArtMaterial>,
 }
 
 pub(crate) fn render_mahjong_win_effects(
@@ -32,15 +37,20 @@ pub(crate) fn render_mahjong_win_effects(
     };
     let reveal_duration = mahjong_win_reveal_duration(result);
     let MahjongWinVisuals {
+        viewport,
         assets,
         game_assets,
         materials,
+        ink_materials,
+        major_assets,
+        art_materials,
     } = visuals;
     for (winner_index, winner) in result.winners.iter().enumerate() {
         let tier = mahjong_win_effect_tier(winner);
         render_win_stage(WinStageContext {
             commands,
             table,
+            viewport,
             game,
             result,
             winner_index,
@@ -48,6 +58,9 @@ pub(crate) fn render_mahjong_win_effects(
             assets,
             game_assets,
             materials,
+            ink_materials,
+            major_assets,
+            art_materials,
         });
         let Some((scale, alpha, offset_y)) =
             mahjong_win_effect_visual(animation.elapsed, reveal_duration, tier)

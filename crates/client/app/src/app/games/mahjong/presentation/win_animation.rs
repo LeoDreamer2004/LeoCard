@@ -1,19 +1,15 @@
 use super::super::{
     MahjongCalligraphy, MahjongTileHighlight, MahjongTileMaterial, MahjongTileRestRotation,
-    MahjongTileSurface, MahjongWinEffect, MahjongWinEffectTier, MahjongWinFanGlyph,
-    MahjongWinScreenShake, MahjongWinStageKind, MahjongWinStagePart, MahjongWinningHand,
+    MahjongTileSurface, MahjongWinEffect, MahjongWinEffectTier, MahjongWinningHand,
     mahjong_win_effect_tier, mahjong_win_reveal_duration, mahjong_win_stage_start,
 };
 use super::MAHJONG_WIN_PUSH_DURATION;
-use super::win_view::{mahjong_win_effect_color, mahjong_win_effect_visual};
-use crate::app::presentation::{DESIGN_WIDTH, GameSummaryAnimation, ease_out_cubic};
+use super::win_view::mahjong_win_effect_visual;
+use crate::app::presentation::{GameSummaryAnimation, ease_out_cubic};
 use bevy::prelude::*;
 use leocard_mahjong::MahjongWinRecord;
 use leocard_protocol::MahjongHandResultView;
 use leocard_ui::UiComposer;
-use std::f32::consts;
-
-pub(crate) const MAHJONG_HIGH_SHOWCASE_DELAY: f32 = 0.76;
 
 #[derive(Clone, Copy)]
 pub(crate) struct MahjongWinTileCue {
@@ -135,42 +131,15 @@ fn mahjong_win_tile_pose(cue: MahjongWinTileCue, local: f32) -> (f32, f32) {
     (rotation, scale)
 }
 
-#[expect(
-    clippy::type_complexity,
-    reason = "disjoint Bevy queries encode mutually exclusive animation layers"
-)]
 pub(crate) fn animate_mahjong_win_effects(
     animation: Res<GameSummaryAnimation>,
-    mut effects: Query<
-        (
-            &MahjongWinEffect,
-            &MahjongCalligraphy,
-            &mut UiTransform,
-            &mut Visibility,
-        ),
-        (Without<MahjongWinStagePart>, Without<MahjongWinFanGlyph>),
-    >,
+    mut effects: Query<(
+        &MahjongWinEffect,
+        &MahjongCalligraphy,
+        &mut UiTransform,
+        &mut Visibility,
+    )>,
     mut images: Query<&mut ImageNode>,
-    mut glyphs: Query<
-        (
-            &MahjongWinFanGlyph,
-            &mut UiTransform,
-            &mut Visibility,
-            &mut TextColor,
-            &mut TextShadow,
-        ),
-        (Without<MahjongWinEffect>, Without<MahjongWinStagePart>),
-    >,
-    mut stages: Query<
-        (
-            &MahjongWinStagePart,
-            &mut UiTransform,
-            &mut Visibility,
-            Option<&mut BackgroundColor>,
-            Option<&mut BorderColor>,
-        ),
-        (Without<MahjongWinEffect>, Without<MahjongWinFanGlyph>),
-    >,
 ) {
     for (effect, calligraphy, mut transform, mut visibility) in &mut effects {
         let Some((scale, alpha, offset_y)) =
@@ -183,188 +152,6 @@ pub(crate) fn animate_mahjong_win_effects(
         transform.translation = Val2::px(0.0, offset_y);
         transform.scale = Vec2::splat(scale);
         *visibility = Visibility::Visible;
-    }
-    for (glyph, mut transform, mut visibility, mut color, mut shadow) in &mut glyphs {
-        let local = animation.elapsed + glyph.reveal_duration - glyph.start - glyph.delay;
-        if !(0.0..1.24).contains(&local) {
-            *visibility = Visibility::Hidden;
-            color.0 = Color::NONE;
-            shadow.color = Color::NONE;
-            continue;
-        }
-        let impact = ease_out_cubic((local / 0.18).clamp(0.0, 1.0));
-        let vibration = ((local - 0.12) / 0.42).clamp(0.0, 1.0);
-        let strength = (1.0 - vibration).powi(2);
-        let fade_out = ((1.24 - local) / 0.28).clamp(0.0, 1.0);
-        transform.translation = Val2::px(
-            (local * 93.0).sin() * 11.0 * strength,
-            -190.0 * (1.0 - impact) + (local * 127.0).sin() * 6.0 * strength,
-        );
-        transform.rotation = Rot2::radians((local * 71.0).sin() * 0.075 * strength);
-        transform.scale =
-            Vec2::splat(1.0 + 3.4 * (1.0 - impact) + (vibration * consts::PI).sin() * 0.12);
-        color.0 = mahjong_win_effect_color(MahjongWinEffectTier::MajorFan, false, fade_out);
-        shadow.color = Color::BLACK.with_alpha(0.88 * fade_out);
-        *visibility = Visibility::Visible;
-    }
-    for (stage, mut transform, mut visibility, background, border) in &mut stages {
-        let elapsed = animation.elapsed + stage.reveal_duration - stage.start;
-        if !(0.0..stage.duration).contains(&elapsed) {
-            *visibility = Visibility::Hidden;
-            continue;
-        }
-        *visibility = Visibility::Visible;
-        let fade_out = ((stage.duration - elapsed) / 0.18).clamp(0.0, 1.0);
-        match stage.kind {
-            MahjongWinStageKind::Backdrop => {
-                let fade_in = (elapsed / 0.16).clamp(0.0, 1.0);
-                let strength = if stage.tier == MahjongWinEffectTier::MajorFan {
-                    0.76
-                } else {
-                    0.44
-                };
-                transform.translation = Val2::ZERO;
-                transform.scale = Vec2::ONE;
-                transform.rotation = Rot2::IDENTITY;
-                if let Some(mut background) = background {
-                    background.0 = if stage.tier == MahjongWinEffectTier::MajorFan {
-                        Color::BLACK.with_alpha(fade_in * fade_out * strength)
-                    } else {
-                        Color::BLACK.with_alpha(fade_in * fade_out * 0.86)
-                    };
-                }
-            }
-            MahjongWinStageKind::Reveal => {
-                *transform = UiTransform::IDENTITY;
-            }
-            MahjongWinStageKind::Hand => {
-                let progress = ease_out_cubic((elapsed / 0.78).clamp(0.0, 1.0));
-                transform.translation = Val2::px(0.0, -12.0 * (1.0 - progress));
-                transform.scale = Vec2::new(1.0, 0.08 + progress * 0.92);
-                transform.rotation = Rot2::IDENTITY;
-                if let Some(mut background) = background {
-                    background.0 = Color::NONE;
-                }
-            }
-            MahjongWinStageKind::FocusRay {
-                delay,
-                direction,
-                phase,
-            } => {
-                let local = elapsed - delay;
-                if local < 0.0 {
-                    *visibility = Visibility::Hidden;
-                    continue;
-                }
-                let intro = ease_out_cubic((local / 0.24).clamp(0.0, 1.0));
-                let cycle = (local * 0.72 + phase).fract();
-                let envelope = (cycle * consts::PI).sin().max(0.0).powf(0.65);
-                let travel = 72.0 - cycle * 112.0;
-                transform.translation = Val2::px(direction.x * travel, direction.y * travel);
-                transform.rotation = Rot2::radians(direction.y.atan2(direction.x));
-                transform.scale = Vec2::new(0.42 + envelope * 0.86, 0.76 + envelope * 0.24);
-                if let Some(mut background) = background {
-                    background.0 = mahjong_win_effect_color(
-                        MahjongWinEffectTier::HighTotal,
-                        phase > 0.48,
-                        intro * fade_out * envelope * 0.78,
-                    );
-                }
-            }
-            MahjongWinStageKind::MajorFrame => {
-                let progress = ease_out_cubic((elapsed / 0.48).clamp(0.0, 1.0));
-                let pulse = 0.76 + (elapsed * 3.4).sin() * 0.14;
-                transform.translation = Val2::ZERO;
-                transform.rotation = Rot2::IDENTITY;
-                transform.scale = Vec2::splat(1.018 - progress * 0.018);
-                if let Some(mut border) = border {
-                    *border = BorderColor::all(mahjong_win_effect_color(
-                        MahjongWinEffectTier::MajorFan,
-                        true,
-                        progress * fade_out * pulse,
-                    ));
-                }
-            }
-            MahjongWinStageKind::MajorSweep { delay } => {
-                let local = elapsed - delay;
-                if local < 0.0 {
-                    *visibility = Visibility::Hidden;
-                    continue;
-                }
-                let progress = ease_out_cubic((local / 0.56).clamp(0.0, 1.0));
-                let shimmer = 0.64 + (local * 4.2).sin().abs() * 0.24;
-                transform.translation = Val2::ZERO;
-                transform.rotation = Rot2::IDENTITY;
-                transform.scale = Vec2::new(0.02 + progress * 0.98, 1.0);
-                if let Some(mut background) = background {
-                    background.0 = mahjong_win_effect_color(
-                        MahjongWinEffectTier::MajorFan,
-                        true,
-                        progress * fade_out * shimmer,
-                    );
-                }
-            }
-            MahjongWinStageKind::MajorSpark {
-                delay,
-                drift,
-                phase,
-            } => {
-                let local = elapsed - delay;
-                if local < 0.0 {
-                    *visibility = Visibility::Hidden;
-                    continue;
-                }
-                let cycle = (local * 0.43 + phase).fract();
-                let glow = (cycle * consts::PI).sin().max(0.0);
-                transform.translation = Val2::px(drift.x * cycle, drift.y * cycle);
-                transform.rotation = Rot2::radians(local * 1.8 + phase * 5.0);
-                transform.scale = Vec2::splat(0.55 + glow * 0.85);
-                if let Some(mut background) = background {
-                    background.0 = mahjong_win_effect_color(
-                        MahjongWinEffectTier::MajorFan,
-                        phase > 0.5,
-                        glow * fade_out * 0.74,
-                    );
-                }
-            }
-            MahjongWinStageKind::ImpactFlash { delay } => {
-                let local = elapsed - delay;
-                if !(0.0..0.26).contains(&local) {
-                    *visibility = Visibility::Hidden;
-                    continue;
-                }
-                let strength = (local / 0.26 * consts::PI).sin().max(0.0);
-                transform.translation = Val2::ZERO;
-                transform.rotation = Rot2::IDENTITY;
-                transform.scale = Vec2::ONE;
-                if let Some(mut background) = background {
-                    background.0 = Color::srgba(1.0, 0.72, 0.16, strength * 0.13);
-                }
-            }
-        }
-    }
-}
-
-pub(crate) fn animate_mahjong_win_screen_shake(
-    animation: Res<GameSummaryAnimation>,
-    mut tables: Query<(&MahjongWinScreenShake, &mut UiTransform)>,
-) {
-    for (shake, mut transform) in &mut tables {
-        let timeline = animation.elapsed + shake.reveal_duration;
-        let mut offset = Vec2::ZERO;
-        let mut rotation = 0.0;
-        for impact in &shake.impacts {
-            let local = timeline - impact;
-            if !(0.0..0.38).contains(&local) {
-                continue;
-            }
-            let strength = (1.0 - local / 0.38).powi(2);
-            offset.x += (local * 109.0).sin() * 5.5 * strength;
-            offset.y += (local * 151.0).sin() * 3.5 * strength;
-            rotation += (local * 83.0).sin() * 0.006 * strength;
-        }
-        transform.translation = Val2::px(-DESIGN_WIDTH / 2.0 + offset.x, offset.y);
-        transform.rotation = Rot2::radians(rotation);
     }
 }
 

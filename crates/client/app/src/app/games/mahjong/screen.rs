@@ -2,8 +2,9 @@
 
 use super::super::{GameLobbyContext, GameScreen, GameTableContext};
 use super::{
-    MahjongAssets, MahjongClaimPresentationState, MahjongFanCalculator, MahjongTableVisuals,
-    MahjongUiState, render_mahjong_lobby, render_mahjong_table,
+    MahjongAssets, MahjongClaimPresentationState, MahjongFanCalculator, MahjongMajorFanAssets,
+    MahjongTableVisuals, MahjongUiState, MahjongWinArtMaterial, MahjongWinInkMaterial,
+    mahjong_major_fan, render_mahjong_lobby, render_mahjong_table,
 };
 use crate::app::games::{GameActionPrompt, GameUiLifecycle};
 use crate::app::runtime::ClientResource;
@@ -18,6 +19,10 @@ use leocard_ui::UiComposer;
 #[derive(SystemParam)]
 pub(crate) struct MahjongScreen<'w> {
     assets: Res<'w, MahjongAssets>,
+    asset_server: Res<'w, AssetServer>,
+    ink_materials: ResMut<'w, Assets<MahjongWinInkMaterial>>,
+    major_assets: ResMut<'w, MahjongMajorFanAssets>,
+    art_materials: ResMut<'w, Assets<MahjongWinArtMaterial>>,
     pub(super) ui: ResMut<'w, MahjongUiState>,
     fan_calculator: Res<'w, MahjongFanCalculator>,
     claim_presentation: Res<'w, MahjongClaimPresentationState>,
@@ -66,6 +71,14 @@ impl GameScreen for MahjongScreen<'_> {
             ..
         } = context;
         let interaction_menu_open = social.interaction_menu_open;
+        let winners = match &game.phase {
+            MahjongPhaseView::Finished { result } => result.winners.as_slice(),
+            _ => &[],
+        };
+        self.major_assets.prepare(
+            &self.asset_server,
+            winners.iter().filter_map(mahjong_major_fan),
+        );
         render_mahjong_table(
             commands,
             root,
@@ -83,6 +96,9 @@ impl GameScreen for MahjongScreen<'_> {
                 brightness: form.mahjong_table_brightness,
                 table_materials,
                 tile_materials: mahjong_tile_materials,
+                ink_materials: &mut self.ink_materials,
+                major_assets: &self.major_assets,
+                art_materials: &mut self.art_materials,
                 start_game_transition: transition,
                 game_summary,
                 claim_presentation: &self.claim_presentation,
@@ -118,7 +134,10 @@ impl GameUiLifecycle for MahjongScreen<'_> {
     fn reconcile(&mut self, client: Option<&ClientResource>, _social: &mut SocialUiState) {
         match client.map(|client| client.0.model().phase()) {
             Some(ClientPhaseRef::Playing(GameSnapshot::Mahjong(game))) => self.ui.reconcile(game),
-            _ => self.ui.clear(),
+            _ => {
+                self.ui.clear();
+                self.major_assets.prepare(&self.asset_server, []);
+            }
         }
     }
 }

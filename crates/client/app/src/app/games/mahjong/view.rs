@@ -4,13 +4,14 @@ use super::layout::MahjongLayout as Layout;
 use super::tiles::queue_mahjong_deal_sound;
 use super::wall::render_mahjong_wall;
 use super::{
-    MAHJONG_WIN_PUSH_DURATION, MahjongActionPrompt, MahjongActionVoice, MahjongAssets,
-    MahjongDiscardRiverVisuals, MahjongOwnHandVisuals, MahjongPlayerPanelVisuals,
+    MAHJONG_INK_SHOWCASE_DURATION, MAHJONG_MAJOR_SHOWCASE_DURATION, MAHJONG_WIN_PUSH_DURATION,
+    MahjongActionPrompt, MahjongActionVoice, MahjongAssets, MahjongDiscardRiverVisuals,
+    MahjongMajorFanAssets, MahjongOwnHandVisuals, MahjongPlayerPanelVisuals,
     MahjongPlayerTileVisuals, MahjongSettlementVisuals, MahjongTableRoot, MahjongTileMaterial,
-    MahjongTileVoicePlayback, MahjongUiState, MahjongWinVisuals, MahjongWinningHandVisual,
-    add_mahjong_ready_hint, mahjong_major_fan_impact_times, observe_discard_animations,
-    queue_mahjong_action_voice, render_action_bar, render_discard_rivers,
-    render_mahjong_auto_drawer, render_mahjong_claim_presentation,
+    MahjongTileVoicePlayback, MahjongUiState, MahjongWinArtMaterial, MahjongWinInkMaterial,
+    MahjongWinVisuals, MahjongWinningHandVisual, add_mahjong_ready_hint,
+    observe_discard_animations, queue_mahjong_action_voice, render_action_bar,
+    render_discard_rivers, render_mahjong_auto_drawer, render_mahjong_claim_presentation,
     render_mahjong_flower_presentations, render_mahjong_player_panel, render_mahjong_player_tiles,
     render_mahjong_settlement, render_mahjong_win_effects, render_own_discard_flight,
     render_own_hand, render_round_status, sync_mahjong_tile_voice,
@@ -196,8 +197,8 @@ impl MahjongWinEffectTier {
     pub(super) const fn presentation_duration(self) -> f32 {
         match self {
             Self::Normal => 0.90,
-            Self::HighTotal => 2.45,
-            Self::MajorFan => 4.80,
+            Self::HighTotal => MAHJONG_INK_SHOWCASE_DURATION,
+            Self::MajorFan => MAHJONG_MAJOR_SHOWCASE_DURATION,
         }
     }
 }
@@ -228,52 +229,6 @@ fn mahjong_win_hand_start(result: &MahjongHandResultView, winner_index: usize) -
 }
 
 #[derive(Clone, Copy)]
-pub(crate) enum MahjongWinStageKind {
-    Backdrop,
-    Reveal,
-    Hand,
-    FocusRay {
-        delay: f32,
-        direction: Vec2,
-        phase: f32,
-    },
-    MajorFrame,
-    MajorSweep {
-        delay: f32,
-    },
-    MajorSpark {
-        delay: f32,
-        drift: Vec2,
-        phase: f32,
-    },
-    ImpactFlash {
-        delay: f32,
-    },
-}
-
-#[derive(Component)]
-pub(crate) struct MahjongWinStagePart {
-    pub tier: MahjongWinEffectTier,
-    pub reveal_duration: f32,
-    pub start: f32,
-    pub duration: f32,
-    pub kind: MahjongWinStageKind,
-}
-
-#[derive(Component)]
-pub(crate) struct MahjongWinFanGlyph {
-    pub reveal_duration: f32,
-    pub start: f32,
-    pub delay: f32,
-}
-
-#[derive(Component)]
-pub(crate) struct MahjongWinScreenShake {
-    pub reveal_duration: f32,
-    pub impacts: Vec<f32>,
-}
-
-#[derive(Clone, Copy)]
 pub(crate) struct MahjongDealSpec {
     pub start_offset: Vec2,
     pub start_rotation: f32,
@@ -289,6 +244,9 @@ pub(crate) struct MahjongTableVisuals<'a> {
     pub brightness: f32,
     pub table_materials: &'a mut Assets<TableBackgroundMaterial>,
     pub tile_materials: &'a mut Assets<MahjongTileMaterial>,
+    pub ink_materials: &'a mut Assets<MahjongWinInkMaterial>,
+    pub major_assets: &'a MahjongMajorFanAssets,
+    pub art_materials: &'a mut Assets<MahjongWinArtMaterial>,
     pub start_game_transition: &'a StartGameSeatTransition,
     pub game_summary: &'a GameSummaryAnimation,
     pub claim_presentation: &'a MahjongClaimPresentationState,
@@ -512,6 +470,9 @@ pub(crate) fn render_mahjong_table(
         brightness,
         table_materials,
         tile_materials,
+        ink_materials,
+        major_assets,
+        art_materials,
         start_game_transition,
         game_summary,
         claim_presentation,
@@ -623,21 +584,12 @@ pub(crate) fn render_mahjong_table(
         _ => None,
     };
     let win_reveal_duration = finished_result.map_or(0.0, mahjong_win_reveal_duration);
-    if let Some(result) = finished_result {
-        let impacts = mahjong_major_fan_impact_times(result);
-        if !impacts.is_empty() {
-            commands.entity(table).insert(MahjongWinScreenShake {
-                reveal_duration: win_reveal_duration,
-                impacts,
-            });
-        }
-    }
     let all_hands_start = finished_result.and_then(|result| {
         result
             .winners
             .iter()
             .position(|winner| mahjong_win_effect_tier(winner) == MahjongWinEffectTier::MajorFan)
-            .map(|index| mahjong_win_stage_start(result, index) + 0.78)
+            .map(|index| mahjong_win_stage_start(result, index) + 1.1)
     });
     render_mahjong_wall(commands, table, game, own_seat, game_assets, tile_materials);
     let action_prompt = MahjongActionPrompt::from_snapshot(game, ui);
@@ -858,9 +810,13 @@ pub(crate) fn render_mahjong_table(
         own_seat,
         game_summary,
         MahjongWinVisuals {
+            viewport: content,
             assets,
             game_assets,
             materials: tile_materials,
+            ink_materials,
+            major_assets,
+            art_materials,
         },
     );
     let local_auto_play = matches!(

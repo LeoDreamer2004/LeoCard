@@ -1,6 +1,6 @@
 use super::{
-    FAN_VOICE_SPECS, MahjongCalligraphyAssets, MahjongTurnLightMaterial, MahjongWindLabelMaterial,
-    MahjongWindLabels, mahjong_tile_voice_key,
+    FAN_VOICE_SPECS, MahjongCalligraphyAssets, MahjongTurnLightMaterial, MahjongWinShowcaseAssets,
+    MahjongWindLabelMaterial, MahjongWindLabels, mahjong_tile_voice_key,
 };
 use crate::app::games::GameFeedback;
 use crate::app::presentation::mahjong::MahjongTileAssets;
@@ -17,6 +17,7 @@ pub(crate) struct MahjongAssets {
     pub(super) wind_labels: MahjongWindLabels,
     pub(super) ready_hand: Handle<Image>,
     pub(super) calligraphy: MahjongCalligraphyAssets,
+    pub(super) win_showcase: MahjongWinShowcaseAssets,
     pub(super) action_prompt: Handle<AudioSource>,
     pub(super) dice_throw: Handle<AudioSource>,
     fan_voices: BTreeMap<MahjongFan, [Handle<AudioSource>; 2]>,
@@ -87,6 +88,7 @@ impl MahjongAssets {
             visuals,
             ready_hand: asset_server.load("ui/mahjong/ready-hand.png"),
             calligraphy: MahjongCalligraphyAssets::load(asset_server),
+            win_showcase: MahjongWinShowcaseAssets::load(asset_server),
             fan_voices: FAN_VOICE_SPECS
                 .iter()
                 .map(|spec| {

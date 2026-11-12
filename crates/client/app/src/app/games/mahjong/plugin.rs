@@ -2,7 +2,7 @@ use super::dice::MahjongDicePlugin;
 use super::hover::sync_fan_calculator;
 use super::{
     MahjongClaimPresentationState, MahjongFanCalculator, MahjongFanGuideScroll,
-    MahjongFanVoicePlayback, MahjongMajorFanAssets, MahjongPromptPlayback,
+    MahjongFanVoicePlayback, MahjongMajorFanAssets, MahjongPromptPlayback, MahjongShowcasePlayback,
     MahjongTurnLightMaterial, MahjongUiState, MahjongWinArtMaterial, MahjongWinInkMaterial,
     MahjongWindLabelMaterial, actions, advance_mahjong_claim_presentation, advance_mahjong_modal,
     animate_mahjong_claim_presentation, animate_mahjong_deal_tiles,
@@ -12,8 +12,9 @@ use super::{
     animate_mahjong_showcase_tiles, animate_mahjong_turn_sector, animate_mahjong_win_effects,
     animate_mahjong_win_showcases, animate_mahjong_win_tile_shakes, animate_mahjong_winning_hands,
     animate_own_discard, animate_remote_discard, apply_automatic_mahjong_action, assets,
-    play_mahjong_action_prompt, play_mahjong_fan_voices, sync_mahjong_claim_presentation,
-    sync_mahjong_fan_guide, sync_mahjong_hand_tile_materials, sync_mahjong_hover_hints,
+    play_mahjong_action_prompt, play_mahjong_fan_voices, play_mahjong_showcase_sounds,
+    play_mahjong_tile_sounds, sync_mahjong_claim_presentation, sync_mahjong_fan_guide,
+    sync_mahjong_hand_tile_materials, sync_mahjong_hover_hints,
 };
 use crate::app::presentation::mahjong::MahjongAssetsSet;
 use crate::app::presentation::start_game_intro_finished;
@@ -40,6 +41,7 @@ impl Plugin for MahjongPlugin {
             .init_resource::<MahjongFanCalculator>()
             .init_resource::<MahjongPromptPlayback>()
             .init_resource::<MahjongMajorFanAssets>()
+            .init_resource::<MahjongShowcasePlayback>()
             .add_systems(
                 Update,
                 advance_mahjong_modal.in_set(ModalAnimationSet::Progress),
@@ -81,6 +83,7 @@ impl Plugin for MahjongPlugin {
                 Update,
                 (
                     play_mahjong_action_prompt,
+                    play_mahjong_tile_sounds,
                     animate_mahjong_response_indicators,
                     animate_mahjong_deal_tiles,
                     animate_own_discard,
@@ -118,6 +121,12 @@ impl Plugin for MahjongPlugin {
                 )
                     .chain()
                     .run_if(start_game_intro_finished)
+                    .in_set(ClientUpdateSet::Animate),
+            )
+            .add_systems(
+                Update,
+                play_mahjong_showcase_sounds
+                    .after(animate_mahjong_showcase_tiles)
                     .in_set(ClientUpdateSet::Animate),
             );
     }

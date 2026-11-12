@@ -1,6 +1,7 @@
 use super::{
-    FAN_VOICE_SPECS, MahjongCalligraphyAssets, MahjongTurnLightMaterial, MahjongWinShowcaseAssets,
-    MahjongWindLabelMaterial, MahjongWindLabels, mahjong_tile_voice_key,
+    FAN_VOICE_SPECS, MahjongCalligraphyAssets, MahjongShowcaseSounds, MahjongTableSounds,
+    MahjongTurnLightMaterial, MahjongWinShowcaseAssets, MahjongWindLabelMaterial,
+    MahjongWindLabels, mahjong_tile_voice_key,
 };
 use crate::app::games::GameFeedback;
 use crate::app::presentation::mahjong::MahjongTileAssets;
@@ -20,6 +21,8 @@ pub(crate) struct MahjongAssets {
     pub(super) win_showcase: MahjongWinShowcaseAssets,
     pub(super) action_prompt: Handle<AudioSource>,
     pub(super) dice_throw: Handle<AudioSource>,
+    pub(super) table_sounds: MahjongTableSounds,
+    pub(super) showcase_sounds: MahjongShowcaseSounds,
     fan_voices: BTreeMap<MahjongFan, [Handle<AudioSource>; 2]>,
     action_voices: [[[Handle<AudioSource>; 2]; 8]; 2],
     tile_voices: HashMap<MahjongTileKind, [[Handle<AudioSource>; 2]; 2]>,
@@ -114,6 +117,8 @@ impl MahjongAssets {
             }),
             action_prompt: asset_server.load("vendor/kenney/interface-sounds/Audio/pluck_001.ogg"),
             dice_throw: asset_server.load("vendor/kenney/casino-audio/Audio/dice-throw-1.ogg"),
+            table_sounds: MahjongTableSounds::load(asset_server),
+            showcase_sounds: MahjongShowcaseSounds::load(asset_server),
             tile_voices: (0..34)
                 .filter_map(MahjongTileKind::from_index34)
                 .map(|kind| {

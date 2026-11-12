@@ -1,3 +1,4 @@
+mod audio;
 mod common;
 mod context;
 mod high;
@@ -7,6 +8,9 @@ mod stage;
 mod tile_motion;
 mod timeline;
 
+pub(crate) use audio::{
+    MahjongShowcasePlayback, MahjongShowcaseSounds, play_mahjong_showcase_sounds,
+};
 pub(crate) use common::*;
 use context::WinShowcaseContext;
 use high::render_high_win_showcase;

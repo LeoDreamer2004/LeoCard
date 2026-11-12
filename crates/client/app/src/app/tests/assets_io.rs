@@ -141,6 +141,18 @@ fn every_runtime_ui_and_card_sound_decodes_with_enabled_bevy_formats() {
     sounds.push("vendor/noname/audio/effect/flappybird_die.ogg".to_owned());
     sounds.push("audio/shengji/power-off.ogg".to_owned());
     sounds.push("audio/shengji/power-on.ogg".to_owned());
+    sounds.extend(["draw", "discard"].map(|action| format!("audio/mahjong/table/{action}.ogg")));
+    sounds.push("audio/mahjong/showcase/high.mp3".to_owned());
+    sounds.extend(
+        ["major-background", "tile-impact", "glyph-impact"]
+            .map(|name| format!("audio/mahjong/showcase/{name}.ogg")),
+    );
+    sounds.extend(
+        [
+            "reverse", "skip", "draw-1", "draw-2", "draw-3", "draw-4", "uno-call",
+        ]
+        .map(|name| format!("audio/uno/actions/{name}.ogg")),
+    );
     for gender in ["male", "female"] {
         for action in [
             "chow",

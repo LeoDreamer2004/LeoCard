@@ -1,0 +1,79 @@
+{
+  "sample_rate": 48000,
+  "channels": 1,
+  "codec": "Ogg Vorbis quality 5",
+  "sources": {
+    "assets/vendor/bmaczero/playing-card-sounds/contact1.wav": "6b5c7632849848604d4321e37af0a93369eda54d2190b433454151a3e9b81e86",
+    "assets/vendor/bmaczero/playing-card-sounds/contact2.wav": "7a30a388cab6ce4b9da74fbc13f3a376ec4e588a024d1e26d59545d0153e5433",
+    "assets/vendor/bmaczero/playing-card-sounds/cut.wav": "e34049add637cd31efe11aedfd93d5834f9e469ffb083b444c15aa709f1ac1d1",
+    "assets/vendor/sfxmint/mahjong/discard.mp3": "f67a18e83ecb7b5cb0f35c738f3563fbd7925e303667e2b523a11dfcbc7cd115",
+    "assets/vendor/sfxmint/mahjong/draw.mp3": "260abee8024ee77bc1dea192e5fde50fa7e44a57ccb18116002a39e6509c096c"
+  },
+  "outputs": [
+    {
+      "file": "assets/audio/mahjong/table/draw.ogg",
+      "duration": 1.2144,
+      "peak": 0.4,
+      "bytes": 15022,
+      "sha256": "6bf69218f7cc5e8c859203b68e2657fbb7b919c5f327cf7db0d55ca1fce6854a",
+      "source": "assets/vendor/sfxmint/mahjong/draw.mp3"
+    },
+    {
+      "file": "assets/audio/mahjong/table/discard.ogg",
+      "duration": 0.2611,
+      "peak": 0.4,
+      "bytes": 6468,
+      "sha256": "de74524ab56dff5bf60d071da6913c48dee2ef1762ff2a434a28c6682aac9ae7",
+      "source": "assets/vendor/sfxmint/mahjong/discard.mp3"
+    },
+    {
+      "file": "assets/audio/uno/actions/reverse.ogg",
+      "duration": 0.42,
+      "peak": 0.3608,
+      "bytes": 7894,
+      "sha256": "cd6df690faa0138ebb68bff966275949e05b6797893252797e2ee4dfca7170aa"
+    },
+    {
+      "file": "assets/audio/uno/actions/skip.ogg",
+      "duration": 0.38,
+      "peak": 0.4,
+      "bytes": 6156,
+      "sha256": "c4737e71ccd3eb9c6e0581f946d6895d60295d77c57057bbbb2565165ecdaa1a"
+    },
+    {
+      "file": "assets/audio/uno/actions/draw-2.ogg",
+      "duration": 0.48,
+      "peak": 0.3877,
+      "bytes": 7607,
+      "sha256": "7748ec2528851a91c6ce97127bed2771097fda9b9d1aa3b44824e988b9422ccd"
+    },
+    {
+      "file": "assets/audio/uno/actions/draw-4.ogg",
+      "duration": 0.7,
+      "peak": 0.3543,
+      "bytes": 10453,
+      "sha256": "abc8e90c3abb2e165cc36134a7b58c7538e1736eceb2fc8fa9b0fbe93aa2ac37"
+    },
+    {
+      "file": "assets/audio/uno/actions/uno-call.ogg",
+      "duration": 0.7,
+      "peak": 0.2332,
+      "bytes": 7244,
+      "sha256": "72bb3e7856ffa43773dcadfa22d8d50b737046ba70de5051ded9520a34bcd663"
+    },
+    {
+      "file": "assets/audio/uno/actions/draw-1.ogg",
+      "duration": 0.35,
+      "peak": 0.3543,
+      "bytes": 6034,
+      "sha256": "1e3aa2ad40b51e9daa4e465f46cbdd6898cfedd54d4067158d2fe7f5dc1db17f"
+    },
+    {
+      "file": "assets/audio/uno/actions/draw-3.ogg",
+      "duration": 0.57,
+      "peak": 0.3543,
+      "bytes": 9026,
+      "sha256": "e5b2ee140928258ea27d93137c8abe0260a1e805352ec71ced4ad07ddbdb2a1c"
+    }
+  ]
+}

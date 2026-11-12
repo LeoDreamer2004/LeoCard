@@ -4,8 +4,7 @@ use super::{
     MahjongHoverHandKind, MahjongTileMaterial, MahjongTileSurface, MahjongUiState,
     attach_mahjong_tile_surface, mahjong_local_light,
 };
-use crate::app::presentation::{PendingDealSound, ease_out_cubic};
-use crate::app::runtime::UiAssets;
+use crate::app::presentation::ease_out_cubic;
 use crate::app::shell::UiAction;
 use bevy::picking::hover::PickingInteraction;
 use bevy::prelude::*;
@@ -50,16 +49,6 @@ pub(super) fn mahjong_draw_spec(relative: u8) -> MahjongDealSpec {
         start_rotation: 0.0,
         falling: true,
     }
-}
-
-pub(super) fn queue_mahjong_deal_sound(commands: &mut UiComposer, assets: &UiAssets) {
-    if assets.audio.deal_sounds.is_empty() {
-        return;
-    }
-    commands.effect(PendingDealSound {
-        remaining: 0.0,
-        variant: fastrand::usize(..assets.audio.deal_sounds.len()),
-    });
 }
 
 #[expect(
